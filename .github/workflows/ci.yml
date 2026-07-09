@@ -1,0 +1,60 @@
+# PR gates in genesis/14 §07 order: typecheck → lint → unit + fixtures → traceability → isolation.
+name: ci
+on:
+  pull_request:
+  push: { branches: [main] }
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: typecheck (strict, no any)
+        run: pnpm typecheck
+      - name: lint (incl. REQ-024 LLM-in-ledger ban, REQ-163 prior-codebase ban)
+        run: pnpm lint
+      - name: unit tests (tools + packages + workers)
+        run: pnpm test
+      - name: fixture registry (REQ-112)
+        run: pnpm check:fixtures
+      - name: seed determinism (REQ-155)
+        run: pnpm check:seed
+      - name: invariants I3/I8
+        run: pnpm check:invariants
+      - name: traceability — PR REQ-IDs (REQ-118)
+        if: github.event_name == 'pull_request'
+        env:
+          PR_BODY: |
+            ${{ github.event.pull_request.title }}
+            ${{ github.event.pull_request.body }}
+        run: pnpm check:pr
+      - name: traceability — orphan detector (REQ-118)
+        run: pnpm check:traceability
+      - name: identity-leak lint (REQ-167 — denylist is a CI secret, never in repo)
+        env:
+          IDENTITY_DENYLIST: ${{ secrets.IDENTITY_DENYLIST }}
+        run: pnpm check:identity
+      - name: tenant isolation suite (REQ-025)
+        run: pnpm --filter @shuddl/api test -- isolation
+  design-advisory:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: design audit (REQ-158 — advisory until WP-10 exit)
+        run: pnpm audit:design
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

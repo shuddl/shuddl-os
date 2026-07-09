@@ -1,0 +1,5 @@
+# Naming per genesis/14 §02. NO SECRETS EVER IN THIS FILE (REQ-154).
+name = "shuddl-agents-dev"
+main = "src/index.ts"
+compatibility_date = "2025-08-01"
+# Queue consumers (one module per agent) bind here at WP-06+ (REQ-039).

@@ -1,0 +1,19 @@
+# Nightly assurance: register ↔ code orphan diff (REQ-118 §02.2). Snapshot job
+# (REQ-117) activates when F1-A provides Cloudflare OIDC creds and WP-02 creates
+# the databases — spec in docs/ops/dr-backups.md.
+name: nightly
+on:
+  schedule: [{ cron: "0 8 * * *" }]
+  workflow_dispatch:
+jobs:
+  orphan-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: register ↔ code orphan diff (files issues once GH remote is live)
+        run: pnpm check:traceability

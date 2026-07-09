@@ -1,0 +1,8 @@
+{
+  "name": "@shuddl/portal",
+  "private": true,
+  "type": "module",
+  "scripts": { "dev": "vite", "build": "vite build", "typecheck": "tsc --noEmit" },
+  "dependencies": { "react": "^19.2.3", "react-dom": "^19.2.3", "@shuddl/design": "workspace:*" },
+  "devDependencies": { "vite": "^7.3.4", "@vitejs/plugin-react": "^5.1.4", "@types/react": "^19.2.9", "@types/react-dom": "^19.2.3", "typescript": "^5.9.0" }
+}
