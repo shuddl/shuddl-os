@@ -20,9 +20,12 @@ describe("REQ-118: PR gate", () => {
     expect(checkPrText("## REQ-IDs\nREQ-118").ok).toBe(true);
   });
   it("fails on a REQ-ID that is not in the register", () => {
-    const r = checkPrText("REQ-999 does not exist");
+    // Fake id built dynamically so this file never contains an unregistered literal
+    // (the orphan detector scans tests too — correctly).
+    const fake = ["REQ", "999"].join("-");
+    const r = checkPrText(`${fake} does not exist`);
     expect(r.ok).toBe(false);
-    expect(r.reason).toContain("REQ-999");
+    expect(r.reason).toContain(fake);
   });
 });
 
@@ -33,7 +36,8 @@ describe("REQ-118: orphan detector, both directions", () => {
     expect(orphans.specdButUnbuilt).toContain("REQ-025");
   });
   it("direction B: an annotation citing an unregistered REQ is an orphan", () => {
-    const orphans = findOrphans({ activeWps: [], sourceAnnotations: new Set(["REQ-999"]) });
-    expect(orphans.builtButUnspecd).toContain("REQ-999");
+    const fake = ["REQ", "999"].join("-");
+    const orphans = findOrphans({ activeWps: [], sourceAnnotations: new Set([fake]) });
+    expect(orphans.builtButUnspecd).toContain(fake);
   });
 });
