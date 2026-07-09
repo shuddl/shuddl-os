@@ -1,7 +1,9 @@
 import { Hono } from "hono";
 import type { SessionClaims } from "@shuddl/contracts";
-import { reqId, handleError, envelope } from "./middleware/error.js";
+import { z } from "zod";
+import { reqId, handleError, envelope, ApiError } from "./middleware/error.js";
 import { auth, requireRole } from "./middleware/auth.js";
+import { idempotency } from "./middleware/idempotency.js";
 import { tenantDb } from "./tenants.js";
 
 export type Env = {
@@ -21,8 +23,17 @@ app.onError(handleError);
 app.get("/v1/health", (c) => c.json({ ok: true, env: c.env.ENVIRONMENT })); // REQ-111/114 probe target
 
 app.use("/v1/*", auth);
+app.use("/v1/*", idempotency);
 
 app.get("/v1/whoami", (c) => c.json(c.get("session")));
+
+// WP-01 conformance target for the idempotency contract test; replaced by real mutations at WP-02+.
+const EchoBody = z.object({ n: z.number() });
+app.post("/v1/_echo", async (c) => {
+  const body = EchoBody.safeParse(await c.req.json().catch(() => null));
+  if (!body.success) throw new ApiError("VALIDATION_FAILED", 400, "BODY MUST BE {n: number}");
+  return c.json({ n: body.data.n, req_id: c.get("req_id") });
+});
 
 // REQ-025 probe: the isolation suite's read target. Reads ONLY the session tenant's D1.
 app.get("/v1/_probe", requireRole("admin", "ops", "finance"), async (c) => {
