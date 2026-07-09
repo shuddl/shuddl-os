@@ -1,0 +1,19 @@
+/* genesis/07 §01 — the entire palette and type system. Five color tokens. Nothing else exists. */
+:root {
+  /* the only colors that exist */
+  --field:        #D5D1CC;              /* warm greige — every surface */
+  --signal:       #FF4A33;              /* coral red — display type, dividers, entities, everything that speaks */
+  --signal-deep:  #A52F18;              /* AMENDMENT A1: doc 07's #A93018 measured 4.43:1 — darkened until small mono body passes WCAG AA (4.58:1 on --field), locked by tools/design/audit.ts (REQ-149). Used ONLY <=14px text on --field. Display type >=18px stays --signal. */
+  --ink-dark:     #1A1A1A;              /* warm near-black — inverted surfaces, inputs, footer strips, driver night mode */
+  --progress:     #00C4B4;              /* teal — progress FILLS only (ETA bars, upload %, count-up rings). Never text, never icons, never states. */
+
+  /* transparent reds do all secondary work — there is no gray */
+  --signal-55:    rgba(255, 74, 51, 0.55);  /* captions, labels, metadata */
+  --signal-12:    rgba(255, 74, 51, 0.12);  /* 1px dividers, grid lines */
+  --signal-07:    rgba(255, 74, 51, 0.07);  /* container tint (max chrome) */
+  --field-on-dark:#D5D1CC;              /* text on --ink-dark */
+
+  /* type */
+  --display: 'Barlow Condensed', 'Oswald', sans-serif;   /* 700 only */
+  --mono:    'JetBrains Mono', 'IBM Plex Mono', monospace; /* 400 only */
+}

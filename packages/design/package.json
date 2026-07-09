@@ -1,0 +1,6 @@
+{
+  "name": "@shuddl/design",
+  "private": true,
+  "type": "module",
+  "exports": { "./tokens.css": "./tokens.css" }
+}
