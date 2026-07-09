@@ -169,7 +169,7 @@ In `main()`: change the glob to `db/**/migrations/*.sql`; add the stray-SQL chec
 ```ts
 function main(): void {
   const files = globSync("db/**/migrations/*.sql");
-  const strays = globSync("**/*.sql", { exclude: (p) => p.includes("node_modules") || p.startsWith("db/") || p.startsWith("fixtures/") });
+  const strays = globSync("**/*.sql", { exclude: (p) => p.includes("node_modules") || /^db\/[^/]+\/migrations\//.test(p) || p.startsWith("fixtures/") });
   if (strays.length > 0) {
     console.error(`FAIL stray SQL outside db/*/migrations (evades I3/I8 lint): ${strays.join(", ")}`);
     process.exit(1);
@@ -180,15 +180,27 @@ function main(): void {
   for (const f of files) {
     const digest = createHash("sha256").update(readFileSync(f)).digest("hex");
     if (lock[f] && lock[f] !== digest) { console.error(`FAIL migration ${f} was EDITED after lock — migrations are forward-only; add a new file.`); process.exit(1); }
-    lock[f] = lock[f] ?? digest;
+    if (!lock[f] && checkOnly) { console.error(`FAIL migration ${f} is not pinned in ${lockPath} — run \`pnpm lock:migrations\`.`); process.exit(1); }
+    lock[f] = lock[f] ?? digest;   // pin-on-first-sight, but ONLY in --write mode
   }
-  writeFileSync(lockPath, JSON.stringify(lock, null, 2) + "\n");
   const result = checkMigrationSql(files.map((f) => readFileSync(f, "utf8")));
-  /* ...existing warning/violation/OK printing unchanged... */
+  /* ...existing warning/violation/OK printing... */
+  // Write the lock only in --write mode and only AFTER invariants pass, so a failing
+  // migration never gets pinned and CI can never "fix" the lock by regenerating it.
+  if (!checkOnly && result.ok) writeFileSync(lockPath, JSON.stringify(lock, null, 2) + "\n");
 }
 ```
 
-(Add `createHash`, `existsSync`, `writeFileSync` imports. Initialize `db/migrations.lock.json` as `{}`.)
+(Add `createHash`, `existsSync`, `writeFileSync` imports. Initialize `db/migrations.lock.json` as `{}`. `checkOnly = !process.argv.includes("--write")`; root `check:invariants` runs check-only, and a separate `lock:migrations` script writes.)
+
+**The lint is the enforcement of I3/I8 — close every bypass, and test each one red-path first.** A quality review of the first implementation found these holes; the guard is only worth what it rejects:
+- **Strip `--` and `/* */` comments from the SQL before ANY scanning.** A commented-out guard trigger otherwise satisfies the presence check. (This single change also hardens the four below.)
+- **`DROP TRIGGER` is a forbidden verb.** Otherwise `0002_evil.sql` containing `DROP TRIGGER events_guard_del;` passes green and append-only is silently off — presence is checked across the concatenation of all files, so 0001's CREATE still satisfies it.
+- **`REPLACE INTO` / `INSERT OR REPLACE INTO` are mutations.** REPLACE is delete-then-insert, and SQLite fires `BEFORE DELETE` triggers for it only when `recursive_triggers` is ON (off by default) — so the runtime guard may not catch it either.
+- **Guard-presence must match the timing**, not just the name: `CREATE TRIGGER events_guard_upd\s+BEFORE\s+UPDATE\s+ON\s+events`. An `AFTER INSERT` trigger with the right name protects nothing.
+- **Identifier quote class must include `[`** (SQLite bracket quoting): `CREATE TABLE [events]` otherwise evades the table count, the budget, AND guard-presence; `UPDATE [events]` evades the mutation check.
+- **`splitSql` must hard-error on a non-empty trailing buffer** (no `;`), per CLAUDE.md rule 10 "no silent drops" — comment-only fragments are fine, real content is not.
+- **The lockfile must fail closed:** check-only in CI (never writes), fails on digest mismatch AND on any migration file absent from the lock (otherwise deleting a lock entry re-pins an edited migration).
 
 Root `package.json` also gains devDependencies `"@shuddl/ledger": "workspace:*"` and `"@shuddl/contracts": "workspace:*"` — `tools/` scripts (seed generator, fixture gen) import them via tsx and cannot resolve workspace packages otherwise.
 
@@ -206,7 +218,9 @@ export function splitSql(sql: string): string[] {
     const stripped = line.replace(/--.*$/, "");
     if (/\bBEGIN\b/i.test(stripped)) depth += 1;
     if (/\bEND\s*;/i.test(stripped)) depth -= 1;
-    buf += line + "\n";
+    buf += stripped + "\n";   // comment-STRIPPED, never the raw line: applyMigrations
+                              // flattens newlines for D1.exec, and an inline `--`
+                              // would then swallow the rest of the statement.
     if (depth === 0 && /;\s*$/.test(stripped)) {
       const stmt = buf.trim();
       if (stmt.length > 1) out.push(stmt);
