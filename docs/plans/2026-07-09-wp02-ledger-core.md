@@ -252,6 +252,8 @@ Also: `packages/ledger/package.json` gains `"exports": { ".": "./src/index.ts", 
 
 **Step 6: Commit** — `db+lint: forward-only lockfile, partition-aware I8, RAISE-only trigger law, stray-SQL fence` — REQ-118, I3/I8 (+ Co-Authored-By footer, as every commit below).
 
+> **Migration workflow for every task below.** `pnpm check:invariants` is check-only: it fails if a migration is unpinned OR its digest changed. So after writing a new `.sql`: run `pnpm db:lock` (the only writer), then commit the `.sql` **and** `db/migrations.lock.json` together. Editing a pinned migration is a hard failure by design — corrections are new files, exactly like corrections are new events. Deleting a lock entry to sidestep this fails too ("not pinned").
+
 ---
 
 ### Task 2: Tenant migration 0001 — events + positions (+ guard triggers)
