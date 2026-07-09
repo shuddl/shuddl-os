@@ -1,1 +1,3 @@
-{}
+{
+  "db/tenant/migrations/0001_ledger_core.sql": "31ce6a7b9363f2acae3a1cde2c68bd0edea2e732d6b2b2825f3246b0f5051412"
+}
