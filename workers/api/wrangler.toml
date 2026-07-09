@@ -1,0 +1,30 @@
+# Naming per genesis/14 §02: shuddl-{svc}-{env}. NO SECRETS EVER IN THIS FILE (REQ-154, REQ-134).
+# Secrets (JWT_SECRET, ...) live in `wrangler secret` + GitHub Actions OIDC.
+name = "shuddl-api-dev"
+main = "src/index.ts"
+compatibility_date = "2025-08-01"
+
+[vars]
+ENVIRONMENT = "dev"
+
+# WP-01 test tenants. Per-tenant D1 is physical isolation (genesis/14 §02: shuddl-t-{slug}-{env}).
+[[d1_databases]]
+binding = "TENANT_A_DB"
+database_name = "shuddl-t-tenant-a-dev"
+database_id = "local-tenant-a"
+
+[[d1_databases]]
+binding = "TENANT_B_DB"
+database_name = "shuddl-t-tenant-b-dev"
+database_id = "local-tenant-b"
+
+[[kv_namespaces]]
+binding = "IDEMPOTENCY"
+id = "local-idempotency"
+
+[env.staging]
+name = "shuddl-api-staging"
+# staging = synthetic tenants only, no real PII, ever (REQ-154)
+
+[env.prod]
+name = "shuddl-api-prod"
