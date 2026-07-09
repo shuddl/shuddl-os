@@ -16,6 +16,10 @@
 | **09-REQUIREMENTS-REGISTER.csv** | 149 requirements, machine-readable: id · domain · requirement · source · spec · WP · DoD test · status. THE scope authority — append-only |
 | **10-EVENT-TAXONOMY-DATA-MODEL** | 35 event kinds, 21 tables (≤22 budget), 12 views, invariants I1–I8 — the unambiguous schema foundation |
 | **11-REPO-CLAUDE-MD** | Drop-in governing file for the build repo: budgets, rules, fixtures, do-nots, the five acceptance demos |
+| **12-GTM-ROLLOUT** | The market chapter: rollout phases R0–R4 gated by build milestones, ICP v1, first-25 list criteria, positioning per competitor class, pricing hypotheses, tripwires |
+| **13-TENANT-ONBOARDING-OVERLAY** | Tenant onboarding interface: the config-pack contract (all tenant specifics live client-side, never in this repo), seats-not-names org discipline, the generic phase pattern (mirror · shadow · pilot · money · flips), identity-leak lint (REQ-167) |
+| **14-BUILD-EXECUTION-SPEC** | The operational substrate: monorepo layout, environments/secrets, domains/email warmup, API conventions, auth implementation, event-pipeline mechanics, testing/CI/CD, milestones M-H…M-AUTHORITY, session protocol, F1 procurement |
+| **15-SECOND-PASS-AUDIT** | Gap audit v2 (SP-1…SP-19, all dispositioned incl. the tenant-identity contamination found and scrubbed), register delta REQ-150–167 with amendment log, consolidated F1 gate, build-readiness verdict |
 
 ## Decisions embedded in this set
 - **This is a product, not a client build**: tenant #0 (a working regional carrier + brokerage) proves it via the Overlay; nothing tenant-specific is hardcoded. Its separate replacement brief (same folder tree, 2026-07-09) plugs into doc 05 §4 unchanged.
@@ -29,8 +33,8 @@
 3. Call-recording consent policy per operating state (doc 02 §6).
 4. SHUDDL Direct merchant/credit posture needs banking + insurance counsel before v1.5.
 
-## Build readiness (2026-07-09, second pass)
-**F0 (foundations Claude can place) is COMPLETE**: vision → spec → ledger → MCP → model → v1 plan → design system → gap audit → requirements register → schema → repo governance. **F1 (Spencer, blocking the first commit):** [CONFIRM-1] name/trademark pass · [CONFIRM-2] counsel list (recording consent, ToS/privacy, Direct authority+insurance, photo retention, e-sign, escrow) · [CONFIRM-3] pilot terminal + create the empty repo/Cloudflare handles. Then Claude Code starts at WP-01 with `11-REPO-CLAUDE-MD.md` at root.
+## Build readiness (2026-07-09, third pass — F0.2)
+**F0 COMPLETE** (docs 00–11) · **F0.2 COMPLETE** (docs 12–15 + REQ-150–167): GTM chapter, tenant onboarding interface (config packs live client-side — separation law, REQ-167), build execution substrate, second-pass audit. **The consolidated F1 gate now lives in doc 15 §03** — F1-A (blocks first commit: repo/Cloudflare/DNS/keys — one admin day), F1-B (blocks tenant-0 phases: legacy data feed, finance-owner session, pilot facility, org-facts verify), F1-C (blocks external launch only: name/trademark, counsel list, tenant-0 publishing consent). Claude Code starts at WP-01 on F1-A alone, per `14-BUILD-EXECUTION-SPEC.md` §09.
 
 ## Next five actions
 1. Build the heartbeat demo on the new spine (weeks 1–5 of doc 05 §5) — it is the pitch, the QA target, and the referral engine in one.

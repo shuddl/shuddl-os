@@ -14,7 +14,7 @@ Four repos, last commits **Sep–Nov 2023** (git log confirmed): `shuddle-backen
 
 ### What survives (the harvest)
 - **The brand**: Shuddl — the name, domain (shuddl.io), and any entity/app-store standing. This doc set already writes under it (**[CONFIRM]** final naming + a trademark/app-store availability pass before public launch).
-- **The thesis validation**: Spencer already believed, in 2023, that freight needed a customer app + driver app + central brain. The 2023 build is proof of conviction; 2026 supplies the missing physics (ledger, gates, agents) and the missing distribution (PLG + MCP).
+- **The thesis validation**: the founder already believed, in 2023, that freight needed a customer app + driver app + central brain. The 2023 build is proof of conviction; 2026 supplies the missing physics (ledger, gates, agents) and the missing distribution (PLG + MCP).
 - **Requirements archaeology**: the Flutter screens enumerate a real driver/customer flow worth mining as a checklist (profile, shipment counts, password/phone flows) — an afternoon's read, not a merge.
 - **Twilio patterns** as a reference for the comms layer (voice/SMS), reimplemented edge-native.
 

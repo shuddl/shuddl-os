@@ -1,14 +1,17 @@
 # fixtures/ — golden data that gates merges (vendor at WP-01)
 Every engine/ledger change replays these. CI references fixtures by hash; changing a fixture requires a register note.
 
-| Fixture | Gates | Source of record (vendor from) |
+**Separation law (REQ-167):** this file names datasets by role and size only. Real source paths, filenames, and tenant identifiers live in the tenant's **`fixtures-manifest.private`** in its engagement workspace, outside this repo. At WP-01 vendor-in, bytes are copied here, hashed, and referenced by hash forever after — the private manifest maps hash → origin.
+
+| Fixture | Gates | Vendor-in source |
 |---|---|---|
-| Pricing engine test suite (48 tests) + 504-quote monotonic sweep | Rater (WP-04) | TP RepDesk v1.1 — `TP CLI REMEDIATION/TP-RepDesk/site/index.html` (embedded engine + tests; live at tp-repdesk.pages.dev) |
-| Zone tariff v1 + ZIP→zone map (560) + accessorial schedule | Rater config seeds | `TP CLI REMEDIATION/TP-Zone-to-Zone-Tariff-v1.csv` · `CLI Training/TILL rate groups.csv` |
-| Customer roster (3,601: code/name/city/zip/rep/discount/floor) | Migrator (WP-14/15) | `CLI Training/Customer List with Rates_TP Freightxlsx.xlsx` |
-| Legacy import formats (byte-exact) | Overlay projections (WP-15) | `CLI Training/Rate Profile sample.csv` · `TP Company Pricing.csv` · `FAK Import.csv` · `CLI-Operating-System-0702/CLI-Import-Pack-0702/` |
-| Legacy full export replay (±2% aggregate) — 9,314-bill 062226 export + 4,405-bill re-rate fixture | Ledger/Rater parity (WP-02/04/15) | **[CONFIRM path at WP-01]** — referenced throughout PricingOS pack; locate original xlsx and vendor with hash |
-| 3,100-bill synthetic blitz + rating harness | Shadow-run tooling (WP-15) | `TP CLI REMEDIATION/Backlog-Blitz/` |
-| Anomaly regression: pro 77112506 ($222,084 / 35 lb) | Watchtower (permanent) | PricingOS `06-QA-AND-VALIDATION` — encode as unit fixture |
+| Rating-engine test suite (48 tests) + 504-quote monotonic sweep | Rater (WP-04) | Ported engine v1.1 (embedded tests; live deployment) — manifest ref M-01 |
+| Zone tariff v1 + ZIP→zone map (560) + rate groups + accessorial schedule | Rater config seeds | Manifest refs M-02…M-05 |
+| Customer roster (full: code/name/city/zip/rep/discount/floor) | Migrator (WP-14/15) | Manifest ref M-06 |
+| Legacy import formats (byte-exact: rate-profile CSV, company pricing, FAK, import-pack profiles) | Overlay projections (WP-15) | Manifest refs M-07…M-10 |
+| Legacy full-export replay (±2% aggregate) — 9,314-bill export + 4,405-bill re-rate fixture | Ledger/Rater parity (WP-02/04/15) | **[CONFIRM original path at WP-01]** — manifest refs M-11/M-12; vendor with hash |
+| 3,100-bill synthetic blitz + rating harness | Shadow-run tooling (WP-15) | Manifest ref M-13 |
+| Anomaly regression: the $222,084 / 35-lb case | Watchtower (permanent) | Manifest ref M-14 — encode as unit fixture |
 | QuickBooks journal fixture month | GL export (WP-11) | Build at WP-11 from ledger events; reconcile in QB sandbox |
 | Airplane-mode soak script (50 events / 2 devices) | Driver offline (WP-05) | Write at WP-05 per REQ-016 |
+| Live legacy-TMS mirror feed (nightly export/API) — NOT a static fixture; the Phase-0 clock | Overlay mirror (WP-15 / doc 13 §04) | **PENDING — the tenant's standing data-access request (REQ-152); history says this is Risk #1** |

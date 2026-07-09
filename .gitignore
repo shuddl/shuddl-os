@@ -6,3 +6,9 @@ dist/
 .DS_Store
 *.log
 coverage/
+
+# worktrees (superpowers isolation)
+.worktrees/
+
+# REQ-167: client-side identity denylist never enters the repo
+.identity-denylist.local

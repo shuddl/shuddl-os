@@ -32,14 +32,14 @@ REQ-030,AGENTS,Gatekeeper enforces gate catalog server-side,Doc01§4,08 GA-6,WP-
 REQ-031,AGENTS,Biller: pod.signed→invoice.issued same transaction window,Doc01§2,02§4,WP-06,p95 <5s POD→email in pilot,F0-SPEC'D
 REQ-032,AGENTS,Collector: aging watch; tone-matched dunning drafts; sends on approval,Doc01§2,WP-11,WP-11,Draft quality human-rated; no auto-send,F0-SPEC'D
 REQ-033,AGENTS,Settler: escrowed instant settle on network moves,Doc01§2,04§3,vNEXT,Counsel-gated (CONFIRM-2),CONFIRM-GATED
-REQ-034,AGENTS,Translator: EDI 204/210/214/990 via replay-certified mappings,Doc01§2,WP-12,WP-12,R&L fixtures round-trip,F0-SPEC'D
+REQ-034,AGENTS,Translator: EDI 204/210/214/990 via replay-certified mappings,Doc01§2,WP-12,WP-12,Primary-partner-format fixtures round-trip,F0-SPEC'D
 REQ-035,AGENTS,Migrator: any export→primitives with confidence; <0.8 queues review,Doc01§2,05§3,WP-14/15,171-col export maps or raises gap rows,F0-SPEC'D
 REQ-036,AGENTS,Watchtower: anomaly+floor-breach+unbilled=0 alarms,Doc01§2,PricingOS,WP-11,Seeded $0-bill fires alarm,F0-SPEC'D
 REQ-037,AGENTS,Credit officer: registry/bureau→terms rec; booking hold gate,Doc01§2,10§1 passports,vNEXT,Terms rec in <5min on test co,vNEXT
 REQ-038,AGENTS,Copilot: answers cite ledger events; read-only,Doc01§2,02§8,WP-10,Every answer carries event links,F0-SPEC'D
 REQ-039,AGENTS,Every agent: confidence gate + human queue + cost tracking,Doc01§2,08 GA-13,WP-all,agent_runs rows complete,F0-SPEC'D
 REQ-040,AGENTS,Anomaly regression: $222084/35lb case flags at ingest+pricing forever,PricingOS QA,fixtures,WP-04,Regression test permanent,F0-SPEC'D
-REQ-041,GATES,Quote→Booked blocked without weight/dims (no price on air),Doc01§4,RepDesk v1.1,WP-04,Weightless quote returns UNKNOWN,F0-SPEC'D
+REQ-041,GATES,Quote→Booked blocked without weight/dims (no price on air),Doc01§4,Ported rating engine v1.1,WP-04,Weightless quote returns UNKNOWN,F0-SPEC'D
 REQ-042,GATES,Booked blocked on credit hold per policy,Doc01§4,10§1,WP-08,Hold blocks booking event,F0-SPEC'D
 REQ-043,GATES,Dispatch blocked until docs+appointment,Doc01§4,WP-08,WP-08,Negative test,F0-SPEC'D
 REQ-044,GATES,Pickup departure blocked without count+photos(+dims if fitted)+sign,Doc01§4,WP-05,WP-05,Gate UI+API enforce,F0-SPEC'D
@@ -118,7 +118,7 @@ REQ-116,OBS,R2 lifecycle per document kind; 7yr POD; storage cost line,08 GA-16,
 REQ-117,OBS,Nightly ledger snapshots + restore drill,08 GA-19,WP-01,WP-01,Restore test quarterly,F0-SPEC'D
 REQ-118,OBS,Traceability CI: PRs need REQ ids; orphan detector both directions,08§02,WP-01,WP-01,Dummy orphan fails,F0-SPEC'D
 REQ-119,OBS,Adversarial audit swarm at every WP exit; no Critical open,08§02,WP-16,WP-all,Audit reports archived,F0-SPEC'D
-REQ-120,OBS,Weekly register review ritual (owner: Spencer),08§02,process,ongoing,Calendar + log,F0-SPEC'D
+REQ-120,OBS,Weekly register review ritual (owner: the register owner),08§02,process,ongoing,Calendar + log,F0-SPEC'D
 REQ-121,PLG,60-second self-serve signup (email+card) → live workspace,Doc04§4,WP-14,WP-14,Stranger test <10min to first quote,F0-SPEC'D
 REQ-122,PLG,Spark $5/mo full-feature w/ AI credit allowance,Doc04§2,WP-14,WP-14,Caps throttle conveniences never truth,F0-SPEC'D
 REQ-123,PLG,Credits metering = Money events on platform tenant; Stripe billing,08 GA-8,WP-14,WP-14,Meter matches event counts exactly,F0-SPEC'D
@@ -148,3 +148,21 @@ REQ-146,DESIGN,Type law: condensed display + mono body; uppercase; contrast pair
 REQ-147,DESIGN,No shadows/gradients/radius>4px; 1px dividers; (01) numbering,Directive,WP-03,WP-03,Lint green,F0-SPEC'D
 REQ-148,DESIGN,Motion law: reveals/count-ups only; reduced-motion honored,Doc07§05,WP-03,WP-03,Motion lint + a11y test,F0-SPEC'D
 REQ-149,DESIGN,A1 deep-red small text ≥4.5:1 locked by CI,Doc07 A1,WP-03,WP-03,Contrast test green,F0-SPEC'D
+REQ-150,BOOKING,Phone/walk-in intake: CSR captures order via question-driven command-bar flow emitting booking events; no separate entry module,Doc15 SP-5,14§04;01§3A,WP-10,CSR keys a phone order end-to-end via command bar in acceptance test,F0.2-SPEC'D
+REQ-151,PLG,Rating cold-start: Migrator tariff templates + guided tariff builder; brokerage mode prices from market+margin; asset mode without tariff = UNKNOWN no sell,Doc15 SP-6,04§4;01§2,WP-14,New tenant w/o tariff cannot emit a price; guided path produces first quote,F0.2-SPEC'D
+REQ-152,TENANT0,Tenant-0 legacy-TMS live export/API feed (standing data request) received; nightly mirror runs unattended 3 days,Doc13 §02.6,13§02;13§04,WP-15,Phase 0 exit gate green; slip reported 1:1,F0.2-SPEC'D
+REQ-153,TENANT0,Tenant authority flips gated on the onboarding pattern: 30-day shadow ±2%; two consecutive clean closes; pilot week <0.5% exceptions,Doc13 §04,13§04,WP-15,Flip blocked until calendar objects green; auto-fallback armed,F0.2-SPEC'D
+REQ-154,BUILD,Three environments dev/staging/prod; staging synthetic-only no real PII; secrets via wrangler+OIDC never in repo,Doc14 §02,14§02,WP-01,Secret scan clean; staging PII audit clean,F0.2-SPEC'D
+REQ-155,BUILD,Deterministic seed tenant SEED-1 (customers; tariff; 20 lifecycle shipments) for dev/CI/screenshot baselines,Doc14 §02,14§02,WP-01,pnpm seed reproduces identical dataset hash,F0.2-SPEC'D
+REQ-156,BUILD,API conventions: /v1 base; shared Zod contracts; stable error codes carrying gate evidence requirements; Idempotency-Key on all mutations; server-side tenant resolution,Doc14 §04,14§04,WP-01,Contract tests pass; mutation replay returns original result,F0.2-SPEC'D
+REQ-157,COMMS,Sending-domain warmup: 2-week seed ramp before tenant-0 consignee volume; bounce/complaint monitoring wired to Watchtower,Doc14 §03,14§03,WP-06,Deliverability >98% on warmed domain before consignee sends,F0.2-SPEC'D
+REQ-158,DESIGN,Design/squint CI advisory (report-only) until WP-10 exit; blocking thereafter,Doc14 §07,14§07,WP-01;WP-10,CI mode flips at WP-10 exit; violations reported meanwhile,F0.2-SPEC'D
+REQ-159,GTM,Milestone M-H exit unlocks R1 GTM; external selling never precedes heartbeat-on-real-freight,Doc12 §01;Doc14 §08,12§01,WP-06,M-H demo video exists before first outbound,F0.2-SPEC'D
+REQ-160,GTM,Tenant-0 case-study telemetry: weekly Watchtower snapshots of unbilled; DSO; POD→invoice latency; rating latency; disputes; close duration; OR,Doc12 §06,12§06;13§06,WP-11,Snapshot series exists from Phase 1 week 1,F0.2-SPEC'D
+REQ-161,GTM,ICP + first-25 target list maintained in CRM; roadmap reprioritizations cite it,Doc12 §02-03,12§02,WP-16,List exists at R1 start; weekly ritual reviews it,F0.2-SPEC'D
+REQ-162,GTM,PROOF-TO-CASH standalone SKU (gates+PWA+POD→invoice+evidence email+unbilled alarm+status pages) sellable without full OS,Doc12 §05,12§05,WP-14,SKU provisionable via plan flag; excludes non-SKU agents,F0.2-SPEC'D
+REQ-163,DECISION,Prior codebases (2023 apps; any pre-genesis TMS build) = organ banks; reference never merge; the fresh spine (docs 02/10) is the only spine,Doc13 §01,13§01,WP-all,Lint: no vendored foreign trees; PR review rule,F0.2-SPEC'D
+REQ-164,DRIVER,Driver onboarding kit: QR install + magic link + printed card; tested with a real tenant-0 driver at pilot,Doc13 §05,13§05,WP-05,Real driver installs and completes gated stop unassisted,F0.2-SPEC'D
+REQ-165,TENANT0,Tenant-0 seed load (full customer roster; zone tariff; ZIP-zone map; rate groups; accessorials; FSC; pro ranges; transit matrix) reproduces the audited rating engine's quotes exactly,Doc13 §02.4,13§02,WP-04,Quote parity vs ported engine on regression set incl anchor contract-pricing case,F0.2-SPEC'D
+REQ-166,LEGAL,Driver location-tracking consent: policy + PWA first-run acknowledgment per operating state; owner=counsel,Doc13 §05,13§05,WP-05,Consent captured as event before first GPS stamp,F0.2-SPEC'D
+REQ-167,SEC,Identity-leak lint: client-side-maintained denylist (tenant/person/customer/incumbent names) grepped on every PR; any hit fails CI,Doc13 §02,13§02,WP-01,Seeded denylist name in a test PR fails CI,F0.2-SPEC'D

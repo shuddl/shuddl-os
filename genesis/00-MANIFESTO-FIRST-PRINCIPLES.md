@@ -1,6 +1,6 @@
 # SHUDDL — The Freight Operating System
 ## Manifesto & First Principles · Genesis doc 00 · 2026-07-09
-**Working brand: SHUDDL** (Spencer's existing entity/domain; zero legacy-platform references anywhere in this doc set). Rename is a find-replace; the physics below is not.
+**Working brand: SHUDDL** (the founder's existing entity/domain; zero legacy-platform and zero tenant/person identifiers anywhere in this doc set — REQ-167). Rename is a find-replace; the physics below is not.
 
 ---
 
