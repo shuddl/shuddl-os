@@ -2,6 +2,7 @@
   "name": "shuddl-os",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@11.10.0",
   "engines": {
     "node": ">=20",
     "pnpm": ">=9"

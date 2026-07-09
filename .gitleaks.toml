@@ -5,6 +5,9 @@ title = "shuddl-os"
 useDefault = true
 
 [allowlist]
-description = "genesis docs and fixtures contain no live credentials; the test JWT secret is a fixture"
+description = "genesis docs and fixtures contain no live credentials; the test JWT secret and the isolation suite's deliberate alg:none attack token are fixtures"
 paths = ['''genesis/.*''', '''fixtures/.*''']
-regexes = ['''test-secret-do-not-use-in-prod''']
+regexes = [
+  '''test-secret-do-not-use-in-prod''',
+  '''eyJhbGciOiJub25lIn0\.''', # alg:none unsigned token — the REQ-025 suite's forgery fixture, not a credential
+]
