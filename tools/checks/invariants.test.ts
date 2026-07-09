@@ -1,5 +1,41 @@
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { checkLock, checkMigrationSql, isStraySql, PARTITION_TABLES, TABLE_BUDGET } from "./invariants.js";
+import { stripSqlComments } from "@shuddl/ledger/migrate";
+import { checkLock, checkMigrationSql, findStraySql, isStraySql, PARTITION_TABLES, TABLE_BUDGET } from "./invariants.js";
+
+const HERE = dirname(fileURLToPath(import.meta.url)); // tools/checks
+const REPO = join(HERE, "..", "..");
+const CLI = join(HERE, "invariants.ts");
+const TSX = join(REPO, "node_modules", ".bin", "tsx");
+
+// A lint-clean migration: one table + its two correctly-timed guard triggers.
+const VALID_MIGRATION =
+  "CREATE TABLE events (id TEXT);\n" +
+  "CREATE TRIGGER events_guard_upd BEFORE UPDATE ON events BEGIN SELECT RAISE(ABORT,'I3'); END;\n" +
+  "CREATE TRIGGER events_guard_del BEFORE DELETE ON events BEGIN SELECT RAISE(ABORT,'I3'); END;\n";
+
+function runCli(cwd: string, args: string[] = []): { code: number; out: string } {
+  try {
+    const out = execFileSync(TSX, [CLI, ...args], { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+    return { code: 0, out };
+  } catch (e) {
+    const err = e as { status?: number | null; stdout?: string; stderr?: string };
+    return { code: err.status ?? 1, out: (err.stdout ?? "") + (err.stderr ?? "") };
+  }
+}
+
+function withTempRepo(fn: (dir: string) => void): void {
+  const dir = mkdtempSync(join(tmpdir(), "shuddl-stray-"));
+  try {
+    fn(dir);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
 
 // The three append-only tables, and the six mandatory RAISE(ABORT) guard triggers.
 export const TABLES_SQL = "CREATE TABLE events (id TEXT);\nCREATE TABLE positions (id TEXT);\nCREATE TABLE money_lines (id TEXT);";
@@ -207,4 +243,86 @@ describe("M1: stray-SQL fence — only real migration files are exempt", () => {
   it("a stray anywhere else (e.g. packages/ledger/rogue.sql) is caught", () => {
     expect(isStraySql("packages/ledger/rogue.sql", migrations)).toBe(true);
   });
+});
+
+// stripSqlComments is shared from @shuddl/ledger — but the lint's own robustness
+// depends on it, so its adversarial contract is pinned HERE, at the control's site.
+describe("stripSqlComments (control-site contract — must survive any future weakening)", () => {
+  it("does not strip a '--' that lives inside a string literal", () => {
+    expect(stripSqlComments("SELECT '-- not a comment'")).toContain("-- not a comment");
+  });
+  it("does not strip a ';' inside a string literal", () => {
+    expect(stripSqlComments("INSERT INTO t VALUES ('a;b')")).toContain("a;b");
+  });
+  it("strips a /* */ block comment that spans multiple lines", () => {
+    const r = stripSqlComments("CREATE TABLE t (\n/* multi\n line\n danger */ id TEXT\n);");
+    expect(r).not.toContain("danger");
+    expect(r).toContain("id TEXT");
+  });
+  it("erases a commented-out guard trigger (so guard-presence cannot be fooled)", () => {
+    const r = stripSqlComments("-- CREATE TRIGGER events_guard_upd BEFORE UPDATE ON events ...");
+    expect(r).not.toContain("events_guard_upd");
+  });
+});
+
+// The regression the isStraySql unit tests could NOT catch: globSync passes basenames
+// to `exclude` for leaf files, so the membership test must run on the RESULT array.
+// These exercise the real glob+filter composition against a real temp filesystem.
+describe("M1 regression: findStraySql accepts real migrations, rejects everything else", () => {
+  it("a migration at db/tenant/migrations/*.sql is NOT reported stray", () => {
+    withTempRepo((dir) => {
+      mkdirSync(join(dir, "db", "tenant", "migrations"), { recursive: true });
+      writeFileSync(join(dir, "db", "tenant", "migrations", "0001_x.sql"), VALID_MIGRATION);
+      expect(findStraySql(dir)).toEqual([]);
+    });
+  });
+  it("a migration at db/control/migrations/*.sql is NOT reported stray", () => {
+    withTempRepo((dir) => {
+      mkdirSync(join(dir, "db", "control", "migrations"), { recursive: true });
+      writeFileSync(join(dir, "db", "control", "migrations", "0001_y.sql"), VALID_MIGRATION);
+      expect(findStraySql(dir)).toEqual([]);
+    });
+  });
+  it("db/tenant/seed.sql (under db/, not a migration) IS reported stray", () => {
+    withTempRepo((dir) => {
+      mkdirSync(join(dir, "db", "tenant"), { recursive: true });
+      writeFileSync(join(dir, "db", "tenant", "seed.sql"), "CREATE TABLE x (id TEXT);");
+      expect(findStraySql(dir)).toContain("db/tenant/seed.sql");
+    });
+  });
+  it("packages/ledger/oops.sql IS reported stray", () => {
+    withTempRepo((dir) => {
+      mkdirSync(join(dir, "packages", "ledger"), { recursive: true });
+      writeFileSync(join(dir, "packages", "ledger", "oops.sql"), "CREATE TABLE x (id TEXT);");
+      expect(findStraySql(dir)).toContain("packages/ledger/oops.sql");
+    });
+  });
+  it("a real migration alongside a stray: only the stray is reported", () => {
+    withTempRepo((dir) => {
+      mkdirSync(join(dir, "db", "tenant", "migrations"), { recursive: true });
+      writeFileSync(join(dir, "db", "tenant", "migrations", "0001_x.sql"), VALID_MIGRATION);
+      writeFileSync(join(dir, "db", "tenant", "seed.sql"), "CREATE TABLE x (id TEXT);");
+      expect(findStraySql(dir)).toEqual(["db/tenant/seed.sql"]);
+    });
+  });
+});
+
+describe("M1 regression: the actual check:invariants CLI exit code (end-to-end)", () => {
+  it("exits 0 with a real migration present (positive control — was exit 1 under the bug)", () => {
+    withTempRepo((dir) => {
+      mkdirSync(join(dir, "db", "tenant", "migrations"), { recursive: true });
+      writeFileSync(join(dir, "db", "tenant", "migrations", "0001_x.sql"), VALID_MIGRATION);
+      const r = runCli(dir, ["--write"]); // --write pins the new migration so the lock check passes too
+      expect(r.code).toBe(0);
+    });
+  }, 30000);
+  it("exits 1 and names the stray when a non-migration .sql sits under db/", () => {
+    withTempRepo((dir) => {
+      mkdirSync(join(dir, "db", "tenant"), { recursive: true });
+      writeFileSync(join(dir, "db", "tenant", "seed.sql"), "CREATE TABLE x (id TEXT);");
+      const r = runCli(dir);
+      expect(r.code).toBe(1);
+      expect(r.out).toContain("stray");
+    });
+  }, 30000);
 });

@@ -119,11 +119,20 @@ export function isStraySql(path: string, migrations: ReadonlySet<string>): boole
   return !migrations.has(path);
 }
 
+// The stray fence, exactly as main() runs it. globSync passes `exclude` the BASENAME
+// for leaf files (and partial paths for directories), so the migration-membership test
+// cannot live in `exclude` — it would flag every real migration as stray. `exclude`
+// only prunes the node_modules tree (a directory-name test, safe on any arg shape); the
+// real decision runs on the RESULT array, whose entries are full, cwd-relative paths.
+export function findStraySql(cwd: string = process.cwd()): string[] {
+  const migrations = new Set(globSync("db/**/migrations/*.sql", { cwd }));
+  return globSync("**/*.sql", { cwd, exclude: (p) => p.includes("node_modules") }).filter((p) => isStraySql(p, migrations));
+}
+
 function main(): void {
   const mode: LockMode = process.argv.includes("--write") ? "write" : "check";
   const migrations = globSync("db/**/migrations/*.sql");
-  const migrationSet = new Set(migrations);
-  const strays = globSync("**/*.sql", { exclude: (p) => !isStraySql(p, migrationSet) });
+  const strays = findStraySql();
   if (strays.length > 0) {
     console.error(`FAIL stray SQL outside db/*/migrations (evades I3/I8 lint): ${strays.join(", ")}`);
     process.exit(1);
