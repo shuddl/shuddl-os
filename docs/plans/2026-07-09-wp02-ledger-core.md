@@ -35,6 +35,7 @@
 | 12 | **I4 in WP-02:** contracts refine — `custody.transferred`/`pod.signed` require `actor.device` present OR `payload.unwitnessed === true`; co-sign ack field reserved for WP-05. | audit #13 |
 | 13 | **REQ-011 round-trip owner** = `packages/ledger/test/roundtrip.test.ts` only (schema task does a DB-round-trip, a different assertion). | audit #14 |
 | 14 | **Anchor endpoints:** proof endpoint open to all tenant roles (portal parties verifying a POD hash is the point) but the portal-role manifest exposes only `{day, root}` (no event counts). Positions ingest idempotency = PK `(shipment_id, device_id, ts)` + `INSERT OR IGNORE`. | audit #15 |
+| 16 | **`BEFORE INSERT` guards are mandatory on `events`, `positions`, `money_lines`.** D1 runs `recursive_triggers = 0`, so `INSERT OR REPLACE` performs an implicit delete that **never fires a `BEFORE DELETE` trigger** — a single statement rewrites history. Only a `BEFORE INSERT ... WHEN EXISTS(...)` guard (which fires while the old row still exists) closes it. The migration lint cannot: it scans migrations, not the sequencer or routes. Verified live against D1. | schema review |
 | 15 | **`tsa_receipt`** is a `documents.kind` enum addition — stated as a register note in the PR (not a table/event-kind budget item). CMS cert-chain verification of TSA responses is deferred to WP-16 audit (raw `.tsr` bytes retained in R2, verifiable offline forever). | audit — |
 
 ## Stated assumptions (say these in the PR body)
@@ -63,8 +64,18 @@
 ```ts
 describe("I3 v2: trigger bodies may only RAISE(ABORT)", () => {
   const guards = `
+-- BEFORE INSERT is the ONLY guard that stops `INSERT OR REPLACE` (D1 has recursive_triggers=0,
+-- so REPLACE's implicit delete never fires a BEFORE DELETE trigger). Decision 16.
+CREATE TRIGGER events_guard_ins BEFORE INSERT ON events
+WHEN EXISTS (SELECT 1 FROM events WHERE (stream_id = NEW.stream_id AND seq = NEW.seq) OR id = NEW.id)
+BEGIN SELECT RAISE(ABORT,'I3: append-only'); END;
 CREATE TRIGGER events_guard_upd BEFORE UPDATE ON events BEGIN SELECT RAISE(ABORT,'I3: append-only'); END;
 CREATE TRIGGER events_guard_del BEFORE DELETE ON events BEGIN SELECT RAISE(ABORT,'I3: append-only'); END;
+-- positions allows idempotent OR IGNORE re-ingest (Decision 14), so abort only on a
+-- genuine overwrite: same PK, different data.
+CREATE TRIGGER positions_guard_ins BEFORE INSERT ON positions
+WHEN EXISTS (SELECT 1 FROM positions WHERE shipment_id = NEW.shipment_id AND device_id = NEW.device_id AND ts = NEW.ts AND hash <> NEW.hash)
+BEGIN SELECT RAISE(ABORT,'I3: append-only'); END;
 CREATE TRIGGER positions_guard_upd BEFORE UPDATE ON positions BEGIN SELECT RAISE(ABORT,'I3: append-only'); END;
 CREATE TRIGGER positions_guard_del BEFORE DELETE ON positions BEGIN SELECT RAISE(ABORT,'I3: append-only'); END;
 CREATE TRIGGER money_lines_guard_upd BEFORE UPDATE ON money_lines BEGIN SELECT RAISE(ABORT,'I1'); END;
@@ -204,6 +215,8 @@ function main(): void {
 - **`DROP TRIGGER` is a forbidden verb.** Otherwise `0002_evil.sql` containing `DROP TRIGGER events_guard_del;` passes green and append-only is silently off — presence is checked across the concatenation of all files, so 0001's CREATE still satisfies it.
 - **`REPLACE INTO` / `INSERT OR REPLACE INTO` are mutations.** REPLACE is delete-then-insert, and SQLite fires `BEFORE DELETE` triggers for it only when `recursive_triggers` is ON (off by default) — so the runtime guard may not catch it either.
 - **Guard-presence must match the timing**, not just the name: `CREATE TRIGGER events_guard_upd\s+BEFORE\s+UPDATE\s+ON\s+events`. An `AFTER INSERT` trigger with the right name protects nothing.
+- **Three guards per append-only table, not two:** `_guard_ins` (BEFORE INSERT), `_guard_upd`, `_guard_del`. The insert guard is what stops `INSERT OR REPLACE` (Decision 16) — without it the other two are theatre.
+- **Ban `OR REPLACE` in application source too.** The migration lint never sees the sequencer or the routes. Add a source scan of `packages/**/src` and `workers/**/src` rejecting `INSERT OR REPLACE` / `OR REPLACE` against `events`, `positions`, `money_lines`.
 - **Identifier quote class must include `[`** (SQLite bracket quoting): `CREATE TABLE [events]` otherwise evades the table count, the budget, AND guard-presence; `UPDATE [events]` evades the mutation check.
 - **`splitSql` must hard-error on a non-empty trailing buffer** (no `;`), per CLAUDE.md rule 10 "no silent drops" — comment-only fragments are fine, real content is not.
 - **The lockfile must fail closed:** check-only in CI (never writes), fails on digest mismatch AND on any migration file absent from the lock (otherwise deleting a lock entry re-pins an edited migration).
@@ -390,6 +403,9 @@ CREATE TABLE money_lines (
 CREATE UNIQUE INDEX ux_ml_corrects ON money_lines(corrects_event_id, line_no) WHERE corrects_event_id IS NOT NULL;
 CREATE INDEX ix_ml_division ON money_lines(division, direction);
 CREATE INDEX ix_ml_shipment ON money_lines(shipment_id);
+CREATE TRIGGER money_lines_guard_ins BEFORE INSERT ON money_lines
+WHEN EXISTS (SELECT 1 FROM money_lines WHERE id = NEW.id OR (event_id = NEW.event_id AND line_no = NEW.line_no))
+BEGIN SELECT RAISE(ABORT,'I1: projections are append-only'); END;
 CREATE TRIGGER money_lines_guard_upd BEFORE UPDATE ON money_lines BEGIN SELECT RAISE(ABORT,'I1: projections are append-only'); END;
 CREATE TRIGGER money_lines_guard_del BEFORE DELETE ON money_lines BEGIN SELECT RAISE(ABORT,'I1: projections are append-only'); END;
 CREATE TABLE invoices (
