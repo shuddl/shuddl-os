@@ -169,7 +169,13 @@ In `main()`: change the glob to `db/**/migrations/*.sql`; add the stray-SQL chec
 ```ts
 function main(): void {
   const files = globSync("db/**/migrations/*.sql");
-  const strays = globSync("**/*.sql", { exclude: (p) => p.includes("node_modules") || /^db\/[^/]+\/migrations\//.test(p) || p.startsWith("fixtures/") });
+  const migrationSet = new Set(files);
+  // NOTE: fs.globSync calls `exclude` with the BASENAME for leaf files ("0001_x.sql")
+  // and partial paths for directories — never the full relative path. Filtering on the
+  // RESULT array is the only correct place for a path-membership test. Using `exclude`
+  // for it silently flags every legitimate migration as stray.
+  const strays = globSync("**/*.sql", { exclude: (p) => p.includes("node_modules") })
+    .filter((p) => isStraySql(p, migrationSet));
   if (strays.length > 0) {
     console.error(`FAIL stray SQL outside db/*/migrations (evades I3/I8 lint): ${strays.join(", ")}`);
     process.exit(1);
@@ -201,6 +207,8 @@ function main(): void {
 - **Identifier quote class must include `[`** (SQLite bracket quoting): `CREATE TABLE [events]` otherwise evades the table count, the budget, AND guard-presence; `UPDATE [events]` evades the mutation check.
 - **`splitSql` must hard-error on a non-empty trailing buffer** (no `;`), per CLAUDE.md rule 10 "no silent drops" — comment-only fragments are fine, real content is not.
 - **The lockfile must fail closed:** check-only in CI (never writes), fails on digest mismatch AND on any migration file absent from the lock (otherwise deleting a lock entry re-pins an edited migration).
+
+**Every guard needs a positive control, not just red-path tests.** The first implementation's stray-SQL fence rejected `db/tenant/migrations/0001_ledger_core.sql` itself — it would have blocked every later task — because the suite only ever asserted what the fence *rejects*. For each check, test that a legitimate artifact **passes**: a real migration under `db/tenant/migrations/` and `db/control/migrations/` must leave `pnpm check:invariants` at exit 0. Assert on the script's composition (glob + filter), not on the pure predicate alone — the bug lived in what the caller passed the predicate, which a unit test of the predicate could never catch.
 
 Root `package.json` also gains devDependencies `"@shuddl/ledger": "workspace:*"` and `"@shuddl/contracts": "workspace:*"` — `tools/` scripts (seed generator, fixture gen) import them via tsx and cannot resolve workspace packages otherwise.
 
