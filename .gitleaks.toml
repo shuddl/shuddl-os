@@ -1,0 +1,10 @@
+# REQ-154/134: secrets live in `wrangler secret` + GitHub OIDC — never in the repo.
+title = "shuddl-os"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "genesis docs and fixtures contain no live credentials; the test JWT secret is a fixture"
+paths = ['''genesis/.*''', '''fixtures/.*''']
+regexes = ['''test-secret-do-not-use-in-prod''']
