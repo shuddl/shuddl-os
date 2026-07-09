@@ -1,0 +1,15 @@
+{
+  "note": "REQ-112: CI references fixtures by hash. Changing a fixture requires a register note. Pending rows print on every CI run — no silent drops. REQ-167: sources are engagement-workspace manifest refs (fixtures-manifest.private); real paths never enter this repo.",
+  "fixtures": [
+    { "id": "rater-48-tests", "gates": "WP-04", "status": "pending", "path": "fixtures/rater/48-tests/", "sha256": null, "source": "manifest.private M-01 (ported engine v1.1 embedded tests)" },
+    { "id": "rater-504-sweep", "gates": "WP-04", "status": "pending", "path": "fixtures/rater/504-sweep/", "sha256": null, "source": "manifest.private M-01" },
+    { "id": "zone-tariff-v1", "gates": "WP-04 config seeds", "status": "pending", "path": "fixtures/tariff/", "sha256": null, "source": "manifest.private M-02…M-05 (zone tariff, ZIP→zone 560, rate groups, accessorials)" },
+    { "id": "customer-roster", "gates": "WP-14/15 Migrator", "status": "pending", "path": "fixtures/roster/", "sha256": null, "source": "manifest.private M-06" },
+    { "id": "legacy-import-formats", "gates": "WP-15 projections", "status": "pending", "path": "fixtures/legacy-imports/", "sha256": null, "source": "manifest.private M-07…M-10 (rate-profile CSV, company pricing, FAK, import-pack profiles)" },
+    { "id": "legacy-export-replay", "gates": "WP-02/04/15 ±2% aggregate", "status": "pending", "path": "fixtures/legacy-export/", "sha256": null, "source": "manifest.private M-11/M-12 — [CONFIRM original path at WP-01] 9,314-bill export + 4,405-bill re-rate" },
+    { "id": "synthetic-blitz-3100", "gates": "WP-15 shadow tooling", "status": "pending", "path": "fixtures/blitz/", "sha256": null, "source": "manifest.private M-13" },
+    { "id": "anomaly-222084-35lb", "gates": "WP-04 permanent regression (REQ-040)", "status": "pending", "path": "fixtures/anomaly/the-222084-case.json", "sha256": null, "source": "manifest.private M-14 — the $222,084 / 35-lb case, encode as unit fixture" },
+    { "id": "qb-journal-month", "gates": "WP-11", "status": "planned", "path": "fixtures/qb/", "sha256": null, "source": "Built at WP-11 from ledger events" },
+    { "id": "airplane-soak", "gates": "WP-05 (REQ-016)", "status": "planned", "path": "fixtures/airplane-soak/", "sha256": null, "source": "Written at WP-05" }
+  ]
+}
