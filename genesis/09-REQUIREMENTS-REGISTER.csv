@@ -1,0 +1,150 @@
+req_id,domain,requirement,source,spec,wp,dod_test,status
+REQ-001,LAWS,Every physical state change captured at the event with evidence; no re-keying anywhere,Doc00 L1,01§4;02§1,WP-02/05,No workflow contains a manual re-entry of ledger data (audit),F0-SPEC'D
+REQ-002,LAWS,One append-only hash-chained ledger; all parties read lenses of it,Doc00 L2,02§1-2,WP-02,Chain verify 10K events; lens scoping tests,F0-SPEC'D
+REQ-003,LAWS,Money lines exist only as projections of events,Doc00 L3,02§4,WP-06,Invoice cannot be created without POD event (negative test),F0-SPEC'D
+REQ-004,LAWS,Pricing from measured physics; class only as edge adapter,Doc00 L4,01§2 Rater,WP-04,No SMC3 dependency in engine; class adapter isolated,F0-SPEC'D
+REQ-005,LAWS,Agents propose; humans approve exceptions; all agent acts are events,Doc00 L5,01§2,WP-02..13,agent.acted events carry basis links 100%,F0-SPEC'D
+REQ-006,LAWS,Zero training: 10-min CSR test + zero-instruction driver test,Doc00 L6,05§5,WP-05/10,Both acceptance tests pass on video with real users,F0-SPEC'D
+REQ-007,LAWS,Every transition gated on required evidence; overrides named+logged,Doc00 L7,01§4,WP-05,Gate bypass impossible in UI and API (adversarial test),F0-SPEC'D
+REQ-008,LAWS,Overlay before authority; per-module flags with auto-fallback,Doc00 L8,02§5,WP-15,Forced-drift test triggers fallback,F0-SPEC'D
+REQ-009,LAWS,Network primitives (Passport/settle/mesh) designed-in from v1 schema,Doc00 L9,02§7,WP-02,Passport fields exist and accrue from events,F0-SPEC'D
+REQ-010,LAWS,One-click full tenant export in open formats,Doc00 L10,08 GA-19,WP-11,Export job produces complete verifiable archive,F0-SPEC'D
+REQ-011,LEDGER,Event schema {seq;ts;actor;kind;payload;evidence[];prev_hash;sig},Doc02§1,10§1,WP-02,Round-trip all 35 kinds,F0-SPEC'D
+REQ-012,LEDGER,Corrections are reversal events; edits impossible,Doc02§1,10§1,WP-02,Correction nets to zero in GL fixture,F0-SPEC'D
+REQ-013,LEDGER,Custody transitions co-signed (device key + counterparty ack),Doc02§1,10§1,WP-05,Co-sign present on 100% custody events in pilot,F0-SPEC'D
+REQ-014,LEDGER,Daily Merkle roots externally timestamped (RFC3161),Doc02§1,10§1,WP-02,Verify a POD hash against TSA receipt,F0-SPEC'D
+REQ-015,LEDGER,Role-scoped lenses; counterparty visibility flag per event kind,Doc02§2,10§1,WP-02,Adversarial cross-lens read fails,F0-SPEC'D
+REQ-016,LEDGER,Offline capture signed per-device; merge by (device;seq); no overwrite,Doc02§3,10§1,WP-05,Airplane soak: 50 events 2 devices zero loss/dupes,F0-SPEC'D
+REQ-017,LEDGER,Evidence bytes hashed at capture; upload deferred OK,Doc02§3,10§2,WP-05,Hash in event matches later-uploaded bytes,F0-SPEC'D
+REQ-018,LEDGER,GPS stamps carry accuracy radius; detention math discloses error,Doc02§3,07§02,WP-05,Detention calc shows ± bounds,F0-SPEC'D
+REQ-019,LEDGER,Interline/cartage splits computed from custody legs,Doc02§4,10§1,WP-11,Split fixture matches partner statement,F0-SPEC'D
+REQ-020,LEDGER,GL journal export (QuickBooks/Xero); native GL forbidden,Doc02§4,11 do-nots,WP-11,QB sandbox month reconciles to penny,F0-SPEC'D
+REQ-021,LEDGER,Legacy ingest adapters tag source+confidence; evidenced events outrank,Doc02§5,10§1,WP-15,Legacy vs evidenced conflict resolves correctly,F0-SPEC'D
+REQ-022,LEDGER,Projection adapters (CSV/XML/EDI/PDF) embed event ids; echo detection,Doc02§5,WP-15,WP-15,No ping-pong in bidirectional soak,F0-SPEC'D
+REQ-023,LEDGER,Authority map per module with parity gates ±2%/±10%/2-closes,Doc02§5,08§03,WP-15,Flip blocked until gates green,F0-SPEC'D
+REQ-024,LEDGER,LLMs never write ledger truth; agent output is advisory events,Doc02§8,11,WP-all,Static analysis: no LLM call in ledger pkg,F0-SPEC'D
+REQ-025,LEDGER,Tenant isolation at DB level,Doc02§8,08 GA-10,WP-01,Cross-tenant suite green forever,F0-SPEC'D
+REQ-026,AGENTS,Concierge: inbound email→intent→quote/status/claim; auto-reply ≥0.9 conf,Doc01§2,WP-07,WP-07,50 historical emails ≥90% parsed; 100% floor-clean sends,F0-SPEC'D
+REQ-027,AGENTS,Rater: floors attached to every price; approval matrix enforced,Doc01§2,04-spec heritage,WP-04,48 legacy tests + 504-sweep pass in service,F0-SPEC'D
+REQ-028,AGENTS,Scheduler: windows vs facility capacity + driver hours,Doc01§2,10§1 facilities,WP-08,Double-book impossible test,F0-SPEC'D
+REQ-029,AGENTS,Dispatcher copilot suggestion-only v1,Doc01§2,05§1,vNEXT,Board approves required for any change,vNEXT
+REQ-030,AGENTS,Gatekeeper enforces gate catalog server-side,Doc01§4,08 GA-6,WP-05,API bypass attempts fail,F0-SPEC'D
+REQ-031,AGENTS,Biller: pod.signed→invoice.issued same transaction window,Doc01§2,02§4,WP-06,p95 <5s POD→email in pilot,F0-SPEC'D
+REQ-032,AGENTS,Collector: aging watch; tone-matched dunning drafts; sends on approval,Doc01§2,WP-11,WP-11,Draft quality human-rated; no auto-send,F0-SPEC'D
+REQ-033,AGENTS,Settler: escrowed instant settle on network moves,Doc01§2,04§3,vNEXT,Counsel-gated (CONFIRM-2),CONFIRM-GATED
+REQ-034,AGENTS,Translator: EDI 204/210/214/990 via replay-certified mappings,Doc01§2,WP-12,WP-12,R&L fixtures round-trip,F0-SPEC'D
+REQ-035,AGENTS,Migrator: any export→primitives with confidence; <0.8 queues review,Doc01§2,05§3,WP-14/15,171-col export maps or raises gap rows,F0-SPEC'D
+REQ-036,AGENTS,Watchtower: anomaly+floor-breach+unbilled=0 alarms,Doc01§2,PricingOS,WP-11,Seeded $0-bill fires alarm,F0-SPEC'D
+REQ-037,AGENTS,Credit officer: registry/bureau→terms rec; booking hold gate,Doc01§2,10§1 passports,vNEXT,Terms rec in <5min on test co,vNEXT
+REQ-038,AGENTS,Copilot: answers cite ledger events; read-only,Doc01§2,02§8,WP-10,Every answer carries event links,F0-SPEC'D
+REQ-039,AGENTS,Every agent: confidence gate + human queue + cost tracking,Doc01§2,08 GA-13,WP-all,agent_runs rows complete,F0-SPEC'D
+REQ-040,AGENTS,Anomaly regression: $222084/35lb case flags at ingest+pricing forever,PricingOS QA,fixtures,WP-04,Regression test permanent,F0-SPEC'D
+REQ-041,GATES,Quote→Booked blocked without weight/dims (no price on air),Doc01§4,RepDesk v1.1,WP-04,Weightless quote returns UNKNOWN,F0-SPEC'D
+REQ-042,GATES,Booked blocked on credit hold per policy,Doc01§4,10§1,WP-08,Hold blocks booking event,F0-SPEC'D
+REQ-043,GATES,Dispatch blocked until docs+appointment,Doc01§4,WP-08,WP-08,Negative test,F0-SPEC'D
+REQ-044,GATES,Pickup departure blocked without count+photos(+dims if fitted)+sign,Doc01§4,WP-05,WP-05,Gate UI+API enforce,F0-SPEC'D
+REQ-045,GATES,Interline handoff requires seal scan + receiver ack,Doc01§4,WP-05,vNEXT,Co-signed interchange event,vNEXT
+REQ-046,GATES,Delivery completes only w/ geofence+signature+placed-freight photo,User brief,01§4,WP-05,Cannot complete outside fence w/o override,F0-SPEC'D
+REQ-047,GATES,Booking gate requires consignee email/SMS or named opt-out,08 GA-6,01§4,WP-08,Heartbeat email has recipient 100%,F0-SPEC'D
+REQ-048,GATES,Below-floor price requires named approval per matrix,PRD rules,01§4,WP-04,LOSS needs dual approval event,F0-SPEC'D
+REQ-049,GATES,Overrides: named + reason + permanently visible,Doc00 L7,02§9,WP-05,Override report lists all,F0-SPEC'D
+REQ-050,GATES,OS&D capture at scan w/ photo opens claim draft,Doc01§3,WP-05,WP-05,Damage flow test,F0-SPEC'D
+REQ-051,BOOKING,Guest quote <60s; booking needs account/credit/Direct,Doc01§3C,03§3,WP-09,Stopwatch test,F0-SPEC'D
+REQ-052,BOOKING,Facility hours + dock capacity slots model,08 GA-15,10§1,WP-08,Scheduler respects capacity,F0-SPEC'D
+REQ-053,BOOKING,Round-trip and stop-off flows supported,Legacy parity,01§3B,WP-05,Parity fixtures pass,F0-SPEC'D
+REQ-054,BOOKING,COD prompt at delivery when flagged,Parity G6,01§3B,vNEXT,COD event + remit line,vNEXT
+REQ-055,BOOKING,Master job grouping for consolidated invoicing,Parity G8,10§1 refs,vNEXT,One invoice across shipments,vNEXT
+REQ-056,BOOKING,Bill terms prepaid/collect/third-party flip invoice target,Parity G3,10§1,WP-06,Collect invoices consignee,F0-SPEC'D
+REQ-057,BOOKING,Multi-company/division codes on shipments+money+invoices,Parity G2,10§1,WP-02,Filterable everywhere,F0-SPEC'D
+REQ-058,BOOKING,Pro-number ranges + legacy continuity config,Parity G9,10§1,WP-15,Legacy pros preserved verbatim,F0-SPEC'D
+REQ-059,BOOKING,Transit standards matrix (zone×zone days) config,Parity G11,10§1,WP-08,Quotes show honest windows,F0-SPEC'D
+REQ-060,BOOKING,Hazmat requires workspace enablement; excluded from Spark default,03§6,11,WP-14,Flag gates flows,F0-SPEC'D
+REQ-061,DRIVER,PWA offline-first; installable; no app store dependency,Doc05§1,07§03,WP-05,Full stop cycle in airplane mode,F0-SPEC'D
+REQ-062,DRIVER,Day sheet with gated per-stop flow (one question one button),Doc01§3B,07§03,WP-05,Zero-instruction test,F0-SPEC'D
+REQ-063,DRIVER,Forced photos: freight + placed + exceptions; camera always-dark UI,User brief,07§03/A6,WP-05,Photo required paths untypassable,F0-SPEC'D
+REQ-064,DRIVER,Signature on glass captured as evidence,User brief,WP-05,WP-05,Sig hash in pod.signed,F0-SPEC'D
+REQ-065,DRIVER,Geofence auto-arrive/depart stamps,Doc01§3B,WP-05,WP-05,Fence math ± accuracy,F0-SPEC'D
+REQ-066,DRIVER,Photo dims capture where fitted (v1 estimate; dimensioner later),Doc00 L4,vNEXT,vNEXT,Density estimate stored,vNEXT
+REQ-067,DRIVER,Dark ground default (A2); ≥44px hit targets,07 A2/A5,WP-05,WP-05,Outdoor readability check,F0-SPEC'D
+REQ-068,DRIVER,Cartage-partner mode: external drivers run same gated legs,Doc01§5,vNEXT,vNEXT,Partner leg pilot,vNEXT
+REQ-069,DRIVER,Driver auth simple + lockout policy,2023 archaeology,WP-05,WP-05,Auth tests,F0-SPEC'D
+REQ-070,DRIVER,Battery/data budget: <5%/day GPS at 30s cadence moving,08 GA-5,WP-05,WP-05,Field measurement,F0-SPEC'D
+REQ-071,MAP,Positions v1 = driver GPS 30s moving + gate stamps,08 GA-5,07§02,WP-05,Map dot latency <60s,F0-SPEC'D
+REQ-072,MAP,ELD/telematics adapters v1.5 (position ingestion API ready v1),08 GA-5,10§1,vNEXT,Adapter contract published,vNEXT
+REQ-073,MAP,Full-viewport map backdrop on Command/portal/status,User brief,07§02,WP-03,5 canonical screens,F0-SPEC'D
+REQ-074,MAP,Party-scoped entities; consignee sees city-level until out-for-delivery,User brief,07§02,WP-03,Adversarial lens test,F0-SPEC'D
+REQ-075,MAP,Self-hosted vector tiles; greige custom style; offline cache,08 GA-7,07§02,WP-03,No 3rd-party branding; airplane map loads,F0-SPEC'D
+REQ-076,MAP,Entity grammar: chevron/square/hollow/pulse per state; no new colors,07 A4,07§02,WP-03,Squint CI,F0-SPEC'D
+REQ-077,MAP,Exception dims world to 35% + pulse,07§02,WP-03,WP-03,Visual test,F0-SPEC'D
+REQ-078,MAP,Teal only as progress fills (route remaining/ETA),Directive,07 tokens,WP-03,Color audit CI,F0-SPEC'D
+REQ-079,MAP,1K entities 60fps desktop / 30fps mid-phone,07§02,WP-03,WP-03,Perf harness,F0-SPEC'D
+REQ-080,MAP,Click mark→dark lens panel; map never navigates away,07§02,WP-03,WP-03,UX test,F0-SPEC'D
+REQ-081,COMMAND,Command bar natural language→actions (⌘K),Doc01§3A,WP-10,WP-10,20 canonical commands pass,F0-SPEC'D
+REQ-082,COMMAND,Queues: approvals/exceptions/money as dark panels,Doc01§3A,07§03,WP-10,Queue actions emit events,F0-SPEC'D
+REQ-083,COMMAND,KPI strip: OR DSO unbilled OTD dwell laneP&L; count-up; click→events,Doc01§3A,07§03,WP-10,Every KPI traceable,F0-SPEC'D
+REQ-084,COMMAND,12 canonical live views; no report builder,Doc01§7,11 do-nots,WP-10,View census =12,F0-SPEC'D
+REQ-085,PORTAL,Self-serve quote→book <60s; docs; claims w/ custody chain,Doc01§3C,WP-09,WP-09,Stopwatch + chain visible,F0-SPEC'D
+REQ-086,PORTAL,Public status page per shipment (lens),Doc01§3C,WP-09,WP-09,No-auth scoped view,F0-SPEC'D
+REQ-087,PORTAL,Delivery notification email: DELIVERED display type + sig/pallet photos,User brief,07§03,WP-06,Design-system email renders across clients,F0-SPEC'D
+REQ-088,PORTAL,Spend analytics + scorecards per customer,Doc01§3C,WP-09,vNEXT,QBR pack generates,vNEXT
+REQ-089,PORTAL,White-label portal/driver for Scale tenants,04§2,vNEXT,vNEXT,Theme = tenant wordmark only,vNEXT
+REQ-090,PORTAL,Statement/pay surface,Doc01§3C,WP-11,WP-11,Statement matches ledger,F0-SPEC'D
+REQ-091,COMMS,Per-shipment address pro@tenant.shuddl.com + inbox connectors,Doc02§6,08 GA-9,WP-06,Inbound resolves to shipment,F0-SPEC'D
+REQ-092,COMMS,DKIM/SPF/DMARC + bounce/suppression handling,08 GA-9,WP-06,WP-06,Deliverability >98% seed,F0-SPEC'D
+REQ-093,COMMS,Every message auto-ties to Party+Shipment; <0.9 conf queues,Doc02§6,WP-07,WP-07,Resolution accuracy ≥95% fixture,F0-SPEC'D
+REQ-094,COMMS,Timeline visibility internal vs counterparty per lens flag,Doc02§6,WP-07,WP-07,Lens test,F0-SPEC'D
+REQ-095,COMMS,SLA timers on inbound needing reply,Doc02§6,WP-07,WP-07,Timer events fire,F0-SPEC'D
+REQ-096,COMMS,Voice: numbers + consent-aware recording→transcript v1.5,Doc02§6,CONFIRM-2,vNEXT,Two-party states handled,CONFIRM-GATED
+REQ-097,COMMS,SMS notifications for delivery evidence when email absent,REQ-047,WP-06,WP-06,SMS fallback fires,F0-SPEC'D
+REQ-098,COMMS,Agent reply drafts in tenant voice,Doc01§2,WP-07,WP-07,Human rating ≥4/5,F0-SPEC'D
+REQ-099,COMMS,call.transcribed + message.* event kinds on timeline,10§1,WP-07,WP-07,Events render,F0-SPEC'D
+REQ-100,COMMS,No communication exists outside the ledger (internal notes included),Doc00 L2,02§6,WP-07,Note-taking creates Message events,F0-SPEC'D
+REQ-101,MCP,Remote MCP server: quote/book/track/get_document/approve/dispute,Doc03§2,WP-13,WP-13,Live booking from Claude sandbox,F0-SPEC'D
+REQ-102,MCP,OAuth paired-company posture w/ org approval matrix inherited,Doc03§3,WP-13,WP-13,Intern-bot obeys CFO caps,F0-SPEC'D
+REQ-103,MCP,Credit-line guest posture,Doc03§3,vNEXT,vNEXT,Counsel-gated,CONFIRM-GATED
+REQ-104,MCP,Direct default posture (platform merchant),Doc03§3,vNEXT,vNEXT,Counsel-gated,CONFIRM-GATED
+REQ-105,MCP,Server-side spend caps/velocity/lane allowlists,Doc03§6,WP-13,WP-13,Hostile-prompt suite,F0-SPEC'D
+REQ-106,MCP,Idempotency keys on all mutations,Doc03§2,WP-13,WP-13,Duplicate-call test,F0-SPEC'D
+REQ-107,MCP,Every tool returns provenance event ids,Doc03§2,WP-13,WP-13,Schema check,F0-SPEC'D
+REQ-108,MCP,Structured confirmation before money movement,Doc03§6,WP-13,WP-13,No-confirm mutation fails,F0-SPEC'D
+REQ-109,MCP,Public JSON API + webhooks mirror MCP tools,Doc01§7,WP-13,WP-13,Parity test MCP vs API,F0-SPEC'D
+REQ-110,MCP,Agent-to-agent capability tokens v2,Doc03§4,vNEXT,vNEXT,Token scope tests,vNEXT
+REQ-111,OBS,Structured logs are events; admin health view,Doc02§8,WP-01,WP-01,Log→event pipeline,F0-SPEC'D
+REQ-112,OBS,Fixture registry versioned in repo (062226/4405/3100/504/48tests/import-packs),08 GA-12,WP-01,WP-01,CI references fixtures by hash,F0-SPEC'D
+REQ-113,OBS,Per-agent cost+latency budgets; Watchtower drift alarms,08 GA-13,WP-11,WP-11,Budget breach alarm test,F0-SPEC'D
+REQ-114,OBS,Uptime/SLO targets defined per surface,08 GA-20,WP-01,WP-01,Status monitors live,F0-SPEC'D
+REQ-115,OBS,Error state UX: FAILED display type + retry,Directive,07§01,WP-03,Design CI,F0-SPEC'D
+REQ-116,OBS,R2 lifecycle per document kind; 7yr POD; storage cost line,08 GA-16,WP-11,WP-11,Lifecycle policies applied,F0-SPEC'D
+REQ-117,OBS,Nightly ledger snapshots + restore drill,08 GA-19,WP-01,WP-01,Restore test quarterly,F0-SPEC'D
+REQ-118,OBS,Traceability CI: PRs need REQ ids; orphan detector both directions,08§02,WP-01,WP-01,Dummy orphan fails,F0-SPEC'D
+REQ-119,OBS,Adversarial audit swarm at every WP exit; no Critical open,08§02,WP-16,WP-all,Audit reports archived,F0-SPEC'D
+REQ-120,OBS,Weekly register review ritual (owner: Spencer),08§02,process,ongoing,Calendar + log,F0-SPEC'D
+REQ-121,PLG,60-second self-serve signup (email+card) → live workspace,Doc04§4,WP-14,WP-14,Stranger test <10min to first quote,F0-SPEC'D
+REQ-122,PLG,Spark $5/mo full-feature w/ AI credit allowance,Doc04§2,WP-14,WP-14,Caps throttle conveniences never truth,F0-SPEC'D
+REQ-123,PLG,Credits metering = Money events on platform tenant; Stripe billing,08 GA-8,WP-14,WP-14,Meter matches event counts exactly,F0-SPEC'D
+REQ-124,PLG,Pro/Scale tiers + usage; no seat pricing anywhere,Doc04§1,WP-14,WP-14,Pricing page audit,F0-SPEC'D
+REQ-125,PLG,Abuse controls: per-IP/workspace velocity; LLM cost ceilings,08 GA-17,WP-14,WP-14,Attack simulation stays under budget,F0-SPEC'D
+REQ-126,PLG,Support: copilot-first; human escalation; SLA at Scale only,08 GA-20,WP-14,WP-14,Escalation path tested,F0-SPEC'D
+REQ-127,PLG,Migrator drag-drop onboarding (spreadsheet→world) in signup flow,Doc04§4,WP-14,WP-14,3 messy real files import,F0-SPEC'D
+REQ-128,PLG,Demand-trap micro-sites feed Concierge (growth module),Doc01§7,vNEXT,vNEXT,Lead→quote pipeline,vNEXT
+REQ-129,PLG,Referral surface on every delivery email ("ship like this"),Doc04§4,WP-06,WP-06,Link present + tracked,F0-SPEC'D
+REQ-130,PLG,Pricing numbers re-based on tenant-#0 telemetry before public launch,Doc04§5,CONFIRM,WP-16,Updated doc 04,CONFIRM-GATED
+REQ-131,SEC,Threat model doc + review each WP,08 GA-10,WP-01,WP-01,Doc exists; reviewed,F0-SPEC'D
+REQ-132,SEC,AuthN: magic-link/SSO; 4 roles + driver + portal,Doc01 parity,WP-01,WP-01,Role matrix tests,F0-SPEC'D
+REQ-133,SEC,All client input untrusted incl. own UIs; server validates,Doc03§6,WP-01,WP-all,Fuzz suite,F0-SPEC'D
+REQ-134,SEC,Secrets management + key rotation for device signing,Doc02§1,WP-01,WP-01,Rotation drill,F0-SPEC'D
+REQ-135,SEC,DR: multi-region backups; RPO 24h RTO 4h v1; export = REQ-010,08 GA-19,WP-01,WP-01,Restore drill,F0-SPEC'D
+REQ-136,SEC,Pen-test basics before launch gate,08§03,WP-16,WP-16,Report clean,F0-SPEC'D
+REQ-137,LEGAL,Call-recording consent policy per state,08 GA-11,CONFIRM-2,vNEXT,Counsel sign-off,CONFIRM-GATED
+REQ-138,LEGAL,ToS/Privacy/DPA for PLG signup,08 GA-11,CONFIRM-2,WP-14,Counsel sign-off,CONFIRM-GATED
+REQ-139,LEGAL,Broker authority + insurance for Direct posture,08 GA-11,CONFIRM-2,vNEXT,Licenses in hand,CONFIRM-GATED
+REQ-140,LEGAL,Photo/PII retention policy + consignee notice,08 GA-11,CONFIRM-2,WP-06,Policy published,CONFIRM-GATED
+REQ-141,LEGAL,Naming/trademark clearance (SHUDDL working),08 GA-18,CONFIRM-1,F1,Clearance memo,CONFIRM-GATED
+REQ-142,LEGAL,eBOL/e-signature validity notes per mode,Doc00 deletions,CONFIRM-2,WP-05,Counsel note,CONFIRM-GATED
+REQ-143,LEGAL,Settle/escrow money-transmission review,04§3,CONFIRM-2,vNEXT,Counsel route chosen,CONFIRM-GATED
+REQ-144,LEGAL,2023 repos archived read-only w/ pointer,Doc06,F1,F1,Repos archived,F0-SPEC'D
+REQ-145,DESIGN,Five-token palette only; CI color audit,Doc07§01/06,WP-03,WP-03,Audit green,F0-SPEC'D
+REQ-146,DESIGN,Type law: condensed display + mono body; uppercase; contrast pair,Doc07§01,WP-03,WP-03,Font/case audit,F0-SPEC'D
+REQ-147,DESIGN,No shadows/gradients/radius>4px; 1px dividers; (01) numbering,Directive,WP-03,WP-03,Lint green,F0-SPEC'D
+REQ-148,DESIGN,Motion law: reveals/count-ups only; reduced-motion honored,Doc07§05,WP-03,WP-03,Motion lint + a11y test,F0-SPEC'D
+REQ-149,DESIGN,A1 deep-red small text ≥4.5:1 locked by CI,Doc07 A1,WP-03,WP-03,Contrast test green,F0-SPEC'D
