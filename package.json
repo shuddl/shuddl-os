@@ -1,0 +1,32 @@
+{
+  "name": "shuddl-os",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  },
+  "scripts": {
+    "typecheck": "pnpm -r --if-present run typecheck",
+    "lint": "eslint .",
+    "test": "pnpm run test:tools && pnpm -r --if-present run test",
+    "test:tools": "vitest run --config vitest.tools.config.ts",
+    "seed": "tsx tools/seed/generate.ts",
+    "check:invariants": "tsx tools/checks/invariants.ts",
+    "check:traceability": "tsx tools/traceability/orphans.ts --wp WP-01",
+    "check:pr": "tsx tools/traceability/check-pr.ts",
+    "check:identity": "tsx tools/checks/identity-leak.ts",
+    "check:fixtures": "tsx tools/fixtures/verify.ts",
+    "check:seed": "tsx tools/seed/verify.ts",
+    "audit:design": "tsx tools/design/audit.ts",
+    "verify": "pnpm typecheck && pnpm lint && pnpm test && pnpm check:invariants && pnpm check:traceability && pnpm check:identity && pnpm check:fixtures && pnpm check:seed && pnpm audit:design"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "eslint": "^10.6.0",
+    "tsx": "^4.23.0",
+    "typescript": "^7.0.2",
+    "typescript-eslint": "^8.63.0",
+    "vitest": "^4.1.10"
+  }
+}

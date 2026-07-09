@@ -12,3 +12,7 @@ coverage/
 
 # REQ-167: client-side identity denylist never enters the repo
 .identity-denylist.local
+
+# build artifacts regenerated from pinned hashes
+seed/SEED-1.json
+tools/design/report.json
