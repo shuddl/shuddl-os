@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { existsSync, globSync, readFileSync, writeFileSync } from "node:fs";
+import { stripSqlComments } from "@shuddl/ledger/migrate";
 
 // I8 (doc 10): ≤22 tables — 21 named, the spare requires a written deletion (register note).
 export const TABLE_BUDGET = 22;
@@ -12,15 +13,21 @@ export const PARTITION_TABLES: Record<string, string> = { positions: "events" };
 // Append-only tables that MUST carry RAISE(ABORT) guard triggers once created (I3, I1).
 const GUARDED_TABLES = ["events", "positions", "money_lines"] as const;
 
+// Optional opening quote/bracket before an identifier (', ", `, [) — closes the
+// evasion where `[events]` / `"events"` slipped past the bare-name matchers.
+const Q = `["'\`\\[]?`;
+
 export type InvariantResult = { ok: boolean; tableCount: number; violations: string[]; warnings: string[] };
 
 export function checkMigrationSql(sqlFiles: string[]): InvariantResult {
   const violations: string[] = [];
   const warnings: string[] = [];
   const tables = new Set<string>();
-  const all = sqlFiles.join("\n");
+  // Scan comment-free SQL: commented-out DDL must never satisfy a presence check,
+  // and a real mutation must never hide behind a `--`/`/* */` marker.
+  const clean = stripSqlComments(sqlFiles.join("\n"));
 
-  for (const m of all.matchAll(/CREATE TABLE(?: IF NOT EXISTS)?\s+["'`]?(\w+)/gi)) {
+  for (const m of clean.matchAll(new RegExp(`CREATE TABLE(?: IF NOT EXISTS)?\\s+${Q}(\\w+)`, "gi"))) {
     const name = m[1];
     if (name) tables.add(name.toLowerCase());
   }
@@ -37,54 +44,110 @@ export function checkMigrationSql(sqlFiles: string[]): InvariantResult {
   }
 
   // I3/I1: direct mutation of append-only tables — migrations may only CREATE/INDEX them.
-  for (const m of all.matchAll(/\b(UPDATE|DELETE\s+FROM|DROP\s+TABLE|ALTER\s+TABLE)\s+["'`]?(events|positions|money_lines)\b/gi)) {
-    violations.push(`I3 VIOLATION: migrations may only CREATE/INDEX ${m[2]} — found "${m[0]}". Corrections are new events.`);
+  // REPLACE / INSERT OR REPLACE are delete+insert in disguise (and dodge BEFORE DELETE
+  // guards unless recursive_triggers is on), so they are forbidden verbs too.
+  const mutate = new RegExp(
+    `\\b(UPDATE|DELETE\\s+FROM|DROP\\s+TABLE|ALTER\\s+TABLE|INSERT\\s+OR\\s+REPLACE\\s+INTO|REPLACE\\s+INTO)\\s+${Q}(events|positions|money_lines)\\b`,
+    "gi",
+  );
+  for (const m of clean.matchAll(mutate)) {
+    violations.push(`I3 VIOLATION: migrations may only CREATE/INDEX ${m[2]} — found "${m[1]}". Corrections are new events.`);
+  }
+  // I3: a guard trigger can never be dropped — that silently disables append-only.
+  for (const m of clean.matchAll(new RegExp(`\\bDROP\\s+TRIGGER\\s+(?:IF\\s+EXISTS\\s+)?${Q}([A-Za-z0-9_]+)`, "gi"))) {
+    const name = (m[1] ?? "").toLowerCase();
+    if (/_guard_/.test(name) || GUARDED_TABLES.some((t) => name === t || name.startsWith(`${t}_`))) {
+      violations.push(`I3 VIOLATION: DROP TRIGGER ${m[1]} disables an append-only guard — guards are permanent.`);
+    }
   }
   // Triggers on guarded tables: the body must be exactly one RAISE(ABORT) statement.
-  for (const m of all.matchAll(/CREATE\s+TRIGGER\s+[\w"'`]+[\s\S]*?\bON\s+["'`]?(events|positions|money_lines)\b[\s\S]*?\bBEGIN\b([\s\S]*?)\bEND\s*;/gi)) {
+  const triggerBody = new RegExp(`CREATE\\s+TRIGGER\\s+[\\w"'\`]+[\\s\\S]*?\\bON\\s+${Q}(events|positions|money_lines)\\b[\\s\\S]*?\\bBEGIN\\b([\\s\\S]*?)\\bEND\\s*;`, "gi");
+  for (const m of clean.matchAll(triggerBody)) {
     const body = (m[2] ?? "").trim();
     if (!/^SELECT\s+RAISE\s*\(\s*ABORT\b[^;]*;$/i.test(body)) {
       violations.push(`I3 VIOLATION: trigger on ${m[1]} may only RAISE(ABORT) — found "${body.slice(0, 60)}"`);
     }
   }
-  // Guards are mandatory, not optional: each guarded table present must have both guard triggers.
+  // Guards are mandatory AND must have the correct timing — a name-only match let an
+  // AFTER-INSERT (or commented-out) "guard" pass while the table stayed mutable.
+  const guardSpecs = [
+    { suffix: "guard_upd", event: "UPDATE" },
+    { suffix: "guard_del", event: "DELETE" },
+  ] as const;
   for (const t of GUARDED_TABLES) {
     if (!tables.has(t)) continue;
-    for (const suffix of ["guard_upd", "guard_del"]) {
-      if (!new RegExp(`CREATE\\s+TRIGGER\\s+["'\`]?${t}_${suffix}\\b`, "i").test(all)) {
-        violations.push(`I3 VIOLATION: missing guard trigger ${t}_${suffix}`);
+    for (const { suffix, event } of guardSpecs) {
+      const re = new RegExp(`CREATE\\s+TRIGGER\\s+${Q}${t}_${suffix}\\b[\\s\\S]*?\\bBEFORE\\s+${event}\\s+ON\\s+${Q}${t}\\b`, "i");
+      if (!re.test(clean)) {
+        violations.push(`I3 VIOLATION: missing guard trigger ${t}_${suffix} (must be BEFORE ${event} ON ${t})`);
       }
     }
   }
   return { ok: violations.length === 0, tableCount: effective, violations, warnings };
 }
 
+// Forward-only migration lock. A merged migration file is immutable; its SHA-256 is
+// pinned in db/migrations.lock.json. `check` (CI) never writes and fails on any
+// divergence OR any on-disk migration missing from the lock — so the "delete the key
+// then let CI re-pin" bypass is dead. `write` (pnpm db:lock) pins NEW files only and
+// still refuses to re-pin an edited one.
+export type LockMode = "check" | "write";
+export function checkLock(
+  entries: ReadonlyArray<{ path: string; digest: string }>,
+  lock: Readonly<Record<string, string>>,
+  mode: LockMode,
+): { ok: boolean; errors: string[]; nextLock: Record<string, string> } {
+  const errors: string[] = [];
+  const nextLock: Record<string, string> = {};
+  for (const { path, digest } of entries) {
+    const pinned = lock[path];
+    if (pinned === undefined) {
+      if (mode === "check") errors.push(`migration ${path} is not pinned in db/migrations.lock.json — run \`pnpm db:lock\` (forward-only).`);
+    } else if (pinned !== digest) {
+      errors.push(`migration ${path} was EDITED after lock — migrations are forward-only; add a new file.`);
+    }
+    nextLock[path] = digest;
+  }
+  return { ok: errors.length === 0, errors, nextLock };
+}
+
+// A .sql file is a stray (evades the I3/I8 lint) unless it is a real migration file,
+// a fixture, or vendored. Only db/**/migrations/*.sql is exempt under db/ — a file
+// like db/tenant/seed.sql is scanned by neither glob otherwise, so it is a stray.
+export function isStraySql(path: string, migrations: ReadonlySet<string>): boolean {
+  if (path.includes("node_modules") || path.startsWith("fixtures/")) return false;
+  return !migrations.has(path);
+}
+
 function main(): void {
-  const files = globSync("db/**/migrations/*.sql");
-  const strays = globSync("**/*.sql", { exclude: (p) => p.includes("node_modules") || p.startsWith("db/") || p.startsWith("fixtures/") });
+  const mode: LockMode = process.argv.includes("--write") ? "write" : "check";
+  const migrations = globSync("db/**/migrations/*.sql");
+  const migrationSet = new Set(migrations);
+  const strays = globSync("**/*.sql", { exclude: (p) => !isStraySql(p, migrationSet) });
   if (strays.length > 0) {
     console.error(`FAIL stray SQL outside db/*/migrations (evades I3/I8 lint): ${strays.join(", ")}`);
     process.exit(1);
   }
-  // Forward-only: a merged migration file is immutable (hash-pinned in db/migrations.lock.json).
-  const lockPath = "db/migrations.lock.json";
-  const lock = existsSync(lockPath) ? (JSON.parse(readFileSync(lockPath, "utf8")) as Record<string, string>) : {};
-  for (const f of files) {
-    const digest = createHash("sha256").update(readFileSync(f)).digest("hex");
-    if (lock[f] && lock[f] !== digest) {
-      console.error(`FAIL migration ${f} was EDITED after lock — migrations are forward-only; add a new file.`);
-      process.exit(1);
-    }
-    lock[f] = lock[f] ?? digest;
-  }
-  writeFileSync(lockPath, JSON.stringify(lock, null, 2) + "\n");
-  const result = checkMigrationSql(files.map((f) => readFileSync(f, "utf8")));
+
+  // Invariants first — never pin (or, in check mode, never bless) a migration that fails I3/I8.
+  const result = checkMigrationSql(migrations.map((f) => readFileSync(f, "utf8")));
   for (const w of result.warnings) console.warn(`WARN ${w}`);
   if (!result.ok) {
     for (const v of result.violations) console.error(`FAIL ${v}`);
     process.exit(1);
   }
-  console.log(`invariants OK — ${result.tableCount}/${TABLE_BUDGET} tables, events append-only (${files.length} migration files)`);
+
+  const lockPath = "db/migrations.lock.json";
+  const lock = existsSync(lockPath) ? (JSON.parse(readFileSync(lockPath, "utf8")) as Record<string, string>) : {};
+  const entries = migrations.map((f) => ({ path: f, digest: createHash("sha256").update(readFileSync(f)).digest("hex") }));
+  const lockResult = checkLock(entries, lock, mode);
+  if (!lockResult.ok) {
+    for (const e of lockResult.errors) console.error(`FAIL ${e}`);
+    process.exit(1);
+  }
+  if (mode === "write") writeFileSync(lockPath, JSON.stringify(lockResult.nextLock, null, 2) + "\n");
+
+  console.log(`invariants OK — ${result.tableCount}/${TABLE_BUDGET} tables, events append-only (${migrations.length} migration files, lock: ${mode})`);
 }
 
 if (process.argv[1]?.endsWith("invariants.ts")) main();

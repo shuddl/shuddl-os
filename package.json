@@ -14,6 +14,7 @@
     "test:tools": "vitest run --config vitest.tools.config.ts",
     "seed": "tsx tools/seed/generate.ts",
     "check:invariants": "tsx tools/checks/invariants.ts",
+    "db:lock": "tsx tools/checks/invariants.ts --write",
     "check:traceability": "tsx tools/traceability/orphans.ts --wp WP-01",
     "check:pr": "tsx tools/traceability/check-pr.ts",
     "check:identity": "tsx tools/checks/identity-leak.ts",

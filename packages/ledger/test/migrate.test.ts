@@ -1,6 +1,22 @@
 import { env } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
-import { applyMigrations, splitSql } from "../src/migrate.js";
+import { applyMigrations, splitSql, stripSqlComments } from "../src/migrate.js";
+
+describe("stripSqlComments: string-aware comment removal", () => {
+  it("removes line comments", () => {
+    const r = stripSqlComments("SELECT 1 -- secret sauce\nSELECT 2");
+    expect(r).not.toContain("secret");
+    expect(r).toContain("SELECT 1");
+    expect(r).toContain("SELECT 2");
+  });
+  it("removes block comments", () => {
+    expect(stripSqlComments("a /* hidden */ b")).not.toContain("hidden");
+  });
+  it("preserves comment markers and ';' inside string literals", () => {
+    const r = stripSqlComments("INSERT INTO t VALUES ('a -- b; c')");
+    expect(r).toContain("'a -- b; c'");
+  });
+});
 
 describe("splitSql: top-level ';' only — trigger bodies stay whole", () => {
   it("keeps a two-trigger file as 2 statements plus the CREATE TABLE as 1", () => {
@@ -22,9 +38,20 @@ END;`;
     expect(stmts[1]).toMatch(/END;$/);
     expect(stmts[2]).toContain("events_guard_del");
   });
+});
 
-  it("drops blank/comment-only fragments", () => {
+describe("splitSql: no silent drops (CLAUDE.md rule 10)", () => {
+  it("comment-only and blank fragments are fine and yield nothing", () => {
     expect(splitSql("\n-- a comment\n\n")).toHaveLength(0);
+    expect(splitSql("/* block */\n")).toHaveLength(0);
+  });
+  it("throws on real trailing content with no terminating ';'", () => {
+    expect(() => splitSql("CREATE TABLE t (id TEXT)")).toThrow(/trailing SQL/);
+  });
+  it("a ';' or '--' inside a string literal neither splits nor truncates", () => {
+    const stmts = splitSql("INSERT INTO t VALUES ('a -- b; c');");
+    expect(stmts).toHaveLength(1);
+    expect(stmts[0]).toContain("'a -- b; c'");
   });
 });
 
@@ -46,5 +73,22 @@ END;`;
     await expect(
       env.TENANT_A_DB.prepare("UPDATE events SET payload = '{tampered}' WHERE id = 'e1'").run(),
     ).rejects.toThrow(/I3/);
+  });
+
+  it("inline column comments do not corrupt a multi-line CREATE TABLE (I4)", async () => {
+    // Every column carries an inline comment — the shape Task 2's DDL will have.
+    const sql = `CREATE TABLE t (
+  id TEXT PRIMARY KEY, -- the id
+  name TEXT NOT NULL, -- the display name
+  amt INTEGER -- signed cents
+);`;
+    await applyMigrations(env.TENANT_B_DB, [{ path: "0001.sql", sql }]);
+    await env.TENANT_B_DB.prepare("INSERT INTO t (id, name, amt) VALUES ('a', 'b', 5)").run();
+    const row = await env.TENANT_B_DB.prepare("SELECT id, name, amt FROM t WHERE id = 'a'").first<{
+      id: string;
+      name: string;
+      amt: number;
+    }>();
+    expect(row).toEqual({ id: "a", name: "b", amt: 5 });
   });
 });

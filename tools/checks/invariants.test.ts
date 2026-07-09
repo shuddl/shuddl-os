@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { checkMigrationSql, PARTITION_TABLES, TABLE_BUDGET } from "./invariants.js";
+import { checkLock, checkMigrationSql, isStraySql, PARTITION_TABLES, TABLE_BUDGET } from "./invariants.js";
 
-// The six mandatory RAISE(ABORT) guard triggers for the append-only tables (I3/I1).
+// The three append-only tables, and the six mandatory RAISE(ABORT) guard triggers.
+export const TABLES_SQL = "CREATE TABLE events (id TEXT);\nCREATE TABLE positions (id TEXT);\nCREATE TABLE money_lines (id TEXT);";
 export const GUARDS_SQL = `
 CREATE TRIGGER events_guard_upd BEFORE UPDATE ON events BEGIN SELECT RAISE(ABORT,'I3: append-only'); END;
 CREATE TRIGGER events_guard_del BEFORE DELETE ON events BEGIN SELECT RAISE(ABORT,'I3: append-only'); END;
@@ -66,7 +67,7 @@ describe("I3: events are append-only — including migrations", () => {
 
 describe("I3 v2: trigger bodies may only RAISE(ABORT)", () => {
   const guards = GUARDS_SQL;
-  const tables = "CREATE TABLE events (id TEXT);\nCREATE TABLE positions (id TEXT);\nCREATE TABLE money_lines (id TEXT);";
+  const tables = TABLES_SQL;
 
   it("stacked RAISE(ABORT) guard triggers are green (old regex false-positived here)", () => {
     expect(checkMigrationSql([tables + guards]).ok).toBe(true);
@@ -98,5 +99,112 @@ describe("I8 v2: positions is a partition of entry 9", () => {
   });
   it("the partition map is pinned to exactly ['positions']", () => {
     expect(Object.keys(PARTITION_TABLES)).toEqual(["positions"]);
+  });
+});
+
+describe("C1: a guard trigger can never be dropped by a later migration", () => {
+  it.each([
+    "DROP TRIGGER events_guard_del;",
+    "DROP TRIGGER IF EXISTS positions_guard_upd;",
+    "DROP TRIGGER money_lines_guard_del ;",
+  ])("flags %s even when every CREATE guard is present", (drop) => {
+    // guard-presence is satisfied (all CREATEs present) — the drop is the whole attack.
+    const r = checkMigrationSql([TABLES_SQL + GUARDS_SQL + "\n" + drop]);
+    expect(r.ok).toBe(false);
+    expect(r.violations.join(" ")).toContain("I3");
+    expect(r.violations.join(" ")).toContain("DROP TRIGGER");
+  });
+});
+
+describe("I1: REPLACE is a disguised delete+insert on append-only tables", () => {
+  it.each([
+    "REPLACE INTO events (id) VALUES ('x');",
+    "INSERT OR REPLACE INTO events (id) VALUES ('x');",
+    "REPLACE INTO money_lines (id) VALUES ('x');",
+  ])("flags %s", (stmt) => {
+    const r = checkMigrationSql([TABLES_SQL + GUARDS_SQL + "\n" + stmt]);
+    expect(r.ok).toBe(false);
+    expect(r.violations.join(" ")).toContain("I3");
+  });
+});
+
+describe("I2: guard-presence requires correct timing and ignores comments", () => {
+  it("a guard with wrong timing (AFTER INSERT) does not satisfy presence", () => {
+    const sql =
+      "CREATE TABLE events (id TEXT);\n" +
+      "CREATE TRIGGER events_guard_upd AFTER INSERT ON events BEGIN SELECT RAISE(ABORT,'x'); END;\n" +
+      "CREATE TRIGGER events_guard_del BEFORE DELETE ON events BEGIN SELECT RAISE(ABORT,'x'); END;";
+    const r = checkMigrationSql([sql]);
+    expect(r.ok).toBe(false);
+    expect(r.violations.join(" ")).toContain("missing guard trigger events_guard_upd");
+  });
+  it("a commented-out guard does not satisfy presence", () => {
+    const sql =
+      "CREATE TABLE events (id TEXT);\n" +
+      "-- CREATE TRIGGER events_guard_upd BEFORE UPDATE ON events BEGIN SELECT RAISE(ABORT,'x'); END;\n" +
+      "CREATE TRIGGER events_guard_del BEFORE DELETE ON events BEGIN SELECT RAISE(ABORT,'x'); END;";
+    const r = checkMigrationSql([sql]);
+    expect(r.ok).toBe(false);
+    expect(r.violations.join(" ")).toContain("missing guard trigger events_guard_upd");
+  });
+  it("a commented-out mutation is NOT a violation", () => {
+    const r = checkMigrationSql([TABLES_SQL + GUARDS_SQL + "\n-- UPDATE events SET id='x';"]);
+    expect(r.ok).toBe(true);
+  });
+});
+
+describe("I3 lint: bracket-quoted identifiers do not evade the lint", () => {
+  it("UPDATE [events] is flagged (bracket identifier)", () => {
+    const r = checkMigrationSql([TABLES_SQL + GUARDS_SQL + "\nUPDATE [events] SET id='x';"]);
+    expect(r.ok).toBe(false);
+    expect(r.violations.join(" ")).toContain("I3");
+  });
+  it("CREATE TABLE [events] is counted and still demands guards", () => {
+    const r = checkMigrationSql(["CREATE TABLE [events] (id TEXT);"]);
+    expect(r.tableCount).toBe(1);
+    expect(r.violations.join(" ")).toContain("missing guard trigger events_guard_upd");
+  });
+});
+
+describe("C2: forward-only migration lock (checkLock)", () => {
+  const path = "db/tenant/migrations/0001_ledger_core.sql";
+  it("check mode fails when a migration on disk is not pinned in the lock", () => {
+    const r = checkLock([{ path, digest: "abc" }], {}, "check");
+    expect(r.ok).toBe(false);
+    expect(r.errors.join(" ")).toMatch(/not pinned/);
+  });
+  it("an edited file fails even when its lock key was KEPT (digest diverged)", () => {
+    const r = checkLock([{ path, digest: "NEW" }], { [path]: "OLD" }, "check");
+    expect(r.ok).toBe(false);
+    expect(r.errors.join(" ")).toMatch(/EDITED/);
+  });
+  it("write mode refuses to re-pin an edited file (forward-only, even locally)", () => {
+    expect(checkLock([{ path, digest: "NEW" }], { [path]: "OLD" }, "write").ok).toBe(false);
+  });
+  it("write mode pins a brand-new file", () => {
+    const r = checkLock([{ path, digest: "abc" }], {}, "write");
+    expect(r.ok).toBe(true);
+    expect(r.nextLock[path]).toBe("abc");
+  });
+  it("a matching digest passes in both modes", () => {
+    expect(checkLock([{ path, digest: "abc" }], { [path]: "abc" }, "check").ok).toBe(true);
+    expect(checkLock([{ path, digest: "abc" }], { [path]: "abc" }, "write").ok).toBe(true);
+  });
+});
+
+describe("M1: stray-SQL fence — only real migration files are exempt", () => {
+  const migrations = new Set(["db/tenant/migrations/0001_ledger_core.sql"]);
+  it("a .sql under db/ that is NOT a migration (e.g. db/tenant/seed.sql) is a stray", () => {
+    expect(isStraySql("db/tenant/seed.sql", migrations)).toBe(true);
+  });
+  it("a real migration file is exempt", () => {
+    expect(isStraySql("db/tenant/migrations/0001_ledger_core.sql", migrations)).toBe(false);
+  });
+  it("fixtures and node_modules are exempt", () => {
+    expect(isStraySql("fixtures/qb/export.sql", migrations)).toBe(false);
+    expect(isStraySql("packages/x/node_modules/dep/schema.sql", migrations)).toBe(false);
+  });
+  it("a stray anywhere else (e.g. packages/ledger/rogue.sql) is caught", () => {
+    expect(isStraySql("packages/ledger/rogue.sql", migrations)).toBe(true);
   });
 });
