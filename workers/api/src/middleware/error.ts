@@ -25,13 +25,15 @@ export function envelope(c: Context, code: ErrorCode, status: number, message: s
   return c.json(body, status as StatusCode);
 }
 
-export async function errorEnvelope(c: Context, next: Next): Promise<Response | void> {
+export async function reqId(c: Context, next: Next): Promise<void> {
   c.set("req_id", crypto.randomUUID());
-  try {
-    await next();
-  } catch (err) {
-    if (err instanceof ApiError) return envelope(c, err.code, err.status, err.message, err.gate);
-    logEvent("error.unhandled", { message: err instanceof Error ? err.message : String(err) }, c.get("req_id") as string);
-    return envelope(c, "INTERNAL", 500, "INTERNAL ERROR");
-  }
+  await next();
+}
+
+// REQ-156: every error leaving this worker is the envelope — wired via app.onError
+// (Hono routes thrown errors to the app error handler, not to outer middleware).
+export function handleError(err: Error, c: Context): Response {
+  if (err instanceof ApiError) return envelope(c, err.code, err.status, err.message, err.gate);
+  logEvent("error.unhandled", { message: err.message }, c.get("req_id") as string | undefined);
+  return envelope(c, "INTERNAL", 500, "INTERNAL ERROR");
 }
