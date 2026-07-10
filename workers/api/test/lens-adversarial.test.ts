@@ -349,6 +349,50 @@ describe("case 9: table-driven I6 visibility sweep on shipment A", () => {
   });
 });
 
+// 9b — INDEPENDENT I6 guards. Case 9 above derives its expectation from the SAME maps the routes
+// consume, so a map regression moves both sides in lockstep and the sweep still passes (it cannot go
+// red on a real leak — proven: flipping authority.flipped to counterparty leaves case 9 green). These
+// two guards do NOT import the map under test. A hardcoded internal-kind literal proves BEHAVIOR (no
+// internal control event ever reaches a party/driver body); a frozen 35-pair snapshot proves the MAP
+// itself, so any drift fails a dedicated, obviously-named test instead of moving the goalposts.
+const INTERNAL_KINDS_FROZEN = [
+  "credit.checked", "split.computed", "call.transcribed",
+  "approval.requested", "approval.decided", "agent.acted", "authority.flipped",
+] as const;
+
+const FROZEN_DEFAULTS: Record<EventKind, "internal" | "counterparty" | "public"> = {
+  "quote.requested": "counterparty", "quote.priced": "counterparty", "quote.sent": "counterparty",
+  "quote.accepted": "counterparty", "quote.expired": "counterparty", "booking.created": "counterparty",
+  "appointment.set": "counterparty", "pickup.scheduled": "counterparty", "dispatch.assigned": "counterparty",
+  "stop.arrived": "counterparty", "freight.counted": "counterparty", "freight.photographed": "counterparty",
+  "dims.captured": "counterparty", "custody.transferred": "counterparty", "seal.applied": "counterparty",
+  "stop.departed": "counterparty", "position.updated": "counterparty", "exception.raised": "counterparty",
+  "osd.captured": "counterparty", "pod.signed": "counterparty", "delivery.evidenced": "counterparty",
+  "invoice.issued": "counterparty", "invoice.corrected": "counterparty", "payment.received": "counterparty",
+  "settlement.executed": "counterparty", "message.received": "counterparty", "message.sent": "counterparty",
+  "document.attached": "counterparty",
+  "credit.checked": "internal", "split.computed": "internal", "call.transcribed": "internal",
+  "approval.requested": "internal", "approval.decided": "internal", "agent.acted": "internal",
+  "authority.flipped": "internal",
+};
+
+describe("case 9b: independent I6 guards (do NOT import the map under test)", () => {
+  it("no internal control kind ever reaches a party or driver lens (hardcoded literal, not the map)", async () => {
+    const party = await listShipment(SHP_A, await portalTok(P1));
+    const driver = await listShipment(SHP_A, await driverTok(D1));
+    // shipment A carries one event of every appendable kind (incl. all seven below), so a leak shows up.
+    for (const kind of INTERNAL_KINDS_FROZEN) {
+      expect(party.body, `party lens leaked internal kind ${kind}`).not.toContain(kind);
+      expect(driver.body, `driver lens leaked internal kind ${kind}`).not.toContain(kind);
+    }
+  });
+
+  it("KIND_VISIBILITY_DEFAULTS equals its frozen 35-pair snapshot (drift fails HERE, by name)", () => {
+    expect(Object.keys(FROZEN_DEFAULTS)).toHaveLength(35);
+    expect(KIND_VISIBILITY_DEFAULTS).toEqual(FROZEN_DEFAULTS);
+  });
+});
+
 // The firehose: composite (stream_id, seq) keyset — tenant-lens roles only; portal/driver must scope
 // by shipment. A cursor at a stream boundary must NOT drop the next stream's low-seq rows.
 describe("firehose GET /v1/events", () => {
@@ -473,6 +517,23 @@ describe("POST /v1/positions", () => {
     expect(res.status).toBe(400);
   });
 
+  // A PK conflict with DIFFERENT data trips positions_guard_ins (RAISE(ABORT)). Integrity holds (the row
+  // is NOT rewritten), but it is a CLIENT conflict — it must surface as 400, never a 500 (which a client
+  // would retry forever and which would pollute Watchtower's unhandled-error alarm).
+  it("a same-PK re-ingest with DIFFERENT coordinates is a 400 (not a 500), and the row is not rewritten", async () => {
+    const base = { shipment_id: "adv-pos-conflict", device_id: "dev-c", ts: 1_720_000_000_777, lat_e6: 10_000_000, lon_e6: 20_000_000 };
+    expect((await postPosition(base, await driverTok(D1))).status).toBe(201);
+
+    const conflict = await postPosition({ ...base, lat_e6: 99_000_000 }, await driverTok(D1));
+    expect(conflict.status).toBe(400);
+    const body = JSON.parse(await conflict.text()) as { code: string };
+    expect(body.code).toBe("VALIDATION_FAILED"); // NOT INTERNAL -> the error.unhandled/500 path was NOT taken
+
+    // integrity: the stored row still carries the ORIGINAL coordinates (the guard blocked the overwrite)
+    const row = await env.TENANT_A_DB.prepare("SELECT lat_e6 FROM positions WHERE shipment_id=? AND device_id=? AND ts=?").bind(base.shipment_id, base.device_id, base.ts).first<{ lat_e6: number }>();
+    expect(row!.lat_e6).toBe(base.lat_e6);
+  });
+
   it("requires an Idempotency-Key", async () => {
     const res = await SELF.fetch("https://api.local/v1/positions", {
       method: "POST",
@@ -485,5 +546,24 @@ describe("POST /v1/positions", () => {
   it("a read/portal role cannot post positions (role gate)", async () => {
     const res = await postPosition({ shipment_id: "adv-pos-5", device_id: "d", ts: 1, lat_e6: 1, lon_e6: 2 }, await portalTok(P1));
     expect(res.status).toBe(403);
+  });
+});
+
+// Minor route-level coverage the probes confirmed but the shipped suite did not assert.
+describe("route-level geo + position.updated event handling", () => {
+  it("a driver lens keeps geo EXACT — coarsening is a party-only projection (doc 07 §02)", async () => {
+    const res = await listShipment(SHP_A, await driverTok(D1));
+    const custody = res.events.find((e) => e.kind === "custody.transferred");
+    expect(custody).toBeDefined();
+    const g = (custody!.payload as { geo: Record<string, unknown> }).geo;
+    expect(g.lat_e6).toBe(GEO.lat_e6);
+    expect(g.lon_e6).toBe(GEO.lon_e6);
+    expect(g.accuracy_m).toBe(GEO.accuracy_m);
+  });
+
+  it("a position.updated EVENT on the events route is rejected 400 — positions own the partition, not the log", async () => {
+    const shp = "adv-shp-posevent";
+    const r = await append(shp, buildInput(shp, "position.updated", { payload: { lat_e6: 1, lon_e6: 2 } }), await opsTok());
+    expect(r.status).toBe(400);
   });
 });

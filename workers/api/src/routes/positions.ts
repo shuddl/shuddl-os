@@ -34,13 +34,27 @@ export function mountPositionRoutes(app: Hono<{ Bindings: Env; Variables: Vars }
 
     // Two independent dedupe layers, both intentional: the Idempotency-Key middleware (POST is a mutation)
     // dedupes an HTTP retry of the SAME key; the PK (shipment_id, device_id, ts) + INSERT OR IGNORE dedupes
-    // a re-send under a NEW key. Neither writes twice.
-    await tenantDb(c.env, c.get("session").tenant)
-      .prepare(
-        "INSERT OR IGNORE INTO positions (shipment_id, device_id, ts, recorded_at, lat_e6, lon_e6, accuracy_m, speed_cms, hash) VALUES (?,?,?,?,?,?,?,?,?)",
-      )
-      .bind(p.shipment_id, p.device_id, p.ts, Date.now(), p.lat_e6, p.lon_e6, p.accuracy_m ?? null, p.speed_cms ?? null, hash)
-      .run();
+    // a re-send under a NEW key. Neither writes twice. A byte-identical re-ingest passes silently here.
+    try {
+      await tenantDb(c.env, c.get("session").tenant)
+        .prepare(
+          "INSERT OR IGNORE INTO positions (shipment_id, device_id, ts, recorded_at, lat_e6, lon_e6, accuracy_m, speed_cms, hash) VALUES (?,?,?,?,?,?,?,?,?)",
+        )
+        .bind(p.shipment_id, p.device_id, p.ts, Date.now(), p.lat_e6, p.lon_e6, p.accuracy_m ?? null, p.speed_cms ?? null, hash)
+        .run();
+    } catch (e) {
+      // A re-ingest at the SAME PK with DIFFERENT data trips positions_guard_ins (RAISE(ABORT)). The row
+      // is NOT rewritten — integrity holds, which is the guard's whole job. But this is a CLIENT conflict,
+      // not a server fault: report 400, never a 500. A 500 would make a client retry forever and pollute
+      // the unhandled-error alarm Watchtower will page on. There is no 409 code in errors.ts (adding one
+      // is a register amendment), so VALIDATION_FAILED/400 is the register-legal choice. An unrelated DB
+      // fault (no SQLITE_CONSTRAINT / I3 marker) still rethrows as a genuine INTERNAL 500.
+      const msg = e instanceof Error ? e.message : String(e);
+      if (/SQLITE_CONSTRAINT|I3: append-only/i.test(msg)) {
+        throw new ApiError("VALIDATION_FAILED", 400, "POSITION CONFLICT AT (shipment, device, ts) WITH DIFFERENT DATA");
+      }
+      throw e;
+    }
 
     return c.json({ ok: true, hash }, 201);
   });
