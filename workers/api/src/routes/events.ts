@@ -63,6 +63,9 @@ function toReadError(e: unknown): unknown {
 
 const LIMIT_CAP = 1000;
 const DEFAULT_LIMIT = 200; // mirrors @shuddl/ledger/lens readEvents so next_cursor agrees with the page size
+// A shipment id far under any DO-name / KV-key limit; a real id is a slug, never kilobytes. Length only —
+// the DO owns the format check. 200 chars leaves ample headroom below the 2KB DO-name and 512B KV limits.
+const MAX_SHIPMENT_ID_LEN = 200;
 
 function parseLimit(raw: string | undefined): number | undefined {
   if (raw === undefined || raw === "") return undefined;
@@ -105,6 +108,13 @@ export function mountEventRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>):
   app.post("/v1/shipments/:id/events", requireRole("admin", "ops", "driver"), async (c) => {
     const session = c.get("session");
     const shipmentId = c.req.param("id");
+    // Bound the shipment id BEFORE it reaches the DO name (idFromName) or any query: an oversized id is
+    // a client mistake (400), not a 500. The DO's stream-id regex is the authority on FORMAT; this only
+    // caps LENGTH so a pathological id can't blow a downstream limit. (The KV idempotency key is already
+    // hashed to a fixed length, so the middleware no longer 500s on a long path — this keeps the 4xx clean.)
+    if (shipmentId.length > MAX_SHIPMENT_ID_LEN) {
+      throw new ApiError("VALIDATION_FAILED", 400, "SHIPMENT ID TOO LONG");
+    }
     const streamId = `s:${shipmentId}`;
 
     // Driver write-scope (the plan leaves this to the route — the DO scopes tenant, the lens scopes

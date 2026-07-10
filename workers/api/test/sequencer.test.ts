@@ -293,6 +293,20 @@ it("POST /v1/shipments/o%27brien/events -> 400 VALIDATION_FAILED with no Zod int
   expect(body).not.toContain("[{");
 });
 
+// WP-02 exit audit (REQ-119) Minor: an oversized :id overflowed the KV idempotency key (512-byte
+// limit) and 500'd + logged error.unhandled BEFORE any validation ran. A client error must be a 4xx.
+it("POST /v1/shipments/<~10KB id>/events -> 400 VALIDATION_FAILED, never a 500 (KV idempotency-key overflow)", async () => {
+  const tok = await token({ sub: "u-ops-bigid", tenant: TENANT, role: "ops" });
+  const bigId = "x".repeat(10_000);
+  const res = await SELF.fetch(`https://api.local/v1/shipments/${bigId}/events`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${tok}`, "Idempotency-Key": crypto.randomUUID(), "content-type": "application/json" },
+    body: JSON.stringify(inputFor("s:whatever")),
+  });
+  expect(res.status).toBe(400);
+  expect(JSON.parse(await res.text()).code).toBe("VALIDATION_FAILED");
+});
+
 describe("sequencer wiring sanity", () => {
   it("CONTROL_DB seeded the tenant + device key", async () => {
     const t = await env.CONTROL_DB.prepare("SELECT policy FROM tenants WHERE slug = ?").bind(TENANT).first<{ policy: string }>();
