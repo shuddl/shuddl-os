@@ -23,6 +23,7 @@
     "check:seed": "tsx tools/seed/verify.ts",
     "audit:design": "tsx tools/design/audit.ts",
     "perf:map": "tsx tools/harness/playwright-guard.ts perf packages/map/playwright.config.ts",
+    "test:visual": "tsx tools/harness/playwright-guard.ts visual playwright.config.ts",
     "verify": "pnpm typecheck && pnpm lint && pnpm test && pnpm check:invariants && pnpm check:traceability && pnpm check:identity && pnpm check:fixtures && pnpm check:seed && pnpm audit:design"
   },
   "devDependencies": {

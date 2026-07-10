@@ -38,6 +38,9 @@ importers:
       '@shuddl/design':
         specifier: workspace:*
         version: link:../../packages/design
+      '@shuddl/map':
+        specifier: workspace:*
+        version: link:../../packages/map
       react:
         specifier: ^19.2.3
         version: 19.2.7
@@ -94,6 +97,9 @@ importers:
       '@shuddl/design':
         specifier: workspace:*
         version: link:../../packages/design
+      '@shuddl/map':
+        specifier: workspace:*
+        version: link:../../packages/map
       react:
         specifier: ^19.2.3
         version: 19.2.7

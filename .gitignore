@@ -16,3 +16,9 @@ coverage/
 # build artifacts regenerated from pinned hashes
 seed/SEED-1.json
 tools/design/report.json
+
+# Playwright advisory harness output (perf + screenshot diff) — never committed
+test-results/
+playwright-report/
+tests/visual/blessed/*-diff.png
+tests/visual/blessed/*-actual.png
