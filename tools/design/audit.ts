@@ -1,6 +1,7 @@
 import { execSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { contrastRatio } from "./contrast.js";
+import { bannedMotion } from "./motion.js";
 
 // Squint-test CI, operationalized (doc 07 §06): color / contrast / radius / shadow /
 // gradient / font audits. Screenshot diffing (audit #6) lands at WP-03 with real screens.
@@ -26,7 +27,53 @@ export function auditTokens(path: string): { colorTokens: string[]; violations: 
   return { colorTokens, violations };
 }
 
-// Repo-wide audits per doc 07 §06 — scans css/tsx under apps + packages (REQ-145/146/147).
+// Audit #5 — motion law (REQ-148). Flags springs/parallax/rotation/particles/shimmer, and
+// requires any file DEFINING `@keyframes` to carry its OWN `@media (prefers-reduced-motion:
+// reduce)` rest state (A5). The guard is per-file, not repo-global: a keyframes file must
+// self-document how it goes calm — the shared packages/design/motion.css does exactly that.
+export function auditMotion(file: string, text: string): string[] {
+  const violations: string[] = [];
+  for (const reason of bannedMotion(text)) violations.push(`${file}: ${reason} (REQ-148)`);
+  if (/@keyframes/i.test(text) && !/prefers-reduced-motion/i.test(text)) {
+    violations.push(`${file}: @keyframes with no prefers-reduced-motion guard in the same file (REQ-148 reduced-motion)`);
+  }
+  return violations;
+}
+
+// Audit #6 — case + dividers (REQ-146/147). Rendered text is uppercased via CSS `text-transform`
+// (A5 keeps the DOM normal-case for screen readers), so only uppercase/none/inherit are legal;
+// dividers are 1px `--signal-12`, so any border wider than 1px is chrome we do not ship.
+const ALLOWED_TRANSFORM = new Set(["uppercase", "none", "inherit"]);
+export function auditCaseAndDividers(file: string, text: string): string[] {
+  const violations: string[] = [];
+  const flagBorder = (val: string): void => {
+    const px = /(\d+(?:\.\d+)?)px/.exec(val);
+    if (px && Number(px[1]) > 1) violations.push(`${file}: border ${px[1]}px > 1px — dividers are 1px --signal-12 (REQ-147)`);
+  };
+  // Raw CSS: `border[-side]: <value>;` — value is unquoted and terminated by `;`
+  // (border-radius is excluded — it's the radius audit's job, not a divider).
+  for (const m of text.matchAll(
+    /border(?:-(?:top|right|bottom|left|width|block|inline|block-start|block-end|inline-start|inline-end))?\s*:\s*([^;"'{}]*);/gi,
+  )) {
+    flagBorder(m[1] ?? "");
+  }
+  // CSS-in-JS: `border[Side]: "<value>"` — quoted; matches kebab or camelCase, so a `2px`
+  // border in a JSX inline-style object is caught without gobbling neighbouring properties.
+  for (const m of text.matchAll(/border(?:-?(?:top|right|bottom|left|width))?\s*:\s*["']([^"'{}]*)["']/gi)) {
+    flagBorder(m[1] ?? "");
+  }
+  for (const m of text.matchAll(/text-transform\s*:\s*([a-z-]+)/gi)) {
+    const val = (m[1] ?? "").toLowerCase();
+    if (!ALLOWED_TRANSFORM.has(val)) violations.push(`${file}: text-transform: ${val} — must be uppercase/none/inherit (REQ-146 A5)`);
+  }
+  for (const m of text.matchAll(/textTransform\s*:\s*['"]([a-z-]+)['"]/gi)) {
+    const val = (m[1] ?? "").toLowerCase();
+    if (!ALLOWED_TRANSFORM.has(val)) violations.push(`${file}: textTransform: ${val} — must be uppercase/none/inherit (REQ-146 A5)`);
+  }
+  return violations;
+}
+
+// Repo-wide audits per doc 07 §06 — scans css/tsx under apps + packages (REQ-145/146/147/148).
 export function auditRepo(): string[] {
   const violations: string[] = [];
   const files = execSync(`git ls-files "apps/**/*.css" "apps/**/*.tsx" "packages/**/*.css" "packages/**/*.tsx"`, { encoding: "utf8" })
@@ -48,6 +95,8 @@ export function auditRepo(): string[] {
     if (/font-family:(?![^;]*(Barlow Condensed|Oswald|JetBrains Mono|IBM Plex Mono|monospace|sans-serif|var\(--))/.test(text)) {
       violations.push(`${f}: font outside the two stacks`);
     }
+    violations.push(...auditMotion(f, text));
+    violations.push(...auditCaseAndDividers(f, text));
   }
   return violations;
 }
