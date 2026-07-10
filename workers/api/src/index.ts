@@ -7,6 +7,7 @@ import { idempotency } from "./middleware/idempotency.js";
 import { tenantDb } from "./tenants.js";
 import { mountEventRoutes } from "./routes/events.js";
 import { mountPositionRoutes } from "./routes/positions.js";
+import { mountAnchorRoutes } from "./routes/anchors.js";
 
 export type Env = {
   TENANT_A_DB: D1Database;
@@ -14,6 +15,7 @@ export type Env = {
   CONTROL_DB: D1Database;
   SHIPMENT_SEQ: DurableObjectNamespace<import("./do/sequencer.js").ShipmentSequencer>;
   IDEMPOTENCY: KVNamespace;
+  EVIDENCE: R2Bucket; // anchor receipts (.tsr) + manifests (REQ-014)
   JWT_SECRET: string;
   ENVIRONMENT: string;
 };
@@ -49,6 +51,7 @@ app.get("/v1/_probe", requireRole("admin", "ops", "finance"), async (c) => {
 // WP-02 ledger routes (REQ-015 / REQ-002 / I6). Mounted AFTER auth + idempotency so both apply.
 mountEventRoutes(app);
 mountPositionRoutes(app);
+mountAnchorRoutes(app);
 
 app.notFound((c) => envelope(c, "NOT_FOUND", 404, "NOT FOUND"));
 

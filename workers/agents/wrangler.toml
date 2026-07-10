@@ -2,4 +2,29 @@
 name = "shuddl-agents-dev"
 main = "src/index.ts"
 compatibility_date = "2025-08-01"
+
+[vars]
+ENVIRONMENT = "dev"
+
+# REQ-014: daily Merkle -> TSA anchor at 01:00 UTC — a grace window past midnight so the just-closed
+# day can no longer grow (late/airplane-mode uploads carry TODAY's recorded_at, not yesterday's).
+[triggers]
+crons = ["0 1 * * *"]
+
+# Per-tenant D1 (mirror workers/api/src/tenants.ts; parity is CI-enforced). Physical isolation.
+[[d1_databases]]
+binding = "TENANT_A_DB"
+database_name = "shuddl-t-tenant-a-dev"
+database_id = "local-agents-tenant-a"
+
+[[d1_databases]]
+binding = "TENANT_B_DB"
+database_name = "shuddl-t-tenant-b-dev"
+database_id = "local-agents-tenant-b"
+
+# Anchor receipts (.tsr) + manifests land in R2.
+[[r2_buckets]]
+binding = "EVIDENCE"
+bucket_name = "shuddl-evidence-dev"
+
 # Queue consumers (one module per agent) bind here at WP-06+ (REQ-039).
