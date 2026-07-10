@@ -53,7 +53,7 @@ export function App(): React.JSX.Element {
 
   return (
     <main style={{ position: "fixed", inset: 0, background: "var(--field)", overflow: "hidden" }}>
-      <MapCanvas tileUrl={DEMO_TILE_URL} glyphsUrl={DEMO_GLYPHS_URL} fleet={collection} onSelect={() => {}} dim={false} />
+      <MapCanvas tileUrl={DEMO_TILE_URL} glyphsUrl={DEMO_GLYPHS_URL} fleet={collection} onSelect={() => {}} />
 
       {/* Hero — the customer's name over their live freight. */}
       <header style={{ position: "absolute", top: 40, left: 32, maxWidth: "70vw" }}>

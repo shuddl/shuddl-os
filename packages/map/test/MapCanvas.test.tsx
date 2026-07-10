@@ -1,13 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, cleanup } from "@testing-library/react";
-import type { FleetCollection } from "../src/entities.js";
+import type { FleetCollection, FleetFeature, Status } from "../src/entities.js";
 
-// The real WebGL render is Task 6's Playwright job. Here we mock MapLibre and assert the two things
-// that make MapCanvas correct at construction: it hands MapLibre the GREIGE style (not a default
-// street style), and it registers a click handler so a mark opens the lens — the map itself never
-// navigates away (REQ-080).
+// The real WebGL render is Task 6's Playwright job. Here we mock MapLibre and assert the things that
+// make MapCanvas correct at construction: it hands MapLibre the GREIGE style (not a default street
+// style); it registers a click handler so a mark opens the lens — the map itself never navigates away
+// (REQ-080); it AUTO-DIMS the world when a visible exception exists (REQ-077, acceptance demo #5); and
+// its pulse throbs a cluster that CONTAINS an exception.
 
-const { ctorSpy, onSpy } = vi.hoisted(() => ({ ctorSpy: vi.fn(), onSpy: vi.fn() }));
+const { ctorSpy, onSpy, paintSpy, worldDimSpy } = vi.hoisted(() => ({
+  ctorSpy: vi.fn(),
+  onSpy: vi.fn(),
+  paintSpy: vi.fn<(layerId: string, name: string, value: unknown) => void>(),
+  worldDimSpy: vi.fn<(map: unknown, on: boolean) => void>(),
+}));
 
 vi.mock("maplibre-gl", () => {
   class MockMap {
@@ -23,7 +29,9 @@ vi.mock("maplibre-gl", () => {
     addSource(): void {}
     addLayer(): void {}
     setFeatureState(): void {}
-    setPaintProperty(): void {}
+    setPaintProperty(layerId: string, name: string, value: unknown): void {
+      paintSpy(layerId, name, value);
+    }
     getSource(): { setData: () => void; getClusterExpansionZoom: () => Promise<number> } {
       return { setData: () => {}, getClusterExpansionZoom: () => Promise.resolve(1) };
     }
@@ -36,34 +44,52 @@ vi.mock("maplibre-gl", () => {
   return { Map: MockMap };
 });
 
+// setWorldDim is spied (real impl kept for every other export) so the tests can assert the exact
+// boolean the auto-dim wiring drives it with — the world-dim math itself is proven in entities.test.
+vi.mock("../src/entities.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../src/entities.js")>();
+  return { ...actual, setWorldDim: (map: unknown, on: boolean): void => worldDimSpy(map, on) };
+});
+
 // Imported AFTER vi.mock so the mocked module is in place (vitest hoists vi.mock).
 import { MapCanvas } from "../src/MapCanvas.js";
 
-const fleet: FleetCollection = {
-  type: "FeatureCollection",
-  features: [
-    {
-      type: "Feature",
-      id: "shp-1",
-      geometry: { type: "Point", coordinates: [-97.7, 30.3] },
-      properties: {
-        id: "shp-1",
-        kind: "truck",
-        bearing: 0,
-        label: "AUSTIN -> DALLAS",
-        shipment_id: "shp-1",
-        statusStr: "healthy",
-        statusNum: 0,
-        chip: "",
-      },
+function mark(id: string, status: Status): FleetFeature {
+  return {
+    type: "Feature",
+    id,
+    geometry: { type: "Point", coordinates: [-97.7, 30.3] },
+    properties: {
+      id,
+      kind: "truck",
+      bearing: 0,
+      label: "AUSTIN -> DALLAS",
+      shipment_id: id,
+      statusStr: status,
+      statusNum: status === "exception" ? 2 : status === "at-risk" ? 1 : 0,
+      chip: "",
     },
-  ],
+  };
+}
+
+const fleet: FleetCollection = { type: "FeatureCollection", features: [mark("shp-1", "healthy")] };
+const exceptionFleet: FleetCollection = {
+  type: "FeatureCollection",
+  features: [mark("shp-1", "healthy"), mark("shp-2", "exception")],
 };
+
+/** The last value MapCanvas painted onto (layerId, name), or undefined if it never did. */
+function lastPaint(layerId: string, name: string): unknown {
+  const calls = paintSpy.mock.calls.filter((c) => c[0] === layerId && c[1] === name);
+  return calls.length ? calls[calls.length - 1]?.[2] : undefined;
+}
 
 describe("MapCanvas (REQ-073/080)", () => {
   beforeEach(() => {
     ctorSpy.mockClear();
     onSpy.mockClear();
+    paintSpy.mockClear();
+    worldDimSpy.mockClear();
     cleanup();
   });
 
@@ -81,5 +107,68 @@ describe("MapCanvas (REQ-073/080)", () => {
     const clickCalls = onSpy.mock.calls.filter((c) => c[0] === "click");
     expect(clickCalls.length).toBeGreaterThan(0);
     expect(clickCalls.some((c) => c[1] === "trucks")).toBe(true);
+  });
+});
+
+// M1 — the exception world-dim must be WIRED ON automatically (acceptance demo #5, REQ-077): the map
+// dims itself whenever a visible exception exists in the scoped fleet, with no `dim` prop threaded
+// from the screen, and LIFTS when the exception clears.
+describe("MapCanvas — auto world-dim on a visible exception (REQ-077, demo #5)", () => {
+  beforeEach(() => {
+    ctorSpy.mockClear();
+    onSpy.mockClear();
+    paintSpy.mockClear();
+    worldDimSpy.mockClear();
+    cleanup();
+  });
+
+  it("dims the world (setWorldDim true) when the scoped fleet contains an exception — no dim prop", () => {
+    render(<MapCanvas tileUrl="t" glyphsUrl="g" fleet={exceptionFleet} onSelect={() => {}} />);
+    expect(worldDimSpy).toHaveBeenCalledWith(expect.anything(), true);
+    expect(worldDimSpy.mock.calls.every((c) => c[1] === true)).toBe(true);
+  });
+
+  it("leaves the world lit (setWorldDim false) when no visible exception exists", () => {
+    render(<MapCanvas tileUrl="t" glyphsUrl="g" fleet={fleet} onSelect={() => {}} />);
+    expect(worldDimSpy).toHaveBeenCalled();
+    expect(worldDimSpy.mock.calls.every((c) => c[1] === false)).toBe(true);
+  });
+
+  it("LIFTS the dim when the exception clears (a fresh healthy frame)", () => {
+    const { rerender } = render(<MapCanvas tileUrl="t" glyphsUrl="g" fleet={exceptionFleet} onSelect={() => {}} />);
+    expect(worldDimSpy).toHaveBeenCalledWith(expect.anything(), true);
+    worldDimSpy.mockClear();
+    rerender(<MapCanvas tileUrl="t" glyphsUrl="g" fleet={fleet} onSelect={() => {}} />);
+    expect(worldDimSpy).toHaveBeenCalledWith(expect.anything(), false);
+    expect(worldDimSpy.mock.calls.some((c) => c[1] === true)).toBe(false);
+  });
+
+  it("still honours an explicit dim override (dim={true} forces the alarm on even when healthy)", () => {
+    render(<MapCanvas tileUrl="t" glyphsUrl="g" fleet={fleet} onSelect={() => {}} dim={true} />);
+    expect(worldDimSpy).toHaveBeenCalledWith(expect.anything(), true);
+  });
+});
+
+// m1 — a cluster that CONTAINS the exception must throb, not just stay lit. The pulse now drives the
+// clusters layer's circle-stroke-width on the 1.6s urgent sine, gated to clusters whose aggregated
+// maxStatus === 2 (exception); calmer clusters keep the static 1px stroke.
+describe("MapCanvas — a clustered exception throbs (operational-map §6)", () => {
+  beforeEach(() => {
+    ctorSpy.mockClear();
+    onSpy.mockClear();
+    paintSpy.mockClear();
+    worldDimSpy.mockClear();
+    cleanup();
+  });
+
+  it("pulses the clusters stroke-width gated to maxStatus === 2, leaving other clusters calm", () => {
+    render(<MapCanvas tileUrl="t" glyphsUrl="g" fleet={exceptionFleet} onSelect={() => {}} />);
+    const v = lastPaint("clusters", "circle-stroke-width") as unknown[] | undefined;
+    expect(v).toBeDefined();
+    expect(v?.[0]).toBe("case");
+    expect(v?.[1]).toEqual(["==", ["get", "maxStatus"], 2]); // only exception-bearing clusters
+    expect(typeof v?.[2]).toBe("number"); // the throbbing width
+    expect(v?.[3]).toBe(1); // calm clusters keep the static 1px stroke
+    expect(v?.[2] as number).toBeGreaterThan(v?.[3] as number); // lit AND throbbing > calm
   });
 });

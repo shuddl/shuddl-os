@@ -62,7 +62,7 @@ export function App(): React.JSX.Element {
 
   return (
     <main style={{ position: "fixed", inset: 0, background: "var(--field)", overflow: "hidden" }}>
-      <MapCanvas tileUrl={DEMO_TILE_URL} glyphsUrl={DEMO_GLYPHS_URL} fleet={collection} onSelect={setSelected} dim={false} />
+      <MapCanvas tileUrl={DEMO_TILE_URL} glyphsUrl={DEMO_GLYPHS_URL} fleet={collection} onSelect={setSelected} />
 
       {/* Transparent nav — wordmark, micro-mono links, one dark CTA. */}
       <nav

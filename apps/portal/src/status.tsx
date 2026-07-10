@@ -48,7 +48,7 @@ export function Status(): React.JSX.Element {
 
   return (
     <main style={{ position: "fixed", inset: 0, background: "var(--field)", overflow: "hidden" }}>
-      <MapCanvas tileUrl={DEMO_TILE_URL} glyphsUrl={DEMO_GLYPHS_URL} fleet={collection} onSelect={() => {}} dim={false} />
+      <MapCanvas tileUrl={DEMO_TILE_URL} glyphsUrl={DEMO_GLYPHS_URL} fleet={collection} onSelect={() => {}} />
 
       <section style={{ position: "absolute", top: 48, left: 32, maxWidth: "80vw", display: "flex", flexDirection: "column", gap: 12 }}>
         <Mono size={11} color="var(--signal-55)">

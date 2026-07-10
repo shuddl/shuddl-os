@@ -24,7 +24,15 @@ export interface MapCanvasProps {
   glyphsUrl: string;
   fleet: FleetCollection;
   onSelect: (shipmentId: string) => void;
+  /** Optional world-dim OVERRIDE. Left undefined (the norm), the canvas dims itself whenever the
+   * scoped fleet contains a visible exception and lifts when it clears — so acceptance demo #5 fires
+   * off the ledger, not a prop. Pass `true`/`false` only to force the alarm on/off. */
   dim?: boolean;
+}
+
+/** A visible exception anywhere in the scoped fleet is what arms the world-dim (REQ-077). */
+function hasVisibleException(fleet: FleetCollection): boolean {
+  return fleet.features.some((f) => f.properties.statusStr === "exception");
 }
 
 function prefersReducedMotion(): boolean {
@@ -101,7 +109,12 @@ function pushDataIfReady(map: maplibregl.Map, fleet: FleetCollection): void {
   }
 }
 
-/** The two pulses off one sine: exception throbs (1.6s), at-risk breathes (3s), healthy is static. */
+/** The two pulses off one sine: exception throbs (1.6s), at-risk breathes (3s), healthy is static.
+ * Leaves throb via feature-state on the `rest` layer; a CLUSTER holding an exception (aggregated
+ * `maxStatus === 2`) throbs on the same 1.6s urgent sine via its stroke-width — clusters have no
+ * feature-state, so the gate reads the `maxStatus` property. Calmer clusters keep the static 1px
+ * stroke, so a cluster containing the alarm is lit AND throbbing (operational-map §6) while its
+ * neighbours stay quiet. Reduced-motion renders one static frame (the loop is never scheduled). */
 function applyPulse(map: maplibregl.Map, ts: number): void {
   const urgent = 0.5 + 0.5 * Math.sin((ts / 1600) * 2 * Math.PI);
   const calm = 0.5 + 0.5 * Math.sin((ts / 3000) * 2 * Math.PI);
@@ -114,9 +127,17 @@ function applyPulse(map: maplibregl.Map, ts: number): void {
     1 + 1.5 * calm,
     1,
   ]);
+  map.setPaintProperty("clusters", "circle-stroke-width", [
+    "case",
+    ["==", ["get", "maxStatus"], 2],
+    2 + 4 * urgent, // exception-bearing cluster: the same fat, throbbing ring
+    1, // everything else: the static 1px stroke
+  ]);
 }
 
-export function MapCanvas({ tileUrl, glyphsUrl, fleet, onSelect, dim = false }: MapCanvasProps): React.JSX.Element {
+export function MapCanvas({ tileUrl, glyphsUrl, fleet, onSelect, dim }: MapCanvasProps): React.JSX.Element {
+  // The world dims automatically on a visible exception; an explicit `dim` prop still overrides.
+  const effectiveDim = dim ?? hasVisibleException(fleet);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const animatedRef = useRef<FleetCollection>({ type: "FeatureCollection", features: [] });
@@ -128,10 +149,10 @@ export function MapCanvas({ tileUrl, glyphsUrl, fleet, onSelect, dim = false }: 
   const loadedRef = useRef(false);
   const fleetRef = useRef(fleet);
   const onSelectRef = useRef(onSelect);
-  const dimRef = useRef(dim);
+  const dimRef = useRef(effectiveDim);
   fleetRef.current = fleet;
   onSelectRef.current = onSelect;
-  dimRef.current = dim;
+  dimRef.current = effectiveDim;
 
   // Construct the map once per tile/glyph endpoint. fleet/onSelect/dim are read via refs so the map
   // is never torn down and rebuilt on a data tick.
@@ -229,11 +250,13 @@ export function MapCanvas({ tileUrl, glyphsUrl, fleet, onSelect, dim = false }: 
     }
   }, [fleet]);
 
-  // Exception world-dim (REQ-077) — paint only, once the layers exist.
+  // Exception world-dim (REQ-077, acceptance demo #5) — paint only, once the layers exist. Driven by
+  // `effectiveDim` (a visible exception, unless the screen overrides), so the world dims the instant
+  // an exception lands in the scoped fleet and lifts the instant it clears.
   useEffect(() => {
     const map = mapRef.current;
-    if (map && loadedRef.current) setWorldDim(map, dim);
-  }, [dim]);
+    if (map && loadedRef.current) setWorldDim(map, effectiveDim);
+  }, [effectiveDim]);
 
   return (
     <div
