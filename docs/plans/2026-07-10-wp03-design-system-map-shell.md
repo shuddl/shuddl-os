@@ -70,6 +70,8 @@ describe("REQ-147/146: dividers + case", () => {
 
 **Step 3: Implement** `tools/design/motion.ts` (the banned-motion regexes + the reduced-motion requirement) and add `auditMotion` + `auditCaseAndDividers` to `audit.ts`, wiring both into `auditRepo()` so `pnpm audit:design` runs them. Banned: `rotate(`, non-0 `rotate`, `scale(` on hover, spring cubic-beziers (overshoot: any control-point y>1 or <0), `@keyframes` named shimmer/skeleton/spin/parallax, `background-attachment: fixed`, `will-change: transform` paired with scroll. Required: any file defining `@keyframes` or a `transition`/`animation` must also contain a `prefers-reduced-motion` guard somewhere in the repo's global stylesheet (check `packages/design/motion.css` exists and is imported).
 
+> **The color/font/glob audits must not be trivially foolable (WP-03 exit-audit lesson).** The gate is the SOLE enforcement of the pixel law: (1) **color** must catch `rgb()/rgba()/hsl()/hsla()`, CSS **named colors** (`blue`,`navy`,`rebeccapurple`), and **3/4/8-digit** hex — allowing only the 5 tokens + `rgba(255,74,51,x)`/`rgba(26,26,26,x)` + `var(--*)`/`transparent`/`currentColor`; (2) **font** must catch **camelCase `fontFamily`** and reject any value merely *containing* `sans-serif`/`monospace` (require an exact allowed stack or `var(--display|--mono)`); (3) shadow/radius/gradient must catch `filter:drop-shadow`, `textShadow`, every `border*Radius` corner, and `conic-gradient`; (4) the **glob** must scan `*.ts`, `*.jsx`, `*.mjs`, and `index.html` `<style>` — screens style from all of these. A gate fooled by `color:"blue"` in a `.ts` file is not a gate. Red-path test every one.
+
 **Step 4: GREEN + commit** — `pnpm test:tools && pnpm audit:design` → `git commit` "design CI: motion + case + divider audits complete the squint test — REQ-146/147/148".
 
 ---
@@ -215,6 +217,8 @@ it("useFleet.setState applies feature-state + mirrors statusStr for the chip", (
 **Context:** Assemble the five canonical screens from the design + map packages, capture blessed references, and diff on every run (advisory, REQ-158). This is the "5 canonical screens match blessed refs" DoD line.
 
 **Step 1:** Build the five screens as real routes/components using `@shuddl/design` + `@shuddl/map` (deterministic seed fleet so screenshots are stable). Each obeys the surface recipe (doc 07 §03): Command greige map home; Portal scoped hero; Status one-shipment city-gen; Driver dark A2; Evidence email greige "DELIVERED".
+
+> **Wire the exception world-dim (REQ-077, acceptance demo #5) — never `dim={false}`.** The world-dim is doc 07's signature loud-alarm moment. `MapCanvas`/`useFleet` must derive `dim` from a visible `exception` in the scoped fleet (`fleet.some(f=>f.status==='exception')`) so the world drops to 35% automatically when a visible exception exists and lifts when it clears; the Command screen must actually demonstrate it. A hardcoded `dim={false}` (the first-cut mistake) means the alarm never fires.
 
 **Step 2:** `screens.spec.ts` — render each, screenshot at a fixed viewport, `toMatchSnapshot` against `blessed/`. First run writes blessed refs (commit them); subsequent runs diff. **Advisory**: mismatches print a report + write diffs, never fail CI (REQ-158). Wire `pnpm test:visual` and add it to the design-advisory CI job (report-only).
 
