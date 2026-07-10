@@ -5,7 +5,15 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { stripSqlComments } from "@shuddl/ledger/migrate";
-import { checkLock, checkMigrationSql, findStraySql, isStraySql, PARTITION_TABLES, TABLE_BUDGET } from "./invariants.js";
+import {
+  checkLock,
+  checkMigrationSql,
+  findStraySql,
+  isStraySql,
+  PARTITION_TABLES,
+  scanSourceForForbiddenReplace,
+  TABLE_BUDGET,
+} from "./invariants.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url)); // tools/checks
 const REPO = join(HERE, "..", "..");
@@ -16,7 +24,8 @@ const TSX = join(REPO, "node_modules", ".bin", "tsx");
 const VALID_MIGRATION =
   "CREATE TABLE events (id TEXT);\n" +
   "CREATE TRIGGER events_guard_upd BEFORE UPDATE ON events BEGIN SELECT RAISE(ABORT,'I3'); END;\n" +
-  "CREATE TRIGGER events_guard_del BEFORE DELETE ON events BEGIN SELECT RAISE(ABORT,'I3'); END;\n";
+  "CREATE TRIGGER events_guard_del BEFORE DELETE ON events BEGIN SELECT RAISE(ABORT,'I3'); END;\n" +
+  "CREATE TRIGGER events_guard_ins BEFORE INSERT ON events WHEN EXISTS (SELECT 1 FROM events WHERE id = NEW.id) BEGIN SELECT RAISE(ABORT,'I3'); END;\n";
 
 function runCli(cwd: string, args: string[] = []): { code: number; out: string } {
   try {
@@ -45,7 +54,10 @@ CREATE TRIGGER events_guard_del BEFORE DELETE ON events BEGIN SELECT RAISE(ABORT
 CREATE TRIGGER positions_guard_upd BEFORE UPDATE ON positions BEGIN SELECT RAISE(ABORT,'I3: append-only'); END;
 CREATE TRIGGER positions_guard_del BEFORE DELETE ON positions BEGIN SELECT RAISE(ABORT,'I3: append-only'); END;
 CREATE TRIGGER money_lines_guard_upd BEFORE UPDATE ON money_lines BEGIN SELECT RAISE(ABORT,'I1'); END;
-CREATE TRIGGER money_lines_guard_del BEFORE DELETE ON money_lines BEGIN SELECT RAISE(ABORT,'I1'); END;`;
+CREATE TRIGGER money_lines_guard_del BEFORE DELETE ON money_lines BEGIN SELECT RAISE(ABORT,'I1'); END;
+CREATE TRIGGER events_guard_ins BEFORE INSERT ON events WHEN EXISTS (SELECT 1 FROM events WHERE id = NEW.id) BEGIN SELECT RAISE(ABORT,'I3: append-only'); END;
+CREATE TRIGGER positions_guard_ins BEFORE INSERT ON positions WHEN EXISTS (SELECT 1 FROM positions WHERE shipment_id = NEW.shipment_id AND device_id = NEW.device_id AND ts = NEW.ts AND hash <> NEW.hash) BEGIN SELECT RAISE(ABORT,'I3: append-only'); END;
+CREATE TRIGGER money_lines_guard_ins BEFORE INSERT ON money_lines WHEN EXISTS (SELECT 1 FROM money_lines WHERE id = NEW.id) BEGIN SELECT RAISE(ABORT,'I1'); END;`;
 
 describe("I8: table budget", () => {
   it("budget is 22 (21 named + one spare needing a written deletion)", () => {
@@ -88,7 +100,8 @@ describe("I3: events are append-only — including migrations", () => {
     const r = checkMigrationSql([
       "CREATE TABLE events (id TEXT);\nCREATE INDEX idx_events_seq ON events (seq);\n" +
         "CREATE TRIGGER events_guard_upd BEFORE UPDATE ON events BEGIN SELECT RAISE(ABORT,'I3: append-only'); END;\n" +
-        "CREATE TRIGGER events_guard_del BEFORE DELETE ON events BEGIN SELECT RAISE(ABORT,'I3: append-only'); END;",
+        "CREATE TRIGGER events_guard_del BEFORE DELETE ON events BEGIN SELECT RAISE(ABORT,'I3: append-only'); END;\n" +
+        "CREATE TRIGGER events_guard_ins BEFORE INSERT ON events WHEN EXISTS (SELECT 1 FROM events WHERE id = NEW.id) BEGIN SELECT RAISE(ABORT,'I3: append-only'); END;",
     ]);
     expect(r.ok).toBe(true);
   });
@@ -161,6 +174,57 @@ describe("I1: REPLACE is a disguised delete+insert on append-only tables", () =>
     const r = checkMigrationSql([TABLES_SQL + GUARDS_SQL + "\n" + stmt]);
     expect(r.ok).toBe(false);
     expect(r.violations.join(" ")).toContain("I3");
+  });
+});
+
+describe("I3 v3: BEFORE INSERT guard is mandatory (closes the recursive_triggers=0 REPLACE hole)", () => {
+  it("a table with upd+del but no _guard_ins is flagged", () => {
+    const sql =
+      "CREATE TABLE events (id TEXT);\n" +
+      "CREATE TRIGGER events_guard_upd BEFORE UPDATE ON events BEGIN SELECT RAISE(ABORT,'I3'); END;\n" +
+      "CREATE TRIGGER events_guard_del BEFORE DELETE ON events BEGIN SELECT RAISE(ABORT,'I3'); END;";
+    const r = checkMigrationSql([sql]);
+    expect(r.ok).toBe(false);
+    expect(r.violations.join(" ")).toContain("events_guard_ins");
+  });
+  it("all three tables must each carry a _guard_ins (positions, money_lines too)", () => {
+    const r = checkMigrationSql([TABLES_SQL + GUARDS_SQL]);
+    // GUARDS_SQL now carries the three ins guards, so the full set is complete.
+    expect(r.ok).toBe(true);
+  });
+  it("a _guard_ins with a WHEN EXISTS clause and a one-statement RAISE body is allowed", () => {
+    const sql =
+      "CREATE TABLE events (id TEXT);\n" +
+      "CREATE TRIGGER events_guard_upd BEFORE UPDATE ON events BEGIN SELECT RAISE(ABORT,'I3'); END;\n" +
+      "CREATE TRIGGER events_guard_del BEFORE DELETE ON events BEGIN SELECT RAISE(ABORT,'I3'); END;\n" +
+      "CREATE TRIGGER events_guard_ins BEFORE INSERT ON events WHEN EXISTS (SELECT 1 FROM events WHERE id = NEW.id) BEGIN SELECT RAISE(ABORT,'I3'); END;";
+    expect(checkMigrationSql([sql]).ok).toBe(true);
+  });
+});
+
+describe("D1: application source may not REPLACE a guarded table (recursive_triggers=0 defense)", () => {
+  it("flags INSERT OR REPLACE INTO events in TS source", () => {
+    const v = scanSourceForForbiddenReplace([
+      { path: "workers/api/src/x.ts", text: "await db.exec(`INSERT OR REPLACE INTO events (id) VALUES ('a')`);" },
+    ]);
+    expect(v.length).toBe(1);
+    expect(v.join(" ")).toContain("events");
+  });
+  it("flags a bare REPLACE INTO money_lines", () => {
+    const v = scanSourceForForbiddenReplace([{ path: "p.ts", text: "REPLACE INTO money_lines (id) VALUES ('a')" }]);
+    expect(v.length).toBe(1);
+  });
+  it("flags REPLACE INTO positions", () => {
+    const v = scanSourceForForbiddenReplace([{ path: "p.ts", text: "insert or replace into positions values (1)" }]);
+    expect(v.length).toBe(1);
+  });
+  it("clean source (plain INSERT) passes", () => {
+    const v = scanSourceForForbiddenReplace([{ path: "p.ts", text: "await db.prepare('INSERT INTO events (id) VALUES (?)').run();" }]);
+    expect(v).toEqual([]);
+  });
+  it("REPLACE targeting a non-guarded table is not our concern", () => {
+    const v = scanSourceForForbiddenReplace([{ path: "p.ts", text: "INSERT OR REPLACE INTO shipments (id) VALUES ('a')" }]);
+    expect(v).toEqual([]);
   });
 });
 

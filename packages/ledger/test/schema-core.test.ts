@@ -2,6 +2,8 @@ import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import { applyMigrations } from "../src/migrate.js";
 import ledgerCore from "../../../db/tenant/migrations/0001_ledger_core.sql?raw";
+import domain from "../../../db/tenant/migrations/0002_domain.sql?raw";
+import insertGuards from "../../../db/tenant/migrations/0003_insert_guards.sql?raw";
 
 // Task 2 (REQ-011, REQ-002, I3): events + positions against a REAL D1 (pool-workers),
 // proving the append-only guards, the composite PK, the stream_id/shipment_id CHECK,
@@ -47,7 +49,13 @@ async function insertPosition(deviceId: string): Promise<D1Result> {
 }
 
 beforeAll(async () => {
-  await applyMigrations(DB, [{ path: "0001_ledger_core.sql", sql: ledgerCore }]);
+  // 0003's money_lines_guard_ins references the money_lines table (0002), so the full tenant
+  // migration set is applied here; the events/positions assertions below are unaffected by it.
+  await applyMigrations(DB, [
+    { path: "0001_ledger_core.sql", sql: ledgerCore },
+    { path: "0002_domain.sql", sql: domain },
+    { path: "0003_insert_guards.sql", sql: insertGuards },
+  ]);
 });
 
 describe("Task 2 — events append-only guards (I3)", () => {
@@ -92,5 +100,47 @@ describe("Task 2 — events keys & CHECKs (REQ-011)", () => {
   });
   it("CHECK rejects device_id present without device_seq", async () => {
     await expect(insertEvent(eventRow({ seq: 34, device_id: "dev-D" }))).rejects.toThrow();
+  });
+});
+
+// D1 runs PRAGMA recursive_triggers = 0, so INSERT OR REPLACE's implicit DELETE never fires
+// the BEFORE DELETE guard — REPLACE could silently rewrite ledger history. The BEFORE INSERT
+// guard (migration 0003) closes it: it fires while the old row still exists.
+describe("Task 2 fix — REPLACE cannot rewrite history (I3, recursive_triggers=0)", () => {
+  const cols =
+    "stream_id, seq, id, shipment_id, ts, recorded_at, kind, actor_party_id, prev_hash, hash, visibility";
+  it("INSERT OR REPLACE on a (stream_id, seq) collision is aborted", async () => {
+    await insertEvent(eventRow({ seq: 40 })); // original at (s:ship1, 40)
+    await expect(
+      DB.prepare(
+        `INSERT OR REPLACE INTO events (${cols}) VALUES ('s:ship1', 40, 'evt-replace', 'ship1', 2000, 2000, 'quote.priced', 'p:evil', ?, ?, 'internal')`,
+      )
+        .bind("0".repeat(64), "f".repeat(64))
+        .run(),
+    ).rejects.toThrow(/I3/);
+  });
+  it("INSERT OR REPLACE on a UNIQUE(id) collision cannot destroy the original row", async () => {
+    await insertEvent(eventRow({ seq: 50, id: "victim" })); // (s:ship1, 50), id=victim
+    await expect(
+      DB.prepare(
+        `INSERT OR REPLACE INTO events (${cols}) VALUES ('s:ship1', 51, 'victim', 'ship1', 2000, 2000, 'quote.priced', 'p:evil', ?, ?, 'internal')`,
+      )
+        .bind("0".repeat(64), "e".repeat(64))
+        .run(),
+    ).rejects.toThrow(/I3/);
+    const row = await DB.prepare("SELECT seq FROM events WHERE id = 'victim'").first<{ seq: number }>();
+    expect(row?.seq).toBe(50); // original intact, not replaced by seq 51
+  });
+  it("INSERT OR REPLACE on positions with different data is aborted", async () => {
+    await insertPosition("p-rep"); // hash 'h'
+    await expect(
+      DB.prepare(
+        "INSERT OR REPLACE INTO positions (shipment_id, device_id, ts, recorded_at, lat_e6, lon_e6, hash) VALUES ('ship1', 'p-rep', 1, 1, 999, 999, 'DIFFERENT')",
+      ).run(),
+    ).rejects.toThrow(/I3/);
+  });
+  it("a normal INSERT of a genuinely new event still succeeds (happy path — Task 13 appends these)", async () => {
+    const r = await insertEvent(eventRow({ seq: 60 }));
+    expect(r.success).toBe(true);
   });
 });

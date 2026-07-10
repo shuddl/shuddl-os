@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { existsSync, globSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { stripSqlComments } from "@shuddl/ledger/migrate";
 
 // I8 (doc 10): ≤22 tables — 21 named, the spare requires a written deletion (register note).
@@ -70,9 +71,13 @@ export function checkMigrationSql(sqlFiles: string[]): InvariantResult {
   }
   // Guards are mandatory AND must have the correct timing — a name-only match let an
   // AFTER-INSERT (or commented-out) "guard" pass while the table stayed mutable.
+  // BEFORE INSERT is mandatory too: D1 runs recursive_triggers=0, so INSERT OR REPLACE's
+  // implicit DELETE never fires the BEFORE DELETE guard — only a BEFORE INSERT guard (which
+  // fires while the old row still exists) closes that history-rewrite hole.
   const guardSpecs = [
     { suffix: "guard_upd", event: "UPDATE" },
     { suffix: "guard_del", event: "DELETE" },
+    { suffix: "guard_ins", event: "INSERT" },
   ] as const;
   for (const t of GUARDED_TABLES) {
     if (!tables.has(t)) continue;
@@ -129,12 +134,43 @@ export function findStraySql(cwd: string = process.cwd()): string[] {
   return globSync("**/*.sql", { cwd, exclude: (p) => p.includes("node_modules") }).filter((p) => isStraySql(p, migrations));
 }
 
+// Defense in depth (D1 runs recursive_triggers=0): application code must never issue a REPLACE
+// against a guarded table. REPLACE's implicit row-DELETE skips the BEFORE DELETE guard, so it
+// could rewrite history that the DB-level BEFORE INSERT guard is meant to protect. Corrections
+// are new events (I3/I1). This scans `src` trees ONLY — test files legitimately embed REPLACE
+// probe SQL to prove the guards fire.
+const FORBIDDEN_REPLACE = /\b(INSERT\s+OR\s+REPLACE\s+INTO|REPLACE\s+INTO)\s+["'`[]?(events|positions|money_lines)\b/gi;
+
+export function scanSourceForForbiddenReplace(sources: ReadonlyArray<{ path: string; text: string }>): string[] {
+  const violations: string[] = [];
+  for (const { path, text } of sources) {
+    for (const m of text.matchAll(FORBIDDEN_REPLACE)) {
+      violations.push(
+        `${path}: "${m[1]} ... ${m[2]}" — REPLACE bypasses the BEFORE DELETE guard (D1 recursive_triggers=0). Corrections are new events (I3/I1).`,
+      );
+    }
+  }
+  return violations;
+}
+
+export function findForbiddenReplaceSources(cwd: string = process.cwd()): string[] {
+  const files = [...globSync("packages/*/src/**/*.ts", { cwd }), ...globSync("workers/*/src/**/*.ts", { cwd })];
+  return scanSourceForForbiddenReplace(files.map((p) => ({ path: p, text: readFileSync(join(cwd, p), "utf8") })));
+}
+
 function main(): void {
   const mode: LockMode = process.argv.includes("--write") ? "write" : "check";
   const migrations = globSync("db/**/migrations/*.sql");
   const strays = findStraySql();
   if (strays.length > 0) {
     console.error(`FAIL stray SQL outside db/*/migrations (evades I3/I8 lint): ${strays.join(", ")}`);
+    process.exit(1);
+  }
+
+  // Defense in depth: no application-source REPLACE against a guarded table (recursive_triggers=0).
+  const replaceViolations = findForbiddenReplaceSources();
+  if (replaceViolations.length > 0) {
+    for (const v of replaceViolations) console.error(`FAIL ${v}`);
     process.exit(1);
   }
 

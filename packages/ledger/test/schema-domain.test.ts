@@ -3,6 +3,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { applyMigrations } from "../src/migrate.js";
 import ledgerCore from "../../../db/tenant/migrations/0001_ledger_core.sql?raw";
 import domain from "../../../db/tenant/migrations/0002_domain.sql?raw";
+import insertGuards from "../../../db/tenant/migrations/0003_insert_guards.sql?raw";
 import control from "../../../db/control/migrations/0001_control.sql?raw";
 
 // Task 3 (REQ-011, REQ-057, REQ-009, I1): the 16-table tenant domain + 4-table control
@@ -33,6 +34,7 @@ beforeAll(async () => {
   await applyMigrations(TDB, [
     { path: "0001_ledger_core.sql", sql: ledgerCore },
     { path: "0002_domain.sql", sql: domain },
+    { path: "0003_insert_guards.sql", sql: insertGuards },
   ]);
   await applyMigrations(CDB, [{ path: "0001_control.sql", sql: control }]);
 });
@@ -52,6 +54,61 @@ describe("Task 3 — money_lines is an append-only projection (I1)", () => {
   });
   it("event_id FK rejects a money_line for an unknown event (no line without event)", async () => {
     await expect(insertMoneyLine({ event_id: "ghost-event", line_no: 0, division: "main" })).rejects.toThrow();
+  });
+});
+
+// recursive_triggers=0 means REPLACE's implicit DELETE skips the BEFORE DELETE guard; the
+// BEFORE INSERT guard (migration 0003) closes it for money_lines (I1) and positions (I3),
+// while Decision 14's idempotent INSERT OR IGNORE re-ingest must still succeed.
+describe("Task 3 fix — REPLACE / OR IGNORE / upsert interaction with the guards", () => {
+  it("INSERT OR REPLACE cannot rewrite a money_line (I1 defeated by REPLACE otherwise)", async () => {
+    await insertBaseEvent("evt-mlrep");
+    await insertMoneyLine({ event_id: "evt-mlrep", line_no: 0, division: "main" }); // id ml-evt-mlrep-0, amount 12345
+    await expect(
+      TDB.prepare(
+        `INSERT OR REPLACE INTO money_lines (id, shipment_id, event_id, line_no, direction, kind, amount_cents, party_id, division, gl_map, created_ts)
+         VALUES ('ml-evt-mlrep-0', 'S1', 'evt-mlrep', 0, 'ar', 'freight', 99999, 'p:evil', 'main', '{}', 2000)`,
+      ).run(),
+    ).rejects.toThrow(/I1/);
+    const row = await TDB.prepare("SELECT amount_cents AS a FROM money_lines WHERE id = 'ml-evt-mlrep-0'").first<{
+      a: number;
+    }>();
+    expect(row?.a).toBe(12345); // original amount intact
+  });
+  it("INSERT OR IGNORE of a byte-identical position row is idempotent (Decision 14) — succeeds, no dup", async () => {
+    await TDB.prepare(
+      "INSERT INTO positions (shipment_id, device_id, ts, recorded_at, lat_e6, lon_e6, hash) VALUES ('S1', 'dev-idem', 5, 5, 10, 20, 'samehash')",
+    ).run();
+    const r = await TDB.prepare(
+      "INSERT OR IGNORE INTO positions (shipment_id, device_id, ts, recorded_at, lat_e6, lon_e6, hash) VALUES ('S1', 'dev-idem', 5, 5, 10, 20, 'samehash')",
+    ).run();
+    expect(r.success).toBe(true);
+    const c = await TDB.prepare("SELECT count(*) AS c FROM positions WHERE device_id = 'dev-idem'").first<{ c: number }>();
+    expect(c?.c).toBe(1);
+  });
+  it("INSERT OR IGNORE of a DUPLICATE event is NOT a silent drop — the guard raises loudly (CLAUDE.md rule 10)", async () => {
+    await insertBaseEvent("evt-orig");
+    // Same (stream_id, seq) as the base event, different id — a would-be overwrite via OR IGNORE.
+    await expect(
+      TDB.prepare(
+        `INSERT OR IGNORE INTO events (stream_id, seq, id, shipment_id, ts, recorded_at, kind, actor_party_id, prev_hash, hash, visibility)
+         VALUES ('s:S1', 0, 'evt-dupe', 'S1', 2000, 2000, 'quote.priced', 'p:evil', ?, ?, 'internal')`,
+      )
+        .bind("0".repeat(64), "d".repeat(64))
+        .run(),
+    ).rejects.toThrow(/I3/);
+  });
+  it("upsert (ON CONFLICT DO UPDATE) on events is aborted (regression — the UPDATE guard already blocks it)", async () => {
+    await insertBaseEvent("evt-upsert");
+    await expect(
+      TDB.prepare(
+        `INSERT INTO events (stream_id, seq, id, shipment_id, ts, recorded_at, kind, actor_party_id, prev_hash, hash, visibility)
+         VALUES ('s:S1', 0, 'evt-upsert-2', 'S1', 3000, 3000, 'quote.priced', 'p:evil', ?, ?, 'internal')
+         ON CONFLICT (stream_id, seq) DO UPDATE SET payload = '{evil}'`,
+      )
+        .bind("0".repeat(64), "c".repeat(64))
+        .run(),
+    ).rejects.toThrow(/I3/);
   });
 });
 
