@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, globSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -113,20 +114,31 @@ export function checkMigrationSql(sqlFiles: string[]): InvariantResult {
   return { ok: violations.length === 0, tableCount: effective, violations, warnings };
 }
 
-// Forward-only migration lock. A merged migration file is immutable; its SHA-256 is
-// pinned in db/migrations.lock.json. `check` (CI) never writes and fails on any
-// divergence OR any on-disk migration missing from the lock — so the "delete the key
-// then let CI re-pin" bypass is dead. `write` (pnpm db:lock) pins NEW files only and
-// still refuses to re-pin an edited one.
+// Forward-only migration lock. A merged migration file is immutable; its SHA-256 is pinned in
+// db/migrations.lock.json. The true forward-only anchor is the lock AS COMMITTED IN GIT (`committed`,
+// read from `git show HEAD:...`), NOT just the on-disk lock — otherwise the bypass is: delete a merged
+// migration's lock line, edit the file, `pnpm db:lock`; the deleted key reads as a brand-new file so
+// write re-pins the EDITED digest and CI check then passes. Anchoring against HEAD kills that: a path
+// HEAD ever pinned can NEVER be re-pinned to a different digest, whether or not its on-disk key is
+// currently present. `check` (CI) never writes and fails on any divergence OR any unpinned migration.
 export type LockMode = "check" | "write";
 export function checkLock(
   entries: ReadonlyArray<{ path: string; digest: string }>,
   lock: Readonly<Record<string, string>>,
   mode: LockMode,
+  committed: Readonly<Record<string, string>> = {},
 ): { ok: boolean; errors: string[]; nextLock: Record<string, string> } {
   const errors: string[] = [];
   const nextLock: Record<string, string> = {};
   for (const { path, digest } of entries) {
+    const wasCommitted = committed[path]; // the git-HEAD pin — survives a locally-deleted lock line
+    if (wasCommitted !== undefined && wasCommitted !== digest) {
+      // Append-only: a path, once committed to the lock, cannot change digest — in EITHER mode, and
+      // even if its on-disk lock line was deleted. Migrations are forward-only; add a new file.
+      errors.push(`migration ${path} was EDITED after it was committed to the lock — migrations are forward-only; add a new file (deleting its lock line does not reset this).`);
+      nextLock[path] = wasCommitted; // never let --write overwrite HEAD's pin with the edited digest
+      continue;
+    }
     const pinned = lock[path];
     if (pinned === undefined) {
       if (mode === "check") errors.push(`migration ${path} is not pinned in db/migrations.lock.json — run \`pnpm db:lock\` (forward-only).`);
@@ -180,6 +192,19 @@ export function findForbiddenReplaceSources(cwd: string = process.cwd()): string
   return scanSourceForForbiddenReplace(files.map((p) => ({ path: p, text: readFileSync(join(cwd, p), "utf8") })));
 }
 
+// The migration lock as committed in git HEAD — the forward-only anchor `checkLock` compares against.
+// `git show HEAD:<path>` reads the path relative to the repo root (independent of cwd). Any failure
+// (no HEAD lockfile yet, detached/empty tree, not a git checkout) means "nothing pinned" → {}.
+function committedLock(lockPath: string): Record<string, string> {
+  try {
+    const raw = execFileSync("git", ["show", `HEAD:${lockPath}`], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+    const parsed: unknown = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? (parsed as Record<string, string>) : {};
+  } catch {
+    return {};
+  }
+}
+
 function main(): void {
   const mode: LockMode = process.argv.includes("--write") ? "write" : "check";
   const migrations = globSync("db/**/migrations/*.sql");
@@ -206,8 +231,12 @@ function main(): void {
 
   const lockPath = "db/migrations.lock.json";
   const lock = existsSync(lockPath) ? (JSON.parse(readFileSync(lockPath, "utf8")) as Record<string, string>) : {};
+  // The forward-only anchor: the lock as committed in git HEAD. A locally-deleted lock line cannot
+  // reset it, so `--write` can never re-pin an edited migration. Missing/unparseable (first migration
+  // ever, or not a git tree) degrades to no anchor — never a false failure.
+  const committed = committedLock(lockPath);
   const entries = migrations.map((f) => ({ path: f, digest: createHash("sha256").update(readFileSync(f)).digest("hex") }));
-  const lockResult = checkLock(entries, lock, mode);
+  const lockResult = checkLock(entries, lock, mode, committed);
   if (!lockResult.ok) {
     for (const e of lockResult.errors) console.error(`FAIL ${e}`);
     process.exit(1);

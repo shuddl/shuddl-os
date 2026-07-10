@@ -377,6 +377,37 @@ describe("C2: forward-only migration lock (checkLock)", () => {
   });
 });
 
+// The Major the swarm found: the code COMMENT claimed the "delete the lock line, edit the file,
+// re-run db:lock" bypass was closed, but write mode only errored when the key was PRESENT. A deleted
+// key read as a brand-new file, so --write re-pinned the EDITED digest and CI check then passed green.
+// The fix anchors forward-only against the lock AS COMMITTED IN GIT (`committed`), which a locally
+// deleted lock line cannot reset. (These call the 4-arg form; the pre-fix 3-arg impl ignored it.)
+describe("Exit audit (REQ-119) Major: the delete-lock-line forward-only bypass is closed", () => {
+  const path = "db/tenant/migrations/0001_ledger_core.sql";
+  it("write REFUSES to re-pin a path HEAD pinned at a different digest, even with the on-disk key deleted", () => {
+    // on-disk lock = {} (key deleted), edited file digest = NEW, git HEAD still holds OLD.
+    const w = checkLock([{ path, digest: "NEW" }], {}, "write", { [path]: "OLD" });
+    expect(w.ok).toBe(false);
+    expect(w.errors.join(" ")).toMatch(/forward-only/);
+    expect(w.nextLock[path]).toBe("OLD"); // never overwrites HEAD's pin with the edited digest
+  });
+  it("a hand-crafted on-disk lock matching the edited digest STILL fails check against the committed HEAD anchor", () => {
+    // This is the exact green-CI end state of the old bypass; it must now be red.
+    const c = checkLock([{ path, digest: "NEW" }], { [path]: "NEW" }, "check", { [path]: "OLD" });
+    expect(c.ok).toBe(false);
+    expect(c.errors.join(" ")).toMatch(/committed to the lock/);
+  });
+  it("a genuinely new migration (absent from HEAD) is still pinnable by --write", () => {
+    const w = checkLock([{ path, digest: "abc" }], {}, "write", {}); // HEAD has no such path
+    expect(w.ok).toBe(true);
+    expect(w.nextLock[path]).toBe("abc");
+  });
+  it("an unchanged file (HEAD == on-disk == entry) passes in both modes", () => {
+    expect(checkLock([{ path, digest: "OLD" }], { [path]: "OLD" }, "check", { [path]: "OLD" }).ok).toBe(true);
+    expect(checkLock([{ path, digest: "OLD" }], { [path]: "OLD" }, "write", { [path]: "OLD" }).ok).toBe(true);
+  });
+});
+
 describe("M1: stray-SQL fence — only real migration files are exempt", () => {
   const migrations = new Set(["db/tenant/migrations/0001_ledger_core.sql"]);
   it("a .sql under db/ that is NOT a migration (e.g. db/tenant/seed.sql) is a stray", () => {
