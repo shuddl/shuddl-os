@@ -90,6 +90,25 @@ describe("REQ-012 — projectMoneyLines is a pure projection of the event payloa
     expect(p.invoices).toEqual([]);
   });
 
+  it("Exit audit (REQ-119) I7: voiding an all-positive invoice nets stream AR to EXACTLY 0", () => {
+    // InvoiceLine.amount_cents is now non-negative, so every in-effect line clears #moneyDeps's
+    // `amount_cents > 0` filter and the void reverses the WHOLE invoice. Pre-fix a -3000 line could be
+    // issued, escape that filter, and leave AR = -3000 after a void (I7 "to the penny" violated).
+    const issued: OriginalLine[] = [
+      { line_no: 1, amount_cents: 10_000, gl_map: "4000-FREIGHT", party_id: "party-bill", division: "north" },
+      { line_no: 2, amount_cents: 3_000, gl_map: "4200-ACC", party_id: "party-bill", division: "north" },
+    ];
+    const voidEvt = mkEvent("invoice.corrected", {
+      payload: { invoice_id: "inv-1", corrects_event_id: "evt-orig", reason: "void", reissue_lines: [] },
+    });
+    const p = projectMoneyLines(voidEvt, { originalLines: issued });
+    const issuedSum = issued.reduce((s, l) => s + l.amount_cents, 0);
+    const voidSum = p.lines.reduce((s, l) => s + l.amount_cents, 0);
+    expect(issuedSum + voidSum).toBe(0); // AR after the void: exactly zero
+    expect(p.lines.every((l) => l.kind === "correction_credit")).toBe(true);
+    expect(p.invoices).toEqual([]); // a void reissues nothing
+  });
+
   it("split.computed -> interline_split AP rows via Hamilton allocation; zero-cent shares are dropped", () => {
     const e = mkEvent("split.computed", {
       payload: {
