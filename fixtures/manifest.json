@@ -11,6 +11,7 @@
     { "id": "anomaly-222084-35lb", "gates": "WP-04 permanent regression (REQ-040)", "status": "pending", "path": "fixtures/anomaly/the-222084-case.json", "sha256": null, "source": "manifest.private M-14 — the $222,084 / 35-lb case, encode as unit fixture" },
     { "id": "qb-journal-month", "gates": "WP-11", "status": "planned", "path": "fixtures/qb/", "sha256": null, "source": "Built at WP-11 from ledger events" },
     { "id": "airplane-soak", "gates": "WP-05 (REQ-016)", "status": "planned", "path": "fixtures/airplane-soak/", "sha256": null, "source": "Written at WP-05" },
-    { "id": "gl-netting", "gates": "WP-02 I7 DoD (correction pairs net to zero in the GL export)", "status": "vendored", "path": "fixtures/gl-netting/", "sha256": "64cd9baf95bc832a9aa5d9169bc4d22bac86d3d4ff2117fb8d254fbb86bcde50", "source": "Generated deterministically in-repo by tools/fixtures/gen-gl-netting.ts (no engagement-workspace data)" }
+    { "id": "gl-netting", "gates": "WP-02 I7 DoD (correction pairs net to zero in the GL export)", "status": "vendored", "path": "fixtures/gl-netting/", "sha256": "64cd9baf95bc832a9aa5d9169bc4d22bac86d3d4ff2117fb8d254fbb86bcde50", "source": "Generated deterministically in-repo by tools/fixtures/gen-gl-netting.ts (no engagement-workspace data)" },
+    { "id": "merkle-vectors", "gates": "WP-02 REQ-014 (RFC 6962 Merkle known-answer vectors for the daily anchor)", "status": "vendored", "path": "fixtures/merkle-vectors/", "sha256": "d78efdc15ad5ca5ef6d88f1206bd0c12a51a34c52e681dd959bf9b558c013203", "source": "Derived deterministically in-repo by fixtures/merkle-vectors/ref6962.mjs (RFC 6962 §2.1; no engagement-workspace data)" }
   ]
 }
