@@ -1,0 +1,273 @@
+import { z } from "zod";
+import { SafeInt, JsonObject } from "./json.js";
+import {
+  Cents,
+  Bps,
+  InvoiceIssuedPayload,
+  InvoiceCorrectedPayload,
+  SplitComputedPayload,
+} from "./money.js";
+
+// REQ-011 / doc 10 §01: the complete v1 catalog. Exactly 35 — adding a kind is a
+// register amendment (a test pins .length === 35 and the strings against doc 10).
+export const EVENT_KINDS = [
+  "quote.requested", "quote.priced", "quote.sent", "quote.accepted", "quote.expired",
+  "booking.created", "credit.checked", "appointment.set", "pickup.scheduled", "dispatch.assigned",
+  "stop.arrived", "freight.counted", "freight.photographed", "dims.captured", "custody.transferred",
+  "seal.applied", "stop.departed", "position.updated", "exception.raised", "osd.captured",
+  "pod.signed", "delivery.evidenced",
+  "invoice.issued", "invoice.corrected", "payment.received", "settlement.executed", "split.computed",
+  "message.received", "message.sent", "call.transcribed",
+  "document.attached", "approval.requested", "approval.decided", "agent.acted", "authority.flipped",
+] as const;
+export type EventKind = (typeof EVENT_KINDS)[number];
+
+export const Hash64 = z.string().regex(/^[0-9a-f]{64}$/);
+
+// actor{party,user,device}: split into three DB columns (actor_party_id/_user_id/_device_id).
+export const Actor = z
+  .object({ party: z.string().min(1), user: z.string().optional(), device: z.string().optional() })
+  .strict();
+export type Actor = z.infer<typeof Actor>;
+
+export const EvidenceRef = z.object({ doc_id: z.string(), hash: Hash64 }).strict();
+export type EvidenceRef = z.infer<typeof EvidenceRef>;
+
+export const Visibility = z.enum(["internal", "counterparty", "public"]);
+export type Visibility = z.infer<typeof Visibility>;
+
+// ---- typed payloads (the rest of the 35 kinds carry JsonObject) ----
+export const GeoStamp = z
+  .object({ lat_e6: SafeInt, lon_e6: SafeInt, accuracy_m: SafeInt.optional() })
+  .strict();
+export type GeoStamp = z.infer<typeof GeoStamp>;
+
+// I5: every quote pins the rate_config version ids it priced against (min 1).
+export const QuotePricedPayload = z
+  .object({
+    sell: Cents,
+    floors: z.object({ contribution: Cents, full: Cents, target: Cents }).strict(),
+    versions: z.object({ rate_config_ids: z.array(z.string()).min(1) }).strict(),
+    basis: JsonObject,
+  })
+  .strict();
+export type QuotePricedPayload = z.infer<typeof QuotePricedPayload>;
+
+export const PodSignedPayload = z
+  .object({ signature_hash: Hash64, geo: GeoStamp, unwitnessed: z.literal(true).optional() })
+  .strict();
+export type PodSignedPayload = z.infer<typeof PodSignedPayload>;
+
+export const CustodyTransferredPayload = z
+  .object({
+    from_party: z.string().min(1),
+    to_party: z.string().min(1),
+    geo: GeoStamp.optional(),
+    cosig: z.string().optional(), // co-sign ack reserved for WP-05
+    unwitnessed: z.literal(true).optional(),
+  })
+  .strict();
+export type CustodyTransferredPayload = z.infer<typeof CustodyTransferredPayload>;
+
+export const PositionUpdatedPayload = z
+  .object({ lat_e6: SafeInt, lon_e6: SafeInt, accuracy_m: SafeInt.optional(), speed_cms: SafeInt.optional() })
+  .strict();
+export type PositionUpdatedPayload = z.infer<typeof PositionUpdatedPayload>;
+
+// REQ-005: agent.acted must cite at least one basis link (event/doc/config).
+export const AgentActedPayload = z
+  .object({
+    agent: z.string().min(1),
+    action: z.string().min(1),
+    basis: z
+      .array(z.object({ kind: z.enum(["event", "doc", "config"]), id: z.string() }).strict())
+      .min(1),
+    confidence_bps: Bps,
+    cost_cents: Cents.optional(),
+    latency_ms: SafeInt.optional(),
+  })
+  .strict();
+export type AgentActedPayload = z.infer<typeof AgentActedPayload>;
+
+// ---- envelope base (shared by every kind; kind + payload are added per member) ----
+const eventBaseShape = {
+  id: z.string().uuid(),
+  stream_id: z.string().regex(/^(s:[\w-]+|q:[\w-]+|t:root)$/),
+  shipment_id: z.string().optional(),
+  seq: SafeInt.min(0),
+  ts: SafeInt.min(0), // epoch ms UTC (assumption 3)
+  recorded_at: SafeInt.min(0), // server clock at append
+  actor: Actor,
+  party_refs: z.array(z.string()),
+  evidence: z.array(EvidenceRef),
+  prev_hash: Hash64,
+  hash: Hash64.optional(), // present on read; computed, never client-supplied
+  sig: z.string().optional(), // base64url P-256 over clientView
+  visibility: Visibility,
+  source: z.enum(["native", "legacy", "edi", "email"]),
+  confidence: Bps,
+  device_id: z.string().optional(),
+  device_seq: SafeInt.min(0).optional(),
+  captured_ts: SafeInt.min(0).optional(),
+};
+
+// Exported base carries the offline-dedupe refine: a device_id is meaningless without
+// its per-device sequence number (the airplane-mode dedupe key). Members are built from
+// the raw shape (a discriminated union cannot take a refined object as an option).
+export const EventBase = z.object(eventBaseShape).strict().refine(
+  (e) => e.device_id === undefined || e.device_seq !== undefined,
+  { message: "device_seq required when device_id present (offline dedupe key)", path: ["device_seq"] },
+);
+export type EventBase = z.infer<typeof EventBase>;
+
+function ev<K extends EventKind, P extends z.ZodTypeAny>(kind: K, payload: P) {
+  return z.object({ ...eventBaseShape, kind: z.literal(kind), payload }).strict();
+}
+
+export const LedgerEvent = z
+  .discriminatedUnion("kind", [
+    ev("quote.requested", JsonObject),
+    ev("quote.priced", QuotePricedPayload),
+    ev("quote.sent", JsonObject),
+    ev("quote.accepted", JsonObject),
+    ev("quote.expired", JsonObject),
+    ev("booking.created", JsonObject),
+    ev("credit.checked", JsonObject),
+    ev("appointment.set", JsonObject),
+    ev("pickup.scheduled", JsonObject),
+    ev("dispatch.assigned", JsonObject),
+    ev("stop.arrived", JsonObject),
+    ev("freight.counted", JsonObject),
+    ev("freight.photographed", JsonObject),
+    ev("dims.captured", JsonObject),
+    ev("custody.transferred", CustodyTransferredPayload),
+    ev("seal.applied", JsonObject),
+    ev("stop.departed", JsonObject),
+    ev("position.updated", PositionUpdatedPayload),
+    ev("exception.raised", JsonObject),
+    ev("osd.captured", JsonObject),
+    ev("pod.signed", PodSignedPayload),
+    ev("delivery.evidenced", JsonObject),
+    ev("invoice.issued", InvoiceIssuedPayload),
+    ev("invoice.corrected", InvoiceCorrectedPayload),
+    ev("payment.received", JsonObject),
+    ev("settlement.executed", JsonObject),
+    ev("split.computed", SplitComputedPayload),
+    ev("message.received", JsonObject),
+    ev("message.sent", JsonObject),
+    ev("call.transcribed", JsonObject),
+    ev("document.attached", JsonObject),
+    ev("approval.requested", JsonObject),
+    ev("approval.decided", JsonObject),
+    ev("agent.acted", AgentActedPayload),
+    ev("authority.flipped", JsonObject),
+  ])
+  .superRefine((e, ctx) => {
+    // offline-dedupe refine (mirrors EventBase; the union cannot inherit it directly).
+    if (e.device_id !== undefined && e.device_seq === undefined) {
+      ctx.addIssue({
+        code: "custom",
+        message: "device_seq required when device_id present (offline dedupe key)",
+        path: ["device_seq"],
+      });
+    }
+    // I4: custody events must be co-signed by a device OR explicitly flagged unwitnessed.
+    if (e.kind === "custody.transferred" || e.kind === "pod.signed") {
+      const hasDevice = e.actor.device !== undefined;
+      const unwitnessed = (e.payload as { unwitnessed?: unknown }).unwitnessed === true;
+      if (!hasDevice && !unwitnessed) {
+        ctx.addIssue({
+          code: "custom",
+          message: "I4: custody event requires actor.device or payload.unwitnessed",
+          path: ["actor", "device"],
+        });
+      }
+    }
+  });
+export type LedgerEvent = z.infer<typeof LedgerEvent>;
+
+// ---- deterministic fixtures (no Date.now / Math.random) ----
+const FIXTURE_ID = "00000000-0000-4000-8000-000000000001";
+const FIXTURE_TS = 1_720_000_000_000; // 2024-07-03T12:26:40Z
+const FIXTURE_RECORDED_AT = 1_720_000_000_500;
+const FIXTURE_GENESIS = "0".repeat(64);
+const FIXTURE_SIGNATURE_HASH = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+const FIXTURE_GEO = { lat_e6: 37_421_000, lon_e6: -122_084_000 };
+
+function fixtureActor(kind: EventKind): { party: string; user?: string; device?: string } {
+  if (kind === "pod.signed" || kind === "custody.transferred") {
+    return { party: "party-carrier", user: "user-driver", device: "device-1" };
+  }
+  return { party: "party-shipper" };
+}
+
+function fixturePayload(kind: EventKind): Record<string, unknown> {
+  switch (kind) {
+    case "quote.priced":
+      return {
+        sell: 120_000,
+        floors: { contribution: 60_000, full: 90_000, target: 100_000 },
+        versions: { rate_config_ids: ["rc-tariff-v3"] },
+        basis: {},
+      };
+    case "pod.signed":
+      return { signature_hash: FIXTURE_SIGNATURE_HASH, geo: FIXTURE_GEO };
+    case "custody.transferred":
+      return { from_party: "party-shipper", to_party: "party-carrier" };
+    case "position.updated":
+      return { lat_e6: FIXTURE_GEO.lat_e6, lon_e6: FIXTURE_GEO.lon_e6, speed_cms: 1_500 };
+    case "agent.acted":
+      return {
+        agent: "biller",
+        action: "draft_invoice",
+        basis: [{ kind: "event", id: "evt-basis-1" }],
+        confidence_bps: 9_000,
+      };
+    case "invoice.issued":
+      return {
+        invoice_id: "inv-1",
+        party_id: "party-bill-to",
+        division: "main",
+        lines: [{ line_no: 1, kind: "freight", amount_cents: 120_000, gl_map: "4000-REV" }],
+      };
+    case "invoice.corrected":
+      return {
+        invoice_id: "inv-1",
+        corrects_event_id: "evt-invoice-orig",
+        reason: "reweigh correction",
+        reissue_lines: [],
+      };
+    case "split.computed":
+      return {
+        total_cents: 120_000,
+        allocations: [
+          { party_id: "party-carrier", share_bps: 7_000 },
+          { party_id: "party-interline", share_bps: 3_000 },
+        ],
+      };
+    default:
+      return {};
+  }
+}
+
+// Deterministic minimal-valid event per kind; shallow-merges overrides then validates.
+export function eventFixture(kind: EventKind, overrides: Partial<LedgerEvent> = {}): LedgerEvent {
+  const base: Record<string, unknown> = {
+    id: FIXTURE_ID,
+    stream_id: "s:shp-1",
+    shipment_id: "shp-1",
+    seq: 0,
+    ts: FIXTURE_TS,
+    recorded_at: FIXTURE_RECORDED_AT,
+    actor: fixtureActor(kind),
+    party_refs: [],
+    evidence: [],
+    prev_hash: FIXTURE_GENESIS,
+    visibility: "internal",
+    source: "native",
+    confidence: 10_000,
+    kind,
+    payload: fixturePayload(kind),
+  };
+  return LedgerEvent.parse({ ...base, ...overrides });
+}
