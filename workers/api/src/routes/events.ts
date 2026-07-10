@@ -112,7 +112,7 @@ export function mountEventRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>):
     // a client mistake (400), not a 500. The DO's stream-id regex is the authority on FORMAT; this only
     // caps LENGTH so a pathological id can't blow a downstream limit. (The KV idempotency key is already
     // hashed to a fixed length, so the middleware no longer 500s on a long path — this keeps the 4xx clean.)
-    if (shipmentId.length > MAX_SHIPMENT_ID_LEN) {
+    if ((shipmentId?.length ?? 0) > MAX_SHIPMENT_ID_LEN) {
       throw new ApiError("VALIDATION_FAILED", 400, "SHIPMENT ID TOO LONG");
     }
     const streamId = `s:${shipmentId}`;
