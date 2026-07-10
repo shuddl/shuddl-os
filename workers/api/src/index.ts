@@ -5,6 +5,8 @@ import { reqId, handleError, envelope, ApiError } from "./middleware/error.js";
 import { auth, requireRole } from "./middleware/auth.js";
 import { idempotency } from "./middleware/idempotency.js";
 import { tenantDb } from "./tenants.js";
+import { mountEventRoutes } from "./routes/events.js";
+import { mountPositionRoutes } from "./routes/positions.js";
 
 export type Env = {
   TENANT_A_DB: D1Database;
@@ -43,6 +45,10 @@ app.get("/v1/_probe", requireRole("admin", "ops", "finance"), async (c) => {
   const row = await db.prepare("SELECT tenant FROM probe LIMIT 1").first<{ tenant: string }>();
   return c.json({ tenant_marker: row?.tenant ?? null });
 });
+
+// WP-02 ledger routes (REQ-015 / REQ-002 / I6). Mounted AFTER auth + idempotency so both apply.
+mountEventRoutes(app);
+mountPositionRoutes(app);
 
 app.notFound((c) => envelope(c, "NOT_FOUND", 404, "NOT FOUND"));
 

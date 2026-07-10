@@ -25,7 +25,8 @@ export function lensFor(s: SessionClaims): Lens {
 // A driver PWA sees only the operational kinds for the stops it is executing. This is a FIXED
 // compile-time constant (`as const`) — its values are BOUND as `?` params in lensWhere, never
 // interpolated into SQL, so it cannot carry an injection regardless of anything a caller sends.
-const DRIVER_KINDS = [
+// Exported so the REQ-015/I6 adversarial sweep asserts against the REAL allowlist (no test drift).
+export const DRIVER_KINDS = [
   "appointment.set",
   "pickup.scheduled",
   "dispatch.assigned",
