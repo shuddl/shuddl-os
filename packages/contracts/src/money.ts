@@ -49,8 +49,15 @@ export const SplitAllocation = z
 export type SplitAllocation = z.infer<typeof SplitAllocation>;
 
 // Interline splits must allocate the whole pie: shares sum to exactly 10000 bps.
+// REQ-019: the gross being apportioned is NON-NEGATIVE — a split divides gross revenue among the
+// executing carriers, so a negative gross is meaningless. Corrections negate their own lines exactly
+// (see invoice.corrected); they never re-allocate a negative gross. Narrowing this here also removes
+// the only path by which a negative total_cents could reach allocateCents (defense in depth).
 export const SplitComputedPayload = z
-  .object({ total_cents: Cents, allocations: z.array(SplitAllocation).min(1) })
+  .object({
+    total_cents: Cents.refine((c) => c >= 0, "interline split gross must be non-negative (REQ-019)"),
+    allocations: z.array(SplitAllocation).min(1),
+  })
   .strict()
   .refine(
     (p) => p.allocations.reduce((sum, a) => sum + a.share_bps, 0) === 10_000,

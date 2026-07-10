@@ -5,9 +5,12 @@
 
 /**
  * Apportion `total` cents across shares given in basis points (each 0..10000, summing to 10000).
- * Floor each share to `floor(total*bps/10000)`, then hand the leftover cents out one at a time to
- * the largest fractional remainders, breaking ties by ascending index. Inputs are non-negative
- * (bps is a Bps, interline totals are freight ≥ 0), so BigInt truncation equals floor.
+ * The largest-remainder pass runs on the MAGNITUDE `abs(total)`, then each part is negated back to
+ * `total`'s sign. This matters because BigInt division truncates toward zero, not toward −∞ — for a
+ * negative total, per-share `trunc` and `floor` diverge and every share rounds the wrong way, which
+ * the leftover pass cannot recover (REQ-019 regression). Running over the non-negative magnitude
+ * makes truncation == floor again, so the result is exact for either sign. `total` may be negative
+ * (a reversal/re-allocation); shares (bps) are always non-negative. Postcondition asserted below.
  */
 export function allocateCents(total: number, sharesBps: readonly number[]): number[] {
   if (!Number.isInteger(total)) {
@@ -16,7 +19,9 @@ export function allocateCents(total: number, sharesBps: readonly number[]): numb
   const n = sharesBps.length;
   const base = new Array<number>(n).fill(0);
   const remainder = new Array<bigint>(n).fill(0n);
-  const T = BigInt(total);
+  const signed = BigInt(total);
+  const negative = signed < 0n;
+  const magnitude = negative ? -signed : signed; // ≥ 0, so integer-division == floor
   let allocated = 0n;
 
   for (let i = 0; i < n; i++) {
@@ -24,15 +29,15 @@ export function allocateCents(total: number, sharesBps: readonly number[]): numb
     if (bps === undefined || !Number.isInteger(bps) || bps < 0) {
       throw new Error(`allocateCents: shares must be non-negative integer basis points (got ${String(bps)})`);
     }
-    const product = T * BigInt(bps);
-    const floored = product / 10_000n; // T,bps ≥ 0 ⇒ integer-division == floor
+    const product = magnitude * BigInt(bps);
+    const floored = product / 10_000n; // magnitude,bps ≥ 0 ⇒ integer-division == floor
     base[i] = Number(floored);
     remainder[i] = product - floored * 10_000n;
     allocated += floored;
   }
 
-  // leftover = total - Σfloor = (Σremainder)/10000, an integer in [0, n) since each remainder < 10000.
-  const leftover = Number(T - allocated);
+  // leftover = magnitude - Σfloor = (Σremainder)/10000, an integer in [0, n) since each remainder < 10000.
+  const leftover = Number(magnitude - allocated);
   const order = Array.from({ length: n }, (_, i) => i).sort((a, b) => {
     const ra = remainder[a] ?? 0n;
     const rb = remainder[b] ?? 0n;
@@ -43,9 +48,11 @@ export function allocateCents(total: number, sharesBps: readonly number[]): numb
     if (idx !== undefined) base[idx] = (base[idx] ?? 0) + 1;
   }
 
-  const sum = base.reduce((s, x) => s + x, 0);
+  // Negate back to total's sign. `x === 0 ? 0 : -x` avoids a signed-zero (−0) leaking into a cent.
+  const parts = negative ? base.map((x) => (x === 0 ? 0 : -x)) : base;
+  const sum = parts.reduce((s, x) => s + x, 0);
   if (sum !== total) {
     throw new Error(`allocateCents: postcondition failed — parts sum to ${sum}, expected ${total}`);
   }
-  return base;
+  return parts;
 }

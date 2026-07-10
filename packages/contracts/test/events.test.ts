@@ -49,3 +49,12 @@ describe("integer-only law", () => {
     expect(() => LedgerEvent.parse({ ...f, confidence: 0.9 })).toThrow();
   });
 });
+describe("REQ-019: interline split gross is non-negative", () => {
+  it("rejects a negative total_cents at the boundary; admits zero and positive", () => {
+    const f = eventFixture("split.computed");
+    const p = f.payload as { total_cents: number; allocations: unknown };
+    expect(() => LedgerEvent.parse({ ...f, payload: { ...p, total_cents: -1 } })).toThrow();
+    expect(LedgerEvent.parse({ ...f, payload: { ...p, total_cents: 0 } }).kind).toBe("split.computed");
+    expect(LedgerEvent.parse(f).payload).toMatchObject({ total_cents: 120_000 }); // fixture stays valid
+  });
+});

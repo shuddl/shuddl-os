@@ -48,6 +48,36 @@ describe("REQ-003 / REQ-112 — allocateCents (Hamilton largest-remainder, integ
     expect(allocateCents(100, [5000, 5000])).toEqual([50, 50]);
   });
 
+  // REQ-019 regression: a NEGATIVE total must allocate cleanly (BigInt division truncates toward
+  // zero, so floor != trunc for negatives — allocate over abs then negate). No throw, exact sum.
+  it("always sums exactly for NEGATIVE totals too (property, 500 seeded cases)", () => {
+    const rnd = mulberry32(0x5eed_9999);
+    for (let i = 0; i < 500; i++) {
+      const total = -(1 + Math.floor(rnd() * 1e7)) as Cents; // negative magnitude
+      const n = 1 + Math.floor(rnd() * 6);
+      const cuts = Array.from({ length: n - 1 }, () => Math.floor(rnd() * 10_000)).sort((a, b) => a - b);
+      const bps = [...cuts, 10_000].map((c, j, a) => c - (a[j - 1] ?? 0));
+      expect(bps.reduce((s, b) => s + b, 0)).toBe(10_000);
+      const parts = allocateCents(total, bps);
+      expect(parts).toHaveLength(n);
+      expect(parts.every((p) => Number.isInteger(p))).toBe(true);
+      expect(parts.reduce((s, p) => s + p, 0)).toBe(total);
+    }
+  });
+
+  it("negative literal cases: allocate over abs then negate (the coordinator's three probes + edges)", () => {
+    expect(allocateCents(-9999, [5000, 2500, 2500])).toEqual([-4999, -2500, -2500]);
+    expect(allocateCents(-100, [3333, 3333, 3334])).toEqual([-33, -33, -34]);
+    expect(allocateCents(-1, [3334, 3333, 3333])).toEqual([-1, 0, 0]); // -1c over 3 legs
+    expect(allocateCents(0, [3333, 3333, 3334])).toEqual([0, 0, 0]);
+    // sums are exact (postcondition holds; no throw)
+    expect(allocateCents(-9999, [5000, 2500, 2500]).reduce((s, p) => s + p, 0)).toBe(-9999);
+    expect(allocateCents(-100, [3333, 3333, 3334]).reduce((s, p) => s + p, 0)).toBe(-100);
+    expect(allocateCents(-1, [3334, 3333, 3333]).reduce((s, p) => s + p, 0)).toBe(-1);
+    // sign-mirror invariant: negating the total negates each part exactly.
+    expect(allocateCents(-100, [3333, 3333, 3334])).toEqual(allocateCents(100, [3333, 3333, 3334]).map((p) => -p));
+  });
+
   it("rejects negative or non-integer shares (integer-only law)", () => {
     expect(() => allocateCents(100, [10_000, -1])).toThrow();
     expect(() => allocateCents(100.5, [10_000])).toThrow();
