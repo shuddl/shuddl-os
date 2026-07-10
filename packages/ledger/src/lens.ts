@@ -61,8 +61,10 @@ export function lensWhere(lens: Lens, alias = "e"): SqlFragment {
         params: [lens.partyId],
       };
     case "driver":
+      // visibility<>'internal' FIRST — I6 binds every view, including the driver's day sheet:
+      // an ops-only (internal) event on the driver's own shipment must never surface here.
       return {
-        sql: `${alias}.kind IN (${DRIVER_KINDS.map(() => "?").join(",")}) AND ${alias}.shipment_id IN (SELECT id FROM shipments WHERE json_extract(status_cache,'$.assigned_driver') = ?)`,
+        sql: `${alias}.visibility <> 'internal' AND ${alias}.kind IN (${DRIVER_KINDS.map(() => "?").join(",")}) AND ${alias}.shipment_id IN (SELECT id FROM shipments WHERE json_extract(status_cache,'$.assigned_driver') = ?)`,
         params: [...DRIVER_KINDS, lens.userId],
       };
   }
@@ -84,6 +86,9 @@ export async function readEvents(db: D1Database, lens: Lens, q: ReadQuery = {}):
   // the COMPOSITE (stream_id, seq) keyset cursor instead.
   if (q.after_seq !== undefined && q.shipment_id === undefined) {
     throw new Error("INVALID_CURSOR: after_seq requires a shipment_id scope; use `cursor` (stream_id, seq) across streams");
+  }
+  if (q.after_seq !== undefined && q.cursor !== undefined) {
+    throw new Error("INVALID_CURSOR: after_seq and cursor are mutually exclusive pagination modes");
   }
   const w = lensWhere(lens);
   const clauses = [w.sql];

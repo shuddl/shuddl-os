@@ -159,3 +159,61 @@ describe("redactEvent never mutates the stored event; prev_hash/sig/hash pass th
     expect(r.sig).toBe("AAAA");
   });
 });
+
+// REQ-074 / I6 / doc 07 §02: exact coordinates are an ops/driver privilege. Geo rides MANY
+// kinds — top-level on position.updated, nested `payload.geo` on pod.signed/custody.transferred,
+// and any loose-payload kind could carry it. Generalization must be STRUCTURAL (walk the payload)
+// so a party lens pre-OFD never leaks the exact dock, on any kind.
+describe("party geo-privacy is structural: every geo-bearing kind, nested or top-level", () => {
+  const LAT = 37_421_777;
+  const LON = -122_084_333;
+  const COARSE_LAT = 37_400_000;
+  const COARSE_LON = -122_100_000;
+  const SIG = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+  const geoStamp = { lat_e6: LAT, lon_e6: LON, accuracy_m: 5 };
+  const looseGeoKinds = [
+    "stop.arrived",
+    "freight.photographed",
+    "dims.captured",
+    "seal.applied",
+    "stop.departed",
+    "delivery.evidenced",
+    "osd.captured",
+    "exception.raised",
+  ] as const;
+
+  const cases: Array<{ kind: EventKind; build: () => ReturnType<typeof eventFixture> }> = [
+    { kind: "position.updated", build: () => eventFixture("position.updated", { payload: { lat_e6: LAT, lon_e6: LON, accuracy_m: 5, speed_cms: 1_500 } }) },
+    { kind: "pod.signed", build: () => eventFixture("pod.signed", { payload: { signature_hash: SIG, geo: geoStamp } }) },
+    { kind: "custody.transferred", build: () => eventFixture("custody.transferred", { payload: { from_party: "a", to_party: "b", geo: geoStamp } }) },
+    ...looseGeoKinds.map((kind) => ({ kind, build: () => eventFixture(kind, { payload: { geo: geoStamp } }) })),
+  ];
+
+  // geo lives at payload.geo (nested) or at the payload root (position.updated).
+  const geoOf = (p: Record<string, unknown>): Record<string, unknown> =>
+    ("geo" in p ? p.geo : p) as Record<string, unknown>;
+
+  it.each(cases)("$kind — party pre-OFD: coarse geo, accuracy dropped (asserted on the serialized body)", ({ build }) => {
+    const r = redactEvent({ scope: "party" }, build(), false);
+    const body = JSON.stringify(r.payload);
+    expect(body).not.toContain(String(LAT)); // exact latitude never appears
+    expect(body).not.toContain("accuracy_m");
+    const g = geoOf(r.payload as Record<string, unknown>);
+    expect(g.lat_e6).toBe(COARSE_LAT);
+    expect(g.lon_e6).toBe(COARSE_LON);
+    expect(g.accuracy_m).toBeUndefined();
+  });
+
+  it.each(cases)("$kind — party post-OFD: exact geo unlocks", ({ build }) => {
+    const g = geoOf(redactEvent({ scope: "party" }, build(), true).payload as Record<string, unknown>);
+    expect(g.lat_e6).toBe(LAT);
+    expect(g.lon_e6).toBe(LON);
+    expect(g.accuracy_m).toBe(5);
+  });
+
+  it.each(cases)("$kind — driver lens: geo always exact (ops/driver privilege)", ({ build }) => {
+    const g = geoOf(redactEvent({ scope: "driver" }, build(), false).payload as Record<string, unknown>);
+    expect(g.lat_e6).toBe(LAT);
+    expect(g.accuracy_m).toBe(5);
+  });
+});

@@ -7,6 +7,7 @@ import { applyMigrations } from "../src/migrate.js";
 import ledgerCore from "../../../db/tenant/migrations/0001_ledger_core.sql?raw";
 import domain from "../../../db/tenant/migrations/0002_domain.sql?raw";
 import insertGuards from "../../../db/tenant/migrations/0003_insert_guards.sql?raw";
+import partyRefsGuard from "../../../db/tenant/migrations/0004_party_refs_guard.sql?raw";
 
 const DB = env.TENANT_A_DB;
 
@@ -57,6 +58,7 @@ describe("rowToEvent: SQL NULL -> omitted key (undefined), never null (hash-crit
       { path: "0001_ledger_core.sql", sql: ledgerCore },
       { path: "0002_domain.sql", sql: domain },
       { path: "0003_insert_guards.sql", sql: insertGuards },
+      { path: "0004_party_refs_guard.sql", sql: partyRefsGuard },
     ]);
   });
 
@@ -66,6 +68,15 @@ describe("rowToEvent: SQL NULL -> omitted key (undefined), never null (hash-crit
       .bind(...cols.map((c) => row[c]))
       .run();
   }
+
+  it("0004 guard: a scalar (non-array) party_refs is rejected at write time (I6 defense-in-depth)", async () => {
+    const [e] = await buildChain([
+      eventFixture("quote.requested", { id: crypto.randomUUID(), stream_id: "t:root", shipment_id: undefined }),
+    ]);
+    const row = eventToRow(e!);
+    row.party_refs = '"party-acme"'; // a JSON scalar, not an array — would make json_each match then Zod throw
+    await expect(insertRow(row)).rejects.toThrow(/party_refs must be a JSON array/);
+  });
 
   it("a NULL-heavy event: hashEvent(rowToEvent(row)) === stored hash, and the inverse round-trips", async () => {
     // shipment_id, actor.user, actor.device, device_id, device_seq, captured_ts, sig all absent.
@@ -171,6 +182,7 @@ describe("readEvents: lens-scoped reads (I6, adversarial visibility)", () => {
       { path: "0001_ledger_core.sql", sql: ledgerCore },
       { path: "0002_domain.sql", sql: domain },
       { path: "0003_insert_guards.sql", sql: insertGuards },
+      { path: "0004_party_refs_guard.sql", sql: partyRefsGuard },
     ]);
     await B.prepare(
       "INSERT INTO shipments (id, shipper_party_id, consignee_party_id, bill_to_party_id, created_ts, status_cache) VALUES ('shpA','p','p','p',0,?)",
@@ -196,13 +208,35 @@ describe("readEvents: lens-scoped reads (I6, adversarial visibility)", () => {
       payload: { lat_e6: 37_421_777, lon_e6: -122_084_333, accuracy_m: 5, speed_cms: 1_500 },
     });
     await seed("pod.signed", { stream_id: "s:shpB", shipment_id: "shpB", seq: 0, visibility: "counterparty", party_refs: ["party-other"] });
+
+    // Driver-visibility fixtures (I6). shipment id "aShpC" sorts BEFORE "s:shpA" so it never
+    // perturbs the shpA/shpB after_seq + composite-cursor assertions below. drv-3 owns it.
+    await B.prepare(
+      "INSERT INTO shipments (id, shipper_party_id, consignee_party_id, bill_to_party_id, created_ts, status_cache) VALUES ('aShpC','p','p','p',0,?)",
+    )
+      .bind(JSON.stringify({ assigned_driver: "drv-3" }))
+      .run();
+    const px = ["party-x"];
+    // Two internal driver-kind events + one counterparty driver-kind event, all on drv-3's shipment.
+    await seed("pod.signed", { stream_id: "s:aShpC", shipment_id: "aShpC", seq: 0, visibility: "internal", party_refs: px });
+    await seed("exception.raised", { stream_id: "s:aShpC", shipment_id: "aShpC", seq: 1, visibility: "internal", party_refs: px });
+    await seed("pod.signed", { stream_id: "s:aShpC", shipment_id: "aShpC", seq: 2, visibility: "counterparty", party_refs: px });
   });
 
   it("tenant lens sees every seeded event, unredacted", async () => {
     const res = await readEvents(B, { scope: "tenant" }, {});
-    expect(res).toHaveLength(5);
+    expect(res).toHaveLength(8);
     const priced = res.find((e) => e.kind === "quote.priced")!;
     expect((priced.payload as Record<string, unknown>).floors).toBeDefined();
+  });
+
+  it("driver lens RESPECTS visibility — an internal event on the driver's own shipment is invisible (I6)", async () => {
+    const res = await readEvents(B, { scope: "driver", userId: "drv-3" }, {});
+    // Only the counterparty pod.signed survives; the two internal driver-kind events are filtered.
+    expect(res).toHaveLength(1);
+    expect(res.every((e) => e.visibility !== "internal")).toBe(true);
+    expect(res[0]!.kind).toBe("pod.signed");
+    expect(res[0]!.visibility).toBe("counterparty");
   });
 
   it("party lens sees only non-internal events referencing the party — internal is invisible (I6)", async () => {
@@ -230,6 +264,12 @@ describe("readEvents: lens-scoped reads (I6, adversarial visibility)", () => {
 
   it("after_seq WITHOUT a shipment_id scope throws (a bare across-stream cursor silently drops rows)", async () => {
     await expect(readEvents(B, { scope: "tenant" }, { after_seq: 0 })).rejects.toThrow(/shipment_id|INVALID_CURSOR/);
+  });
+
+  it("after_seq and cursor together is rejected (two conflicting pagination modes)", async () => {
+    await expect(
+      readEvents(B, { scope: "tenant" }, { shipment_id: "shpA", after_seq: 0, cursor: { stream_id: "s:shpA", seq: 0 } }),
+    ).rejects.toThrow(/INVALID_CURSOR|mutually exclusive/);
   });
 
   it("after_seq is valid inside a shipment_id scope", async () => {
