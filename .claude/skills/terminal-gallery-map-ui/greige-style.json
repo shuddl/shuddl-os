@@ -1,0 +1,68 @@
+{
+  "//": "SHUDDL 'Terminal Gallery' basemap — red engraving on warm concrete. Works with Mapbox GL JS and MapLibre GL JS (shared style spec). Swap `sources` for your provider: self-hosted Protomaps/OpenFreeMap for the product (REQ-075, no third-party branding), or Mapbox tiles for a promo. Source-layer names below match the OpenMapTiles schema (Protomaps/OpenFreeMap/Mapbox-Streets-v8 all follow it, though a few layer names differ — see notes). This is a STARTING POINT: keep the paint values, retarget the sources/source-layers to your tiles.",
+  "version": 8,
+  "name": "shuddl-terminal-gallery",
+  "glyphs": "{PROVIDER_GLYPHS_URL}/{fontstack}/{range}.pbf",
+  "sources": {
+    "v": {
+      "//": "Vector source. Product: your self-hosted Protomaps/OpenFreeMap. Promo: mapbox://mapbox.mapbox-streets-v8 (use MapLibre's addProtocol or Mapbox GL). The paint below assumes OpenMapTiles source-layers.",
+      "type": "vector",
+      "url": "{PROVIDER_VECTOR_TILE_URL}"
+    }
+  },
+  "layers": [
+    { "id": "field", "type": "background", "paint": { "background-color": "#D5D1CC" } },
+
+    { "id": "water", "type": "fill", "source": "v", "source-layer": "water",
+      "paint": { "fill-color": "#1A1A1A", "fill-opacity": 0.06 } },
+
+    { "id": "waterway", "type": "line", "source": "v", "source-layer": "waterway",
+      "paint": { "line-color": "#1A1A1A", "line-opacity": 0.06, "line-width": 0.6 } },
+
+    { "id": "road-minor", "type": "line", "source": "v", "source-layer": "transportation",
+      "filter": ["!in", "class", "motorway", "trunk", "primary"],
+      "layout": { "line-cap": "round" },
+      "paint": {
+        "line-color": "#FF4A33",
+        "line-opacity": 0.05,
+        "line-width": ["interpolate", ["linear"], ["zoom"], 5, 0.3, 12, 0.8, 16, 1.4]
+      } },
+
+    { "id": "road-major", "type": "line", "source": "v", "source-layer": "transportation",
+      "filter": ["in", "class", "motorway", "trunk", "primary"],
+      "layout": { "line-cap": "round" },
+      "paint": {
+        "line-color": "#FF4A33",
+        "line-opacity": 0.10,
+        "line-width": ["interpolate", ["linear"], ["zoom"], 4, 0.4, 10, 1.2, 16, 3.0]
+      } },
+
+    { "id": "boundary", "type": "line", "source": "v", "source-layer": "boundary",
+      "filter": ["<=", "admin_level", 4],
+      "paint": { "line-color": "#FF4A33", "line-opacity": 0.14, "line-width": 0.5, "line-dasharray": [3, 3] } },
+
+    { "id": "place-major", "type": "symbol", "source": "v", "source-layer": "place",
+      "filter": ["in", "class", "country", "state", "city"],
+      "layout": {
+        "text-field": ["upcase", ["coalesce", ["get", "name:en"], ["get", "name"]]],
+        "text-font": ["JetBrains Mono Regular"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 3, 9, 8, 11],
+        "text-letter-spacing": 0.12,
+        "text-max-width": 8,
+        "text-padding": 24,
+        "//": "thinned aggressively — the map must stay calm; drop labels below city scale"
+      },
+      "paint": {
+        "text-color": "rgba(255,74,51,0.55)",
+        "text-halo-color": "#D5D1CC",
+        "text-halo-width": 1
+      } }
+  ],
+  "notes": [
+    "BANNED, do not add: terrain/hillshade, satellite/raster, POI symbols, building fills, landuse greens, any color outside {#D5D1CC field, #FF4A33 signal, #1A1A1A ink, #00C4B4 progress}. The map carries NO color — saturation is reserved for freight entity marks drawn on top.",
+    "Entity marks (chevron/square/hollow/pulse + teal ETA fill) are separate GeoJSON sources added at runtime, NOT part of the basemap — see SKILL.md 'Entities'.",
+    "text-font must be a glyph fontstack your `glyphs` endpoint actually serves; 'JetBrains Mono Regular' is illustrative. Self-host the JetBrains Mono glyph PBFs to stay on-brand and offline-capable.",
+    "Mapbox Streets v8 layer names: transportation->'road', place labels->'place_label', water->'water'. OpenMapTiles (Protomaps/OpenFreeMap): 'transportation','place','water'. Retarget source-layer accordingly; the paint stays identical.",
+    "Exception dim: to dim the world to 35%, drop a full-viewport greige (#D5D1CC) veil at ~0.65 opacity ABOVE the basemap and BELOW the pulsing exception mark — do not recolor the style."
+  ]
+}

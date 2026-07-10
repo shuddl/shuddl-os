@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SHUDDL OS — The Freight Operating System</title>
+<style>
+  /* ---- THE FIVE TOKENS (the only bare hex in this file) ---- */
+  :root{
+    --field:#D5D1CC;        /* warm concrete */
+    --signal:#FF4A33;       /* the one red */
+    --signal-deep:#A52F18;  /* small text on field, contrast-locked */
+    --ink-dark:#1A1A1A;     /* ink */
+    --progress:#00C4B4;     /* teal — progress fills ONLY */
+
+    /* transparent reds/inks do all the "gray" work — no new colors */
+    --sig-06:rgba(255,74,51,.06);
+    --sig-12:rgba(255,74,51,.12);
+    --sig-24:rgba(255,74,51,.24);
+    --sig-55:rgba(255,74,51,.55);
+    --ink-06:rgba(26,26,26,.06);
+    --field-14:rgba(213,209,204,.14);
+    --field-55:rgba(213,209,204,.55);
+
+    --display:'Oswald','Barlow Condensed','Arial Narrow','Roboto Condensed','Helvetica Neue',sans-serif;
+    --mono:'JetBrains Mono','IBM Plex Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{background:var(--field);color:var(--ink-dark);font-family:var(--mono);overflow-x:hidden}
+
+  .disp{font-family:var(--display);font-weight:700;text-transform:uppercase;letter-spacing:-.015em;line-height:.9}
+  .mono{font-family:var(--mono);text-transform:uppercase}
+  ::selection{background:var(--signal);color:var(--field)}
+
+  /* ---------- ENTITY / MAP CLASSES (shared by backdrop svg + legend svgs) ---------- */
+  .field-bg{fill:var(--field)}
+  .rd-minor{stroke:var(--signal);stroke-opacity:.06;fill:none}
+  .rd-major{stroke:var(--signal);stroke-opacity:.10;fill:none}
+  .wtr-line{stroke:var(--ink-dark);stroke-opacity:.06;fill:none;stroke-linecap:round}
+  .wtr-fill{fill:var(--ink-dark);fill-opacity:.06}
+  .bnd{stroke:var(--signal);stroke-opacity:.16;stroke-dasharray:3 4;fill:none}
+  .lbl{font-family:var(--mono);fill:var(--signal);stroke:var(--field);stroke-width:3px;paint-order:stroke;text-transform:uppercase}
+  .route{stroke:var(--signal);stroke-opacity:.22;stroke-width:1.4}
+  .eta{stroke:var(--progress);stroke-width:2.6;stroke-linecap:round}   /* the one teal moment */
+  .trail{stroke:var(--signal);stroke-linecap:round}
+  .truck{fill:var(--signal)}
+  .rest{fill:var(--signal)}
+  .fac{fill:none;stroke:var(--signal);stroke-width:1.6}
+  .deliv{fill:none;stroke:var(--signal);stroke-width:1.6}
+  .mlab{font-family:var(--mono);font-size:9px;letter-spacing:1.2px;fill:var(--signal-deep);text-transform:uppercase}
+  #veil{fill:var(--field)}
+  .ex-sq{fill:var(--signal)}
+  .ex-ring{stroke:var(--signal);stroke-width:1.4;fill:none}
+  .ex-chip{font-family:var(--mono);font-size:10px;letter-spacing:1.4px;fill:var(--signal-deep);text-transform:uppercase}
+
+  /* ---------- HERO ---------- */
+  .hero{position:relative;min-height:100vh;min-height:100svh;overflow:hidden;display:flex;flex-direction:column;border-bottom:1px solid var(--sig-12)}
+  #stage{position:absolute;inset:0;width:100%;height:100%;z-index:0}
+  .hero > *:not(#stage){position:relative;z-index:2}
+
+  .topbar{display:flex;justify-content:space-between;align-items:center;gap:16px;
+    padding:16px 28px;border-bottom:1px solid var(--sig-12)}
+  .brand{font-family:var(--display);font-weight:700;text-transform:uppercase;letter-spacing:.02em;
+    font-size:22px;line-height:1;color:var(--ink-dark)}
+  .brand b{color:var(--signal);font-weight:700}
+  .status{display:flex;align-items:center;gap:14px;font-size:10px;letter-spacing:.14em;
+    color:var(--signal-deep);text-transform:uppercase;flex-wrap:wrap;justify-content:flex-end}
+  .status .sq{display:inline-block;width:7px;height:7px;background:var(--signal);margin-right:6px;vertical-align:baseline}
+
+  .hero-copy{flex:1;display:flex;flex-direction:column;justify-content:center;
+    padding:28px 28px;max-width:760px}
+  .kicker{font-size:11px;letter-spacing:.22em;color:var(--signal-deep);text-transform:uppercase;margin-bottom:20px}
+  h1.hero-h{font-size:clamp(56px,12.5vw,164px);color:var(--ink-dark);margin:0 0 22px}
+  .subline{font-family:var(--display);font-weight:700;text-transform:uppercase;letter-spacing:-.01em;
+    line-height:1.02;font-size:clamp(17px,2.3vw,27px);color:var(--ink-dark);max-width:34ch;margin-bottom:26px}
+
+  .cmdbar{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
+    border:1px solid var(--sig-24);background:var(--field-55);
+    padding:12px 14px;max-width:640px;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+  .cmd-key{font-family:var(--display);font-weight:700;color:var(--field);background:var(--ink-dark);
+    padding:2px 7px;letter-spacing:.02em;font-size:12px}
+  .cmd-text{color:var(--ink-dark);white-space:pre-wrap;word-break:break-word}
+  .cmd-caret{color:var(--signal);animation:blink 1s steps(1,end) infinite}
+  .cmd-result{display:block;width:100%;color:var(--signal-deep);border-top:1px solid var(--sig-12);
+    margin-top:8px;padding-top:8px;min-height:1.2em}
+  @keyframes blink{50%{opacity:0}}
+
+  /* lens panel — the ink-dark right-side "click a mark" surface */
+  .lens{position:absolute;right:28px;bottom:118px;width:344px;max-width:38vw;z-index:2;
+    background:var(--ink-dark);color:var(--field);border:1px solid var(--field-14);padding:18px 18px 16px}
+  .lens-hd{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:9.5px;
+    letter-spacing:.16em;color:var(--signal);text-transform:uppercase;
+    border-bottom:1px solid var(--field-14);padding-bottom:10px;margin-bottom:12px}
+  .lens-lane{font-family:var(--display);font-weight:700;text-transform:uppercase;letter-spacing:-.01em;
+    font-size:26px;line-height:.92;margin-bottom:12px}
+  .lens-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+  .chip{font-size:9px;letter-spacing:.12em;text-transform:uppercase;padding:3px 7px;
+    border:1px solid var(--field-14);color:var(--field)}
+  .chip.hot{border-color:var(--signal);color:var(--signal)}
+  .lens-eta{font-size:10px;letter-spacing:.12em;color:var(--field-55);text-transform:uppercase;margin-bottom:14px}
+  .ev{display:grid;grid-template-columns:auto 12px 1fr;align-items:baseline;gap:8px;
+    font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;padding:5px 0;border-top:1px solid var(--field-14)}
+  .ev .t{color:var(--signal)}
+  .ev .s{width:7px;height:7px;background:var(--signal);align-self:center}
+  .ev .x{color:var(--field-55)}
+  .lens-ft{font-size:9px;letter-spacing:.16em;color:var(--signal);text-transform:uppercase;
+    border-top:1px solid var(--field-14);margin-top:10px;padding-top:10px}
+
+  /* KPI strip */
+  .kpi{display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--sig-12);background:var(--field)}
+  .kpi-cell{padding:16px 20px;border-left:1px solid var(--sig-12)}
+  .kpi-cell:first-child{border-left:0}
+  .kpi-num{font-family:var(--display);font-weight:700;font-size:clamp(26px,3.4vw,46px);line-height:1;
+    letter-spacing:-.01em;color:var(--ink-dark)}
+  .kpi-lab{font-size:9.5px;letter-spacing:.14em;color:var(--signal-deep);text-transform:uppercase;margin-top:7px}
+
+  /* ---------- SECTIONS ---------- */
+  .wrap{max-width:1360px;margin:0 auto;padding:0 28px}
+  .section{padding:clamp(52px,8vh,116px) 0;border-bottom:1px solid var(--sig-12)}
+  .eyebrow{font-size:11px;letter-spacing:.22em;color:var(--signal-deep);text-transform:uppercase;margin-bottom:16px}
+  h2.sec-h{font-family:var(--display);font-weight:700;text-transform:uppercase;letter-spacing:-.015em;
+    line-height:.92;font-size:clamp(34px,6vw,84px);color:var(--ink-dark);margin-bottom:14px}
+  .lede{font-size:12.5px;letter-spacing:.06em;line-height:1.7;text-transform:uppercase;color:var(--signal-deep);max-width:62ch}
+
+  /* legend */
+  .legend{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;margin-top:44px;
+    background:var(--sig-12);border:1px solid var(--sig-12)}
+  .leg{background:var(--field);padding:22px 18px 20px;display:flex;flex-direction:column;gap:14px;min-height:172px}
+  .leg svg{width:34px;height:34px}
+  .leg-name{font-family:var(--display);font-weight:700;text-transform:uppercase;letter-spacing:-.01em;
+    font-size:19px;color:var(--ink-dark);line-height:.95}
+  .leg-desc{font-size:9.5px;letter-spacing:.09em;line-height:1.6;text-transform:uppercase;color:var(--signal-deep);margin-top:auto}
+
+  /* money cascade */
+  .cascade{margin-top:40px;border-top:1px solid var(--sig-12)}
+  .cas-row{display:grid;grid-template-columns:132px 14px 1fr auto;align-items:center;gap:16px;
+    padding:16px 4px;border-bottom:1px solid var(--sig-12)}
+  .cas-t{font-size:11px;letter-spacing:.1em;color:var(--signal);text-transform:uppercase}
+  .cas-s{width:11px;height:11px;background:var(--signal)}
+  .cas-x{font-family:var(--display);font-weight:700;text-transform:uppercase;letter-spacing:-.005em;
+    font-size:clamp(17px,2.4vw,26px);color:var(--ink-dark);line-height:1}
+  .cas-v{font-size:10px;letter-spacing:.12em;color:var(--signal-deep);text-transform:uppercase;text-align:right}
+  .cas-cap{margin-top:24px;font-size:12px;letter-spacing:.06em;line-height:1.7;text-transform:uppercase;
+    color:var(--signal-deep);max-width:58ch}
+
+  /* agents */
+  .agents{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:1px;margin-top:44px;
+    background:var(--sig-12);border:1px solid var(--sig-12)}
+  .agent{background:var(--field);padding:16px 16px;display:flex;flex-direction:column;gap:8px;min-height:104px}
+  .agent-hd{display:flex;align-items:center;gap:9px}
+  .agent-hd .s{width:9px;height:9px;background:var(--signal);flex:none}
+  .agent-nm{font-family:var(--display);font-weight:700;text-transform:uppercase;letter-spacing:-.005em;
+    font-size:18px;color:var(--ink-dark);line-height:1}
+  .agent-ds{font-size:9px;letter-spacing:.1em;line-height:1.55;text-transform:uppercase;color:var(--signal-deep);margin-top:auto}
+
+  /* CTA */
+  .cta{padding:clamp(64px,12vh,150px) 0}
+  h2.cta-h{font-family:var(--display);font-weight:700;text-transform:uppercase;letter-spacing:-.02em;
+    line-height:.88;font-size:clamp(48px,12vw,152px);color:var(--ink-dark);margin-bottom:34px}
+  .cta-link{display:inline-block;font-size:13px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--ink-dark);text-decoration:none;border:1px solid var(--signal);padding:14px 20px;transition:opacity .15s linear}
+  .cta-link:hover{opacity:.62}
+  .cta-link b{color:var(--signal)}
+  .cta-sub{margin-top:22px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--signal-deep)}
+
+  footer{padding:26px 28px;display:flex;flex-wrap:wrap;gap:8px 22px;justify-content:space-between;
+    font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--sig-55)}
+
+  /* reveal */
+  .reveal{opacity:0;transform:translateY(24px);
+    transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1)}
+  .reveal.is-in{opacity:1;transform:none}
+
+  /* ---------- RESPONSIVE ---------- */
+  @media(max-width:1040px){ .lens{display:none} }
+  @media(max-width:860px){
+    .legend{grid-template-columns:repeat(2,1fr)}
+    .kpi{grid-template-columns:repeat(2,1fr)}
+    .kpi-cell:nth-child(3){border-left:0}
+    .cas-row{grid-template-columns:96px 12px 1fr;grid-row-gap:2px}
+    .cas-v{grid-column:1 / -1;text-align:left}
+  }
+  @media(max-width:520px){ .legend{grid-template-columns:1fr} h1.hero-h{font-size:clamp(46px,16vw,80px)} }
+
+  @media(prefers-reduced-motion:reduce){
+    .reveal{opacity:1;transform:none;transition:none}
+    .cmd-caret{animation:none}
+    *{scroll-behavior:auto}
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= HERO ================= -->
+<section class="hero">
+  <svg id="stage" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <rect class="field-bg" x="0" y="0" width="1600" height="900"></rect>
+    <g id="gWater"></g>
+    <g id="gMinor"></g>
+    <g id="gMajor"></g>
+    <g id="gBoundary"></g>
+    <g id="gLabels"></g>
+    <g id="gEntities">
+      <g id="gRoutes"></g>
+      <g id="gTrails"></g>
+      <g id="gMarks"></g>
+    </g>
+    <rect id="veil" x="0" y="0" width="1600" height="900" opacity="0"></rect>
+    <g id="gException" opacity="0"></g>
+  </svg>
+
+  <div class="topbar">
+    <div class="brand">SHUD<b>D</b>L</div>
+    <div class="status">
+      <span><span class="sq"></span>Tenant #0 Live</span>
+      <span>Seq 1,284,405</span>
+      <span>14:22:07 CDT</span>
+    </div>
+  </div>
+
+  <div class="hero-copy">
+    <div class="kicker">SHUDDL OS · Append-only event ledger · 13 agents · one live map</div>
+    <h1 class="disp hero-h">Freight,<br>on the<br>record.</h1>
+    <p class="subline">A signature at the door becomes an invoice — and its evidence — in the same second.</p>
+    <div class="cmdbar" aria-label="command bar">
+      <span class="cmd-key">&#8984;K</span>
+      <span class="cmd-text" id="cmdText"></span><span class="cmd-caret" id="cmdCaret">&#9646;</span>
+      <span class="cmd-result" id="cmdResult"></span>
+    </div>
+  </div>
+
+  <aside class="lens" aria-label="shipment lens">
+    <div class="lens-hd"><span>Shipment · sha256:7C04&hellip;E1A9</span><span>Co-signed</span></div>
+    <div class="lens-lane">Fresno CA<br>&rarr; Dallas TX</div>
+    <div class="lens-chips">
+      <span class="chip">Reefer</span>
+      <span class="chip">42,000 lb</span>
+      <span class="chip hot">In transit</span>
+    </div>
+    <div class="lens-eta">ETA 14:22 · 38 mi out · on the teal line</div>
+    <div class="ev"><span class="t">14:05:12</span><span class="s"></span><span class="x">Departed facility (01)</span></div>
+    <div class="ev"><span class="t">14:19:44</span><span class="s"></span><span class="x">Geofence · Dallas DC</span></div>
+    <div class="ev"><span class="t">14:21:58</span><span class="s"></span><span class="x">Dock assigned · D14</span></div>
+    <div class="lens-ft">Driver + Facility · sealed &amp; append-only</div>
+  </aside>
+
+  <div class="kpi" data-kpi>
+    <div class="kpi-cell"><div class="kpi-num"><span data-count="1284405">0</span></div><div class="kpi-lab">Events sealed</div></div>
+    <div class="kpi-cell"><div class="kpi-num"><span data-count="13">0</span></div><div class="kpi-lab">Agents live</div></div>
+    <div class="kpi-cell"><div class="kpi-num"><span data-count="4.8" data-decimals="1" data-suffix="s">0</span></div><div class="kpi-lab">Median POD&rarr;invoice</div></div>
+    <div class="kpi-cell"><div class="kpi-num"><span data-count="0" data-prefix="$">$0</span></div><div class="kpi-lab">Unbilled</div></div>
+    <div class="kpi-cell"><div class="kpi-num"><span data-count="100" data-suffix="%">0</span></div><div class="kpi-lab">Ledger integrity</div></div>
+  </div>
+</section>
+
+<!-- ================= 01 · STATUS IS GEOMETRY ================= -->
+<section class="section">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="eyebrow">01 — The design is the protocol</div>
+      <h2 class="sec-h">Status is geometry,<br>not color.</h2>
+      <p class="lede">Five color tokens. No gray, no blue, no green, no yellow — ever. One signal red carries the freight; one teal fills a single ETA line. Every state — moving, resting, delivered, exception — is told by shape, opacity and motion, never by a new color. Watch it run in the map above: the same marks, live.</p>
+    </div>
+
+    <div class="legend reveal">
+      <div class="leg">
+        <svg viewBox="0 0 30 30" aria-hidden="true"><path class="truck" d="M 8 8 L 22 15 L 8 22 L 12 15 Z"></path></svg>
+        <div class="leg-name">Moving</div>
+        <div class="leg-desc">Solid chevron on heading + a 600ms fading trail.</div>
+      </div>
+      <div class="leg">
+        <svg viewBox="0 0 30 30" aria-hidden="true"><rect class="rest" x="10" y="10" width="10" height="10"></rect></svg>
+        <div class="leg-name">At rest</div>
+        <div class="leg-desc">Solid square with a mono dwell clock ticking beside it.</div>
+      </div>
+      <div class="leg">
+        <svg viewBox="0 0 30 30" aria-hidden="true"><rect class="fac" x="9" y="9" width="12" height="12"></rect></svg>
+        <div class="leg-name">Facility</div>
+        <div class="leg-desc">Outlined square, parenthetical id (01) (02).</div>
+      </div>
+      <div class="leg">
+        <svg viewBox="0 0 30 30" aria-hidden="true"><rect class="deliv" x="9.5" y="9.5" width="11" height="11" opacity="0.55"></rect></svg>
+        <div class="leg-name">Delivered &lt;24h</div>
+        <div class="leg-desc">Hollow at 55%, fades out after the POD lands.</div>
+      </div>
+      <div class="leg">
+        <svg viewBox="0 0 30 30" aria-hidden="true"><rect class="ex-ring" x="6" y="6" width="18" height="18"></rect><rect class="ex-sq" x="11" y="11" width="8" height="8"></rect></svg>
+        <div class="leg-name">Exception</div>
+        <div class="leg-desc">One mark pulses at 100% while the whole world dims to 35%.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 02 · MONEY IS PHYSICS ================= -->
+<section class="section">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="eyebrow">02 — Money is a projection of physics</div>
+      <h2 class="sec-h">A signature at the door,<br>sealed as an invoice.</h2>
+      <p class="lede">One physical act at a real dock. Four co-signed events, appended to the ledger, in the same second — no human in the loop, nothing to reconcile later. This is the cascade, timestamped:</p>
+    </div>
+
+    <div class="cascade reveal">
+      <div class="cas-row"><span class="cas-t">14:22:07.11</span><span class="cas-s"></span><span class="cas-x">Door signature captured</span><span class="cas-v">POD · driver + receiver</span></div>
+      <div class="cas-row"><span class="cas-t">14:22:07.34</span><span class="cas-s"></span><span class="cas-x">Evidence sealed · 3 photos</span><span class="cas-v">hashed to R2 · immutable</span></div>
+      <div class="cas-row"><span class="cas-t">14:22:07.61</span><span class="cas-s"></span><span class="cas-x">Invoice issued · $3,180</span><span class="cas-v">interline floor cleared</span></div>
+      <div class="cas-row"><span class="cas-t">14:22:07.88</span><span class="cas-s"></span><span class="cas-x">Evidence email delivered</span><span class="cas-v">to the client&rsquo;s inbox</span></div>
+    </div>
+    <p class="cas-cap reveal">One door. Four sealed events. 0.77 seconds. Corrections are new events — the ledger is append-only, so the record never lies about what physically happened.</p>
+  </div>
+</section>
+
+<!-- ================= 03 · THIRTEEN AGENTS ================= -->
+<section class="section">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="eyebrow">03 — The protocol runs itself</div>
+      <h2 class="sec-h">Thirteen agents,<br>one ledger.</h2>
+      <p class="lede">Every filled square is an agent, live on the ledger, running the freight protocol so an operator does not have to. Gates are enforced server-side; the surfaces merely reflect them.</p>
+    </div>
+
+    <div class="agents reveal" id="agents"></div>
+  </div>
+</section>
+
+<!-- ================= CTA ================= -->
+<section class="section cta">
+  <div class="wrap reveal">
+    <h2 class="cta-h">Put it<br>on the<br>record.</h2>
+    <a class="cta-link" href="#request-access">Request access <b>&rarr; shuddl.io</b></a>
+    <div class="cta-sub">Freight, co-signed and append-only · a stranger can sign up and quote in under ten minutes.</div>
+  </div>
+</section>
+
+<footer>
+  <span>SHUDDL OS · Append-only · Co-signed · Tenant #0</span>
+  <span>5 tokens · 2 typefaces · 0 shadows · status by geometry</span>
+  <span>&copy; 2026</span>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var NS='http://www.w3.org/2000/svg';
+  var REDUCE = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  function mk(t,a,p){var e=document.createElementNS(NS,t);for(var k in a){e.setAttribute(k,a[k]);}if(p){p.appendChild(e);}return e;}
+  function rng(s){return function(){s|=0;s=s+0x6D2B79F5|0;var t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+  /* ---------------- BASEMAP: red engraving on warm concrete ---------------- */
+  var minor=document.getElementById('gMinor'),major=document.getElementById('gMajor'),
+      water=document.getElementById('gWater'),boundary=document.getElementById('gBoundary'),
+      labels=document.getElementById('gLabels');
+  var R=rng(7040519), rot='rotate(-11 800 450)';
+  var gm=mk('g',{transform:rot},minor), gM=mk('g',{transform:rot},major), idx, x, y;
+
+  idx=0;
+  for(x=-320;x<=1920;x+=46){ idx++; var jx=(R()-0.5)*10, art=(idx%5===0);
+    mk('line',{x1:(x+jx).toFixed(1),y1:(-200+(R()<0.16?R()*320:0)).toFixed(1),
+      x2:(x+jx+(R()-0.5)*8).toFixed(1),y2:(1100-(R()<0.16?R()*320:0)).toFixed(1),
+      'stroke-width':art?2.0:0.9,'class':art?'rd-major':'rd-minor'}, art?gM:gm); }
+  idx=0;
+  for(y=-200;y<=1120;y+=54){ idx++; var jy=(R()-0.5)*10, art2=(idx%5===0);
+    mk('line',{x1:(-320+(R()<0.16?R()*320:0)).toFixed(1),y1:(y+jy).toFixed(1),
+      x2:(1920-(R()<0.16?R()*320:0)).toFixed(1),y2:(y+jy+(R()-0.5)*8).toFixed(1),
+      'stroke-width':art2?2.0:0.9,'class':art2?'rd-major':'rd-minor'}, art2?gM:gm); }
+
+  mk('path',{d:'M -120 720 C 400 640 900 520 1720 300','stroke-width':2.4,'class':'rd-major',fill:'none'},major);
+  mk('path',{d:'M -120 200 C 520 300 1020 380 1720 800','stroke-width':2.2,'class':'rd-major',fill:'none'},major);
+  mk('path',{d:'M 620 470 C 620 356 1000 356 1000 470 C 1000 584 620 584 620 470 Z','stroke-width':2.0,'class':'rd-major',fill:'none'},major);
+
+  mk('path',{d:'M -120 120 C 300 220 250 430 520 520 C 780 616 700 830 1000 920','stroke-width':10,'class':'wtr-line',fill:'none'},water);
+  mk('path',{d:'M 1200 770 C 1264 748 1330 780 1306 828 C 1284 868 1198 858 1200 806 Z','class':'wtr-fill'},water);
+  mk('path',{d:'M 300 -60 C 386 250 250 500 520 770 C 640 892 700 960 720 1040','stroke-width':1.0,'class':'bnd',fill:'none'},boundary);
+
+  function lab(t,px,py,s,op,tr){var e=mk('text',{x:px,y:py,'font-size':s,'letter-spacing':tr,'fill-opacity':op,'class':'lbl'},labels);e.textContent=t;}
+  lab('TEXAS',1150,170,15,0.32,'6');
+  lab('DALLAS',900,438,11,0.55,'2.6');
+  lab('FORT WORTH',648,566,10,0.5,'2.2');
+  lab('ARLINGTON',1006,652,10,0.5,'2.2');
+  lab('IRVING',726,360,9.5,0.45,'2');
+  lab('GRAND PRAIRIE',1058,506,9,0.4,'1.8');
+
+  /* ---------------- ENTITIES ---------------- */
+  var gRoutes=document.getElementById('gRoutes'),gTrails=document.getElementById('gTrails'),
+      gMarks=document.getElementById('gMarks'),gEx=document.getElementById('gException'),
+      veil=document.getElementById('veil');
+
+  var routeA=[[820,566],[900,524],[982,478],[1064,438],[1146,402],[1214,372]];
+  var routeB=[[1214,632],[1112,656],[1010,686],[910,696],[820,684]];
+  function measure(pts){var segs=[],L=0,i;for(i=1;i<pts.length;i++){var d=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);segs.push(d);L+=d;}return{segs:segs,L:L};}
+  var mA=measure(routeA),mB=measure(routeB);
+  function ptAt(pts,m,s){var target=s*m.L,acc=0,i;for(i=1;i<pts.length;i++){var d=m.segs[i-1];if(acc+d>=target||i===pts.length-1){var t=d?(target-acc)/d:0;t=Math.max(0,Math.min(1,t));return{x:pts[i-1][0]+(pts[i][0]-pts[i-1][0])*t,y:pts[i-1][1]+(pts[i][1]-pts[i-1][1])*t,ang:Math.atan2(pts[i][1]-pts[i-1][1],pts[i][0]-pts[i-1][0])*180/Math.PI,seg:i};}acc+=d;}}
+  function remain(pts,m,s){var p=ptAt(pts,m,s),d='M '+p.x.toFixed(1)+' '+p.y.toFixed(1),i;for(i=p.seg;i<pts.length;i++){d+=' L '+pts[i][0]+' '+pts[i][1];}return d;}
+
+  var pathA='M '+routeA.map(function(p){return p[0]+' '+p[1];}).join(' L ');
+  var pathB='M '+routeB.map(function(p){return p[0]+' '+p[1];}).join(' L ');
+  mk('path',{d:pathA,'class':'route',fill:'none'},gRoutes);
+  var eta=mk('path',{d:pathA,'class':'eta',fill:'none'},gRoutes);
+  mk('path',{d:pathB,'class':'route',fill:'none'},gRoutes);
+
+  function facility(fx,fy,tag){mk('rect',{x:fx-7,y:fy-7,width:14,height:14,'class':'fac'},gMarks);var e=mk('text',{x:fx+12,y:fy+4,'class':'mlab'},gMarks);e.textContent=tag;}
+  facility(820,566,'(01)');
+  facility(1214,632,'(02)');
+  mk('rect',{x:1084,y:452,width:11,height:11,'class':'rest'},gMarks);
+  var dwell=mk('text',{x:1102,y:462,'class':'mlab'},gMarks);dwell.textContent='DWELL 00:42';
+  var EXP=[1088,322];
+  mk('rect',{x:EXP[0]-6,y:EXP[1]-6,width:12,height:12,'class':'rest'},gMarks);
+  var deliv=mk('rect',{x:routeA[routeA.length-1][0]-6,y:routeA[routeA.length-1][1]-6,width:12,height:12,'class':'deliv',opacity:0},gMarks);
+
+  function trailSegs(g,n){var arr=[],i;for(i=0;i<n;i++){arr.push(mk('line',{x1:0,y1:0,x2:0,y2:0,'class':'trail','stroke-width':(1+i*0.25).toFixed(2)},g));}return arr;}
+  var trailA=trailSegs(gTrails,8), trailB=trailSegs(gTrails,8), histA=[], histB=[];
+  var truckA=mk('path',{d:'M -8 -6 L 6 0 L -8 6 L -3 0 Z','class':'truck'},gMarks);
+  var truckB=mk('path',{d:'M -8 -6 L 6 0 L -8 6 L -3 0 Z','class':'truck'},gMarks);
+
+  var exSq=mk('rect',{x:EXP[0]-6,y:EXP[1]-6,width:12,height:12,'class':'ex-sq'},gEx);
+  var exRing=mk('rect',{x:EXP[0]-13,y:EXP[1]-13,width:26,height:26,'class':'ex-ring'},gEx);
+  var exChip=mk('text',{x:EXP[0]+22,y:EXP[1]+4,'class':'ex-chip'},gEx);exChip.textContent='EXCEPTION · DETENTION 02:14';
+
+  function setTrail(segArr,hist){var n=hist.length,i;for(i=0;i<segArr.length;i++){var s=segArr[i];if(i<n-1){var a=hist[i],b=hist[i+1];s.setAttribute('x1',a.x.toFixed(1));s.setAttribute('y1',a.y.toFixed(1));s.setAttribute('x2',b.x.toFixed(1));s.setAttribute('y2',b.y.toFixed(1));s.setAttribute('stroke-opacity',(0.30*(i/(segArr.length-1))).toFixed(3));}else{s.setAttribute('stroke-opacity',0);}}}
+  function place(el,p){el.setAttribute('transform','translate('+p.x.toFixed(1)+' '+p.y.toFixed(1)+') rotate('+p.ang.toFixed(1)+')');}
+
+  var DURA=17000, DURB=21000, lastLapA=0, deliverStart=-99999, raf;
+
+  function frame(now){
+    var sA=(now%DURA)/DURA, pA=ptAt(routeA,mA,sA);
+    place(truckA,pA);
+    histA.push({x:pA.x,y:pA.y}); if(histA.length>9)histA.shift(); setTrail(trailA,histA);
+    eta.setAttribute('d',remain(routeA,mA,sA));
+    if(sA<lastLapA){deliverStart=now;} lastLapA=sA;
+    var del=now-deliverStart;
+    deliv.setAttribute('opacity',(del>=0&&del<2600)?(0.55*(1-del/2600)).toFixed(3):0);
+
+    var sB=(now%DURB)/DURB, pB=ptAt(routeB,mB,sB);
+    place(truckB,pB);
+    histB.push({x:pB.x,y:pB.y}); if(histB.length>9)histB.shift(); setTrail(trailB,histB);
+
+    var per=now%9000, A0=1600, A1=6200;
+    if(per>=A0&&per<=A1){
+      var loc=per-A0, dur=A1-A0, rin=Math.min(1,loc/500), rout=Math.min(1,(dur-loc)/500), env=Math.min(rin,rout);
+      var pulse=0.5+0.5*Math.sin(loc/1600*Math.PI*2-Math.PI/2);
+      veil.setAttribute('opacity',(0.65*env).toFixed(3));
+      gEx.setAttribute('opacity',env.toFixed(3));
+      exSq.setAttribute('opacity',(0.45+0.55*pulse).toFixed(3));
+      exRing.setAttribute('opacity',(0.12+0.7*pulse).toFixed(3));
+    } else {
+      veil.setAttribute('opacity',0);
+      gEx.setAttribute('opacity',0);
+    }
+    raf=requestAnimationFrame(frame);
+  }
+
+  if(REDUCE){
+    var sA=0.58, pA=ptAt(routeA,mA,sA); place(truckA,pA); eta.setAttribute('d',remain(routeA,mA,sA));
+    var sB=0.5, pB=ptAt(routeB,mB,sB); place(truckB,pB);
+    veil.setAttribute('opacity',0); gEx.setAttribute('opacity',0);
+  } else {
+    raf=requestAnimationFrame(frame);
+  }
+
+  /* ---------------- 13 AGENTS ---------------- */
+  var AG=[
+    ['Quoter','No price on air'],['Gatekeeper','Server-side gates'],['Dispatcher','Lanes + tenders'],
+    ['Tracker','Live positions'],['Geofencer','Arrival events'],['POD-Clerk','Signature + evidence'],
+    ['Biller','Invoice, same-second'],['Interliner','Executing-share floors'],['Reconciler','Books to the penny'],
+    ['Migrator','No silent drops'],['Auditor','Adversarial swarm'],['Dunner','Aging + collect'],
+    ['Copilot','Natural language ⌘K']
+  ];
+  var agRoot=document.getElementById('agents');
+  AG.forEach(function(a){
+    var d=document.createElement('div'); d.className='agent';
+    d.innerHTML='<div class="agent-hd"><span class="s"></span><span class="agent-nm">'+a[0]+'</span></div><div class="agent-ds">'+a[1]+'</div>';
+    agRoot.appendChild(d);
+  });
+
+  /* ---------------- COUNT-UPS + REVEALS ---------------- */
+  function fmt(v,dec){ return dec ? v.toFixed(dec) : Math.round(v).toLocaleString('en-US'); }
+  function runCount(el){
+    var tgt=parseFloat(el.getAttribute('data-count'))||0,
+        dec=parseInt(el.getAttribute('data-decimals')||'0',10),
+        pre=el.getAttribute('data-prefix')||'', suf=el.getAttribute('data-suffix')||'';
+    if(REDUCE||tgt===0){ el.textContent=pre+fmt(tgt,dec)+suf; return; }
+    var dur=1500, st=null;
+    function step(ts){ if(!st)st=ts; var p=Math.min(1,(ts-st)/dur), e=1-Math.pow(1-p,3);
+      el.textContent=pre+fmt(tgt*e,dec)+suf; if(p<1)requestAnimationFrame(step); }
+    requestAnimationFrame(step);
+  }
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(es){
+      es.forEach(function(en){ if(en.isIntersecting){
+        en.target.classList.add('is-in');
+        if(en.target.hasAttribute('data-kpi')){ en.target.querySelectorAll('[data-count]').forEach(runCount); }
+        io.unobserve(en.target);
+      }});
+    },{threshold:0.18});
+    document.querySelectorAll('.reveal,[data-kpi]').forEach(function(el){io.observe(el);});
+  } else {
+    document.querySelectorAll('.reveal').forEach(function(el){el.classList.add('is-in');});
+    document.querySelectorAll('[data-count]').forEach(runCount);
+  }
+
+  /* ---------------- COMMAND BAR (⌘K) ---------------- */
+  var cmds=[
+    {q:'book reefer 42,000 lb · fresno ca → dallas tx · pickup thu 06:00', r:'QUOTE $3,180 · LANE SEALED · sha256:7C04…E1A9'},
+    {q:'where is load 7C04 · eta dallas dc', r:'IN TRANSIT · 38 MI OUT · ETA 14:22'},
+    {q:'invoice all delivered today', r:'12 PODS → 12 INVOICES · EMAILED · UNBILLED $0'}
+  ];
+  var ct=document.getElementById('cmdText'), cr=document.getElementById('cmdResult');
+  if(REDUCE){ ct.textContent=cmds[0].q; cr.textContent=cmds[0].r; }
+  else {
+    var ci=0;
+    (function typeCmd(){
+      var c=cmds[ci%cmds.length]; cr.textContent=''; ct.textContent=''; var i=0;
+      (function ty(){
+        if(i<=c.q.length){ ct.textContent=c.q.slice(0,i); i++; setTimeout(ty,34); }
+        else { setTimeout(function(){ cr.textContent=c.r; setTimeout(function(){ ci++; typeCmd(); },2800); },420); }
+      })();
+    })();
+  }
+})();
+</script>
+</body>
+</html>
