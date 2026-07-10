@@ -1,5 +1,6 @@
 import { createRoot } from "react-dom/client";
 import "@shuddl/design/tokens.css";
+import "@shuddl/design/motion.css";
 import { App } from "./App.js";
 
 const el = document.getElementById("root");
