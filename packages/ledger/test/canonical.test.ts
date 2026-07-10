@@ -29,3 +29,23 @@ describe("canonical JSON — the byte law", () => {
     expect(await sha256Hex(canonicalBytes({}))).toBe("44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a");
   });
 });
+
+// REQ-011/REQ-002: a frozen-forever primitive must never emit malformed bytes. A sparse
+// array hole ([1,,2]) would otherwise slip through `.map`/`.join` as "[1,,2]" — invalid JSON.
+describe("canonical JSON — sparse arrays are rejected (never emit invalid JSON)", () => {
+  it("a hole throws rather than emitting [1,,2]", () => {
+    const sparse = Array<number>(3); // length 3, all holes
+    sparse[0] = 1;
+    sparse[2] = 2; // index 1 stays a genuine hole
+    expect(() => canonicalize({ a: sparse })).toThrow(/sparse|hole/);
+    expect(() => canonicalize(sparse)).toThrow(/sparse|hole/);
+  });
+  it("explicit [undefined] still throws (unsupported type — unchanged behavior)", () => {
+    expect(() => canonicalize([undefined])).toThrow();
+  });
+  it("dense arrays are unaffected (byte-identical to before)", () => {
+    expect(canonicalize([1, 2, 3])).toBe("[1,2,3]");
+    expect(canonicalize([])).toBe("[]");
+    expect(canonicalize({ a: [{ z: 1, y: 2 }, 3] })).toBe('{"a":[{"y":2,"z":1},3]}');
+  });
+});

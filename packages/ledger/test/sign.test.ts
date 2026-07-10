@@ -52,3 +52,31 @@ describe("REQ-016 / I4: P-256 device signatures over the offline clientView", ()
     ]);
   });
 });
+
+// REQ-133/REQ-011/REQ-002: the sequencer DO (Task 13) feeds device- and portal-controlled
+// `sig` strings straight into verifyEventSig. A forged/garbage signature must be a clean
+// `false` (→ 401), never an uncaught throw (→ 500). A rejected promise is a failing test.
+describe("hardening: a malformed signature rejects cleanly, never throws", () => {
+  it("non-base64url garbage → false (atob would otherwise throw InvalidCharacterError)", async () => {
+    const pair = await p256();
+    const e = eventFixture("pod.signed");
+    await expect(verifyEventSig({ ...e, sig: "!!!not-base64!!!" }, await pubJwkOf(pair))).resolves.toBe(false);
+  });
+  it("a wrong-length but valid-base64url signature → false (WebCrypto verify would throw)", async () => {
+    const pair = await p256();
+    const e = eventFixture("pod.signed");
+    // "AAAA" is valid base64url but decodes to 3 bytes; a P-256 sig is 64 raw bytes.
+    await expect(verifyEventSig({ ...e, sig: "AAAA" }, await pubJwkOf(pair))).resolves.toBe(false);
+  });
+  it("an empty signature → false", async () => {
+    const pair = await p256();
+    const e = eventFixture("pod.signed");
+    await expect(verifyEventSig({ ...e, sig: "" }, await pubJwkOf(pair))).resolves.toBe(false);
+  });
+  it("a genuine signature still verifies true (happy path preserved)", async () => {
+    const pair = await p256();
+    const e = eventFixture("pod.signed");
+    const sig = await signEvent(e, pair.privateKey);
+    await expect(verifyEventSig({ ...e, sig }, await pubJwkOf(pair))).resolves.toBe(true);
+  });
+});

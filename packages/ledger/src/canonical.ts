@@ -26,7 +26,17 @@ export function canonicalize(v: unknown): string {
     return String(v);
   }
   if (typeof v === "string") return esc(v);
-  if (Array.isArray(v)) return "[" + v.map((x) => canonicalize(x)).join(",") + "]";
+  if (Array.isArray(v)) {
+    // Index-iterate (never `.map`, which skips holes): a sparse array [1,,2] must throw,
+    // not silently emit invalid JSON "[1,,2]". Explicit [undefined] still throws below
+    // (undefined is an unsupported type). Dense arrays are byte-identical to before.
+    let out = "[";
+    for (let i = 0; i < v.length; i++) {
+      if (!(i in v)) throw new Error("canonical law: sparse array hole rejected (non-injective under JSON)");
+      out += (i === 0 ? "" : ",") + canonicalize(v[i]);
+    }
+    return out + "]";
+  }
   if (typeof v === "object") {
     const entries = Object.entries(v as Record<string, unknown>)
       .filter(([, val]) => val !== undefined)

@@ -30,12 +30,21 @@ export async function verifyEventSig(
   e: Parameters<typeof clientView>[0] & { sig?: string | undefined },
   pubJwk: JsonWebKey,
 ): Promise<boolean> {
-  if (!e.sig) return false;
-  const key = await crypto.subtle.importKey("jwk", pubJwk, { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
-  return crypto.subtle.verify(
-    { name: "ECDSA", hash: "SHA-256" },
-    key,
-    b64u.dec(e.sig) as BufferSource,
-    canonicalBytes(clientView(e)) as BufferSource,
-  );
+  // The sequencer DO feeds device-/portal-controlled `sig` bytes here (REQ-133). A forged
+  // or garbage signature must be a clean `false` (→ 401), never an uncaught throw (→ 500):
+  // `b64u.dec` (atob) throws on non-base64url input, and WebCrypto verify throws on a
+  // wrong-length signature. Reject the charset up front, then swallow any decode/verify
+  // fault as a failed verification. `return await` so a rejected promise lands in `catch`.
+  if (!e.sig || !/^[A-Za-z0-9_-]+$/.test(e.sig)) return false;
+  try {
+    const key = await crypto.subtle.importKey("jwk", pubJwk, { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
+    return await crypto.subtle.verify(
+      { name: "ECDSA", hash: "SHA-256" },
+      key,
+      b64u.dec(e.sig) as BufferSource,
+      canonicalBytes(clientView(e)) as BufferSource,
+    );
+  } catch {
+    return false;
+  }
 }
