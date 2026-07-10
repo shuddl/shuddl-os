@@ -180,6 +180,9 @@ importers:
       '@shuddl/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@shuddl/ledger':
+        specifier: workspace:*
+        version: link:../../packages/ledger
       hono:
         specifier: ^4.10.8
         version: 4.12.28

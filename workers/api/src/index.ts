@@ -9,6 +9,8 @@ import { tenantDb } from "./tenants.js";
 export type Env = {
   TENANT_A_DB: D1Database;
   TENANT_B_DB: D1Database;
+  CONTROL_DB: D1Database;
+  SHIPMENT_SEQ: DurableObjectNamespace<import("./do/sequencer.js").ShipmentSequencer>;
   IDEMPOTENCY: KVNamespace;
   JWT_SECRET: string;
   ENVIRONMENT: string;
@@ -43,5 +45,7 @@ app.get("/v1/_probe", requireRole("admin", "ops", "finance"), async (c) => {
 });
 
 app.notFound((c) => envelope(c, "NOT_FOUND", 404, "NOT FOUND"));
+
+export { ShipmentSequencer } from "./do/sequencer.js";
 
 export default app;

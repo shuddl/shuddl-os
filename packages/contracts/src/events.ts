@@ -186,6 +186,93 @@ export const LedgerEvent = z
   });
 export type LedgerEvent = z.infer<typeof LedgerEvent>;
 
+// ---- EventInput: the client-suppliable subset (Task 13) ----
+// The sequencer DO owns seq / prev_hash / recorded_at / visibility / hash / stream_id — a client
+// may NOT supply any of them (that is the difference between the input shape and the storage shape
+// `LedgerEvent`). A client MAY request a NARROWER visibility (`requested_visibility`; resolveVisibility
+// only ever lowers, never raises) and MAY carry the offline-reserve fields (device_id/_seq/captured_ts).
+// Kept as its own per-kind discriminated union so `input.kind === "invoice.corrected"` still narrows
+// `input.payload` to InvoiceCorrectedPayload for the DO. NEVER call LedgerEvent.parse on a request body.
+const eventInputBaseShape = {
+  id: z.string().uuid(),
+  shipment_id: z.string().optional(),
+  ts: SafeInt.min(0), // actor-claimed epoch ms (advisory; server stamps recorded_at)
+  actor: Actor,
+  party_refs: z.array(z.string()),
+  evidence: z.array(EvidenceRef),
+  sig: z.string().optional(), // base64url P-256 over clientView (device-captured events)
+  source: z.enum(["native", "legacy", "edi", "email"]),
+  confidence: Bps,
+  device_id: z.string().optional(),
+  device_seq: SafeInt.min(0).optional(),
+  captured_ts: SafeInt.min(0).optional(),
+  requested_visibility: Visibility.optional(), // narrow-only; resolved server-side, never hashed
+};
+
+function evInput<K extends EventKind, P extends z.ZodTypeAny>(kind: K, payload: P) {
+  return z.object({ ...eventInputBaseShape, kind: z.literal(kind), payload }).strict();
+}
+
+export const EventInput = z
+  .discriminatedUnion("kind", [
+    evInput("quote.requested", JsonObject),
+    evInput("quote.priced", QuotePricedPayload),
+    evInput("quote.sent", JsonObject),
+    evInput("quote.accepted", JsonObject),
+    evInput("quote.expired", JsonObject),
+    evInput("booking.created", JsonObject),
+    evInput("credit.checked", JsonObject),
+    evInput("appointment.set", JsonObject),
+    evInput("pickup.scheduled", JsonObject),
+    evInput("dispatch.assigned", JsonObject),
+    evInput("stop.arrived", JsonObject),
+    evInput("freight.counted", JsonObject),
+    evInput("freight.photographed", JsonObject),
+    evInput("dims.captured", JsonObject),
+    evInput("custody.transferred", CustodyTransferredPayload),
+    evInput("seal.applied", JsonObject),
+    evInput("stop.departed", JsonObject),
+    evInput("position.updated", PositionUpdatedPayload),
+    evInput("exception.raised", JsonObject),
+    evInput("osd.captured", JsonObject),
+    evInput("pod.signed", PodSignedPayload),
+    evInput("delivery.evidenced", JsonObject),
+    evInput("invoice.issued", InvoiceIssuedPayload),
+    evInput("invoice.corrected", InvoiceCorrectedPayload),
+    evInput("payment.received", JsonObject),
+    evInput("settlement.executed", JsonObject),
+    evInput("split.computed", SplitComputedPayload),
+    evInput("message.received", JsonObject),
+    evInput("message.sent", JsonObject),
+    evInput("call.transcribed", JsonObject),
+    evInput("document.attached", JsonObject),
+    evInput("approval.requested", JsonObject),
+    evInput("approval.decided", JsonObject),
+    evInput("agent.acted", AgentActedPayload),
+    evInput("authority.flipped", JsonObject),
+  ])
+  .superRefine((e, ctx) => {
+    if (e.device_id !== undefined && e.device_seq === undefined) {
+      ctx.addIssue({
+        code: "custom",
+        message: "device_seq required when device_id present (offline dedupe key)",
+        path: ["device_seq"],
+      });
+    }
+    if (e.kind === "custody.transferred" || e.kind === "pod.signed") {
+      const hasDevice = e.actor.device !== undefined;
+      const unwitnessed = (e.payload as { unwitnessed?: unknown }).unwitnessed === true;
+      if (!hasDevice && !unwitnessed) {
+        ctx.addIssue({
+          code: "custom",
+          message: "I4: custody event requires actor.device or payload.unwitnessed",
+          path: ["actor", "device"],
+        });
+      }
+    }
+  });
+export type EventInput = z.infer<typeof EventInput>;
+
 // ---- deterministic fixtures (no Date.now / Math.random) ----
 const FIXTURE_ID = "00000000-0000-4000-8000-000000000001";
 const FIXTURE_TS = 1_720_000_000_000; // 2024-07-03T12:26:40Z
