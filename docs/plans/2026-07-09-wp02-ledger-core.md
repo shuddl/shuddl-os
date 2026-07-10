@@ -1081,13 +1081,24 @@ export function projectPassport(db: D1Database, e: LedgerEvent): D1PreparedState
 - Modify: `workers/api/src/index.ts` (export DO class), `workers/api/wrangler.toml` (DO binding + migration), `workers/api/package.json` (dep `@shuddl/ledger workspace:*`), `packages/contracts/src/events.ts` (+index re-export: `EventInput` with `requested_visibility`)
 - Test: `workers/api/test/sequencer.test.ts`
 
-**Step 1: Failing tests** (vitest-pool-workers; `SELF` for routes lands Task 14 — here use `env.SHIPMENT_SEQ` stubs + `runInDurableObject`). Test setup applies `db/control/migrations` to `CONTROL_DB` and seeds a `tenants` row (policy `{}`) + a `users` row with a test device JWK in `device_keys` — `#policy`/`#deviceKey` read them on every append:
+**Step 1: Failing tests** (vitest-pool-workers; `SELF` for routes lands Task 14 — here use `env.SHIPMENT_SEQ` stubs + `runInDurableObject`).
+
+> **Test-harness contract for `workers/api` (forced by the platform).** SQLite-backed DOs are incompatible with pool-workers' isolated storage (the snapshot rejects the `.sqlite-shm` WAL sidecar), so the package must run `isolatedStorage: false` + `singleWorker: true`. **Consequence: every test file shares one D1.** Do not apply migrations in your file — call the idempotent `ensureSchema(env)` from `test/helpers.ts` (checks `sqlite_master` first; seeds the control plane, parties, and a fixed P-256 device keypair). Scope every test to its own `(tenant | streamId)` and its own shipment/party ids; never assume an empty table. A second file that re-applies migrations dies with `table tenants already exists`.
+
+> **Workers RPC mangles custom `Error` subclasses** — a `GateError` arrives as `name: "Error"`, `message: "GateError: GATE_BLOCKED:{…}"`, breaking any split-on-first-colon. The DO must normalize non-`"Error"` subclasses to a plain `Error(message)` at the RPC boundary. Returning `LedgerEvent` from an RPC method also triggers TS2589 (its recursive `JsonObject` payload explodes the RPC type mapper) — return an explicit `AppendedEvent` interface.
 
 ```ts
+// MEASURED: a fresh stub per call is mandatory. Production derives a new stub per HTTP
+// request; 100 calls on ONE stub serialize at the RPC layer and this test passes even
+// with the mutex deleted. A safety mechanism whose removal doesn't fail a test is not
+// protected by that test. Also assert duplicate seqs directly, not just via verifyChain.
 it("assigns dense seqs under 100 concurrent appends (the mutex proof)", async () => {
-  const stub = env.SHIPMENT_SEQ.get(env.SHIPMENT_SEQ.idFromName("tenant-a|s:shp-1"));
+  const stubFor = () => env.SHIPMENT_SEQ.get(env.SHIPMENT_SEQ.idFromName("tenant-a|s:shp-1"));
   const results = await Promise.all(Array.from({ length: 100 }, (_, i) =>
-    stub.append({ tenant: "tenant-a", streamId: "s:shp-1", input: fixtureInput(i) })));
+    stubFor().append({ tenant: "tenant-a", streamId: "s:shp-1", input: fixtureInput(i) })));
+  const dupes = await env.TENANT_A_DB.prepare(
+    "SELECT seq, COUNT(*) AS n FROM events WHERE stream_id=? GROUP BY seq HAVING n>1").bind("s:shp-1").all();
+  expect(dupes.results).toHaveLength(0);
   expect(new Set(results.map((r) => r.seq)).size).toBe(100);
   expect(Math.max(...results.map((r) => r.seq))).toBe(99);
   const chain = await verifyChain(rowsFromDb(env.TENANT_A_DB, "s:shp-1"));
@@ -1135,7 +1146,10 @@ export class ShipmentSequencer extends DurableObject<Env> {
 
   async append(req: { tenant: string; streamId: string; input: unknown }): Promise<LedgerEvent> {
     const run = this.lock.then(() => this.#append(req));
-    // the mutex: DO input gates do NOT cover awaits into D1 — serialize explicitly
+    // MEASURED, not assumed: a DO input gate closes only during the DO's OWN ctx.storage ops
+    // (and blockConcurrencyWhile). It does NOT close across a plain D1 subrequest await. This
+    // sequencer reads its tail and writes its batch over D1, so without this mutex concurrent
+    // appends read the same tail, assign the same seq, and ~99/100 collide on events_guard_ins.
     this.lock = run.catch(() => undefined);
     return run;
   }
