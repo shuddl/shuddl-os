@@ -16,7 +16,7 @@
     "seed:load": "tsx tools/seed/load.cli.ts",
     "check:invariants": "tsx tools/checks/invariants.ts",
     "db:lock": "tsx tools/checks/invariants.ts --write",
-    "check:traceability": "tsx tools/traceability/orphans.ts --wp WP-01",
+    "check:traceability": "tsx tools/traceability/orphans.ts",
     "check:pr": "tsx tools/traceability/check-pr.ts",
     "check:identity": "tsx tools/checks/identity-leak.ts",
     "check:fixtures": "tsx tools/fixtures/verify.ts",

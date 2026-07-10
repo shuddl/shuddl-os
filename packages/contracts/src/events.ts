@@ -30,6 +30,10 @@ export const Actor = z
   .strict();
 export type Actor = z.infer<typeof Actor>;
 
+// REQ-001 (WP-02 slice): every physical state change is captured AT the event, carrying its evidence
+// (doc id + content hash) — never re-keyed downstream. Because the ledger is the sole append-only
+// source and money/status/passport rows are PROJECTIONS of it, no workflow re-enters ledger data.
+// The device-side capture leg (driver PWA) lands in WP-05.
 export const EvidenceRef = z.object({ doc_id: z.string(), hash: Hash64 }).strict();
 export type EvidenceRef = z.infer<typeof EvidenceRef>;
 
