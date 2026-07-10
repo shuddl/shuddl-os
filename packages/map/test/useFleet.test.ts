@@ -61,6 +61,22 @@ describe("useFleet — party scoping (REQ-074)", () => {
     expect(byId("pre")?.geometry.coordinates).toEqual([-97.7, 30.3]);
     expect(byId("ofd")?.geometry.coordinates).toEqual([-97.7431, 30.2672]);
   });
+
+  it("fails CLOSED on a non-array party_refs — a bare string never substring-leaks (Zod-at-boundary)", () => {
+    // Contract violation upstream: party_refs arrives as a bare string, not string[]. With a raw
+    // String.includes this would substring-match — a `party-A` lens would see `party-AB`. The lens
+    // must treat a non-array ref as NO match (invisible), never a substring leak.
+    const leaky: FleetItem = { ...item("ab", []), party_refs: "party-AB" as unknown as string[] };
+    const { result } = renderHook(() => useFleet({ scope: "party", partyId: "party-A" }, [leaky]));
+    expect(result.current.collection.features).toHaveLength(0);
+  });
+
+  it("still matches a real array ref exactly (the guard doesn't over-reject)", () => {
+    const src: FleetItem[] = [item("a1", ["party-A"]), item("ab1", ["party-AB"])];
+    const { result } = renderHook(() => useFleet({ scope: "party", partyId: "party-A" }, src));
+    const ids = result.current.collection.features.map((f) => f.properties.id);
+    expect(ids).toEqual(["a1"]); // party-AB is a DIFFERENT party, not a substring of party-A's lens
+  });
 });
 
 describe("useFleet — setState mirrors status for the chip (REQ-076)", () => {

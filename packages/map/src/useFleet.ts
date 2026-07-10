@@ -49,10 +49,14 @@ export interface UseFleetResult {
   setState(id: string, status: Status, risk?: string): void;
 }
 
-/** Server-side lens semantics, enforced here for the synthetic source. */
+/** Server-side lens semantics, enforced here for the synthetic source. Fail CLOSED at the boundary
+ * (CLAUDE.md "Zod at every boundary"): if `party_refs` arrives as a non-array (a contract violation
+ * upstream), `Array.isArray` guards it to NO match — never a raw `String.includes` substring leak
+ * where a `party-A` lens would resolve a `party-AB` shipment. */
 function scopeToLens(lens: Lens, source: readonly FleetItem[]): FleetItem[] {
   if (lens.scope === "driver") return source.filter((i) => i.driver_id === lens.driverId);
-  if (lens.scope === "party") return source.filter((i) => i.party_refs.includes(lens.partyId));
+  if (lens.scope === "party")
+    return source.filter((i) => Array.isArray(i.party_refs) && i.party_refs.includes(lens.partyId));
   return [...source];
 }
 
