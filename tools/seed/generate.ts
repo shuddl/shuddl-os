@@ -1,9 +1,24 @@
-import { createHash } from "node:crypto";
-import { mkdirSync, writeFileSync } from "node:fs";
+// REQ-155 / REQ-002: SEED-1 — the deterministic seed tenant for dev/CI/screenshot baselines.
+// WP-02 slice: the generator now emits the REAL ledger envelope — stream_id (`s:{shipment_id}`),
+// integer epoch-ms `ts`/`recorded_at`, `party_refs` as a real array, payloads that satisfy the
+// Task-4 Zod schemas (via `eventFixture`), and a canonical hash chain per shipment via `buildChain`.
+//
+// PURE + workerd-safe: crypto.subtle only, NO `node:crypto` / `node:fs`. The seed-load test imports
+// `generateSeed` INSIDE the pool-workers runtime (where node built-ins are absent), so this module
+// must stay free of them. The Node CLI (`pnpm seed`) lives in `generate.cli.ts`.
+//
+// Determinism: seeded PRNG (`mulberry32`) + a fixed base timestamp + a per-run id counter. NO
+// Date.now(), NO Math.random(). Run generateSeed() twice and the datasets are byte-identical.
+import { buildChain } from "@shuddl/ledger/chain";
+import { sha256Hex } from "@shuddl/ledger/canonical";
+import { eventFixture, type EventKind, type JsonValue, type LedgerEvent } from "@shuddl/contracts";
 
-// REQ-155: SEED-1 — deterministic seed tenant for dev/CI/screenshot baselines.
-// Seeded PRNG + fixed base timestamp: NO Date.now(), NO Math.random().
-const BASE_TS = Date.UTC(2026, 6, 9, 6, 0, 0); // 2026-07-09T06:00:00Z, fixed forever
+const BASE_TS = Date.UTC(2026, 6, 9, 6, 0, 0); // 2026-07-09T06:00:00Z, fixed forever (epoch ms)
+
+// The seeded carrier that executes every physical stop. It MUST be one of the seeded parties:
+// pod/exception/osd/custody accruals write passports.party_id (FK -> parties), so an unseeded
+// actor party would abort the whole load batch (see tools/seed/load.ts).
+const CARRIER_PARTY = "party-7";
 
 function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
@@ -16,7 +31,7 @@ function mulberry32(seed: number): () => number {
   };
 }
 
-const LIFECYCLES: Array<{ status: string; kinds: string[]; count: number }> = [
+const LIFECYCLES: Array<{ status: string; kinds: EventKind[]; count: number }> = [
   { status: "QUOTED", kinds: ["quote.requested", "quote.priced", "quote.sent"], count: 3 },
   { status: "BOOKED", kinds: ["quote.requested", "quote.priced", "quote.accepted", "booking.created", "credit.checked"], count: 3 },
   { status: "DISPATCHED", kinds: ["booking.created", "appointment.set", "pickup.scheduled", "dispatch.assigned"], count: 2 },
@@ -28,100 +43,144 @@ const LIFECYCLES: Array<{ status: string; kinds: string[]; count: number }> = [
   { status: "EXCEPTION", kinds: ["stop.arrived", "exception.raised", "osd.captured"], count: 1 },
 ];
 
-export type SeedEvent = {
-  id: string;
-  shipment_id: string;
-  seq: number;
-  ts: string;
-  actor: { party: string; user: string; device: string | null };
-  kind: string;
-  payload: Record<string, unknown>;
-  evidence: Array<{ doc_id: string; hash: string }>;
-  prev_hash: string;
-  sig: string;
-  visibility: string;
-  source: "native";
-  confidence: 1;
-};
+export type SeedParty = { id: string; kind: string; name: string };
 export type SeedShipment = {
   id: string;
+  division: string;
   refs: { pro: string };
-  shipper: string;
-  consignee: string;
-  status_cache: string;
+  shipper_party_id: string;
+  consignee_party_id: string;
+  bill_to_party_id: string;
   commodities: { pieces: number; weight: number };
-  events: SeedEvent[];
+  status: string;
+  created_ts: number;
+  events: LedgerEvent[];
 };
 export type Seed = {
   tenant: { slug: string; name: string; plan: string };
-  parties: Array<{ id: string; kind: string; name: string }>;
+  parties: SeedParty[];
   rate_config: { kind: string; version: number };
   shipments: SeedShipment[];
 };
 
-function sha256(s: string): string {
-  return createHash("sha256").update(s).digest("hex");
+// Deterministic v4-variant uuid from a per-run counter (matches the ledger test-helper scheme,
+// so it satisfies zod's uuid() and never collides within a run). Reset at the top of generateSeed.
+function makeUuid(n: number): string {
+  return `00000000-0000-4000-8000-${n.toString(16).padStart(12, "0")}`;
 }
 
-export function generateSeed(): Seed {
+// A deterministic 64-hex evidence hash placeholder (EvidenceRef.hash regex is /^[0-9a-f]{64}$/).
+// Seed evidence points at synthetic doc ids; there is no documents FK on events.evidence.
+function makeEvidenceHash(n: number): string {
+  return n.toString(16).padStart(64, "0");
+}
+
+function actorFor(kind: EventKind): { party: string; user?: string; device?: string } {
+  if (kind === "pod.signed" || kind === "custody.transferred") {
+    return { party: CARRIER_PARTY, user: "seed-driver", device: "seed-device" }; // I4: device present
+  }
+  if (kind === "dispatch.assigned") return { party: CARRIER_PARTY, user: "seed-driver" };
+  return { party: CARRIER_PARTY };
+}
+
+// Payloads the projections REQUIRE (booking.created's status-cache throws without the party ids;
+// invoice.issued's money projection keys money_lines/invoices off these). Everything else falls
+// back to eventFixture's minimal-valid payload for the kind.
+function payloadFor(kind: EventKind, sh: { id: string; shipper: string; consignee: string; ts: number }): Record<string, JsonValue> | undefined {
+  switch (kind) {
+    case "booking.created":
+      return {
+        division: "main",
+        shipper_party_id: sh.shipper,
+        consignee_party_id: sh.consignee,
+        bill_to_party_id: sh.shipper,
+        created_ts: sh.ts,
+      };
+    case "invoice.issued":
+      return {
+        invoice_id: `inv-${sh.id}`,
+        party_id: sh.shipper,
+        division: "main",
+        lines: [{ line_no: 1, kind: "freight", amount_cents: 120_000, gl_map: "4000-REV" }],
+      };
+    case "custody.transferred":
+      return { from_party: sh.shipper, to_party: CARRIER_PARTY };
+    default:
+      return undefined; // use eventFixture's default payload
+  }
+}
+
+export async function generateSeed(): Promise<Seed> {
   const rnd = mulberry32(1);
-  const parties = Array.from({ length: 8 }, (_, i) => ({
+  let uuidCounter = 0;
+  let evidenceCounter = 0;
+  const nextUuid = (): string => makeUuid(++uuidCounter);
+
+  const parties: SeedParty[] = Array.from({ length: 8 }, (_, i) => ({
     id: `party-${i + 1}`,
     kind: i < 6 ? "shipper" : "carrier",
     name: `SEED CUSTOMER ${String(i + 1).padStart(2, "0")}`,
   }));
+
   const shipments: SeedShipment[] = [];
   let proCounter = 100001;
+
   for (const lc of LIFECYCLES) {
     for (let n = 0; n < lc.count; n++) {
-      const id = `shp-${String(shipments.length + 1).padStart(3, "0")}`;
-      let prev = "GENESIS";
-      const events = lc.kinds.map((kind, seq) => {
-        const ts = new Date(BASE_TS + shipments.length * 3_600_000 + seq * 600_000).toISOString();
-        const ev: SeedEvent = {
-          id: `evt-${id}-${seq}`,
+      const shipmentIndex = shipments.length;
+      const id = `shp-${String(shipmentIndex + 1).padStart(3, "0")}`;
+      const shipper = parties[Math.floor(rnd() * 6)]?.id ?? "party-1";
+      const consignee = parties[Math.floor(rnd() * 6)]?.id ?? "party-2";
+      const pieces = 1 + Math.floor(rnd() * 10);
+      const weight = 50 + Math.floor(rnd() * 5000);
+      const createdTs = BASE_TS + shipmentIndex * 3_600_000;
+
+      // Build the per-shipment events, then hash-chain them (buildChain assigns seq/prev_hash/hash).
+      const drafts: LedgerEvent[] = lc.kinds.map((kind, k) => {
+        const ts = createdTs + k * 600_000;
+        const custom = payloadFor(kind, { id, shipper, consignee, ts });
+        const evidence =
+          kind === "freight.photographed" || kind === "delivery.evidenced"
+            ? [{ doc_id: `doc-${id}-${k}`, hash: makeEvidenceHash(++evidenceCounter) }]
+            : [];
+        // visibility(internal) / source(native) / confidence(10000) are eventFixture defaults already.
+        return eventFixture(kind, {
+          id: nextUuid(),
+          stream_id: `s:${id}`,
           shipment_id: id,
-          seq,
           ts,
-          actor: { party: "seed-1", user: "seed-user", device: kind.startsWith("pod") ? "seed-device" : null },
-          kind,
-          payload: { note: "SEED-1", r: Math.floor(rnd() * 1e6) },
-          evidence:
-            kind === "freight.photographed" || kind === "delivery.evidenced"
-              ? [{ doc_id: `doc-${id}-${seq}`, hash: sha256(`${id}-${seq}`) }]
-              : [],
-          prev_hash: prev,
-          sig: "seed-unsigned",
-          visibility: "internal",
-          source: "native",
-          confidence: 1,
-        };
-        prev = sha256(JSON.stringify(ev));
-        return ev;
+          recorded_at: ts + 500, // server clock >= actor ts (Merkle day bucketing)
+          actor: actorFor(kind),
+          party_refs: [shipper, consignee],
+          evidence,
+          ...(custom ? { payload: custom } : {}),
+        });
       });
+      const events = await buildChain(drafts);
+
       shipments.push({
         id,
+        division: "main",
         refs: { pro: String(proCounter++) },
-        shipper: parties[Math.floor(rnd() * 6)]?.id ?? "party-1",
-        consignee: parties[Math.floor(rnd() * 6)]?.id ?? "party-2",
-        status_cache: lc.status,
-        commodities: { pieces: 1 + Math.floor(rnd() * 10), weight: 50 + Math.floor(rnd() * 5000) },
+        shipper_party_id: shipper,
+        consignee_party_id: consignee,
+        bill_to_party_id: shipper,
+        commodities: { pieces, weight },
+        status: lc.status,
+        created_ts: createdTs,
         events,
       });
     }
   }
-  return { tenant: { slug: "seed-1", name: "SEED-1", plan: "pro" }, parties, rate_config: { kind: "zone_tariff", version: 1 }, shipments };
+
+  return {
+    tenant: { slug: "seed-1", name: "SEED-1", plan: "pro" },
+    parties,
+    rate_config: { kind: "zone_tariff", version: 1 },
+    shipments,
+  };
 }
 
-export function seedHash(seed: Seed): string {
-  return sha256(JSON.stringify(seed));
+export async function seedHash(seed: Seed): Promise<string> {
+  return sha256Hex(new TextEncoder().encode(JSON.stringify(seed)));
 }
-
-function main(): void {
-  const seed = generateSeed();
-  mkdirSync("seed", { recursive: true });
-  writeFileSync("seed/SEED-1.json", JSON.stringify(seed, null, 2));
-  writeFileSync("tools/seed/seed.hash", seedHash(seed) + "\n");
-  console.log(`SEED-1 written (${seed.shipments.length} shipments), hash ${seedHash(seed).slice(0, 12)}…`);
-}
-if (process.argv[1]?.endsWith("generate.ts")) main();

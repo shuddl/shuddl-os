@@ -1,0 +1,43 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`lensWhere: SQL goldens (a WHERE regression is a visible diff) > driver fragment 1`] = `
+{
+  "params": [
+    "appointment.set",
+    "pickup.scheduled",
+    "dispatch.assigned",
+    "stop.arrived",
+    "freight.counted",
+    "freight.photographed",
+    "dims.captured",
+    "custody.transferred",
+    "seal.applied",
+    "stop.departed",
+    "exception.raised",
+    "osd.captured",
+    "pod.signed",
+    "delivery.evidenced",
+    "document.attached",
+    "message.received",
+    "message.sent",
+    "u-driver",
+  ],
+  "sql": "e.visibility <> 'internal' AND e.kind IN (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) AND e.shipment_id IN (SELECT id FROM shipments WHERE json_extract(status_cache,'$.assigned_driver') = ?)",
+}
+`;
+
+exports[`lensWhere: SQL goldens (a WHERE regression is a visible diff) > party fragment 1`] = `
+{
+  "params": [
+    "party-acme",
+  ],
+  "sql": "e.visibility <> 'internal' AND EXISTS (SELECT 1 FROM json_each(e.party_refs) WHERE value = ?)",
+}
+`;
+
+exports[`lensWhere: SQL goldens (a WHERE regression is a visible diff) > tenant fragment 1`] = `
+{
+  "params": [],
+  "sql": "1=1",
+}
+`;

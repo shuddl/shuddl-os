@@ -18,9 +18,29 @@ binding = "TENANT_B_DB"
 database_name = "shuddl-t-tenant-b-dev"
 database_id = "local-tenant-b"
 
+[[d1_databases]]
+binding = "CONTROL_DB"
+database_name = "shuddl-control-dev"
+database_id = "local-control"
+
 [[kv_namespaces]]
 binding = "IDEMPOTENCY"
 id = "local-idempotency"
+
+# Evidence store: anchor receipts (.tsr) + manifests, and (later) POD photos (REQ-014).
+[[r2_buckets]]
+binding = "EVIDENCE"
+bucket_name = "shuddl-evidence-dev"
+
+# Ledger sequencer: one DO per (tenant|stream). Assigns seq/prev_hash, verifies the device
+# signature, enforces the invoice gate, and writes the event + every projection in one batch.
+[[durable_objects.bindings]]
+name = "SHIPMENT_SEQ"
+class_name = "ShipmentSequencer"
+
+[[migrations]]
+tag = "v2-sequencer"
+new_sqlite_classes = ["ShipmentSequencer"]
 
 [env.staging]
 name = "shuddl-api-staging"

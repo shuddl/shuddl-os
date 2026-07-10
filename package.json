@@ -12,9 +12,11 @@
     "lint": "eslint .",
     "test": "pnpm run test:tools && pnpm -r --if-present run test",
     "test:tools": "vitest run --config vitest.tools.config.ts",
-    "seed": "tsx tools/seed/generate.ts",
+    "seed": "tsx tools/seed/generate.cli.ts",
+    "seed:load": "tsx tools/seed/load.cli.ts",
     "check:invariants": "tsx tools/checks/invariants.ts",
-    "check:traceability": "tsx tools/traceability/orphans.ts --wp WP-01",
+    "db:lock": "tsx tools/checks/invariants.ts --write",
+    "check:traceability": "tsx tools/traceability/orphans.ts",
     "check:pr": "tsx tools/traceability/check-pr.ts",
     "check:identity": "tsx tools/checks/identity-leak.ts",
     "check:fixtures": "tsx tools/fixtures/verify.ts",
@@ -23,6 +25,8 @@
     "verify": "pnpm typecheck && pnpm lint && pnpm test && pnpm check:invariants && pnpm check:traceability && pnpm check:identity && pnpm check:fixtures && pnpm check:seed && pnpm audit:design"
   },
   "devDependencies": {
+    "@shuddl/contracts": "workspace:*",
+    "@shuddl/ledger": "workspace:*",
     "@types/node": "^26.1.1",
     "eslint": "^10.6.0",
     "tsx": "^4.23.0",

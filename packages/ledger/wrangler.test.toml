@@ -1,0 +1,21 @@
+# Test-only bindings for the ledger package's pool-workers suite. NO SECRETS (REQ-154).
+# No `main` — these tests exercise pure modules against the bindings via `cloudflare:test`,
+# not a fetch handler.
+name = "shuddl-ledger-test"
+compatibility_date = "2025-08-01"
+
+# Two per-tenant D1s so isolation + real-trigger tests run against physical databases.
+[[d1_databases]]
+binding = "TENANT_A_DB"
+database_name = "shuddl-t-tenant-a-test"
+database_id = "local-ledger-tenant-a"
+
+[[d1_databases]]
+binding = "TENANT_B_DB"
+database_name = "shuddl-t-tenant-b-test"
+database_id = "local-ledger-tenant-b"
+
+# Anchor receipts (.tsr bytes) land in R2 in later tasks.
+[[r2_buckets]]
+binding = "EVIDENCE"
+bucket_name = "shuddl-evidence-test"
