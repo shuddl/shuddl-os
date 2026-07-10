@@ -9,3 +9,4 @@ export * from "./generalize.js";
 export * from "./useFleet.js";
 export * from "./MapCanvas.js";
 export * from "./LensPanel.js";
+export * from "./demo.js";
