@@ -1258,7 +1258,9 @@ The POST handler derives `streamId = "s:" + params.id`, calls `env.SHIPMENT_SEQ.
 6. Append with `requested_visibility: "counterparty"` on `approval.requested` → stored `internal`.
 7. `custody.transferred` with both P1 and P3 in `party_refs` → each sees it exactly once.
 8. Correction pair under P1's lens → both legs visible, sum zero (I7 inside a lens).
-9. Table-driven I6 sweep: for each of the 35 kinds × 3 lens scopes, assert visibility matches the defaults map.
+9. Table-driven I6 sweep: for each of the 35 kinds × 3 lens scopes, assert visibility matches **a frozen literal written into the test file** — never the `KIND_VISIBILITY_DEFAULTS` map the routes consume.
+
+> **A test that derives its expectations from the code under test proves nothing.** The first version of this sweep imported the same defaults map the lens uses, so a regression moved both sides together. Flipping `authority.flipped` from `internal` to `counterparty` — a real leak of an internal control event to counterparties — left all 67 api tests green. Hardcode the 7 internal kinds; additionally pin the whole 35-kind map against an inline snapshot so drift fails a dedicated, obviously-named test. Then **prove the guard bites** by flipping one kind and watching the suite go red. A guard that cannot fail is not a guard.
 10. **Isolation suite growth (REQ-025):** tenant-a token on `GET /v1/shipments/:id/events` for a tenant-b shipment id → empty (different D1, different DO namespace); the WP-01 attack cases re-run against the new routes.
 
 **Step 3: GREEN → Commit** — `routes + adversarial lens suite: cross-lens reads fail (REQ-015 DoD); isolation suite extended to ledger routes` — REQ-015, REQ-025, REQ-002, I6.
