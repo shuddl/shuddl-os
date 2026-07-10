@@ -906,7 +906,9 @@ export function resolveVisibility(kind: EventKind, policy: Record<string, Visibi
 }
 ```
 
-`redact.ts`: `REDACTIONS` map (`quote.priced` → strip `payload.floors`, `payload.basis`, `payload.versions`; `exception.raised` → `payload.internal_note`), `redactEvent(lens, event)` (deep-clone, delete paths, run `generalizePosition` for party lenses pre-OFD), `generalizePosition(payload, outForDelivery)`.
+`redact.ts`: `REDACTIONS` map (`quote.priced` → strip `payload.floors`, `payload.basis`, `payload.versions`; `exception.raised` → `payload.internal_note`), `redactEvent(lens, event)` (deep-clone, delete paths, generalize geo for party lenses pre-OFD), `generalizeGeo(payload, outForDelivery)`.
+
+> **Geo generalization is STRUCTURAL, not per-kind.** Scoping it to `position.updated` leaks: `pod.signed.payload.geo` and `custody.transferred.payload.geo` carry exact nested coordinates, and a consignee lens was proven to receive the exact pickup dock (`lat_e6=37421777, accuracy_m=5`) pre-out-for-delivery. Doc 07 §02 states this as a privacy guarantee — "exact coordinates are an ops/driver privilege" — not a rendering preference. Walk the payload and generalize *every* nested `geo` object and every `lat_e6`/`lon_e6` pair on *every* kind, dropping `accuracy_m`, so a future geo-bearing kind cannot reopen the hole. Driver and tenant lenses keep exact geo.
 
 **Step 4: GREEN → Commit** — `ledger: append-time visibility resolution + party-lens redaction map` — REQ-015, I6.
 
@@ -947,7 +949,10 @@ export function lensWhere(lens: Lens, alias = "e"): SqlFragment {
       params: [lens.partyId],
     };
     case "driver": return {
-      sql: `${alias}.kind IN (${DRIVER_KINDS.map(() => "?").join(",")}) AND ${alias}.shipment_id IN (SELECT id FROM shipments WHERE json_extract(status_cache,'$.assigned_driver') = ?)`,
+      // The visibility clause is NOT optional: I6 says "respected by every view".
+      // Without it an ops-only exception.raised (a DRIVER_KIND) or an internal-narrowed
+      // pod.signed reaches the driver. Proven against a real D1.
+      sql: `${alias}.visibility <> 'internal' AND ${alias}.kind IN (${DRIVER_KINDS.map(() => "?").join(",")}) AND ${alias}.shipment_id IN (SELECT id FROM shipments WHERE json_extract(status_cache,'$.assigned_driver') = ?)`,
       params: [...DRIVER_KINDS, lens.userId],
     };
   }
