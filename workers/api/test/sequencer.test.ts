@@ -1,11 +1,11 @@
-import { env, runInDurableObject } from "cloudflare:test";
+import { SELF, env, runInDurableObject } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import type { LedgerEvent } from "@shuddl/contracts";
 import type { AppendedEvent } from "../src/do/sequencer.js";
 import { hashEvent, verifyChain } from "@shuddl/ledger/chain";
 import { rowToEvent } from "@shuddl/ledger/lens";
 import { signEvent, verifyEventSig } from "@shuddl/ledger/sign";
-import { TENANT_SLUG, TEST_DEVICE_ID, TEST_DEVICE_PUBLIC_JWK, ensureSchema, testDeviceSigningKey } from "./helpers.js";
+import { TENANT_SLUG, TEST_DEVICE_ID, TEST_DEVICE_PUBLIC_JWK, ensureSchema, testDeviceSigningKey, token } from "./helpers.js";
 
 // The Task-13 DO is the heart of the ledger: it assigns seq/prev_hash, verifies the device
 // signature, enforces the invoice gate (I2), resolves visibility server-side, and writes the
@@ -248,6 +248,49 @@ it("every appended event round-trips: hashEvent(rowToEvent(row)) === row.hash", 
   for (const row of rows) {
     expect(await hashEvent(rowToEvent(row))).toBe(row.hash);
   }
+});
+
+// (l) REQ-133 — a malformed stream id must be a clean VALIDATION_FAILED, never a leaked ZodError.
+// EventInput.parse does NOT validate `stream_id` (it isn't an input field), so a shipment id with an
+// apostrophe/space/semicolon slips through the input schema, then fails LedgerEvent's stream_id regex at
+// the batch-build parse. Unwrapped, that raw ZodError crosses the RPC hop as a JSON issues array (`[{...`)
+// — Task 14 splits on the first colon, gets a non-code, and returns 500 INTERNAL while leaking Zod detail.
+// The DO must reject the format UP FRONT with the `CODE:json` contract intact.
+describe("malformed stream id -> VALIDATION_FAILED, not a leaked ZodError (REQ-133)", () => {
+  for (const bad of ["s:o'brien", "s:has space", "s:semi;colon"]) {
+    it(`rejects ${JSON.stringify(bad)} with the contract shape (not a raw "[{...}]")`, async () => {
+      const err = await stubFor(bad)
+        .append({ tenant: TENANT, streamId: bad, input: inputFor(bad) })
+        .then(() => null, (e: Error) => e);
+      expect(err).not.toBeNull();
+      const msg = String(err!.message);
+      expect(msg).toMatch(/^VALIDATION_FAILED:/); // contract shape holds
+      expect(msg.startsWith("[")).toBe(false); // NOT a raw Zod issues array
+      expect(msg).not.toContain("invalid_string"); // no Zod internals leaked
+    });
+  }
+
+  it("a well-formed stream id still appends (regex not over-tightened)", async () => {
+    const streamId = "s:shp-streamok";
+    const r = await stubFor(streamId).append({ tenant: TENANT, streamId, input: inputFor(streamId) });
+    expect(r.seq).toBe(0);
+  });
+});
+
+// (m) The client-facing proof: the malformed id, URL-encoded, through the real route.
+it("POST /v1/shipments/o%27brien/events -> 400 VALIDATION_FAILED with no Zod internals in the body", async () => {
+  const tok = await token({ sub: "u-ops-streamid", tenant: TENANT, role: "ops" });
+  const res = await SELF.fetch("https://api.local/v1/shipments/o%27brien/events", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${tok}`, "Idempotency-Key": crypto.randomUUID(), "content-type": "application/json" },
+    body: JSON.stringify(inputFor("s:o'brien")),
+  });
+  expect(res.status).toBe(400);
+  const body = await res.text();
+  expect(JSON.parse(body).code).toBe("VALIDATION_FAILED");
+  expect(body).not.toContain("invalid_string");
+  expect(body).not.toContain("ZodError");
+  expect(body).not.toContain("[{");
 });
 
 describe("sequencer wiring sanity", () => {

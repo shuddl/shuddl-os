@@ -78,6 +78,10 @@ function rpcError(code: "FORBIDDEN" | "UNAUTHORIZED" | "VALIDATION_FAILED", deta
   return new Error(`${code}:${JSON.stringify(detail)}`);
 }
 
+// MUST stay byte-identical to LedgerEvent's `stream_id` regex (contracts/events.ts). The DO checks it up
+// front so a malformed streamId is a clean VALIDATION_FAILED, not a raw ZodError leaked through the parse.
+const STREAM_ID_RE = /^(s:[\w-]+|q:[\w-]+|t:root)$/;
+
 export class ShipmentSequencer extends DurableObject<Env> {
   // Caches — D1 is truth. `tail`/`pin` are TS-private (runtime-public) so the crash-heal test can null them.
   private tail: { seq: number; hash: string } | null = null;
@@ -117,8 +121,17 @@ export class ShipmentSequencer extends DurableObject<Env> {
     const expected = this.env.SHIPMENT_SEQ.idFromName(`${tenant}|${streamId}`);
     if (!expected.equals(this.ctx.id)) throw rpcError("FORBIDDEN", { reason: "sequencer identity mismatch" });
 
-    // Pin (tenant, stream) on first success; later calls must match the pin (defends against a
-    // second stream sharing this instance by id collision, and self-documents the binding).
+    // REQ-133 — validate the streamId FORMAT before any work (D1, control plane, or storage). EventInput
+    // never sees `stream_id`, so a shipment id with an apostrophe/space (`s:o'brien`) survives input
+    // validation and would otherwise fail LedgerEvent's regex deep in the batch-build parse, throwing a
+    // RAW ZodError (a JSON issues array) that breaks this DO's `CODE:json` contract and leaks Zod detail
+    // across the RPC hop. Reject it here; the LedgerEvent.parse below stays as the now-unreachable backstop.
+    if (!STREAM_ID_RE.test(streamId)) throw rpcError("VALIDATION_FAILED", { reason: "malformed stream id" });
+
+    // Pin (tenant, stream) on first success. This is a REDUNDANT second layer, NOT the primary guard:
+    // id-equality above already rejects any (tenant|streamId) that doesn't hash to THIS instance's id, so
+    // any change to either input lands on a different DO and a pin mismatch is effectively unreachable.
+    // Kept as belt-and-suspenders + self-documentation of what this instance is bound to.
     const pinned = this.pin ?? (await this.ctx.storage.get<{ tenant: string; streamId: string }>("pin")) ?? null;
     if (pinned && (pinned.tenant !== tenant || pinned.streamId !== streamId)) {
       throw rpcError("FORBIDDEN", { reason: "pin mismatch" });
@@ -161,7 +174,13 @@ export class ShipmentSequencer extends DurableObject<Env> {
     }
 
     const policy = await this.#policy(tenant);
-    // I2 — no invoice without a signed POD (or a tenant-exempt service class). Gate BEFORE the append.
+    // I2 (REQ-030) — no invoice without a signed POD on this stream. Gate BEFORE the append.
+    // TODO(REQ-030): the `serviceClass` exemption (policy.gates.invoice_without_pod_classes) is UNWIRED.
+    // The invoice.issued payload carries no service class, and the shipment's service class is not threaded
+    // here, so assertPodSigned's 4th arg is intentionally omitted and the exemption is INERT — the gate
+    // always enforces (fail-safe: a POD is always required; a tenant configuring the exemption gets no
+    // effect, never an accidental bypass). Wire serviceClass from shipments.service once the invoice write
+    // path models it; enabling a POD-gate bypass needs its own test before it ships (register note).
     if (parsed.kind === "invoice.issued") await assertPodSigned(db, streamId, policy);
 
     // D1 is truth: load the tail once per wake, from D1. The in-memory cache is bumped only AFTER the
