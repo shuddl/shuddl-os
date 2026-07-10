@@ -62,6 +62,19 @@ export function auditCaseAndDividers(file: string, text: string): string[] {
   for (const m of text.matchAll(/border(?:-?(?:top|right|bottom|left|width))?\s*:\s*["']([^"'{}]*)["']/gi)) {
     flagBorder(m[1] ?? "");
   }
+  // CSS-in-JS shadow: `boxShadow: "<value>"` — anything but none is a shadow (REQ-147). The
+  // raw-CSS `box-shadow:` twin lives in auditRepo; the two never overlap (hyphen vs camelCase).
+  for (const m of text.matchAll(/boxShadow\s*:\s*["']([^"']*)["']/g)) {
+    if ((m[1] ?? "").trim().toLowerCase() !== "none") violations.push(`${file}: boxShadow — no shadows (REQ-147)`);
+  }
+  // CSS-in-JS radius: `borderRadius: 12` (px implied) or `borderRadius: "8px 8px 0 0"` (max of
+  // the shorthand). The raw-CSS `border-radius:<n>px` twin lives in auditRepo.
+  for (const m of text.matchAll(/borderRadius\s*:\s*(?:(\d+(?:\.\d+)?)|["']([^"']*)["'])/g)) {
+    let max = 0;
+    if (m[1] !== undefined) max = Number(m[1]);
+    else if (m[2] !== undefined) for (const n of m[2].matchAll(/\d+(?:\.\d+)?/g)) max = Math.max(max, Number(n[0]));
+    if (max > 4) violations.push(`${file}: borderRadius ${max}px > 4px (REQ-147)`);
+  }
   for (const m of text.matchAll(/text-transform\s*:\s*([a-z-]+)/gi)) {
     const val = (m[1] ?? "").toLowerCase();
     if (!ALLOWED_TRANSFORM.has(val)) violations.push(`${file}: text-transform: ${val} — must be uppercase/none/inherit (REQ-146 A5)`);

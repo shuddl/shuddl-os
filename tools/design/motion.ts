@@ -29,13 +29,20 @@ export function bannedMotion(text: string): string[] {
   const reasons: string[] = [];
   if (isSpringBezier(text)) reasons.push("spring/overshoot cubic-bezier — motion eases, never bounces");
   if (hasNonZeroRotate(text)) reasons.push("decorative rotation (rotate())");
+  // `animation-name` (CSS) / `animation`/`animationName` (JSX) referencing a banned loop.
   if (/@keyframes\s+(shimmer|skeleton|spin|parallax)\b/i.test(text) ||
-      /animation(?:-name)?\s*:\s*[^;{]*\b(?:shimmer|skeleton|spin|parallax)\b/i.test(text)) {
+      /animation(?:-name|Name)?\s*:\s*[^;{]*\b(?:shimmer|skeleton|spin|parallax)\b/i.test(text)) {
     reasons.push("banned looping animation (shimmer/skeleton/spin/parallax)");
   }
-  if (/background-attachment\s*:\s*fixed/i.test(text)) reasons.push("parallax (background-attachment: fixed)");
+  // background-attachment: fixed — CSS kebab or JSX camelCase (backgroundAttachment: "fixed").
+  if (/background-attachment\s*:\s*fixed/i.test(text) || /backgroundAttachment\s*:\s*["']?\s*fixed/i.test(text)) {
+    reasons.push("parallax (background-attachment: fixed)");
+  }
   if (/:hover\b[^{}]*\{[^}]*\bscale\s*\(/is.test(text)) reasons.push("hover-scale");
   if (/\btsparticles\b|\bparticles\.(?:js|min)\b|particle-network/i.test(text)) reasons.push("particles");
-  if (/will-change\s*:\s*transform/i.test(text) && /\bscroll\b/i.test(text)) reasons.push("scroll-driven will-change: transform (parallax)");
+  // will-change: transform (CSS kebab or JSX camelCase) paired with scroll — parallax rig.
+  if ((/will-change\s*:\s*transform/i.test(text) || /willChange\s*:\s*["']?\s*transform/i.test(text)) && /\bscroll\b/i.test(text)) {
+    reasons.push("scroll-driven will-change: transform (parallax)");
+  }
   return reasons;
 }

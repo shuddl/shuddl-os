@@ -49,3 +49,40 @@ describe("REQ-147/146: dividers + case", () => {
     expect(auditCaseAndDividers("x.tsx", "text-transform: capitalize;").some(v => v.includes("uppercase"))).toBe(true);
   });
 });
+
+describe("REQ-147: shadow + radius audits cover JSX camelCase inline styles", () => {
+  it("flags a camelCase boxShadow drop shadow (the real bypass)", () => {
+    expect(auditCaseAndDividers("x.tsx", `boxShadow: "0 2px 4px #123456"`).some(v => /shadow/i.test(v))).toBe(true);
+  });
+  it("passes boxShadow: none", () => {
+    expect(auditCaseAndDividers("x.tsx", `boxShadow: "none"`)).toEqual([]);
+  });
+  it("flags a bare-number borderRadius > 4 (px implied)", () => {
+    expect(auditCaseAndDividers("x.tsx", `borderRadius: 12`).some(v => v.includes("4px"))).toBe(true);
+  });
+  it("flags a string borderRadius > 4 and parses the max of a shorthand", () => {
+    expect(auditCaseAndDividers("x.tsx", `borderRadius: "8px"`).some(v => v.includes("4px"))).toBe(true);
+    expect(auditCaseAndDividers("x.tsx", `borderRadius: "8px 8px 0 0"`).some(v => v.includes("4px"))).toBe(true);
+  });
+  it("passes compliant radii (0, 2, 4, '4px')", () => {
+    for (const ok of [`borderRadius: 0`, `borderRadius: 2`, `borderRadius: 4`, `borderRadius: "4px"`]) {
+      expect(auditCaseAndDividers("x.tsx", ok)).toEqual([]);
+    }
+  });
+  it("a JSX inline-style object with a shadow AND a 12px radius is fully flagged", () => {
+    const jsx = `<div style={{ boxShadow: "0 2px 4px #123456", borderRadius: 12 }} />`;
+    const out = auditCaseAndDividers("Card.tsx", jsx);
+    expect(out.some(v => /shadow/i.test(v))).toBe(true);
+    expect(out.some(v => v.includes("4px"))).toBe(true);
+  });
+});
+
+describe("REQ-148: motion audit covers JSX camelCase inline styles", () => {
+  it("flags camelCase backgroundAttachment: fixed", () => {
+    expect(auditMotion("x.tsx", `backgroundAttachment: "fixed"`).length).toBeGreaterThan(0);
+  });
+  it("still covers rotate + spring written as JSX string values", () => {
+    expect(auditMotion("x.tsx", `transform: "rotate(4deg)"`).length).toBeGreaterThan(0);
+    expect(auditMotion("x.tsx", `transition: "transform 200ms cubic-bezier(.34,1.56,.64,1)"`).length).toBeGreaterThan(0);
+  });
+});
