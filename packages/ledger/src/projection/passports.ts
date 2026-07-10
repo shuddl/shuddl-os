@@ -17,23 +17,28 @@ const BUMP_SQL =
   "updated_at = ?3";
 
 /**
- * The passport counters an event implies. pod.signed -> deliveries (+on_time when the payload flags
- * it); exception.raised -> exceptions; osd.captured -> claims_opened; custody.transferred ->
- * custody_events. Every other kind accrues nothing.
+ * The passport counters an event implies. pod.signed -> deliveries; exception.raised -> exceptions;
+ * osd.captured -> claims_opened; custody.transferred -> custody_events. (On-time / OTD is deferred
+ * to WP-08 — see the pod.signed case.) Every other kind accrues nothing.
  */
 export function projectPassport(db: D1Database, e: LedgerEvent): D1PreparedStatement[] {
   const bump = (party: string, field: string): D1PreparedStatement =>
     db.prepare(BUMP_SQL).bind(party, field, e.recorded_at);
 
   switch (e.kind) {
-    case "pod.signed": {
-      const stmts = [bump(e.actor.party, "deliveries")];
-      // NOTE: PodSignedPayload (contracts, merged) is .strict() and carries no `on_time` field, so
-      // this branch is dormant until a contract amendment adds it. Read defensively so it lights up
-      // the moment the field exists — see the PR/report note.
-      if ((e.payload as { on_time?: unknown }).on_time === true) stmts.push(bump(e.actor.party, "on_time"));
-      return stmts;
-    }
+    case "pod.signed":
+      // OTD (on-time delivery) IS DEFERRED TO WP-08 — deliberately NOT accrued here. On-time is not
+      // something a driver's phone knows at the door: it is a COMPARISON of this event's `ts` against
+      // the promised appointment window, and that window is owned by the Scheduler (appointment.set,
+      // WP-08). PodSignedPayload is .strict() with no on_time field, so there is NO schema-valid way
+      // for an on_time flag to arrive today — an accrual branch reading it would be unreachable code
+      // masquerading as coverage, and trusting a client-supplied field for a partner behavior score
+      // is exactly the "reputation on air" this project refuses. The field's HOME exists (doc 10:
+      // passports behavior scores{otd, claims, pay}); only its SOURCE is missing. When WP-08 lands the
+      // appointment window, derive OTD here and restore the accrual. (Contrast settle_fee, which STAYS:
+      // its event kind settlement.executed is real and schema-valid — only the emitting feature is
+      // CONFIRM-gated. on_time has no schema-valid arrival at all; a later reader must not restore it.)
+      return [bump(e.actor.party, "deliveries")];
     case "exception.raised":
       return [bump(e.actor.party, "exceptions")];
     case "osd.captured":

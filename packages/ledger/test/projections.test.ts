@@ -1,6 +1,6 @@
 import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
-import type { LedgerEvent } from "@shuddl/contracts";
+import type { LedgerEvent, PodSignedPayload } from "@shuddl/contracts";
 import { applyMigrations } from "../src/migrate.js";
 import { projectPassport } from "../src/projection/passports.js";
 import { projectStatusCache } from "../src/projection/status-cache.js";
@@ -127,13 +127,18 @@ describe("REQ-009 — passports accrue from events (mutable projection; truth st
     expect((await scores("party-osd"))?.claims_opened).toBe(1);
   });
 
-  it("scores.on_time accrues when payload.on_time is set (SYNTHETIC — PodSignedPayload is strict, no on_time yet; see report)", () => {
-    const base = mkEvent("pod.signed", { stream_id: "s:shp-p6", shipment_id: "shp-p6" });
-    // The merged contract (Task 4) forbids on_time on pod.signed, so we exercise the branch as a
-    // pure unit test to prove the projection logic; it stays dormant until a contract amendment.
-    const withOnTime = { ...base, payload: { ...base.payload, on_time: true } } as unknown as LedgerEvent;
-    expect(projectPassport(DB, withOnTime)).toHaveLength(2); // deliveries + on_time
-    expect(projectPassport(DB, base)).toHaveLength(1); // no on_time -> deliveries only
+  // GUARD (type-level): OTD accrual was deliberately removed (deferred to WP-08 — the appointment
+  // window that defines on-time is the Scheduler's, and PodSignedPayload has no schema-valid on_time
+  // field). This asserts that ABSENCE at the type level: if a future change adds `on_time` to the
+  // contract, `HasOnTime` flips to `true`, `const _guard: HasOnTime = false` stops compiling, and the
+  // build fails HERE — forcing whoever adds the field to also restore the accrual in passports.ts.
+  type HasOnTime = "on_time" extends keyof PodSignedPayload ? true : false;
+  it("PodSignedPayload has NO on_time field, so pod.signed accrues ONLY deliveries (OTD deferred to WP-08)", () => {
+    const _guard: HasOnTime = false; // ← breaks the build if on_time is ever added to the contract
+    expect(_guard).toBe(false);
+    // And the runtime projection posts exactly one accrual (deliveries), never an on_time counter.
+    const e = mkEvent("pod.signed", { stream_id: "s:shp-p6", shipment_id: "shp-p6" });
+    expect(projectPassport(DB, e)).toHaveLength(1);
   });
 
   it("REQ-009 FK: accruing for an UNSEEDED party aborts the whole append (party must exist first)", async () => {
