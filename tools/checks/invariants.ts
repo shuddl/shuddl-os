@@ -14,9 +14,20 @@ export const PARTITION_TABLES: Record<string, string> = { positions: "events" };
 // Append-only tables that MUST carry RAISE(ABORT) guard triggers once created (I3, I1).
 const GUARDED_TABLES = ["events", "positions", "money_lines"] as const;
 
-// Optional opening quote/bracket before an identifier (', ", `, [) — closes the
-// evasion where `[events]` / `"events"` slipped past the bare-name matchers.
-const Q = `["'\`\\[]?`;
+// Identifier-delimiter fragments. SQLite lets an identifier be bare, or wrapped in a quote/backtick/
+// bracket, and lets a name abut a keyword with NO whitespace when it is delimited (`CREATE TABLE"x"`,
+// `CREATE TABLE[t]`). It also lets any table/trigger name carry a schema qualifier (`main.events`,
+// `"main".events`). The lint must see through all of that or an append-only mutation slips by.
+const QOPEN = `["'\`\\[]`; // an opening quote/backtick/bracket
+const Q = `${QOPEN}?`; // optional opening quote/backtick/bracket before an identifier
+const QCLOSE = `["'\`\\]]?`; // optional closing quote/backtick/bracket after an identifier
+// Optional SQLite schema qualifier before a guarded identifier: main. / "main". / [main]. / `main`.
+// We always capture the UNQUALIFIED tail so `DROP TRIGGER main.events_guard_del` reads as the guard,
+// not as the schema "main". Whitespace is allowed around the dot.
+const SCHEMA = `(?:${Q}\\w+${QCLOSE}\\s*\\.\\s*)?`;
+// After a keyword (TABLE / TRIGGER / verb) a name may follow whitespace OR abut a quote/bracket with
+// none (the zero-width lookahead), so `CREATE TABLE[t22]` counts and `DELETE FROM[events]` is caught.
+const DELIM = `(?:\\s+|(?=${QOPEN}))`;
 
 export type InvariantResult = { ok: boolean; tableCount: number; violations: string[]; warnings: string[] };
 
@@ -28,7 +39,7 @@ export function checkMigrationSql(sqlFiles: string[]): InvariantResult {
   // and a real mutation must never hide behind a `--`/`/* */` marker.
   const clean = stripSqlComments(sqlFiles.join("\n"));
 
-  for (const m of clean.matchAll(new RegExp(`CREATE TABLE(?: IF NOT EXISTS)?\\s+${Q}(\\w+)`, "gi"))) {
+  for (const m of clean.matchAll(new RegExp(`CREATE\\s+TABLE(?:\\s+IF\\s+NOT\\s+EXISTS)?${DELIM}${SCHEMA}${Q}(\\w+)`, "gi"))) {
     const name = m[1];
     if (name) tables.add(name.toLowerCase());
   }
@@ -48,21 +59,32 @@ export function checkMigrationSql(sqlFiles: string[]): InvariantResult {
   // REPLACE / INSERT OR REPLACE are delete+insert in disguise (and dodge BEFORE DELETE
   // guards unless recursive_triggers is on), so they are forbidden verbs too.
   const mutate = new RegExp(
-    `\\b(UPDATE|DELETE\\s+FROM|DROP\\s+TABLE|ALTER\\s+TABLE|INSERT\\s+OR\\s+REPLACE\\s+INTO|REPLACE\\s+INTO)\\s+${Q}(events|positions|money_lines)\\b`,
+    `\\b(UPDATE|DELETE\\s+FROM|DROP\\s+TABLE|ALTER\\s+TABLE|INSERT\\s+OR\\s+REPLACE\\s+INTO|REPLACE\\s+INTO)${DELIM}${SCHEMA}${Q}(events|positions|money_lines)\\b`,
     "gi",
   );
   for (const m of clean.matchAll(mutate)) {
     violations.push(`I3 VIOLATION: migrations may only CREATE/INDEX ${m[2]} — found "${m[1]}". Corrections are new events.`);
   }
+  // An upsert (INSERT ... ON CONFLICT ... DO UPDATE) IS a mutation of the target row — its verb is
+  // UPDATE but it does not abut the table name, so the mutate matcher above cannot see it. Scan within
+  // a single statement ([^;]*?) so a later legitimate upsert on a non-guarded table (e.g. invoices)
+  // can never be spliced onto an earlier INSERT INTO events.
+  const upsert = new RegExp(
+    `\\bINSERT\\s+(?:OR\\s+(?:ROLLBACK|ABORT|FAIL|IGNORE|REPLACE)\\s+)?INTO${DELIM}${SCHEMA}${Q}(events|positions|money_lines)\\b[^;]*?\\bON\\s+CONFLICT\\b[^;]*?\\bDO\\s+UPDATE\\b`,
+    "gi",
+  );
+  for (const m of clean.matchAll(upsert)) {
+    violations.push(`I3 VIOLATION: upsert (ON CONFLICT DO UPDATE) on ${m[1]} rewrites a row — ${m[1]} is append-only. Corrections are new events.`);
+  }
   // I3: a guard trigger can never be dropped — that silently disables append-only.
-  for (const m of clean.matchAll(new RegExp(`\\bDROP\\s+TRIGGER\\s+(?:IF\\s+EXISTS\\s+)?${Q}([A-Za-z0-9_]+)`, "gi"))) {
+  for (const m of clean.matchAll(new RegExp(`\\bDROP\\s+TRIGGER\\s+(?:IF\\s+EXISTS\\s+)?${SCHEMA}${Q}([A-Za-z0-9_]+)`, "gi"))) {
     const name = (m[1] ?? "").toLowerCase();
     if (/_guard_/.test(name) || GUARDED_TABLES.some((t) => name === t || name.startsWith(`${t}_`))) {
       violations.push(`I3 VIOLATION: DROP TRIGGER ${m[1]} disables an append-only guard — guards are permanent.`);
     }
   }
   // Triggers on guarded tables: the body must be exactly one RAISE(ABORT) statement.
-  const triggerBody = new RegExp(`CREATE\\s+TRIGGER\\s+[\\w"'\`]+[\\s\\S]*?\\bON\\s+${Q}(events|positions|money_lines)\\b[\\s\\S]*?\\bBEGIN\\b([\\s\\S]*?)\\bEND\\s*;`, "gi");
+  const triggerBody = new RegExp(`CREATE\\s+TRIGGER\\s+${SCHEMA}${Q}[\\w"'\`\\]]+[\\s\\S]*?\\bON\\s+${SCHEMA}${Q}(events|positions|money_lines)\\b[\\s\\S]*?\\bBEGIN\\b([\\s\\S]*?)\\bEND\\s*;`, "gi");
   for (const m of clean.matchAll(triggerBody)) {
     const body = (m[2] ?? "").trim();
     if (!/^SELECT\s+RAISE\s*\(\s*ABORT\b[^;]*;$/i.test(body)) {
@@ -82,7 +104,7 @@ export function checkMigrationSql(sqlFiles: string[]): InvariantResult {
   for (const t of GUARDED_TABLES) {
     if (!tables.has(t)) continue;
     for (const { suffix, event } of guardSpecs) {
-      const re = new RegExp(`CREATE\\s+TRIGGER\\s+${Q}${t}_${suffix}\\b[\\s\\S]*?\\bBEFORE\\s+${event}\\s+ON\\s+${Q}${t}\\b`, "i");
+      const re = new RegExp(`CREATE\\s+TRIGGER\\s+${SCHEMA}${Q}${t}_${suffix}\\b[\\s\\S]*?\\bBEFORE\\s+${event}\\s+ON\\s+${SCHEMA}${Q}${t}\\b`, "i");
       if (!re.test(clean)) {
         violations.push(`I3 VIOLATION: missing guard trigger ${t}_${suffix} (must be BEFORE ${event} ON ${t})`);
       }

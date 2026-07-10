@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { globSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -263,6 +263,91 @@ describe("I3 lint: bracket-quoted identifiers do not evade the lint", () => {
     const r = checkMigrationSql(["CREATE TABLE [events] (id TEXT);"]);
     expect(r.tableCount).toBe(1);
     expect(r.violations.join(" ")).toContain("missing guard trigger events_guard_upd");
+  });
+});
+
+// ─── WP-02 exit-audit (REQ-119) — the three Criticals the swarm found: the lint's regexes ignored
+// SQLite `schema.` qualifiers and zero-width bracket/quote delimiters, so a guard drop / a mutation /
+// a table could all evade. Each block below FAILED against the pre-fix lint (the hole was real).
+
+describe("Exit audit (REQ-119) C1: a schema-qualified guard DROP is still flagged", () => {
+  it.each([
+    "DROP TRIGGER main.events_guard_del;",
+    "DROP TRIGGER IF EXISTS main.positions_guard_upd;",
+    "DROP TRIGGER `main`.money_lines_guard_del;",
+    'DROP TRIGGER "main".events_guard_ins;',
+  ])("flags %s — the unqualified tail names the guard, not the schema `main`", (drop) => {
+    // Pre-fix: the matcher captured `main` (stopped at the dot), which is not a guard name, so the
+    // drop passed green and `DELETE FROM events` would then run with no BEFORE-DELETE backstop.
+    const r = checkMigrationSql([TABLES_SQL + GUARDS_SQL + "\n" + drop]);
+    expect(r.ok).toBe(false);
+    expect(r.violations.join(" ")).toContain("DROP TRIGGER");
+    expect(r.violations.join(" ")).toContain("I3");
+  });
+});
+
+describe("Exit audit (REQ-119) C2: schema-qualified / upsert mutations of a guarded table are caught", () => {
+  it.each([
+    "DELETE FROM main.events WHERE seq > 0;",
+    "DROP TABLE main.events;", // no trigger fires on DROP TABLE — the lint is the ONLY backstop
+    "DELETE FROM `main`.events;",
+    'UPDATE "main".money_lines SET amount_cents = 0;',
+    "ALTER TABLE main.positions DROP COLUMN hash;",
+    "INSERT INTO events (id) VALUES ('x') ON CONFLICT(id) DO UPDATE SET id = 'y';", // an upsert IS a mutation
+    "INSERT INTO main.money_lines (id) VALUES ('x') ON CONFLICT(id) DO UPDATE SET id = 'y';",
+  ])("flags %s", (stmt) => {
+    const r = checkMigrationSql([TABLES_SQL + GUARDS_SQL + "\n" + stmt]);
+    expect(r.ok).toBe(false);
+    expect(r.violations.join(" ")).toContain("I3");
+  });
+  it("an upsert on a NON-guarded table (invoices) is not our concern", () => {
+    const r = checkMigrationSql([
+      TABLES_SQL + GUARDS_SQL + "\nINSERT INTO invoices (id) VALUES ('x') ON CONFLICT(id) DO UPDATE SET id = 'y';",
+    ]);
+    expect(r.ok).toBe(true);
+  });
+});
+
+describe("Exit audit (REQ-119) C3: bracket/quote tables with no whitespace count toward the ≤22 budget", () => {
+  it("CREATE TABLE[t](a int) counts (pre-fix it was invisible → I8 defeatable)", () => {
+    expect(checkMigrationSql(["CREATE TABLE[t](a int);"]).tableCount).toBe(1);
+  });
+  it('CREATE TABLE"x"(a int) counts', () => {
+    expect(checkMigrationSql(['CREATE TABLE"x"(a int);']).tableCount).toBe(1);
+  });
+  it("23 no-space bracket tables bust the budget (pre-fix they summed to 0 → tableCount stayed low, ok=true)", () => {
+    const sql = Array.from({ length: 23 }, (_, i) => `CREATE TABLE[t${i}](a int);`).join("\n");
+    const r = checkMigrationSql([sql]);
+    expect(r.tableCount).toBe(23);
+    expect(r.ok).toBe(false);
+    expect(r.violations.join(" ")).toContain("I8");
+  });
+  it("the real attack: 21 space-delimited tables + 3 no-space (bracket/quote) tables = 24 → over budget", () => {
+    const real = Array.from({ length: 21 }, (_, i) => `CREATE TABLE t${i} (id TEXT);`).join("\n");
+    const sneaked = ["CREATE TABLE[t22](a int);", 'CREATE TABLE"t23"(a int);', "CREATE TABLE[t24](a int);"].join("\n");
+    const r = checkMigrationSql([real + "\n" + sneaked]);
+    expect(r.tableCount).toBe(24);
+    expect(r.ok).toBe(false);
+    expect(r.violations.join(" ")).toContain("I8");
+  });
+});
+
+describe("Exit audit (REQ-119) positive controls: legitimate SQL still passes", () => {
+  it("the real committed migrations (db/**/migrations/*.sql) still yield 21/22, no violations", () => {
+    const files = globSync("db/**/migrations/*.sql", { cwd: REPO }).map((f) => readFileSync(join(REPO, f), "utf8"));
+    expect(files.length).toBeGreaterThanOrEqual(5);
+    const r = checkMigrationSql(files);
+    expect(r.tableCount).toBe(21);
+    expect(r.ok).toBe(true);
+    expect(r.violations).toEqual([]);
+  });
+  it("a schema-qualified guard definition still satisfies guard-presence (main.events + main.-qualified guards)", () => {
+    const sql =
+      "CREATE TABLE events (id TEXT);\n" +
+      "CREATE TRIGGER main.events_guard_upd BEFORE UPDATE ON main.events BEGIN SELECT RAISE(ABORT,'I3'); END;\n" +
+      "CREATE TRIGGER main.events_guard_del BEFORE DELETE ON main.events BEGIN SELECT RAISE(ABORT,'I3'); END;\n" +
+      "CREATE TRIGGER main.events_guard_ins BEFORE INSERT ON main.events WHEN EXISTS (SELECT 1 FROM events WHERE id = NEW.id) BEGIN SELECT RAISE(ABORT,'I3'); END;";
+    expect(checkMigrationSql([sql]).ok).toBe(true);
   });
 });
 
