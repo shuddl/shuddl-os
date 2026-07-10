@@ -311,5 +311,11 @@ export function mapMoneyProjectionError(err: unknown): { code: "VALIDATION_FAILE
   if (/UNIQUE constraint failed/i.test(msg) && /(ux_ml_corrects|corrects_event_id)/i.test(msg)) {
     return { code: "VALIDATION_FAILED", message: "invoice already corrected (I7: one correction per event)" };
   }
+  // Defense in depth: Zod normally guards the split boundary (bps non-negative, summing to 10000, gross
+  // ≥ 0), but if an off-path caller reaches allocateCents with bad shares its input/postcondition throw
+  // must surface as a client 4xx, not an opaque INTERNAL 500.
+  if (/\ballocateCents\b/.test(msg)) {
+    return { code: "VALIDATION_FAILED", message: "interline split allocation invalid (shares must be non-negative integer bps summing to 10000)" };
+  }
   return null;
 }

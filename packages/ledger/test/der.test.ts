@@ -82,6 +82,15 @@ describe("REQ-014 — parseTimeStampResp round-trips a granted response (real pa
     expect(parsed.nonceHex).toBe("80"); // magnitude, sign-pad stripped
     expect(parsed.imprintDigestHex).toBe(EMPTY_SHA256);
   });
+
+  // WP-02 exit audit (REQ-119) Minor: a DER INTEGER must carry ≥1 content byte. A zero-length PKIStatus
+  // is malformed, but integerMagnitudeHex renders "" as "00" → parseInt 0 → granted. Such a receipt must
+  // be REJECTED, not silently accepted as a grant. Bytes: TimeStampResp SEQ { PKIStatusInfo SEQ {
+  // INTEGER len 0 } } = 30 04 30 02 02 00.
+  it("REJECTS a zero-length PKIStatus INTEGER instead of reading it as granted", () => {
+    const degenerate = Uint8Array.from([0x30, 0x04, 0x30, 0x02, 0x02, 0x00]);
+    expect(() => parseTimeStampResp(degenerate)).toThrow(/zero-length|malformed/i);
+  });
 });
 
 describe("REQ-014 — TsaClient (Fake exercises the real parser + verifier)", () => {

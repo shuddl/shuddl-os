@@ -250,6 +250,12 @@ export function parseTimeStampResp(bytes: Uint8Array | ArrayBuffer): ParsedTimeS
   const statusKids = readChildren(buf, statusInfo.contentStart, statusInfo.contentEnd);
   const statusInt = statusKids[0];
   if (!statusInt || statusInt.tag !== TAG.INTEGER) throw new Error("TimeStampResp: missing PKIStatus INTEGER");
+  // A DER INTEGER MUST carry ≥1 content byte. A zero-length PKIStatus is malformed — but
+  // integerMagnitudeHex renders it "00", which would parse as 0 → granted. Reject it up front: a
+  // degenerate status must never read as a grant, or the anchor accepts an unverified receipt.
+  if (statusInt.contentEnd <= statusInt.contentStart) {
+    throw new Error("TimeStampResp: PKIStatus INTEGER is zero-length (malformed DER — refusing to read as granted)");
+  }
   const statusValue = Number.parseInt(integerMagnitudeHex(buf, statusInt), 16);
   const status = PKI_STATUS[statusValue] ?? `unknown_${statusValue}`;
   const granted = statusValue === 0 || statusValue === 1;

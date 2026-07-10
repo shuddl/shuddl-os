@@ -7,6 +7,7 @@ import {
   mapMoneyProjectionError,
   type OriginalLine,
 } from "../src/projection/money.js";
+import { allocateCents } from "../src/money/split.js";
 import { appendWithMoney, mkEvent, resetEventCounter } from "./helpers.js";
 import ledgerCore from "../../../db/tenant/migrations/0001_ledger_core.sql?raw";
 import domain from "../../../db/tenant/migrations/0002_domain.sql?raw";
@@ -226,6 +227,33 @@ describe("REQ-012 / I7 — applyMoneyProjection through real D1 (append batch + 
     expect(caught).toBeInstanceOf(Error);
     const mapped = mapMoneyProjectionError(caught);
     expect(mapped?.code).toBe("VALIDATION_FAILED");
+  });
+});
+
+describe("Exit audit (REQ-119) Minor: an allocateCents throw maps to VALIDATION_FAILED, not INTERNAL", () => {
+  it("a postcondition failure (bps not summing to 10000) is a client 4xx", () => {
+    // Off-path: Zod normally rejects shares that don't sum to 10000, but if such input reaches the
+    // allocator its throw must not surface as an opaque INTERNAL 500.
+    let caught: unknown;
+    try {
+      allocateCents(100, [5_000]); // sums to 5000 → postcondition throws
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(Error);
+    expect(mapMoneyProjectionError(caught)?.code).toBe("VALIDATION_FAILED");
+  });
+  it("a bad-share input error (negative bps) also maps to VALIDATION_FAILED", () => {
+    let caught: unknown;
+    try {
+      allocateCents(100, [-1]);
+    } catch (e) {
+      caught = e;
+    }
+    expect(mapMoneyProjectionError(caught)?.code).toBe("VALIDATION_FAILED");
+  });
+  it("an unrelated error is NOT swallowed (returns null so the sequencer can 500 it)", () => {
+    expect(mapMoneyProjectionError(new Error("something else entirely"))).toBeNull();
   });
 });
 
