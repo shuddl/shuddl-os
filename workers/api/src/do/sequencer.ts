@@ -87,9 +87,14 @@ export class ShipmentSequencer extends DurableObject<Env> {
   private deviceKeys = new Map<string, JsonWebKey | null>();
 
   /**
-   * The mutex. A DO's input gates cover synchronous turns but NOT the awaits into D1, so two concurrent
-   * appends would otherwise read the same tail and double-assign `seq`. Chain every append onto the
-   * previous one's settlement; `.catch(() => undefined)` keeps one failure from poisoning the chain.
+   * The mutex — MEASURED load-bearing, not speculative. A Cloudflare DO input gate closes only during the
+   * DO's OWN `ctx.storage` operations (and `blockConcurrencyWhile`); it does NOT close across a plain D1
+   * subrequest await. This sequencer reads its tail and writes its batch via D1, so without serialization
+   * concurrent appends read the same tail and assign the same `seq`. Verified by deleting this mutex and
+   * running the 100-concurrent fresh-stub test: it goes red with `D1_ERROR: I3: append-only:
+   * SQLITE_CONSTRAINT` (the duplicate (stream_id, seq) rows collide on events_guard_ins). So: chain every
+   * append onto the previous one's settlement; `.catch(() => undefined)` keeps one failure from poisoning
+   * the chain (the returned promise still rejects — see the RPC normalization below).
    */
   append(req: AppendReq): Promise<AppendedEvent> {
     const run = this.lock.then(() => this.#append(req));

@@ -12,7 +12,15 @@ export default defineWorkersConfig({
         // unique idempotency keys / self-cleaning markers — so storage isolation is off for the
         // whole package instead. Cross-tenant isolation is proven by REQ-025 (id-derived DO + D1
         // allowlist), not by the test harness.
+        //
+        // CONSEQUENCE (read before adding a test file): with isolation off, ALL test files share ONE
+        // D1. Two files applying the pinned migrations independently collide ("table already exists").
+        // So migrations + control-plane seeding go through the idempotent `ensureSchema(env)` in
+        // test/helpers.ts — call it in your beforeAll; do NOT re-apply migrations yourself. And
+        // `singleWorker: true` runs all files sequentially in one isolate, which (a) lets ensureSchema's
+        // module memo run setup exactly once and (b) removes any cross-isolate race on the shared D1.
         isolatedStorage: false,
+        singleWorker: true,
         wrangler: { configPath: "./wrangler.toml" },
         miniflare: {
           // Test-only secret injection; real JWT_SECRET arrives via `wrangler secret` (REQ-154).

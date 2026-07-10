@@ -5,23 +5,15 @@ import type { AppendedEvent } from "../src/do/sequencer.js";
 import { hashEvent, verifyChain } from "@shuddl/ledger/chain";
 import { rowToEvent } from "@shuddl/ledger/lens";
 import { signEvent, verifyEventSig } from "@shuddl/ledger/sign";
-import { applyMigrations } from "@shuddl/ledger/migrate";
-import controlSql from "../../../db/control/migrations/0001_control.sql?raw";
-import ledgerCore from "../../../db/tenant/migrations/0001_ledger_core.sql?raw";
-import domain from "../../../db/tenant/migrations/0002_domain.sql?raw";
-import insertGuards from "../../../db/tenant/migrations/0003_insert_guards.sql?raw";
-import partyRefsGuard from "../../../db/tenant/migrations/0004_party_refs_guard.sql?raw";
+import { TENANT_SLUG, TEST_DEVICE_ID, TEST_DEVICE_PUBLIC_JWK, ensureSchema, testDeviceSigningKey } from "./helpers.js";
 
 // The Task-13 DO is the heart of the ledger: it assigns seq/prev_hash, verifies the device
 // signature, enforces the invoice gate (I2), resolves visibility server-side, and writes the
 // event + every projection in ONE db.batch() so I1 holds both directions (REQ-002/011/025).
 
-const TENANT = "tenant-a";
+const TENANT = TENANT_SLUG;
 const HEX64 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 const GEO = { lat_e6: 37_421_000, lon_e6: -122_084_000 };
-
-let privateKey: CryptoKey;
-let publicJwk: JsonWebKey;
 
 // The DO's RPC return type (a 35-member zod union with a recursive JsonObject payload) makes the
 // generic DurableObjectStub<ShipmentSequencer> RPC mapper explode/degrade to `never`, so bind the
@@ -70,53 +62,42 @@ async function eventsFor(streamId: string): Promise<LedgerEvent[]> {
   return (await rawRows(streamId)).map((r) => rowToEvent(r));
 }
 
+// Shared, idempotent setup (migrations + control-plane seed + parties + the fixed device key). Safe
+// under isolatedStorage:false where every file shares one D1 — see test/helpers.ts.
 beforeAll(async () => {
-  // Control plane: migrate + seed a tenant (policy {}) and a driver user carrying a real P-256
-  // device JWK — #policy / #deviceKey read these on every append.
-  await applyMigrations(env.CONTROL_DB, [{ path: "0001_control.sql", sql: controlSql }]);
-  const kp = (await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, ["sign", "verify"])) as CryptoKeyPair;
-  privateKey = kp.privateKey;
-  publicJwk = await crypto.subtle.exportKey("jwk", kp.publicKey);
-
-  await env.CONTROL_DB.prepare("INSERT INTO tenants (id, name, slug, plan, policy, created_ts) VALUES (?,?,?,?,?,?)")
-    .bind("t-a", "Tenant A", TENANT, "pilot", "{}", 0)
-    .run();
-  await env.CONTROL_DB.prepare("INSERT INTO users (id, tenant_id, email, role, auth, device_keys) VALUES (?,?,?,?,?,?)")
-    .bind("u-driver", "t-a", "driver@tenant-a.test", "driver", "{}", JSON.stringify([{ device_id: "device-1", public_jwk: publicJwk }]))
-    .run();
-
-  // Tenant plane: full ledger schema + parties (passport accrual FK requires the party to exist).
-  await applyMigrations(env.TENANT_A_DB, [
-    { path: "0001_ledger_core.sql", sql: ledgerCore },
-    { path: "0002_domain.sql", sql: domain },
-    { path: "0003_insert_guards.sql", sql: insertGuards },
-    { path: "0004_party_refs_guard.sql", sql: partyRefsGuard },
-  ]);
-  const parties: [string, string][] = [
-    ["party-shipper", "shipper"],
-    ["party-carrier", "carrier"],
-    ["party-consignee", "consignee"],
-    ["party-bill-to", "broker"],
-    ["party-interline", "carrier"],
-  ];
-  for (const [id, kind] of parties) {
-    await env.TENANT_A_DB.prepare("INSERT INTO parties (id, kind, names) VALUES (?,?,?)").bind(id, kind, "{}").run();
-  }
+  await ensureSchema(env);
 });
 
-// (a) the mutex proof
-it("assigns dense seqs 0..99 under 100 concurrent appends; verifyChain green", async () => {
+// (a) concurrent appends -> dense, gapless seqs (PRODUCTION SHAPE: a fresh stub per request).
+// PROVES: 100 concurrent appends, each via its OWN `stubFor(...)` (exactly as a real HTTP handler does
+// `env.SHIPMENT_SEQ.get(idFromName(...))` per request — NOT 100 calls on one shared stub, which pipeline
+// differently), land dense seqs 0..99 with no duplicate seq and a valid chain. All fresh stubs resolve
+// to the SAME DO instance (idFromName is deterministic), so this is real cross-request concurrency.
+//
+// This test IS the mutex regression. Measured empirically (mutex deleted from `#append`, this exact
+// fresh-stub test re-run): it goes RED with `D1_ERROR: I3: append-only: SQLITE_CONSTRAINT` — a DO input
+// gate does NOT close across a plain D1 subrequest await, so unserialized appends read the same tail,
+// assign the same seq, and collide on events_guard_ins. The mutex is therefore load-bearing, and this
+// test protects it. The duplicate-seq query below observes that failure mode DIRECTLY (a regression shows
+// up as duplicate rows / a Promise.all rejection here, not as a downstream verifyChain surprise).
+it("assigns dense, gapless seqs under 100 concurrent appends via fresh stubs (production shape)", async () => {
   const streamId = "s:shp-a";
-  const stub = stubFor(streamId);
   const results = await Promise.all(
-    Array.from({ length: 100 }, () => stub.append({ tenant: TENANT, streamId, input: inputFor(streamId) })),
+    Array.from({ length: 100 }, () => stubFor(streamId).append({ tenant: TENANT, streamId, input: inputFor(streamId) })),
   );
   expect(new Set(results.map((r) => r.seq)).size).toBe(100);
   expect(Math.max(...results.map((r) => r.seq))).toBe(99);
+  // Direct observation of the failure mode: NO two rows may share a seq. A double-assign collides on the
+  // (stream_id, seq) PK / events_guard_ins, so it would surface here (and Promise.all would have rejected).
+  const dupes = await env.TENANT_A_DB.prepare(
+    "SELECT seq, COUNT(*) AS n FROM events WHERE stream_id = ? GROUP BY seq HAVING n > 1",
+  )
+    .bind(streamId)
+    .all();
+  expect(dupes.results).toEqual([]);
   const events = await eventsFor(streamId);
   expect(events).toHaveLength(100);
-  const chain = await verifyChain(events);
-  expect(chain.ok).toBe(true);
+  expect((await verifyChain(events)).ok).toBe(true);
 });
 
 // (b) structural tenant pinning by id-equality
@@ -229,19 +210,19 @@ it("position.updated is rejected here (VALIDATION_FAILED) — the bypass route o
 it("a bad device signature is rejected (UNAUTHORIZED); a good one lands with sig stored and verifies on read-back", async () => {
   const streamId = "s:shp-j";
   const stub = stubFor(streamId);
-  const signedActor = { party: "party-carrier", user: "user-driver", device: "device-1" };
+  const signedActor = { party: "party-carrier", user: "user-driver", device: TEST_DEVICE_ID };
 
   await expect(
     stub.append({ tenant: TENANT, streamId, input: inputFor(streamId, { kind: "freight.photographed", actor: signedActor, sig: "AAAA" }) }),
   ).rejects.toThrow(/UNAUTHORIZED/);
 
   const good = inputFor(streamId, { kind: "freight.photographed", actor: signedActor });
-  good.sig = await signEvent(good as Parameters<typeof signEvent>[0], privateKey);
+  good.sig = await signEvent(good as Parameters<typeof signEvent>[0], await testDeviceSigningKey());
   const r = await stub.append({ tenant: TENANT, streamId, input: good });
   expect(r.sig).toBe(good.sig);
   const row = (await env.TENANT_A_DB.prepare("SELECT * FROM events WHERE id = ?").bind(r.id).first<Record<string, string | number | null>>())!;
   expect(row.sig).toBe(good.sig);
-  expect(await verifyEventSig(rowToEvent(row), publicJwk)).toBe(true);
+  expect(await verifyEventSig(rowToEvent(row), TEST_DEVICE_PUBLIC_JWK)).toBe(true);
 });
 
 // (k) the write path and the read path agree on the canonical bytes
