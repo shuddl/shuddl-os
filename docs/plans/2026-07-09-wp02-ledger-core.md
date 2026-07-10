@@ -969,7 +969,9 @@ export async function readEvents(db: D1Database, lens: Lens, q: { shipment_id?: 
 }
 ```
 
-Plus `rowToEvent(row)` (rebuild the envelope from columns: actor object from 3 columns omitting nulls, JSON.parse of party_refs/payload/evidence — round-trips to the identical hash, tested) and its inverse `eventToRow(e)`. `SessionClaims` gains `party_id: z.string().optional()`.
+Plus `rowToEvent(row)` and its inverse `eventToRow(e)`.
+
+> **The load-bearing rule of `rowToEvent` (hash-critical).** SQL `NULL` must map to an **omitted key (`undefined`), never to `null`** — for `shipment_id`, `actor.user`, `actor.device`, `device_id`, `device_seq`, `captured_ts`. The canonicalizer omits `undefined` but *emits* `null`, so a `NULL → null` mapping injects `"shipment_id":null` into the canonical form and the recomputed hash drifts from the stored one. Every event read back from D1 would then fail chain verification. `party_refs`/`payload`/`evidence` are safe (canonicalization re-sorts keys, so stored JSON key order is irrelevant). **Test this directly:** insert an event with NULL columns, read it back through `rowToEvent`, and assert `hashEvent(rowToEvent(row)) === row.hash`. `SessionClaims` gains `party_id: z.string().optional()`.
 
 **Step 4: GREEN → Commit** — `ledger: role/party/driver lenses, SQL goldens, row<->envelope round-trip` — REQ-015, REQ-002, I6.
 
