@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>SHUDDL — OPERATIONAL CANVAS</title>
+
+<!-- MapLibre GL JS (CDN — demo/prototype surface, not the shipped self-hosted product) -->
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+
+<!-- The 2 sanctioned font families for the HTML chrome (map glyphs are constrained by the demo tile
+     source's glyph endpoint — see the on-screen note). Display = Barlow Condensed, Mono = JetBrains Mono. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  /* ===== THE FIVE TOKENS — defined once, referenced via var()/rgba() (doc 07 color law) ===== */
+  :root{
+    --field:#D5D1CC;        /* warm concrete ground */
+    --signal:#FF4A33;       /* the one red — freight reality */
+    --signal-deep:#A52F18;  /* readable secondary/body on field (locked >=4.5:1) */
+    --ink-dark:#1A1A1A;     /* driver/lens ground */
+    --progress:#00C4B4;     /* teal — PROGRESS FILLS ONLY, never state/text/icon */
+
+    /* transparent reds/inks do ALL secondary + "gray" work (no gray token exists) */
+    --signal-06:rgba(255,74,51,.06);
+    --signal-12:rgba(255,74,51,.12);
+    --signal-24:rgba(255,74,51,.24);
+    --signal-55:rgba(255,74,51,.55);
+    --ink-06:rgba(26,26,26,.06);
+    --field-88:rgba(213,209,204,.88);
+    --field-60:rgba(213,209,204,.60);
+    --field-38:rgba(213,209,204,.38);
+
+    --display:'Barlow Condensed','Oswald','Arial Narrow','Roboto Condensed',sans-serif;
+    --mono:'JetBrains Mono','IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+  }
+
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--field);overflow:hidden}
+  body{font-family:var(--mono);color:var(--signal-deep);-webkit-font-smoothing:antialiased}
+
+  #map{position:absolute;inset:0}
+  /* MapLibre canvas ground = the field, so nothing default/street/dark ever flashes through */
+  .maplibregl-map{background:var(--field)}
+  canvas.maplibregl-canvas{outline:none}
+
+  /* ===== HUD chrome — flat: 1px signal dividers + whitespace do the hierarchy. No shadows. ===== */
+  .hud{position:absolute;z-index:20;pointer-events:none}
+  .hud .panel{
+    pointer-events:auto;background:var(--field-88);
+    border:1px solid var(--signal-12);border-radius:3px;
+    padding:10px 13px;backdrop-filter:saturate(1.05) blur(1px);
+  }
+
+  /* top-left wordmark */
+  #brand{top:14px;left:14px}
+  #brand .mark{
+    font-family:var(--display);font-weight:700;text-transform:uppercase;
+    font-size:26px;line-height:.88;letter-spacing:-.015em;color:var(--ink-dark);
+  }
+  #brand .mark b{color:var(--signal);font-weight:700}
+  #brand .sub{
+    margin-top:4px;font-size:9px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--signal-deep);
+  }
+
+  /* top-right live counts */
+  #readout{top:14px;right:14px;text-align:right}
+  #readout .row{font-size:11px;letter-spacing:.06em;text-transform:uppercase;line-height:1.7}
+  #readout .k{color:var(--signal-deep);opacity:.72}
+  #readout .v{color:var(--ink-dark);font-weight:500}
+  #readout .v.exc{color:var(--signal)}
+
+  /* bottom-left legend + controls */
+  #legend{left:14px;bottom:14px;max-width:290px}
+  #legend .ttl{font-family:var(--display);font-weight:700;text-transform:uppercase;
+    font-size:13px;letter-spacing:.02em;color:var(--ink-dark);margin-bottom:7px}
+  #legend .lg{display:flex;align-items:center;gap:9px;font-size:10px;letter-spacing:.05em;
+    text-transform:uppercase;color:var(--signal-deep);line-height:2.05}
+  #legend .gm{width:16px;flex:0 0 16px;text-align:center;color:var(--signal)}
+  #legend .note{margin-top:8px;font-size:9px;letter-spacing:.05em;color:var(--signal-deep);opacity:.72;
+    text-transform:uppercase;line-height:1.5}
+  #legend .btns{margin-top:10px;display:flex;gap:7px;flex-wrap:wrap}
+  .btn{
+    font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;
+    color:var(--signal);background:transparent;border:1px solid var(--signal-24);
+    border-radius:3px;padding:6px 9px;cursor:pointer;transition:background .12s ease,color .12s ease;
+  }
+  .btn:hover{background:var(--signal);color:var(--field)}
+  .btn:active{background:var(--signal-deep);border-color:var(--signal-deep);color:var(--field)}
+
+  /* ===== exception viewport frame — loudness via a pulsing --signal border, no new color, no shadow ===== */
+  #vignette{position:absolute;inset:0;z-index:15;pointer-events:none;
+    border:5px solid var(--signal);opacity:0}
+
+  /* ===== the lens panel — right side, --ink-dark ground. The map NEVER navigates away. ===== */
+  #lens{
+    position:absolute;top:0;right:0;bottom:0;z-index:30;width:352px;max-width:86vw;
+    background:var(--ink-dark);color:var(--field);
+    border-left:1px solid var(--signal-24);
+    transform:translateX(100%);transition:transform .6s cubic-bezier(.16,1,.3,1);
+    display:flex;flex-direction:column;overflow:hidden;
+  }
+  #lens.open{transform:translateX(0)}
+  #lens .lx-top{display:flex;justify-content:space-between;align-items:flex-start;
+    padding:16px 16px 12px;border-bottom:1px solid var(--signal-24)}
+  #lens .lx-id{font-family:var(--display);font-weight:700;text-transform:uppercase;
+    font-size:24px;line-height:.9;letter-spacing:-.01em;color:var(--field)}
+  #lens .lx-sub{margin-top:5px;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--field-60)}
+  #lens .lx-close{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--signal);
+    background:transparent;border:1px solid var(--signal-24);border-radius:3px;padding:5px 8px;cursor:pointer;
+    transition:background .12s ease,color .12s ease}
+  #lens .lx-close:hover{background:var(--signal);color:var(--ink-dark)}
+
+  #lens .lx-body{padding:14px 16px 18px;overflow-y:auto}
+  .lx-state{display:flex;align-items:center;gap:9px;margin-bottom:14px}
+  .lx-glyph{width:16px;text-align:center;color:var(--signal);font-size:13px}
+  .lx-chip{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--signal);border:1px solid var(--signal-24);border-radius:3px;padding:4px 7px}
+  .lx-chip.calm{color:var(--field-60);border-color:var(--field-38)}
+
+  .lx-rows{border-top:1px solid var(--signal-12)}
+  .lx-row{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--signal-12)}
+  .lx-row .rk{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--field-60)}
+  .lx-row .rv{font-size:11px;letter-spacing:.03em;text-transform:uppercase;color:var(--field);text-align:right}
+
+  /* the single sanctioned teal moment in the chrome: the ETA progress fill */
+  .lx-eta{margin:16px 0 8px}
+  .lx-eta .cap{display:flex;justify-content:space-between;font-size:9px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--field-60);margin-bottom:6px}
+  .lx-eta .track{height:4px;border-radius:2px;background:var(--ink-06);border:1px solid var(--signal-12);overflow:hidden}
+  .lx-eta .fill{height:100%;background:var(--progress);width:0;transition:width .8s cubic-bezier(.16,1,.3,1)}
+
+  .lx-ledger{margin-top:16px}
+  .lx-ledger .lh{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--field-60);margin-bottom:9px}
+  .lx-ev{display:flex;gap:10px;padding:5px 0;font-size:10px;letter-spacing:.04em;text-transform:uppercase}
+  .lx-ev .et{color:var(--field-60);flex:0 0 58px}
+  .lx-ev .ek{color:var(--field);flex:1}
+  .lx-ev .eb{color:var(--signal);flex:0 0 auto}
+  .lx-foot{margin-top:14px;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--field-38);line-height:1.6}
+
+  .maplibregl-ctrl-attrib,.maplibregl-ctrl-logo{display:none!important} /* no third-party branding */
+
+  /* Honor prefers-reduced-motion: kill transitions; looping effects rest calm (JS also disables rAF loops) */
+  @media (prefers-reduced-motion: reduce){
+    #lens{transition:none}
+    .lx-eta .fill{transition:none}
+    .btn,#lens .lx-close{transition:none}
+  }
+</style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="vignette"></div>
+
+  <div id="brand" class="hud panel">
+    <div class="mark">SHU<b>DD</b>L</div>
+    <div class="sub">Operational Canvas · Command Lens</div>
+  </div>
+
+  <div id="readout" class="hud panel">
+    <div class="row"><span class="k">Moving</span> <span class="v" id="r-trucks">—</span></div>
+    <div class="row"><span class="k">At-Risk</span> <span class="v" id="r-risk">—</span></div>
+    <div class="row"><span class="k">Exception</span> <span class="v exc" id="r-exc">—</span></div>
+    <div class="row"><span class="k">Render</span> <span class="v" id="r-fps">—</span></div>
+  </div>
+
+  <div id="legend" class="hud panel">
+    <div class="ttl">State Grammar</div>
+    <div class="lg"><span class="gm">▲</span> Healthy — solid chevron to heading, calm</div>
+    <div class="lg"><span class="gm">◎</span> At-Risk — breathing ring + mono chip (DWELL / ETA / HOS)</div>
+    <div class="lg"><span class="gm">✦</span> Exception — world dims ≤35%, the mark pulses at 100%</div>
+    <div class="note">Status is geometry + motion + mono chip — never a new color. Loudness is contrast. Map glyphs use Noto Sans (the demo tile source's only served fontstack); product self-hosts JetBrains Mono.</div>
+    <div class="btns">
+      <button class="btn" id="btn-exc">Trigger Exception</button>
+      <button class="btn" id="btn-conus">Zoom To Fleet</button>
+    </div>
+  </div>
+
+  <aside id="lens" aria-hidden="true">
+    <div class="lx-top">
+      <div>
+        <div class="lx-id" id="lx-id">—</div>
+        <div class="lx-sub" id="lx-sub">Shipment Lens</div>
+      </div>
+      <button class="lx-close" id="lx-close">ESC ✕</button>
+    </div>
+    <div class="lx-body">
+      <div class="lx-state">
+        <span class="lx-glyph" id="lx-glyph">▲</span>
+        <span class="lx-chip" id="lx-chip">HEALTHY</span>
+      </div>
+      <div class="lx-rows" id="lx-rows"></div>
+      <div class="lx-eta">
+        <div class="cap"><span id="lx-eta-cap">ETA Progress</span><span id="lx-eta-pct">0%</span></div>
+        <div class="track"><div class="fill" id="lx-eta-fill"></div></div>
+      </div>
+      <div class="lx-ledger">
+        <div class="lh">Co-Signed Event Ledger</div>
+        <div id="lx-events"></div>
+      </div>
+      <div class="lx-foot" id="lx-foot"></div>
+    </div>
+  </aside>
+
+<script>
+/* ============================================================================
+   SHUDDL OPERATIONAL MAP — ~1,000 live moving shipments on the infinite canvas.
+
+   ARCHITECTURE (the one rule that makes scale possible: LAYERS, NOT MARKERS)
+   - Every shipment is a FEATURE in a GL circle/symbol layer on the WebGL canvas.
+   - Per-entity health is applied with setFeatureState (paint reads it, no geometry re-parse).
+   - ONE clustered GeoJSON source holds the whole fleet: reads as counts from orbit,
+     resolves to individual chevrons as you descend.
+   - The moving positions are pushed with a single throttled setData per batch; the
+     heavy reclustering runs on MapLibre's worker thread, so the main thread holds 60fps.
+   - Exception world-dim = contrast, not a sixth color: everything red drops to <=35%,
+     the one offending mark stays lit at 100%.
+   ========================================================================== */
+
+const TOK = { field:'#D5D1CC', signal:'#FF4A33', signalDeep:'#A52F18', ink:'#1A1A1A', progress:'#00C4B4' };
+const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const GLYPH = ['Noto Sans Regular']; // the only fontstack the demo tile source serves; product self-hosts mono
+
+/* ---- The custom greige basemap (greige-style.json adapted to the OpenFreeMap OpenMapTiles source) ----
+   Warm field; water ink@6%; roads = faint red circuitry etched on concrete; labels micro red, thinned. */
+const style = {
+  version: 8,
+  name: 'shuddl-terminal-gallery',
+  glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
+  sources: {
+    v: { type:'vector', url:'https://tiles.openfreemap.org/planet' }
+  },
+  layers: [
+    { id:'field', type:'background', paint:{ 'background-color': TOK.field } },
+    { id:'water', type:'fill', source:'v', 'source-layer':'water',
+      paint:{ 'fill-color':TOK.ink, 'fill-opacity':0.06 } },
+    { id:'waterway', type:'line', source:'v', 'source-layer':'waterway',
+      paint:{ 'line-color':TOK.ink, 'line-opacity':0.06, 'line-width':0.6 } },
+    { id:'road-minor', type:'line', source:'v', 'source-layer':'transportation',
+      filter:['!', ['in', ['get','class'], ['literal', ['motorway','trunk','primary']]]],
+      layout:{ 'line-cap':'round' },
+      paint:{ 'line-color':TOK.signal, 'line-opacity':0.05,
+        'line-width':['interpolate',['linear'],['zoom'],5,0.3,12,0.8,16,1.4] } },
+    { id:'road-major', type:'line', source:'v', 'source-layer':'transportation',
+      filter:['in', ['get','class'], ['literal', ['motorway','trunk','primary']]],
+      layout:{ 'line-cap':'round' },
+      paint:{ 'line-color':TOK.signal, 'line-opacity':0.10,
+        'line-width':['interpolate',['linear'],['zoom'],4,0.4,10,1.2,16,3.0] } },
+    { id:'boundary', type:'line', source:'v', 'source-layer':'boundary',
+      filter:['all', ['<=', ['get','admin_level'], 4], ['!=', ['get','maritime'], 1]],
+      paint:{ 'line-color':TOK.signal, 'line-opacity':0.14, 'line-width':0.5, 'line-dasharray':[3,3] } },
+    { id:'place-major', type:'symbol', source:'v', 'source-layer':'place',
+      filter:['in', ['get','class'], ['literal', ['country','state','city']]],
+      layout:{
+        'text-field':['upcase', ['coalesce', ['get','name:en'], ['get','name']]],
+        'text-font':GLYPH,
+        'text-size':['interpolate',['linear'],['zoom'],3,9,8,11],
+        'text-letter-spacing':0.12, 'text-max-width':8, 'text-padding':24
+      },
+      paint:{ 'text-color':'rgba(255,74,51,0.55)', 'text-halo-color':TOK.field, 'text-halo-width':1,
+        'text-opacity':1 } }
+  ]
+};
+
+const map = new maplibregl.Map({
+  container:'map', style,
+  center:[-96.5,38.6], zoom:4.1, minZoom:3, maxZoom:16,
+  renderWorldCopies:false, attributionControl:false, dragRotate:false, pitchWithRotate:false
+});
+map.touchZoomRotate.disableRotation();
+
+/* ============================================================================
+   1. SYNTHETIC FLEET — ~1,000 moving trucks + context marks, biased to metro lanes
+   ========================================================================== */
+const METROS = [
+  [-74.0,40.71],[-118.24,34.05],[-87.63,41.88],[-95.37,29.76],[-96.8,32.78],[-112.07,33.45],
+  [-75.16,39.95],[-98.49,29.42],[-117.16,32.72],[-96.8,32.9],[-97.74,30.27],[-81.66,30.33],
+  [-82.46,27.95],[-84.39,33.75],[-71.06,42.36],[-122.33,47.61],[-104.99,39.74],[-77.04,38.9],
+  [-80.19,25.76],[-86.16,39.77],[-90.2,38.63],[-93.26,44.98],[-84.51,39.1],[-90.05,29.95],
+  [-115.14,36.17],[-119.77,36.75],[-121.89,37.34],[-122.42,37.77],[-83.05,42.33],[-94.58,39.1],
+  [-79.99,40.44],[-78.64,35.78],[-80.84,35.22],[-97.32,32.75],[-100.31,43.5],[-111.89,40.76],
+  [-106.65,35.08],[-116.21,43.62],[-93.62,41.6],[-89.97,35.15]
+];
+const rnd = (a,b)=>a+Math.random()*(b-a);
+const pick = a => a[(Math.random()*a.length)|0];
+function nearMetro(){ const m=pick(METROS); return [ m[0]+rnd(-1.3,1.3), m[1]+rnd(-1.0,1.0) ]; }
+function conusPoint(){ // ~70% clustered on metros (looks like a real freight network), ~30% along the spread
+  return Math.random()<0.7 ? nearMetro() : [ rnd(-122,-71), rnd(26.5,47.5) ];
+}
+function bearingTo(a,b){
+  const y=Math.sin((b[0]-a[0])*Math.PI/180)*Math.cos(b[1]*Math.PI/180);
+  const x=Math.cos(a[1]*Math.PI/180)*Math.sin(b[1]*Math.PI/180)
+        - Math.sin(a[1]*Math.PI/180)*Math.cos(b[1]*Math.PI/180)*Math.cos((b[0]-a[0])*Math.PI/180);
+  return (Math.atan2(y,x)*180/Math.PI+360)%360;
+}
+
+const N_TRUCKS=1000, N_REST=40, N_FAC=24, N_DELIV=16;
+const records = new Map();       // id -> record (source of truth for the lens + animation)
+const featureIndex = new Map();  // id -> GeoJSON feature (mutated in place, serialized on setData)
+const fc = { type:'FeatureCollection', features:[] };
+const EQUIP = ['53 DRY VAN','48 REEFER','FLATBED','48 DRY VAN','STEP DECK','53 REEFER'];
+
+function makeRecord(id, kind){
+  const pos = kind==='facility' ? nearMetro() : conusPoint();
+  const dest = kind==='truck' ? nearMetro() : pos;
+  const rec = {
+    id, kind, pos:[...pos], dest:[...dest], origin:[...pos],
+    bearing: bearingTo(pos,dest),
+    status:'healthy', risk:null, chip:null,
+    equip: pick(EQUIP), driver:'DRV-'+(1000+((Math.random()*8999)|0)),
+    oCity: cityName(pos), dCity: cityName(dest),
+    etaPct: kind==='delivered' ? 100 : (kind==='truck' ? (20+((Math.random()*70)|0)) : (5+((Math.random()*30)|0)))
+  };
+  records.set(id, rec);
+  const feat = {
+    type:'Feature', id,
+    geometry:{ type:'Point', coordinates:[...pos] },
+    properties:{ id, kind, bearing:rec.bearing,
+      statusStr:'healthy', statusNum:0, chip:'', sortk:0 }
+  };
+  featureIndex.set(id, feat);
+  fc.features.push(feat);
+}
+function cityName(p){ // nearest metro label, purely cosmetic for the lens
+  let best=0,bd=1e9;
+  for(let i=0;i<METROS.length;i++){ const dx=METROS[i][0]-p[0],dy=METROS[i][1]-p[1],d=dx*dx+dy*dy; if(d<bd){bd=d;best=i;} }
+  return ['NEW YORK NY','LOS ANGELES CA','CHICAGO IL','HOUSTON TX','DALLAS TX','PHOENIX AZ',
+   'PHILADELPHIA PA','SAN ANTONIO TX','SAN DIEGO CA','FORT WORTH TX','AUSTIN TX','JACKSONVILLE FL',
+   'TAMPA FL','ATLANTA GA','BOSTON MA','SEATTLE WA','DENVER CO','WASHINGTON DC','MIAMI FL',
+   'INDIANAPOLIS IN','ST LOUIS MO','MINNEAPOLIS MN','CINCINNATI OH','NEW ORLEANS LA','LAS VEGAS NV',
+   'FRESNO CA','SAN JOSE CA','SAN FRANCISCO CA','DETROIT MI','KANSAS CITY MO','PITTSBURGH PA',
+   'RALEIGH NC','CHARLOTTE NC','ARLINGTON TX','SIOUX FALLS SD','SALT LAKE CITY UT','ALBUQUERQUE NM',
+   'BOISE ID','DES MOINES IA','MEMPHIS TN'][best];
+}
+
+let n=0;
+for(let i=0;i<N_TRUCKS;i++) makeRecord('T'+String(++n).padStart(4,'0'),'truck');
+for(let i=0;i<N_REST;i++)   makeRecord('R'+String(++n).padStart(4,'0'),'at_rest');
+for(let i=0;i<N_FAC;i++)    makeRecord('F'+String(++n).padStart(4,'0'),'facility');
+for(let i=0;i<N_DELIV;i++)  makeRecord('D'+String(++n).padStart(4,'0'),'delivered');
+
+/* ============================================================================
+   2. THE CHEVRON IMAGE — a solid --signal arrowhead, oriented to heading at runtime
+   ========================================================================== */
+function chevronImage(){
+  const s=22, c=document.createElement('canvas'); c.width=c.height=s;
+  const g=c.getContext('2d');
+  g.fillStyle=TOK.signal; g.beginPath();
+  g.moveTo(11,2.5); g.lineTo(19,19); g.lineTo(11,14.5); g.lineTo(3,19);
+  g.closePath(); g.fill();
+  return g.getImageData(0,0,s,s);
+}
+
+/* ============================================================================
+   3. STATE EXPRESSIONS — paint reads feature-state first, falls back to the
+      mirrored property so state is bulletproof across setData/reclustering.
+   ========================================================================== */
+const ST  = ['coalesce', ['feature-state','status'], ['get','statusStr'], 'healthy'];
+const isExc = ['==', ST, 'exception'];                       // PAINT only (reads feature-state)
+const isExcProp = ['==', ['get','statusStr'], 'exception'];  // LAYOUT-safe (property only)
+
+// calm (normal) paint sets:
+const CALM = {
+  marksOpacity:  ['match', ['get','kind'], 'at_rest', 0.9, 0],   // trucks/facility/delivered hollow (chevron/stroke show)
+  marksStrokeOp: ['match', ST, 'exception',0.95, 'at-risk',0.72, 0.45],
+  trucksOpacity: ['match', ST, 'delivered',0.55, 'exception',1, 'at-risk',1, 0.95],
+  chipsOpacity:  1,
+  clusterOpacity:0.85,
+  clusterCount:  1,
+  etaOpacity:    0.9
+};
+// dimmed (exception) paint sets — everything not the exception drops to <=~18%:
+const DIM = {
+  marksOpacity:  ['match', ['get','kind'], 'at_rest', ['case', isExc, 1, 0.16], 0],
+  marksStrokeOp: ['case', isExc, 0.98, 0.10],
+  trucksOpacity: ['case', isExc, 1, 0.16],
+  chipsOpacity:  ['case', isExc, 1, 0.14],
+  clusterOpacity:['case', ['==',['get','maxStatus'],2], 1, 0.16],   // cluster CONTAINING the exception stays lit
+  clusterCount:  ['case', ['==',['get','maxStatus'],2], 1, 0.18],
+  etaOpacity:    0.20
+};
+
+/* ============================================================================
+   4. SOURCES + LAYERS  (one clustered source; <=6 entity layers, all data-driven)
+   ========================================================================== */
+map.on('load', ()=>{
+  map.addImage('chevron', chevronImage(), { pixelRatio:2 });
+
+  map.addSource('fleet', {
+    type:'geojson', data:fc, promoteId:'id',
+    cluster:true, clusterRadius:46, clusterMaxZoom:7,
+    // aggregate the worst status in each cluster so a zoomed-out cluster can stay lit if it holds an exception
+    clusterProperties:{ maxStatus:['max', ['get','statusNum']] }
+  });
+  map.addSource('focus-route', { type:'geojson', data:{ type:'FeatureCollection', features:[] } });
+
+  // (a) clusters — 1,000 read as counts from orbit; size by count (geometry, not color)
+  map.addLayer({ id:'clusters', type:'circle', source:'fleet', filter:['has','point_count'],
+    paint:{
+      'circle-color':TOK.signal, 'circle-opacity':CALM.clusterOpacity,
+      'circle-radius':['step', ['get','point_count'], 11, 25, 15, 100, 21, 400, 28],
+      'circle-stroke-color':TOK.field, 'circle-stroke-width':1
+    }});
+  map.addLayer({ id:'cluster-count', type:'symbol', source:'fleet', filter:['has','point_count'],
+    layout:{ 'text-field':['get','point_count_abbreviated'], 'text-font':GLYPH,
+      'text-size':11, 'text-letter-spacing':0.06 },
+    paint:{ 'text-color':TOK.field, 'text-opacity':CALM.clusterCount }});
+
+  // (b) marks — every individual entity. Fill for at_rest bodies; the STROKE is the state ring (pulsed).
+  //     Fill hollow for trucks/facility/delivered; facility keeps a permanent 1px outline.
+  map.addLayer({ id:'marks', type:'circle', source:'fleet', filter:['!',['has','point_count']],
+    layout:{ 'circle-sort-key':['get','sortk'] },   // layout prop (property, not feature-state) — exception draws on top
+    paint:{
+      'circle-color':TOK.signal,
+      'circle-opacity':CALM.marksOpacity,
+      'circle-radius':['case', isExc,
+        ['interpolate',['linear'],['zoom'],4,7,10,13,14,17],
+        ['interpolate',['linear'],['zoom'],4,2,8,3.4,12,5.5,16,8]],
+      'circle-stroke-color':TOK.signal,
+      'circle-stroke-width':1,                 // driven by the pulse loop (§6)
+      'circle-stroke-opacity':CALM.marksStrokeOp
+    }});
+
+  // (c) trucks — the moving-truck chevron oriented to heading. Symbol layer, feature-state opacity.
+  map.addLayer({ id:'trucks', type:'symbol', source:'fleet',
+    filter:['all', ['!',['has','point_count']], ['==',['get','kind'],'truck']],
+    layout:{
+      'icon-image':'chevron', 'icon-rotate':['get','bearing'], 'icon-rotation-alignment':'map',
+      'icon-allow-overlap':true, 'icon-ignore-placement':true,
+      'icon-size':['case', isExcProp,                          // layout prop → property, not feature-state
+        ['interpolate',['linear'],['zoom'],4,0.9,14,1.9],
+        ['interpolate',['linear'],['zoom'],4,0.42,9,0.72,14,1.05]],
+      'symbol-sort-key':['get','sortk']
+    },
+    paint:{ 'icon-opacity':CALM.trucksOpacity }});
+
+  // (d) chips — mono risk labels. text-field/filter are LAYOUT props (cannot read feature-state),
+  //     so they read the mirrored `chip` property; the paint (color/opacity) reads state.
+  map.addLayer({ id:'chips', type:'symbol', source:'fleet', minzoom:5.5,
+    filter:['all', ['!',['has','point_count']], ['!=', ['get','chip'], '']],
+    layout:{
+      'text-field':['get','chip'], 'text-font':GLYPH, 'text-size':10, 'text-letter-spacing':0.08,
+      'text-offset':[0,-1.5], 'text-anchor':'bottom', 'text-allow-overlap':true, 'text-max-width':14
+    },
+    paint:{
+      'text-color':['case', isExc, TOK.signal, TOK.signalDeep],
+      'text-opacity':CALM.chipsOpacity,
+      'text-halo-color':TOK.field, 'text-halo-width':1.1
+    }});
+
+  // (e) the single sanctioned teal: the ETA fill on ONE focused shipment's remaining route
+  map.addLayer({ id:'eta', type:'line', source:'focus-route',
+    layout:{ 'line-cap':'round', 'line-join':'round' },
+    paint:{ 'line-color':TOK.progress, 'line-width':2.2, 'line-opacity':CALM.etaOpacity }});
+
+  seedRisk();
+  startLoops();
+  bindInteractions();
+  updateReadout();
+});
+
+/* ============================================================================
+   5. THE STATE MACHINE — setFeatureState (paint) + a property mirror (layout/cluster)
+   ========================================================================== */
+const active = new Map();       // id -> {status,risk} for the small non-healthy set (re-asserted after setData)
+const exceptions = new Set();
+const NUM = { healthy:0, 'at-risk':1, exception:2 };
+
+function setEntityState(id, status, risk){
+  const rec = records.get(id); if(!rec) return;
+  const feat = featureIndex.get(id);
+  rec.status = status; rec.risk = risk || null;
+  rec.chip = chipText(status, risk, rec);
+  // property mirror (drives chip text-field, cluster maxStatus aggregation, draw order, and paint fallback)
+  feat.properties.statusStr = status;
+  feat.properties.statusNum = NUM[status];
+  feat.properties.chip = rec.chip || '';
+  feat.properties.sortk = NUM[status];
+  // feature-state (the requirement: state applied via setFeatureState, read by paint without re-parse)
+  map.setFeatureState({ source:'fleet', id }, { status, risk: risk || null });
+
+  if(status==='healthy'){ active.delete(id); } else { active.set(id, {status, risk}); }
+  if(status==='exception') exceptions.add(id); else exceptions.delete(id);
+  applyWorldDim(exceptions.size>0);
+}
+
+function chipText(status, risk, rec){
+  if(status==='exception'){
+    return 'EXCEPTION · ' + (rec._excKind || pick(['OS&D','REEFER BREAK','MISSED APPT','DETAINED','REROUTE']));
+  }
+  if(status==='at-risk'){
+    switch(risk){
+      case 'DWELL': return 'DWELL '+(2+((Math.random()*5)|0))+':'+String((Math.random()*59)|0).padStart(2,'0');
+      case 'ETA': return 'ETA +'+(15+((Math.random()*70)|0))+'m';
+      case 'DETENTION': return 'DETENTION RISK';
+      case 'HOS': return 'HOS 0:'+String(10+((Math.random()*49)|0)).padStart(2,'0');
+      case 'CREDIT': return 'CREDIT HOLD';
+    }
+  }
+  return '';
+}
+
+/* ============================================================================
+   6. THE WORLD-DIM — obnoxiously loud via CONTRAST, not a new color.
+      Everything red (basemap veins + all non-exception entities) drops to <=~18%;
+      the offending mark (or the cluster holding it) stays lit at 100% and pulses.
+   ========================================================================== */
+const BASE_DIM = { 'road-minor':0.05, 'road-major':0.10, 'boundary':0.14, 'water':0.06, 'waterway':0.06, 'place-major':1 };
+let worldDimmed = null;
+function applyWorldDim(on){
+  if(REDUCED) on = false;               // reduced-motion: the exception dim rests calm/undimmed
+  if(on===worldDimmed) return; worldDimmed = on;
+  const S = on ? DIM : CALM;
+  map.setPaintProperty('marks','circle-opacity', S.marksOpacity);
+  map.setPaintProperty('marks','circle-stroke-opacity', S.marksStrokeOp);
+  map.setPaintProperty('trucks','icon-opacity', S.trucksOpacity);
+  map.setPaintProperty('chips','text-opacity', S.chipsOpacity);
+  map.setPaintProperty('clusters','circle-opacity', S.clusterOpacity);
+  map.setPaintProperty('cluster-count','text-opacity', S.clusterCount);
+  map.setPaintProperty('eta','line-opacity', S.etaOpacity);
+  // dim the basemap's red circuitry so only the field (calm ground) + the lit mark remain
+  const k = on ? 0.30 : 1;
+  map.setPaintProperty('road-minor','line-opacity', BASE_DIM['road-minor']*k);
+  map.setPaintProperty('road-major','line-opacity', BASE_DIM['road-major']*k);
+  map.setPaintProperty('boundary','line-opacity', BASE_DIM['boundary']*k);
+  map.setPaintProperty('water','fill-opacity', BASE_DIM['water']*k);
+  map.setPaintProperty('waterway','line-opacity', BASE_DIM['waterway']*k);
+  map.setPaintProperty('place-major','text-opacity', on ? 0.3 : 1);
+  document.body.classList.toggle('exception-active', on);
+  if(!on){ document.getElementById('vignette').style.opacity = 0; }
+  updateReadout();
+}
+
+/* ============================================================================
+   7. THE TWO PULSES + ANIMATION — one rAF; sine drives rings (60fps, paint-only),
+      positions push once per throttled batch (worker reclusters off-main-thread).
+   ========================================================================== */
+const SPEED = 0.011;       // deg per position-batch (~constant vehicle speed)
+let lastData = 0, lastFpsT = 0, frames = 0, fps = 60;
+
+function pulse(ts){
+  const urgent = 0.5 + 0.5*Math.sin(ts/1600*2*Math.PI);  // 1.6s — exception, urgent
+  const calm   = 0.5 + 0.5*Math.sin(ts/3000*2*Math.PI);  // 3.0s — at-risk, breathing
+  // marks stroke ring: facility keeps a 1px outline; state adds the breathing/throbbing ring
+  map.setPaintProperty('marks','circle-stroke-width',
+    ['+',
+      ['match', ['get','kind'], 'facility', 1, 0],
+      ['match', ST, 'exception', 2 + 5*urgent, 'at-risk', 1 + 1.6*calm, 0]]);
+  // a cluster that holds the exception throbs too, so it's unmissable at orbit zoom
+  map.setPaintProperty('clusters','circle-stroke-width',
+    ['case', ['==',['get','maxStatus'],2], 1 + 4*urgent, 1]);
+
+  if(exceptions.size>0) document.getElementById('vignette').style.opacity = (0.25 + 0.55*urgent).toFixed(3);
+
+  // throttle the position batch to ~22fps: smooth glide for freight, light load on the cluster worker
+  if(ts - lastData > 45){ stepPositions(); lastData = ts; }
+
+  // fps meter
+  frames++; if(ts - lastFpsT > 500){ fps = Math.round(frames*1000/(ts-lastFpsT)); frames=0; lastFpsT=ts; updateFps(); }
+
+  rafId = requestAnimationFrame(pulse);
+}
+
+function stepPositions(){
+  for(const rec of records.values()){
+    if(rec.kind!=='truck') continue;
+    const p=rec.pos, d=rec.dest;
+    const dx=d[0]-p[0], dy=d[1]-p[1], dist=Math.hypot(dx,dy);
+    if(dist < SPEED*1.5){ rec.dest = nearMetro(); }         // arrived → new lane, keeps the fleet live
+    else { p[0]+=dx/dist*SPEED; p[1]+=dy/dist*SPEED; rec.bearing = bearingTo(p, d); }
+    const f=featureIndex.get(rec.id);
+    f.geometry.coordinates[0]=p[0]; f.geometry.coordinates[1]=p[1];
+    f.properties.bearing = rec.bearing;
+  }
+  map.getSource('fleet').setData(fc);
+  // defensively re-assert feature-state for the small non-healthy set (survives any reclustering)
+  for(const [id,s] of active) map.setFeatureState({ source:'fleet', id }, { status:s.status, risk:s.risk||null });
+}
+
+let rafId=null;
+function startLoops(){
+  if(REDUCED){ pulse(0); return; }        // reduced-motion: paint one static frame, no loops
+  rafId = requestAnimationFrame(pulse);
+}
+
+/* ============================================================================
+   8. THE LIVE EVENT STREAM — seed ~12% at-risk, rotate it, and fire exceptions
+      so the exception pulse dims the map while everything else stays quiet.
+   ========================================================================== */
+const RISKS=['DWELL','ETA','DETENTION','HOS','CREDIT'];
+const truckIds = [...records.values()].filter(r=>r.kind==='truck').map(r=>r.id);
+function randTruck(){ return truckIds[(Math.random()*truckIds.length)|0]; }
+
+function seedRisk(){
+  const target = Math.round(truckIds.length*0.12); // ~120 at-risk
+  const seen = new Set();
+  while(seen.size < target){
+    const id = randTruck(); if(seen.has(id)) continue; seen.add(id);
+    setEntityState(id,'at-risk', pick(RISKS));
+  }
+}
+// keep the at-risk set churning (events landing/clearing)
+setInterval(()=>{
+  if(REDUCED) return;
+  for(let i=0;i<3;i++){ const [id] = active.size?[...active.keys()][(Math.random()*active.size)|0]:[null];
+    if(id && !exceptions.has(id)) setEntityState(id,'healthy',null); }
+  for(let i=0;i<3;i++) setEntityState(randTruck(),'at-risk', pick(RISKS));
+  updateReadout();
+}, 2600);
+
+// the exception cycle: calm → ALARM (world dims) → clears. Also wired to the manual button.
+let excTimer=null;
+function fireException(id){
+  id = id || randTruck();
+  const rec = records.get(id); if(!rec) return;
+  rec._excKind = pick(['OS&D','REEFER BREAK','MISSED APPT','DETAINED','REROUTE']);
+  setEntityState(id,'exception',null);
+  updateReadout();
+  clearTimeout(excTimer);
+  excTimer = setTimeout(()=>{ setEntityState(id, Math.random()<0.5?'at-risk':'healthy', pick(RISKS)); updateReadout(); }, 6200);
+}
+if(!REDUCED){
+  setTimeout(()=>fireException(), 5000);      // first alarm after a calm beat
+  setInterval(()=>{ if(exceptions.size===0) fireException(); }, 15000);
+} else {
+  // reduced-motion: show ONE static exception mark so the grammar is visible (no dim, no flashing)
+  map.once('idle', ()=>fireException());
+}
+
+/* ============================================================================
+   9. INTERACTIONS — click a truck → right-side lens panel; the map never navigates.
+      Click a cluster → descend into it (detail, not navigation-away).
+   ========================================================================== */
+function bindInteractions(){
+  const openIds=['trucks','marks'];
+  for(const lyr of openIds){
+    map.on('click', lyr, e=>{ if(e.features&&e.features[0]) openLens(e.features[0].properties.id); });
+    map.on('mouseenter', lyr, ()=>map.getCanvas().style.cursor='pointer');
+    map.on('mouseleave', lyr, ()=>map.getCanvas().style.cursor='');
+  }
+  map.on('click','clusters', e=>{
+    const cid=e.features[0].properties.cluster_id;
+    map.getSource('fleet').getClusterExpansionZoom(cid).then(z=>{
+      map.easeTo({ center:e.features[0].geometry.coordinates, zoom:z, duration:REDUCED?0:600 });
+    }).catch(()=>{});
+  });
+  map.on('mouseenter','clusters', ()=>map.getCanvas().style.cursor='pointer');
+  map.on('mouseleave','clusters', ()=>map.getCanvas().style.cursor='');
+
+  document.getElementById('lx-close').addEventListener('click', closeLens);
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeLens(); });
+  document.getElementById('btn-exc').addEventListener('click', ()=>fireException());
+  document.getElementById('btn-conus').addEventListener('click', ()=>map.easeTo({center:[-96.5,38.6],zoom:4.1,duration:REDUCED?0:700}));
+}
+
+/* ============================================================================
+   10. THE LENS PANEL + the teal ETA route  (map stays put; only the panel moves)
+   ========================================================================== */
+const GLYPHS={ healthy:'▲', 'at-risk':'◎', exception:'✦' };
+let selectedId=null;
+
+function openLens(id){
+  const rec = records.get(id); if(!rec) return;
+  selectedId = id;
+  document.getElementById('lx-id').textContent = id;
+  document.getElementById('lx-sub').textContent = rec.equip + ' · ' + rec.driver;
+  document.getElementById('lx-glyph').textContent = GLYPHS[rec.status]||'▲';
+  const chipEl = document.getElementById('lx-chip');
+  chipEl.textContent = rec.chip || rec.status.toUpperCase();
+  chipEl.classList.toggle('calm', rec.status==='healthy');
+
+  const rows = [
+    ['Status', rec.status.toUpperCase()],
+    ['Lane', rec.oCity + '  →  ' + rec.dCity],
+    ['Equipment', rec.equip],
+    ['Driver', rec.driver],
+    ['Position', rec.pos[1].toFixed(3)+', '+rec.pos[0].toFixed(3)],
+    ['Bearing', Math.round(rec.bearing)+'°']
+  ];
+  document.getElementById('lx-rows').innerHTML = rows.map(r=>
+    `<div class="lx-row"><span class="rk">${r[0]}</span><span class="rv">${r[1]}</span></div>`).join('');
+
+  // the single teal moment: ETA progress fill
+  document.getElementById('lx-eta-pct').textContent = rec.etaPct+'%';
+  requestAnimationFrame(()=>{ document.getElementById('lx-eta-fill').style.width = rec.etaPct+'%'; });
+
+  // co-signed event ledger (deterministic-ish flavor)
+  document.getElementById('lx-events').innerHTML = eventLedger(rec).map(ev=>
+    `<div class="lx-ev"><span class="et">${ev.t}</span><span class="ek">${ev.k}</span><span class="eb">${ev.b}</span></div>`).join('');
+  document.getElementById('lx-foot').textContent =
+    'Append-only · co-signed · '+ (rec.status==='exception'?'EXCEPTION OPEN — gatekeeper held':'on plan');
+
+  const lens=document.getElementById('lens'); lens.classList.add('open'); lens.setAttribute('aria-hidden','false');
+
+  // draw the remaining route in --progress (the map does NOT recenter)
+  map.getSource('focus-route').setData({
+    type:'FeatureCollection', features:[{ type:'Feature',
+      geometry:{ type:'LineString', coordinates:[ rec.pos, midArc(rec.pos,rec.dest), rec.dest ] } }]
+  });
+}
+function midArc(a,b){ const mx=(a[0]+b[0])/2, my=(a[1]+b[1])/2; return [mx, my + Math.hypot(b[0]-a[0],b[1]-a[1])*0.06]; }
+function closeLens(){
+  const lens=document.getElementById('lens'); lens.classList.remove('open'); lens.setAttribute('aria-hidden','true');
+  selectedId=null; document.getElementById('lx-eta-fill').style.width='0';
+  map.getSource('focus-route').setData({ type:'FeatureCollection', features:[] });
+}
+function eventLedger(rec){
+  const seq = [
+    ['09:02','TENDER ACCEPTED','MV'],['09:41','DISPATCHED','MV'],['11:18','ARRIVE PU','DR'],
+    ['11:52','LOADED · BOL','DR'],['12:07','DEPART PU','DR'],['—','IN TRANSIT','·']
+  ];
+  if(rec.status==='exception') seq.push(['NOW', rec.chip||'EXCEPTION','GK']);
+  if(rec.kind==='delivered') seq.push(['13:44','POD · SIGNED','DR']);
+  return seq;
+}
+
+/* ============================================================================
+   11. HUD readout
+   ========================================================================== */
+function updateReadout(){
+  let risk=0; for(const s of active.values()) if(s.status==='at-risk') risk++;
+  document.getElementById('r-trucks').textContent = N_TRUCKS.toLocaleString();
+  document.getElementById('r-risk').textContent = risk;
+  const re=document.getElementById('r-exc'); re.textContent = exceptions.size;
+  re.classList.toggle('exc', exceptions.size>0);
+}
+function updateFps(){ document.getElementById('r-fps').textContent = (REDUCED?'STATIC':fps+' FPS'); }
+
+/* MapLibre errors (e.g. a transient tile/font hiccup) shouldn't kill the fleet demo */
+map.on('error', e=>{ /* swallow tile/glyph noise; entity layers are self-contained */ });
+</script>
+</body>
+</html>
