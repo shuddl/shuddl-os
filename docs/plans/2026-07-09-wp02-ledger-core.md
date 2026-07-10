@@ -1203,7 +1203,9 @@ export class ShipmentSequencer extends DurableObject<Env> {
 }
 ```
 
-`EventInput` (contracts): the client-suppliable subset — envelope minus `seq/prev_hash/recorded_at/visibility/hash/stream_id` plus optional `requested_visibility` (narrow-only) and optional `device_id/device_seq/captured_ts`. wrangler.toml: `[[durable_objects.bindings]] name = "SHIPMENT_SEQ" class_name = "ShipmentSequencer"` + `[[migrations]] tag = "v2-sequencer" new_sqlite_classes = ["ShipmentSequencer"]` + `[[d1_databases]] binding = "CONTROL_DB" database_name = "shuddl-control-dev"`.
+`EventInput` (contracts): the client-suppliable subset — envelope minus `seq/prev_hash/recorded_at/visibility/hash/stream_id` plus optional `requested_visibility` (narrow-only) and optional `device_id/device_seq/captured_ts`.
+
+> **`LedgerEvent.parse()` accepts a client-supplied `hash`, `seq`, `prev_hash` and `recorded_at`** — the schema is the *storage* shape, not the input shape. The append handler must parse `EventInput` (which omits them) and assign all four server-side. Never `LedgerEvent.parse(await c.req.json())`. wrangler.toml: `[[durable_objects.bindings]] name = "SHIPMENT_SEQ" class_name = "ShipmentSequencer"` + `[[migrations]] tag = "v2-sequencer" new_sqlite_classes = ["ShipmentSequencer"]` + `[[d1_databases]] binding = "CONTROL_DB" database_name = "shuddl-control-dev"`.
 
 **Step 4: GREEN → Commit** — `sequencer DO: tenant-pinned, mutex-serialized, gate+projection batch append` — REQ-002, REQ-011, REQ-025, I1/I2/I3, doc 14 §06.
 
