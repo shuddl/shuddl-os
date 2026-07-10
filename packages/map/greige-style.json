@@ -1,0 +1,61 @@
+{
+  "//": "SHUDDL 'Terminal Gallery' basemap — red engraving on warm concrete. MapLibre GL JS (product, REQ-075, self-hosted, no token). style.ts::greigeStyle(tileUrl, glyphsUrl) injects the two {PROVIDER_*} placeholders below and strips these '//' comment keys. Source-layer names follow the OpenMapTiles schema (Protomaps/OpenFreeMap). The basemap carries NO colour beyond {#D5D1CC field, #FF4A33 signal, #1A1A1A ink}; teal (--progress) is an ENTITY-LAYER mark only (the eta line), never the basemap. Exception world-dim is done with PAINT on the entity layers (see entities.ts::setWorldDim), NOT a DOM veil.",
+  "version": 8,
+  "name": "shuddl-terminal-gallery",
+  "glyphs": "{PROVIDER_GLYPHS_URL}/{fontstack}/{range}.pbf",
+  "sources": {
+    "v": {
+      "//": "Vector source. Product: your self-hosted Protomaps/OpenFreeMap vectors. The paint below assumes OpenMapTiles source-layers.",
+      "type": "vector",
+      "url": "{PROVIDER_VECTOR_TILE_URL}"
+    }
+  },
+  "layers": [
+    { "id": "field", "type": "background", "paint": { "background-color": "#D5D1CC" } },
+
+    { "id": "water", "type": "fill", "source": "v", "source-layer": "water",
+      "paint": { "fill-color": "#1A1A1A", "fill-opacity": 0.06 } },
+
+    { "id": "waterway", "type": "line", "source": "v", "source-layer": "waterway",
+      "paint": { "line-color": "#1A1A1A", "line-opacity": 0.06, "line-width": 0.6 } },
+
+    { "id": "road-minor", "type": "line", "source": "v", "source-layer": "transportation",
+      "filter": ["!in", "class", "motorway", "trunk", "primary"],
+      "layout": { "line-cap": "round" },
+      "paint": {
+        "line-color": "#FF4A33",
+        "line-opacity": 0.05,
+        "line-width": ["interpolate", ["linear"], ["zoom"], 5, 0.3, 12, 0.8, 16, 1.4]
+      } },
+
+    { "id": "road-major", "type": "line", "source": "v", "source-layer": "transportation",
+      "filter": ["in", "class", "motorway", "trunk", "primary"],
+      "layout": { "line-cap": "round" },
+      "paint": {
+        "line-color": "#FF4A33",
+        "line-opacity": 0.10,
+        "line-width": ["interpolate", ["linear"], ["zoom"], 4, 0.4, 10, 1.2, 16, 3.0]
+      } },
+
+    { "id": "boundary", "type": "line", "source": "v", "source-layer": "boundary",
+      "filter": ["<=", "admin_level", 4],
+      "paint": { "line-color": "#FF4A33", "line-opacity": 0.14, "line-width": 0.5, "line-dasharray": [3, 3] } },
+
+    { "id": "place-major", "type": "symbol", "source": "v", "source-layer": "place",
+      "filter": ["in", "class", "country", "state", "city"],
+      "layout": {
+        "//": "thinned aggressively — the map must stay calm; drop labels below city scale",
+        "text-field": ["upcase", ["coalesce", ["get", "name:en"], ["get", "name"]]],
+        "text-font": ["JetBrains Mono Regular"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 3, 9, 8, 11],
+        "text-letter-spacing": 0.12,
+        "text-max-width": 8,
+        "text-padding": 24
+      },
+      "paint": {
+        "text-color": "rgba(255,74,51,0.55)",
+        "text-halo-color": "#D5D1CC",
+        "text-halo-width": 1
+      } }
+  ]
+}
