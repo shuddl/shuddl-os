@@ -31,6 +31,7 @@
     "@shuddl/ledger": "workspace:*",
     "@types/node": "^26.1.1",
     "eslint": "^10.6.0",
+    "puppeteer-core": "^25.3.0",
     "tsx": "^4.23.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.63.0",

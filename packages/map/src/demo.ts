@@ -116,5 +116,5 @@ export function demoFleet(): FleetItem[] {
 // Demo tile + glyph endpoints (plan assumption 1/2): the greige STYLE and entity grammar are built
 // now against a public demo source; self-hosted Protomaps vectors + JetBrains-Mono glyph PBFs on R2
 // are a deploy line item. Swap these for the tenant's tile host at deploy. Strings only — no render.
-export const DEMO_TILE_URL = "https://demotiles.maplibre.org/tiles/tiles.json";
-export const DEMO_GLYPHS_URL = "https://demotiles.maplibre.org/font";
+export const DEMO_TILE_URL = "https://tiles.openfreemap.org/planet";
+export const DEMO_GLYPHS_URL = "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf";
