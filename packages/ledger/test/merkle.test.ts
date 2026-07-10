@@ -99,7 +99,7 @@ describe("REQ-014 — inclusion proofs verify; any mutation fails (property loop
         }
       }
     }
-  });
+  }, 30_000); // crypto property sweep over 257 tree sizes: ~1.5s local, ~6s on a slow shared CI runner — well under this ceiling, no coverage thinning
 });
 
 function hexToBytesSyncFlip(hex: string): string {
