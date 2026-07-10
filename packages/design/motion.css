@@ -1,0 +1,25 @@
+/* Motion law (doc 07 §05) made real. The ONE sanctioned entrance — a fade-up reveal — and the
+   prefers-reduced-motion rest state that backs it (A5: looping/entrance motion goes calm, the
+   value just appears). No springs, no parallax, no shimmer/skeleton. This file is the shared
+   reduced-motion guard the squint-test motion audit requires every @keyframes to be backed by. */
+
+@keyframes shuddl-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.shuddl-reveal {
+  animation: shuddl-reveal 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shuddl-reveal {
+    animation: none;
+  }
+}

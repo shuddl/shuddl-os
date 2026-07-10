@@ -2,5 +2,28 @@
   "name": "@shuddl/design",
   "private": true,
   "type": "module",
-  "exports": { "./tokens.css": "./tokens.css" }
+  "exports": {
+    ".": "./src/index.ts",
+    "./tokens.css": "./tokens.css",
+    "./motion.css": "./motion.css"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "@types/react": "^19.2.9",
+    "@types/react-dom": "^19.2.3",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/dom": "^10.4.1",
+    "jsdom": "^29.1.1",
+    "vitest": "^4.1.10",
+    "typescript": "^5.9.0"
+  }
 }
