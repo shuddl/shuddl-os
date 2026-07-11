@@ -6,6 +6,11 @@ export default tseslint.config(
   {
     rules: {
       "@typescript-eslint/no-explicit-any": "error",
+      // Honor the `_`-prefix convention for intentionally-unused args/vars/catch bindings (e.g. a
+      // reserved future-seam parameter like costBasis(_config)). Underscore = "deliberately unused".
+      "@typescript-eslint/no-unused-vars": ["error", {
+        argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_",
+      }],
       // REQ-163: prior codebases (pre-genesis TMS builds, 2023 apps) are organ banks — reference, never merge.
       "no-restricted-imports": ["error", {
         patterns: [{ group: ["*lumina*", "*Lumina*", "*shuddl-2023*"], message: "REQ-163: prior codebases are organ banks — no code merges into the spine." }],
