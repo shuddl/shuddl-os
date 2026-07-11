@@ -3,6 +3,7 @@ export * from "./roles.js";
 export * from "./session.js";
 export * from "./json.js";
 export * from "./money.js";
+export * from "./rating.js";
 export * from "./events.js";
 export * from "./position.js";
 export * from "./anchors.js";
