@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import * as maplibregl from "maplibre-gl";
 import type { GeoJSONSource, MapLayerMouseEvent } from "maplibre-gl";
-import { greigeStyle } from "./style.js";
+import { greigeStyle, greigeStyleMapbox, mapboxTransformRequest } from "./style.js";
 import {
   entityLayers,
   fleetSource,
@@ -24,6 +24,10 @@ export interface MapCanvasProps {
   glyphsUrl: string;
   fleet: FleetCollection;
   onSelect: (shipmentId: string) => void;
+  /** Opt-in Mapbox tiles (evaluation / promo). When a non-empty token is passed (the apps read it
+   * from VITE_MAPBOX_TOKEN), the greige grammar renders on Mapbox Streets v8 with that token instead
+   * of the self-hosted default (REQ-075). Undefined/empty ⇒ the self-hosted path — the shipped norm. */
+  mapboxToken?: string | undefined;
   /** Optional world-dim OVERRIDE. Left undefined (the norm), the canvas dims itself whenever the
    * scoped fleet contains a visible exception and lifts when it clears — so acceptance demo #5 fires
    * off the ledger, not a prop. Pass `true`/`false` only to force the alarm on/off. */
@@ -135,7 +139,8 @@ function applyPulse(map: maplibregl.Map, ts: number): void {
   ]);
 }
 
-export function MapCanvas({ tileUrl, glyphsUrl, fleet, onSelect, dim }: MapCanvasProps): React.JSX.Element {
+export function MapCanvas({ tileUrl, glyphsUrl, fleet, onSelect, dim, mapboxToken }: MapCanvasProps): React.JSX.Element {
+  const useMapbox = typeof mapboxToken === "string" && mapboxToken.length > 0;
   // The world dims automatically on a visible exception; an explicit `dim` prop still overrides.
   const effectiveDim = dim ?? hasVisibleException(fleet);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -161,10 +166,12 @@ export function MapCanvas({ tileUrl, glyphsUrl, fleet, onSelect, dim }: MapCanva
     if (!container) return;
     const map = new maplibregl.Map({
       container,
-      style: greigeStyle(tileUrl, glyphsUrl),
+      style: useMapbox ? greigeStyleMapbox(glyphsUrl) : greigeStyle(tileUrl, glyphsUrl),
       center: [-98.5, 39.5],
       zoom: 4,
-      attributionControl: false,
+      // Mapbox ToS requires visible attribution; the self-hosted default carries none.
+      attributionControl: useMapbox ? { compact: true } : false,
+      ...(useMapbox ? { transformRequest: mapboxTransformRequest(mapboxToken) } : {}),
     });
     mapRef.current = map;
     reducedRef.current = prefersReducedMotion();
@@ -232,7 +239,7 @@ export function MapCanvas({ tileUrl, glyphsUrl, fleet, onSelect, dim }: MapCanva
       map.remove();
       mapRef.current = null;
     };
-  }, [tileUrl, glyphsUrl]);
+  }, [tileUrl, glyphsUrl, useMapbox, mapboxToken]);
 
   // A new fleet frame: retarget the glide and refresh the mirror, then push once (throttled loop
   // picks it up; under reduced-motion we snap and push immediately).

@@ -117,4 +117,7 @@ export function demoFleet(): FleetItem[] {
 // now against a public demo source; self-hosted Protomaps vectors + JetBrains-Mono glyph PBFs on R2
 // are a deploy line item. Swap these for the tenant's tile host at deploy. Strings only — no render.
 export const DEMO_TILE_URL = "https://tiles.openfreemap.org/planet";
-export const DEMO_GLYPHS_URL = "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf";
+// Glyph HOST only — both greigeStyle (via greige-style.json) and greigeStyleMapbox append the
+// `/{fontstack}/{range}.pbf` suffix. Including the suffix here double-appends it and 404s every glyph
+// range (caught by the live render — labels silently vanished on both paths). Host-only is the contract.
+export const DEMO_GLYPHS_URL = "https://tiles.openfreemap.org/fonts";

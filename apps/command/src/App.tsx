@@ -25,6 +25,9 @@ const KPIS: ReadonlyArray<{ label: string; value: number; format: (n: number) =>
 
 const NAV_LINKS = ["BOARD", "QUEUES", "MONEY", "SETTINGS"] as const;
 
+// Opt-in Mapbox tiles when VITE_MAPBOX_TOKEN is set at build; unset ⇒ self-hosted default (REQ-075).
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
+
 function usePerfMode(): boolean {
   return useMemo(() => {
     if (typeof window === "undefined") return false;
@@ -62,7 +65,7 @@ export function App(): React.JSX.Element {
 
   return (
     <main style={{ position: "fixed", inset: 0, background: "var(--field)", overflow: "hidden" }}>
-      <MapCanvas tileUrl={DEMO_TILE_URL} glyphsUrl={DEMO_GLYPHS_URL} fleet={collection} onSelect={setSelected} />
+      <MapCanvas tileUrl={DEMO_TILE_URL} glyphsUrl={DEMO_GLYPHS_URL} fleet={collection} onSelect={setSelected} mapboxToken={MAPBOX_TOKEN} />
 
       {/* Transparent nav — wordmark, micro-mono links, one dark CTA. */}
       <nav
