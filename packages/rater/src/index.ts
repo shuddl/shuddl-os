@@ -10,6 +10,8 @@ export { computeFloors } from "./floors.js";
 export type { Floors } from "./floors.js";
 export { priceShipment } from "./price.js";
 export type { RateRequest, TenantRatingConfig, PricedQuote, QuoteResult } from "./price.js";
+export { sweepGrid } from "./sweep.js";
+export type { SweepCell } from "./sweep.js";
 export { evaluateApproval, executingShare, executingShareCents, assessApproval } from "./approval.js";
 export type { ApprovalKind, ApprovalRule, ApprovalDecision, Leg } from "./approval.js";
 export { detectAnomaly, DEFAULT_MAX_CENTS_PER_LB } from "./anomaly.js";
