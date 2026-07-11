@@ -283,6 +283,9 @@ importers:
       '@shuddl/ledger':
         specifier: workspace:*
         version: link:../../packages/ledger
+      '@shuddl/rater':
+        specifier: workspace:*
+        version: link:../../packages/rater
       hono:
         specifier: ^4.10.8
         version: 4.12.28

@@ -14,7 +14,7 @@ import type { Env, Vars } from "../index.js";
 
 // The DO's RPC surface. Its return type is a 35-member zod union whose recursive payload makes the
 // generic DurableObjectStub mapper explode, so we bind a hand-written surface (as sequencer.test does).
-type SeqStub = DurableObjectStub & {
+export type SeqStub = DurableObjectStub & {
   append(req: { tenant: string; streamId: string; input: unknown }): Promise<AppendedEvent>;
 };
 
@@ -37,7 +37,7 @@ function safeJson(s: string): unknown {
   }
 }
 
-function translateAppendError(e: unknown): ApiError {
+export function translateAppendError(e: unknown): ApiError {
   const msg = e instanceof Error ? e.message : String(e);
   const idx = msg.indexOf(":");
   const code = idx >= 0 ? msg.slice(0, idx) : msg;

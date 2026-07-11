@@ -8,6 +8,7 @@ import { tenantDb } from "./tenants.js";
 import { mountEventRoutes } from "./routes/events.js";
 import { mountPositionRoutes } from "./routes/positions.js";
 import { mountAnchorRoutes } from "./routes/anchors.js";
+import { mountRateRoutes } from "./routes/rate.js";
 
 export type Env = {
   TENANT_A_DB: D1Database;
@@ -52,6 +53,8 @@ app.get("/v1/_probe", requireRole("admin", "ops", "finance"), async (c) => {
 mountEventRoutes(app);
 mountPositionRoutes(app);
 mountAnchorRoutes(app);
+// WP-04 Task 10 (REQ-030/025/005/I5): POST /v1/rate — server-side floor gate (requireRole applied inside).
+mountRateRoutes(app);
 
 app.notFound((c) => envelope(c, "NOT_FOUND", 404, "NOT FOUND"));
 
