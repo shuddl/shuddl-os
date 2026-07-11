@@ -24,9 +24,50 @@ export function roundHalfUp(numerator: number, divisor: number): number {
   if (numerator < 0 || divisor <= 0) {
     throw new Error(`roundHalfUp: expects numerator >= 0 and divisor > 0 (got ${numerator}/${divisor})`);
   }
-  const n = BigInt(numerator);
-  const d = BigInt(divisor);
-  const q = n / d; // truncation == floor here (n >= 0, d > 0)
-  const r = n % d; // exact remainder, 0 <= r < d
-  return Number(r * 2n >= d ? q + 1n : q);
+  return Number(halfUpBig(BigInt(numerator), BigInt(divisor)));
+}
+
+// THE half-up rule, in one place, on exact BigInt operands. roundHalfUp and mulDivHalfUp both funnel
+// through this so the rounding convention (round-half-UP; see the doc-comment above) can never drift
+// between the freight core and the fsc/accessorial composer. Assumes numerator >= 0 and divisor > 0
+// (callers validate the number-domain before widening to BigInt); on that domain truncation == floor,
+// so `2*r >= d` is the exact half-up decision with no float division anywhere.
+function halfUpBig(numerator: bigint, divisor: bigint): bigint {
+  const q = numerator / divisor; // truncation == floor here (numerator >= 0, divisor > 0)
+  const r = numerator % divisor; // exact remainder, 0 <= r < divisor
+  return r * 2n >= divisor ? q + 1n : q;
+}
+
+const MAX_SAFE = BigInt(Number.MAX_SAFE_INTEGER);
+
+/**
+ * mulDivHalfUp — compute round_half_up((a × b) / divisor) with the product formed in BigInt.
+ *
+ * The 2^53 guard (WP-04 Task 3): for the fsc line `freight_cents × pct_bps` can exceed
+ * Number.MAX_SAFE_INTEGER for very large freight (Cents allows up to ~10^12; ×10000 bps ≈ 10^16 > 2^53).
+ * Computing `a * b` as a JS number would silently lose precision past 2^53 and then mis-round. So the
+ * product is taken through BigInt (`BigInt(a) * BigInt(b)`) BEFORE the divide, and rounded with the same
+ * exact half-up rule as roundHalfUp. Integer cents in, integer cents out — no float touches the value.
+ *
+ * Requires a >= 0, b >= 0 (so the product is non-negative and the half-up decision is exact) and
+ * divisor > 0, all integers — mirrors roundHalfUp's domain and fails LOUDLY otherwise, never misprices.
+ * The RESULT is guarded to be a safe integer: returning a number past 2^53 would itself lose precision,
+ * so an out-of-range result throws rather than silently returning a lie. (Legitimate fsc is ~10^12,
+ * far inside the safe range; the guard only trips on absurd inputs.)
+ */
+export function mulDivHalfUp(a: number, b: number, divisor: number): number {
+  if (!Number.isInteger(a) || !Number.isInteger(b) || !Number.isInteger(divisor)) {
+    throw new Error(`mulDivHalfUp: a, b and divisor must be integers (got ${a}, ${b}, ${divisor})`);
+  }
+  if (a < 0 || b < 0 || divisor <= 0) {
+    throw new Error(`mulDivHalfUp: expects a >= 0, b >= 0 and divisor > 0 (got ${a}, ${b}, ${divisor})`);
+  }
+  const product = BigInt(a) * BigInt(b); // formed in BigInt: a×b may exceed 2^53 — a JS-number product would lose precision
+  const result = halfUpBig(product, BigInt(divisor));
+  if (result > MAX_SAFE) {
+    throw new Error(
+      `mulDivHalfUp: result ${result} exceeds Number.MAX_SAFE_INTEGER — returning it as a JS number would silently lose precision`,
+    );
+  }
+  return Number(result);
 }
