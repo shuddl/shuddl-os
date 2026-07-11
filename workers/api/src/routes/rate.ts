@@ -61,7 +61,17 @@ const RateBody = z
     legs: z.array(LegSchema).optional(),
     tenant_party: z.string().min(1).optional(),
   })
-  .strict();
+  .strict()
+  // Interline split integrity at the BOUNDARY (REQ-040 / mirrors money.ts SplitComputedPayload): when legs
+  // are present, their split_bps must total exactly 10000. LegSchema only bounds each leg's range; the
+  // sum-to-100% invariant otherwise lived deep inside executingShare, which runs at assessApproval AFTER
+  // quote.priced + agent.acted are already appended — so a body whose splits sum to ≠10000 (a plausible
+  // typo) committed two events and then 500'd, un-retryable, leaving a priced fact with no approval.requested.
+  // Rejecting here means NOTHING is appended for a malformed split: a clean 400, no partial write.
+  .refine(
+    (b) => b.legs === undefined || b.legs.length === 0 || b.legs.reduce((sum, l) => sum + l.split_bps, 0) === 10_000,
+    { message: "interline leg split_bps must sum to exactly 10000", path: ["legs"] },
+  );
 type RateBody = z.infer<typeof RateBody>;
 
 const RATER_CONFIDENCE_BPS = 10_000; // a deterministic rule engine, not a probabilistic agent — full confidence.

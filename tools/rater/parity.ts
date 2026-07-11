@@ -15,6 +15,10 @@ import {
 // price.js directly (not the barrel) also avoids pulling the class adapter the barrel re-exports.
 import { priceShipment } from "../../packages/rater/src/price.js";
 import type { RateRequest, TenantRatingConfig, QuoteResult } from "../../packages/rater/src/price.js";
+// hashPath is the SAME per-file (path + bytes, sorted) hash tools/fixtures/verify.ts pins fixtures by.
+// Reusing it (not re-implementing) guarantees the parity gate compares bytes exactly the way they were
+// pinned — the hash pin below is only meaningful if it is computed identically to how it was recorded.
+import { hashPath } from "../fixtures/verify.js";
 
 // REQ-027 ("the 48 legacy tests pass in the service") + REQ-165 ("reproduces tenant-0 quotes exactly").
 //
@@ -22,7 +26,12 @@ import type { RateRequest, TenantRatingConfig, QuoteResult } from "../../package
 // 504-sweep, and the tenant-0 tariff live in the tenant ENGAGEMENT WORKSPACE, OUTSIDE this repo
 // (fixtures/manifest.json lists rater-48-tests / rater-504-sweep / zone-tariff-v1 as status:"pending").
 // So REQ-027/REQ-165 CANNOT be closed from inside this repo today. This harness therefore:
-//   • runs the real parity gate THE MOMENT those fixtures are vendored (exit 1 on any divergence), and
+//   • runs the real parity gate THE MOMENT those fixtures are vendored AND hash-pinned — the three manifest
+//     rows are status:"vendored" with a non-null sha256, AND the on-disk bytes hash to that pin (exit 1 on
+//     any divergence). A set that is PRESENT on disk but NOT vendored/pinned (or hash-mismatched) is a REAL
+//     discrepancy — the exact self-consistent false-green REQ-027/REQ-165 must stay OPEN to prevent — and
+//     hard-fails (exit 1), it never greens. Presence alone is NOT a pass: the hash pin is what proves the
+//     cases were ported from the audited engine (carrying INDEPENDENT expectations), not self-generated.
 //   • until then LOUD-SKIPS — prints the pending rows (id + path + source) and exits 0 as advisory.
 // It must NEVER print a false green: no "passed", no exit-1 gate, on synthetic or absent data. This mirrors
 // tools/fixtures/verify.ts (loud pending, exit 0). The runner below is PURE (no I/O) so it is unit-testable
@@ -207,8 +216,53 @@ const CONFIG_FILES = {
 // The three manifest rows that must be vendored to activate the gate; printed loudly while pending.
 const PARITY_FIXTURE_IDS = ["rater-48-tests", "rater-504-sweep", "zone-tariff-v1"];
 
-type ManifestEntry = { id: string; status: string; path: string; source: string };
+type ManifestEntry = { id: string; status: string; path: string; sha256: string | null; source: string };
 type Manifest = { fixtures: ManifestEntry[] };
+
+// The vendored + hash-pin gate for the three parity fixtures (REQ-027/REQ-165) — the load-bearing
+// anti-fabrication check. A parity set that is PRESENT on disk may activate/green ONLY if it is ALSO:
+//   (a) marked status:"vendored" with a non-null sha256 in the manifest, AND
+//   (b) hash-identical to that pinned sha256 (hashPath = the same path+bytes hashing verify.ts pins by).
+// A present-but-unvendored / unpinned / hash-mismatched set is a REAL discrepancy — someone could otherwise
+// drop self-consistent (engine-computed) 48+504 files with the manifest still pending/sha256:null and get a
+// false "reproduced exactly". The hash pin is what proves the on-disk cases were ported from the audited
+// engine (INDEPENDENT expectations), not self-generated. Returns the problems (EMPTY ⇒ all three vendored
+// and hash-matched). hashFn/existsFn are injected for unit tests; the CLI wires in the fs-backed defaults.
+export function verifyParityPins(
+  rows: readonly { id: string; status: string; path: string; sha256: string | null }[],
+  hashFn: (p: string) => string = hashPath,
+  existsFn: (p: string) => boolean = existsSync,
+): string[] {
+  const problems: string[] = [];
+  for (const id of PARITY_FIXTURE_IDS) {
+    const row = rows.find((r) => r.id === id);
+    if (row === undefined) {
+      problems.push(`${id}: no manifest row (REQ-027/REQ-165 requires all three parity fixtures vendored)`);
+      continue;
+    }
+    if (row.status !== "vendored") {
+      problems.push(
+        `${id} [${row.status}] — NOT vendored: a present-but-unvendored set carries no independent expectations; the hash pin is what proves the cases were ported from the audited engine, not self-generated`,
+      );
+      continue;
+    }
+    if (row.sha256 === null) {
+      problems.push(`${id} [vendored] — no pinned sha256; a vendored parity fixture MUST carry the hash it was pinned at`);
+      continue;
+    }
+    if (!existsFn(row.path)) {
+      problems.push(`${id} [vendored] — pinned but the path is missing on disk: ${row.path}`);
+      continue;
+    }
+    const actual = hashFn(row.path);
+    if (actual !== row.sha256) {
+      problems.push(
+        `${id} [vendored] — hash mismatch (pinned ${row.sha256.slice(0, 12)}… actual ${actual.slice(0, 12)}…): the on-disk bytes are NOT the vendored set`,
+      );
+    }
+  }
+  return problems;
+}
 
 function hasJsonFiles(dir: string): boolean {
   return existsSync(dir) && readdirSync(dir).some((f) => f.endsWith(".json"));
@@ -293,8 +347,24 @@ function main(): void {
     return;
   }
 
-  // PRESENT — the real REQ-027/REQ-165 gate. Load per-dir so a short / empty / over vendoring is SURFACED,
-  // never blessed. A 0/0 or partial run must never reach the GREEN line.
+  // PRESENT — but presence is NOT a pass. Before loading/running/greening, REQUIRE the set be vendored AND
+  // hash-pinned (REQ-027/REQ-165): all three manifest rows status:"vendored" with a non-null sha256, AND
+  // the on-disk bytes hashing to that pin. A present-but-unvendored/unpinned/hash-mismatched set is the
+  // exact self-consistent false-green those REQs must stay OPEN to prevent — hard-fail (exit 1), never green.
+  const pinProblems = verifyParityPins(rows);
+  if (pinProblems.length > 0) {
+    console.error(
+      "PARITY FAILED — parity case files are PRESENT but the set is not vendored + hash-pinned; a present-but-unpinned set is a real discrepancy, never a pass (REQ-027/REQ-165):",
+    );
+    for (const p of pinProblems) console.error(`  - ${p}`);
+    console.error(
+      'Vendor the audited set through the manifest: status:"vendored" with a sha256 that matches the on-disk bytes — the hash pin is what proves the cases were ported from the audited engine, not self-generated. No self-consistent false green.',
+    );
+    process.exit(1);
+  }
+
+  // Vendored + hash-pinned confirmed — now the real REQ-027/REQ-165 gate. Load per-dir so a short / empty /
+  // over vendoring is SURFACED, never blessed. A 0/0 or partial run must never reach the GREEN line.
   const config = loadConfig(CONFIG_DIR);
   const perDir = CASE_DIRS.map((c) => ({ ...c, cases: loadCases(c.dir) }));
   const cases = perDir.flatMap((d) => d.cases);

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ZoneTariff } from "@shuddl/contracts";
 import { priceFreight } from "../src/engine.js";
-import { roundHalfUp } from "../src/money.js";
+import { roundHalfUp, mulDivHalfUp } from "../src/money.js";
 import type { ShipmentPhysics } from "../src/types.js";
 
 // REQ-004 "No price on air": pricing is a projection of MEASURED physics. Missing weight OR dims ⇒
@@ -74,6 +74,15 @@ describe("priceFreight — UNKNOWN-no-sell (no price on air, REQ-004)", () => {
 
   it("weight_lb = Infinity ⇒ UNKNOWN/missing_physics (Number.isFinite guard)", () => {
     expect(priceFreight(okShip({ weight_lb: Number.POSITIVE_INFINITY }), tariff)).toEqual({
+      status: "UNKNOWN",
+      reason: "missing_physics",
+    });
+  });
+
+  it("weight_lb = 100.5 (fractional) ⇒ UNKNOWN/missing_physics (whole-pound gate; no crash, no fractional price)", () => {
+    // Measured physics is whole pounds. A fractional weight must NOT reach the freight product (a non-integer
+    // numerator would throw in mulDivHalfUp) and must NOT silently price fractional pounds — it is UNKNOWN.
+    expect(priceFreight(okShip({ dest_zip: "80112", weight_lb: 100.5 }), tariff)).toEqual({
       status: "UNKNOWN",
       reason: "missing_physics",
     });
@@ -249,6 +258,34 @@ describe("roundHalfUp — the shared integer-cents primitive (freight, and WP-04
     expect(() => roundHalfUp(1.5, 100)).toThrow();
     expect(() => roundHalfUp(-1, 100)).toThrow();
     expect(() => roundHalfUp(100, 0)).toThrow();
+  });
+});
+
+describe("priceFreight — the monetary product is BigInt-exact (no float product, bypassing the 2^53 guard)", () => {
+  it("large cwt_cents: freight matches mulDivHalfUp exactly, NOT the float-product roundHalfUp (off-by-1¢)", () => {
+    // The auditor's case: weight 18015 lb @ 999_999_999_990¢/cwt. rated_lb × cwt = 18_014_999_999_819_850
+    // exceeds Number.MAX_SAFE_INTEGER, so forming the product as a JS float loses precision and mis-rounds by
+    // a cent. The freight core must route the product through mulDivHalfUp (BigInt) — the same primitive
+    // compose/floors use — so no float ever forms the monetary product.
+    const bigTariff = ZoneTariff.parse({
+      kind: "zone_tariff" as const,
+      id: "zt-big",
+      version: "2026.07-big",
+      zip_to_zone: { "801": "ZB" },
+      rate_groups: [
+        { id: "grp-big", zones: ["ZB"], breaks: [{ min_lb: 0, cwt_cents: 999_999_999_990 }], min_charge_cents: 0 },
+      ],
+    });
+    const r = priceFreight(okShip({ dest_zip: "80112", weight_lb: 18015 }), bigTariff);
+    expect(r.status).toBe("PRICED");
+    if (r.status !== "PRICED") return;
+    // BigInt-exact via the shared primitive: 18015 × 999_999_999_990 / 100, half-up = 180_149_999_998_199.
+    expect(r.freight_cents).toBe(mulDivHalfUp(18015, 999_999_999_990, 100));
+    expect(r.freight_cents).toBe(180_149_999_998_199);
+    // The OLD float path — roundHalfUp(rated_lb * cwt_cents, 100) — loses precision past 2^53 and rounds to
+    // 180_149_999_998_198: exactly the confirmed off-by-1¢ this fix removes.
+    expect(roundHalfUp(18015 * 999_999_999_990, 100)).toBe(180_149_999_998_198);
+    expect(roundHalfUp(18015 * 999_999_999_990, 100)).not.toBe(r.freight_cents);
   });
 });
 

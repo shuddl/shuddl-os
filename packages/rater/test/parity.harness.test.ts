@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ZoneTariff, FloorsConfig, FscConfig, AccessorialSchedule } from "@shuddl/contracts";
 import { priceShipment } from "../src/price.js";
 import type { RateRequest, TenantRatingConfig } from "../src/price.js";
-import { ParityCase, runParity } from "../../../tools/rater/parity.js";
+import { ParityCase, runParity, verifyParityPins } from "../../../tools/rater/parity.js";
 
 // Proves the PARITY RUNNER LOGIC with a SYNTHETIC stand-in — NOT the real 48-tests/504-sweep/tenant-0
 // fixtures (those live in the engagement workspace and are `pending` in fixtures/manifest.json). These
@@ -184,6 +184,78 @@ describe("runParity — CATCHES a real divergence (not a rubber stamp)", () => {
     expect(r.mismatches).toEqual([
       { name: "hollow-priced", field: "sell_cents", expected: undefined, actual: correct.sell_cents },
     ]);
+  });
+});
+
+describe("verifyParityPins — vendored + hash-pin gate (no self-consistent false green, REQ-027/REQ-165)", () => {
+  // The three parity fixtures the gate governs, with a synthetic pinned hash per path. hashFn/existsFn are
+  // injected so no real filesystem is touched — the point is the DECISION: a present set greens ONLY when
+  // all three rows are vendored, carry a non-null sha256, and the on-disk bytes hash to that exact pin.
+  type Row = { id: string; status: string; path: string; sha256: string | null };
+  const PIN: Record<string, string> = {
+    "fixtures/rater/48-tests/": "a".repeat(64),
+    "fixtures/rater/504-sweep/": "b".repeat(64),
+    "fixtures/tariff/": "c".repeat(64),
+  };
+  const hashFn = (p: string): string => {
+    const h = PIN[p];
+    if (h === undefined) throw new Error(`unexpected path hashed: ${p}`);
+    return h;
+  };
+  const existsAll = (): boolean => true;
+  const vendoredRows = (): Row[] => [
+    { id: "rater-48-tests", status: "vendored", path: "fixtures/rater/48-tests/", sha256: PIN["fixtures/rater/48-tests/"]! },
+    { id: "rater-504-sweep", status: "vendored", path: "fixtures/rater/504-sweep/", sha256: PIN["fixtures/rater/504-sweep/"]! },
+    { id: "zone-tariff-v1", status: "vendored", path: "fixtures/tariff/", sha256: PIN["fixtures/tariff/"]! },
+  ];
+
+  it("all three vendored with matching on-disk hashes ⇒ NO problems (the gate activates and may green)", () => {
+    expect(verifyParityPins(vendoredRows(), hashFn, existsAll)).toEqual([]);
+  });
+
+  it("a row left status:pending ⇒ flagged NOT vendored (present files + a pending manifest is NEVER a pass)", () => {
+    // This is the exact fabrication vector: self-consistent files dropped in with the manifest still pending.
+    const rows = vendoredRows();
+    rows[0] = { ...rows[0]!, status: "pending" };
+    const problems = verifyParityPins(rows, hashFn, existsAll);
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain("rater-48-tests");
+    expect(problems[0]).toContain("NOT vendored");
+  });
+
+  it("a vendored row with a null sha256 ⇒ flagged unpinned (a vendored fixture must carry its hash)", () => {
+    const rows = vendoredRows();
+    rows[1] = { ...rows[1]!, sha256: null };
+    const problems = verifyParityPins(rows, hashFn, existsAll);
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain("rater-504-sweep");
+    expect(problems[0]).toContain("no pinned sha256");
+  });
+
+  it("on-disk bytes that don't match the pin ⇒ hash mismatch (a dropped-in synthetic set fails)", () => {
+    const rows = vendoredRows();
+    const tampered = (p: string): string => (p === "fixtures/tariff/" ? "d".repeat(64) : hashFn(p));
+    const problems = verifyParityPins(rows, tampered, existsAll);
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain("zone-tariff-v1");
+    expect(problems[0]).toContain("hash mismatch");
+  });
+
+  it("a vendored+pinned row whose path is missing on disk ⇒ flagged", () => {
+    const rows = vendoredRows();
+    const missingTariff = (p: string): boolean => p !== "fixtures/tariff/";
+    const problems = verifyParityPins(rows, hashFn, missingTariff);
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain("zone-tariff-v1");
+    expect(problems[0]).toContain("missing on disk");
+  });
+
+  it("a missing manifest row ⇒ flagged (all three parity fixtures are required)", () => {
+    const rows = vendoredRows().filter((r) => r.id !== "zone-tariff-v1");
+    const problems = verifyParityPins(rows, hashFn, existsAll);
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain("zone-tariff-v1");
+    expect(problems[0]).toContain("no manifest row");
   });
 });
 

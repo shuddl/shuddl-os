@@ -1,6 +1,6 @@
 import type { ZoneTariff } from "@shuddl/contracts";
 import type { FreightResult, ShipmentPhysics } from "./types.js";
-import { roundHalfUp } from "./money.js";
+import { mulDivHalfUp } from "./money.js";
 
 // REQ-004 — the freight core. PURE and DETERMINISTIC: no LLM, no I/O, no Date/random. Given measured
 // physics + a parsed ZoneTariff it returns PRICED (with a fully-explained basis) or UNKNOWN. Money is
@@ -25,10 +25,12 @@ function matchZone(
 }
 
 export function priceFreight(shipment: ShipmentPhysics, tariff: ZoneTariff): FreightResult {
-  // 1. UNKNOWN-no-sell: pricing is a projection of MEASURED physics. Weight must be a positive finite
-  //    number AND dims must be present. Anything missing ⇒ UNKNOWN, never a price on air (REQ-004).
+  // 1. UNKNOWN-no-sell: pricing is a projection of MEASURED physics. Weight must be a positive, finite,
+  //    WHOLE-pound integer (measured physics is whole pounds) AND dims must be present. Anything missing —
+  //    including a fractional weight_lb — ⇒ UNKNOWN, never a price on air, never a crash (REQ-004). A
+  //    non-integer weight would otherwise form a fractional numerator that mulDivHalfUp/roundHalfUp reject.
   const weight = shipment.weight_lb;
-  if (typeof weight !== "number" || !Number.isFinite(weight) || weight <= 0) {
+  if (typeof weight !== "number" || !Number.isFinite(weight) || weight <= 0 || !Number.isInteger(weight)) {
     return { status: "UNKNOWN", reason: "missing_physics" };
   }
   if (shipment.dims === null || shipment.dims === undefined) {
@@ -67,7 +69,10 @@ export function priceFreight(shipment: ShipmentPhysics, tariff: ZoneTariff): Fre
   let winner: { charge: number; ratedLb: number; cwtCents: number } | undefined;
   for (const b of group.breaks) {
     const ratedLb = Math.max(weight, b.min_lb);
-    const charge = roundHalfUp(ratedLb * b.cwt_cents, CWT);
+    // Money law: form the monetary product in BigInt (mulDivHalfUp), NEVER as a JS float. `ratedLb *
+    // cwt_cents` can exceed 2^53 for large cwt (Cents allows ~10^12), and a float product would silently
+    // lose precision and mis-round by a cent. Same primitive compose/floors use — no float touches the value.
+    const charge = mulDivHalfUp(ratedLb, b.cwt_cents, CWT);
     if (winner === undefined || charge < winner.charge) {
       winner = { charge, ratedLb, cwtCents: b.cwt_cents };
     }

@@ -2,6 +2,12 @@ import { z } from "zod";
 import { SafeInt } from "./json.js";
 import { Cents, Bps } from "./money.js";
 
+// Rate-config money is a CHARGE, never a credit: cwt rates, min charges and accessorial fees are all
+// non-negative. `Cents` alone permits negatives (it is signed for the ledger's credit/reversal lines),
+// so a stray negative cwt_cents would crash the engine and a negative accessorial could silently REDUCE a
+// valid price. Narrow to >= 0 here, mirroring money.ts InvoiceLine.amount_cents / SplitComputedPayload.
+const NonNegCents = Cents.refine((c) => c >= 0, "rate_config cents must be non-negative (a charge, never a credit)");
+
 // doc 10 §17: rate_config(kind[zone_tariff|floors|fsc|accessorials|transit_matrix|class_adapter],
 // version, payload, effective). This module models the PAYLOAD shape per kind — a tenant's rating
 // configuration, the SHAPE ONLY, with ZERO hardcoded tenant data. All money is INTEGER cents (Cents);
@@ -24,8 +30,8 @@ export const ZoneTariff = z
           .object({
             id: z.string().min(1),
             zones: z.array(z.string()).min(1),
-            breaks: z.array(z.object({ min_lb: SafeInt, cwt_cents: Cents }).strict()).min(1),
-            min_charge_cents: Cents,
+            breaks: z.array(z.object({ min_lb: SafeInt, cwt_cents: NonNegCents }).strict()).min(1),
+            min_charge_cents: NonNegCents,
           })
           .strict(),
       )
@@ -62,7 +68,7 @@ export const AccessorialSchedule = z
     kind: z.literal("accessorials"),
     id: z.string().min(1),
     version: z.string().min(1),
-    items: z.record(z.string(), Cents),
+    items: z.record(z.string(), NonNegCents),
   })
   .strict();
 export type AccessorialSchedule = z.infer<typeof AccessorialSchedule>;

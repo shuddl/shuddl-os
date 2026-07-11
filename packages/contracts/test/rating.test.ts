@@ -86,6 +86,24 @@ describe("ZoneTariff", () => {
     expect(() => ZoneTariff.parse({ ...zoneTariff, zip_to_zone: { "12": "Z4" } })).toThrow();
     expect(() => ZoneTariff.parse({ ...zoneTariff, zip_to_zone: { "123456": "Z4" } })).toThrow();
   });
+  it("rejects a NEGATIVE cwt_cents (a cwt rate is a charge, never a credit — a negative crashes the engine)", () => {
+    expect(() =>
+      ZoneTariff.parse({
+        ...zoneTariff,
+        rate_groups: [
+          { ...zoneTariff.rate_groups[0], breaks: [{ min_lb: 0, cwt_cents: -4200 }] },
+        ],
+      }),
+    ).toThrow();
+  });
+  it("rejects a NEGATIVE min_charge_cents (a min charge is a floor, never a credit)", () => {
+    expect(() =>
+      ZoneTariff.parse({
+        ...zoneTariff,
+        rate_groups: [{ ...zoneTariff.rate_groups[0], min_charge_cents: -1 }],
+      }),
+    ).toThrow();
+  });
 });
 
 const floors = {
@@ -150,6 +168,11 @@ describe("AccessorialSchedule", () => {
   it("rejects a float item value (integer-only Cents)", () => {
     expect(() =>
       AccessorialSchedule.parse({ ...accessorials, items: { liftgate: 25.5 } }),
+    ).toThrow();
+  });
+  it("rejects a NEGATIVE item value (an accessorial is a charge — a negative could silently reduce a valid price)", () => {
+    expect(() =>
+      AccessorialSchedule.parse({ ...accessorials, items: { liftgate: -2500 } }),
     ).toThrow();
   });
 });

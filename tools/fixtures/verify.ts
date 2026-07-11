@@ -7,7 +7,7 @@ import { join } from "node:path";
 type Entry = { id: string; gates: string; status: "vendored" | "pending" | "planned"; path: string; sha256: string | null; source: string };
 type Manifest = { fixtures: Entry[] };
 
-function hashPath(p: string): string {
+export function hashPath(p: string): string {
   const h = createHash("sha256");
   const walk = (f: string): void => {
     if (statSync(f).isDirectory()) {

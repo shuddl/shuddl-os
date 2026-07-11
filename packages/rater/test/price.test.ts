@@ -150,6 +150,11 @@ describe("priceShipment — UNKNOWN passes straight through (no price on air)", 
     const r = priceShipment({ ...okRequest, dest_zip: "99999" }, config);
     expect(r).toEqual({ status: "UNKNOWN", reason: "no_zone" });
   });
+
+  it("fractional weight_lb ⇒ UNKNOWN/missing_physics (whole-pound gate; not a throw, not a fractional-pound price)", () => {
+    const r = priceShipment({ ...okRequest, weight_lb: 100.5 }, config);
+    expect(r).toEqual({ status: "UNKNOWN", reason: "missing_physics" });
+  });
 });
 
 describe("priceShipment — no accessorials requested still PRICES (freight + fsc)", () => {

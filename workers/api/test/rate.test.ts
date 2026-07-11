@@ -146,6 +146,44 @@ describe("POST /v1/rate", () => {
     expect((req.payload as { rule?: unknown }).rule).toBe("below_contribution_loss");
   });
 
+  it("a malformed interline split (Σ split_bps ≠ 10000) is a 400 VALIDATION_FAILED with ZERO events (no partial write)", async () => {
+    // The split sum lives at the Zod boundary now — a plausible typo summing to 9000 is rejected BEFORE any
+    // DB/DO work, so nothing is appended. (Previously the sum was only checked inside executingShare at
+    // assessApproval, AFTER quote.priced + agent.acted had already committed → a 500 with an orphaned priced fact.)
+    const shipment_id = "rate-badsplit-1";
+    const res = await rate({
+      shipment_id,
+      ...PRICEABLE,
+      tenant_party: "carrier:self",
+      legs: [
+        { kind: "linehaul", executor: "carrier:self", split_bps: 6000 },
+        { kind: "interline", executor: "carrier:other", split_bps: 3000 }, // sums to 9000, not 10000
+      ],
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { code?: string };
+    expect(body.code).toBe("VALIDATION_FAILED");
+    // NOTHING was appended — the malformed split was rejected at the boundary.
+    expect(await eventsFor(env.TENANT_A_DB, shipment_id)).toHaveLength(0);
+  });
+
+  it("a well-formed interline split (Σ = 10000) still prices — the boundary refine does not reject valid interline", async () => {
+    const shipment_id = "rate-goodsplit-1";
+    const res = await rate({
+      shipment_id,
+      ...PRICEABLE,
+      tenant_party: "carrier:self",
+      legs: [
+        { kind: "linehaul", executor: "carrier:self", split_bps: 7000 },
+        { kind: "interline", executor: "carrier:other", split_bps: 3000 }, // sums to exactly 10000
+      ],
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as RateResp;
+    expect(body.status).toBe("PRICED");
+    expect((await eventsFor(env.TENANT_A_DB, shipment_id)).map((e) => e.kind)).toContain("quote.priced");
+  });
+
   it("REQ-025: tenant-a prices against tenant-a's config only; its events land in TENANT_A_DB, never TENANT_B_DB", async () => {
     await seedRateConfig(env.TENANT_A_DB, TEST_RATE_CONFIG);
     await seedRateConfig(env.TENANT_B_DB, TENANT_B_RATE_CONFIG);
