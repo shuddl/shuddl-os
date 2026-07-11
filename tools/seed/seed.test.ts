@@ -101,7 +101,17 @@ describe("SEED-1 rating_config", () => {
     expect(fl.full_cost_bps).toBeLessThanOrEqual(fl.target_or_bps);
   });
 
-  it("is deterministic — two runs deep-equal the rating_config", async () => {
-    expect((await generateSeed()).rating_config).toEqual((await generateSeed()).rating_config);
+  // Determinism of rating_config is already covered: it is a fixed module const, byte-locked by the
+  // pinned seed.hash (enforced by `pnpm check:seed`) and the "byte-identical datasets" test above. So
+  // instead of a tautological two-run compare, assert something falsifiable — that each config
+  // round-trips through its schema UNCHANGED (a .strict() schema that dropped or transformed a field
+  // would make the parsed output differ from the raw input).
+  it("each config round-trips through its schema unchanged (no field dropped or transformed)", async () => {
+    const rc = (await generateSeed()).rating_config;
+    expect(ZoneTariff.parse(rc.zone_tariff)).toEqual(rc.zone_tariff);
+    expect(FloorsConfig.parse(rc.floors)).toEqual(rc.floors);
+    expect(FscConfig.parse(rc.fsc)).toEqual(rc.fsc);
+    expect(AccessorialSchedule.parse(rc.accessorials)).toEqual(rc.accessorials);
+    expect(ClassAdapter.parse(rc.class_adapter)).toEqual(rc.class_adapter);
   });
 });

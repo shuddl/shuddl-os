@@ -11,7 +11,17 @@
 // Date.now(), NO Math.random(). Run generateSeed() twice and the datasets are byte-identical.
 import { buildChain } from "@shuddl/ledger/chain";
 import { sha256Hex } from "@shuddl/ledger/canonical";
-import { eventFixture, type EventKind, type JsonValue, type LedgerEvent } from "@shuddl/contracts";
+import {
+  eventFixture,
+  ZoneTariff,
+  FloorsConfig,
+  FscConfig,
+  AccessorialSchedule,
+  ClassAdapter,
+  type EventKind,
+  type JsonValue,
+  type LedgerEvent,
+} from "@shuddl/contracts";
 
 const BASE_TS = Date.UTC(2026, 6, 9, 6, 0, 0); // 2026-07-09T06:00:00Z, fixed forever (epoch ms)
 
@@ -46,25 +56,18 @@ const LIFECYCLES: Array<{ status: string; kinds: EventKind[]; count: number }> =
 export type SeedParty = { id: string; kind: string; name: string };
 // SEED-1's rating_config mirrors doc 13 §02.4 (`rating-config/` = tariffs, zone maps, rate groups,
 // accessorial schedules, floors, FSC) toward REQ-165 — but it is SYNTHETIC seed data, not any real
-// tenant's rate table. Fields are plain number/string (not the branded Cents/Bps) so these literals
-// need no cast; the tests parse each config through its @shuddl/contracts schema to prove validity.
+// tenant's rate table. Each field is the INPUT type of its Task-1 @shuddl/contracts schema (what
+// `z.input<typeof X>` yields — accessed via `["_input"]` so the seed tooling takes no direct, and
+// currently undeclared, dependency on `zod`). This keeps the type coupled to the source of truth:
+// rename/add a schema field and this fails at COMPILE time, not just at the tests' runtime `.parse()`.
+// The input shape is pre-brand (plain number/string, not the branded Cents/Bps), so the literal
+// RATING_CONFIG below still needs NO casts.
 export type SeedRatingConfig = {
-  zone_tariff: {
-    kind: "zone_tariff";
-    id: string;
-    version: string;
-    zip_to_zone: Record<string, string>;
-    rate_groups: Array<{
-      id: string;
-      zones: string[];
-      breaks: Array<{ min_lb: number; cwt_cents: number }>;
-      min_charge_cents: number;
-    }>;
-  };
-  floors: { kind: "floors"; id: string; version: string; target_or_bps: number; full_cost_bps: number; contribution_bps: number };
-  fsc: { kind: "fsc"; id: string; version: string; pct_bps: number };
-  accessorials: { kind: "accessorials"; id: string; version: string; items: Record<string, number> };
-  class_adapter: { kind: "class_adapter"; id: string; version: string; class_to_density_pcf: Record<string, number> };
+  zone_tariff: (typeof ZoneTariff)["_input"];
+  floors: (typeof FloorsConfig)["_input"];
+  fsc: (typeof FscConfig)["_input"];
+  accessorials: (typeof AccessorialSchedule)["_input"];
+  class_adapter: (typeof ClassAdapter)["_input"];
 };
 export type SeedShipment = {
   id: string;
