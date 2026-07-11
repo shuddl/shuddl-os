@@ -7,6 +7,8 @@ import { DEMO_GLYPHS_URL, DEMO_TILE_URL, MapCanvas, demoFleet, useFleet } from "
 // over their live freight; quote→book is one dark panel with 4 fields; docs/invoices are 1px-ruled
 // lists, no cards. The party name is a synthetic placeholder (REQ-167 — never a real customer).
 
+// Opt-in Mapbox tiles when VITE_MAPBOX_TOKEN is set at build; unset ⇒ self-hosted default (REQ-075).
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 const PARTY_ID = "party-0";
 const PARTY_NAME = "MERIDIAN SUPPLY CO.";
 
@@ -53,7 +55,7 @@ export function App(): React.JSX.Element {
 
   return (
     <main style={{ position: "fixed", inset: 0, background: "var(--field)", overflow: "hidden" }}>
-      <MapCanvas tileUrl={DEMO_TILE_URL} glyphsUrl={DEMO_GLYPHS_URL} fleet={collection} onSelect={() => {}} />
+      <MapCanvas tileUrl={DEMO_TILE_URL} glyphsUrl={DEMO_GLYPHS_URL} fleet={collection} onSelect={() => {}} mapboxToken={MAPBOX_TOKEN} />
 
       {/* Hero — the customer's name over their live freight. */}
       <header style={{ position: "absolute", top: 40, left: 32, maxWidth: "70vw" }}>

@@ -14,6 +14,8 @@ import {
 // leaks an exact truck location. Scoped to one shipment only — this is not a filtered view of anyone
 // else's world. Deterministic so the canonical screenshot is stable.
 
+// Opt-in Mapbox tiles when VITE_MAPBOX_TOKEN is set at build; unset ⇒ self-hosted default (REQ-075).
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 const SHIPMENT_ID = "SHP-40318";
 const EXACT_LNG = -104.9903;
 const EXACT_LAT = 39.7392;
@@ -48,7 +50,7 @@ export function Status(): React.JSX.Element {
 
   return (
     <main style={{ position: "fixed", inset: 0, background: "var(--field)", overflow: "hidden" }}>
-      <MapCanvas tileUrl={DEMO_TILE_URL} glyphsUrl={DEMO_GLYPHS_URL} fleet={collection} onSelect={() => {}} />
+      <MapCanvas tileUrl={DEMO_TILE_URL} glyphsUrl={DEMO_GLYPHS_URL} fleet={collection} onSelect={() => {}} mapboxToken={MAPBOX_TOKEN} />
 
       <section style={{ position: "absolute", top: 48, left: 32, maxWidth: "80vw", display: "flex", flexDirection: "column", gap: 12 }}>
         <Mono size={11} color="var(--signal-55)">
