@@ -1,3 +1,10 @@
+// The single zod entry-point for the repo. @shuddl/contracts is the ONLY package that depends on zod
+// (see the rater-purity note in tools/checks/rater-purity.ts — contracts stays the pure schema boundary),
+// so tools and non-contracts packages that must build a schema — e.g. the parity harness in
+// tools/rater/parity.ts — import `z` from HERE rather than taking a second zod dependency. Re-exported, not
+// re-implemented; the zod version stays pinned in one place (packages/contracts/package.json).
+export { z } from "zod";
+
 export * from "./errors.js";
 export * from "./roles.js";
 export * from "./session.js";
