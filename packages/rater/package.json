@@ -2,6 +2,8 @@
   "name": "@shuddl/rater",
   "private": true,
   "type": "module",
-  "scripts": { "typecheck": "tsc --noEmit" },
-  "devDependencies": { "typescript": "^5.9.0" }
+  "exports": { ".": "./src/index.ts", "./*": "./src/*.ts" },
+  "scripts": { "typecheck": "tsc --noEmit", "test": "vitest run" },
+  "dependencies": { "@shuddl/contracts": "workspace:*" },
+  "devDependencies": { "vitest": "^4.1.10", "typescript": "^5.9.0" }
 }
