@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { greigeStyle, greigeStyleMapbox, mapboxTransformRequest } from "../src/style.js";
 
 // The five blessed tokens (07-DESIGN-SYSTEM). The basemap may use ONLY these — a sixth colour on the
-// map is the defect this test guards against (the scratchpad render once used a raw #C9C4BE water).
+// map is the defect this test guards against (an early scratchpad render once used an off-token grey
+// water; the audit can't tell a hex in a comment from a real one, so we name no literal here).
 const BLESSED = new Set(["#D5D1CC", "#FF4A33", "#A52F18", "#1A1A1A", "#00C4B4"]);
 
 /** Every hex colour literal anywhere in the style object (recursively). */
