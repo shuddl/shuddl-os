@@ -12,6 +12,8 @@ export { priceShipment } from "./price.js";
 export type { RateRequest, TenantRatingConfig, PricedQuote, QuoteResult } from "./price.js";
 export { evaluateApproval, executingShare, executingShareCents, assessApproval } from "./approval.js";
 export type { ApprovalKind, ApprovalRule, ApprovalDecision, Leg } from "./approval.js";
+export { detectAnomaly, DEFAULT_MAX_CENTS_PER_LB } from "./anomaly.js";
+export type { AnomalyFlag } from "./anomaly.js";
 export type {
   ShipmentPhysics,
   FreightResult,

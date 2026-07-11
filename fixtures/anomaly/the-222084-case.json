@@ -1,0 +1,18 @@
+{
+  "//": "REQ-040 PERMANENT regression — the $222,084 / 35-lb anomaly. Encoded in-repo from the QA case description; NO engagement-workspace data, no real names (REQ-167). A 35-lb shipment priced at $222,084 (~$6,345/lb) is absurd and MUST flag at pricing, forever. Never delete or weaken this fixture.",
+  "case": "anomaly-222084-35lb",
+  "weight_lb": 35,
+  "sell_cents": 22208400,
+  "expect": { "flags": true, "code": "over_per_lb" },
+  "interline_demo": {
+    "//": "The gross-vs-share story: attributing a large consolidated interline GROSS to this one 35-lb leg produces the anomaly; the executing-share rule (REQ-040) attributes only the tenant's leg and stays sane.",
+    "gross_sell_cents": 22208400,
+    "legs": [
+      { "kind": "interline", "executor": "carrier-a", "split_bps": 30 },
+      { "kind": "linehaul", "executor": "carrier-b", "split_bps": 9970 }
+    ],
+    "executing_party": "carrier-a",
+    "expect_share_cents": 66625,
+    "expect_share_flags": false
+  }
+}

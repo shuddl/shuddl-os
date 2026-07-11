@@ -31,6 +31,7 @@ function makeQuote(overrides?: { floors?: Floors; sell_cents?: number }): Priced
     cost_cents: 12_000,
     versions: { rate_config_ids: ["zt-test@2026.07"] },
     basis: {},
+    anomaly: null, // REQ-040 net field on every PricedQuote; the approval logic doesn't read it.
   };
 }
 

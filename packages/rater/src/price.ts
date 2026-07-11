@@ -11,6 +11,8 @@ import { compose } from "./compose.js";
 import type { PriceLine } from "./compose.js";
 import { computeFloors } from "./floors.js";
 import type { Floors } from "./floors.js";
+import { detectAnomaly } from "./anomaly.js";
+import type { AnomalyFlag } from "./anomaly.js";
 import type { FreightUnknown } from "./types.js";
 
 // REQ-027 / I5 — the unified rating entry. PURE and DETERMINISTIC (no LLM/I/O/Date/random): it ties the
@@ -52,6 +54,10 @@ export interface PricedQuote {
   readonly cost_cents: number; // the cost basis the floors were computed from
   readonly versions: { readonly rate_config_ids: readonly string[] }; // ALL configs used, min 1 (I5)
   readonly basis: JsonObject; // audit trace, JSON-serializable by construction
+  // REQ-040 (permanent) — the anomaly safety net over the quote's OWN output. null on a sane price; a flag
+  // on a price that shouldn't exist ($222,084 / 35 lb). Computed+carried here; raising exception.raised on a
+  // non-null flag is the /rate service (Task 10), not the engine.
+  readonly anomaly: AnomalyFlag | null;
 }
 
 // Reuse the Task-3 UNKNOWN union unchanged — an UNKNOWN never grows floors or versions.
@@ -116,6 +122,19 @@ export function priceShipment(request: RateRequest, config: TenantRatingConfig):
     requested_accessorials: [...(request.accessorials ?? [])],
   };
 
+  // 7. Anomaly safety net (REQ-040, permanent). Run detectAnomaly over the quote's OWN output — the composed
+  //    sell over the shipment's measured weight — so a price that shouldn't exist ($222,084 / 35 lb) flags AT
+  //    pricing, forever. A PRICED freight result guarantees a positive measured weight (priceFreight returns
+  //    UNKNOWN otherwise), so request.weight_lb is present here; assert it so the net never silently no-ops on
+  //    a broken invariant, and narrow for the type-checker. (Carrying the flag only — the /rate service at
+  //    Task 10 turns a non-null flag into an exception.raised event; the engine stays pure.)
+  if (request.weight_lb === undefined) {
+    throw new Error(
+      "priceShipment: PRICED freight without a weight_lb — invariant broken; the REQ-040 anomaly net cannot run",
+    );
+  }
+  const anomaly = detectAnomaly({ sell_cents: composed.sell_cents, weight_lb: request.weight_lb });
+
   return {
     status: "PRICED",
     sell_cents: composed.sell_cents,
@@ -124,5 +143,6 @@ export function priceShipment(request: RateRequest, config: TenantRatingConfig):
     cost_cents,
     versions: { rate_config_ids },
     basis,
+    anomaly,
   };
 }
