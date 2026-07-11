@@ -16,6 +16,9 @@ export { evaluateApproval, executingShare, executingShareCents, assessApproval }
 export type { ApprovalKind, ApprovalRule, ApprovalDecision, Leg } from "./approval.js";
 export { detectAnomaly, DEFAULT_MAX_CENTS_PER_LB } from "./anomaly.js";
 export type { AnomalyFlag } from "./anomaly.js";
+// REQ-004: class is an ISOLATED edge adapter (class ↔ density), never the engine foundation. The barrel
+// re-exports it for external callers; the CORE pricing modules never import it (enforced by check:rater-purity).
+export { classToDensityPcf } from "./adapters/class.js";
 export type {
   ShipmentPhysics,
   FreightResult,
