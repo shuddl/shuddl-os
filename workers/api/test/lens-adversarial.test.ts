@@ -43,7 +43,8 @@ function payloadFor(kind: EventKind): Record<string, unknown> {
     case "booking.created":
       return { division: "main", shipper_party_id: P1, consignee_party_id: P2, bill_to_party_id: P2, created_ts: 1_720_000_000_000 };
     case "quote.priced":
-      return { sell: 120_000, floors: { contribution: 60_000, full: 90_000, target: 100_000 }, versions: { rate_config_ids: ["rc-1"] }, basis: {} };
+      // REQ-003/031: lines are required and must sum to sell (90_000 + 30_000 = 120_000).
+      return { sell: 120_000, lines: [{ kind: "freight", code: "freight", amount_cents: 90_000 }, { kind: "fsc", code: "fsc", amount_cents: 30_000 }], floors: { contribution: 60_000, full: 90_000, target: 100_000 }, versions: { rate_config_ids: ["rc-1"] }, basis: {} };
     case "pod.signed":
       return { signature_hash: HEX64, geo: { ...GEO }, unwitnessed: true };
     case "custody.transferred":

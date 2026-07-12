@@ -111,8 +111,8 @@ exports[`REQ-011 DoD: all 35 kinds round-trip > canonical strings + hashes are p
     "hash": "5a75db69d7f313d927bcbddcb2b076aad27572b8d972a02197c87872cc51c626",
   },
   "quote.priced": {
-    "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"quote.priced","party_refs":[],"payload":{"basis":{},"floors":{"contribution":60000,"full":90000,"target":100000},"sell":120000,"versions":{"rate_config_ids":["rc-tariff-v3"]}},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",
-    "hash": "2be3b51c6307511464c7876ee9422643bd642aab4f1a173a9ff8f4f00a050d3f",
+    "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"quote.priced","party_refs":[],"payload":{"basis":{},"floors":{"contribution":60000,"full":90000,"target":100000},"lines":[{"amount_cents":90000,"code":"freight","kind":"freight"},{"amount_cents":12000,"code":"fsc","kind":"fsc"},{"amount_cents":18000,"code":"liftgate","kind":"accessorial"}],"sell":120000,"versions":{"rate_config_ids":["rc-tariff-v3"]}},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",
+    "hash": "355ffa6b1764d6a814fa4a23692c3fa24c8b46aaf5c862fda79a0d9492c98b72",
   },
   "quote.requested": {
     "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"quote.requested","party_refs":[],"payload":{},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",

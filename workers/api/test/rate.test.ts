@@ -89,6 +89,12 @@ describe("POST /v1/rate", () => {
     expect(payload.versions.rate_config_ids).toContain("zt-test@v1");
     expect(payload.sell).toBe(body.sell_cents);
 
+    // REQ-003/031 — the stored quote.priced carries the itemized breakdown the Biller projects from:
+    // its lines equal the priced breakdown the client saw AND sum to sell (penny-parity, never re-computed).
+    expect(payload.lines.length).toBeGreaterThan(0);
+    expect(payload.lines.reduce((s, l) => s + l.amount_cents, 0)).toBe(payload.sell);
+    expect(payload.lines).toEqual(body.lines);
+
     // agent.acted cites ≥1 basis link — the config it priced against (REQ-005)
     const acted = pickKind(events, "agent.acted");
     const basis = (acted.payload as { basis?: unknown }).basis;
