@@ -1,0 +1,9 @@
+{
+  "name": "@shuddl/driver-core",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts", "./*": "./src/*.ts" },
+  "scripts": { "typecheck": "tsc --noEmit", "test": "vitest run" },
+  "dependencies": { "@shuddl/contracts": "workspace:*", "@shuddl/ledger": "workspace:*" },
+  "devDependencies": { "@cloudflare/workers-types": "^4.20251230.0", "vitest": "^4.1.10", "typescript": "^5.9.0" }
+}
