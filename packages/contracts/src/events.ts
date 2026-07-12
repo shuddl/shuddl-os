@@ -41,8 +41,10 @@ export const Visibility = z.enum(["internal", "counterparty", "public"]);
 export type Visibility = z.infer<typeof Visibility>;
 
 // ---- typed payloads (the rest of the 35 kinds carry JsonObject) ----
+// accuracy_m is a GPS uncertainty RADIUS — a negative accuracy is nonsensical and would poison the
+// geofence ambiguity band, so it is rejected here (min 0), matching PositionStamp in position.ts.
 export const GeoStamp = z
-  .object({ lat_e6: SafeInt, lon_e6: SafeInt, accuracy_m: SafeInt.optional() })
+  .object({ lat_e6: SafeInt, lon_e6: SafeInt, accuracy_m: SafeInt.min(0).optional() })
   .strict();
 export type GeoStamp = z.infer<typeof GeoStamp>;
 
