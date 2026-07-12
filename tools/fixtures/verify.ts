@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 // REQ-112: fixture registry versioned in repo; CI references fixtures by hash.
 // Pending rows print loudly on every run — no silent drops.
-type Entry = { id: string; gates: string; status: "vendored" | "pending" | "planned"; path: string; sha256: string | null; source: string };
+type Entry = { id: string; gates: string; status: "vendored" | "pending" | "planned" | "in-repo-test"; path: string; sha256: string | null; source: string };
 type Manifest = { fixtures: Entry[] };
 
 export function hashPath(p: string): string {
@@ -24,6 +24,13 @@ export function verifyManifest(manifest: Manifest): { ok: boolean; failures: str
   const failures: string[] = [];
   const pending: string[] = [];
   for (const e of manifest.fixtures) {
+    if (e.status === "in-repo-test") {
+      // A git-tracked, CI-executed test (not byte-frozen data): presence-checked, never hash-pinned.
+      // It legitimately churns (every edit would trip a hash pin and erode the tripwire for the real
+      // frozen-data fixtures), so we guard only that it still EXISTS — deleting it turns CI red.
+      if (!existsSync(e.path)) failures.push(`${e.id}: in-repo-test missing at ${e.path}`);
+      continue;
+    }
     if (e.status !== "vendored") {
       pending.push(e.id);
       continue;
