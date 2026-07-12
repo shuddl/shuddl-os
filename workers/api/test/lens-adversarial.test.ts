@@ -54,6 +54,24 @@ function payloadFor(kind: EventKind): Record<string, unknown> {
       return { invoice_id: `inv-${SHP_A}`, party_id: P2, division: "main", lines: [{ line_no: 1, kind: "freight", amount_cents: 120_000, gl_map: "4000-REV" }] };
     case "split.computed":
       return { total_cents: 120_000, allocations: [{ party_id: P3, share_bps: 3_000 }, { party_id: P1, share_bps: 7_000 }] };
+    case "stop.arrived":
+    case "stop.departed":
+      return { geo: { ...GEO }, auto: true };
+    case "freight.counted":
+      return { pieces: 12 };
+    case "freight.photographed":
+      return { photo_hash: HEX64, photo_kind: "freight" };
+    case "dims.captured":
+      return { l_in: 48, w_in: 40, h_in: 60, pieces: 4, method: "camera" };
+    case "seal.applied":
+      return { seal_id: "seal-1", photo_hash: HEX64 };
+    case "osd.captured":
+      return { photo_hash: HEX64, reason_code: "damage" };
+    case "exception.raised":
+      // REQ-050 exception gate: a raised exception needs a photo + reason_code on its (loose) payload.
+      return { photo_hash: HEX64, reason_code: "damage", note: "adv fixture" };
+    case "delivery.evidenced":
+      return { placed_photo_hash: HEX64, geo: { ...GEO } };
     default:
       return {};
   }
@@ -81,6 +99,16 @@ function buildInput(shipmentId: string, kind: EventKind, over: Record<string, un
     ...over,
   };
 }
+
+// A ConsentAck document.attached payload (REQ-166) for a given operating state. The consent gate is
+// NON-overridable, so every stream that appends a GPS stamp must carry one of these first. `operating_state`
+// must equal the server-derived jurisdiction of the stamp — GEO (37.421,-122.084) derives to "CA".
+const consentPayload = (state: string): Record<string, unknown> => ({
+  doc_kind: "consent",
+  policy_version: "v1",
+  operating_state: state,
+  acknowledged: true,
+});
 
 interface AppendResult {
   status: number;
@@ -146,6 +174,16 @@ beforeAll(async () => {
     await env.TENANT_A_DB.prepare("INSERT OR IGNORE INTO parties (id, kind, names) VALUES (?,?,?)").bind(id, kind, "{}").run();
   }
 
+  // The delivery leg supplies the REQ-046 geofence server-side (its dest geo, matched to the stamp).
+  // Real per-stop provisioning is booking's job (WP-08); the lens fixture seeds it directly.
+  async function seedDeliveryLeg(shipmentId: string): Promise<void> {
+    await env.TENANT_A_DB.prepare(
+      "INSERT OR IGNORE INTO legs (id, shipment_id, seq, kind, executor_party_id, geo) VALUES (?,?,?,?,?,?)",
+    )
+      .bind(`adv-leg-del-${shipmentId}`, shipmentId, 0, "delivery", P1, JSON.stringify({ lat_e6: GEO.lat_e6, lon_e6: GEO.lon_e6 }))
+      .run();
+  }
+
   // ---- Shipment A: one of every route-appendable kind, in dependency order ----
   // booking.created first (creates the shipments row); dispatch.assigned binds D1; pod.signed before
   // invoice.issued (I2 gate); invoice.corrected references the issued event id.
@@ -160,7 +198,23 @@ beforeAll(async () => {
     "message.received", "message.sent", "call.transcribed",
     "document.attached", "approval.requested", "approval.decided", "agent.acted", "authority.flipped",
   ];
+  // The WP-05 Gatekeeper gates are enforced SERVER-SIDE on this real append path, so the fixture must
+  // now carry the evidence each gated transition needs: a ConsentAck before the first GPS stamp
+  // (REQ-166, NON-overridable), and a delivery leg so the delivery geofence (REQ-046) resolves — its
+  // dest geo IS the stop.arrived coords, so the seeded arrival clears the fence. The pickup-depart gate
+  // (REQ-044) clears on its own because count/photo/custody precede stop.departed in ORDER.
   for (const kind of ORDER) {
+    if (kind === "stop.arrived") {
+      const c = await append(SHP_A, buildInput(SHP_A, "document.attached", { payload: consentPayload("CA") }), ops);
+      if (c.status !== 201) throw new Error(`seed ${SHP_A}/consent failed: ${c.status} ${c.body}`);
+    }
+    if (kind === "delivery.evidenced") {
+      await seedDeliveryLeg(SHP_A);
+      // REQ-046 (WP-05 exit audit): the delivery gate binds the POD's placed_photo_hash to a prior
+      // freight.photographed{placed}. Seed that placed photo (photo_hash === the POD's HEX64) first.
+      const p = await append(SHP_A, buildInput(SHP_A, "freight.photographed", { payload: { photo_hash: HEX64, photo_kind: "placed" } }), ops);
+      if (p.status !== 201) throw new Error(`seed ${SHP_A}/placed-photo failed: ${p.status} ${p.body}`);
+    }
     const r = await append(SHP_A, buildInput(SHP_A, kind), ops);
     if (r.status !== 201) throw new Error(`seed ${SHP_A}/${kind} failed: ${r.status} ${r.body}`);
     if (kind === "invoice.issued") invoiceIssuedId = r.json!.id as string;
@@ -185,6 +239,8 @@ beforeAll(async () => {
     if (r.status !== 201) throw new Error(`seed ${SHP_B}/booking failed: ${r.body}`);
   });
   await append(SHP_B, buildInput(SHP_B, "dispatch.assigned", { party_refs: [P2], actor: { party: P2, user: D2 } }), ops);
+  // Consent-before-GPS (REQ-166) for SHP_B's stamp too; party_refs P2-only so case 3 (P1 sees nothing) holds.
+  await append(SHP_B, buildInput(SHP_B, "document.attached", { party_refs: [P2], payload: consentPayload("CA") }), ops);
   await append(SHP_B, buildInput(SHP_B, "stop.arrived", { party_refs: [P2] }), ops);
   await append(SHP_B, buildInput(SHP_B, "custody.transferred", { party_refs: [P2], actor: { party: P2 }, payload: { from_party: P2, to_party: P3, geo: { ...GEO }, unwitnessed: true } }), ops);
 
@@ -272,8 +328,18 @@ describe("case 5: consignee P2 geo coarsens pre-OFD, unlocks post-OFD", () => {
       expect(g.accuracy_m).toBeUndefined();
     }
 
-    // Flip out-for-delivery (driver PWA gesture in prod; ops append here) and re-read.
-    const flip = await append(SHP_GEO, buildInput(SHP_GEO, "stop.departed", { party_refs: [P1, P2], payload: { out_for_delivery: true } }), await opsTok());
+    // Flip out-for-delivery (driver PWA gesture in prod; ops append here) and re-read. SHP_GEO never got
+    // the pickup evidence, so this depart is released with a named REQ-049 override (the fixture is
+    // exercising the OFD projection, not the pickup gate).
+    const flip = await append(
+      SHP_GEO,
+      buildInput(SHP_GEO, "stop.departed", {
+        party_refs: [P1, P2],
+        override: { by: "adv-ops", reason: "OFD flip fixture" },
+        payload: { geo: { ...GEO }, auto: false, out_for_delivery: true },
+      }),
+      await opsTok(),
+    );
     expect(flip.status).toBe(201);
 
     const post = await listShipment(SHP_GEO, p2);

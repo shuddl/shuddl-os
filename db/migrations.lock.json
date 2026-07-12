@@ -3,5 +3,6 @@
   "db/tenant/migrations/0002_domain.sql": "627c37007ea043798aaea1f06b6d80c4f6f7daa209fb2ed5eaec4d90a144ce5d",
   "db/tenant/migrations/0003_insert_guards.sql": "a10adc88dd0c51d5b418bf9d3b88c3a723c43b7a658dd12b29bd34fa16df69d9",
   "db/tenant/migrations/0004_party_refs_guard.sql": "1838438c30d3939621149d8c8e2dbc8063aa8068c3c8a97dbc8a06b40c93b2ac",
+  "db/tenant/migrations/0005_events_override.sql": "161836872ca9b5affe66397d98670c8322b7fe678ec317b7ddf9defec063c6ac",
   "db/control/migrations/0001_control.sql": "8c6d03b77c582195e2f45826d643188b80f3c208f2b559ce2bd0edb1aed4c83b"
 }

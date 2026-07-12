@@ -39,12 +39,12 @@ exports[`REQ-011 DoD: all 35 kinds round-trip > canonical strings + hashes are p
     "hash": "9bc01465505611eda36a6cce593f2afa8d08f6419ffdfe94af5bc7fef6b0655e",
   },
   "delivery.evidenced": {
-    "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"delivery.evidenced","party_refs":[],"payload":{},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",
-    "hash": "012567dfe6aa2ef334de02510d91a185e10bca5d75cfa5c77c17974516fe371a",
+    "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"delivery.evidenced","party_refs":[],"payload":{"geo":{"lat_e6":37421000,"lon_e6":-122084000},"placed_photo_hash":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",
+    "hash": "9d653236852e266c7d01044ed579b92f5e292116558f2a8090acf3fff33411c5",
   },
   "dims.captured": {
-    "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"dims.captured","party_refs":[],"payload":{},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",
-    "hash": "9e8458fa1f8d9a295fae4b82b406f5292397577d3d96cc1d9a32577a2cf04e60",
+    "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"dims.captured","party_refs":[],"payload":{"h_in":60,"l_in":48,"method":"camera","pieces":4,"w_in":40},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",
+    "hash": "801299d95b3bf2a2075ed213b8ab83a40b2f4eda5173842fa56c932e669e306b",
   },
   "dispatch.assigned": {
     "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"dispatch.assigned","party_refs":[],"payload":{},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",
@@ -59,12 +59,12 @@ exports[`REQ-011 DoD: all 35 kinds round-trip > canonical strings + hashes are p
     "hash": "79f2f2f094126da4749f0db70c25fe167190b67b3c7e2b7956326704d5a50fd9",
   },
   "freight.counted": {
-    "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"freight.counted","party_refs":[],"payload":{},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",
-    "hash": "f4759f5d78b80afc9ee028b5a06585e89d5c7817216b03f3a8f76e4ced571cc9",
+    "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"freight.counted","party_refs":[],"payload":{"pieces":12},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",
+    "hash": "810d93ba25b2187f0cf0796633563b838c5a9d604e16a3266e58bd2da88955f7",
   },
   "freight.photographed": {
-    "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"freight.photographed","party_refs":[],"payload":{},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",
-    "hash": "a7e2113f568c4914456e73de2622cc4341031919d200787ce2b4da0ee1a92c9b",
+    "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"freight.photographed","party_refs":[],"payload":{"photo_hash":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855","photo_kind":"freight"},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",
+    "hash": "92b6d6303d6372a0b6387f59e8e2487161e89c299f60e87b7ea96cb68033f9b8",
   },
   "invoice.corrected": {
     "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"invoice.corrected","party_refs":[],"payload":{"corrects_event_id":"evt-invoice-orig","invoice_id":"inv-1","reason":"reweigh correction","reissue_lines":[]},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",
@@ -83,8 +83,8 @@ exports[`REQ-011 DoD: all 35 kinds round-trip > canonical strings + hashes are p
     "hash": "afb736fffdb56a5776c870b51e03947e8d58fa99910be9ac5c0c9b65b70445f7",
   },
   "osd.captured": {
-    "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"osd.captured","party_refs":[],"payload":{},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",
-    "hash": "c697d7617a86824ec4cea5de7b04c00178cab037bbeaa06beff26d6bc946cdba",
+    "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"osd.captured","party_refs":[],"payload":{"photo_hash":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855","reason_code":"damage"},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",
+    "hash": "a51be9491c11983b0ea1d58b90a819faaca8a4c6b6cda42ec2e03c6bf4912d36",
   },
   "payment.received": {
     "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"payment.received","party_refs":[],"payload":{},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",
@@ -123,8 +123,8 @@ exports[`REQ-011 DoD: all 35 kinds round-trip > canonical strings + hashes are p
     "hash": "a1e34bb53aff3e0a94ff6a1f5c9dc2348376e46e9407308994cb762eed620899",
   },
   "seal.applied": {
-    "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"seal.applied","party_refs":[],"payload":{},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",
-    "hash": "2686b8c510b84c706f0a26df0d36464b8c241f4024776d9c02300c4df6c14b51",
+    "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"seal.applied","party_refs":[],"payload":{"photo_hash":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855","seal_id":"seal-1"},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",
+    "hash": "d1b1af432acfc9d2f57dc306c7e529a5987f38078f8157d03231380366c78443",
   },
   "settlement.executed": {
     "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"settlement.executed","party_refs":[],"payload":{},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",
@@ -135,12 +135,12 @@ exports[`REQ-011 DoD: all 35 kinds round-trip > canonical strings + hashes are p
     "hash": "f1e76a8bdd5740cb461c0e847f968375a115d06bd9dc1beae9cdf57dedcb2361",
   },
   "stop.arrived": {
-    "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"stop.arrived","party_refs":[],"payload":{},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",
-    "hash": "6bf18f8b59971fd0ae97f769f2ba81a8fc6797cb9c113eceae4c4ae598d637d8",
+    "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"stop.arrived","party_refs":[],"payload":{"auto":true,"geo":{"lat_e6":37421000,"lon_e6":-122084000}},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",
+    "hash": "1ae5118e403f1168f086aa7fa113c5c6d5ab46c02f995a3c2516c901f65a3d65",
   },
   "stop.departed": {
-    "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"stop.departed","party_refs":[],"payload":{},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",
-    "hash": "7fcc34e9d42179924920ccb381f3f2a066322c21836c294f6585ced1e8a52739",
+    "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"stop.departed","party_refs":[],"payload":{"auto":true,"geo":{"lat_e6":37421000,"lon_e6":-122084000}},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",
+    "hash": "0cccf6777d962c2db8c4cf220318977074e5ed2c8a2aeccde30847a78a0b9386",
   },
 }
 `;

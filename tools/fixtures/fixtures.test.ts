@@ -18,4 +18,18 @@ describe("REQ-112: fixture registry", () => {
     const r = verifyManifest({ fixtures: [{ id: "z", gates: "t", status: "vendored", path: "fixtures/does-not-exist.bin", sha256: "0".repeat(64), source: "t" }] });
     expect(r.ok).toBe(false);
   });
+  it("an in-repo-test entry with an existing path is ok and NOT reported pending (presence-checked, never hash-pinned)", () => {
+    const r = verifyManifest({
+      fixtures: [{ id: "soak", gates: "WP-05", status: "in-repo-test", path: "fixtures/README.md", sha256: null, source: "t" }],
+    });
+    expect(r.ok).toBe(true);
+    expect(r.pending).not.toContain("soak");
+  });
+  it("an in-repo-test entry whose path is missing fails (deleting the test turns CI red)", () => {
+    const r = verifyManifest({
+      fixtures: [{ id: "soak", gates: "WP-05", status: "in-repo-test", path: "workers/api/test/does-not-exist.test.ts", sha256: null, source: "t" }],
+    });
+    expect(r.ok).toBe(false);
+    expect(r.failures[0]).toContain("in-repo-test missing");
+  });
 });

@@ -159,6 +159,7 @@ interface EventRow {
   device_id: string | null;
   device_seq: number | null;
   captured_ts: number | null;
+  override_json: string | null;
 }
 
 export function rowToEvent(row: Record<string, string | number | null>): LedgerEvent {
@@ -190,6 +191,12 @@ export function rowToEvent(row: Record<string, string | number | null>): LedgerE
   if (r.device_id !== null) e.device_id = r.device_id;
   if (r.device_seq !== null) e.device_seq = r.device_seq;
   if (r.captured_ts !== null) e.captured_ts = r.captured_ts;
+  // REQ-049 override (nullable): a stored override_json rehydrates to the SAME `override` object the
+  // sequencer hashed, so the read-back hash reproduces. NULL/absent -> omitted (never null) per the
+  // rule above, which keeps a non-override event's canonical bytes identical to a pre-0005 row that
+  // never had the column at all. `?? null` collapses BOTH SQL NULL and a row missing the column.
+  const overrideJson = r.override_json ?? null;
+  if (overrideJson !== null) e.override = JSON.parse(overrideJson) as unknown;
   return LedgerEvent.parse(e);
 }
 
@@ -219,5 +226,6 @@ export function eventToRow(e: LedgerEvent): Record<string, string | number | nul
     device_id: e.device_id ?? null,
     device_seq: e.device_seq ?? null,
     captured_ts: e.captured_ts ?? null,
+    override_json: e.override === undefined ? null : JSON.stringify(e.override),
   };
 }

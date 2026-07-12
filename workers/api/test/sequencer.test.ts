@@ -44,6 +44,20 @@ function inputFor(streamId: string, over: Record<string, unknown> = {}): Record<
   };
 }
 
+// A device-signed EventInput carrying the offline dedupe key (device_id === actor.device === the
+// registered TEST_DEVICE_ID, signed over the clientView). Fresh uuid per call; the same device_seq so
+// two calls collide on the offline dedupe key.
+async function signedDeviceInput(streamId: string, over: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
+  const i = inputFor(streamId, {
+    actor: { party: "party-carrier", user: "user-driver", device: TEST_DEVICE_ID },
+    device_id: TEST_DEVICE_ID,
+    device_seq: 7,
+    ...over,
+  });
+  i.sig = await signEvent(i as Parameters<typeof signEvent>[0], await testDeviceSigningKey());
+  return i;
+}
+
 function invoicePayload(invoiceId: string): Record<string, unknown> {
   return {
     invoice_id: invoiceId,
@@ -139,16 +153,57 @@ it("a duplicate event id returns the original row; the count is unchanged", asyn
   expect(await eventsFor(streamId)).toHaveLength(1);
 });
 
-// (e) idempotent replay by (device_id, device_seq)
+// (e) idempotent replay by (device_id, device_seq) — a VERIFIED, device-bound offline reserve.
 it("a duplicate (device_id, device_seq) returns the original (offline reserve)", async () => {
   const streamId = "s:shp-e";
   const stub = stubFor(streamId);
-  const first = await stub.append({ tenant: TENANT, streamId, input: inputFor(streamId, { device_id: "dev-e", device_seq: 7 }) });
+  const first = await stub.append({ tenant: TENANT, streamId, input: await signedDeviceInput(streamId) });
   // a DIFFERENT event id but the same device dedupe key must return the original row
-  const again = await stub.append({ tenant: TENANT, streamId, input: inputFor(streamId, { device_id: "dev-e", device_seq: 7 }) });
+  const again = await stub.append({ tenant: TENANT, streamId, input: await signedDeviceInput(streamId) });
   expect(again.id).toBe(first.id);
   expect(again.seq).toBe(first.seq);
   expect(await eventsFor(streamId)).toHaveLength(1);
+});
+
+// (e2) WP-05 exit audit (REQ-016): a device-namespaced event (carrying device_id) MUST be co-signed BY
+// that device before it can claim a (device_id, device_seq) slot. An unsigned event, or one signed by a
+// DIFFERENT device than its device_id claims, is REJECTED and NOT stored — so it can never squat a
+// victim's slot and silently drop the victim's real signed capture (first-wins).
+describe("device_id is bound to the signing key — no offline-slot squatting (REQ-016)", () => {
+  it("an UNSIGNED event carrying a device_id is rejected (VALIDATION_FAILED) and NOT stored", async () => {
+    const streamId = "s:shp-e-unsigned";
+    const stub = stubFor(streamId);
+    const err = await stub
+      .append({ tenant: TENANT, streamId, input: inputFor(streamId, { device_id: "device-1", device_seq: 3 }) })
+      .then(() => null, (e: Error) => e);
+    expect(err).not.toBeNull();
+    expect(String(err!.message)).toMatch(/VALIDATION_FAILED/);
+    expect(await eventsFor(streamId)).toHaveLength(0);
+  });
+
+  it("device A signing under a DIFFERENT device_id is rejected (device_id ≠ actor.device), NOT stored", async () => {
+    const streamId = "s:shp-e-foreign";
+    const stub = stubFor(streamId);
+    // Signed by the real registered device, but device_id claims a victim's id.
+    const forged = inputFor(streamId, {
+      actor: { party: "party-carrier", user: "user-driver", device: TEST_DEVICE_ID },
+      device_id: "device-victim",
+      device_seq: 3,
+    });
+    forged.sig = await signEvent(forged as Parameters<typeof signEvent>[0], await testDeviceSigningKey());
+    const err = await stub.append({ tenant: TENANT, streamId, input: forged }).then(() => null, (e: Error) => e);
+    expect(err).not.toBeNull();
+    expect(String(err!.message)).toMatch(/VALIDATION_FAILED/);
+    expect(await eventsFor(streamId)).toHaveLength(0);
+  });
+
+  it("the honest case (device_id === actor.device, signed) IS stored", async () => {
+    const streamId = "s:shp-e-ok";
+    const stub = stubFor(streamId);
+    const r = await stub.append({ tenant: TENANT, streamId, input: await signedDeviceInput(streamId) });
+    expect(r.device_id).toBe(TEST_DEVICE_ID);
+    expect(await eventsFor(streamId)).toHaveLength(1);
+  });
 });
 
 // (f) I2 gate: no invoice without a signed POD
@@ -212,11 +267,12 @@ it("a bad device signature is rejected (UNAUTHORIZED); a good one lands with sig
   const stub = stubFor(streamId);
   const signedActor = { party: "party-carrier", user: "user-driver", device: TEST_DEVICE_ID };
 
+  const photoPayload = { photo_hash: HEX64, photo_kind: "freight" };
   await expect(
-    stub.append({ tenant: TENANT, streamId, input: inputFor(streamId, { kind: "freight.photographed", actor: signedActor, sig: "AAAA" }) }),
+    stub.append({ tenant: TENANT, streamId, input: inputFor(streamId, { kind: "freight.photographed", actor: signedActor, sig: "AAAA", payload: photoPayload }) }),
   ).rejects.toThrow(/UNAUTHORIZED/);
 
-  const good = inputFor(streamId, { kind: "freight.photographed", actor: signedActor });
+  const good = inputFor(streamId, { kind: "freight.photographed", actor: signedActor, payload: photoPayload });
   good.sig = await signEvent(good as Parameters<typeof signEvent>[0], await testDeviceSigningKey());
   const r = await stub.append({ tenant: TENANT, streamId, input: good });
   expect(r.sig).toBe(good.sig);

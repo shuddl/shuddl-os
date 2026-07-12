@@ -114,6 +114,47 @@ describe("I3: events are append-only — including migrations", () => {
   });
 });
 
+describe("I3 v4: a NULLABLE ADD COLUMN is the one sanctioned ALTER on a guarded table (owner-approved, WP-05)", () => {
+  // Rationale (mirrors the lint comment): append-only (Law 2) bans UPDATE/DELETE of existing event
+  // DATA; a nullable ADD COLUMN is SQLite metadata-only (no row rewrite) and is neither UPDATE nor
+  // DELETE, so permitting ONLY it aligns the lint with Law 2. Everything else stays forbidden.
+  it.each([
+    "ALTER TABLE events ADD COLUMN override_json TEXT;",
+    "ALTER TABLE events ADD override_json TEXT;", // COLUMN keyword is optional in SQLite
+    "ALTER TABLE positions ADD COLUMN note TEXT;",
+    "ALTER TABLE money_lines ADD COLUMN memo TEXT;",
+    "ALTER TABLE main.events ADD COLUMN override_json TEXT;", // schema-qualified
+    "ALTER TABLE [events] ADD COLUMN override_json TEXT;", // bracket-quoted table
+    "ALTER TABLE events ADD COLUMN qty INTEGER;", // INTEGER is a STRICT type too
+  ])("PASSES: %s", (stmt) => {
+    const r = checkMigrationSql([TABLES_SQL + GUARDS_SQL + "\n" + stmt]);
+    expect(r.ok).toBe(true);
+    expect(r.violations).toEqual([]);
+  });
+  it.each([
+    "ALTER TABLE events ADD COLUMN x TEXT NOT NULL;", // NOT NULL would write into existing rows
+    "ALTER TABLE events ADD COLUMN x TEXT DEFAULT '{}';", // DEFAULT is forbidden on events
+    "ALTER TABLE events DROP COLUMN sig;",
+    "ALTER TABLE events RENAME TO evts;",
+    "ALTER TABLE events RENAME COLUMN sig TO signature;",
+    "ALTER TABLE main.positions DROP COLUMN hash;",
+    "ALTER TABLE [events] DROP COLUMN sig;",
+    "ALTER TABLE events ADD COLUMN x TEXT, ADD COLUMN y TEXT;", // more than one clause
+  ])("FAILS: %s", (stmt) => {
+    const r = checkMigrationSql([TABLES_SQL + GUARDS_SQL + "\n" + stmt]);
+    expect(r.ok).toBe(false);
+    expect(r.violations.join(" ")).toContain("I3");
+  });
+  it("an ALTER ... ADD COLUMN on a NON-guarded table is not our concern (even NOT NULL)", () => {
+    const r = checkMigrationSql([TABLES_SQL + GUARDS_SQL + "\nALTER TABLE shipments ADD COLUMN x TEXT NOT NULL;"]);
+    expect(r.ok).toBe(true);
+  });
+  it("does not false-positive on a similarly-named non-guarded table (eventsX)", () => {
+    const r = checkMigrationSql([TABLES_SQL + GUARDS_SQL + "\nALTER TABLE eventsX DROP COLUMN y;"]);
+    expect(r.ok).toBe(true);
+  });
+});
+
 describe("I3 v2: trigger bodies may only RAISE(ABORT)", () => {
   const guards = GUARDS_SQL;
   const tables = TABLES_SQL;

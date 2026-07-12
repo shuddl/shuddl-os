@@ -171,22 +171,20 @@ describe("party geo-privacy is structural: every geo-bearing kind, nested or top
   const COARSE_LON = -122_100_000;
   const SIG = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
   const geoStamp = { lat_e6: LAT, lon_e6: LON, accuracy_m: 5 };
-  const looseGeoKinds = [
-    "stop.arrived",
-    "freight.photographed",
-    "dims.captured",
-    "seal.applied",
-    "stop.departed",
-    "delivery.evidenced",
-    "osd.captured",
-    "exception.raised",
-  ] as const;
 
+  // Geo rides only the kinds whose payload contract actually carries it (WP-05 shaped these):
+  // position.updated (top-level), pod.signed/custody.transferred/stop.arrived/stop.departed/
+  // delivery.evidenced (nested payload.geo), plus exception.raised which stays a loose JsonObject
+  // kind — proving the coarsening walk is STRUCTURAL, not a per-kind allowlist. Each build supplies
+  // the kind's full valid payload with geoStamp injected.
   const cases: Array<{ kind: EventKind; build: () => ReturnType<typeof eventFixture> }> = [
     { kind: "position.updated", build: () => eventFixture("position.updated", { payload: { lat_e6: LAT, lon_e6: LON, accuracy_m: 5, speed_cms: 1_500 } }) },
     { kind: "pod.signed", build: () => eventFixture("pod.signed", { payload: { signature_hash: SIG, geo: geoStamp } }) },
     { kind: "custody.transferred", build: () => eventFixture("custody.transferred", { payload: { from_party: "a", to_party: "b", geo: geoStamp } }) },
-    ...looseGeoKinds.map((kind) => ({ kind, build: () => eventFixture(kind, { payload: { geo: geoStamp } }) })),
+    { kind: "stop.arrived", build: () => eventFixture("stop.arrived", { payload: { geo: geoStamp, auto: true } }) },
+    { kind: "stop.departed", build: () => eventFixture("stop.departed", { payload: { geo: geoStamp, auto: true } }) },
+    { kind: "delivery.evidenced", build: () => eventFixture("delivery.evidenced", { payload: { placed_photo_hash: SIG, geo: geoStamp } }) },
+    { kind: "exception.raised", build: () => eventFixture("exception.raised", { payload: { geo: geoStamp } }) },
   ];
 
   // geo lives at payload.geo (nested) or at the payload root (position.updated).

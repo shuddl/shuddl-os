@@ -72,7 +72,7 @@ describe("REQ-015 / audit#11 — status_cache is the projection the driver lens 
     await appendStatus(mkEvent("custody.transferred", { stream_id: "s:shp-1", shipment_id: "shp-1", seq: 2 }));
     expect((await statusCache("shp-1"))?.state).toBe("in_transit");
 
-    await appendStatus(mkEvent("stop.departed", { stream_id: "s:shp-1", shipment_id: "shp-1", seq: 3, payload: { out_for_delivery: true } }));
+    await appendStatus(mkEvent("stop.departed", { stream_id: "s:shp-1", shipment_id: "shp-1", seq: 3, payload: { geo: { lat_e6: 37_421_000, lon_e6: -122_084_000 }, auto: false, out_for_delivery: true } }));
     // The lens predicate is json_extract(...)=1; prove it directly.
     const ofd = await DB.prepare("SELECT id FROM shipments WHERE id='shp-1' AND json_extract(status_cache,'$.out_for_delivery') = 1").first<{ id: string }>();
     expect(ofd?.id).toBe("shp-1");
@@ -85,7 +85,7 @@ describe("REQ-015 / audit#11 — status_cache is the projection the driver lens 
 
   it("a plain stop.departed (no flag) does NOT flip out_for_delivery (v1 rule)", async () => {
     await appendStatus(booking("shp-3"));
-    await appendStatus(mkEvent("stop.departed", { stream_id: "s:shp-3", shipment_id: "shp-3", seq: 1, payload: {} }));
+    await appendStatus(mkEvent("stop.departed", { stream_id: "s:shp-3", shipment_id: "shp-3", seq: 1, payload: { geo: { lat_e6: 37_421_000, lon_e6: -122_084_000 }, auto: false } }));
     expect((await statusCache("shp-3"))?.out_for_delivery).toBeUndefined();
   });
 
