@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#1A1A1A"/>
+  <!-- stacked freight bars — coral on ink, kept inside the maskable safe zone -->
+  <rect x="140" y="150" width="232" height="44" fill="#FF4A33"/>
+  <rect x="140" y="234" width="232" height="44" fill="#FF4A33"/>
+  <rect x="140" y="318" width="150" height="44" fill="#FF4A33"/>
+</svg>

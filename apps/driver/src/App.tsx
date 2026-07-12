@@ -1,60 +1,53 @@
 import { useState } from "react";
-import { Button, Display, Mono } from "@shuddl/design";
+import { DAY_SHEET, type Stop } from "./data/stops.js";
+import type { StepId } from "./flow/stop-flow.js";
+import { DaySheet } from "./components/DaySheet.js";
+import { GatedFlow } from "./components/GatedFlow.js";
 
-// DRIVER PWA — Amendment A2: dark ground (`--ink-dark`) with `--field` type, for docks at 5am and
-// sunlight glare. A gate is a FULL-SCREEN QUESTION: one Display instruction, one primary Button, one
-// Mono caption. The stop's progress is the ONE sanctioned teal moment (REQ-078) — a `--progress` fill
-// line, never text or state. No map here: the camera/gate screens are pure, dark, and unmissable.
+// DRIVER PWA (doc 07 §03) — the day sheet and the gated per-stop flow. Ink-dark ground, `--field`
+// type, ONE question + ONE button per screen, the ONE teal progress line. A `?screen=` param positions
+// any flow screen deterministically so the live-render harness can prove each state (WP-03 honesty).
 
-const STOP_STEPS = ["ARRIVE", "PHOTO", "SIGNATURE", "DEPART"] as const;
-const CURRENT_STEP = 1; // on PHOTO (0-indexed) ⇒ 2 of 4 done at completion
+type View = { kind: "daysheet" } | { kind: "flow"; stop: Stop; startStep?: StepId };
+
+const PICKUP = DAY_SHEET.find((s) => s.kind === "pickup") ?? DAY_SHEET[0];
+const DELIVERY = DAY_SHEET.find((s) => s.kind === "delivery") ?? DAY_SHEET[0];
+
+// Map a `?screen=` value to an initial view. Unknown / absent ⇒ the day sheet.
+function initialView(param: string | null): View {
+  switch (param) {
+    case "arrive":
+      return DELIVERY ? { kind: "flow", stop: DELIVERY, startStep: "arrive" } : { kind: "daysheet" };
+    case "count":
+      return PICKUP ? { kind: "flow", stop: PICKUP, startStep: "count" } : { kind: "daysheet" };
+    case "photo":
+      return PICKUP ? { kind: "flow", stop: PICKUP, startStep: "photo_freight" } : { kind: "daysheet" };
+    case "dims":
+      return PICKUP ? { kind: "flow", stop: PICKUP, startStep: "dims" } : { kind: "daysheet" };
+    case "signature":
+      return DELIVERY ? { kind: "flow", stop: DELIVERY, startStep: "sign" } : { kind: "daysheet" };
+    case "depart":
+      return PICKUP ? { kind: "flow", stop: PICKUP, startStep: "depart" } : { kind: "daysheet" };
+    case "delivered":
+      return DELIVERY ? { kind: "flow", stop: DELIVERY, startStep: "delivered" } : { kind: "daysheet" };
+    default:
+      return { kind: "daysheet" };
+  }
+}
 
 export function App(): React.JSX.Element {
-  const [done, setDone] = useState(CURRENT_STEP);
-  const progress = Math.min(1, (done + 1) / STOP_STEPS.length);
+  const param = new URLSearchParams(window.location.search).get("screen");
+  const [view, setView] = useState<View>(() => initialView(param));
 
-  return (
-    <main
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "var(--ink-dark)",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-between",
-        padding: 28,
-      }}
-    >
-      {/* Stop progress — teal fill line (the one teal moment). */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <Mono size={11} color="var(--signal-55)">
-          STOP 2 OF 4 · {STOP_STEPS[Math.min(done, STOP_STEPS.length - 1)]}
-        </Mono>
-        <div style={{ height: 4, background: "var(--signal-12)", width: "100%" }}>
-          <div style={{ height: 4, background: "var(--progress)", width: `${Math.round(progress * 100)}%` }} />
-        </div>
-      </div>
+  if (view.kind === "flow") {
+    return (
+      <GatedFlow
+        stop={view.stop}
+        {...(view.startStep ? { startStep: view.startStep } : {})}
+        onExit={() => setView({ kind: "daysheet" })}
+      />
+    );
+  }
 
-      {/* The gate — one instruction, huge, light on dark. */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 640 }}>
-        <Mono size={12} color="var(--signal-55)">
-          GATE · REQUIRED
-        </Mono>
-        <Display size="hero" color="var(--field-on-dark)">
-          Photograph the freight where it sits
-        </Display>
-        <Mono size={12} color="var(--field-on-dark)">
-          FRAME ALL PIECES · CAPTURE THE BOL NUMBER
-        </Mono>
-      </div>
-
-      {/* One primary action. */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <Button onClick={() => setDone((d) => Math.min(STOP_STEPS.length - 1, d + 1))}>Open Camera</Button>
-        <Mono size={11} color="var(--signal-55)">
-          OFFLINE — CAPTURING LOCALLY
-        </Mono>
-      </div>
-    </main>
-  );
+  return <DaySheet stops={DAY_SHEET} doneCount={1} onOpen={(stop) => setView({ kind: "flow", stop })} />;
 }
