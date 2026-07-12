@@ -168,14 +168,26 @@ export type DeliveryEvidencedPayload = z.infer<typeof DeliveryEvidencedPayload>;
 // stamp — and it must ride an EXISTING kind (adding a 36th kind is a register amendment). The
 // carrier is `document.attached` (kept as a flexible JsonObject payload above): the DO stores a
 // `document.attached` event whose payload conforms to ConsentAck, and the consent-before-GPS gate
-// (a LATER WP-05 task) validates that payload against this schema. Every field is JsonValue-safe,
-// so a ConsentAck is a structural subset of the document.attached JsonObject payload and rides the
-// ledger unchanged. Consent language + policy_version live pack-side, counsel-reviewed (doc 13 §05).
+// (a LATER WP-05 task) validates that payload against this schema.
+//
+// EXACT-MATCH CONTRACT (load-bearing — do NOT read this as "loose"): ConsentAck is `.strict()`, so
+// the stored `document.attached` consent payload must match it EXACTLY — these four fields and
+// NOTHING else. A consent doc that also carries a natural `doc_id`, content hash, or `captured_ts`
+// on the SAME payload object fails `safeParse` → the gate would silently block that driver from ALL
+// GPS in that state, forever, with nothing pointing at the offending extra key. So the Task-5/Task-8
+// emitter's contract is: put ONLY {doc_kind, policy_version, operating_state, acknowledged} in the
+// consent payload; any doc id / hash / timestamp rides the envelope's `evidence[]` / `captured_ts`,
+// never inside this object. Consent language + policy_version live pack-side, counsel-reviewed (doc 13 §05).
 export const ConsentAck = z
   .object({
     doc_kind: z.literal("consent"),
     policy_version: z.string().min(1),
-    operating_state: z.string().min(1), // jurisdiction whose pack-side language was acknowledged
+    // Jurisdiction of the acknowledged pack-side language. CANONICAL FORM: uppercase 2-letter
+    // jurisdiction code (USPS, e.g. "TX"). The gate compares this by EXACT case-sensitive equality
+    // to the incoming stamp's derived jurisdiction, so capture (Task 8), derivation (Task 5), and
+    // the gate must all use this one form — "TX" ≠ "tx" ≠ "Texas". (No hard regex here: the full
+    // jurisdiction set isn't settled; the convention is pinned by comment, enforced by agreement.)
+    operating_state: z.string().min(1),
     acknowledged: z.literal(true),
   })
   .strict();

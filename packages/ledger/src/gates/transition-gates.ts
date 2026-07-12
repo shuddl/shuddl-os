@@ -18,7 +18,7 @@
 // (passes) and BLOCKS without one. Making the override permanently visible — recording the
 // {by, reason} onto the appended event so the ledger carries who overrode what and why — is wired in
 // Task 5 (the sequencer stamps the override on the event it writes). Task 3 is only the pure decision.
-import type { LedgerEvent } from "@shuddl/contracts";
+import { ConsentAck, type LedgerEvent } from "@shuddl/contracts";
 import { GateError } from "./invoice-gate.js";
 import { insideFence, type Fence } from "../geo/fence.js";
 
@@ -44,6 +44,7 @@ export const REQUIRED_EVIDENCE = {
   receiver_ack: "receiver_ack",
   exception_photo: "exception_photo",
   reason_code: "reason_code",
+  consent: "consent",
 } as const;
 export type RequiredEvidence = (typeof REQUIRED_EVIDENCE)[keyof typeof REQUIRED_EVIDENCE];
 
@@ -248,4 +249,71 @@ export function assertException(incoming: LedgerEvent, ctx?: GateCtx): void {
   if (!(typeof photoHash === "string" && HASH64.test(photoHash))) missing.push(REQUIRED_EVIDENCE.exception_photo);
   if (!(typeof reasonCode === "string" && reasonCode.trim().length > 0)) missing.push(REQUIRED_EVIDENCE.reason_code);
   if (missing.length > 0) throw new GateError(missing);
+}
+
+/**
+ * REQ-166 — consent-before-first-GPS. This is the consent MECHANISM only: it enforces that SOME valid
+ * consent-for-this-operating-state acknowledgment already sits on the stream before the first GPS
+ * stamp is recorded. The legal policy TEXT, the per-state consent copy, and counsel sign-off on
+ * whether a given acknowledgment is legally sufficient are **[CONFIRM] (owner=counsel)** — a pack-side,
+ * counsel-reviewed deliverable (doc 13 §05), NOT code. The gate does not judge legal sufficiency; it
+ * judges only that a structurally-valid ConsentAck for `ctx.operating_state` precedes the stamp.
+ *
+ * SCOPE — the gate applies ONLY when `incoming.kind` is a GPS/geo stamp: `position.updated` or
+ * `stop.arrived` (the geofence auto-arrive is itself a GPS stamp). Every other kind is a no-op pass:
+ * consent gates the LOCATION TRACKING, not the whole event stream.
+ *
+ * GEO-BEARING SET (documented choice): `stop.departed` and `delivery.evidenced` also carry a `geo`,
+ * but this gate is "consent before the FIRST stamp" — once the first `position.updated`/`stop.arrived`
+ * has passed, a consent-for-this-state is provably already on the stream, so gating the later geo-
+ * bearing kinds would be redundant. Guarding the two arrival/position stamps is sufficient and minimal.
+ *
+ * CONSENT is PER operating state (REQ-166): a `document.attached` whose payload parses via
+ * `ConsentAck.safeParse` AND whose `operating_state === ctx.operating_state`. A consent acknowledged
+ * for "CA" does NOT cover a stamp taken while operating in "TX". `document.attached` is a loose
+ * JsonObject kind, so the payload is safeParse'd DEFENSIVELY (like the exception gate) — an
+ * unacknowledged doc, a non-consent doc, or a wrong-state consent never satisfies the gate.
+ * Missing/mismatched → `GateError(["consent"])`.
+ *
+ * EXACT-MATCH WARNING (the emitter's contract): `ConsentAck` is `.strict()`, so a consent doc whose
+ * payload carries ANY extra key beyond the four fields (a natural `doc_id`, content hash, or
+ * `captured_ts` on the SAME object) FAILS safeParse and does NOT satisfy the gate — which would
+ * silently block that driver from ALL GPS in that state, forever, with nothing pointing at the extra
+ * key. The Task-5 DO writer and Task-8 PWA emitter MUST put ONLY {doc_kind, policy_version,
+ * operating_state, acknowledged} in the consent payload; any id/hash/timestamp rides the envelope
+ * (`evidence[]` / `captured_ts`), never inside this object. (See the ConsentAck schema in contracts.)
+ *
+ * `ctx.operating_state` PROVENANCE + FORM: it is the jurisdiction of the INCOMING stamp — Task 5
+ * reverse-geocodes `incoming.payload.geo` → jurisdiction (correctly impure, so it lives in the caller,
+ * NOT in this pure gate) — NOT the driver's home state and NOT the shipment origin; a plausible-but-
+ * wrong state yields a silent mis-decision. The compare is EXACT, case-sensitive equality, so the
+ * value must be the canonical form the ConsentAck contract pins (uppercase 2-letter USPS code, "TX"):
+ * capture, derivation, and this gate must all agree — "TX" ≠ "tx" ≠ "Texas".
+ *
+ * `ctx.operating_state` must be a non-empty string; a blank one is a caller error (the gate cannot
+ * decide per-state consent without knowing the state) → `GateValidationError` (VALIDATION_FAILED, a
+ * 400), NOT a GateError. This gate takes no override — consent is a legal precondition, not an
+ * operational evidence requirement a dispatcher may waive.
+ */
+// The context is a bespoke `{ operating_state }` rather than the shared `GateCtx` BY DESIGN: it
+// structurally forbids handing this non-overridable gate an `override` (a caller physically cannot
+// pass one — it is a compile error, not a runtime ignore). Task 5: this divergence is deliberate.
+export function assertConsentBeforeGps(
+  prior: readonly LedgerEvent[],
+  incoming: LedgerEvent,
+  ctx: { operating_state: string },
+): void {
+  // The gate guards location tracking only — a non-GPS incoming event is outside its scope (no-op).
+  if (incoming.kind !== "position.updated" && incoming.kind !== "stop.arrived") return;
+
+  if (ctx.operating_state.trim().length === 0) {
+    throw new GateValidationError("assertConsentBeforeGps requires a non-empty ctx.operating_state (REQ-166)");
+  }
+
+  const consented = prior.some((e) => {
+    if (e.kind !== "document.attached") return false;
+    const parsed = ConsentAck.safeParse(e.payload);
+    return parsed.success && parsed.data.operating_state === ctx.operating_state;
+  });
+  if (!consented) throw new GateError([REQUIRED_EVIDENCE.consent]);
 }

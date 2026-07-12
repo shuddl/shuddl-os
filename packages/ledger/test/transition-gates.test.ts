@@ -14,6 +14,7 @@ import {
   assertDelivery,
   assertInterline,
   assertException,
+  assertConsentBeforeGps,
   GateError,
   GateValidationError,
   REQUIRED_EVIDENCE,
@@ -78,6 +79,34 @@ function osd(): LedgerEvent {
 }
 function exceptionRaised(payload: Record<string, JsonValue>): LedgerEvent {
   return eventFixture("exception.raised", { payload });
+}
+// A GPS/geo stamp — the incoming event the consent gate guards.
+function position(): LedgerEvent {
+  return eventFixture("position.updated");
+}
+// A `document.attached` carrying a valid ConsentAck for `state` (rides the loose JsonObject kind).
+function consentDoc(state: string): LedgerEvent {
+  return eventFixture("document.attached", {
+    payload: { doc_kind: "consent", policy_version: "loc-2026-01", operating_state: state, acknowledged: true },
+  });
+}
+// A `document.attached` that is NOT a valid ConsentAck (unacknowledged) → must not satisfy the gate.
+function consentDocUnacknowledged(state: string): LedgerEvent {
+  return eventFixture("document.attached", {
+    payload: { doc_kind: "consent", policy_version: "loc-2026-01", operating_state: state, acknowledged: false },
+  });
+}
+// A `document.attached` that is a plain non-consent doc (e.g. a BOL) → must not satisfy the gate.
+function nonConsentDoc(): LedgerEvent {
+  return eventFixture("document.attached", { payload: { doc_kind: "bol", doc_id: "bol-1" } });
+}
+// A consent doc that ALSO carries a stray `doc_id` on the SAME payload object. ConsentAck is
+// `.strict()`, so this superset must FAIL safeParse and NOT satisfy the gate (the load-bearing seam:
+// an emitter that puts a natural id/hash INSIDE the consent payload would silently block GPS forever).
+function consentDocWithExtraKey(state: string): LedgerEvent {
+  return eventFixture("document.attached", {
+    payload: { doc_kind: "consent", policy_version: "loc-2026-01", operating_state: state, acknowledged: true, doc_id: "doc-9" },
+  });
 }
 
 // Helper: run a gate and return the required_evidence of the thrown GateError (fails if it did NOT throw a GateError).
@@ -293,6 +322,62 @@ describe("REQ-050 assertException — an exception/OS&D needs a photo + a reason
 
   it("a malformed override THROWS GateValidationError", () => {
     expect(() => assertException(exceptionRaised({}), { override: { by: "x", reason: "" } })).toThrow(/VALIDATION_FAILED/);
+  });
+});
+
+// =====================================================================================
+describe("REQ-166 assertConsentBeforeGps — a GPS stamp is blocked until consent-for-this-state precedes it", () => {
+  it("a position.updated with NO prior consent blocks with ['consent']", () => {
+    expect(blockedEvidence(() => assertConsentBeforeGps([], position(), { operating_state: "TX" })))
+      .toEqual([REQUIRED_EVIDENCE.consent]);
+  });
+
+  it("a stop.arrived with NO prior consent blocks with ['consent'] (geofence auto-arrive is a GPS stamp)", () => {
+    expect(blockedEvidence(() => assertConsentBeforeGps([], arrived(GEO), { operating_state: "TX" })))
+      .toEqual([REQUIRED_EVIDENCE.consent]);
+  });
+
+  it("a position.updated AFTER a matching-state consent passes", () => {
+    expect(() => assertConsentBeforeGps([consentDoc("TX")], position(), { operating_state: "TX" })).not.toThrow();
+  });
+
+  it("a stop.arrived AFTER a matching-state consent passes", () => {
+    expect(() => assertConsentBeforeGps([consentDoc("TX")], arrived(GEO), { operating_state: "TX" })).not.toThrow();
+  });
+
+  it("consent for a DIFFERENT operating_state does NOT cover this event → still blocks (per-state)", () => {
+    expect(blockedEvidence(() => assertConsentBeforeGps([consentDoc("CA")], position(), { operating_state: "TX" })))
+      .toEqual([REQUIRED_EVIDENCE.consent]);
+  });
+
+  it("a document.attached that is NOT a valid ConsentAck (acknowledged:false) does NOT satisfy → blocks", () => {
+    expect(blockedEvidence(() => assertConsentBeforeGps([consentDocUnacknowledged("TX")], position(), { operating_state: "TX" })))
+      .toEqual([REQUIRED_EVIDENCE.consent]);
+  });
+
+  it("a plain non-consent document.attached (a BOL) does NOT satisfy → blocks", () => {
+    expect(blockedEvidence(() => assertConsentBeforeGps([nonConsentDoc()], position(), { operating_state: "TX" })))
+      .toEqual([REQUIRED_EVIDENCE.consent]);
+  });
+
+  it("a consent doc with an EXTRA key (superset) fails .strict() safeParse → still blocks ['consent']", () => {
+    // Locks the seam: an emitter that puts a natural doc_id/hash INSIDE the consent payload would be
+    // silently rejected — proving .strict() is doing its job and that the exact-match contract holds.
+    expect(blockedEvidence(() => assertConsentBeforeGps([consentDocWithExtraKey("TX")], position(), { operating_state: "TX" })))
+      .toEqual([REQUIRED_EVIDENCE.consent]);
+  });
+
+  it("a non-geo incoming kind (freight.counted) is a no-op pass — consent does not gate the whole stream", () => {
+    expect(() => assertConsentBeforeGps([], freightCounted(), { operating_state: "TX" })).not.toThrow();
+  });
+
+  it("a blank ctx.operating_state is a caller error → GateValidationError (not a GateError)", () => {
+    expect(() => assertConsentBeforeGps([consentDoc("TX")], position(), { operating_state: "" })).toThrow(GateValidationError);
+    expect(() => assertConsentBeforeGps([consentDoc("TX")], position(), { operating_state: "   " })).toThrow(/VALIDATION_FAILED/);
+  });
+
+  it("PRECEDENCE: a non-geo incoming with a BLANK operating_state does NOT throw — the scope no-op precedes the blank-state check", () => {
+    expect(() => assertConsentBeforeGps([], freightCounted(), { operating_state: "" })).not.toThrow();
   });
 });
 
