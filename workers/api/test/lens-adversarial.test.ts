@@ -54,6 +54,21 @@ function payloadFor(kind: EventKind): Record<string, unknown> {
       return { invoice_id: `inv-${SHP_A}`, party_id: P2, division: "main", lines: [{ line_no: 1, kind: "freight", amount_cents: 120_000, gl_map: "4000-REV" }] };
     case "split.computed":
       return { total_cents: 120_000, allocations: [{ party_id: P3, share_bps: 3_000 }, { party_id: P1, share_bps: 7_000 }] };
+    case "stop.arrived":
+    case "stop.departed":
+      return { geo: { ...GEO }, auto: true };
+    case "freight.counted":
+      return { pieces: 12 };
+    case "freight.photographed":
+      return { photo_hash: HEX64, photo_kind: "freight" };
+    case "dims.captured":
+      return { l_in: 48, w_in: 40, h_in: 60, pieces: 4, method: "camera" };
+    case "seal.applied":
+      return { seal_id: "seal-1", photo_hash: HEX64 };
+    case "osd.captured":
+      return { photo_hash: HEX64, reason_code: "damage" };
+    case "delivery.evidenced":
+      return { placed_photo_hash: HEX64, geo: { ...GEO } };
     default:
       return {};
   }
@@ -273,7 +288,7 @@ describe("case 5: consignee P2 geo coarsens pre-OFD, unlocks post-OFD", () => {
     }
 
     // Flip out-for-delivery (driver PWA gesture in prod; ops append here) and re-read.
-    const flip = await append(SHP_GEO, buildInput(SHP_GEO, "stop.departed", { party_refs: [P1, P2], payload: { out_for_delivery: true } }), await opsTok());
+    const flip = await append(SHP_GEO, buildInput(SHP_GEO, "stop.departed", { party_refs: [P1, P2], payload: { geo: { ...GEO }, auto: false, out_for_delivery: true } }), await opsTok());
     expect(flip.status).toBe(201);
 
     const post = await listShipment(SHP_GEO, p2);

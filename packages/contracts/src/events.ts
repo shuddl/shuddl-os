@@ -93,6 +93,92 @@ export const AgentActedPayload = z
   .strict();
 export type AgentActedPayload = z.infer<typeof AgentActedPayload>;
 
+// ---- WP-05 physical-capture payloads (REQ-017/063/064) ----
+// Evidence bytes are hashed AT CAPTURE (REQ-017): photo/seal events carry a Hash64, never the
+// bytes. Geo is integer microdegrees (GeoStamp); counts and dims are non-negative integers.
+// These shapes feed the Gatekeeper gates + the driver capture in later WP-05 tasks — the gates
+// read exactly the evidence pinned here (a placed-photo hash for delivery, a count for a stop).
+
+// stop.arrived — geofence-triggered (auto=true) or manual (auto=false) arrival stamp.
+export const StopArrivedPayload = z.object({ geo: GeoStamp, auto: z.boolean() }).strict();
+export type StopArrivedPayload = z.infer<typeof StopArrivedPayload>;
+
+// freight.counted — pieces observed; `expected` (from the BOL) is optional (not always known).
+export const FreightCountedPayload = z
+  .object({ pieces: SafeInt.min(0), expected: SafeInt.min(0).optional() })
+  .strict();
+export type FreightCountedPayload = z.infer<typeof FreightCountedPayload>;
+
+// freight.photographed — a forced photo (REQ-063), hashed at capture. photo_kind (named to avoid
+// shadowing the envelope `kind`) tags what the gate reads: "freight" (pickup-depart gate) or
+// "placed" (delivery gate). Seals ride seal.applied and OS&D rides osd.captured — not this kind.
+export const FreightPhotographedPayload = z
+  .object({ photo_hash: Hash64, photo_kind: z.enum(["freight", "placed"]) })
+  .strict();
+export type FreightPhotographedPayload = z.infer<typeof FreightPhotographedPayload>;
+
+// dims.captured — L/W/H inches + piece count; camera-measured or manually entered. Linear dims
+// must be positive (min 1) — a 0-inch box is degenerate and would poison the pricing/class calc.
+// pieces stays min 0 (0 can express a shortage).
+export const DimsCapturedPayload = z
+  .object({
+    l_in: SafeInt.min(1),
+    w_in: SafeInt.min(1),
+    h_in: SafeInt.min(1),
+    pieces: SafeInt.min(0),
+    method: z.enum(["camera", "manual"]),
+  })
+  .strict();
+export type DimsCapturedPayload = z.infer<typeof DimsCapturedPayload>;
+
+// seal.applied — seal id + a photo of the applied seal (hashed at capture).
+export const SealAppliedPayload = z.object({ seal_id: z.string().min(1), photo_hash: Hash64 }).strict();
+export type SealAppliedPayload = z.infer<typeof SealAppliedPayload>;
+
+// stop.departed — departure stamp; geofence-triggered (auto=true) or manual (auto=false).
+// out_for_delivery: the WP-05 driver PWA sets this true when departing to run delivery; the
+// status-cache projection flips the OFD flag ONLY on this signal (packages/ledger status-cache.ts),
+// and the driver lens + map granularity read that flag. Optional — a plain depart never flips OFD.
+export const StopDepartedPayload = z
+  .object({ geo: GeoStamp, auto: z.boolean(), out_for_delivery: z.boolean().optional() })
+  .strict();
+export type StopDepartedPayload = z.infer<typeof StopDepartedPayload>;
+
+// osd.captured — over/short/damage: a photo (hashed at capture) + a reason code + optional note.
+// ASYMMETRY NOTE (for the Task-3 exception gate): osd.captured is strictly typed here, but
+// `exception.raised` deliberately stays a loose JsonObject payload (see the ev/evInput maps). The
+// two are NOT symmetrically typed — a gate reading exception evidence must DEFENSIVELY parse
+// `{photo_hash, reason_code}` out of exception.raised's payload; it cannot assume this shape.
+export const OsdCapturedPayload = z
+  .object({
+    photo_hash: Hash64,
+    reason_code: z.enum(["shortage", "overage", "damage", "refused", "other"]),
+    note: z.string().optional(),
+  })
+  .strict();
+export type OsdCapturedPayload = z.infer<typeof OsdCapturedPayload>;
+
+// delivery.evidenced — the forced placed-freight photo (REQ-063), hashed at capture, + where.
+export const DeliveryEvidencedPayload = z.object({ placed_photo_hash: Hash64, geo: GeoStamp }).strict();
+export type DeliveryEvidencedPayload = z.infer<typeof DeliveryEvidencedPayload>;
+
+// REQ-166: driver location-tracking consent must be captured as an event BEFORE the first GPS
+// stamp — and it must ride an EXISTING kind (adding a 36th kind is a register amendment). The
+// carrier is `document.attached` (kept as a flexible JsonObject payload above): the DO stores a
+// `document.attached` event whose payload conforms to ConsentAck, and the consent-before-GPS gate
+// (a LATER WP-05 task) validates that payload against this schema. Every field is JsonValue-safe,
+// so a ConsentAck is a structural subset of the document.attached JsonObject payload and rides the
+// ledger unchanged. Consent language + policy_version live pack-side, counsel-reviewed (doc 13 §05).
+export const ConsentAck = z
+  .object({
+    doc_kind: z.literal("consent"),
+    policy_version: z.string().min(1),
+    operating_state: z.string().min(1), // jurisdiction whose pack-side language was acknowledged
+    acknowledged: z.literal(true),
+  })
+  .strict();
+export type ConsentAck = z.infer<typeof ConsentAck>;
+
 // ---- envelope base (shared by every kind; kind + payload are added per member) ----
 const eventBaseShape = {
   id: z.string().uuid(),
@@ -140,18 +226,18 @@ export const LedgerEvent = z
     ev("appointment.set", JsonObject),
     ev("pickup.scheduled", JsonObject),
     ev("dispatch.assigned", JsonObject),
-    ev("stop.arrived", JsonObject),
-    ev("freight.counted", JsonObject),
-    ev("freight.photographed", JsonObject),
-    ev("dims.captured", JsonObject),
+    ev("stop.arrived", StopArrivedPayload),
+    ev("freight.counted", FreightCountedPayload),
+    ev("freight.photographed", FreightPhotographedPayload),
+    ev("dims.captured", DimsCapturedPayload),
     ev("custody.transferred", CustodyTransferredPayload),
-    ev("seal.applied", JsonObject),
-    ev("stop.departed", JsonObject),
+    ev("seal.applied", SealAppliedPayload),
+    ev("stop.departed", StopDepartedPayload),
     ev("position.updated", PositionUpdatedPayload),
     ev("exception.raised", JsonObject),
-    ev("osd.captured", JsonObject),
+    ev("osd.captured", OsdCapturedPayload),
     ev("pod.signed", PodSignedPayload),
-    ev("delivery.evidenced", JsonObject),
+    ev("delivery.evidenced", DeliveryEvidencedPayload),
     ev("invoice.issued", InvoiceIssuedPayload),
     ev("invoice.corrected", InvoiceCorrectedPayload),
     ev("payment.received", JsonObject),
@@ -229,18 +315,18 @@ export const EventInput = z
     evInput("appointment.set", JsonObject),
     evInput("pickup.scheduled", JsonObject),
     evInput("dispatch.assigned", JsonObject),
-    evInput("stop.arrived", JsonObject),
-    evInput("freight.counted", JsonObject),
-    evInput("freight.photographed", JsonObject),
-    evInput("dims.captured", JsonObject),
+    evInput("stop.arrived", StopArrivedPayload),
+    evInput("freight.counted", FreightCountedPayload),
+    evInput("freight.photographed", FreightPhotographedPayload),
+    evInput("dims.captured", DimsCapturedPayload),
     evInput("custody.transferred", CustodyTransferredPayload),
-    evInput("seal.applied", JsonObject),
-    evInput("stop.departed", JsonObject),
+    evInput("seal.applied", SealAppliedPayload),
+    evInput("stop.departed", StopDepartedPayload),
     evInput("position.updated", PositionUpdatedPayload),
     evInput("exception.raised", JsonObject),
-    evInput("osd.captured", JsonObject),
+    evInput("osd.captured", OsdCapturedPayload),
     evInput("pod.signed", PodSignedPayload),
-    evInput("delivery.evidenced", JsonObject),
+    evInput("delivery.evidenced", DeliveryEvidencedPayload),
     evInput("invoice.issued", InvoiceIssuedPayload),
     evInput("invoice.corrected", InvoiceCorrectedPayload),
     evInput("payment.received", JsonObject),
@@ -307,6 +393,21 @@ function fixturePayload(kind: EventKind): Record<string, unknown> {
       return { from_party: "party-shipper", to_party: "party-carrier" };
     case "position.updated":
       return { lat_e6: FIXTURE_GEO.lat_e6, lon_e6: FIXTURE_GEO.lon_e6, speed_cms: 1_500 };
+    case "stop.arrived":
+    case "stop.departed":
+      return { geo: FIXTURE_GEO, auto: true };
+    case "freight.counted":
+      return { pieces: 12 };
+    case "freight.photographed":
+      return { photo_hash: FIXTURE_SIGNATURE_HASH, photo_kind: "freight" };
+    case "dims.captured":
+      return { l_in: 48, w_in: 40, h_in: 60, pieces: 4, method: "camera" };
+    case "seal.applied":
+      return { seal_id: "seal-1", photo_hash: FIXTURE_SIGNATURE_HASH };
+    case "osd.captured":
+      return { photo_hash: FIXTURE_SIGNATURE_HASH, reason_code: "damage" };
+    case "delivery.evidenced":
+      return { placed_photo_hash: FIXTURE_SIGNATURE_HASH, geo: FIXTURE_GEO };
     case "agent.acted":
       return {
         agent: "biller",

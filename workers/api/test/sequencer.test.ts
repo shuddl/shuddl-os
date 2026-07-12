@@ -212,11 +212,12 @@ it("a bad device signature is rejected (UNAUTHORIZED); a good one lands with sig
   const stub = stubFor(streamId);
   const signedActor = { party: "party-carrier", user: "user-driver", device: TEST_DEVICE_ID };
 
+  const photoPayload = { photo_hash: HEX64, photo_kind: "freight" };
   await expect(
-    stub.append({ tenant: TENANT, streamId, input: inputFor(streamId, { kind: "freight.photographed", actor: signedActor, sig: "AAAA" }) }),
+    stub.append({ tenant: TENANT, streamId, input: inputFor(streamId, { kind: "freight.photographed", actor: signedActor, sig: "AAAA", payload: photoPayload }) }),
   ).rejects.toThrow(/UNAUTHORIZED/);
 
-  const good = inputFor(streamId, { kind: "freight.photographed", actor: signedActor });
+  const good = inputFor(streamId, { kind: "freight.photographed", actor: signedActor, payload: photoPayload });
   good.sig = await signEvent(good as Parameters<typeof signEvent>[0], await testDeviceSigningKey());
   const r = await stub.append({ tenant: TENANT, streamId, input: good });
   expect(r.sig).toBe(good.sig);
