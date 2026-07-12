@@ -11,7 +11,17 @@
 // Date.now(), NO Math.random(). Run generateSeed() twice and the datasets are byte-identical.
 import { buildChain } from "@shuddl/ledger/chain";
 import { sha256Hex } from "@shuddl/ledger/canonical";
-import { eventFixture, type EventKind, type JsonValue, type LedgerEvent } from "@shuddl/contracts";
+import {
+  eventFixture,
+  ZoneTariff,
+  FloorsConfig,
+  FscConfig,
+  AccessorialSchedule,
+  ClassAdapter,
+  type EventKind,
+  type JsonValue,
+  type LedgerEvent,
+} from "@shuddl/contracts";
 
 const BASE_TS = Date.UTC(2026, 6, 9, 6, 0, 0); // 2026-07-09T06:00:00Z, fixed forever (epoch ms)
 
@@ -44,6 +54,21 @@ const LIFECYCLES: Array<{ status: string; kinds: EventKind[]; count: number }> =
 ];
 
 export type SeedParty = { id: string; kind: string; name: string };
+// SEED-1's rating_config mirrors doc 13 §02.4 (`rating-config/` = tariffs, zone maps, rate groups,
+// accessorial schedules, floors, FSC) toward REQ-165 — but it is SYNTHETIC seed data, not any real
+// tenant's rate table. Each field is the INPUT type of its Task-1 @shuddl/contracts schema (what
+// `z.input<typeof X>` yields — accessed via `["_input"]` so the seed tooling takes no direct, and
+// currently undeclared, dependency on `zod`). This keeps the type coupled to the source of truth:
+// rename/add a schema field and this fails at COMPILE time, not just at the tests' runtime `.parse()`.
+// The input shape is pre-brand (plain number/string, not the branded Cents/Bps), so the literal
+// RATING_CONFIG below still needs NO casts.
+export type SeedRatingConfig = {
+  zone_tariff: (typeof ZoneTariff)["_input"];
+  floors: (typeof FloorsConfig)["_input"];
+  fsc: (typeof FscConfig)["_input"];
+  accessorials: (typeof AccessorialSchedule)["_input"];
+  class_adapter: (typeof ClassAdapter)["_input"];
+};
 export type SeedShipment = {
   id: string;
   division: string;
@@ -60,7 +85,74 @@ export type Seed = {
   tenant: { slug: string; name: string; plan: string };
   parties: SeedParty[];
   rate_config: { kind: string; version: number };
+  rating_config: SeedRatingConfig;
   shipments: SeedShipment[];
+};
+
+// A fixed, hand-authored LTL tariff for SEED-1 — every value is a literal (NO rnd/Date), so it is
+// byte-identical on every run. Zones are ranked by distance from the origin (Z1 nearest … Z6 farthest);
+// two rate groups price a subset of zones each (near Z1–Z3 cheaper, far Z4–Z6 dearer, so cost rises
+// with distance). Within a group, breaks ASCEND by min_lb while cwt_cents DECREASE (standard LTL:
+// heavier freight, lower rate per hundredweight). All money is integer cents; all bps are 0..10000.
+const RATING_CONFIG: SeedRatingConfig = {
+  zone_tariff: {
+    kind: "zone_tariff",
+    id: "zt-seed1",
+    version: "v1",
+    // ~40 three-digit ZIP prefixes → zone, banded by distance from the seed origin (PNW).
+    zip_to_zone: {
+      "970": "Z1", "971": "Z1", "972": "Z1",
+      "973": "Z2", "974": "Z2", "975": "Z2", "976": "Z2", "977": "Z2", "978": "Z2", "979": "Z2",
+      "980": "Z3", "981": "Z3", "982": "Z3", "983": "Z3", "984": "Z3", "985": "Z3", "988": "Z3", "990": "Z3",
+      "836": "Z4", "590": "Z4", "591": "Z4", "597": "Z4", "940": "Z4", "945": "Z4", "958": "Z4",
+      "800": "Z5", "801": "Z5", "802": "Z5", "840": "Z5", "841": "Z5", "890": "Z5", "891": "Z5",
+      "100": "Z6", "104": "Z6", "300": "Z6", "331": "Z6", "600": "Z6", "606": "Z6", "750": "Z6", "770": "Z6",
+    },
+    rate_groups: [
+      {
+        id: "rg-near", // Z1–Z3: shorter haul, lower rates
+        zones: ["Z1", "Z2", "Z3"],
+        breaks: [
+          { min_lb: 0, cwt_cents: 3800 },
+          { min_lb: 500, cwt_cents: 3200 },
+          { min_lb: 1000, cwt_cents: 2700 },
+          { min_lb: 2000, cwt_cents: 2300 },
+          { min_lb: 5000, cwt_cents: 1900 },
+          { min_lb: 10000, cwt_cents: 1600 },
+        ],
+        min_charge_cents: 9500,
+      },
+      {
+        id: "rg-far", // Z4–Z6: longer haul, higher rates
+        zones: ["Z4", "Z5", "Z6"],
+        breaks: [
+          { min_lb: 0, cwt_cents: 5200 },
+          { min_lb: 500, cwt_cents: 4500 },
+          { min_lb: 1000, cwt_cents: 3900 },
+          { min_lb: 2000, cwt_cents: 3300 },
+          { min_lb: 5000, cwt_cents: 2700 },
+          { min_lb: 10000, cwt_cents: 2200 },
+        ],
+        min_charge_cents: 11500,
+      },
+    ],
+  },
+  // OR = operating ratio (cost/revenue). contribution_bps <= full_cost_bps <= target_or_bps.
+  floors: { kind: "floors", id: "fl-seed1", version: "v1", target_or_bps: 9800, full_cost_bps: 9200, contribution_bps: 8500 },
+  fsc: { kind: "fsc", id: "fsc-seed1", version: "v1", pct_bps: 2400 }, // 24% fuel surcharge
+  accessorials: {
+    kind: "accessorials",
+    id: "acc-seed1",
+    version: "v1",
+    items: { liftgate: 3500, residential: 2500, detention: 6500, notify: 1200 }, // cents
+  },
+  // Freight class -> density (lb/ft^3); higher class = lower density. Edge adapter only (REQ-004).
+  class_adapter: {
+    kind: "class_adapter",
+    id: "cls-seed1",
+    version: "v1",
+    class_to_density_pcf: { "50": 30, "70": 15, "92.5": 10.5, "125": 6 },
+  },
 };
 
 // Deterministic v4-variant uuid from a per-run counter (matches the ledger test-helper scheme,
@@ -177,6 +269,7 @@ export async function generateSeed(): Promise<Seed> {
     tenant: { slug: "seed-1", name: "SEED-1", plan: "pro" },
     parties,
     rate_config: { kind: "zone_tariff", version: 1 },
+    rating_config: RATING_CONFIG,
     shipments,
   };
 }

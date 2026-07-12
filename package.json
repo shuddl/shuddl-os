@@ -15,16 +15,18 @@
     "seed": "tsx tools/seed/generate.cli.ts",
     "seed:load": "tsx tools/seed/load.cli.ts",
     "check:invariants": "tsx tools/checks/invariants.ts",
+    "check:rater-purity": "tsx tools/checks/rater-purity.ts",
     "db:lock": "tsx tools/checks/invariants.ts --write",
     "check:traceability": "tsx tools/traceability/orphans.ts",
     "check:pr": "tsx tools/traceability/check-pr.ts",
     "check:identity": "tsx tools/checks/identity-leak.ts",
     "check:fixtures": "tsx tools/fixtures/verify.ts",
+    "check:rater-parity": "tsx tools/rater/parity.ts",
     "check:seed": "tsx tools/seed/verify.ts",
     "audit:design": "tsx tools/design/audit.ts",
     "perf:map": "tsx tools/harness/playwright-guard.ts perf packages/map/playwright.config.ts",
     "test:visual": "tsx tools/harness/playwright-guard.ts visual playwright.config.ts",
-    "verify": "pnpm typecheck && pnpm lint && pnpm test && pnpm check:invariants && pnpm check:traceability && pnpm check:identity && pnpm check:fixtures && pnpm check:seed && pnpm audit:design"
+    "verify": "pnpm typecheck && pnpm lint && pnpm test && pnpm check:invariants && pnpm check:rater-purity && pnpm check:traceability && pnpm check:identity && pnpm check:fixtures && pnpm check:rater-parity && pnpm check:seed && pnpm audit:design"
   },
   "devDependencies": {
     "@shuddl/contracts": "workspace:*",

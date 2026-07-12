@@ -10,6 +10,7 @@
   "dependencies": {
     "@shuddl/contracts": "workspace:*",
     "@shuddl/ledger": "workspace:*",
+    "@shuddl/rater": "workspace:*",
     "hono": "^4.10.8",
     "zod": "^4.3.5"
   },
