@@ -2,8 +2,23 @@
   "name": "@shuddl/agents",
   "private": true,
   "type": "module",
-  "exports": { ".": "./src/index.ts", "./*": "./src/*.ts" },
+  "exports": {
+    ".": "./src/index.ts",
+    "./biller/evidence-email-view": "./src/biller/evidence-email-view.tsx",
+    "./*": "./src/*.ts"
+  },
   "scripts": { "typecheck": "tsc --noEmit", "test": "vitest run" },
-  "dependencies": { "@shuddl/contracts": "workspace:*", "@shuddl/rater": "workspace:*" },
-  "devDependencies": { "vitest": "^4.1.10", "typescript": "^5.9.0" }
+  "dependencies": {
+    "@shuddl/contracts": "workspace:*",
+    "@shuddl/rater": "workspace:*",
+    "@shuddl/design": "workspace:*",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.10",
+    "typescript": "^5.9.0",
+    "@types/react": "^19.2.9",
+    "@types/react-dom": "^19.2.3"
+  }
 }

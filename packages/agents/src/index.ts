@@ -6,3 +6,6 @@ export { composeInvoice } from "./biller/compose.js";
 export type { ComposeInput, ComposeResult } from "./biller/compose.js";
 export { glMap, GL_MAP } from "./biller/gl-map.js";
 export type { BillableLineKind } from "./biller/gl-map.js";
+export { EvidenceEmailView, formatCents } from "./biller/evidence-email-view.js";
+export type { EvidenceEmailData } from "./biller/evidence-email-view.js";
+export { renderEvidenceEmail } from "./biller/evidence-email.js";

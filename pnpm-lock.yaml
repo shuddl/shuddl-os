@@ -121,6 +121,9 @@ importers:
 
   apps/portal:
     dependencies:
+      '@shuddl/agents':
+        specifier: workspace:*
+        version: link:../../packages/agents
       '@shuddl/design':
         specifier: workspace:*
         version: link:../../packages/design
@@ -161,10 +164,25 @@ importers:
       '@shuddl/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@shuddl/design':
+        specifier: workspace:*
+        version: link:../design
       '@shuddl/rater':
         specifier: workspace:*
         version: link:../rater
+      react:
+        specifier: ^19.2.3
+        version: 19.2.7
+      react-dom:
+        specifier: ^19.2.3
+        version: 19.2.7(react@19.2.7)
     devDependencies:
+      '@types/react':
+        specifier: ^19.2.9
+        version: 19.2.17
+      '@types/react-dom':
+        specifier: ^19.2.3
+        version: 19.2.3(@types/react@19.2.17)
       typescript:
         specifier: ^5.9.0
         version: 5.9.3
