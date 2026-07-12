@@ -1,0 +1,13 @@
+-- db/tenant/migrations/0005_events_override.sql
+-- REQ-049 (WP-05 Task 5): a Gatekeeper override must be named + logged + PERMANENTLY VISIBLE. The
+-- sequencer stamps the override onto the event it appends, so the override rides the hashed, chained
+-- envelope (tamper-evident). This column is where rowToEvent reads it back to reproduce that hash —
+-- a pure single-row mapper can't JOIN a side table, so the override MUST live on the events row.
+--
+-- APPEND-ONLY (CLAUDE.md Law 2 / I3): a NULLABLE `ADD COLUMN` is SQLite metadata-only — it never
+-- rewrites or deletes an existing row (old events read override_json as NULL) — and is neither an
+-- UPDATE nor a DELETE. The check:invariants lint sanctions exactly this one ALTER form (owner-approved,
+-- WP-05); every other ALTER (NOT NULL/DEFAULT column, DROP/RENAME) stays forbidden. Forward-only:
+-- 0001-0004 stay untouched — this is a NEW file. No DEFAULT (would touch existing rows); nullable so
+-- every pre-existing event keeps its exact stored bytes and hash.
+ALTER TABLE events ADD COLUMN override_json TEXT;

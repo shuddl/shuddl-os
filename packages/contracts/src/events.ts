@@ -40,6 +40,23 @@ export type EvidenceRef = z.infer<typeof EvidenceRef>;
 export const Visibility = z.enum(["internal", "counterparty", "public"]);
 export type Visibility = z.infer<typeof Visibility>;
 
+// REQ-049 — a named, reasoned Gatekeeper override, recorded PERMANENTLY on the event it releases:
+// who overrode the gate (`by`) and why (`reason`). OPTIONAL on the envelope and, critically,
+// OMITTED-WHEN-ABSENT: the canonicalizer drops `undefined` keys, so a normal (non-override) event's
+// canonical bytes and hash are UNCHANGED by the mere existence of this field (the frozen-byte law
+// holds). When PRESENT it rides into the hashed, chained envelope — so an override is tamper-evident
+// AFTER write (the chain seals it; a later edit breaks verification) and permanently visible (REQ-049).
+//
+// IDENTITY: `by` is SELF-DECLARED, exactly like `actor.user` / `actor.party` everywhere else in the
+// ledger — it is NOT (yet) bound to the authenticated session `sub`. Binding actor identities to the
+// JWT is a cross-cutting follow-up (a register note tracks it); this field must not be read as a
+// verified/authenticated author, only as a recorded, chain-sealed claim of who authorized the override.
+// Accountability (a non-blank by + reason) is enforced by the Gatekeeper gates at append
+// (overrideSatisfies → GateValidationError → 400), not by a `.min(1)` here, so a whitespace-only
+// override is a clean gate refusal rather than an opaque parse error.
+export const EventOverride = z.object({ by: z.string(), reason: z.string() }).strict();
+export type EventOverride = z.infer<typeof EventOverride>;
+
 // ---- typed payloads (the rest of the 35 kinds carry JsonObject) ----
 // accuracy_m is a GPS uncertainty RADIUS — a negative accuracy is nonsensical and would poison the
 // geofence ambiguity band, so it is rejected here (min 0), matching PositionStamp in position.ts.
@@ -213,6 +230,7 @@ const eventBaseShape = {
   device_id: z.string().optional(),
   device_seq: SafeInt.min(0).optional(),
   captured_ts: SafeInt.min(0).optional(),
+  override: EventOverride.optional(), // REQ-049: present only on an event that carried a gate override
 };
 
 // Exported base carries the offline-dedupe refine: a device_id is meaningless without
@@ -311,6 +329,7 @@ const eventInputBaseShape = {
   device_seq: SafeInt.min(0).optional(),
   captured_ts: SafeInt.min(0).optional(),
   requested_visibility: Visibility.optional(), // narrow-only; resolved server-side, never hashed
+  override: EventOverride.optional(), // REQ-049: the dispatcher's named+reasoned gate override
 };
 
 function evInput<K extends EventKind, P extends z.ZodTypeAny>(kind: K, payload: P) {

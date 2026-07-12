@@ -58,13 +58,41 @@ export function checkMigrationSql(sqlFiles: string[]): InvariantResult {
 
   // I3/I1: direct mutation of append-only tables — migrations may only CREATE/INDEX them.
   // REPLACE / INSERT OR REPLACE are delete+insert in disguise (and dodge BEFORE DELETE
-  // guards unless recursive_triggers is on), so they are forbidden verbs too.
+  // guards unless recursive_triggers is on), so they are forbidden verbs too. ALTER TABLE is
+  // handled SEPARATELY below — a NULLABLE `ADD COLUMN` is the one sanctioned exception.
   const mutate = new RegExp(
-    `\\b(UPDATE|DELETE\\s+FROM|DROP\\s+TABLE|ALTER\\s+TABLE|INSERT\\s+OR\\s+REPLACE\\s+INTO|REPLACE\\s+INTO)${DELIM}${SCHEMA}${Q}(events|positions|money_lines)\\b`,
+    `\\b(UPDATE|DELETE\\s+FROM|DROP\\s+TABLE|INSERT\\s+OR\\s+REPLACE\\s+INTO|REPLACE\\s+INTO)${DELIM}${SCHEMA}${Q}(events|positions|money_lines)\\b`,
     "gi",
   );
   for (const m of clean.matchAll(mutate)) {
     violations.push(`I3 VIOLATION: migrations may only CREATE/INDEX ${m[2]} — found "${m[1]}". Corrections are new events.`);
+  }
+  // ALTER TABLE on a guarded table: the ONE sanctioned form is a NULLABLE `ADD COLUMN`
+  // (owner-approved, WP-05). RATIONALE: append-only (CLAUDE.md Law 2) bans UPDATE/DELETE of
+  // existing event DATA; a nullable `ADD COLUMN` is SQLite metadata-only — it never rewrites or
+  // deletes an existing row (old rows read the new column as NULL) — and is neither an UPDATE nor
+  // a DELETE. Permitting ONLY it therefore ALIGNS the lint with Law 2 rather than weakening it.
+  // Everything else stays a violation: DROP/RENAME COLUMN, RENAME TABLE, a NOT NULL or DEFAULT
+  // column (which WOULD write into existing rows), and any other ALTER. `${QCLOSE}` after the `\b`
+  // consumes a closing quote/bracket so the captured TAIL is exactly what follows the table name.
+  const alterGuarded = new RegExp(
+    `\\bALTER\\s+TABLE${DELIM}${SCHEMA}${Q}(events|positions|money_lines)\\b${QCLOSE}([^;]*)`,
+    "gi",
+  );
+  // STRICT tables allow only TEXT/INTEGER/INT/REAL/BLOB/ANY; a bare nullable column is
+  // `ADD [COLUMN] <name> <type>` with NOTHING after the type (no NOT NULL/DEFAULT/constraint).
+  const nullableAddColumn = new RegExp(
+    `^\\s+ADD\\s+(?:COLUMN\\s+)?${Q}\\w+${QCLOSE}\\s+(?:TEXT|INTEGER|INT|REAL|BLOB|ANY)\\s*$`,
+    "i",
+  );
+  for (const m of clean.matchAll(alterGuarded)) {
+    const tail = m[2] ?? "";
+    if (!nullableAddColumn.test(tail)) {
+      violations.push(
+        `I3 VIOLATION: ALTER TABLE ${m[1]} may only ADD a NULLABLE COLUMN (no NOT NULL/DEFAULT, no DROP/RENAME/other ALTER) — ` +
+          `append-only forbids editing existing event data. Found "ALTER TABLE ${m[1]}${tail.slice(0, 50)}".`,
+      );
+    }
   }
   // An upsert (INSERT ... ON CONFLICT ... DO UPDATE) IS a mutation of the target row — its verb is
   // UPDATE but it does not abut the table name, so the mutate matcher above cannot see it. Scan within

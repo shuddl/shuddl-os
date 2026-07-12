@@ -12,7 +12,17 @@ import {
 } from "@shuddl/ledger/projection/money";
 import { projectPassport } from "@shuddl/ledger/projection/passports";
 import { projectStatusCache } from "@shuddl/ledger/projection/status-cache";
-import { assertPodSigned, type GatePolicy } from "@shuddl/ledger/gates/invoice-gate";
+import { assertPodSigned } from "@shuddl/ledger/gates/invoice-gate";
+import {
+  assertPickupDepart,
+  assertDelivery,
+  assertInterline,
+  assertException,
+  assertConsentBeforeGps,
+  type Fence,
+  type GateCtx,
+} from "@shuddl/ledger/gates/transition-gates";
+import { deriveOperatingState } from "@shuddl/ledger/geo/jurisdiction";
 import { tenantDb } from "../tenants.js";
 import type { Env } from "../index.js";
 
@@ -53,18 +63,55 @@ export interface AppendedEvent {
   device_id?: string | undefined;
   device_seq?: number | undefined;
   captured_ts?: number | undefined;
+  override?: { by: string; reason: string } | undefined; // REQ-049 — recorded when a gate was overridden
   payload: Record<string, unknown>;
 }
 
-// The tenant policy JSON (control plane `tenants.policy`): visibility overrides + gate exceptions.
-type TenantPolicy = GatePolicy & { visibility?: Record<string, Visibility> };
+// The tenant policy JSON (control plane `tenants.policy`): visibility overrides + gate config. The
+// `gates` block carries the invoice-gate exception (invoice_without_pod_classes) AND the Task-5
+// transition-gate knobs: whether a lane is dims-fitted, and the delivery geofence radius.
+type TenantPolicy = {
+  gates?: {
+    invoice_without_pod_classes?: string[];
+    dims_required?: boolean;
+    geofence_radius_m?: number;
+  };
+  visibility?: Record<string, Visibility>;
+};
 type DeviceKeyEntry = { device_id: string; public_jwk: JsonWebKey };
+
+// A sane default delivery-fence radius (metres) when the tenant policy sets none. Real per-stop
+// fences are provisioned by booking (WP-08); this only bounds the radius the gate compares against.
+const DEFAULT_FENCE_RADIUS_M = 150;
+
+// The transition kinds the Gatekeeper gates (REQ-044/045/046/049/050/166) evaluate BEFORE append.
+// ONE source of truth: this const drives BOTH the membership check (GATED_KIND_SET) AND the GatedKind
+// union the dispatch switch must be exhaustive over — so a kind added here without a matching switch
+// case is a COMPILE error (assertNever), never a silent ungated append. position.updated is absent BY
+// DESIGN — it never reaches this DO (rejected upstream, owned by the positions bypass route, which
+// must enforce the same consent gate).
+const GATED_KINDS = [
+  "stop.departed", "delivery.evidenced", "custody.transferred", "exception.raised", "osd.captured", "stop.arrived",
+] as const;
+type GatedKind = (typeof GATED_KINDS)[number];
+const GATED_KIND_SET: ReadonlySet<string> = new Set(GATED_KINDS);
+function isGatedKind(kind: string): kind is GatedKind {
+  return GATED_KIND_SET.has(kind);
+}
+
+// Exhaustiveness guard for the gate-dispatch switch. A `never` argument means every GatedKind was
+// handled; if GATED_KINDS gains a kind without a switch case, the call stops COMPILING (the argument
+// is no longer `never`). It also throws at RUNTIME as belt-and-suspenders, so a Set/switch desync can
+// never fall through to an ungated append. Exported so the fail-loud behavior is unit-tested.
+export function assertNever(x: never): never {
+  throw new Error(`unreachable gate dispatch for kind ${String(x)}`);
+}
 
 const EVENT_COLUMNS = [
   "stream_id", "seq", "id", "shipment_id", "ts", "recorded_at", "kind",
   "actor_party_id", "actor_user_id", "actor_device_id", "party_refs", "payload",
   "evidence", "prev_hash", "hash", "sig", "visibility", "source", "confidence",
-  "device_id", "device_seq", "captured_ts",
+  "device_id", "device_seq", "captured_ts", "override_json",
 ] as const;
 const EVENT_INSERT_SQL = `INSERT INTO events (${EVENT_COLUMNS.join(",")}) VALUES (${EVENT_COLUMNS.map(() => "?").join(",")})`;
 
@@ -213,6 +260,16 @@ export class ShipmentSequencer extends DurableObject<Env> {
       recorded_at: Date.now(),
       visibility,
     });
+
+    // REQ-030/007 — Gatekeeper transition gates, enforced SERVER-SIDE here BEFORE the append, so no API
+    // path (and no UI) can bypass a required-evidence check. The gate CONTEXT (fence, isInterline,
+    // operating_state, dimsRequired) is sourced from tenant config / the legs / a server-side derivation
+    // — NEVER from the client event (a driver cannot spoof "the fence is here" or "this isn't
+    // interline"). A named override (REQ-049) travels on `event.override`, is honored by the gate, and
+    // is persisted (override_json) so it is permanently visible. A block throws here → nothing is
+    // written (append-on-block is impossible).
+    await this.#enforceTransitionGate(db, streamId, event, policy);
+
     const hash = await hashEvent(event);
     const full = { ...event, hash } as LedgerEvent;
 
@@ -235,6 +292,110 @@ export class ShipmentSequencer extends DurableObject<Env> {
 
     this.tail = { seq: full.seq, hash }; // bump AFTER commit — crash self-heals from the D1 tail
     return full;
+  }
+
+  // ---- Gatekeeper transition gates (REQ-044/045/046/049/050/166) --------------------------------
+  // Calls the matching PURE gate with SERVER-SOURCED context BEFORE the append. A block throws
+  // GateError (→ GATE_BLOCKED:{required_evidence}) or GateValidationError (→ VALIDATION_FAILED:{reason});
+  // either aborts the append before any write, so an evidence-short transition can NEVER be appended
+  // via any API path (REQ-030). `event.override` (REQ-049), when accountable, releases the gate and is
+  // persisted on the event (override_json). The prior stream is loaded LAZILY and at most once, so only
+  // the gates that inspect prior events pay for the read — the exception gate reads only `incoming`.
+  async #enforceTransitionGate(db: D1Database, streamId: string, incoming: LedgerEvent, policy: TenantPolicy): Promise<void> {
+    if (!isGatedKind(incoming.kind)) return;
+
+    const shipmentId = streamId.startsWith("s:") ? streamId.slice(2) : undefined;
+    // The shared override, honored by every gate below. Built as an EXACT-optional ctx: `override` is
+    // set only when present (exactOptionalPropertyTypes forbids an explicit `override: undefined`).
+    const ctx: GateCtx = {};
+    if (incoming.override !== undefined) ctx.override = incoming.override;
+
+    let priorCache: readonly LedgerEvent[] | null = null;
+    const prior = async (): Promise<readonly LedgerEvent[]> => {
+      if (priorCache === null) {
+        const rows = await db
+          .prepare("SELECT * FROM events WHERE stream_id = ? ORDER BY seq")
+          .bind(streamId)
+          .all<Record<string, string | number | null>>();
+        priorCache = rows.results.map((r) => rowToEvent(r));
+      }
+      return priorCache;
+    };
+
+    switch (incoming.kind) {
+      case "stop.departed":
+        // REQ-044 pickup depart. This gate only BITES the first (pickup) depart: at any later depart
+        // the count/photo/custody are already on the stream, so the same call passes. `dimsRequired`
+        // comes from tenant policy (default false = the lane is not dims-fitted).
+        assertPickupDepart(await prior(), incoming, { ...ctx, dimsRequired: policy.gates?.dims_required === true });
+        return;
+      case "delivery.evidenced": {
+        // REQ-046. fence sourced from the delivery leg's dest geo + a policy radius (server-side). When
+        // no fence is provisioned it is OMITTED (not passed as undefined); the gate reads ctx.fence as
+        // absent and fails loud (GateValidationError → 400), exactly as if it were undefined.
+        const fence = await this.#deliveryFence(db, shipmentId, policy);
+        assertDelivery(await prior(), incoming, fence !== undefined ? { ...ctx, fence } : ctx);
+        return;
+      }
+      case "custody.transferred": {
+        // REQ-045. isInterline sourced from the shipment legs (server-side), never the client event.
+        const isInterline = await this.#isInterline(db, shipmentId);
+        assertInterline(await prior(), incoming, isInterline, ctx);
+        return;
+      }
+      case "exception.raised":
+      case "osd.captured":
+        assertException(incoming, ctx); // REQ-050 — photo + reason_code, read from `incoming` only (no prior load)
+        return;
+      case "stop.arrived":
+        // REQ-166 consent-before-GPS. The operating state is DERIVED SERVER-SIDE from the stamp's raw
+        // coordinates (deriveOperatingState) — the client supplies geo, the server decides the state, so
+        // the state is not a client-supplied CLAIM. But server-derived ≠ authoritative: the coarse box
+        // lookup is a documented stub (a precise point-in-polygon reverse-geocode is the WP-08
+        // refinement), and legal sufficiency of any consent is [CONFIRM]/counsel. This gate takes NO
+        // override — consent is a legal precondition, not a waivable evidence requirement.
+        assertConsentBeforeGps(await prior(), incoming, { operating_state: deriveOperatingState(incoming.payload.geo) });
+        return;
+      default:
+        // A GatedKind with no case above = a Set/switch desync. `assertNever` makes that a COMPILE error
+        // (belt) and throws at runtime (suspenders) — never a silent fall-through to an ungated append.
+        return assertNever(incoming.kind);
+    }
+  }
+
+  // fence: the delivery leg's dest geo (doc 10 §03 legs.geo) + a policy radius (DEFAULT_FENCE_RADIUS_M
+  // if unset). Real per-stop fences are provisioned by booking (WP-08); the tests seed the delivery
+  // leg. NEVER from the incoming event. Returns undefined when no delivery leg / no coords exists — the
+  // gate then fails LOUD (GateValidationError → 400): a geofence cannot be judged with no fence.
+  async #deliveryFence(db: D1Database, shipmentId: string | undefined, policy: TenantPolicy): Promise<Fence | undefined> {
+    if (shipmentId === undefined) return undefined;
+    const row = await db
+      .prepare("SELECT geo FROM legs WHERE shipment_id = ? AND kind = 'delivery' ORDER BY seq LIMIT 1")
+      .bind(shipmentId)
+      .first<{ geo: string }>();
+    if (row === null) return undefined;
+    let geo: unknown;
+    try {
+      geo = JSON.parse(row.geo);
+    } catch {
+      return undefined;
+    }
+    if (geo === null || typeof geo !== "object") return undefined;
+    const g = geo as Record<string, unknown>;
+    if (typeof g.lat_e6 !== "number" || typeof g.lon_e6 !== "number") return undefined;
+    return { lat_e6: g.lat_e6, lon_e6: g.lon_e6, radius_m: policy.gates?.geofence_radius_m ?? DEFAULT_FENCE_RADIUS_M };
+  }
+
+  // isInterline: an executing leg whose kind is 'interline' (doc 10 §03 legs.kind IS the determination;
+  // an executor_party_id-≠-tenant comparison is an equivalent the schema also supports — a documented
+  // refinement). Default false when no interline leg (a plain consignee handoff is not interline).
+  async #isInterline(db: D1Database, shipmentId: string | undefined): Promise<boolean> {
+    if (shipmentId === undefined) return false;
+    const row = await db
+      .prepare("SELECT 1 AS present FROM legs WHERE shipment_id = ? AND kind = 'interline' LIMIT 1")
+      .bind(shipmentId)
+      .first<{ present: number }>();
+    return row !== null;
   }
 
   // ---- money projection dependencies (loaded from D1; kept off the pure projection) ----
