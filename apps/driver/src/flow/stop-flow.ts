@@ -172,6 +172,10 @@ function deliverySteps(): FlowStep[] {
   ];
 }
 
+// REQ-053 (round-trip + stop-off flows — DEFERRED / follow-up): buildFlow models the SINGLE-STOP cycle (one
+// pickup OR one delivery). The multi-leg variations — a round-trip (return leg) and a stop-off (an extra
+// intermediate stop) — are a follow-up flow variation layered on this same gated base; they are NOT built in
+// WP-05. The per-stop gate catalog here is the reusable primitive each leg of those flows will compose.
 /** Build the ordered step list for a stop. `dimsRequired` inserts the dims step (pickup only). */
 export function buildFlow(kind: StopKind, opts: FlowOptions = {}): StopFlow {
   const steps = kind === "pickup" ? pickupSteps(opts.dimsRequired === true) : deliverySteps();

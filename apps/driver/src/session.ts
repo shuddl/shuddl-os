@@ -65,6 +65,10 @@ export interface DriverSession {
   readonly device_id: string;
 }
 
+// REQ-069 (driver auth + lockout — DEFERRED / follow-up): a stable per-device P-256 KEY session exists here
+// (the offline dedupe identity + the signing key), but that is DEVICE identity, not a driver LOGIN. A simple
+// driver auth (magic-link / PIN) plus a lockout policy on repeated failures is a follow-up — no login screen
+// or lockout counter ships in WP-05. The device key is the substrate a later auth binds a signed-in driver to.
 let sessionPromise: Promise<DriverSession> | null = null;
 
 /** Load the persisted device key, or mint + persist a fresh one on first launch. */

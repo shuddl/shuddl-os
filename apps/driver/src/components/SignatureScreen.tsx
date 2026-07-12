@@ -8,6 +8,10 @@ import { TapButton } from "./TapButton.js";
 // REQ-064 — signature on glass, captured as hashed evidence. A `--field` glass panel sits on the ink
 // ground; the driver signs in ink-dark strokes; on ADVANCE the strokes → a PNG data URL → bytes →
 // `capture` (SHA-256 at capture) → the pod.signed hash. ADVANCE is dead until the glass holds ink.
+//
+// REQ-142 ([CONFIRM]/counsel): the e-signature CAPTURE mechanism is built here (strokes → hashed bytes →
+// pod.signed). The eBOL / e-signature legal VALIDITY notes per mode — what makes this signature legally
+// binding as a BOL/POD in each transport mode — are a COUNSEL deliverable ([CONFIRM], owner=counsel), not code.
 export function SignatureScreen({
   header,
   progress,

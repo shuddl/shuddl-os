@@ -163,6 +163,14 @@ export function assertPickupDepart(
  *       driver flow threads the captured placed-photo hash into the POD, so the honest path passes;
  *       an incoming hash with no matching prior placed photo → `placed_freight_photo`.
  *
+ *       RESIDUAL (WP-05 exit audit → REQ-168, WP-06): this binds the POD to a placed-photo EVENT+HASH, but
+ *       NOT to verified BYTES. A caller able to EMIT events can append `freight.photographed{placed,<any
+ *       64-hex>}` + a matching `delivery.evidenced` and clear this pillar over a photo that was never
+ *       captured — no override-audit trail. Closing that — the recorded photo_hash must equal the SHA-256
+ *       of the uploaded R2 object at upload time — is REQ-168, done by the Biller/upload path in WP-06 (a
+ *       pure gate cannot verify bytes it cannot see). Device-signing the capture makes a forged event
+ *       attributable; byte-verify-at-upload makes it FAIL. Both together close the fabricated-photo bypass.
+ *
  * `ctx.fence` is REQUIRED. Without an override it is a hard caller error (GateValidationError → 400,
  * never a silent pass) — the gate cannot judge a geofence with no fence.
  */

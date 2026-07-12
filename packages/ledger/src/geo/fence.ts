@@ -89,6 +89,12 @@ export function insideFence(point: GeoStamp, fence: Fence): FenceResult {
   // Absent accuracy ⇒ band of 0: the point is treated as infinitely precise and is ambiguous ONLY
   // exactly on the boundary. A real GPS reading should always carry accuracy_m; a bare point is a
   // degenerate/test input, not the norm.
+  //
+  // REQ-018 (accuracy-radius half — BUILT): a GPS stamp carries its uncertainty RADIUS (GeoStamp.accuracy_m),
+  // and THIS is the ± band that decides `ambiguous` — the disclosed GPS error is load-bearing here, not
+  // cosmetic. The OTHER half of REQ-018 — detention/dwell math that discloses its own ± bounds — is a
+  // money/dwell calc DEFERRED to a later WP (no detention engine exists yet); this module supplies the
+  // accuracy radius that the future ± math will disclose.
   const accuracy = point.accuracy_m ?? 0;
   if (!Number.isFinite(accuracy) || accuracy < 0) {
     throw new Error(`insideFence: point.accuracy_m must be a finite value >= 0 when present, got ${point.accuracy_m}`);

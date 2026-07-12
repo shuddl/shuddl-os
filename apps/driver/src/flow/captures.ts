@@ -7,6 +7,13 @@ import type { CaptureParams } from "@shuddl/driver-core";
 import { consentAckPayload } from "../session.js";
 import type { StepId, StopKind } from "./stop-flow.js";
 
+// REQ-071 (positions v1 — gate-stamp half BUILT): "positions v1 = driver GPS 30s moving + gate stamps". The
+// GATE STAMPS (stop.arrived / stop.departed, each carrying a GeoStamp below) are emitted here as part of the
+// flow. The continuous 30s-cadence position.updated emitter (the "GPS 30s moving" half → the live map dot) is
+// a FOLLOW-UP: the payload contract exists (PositionUpdatedPayload) but no background cadence loop ships in WP-05.
+// REQ-070 (battery/data budget — [CONFIRM]/pilot): the <5%/day-at-30s budget is a FIELD MEASUREMENT on a real
+// device, not a CI claim; its intended mechanism is that same 30s position cadence (the follow-up emitter),
+// whose power/data cost is measured at pilot.
 const MOCK_GEO = { lat_e6: 45_523_100, lon_e6: -122_676_500, accuracy_m: 5 } as const;
 const DRIVER_USER = "u:driver";
 const SHIPPER_PARTY = "p:shipper";

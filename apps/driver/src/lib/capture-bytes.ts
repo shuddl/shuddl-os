@@ -31,6 +31,11 @@ export function frameDataUrl(video: HTMLVideoElement | null): string | null {
  * decoded PNG bytes. When the deferred upload actually stores the image in R2, swap to the decoded
  * binary (strip the `data:...;base64,` prefix and base64-decode) so the stored object is a real PNG —
  * and hash those same decoded bytes so the payload hash still matches what R2 holds.
+ *
+ * REQ-168 (WP-06 — byte-verify at upload) lives on that same deferred upload step: hashing at capture here
+ * is only HALF the guarantee. The upload path must BYTE-VERIFY — recompute the SHA-256 of the stored R2
+ * object and require it to equal the recorded photo_hash — so a fabricated hash bound to no uploaded bytes
+ * fails at upload (the residual the WP-05 exit audit recorded on the delivery gate; see transition-gates.ts).
  */
 export function bytesFromDataUrl(dataUrl: string): Uint8Array {
   return new TextEncoder().encode(dataUrl);

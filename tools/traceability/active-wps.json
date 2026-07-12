@@ -1,4 +1,4 @@
 {
-  "active": ["WP-01", "WP-02", "WP-03", "WP-04"],
+  "active": ["WP-01", "WP-02", "WP-03", "WP-04", "WP-05"],
   "note": "REQs in active WPs must have >=1 source annotation. Grows as WPs open; rows never leave."
 }
