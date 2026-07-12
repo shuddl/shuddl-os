@@ -24,6 +24,8 @@ import {
 
 // A valid 64-hex hash (the contracts fixture signature hash). photo_hash / placed_photo_hash shape.
 const HASH = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+// A DISTINCT 64-hex hash — a placed photo whose hash does NOT match the POD's placed_photo_hash.
+const HASH_B = "a1b2c3d4e5f60718293a4b5c6d7e8f90112233445566778899aabbccddeeff00";
 const GEO = { lat_e6: 37_421_000, lon_e6: -122_084_000 };
 const FENCE: Fence = { lat_e6: 37_421_000, lon_e6: -122_084_000, radius_m: 200 };
 const OK_OVERRIDE: Override = { by: "dispatcher-42", reason: "shipper waived the recount at the dock" };
@@ -42,10 +44,16 @@ function custody(): LedgerEvent {
   });
 }
 function custodyUnwitnessed(): LedgerEvent {
-  // I4-valid but NOT co-signed by a device (no receiver ack).
+  // I4-valid but NOT co-signed by a device (no receiver ack), and NO receiver cosig on the payload.
   return eventFixture("custody.transferred", {
     actor: { party: "party-carrier" },
     payload: { from_party: "party-shipper", to_party: "party-carrier", unwitnessed: true },
+  });
+}
+function custodyWithCosig(): LedgerEvent {
+  // The interline ack is the RECEIVER's cosig on the payload — NOT the sender's actor.device signature.
+  return eventFixture("custody.transferred", {
+    payload: { from_party: "party-shipper", to_party: "party-carrier", cosig: "receiver-cosign-abc" },
   });
 }
 function dims(): LedgerEvent {
@@ -175,20 +183,27 @@ describe("REQ-044 assertPickupDepart — pickup departure needs count + freight 
 });
 
 // =====================================================================================
-describe("REQ-046 assertDelivery — geofence + signature + placed-freight photo", () => {
-  it("passes when arrived-in-fence + pod.signed exist and the incoming carries the placed photo", () => {
-    expect(() => assertDelivery([arrived(GEO), podSigned()], delivery(), { fence: FENCE })).not.toThrow();
+// REQ-046 — the delivery gate. The placed-photo pillar is BOUND (WP-05 exit audit): the POD's
+// placed_photo_hash must equal a PRIOR freight.photographed{placed}.photo_hash, not merely be 64-hex.
+// `delivery()` carries placed_photo_hash === HASH, and `freightPhoto("placed")` has photo_hash === HASH,
+// so the two bind. Every geofence/signature isolation case includes freightPhoto("placed") so ONLY the
+// pillar under test fails.
+describe("REQ-046 assertDelivery — geofence + signature + placed-freight photo bound to the POD", () => {
+  const placed = () => freightPhoto("placed"); // photo_hash === HASH (matches delivery()'s placed_photo_hash)
+
+  it("passes when arrived-in-fence + pod.signed exist AND a prior placed photo binds the POD hash", () => {
+    expect(() => assertDelivery([arrived(GEO), podSigned(), placed()], delivery(), { fence: FENCE })).not.toThrow();
   });
 
   it("a stop.arrived OUTSIDE the fence blocks with ['geofence']", () => {
     const outside = arrived({ lat_e6: 37_439_000, lon_e6: -122_084_000 }); // ~2 km north of the fence
-    expect(blockedEvidence(() => assertDelivery([outside, podSigned()], delivery(), { fence: FENCE })))
+    expect(blockedEvidence(() => assertDelivery([outside, podSigned(), placed()], delivery(), { fence: FENCE })))
       .toEqual([REQUIRED_EVIDENCE.geofence]);
   });
 
   it("an AMBIGUOUS in-fence reading (accuracy overlaps the boundary) blocks with ['geofence']", () => {
     const ambiguous = arrived({ ...GEO, accuracy_m: 250 }); // |0 - 200| = 200 <= 250 → ambiguous
-    expect(blockedEvidence(() => assertDelivery([ambiguous, podSigned()], delivery(), { fence: FENCE })))
+    expect(blockedEvidence(() => assertDelivery([ambiguous, podSigned(), placed()], delivery(), { fence: FENCE })))
       .toEqual([REQUIRED_EVIDENCE.geofence]);
   });
 
@@ -196,31 +211,41 @@ describe("REQ-046 assertDelivery — geofence + signature + placed-freight photo
     // lat_e6 200_000_000 is a valid SafeInt (so it parsed into the ledger) but is out of the ±90°
     // range insideFence enforces → insideFence THROWS. The gate must fail-safe to a geofence block.
     const poisoned = arrived({ lat_e6: 200_000_000, lon_e6: 0 });
-    expect(blockedEvidence(() => assertDelivery([poisoned, podSigned()], delivery(), { fence: FENCE })))
+    expect(blockedEvidence(() => assertDelivery([poisoned, podSigned(), placed()], delivery(), { fence: FENCE })))
       .toEqual([REQUIRED_EVIDENCE.geofence]);
   });
 
   it("no stop.arrived at all blocks with ['geofence']", () => {
-    expect(blockedEvidence(() => assertDelivery([podSigned()], delivery(), { fence: FENCE })))
+    expect(blockedEvidence(() => assertDelivery([podSigned(), placed()], delivery(), { fence: FENCE })))
       .toEqual([REQUIRED_EVIDENCE.geofence]);
   });
 
   it("blocks with ['pod.signed'] when the signature is missing", () => {
-    expect(blockedEvidence(() => assertDelivery([arrived(GEO)], delivery(), { fence: FENCE })))
+    expect(blockedEvidence(() => assertDelivery([arrived(GEO), placed()], delivery(), { fence: FENCE })))
       .toEqual([REQUIRED_EVIDENCE.pod_signed]);
   });
 
-  it("placed photo satisfied by the INCOMING payload (default delivery.evidenced carries it)", () => {
-    expect(() => assertDelivery([arrived(GEO), podSigned()], delivery(), { fence: FENCE })).not.toThrow();
+  // ── the placed-photo BINDING (WP-05 exit audit — a fabricated hash must not clear the pillar) ────────
+  it("a FABRICATED incoming hash with NO prior placed photo blocks ['placed_freight_photo']", () => {
+    // geofence + pod present; delivery() carries a real 64-hex placed_photo_hash but it is bound to NO
+    // captured photo on the stream — the old bypass. It must NOT satisfy the pillar.
+    expect(blockedEvidence(() => assertDelivery([arrived(GEO), podSigned()], delivery(), { fence: FENCE })))
+      .toEqual([REQUIRED_EVIDENCE.placed_freight_photo]);
   });
 
-  it("placed photo satisfied by a PRIOR freight.photographed{placed} when the incoming lacks it", () => {
-    const prior = [arrived(GEO), podSigned(), freightPhoto("placed")];
-    expect(() => assertDelivery(prior, deliveryNoPlacedPhoto(), { fence: FENCE })).not.toThrow();
+  it("a prior placed photo with a DIFFERENT hash than the POD still blocks ['placed_freight_photo']", () => {
+    const otherPlaced = eventFixture("freight.photographed", { payload: { photo_hash: HASH_B, photo_kind: "placed" } });
+    // delivery()'s placed_photo_hash === HASH ≠ HASH_B → not bound.
+    expect(blockedEvidence(() => assertDelivery([arrived(GEO), podSigned(), otherPlaced], delivery(), { fence: FENCE })))
+      .toEqual([REQUIRED_EVIDENCE.placed_freight_photo]);
   });
 
-  it("blocks with ['placed_freight_photo'] when neither the incoming nor a prior placed photo exists", () => {
-    expect(blockedEvidence(() => assertDelivery([arrived(GEO), podSigned()], deliveryNoPlacedPhoto(), { fence: FENCE })))
+  it("a prior placed photo whose hash MATCHES the POD's placed_photo_hash passes", () => {
+    expect(() => assertDelivery([arrived(GEO), podSigned(), placed()], delivery(), { fence: FENCE })).not.toThrow();
+  });
+
+  it("blocks with ['placed_freight_photo'] when the POD carries no placed_photo_hash at all", () => {
+    expect(blockedEvidence(() => assertDelivery([arrived(GEO), podSigned(), placed()], deliveryNoPlacedPhoto(), { fence: FENCE })))
       .toEqual([REQUIRED_EVIDENCE.placed_freight_photo]);
   });
 
@@ -245,24 +270,31 @@ describe("REQ-046 assertDelivery — geofence + signature + placed-freight photo
 });
 
 // =====================================================================================
-describe("REQ-045 assertInterline — interline handoff needs a seal + a co-signed (device) receiver ack", () => {
-  it("passes with a seal AND a co-signed custody transfer", () => {
-    // Guard the fixture assumption the receiver-ack check depends on: custody() must be device-signed.
-    expect(custody().actor.device).toBeDefined();
-    expect(() => assertInterline([sealApplied()], custody(), true)).not.toThrow();
+describe("REQ-045 assertInterline — interline handoff needs a seal + the RECEIVER's cosig (not the sender's device)", () => {
+  it("passes with a seal AND a receiver cosig on the custody payload", () => {
+    // The ack is the receiver's cosig, NOT the transferring party's actor.device signature.
+    expect((custodyWithCosig().payload as { cosig?: string }).cosig).toBeDefined();
+    expect(() => assertInterline([sealApplied()], custodyWithCosig(), true)).not.toThrow();
   });
 
   it("no seal blocks with ['seal.applied']", () => {
-    expect(blockedEvidence(() => assertInterline([], custody(), true)))
+    expect(blockedEvidence(() => assertInterline([], custodyWithCosig(), true)))
       .toEqual([REQUIRED_EVIDENCE.seal_applied]);
   });
 
-  it("a seal but NOT co-signed (unwitnessed handoff) blocks with ['receiver_ack']", () => {
+  it("the SENDER signed (actor.device) but there is NO receiver cosig → blocks ['receiver_ack'] (the bypass)", () => {
+    // custody() is device-signed BY THE SENDER but carries no cosig — REQ-045 needs the RECEIVER's ack.
+    expect(custody().actor.device).toBeDefined();
+    expect(blockedEvidence(() => assertInterline([sealApplied()], custody(), true)))
+      .toEqual([REQUIRED_EVIDENCE.receiver_ack]);
+  });
+
+  it("a seal but an unwitnessed handoff (no cosig) blocks with ['receiver_ack']", () => {
     expect(blockedEvidence(() => assertInterline([sealApplied()], custodyUnwitnessed(), true)))
       .toEqual([REQUIRED_EVIDENCE.receiver_ack]);
   });
 
-  it("collects the FULL missing list when neither the seal nor the ack is present", () => {
+  it("collects the FULL missing list when neither the seal nor the cosig is present", () => {
     expect(blockedEvidence(() => assertInterline([], custodyUnwitnessed(), true)))
       .toEqual(["seal.applied", "receiver_ack"]);
   });
@@ -271,12 +303,12 @@ describe("REQ-045 assertInterline — interline handoff needs a seal + a co-sign
     expect(() => assertInterline([], custodyUnwitnessed(), false)).not.toThrow();
   });
 
-  it("a valid override passes despite missing seal + ack", () => {
+  it("a valid override passes despite missing seal + cosig", () => {
     expect(() => assertInterline([], custodyUnwitnessed(), true, { override: OK_OVERRIDE })).not.toThrow();
   });
 
   it("a malformed override THROWS GateValidationError", () => {
-    expect(() => assertInterline([sealApplied()], custody(), true, { override: { by: "x", reason: "" } }))
+    expect(() => assertInterline([sealApplied()], custodyWithCosig(), true, { override: { by: "x", reason: "" } }))
       .toThrow(/VALIDATION_FAILED/);
   });
 });
@@ -378,6 +410,13 @@ describe("REQ-166 assertConsentBeforeGps — a GPS stamp is blocked until consen
 
   it("PRECEDENCE: a non-geo incoming with a BLANK operating_state does NOT throw — the scope no-op precedes the blank-state check", () => {
     expect(() => assertConsentBeforeGps([], freightCounted(), { operating_state: "" })).not.toThrow();
+  });
+
+  // WP-05 exit audit (REQ-166): an UNKNOWN jurisdiction ("XX", the fail-closed derive sentinel) can't be
+  // consented — the stamp is blocked regardless of any consent on the stream.
+  it("an 'XX' (unknown-jurisdiction) derived state blocks with ['consent'] even WITH a valid consent present", () => {
+    expect(blockedEvidence(() => assertConsentBeforeGps([consentDoc("CA")], arrived(GEO), { operating_state: "XX" })))
+      .toEqual([REQUIRED_EVIDENCE.consent]);
   });
 });
 

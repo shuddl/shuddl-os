@@ -1,18 +1,24 @@
 // REQ-016: pure client-side reconciliation of captured events. Dedups device-captured events by their
-// `(device_id, device_seq)` key — FIRST-WINS, NEVER OVERWRITE. This MIRRORS the invariant the sequencer
-// enforces server-side (a unique index over `WHERE device_id=? AND device_seq=?`): a re-synced duplicate
-// collapses to the original, and a DIFFERENT event that reuses an already-seen `(device, seq)` is
-// dropped — the first is kept, never clobbered. So the offline queue can dedup before it ever sends.
+// `(shipment_id, device_id, device_seq)` key — FIRST-WINS, NEVER OVERWRITE. This MIRRORS EXACTLY the
+// unique index the sequencer enforces server-side (`WHERE stream_id=? AND device_id=? AND device_seq=?`,
+// and `stream_id = 's:' || shipment_id`): a re-synced duplicate collapses to the original, and a
+// DIFFERENT event that reuses an already-seen `(shipment, device, seq)` is dropped — the first is kept,
+// never clobbered. So the offline queue dedups client-side in agreement with the server.
+//
+// PER-STREAM (WP-05 exit audit): the key includes `shipment_id`. The server's index is per-STREAM, so
+// the SAME `(device_id, device_seq)` on two DIFFERENT shipments is TWO distinct rows the server accepts;
+// a global (device_id, device_seq) key here would wrongly drop the second, diverging from the server and
+// losing a signed capture. Keying on the stream keeps client and server dedup decisions identical.
 //
 // Server-origin events (no `device_id`) have no offline key and are ALL kept. Output is a deterministic
 // total order (captured_ts → device_id → device_seq → id), independent of input order — the SAME set of
 // events always merges to the SAME sequence, however the syncs interleaved.
 import type { EventInput } from "@shuddl/contracts";
 
-// The dedupe key: JSON.stringify of the [device_id, device_seq] tuple is injective for a
-// (string, number) pair, so ("dev", 12) and ("dev1", 2) can never collide, whatever the id contains.
-function seqKey(device_id: string, device_seq: number): string {
-  return JSON.stringify([device_id, device_seq]);
+// The dedupe key: JSON.stringify of the [shipment_id, device_id, device_seq] tuple is injective for a
+// (string|undefined, string, number) triple, so distinct streams / devices / seqs can never collide.
+function seqKey(shipment_id: string | undefined, device_id: string, device_seq: number): string {
+  return JSON.stringify([shipment_id ?? null, device_id, device_seq]);
 }
 
 export function mergeByDeviceSeq(events: readonly EventInput[]): EventInput[] {
@@ -22,7 +28,7 @@ export function mergeByDeviceSeq(events: readonly EventInput[]): EventInput[] {
   for (const e of events) {
     // The EventInput refine guarantees device_id ⟹ device_seq; check both so device_seq narrows.
     if (e.device_id !== undefined && e.device_seq !== undefined) {
-      const key = seqKey(e.device_id, e.device_seq);
+      const key = seqKey(e.shipment_id, e.device_id, e.device_seq);
       if (seen.has(key)) continue; // first-wins: drop this claim on a seen key, never overwrite the original
       seen.add(key);
     }

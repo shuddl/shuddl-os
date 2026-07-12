@@ -120,11 +120,14 @@ describe("delivery geofence gate (REQ-046)", () => {
     expect((await post(shp, input(shp, "document.attached", { payload: consentPayload("CA") }), ops)).status).toBe(201);
     expect((await post(shp, input(shp, "stop.arrived", { payload: { geo: { ...OUTSIDE }, auto: true } }), ops)).status).toBe(201);
     expect((await post(shp, input(shp, "pod.signed", { payload: { signature_hash: HEX64, geo: { ...OUTSIDE }, unwitnessed: true } }), ops)).status).toBe(201);
+    // The forced placed-freight photo (REQ-063), whose hash the POD reuses — the delivery gate binds the
+    // POD's placed_photo_hash to THIS captured photo (a fabricated hash alone no longer clears the pillar).
+    expect((await post(shp, input(shp, "freight.photographed", { payload: { photo_hash: HEX64, photo_kind: "placed" } }), ops)).status).toBe(201);
 
     const before = await countEvents(shp);
     const blocked = await post(shp, input(shp, "delivery.evidenced", { payload: { placed_photo_hash: HEX64, geo: { ...INSIDE } } }), ops);
     expect(blocked.status).toBe(403);
-    expect(requiredEvidence(blocked)).toEqual(["geofence"]); // pod + placed photo are present; ONLY the fence fails
+    expect(requiredEvidence(blocked)).toEqual(["geofence"]); // pod + placed photo bound; ONLY the fence fails
     expect(await countEvents(shp)).toBe(before);
   });
 
@@ -155,7 +158,8 @@ describe("interline custody gate (REQ-045)", () => {
     await seedLeg(shp, 0, "interline", null);
     const ops = await opsTok();
     expect((await post(shp, input(shp, "seal.applied", { payload: { seal_id: "seal-1", photo_hash: HEX64 } }), ops)).status).toBe(201);
-    const cosigned = await signedInput(shp, "custody.transferred", { payload: { from_party: "party-carrier", to_party: "party-interline" } });
+    // REQ-045 needs the RECEIVER's cosig on the payload — NOT the transferring party's actor.device sig.
+    const cosigned = await signedInput(shp, "custody.transferred", { payload: { from_party: "party-carrier", to_party: "party-interline", cosig: "receiver-cosign-abc" } });
     expect((await post(shp, cosigned, ops)).status).toBe(201);
   });
 
@@ -212,24 +216,53 @@ describe("consent-before-GPS gate (REQ-166)", () => {
     expect(r.status).toBe(403);
     expect(requiredEvidence(r)).toEqual(["consent"]);
   });
+
+  // WP-05 exit audit (REQ-166): a stamp deriving to the UNKNOWN-jurisdiction sentinel "XX" (a coordinate
+  // outside every box — here Kansas) can't be consented, even with an "XX" document on the stream.
+  it("a stamp deriving to XX (Kansas) is blocked even WITH an 'XX' document — you can't consent to an unknown state", async () => {
+    const s = "gate-consent-xx";
+    await seedShipment(s);
+    const ops = await opsTok();
+    // document.attached is a loose payload, so an "XX" claim is STORED — but it is not a valid ConsentAck,
+    // and the stamp derives to XX, so the gate blocks up front regardless.
+    expect((await post(s, input(s, "document.attached", { payload: consentPayload("XX") }), ops)).status).toBe(201);
+    const KANSAS = { lat_e6: 38_500_000, lon_e6: -98_000_000, accuracy_m: 5 };
+    const r = await post(s, input(s, "stop.arrived", { payload: { geo: KANSAS, auto: true } }), ops);
+    expect(r.status).toBe(403);
+    expect(requiredEvidence(r)).toEqual(["consent"]);
+  });
 });
 
 // ─── REQ-049 — a NAMED override releases a block AND is permanently recorded on the event ────────────
 describe("named override (REQ-049)", () => {
-  it("a blocked pickup depart + a named override → APPENDS, and the override is queryable on the stored event", async () => {
+  it("an elevated-role override APPENDS; override.by is STAMPED to the authenticated author (client's claim overridden)", async () => {
     const shp = "gate-override";
     await seedShipment(shp);
-    const override = { by: "dispatcher-jane", reason: "receiver waiting; count captured on paper BOL" };
-    const r = await post(shp, input(shp, "stop.departed", { payload: { geo: { ...INSIDE }, auto: true }, override }), await opsTok());
+    // The client CLAIMS a `by` — the route must OVERRIDE it with the authenticated session identity
+    // (opsTok's sub = "u-gate-ops"), keeping only the client's `reason`. An accountability record that
+    // can't be forged.
+    const clientClaim = { by: "not-the-real-author", reason: "receiver waiting; count captured on paper BOL" };
+    const r = await post(shp, input(shp, "stop.departed", { payload: { geo: { ...INSIDE }, auto: true }, override: clientClaim }), await opsTok());
     expect(r.status).toBe(201);
-    expect(r.json?.override).toEqual(override); // echoed on the append response
+    const stamped = { by: "u-gate-ops", reason: clientClaim.reason };
+    expect(r.json?.override).toEqual(stamped); // echoed on the append response — by is the authenticated sub
 
     // Permanently visible on the STORED event (REQ-049): the override rides the chained, hashed bytes.
     const rows = await rawRows(shp);
     expect(rows).toHaveLength(1);
     const row = rows[0]!;
-    expect(JSON.parse(String(row.override_json))).toEqual(override);
+    expect(JSON.parse(String(row.override_json))).toEqual(stamped);
     expect(await hashEvent(rowToEvent(row))).toBe(row.hash); // the override is INSIDE the verified hash
+  });
+
+  it("a DRIVER-token override is 403 FORBIDDEN with ZERO append — an override needs an elevated role", async () => {
+    const shp = "gate-override-driver";
+    await seedShipment(shp);
+    const before = await countEvents(shp);
+    const driverTok = await token({ sub: "u-gate-driver", tenant: TENANT, role: "driver" });
+    const r = await post(shp, input(shp, "stop.departed", { payload: { geo: { ...INSIDE }, auto: true }, override: { by: "x", reason: "trust me" } }), driverTok);
+    expect(r.status).toBe(403);
+    expect(await countEvents(shp)).toBe(before); // nothing appended when a non-elevated role attempts an override
   });
 
   it("a malformed (blank) override is a clean 400 VALIDATION_FAILED, not a silent pass", async () => {
@@ -276,6 +309,8 @@ describe("happy-path stop chains and verifies (REQ-007/030)", () => {
       ["custody.transferred", { payload: { from_party: "party-shipper", to_party: "party-carrier", unwitnessed: true } }],
       ["stop.departed", { payload: { geo: { ...INSIDE }, auto: true } }],
       ["pod.signed", { payload: { signature_hash: HEX64_B, geo: { ...INSIDE }, unwitnessed: true } }],
+      // the forced placed-freight photo — its hash is what the POD's placed_photo_hash binds to (REQ-046/063).
+      ["freight.photographed", { payload: { photo_hash: HEX64_B, photo_kind: "placed" } }],
       ["delivery.evidenced", { payload: { placed_photo_hash: HEX64_B, geo: { ...INSIDE } } }],
     ];
     for (const [kind, over] of steps) {

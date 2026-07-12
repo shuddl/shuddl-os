@@ -204,18 +204,31 @@ export class ShipmentSequencer extends DurableObject<Env> {
     // Idempotency — replay by event id returns the original row (no second append).
     const byId = await db.prepare("SELECT * FROM events WHERE id = ?").bind(parsed.id).first<Record<string, string | number | null>>();
     if (byId) return rowToEvent(byId);
-    // Idempotency — replay by the offline dedupe key (stream_id, device_id, device_seq).
+
+    // WP-05 exit audit (REQ-016) — a device-namespaced event (carrying `device_id`, the offline dedupe
+    // key) MUST be co-signed BY that device before it can claim a (device_id, device_seq) slot: its
+    // `device_id` must equal `actor.device` AND its signature must VERIFY. Otherwise an unsigned event,
+    // or one device signing under a victim's device_id, could squat the victim's slot and silently drop
+    // the victim's real signed capture (first-wins). This is the server belt to the EventInput refine
+    // (which already rejects device_id≠actor.device / a missing sig) — presence is not enough, the sig
+    // must actually verify, and the check MUST precede the dedup below.
     if (parsed.device_id !== undefined) {
+      if (parsed.actor.device !== parsed.device_id) {
+        throw rpcError("VALIDATION_FAILED", { reason: "device_id must equal actor.device" });
+      }
+      const jwk = await this.#deviceKey(tenant, parsed.device_id);
+      if (!jwk || !(await verifyEventSig(parsed, jwk))) throw rpcError("UNAUTHORIZED", { reason: "device signature" });
+
+      // Idempotency — replay by the offline dedupe key (stream_id, device_id, device_seq). Reached only
+      // after the device binding above, so the slot cannot be occupied by an unsigned/foreign event.
       const byDevice = await db
         .prepare("SELECT * FROM events WHERE stream_id = ? AND device_id = ? AND device_seq = ?")
         .bind(streamId, parsed.device_id, parsed.device_seq ?? -1)
         .first<Record<string, string | number | null>>();
       if (byDevice) return rowToEvent(byDevice);
-    }
-
-    // Device signature (REQ-011/016). A device-actor event must verify against the registered JWK.
-    // Server-actor events (no actor.device) carry no signature. verifyEventSig returns false, never throws.
-    if (parsed.actor.device !== undefined) {
+    } else if (parsed.actor.device !== undefined) {
+      // A co-signed event that is NOT device-namespaced (actor.device present, no offline device_id):
+      // still verify the device signature (REQ-011/016). verifyEventSig returns false, never throws.
       const jwk = await this.#deviceKey(tenant, parsed.actor.device);
       if (!jwk || !(await verifyEventSig(parsed, jwk))) throw rpcError("UNAUTHORIZED", { reason: "device signature" });
     }

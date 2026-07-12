@@ -208,7 +208,13 @@ beforeAll(async () => {
       const c = await append(SHP_A, buildInput(SHP_A, "document.attached", { payload: consentPayload("CA") }), ops);
       if (c.status !== 201) throw new Error(`seed ${SHP_A}/consent failed: ${c.status} ${c.body}`);
     }
-    if (kind === "delivery.evidenced") await seedDeliveryLeg(SHP_A);
+    if (kind === "delivery.evidenced") {
+      await seedDeliveryLeg(SHP_A);
+      // REQ-046 (WP-05 exit audit): the delivery gate binds the POD's placed_photo_hash to a prior
+      // freight.photographed{placed}. Seed that placed photo (photo_hash === the POD's HEX64) first.
+      const p = await append(SHP_A, buildInput(SHP_A, "freight.photographed", { payload: { photo_hash: HEX64, photo_kind: "placed" } }), ops);
+      if (p.status !== 201) throw new Error(`seed ${SHP_A}/placed-photo failed: ${p.status} ${p.body}`);
+    }
     const r = await append(SHP_A, buildInput(SHP_A, kind), ops);
     if (r.status !== 201) throw new Error(`seed ${SHP_A}/${kind} failed: ${r.status} ${r.body}`);
     if (kind === "invoice.issued") invoiceIssuedId = r.json!.id as string;

@@ -1,5 +1,5 @@
 import type { Hono } from "hono";
-import type { ErrorCode, LedgerEvent } from "@shuddl/contracts";
+import type { ErrorCode, LedgerEvent, Role } from "@shuddl/contracts";
 import { lensFor, readEvents, type ReadQuery } from "@shuddl/ledger/lens";
 import { ApiError } from "../middleware/error.js";
 import { requireRole } from "../middleware/auth.js";
@@ -117,6 +117,24 @@ export function mountEventRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>):
     }
     const streamId = `s:${shipmentId}`;
 
+    const input: unknown = await c.req.json().catch(() => null); // NEVER LedgerEvent.parse a request body — the DO parses EventInput
+
+    // REQ-049 (WP-05 exit audit) — a gate override is an ACCOUNTABLE, ELEVATED action, enforced HERE:
+    // the route holds the session; the DO does not. If the event carries an `override`:
+    //   (a) the caller MUST have an elevated role (ops/admin/finance) — a driver/portal/read override is
+    //       403 FORBIDDEN with NOTHING appended (checked before the driver write-scope + the DO append); and
+    //   (b) the accountability author is STAMPED to the AUTHENTICATED principal (`session.sub`), overriding
+    //       any client-claimed `by`, so the "who overrode this gate" record can never be forged. The
+    //       client's `reason` is kept verbatim (EventOverride rejects a blank one downstream → 400).
+    // Only {by, reason} survive (EventOverride is .strict()); a malformed/extra-key override is a clean 400.
+    if (input !== null && typeof input === "object" && (input as { override?: unknown }).override !== undefined) {
+      const ELEVATED: ReadonlySet<Role> = new Set<Role>(["ops", "admin", "finance"]);
+      if (!ELEVATED.has(session.role)) throw new ApiError("FORBIDDEN", 403, "OVERRIDE REQUIRES AN ELEVATED ROLE");
+      const claimed = (input as { override: unknown }).override;
+      const reason = claimed !== null && typeof claimed === "object" ? (claimed as { reason?: unknown }).reason : undefined;
+      (input as { override: unknown }).override = { by: session.sub, reason };
+    }
+
     // Driver write-scope (the plan leaves this to the route — the DO scopes tenant, the lens scopes
     // READS, neither scopes a driver's WRITES): a driver may append ONLY to a shipment the status-cache
     // projection has assigned to them. ops/admin are unrestricted.
@@ -128,7 +146,6 @@ export function mountEventRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>):
       if (!row || row.d !== session.sub) throw new ApiError("FORBIDDEN", 403, "DRIVER NOT ASSIGNED TO THIS SHIPMENT");
     }
 
-    const input: unknown = await c.req.json().catch(() => null); // NEVER LedgerEvent.parse a request body — the DO parses EventInput
     const stub = c.env.SHIPMENT_SEQ.get(c.env.SHIPMENT_SEQ.idFromName(`${session.tenant}|${streamId}`)) as unknown as SeqStub;
     let event: AppendedEvent;
     try {

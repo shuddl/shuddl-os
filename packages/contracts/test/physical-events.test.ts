@@ -149,6 +149,17 @@ describe("REQ-166: driver location-tracking consent rides document.attached (no 
     expect(() => ConsentAck.parse({ policy_version: "v1", operating_state: "OR", acknowledged: true })).toThrow();
     expect(() => ConsentAck.parse({ doc_kind: "consent", policy_version: "v1", acknowledged: true })).toThrow();
   });
+  // WP-05 exit audit (REQ-166): the fail-closed sentinel "XX" (deriveOperatingState returns it for any
+  // coordinate outside the known boxes) must NOT be a consentable state — otherwise ONE ack covers ~45
+  // states. The form is pinned to exactly two uppercase letters, excluding "XX".
+  it("rejects operating_state 'XX' (the unknown-jurisdiction sentinel)", () => {
+    expect(() => ConsentAck.parse({ ...ack, operating_state: "XX" })).toThrow();
+  });
+  it("rejects a non-2-uppercase operating_state (lowercase / full name / wrong length)", () => {
+    expect(() => ConsentAck.parse({ ...ack, operating_state: "or" })).toThrow();
+    expect(() => ConsentAck.parse({ ...ack, operating_state: "Oregon" })).toThrow();
+    expect(() => ConsentAck.parse({ ...ack, operating_state: "O" })).toThrow();
+  });
   it("is a structural subset of the document.attached JsonObject payload (rides it unchanged)", () => {
     // The carrier stays document.attached (JsonObject); the gate validates its payload against ConsentAck.
     expect(JsonObject.parse(ack)).toEqual(ack);

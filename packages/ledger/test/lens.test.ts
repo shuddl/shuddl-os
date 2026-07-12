@@ -116,24 +116,27 @@ describe("rowToEvent: SQL NULL -> omitted key (undefined), never null (hash-crit
   });
 
   it("a fully-populated event (actor.user/device, device cols, sig) also round-trips to its hash", async () => {
+    // WP-05 exit audit (REQ-016): a device-namespaced event MUST be co-signed BY that device, so
+    // device_id === actor.device (the pod.signed fixture's actor.device is "device-1") AND it carries a
+    // signature. `sig` is excluded from the hash-view, so it does not move the hash.
     const [e] = await buildChain([
       eventFixture("pod.signed", {
         id: "00000000-0000-4000-8000-000000000011",
-        device_id: "dev-9",
+        device_id: "device-1",
         device_seq: 3,
         captured_ts: 1_720_000_000_100,
+        sig: "AAAA",
       }),
     ]);
-    const signed = { ...e!, sig: "AAAA" } as LedgerEvent; // sig is excluded from the hash-view
-    await insertRow(eventToRow(signed));
+    await insertRow(eventToRow(e!));
     const row = (await DB.prepare("SELECT * FROM events WHERE id = ?")
-      .bind(signed.id)
+      .bind(e!.id)
       .first<Record<string, string | number | null>>())!;
 
     const rebuilt = rowToEvent(row);
     expect(rebuilt.actor.user).toBe("user-driver");
     expect(rebuilt.actor.device).toBe("device-1");
-    expect(rebuilt.device_id).toBe("dev-9");
+    expect(rebuilt.device_id).toBe("device-1");
     expect(rebuilt.device_seq).toBe(3);
     expect(rebuilt.captured_ts).toBe(1_720_000_000_100);
     expect(rebuilt.sig).toBe("AAAA");

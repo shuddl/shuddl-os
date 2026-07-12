@@ -47,14 +47,17 @@ export type Visibility = z.infer<typeof Visibility>;
 // holds). When PRESENT it rides into the hashed, chained envelope — so an override is tamper-evident
 // AFTER write (the chain seals it; a later edit breaks verification) and permanently visible (REQ-049).
 //
-// IDENTITY: `by` is SELF-DECLARED, exactly like `actor.user` / `actor.party` everywhere else in the
-// ledger — it is NOT (yet) bound to the authenticated session `sub`. Binding actor identities to the
-// JWT is a cross-cutting follow-up (a register note tracks it); this field must not be read as a
-// verified/authenticated author, only as a recorded, chain-sealed claim of who authorized the override.
-// Accountability (a non-blank by + reason) is enforced by the Gatekeeper gates at append
-// (overrideSatisfies → GateValidationError → 400), not by a `.min(1)` here, so a whitespace-only
-// override is a clean gate refusal rather than an opaque parse error.
-export const EventOverride = z.object({ by: z.string(), reason: z.string() }).strict();
+// IDENTITY (REQ-049, WP-05 exit audit): `by` is the AUTHENTICATED author. The append route
+// (workers/api/src/routes/events.ts) STAMPS `by = session.sub` (the JWT subject) over any client-
+// supplied value AND requires an elevated role (ops/admin/finance) — so an override's accountability
+// record cannot be forged by a driver/portal caller. `reason` is the client's justification, kept
+// verbatim. Both must be NON-BLANK: whitespace-only `by`/`reason` is rejected here at parse (a refine
+// on the trimmed length, NOT a transform — the stored bytes are unchanged, so the frozen-byte law and
+// the chained hash still hold), a clean VALIDATION_FAILED rather than reaching the gate as an
+// unaccountable pass.
+const nonBlank = (label: string) =>
+  z.string().refine((s) => s.trim().length > 0, `override.${label} must be non-blank`);
+export const EventOverride = z.object({ by: nonBlank("by"), reason: nonBlank("reason") }).strict();
 export type EventOverride = z.infer<typeof EventOverride>;
 
 // ---- typed payloads (the rest of the 35 kinds carry JsonObject) ----
@@ -93,7 +96,9 @@ export const CustodyTransferredPayload = z
 export type CustodyTransferredPayload = z.infer<typeof CustodyTransferredPayload>;
 
 export const PositionUpdatedPayload = z
-  .object({ lat_e6: SafeInt, lon_e6: SafeInt, accuracy_m: SafeInt.optional(), speed_cms: SafeInt.optional() })
+  // accuracy_m is a GPS uncertainty RADIUS — a negative accuracy is nonsensical and would poison the
+  // geofence ambiguity band, so it is rejected here (min 0), matching GeoStamp / PositionStamp.
+  .object({ lat_e6: SafeInt, lon_e6: SafeInt, accuracy_m: SafeInt.min(0).optional(), speed_cms: SafeInt.optional() })
   .strict();
 export type PositionUpdatedPayload = z.infer<typeof PositionUpdatedPayload>;
 
@@ -202,9 +207,17 @@ export const ConsentAck = z
     // Jurisdiction of the acknowledged pack-side language. CANONICAL FORM: uppercase 2-letter
     // jurisdiction code (USPS, e.g. "TX"). The gate compares this by EXACT case-sensitive equality
     // to the incoming stamp's derived jurisdiction, so capture (Task 8), derivation (Task 5), and
-    // the gate must all use this one form — "TX" ≠ "tx" ≠ "Texas". (No hard regex here: the full
-    // jurisdiction set isn't settled; the convention is pinned by comment, enforced by agreement.)
-    operating_state: z.string().min(1),
+    // the gate must all use this one form — "TX" ≠ "tx" ≠ "Texas".
+    //
+    // FORM ENFORCED (WP-05 exit audit, REQ-166): exactly two uppercase letters, EXCLUDING the
+    // fail-closed sentinel "XX". `deriveOperatingState` returns "XX" for any coordinate outside the
+    // known boxes (~45 states), so a `ConsentAck{operating_state:"XX"}` would otherwise match every
+    // out-of-box stamp — one acknowledgment covering half the country. An unknown jurisdiction cannot
+    // be consented, so "XX" is rejected here at parse (and the gate blocks any "XX"-derived stamp).
+    operating_state: z
+      .string()
+      .regex(/^[A-Z]{2}$/, "operating_state must be a 2-letter uppercase USPS code")
+      .refine((s) => s !== "XX", "operating_state cannot be the unknown-jurisdiction sentinel 'XX'"),
     acknowledged: z.literal(true),
   })
   .strict();
@@ -292,6 +305,27 @@ export const LedgerEvent = z
         message: "device_seq required when device_id present (offline dedupe key)",
         path: ["device_seq"],
       });
+    }
+    // WP-05 exit audit (REQ-016): a device-namespaced event (one carrying a `device_id`, the offline
+    // dedupe key) MUST be co-signed BY that device — its `device_id` must equal `actor.device` and it
+    // must carry a signature. Otherwise an unsigned event, or one device signing under another's
+    // device_id, could squat a victim's (device_id, device_seq) slot and silently drop the victim's
+    // real signed capture (first-wins). Binding the dedupe key to the signing key closes that.
+    if (e.device_id !== undefined) {
+      if (e.actor.device === undefined || e.actor.device !== e.device_id) {
+        ctx.addIssue({
+          code: "custom",
+          message: "device_id must equal actor.device (a device-namespaced event is signed by that device)",
+          path: ["device_id"],
+        });
+      }
+      if (e.sig === undefined) {
+        ctx.addIssue({
+          code: "custom",
+          message: "sig required when device_id present (a device-namespaced event must be signed)",
+          path: ["sig"],
+        });
+      }
     }
     // I4: custody events must be co-signed by a device OR explicitly flagged unwitnessed.
     if (e.kind === "custody.transferred" || e.kind === "pod.signed") {
@@ -381,6 +415,25 @@ export const EventInput = z
         message: "device_seq required when device_id present (offline dedupe key)",
         path: ["device_seq"],
       });
+    }
+    // WP-05 exit audit (REQ-016) — bind the offline dedupe key to the signing key (mirrors LedgerEvent):
+    // a device_id ⟹ actor.device === device_id AND a signature. The sequencer additionally VERIFIES the
+    // signature before the (device_id, device_seq) dedup, so a squatted slot is impossible via any path.
+    if (e.device_id !== undefined) {
+      if (e.actor.device === undefined || e.actor.device !== e.device_id) {
+        ctx.addIssue({
+          code: "custom",
+          message: "device_id must equal actor.device (a device-namespaced event is signed by that device)",
+          path: ["device_id"],
+        });
+      }
+      if (e.sig === undefined) {
+        ctx.addIssue({
+          code: "custom",
+          message: "sig required when device_id present (a device-namespaced event must be signed)",
+          path: ["sig"],
+        });
+      }
     }
     if (e.kind === "custody.transferred" || e.kind === "pod.signed") {
       const hasDevice = e.actor.device !== undefined;

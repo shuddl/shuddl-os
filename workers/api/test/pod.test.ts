@@ -256,13 +256,17 @@ describe("POD heartbeat — the delivery gate completes and fires delivery.evide
     expect(thrown).toBeInstanceOf(GateError);
     expect((thrown as GateError).required_evidence).toEqual([REQUIRED_EVIDENCE.placed_freight_photo]);
 
-    // And the positive side of the SAME gate: once a prior freight.photographed{placed} IS on the stream,
-    // the placed-photo pillar is satisfied via the prior path — the gate passes (no throw). This is the
-    // gate-level mirror of the driver flow's forced photo_placed step feeding the terminal.
-    const priorWithPhoto = [
+    // And the positive side of the SAME gate: once a prior freight.photographed{placed} whose photo_hash
+    // the POD REUSES is on the stream, the placed-photo pillar is satisfied via the BOUND prior — the gate
+    // passes (no throw). This is the gate-level mirror of the driver flow threading photo_placed's captured
+    // hash into the terminal delivery.evidenced. (A prior placed photo whose hash does NOT match, or a
+    // fabricated incoming hash with no prior, would still block — proven in the ledger gate suite.)
+    const POD_HASH = "a1b2c3d4e5f60718293a4b5c6d7e8f90112233445566778899aabbccddeeff00";
+    const priorWithBoundPhoto = [
       ...priorClean,
-      { kind: "freight.photographed", payload: { photo_kind: "placed" } } as unknown as LedgerEvent,
+      { kind: "freight.photographed", payload: { photo_kind: "placed", photo_hash: POD_HASH } } as unknown as LedgerEvent,
     ];
-    expect(() => assertDelivery(priorWithPhoto, incomingNoPhoto, { fence: FENCE })).not.toThrow();
+    const incomingBoundPhoto = { kind: "delivery.evidenced", payload: { placed_photo_hash: POD_HASH, geo: { ...INSIDE } } } as unknown as LedgerEvent;
+    expect(() => assertDelivery(priorWithBoundPhoto, incomingBoundPhoto, { fence: FENCE })).not.toThrow();
   });
 });

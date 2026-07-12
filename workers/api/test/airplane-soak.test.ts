@@ -29,7 +29,7 @@ import {
 //
 // The DoD proof that offline capture across TWO devices merges through the REAL sequencer with ZERO
 // loss and ZERO dupes, and that the WP-02 hash-chain still verifies across the merged, interleaved,
-// deduped set. This drives the honest path end to end: @shuddl/driver-core `capture` MINTS 50 signed
+// deduped set. This drives the honest path end to end: @shuddl/driver-core `capture` MINTS 55 signed
 // offline events across two devices (each with its OWN generated P-256 key + its OWN monotonic
 // `device_seq` 0,1,2,…), evidence bytes hashed AT capture (REQ-017); then those events are SYNCED in
 // an airplane-recovery pattern (a seeded shuffle + duplicate re-sends) through the live DO, which
@@ -144,9 +144,18 @@ let captureClock = 1_720_000_000_000; // epoch-ms base; +1 per capture so captur
 // converge without a permanent block.
 async function captureStop(device: SoakDevice, shipmentId: string, steps: readonly Step[]): Promise<Captured[]> {
   const out: Captured[] = [];
+  let lastPlacedHash: string | undefined; // the forced placed photo's captured hash, threaded into the POD
   for (const [kind, payload, evidenceField] of steps) {
     const ts = captureClock++;
-    const params: CaptureParams = { shipment_id: shipmentId, kind, payload, ts, captured_ts: ts };
+    // WP-05 exit audit (REQ-046): the delivery gate BINDS the POD's placed_photo_hash to a REAL prior
+    // freight.photographed{placed} on the stream. The POD reuses the captured placed-photo hash (exactly
+    // as the driver flow threads photo_placed → the terminal), so it carries no evidence field of its own.
+    let effectivePayload = payload;
+    if (kind === "delivery.evidenced") {
+      expect(lastPlacedHash, "a placed photo must precede the POD").toBeDefined();
+      effectivePayload = { ...payload, placed_photo_hash: lastPlacedHash };
+    }
+    const params: CaptureParams = { shipment_id: shipmentId, kind, payload: effectivePayload, ts, captured_ts: ts };
     if (evidenceField !== undefined) params.evidence = { bytes: nextEvidenceBytes(), field: evidenceField };
     const { event, deferred } = await capture(params, device.ctx);
     // REQ-017 — the evidence content-hash is in the payload field AT capture (never re-keyed later).
@@ -154,13 +163,17 @@ async function captureStop(device: SoakDevice, shipmentId: string, steps: readon
       expect(deferred).toBeDefined();
       expect((event.payload as Record<string, unknown>)[evidenceField]).toBe(deferred!.hash);
       expect(deferred!.hash).toBe(await sha256Hex(deferred!.bytes));
+      if (kind === "freight.photographed" && (payload as { photo_kind?: string }).photo_kind === "placed") {
+        lastPlacedHash = deferred!.hash; // the POD later in this stream binds to this hash
+      }
     }
     out.push({ device, shipmentId, kind, event });
   }
   return out;
 }
 
-// A full single-device pickup+delivery stop (9 gate-valid events).
+// A full single-device pickup+delivery stop (10 gate-valid events). The forced placed photo precedes the
+// POD and its captured hash is threaded into delivery.evidenced (the delivery gate binds them, REQ-046).
 const FULL: readonly Step[] = [
   ["document.attached", { ...CONSENT }],
   ["stop.arrived", { geo: { ...INSIDE }, auto: true }],
@@ -170,7 +183,8 @@ const FULL: readonly Step[] = [
   ["custody.transferred", { from_party: "party-shipper", to_party: "party-carrier" }],
   ["stop.departed", { geo: { ...INSIDE }, auto: true }],
   ["pod.signed", { geo: { ...INSIDE } }, "signature_hash"],
-  ["delivery.evidenced", { geo: { ...INSIDE } }, "placed_photo_hash"],
+  ["freight.photographed", { photo_kind: "placed" }, "photo_hash"], // the forced placed photo — binds the POD
+  ["delivery.evidenced", { geo: { ...INSIDE } }], // placed_photo_hash threaded from the placed photo above
 ];
 // The pickup half of a HANDOFF stop, captured by device A (6 events).
 const HANDOFF_PICKUP: readonly Step[] = [
@@ -181,15 +195,16 @@ const HANDOFF_PICKUP: readonly Step[] = [
   ["custody.transferred", { from_party: "party-shipper", to_party: "party-carrier" }],
   ["stop.departed", { geo: { ...INSIDE }, auto: true }],
 ];
-// The delivery half of the SAME HANDOFF stream, captured by device B (3 events) — proves the merge is
-// keyed by DEVICE: B's device_seq 0/1/2 land on the same stream as A's device_seq 0/1/2, distinct only
-// by device_id.
+// The delivery half of the SAME HANDOFF stream, captured by device B (4 events) — proves the merge is
+// keyed by DEVICE: B's device_seq 0/1/2/3 land on the same stream as A's device_seq 0/1/2, distinct only
+// by device_id. Carries the forced placed photo so the POD binds (REQ-046).
 const HANDOFF_DELIVERY: readonly Step[] = [
   ["stop.arrived", { geo: { ...INSIDE }, auto: true }],
   ["pod.signed", { geo: { ...INSIDE } }, "signature_hash"],
-  ["delivery.evidenced", { geo: { ...INSIDE } }, "placed_photo_hash"],
+  ["freight.photographed", { photo_kind: "placed" }, "photo_hash"],
+  ["delivery.evidenced", { geo: { ...INSIDE } }],
 ];
-// A shorter device-B stop that ends in an exception (5 events) — brings the total to exactly 50.
+// A shorter device-B stop that ends in an exception (5 events) — brings the total to exactly 55.
 const EXCEPTION_STOP: readonly Step[] = [
   ["document.attached", { ...CONSENT }],
   ["stop.arrived", { geo: { ...INSIDE }, auto: true }],
@@ -200,19 +215,19 @@ const EXCEPTION_STOP: readonly Step[] = [
 
 // The six soak streams and how many events each must hold after a loss-free, dup-free sync.
 const EXPECTED_STREAM_COUNTS: Record<string, number> = {
-  "soak-shared": 9, // 6 (device A pickup) + 3 (device B delivery)
-  "soak-fa1": 9,
-  "soak-fa2": 9,
-  "soak-fb1": 9,
-  "soak-fb2": 9,
+  "soak-shared": 10, // 6 (device A pickup) + 4 (device B delivery)
+  "soak-fa1": 10,
+  "soak-fa2": 10,
+  "soak-fb1": 10,
+  "soak-fb2": 10,
   "soak-mb": 5,
 };
-const TOTAL = 50;
+const TOTAL = 55;
 
 let opsTok: string;
 let deviceA: SoakDevice;
 let deviceB: SoakDevice;
-let allEvents: Captured[]; // the 50 distinct captured events
+let allEvents: Captured[]; // the 55 distinct captured events
 
 beforeAll(async () => {
   await ensureSchema(env); // parties + tenant policy + the shared cast
@@ -242,26 +257,26 @@ beforeAll(async () => {
   for (const id of Object.keys(EXPECTED_STREAM_COUNTS)) await seedShipment(id);
   for (const id of ["soak-shared", "soak-fa1", "soak-fa2", "soak-fb1", "soak-fb2"]) await seedDeliveryLeg(id);
 
-  // MINT the 50 signed offline events. Device A captures its streams first (device_seq 0..23), device B
-  // captures its streams (device_seq 0..25) — each device's own monotonic counter, both starting at 0.
+  // MINT the 55 signed offline events. Device A captures its streams first (device_seq 0..25), device B
+  // captures its streams (device_seq 0..28) — each device's own monotonic counter, both starting at 0.
   const a1 = await captureStop(deviceA, "soak-shared", HANDOFF_PICKUP); // A device_seq 0..5
-  const a2 = await captureStop(deviceA, "soak-fa1", FULL); //               A device_seq 6..14
-  const a3 = await captureStop(deviceA, "soak-fa2", FULL); //               A device_seq 15..23
-  const b1 = await captureStop(deviceB, "soak-shared", HANDOFF_DELIVERY); // B device_seq 0..2
-  const b2 = await captureStop(deviceB, "soak-fb1", FULL); //               B device_seq 3..11
-  const b3 = await captureStop(deviceB, "soak-fb2", FULL); //               B device_seq 12..20
-  const b4 = await captureStop(deviceB, "soak-mb", EXCEPTION_STOP); //      B device_seq 21..25
+  const a2 = await captureStop(deviceA, "soak-fa1", FULL); //               A device_seq 6..15
+  const a3 = await captureStop(deviceA, "soak-fa2", FULL); //               A device_seq 16..25
+  const b1 = await captureStop(deviceB, "soak-shared", HANDOFF_DELIVERY); // B device_seq 0..3
+  const b2 = await captureStop(deviceB, "soak-fb1", FULL); //               B device_seq 4..13
+  const b3 = await captureStop(deviceB, "soak-fb2", FULL); //               B device_seq 14..23
+  const b4 = await captureStop(deviceB, "soak-mb", EXCEPTION_STOP); //      B device_seq 24..28
   allEvents = [...a1, ...a2, ...a3, ...b1, ...b2, ...b3, ...b4];
 
-  expect(allEvents).toHaveLength(TOTAL); // 24 (device A) + 26 (device B)
+  expect(allEvents).toHaveLength(TOTAL); // 26 (device A) + 29 (device B)
 });
 
-describe("airplane-mode soak — 50 events / 2 devices / real sequencer (REQ-016 / GA-14)", () => {
-  it("MINTS 50 signed offline events across two devices, each device_seq monotonic from 0", () => {
+describe("airplane-mode soak — 55 events / 2 devices / real sequencer (REQ-016 / GA-14)", () => {
+  it("MINTS 55 signed offline events across two devices, each device_seq monotonic from 0", () => {
     const seqsA = allEvents.filter((c) => c.device === deviceA).map((c) => c.event.device_seq);
     const seqsB = allEvents.filter((c) => c.device === deviceB).map((c) => c.event.device_seq);
-    expect(seqsA).toEqual(Array.from({ length: 24 }, (_, i) => i)); // 0..23
-    expect(seqsB).toEqual(Array.from({ length: 26 }, (_, i) => i)); // 0..25
+    expect(seqsA).toEqual(Array.from({ length: 26 }, (_, i) => i)); // 0..25
+    expect(seqsB).toEqual(Array.from({ length: 29 }, (_, i) => i)); // 0..28
     // every event is device-co-signed (I4) and carries its offline dedupe key
     for (const c of allEvents) {
       expect(c.event.sig).toBeDefined();
@@ -273,7 +288,7 @@ describe("airplane-mode soak — 50 events / 2 devices / real sequencer (REQ-016
   it("syncs (seeded shuffle + duplicate re-sends) and merges with ZERO loss and ZERO dupes; the chain verifies", async () => {
     const rnd = mulberry32(SEED);
 
-    // ── WAVE 1: the airplane comes back online. Arrival = the 50 firsts PLUS exact duplicate re-sends
+    // ── WAVE 1: the airplane comes back online. Arrival = the 55 firsts PLUS exact duplicate re-sends
     //    (same signed event, re-flushed — the "came back online twice" case), shuffled together, then
     //    drained with retry. Exact dupes collapse in the DO by event-id idempotency, whatever the order.
     // A GUARANTEED-mixed re-send set: a deterministic every-4th slice of EACH device's events, so "both
@@ -309,14 +324,14 @@ describe("airplane-mode soak — 50 events / 2 devices / real sequencer (REQ-016
     }
     expect(pending, "the offline queue must fully drain — a permanent block is a lost event").toHaveLength(0);
 
-    // ── ZERO LOSS — all 50 DISTINCT events are present on their streams ──────────────────────────────
+    // ── ZERO LOSS — all 55 DISTINCT events are present on their streams ──────────────────────────────
     let total = 0;
     for (const [shipmentId, expected] of Object.entries(EXPECTED_STREAM_COUNTS)) {
       const n = await streamCount(shipmentId);
       expect(n, `stream ${shipmentId}`).toBe(expected);
       total += n;
     }
-    expect(total, "50 distinct offline events merged").toBe(TOTAL);
+    expect(total, "55 distinct offline events merged").toBe(TOTAL);
     expect((await deviceSeqs(deviceA.device_id)).length + (await deviceSeqs(deviceB.device_id)).length).toBe(TOTAL);
 
     // ── WAVE 2: it comes back online AGAIN and re-sends a subset — this time as (device_id, device_seq)
@@ -347,14 +362,14 @@ describe("airplane-mode soak — 50 events / 2 devices / real sequencer (REQ-016
       expect((r.json?.payload as { pieces?: number } | undefined)?.pieces).toBe(12); // content NOT overwritten
     }
 
-    // ── ZERO DUPES — the collapse held: the stored count is still exactly 50, not 50 + the re-sends ──
+    // ── ZERO DUPES — the collapse held: the stored count is still exactly 55, not 55 + the re-sends ──
     let afterResend = 0;
     for (const shipmentId of Object.keys(EXPECTED_STREAM_COUNTS)) afterResend += await streamCount(shipmentId);
     expect(afterResend, "duplicate re-sends collapsed — no row added").toBe(TOTAL);
 
     // ── PER-DEVICE SEQ MONOTONIC (no reuse; gaps would be allowed, here contiguous) ──────────────────
-    expect(await deviceSeqs(deviceA.device_id)).toEqual(Array.from({ length: 24 }, (_, i) => i));
-    expect(await deviceSeqs(deviceB.device_id)).toEqual(Array.from({ length: 26 }, (_, i) => i));
+    expect(await deviceSeqs(deviceA.device_id)).toEqual(Array.from({ length: 26 }, (_, i) => i));
+    expect(await deviceSeqs(deviceB.device_id)).toEqual(Array.from({ length: 29 }, (_, i) => i));
     // no (device_id, device_seq) pair is stored twice — the dedupe key held across the whole merge
     const dupKeys = await env.TENANT_A_DB.prepare(
       "SELECT device_id, device_seq, COUNT(*) AS n FROM events WHERE device_id IN (?,?) GROUP BY device_id, device_seq HAVING n > 1",

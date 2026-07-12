@@ -21,6 +21,7 @@
 import { ConsentAck, type LedgerEvent } from "@shuddl/contracts";
 import { GateError } from "./invoice-gate.js";
 import { insideFence, type Fence } from "../geo/fence.js";
+import { UNKNOWN_JURISDICTION } from "../geo/jurisdiction.js";
 
 // Re-exported so a caller (Task 5) can import the one canonical GateError + Fence from this module.
 export { GateError };
@@ -154,10 +155,13 @@ export function assertPickupDepart(
  *       gate → `geofence`. The throw is caught here so a bad stored geo is a clean block, not an
  *       opaque crash of the whole append.
  *   (b) SIGNATURE: a prior `pod.signed` exists → else `pod.signed`.
- *   (c) PLACED PHOTO: the forced placed-freight photo (REQ-063) exists — either the incoming
- *       `delivery.evidenced.payload.placed_photo_hash`, OR a prior `freight.photographed{placed}` →
- *       else `placed_freight_photo`. (The incoming placed_photo_hash is read DEFENSIVELY: absent =
- *       "no incoming photo", so the prior-photo path can still satisfy (c).)
+ *   (c) PLACED PHOTO — BOUND TO A REAL CAPTURE (WP-05 exit audit, REQ-046/063): the POD's
+ *       `delivery.evidenced.payload.placed_photo_hash` must EQUAL the `photo_hash` of a PRIOR
+ *       `freight.photographed{photo_kind:"placed"}` event on the stream. A 64-hex string alone does
+ *       NOT clear this pillar — a fabricated hash bound to no captured photo is exactly the bypass this
+ *       closes (mirroring the pickup gate, which requires the real freight.photographed EVENT). The
+ *       driver flow threads the captured placed-photo hash into the POD, so the honest path passes;
+ *       an incoming hash with no matching prior placed photo → `placed_freight_photo`.
  *
  * `ctx.fence` is REQUIRED. Without an override it is a hard caller error (GateValidationError → 400,
  * never a silent pass) — the gate cannot judge a geofence with no fence.
@@ -191,14 +195,19 @@ export function assertDelivery(
 
   if (!prior.some((e) => e.kind === "pod.signed")) missing.push(REQUIRED_EVIDENCE.pod_signed);
 
+  // (c) The POD's placed_photo_hash must be BOUND to a real prior placed photo — a 64-hex string alone
+  // (no matching captured photo) never clears the pillar. Read the incoming hash defensively (absent =
+  // nothing to bind → blocked), then require a prior freight.photographed{placed} carrying that hash.
   const incomingPlaced = incoming.kind === "delivery.evidenced"
     ? readField(incoming.payload, "placed_photo_hash")
     : undefined;
-  const hasIncomingPlaced = typeof incomingPlaced === "string" && HASH64.test(incomingPlaced);
-  const hasPriorPlaced = prior.some(
-    (e) => e.kind === "freight.photographed" && e.payload.photo_kind === "placed",
-  );
-  if (!hasIncomingPlaced && !hasPriorPlaced) missing.push(REQUIRED_EVIDENCE.placed_freight_photo);
+  const boundToPriorPlaced =
+    typeof incomingPlaced === "string" &&
+    HASH64.test(incomingPlaced) &&
+    prior.some(
+      (e) => e.kind === "freight.photographed" && e.payload.photo_kind === "placed" && e.payload.photo_hash === incomingPlaced,
+    );
+  if (!boundToPriorPlaced) missing.push(REQUIRED_EVIDENCE.placed_freight_photo);
 
   if (missing.length > 0) throw new GateError(missing);
 }
@@ -206,9 +215,12 @@ export function assertDelivery(
 /**
  * REQ-045 — an INTERLINE custody handoff is blocked until:
  *   - a prior `seal.applied` exists (the trailer was sealed before the handoff) → else `seal.applied`;
- *   - the handoff is CO-SIGNED — the receiver acknowledged with a real device signature, i.e.
- *     `incoming.actor.device !== undefined`. An `unwitnessed` transfer (no device) is NOT an ack →
- *     else `receiver_ack`.
+ *   - the handoff carries the RECEIVER's CO-SIGN (WP-05 exit audit): a non-empty
+ *     `incoming.custody.transferred.payload.cosig`. The `actor` of a `custody.transferred` is the
+ *     TRANSFERRING (sending) party, so the sender's own `actor.device` signature is NOT the receiver's
+ *     acknowledgment REQ-045 requires — only the receiver's `cosig` on the payload is. Absent/blank →
+ *     `receiver_ack`. (Read defensively: `custody.transferred` is a strict payload, but the token is
+ *     the same whatever the incoming kind.)
  *
  * `isInterline` is a REQUIRED positional, decided by the Task-5 caller from the shipment legs (a
  * transfer to the consignee is not interline). It is deliberately NOT an optional ctx flag: a
@@ -227,7 +239,8 @@ export function assertInterline(
 
   const missing: RequiredEvidence[] = [];
   if (!prior.some((e) => e.kind === "seal.applied")) missing.push(REQUIRED_EVIDENCE.seal_applied);
-  if (incoming.actor.device === undefined) missing.push(REQUIRED_EVIDENCE.receiver_ack);
+  const cosig = readField(incoming.payload, "cosig");
+  if (!(typeof cosig === "string" && cosig.trim().length > 0)) missing.push(REQUIRED_EVIDENCE.receiver_ack);
   if (missing.length > 0) throw new GateError(missing);
 }
 
@@ -309,6 +322,12 @@ export function assertConsentBeforeGps(
   if (ctx.operating_state.trim().length === 0) {
     throw new GateValidationError("assertConsentBeforeGps requires a non-empty ctx.operating_state (REQ-166)");
   }
+
+  // WP-05 exit audit (REQ-166): an UNKNOWN jurisdiction — the deriveOperatingState fail-closed sentinel
+  // "XX", returned for any coordinate outside the known boxes (~45 states) — CANNOT be consented. Block
+  // regardless of any consent on the stream (a ConsentAck can no longer even carry "XX" post-fix, but
+  // this is the belt: an unknown jurisdiction is never a legally-consentable state).
+  if (ctx.operating_state === UNKNOWN_JURISDICTION) throw new GateError([REQUIRED_EVIDENCE.consent]);
 
   const consented = prior.some((e) => {
     if (e.kind !== "document.attached") return false;

@@ -7,6 +7,7 @@ import { mergeByDeviceSeq } from "../src/merge.js";
 // so a server-origin variant (no device_id) is also valid.
 function mkEvent(opts: {
   id: string;
+  shipment_id?: string;
   device_id?: string;
   device_seq?: number;
   captured_ts?: number;
@@ -15,7 +16,7 @@ function mkEvent(opts: {
 }): EventInput {
   const draft: Record<string, unknown> = {
     id: opts.id,
-    shipment_id: "shp-1",
+    shipment_id: opts.shipment_id ?? "shp-1",
     ts: opts.ts ?? 1_720_000_000_000,
     actor: opts.device_id ? { party: "p", device: opts.device_id } : { party: "p" },
     party_refs: [],
@@ -28,6 +29,9 @@ function mkEvent(opts: {
   if (opts.device_id !== undefined) {
     draft.device_id = opts.device_id;
     draft.device_seq = opts.device_seq;
+    // WP-05 exit audit (REQ-016): a device-namespaced event must be signed (device_id ⟹ sig). A
+    // placeholder is sufficient for the merge (which never verifies) — the DO verifies the real sig.
+    draft.sig = "c2ln";
   }
   if (opts.captured_ts !== undefined) draft.captured_ts = opts.captured_ts;
   return EventInput.parse(draft);
@@ -48,6 +52,25 @@ describe("mergeByDeviceSeq — first-wins, never overwrite (REQ-016)", () => {
     expect(merged).toHaveLength(1);
     expect(merged[0]?.id).toBe(first.id);
     if (merged[0]?.kind === "freight.counted") expect(merged[0].payload.pieces).toBe(10);
+  });
+
+  // WP-05 exit audit (REQ-016): the dedupe key is PER-STREAM (shipment_id, device_id, device_seq),
+  // matching the sequencer's unique index. The SAME (device_id, device_seq) on two DIFFERENT shipments
+  // is two distinct events the server accepts — a global (device, seq) key would wrongly drop one.
+  it("the SAME (device, seq) on DIFFERENT shipments keeps BOTH (per-stream key matches the server)", () => {
+    const onA = mkEvent({ id: "aaaaaaaa-0000-4000-8000-00000000000a", shipment_id: "shp-A", device_id: "dev_a", device_seq: 0, captured_ts: 100 });
+    const onB = mkEvent({ id: "bbbbbbbb-0000-4000-8000-00000000000b", shipment_id: "shp-B", device_id: "dev_a", device_seq: 0, captured_ts: 200 });
+    const merged = mergeByDeviceSeq([onA, onB]);
+    expect(merged).toHaveLength(2);
+    expect(merged.map((e) => e.id)).toEqual([onA.id, onB.id]);
+  });
+
+  it("a duplicate (device, seq) on the SAME shipment still collapses first-wins", () => {
+    const first = mkEvent({ id: "cccccccc-0000-4000-8000-00000000000c", shipment_id: "shp-A", device_id: "dev_a", device_seq: 0, pieces: 10 });
+    const dup = mkEvent({ id: "dddddddd-0000-4000-8000-00000000000d", shipment_id: "shp-A", device_id: "dev_a", device_seq: 0, pieces: 99 });
+    const merged = mergeByDeviceSeq([first, dup]);
+    expect(merged).toHaveLength(1);
+    expect(merged[0]?.id).toBe(first.id);
   });
 
   it("two devices, each with its own seq stream, merge with ZERO loss and interleave by captured_ts", () => {
