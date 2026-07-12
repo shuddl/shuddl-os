@@ -1,4 +1,4 @@
-import { SELF, env } from "cloudflare:test";
+import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import { verifyChain } from "@shuddl/ledger/chain";
 import { rowToEvent } from "@shuddl/ledger/lens";
@@ -12,7 +12,18 @@ import {
   type DeviceContext,
   type EvidenceField,
 } from "@shuddl/driver-core";
-import { TENANT_SLUG, ensureSchema, token } from "./helpers.js";
+import {
+  CONSENT,
+  INSIDE,
+  TENANT_SLUG,
+  ensureSchema,
+  nextEvidenceBytes,
+  post,
+  seedDeliveryLeg,
+  seedShipment,
+  streamCount,
+  token,
+} from "./helpers.js";
 
 // ─── REQ-016 / GA-14 / CLAUDE.md rule 6 — THE AIRPLANE-MODE SOAK (WP-05 Task 7) ─────────────────────
 //
@@ -47,12 +58,9 @@ import { TENANT_SLUG, ensureSchema, token } from "./helpers.js";
 
 const TENANT = TENANT_SLUG;
 
-// One delivery fence at FENCE_CENTER; INSIDE sits on it (distance 0 ≪ the 150 m default radius) and
-// derives to operating state "CA" (deriveOperatingState), so ONE ConsentAck("CA") per stream covers
-// every GPS stamp on that stream. Mirrors the gates suite's fixture exactly.
-const FENCE_CENTER = { lat_e6: 37_421_000, lon_e6: -122_084_000 };
-const INSIDE = { lat_e6: 37_421_000, lon_e6: -122_084_000, accuracy_m: 5 };
-const CONSENT = { doc_kind: "consent", policy_version: "v1", operating_state: "CA", acknowledged: true } as const;
+// INSIDE / CONSENT — the shared delivery-fence + consent fixture (helpers.ts): INSIDE sits on the fence
+// and derives to "CA", so ONE ConsentAck("CA") per stream covers every GPS stamp. The delivery fence
+// itself (FENCE_CENTER) is seeded via the shared seedDeliveryLeg.
 
 const SEED = 0x50a4b1e5; // fixed PRNG seed → the whole soak (shuffle + re-send choice) is reproducible.
 
@@ -78,49 +86,11 @@ function shuffle<T>(arr: readonly T[], rnd: () => number): T[] {
   return a;
 }
 
-// ── HTTP helpers (the REAL append path: POST → sequencer DO → Gatekeeper), mirroring gates.test ──────
-interface Res {
-  status: number;
-  json: Record<string, unknown> | null;
-}
-async function post(shipmentId: string, body: unknown, tok: string): Promise<Res> {
-  const res = await SELF.fetch(`https://api.local/v1/shipments/${shipmentId}/events`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${tok}`, "Idempotency-Key": crypto.randomUUID(), "content-type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  let json: Record<string, unknown> | null = null;
-  try {
-    json = (await res.json()) as Record<string, unknown>;
-  } catch {
-    json = null;
-  }
-  return { status: res.status, json };
-}
-
-async function seedShipment(id: string): Promise<void> {
-  await env.TENANT_A_DB.prepare(
-    "INSERT OR IGNORE INTO shipments (id, shipper_party_id, consignee_party_id, bill_to_party_id, created_ts) VALUES (?,?,?,?,0)",
-  )
-    .bind(id, "party-shipper", "party-consignee", "party-bill-to")
-    .run();
-}
-async function seedDeliveryLeg(shipmentId: string): Promise<void> {
-  await env.TENANT_A_DB.prepare(
-    "INSERT OR IGNORE INTO legs (id, shipment_id, seq, kind, executor_party_id, geo) VALUES (?,?,?,?,?,?)",
-  )
-    .bind(`leg-${shipmentId}-0`, shipmentId, 0, "delivery", "party-carrier", JSON.stringify(FENCE_CENTER))
-    .run();
-}
+// post / seedShipment / seedDeliveryLeg / streamCount are shared from helpers.ts (the REAL append path
+// + the delivery-fence fixture). The soak-specific D1 read helpers below stay local.
 
 // ── D1 read helpers, scoped to the soak's own streams / devices (isolatedStorage is OFF — never assume
 //    an empty table; other files' rows persist) ──────────────────────────────────────────────────────
-async function streamCount(shipmentId: string): Promise<number> {
-  const row = await env.TENANT_A_DB.prepare("SELECT COUNT(*) AS n FROM events WHERE stream_id = ?")
-    .bind(`s:${shipmentId}`)
-    .first<{ n: number }>();
-  return row?.n ?? 0;
-}
 async function deviceSeqs(deviceId: string): Promise<number[]> {
   const res = await env.TENANT_A_DB.prepare("SELECT device_seq FROM events WHERE device_id = ? ORDER BY device_seq")
     .bind(deviceId)
@@ -165,16 +135,6 @@ interface Captured {
 // element is present, capture hashes deterministic evidence bytes AT capture and writes the hash into
 // that payload field (REQ-017); the raw bytes ride out as a deferred upload (unused here).
 type Step = [EventKind, Record<string, unknown>, EvidenceField?];
-
-let evidenceCounter = 0;
-function nextEvidenceBytes(): Uint8Array {
-  // Deterministic bytes (no Math.random): a 32-byte pattern keyed by a capture-ordinal counter, so the
-  // captured content-hash is reproducible run to run.
-  const n = evidenceCounter++;
-  const bytes = new Uint8Array(32);
-  for (let i = 0; i < 32; i++) bytes[i] = (n + i * 7 + 3) & 0xff;
-  return bytes;
-}
 
 let captureClock = 1_720_000_000_000; // epoch-ms base; +1 per capture so captured_ts is monotonic.
 

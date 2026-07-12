@@ -1,10 +1,24 @@
-import { SELF, env } from "cloudflare:test";
+import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import { verifyChain, hashEvent } from "@shuddl/ledger/chain";
 import { rowToEvent } from "@shuddl/ledger/lens";
 import { signEvent } from "@shuddl/ledger/sign";
 import { assertNever } from "../src/do/sequencer.js";
-import { TENANT_SLUG, TEST_DEVICE_ID, ensureSchema, testDeviceSigningKey, token } from "./helpers.js";
+import {
+  FENCE_CENTER,
+  INSIDE,
+  OUTSIDE,
+  TENANT_SLUG,
+  TEST_DEVICE_ID,
+  ensureSchema,
+  post,
+  requiredEvidence,
+  seedLeg,
+  seedShipment,
+  streamCount as countEvents,
+  testDeviceSigningKey,
+  token,
+} from "./helpers.js";
 
 // REQ-030 / REQ-007 / REQ-044/045/046/049/050/166 — THE ADVERSARIAL GATE SUITE.
 //
@@ -23,38 +37,11 @@ const TENANT = TENANT_SLUG;
 const HEX64 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 const HEX64_B = "a1b2c3d4e5f60718293a4b5c6d7e8f90112233445566778899aabbccddeeff00";
 
-// A delivery fence lives at FENCE_CENTER; INSIDE sits on it (distance 0 ≪ the 150 m default radius),
-// OUTSIDE sits ~1.5 km north (well outside). Both derive to operating state "CA" (deriveOperatingState),
-// so ONE ConsentAck("CA") covers every stamp here.
-const FENCE_CENTER = { lat_e6: 37_421_000, lon_e6: -122_084_000 };
-const INSIDE = { lat_e6: 37_421_000, lon_e6: -122_084_000, accuracy_m: 5 };
-const OUTSIDE = { lat_e6: 37_435_000, lon_e6: -122_084_000, accuracy_m: 5 };
+// FENCE_CENTER / INSIDE / OUTSIDE — the shared delivery-fence fixture (helpers.ts). INSIDE sits on the
+// fence, OUTSIDE ~1.5 km north; both derive to "CA", so ONE ConsentAck("CA") covers every stamp here.
+// post / requiredEvidence / seedShipment / seedLeg / streamCount (countEvents) are shared from helpers.ts.
 
 const opsTok = (): Promise<string> => token({ sub: "u-gate-ops", tenant: TENANT, role: "ops" });
-
-interface Res {
-  status: number;
-  json: Record<string, unknown> | null;
-}
-
-async function post(shipmentId: string, input: Record<string, unknown>, tok: string): Promise<Res> {
-  const res = await SELF.fetch(`https://api.local/v1/shipments/${shipmentId}/events`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${tok}`, "Idempotency-Key": crypto.randomUUID(), "content-type": "application/json" },
-    body: JSON.stringify(input),
-  });
-  let json: Record<string, unknown> | null = null;
-  try {
-    json = (await res.json()) as Record<string, unknown>;
-  } catch {
-    json = null;
-  }
-  return { status: res.status, json };
-}
-
-function requiredEvidence(r: Res): string[] {
-  return ((r.json?.gate as { required_evidence?: string[] } | undefined)?.required_evidence) ?? [];
-}
 
 function input(shipmentId: string, kind: string, over: Record<string, unknown> = {}): Record<string, unknown> {
   return {
@@ -89,27 +76,6 @@ const consentPayload = (state: string): Record<string, unknown> => ({
   operating_state: state,
   acknowledged: true,
 });
-
-async function seedShipment(id: string): Promise<void> {
-  await env.TENANT_A_DB.prepare(
-    "INSERT OR IGNORE INTO shipments (id, shipper_party_id, consignee_party_id, bill_to_party_id, created_ts) VALUES (?,?,?,?,0)",
-  )
-    .bind(id, "party-shipper", "party-consignee", "party-bill-to")
-    .run();
-}
-
-async function seedLeg(shipmentId: string, seq: number, kind: string, geo: Record<string, number> | null): Promise<void> {
-  await env.TENANT_A_DB.prepare(
-    "INSERT OR IGNORE INTO legs (id, shipment_id, seq, kind, executor_party_id, geo) VALUES (?,?,?,?,?,?)",
-  )
-    .bind(`leg-${shipmentId}-${seq}`, shipmentId, seq, kind, "party-carrier", geo === null ? "{}" : JSON.stringify(geo))
-    .run();
-}
-
-async function countEvents(shipmentId: string): Promise<number> {
-  const row = await env.TENANT_A_DB.prepare("SELECT COUNT(*) AS n FROM events WHERE stream_id = ?").bind(`s:${shipmentId}`).first<{ n: number }>();
-  return row?.n ?? 0;
-}
 
 async function rawRows(shipmentId: string): Promise<Record<string, string | number | null>[]> {
   const res = await env.TENANT_A_DB.prepare("SELECT * FROM events WHERE stream_id = ? ORDER BY seq").bind(`s:${shipmentId}`).all();

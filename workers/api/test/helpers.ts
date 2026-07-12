@@ -1,3 +1,4 @@
+import { SELF, env as testEnv } from "cloudflare:test";
 import { sign } from "hono/jwt";
 import { applyMigrations } from "@shuddl/ledger/migrate";
 import { ZoneTariff, FloorsConfig, FscConfig, AccessorialSchedule } from "@shuddl/contracts";
@@ -193,4 +194,89 @@ async function applyTenantB(env: Env): Promise<void> {
   for (const [id, kind] of PARTIES) {
     await env.TENANT_B_DB.prepare("INSERT OR IGNORE INTO parties (id, kind, names) VALUES (?,?,?)").bind(id, kind, "{}").run();
   }
+}
+
+// ---- shared REAL-append HTTP + gate/seeding fixtures (Task 9 consolidation) --------------------------
+// The append-route path, the delivery-fence fixture + 150 m radius, the required_evidence reader, and
+// the evidence-byte formula were byte-identical across pod.test / gates.test / airplane-soak.test — a
+// drift trap (touch the route path or the fence and three files had to move in lockstep). They live
+// here now; every file that drives the real sequencer imports them. Per-file-unique helpers (gates'
+// input/signedInput/consentPayload/rawRows, the soak's streamRows/deviceSeqs) stay local by design.
+
+// One delivery fence at FENCE_CENTER; INSIDE sits on it (distance 0 ≪ the 150 m default radius), OUTSIDE
+// sits ~1.5 km north (well outside). BOTH derive to operating state "CA" (deriveOperatingState), so ONE
+// ConsentAck("CA") covers every GPS stamp on a stream.
+export const FENCE_CENTER = { lat_e6: 37_421_000, lon_e6: -122_084_000 };
+export const INSIDE = { lat_e6: 37_421_000, lon_e6: -122_084_000, accuracy_m: 5 };
+export const OUTSIDE = { lat_e6: 37_435_000, lon_e6: -122_084_000, accuracy_m: 5 };
+// The EXACT four-field .strict() ConsentAck (doc 10) for "CA" — any extra key fails the gate's safeParse.
+export const CONSENT = { doc_kind: "consent", policy_version: "v1", operating_state: "CA", acknowledged: true } as const;
+
+export interface Res {
+  status: number;
+  json: Record<string, unknown> | null;
+}
+
+// The REAL append path: POST /v1/shipments/:id/events → sequencer DO → Gatekeeper. A fresh idempotency
+// key per call, so a caller opts into dedupe only by re-posting the SAME event id (never accidentally).
+export async function post(shipmentId: string, body: unknown, tok: string): Promise<Res> {
+  const res = await SELF.fetch(`https://api.local/v1/shipments/${shipmentId}/events`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${tok}`, "Idempotency-Key": crypto.randomUUID(), "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  let json: Record<string, unknown> | null = null;
+  try {
+    json = (await res.json()) as Record<string, unknown>;
+  } catch {
+    json = null;
+  }
+  return { status: res.status, json };
+}
+
+// The gate's required_evidence list off a GATE_BLOCKED response body (empty when the field is absent).
+export function requiredEvidence(r: Res): string[] {
+  return ((r.json?.gate as { required_evidence?: string[] } | undefined)?.required_evidence) ?? [];
+}
+
+export async function seedShipment(id: string): Promise<void> {
+  await testEnv.TENANT_A_DB.prepare(
+    "INSERT OR IGNORE INTO shipments (id, shipper_party_id, consignee_party_id, bill_to_party_id, created_ts) VALUES (?,?,?,?,0)",
+  )
+    .bind(id, "party-shipper", "party-consignee", "party-bill-to")
+    .run();
+}
+
+// Seed a leg — the SERVER-SOURCED gate context (a delivery leg's dest geo IS the fence; an interline leg
+// makes isInterline true). geo=null stores "{}" (no coords). NEVER from the client event: a driver
+// cannot spoof "the fence is here" or "this isn't interline".
+export async function seedLeg(shipmentId: string, seq: number, kind: string, geo: Record<string, number> | null): Promise<void> {
+  await testEnv.TENANT_A_DB.prepare(
+    "INSERT OR IGNORE INTO legs (id, shipment_id, seq, kind, executor_party_id, geo) VALUES (?,?,?,?,?,?)",
+  )
+    .bind(`leg-${shipmentId}-${seq}`, shipmentId, seq, kind, "party-carrier", geo === null ? "{}" : JSON.stringify(geo))
+    .run();
+}
+
+// The delivery-fence leg (seq 0, kind delivery, dest geo = FENCE_CENTER) — the fixture pod/soak seed.
+export async function seedDeliveryLeg(shipmentId: string): Promise<void> {
+  await seedLeg(shipmentId, 0, "delivery", FENCE_CENTER);
+}
+
+export async function streamCount(shipmentId: string): Promise<number> {
+  const row = await testEnv.TENANT_A_DB.prepare("SELECT COUNT(*) AS n FROM events WHERE stream_id = ?")
+    .bind(`s:${shipmentId}`)
+    .first<{ n: number }>();
+  return row?.n ?? 0;
+}
+
+// Deterministic 32-byte evidence pattern keyed by a capture-ordinal counter (never Math.random): the
+// captured content-hash is self-consistent (hash === sha256(bytes)) and reproducible within a run. No
+// test pins a fixed hash literal, so the shared counter is safe across files (order is deterministic).
+let evidenceCounter = 0;
+export function nextEvidenceBytes(): Uint8Array {
+  const n = evidenceCounter++;
+  const bytes = new Uint8Array(32);
+  for (let i = 0; i < 32; i++) bytes[i] = (n + i * 7 + 3) & 0xff;
+  return bytes;
 }
