@@ -1,0 +1,9 @@
+{
+  "name": "@shuddl/agents",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts", "./*": "./src/*.ts" },
+  "scripts": { "typecheck": "tsc --noEmit", "test": "vitest run" },
+  "dependencies": { "@shuddl/contracts": "workspace:*", "@shuddl/rater": "workspace:*" },
+  "devDependencies": { "vitest": "^4.1.10", "typescript": "^5.9.0" }
+}
