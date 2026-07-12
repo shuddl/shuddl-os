@@ -107,6 +107,22 @@ export function getSession(): Promise<DriverSession> {
 }
 
 /**
+ * REQ-016 — best-effort ask the browser to make IndexedDB PERSISTENT (not evictable under storage
+ * pressure). Eviction would wipe the `device_seq` ceiling + the offline queue, resetting `nextSeq` and
+ * risking a silent merge-drop. Fully guarded: a denied request, or a browser without the API, is fine —
+ * the app still runs, just more evictable. Fire-and-forget at startup; never throws, never blocks.
+ */
+export async function requestPersistentStorage(): Promise<boolean> {
+  try {
+    const storage = globalThis.navigator?.storage;
+    if (!storage?.persist) return false; // API absent (older browser / non-secure context) — no-op
+    return await storage.persist(); // true = granted persistence; false = still evictable (best-effort)
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Capture a signed event offline and enqueue it (+ deferred evidence bytes) for later sync. Returns
  * the deferred evidence hash when the capture carried bytes — the driver threads a placed-photo hash
  * from photo_placed into the terminal delivery.evidenced.

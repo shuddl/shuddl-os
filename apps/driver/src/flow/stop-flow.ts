@@ -185,8 +185,13 @@ export function initialState(flow: StopFlow): FlowState {
 
 /**
  * A state positioned ON `stepId`, with every upstream step's required evidence pre-captured — used to
- * render any flow screen deterministically from a URL param. Falls through to the terminal step if the
- * id isn't in this flow (e.g. a pickup-only step id requested on a delivery flow).
+ * render any flow screen deterministically from a `?screen=` URL param. Falls through to the terminal
+ * step if the id isn't in this flow (e.g. a pickup-only step id requested on a delivery flow).
+ *
+ * RENDER-ONLY: the `captured` tokens here are SYNTHESIZED to position the screen — the upstream events
+ * were NOT emitted. A caller must NEVER treat these tokens as proof that a transition may fire (a
+ * deep-linked terminal would otherwise enqueue a `stop.departed`/`delivery.evidenced` the server 403s).
+ * GatedFlow gates the terminal emit on events ACTUALLY captured this session, never on these (REQ-119).
  */
 export function stateAtStep(flow: StopFlow, stepId: StepId): FlowState {
   let state = initialState(flow);
