@@ -27,8 +27,9 @@ function matchZone(
 export function priceFreight(shipment: ShipmentPhysics, tariff: ZoneTariff): FreightResult {
   // 1. UNKNOWN-no-sell: pricing is a projection of MEASURED physics. Weight must be a positive, finite,
   //    WHOLE-pound integer (measured physics is whole pounds) AND dims must be present. Anything missing —
-  //    including a fractional weight_lb — ⇒ UNKNOWN, never a price on air, never a crash (REQ-004). A
-  //    non-integer weight would otherwise form a fractional numerator that mulDivHalfUp/roundHalfUp reject.
+  //    including a fractional weight_lb — ⇒ UNKNOWN, never a price on air, never a crash (REQ-004). This is
+  //    the gate that blocks Quote→Booked without weight/dims: a weightless quote returns UNKNOWN (REQ-041).
+  //    A non-integer weight would otherwise form a fractional numerator that mulDivHalfUp/roundHalfUp reject.
   const weight = shipment.weight_lb;
   if (typeof weight !== "number" || !Number.isFinite(weight) || weight <= 0 || !Number.isInteger(weight)) {
     return { status: "UNKNOWN", reason: "missing_physics" };

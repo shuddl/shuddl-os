@@ -15,7 +15,8 @@ import type { Env, Vars } from "../index.js";
 // (tenant from the JWT claim only, never a header/body — REQ-025) and turns the result into append-only
 // ledger facts:
 //   - No tariff → 200 UNKNOWN no_tariff, NO event (REQ-151 cold start).
-//   - UNKNOWN physics/lane → 200 UNKNOWN <reason>, NO quote.priced (no price on air, end to end — REQ-004).
+//   - UNKNOWN physics/lane → 200 UNKNOWN <reason>, NO quote.priced (no price on air, end to end — REQ-004);
+//     this is the server-side half of the Quote→Booked gate: a weightless/dimless quote returns UNKNOWN (REQ-041).
 //   - PRICED → append quote.priced (pins rate_config versions, I5; and CARRIES the REQ-040 anomaly on its
 //     basis so a price that shouldn't exist is recorded AT pricing, atomically, forever) + agent.acted
 //     (rater cites the configs it priced against, ≥1 basis link — REQ-005); enforce the below-floor
