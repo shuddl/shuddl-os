@@ -13,6 +13,11 @@ coverage/
 # REQ-167: client-side identity denylist never enters the repo
 .identity-denylist.local
 
+# Cloudflare Workers local secrets (RESEND_API_KEY, TEST_SEND_TOKEN, etc.) — never commit
+.dev.vars
+.dev.vars.*
+**/.dev.vars
+
 # build artifacts regenerated from pinned hashes
 seed/SEED-1.json
 tools/design/report.json
