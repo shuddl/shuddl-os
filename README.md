@@ -9,7 +9,11 @@
 | `fixtures/` | Golden fixtures that gate merges — manifest inside; vendored at WP-01 |
 
 ## Status
-F0.2 complete + third-party audited 2026-07-09 (register: 167 rows, cross-refs resolve; identity-leak law REQ-167 enforced repo-wide). Build starts at **WP-01** — plan already staged in `docs/plans/` — the day **F1-A** (doc 15 §03) completes: repo ✓ · Cloudflare ✓ · DNS · LLM keys · Stripe test · TSA pick · QuickBooks sandbox. F1-B/C gate tenant-0 phases and external launch only, never the build.
+**WP-01 → WP-06 built and merged** (ledger core · design/map shell · Rater · Driver PWA + Gatekeeper · Biller). The signature-at-the-door heartbeat runs end-to-end: POD → penny-exact invoice + evidence email, proven in-repo; live email send is CONFIRM-gated (inert until secrets are set). Next: **WP-07 Concierge**. Full picture, and how to resume any parked (CONFIRM-gated) work: **`docs/ops/PROJECT-STATE.md`**.
+
+Nothing is deployed, armed, or sending — the product is a green, fully-tested codebase (`pnpm verify`), advanced one work-package at a time. External launch, tenant-0 phases, and live sending gate on F1-B/C + the M-H milestone (doc 14/15) — never on the build.
+
+_History: F0.2 complete + third-party audited 2026-07-09 (register 167 rows; identity-leak law REQ-167 enforced repo-wide)._
 
 ## The five demos that define "working"
 (1) signature at a door → invoice + photos in the client's inbox <5s · (2) a stranger signs up and quotes in <10 min · (3) a real driver completes a gated stop with zero instruction · (4) a booking placed from Claude via MCP · (5) an exception pulsing while the rest of the map dims.
