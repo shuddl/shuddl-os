@@ -163,13 +163,18 @@ export function assertPickupDepart(
  *       driver flow threads the captured placed-photo hash into the POD, so the honest path passes;
  *       an incoming hash with no matching prior placed photo → `placed_freight_photo`.
  *
- *       RESIDUAL (WP-05 exit audit → REQ-168, WP-06): this binds the POD to a placed-photo EVENT+HASH, but
- *       NOT to verified BYTES. A caller able to EMIT events can append `freight.photographed{placed,<any
- *       64-hex>}` + a matching `delivery.evidenced` and clear this pillar over a photo that was never
- *       captured — no override-audit trail. Closing that — the recorded photo_hash must equal the SHA-256
- *       of the uploaded R2 object at upload time — is REQ-168, done by the Biller/upload path in WP-06 (a
- *       pure gate cannot verify bytes it cannot see). Device-signing the capture makes a forged event
- *       attributable; byte-verify-at-upload makes it FAIL. Both together close the fabricated-photo bypass.
+ *       BYTE AUTHORITY (REQ-168, closed in WP-06): this gate binds the POD to a placed-photo EVENT+HASH —
+ *       unchanged, and all a pure gate CAN do (it cannot see R2). The BYTES are verified at upload:
+ *       `POST /v1/evidence` (workers/api/src/routes/evidence.ts) recomputes SHA-256 over the received
+ *       bytes and rejects with 422 `hash_mismatch` — NOTHING written to R2, NO documents row — any
+ *       upload whose bytes do not hash to the event-recorded photo_hash, and rejects with 422
+ *       `hash_not_recorded` any declared hash that no event on the stream ever recorded (no orphan
+ *       uploads). Device-signing the capture makes a forged event attributable; the upload byte-verify
+ *       makes its fabricated hash FAIL to ever become stored evidence. Gate (event+hash) + upload
+ *       (bytes) together close the fabricated-photo bypass. RESIDUAL: a caller able to EMIT events can
+ *       still gate a POD through with a fabricated hash BEFORE/without any upload — the delivery
+ *       completes with zero stored bytes — so the Biller path must surface a POD whose recorded hash
+ *       has no documents row / R2 object as MISSING evidence, never silently pass it.
  *
  * `ctx.fence` is REQUIRED. Without an override it is a hard caller error (GateValidationError → 400,
  * never a silent pass) — the gate cannot judge a geofence with no fence.

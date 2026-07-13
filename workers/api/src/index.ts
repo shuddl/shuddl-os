@@ -9,6 +9,7 @@ import { mountEventRoutes } from "./routes/events.js";
 import { mountPositionRoutes } from "./routes/positions.js";
 import { mountAnchorRoutes } from "./routes/anchors.js";
 import { mountRateRoutes } from "./routes/rate.js";
+import { mountEvidenceRoutes } from "./routes/evidence.js";
 
 export type Env = {
   TENANT_A_DB: D1Database;
@@ -55,6 +56,9 @@ mountPositionRoutes(app);
 mountAnchorRoutes(app);
 // WP-04 Task 10 (REQ-030/025/005/I5): POST /v1/rate — server-side floor gate (requireRole applied inside).
 mountRateRoutes(app);
+// WP-06 (REQ-168/017): POST /v1/evidence — byte-verified deferred evidence upload (SHA-256 must match
+// the event-recorded hash or nothing is stored).
+mountEvidenceRoutes(app);
 
 app.notFound((c) => envelope(c, "NOT_FOUND", 404, "NOT FOUND"));
 
