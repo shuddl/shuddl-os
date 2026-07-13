@@ -14,6 +14,15 @@ export type AgentsEnv = {
   EVIDENCE_FROM?: string;
   /** REQ-129 — the evidence email's referral link base. */
   REFERRAL_BASE?: string;
+  // ── Operator-set ONLY, for the guarded dev-only live-send probe (POST /_dev/evidence-test-send). ──
+  //    All optional: absent ⇒ the route is inert (404). Real values are set per-environment by the
+  //    operator (RESEND_API_KEY + TEST_SEND_TOKEN via `wrangler secret put`, never in the toml).
+  /** "1" (and ONLY "1") arms the probe route; anything else ⇒ 404 (inert). */
+  ALLOW_TEST_SEND?: string;
+  /** The probe's bearer token (secret). Unset while ALLOW_TEST_SEND==="1" ⇒ the route 500s, fail-closed. */
+  TEST_SEND_TOKEN?: string;
+  /** The probe's SINK recipient — operator-controlled. Unset ⇒ the hardcoded "delivered@resend.dev" sink. */
+  TEST_SEND_TO?: string;
 };
 
 const TENANT_BINDINGS: Record<string, keyof Pick<AgentsEnv, "TENANT_A_DB" | "TENANT_B_DB">> = {

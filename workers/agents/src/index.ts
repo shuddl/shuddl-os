@@ -4,8 +4,8 @@
 
 import { runDailyAnchor } from "@shuddl/ledger/anchor";
 import { FakeTsaClient, HttpTsaClient, UnavailableTsaClient, type TsaClient } from "@shuddl/ledger/tsa/client";
-import { NotConfiguredSender, ResendSender, SendError } from "@shuddl/agents";
-import type { EvidenceSender } from "@shuddl/agents";
+import { NotConfiguredSender, ResendSender, SendError, renderEvidenceEmail } from "@shuddl/agents";
+import type { EvidenceEmailData, EvidenceMessage, EvidenceSender } from "@shuddl/agents";
 import { PodSignedMessage, handlePodSigned, type BillerDeps, type SeqStubLike } from "./biller.js";
 import { TENANT_SLUGS, tenantDb, type AgentsEnv } from "./tenants.js";
 
@@ -62,7 +62,162 @@ const DEFAULT_REFERRAL_BASE = "https://shuddl.tech";
 // send that already failed).
 const RATE_LIMIT_RETRY_DELAY_S = 30;
 
+// ====================================================================================================
+// THE GUARDED, DEV-ONLY EVIDENCE LIVE-SEND PROBE — POST /_dev/evidence-test-send (REQ-092 wiring proof)
+//
+// This composes the REAL evidence email (renderEvidenceEmail) and sends it through the REAL sender
+// selection (evidenceSender — the SAME logic the Biller uses) to a SINK recipient the OPERATOR controls,
+// so the operator can prove the live-send wiring end-to-end (a real Resend id in their dashboard) with
+// ZERO risk of mailing a real consignee. It is a WIRING PROBE, not production sending: there is no flag
+// here that turns real evidence sending on (that is a milestone decision — see the queue() header).
+//
+// It is engineered so it is IMPOSSIBLE for this route to email an arbitrary/attacker-supplied address:
+//   · the whole route is INERT unless ALLOW_TEST_SEND === "1" (any prod/normal deploy 404s — the route
+//     is indistinguishable from not existing);
+//   · it is bearer-token gated, and FAIL-CLOSED — the flag alone, without TEST_SEND_TOKEN, 500s rather
+//     than exposing an unauthenticated outbound-email route;
+//   · the recipient is OPERATOR-CONTROLLED ONLY (env.TEST_SEND_TO, else the documented Resend sink
+//     "delivered@resend.dev"); a request body that tries to set `to`/`recipient` is REFUSED (400) —
+//     the load-bearing safety property.
+// ====================================================================================================
+
+const TEST_SEND_PATH = "/_dev/evidence-test-send";
+// Resend's documented delivery-sink address: it always accepts and never affects sending reputation, so
+// the probe can run against it forever without risk. The operator may point the sink at their OWN inbox
+// via env.TEST_SEND_TO to eyeball the rendered email — still operator-controlled, never client-controlled.
+const DEFAULT_TEST_SEND_TO = "delivered@resend.dev";
+
+// The canonical REQ-167-clean fictional sample (verbatim from apps/portal/src/evidence-email.tsx and
+// tools/live/render-email.ts) — no real tenant/person/customer names, ever (REQ-167).
+const PROBE_EMAIL_DATA: EvidenceEmailData = {
+  shipment_ref: "SHP-40206",
+  delivered_at: "2026-07-10 · 14:32 MT",
+  signed_by: "J. NAVARRO · RECEIVING",
+  location: "DENVER, CO 80216",
+  invoice_ref: "INV-40206",
+  total_cents: 148_000,
+  photos: {},
+  referral_url: "https://shuddl.tech?ref=SHP-40206",
+};
+
+function json(status: number, body: unknown): Response {
+  return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+}
+
+// Constant-time-ish bearer comparison: length check + full char sweep (never short-circuit on the first
+// mismatched char). The token is operator-set (not high-value), but a timing side channel on an
+// outbound-email gate is not worth leaving open.
+function tokensEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+// The probe handler. Returns AFTER the gates in strict order — each gate is pinned by test/test-send.test.ts.
+async function handleTestSend(request: Request, env: AgentsEnv): Promise<Response> {
+  const url = new URL(request.url);
+
+  // GATE 1 — the flag makes the route INERT. Off (or ≠ "1") ⇒ 404 for EVERYTHING; on ⇒ only the exact
+  // POST route lives, any other method/path 404s. A prod deploy (no flag) cannot tell this route exists.
+  if (env.ALLOW_TEST_SEND !== "1") return new Response("Not Found", { status: 404 });
+  if (request.method !== "POST" || url.pathname !== TEST_SEND_PATH) return new Response("Not Found", { status: 404 });
+
+  // GATE 2 — bearer token, FAIL-CLOSED. The flag alone must NEVER open an unauthenticated outbound-email
+  // route: no/empty TEST_SEND_TOKEN ⇒ 500 misconfigured (not "open"). Missing/≠ bearer ⇒ 401.
+  const token = env.TEST_SEND_TOKEN;
+  if (token === undefined || token === "") {
+    return json(500, { error: "misconfigured: set TEST_SEND_TOKEN" });
+  }
+  const authz = request.headers.get("Authorization") ?? "";
+  const presented = authz.startsWith("Bearer ") ? authz.slice("Bearer ".length) : "";
+  if (presented === "" || !tokensEqual(presented, token)) {
+    return json(401, { error: "unauthorized" });
+  }
+
+  // Parse the OPTIONAL body: it may carry only `probe_id` (to vary the idempotency key). It may NEVER
+  // carry a recipient — a body that supplies `to`/`recipient` is refused LOUDLY (the safety property).
+  let probeId = "manual";
+  const rawBody = await request.text();
+  if (rawBody.trim() !== "") {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(rawBody);
+    } catch {
+      return json(400, { error: "body must be JSON" });
+    }
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return json(400, { error: "body must be a JSON object" });
+    }
+    const b = parsed as Record<string, unknown>;
+    // SAFETY: the recipient is operator-controlled ONLY. Refuse a client-supplied recipient outright —
+    // it must be impossible for this route to email a body-supplied address.
+    if ("to" in b || "recipient" in b) {
+      return json(400, {
+        error:
+          "the recipient is operator-controlled (env TEST_SEND_TO, else the built-in delivered@resend.dev sink) — " +
+          "it CANNOT be set from the request body; remove `to`/`recipient`",
+      });
+    }
+    if (b["probe_id"] !== undefined) {
+      const pid = b["probe_id"];
+      if (typeof pid !== "string" || pid === "") {
+        return json(400, { error: "probe_id must be a non-empty string" });
+      }
+      // probe_id rides verbatim into the Idempotency-Key HTTP header AND into idempotency_key (≤256 chars,
+      // Resend's documented max). A CRLF or an over-long value would otherwise surface as an OPAQUE 500
+      // (the sender's Zod boundary rejects it downstream) — a bad CLIENT input is a clean 400, not a 500.
+      if (/[\r\n]/.test(pid) || `evidence-test-send/${pid}`.length > 256) {
+        return json(400, { error: "probe_id must be CRLF-free and short" });
+      }
+      probeId = pid;
+    }
+  }
+
+  // GATE 3 — the recipient: env.TEST_SEND_TO (operator-set), else the hardcoded sink. NEVER client-derived.
+  const recipient = env.TEST_SEND_TO !== undefined && env.TEST_SEND_TO !== "" ? env.TEST_SEND_TO : DEFAULT_TEST_SEND_TO;
+
+  // GATE 4 — the SAME sender selection the Biller uses (ResendSender iff key+from bound, else NotConfigured).
+  const sender = evidenceSender(env);
+
+  // GATE 5 — compose the real email + send. Reusing a probe_id returns the ORIGINAL send (Resend dedupes
+  // by the Idempotency-Key), so vary probe_id to force a fresh send.
+  const rendered = renderEvidenceEmail(PROBE_EMAIL_DATA);
+  const message: EvidenceMessage = {
+    channel: "email",
+    to: recipient,
+    subject: rendered.subject,
+    html: rendered.html,
+    shipment_id: "SHP-40206",
+    idempotency_key: `evidence-test-send/${probeId}`,
+  };
+
+  try {
+    const receipt = await sender.send(message);
+    return json(200, { ok: true, provider: receipt.provider, provider_id: receipt.provider_id, sent_to: recipient });
+  } catch (err) {
+    // NotConfigured ⇒ the probe doubles as a "is the key wired yet?" check: 200 with the actionable text,
+    // NOT a crash (and nothing was sent — NotConfiguredSender never touches the network).
+    if (sender instanceof NotConfiguredSender && err instanceof SendError) {
+      return json(200, { ok: false, configured: false, error: err.message });
+    }
+    // A real provider failure. Surface retriable/status (SendError messages never carry the api key).
+    if (err instanceof SendError) {
+      return json(502, { ok: false, error: err.message, retriable: err.retriable, status: err.status });
+    }
+    // Anything else (a render/validation fault) — surface without leaking the environment.
+    return json(500, { error: err instanceof Error ? err.message : String(err) });
+  }
+}
+
 export default {
+  // The ONLY http surface this worker serves: the guarded, dev-only evidence live-send probe
+  // (handleTestSend above). Inert (404) unless ALLOW_TEST_SEND === "1"; token-gated; sink-only. Every
+  // other path/method 404s. This never touches the queue()/scheduled() paths.
+  async fetch(request: Request, env: AgentsEnv, ctx: ExecutionContext): Promise<Response> {
+    void ctx;
+    return handleTestSend(request, env);
+  },
   // 01:00 UTC daily (a grace window past midnight so the just-closed day can no longer grow). The
   // clock is the cron's own scheduledTime — "yesterday" is relative to when the trigger fired, so a
   // delayed/retried invocation still anchors the correct just-closed day (and tests are deterministic).
