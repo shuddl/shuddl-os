@@ -2,11 +2,24 @@
 name = "shuddl-agents-dev"
 main = "src/index.ts"
 compatibility_date = "2025-08-01"
+# The guarded /_dev/evidence-test-send probe must NOT be public-by-default: keep this worker off the
+# auto *.workers.dev subdomain (belt-and-suspenders atop flag+token+sink gating). Expose via an explicit
+# route only when deliberately testing the live send. This worker's real triggers are the cron + queue.
+workers_dev = false
 
 [vars]
 ENVIRONMENT = "dev"
 # REQ-129 — the evidence email's referral surface ("Ship like this") points here (owner-fixed base).
 REFERRAL_BASE = "https://shuddl.tech"
+
+# ── OPERATOR-SET diagnostic: the guarded, dev-only evidence live-send probe (POST /_dev/evidence-test-send,
+#    REQ-092 wiring proof). LEFT COMMENTED OUT — the route is INERT (404) until an operator arms it in a
+#    dev/staging environment, and it must NEVER be armed in prod. RESEND_API_KEY + EVIDENCE_FROM are the
+#    same secrets the Biller uses; TEST_SEND_TOKEN is ALSO a secret — set both via `wrangler secret put`,
+#    NEVER in this toml (REQ-154). Only the two NON-secret vars below would ever live here.
+# ALLOW_TEST_SEND = "1"                    # arms the probe (any value other than exactly "1" stays inert)
+# TEST_SEND_TO = "delivered@resend.dev"    # the SINK recipient (default when unset); point at your OWN inbox to eyeball the email
+# TEST_SEND_TOKEN = "<secret>"             # ← DO NOT set here — `wrangler secret put TEST_SEND_TOKEN`
 
 # REQ-014: daily Merkle -> TSA anchor at 01:00 UTC — a grace window past midnight so the just-closed
 # day can no longer grow (late/airplane-mode uploads carry TODAY's recorded_at, not yesterday's).
