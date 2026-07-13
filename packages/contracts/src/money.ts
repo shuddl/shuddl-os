@@ -11,15 +11,17 @@ export type Bps = z.infer<typeof Bps>;
 
 // A single AR/AP invoice line as carried on the event payload. The money projection
 // (Task 11) turns each of these into a money_lines row.
-// I7: amount_cents is NON-NEGATIVE. An invoice line is a positive charge; a discount/credit is its own
-// line kind, never negative freight. A negative line would escape the reversal projection's (and the
+// I7: amount_cents is a POSITIVE charge (>= 1). A discount/credit is its own line kind, never a
+// zero/negative freight line. A negative line would escape the reversal projection's (and the
 // sequencer's #moneyDeps') `amount_cents > 0` filter, so a void (empty reissue) would fail to reverse
-// it and leave AR misstated. Mirrors the SplitComputedPayload.total_cents non-negative narrowing.
+// it and leave AR misstated. And a ZERO line parses clean but the D1 money_lines carries
+// CHECK(amount_cents != 0), so it would POISON projectMoneyLines (throw → DLQ) — WP-06 exit audit. So
+// zero is unrecordable HERE, at the boundary (fail loud). Mirrors SplitComputedPayload.total_cents.
 export const InvoiceLine = z
   .object({
     line_no: SafeInt.min(1),
     kind: z.enum(["freight", "fsc", "accessorial", "cod_collect", "credit_purchase"]),
-    amount_cents: Cents.refine((c) => c >= 0, "invoice line amount_cents must be non-negative (I7: a line is a positive charge)"),
+    amount_cents: Cents.refine((c) => c >= 1, "invoice line amount_cents must be a positive charge; a credit is its own kind, never a zero/negative line (I7)"),
     gl_map: z.string().min(1),
   })
   .strict();

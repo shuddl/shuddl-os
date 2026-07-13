@@ -1,5 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": { "types": ["@cloudflare/workers-types", "@cloudflare/vitest-pool-workers"] },
+  // jsx exists ONLY because the Biller consumer renders the evidence email through @shuddl/agents'
+  // shared .tsx view (renderEvidenceEmail); this worker serves no UI of its own.
+  "compilerOptions": { "types": ["@cloudflare/workers-types", "@cloudflare/vitest-pool-workers"], "jsx": "react-jsx" },
   "include": ["src", "test"]
 }

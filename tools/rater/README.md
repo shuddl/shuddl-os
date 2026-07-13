@@ -94,3 +94,34 @@ Once all inputs are present, the next `pnpm check:rater-parity` runs the real co
 `runParity(cases, config, priceFn = priceShipment): ParityResult` does the comparison with no I/O — the CLI
 is only the vendored-vs-pending detection + loaders around it. That is what lets the harness test exercise the
 comparison (including a deliberately-wrong case) without touching the filesystem or the real fixtures.
+
+---
+
+## `tools/rater/invoice-parity.ts` — the invoice penny-parity replay harness (REQ-031 / WP-06 DoD)
+
+The same honest pattern, one seam downstream: **"invoice math matches Rater to the penny on 500-fixture
+replay."** Per case it prices via the REAL rater (`priceShipment`), records the `quote.priced` payload
+EXACTLY as `workers/api/src/routes/rate.ts` appends it, composes through the REAL Biller core
+(`composeInvoice`), and asserts **Σ invoice lines === sell**, **per-line kind/amount/line_no/gl_map
+equality** against the quote's own lines, and **gl_map account totals reconciling** to the penny.
+Run with `pnpm check:invoice-parity` (wired into `pnpm verify` right after `check:rater-parity`).
+
+Two layers, honestly separated:
+
+- **SMOKE (always runs, in-repo).** 5 synthetic cases defined INLINE in the harness (never under
+  `fixtures/`, so they can never masquerade as vendored engagement data) — a plain freight+fsc quote, a
+  four-line multi-accessorial quote, a **min-charge** case, an interline split whose **executing share
+  clears** the floors, and an interline split that **holds `below_floor`** (Law 5: the share is judged,
+  never gross). A smoke mismatch is a hard failure (exit 1). Its green line is worded as SMOKE — it is
+  never the DoD claim.
+- **THE 500-REPLAY GATE (pending).** `fixtures/invoice-replay/` (manifest id `invoice-500-replay`) +
+  the tenant-0 tariff (`fixtures/tariff/`, `zone-tariff-v1`) are engagement-workspace fixtures. Until
+  vendored: loud `INVOICE PARITY PENDING`, exit 0 (advisory). Once BOTH rows are `status:"vendored"`
+  with matching sha256 pins and exactly **500** cases load: the gate runs and exits 1 on any mismatch.
+  Present-but-unvendored/unpinned/short/over/empty **hard-fails** — never a self-consistent false green
+  (the same no-dormant-gate + anti-fabrication rules as the rater parity harness above).
+
+Case format (`InvoiceReplayCase`): `{ name, request (same shape as ParityCase.request), bill?
+{party_id/terms/third_party_id/division}, legs?, tenant_party?, approval_granted?, expect: { outcome:
+"issue"|"hold", hold_reason?, sell_cents? } }`. The penny-parity comparison is structural and runs on
+every `issue` case regardless of pins; `expect.sell_cents` additionally anchors the absolute figure.

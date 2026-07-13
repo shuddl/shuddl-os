@@ -1,5 +1,5 @@
 {
-  "name": "@shuddl/agents",
+  "name": "@shuddl/agents-worker",
   "private": true,
   "type": "module",
   "scripts": {
@@ -7,8 +7,10 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@shuddl/agents": "workspace:*",
     "@shuddl/contracts": "workspace:*",
-    "@shuddl/ledger": "workspace:*"
+    "@shuddl/ledger": "workspace:*",
+    "@shuddl/rater": "workspace:*"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.9.14",

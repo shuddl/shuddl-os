@@ -43,7 +43,8 @@ function payloadFor(kind: EventKind): Record<string, unknown> {
     case "booking.created":
       return { division: "main", shipper_party_id: P1, consignee_party_id: P2, bill_to_party_id: P2, created_ts: 1_720_000_000_000 };
     case "quote.priced":
-      return { sell: 120_000, floors: { contribution: 60_000, full: 90_000, target: 100_000 }, versions: { rate_config_ids: ["rc-1"] }, basis: {} };
+      // REQ-003/031: lines are required and must sum to sell (90_000 + 30_000 = 120_000).
+      return { sell: 120_000, lines: [{ kind: "freight", code: "freight", amount_cents: 90_000 }, { kind: "fsc", code: "fsc", amount_cents: 30_000 }], floors: { contribution: 60_000, full: 90_000, target: 100_000 }, versions: { rate_config_ids: ["rc-1"] }, basis: {} };
     case "pod.signed":
       return { signature_hash: HEX64, geo: { ...GEO }, unwitnessed: true };
     case "custody.transferred":
@@ -132,6 +133,29 @@ async function append(shipmentId: string, input: Record<string, unknown>, tok: s
   return { status: res.status, body, json: parsed };
 }
 
+// The server-emit-only kinds (REQ-030 / REQ-003): money is a projection the SERVER emits, never a client
+// fact — the public events route now REFUSES them (see the SERVER-EMITTED case below). This lens suite
+// legitimately needs them ON the streams to prove READ visibility, so it seeds them the way the server
+// does: THROUGH the sequencer DO stub directly (the Rater/Biller's internal seam), never the public route.
+const SERVER_ONLY_KINDS: ReadonlySet<EventKind> = new Set<EventKind>([
+  "invoice.issued",
+  "invoice.corrected",
+  "split.computed",
+  "payment.received",
+  "settlement.executed",
+]);
+type SeqStub = DurableObjectStub & { append(req: { tenant: string; streamId: string; input: unknown }): Promise<{ id: string } & Record<string, unknown>> };
+async function appendInternal(shipmentId: string, input: Record<string, unknown>): Promise<AppendResult> {
+  const streamId = `s:${shipmentId}`;
+  const stub = env.SHIPMENT_SEQ.get(env.SHIPMENT_SEQ.idFromName(`${TENANT_SLUG}|${streamId}`)) as unknown as SeqStub;
+  const event = await stub.append({ tenant: TENANT_SLUG, streamId, input }); // the DO's gates (I2, projections) still run
+  return { status: 201, body: JSON.stringify(event), json: event };
+}
+// Seed by the server's own path for a server-only kind, else the public route (what a client would use).
+function seed(shipmentId: string, input: Record<string, unknown>, kind: EventKind, tok: string): Promise<AppendResult> {
+  return SERVER_ONLY_KINDS.has(kind) ? appendInternal(shipmentId, input) : append(shipmentId, input, tok);
+}
+
 interface ListResult {
   status: number;
   body: string;
@@ -215,18 +239,18 @@ beforeAll(async () => {
       const p = await append(SHP_A, buildInput(SHP_A, "freight.photographed", { payload: { photo_hash: HEX64, photo_kind: "placed" } }), ops);
       if (p.status !== 201) throw new Error(`seed ${SHP_A}/placed-photo failed: ${p.status} ${p.body}`);
     }
-    const r = await append(SHP_A, buildInput(SHP_A, kind), ops);
+    const r = await seed(SHP_A, buildInput(SHP_A, kind), kind, ops);
     if (r.status !== 201) throw new Error(`seed ${SHP_A}/${kind} failed: ${r.status} ${r.body}`);
     if (kind === "invoice.issued") invoiceIssuedId = r.json!.id as string;
   }
-  // invoice.corrected — a void (full reversal) so the money nets to zero (case 8).
+  // invoice.corrected — a void (full reversal) so the money nets to zero (case 8). A server-only kind:
+  // seeded through the DO stub (the public route now refuses it — REQ-030), the I7 gate still runs.
   {
-    const r = await append(
+    const r = await appendInternal(
       SHP_A,
       buildInput(SHP_A, "invoice.corrected", {
         payload: { invoice_id: `inv-${SHP_A}`, corrects_event_id: invoiceIssuedId, reason: "reweigh correction", reissue_lines: [] },
       }),
-      ops,
     );
     if (r.status !== 201) throw new Error(`seed ${SHP_A}/invoice.corrected failed: ${r.status} ${r.body}`);
     invoiceCorrectedId = r.json!.id as string;
@@ -522,19 +546,69 @@ describe("driver append authorization", () => {
   });
 });
 
-// Gate refusal reaches the client as the ENVELOPE with gate.required_evidence intact (error translation
-// is the route's job — the DO throws a plain `Error("CODE:json")` across the RPC hop).
-describe("gate refusal envelope", () => {
-  it("invoice.issued with no pod.signed on the stream -> 403 with gate.required_evidence", async () => {
-    const shp = "adv-shp-gate";
+// REQ-030 / REQ-003 — money is a PROJECTION the SERVER emits, never a client fact. The anomaly /
+// penny-parity / executing-share-floor gates that make an invoice.issued safe live in the Biller's
+// composeInvoice, NOT in the DO append gate — so a client that hand-crafts one and POSTs it to the
+// public events route would BYPASS every one of them (the DO only runs the I2 gate). The route refuses
+// the server-emitted money kinds OUTRIGHT — before the DO gate — so even a well-formed one on a stream
+// that HAS a pod.signed (the I2 gate would otherwise pass, and it was accepted 201 before this fix) is
+// rejected. The server's OWN emissions ride the SeqStub directly (rate.ts / biller.ts) and never
+// traverse this route, so they are unaffected (the biller/heartbeat suites stay green).
+describe("server-emitted money kinds are refused at the public route (REQ-030)", () => {
+  const SHP = "adv-shp-serveronly";
+  const forgedInvoice = (): Record<string, unknown> =>
+    buildInput(SHP, "invoice.issued", {
+      // a WELL-FORMED, absurd $222,084 invoice — the anomaly gate lives in composeInvoice, not the DO.
+      payload: { invoice_id: `inv-forged-${SHP}`, party_id: P2, division: "main", lines: [{ line_no: 1, kind: "freight", amount_cents: 22_208_400, gl_map: "4000-REV" }] },
+    });
+
+  beforeAll(async () => {
     const ops = await opsTok();
-    await append(shp, buildInput(shp, "booking.created", { party_refs: [P1] }), ops);
-    const r = await append(shp, buildInput(shp, "invoice.issued", { payload: { invoice_id: "inv-gate", party_id: P2, division: "main", lines: [{ line_no: 1, kind: "freight", amount_cents: 100, gl_map: "4000-REV" }] } }), ops);
+    // A pod-BEARING stream: the DO's I2 gate would PASS here, so before this fix the forged invoice.issued
+    // was accepted (201). booking.created creates the shipments row; pod.signed is ungated (actor P1 exists).
+    await append(SHP, buildInput(SHP, "booking.created", { party_refs: [P1] }), ops);
+    const p = await append(SHP, buildInput(SHP, "pod.signed", { party_refs: [P1] }), ops);
+    if (p.status !== 201) throw new Error(`seed ${SHP}/pod.signed failed: ${p.status} ${p.body}`);
+  });
+
+  it("an ops principal POSTing a hand-crafted $222,084 invoice.issued -> 403 FORBIDDEN server-only; NOTHING appended, NO money_lines", async () => {
+    const ops = await opsTok();
+    const r = await append(SHP, forgedInvoice(), ops);
     expect(r.status).toBe(403);
-    expect(r.json!.code).toBe("GATE_BLOCKED");
-    expect((r.json!.gate as { required_evidence: string[] }).required_evidence).toEqual(["pod.signed"]);
+    expect(r.json!.code).toBe("FORBIDDEN"); // NOT GATE_BLOCKED — refused at the route, before the DO gate
+    expect(r.body).toContain("SERVER-EMITTED");
+
+    const list = await listShipment(SHP, ops);
+    expect(kindsOf(list.events).has("invoice.issued")).toBe(false); // the forged event never landed
+    const ml = await env.TENANT_A_DB.prepare("SELECT COUNT(*) AS n FROM money_lines WHERE shipment_id = ?").bind(SHP).first<{ n: number }>();
+    expect(ml!.n).toBe(0); // and the money projection never ran
+  });
+
+  it("a driver principal is refused the SAME way — the server-only refusal fires BEFORE the driver write-scope check", async () => {
+    const r = await append(SHP, forgedInvoice(), await driverTok(D1));
+    expect(r.status).toBe(403);
+    // 'SERVER-EMITTED', not 'DRIVER NOT ASSIGNED': the server-only gate is checked first, so the reason a
+    // client sees can never be forged into a mere scope miss.
+    expect(r.body).toContain("SERVER-EMITTED");
+  });
+
+  it("every server-emitted money kind is refused (the whole set, not just invoice.issued)", async () => {
+    const ops = await opsTok();
+    for (const kind of ["invoice.issued", "invoice.corrected", "split.computed", "payment.received", "settlement.executed"] as const) {
+      const r = await append(SHP, buildInput(SHP, kind), ops);
+      expect(r.status, `${kind} must be refused at the route`).toBe(403);
+      expect(r.body).toContain("SERVER-EMITTED");
+    }
   });
 });
+
+// NOTE (WP-06 exit audit, REQ-030): the former "gate refusal envelope" case posted invoice.issued —
+// a SERVER-EMITTED kind — through the PUBLIC route to reach the DO's I2 gate and prove the route
+// translates a gate refusal into the envelope with gate.required_evidence. That case was itself
+// exercising the money-projection hole (a client could POST invoice.issued), now closed above. The
+// route's gate-envelope translation for a CLIENT-drivable gated transition is covered by pod.test.ts
+// (delivery.evidenced with no pod.signed -> GATE_BLOCKED ['pod.signed']); the DO's I2 gate itself by
+// sequencer.test.ts (invoice.issued via the internal stub -> GATE_BLOCKED). So it is removed here.
 
 // Mutations require an Idempotency-Key (the WP-01 middleware); confirm the ledger routes are under it.
 describe("mutation idempotency", () => {

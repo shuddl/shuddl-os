@@ -121,6 +121,9 @@ importers:
 
   apps/portal:
     dependencies:
+      '@shuddl/agents':
+        specifier: workspace:*
+        version: link:../../packages/agents
       '@shuddl/design':
         specifier: workspace:*
         version: link:../../packages/design
@@ -155,6 +158,37 @@ importers:
       typescript:
         specifier: ^5.9.0
         version: 5.9.3
+
+  packages/agents:
+    dependencies:
+      '@shuddl/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@shuddl/design':
+        specifier: workspace:*
+        version: link:../design
+      '@shuddl/rater':
+        specifier: workspace:*
+        version: link:../rater
+      react:
+        specifier: ^19.2.3
+        version: 19.2.7
+      react-dom:
+        specifier: ^19.2.3
+        version: 19.2.7(react@19.2.7)
+    devDependencies:
+      '@types/react':
+        specifier: ^19.2.9
+        version: 19.2.17
+      '@types/react-dom':
+        specifier: ^19.2.3
+        version: 19.2.3(@types/react@19.2.17)
+      typescript:
+        specifier: ^5.9.0
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.10
+        version: 4.1.10(@types/node@26.1.1)(jsdom@29.1.1)(vite@8.1.3(@types/node@26.1.1)(esbuild@0.28.1)(tsx@4.23.0))
 
   packages/contracts:
     dependencies:
@@ -295,12 +329,18 @@ importers:
 
   workers/agents:
     dependencies:
+      '@shuddl/agents':
+        specifier: workspace:*
+        version: link:../../packages/agents
       '@shuddl/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
       '@shuddl/ledger':
         specifier: workspace:*
         version: link:../../packages/ledger
+      '@shuddl/rater':
+        specifier: workspace:*
+        version: link:../../packages/rater
     devDependencies:
       '@cloudflare/vitest-pool-workers':
         specifier: ^0.9.14
@@ -342,6 +382,9 @@ importers:
       '@cloudflare/workers-types':
         specifier: ^4.20251230.0
         version: 4.20260702.1
+      '@shuddl/agents':
+        specifier: workspace:*
+        version: link:../../packages/agents
       '@shuddl/driver-core':
         specifier: workspace:*
         version: link:../../packages/driver-core

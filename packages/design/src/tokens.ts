@@ -18,3 +18,22 @@ export const FONTS = {
 
 export type ColorToken = keyof typeof TOKENS;
 export type FontToken = keyof typeof FONTS;
+
+// Every custom property tokens.css defines, mapped to its literal value — for the ONE surface
+// that cannot dereference var(): the sendable evidence email (mail clients strip custom
+// properties). The transparent reds live here as literals because this file IS the token
+// source (the design audit exempts tokens.ts exactly as it exempts tokens.css). Keep in
+// lockstep with tokens.css — the design test pins the two files against each other.
+export const CSS_VAR_LITERALS = {
+  "--field": TOKENS.field,
+  "--signal": TOKENS.signal,
+  "--signal-deep": TOKENS.signalDeep,
+  "--ink-dark": TOKENS.inkDark,
+  "--progress": TOKENS.progress,
+  "--signal-55": "rgba(255, 74, 51, 0.55)",
+  "--signal-12": "rgba(255, 74, 51, 0.12)",
+  "--signal-07": "rgba(255, 74, 51, 0.07)",
+  "--field-on-dark": TOKENS.field,
+  "--display": FONTS.display,
+  "--mono": FONTS.mono,
+} as const;

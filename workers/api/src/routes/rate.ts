@@ -192,6 +192,9 @@ export function mountRateRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>): 
     // NOT a /rate responsibility (that coupling is what would 500 a direct-move anomaly on the passports FK).
     const priced = await append("quote.priced", {
       sell: quote.sell_cents,
+      // REQ-003/031 — carry the itemized breakdown so the Biller PROJECTS the invoice from this recorded
+      // event (Σ amount_cents === sell), never re-computes it. The contract refine rejects a non-totalling breakdown.
+      lines: quote.lines.map((l) => ({ kind: l.kind, code: l.code, amount_cents: l.amount_cents })),
       floors: quote.floors,
       versions: quote.versions,
       basis: { ...quote.basis, anomaly: quote.anomaly },

@@ -1,0 +1,363 @@
+import { env, SELF } from "cloudflare:test";
+import { beforeAll, describe, expect, it } from "vitest";
+import type { EventKind } from "@shuddl/contracts";
+import { capture, type CaptureParams, type DeviceContext, type EvidenceField } from "@shuddl/driver-core";
+import { MAX_EVIDENCE_BYTES } from "../src/routes/evidence.js";
+import {
+  CONSENT,
+  INSIDE,
+  TENANT_SLUG,
+  TEST_DEVICE_ID,
+  ensureSchema,
+  ensureTenantBSchema,
+  nextEvidenceBytes,
+  post,
+  seedShipment,
+  testDeviceSigningKey,
+  token,
+} from "./helpers.js";
+
+// ─── REQ-168 — EVIDENCE BYTE-VERIFY AT UPLOAD (WP-06) ───────────────────────────────────────────────
+//
+// The WP-05 exit audit proved the delivery gate binds the POD to a placed-photo EVENT+HASH but nothing
+// verifies BYTES exist: a fabricated 64-hex hash bound to no stored photo could satisfy the gate.
+// `POST /v1/evidence` is the byte authority: the recorded photo_hash must equal the SHA-256 of the
+// uploaded bytes, or NOTHING is written (no R2 object, no documents row). DoD: "A fabricated evidence
+// hash with no matching uploaded bytes fails the gate/upload."
+//
+// Contract under test:
+//   POST /v1/evidence?shipment_id=…&photo_hash=…   (raw body = the evidence bytes; NO client-declared
+//   document kind — documents.kind is DERIVED from the recording event: pod.signed → 'POD', else 'photo')
+//   → 201 {document_id, r2_key} on first verified upload; 200 (same body) on an idempotent repeat
+//   → 422 {reason:"hash_not_recorded"} when no event on THIS stream recorded the declared hash
+//   → 422 {reason:"hash_mismatch"} when the bytes do not hash to the declared (recorded) hash
+//   → 404 when the shipment is not in the session tenant's D1 (cross-tenant posture, REQ-025)
+//   → 401 unauthenticated · 403 portal/read · 400 empty body / malformed params · 413 oversize
+//
+// isolatedStorage is OFF (all api test files share ONE D1) — every case scopes to its own shipment id.
+
+const TENANT = TENANT_SLUG;
+
+async function sha256Hex(bytes: Uint8Array): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new Uint8Array(bytes)); // fresh ArrayBuffer-backed copy — clean BufferSource type
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function r2Key(tenant: string, shipmentId: string, hash: string): string {
+  return `evidence/${tenant}/${shipmentId}/${hash}`;
+}
+
+interface UploadRes {
+  status: number;
+  json: Record<string, unknown> | null;
+}
+
+function uploadHeaders(tok: string | null): Record<string, string> {
+  const headers: Record<string, string> = {
+    "Idempotency-Key": crypto.randomUUID(), // fresh per call — replay caching is NOT what these tests probe
+    "content-type": "application/octet-stream",
+  };
+  if (tok !== null) headers["Authorization"] = `Bearer ${tok}`;
+  return headers;
+}
+
+function uploadUrl(params: { shipment_id?: string; photo_hash?: string }): string {
+  const qs = new URLSearchParams();
+  if (params.shipment_id !== undefined) qs.set("shipment_id", params.shipment_id);
+  if (params.photo_hash !== undefined) qs.set("photo_hash", params.photo_hash);
+  return `https://api.local/v1/evidence?${qs.toString()}`;
+}
+
+async function toUploadRes(res: Response): Promise<UploadRes> {
+  let json: Record<string, unknown> | null = null;
+  try {
+    json = (await res.json()) as Record<string, unknown>;
+  } catch {
+    json = null;
+  }
+  return { status: res.status, json };
+}
+
+async function upload(
+  params: { shipment_id?: string; photo_hash?: string },
+  body: Uint8Array | null,
+  tok: string | null,
+): Promise<UploadRes> {
+  const init: RequestInit = { method: "POST", headers: uploadHeaders(tok) };
+  if (body !== null) init.body = new Uint8Array(body); // ArrayBuffer-backed copy satisfies BodyInit cleanly
+  return toUploadRes(await SELF.fetch(uploadUrl(params), init));
+}
+
+async function docCount(shipmentId: string, hash: string): Promise<number> {
+  const row = await env.TENANT_A_DB.prepare("SELECT COUNT(*) AS n FROM documents WHERE shipment_id = ? AND hash = ?")
+    .bind(shipmentId, hash)
+    .first<{ n: number }>();
+  return row?.n ?? 0;
+}
+
+// ── one reused registered device + monotonic counters (mirrors pod.test) ─────────────────────────────
+let deviceCtx: DeviceContext;
+let opsTok: string;
+let seq = 0;
+let clock = 1_721_000_000_000;
+
+// Capture a driver-core-signed event and POST it through the real sequencer; evidence-bearing captures
+// hash their bytes AT capture (REQ-017) and return the hash the upload must byte-verify against.
+async function appendEvent(
+  shipmentId: string,
+  kind: EventKind,
+  payload: Record<string, unknown>,
+  evidence?: { bytes: Uint8Array; field: EvidenceField },
+): Promise<string | undefined> {
+  const ts = clock++;
+  const params: CaptureParams = { shipment_id: shipmentId, kind, payload, ts, captured_ts: ts, actor_user: "user-driver" };
+  if (evidence !== undefined) params.evidence = evidence;
+  const { event, deferred } = await capture(params, deviceCtx);
+  const res = await post(shipmentId, event, opsTok);
+  expect(res.status, `${kind} must append: ${JSON.stringify(res.json)}`).toBe(201);
+  return deferred?.hash;
+}
+
+// Record a placed-photo capture EVENT on the stream (the standard recording fixture).
+async function recordPlacedPhoto(shipmentId: string, bytes: Uint8Array): Promise<string> {
+  const hash = await appendEvent(shipmentId, "freight.photographed", { photo_kind: "placed" }, { bytes, field: "photo_hash" });
+  if (hash === undefined) throw new Error("capture with evidence bytes must return a deferred upload");
+  return hash;
+}
+
+beforeAll(async () => {
+  await ensureSchema(env);
+  await ensureTenantBSchema(env);
+  deviceCtx = {
+    device_id: TEST_DEVICE_ID,
+    privateKey: await testDeviceSigningKey(),
+    party: "party-carrier",
+    nextSeq: () => seq++,
+  };
+  opsTok = await token({ sub: "u-evidence-ops", tenant: TENANT, role: "ops" });
+  for (const id of [
+    "ev-mismatch",
+    "ev-fab",
+    "ev-happy",
+    "ev-idem",
+    "ev-pod",
+    "ev-xtenant",
+    "ev-badparam",
+    "ev-borrow-a",
+    "ev-borrow-b",
+    "ev-stream",
+    "ev-heal",
+  ]) {
+    await seedShipment(id);
+  }
+});
+
+describe("POST /v1/evidence — byte-verified evidence upload (REQ-168)", () => {
+  it("REQ-168 DoD: DIFFERENT bytes declaring a recorded hash → 422 hash_mismatch, NO R2 object, NO documents row", async () => {
+    const shp = "ev-mismatch";
+    const realBytes = nextEvidenceBytes();
+    const recordedHash = await recordPlacedPhoto(shp, realBytes); // the stream recorded sha256(realBytes)
+
+    const forgedBytes = nextEvidenceBytes(); // different content — its sha256 !== recordedHash
+    expect(await sha256Hex(forgedBytes)).not.toBe(recordedHash);
+
+    const res = await upload({ shipment_id: shp, photo_hash: recordedHash }, forgedBytes, opsTok);
+    expect(res.status).toBe(422);
+    expect(res.json?.reason).toBe("hash_mismatch");
+    expect(await env.EVIDENCE.get(r2Key(TENANT, shp, recordedHash)), "a mismatch must write NOTHING to R2").toBeNull();
+    expect(await docCount(shp, recordedHash), "a mismatch must write NO documents row").toBe(0);
+  });
+
+  it("a fabricated hash never recorded on the stream → 422 hash_not_recorded, even when the bytes genuinely hash to it", async () => {
+    const shp = "ev-fab";
+    const bytes = nextEvidenceBytes();
+    const fabricated = await sha256Hex(bytes); // honest bytes — but NO event ever recorded this hash
+
+    const res = await upload({ shipment_id: shp, photo_hash: fabricated }, bytes, opsTok);
+    expect(res.status).toBe(422);
+    expect(res.json?.reason).toBe("hash_not_recorded");
+    expect(await env.EVIDENCE.get(r2Key(TENANT, shp, fabricated)), "an orphan upload must write NOTHING to R2").toBeNull();
+    expect(await docCount(shp, fabricated)).toBe(0);
+  });
+
+  it("CROSS-SHIPMENT BORROW: a hash recorded on stream A never clears stream B → 422 hash_not_recorded, nothing written", async () => {
+    // Mutation-proof for the stream_id scope in RECORDING_EVENT_SQL: even the TRUE bytes of a hash
+    // recorded on ev-borrow-a must NOT be uploadable against ev-borrow-b — the check is per-stream.
+    const bytes = nextEvidenceBytes();
+    const hash = await recordPlacedPhoto("ev-borrow-a", bytes);
+
+    const res = await upload({ shipment_id: "ev-borrow-b", photo_hash: hash }, bytes, opsTok);
+    expect(res.status).toBe(422);
+    expect(res.json?.reason).toBe("hash_not_recorded");
+    expect(await env.EVIDENCE.get(r2Key(TENANT, "ev-borrow-b", hash)), "a borrowed hash must write NOTHING").toBeNull();
+    expect(await docCount("ev-borrow-b", hash)).toBe(0);
+  });
+
+  it("HONEST PATH: bytes whose sha256 equals the recorded hash → 201, R2 object stored, documents row correct", async () => {
+    const shp = "ev-happy";
+    const bytes = nextEvidenceBytes();
+    const hash = await recordPlacedPhoto(shp, bytes);
+    expect(await sha256Hex(bytes)).toBe(hash); // capture hashed the same bytes we will upload
+
+    const res = await upload({ shipment_id: shp, photo_hash: hash }, bytes, opsTok);
+    expect(res.status, JSON.stringify(res.json)).toBe(201);
+    const key = r2Key(TENANT, shp, hash);
+    expect(res.json?.r2_key).toBe(key);
+    expect(typeof res.json?.document_id).toBe("string");
+
+    const obj = await env.EVIDENCE.get(key);
+    expect(obj, "the verified bytes must exist at the deterministic evidence key").not.toBeNull();
+    expect((await obj!.arrayBuffer()).byteLength).toBe(bytes.byteLength);
+
+    const row = await env.TENANT_A_DB.prepare("SELECT id, shipment_id, kind, r2_key, hash FROM documents WHERE id = ?")
+      .bind(res.json?.document_id)
+      .first<{ id: string; shipment_id: string; kind: string; r2_key: string; hash: string }>();
+    expect(row).not.toBeNull();
+    expect(row!.shipment_id).toBe(shp);
+    expect(row!.kind, "kind is DERIVED from the recording event (freight.photographed → photo)").toBe("photo");
+    expect(row!.r2_key).toBe(key);
+    expect(row!.hash).toBe(hash);
+  });
+
+  it("KIND DERIVATION: a pod.signed signature_hash stores as documents.kind 'POD' — never client-declared", async () => {
+    const shp = "ev-pod";
+    // Consent BEFORE the GPS-stamped pod.signed (REQ-166) — INSIDE derives to operating state CA.
+    await appendEvent(shp, "document.attached", { ...CONSENT });
+    const sigBytes = nextEvidenceBytes();
+    const hash = await appendEvent(shp, "pod.signed", { geo: { ...INSIDE } }, { bytes: sigBytes, field: "signature_hash" });
+    expect(hash).toBeDefined();
+
+    const res = await upload({ shipment_id: shp, photo_hash: hash! }, sigBytes, opsTok);
+    expect(res.status, JSON.stringify(res.json)).toBe(201);
+    const row = await env.TENANT_A_DB.prepare("SELECT kind FROM documents WHERE shipment_id = ? AND hash = ?")
+      .bind(shp, hash!)
+      .first<{ kind: string }>();
+    expect(row?.kind, "pod.signed recording event → derived kind POD").toBe("POD");
+  });
+
+  it("IDEMPOTENT repeat of the same verified upload → 200, same document_id, exactly ONE documents row", async () => {
+    const shp = "ev-idem";
+    const bytes = nextEvidenceBytes();
+    const hash = await recordPlacedPhoto(shp, bytes);
+
+    const first = await upload({ shipment_id: shp, photo_hash: hash }, bytes, opsTok);
+    expect(first.status, JSON.stringify(first.json)).toBe(201);
+    const repeat = await upload({ shipment_id: shp, photo_hash: hash }, bytes, opsTok); // fresh Idempotency-Key — the ROUTE dedupes
+    expect(repeat.status).toBe(200);
+    expect(repeat.json?.document_id).toBe(first.json?.document_id);
+    expect(repeat.json?.r2_key).toBe(first.json?.r2_key);
+    expect(await docCount(shp, hash), "re-upload must never duplicate the documents row").toBe(1);
+
+    const row = await env.TENANT_A_DB.prepare("SELECT kind FROM documents WHERE shipment_id = ? AND hash = ?")
+      .bind(shp, hash)
+      .first<{ kind: string }>();
+    expect(row?.kind, "kind stays the DERIVED one — a repeat can never relabel it").toBe("photo");
+  });
+
+  it("TORN-STATE HEALING: a pre-existing R2 object with NO documents row → honest upload 201, the row lands", async () => {
+    // Simulates a crash between the R2 put and the documents INSERT: the retry must re-verify and heal
+    // the missing row (INSERT OR IGNORE on the deterministic id), never fail or duplicate.
+    const shp = "ev-heal";
+    const bytes = nextEvidenceBytes();
+    const hash = await recordPlacedPhoto(shp, bytes);
+    const key = r2Key(TENANT, shp, hash);
+    await env.EVIDENCE.put(key, new Uint8Array(bytes)); // pre-plant the object; NO row exists
+    expect(await docCount(shp, hash)).toBe(0);
+
+    const res = await upload({ shipment_id: shp, photo_hash: hash }, bytes, opsTok);
+    expect(res.status, JSON.stringify(res.json)).toBe(201);
+    expect(res.json?.r2_key).toBe(key);
+    expect(await docCount(shp, hash), "the retry heals the torn state with exactly one row").toBe(1);
+  });
+
+  it("CROSS-TENANT (REQ-025): tenant B's token against tenant A's shipment → 404, NOTHING written anywhere", async () => {
+    const shp = "ev-xtenant"; // exists ONLY in tenant A's D1
+    const bytes = nextEvidenceBytes();
+    const hash = await recordPlacedPhoto(shp, bytes); // recorded on tenant A's stream
+    const tokB = await token({ sub: "u-evidence-b", tenant: "tenant-b", role: "ops" });
+
+    const res = await upload({ shipment_id: shp, photo_hash: hash }, bytes, tokB);
+    expect(res.status).toBe(404); // tenant B's D1 has no such shipment — indistinguishable from nonexistent
+    expect(await env.EVIDENCE.get(r2Key("tenant-b", shp, hash))).toBeNull();
+    expect(await env.EVIDENCE.get(r2Key(TENANT, shp, hash)), "a cross-tenant attempt must never write into tenant A's space").toBeNull();
+    const rowB = await env.TENANT_B_DB.prepare("SELECT COUNT(*) AS n FROM documents WHERE hash = ?").bind(hash).first<{ n: number }>();
+    expect(rowB?.n ?? 0).toBe(0);
+    expect(await docCount(shp, hash)).toBe(0);
+  });
+
+  it("unauthenticated → 401; portal and read roles → 403", async () => {
+    const bytes = nextEvidenceBytes();
+    const hash = await sha256Hex(bytes);
+    const params = { shipment_id: "ev-happy", photo_hash: hash };
+
+    expect((await upload(params, bytes, null)).status).toBe(401);
+    const portalTok = await token({ sub: "u-evidence-portal", tenant: TENANT, role: "portal", party: "party-consignee" });
+    expect((await upload(params, bytes, portalTok)).status).toBe(403);
+    const readTok = await token({ sub: "u-evidence-read", tenant: TENANT, role: "read" });
+    expect((await upload(params, bytes, readTok)).status).toBe(403);
+  });
+
+  it("EMPTY body → 4xx, nothing written", async () => {
+    const shp = "ev-badparam";
+    const bytes = nextEvidenceBytes();
+    const hash = await recordPlacedPhoto(shp, bytes);
+
+    const res = await upload({ shipment_id: shp, photo_hash: hash }, new Uint8Array(0), opsTok);
+    expect(res.status).toBe(400);
+    expect(await env.EVIDENCE.get(r2Key(TENANT, shp, hash))).toBeNull();
+    expect(await docCount(shp, hash)).toBe(0);
+  });
+
+  it("OVERSIZE body (> 10 MiB, declared Content-Length) → 413, nothing written", async () => {
+    const shp = "ev-badparam";
+    const oversize = new Uint8Array(MAX_EVIDENCE_BYTES + 1);
+    const hash = await sha256Hex(oversize.slice(0, 32)); // any well-formed 64-hex — the declared size fails FIRST
+
+    const res = await upload({ shipment_id: shp, photo_hash: hash }, oversize, opsTok);
+    expect(res.status).toBe(413);
+    expect(await env.EVIDENCE.get(r2Key(TENANT, shp, hash))).toBeNull();
+  });
+
+  it("OVERSIZE STREAM (no Content-Length): the capped stream-count is the authority → 413, nothing written", async () => {
+    // Mutation-proof for the readBodyCapped early abort: a chunked body with NO Content-Length must be
+    // cut off by the stream-count, not the header fast path. The shipment exists and the hash IS
+    // recorded, so the request reaches the body read — then dies at the cap, before any verify/write.
+    const shp = "ev-stream";
+    const bytes = nextEvidenceBytes();
+    const hash = await recordPlacedPhoto(shp, bytes);
+
+    const CHUNK = new Uint8Array(1 << 20); // 1 MiB per pull
+    let sent = 0;
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        if (sent > MAX_EVIDENCE_BYTES) {
+          controller.close();
+          return;
+        }
+        controller.enqueue(CHUNK);
+        sent += CHUNK.byteLength;
+      },
+    });
+    const init: RequestInit & { duplex: "half" } = {
+      method: "POST",
+      headers: uploadHeaders(opsTok),
+      body,
+      duplex: "half", // streaming request body — no Content-Length is ever sent
+    };
+    const res = await toUploadRes(await SELF.fetch(uploadUrl({ shipment_id: shp, photo_hash: hash }), init));
+    expect(res.status).toBe(413);
+    expect(await env.EVIDENCE.get(r2Key(TENANT, shp, hash))).toBeNull();
+    expect(await docCount(shp, hash)).toBe(0);
+  });
+
+  it("malformed photo_hash (63 chars / non-hex) or missing shipment_id → 400", async () => {
+    const bytes = nextEvidenceBytes();
+    const hex63 = "a".repeat(63);
+    const nonHex = "z".repeat(64);
+    const goodHash = await sha256Hex(bytes);
+
+    expect((await upload({ shipment_id: "ev-badparam", photo_hash: hex63 }, bytes, opsTok)).status).toBe(400);
+    expect((await upload({ shipment_id: "ev-badparam", photo_hash: nonHex }, bytes, opsTok)).status).toBe(400);
+    expect((await upload({ photo_hash: goodHash }, bytes, opsTok)).status).toBe(400); // missing shipment_id
+  });
+});

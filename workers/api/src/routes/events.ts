@@ -61,6 +61,22 @@ function toReadError(e: unknown): unknown {
   return e;
 }
 
+// REQ-030 / REQ-003 — money is a PROJECTION the SERVER emits, never a client fact. These kinds are
+// composed and appended ONLY through server-internal seams: the Biller's SeqStub (invoice.issued/
+// invoice.corrected/split.computed/settlement/payment money) and the Rater. The anomaly / penny-parity /
+// executing-share-floor gates that make them safe live in composeInvoice — NOT in the DO append gate
+// (which only runs I2/assertPodSigned) — so a client POST of a hand-crafted one would BYPASS every one
+// of them (the $222,084 fail-open). The public events route REFUSES them outright, before the DO append.
+// The internal seams (rate.ts / biller.ts) call SHIPMENT_SEQ.append directly and never traverse this
+// route, so the server's own emissions are unaffected.
+const SERVER_EMITTED_KINDS: ReadonlySet<string> = new Set<string>([
+  "invoice.issued",
+  "invoice.corrected",
+  "split.computed",
+  "payment.received",
+  "settlement.executed",
+]);
+
 const LIMIT_CAP = 1000;
 const DEFAULT_LIMIT = 200; // mirrors @shuddl/ledger/lens readEvents so next_cursor agrees with the page size
 // A shipment id far under any DO-name / KV-key limit; a real id is a slug, never kilobytes. Length only —
@@ -118,6 +134,16 @@ export function mountEventRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>):
     const streamId = `s:${shipmentId}`;
 
     const input: unknown = await c.req.json().catch(() => null); // NEVER LedgerEvent.parse a request body — the DO parses EventInput
+
+    // REQ-030 / REQ-003 — a server-emitted money kind can NEVER be appended by a client, no matter the
+    // role. Refused HERE, before the override handling, the driver write-scope, and the DO append — so
+    // even an elevated ops/admin principal (and even a well-formed one on a pod-bearing stream, where the
+    // DO's I2 gate would otherwise pass) cannot bypass composeInvoice's anomaly/penny-parity/floor gates.
+    // Checked first so the refusal a client sees is the server-only reason, never a mere scope miss.
+    const inKind = input !== null && typeof input === "object" ? (input as { kind?: unknown }).kind : undefined;
+    if (typeof inKind === "string" && SERVER_EMITTED_KINDS.has(inKind)) {
+      throw new ApiError("FORBIDDEN", 403, "THIS EVENT KIND IS SERVER-EMITTED ONLY (REQ-030)");
+    }
 
     // REQ-049 (WP-05 exit audit) — a gate override is an ACCOUNTABLE, ELEVATED action, enforced HERE:
     // the route holds the session; the DO does not. If the event carries an `override`:

@@ -72,11 +72,34 @@ export type GeoStamp = z.infer<typeof GeoStamp>;
 export const QuotePricedPayload = z
   .object({
     sell: Cents,
+    // The itemized breakdown the invoice projects from (REQ-003/031): the invoice's lines are a
+    // projection of THIS recorded event, never a re-computation. Σ amount_cents === sell.
+    lines: z
+      .array(
+        z
+          .object({
+            kind: z.enum(["freight", "fsc", "accessorial"]),
+            code: z.string().min(1),
+            // POSITIVE (>= 1; I7, mirrors money.ts InvoiceLine): a line is a positive charge, and each quote
+            // line is projected verbatim into an invoice line. A negative line that still summed to sell would
+            // be un-projectable; a ZERO line poisons the money projection at money_lines CHECK(amount_cents
+            // != 0) — so both fail HERE at the record (a credit is its own kind, never a zero/negative line).
+            amount_cents: Cents.refine((c) => c >= 1, "quote line amount_cents must be a positive charge; a credit is its own kind, never a zero/negative line (I7)"),
+          })
+          .strict(),
+      )
+      .min(1),
     floors: z.object({ contribution: Cents, full: Cents, target: Cents }).strict(),
     versions: z.object({ rate_config_ids: z.array(z.string()).min(1) }).strict(),
     basis: JsonObject,
   })
-  .strict();
+  .strict()
+  // Penny-parity guard (REQ-003/031): a breakdown that does not total the sell must FAIL — the invoice
+  // projects these lines verbatim, so a mismatch would misprice. Integer addition; Cents are safe integers.
+  .refine(
+    (p) => p.lines.reduce((sum, l) => sum + l.amount_cents, 0) === p.sell,
+    "quote.priced lines must sum to sell (penny-parity: the invoice projects these lines)",
+  );
 export type QuotePricedPayload = z.infer<typeof QuotePricedPayload>;
 
 export const PodSignedPayload = z
@@ -469,6 +492,12 @@ function fixturePayload(kind: EventKind): Record<string, unknown> {
     case "quote.priced":
       return {
         sell: 120_000,
+        // Σ amount_cents === sell (REQ-003/031 penny-parity): 90_000 + 12_000 + 18_000 = 120_000.
+        lines: [
+          { kind: "freight", code: "freight", amount_cents: 90_000 },
+          { kind: "fsc", code: "fsc", amount_cents: 12_000 },
+          { kind: "accessorial", code: "liftgate", amount_cents: 18_000 },
+        ],
         floors: { contribution: 60_000, full: 90_000, target: 100_000 },
         versions: { rate_config_ids: ["rc-tariff-v3"] },
         basis: {},

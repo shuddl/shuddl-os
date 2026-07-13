@@ -42,6 +42,12 @@ class_name = "ShipmentSequencer"
 tag = "v2-sequencer"
 new_sqlite_classes = ["ShipmentSequencer"]
 
+# WP-06 (REQ-031/039): agent triggers. A committed pod.signed fans out to the agents worker's Biller
+# consumer through this queue (producer here; consumer in workers/agents/wrangler.toml).
+[[queues.producers]]
+binding = "AGENT_QUEUE"
+queue = "shuddl-agent-triggers-dev"
+
 [env.staging]
 name = "shuddl-api-staging"
 # staging = synthetic tenants only, no real PII, ever (REQ-154)

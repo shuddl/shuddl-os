@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { EVENT_KINDS, LedgerEvent, EventInput, AgentActedPayload, eventFixture } from "../src/index.js";
+import { EVENT_KINDS, LedgerEvent, EventInput, AgentActedPayload, QuotePricedPayload, eventFixture } from "../src/index.js";
 
 describe("REQ-011: the 35-kind catalog", () => {
   it("exactly 35 kinds, matching doc 10 §01", () => expect(EVENT_KINDS.length).toBe(35));
@@ -34,6 +34,67 @@ describe("I5: quotes pin rate_config versions", () => {
     expect(() => LedgerEvent.parse({ ...f, payload: rest })).toThrow();
   });
 });
+// ─── REQ-003/031 (WP-06 Biller) — quote.priced carries the itemized `lines` breakdown the INVOICE
+// projects from, penny-exact: Σ lines.amount_cents === sell. A missing/empty breakdown, or one that does
+// not total the sell, FAILS validation (fail loud, never misprice). ───────────────────────────────────
+describe("REQ-003/031: quote.priced carries the penny-parity itemized lines", () => {
+  const f = eventFixture("quote.priced");
+  const payload = f.payload as { sell: number; lines: unknown[] };
+
+  it("accepts a valid, non-empty breakdown whose Σ amount_cents === sell", () => {
+    const p = QuotePricedPayload.parse(payload);
+    expect(p.lines.length).toBeGreaterThan(0);
+    expect(p.lines.reduce((s, l) => s + l.amount_cents, 0)).toBe(p.sell);
+  });
+
+  it("rejects a payload MISSING lines entirely", () => {
+    const rest: Record<string, unknown> = { ...payload };
+    delete rest.lines;
+    expect(() => QuotePricedPayload.parse(rest)).toThrow();
+    expect(() => LedgerEvent.parse({ ...f, payload: rest })).toThrow();
+  });
+
+  it("rejects an empty lines array (min 1)", () => {
+    expect(() => QuotePricedPayload.parse({ ...payload, lines: [] })).toThrow();
+  });
+
+  it("rejects a breakdown whose Σ amount_cents !== sell (never misprice)", () => {
+    const under = { ...payload, lines: [{ kind: "freight", code: "freight", amount_cents: payload.sell - 1 }] };
+    expect(() => QuotePricedPayload.parse(under)).toThrow();
+    const over = { ...payload, lines: [{ kind: "freight", code: "freight", amount_cents: payload.sell + 1 }] };
+    expect(() => QuotePricedPayload.parse(over)).toThrow();
+  });
+
+  it("rejects a NEGATIVE line even when the breakdown still totals sell (I7: a line is a positive charge)", () => {
+    // 130_000 + (−10_000) = 120_000 = sell — the sum is honest but a negative line is un-projectable to a
+    // valid invoice line (money.ts InvoiceLine enforces amount_cents >= 1), so it must fail at the record.
+    const bad = { ...payload, lines: [
+      { kind: "freight", code: "freight", amount_cents: payload.sell + 10_000 },
+      { kind: "accessorial", code: "discount", amount_cents: -10_000 },
+    ] };
+    expect(() => QuotePricedPayload.parse(bad)).toThrow();
+  });
+
+  it("rejects a ZERO line even when the breakdown still totals sell (WP-06: a line is a POSITIVE charge)", () => {
+    // sell + 0 = sell — the sum is honest, but a zero line is un-projectable (money.ts InvoiceLine is >= 1)
+    // and would poison the money projection at the D1 CHECK(amount_cents != 0). It must fail at the record.
+    const withZero = { ...payload, lines: [
+      { kind: "freight", code: "freight", amount_cents: payload.sell },
+      { kind: "accessorial", code: "waived", amount_cents: 0 },
+    ] };
+    expect(() => QuotePricedPayload.parse(withZero)).toThrow();
+  });
+
+  it("round-trips through LedgerEvent.parse with lines intact and totalling sell", () => {
+    // The authoritative frozen-byte hash pin lives in the ledger snapshot (roundtrip.test.ts) — the
+    // contracts layer proves only that the payload survives parse and stays penny-exact across a JSON trip.
+    const parsed = LedgerEvent.parse(JSON.parse(JSON.stringify(f)) as unknown);
+    const pa = parsed.payload as { sell: number; lines: { amount_cents: number }[] };
+    expect(pa.lines.length).toBeGreaterThan(0);
+    expect(pa.lines.reduce((s, l) => s + l.amount_cents, 0)).toBe(pa.sell);
+  });
+});
+
 describe("I4 mirror: custody.transferred", () => {
   it("no device + no unwitnessed rejected; unwitnessed admits", () => {
     const f = eventFixture("custody.transferred");

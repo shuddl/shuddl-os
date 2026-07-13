@@ -1,0 +1,11 @@
+{
+  // tsx-only config for tools/live/render-email.ts (passed via --tsconfig; the non-default filename
+  // keeps every other tool from discovering it). tsx applies compilerOptions per-file through a
+  // files matcher, so the include must span BOTH the script and the workspace .tsx sources it pulls
+  // in (@shuddl/agents evidence-email view + @shuddl/design primitives) for the automatic JSX
+  // runtime to be used — without this, those files compile classic (React.createElement) and the
+  // render crashes with "React is not defined".
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": { "lib": ["ES2022", "DOM", "DOM.Iterable"], "jsx": "react-jsx" },
+  "include": ["./**/*", "../../packages/**/*"]
+}
