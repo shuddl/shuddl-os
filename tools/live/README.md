@@ -14,3 +14,16 @@ the basemap rendered blank).
 Headless Chrome needs software WebGL flags (`--use-angle=swiftshader
 --enable-unsafe-swiftshader`); `--disable-gpu` alone renders BLANK (no WebGL).
 Evidence PNGs in `tools/live/out/`.
+
+## The evidence email (WP-06, REQ-087/129)
+
+    pnpm exec tsx --tsconfig tools/live/tsconfig.render.json tools/live/render-email.ts
+
+Screenshots the SENDABLE form — `renderEvidenceEmail(...).html` (tokens inlined to
+literals) inside the sender's own `wrapFragment` doctype+charset wrap — so the PNG is
+what a consignee's mail client renders, not the portal preview. Static html, no WebGL
+flags needed. Data = the REQ-167-clean portal fixture (SHP-40206 / INV-40206 /
+$1,480.00), no photo urls (the documentary placeholder slots are the stable canonical
+form). `tsconfig.render.json` exists because tsx applies `jsx: react-jsx` per-file via
+the tsconfig's include — it must span the @shuddl/agents + @shuddl/design .tsx sources.
+Output: `tools/live/out/evidence-email.png` (committed).
