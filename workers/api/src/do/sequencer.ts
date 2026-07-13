@@ -304,6 +304,31 @@ export class ShipmentSequencer extends DurableObject<Env> {
     }
 
     this.tail = { seq: full.seq, hash }; // bump AFTER commit — crash self-heals from the D1 tail
+
+    // WP-06 (REQ-031/039): a COMMITTED pod.signed triggers the Biller. The send is INITIATED strictly
+    // AFTER the batch commits — never before (an enqueue-then-abort would bill a POD that was never
+    // recorded) — but rides ctx.waitUntil, NOT the response path: a slow Queue push must extend
+    // neither the per-stream mutex hold nor the driver's POD ack (the <5s budget is for the invoice,
+    // not for plumbing). Delivery past the commit is best-effort by design: a failure (or a crash in
+    // the commit→enqueue window) is LOGGED, never thrown — the POD is committed truth, and the lost
+    // trigger is recovered by the REQ-169 reconciliation sweep (the agents cron re-enqueues streams
+    // with a committed pod.signed and no invoice/hold; the Biller's appends + sends are idempotent, so
+    // re-driving is safe). The message shape is the consumer's Zod boundary
+    // (workers/agents/src/biller.ts PodSignedMessage).
+    if (full.kind === "pod.signed") {
+      if (full.shipment_id === undefined) {
+        // LOUD: a pod.signed with no shipment_id can never be billed by the trigger OR the sweep —
+        // this must page a human, not vanish as a silent skip (REQ-031).
+        console.error(`biller trigger NOT enqueued: pod.signed ${full.id} on ${streamId} carries no shipment_id — nothing will bill this POD (REQ-031/169)`);
+      } else {
+        const trigger = { kind: "pod.signed", tenant, shipment_id: full.shipment_id, event_id: full.id };
+        this.ctx.waitUntil(
+          this.env.AGENT_QUEUE.send(trigger).catch((err: unknown) => {
+            console.error(`biller trigger enqueue failed for pod ${full.id} (POD committed; the REQ-169 sweep recovers it):`, err);
+          }),
+        );
+      }
+    }
     return full;
   }
 

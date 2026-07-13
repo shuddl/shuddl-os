@@ -24,7 +24,7 @@ const DATA: EvidenceEmailData = {
   invoice_ref: "INV-40206",
   total_cents: 148_000,
   photos: {},
-  referral_url: "https://shuddl.example/ship-like-this?ref=SHP-40206",
+  referral_url: "https://shuddl.tech?ref=SHP-40206", // the owner-fixed brand base — same shape the Biller composes
 };
 
 const WITH_PHOTOS: EvidenceEmailData = {
@@ -162,7 +162,7 @@ describe("renderEvidenceEmail (REQ-087) — the sendable form", () => {
 
   it("carries the REQ-129 referral surface: a real anchor at the referral_url", () => {
     const { html } = renderEvidenceEmail(DATA);
-    expect(html).toContain('href="https://shuddl.example/ship-like-this?ref=SHP-40206"');
+    expect(html).toContain('href="https://shuddl.tech?ref=SHP-40206"');
     expect(html).toContain("Ship like this");
     expect(html).toMatch(/<a\s[^>]*href=/);
   });

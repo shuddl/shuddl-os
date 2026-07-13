@@ -18,7 +18,7 @@ const FIXTURE: EvidenceEmailData = {
   invoice_ref: "INV-40206",
   total_cents: 148_000,
   photos: {},
-  referral_url: "https://shuddl.example/ship-like-this?ref=SHP-40206",
+  referral_url: "https://shuddl.tech?ref=SHP-40206", // the owner-fixed brand base — same shape the Biller composes
 };
 
 export function EvidenceEmail(): React.JSX.Element {

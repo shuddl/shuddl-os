@@ -6,7 +6,14 @@ export type AgentsEnv = {
   TENANT_A_DB: D1Database;
   TENANT_B_DB: D1Database;
   EVIDENCE: R2Bucket;
+  /** The api worker's sequencer DO (cross-script binding) — the Biller's ONLY write path (I2 + money projection run there). */
+  SHIPMENT_SEQ: DurableObjectNamespace;
   ENVIRONMENT?: string;
+  /** REQ-092/157 — BOTH present ⇒ ResendSender; otherwise NotConfiguredSender. Secrets via `wrangler secret`, never this file's toml. */
+  RESEND_API_KEY?: string;
+  EVIDENCE_FROM?: string;
+  /** REQ-129 — the evidence email's referral link base. */
+  REFERRAL_BASE?: string;
 };
 
 const TENANT_BINDINGS: Record<string, keyof Pick<AgentsEnv, "TENANT_A_DB" | "TENANT_B_DB">> = {

@@ -216,20 +216,24 @@ const ResendCreated = z.object({ id: z.string().min(1) });
 // A proxy's full HTML 502 page must never land in queue logs verbatim — cap the raw fallback.
 const MAX_ERROR_DETAIL_CHARS = 500;
 
-// Pull Resend's own error message out of a non-2xx body ({statusCode, name, message}); fall back
-// to the raw text — TRUNCATED — so a non-JSON error page still surfaces without flooding logs.
-async function resendErrorDetail(res: Response): Promise<string> {
+// Pull Resend's error out of a non-2xx body ({statusCode, name, message}): `name` is the MACHINE
+// code the 409 routing pivots on; `detail` is the human message, falling back to the raw text —
+// TRUNCATED — so a non-JSON error page still surfaces without flooding logs.
+async function resendError(res: Response): Promise<{ name: string | undefined; detail: string }> {
   const raw = await res.text();
   try {
     const parsed: unknown = JSON.parse(raw);
     if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
-      const message = (parsed as Record<string, unknown>)["message"];
-      if (typeof message === "string" && message.length > 0) return message;
+      const body = parsed as Record<string, unknown>;
+      const name = typeof body["name"] === "string" && body["name"].length > 0 ? body["name"] : undefined;
+      const message = body["message"];
+      if (typeof message === "string" && message.length > 0) return { name, detail: message };
+      return { name, detail: raw.length > MAX_ERROR_DETAIL_CHARS ? `${raw.slice(0, MAX_ERROR_DETAIL_CHARS)} … [truncated]` : raw };
     }
   } catch {
     // not JSON — the truncated raw text below is the best detail available
   }
-  return raw.length > MAX_ERROR_DETAIL_CHARS ? `${raw.slice(0, MAX_ERROR_DETAIL_CHARS)} … [truncated]` : raw;
+  return { name: undefined, detail: raw.length > MAX_ERROR_DETAIL_CHARS ? `${raw.slice(0, MAX_ERROR_DETAIL_CHARS)} … [truncated]` : raw };
 }
 
 /**
@@ -238,9 +242,13 @@ async function resendErrorDetail(res: Response): Promise<string> {
  * config flip (key + verified domain + DKIM + warmup, REQ-092/157), not a code task.
  *
  * The `Idempotency-Key` header is Resend's native retry-dedupe: same key + same payload returns
- * the original response, so Queue redelivery can never double-send. Suppression (bounces,
- * complaints) is handled by Resend server-side — no local suppression list (REQ-157 monitoring
- * rides the webhooks into Watchtower, not this port).
+ * the original response, so Queue redelivery can never double-send. The CONCURRENT case matters
+ * too: at-least-once delivery can race two consumers on one message (both appends dedupe cleanly
+ * in the DO, then both send the same key at once) — Resend answers the loser 409
+ * `concurrent_idempotent_requests`, documented safe-to-retry, so that name maps to
+ * retriable:true; only `invalid_idempotent_request` (same key, different payload — a Biller bug)
+ * holds. Suppression (bounces, complaints) is handled by Resend server-side — no local
+ * suppression list (REQ-157 monitoring rides the webhooks into Watchtower, not this port).
  */
 export class ResendSender implements EvidenceSender {
   private readonly config: ResendConfig;
@@ -314,11 +322,28 @@ export class ResendSender implements EvidenceSender {
     }
 
     if (res.status === 409) {
-      // Idempotency CONFLICT: same key, DIFFERENT payload. Redelivery replays the same mismatch —
-      // this is a Biller bug (one invoice event id composed two different emails), never a retry.
+      // TWO distinct 409s ride the body's `name` (Resend's machine code — never regex the message):
+      //   · concurrent_idempotent_requests — the SAME key is still IN FLIGHT. Resend documents this
+      //     as safe to retry, and it is exactly what at-least-once delivery produces when two
+      //     consumers race one message after the DO cleanly deduped both appends: the loser lands
+      //     here while the winner's send completes. RETRIABLE — redelivery re-reads the ORIGINAL
+      //     response via the same key; no double-send is possible.
+      //   · invalid_idempotent_request (and any unrecognized 409) — same key, DIFFERENT payload.
+      //     Redelivery replays the same mismatch — a Biller bug (one invoice event id composed two
+      //     different emails), never a retry. Fail-closed: only the documented concurrent code retries.
+      const conflict = await resendError(res);
+      if (conflict.name === "concurrent_idempotent_requests") {
+        throw new SendError(
+          `ResendSender: concurrent idempotent requests (409) — key "${parsed.idempotency_key}" is still being ` +
+            `processed by an earlier send; retriable — redelivery returns the original response: ${conflict.detail}`,
+          true,
+          res.status,
+        );
+      }
       throw new SendError(
-        `ResendSender: idempotency CONFLICT (409) — key "${parsed.idempotency_key}" was already used with a ` +
-          `different payload: ${await resendErrorDetail(res)}. Not retriable; hold for a human.`,
+        `ResendSender: idempotency CONFLICT (409${conflict.name !== undefined ? `, ${conflict.name}` : ""}) — key ` +
+          `"${parsed.idempotency_key}" was already used with a different payload: ${conflict.detail}. ` +
+          `Not retriable; hold for a human.`,
         false,
         res.status,
       );
@@ -327,7 +352,7 @@ export class ResendSender implements EvidenceSender {
     if (res.status === 429 || res.status >= 500) {
       throw new SendError(
         `ResendSender: Resend answered ${res.status} — retriable; the queue consumer's redelivery is the retry ` +
-          `(Idempotency-Key "${parsed.idempotency_key}" prevents a double-send): ${await resendErrorDetail(res)}`,
+          `(Idempotency-Key "${parsed.idempotency_key}" prevents a double-send): ${(await resendError(res)).detail}`,
         true,
         res.status,
       );
@@ -339,7 +364,7 @@ export class ResendSender implements EvidenceSender {
         ? " (hint: the `from` address must belong to a VERIFIED sending domain — Resend 403s on mismatch, REQ-092)"
         : "";
     throw new SendError(
-      `ResendSender: Resend rejected the send (${res.status}): ${await resendErrorDetail(res)}${hint}. ` +
+      `ResendSender: Resend rejected the send (${res.status}): ${(await resendError(res)).detail}${hint}. ` +
         `Not retriable; the invoice is unaffected.`,
       false,
       res.status,

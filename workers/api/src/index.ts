@@ -16,6 +16,7 @@ export type Env = {
   TENANT_B_DB: D1Database;
   CONTROL_DB: D1Database;
   SHIPMENT_SEQ: DurableObjectNamespace<import("./do/sequencer.js").ShipmentSequencer>;
+  AGENT_QUEUE: Queue; // WP-06 (REQ-031/039): committed pod.signed → Biller trigger (consumer: agents worker)
   IDEMPOTENCY: KVNamespace;
   EVIDENCE: R2Bucket; // anchor receipts (.tsr) + manifests (REQ-014)
   JWT_SECRET: string;

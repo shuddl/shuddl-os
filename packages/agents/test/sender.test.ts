@@ -27,7 +27,7 @@ const EMAIL: EvidenceMessage = {
   to: "receiving@consignee.example",
   channel: "email",
   subject: "DELIVERED · SHP-40206 · PROOF + INVOICE",
-  html: '<div style="color:#141414">Delivered · proof + invoice</div>',
+  html: '<div style="color:#1A1A1A">Delivered · proof + invoice</div>', // ink token — REQ-145: only the five hexes exist
   text: "Delivered. Proof and invoice enclosed.",
   shipment_id: "shp-40206",
   idempotency_key: "evidence-email/evt-invoice-1",
@@ -312,6 +312,38 @@ describe("ResendSender — the live adapter, exercised only against a stub", () 
     expect(err.retriable).toBe(false);
     expect(err.status).toBe(409);
     expect(err.message).toMatch(/conflict/i);
+    expect(err.message).toContain("evidence-email/evt-invoice-1");
+  });
+
+  it("409 concurrent_idempotent_requests → RETRIABLE (same key still in flight — the at-least-once race, documented safe-to-retry)", async () => {
+    // Two consumers race one message: both appends dedupe cleanly in the DO, both send the same key;
+    // Resend answers the loser with this name. Redelivery re-reads the winner's original response.
+    const { sender } = mkResend(409, {
+      statusCode: 409,
+      name: "concurrent_idempotent_requests",
+      message: "Same idempotency key used while original request is still processing",
+    });
+    const err = await captureRejection(sender.send(EMAIL));
+    expect(err).toBeInstanceOf(SendError);
+    if (!(err instanceof SendError)) throw new Error("expected SendError");
+    expect(err.retriable).toBe(true);
+    expect(err.status).toBe(409);
+    expect(err.message).toContain("evidence-email/evt-invoice-1");
+    expect(err.message).toMatch(/still being processed/i);
+  });
+
+  it("409 invalid_idempotent_request → NON-retriable (same key, DIFFERENT payload — a Biller bug, never a retry)", async () => {
+    const { sender } = mkResend(409, {
+      statusCode: 409,
+      name: "invalid_idempotent_request",
+      message: "Same idempotency key used with a different request payload",
+    });
+    const err = await captureRejection(sender.send(EMAIL));
+    expect(err).toBeInstanceOf(SendError);
+    if (!(err instanceof SendError)) throw new Error("expected SendError");
+    expect(err.retriable).toBe(false);
+    expect(err.status).toBe(409);
+    expect(err.message).toContain("invalid_idempotent_request");
     expect(err.message).toContain("evidence-email/evt-invoice-1");
   });
 

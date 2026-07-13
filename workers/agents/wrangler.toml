@@ -5,6 +5,8 @@ compatibility_date = "2025-08-01"
 
 [vars]
 ENVIRONMENT = "dev"
+# REQ-129 — the evidence email's referral surface ("Ship like this") points here (owner-fixed base).
+REFERRAL_BASE = "https://shuddl.tech"
 
 # REQ-014: daily Merkle -> TSA anchor at 01:00 UTC — a grace window past midnight so the just-closed
 # day can no longer grow (late/airplane-mode uploads carry TODAY's recorded_at, not yesterday's).
@@ -27,4 +29,20 @@ database_id = "local-agents-tenant-b"
 binding = "EVIDENCE"
 bucket_name = "shuddl-evidence-dev"
 
-# Queue consumers (one module per agent) bind here at WP-06+ (REQ-039).
+# WP-06 (REQ-031/039): the Biller consumer. The api worker's sequencer DO produces a pod.signed
+# trigger per committed POD; this worker consumes it (queue() in src/index.ts → src/biller.ts).
+# After max_retries the message lands in the DLQ — NEVER deleted: a deterministic bug must leave a
+# recoverable record (no invoice AND no trace would be the worst failure). Messages ACCUMULATE there
+# until WP-11 Watchtower consumes the DLQ + surfaces the exceptions queue (REQ-036/169).
+[[queues.consumers]]
+queue = "shuddl-agent-triggers-dev"
+max_batch_size = 10
+max_retries = 5
+dead_letter_queue = "shuddl-agent-dlq-dev"
+
+# The Biller appends invoice.issued THROUGH the api worker's sequencer DO (cross-script binding) so
+# the I2 gate + the money projection run atomically there — this worker never writes events itself.
+[[durable_objects.bindings]]
+name = "SHIPMENT_SEQ"
+class_name = "ShipmentSequencer"
+script_name = "shuddl-api-dev"
