@@ -404,6 +404,14 @@ async function sendEvidence(cx: SendContext): Promise<BillerOutcome> {
     photos: {}, // close-out note: the R2-signed-URL resolver for signature/placed photos is not wired yet
     referral_url: `${referralBase}?ref=${encodeURIComponent(shipmentRef)}`,
   };
+  // REQ-170 RESIDUAL (WP-06 follow-up — pairs with REQ-168's pre-upload residual, see
+  // packages/ledger/src/gates/transition-gates.ts): this send does NOT yet verify that the POD's recorded
+  // evidence hashes (signature/placed-photo) have MATCHING STORED BYTES (a documents row / R2 object). A
+  // POD gated through with a fabricated hash and no upload would still send the evidence email, whose
+  // template frames itself as the record/proof — asserting proof over zero stored bytes. The missing-
+  // evidence gate (surface as MISSING, or hold the send) lands WITH the deferred photo-URL resolver: the
+  // same resolver that fetches the bytes for `photos` is what can confirm they exist. Until then the
+  // invoice still stands (REQ-031) — the gap is the EMAIL's proof claim, not the ledger.
   const rendered = renderEvidenceEmail(emailData);
 
   const recipient = await resolveRecipient(db, shipment.bill_to_party_id);

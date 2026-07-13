@@ -70,6 +70,13 @@ export default {
     void ctx;
     await runAllTenants(env, () => new Date(controller.scheduledTime));
   },
+  // REQ-159 (GTM — milestone gate, NOT a code deliverable): this consumer is the M-H substrate. The
+  // "heartbeat on real freight" that M-H exits on IS this path firing — pod.signed → invoice.issued →
+  // evidence send — on a live tenant-0 shipment. The MECHANISM ships in this WP; the GTM unlock it
+  // gates (R1 external selling) is a MILESTONE decision the owner makes at M-H exit per genesis/12 §01,
+  // never something code turns on. External selling never precedes this heartbeat on real freight; there
+  // is deliberately no in-repo flag that flips it — the gate is the milestone, evidenced by the M-H demo.
+  //
   // REQ-039 / WP-06: the Biller consumer. Per-message ack/retry — one poison message never stalls the
   // batch. POISON (unparseable body, unknown tenant) is ACKed with a loud log: redelivery cannot fix
   // it, and retrying it forever would only delay real work (the DLQ + exceptions surface land WP-11).

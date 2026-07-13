@@ -166,6 +166,13 @@ export function mountEvidenceRoutes(app: Hono<{ Bindings: Env; Variables: Vars }
     // verified hash), and INSERT OR IGNORE heals the missing row. meta.changes distinguishes the true
     // first store (201) from the concurrent-duplicate loser whose row already landed (200).
     await c.env.EVIDENCE.put(key, bytes);
+    // REQ-140 (LEGAL — CONFIRM-2, retention policy + consignee notice): the ENFORCEMENT MECHANISM lands
+    // here. Every evidence object carries a `lifecycle_class` (retention bucket) and a `visibility` on
+    // its documents row, so a published retention schedule + a consignee-notice/PII policy has a concrete
+    // knob to attach to (a class-driven R2 lifecycle sweep + a visibility gate) — the bytes and the row
+    // are never orphaned from a policy field. "default" is the placeholder class until the POLICY TEXT
+    // itself (what is kept, how long, the consignee notice wording) is authored: that is a counsel /
+    // CONFIRM-2 deliverable (genesis/08 GA-11), CONFIRM-GATED and not a code artifact of this WP.
     const inserted = await db
       .prepare("INSERT OR IGNORE INTO documents (id, shipment_id, party_id, kind, r2_key, hash, lifecycle_class, visibility) VALUES (?,?,?,?,?,?,?,?)")
       .bind(documentId, shipment_id, null, documentKindFor(recording.kind), key, photo_hash, "default", "internal")
