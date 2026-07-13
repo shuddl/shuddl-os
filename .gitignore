@@ -22,3 +22,7 @@ test-results/
 playwright-report/
 tests/visual/blessed/*-diff.png
 tests/visual/blessed/*-actual.png
+
+# macOS/iCloud name-collision duplicates (see WP-06 session note) — never commit these
+* 2.*
+*\ 2.*
