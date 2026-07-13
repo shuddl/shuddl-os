@@ -9,3 +9,12 @@ export type { BillableLineKind } from "./biller/gl-map.js";
 export { EvidenceEmailView, formatCents } from "./biller/evidence-email-view.js";
 export type { EvidenceEmailData } from "./biller/evidence-email-view.js";
 export { renderEvidenceEmail } from "./biller/evidence-email.js";
+export {
+  EvidenceMessageSchema,
+  SendError,
+  RecordingSender,
+  NotConfiguredSender,
+  ResendSender,
+  wrapFragment,
+} from "./biller/sender.js";
+export type { EvidenceMessage, SendReceipt, EvidenceSender, ResendConfig } from "./biller/sender.js";
