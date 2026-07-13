@@ -80,10 +80,11 @@ export const QuotePricedPayload = z
           .object({
             kind: z.enum(["freight", "fsc", "accessorial"]),
             code: z.string().min(1),
-            // NON-NEGATIVE (I7, mirrors money.ts InvoiceLine): a line is a positive charge, and each quote
-            // line is projected verbatim into an invoice line (amount_cents >= 0). A negative line that still
-            // summed to sell would be un-projectable, so it fails HERE at the record.
-            amount_cents: Cents.refine((c) => c >= 0, "quote line amount_cents must be non-negative (I7: a line is a positive charge)"),
+            // POSITIVE (>= 1; I7, mirrors money.ts InvoiceLine): a line is a positive charge, and each quote
+            // line is projected verbatim into an invoice line. A negative line that still summed to sell would
+            // be un-projectable; a ZERO line poisons the money projection at money_lines CHECK(amount_cents
+            // != 0) — so both fail HERE at the record (a credit is its own kind, never a zero/negative line).
+            amount_cents: Cents.refine((c) => c >= 1, "quote line amount_cents must be a positive charge; a credit is its own kind, never a zero/negative line (I7)"),
           })
           .strict(),
       )

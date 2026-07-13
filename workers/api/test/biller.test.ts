@@ -216,6 +216,40 @@ beforeAll(async () => {
       .bind(`leg-biller-interline-${seq}`, "biller-interline", seq, kind, executor, split, kind === "delivery" ? JSON.stringify({ lat_e6: 37_421_000, lon_e6: -122_084_000 }) : "{}")
       .run();
   }
+
+  // INTERLINE BY DATA, NOT LABEL (REQ-040 fail-closed): the partner leg is recorded under kind
+  // 'linehaul' — NOT 'interline' — yet still carries a real split_bps (9000 bps). The tenant executes
+  // only the 10% delivery leg. Before the fix, resolveInterline classified this DIRECT (no leg wore the
+  // 'interline' label) and billed at FULL GROSS, skipping the executing-share floor check entirely.
+  await seedShipment("biller-interline-mislabel");
+  for (const [seq, kind, executor, split] of [
+    [0, "delivery", "party-carrier", 1_000],
+    [1, "linehaul", "party-interline", 9_000],
+  ] as const) {
+    await env.TENANT_A_DB.prepare(
+      "INSERT OR IGNORE INTO legs (id, shipment_id, seq, kind, executor_party_id, split_bps, geo) VALUES (?,?,?,?,?,?,?)",
+    )
+      .bind(`leg-biller-interline-mislabel-${seq}`, "biller-interline-mislabel", seq, kind, executor, split, kind === "delivery" ? JSON.stringify({ lat_e6: 37_421_000, lon_e6: -122_084_000 }) : "{}")
+      .run();
+  }
+
+  // INTERLINE ABOVE-FLOOR (the ISSUE path of resolveInterline): the tenant (the POD signer, party-carrier)
+  // executes the MAJORITY 9000-bps delivery leg, the partner the 1000-bps linehaul. The 90% executing
+  // share clears the target floor (floors are cost-basis × bps → target = 0.98·freight; share = 0.90·sell
+  // = 1.116·freight ≥ target), so the interline shipment ISSUES at full gross. Pins the issue-path so an
+  // over-correction of resolveInterline into always-hold cannot slip past the suite (both other interline
+  // integration cases put the tenant on the 10% leg and HOLD).
+  await seedShipment("biller-interline-majority");
+  for (const [seq, kind, executor, split] of [
+    [0, "delivery", "party-carrier", 9_000],
+    [1, "linehaul", "party-interline", 1_000],
+  ] as const) {
+    await env.TENANT_A_DB.prepare(
+      "INSERT OR IGNORE INTO legs (id, shipment_id, seq, kind, executor_party_id, split_bps, geo) VALUES (?,?,?,?,?,?,?)",
+    )
+      .bind(`leg-biller-interline-majority-${seq}`, "biller-interline-majority", seq, kind, executor, split, kind === "delivery" ? JSON.stringify({ lat_e6: 37_421_000, lon_e6: -122_084_000 }) : "{}")
+      .run();
+  }
 });
 
 describe("Biller consumer — POD fires invoice.issued + evidence send (REQ-031/040/003)", () => {
@@ -443,6 +477,51 @@ describe("Biller consumer — POD fires invoice.issued + evidence send (REQ-031/
     expect(await invoiceEvents(shp)).toHaveLength(0);
     expect(await moneyLines(shp)).toHaveLength(0);
     expect(sender.messages).toHaveLength(0);
+  });
+
+  it("INTERLINE BY DATA, NOT LABEL: a partner leg under kind='linehaul' carrying a real split_bps still judges the EXECUTING SHARE → held(below_floor), never billed at gross (REQ-040 fail-closed)", async () => {
+    const shp = "biller-interline-mislabel";
+    await priceQuote(shp); // gross clears the floors; the tenant's 10% executing share cannot
+    const podId = await driveToPod(shp);
+
+    const sender = new RecordingSender();
+    const outcome = await handlePodSigned(msgFor(shp, podId), depsWith(sender));
+    // Before the fix this returned issued_sent at full gross — the partner leg wore a non-'interline'
+    // kind, so classification-by-LABEL skipped the executing-share floor check (REQ-040 fail-OPEN).
+    expect(outcome.status).toBe("held");
+    if (outcome.status !== "held") throw new Error("unreachable");
+    expect(outcome.reason).toBe("below_floor");
+    expect(outcome.detail).toContain("executing share"); // the share was judged, not the gross
+
+    expect(await invoiceEvents(shp)).toHaveLength(0);
+    expect(await moneyLines(shp)).toHaveLength(0);
+    expect(sender.messages).toHaveLength(0);
+  });
+
+  it("INTERLINE ABOVE-FLOOR ISSUES: the tenant executes the MAJORITY leg (9000 bps) → the executing share CLEARS the floor → issued_sent at FULL GROSS + one email (REQ-040 issue-path)", async () => {
+    const shp = "biller-interline-majority";
+    const sell = await priceQuote(shp); // the tenant's 90% executing share ≥ the target floor
+    const podId = await driveToPod(shp);
+
+    const sender = new RecordingSender();
+    const outcome = await handlePodSigned(msgFor(shp, podId), depsWith(sender));
+    // NOT held: an interline share that clears the floor issues via the consumer. Guards resolveInterline's
+    // ISSUE branch against an over-correction into always-hold (the other two interline cases HOLD at 10%).
+    expect(outcome.status).toBe("issued_sent");
+    if (outcome.status !== "issued_sent") throw new Error("unreachable");
+
+    // The invoice bills the CUSTOMER the FULL recorded gross — the executing share judged only the floor,
+    // never the amount billed (REQ-040: compare the share, but still invoice the whole move's sell).
+    const invoices = await invoiceEvents(shp);
+    expect(invoices).toHaveLength(1);
+    const payload = invoices[0]!.payload as { lines: { amount_cents: number }[] };
+    expect(payload.lines.reduce((s, l) => s + l.amount_cents, 0)).toBe(sell);
+
+    // Money projected in the same batch, and exactly ONE evidence email carrying the full-gross total.
+    const lines = await moneyLines(shp);
+    expect(lines.reduce((s, l) => s + l.amount_cents, 0)).toBe(sell);
+    expect(sender.messages).toHaveLength(1);
+    expect(sender.messages[0]!.html).toContain(formatCents(sell));
   });
 
   it("REDELIVERY FAST PATH: once the invoice is committed, later context drift can NEVER flip redelivery to a hold — the email still goes out", async () => {

@@ -67,12 +67,22 @@ describe("REQ-003/031: quote.priced carries the penny-parity itemized lines", ()
 
   it("rejects a NEGATIVE line even when the breakdown still totals sell (I7: a line is a positive charge)", () => {
     // 130_000 + (−10_000) = 120_000 = sell — the sum is honest but a negative line is un-projectable to a
-    // valid invoice line (money.ts InvoiceLine enforces amount_cents >= 0), so it must fail at the record.
+    // valid invoice line (money.ts InvoiceLine enforces amount_cents >= 1), so it must fail at the record.
     const bad = { ...payload, lines: [
       { kind: "freight", code: "freight", amount_cents: payload.sell + 10_000 },
       { kind: "accessorial", code: "discount", amount_cents: -10_000 },
     ] };
     expect(() => QuotePricedPayload.parse(bad)).toThrow();
+  });
+
+  it("rejects a ZERO line even when the breakdown still totals sell (WP-06: a line is a POSITIVE charge)", () => {
+    // sell + 0 = sell — the sum is honest, but a zero line is un-projectable (money.ts InvoiceLine is >= 1)
+    // and would poison the money projection at the D1 CHECK(amount_cents != 0). It must fail at the record.
+    const withZero = { ...payload, lines: [
+      { kind: "freight", code: "freight", amount_cents: payload.sell },
+      { kind: "accessorial", code: "waived", amount_cents: 0 },
+    ] };
+    expect(() => QuotePricedPayload.parse(withZero)).toThrow();
   });
 
   it("round-trips through LedgerEvent.parse with lines intact and totalling sell", () => {

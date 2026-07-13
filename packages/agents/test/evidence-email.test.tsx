@@ -197,8 +197,24 @@ describe("email-safety of the sendable form (C1 — mail clients strip var()/fle
     expect(sendable).not.toContain("<link");
   });
 
-  it("inlineTokens THROWS on an unrecognized token — never send a half-resolved email", () => {
-    expect(() => inlineTokens("color:var(--nope)")).toThrow(/--nope/);
+  it("inlineTokens THROWS on an unrecognized token in a STYLE value — never send a half-resolved email", () => {
+    expect(() => inlineTokens('<div style="color:var(--nope)"></div>')).toThrow(/--nope/);
+  });
+
+  // WP-06 exit audit (REQ-087): inlineTokens substitutes ONLY inside style="…" attribute values, never
+  // across the whole document. A var(--…) in body/subject DATA text must be INERT — otherwise a data
+  // field of "var(--field)" gets recolored, and "var(--nope)" throws the fail-loud path (an email DoS
+  // on attacker-controlled text). React HTML-escapes attribute values, so data text can never appear in
+  // a style value; scoping there keeps the fail-loud contract for REAL style tokens while making data inert.
+  it("inlineTokens leaves a var(--…) in NON-style content untouched — DATA can't trigger substitution or the throw", () => {
+    expect(inlineTokens("<td>var(--field) var(--nope)</td>")).toBe("<td>var(--field) var(--nope)</td>");
+  });
+
+  it("renderEvidenceEmail: a body field carrying var(--…) renders successfully, literal + untouched (not recolored, not throwing)", () => {
+    const hostile: EvidenceEmailData = { ...DATA, signed_by: "var(--field) var(--nope)" };
+    const { html } = renderEvidenceEmail(hostile); // must NOT throw on the attacker's --nope
+    expect(html).toContain("var(--field) var(--nope)"); // the literal survives in the body, uninlined
+    expect(html).not.toMatch(/style="[^"]*var\(/); // ...yet every REAL style token IS still inlined
   });
 });
 

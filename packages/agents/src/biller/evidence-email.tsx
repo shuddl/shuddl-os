@@ -17,22 +17,31 @@ import type { EvidenceEmailData } from "./evidence-email-view.js";
 const LITERALS: Readonly<Record<string, string>> = CSS_VAR_LITERALS;
 
 /**
- * Substitute every `var(--token)` with its literal from the design token source.
- * Exported for tests: the fail-loud path (unknown token → throw) is part of the contract.
+ * Substitute every `var(--token)` with its literal from the design token source — but ONLY inside
+ * `style="…"` attribute values, never across the whole document. The shared view emits every design
+ * token inside inline styles, and mail clients strip CSS custom properties, so those are what we inline.
+ * Running the substitution over the ENTIRE html would let body/subject DATA text (e.g. a shipment_ref of
+ * "var(--field)") get recolored — or throw the fail-loud "unknown token" path on attacker-controlled text
+ * (an email DoS). React HTML-escapes attribute values, so DATA can never appear inside a style value;
+ * scoping here keeps DATA inert while preserving the fail-loud contract for REAL style tokens.
+ * Exported for tests: the fail-loud path (unknown STYLE token → throw) is part of the contract.
  */
 export function inlineTokens(html: string): string {
-  const out = html.replace(/var\(\s*(--[\w-]+)\s*\)/g, (_whole, name: string) => {
-    const literal = LITERALS[name];
-    if (literal === undefined) {
-      throw new Error(`evidence-email: unknown design token ${name} — refusing to emit a half-resolved email`);
+  return html.replace(/style="([^"]*)"/g, (_whole, styleValue: string) => {
+    const inlined = styleValue.replace(/var\(\s*(--[\w-]+)\s*\)/g, (_m, name: string) => {
+      const literal = LITERALS[name];
+      if (literal === undefined) {
+        throw new Error(`evidence-email: unknown design token ${name} — refusing to emit a half-resolved email`);
+      }
+      return literal;
+    });
+    // A var() surviving inside a style value is a REAL unresolved style token (not data) — fail loud.
+    const leftover = inlined.indexOf("var(");
+    if (leftover !== -1) {
+      throw new Error(`evidence-email: unresolved var() remains in a style value at index ${leftover} — refusing to emit a half-resolved email`);
     }
-    return literal;
+    return `style="${inlined}"`;
   });
-  const leftover = out.indexOf("var(");
-  if (leftover !== -1) {
-    throw new Error(`evidence-email: unresolved var() remains at index ${leftover} — refusing to emit a half-resolved email`);
-  }
-  return out;
 }
 
 // React 19 hoists `<link rel="preload" as="image">` hints to the FRONT of static markup. An

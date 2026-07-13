@@ -189,28 +189,39 @@ const LEG_KINDS: ReadonlySet<string> = new Set(["pickup", "linehaul", "interline
 type LegRow = { kind: string; executor_party_id: string; split_bps: number | null };
 type InterlineResolution = { kind: "direct" } | { kind: "interline"; legs: Leg[]; tenantParty: string } | { kind: "unresolved"; detail: string };
 
-// legs.kind='interline' marks the PARTNER-executed leg (doc 10 §03; mirrors the sequencer's
-// #isInterline), so the tenant's executing party is the ONE executor of the non-interline legs. Any
-// ambiguity — a missing split_bps, splits not totalling 10000, no/conflicting tenant executor — is
-// UNRESOLVED, which HOLDS (an interline move whose executing share cannot be judged must never
-// auto-invoice; issuing "as direct" would skip the REQ-040 floor check entirely).
-function resolveInterline(rows: readonly LegRow[]): InterlineResolution {
-  if (!rows.some((r) => r.kind === "interline")) return { kind: "direct" };
+// Classification is by the DATA, never the LABEL (REQ-040 fail-CLOSED). A partner with a revenue stake
+// shows up as a real `split_bps` on some leg OR a second distinct executor party — regardless of whether
+// any leg happens to wear the 'interline' KIND. Keying "direct" off the absence of a kind='interline'
+// leg is fail-OPEN: a partner leg recorded under 'linehaul'/'cartage'/'dray' but carrying a 9000-bps
+// split would bill at full gross with the executing-share floor check skipped entirely (the $222K-class
+// fail-open). So:
+//   · DIRECT is the ONLY leg shape with NO revenue split anywhere AND a single executor party.
+//   · Anything else is interline-shaped and MUST have its executing share judged (never gross): every
+//     leg needs a clean integer split summing to 10000, and the tenant's OWN executing party — the POD
+//     signer's party (`pod.actor.party`, device co-signed, I4 — the authoritative "who is the tenant
+//     here"; equivalently the executor_party_id≠partner comparison the sequencer's #isInterline notes) —
+//     must actually execute a recorded leg. Any ambiguity is UNRESOLVED, which HOLDS: an interline move
+//     whose executing share cannot be judged must never auto-invoice ("as direct" would skip REQ-040).
+function resolveInterline(rows: readonly LegRow[], tenantParty: string): InterlineResolution {
+  const hasSplit = rows.some((r) => r.split_bps !== null);
+  const executors = [...new Set(rows.map((r) => r.executor_party_id))];
+  if (!hasSplit && executors.length <= 1) return { kind: "direct" };
+
+  // Interline-shaped (a split and/or a second executor): the share MUST be judged, never the gross.
   if (rows.some((r) => r.split_bps === null || !Number.isInteger(r.split_bps) || !LEG_KINDS.has(r.kind))) {
-    return { kind: "unresolved", detail: "interline legs present but split_bps/kind incomplete — cannot compute the executing share" };
+    return { kind: "unresolved", detail: "a revenue split or a partner executor is present but split_bps/kind is incomplete — cannot compute the executing share" };
   }
   const total = rows.reduce((s, r) => s + (r.split_bps as number), 0);
   if (total !== 10_000) {
-    return { kind: "unresolved", detail: `interline leg split_bps total ${total}, expected 10000 — cannot compute the executing share` };
+    return { kind: "unresolved", detail: `leg split_bps total ${total}, expected 10000 — cannot compute the executing share` };
   }
-  const tenantExecutors = [...new Set(rows.filter((r) => r.kind !== "interline").map((r) => r.executor_party_id))];
-  if (tenantExecutors.length !== 1 || tenantExecutors[0] === undefined || tenantExecutors[0] === "") {
-    return { kind: "unresolved", detail: "cannot identify the tenant's executing party from the non-interline legs" };
+  if (tenantParty === "" || !executors.includes(tenantParty)) {
+    return { kind: "unresolved", detail: `the tenant's executing party (the POD signer ${JSON.stringify(tenantParty)}) executes none of the recorded legs — cannot compute the executing share` };
   }
   return {
     kind: "interline",
     legs: rows.map((r) => ({ kind: r.kind as Leg["kind"], executor: r.executor_party_id, split_bps: r.split_bps as number })),
-    tenantParty: tenantExecutors[0],
+    tenantParty,
   };
 }
 
@@ -296,7 +307,7 @@ export async function handlePodSigned(message: PodSignedMessage, deps: BillerDep
     .prepare("SELECT kind, executor_party_id, split_bps FROM legs WHERE shipment_id = ? ORDER BY seq")
     .bind(msg.shipment_id)
     .all<LegRow>();
-  const interline = resolveInterline(legRows.results);
+  const interline = resolveInterline(legRows.results, pod.actor.party);
   if (interline.kind === "unresolved") {
     return { status: "held", reason: "interline_unresolved", detail: `shipment ${msg.shipment_id}: ${interline.detail} (REQ-040 fail-closed)` };
   }
