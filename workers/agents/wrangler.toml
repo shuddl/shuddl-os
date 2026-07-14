@@ -59,3 +59,45 @@ dead_letter_queue = "shuddl-agent-dlq-dev"
 name = "SHIPMENT_SEQ"
 class_name = "ShipmentSequencer"
 script_name = "shuddl-api-dev"
+
+# ── STAGING (synthetic only, REQ-154). Real resources created 2026-07-14; the default above keeps its
+#    local-* ids for tests + `wrangler dev`. RESEND_API_KEY / EVIDENCE_FROM / ALLOW_TEST_SEND are
+#    DELIBERATELY ABSENT here — the Biller uses NotConfiguredSender, so NO evidence email is ever sent
+#    from this deployment (real send stays gated) and the /_dev probe stays inert.
+[env.staging]
+name = "shuddl-agents-staging"
+workers_dev = false
+
+[env.staging.vars]
+ENVIRONMENT = "staging"
+REFERRAL_BASE = "https://shuddl.tech"
+
+[env.staging.triggers]
+crons = ["0 1 * * *"]
+
+# Same physical tenant DBs as the api worker (ids MUST match workers/api [env.staging]).
+[[env.staging.d1_databases]]
+binding = "TENANT_A_DB"
+database_name = "shuddl-t-tenant-a-staging"
+database_id = "1742fef3-f7bf-4d1a-9aaa-bf9366994528"
+
+[[env.staging.d1_databases]]
+binding = "TENANT_B_DB"
+database_name = "shuddl-t-tenant-b-staging"
+database_id = "aa3b23a8-567d-4479-8311-e9f1678a6797"
+
+[[env.staging.r2_buckets]]
+binding = "EVIDENCE"
+bucket_name = "shuddl-evidence-staging"
+
+[[env.staging.queues.consumers]]
+queue = "shuddl-agent-triggers-staging"
+max_batch_size = 10
+max_retries = 5
+dead_letter_queue = "shuddl-agent-dlq-staging"
+
+# Cross-script DO → the STAGING api worker (must be deployed first).
+[[env.staging.durable_objects.bindings]]
+name = "SHIPMENT_SEQ"
+class_name = "ShipmentSequencer"
+script_name = "shuddl-api-staging"

@@ -48,9 +48,48 @@ new_sqlite_classes = ["ShipmentSequencer"]
 binding = "AGENT_QUEUE"
 queue = "shuddl-agent-triggers-dev"
 
+# staging = synthetic tenants only, no real PII, ever (REQ-154). Real resources (created 2026-07-14);
+# the default (top-level) config keeps its local-* ids for tests + `wrangler dev` and is untouched.
 [env.staging]
 name = "shuddl-api-staging"
-# staging = synthetic tenants only, no real PII, ever (REQ-154)
+
+[env.staging.vars]
+ENVIRONMENT = "staging"
+
+[[env.staging.d1_databases]]
+binding = "TENANT_A_DB"
+database_name = "shuddl-t-tenant-a-staging"
+database_id = "1742fef3-f7bf-4d1a-9aaa-bf9366994528"
+
+[[env.staging.d1_databases]]
+binding = "TENANT_B_DB"
+database_name = "shuddl-t-tenant-b-staging"
+database_id = "aa3b23a8-567d-4479-8311-e9f1678a6797"
+
+[[env.staging.d1_databases]]
+binding = "CONTROL_DB"
+database_name = "shuddl-control-staging"
+database_id = "8e238970-2ed3-494d-960f-e4af082c1e8e"
+
+[[env.staging.kv_namespaces]]
+binding = "IDEMPOTENCY"
+id = "119880a9442c4b8cae8383183a2877e1"
+
+[[env.staging.r2_buckets]]
+binding = "EVIDENCE"
+bucket_name = "shuddl-evidence-staging"
+
+[[env.staging.durable_objects.bindings]]
+name = "SHIPMENT_SEQ"
+class_name = "ShipmentSequencer"
+
+[[env.staging.migrations]]
+tag = "v2-sequencer"
+new_sqlite_classes = ["ShipmentSequencer"]
+
+[[env.staging.queues.producers]]
+binding = "AGENT_QUEUE"
+queue = "shuddl-agent-triggers-staging"
 
 [env.prod]
 name = "shuddl-api-prod"
