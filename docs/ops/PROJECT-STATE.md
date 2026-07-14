@@ -1,10 +1,10 @@
 # Project state & resume guide
 
-**As of 2026-07-13.** This is the "where are we / how do I pick back up" note. It is a pointer, not a spec — the authorities are `CLAUDE.md`, `genesis/`, `docs/wp/*`, and `genesis/09-REQUIREMENTS-REGISTER.csv`.
+**As of 2026-07-14.** This is the "where are we / how do I pick back up" note. It is a pointer, not a spec — the authorities are `CLAUDE.md`, `genesis/`, `docs/wp/*`, and `genesis/09-REQUIREMENTS-REGISTER.csv`.
 
 ## Safety posture (read first)
 
-Nothing in this repo is deployed, armed, or sending anything. There is no live production, no committed API key, no real customer/tenant data, and no outbound email/SMS/money flow is enabled. Every feature that *could* touch the outside world (email send, billing) ships **CONFIRM-gated** — inert by default, activated only by an operator setting secrets. So "parking" any of that work is not an action and carries no risk; inert is the default state. The whole product is a rigorously-tested codebase (`pnpm verify` = 1,100+ tests, all the invariant/design/traceability gates), advanced one work-package at a time on branches that merge only when green.
+There is no live production and no outbound email/SMS/money flow is enabled. A **staging** environment is now deployed to Cloudflare (`shuddl-{api,agents}-staging`) — but it carries **synthetic data only** and has **no `RESEND_API_KEY`**, so the Biller uses `NotConfiguredSender` and **zero emails leave staging** (proven: the deploy smoke ran the full POD→invoice chain and Resend shows no send). No committed API key, no real customer/tenant data in the repo. Every feature that *could* touch the outside world (email send, billing) ships **CONFIRM-gated** — inert by default, activated only by an operator setting secrets. `prod` is not stood up (gates on F1-B/C + M-H). The whole product is a rigorously-tested codebase (`pnpm verify` = 1,131 tests, all the invariant/design/traceability gates), advanced one work-package at a time on branches that merge only when green. **Staging runbook + teardown: `docs/ops/DEPLOYMENT.md`.**
 
 ## Done (merged to `main`)
 
