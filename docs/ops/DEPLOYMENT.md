@@ -24,7 +24,7 @@ API base URL: `https://shuddl-api-staging.<account>.workers.dev` (all routes JWT
 
 ## The sending invariant (why staging is safe)
 
-`shuddl-agents-staging` has **no `RESEND_API_KEY` / `EVIDENCE_FROM`** secret. The Biller's `evidenceSender()` therefore returns `NotConfiguredSender`, which never touches the network — the full POD→invoice pipeline runs and the evidence send is attempted and cleanly no-ops (outcome `send_pending`/`recipient_unresolved`). **Zero emails can leave staging.** The `/_dev/evidence-test-send` probe is also inert (`ALLOW_TEST_SEND` unset → 404). Confirm anytime: `cd workers/agents && npx wrangler secret list --env staging` must show no `RESEND_API_KEY`.
+`evidenceSender()` returns `ResendSender` **only when BOTH `RESEND_API_KEY` and `EVIDENCE_FROM` are present**; anything less ⇒ `NotConfiguredSender` (never touches the network). As of 2026-07-14 staging has a **`RESEND_API_KEY` staged** (a sending-only key scoped to `send.shuddl.tech`, id `39fd437b-…`) but **`EVIDENCE_FROM` is deliberately unset** — so the Biller still uses `NotConfiguredSender` and **zero emails can leave staging**. The full POD→invoice pipeline runs; the send cleanly no-ops (`send_pending`/`recipient_unresolved`). The `/_dev/evidence-test-send` probe is also inert (`ALLOW_TEST_SEND` unset → 404). Confirm the gate holds: `grep -E "^[^#]*EVIDENCE_FROM" workers/agents/wrangler.toml` must return nothing. **The single remaining flip to go live is setting `EVIDENCE_FROM` (after `send.shuddl.tech` verifies).**
 
 ## Deploy from scratch (or re-deploy)
 
