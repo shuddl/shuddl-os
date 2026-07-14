@@ -71,6 +71,10 @@ workers_dev = false
 [env.staging.vars]
 ENVIRONMENT = "staging"
 REFERRAL_BASE = "https://shuddl.tech"
+# GO-LIVE (2026-07-14): staging evidence sending is ON. With RESEND_API_KEY (secret, scoped to
+# send.shuddl.tech) + this EVIDENCE_FROM both present, evidenceSender() returns ResendSender. Staging
+# tenants are synthetic, so real email only goes to whatever recipient a shipment's party carries.
+EVIDENCE_FROM = "SHUDDL <pod@send.shuddl.tech>"
 
 [env.staging.triggers]
 crons = ["0 1 * * *"]

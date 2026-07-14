@@ -22,9 +22,11 @@
 
 API base URL: `https://shuddl-api-staging.<account>.workers.dev` (all routes JWT-authed except `/v1/health`). The agents worker has `workers_dev = false` (no public URL — its triggers are the queue + cron).
 
-## The sending invariant (why staging is safe)
+## Sending status — LIVE on staging (2026-07-14)
 
-`evidenceSender()` returns `ResendSender` **only when BOTH `RESEND_API_KEY` and `EVIDENCE_FROM` are present**; anything less ⇒ `NotConfiguredSender` (never touches the network). As of 2026-07-14 staging has a **`RESEND_API_KEY` staged** (a sending-only key scoped to `send.shuddl.tech`, id `39fd437b-…`) but **`EVIDENCE_FROM` is deliberately unset** — so the Biller still uses `NotConfiguredSender` and **zero emails can leave staging**. The full POD→invoice pipeline runs; the send cleanly no-ops (`send_pending`/`recipient_unresolved`). The `/_dev/evidence-test-send` probe is also inert (`ALLOW_TEST_SEND` unset → 404). Confirm the gate holds: `grep -E "^[^#]*EVIDENCE_FROM" workers/agents/wrangler.toml` must return nothing. **The single remaining flip to go live is setting `EVIDENCE_FROM` (after `send.shuddl.tech` verifies).**
+`evidenceSender()` returns `ResendSender` only when BOTH `RESEND_API_KEY` and `EVIDENCE_FROM` are present. Staging now has **both**: `RESEND_API_KEY` (secret — a sending-only Resend key scoped to the verified `send.shuddl.tech`, key `shuddl-agents-staging-v2`, id `e2e34a35-…`) and `EVIDENCE_FROM = "SHUDDL <pod@send.shuddl.tech>"` (var, committed in `wrangler.toml`). So the deployed Biller **sends real evidence email**. Proven end-to-end: the smoke's synthetic POD produced a delivered email (`DELIVERED · SMK-… · PROOF + INVOICE`) from `pod@send.shuddl.tech`.
+
+**What this means for safety:** staging tenants are synthetic, so a real email only goes to whatever recipient a shipment's bill-to party actually carries in `parties.contacts` (most synthetic parties carry none → `recipient_unresolved`, no send). The only real address wired in staging is an owner test inbox seeded on `party-bill-to`. **To turn staging sending back OFF:** unset `EVIDENCE_FROM` in `[env.staging.vars]` and redeploy — the Biller reverts to `NotConfiguredSender`. Prod sending remains milestone-gated (REQ-159).
 
 ## Deploy from scratch (or re-deploy)
 
