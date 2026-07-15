@@ -75,12 +75,12 @@ exports[`REQ-011 DoD: all 35 kinds round-trip > canonical strings + hashes are p
     "hash": "58b8893619aab50deef2366d22cbc71acab8d6e62864096d996c5904e562b678",
   },
   "message.received": {
-    "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"message.received","party_refs":[],"payload":{},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",
-    "hash": "ab2b7d2a43d4bc04918880913cba77932978c625492cd2d46aa2bc6359568aff",
+    "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"message.received","party_refs":[],"payload":{"body_ref":"r2://msg/inbound-1","channel":"email","from_ref":"shipper@example.com"},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",
+    "hash": "2a51e81ddebb7b32b520b361382cd7f5fdb60cc3ff6166a209bc106d9f653663",
   },
   "message.sent": {
-    "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"message.sent","party_refs":[],"payload":{},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",
-    "hash": "afb736fffdb56a5776c870b51e03947e8d58fa99910be9ac5c0c9b65b70445f7",
+    "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"message.sent","party_refs":[],"payload":{"body_ref":"r2://msg/outbound-1","channel":"email","to_ref":"shipper@example.com"},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",
+    "hash": "005a85afe3acc0b96f47c84490f6aca8023cb2d2377928761f796a5a99abeecc",
   },
   "osd.captured": {
     "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"osd.captured","party_refs":[],"payload":{"photo_hash":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855","reason_code":"damage"},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",
@@ -103,8 +103,8 @@ exports[`REQ-011 DoD: all 35 kinds round-trip > canonical strings + hashes are p
     "hash": "3732f71981bb7ca22b839f7226b2a8ed64cbdc6b945e1a4453df403e6ab60493",
   },
   "quote.accepted": {
-    "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"quote.accepted","party_refs":[],"payload":{},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",
-    "hash": "79ceed8122ec5d49be32797d8b4d1c461d2d8d2f9323639395f39a11217cb388",
+    "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"quote.accepted","party_refs":[],"payload":{"quote_event_id":"evt-quote-1"},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",
+    "hash": "1bfdcabc92d3254ea537d4301aa00c0b76d8485933143d2eb53e8a0fc2fdccba",
   },
   "quote.expired": {
     "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"quote.expired","party_refs":[],"payload":{},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",
@@ -115,12 +115,12 @@ exports[`REQ-011 DoD: all 35 kinds round-trip > canonical strings + hashes are p
     "hash": "355ffa6b1764d6a814fa4a23692c3fa24c8b46aaf5c862fda79a0d9492c98b72",
   },
   "quote.requested": {
-    "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"quote.requested","party_refs":[],"payload":{},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",
-    "hash": "b90164a047214bca4190462439f2b834defc882630e0a7a04a6ddc1e6ce8de27",
+    "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"quote.requested","party_refs":[],"payload":{"request":{"dest_zip":"98101","origin_zip":"97201"}},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",
+    "hash": "610a65d35a1a335a3c80d9f5a33fa3d663e7942382d35d61c669d5ef4a2a0eb2",
   },
   "quote.sent": {
-    "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"quote.sent","party_refs":[],"payload":{},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",
-    "hash": "a1e34bb53aff3e0a94ff6a1f5c9dc2348376e46e9407308994cb762eed620899",
+    "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"quote.sent","party_refs":[],"payload":{"message_event_id":"evt-message-1","quote_event_id":"evt-quote-1","to_ref":"shipper@example.com"},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",
+    "hash": "e29e702d24be85ba7ce2b65651ad206b05c4891a05287c1e8962667e4ecc8bb9",
   },
   "seal.applied": {
     "canonical": "{"actor":{"party":"party-shipper"},"confidence":10000,"evidence":[],"id":"00000000-0000-4000-8000-000000000001","kind":"seal.applied","party_refs":[],"payload":{"photo_hash":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855","seal_id":"seal-1"},"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","recorded_at":1720000000500,"seq":0,"shipment_id":"shp-1","source":"native","stream_id":"s:shp-1","ts":1720000000000,"visibility":"internal"}",

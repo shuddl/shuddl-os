@@ -97,3 +97,33 @@ export const RateConfig = z.discriminatedUnion("kind", [
   ClassAdapter,
 ]);
 export type RateConfig = z.infer<typeof RateConfig>;
+
+// ─── the rate REQUEST (measured physics) ────────────────────────────────────────────────────────────────
+// The measured-physics request a quote is priced FROM — the SINGLE canonical rate-request shape. It lives
+// here (rating domain: a rate request is a rating concept); comms.ts merely references it for
+// QuoteRequestedPayload.request. packages/rater ALIASES its `RateRequest` to this inferred type, so there is
+// ONE source of truth: a field drift on either side breaks the rater build (and a contract test proves a
+// parsed request prices through priceShipment). The engine READS these fields (priceShipment handles an
+// absent weight_lb and spreads accessorials ?? []). Missing weight/dims is LEGAL — the engine returns UNKNOWN
+// (no price on air — REQ-004), never a parse error. Integer-only law: integer pounds / integer inches (mirrors
+// the workers/api RateBody boundary). `accessorials` stays readonly — a priced request is not mutated after
+// construction (matches the engine's readonly consumption and the sweep constructor).
+const RateDims = z
+  .object({
+    l_in: SafeInt.min(0),
+    w_in: SafeInt.min(0),
+    h_in: SafeInt.min(0),
+    pieces: SafeInt.min(1),
+  })
+  .strict();
+
+export const RateRequestPayload = z
+  .object({
+    origin_zip: z.string().min(1),
+    dest_zip: z.string().min(1),
+    weight_lb: SafeInt.min(1).optional(),
+    dims: RateDims.nullish(), // absent OR null ⇒ missing physics (the engine returns UNKNOWN)
+    accessorials: z.array(z.string()).readonly().optional(),
+  })
+  .strict();
+export type RateRequestPayload = z.infer<typeof RateRequestPayload>;

@@ -73,6 +73,17 @@ function payloadFor(kind: EventKind): Record<string, unknown> {
       return { photo_hash: HEX64, reason_code: "damage", note: "adv fixture" };
     case "delivery.evidenced":
       return { placed_photo_hash: HEX64, geo: { ...GEO } };
+    // WP-07: the comms/quote-lifecycle kinds now carry typed payloads (were loose {}).
+    case "message.received":
+      return { channel: "email", from_ref: "shipper@example.com", body_ref: "r2://msg/inbound-1" };
+    case "message.sent":
+      return { channel: "email", to_ref: "shipper@example.com", body_ref: "r2://msg/outbound-1" };
+    case "quote.requested":
+      return { request: { origin_zip: "97201", dest_zip: "98101" } };
+    case "quote.sent":
+      return { quote_event_id: "evt-quote-1", to_ref: "shipper@example.com", message_event_id: "evt-message-1" };
+    case "quote.accepted":
+      return { quote_event_id: "evt-quote-1" };
     default:
       return {};
   }

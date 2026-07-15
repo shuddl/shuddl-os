@@ -35,7 +35,7 @@ it("a second file that shares ensureSchema can append and chain-verifies its own
       source: "native",
       confidence: 10_000,
       kind: "quote.requested",
-      payload: {},
+      payload: { request: { origin_zip: "97201", dest_zip: "98101" } }, // WP-07: typed QuoteRequestedPayload
     },
   });
   expect(r.seq).toBe(0);

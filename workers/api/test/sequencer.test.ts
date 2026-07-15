@@ -39,7 +39,10 @@ function inputFor(streamId: string, over: Record<string, unknown> = {}): Record<
     source: "native",
     confidence: 10_000,
     kind: "quote.requested",
-    payload: {},
+    // WP-07: quote.requested now carries a typed QuoteRequestedPayload (a rate request). This is the
+    // generic "any event" the sequencer-mechanics tests append; the request content is irrelevant to seq/
+    // prev_hash/dedup, only that it parses. Overridden per-case when a specific kind/payload is needed.
+    payload: { request: { origin_zip: "97201", dest_zip: "98101" } },
     ...over,
   };
 }

@@ -3,11 +3,16 @@
 // UNKNOWN with a machine-readable reason — never a number derived from missing data.
 // All four declarations use `type` for consistency (FreightResult is a union, which must be a type).
 
+// The optional physics carry `| undefined` explicitly (not just an optional key) so the engine consumes a
+// Zod-PARSED request unchanged: RateRequestPayload (the canonical rate-request, aliased by price.ts RateRequest)
+// infers `weight_lb?: number | undefined` / `dims?: … | undefined`, and priceShipment feeds that straight into
+// priceFreight. Widening is a semantic no-op — priceFreight already treats a non-number weight / absent dims as
+// UNKNOWN (no price on air, REQ-004) — and it keeps ShipmentPhysics assignable-from the parsed boundary type.
 export type ShipmentPhysics = {
   origin_zip: string; // carrier-side origin; SEED-1 zoning is dest-based, so origin does not affect the zone match
   dest_zip: string;
-  weight_lb?: number; // integer pounds; absent ⇒ UNKNOWN
-  dims?: { l_in: number; w_in: number; h_in: number; pieces: number } | null; // absent/null ⇒ UNKNOWN
+  weight_lb?: number | undefined; // integer pounds; absent/undefined ⇒ UNKNOWN
+  dims?: { l_in: number; w_in: number; h_in: number; pieces: number } | null | undefined; // absent/null/undefined ⇒ UNKNOWN
 };
 
 export type FreightUnknown = {

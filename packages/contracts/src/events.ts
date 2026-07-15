@@ -7,6 +7,13 @@ import {
   InvoiceCorrectedPayload,
   SplitComputedPayload,
 } from "./money.js";
+import {
+  MessageReceivedPayload,
+  MessageSentPayload,
+  QuoteRequestedPayload,
+  QuoteSentPayload,
+  QuoteAcceptedPayload,
+} from "./comms.js";
 
 // REQ-011 / doc 10 §01: the complete v1 catalog. Exactly 35 — adding a kind is a
 // register amendment (a test pins .length === 35 and the strings against doc 10).
@@ -284,10 +291,10 @@ function ev<K extends EventKind, P extends z.ZodTypeAny>(kind: K, payload: P) {
 
 export const LedgerEvent = z
   .discriminatedUnion("kind", [
-    ev("quote.requested", JsonObject),
+    ev("quote.requested", QuoteRequestedPayload),
     ev("quote.priced", QuotePricedPayload),
-    ev("quote.sent", JsonObject),
-    ev("quote.accepted", JsonObject),
+    ev("quote.sent", QuoteSentPayload),
+    ev("quote.accepted", QuoteAcceptedPayload),
     ev("quote.expired", JsonObject),
     ev("booking.created", JsonObject),
     ev("credit.checked", JsonObject),
@@ -311,8 +318,8 @@ export const LedgerEvent = z
     ev("payment.received", JsonObject),
     ev("settlement.executed", JsonObject),
     ev("split.computed", SplitComputedPayload),
-    ev("message.received", JsonObject),
-    ev("message.sent", JsonObject),
+    ev("message.received", MessageReceivedPayload),
+    ev("message.sent", MessageSentPayload),
     ev("call.transcribed", JsonObject),
     ev("document.attached", JsonObject),
     ev("approval.requested", JsonObject),
@@ -395,10 +402,10 @@ function evInput<K extends EventKind, P extends z.ZodTypeAny>(kind: K, payload: 
 
 export const EventInput = z
   .discriminatedUnion("kind", [
-    evInput("quote.requested", JsonObject),
+    evInput("quote.requested", QuoteRequestedPayload),
     evInput("quote.priced", QuotePricedPayload),
-    evInput("quote.sent", JsonObject),
-    evInput("quote.accepted", JsonObject),
+    evInput("quote.sent", QuoteSentPayload),
+    evInput("quote.accepted", QuoteAcceptedPayload),
     evInput("quote.expired", JsonObject),
     evInput("booking.created", JsonObject),
     evInput("credit.checked", JsonObject),
@@ -422,8 +429,8 @@ export const EventInput = z
     evInput("payment.received", JsonObject),
     evInput("settlement.executed", JsonObject),
     evInput("split.computed", SplitComputedPayload),
-    evInput("message.received", JsonObject),
-    evInput("message.sent", JsonObject),
+    evInput("message.received", MessageReceivedPayload),
+    evInput("message.sent", MessageSentPayload),
     evInput("call.transcribed", JsonObject),
     evInput("document.attached", JsonObject),
     evInput("approval.requested", JsonObject),
@@ -552,6 +559,18 @@ function fixturePayload(kind: EventKind): Record<string, unknown> {
           { party_id: "party-interline", share_bps: 3_000 },
         ],
       };
+    // WP-07 Concierge comms/quote payloads (REQ-093/099). from/to refs use the reserved example.com domain
+    // (no tenant/person identity — REQ-167); body_ref is an R2 pointer (the ledger carries the ref, not bytes).
+    case "message.received":
+      return { channel: "email", from_ref: "shipper@example.com", body_ref: "r2://msg/inbound-1" };
+    case "message.sent":
+      return { channel: "email", to_ref: "shipper@example.com", body_ref: "r2://msg/outbound-1" };
+    case "quote.requested":
+      return { request: { origin_zip: "97201", dest_zip: "98101" } };
+    case "quote.sent":
+      return { quote_event_id: "evt-quote-1", to_ref: "shipper@example.com", message_event_id: "evt-message-1" };
+    case "quote.accepted":
+      return { quote_event_id: "evt-quote-1" };
     default:
       return {};
   }

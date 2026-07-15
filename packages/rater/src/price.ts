@@ -5,6 +5,7 @@ import type {
   AccessorialSchedule,
   ClassAdapter,
   JsonObject,
+  RateRequestPayload,
 } from "@shuddl/contracts";
 import { priceFreight } from "./engine.js";
 import { compose } from "./compose.js";
@@ -21,16 +22,13 @@ import type { FreightUnknown } from "./types.js";
 // logic, no interline split, no class adapter — those are later WP-04 tasks. An UNKNOWN freight result
 // passes straight through: no floors on air, no versions on air.
 
-// A rate request: measured physics (same fields priceFreight consumes) plus the requested accessorial
-// codes. Structurally a ShipmentPhysics with an extra `accessorials` field, so it is accepted by
-// priceFreight unchanged.
-export interface RateRequest {
-  origin_zip: string;
-  dest_zip: string;
-  weight_lb?: number;
-  dims?: { l_in: number; w_in: number; h_in: number; pieces: number } | null;
-  accessorials?: readonly string[]; // requested accessorial codes
-}
+// A rate request: measured physics (same fields priceFreight consumes) plus the requested accessorial codes.
+// ALIASED to the contracts RateRequestPayload inferred type so there is ONE canonical shape across the whole
+// system — the Concierge calls priceShipment(quoteRequested.request) DIRECTLY (a parsed
+// QuoteRequestedPayload.request IS this type), and a field drift on either side breaks this build. Structurally
+// a ShipmentPhysics with an extra `accessorials` field, so priceFreight accepts it unchanged; priceShipment
+// only READS these fields (it handles an absent weight_lb and spreads accessorials ?? []).
+export type RateRequest = RateRequestPayload;
 
 // The tenant's SEED-1 rating_config bundle. class_adapter is carried for shape completeness but is NOT
 // used yet (Task 9) — so it is NEVER pinned into versions below.
