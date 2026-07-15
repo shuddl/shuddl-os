@@ -1,6 +1,6 @@
 import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
-import { rowToEvent } from "@shuddl/ledger/lens";
+import { readEvents, rowToEvent } from "@shuddl/ledger/lens";
 import type { LedgerEvent } from "@shuddl/contracts";
 import { DeterministicParser, RecordingSender, SendError, formatCents } from "@shuddl/agents";
 import type { ConciergeParser, EvidenceMessage, EvidenceSender, InboundEmail, ParseResult, SendReceipt } from "@shuddl/agents";
@@ -370,5 +370,131 @@ describe("Concierge consumer — message.received → resolve/price/reply (REQ-0
   it("the trigger's Zod boundary rejects a malformed message", () => {
     expect(() => MessageReceivedTrigger.parse({ kind: "message.received", tenant: TENANT })).toThrow(); // no event_id
     expect(MessageReceivedTrigger.parse({ kind: "message.received", tenant: TENANT, event_id: "evt-1" }).event_id).toBe("evt-1");
+  });
+});
+
+// ─── WP-07 Task 7 — TIMELINE VISIBILITY + "no comms outside the ledger" (REQ-094/099/100) ──────────────
+//
+// The end-to-end proof that the Concierge's comms/quote lane rides the SAME visibility lens as every
+// other event: a shipment's timeline is `readEvents(db, lens)` — the exact fn the /v1 timeline route
+// calls — and it is the SOLE gate. Here we drive the REAL consumer + DO + D1, then read the resulting
+// stream through a counterparty (party) lens, and separately prove an internal note is a first-class
+// LEDGER event (redacted from the counterparty), never a side-table record.
+describe("Timeline visibility + no-comms-outside-the-ledger (REQ-094/099/100)", () => {
+  it("TIMELINE: the Concierge's quote.requested / quote.priced / message.sent surface on the counterparty (party) lens; the counterparty sees `sell` but the floors/basis/versions are REDACTED (REQ-094)", async () => {
+    await seedRateConfig(env.TENANT_A_DB, TEST_RATE_CONFIG);
+    const from = "timeline@shipper.example.com";
+    const msgId = await appendInbound(
+      quoteEmail(from, "Please quote from 97201 to 80012, 1000 lbs, 48x40x48, 2 pallets."),
+      "task7-timeline",
+    );
+    const sender = new RecordingSender();
+    const outcome = await handleMessageReceived({ kind: "message.received", tenant: TENANT, event_id: msgId }, depsWith(sender, new DeterministicParser()));
+    expect(outcome.status, JSON.stringify(outcome)).toBe("issued_replied");
+    if (outcome.status !== "issued_replied") throw new Error("unreachable");
+
+    // The shipment timeline THROUGH THE REAL LENS (readEvents), scoped to the counterparty party_id.
+    const timeline = await readEvents(env.TENANT_A_DB, { scope: "party", partyId: outcome.party_id }, { shipment_id: outcome.shipment_id });
+    expect(timeline.map((e) => e.kind).sort()).toEqual(["message.sent", "quote.priced", "quote.requested"]);
+    // each reaches the lens BECAUSE the Concierge stamped party_refs = [the counterparty] on every append
+    expect(timeline.every((e) => e.party_refs.includes(outcome.party_id))).toBe(true);
+    // REQ-094 counterparty redaction: `sell` is visible; the margin internals are stripped (real payload
+    // DOES carry floors/basis/versions — this is a genuine redaction, not a trivially-absent key).
+    const priced = timeline.find((e) => e.kind === "quote.priced")!;
+    const pp = priced.payload as Record<string, unknown>;
+    expect(pp.sell).toBeDefined();
+    expect(pp.floors).toBeUndefined();
+    expect(pp.basis).toBeUndefined();
+    expect(pp.versions).toBeUndefined();
+  });
+
+  it("REQ-100 no-orphan-send: the ONE reply the sender recorded maps 1:1 to the committed message.sent event (keyed by its id); the inbound message.received is the DOCUMENTED deferred-ingestion gap (party_refs [] until the webhook lands)", async () => {
+    await seedRateConfig(env.TENANT_A_DB, TEST_RATE_CONFIG);
+    const from = "noorphan@shipper.example.com";
+    const msgId = await appendInbound(
+      quoteEmail(from, "Please quote from 97201 to 80012, 1000 lbs, 48x40x48, 2 pallets."),
+      "task7-noorphan",
+    );
+    const sender = new RecordingSender();
+    const outcome = await handleMessageReceived({ kind: "message.received", tenant: TENANT, event_id: msgId }, depsWith(sender, new DeterministicParser()));
+    expect(outcome.status, JSON.stringify(outcome)).toBe("issued_replied");
+    if (outcome.status !== "issued_replied") throw new Error("unreachable");
+
+    // NO comm exists outside the ledger: the reply that WENT OUT has exactly one message.sent event, and
+    // the send references THAT event by its idempotency key (the append precedes the send, REQ-100).
+    const sent = (await streamEvents(outcome.shipment_id)).filter((e) => e.kind === "message.sent");
+    expect(sent).toHaveLength(1);
+    expect(sender.messages).toHaveLength(1);
+    expect(sent[0]!.id).toBe(outcome.message_sent_event_id);
+    expect(sender.messages[0]!.idempotency_key).toBe(`concierge-reply/${sent[0]!.id}`);
+
+    // DOCUMENTED DEFERRED GAP (real inbound-ingestion webhook is a LATER WP): the inbound message.received
+    // was appended (by the test harness — and, in prod, by that webhook) with party_refs [], so it does
+    // NOT yet reach the counterparty lens. The Concierge never appends the inbound; it appends only the
+    // three events above, which DO carry party_refs=[counterparty]. It IS a ledger event today — projected
+    // as an inbound row in the messages read-model — so once the webhook stamps party_refs the SAME
+    // message.received->counterparty default surfaces it. Pinned here so the gap is explicit, not silent.
+    expect(await messageRow(msgId)).toEqual({ id: `msg:${msgId}`, direction: "in" });
+  });
+
+  it("REQ-100/094 internal note: an internal note IS a message.received{channel:note, visibility:internal} ledger event (projected into the messages read-model) — not a side table — and is REDACTED from the counterparty lens while its sibling counterparty message stays visible", async () => {
+    const party = "party-note-task7";
+    const shipmentId = `note-${crypto.randomUUID()}`;
+    const streamId = `s:${shipmentId}`;
+    // Both appended THROUGH THE REAL SEQUENCER DO (the only write path) on ONE shipment stream, both
+    // referencing the SAME party — so the ONLY thing that redacts the note is its internal visibility.
+    const customer = await seqStub.append({
+      tenant: TENANT,
+      streamId,
+      input: {
+        id: crypto.randomUUID(),
+        shipment_id: shipmentId,
+        ts: clock++,
+        actor: { party: "party-shipper" },
+        party_refs: [party],
+        evidence: [],
+        source: "email",
+        confidence: 10_000,
+        kind: "message.received",
+        payload: { channel: "email", from_ref: "cust@example.com", body_ref: "r2://note/cust" },
+      },
+    });
+    const note = await seqStub.append({
+      tenant: TENANT,
+      streamId,
+      input: {
+        id: crypto.randomUUID(),
+        shipment_id: shipmentId,
+        ts: clock++,
+        actor: { party: "agent:concierge" },
+        party_refs: [party],
+        evidence: [],
+        source: "native",
+        confidence: 10_000,
+        requested_visibility: "internal", // an ops note narrows message.received (counterparty) -> internal
+        kind: "message.received",
+        payload: { channel: "note", from_ref: "ops@internal", body_ref: "r2://note/internal" },
+      },
+    });
+
+    // (a) the note is a FIRST-CLASS ledger event; the server-side resolver stamped it internal.
+    const noteRow = await env.TENANT_A_DB.prepare(
+      "SELECT kind, visibility, json_extract(payload,'$.channel') AS channel FROM events WHERE id = ?",
+    )
+      .bind(note.id)
+      .first<{ kind: string; visibility: string; channel: string }>();
+    expect(noteRow).toEqual({ kind: "message.received", visibility: "internal", channel: "note" });
+
+    // (b) NOT a side table — it projects into the SAME `messages` read-model every comms event does.
+    const noteMsg = await env.TENANT_A_DB.prepare("SELECT id, channel, direction FROM messages WHERE id = ?")
+      .bind(`msg:${note.id}`)
+      .first<{ id: string; channel: string; direction: string }>();
+    expect(noteMsg).toEqual({ id: `msg:${note.id}`, channel: "note", direction: "in" });
+
+    // (c) REDACTED from the counterparty lens; the sibling counterparty message stays visible (load-bearing:
+    //     both carry [party]; only visibility differs). If the note leaked as counterparty this goes red.
+    const timeline = await readEvents(env.TENANT_A_DB, { scope: "party", partyId: party }, { shipment_id: shipmentId });
+    expect(timeline.map((e) => e.id)).toEqual([customer.id]);
+    expect(timeline.some((e) => (e.payload as Record<string, unknown>).channel === "note")).toBe(false);
   });
 });
