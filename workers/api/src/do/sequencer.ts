@@ -12,6 +12,7 @@ import {
 } from "@shuddl/ledger/projection/money";
 import { projectPassport } from "@shuddl/ledger/projection/passports";
 import { projectStatusCache } from "@shuddl/ledger/projection/status-cache";
+import { applyMessageProjection } from "@shuddl/ledger/projection/messages";
 import { assertPodSigned } from "@shuddl/ledger/gates/invoice-gate";
 import {
   assertPickupDepart,
@@ -286,14 +287,18 @@ export class ShipmentSequencer extends DurableObject<Env> {
     const hash = await hashEvent(event);
     const full = { ...event, hash } as LedgerEvent;
 
-    // ONE batch — event + money lines + passport counters + status_cache. A projection failure (e.g. a
-    // missing parties FK, or a second correction of the same event) aborts the WHOLE append atomically.
+    // ONE batch — event + money lines + passport counters + status_cache + messages read-model. A
+    // projection failure (e.g. a missing parties FK, or a second correction of the same event) aborts
+    // the WHOLE append atomically. The messages projection (REQ-100) mirrors the money one: a committed
+    // message.* event projects its `messages` row in this SAME batch, so no communication exists outside
+    // the ledger (INSERT OR IGNORE on a deterministic id keeps re-projection idempotent).
     const deps = await this.#moneyDeps(db, full);
     const stmts = [
       insertEventStmt(db, full),
       ...applyMoneyProjection(db, full, deps),
       ...projectPassport(db, full),
       ...projectStatusCache(db, full),
+      ...applyMessageProjection(db, full),
     ];
     try {
       await db.batch(stmts);
