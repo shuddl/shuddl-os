@@ -1,7 +1,10 @@
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["**/dist/**", "**/node_modules/**", "**/.wrangler/**", "genesis/**", "fixtures/**", "docs/**", "seed/**", "apps/*/public/**"] },
+  // shuddl-site/ is a separate, untracked sub-project with its own toolchain (Next.js + its own
+  // eslint-plugin-react) — the monorepo's flat config must not try to lint it (it crashes on the
+  // version-detection mismatch). It lints itself.
+  { ignores: ["**/dist/**", "**/node_modules/**", "**/.wrangler/**", "genesis/**", "fixtures/**", "docs/**", "seed/**", "apps/*/public/**", "shuddl-site/**"] },
   ...tseslint.configs.recommended,
   {
     rules: {
