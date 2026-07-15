@@ -34,3 +34,12 @@ export type { ParseResult, InboundEmail, ConciergeParser, ClaudeParserConfig } f
 // verifiable STRUCTURAL signals (never the model's confidence); <0.9 computed confidence queues.
 export { resolveConcierge } from "./concierge/resolve.js";
 export type { ResolvePort, ResolveResult, PartyKind } from "./concierge/resolve.js";
+// WP-07 Concierge — the tenant-voice QUOTE REPLY render (REQ-098): a design-law-clean, deterministic
+// quote email (tokens inlined to literals; the SENT body is bounded, never model output).
+export { renderQuoteReply, QuoteReplyView } from "./concierge/quote-reply.js";
+export type { QuoteReplyData } from "./concierge/quote-reply.js";
+// WP-07 Concierge — the PURE PRICE→DRAFT→DECIDE core (REQ-026/093/098): auto-reply only when floor-clean
+// AND independently corroborated AND resolution-confident; else queue. (ComposeInput aliased to avoid the
+// biller's ComposeInput.)
+export { composeConcierge } from "./concierge/compose.js";
+export type { ComposeInput as ConciergeComposeInput, ConciergeDecision } from "./concierge/compose.js";
