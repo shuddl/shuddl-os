@@ -1,7 +1,7 @@
 import { SELF, env as testEnv } from "cloudflare:test";
 import { sign } from "hono/jwt";
 import { applyMigrations } from "@shuddl/ledger/migrate";
-import { ZoneTariff, FloorsConfig, FscConfig, AccessorialSchedule } from "@shuddl/contracts";
+import { z, ZoneTariff, FloorsConfig, FscConfig, AccessorialSchedule, FacilityKind, FacilityHours, FacilityCapacitySlots, FacilityAppointmentRules } from "@shuddl/contracts";
 import type { Env } from "../src/index.js";
 import controlSql from "../../../db/control/migrations/0001_control.sql?raw";
 import ledgerCore from "../../../db/tenant/migrations/0001_ledger_core.sql?raw";
@@ -175,6 +175,64 @@ export async function seedRateConfig(db: D1Database, config: RatingConfigSeed): 
 // Empty a tenant DB's rate_config (the REQ-151 "no tariff = no sell" cold-start test).
 export async function clearRateConfig(db: D1Database): Promise<void> {
   await db.prepare("DELETE FROM rate_config").run();
+}
+
+// ---- facility seeding (WP-08 Task 2 / REQ-052) -----------------------------------------------------
+// The capacity model T5's double-book test books against. Each JSON field is the INPUT type of its Task-2
+// @shuddl/contracts schema, so a rename/added field fails at COMPILE time here — not just at the loader's
+// runtime .parse() (mirrors RatingConfigSeed). No tenant data (REQ-167): a plain synthetic dock.
+type FacilitySeed = {
+  id: string;
+  party_id?: string | null;
+  kind: z.input<typeof FacilityKind>;
+  lat_e6?: number | null;
+  lon_e6?: number | null;
+  hours: z.input<typeof FacilityHours>;
+  capacity_slots: z.input<typeof FacilityCapacitySlots>;
+  appointment_rules?: z.input<typeof FacilityAppointmentRules>;
+};
+
+// A synthetic dock with Mon/Tue hours (08:00–17:00) and TWO capacity-1 slots on Monday (am + pm) — enough
+// for T5 to prove that a second appointment.set against an already-claimed slot_key is refused.
+export const TEST_FACILITY: FacilitySeed = {
+  id: "fac-dock-1",
+  party_id: "party-consignee",
+  kind: "dock",
+  lat_e6: 37_421_000,
+  lon_e6: -122_084_000,
+  hours: {
+    tz: "America/Los_Angeles",
+    weekly: {
+      "1": [{ open_min: 480, close_min: 1020 }],
+      "2": [{ open_min: 480, close_min: 1020 }],
+    },
+  },
+  capacity_slots: [
+    { slot_key: "mon-am-dock-1", window_start_min: 480, window_end_min: 720, dow: 1 },
+    { slot_key: "mon-pm-dock-1", window_start_min: 720, window_end_min: 1020, dow: 1 },
+  ],
+  appointment_rules: { lead_time_min: 120, max_horizon_days: 14, allow_same_day: false },
+};
+
+// Seed a facility (idempotent, mirrors seedShipment/seedLeg's INSERT OR IGNORE). The three JSON columns are
+// stringified from the typed seed; party_id/lat_e6/lon_e6 default to SQL NULL when omitted. The facilities
+// table is created by 0002_domain.sql, so the DB must already be migrated (ensureSchema).
+export async function seedFacility(db: D1Database, facility: FacilitySeed): Promise<void> {
+  await db
+    .prepare(
+      "INSERT OR IGNORE INTO facilities (id, party_id, kind, lat_e6, lon_e6, hours, capacity_slots, appointment_rules) VALUES (?,?,?,?,?,?,?,?)",
+    )
+    .bind(
+      facility.id,
+      facility.party_id ?? null,
+      facility.kind,
+      facility.lat_e6 ?? null,
+      facility.lon_e6 ?? null,
+      JSON.stringify(facility.hours),
+      JSON.stringify(facility.capacity_slots),
+      JSON.stringify(facility.appointment_rules ?? {}),
+    )
+    .run();
 }
 
 let schemaReadyB: Promise<void> | null = null;
