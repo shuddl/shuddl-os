@@ -2,6 +2,11 @@ packages:
   - "apps/*"
   - "workers/*"
   - "packages/*"
+# @vitest/expect@4.1.10 declares chai@^6.2.2, but chai@6's `use` named export does not resolve under the
+# vitest-pool-workers (workerd) runtime ("does not provide an export named 'use'") — chai@5.3.3 does, and
+# @vitest/expect only uses `use`/`util` (both present in chai@5). Pin it so the workers test-pool loads.
+overrides:
+  chai: "5.3.3"
 allowBuilds:
   esbuild: true
   workerd: true
