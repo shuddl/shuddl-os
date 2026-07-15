@@ -35,7 +35,7 @@ function booking(shipmentId: string, division = "north"): LedgerEvent {
   return mkEvent("booking.created", {
     stream_id: `s:${shipmentId}`,
     shipment_id: shipmentId,
-    payload: { division, shipper_party_id: "p-ship", consignee_party_id: "p-cons", bill_to_party_id: "p-bill", created_ts: 1_720_000_000_000 },
+    payload: { quote_event_id: "evt-quote-1", division, shipper_party_id: "p-ship", consignee_party_id: "p-cons", bill_to_party_id: "p-bill" },
   });
 }
 

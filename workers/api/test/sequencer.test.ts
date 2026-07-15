@@ -295,7 +295,7 @@ it("every appended event round-trips: hashEvent(rowToEvent(row)) === row.hash", 
     streamId,
     input: inputFor(streamId, {
       kind: "booking.created",
-      payload: { division: "main", shipper_party_id: "party-shipper", consignee_party_id: "party-consignee", bill_to_party_id: "party-bill-to", created_ts: 1_720_000_000_000 },
+      payload: { quote_event_id: "evt-quote-1", division: "main", shipper_party_id: "party-shipper", consignee_party_id: "party-consignee", bill_to_party_id: "party-bill-to" },
     }),
   });
   await stub.append({

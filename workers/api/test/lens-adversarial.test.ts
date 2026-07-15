@@ -41,7 +41,7 @@ const driverTok = (driver: string): Promise<string> => token({ sub: driver, tena
 function payloadFor(kind: EventKind): Record<string, unknown> {
   switch (kind) {
     case "booking.created":
-      return { division: "main", shipper_party_id: P1, consignee_party_id: P2, bill_to_party_id: P2, created_ts: 1_720_000_000_000 };
+      return { quote_event_id: "evt-quote-1", division: "main", shipper_party_id: P1, consignee_party_id: P2, bill_to_party_id: P2 };
     case "quote.priced":
       // REQ-003/031: lines are required and must sum to sell (90_000 + 30_000 = 120_000).
       return { sell: 120_000, lines: [{ kind: "freight", code: "freight", amount_cents: 90_000 }, { kind: "fsc", code: "fsc", amount_cents: 30_000 }], floors: { contribution: 60_000, full: 90_000, target: 100_000 }, versions: { rate_config_ids: ["rc-1"] }, basis: {} };
@@ -84,6 +84,15 @@ function payloadFor(kind: EventKind): Record<string, unknown> {
       return { quote_event_id: "evt-quote-1", to_ref: "shipper@example.com", message_event_id: "evt-message-1" };
     case "quote.accepted":
       return { quote_event_id: "evt-quote-1" };
+    // WP-08: the booking/scheduler kinds now carry typed payloads (were loose {}).
+    case "credit.checked":
+      return { party_id: P2, status: "clear" };
+    case "appointment.set":
+      return { leg_kind: "pickup", facility_id: "facility-1", slot_key: "slot-1", window_start_ts: 1_720_000_000_000, window_end_ts: 1_720_003_600_000 };
+    case "pickup.scheduled":
+      return { facility_id: "facility-1", window_start_ts: 1_720_000_000_000, window_end_ts: 1_720_003_600_000 };
+    case "dispatch.assigned":
+      return { driver_user_id: D1 };
     default:
       return {};
   }

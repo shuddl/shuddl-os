@@ -181,12 +181,16 @@ function actorFor(kind: EventKind): { party: string; user?: string; device?: str
 function payloadFor(kind: EventKind, sh: { id: string; shipper: string; consignee: string; ts: number }): Record<string, JsonValue> | undefined {
   switch (kind) {
     case "booking.created":
+      // WP-08: booking.created is now a strict typed payload (BookingCreatedPayload) — it requires
+      // quote_event_id (the accepted-quote anchor) and rejects the legacy created_ts (the envelope carries
+      // ts; the status-cache projection falls back to e.ts, which equals sh.ts here, so the projected
+      // shipments.created_ts is unchanged).
       return {
+        quote_event_id: `evt-quote-${sh.id}`,
         division: "main",
         shipper_party_id: sh.shipper,
         consignee_party_id: sh.consignee,
         bill_to_party_id: sh.shipper,
-        created_ts: sh.ts,
       };
     case "invoice.issued":
       return {
@@ -197,6 +201,11 @@ function payloadFor(kind: EventKind, sh: { id: string; shipper: string; consigne
       };
     case "custody.transferred":
       return { from_party: sh.shipper, to_party: CARRIER_PARTY };
+    case "dispatch.assigned":
+      // The status-cache projection reads actor.user for assigned_driver, so the durable
+      // payload.driver_user_id MUST agree with the actor's user (actorFor → "seed-driver"); the
+      // eventFixture default ("user-driver") would contradict the projected driver.
+      return { driver_user_id: "seed-driver" };
     default:
       return undefined; // use eventFixture's default payload
   }

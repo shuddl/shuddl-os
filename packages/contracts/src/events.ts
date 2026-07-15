@@ -14,6 +14,13 @@ import {
   QuoteSentPayload,
   QuoteAcceptedPayload,
 } from "./comms.js";
+import {
+  CreditCheckedPayload,
+  BookingCreatedPayload,
+  AppointmentSetPayload,
+  PickupScheduledPayload,
+  DispatchAssignedPayload,
+} from "./booking.js";
 
 // REQ-011 / doc 10 §01: the complete v1 catalog. Exactly 35 — adding a kind is a
 // register amendment (a test pins .length === 35 and the strings against doc 10).
@@ -296,11 +303,11 @@ export const LedgerEvent = z
     ev("quote.sent", QuoteSentPayload),
     ev("quote.accepted", QuoteAcceptedPayload),
     ev("quote.expired", JsonObject),
-    ev("booking.created", JsonObject),
-    ev("credit.checked", JsonObject),
-    ev("appointment.set", JsonObject),
-    ev("pickup.scheduled", JsonObject),
-    ev("dispatch.assigned", JsonObject),
+    ev("booking.created", BookingCreatedPayload),
+    ev("credit.checked", CreditCheckedPayload),
+    ev("appointment.set", AppointmentSetPayload),
+    ev("pickup.scheduled", PickupScheduledPayload),
+    ev("dispatch.assigned", DispatchAssignedPayload),
     ev("stop.arrived", StopArrivedPayload),
     ev("freight.counted", FreightCountedPayload),
     ev("freight.photographed", FreightPhotographedPayload),
@@ -407,11 +414,11 @@ export const EventInput = z
     evInput("quote.sent", QuoteSentPayload),
     evInput("quote.accepted", QuoteAcceptedPayload),
     evInput("quote.expired", JsonObject),
-    evInput("booking.created", JsonObject),
-    evInput("credit.checked", JsonObject),
-    evInput("appointment.set", JsonObject),
-    evInput("pickup.scheduled", JsonObject),
-    evInput("dispatch.assigned", JsonObject),
+    evInput("booking.created", BookingCreatedPayload),
+    evInput("credit.checked", CreditCheckedPayload),
+    evInput("appointment.set", AppointmentSetPayload),
+    evInput("pickup.scheduled", PickupScheduledPayload),
+    evInput("dispatch.assigned", DispatchAssignedPayload),
     evInput("stop.arrived", StopArrivedPayload),
     evInput("freight.counted", FreightCountedPayload),
     evInput("freight.photographed", FreightPhotographedPayload),
@@ -571,6 +578,30 @@ function fixturePayload(kind: EventKind): Record<string, unknown> {
       return { quote_event_id: "evt-quote-1", to_ref: "shipper@example.com", message_event_id: "evt-message-1" };
     case "quote.accepted":
       return { quote_event_id: "evt-quote-1" };
+    // WP-08 Scheduler/Booking payloads (REQ-028/042/043/047/052/057). booking.created is the party-correction
+    // source (names the REAL consignee/bill_to + anchors the accepted quote); windows are integer epoch-ms.
+    case "booking.created":
+      return {
+        quote_event_id: "evt-quote-1",
+        shipper_party_id: "party-shipper",
+        consignee_party_id: "party-consignee",
+        bill_to_party_id: "party-bill-to",
+        division: "main",
+      };
+    case "credit.checked":
+      return { party_id: "party-bill-to", status: "clear" };
+    case "appointment.set":
+      return {
+        leg_kind: "pickup",
+        facility_id: "facility-1",
+        slot_key: "slot-1",
+        window_start_ts: FIXTURE_TS,
+        window_end_ts: FIXTURE_TS + 3_600_000,
+      };
+    case "pickup.scheduled":
+      return { facility_id: "facility-1", window_start_ts: FIXTURE_TS, window_end_ts: FIXTURE_TS + 3_600_000 };
+    case "dispatch.assigned":
+      return { driver_user_id: "user-driver" };
     default:
       return {};
   }

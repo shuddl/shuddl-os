@@ -5,8 +5,6 @@
 import type { LedgerEvent } from "@shuddl/contracts";
 
 const asString = (v: unknown): string | undefined => (typeof v === "string" ? v : undefined);
-const asInt = (v: unknown): number | undefined =>
-  typeof v === "number" && Number.isInteger(v) ? v : undefined;
 
 // booking.created must CREATE the shipments row (it is the first event on the stream) so later
 // json_set projections have a row to update. Idempotent via ON CONFLICT.
@@ -35,7 +33,10 @@ export function projectStatusCache(db: D1Database, e: LedgerEvent): D1PreparedSt
       const shipper = asString(p["shipper_party_id"]);
       const consignee = asString(p["consignee_party_id"]);
       const billTo = asString(p["bill_to_party_id"]);
-      const createdTs = asInt(p["created_ts"]) ?? e.ts;
+      // WP-08: booking.created is now strictly typed (BookingCreatedPayload) and no longer carries a
+      // created_ts — the envelope's `ts` is the shipment's created_ts (identical to the legacy value the
+      // seed used to inline). shipments.created_ts is a projection of the booking event's ts.
+      const createdTs = e.ts;
       if (shipper === undefined || consignee === undefined || billTo === undefined) {
         throw new Error("booking.created: payload must carry shipper_party_id / consignee_party_id / bill_to_party_id");
       }
