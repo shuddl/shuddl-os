@@ -30,3 +30,7 @@ export {
   buildUserPrompt,
 } from "./concierge/parse.js";
 export type { ParseResult, InboundEmail, ConciergeParser, ClaudeParserConfig } from "./concierge/parse.js";
+// WP-07 Concierge — the RESOLVE step (REQ-093): a parsed inbound is tied to a Party + Shipment on
+// verifiable STRUCTURAL signals (never the model's confidence); <0.9 computed confidence queues.
+export { resolveConcierge } from "./concierge/resolve.js";
+export type { ResolvePort, ResolveResult, PartyKind } from "./concierge/resolve.js";
