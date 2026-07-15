@@ -9,6 +9,7 @@ import { ClaudeParser, NotConfiguredParser, NotConfiguredSender, ParseError, Res
 import type { ConciergeParser, EvidenceEmailData, EvidenceMessage, EvidenceSender } from "@shuddl/agents";
 import { PodSignedMessage, handlePodSigned, type BillerDeps, type SeqStubLike } from "./biller.js";
 import { MessageReceivedTrigger, handleMessageReceived, type ConciergeDeps } from "./concierge.js";
+import { sweepTenantOverdueInbound } from "./sla-sweep.js";
 import { TENANT_SLUGS, tenantDb, type AgentsEnv } from "./tenants.js";
 
 // The queue's message union (REQ-039): a committed pod.signed fans out to the Biller, a committed
@@ -38,6 +39,24 @@ export async function runAllTenants(env: AgentsEnv, now: () => Date = () => new 
     const db = tenantDb(env, slug);
     const tsa = await tsaFor(env, db);
     await runDailyAnchor({ db, r2: env.EVIDENCE, tsa, tenant: slug, now });
+  }
+}
+
+// REQ-095 — the SLA overdue sweep across every allowlisted tenant (REQ-025 isolation: one tenant's D1 per
+// iteration; each append names its tenant so the DO re-derives identity). Exported so the cron test and a
+// manual re-drive both hit the identical path. Idempotent + aggressive-safe (the deterministic signal id
+// dedupes at the DO), so re-running every tick is safe; a per-tenant fault is contained + logged so one
+// tenant never stalls the rest. The cron reads wall-clock for `now` (deterministic in tests).
+export async function runSlaSweep(env: AgentsEnv, now: () => number = () => Date.now()): Promise<void> {
+  const seq = sequencerFor(env);
+  const at = now();
+  for (const slug of TENANT_SLUGS) {
+    try {
+      const result = await sweepTenantOverdueInbound(tenantDb(env, slug), seq, slug, at);
+      console.log(`concierge sla-sweep: tenant ${slug} → ${JSON.stringify(result)}`);
+    } catch (err) {
+      console.error(`concierge sla-sweep: tenant ${slug} failed (re-run next tick — the sweep is idempotent):`, err);
+    }
   }
 }
 
@@ -247,7 +266,16 @@ export default {
   // delayed/retried invocation still anchors the correct just-closed day (and tests are deterministic).
   async scheduled(controller: ScheduledController, env: AgentsEnv, ctx: ExecutionContext): Promise<void> {
     void ctx;
-    await runAllTenants(env, () => new Date(controller.scheduledTime));
+    // REQ-095 — the SLA overdue sweep rides the SAME cron tick, anchored to the fired-at instant so
+    // "overdue" is deterministic and a delayed/retried invocation still evaluates against a stable clock. It
+    // is DECOUPLED from the anchor via try/finally: a per-tenant anchor fault (a TSA outage) must NOT skip
+    // the sweep for that tick. runSlaSweep contains its own per-tenant faults, so the finally never masks
+    // the anchor's error — the anchor throw still surfaces (and the cron retries) after the sweep runs.
+    try {
+      await runAllTenants(env, () => new Date(controller.scheduledTime));
+    } finally {
+      await runSlaSweep(env, () => controller.scheduledTime);
+    }
   },
   // REQ-159 (GTM — milestone gate, NOT a code deliverable): this consumer is the M-H substrate. The
   // "heartbeat on real freight" that M-H exits on IS this path firing — pod.signed → invoice.issued →

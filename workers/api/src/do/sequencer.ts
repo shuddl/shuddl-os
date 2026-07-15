@@ -108,6 +108,27 @@ export function assertNever(x: never): never {
   throw new Error(`unreachable gate dispatch for kind ${String(x)}`);
 }
 
+// REQ-095 / REQ-026 — which committed events fan a Concierge trigger onto the agent queue, and the trigger
+// body. Exported + PURE so the enqueue DECISION is unit-testable: the DO's `env.AGENT_QUEUE` is cross-isolate,
+// so the queue push itself cannot be observed from a test, but this predicate (the single source of truth the
+// DO calls) can. Only a COUNTERPARTY-visible inbound is one the Concierge should act on: an INTERNAL
+// message.received is an agent OPS NOTE (e.g. the SLA-overdue note the Task-8 sweep records) — re-triggering
+// the Concierge on it burns a wasted parse and, with a NotConfigured parser, throws retriable → a DLQ
+// retry-storm. So an internal note NEVER enqueues (the visibility IS the redaction signal — the cleanest gate).
+export type ConciergeTrigger =
+  | { kind: "message.received"; tenant: string; event_id: string }
+  | { kind: "message.received"; tenant: string; shipment_id: string; event_id: string };
+
+export function conciergeTriggerFor(
+  e: { kind: string; visibility: Visibility; shipment_id?: string | undefined; id: string },
+  tenant: string,
+): ConciergeTrigger | null {
+  if (e.kind !== "message.received" || e.visibility === "internal") return null;
+  return e.shipment_id === undefined
+    ? { kind: "message.received", tenant, event_id: e.id }
+    : { kind: "message.received", tenant, shipment_id: e.shipment_id, event_id: e.id };
+}
+
 const EVENT_COLUMNS = [
   "stream_id", "seq", "id", "shipment_id", "ts", "recorded_at", "kind",
   "actor_party_id", "actor_user_id", "actor_device_id", "party_refs", "payload",
@@ -343,13 +364,13 @@ export class ShipmentSequencer extends DurableObject<Env> {
     // committed event already carries one (an inbound already bound to a shipment stream); the consumer
     // otherwise locates the event by its id. The shape is the consumer's Zod boundary
     // (workers/agents/src/concierge.ts MessageReceivedTrigger).
-    if (full.kind === "message.received") {
-      const trigger =
-        full.shipment_id === undefined
-          ? { kind: "message.received", tenant, event_id: full.id }
-          : { kind: "message.received", tenant, shipment_id: full.shipment_id, event_id: full.id };
+    // conciergeTriggerFor gates this: a counterparty inbound enqueues; an INTERNAL note (the Task-8
+    // SLA-overdue signal) returns null and NEVER enqueues — it is not an inbound the Concierge acts on
+    // (re-triggering would burn a wasted parse / DLQ retry-storm). REQ-095.
+    const conciergeTrigger = conciergeTriggerFor(full, tenant);
+    if (conciergeTrigger) {
       this.ctx.waitUntil(
-        this.env.AGENT_QUEUE.send(trigger).catch((err: unknown) => {
+        this.env.AGENT_QUEUE.send(conciergeTrigger).catch((err: unknown) => {
           console.error(`concierge trigger enqueue failed for message ${full.id} (message committed; the sweep recovers it):`, err);
         }),
       );

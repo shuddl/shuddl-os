@@ -2,6 +2,7 @@ import { SELF, env, runInDurableObject } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import type { LedgerEvent } from "@shuddl/contracts";
 import type { AppendedEvent } from "../src/do/sequencer.js";
+import { conciergeTriggerFor } from "../src/do/sequencer.js";
 import { hashEvent, verifyChain } from "@shuddl/ledger/chain";
 import { rowToEvent } from "@shuddl/ledger/lens";
 import { signEvent, verifyEventSig } from "@shuddl/ledger/sign";
@@ -370,5 +371,33 @@ describe("sequencer wiring sanity", () => {
   it("CONTROL_DB seeded the tenant + device key", async () => {
     const t = await env.CONTROL_DB.prepare("SELECT policy FROM tenants WHERE slug = ?").bind(TENANT).first<{ policy: string }>();
     expect(t?.policy).toBe("{}");
+  });
+});
+
+// REQ-095 — the Concierge trigger-enqueue DECISION the DO uses (conciergeTriggerFor). The DO's AGENT_QUEUE
+// is cross-isolate (a queue push cannot be observed from a test), so the guard is proven at its pure seam:
+// an INTERNAL message.received (the Task-8 SLA-overdue note) NEVER enqueues, so it never re-enters the
+// Concierge queue (no wasted parse / DLQ retry-storm); a counterparty inbound does, carrying shipment_id
+// only when the committed event already had one.
+describe("conciergeTriggerFor — the committed-message enqueue gate (REQ-095/026)", () => {
+  it("an INTERNAL message.received (SLA-overdue note) does NOT enqueue", () => {
+    expect(conciergeTriggerFor({ kind: "message.received", visibility: "internal", shipment_id: "shp-1", id: "evt-note" }, TENANT)).toBeNull();
+    expect(conciergeTriggerFor({ kind: "message.received", visibility: "internal", id: "evt-note-2" }, TENANT)).toBeNull();
+  });
+  it("a COUNTERPARTY inbound enqueues; shipment_id rides only when the event carries one", () => {
+    expect(conciergeTriggerFor({ kind: "message.received", visibility: "counterparty", id: "evt-a" }, TENANT)).toEqual({
+      kind: "message.received",
+      tenant: TENANT,
+      event_id: "evt-a",
+    });
+    expect(conciergeTriggerFor({ kind: "message.received", visibility: "counterparty", shipment_id: "shp-x", id: "evt-b" }, TENANT)).toEqual({
+      kind: "message.received",
+      tenant: TENANT,
+      shipment_id: "shp-x",
+      event_id: "evt-b",
+    });
+  });
+  it("a non-message kind never enqueues", () => {
+    expect(conciergeTriggerFor({ kind: "pod.signed", visibility: "counterparty", shipment_id: "shp-1", id: "evt-p" }, TENANT)).toBeNull();
   });
 });

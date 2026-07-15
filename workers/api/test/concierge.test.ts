@@ -4,7 +4,7 @@ import { readEvents, rowToEvent } from "@shuddl/ledger/lens";
 import type { LedgerEvent } from "@shuddl/contracts";
 import { DeterministicParser, RecordingSender, SendError, formatCents } from "@shuddl/agents";
 import type { ConciergeParser, EvidenceMessage, EvidenceSender, InboundEmail, ParseResult, SendReceipt } from "@shuddl/agents";
-import { handleMessageReceived, MessageReceivedTrigger } from "../../agents/src/concierge.js";
+import { handleMessageReceived, MessageReceivedTrigger, SLA_REPLY_WINDOW_MS } from "../../agents/src/concierge.js";
 import type { ConciergeDeps } from "../../agents/src/concierge.js";
 import type { SeqStubLike } from "../../agents/src/biller.js";
 import {
@@ -140,6 +140,19 @@ async function messageRow(eventId: string): Promise<{ id: string; direction: str
   return env.TENANT_A_DB.prepare("SELECT id, direction FROM messages WHERE id = ?")
     .bind(`msg:${eventId}`)
     .first<{ id: string; direction: string }>();
+}
+// Task 8 (REQ-095) probes: the inbound event's recorded_at (the deterministic SLA base) + the inbound's
+// own messages row's sla_due_ts.
+async function inboundRecordedAt(eventId: string): Promise<number> {
+  const row = await env.TENANT_A_DB.prepare("SELECT recorded_at FROM events WHERE id = ?")
+    .bind(eventId)
+    .first<{ recorded_at: number }>();
+  return row!.recorded_at;
+}
+async function slaRow(eventId: string): Promise<{ direction: string; sla_due_ts: number | null } | null> {
+  return env.TENANT_A_DB.prepare("SELECT direction, sla_due_ts FROM messages WHERE id = ?")
+    .bind(`msg:${eventId}`)
+    .first<{ direction: string; sla_due_ts: number | null }>();
 }
 
 beforeAll(async () => {
@@ -370,6 +383,36 @@ describe("Concierge consumer — message.received → resolve/price/reply (REQ-0
   it("the trigger's Zod boundary rejects a malformed message", () => {
     expect(() => MessageReceivedTrigger.parse({ kind: "message.received", tenant: TENANT })).toThrow(); // no event_id
     expect(MessageReceivedTrigger.parse({ kind: "message.received", tenant: TENANT, event_id: "evt-1" }).event_id).toBe("evt-1");
+  });
+
+  // ─── Task 8 (REQ-095) — SLA timers on an inbound that is OWED a reply but was NOT auto-answered ───────
+  it("SLA SET (queued): a held quote inbound gets sla_due_ts = its recorded_at + WINDOW (deterministic, on its OWN inbound row)", async () => {
+    // A below-floor ($222k/1-lb) quote QUEUES (a human owns it) → the inbound is owed a first-response SLA.
+    await seedRateConfig(env.TENANT_A_DB, ANOMALY_RATE_CONFIG);
+    const msgId = await appendInbound(
+      quoteEmail("sla-queued@shipper.example.com", "Quote from 97201 to 80016, 1 lb, 48x40x48."),
+      "sla-queued",
+    );
+    const outcome = await handleMessageReceived({ kind: "message.received", tenant: TENANT, event_id: msgId }, depsWith(new RecordingSender(), new DeterministicParser()));
+    expect(outcome.status, JSON.stringify(outcome)).toBe("queued");
+
+    // The SLA is on the INBOUND'S OWN row (msg:<inbound id>, direction 'in') — DETERMINISTIC from the
+    // event's recorded_at (never a fresh clock), so a redelivery re-computes the SAME due ts.
+    const rec = await inboundRecordedAt(msgId);
+    const row = await slaRow(msgId);
+    expect(row).toEqual({ direction: "in", sla_due_ts: rec + SLA_REPLY_WINDOW_MS });
+  });
+
+  it("SLA NOT SET (auto-reply): an auto-answered inbound keeps sla_due_ts NULL — it was answered this pass", async () => {
+    await seedRateConfig(env.TENANT_A_DB, TEST_RATE_CONFIG);
+    const msgId = await appendInbound(
+      quoteEmail("sla-answered@shipper.example.com", "Please quote from 97201 to 80012, 1000 lbs, 48x40x48, 2 pallets."),
+      "sla-answered",
+    );
+    const outcome = await handleMessageReceived({ kind: "message.received", tenant: TENANT, event_id: msgId }, depsWith(new RecordingSender(), new DeterministicParser()));
+    expect(outcome.status, JSON.stringify(outcome)).toBe("issued_replied");
+    // The auto-reply path answered instantly — no SLA is owed, so the inbound row stays sla_due_ts NULL.
+    expect(await slaRow(msgId)).toEqual({ direction: "in", sla_due_ts: null });
   });
 });
 

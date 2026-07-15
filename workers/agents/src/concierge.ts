@@ -132,6 +132,27 @@ async function partyIdFor(email: string): Promise<string> {
   return `party_${(await sha256Hex(`concierge:party:${email}`)).slice(0, 16)}`;
 }
 
+// ---- SLA timers on an inbound OWED a reply but NOT auto-answered (Task 8, REQ-095) -------------------
+// The first-response window. A SINGLE DOCUMENTED DEFAULT until a per-tenant SLA-config source exists — NO
+// config table/kind is invented here (that per-tenant override is a later-WP obligation, doc 02 §6). 4h:
+// a freight-brokerage first-response norm — long enough to absorb ordinary handling latency, short enough
+// that a quote request left unworked surfaces the SAME business day (before a competitor's quote wins the
+// load). If a tenant SLA-config kind lands later, resolve this per-tenant and keep this the fallback.
+export const SLA_REPLY_WINDOW_MS = 4 * 60 * 60 * 1000; // 14_400_000
+
+// Set the first-response SLA on the inbound's OWN messages row (msg:<event id>, direction 'in'). `messages`
+// is a MUTABLE read-model with no append-only guard (projection/messages.ts), so this UPDATE is legal — it
+// is the resolution write that projection deliberately left NULL at receipt (sla_due_ts is Task 8's column).
+// DETERMINISTIC: the due ts is `recorded_at + WINDOW` off the EVENT's recorded_at (never a fresh clock), so a
+// redelivery re-computes the IDENTICAL value — re-setting is an exact no-op. Called ONLY on the queued paths
+// (a human owns the reply); the auto_reply path answered instantly and sets nothing.
+async function setInboundSla(db: D1Database, inboundEventId: string, recordedAt: number): Promise<void> {
+  await db
+    .prepare("UPDATE messages SET sla_due_ts = ?1 WHERE id = ?2 AND direction = 'in'")
+    .bind(recordedAt + SLA_REPLY_WINDOW_MS, `msg:${inboundEventId}`)
+    .run();
+}
+
 // The tenant's effective rating config is loaded via the SHARED mirror (workers/agents/src/rate-config.ts,
 // a byte-identical copy of workers/api/src/rate-config.ts guarded by test/rate-config-parity.test.ts). The
 // agents worker does not depend on @shuddl/api, so the file is duplicated rather than imported — but the
@@ -260,6 +281,10 @@ export async function handleMessageReceived(message: MessageReceivedTrigger, dep
   // PRICE → DECIDE (REQ-026/093/098). No tariff ⇒ can't auto-price: record the request + a draft, queue it.
   const ratingConfig = await loadTenantRatingConfig(db, inbound.recorded_at);
   if (ratingConfig === null) {
+    // Owed a reply, not auto-answered → SET the SLA FIRST (before the appends). If a crash lands between
+    // the quote.requested append and here, the redelivery guard returns already_handled — so setting the
+    // SLA before the append guarantees an owed inbound always carries its due ts (deterministic, no-op re-set).
+    await setInboundSla(db, msg.event_id, inbound.recorded_at);
     await appendQuoteRequested(seq, msg, streamId, resolved, parse, quoteRequestedEventId, inbound.recorded_at);
     await recordDraft(db, msg.event_id, resolved, payload.thread);
     return { status: "queued", shipment_id: resolved.shipment_id, party_id: resolved.party_id, quote_requested_event_id: quoteRequestedEventId, reason: "unknown_price", detail: `no rate_config in effect for tenant ${msg.tenant} — queued for a human` };
@@ -276,6 +301,8 @@ export async function handleMessageReceived(message: MessageReceivedTrigger, dep
   // QUEUED — the gates in compose held (below_floor / not_corroborated / unknown_price / low_resolution). We
   // still RECORD the request (it is real; a human prices/answers it) + a DRAFT `messages` row, but NEVER send.
   if (decision.status === "queued") {
+    // Owed a reply, not auto-answered → SET the SLA FIRST (see the unknown_price branch above for why order matters).
+    await setInboundSla(db, msg.event_id, inbound.recorded_at);
     await appendQuoteRequested(seq, msg, streamId, resolved, parse, quoteRequestedEventId, inbound.recorded_at);
     await recordDraft(db, msg.event_id, resolved, payload.thread);
     return {

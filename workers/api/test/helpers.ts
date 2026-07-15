@@ -280,3 +280,23 @@ export function nextEvidenceBytes(): Uint8Array {
   for (let i = 0; i < 32; i++) bytes[i] = (n + i * 7 + 3) & 0xff;
   return bytes;
 }
+
+// ---- DO-invalidation retry (test-harness hardening only) --------------------------------------------
+// vitest-pool-workers can invalidate a SQLite-backed Durable Object MID-RUN (a recompile/reload of the
+// worker script), rejecting the in-flight RPC with "…invalidating this Durable Object. Please retry the
+// DurableObjectStub#fetch() call." The error is RETRIABLE BY DESIGN (its own message says so) — a bounded
+// re-issue lands on the reloaded DO. Wrap DO append/RPC access with this so the transient reload self-heals.
+// Production never needs it (a real DO reload is transparent to the caller; and runSlaSweep already catches
+// per-tenant faults and re-runs next tick). Safe to wrap idempotent DO calls only — every sequencer append is
+// idempotent (deterministic ids, dedupe-by-id), so a retry after a partial failure reproduces the same facts.
+export async function retryOnDoInvalidation<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
+  for (let i = 1; ; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const transient = msg.includes("Please retry") || msg.includes("invalidating this Durable Object");
+      if (i >= attempts || !transient) throw err;
+    }
+  }
+}
