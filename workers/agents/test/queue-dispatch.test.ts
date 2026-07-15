@@ -85,4 +85,34 @@ describe("agents queue() — per-message dispatch (REQ-031/039)", () => {
     expect(poison.state.acked).toBe(true);
     expect(throwing.state.retried).toBe(true); // processed independently, after the poison ack
   });
+
+  // WP-07: the Concierge sibling rides the SAME queue, discriminated on `kind`. The dispatch contract is
+  // identical — poison acks, an unknown tenant acks, a routable message whose D1 read throws retries.
+  it("message.received POISON body (missing event_id) → ACKed as poison", async () => {
+    const { message, state } = mkMessage({ kind: "message.received", tenant: "tenant-a" }); // no event_id
+    await worker.queue(mkBatch([message]), env, createExecutionContext());
+    expect(state.acked).toBe(true);
+    expect(state.retried).toBe(false);
+  });
+
+  it("message.received POISON tenant (not on the allowlist) → ACKed (REQ-025)", async () => {
+    const { message, state } = mkMessage({ kind: "message.received", tenant: "tenant-evil", event_id: "evt-1" });
+    await worker.queue(mkBatch([message]), env, createExecutionContext());
+    expect(state.acked).toBe(true);
+    expect(state.retried).toBe(false);
+  });
+
+  it("message.received THROWN handler (unmigrated D1) → retry() (per-message), not ack", async () => {
+    const { message, state } = mkMessage({ kind: "message.received", tenant: "tenant-a", event_id: "evt-1" });
+    await worker.queue(mkBatch([message]), env, createExecutionContext());
+    expect(state.retried).toBe(true);
+    expect(state.acked).toBe(false);
+  });
+
+  it("an unknown kind → ACKed as poison (the discriminated union matches neither trigger)", async () => {
+    const { message, state } = mkMessage({ kind: "invoice.issued", tenant: "tenant-a", event_id: "evt-1" });
+    await worker.queue(mkBatch([message]), env, createExecutionContext());
+    expect(state.acked).toBe(true);
+    expect(state.retried).toBe(false);
+  });
 });

@@ -24,10 +24,26 @@ export type MessageIntent = z.infer<typeof MessageIntent>;
 // `body_ref` is the R2 pointer to the stored raw body (the ledger carries the reference, never the bytes,
 // mirroring evidence-at-capture). `thread` groups a conversation (maps to messages.thread). `parse_confidence`
 // is the parser's confidence the intent is right (Bps, 0..10000) — distinct from the envelope `confidence`.
+//
+// INTERIM INLINE PARSE SOURCE (WP-07 Concierge, REQ-026/093): `subject`/`body` are the OPTIONAL de-MIME'd
+// text the inbound-ingestion leg may attach so the Concierge can parse the email WITHOUT an R2 fetch until
+// the R2 body-resolver lands (a later WP). `body_ref` stays the durable pointer — the ledger still carries
+// the ref, not the bytes; once the resolver reads bytes by ref these become unnecessary. They are inert to
+// the messages projection (which reads only channel/thread/body_ref) and, being absent on every existing
+// fixture, leave the frozen canonical bytes of prior events unchanged.
+//
+// BOUNDED (REQ-010 canonical hash): these ride INLINE in the event and so in its canonical-JSON hash + the
+// daily Merkle anchor, which would defeat "the ledger carries the ref, never the bytes" for a large body.
+// So they are CAPPED — a subject line and a parse-sufficient body prefix. The future inbound-ingestion leg
+// MUST truncate-to-`body_ref` past these caps (the full raw body always lives in R2 behind body_ref); the
+// C1 corroboration re-parses the SAME bounded bytes, so a truncated body only ever makes a quote LESS likely
+// to auto-send (fail-safe), never more.
 export const MessageReceivedPayload = z
   .object({
     channel: MessageChannel,
     from_ref: z.string().min(1),
+    subject: z.string().max(2_048).optional(), // interim inline parse source (de-MIME'd subject); bounded — see header
+    body: z.string().max(32_768).optional(), // interim inline parse source (de-MIME'd body text); bounded — see header
     thread: z.string().min(1).optional(), // present ⇒ non-empty (an empty thread ref is a bug, not a value)
     body_ref: z.string().min(1),
     intent: MessageIntent.optional(),

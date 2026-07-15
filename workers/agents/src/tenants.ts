@@ -14,6 +14,13 @@ export type AgentsEnv = {
   EVIDENCE_FROM?: string;
   /** REQ-129 — the evidence email's referral link base. */
   REFERRAL_BASE?: string;
+  // ── WP-07 Concierge (REQ-024/098). ──
+  /** REQ-024 — BOTH present ⇒ ClaudeParser; otherwise NotConfiguredParser (rejects loudly, never a silent
+   *  low-confidence parse). Secret via `wrangler secret`, never this file's toml. CONFIRM-gated (see WP-07). */
+  ANTHROPIC_API_KEY?: string;
+  ANTHROPIC_MODEL?: string;
+  /** REQ-098 tenant voice — the config-seeded from-name that signs the auto-reply. Defaults to a generic. */
+  CONCIERGE_FROM_NAME?: string;
   // ── Operator-set ONLY, for the guarded dev-only live-send probe (POST /_dev/evidence-test-send). ──
   //    All optional: absent ⇒ the route is inert (404). Real values are set per-environment by the
   //    operator (RESEND_API_KEY + TEST_SEND_TOKEN via `wrangler secret put`, never in the toml).

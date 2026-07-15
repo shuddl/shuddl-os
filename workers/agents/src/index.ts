@@ -2,12 +2,23 @@
 // consumers (WP-06: the Biller — src/biller.ts). LLM calls live here and in packages/agents — never
 // in the ledger (REQ-024); the Biller itself is deterministic and LLM-free.
 
+import { z } from "@shuddl/contracts";
 import { runDailyAnchor } from "@shuddl/ledger/anchor";
 import { FakeTsaClient, HttpTsaClient, UnavailableTsaClient, type TsaClient } from "@shuddl/ledger/tsa/client";
-import { NotConfiguredSender, ResendSender, SendError, renderEvidenceEmail } from "@shuddl/agents";
-import type { EvidenceEmailData, EvidenceMessage, EvidenceSender } from "@shuddl/agents";
+import { ClaudeParser, NotConfiguredParser, NotConfiguredSender, ParseError, ResendSender, SendError, renderEvidenceEmail } from "@shuddl/agents";
+import type { ConciergeParser, EvidenceEmailData, EvidenceMessage, EvidenceSender } from "@shuddl/agents";
 import { PodSignedMessage, handlePodSigned, type BillerDeps, type SeqStubLike } from "./biller.js";
+import { MessageReceivedTrigger, handleMessageReceived, type ConciergeDeps } from "./concierge.js";
 import { TENANT_SLUGS, tenantDb, type AgentsEnv } from "./tenants.js";
+
+// The queue's message union (REQ-039): a committed pod.signed fans out to the Biller, a committed
+// message.received to the Concierge. Discriminated on `kind`, so a body matching neither member — or one
+// missing a member's required fields — fails safeParse and is ACKed as poison (redelivery cannot fix a shape).
+const AgentTrigger = z.discriminatedUnion("kind", [PodSignedMessage, MessageReceivedTrigger]);
+type AgentTrigger = z.infer<typeof AgentTrigger>;
+
+// REQ-098 tenant voice fallback — a generic, REQ-167-clean from-name when none is configured.
+const DEFAULT_CONCIERGE_FROM_NAME = "Shuddl Dispatch";
 
 // Prod resolves a real RFC-3161 endpoint from the `integrations` row; a missing config yields an
 // Unavailable client so the anchor leaves the day unanchored + escalates (never a fake in prod).
@@ -41,6 +52,19 @@ function evidenceSender(env: AgentsEnv): EvidenceSender {
     return new ResendSender({ apiKey, from });
   }
   return new NotConfiguredSender();
+}
+
+// REQ-024 — the LLM parse port is selected HERE (never inside the consumer): BOTH an ANTHROPIC_API_KEY
+// (secret) and a model id bound ⇒ ClaudeParser; anything less ⇒ NotConfiguredParser, which rejects LOUDLY
+// (retriable) so an unconfigured environment can never silently swallow an inbound parse. Mirrors
+// evidenceSender()'s composition-root discipline. Going live is a CONFIRM-gated config flip, not code.
+function conciergeParser(env: AgentsEnv): ConciergeParser {
+  const apiKey = env.ANTHROPIC_API_KEY;
+  const model = env.ANTHROPIC_MODEL;
+  if (apiKey !== undefined && apiKey !== "" && model !== undefined && model !== "") {
+    return new ClaudeParser({ apiKey, model });
+  }
+  return new NotConfiguredParser();
 }
 
 // Route each append to the (tenant|stream) sequencer DO — the same id derivation the api routes use,
@@ -232,44 +256,60 @@ export default {
   // never something code turns on. External selling never precedes this heartbeat on real freight; there
   // is deliberately no in-repo flag that flips it — the gate is the milestone, evidenced by the M-H demo.
   //
-  // REQ-039 / WP-06: the Biller consumer. Per-message ack/retry — one poison message never stalls the
-  // batch. POISON (unparseable body, unknown tenant) is ACKed with a loud log: redelivery cannot fix
-  // it, and retrying it forever would only delay real work (the DLQ + exceptions surface land WP-11).
-  // A THROWN handler failure (retriable send, transient D1/DO fault) retries the MESSAGE — safe end to
-  // end because the Biller's append id and email idempotency key are deterministic (dedupe both sides).
+  // REQ-039 / WP-06/07: the agent consumers, dispatched by `kind` — pod.signed → Biller, message.received
+  // → Concierge. Per-message ack/retry — one poison message never stalls the batch. POISON (a body matching
+  // neither trigger shape, an unknown tenant) is ACKed with a loud log: redelivery cannot fix it, and
+  // retrying it forever would only delay real work (the DLQ + exceptions surface land WP-11). A THROWN
+  // handler failure (a retriable parse/send, a transient D1/DO fault) retries the MESSAGE — safe end to end
+  // because BOTH consumers' append ids + send idempotency keys are deterministic (dedupe both sides).
   async queue(batch: MessageBatch, env: AgentsEnv, ctx: ExecutionContext): Promise<void> {
     void ctx;
     for (const message of batch.messages) {
-      const parsed = PodSignedMessage.safeParse(message.body);
+      const parsed = AgentTrigger.safeParse(message.body);
       if (!parsed.success) {
         console.error(`agents queue: unparseable message ${message.id} — ack as poison: ${parsed.error.message}`);
         message.ack();
         continue;
       }
+      const trigger: AgentTrigger = parsed.data;
       let db: D1Database;
       try {
-        db = tenantDb(env, parsed.data.tenant); // REQ-025 — the allowlist is the only tenant→D1 map
+        db = tenantDb(env, trigger.tenant); // REQ-025 — the allowlist is the only tenant→D1 map
       } catch (err) {
         console.error(`agents queue: message ${message.id} names an unknown tenant — ack as poison:`, err);
         message.ack();
         continue;
       }
-      const deps: BillerDeps = {
-        db,
-        seq: sequencerFor(env),
-        sender: evidenceSender(env),
-        referralBase: env.REFERRAL_BASE ?? DEFAULT_REFERRAL_BASE,
-      };
       try {
-        const outcome = await handlePodSigned(parsed.data, deps);
-        // The outcome IS the log line until WP-11's exceptions queue lands (holds surface there).
-        console.log(`biller: pod ${parsed.data.event_id} → ${JSON.stringify(outcome)}`);
+        if (trigger.kind === "pod.signed") {
+          const deps: BillerDeps = {
+            db,
+            seq: sequencerFor(env),
+            sender: evidenceSender(env),
+            referralBase: env.REFERRAL_BASE ?? DEFAULT_REFERRAL_BASE,
+          };
+          const outcome = await handlePodSigned(trigger, deps);
+          // The outcome IS the log line until WP-11's exceptions queue lands (holds surface there).
+          console.log(`biller: pod ${trigger.event_id} → ${JSON.stringify(outcome)}`);
+        } else {
+          const deps: ConciergeDeps = {
+            db,
+            seq: sequencerFor(env),
+            sender: evidenceSender(env),
+            parser: conciergeParser(env),
+            tenantFromName: env.CONCIERGE_FROM_NAME ?? DEFAULT_CONCIERGE_FROM_NAME,
+          };
+          const outcome = await handleMessageReceived(trigger, deps);
+          console.log(`concierge: message ${trigger.event_id} → ${JSON.stringify(outcome)}`);
+        }
         message.ack();
       } catch (err) {
-        console.error(`biller: retriable failure for pod ${parsed.data.event_id} — message will redeliver:`, err);
-        // A 429 from the send provider means we're being throttled: immediate redelivery would just
-        // re-trip the limiter, so back the retry off. SendError.status is threaded exactly for this.
-        if (err instanceof SendError && err.retriable && err.status === 429) {
+        console.error(`agents queue: retriable failure for ${trigger.kind} ${trigger.event_id} — message will redeliver:`, err);
+        // A 429 from a provider (Resend send OR the Anthropic parse) means we're being throttled: immediate
+        // redelivery would re-trip the limiter, so back the retry off. Both SendError and ParseError thread
+        // `.status` exactly for this.
+        const status = err instanceof SendError || err instanceof ParseError ? err.status : undefined;
+        if ((err instanceof SendError || err instanceof ParseError) && err.retriable && status === 429) {
           message.retry({ delaySeconds: RATE_LIMIT_RETRY_DELAY_S });
         } else {
           message.retry();

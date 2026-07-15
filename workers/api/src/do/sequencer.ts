@@ -334,6 +334,26 @@ export class ShipmentSequencer extends DurableObject<Env> {
         );
       }
     }
+
+    // WP-07 (REQ-026/093/100): a COMMITTED message.received triggers the Concierge — the Biller's sibling.
+    // Same discipline as the Biller trigger above: enqueue STRICTLY AFTER the batch commits (never before),
+    // on ctx.waitUntil (off the mutex + the caller's ack), best-effort (a failed push is LOGGED, never
+    // thrown — the message is committed truth; a lost trigger is a reconciliation-sweep concern, WP-11). A
+    // fresh quote email has NO shipment yet (the Concierge CREATES one), so `shipment_id` rides only when the
+    // committed event already carries one (an inbound already bound to a shipment stream); the consumer
+    // otherwise locates the event by its id. The shape is the consumer's Zod boundary
+    // (workers/agents/src/concierge.ts MessageReceivedTrigger).
+    if (full.kind === "message.received") {
+      const trigger =
+        full.shipment_id === undefined
+          ? { kind: "message.received", tenant, event_id: full.id }
+          : { kind: "message.received", tenant, shipment_id: full.shipment_id, event_id: full.id };
+      this.ctx.waitUntil(
+        this.env.AGENT_QUEUE.send(trigger).catch((err: unknown) => {
+          console.error(`concierge trigger enqueue failed for message ${full.id} (message committed; the sweep recovers it):`, err);
+        }),
+      );
+    }
     return full;
   }
 

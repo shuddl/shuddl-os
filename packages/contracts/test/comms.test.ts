@@ -55,6 +55,11 @@ describe("REQ-093: MessageReceivedPayload (inbound message → channel + from_re
     expect(p.intent).toBe("quote");
     expect(p.parse_confidence).toBe(8_200);
   });
+  it("accepts the optional inline subject + body (WP-07 interim parse source, pre-R2 resolver)", () => {
+    const p = MessageReceivedPayload.parse({ ...valid, subject: "Quote request", body: "97201 to 80012, 1000 lbs, 48x40x48" });
+    expect(p.subject).toBe("Quote request");
+    expect(p.body).toBe("97201 to 80012, 1000 lbs, 48x40x48");
+  });
   it("rejects a missing from_ref (required)", () => {
     const { from_ref: _drop, ...rest } = valid;
     expect(() => MessageReceivedPayload.parse(rest)).toThrow();
