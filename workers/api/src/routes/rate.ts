@@ -1,11 +1,11 @@
 import type { Hono } from "hono";
 import { z } from "zod";
-import { priceShipment, assessApproval } from "@shuddl/rater";
-import type { RateRequest, Leg, PricedQuote, ApprovalDecision } from "@shuddl/rater";
+import { priceShipment, assessApproval, resolveTransitDays } from "@shuddl/rater";
+import type { RateRequest, Leg, PricedQuote, ApprovalDecision, TransitResult } from "@shuddl/rater";
 import { ApiError } from "../middleware/error.js";
 import { requireRole } from "../middleware/auth.js";
 import { tenantDb } from "../tenants.js";
-import { loadTenantRatingConfig } from "../rate-config.js";
+import { loadTenantRatingConfig, loadTransitMatrix } from "../rate-config.js";
 import { translateAppendError, type SeqStub } from "./events.js";
 import type { AppendedEvent } from "../do/sequencer.js";
 import type { Env, Vars } from "../index.js";
@@ -141,6 +141,17 @@ export function mountRateRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>): 
     // No price on air (REQ-004), end to end: an UNKNOWN emits NO quote.priced.
     if (quote.status === "UNKNOWN") return c.json({ status: "UNKNOWN", reason: quote.reason });
 
+    // REQ-059 — the HONEST transit window. Loaded SEPARATELY from the required config (NON-required: the
+    // quote already priced above without it) and resolved over the SAME zone tariff pricing used, so a
+    // transit lane keys off exactly the zones the price did. An absent matrix OR an unresolvable lane ⇒
+    // UNKNOWN ⇒ the response marks transit "unavailable"; a number is NEVER fabricated (the honest-window
+    // law). Resolved only on the PRICED path — an UNKNOWN price carries no quote to attach a window to.
+    const transitMatrix = await loadTransitMatrix(tenantDb(c.env, session.tenant), now);
+    const transit: TransitResult =
+      transitMatrix === null
+        ? { status: "UNKNOWN" }
+        : resolveTransitDays(body.origin_zip, body.dest_zip, transitMatrix, config.zone_tariff);
+
     // ---- PRICED: turn the quote into append-only ledger facts on the shipment stream ----
     const streamId = `s:${body.shipment_id}`;
     const stub = c.env.SHIPMENT_SEQ.get(
@@ -232,12 +243,12 @@ export function mountRateRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>): 
 
     // (The REQ-040 anomaly is recorded on quote.priced.basis above — see the note there. No exception.raised
     // is emitted from /rate; the client still sees `anomaly` in the response below.)
-    return c.json(pricedResponse(quote, decision));
+    return c.json(pricedResponse(quote, decision, transit));
   });
 }
 
 // The PRICED response the client sees — the price plus the SERVER's gate result. The UI only reflects it.
-function pricedResponse(quote: PricedQuote, decision: ApprovalDecision) {
+function pricedResponse(quote: PricedQuote, decision: ApprovalDecision, transit: TransitResult) {
   return {
     status: "PRICED" as const,
     sell_cents: quote.sell_cents,
@@ -246,5 +257,13 @@ function pricedResponse(quote: PricedQuote, decision: ApprovalDecision) {
     lines: quote.lines,
     approval: decision,
     anomaly: quote.anomaly,
+    transit: transitWindow(transit), // REQ-059 — honest window, or an explicit "unavailable" (never a fake number)
   };
+}
+
+// REQ-059 — the honest window as the client sees it: the whole business-day count when KNOWN, else an
+// explicit "unavailable" marker carrying NO number. The UI renders "estimated transit: N business days" only
+// on `known`; on `unavailable` it omits the line — a fabricated transit standard never reaches a customer.
+function transitWindow(t: TransitResult): { status: "known"; business_days: number } | { status: "unavailable" } {
+  return t.status === "KNOWN" ? { status: "known", business_days: t.days } : { status: "unavailable" };
 }

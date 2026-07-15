@@ -46,6 +46,14 @@ export interface ComposeInput {
   ratingConfig: TenantRatingConfig;
   /** REQ-098 tenant voice — the config-seeded from-name that signs the reply. */
   tenantFromName: string;
+  /**
+   * REQ-059 the HONEST transit window in whole BUSINESS DAYS — RESOLVED BY THE CONSUMER (loadTransitMatrix +
+   * resolveTransitDays over the SAME zone tariff pricing used), passed ONLY on a KNOWN lane. Present ⇒ the
+   * reply/draft shows an "Estimated transit: N business days" line; ABSENT (an unresolvable lane, or a tenant
+   * with no transit_matrix) ⇒ the line is OMITTED — compose NEVER fabricates a number. compose stays pure: it
+   * does not load the matrix (that is I/O the consumer owns), it only threads the resolved days into the render.
+   */
+  transitDays?: number;
 }
 
 // The reply/draft render — one shape, whether it is SENT (auto_reply.reply) or held for review (queued.draft).
@@ -142,7 +150,7 @@ async function corroborates(email: InboundEmail, modelRequest: RateRequest): Pro
  * every failure surfaces as a rejection) — the decision remains pure and deterministic.
  */
 export async function composeConcierge(input: ComposeInput): Promise<ConciergeDecision> {
-  const { parse, email, resolved, ratingConfig, tenantFromName } = input;
+  const { parse, email, resolved, ratingConfig, tenantFromName, transitDays } = input;
 
   // 1. PRICE. No price on air (REQ-004): an absent request or an UNKNOWN result queues — a human handles it.
   const request = parse.request;
@@ -158,6 +166,8 @@ export async function composeConcierge(input: ComposeInput): Promise<ConciergeDe
     lane: { origin_zip: request.origin_zip, dest_zip: request.dest_zip },
     sell_cents: quote.sell_cents,
     tenant_from_name: tenantFromName,
+    // REQ-059 — thread the resolved window only when KNOWN; ABSENT ⇒ renderQuoteReply omits the line (never fakes it).
+    ...(transitDays !== undefined ? { transit_days: transitDays } : {}),
   });
 
   // 2. FLOOR-CLEAN — a below-floor OR anomalous quote is NEVER auto_reply (permanent, REQ-040). Queue it with

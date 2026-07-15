@@ -10,6 +10,9 @@ export { computeFloors } from "./floors.js";
 export type { Floors } from "./floors.js";
 export { priceShipment } from "./price.js";
 export type { RateRequest, TenantRatingConfig, PricedQuote, QuoteResult } from "./price.js";
+// REQ-059 — the HONEST transit-window resolver (reuses the engine's longest-prefix matchZone for both zips).
+export { resolveTransitDays } from "./transit.js";
+export type { TransitResult } from "./transit.js";
 export { sweepGrid } from "./sweep.js";
 export type { SweepCell } from "./sweep.js";
 export { evaluateApproval, executingShare, executingShareCents, assessApproval } from "./approval.js";

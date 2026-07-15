@@ -1,7 +1,7 @@
 import { SELF, env as testEnv } from "cloudflare:test";
 import { sign } from "hono/jwt";
 import { applyMigrations } from "@shuddl/ledger/migrate";
-import { z, ZoneTariff, FloorsConfig, FscConfig, AccessorialSchedule, FacilityKind, FacilityHours, FacilityCapacitySlots, FacilityAppointmentRules } from "@shuddl/contracts";
+import { z, ZoneTariff, FloorsConfig, FscConfig, AccessorialSchedule, TransitMatrix, FacilityKind, FacilityHours, FacilityCapacitySlots, FacilityAppointmentRules } from "@shuddl/contracts";
 import type { Env } from "../src/index.js";
 import controlSql from "../../../db/control/migrations/0001_control.sql?raw";
 import ledgerCore from "../../../db/tenant/migrations/0001_ledger_core.sql?raw";
@@ -175,6 +175,34 @@ export async function seedRateConfig(db: D1Database, config: RatingConfigSeed): 
 // Empty a tenant DB's rate_config (the REQ-151 "no tariff = no sell" cold-start test).
 export async function clearRateConfig(db: D1Database): Promise<void> {
   await db.prepare("DELETE FROM rate_config").run();
+}
+
+// ---- transit_matrix seeding (WP-08 Task 3 / REQ-059 honest transit window) --------------------------
+// A NON-required rate_config kind — seeded SEPARATELY from the four required rows so a suite can prove a
+// tenant prices with OR without one. Typed as the schema INPUT so a field rename fails at COMPILE time.
+// origin 97201 → Z1, dest 80012 → Z5 (TEST_RATE_CONFIG.zone_tariff), so Z1→Z5 = 3 business days is the
+// window a /rate quote for PRICEABLE surfaces.
+export const TEST_TRANSIT_MATRIX: z.input<typeof TransitMatrix> = {
+  kind: "transit_matrix",
+  id: "tm-test",
+  version: "v1",
+  days: { Z1: { Z1: 1, Z5: 3 }, Z5: { Z1: 3, Z5: 2 } },
+  default_days: 5,
+};
+
+// Insert a single transit_matrix row (kind='transit_matrix'). Does NOT touch the required rows — call
+// AFTER seedRateConfig (which DELETEs all rate_config first). effective_ts 0 so it is always in effect.
+export async function seedTransitMatrix(db: D1Database, matrix: z.input<typeof TransitMatrix>): Promise<void> {
+  await db
+    .prepare("INSERT OR REPLACE INTO rate_config (id, version, kind, payload, effective_ts, approved_by) VALUES (?,?,?,?,?,?)")
+    .bind(matrix.id, 1, matrix.kind, JSON.stringify(matrix), 0, "seed")
+    .run();
+}
+
+// Remove any transit_matrix row (the "no window / non-required" assertions) without disturbing the four
+// required rows.
+export async function clearTransitMatrix(db: D1Database): Promise<void> {
+  await db.prepare("DELETE FROM rate_config WHERE kind = 'transit_matrix'").run();
 }
 
 // ---- facility seeding (WP-08 Task 2 / REQ-052) -----------------------------------------------------

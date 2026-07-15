@@ -8,15 +8,19 @@ import { mulDivHalfUp } from "./money.js";
 
 const CWT = 100; // one hundredweight = 100 lb; cwt_cents is the rate per 100 lb.
 
-// Longest-prefix zone match: a key "800" matches dest "80112"; if several keys are prefixes of dest_zip,
-// the LONGEST key wins (most specific lane). Object key order is not relied upon — length decides.
-function matchZone(
-  destZip: string,
+// Longest-prefix zone match: a key "800" matches a zip "80112"; if several keys are prefixes of the zip,
+// the LONGEST key wins (most specific lane). Object key order is not relied upon — length decides. EXPORTED
+// as the ONE zone-resolution truth: freight pricing resolves the dest zone with it, and REQ-059's
+// resolveTransitDays resolves BOTH the origin AND dest zones with the SAME function, so a transit lane keys
+// off exactly the zones a price does. The parameter is a plain `zip` (not `destZip`) — the resolver is
+// direction-agnostic; the caller decides which endpoint it is resolving.
+export function matchZone(
+  zip: string,
   zipToZone: ZoneTariff["zip_to_zone"],
 ): { prefix: string; zone: string } | undefined {
   let best: { prefix: string; zone: string } | undefined;
   for (const [prefix, zone] of Object.entries(zipToZone)) {
-    if (!destZip.startsWith(prefix)) continue;
+    if (!zip.startsWith(prefix)) continue;
     if (best === undefined || prefix.length > best.prefix.length) {
       best = { prefix, zone };
     }

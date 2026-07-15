@@ -4,6 +4,7 @@ import {
   FscConfig,
   AccessorialSchedule,
   ClassAdapter,
+  TransitMatrix,
 } from "@shuddl/contracts";
 import type { TenantRatingConfig } from "@shuddl/rater";
 
@@ -54,4 +55,30 @@ export async function loadTenantRatingConfig(db: D1Database, now: number): Promi
     // set the key to undefined).
     ...(cls !== undefined ? { class_adapter: ClassAdapter.parse(cls) } : {}),
   };
+}
+
+// REQ-059 — the OPTIONAL transit-standards matrix, loaded SEPARATELY from the required bundle above and
+// DELIBERATELY NOT part of loadTenantRatingConfig's required set. It is NON-required: a tenant WITHOUT one
+// still PRICES (the required loader never depends on it) — its absence simply omits the honest transit
+// window from the quote, it NEVER blocks a price. Returns the transit_matrix IN EFFECT as of `now`, or null
+// when the tenant has none. Because it is non-required AND display-only, a MALFORMED stored matrix DEGRADES
+// to null (omit the window), logging LOUDLY — it must NEVER throw, or it would 500 an otherwise-priceable
+// /rate quote or DLQ a Concierge inbound (the REQ-173 silent-lost-quote class). The REQUIRED loaders above
+// stay fail-loud (you cannot price without them); this one cannot break a price. The caller resolves days via
+// resolveTransitDays and OMITS the window on UNKNOWN — never a fabricated number (the honest-window law).
+export async function loadTransitMatrix(db: D1Database, now: number): Promise<TransitMatrix | null> {
+  let tm: unknown;
+  try {
+    tm = await effectivePayload(db, "transit_matrix", now); // JSON.parse throws here on a non-JSON stored row
+  } catch (err) {
+    console.error(`transit_matrix row unreadable (bad JSON) — omitting the honest transit window (non-required): ${err instanceof Error ? err.message : String(err)}`);
+    return null;
+  }
+  if (tm === undefined) return null;
+  const parsed = TransitMatrix.safeParse(tm);
+  if (!parsed.success) {
+    console.error(`transit_matrix malformed — omitting the honest transit window (non-required, display-only): ${parsed.error.message}`);
+    return null;
+  }
+  return parsed.data;
 }

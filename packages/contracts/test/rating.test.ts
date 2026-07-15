@@ -5,6 +5,7 @@ import {
   FscConfig,
   AccessorialSchedule,
   ClassAdapter,
+  TransitMatrix,
   RateConfig,
 } from "../src/rating.js";
 
@@ -213,6 +214,51 @@ describe("ClassAdapter", () => {
   });
 });
 
+const transitMatrix = {
+  kind: "transit_matrix" as const,
+  id: "tm-1",
+  version: "2026.07",
+  days: {
+    Z1: { Z1: 1, Z4: 3 },
+    Z4: { Z1: 3, Z4: 2 },
+  },
+  default_days: 5,
+};
+
+describe("TransitMatrix (REQ-059)", () => {
+  it("parses a valid transit matrix and reads a zone×zone lane", () => {
+    const p = TransitMatrix.parse(transitMatrix);
+    expect(p.kind).toBe("transit_matrix");
+    expect(p.days["Z1"]?.["Z4"]).toBe(3);
+    expect(p.default_days).toBe(5);
+  });
+  it("parses WITHOUT default_days (it is optional)", () => {
+    const { default_days: _omit, ...noDefault } = transitMatrix;
+    const p = TransitMatrix.parse(noDefault);
+    expect(p.default_days).toBeUndefined();
+    expect(p.days["Z4"]?.["Z1"]).toBe(3);
+  });
+  it("rejects an unknown top-level key (.strict)", () => {
+    expect(() => TransitMatrix.parse({ ...transitMatrix, surcharge: 1 })).toThrow();
+  });
+  it("rejects a FLOAT day (integer-only SafeInt — no fractional transit days)", () => {
+    expect(() => TransitMatrix.parse({ ...transitMatrix, days: { Z1: { Z4: 2.5 } } })).toThrow();
+    expect(() => TransitMatrix.parse({ ...transitMatrix, default_days: 3.5 })).toThrow();
+  });
+  it("rejects a NEGATIVE day (a transit standard is a count, never negative)", () => {
+    expect(() => TransitMatrix.parse({ ...transitMatrix, days: { Z1: { Z4: -1 } } })).toThrow();
+    expect(() => TransitMatrix.parse({ ...transitMatrix, default_days: -1 })).toThrow();
+  });
+  it("accepts a ZERO-day lane (same-zone next-hour transit is a legitimate 0 business days)", () => {
+    const p = TransitMatrix.parse({ ...transitMatrix, days: { Z1: { Z1: 0 } } });
+    expect(p.days["Z1"]?.["Z1"]).toBe(0);
+  });
+  it("rejects an empty id / version (min 1 — version-pinned like every rate_config)", () => {
+    expect(() => TransitMatrix.parse({ ...transitMatrix, id: "" })).toThrow();
+    expect(() => TransitMatrix.parse({ ...transitMatrix, version: "" })).toThrow();
+  });
+});
+
 describe("RateConfig discriminated union", () => {
   it("discriminates a zone_tariff payload to ZoneTariff", () => {
     const p = RateConfig.parse(zoneTariff);
@@ -222,14 +268,21 @@ describe("RateConfig discriminated union", () => {
       expect(p.rate_groups[0]?.min_charge_cents).toBe(9500);
     }
   });
-  it("discriminates each of the five kinds", () => {
+  it("discriminates each of the six kinds", () => {
     expect(RateConfig.parse(floors).kind).toBe("floors");
     expect(RateConfig.parse(fsc).kind).toBe("fsc");
     expect(RateConfig.parse(accessorials).kind).toBe("accessorials");
     expect(RateConfig.parse(classAdapter).kind).toBe("class_adapter");
+    expect(RateConfig.parse(transitMatrix).kind).toBe("transit_matrix");
   });
   it("throws on an unknown kind", () => {
-    expect(() => RateConfig.parse({ ...floors, kind: "transit_matrix" })).toThrow();
     expect(() => RateConfig.parse({ ...floors, kind: "bogus" })).toThrow();
+  });
+  it("discriminates a transit_matrix payload to TransitMatrix (rejects a floors-shaped body under that kind)", () => {
+    const p = RateConfig.parse(transitMatrix);
+    expect(p.kind).toBe("transit_matrix");
+    if (p.kind === "transit_matrix") expect(p.days["Z1"]?.["Z4"]).toBe(3);
+    // a floors payload wearing the transit_matrix kind fails (missing `days`, extra floors keys under .strict)
+    expect(() => RateConfig.parse({ ...floors, kind: "transit_matrix" })).toThrow();
   });
 });

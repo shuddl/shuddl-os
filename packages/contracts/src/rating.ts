@@ -12,8 +12,8 @@ const NonNegCents = Cents.refine((c) => c >= 0, "rate_config cents must be non-n
 // version, payload, effective). This module models the PAYLOAD shape per kind — a tenant's rating
 // configuration, the SHAPE ONLY, with ZERO hardcoded tenant data. All money is INTEGER cents (Cents);
 // all percentages are basis points (Bps, 0..10000). Every object is .strict(); id/version are
-// non-empty strings so a config is always version-pinned (I5). transit_matrix is deliberately NOT here —
-// it belongs to WP-08 booking (do not add it in WP-04).
+// non-empty strings so a config is always version-pinned (I5). transit_matrix (REQ-059, the honest
+// transit window) landed with WP-08 booking — see TransitMatrix below.
 
 // zip_to_zone maps a ZIP prefix ("800") to a zone id ("Z4"). rate_groups carry weight breaks where
 // cwt_cents is the rate per hundredweight in cents; the engine expects breaks ASCENDING by min_lb, but
@@ -88,6 +88,28 @@ export const ClassAdapter = z
   .strict();
 export type ClassAdapter = z.infer<typeof ClassAdapter>;
 
+// REQ-059 (WP-08) — the transit-standards matrix: zone×zone BUSINESS-DAY transit standards that yield an
+// HONEST transit window on a quote. `days[originZone][destZone]` is the whole business-day transit for that
+// lane; `default_days` is the fallback for a lane the matrix does not enumerate. Days are SafeInt (integer
+// canonical law — no fractional transit day) and NON-NEGATIVE (a transit count, never negative; 0 is a
+// legitimate same-zone/same-day standard). There is NO "0 = unknown" sentinel: an UNRESOLVABLE lane (a zip
+// that resolves to no zone, or a lane absent with no default) resolves to UNKNOWN in resolveTransitDays and
+// the caller OMITS the window — a number is NEVER fabricated (the honest-window law). A zone key is the same
+// non-empty string shape as ZoneTariff's zone ids. This is a NON-required rate_config: a tenant without one
+// still PRICES (the loader is a separate optional load; its absence omits the window, never blocks a quote).
+const TransitZoneKey = z.string().min(1);
+const TransitDays = SafeInt.min(0);
+export const TransitMatrix = z
+  .object({
+    kind: z.literal("transit_matrix"),
+    id: z.string().min(1),
+    version: z.string().min(1),
+    days: z.record(TransitZoneKey, z.record(TransitZoneKey, TransitDays)),
+    default_days: TransitDays.optional(),
+  })
+  .strict();
+export type TransitMatrix = z.infer<typeof TransitMatrix>;
+
 // The engine consumes a tenant's rate_config as this tagged union, discriminated on `kind`.
 export const RateConfig = z.discriminatedUnion("kind", [
   ZoneTariff,
@@ -95,6 +117,7 @@ export const RateConfig = z.discriminatedUnion("kind", [
   FscConfig,
   AccessorialSchedule,
   ClassAdapter,
+  TransitMatrix,
 ]);
 export type RateConfig = z.infer<typeof RateConfig>;
 

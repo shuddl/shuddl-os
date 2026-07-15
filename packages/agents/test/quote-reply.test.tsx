@@ -111,10 +111,41 @@ describe("renderQuoteReply (REQ-098) — subject + content", () => {
   });
 });
 
+// ── the honest transit window (REQ-059) ──────────────────────────────────────────────────────
+describe("renderQuoteReply — honest transit window (REQ-059)", () => {
+  it("shows an 'Estimated transit' line with the business-day count when transit_days is KNOWN", () => {
+    const { html } = renderQuoteReply({ ...DATA, transit_days: 3 });
+    expect(html).toContain("Estimated transit");
+    expect(html).toContain("3 business days");
+  });
+
+  it("OMITS the transit line entirely when transit_days is ABSENT (UNKNOWN → never a fabricated number)", () => {
+    const { html } = renderQuoteReply(DATA);
+    expect(html).not.toContain("Estimated transit");
+    expect(html).not.toMatch(/business day/i);
+  });
+
+  it("renders the SINGULAR '1 business day' (no plural s) for a one-day lane", () => {
+    const { html } = renderQuoteReply({ ...DATA, transit_days: 1 });
+    expect(html).toContain("1 business day<"); // the value cell ends right after "day" (no trailing s)
+  });
+
+  it("renders '0 business days' for a same-zone standard (a legitimate 0, not an omission)", () => {
+    const { html } = renderQuoteReply({ ...DATA, transit_days: 0 });
+    expect(html).toContain("0 business days");
+  });
+
+  it("stays deterministic with a transit line: same data → byte-identical html", () => {
+    const a = renderQuoteReply({ ...DATA, transit_days: 3 });
+    const b = renderQuoteReply({ ...DATA, transit_days: 3 });
+    expect(a.html).toBe(b.html);
+  });
+});
+
 // ── email-safety + design law (sendable literals only) ──────────────────────────────────────
 
 describe("renderQuoteReply — email-safety (mail clients strip var()/flex/grid)", () => {
-  const html = renderQuoteReply(WITH_VALIDITY).html + renderQuoteReply(DATA).html;
+  const html = renderQuoteReply(WITH_VALIDITY).html + renderQuoteReply(DATA).html + renderQuoteReply({ ...WITH_VALIDITY, transit_days: 3 }).html;
 
   it("contains NO var(--…) — every token is inlined to its literal", () => {
     expect(html).not.toContain("var(");
@@ -132,7 +163,7 @@ describe("renderQuoteReply — email-safety (mail clients strip var()/flex/grid)
 });
 
 describe("renderQuoteReply — design law (doc 07; REQ-145/146/147)", () => {
-  const html = renderQuoteReply(WITH_VALIDITY).html + renderQuoteReply(DATA).html;
+  const html = renderQuoteReply(WITH_VALIDITY).html + renderQuoteReply(DATA).html + renderQuoteReply({ ...WITH_VALIDITY, transit_days: 3 }).html;
 
   it("every hex is one of the five tokens — and hexes EXIST to scan (non-vacuous)", () => {
     const hexes = extractHexes(html);

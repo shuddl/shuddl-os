@@ -24,8 +24,21 @@ export interface QuoteReplyData {
   sell_cents: number;
   /** Pre-formatted display string — this module stays Date-free (compose is pure; the consumer may set it). */
   valid_until?: string;
+  /**
+   * REQ-059 the HONEST transit window in whole BUSINESS DAYS. Shown as an "Estimated transit" line ONLY when
+   * present. The CONSUMER resolves this (loadTransitMatrix + resolveTransitDays) and passes it ONLY on a KNOWN
+   * lane; an UNKNOWN/unresolvable lane leaves it ABSENT so the line is OMITTED — a number is NEVER fabricated.
+   */
+  transit_days?: number;
   /** REQ-098 tenant voice: the config-seeded from-name that signs the reply. Body-only, React-escaped. */
   tenant_from_name: string;
+}
+
+// The honest transit window as a display string: "N business days" (SINGULAR "1 business day"). A whole,
+// non-negative day count already (SafeInt.min(0)); 0 is a legitimate same-zone standard, never omitted here —
+// the caller decides presence (absent ⇒ the line is omitted, never a fabricated 0).
+function transitDaysLabel(days: number): string {
+  return `${days} business day${days === 1 ? "" : "s"}`;
 }
 
 // React 19 hoists `<link rel="preload">` hints to the front of static markup; an email fragment has no
@@ -65,6 +78,9 @@ export function QuoteReplyView({ data }: { data: QuoteReplyData }): React.JSX.El
     ["Shipment", data.shipment_ref],
     ["Lane", lane],
     ["Rate", rate],
+    // REQ-059 — the honest transit window: an "Estimated transit" row ONLY when a KNOWN day count was passed.
+    // Absent ⇒ the row is omitted entirely (an unresolvable lane never yields a fabricated number).
+    ...(data.transit_days !== undefined ? ([["Estimated transit", transitDaysLabel(data.transit_days)]] as [string, string][]) : []),
     ...(data.valid_until !== undefined ? ([["Valid until", data.valid_until]] as [string, string][]) : []),
   ];
   return (

@@ -80,6 +80,7 @@ function baseInput(over?: {
   email?: InboundEmail;
   resolved?: { party_id: string; shipment_id: string; resolution_confidence: number };
   ratingConfig?: TenantRatingConfig;
+  transitDays?: number;
 }) {
   return {
     parse: over?.parse ?? mkParse(),
@@ -87,6 +88,7 @@ function baseInput(over?: {
     resolved: over?.resolved ?? RESOLVED,
     ratingConfig: over?.ratingConfig ?? mkConfig(),
     tenantFromName: FROM_NAME,
+    ...(over?.transitDays !== undefined ? { transitDays: over.transitDays } : {}),
   };
 }
 
@@ -257,6 +259,35 @@ describe("composeConcierge — the model's `confidence` is NEVER the auto-send g
   it("confidence 3000 but corroborated + floor-clean + resolved still AUTO_REPLIES", async () => {
     const decision = await composeConcierge(baseInput({ parse: mkParse({ confidence: 3_000 }) }));
     expect(decision.status).toBe("auto_reply");
+  });
+});
+
+describe("composeConcierge — honest transit window (REQ-059)", () => {
+  it("threads a KNOWN transit window into the auto-reply as an 'Estimated transit' line", async () => {
+    const decision = await composeConcierge(baseInput({ transitDays: 2 }));
+    expect(decision.status).toBe("auto_reply");
+    if (decision.status !== "auto_reply") throw new Error("expected auto_reply");
+    expect(decision.reply.html).toContain("Estimated transit");
+    expect(decision.reply.html).toContain("2 business days");
+  });
+
+  it("OMITS the transit line when no window is supplied (UNKNOWN → the reply carries no fabricated number)", async () => {
+    const decision = await composeConcierge(baseInput());
+    expect(decision.status).toBe("auto_reply");
+    if (decision.status !== "auto_reply") throw new Error("expected auto_reply");
+    expect(decision.reply.html).not.toContain("Estimated transit");
+    expect(decision.reply.html).not.toMatch(/business day/i);
+  });
+
+  it("the human-review DRAFT on a queued decision also carries the transit line (one render, both paths)", async () => {
+    const decision = await composeConcierge(
+      baseInput({ resolved: { party_id: "party-1", shipment_id: "SHP-1", resolution_confidence: 8_000 }, transitDays: 4 }),
+    );
+    expect(decision.status).toBe("queued");
+    if (decision.status !== "queued") throw new Error("expected queued");
+    expect(decision.reason).toBe("low_resolution");
+    expect(decision.draft?.html).toContain("Estimated transit");
+    expect(decision.draft?.html).toContain("4 business days");
   });
 });
 

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { Bps } from "./money.js";
+import { SafeInt } from "./json.js";
 import { RateRequestPayload } from "./rating.js";
 
 // WP-07 Concierge (REQ-026/093/099): typed payloads for the comms + quote-lifecycle kinds. These give the
@@ -62,6 +63,10 @@ export const MessageSentPayload = z
     body_ref: z.string().min(1),
     drafted_by_agent: z.string().min(1).optional(), // present ⇒ non-empty (a named agent, never "")
     in_reply_to: z.string().min(1).optional(), // present ⇒ non-empty (a real event id)
+    // REQ-059/178 — the resolved honest transit window (business days), PINNED into the reply record at send
+    // time so the redelivery fast path re-renders the SAME line from committed events (never a live config
+    // re-read that could drift → a 409/spurious-hold). Absent ⇒ the reply omitted the "Estimated transit" line.
+    transit_days: SafeInt.optional(),
   })
   .strict();
 export type MessageSentPayload = z.infer<typeof MessageSentPayload>;

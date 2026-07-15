@@ -11,8 +11,11 @@ import {
   ANOMALY_RATE_CONFIG,
   TENANT_SLUG,
   TEST_RATE_CONFIG,
+  TEST_TRANSIT_MATRIX,
+  clearTransitMatrix,
   ensureSchema,
   seedRateConfig,
+  seedTransitMatrix,
 } from "./helpers.js";
 
 // ─── WP-07 — THE CONCIERGE CONSUMER (REQ-026 / REQ-093 / REQ-100) ───────────────────────────────────
@@ -204,6 +207,59 @@ describe("Concierge consumer — message.received → resolve/price/reply (REQ-0
     // The messages read-model carries the inbound (projected from message.received) + the sent rows.
     expect(await messageRow(msgId)).toEqual({ id: `msg:${msgId}`, direction: "in" });
     expect(await messageRow(outcome.message_sent_event_id)).toEqual({ id: `msg:${outcome.message_sent_event_id}`, direction: "out" });
+  });
+
+  it("REQ-059/178 fast-path: the honest transit line is PINNED in message.sent — a config mutation cannot make the redelivery re-render diverge (no 409/spurious hold)", async () => {
+    await seedRateConfig(env.TENANT_A_DB, TEST_RATE_CONFIG);
+    await seedTransitMatrix(env.TENANT_A_DB, TEST_TRANSIT_MATRIX); // 97201→80012 = Z1→Z5 = 3 business days
+    const msgId = await appendInbound(
+      quoteEmail("transitpin@shipper.example.com", "Please quote from 97005 to 80012, 1000 lbs, 48x40x48, 2 pallets."),
+      "transit-pin",
+    );
+
+    const sender = new RecordingSender();
+    const first = await handleMessageReceived({ kind: "message.received", tenant: TENANT, event_id: msgId }, depsWith(sender, new DeterministicParser()));
+    expect(first.status, JSON.stringify(first)).toBe("issued_replied");
+    if (first.status !== "issued_replied") throw new Error("unreachable");
+    expect(sender.messages[0]!.html).toMatch(/3 business days/i); // the honest window rendered on the fresh send
+    // The resolved window is PINNED in the committed message.sent — the fast path reads it back, never re-resolves.
+    const sent = (await streamEvents(first.shipment_id)).find((e) => e.kind === "message.sent")!;
+    expect((sent.payload as { transit_days?: number }).transit_days).toBe(3);
+
+    // MUTATE the effective transit matrix (Z1→Z5 now 9): a LIVE re-resolve would render "9 business days",
+    // diverge from the committed send, and 409 the idempotency key → a spurious permanent hold.
+    await seedTransitMatrix(env.TENANT_A_DB, { ...TEST_TRANSIT_MATRIX, days: { Z1: { Z1: 1, Z5: 9 }, Z5: { Z1: 9, Z5: 2 } } });
+
+    // Redelivery → the FAST PATH re-renders from the PINNED transit_days (=3), NOT the mutated config.
+    const redelivered = await handleMessageReceived({ kind: "message.received", tenant: TENANT, event_id: msgId }, depsWith(sender, new DeterministicParser()));
+    expect(redelivered.status, JSON.stringify(redelivered)).toBe("issued_replied"); // NOT issued_send_pending — no 409
+    expect(sender.messages).toHaveLength(1); // byte-identical re-render → the sender's key-dedupe returns the original
+    expect(sender.messages[0]!.html).toMatch(/3 business days/i); // still the ORIGINAL 3, never the mutated 9
+    expect(sender.messages[0]!.html).not.toMatch(/9 business days/i);
+    await clearTransitMatrix(env.TENANT_A_DB); // shared D1 — don't leak the mutation into later cases
+  });
+
+  it("REQ-059/173: a MALFORMED transit_matrix DEGRADES to an omitted window — the quote still auto-replies, never throws/DLQs", async () => {
+    await seedRateConfig(env.TENANT_A_DB, TEST_RATE_CONFIG);
+    // A schema-INVALID transit_matrix (days is a string, not a zone→zone map): parses as JSON, fails the schema.
+    // Before the fix this threw out of loadTransitMatrix → past the REQ-173 guard → queue retry → DLQ (lost quote).
+    await env.TENANT_A_DB
+      .prepare("INSERT OR REPLACE INTO rate_config (id, version, kind, payload, effective_ts, approved_by) VALUES (?,?,?,?,?,?)")
+      .bind("tm-bad", 1, "transit_matrix", JSON.stringify({ kind: "transit_matrix", id: "tm-bad", version: "v1", days: "NOT_A_MAP" }), 0, "seed")
+      .run();
+    const msgId = await appendInbound(
+      quoteEmail("malformedtm@shipper.example.com", "Please quote from 97005 to 80012, 1000 lbs, 48x40x48, 2 pallets."),
+      "malformed-tm",
+    );
+
+    const sender = new RecordingSender();
+    // MUST NOT throw / DLQ — the malformed matrix degrades to null (loud log), the quote auto-replies, line omitted.
+    const outcome = await handleMessageReceived({ kind: "message.received", tenant: TENANT, event_id: msgId }, depsWith(sender, new DeterministicParser()));
+    expect(outcome.status, JSON.stringify(outcome)).toBe("issued_replied");
+    expect(sender.messages).toHaveLength(1);
+    expect(sender.messages[0]!.html).toContain(FROM_NAME); // a real reply went out
+    expect(sender.messages[0]!.html).not.toMatch(/business day/i); // the transit line is OMITTED, never fabricated
+    await clearTransitMatrix(env.TENANT_A_DB); // shared D1 — remove the corrupt row before later cases
   });
 
   it("BELOW-FLOOR ($222k/1-lb anomaly) → QUEUED, quote.requested + a DRAFT recorded, NO message.sent, NO reply (REQ-040)", async () => {

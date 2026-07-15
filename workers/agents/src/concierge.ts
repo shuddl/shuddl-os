@@ -29,9 +29,10 @@
 //     bound), exactly like the Biller's evidenceSender(). The consumer itself calls no LLM.
 
 import { z } from "@shuddl/contracts";
-import type { LedgerEvent, MessageReceivedPayload } from "@shuddl/contracts";
+import type { LedgerEvent, MessageReceivedPayload, ZoneTariff } from "@shuddl/contracts";
 import { rowToEvent } from "@shuddl/ledger/lens";
 import { resolveConcierge, composeConcierge, renderQuoteReply, SendError } from "@shuddl/agents";
+import { resolveTransitDays } from "@shuddl/rater";
 import type {
   ConciergeParser,
   EvidenceMessage,
@@ -40,7 +41,7 @@ import type {
   PartyKind,
   ResolvePort,
 } from "@shuddl/agents";
-import { loadTenantRatingConfig } from "./rate-config.js";
+import { loadTenantRatingConfig, loadTransitMatrix } from "./rate-config.js";
 import type { SeqStubLike } from "./biller.js";
 
 // ---- the queue payload (Zod at the boundary; the producer is the sequencer DO) ----------------------
@@ -160,6 +161,28 @@ async function setInboundSla(db: D1Database, inboundEventId: string, recordedAt:
 // a byte-identical copy of workers/api/src/rate-config.ts guarded by test/rate-config-parity.test.ts). The
 // agents worker does not depend on @shuddl/api, so the file is duplicated rather than imported — but the
 // parity test fails CI on any drift, closing the "a fix to one loader silently mis-prices the other" gap.
+
+// ---- the honest transit window (REQ-059) ------------------------------------------------------------
+// The SHARED resolver for BOTH the fresh auto-reply AND the redelivery re-render: load the effective
+// transit_matrix as-of `now` (SEPARATELY from the required rate config — a tenant without one still priced)
+// and resolve the lane's whole business days over the SAME zone tariff pricing used. Returns the day count
+// ONLY on a KNOWN lane; a missing matrix / absent request / unresolvable lane ⇒ undefined, so the caller
+// OMITS the "Estimated transit" line — a number is NEVER fabricated (the honest-window law). BOTH call sites
+// pass the SAME `now` (the inbound's recorded_at — the fast path reads it back as the sent event's `ts`), so a
+// redelivery reproduces the IDENTICAL window, keeping the re-rendered reply byte-identical to the committed
+// send (a divergent body would conflict the send's idempotency key).
+async function resolveTransitDaysForReply(
+  db: D1Database,
+  now: number,
+  request: { origin_zip: string; dest_zip: string } | undefined,
+  zoneTariff: ZoneTariff,
+): Promise<number | undefined> {
+  if (request === undefined) return undefined;
+  const matrix = await loadTransitMatrix(db, now);
+  if (matrix === null) return undefined;
+  const t = resolveTransitDays(request.origin_zip, request.dest_zip, matrix, zoneTariff);
+  return t.status === "KNOWN" ? t.days : undefined;
+}
 
 // ---- record loading --------------------------------------------------------------------------------
 type SqlRow = Record<string, string | number | null>;
@@ -304,14 +327,24 @@ export async function handleMessageReceived(message: MessageReceivedTrigger, dep
   // quote is SILENTLY LOST. Catch it and treat it EXACTLY like the `unknown_price` queued branch (a human
   // prices it): set the SLA, record the request + a draft, no send. The reason union is NOT widened — an
   // unpriceable request is an `unknown_price` cause, same as a null tariff / an UNKNOWN price.
+  // REQ-059 — resolve the HONEST transit window INSIDE the compose guard (REQ-173 belt): a transit fault must
+  // NEVER escape into the queue's blanket retry → DLQ and silently lose the quote (loadTransitMatrix already
+  // degrades a malformed matrix to null, but the resolve stays inside the guard so no transit path can). NON-
+  // required + additive: the matrix is loaded SEPARATELY from the required ratingConfig — a tenant without a
+  // transit_matrix, or an unresolvable lane, yields UNKNOWN → transitDays undefined → compose OMITS the line
+  // (never a fake number). transitDays is PINNED into message.sent below (REQ-178) so the redelivery fast path
+  // re-renders the SAME line from committed bytes — never a live config re-read that could drift.
+  let transitDays: number | undefined = undefined;
   let decision: Awaited<ReturnType<typeof composeConcierge>>;
   try {
+    transitDays = await resolveTransitDaysForReply(db, inbound.recorded_at, parse.request, ratingConfig.zone_tariff);
     decision = await composeConcierge({
       parse,
       email,
       resolved: { party_id: resolved.party_id, shipment_id: resolved.shipment_id, resolution_confidence: resolved.resolution_confidence },
       ratingConfig,
       tenantFromName,
+      ...(transitDays !== undefined ? { transitDays } : {}),
     });
   } catch (err) {
     const cause = err instanceof Error ? err.message : String(err);
@@ -404,6 +437,10 @@ export async function handleMessageReceived(message: MessageReceivedTrigger, dep
         drafted_by_agent: "concierge",
         in_reply_to: msg.event_id,
         ...(payload.thread !== undefined ? { thread: payload.thread } : {}),
+        // REQ-059/178 — PIN the resolved transit window so the fast path re-renders it from THIS committed
+        // event, not a live config re-read (which could drift → a 409 hold on an already-sent reply). Absent
+        // ⇒ the reply omitted the line, and the fast path omits it too — byte-identical either way.
+        ...(transitDays !== undefined ? { transit_days: transitDays } : {}),
       },
     },
   });
@@ -495,7 +532,7 @@ async function resendCommittedReply(
 ): Promise<ConciergeOutcome> {
   const requested = await loadEventById(db, ids.quoteRequestedEventId, "quote.requested");
   const priced = await loadEventById(db, ids.quotePricedEventId, "quote.priced");
-  const sent = sentEvent.payload as { to_ref: string; body_ref: string };
+  const sent = sentEvent.payload as { to_ref: string; body_ref: string; transit_days?: number };
   const partyId = sentEvent.party_refs[0] ?? "";
   if (requested === null || priced === null) {
     // message.sent committed but a preceding quote event is missing — cannot reconstruct the exact payload
@@ -504,7 +541,18 @@ async function resendCommittedReply(
   }
   const req = (requested.payload as { request: { origin_zip: string; dest_zip: string } }).request;
   const sell = (priced.payload as { sell: number }).sell;
-  const reply = renderQuoteReply({ shipment_ref: shipmentId, lane: { origin_zip: req.origin_zip, dest_zip: req.dest_zip }, sell_cents: sell, tenant_from_name: tenantFromName });
+  // REQ-059/178 — the honest transit line comes from the COMMITTED message.sent (`transit_days`), NEVER a live
+  // config re-read. The fresh path pinned exactly what it rendered; reading it back makes this re-render
+  // byte-identical to the original send regardless of any later config/matrix mutation (a live re-resolve
+  // could return a different effective row → a 409 on the idempotency key → a spurious hold on a sent reply).
+  // Absent ⇒ the original omitted the line ⇒ this omits it too. The fast path now reads ONLY committed events.
+  const reply = renderQuoteReply({
+    shipment_ref: shipmentId,
+    lane: { origin_zip: req.origin_zip, dest_zip: req.dest_zip },
+    sell_cents: sell,
+    tenant_from_name: tenantFromName,
+    ...(sent.transit_days !== undefined ? { transit_days: sent.transit_days } : {}),
+  });
   const message: EvidenceMessage = { channel: "email", to: sent.to_ref, subject: reply.subject, html: reply.html, shipment_id: shipmentId, idempotency_key: sent.body_ref };
   return sendConciergeReply({ sender, message, shipmentId, partyId, partyCreated: false, quoteRequestedEventId: ids.quoteRequestedEventId, quotePricedEventId: ids.quotePricedEventId, messageSentEventId: ids.messageSentEventId });
 }
