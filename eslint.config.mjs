@@ -4,7 +4,10 @@ export default tseslint.config(
   // shuddl-site/ is a separate, untracked sub-project with its own toolchain (Next.js + its own
   // eslint-plugin-react) — the monorepo's flat config must not try to lint it (it crashes on the
   // version-detection mismatch). It lints itself.
-  { ignores: ["**/dist/**", "**/node_modules/**", "**/.wrangler/**", "genesis/**", "fixtures/**", "docs/**", "seed/**", "apps/*/public/**", "shuddl-site/**"] },
+  // .claude/skills/** are governance/guidance docs (like CLAUDE.md), not build source. Their SKILL.md
+  // reference snippets ship illustrative .ts/.sql that intentionally won't typecheck standalone — the
+  // build linter must not gate on them.
+  { ignores: ["**/dist/**", "**/node_modules/**", "**/.wrangler/**", "genesis/**", "fixtures/**", "docs/**", "seed/**", "apps/*/public/**", "shuddl-site/**", ".claude/**"] },
   ...tseslint.configs.recommended,
   {
     rules: {

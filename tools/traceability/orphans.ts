@@ -21,9 +21,12 @@ export function findOrphans(input: { activeWps: string[]; sourceAnnotations: Set
 export function scanSourceAnnotations(): Set<string> {
   // git grep across everything except governance prose: genesis docs cite every REQ,
   // plans discuss future-WP REQs, and CLAUDE.md/README/BUILD-PROMPT restate the law.
+  // .claude/skills/** are governance/guidance too — a skill CITES REQs to teach, it does not
+  // IMPLEMENT them, so its citations must not count as annotations (they would both mask a
+  // genuinely-unbuilt active-WP REQ and, if a skill cited an unregistered REQ, false-fail the gate).
   // Implementation docs (docs/ops, docs/security, docs/wp) DO count — they are deliverables.
   const out = execSync(
-    `git grep -h -o -E "REQ-[0-9]{3}" -- . ":(exclude)genesis" ":(exclude)docs/plans" ":(exclude)BUILD-PROMPT.md" ":(exclude)CLAUDE.md" ":(exclude)README.md" || true`,
+    `git grep -h -o -E "REQ-[0-9]{3}" -- . ":(exclude)genesis" ":(exclude)docs/plans" ":(exclude)BUILD-PROMPT.md" ":(exclude)CLAUDE.md" ":(exclude)README.md" ":(exclude).claude" || true`,
     { encoding: "utf8" },
   );
   return new Set(out.split("\n").filter(Boolean));
