@@ -18,3 +18,15 @@ export {
   wrapFragment,
 } from "./biller/sender.js";
 export type { EvidenceMessage, SendReceipt, EvidenceSender, ResendConfig } from "./biller/sender.js";
+// WP-07 Concierge — the parse port (REQ-024/026/098): freeform inbound email → a structured ParseResult.
+// The FIRST LLM usage in the codebase, config-gated exactly like the sender (Deterministic/NotConfigured/Claude).
+export {
+  ParseResultSchema,
+  ParseError,
+  DeterministicParser,
+  NotConfiguredParser,
+  ClaudeParser,
+  CONCIERGE_SYSTEM_PROMPT,
+  buildUserPrompt,
+} from "./concierge/parse.js";
+export type { ParseResult, InboundEmail, ConciergeParser, ClaudeParserConfig } from "./concierge/parse.js";
