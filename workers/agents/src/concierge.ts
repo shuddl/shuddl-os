@@ -144,8 +144,11 @@ export const SLA_REPLY_WINDOW_MS = 4 * 60 * 60 * 1000; // 14_400_000
 // is a MUTABLE read-model with no append-only guard (projection/messages.ts), so this UPDATE is legal — it
 // is the resolution write that projection deliberately left NULL at receipt (sla_due_ts is Task 8's column).
 // DETERMINISTIC: the due ts is `recorded_at + WINDOW` off the EVENT's recorded_at (never a fresh clock), so a
-// redelivery re-computes the IDENTICAL value — re-setting is an exact no-op. Called ONLY on the queued paths
-// (a human owns the reply); the auto_reply path answered instantly and sets nothing.
+// redelivery re-computes the IDENTICAL value — re-setting is an exact no-op. Called on the queued paths (a
+// human owns the reply) AND at the TOP of the auto_reply path (REQ-174 backstop): a partial-append death
+// there leaves no answering message.sent, and the SLA is what lets the T8 sweep surface the vanished reply.
+// A successfully-sent auto-reply carries a message.sent(in_reply_to) that the sweep's ANSWERED check honors,
+// so the set SLA never becomes a false overdue flag.
 async function setInboundSla(db: D1Database, inboundEventId: string, recordedAt: number): Promise<void> {
   await db
     .prepare("UPDATE messages SET sla_due_ts = ?1 WHERE id = ?2 AND direction = 'in'")
@@ -269,8 +272,12 @@ export async function handleMessageReceived(message: MessageReceivedTrigger, dep
   // RESOLVE (REQ-093) — tie the inbound to a Party + Shipment, or explain why it can't. The port does the
   // direct party/shipment INSERTs; the appended quote.requested (below) carries the provenance link. The
   // returned shipment_id equals the precomputed `shipmentId` above (same derivation from msg.event_id).
+  // REQ-172 — resolve keys the party find/create off the AUTHENTICATED envelope sender (`from_ref`), NEVER
+  // the model's `party_hint.email` (untrusted body output that could create an attacker party or match a
+  // victim's, earning the existing-party resolution bump). `partyIdFor` below derives from the port's
+  // `p.email`, which IS `senderEmail` — so identity is pinned to `from_ref` on every path (create + match).
   const port = makeResolvePort(db, msg.event_id, inbound.recorded_at);
-  const resolved = await resolveConcierge(parse, port, msg.event_id);
+  const resolved = await resolveConcierge(parse, port, msg.event_id, payload.from_ref);
   if (resolved.status === "unresolved") {
     // No shipment/party created, nothing quoted or sent. The outcome is the loud log until WP-11's queue.
     return { status: "unresolved", reason: resolved.reason, detail: `message ${msg.event_id} unresolved: ${resolved.reason}` };
@@ -290,13 +297,37 @@ export async function handleMessageReceived(message: MessageReceivedTrigger, dep
     return { status: "queued", shipment_id: resolved.shipment_id, party_id: resolved.party_id, quote_requested_event_id: quoteRequestedEventId, reason: "unknown_price", detail: `no rate_config in effect for tenant ${msg.tenant} — queued for a human` };
   }
 
-  const decision = await composeConcierge({
-    parse,
-    email,
-    resolved: { party_id: resolved.party_id, shipment_id: resolved.shipment_id, resolution_confidence: resolved.resolution_confidence },
-    ratingConfig,
-    tenantFromName,
-  });
+  // PRICE → DECIDE, but NEVER let a pricing throw escape (REQ-173). priceShipment/the Rater compose THROWS
+  // on an unpriceable request — a requested accessorial absent from the tenant schedule (no silent drop,
+  // Migrator law), or a degenerate zero-rate tariff yielding empty lines. Un-caught, that throw propagates
+  // out of the handler into the queue's blanket `catch → retry()` → infinite redelivery → DLQ → the customer
+  // quote is SILENTLY LOST. Catch it and treat it EXACTLY like the `unknown_price` queued branch (a human
+  // prices it): set the SLA, record the request + a draft, no send. The reason union is NOT widened — an
+  // unpriceable request is an `unknown_price` cause, same as a null tariff / an UNKNOWN price.
+  let decision: Awaited<ReturnType<typeof composeConcierge>>;
+  try {
+    decision = await composeConcierge({
+      parse,
+      email,
+      resolved: { party_id: resolved.party_id, shipment_id: resolved.shipment_id, resolution_confidence: resolved.resolution_confidence },
+      ratingConfig,
+      tenantFromName,
+    });
+  } catch (err) {
+    const cause = err instanceof Error ? err.message : String(err);
+    // Owed a reply, not auto-answered → SET the SLA FIRST (before the appends), same as the queued branches.
+    await setInboundSla(db, msg.event_id, inbound.recorded_at);
+    await appendQuoteRequested(seq, msg, streamId, resolved, parse, quoteRequestedEventId, inbound.recorded_at);
+    await recordDraft(db, msg.event_id, resolved, payload.thread);
+    return {
+      status: "queued",
+      shipment_id: resolved.shipment_id,
+      party_id: resolved.party_id,
+      quote_requested_event_id: quoteRequestedEventId,
+      reason: "unknown_price",
+      detail: `message ${msg.event_id} could not be priced (${cause}) — queued for a human (no reply sent)`,
+    };
+  }
 
   // QUEUED — the gates in compose held (below_floor / not_corroborated / unknown_price / low_resolution). We
   // still RECORD the request (it is real; a human prices/answers it) + a DRAFT `messages` row, but NEVER send.
@@ -317,6 +348,16 @@ export async function handleMessageReceived(message: MessageReceivedTrigger, dep
 
   // AUTO-REPLY — every gate passed. Append the ledger facts FIRST (quote.requested → quote.priced →
   // message.sent), THEN send. The reply's send references the message.sent event id (REQ-100).
+  //
+  // SLA BACKSTOP (REQ-174) — set the inbound SLA at the TOP of this block, BEFORE the appends. The auto-reply
+  // appends quote.requested → quote.priced → message.sent as three separate DO calls; if #2/#3 dies (a
+  // transient DO fault), redelivery finds message.sent absent, the queued guard returns `already_handled`,
+  // and the reply is SILENTLY LOST. Setting the SLA first means such a dead auto-reply (quote.requested
+  // committed, no answering message.sent) is caught by the T8 overdue sweep and surfaced as an internal
+  // overdue note. A successfully-sent auto-reply carries a `message.sent in_reply_to` the inbound, so the
+  // sweep's ANSWERED check correctly does NOT flag it — the SLA is a backstop, not a false alarm. The due ts
+  // is deterministic (recorded_at + WINDOW), so re-setting on redelivery is an exact no-op.
+  await setInboundSla(db, msg.event_id, inbound.recorded_at);
   await appendQuoteRequested(seq, msg, streamId, resolved, parse, quoteRequestedEventId, inbound.recorded_at);
 
   await seq.append({

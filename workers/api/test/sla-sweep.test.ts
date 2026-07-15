@@ -7,7 +7,7 @@ import { handleMessageReceived, SLA_REPLY_WINDOW_MS } from "../../agents/src/con
 import type { ConciergeDeps } from "../../agents/src/concierge.js";
 import { sweepTenantOverdueInbound } from "../../agents/src/sla-sweep.js";
 import type { SeqStubLike } from "../../agents/src/biller.js";
-import { ANOMALY_RATE_CONFIG, TENANT_SLUG, ensureSchema, retryOnDoInvalidation, seedRateConfig } from "./helpers.js";
+import { ANOMALY_RATE_CONFIG, TEST_RATE_CONFIG, TENANT_SLUG, ensureSchema, retryOnDoInvalidation, seedRateConfig } from "./helpers.js";
 
 // ─── WP-07 Task 8 — SLA OVERDUE SWEEP (REQ-095) ─────────────────────────────────────────────────────
 //
@@ -68,6 +68,17 @@ async function seedOverdueInbound(streamSuffix: string): Promise<{ msgId: string
   if (outcome.status !== "queued") throw new Error(`expected queued, got ${JSON.stringify(outcome)}`);
   const rec = await env.TENANT_A_DB.prepare("SELECT recorded_at FROM events WHERE id = ?").bind(msgId).first<{ recorded_at: number }>();
   return { msgId, shipmentId: outcome.shipment_id, partyId: outcome.party_id, due: rec!.recorded_at + SLA_REPLY_WINDOW_MS };
+}
+
+// A SUCCESSFULLY auto-replied inbound (the golden path) — REQ-174 sets its SLA at the top of the auto-reply
+// block, but a message.sent(in_reply_to) answers it, so the sweep must NOT flag it.
+async function seedAutoRepliedInbound(streamSuffix: string): Promise<{ msgId: string; shipmentId: string; due: number }> {
+  await seedRateConfig(env.TENANT_A_DB, TEST_RATE_CONFIG);
+  const msgId = await appendInbound(`${streamSuffix}@shipper.example.com`, "Please quote from 97201 to 80012, 1000 lbs, 48x40x48, 2 pallets.", streamSuffix);
+  const outcome = await handleMessageReceived({ kind: "message.received", tenant: TENANT, event_id: msgId }, depsWith(new RecordingSender(), new DeterministicParser()));
+  if (outcome.status !== "issued_replied") throw new Error(`expected issued_replied, got ${JSON.stringify(outcome)}`);
+  const rec = await env.TENANT_A_DB.prepare("SELECT recorded_at FROM events WHERE id = ?").bind(msgId).first<{ recorded_at: number }>();
+  return { msgId, shipmentId: outcome.shipment_id, due: rec!.recorded_at + SLA_REPLY_WINDOW_MS };
 }
 
 // The internal overdue-note events on a shipment stream (message.received{channel:note}).
@@ -163,6 +174,51 @@ describe("SLA overdue sweep — flags an unanswered overdue inbound (REQ-095)", 
     const second = await sweepTenantOverdueInbound(env.TENANT_A_DB, seqStub, TENANT, due + 1); // aggressive re-run
     expect(second.appended).toBe(0); // nothing new to record — bounded, not a per-tick re-append
     expect(await overdueNotes(shipmentId)).toHaveLength(1); // still exactly one
+  });
+
+  it("REQ-174 — does NOT flag a SUCCESSFULLY auto-replied inbound even though its SLA is set (the message.sent answers it)", async () => {
+    // The auto-reply path now sets the inbound SLA (REQ-174 backstop). A SUCCESSFUL auto-reply carries a
+    // message.sent(in_reply_to) — the sweep's ANSWERED check honors it, so the set SLA is never a false alarm.
+    const { shipmentId, due } = await seedAutoRepliedInbound("autoreplied");
+    await sweepTenantOverdueInbound(env.TENANT_A_DB, seqStub, TENANT, due + 1);
+    expect(await overdueNotes(shipmentId)).toHaveLength(0); // answered → not flagged
+  });
+
+  it("REQ-174 PARTIAL-APPEND BACKSTOP — a dead auto-reply (quote.requested committed, message.sent append threw) IS flagged overdue", async () => {
+    // The auto-reply appends quote.requested → quote.priced → message.sent as three DO calls. Simulate a
+    // transient DO fault on the message.sent append: the handler throws (its auto-reply appends are OUTSIDE
+    // the pricing try/catch), leaving quote.requested committed with NO answering message.sent — the exact
+    // silent-lost-reply window (redelivery would short-circuit to already_handled). REQ-174 set the SLA at the
+    // TOP of the auto-reply block (BEFORE the appends), so this dead reply is backstopped by THIS sweep.
+    await seedRateConfig(env.TENANT_A_DB, TEST_RATE_CONFIG);
+    const from = "deadautoreply@shipper.example.com";
+    const msgId = await appendInbound(from, "Please quote from 97201 to 80012, 1000 lbs, 48x40x48, 2 pallets.", "partialappend");
+    const partialSeq: SeqStubLike = {
+      append: (req) => {
+        if ((req.input as { kind?: string }).kind === "message.sent") throw new Error("simulated DO fault before message.sent");
+        return seqStub.append(req);
+      },
+    };
+    const deps: ConciergeDeps = { db: env.TENANT_A_DB, seq: partialSeq, sender: new RecordingSender(), parser: new DeterministicParser(), tenantFromName: FROM_NAME };
+    await expect(handleMessageReceived({ kind: "message.received", tenant: TENANT, event_id: msgId }, deps)).rejects.toThrow();
+
+    // REQ-174: the SLA was set BEFORE the appends, so the inbound carries sla_due_ts even though the reply died.
+    const rec = await env.TENANT_A_DB.prepare("SELECT recorded_at FROM events WHERE id = ?").bind(msgId).first<{ recorded_at: number }>();
+    const due = rec!.recorded_at + SLA_REPLY_WINDOW_MS;
+    expect((await slaRow(msgId)).sla_due_ts).toBe(due);
+
+    // The shipment stream the committed quote.requested landed on (no message.sent there — the append threw).
+    const qr = await env.TENANT_A_DB.prepare(
+      "SELECT shipment_id FROM events WHERE kind = 'quote.requested' AND json_extract(payload,'$.source_message_event_id') = ?",
+    )
+      .bind(msgId)
+      .first<{ shipment_id: string }>();
+    const shipmentId = qr!.shipment_id;
+
+    // The backstop fires: the sweep records EXACTLY ONE internal overdue note for the vanished reply.
+    const res = await sweepTenantOverdueInbound(env.TENANT_A_DB, seqStub, TENANT, due + 1);
+    expect(res.appended).toBeGreaterThanOrEqual(1);
+    expect(await overdueNotes(shipmentId)).toHaveLength(1);
   });
 
   it("NO LOOP — driving the Concierge consumer on the internal note is a no-op (unresolved, no SLA, no append)", async () => {

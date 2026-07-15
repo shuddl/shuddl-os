@@ -25,6 +25,22 @@ function bps(n: number): ParseResult["confidence"] {
 const SRC = "evt-msg-received-1";
 
 /**
+ * Call resolveConcierge with the REQ-172 `senderEmail` (the AUTHENTICATED envelope sender = from_ref). For
+ * the DeterministicParser `party_hint.email === from_ref`, so defaulting the sender to the parse's own hint
+ * email preserves EXACTLY the pre-REQ-172 resolutions these tests pin (identity/matching still ties to the
+ * same address). The REQ-172 DIVERGENCE (a model hint ≠ the authenticated sender) is proven separately in
+ * the identity-source test below and in the consumer integration suite (workers/api/test/concierge.test.ts).
+ */
+function resolve(
+  parse: ParseResult,
+  port: ResolvePort,
+  src: string = SRC,
+  senderEmail: string = parse.party_hint?.email ?? "",
+): Promise<ResolveResult> {
+  return resolveConcierge(parse, port, src, senderEmail);
+}
+
+/**
  * A FAKE in-memory ResolvePort. It records call ORDER (calls[]) so we can assert the FK invariant
  * (createParty BEFORE createShipment), and captures the exact arguments handed to each write. It is
  * the ONLY collaborator resolveConcierge is given — mirroring the per-tenant binding of the real port.
@@ -95,7 +111,7 @@ describe("resolveConcierge — intent gate", () => {
       party_hint: { email: "ops@acme.test" },
       request: { origin_zip: "94105", dest_zip: "07030", weight_lb: 1200 },
     };
-    const result = await resolveConcierge(parse, port, SRC);
+    const result = await resolve(parse, port, SRC);
     expect(result).toEqual<ResolveResult>({ status: "unresolved", reason: "not_quote_intent" });
     // No read, no write — status/claim/unknown route elsewhere; resolution does zero I/O.
     expect(port.calls).toEqual([]);
@@ -112,7 +128,7 @@ describe("resolveConcierge — party signal gate", () => {
       confidence: bps(9500),
       request: { origin_zip: "94105", dest_zip: "07030", weight_lb: 1200 },
     };
-    const result = await resolveConcierge(parse, port, SRC);
+    const result = await resolve(parse, port, SRC);
     expect(result).toEqual<ResolveResult>({ status: "unresolved", reason: "no_party_signal" });
     expect(port.calls).toEqual([]);
   });
@@ -125,7 +141,7 @@ describe("resolveConcierge — party signal gate", () => {
       party_hint: { email: "" },
       request: { origin_zip: "94105", dest_zip: "07030", weight_lb: 1200 },
     };
-    const result = await resolveConcierge(parse, port, SRC);
+    const result = await resolve(parse, port, SRC);
     expect(result).toEqual<ResolveResult>({ status: "unresolved", reason: "no_party_signal" });
     expect(port.calls).toEqual([]);
   });
@@ -142,7 +158,7 @@ describe("resolveConcierge — priceable-request gate", () => {
       party_hint: { email: "ops@acme.test" },
       request: { origin_zip: "94105", dest_zip: "" }, // dest_zip absent (empty) → not priceable
     };
-    const result = await resolveConcierge(parse, port, SRC);
+    const result = await resolve(parse, port, SRC);
     expect(result).toEqual<ResolveResult>({ status: "unresolved", reason: "no_request" });
     expect(port.calls).toEqual([]);
   });
@@ -154,7 +170,7 @@ describe("resolveConcierge — priceable-request gate", () => {
       confidence: bps(9500),
       party_hint: { email: "ops@acme.test" },
     };
-    const result = await resolveConcierge(parse, port, SRC);
+    const result = await resolve(parse, port, SRC);
     expect(result).toEqual<ResolveResult>({ status: "unresolved", reason: "no_request" });
     expect(port.calls).toEqual([]);
   });
@@ -165,7 +181,7 @@ describe("resolveConcierge — priceable-request gate", () => {
 describe("resolveConcierge — existing party", () => {
   it("full quote whose email matches an existing party → resolved, party_created:false", async () => {
     const port = new FakePort({ "ops@acme.test": "party-existing-1" });
-    const result = await resolveConcierge(fullQuoteParse(), port, SRC);
+    const result = await resolve(fullQuoteParse(), port, SRC);
 
     expect(result.status).toBe("resolved");
     if (result.status !== "resolved") throw new Error("unreachable");
@@ -196,7 +212,7 @@ describe("resolveConcierge — existing party", () => {
       party_hint: { email: "ops@acme.test" },
       request: { origin_zip: "94105", dest_zip: "07030" }, // no weight
     };
-    const result = await resolveConcierge(parse, port, SRC);
+    const result = await resolve(parse, port, SRC);
     expect(result.status).toBe("resolved");
     if (result.status !== "resolved") throw new Error("unreachable");
     // 6000 (both zips) + 3000 (existing party) = 9000 → resolves (threshold is inclusive).
@@ -210,7 +226,7 @@ describe("resolveConcierge — existing party", () => {
 describe("resolveConcierge — new party", () => {
   it("full quote with NO existing party → resolved, party_created:true, createParty then createShipment", async () => {
     const port = new FakePort(); // no existing parties
-    const result = await resolveConcierge(fullQuoteParse(), port, SRC);
+    const result = await resolve(fullQuoteParse(), port, SRC);
 
     expect(result.status).toBe("resolved");
     if (result.status !== "resolved") throw new Error("unreachable");
@@ -243,7 +259,7 @@ describe("resolveConcierge — new party", () => {
       party_hint: { email: "solo@acme.test" },
       request: { origin_zip: "94105", dest_zip: "07030", weight_lb: 500 },
     };
-    const result = await resolveConcierge(parse, port, SRC);
+    const result = await resolve(parse, port, SRC);
     expect(result.status).toBe("resolved");
     const party = port.createdParties[0]!;
     expect(party.kind).toBe("shipper");
@@ -263,7 +279,7 @@ describe("resolveConcierge — low confidence", () => {
       party_hint: { email: "stranger@acme.test", name: "Stranger" },
       request: { origin_zip: "94105", dest_zip: "07030" }, // no weight
     };
-    const result = await resolveConcierge(parse, port, SRC);
+    const result = await resolve(parse, port, SRC);
     expect(result).toEqual<ResolveResult>({ status: "unresolved", reason: "low_confidence" });
     // A read to score the tie is fine; the WRITES must not have happened.
     expect(port.createdParties).toEqual([]);
@@ -278,8 +294,8 @@ describe("resolveConcierge — low confidence", () => {
 describe("resolveConcierge — determinism", () => {
   it("same parse + same port responses → byte-identical result", async () => {
     const parse = fullQuoteParse();
-    const a = await resolveConcierge(parse, new FakePort({ "ops@acme.test": "party-existing-1" }), SRC);
-    const b = await resolveConcierge(parse, new FakePort({ "ops@acme.test": "party-existing-1" }), SRC);
+    const a = await resolve(parse, new FakePort({ "ops@acme.test": "party-existing-1" }), SRC);
+    const b = await resolve(parse, new FakePort({ "ops@acme.test": "party-existing-1" }), SRC);
     expect(a).toEqual(b);
   });
 });
@@ -289,7 +305,7 @@ describe("resolveConcierge — determinism", () => {
 describe("resolveConcierge — FK order", () => {
   it("on the create path, createParty is invoked BEFORE createShipment", async () => {
     const port = new FakePort();
-    await resolveConcierge(fullQuoteParse(), port, SRC);
+    await resolve(fullQuoteParse(), port, SRC);
     const partyIdx = port.calls.indexOf("createParty");
     const shipIdx = port.calls.indexOf("createShipment");
     expect(partyIdx).toBeGreaterThanOrEqual(0);
@@ -305,7 +321,7 @@ describe("resolveConcierge — tenant isolation", () => {
     // The consumer binds ResolvePort to ONE tenant's D1 (REQ-025). resolveConcierge holds no D1
     // handle, no global, no fetch — so every call it makes lands on this fake and nowhere else.
     const port = new FakePort({ "ops@acme.test": "party-existing-1" });
-    await resolveConcierge(fullQuoteParse(), port, SRC);
+    await resolve(fullQuoteParse(), port, SRC);
     const known = new Set(["findPartyByEmail", "createParty", "createShipment"]);
     for (const call of port.calls) expect(known.has(call)).toBe(true);
   });
@@ -320,8 +336,8 @@ describe("resolveConcierge — non-idempotency (documented; consumer owns redeli
     // (skip if a quote.requested carrying this source_message_event_id already exists). This test PINS
     // the current behavior so the deferral is explicit and a future accidental "dedup here" is caught.
     const port = new FakePort({ "ops@acme.test": "party-existing-1" });
-    const a = await resolveConcierge(fullQuoteParse(), port, SRC);
-    const b = await resolveConcierge(fullQuoteParse(), port, SRC);
+    const a = await resolve(fullQuoteParse(), port, SRC);
+    const b = await resolve(fullQuoteParse(), port, SRC);
     expect(a.status).toBe("resolved");
     expect(b.status).toBe("resolved");
     expect(port.createdShipments).toHaveLength(2); // two shipments, same source id — not deduped here
@@ -336,8 +352,58 @@ describe("resolveConcierge — gate order", () => {
   it("with BOTH party_hint.email and request absent, no_party_signal wins (pins the gate order)", async () => {
     const port = new FakePort();
     const parse: ParseResult = { intent: "quote", confidence: bps(9500) }; // no email AND no request
-    const result = await resolveConcierge(parse, port, SRC);
+    const result = await resolve(parse, port, SRC);
     expect(result).toEqual<ResolveResult>({ status: "unresolved", reason: "no_party_signal" });
     expect(port.calls).toEqual([]);
+  });
+});
+
+// ── 12. IDENTITY is the authenticated sender, NEVER party_hint.email (REQ-172) ─────────────────
+
+describe("resolveConcierge — identity keys off the authenticated senderEmail (REQ-172)", () => {
+  it("a model party_hint.email that DIFFERS from senderEmail neither matches a victim nor creates on the attacker address", async () => {
+    // A VICTIM party is on file at the address the model names in party_hint (the crafted body's attempt to
+    // earn the existing-party resolution bump / impersonate). The authenticated sender is a BRAND-NEW address.
+    const port = new FakePort({ "victim@bigco.test": "party-victim" });
+    const parse: ParseResult = {
+      intent: "quote",
+      confidence: bps(10000),
+      party_hint: { email: "victim@bigco.test", name: "Totally The Victim" }, // model output — MUST NOT drive identity
+      request: { origin_zip: "94105", dest_zip: "07030", weight_lb: 1200 },
+    };
+    // senderEmail is the AUTHENTICATED from_ref — a new address, no party on file.
+    const result = await resolveConcierge(parse, port, SRC, "stranger@shipper.test");
+
+    expect(result.status).toBe("resolved");
+    if (result.status !== "resolved") throw new Error("unreachable");
+    // No victim match (find keyed off the authenticated sender, which is NOT on file) → a NEW party is created.
+    expect(result.party_created).toBe(true);
+    expect(result.party_id).not.toBe("party-victim");
+    // The find was performed on the AUTHENTICATED sender, never the model's party_hint.email.
+    expect(port.createdParties).toHaveLength(1);
+    const created = port.createdParties[0]!;
+    expect(created.email).toBe("stranger@shipper.test"); // identity = from_ref
+    expect(created.email).not.toBe("victim@bigco.test");
+    // party_hint.name is retained as the COSMETIC display name only (identity is the authenticated email).
+    expect(created.name).toBe("Totally The Victim");
+    // Structural confidence used the NEW-party path (no existing-party bump the spoof tried to buy):
+    // 6000 (both zips) + 1500 (new party) + 1500 (weight) = 9000, NOT 10000.
+    expect(result.resolution_confidence).toBe(9000);
+  });
+
+  it("an authenticated sender ON FILE matches that party even when party_hint.email is absent", async () => {
+    // The deterministic-parity case, made explicit: identity ties to the authenticated sender with NO hint.
+    const port = new FakePort({ "known@shipper.test": "party-known" });
+    const parse: ParseResult = {
+      intent: "quote",
+      confidence: bps(4000),
+      request: { origin_zip: "94105", dest_zip: "07030", weight_lb: 1200 },
+    };
+    const result = await resolveConcierge(parse, port, SRC, "known@shipper.test");
+    expect(result.status).toBe("resolved");
+    if (result.status !== "resolved") throw new Error("unreachable");
+    expect(result.party_created).toBe(false);
+    expect(result.party_id).toBe("party-known");
+    expect(result.resolution_confidence).toBe(10000); // existing + weight, clamped
   });
 });

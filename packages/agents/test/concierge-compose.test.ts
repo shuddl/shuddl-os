@@ -194,6 +194,22 @@ describe("composeConcierge — C1 independent corroboration (defeats a prompt-in
     if (decision.status !== "queued") throw new Error("expected queued");
     expect(decision.reason).toBe("not_corroborated");
   });
+
+  it("dims FAIL CLOSED: model priced WITH dims the deterministic parser can't re-extract ('48 by 40 by 60') ⇒ queued(not_corroborated) (REQ-175)", async () => {
+    const email: InboundEmail = {
+      from: "shipper@example.com",
+      subject: "Quote",
+      body: "Quote from 97201 to 98101, 1200 lbs, 48 by 40 by 60, 2 pallets.", // 'by' — DIMS_RE misses it
+    };
+    // The model extracted dims {48,40,60}; DIMS_RE only matches the "NxNxN" form, so the deterministic
+    // re-parse carries NO dims → the model priced WITH dims we cannot independently confirm → refuse to
+    // auto-send. Dims are price-inert under today's cwt engine (the sell is still correct), but the
+    // divergence-can't-send doctrine must cover dims before WP-09 density/class makes them price-affecting.
+    const decision = await composeConcierge(baseInput({ parse: mkParse(), email }));
+    expect(decision.status).toBe("queued");
+    if (decision.status !== "queued") throw new Error("expected queued");
+    expect(decision.reason).toBe("not_corroborated");
+  });
 });
 
 describe("composeConcierge — no price on air (UNKNOWN ⇒ a human handles it)", () => {

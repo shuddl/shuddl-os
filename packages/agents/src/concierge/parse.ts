@@ -32,7 +32,10 @@ export const ParseResultSchema = z
   .object({
     intent: MessageIntent, // reuse: quote | status | claim | unknown
     request: RateRequestPayload.optional(), // reuse: the canonical {origin_zip, dest_zip, weight_lb?, dims?, accessorials?}
-    party_hint: z.object({ email: z.string().optional(), name: z.string().optional() }).strict().optional(),
+    // party_hint is MODEL OUTPUT over an untrusted body — BOUND both fields (REQ-172). `email` is retained
+    // for routing/notes but is NEVER the identity key (resolve keys off the authenticated from_ref); `name`
+    // is a cosmetic display name only. 320 = the RFC-5321 max address length; 200 is a generous display cap.
+    party_hint: z.object({ email: z.string().max(320).optional(), name: z.string().max(200).optional() }).strict().optional(),
     confidence: Bps, // reuse: 0..10000 basis points
     notes: z.string().optional(),
   })

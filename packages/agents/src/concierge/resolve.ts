@@ -106,17 +106,28 @@ function resolutionConfidence(partyMatchedOnFile: boolean, weightPresent: boolea
  * Resolve a parsed inbound to a Party + Shipment, or explain why it can't. Deterministic; the injected
  * `port` is the ONLY I/O. Order of gates is intentional (cheapest/most-decisive first): intent →
  * party signal → priceable request → computed confidence → find-or-create → create shipment.
+ *
+ * IDENTITY IS THE AUTHENTICATED SENDER (REQ-172): the party find/create + the party-signal gate key off
+ * `senderEmail` — the AUTHENTICATED envelope sender (the inbound `from_ref`), NEVER `parse.party_hint.email`.
+ * For the ClaudeParser that hint is MODEL OUTPUT over an untrusted body: a crafted email could name an
+ * attacker address (creating a party on it) or a VICTIM's on-file address (earning the existing-party
+ * resolution bump — the confidence-bypass) while impersonating the sender. Sibling to REQ-171 (send
+ * corroboration) and the I2 send-recipient pin: the same never-trust-the-model doctrine at the resolve seam.
+ * `parse.party_hint.name` is retained ONLY as the created party's cosmetic display name (the identity email
+ * is now authenticated), and it is length-bounded at the parse boundary (ParseResultSchema).
  */
 export async function resolveConcierge(
   parse: ParseResult,
   port: ResolvePort,
   sourceMessageEventId: string,
+  senderEmail: string,
 ): Promise<ResolveResult> {
   // 1. Intent gate — WP-07's DoD is quoting; status/claim/unknown route elsewhere (do zero I/O here).
   if (parse.intent !== "quote") return { status: "unresolved", reason: "not_quote_intent" };
 
-  // 2. Party signal — an empty/absent email cannot tie to a party (empty string is treated as absent).
-  const email = parse.party_hint?.email;
+  // 2. Party signal — the AUTHENTICATED envelope sender (from_ref), NEVER parse.party_hint.email. An
+  //    empty/absent sender cannot tie to a party (empty string is treated as absent).
+  const email = senderEmail;
   if (!email) return { status: "unresolved", reason: "no_party_signal" };
 
   // 3. Priceable request — need BOTH zips to form a quotable shipment (RateRequestPayload requires them,
@@ -140,7 +151,9 @@ export async function resolveConcierge(
     party_id = existing.id;
     party_created = false;
   } else {
-    // The quote REQUESTER is the shipper. `name` only when we actually have one (exactOptionalPropertyTypes).
+    // The quote REQUESTER is the shipper, keyed by the AUTHENTICATED `email` (senderEmail). The model's
+    // `party_hint.name` is the COSMETIC display name ONLY — it never affects identity/matching — and only
+    // when present (exactOptionalPropertyTypes); it is length-bounded at the parse boundary.
     const toCreate: { kind: PartyKind; email: string; name?: string } = { kind: "shipper", email };
     const name = parse.party_hint?.name;
     if (name) toCreate.name = name;

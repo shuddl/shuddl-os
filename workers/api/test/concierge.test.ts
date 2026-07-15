@@ -308,6 +308,97 @@ describe("Concierge consumer — message.received → resolve/price/reply (REQ-0
     expect(sender.messages[0]!.to).not.toBe(SPOOF_RECIPIENT);
   });
 
+  it("REQ-172 — party IDENTITY keys off the AUTHENTICATED from_ref, never the model's party_hint.email (no attacker party)", async () => {
+    await seedRateConfig(env.TENANT_A_DB, TEST_RATE_CONFIG);
+    const from = "realshipper@shipper.example.com";
+    const msgId = await appendInbound(
+      quoteEmail(from, "Please quote from 97201 to 80012, 1000 lbs, 48x40x48, 2 pallets."),
+      "req172-identity",
+    );
+
+    // The (model) parser names an ATTACKER address as party_hint.email — it must NOT drive identity.
+    const sender = new RecordingSender();
+    const outcome = await handleMessageReceived({ kind: "message.received", tenant: TENANT, event_id: msgId }, depsWith(sender, new SpoofedRecipientParser()));
+    expect(outcome.status, JSON.stringify(outcome)).toBe("issued_replied");
+    if (outcome.status !== "issued_replied") throw new Error("unreachable");
+
+    // The created party + the shipment's shipper are keyed off from_ref — the party's contact email is the
+    // AUTHENTICATED envelope sender, NEVER the attacker's party_hint.email.
+    const shp = await shipmentRow(outcome.shipment_id);
+    expect(shp!.shipper_party_id).toBe(outcome.party_id);
+    const party = await env.TENANT_A_DB.prepare("SELECT contacts FROM parties WHERE id = ?").bind(outcome.party_id).first<{ contacts: string }>();
+    const emails = (JSON.parse(party!.contacts) as { email?: string }[]).map((c) => c.email);
+    expect(emails).toContain(from); // identity = from_ref
+    expect(emails).not.toContain(SPOOF_RECIPIENT); // the attacker address never becomes the party
+    // Every appended event attributes to the from_ref-keyed party (party_refs), not the attacker.
+    const events = await streamEvents(outcome.shipment_id);
+    expect(events.every((e) => e.party_refs.includes(outcome.party_id))).toBe(true);
+  });
+
+  it("REQ-172 — a spoofed EXISTING-party email in party_hint cannot force a victim match / resolution bump", async () => {
+    await seedRateConfig(env.TENANT_A_DB, TEST_RATE_CONFIG);
+    // Seed a VICTIM party already on file, keyed by the email the attacker will name in party_hint.
+    const victimEmail = "victim-req172@bigco.example.com";
+    const victimId = "party-victim-req172";
+    await env.TENANT_A_DB.prepare("INSERT OR IGNORE INTO parties (id, kind, names, contacts) VALUES (?,?,?,?)")
+      .bind(victimId, "shipper", "{}", JSON.stringify([{ kind: "primary", email: victimEmail }]))
+      .run();
+
+    // An inbound from a BRAND-NEW sender, but the (model) parser names the victim's on-file email in party_hint.
+    const from = "stranger-req172@shipper.example.com";
+    const msgId = await appendInbound(
+      quoteEmail(from, "Please quote from 97201 to 80012, 1000 lbs, 48x40x48, 2 pallets."),
+      "req172-victim",
+    );
+    class VictimHintParser implements ConciergeParser {
+      async parse(email: InboundEmail): Promise<ParseResult> {
+        const det = await new DeterministicParser().parse(email);
+        return { ...det, party_hint: { email: victimEmail } } as ParseResult;
+      }
+    }
+    const sender = new RecordingSender();
+    const outcome = await handleMessageReceived({ kind: "message.received", tenant: TENANT, event_id: msgId }, depsWith(sender, new VictimHintParser()));
+    expect(outcome.status, JSON.stringify(outcome)).toBe("issued_replied");
+    if (outcome.status !== "issued_replied") throw new Error("unreachable");
+
+    // The tie is a NEW party on from_ref — the victim was NOT matched (no existing-party bump off the model
+    // email). Under the pre-fix behavior findPartyByEmail(party_hint.email) would have matched the victim.
+    expect(outcome.party_created).toBe(true);
+    expect(outcome.party_id).not.toBe(victimId);
+    const shp = await shipmentRow(outcome.shipment_id);
+    expect(shp!.shipper_party_id).toBe(outcome.party_id);
+    expect(shp!.shipper_party_id).not.toBe(victimId);
+  });
+
+  it("REQ-173 — an unpriceable request (accessorial absent from the schedule) QUEUES (unknown_price), never throws into the redelivery loop", async () => {
+    // A config with an EMPTY accessorial schedule; the email requests 'liftgate' → the Rater compose THROWS
+    // ("no silent drop", Migrator law). That throw must be CAUGHT and turned into queued(unknown_price) —
+    // never propagate (the queue would blanket-retry it into the DLQ, silently losing the customer quote).
+    await seedRateConfig(env.TENANT_A_DB, {
+      ...TEST_RATE_CONFIG,
+      accessorials: { kind: "accessorials", id: "acc-empty", version: "v1", items: {} },
+    });
+    const from = "unpriceable@shipper.example.com";
+    const msgId = await appendInbound(
+      quoteEmail(from, "Please quote from 97201 to 80012, 1000 lbs, 48x40x48, 2 pallets, liftgate required."),
+      "req173-unpriceable",
+    );
+
+    const sender = new RecordingSender();
+    const outcome = await handleMessageReceived({ kind: "message.received", tenant: TENANT, event_id: msgId }, depsWith(sender, new DeterministicParser()));
+    expect(outcome.status, JSON.stringify(outcome)).toBe("queued");
+    if (outcome.status !== "queued") throw new Error("unreachable");
+    expect(outcome.reason).toBe("unknown_price");
+
+    // quote.requested recorded (a human prices it) + a DRAFT messages row; NO message.sent, NO reply.
+    const events = await streamEvents(outcome.shipment_id);
+    expect(events.map((e) => e.kind)).toEqual(["quote.requested"]);
+    const msgs = await messagesForShipment(outcome.shipment_id);
+    expect(msgs.some((m) => m.drafted_by_agent === "concierge" && m.direction === "out")).toBe(true);
+    expect(events.some((e) => e.kind === "message.sent")).toBe(false);
+    expect(sender.messages).toHaveLength(0);
+  });
+
   it("UNRESOLVED (a status email, not a quote) → nothing resolved/quoted/sent", async () => {
     await seedRateConfig(env.TENANT_A_DB, TEST_RATE_CONFIG);
     // A genuine STATUS email — no quote/rate keyword anywhere (the subject too), so intent resolves to
@@ -403,7 +494,7 @@ describe("Concierge consumer — message.received → resolve/price/reply (REQ-0
     expect(row).toEqual({ direction: "in", sla_due_ts: rec + SLA_REPLY_WINDOW_MS });
   });
 
-  it("SLA NOT SET (auto-reply): an auto-answered inbound keeps sla_due_ts NULL — it was answered this pass", async () => {
+  it("SLA SET (auto-reply backstop, REQ-174): an auto-answered inbound ALSO gets sla_due_ts = recorded_at + WINDOW — the backstop for a partial-append death", async () => {
     await seedRateConfig(env.TENANT_A_DB, TEST_RATE_CONFIG);
     const msgId = await appendInbound(
       quoteEmail("sla-answered@shipper.example.com", "Please quote from 97201 to 80012, 1000 lbs, 48x40x48, 2 pallets."),
@@ -411,8 +502,12 @@ describe("Concierge consumer — message.received → resolve/price/reply (REQ-0
     );
     const outcome = await handleMessageReceived({ kind: "message.received", tenant: TENANT, event_id: msgId }, depsWith(new RecordingSender(), new DeterministicParser()));
     expect(outcome.status, JSON.stringify(outcome)).toBe("issued_replied");
-    // The auto-reply path answered instantly — no SLA is owed, so the inbound row stays sla_due_ts NULL.
-    expect(await slaRow(msgId)).toEqual({ direction: "in", sla_due_ts: null });
+    // REQ-174: the auto-reply path sets the SLA at the TOP (before its appends), so a partial-append death
+    // (quote.requested committed, no answering message.sent) is caught by the T8 sweep. A SUCCESSFUL
+    // auto-reply carries a message.sent(in_reply_to) so the sweep's ANSWERED check does not flag it — proven
+    // in sla-sweep.test.ts. Here we pin that the SLA is deterministically set on the inbound's own row.
+    const rec = await inboundRecordedAt(msgId);
+    expect(await slaRow(msgId)).toEqual({ direction: "in", sla_due_ts: rec + SLA_REPLY_WINDOW_MS });
   });
 });
 
