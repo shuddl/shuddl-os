@@ -11,6 +11,7 @@ import { mountAnchorRoutes } from "./routes/anchors.js";
 import { mountRateRoutes } from "./routes/rate.js";
 import { mountEvidenceRoutes } from "./routes/evidence.js";
 import { mountStatusLinkRoutes } from "./routes/status-link.js";
+import { mountPublicRoutes } from "./routes/public.js";
 
 export type Env = {
   TENANT_A_DB: D1Database;
@@ -65,6 +66,10 @@ mountEvidenceRoutes(app);
 // status-cap link. A /v1 route, so app.use("/v1/*", auth) + idempotency already apply. The public read
 // that consumes the cap (GET /pub/status/:cap) is Task 3.
 mountStatusLinkRoutes(app);
+// WP-09 Task 3 (REQ-187/188): GET /pub/status/:cap — the PUBLIC, no-auth status read that consumes the cap
+// minted above. Mounted at /pub/* (NOT /v1/*), so app.use("/v1/*", auth) + idempotency do NOT run — the cap
+// is the authorization. This is the first public data read in the system; verifyStatusCap is the whole gate.
+mountPublicRoutes(app);
 
 app.notFound((c) => envelope(c, "NOT_FOUND", 404, "NOT FOUND"));
 
