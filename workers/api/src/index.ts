@@ -13,6 +13,7 @@ import { mountRateRoutes } from "./routes/rate.js";
 import { mountEvidenceRoutes } from "./routes/evidence.js";
 import { mountStatusLinkRoutes } from "./routes/status-link.js";
 import { mountDocumentRoutes } from "./routes/documents.js";
+import { mountInvoiceRoutes } from "./routes/invoices.js";
 import { mountPublicRoutes } from "./routes/public.js";
 
 export type Env = {
@@ -79,6 +80,11 @@ mountStatusLinkRoutes(app);
 // apply; the module ALSO registers the public GET /pub/documents/:cap bytes proxy the URL points at (the cap
 // is its authorization — it lives outside the /v1 auth middleware by design).
 mountDocumentRoutes(app);
+// WP-09 Task 7 (REQ-085 + REQ-179 pulled forward): GET /v1/invoices — the PORTAL invoices list, lens-scoped
+// (a party sees only invoices billed to it; ops/admin see all in-tenant). A /v1 route, so auth + idempotency
+// already apply. The margin/GL internals (division/gl_map) are absent from the party projection here, the
+// same law redact.ts now enforces on the invoice.issued EVENT (nested lines[].gl_map strip, REQ-179).
+mountInvoiceRoutes(app);
 // WP-09 Task 3 (REQ-187/188): GET /pub/status/:cap — the PUBLIC, no-auth status read that consumes the cap
 // minted above. Mounted at /pub/* (NOT /v1/*), so app.use("/v1/*", auth) + idempotency do NOT run — the cap
 // is the authorization. This is the first public data read in the system; verifyStatusCap is the whole gate.

@@ -7,11 +7,42 @@ import type { EventKind, LedgerEvent } from "@shuddl/contracts";
 type RedactScope = "tenant" | "party" | "driver";
 
 // Per-kind payload paths stripped for non-tenant lenses: quote internals (margin/rating
-// basis/pinned versions) and the operator-only exception note.
+// basis/pinned versions) and the operator-only exception note. TOP-LEVEL keys only — `delete
+// payload[path]` cannot reach a field nested inside an array element (see INTERNAL_NESTED).
 export const REDACTIONS: Partial<Record<EventKind, readonly string[]>> = {
   "quote.priced": ["floors", "basis", "versions"],
   "exception.raised": ["internal_note"],
 };
+
+// REQ-179 / I6 — the STRUCTURAL half of redaction. `delete payload[path]` (REDACTIONS) reaches only
+// TOP-LEVEL keys, so a MARGIN/GL internal nested inside an array — e.g. invoice.issued `lines[].gl_map`
+// and invoice.corrected `reissue_lines[].gl_map` (money.ts:25/47) — would ship to the counterparty. The
+// portal is the FIRST counterparty surface to read invoice.issued/invoice.corrected, so these keys must
+// be stripped at ANY depth. Keys listed here are removed wherever they appear (through arrays AND nested
+// objects), mirroring coarsenGeoInPlace. gl_map = chart of accounts; division = internal org unit. The
+// walk is STRUCTURAL, not path-enumerated, so it FAILS CLOSED: an unexpected shape (an extra line, a key
+// buried deeper than the contract) still loses the internal field — strip more, never less. The sell/
+// totals/line amounts (invoice_id, party_id, lines[].line_no/kind/amount_cents) are NOT listed, so a
+// counterparty still sees exactly what it owes. Keep append-only alongside KIND_VISIBILITY_DEFAULTS.
+export const INTERNAL_NESTED: Partial<Record<EventKind, readonly string[]>> = {
+  "invoice.issued": ["division", "gl_map"], // top-level division + lines[].gl_map (money.ts:25/34)
+  "invoice.corrected": ["division", "gl_map"], // reissue_lines[].gl_map (money.ts:47); division defensive
+};
+
+// Delete `key` from `node` and from every object nested inside it — through arrays and plain objects
+// alike. Mutates in place; call on the structuredClone redactEvent already makes, never on a stored
+// event. Structural, not index-bookkeeping, so `lines[3].gl_map` needs no path. Sibling to
+// coarsenGeoInPlace: one shape solves the nested-in-array case for BOTH geo and internal fields.
+function stripKeyInPlace(node: unknown, key: string): void {
+  if (Array.isArray(node)) {
+    for (const item of node) stripKeyInPlace(item, key);
+    return;
+  }
+  if (node === null || typeof node !== "object") return;
+  const obj = node as Record<string, unknown>;
+  if (key in obj) delete obj[key];
+  for (const value of Object.values(obj)) stripKeyInPlace(value, key);
+}
 
 // Party geo-privacy (doc 07 §02, L2, REQ-074): a consignee sees position rounded to ~11 km
 // (0.1 deg = 100_000 microdegrees) with accuracy dropped, until the shipment is out-for-delivery
@@ -57,7 +88,10 @@ export function redactEvent(
 ): LedgerEvent {
   if (lens.scope === "tenant") return event; // ops/finance/admin/read see the unredacted truth
   const payload = structuredClone(event.payload) as Record<string, unknown>;
-  for (const path of REDACTIONS[event.kind] ?? []) delete payload[path];
+  for (const path of REDACTIONS[event.kind] ?? []) delete payload[path]; // top-level
+  // Nested internal fields (invoice.issued/corrected margin+GL): stripped at EVERY depth so a field
+  // buried in lines[]/reissue_lines[] cannot reach a counterparty (REQ-179). Fail-closed structural walk.
+  for (const key of INTERNAL_NESTED[event.kind] ?? []) stripKeyInPlace(payload, key);
   // Party geo-privacy applies to EVERY geo-bearing kind (structural walk), not just
   // position.updated — exact coordinates are an ops/driver privilege (doc 07 §02, REQ-074).
   // Driver lenses keep exact geo.

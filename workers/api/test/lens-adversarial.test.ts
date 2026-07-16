@@ -493,6 +493,38 @@ describe("case 8: correction pair visible to P1, money nets to zero", () => {
   });
 });
 
+// 8b — REQ-179 (pulled forward from WP-11): the portal is the FIRST counterparty surface to read an
+// invoice.issued event. The counterparty (party) lens must see NO margin/GL internals — `division`
+// (top-level) and every `lines[].gl_map` (nested inside the lines array) — while KEEPING the sell/totals/
+// line amounts it legitimately owes. The tenant (ops) lens still sees everything (redaction is per-lens).
+describe("case 8b: invoice.issued margin/GL internals stripped for a counterparty lens (REQ-179)", () => {
+  it("P1 (party) sees NO division and NO lines[].gl_map; amounts stay — ops sees both", async () => {
+    const party = await listShipment(SHP_A, await portalTok(P1));
+    const tenant = await listShipment(SHP_A, await opsTok());
+
+    const pInv = party.events.find((e) => e.id === invoiceIssuedId);
+    const tInv = tenant.events.find((e) => e.id === invoiceIssuedId);
+    expect(pInv, "P1 must see the invoice.issued event").toBeDefined();
+    expect(tInv, "ops must see the invoice.issued event").toBeDefined();
+
+    // party lens: the internals are gone at every depth.
+    const pPayload = pInv!.payload as { division?: unknown; lines: Array<Record<string, unknown>> };
+    expect(pPayload.division).toBeUndefined();
+    expect(pPayload.lines.length).toBeGreaterThan(0);
+    for (const l of pPayload.lines) expect("gl_map" in l).toBe(false);
+    // ...but the sell/totals/line amounts a counterparty owes are KEPT.
+    expect(pPayload.lines[0]!.amount_cents).toBe(120_000);
+    expect(pPayload.lines[0]!.kind).toBe("freight");
+    // the gl_map VALUE never appears ANYWHERE in P1's raw body (the chart of accounts never ships).
+    expect(party.body).not.toContain("4000-REV");
+
+    // tenant lens: the SAME event carries the internals, unredacted (redaction is per-lens).
+    const tPayload = tInv!.payload as { division?: unknown; lines: Array<Record<string, unknown>> };
+    expect(tPayload.division).toBe("main");
+    expect(tPayload.lines[0]!.gl_map).toBe("4000-REV");
+  });
+});
+
 // 9 — THE I6 SWEEP: every route-appendable kind × {tenant, party, driver} lens, asserted against the
 // REAL exported maps (KIND_VISIBILITY_DEFAULTS + DRIVER_KINDS). Internal kinds never reach party/driver.
 describe("case 9: table-driven I6 visibility sweep on shipment A", () => {
