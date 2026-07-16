@@ -5,6 +5,7 @@ import { lensFor, readEvents, type ReadQuery } from "@shuddl/ledger/lens";
 import { ApiError } from "../middleware/error.js";
 import { requireRole } from "../middleware/auth.js";
 import { tenantDb } from "../tenants.js";
+import { assignmentOf } from "../gate-context.js";
 import type { AppendedEvent } from "../do/sequencer.js";
 import type { Env, Vars } from "../index.js";
 
@@ -191,13 +192,12 @@ export function mountEventRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>):
 
     // Driver write-scope (the plan leaves this to the route — the DO scopes tenant, the lens scopes
     // READS, neither scopes a driver's WRITES): a driver may append ONLY to a shipment the status-cache
-    // projection has assigned to them. ops/admin are unrestricted.
-    if (session.role === "driver") {
-      const row = await tenantDb(c.env, session.tenant)
-        .prepare("SELECT json_extract(status_cache,'$.assigned_driver') AS d FROM shipments WHERE id = ?")
-        .bind(shipmentId)
-        .first<{ d: string | null }>();
-      if (!row || row.d !== session.sub) throw new ApiError("FORBIDDEN", 403, "DRIVER NOT ASSIGNED TO THIS SHIPMENT");
+    // projection has assigned to them. ops/admin are unrestricted. `assignmentOf` is the SHARED predicate
+    // the positions bypass route reuses (REQ-190 gate parity) — ONE query, so the two paths cannot drift.
+    // shipmentId is the route :id (always present here); `?? ""` keeps the assignment query fail-closed
+    // (an empty id matches no shipment → not assigned → 403) and satisfies the shared predicate's string arg.
+    if (session.role === "driver" && !(await assignmentOf(tenantDb(c.env, session.tenant), shipmentId ?? "", session.sub))) {
+      throw new ApiError("FORBIDDEN", 403, "DRIVER NOT ASSIGNED TO THIS SHIPMENT");
     }
 
     const stub = c.env.SHIPMENT_SEQ.get(c.env.SHIPMENT_SEQ.idFromName(`${session.tenant}|${streamId}`)) as unknown as SeqStub;

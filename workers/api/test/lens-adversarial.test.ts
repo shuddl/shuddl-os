@@ -704,6 +704,16 @@ describe("mutation idempotency", () => {
 // POST /v1/positions — the partition. Bypasses the sequencer; PK (shipment_id, device_id, ts) +
 // INSERT OR IGNORE dedupes the row; hash = sha256(canonical(row)) is stable across re-ingest.
 describe("POST /v1/positions", () => {
+  // REQ-190 (2026-07-15 audit C-1) — the raw-GPS bypass now re-enforces the SAME server-side gates the
+  // sequencer's stop.arrived path does: driver-assignment scope, device-registration, and consent-before-
+  // GPS (REQ-030/166). So the partition-mechanics assertions below (hash, dedupe, PK-conflict) must post
+  // through a driver that PASSES those gates, else they'd 403 before ever reaching the INSERT. Seed once:
+  // a control-plane driver that OWNS the posting devices, each position shipment ASSIGNED to that driver,
+  // and a CA ConsentAck on each stream (POS_CA derives via deriveOperatingState to "CA").
+  const POS_DRIVER = "adv-pos-driver";
+  const POS_CA = { lat_e6: 37_421_000, lon_e6: -122_084_000 }; // deriveOperatingState -> "CA"
+  const posTok = (): Promise<string> => token({ sub: POS_DRIVER, tenant: TENANT_SLUG, role: "driver" });
+
   async function postPosition(input: Record<string, unknown>, tok: string): Promise<Response> {
     return SELF.fetch("https://api.local/v1/positions", {
       method: "POST",
@@ -712,9 +722,32 @@ describe("POST /v1/positions", () => {
     });
   }
 
+  beforeAll(async () => {
+    // The posting driver OWNS dev-x / dev-y / dev-c on the control plane (device-registration gate). The
+    // public_jwk is unused by the positions route's ownership check (raw pings carry no signed envelope —
+    // the [CONFIRM] per-ping signature is a separate decision), so a placeholder JWK suffices here.
+    await env.CONTROL_DB.prepare("INSERT OR IGNORE INTO users (id, tenant_id, email, role, auth, device_keys) VALUES (?,?,?,?,?,?)")
+      .bind(POS_DRIVER, "t-a", "adv-pos-driver@tenant-a.test", "driver", "{}", JSON.stringify([
+        { device_id: "dev-x", public_jwk: {} },
+        { device_id: "dev-y", public_jwk: {} },
+        { device_id: "dev-c", public_jwk: {} },
+      ]))
+      .run();
+    const ops = await opsTok();
+    for (const id of ["adv-pos-1", "adv-pos-2", "adv-pos-conflict"]) {
+      // status_cache carries the assignment the positions route checks (assigned_driver === session.sub).
+      await env.TENANT_A_DB.prepare("INSERT OR IGNORE INTO shipments (id, shipper_party_id, consignee_party_id, bill_to_party_id, status_cache, created_ts) VALUES (?,?,?,?,?,0)")
+        .bind(id, "party-shipper", "party-consignee", "party-bill-to", JSON.stringify({ assigned_driver: POS_DRIVER }))
+        .run();
+      // A CA ConsentAck on the stream so the consent-before-GPS gate passes for a POS_CA-derived ("CA") ping.
+      const r = await append(id, buildInput(id, "document.attached", { payload: consentPayload("CA") }), ops);
+      expect(r.status).toBe(201);
+    }
+  });
+
   it("a driver posts a position; the row lands with a canonical hash", async () => {
-    const pos = { shipment_id: "adv-pos-1", device_id: "dev-x", ts: 1_720_000_000_111, lat_e6: 37_421_000, lon_e6: -122_084_000, accuracy_m: 5, speed_cms: 1_500 };
-    const res = await postPosition(pos, await driverTok(D1));
+    const pos = { shipment_id: "adv-pos-1", device_id: "dev-x", ts: 1_720_000_000_111, lat_e6: POS_CA.lat_e6, lon_e6: POS_CA.lon_e6, accuracy_m: 5, speed_cms: 1_500 };
+    const res = await postPosition(pos, await posTok());
     expect(res.status).toBe(201);
     const row = await env.TENANT_A_DB.prepare("SELECT * FROM positions WHERE shipment_id=? AND device_id=? AND ts=?").bind(pos.shipment_id, pos.device_id, pos.ts).first<Record<string, string | number | null>>();
     expect(row).not.toBeNull();
@@ -724,15 +757,16 @@ describe("POST /v1/positions", () => {
   });
 
   it("re-ingesting the same position (fresh Idempotency-Key) is a no-op dedupe, not an error", async () => {
-    const pos = { shipment_id: "adv-pos-2", device_id: "dev-y", ts: 1_720_000_000_222, lat_e6: 1_000_001, lon_e6: 2_000_002 };
-    expect((await postPosition(pos, await driverTok(D1))).status).toBe(201);
-    expect((await postPosition(pos, await driverTok(D1))).status).toBe(201); // PK + INSERT OR IGNORE
+    const pos = { shipment_id: "adv-pos-2", device_id: "dev-y", ts: 1_720_000_000_222, lat_e6: POS_CA.lat_e6, lon_e6: POS_CA.lon_e6 };
+    expect((await postPosition(pos, await posTok())).status).toBe(201);
+    expect((await postPosition(pos, await posTok())).status).toBe(201); // PK + INSERT OR IGNORE
     const n = await env.TENANT_A_DB.prepare("SELECT COUNT(*) AS n FROM positions WHERE shipment_id=? AND device_id=? AND ts=?").bind(pos.shipment_id, pos.device_id, pos.ts).first<{ n: number }>();
     expect(n!.n).toBe(1);
   });
 
   it("rejects a float coordinate (integer-only canonical law)", async () => {
-    const res = await postPosition({ shipment_id: "adv-pos-3", device_id: "dev-z", ts: 1_720_000_000_333, lat_e6: 1.5, lon_e6: 2 }, await driverTok(D1));
+    // Parse (PositionInput.safeParse) runs BEFORE the gates, so a float is 400 regardless of assignment.
+    const res = await postPosition({ shipment_id: "adv-pos-3", device_id: "dev-z", ts: 1_720_000_000_333, lat_e6: 1.5, lon_e6: 2 }, await posTok());
     expect(res.status).toBe(400);
   });
 
@@ -740,10 +774,13 @@ describe("POST /v1/positions", () => {
   // is NOT rewritten), but it is a CLIENT conflict — it must surface as 400, never a 500 (which a client
   // would retry forever and which would pollute Watchtower's unhandled-error alarm).
   it("a same-PK re-ingest with DIFFERENT coordinates is a 400 (not a 500), and the row is not rewritten", async () => {
-    const base = { shipment_id: "adv-pos-conflict", device_id: "dev-c", ts: 1_720_000_000_777, lat_e6: 10_000_000, lon_e6: 20_000_000 };
-    expect((await postPosition(base, await driverTok(D1))).status).toBe(201);
+    // Both coords stay inside the CA box so the consent gate passes on BOTH posts and the conflict reaches
+    // the INSERT guard (not a gate block): the SAME (shipment, device, ts) with a DIFFERENT lat → different
+    // hash → positions_guard_ins aborts.
+    const base = { shipment_id: "adv-pos-conflict", device_id: "dev-c", ts: 1_720_000_000_777, lat_e6: 37_421_000, lon_e6: -122_084_000 };
+    expect((await postPosition(base, await posTok())).status).toBe(201);
 
-    const conflict = await postPosition({ ...base, lat_e6: 99_000_000 }, await driverTok(D1));
+    const conflict = await postPosition({ ...base, lat_e6: 37_422_000 }, await posTok());
     expect(conflict.status).toBe(400);
     const body = JSON.parse(await conflict.text()) as { code: string };
     expect(body.code).toBe("VALIDATION_FAILED"); // NOT INTERNAL -> the error.unhandled/500 path was NOT taken
@@ -754,9 +791,10 @@ describe("POST /v1/positions", () => {
   });
 
   it("requires an Idempotency-Key", async () => {
+    // The idempotency middleware runs before the handler, so a missing key is 400 before the gates.
     const res = await SELF.fetch("https://api.local/v1/positions", {
       method: "POST",
-      headers: { Authorization: `Bearer ${await driverTok(D1)}`, "content-type": "application/json" },
+      headers: { Authorization: `Bearer ${await posTok()}`, "content-type": "application/json" },
       body: JSON.stringify({ shipment_id: "adv-pos-4", device_id: "d", ts: 1, lat_e6: 1, lon_e6: 2 }),
     });
     expect(res.status).toBe(400);
