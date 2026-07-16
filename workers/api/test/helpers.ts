@@ -45,13 +45,17 @@ const TENANT_MIGRATIONS = [
 ];
 
 // Passport accrual (pod/exception/osd/custody) has an FK to parties(id): the party MUST exist before any
-// event that accrues, or the batch aborts. Seed the standard cast once.
-const PARTIES: [string, string][] = [
-  ["party-shipper", "shipper"],
-  ["party-carrier", "carrier"],
-  ["party-consignee", "consignee"],
-  ["party-bill-to", "broker"],
-  ["party-interline", "carrier"],
+// event that accrues, or the batch aborts. Seed the standard cast once. Each tuple is [id, kind, contacts].
+// party-bill-to carries a deliverable email so the REQ-182 booking evidence-recipient gate (WP-08 T6) passes
+// on the normal happy path — the bill_to is the party the Biller emails, so it is the party the gate checks.
+// party-shipper stays contactless on purpose (the Biller recipient_unresolved test bills to it). Tests that
+// need a NO-contact bill_to (or a bill_to on a credit hold) use their OWN party ids and never mutate this cast.
+const PARTIES: [string, string, string][] = [
+  ["party-shipper", "shipper", "[]"],
+  ["party-carrier", "carrier", "[]"],
+  ["party-consignee", "consignee", "[]"],
+  ["party-bill-to", "broker", JSON.stringify([{ kind: "billing", email: "billing@party-bill-to.test" }])],
+  ["party-interline", "carrier", "[]"],
 ];
 
 async function tableExists(db: D1Database, name: string): Promise<boolean> {
@@ -92,8 +96,8 @@ async function applyOnce(env: Env): Promise<void> {
   await env.CONTROL_DB.prepare("INSERT OR IGNORE INTO users (id, tenant_id, email, role, auth, device_keys) VALUES (?,?,?,?,?,?)")
     .bind("u-driver", "t-a", "driver@tenant-a.test", "driver", "{}", JSON.stringify([{ device_id: TEST_DEVICE_ID, public_jwk: TEST_DEVICE_PUBLIC_JWK }]))
     .run();
-  for (const [id, kind] of PARTIES) {
-    await env.TENANT_A_DB.prepare("INSERT OR IGNORE INTO parties (id, kind, names) VALUES (?,?,?)").bind(id, kind, "{}").run();
+  for (const [id, kind, contacts] of PARTIES) {
+    await env.TENANT_A_DB.prepare("INSERT OR IGNORE INTO parties (id, kind, names, contacts) VALUES (?,?,?,?)").bind(id, kind, "{}", contacts).run();
   }
 }
 
@@ -279,8 +283,8 @@ async function applyTenantB(env: Env): Promise<void> {
   if (!(await tableExists(env.TENANT_B_DB, "events"))) {
     await applyMigrations(env.TENANT_B_DB, TENANT_MIGRATIONS);
   }
-  for (const [id, kind] of PARTIES) {
-    await env.TENANT_B_DB.prepare("INSERT OR IGNORE INTO parties (id, kind, names) VALUES (?,?,?)").bind(id, kind, "{}").run();
+  for (const [id, kind, contacts] of PARTIES) {
+    await env.TENANT_B_DB.prepare("INSERT OR IGNORE INTO parties (id, kind, names, contacts) VALUES (?,?,?,?)").bind(id, kind, "{}", contacts).run();
   }
 }
 

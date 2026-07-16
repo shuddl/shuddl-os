@@ -22,6 +22,8 @@ import {
   assertException,
   assertConsentBeforeGps,
   assertAppointment,
+  assertBookingCredit,
+  assertBookingRecipientContact,
   type AppointmentCtx,
   type Fence,
   type GateCtx,
@@ -104,7 +106,7 @@ const DEFAULT_FENCE_RADIUS_M = 150;
 // must enforce the same consent gate).
 const GATED_KINDS = [
   "stop.departed", "delivery.evidenced", "custody.transferred", "exception.raised", "osd.captured", "stop.arrived",
-  "appointment.set",
+  "appointment.set", "booking.created",
 ] as const;
 type GatedKind = (typeof GATED_KINDS)[number];
 const GATED_KIND_SET: ReadonlySet<string> = new Set(GATED_KINDS);
@@ -468,6 +470,14 @@ export class ShipmentSequencer extends DurableObject<Env> {
         // the legs read-model) — never from the client event. Returns the computed service_date so #append can
         // hand the SAME value to the appointment projection (one impure tz derivation, reused by gate + write).
         return { appointmentServiceDate: await this.#enforceAppointment(db, shipmentId, incoming, ctx, prior) };
+      case "booking.created":
+        // REQ-042/182 — the booking gates. booking.created is the FIRST event on a fresh direct-booking
+        // stream (prior may be []), so context is SERVER-SOURCED from the PARTIES read-model — BOTH the
+        // bill_to's credit_status AND the bill_to's contacts (the bill_to is the party the Biller emails, so
+        // it is the party gated) — NEVER from prior events. Both reads go through THIS tenant's db
+        // (tenant-isolated), never the client event.
+        await this.#enforceBooking(db, incoming, ctx);
+        return {};
       default:
         // A GatedKind with no case above = a Set/switch desync. `assertNever` makes that a COMPILE error
         // (belt) and throws at runtime (suspenders) — never a silent fall-through to an ungated append.
@@ -543,6 +553,45 @@ export class ShipmentSequencer extends DurableObject<Env> {
 
     assertAppointment(await prior(), incoming, apptCtx);
     return serviceDate;
+  }
+
+  // REQ-042/182 — load the SERVER-SOURCED booking context from the PARTIES read-model and run the two pure
+  // gates. booking.created is the first event on a fresh stream, so there are no prior events to read — the
+  // gate reads parties. BOTH gates target the BILL_TO party: its credit_status AND its contacts. The bill_to
+  // is the party the Biller's resolveRecipient emails, so gating its contact is what guarantees a passing
+  // booking has a resolvable evidence recipient (the party checked == the party emailed). Both reads use THIS
+  // tenant's `db` (the DO is pinned to one tenant), so they can never cross a tenant boundary (REQ-025).
+  // Credit is evaluated FIRST, so a hold-and-no-contact booking reports credit_clear (deterministic order).
+  async #enforceBooking(
+    db: D1Database,
+    incoming: LedgerEvent & { kind: "booking.created" },
+    ctx: GateCtx,
+  ): Promise<void> {
+    const p = incoming.payload;
+
+    // ONE read of the bill_to party — its credit_status AND contacts feed both gates (the bill_to is who pays
+    // AND who is emailed). A missing row (no such party) reads as null for both → credit passes (no hold),
+    // recipient blocks (no contact) unless the payload opts out — fail-closed.
+    const billTo = await db
+      .prepare("SELECT credit_status, contacts FROM parties WHERE id = ?")
+      .bind(p.bill_to_party_id)
+      .first<{ credit_status: string | null; contacts: string | null }>();
+
+    // Credit (REQ-042): only an explicit 'hold' blocks. Overridable (REQ-049) — ctx carries the override.
+    assertBookingCredit(billTo?.credit_status ?? null, ctx);
+
+    // Evidence-recipient contact (REQ-182): the bill_to's contacts JSON, parsed defensively here (a missing
+    // row or unparseable JSON → null → no deliverable contact → the gate blocks unless the payload opts out).
+    // NON-overridable: the payload opt-out is the only escape.
+    let contacts: unknown = null;
+    if (billTo?.contacts != null) {
+      try {
+        contacts = JSON.parse(billTo.contacts);
+      } catch {
+        contacts = null;
+      }
+    }
+    assertBookingRecipientContact(incoming, contacts);
   }
 
   // fence: the delivery leg's dest geo (doc 10 §03 legs.geo) + a policy radius (DEFAULT_FENCE_RADIUS_M

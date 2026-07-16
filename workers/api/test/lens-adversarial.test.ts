@@ -224,9 +224,12 @@ beforeAll(async () => {
   await ensureSchema(env);
   const ops = await opsTok();
 
-  // P1/P2/P3 must exist as parties: they are actors on passport-accruing events (FK parties(id)).
-  for (const [id, kind] of [[P1, "shipper"], [P2, "consignee"], [P3, "carrier"]] as const) {
-    await env.TENANT_A_DB.prepare("INSERT OR IGNORE INTO parties (id, kind, names) VALUES (?,?,?)").bind(id, kind, "{}").run();
+  // P1/P2/P3 must exist as parties: they are actors on passport-accruing events (FK parties(id)). P2 is the
+  // bill_to on the seeded booking.created, so it carries a deliverable email so the REQ-182 booking
+  // evidence-recipient gate (WP-08 T6) passes — the seed exercises the happy booking path, not the gate.
+  const advContacts = JSON.stringify([{ kind: "primary", email: "adv-billto@tenant-a.test" }]);
+  for (const [id, kind, contacts] of [[P1, "shipper", "[]"], [P2, "consignee", advContacts], [P3, "carrier", "[]"]] as const) {
+    await env.TENANT_A_DB.prepare("INSERT OR IGNORE INTO parties (id, kind, names, contacts) VALUES (?,?,?,?)").bind(id, kind, "{}", contacts).run();
   }
 
   // WP-08 T5: the permissive facility SHP_A's appointment.set books against (the booking.created leg it

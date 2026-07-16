@@ -27,6 +27,7 @@
 import { z } from "@shuddl/contracts";
 import type { GeoStamp, InvoiceIssuedPayload, LedgerEvent, QuotePricedPayload } from "@shuddl/contracts";
 import { rowToEvent } from "@shuddl/ledger/lens";
+import { plausibleEmail } from "@shuddl/ledger/contacts";
 import { composeInvoice, renderEvidenceEmail, SendError } from "@shuddl/agents";
 import type { EvidenceEmailData, EvidenceMessage, EvidenceSender } from "@shuddl/agents";
 import type { Leg } from "@shuddl/rater";
@@ -137,14 +138,12 @@ type ShipmentRow = { bill_to_party_id: string; bill_terms: string | null; divisi
 
 // The bill-to recipient: parties.contacts (a JSON array) is the tenant plane's ONLY email-bearing
 // column, so it is the honest source. A `kind: "billing"` contact wins over the first plausible one
-// (an AR document should reach the billing desk, not whoever was entered first). Header-safe:
-// a CR/LF-carrying value is rejected here (it would otherwise ride into a mail header).
-function plausibleEmail(entry: unknown): string | undefined {
-  if (entry === null || typeof entry !== "object" || Array.isArray(entry)) return undefined;
-  const email = (entry as Record<string, unknown>)["email"];
-  return typeof email === "string" && email.includes("@") && !/[\r\n]/.test(email) ? email : undefined;
-}
-async function resolveRecipient(db: D1Database, partyId: string): Promise<string | undefined> {
+// (an AR document should reach the billing desk, not whoever was entered first). `plausibleEmail` (the
+// per-entry, header-safe email predicate) is imported from @shuddl/ledger/contacts — the SAME predicate the
+// REQ-182 booking evidence-recipient gate applies to THIS SAME party (the bill_to). Because the gate checks
+// the party this resolver emails, a booking that passed the gate is one this resolver can reach. Exported so
+// the gate suite can bind the two directly (gate-pass ⇒ resolveRecipient(bill_to) is non-null).
+export async function resolveRecipient(db: D1Database, partyId: string): Promise<string | undefined> {
   const row = await db.prepare("SELECT contacts FROM parties WHERE id = ?").bind(partyId).first<{ contacts: string }>();
   if (row === null) return undefined;
   let contacts: unknown;

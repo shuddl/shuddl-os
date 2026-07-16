@@ -44,6 +44,16 @@ export const BookingCreatedPayload = z
     mode: z.enum(["LTL", "TL", "brokered", "cartage", "dray", "transload"]).optional(),
     service: z.string().min(1).optional(), // present ⇒ non-empty (a named service level)
     bill_terms: z.enum(["prepaid", "collect", "third_party"]).optional(),
+    // REQ-182 (origin REQ-047/GA-6) — the evidence-recipient gate's deliberate escape. booking.created is
+    // BLOCKED server-side (T6, sequencer #enforceBooking) when the EVIDENCE RECIPIENT — the bill_to party,
+    // the party the Biller's resolveRecipient actually emails the invoice + evidence to — carries no
+    // deliverable contact, UNLESS the booker explicitly acknowledges "this recipient has no contact, book
+    // anyway" by carrying this flag. It rides the booking PAYLOAD (not shipments.service_flags, whose row
+    // does not exist at gate time — the projection creates it AFTER the gate) so the acknowledgment is a
+    // permanently-visible, append-only fact. OPTIONAL and absent by default, so it never moves the
+    // roundtrip/seed snapshot; the gate reads it only when present-and-true. Distinct from a REQ-049 gate
+    // override: the opt-out is the purpose-built recipient escape, not a generic waiver.
+    evidence_contact_opt_out: z.boolean().optional(),
   })
   .strict();
 export type BookingCreatedPayload = z.infer<typeof BookingCreatedPayload>;

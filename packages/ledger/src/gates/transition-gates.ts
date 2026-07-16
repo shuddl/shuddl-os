@@ -22,6 +22,7 @@ import {
   ConsentAck,
   type LedgerEvent,
   type AppointmentSetPayload,
+  type BookingCreatedPayload,
   type FacilityHours,
   type FacilityCapacitySlots,
   type FacilityAppointmentRules,
@@ -29,6 +30,7 @@ import {
 import { GateError } from "./invoice-gate.js";
 import { insideFence, type Fence } from "../geo/fence.js";
 import { UNKNOWN_JURISDICTION } from "../geo/jurisdiction.js";
+import { hasDeliverableContact } from "../contacts.js";
 
 // Re-exported so a caller (Task 5) can import the one canonical GateError + Fence from this module.
 export { GateError };
@@ -53,6 +55,8 @@ export const REQUIRED_EVIDENCE = {
   exception_photo: "exception_photo",
   reason_code: "reason_code",
   consent: "consent",
+  credit_clear: "credit_clear", // REQ-042 — the bill_to party's credit hold must be cleared (or overridden)
+  evidence_recipient: "evidence_recipient", // REQ-182 — the evidence recipient (bill_to) needs a deliverable contact (or an opt-out)
 } as const;
 export type RequiredEvidence = (typeof REQUIRED_EVIDENCE)[keyof typeof REQUIRED_EVIDENCE];
 
@@ -469,4 +473,53 @@ export function assertAppointment(prior: readonly LedgerEvent[], incoming: Ledge
   // 8 — the friendly sequential double-book: ANOTHER stream already holds this (facility, slot, service_date).
   // The DB index is the atomic backstop for the simultaneous case; this is the clean message for the raced-late one.
   if (ctx.occupied) throw new GateValidationError("slot_taken");
+}
+
+// ---- REQ-042/182 — booking.created gates (WP-08 T6; origin REQ-047) -----------------------------------
+//
+// booking.created is the FIRST event of a fresh direct-booking stream, so NEITHER gate reads prior events —
+// they read the incoming payload + a SERVER-SOURCED context the DO loads from the parties read-model. BOTH
+// gates target the BILL_TO party: its credit_status (REQ-042) and its contacts (REQ-182). The bill_to is the
+// party the Biller's resolveRecipient actually emails the invoice + evidence to (the paying client), so
+// gating on the bill_to's contact is what makes "a booking that passes yields a resolvable evidence
+// recipient" true — the party CHECKED equals the party EMAILED. (Origin note: REQ-047 framed this as the
+// consignee, under a since-superseded consignee-heartbeat assumption; REQ-182 corrects the target to the
+// party the code actually reaches.) Both raise GateError (GATE_BLOCKED, required_evidence) — a credit hold /
+// an unreachable recipient is a MISSING-PREREQUISITE gate like the physical ones, NOT the config/conflict
+// VALIDATION_FAILED the appointment gate uses (that gate diagnoses a malformed/occupied slot; here the
+// booking is well-formed but a prerequisite — credit clearance, a reachable recipient — is absent).
+
+/**
+ * REQ-042 — a booking is BLOCKED when the bill_to party is on a credit HOLD. `creditStatus` is the
+ * SERVER-SOURCED parties.credit_status of the bill_to party (loaded by the DO from D1, never the client
+ * event). Only an explicit `"hold"` blocks → GateError(["credit_clear"]); `"clear"` / `"review"` / null /
+ * undefined (no decision on file) all pass. OVERRIDABLE (REQ-049): a named+reasoned override runs FIRST and
+ * releases the hold, exactly like the physical gates — a finance principal can book over a hold accountably.
+ */
+export function assertBookingCredit(creditStatus: string | null | undefined, ctx?: GateCtx): void {
+  if (overrideSatisfies(ctx?.override)) return; // REQ-049 — an accountable override releases the hold
+  if (creditStatus === "hold") throw new GateError([REQUIRED_EVIDENCE.credit_clear]);
+}
+
+/**
+ * REQ-182 (origin REQ-047) — a booking is BLOCKED when the EVIDENCE RECIPIENT has no way to receive the
+ * invoice + delivery evidence email: no deliverable contact on `recipientContacts` (the SERVER-SOURCED,
+ * already-parsed parties.contacts of the BILL_TO party — the party the Biller emails) AND no explicit
+ * opt-out on the booking payload. A deliverable contact → pass; the payload `evidence_contact_opt_out ===
+ * true` → pass (the deliberate escape). Otherwise GateError(["evidence_recipient"]).
+ *
+ * `hasDeliverableContact` is the SAME predicate the Biller's resolveRecipient applies to the SAME party
+ * (the bill_to), from the shared module ../contacts.js — so a booking that passes this gate is one whose
+ * bill_to resolveRecipient can actually reach: the party checked equals the party emailed. NON-OVERRIDABLE
+ * by design: a generic REQ-049 override does NOT release it (a booking must never silently ship with no way
+ * to reach the recipient). The opt-out is its purpose-built escape, recorded ON the append-only booking
+ * payload — a stronger, more specific accountability record than a {by, reason} waiver. The gate therefore
+ * takes no GateCtx (an override cannot even be handed to it — a compile-time guarantee, mirroring
+ * assertConsentBeforeGps).
+ */
+export function assertBookingRecipientContact(incoming: LedgerEvent, recipientContacts: unknown): void {
+  const optedOut = (incoming.payload as BookingCreatedPayload).evidence_contact_opt_out === true;
+  if (optedOut) return;
+  if (hasDeliverableContact(recipientContacts)) return;
+  throw new GateError([REQUIRED_EVIDENCE.evidence_recipient]);
 }
