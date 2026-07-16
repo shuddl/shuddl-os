@@ -9,6 +9,7 @@ import domain from "../../../db/tenant/migrations/0002_domain.sql?raw";
 import insertGuards from "../../../db/tenant/migrations/0003_insert_guards.sql?raw";
 import partyRefsGuard from "../../../db/tenant/migrations/0004_party_refs_guard.sql?raw";
 import eventsOverride from "../../../db/tenant/migrations/0005_events_override.sql?raw";
+import booking from "../../../db/tenant/migrations/0006_booking.sql?raw";
 
 const DB = env.TENANT_A_DB;
 
@@ -61,6 +62,7 @@ describe("rowToEvent: SQL NULL -> omitted key (undefined), never null (hash-crit
       { path: "0003_insert_guards.sql", sql: insertGuards },
       { path: "0004_party_refs_guard.sql", sql: partyRefsGuard },
       { path: "0005_events_override.sql", sql: eventsOverride },
+      { path: "0006_booking.sql", sql: booking },
     ]);
   });
 
@@ -189,6 +191,7 @@ describe("readEvents: lens-scoped reads (I6, adversarial visibility)", () => {
       { path: "0003_insert_guards.sql", sql: insertGuards },
       { path: "0004_party_refs_guard.sql", sql: partyRefsGuard },
       { path: "0005_events_override.sql", sql: eventsOverride },
+      { path: "0006_booking.sql", sql: booking },
     ]);
     await B.prepare(
       "INSERT INTO shipments (id, shipper_party_id, consignee_party_id, bill_to_party_id, created_ts, status_cache) VALUES ('shpA','p','p','p',0,?)",

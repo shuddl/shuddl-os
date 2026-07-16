@@ -139,6 +139,26 @@ describe("delivery geofence gate (REQ-046)", () => {
   });
 });
 
+// ─── REQ-028/052 (T5 hardening) — booking.created's empty-geo delivery skeleton must NOT shadow the real
+// fence: #deliveryFence prefers a delivery leg with NON-EMPTY geo, even if it sits at a HIGHER seq. ──────
+describe("delivery fence prefers non-empty geo over the empty skeleton (T5 shadowing, REQ-028/052)", () => {
+  it("a real-geo delivery leg at a HIGHER seq wins over an empty skeleton at seq 0 → the fence resolves", async () => {
+    const shp = "gate-delivery-shadow";
+    await seedShipment(shp);
+    await seedLeg(shp, 0, "delivery", null); // the booking-materialized skeleton (empty geo) — LOWER seq
+    await seedLeg(shp, 1, "delivery", FENCE_CENTER); // the real per-stop fence provisioned later — HIGHER seq
+    const ops = await opsTok();
+    expect((await post(shp, input(shp, "document.attached", { payload: consentPayload("CA") }), ops)).status).toBe(201);
+    expect((await post(shp, input(shp, "stop.arrived", { payload: { geo: { ...INSIDE }, auto: true } }), ops)).status).toBe(201);
+    expect((await post(shp, input(shp, "pod.signed", { payload: { signature_hash: HEX64, geo: { ...INSIDE }, unwitnessed: true } }), ops)).status).toBe(201);
+    expect((await post(shp, input(shp, "freight.photographed", { payload: { photo_hash: HEX64, photo_kind: "placed" } }), ops)).status).toBe(201);
+    // The arrival sits INSIDE the seq-1 real fence. If the empty seq-0 skeleton shadowed it, the fence would
+    // be undefined → 400. A 201 proves the non-empty geo wins regardless of seq order.
+    const ok = await post(shp, input(shp, "delivery.evidenced", { payload: { placed_photo_hash: HEX64, geo: { ...INSIDE } } }), ops);
+    expect(ok.status).toBe(201);
+  });
+});
+
 // ─── REQ-045 — an interline custody handoff needs a seal + a co-signed (device) receiver ack ─────────
 describe("interline custody gate (REQ-045)", () => {
   it("no seal + unwitnessed on an interline leg → GATE_BLOCKED ['seal.applied','receiver_ack'], no append", async () => {

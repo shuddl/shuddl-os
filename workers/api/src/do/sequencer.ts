@@ -13,6 +13,7 @@ import {
 import { projectPassport } from "@shuddl/ledger/projection/passports";
 import { projectStatusCache } from "@shuddl/ledger/projection/status-cache";
 import { applyMessageProjection } from "@shuddl/ledger/projection/messages";
+import { projectAppointment } from "@shuddl/ledger/projection/appointment";
 import { assertPodSigned } from "@shuddl/ledger/gates/invoice-gate";
 import {
   assertPickupDepart,
@@ -20,10 +21,14 @@ import {
   assertInterline,
   assertException,
   assertConsentBeforeGps,
+  assertAppointment,
+  type AppointmentCtx,
   type Fence,
   type GateCtx,
 } from "@shuddl/ledger/gates/transition-gates";
 import { deriveOperatingState } from "@shuddl/ledger/geo/jurisdiction";
+import { loadFacility } from "../facilities.js";
+import { localWall, localServiceDate } from "../appointment-window.js";
 import { tenantDb } from "../tenants.js";
 import type { Env } from "../index.js";
 
@@ -81,6 +86,12 @@ type TenantPolicy = {
 };
 type DeviceKeyEntry = { device_id: string; public_jwk: JsonWebKey };
 
+// What #enforceTransitionGate hands back to #append. For appointment.set the gate has already computed the
+// canonical LOCAL service date (facility tz) — the OCCURRENCE key — so it is passed forward to the
+// appointment projection UNCHANGED (the projection stays a pure fn of its inputs; the impure tz math lives
+// once, in the gate caller). Every other kind returns {} (no extra projection input).
+type GateResult = { appointmentServiceDate?: string };
+
 // A sane default delivery-fence radius (metres) when the tenant policy sets none. Real per-stop
 // fences are provisioned by booking (WP-08); this only bounds the radius the gate compares against.
 const DEFAULT_FENCE_RADIUS_M = 150;
@@ -93,6 +104,7 @@ const DEFAULT_FENCE_RADIUS_M = 150;
 // must enforce the same consent gate).
 const GATED_KINDS = [
   "stop.departed", "delivery.evidenced", "custody.transferred", "exception.raised", "osd.captured", "stop.arrived",
+  "appointment.set",
 ] as const;
 type GatedKind = (typeof GATED_KINDS)[number];
 const GATED_KIND_SET: ReadonlySet<string> = new Set(GATED_KINDS);
@@ -303,7 +315,7 @@ export class ShipmentSequencer extends DurableObject<Env> {
     // interline"). A named override (REQ-049) travels on `event.override`, is honored by the gate, and
     // is persisted (override_json) so it is permanently visible. A block throws here → nothing is
     // written (append-on-block is impossible).
-    await this.#enforceTransitionGate(db, streamId, event, policy);
+    const gateResult = await this.#enforceTransitionGate(db, streamId, event, policy);
 
     const hash = await hashEvent(event);
     const full = { ...event, hash } as LedgerEvent;
@@ -319,11 +331,21 @@ export class ShipmentSequencer extends DurableObject<Env> {
       ...applyMoneyProjection(db, full, deps),
       ...projectPassport(db, full),
       ...projectStatusCache(db, full),
+      ...projectAppointment(db, full, gateResult.appointmentServiceDate),
       ...applyMessageProjection(db, full),
     ];
     try {
       await db.batch(stmts);
     } catch (err) {
+      // REQ-028/052 — the ATOMIC double-book backstop. A concurrent appointment.set whose claim collides on
+      // ux_legs_slot aborts the WHOLE batch (D1 single-writer), so the loser's event never commits. Map it to
+      // the SAME 400/slot_taken the sequential gate returns — the simultaneous and raced-late losers are
+      // indistinguishable to the client. This holds even if the friendly capacity gate were deleted (the index
+      // is the sole arbiter). Checked BEFORE the money mapper — the two constraints never share a message.
+      const msg = err instanceof Error ? err.message : String(err);
+      if (/UNIQUE constraint failed/i.test(msg) && /ux_legs_slot|legs\.(facility_id|appt_slot_key|appt_service_date)/i.test(msg)) {
+        throw rpcError("VALIDATION_FAILED", { reason: "slot_taken" });
+      }
       const mapped = mapMoneyProjectionError(err);
       if (mapped) throw rpcError("VALIDATION_FAILED", { reason: mapped.message });
       throw err; // an unmapped DB fault surfaces as INTERNAL via Task 14's default mapping
@@ -385,8 +407,8 @@ export class ShipmentSequencer extends DurableObject<Env> {
   // via any API path (REQ-030). `event.override` (REQ-049), when accountable, releases the gate and is
   // persisted on the event (override_json). The prior stream is loaded LAZILY and at most once, so only
   // the gates that inspect prior events pay for the read — the exception gate reads only `incoming`.
-  async #enforceTransitionGate(db: D1Database, streamId: string, incoming: LedgerEvent, policy: TenantPolicy): Promise<void> {
-    if (!isGatedKind(incoming.kind)) return;
+  async #enforceTransitionGate(db: D1Database, streamId: string, incoming: LedgerEvent, policy: TenantPolicy): Promise<GateResult> {
+    if (!isGatedKind(incoming.kind)) return {};
 
     const shipmentId = streamId.startsWith("s:") ? streamId.slice(2) : undefined;
     // The shared override, honored by every gate below. Built as an EXACT-optional ctx: `override` is
@@ -412,25 +434,25 @@ export class ShipmentSequencer extends DurableObject<Env> {
         // the count/photo/custody are already on the stream, so the same call passes. `dimsRequired`
         // comes from tenant policy (default false = the lane is not dims-fitted).
         assertPickupDepart(await prior(), incoming, { ...ctx, dimsRequired: policy.gates?.dims_required === true });
-        return;
+        return {};
       case "delivery.evidenced": {
         // REQ-046. fence sourced from the delivery leg's dest geo + a policy radius (server-side). When
         // no fence is provisioned it is OMITTED (not passed as undefined); the gate reads ctx.fence as
         // absent and fails loud (GateValidationError → 400), exactly as if it were undefined.
         const fence = await this.#deliveryFence(db, shipmentId, policy);
         assertDelivery(await prior(), incoming, fence !== undefined ? { ...ctx, fence } : ctx);
-        return;
+        return {};
       }
       case "custody.transferred": {
         // REQ-045. isInterline sourced from the shipment legs (server-side), never the client event.
         const isInterline = await this.#isInterline(db, shipmentId);
         assertInterline(await prior(), incoming, isInterline, ctx);
-        return;
+        return {};
       }
       case "exception.raised":
       case "osd.captured":
         assertException(incoming, ctx); // REQ-050 — photo + reason_code, read from `incoming` only (no prior load)
-        return;
+        return {};
       case "stop.arrived":
         // REQ-166 consent-before-GPS. The operating state is DERIVED SERVER-SIDE from the stamp's raw
         // coordinates (deriveOperatingState) — the client supplies geo, the server decides the state, so
@@ -439,7 +461,13 @@ export class ShipmentSequencer extends DurableObject<Env> {
         // refinement), and legal sufficiency of any consent is [CONFIRM]/counsel. This gate takes NO
         // override — consent is a legal precondition, not a waivable evidence requirement.
         assertConsentBeforeGps(await prior(), incoming, { operating_state: deriveOperatingState(incoming.payload.geo) });
-        return;
+        return {};
+      case "appointment.set":
+        // REQ-028/052 — the dock-slot claim gate. All context is SERVER-SOURCED here (facility capacity from
+        // this tenant's D1, the window's LOCAL wall clock from the facility tz, leg existence + occupancy from
+        // the legs read-model) — never from the client event. Returns the computed service_date so #append can
+        // hand the SAME value to the appointment projection (one impure tz derivation, reused by gate + write).
+        return { appointmentServiceDate: await this.#enforceAppointment(db, shipmentId, incoming, ctx, prior) };
       default:
         // A GatedKind with no case above = a Set/switch desync. `assertNever` makes that a COMPILE error
         // (belt) and throws at runtime (suspenders) — never a silent fall-through to an ungated append.
@@ -447,14 +475,91 @@ export class ShipmentSequencer extends DurableObject<Env> {
     }
   }
 
+  // REQ-028/052 — load the SERVER-SOURCED appointment context and run the pure gate. Returns the canonical
+  // LOCAL service date (facility tz) that the appointment projection claims the slot under. `loadFacility`
+  // throws LOUDLY on a malformed stored facility config (mirrors #deliveryFence sourcing config server-side);
+  // the tz math (localWall/localServiceDate) is impure so it lives HERE, out of the pure gate.
+  async #enforceAppointment(
+    db: D1Database,
+    shipmentId: string | undefined,
+    incoming: LedgerEvent & { kind: "appointment.set" },
+    ctx: GateCtx,
+    prior: () => Promise<readonly LedgerEvent[]>,
+  ): Promise<string> {
+    const p = incoming.payload;
+    const facility = await loadFacility(db, p.facility_id); // null when absent; throws on malformed config
+    const now = Date.now();
+
+    // The window's LOCAL wall clock + the server clock's local date — computed only when the facility (hence
+    // its tz) resolves. When the facility is null the gate throws `unknown_facility` before these are read.
+    let serviceDate = "";
+    let localMinuteOfDay = 0;
+    let localWindowEndMinute = 0;
+    let localDow = 0;
+    let nowServiceDate = "";
+    if (facility !== null) {
+      const tz = facility.hours.tz;
+      const w = localWall(p.window_start_ts, tz);
+      serviceDate = w.serviceDate;
+      localMinuteOfDay = w.minuteOfDay;
+      localWindowEndMinute = localWall(p.window_end_ts, tz).minuteOfDay;
+      localDow = w.dow;
+      nowServiceDate = localServiceDate(now, tz);
+    }
+
+    // legExists: the leg the claim UPDATEs (shipment_id, leg_kind) must be materialized (fail-closed).
+    const legExists =
+      shipmentId !== undefined &&
+      (await db
+        .prepare("SELECT 1 AS present FROM legs WHERE shipment_id = ? AND kind = ? LIMIT 1")
+        .bind(shipmentId, p.leg_kind)
+        .first<{ present: number }>()) !== null;
+
+    // occupied: ANOTHER stream (shipment_id <> self) already holds this (facility, slot, service_date). The
+    // self-exclude lets a stream reschedule onto/around its own claim without tripping the friendly block.
+    const occupied =
+      facility !== null &&
+      shipmentId !== undefined &&
+      (await db
+        .prepare("SELECT 1 AS present FROM legs WHERE facility_id = ? AND appt_slot_key = ? AND appt_service_date = ? AND shipment_id <> ? LIMIT 1")
+        .bind(p.facility_id, p.slot_key, serviceDate, shipmentId)
+        .first<{ present: number }>()) !== null;
+
+    const apptCtx: AppointmentCtx = {
+      facility:
+        facility === null
+          ? null
+          : { capacity_slots: facility.capacity_slots, hours: facility.hours, appointment_rules: facility.appointment_rules },
+      serviceDate,
+      localMinuteOfDay,
+      localWindowEndMinute,
+      localDow,
+      now,
+      nowServiceDate,
+      legExists,
+      occupied,
+    };
+    if (ctx.override !== undefined) apptCtx.override = ctx.override;
+
+    assertAppointment(await prior(), incoming, apptCtx);
+    return serviceDate;
+  }
+
   // fence: the delivery leg's dest geo (doc 10 §03 legs.geo) + a policy radius (DEFAULT_FENCE_RADIUS_M
   // if unset). Real per-stop fences are provisioned by booking (WP-08); the tests seed the delivery
   // leg. NEVER from the incoming event. Returns undefined when no delivery leg / no coords exists — the
   // gate then fails LOUD (GateValidationError → 400): a geofence cannot be judged with no fence.
+  //
+  // INVARIANT (WP-08 T5, REQ-028/052): booking.created materializes ONE delivery leg per shipment at the
+  // deterministic `${id}:delivery` row with EMPTY geo; downstream provisioning (dispatch/T8) must UPDATE that
+  // row, NEVER INSERT a sibling delivery leg. As a backstop against a stray sibling, this PREFERS a delivery
+  // leg with NON-EMPTY geo (falling back to lowest-seq only if none has geo) so the empty skeleton can never
+  // SHADOW the real fence regardless of seq order — otherwise a real leg at seq ≥ 2 would be masked and the
+  // delivery gate would block forever. deliveryStopGeo (biller.ts) reads the same shape identically.
   async #deliveryFence(db: D1Database, shipmentId: string | undefined, policy: TenantPolicy): Promise<Fence | undefined> {
     if (shipmentId === undefined) return undefined;
     const row = await db
-      .prepare("SELECT geo FROM legs WHERE shipment_id = ? AND kind = 'delivery' ORDER BY seq LIMIT 1")
+      .prepare("SELECT geo FROM legs WHERE shipment_id = ? AND kind = 'delivery' ORDER BY (geo IS NULL OR geo = '{}') ASC, seq ASC LIMIT 1")
       .bind(shipmentId)
       .first<{ geo: string }>();
     if (row === null) return undefined;

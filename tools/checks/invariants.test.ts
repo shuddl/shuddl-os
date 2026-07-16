@@ -12,6 +12,7 @@ import {
   isStraySql,
   PARTITION_TABLES,
   scanSourceForForbiddenReplace,
+  scanSourceForLegsReplace,
   TABLE_BUDGET,
 } from "./invariants.js";
 
@@ -546,4 +547,55 @@ describe("M1 regression: the actual check:invariants CLI exit code (end-to-end)"
       expect(r.out).toContain("stray");
     });
   }, 30000);
+});
+
+// REQ-028/052 — `legs` is MUTABLE (a plain UPDATE claims a dock slot) but a REPLACE-family write or an upsert
+// deletes/rewrites the row THROUGH ux_legs_slot (silent slot theft). Both the migration surface
+// (checkMigrationSql) and the TS-source surface (scanSourceForLegsReplace) ban them — and, per the share-lint
+// discipline, ONE evasion corpus is fed to BOTH so a delimiter/schema form one scanner blocks can never slip
+// past the other.
+describe("REQ-028/052: no REPLACE-family / upsert against legs (shared matcher, parity across surfaces)", () => {
+  const EVASIONS = [
+    `INSERT OR REPLACE INTO legs (id) VALUES ('x')`, // whitespace, bare
+    `INSERT OR REPLACE INTO"legs" (id) VALUES ('x')`, // abutting quote (the \s+ blind spot)
+    `REPLACE INTO main.legs (id) VALUES ('x')`, // schema-qualified
+    `REPLACE INTO [legs] (id) VALUES ('x')`, // bracket delimiter
+    "REPLACE INTO `legs` (id) VALUES ('x')", // backtick
+    `INSERT INTO legs (id) VALUES ('x') ON CONFLICT(id) DO UPDATE SET id='y'`, // upsert rewrites the row
+  ];
+  for (const sql of EVASIONS) {
+    it(`both surfaces flag: ${sql.slice(0, 42)}…`, () => {
+      // migration surface
+      expect(checkMigrationSql([sql]).violations.length).toBeGreaterThan(0);
+      // TS-source surface — same corpus, must also flag
+      expect(scanSourceForLegsReplace([{ path: "p.ts", text: sql }]).length).toBeGreaterThan(0);
+    });
+  }
+  it("a plain UPDATE on legs (how appointment.set claims a slot) is allowed on both surfaces", () => {
+    const ok = "UPDATE legs SET facility_id=?, appt_slot_key=? WHERE shipment_id=? AND kind=?";
+    expect(checkMigrationSql([ok]).violations).toEqual([]);
+    expect(scanSourceForLegsReplace([{ path: "p.ts", text: ok }])).toEqual([]);
+  });
+  it("REPLACE targeting a non-legs table is not this rule's concern", () => {
+    expect(scanSourceForLegsReplace([{ path: "p.ts", text: "INSERT OR REPLACE INTO shipments (id) VALUES ('a')" }])).toEqual([]);
+  });
+});
+
+// The events/positions/money_lines source scanner shares the SAME builder as the migration scanner now, so
+// the abutting-quote and schema-qualified evasions the old hand-rolled copy missed are closed (share-lint).
+describe("D1 REPLACE ban — source scanner parity with the migration scanner (guarded tables)", () => {
+  const EVASIONS = [
+    `INSERT OR REPLACE INTO"events" VALUES(1)`, // abutting quote
+    `INSERT OR REPLACE INTO main.events VALUES(1)`, // schema-qualified
+    `REPLACE INTO [positions] VALUES(1)`, // bracket delimiter
+    "REPLACE INTO `money_lines` VALUES(1)", // backtick
+    `INSERT INTO events (id) VALUES ('x') ON CONFLICT(id) DO UPDATE SET id='y'`, // upsert IS a mutation
+    `INSERT INTO main.money_lines (id) VALUES ('x') ON CONFLICT(id) DO UPDATE SET id='y'`, // schema-qualified upsert
+  ];
+  for (const sql of EVASIONS) {
+    it(`both surfaces flag: ${sql.slice(0, 42)}…`, () => {
+      expect(checkMigrationSql([sql]).violations.length).toBeGreaterThan(0);
+      expect(scanSourceForForbiddenReplace([{ path: "p.ts", text: sql }]).length).toBeGreaterThan(0);
+    });
+  }
 });

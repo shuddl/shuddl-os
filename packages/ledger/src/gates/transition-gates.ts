@@ -18,7 +18,14 @@
 // (passes) and BLOCKS without one. Making the override permanently visible — recording the
 // {by, reason} onto the appended event so the ledger carries who overrode what and why — is wired in
 // Task 5 (the sequencer stamps the override on the event it writes). Task 3 is only the pure decision.
-import { ConsentAck, type LedgerEvent } from "@shuddl/contracts";
+import {
+  ConsentAck,
+  type LedgerEvent,
+  type AppointmentSetPayload,
+  type FacilityHours,
+  type FacilityCapacitySlots,
+  type FacilityAppointmentRules,
+} from "@shuddl/contracts";
 import { GateError } from "./invoice-gate.js";
 import { insideFence, type Fence } from "../geo/fence.js";
 import { UNKNOWN_JURISDICTION } from "../geo/jurisdiction.js";
@@ -351,4 +358,115 @@ export function assertConsentBeforeGps(
     return parsed.success && parsed.data.operating_state === ctx.operating_state;
   });
   if (!consented) throw new GateError([REQUIRED_EVIDENCE.consent]);
+}
+
+// ---- REQ-028/052 — appointment.set (dock-slot) gate (WP-08 T5) ----------------------------------------
+
+const MS_PER_MIN = 60_000;
+const MS_PER_DAY = 86_400_000;
+
+/**
+ * The facility capacity model the appointment gate reads, in the parsed @shuddl/contracts shapes. Task-5's DO
+ * loads this from D1 (loadFacility) and hands the three config blocks here; null = the facility does not exist.
+ */
+export interface AppointmentFacility {
+  capacity_slots: FacilityCapacitySlots;
+  hours: FacilityHours;
+  appointment_rules: FacilityAppointmentRules;
+}
+
+/**
+ * The SERVER-SOURCED context for assertAppointment. Everything time/tz-derived is computed by the DO caller
+ * (impure) and passed in, so this gate stays PURE (no Date, no D1):
+ * - `facility`: the loaded capacity model, or null when the facility_id resolves to nothing.
+ * - `serviceDate` / `localMinuteOfDay` / `localDow`: the incoming window_start_ts rendered into the facility's
+ *   local wall clock (the occurrence key + slot-template comparands). `nowServiceDate` is the server clock's
+ *   local date (same-day detection); `now` is the server clock epoch ms (lead-time / horizon).
+ * - `legExists`: a materialized leg matches (shipment_id, payload.leg_kind) — the row the claim UPDATEs.
+ * - `occupied`: ANOTHER stream already holds this (facility, slot, service_date) — the sequential double-book.
+ * - `override`: a REQ-049 override; waives ONLY soft policy (hours / lead-time / horizon / same-day).
+ */
+export interface AppointmentCtx {
+  facility: AppointmentFacility | null;
+  serviceDate: string;
+  localMinuteOfDay: number; // window_start_ts rendered to the facility's local minute-of-day
+  localWindowEndMinute: number; // window_end_ts rendered to the facility's local minute-of-day
+  localDow: number;
+  now: number;
+  nowServiceDate: string;
+  legExists: boolean;
+  occupied: boolean;
+  override?: Override;
+}
+
+/**
+ * REQ-028/052 — the appointment.set (dock-slot claim) gate. Throws GateValidationError (VALIDATION_FAILED:
+ * {reason}) — a booking conflict is a config/conflict, NOT a missing physical-evidence GATE_BLOCK — so the
+ * reasons are the friendly diagnosis; the DB's ux_legs_slot UNIQUE INDEX is the atomic arbiter that makes a
+ * simultaneous double-book impossible EVEN IF this gate were deleted (it just loses the clean message).
+ *
+ * A REQ-049 override runs FIRST but waives ONLY soft policy (outside_hours / rule_violation). It NEVER waives
+ * facility/slot existence, window alignment, leg existence, the reschedule ref, or occupancy — and the index
+ * is unconditional regardless of override. Reasons are evaluated IN ORDER (the first failure is the reason):
+ *   1 unknown_facility · 2 slot_not_in_capacity · 3 window_mismatch · 4 outside_hours* · 5 rule_violation* ·
+ *   6 leg_not_materialized · 7 bad_reschedule_ref · 8 slot_taken     (* = waivable by override)
+ */
+export function assertAppointment(prior: readonly LedgerEvent[], incoming: LedgerEvent, ctx: AppointmentCtx): void {
+  const overridden = overrideSatisfies(ctx.override); // throws GateValidationError on a blank/unaccountable override
+  // incoming is always an appointment.set here (the DO gates only this kind through this call); narrow the payload.
+  const p = incoming.payload as AppointmentSetPayload;
+
+  // 1 — the facility must exist (server-loaded). Not waivable.
+  if (ctx.facility === null) throw new GateValidationError("unknown_facility");
+
+  // 2 — the slot_key must be a real capacity-1 slot on this facility. Not waivable.
+  const slot = ctx.facility.capacity_slots.find((s) => s.slot_key === p.slot_key);
+  if (slot === undefined) throw new GateValidationError("slot_not_in_capacity");
+
+  // 3 — the window's local START and END minute-of-day (+ dow, when the slot pins one) must MATCH the slot
+  // template. Not waivable — this is what guarantees service_date is canonical (a caller can't smuggle a 2nd
+  // instant for the same slot/day) AND that appt_window_end_ts (stored verbatim by the projection) is not a
+  // misleading end on an otherwise-valid claim. absent slot.dow = a daily slot (any weekday matches).
+  if (
+    ctx.localMinuteOfDay !== slot.window_start_min ||
+    ctx.localWindowEndMinute !== slot.window_end_min ||
+    (slot.dow !== undefined && slot.dow !== ctx.localDow)
+  ) {
+    throw new GateValidationError("window_mismatch");
+  }
+
+  // 4 & 5 — SOFT POLICY (waivable by a named override): the facility must be OPEN for that dow/window, and the
+  // booking must respect lead-time / horizon / same-day rules.
+  if (!overridden) {
+    // 4 — some open HoursInterval for this dow must fully contain the slot window (absent day = closed).
+    const intervals = ctx.facility.hours.weekly[String(ctx.localDow)] ?? [];
+    const open = intervals.some((iv) => iv.open_min <= slot.window_start_min && iv.close_min >= slot.window_end_min);
+    if (!open) throw new GateValidationError("outside_hours");
+
+    // 5 — appointment rules. lead_time: the window must be >= lead_time_min from now; horizon: <= now +
+    // max_horizon_days; same-day: blocked unless allow_same_day === true. Each rule applies only when set.
+    const rules = ctx.facility.appointment_rules;
+    const startTs = p.window_start_ts;
+    const leadShort = rules.lead_time_min !== undefined && startTs - ctx.now < rules.lead_time_min * MS_PER_MIN;
+    const overHorizon = rules.max_horizon_days !== undefined && startTs > ctx.now + rules.max_horizon_days * MS_PER_DAY;
+    const sameDayBlocked = rules.allow_same_day !== true && ctx.serviceDate === ctx.nowServiceDate;
+    if (leadShort || overHorizon || sameDayBlocked) throw new GateValidationError("rule_violation");
+  }
+
+  // 6 — the leg the claim UPDATEs must exist (FAIL-CLOSED): without it the UPDATE is a silent 0-row no-op and
+  // the appointment would commit while claiming NOTHING — a silent double-book. Turn that into a loud 400.
+  if (!ctx.legExists) throw new GateValidationError("leg_not_materialized");
+
+  // 7 — a reschedule must reference a REAL prior appointment.set on THIS stream for the SAME leg_kind. Not
+  // waivable (a bad ref would let a reschedule masquerade as a fresh claim / target the wrong leg).
+  if (p.reschedule_of !== undefined) {
+    const ref = prior.find((e) => e.id === p.reschedule_of && e.kind === "appointment.set");
+    if (ref === undefined || (ref.payload as AppointmentSetPayload).leg_kind !== p.leg_kind) {
+      throw new GateValidationError("bad_reschedule_ref");
+    }
+  }
+
+  // 8 — the friendly sequential double-book: ANOTHER stream already holds this (facility, slot, service_date).
+  // The DB index is the atomic backstop for the simultaneous case; this is the clean message for the raced-late one.
+  if (ctx.occupied) throw new GateValidationError("slot_taken");
 }

@@ -167,9 +167,15 @@ async function resolveRecipient(db: D1Database, partyId: string): Promise<string
 
 // The delivery stop's recorded coordinates (legs.geo, the same server-side source the delivery fence
 // reads) — the email's "Location" line. Falls back to the POD's own signing geo when no leg exists.
-async function deliveryStopGeo(db: D1Database, shipmentId: string): Promise<{ lat_e6: number; lon_e6: number } | undefined> {
+//
+// INVARIANT (WP-08 T5, REQ-028/052): booking.created materializes ONE delivery leg per shipment at the
+// deterministic `${id}:delivery` row with EMPTY geo; downstream provisioning (dispatch/T8) must UPDATE that
+// row with the real geo, NEVER INSERT a sibling delivery leg. As a backstop against a stray sibling, this
+// PREFERS a delivery leg with NON-EMPTY geo (falling back to lowest-seq only if none has geo), so the empty
+// skeleton can never SHADOW the real coordinates regardless of seq order. Exported for a direct unit test.
+export async function deliveryStopGeo(db: D1Database, shipmentId: string): Promise<{ lat_e6: number; lon_e6: number } | undefined> {
   const row = await db
-    .prepare("SELECT geo FROM legs WHERE shipment_id = ? AND kind = 'delivery' ORDER BY seq LIMIT 1")
+    .prepare("SELECT geo FROM legs WHERE shipment_id = ? AND kind = 'delivery' ORDER BY (geo IS NULL OR geo = '{}') ASC, seq ASC LIMIT 1")
     .bind(shipmentId)
     .first<{ geo: string }>();
   if (row === null) return undefined;

@@ -31,6 +31,13 @@ const FIRE_2 = "adv-fire-2";
 const HEX64 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 const GEO = { lat_e6: 37_421_000, lon_e6: -122_084_000, accuracy_m: 5 };
 
+// WP-08 T5 — a permissive facility for the SHP_A appointment.set seed (see payloadFor). UTC + open-all-day +
+// a single DAILY slot at 08:00 (minute 480) + same-day allowed, no lead/horizon: the fixed 08:00-UTC window
+// aligns to the slot and clears every rule regardless of when the suite runs.
+const ADV_FACILITY_ID = "adv-fac";
+const ADV_SLOT_KEY = "adv-slot";
+const ADV_APPT_WINDOW_START = Date.UTC(2025, 0, 1, 8, 0, 0); // 08:00:00 UTC → local minute-of-day 480 in UTC
+
 // ---- tokens (claim-only lens; never a header/param) --------------------------------------
 const opsTok = (): Promise<string> => token({ sub: "adv-ops", tenant: TENANT_SLUG, role: "ops" });
 const portalTok = (partyId: string): Promise<string> =>
@@ -88,7 +95,11 @@ function payloadFor(kind: EventKind): Record<string, unknown> {
     case "credit.checked":
       return { party_id: P2, status: "clear" };
     case "appointment.set":
-      return { leg_kind: "pickup", facility_id: "facility-1", slot_key: "slot-1", window_start_ts: 1_720_000_000_000, window_end_ts: 1_720_003_600_000 };
+      // WP-08 T5: appointment.set is now GATED — it claims the shipment's (booking-materialized) pickup leg
+      // against a real facility slot. This lens fixture only needs the event ON the stream, so it books the
+      // permissive ADV_FACILITY (seeded in beforeAll): UTC, open all day, a daily slot at 08:00 (minute 480),
+      // same-day allowed, no lead/horizon — so the fixed 08:00-UTC window passes the gate every run.
+      return { leg_kind: "pickup", facility_id: ADV_FACILITY_ID, slot_key: ADV_SLOT_KEY, window_start_ts: ADV_APPT_WINDOW_START, window_end_ts: ADV_APPT_WINDOW_START + 3_600_000 };
     case "pickup.scheduled":
       return { facility_id: "facility-1", window_start_ts: 1_720_000_000_000, window_end_ts: 1_720_003_600_000 };
     case "dispatch.assigned":
@@ -216,6 +227,25 @@ beforeAll(async () => {
   // P1/P2/P3 must exist as parties: they are actors on passport-accruing events (FK parties(id)).
   for (const [id, kind] of [[P1, "shipper"], [P2, "consignee"], [P3, "carrier"]] as const) {
     await env.TENANT_A_DB.prepare("INSERT OR IGNORE INTO parties (id, kind, names) VALUES (?,?,?)").bind(id, kind, "{}").run();
+  }
+
+  // WP-08 T5: the permissive facility SHP_A's appointment.set books against (the booking.created leg it
+  // claims is materialized by the first ORDER kind). UTC, open all day, one daily 08:00 slot, no rules.
+  {
+    const allDay = [{ open_min: 0, close_min: 1440 }];
+    const weekly: Record<string, unknown> = {};
+    for (let d = 0; d < 7; d++) weekly[String(d)] = allDay;
+    await env.TENANT_A_DB.prepare(
+      "INSERT OR IGNORE INTO facilities (id, kind, hours, capacity_slots, appointment_rules) VALUES (?,?,?,?,?)",
+    )
+      .bind(
+        ADV_FACILITY_ID,
+        "dock",
+        JSON.stringify({ tz: "UTC", weekly }),
+        JSON.stringify([{ slot_key: ADV_SLOT_KEY, window_start_min: 480, window_end_min: 540 }]),
+        JSON.stringify({ allow_same_day: true }),
+      )
+      .run();
   }
 
   // The delivery leg supplies the REQ-046 geofence server-side (its dest geo, matched to the stamp).

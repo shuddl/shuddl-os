@@ -38,6 +38,25 @@ const BOOKING_SQL =
 // decision presupposes the party), so a stray party_id is a silent no-op rather than a fabricated row.
 const CREDIT_SQL = "UPDATE parties SET credit_status = ? WHERE id = ?";
 
+// WP-08 T5 (REQ-028/052) — leg materialization, a T5→T4 COUPLING. appointment.set claims a dock slot by
+// UPDATING a leg row (WHERE shipment_id=? AND kind=?), so the leg MUST exist first. booking.created — the
+// first event on a shipment stream — INSERTs the two customer-facing skeleton legs (pickup seq 0, delivery
+// seq 1) in the SAME batch that creates the shipments row. Deterministic ids `${id}:pickup` / `${id}:delivery`.
+// executor_party_id = bill_to_party_id is a PROVISIONAL placeholder (mutable; dispatch/T8 refines the real
+// executor). appt_* columns are left NULL, so a skeleton leg is EXCLUDED from ux_legs_slot (the partial index
+// is `WHERE appt_slot_key IS NOT NULL`) — two un-appointed legs never collide. INSERT OR IGNORE keeps
+// re-projection idempotent AND leaves a Concierge quote-stage leg (if any pre-exists) untouched. PLAIN insert
+// — never INSERT OR REPLACE (REPLACE would delete THROUGH ux_legs_slot = silent slot theft on the mutable table).
+//
+// ONE-LEG-PER-(shipment, kind) INVARIANT (v1): downstream provisioning (dispatch/T8) must UPDATE these
+// deterministic `${id}:pickup` / `${id}:delivery` rows in place (real geo, executor, appt claim), NEVER INSERT
+// a sibling leg of the same kind. The delivery-geo consumers (#deliveryFence in sequencer.ts, deliveryStopGeo
+// in biller.ts) prefer a NON-EMPTY-geo delivery leg as a backstop so a stray sibling cannot shadow the real
+// fence — but multi-stop (a second real leg per kind) is out of scope until a register amendment adds a leg
+// seq/id to AppointmentSetPayload.
+const LEG_SKELETON_SQL =
+  "INSERT OR IGNORE INTO legs (id, shipment_id, seq, kind, executor_party_id, geo) VALUES (?,?,?,?,?,'{}')";
+
 /**
  * The tenant-plane read-model mutation an event implies. booking.created upserts the shipment row (state
  * booked) AND corrects consignee/bill_to on an existing Concierge row (REQ-181); dispatch.assigned ->
@@ -79,7 +98,13 @@ export function projectStatusCache(db: D1Database, e: LedgerEvent): D1PreparedSt
       if (shipper === undefined || consignee === undefined || billTo === undefined) {
         throw new Error("booking.created: payload must carry shipper_party_id / consignee_party_id / bill_to_party_id");
       }
-      return [db.prepare(BOOKING_SQL).bind(shipmentId, division, shipper, consignee, billTo, createdTs)];
+      // Order is load-bearing: the shipments upsert FIRST (legs.shipment_id -> shipments(id) FK), then the
+      // two skeleton legs appointment.set will claim slots against (WP-08 T5). billTo is the provisional executor.
+      return [
+        db.prepare(BOOKING_SQL).bind(shipmentId, division, shipper, consignee, billTo, createdTs),
+        db.prepare(LEG_SKELETON_SQL).bind(`${shipmentId}:pickup`, shipmentId, 0, "pickup", billTo),
+        db.prepare(LEG_SKELETON_SQL).bind(`${shipmentId}:delivery`, shipmentId, 1, "delivery", billTo),
+      ];
     }
     case "dispatch.assigned": {
       const driver = e.actor.user;

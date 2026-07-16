@@ -30,6 +30,16 @@ const SCHEMA = `(?:${Q}\\w+${QCLOSE}\\s*\\.\\s*)?`;
 // none (the zero-width lookahead), so `CREATE TABLE[t22]` counts and `DELETE FROM[events]` is caught.
 const DELIM = `(?:\\s+|(?=${QOPEN}))`;
 
+// ---- shared target matchers (share-lint) --------------------------------------------------------------
+// ONE builder both the migration surface AND the TS-source surface consume, so the two scanners can never
+// drift on delimiter/schema forms (the classic `INTO"events"` / `INTO main.events` bypasses). A parity test
+// (invariants.test.ts) feeds ONE evasion corpus through every scanner. Callers pass an alternation of
+// table names ("events|positions|money_lines" or "legs"); `gi` so matchAll can sweep a whole file/statement.
+const replaceFamilyRe = (tables: string): RegExp =>
+  new RegExp(`\\b(INSERT\\s+OR\\s+REPLACE\\s+INTO|REPLACE\\s+INTO)${DELIM}${SCHEMA}${Q}(${tables})\\b`, "gi");
+const onConflictUpdateRe = (tables: string): RegExp =>
+  new RegExp(`\\bINSERT\\s+(?:OR\\s+(?:ROLLBACK|ABORT|FAIL|IGNORE|REPLACE)\\s+)?INTO${DELIM}${SCHEMA}${Q}(${tables})\\b[^;]*?\\bON\\s+CONFLICT\\b[^;]*?\\bDO\\s+UPDATE\\b`, "gi");
+
 export type InvariantResult = { ok: boolean; tableCount: number; violations: string[]; warnings: string[] };
 
 export function checkMigrationSql(sqlFiles: string[]): InvariantResult {
@@ -104,6 +114,16 @@ export function checkMigrationSql(sqlFiles: string[]): InvariantResult {
   );
   for (const m of clean.matchAll(upsert)) {
     violations.push(`I3 VIOLATION: upsert (ON CONFLICT DO UPDATE) on ${m[1]} rewrites a row — ${m[1]} is append-only. Corrections are new events.`);
+  }
+  // REQ-028/052 — `legs` is a MUTABLE table (a plain UPDATE/DELETE is a legal domain write, so it is NOT in
+  // GUARDED_TABLES), but a REPLACE-family write or an upsert would DELETE/rewrite the row THROUGH the
+  // ux_legs_slot UNIQUE INDEX (silent dock-slot theft). Banned on BOTH surfaces via the shared builders; a
+  // plain UPDATE (how appointment.set claims a slot) is allowed.
+  for (const m of clean.matchAll(replaceFamilyRe("legs"))) {
+    violations.push(`REQ-028/052 VIOLATION: "${m[1]} ... legs" deletes the leg row THROUGH ux_legs_slot (silent slot theft) — claim a slot with a plain UPDATE.`);
+  }
+  for (const _m of clean.matchAll(onConflictUpdateRe("legs"))) {
+    violations.push(`REQ-028/052 VIOLATION: upsert (ON CONFLICT DO UPDATE) on legs rewrites the leg row through ux_legs_slot — claim a slot with a plain UPDATE.`);
   }
   // I3: a guard trigger can never be dropped — that silently disables append-only.
   for (const m of clean.matchAll(new RegExp(`\\bDROP\\s+TRIGGER\\s+(?:IF\\s+EXISTS\\s+)?${SCHEMA}${Q}([A-Za-z0-9_]+)`, "gi"))) {
@@ -200,16 +220,42 @@ export function findStraySql(cwd: string = process.cwd()): string[] {
 // against a guarded table. REPLACE's implicit row-DELETE skips the BEFORE DELETE guard, so it
 // could rewrite history that the DB-level BEFORE INSERT guard is meant to protect. Corrections
 // are new events (I3/I1). This scans `src` trees ONLY — test files legitimately embed REPLACE
-// probe SQL to prove the guards fire.
-const FORBIDDEN_REPLACE = /\b(INSERT\s+OR\s+REPLACE\s+INTO|REPLACE\s+INTO)\s+["'`[]?(events|positions|money_lines)\b/gi;
+// probe SQL to prove the guards fire. Built from the SHARED replaceFamilyRe (same DELIM/SCHEMA/Q the
+// migration scanner uses), so `INTO"events"` (abutting quote) and `INTO main.events` (schema-qualified)
+// can no longer split the two surfaces — a parity test (invariants.test.ts) proves it.
+const FORBIDDEN_REPLACE = (): RegExp => replaceFamilyRe("events|positions|money_lines");
 
 export function scanSourceForForbiddenReplace(sources: ReadonlyArray<{ path: string; text: string }>): string[] {
   const violations: string[] = [];
+  const GUARDED = "events|positions|money_lines";
   for (const { path, text } of sources) {
-    for (const m of text.matchAll(FORBIDDEN_REPLACE)) {
+    for (const m of text.matchAll(FORBIDDEN_REPLACE())) {
       violations.push(
         `${path}: "${m[1]} ... ${m[2]}" — REPLACE bypasses the BEFORE DELETE guard (D1 recursive_triggers=0). Corrections are new events (I3/I1).`,
       );
+    }
+    // An upsert (INSERT ... ON CONFLICT DO UPDATE) IS a mutation of the guarded row — the migration scanner
+    // already bans it; the source surface must too (share-lint parity: same rule, both surfaces).
+    for (const m of text.matchAll(onConflictUpdateRe(GUARDED))) {
+      violations.push(
+        `${path}: "INSERT ... ON CONFLICT DO UPDATE ... ${m[1]}" — an upsert rewrites an append-only row. Corrections are new events (I3/I1).`,
+      );
+    }
+  }
+  return violations;
+}
+
+// REQ-028/052 — the `legs` sibling of the REPLACE ban. legs is MUTABLE (a plain UPDATE claims a dock slot),
+// but a REPLACE-family write or an upsert deletes/rewrites the row THROUGH ux_legs_slot (silent slot theft),
+// so those are forbidden in application source too. Same shared builders as the migration surface.
+export function scanSourceForLegsReplace(sources: ReadonlyArray<{ path: string; text: string }>): string[] {
+  const violations: string[] = [];
+  for (const { path, text } of sources) {
+    for (const m of text.matchAll(replaceFamilyRe("legs"))) {
+      violations.push(`${path}: "${m[1]} ... legs" — REPLACE on legs deletes through ux_legs_slot (silent slot theft). Claim a slot with a plain UPDATE (REQ-028/052).`);
+    }
+    for (const _m of text.matchAll(onConflictUpdateRe("legs"))) {
+      violations.push(`${path}: "INSERT ... ON CONFLICT DO UPDATE ... legs" — an upsert rewrites the leg row through ux_legs_slot. Claim a slot with a plain UPDATE (REQ-028/052).`);
     }
   }
   return violations;
@@ -217,7 +263,8 @@ export function scanSourceForForbiddenReplace(sources: ReadonlyArray<{ path: str
 
 export function findForbiddenReplaceSources(cwd: string = process.cwd()): string[] {
   const files = [...globSync("packages/*/src/**/*.ts", { cwd }), ...globSync("workers/*/src/**/*.ts", { cwd })];
-  return scanSourceForForbiddenReplace(files.map((p) => ({ path: p, text: readFileSync(join(cwd, p), "utf8") })));
+  const texts = files.map((p) => ({ path: p, text: readFileSync(join(cwd, p), "utf8") }));
+  return [...scanSourceForForbiddenReplace(texts), ...scanSourceForLegsReplace(texts)];
 }
 
 // The migration lock as committed in git HEAD — the forward-only anchor `checkLock` compares against.

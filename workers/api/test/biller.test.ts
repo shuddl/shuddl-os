@@ -5,7 +5,7 @@ import type { EventKind, LedgerEvent } from "@shuddl/contracts";
 import { capture, type CaptureParams, type DeviceContext, type EvidenceField } from "@shuddl/driver-core";
 import { RecordingSender, SendError, formatCents } from "@shuddl/agents";
 import type { EvidenceMessage, EvidenceSender, SendReceipt } from "@shuddl/agents";
-import { handlePodSigned, PodSignedMessage } from "../../agents/src/biller.js";
+import { handlePodSigned, PodSignedMessage, deliveryStopGeo } from "../../agents/src/biller.js";
 import type { BillerDeps, SeqStubLike } from "../../agents/src/biller.js";
 import type { Env } from "../src/index.js";
 import {
@@ -549,5 +549,33 @@ describe("Biller consumer — POD fires invoice.issued + evidence send (REQ-031/
     expect(sender.messages).toHaveLength(1);
     expect(sender.messages[0]!.idempotency_key).toBe(`evidence-email/${outcome.invoice_event_id}`);
     expect(sender.messages[0]!.html).toContain(formatCents(sell)); // the stored payload's total, verbatim
+  });
+});
+
+// ─── WP-08 T5 hardening (REQ-028/052) — deliveryStopGeo must PREFER a non-empty-geo delivery leg so the
+// empty booking.created skeleton (deterministic `${id}:delivery`, geo '{}') can never SHADOW the real
+// coordinates T8/dispatch provisions — even if the real leg lands at a HIGHER seq (INSERT, not UPDATE). ──
+describe("deliveryStopGeo prefers non-empty geo over the empty skeleton (T5 shadowing, REQ-028/052)", () => {
+  async function insertDeliveryLeg(shipmentId: string, id: string, seq: number, geo: string): Promise<void> {
+    await env.TENANT_A_DB.prepare(
+      "INSERT OR IGNORE INTO legs (id, shipment_id, seq, kind, executor_party_id, geo) VALUES (?,?,?,?,?,?)",
+    )
+      .bind(id, shipmentId, seq, "delivery", "party-carrier", geo)
+      .run();
+  }
+
+  it("returns the REAL geo even when the empty skeleton sits at a LOWER seq", async () => {
+    const shp = "biller-geo-shadow";
+    await seedShipment(shp);
+    await insertDeliveryLeg(shp, `${shp}:delivery`, 1, "{}"); // booking skeleton — LOWER seq, empty
+    await insertDeliveryLeg(shp, `${shp}:delivery-real`, 2, JSON.stringify({ lat_e6: 37_421_000, lon_e6: -122_084_000 })); // HIGHER seq, real
+    expect(await deliveryStopGeo(env.TENANT_A_DB, shp)).toEqual({ lat_e6: 37_421_000, lon_e6: -122_084_000 });
+  });
+
+  it("still returns undefined when ONLY the empty skeleton exists (fail-closed, unchanged)", async () => {
+    const shp = "biller-geo-skeleton-only";
+    await seedShipment(shp);
+    await insertDeliveryLeg(shp, `${shp}:delivery`, 1, "{}");
+    expect(await deliveryStopGeo(env.TENANT_A_DB, shp)).toBeUndefined();
   });
 });

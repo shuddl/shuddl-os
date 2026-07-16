@@ -9,6 +9,7 @@ import domain from "../../../db/tenant/migrations/0002_domain.sql?raw";
 import insertGuards from "../../../db/tenant/migrations/0003_insert_guards.sql?raw";
 import partyRefsGuard from "../../../db/tenant/migrations/0004_party_refs_guard.sql?raw";
 import eventsOverride from "../../../db/tenant/migrations/0005_events_override.sql?raw";
+import booking from "../../../db/tenant/migrations/0006_booking.sql?raw";
 
 // WP-07 Task 7 — TIMELINE VISIBILITY + "no comms outside the ledger" (REQ-094/099/100).
 //
@@ -67,6 +68,7 @@ beforeAll(async () => {
     { path: "0003_insert_guards.sql", sql: insertGuards },
     { path: "0004_party_refs_guard.sql", sql: partyRefsGuard },
     { path: "0005_events_override.sql", sql: eventsOverride },
+    { path: "0006_booking.sql", sql: booking },
   ]);
   // The shipment must be assigned to DRIVER for the driver lens' shipment-assignment subquery to match.
   await DB.prepare(
