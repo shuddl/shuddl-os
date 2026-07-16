@@ -81,6 +81,16 @@ const SERVER_EMITTED_KINDS: ReadonlySet<string> = new Set<string>([
   "settlement.executed",
 ]);
 
+// REQ-185 (WP-08 exit audit) — PRIVILEGED FINANCE DECISIONS, authorized HERE at the write boundary. Unlike a
+// server-emitted money kind (refused for every client), credit.checked IS client-appendable — but ONLY by a
+// finance (or admin) principal. It writes the tenant-global parties.credit_status that the REQ-042 credit-hold
+// gate reads, so a driver/ops emitting it would defeat that gate: a driver clearing a finance hold is a
+// mis-bill (a held party ships on credit); ops clearing it is a segregation-of-duties break. Enforced BEFORE
+// the driver write-scope + the DO append, so a refused credit.checked appends NOTHING. Symmetrically, finance
+// reaches this route ONLY to emit a privileged decision — never a physical/driver/ops event.
+const PRIVILEGED_DECISION_KINDS: ReadonlySet<string> = new Set<string>(["credit.checked"]);
+const PRIVILEGED_DECISION_ROLES: ReadonlySet<Role> = new Set<Role>(["finance", "admin"]);
+
 const LIMIT_CAP = 1000;
 const DEFAULT_LIMIT = 200; // mirrors @shuddl/ledger/lens readEvents so next_cursor agrees with the page size
 // A shipment id far under any DO-name / KV-key limit; a real id is a slug, never kilobytes. Length only —
@@ -125,7 +135,7 @@ export function mountEventRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>):
   // POST /v1/shipments/:id/events — append one event to a shipment stream. Mutation ⇒ the WP-01
   // idempotency middleware already requires the Idempotency-Key header (dedupes the HTTP retry); the
   // sequencer additionally dedupes by event id + (device_id, device_seq).
-  app.post("/v1/shipments/:id/events", requireRole("admin", "ops", "driver"), async (c) => {
+  app.post("/v1/shipments/:id/events", requireRole("admin", "ops", "driver", "finance"), async (c) => {
     const session = c.get("session");
     const shipmentId = c.req.param("id");
     // Bound the shipment id BEFORE it reaches the DO name (idFromName) or any query: an oversized id is
@@ -147,6 +157,20 @@ export function mountEventRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>):
     const inKind = input !== null && typeof input === "object" ? (input as { kind?: unknown }).kind : undefined;
     if (typeof inKind === "string" && SERVER_EMITTED_KINDS.has(inKind)) {
       throw new ApiError("FORBIDDEN", 403, "THIS EVENT KIND IS SERVER-EMITTED ONLY (REQ-030)");
+    }
+
+    // REQ-185 — the PRIVILEGED-DECISION authorization boundary (see PRIVILEGED_DECISION_KINDS). Enforced HERE,
+    // before the override handling, the driver write-scope, and the DO append — so a refused credit.checked
+    // appends NOTHING and never projects credit_status. Two directions: (a) only finance/admin may emit a
+    // privileged decision — a driver/ops/portal/read POST of credit.checked is 403 FORBIDDEN (a driver must
+    // not clear a finance hold; ops clearing it is a segregation break); and (b) finance/admin reach this route
+    // ONLY to emit a privileged decision — a finance principal posting a physical/ops kind is likewise 403.
+    const isPrivilegedDecision = typeof inKind === "string" && PRIVILEGED_DECISION_KINDS.has(inKind);
+    if (isPrivilegedDecision && !PRIVILEGED_DECISION_ROLES.has(session.role)) {
+      throw new ApiError("FORBIDDEN", 403, "credit.checked IS A PRIVILEGED FINANCE DECISION (REQ-185)");
+    }
+    if (session.role === "finance" && !isPrivilegedDecision) {
+      throw new ApiError("FORBIDDEN", 403, "FINANCE MAY EMIT ONLY A PRIVILEGED DECISION (REQ-185)");
     }
 
     // REQ-049 (WP-05 exit audit) — a gate override is an ACCOUNTABLE, ELEVATED action, enforced HERE:

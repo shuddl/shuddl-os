@@ -338,3 +338,42 @@ describe("(D) booking.created materializes the pickup + delivery skeleton legs t
     ]);
   });
 });
+
+// ─── (F) REQ-186 — appointment.set pins shipment_id to the stream (exit-audit 0.1 + defense-in-depth) ──
+// The event's top-level shipment_id is z.string().optional() and used to be trusted from the client. The
+// projections key their leg-claim UPDATE off e.shipment_id, so an OMITTED shipment_id committed a phantom
+// (201, no slot claimed) and a CROSSED one aborted the batch as an unmapped 500. The DO now DERIVES
+// shipment_id from the stream (s:<id>), so both malformed shapes resolve to the stream's own shipment.
+describe("(F) appointment.set pins shipment_id to the stream (REQ-186)", () => {
+  it("an OMITTED shipment_id applies to the stream's own shipment and CLAIMS its slot — no phantom", async () => {
+    const fac = "fac-appt-pin-omit";
+    await seedFac(fac);
+    const a = "appt-pin-omit-a";
+    await seedShipment(a);
+    await seedLeg(a, 0, "pickup", null);
+    // shipment_id omitted from the event body entirely (JSON.stringify drops the undefined key in post()).
+    const r = await post(a, apptInput(a, fac, { shipment_id: undefined }), await opsTok());
+    expect(r.status).toBe(201);
+    expect((r.json as { shipment_id?: string }).shipment_id).toBe(a); // derived from the stream, not absent
+    expect(await slotClaimCount(fac, AM)).toBe(1); // the leg WAS claimed (pre-fix: 0, a phantom)
+    expect(await legSlot(a)).toBe(AM);
+  });
+
+  it("a CROSSED shipment_id (naming another shipment) is corrected to the stream — victim untouched, NOT a 500", async () => {
+    const fac = "fac-appt-pin-cross";
+    await seedFac(fac);
+    const a = "appt-pin-cross-a";
+    const victim = "appt-pin-cross-victim";
+    await seedShipment(a);
+    await seedShipment(victim);
+    await seedLeg(a, 0, "pickup", null);
+    await seedLeg(victim, 0, "pickup", null);
+    // POST to stream A but name the victim in the event's shipment_id.
+    const r = await post(a, apptInput(a, fac, { shipment_id: victim }), await opsTok());
+    expect(r.status).toBe(201); // NOT the pre-fix CHECK-violation 500
+    expect((r.json as { shipment_id?: string; stream_id?: string }).shipment_id).toBe(a);
+    expect((r.json as { stream_id?: string }).stream_id).toBe(`s:${a}`);
+    expect(await legSlot(a)).toBe(AM); // A's leg got the claim
+    expect(await legSlot(victim)).toBeNull(); // the victim's leg was never touched
+  });
+});

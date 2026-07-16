@@ -302,11 +302,28 @@ export class ShipmentSequencer extends DurableObject<Env> {
     const { requested_visibility, ...clientFields } = parsed;
     const visibility = resolveVisibility(parsed.kind, policy.visibility, requested_visibility, correctedVis);
 
+    // REQ-186 (WP-08 exit audit) — PIN shipment_id to the stream. stream_id is DO-authoritative (set below);
+    // shipment_id must name the SAME shipment (the events CHECK is `stream_id = 's:' || shipment_id`). But the
+    // client field is z.string().optional(), and the DO used to trust it — so an OMITTED shipment_id committed
+    // a phantom appointment.set that claimed no slot (the projections key off e.shipment_id), and a CROSSED one
+    // reached a projection and aborted the batch as an unmapped 500. Derive it from the stream — the same
+    // authority that sets stream_id — for a shipment stream (s:<id>); leave it untouched for a non-shipment
+    // stream (q:/t:root), whose events carry no shipment_id (stamping one would both change their canonical
+    // bytes AND violate the CHECK). Byte-safe on all existing data, by two facts together: (1) the CHECK
+    // forbids a stored s: event from CROSSING shipment_id — any PRESENT value already equals streamId.slice(2),
+    // so re-deriving it is a no-op; and (2) the CHECK does permit shipment_id NULL on an s: stream, but every
+    // seeded/agent-written s: event actually POPULATES it (seed generate.ts, booking.ts, concierge.ts all set
+    // it), so there is NO null-on-s: event whose canonical bytes the derivation would change. Verified: the
+    // SEED-1 hash is unchanged by this commit. The derivation exists to correct exactly the malformed shapes
+    // (omitted/crossed) that this repo's writers never produce but an untrusted client could.
+    const derivedShipmentId = streamId.startsWith("s:") ? streamId.slice(2) : undefined;
+
     // LedgerEvent.parse validates the assembled STORAGE shape (and, being .strict(), is a backstop
     // against any stray key entering the hash-view). hash is computed next, never client-supplied.
     const event = LedgerEvent.parse({
       ...clientFields,
       stream_id: streamId,
+      ...(derivedShipmentId !== undefined ? { shipment_id: derivedShipmentId } : {}),
       seq: this.tail.seq + 1,
       prev_hash: this.tail.hash,
       recorded_at: Date.now(),

@@ -223,6 +223,9 @@ let invoiceCorrectedId = "";
 beforeAll(async () => {
   await ensureSchema(env);
   const ops = await opsTok();
+  // REQ-185 — credit.checked is a privileged FINANCE decision; the public route now refuses an ops POST of
+  // it. Seed it with a finance principal so this fixture still exercises the real route path for that kind.
+  const fin = await token({ sub: "adv-fin-seed", tenant: TENANT_SLUG, role: "finance" });
 
   // P1/P2/P3 must exist as parties: they are actors on passport-accruing events (FK parties(id)). P2 is the
   // bill_to on the seeded booking.created, so it carries a deliverable email so the REQ-182 booking
@@ -313,7 +316,8 @@ beforeAll(async () => {
       const p = await append(SHP_A, buildInput(SHP_A, "freight.photographed", { payload: { photo_hash: HEX64, photo_kind: "placed" } }), ops);
       if (p.status !== 201) throw new Error(`seed ${SHP_A}/placed-photo failed: ${p.status} ${p.body}`);
     }
-    const r = await seed(SHP_A, buildInput(SHP_A, kind), kind, ops);
+    // credit.checked is finance-only at the route (REQ-185); every other kind seeds as ops.
+    const r = await seed(SHP_A, buildInput(SHP_A, kind), kind, kind === "credit.checked" ? fin : ops);
     if (r.status !== 201) throw new Error(`seed ${SHP_A}/${kind} failed: ${r.status} ${r.body}`);
     if (kind === "invoice.issued") invoiceIssuedId = r.json!.id as string;
   }
