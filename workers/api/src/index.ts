@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { SessionClaims } from "@shuddl/contracts";
 import { z } from "zod";
 import { reqId, handleError, envelope, ApiError } from "./middleware/error.js";
+import { corsMiddleware } from "./middleware/cors.js";
 import { auth, requireRole } from "./middleware/auth.js";
 import { idempotency } from "./middleware/idempotency.js";
 import { tenantDb } from "./tenants.js";
@@ -28,6 +29,12 @@ export type Vars = { req_id: string; session: SessionClaims };
 
 const app = new Hono<{ Bindings: Env; Variables: Vars }>();
 app.use("*", reqId);
+// REQ-025/189 (WP-09 Task 5): scoped CORS for the Portal + public status browser origins. Mounted right
+// after reqId and BEFORE auth so (a) it wraps BOTH /v1/* and /pub/*, and (b) the OPTIONS preflight — which
+// browsers send WITHOUT an Authorization header — is answered here with a 204 and never reaches auth (which
+// would 401 it). A denied origin gets NO Access-Control-Allow-Origin header; an allowed origin is echoed,
+// never `*`. See middleware/cors.ts for the (synthetic, REQ-167-safe) allowlist.
+app.use("*", corsMiddleware());
 app.onError(handleError);
 
 // Public: health only. Everything else authenticates (REQ-133: every client is untrusted).

@@ -7,10 +7,15 @@ import {
   TEST_RATE_CONFIG,
   TENANT_B_RATE_CONFIG,
   token,
+  post,
   TENANT_SLUG,
 } from "./helpers.js";
 import { HOST_TENANTS } from "../src/pub/quote.js";
 import { TENANT_BINDINGS } from "../src/tenants.js";
+import { mintStatusCap, verifyStatusCap } from "../src/pub/status-cap.js";
+
+const JWT_SECRET = "test-secret-do-not-use-in-prod"; // === vitest.config.ts miniflare bindings.JWT_SECRET
+const nowS = (): number => Math.floor(Date.now() / 1000);
 
 // REQ-025: cross-tenant read anywhere = build failure. This suite runs on every merge, forever.
 // It grows a case for every read path added in later WPs — WP-02 adds the ledger event/position routes.
@@ -216,5 +221,113 @@ describe("REQ-025/167 growth: /pub/quote resolves tenant from the URL host, neve
         expect(bound.has(slug), `HOST_TENANTS maps to an UNBOUND tenant: ${slug}`).toBe(true);
       }
     });
+  });
+});
+
+// WP-09 Task 5 growth (REQ-025): the THIRD public read, GET /pub/status/:cap. The cap carries a MAC-signed
+// tenant `t`, and the ONLY tenant→D1 path is that verified `t` fed through tenantDb — never the shipment id,
+// never anything client-supplied. These cases prove a cap minted for one tenant can never surface another's
+// data, and that a cap for a tenant the core allowlist does not bind fails closed.
+describe("REQ-025 growth: /pub/status/:cap reads ONLY the cap's MAC-verified tenant", () => {
+  // The SAME shipment id is seeded in BOTH tenants with a DIFFERENT status_cache state, so the ONLY thing that
+  // can select which state surfaces is the cap's `t`. If any cross-tenant bleed existed, the states would be
+  // confusable — they are not: `t` alone routes the physical D1 (tenantDb), and `s` is looked up only there.
+  const ISO1_SHARED_SHP = "iso-pub-1-shared-id"; // exists in tenant-a AND tenant-b, distinct status each
+  const ISO1_A_STATE = "iso1-tenant-a-state";
+  const ISO1_B_STATE = "iso1-tenant-b-state";
+
+  async function seedStatus(db: D1Database, id: string, state: string): Promise<void> {
+    await db
+      .prepare("INSERT OR IGNORE INTO shipments (id, shipper_party_id, consignee_party_id, bill_to_party_id, status_cache, created_ts) VALUES (?,?,?,?,?,0)")
+      .bind(id, "party-shipper", "party-consignee", "party-bill-to", JSON.stringify({ state }))
+      .run();
+  }
+  async function getStatus(cap: string): Promise<{ status: number; json: Record<string, unknown> | null }> {
+    const res = await SELF.fetch(`https://api.local/pub/status/${cap}`);
+    const json = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+    return { status: res.status, json };
+  }
+
+  beforeAll(async () => {
+    // schema for both tenants is ensured by the file-level beforeAll; seed the twin shipments here.
+    await seedStatus(env.TENANT_A_DB, ISO1_SHARED_SHP, ISO1_A_STATE);
+    await seedStatus(env.TENANT_B_DB, ISO1_SHARED_SHP, ISO1_B_STATE);
+  });
+
+  // ISO-pub-1 — a cap minted for tenant-b reads tenant-b's status_cache, NEVER tenant-a's (same id, both DBs).
+  describe("ISO-pub-1: the cap's tenant is the only D1 selector", () => {
+    it("a tenant-b cap surfaces tenant-b's state, never tenant-a's (identical shipment id in both DBs)", async () => {
+      const cap = await mintStatusCap(JWT_SECRET, { t: "tenant-b", s: ISO1_SHARED_SHP, expSeconds: nowS() + 3600 });
+      const r = await getStatus(cap);
+      expect(r.status).toBe(200);
+      expect(r.json?.state).toBe(ISO1_B_STATE);
+      expect(r.json?.state).not.toBe(ISO1_A_STATE); // tenant-a's row for the same id is never reached
+    });
+
+    it("the tenant-a cap for the same id surfaces tenant-a's state (symmetry — the selector is `t`, not `s`)", async () => {
+      const cap = await mintStatusCap(JWT_SECRET, { t: TENANT_SLUG, s: ISO1_SHARED_SHP, expSeconds: nowS() + 3600 });
+      const r = await getStatus(cap);
+      expect(r.status).toBe(200);
+      expect(r.json?.state).toBe(ISO1_A_STATE);
+      expect(r.json?.state).not.toBe(ISO1_B_STATE);
+    });
+
+    it("a cap whose `t` is an UNBOUND tenant fails closed to the uniform 401 (tenantDb has no handle)", async () => {
+      // MAC-valid (we mint it), but `tenant-c` is not in TENANT_BINDINGS -> tenantDb throws -> the handler's
+      // fail-closed catch returns the SAME 401 as a bad cap. No tenant-existence oracle, no cross-tenant read.
+      const cap = await mintStatusCap(JWT_SECRET, { t: "tenant-c", s: ISO1_SHARED_SHP, expSeconds: nowS() + 3600 });
+      const r = await getStatus(cap);
+      expect(r.status).toBe(401);
+    });
+  });
+});
+
+// ISO-pub-4 — the MINT route bakes the cap's `t` from session.tenant ALONE, never from `:id` or any input.
+// A tenant-a session therefore can never mint a cap that reads tenant-b, whatever `:id` it names.
+describe("REQ-025 growth: POST /v1/shipments/:id/status-link bakes cap.t from the session, never :id", () => {
+  const ISO4_SHP = "iso-pub-4-shipment"; // a tenant-a shipment with an event, so the mint lens gate passes
+
+  function bookingInput(shipmentId: string): Record<string, unknown> {
+    return {
+      id: crypto.randomUUID(),
+      shipment_id: shipmentId,
+      ts: 1_720_000_000_000,
+      actor: { party: "party-shipper" },
+      party_refs: ["party-consignee"],
+      evidence: [],
+      source: "native",
+      confidence: 10_000,
+      kind: "booking.created",
+      payload: {
+        quote_event_id: "evt-quote-iso4",
+        division: "main",
+        shipper_party_id: "party-shipper",
+        consignee_party_id: "party-consignee",
+        bill_to_party_id: "party-bill-to",
+      },
+    };
+  }
+
+  beforeAll(async () => {
+    // The mint route resolves :id through the caller's lens and 403s on zero visible rows (fail-closed), so
+    // seed ONE real event on the stream (ops lens = tenant-wide) to reach the actual mint.
+    const ops = await token({ sub: "iso4-seed-ops", tenant: TENANT_SLUG, role: "ops" });
+    const b = await post(ISO4_SHP, bookingInput(ISO4_SHP), ops);
+    if (b.status !== 201) throw new Error(`seed ${ISO4_SHP}/booking failed: ${b.status} ${JSON.stringify(b.json)}`);
+  });
+
+  it("the minted cap decodes to t === session.tenant (tenant-a); :id only ever lands in `s`", async () => {
+    const ops = await token({ sub: "iso4-ops", tenant: TENANT_SLUG, role: "ops" });
+    const res = await SELF.fetch(`https://api.local/v1/shipments/${ISO4_SHP}/status-link`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${ops}`, "Idempotency-Key": crypto.randomUUID(), "content-type": "application/json" },
+      body: "{}",
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { cap: string };
+    const claims = await verifyStatusCap(body.cap, JWT_SECRET);
+    expect(claims.t).toBe(TENANT_SLUG); // baked from session.tenant, NOT from :id or any input
+    expect(claims.t).toBe("tenant-a");
+    expect(claims.s).toBe(ISO4_SHP); // the :id is the shipment (`s`) only — it can never become the tenant
   });
 });
