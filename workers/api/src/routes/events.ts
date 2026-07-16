@@ -1,5 +1,6 @@
 import type { Hono } from "hono";
 import type { ErrorCode, LedgerEvent, Role } from "@shuddl/contracts";
+import { GATE_BLOCKED_PREFIX } from "@shuddl/contracts";
 import { lensFor, readEvents, type ReadQuery } from "@shuddl/ledger/lens";
 import { ApiError } from "../middleware/error.js";
 import { requireRole } from "../middleware/auth.js";
@@ -44,7 +45,10 @@ export function translateAppendError(e: unknown): ApiError {
   const status = APPEND_STATUS[code];
   if (status === undefined) return new ApiError("INTERNAL", 500, "INTERNAL ERROR");
   let gate: { required_evidence: string[] } | undefined;
-  if (code === "GATE_BLOCKED") {
+  // Recognize the gate block via the SHARED wire prefix (derived from ErrorCode.GATE_BLOCKED) — the SAME
+  // constant the producer (GateError) builds and the Booking agent (booking.ts gateBlock) matches, so this
+  // route can never drift from them. Byte-identical to the prior `code === "GATE_BLOCKED"` literal.
+  if (`${code}:` === GATE_BLOCKED_PREFIX) {
     const detail = idx >= 0 ? safeJson(msg.slice(idx + 1)) : null;
     const raw = detail && typeof detail === "object" ? (detail as { required_evidence?: unknown }).required_evidence : undefined;
     gate = { required_evidence: Array.isArray(raw) ? raw.filter((x): x is string => typeof x === "string") : [] };

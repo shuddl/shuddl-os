@@ -2,14 +2,18 @@
 // append an `invoice.issued` hits the same server-side check (UIs merely reflect it). The Task-13
 // sequencer calls assertPodSigned before it appends the event.
 
+import { GATE_BLOCKED_PREFIX } from "@shuddl/contracts";
+
 // The gate refusal must survive a Durable Object → Workers RPC hop, which preserves ONLY an
 // Error's `name` and `message`. So the machine-readable evidence requirement is encoded INTO the
 // message as `GATE_BLOCKED:{json}` (the ErrorEnvelope code, a colon, then the JSON payload). The
-// structured `required_evidence` field is a convenience for same-isolate callers.
+// wire prefix is the SHARED GATE_BLOCKED_PREFIX (derived from the ErrorCode enum) — the SAME constant the
+// route (events.ts) and the Booking agent (booking.ts gateBlock) match on, so this producer can never
+// drift from its consumers. The structured `required_evidence` field is a convenience for same-isolate callers.
 export class GateError extends Error {
   readonly required_evidence: string[];
   constructor(requiredEvidence: string[]) {
-    super(`GATE_BLOCKED:${JSON.stringify({ required_evidence: requiredEvidence })}`);
+    super(`${GATE_BLOCKED_PREFIX}${JSON.stringify({ required_evidence: requiredEvidence })}`);
     this.name = "GateError";
     this.required_evidence = requiredEvidence;
   }

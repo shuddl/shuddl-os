@@ -383,6 +383,27 @@ export class ShipmentSequencer extends DurableObject<Env> {
       }
     }
 
+    // WP-08 (REQ-028/030/039): a COMMITTED quote.accepted triggers the Booking agent — the Biller's sibling.
+    // Same discipline as the Biller/Concierge triggers: enqueue STRICTLY AFTER the batch commits (an enqueue-
+    // then-abort would book an acceptance that was never recorded), on ctx.waitUntil (off the mutex + the
+    // caller's ack), best-effort (a failed push is LOGGED, never thrown — the accept is committed truth; a lost
+    // trigger is a reconciliation-sweep concern, WP-11, and the Booking agent's append is idempotent). A
+    // quote.accepted always sits on a shipment stream (it presupposes an accepted quote), so shipment_id is
+    // expected; a missing one can never be booked by the trigger, so it pages a human rather than vanishing.
+    // The shape is the consumer's Zod boundary (workers/agents/src/booking.ts QuoteAcceptedTrigger).
+    if (full.kind === "quote.accepted") {
+      if (full.shipment_id === undefined) {
+        console.error(`booking trigger NOT enqueued: quote.accepted ${full.id} on ${streamId} carries no shipment_id — nothing will book this acceptance (REQ-028)`);
+      } else {
+        const trigger = { kind: "quote.accepted", tenant, shipment_id: full.shipment_id, event_id: full.id };
+        this.ctx.waitUntil(
+          this.env.AGENT_QUEUE.send(trigger).catch((err: unknown) => {
+            console.error(`booking trigger enqueue failed for quote.accepted ${full.id} (accept committed; the sweep recovers it):`, err);
+          }),
+        );
+      }
+    }
+
     // WP-07 (REQ-026/093/100): a COMMITTED message.received triggers the Concierge — the Biller's sibling.
     // Same discipline as the Biller trigger above: enqueue STRICTLY AFTER the batch commits (never before),
     // on ctx.waitUntil (off the mutex + the caller's ack), best-effort (a failed push is LOGGED, never

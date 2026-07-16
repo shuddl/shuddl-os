@@ -115,4 +115,35 @@ describe("agents queue() — per-message dispatch (REQ-031/039)", () => {
     expect(state.acked).toBe(true);
     expect(state.retried).toBe(false);
   });
+
+  // WP-08: the Booking agent rides the SAME queue, discriminated on kind (quote.accepted → Booking). The
+  // dispatch contract is identical to the Biller/Concierge — poison acks, an unknown tenant acks, a routable
+  // message whose D1 read throws retries.
+  it("quote.accepted POISON body (missing shipment_id/event_id) → ACKed as poison", async () => {
+    const bad = mkMessage({ kind: "quote.accepted", tenant: "tenant-a", shipment_id: "shp-1" }); // no event_id
+    const alsoBad = mkMessage({ kind: "quote.accepted", tenant: "tenant-a", event_id: "evt-1" }); // no shipment_id
+    await worker.queue(mkBatch([bad.message, alsoBad.message]), env, createExecutionContext());
+    expect(bad.state.acked).toBe(true);
+    expect(bad.state.retried).toBe(false);
+    expect(alsoBad.state.acked).toBe(true);
+    expect(alsoBad.state.retried).toBe(false);
+  });
+
+  it("quote.accepted POISON tenant (not on the allowlist) → ACKed (REQ-025)", async () => {
+    const { message, state } = mkMessage({ kind: "quote.accepted", tenant: "tenant-evil", shipment_id: "shp-1", event_id: "evt-1" });
+    await worker.queue(mkBatch([message]), env, createExecutionContext());
+    expect(state.acked).toBe(true);
+    expect(state.retried).toBe(false);
+  });
+
+  it("quote.accepted routable message → dispatched to the Booking agent (unmigrated D1 throws → retry(), NOT poison-ack)", async () => {
+    // A valid, routable quote.accepted whose tenant D1 is UNMIGRATED in this harness (no events table): the
+    // Booking agent's first D1 read throws, standing in for a transient fault. That it RETRIES (not acks)
+    // proves the discriminated union matched quote.accepted and dispatch routed it to a real handler — had
+    // quote.accepted not been wired, it would ack as poison instead.
+    const { message, state } = mkMessage({ kind: "quote.accepted", tenant: "tenant-a", shipment_id: "shp-1", event_id: "evt-1" });
+    await worker.queue(mkBatch([message]), env, createExecutionContext());
+    expect(state.retried).toBe(true);
+    expect(state.acked).toBe(false);
+  });
 });

@@ -9,14 +9,24 @@ import { ClaudeParser, NotConfiguredParser, NotConfiguredSender, ParseError, Res
 import type { ConciergeParser, EvidenceEmailData, EvidenceMessage, EvidenceSender } from "@shuddl/agents";
 import { PodSignedMessage, handlePodSigned, type BillerDeps, type SeqStubLike } from "./biller.js";
 import { MessageReceivedTrigger, handleMessageReceived, type ConciergeDeps } from "./concierge.js";
+import { QuoteAcceptedTrigger, handleQuoteAccepted, type BookingDeps } from "./booking.js";
 import { sweepTenantOverdueInbound } from "./sla-sweep.js";
 import { TENANT_SLUGS, tenantDb, type AgentsEnv } from "./tenants.js";
 
 // The queue's message union (REQ-039): a committed pod.signed fans out to the Biller, a committed
-// message.received to the Concierge. Discriminated on `kind`, so a body matching neither member — or one
-// missing a member's required fields — fails safeParse and is ACKed as poison (redelivery cannot fix a shape).
-const AgentTrigger = z.discriminatedUnion("kind", [PodSignedMessage, MessageReceivedTrigger]);
+// message.received to the Concierge, a committed quote.accepted to the Booking agent. Discriminated on `kind`,
+// so a body matching no member — or one missing a member's required fields — fails safeParse and is ACKed as
+// poison (redelivery cannot fix a shape).
+const AgentTrigger = z.discriminatedUnion("kind", [PodSignedMessage, MessageReceivedTrigger, QuoteAcceptedTrigger]);
 type AgentTrigger = z.infer<typeof AgentTrigger>;
+
+// Exhaustiveness guard for the queue() dispatch — mirrors the DO's own assertNever. A future AgentTrigger
+// member added WITHOUT a matching dispatch case makes `trigger` no longer `never` at the final branch → a
+// COMPILE error, never a silent fall-through to the Booking branch (which would Zod-reject the foreign kind
+// and DLQ it). Belt (compile) + suspenders (throws at runtime → retry(), the loud path).
+function assertNever(x: never): never {
+  throw new Error(`unreachable agent dispatch for ${JSON.stringify(x)}`);
+}
 
 // REQ-098 tenant voice fallback — a generic, REQ-167-clean from-name when none is configured.
 const DEFAULT_CONCIERGE_FROM_NAME = "Shuddl Dispatch";
@@ -319,7 +329,7 @@ export default {
           const outcome = await handlePodSigned(trigger, deps);
           // The outcome IS the log line until WP-11's exceptions queue lands (holds surface there).
           console.log(`biller: pod ${trigger.event_id} → ${JSON.stringify(outcome)}`);
-        } else {
+        } else if (trigger.kind === "message.received") {
           const deps: ConciergeDeps = {
             db,
             seq: sequencerFor(env),
@@ -329,6 +339,18 @@ export default {
           };
           const outcome = await handleMessageReceived(trigger, deps);
           console.log(`concierge: message ${trigger.event_id} → ${JSON.stringify(outcome)}`);
+        } else if (trigger.kind === "quote.accepted") {
+          // WP-08 (REQ-028/030): a committed quote.accepted → the Booking agent, which appends a gated
+          // booking.created THROUGH the sequencer DO. No sender/parser — it is LLM-free and sends nothing; a
+          // GATE_BLOCK is caught INSIDE the agent and returned as `held` (never a throw → DLQ loop), so only a
+          // genuine transient fault reaches the retry() below.
+          const deps: BookingDeps = { db, seq: sequencerFor(env) };
+          const outcome = await handleQuoteAccepted(trigger, deps);
+          console.log(`booking: quote.accepted ${trigger.event_id} → ${JSON.stringify(outcome)}`);
+        } else {
+          // Every AgentTrigger kind is handled above — this is unreachable. If a new member is added without a
+          // case, `trigger` is no longer `never` here and this stops compiling (the fail-loud contract).
+          assertNever(trigger);
         }
         message.ack();
       } catch (err) {
