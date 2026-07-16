@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 
 // The map is WebGL — stub it so jsdom never constructs a GL context (mirrors App.test).
 vi.mock("@shuddl/map", () => ({
