@@ -31,6 +31,10 @@ async function scores(partyId: string): Promise<Record<string, number> | null> {
   const r = await DB.prepare("SELECT scores AS s FROM passports WHERE party_id = ?").bind(partyId).first<{ s: string }>();
   return r === null ? null : (JSON.parse(r.s) as Record<string, number>);
 }
+async function creditStatus(partyId: string): Promise<string | null> {
+  const r = await DB.prepare("SELECT credit_status AS c FROM parties WHERE id = ?").bind(partyId).first<{ c: string | null }>();
+  return r === null ? null : r.c;
+}
 function booking(shipmentId: string, division = "north"): LedgerEvent {
   return mkEvent("booking.created", {
     stream_id: `s:${shipmentId}`,
@@ -56,6 +60,52 @@ describe("REQ-015 / audit#11 — status_cache is the projection the driver lens 
     ).first<{ division: string; shipper_party_id: string; consignee_party_id: string; bill_to_party_id: string }>();
     expect(row).toEqual({ division: "north", shipper_party_id: "p-ship", consignee_party_id: "p-cons", bill_to_party_id: "p-bill" });
     expect((await statusCache("shp-1"))?.state).toBe("booked");
+  });
+
+  it("booking.created CORRECTS consignee/bill_to on an EXISTING (Concierge quote-stage) row — not just state (REQ-181)", async () => {
+    // WP-07 leaves a quote-stage shipment whose THREE party FKs all self-reference the requester (resolve.ts
+    // createShipment). Pre-create that row directly, then book with DIFFERENT real consignee + bill_to.
+    await DB.prepare(
+      "INSERT INTO shipments (id, division, shipper_party_id, consignee_party_id, bill_to_party_id, status_cache, created_ts) VALUES ('cx-1','main','p-req','p-req','p-req','{}',0)",
+    ).run();
+    // The booking payload deliberately names a shipper (p-other-shipper) DIFFERENT from the row's existing
+    // shipper (p-req): the ON CONFLICT SET clause must NOT touch shipper_party_id, so the stored value must
+    // stay p-req. This fails if the SET clause is ever WIDENED to `shipper_party_id = excluded.shipper...`.
+    await appendStatus(
+      mkEvent("booking.created", {
+        stream_id: "s:cx-1",
+        shipment_id: "cx-1",
+        payload: { quote_event_id: "evt-q", division: "main", shipper_party_id: "p-other-shipper", consignee_party_id: "p-real-cons", bill_to_party_id: "p-real-bill" },
+      }),
+    );
+    const row = await DB.prepare(
+      "SELECT shipper_party_id, consignee_party_id, bill_to_party_id FROM shipments WHERE id = 'cx-1'",
+    ).first<{ shipper_party_id: string; consignee_party_id: string; bill_to_party_id: string }>();
+    // consignee + bill_to become the booking's REAL parties; shipper STAYS the requester (p-req) even though
+    // the payload named a different shipper — booking never re-parents the shipper. state also flips to booked.
+    expect(row).toEqual({ shipper_party_id: "p-req", consignee_party_id: "p-real-cons", bill_to_party_id: "p-real-bill" });
+    expect((await statusCache("cx-1"))?.state).toBe("booked");
+  });
+
+  it("a later status event (dispatch.assigned) does NOT clobber the corrected party FKs — correction is booking.created-only", async () => {
+    await DB.prepare(
+      "INSERT INTO shipments (id, division, shipper_party_id, consignee_party_id, bill_to_party_id, status_cache, created_ts) VALUES ('cx-2','main','p-req','p-req','p-req','{}',0)",
+    ).run();
+    await appendStatus(
+      mkEvent("booking.created", {
+        stream_id: "s:cx-2",
+        shipment_id: "cx-2",
+        payload: { quote_event_id: "evt-q", division: "main", shipper_party_id: "p-req", consignee_party_id: "p-real-cons", bill_to_party_id: "p-real-bill" },
+      }),
+    );
+    await appendStatus(mkEvent("dispatch.assigned", { stream_id: "s:cx-2", shipment_id: "cx-2", seq: 1, actor: { party: "p-ops", user: "driver-9" } }));
+    const row = await DB.prepare(
+      "SELECT consignee_party_id, bill_to_party_id FROM shipments WHERE id = 'cx-2'",
+    ).first<{ consignee_party_id: string; bill_to_party_id: string }>();
+    expect(row).toEqual({ consignee_party_id: "p-real-cons", bill_to_party_id: "p-real-bill" });
+    const sc = await statusCache("cx-2");
+    expect(sc?.state).toBe("dispatched");
+    expect(sc?.assigned_driver).toBe("driver-9");
   });
 
   it("full lifecycle: dispatched(+assigned_driver) -> in_transit -> OFD -> delivered", async () => {
@@ -100,6 +150,28 @@ describe("REQ-015 / audit#11 — status_cache is the projection the driver lens 
     const before = await statusCache("shp-4");
     await appendStatus(mkEvent("message.sent", { stream_id: "s:shp-4", shipment_id: "shp-4", seq: 1 }));
     expect(await statusCache("shp-4")).toEqual(before);
+  });
+});
+
+describe("REQ-042 — credit.checked projects parties.credit_status (the T6 credit-hold gate's read-model)", () => {
+  it("credit.checked{hold} sets credit_status='hold'; a later {clear} sets 'clear' (idempotent, party-scoped, NO shipment_id)", async () => {
+    await seedParty("party-credit"); // the UPDATE lands only on an EXISTING party row
+    expect(await creditStatus("party-credit")).toBeNull(); // 0002 default: credit_status is NULL until decided
+    // shipment_id is EXPLICITLY undefined (overriding the fixture default) so the credit decision carries no
+    // shipment — the party-scoped path that must project BEFORE the `if (shipmentId === undefined) return []`
+    // guard. If credit.checked were handled AFTER that guard, this would be silently dropped and stay NULL.
+    await appendStatus(mkEvent("credit.checked", { shipment_id: undefined, payload: { party_id: "party-credit", status: "hold" } }));
+    expect(await creditStatus("party-credit")).toBe("hold");
+    await appendStatus(mkEvent("credit.checked", { shipment_id: undefined, seq: 1, payload: { party_id: "party-credit", status: "clear" } }));
+    expect(await creditStatus("party-credit")).toBe("clear");
+  });
+
+  it("credit.checked leaves an UNRELATED party's credit_status untouched", async () => {
+    await seedParty("party-credit-a");
+    await seedParty("party-credit-b");
+    await appendStatus(mkEvent("credit.checked", { payload: { party_id: "party-credit-a", status: "review" } }));
+    expect(await creditStatus("party-credit-a")).toBe("review");
+    expect(await creditStatus("party-credit-b")).toBeNull();
   });
 });
 
