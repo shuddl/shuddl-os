@@ -1,5 +1,6 @@
 import type { Hono } from "hono";
 import { publicStatusHandler } from "../pub/status.js";
+import { publicQuoteHandler } from "../pub/quote.js";
 import type { Env, Vars } from "../index.js";
 
 // REQ-187/188 (WP-09) — the PUBLIC, no-auth surface. Mounted at the `/pub/*` prefix, which by construction
@@ -10,5 +11,8 @@ import type { Env, Vars } from "../index.js";
 export function mountPublicRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>): void {
   // GET /pub/status/:cap — the forwardable public status page for ONE shipment. verifyStatusCap is the gate.
   app.get("/pub/status/:cap", publicStatusHandler);
-  // Task 4 (REQ-188 /pub/quote) joins this mount.
+  // POST /pub/quote (REQ-051/189) — the no-auth GUEST QUOTE. A pure price PREVIEW: it prices via the engine
+  // and appends NOTHING to the ledger ("guest may QUOTE, never BOOK"). Tenant resolves from the CF-routed
+  // hostname (HOST_TENANTS), never a header. No auth/idempotency middleware runs here (it is /pub/*, not /v1/*).
+  app.post("/pub/quote", publicQuoteHandler);
 }

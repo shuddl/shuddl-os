@@ -264,6 +264,8 @@ function pricedResponse(quote: PricedQuote, decision: ApprovalDecision, transit:
 // REQ-059 — the honest window as the client sees it: the whole business-day count when KNOWN, else an
 // explicit "unavailable" marker carrying NO number. The UI renders "estimated transit: N business days" only
 // on `known`; on `unavailable` it omits the line — a fabricated transit standard never reaches a customer.
-function transitWindow(t: TransitResult): { status: "known"; business_days: number } | { status: "unavailable" } {
+// EXPORTED so the no-auth /pub/quote surface (src/pub/quote.ts) maps its window through the SAME function —
+// the honest-window law is stated ONCE and can never drift between the authed and the public price.
+export function transitWindow(t: TransitResult): { status: "known"; business_days: number } | { status: "unavailable" } {
   return t.status === "KNOWN" ? { status: "known", business_days: t.days } : { status: "unavailable" };
 }
