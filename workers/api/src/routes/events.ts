@@ -92,6 +92,14 @@ const SERVER_EMITTED_KINDS: ReadonlySet<string> = new Set<string>([
 const PRIVILEGED_DECISION_KINDS: ReadonlySet<string> = new Set<string>(["credit.checked"]);
 const PRIVILEGED_DECISION_ROLES: ReadonlySet<Role> = new Set<Role>(["finance", "admin"]);
 
+// REQ-194 (WP-10 T2) — approval.decided has ONE blessed home: POST /v1/shipments/:id/approval-decision, which
+// loads the OPEN approval and enforces the matrix required_role SERVER-SIDE (ops cannot clear a finance-required
+// dual approval). Letting a client append it via this GENERAL route would BYPASS that check entirely (an ops
+// principal recording any approval.decided it likes). So it is REFUSED here for every role — the only two paths
+// stay consistent (one gated seam, one required_role check). The dedicated route calls the sequencer directly
+// and never traverses this route, so the blessed emission is unaffected.
+const BLESSED_DECISION_KINDS: ReadonlySet<string> = new Set<string>(["approval.decided"]);
+
 const LIMIT_CAP = 1000;
 const DEFAULT_LIMIT = 200; // mirrors @shuddl/ledger/lens readEvents so next_cursor agrees with the page size
 // A shipment id far under any DO-name / KV-key limit; a real id is a slug, never kilobytes. Length only —
@@ -174,6 +182,13 @@ export function mountEventRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>):
     const inKind = input !== null && typeof input === "object" ? (input as { kind?: unknown }).kind : undefined;
     if (typeof inKind === "string" && SERVER_EMITTED_KINDS.has(inKind)) {
       throw new ApiError("FORBIDDEN", 403, "THIS EVENT KIND IS SERVER-EMITTED ONLY (REQ-030)");
+    }
+
+    // REQ-194 — approval.decided is recorded ONLY via POST /v1/shipments/:id/approval-decision (which enforces
+    // the matrix required_role server-side). Refused here for every role so the general route can never be used
+    // to bypass that check. Checked before the driver write-scope + the DO append, so a refused one appends NOTHING.
+    if (typeof inKind === "string" && BLESSED_DECISION_KINDS.has(inKind)) {
+      throw new ApiError("FORBIDDEN", 403, "approval.decided IS RECORDED VIA /approval-decision (REQ-194)");
     }
 
     // REQ-185 — the PRIVILEGED-DECISION authorization boundary (see PRIVILEGED_DECISION_KINDS). Enforced HERE,

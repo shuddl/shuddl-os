@@ -194,6 +194,50 @@ describe("REQ-025 growth: the ledger routes reject the same cross-tenant attacks
     });
     expect(res.status).toBe(403);
   });
+
+  // WP-10 Task 2 growth (REQ-082/194/025): the approvals QUEUE routes are tenant-scoped off the JWT claim.
+  // The read lists ONLY the claim tenant's `approvals` (a DIFFERENT physical D1 than tenant-b's), and the
+  // decision write on a tenant-b-only shipment reads tenant-a's D1 (no open approval → clean 404), never crosses.
+  it("GET /v1/approvals for a tenant-a session never returns a tenant-b approval row (REQ-025)", async () => {
+    // Seed a UNIQUELY-marked OPEN approval into tenant-b's D1 only. tenant-a's list is keyed off the claim via
+    // tenantDb, so it can never physically address this row.
+    await env.TENANT_B_DB.prepare(
+      "INSERT OR IGNORE INTO approvals (id, object_kind, object_id, rule, required_role, requested_event_id, status) VALUES (?,?,?,?,?,?,?)",
+    )
+      .bind("iso-appr-b", "shipment", "iso-appr-tenant-b-only", "below_target_or", "ops", "req-b", "open")
+      .run();
+    const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "ops" });
+    const res = await SELF.fetch("https://api.local/v1/approvals?status=open", { headers: bearer(t) });
+    expect(res.status).toBe(200);
+    const text = await res.text();
+    expect(text).not.toContain("iso-appr-tenant-b-only"); // tenant-b's queue never bleeds into tenant-a's read
+  });
+
+  it("approval-decision on a tenant-b shipment id reads tenant-a's D1 → clean 404, never tenant-b's (REQ-025)", async () => {
+    const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "finance" });
+    const res = await SELF.fetch("https://api.local/v1/shipments/tenant-b-only-shipment/approval-decision", {
+      method: "POST",
+      headers: { ...bearer(t), "Idempotency-Key": crypto.randomUUID(), "content-type": "application/json" },
+      body: JSON.stringify({ decision: "approved" }),
+    });
+    expect(res.status).toBe(404); // no open approval in tenant-a's D1 — no cross-tenant read, no append
+  });
+
+  it("X-Tenant-Id header on POST /v1/shipments/:id/approval-decision is rejected at auth (TENANT_MISMATCH)", async () => {
+    const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "finance" });
+    const res = await SELF.fetch("https://api.local/v1/shipments/x/approval-decision", {
+      method: "POST",
+      headers: { ...bearer(t), "X-Tenant-Id": "tenant-b", "Idempotency-Key": "k", "content-type": "application/json" },
+      body: JSON.stringify({ decision: "approved" }),
+    });
+    expect(res.status).toBe(403);
+  });
+
+  it("?tenant= query param on GET /v1/approvals is rejected at auth", async () => {
+    const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "ops" });
+    const res = await SELF.fetch("https://api.local/v1/approvals?tenant=tenant-b&status=open", { headers: bearer(t) });
+    expect(res.status).toBe(403);
+  });
 });
 
 // WP-09 Task 4 growth (REQ-051/189): the SECOND no-auth surface, POST /pub/quote. It has NO JWT to key the

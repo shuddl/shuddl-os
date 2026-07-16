@@ -15,6 +15,7 @@ import { mountStatusLinkRoutes } from "./routes/status-link.js";
 import { mountDocumentRoutes } from "./routes/documents.js";
 import { mountInvoiceRoutes } from "./routes/invoices.js";
 import { mountPortalActionRoutes } from "./routes/portal-actions.js";
+import { mountApprovalRoutes } from "./routes/approvals.js";
 import { mountPublicRoutes } from "./routes/public.js";
 
 export type Env = {
@@ -91,6 +92,11 @@ mountInvoiceRoutes(app);
 // Both /v1 routes, so auth + idempotency already apply; both lens-gate :id and append THROUGH the sequencer DO.
 // A portal party gets NO general event-POST — that surface (POST /v1/shipments/:id/events) still excludes portal.
 mountPortalActionRoutes(app);
+// WP-10 Task 2 (REQ-082/194): the approvals QUEUE — POST /v1/shipments/:id/approval-decision (the BLESSED
+// approval.decided path that enforces the matrix required_role SERVER-SIDE) + GET /v1/approvals?status=open
+// (the tenant-scoped command-queue list over the read-model the sequencer now projects). Both /v1 routes, so
+// auth + idempotency already apply; the write appends THROUGH the sequencer DO (I1 + every gate still run).
+mountApprovalRoutes(app);
 // WP-09 Task 3 (REQ-187/188): GET /pub/status/:cap — the PUBLIC, no-auth status read that consumes the cap
 // minted above. Mounted at /pub/* (NOT /v1/*), so app.use("/v1/*", auth) + idempotency do NOT run — the cap
 // is the authorization. This is the first public data read in the system; verifyStatusCap is the whole gate.

@@ -164,16 +164,18 @@ async function append(shipmentId: string, input: Record<string, unknown>, tok: s
   return { status: res.status, body, json: parsed };
 }
 
-// The server-emit-only kinds (REQ-030 / REQ-003): money is a projection the SERVER emits, never a client
-// fact — the public events route now REFUSES them (see the SERVER-EMITTED case below). This lens suite
-// legitimately needs them ON the streams to prove READ visibility, so it seeds them the way the server
-// does: THROUGH the sequencer DO stub directly (the Rater/Biller's internal seam), never the public route.
+// The kinds the public events route REFUSES, so this lens suite (which legitimately needs them ON the streams
+// to prove READ visibility) seeds them the way the server does — THROUGH the sequencer DO stub directly, never
+// the public route. Two families: the server-emit-only MONEY kinds (REQ-030/003 — money is a projection the
+// SERVER emits, never a client fact), and approval.decided (REQ-194 — recorded ONLY via the dedicated
+// /approval-decision route, which enforces the matrix required_role; the general route refuses it too).
 const SERVER_ONLY_KINDS: ReadonlySet<EventKind> = new Set<EventKind>([
   "invoice.issued",
   "invoice.corrected",
   "split.computed",
   "payment.received",
   "settlement.executed",
+  "approval.decided",
 ]);
 type SeqStub = DurableObjectStub & { append(req: { tenant: string; streamId: string; input: unknown }): Promise<{ id: string } & Record<string, unknown>> };
 async function appendInternal(shipmentId: string, input: Record<string, unknown>): Promise<AppendResult> {

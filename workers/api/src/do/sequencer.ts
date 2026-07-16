@@ -14,6 +14,7 @@ import { projectPassport } from "@shuddl/ledger/projection/passports";
 import { projectStatusCache } from "@shuddl/ledger/projection/status-cache";
 import { applyMessageProjection } from "@shuddl/ledger/projection/messages";
 import { projectAppointment } from "@shuddl/ledger/projection/appointment";
+import { projectApprovals } from "@shuddl/ledger/projection/approvals";
 import { assertPodSigned } from "@shuddl/ledger/gates/invoice-gate";
 import {
   assertPickupDepart,
@@ -356,6 +357,9 @@ export class ShipmentSequencer extends DurableObject<Env> {
       ...projectStatusCache(db, full),
       ...projectAppointment(db, full, gateResult.appointmentServiceDate),
       ...applyMessageProjection(db, full),
+      // WP-10 T2 (REQ-082/194) — the approvals-queue read-model: approval.requested opens a row, approval.decided
+      // flips it to decided. Rides the SAME batch (I1) so the queue row and its event commit atomically.
+      ...projectApprovals(db, full),
     ];
     try {
       await db.batch(stmts);
