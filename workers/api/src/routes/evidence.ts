@@ -37,7 +37,10 @@ const EvidenceQuery = z
 // `exception.raised` is intentionally ABSENT: its loose JsonObject payload MAY carry a photo_hash, but
 // no producer today defers bytes for it (driver-core capture hashes only into the three strict fields
 // below). Add its branch here when a real producer exists — do not pre-open the door.
-const RECORDING_EVENT_SQL = `SELECT kind FROM events WHERE stream_id = ? AND (
+// SELECTs the recording event's kind AND its server-STAMPED `visibility` (the EARLIEST one, ORDER BY seq,
+// if the same hash is somehow pinned twice) so BOTH documents.kind AND documents.visibility are derived
+// from the ledger, never trusted from the client (REQ-085 / D4 / I6).
+const RECORDING_EVENT_SQL = `SELECT kind, visibility FROM events WHERE stream_id = ? AND (
   (kind IN ('freight.photographed','seal.applied','osd.captured') AND json_extract(payload,'$.photo_hash') = ?)
   OR (kind = 'delivery.evidenced' AND json_extract(payload,'$.placed_photo_hash') = ?)
   OR (kind = 'pod.signed' AND json_extract(payload,'$.signature_hash') = ?)
@@ -49,6 +52,21 @@ const RECORDING_EVENT_SQL = `SELECT kind FROM events WHERE stream_id = ? AND (
 // and two concurrent first-uploads disagreeing on it.
 function documentKindFor(recordingKind: string): "POD" | "photo" {
   return recordingKind === "pod.signed" ? "POD" : "photo";
+}
+
+// REQ-085 (WP-09 Task 6) — THE CRUX. documents.visibility is DERIVED from the RECORDING event's RESOLVED
+// visibility (the `visibility` column the sequencer STAMPED at append time via resolveVisibility — I6/I5),
+// so a counterparty-visible POD/placed-photo produces a counterparty-visible doc row the portal party lens
+// can surface, while an internal recording stays internal. It is a REAL widening driven by the event's OWN
+// resolved visibility — NEVER a lens bypass.
+//
+// FAIL CLOSED (skill fail-closed-on-inherited-visibility): inheriting a security attribute needs a KNOWN
+// value, not a truthy one. ONLY the two known WIDE ranks inherit; ANY other input — 'internal', an
+// absent/NULL column (should be impossible: events.visibility is NOT NULL and the row was just SELECTed,
+// but we never trust it), or an unrecognized string — collapses to 'internal', the narrowest rank. The
+// widest default is exactly the leak this derivation exists to prevent, so the safe miss is 'internal'.
+export function documentVisibilityFor(recordingVisibility: string | null | undefined): "internal" | "counterparty" | "public" {
+  return recordingVisibility === "counterparty" || recordingVisibility === "public" ? recordingVisibility : "internal";
 }
 
 // Deterministic ids: same (shipment, hash) → same document row + same R2 key, which is what makes the
@@ -137,7 +155,7 @@ export function mountEvidenceRoutes(app: Hono<{ Bindings: Env; Variables: Vars }
     const recording = await db
       .prepare(RECORDING_EVENT_SQL)
       .bind(`s:${shipment_id}`, photo_hash, photo_hash, photo_hash)
-      .first<{ kind: string }>();
+      .first<{ kind: string; visibility: string }>();
     if (recording === null) {
       return evidenceRejection(c, "hash_not_recorded", "NO EVENT ON THIS SHIPMENT STREAM RECORDS THE DECLARED photo_hash");
     }
@@ -173,9 +191,13 @@ export function mountEvidenceRoutes(app: Hono<{ Bindings: Env; Variables: Vars }
     // are never orphaned from a policy field. "default" is the placeholder class until the POLICY TEXT
     // itself (what is kept, how long, the consignee notice wording) is authored: that is a counsel /
     // CONFIRM-2 deliverable (genesis/08 GA-11), CONFIRM-GATED and not a code artifact of this WP.
+    //
+    // REQ-085 — visibility is DERIVED from the recording event's resolved visibility (documentVisibilityFor,
+    // fail-closed), NEVER hardcoded: the lens-scoped docs list (routes/documents.ts) shows a portal party the
+    // counterparty-visible evidence it is entitled to, while internal recordings stay internal.
     const inserted = await db
       .prepare("INSERT OR IGNORE INTO documents (id, shipment_id, party_id, kind, r2_key, hash, lifecycle_class, visibility) VALUES (?,?,?,?,?,?,?,?)")
-      .bind(documentId, shipment_id, null, documentKindFor(recording.kind), key, photo_hash, "default", "internal")
+      .bind(documentId, shipment_id, null, documentKindFor(recording.kind), key, photo_hash, "default", documentVisibilityFor(recording.visibility))
       .run();
     return c.json({ document_id: documentId, r2_key: key }, inserted.meta.changes > 0 ? 201 : 200);
   });

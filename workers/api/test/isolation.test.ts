@@ -99,6 +99,24 @@ describe("REQ-025 growth: the ledger routes reject the same cross-tenant attacks
     expect(body.events).toEqual([]);
   });
 
+  it("a tenant-a session GETting a tenant-b shipment's documents reads tenant-a's D1 (empty), never tenant-b's (REQ-085)", async () => {
+    const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "ops" });
+    // The docs list is keyed off the JWT claim via tenantDb, exactly like the events read. A tenant-b
+    // shipment lives in a DIFFERENT physical D1 the tenant-a session can never address -> zero rows.
+    const res = await SELF.fetch("https://api.local/v1/shipments/tenant-b-only-shipment/documents", { headers: bearer(t) });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { documents: unknown[] };
+    expect(body.documents).toEqual([]);
+  });
+
+  it("a tenant-a session resolving a tenant-b document id's URL is a plain 404, never a cross-tenant read (REQ-085)", async () => {
+    const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "ops" });
+    // The resolver looks the doc up in the session tenant's D1 only — a doc id that lives (if at all) in
+    // tenant-b's D1 is simply not found here. No signed URL, no bytes, no existence oracle.
+    const res = await SELF.fetch("https://api.local/v1/documents/tenant-b-only-doc/url", { headers: bearer(t) });
+    expect(res.status).toBe(404);
+  });
+
   it("X-Tenant-Id header on POST /v1/shipments/:id/events is rejected at auth (TENANT_MISMATCH)", async () => {
     const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "ops" });
     const res = await SELF.fetch("https://api.local/v1/shipments/x/events", {

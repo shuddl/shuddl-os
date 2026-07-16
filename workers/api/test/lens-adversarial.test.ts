@@ -824,3 +824,61 @@ describe("route-level geo + position.updated event handling", () => {
     expect(r.status).toBe(400);
   });
 });
+
+// case 10 — REQ-085 (WP-09 Task 6): the PORTAL DOCUMENTS lens. A documents row carries its OWN `visibility`
+// (DERIVED, at evidence write, from the recording event — I6), and GET /v1/shipments/:id/documents scopes
+// it exactly as the events read does: a portal party sees ONLY visibility<>'internal' docs AND only on a
+// shipment its lens can see; ops (tenant lens) sees all. The signed-URL resolver enforces the SAME gate —
+// a party can never get a download URL for an internal doc. Doc rows are seeded DIRECTLY here (the READ lens
+// is what is under test; the derivation itself is proven in documents.test.ts).
+describe("case 10: portal documents lens + fail-closed signed URL (REQ-085)", () => {
+  const SHP_DOCS = "adv-shp-docs";
+  const CP_DOC = "adv-doc-cp"; // counterparty — P1 sees it
+  const INT_DOC = "adv-doc-int"; // internal — P1 never sees it
+
+  async function listDocs(shipmentId: string, tok: string): Promise<{ status: number; ids: Set<string> }> {
+    const res = await SELF.fetch(`https://api.local/v1/shipments/${shipmentId}/documents`, { headers: { Authorization: `Bearer ${tok}` } });
+    const parsed = res.status === 200 ? ((await res.json()) as { documents: Array<{ id: string }> }) : { documents: [] };
+    return { status: res.status, ids: new Set(parsed.documents.map((d) => d.id)) };
+  }
+  async function docUrlStatus(documentId: string, tok: string): Promise<number> {
+    const res = await SELF.fetch(`https://api.local/v1/documents/${documentId}/url`, { headers: { Authorization: `Bearer ${tok}` } });
+    return res.status;
+  }
+
+  beforeAll(async () => {
+    // A counterparty event scopes P1 to the shipment (P1 in party_refs); bill_to P2 carries an email so the
+    // booking evidence-recipient gate passes (see the file-level beforeAll).
+    const ops = await opsTok();
+    const b = await append(SHP_DOCS, buildInput(SHP_DOCS, "booking.created", { party_refs: [P1] }), ops);
+    if (b.status !== 201) throw new Error(`seed ${SHP_DOCS}/booking failed: ${b.status} ${b.body}`);
+    await env.TENANT_A_DB.prepare("INSERT OR IGNORE INTO documents (id, shipment_id, kind, r2_key, hash, visibility) VALUES (?,?,?,?,?,?)")
+      .bind(CP_DOC, SHP_DOCS, "photo", `evidence/${TENANT_SLUG}/${SHP_DOCS}/cp`, HEX64, "counterparty")
+      .run();
+    await env.TENANT_A_DB.prepare("INSERT OR IGNORE INTO documents (id, shipment_id, kind, r2_key, hash, visibility) VALUES (?,?,?,?,?,?)")
+      .bind(INT_DOC, SHP_DOCS, "ratecon", `evidence/${TENANT_SLUG}/${SHP_DOCS}/int`, HEX64, "internal")
+      .run();
+  });
+
+  it("portal P1 lists ONLY the counterparty doc, never the internal one; ops sees both", async () => {
+    const p1 = await listDocs(SHP_DOCS, await portalTok(P1));
+    expect(p1.status).toBe(200);
+    expect(p1.ids.has(CP_DOC)).toBe(true);
+    expect(p1.ids.has(INT_DOC)).toBe(false);
+
+    const ops = await listDocs(SHP_DOCS, await opsTok());
+    expect(ops.ids.has(CP_DOC)).toBe(true);
+    expect(ops.ids.has(INT_DOC)).toBe(true);
+  });
+
+  it("a signed-URL request for the INTERNAL doc → 404 (fail-closed); the counterparty doc → 200", async () => {
+    expect(await docUrlStatus(INT_DOC, await portalTok(P1))).toBe(404);
+    expect(await docUrlStatus(CP_DOC, await portalTok(P1))).toBe(200);
+  });
+
+  it("a portal party NOT on the shipment sees no docs and gets no URL", async () => {
+    const other = await listDocs(SHP_DOCS, await portalTok(P2));
+    expect(other.ids.has(CP_DOC)).toBe(false);
+    expect(await docUrlStatus(CP_DOC, await portalTok(P2))).toBe(404);
+  });
+});

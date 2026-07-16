@@ -12,6 +12,7 @@ import { mountAnchorRoutes } from "./routes/anchors.js";
 import { mountRateRoutes } from "./routes/rate.js";
 import { mountEvidenceRoutes } from "./routes/evidence.js";
 import { mountStatusLinkRoutes } from "./routes/status-link.js";
+import { mountDocumentRoutes } from "./routes/documents.js";
 import { mountPublicRoutes } from "./routes/public.js";
 
 export type Env = {
@@ -73,6 +74,11 @@ mountEvidenceRoutes(app);
 // status-cap link. A /v1 route, so app.use("/v1/*", auth) + idempotency already apply. The public read
 // that consumes the cap (GET /pub/status/:cap) is Task 3.
 mountStatusLinkRoutes(app);
+// WP-09 Task 6 (REQ-085): the portal DOCUMENTS view — GET /v1/shipments/:id/documents (lens-scoped list) +
+// GET /v1/documents/:id/url (lens-gated signed download URL). Both /v1 routes, so auth + idempotency already
+// apply; the module ALSO registers the public GET /pub/documents/:cap bytes proxy the URL points at (the cap
+// is its authorization — it lives outside the /v1 auth middleware by design).
+mountDocumentRoutes(app);
 // WP-09 Task 3 (REQ-187/188): GET /pub/status/:cap — the PUBLIC, no-auth status read that consumes the cap
 // minted above. Mounted at /pub/* (NOT /v1/*), so app.use("/v1/*", auth) + idempotency do NOT run — the cap
 // is the authorization. This is the first public data read in the system; verifyStatusCap is the whole gate.
