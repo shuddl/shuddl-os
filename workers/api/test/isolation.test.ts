@@ -13,6 +13,8 @@ import {
 import { HOST_TENANTS } from "../src/pub/quote.js";
 import { TENANT_BINDINGS } from "../src/tenants.js";
 import { mintStatusCap, verifyStatusCap } from "../src/pub/status-cap.js";
+import { eventFixture, type EventKind } from "@shuddl/contracts";
+import { eventToRow } from "@shuddl/ledger/lens";
 
 const JWT_SECRET = "test-secret-do-not-use-in-prod"; // === vitest.config.ts miniflare bindings.JWT_SECRET
 const nowS = (): number => Math.floor(Date.now() / 1000);
@@ -381,5 +383,42 @@ describe("REQ-025 growth: POST /v1/shipments/:id/status-link bakes cap.t from th
     expect(claims.t).toBe(TENANT_SLUG); // baked from session.tenant, NOT from :id or any input
     expect(claims.t).toBe("tenant-a");
     expect(claims.s).toBe(ISO4_SHP); // the :id is the shipment (`s`) only — it can never become the tenant
+  });
+});
+
+// WP-10 Task 1 growth (REQ-082/083 + REQ-025): the firehose KIND FILTER is still keyed off the JWT claim via
+// tenantDb — it narrows a read WITHIN the session's D1, it never reaches across tenants. The SAME kind is
+// seeded in BOTH physical D1s with a tenant-distinguishing shipment id; a tenant-a `?kind=` firehose surfaces
+// tenant-a's marker and NEVER tenant-b's (a different D1 the claim can never address).
+describe("REQ-025 growth: a kind-filtered firehose read reads ONLY the JWT tenant's D1", () => {
+  const A_SHP = "iso-kindfilter-a"; // tenant-a marker
+  const B_SHP = "iso-kindfilter-b"; // tenant-b marker — must NEVER appear in a tenant-a read
+  const KIND: EventKind = "authority.flipped";
+  let isoHashN = 0xa0000;
+  const isoHash = (): string => (isoHashN++).toString(16).padStart(64, "0");
+
+  async function seedKindEvent(db: D1Database, shipmentId: string): Promise<void> {
+    // Direct insert (bypasses the sequencer/route — we are proving the READ path). A unique 64-hex hash keeps
+    // the UNIQUE(hash) + append-only insert guard happy; prev_hash is the fixture genesis (valid Hash64).
+    const e = eventFixture(KIND, { id: crypto.randomUUID(), stream_id: `s:${shipmentId}`, shipment_id: shipmentId, seq: 0, visibility: "counterparty", party_refs: [] });
+    const row = eventToRow(e);
+    row.hash = isoHash();
+    const cols = Object.keys(row);
+    await db.prepare(`INSERT INTO events (${cols.join(",")}) VALUES (${cols.map(() => "?").join(",")})`).bind(...cols.map((c) => row[c])).run();
+  }
+
+  beforeAll(async () => {
+    await seedKindEvent(env.TENANT_A_DB, A_SHP);
+    await seedKindEvent(env.TENANT_B_DB, B_SHP);
+  });
+
+  it("a tenant-a session GETting /v1/events?kind= surfaces tenant-a's marker, never tenant-b's", async () => {
+    const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "ops" });
+    const res = await SELF.fetch(`https://api.local/v1/events?kind=${KIND}&limit=1000`, { headers: { Authorization: `Bearer ${t}` } });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { events: Array<{ kind: string; shipment_id?: string }> };
+    expect(body.events.every((e) => e.kind === KIND)).toBe(true); // the filter is honored
+    expect(body.events.some((e) => e.shipment_id === A_SHP)).toBe(true); // tenant-a's own marker is present
+    expect(body.events.some((e) => e.shipment_id === B_SHP)).toBe(false); // tenant-b's marker is never reached
   });
 });

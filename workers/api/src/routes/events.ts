@@ -1,6 +1,6 @@
 import type { Hono } from "hono";
-import type { ErrorCode, LedgerEvent, Role } from "@shuddl/contracts";
-import { GATE_BLOCKED_PREFIX } from "@shuddl/contracts";
+import type { ErrorCode, EventKind, LedgerEvent, Role } from "@shuddl/contracts";
+import { EVENT_KINDS, GATE_BLOCKED_PREFIX } from "@shuddl/contracts";
 import { lensFor, readEvents, type ReadQuery } from "@shuddl/ledger/lens";
 import { ApiError } from "../middleware/error.js";
 import { requireRole } from "../middleware/auth.js";
@@ -112,6 +112,22 @@ function parseAfterSeq(raw: string | undefined): number | undefined {
   return n;
 }
 
+// REQ-082/083 — the command queues + KPI click-through filter the feed by event kind. Comma-separated for
+// a SET. Each token is validated against the FROZEN 35-kind catalog (EVENT_KINDS); an UNKNOWN kind is a hard
+// 400 VALIDATION_FAILED — never a silent empty result. An absent/blank param means "no kind filter".
+const EVENT_KIND_SET: ReadonlySet<string> = new Set<string>(EVENT_KINDS);
+function parseKinds(raw: string | undefined): EventKind[] | undefined {
+  if (raw === undefined || raw === "") return undefined;
+  const parts = raw.split(",").map((s) => s.trim()).filter((s) => s !== "");
+  if (parts.length === 0) return undefined;
+  const kinds: EventKind[] = [];
+  for (const p of parts) {
+    if (!EVENT_KIND_SET.has(p)) throw new ApiError("VALIDATION_FAILED", 400, "UNKNOWN EVENT KIND");
+    kinds.push(p as EventKind);
+  }
+  return kinds;
+}
+
 // Composite keyset cursor `<stream_id>:<seq>`. stream_id itself contains a colon (`s:{id}`), so split on
 // the LAST colon — a first-colon split would truncate the stream id and silently page the wrong stream.
 function parseCursor(raw: string | undefined): { stream_id: string; seq: number } | undefined {
@@ -221,6 +237,10 @@ export function mountEventRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>):
       const q: ReadQuery = { shipment_id: c.req.param("id") };
       const afterSeq = parseAfterSeq(c.req.query("after_seq"));
       if (afterSeq !== undefined) q.after_seq = afterSeq;
+      // REQ-082/083 — the kind filter NARROWS this lens-scoped feed; it never widens it (the party/driver
+      // redaction + visibility WHERE in readEvents still binds, so a party requesting an internal kind gets none).
+      const kinds = parseKinds(c.req.query("kind"));
+      if (kinds !== undefined) q.kind = kinds;
       if (limit !== undefined) q.limit = limit;
       const events = await readEvents(db, lens, q);
       return c.json({ events, next_cursor: nextCursor(events, limit) });
@@ -242,6 +262,10 @@ export function mountEventRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>):
       if (cursor) q.cursor = cursor;
       const afterSeq = parseAfterSeq(c.req.query("after_seq"));
       if (afterSeq !== undefined) q.after_seq = afterSeq; // readEvents rejects after_seq without a shipment scope -> 400
+      // REQ-082/083 — the command queues + KPI click-through: filter the firehose to a specific kind (or set).
+      // Validated against the 35-kind catalog (unknown -> 400) and ANDed onto the lens WHERE + cursor in readEvents.
+      const kinds = parseKinds(c.req.query("kind"));
+      if (kinds !== undefined) q.kind = kinds;
       if (limit !== undefined) q.limit = limit;
       const events = await readEvents(db, lens, q);
       return c.json({ events, next_cursor: nextCursor(events, limit) });

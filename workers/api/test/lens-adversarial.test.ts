@@ -640,6 +640,81 @@ describe("firehose GET /v1/events", () => {
   });
 });
 
+// REQ-082/083 — the command queues + KPI click-through list a specific kind (or set) lens-scoped. The kind
+// filter ANDs onto the lens WHERE + cursor; it NARROWS, never widens. Validated against the frozen 35-kind
+// catalog (an unknown kind is a hard 400, never a silent empty result).
+describe("firehose GET /v1/events?kind= (REQ-082/083 kind filter)", () => {
+  it("?kind=<one> returns ONLY that kind", async () => {
+    const res = await listFirehose(await opsTok(), "?kind=quote.requested&limit=1000");
+    expect(res.status).toBe(200);
+    expect(res.events.length).toBeGreaterThan(0);
+    expect(res.events.every((e) => e.kind === "quote.requested")).toBe(true);
+  });
+
+  it("?kind=a,b returns ONLY that set (comma-separated), and both are present on SHP_A", async () => {
+    const res = await listFirehose(await opsTok(), "?kind=pod.signed,dispatch.assigned&limit=1000");
+    expect(res.status).toBe(200);
+    const kinds = kindsOf(res.events);
+    for (const k of kinds) expect(["pod.signed", "dispatch.assigned"]).toContain(k);
+    expect(kinds.has("pod.signed")).toBe(true);
+    expect(kinds.has("dispatch.assigned")).toBe(true);
+  });
+
+  it("an UNKNOWN kind → 400 VALIDATION_FAILED (never a silent empty result)", async () => {
+    const res = await SELF.fetch("https://api.local/v1/events?kind=not.a.real.kind", { headers: { Authorization: `Bearer ${await opsTok()}` } });
+    expect(res.status).toBe(400);
+    const body = JSON.parse(await res.text()) as { code: string };
+    expect(body.code).toBe("VALIDATION_FAILED");
+  });
+
+  it("a mixed valid+unknown kind list → 400 (one bad token rejects the whole request)", async () => {
+    const res = await SELF.fetch("https://api.local/v1/events?kind=pod.signed,not.a.real.kind", { headers: { Authorization: `Bearer ${await opsTok()}` } });
+    expect(res.status).toBe(400);
+  });
+
+  it("the kind filter composes with the keyset cursor (both AND together)", async () => {
+    const ops = await opsTok();
+    const res = await listFirehose(ops, `?kind=quote.requested&cursor=${encodeURIComponent(`s:${FIRE_1}:2`)}&limit=1000`);
+    expect(res.status).toBe(200);
+    // still only quote.requested, and FIRE_1's already-seen rows (<= seq 2) are excluded.
+    expect(res.events.every((e) => e.kind === "quote.requested")).toBe(true);
+    expect(res.events.some((e) => e.stream_id === `s:${FIRE_1}` && (e.seq as number) <= 2)).toBe(false);
+  });
+});
+
+// REQ-082/083 — the kind filter on the SHIPMENT feed (a portal/party can reach this route, unlike the
+// tenant-only firehose). THE never-widen proof at the route boundary: a party requesting an internal kind
+// gets NOTHING; the redaction + visibility WHERE still bind under a kind filter.
+describe("GET /v1/shipments/:id/events?kind= — a party lens + kind filter never widens (REQ-082/083)", () => {
+  it("P1 requesting an INTERNAL kind (credit.checked) gets NOTHING — the kind filter never leaks it", async () => {
+    const res = await listShipment(SHP_A, await portalTok(P1), "?kind=credit.checked");
+    expect(res.status).toBe(200);
+    expect(res.events).toEqual([]);
+    expect(res.body).not.toContain("credit.checked");
+  });
+
+  it("P1 requesting a VISIBLE kind (pod.signed) gets only that kind", async () => {
+    const res = await listShipment(SHP_A, await portalTok(P1), "?kind=pod.signed");
+    expect(res.status).toBe(200);
+    expect(res.events.length).toBeGreaterThan(0);
+    expect(res.events.every((e) => e.kind === "pod.signed")).toBe(true);
+  });
+
+  it("ops (tenant lens) DOES see credit.checked with the SAME kind filter (redaction is per-lens)", async () => {
+    const res = await listShipment(SHP_A, await opsTok(), "?kind=credit.checked");
+    expect(res.status).toBe(200);
+    expect(res.events.length).toBeGreaterThan(0);
+    expect(res.events.every((e) => e.kind === "credit.checked")).toBe(true);
+  });
+
+  it("an unknown kind on the shipment route → 400", async () => {
+    const res = await SELF.fetch(`https://api.local/v1/shipments/${SHP_A}/events?kind=not.a.real.kind`, {
+      headers: { Authorization: `Bearer ${await opsTok()}` },
+    });
+    expect(res.status).toBe(400);
+  });
+});
+
 // Driver WRITE authorization (the handler rule the plan leaves to the route): a driver may append only
 // to a shipment assigned to them.
 describe("driver append authorization", () => {

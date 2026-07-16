@@ -296,4 +296,47 @@ describe("readEvents: lens-scoped reads (I6, adversarial visibility)", () => {
     const res = await readEvents(B, { scope: "tenant" }, { limit: 2 });
     expect(res).toHaveLength(2);
   });
+
+  // ---- REQ-082/083: the kind filter (command queues + KPI click-through) ---------------------------
+  // The filter ANDs an `e.kind IN (...)` on top of the lens WHERE + cursor — it can only NARROW a lens,
+  // never widen it. Proven here against the party/driver visibility scopes (an internal kind stays hidden
+  // even when explicitly requested).
+  it("kind filter (single) narrows a tenant read to just that kind", async () => {
+    const res = await readEvents(B, { scope: "tenant" }, { kind: "pod.signed" });
+    // pod.signed: shpB seq0 (counterparty) + aShpC seq0 (internal) + aShpC seq2 (counterparty). Tenant sees all.
+    expect(res).toHaveLength(3);
+    expect(res.every((e) => e.kind === "pod.signed")).toBe(true);
+  });
+
+  it("kind filter (set) narrows to the union of the requested kinds", async () => {
+    const res = await readEvents(B, { scope: "tenant" }, { kind: ["dispatch.assigned", "quote.priced"] });
+    expect(res.map((e) => e.kind).sort()).toEqual(["dispatch.assigned", "quote.priced"]); // both on shpA
+  });
+
+  it("kind filter composes with the party lens and NEVER widens it — an internal kind stays invisible", async () => {
+    // credit.checked EXISTS on party-acme's shipment but is internal; requesting it explicitly returns nothing.
+    const res = await readEvents(B, { scope: "party", partyId: "party-acme" }, { kind: "credit.checked" });
+    expect(res).toEqual([]);
+  });
+
+  it("kind filter within a party lens narrows to the requested VISIBLE kind only", async () => {
+    const res = await readEvents(B, { scope: "party", partyId: "party-acme" }, { kind: ["quote.priced", "credit.checked"] });
+    // credit.checked is filtered by the lens (internal); only the visible quote.priced survives.
+    expect(res.map((e) => e.kind)).toEqual(["quote.priced"]);
+  });
+
+  it("kind filter composes with the driver allowlist (intersection) — a non-matching kind is empty", async () => {
+    const dispatch = await readEvents(B, { scope: "driver", userId: "drv-1" }, { kind: "dispatch.assigned" });
+    expect(dispatch.map((e) => e.kind)).toEqual(["dispatch.assigned"]);
+    // pod.signed lives on OTHER drivers' shipments — drv-1's assignment scope + the kind IN yield nothing.
+    const none = await readEvents(B, { scope: "driver", userId: "drv-1" }, { kind: "pod.signed" });
+    expect(none).toEqual([]);
+  });
+
+  it("kind filter composes with a shipment scope + after_seq cursor (all three AND together)", async () => {
+    const res = await readEvents(B, { scope: "tenant" }, { shipment_id: "shpA", after_seq: 0, kind: "position.updated" });
+    // shpA seq>0 AND kind=position.updated -> only seq 3.
+    expect(res.map((e) => e.seq)).toEqual([3]);
+    expect(res.every((e) => e.kind === "position.updated")).toBe(true);
+  });
 });

@@ -76,6 +76,12 @@ export interface ReadQuery {
   after_seq?: number;
   cursor?: { stream_id: string; seq: number };
   limit?: number;
+  // REQ-082/083 — the command queues + KPI click-through list events of a specific kind (or a SET of
+  // kinds). Every value is BOUND as a `?` param (never interpolated) and composes as an ANDed
+  // `e.kind IN (...)` on top of the lens WHERE + keyset cursor, so it can only NARROW a lens, never
+  // widen it (a party/driver lens + a kind filter still returns only that scope's VISIBLE events).
+  // Backed by ix_events_kind_ts(kind, ts) — no full scan.
+  kind?: EventKind | readonly EventKind[];
 }
 
 const LIMIT_CAP = 1000;
@@ -105,6 +111,16 @@ export async function readEvents(db: D1Database, lens: Lens, q: ReadQuery = {}):
   if (q.after_seq !== undefined) {
     clauses.push("e.seq > ?");
     params.push(q.after_seq);
+  }
+  if (q.kind !== undefined) {
+    // REQ-082/083 kind filter. ANDs an `e.kind IN (...)` onto the lens WHERE — it only NARROWS the visible
+    // set (the redaction/visibility scope below still applies). A driver lens already constrains kind to
+    // DRIVER_KINDS; this second IN yields the INTERSECTION, never a wider set. Each value is a BOUND param.
+    const kinds: readonly EventKind[] = typeof q.kind === "string" ? [q.kind] : q.kind;
+    if (kinds.length > 0) {
+      clauses.push(`e.kind IN (${kinds.map(() => "?").join(",")})`);
+      params.push(...kinds);
+    }
   }
   const limit = Math.min(q.limit ?? DEFAULT_LIMIT, LIMIT_CAP);
   const res = await db
