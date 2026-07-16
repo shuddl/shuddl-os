@@ -1,113 +1,114 @@
-import { useMemo, useState } from "react";
-import { Button, Display, Divider, Input, Mono, TextLink } from "@shuddl/design";
+import { useCallback, useMemo, useState } from "react";
+import { Button, Display, Mono } from "@shuddl/design";
 import { DEMO_GLYPHS_URL, DEMO_TILE_URL, MapCanvas, demoFleet, useFleet } from "@shuddl/map";
+import { adoptTokenFromUrl, clear, getClaims, isAuthed } from "./session.js";
+import { ShipmentList } from "./components/ShipmentList.js";
+import { QuotePanel } from "./components/QuotePanel.js";
 
-// CLIENT PORTAL (REQ-073/074) — the SAME map, scoped to ONE party (party lens; positions are
-// city-generalized until out-for-delivery inside useFleet). Hero = the customer's name in Display
-// over their live freight; quote→book is one dark panel with 4 fields; docs/invoices are 1px-ruled
-// lists, no cards. The party name is a synthetic placeholder (REQ-167 — never a real customer).
+// CLIENT PORTAL (REQ-085/051) — the SAME operational map, scoped to ONE party through the REAL session lens,
+// with the quote→book panel and the ruled lists wired to the live server (the WP-03 shell was hardcoded
+// PARTY_ID + fixture arrays + a dead "Get Quote" button). Three honesty rules govern this surface:
+//   · the lens is the party_id from the SIGNED session claim (client defence-in-depth; the SERVER lens is
+//     authoritative — REQ-030). useFleet({scope:"party"}) keeps generalized positions generalized (REQ-074).
+//   · a missing/expired session (or one with no party_id) renders a clean re-auth prompt — never a broken
+//     board; any ApiError.isAuthError from a child call drops the session and shows the same prompt.
+//   · nothing is fabricated: the map shows only the party's own marks, money is integer cents, transit is
+//     honest, and the party can never book directly — it only accepts (the Booking agent gate is server-side).
 
 // Opt-in Mapbox tiles when VITE_MAPBOX_TOKEN is set at build; unset ⇒ self-hosted default (REQ-075).
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
-const PARTY_ID = "party-0";
-const PARTY_NAME = "MERIDIAN SUPPLY CO.";
 
-const DOCS: ReadonlyArray<[string, string]> = [
-  ["BOL-40318", "SIGNED"],
-  ["RATE CON-40318", "ACCEPTED"],
-  ["POD-40206", "DELIVERED"],
-];
-const INVOICES: ReadonlyArray<[string, string]> = [
-  ["INV-40206", "$1,480 · PAID"],
-  ["INV-40311", "$2,240 · DUE 12D"],
-];
+type Mode = { kind: "authed"; partyId: string } | { kind: "reauth" };
 
-function RuledList({ heading, rows }: { heading: string; rows: ReadonlyArray<[string, string]> }): React.JSX.Element {
-  return (
-    <div style={{ display: "flex", flexDirection: "column" }}>
-      <Mono size={10} color="var(--signal-55)">
-        {heading}
-      </Mono>
-      <div style={{ marginTop: 8 }}>
-        {rows.map(([name, meta]) => (
-          <div key={name}>
-            <Divider />
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 16, padding: "10px 0" }}>
-              <Mono size={12}>{name}</Mono>
-              <Mono size={12} color="var(--signal-55)">
-                {meta}
-              </Mono>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+// Resolve the initial lens ONCE: adopt a magic-link `?token=` if present (persist + strip it from the URL),
+// then read the (unverified, display-only) claims. An authed session with a party_id ⇒ the board; anything
+// else ⇒ the re-auth prompt. The server re-verifies every call regardless of what the client believes.
+function initialMode(): Mode {
+  adoptTokenFromUrl();
+  const claims = getClaims();
+  if (isAuthed() && claims?.party_id) return { kind: "authed", partyId: claims.party_id };
+  return { kind: "reauth" };
 }
 
 export function App(): React.JSX.Element {
+  const [mode, setMode] = useState<Mode>(initialMode);
+
+  const handleAuthError = useCallback((): void => {
+    clear();
+    setMode({ kind: "reauth" });
+  }, []);
+
+  if (mode.kind === "reauth") return <ReAuthPrompt />;
+  return <Board partyId={mode.partyId} onAuthError={handleAuthError} />;
+}
+
+function Board({ partyId, onAuthError }: { partyId: string; onAuthError: () => void }): React.JSX.Element {
+  // The party lens scopes the fleet to this party's own shipments (defence-in-depth; the server lens is
+  // authoritative and never sends out-of-scope marks). The live DO fan-out is WP-10 — until then the source
+  // is the demo fleet, scoped to the party, so a real party sees only its OWN marks (never another party's).
   const source = useMemo(() => demoFleet(), []);
-  const { collection } = useFleet({ scope: "party", partyId: PARTY_ID }, source);
-  const [origin, setOrigin] = useState("");
-  const [dest, setDest] = useState("");
-  const [weight, setWeight] = useState("");
-  const [pickup, setPickup] = useState("");
+  const { collection } = useFleet({ scope: "party", partyId }, source);
+
+  const [selectedShipmentId, setSelectedShipmentId] = useState<string | undefined>(undefined);
 
   return (
     <main style={{ position: "fixed", inset: 0, background: "var(--field)", overflow: "hidden" }}>
-      <MapCanvas tileUrl={DEMO_TILE_URL} glyphsUrl={DEMO_GLYPHS_URL} fleet={collection} onSelect={() => {}} mapboxToken={MAPBOX_TOKEN} />
+      <MapCanvas
+        tileUrl={DEMO_TILE_URL}
+        glyphsUrl={DEMO_GLYPHS_URL}
+        fleet={collection}
+        onSelect={setSelectedShipmentId}
+        mapboxToken={MAPBOX_TOKEN}
+      />
 
-      {/* Hero — the customer's name over their live freight. */}
+      {/* Hero — the party's own live freight, keyed to the REAL lens identity (not a hardcoded name). */}
       <header style={{ position: "absolute", top: 40, left: 32, maxWidth: "70vw" }}>
         <Mono size={11} color="var(--signal-55)">
           YOUR FREIGHT · LIVE
         </Mono>
-        <Display size="hero">{PARTY_NAME}</Display>
+        <Display size="hero">{partyId}</Display>
       </header>
 
-      {/* Quote → book: one dark panel, 4 fields. */}
-      <section
-        aria-label="Quote and book"
-        style={{
-          position: "absolute",
-          top: 40,
-          right: 32,
-          width: "min(360px, 90vw)",
-          background: "var(--ink-dark)",
-          padding: 24,
-          display: "flex",
-          flexDirection: "column",
-          gap: 14,
-        }}
-      >
-        <Mono size={10} color="var(--signal-55)">
-          QUOTE → BOOK
-        </Mono>
-        <Input name="origin" placeholder="Origin ZIP" value={origin} onChange={setOrigin} />
-        <Input name="dest" placeholder="Destination ZIP" value={dest} onChange={setDest} />
-        <Input name="weight" placeholder="Weight (lb)" value={weight} onChange={setWeight} />
-        <Input name="pickup" placeholder="Pickup date" value={pickup} onChange={setPickup} />
-        <Button type="submit">Get Quote</Button>
-      </section>
+      <QuotePanel shipmentId={selectedShipmentId} onAuthError={onAuthError} />
 
-      {/* Docs + invoices — 1px-ruled lists, no cards. */}
-      <aside
-        style={{
-          position: "absolute",
-          bottom: 32,
-          left: 32,
-          width: "min(420px, 92vw)",
-          background: "var(--field)",
-          padding: 16,
-          display: "flex",
-          flexDirection: "column",
-          gap: 20,
-        }}
-      >
-        <RuledList heading="DOCUMENTS" rows={DOCS} />
-        <RuledList heading="INVOICES" rows={INVOICES} />
-        <TextLink href="#status">Track a shipment</TextLink>
-      </aside>
+      <ShipmentList
+        onAuthError={onAuthError}
+        onSelectShipment={setSelectedShipmentId}
+        selectedShipmentId={selectedShipmentId}
+      />
+    </main>
+  );
+}
+
+// A clean re-auth prompt — no session, or an expired one, or one missing a party_id. It mints NO token and
+// leaks nothing; the party re-enters through a fresh magic link (WP-14). Kept on the greige field, no cards.
+function ReAuthPrompt(): React.JSX.Element {
+  return (
+    <main
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "var(--field)",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        gap: 16,
+        padding: 32,
+        maxWidth: 640,
+      }}
+    >
+      <Mono size={11} color="var(--signal-55)">
+        SESSION EXPIRED
+      </Mono>
+      <Display size="section">SIGN IN AGAIN</Display>
+      <Mono size={12} color="var(--signal-deep)">
+        Your secure link has expired. Request a fresh sign-in link and we&apos;ll bring your board right back.
+      </Mono>
+      <div>
+        <Button type="button" onClick={() => globalThis.location?.reload()}>
+          Reload
+        </Button>
+      </div>
     </main>
   );
 }
