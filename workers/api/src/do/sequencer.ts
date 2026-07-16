@@ -26,6 +26,7 @@ import {
   assertBookingRecipientContact,
   assertDispatch,
   DISPATCH_REQUIRED_DOC_KIND,
+  GateValidationError,
   type AppointmentCtx,
   type DispatchCtx,
   type Fence,
@@ -616,6 +617,20 @@ export class ShipmentSequencer extends DurableObject<Env> {
     ctx: GateCtx,
   ): Promise<void> {
     const p = incoming.payload;
+
+    // REQ-191 (WP-09 exit audit C-2) — booking.created is IDEMPOTENT PER STREAM: at most ONE per shipment.
+    // A SECOND booking.created (a portal party who re-rated + re-accepted an already-booked shipment via the
+    // accept-quote seam, or any WP-10 command-bar path) is rejected here SERVER-SIDE before the append — so
+    // the append-only ledger never gains a duplicate booking and the status_cache never regresses (a delivered
+    // shipment can no longer revert to `booked`). The Concierge quote-stage path stays green: its shipments
+    // row is created WITHOUT a booking.created, so the first REAL booking is still the first on the stream.
+    // `incoming.stream_id` is DO-authoritative (set before the gate runs). Checked BEFORE the credit/contact
+    // gates so an already-booked stream reports the invariant, not a credit/recipient reason.
+    const priorBooking = await db
+      .prepare("SELECT 1 AS present FROM events WHERE stream_id = ? AND kind = 'booking.created' LIMIT 1")
+      .bind(incoming.stream_id)
+      .first<{ present: number }>();
+    if (priorBooking !== null) throw new GateValidationError("shipment_already_booked");
 
     // ONE read of the bill_to party — its credit_status AND contacts feed both gates (the bill_to is who pays
     // AND who is emailed). A missing row (no such party) reads as null for both → credit passes (no hold),

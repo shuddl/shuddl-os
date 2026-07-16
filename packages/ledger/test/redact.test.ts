@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { eventFixture, type LedgerEvent } from "@shuddl/contracts";
+import { eventFixture, type EventKind, type LedgerEvent } from "@shuddl/contracts";
 import { redactEvent, INTERNAL_NESTED } from "../src/redact.js";
+import { KIND_VISIBILITY_DEFAULTS } from "../src/visibility.js";
 
 // REQ-179 / I6 — NESTED counterparty redaction of invoice.issued / invoice.corrected. The portal is the
 // FIRST counterparty surface to read these kinds; `division` (top-level) and every `lines[].gl_map`
@@ -104,5 +105,59 @@ describe("redactEvent: nested strip of invoice.issued internals (REQ-179)", () =
   it("INTERNAL_NESTED registers both invoice kinds with division + gl_map (completeness)", () => {
     expect(INTERNAL_NESTED["invoice.issued"]).toEqual(["division", "gl_map"]);
     expect(INTERNAL_NESTED["invoice.corrected"]).toEqual(["division", "gl_map"]);
+  });
+});
+
+// REQ-192 (WP-09 exit audit) — the OTHER counterparty-default kinds carrying an internal field. The portal is
+// the FIRST surface a counterparty reads booking.created / dispatch.assigned through, so their internal
+// dimensions (the org/margin `division`, the internal `driver_user_id`) must be stripped for the party lens
+// exactly as invoice.issued's are. The GENERAL guard is the anti-regression: no known-internal key may survive
+// the party lens for ANY counterparty-default kind, so a future leak can never go live silently.
+describe("redactEvent: booking.created + dispatch.assigned internals (REQ-192)", () => {
+  it("booking.created — party/driver lens strips division; the tenant lens keeps it", () => {
+    const e = eventFixture("booking.created", { visibility: "counterparty" });
+    expect((e.payload as Record<string, unknown>).division).toBeDefined(); // stored carries the org dimension
+    for (const scope of ["party", "driver"] as const) {
+      const red = redactEvent({ scope }, e).payload as Record<string, unknown>;
+      expect(red.division).toBeUndefined();
+      expect(red.bill_to_party_id).toBeDefined(); // the party FKs a counterparty legitimately sees stay
+    }
+    expect((redactEvent({ scope: "tenant" }, e).payload as Record<string, unknown>).division).toBeDefined();
+  });
+
+  it("dispatch.assigned — party/driver lens strips driver_user_id (REQ-167); the tenant lens keeps it", () => {
+    const e = eventFixture("dispatch.assigned", { visibility: "counterparty" });
+    expect((e.payload as Record<string, unknown>).driver_user_id).toBeDefined();
+    for (const scope of ["party", "driver"] as const) {
+      expect((redactEvent({ scope }, e).payload as Record<string, unknown>).driver_user_id).toBeUndefined();
+    }
+    expect((redactEvent({ scope: "tenant" }, e).payload as Record<string, unknown>).driver_user_id).toBeDefined();
+  });
+
+  it("GENERAL fail-closed guard: NO known-internal key survives the party lens for ANY counterparty-default kind", () => {
+    const KNOWN_INTERNAL = ["gl_map", "division", "driver_user_id", "cost", "buy_rate"];
+    const hasKeyDeep = (node: unknown, key: string): boolean => {
+      if (Array.isArray(node)) return node.some((n) => hasKeyDeep(n, key));
+      if (node === null || typeof node !== "object") return false;
+      const obj = node as Record<string, unknown>;
+      return key in obj || Object.values(obj).some((v) => hasKeyDeep(v, key));
+    };
+    const counterpartyKinds = (Object.keys(KIND_VISIBILITY_DEFAULTS) as EventKind[]).filter(
+      (k) => KIND_VISIBILITY_DEFAULTS[k] === "counterparty",
+    );
+    for (const kind of counterpartyKinds) {
+      let e: LedgerEvent;
+      try {
+        e = eventFixture(kind, { visibility: "counterparty" });
+      } catch {
+        continue; // a kind eventFixture can't build with a bare visibility override — not this guard's target
+      }
+      const red = redactEvent({ scope: "party" }, e).payload;
+      for (const bad of KNOWN_INTERNAL) {
+        if (hasKeyDeep(red, bad)) {
+          throw new Error(`counterparty-default kind '${kind}' leaks internal key '${bad}' to the party lens — register it in INTERNAL_NESTED (REQ-192)`);
+        }
+      }
+    }
   });
 });

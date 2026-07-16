@@ -127,6 +127,22 @@ describe("credit-hold booking gate (REQ-042)", () => {
   });
 });
 
+// ─── REQ-191 (WP-09 exit audit C-2) — booking.created is IDEMPOTENT PER STREAM, server-side ───────────
+describe("booking is idempotent per stream (REQ-191)", () => {
+  it("a SECOND booking.created on an already-booked shipment → 400 VALIDATION_FAILED, still exactly ONE booking, ZERO regression", async () => {
+    const shp = "t6-rebook-c2";
+    // first booking commits (credit-clear bill_to, deliverable contact → passes the gates)
+    expect((await post(shp, bookingInput(shp, BILL_CLEAR), await opsTok())).status).toBe(201);
+    // a second booking.created (a fresh event id) on the SAME stream — the exploit's final append. The DO gate
+    // rejects it BEFORE the credit/contact checks so the reason is the invariant, not a credit reason.
+    const r2 = await post(shp, bookingInput(shp, BILL_CLEAR), await opsTok());
+    expect(r2.status).toBe(400);
+    expect(r2.json?.code).toBe("VALIDATION_FAILED");
+    const bookings = (await rawRows(shp)).filter((row) => row.kind === "booking.created");
+    expect(bookings).toHaveLength(1); // the append-only ledger never gained a duplicate
+  });
+});
+
 // ─── REQ-182 — the EVIDENCE RECIPIENT (bill_to) must have a deliverable contact, or a named opt-out ────
 describe("evidence-recipient booking gate (REQ-182)", () => {
   it("bill_to with NO deliverable contact + no opt-out → 403 GATE_BLOCKED ['evidence_recipient'], ZERO append", async () => {

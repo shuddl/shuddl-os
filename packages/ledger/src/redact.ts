@@ -27,6 +27,15 @@ export const REDACTIONS: Partial<Record<EventKind, readonly string[]>> = {
 export const INTERNAL_NESTED: Partial<Record<EventKind, readonly string[]>> = {
   "invoice.issued": ["division", "gl_map"], // top-level division + lines[].gl_map (money.ts:25/34)
   "invoice.corrected": ["division", "gl_map"], // reissue_lines[].gl_map (money.ts:47); division defensive
+  // REQ-192 (WP-09 exit audit) — the OTHER counterparty-default kinds that carry an internal field. The
+  // portal is the first surface a counterparty reads these through, so the internal dimension must be
+  // stripped for the party/driver lens exactly as invoice.issued's is: booking.created carries `division`
+  // (the org/margin dimension, booking.ts:43), dispatch.assigned carries `driver_user_id` (an internal user
+  // id — REQ-167 — booking.ts:99; a forward guard: dispatch.assigned is not yet emitted with customer
+  // party_refs, but this closes it before it can go live). The general fail-closed test (redact.test) asserts
+  // NO known-internal field survives the party lens for ANY counterparty-default kind.
+  "booking.created": ["division"],
+  "dispatch.assigned": ["driver_user_id"],
 };
 
 // Delete `key` from `node` and from every object nested inside it — through arrays and plain objects

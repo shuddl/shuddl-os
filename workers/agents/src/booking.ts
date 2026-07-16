@@ -158,6 +158,21 @@ export async function handleQuoteAccepted(trigger: QuoteAcceptedTrigger, deps: B
     };
   }
 
+  // GUARD 3 (REQ-191, WP-09 exit audit C-2) — ALREADY-BOOKED SKIP. The deterministic-id fast path above only
+  // catches a redelivery of THIS accept; a DIFFERENT accept (a portal party who re-rated + re-accepted an
+  // already-booked shipment) has a new id, so without this a second booking.created would be attempted. The
+  // DO gate (#enforceBooking) rejects it server-side as VALIDATION_FAILED regardless — but that is NOT a
+  // GATE_BLOCKED, so the catch below would RE-THROW it into the retry→DLQ path. Skip cleanly here: any prior
+  // booking.created on the stream ⇒ already_booked (idempotent). A concurrent race that slips past this still
+  // fails closed at the DO gate and self-heals on redelivery (this guard then sees the committed booking).
+  const priorBooking = await db
+    .prepare("SELECT id FROM events WHERE stream_id = ? AND kind = 'booking.created' ORDER BY seq LIMIT 1")
+    .bind(streamId)
+    .first<{ id: string }>();
+  if (priorBooking !== null) {
+    return { status: "already_booked", booking_event_id: priorBooking.id, shipment_id: msg.shipment_id };
+  }
+
   // The booking payload — parties from the ACCEPTED SHIPMENT'S rows (existing parties, never guessed);
   // quote_event_id = the accepted quote. No mode/service/bill_terms/opt-out: the agent books the quoted
   // shipment as-is. `evidence_contact_opt_out` is deliberately ABSENT — the agent never books over an

@@ -211,6 +211,24 @@ describe("Booking agent — quote.accepted → gated booking.created (REQ-028/04
     expect(await bookingEvents(shp)).toHaveLength(1); // the sequencer deduped by event id
   });
 
+  it("(b2) RE-BOOK SKIP (REQ-191, WP-09 exit-audit C-2): a DIFFERENT accept on an already-booked shipment → already_booked, still ONE booking", async () => {
+    // The exploit the exit audit found: a portal party re-rates + re-accepts an ALREADY-booked shipment. The
+    // second quote.accepted has a NEW id, so the deterministic-id fast path (test b) does NOT catch it — GUARD 3
+    // (any prior booking.created on the stream) does. Without the fix this appended a SECOND booking.created,
+    // polluting the append-only ledger and regressing the status_cache.
+    const shp = "booking-rebook-c2";
+    await seedShipment(shp);
+    const first = await handleQuoteAccepted(triggerFor(shp, await seedAccepted(shp, await seedQuotePriced(shp))), deps());
+    expect(first.status).toBe("booked");
+    const stateAfterFirst = await shipmentState(shp);
+
+    // a SECOND priced quote + accept, DISTINCT ids (quote.priced/quote.accepted are ungated, so they append)
+    const second = await handleQuoteAccepted(triggerFor(shp, await seedAccepted(shp, await seedQuotePriced(shp))), deps());
+    expect(second.status).toBe("already_booked"); // skipped cleanly — no second append, no DLQ
+    expect(await bookingEvents(shp)).toHaveLength(1); // STILL exactly one booking.created
+    expect(await shipmentState(shp)).toBe(stateAfterFirst); // no read-model regression
+  });
+
   it("(c1) GATE-BLOCK HOLDS (credit): a bill_to on a credit hold → held(credit_clear), NO booking, NO throw/DLQ", async () => {
     const shp = "booking-held-credit";
     await seedShipmentWithBillTo(shp, "party-booking-held");
