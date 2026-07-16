@@ -115,16 +115,18 @@ function sameStringSet(a: readonly string[], b: readonly string[]): boolean {
  * C1 INDEPENDENT CORROBORATION — re-parse the RAW email deterministically and require the model's request to
  * agree on EVERY PRICE-AFFECTING FIELD, FAILING CLOSED on anything the deterministic parser cannot independently
  * confirm (REQ-171/175). The sell is a function of {lane, weight, accessorials}; dims are PRICE-INERT under
- * today's cwt engine (so a dims divergence does not mis-price the sell), but the doctrine "a model request
- * diverging from the deterministic re-extraction can never auto-send" must cover dims too — so dims FAIL CLOSED
- * on PRESENCE (value-matching joins the rule once density/class pricing makes dims price-affecting at WP-09):
+ * today's cwt engine (so a dims divergence does not mis-price the sell), and WP-09 keeps them price-inert — it
+ * ships NO density/class rating. Even so, the doctrine "a model request diverging from the deterministic
+ * re-extraction can never auto-send" must cover dims too — so dims FAIL CLOSED on PRESENCE (value-matching joins
+ * the rule only when a FUTURE density/class WP makes dims price-affecting):
  *   · both zips must MATCH;
  *   · weight FAILS CLOSED — if the model priced on a weight, the deterministic parser MUST also have extracted a
  *     weight and it must MATCH; a model weight the deterministic parser could not confirm (a format WEIGHT_RE
  *     misses, or an injected value) cannot auto-send (weight scales freight — the highest-leverage under-quote field);
  *   · accessorials must be an EQUAL SET — a dropped accessorial under-quotes, an added one over-quotes; either breaks it;
  *   · dims FAIL CLOSED on PRESENCE — if the model priced WITH dims, the deterministic parser MUST also carry dims
- *     (a format DIMS_RE misses, e.g. "48 by 40 by 60", or an injected block cannot auto-send); values match at WP-09.
+ *     (a format DIMS_RE misses, e.g. "48 by 40 by 60", or an injected block cannot auto-send); values are NOT
+ *     compared while dims stay price-inert (through WP-09) — only presence.
  * Anything else → NOT corroborated → queue for a human. Deterministic + network-free (a pure re-derivation of the bytes).
  */
 async function corroborates(email: InboundEmail, modelRequest: RateRequest): Promise<boolean> {
@@ -139,7 +141,8 @@ async function corroborates(email: InboundEmail, modelRequest: RateRequest): Pro
   // Accessorials: set equality — an added OR dropped accessorial changes the sell.
   if (!sameStringSet(modelRequest.accessorials ?? [], detReq.accessorials ?? [])) return false;
   // Dims: fail closed on PRESENCE (REQ-175). A model that priced WITH dims the deterministic re-parse cannot
-  // see must not auto-send — even though dims are price-inert today, the divergence-can't-send doctrine holds.
+  // see must not auto-send — even though dims are price-inert today AND WP-09 keeps them price-inert (no
+  // density/class rating this WP), the divergence-can't-send doctrine holds. Do NOT weaken to "always true."
   if (modelRequest.dims !== undefined && detReq.dims === undefined) return false;
   return true;
 }

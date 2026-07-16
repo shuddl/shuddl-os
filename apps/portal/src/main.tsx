@@ -4,17 +4,26 @@ import "@shuddl/design/motion.css";
 import type { ReactNode } from "react";
 import { App } from "./App.js";
 import { Status } from "./status.js";
+import { GuestQuote } from "./pages/GuestQuote.js";
 import { EvidenceEmail } from "./evidence-email.js";
+import { resolveRoute } from "./router.js";
 
-// The portal ships three canonical screens. A tiny ?screen switch lets the visual harness (and a
-// human) reach the public status page and the evidence email without a router; the app default is
-// the scoped portal board. status also has a #status hash entry (the portal's "Track" link).
+// REQ-086/051 — the portal entry. A real (dependency-free) router replaces the old ?screen= switch: it maps
+// the URL to one screen. The TWO public routes (/status/:cap, /quote) render WITHOUT a session — only the
+// authed board (App) reads the session lens. The legacy ?screen= switch + the #status Track link still
+// resolve (see router.ts), so the visual harness and existing links keep working.
 function screen(): ReactNode {
-  const params = new URLSearchParams(window.location.search);
-  const which = params.get("screen") ?? (window.location.hash === "#status" ? "status" : "portal");
-  if (which === "status") return <Status />;
-  if (which === "email") return <EvidenceEmail />;
-  return <App />;
+  const route = resolveRoute(window.location);
+  switch (route.name) {
+    case "status":
+      return <Status cap={route.cap} />;
+    case "quote":
+      return <GuestQuote />;
+    case "email":
+      return <EvidenceEmail />;
+    case "board":
+      return <App />;
+  }
 }
 
 const el = document.getElementById("root");

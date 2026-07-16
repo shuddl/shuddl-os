@@ -4,6 +4,9 @@ import { DEMO_GLYPHS_URL, DEMO_TILE_URL, MapCanvas, demoFleet, useFleet } from "
 import { adoptTokenFromUrl, clear, getClaims, isAuthed } from "./session.js";
 import { ShipmentList } from "./components/ShipmentList.js";
 import { QuotePanel } from "./components/QuotePanel.js";
+import { DocumentsView } from "./views/DocumentsView.js";
+import { InvoicesView } from "./views/InvoicesView.js";
+import { ClaimsView } from "./views/ClaimsView.js";
 
 // CLIENT PORTAL (REQ-085/051) — the SAME operational map, scoped to ONE party through the REAL session lens,
 // with the quote→book panel and the ruled lists wired to the live server (the WP-03 shell was hardcoded
@@ -42,6 +45,18 @@ export function App(): React.JSX.Element {
   return <Board partyId={mode.partyId} onAuthError={handleAuthError} />;
 }
 
+// The board's secondary lists live behind a tiny tab nav. OVERVIEW keeps the WP-10 map + quote→book + the
+// ruled shipment/invoice list; the other tabs surface the WP-09 Task 6/7/8 views (documents / invoices /
+// custody-chain+claims). Documents and Claims need a SELECTED shipment (picked on OVERVIEW); until one is
+// chosen they show a hint rather than a broken read.
+type PortalView = "overview" | "documents" | "invoices" | "claims";
+const TABS: ReadonlyArray<{ view: PortalView; label: string }> = [
+  { view: "overview", label: "OVERVIEW" },
+  { view: "documents", label: "DOCUMENTS" },
+  { view: "invoices", label: "INVOICES" },
+  { view: "claims", label: "CLAIMS" },
+];
+
 function Board({ partyId, onAuthError }: { partyId: string; onAuthError: () => void }): React.JSX.Element {
   // The party lens scopes the fleet to this party's own shipments (defence-in-depth; the server lens is
   // authoritative and never sends out-of-scope marks). The live DO fan-out is WP-10 — until then the source
@@ -50,6 +65,7 @@ function Board({ partyId, onAuthError }: { partyId: string; onAuthError: () => v
   const { collection } = useFleet({ scope: "party", partyId }, source);
 
   const [selectedShipmentId, setSelectedShipmentId] = useState<string | undefined>(undefined);
+  const [view, setView] = useState<PortalView>("overview");
 
   return (
     <main style={{ position: "fixed", inset: 0, background: "var(--field)", overflow: "hidden" }}>
@@ -67,16 +83,82 @@ function Board({ partyId, onAuthError }: { partyId: string; onAuthError: () => v
           YOUR FREIGHT · LIVE
         </Mono>
         <Display size="hero">{partyId}</Display>
+        <nav style={{ display: "flex", gap: 16, marginTop: 12 }}>
+          {TABS.map((t) => (
+            <button
+              key={t.view}
+              type="button"
+              aria-pressed={view === t.view}
+              onClick={() => setView(t.view)}
+              style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
+            >
+              <Mono size={11} color={view === t.view ? "var(--signal)" : "var(--signal-55)"}>
+                {t.label}
+              </Mono>
+            </button>
+          ))}
+        </nav>
       </header>
 
-      <QuotePanel shipmentId={selectedShipmentId} onAuthError={onAuthError} />
-
-      <ShipmentList
-        onAuthError={onAuthError}
-        onSelectShipment={setSelectedShipmentId}
-        selectedShipmentId={selectedShipmentId}
-      />
+      {/* OVERVIEW keeps the live quote→book panel + the ruled shipment/invoice list. */}
+      {view === "overview" ? (
+        <>
+          <QuotePanel shipmentId={selectedShipmentId} onAuthError={onAuthError} />
+          <ShipmentList
+            onAuthError={onAuthError}
+            onSelectShipment={setSelectedShipmentId}
+            selectedShipmentId={selectedShipmentId}
+          />
+        </>
+      ) : (
+        <ViewPanel>
+          {view === "documents" ? (
+            selectedShipmentId !== undefined ? (
+              <DocumentsView shipmentId={selectedShipmentId} onAuthError={onAuthError} />
+            ) : (
+              <SelectHint what="documents" />
+            )
+          ) : null}
+          {view === "invoices" ? <InvoicesView onAuthError={onAuthError} /> : null}
+          {view === "claims" ? (
+            selectedShipmentId !== undefined ? (
+              <ClaimsView shipmentId={selectedShipmentId} onAuthError={onAuthError} />
+            ) : (
+              <SelectHint what="custody chain" />
+            )
+          ) : null}
+        </ViewPanel>
+      )}
     </main>
+  );
+}
+
+// The floating panel the non-overview views render into — same greige-on-field placement discipline as the
+// shipment list (no cards, 1px rules do the work).
+function ViewPanel({ children }: { children: React.ReactNode }): React.JSX.Element {
+  return (
+    <aside
+      style={{
+        position: "absolute",
+        bottom: 32,
+        left: 32,
+        width: "min(420px, 92vw)",
+        maxHeight: "70vh",
+        overflow: "auto",
+        background: "var(--field)",
+        padding: 16,
+      }}
+    >
+      {children}
+    </aside>
+  );
+}
+
+function SelectHint({ what }: { what: string }): React.JSX.Element {
+  return (
+    <Mono size={11} color="var(--signal-55)">
+      SELECT A SHIPMENT ON OVERVIEW TO SEE ITS {what.toUpperCase()}
+    </Mono>
   );
 }
 

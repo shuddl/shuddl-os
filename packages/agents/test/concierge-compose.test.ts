@@ -205,12 +205,35 @@ describe("composeConcierge — C1 independent corroboration (defeats a prompt-in
     };
     // The model extracted dims {48,40,60}; DIMS_RE only matches the "NxNxN" form, so the deterministic
     // re-parse carries NO dims → the model priced WITH dims we cannot independently confirm → refuse to
-    // auto-send. Dims are price-inert under today's cwt engine (the sell is still correct), but the
-    // divergence-can't-send doctrine must cover dims before WP-09 density/class makes them price-affecting.
+    // auto-send. Dims are price-inert under today's cwt engine (the sell is still correct), and WP-09 KEEPS
+    // them price-inert (no density/class rating this WP) — yet the divergence-can't-send doctrine must still
+    // cover dims. This gate must hold unchanged as WP-09 leaves dims price-inert (do NOT weaken it).
     const decision = await composeConcierge(baseInput({ parse: mkParse(), email }));
     expect(decision.status).toBe("queued");
     if (decision.status !== "queued") throw new Error("expected queued");
     expect(decision.reason).toBe("not_corroborated");
+  });
+
+  it("REQ-175 (WP-09 leaves dims PRICE-INERT): the sell ignores the dims VALUE, so the presence gate — not value-matching — is the whole dims rule this WP", async () => {
+    // WP-09 ships NO density/class rating, so dims stay PRICE-INERT: the cwt engine prices on weight × cwt and
+    // the dims VALUE cannot move the sell. Prove it directly — two WILDLY different dims, SAME lane + weight,
+    // price IDENTICALLY. The default EMAIL carries "48x40x60" dims, which the DeterministicParser re-extracts,
+    // so the PRESENCE gate passes and both corroborate → auto_reply (value-matching is intentionally NOT
+    // enforced while dims are price-inert; it joins the gate only when a future WP makes dims price-affecting).
+    const bigDims = mkParse({
+      request: { origin_zip: "97201", dest_zip: "98101", weight_lb: 1_200, dims: { l_in: 96, w_in: 48, h_in: 90, pieces: 2 } },
+    });
+    const smallDims = mkParse({
+      request: { origin_zip: "97201", dest_zip: "98101", weight_lb: 1_200, dims: { l_in: 12, w_in: 12, h_in: 12, pieces: 2 } },
+    });
+    const big = await composeConcierge(baseInput({ parse: bigDims }));
+    const small = await composeConcierge(baseInput({ parse: smallDims }));
+    expect(big.status).toBe("auto_reply");
+    expect(small.status).toBe("auto_reply");
+    if (big.status !== "auto_reply" || small.status !== "auto_reply") throw new Error("expected auto_reply");
+    // freight = 1200 lb × 5000¢/cwt = 60,000¢ — and the dims VALUE does not move it (price-inert at WP-09).
+    expect(big.quote.sell_cents).toBe(60_000);
+    expect(small.quote.sell_cents).toBe(big.quote.sell_cents);
   });
 });
 

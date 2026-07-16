@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 // The map is WebGL (maplibre) — stub it so jsdom never constructs a GL context. useFleet returns an empty
 // scoped collection; the real party-lens scoping is proven in @shuddl/map's own suite.
@@ -62,6 +62,20 @@ describe("App portal board (REQ-085/051)", () => {
 
     expect(screen.getByText(/sign in again/i)).toBeTruthy();
     expect(screen.queryByPlaceholderText("Origin ZIP")).toBeNull();
+  });
+
+  it("the tab nav surfaces the authed views (INVOICES tab mounts the InvoicesView)", async () => {
+    mockGetClaims.mockReturnValue(CLAIMS);
+    mockIsAuthed.mockReturnValue(true);
+    mockGet.mockResolvedValue({ invoices: [] });
+
+    render(<App />);
+    await screen.findByText(/no invoices yet/i); // overview's ShipmentList settled
+
+    fireEvent.click(screen.getByRole("button", { name: /invoices/i }));
+
+    // the InvoicesView (its own distinctive empty state) is now surfaced
+    await screen.findByText(/no invoices billed to you yet/i);
   });
 
   it("a 401 from a board read drops the session and shows the re-auth prompt", async () => {
