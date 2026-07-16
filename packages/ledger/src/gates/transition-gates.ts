@@ -57,6 +57,8 @@ export const REQUIRED_EVIDENCE = {
   consent: "consent",
   credit_clear: "credit_clear", // REQ-042 — the bill_to party's credit hold must be cleared (or overridden)
   evidence_recipient: "evidence_recipient", // REQ-182 — the evidence recipient (bill_to) needs a deliverable contact (or an opt-out)
+  appointment: "appointment", // REQ-043 — dispatch is blocked until the shipment has a claimed dock appointment
+  docs: "docs", // REQ-043 — dispatch is blocked until the required carrier paperwork (a rate-con-class doc) exists
 } as const;
 export type RequiredEvidence = (typeof REQUIRED_EVIDENCE)[keyof typeof REQUIRED_EVIDENCE];
 
@@ -522,4 +524,56 @@ export function assertBookingRecipientContact(incoming: LedgerEvent, recipientCo
   if (optedOut) return;
   if (hasDeliverableContact(recipientContacts)) return;
   throw new GateError([REQUIRED_EVIDENCE.evidence_recipient]);
+}
+
+// ---- REQ-043 — dispatch.assigned gate (WP-08 T7) ------------------------------------------------------
+//
+// dispatch.assigned (sending a driver to a booked shipment) is BLOCKED until the shipment has BOTH a claimed
+// APPOINTMENT and the required DOCS — the freight reality that you do not roll a driver before the stop is
+// scheduled and the carrier paperwork exists. dispatch.assigned is NOT the first event on the stream (a booked
+// shipment already has booking.created), but the two facts are cleanest from the SERVER-SOURCED read-models
+// the DO (Task 7) loads: legs.appt_slot_key (set by T5's appointment.set) for the appointment, and a documents
+// row of the dispatch-required kind for the docs — NEVER from the client event (a dispatcher cannot spoof "the
+// appointment is set" or "the rate-con exists"). Raises GateError (GATE_BLOCKED, required_evidence) — a missing
+// prerequisite like the physical/booking gates, NOT the appointment gate's config/conflict VALIDATION_FAILED.
+
+/**
+ * REQ-043 — the ONE canonical dispatch-required document kind, shared by the pure gate's contract and the DO's
+ * server-side `documents` read (sequencer.ts #enforceDispatch) so a rename can never leave the two out of sync
+ * (a silent, permanent fail-close). It MUST remain a member of the `documents.kind` CHECK in
+ * db/tenant/migrations/0002_domain.sql (BOL / POD / photo / WI_cert / invoice / ratecon / COI / W9 / claim /
+ * tsa_receipt) — the rate-confirmation-class carrier paperwork a driver needs before rolling. The dispatch-gate
+ * tests import this so a rename fails LOUDLY instead of silently blocking every dispatch forever.
+ */
+export const DISPATCH_REQUIRED_DOC_KIND = "ratecon";
+
+/**
+ * The SERVER-SOURCED context for assertDispatch (loaded by the DO from D1, never the client event):
+ * - `hasAppointment`: a leg on the shipment has claimed a dock slot (legs.appt_slot_key IS NOT NULL, set by
+ *   T5's appointment.set). A booked shipment carries skeleton legs with appt_slot_key NULL until an
+ *   appointment claims one, so a non-null slot IS the "an appointment exists" signal.
+ * - `hasDocs`: the required carrier paperwork is present — a documents row of the dispatch-required kind.
+ * - `override`: a REQ-049 override that releases the gate accountably (like the physical/booking gates).
+ */
+export interface DispatchCtx {
+  hasAppointment: boolean;
+  hasDocs: boolean;
+  override?: Override;
+}
+
+/**
+ * REQ-043 — the dispatch.assigned gate. Blocked unless the shipment has BOTH a claimed appointment AND the
+ * required docs. The EXACT missing subset is collected in a DETERMINISTIC order (appointment, then docs) so a
+ * dispatcher sees the full checklist at once: ["appointment"], ["docs"], or ["appointment","docs"]. Both
+ * present → pass. OVERRIDABLE (REQ-049): a named+reasoned override runs FIRST and releases the gate — an
+ * accountable dispatch-over — exactly like the physical/booking gates; a blank/unaccountable override is a
+ * GateValidationError (VALIDATION_FAILED), never a silent pass.
+ */
+export function assertDispatch(ctx: DispatchCtx): void {
+  if (overrideSatisfies(ctx.override)) return; // REQ-049 — an accountable override releases the gate
+
+  const missing: RequiredEvidence[] = [];
+  if (!ctx.hasAppointment) missing.push(REQUIRED_EVIDENCE.appointment);
+  if (!ctx.hasDocs) missing.push(REQUIRED_EVIDENCE.docs);
+  if (missing.length > 0) throw new GateError(missing);
 }

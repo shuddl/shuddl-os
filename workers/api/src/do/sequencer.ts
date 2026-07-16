@@ -24,7 +24,10 @@ import {
   assertAppointment,
   assertBookingCredit,
   assertBookingRecipientContact,
+  assertDispatch,
+  DISPATCH_REQUIRED_DOC_KIND,
   type AppointmentCtx,
+  type DispatchCtx,
   type Fence,
   type GateCtx,
 } from "@shuddl/ledger/gates/transition-gates";
@@ -106,7 +109,7 @@ const DEFAULT_FENCE_RADIUS_M = 150;
 // must enforce the same consent gate).
 const GATED_KINDS = [
   "stop.departed", "delivery.evidenced", "custody.transferred", "exception.raised", "osd.captured", "stop.arrived",
-  "appointment.set", "booking.created",
+  "appointment.set", "booking.created", "dispatch.assigned",
 ] as const;
 type GatedKind = (typeof GATED_KINDS)[number];
 const GATED_KIND_SET: ReadonlySet<string> = new Set(GATED_KINDS);
@@ -478,6 +481,13 @@ export class ShipmentSequencer extends DurableObject<Env> {
         // (tenant-isolated), never the client event.
         await this.#enforceBooking(db, incoming, ctx);
         return {};
+      case "dispatch.assigned":
+        // REQ-043 — the DISPATCH gate. You don't send a driver before the stop is scheduled AND the carrier
+        // paperwork exists. BOTH facts are SERVER-SOURCED from THIS tenant's D1 read-models (legs.appt_slot_key
+        // for the claimed appointment, a documents row of the dispatch-required kind for the docs) — never from
+        // the client event. A missing prerequisite → GATE_BLOCKED with the EXACT missing subset (REQ-030).
+        await this.#enforceDispatch(db, shipmentId, ctx);
+        return {};
       default:
         // A GatedKind with no case above = a Set/switch desync. `assertNever` makes that a COMPILE error
         // (belt) and throws at runtime (suspenders) — never a silent fall-through to an ungated append.
@@ -592,6 +602,45 @@ export class ShipmentSequencer extends DurableObject<Env> {
       }
     }
     assertBookingRecipientContact(incoming, contacts);
+  }
+
+  // REQ-043 — load the SERVER-SOURCED dispatch context and run the pure gate. BOTH facts come from THIS
+  // tenant's D1 read-models (the DO is pinned to one tenant, so neither read can cross a tenant boundary,
+  // REQ-025) — never the client event; a dispatcher cannot spoof either:
+  //   - hasAppointment: a leg on the shipment has CLAIMED a dock slot — legs.appt_slot_key IS NOT NULL (set by
+  //     T5's appointment.set projection). A booked shipment carries skeleton legs with appt_slot_key NULL until
+  //     an appointment.set claims one, so a non-null slot IS the "an appointment exists" signal. Matching ANY
+  //     leg's appt_slot_key (pickup OR delivery) is the INTENDED v1 reading: dispatch.assigned assigns a driver
+  //     to the SHIPMENT, so "the shipment is scheduled" (any appointment) is the gate; leg-kind-specific
+  //     dispatch precision (e.g. require the pickup appointment specifically) is future scope, not v1.
+  //   - hasDocs: the required carrier paperwork exists — a documents row of the shared DISPATCH_REQUIRED_DOC_KIND
+  //     ('ratecon'), the rate-confirmation-class doc REQ-043's literal "docs" requires before a driver rolls (a
+  //     member of the documents.kind CHECK in 0002_domain.sql). Required UNCONDITIONALLY — no per-tenant knob;
+  //     that matches REQ-043 verbatim and is the recorded decision. DEFERRAL (REQ-184, vNEXT): nothing writes a
+  //     ratecon document yet (the rate-con GENERATION flow lands under REQ-184), so this gate is FAIL-CLOSED
+  //     until then — a dispatch cannot pass without an accountable REQ-049 override. That is deliberate: the
+  //     evidence must exist before a driver rolls. A BOL/POD/other kind does not satisfy it (the concrete kind
+  //     is named, via the ONE shared constant — a rename can never silently fail-close the gate).
+  // shipmentId is undefined only for a non-`s:` stream (dispatch is shipment-scoped), where neither fact can
+  // hold → the gate fails closed. A REQ-049 override on `ctx` releases the gate accountably.
+  async #enforceDispatch(db: D1Database, shipmentId: string | undefined, ctx: GateCtx): Promise<void> {
+    const hasAppointment =
+      shipmentId !== undefined &&
+      (await db
+        .prepare("SELECT 1 AS present FROM legs WHERE shipment_id = ? AND appt_slot_key IS NOT NULL LIMIT 1")
+        .bind(shipmentId)
+        .first<{ present: number }>()) !== null;
+
+    const hasDocs =
+      shipmentId !== undefined &&
+      (await db
+        .prepare("SELECT 1 AS present FROM documents WHERE shipment_id = ?1 AND kind = ?2 LIMIT 1")
+        .bind(shipmentId, DISPATCH_REQUIRED_DOC_KIND)
+        .first<{ present: number }>()) !== null;
+
+    const dispatchCtx: DispatchCtx = { hasAppointment, hasDocs };
+    if (ctx.override !== undefined) dispatchCtx.override = ctx.override;
+    assertDispatch(dispatchCtx);
   }
 
   // fence: the delivery leg's dest geo (doc 10 §03 legs.geo) + a policy radius (DEFAULT_FENCE_RADIUS_M

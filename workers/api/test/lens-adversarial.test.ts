@@ -261,6 +261,26 @@ beforeAll(async () => {
       .run();
   }
 
+  // WP-08 T7 (REQ-043): dispatch.assigned is now GATED — blocked until the shipment has a claimed appointment
+  // (a leg with appt_slot_key, set by T5's appointment.set) AND the required carrier paperwork (a documents row
+  // of kind 'ratecon'). This lens fixture only needs the event ON the stream, so it provisions both prereqs
+  // directly against the read-models (never the client event): a slot claim on the booking-materialized pickup
+  // leg + a ratecon doc. SHP_A's later appointment.set legitimately re-claims the same pickup leg (a realistic
+  // post-dispatch reschedule); the manual claim uses a NULL facility + per-shipment slot key so it never
+  // collides on ux_legs_slot with the real appointment.set claim.
+  async function seedDispatchPrereqs(shipmentId: string): Promise<void> {
+    await env.TENANT_A_DB.prepare(
+      "UPDATE legs SET appt_slot_key = ?, appt_service_date = '2026-08-03' WHERE shipment_id = ? AND kind = 'pickup'",
+    )
+      .bind(`adv-dispatch-preclaim-${shipmentId}`, shipmentId)
+      .run();
+    await env.TENANT_A_DB.prepare(
+      "INSERT OR IGNORE INTO documents (id, shipment_id, kind, r2_key, hash) VALUES (?,?,?,?,?)",
+    )
+      .bind(`adv-doc-ratecon-${shipmentId}`, shipmentId, "ratecon", `r2/${shipmentId}/ratecon`, HEX64)
+      .run();
+  }
+
   // ---- Shipment A: one of every route-appendable kind, in dependency order ----
   // booking.created first (creates the shipments row); dispatch.assigned binds D1; pod.signed before
   // invoice.issued (I2 gate); invoice.corrected references the issued event id.
@@ -281,6 +301,7 @@ beforeAll(async () => {
   // dest geo IS the stop.arrived coords, so the seeded arrival clears the fence. The pickup-depart gate
   // (REQ-044) clears on its own because count/photo/custody precede stop.departed in ORDER.
   for (const kind of ORDER) {
+    if (kind === "dispatch.assigned") await seedDispatchPrereqs(SHP_A); // REQ-043: appt + ratecon before dispatch
     if (kind === "stop.arrived") {
       const c = await append(SHP_A, buildInput(SHP_A, "document.attached", { payload: consentPayload("CA") }), ops);
       if (c.status !== 201) throw new Error(`seed ${SHP_A}/consent failed: ${c.status} ${c.body}`);
@@ -315,6 +336,7 @@ beforeAll(async () => {
   await append(SHP_B, buildInput(SHP_B, "booking.created", { party_refs: [P2] }), ops).then((r) => {
     if (r.status !== 201) throw new Error(`seed ${SHP_B}/booking failed: ${r.body}`);
   });
+  await seedDispatchPrereqs(SHP_B); // REQ-043: appt + ratecon before SHP_B's dispatch.assigned
   await append(SHP_B, buildInput(SHP_B, "dispatch.assigned", { party_refs: [P2], actor: { party: P2, user: D2 } }), ops);
   // Consent-before-GPS (REQ-166) for SHP_B's stamp too; party_refs P2-only so case 3 (P1 sees nothing) holds.
   await append(SHP_B, buildInput(SHP_B, "document.attached", { party_refs: [P2], payload: consentPayload("CA") }), ops);
