@@ -14,6 +14,7 @@ import { mountEvidenceRoutes } from "./routes/evidence.js";
 import { mountStatusLinkRoutes } from "./routes/status-link.js";
 import { mountDocumentRoutes } from "./routes/documents.js";
 import { mountInvoiceRoutes } from "./routes/invoices.js";
+import { mountPortalActionRoutes } from "./routes/portal-actions.js";
 import { mountPublicRoutes } from "./routes/public.js";
 
 export type Env = {
@@ -85,6 +86,11 @@ mountDocumentRoutes(app);
 // already apply. The margin/GL internals (division/gl_map) are absent from the party projection here, the
 // same law redact.ts now enforces on the invoice.issued EVENT (nested lines[].gl_map strip, REQ-179).
 mountInvoiceRoutes(app);
+// WP-09 Task 8 (REQ-085): the NARROW, lens-gated portal action seams — POST /v1/shipments/:id/accept-quote
+// (quote.accepted → the WP-08 Booking agent) + POST /v1/shipments/:id/claim (a portal-channel message.received).
+// Both /v1 routes, so auth + idempotency already apply; both lens-gate :id and append THROUGH the sequencer DO.
+// A portal party gets NO general event-POST — that surface (POST /v1/shipments/:id/events) still excludes portal.
+mountPortalActionRoutes(app);
 // WP-09 Task 3 (REQ-187/188): GET /pub/status/:cap — the PUBLIC, no-auth status read that consumes the cap
 // minted above. Mounted at /pub/* (NOT /v1/*), so app.use("/v1/*", auth) + idempotency do NOT run — the cap
 // is the authorization. This is the first public data read in the system; verifyStatusCap is the whole gate.

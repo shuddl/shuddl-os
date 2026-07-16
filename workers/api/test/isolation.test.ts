@@ -149,6 +149,40 @@ describe("REQ-025 growth: the ledger routes reject the same cross-tenant attacks
     expect(res.status).toBe(401);
   });
 
+  // WP-09 Task 8 growth (REQ-085): the NARROW portal action seams are lens-gated and tenant-scoped. A tenant-a
+  // session naming a tenant-b shipment reads tenant-a's D1 (keyed off the JWT claim via tenantDb) — a tenant-b
+  // shipment lives in a DIFFERENT physical D1 the session can never address → zero visible events → 403
+  // (fail-closed). NOTHING is appended, no cross-tenant read occurs.
+  it("accept-quote on a tenant-b shipment id is a fail-closed 403 (reads tenant-a's D1, never tenant-b's)", async () => {
+    const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "ops" });
+    const res = await SELF.fetch("https://api.local/v1/shipments/tenant-b-only-shipment/accept-quote", {
+      method: "POST",
+      headers: { ...bearer(t), "Idempotency-Key": crypto.randomUUID(), "content-type": "application/json" },
+      body: JSON.stringify({ quote_event_id: "whatever" }),
+    });
+    expect(res.status).toBe(403);
+  });
+
+  it("claim on a tenant-b shipment id is a fail-closed 403 (reads tenant-a's D1, never tenant-b's)", async () => {
+    const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "ops" });
+    const res = await SELF.fetch("https://api.local/v1/shipments/tenant-b-only-shipment/claim", {
+      method: "POST",
+      headers: { ...bearer(t), "Idempotency-Key": crypto.randomUUID(), "content-type": "application/json" },
+      body: JSON.stringify({ description: "cross-tenant probe" }),
+    });
+    expect(res.status).toBe(403);
+  });
+
+  it("X-Tenant-Id header on POST /v1/shipments/:id/accept-quote is rejected at auth (TENANT_MISMATCH)", async () => {
+    const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "ops" });
+    const res = await SELF.fetch("https://api.local/v1/shipments/x/accept-quote", {
+      method: "POST",
+      headers: { ...bearer(t), "X-Tenant-Id": "tenant-b", "Idempotency-Key": "k", "content-type": "application/json" },
+      body: "{}",
+    });
+    expect(res.status).toBe(403);
+  });
+
   it("X-Tenant-Id header on POST /v1/positions is rejected at auth", async () => {
     const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "driver" });
     const res = await SELF.fetch("https://api.local/v1/positions", {

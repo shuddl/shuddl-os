@@ -5,6 +5,7 @@ import type { RateRequest, Leg, PricedQuote, ApprovalDecision, TransitResult } f
 import { ApiError } from "../middleware/error.js";
 import { requireRole } from "../middleware/auth.js";
 import { tenantDb } from "../tenants.js";
+import { lensFor, readEvents } from "@shuddl/ledger/lens";
 import { loadTenantRatingConfig, loadTransitMatrix } from "../rate-config.js";
 import { translateAppendError, type SeqStub } from "./events.js";
 import type { AppendedEvent } from "../do/sequencer.js";
@@ -106,11 +107,30 @@ async function deterministicEventId(idempotencyKey: string, shipmentId: string, 
 }
 
 export function mountRateRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>): void {
-  app.post("/v1/rate", requireRole("ops", "admin", "finance"), async (c) => {
+  app.post("/v1/rate", requireRole("ops", "admin", "finance", "portal"), async (c) => {
     const session = c.get("session");
     const parsed = RateBody.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) throw new ApiError("VALIDATION_FAILED", 400, "INVALID RATE REQUEST");
     const body = parsed.data;
+
+    // REQ-085 / REQ-025 — a portal party MAY price, but ONLY for a shipment its OWN lens can see. ops/admin/
+    // finance (tenant lens) stay unrestricted. This reuses the SAME lens seam the events read + status-link
+    // mint use (readEvents under lensFor), so a portal caller can never price against — and thereby append
+    // quote.priced/agent.acted onto — a shipment outside its party scope: zero visible events → 403, before
+    // any config load or append. A brand-new quote with NO existing shipment is the GUEST preview path
+    // (/pub/quote, Task 4) — that flow never reaches this authed route. lensFor throws LENS_UNRESOLVED for a
+    // portal session missing party_id → surfaced as a clean 403 (never an opaque 500).
+    if (session.role === "portal") {
+      try {
+        const lens = lensFor(session);
+        const visible = await readEvents(tenantDb(c.env, session.tenant), lens, { shipment_id: body.shipment_id, limit: 1 });
+        if (visible.length === 0) throw new ApiError("FORBIDDEN", 403, "SHIPMENT NOT IN YOUR SCOPE");
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        if (msg.startsWith("LENS_UNRESOLVED")) throw new ApiError("FORBIDDEN", 403, "SESSION LENS UNRESOLVED");
+        throw e;
+      }
+    }
 
     // REQ-040 — interline legs without the tenant's executing party would force a GROSS comparison, the one
     // thing the executing-share law forbids. Reject it rather than silently compare the whole move.
