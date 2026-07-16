@@ -10,6 +10,7 @@ import { mountPositionRoutes } from "./routes/positions.js";
 import { mountAnchorRoutes } from "./routes/anchors.js";
 import { mountRateRoutes } from "./routes/rate.js";
 import { mountEvidenceRoutes } from "./routes/evidence.js";
+import { mountStatusLinkRoutes } from "./routes/status-link.js";
 
 export type Env = {
   TENANT_A_DB: D1Database;
@@ -60,6 +61,10 @@ mountRateRoutes(app);
 // WP-06 (REQ-168/017): POST /v1/evidence — byte-verified deferred evidence upload (SHA-256 must match
 // the event-recorded hash or nothing is stored).
 mountEvidenceRoutes(app);
+// WP-09 Task 2 (REQ-187): POST /v1/shipments/:id/status-link — authed, lens-scoped mint of a public
+// status-cap link. A /v1 route, so app.use("/v1/*", auth) + idempotency already apply. The public read
+// that consumes the cap (GET /pub/status/:cap) is Task 3.
+mountStatusLinkRoutes(app);
 
 app.notFound((c) => envelope(c, "NOT_FOUND", 404, "NOT FOUND"));
 
