@@ -466,3 +466,45 @@ describe("REQ-025 growth: a kind-filtered firehose read reads ONLY the JWT tenan
     expect(body.events.some((e) => e.shipment_id === B_SHP)).toBe(false); // tenant-b's marker is never reached
   });
 });
+
+// WP-10 Task 3 growth (REQ-082 + REQ-025): the exceptions QUEUE is a DURABLE read over exception.raised/
+// osd.captured events, keyed off the JWT claim via tenantDb — it reads WITHIN the session's D1, never across
+// tenants. A tenant-b-only exception event (in a DIFFERENT physical D1) must never surface in a tenant-a read.
+describe("REQ-025 growth: the exceptions queue reads ONLY the JWT tenant's D1", () => {
+  const B_EXC_SHP = "iso-exc-tenant-b-only"; // a tenant-b exception marker — must NEVER appear in a tenant-a read
+  let excHashN = 0xb0000;
+  const excHash = (): string => (excHashN++).toString(16).padStart(64, "0");
+
+  beforeAll(async () => {
+    // Direct-insert an exception.raised into tenant-b's D1 only (bypasses the sequencer — we prove the READ path).
+    const e = eventFixture("exception.raised", {
+      id: crypto.randomUUID(),
+      stream_id: `s:${B_EXC_SHP}`,
+      shipment_id: B_EXC_SHP,
+      seq: 0,
+      visibility: "internal",
+      party_refs: [],
+      payload: { photo_hash: "b".repeat(64), reason_code: "damage" },
+    });
+    const row = eventToRow(e);
+    row.hash = excHash();
+    const cols = Object.keys(row);
+    await env.TENANT_B_DB.prepare(`INSERT INTO events (${cols.join(",")}) VALUES (${cols.map(() => "?").join(",")})`)
+      .bind(...cols.map((col) => row[col]))
+      .run();
+  });
+
+  it("a tenant-a session GETting /v1/exceptions never returns a tenant-b exception (REQ-025)", async () => {
+    const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "ops" });
+    const res = await SELF.fetch("https://api.local/v1/exceptions?status=all", { headers: { Authorization: `Bearer ${t}` } });
+    expect(res.status).toBe(200);
+    const text = await res.text();
+    expect(text).not.toContain(B_EXC_SHP); // tenant-b's exception never bleeds into tenant-a's queue
+  });
+
+  it("?tenant= query param on GET /v1/exceptions is rejected at auth", async () => {
+    const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "ops" });
+    const res = await SELF.fetch("https://api.local/v1/exceptions?tenant=tenant-b&status=open", { headers: { Authorization: `Bearer ${t}` } });
+    expect(res.status).toBe(403);
+  });
+});

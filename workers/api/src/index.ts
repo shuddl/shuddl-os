@@ -16,6 +16,7 @@ import { mountDocumentRoutes } from "./routes/documents.js";
 import { mountInvoiceRoutes } from "./routes/invoices.js";
 import { mountPortalActionRoutes } from "./routes/portal-actions.js";
 import { mountApprovalRoutes } from "./routes/approvals.js";
+import { mountExceptionRoutes } from "./routes/exceptions.js";
 import { mountPublicRoutes } from "./routes/public.js";
 
 export type Env = {
@@ -97,6 +98,11 @@ mountPortalActionRoutes(app);
 // (the tenant-scoped command-queue list over the read-model the sequencer now projects). Both /v1 routes, so
 // auth + idempotency already apply; the write appends THROUGH the sequencer DO (I1 + every gate still run).
 mountApprovalRoutes(app);
+// WP-10 Task 3 (REQ-082): GET /v1/exceptions?status=open — the command EXCEPTIONS queue, a DURABLE read over the
+// append-only exception.raised + osd.captured EVENTS (NOT the clobber-prone status_cache), joined to each
+// shipment's current state for an honest open/resolved flag. A /v1 route, so auth + idempotency already apply;
+// tenant-scoped via the JWT claim (tenantDb, REQ-025). NO new table/kind/projection. Resolve flow deferred to WP-11.
+mountExceptionRoutes(app);
 // WP-09 Task 3 (REQ-187/188): GET /pub/status/:cap — the PUBLIC, no-auth status read that consumes the cap
 // minted above. Mounted at /pub/* (NOT /v1/*), so app.use("/v1/*", auth) + idempotency do NOT run — the cap
 // is the authorization. This is the first public data read in the system; verifyStatusCap is the whole gate.
