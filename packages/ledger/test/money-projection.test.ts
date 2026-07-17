@@ -40,9 +40,41 @@ describe("REQ-012 — projectMoneyLines is a pure projection of the event payloa
     expect(p.lines.every((l) => l.amount_cents > 0)).toBe(true);
     expect(p.lines.every((l) => l.party_id === "party-bill" && l.division === "north")).toBe(true);
     expect(p.lines.every((l) => l.event_id === e.id && l.corrects_event_id === null)).toBe(true);
+    // REQ-083: with NO resolvable terms (deps.termsDays undefined) the invoice is honest about it —
+    // terms/due_ts are NULL ("no terms on file"), never a fabricated due date.
     expect(p.invoices).toEqual([
-      { id: "inv-1", party_id: "party-bill", division: "north", total_cents: 120_000, status: "issued", issued_event_id: e.id, mode: "insert" },
+      { id: "inv-1", party_id: "party-bill", division: "north", total_cents: 120_000, status: "issued", issued_event_id: e.id, mode: "insert", terms: null, due_ts: null },
     ]);
+  });
+
+  it("REQ-083 invoice.issued with termsDays -> terms='netN' + due_ts = issue ts + N days (integer ms)", () => {
+    const issueTs = 1_720_000_000_000;
+    const e = mkEvent("invoice.issued", {
+      ts: issueTs,
+      payload: { invoice_id: "inv-1", party_id: "party-bill", division: "north", lines: ISSUE_LINES },
+    });
+    const p = projectMoneyLines(e, { termsDays: 30 });
+    expect(p.invoices).toEqual([
+      {
+        mode: "insert",
+        id: "inv-1",
+        party_id: "party-bill",
+        division: "north",
+        total_cents: 120_000,
+        status: "issued",
+        issued_event_id: e.id,
+        terms: "net30",
+        due_ts: issueTs + 30 * 86_400_000, // due_ts is the ISSUE ts (not recorded_at) + terms window
+      },
+    ]);
+  });
+
+  it("REQ-083 invoice.issued with NO termsDays -> terms=null, due_ts=null (aging treats it as no-terms-on-file)", () => {
+    const e = mkEvent("invoice.issued", {
+      payload: { invoice_id: "inv-1", party_id: "party-bill", division: "north", lines: ISSUE_LINES },
+    });
+    const inv = projectMoneyLines(e, {}).invoices[0];
+    expect(inv).toMatchObject({ mode: "insert", terms: null, due_ts: null });
   });
 
   it("invoice.corrected (reissue) -> full reversal of the originals + reissue debits; credit+original net to 0 (I7)", () => {
@@ -151,6 +183,32 @@ describe("REQ-012 — projectMoneyLines is a pure projection of the event payloa
     const p = projectMoneyLines(cod, {});
     expect(p.lines).toHaveLength(1);
     expect(p.lines[0]).toMatchObject({ kind: "cod_collect", direction: "ar", amount_cents: -50_000 });
+    expect(p.invoices).toEqual([]); // no matched invoice in deps -> settles nothing (honest no-op)
+  });
+
+  it("REQ-083 payment.received (cod) settles the matched invoice to 'paid' when it covers the total; cod_collect UNCHANGED", () => {
+    const cod = mkEvent("payment.received", {
+      payload: { method: "cod", amount_cents: 120_000, party_id: "party-bill", division: "north" },
+    });
+    const p = projectMoneyLines(cod, { settleInvoice: { id: "inv-1", total_cents: 120_000 } });
+    // The cod_collect money_line is byte-for-byte what it was before REQ-083 (the money math is sacred).
+    expect(p.lines).toHaveLength(1);
+    expect(p.lines[0]).toMatchObject({ kind: "cod_collect", direction: "ar", amount_cents: -120_000, party_id: "party-bill", division: "north" });
+    // ...and the invoice flips to paid (the AR-settlement projection, orthogonal to the money_line).
+    expect(p.invoices).toEqual([{ mode: "settle", id: "inv-1", status: "paid" }]);
+  });
+
+  it("REQ-083 payment.received settlement is method-agnostic: an ACH payment settles WITHOUT any money_line", () => {
+    const ach = mkEvent("payment.received", { payload: { method: "ach", amount_cents: 120_000 } });
+    const p = projectMoneyLines(ach, { settleInvoice: { id: "inv-1", total_cents: 120_000 } });
+    expect(p.lines).toEqual([]); // non-cod posts no money_line (unchanged) ...
+    expect(p.invoices).toEqual([{ mode: "settle", id: "inv-1", status: "paid" }]); // ... but still settles
+  });
+
+  it("REQ-083 pay-in-full model: a payment that does NOT cover the total leaves the invoice OPEN (no settle)", () => {
+    const partial = mkEvent("payment.received", { payload: { method: "ach", amount_cents: 50_000 } });
+    const p = projectMoneyLines(partial, { settleInvoice: { id: "inv-1", total_cents: 120_000 } });
+    expect(p.invoices).toEqual([]); // 50_000 < 120_000 -> still outstanding AR (v1 carries no 'partial' state)
   });
 
   it("settlement.executed -> a dormant settle_fee AP row (synthetic; the feature is CONFIRM-gated)", () => {
@@ -198,6 +256,35 @@ describe("REQ-012 / I7 — applyMoneyProjection through real D1 (append batch + 
     expect(inv).toEqual({ division: "west", total_cents: 120_000, status: "issued" });
     const ml = await DB.prepare("SELECT COUNT(*) c FROM money_lines WHERE event_id = ?").bind(e.id).first<{ c: number }>();
     expect(ml?.c).toBe(3);
+  });
+
+  it("REQ-083 persists due_ts/terms on issue; a covering payment.received flips status='paid'; cod line intact", async () => {
+    const issueTs = 1_720_000_000_000;
+    const issue = mkEvent("invoice.issued", {
+      stream_id: "s:shp-dso", shipment_id: "shp-dso", seq: 0,
+      ts: issueTs,
+      payload: { invoice_id: "inv-dso", party_id: "party-bill", division: "north", lines: ISSUE_LINES },
+    });
+    await appendWithMoney(DB, issue, { termsDays: 30 });
+    const issued = await DB.prepare("SELECT status, terms, due_ts, total_cents FROM invoices WHERE id = 'inv-dso'").first<{
+      status: string; terms: string | null; due_ts: number | null; total_cents: number;
+    }>();
+    expect(issued).toEqual({ status: "issued", terms: "net30", due_ts: issueTs + 30 * 86_400_000, total_cents: 120_000 });
+
+    // DSO-relevant read: an OPEN invoice is status='issued' with a resolvable due_ts.
+    const open = await DB.prepare("SELECT COUNT(*) AS n FROM invoices WHERE id = 'inv-dso' AND status = 'issued' AND due_ts IS NOT NULL").first<{ n: number }>();
+    expect(open?.n).toBe(1);
+
+    // The covering COD payment settles the invoice AND posts the unchanged cod_collect money_line.
+    const pay = mkEvent("payment.received", {
+      stream_id: "s:shp-dso", shipment_id: "shp-dso", seq: 1,
+      payload: { method: "cod", amount_cents: 120_000, party_id: "party-bill", division: "north" },
+    });
+    await appendWithMoney(DB, pay, { settleInvoice: { id: "inv-dso", total_cents: 120_000 } });
+    const paid = await DB.prepare("SELECT status FROM invoices WHERE id = 'inv-dso'").first<{ status: string }>();
+    expect(paid?.status).toBe("paid");
+    const cod = await DB.prepare("SELECT amount_cents, kind FROM money_lines WHERE event_id = ?").bind(pay.id).all<{ amount_cents: number; kind: string }>();
+    expect(cod.results).toEqual([{ amount_cents: -120_000, kind: "cod_collect" }]);
   });
 
   it("double-correcting the same event violates ux_ml_corrects -> mapped to VALIDATION_FAILED (I7)", async () => {

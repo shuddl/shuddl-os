@@ -7,6 +7,7 @@ import { eventToRow, rowToEvent } from "@shuddl/ledger/lens";
 import {
   applyMoneyProjection,
   mapMoneyProjectionError,
+  DEFAULT_TERMS_DAYS,
   type MoneyProjectionDeps,
   type OriginalLine,
 } from "@shuddl/ledger/projection/money";
@@ -753,13 +754,58 @@ export class ShipmentSequencer extends DurableObject<Env> {
         .all<OriginalLine>();
       return { originalLines: res.results };
     }
+    // REQ-083 — an issued invoice's payment terms, sourced SERVER-SIDE. The invoice.issued payload carries no
+    // terms field and booking.created.bill_terms is a billing-RESPONSIBILITY code (not net-days), so today the
+    // honest source is the documented system default (net-30). The projection turns it into terms + due_ts;
+    // if this were ever undefined, the projection stores NULL (no terms on file), never a fabricated date.
+    if (e.kind === "invoice.issued") {
+      return { termsDays: DEFAULT_TERMS_DAYS };
+    }
     // split/cod/settle payloads don't carry a division — take it from the shipment.
     if (e.kind === "split.computed" || e.kind === "payment.received" || e.kind === "settlement.executed") {
-      if (e.shipment_id === undefined) return {};
-      const row = await db.prepare("SELECT division FROM shipments WHERE id = ?").bind(e.shipment_id).first<{ division: string }>();
-      return row ? { division: row.division } : {};
+      const deps: MoneyProjectionDeps = {};
+      if (e.shipment_id !== undefined) {
+        const row = await db.prepare("SELECT division FROM shipments WHERE id = ?").bind(e.shipment_id).first<{ division: string }>();
+        if (row) deps.division = row.division;
+      }
+      // REQ-083 — a payment.received settles the invoice it names (payload.invoice_id), else the shipment's
+      // single OPEN invoice (matched via the issued event's shipment_id). Only status='issued' rows are
+      // matched, so an already-paid invoice yields nothing to re-settle (idempotent). The pure projection
+      // then flips it to 'paid' iff the payment covers the total.
+      if (e.kind === "payment.received") {
+        const target = await this.#matchOpenInvoice(db, e);
+        if (target) deps.settleInvoice = target;
+      }
+      return deps;
     }
     return {};
+  }
+
+  // REQ-083 — resolve the OPEN invoice a payment.received applies to (server-side linkage; kept off the pure
+  // projection). Prefer an explicit payload.invoice_id; otherwise the shipment's single open invoice, joined
+  // through issued_event_id → the invoice.issued event's shipment_id (invoices carries no shipment column).
+  async #matchOpenInvoice(db: D1Database, e: LedgerEvent): Promise<{ id: string; total_cents: number } | undefined> {
+    if (e.kind !== "payment.received") return undefined; // narrows e.payload to the JsonObject variant
+    const invoiceId = typeof e.payload["invoice_id"] === "string" ? e.payload["invoice_id"] : undefined;
+    if (invoiceId !== undefined) {
+      const row = await db
+        .prepare("SELECT id, total_cents FROM invoices WHERE id = ?1 AND status = 'issued'")
+        .bind(invoiceId)
+        .first<{ id: string; total_cents: number }>();
+      return row ?? undefined;
+    }
+    if (e.shipment_id !== undefined) {
+      const row = await db
+        .prepare(
+          "SELECT i.id AS id, i.total_cents AS total_cents FROM invoices i " +
+            "JOIN events ev ON ev.id = i.issued_event_id " +
+            "WHERE ev.shipment_id = ?1 AND i.status = 'issued' ORDER BY ev.recorded_at, ev.seq LIMIT 1",
+        )
+        .bind(e.shipment_id)
+        .first<{ id: string; total_cents: number }>();
+      return row ?? undefined;
+    }
+    return undefined;
   }
 
   async #visibilityOf(db: D1Database, eventId: string): Promise<Visibility | undefined> {

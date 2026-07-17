@@ -11,6 +11,15 @@ const INTERLINE_GL = "5000-INTERLINE-AP";
 const COD_GL = "1300-COD-CLEARING";
 const SETTLE_GL = "5100-SETTLEMENT-FEE";
 
+// REQ-083 — the documented system DEFAULT payment terms an issued invoice falls back to when nothing more
+// specific is on file. net-30 is a real, ubiquitous AR business default (NOT a fabricated due date); the
+// sequencer sources it server-side and hands it to the projection as deps.termsDays. Documented HERE so the
+// DSO built on due_ts is honest ("assumes standard net-30 when the ledger carries no terms"). The
+// invoice.issued payload carries no terms field, and booking.created.bill_terms is a billing-RESPONSIBILITY
+// code (prepaid/collect/third_party) — NOT a net-days payment term — so neither yields a due date today.
+export const DEFAULT_TERMS_DAYS = 30;
+const DAY_MS = 86_400_000; // integer canonical law: due_ts stays an integer number of ms
+
 export type MoneyDirection = "ar" | "ap";
 export type MoneyKind =
   | "freight" | "fsc" | "accessorial" | "correction_credit" | "correction_debit"
@@ -34,11 +43,14 @@ export interface MoneyLineRow {
   created_ts: number;
 }
 
-// The invoices projection row (REQ-057: division filterable everywhere). `insert` upserts on issue;
-// `update` re-totals an existing invoice on a reissue (a void emits none).
+// The invoices projection row (REQ-057: division filterable everywhere). `insert` upserts on issue (carrying
+// REQ-083 terms/due_ts); `update` re-totals an existing invoice on a reissue (a void emits none); `settle`
+// flips a matched OPEN invoice to 'paid' when a payment.received covers it (REQ-083, the AR-settlement write
+// an honest DSO needs). invoices is a MUTABLE read-model — all three are legal (events/money_lines are not).
 export type InvoiceUpsert =
-  | { mode: "insert"; id: string; party_id: string; division: string; total_cents: number; status: string; issued_event_id: string }
-  | { mode: "update"; id: string; total_cents: number; status: string; issued_event_id: string };
+  | { mode: "insert"; id: string; party_id: string; division: string; total_cents: number; status: string; issued_event_id: string; terms: string | null; due_ts: number | null }
+  | { mode: "update"; id: string; total_cents: number; status: string; issued_event_id: string }
+  | { mode: "settle"; id: string; status: string };
 
 // The in-effect (positive) money_lines of the event a correction targets. The caller loads these
 // (SELECT ... WHERE event_id = corrects_event_id AND amount_cents > 0). Correcting a correction
@@ -54,6 +66,13 @@ export interface OriginalLine {
 export interface MoneyProjectionDeps {
   originalLines?: readonly OriginalLine[]; // required for invoice.corrected
   division?: string; // shipment division for split/cod/settle (their payloads don't carry one)
+  // REQ-083 — the resolved payment-terms window (integer DAYS) for an invoice.issued, sourced SERVER-SIDE by
+  // the sequencer (the documented DEFAULT_TERMS_DAYS today). undefined ⇒ NO terms on file ⇒ terms/due_ts
+  // project NULL (honest; the aging view never invents a due date).
+  termsDays?: number;
+  // REQ-083 — the OPEN invoice a payment.received settles, matched SERVER-SIDE (by payload.invoice_id, else
+  // the shipment's open invoice). Present ⇒ a covering payment flips it to 'paid'; undefined ⇒ nothing to settle.
+  settleInvoice?: { id: string; total_cents: number };
 }
 
 export interface MoneyProjection {
@@ -100,10 +119,16 @@ export function projectMoneyLines(e: LedgerEvent, deps: MoneyProjectionDeps): Mo
         }),
       );
       const total = p.lines.reduce((s, l) => s + l.amount_cents, 0);
+      // REQ-083 — terms + due_ts for an honest DSO. termsDays is resolved SERVER-SIDE (deps); undefined ⇒
+      // NULL (no terms on file, never a fabricated due date). due_ts anchors on the ISSUE ts (the invoice's
+      // own business timestamp, NOT recorded_at) and stays an integer number of ms.
+      const termsDays = deps.termsDays;
+      const terms = termsDays !== undefined ? `net${termsDays}` : null;
+      const dueTs = termsDays !== undefined ? e.ts + termsDays * DAY_MS : null;
       return {
         lines,
         invoices: [
-          { mode: "insert", id: p.invoice_id, party_id: p.party_id, division: p.division, total_cents: total, status: "issued", issued_event_id: e.id },
+          { mode: "insert", id: p.invoice_id, party_id: p.party_id, division: p.division, total_cents: total, status: "issued", issued_event_id: e.id, terms, due_ts: dueTs },
         ],
       };
     }
@@ -180,9 +205,22 @@ export function projectMoneyLines(e: LedgerEvent, deps: MoneyProjectionDeps): Mo
     }
 
     case "payment.received": {
-      // Zero money EXCEPT a COD collection, which posts a negative AR (cash collected at the door).
-      if (asString(e.payload["method"]) !== "cod") return empty();
       const amount = asInt(e.payload["amount_cents"]);
+      // REQ-083 — AR SETTLEMENT: flip the matched OPEN invoice to 'paid' when this payment COVERS it in full.
+      // deps.settleInvoice is the invoice the sequencer matched (by payload.invoice_id, else the shipment's
+      // open invoice). Pay-in-full model: a partial payment (|amount| < total) leaves the invoice OPEN —
+      // still outstanding AR for the DSO; v1 carries no running-balance/'partial' state. Idempotent: the
+      // settle UPDATE is guarded WHERE status='issued', and an already-paid invoice yields no match upstream.
+      // This is ORTHOGONAL to the cod_collect money_line below — settlement applies to EVERY method.
+      const target = deps.settleInvoice;
+      const settle: InvoiceUpsert[] =
+        target !== undefined && amount !== undefined && Math.abs(amount) >= target.total_cents
+          ? [{ mode: "settle", id: target.id, status: "paid" }]
+          : [];
+
+      // The cod_collect money_line is UNCHANGED (money-parity is sacred): only a COD collection posts a
+      // negative AR (cash collected at the door); every other method posts none.
+      if (asString(e.payload["method"]) !== "cod") return { lines: [], invoices: settle };
       if (amount === undefined) throw new Error("payment.received (cod): integer amount_cents required");
       return {
         lines: [
@@ -198,7 +236,7 @@ export function projectMoneyLines(e: LedgerEvent, deps: MoneyProjectionDeps): Mo
             corrects_event_id: null,
           }),
         ],
-        invoices: [],
+        invoices: settle,
       };
     }
 
@@ -269,9 +307,12 @@ const MONEY_LINE_SQL =
   "INSERT INTO money_lines (id, shipment_id, event_id, line_no, direction, kind, amount_cents, currency, party_id, division, gl_map, corrects_event_id, basis, created_ts) " +
   "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 const INVOICE_UPSERT_SQL =
-  "INSERT INTO invoices (id, party_id, division, shipment_ids, total_cents, status, issued_event_id) VALUES (?,?,?,'[]',?,?,?) " +
-  "ON CONFLICT(id) DO UPDATE SET party_id=excluded.party_id, division=excluded.division, total_cents=excluded.total_cents, status=excluded.status, issued_event_id=excluded.issued_event_id";
+  "INSERT INTO invoices (id, party_id, division, shipment_ids, total_cents, status, issued_event_id, terms, due_ts) VALUES (?,?,?,'[]',?,?,?,?,?) " +
+  "ON CONFLICT(id) DO UPDATE SET party_id=excluded.party_id, division=excluded.division, total_cents=excluded.total_cents, status=excluded.status, issued_event_id=excluded.issued_event_id, terms=excluded.terms, due_ts=excluded.due_ts";
 const INVOICE_UPDATE_SQL = "UPDATE invoices SET total_cents=?, status=?, issued_event_id=? WHERE id=?";
+// REQ-083 — the settlement write: flip an OPEN invoice to 'paid'. Guarded WHERE status='issued' so a
+// re-projected payment (or a second payment) is a harmless no-op, never a re-flip of an already-settled row.
+const INVOICE_SETTLE_SQL = "UPDATE invoices SET status=? WHERE id=? AND status='issued'";
 
 /**
  * Prepared statements for the projection — NOT executed. The sequencer batches these with the event
@@ -294,9 +335,11 @@ export function applyMoneyProjection(
   }
   for (const inv of invoices) {
     if (inv.mode === "insert") {
-      stmts.push(db.prepare(INVOICE_UPSERT_SQL).bind(inv.id, inv.party_id, inv.division, inv.total_cents, inv.status, inv.issued_event_id));
-    } else {
+      stmts.push(db.prepare(INVOICE_UPSERT_SQL).bind(inv.id, inv.party_id, inv.division, inv.total_cents, inv.status, inv.issued_event_id, inv.terms, inv.due_ts));
+    } else if (inv.mode === "update") {
       stmts.push(db.prepare(INVOICE_UPDATE_SQL).bind(inv.total_cents, inv.status, inv.issued_event_id, inv.id));
+    } else {
+      stmts.push(db.prepare(INVOICE_SETTLE_SQL).bind(inv.status, inv.id));
     }
   }
   return stmts;
