@@ -8,6 +8,7 @@ import { FakeTsaClient, HttpTsaClient, UnavailableTsaClient, type TsaClient } fr
 import { ClaudeParser, NotConfiguredParser, NotConfiguredSender, ParseError, ResendSender, SendError, renderEvidenceEmail } from "@shuddl/agents";
 import type { ConciergeParser, EvidenceEmailData, EvidenceMessage, EvidenceSender } from "@shuddl/agents";
 import { PodSignedMessage, handlePodSigned, type BillerDeps, type SeqStubLike } from "./biller.js";
+import { handleInterlineSplit } from "./interline-split.js";
 import { MessageReceivedTrigger, handleMessageReceived, type ConciergeDeps } from "./concierge.js";
 import { QuoteAcceptedTrigger, handleQuoteAccepted, type BookingDeps } from "./booking.js";
 import { sweepTenantOverdueInbound } from "./sla-sweep.js";
@@ -329,6 +330,14 @@ export default {
           const outcome = await handlePodSigned(trigger, deps);
           // The outcome IS the log line until WP-11's exceptions queue lands (holds surface there).
           console.log(`biller: pod ${trigger.event_id} → ${JSON.stringify(outcome)}`);
+          // WP-11 (REQ-019): the SAME committed pod.signed also settles the interline AP split — DERIVED
+          // from the recorded custody legs and appended through the sequencer (server-emitted money; a
+          // client can never supply an allocation). Independent of the AR invoice above; a direct move
+          // produces nothing, a below-floor executing share HOLDS (REQ-040). Runs AFTER the Biller so the
+          // <5s AR golden path is never behind the AP settlement. Idempotent (deterministic id + sequencer
+          // dedupe), so a redelivery that re-runs both is safe; a transient fault here retries the message.
+          const splitOutcome = await handleInterlineSplit(trigger, { db, seq: sequencerFor(env) });
+          console.log(`interline-split: pod ${trigger.event_id} → ${JSON.stringify(splitOutcome)}`);
         } else if (trigger.kind === "message.received") {
           const deps: ConciergeDeps = {
             db,

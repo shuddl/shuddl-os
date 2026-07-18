@@ -1,0 +1,34 @@
+{
+  "//": "REQ-019 DoD ('Split fixture matches partner statement'). The interline split is DERIVED from the recorded custody legs (executor_party_id + the per-leg split_bps weight), NOT a pre-supplied allocation: deriveSplitFromLegs groups the legs by executing carrier, apportions the 10000-bps pie via the Hamilton largest-remainder in packages/ledger/src/money/split.ts, and the SAME allocateCents the interline_split projection uses posts the penny-exact AP cents. Each statement below is a known partner apportionment the derived split must reconcile to, to the penny. Synthetic + REQ-167-clean (carrier-a/b/c); no engagement-workspace data. Replayed by packages/ledger/test/derive-split.test.ts.",
+  "statements": [
+    {
+      "label": "agreed-percent split, one carrier over two legs, odd gross forces the penny remainder",
+      "gross_sell_cents": 999999,
+      "legs": [
+        { "kind": "pickup", "executor_party_id": "carrier-a", "split_bps": 2000 },
+        { "kind": "linehaul", "executor_party_id": "carrier-b", "split_bps": 5000 },
+        { "kind": "delivery", "executor_party_id": "carrier-a", "split_bps": 1000 },
+        { "kind": "cartage", "executor_party_id": "carrier-c", "split_bps": 2000 }
+      ],
+      "partner_statement": [
+        { "party_id": "carrier-a", "share_bps": 3000, "amount_cents": 300000 },
+        { "party_id": "carrier-b", "share_bps": 5000, "amount_cents": 499999 },
+        { "party_id": "carrier-c", "share_bps": 2000, "amount_cents": 200000 }
+      ]
+    },
+    {
+      "label": "equal-per-leg split, three carriers thirds, Hamilton at both the bps and the cent",
+      "gross_sell_cents": 100,
+      "legs": [
+        { "kind": "linehaul", "executor_party_id": "carrier-a", "split_bps": 1 },
+        { "kind": "linehaul", "executor_party_id": "carrier-b", "split_bps": 1 },
+        { "kind": "linehaul", "executor_party_id": "carrier-c", "split_bps": 1 }
+      ],
+      "partner_statement": [
+        { "party_id": "carrier-a", "share_bps": 3334, "amount_cents": 34 },
+        { "party_id": "carrier-b", "share_bps": 3333, "amount_cents": 33 },
+        { "party_id": "carrier-c", "share_bps": 3333, "amount_cents": 33 }
+      ]
+    }
+  ]
+}

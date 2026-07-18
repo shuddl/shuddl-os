@@ -16,27 +16,85 @@ export function allocateCents(total: number, sharesBps: readonly number[]): numb
   if (!Number.isInteger(total)) {
     throw new Error(`allocateCents: total must be an integer number of cents (got ${total})`);
   }
-  const n = sharesBps.length;
-  const base = new Array<number>(n).fill(0);
-  const remainder = new Array<bigint>(n).fill(0n);
-  const signed = BigInt(total);
-  const negative = signed < 0n;
-  const magnitude = negative ? -signed : signed; // ≥ 0, so integer-division == floor
-  let allocated = 0n;
-
-  for (let i = 0; i < n; i++) {
+  const weights: bigint[] = [];
+  for (let i = 0; i < sharesBps.length; i++) {
     const bps = sharesBps[i];
     if (bps === undefined || !Number.isInteger(bps) || bps < 0) {
       throw new Error(`allocateCents: shares must be non-negative integer basis points (got ${String(bps)})`);
     }
-    const product = magnitude * BigInt(bps);
-    const floored = product / 10_000n; // magnitude,bps ≥ 0 ⇒ integer-division == floor
+    weights.push(BigInt(bps));
+  }
+  const signed = BigInt(total);
+  const negative = signed < 0n;
+  const magnitude = negative ? -signed : signed; // ≥ 0, so integer-division == floor
+  // The pie is 10000 bps (the divisor); shares that don't total 10000 would fail the postcondition below.
+  const base = largestRemainder(magnitude, weights, 10_000n);
+  // Negate back to total's sign. `x === 0 ? 0 : -x` avoids a signed-zero (−0) leaking into a cent.
+  const parts = negative ? base.map((x) => (x === 0 ? 0 : -x)) : base;
+  const sum = parts.reduce((s, x) => s + x, 0);
+  if (sum !== total) {
+    throw new Error(`allocateCents: postcondition failed — parts sum to ${sum}, expected ${total}`);
+  }
+  return parts;
+}
+
+/**
+ * apportion `total` (a non-negative integer) across `weights` (non-negative integers, at least one > 0)
+ * proportional to `weight / Σweights`, via the SAME largest-remainder pass allocateCents uses (BigInt,
+ * ties by ascending index). Postcondition: the parts sum to EXACTLY `total`, zero remainder loss.
+ *
+ * REQ-019 — this is how the interline split's per-carrier basis points are DERIVED from the custody legs:
+ * apportion the 10000-bps pie across the executing carriers by their recorded per-leg weights. It is the
+ * general form of allocateCents (which fixes the divisor at 10000 for a bps-partition and handles a signed
+ * total); both share `largestRemainder`, so the derivation and the money projection can never round apart.
+ */
+export function apportion(total: number, weights: readonly number[]): number[] {
+  if (!Number.isInteger(total) || total < 0) {
+    throw new Error(`apportion: total must be a non-negative integer (got ${total})`);
+  }
+  if (weights.length === 0) {
+    throw new Error("apportion: at least one weight is required");
+  }
+  let divisor = 0n;
+  const w: bigint[] = [];
+  for (let i = 0; i < weights.length; i++) {
+    const x = weights[i];
+    if (x === undefined || !Number.isInteger(x) || x < 0) {
+      throw new Error(`apportion: weights must be non-negative integers (got ${String(x)} at index ${i})`);
+    }
+    divisor += BigInt(x);
+    w.push(BigInt(x));
+  }
+  if (divisor === 0n) {
+    throw new Error("apportion: at least one weight must be positive — cannot apportion by an all-zero weight set");
+  }
+  const parts = largestRemainder(BigInt(total), w, divisor);
+  const sum = parts.reduce((s, x) => s + x, 0);
+  if (sum !== total) {
+    throw new Error(`apportion: postcondition failed — parts sum to ${sum}, expected ${total}`);
+  }
+  return parts;
+}
+
+/**
+ * The shared largest-remainder (Hamilton) core, over the NON-NEGATIVE magnitude so BigInt truncation ==
+ * floor (see the module note on the negative-total regression). Gives each index floor(magnitude*weight/
+ * divisor), then hands the leftover (magnitude − Σfloor, an integer in [0, n)) to the largest remainders,
+ * ties broken by ascending index. Callers own their own input validation, sign handling, and postcondition.
+ * `divisor` is Σweights for a proportional apportion, or the fixed 10000 pie for a bps-partition.
+ */
+function largestRemainder(magnitude: bigint, weights: readonly bigint[], divisor: bigint): number[] {
+  const n = weights.length;
+  const base = new Array<number>(n).fill(0);
+  const remainder = new Array<bigint>(n).fill(0n);
+  let allocated = 0n;
+  for (let i = 0; i < n; i++) {
+    const product = magnitude * (weights[i] ?? 0n);
+    const floored = product / divisor; // magnitude,weight ≥ 0 ⇒ integer-division == floor
     base[i] = Number(floored);
-    remainder[i] = product - floored * 10_000n;
+    remainder[i] = product - floored * divisor;
     allocated += floored;
   }
-
-  // leftover = magnitude - Σfloor = (Σremainder)/10000, an integer in [0, n) since each remainder < 10000.
   const leftover = Number(magnitude - allocated);
   const order = Array.from({ length: n }, (_, i) => i).sort((a, b) => {
     const ra = remainder[a] ?? 0n;
@@ -47,12 +105,5 @@ export function allocateCents(total: number, sharesBps: readonly number[]): numb
     const idx = order[k];
     if (idx !== undefined) base[idx] = (base[idx] ?? 0) + 1;
   }
-
-  // Negate back to total's sign. `x === 0 ? 0 : -x` avoids a signed-zero (−0) leaking into a cent.
-  const parts = negative ? base.map((x) => (x === 0 ? 0 : -x)) : base;
-  const sum = parts.reduce((s, x) => s + x, 0);
-  if (sum !== total) {
-    throw new Error(`allocateCents: postcondition failed — parts sum to ${sum}, expected ${total}`);
-  }
-  return parts;
+  return base;
 }

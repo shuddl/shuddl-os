@@ -81,13 +81,20 @@ async function sha256Hex(s: string): Promise<string> {
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-// The invoice EVENT id: SHA-256 of the POD event id, shaped into a v4-variant UUID so it satisfies
-// EventInput's z.string().uuid() — the same shaping rate.ts uses for its resumable event sequence.
-// The sequencer dedupes by this id, so a redelivered message returns the ORIGINAL event, never a second.
-export async function invoiceEventIdFor(podEventId: string): Promise<string> {
-  const h = (await sha256Hex(`biller:invoice-event:${podEventId}`)).slice(0, 32);
+// A DETERMINISTIC v4-variant UUID from a domain-tagged seed — SHA-256(seed) shaped so it satisfies
+// EventInput's z.string().uuid() (the same shaping rate.ts uses for its resumable event sequence). The
+// sequencer dedupes by event id, so an agent that seeds this from its trigger event's id re-derives the
+// SAME event id on redelivery and gets the ORIGINAL event back, never a second. Shared by the Biller and
+// the interline-split producer (REQ-019) so both agents' id law lives in ONE place.
+export async function uuidFromSeed(seed: string): Promise<string> {
+  const h = (await sha256Hex(seed)).slice(0, 32);
   const variant = ((parseInt(h.slice(16, 17) || "0", 16) & 0x3) | 0x8).toString(16); // 8/9/a/b
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-${variant}${h.slice(17, 20)}-${h.slice(20, 32)}`;
+}
+
+// The invoice EVENT id: domain-tagged on the POD event id (redelivery-stable; see uuidFromSeed).
+export async function invoiceEventIdFor(podEventId: string): Promise<string> {
+  return uuidFromSeed(`biller:invoice-event:${podEventId}`);
 }
 
 // The payload invoice_id (the AR document number) — same derivation, different domain-separation tag.
@@ -114,7 +121,7 @@ function formatGeo(geo: { lat_e6: number; lon_e6: number }): string {
 // ---- record loading --------------------------------------------------------------------------------
 type SqlRow = Record<string, string | number | null>;
 
-async function loadEvent(db: D1Database, streamId: string, eventId: string, kind: string): Promise<LedgerEvent | null> {
+export async function loadEvent(db: D1Database, streamId: string, eventId: string, kind: string): Promise<LedgerEvent | null> {
   const row = await db
     .prepare("SELECT * FROM events WHERE stream_id = ? AND id = ? AND kind = ?")
     .bind(streamId, eventId, kind)
@@ -126,7 +133,7 @@ async function loadEvent(db: D1Database, streamId: string, eventId: string, kind
 // `quote.accepted` is a defined kind but nothing emits it — so the LATEST quote.priced recorded
 // BEFORE the POD is the quote this shipment moved under. When booking lands (WP-08), switch to the
 // quote event the booking references.
-async function loadAcceptedQuote(db: D1Database, streamId: string, beforeSeq: number): Promise<LedgerEvent | null> {
+export async function loadAcceptedQuote(db: D1Database, streamId: string, beforeSeq: number): Promise<LedgerEvent | null> {
   const row = await db
     .prepare("SELECT * FROM events WHERE stream_id = ? AND kind = 'quote.priced' AND seq < ? ORDER BY seq DESC LIMIT 1")
     .bind(streamId, beforeSeq)
@@ -191,8 +198,8 @@ export async function deliveryStopGeo(db: D1Database, shipmentId: string): Promi
 
 // ---- interline resolution (REQ-040 — the executing share, never gross; FAIL-CLOSED) -----------------
 const LEG_KINDS: ReadonlySet<string> = new Set(["pickup", "linehaul", "interline", "cartage", "delivery", "dray"]);
-type LegRow = { kind: string; executor_party_id: string; split_bps: number | null };
-type InterlineResolution = { kind: "direct" } | { kind: "interline"; legs: Leg[]; tenantParty: string } | { kind: "unresolved"; detail: string };
+export type LegRow = { kind: string; executor_party_id: string; split_bps: number | null };
+export type InterlineResolution = { kind: "direct" } | { kind: "interline"; legs: Leg[]; tenantParty: string } | { kind: "unresolved"; detail: string };
 
 // Classification is by the DATA, never the LABEL (REQ-040 fail-CLOSED). A partner with a revenue stake
 // shows up as a real `split_bps` on some leg OR a second distinct executor party — regardless of whether
@@ -207,7 +214,7 @@ type InterlineResolution = { kind: "direct" } | { kind: "interline"; legs: Leg[]
 //     here"; equivalently the executor_party_id≠partner comparison the sequencer's #isInterline notes) —
 //     must actually execute a recorded leg. Any ambiguity is UNRESOLVED, which HOLDS: an interline move
 //     whose executing share cannot be judged must never auto-invoice ("as direct" would skip REQ-040).
-function resolveInterline(rows: readonly LegRow[], tenantParty: string): InterlineResolution {
+export function resolveInterline(rows: readonly LegRow[], tenantParty: string): InterlineResolution {
   const hasSplit = rows.some((r) => r.split_bps !== null);
   const executors = [...new Set(rows.map((r) => r.executor_party_id))];
   if (!hasSplit && executors.length <= 1) return { kind: "direct" };
