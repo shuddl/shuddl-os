@@ -1,0 +1,1820 @@
+{
+  "generated_by": "tools/fixtures/gen-qb-journal-month.ts",
+  "note": "WP-11 Task-3 / REQ-020 DoD (QB journal export reconciles a month to the penny). Deterministic (mulberry32, fixed ids). Do not hand-edit — regenerate.",
+  "seed": 1363681318,
+  "ar_revenue_cents": 5374074,
+  "cod_collect_cents": 397641,
+  "ar_control_net_cents": 4976433,
+  "ap_total_cents": 1162650,
+  "invoice_count": 36,
+  "settled_count": 18,
+  "cod_count": 8,
+  "split_count": 10,
+  "settle_fee_count": 6,
+  "range_from": 1748736000000,
+  "range_to": 1751414400000,
+  "divisions": [
+    "north",
+    "south",
+    "east",
+    "west"
+  ],
+  "events": [
+    {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000001",
+      "stream_id": "s:shp-inv-0",
+      "shipment_id": "shp-inv-0",
+      "seq": 0,
+      "division": "north",
+      "ts": 1748735999500,
+      "recorded_at": 1748736000000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-0",
+      "party_id": "party-bill-0",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 164536,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 30011,
+          "gl_map": "4100-FSC-AR"
+        },
+        {
+          "line_no": 3,
+          "kind": "accessorial",
+          "amount_cents": 5500,
+          "gl_map": "4200-ACCESSORIAL-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000002",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000002",
+      "stream_id": "s:shp-inv-0",
+      "shipment_id": "shp-inv-0",
+      "seq": 1,
+      "division": "north",
+      "ts": 1748822400500,
+      "recorded_at": 1748822401000,
+      "kind": "payment.received",
+      "method": "ach",
+      "amount_cents": 200047,
+      "party_id": "party-bill-0",
+      "settles_invoice_id": "inv-0"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000003",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000003",
+      "stream_id": "s:shp-inv-1",
+      "shipment_id": "shp-inv-1",
+      "seq": 0,
+      "division": "south",
+      "ts": 1748908801500,
+      "recorded_at": 1748908802000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-1",
+      "party_id": "party-bill-1",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 149699,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 28233,
+          "gl_map": "4100-FSC-AR"
+        },
+        {
+          "line_no": 3,
+          "kind": "accessorial",
+          "amount_cents": 7500,
+          "gl_map": "4200-ACCESSORIAL-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000004",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000004",
+      "stream_id": "s:shp-inv-2",
+      "shipment_id": "shp-inv-2",
+      "seq": 0,
+      "division": "east",
+      "ts": 1748995202500,
+      "recorded_at": 1748995203000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-2",
+      "party_id": "party-bill-2",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 193931,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 38301,
+          "gl_map": "4100-FSC-AR"
+        },
+        {
+          "line_no": 3,
+          "kind": "accessorial",
+          "amount_cents": 12000,
+          "gl_map": "4200-ACCESSORIAL-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000005",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000005",
+      "stream_id": "s:shp-inv-2",
+      "shipment_id": "shp-inv-2",
+      "seq": 1,
+      "division": "east",
+      "ts": 1749081603500,
+      "recorded_at": 1749081604000,
+      "kind": "payment.received",
+      "method": "ach",
+      "amount_cents": 244232,
+      "party_id": "party-bill-2",
+      "settles_invoice_id": "inv-2"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000006",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000006",
+      "stream_id": "s:shp-inv-3",
+      "shipment_id": "shp-inv-3",
+      "seq": 0,
+      "division": "west",
+      "ts": 1749168004500,
+      "recorded_at": 1749168005000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-3",
+      "party_id": "party-bill-3",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 157057,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 29196,
+          "gl_map": "4100-FSC-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000007",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000007",
+      "stream_id": "s:shp-inv-4",
+      "shipment_id": "shp-inv-4",
+      "seq": 0,
+      "division": "north",
+      "ts": 1749254405500,
+      "recorded_at": 1749254406000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-4",
+      "party_id": "party-bill-4",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 185376,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 33794,
+          "gl_map": "4100-FSC-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000008",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000008",
+      "stream_id": "s:shp-inv-4",
+      "shipment_id": "shp-inv-4",
+      "seq": 1,
+      "division": "north",
+      "ts": 1749340806500,
+      "recorded_at": 1749340807000,
+      "kind": "payment.received",
+      "method": "ach",
+      "amount_cents": 219170,
+      "party_id": "party-bill-4",
+      "settles_invoice_id": "inv-4"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000009",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000009",
+      "stream_id": "s:shp-inv-5",
+      "shipment_id": "shp-inv-5",
+      "seq": 0,
+      "division": "south",
+      "ts": 1749427207500,
+      "recorded_at": 1749427208000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-5",
+      "party_id": "party-bill-5",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 184528,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 44655,
+          "gl_map": "4100-FSC-AR"
+        },
+        {
+          "line_no": 3,
+          "kind": "accessorial",
+          "amount_cents": 9000,
+          "gl_map": "4200-ACCESSORIAL-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000000a",
+      "hash": "000000000000000000000000000000000000000000000000000000000000000a",
+      "stream_id": "s:shp-inv-6",
+      "shipment_id": "shp-inv-6",
+      "seq": 0,
+      "division": "east",
+      "ts": 1749513608500,
+      "recorded_at": 1749513609000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-6",
+      "party_id": "party-bill-6",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 43901,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 8885,
+          "gl_map": "4100-FSC-AR"
+        },
+        {
+          "line_no": 3,
+          "kind": "accessorial",
+          "amount_cents": 7500,
+          "gl_map": "4200-ACCESSORIAL-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000000b",
+      "hash": "000000000000000000000000000000000000000000000000000000000000000b",
+      "stream_id": "s:shp-inv-6",
+      "shipment_id": "shp-inv-6",
+      "seq": 1,
+      "division": "east",
+      "ts": 1749600009500,
+      "recorded_at": 1749600010000,
+      "kind": "payment.received",
+      "method": "ach",
+      "amount_cents": 60286,
+      "party_id": "party-bill-6",
+      "settles_invoice_id": "inv-6"
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000000c",
+      "hash": "000000000000000000000000000000000000000000000000000000000000000c",
+      "stream_id": "s:shp-inv-7",
+      "shipment_id": "shp-inv-7",
+      "seq": 0,
+      "division": "west",
+      "ts": 1749686410500,
+      "recorded_at": 1749686411000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-7",
+      "party_id": "party-bill-7",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 187630,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 44918,
+          "gl_map": "4100-FSC-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000000d",
+      "hash": "000000000000000000000000000000000000000000000000000000000000000d",
+      "stream_id": "s:shp-inv-8",
+      "shipment_id": "shp-inv-8",
+      "seq": 0,
+      "division": "north",
+      "ts": 1749772811500,
+      "recorded_at": 1749772812000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-8",
+      "party_id": "party-bill-8",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 145925,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 36422,
+          "gl_map": "4100-FSC-AR"
+        },
+        {
+          "line_no": 3,
+          "kind": "accessorial",
+          "amount_cents": 12000,
+          "gl_map": "4200-ACCESSORIAL-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000000e",
+      "hash": "000000000000000000000000000000000000000000000000000000000000000e",
+      "stream_id": "s:shp-inv-8",
+      "shipment_id": "shp-inv-8",
+      "seq": 1,
+      "division": "north",
+      "ts": 1749859212500,
+      "recorded_at": 1749859213000,
+      "kind": "payment.received",
+      "method": "ach",
+      "amount_cents": 194347,
+      "party_id": "party-bill-8",
+      "settles_invoice_id": "inv-8"
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000000f",
+      "hash": "000000000000000000000000000000000000000000000000000000000000000f",
+      "stream_id": "s:shp-inv-9",
+      "shipment_id": "shp-inv-9",
+      "seq": 0,
+      "division": "south",
+      "ts": 1749945613500,
+      "recorded_at": 1749945614000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-9",
+      "party_id": "party-bill-9",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 44890,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 9750,
+          "gl_map": "4100-FSC-AR"
+        },
+        {
+          "line_no": 3,
+          "kind": "accessorial",
+          "amount_cents": 12000,
+          "gl_map": "4200-ACCESSORIAL-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000010",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000010",
+      "stream_id": "s:shp-inv-10",
+      "shipment_id": "shp-inv-10",
+      "seq": 0,
+      "division": "east",
+      "ts": 1750032014500,
+      "recorded_at": 1750032015000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-10",
+      "party_id": "party-bill-10",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 148199,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 28128,
+          "gl_map": "4100-FSC-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000011",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000011",
+      "stream_id": "s:shp-inv-10",
+      "shipment_id": "shp-inv-10",
+      "seq": 1,
+      "division": "east",
+      "ts": 1750118415500,
+      "recorded_at": 1750118416000,
+      "kind": "payment.received",
+      "method": "ach",
+      "amount_cents": 176327,
+      "party_id": "party-bill-10",
+      "settles_invoice_id": "inv-10"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000012",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000012",
+      "stream_id": "s:shp-inv-11",
+      "shipment_id": "shp-inv-11",
+      "seq": 0,
+      "division": "west",
+      "ts": 1750204816500,
+      "recorded_at": 1750204817000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-11",
+      "party_id": "party-bill-11",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 66369,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 14136,
+          "gl_map": "4100-FSC-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000013",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000013",
+      "stream_id": "s:shp-inv-12",
+      "shipment_id": "shp-inv-12",
+      "seq": 0,
+      "division": "north",
+      "ts": 1750291217500,
+      "recorded_at": 1750291218000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-12",
+      "party_id": "party-bill-12",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 104009,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 25180,
+          "gl_map": "4100-FSC-AR"
+        },
+        {
+          "line_no": 3,
+          "kind": "accessorial",
+          "amount_cents": 9000,
+          "gl_map": "4200-ACCESSORIAL-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000014",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000014",
+      "stream_id": "s:shp-inv-12",
+      "shipment_id": "shp-inv-12",
+      "seq": 1,
+      "division": "north",
+      "ts": 1750377618500,
+      "recorded_at": 1750377619000,
+      "kind": "payment.received",
+      "method": "ach",
+      "amount_cents": 138189,
+      "party_id": "party-bill-12",
+      "settles_invoice_id": "inv-12"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000015",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000015",
+      "stream_id": "s:shp-inv-13",
+      "shipment_id": "shp-inv-13",
+      "seq": 0,
+      "division": "south",
+      "ts": 1750464019500,
+      "recorded_at": 1750464020000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-13",
+      "party_id": "party-bill-13",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 150231,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 28964,
+          "gl_map": "4100-FSC-AR"
+        },
+        {
+          "line_no": 3,
+          "kind": "accessorial",
+          "amount_cents": 12000,
+          "gl_map": "4200-ACCESSORIAL-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000016",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000016",
+      "stream_id": "s:shp-inv-14",
+      "shipment_id": "shp-inv-14",
+      "seq": 0,
+      "division": "east",
+      "ts": 1750550420500,
+      "recorded_at": 1750550421000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-14",
+      "party_id": "party-bill-14",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 148686,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 34985,
+          "gl_map": "4100-FSC-AR"
+        },
+        {
+          "line_no": 3,
+          "kind": "accessorial",
+          "amount_cents": 7500,
+          "gl_map": "4200-ACCESSORIAL-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000017",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000017",
+      "stream_id": "s:shp-inv-14",
+      "shipment_id": "shp-inv-14",
+      "seq": 1,
+      "division": "east",
+      "ts": 1750636821500,
+      "recorded_at": 1750636822000,
+      "kind": "payment.received",
+      "method": "ach",
+      "amount_cents": 191171,
+      "party_id": "party-bill-14",
+      "settles_invoice_id": "inv-14"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000018",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000018",
+      "stream_id": "s:shp-inv-15",
+      "shipment_id": "shp-inv-15",
+      "seq": 0,
+      "division": "west",
+      "ts": 1750723222500,
+      "recorded_at": 1750723223000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-15",
+      "party_id": "party-bill-15",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 57568,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 11991,
+          "gl_map": "4100-FSC-AR"
+        },
+        {
+          "line_no": 3,
+          "kind": "accessorial",
+          "amount_cents": 12000,
+          "gl_map": "4200-ACCESSORIAL-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000019",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000019",
+      "stream_id": "s:shp-inv-16",
+      "shipment_id": "shp-inv-16",
+      "seq": 0,
+      "division": "north",
+      "ts": 1750809623500,
+      "recorded_at": 1750809624000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-16",
+      "party_id": "party-bill-16",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 26424,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 5445,
+          "gl_map": "4100-FSC-AR"
+        },
+        {
+          "line_no": 3,
+          "kind": "accessorial",
+          "amount_cents": 12000,
+          "gl_map": "4200-ACCESSORIAL-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000001a",
+      "hash": "000000000000000000000000000000000000000000000000000000000000001a",
+      "stream_id": "s:shp-inv-16",
+      "shipment_id": "shp-inv-16",
+      "seq": 1,
+      "division": "north",
+      "ts": 1750896024500,
+      "recorded_at": 1750896025000,
+      "kind": "payment.received",
+      "method": "ach",
+      "amount_cents": 43869,
+      "party_id": "party-bill-16",
+      "settles_invoice_id": "inv-16"
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000001b",
+      "hash": "000000000000000000000000000000000000000000000000000000000000001b",
+      "stream_id": "s:shp-inv-17",
+      "shipment_id": "shp-inv-17",
+      "seq": 0,
+      "division": "south",
+      "ts": 1750982425500,
+      "recorded_at": 1750982426000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-17",
+      "party_id": "party-bill-17",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 99948,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 24597,
+          "gl_map": "4100-FSC-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000001c",
+      "hash": "000000000000000000000000000000000000000000000000000000000000001c",
+      "stream_id": "s:shp-inv-18",
+      "shipment_id": "shp-inv-18",
+      "seq": 0,
+      "division": "east",
+      "ts": 1751068826500,
+      "recorded_at": 1751068827000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-18",
+      "party_id": "party-bill-18",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 179689,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 39118,
+          "gl_map": "4100-FSC-AR"
+        },
+        {
+          "line_no": 3,
+          "kind": "accessorial",
+          "amount_cents": 9000,
+          "gl_map": "4200-ACCESSORIAL-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000001d",
+      "hash": "000000000000000000000000000000000000000000000000000000000000001d",
+      "stream_id": "s:shp-inv-18",
+      "shipment_id": "shp-inv-18",
+      "seq": 1,
+      "division": "east",
+      "ts": 1751155227500,
+      "recorded_at": 1751155228000,
+      "kind": "payment.received",
+      "method": "ach",
+      "amount_cents": 227807,
+      "party_id": "party-bill-18",
+      "settles_invoice_id": "inv-18"
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000001e",
+      "hash": "000000000000000000000000000000000000000000000000000000000000001e",
+      "stream_id": "s:shp-inv-19",
+      "shipment_id": "shp-inv-19",
+      "seq": 0,
+      "division": "west",
+      "ts": 1751241628500,
+      "recorded_at": 1751241629000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-19",
+      "party_id": "party-bill-19",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 41834,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 9190,
+          "gl_map": "4100-FSC-AR"
+        },
+        {
+          "line_no": 3,
+          "kind": "accessorial",
+          "amount_cents": 5500,
+          "gl_map": "4200-ACCESSORIAL-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000001f",
+      "hash": "000000000000000000000000000000000000000000000000000000000000001f",
+      "stream_id": "s:shp-inv-20",
+      "shipment_id": "shp-inv-20",
+      "seq": 0,
+      "division": "north",
+      "ts": 1748736029500,
+      "recorded_at": 1748736030000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-20",
+      "party_id": "party-bill-20",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 186998,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 37175,
+          "gl_map": "4100-FSC-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000020",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000020",
+      "stream_id": "s:shp-inv-20",
+      "shipment_id": "shp-inv-20",
+      "seq": 1,
+      "division": "north",
+      "ts": 1748822430500,
+      "recorded_at": 1748822431000,
+      "kind": "payment.received",
+      "method": "ach",
+      "amount_cents": 224173,
+      "party_id": "party-bill-20",
+      "settles_invoice_id": "inv-20"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000021",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000021",
+      "stream_id": "s:shp-inv-21",
+      "shipment_id": "shp-inv-21",
+      "seq": 0,
+      "division": "south",
+      "ts": 1748908831500,
+      "recorded_at": 1748908832000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-21",
+      "party_id": "party-bill-21",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 22273,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 4064,
+          "gl_map": "4100-FSC-AR"
+        },
+        {
+          "line_no": 3,
+          "kind": "accessorial",
+          "amount_cents": 12000,
+          "gl_map": "4200-ACCESSORIAL-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000022",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000022",
+      "stream_id": "s:shp-inv-22",
+      "shipment_id": "shp-inv-22",
+      "seq": 0,
+      "division": "east",
+      "ts": 1748995232500,
+      "recorded_at": 1748995233000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-22",
+      "party_id": "party-bill-22",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 191480,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 38085,
+          "gl_map": "4100-FSC-AR"
+        },
+        {
+          "line_no": 3,
+          "kind": "accessorial",
+          "amount_cents": 7500,
+          "gl_map": "4200-ACCESSORIAL-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000023",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000023",
+      "stream_id": "s:shp-inv-22",
+      "shipment_id": "shp-inv-22",
+      "seq": 1,
+      "division": "east",
+      "ts": 1749081633500,
+      "recorded_at": 1749081634000,
+      "kind": "payment.received",
+      "method": "ach",
+      "amount_cents": 237065,
+      "party_id": "party-bill-22",
+      "settles_invoice_id": "inv-22"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000024",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000024",
+      "stream_id": "s:shp-inv-23",
+      "shipment_id": "shp-inv-23",
+      "seq": 0,
+      "division": "west",
+      "ts": 1749168034500,
+      "recorded_at": 1749168035000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-23",
+      "party_id": "party-bill-23",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 68015,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 13861,
+          "gl_map": "4100-FSC-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000025",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000025",
+      "stream_id": "s:shp-inv-24",
+      "shipment_id": "shp-inv-24",
+      "seq": 0,
+      "division": "north",
+      "ts": 1749254435500,
+      "recorded_at": 1749254436000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-24",
+      "party_id": "party-bill-24",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 161571,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 40085,
+          "gl_map": "4100-FSC-AR"
+        },
+        {
+          "line_no": 3,
+          "kind": "accessorial",
+          "amount_cents": 5500,
+          "gl_map": "4200-ACCESSORIAL-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000026",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000026",
+      "stream_id": "s:shp-inv-24",
+      "shipment_id": "shp-inv-24",
+      "seq": 1,
+      "division": "north",
+      "ts": 1749340836500,
+      "recorded_at": 1749340837000,
+      "kind": "payment.received",
+      "method": "ach",
+      "amount_cents": 207156,
+      "party_id": "party-bill-24",
+      "settles_invoice_id": "inv-24"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000027",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000027",
+      "stream_id": "s:shp-inv-25",
+      "shipment_id": "shp-inv-25",
+      "seq": 0,
+      "division": "south",
+      "ts": 1749427237500,
+      "recorded_at": 1749427238000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-25",
+      "party_id": "party-bill-25",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 154925,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 28149,
+          "gl_map": "4100-FSC-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000028",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000028",
+      "stream_id": "s:shp-inv-26",
+      "shipment_id": "shp-inv-26",
+      "seq": 0,
+      "division": "east",
+      "ts": 1749513638500,
+      "recorded_at": 1749513639000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-26",
+      "party_id": "party-bill-26",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 182880,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 44750,
+          "gl_map": "4100-FSC-AR"
+        },
+        {
+          "line_no": 3,
+          "kind": "accessorial",
+          "amount_cents": 9000,
+          "gl_map": "4200-ACCESSORIAL-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000029",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000029",
+      "stream_id": "s:shp-inv-26",
+      "shipment_id": "shp-inv-26",
+      "seq": 1,
+      "division": "east",
+      "ts": 1749600039500,
+      "recorded_at": 1749600040000,
+      "kind": "payment.received",
+      "method": "ach",
+      "amount_cents": 236630,
+      "party_id": "party-bill-26",
+      "settles_invoice_id": "inv-26"
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000002a",
+      "hash": "000000000000000000000000000000000000000000000000000000000000002a",
+      "stream_id": "s:shp-inv-27",
+      "shipment_id": "shp-inv-27",
+      "seq": 0,
+      "division": "west",
+      "ts": 1749686440500,
+      "recorded_at": 1749686441000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-27",
+      "party_id": "party-bill-27",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 43412,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 9689,
+          "gl_map": "4100-FSC-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000002b",
+      "hash": "000000000000000000000000000000000000000000000000000000000000002b",
+      "stream_id": "s:shp-inv-28",
+      "shipment_id": "shp-inv-28",
+      "seq": 0,
+      "division": "north",
+      "ts": 1749772841500,
+      "recorded_at": 1749772842000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-28",
+      "party_id": "party-bill-28",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 122426,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 29382,
+          "gl_map": "4100-FSC-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000002c",
+      "hash": "000000000000000000000000000000000000000000000000000000000000002c",
+      "stream_id": "s:shp-inv-28",
+      "shipment_id": "shp-inv-28",
+      "seq": 1,
+      "division": "north",
+      "ts": 1749859242500,
+      "recorded_at": 1749859243000,
+      "kind": "payment.received",
+      "method": "ach",
+      "amount_cents": 151808,
+      "party_id": "party-bill-28",
+      "settles_invoice_id": "inv-28"
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000002d",
+      "hash": "000000000000000000000000000000000000000000000000000000000000002d",
+      "stream_id": "s:shp-inv-29",
+      "shipment_id": "shp-inv-29",
+      "seq": 0,
+      "division": "south",
+      "ts": 1749945643500,
+      "recorded_at": 1749945644000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-29",
+      "party_id": "party-bill-29",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 38012,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 8286,
+          "gl_map": "4100-FSC-AR"
+        },
+        {
+          "line_no": 3,
+          "kind": "accessorial",
+          "amount_cents": 5500,
+          "gl_map": "4200-ACCESSORIAL-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000002e",
+      "hash": "000000000000000000000000000000000000000000000000000000000000002e",
+      "stream_id": "s:shp-inv-30",
+      "shipment_id": "shp-inv-30",
+      "seq": 0,
+      "division": "east",
+      "ts": 1750032044500,
+      "recorded_at": 1750032045000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-30",
+      "party_id": "party-bill-30",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 80781,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 16293,
+          "gl_map": "4100-FSC-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000002f",
+      "hash": "000000000000000000000000000000000000000000000000000000000000002f",
+      "stream_id": "s:shp-inv-30",
+      "shipment_id": "shp-inv-30",
+      "seq": 1,
+      "division": "east",
+      "ts": 1750118445500,
+      "recorded_at": 1750118446000,
+      "kind": "payment.received",
+      "method": "ach",
+      "amount_cents": 97074,
+      "party_id": "party-bill-30",
+      "settles_invoice_id": "inv-30"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000030",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000030",
+      "stream_id": "s:shp-inv-31",
+      "shipment_id": "shp-inv-31",
+      "seq": 0,
+      "division": "west",
+      "ts": 1750204846500,
+      "recorded_at": 1750204847000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-31",
+      "party_id": "party-bill-31",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 77378,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 17077,
+          "gl_map": "4100-FSC-AR"
+        },
+        {
+          "line_no": 3,
+          "kind": "accessorial",
+          "amount_cents": 5500,
+          "gl_map": "4200-ACCESSORIAL-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000031",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000031",
+      "stream_id": "s:shp-inv-32",
+      "shipment_id": "shp-inv-32",
+      "seq": 0,
+      "division": "north",
+      "ts": 1750291247500,
+      "recorded_at": 1750291248000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-32",
+      "party_id": "party-bill-32",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 93886,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 21753,
+          "gl_map": "4100-FSC-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000032",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000032",
+      "stream_id": "s:shp-inv-32",
+      "shipment_id": "shp-inv-32",
+      "seq": 1,
+      "division": "north",
+      "ts": 1750377648500,
+      "recorded_at": 1750377649000,
+      "kind": "payment.received",
+      "method": "ach",
+      "amount_cents": 115639,
+      "party_id": "party-bill-32",
+      "settles_invoice_id": "inv-32"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000033",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000033",
+      "stream_id": "s:shp-inv-33",
+      "shipment_id": "shp-inv-33",
+      "seq": 0,
+      "division": "south",
+      "ts": 1750464049500,
+      "recorded_at": 1750464050000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-33",
+      "party_id": "party-bill-33",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 161584,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 29165,
+          "gl_map": "4100-FSC-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000034",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000034",
+      "stream_id": "s:shp-inv-34",
+      "shipment_id": "shp-inv-34",
+      "seq": 0,
+      "division": "east",
+      "ts": 1750550450500,
+      "recorded_at": 1750550451000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-34",
+      "party_id": "party-bill-34",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 127347,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 31034,
+          "gl_map": "4100-FSC-AR"
+        },
+        {
+          "line_no": 3,
+          "kind": "accessorial",
+          "amount_cents": 5500,
+          "gl_map": "4200-ACCESSORIAL-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000035",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000035",
+      "stream_id": "s:shp-inv-34",
+      "shipment_id": "shp-inv-34",
+      "seq": 1,
+      "division": "east",
+      "ts": 1750636851500,
+      "recorded_at": 1750636852000,
+      "kind": "payment.received",
+      "method": "ach",
+      "amount_cents": 163881,
+      "party_id": "party-bill-34",
+      "settles_invoice_id": "inv-34"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000036",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000036",
+      "stream_id": "s:shp-inv-35",
+      "shipment_id": "shp-inv-35",
+      "seq": 0,
+      "division": "west",
+      "ts": 1750723252500,
+      "recorded_at": 1750723253000,
+      "kind": "invoice.issued",
+      "invoice_id": "inv-35",
+      "party_id": "party-bill-35",
+      "lines": [
+        {
+          "line_no": 1,
+          "kind": "freight",
+          "amount_cents": 79515,
+          "gl_map": "4000-FREIGHT-AR"
+        },
+        {
+          "line_no": 2,
+          "kind": "fsc",
+          "amount_cents": 17914,
+          "gl_map": "4100-FSC-AR"
+        },
+        {
+          "line_no": 3,
+          "kind": "accessorial",
+          "amount_cents": 5500,
+          "gl_map": "4200-ACCESSORIAL-AR"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000037",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000037",
+      "stream_id": "s:shp-cod-0",
+      "shipment_id": "shp-cod-0",
+      "seq": 0,
+      "division": "north",
+      "ts": 1750809653500,
+      "recorded_at": 1750809654000,
+      "kind": "payment.received",
+      "method": "cod",
+      "amount_cents": 41899,
+      "party_id": "party-cod-0"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000038",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000038",
+      "stream_id": "s:shp-cod-1",
+      "shipment_id": "shp-cod-1",
+      "seq": 0,
+      "division": "south",
+      "ts": 1750896054500,
+      "recorded_at": 1750896055000,
+      "kind": "payment.received",
+      "method": "cod",
+      "amount_cents": 65014,
+      "party_id": "party-cod-1"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000039",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000039",
+      "stream_id": "s:shp-cod-2",
+      "shipment_id": "shp-cod-2",
+      "seq": 0,
+      "division": "east",
+      "ts": 1750982455500,
+      "recorded_at": 1750982456000,
+      "kind": "payment.received",
+      "method": "cod",
+      "amount_cents": 19893,
+      "party_id": "party-cod-2"
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000003a",
+      "hash": "000000000000000000000000000000000000000000000000000000000000003a",
+      "stream_id": "s:shp-cod-3",
+      "shipment_id": "shp-cod-3",
+      "seq": 0,
+      "division": "west",
+      "ts": 1751068856500,
+      "recorded_at": 1751068857000,
+      "kind": "payment.received",
+      "method": "cod",
+      "amount_cents": 53283,
+      "party_id": "party-cod-3"
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000003b",
+      "hash": "000000000000000000000000000000000000000000000000000000000000003b",
+      "stream_id": "s:shp-cod-4",
+      "shipment_id": "shp-cod-4",
+      "seq": 0,
+      "division": "north",
+      "ts": 1751155257500,
+      "recorded_at": 1751155258000,
+      "kind": "payment.received",
+      "method": "cod",
+      "amount_cents": 54558,
+      "party_id": "party-cod-4"
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000003c",
+      "hash": "000000000000000000000000000000000000000000000000000000000000003c",
+      "stream_id": "s:shp-cod-5",
+      "shipment_id": "shp-cod-5",
+      "seq": 0,
+      "division": "south",
+      "ts": 1751241658500,
+      "recorded_at": 1751241659000,
+      "kind": "payment.received",
+      "method": "cod",
+      "amount_cents": 27283,
+      "party_id": "party-cod-5"
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000003d",
+      "hash": "000000000000000000000000000000000000000000000000000000000000003d",
+      "stream_id": "s:shp-cod-6",
+      "shipment_id": "shp-cod-6",
+      "seq": 0,
+      "division": "east",
+      "ts": 1748736059500,
+      "recorded_at": 1748736060000,
+      "kind": "payment.received",
+      "method": "cod",
+      "amount_cents": 37507,
+      "party_id": "party-cod-6"
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000003e",
+      "hash": "000000000000000000000000000000000000000000000000000000000000003e",
+      "stream_id": "s:shp-cod-7",
+      "shipment_id": "shp-cod-7",
+      "seq": 0,
+      "division": "west",
+      "ts": 1748822460500,
+      "recorded_at": 1748822461000,
+      "kind": "payment.received",
+      "method": "cod",
+      "amount_cents": 98204,
+      "party_id": "party-cod-7"
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000003f",
+      "hash": "000000000000000000000000000000000000000000000000000000000000003f",
+      "stream_id": "s:shp-split-0",
+      "shipment_id": "shp-split-0",
+      "seq": 0,
+      "division": "north",
+      "ts": 1748908861500,
+      "recorded_at": 1748908862000,
+      "kind": "split.computed",
+      "total_cents": 117360,
+      "allocations": [
+        {
+          "party_id": "party-carrier-0",
+          "share_bps": 7000
+        },
+        {
+          "party_id": "party-interline-0",
+          "share_bps": 3000
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000040",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000040",
+      "stream_id": "s:shp-split-1",
+      "shipment_id": "shp-split-1",
+      "seq": 0,
+      "division": "south",
+      "ts": 1748995262500,
+      "recorded_at": 1748995263000,
+      "kind": "split.computed",
+      "total_cents": 132246,
+      "allocations": [
+        {
+          "party_id": "party-carrier-1",
+          "share_bps": 6000
+        },
+        {
+          "party_id": "party-interline-1",
+          "share_bps": 4000
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000041",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000041",
+      "stream_id": "s:shp-split-2",
+      "shipment_id": "shp-split-2",
+      "seq": 0,
+      "division": "east",
+      "ts": 1749081663500,
+      "recorded_at": 1749081664000,
+      "kind": "split.computed",
+      "total_cents": 43375,
+      "allocations": [
+        {
+          "party_id": "party-carrier-2",
+          "share_bps": 5000
+        },
+        {
+          "party_id": "party-interline-2",
+          "share_bps": 3000
+        },
+        {
+          "party_id": "party-cartage-2",
+          "share_bps": 2000
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000042",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000042",
+      "stream_id": "s:shp-split-3",
+      "shipment_id": "shp-split-3",
+      "seq": 0,
+      "division": "west",
+      "ts": 1749168064500,
+      "recorded_at": 1749168065000,
+      "kind": "split.computed",
+      "total_cents": 129998,
+      "allocations": [
+        {
+          "party_id": "party-carrier-3",
+          "share_bps": 7000
+        },
+        {
+          "party_id": "party-interline-3",
+          "share_bps": 3000
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000043",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000043",
+      "stream_id": "s:shp-split-4",
+      "shipment_id": "shp-split-4",
+      "seq": 0,
+      "division": "north",
+      "ts": 1749254465500,
+      "recorded_at": 1749254466000,
+      "kind": "split.computed",
+      "total_cents": 136529,
+      "allocations": [
+        {
+          "party_id": "party-carrier-4",
+          "share_bps": 6000
+        },
+        {
+          "party_id": "party-interline-4",
+          "share_bps": 4000
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000044",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000044",
+      "stream_id": "s:shp-split-5",
+      "shipment_id": "shp-split-5",
+      "seq": 0,
+      "division": "south",
+      "ts": 1749340866500,
+      "recorded_at": 1749340867000,
+      "kind": "split.computed",
+      "total_cents": 144153,
+      "allocations": [
+        {
+          "party_id": "party-carrier-5",
+          "share_bps": 5000
+        },
+        {
+          "party_id": "party-interline-5",
+          "share_bps": 3000
+        },
+        {
+          "party_id": "party-cartage-5",
+          "share_bps": 2000
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000045",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000045",
+      "stream_id": "s:shp-split-6",
+      "shipment_id": "shp-split-6",
+      "seq": 0,
+      "division": "east",
+      "ts": 1749427267500,
+      "recorded_at": 1749427268000,
+      "kind": "split.computed",
+      "total_cents": 116357,
+      "allocations": [
+        {
+          "party_id": "party-carrier-6",
+          "share_bps": 7000
+        },
+        {
+          "party_id": "party-interline-6",
+          "share_bps": 3000
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000046",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000046",
+      "stream_id": "s:shp-split-7",
+      "shipment_id": "shp-split-7",
+      "seq": 0,
+      "division": "west",
+      "ts": 1749513668500,
+      "recorded_at": 1749513669000,
+      "kind": "split.computed",
+      "total_cents": 41439,
+      "allocations": [
+        {
+          "party_id": "party-carrier-7",
+          "share_bps": 6000
+        },
+        {
+          "party_id": "party-interline-7",
+          "share_bps": 4000
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000047",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000047",
+      "stream_id": "s:shp-split-8",
+      "shipment_id": "shp-split-8",
+      "seq": 0,
+      "division": "north",
+      "ts": 1749600069500,
+      "recorded_at": 1749600070000,
+      "kind": "split.computed",
+      "total_cents": 149397,
+      "allocations": [
+        {
+          "party_id": "party-carrier-8",
+          "share_bps": 5000
+        },
+        {
+          "party_id": "party-interline-8",
+          "share_bps": 3000
+        },
+        {
+          "party_id": "party-cartage-8",
+          "share_bps": 2000
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000048",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000048",
+      "stream_id": "s:shp-split-9",
+      "shipment_id": "shp-split-9",
+      "seq": 0,
+      "division": "south",
+      "ts": 1749686470500,
+      "recorded_at": 1749686471000,
+      "kind": "split.computed",
+      "total_cents": 121708,
+      "allocations": [
+        {
+          "party_id": "party-carrier-9",
+          "share_bps": 7000
+        },
+        {
+          "party_id": "party-interline-9",
+          "share_bps": 3000
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000049",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000049",
+      "stream_id": "s:shp-settle-0",
+      "shipment_id": "shp-settle-0",
+      "seq": 0,
+      "division": "north",
+      "ts": 1749772871500,
+      "recorded_at": 1749772872000,
+      "kind": "settlement.executed",
+      "fee_cents": 4642,
+      "party_id": "party-settle-0"
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000004a",
+      "hash": "000000000000000000000000000000000000000000000000000000000000004a",
+      "stream_id": "s:shp-settle-1",
+      "shipment_id": "shp-settle-1",
+      "seq": 0,
+      "division": "south",
+      "ts": 1749859272500,
+      "recorded_at": 1749859273000,
+      "kind": "settlement.executed",
+      "fee_cents": 3140,
+      "party_id": "party-settle-1"
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000004b",
+      "hash": "000000000000000000000000000000000000000000000000000000000000004b",
+      "stream_id": "s:shp-settle-2",
+      "shipment_id": "shp-settle-2",
+      "seq": 0,
+      "division": "east",
+      "ts": 1749945673500,
+      "recorded_at": 1749945674000,
+      "kind": "settlement.executed",
+      "fee_cents": 5003,
+      "party_id": "party-settle-2"
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000004c",
+      "hash": "000000000000000000000000000000000000000000000000000000000000004c",
+      "stream_id": "s:shp-settle-3",
+      "shipment_id": "shp-settle-3",
+      "seq": 0,
+      "division": "west",
+      "ts": 1750032074500,
+      "recorded_at": 1750032075000,
+      "kind": "settlement.executed",
+      "fee_cents": 9276,
+      "party_id": "party-settle-3"
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000004d",
+      "hash": "000000000000000000000000000000000000000000000000000000000000004d",
+      "stream_id": "s:shp-settle-4",
+      "shipment_id": "shp-settle-4",
+      "seq": 0,
+      "division": "north",
+      "ts": 1750118475500,
+      "recorded_at": 1750118476000,
+      "kind": "settlement.executed",
+      "fee_cents": 5380,
+      "party_id": "party-settle-4"
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000004e",
+      "hash": "000000000000000000000000000000000000000000000000000000000000004e",
+      "stream_id": "s:shp-settle-5",
+      "shipment_id": "shp-settle-5",
+      "seq": 0,
+      "division": "south",
+      "ts": 1750204876500,
+      "recorded_at": 1750204877000,
+      "kind": "settlement.executed",
+      "fee_cents": 2647,
+      "party_id": "party-settle-5"
+    }
+  ]
+}
