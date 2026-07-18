@@ -1,6 +1,7 @@
 import { SELF, env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import { rowToEvent } from "@shuddl/ledger/lens";
+import { normalizePartyEmail, partyIdForEmail } from "@shuddl/contracts";
 import type { LedgerEvent } from "@shuddl/contracts";
 import { handleQuoteAccepted } from "../../agents/src/booking.js";
 import type { BookingDeps } from "../../agents/src/booking.js";
@@ -172,6 +173,41 @@ describe("POST /v1/parties — deterministic find-or-create (REQ-195/025)", () =
       const tok = await token({ sub: `ix-${role}`, tenant: TENANT, role, ...(role === "portal" ? { party_id: "ix-p" } : {}) });
       expect((await createParty({ kind: "shipper", name: "Nope", email: "nope@ix-intake.test" }, tok)).status, role).toBe(403);
     }
+  });
+
+  // REQ-196 — intake ↔ Concierge party identity converge via the shared @shuddl/contracts matcher. A CSR-created
+  // ORIGINAL-case party and a later Concierge inbound (lowercase) must derive the SAME id AND find each other's
+  // row — one party, not a split-billing / credit-hold-evasion duplicate.
+  it("a CSR-created Bob@Acme.com + a Concierge-style bob@acme.com converge on ONE party id/row", async () => {
+    const ops = await opsTok();
+    const csrEmail = "Bob@Acme-req196.test"; // CSR keys it in original case
+    const inboundEmail = "bob@acme-req196.test"; // the Concierge inbound arrives lowercase
+
+    const created = await createParty({ kind: "shipper", name: "Bob at Acme", email: csrEmail }, ops);
+    expect(created.status, JSON.stringify(created.json)).toBe(201);
+    const csrId = created.json?.id as string;
+
+    // (a) ID CONVERGENCE — the shared matcher derives the SAME id from the lowercase inbound (the exact call
+    //     the Concierge's createParty now makes).
+    expect(csrId).toBe(await partyIdForEmail(inboundEmail));
+    // The STORED contact keeps the ORIGINAL case (deliverability); only the KEY/id is normalized.
+    const row = await partyRow(csrId);
+    expect(JSON.parse(row!.contacts)).toEqual([{ kind: "primary", email: csrEmail }]);
+
+    // (b) FIND CONVERGENCE — the Concierge's now case-INSENSITIVE findPartyByEmail SQL, bound to the normalized
+    //     inbound, locates the CSR-created row (pre-fix it was `= ?1` and missed the case-variant).
+    const found = await env.TENANT_A_DB
+      .prepare("SELECT p.id AS id FROM parties p, json_each(p.contacts) je WHERE lower(json_extract(je.value, '$.email')) = ?1 LIMIT 1")
+      .bind(normalizePartyEmail(inboundEmail))
+      .first<{ id: string }>();
+    expect(found?.id).toBe(csrId);
+
+    // (c) ONE ROW — no duplicate for this customer across the two casings.
+    const dupes = await env.TENANT_A_DB
+      .prepare("SELECT COUNT(*) AS n FROM parties p, json_each(p.contacts) je WHERE lower(json_extract(je.value, '$.email')) = ?")
+      .bind(normalizePartyEmail(inboundEmail))
+      .first<{ n: number }>();
+    expect(dupes?.n).toBe(1);
   });
 });
 

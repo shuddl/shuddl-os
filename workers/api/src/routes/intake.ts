@@ -1,5 +1,6 @@
 import type { Hono } from "hono";
 import { z } from "zod";
+import { normalizePartyEmail, partyIdForEmail } from "@shuddl/contracts";
 import { ApiError } from "../middleware/error.js";
 import { requireRole } from "../middleware/auth.js";
 import { tenantDb } from "../tenants.js";
@@ -35,10 +36,12 @@ import type { Env, Vars } from "../index.js";
 // The party/shipment materialization deliberately MIRRORS the Concierge's makeResolvePort (concierge.ts:210-240)
 // — same INSERT OR IGNORE shape, the same `party_`/`shp_` id prefixes, and the same `[{kind:"primary",email}]`
 // contact so a bill_to created here satisfies the SAME hasDeliverableContact predicate the booking gate reads.
-// It is NOT shared as a helper: the Concierge lives in the agents worker (@shuddl/agents) which the api worker
-// does not depend on, so sharing would force a cross-worker package extraction for a few INSERT statements —
-// heavier + riskier than the byte-small duplication. The parallel is documented here instead (the rate.ts /
-// approvals.ts precedent: each route re-implements its tiny deterministic-id + INSERT with a note).
+// The email-keyed party IDENTITY (the match key + the derived id) IS shared, via the @shuddl/contracts matcher
+// (normalizePartyEmail / partyIdForEmail, REQ-196) — both workers depend on contracts, so both derive the SAME
+// party id and find each other's rows (no split-billing duplicate). The tiny INSERT statements themselves stay
+// duplicated: the Concierge lives in the agents worker (@shuddl/agents) which the api worker does not depend on,
+// so extracting a few INSERTs cross-worker is heavier + riskier than the byte-small duplication (the rate.ts /
+// approvals.ts precedent). Only the identity RULE — the one thing that must converge — is centralized.
 
 const MAX_NAME_LEN = 200; // bounded — the legal name rides in the parties.names JSON
 const MAX_EMAIL_LEN = 320; // RFC 5321 practical maximum
@@ -87,11 +90,14 @@ export function mountIntakeRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>)
     const { kind, name } = parsed.data;
     const db = tenantDb(c.env, session.tenant); // REQ-025 — D1 keyed off the claim only
 
-    // The deterministic match key: a normalized email when present (case-insensitive; converges with the
-    // Concierge's email-keyed parties), else the normalized legal name. The STORED email keeps its original
-    // case for deliverability — only the match/id derivation is normalized.
+    // The deterministic match key: a normalized email when present, else the normalized legal name. The email
+    // path CONVERGES with the Concierge (REQ-196) via the shared @shuddl/contracts matcher — both find with
+    // `lower(json_extract(...email))` bound to normalizePartyEmail(), and both derive the id via
+    // partyIdForEmail(), so a CSR `Bob@Acme.com` and a later Concierge inbound `bob@acme.com` collapse to ONE
+    // party row (no split-billing duplicate). The STORED email keeps its original case for deliverability —
+    // only the match key + the derived id are normalized. The name-keyed path stays intake-local (below).
     const contactEmail = parsed.data.email?.trim();
-    const normEmail = contactEmail?.toLowerCase();
+    const normEmail = contactEmail !== undefined ? normalizePartyEmail(contactEmail) : undefined;
     const normName = name.trim().toLowerCase();
 
     // FIND — an existing party by the key. Email match reads the contacts JSON via json_each (the same shape
@@ -114,8 +120,12 @@ export function mountIntakeRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>)
 
     // CREATE — the id is DETERMINISTIC from the same key, so two concurrent creates derive the SAME id and
     // collapse to one row under INSERT OR IGNORE (the guard-free parties table permits IGNORE; first-write wins).
-    const key = normEmail !== undefined ? `email:${normEmail}` : `name:${normName}`;
-    const id = `party_${(await sha256Hex(`intake:party:${key}`)).slice(0, 16)}`;
+    // Email path: the SHARED partyIdForEmail (REQ-196) — the SAME id the Concierge derives. Name path: intake-
+    // local (a name-only party, e.g. a consignee, is never keyed by the Concierge's email flow).
+    const id =
+      contactEmail !== undefined
+        ? await partyIdForEmail(contactEmail)
+        : `party_${(await sha256Hex(`intake:party:name:${normName}`)).slice(0, 16)}`;
     const names = JSON.stringify({ legal: name });
     const contacts = JSON.stringify(contactEmail !== undefined ? [{ kind: "primary", email: contactEmail }] : []);
     await db.prepare("INSERT OR IGNORE INTO parties (id, kind, names, contacts) VALUES (?,?,?,?)").bind(id, kind, names, contacts).run();

@@ -28,7 +28,7 @@
 //     adapter at the composition root (NotConfiguredParser by default, ClaudeParser iff a key+model is
 //     bound), exactly like the Biller's evidenceSender(). The consumer itself calls no LLM.
 
-import { z } from "@shuddl/contracts";
+import { z, normalizePartyEmail, partyIdForEmail } from "@shuddl/contracts";
 import type { LedgerEvent, MessageReceivedPayload, ZoneTariff } from "@shuddl/contracts";
 import { rowToEvent } from "@shuddl/ledger/lens";
 import { resolveConcierge, composeConcierge, renderQuoteReply, SendError } from "@shuddl/agents";
@@ -128,10 +128,10 @@ async function shipmentIdFor(messageEventId: string): Promise<string> {
   return `shp_${(await sha256Hex(`concierge:shipment:${messageEventId}`)).slice(0, 16)}`;
 }
 
-// A created party's id — deterministic from the requester email so re-creation is stable.
-async function partyIdFor(email: string): Promise<string> {
-  return `party_${(await sha256Hex(`concierge:party:${email}`)).slice(0, 16)}`;
-}
+// A created party's id is derived from the requester email via the SHARED @shuddl/contracts matcher
+// (partyIdForEmail, REQ-196) — the SAME id the CSR intake derives — so re-creation is stable AND the two
+// intake paths converge on one party row instead of forking a duplicate. (Was a Concierge-local
+// `concierge:party:<raw email>` derivation that diverged from intake's.)
 
 // ---- SLA timers on an inbound OWED a reply but NOT auto-answered (Task 8, REQ-095) -------------------
 // The first-response window. A SINGLE DOCUMENTED DEFAULT until a per-tenant SLA-config source exists — NO
@@ -204,20 +204,23 @@ function mailSafe(to: string): boolean {
 
 // ---- the tenant-scoped ResolvePort over D1 (REQ-025 — bound to ONE tenant's db) ---------------------
 // findPartyByEmail matches an `email` inside any party's `contacts` JSON array (the same json_each shape the
-// sequencer uses for device keys, and the honest email-bearing column the Biller reads). createParty writes
-// the requester as a `shipper` with a primary contact; createShipment writes a quote-stage shipment with the
-// consumer-supplied created_ts (the pure resolve module has no clock — that is this port's job).
+// sequencer uses for device keys, and the honest email-bearing column the Biller reads). REQ-196: the match is
+// CASE-INSENSITIVE (`lower(json_extract(...))` bound to normalizePartyEmail) so it finds a CSR-created party
+// stored as `Bob@Acme.com` from a later `bob@acme.com` inbound — converging with intake instead of forking a
+// duplicate. createParty writes the requester as a `shipper` with a primary contact (ORIGINAL-case email
+// preserved for deliverability); createShipment writes a quote-stage shipment with the consumer-supplied
+// created_ts (the pure resolve module has no clock — that is this port's job).
 function makeResolvePort(db: D1Database, messageEventId: string, createdTs: number): ResolvePort {
   return {
     findPartyByEmail: async (email) => {
       const row = await db
-        .prepare("SELECT p.id AS id FROM parties p, json_each(p.contacts) je WHERE json_extract(je.value, '$.email') = ?1 LIMIT 1")
-        .bind(email)
+        .prepare("SELECT p.id AS id FROM parties p, json_each(p.contacts) je WHERE lower(json_extract(je.value, '$.email')) = ?1 LIMIT 1")
+        .bind(normalizePartyEmail(email))
         .first<{ id: string }>();
       return row === null ? null : { id: row.id };
     },
     createParty: async (p: { kind: PartyKind; email: string; name?: string }) => {
-      const id = await partyIdFor(p.email);
+      const id = await partyIdForEmail(p.email);
       const names = JSON.stringify(p.name !== undefined && p.name !== "" ? { legal: p.name } : {});
       const contacts = JSON.stringify([{ kind: "primary", email: p.email }]);
       await db
@@ -297,7 +300,7 @@ export async function handleMessageReceived(message: MessageReceivedTrigger, dep
   // returned shipment_id equals the precomputed `shipmentId` above (same derivation from msg.event_id).
   // REQ-172 — resolve keys the party find/create off the AUTHENTICATED envelope sender (`from_ref`), NEVER
   // the model's `party_hint.email` (untrusted body output that could create an attacker party or match a
-  // victim's, earning the existing-party resolution bump). `partyIdFor` below derives from the port's
+  // victim's, earning the existing-party resolution bump). `partyIdForEmail` below derives from the port's
   // `p.email`, which IS `senderEmail` — so identity is pinned to `from_ref` on every path (create + match).
   const port = makeResolvePort(db, msg.event_id, inbound.recorded_at);
   const resolved = await resolveConcierge(parse, port, msg.event_id, payload.from_ref);

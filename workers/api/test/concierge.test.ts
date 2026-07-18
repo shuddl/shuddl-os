@@ -1,6 +1,7 @@
-import { env } from "cloudflare:test";
+import { SELF, env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import { readEvents, rowToEvent } from "@shuddl/ledger/lens";
+import { partyIdForEmail } from "@shuddl/contracts";
 import type { LedgerEvent } from "@shuddl/contracts";
 import { DeterministicParser, RecordingSender, SendError, formatCents } from "@shuddl/agents";
 import type { ConciergeParser, EvidenceMessage, EvidenceSender, InboundEmail, ParseResult, SendReceipt } from "@shuddl/agents";
@@ -16,6 +17,7 @@ import {
   ensureSchema,
   seedRateConfig,
   seedTransitMatrix,
+  token,
 } from "./helpers.js";
 
 // ─── WP-07 — THE CONCIERGE CONSUMER (REQ-026 / REQ-093 / REQ-100) ───────────────────────────────────
@@ -424,6 +426,42 @@ describe("Concierge consumer — message.received → resolve/price/reply (REQ-0
     const shp = await shipmentRow(outcome.shipment_id);
     expect(shp!.shipper_party_id).toBe(outcome.party_id);
     expect(shp!.shipper_party_id).not.toBe(victimId);
+  });
+
+  it("REQ-196 — a Concierge inbound RESOLVES to a party the CSR intake already created (cross-worker identity convergence, ONE party)", async () => {
+    await seedRateConfig(env.TENANT_A_DB, TEST_RATE_CONFIG);
+    // (1) A CSR creates the party via the REAL intake route (api worker), keying the email in ORIGINAL case.
+    const csrEmail = "Bob@Acme-conv196.test";
+    const ops = await token({ sub: "conv-ops", tenant: TENANT, role: "ops" });
+    const csrRes = await SELF.fetch("https://api.local/v1/parties", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${ops}`, "Idempotency-Key": crypto.randomUUID(), "content-type": "application/json" },
+      body: JSON.stringify({ kind: "shipper", name: "Bob at Acme", email: csrEmail }),
+    });
+    expect(csrRes.status).toBe(201);
+    const csrId = (await csrRes.json() as { id: string }).id;
+    expect(csrId).toBe(await partyIdForEmail(csrEmail)); // intake used the shared matcher
+
+    // (2) A later Concierge inbound arrives from the SAME customer, LOWERCASE. The REAL consumer (agents worker)
+    // resolves it — its now case-insensitive findPartyByEmail must MATCH the CSR row, not fork a duplicate.
+    const inboundEmail = "bob@acme-conv196.test";
+    const msgId = await appendInbound(
+      quoteEmail(inboundEmail, "Please quote from 97201 to 80012, 1000 lbs, 48x40x48, 2 pallets."),
+      "req196-converge",
+    );
+    const outcome = await handleMessageReceived({ kind: "message.received", tenant: TENANT, event_id: msgId }, depsWith(new RecordingSender(), new DeterministicParser()));
+    expect(outcome.status, JSON.stringify(outcome)).toBe("issued_replied");
+    if (outcome.status !== "issued_replied") throw new Error("unreachable");
+
+    // CONVERGENCE: the Concierge matched the CSR-created party (no create), SAME id — one party across both paths.
+    expect(outcome.party_created).toBe(false);
+    expect(outcome.party_id).toBe(csrId);
+    // And still exactly ONE row for this customer (no split-billing duplicate).
+    const dupes = await env.TENANT_A_DB
+      .prepare("SELECT COUNT(*) AS n FROM parties p, json_each(p.contacts) je WHERE lower(json_extract(je.value,'$.email')) = ?")
+      .bind(inboundEmail)
+      .first<{ n: number }>();
+    expect(dupes?.n).toBe(1);
   });
 
   it("REQ-173 — an unpriceable request (accessorial absent from the schedule) QUEUES (unknown_price), never throws into the redelivery loop", async () => {
