@@ -21,6 +21,7 @@ import { mountExceptionRoutes } from "./routes/exceptions.js";
 import { mountKpiRoutes } from "./routes/kpis.js";
 import { mountCopilotRoutes } from "./routes/copilot.js";
 import { mountBoardRoutes } from "./routes/board.js";
+import { mountExportRoutes } from "./routes/export-journal.js";
 import { mountPublicRoutes } from "./routes/public.js";
 
 export type Env = {
@@ -137,6 +138,13 @@ mountCopilotRoutes(app);
 // claim (tenantDb, REQ-025). The tenant lens is unredacted, so the board exposes EXACT ops geo; a shipment with no
 // position is never placed (truthful map). A /v1 route, so auth + idempotency already apply.
 mountBoardRoutes(app);
+// WP-11 Task 2 (REQ-020/057/025): GET /v1/export/journal — the QuickBooks JOURNAL EXPORT. Serves a balanced
+// double-entry journal for a [from,to] window as a QuickBooks IIF artifact (format=iif, default) or the raw
+// JournalLine[] (format=json), optionally scoped to one division (REQ-057). A ONE-WAY journal artifact —
+// NATIVE GL FORBIDDEN (no period close/balances); exportJournal + the serializer both assert Σdebit===Σcredit.
+// roles admin/ops/finance; tenant off the JWT claim (tenantDb, REQ-025). A /v1 route, so auth + idempotency
+// already apply. NO new table/kind/projection — a pure read over money_lines.
+mountExportRoutes(app);
 // WP-09 Task 3 (REQ-187/188): GET /pub/status/:cap — the PUBLIC, no-auth status read that consumes the cap
 // minted above. Mounted at /pub/* (NOT /v1/*), so app.use("/v1/*", auth) + idempotency do NOT run — the cap
 // is the authorization. This is the first public data read in the system; verifyStatusCap is the whole gate.

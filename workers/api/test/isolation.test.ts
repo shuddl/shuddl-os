@@ -705,3 +705,63 @@ describe("REQ-025 growth: the copilot cites ONLY the JWT tenant's D1 (lens-scope
     expect(res.status).toBe(403);
   });
 });
+
+// WP-11 Task 2 growth (REQ-020 + REQ-025): the QuickBooks journal export reads ONLY the JWT tenant's
+// money_lines. exportJournal(tenantDb(session.tenant), …) is keyed off the claim — it aggregates WITHIN the
+// session's D1, never across tenants. Seeded in a PRIVATE far-future window so the shared-D1 pollution from
+// sibling files never enters the scan: a tenant-a money_line + a tenant-b money_line at the SAME created_ts,
+// same window. The tenant-a export MUST include its own row and MUST NOT include tenant-b's (a DIFFERENT
+// physical D1 the claim can never address), and no client tenant hint may reach it.
+describe("REQ-025 growth: GET /v1/export/journal serializes ONLY the JWT tenant's money_lines", () => {
+  const PW_TS = 1_950_000_000_000; // a private window (year ~2031) no sibling file seeds into
+  const EXPORT_Q = `from=${PW_TS - 1000}&to=${PW_TS + 1000}`;
+  const A_ML_EVENT = crypto.randomUUID(); // a tenant-a money_line's event id — the positive control (MUST appear)
+  const B_ML_EVENT = crypto.randomUUID(); // a tenant-b money_line's event id — must NEVER appear for tenant-a
+  // A globally-unique 64-hex hash from a random UUID (a shared counter base collides with sibling files).
+  const exjHash = (): string => crypto.randomUUID().replace(/-/g, "").padEnd(64, "0");
+
+  async function seedMoneyLine(db: D1Database, eventId: string, shipmentId: string, mlId: string, amount: number): Promise<void> {
+    // The event satisfies money_lines' FK; a canonical gl_map (GL_FREIGHT_AR) so the serializer never throws.
+    const e = eventFixture("pod.signed", { id: eventId, stream_id: `s:${shipmentId}`, shipment_id: shipmentId, seq: 0, visibility: "internal", party_refs: [] });
+    const row = eventToRow(e);
+    row.hash = exjHash();
+    const cols = Object.keys(row);
+    await db.prepare(`INSERT OR IGNORE INTO events (${cols.join(",")}) VALUES (${cols.map(() => "?").join(",")})`).bind(...cols.map((col) => row[col])).run();
+    await db
+      .prepare("INSERT OR IGNORE INTO money_lines (id, shipment_id, event_id, line_no, direction, kind, amount_cents, currency, party_id, division, gl_map, created_ts) VALUES (?,?,?,1,?,?,?,?,?,?,?,?)")
+      .bind(mlId, shipmentId, eventId, "ar", "freight", amount, "USD", "party-shipper", "main", "4000-FREIGHT-AR", PW_TS)
+      .run();
+  }
+
+  beforeAll(async () => {
+    await seedMoneyLine(env.TENANT_A_DB, A_ML_EVENT, "iso-exj-tenant-a", "iso-exj-ml-a", 123_456); // → 1234.56 (control)
+    await seedMoneyLine(env.TENANT_B_DB, B_ML_EVENT, "iso-exj-tenant-b-only", "iso-exj-ml-b", 777_777); // → 7777.77 (must not leak)
+  });
+
+  it("a tenant-a IIF export includes ITS OWN money_line but NEVER a tenant-b money_line (REQ-025)", async () => {
+    const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "finance" });
+    const res = await SELF.fetch(`https://api.local/v1/export/journal?${EXPORT_Q}&format=iif`, { headers: { Authorization: `Bearer ${t}` } });
+    expect(res.status).toBe(200);
+    const text = await res.text();
+    expect(text).toContain(A_ML_EVENT); // positive control — tenant-a's own row IS exported
+    expect(text).toContain("1234.56");
+    expect(text).not.toContain(B_ML_EVENT); // the tenant-b event id (MEMO) never appears
+    expect(text).not.toContain("7777.77"); // tenant-b's distinctive amount never leaks
+  });
+
+  it("a tenant-a JSON export includes ITS OWN money_line but NEVER a tenant-b money_line (REQ-025)", async () => {
+    const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "finance" });
+    const res = await SELF.fetch(`https://api.local/v1/export/journal?${EXPORT_Q}&format=json`, { headers: { Authorization: `Bearer ${t}` } });
+    expect(res.status).toBe(200);
+    const text = await res.text();
+    expect(text).toContain(A_ML_EVENT);
+    expect(text).not.toContain(B_ML_EVENT);
+    expect(text).not.toContain("777777");
+  });
+
+  it("?tenant= query param on GET /v1/export/journal is rejected at auth", async () => {
+    const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "finance" });
+    const res = await SELF.fetch(`https://api.local/v1/export/journal?tenant=tenant-b&${EXPORT_Q}`, { headers: { Authorization: `Bearer ${t}` } });
+    expect(res.status).toBe(403);
+  });
+});
