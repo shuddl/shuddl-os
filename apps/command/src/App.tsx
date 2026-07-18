@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Button, Display, Divider, Metric, Mono, Reveal } from "@shuddl/design";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Button, Display, Mono } from "@shuddl/design";
 import {
   DEMO_GLYPHS_URL,
   DEMO_TILE_URL,
@@ -17,21 +17,22 @@ import { clear as clearSession } from "./session.js";
 import { CommandBar } from "./command/CommandBar.js";
 import type { CommandDeps } from "./command/registry.js";
 import { IntakeFlow } from "./intake/IntakeFlow.js";
+import { resolveRoute, type Route } from "./router.js";
+import { ApprovalsQueue } from "./views/ApprovalsQueue.js";
+import { ExceptionsQueue } from "./views/ExceptionsQueue.js";
+import { MoneyQueue } from "./views/MoneyQueue.js";
+import { KpiStrip } from "./views/KpiStrip.js";
+import { KpiDrill } from "./views/KpiDrill.js";
+import { CopilotPanel } from "./views/CopilotPanel.js";
+import type { KpiTile, KpiValue } from "./views/registry.js";
 
-// (01) COMMAND — the map IS the home (REQ-073/080). Full-viewport greige canvas of the whole fleet,
-// a 1px-divided count-up KPI strip, dark queue panels, and the ⌘K command bar. Chrome floats over the
-// canvas; clicking a mark opens the lens WITHOUT navigating away. The fleet is the REAL lens-scoped board
-// (GET /v1/board) — so the exception marks reflect ACTUAL ledger state and the exception-pulse / world-dim
-// demo #5 fires on real data (an empty board renders an honest empty map, never synthetic marks). `?perf`
-// swaps in the deterministic 1,000-entity fleet1k() for the pnpm perf:map frame-budget harness (REQ-079).
-
-const KPIS: ReadonlyArray<{ label: string; value: number; format: (n: number) => string }> = [
-  { label: "OR", value: 94, format: (n) => `${n}%` },
-  { label: "DSO", value: 38, format: (n) => `${n}D` },
-  { label: "UNBILLED", value: 0, format: (n) => `$${n}` },
-  { label: "OTD", value: 98, format: (n) => `${n}%` },
-  { label: "DWELL", value: 47, format: (n) => `${n}M` },
-];
+// (01) COMMAND — the map IS the home (REQ-073/080). Full-viewport greige canvas of the whole fleet, a live
+// count-up KPI strip, the three dark queue panels, and the ⌘K command bar. Chrome floats over the canvas;
+// clicking a mark opens the lens WITHOUT navigating away. Task 12 (REQ-082/083/038/084) replaces the old
+// HARDCODED KPI tiles + queue panels with LIVE, honest views over the Task 2-7 server reads, organized by the
+// Task-8 router (≤12 canonical views): the board's KPI strip + the three queues, the KPI drill-through, and the
+// ⌘K copilot. The fleet is the REAL lens-scoped board (GET /v1/board); `?perf` swaps in the deterministic
+// 1,000-entity fleet1k() for the frame-budget harness (REQ-079) and suppresses the live chrome (no network).
 
 const NAV_LINKS = ["BOARD", "QUEUES", "MONEY", "SETTINGS"] as const;
 
@@ -47,8 +48,7 @@ function usePerfMode(): boolean {
 
 // The live board feed (REQ-073/080). Loads GET /v1/board once and maps it to FleetItem[] for useFleet. On a 401
 // (Task 8 isAuthError) it drops the session (the re-auth path) and surfaces an honest empty map; any other read
-// failure ALSO yields an empty map — the canvas never invents synthetic marks. `enabled` is false in ?perf mode
-// so the perf harness renders the deterministic fleet1k() instead of hitting the network.
+// failure ALSO yields an empty map — the canvas never invents synthetic marks. `enabled` is false in ?perf mode.
 function useBoardFleet(enabled: boolean): { fleet: FleetItem[]; authExpired: boolean } {
   const [fleet, setFleet] = useState<FleetItem[]>([]);
   const [authExpired, setAuthExpired] = useState(false);
@@ -76,9 +76,40 @@ function useBoardFleet(enabled: boolean): { fleet: FleetItem[]; authExpired: boo
   return { fleet, authExpired };
 }
 
-// The selected mark's lens-scoped event tail (REQ-080). Fetches GET /v1/shipments/:id/events when a mark is
-// open; clears when the panel closes. A read failure shows an empty tail (the panel renders "No events yet") —
-// never fabricated events.
+// The KPI strip's data (REQ-083). Loads GET /v1/kpis once — the SIX honest tiles (a real number OR "UNKNOWN",
+// never fabricated). Shared by the strip AND the money queue (its `unbilled` tile), so App fetches it ONCE.
+function useKpis(enabled: boolean): { kpis: KpiTile[]; loading: boolean; error: string | null } {
+  const [kpis, setKpis] = useState<KpiTile[]>([]);
+  const [loading, setLoading] = useState(enabled);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!enabled) return;
+    let live = true;
+    setLoading(true);
+    get<{ kpis: KpiTile[] }>("/v1/kpis")
+      .then((res) => {
+        if (live) setKpis(res.kpis);
+      })
+      .catch((e: unknown) => {
+        if (!live) return;
+        if (e instanceof ApiError && e.isAuthError) {
+          clearSession();
+          return;
+        }
+        setError(e instanceof ApiError ? e.message : "COULD NOT LOAD KPIS");
+      })
+      .finally(() => {
+        if (live) setLoading(false);
+      });
+    return () => {
+      live = false;
+    };
+  }, [enabled]);
+  return { kpis, loading, error };
+}
+
+// The selected mark's lens-scoped event tail (REQ-080). Fetches GET /v1/shipments/:id/events when a mark is open;
+// clears when the panel closes. A read failure shows an empty tail — never fabricated events.
 function useShipmentEvents(shipmentId: string | null): LensEvent[] {
   const [events, setEvents] = useState<LensEvent[]>([]);
   useEffect(() => {
@@ -101,26 +132,26 @@ function useShipmentEvents(shipmentId: string | null): LensEvent[] {
   return events;
 }
 
-function QueuePanel({ heading, rows }: { heading: string; rows: ReadonlyArray<[string, string]> }): React.JSX.Element {
-  return (
-    <Reveal>
-      <div style={{ background: "var(--ink-dark)", padding: 16, minWidth: 240, display: "flex", flexDirection: "column", gap: 10 }}>
-        <Mono size={10} color="var(--signal-55)">
-          {heading}
-        </Mono>
-        {rows.map(([name, count]) => (
-          <div key={name} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 16 }}>
-            <Mono size={12} color="var(--field-on-dark)">
-              {name}
-            </Mono>
-            <Display size="metric" color="var(--field-on-dark)">
-              {count}
-            </Display>
-          </div>
-        ))}
-      </div>
-    </Reveal>
-  );
+function currentLocation(): { pathname: string; search: string; hash: string } {
+  return { pathname: window.location.pathname, search: window.location.search, hash: window.location.hash };
+}
+
+// The Task-8 router as live state (REQ-081/084). resolveRoute maps window.location → one of the command screens;
+// popstate keeps back/forward honest; navigate() pushes AND re-resolves (pushState alone does not fire popstate),
+// so a ⌘K nav or a KPI tile click updates the view immediately. This organizes EXISTING canonical views — never
+// a 13th (REQ-084).
+function useRouter(): { route: Route; navigate: (path: string) => void } {
+  const [route, setRoute] = useState<Route>(() => resolveRoute(currentLocation()));
+  useEffect(() => {
+    const onPop = (): void => setRoute(resolveRoute(currentLocation()));
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+  const navigate = useCallback((path: string): void => {
+    globalThis.history?.pushState(null, "", path);
+    setRoute(resolveRoute(currentLocation()));
+  }, []);
+  return { route, navigate };
 }
 
 export function App(): React.JSX.Element {
@@ -130,29 +161,46 @@ export function App(): React.JSX.Element {
   const { fleet: liveFleet, authExpired } = useBoardFleet(!perf);
   const source = perfSource ?? liveFleet;
   const { collection } = useFleet({ scope: "command" }, source);
+  const { kpis, loading: kpisLoading, error: kpisError } = useKpis(!perf);
+  const { route, navigate } = useRouter();
   const [selected, setSelected] = useState<string | null>(null);
   const [intakeOpen, setIntakeOpen] = useState(false); // the CSR net-new intake flow (REQ-150, Task 11)
   const lensEvents = useShipmentEvents(selected);
 
-  // (01) The ⌘K palette seams (REQ-081). Navigation changes the router URL (the queue/KPI/copilot views are wired
-  // by sibling WP-10 tasks); opening a shipment selects its lens on THIS map home; the intake flow is LAUNCHED here
-  // and BUILT by Task 11. Mutations go through the api client (a fresh Idempotency-Key per call). Stable identity.
+  // Opening a shipment selects its lens on the map home AND returns to the board (closing any drill/copilot
+  // overlay), so a click-through from a queue / KPI drill / copilot citation lands on the shipment in context.
+  const openShipment = useCallback(
+    (id: string): void => {
+      setSelected(id);
+      navigate("/");
+    },
+    [navigate],
+  );
+
+  // (01) The ⌘K palette seams (REQ-081). Navigation routes through the SAME useRouter navigate (so the view
+  // updates); opening a shipment selects its lens; the intake flow is launched here (BUILT by Task 11). Mutations
+  // go through the api client (a fresh Idempotency-Key per call).
   const commandDeps = useMemo<CommandDeps>(
     () => ({
-      navigate: (path) => {
-        globalThis.history?.pushState(null, "", path);
-      },
-      openShipment: (id) => setSelected(id),
-      openIntake: () => setIntakeOpen(true), // Task 11 owns the flow; the palette only launches it
+      navigate,
+      openShipment,
+      openIntake: () => setIntakeOpen(true),
       api: { get, post },
     }),
-    [],
+    [navigate, openShipment],
   );
+
   // The selected mark's status comes straight from the fleet item the board fed in (never hardcoded).
   const selectedStatus = useMemo<Status>(
     () => source.find((i) => i.shipment_id === selected)?.status ?? "healthy",
     [source, selected],
   );
+
+  // The MONEY queue's unbilled-PODs count is the KPI strip's own `unbilled` tile (one /v1/kpis read, shared).
+  const unbilled = useMemo<KpiValue>(() => {
+    const tile = kpis.find((k) => k.key === "unbilled");
+    return tile ? tile.value : "UNKNOWN";
+  }, [kpis]);
 
   return (
     <main style={{ position: "fixed", inset: 0, background: "var(--field)", overflow: "hidden" }}>
@@ -190,59 +238,28 @@ export function App(): React.JSX.Element {
         </div>
       </nav>
 
-      {/* (01) BOARD — the 1px-divided count-up KPI strip. */}
-      <section
-        aria-label="Board KPIs"
-        style={{ position: "absolute", left: 24, bottom: 84, background: "var(--field)", padding: 16, maxWidth: "min(680px, 92vw)" }}
-      >
-        <Mono size={10} color="var(--signal-55)">
-          (01) BOARD
-        </Mono>
-        <div style={{ display: "flex", alignItems: "stretch", marginTop: 8 }}>
-          {KPIS.map((k, i) => (
-            <div key={k.label} style={{ display: "flex", alignItems: "stretch" }}>
-              {i > 0 ? <div style={{ width: 1, background: "var(--signal-12)", margin: "0 16px" }} /> : null}
-              <div style={{ minWidth: 84 }}>
-                <Metric label={k.label} value={k.value} format={k.format} />
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* The live chrome — suppressed in ?perf (the frame-budget harness renders ONLY the map, hits no network). */}
+      {!perf ? (
+        <>
+          {/* (01) BOARD — the live count-up KPI strip; every tile clicks through to its ledger events (REQ-083). */}
+          <KpiStrip kpis={kpis} loading={kpisLoading} error={kpisError} onTile={(key) => navigate(`/kpi/${key}`)} />
 
-      {/* (02) QUEUES + (03) MONEY — dark panels. */}
-      <aside style={{ position: "absolute", top: 84, right: 24, display: "flex", flexDirection: "column", gap: 12, alignItems: "flex-end" }}>
-        <Mono size={10} color="var(--signal-55)">
-          (02) QUEUES
-        </Mono>
-        <QueuePanel
-          heading="APPROVALS"
-          rows={[
-            ["RATE HOLDS", "4"],
-            ["CREDIT", "2"],
-          ]}
-        />
-        <QueuePanel
-          heading="EXCEPTIONS"
-          rows={[
-            ["OS&D", "1"],
-            ["DETENTION", "3"],
-          ]}
-        />
-        <Mono size={10} color="var(--signal-55)">
-          (03) MONEY
-        </Mono>
-        <QueuePanel
-          heading="READY TO SETTLE"
-          rows={[
-            ["INVOICED TODAY", "$128K"],
-            ["AGING >45D", "$0"],
-          ]}
-        />
-      </aside>
+          {/* (02) QUEUES + (03) MONEY — the three live dark panels (REQ-082). */}
+          <aside style={{ position: "absolute", top: 84, right: 24, display: "flex", flexDirection: "column", gap: 12, alignItems: "flex-end" }}>
+            <Mono size={10} color="var(--signal-55)">
+              (02) QUEUES
+            </Mono>
+            <ApprovalsQueue onAuthError={clearSession} />
+            <ExceptionsQueue onAuthError={clearSession} onOpenShipment={openShipment} />
+            <Mono size={10} color="var(--signal-55)">
+              (03) MONEY
+            </Mono>
+            <MoneyQueue unbilled={unbilled} onAuthError={clearSession} />
+          </aside>
+        </>
+      ) : null}
 
-      {/* The ⌘K command palette (REQ-081) — the real DETERMINISTIC command bar. Mounts the bottom ⌘K affordance
-          AND the global keydown-driven overlay palette. Replaces the old decorative strip (no input, no dispatch). */}
+      {/* The ⌘K command palette (REQ-081) — the real DETERMINISTIC command bar. */}
       <CommandBar deps={commandDeps} />
 
       {selected ? (
@@ -255,8 +272,7 @@ export function App(): React.JSX.Element {
         />
       ) : null}
 
-      {/* The CSR net-new intake flow (REQ-150) — launched by the ⌘K "New Order (CSR Intake)" command. On book it
-          offers to open the new shipment's lens on THIS map home; a 401 drops the session (the re-auth path). */}
+      {/* The CSR net-new intake flow (REQ-150) — launched by the ⌘K "New Order (CSR Intake)" command. */}
       {intakeOpen ? (
         <IntakeFlow
           api={{ get, post }}
@@ -266,10 +282,17 @@ export function App(): React.JSX.Element {
         />
       ) : null}
 
-      {/* Keep the Divider primitive referenced so the board reads as one ruled system. */}
-      <div style={{ display: "none" }} aria-hidden>
-        <Divider />
-      </div>
+      {/* Route-driven overlays: the KPI drill-through (kind-filtered ledger events) and the ⌘K copilot. */}
+      {!perf && route.name === "kpi" ? (
+        <KpiDrill
+          metric={route.metric}
+          onSelectMetric={(key) => navigate(`/kpi/${key}`)}
+          onOpenShipment={openShipment}
+          onClose={() => navigate("/")}
+          onAuthError={clearSession}
+        />
+      ) : null}
+      {!perf && route.name === "copilot" ? <CopilotPanel onOpenShipment={openShipment} onClose={() => navigate("/")} /> : null}
     </main>
   );
 }

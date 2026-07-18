@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { FleetCollection } from "@shuddl/map";
 import { getToken, setToken } from "./session.js";
 
@@ -45,6 +45,12 @@ function stubFetch(routes: { board?: unknown; events?: Record<string, unknown>; 
       const id = decodeURIComponent(m[1] ?? "");
       return Promise.resolve(jsonResponse(routes.events?.[id] ?? { events: [], next_cursor: null }));
     }
+    // The Task-12 board chrome fetches these on mount — serve benign empties so the map-home assertions are
+    // isolated from the live KPI strip / queues (each has its own colocated suite).
+    if (url.includes("/v1/kpis")) return Promise.resolve(jsonResponse({ kpis: [] }));
+    if (url.includes("/v1/approvals")) return Promise.resolve(jsonResponse({ approvals: [] }));
+    if (url.includes("/v1/exceptions")) return Promise.resolve(jsonResponse({ exceptions: [] }));
+    if (url.includes("/v1/invoices")) return Promise.resolve(jsonResponse({ invoices: [] }));
     return Promise.resolve(jsonResponse({ code: "NOT_FOUND", message: "NOT FOUND" }, 404));
   });
   vi.stubGlobal("fetch", mock);
@@ -124,5 +130,83 @@ describe("command map home — real board feed (REQ-073/080, demo #5)", () => {
     // The lens panel renders the REAL ledger tail, not the old hardcoded PICKUP/IN TRANSIT stub.
     expect(await screen.findByText("pod.signed")).toBeTruthy();
     expect(screen.queryByText("IN TRANSIT")).toBeNull();
+  });
+});
+
+// WP-10 Task 12 (REQ-082/083/038/084) — the board chrome is now LIVE and router-wired: the KPI strip renders the
+// real /v1/kpis numbers (no more hardcoded tiles), a tile CLICKS THROUGH to its kind-filtered drill, and the
+// copilot is a route-driven overlay. `fetch` routes by URL; no network is ever hit.
+describe("command board chrome — live + router-wired (REQ-082/083/038/084)", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    captured.fleet = null;
+    captured.onSelect = null;
+    // Force reduced motion so CountUp renders its final value immediately (deterministic KPI assertions).
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      matches: true,
+      media: query,
+      onchange: null,
+      addEventListener() {},
+      removeEventListener() {},
+      addListener() {},
+      removeListener() {},
+      dispatchEvent() {
+        return false;
+      },
+    }));
+  });
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  function stubChrome(): void {
+    const mock = vi.fn().mockImplementation((url: string) => {
+      if (url.endsWith("/v1/board")) return Promise.resolve(jsonResponse({ board: [] }));
+      if (url.includes("/v1/kpis")) {
+        return Promise.resolve(
+          jsonResponse({
+            kpis: [{ key: "unbilled", label: "Unbilled PODs", value: 4, unit: "count", backing: { kinds: ["pod.signed", "invoice.issued"] } }],
+          }),
+        );
+      }
+      if (url.includes("/v1/events?kind=")) {
+        return Promise.resolve(jsonResponse({ events: [{ id: "e1", kind: "pod.signed", ts: 1_720_000_000_000, shipment_id: "shp-7" }], next_cursor: null }));
+      }
+      if (url.includes("/v1/approvals")) return Promise.resolve(jsonResponse({ approvals: [] }));
+      if (url.includes("/v1/exceptions")) return Promise.resolve(jsonResponse({ exceptions: [] }));
+      if (url.includes("/v1/invoices")) return Promise.resolve(jsonResponse({ invoices: [] }));
+      return Promise.resolve(jsonResponse({ code: "NOT_FOUND", message: "NOT FOUND" }, 404));
+    });
+    vi.stubGlobal("fetch", mock);
+  }
+
+  it("renders the real KPI number and a tile CLICKS THROUGH to its kind-filtered ledger drill", async () => {
+    window.history.pushState(null, "", "/");
+    stubChrome();
+    render(<App />);
+
+    // the strip shows the REAL /v1/kpis number (scoped to the KPI section — the money queue mirrors the same tile)
+    const strip = await screen.findByLabelText("Board KPIs");
+    expect(await within(strip).findByText("4")).toBeTruthy();
+
+    // the tile CLICKS THROUGH to its kind-filtered drill
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Unbilled PODs — drill to ledger events" }));
+    });
+
+    // the drill overlay reads GET /v1/events?kind=<backing.kinds> and renders the backing event
+    expect(await screen.findByText("pod.signed")).toBeTruthy();
+    expect(screen.getByText("v_unbilled")).toBeTruthy();
+    window.history.pushState(null, "", "/");
+  });
+
+  it("the /copilot route renders the copilot overlay (the ⌘K +copilot surface)", async () => {
+    window.history.pushState(null, "", "/copilot");
+    stubChrome();
+    render(<App />);
+
+    expect(await screen.findByText("ASK THE LEDGER")).toBeTruthy();
+    window.history.pushState(null, "", "/");
   });
 });
