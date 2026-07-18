@@ -288,6 +288,24 @@ describe("REQ-025 growth: the ledger routes reject the same cross-tenant attacks
     expect(await byEmail(env.TENANT_A_DB)).toBe(1); // the write keyed off the tenant-a claim landed here
     expect(await byEmail(env.TENANT_B_DB)).toBe(0); // and NEVER in tenant-b's D1 (a different physical handle)
   });
+
+  it("a tenant-a session's created shipment lands in tenant-a's D1 ONLY, never tenant-b's (REQ-025)", async () => {
+    // The three party FKs exist in BOTH tenants (the shared cast seeded by ensure*Schema), so the write's ONLY
+    // tenant selector is the JWT claim (tenantDb). The shipment id folds the tenant in AND is derived server-side,
+    // so it can only ever be addressed inside — and land in — tenant-a's physical D1.
+    const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "ops" });
+    const res = await SELF.fetch("https://api.local/v1/shipments", {
+      method: "POST",
+      headers: { ...bearer(t), "Idempotency-Key": crypto.randomUUID(), "content-type": "application/json" },
+      body: JSON.stringify({ shipper_party_id: "party-shipper", consignee_party_id: "party-consignee", bill_to_party_id: "party-bill-to" }),
+    });
+    expect(res.status).toBe(201);
+    const shipmentId = ((await res.json()) as { shipment_id: string }).shipment_id;
+    const existsIn = async (db: D1Database): Promise<number> =>
+      (await db.prepare("SELECT COUNT(*) AS n FROM shipments WHERE id = ?").bind(shipmentId).first<{ n: number }>())?.n ?? 0;
+    expect(await existsIn(env.TENANT_A_DB)).toBe(1); // the write keyed off the tenant-a claim landed here
+    expect(await existsIn(env.TENANT_B_DB)).toBe(0); // and NEVER in tenant-b's D1 (a different physical handle)
+  });
 });
 
 // WP-10 Task 9 growth (REQ-073/080 + REQ-025): the command BOARD is the live fleet — active shipments + their
