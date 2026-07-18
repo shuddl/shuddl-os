@@ -1,1 +1,1 @@
-{ "mode": "advisory", "note": "REQ-158: flips to blocking at WP-10 exit." }
+{ "mode": "blocking", "note": "REQ-158: flipped to blocking at WP-10 exit — pixel law now gates merges." }

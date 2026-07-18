@@ -73,19 +73,6 @@ function recordingDeps(overrides?: Partial<CommandDeps>): {
   };
 }
 
-// Fill a command's args with a plausible structured value per key so run() can build its request in the
-// generic "every command maps to a real target" sweep.
-function fillArgs(cmd: Command): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const a of cmd.args) {
-    if (a.key.endsWith("_ts")) out[a.key] = "1720000000000";
-    else if (a.key === "leg_kind") out[a.key] = "pickup";
-    else if (a.key === "weight_lb") out[a.key] = "1200";
-    else out[a.key] = `X-${a.key}`;
-  }
-  return out;
-}
-
 describe("command registry (REQ-081) — the deterministic ⌘K palette", () => {
   it("registers EXACTLY 20 canonical commands (the DoD), with unique ids", () => {
     expect(COMMAND_COUNT).toBe(20);
