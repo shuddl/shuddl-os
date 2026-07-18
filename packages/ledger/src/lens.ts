@@ -82,6 +82,18 @@ export interface ReadQuery {
   // widen it (a party/driver lens + a kind filter still returns only that scope's VISIBLE events).
   // Backed by ix_events_kind_ts(kind, ts) — no full scan.
   kind?: EventKind | readonly EventKind[];
+  // REQ-197 — the exceptions QUEUE must retain the FRESHEST events under the 1000-cap. Ordering is
+  // additive and OPT-IN:
+  //   · "seq" (DEFAULT / omitted) = the firehose keyset `ORDER BY e.stream_id, e.seq` — BYTE-UNCHANGED for
+  //     every existing caller (the composite cursor + nextCursor depend on it).
+  //   · "ts_desc" = `ORDER BY e.ts DESC, e.stream_id DESC, e.seq DESC` (stable tiebreak), backed by
+  //     ix_events_kind_ts(kind, ts). The LIMIT now keeps the NEWEST rows, so a fresh event can never be
+  //     truncated out by the lexicographic stream_id order that the default keyset uses.
+  // `before_ts` is the ts keyset for paging OLDER (ANDs `e.ts < ?`) — a caller walks back by passing the
+  // oldest ts of the prior page. Bound as a `?` param; harmless in the default order (no existing caller
+  // passes it).
+  order?: "seq" | "ts_desc";
+  before_ts?: number;
 }
 
 const LIMIT_CAP = 1000;
@@ -122,9 +134,19 @@ export async function readEvents(db: D1Database, lens: Lens, q: ReadQuery = {}):
       params.push(...kinds);
     }
   }
+  if (q.before_ts !== undefined) {
+    // REQ-197 — page OLDER: strictly-older-than the prior page's oldest ts. Only meaningful with the
+    // ts_desc order; bound as a `?` param either way. Existing (default-order) callers never pass it.
+    clauses.push("e.ts < ?");
+    params.push(q.before_ts);
+  }
   const limit = Math.min(q.limit ?? DEFAULT_LIMIT, LIMIT_CAP);
+  // REQ-197 — the DEFAULT "seq" order (`e.stream_id, e.seq`) is BYTE-UNCHANGED (the keyset cursor depends on
+  // it). "ts_desc" makes the LIMIT retain the FRESHEST rows (stable tiebreak on stream_id/seq), backed by
+  // ix_events_kind_ts(kind, ts) whenever a kind filter is present.
+  const orderBy = q.order === "ts_desc" ? "e.ts DESC, e.stream_id DESC, e.seq DESC" : "e.stream_id, e.seq";
   const res = await db
-    .prepare(`SELECT * FROM events e WHERE ${clauses.join(" AND ")} ORDER BY e.stream_id, e.seq LIMIT ?`)
+    .prepare(`SELECT * FROM events e WHERE ${clauses.join(" AND ")} ORDER BY ${orderBy} LIMIT ?`)
     .bind(...params, limit)
     .all();
   const events = res.results.map((r) => rowToEvent(r as Record<string, string | number | null>));

@@ -339,4 +339,40 @@ describe("readEvents: lens-scoped reads (I6, adversarial visibility)", () => {
     expect(res.map((e) => e.seq)).toEqual([3]);
     expect(res.every((e) => e.kind === "position.updated")).toBe(true);
   });
+
+  // ---- REQ-197: order ts_desc + before_ts paging (the exceptions-queue freshest-first read) --------
+  // Additive, opt-in ordering. The default "seq" order stays byte-unchanged (proven by every test above
+  // + the explicit case below). ts_desc returns newest-first so a LIMIT keeps the freshest; before_ts
+  // walks OLDER with no silent loss. Isolated by a dedicated kind (quote.requested is not in the shared
+  // seed) so these events never perturb the counts asserted above; seeded in a nested beforeAll that runs
+  // AFTER the outer suite's assertions.
+  describe("order ts_desc + before_ts keyset (REQ-197)", () => {
+    beforeAll(async () => {
+      // Four quote.requested on DISTINCT streams with ASCENDING ts. The stream_ids sort in the SAME order
+      // as ts, so under the DEFAULT (stream_id) order the truncation would drop the freshest — the exact
+      // trap ts_desc closes. (Here the set is < the cap; the API test proves the past-the-cap truncation.)
+      await seed("quote.requested", { stream_id: "s:tsd-a", shipment_id: "tsd-a", seq: 0, ts: 1000, visibility: "internal", party_refs: [] });
+      await seed("quote.requested", { stream_id: "s:tsd-b", shipment_id: "tsd-b", seq: 0, ts: 2000, visibility: "internal", party_refs: [] });
+      await seed("quote.requested", { stream_id: "s:tsd-c", shipment_id: "tsd-c", seq: 0, ts: 3000, visibility: "internal", party_refs: [] });
+      await seed("quote.requested", { stream_id: "s:tsd-d", shipment_id: "tsd-d", seq: 0, ts: 4000, visibility: "internal", party_refs: [] });
+    });
+
+    it("order:'ts_desc' returns newest-first", async () => {
+      const res = await readEvents(B, { scope: "tenant" }, { kind: "quote.requested", order: "ts_desc" });
+      expect(res.map((e) => e.ts)).toEqual([4000, 3000, 2000, 1000]);
+    });
+
+    it("before_ts pages OLDER (strictly-older keyset)", async () => {
+      const res = await readEvents(B, { scope: "tenant" }, { kind: "quote.requested", order: "ts_desc", before_ts: 3000 });
+      // e.ts < 3000 → 2000, then 1000 (still newest-first within the older page).
+      expect(res.map((e) => e.ts)).toEqual([2000, 1000]);
+    });
+
+    it("the DEFAULT (no order) path is UNCHANGED — still orders by (stream_id, seq)", async () => {
+      const res = await readEvents(B, { scope: "tenant" }, { kind: "quote.requested" });
+      // stream_id ascending, NOT ts descending — proves the seq path is untouched.
+      expect(res.map((e) => e.stream_id)).toEqual(["s:tsd-a", "s:tsd-b", "s:tsd-c", "s:tsd-d"]);
+      expect(res.map((e) => e.ts)).toEqual([1000, 2000, 3000, 4000]);
+    });
+  });
 });

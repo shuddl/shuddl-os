@@ -38,9 +38,13 @@ const TERMINAL_STATES: ReadonlySet<string> = new Set(["delivered", "settled"]);
 // parseKinds / approvals.ts) — never a silent empty result.
 const STATUS_VALUES: ReadonlySet<string> = new Set(["open", "all"]);
 
-// readEvents caps at 1000; grab a full page. v1 does not paginate the queue (the WP-10 command surface renders a
-// bounded, freshest-first list); a cursored exceptions feed is deferred with the WP-11 resolve flow.
-const EXCEPTIONS_LIMIT = 1000;
+// readEvents caps at 1000; this queue reads the FRESHEST page in ts-DESCENDING order (REQ-197). The default
+// (stream_id, seq) read would truncate by lexicographic stream_id BEFORE any freshest-first sort — so past
+// 1000 lifetime exception events a fresh OPEN exception could silently vanish. Ordering ts_desc makes the cap
+// keep the newest, and `before_ts` pages OLDER: the response returns `next_before_ts` (the oldest ts on the
+// page, or null when the page is short), so the queue walks back with NO silent loss. Exported so the read
+// test can seed just past the cap.
+export const EXCEPTIONS_LIMIT = 1000;
 
 // DEFENSIVE payload read: exception.raised is a LOOSE JsonObject (contracts events.ts:319) — its reason_code may
 // be ABSENT (an override-appended exception bypasses assertException; a legacy/migrated payload need not carry
@@ -65,23 +69,47 @@ export function mountExceptionRoutes(app: Hono<{ Bindings: Env; Variables: Vars 
     const status = c.req.query("status") ?? "all";
     if (!STATUS_VALUES.has(status)) throw new ApiError("VALIDATION_FAILED", 400, "status MUST BE open OR all");
 
+    // REQ-197 — the page-older keyset (the oldest ts of a prior page). Validated as a non-negative int; a
+    // malformed cursor is a hard 400, never a silent full-page reset.
+    const beforeTsRaw = c.req.query("before_ts");
+    let beforeTs: number | undefined;
+    if (beforeTsRaw !== undefined) {
+      const n = Number(beforeTsRaw);
+      if (!Number.isInteger(n) || n < 0) throw new ApiError("VALIDATION_FAILED", 400, "before_ts MUST BE a non-negative integer");
+      beforeTs = n;
+    }
+
     // The DURABLE read: exception.raised + osd.captured through the lens (REQ-082 kind filter, Task 1). For a
     // tenant-lens role this returns every in-tenant exception event UNREDACTED; the redaction still binds for
     // any non-tenant lens (none reach this route today, but the read goes THROUGH the lens, so it stays honest).
+    // REQ-197 — order ts_desc so the 1000-cap retains the FRESHEST exception events (backed by ix_events_kind_ts);
+    // the default (stream_id, seq) order would lexicographically truncate a fresh OPEN exception past the cap.
     const lens = lensFor(session);
-    const events = await readEvents(db, lens, { kind: EXCEPTION_KINDS, limit: EXCEPTIONS_LIMIT });
+    const events = await readEvents(db, lens, {
+      kind: EXCEPTION_KINDS,
+      limit: EXCEPTIONS_LIMIT,
+      order: "ts_desc",
+      ...(beforeTs !== undefined ? { before_ts: beforeTs } : {}),
+    });
+
+    // The page is already ts-DESCENDING from SQL; `next_before_ts` is the OLDEST ts on this page (the last
+    // row), or null when the page is short (fewer than the cap ⇒ no older page). A caller re-requests with
+    // `before_ts=next_before_ts` to walk back — nothing is silently lost, only paged.
+    const nextBeforeTs = events.length < EXCEPTIONS_LIMIT ? null : events[events.length - 1]!.ts;
 
     // Join each event's shipment CURRENT state (one batched read) to decide open vs resolved. A shipment with no
     // row / no state is treated as LIVE (open) — fail toward surfacing an item that needs attention, never toward
     // hiding one.
     const shipmentIds = [...new Set(events.map((e) => e.shipment_id).filter((s): s is string => s !== undefined))];
     const stateById = new Map<string, string>();
-    if (shipmentIds.length > 0) {
+    // REQ-197 — the freshest page can carry up to EXCEPTIONS_LIMIT distinct shipments, so CHUNK the state join:
+    // a single `IN (...)` with ~1000 placeholders exceeds D1's per-statement bound-parameter ceiling (a 500).
+    const STATE_JOIN_CHUNK = 90;
+    for (let i = 0; i < shipmentIds.length; i += STATE_JOIN_CHUNK) {
+      const chunk = shipmentIds.slice(i, i + STATE_JOIN_CHUNK);
       const res = await db
-        .prepare(
-          `SELECT id, json_extract(status_cache,'$.state') AS state FROM shipments WHERE id IN (${shipmentIds.map(() => "?").join(",")})`,
-        )
-        .bind(...shipmentIds)
+        .prepare(`SELECT id, json_extract(status_cache,'$.state') AS state FROM shipments WHERE id IN (${chunk.map(() => "?").join(",")})`)
+        .bind(...chunk)
         .all<{ id: string; state: string | null }>();
       for (const r of res.results) if (r.state !== null) stateById.set(r.id, r.state);
     }
@@ -99,11 +127,11 @@ export function mountExceptionRoutes(app: Hono<{ Bindings: Env; Variables: Vars 
       };
     });
 
-    // Freshest-first — a queue reads newest-needing-attention at the top. `status=open` filters to the live ones;
-    // `all`/absent returns every exception with its `open` flag (a delivered shipment's exception reads open:false,
-    // present but resolved — never dropped).
-    items.sort((a, b) => b.ts - a.ts);
+    // The page arrives freshest-first from SQL (ts DESC, REQ-197) — no JS re-sort needed. `status=open` filters
+    // to the live ones; `all`/absent returns every exception ON THIS PAGE with its `open` flag (a delivered
+    // shipment's exception reads open:false — present-but-resolved, never dropped). Older pages are reachable via
+    // `before_ts=next_before_ts`, so a fresh open exception past the cap surfaces at the top instead of vanishing.
     const filtered = status === "open" ? items.filter((i) => i.open) : items;
-    return c.json({ exceptions: filtered });
+    return c.json({ exceptions: filtered, next_before_ts: nextBeforeTs });
   });
 }
