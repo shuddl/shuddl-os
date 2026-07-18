@@ -15,6 +15,7 @@ import { TENANT_BINDINGS } from "../src/tenants.js";
 import { mintStatusCap, verifyStatusCap } from "../src/pub/status-cap.js";
 import { eventFixture, type EventKind } from "@shuddl/contracts";
 import { eventToRow } from "@shuddl/ledger/lens";
+import { computeUnbilled } from "../src/kpis/compute.js";
 
 const JWT_SECRET = "test-secret-do-not-use-in-prod"; // === vitest.config.ts miniflare bindings.JWT_SECRET
 const nowS = (): number => Math.floor(Date.now() / 1000);
@@ -506,5 +507,47 @@ describe("REQ-025 growth: the exceptions queue reads ONLY the JWT tenant's D1", 
     const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "ops" });
     const res = await SELF.fetch("https://api.local/v1/exceptions?tenant=tenant-b&status=open", { headers: { Authorization: `Bearer ${t}` } });
     expect(res.status).toBe(403);
+  });
+});
+
+// WP-10 Task 5 growth (REQ-083 + REQ-025): the KPI strip aggregates ONLY the JWT tenant's D1. It is keyed off the
+// claim via tenantDb — it reads WITHIN the session's D1, never across tenants. A tenant-b-only unbilled shipment
+// (in a DIFFERENT physical D1) must never count toward tenant-a's KPIs.
+describe("REQ-025 growth: the KPI strip reads ONLY the JWT tenant's D1", () => {
+  const B_UNBILLED = "iso-kpi-b-unbilled"; // a tenant-b pod.signed-without-invoice — must never count for tenant-a
+  let kpiHashN = 0xc0000;
+  const kpiHash = (): string => (kpiHashN++).toString(16).padStart(64, "0");
+
+  beforeAll(async () => {
+    // Direct-insert a committed pod.signed (no invoice.issued) into tenant-b's D1 ONLY — the exact shape the
+    // unbilled anti-join counts. If any cross-tenant bleed existed, tenant-a's scoped compute would see it.
+    const e = eventFixture("pod.signed", {
+      id: crypto.randomUUID(),
+      stream_id: `s:${B_UNBILLED}`,
+      shipment_id: B_UNBILLED,
+      seq: 0,
+      visibility: "internal",
+      party_refs: [],
+    });
+    const row = eventToRow(e);
+    row.hash = kpiHash();
+    const cols = Object.keys(row);
+    await env.TENANT_B_DB.prepare(`INSERT INTO events (${cols.join(",")}) VALUES (${cols.map(() => "?").join(",")})`)
+      .bind(...cols.map((col) => row[col]))
+      .run();
+  });
+
+  it("a tenant-a session's unbilled compute never counts a tenant-b-only shipment (different physical D1)", async () => {
+    // Same scope prefix, two physical DBs: tenant-a can never address the tenant-b row (0), tenant-b really has it (1).
+    expect(await computeUnbilled(env.TENANT_A_DB, { scope: "iso-kpi-b-" })).toBe(0);
+    expect(await computeUnbilled(env.TENANT_B_DB, { scope: "iso-kpi-b-" })).toBe(1);
+  });
+
+  it("GET /v1/kpis is a tenant-lens surface (ops 200); ?tenant= is rejected at auth", async () => {
+    const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "ops" });
+    const ok = await SELF.fetch("https://api.local/v1/kpis", { headers: { Authorization: `Bearer ${t}` } });
+    expect(ok.status).toBe(200);
+    const spoof = await SELF.fetch("https://api.local/v1/kpis?tenant=tenant-b", { headers: { Authorization: `Bearer ${t}` } });
+    expect(spoof.status).toBe(403); // tenant is resolved server-side, never client-supplied
   });
 });

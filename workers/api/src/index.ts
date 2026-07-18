@@ -17,6 +17,7 @@ import { mountInvoiceRoutes } from "./routes/invoices.js";
 import { mountPortalActionRoutes } from "./routes/portal-actions.js";
 import { mountApprovalRoutes } from "./routes/approvals.js";
 import { mountExceptionRoutes } from "./routes/exceptions.js";
+import { mountKpiRoutes } from "./routes/kpis.js";
 import { mountPublicRoutes } from "./routes/public.js";
 
 export type Env = {
@@ -103,6 +104,12 @@ mountApprovalRoutes(app);
 // shipment's current state for an honest open/resolved flag. A /v1 route, so auth + idempotency already apply;
 // tenant-scoped via the JWT claim (tenantDb, REQ-025). NO new table/kind/projection. Resolve flow deferred to WP-11.
 mountExceptionRoutes(app);
+// WP-10 Task 5 (REQ-083): GET /v1/kpis — the command KPI strip. Six tiles, each a REAL number computed from real
+// ledger rows and DRILLABLE to its backing events (backing.kinds → GET /v1/events?kind=), OR the literal "UNKNOWN"
+// — NEVER a fabricated/placeholder number (the "no price on air" ethos for KPIs). The OR tile is an HONEST,
+// clearly-labeled cost/revenue ratio from the quoted cost basis, NOT a bare Operating Ratio (no op-cost kind exists).
+// A /v1 route, so auth + idempotency apply; tenant-scoped via the JWT claim (tenantDb, REQ-025). NO new table/kind/projection.
+mountKpiRoutes(app);
 // WP-09 Task 3 (REQ-187/188): GET /pub/status/:cap — the PUBLIC, no-auth status read that consumes the cap
 // minted above. Mounted at /pub/* (NOT /v1/*), so app.use("/v1/*", auth) + idempotency do NOT run — the cap
 // is the authorization. This is the first public data read in the system; verifyStatusCap is the whole gate.
