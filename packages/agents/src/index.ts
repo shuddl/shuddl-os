@@ -43,3 +43,19 @@ export type { QuoteReplyData } from "./concierge/quote-reply.js";
 // biller's ComposeInput.)
 export { composeConcierge } from "./concierge/compose.js";
 export type { ComposeInput as ConciergeComposeInput, ConciergeDecision } from "./concierge/compose.js";
+// WP-10 Task 7 Copilot — the READ-ONLY, cite-or-abstain question-answerer over the ledger (REQ-038/024). A PURE
+// core over an INJECTED read port (packages/agents never imports @shuddl/ledger), config-gated exactly like the
+// Concierge parser: DeterministicCopilot (the CI path + auditable floor), NotConfiguredCopilot (rejects loudly),
+// ClaudeCopilot (raw fetch, live only when a key+model is bound; fail-safe to ABSTAIN on garbage/ungrounded output).
+export {
+  DeterministicCopilot,
+  NotConfiguredCopilot,
+  ClaudeCopilot,
+  CopilotError,
+  classifyQuestion,
+  selectCopilot,
+  buildCopilotUserPrompt,
+  COPILOT_SYSTEM_PROMPT,
+} from "./copilot/answer.js";
+export type { Copilot, ClaudeCopilotConfig, CopilotLlmConfig } from "./copilot/answer.js";
+export type { CopilotReadPort, CopilotReadQuery, ReadEvent } from "./copilot/port.js";

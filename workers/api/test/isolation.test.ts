@@ -600,3 +600,54 @@ describe("REQ-025 growth: the KPI strip reads ONLY the JWT tenant's D1", () => {
     expect(spoof.status).toBe(403); // tenant is resolved server-side, never client-supplied
   });
 });
+
+// WP-10 Task 7 growth (REQ-038 + REQ-025): the copilot answers ONLY over the JWT tenant's D1, through the
+// caller's lens. Its read port is readEvents(db, lensFor(session), q) keyed off the claim via tenantDb — it
+// can never ground an answer on another tenant's events. A tenant-b-only exception (in a DIFFERENT physical
+// D1) must never appear in a tenant-a copilot answer or its citations.
+describe("REQ-025 growth: the copilot cites ONLY the JWT tenant's D1 (lens-scoped)", () => {
+  const B_COPILOT_SHP = "iso-copilot-tenant-b-only"; // a tenant-b exception marker — must NEVER surface for tenant-a
+  let cpHashN = 0xd0000;
+  const cpHash = (): string => (cpHashN++).toString(16).padStart(64, "0");
+
+  beforeAll(async () => {
+    // Direct-insert an exception.raised into tenant-b's D1 only (bypasses the sequencer — we prove the READ path).
+    const e = eventFixture("exception.raised", {
+      id: crypto.randomUUID(),
+      stream_id: `s:${B_COPILOT_SHP}`,
+      shipment_id: B_COPILOT_SHP,
+      seq: 0,
+      visibility: "internal",
+      party_refs: [],
+      payload: { photo_hash: "d".repeat(64), reason_code: "damage" },
+    });
+    const row = eventToRow(e);
+    row.hash = cpHash();
+    const cols = Object.keys(row);
+    await env.TENANT_B_DB.prepare(`INSERT INTO events (${cols.join(",")}) VALUES (${cols.map(() => "?").join(",")})`)
+      .bind(...cols.map((col) => row[col]))
+      .run();
+  });
+
+  it("a tenant-a copilot answer never cites a tenant-b exception (REQ-025)", async () => {
+    const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "ops" });
+    const res = await SELF.fetch("https://api.local/v1/copilot/ask", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${t}`, "Idempotency-Key": crypto.randomUUID(), "content-type": "application/json" },
+      body: JSON.stringify({ question: "which shipments have open exceptions?" }),
+    });
+    expect(res.status).toBe(200);
+    const text = await res.text();
+    expect(text).not.toContain(B_COPILOT_SHP); // tenant-b's exception never bleeds into tenant-a's answer/citations
+  });
+
+  it("?tenant= query param on POST /v1/copilot/ask is rejected at auth", async () => {
+    const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "ops" });
+    const res = await SELF.fetch("https://api.local/v1/copilot/ask?tenant=tenant-b", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${t}`, "Idempotency-Key": crypto.randomUUID(), "content-type": "application/json" },
+      body: JSON.stringify({ question: "which shipments have open exceptions?" }),
+    });
+    expect(res.status).toBe(403);
+  });
+});

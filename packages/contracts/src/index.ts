@@ -11,6 +11,7 @@ export * from "./session.js";
 export * from "./json.js";
 export * from "./money.js";
 export * from "./comms.js";
+export * from "./copilot.js";
 export * from "./booking.js";
 export * from "./facilities.js";
 export * from "./rating.js";
