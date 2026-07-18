@@ -15,6 +15,7 @@ import { mountStatusLinkRoutes } from "./routes/status-link.js";
 import { mountDocumentRoutes } from "./routes/documents.js";
 import { mountInvoiceRoutes } from "./routes/invoices.js";
 import { mountPortalActionRoutes } from "./routes/portal-actions.js";
+import { mountIntakeRoutes } from "./routes/intake.js";
 import { mountApprovalRoutes } from "./routes/approvals.js";
 import { mountExceptionRoutes } from "./routes/exceptions.js";
 import { mountKpiRoutes } from "./routes/kpis.js";
@@ -94,6 +95,13 @@ mountInvoiceRoutes(app);
 // Both /v1 routes, so auth + idempotency already apply; both lens-gate :id and append THROUGH the sequencer DO.
 // A portal party gets NO general event-POST — that surface (POST /v1/shipments/:id/events) still excludes portal.
 mountPortalActionRoutes(app);
+// WP-10 Task 6 (REQ-150/195/030/025): the synchronous CSR net-new intake seam — POST /v1/parties (find-or-create
+// a party deterministically, no LLM) + POST /v1/shipments (materialize a QUOTE-STAGE shipments row with the
+// shipper/consignee/bill_to FKs). Both /v1 routes, so auth + idempotency already apply; roles admin/ops only,
+// tenant off the JWT claim (tenantDb, REQ-025). The seam creates a quote-stage row with NO booking.created, so a
+// CSR booking still flows through the sequencer + #enforceBooking (credit/evidence gates — no bypass). UI-decoupled
+// (WP-13 MCP calls the same verbs). NO new table/kind; the append-only ledger is untouched (domain-table INSERTs).
+mountIntakeRoutes(app);
 // WP-10 Task 2 (REQ-082/194): the approvals QUEUE — POST /v1/shipments/:id/approval-decision (the BLESSED
 // approval.decided path that enforces the matrix required_role SERVER-SIDE) + GET /v1/approvals?status=open
 // (the tenant-scoped command-queue list over the read-model the sequencer now projects). Both /v1 routes, so

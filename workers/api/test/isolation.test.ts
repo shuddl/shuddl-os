@@ -239,6 +239,55 @@ describe("REQ-025 growth: the ledger routes reject the same cross-tenant attacks
     const res = await SELF.fetch("https://api.local/v1/approvals?tenant=tenant-b&status=open", { headers: bearer(t) });
     expect(res.status).toBe(403);
   });
+
+  // WP-10 Task 6 growth (REQ-150/195/025): the CSR net-new intake WRITE seams are tenant-scoped off the JWT
+  // claim (tenantDb) and reject any client tenant hint at auth. A tenant-a session's party/shipment can only
+  // ever land in tenant-a's physical D1 — a DIFFERENT D1 than tenant-b's, which the session can never address.
+  it("X-Tenant-Id header on POST /v1/parties is rejected at auth (TENANT_MISMATCH)", async () => {
+    const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "ops" });
+    const res = await SELF.fetch("https://api.local/v1/parties", {
+      method: "POST",
+      headers: { ...bearer(t), "X-Tenant-Id": "tenant-b", "Idempotency-Key": "k", "content-type": "application/json" },
+      body: JSON.stringify({ kind: "shipper", name: "x", email: "x@iso.test" }),
+    });
+    expect(res.status).toBe(403);
+  });
+
+  it("X-Tenant-Id header on POST /v1/shipments is rejected at auth (TENANT_MISMATCH)", async () => {
+    const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "ops" });
+    const res = await SELF.fetch("https://api.local/v1/shipments", {
+      method: "POST",
+      headers: { ...bearer(t), "X-Tenant-Id": "tenant-b", "Idempotency-Key": "k", "content-type": "application/json" },
+      body: JSON.stringify({ shipper_party_id: "a", consignee_party_id: "b", bill_to_party_id: "c" }),
+    });
+    expect(res.status).toBe(403);
+  });
+
+  it("?tenant= query param on POST /v1/parties is rejected at auth", async () => {
+    const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "ops" });
+    const res = await SELF.fetch("https://api.local/v1/parties?tenant=tenant-b", {
+      method: "POST",
+      headers: { ...bearer(t), "Idempotency-Key": "k", "content-type": "application/json" },
+      body: JSON.stringify({ kind: "shipper", name: "x", email: "x@iso.test" }),
+    });
+    expect(res.status).toBe(403);
+  });
+
+  it("a tenant-a session's created party lands in tenant-a's D1 ONLY, never tenant-b's (REQ-025)", async () => {
+    // A uniquely-marked email so the assertion is unambiguous across the shared physical D1s.
+    const marker = "iso-intake-tenant-a-only@iso-intake.test";
+    const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "ops" });
+    const res = await SELF.fetch("https://api.local/v1/parties", {
+      method: "POST",
+      headers: { ...bearer(t), "Idempotency-Key": crypto.randomUUID(), "content-type": "application/json" },
+      body: JSON.stringify({ kind: "shipper", name: "Iso Intake Co", email: marker }),
+    });
+    expect(res.status).toBe(201);
+    const byEmail = async (db: D1Database): Promise<number> =>
+      (await db.prepare("SELECT COUNT(*) AS n FROM parties p, json_each(p.contacts) je WHERE json_extract(je.value, '$.email') = ?").bind(marker).first<{ n: number }>())?.n ?? 0;
+    expect(await byEmail(env.TENANT_A_DB)).toBe(1); // the write keyed off the tenant-a claim landed here
+    expect(await byEmail(env.TENANT_B_DB)).toBe(0); // and NEVER in tenant-b's D1 (a different physical handle)
+  });
 });
 
 // WP-09 Task 4 growth (REQ-051/189): the SECOND no-auth surface, POST /pub/quote. It has NO JWT to key the
