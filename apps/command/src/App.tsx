@@ -21,6 +21,7 @@ import { resolveRoute, type Route } from "./router.js";
 import { ApprovalsQueue } from "./views/ApprovalsQueue.js";
 import { ExceptionsQueue } from "./views/ExceptionsQueue.js";
 import { MoneyQueue } from "./views/MoneyQueue.js";
+import { DunningQueue } from "./views/DunningQueue.js";
 import { KpiStrip } from "./views/KpiStrip.js";
 import { KpiDrill } from "./views/KpiDrill.js";
 import { CopilotPanel } from "./views/CopilotPanel.js";
@@ -255,6 +256,8 @@ export function App(): React.JSX.Element {
               (03) MONEY
             </Mono>
             <MoneyQueue unbilled={unbilled} onAuthError={clearSession} />
+            {/* WP-11 T7 (REQ-032) — the Collector dunning drafts ride UNDER the money surface (not a 13th view). */}
+            <DunningQueue onAuthError={clearSession} />
           </aside>
         </>
       ) : null}

@@ -484,6 +484,57 @@ describe("REQ-025 growth: /pub/status/:cap reads ONLY the cap's MAC-verified ten
   });
 });
 
+// WP-11 Task 7 growth (REQ-032 + REQ-025): the Collector dunning human-send surface is tenant-scoped off the JWT
+// claim (tenantDb). A tenant-a operator must NEVER see a tenant-b draft in its queue, and a send named at a
+// tenant-b draft id reads tenant-a's D1 (a DIFFERENT physical D1) → no such draft → a clean 404, never a cross read.
+describe("REQ-025 growth: the Collector dunning surface reads ONLY the JWT tenant's D1", () => {
+  const B_DUN_INV = "iso-dun-tenant-b-only"; // a tenant-b dunning draft — must NEVER appear in a tenant-a queue
+  const B_DUN_DRAFT_ID = `msg:dunning:${B_DUN_INV}:reminder`;
+  const B_DUN_BODY_REF = `collector-dunning/${B_DUN_INV}/reminder`;
+
+  beforeAll(async () => {
+    // Seed a party + open overdue invoice + a Collector DRAFT into tenant-b's D1 ONLY. tenant-a's queue is keyed
+    // off the claim via tenantDb, so it can never physically address these rows.
+    await env.TENANT_B_DB.prepare("INSERT OR IGNORE INTO parties (id, kind, names, contacts) VALUES (?,?,?,?)")
+      .bind("iso-dun-party-b", "shipper", "{}", JSON.stringify([{ kind: "billing", email: "billing@iso-dun-b.example.com" }]))
+      .run();
+    await env.TENANT_B_DB.prepare(
+      "INSERT OR IGNORE INTO invoices (id, party_id, division, shipment_ids, total_cents, status, issued_event_id, terms, due_ts) VALUES (?,?,?,?,?,?,?,?,?)",
+    )
+      .bind(B_DUN_INV, "iso-dun-party-b", "main", "[]", 100_000, "issued", `evt-${B_DUN_INV}`, "net30", 0)
+      .run();
+    await env.TENANT_B_DB.prepare(
+      "INSERT OR IGNORE INTO messages (id, channel, direction, party_id, shipment_id, resolved_conf, thread, body_ref, drafted_by_agent, sla_due_ts) VALUES (?,?,?,?,?,?,?,?,?,?)",
+    )
+      .bind(B_DUN_DRAFT_ID, "email", "out", "iso-dun-party-b", null, null, null, B_DUN_BODY_REF, "collector", null)
+      .run();
+  });
+
+  it("a tenant-a session GETting /v1/dunning never returns a tenant-b draft (REQ-025)", async () => {
+    const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "ops" });
+    const res = await SELF.fetch("https://api.local/v1/dunning?status=draft", { headers: { Authorization: `Bearer ${t}` } });
+    expect(res.status).toBe(200);
+    const text = await res.text();
+    expect(text).not.toContain(B_DUN_INV); // tenant-b's draft never bleeds into tenant-a's queue
+  });
+
+  it("a send named at a tenant-b draft id reads tenant-a's D1 → clean 404, never tenant-b's (REQ-025)", async () => {
+    const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "finance" });
+    const res = await SELF.fetch(`https://api.local/v1/dunning/${encodeURIComponent(B_DUN_DRAFT_ID)}/send`, {
+      method: "POST",
+      headers: { ...{ Authorization: `Bearer ${t}` }, "Idempotency-Key": crypto.randomUUID(), "content-type": "application/json" },
+      body: "{}",
+    });
+    expect(res.status).toBe(404); // no such draft in tenant-a's D1 — no cross-tenant read, no append, no send
+  });
+
+  it("?tenant= query param on GET /v1/dunning is rejected at auth", async () => {
+    const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "ops" });
+    const res = await SELF.fetch("https://api.local/v1/dunning?tenant=tenant-b&status=draft", { headers: { Authorization: `Bearer ${t}` } });
+    expect(res.status).toBe(403);
+  });
+});
+
 // ISO-pub-4 — the MINT route bakes the cap's `t` from session.tenant ALONE, never from `:id` or any input.
 // A tenant-a session therefore can never mint a cap that reads tenant-b, whatever `:id` it names.
 describe("REQ-025 growth: POST /v1/shipments/:id/status-link bakes cap.t from the session, never :id", () => {

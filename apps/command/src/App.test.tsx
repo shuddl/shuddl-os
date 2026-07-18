@@ -51,6 +51,7 @@ function stubFetch(routes: { board?: unknown; events?: Record<string, unknown>; 
     if (url.includes("/v1/approvals")) return Promise.resolve(jsonResponse({ approvals: [] }));
     if (url.includes("/v1/exceptions")) return Promise.resolve(jsonResponse({ exceptions: [] }));
     if (url.includes("/v1/invoices")) return Promise.resolve(jsonResponse({ invoices: [] }));
+    if (url.includes("/v1/dunning")) return Promise.resolve(jsonResponse({ drafts: [] }));
     return Promise.resolve(jsonResponse({ code: "NOT_FOUND", message: "NOT FOUND" }, 404));
   });
   vi.stubGlobal("fetch", mock);

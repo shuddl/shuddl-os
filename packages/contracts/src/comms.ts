@@ -67,6 +67,14 @@ export const MessageSentPayload = z
     // time so the redelivery fast path re-renders the SAME line from committed events (never a live config
     // re-read that could drift → a 409/spurious-hold). Absent ⇒ the reply omitted the "Estimated transit" line.
     transit_days: SafeInt.optional(),
+    // REQ-032/178 (WP-11 Collector human-send) — the tenant "voice" (the config-seeded from-name that signs the
+    // dunning body) PINNED into the sent record at send time, so the Collector's approve-and-send FAST PATH
+    // re-renders the SAME signature from COMMITTED state — immune to a later from-name config change that would
+    // otherwise drift the re-render → a 409 on the send's idempotency key (the exact transit_days lesson).
+    // Bounded + React-escaped (body-only). Absent ⇒ an older send (e.g. the Concierge reply re-reads its
+    // from-name from the env dep); present only on the Collector's dunning sends. Canonical-hash-safe: an
+    // OPTIONAL field, absent on every prior event, so no stored event's frozen bytes change.
+    from_name: z.string().min(1).max(200).optional(),
   })
   .strict();
 export type MessageSentPayload = z.infer<typeof MessageSentPayload>;

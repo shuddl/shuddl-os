@@ -23,6 +23,7 @@ import { mountCopilotRoutes } from "./routes/copilot.js";
 import { mountBoardRoutes } from "./routes/board.js";
 import { mountExportRoutes } from "./routes/export-journal.js";
 import { mountFullExportRoutes } from "./routes/export.js";
+import { mountDunningRoutes } from "./routes/dunning.js";
 import { mountPublicRoutes } from "./routes/public.js";
 
 export type Env = {
@@ -39,6 +40,12 @@ export type Env = {
   // ClaudeCopilot; anything less ⇒ the DeterministicCopilot floor. Unbound in CI, so the LLM is never called there.
   ANTHROPIC_API_KEY?: string;
   COPILOT_MODEL?: string;
+  // WP-11 Task 7 (REQ-032/092/157) — the Collector dunning human-send. BOTH RESEND halves present ⇒ ResendSender;
+  // anything less ⇒ NotConfiguredSender (rejects LOUDLY, retriable) — the SAME composition-root discipline as the
+  // agents worker's evidenceSender. Unbound in CI, so the live sender is never reached (tests inject a recorder).
+  RESEND_API_KEY?: string;
+  EVIDENCE_FROM?: string;
+  DUNNING_FROM_NAME?: string; // REQ-098 tenant voice signed into the dunning body (defaults to a REQ-167-clean name)
 };
 export type Vars = { req_id: string; session: SessionClaims };
 
@@ -154,6 +161,14 @@ mountExportRoutes(app);
 // counts, roots). A READ — no writes, no new table/kind; only existing reads. Tenant off the JWT claim
 // (tenantDb, REQ-025) — the export can NEVER cross tenants. A /v1 route, so auth + idempotency already apply.
 mountFullExportRoutes(app);
+// WP-11 Task 7 (REQ-032/025): the Collector's dunning human review-and-send. GET /v1/dunning?status=draft (the
+// DRAFT queue — Collector-drafted `messages` rows with no corresponding message.sent, re-rendered from the
+// invoice's committed state) + POST /v1/dunning/:id/send (a HUMAN-INITIATED send — the human IS the approval;
+// no auto-send, no dual-control matrix). The send appends message.sent THROUGH the sequencer FIRST then calls
+// the EvidenceSender, idempotent (deterministic id) with an honest hold (biller.ts pattern). Both /v1 routes, so
+// auth + idempotency already apply; roles admin/ops/finance, tenant off the JWT claim (tenantDb, REQ-025). NO new
+// table/kind — drafts are `messages` rows; the send is a `message.sent` event.
+mountDunningRoutes(app);
 // WP-09 Task 3 (REQ-187/188): GET /pub/status/:cap — the PUBLIC, no-auth status read that consumes the cap
 // minted above. Mounted at /pub/* (NOT /v1/*), so app.use("/v1/*", auth) + idempotency do NOT run — the cap
 // is the authorization. This is the first public data read in the system; verifyStatusCap is the whole gate.
