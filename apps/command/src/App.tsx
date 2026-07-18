@@ -11,9 +11,11 @@ import {
   type LensEvent,
   type Status,
 } from "@shuddl/map";
-import { ApiError } from "./lib/api.js";
+import { ApiError, get, post } from "./lib/api.js";
 import { fetchBoard, fetchShipmentEvents } from "./lib/board.js";
 import { clear as clearSession } from "./session.js";
+import { CommandBar } from "./command/CommandBar.js";
+import type { CommandDeps } from "./command/registry.js";
 
 // (01) COMMAND — the map IS the home (REQ-073/080). Full-viewport greige canvas of the whole fleet,
 // a 1px-divided count-up KPI strip, dark queue panels, and the ⌘K command bar. Chrome floats over the
@@ -129,6 +131,23 @@ export function App(): React.JSX.Element {
   const { collection } = useFleet({ scope: "command" }, source);
   const [selected, setSelected] = useState<string | null>(null);
   const lensEvents = useShipmentEvents(selected);
+
+  // (01) The ⌘K palette seams (REQ-081). Navigation changes the router URL (the queue/KPI/copilot views are wired
+  // by sibling WP-10 tasks); opening a shipment selects its lens on THIS map home; the intake flow is LAUNCHED here
+  // and BUILT by Task 11. Mutations go through the api client (a fresh Idempotency-Key per call). Stable identity.
+  const commandDeps = useMemo<CommandDeps>(
+    () => ({
+      navigate: (path) => {
+        globalThis.history?.pushState(null, "", path);
+      },
+      openShipment: (id) => setSelected(id),
+      openIntake: () => {
+        globalThis.history?.pushState(null, "", "/intake");
+      },
+      api: { get, post },
+    }),
+    [],
+  );
   // The selected mark's status comes straight from the fleet item the board fed in (never hardcoded).
   const selectedStatus = useMemo<Status>(
     () => source.find((i) => i.shipment_id === selected)?.status ?? "healthy",
@@ -222,29 +241,9 @@ export function App(): React.JSX.Element {
         />
       </aside>
 
-      {/* The ⌘K command bar — dark strip, mono uppercase, red caret. */}
-      <div
-        style={{
-          position: "absolute",
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: "var(--ink-dark)",
-          padding: "14px 24px",
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          borderTop: "1px solid var(--signal-12)",
-        }}
-      >
-        <Mono size={12} color="var(--field-on-dark)">
-          ⌘K
-        </Mono>
-        <Mono size={12} color="var(--signal-55)">
-          Type a command — quote, dispatch, invoice
-        </Mono>
-        <span aria-hidden style={{ width: 8, height: 15, background: "var(--signal)" }} />
-      </div>
+      {/* The ⌘K command palette (REQ-081) — the real DETERMINISTIC command bar. Mounts the bottom ⌘K affordance
+          AND the global keydown-driven overlay palette. Replaces the old decorative strip (no input, no dispatch). */}
+      <CommandBar deps={commandDeps} />
 
       {selected ? (
         <LensPanel
