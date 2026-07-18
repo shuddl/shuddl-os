@@ -4,12 +4,12 @@
 // statements so the Task-13 sequencer can put them in the SAME db.batch() as the event INSERT — the
 // event and its lines commit together or not at all (I1 both directions). INTEGER CENTS ONLY.
 import type { LedgerEvent } from "@shuddl/contracts";
+// REQ-020 — GL accounts for the non-invoice money kinds (invoice lines carry their own gl_map on the
+// payload). Drawn from the ONE canonical chart-of-accounts (contracts gl-accounts), the same registry
+// the Biller GL_MAP and the journal export use, so the whole system reconciles against a single chart
+// (Task-3 qb-journal-month). Strings unchanged; the gl-accounts parity test guards a future drift.
+import { GL_INTERLINE_AP as INTERLINE_GL, GL_COD_CLEARING as COD_GL, GL_SETTLEMENT_FEE as SETTLE_GL } from "@shuddl/contracts";
 import { allocateCents } from "../money/split.js";
-
-// GL accounts for the non-invoice money kinds (invoice lines carry their own gl_map on the payload).
-const INTERLINE_GL = "5000-INTERLINE-AP";
-const COD_GL = "1300-COD-CLEARING";
-const SETTLE_GL = "5100-SETTLEMENT-FEE";
 
 // REQ-083 — the documented system DEFAULT payment terms an issued invoice falls back to when nothing more
 // specific is on file. net-30 is a real, ubiquitous AR business default (NOT a fabricated due date); the

@@ -11,6 +11,11 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+// REQ-020 — the fixture must replay the CANONICAL account codes the compose path emits on a real
+// invoice.issued (the -AR revenue accounts), NOT its own bare codes; otherwise the Task-3 QB
+// chart-of-accounts reconcile breaks. Drawn from the ONE canonical registry so the fixture cannot
+// drift from the Biller GL_MAP again (the gl-accounts parity test guards it).
+import { GL_FREIGHT_AR, GL_FSC_AR, GL_ACCESSORIAL_AR } from "@shuddl/contracts";
 
 function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
@@ -70,9 +75,9 @@ function build(): { uncorrected_total_cents: number; events: SeedEvent[] } {
     const stream_id = `s:${shipment_id}`;
     const invoice_id = `inv-${i}`;
     const originals: SeedLine[] = [
-      { line_no: 1, kind: "freight", amount_cents: freight, gl_map: "4000-FREIGHT" },
-      { line_no: 2, kind: "fsc", amount_cents: FSC_CENTS, gl_map: "4100-FSC" },
-      { line_no: 3, kind: "accessorial", amount_cents: ACCESSORIAL_CENTS, gl_map: "4200-ACC" },
+      { line_no: 1, kind: "freight", amount_cents: freight, gl_map: GL_FREIGHT_AR },
+      { line_no: 2, kind: "fsc", amount_cents: FSC_CENTS, gl_map: GL_FSC_AR },
+      { line_no: 3, kind: "accessorial", amount_cents: ACCESSORIAL_CENTS, gl_map: GL_ACCESSORIAL_AR },
     ];
     uncorrected += freight + FSC_CENTS + ACCESSORIAL_CENTS;
 
@@ -82,9 +87,9 @@ function build(): { uncorrected_total_cents: number; events: SeedEvent[] } {
     if (CORRECTED.has(i)) {
       const delta = 1 + Math.floor(rnd() * 5_000); // seeded, non-zero bump to the freight line
       const bumped: SeedLine[] = [
-        { line_no: 1, kind: "freight", amount_cents: freight + delta, gl_map: "4000-FREIGHT" },
-        { line_no: 2, kind: "fsc", amount_cents: FSC_CENTS, gl_map: "4100-FSC" },
-        { line_no: 3, kind: "accessorial", amount_cents: ACCESSORIAL_CENTS, gl_map: "4200-ACC" },
+        { line_no: 1, kind: "freight", amount_cents: freight + delta, gl_map: GL_FREIGHT_AR },
+        { line_no: 2, kind: "fsc", amount_cents: FSC_CENTS, gl_map: GL_FSC_AR },
+        { line_no: 3, kind: "accessorial", amount_cents: ACCESSORIAL_CENTS, gl_map: GL_ACCESSORIAL_AR },
       ];
       const c1 = nextIds();
       events.push({ ...c1, stream_id, shipment_id, seq: 1, division, party_id, invoice_id, kind: "invoice.corrected", corrects_event_id: issue.id, reissue_lines: bumped });

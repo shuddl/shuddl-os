@@ -4,8 +4,10 @@
 // so the export is balanced BY CONSTRUCTION — and we assert Σdebits === Σcredits before returning.
 // INTEGER CENTS ONLY (no float touches a journal amount).
 
-const AR_CONTROL = "1200-AR";
-const AP_CONTROL = "2000-AP";
+// REQ-020 — the control accounts come from the ONE canonical chart-of-accounts (contracts gl-accounts),
+// the same registry the Biller GL_MAP and the money projection draw from, so the journal reconciles
+// against a single chart (Task-3 qb-journal-month). Strings unchanged; the parity test guards drift.
+import { GL_AR_CONTROL as AR_CONTROL, GL_AP_CONTROL as AP_CONTROL } from "@shuddl/contracts";
 
 export interface JournalLine {
   account: string;

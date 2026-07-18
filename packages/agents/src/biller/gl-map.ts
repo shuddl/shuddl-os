@@ -1,12 +1,16 @@
-// REQ-031 — the Biller's FROZEN, TOTAL map from a quote line `kind` to the AR revenue account its
-// invoice line posts to. Account codes follow the journal-export convention (packages/ledger/src/gl/
-// export.ts: `1200-AR`, `2000-AP` controls) — these are the revenue gl_map accounts an AR money_line
-// credits in the double entry. PURE data: no LLM, no I/O, no ledger import (REQ-024).
+// REQ-031/REQ-020 — the Biller's FROZEN, TOTAL map from a quote line `kind` to the AR revenue account
+// its invoice line posts to. The account STRINGS come from the ONE canonical chart-of-accounts
+// (@shuddl/contracts gl-accounts) so the compose path, the ledger money projection, and the gl-netting
+// fixture can never diverge (the gl-accounts parity test guards it; Task-3 QB reconcile depends on it).
+// This map stays the source of truth for the kind→account MAPPING; the strings are byte-identical to
+// what real invoice.issued events already carry — a rename would orphan them (append-only). PURE data:
+// no LLM, no I/O, no ledger import (REQ-024) — contracts is the schema boundary, not the ledger.
+import { GL_FREIGHT_AR, GL_FSC_AR, GL_ACCESSORIAL_AR } from "@shuddl/contracts";
 
 export const GL_MAP = Object.freeze({
-  freight: "4000-FREIGHT-AR",
-  fsc: "4100-FSC-AR",
-  accessorial: "4200-ACCESSORIAL-AR",
+  freight: GL_FREIGHT_AR,
+  fsc: GL_FSC_AR,
+  accessorial: GL_ACCESSORIAL_AR,
 } as const);
 
 export type BillableLineKind = keyof typeof GL_MAP;

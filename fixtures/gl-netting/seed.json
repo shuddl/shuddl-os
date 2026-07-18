@@ -31,19 +31,19 @@
           "line_no": 1,
           "kind": "freight",
           "amount_cents": 10000,
-          "gl_map": "4000-FREIGHT"
+          "gl_map": "4000-FREIGHT-AR"
         },
         {
           "line_no": 2,
           "kind": "fsc",
           "amount_cents": 2500,
-          "gl_map": "4100-FSC"
+          "gl_map": "4100-FSC-AR"
         },
         {
           "line_no": 3,
           "kind": "accessorial",
           "amount_cents": 1500,
-          "gl_map": "4200-ACC"
+          "gl_map": "4200-ACCESSORIAL-AR"
         }
       ]
     },
@@ -62,19 +62,19 @@
           "line_no": 1,
           "kind": "freight",
           "amount_cents": 10137,
-          "gl_map": "4000-FREIGHT"
+          "gl_map": "4000-FREIGHT-AR"
         },
         {
           "line_no": 2,
           "kind": "fsc",
           "amount_cents": 2500,
-          "gl_map": "4100-FSC"
+          "gl_map": "4100-FSC-AR"
         },
         {
           "line_no": 3,
           "kind": "accessorial",
           "amount_cents": 1500,
-          "gl_map": "4200-ACC"
+          "gl_map": "4200-ACCESSORIAL-AR"
         }
       ]
     },
@@ -93,19 +93,19 @@
           "line_no": 1,
           "kind": "freight",
           "amount_cents": 10274,
-          "gl_map": "4000-FREIGHT"
+          "gl_map": "4000-FREIGHT-AR"
         },
         {
           "line_no": 2,
           "kind": "fsc",
           "amount_cents": 2500,
-          "gl_map": "4100-FSC"
+          "gl_map": "4100-FSC-AR"
         },
         {
           "line_no": 3,
           "kind": "accessorial",
           "amount_cents": 1500,
-          "gl_map": "4200-ACC"
+          "gl_map": "4200-ACCESSORIAL-AR"
         }
       ]
     },
@@ -124,19 +124,19 @@
           "line_no": 1,
           "kind": "freight",
           "amount_cents": 10411,
-          "gl_map": "4000-FREIGHT"
+          "gl_map": "4000-FREIGHT-AR"
         },
         {
           "line_no": 2,
           "kind": "fsc",
           "amount_cents": 2500,
-          "gl_map": "4100-FSC"
+          "gl_map": "4100-FSC-AR"
         },
         {
           "line_no": 3,
           "kind": "accessorial",
           "amount_cents": 1500,
-          "gl_map": "4200-ACC"
+          "gl_map": "4200-ACCESSORIAL-AR"
         }
       ]
     },
@@ -156,19 +156,19 @@
           "line_no": 1,
           "kind": "freight",
           "amount_cents": 12238,
-          "gl_map": "4000-FREIGHT"
+          "gl_map": "4000-FREIGHT-AR"
         },
         {
           "line_no": 2,
           "kind": "fsc",
           "amount_cents": 2500,
-          "gl_map": "4100-FSC"
+          "gl_map": "4100-FSC-AR"
         },
         {
           "line_no": 3,
           "kind": "accessorial",
           "amount_cents": 1500,
-          "gl_map": "4200-ACC"
+          "gl_map": "4200-ACCESSORIAL-AR"
         }
       ]
     },
@@ -188,19 +188,19 @@
           "line_no": 1,
           "kind": "freight",
           "amount_cents": 10411,
-          "gl_map": "4000-FREIGHT"
+          "gl_map": "4000-FREIGHT-AR"
         },
         {
           "line_no": 2,
           "kind": "fsc",
           "amount_cents": 2500,
-          "gl_map": "4100-FSC"
+          "gl_map": "4100-FSC-AR"
         },
         {
           "line_no": 3,
           "kind": "accessorial",
           "amount_cents": 1500,
-          "gl_map": "4200-ACC"
+          "gl_map": "4200-ACCESSORIAL-AR"
         }
       ]
     },
@@ -219,19 +219,19 @@
           "line_no": 1,
           "kind": "freight",
           "amount_cents": 10548,
-          "gl_map": "4000-FREIGHT"
+          "gl_map": "4000-FREIGHT-AR"
         },
         {
           "line_no": 2,
           "kind": "fsc",
           "amount_cents": 2500,
-          "gl_map": "4100-FSC"
+          "gl_map": "4100-FSC-AR"
         },
         {
           "line_no": 3,
           "kind": "accessorial",
           "amount_cents": 1500,
-          "gl_map": "4200-ACC"
+          "gl_map": "4200-ACCESSORIAL-AR"
         }
       ]
     },
@@ -250,19 +250,19 @@
           "line_no": 1,
           "kind": "freight",
           "amount_cents": 10685,
-          "gl_map": "4000-FREIGHT"
+          "gl_map": "4000-FREIGHT-AR"
         },
         {
           "line_no": 2,
           "kind": "fsc",
           "amount_cents": 2500,
-          "gl_map": "4100-FSC"
+          "gl_map": "4100-FSC-AR"
         },
         {
           "line_no": 3,
           "kind": "accessorial",
           "amount_cents": 1500,
-          "gl_map": "4200-ACC"
+          "gl_map": "4200-ACCESSORIAL-AR"
         }
       ]
     },
@@ -281,19 +281,19 @@
           "line_no": 1,
           "kind": "freight",
           "amount_cents": 10822,
-          "gl_map": "4000-FREIGHT"
+          "gl_map": "4000-FREIGHT-AR"
         },
         {
           "line_no": 2,
           "kind": "fsc",
           "amount_cents": 2500,
-          "gl_map": "4100-FSC"
+          "gl_map": "4100-FSC-AR"
         },
         {
           "line_no": 3,
           "kind": "accessorial",
           "amount_cents": 1500,
-          "gl_map": "4200-ACC"
+          "gl_map": "4200-ACCESSORIAL-AR"
         }
       ]
     },
@@ -312,19 +312,19 @@
           "line_no": 1,
           "kind": "freight",
           "amount_cents": 10959,
-          "gl_map": "4000-FREIGHT"
+          "gl_map": "4000-FREIGHT-AR"
         },
         {
           "line_no": 2,
           "kind": "fsc",
           "amount_cents": 2500,
-          "gl_map": "4100-FSC"
+          "gl_map": "4100-FSC-AR"
         },
         {
           "line_no": 3,
           "kind": "accessorial",
           "amount_cents": 1500,
-          "gl_map": "4200-ACC"
+          "gl_map": "4200-ACCESSORIAL-AR"
         }
       ]
     },
@@ -344,19 +344,19 @@
           "line_no": 1,
           "kind": "freight",
           "amount_cents": 14339,
-          "gl_map": "4000-FREIGHT"
+          "gl_map": "4000-FREIGHT-AR"
         },
         {
           "line_no": 2,
           "kind": "fsc",
           "amount_cents": 2500,
-          "gl_map": "4100-FSC"
+          "gl_map": "4100-FSC-AR"
         },
         {
           "line_no": 3,
           "kind": "accessorial",
           "amount_cents": 1500,
-          "gl_map": "4200-ACC"
+          "gl_map": "4200-ACCESSORIAL-AR"
         }
       ]
     },
@@ -376,19 +376,19 @@
           "line_no": 1,
           "kind": "freight",
           "amount_cents": 10959,
-          "gl_map": "4000-FREIGHT"
+          "gl_map": "4000-FREIGHT-AR"
         },
         {
           "line_no": 2,
           "kind": "fsc",
           "amount_cents": 2500,
-          "gl_map": "4100-FSC"
+          "gl_map": "4100-FSC-AR"
         },
         {
           "line_no": 3,
           "kind": "accessorial",
           "amount_cents": 1500,
-          "gl_map": "4200-ACC"
+          "gl_map": "4200-ACCESSORIAL-AR"
         }
       ]
     },
@@ -407,19 +407,19 @@
           "line_no": 1,
           "kind": "freight",
           "amount_cents": 11096,
-          "gl_map": "4000-FREIGHT"
+          "gl_map": "4000-FREIGHT-AR"
         },
         {
           "line_no": 2,
           "kind": "fsc",
           "amount_cents": 2500,
-          "gl_map": "4100-FSC"
+          "gl_map": "4100-FSC-AR"
         },
         {
           "line_no": 3,
           "kind": "accessorial",
           "amount_cents": 1500,
-          "gl_map": "4200-ACC"
+          "gl_map": "4200-ACCESSORIAL-AR"
         }
       ]
     },
@@ -438,19 +438,19 @@
           "line_no": 1,
           "kind": "freight",
           "amount_cents": 11233,
-          "gl_map": "4000-FREIGHT"
+          "gl_map": "4000-FREIGHT-AR"
         },
         {
           "line_no": 2,
           "kind": "fsc",
           "amount_cents": 2500,
-          "gl_map": "4100-FSC"
+          "gl_map": "4100-FSC-AR"
         },
         {
           "line_no": 3,
           "kind": "accessorial",
           "amount_cents": 1500,
-          "gl_map": "4200-ACC"
+          "gl_map": "4200-ACCESSORIAL-AR"
         }
       ]
     },
@@ -469,19 +469,19 @@
           "line_no": 1,
           "kind": "freight",
           "amount_cents": 11370,
-          "gl_map": "4000-FREIGHT"
+          "gl_map": "4000-FREIGHT-AR"
         },
         {
           "line_no": 2,
           "kind": "fsc",
           "amount_cents": 2500,
-          "gl_map": "4100-FSC"
+          "gl_map": "4100-FSC-AR"
         },
         {
           "line_no": 3,
           "kind": "accessorial",
           "amount_cents": 1500,
-          "gl_map": "4200-ACC"
+          "gl_map": "4200-ACCESSORIAL-AR"
         }
       ]
     },
@@ -500,19 +500,19 @@
           "line_no": 1,
           "kind": "freight",
           "amount_cents": 11507,
-          "gl_map": "4000-FREIGHT"
+          "gl_map": "4000-FREIGHT-AR"
         },
         {
           "line_no": 2,
           "kind": "fsc",
           "amount_cents": 2500,
-          "gl_map": "4100-FSC"
+          "gl_map": "4100-FSC-AR"
         },
         {
           "line_no": 3,
           "kind": "accessorial",
           "amount_cents": 1500,
-          "gl_map": "4200-ACC"
+          "gl_map": "4200-ACCESSORIAL-AR"
         }
       ]
     },
@@ -532,19 +532,19 @@
           "line_no": 1,
           "kind": "freight",
           "amount_cents": 12828,
-          "gl_map": "4000-FREIGHT"
+          "gl_map": "4000-FREIGHT-AR"
         },
         {
           "line_no": 2,
           "kind": "fsc",
           "amount_cents": 2500,
-          "gl_map": "4100-FSC"
+          "gl_map": "4100-FSC-AR"
         },
         {
           "line_no": 3,
           "kind": "accessorial",
           "amount_cents": 1500,
-          "gl_map": "4200-ACC"
+          "gl_map": "4200-ACCESSORIAL-AR"
         }
       ]
     },
@@ -564,19 +564,19 @@
           "line_no": 1,
           "kind": "freight",
           "amount_cents": 11507,
-          "gl_map": "4000-FREIGHT"
+          "gl_map": "4000-FREIGHT-AR"
         },
         {
           "line_no": 2,
           "kind": "fsc",
           "amount_cents": 2500,
-          "gl_map": "4100-FSC"
+          "gl_map": "4100-FSC-AR"
         },
         {
           "line_no": 3,
           "kind": "accessorial",
           "amount_cents": 1500,
-          "gl_map": "4200-ACC"
+          "gl_map": "4200-ACCESSORIAL-AR"
         }
       ]
     },
@@ -595,19 +595,19 @@
           "line_no": 1,
           "kind": "freight",
           "amount_cents": 11644,
-          "gl_map": "4000-FREIGHT"
+          "gl_map": "4000-FREIGHT-AR"
         },
         {
           "line_no": 2,
           "kind": "fsc",
           "amount_cents": 2500,
-          "gl_map": "4100-FSC"
+          "gl_map": "4100-FSC-AR"
         },
         {
           "line_no": 3,
           "kind": "accessorial",
           "amount_cents": 1500,
-          "gl_map": "4200-ACC"
+          "gl_map": "4200-ACCESSORIAL-AR"
         }
       ]
     },
@@ -626,19 +626,19 @@
           "line_no": 1,
           "kind": "freight",
           "amount_cents": 11781,
-          "gl_map": "4000-FREIGHT"
+          "gl_map": "4000-FREIGHT-AR"
         },
         {
           "line_no": 2,
           "kind": "fsc",
           "amount_cents": 2500,
-          "gl_map": "4100-FSC"
+          "gl_map": "4100-FSC-AR"
         },
         {
           "line_no": 3,
           "kind": "accessorial",
           "amount_cents": 1500,
-          "gl_map": "4200-ACC"
+          "gl_map": "4200-ACCESSORIAL-AR"
         }
       ]
     },
@@ -657,19 +657,19 @@
           "line_no": 1,
           "kind": "freight",
           "amount_cents": 11918,
-          "gl_map": "4000-FREIGHT"
+          "gl_map": "4000-FREIGHT-AR"
         },
         {
           "line_no": 2,
           "kind": "fsc",
           "amount_cents": 2500,
-          "gl_map": "4100-FSC"
+          "gl_map": "4100-FSC-AR"
         },
         {
           "line_no": 3,
           "kind": "accessorial",
           "amount_cents": 1500,
-          "gl_map": "4200-ACC"
+          "gl_map": "4200-ACCESSORIAL-AR"
         }
       ]
     },
@@ -688,19 +688,19 @@
           "line_no": 1,
           "kind": "freight",
           "amount_cents": 12055,
-          "gl_map": "4000-FREIGHT"
+          "gl_map": "4000-FREIGHT-AR"
         },
         {
           "line_no": 2,
           "kind": "fsc",
           "amount_cents": 2500,
-          "gl_map": "4100-FSC"
+          "gl_map": "4100-FSC-AR"
         },
         {
           "line_no": 3,
           "kind": "accessorial",
           "amount_cents": 1500,
-          "gl_map": "4200-ACC"
+          "gl_map": "4200-ACCESSORIAL-AR"
         }
       ]
     },
@@ -720,19 +720,19 @@
           "line_no": 1,
           "kind": "freight",
           "amount_cents": 14839,
-          "gl_map": "4000-FREIGHT"
+          "gl_map": "4000-FREIGHT-AR"
         },
         {
           "line_no": 2,
           "kind": "fsc",
           "amount_cents": 2500,
-          "gl_map": "4100-FSC"
+          "gl_map": "4100-FSC-AR"
         },
         {
           "line_no": 3,
           "kind": "accessorial",
           "amount_cents": 1500,
-          "gl_map": "4200-ACC"
+          "gl_map": "4200-ACCESSORIAL-AR"
         }
       ]
     },
@@ -752,19 +752,19 @@
           "line_no": 1,
           "kind": "freight",
           "amount_cents": 12055,
-          "gl_map": "4000-FREIGHT"
+          "gl_map": "4000-FREIGHT-AR"
         },
         {
           "line_no": 2,
           "kind": "fsc",
           "amount_cents": 2500,
-          "gl_map": "4100-FSC"
+          "gl_map": "4100-FSC-AR"
         },
         {
           "line_no": 3,
           "kind": "accessorial",
           "amount_cents": 1500,
-          "gl_map": "4200-ACC"
+          "gl_map": "4200-ACCESSORIAL-AR"
         }
       ]
     },
@@ -783,19 +783,19 @@
           "line_no": 1,
           "kind": "freight",
           "amount_cents": 12192,
-          "gl_map": "4000-FREIGHT"
+          "gl_map": "4000-FREIGHT-AR"
         },
         {
           "line_no": 2,
           "kind": "fsc",
           "amount_cents": 2500,
-          "gl_map": "4100-FSC"
+          "gl_map": "4100-FSC-AR"
         },
         {
           "line_no": 3,
           "kind": "accessorial",
           "amount_cents": 1500,
-          "gl_map": "4200-ACC"
+          "gl_map": "4200-ACCESSORIAL-AR"
         }
       ]
     },
@@ -814,19 +814,19 @@
           "line_no": 1,
           "kind": "freight",
           "amount_cents": 12329,
-          "gl_map": "4000-FREIGHT"
+          "gl_map": "4000-FREIGHT-AR"
         },
         {
           "line_no": 2,
           "kind": "fsc",
           "amount_cents": 2500,
-          "gl_map": "4100-FSC"
+          "gl_map": "4100-FSC-AR"
         },
         {
           "line_no": 3,
           "kind": "accessorial",
           "amount_cents": 1500,
-          "gl_map": "4200-ACC"
+          "gl_map": "4200-ACCESSORIAL-AR"
         }
       ]
     },
@@ -845,19 +845,19 @@
           "line_no": 1,
           "kind": "freight",
           "amount_cents": 12466,
-          "gl_map": "4000-FREIGHT"
+          "gl_map": "4000-FREIGHT-AR"
         },
         {
           "line_no": 2,
           "kind": "fsc",
           "amount_cents": 2500,
-          "gl_map": "4100-FSC"
+          "gl_map": "4100-FSC-AR"
         },
         {
           "line_no": 3,
           "kind": "accessorial",
           "amount_cents": 1500,
-          "gl_map": "4200-ACC"
+          "gl_map": "4200-ACCESSORIAL-AR"
         }
       ]
     },
@@ -876,19 +876,19 @@
           "line_no": 1,
           "kind": "freight",
           "amount_cents": 12603,
-          "gl_map": "4000-FREIGHT"
+          "gl_map": "4000-FREIGHT-AR"
         },
         {
           "line_no": 2,
           "kind": "fsc",
           "amount_cents": 2500,
-          "gl_map": "4100-FSC"
+          "gl_map": "4100-FSC-AR"
         },
         {
           "line_no": 3,
           "kind": "accessorial",
           "amount_cents": 1500,
-          "gl_map": "4200-ACC"
+          "gl_map": "4200-ACCESSORIAL-AR"
         }
       ]
     }
