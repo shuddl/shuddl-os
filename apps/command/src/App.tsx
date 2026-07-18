@@ -16,6 +16,7 @@ import { fetchBoard, fetchShipmentEvents } from "./lib/board.js";
 import { clear as clearSession } from "./session.js";
 import { CommandBar } from "./command/CommandBar.js";
 import type { CommandDeps } from "./command/registry.js";
+import { IntakeFlow } from "./intake/IntakeFlow.js";
 
 // (01) COMMAND — the map IS the home (REQ-073/080). Full-viewport greige canvas of the whole fleet,
 // a 1px-divided count-up KPI strip, dark queue panels, and the ⌘K command bar. Chrome floats over the
@@ -130,6 +131,7 @@ export function App(): React.JSX.Element {
   const source = perfSource ?? liveFleet;
   const { collection } = useFleet({ scope: "command" }, source);
   const [selected, setSelected] = useState<string | null>(null);
+  const [intakeOpen, setIntakeOpen] = useState(false); // the CSR net-new intake flow (REQ-150, Task 11)
   const lensEvents = useShipmentEvents(selected);
 
   // (01) The ⌘K palette seams (REQ-081). Navigation changes the router URL (the queue/KPI/copilot views are wired
@@ -141,9 +143,7 @@ export function App(): React.JSX.Element {
         globalThis.history?.pushState(null, "", path);
       },
       openShipment: (id) => setSelected(id),
-      openIntake: () => {
-        globalThis.history?.pushState(null, "", "/intake");
-      },
+      openIntake: () => setIntakeOpen(true), // Task 11 owns the flow; the palette only launches it
       api: { get, post },
     }),
     [],
@@ -252,6 +252,17 @@ export function App(): React.JSX.Element {
           status={selectedStatus}
           events={lensEvents}
           onClose={() => setSelected(null)}
+        />
+      ) : null}
+
+      {/* The CSR net-new intake flow (REQ-150) — launched by the ⌘K "New Order (CSR Intake)" command. On book it
+          offers to open the new shipment's lens on THIS map home; a 401 drops the session (the re-auth path). */}
+      {intakeOpen ? (
+        <IntakeFlow
+          api={{ get, post }}
+          onClose={() => setIntakeOpen(false)}
+          onOpenShipment={(id) => setSelected(id)}
+          onAuthError={clearSession}
         />
       ) : null}
 
