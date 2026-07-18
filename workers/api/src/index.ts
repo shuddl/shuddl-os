@@ -22,6 +22,7 @@ import { mountKpiRoutes } from "./routes/kpis.js";
 import { mountCopilotRoutes } from "./routes/copilot.js";
 import { mountBoardRoutes } from "./routes/board.js";
 import { mountExportRoutes } from "./routes/export-journal.js";
+import { mountFullExportRoutes } from "./routes/export.js";
 import { mountPublicRoutes } from "./routes/public.js";
 
 export type Env = {
@@ -145,6 +146,14 @@ mountBoardRoutes(app);
 // roles admin/ops/finance; tenant off the JWT claim (tenantDb, REQ-025). A /v1 route, so auth + idempotency
 // already apply. NO new table/kind/projection — a pure read over money_lines.
 mountExportRoutes(app);
+// WP-11 Task 5 (REQ-010/025): GET /v1/export — the ONE-CLICK FULL TENANT EXPORT in open formats. ADMIN only
+// (a full-tenant export is privileged). Assembles a SINGLE open-format JSON archive: the append-only EVENTS
+// (lens-scoped, admin = tenant lens, cursor-paginated so a big tenant streams page by page), the GL JOURNAL
+// (exportJournal + the QuickBooks IIF), the DOCUMENT refs (documents read-model rows — refs, NOT bytes), and
+// the daily MERKLE ANCHOR roots (the tsa_receipt documents rows), plus a manifest (tenant, generated_at,
+// counts, roots). A READ — no writes, no new table/kind; only existing reads. Tenant off the JWT claim
+// (tenantDb, REQ-025) — the export can NEVER cross tenants. A /v1 route, so auth + idempotency already apply.
+mountFullExportRoutes(app);
 // WP-09 Task 3 (REQ-187/188): GET /pub/status/:cap — the PUBLIC, no-auth status read that consumes the cap
 // minted above. Mounted at /pub/* (NOT /v1/*), so app.use("/v1/*", auth) + idempotency do NOT run — the cap
 // is the authorization. This is the first public data read in the system; verifyStatusCap is the whole gate.

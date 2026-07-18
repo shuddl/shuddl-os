@@ -765,3 +765,69 @@ describe("REQ-025 growth: GET /v1/export/journal serializes ONLY the JWT tenant'
     expect(res.status).toBe(403);
   });
 });
+
+// WP-11 Task 5 growth (REQ-010 + REQ-025): the FULL TENANT EXPORT is single-tenant by construction. GET /v1/export
+// reads ONLY the JWT tenant's D1 — events via readEvents(tenantDb, lensFor(session)), journal via exportJournal
+// (tenantDb), documents + anchors straight off the tenant's `documents` table — all keyed off the claim (tenantDb).
+// A tenant-a admin export MUST contain tenant-a's own record and MUST NOT contain ANY tenant-b event/journal/
+// document/anchor (a DIFFERENT physical D1 the claim can never address), and no client tenant hint may reach it.
+describe("REQ-025 growth: GET /v1/export is a SINGLE-TENANT export — never crosses to tenant-b", () => {
+  const XPW_TS = 1_965_000_000_000; // a private window (year ~2032) no sibling file seeds into
+  const XQ = `from=${XPW_TS - 1000}&to=${XPW_TS + 1000}`;
+  const A_EXP_EVENT = crypto.randomUUID(); // tenant-a money_line event — the positive control (MUST appear)
+  const B_EXP_EVENT = crypto.randomUUID(); // tenant-b money_line event — must NEVER appear for tenant-a
+  const A_EXP_DOC = "iso-export-tenant-a-doc";
+  const B_EXP_DOC = "iso-export-tenant-b-only-doc"; // a tenant-b document ref — must NEVER appear for tenant-a
+  const A_EXP_ANCHOR_DAY = "2032-05-01";
+  const xHash = (): string => crypto.randomUUID().replace(/-/g, "").padEnd(64, "0");
+  // A GLOBALLY-UNIQUE tenant-b anchor root (a trivial "b".repeat(64) collides with other files' placeholder
+  // hashes across the shared physical D1) — so the "must NEVER appear" assertion is unambiguous.
+  const B_EXP_ANCHOR_ROOT = xHash();
+
+  async function seedExportFixture(db: D1Database, eventId: string, docId: string, anchorDay: string, anchorRoot: string, amount: number): Promise<void> {
+    const shp = `iso-export-${eventId.slice(0, 8)}`;
+    const e = eventFixture("pod.signed", { id: eventId, stream_id: `s:${shp}`, shipment_id: shp, seq: 0, visibility: "internal", party_refs: [] });
+    const row = eventToRow(e);
+    row.hash = xHash();
+    const cols = Object.keys(row);
+    await db.prepare(`INSERT OR IGNORE INTO events (${cols.join(",")}) VALUES (${cols.map(() => "?").join(",")})`).bind(...cols.map((col) => row[col])).run();
+    await db
+      .prepare("INSERT OR IGNORE INTO money_lines (id, shipment_id, event_id, line_no, direction, kind, amount_cents, currency, party_id, division, gl_map, created_ts) VALUES (?,?,?,1,?,?,?,?,?,?,?,?)")
+      .bind(`ml-${eventId.slice(0, 8)}`, shp, eventId, "ar", "freight", amount, "USD", "party-shipper", "main", "4000-FREIGHT-AR", XPW_TS)
+      .run();
+    await db
+      .prepare("INSERT OR IGNORE INTO documents (id, shipment_id, party_id, kind, r2_key, hash, lifecycle_class, visibility) VALUES (?,?,?,?,?,?,?,?)")
+      .bind(docId, shp, "party-shipper", "POD", `evidence/x/${shp}/pod.jpg`, xHash(), "default", "counterparty")
+      .run();
+    await db
+      .prepare("INSERT OR IGNORE INTO documents (id, shipment_id, party_id, kind, r2_key, hash, lifecycle_class, visibility) VALUES (?,?,?,?,?,?,?,?)")
+      .bind(`anchor:${anchorDay}`, null, null, "tsa_receipt", `anchors/x/${anchorDay}/tsr.der`, anchorRoot, "default", "internal")
+      .run();
+  }
+
+  beforeAll(async () => {
+    await seedExportFixture(env.TENANT_A_DB, A_EXP_EVENT, A_EXP_DOC, A_EXP_ANCHOR_DAY, "a".repeat(64), 111_111);
+    await seedExportFixture(env.TENANT_B_DB, B_EXP_EVENT, B_EXP_DOC, "2032-05-02", B_EXP_ANCHOR_ROOT, 999_999);
+  });
+
+  it("a tenant-a admin export includes ITS OWN record but NEVER a tenant-b event/journal/document/anchor (REQ-025)", async () => {
+    const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "admin" });
+    const res = await SELF.fetch(`https://api.local/v1/export?${XQ}`, { headers: { Authorization: `Bearer ${t}` } });
+    expect(res.status).toBe(200);
+    const text = await res.text();
+    // positive controls — tenant-a's own record IS exported (journal + document + anchor)
+    expect(text).toContain(A_EXP_EVENT);
+    expect(text).toContain(A_EXP_DOC);
+    expect(text).toContain(A_EXP_ANCHOR_DAY);
+    // the isolation guarantee — NONE of tenant-b's markers cross into tenant-a's single-tenant export
+    expect(text).not.toContain(B_EXP_EVENT); // tenant-b's journal event id never appears
+    expect(text).not.toContain(B_EXP_DOC); // tenant-b's document ref never appears
+    expect(text).not.toContain(B_EXP_ANCHOR_ROOT); // tenant-b's anchor root never appears
+  });
+
+  it("?tenant= query param on GET /v1/export is rejected at auth", async () => {
+    const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "admin" });
+    const res = await SELF.fetch(`https://api.local/v1/export?tenant=tenant-b&${XQ}`, { headers: { Authorization: `Bearer ${t}` } });
+    expect(res.status).toBe(403);
+  });
+});
