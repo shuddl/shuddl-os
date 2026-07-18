@@ -290,6 +290,42 @@ describe("REQ-025 growth: the ledger routes reject the same cross-tenant attacks
   });
 });
 
+// WP-10 Task 9 growth (REQ-073/080 + REQ-025): the command BOARD is the live fleet — active shipments + their
+// latest position — read WITHIN the session's D1 (tenantDb off the JWT claim), never across tenants. A tenant-b
+// active shipment WITH a position (in a DIFFERENT physical D1) must never surface as a mark in a tenant-a board.
+describe("REQ-025 growth: GET /v1/board reads ONLY the JWT tenant's fleet", () => {
+  const B_BOARD_SHP = "iso-board-tenant-b-only"; // a tenant-b active shipment — must NEVER appear in a tenant-a board
+
+  beforeAll(async () => {
+    // Seed a tenant-b active shipment + a latest position into tenant-b's D1 ONLY. tenant-a's board is keyed off
+    // the claim via tenantDb, so it can never physically address this row.
+    await env.TENANT_B_DB.prepare(
+      "INSERT OR IGNORE INTO shipments (id, shipper_party_id, consignee_party_id, bill_to_party_id, status_cache, created_ts) VALUES (?,?,?,?,?,0)",
+    )
+      .bind(B_BOARD_SHP, "party-shipper", "party-consignee", "party-bill-to", JSON.stringify({ state: "in_transit" }))
+      .run();
+    await env.TENANT_B_DB.prepare(
+      "INSERT OR IGNORE INTO positions (shipment_id, device_id, ts, recorded_at, lat_e6, lon_e6, accuracy_m, speed_cms, hash) VALUES (?,?,?,?,?,?,?,?,?)",
+    )
+      .bind(B_BOARD_SHP, "device-b", 9999, 0, 42_000_000, -71_000_000, null, null, "h-iso-board-b")
+      .run();
+  });
+
+  it("a tenant-a session GETting /v1/board never returns a tenant-b shipment (REQ-025)", async () => {
+    const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "ops" });
+    const res = await SELF.fetch("https://api.local/v1/board", { headers: { Authorization: `Bearer ${t}` } });
+    expect(res.status).toBe(200);
+    const text = await res.text();
+    expect(text).not.toContain(B_BOARD_SHP); // tenant-b's fleet never bleeds into tenant-a's board
+  });
+
+  it("?tenant= query param on GET /v1/board is rejected at auth", async () => {
+    const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "ops" });
+    const res = await SELF.fetch("https://api.local/v1/board?tenant=tenant-b", { headers: { Authorization: `Bearer ${t}` } });
+    expect(res.status).toBe(403);
+  });
+});
+
 // WP-09 Task 4 growth (REQ-051/189): the SECOND no-auth surface, POST /pub/quote. It has NO JWT to key the
 // tenant off, so tenant resolution is the CF-routed URL HOSTNAME via a static HOST_TENANTS allowlist — never
 // the client-forgeable Host header, never a ?tenant=/X-Tenant-Id hint. These cases prove that boundary.

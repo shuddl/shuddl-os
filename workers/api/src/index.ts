@@ -20,6 +20,7 @@ import { mountApprovalRoutes } from "./routes/approvals.js";
 import { mountExceptionRoutes } from "./routes/exceptions.js";
 import { mountKpiRoutes } from "./routes/kpis.js";
 import { mountCopilotRoutes } from "./routes/copilot.js";
+import { mountBoardRoutes } from "./routes/board.js";
 import { mountPublicRoutes } from "./routes/public.js";
 
 export type Env = {
@@ -129,6 +130,13 @@ mountKpiRoutes(app);
 // abstained}. Tenant-lens roles only; tenant off the JWT claim (tenantDb, REQ-025). LLM unbound in CI → the
 // DeterministicCopilot floor answers; the LLM is never reachable in tests.
 mountCopilotRoutes(app);
+// WP-10 Task 9 (REQ-073/080): GET /v1/board — the command map's live, lens-scoped fleet. The tenant's ACTIVE
+// shipments, each at its LATEST position with status_cache.state mapped to the map's status vocabulary, so the
+// exception-pulse / world-dim demo #5 fires on REAL ledger state (not synthetic demoFleet). A DURABLE read over
+// shipments (status_cache) + positions — NO new table/kind/projection. Tenant-lens roles only; tenant off the JWT
+// claim (tenantDb, REQ-025). The tenant lens is unredacted, so the board exposes EXACT ops geo; a shipment with no
+// position is never placed (truthful map). A /v1 route, so auth + idempotency already apply.
+mountBoardRoutes(app);
 // WP-09 Task 3 (REQ-187/188): GET /pub/status/:cap — the PUBLIC, no-auth status read that consumes the cap
 // minted above. Mounted at /pub/* (NOT /v1/*), so app.use("/v1/*", auth) + idempotency do NOT run — the cap
 // is the authorization. This is the first public data read in the system; verifyStatusCap is the whole gate.

@@ -1,19 +1,26 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button, Display, Divider, Metric, Mono, Reveal } from "@shuddl/design";
 import {
   DEMO_GLYPHS_URL,
   DEMO_TILE_URL,
   LensPanel,
   MapCanvas,
-  demoFleet,
   fleet1k,
   useFleet,
+  type FleetItem,
+  type LensEvent,
+  type Status,
 } from "@shuddl/map";
+import { ApiError } from "./lib/api.js";
+import { fetchBoard, fetchShipmentEvents } from "./lib/board.js";
+import { clear as clearSession } from "./session.js";
 
 // (01) COMMAND — the map IS the home (REQ-073/080). Full-viewport greige canvas of the whole fleet,
 // a 1px-divided count-up KPI strip, dark queue panels, and the ⌘K command bar. Chrome floats over the
-// canvas; clicking a mark opens the lens WITHOUT navigating away. Deterministic (seeded demoFleet) so
-// the canonical screenshot is stable. `?perf` swaps in the 1,000-entity fleet1k() for pnpm perf:map.
+// canvas; clicking a mark opens the lens WITHOUT navigating away. The fleet is the REAL lens-scoped board
+// (GET /v1/board) — so the exception marks reflect ACTUAL ledger state and the exception-pulse / world-dim
+// demo #5 fires on real data (an empty board renders an honest empty map, never synthetic marks). `?perf`
+// swaps in the deterministic 1,000-entity fleet1k() for the pnpm perf:map frame-budget harness (REQ-079).
 
 const KPIS: ReadonlyArray<{ label: string; value: number; format: (n: number) => string }> = [
   { label: "OR", value: 94, format: (n) => `${n}%` },
@@ -33,6 +40,62 @@ function usePerfMode(): boolean {
     if (typeof window === "undefined") return false;
     return new URLSearchParams(window.location.search).has("perf");
   }, []);
+}
+
+// The live board feed (REQ-073/080). Loads GET /v1/board once and maps it to FleetItem[] for useFleet. On a 401
+// (Task 8 isAuthError) it drops the session (the re-auth path) and surfaces an honest empty map; any other read
+// failure ALSO yields an empty map — the canvas never invents synthetic marks. `enabled` is false in ?perf mode
+// so the perf harness renders the deterministic fleet1k() instead of hitting the network.
+function useBoardFleet(enabled: boolean): { fleet: FleetItem[]; authExpired: boolean } {
+  const [fleet, setFleet] = useState<FleetItem[]>([]);
+  const [authExpired, setAuthExpired] = useState(false);
+  useEffect(() => {
+    if (!enabled) return;
+    let cancelled = false;
+    void fetchBoard()
+      .then((items) => {
+        if (cancelled) return;
+        setFleet(items);
+        setAuthExpired(false);
+      })
+      .catch((e: unknown) => {
+        if (cancelled) return;
+        if (e instanceof ApiError && e.isAuthError) {
+          clearSession(); // drop the rejected token — the shell must re-authenticate (magic link, WP-14)
+          setAuthExpired(true);
+        }
+        setFleet([]); // honest empty map on any failure — no synthetic marks
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled]);
+  return { fleet, authExpired };
+}
+
+// The selected mark's lens-scoped event tail (REQ-080). Fetches GET /v1/shipments/:id/events when a mark is
+// open; clears when the panel closes. A read failure shows an empty tail (the panel renders "No events yet") —
+// never fabricated events.
+function useShipmentEvents(shipmentId: string | null): LensEvent[] {
+  const [events, setEvents] = useState<LensEvent[]>([]);
+  useEffect(() => {
+    if (shipmentId === null) {
+      setEvents([]);
+      return;
+    }
+    let cancelled = false;
+    void fetchShipmentEvents(shipmentId)
+      .then((tail) => {
+        if (!cancelled) setEvents(tail);
+      })
+      .catch(() => {
+        if (!cancelled) setEvents([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [shipmentId]);
+  return events;
 }
 
 function QueuePanel({ heading, rows }: { heading: string; rows: ReadonlyArray<[string, string]> }): React.JSX.Element {
@@ -59,9 +122,18 @@ function QueuePanel({ heading, rows }: { heading: string; rows: ReadonlyArray<[s
 
 export function App(): React.JSX.Element {
   const perf = usePerfMode();
-  const source = useMemo(() => (perf ? fleet1k() : demoFleet()), [perf]);
+  // ?perf ⇒ the deterministic 1,000-entity fixture (frame-budget harness); otherwise the REAL live board.
+  const perfSource = useMemo(() => (perf ? fleet1k() : null), [perf]);
+  const { fleet: liveFleet, authExpired } = useBoardFleet(!perf);
+  const source = perfSource ?? liveFleet;
   const { collection } = useFleet({ scope: "command" }, source);
   const [selected, setSelected] = useState<string | null>(null);
+  const lensEvents = useShipmentEvents(selected);
+  // The selected mark's status comes straight from the fleet item the board fed in (never hardcoded).
+  const selectedStatus = useMemo<Status>(
+    () => source.find((i) => i.shipment_id === selected)?.status ?? "healthy",
+    [source, selected],
+  );
 
   return (
     <main style={{ position: "fixed", inset: 0, background: "var(--field)", overflow: "hidden" }}>
@@ -83,6 +155,13 @@ export function App(): React.JSX.Element {
       >
         <Display size="sub">SHUDDL</Display>
         <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
+          {/* Re-auth signal (Task 8 isAuthError): the token was rejected + cleared; the operator must sign in
+              again. Honest note in the alarm token — the map is empty because there is NO session, not no fleet. */}
+          {authExpired ? (
+            <Mono size={11} color="var(--signal)">
+              SESSION EXPIRED — SIGN IN AGAIN
+            </Mono>
+          ) : null}
           {NAV_LINKS.map((l) => (
             <Mono key={l} size={11}>
               {l}
@@ -171,11 +250,8 @@ export function App(): React.JSX.Element {
         <LensPanel
           shipmentId={selected}
           label={selected}
-          status="healthy"
-          events={[
-            { kind: "PICKUP", at: "07:12", detail: "SEAL 88421" },
-            { kind: "IN TRANSIT", at: "09:40" },
-          ]}
+          status={selectedStatus}
+          events={lensEvents}
           onClose={() => setSelected(null)}
         />
       ) : null}
