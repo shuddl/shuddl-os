@@ -28,7 +28,10 @@ const BASE_FIELDS = {
     .string()
     .min(1, "to must be non-empty — a send with no recipient is a Biller bug")
     .refine((v) => !CRLF.test(v), `to ${NO_CRLF_MSG}`),
-  shipment_id: z.string().min(1, "shipment_id must be non-empty — every send names its shipment"),
+  // OPTIONAL (REQ-032): the Biller's evidence send ALWAYS names its shipment, but a Collector dunning send
+  // (Task 7) is PARTY/INVOICE-scoped — there is no shipment. Optional (not just widened): an EMPTY string is
+  // still a bug and rejected by min(1); only outright ABSENCE (a party-scoped send) is allowed.
+  shipment_id: z.string().min(1, "shipment_id, when present, must be non-empty — an empty shipment_id is a bug").optional(),
   idempotency_key: z
     .string()
     .min(1, "idempotency_key must be non-empty — dedupe is load-bearing under queue redelivery")
@@ -86,7 +89,9 @@ export interface EvidenceMessage {
   html?: string | undefined;
   /** Sms body, or the email's plain-text alternative. */
   text?: string | undefined;
-  shipment_id: string;
+  /** The Biller's evidence send names its shipment; a Collector dunning send (Task 7) is party/invoice-scoped
+   *  and omits it (`| undefined` = exactOptionalPropertyTypes' spelling of an optional string). */
+  shipment_id?: string | undefined;
   /** The Biller derives it as `evidence-email/<invoice-event-id>` — one invoice, one message. */
   idempotency_key: string;
 }
@@ -126,7 +131,7 @@ function canonicalPayload(m: ParsedEvidenceMessage): string {
     m.channel === "email" ? m.subject : null,
     m.channel === "email" ? m.html : null,
     m.text ?? null,
-    m.shipment_id,
+    m.shipment_id ?? null,
   ]);
 }
 
@@ -181,7 +186,7 @@ export class NotConfiguredSender implements EvidenceSender {
     const parsed = EvidenceMessageSchema.parse(m); // a malformed message rejects HERE with the VALIDATION error
     throw new SendError(
       `EvidenceSender is NOT CONFIGURED: no provider is bound in this environment, so the ${parsed.channel} ` +
-        `for shipment ${parsed.shipment_id} was NOT sent. The invoice is unaffected — the ledger already holds ` +
+        `for ${parsed.shipment_id !== undefined ? `shipment ${parsed.shipment_id}` : "a party-scoped send"} was NOT sent. The invoice is unaffected — the ledger already holds ` +
         `it, and this send is retriable once a provider is bound. Live email requires the CONFIRM-gated Resend ` +
         `API key + verified tenant sending domain + DKIM (REQ-092) with warmup (REQ-157); sms requires REQ-097. ` +
         `See docs/wp/WP-06.md.`,
@@ -261,7 +266,7 @@ export class ResendSender implements EvidenceSender {
     const parsed = EvidenceMessageSchema.parse(m); // validation first — a malformed message never hits the wire
     if (parsed.channel === "sms") {
       throw new SendError(
-        `ResendSender: sms is not wired (REQ-097 deferred) — the sms for shipment ${parsed.shipment_id} was NOT ` +
+        `ResendSender: sms is not wired (REQ-097 deferred) — the sms for ${parsed.shipment_id !== undefined ? `shipment ${parsed.shipment_id}` : "a party-scoped send"} was NOT ` +
           `sent and redelivery to this adapter cannot succeed; hold until an sms provider is bound.`,
         false,
       );

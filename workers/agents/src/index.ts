@@ -12,6 +12,7 @@ import { handleInterlineSplit } from "./interline-split.js";
 import { MessageReceivedTrigger, handleMessageReceived, type ConciergeDeps } from "./concierge.js";
 import { QuoteAcceptedTrigger, handleQuoteAccepted, type BookingDeps } from "./booking.js";
 import { sweepTenantOverdueInbound } from "./sla-sweep.js";
+import { sweepTenantOverdueInvoices } from "./collector.js";
 import { TENANT_SLUGS, tenantDb, type AgentsEnv } from "./tenants.js";
 
 // The queue's message union (REQ-039): a committed pod.signed fans out to the Biller, a committed
@@ -67,6 +68,24 @@ export async function runSlaSweep(env: AgentsEnv, now: () => number = () => Date
       console.log(`concierge sla-sweep: tenant ${slug} → ${JSON.stringify(result)}`);
     } catch (err) {
       console.error(`concierge sla-sweep: tenant ${slug} failed (re-run next tick — the sweep is idempotent):`, err);
+    }
+  }
+}
+
+// REQ-032 — the Collector dunning sweep across every allowlisted tenant (REQ-025 isolation: one tenant's D1 per
+// iteration; the sweep appends no event and names no tenant, so it CANNOT touch another). It DRAFTS tone-matched
+// dunning `messages` rows for OPEN overdue invoices and NEVER sends — no sequencer, no sender. Exported so the
+// cron test and a manual re-drive both hit the identical path. Idempotent (deterministic per-(invoice,bucket)
+// draft id + INSERT OR IGNORE), so re-running every tick is safe; a per-tenant fault is contained + logged so
+// one tenant never stalls the rest. The cron reads wall-clock for `now` (deterministic in tests).
+export async function runCollectorSweep(env: AgentsEnv, now: () => number = () => Date.now()): Promise<void> {
+  const at = now();
+  for (const slug of TENANT_SLUGS) {
+    try {
+      const result = await sweepTenantOverdueInvoices(tenantDb(env, slug), at);
+      console.log(`collector dunning-sweep: tenant ${slug} → ${JSON.stringify(result)}`);
+    } catch (err) {
+      console.error(`collector dunning-sweep: tenant ${slug} failed (re-run next tick — the sweep is idempotent):`, err);
     }
   }
 }
@@ -282,10 +301,14 @@ export default {
     // is DECOUPLED from the anchor via try/finally: a per-tenant anchor fault (a TSA outage) must NOT skip
     // the sweep for that tick. runSlaSweep contains its own per-tenant faults, so the finally never masks
     // the anchor's error — the anchor throw still surfaces (and the cron retries) after the sweep runs.
+    // REQ-032 — the Collector dunning sweep ALSO rides this tick (DRAFTS only; no send). It is DECOUPLED from
+    // the anchor via the same finally so a per-tenant anchor fault never skips it; each sweep contains its own
+    // per-tenant faults, so the anchor's throw still surfaces (and the cron retries) after both sweeps run.
     try {
       await runAllTenants(env, () => new Date(controller.scheduledTime));
     } finally {
       await runSlaSweep(env, () => controller.scheduledTime);
+      await runCollectorSweep(env, () => controller.scheduledTime);
     }
   },
   // REQ-159 (GTM — milestone gate, NOT a code deliverable): this consumer is the M-H substrate. The

@@ -59,3 +59,19 @@ export {
 } from "./copilot/answer.js";
 export type { Copilot, ClaudeCopilotConfig, CopilotLlmConfig } from "./copilot/answer.js";
 export type { CopilotReadPort, CopilotReadQuery, ReadEvent } from "./copilot/port.js";
+// WP-11 Task 6 Collector — the PURE aging watch + tone-matched dunning DRAFT render (REQ-032). Deterministic
+// + LLM-FREE: whole-days-overdue → an escalation BUCKET → a FIXED per-bucket template (never model output).
+// The cron sweep (workers/agents/src/collector.ts) DRAFTS these into `messages` rows and NEVER sends; Task 7
+// owns the human review-and-send. The deterministic id/body_ref keep a re-sweep idempotent (INSERT OR IGNORE).
+export {
+  agingBucket,
+  overdueDays,
+  dunningDraftId,
+  dunningBodyRef,
+  DUNNING_TONES,
+  REMINDER_MAX_DAYS,
+  FIRM_MAX_DAYS,
+} from "./collector/aging.js";
+export type { DunningBucket, DunningTone } from "./collector/aging.js";
+export { renderDunningDraft, DunningDraftView } from "./collector/dunning.js";
+export type { DunningDraftData } from "./collector/dunning.js";
