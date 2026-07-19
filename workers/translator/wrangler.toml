@@ -1,0 +1,87 @@
+# Naming per genesis/14 §02. NO SECRETS EVER IN THIS FILE (REQ-154).
+# WP-12 Task 7 (REQ-200) — the Translator worker: the outbound 214 status sweep (cron) + the inbound 204
+# handler (Task 8). This worker BINDS to existing resources (the api DO, the tenant D1s, R2) — it never
+# owns or migrates them. Real EDI transmission is a CONFIRM-gated config flip (creds via `wrangler secret`),
+# so no toml var can ever turn on a live send.
+name = "shuddl-translator-dev"
+main = "src/index.ts"
+compatibility_date = "2025-08-01"
+# Cron-only worker (plus the Task-8 inbound webhook). Keep it off the auto *.workers.dev subdomain — the 204
+# webhook is exposed via an explicit route only. No public HTTP surface ships in this task.
+workers_dev = false
+
+[vars]
+ENVIRONMENT = "dev"
+
+# ── OPERATOR-SET, CONFIRM-GATED: the live outbound-EDI transport creds. LEFT COMMENTED OUT — with neither
+#    present the composition root returns NotConfiguredTransport, so NO environment can transmit real EDI
+#    (fail-closed). Set BOTH via `wrangler secret put`, NEVER in this toml (REQ-154). A partner must ALSO be
+#    replay-certified (cert_status='certified', Task 9 / REQ-203) before the sweep will even build its 214.
+# EDI_TRANSPORT_URL   = "<secret>"   # ← DO NOT set here — `wrangler secret put EDI_TRANSPORT_URL`
+# EDI_TRANSPORT_TOKEN = "<secret>"   # ← DO NOT set here — `wrangler secret put EDI_TRANSPORT_TOKEN`
+
+# REQ-200 — the outbound 214 status sweep runs every 5 minutes: EDI status updates must be timely, and the
+# sweep is idempotent (an R2 dedupe marker per newest-status event), so re-running each tick is safe.
+[triggers]
+crons = ["*/5 * * * *"]
+
+# Per-tenant D1 (mirror workers/api/src/tenants.ts + workers/agents/wrangler.toml; parity is CI-enforced).
+# Physical isolation. The sweep READS status events per tenant D1; it never writes to D1 (no event append).
+[[d1_databases]]
+binding = "TENANT_A_DB"
+database_name = "shuddl-t-tenant-a-dev"
+database_id = "local-translator-tenant-a"
+
+[[d1_databases]]
+binding = "TENANT_B_DB"
+database_name = "shuddl-t-tenant-b-dev"
+database_id = "local-translator-tenant-b"
+
+# EDI markers live in R2: the tender linkage (edi/<tenant>/tender/<shipmentId>, written by Task 8's 204
+# handler) and the "214 already sent" dedupe marker (edi/<tenant>/214/<dedupeKey>, the wire bytes ARE the
+# sent-record — no new table). Same bucket the anchor/evidence flows use.
+[[r2_buckets]]
+binding = "EVIDENCE"
+bucket_name = "shuddl-evidence-dev"
+
+# The api worker's sequencer DO (cross-script binding). The 214 sweep does not append events, but Task 8's
+# 204 handler appends the tender THROUGH this DO so the I2 gate + projections run there — the worker never
+# writes events itself. Mirrors workers/agents/wrangler.toml's SHIPMENT_SEQ binding.
+[[durable_objects.bindings]]
+name = "SHIPMENT_SEQ"
+class_name = "ShipmentSequencer"
+script_name = "shuddl-api-dev"
+
+# ── STAGING (synthetic only, REQ-154). Real resources mirror the agents/api staging ids; the default above
+#    keeps its local-* ids for tests + `wrangler dev`. EDI_TRANSPORT_* are DELIBERATELY ABSENT — the sweep
+#    uses NotConfiguredTransport, so NO real 214 is ever transmitted from this deployment (fail-closed).
+[env.staging]
+name = "shuddl-translator-staging"
+workers_dev = false
+
+[env.staging.vars]
+ENVIRONMENT = "staging"
+
+[env.staging.triggers]
+crons = ["*/5 * * * *"]
+
+# Same physical tenant DBs as the api/agents workers (ids MUST match workers/api [env.staging]).
+[[env.staging.d1_databases]]
+binding = "TENANT_A_DB"
+database_name = "shuddl-t-tenant-a-staging"
+database_id = "1742fef3-f7bf-4d1a-9aaa-bf9366994528"
+
+[[env.staging.d1_databases]]
+binding = "TENANT_B_DB"
+database_name = "shuddl-t-tenant-b-staging"
+database_id = "aa3b23a8-567d-4479-8311-e9f1678a6797"
+
+[[env.staging.r2_buckets]]
+binding = "EVIDENCE"
+bucket_name = "shuddl-evidence-staging"
+
+# Cross-script DO → the STAGING api worker (must be deployed first).
+[[env.staging.durable_objects.bindings]]
+name = "SHIPMENT_SEQ"
+class_name = "ShipmentSequencer"
+script_name = "shuddl-api-staging"
