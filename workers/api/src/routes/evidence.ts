@@ -1,5 +1,6 @@
 import type { Context, Hono } from "hono";
 import { Hash64, z } from "@shuddl/contracts";
+import { retentionClassFor } from "@shuddl/ledger/documents/retention";
 import { ApiError, envelope } from "../middleware/error.js";
 import { requireRole } from "../middleware/auth.js";
 import { tenantDb } from "../tenants.js";
@@ -40,7 +41,10 @@ const EvidenceQuery = z
 // SELECTs the recording event's kind AND its server-STAMPED `visibility` (the EARLIEST one, ORDER BY seq,
 // if the same hash is somehow pinned twice) so BOTH documents.kind AND documents.visibility are derived
 // from the ledger, never trusted from the client (REQ-085 / D4 / I6).
-const RECORDING_EVENT_SQL = `SELECT kind, visibility FROM events WHERE stream_id = ? AND (
+// `recorded_at` (the server-stamped ledger time) rides the SELECT too — it is the retention CLOCK START the
+// documents row records at write (REQ-116): a doc's 7yr-POD / shorter-other hold is measured from when the
+// ledger witnessed the recording event, NOT the upload wall-clock (an airplane-mode late upload cannot reset it).
+const RECORDING_EVENT_SQL = `SELECT kind, visibility, recorded_at FROM events WHERE stream_id = ? AND (
   (kind IN ('freight.photographed','seal.applied','osd.captured') AND json_extract(payload,'$.photo_hash') = ?)
   OR (kind = 'delivery.evidenced' AND json_extract(payload,'$.placed_photo_hash') = ?)
   OR (kind = 'pod.signed' AND json_extract(payload,'$.signature_hash') = ?)
@@ -155,7 +159,7 @@ export function mountEvidenceRoutes(app: Hono<{ Bindings: Env; Variables: Vars }
     const recording = await db
       .prepare(RECORDING_EVENT_SQL)
       .bind(`s:${shipment_id}`, photo_hash, photo_hash, photo_hash)
-      .first<{ kind: string; visibility: string }>();
+      .first<{ kind: string; visibility: string; recorded_at: number }>();
     if (recording === null) {
       return evidenceRejection(c, "hash_not_recorded", "NO EVENT ON THIS SHIPMENT STREAM RECORDS THE DECLARED photo_hash");
     }
@@ -172,33 +176,53 @@ export function mountEvidenceRoutes(app: Hono<{ Bindings: Env; Variables: Vars }
       return evidenceRejection(c, "hash_mismatch", "UPLOADED BYTES DO NOT HASH TO THE RECORDED photo_hash (REQ-168)");
     }
 
-    // (3) IDEMPOTENT store. The doc id is deterministic per (shipment, hash); an existing row means
-    // the verified bytes are already stored (row is written LAST) — repeat is a 200, no re-write.
+    // (3) IDEMPOTENT store. The doc id is deterministic per (shipment, hash). The documents row derives kind,
+    // visibility (REQ-085), AND the retention class + clock (REQ-116) from the recording event.
     const documentId = evidenceDocId(shipment_id, photo_hash);
     const key = evidenceKey(session.tenant, shipment_id, photo_hash);
-    const existing = await db.prepare("SELECT r2_key FROM documents WHERE id = ?").bind(documentId).first<{ r2_key: string }>();
-    if (existing !== null) return c.json({ document_id: documentId, r2_key: existing.r2_key }, 200);
+    const docKind = documentKindFor(recording.kind);
+    // REQ-116 — the retention CLASS stamped at write from the doc kind (POD → 'pod-7yr' 7-year compliance hold,
+    // else → 'default' shorter hold), so a doc's retention is RECORDED at creation and the class-driven sweep
+    // (packages/ledger/src/documents/retention.ts) has a concrete field to act on. This REPLACES the former
+    // hardcoded "default" (REQ-140's placeholder) with the kind-derived class; the POLICY TEXT (what is kept,
+    // how long, the consignee-notice wording) is still a counsel / CONFIRM-2 deliverable (genesis/08 GA-11).
+    const lifecycleClass = retentionClassFor(docKind);
 
-    // R2 FIRST, documents row LAST (anchor.ts pattern): the row exists iff the bytes are stored. A
-    // crash between the two leaves no row; the retry re-verifies, the re-put is byte-identical (same
-    // verified hash), and INSERT OR IGNORE heals the missing row. meta.changes distinguishes the true
-    // first store (201) from the concurrent-duplicate loser whose row already landed (200).
+    // ROW-IFF-BYTES (REQ-116): an ACTIVE row means the verified bytes are already stored (the row is written
+    // LAST) → 200, no re-write. A row TOMBSTONED by the retention sweep ('expired', bytes deleted) is NOT a
+    // live claim of present bytes — a genuine re-upload of the same verified evidence RE-INSTATES it (re-store
+    // the bytes below, flip back to 'active', restart the retention clock) rather than hand back a 200 that
+    // points at deleted bytes. That keeps "active row ⟺ bytes present" airtight in BOTH directions.
+    const existing = await db
+      .prepare("SELECT r2_key, retention_status FROM documents WHERE id = ?")
+      .bind(documentId)
+      .first<{ r2_key: string; retention_status: string }>();
+    if (existing !== null && existing.retention_status === "active") {
+      return c.json({ document_id: documentId, r2_key: existing.r2_key }, 200);
+    }
+
+    // R2 FIRST, documents row LAST (anchor.ts pattern): the row exists iff the bytes are stored. A crash
+    // between the two leaves no row (fresh) or a tombstoned row (re-instate); the retry re-verifies, the re-put
+    // is byte-identical (same verified hash), and INSERT OR IGNORE heals the missing row.
     await c.env.EVIDENCE.put(key, bytes);
-    // REQ-140 (LEGAL — CONFIRM-2, retention policy + consignee notice): the ENFORCEMENT MECHANISM lands
-    // here. Every evidence object carries a `lifecycle_class` (retention bucket) and a `visibility` on
-    // its documents row, so a published retention schedule + a consignee-notice/PII policy has a concrete
-    // knob to attach to (a class-driven R2 lifecycle sweep + a visibility gate) — the bytes and the row
-    // are never orphaned from a policy field. "default" is the placeholder class until the POLICY TEXT
-    // itself (what is kept, how long, the consignee notice wording) is authored: that is a counsel /
-    // CONFIRM-2 deliverable (genesis/08 GA-11), CONFIRM-GATED and not a code artifact of this WP.
-    //
-    // REQ-085 — visibility is DERIVED from the recording event's resolved visibility (documentVisibilityFor,
-    // fail-closed), NEVER hardcoded: the lens-scoped docs list (routes/documents.ts) shows a portal party the
-    // counterparty-visible evidence it is entitled to, while internal recordings stay internal.
-    const inserted = await db
-      .prepare("INSERT OR IGNORE INTO documents (id, shipment_id, party_id, kind, r2_key, hash, lifecycle_class, visibility) VALUES (?,?,?,?,?,?,?,?)")
-      .bind(documentId, shipment_id, null, documentKindFor(recording.kind), key, photo_hash, "default", documentVisibilityFor(recording.visibility))
+    if (existing === null) {
+      // First store. meta.changes distinguishes the true first store (201) from the concurrent-duplicate loser
+      // whose row already landed (200). visibility is DERIVED from the recording event's resolved visibility
+      // (documentVisibilityFor, fail-closed, REQ-085); created_ts is the recording event's ledger time (REQ-116).
+      const inserted = await db
+        .prepare(
+          "INSERT OR IGNORE INTO documents (id, shipment_id, party_id, kind, r2_key, hash, lifecycle_class, visibility, created_ts) VALUES (?,?,?,?,?,?,?,?,?)",
+        )
+        .bind(documentId, shipment_id, null, docKind, key, photo_hash, lifecycleClass, documentVisibilityFor(recording.visibility), recording.recorded_at)
+        .run();
+      return c.json({ document_id: documentId, r2_key: key }, inserted.meta.changes > 0 ? 201 : 200);
+    }
+    // RE-INSTATE a retention-tombstoned doc: the bytes were just restored above; mark the row active again and
+    // restart its retention clock from this re-submission (a plain UPDATE — documents is a mutable projection).
+    await db
+      .prepare("UPDATE documents SET retention_status = 'active', created_ts = ? WHERE id = ?")
+      .bind(recording.recorded_at, documentId)
       .run();
-    return c.json({ document_id: documentId, r2_key: key }, inserted.meta.changes > 0 ? 201 : 200);
+    return c.json({ document_id: documentId, r2_key: key }, 200);
   });
 }

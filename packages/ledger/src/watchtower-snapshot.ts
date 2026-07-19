@@ -32,6 +32,7 @@ import {
   WEEK_MS,
   type MetricValue,
 } from "./queries/metrics.js";
+import { tenantStorageReading, type StorageReading } from "./documents/retention.js";
 
 /** The manifest schema version — a snapshot for one (tenant, week) can never be mistaken for another format. */
 export const WATCHTOWER_SNAPSHOT_VERSION = "shuddl-watchtower-snapshot-v1";
@@ -75,6 +76,10 @@ export interface WatchtowerSnapshot {
   now_ms: number;
   window_ms: number;
   metrics: WatchtowerSnapshotMetrics;
+  /** REQ-116 — the tenant's R2 storage READING (bytes + integer-cents cost estimate). A SEPARATE section from
+   *  the 7 REQ-160 health `metrics` (a metric the operator watches, NOT a money_line/billable). Present only
+   *  when the snapshot is computed WITH an R2 binding (the persist path); absent otherwise. */
+  storage?: StorageReading;
 }
 
 /** The ISO-8601 week-of-year (YYYY-Www) of an epoch-ms instant, UTC. Week 1 is the week containing the year's
@@ -105,8 +110,15 @@ export function isSnapshotDay(nowMs: number, dow: number = SNAPSHOT_DOW): boolea
 }
 
 /** Compute the 7 REQ-160 health metrics for one tenant at `now` (all metrics honest — a real number or UNKNOWN).
- *  The caller binds `db` to ONE tenant's D1 (REQ-025). Flow metrics window back over `windowMs` (default 7d). */
-export async function computeWatchtowerSnapshot(db: D1Database, tenant: string, opts: SnapshotOpts): Promise<WatchtowerSnapshot> {
+ *  The caller binds `db` to ONE tenant's D1 (REQ-025). Flow metrics window back over `windowMs` (default 7d).
+ *  When `r2` is supplied, the REQ-116 storage READING (tenant-prefix bytes + cost estimate) is attached too;
+ *  omit it (the pure-metric callers) and `storage` is simply absent. */
+export async function computeWatchtowerSnapshot(
+  db: D1Database,
+  tenant: string,
+  opts: SnapshotOpts,
+  r2?: R2Bucket,
+): Promise<WatchtowerSnapshot> {
   const { now } = opts;
   const windowMs = opts.windowMs ?? WATCHTOWER_SNAPSHOT_WINDOW_MS;
   // Spread the scope only when set (exactOptionalPropertyTypes forbids passing an explicit `undefined`).
@@ -124,6 +136,10 @@ export async function computeWatchtowerSnapshot(db: D1Database, tenant: string, 
     computeCostRatioBps(db, scopeOpt),
   ]);
 
+  // REQ-116 — the storage reading rides ONLY when an R2 binding is present (the persist path); spread it
+  // conditionally so exactOptionalPropertyTypes never sees an explicit `undefined`.
+  const storageOpt = r2 !== undefined ? { storage: await tenantStorageReading(r2, tenant) } : {};
+
   return {
     version: WATCHTOWER_SNAPSHOT_VERSION,
     tenant,
@@ -140,6 +156,7 @@ export async function computeWatchtowerSnapshot(db: D1Database, tenant: string, 
       close_duration_ms: close,
       or_bps: or,
     },
+    ...storageOpt,
   };
 }
 
@@ -159,7 +176,8 @@ export async function persistWatchtowerSnapshot(r2: R2Bucket, db: D1Database, te
   // body breaks the test harness's isolated-storage teardown, and prod never needs the bytes here).
   const existing = await r2.head(key);
   if (existing !== null) return { key, iso_week: week, outcome: "skipped" };
-  const snapshot = await computeWatchtowerSnapshot(db, tenant, opts);
+  // Pass r2 so the persisted manifest carries the REQ-116 storage reading (the tenant's evidence-prefix bytes).
+  const snapshot = await computeWatchtowerSnapshot(db, tenant, opts, r2);
   await r2.put(key, JSON.stringify(snapshot));
   return { key, iso_week: week, outcome: "written" };
 }

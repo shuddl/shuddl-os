@@ -22,6 +22,7 @@
 
 import { canonicalBytes, sha256Hex } from "./canonical.js";
 import { bytesToHex, hexToBytes, inclusionProof, merkleRoot, type ProofStep } from "./merkle.js";
+import { retentionClassFor } from "./documents/retention.js";
 import type { TsaClient } from "./tsa/client.js";
 
 const IMPRINT_PREFIX = "shuddl-anchor-v1";
@@ -189,11 +190,16 @@ async function anchorDay(deps: AnchorDeps, day: string): Promise<"anchored" | "f
   // root, new nonce) and INSERT OR IGNORE lands the row. Never INSERT OR REPLACE (source lint bans it).
   await r2.put(receiptKey, tsr as ArrayBuffer | Uint8Array);
   await r2.put(anchorManifestKey(tenant, day), JSON.stringify(manifest));
+  // REQ-116 — the tsa_receipt carries its retention CLASS at write (retentionClassFor('tsa_receipt') = the
+  // 7-year 'pod-7yr' compliance hold): the anchor witness proof is kept as long as the POD it attests, and the
+  // retention sweep NEVER deletes it (both by kind-exclusion and by the 7yr duration). created_ts is left to
+  // its column DEFAULT — a tsa_receipt is never swept, so its retention clock is moot (the INSERT column list
+  // stays unchanged, so a DB migrated without 0007 still accepts this write).
   await db
     .prepare(
       "INSERT OR IGNORE INTO documents (id, shipment_id, party_id, kind, r2_key, hash, lifecycle_class, visibility) VALUES (?,?,?,?,?,?,?,?)",
     )
-    .bind(anchorDocId(day), null, null, "tsa_receipt", receiptKey, rootHex, "default", "internal")
+    .bind(anchorDocId(day), null, null, "tsa_receipt", receiptKey, rootHex, retentionClassFor("tsa_receipt"), "internal")
     .run();
 
   await clearTsaFailure(db, tenant, day);

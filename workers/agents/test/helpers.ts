@@ -8,12 +8,14 @@ import ledgerCore from "../../../db/tenant/migrations/0001_ledger_core.sql?raw";
 import domain from "../../../db/tenant/migrations/0002_domain.sql?raw";
 import insertGuards from "../../../db/tenant/migrations/0003_insert_guards.sql?raw";
 import partyRefsGuard from "../../../db/tenant/migrations/0004_party_refs_guard.sql?raw";
+import documentsRetention from "../../../db/tenant/migrations/0007_documents_retention.sql?raw";
 
 const MIGRATIONS = [
   { path: "0001_ledger_core.sql", sql: ledgerCore },
   { path: "0002_domain.sql", sql: domain },
   { path: "0003_insert_guards.sql", sql: insertGuards },
   { path: "0004_party_refs_guard.sql", sql: partyRefsGuard },
+  { path: "0007_documents_retention.sql", sql: documentsRetention },
 ];
 
 async function tableExists(db: D1Database, name: string): Promise<boolean> {

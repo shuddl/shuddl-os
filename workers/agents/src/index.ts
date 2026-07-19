@@ -15,6 +15,7 @@ import { sweepTenantOverdueInbound } from "./sla-sweep.js";
 import { sweepTenantOverdueInvoices } from "./collector.js";
 import { runWatchtowerSweep } from "./watchtower.js";
 import { runWatchtowerSnapshots } from "./watchtower-snapshot.js";
+import { sweepTenantExpiredDocuments } from "@shuddl/ledger/documents/retention";
 import { TENANT_SLUGS, tenantDb, type AgentsEnv } from "./tenants.js";
 
 // The queue's message union (REQ-039): a committed pod.signed fans out to the Biller, a committed
@@ -107,6 +108,25 @@ export async function runWatchtower(env: AgentsEnv, now: () => number = () => Da
       console.log(`watchtower: tenant ${slug} → ${JSON.stringify(result)}`);
     } catch (err) {
       console.error(`watchtower: tenant ${slug} failed (re-run next tick — the sweep is idempotent):`, err);
+    }
+  }
+}
+
+// REQ-116 — the R2 RETENTION sweep across every allowlisted tenant (REQ-025 isolation: one tenant's D1 + its
+// `evidence/<tenant>/` key scope per iteration; the sweep never deletes outside that namespace). It DELETEs
+// expired NON-POD R2 bytes and TOMBSTONES the documents row, preserving the row-iff-bytes invariant (never
+// orphaned in either direction) — a POD is the 7-year compliance class and is never swept. Exported so the cron
+// test and a manual re-drive both hit the identical path. Idempotent + self-healing (an already-tombstoned doc
+// is no longer a candidate; delete-then-tombstone re-heals a torn tick), so re-running every tick is safe; a
+// per-tenant fault is contained + logged so one tenant never stalls the rest. The cron reads wall-clock for `now`.
+export async function runRetentionSweep(env: AgentsEnv, now: () => number = () => Date.now()): Promise<void> {
+  const at = now();
+  for (const slug of TENANT_SLUGS) {
+    try {
+      const result = await sweepTenantExpiredDocuments(tenantDb(env, slug), env.EVIDENCE, slug, at);
+      console.log(`retention-sweep: tenant ${slug} → ${JSON.stringify(result)}`);
+    } catch (err) {
+      console.error(`retention-sweep: tenant ${slug} failed (re-run next tick — the sweep is idempotent):`, err);
     }
   }
 }
@@ -334,6 +354,11 @@ export default {
       // is deterministic. DECOUPLED from the anchor via the same finally so a per-tenant anchor fault never
       // skips it; it contains its own per-tenant faults, so the anchor's throw still surfaces after it runs.
       await runWatchtower(env, () => controller.scheduledTime);
+      // REQ-116 — the R2 RETENTION sweep rides this SAME tick, anchored to the fired-at instant so "expired" is
+      // deterministic. DECOUPLED via the same finally so a per-tenant anchor fault never skips it; it contains
+      // its own per-tenant faults, so the anchor's throw still surfaces after it runs. It DELETEs expired non-POD
+      // R2 bytes + tombstones the row (row-iff-bytes preserved); a POD is 7yr and never swept. Idempotent.
+      await runRetentionSweep(env, () => controller.scheduledTime);
       // REQ-160 — the WEEKLY Watchtower telemetry snapshot rides this SAME daily tick but is DAY-OF-WEEK GATED
       // (isSnapshotDay): it persists each tenant's 7-metric R2 manifest only on SNAPSHOT_DOW, a no-op every other
       // day — so the daily cron carries the weekly snapshot with no new cron expression. DECOUPLED via the same

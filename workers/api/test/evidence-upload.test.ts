@@ -147,6 +147,9 @@ beforeAll(async () => {
     "ev-borrow-b",
     "ev-stream",
     "ev-heal",
+    "ev-retention",
+    "ev-retention-pod",
+    "ev-reinstate",
   ]) {
     await seedShipment(id);
   }
@@ -359,5 +362,67 @@ describe("POST /v1/evidence — byte-verified evidence upload (REQ-168)", () => 
     expect((await upload({ shipment_id: "ev-badparam", photo_hash: hex63 }, bytes, opsTok)).status).toBe(400);
     expect((await upload({ shipment_id: "ev-badparam", photo_hash: nonHex }, bytes, opsTok)).status).toBe(400);
     expect((await upload({ photo_hash: goodHash }, bytes, opsTok)).status).toBe(400); // missing shipment_id
+  });
+});
+
+// ─── REQ-116 — RETENTION CLASS + CLOCK STAMPED AT WRITE, and re-instatement of a retention-tombstoned doc ───
+describe("POST /v1/evidence — retention fields (REQ-116)", () => {
+  it("a photo stores lifecycle_class 'default' (shorter hold); created_ts = the recording event's recorded_at", async () => {
+    const shp = "ev-retention";
+    const bytes = nextEvidenceBytes();
+    const hash = await recordPlacedPhoto(shp, bytes);
+
+    const res = await upload({ shipment_id: shp, photo_hash: hash }, bytes, opsTok);
+    expect(res.status, JSON.stringify(res.json)).toBe(201);
+
+    const doc = await env.TENANT_A_DB.prepare("SELECT lifecycle_class, created_ts, retention_status FROM documents WHERE shipment_id = ? AND hash = ?")
+      .bind(shp, hash)
+      .first<{ lifecycle_class: string; created_ts: number; retention_status: string }>();
+    expect(doc?.lifecycle_class, "a photo is the shorter 'default' retention class").toBe("default");
+    expect(doc?.retention_status, "a freshly-stored doc is active (bytes present)").toBe("active");
+    // created_ts is the recording event's LEDGER time (recorded_at), not the upload wall-clock.
+    const evt = await env.TENANT_A_DB.prepare("SELECT recorded_at FROM events WHERE stream_id = ? AND kind = 'freight.photographed' LIMIT 1")
+      .bind(`s:${shp}`)
+      .first<{ recorded_at: number }>();
+    expect(doc?.created_ts).toBe(evt?.recorded_at);
+  });
+
+  it("a POD stores lifecycle_class 'pod-7yr' — the 7-year compliance hold", async () => {
+    const shp = "ev-retention-pod";
+    await appendEvent(shp, "document.attached", { ...CONSENT });
+    const sigBytes = nextEvidenceBytes();
+    const hash = await appendEvent(shp, "pod.signed", { geo: { ...INSIDE } }, { bytes: sigBytes, field: "signature_hash" });
+    expect(hash).toBeDefined();
+
+    const res = await upload({ shipment_id: shp, photo_hash: hash! }, sigBytes, opsTok);
+    expect(res.status, JSON.stringify(res.json)).toBe(201);
+    const doc = await env.TENANT_A_DB.prepare("SELECT lifecycle_class FROM documents WHERE shipment_id = ? AND hash = ?")
+      .bind(shp, hash!)
+      .first<{ lifecycle_class: string }>();
+    expect(doc?.lifecycle_class, "a POD is the 7-year 'pod-7yr' compliance class").toBe("pod-7yr");
+  });
+
+  it("ROW-IFF-BYTES: re-uploading a retention-TOMBSTONED doc RE-INSTATES it (active row, bytes restored, one row)", async () => {
+    const shp = "ev-reinstate";
+    const bytes = nextEvidenceBytes();
+    const hash = await recordPlacedPhoto(shp, bytes);
+    const first = await upload({ shipment_id: shp, photo_hash: hash }, bytes, opsTok);
+    expect(first.status, JSON.stringify(first.json)).toBe(201);
+    const docId = first.json?.document_id as string;
+    const key = r2Key(TENANT, shp, hash);
+
+    // Simulate the retention sweep having run: bytes deleted, row tombstoned to 'expired'.
+    await env.EVIDENCE.delete(key);
+    await env.TENANT_A_DB.prepare("UPDATE documents SET retention_status = 'expired' WHERE id = ?").bind(docId).run();
+    expect(await env.EVIDENCE.get(key), "the tombstoned doc's bytes are gone").toBeNull();
+
+    // Re-upload the SAME verified bytes → re-instated (not a dead 200 pointing at deleted bytes).
+    const again = await upload({ shipment_id: shp, photo_hash: hash }, bytes, opsTok);
+    expect([200, 201]).toContain(again.status);
+    expect(again.json?.document_id).toBe(docId);
+    expect(await env.EVIDENCE.get(key), "the bytes are restored").not.toBeNull();
+    const row = await env.TENANT_A_DB.prepare("SELECT retention_status FROM documents WHERE id = ?").bind(docId).first<{ retention_status: string }>();
+    expect(row?.retention_status, "the row is active again — no active row ever claims deleted bytes").toBe("active");
+    expect(await docCount(shp, hash), "re-instatement never duplicates the row").toBe(1);
   });
 });

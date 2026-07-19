@@ -5,5 +5,6 @@
   "db/tenant/migrations/0004_party_refs_guard.sql": "1838438c30d3939621149d8c8e2dbc8063aa8068c3c8a97dbc8a06b40c93b2ac",
   "db/tenant/migrations/0005_events_override.sql": "161836872ca9b5affe66397d98670c8322b7fe678ec317b7ddf9defec063c6ac",
   "db/tenant/migrations/0006_booking.sql": "7a68a750abbe4bc9647ece90cd957bcd90de40462089c2153ce1cc53e8b1a142",
+  "db/tenant/migrations/0007_documents_retention.sql": "43d92c015d1970616e29a4a145ba8eb7d6738825e3d07e6155b41dd87120886c",
   "db/control/migrations/0001_control.sql": "8c6d03b77c582195e2f45826d643188b80f3c208f2b559ce2bd0edb1aed4c83b"
 }
