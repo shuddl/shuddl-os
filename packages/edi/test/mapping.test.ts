@@ -37,4 +37,24 @@ describe("mapping (per-partner config layer)", () => {
     expect(dialectStatus("arrived", DEFAULT_004010)).toBe("X3");
     expect(dialectStatus("delivered", DEFAULT_004010)).toBe("D1");
   });
+
+  it("applyMapping does not corrupt a ref whose key collides with a prototype member", () => {
+    const tender: TenderDoc = {
+      partnerScac: "MEGA",
+      purpose: "00",
+      refs: { toString: "keepme" },
+      stops: [],
+    };
+    const out = applyMapping(tender, DEFAULT_004010);
+    // The unknown qualifier passes through unchanged — NOT into an inherited Object.prototype.toString.
+    expect(Object.keys(out.refs)).toEqual(["toString"]);
+    expect(out.refs["toString"]).toBe("keepme");
+  });
+
+  it("dialectStatus always returns a string, even for a prototype-member code", () => {
+    expect(dialectStatus("__proto__", DEFAULT_004010)).toBe("__proto__");
+    expect(dialectStatus("toString", DEFAULT_004010)).toBe("toString");
+    expect(dialectStatus("constructor", DEFAULT_004010)).toBe("constructor");
+    expect(typeof dialectStatus("hasOwnProperty", DEFAULT_004010)).toBe("string");
+  });
 });

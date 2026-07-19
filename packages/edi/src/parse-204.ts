@@ -79,7 +79,10 @@ export function parse204(raw: string): TenderDoc {
 
   let partnerScac = "";
   let purpose: "00" | "01" = "00";
-  const refs: Record<string, string> = {};
+  // Null-proto so a hostile L11 qualifier equal to an Object.prototype member (`__proto__`, `constructor`, …)
+  // becomes a real own key instead of being silently dropped or hitting an inherited accessor — the wire's
+  // ref is never lost or corrupted (Migrator rule, CLAUDE.md #10).
+  const refs: Record<string, string> = Object.create(null);
   let weightLb: number | undefined;
 
   const loops: N1Loop[] = [];
@@ -109,11 +112,13 @@ export function parse204(raw: string): TenderDoc {
         break;
       }
       case "AT8": {
-        // AT803 = weight. Left undefined when absent — never defaulted to zero.
+        // AT803 = weight. Accept ONLY a strict positive decimal — `Number()` would let "-500", "0x10",
+        // "1e5" through and feed the rater a bogus/negative weight, which is worse than the UNKNOWN that
+        // "no price on air" (CLAUDE.md #4) preserves. Anything else leaves weightLb undefined.
         const raw8 = seg.elements[2]?.trim();
-        if (raw8) {
+        if (raw8 !== undefined && /^\d+(\.\d+)?$/.test(raw8)) {
           const n = Number(raw8);
-          if (Number.isFinite(n)) weightLb = n;
+          if (n > 0) weightLb = n;
         }
         break;
       }
@@ -158,5 +163,8 @@ export function parse204(raw: string): TenderDoc {
   if (weightLb !== undefined) doc.weightLb = weightLb;
 
   // Validate at the boundary (.strict()): an unexpected shape is a hard reject, never a silent pass-through.
-  return TenderDoc.parse(doc);
+  // zod's z.record rebuilds refs on a {}-proto object and drops a literal `__proto__` key, so re-attach the
+  // prototype-safe `refs` (already validated as string→string by the parse above) — no ref is silently lost.
+  const validated = TenderDoc.parse(doc);
+  return { ...validated, refs };
 }

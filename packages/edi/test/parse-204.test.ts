@@ -94,3 +94,56 @@ describe("parse204", () => {
     expect(() => parse204(truncated)).toThrow(EdiParseError);
   });
 });
+
+// A minimal 204 whose L11 refs and AT8 weight are attacker-controlled, to prove the untrusted-partner boundary
+// is prototype-safe and refuses a bogus weight.
+function hostileDoc(opts: { l11: Array<[string, string]>; at8?: string }): string {
+  const S = (...f: string[]): string => f.join("*") + "~";
+  const l11 = opts.l11.map(([value, qual]) => S("L11", value, qual)).join("");
+  const at8 = opts.at8 === undefined ? "" : S("AT8", "G", "L", opts.at8, "40");
+  return (
+    isaHeader("000000042") +
+    S("GS", "SM", "MEGA", "SHUDDL", "20260719", "1200", "77", "X", "004010") +
+    S("ST", "204", "0001") +
+    S("B2", "", "MEGA", "", "SHIP123", "", "PP") +
+    S("B2A", "00") +
+    l11 +
+    S("N1", "SH", "ACME") +
+    S("N4", "NEWARK", "NJ", "07101") +
+    at8 +
+    S("SE", "9", "0001") +
+    S("GE", "1", "77") +
+    S("IEA", "1", "000000042")
+  );
+}
+
+describe("parse204 — untrusted-partner boundary hardening", () => {
+  it("preserves refs whose qualifier collides with an Object.prototype member (no silent drop/corruption)", () => {
+    const d = parse204(
+      hostileDoc({
+        l11: [
+          ["C987", "constructor"],
+          ["T987", "toString"],
+          ["P987", "__proto__"],
+        ],
+      }),
+    );
+    const refs = d.refs as Record<string, string>;
+    expect(Object.hasOwn(refs, "constructor")).toBe(true);
+    expect(refs["constructor"]).toBe("C987");
+    expect(Object.hasOwn(refs, "toString")).toBe(true);
+    expect(refs["toString"]).toBe("T987");
+    // __proto__ would vanish through a {}-proto build AND through zod's record rebuild; the prototype-safe
+    // path keeps it as a real own key (Migrator rule: a ref is never silently dropped).
+    expect(Object.hasOwn(refs, "__proto__")).toBe(true);
+    expect(refs["__proto__"]).toBe("P987");
+  });
+
+  it("rejects a non-positive-decimal AT8 weight, leaving weightLb undefined (no price on air)", () => {
+    expect(parse204(hostileDoc({ l11: [], at8: "-500" })).weightLb).toBeUndefined();
+    expect(parse204(hostileDoc({ l11: [], at8: "0x10" })).weightLb).toBeUndefined();
+    expect(parse204(hostileDoc({ l11: [], at8: "1e5" })).weightLb).toBeUndefined();
+    expect(parse204(hostileDoc({ l11: [], at8: "0" })).weightLb).toBeUndefined();
+    expect(parse204(hostileDoc({ l11: [], at8: "42000" })).weightLb).toBe(42000);
+  });
+});

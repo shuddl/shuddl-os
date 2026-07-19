@@ -1,17 +1,9 @@
 // X12 214 shipment-status serialize (REQ-200). PURE (REQ-035) and BYTE-STABLE: identical StatusView →
 // identical bytes. The CALLER passes an already-mapped AT7 status code; build214 does NOT re-map, it only
-// serializes. STATUS_TO_AT7 is exported for the caller's reference/reuse.
+// serializes. The single source of truth for the SHUDDL-status → AT7 dialect is DEFAULT_004010.statusDialect
+// (mapping.ts), resolved per-partner via dialectStatus — build214 never duplicates that map.
 import { StatusView } from "./types.js";
 import { buildInterchange, segment } from "./writer.js";
-
-// Canonical SHUDDL status → AT7 status code. Exported so the upstream sweep maps consistently; build214 itself
-// treats StatusStop.statusCode as already-final AT7.
-export const STATUS_TO_AT7: Record<string, string> = {
-  arrived: "X3",
-  departed: "AF",
-  delivered: "D1",
-  pod: "D1",
-};
 
 // CCYYMMDD (AT705) + HHMM (AT706) from an ISO-ish timestamp via pure digit extraction — no Date object, so the
 // output never shifts with the host timezone and stays deterministic.

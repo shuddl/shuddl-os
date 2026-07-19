@@ -70,7 +70,9 @@ export const TenderDoc = z
     refs: z.record(z.string(), z.string()),
     stops: z.array(TenderStop),
     billTo: TenderBillTo.optional(),
-    weightLb: z.number().optional(),
+    // Positive-only: a zero/negative weight is a bogus sell input; the boundary rejects it rather than pass
+    // it to the rater (defense in depth behind parse-204's AT803 guard).
+    weightLb: z.number().positive().optional(),
     dims: TenderDims.optional(),
   })
   .strict();
