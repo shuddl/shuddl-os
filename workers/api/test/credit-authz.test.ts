@@ -145,3 +145,44 @@ describe("credit.checked requires finance-role authorization (REQ-185)", () => {
     expect(await countEvents("ca-chain-book")).toBe(0);
   });
 });
+
+// REQ-183 — the credit.checked→parties.credit_status projection is a SILENT no-op when the party row does not
+// exist yet: the UPDATE matches nothing, the hold never lands, and a later booking reads NULL and PASSES the
+// credit gate. This proves the end-to-end sequencer path surfaces that miss LOUDLY (a durable `anomalies` row)
+// and NEVER fabricates the missing party.
+describe("REQ-183 — a credit.checked for an unmaterialized party appends but surfaces a LOUD projection gap", () => {
+  async function anomalyRow(id: string): Promise<{ rule: string; object_id: string; severity: string } | null> {
+    return env.TENANT_A_DB.prepare("SELECT rule, object_id, severity FROM anomalies WHERE id = ?")
+      .bind(id)
+      .first<{ rule: string; object_id: string; severity: string }>();
+  }
+
+  it("finance posts credit.checked{hold} for a party that does NOT exist → 201, NO party fabricated, gap surfaced", async () => {
+    const ghost = "party-183-never-created"; // deliberately NOT seeded — no parties row
+    const input = creditInput("ca-183-gap", ghost, "hold");
+    const r = await post("ca-183-gap", input, await financeTok());
+    expect(r.status).toBe(201); // the credit.checked EVENT is committed truth even though the projection missed
+
+    // no party row was fabricated by the projection (append-only / no-invented-data law)
+    const party = await env.TENANT_A_DB.prepare("SELECT 1 AS x FROM parties WHERE id = ?").bind(ghost).first();
+    expect(party).toBeNull();
+    expect(await creditStatus(ghost)).toBeNull();
+
+    // the projection gap is surfaced LOUDLY on the durable anomalies table (rule + object_id + critical)
+    const a = await anomalyRow(`credit-projection-gap:${input.id as string}`);
+    expect(a).not.toBeNull();
+    expect(a!.rule).toBe("credit_projection_gap");
+    expect(a!.object_id).toBe(ghost);
+    expect(a!.severity).toBe("critical");
+  });
+
+  it("finance posts credit.checked{hold} for an EXISTING party → 201, projects credit_status, NO gap row", async () => {
+    const present = "party-183-present-api";
+    await seedBareParty(present);
+    const input = creditInput("ca-183-present", present, "hold");
+    const r = await post("ca-183-present", input, await financeTok());
+    expect(r.status).toBe(201);
+    expect(await creditStatus(present)).toBe("hold"); // the UPDATE landed
+    expect(await anomalyRow(`credit-projection-gap:${input.id as string}`)).toBeNull(); // no gap on a hit
+  });
+});

@@ -34,9 +34,10 @@ describe("resolveVisibility: default -> tenant policy -> per-event narrow-only",
     expect(resolveVisibility("pod.signed", undefined, undefined)).toBe("counterparty");
     expect(resolveVisibility("credit.checked", undefined, undefined)).toBe("internal");
   });
-  it("tenant policy may WIDEN call.transcribed to counterparty", () => {
+  it("REQ-180 floor: a tenant policy can NOT widen call.transcribed — it stays internal", () => {
+    // Pre-REQ-180 this widened to counterparty; the INTERNAL_FLOOR now clamps inherently-internal kinds.
     expect(resolveVisibility("call.transcribed", { "call.transcribed": "counterparty" }, undefined)).toBe(
-      "counterparty",
+      "internal",
     );
   });
   it("tenant policy may also narrow", () => {
@@ -62,6 +63,56 @@ describe("resolveVisibility: default -> tenant policy -> per-event narrow-only",
   });
   it("invoice.corrected without a corrected-visibility falls back to its default", () => {
     expect(resolveVisibility("invoice.corrected", undefined, undefined)).toBe("counterparty");
+  });
+});
+
+// REQ-180 — the NEVER-WIDEN FLOOR. Inherently-internal kinds (margin/credit/consent/control) can never be
+// widened past the tenant lens by a tenant POLICY or a per-event requested_visibility. The floor clamps the
+// FAIL-CLOSED SUPERSET: all SEVEN code-default-internal kinds (the register names six + EXCLUDES split.computed;
+// split.computed carries interline/margin internals and is code-default-internal, so it is clamped too).
+describe("REQ-180: INTERNAL_FLOOR clamps inherently-internal kinds — policy/request can never WIDEN them", () => {
+  const FLOORED: EventKind[] = [
+    "call.transcribed",
+    "credit.checked",
+    "approval.requested",
+    "approval.decided",
+    "agent.acted",
+    "authority.flipped",
+    "split.computed",
+  ];
+  it.each(FLOORED.map((k) => [k] as const))(
+    "a tenant policy widening %s to counterparty still resolves internal",
+    (kind) => {
+      expect(resolveVisibility(kind, { [kind]: "counterparty" }, undefined)).toBe("internal");
+    },
+  );
+  it.each(FLOORED.map((k) => [k] as const))(
+    "a tenant policy widening %s to public still resolves internal",
+    (kind) => {
+      expect(resolveVisibility(kind, { [kind]: "public" }, undefined)).toBe("internal");
+    },
+  );
+  it.each(FLOORED.map((k) => [k] as const))(
+    "a requested_visibility widening %s to counterparty still resolves internal",
+    (kind) => {
+      expect(resolveVisibility(kind, undefined, "counterparty")).toBe("internal");
+    },
+  );
+  it("the floor holds even when BOTH a widening policy AND a widening request are present", () => {
+    expect(resolveVisibility("credit.checked", { "credit.checked": "public" }, "public")).toBe("internal");
+    expect(resolveVisibility("split.computed", { "split.computed": "counterparty" }, "counterparty")).toBe(
+      "internal",
+    );
+    expect(resolveVisibility("approval.decided", { "approval.decided": "public" }, "counterparty")).toBe(
+      "internal",
+    );
+  });
+  it("a NON-internal kind is UNAFFECTED by the floor (booking.created still resolves normally)", () => {
+    expect(resolveVisibility("booking.created", undefined, undefined)).toBe("counterparty");
+    // a policy MAY still widen a non-floored kind to public
+    expect(resolveVisibility("booking.created", { "booking.created": "public" }, undefined)).toBe("public");
+    // and a request MAY still narrow it
+    expect(resolveVisibility("booking.created", undefined, "internal")).toBe("internal");
   });
 });
 

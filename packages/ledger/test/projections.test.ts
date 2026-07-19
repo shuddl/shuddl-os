@@ -3,7 +3,11 @@ import { beforeAll, describe, expect, it } from "vitest";
 import type { LedgerEvent, PodSignedPayload } from "@shuddl/contracts";
 import { applyMigrations } from "../src/migrate.js";
 import { projectPassport } from "../src/projection/passports.js";
-import { projectStatusCache } from "../src/projection/status-cache.js";
+import {
+  projectStatusCache,
+  surfaceCreditProjectionGapIfMissed,
+  CREDIT_PROJECTION_GAP_RULE,
+} from "../src/projection/status-cache.js";
 import { projectAgentRuns } from "../src/projection/agent-runs.js";
 import { eventInsertStmt, mkEvent, resetEventCounter } from "./helpers.js";
 import ledgerCore from "../../../db/tenant/migrations/0001_ledger_core.sql?raw";
@@ -56,6 +60,24 @@ async function scores(partyId: string): Promise<Record<string, number> | null> {
 async function creditStatus(partyId: string): Promise<string | null> {
   const r = await DB.prepare("SELECT credit_status AS c FROM parties WHERE id = ?").bind(partyId).first<{ c: string | null }>();
   return r === null ? null : r.c;
+}
+async function partyExists(id: string): Promise<boolean> {
+  return (await DB.prepare("SELECT 1 AS x FROM parties WHERE id = ?").bind(id).first<{ x: number }>()) !== null;
+}
+async function anomaly(
+  id: string,
+): Promise<{ rule: string; object_id: string | null; severity: string; detail: string } | null> {
+  return DB.prepare("SELECT rule, object_id, severity, detail FROM anomalies WHERE id = ?")
+    .bind(id)
+    .first<{ rule: string; object_id: string | null; severity: string; detail: string }>();
+}
+// Mirror the sequencer's credit path: run the event + credit UPDATE in one batch, read rows-affected off
+// the batch result (results[1] = the CREDIT_SQL statement), then surface a gap if it was a silent no-op.
+async function appendCreditAndSurface(e: LedgerEvent): Promise<number> {
+  const results = await DB.batch([eventInsertStmt(DB, e), ...projectStatusCache(DB, e)]);
+  const changes = results[1]?.meta.changes ?? 0;
+  await surfaceCreditProjectionGapIfMissed(DB, e, changes);
+  return changes;
 }
 function booking(shipmentId: string, division = "north"): LedgerEvent {
   return mkEvent("booking.created", {
@@ -194,6 +216,59 @@ describe("REQ-042 — credit.checked projects parties.credit_status (the T6 cred
     await appendStatus(mkEvent("credit.checked", { payload: { party_id: "party-credit-a", status: "review" } }));
     expect(await creditStatus("party-credit-a")).toBe("review");
     expect(await creditStatus("party-credit-b")).toBeNull();
+  });
+});
+
+describe("REQ-183 — the credit.checked projection must not SILENTLY no-op (loud gap, no fabricated party)", () => {
+  it("credit.checked for an EXISTING party updates credit_status and surfaces NO gap (unchanged behavior)", async () => {
+    await seedParty("party-183-present");
+    const e = mkEvent("credit.checked", { shipment_id: undefined, payload: { party_id: "party-183-present", status: "hold" } });
+    const changes = await appendCreditAndSurface(e);
+    expect(changes).toBe(1); // the UPDATE landed on the existing row
+    expect(await creditStatus("party-183-present")).toBe("hold");
+    expect(await anomaly(`credit-projection-gap:${e.id}`)).toBeNull(); // no gap surfaced on a hit
+  });
+
+  it("credit.checked for a party that does NOT exist surfaces a LOUD anomalies gap and fabricates NO party row", async () => {
+    const missing = "party-183-absent";
+    expect(await partyExists(missing)).toBe(false);
+    const e = mkEvent("credit.checked", { shipment_id: undefined, payload: { party_id: missing, status: "hold" } });
+    const changes = await appendCreditAndSurface(e);
+    expect(changes).toBe(0); // the UPDATE matched nothing — the silent no-op REQ-183 targets
+
+    // the party row is NOT fabricated (append-only / no-invented-data law — a party the ledger never created)
+    expect(await partyExists(missing)).toBe(false);
+    expect(await creditStatus(missing)).toBeNull();
+
+    // the gap is surfaced LOUDLY on the durable, mutable anomalies table (rule + party + critical severity)
+    const a = await anomaly(`credit-projection-gap:${e.id}`);
+    expect(a).not.toBeNull();
+    expect(a!.rule).toBe(CREDIT_PROJECTION_GAP_RULE);
+    expect(a!.object_id).toBe(missing);
+    expect(a!.severity).toBe("critical");
+    const detail = JSON.parse(a!.detail) as { party_id: string; status: string; reason: string; event_id: string };
+    expect(detail).toMatchObject({ party_id: missing, status: "hold", reason: "party_row_absent", event_id: e.id });
+
+    // the credit.checked EVENT itself stands on the ledger (truth), even though the projection could not apply
+    expect(await DB.prepare("SELECT id FROM events WHERE id = ?").bind(e.id).first()).not.toBeNull();
+  });
+
+  it("a HIT does not surface a gap even when called directly (changes>0 short-circuits, no anomalies row)", async () => {
+    const e = mkEvent("credit.checked", { shipment_id: undefined, payload: { party_id: "party-183-hit", status: "clear" } });
+    await surfaceCreditProjectionGapIfMissed(DB, e, 1);
+    expect(await anomaly(`credit-projection-gap:${e.id}`)).toBeNull();
+  });
+
+  it("surfacing is idempotent per event id — a redelivered miss collapses to ONE anomalies row (no fabrication)", async () => {
+    const missing = "party-183-redeliver";
+    const e = mkEvent("credit.checked", { shipment_id: undefined, payload: { party_id: missing, status: "review" } });
+    await surfaceCreditProjectionGapIfMissed(DB, e, 0);
+    await surfaceCreditProjectionGapIfMissed(DB, e, 0);
+    const n = await DB.prepare("SELECT COUNT(*) AS n FROM anomalies WHERE id = ?")
+      .bind(`credit-projection-gap:${e.id}`)
+      .first<{ n: number }>();
+    expect(n!.n).toBe(1);
+    expect(await partyExists(missing)).toBe(false);
   });
 });
 

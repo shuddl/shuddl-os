@@ -38,6 +38,58 @@ const BOOKING_SQL =
 // decision presupposes the party), so a stray party_id is a silent no-op rather than a fabricated row.
 const CREDIT_SQL = "UPDATE parties SET credit_status = ? WHERE id = ?";
 
+// REQ-183 — CREDIT_SQL is a SILENT NO-OP when the party row does not exist yet: the UPDATE matches nothing,
+// so a credit.checked{hold} recorded BEFORE its party materializes never lands, a later booking.created reads
+// a NULL parties.credit_status, and the REQ-042 credit-hold gate is silently DEFEATED (the hold passes as if
+// clear). This makes that miss LOUD instead of silent. It does NOT fabricate a party row — inventing a party
+// the ledger never created would violate the append-only / no-invented-data law (and the CREDIT_SQL rationale
+// above guards exactly that). The credit.checked event stands on the ledger as truth; the GAP is only that the
+// PROJECTION could not APPLY it yet. Surfacing it — a loud structured log the recon/Watchtower catches PLUS a
+// durable row on the MUTABLE `anomalies` ops table (no new event kind, no new table, reusing T8) — lets an
+// operator create the party and re-project, so a recorded hold is never silently lost.
+export const CREDIT_PROJECTION_GAP_RULE = "credit_projection_gap";
+
+/**
+ * Surface a LOUD gap when the credit.checked → parties.credit_status projection was a no-op (party absent).
+ * Call it AFTER the append batch commits with the CREDIT_SQL statement's rows-affected (available on the D1
+ * batch result). A no-op (`creditRowsAffected === 0`) is the gap; a hit (>0) short-circuits. Idempotent per
+ * event id so a redelivered credit.checked collapses to one anomalies row. Never fabricates a party row.
+ * The `anomalies` table lives in the per-tenant D1, so tenant scoping is implicit (no tenant column).
+ */
+export async function surfaceCreditProjectionGapIfMissed(
+  db: D1Database,
+  e: LedgerEvent,
+  creditRowsAffected: number,
+): Promise<void> {
+  if (e.kind !== "credit.checked") return; // defensive: only this projection carries the silent-no-op hazard
+  if (creditRowsAffected !== 0) return; // the UPDATE landed on an existing party — nothing to surface
+  const partyId = asString(e.payload["party_id"]) ?? "unknown";
+  const status = asString(e.payload["status"]) ?? "unknown";
+  // LOUD, emitted unconditionally on a miss so the gap is caught even if the durable write below fails.
+  console.error(
+    `[REQ-183] credit.checked projection GAP: parties.credit_status UPDATE affected 0 rows — party '${partyId}' ` +
+      `does not exist yet, so the credit decision '${status}' (event ${e.id}) did NOT land and the REQ-042 ` +
+      `credit-hold gate would read NULL and PASS. NOT fabricating a party row (append-only law); create the ` +
+      `party then re-project. The credit.checked event stands on the ledger as truth.`,
+  );
+  // Durable ops signal on the MUTABLE anomalies table (no append-only guard, no new table/kind). ON CONFLICT
+  // (deterministic id keyed by event id) keeps a redelivered event to exactly one row — never INSERT OR REPLACE
+  // (that verb is lint-banned; ON CONFLICT DO UPDATE is not). Critical: a defeated credit gate is a mis-bill risk.
+  await db
+    .prepare(
+      "INSERT INTO anomalies (id, rule, object_kind, object_id, severity, detail, status) VALUES (?,?,?,?,?,?,'open') ON CONFLICT(id) DO UPDATE SET severity = excluded.severity, detail = excluded.detail",
+    )
+    .bind(
+      `credit-projection-gap:${e.id}`,
+      CREDIT_PROJECTION_GAP_RULE,
+      "party",
+      partyId,
+      "critical",
+      JSON.stringify({ party_id: partyId, status, event_id: e.id, reason: "party_row_absent" }),
+    )
+    .run();
+}
+
 // WP-08 T5 (REQ-028/052) — leg materialization, a T5→T4 COUPLING. appointment.set claims a dock slot by
 // UPDATING a leg row (WHERE shipment_id=? AND kind=?), so the leg MUST exist first. booking.created — the
 // first event on a shipment stream — INSERTs the two customer-facing skeleton legs (pickup seq 0, delivery

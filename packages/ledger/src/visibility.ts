@@ -49,6 +49,34 @@ export const KIND_VISIBILITY_DEFAULTS: Record<EventKind, Visibility> = {
 // lower rank; a per-event request may only lower, never raise.
 const RANK: Record<Visibility, number> = { internal: 0, counterparty: 1, public: 2 };
 
+// REQ-180 — the NEVER-WIDEN FLOOR. Some kinds are inherently internal (margin/credit/consent/control):
+// call transcripts, credit checks, approvals, agent actions, authority flips, interline/margin splits.
+// A tenant POLICY override or a per-event `requested_visibility` must NEVER be able to WIDEN these past
+// the tenant lens — a misconfigured policy naming `call.transcribed: counterparty` (or a spoofed request)
+// cannot be allowed to surface a transcript or a credit decision to a counterparty/public reader. So after
+// the normal default→policy→request resolution, `resolveVisibility` CLAMPS any kind in this set back to
+// `internal`, regardless of what policy/request asked for. This is an ADDITIONAL clamp on the OVERRIDE path;
+// KIND_VISIBILITY_DEFAULTS is untouched (these kinds already default to internal — the frozen 35-pair
+// snapshot stays green).
+//
+// SCOPE (the 6-vs-7 discrepancy — fail-closed superset): genesis/09 REQ-180 names SIX kinds
+// (call.transcribed, credit.checked, approval.requested, approval.decided, agent.acted, authority.flipped)
+// and EXCLUDES split.computed. But split.computed is ALSO code-default-internal (see
+// KIND_VISIBILITY_DEFAULTS above) and carries interline/margin internals (the executing-share + margin math);
+// widening it would leak exactly the numbers I5/REQ-040 keep inside the tenant lens. Clamping the FAIL-CLOSED
+// SUPERSET — all SEVEN code-default-internal kinds — is the safe choice: a floor can only ever be too strict,
+// never too loose. PROPOSED REGISTER ALIGNMENT (a comment, not a register edit — the CSV is append-only and
+// owner-signed): amend REQ-180's kind list to add `split.computed`, making the register's 6 match the code's 7.
+const INTERNAL_FLOOR: ReadonlySet<EventKind> = new Set<EventKind>([
+  "call.transcribed",
+  "credit.checked",
+  "approval.requested",
+  "approval.decided",
+  "agent.acted",
+  "authority.flipped",
+  "split.computed", // superset: NOT named by REQ-180, but code-default-internal + interline/margin-bearing
+]);
+
 /**
  * Server-side, append-time visibility resolution (REQ-015). Clients never set visibility
  * directly — `requested` is advisory and may only NARROW the resolved value.
@@ -67,5 +95,8 @@ export function resolveVisibility(
   if (kind === "invoice.corrected" && correctedEventVisibility) return correctedEventVisibility;
   let v = policy?.[kind] ?? KIND_VISIBILITY_DEFAULTS[kind];
   if (requested && RANK[requested] < RANK[v]) v = requested; // narrow-only
+  // REQ-180 NEVER-WIDEN FLOOR: an inherently-internal kind is clamped to `internal` no matter what a policy
+  // or requested_visibility resolved above — the widen path can never surface it past the tenant lens.
+  if (INTERNAL_FLOOR.has(kind)) return "internal";
   return v;
 }

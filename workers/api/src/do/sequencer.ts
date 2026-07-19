@@ -12,7 +12,7 @@ import {
   type OriginalLine,
 } from "@shuddl/ledger/projection/money";
 import { projectPassport } from "@shuddl/ledger/projection/passports";
-import { projectStatusCache } from "@shuddl/ledger/projection/status-cache";
+import { projectStatusCache, surfaceCreditProjectionGapIfMissed } from "@shuddl/ledger/projection/status-cache";
 import { applyMessageProjection } from "@shuddl/ledger/projection/messages";
 import { projectAppointment } from "@shuddl/ledger/projection/appointment";
 import { projectApprovals } from "@shuddl/ledger/projection/approvals";
@@ -352,11 +352,18 @@ export class ShipmentSequencer extends DurableObject<Env> {
     // message.* event projects its `messages` row in this SAME batch, so no communication exists outside
     // the ledger (INSERT OR IGNORE on a deterministic id keeps re-projection idempotent).
     const deps = await this.#moneyDeps(db, full);
+    const moneyStmts = applyMoneyProjection(db, full, deps);
+    const passportStmts = projectPassport(db, full);
+    const statusStmts = projectStatusCache(db, full);
+    // REQ-183 — the credit.checked→parties.credit_status UPDATE rides this batch (statusStmts, exactly one
+    // statement for a credit.checked). Its rows-affected, read off the batch result at this offset AFTER the
+    // commit, tells us whether the party row was absent (a silent no-op to surface loudly, never fabricate).
+    const statusOffset = 1 + moneyStmts.length + passportStmts.length;
     const stmts = [
       insertEventStmt(db, full),
-      ...applyMoneyProjection(db, full, deps),
-      ...projectPassport(db, full),
-      ...projectStatusCache(db, full),
+      ...moneyStmts,
+      ...passportStmts,
+      ...statusStmts,
       ...projectAppointment(db, full, gateResult.appointmentServiceDate),
       ...applyMessageProjection(db, full),
       // WP-10 T2 (REQ-082/194) — the approvals-queue read-model: approval.requested opens a row, approval.decided
@@ -366,8 +373,9 @@ export class ShipmentSequencer extends DurableObject<Env> {
       // (the previously dead table, now LIVE). Same batch (I1); INSERT OR IGNORE keeps a redelivery idempotent.
       ...projectAgentRuns(db, full),
     ];
+    let results: D1Result[];
     try {
-      await db.batch(stmts);
+      results = await db.batch(stmts);
     } catch (err) {
       // REQ-028/052 — the ATOMIC double-book backstop. A concurrent appointment.set whose claim collides on
       // ux_legs_slot aborts the WHOLE batch (D1 single-writer), so the loser's event never commits. Map it to
@@ -384,6 +392,23 @@ export class ShipmentSequencer extends DurableObject<Env> {
     }
 
     this.tail = { seq: full.seq, hash }; // bump AFTER commit — crash self-heals from the D1 tail
+
+    // REQ-183 — surface a LOUD gap if the credit.checked→parties.credit_status projection was a silent no-op
+    // (the party row does not exist yet). Runs AFTER the commit: the credit.checked event is truth regardless,
+    // and this is a best-effort durable ops signal (loud log + anomalies row) that must never throw into the
+    // append path. It NEVER fabricates the missing party row. results[statusOffset] carries the CREDIT_SQL
+    // statement's rows-affected (statusStmts is exactly that one statement for a credit.checked).
+    if (full.kind === "credit.checked" && statusStmts.length === 1) {
+      const changes = results[statusOffset]?.meta.changes ?? 0;
+      try {
+        await surfaceCreditProjectionGapIfMissed(db, full, changes);
+      } catch (err) {
+        console.error(
+          `[REQ-183] credit projection gap surfacing failed for ${full.id} (the gap log above stands; the recon sweep re-checks):`,
+          err,
+        );
+      }
+    }
 
     // WP-06 (REQ-031/039): a COMMITTED pod.signed triggers the Biller. The send is INITIATED strictly
     // AFTER the batch commits — never before (an enqueue-then-abort would bill a POD that was never
