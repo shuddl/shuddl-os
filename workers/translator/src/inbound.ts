@@ -28,7 +28,7 @@ import { parse204, tokenize, build990 } from "@shuddl/edi";
 import { priceShipment, assessApproval } from "@shuddl/rater";
 import type { RateRequest } from "@shuddl/rater";
 import { mapTenderToBooking, type BookingPlan } from "./core/map-204.js";
-import { quarantineDescriptor } from "./core/quarantine.js";
+import { quarantineDescriptor, type QuarantineRule } from "./core/quarantine.js";
 import { tenderKey, gsControlFromIsa } from "./sweep-214.js";
 import { loadTenantRatingConfig } from "./rate-config.js";
 import { TransportError, type EdiTransport } from "./transport.js";
@@ -91,6 +91,10 @@ export const INBOUND_204_PATH = "/edi/204/inbound";
 
 const NATIVE_CONFIDENCE_BPS = 10_000; // a deterministic rule engine, full capture confidence (mirrors rate.ts).
 const RATER_ACTOR = "agent:rater"; // server-controlled sentinel; none of these events accrue a parties FK.
+
+// Storage-DoS cap (REQ-202): a real X12 204 is a few KB; 1 MiB is generous. An over-cap body is rejected 413
+// BEFORE any read/persist, so an authed partner cannot spray unbounded R2 quarantine objects + anomaly rows.
+const MAX_BODY_BYTES = 1_048_576;
 
 function json(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
@@ -160,46 +164,6 @@ async function authenticate(request: Request, rawBytes: ArrayBuffer, deps: Inbou
   return { partnerId: pairing.partner_id, tenantSlug: pairing.slug };
 }
 
-// A strict non-negative integer from an X12 element (no float, no hex, no exponent — mirrors parse-204's AT8
-// discipline: a bogus value stays UNDEFINED so it never fabricates a price input).
-function strictInt(v: string | undefined): number | undefined {
-  if (v === undefined) return undefined;
-  const t = v.trim();
-  if (!/^\d+$/.test(t)) return undefined;
-  const n = Number(t);
-  return Number.isSafeInteger(n) ? n : undefined;
-}
-
-// Extract the MEASURED dims the rater's "no price on air" gate requires (l/w/h + piece count) from the raw 204.
-// parse-204 (a Task-6 core, out of this task's scope to change) extracts weight but not dims, so this reads them
-// HERE from the standard 204 measurement segments: L4 (Measurement) = length/width/height in inches, and the AT8
-// lading quantity (AT804) = the piece count. A tender missing ANY of these is NOT priceable → the handler rests
-// it at quote.requested (no price on air — CLAUDE.md #4), never fabricating a dimension the wire did not carry.
-// Per-partner dims mapping variance is a certification-time concern (Task 9); this is the baseline 004010 reading.
-function extractWireDims(raw: string): { l_in: number; w_in: number; h_in: number; pieces: number } | undefined {
-  let segments: { tag: string; elements: string[] }[];
-  try {
-    segments = tokenize(raw).segments;
-  } catch {
-    return undefined;
-  }
-  let lIn: number | undefined;
-  let wIn: number | undefined;
-  let hIn: number | undefined;
-  let pieces: number | undefined;
-  for (const s of segments) {
-    if (s.tag === "L4") {
-      lIn = strictInt(s.elements[0]);
-      wIn = strictInt(s.elements[1]);
-      hIn = strictInt(s.elements[2]);
-    } else if (s.tag === "AT8") {
-      pieces = strictInt(s.elements[3]); // AT804 — lading quantity (handling units)
-    }
-  }
-  if (lIn === undefined || wIn === undefined || hIn === undefined || pieces === undefined || pieces < 1) return undefined;
-  return { l_in: lIn, w_in: wIn, h_in: hIn, pieces };
-}
-
 // Best-effort ISA13 for the quarantine/marker keys: the real interchange control when tokenize succeeds, else a
 // DETERMINISTIC fallback of the raw bytes so a redelivery of the identical malformed doc collapses to the same
 // anomaly row + R2 key (idempotent). Never throws.
@@ -214,7 +178,8 @@ async function extractIsaControl(raw: string): Promise<string> {
 }
 
 // QUARANTINE: an idempotent anomalies row (INSERT OR IGNORE on the deterministic id) + the raw bytes in R2,
-// then ACK 200. A malformed/non-priceable tender is NEVER dropped and NEVER retry-stormed back at the partner.
+// then ACK 200. A malformed / no-stable-ref tender is NEVER dropped and NEVER retry-stormed back at the partner.
+// The R2 payload is capped defensively (the body is already ≤ MAX_BODY_BYTES; this is belt-and-suspenders).
 async function quarantine(
   deps: InboundDeps,
   tenantSlug: string,
@@ -222,6 +187,7 @@ async function quarantine(
   isaControl: string,
   rawBytes: ArrayBuffer,
   err: unknown,
+  rule: QuarantineRule,
 ): Promise<Response> {
   const r2Key = `edi/${tenantSlug}/quarantine/${partnerId}/${isaControl}`;
   const descriptor = quarantineDescriptor({
@@ -230,13 +196,15 @@ async function quarantine(
     docType: "204",
     parseError: err instanceof Error ? err.message : String(err),
     r2Key,
+    rule,
   });
   const db = deps.tenantDbFor(tenantSlug);
   await db
     .prepare("INSERT OR IGNORE INTO anomalies (id, rule, object_kind, object_id, severity, detail) VALUES (?,?,?,?,?,?)")
     .bind(descriptor.anomalyId, descriptor.rule, descriptor.objectKind, descriptor.objectId, descriptor.severity, JSON.stringify(descriptor.detail))
     .run();
-  await deps.evidence.put(r2Key, rawBytes);
+  const capped = rawBytes.byteLength > MAX_BODY_BYTES ? rawBytes.slice(0, MAX_BODY_BYTES) : rawBytes;
+  await deps.evidence.put(r2Key, capped);
   return json(200, { status: "quarantined", anomaly_id: descriptor.anomalyId });
 }
 
@@ -278,7 +246,15 @@ async function persistShipment(db: D1Database, plan: BookingPlan, createdTs: num
 export async function handleInbound204(request: Request, deps: InboundDeps): Promise<Response> {
   if (request.method !== "POST") return json(405, { error: "method not allowed" });
 
+  // 0. STORAGE-DOS CAP (REQ-202) — reject an over-cap body up front, BEFORE reading/auth/persist. A declared
+  //    Content-Length over the ceiling is refused without reading the stream; the post-read byteLength check is
+  //    the belt for a chunked/absent Content-Length. Nothing is written on a 413.
+  const declaredLen = request.headers.get("content-length");
+  if (declaredLen !== null && Number.isFinite(Number(declaredLen)) && Number(declaredLen) > MAX_BODY_BYTES) {
+    return json(413, { error: "payload too large" });
+  }
   const rawBytes = await request.arrayBuffer();
+  if (rawBytes.byteLength > MAX_BODY_BYTES) return json(413, { error: "payload too large" });
 
   // 1a. AUTH — HMAC over the raw body. Before this returns, NOTHING is written (bad-secret ⇒ 401, clean).
   const partner = await authenticate(request, rawBytes, deps);
@@ -289,14 +265,17 @@ export async function handleInbound204(request: Request, deps: InboundDeps): Pro
   const isaControl = await extractIsaControl(raw);
   const receivedTs = deps.now();
 
-  // 1b. PARSE + MAP (pure). An EdiParseError, a non-priceable tender (MAP204_NO_LANE), or any other pure-core
-  //     failure is a DETERMINISTIC bad document — quarantine + 200, never a 5xx retry-storm and never a shipment.
+  // 1b. PARSE + MAP (pure). An EdiParseError / non-priceable tender (MAP204_NO_LANE) / no-stable-ref tender
+  //     (MAP204_NO_SHIPMENT_REF) / any other pure-core failure is a DETERMINISTIC bad document — quarantine +
+  //     200, never a 5xx retry-storm and never a shipment. The no-stable-ref case is distinguished so the
+  //     exceptions queue shows WHY (a tender with no SID/BOL/PRO/PO cannot mint a dedupe-safe booking id).
   let plan: BookingPlan;
   try {
     const tender = parse204(raw);
-    plan = await mapTenderToBooking(tender, { partnerId, isaControl, receivedTs });
+    plan = await mapTenderToBooking(tender, { partnerId, receivedTs });
   } catch (err) {
-    return quarantine(deps, tenantSlug, partnerId, isaControl, rawBytes, err);
+    const rule: QuarantineRule = err instanceof Error && err.message.startsWith("MAP204_NO_SHIPMENT_REF") ? "edi_no_shipment_ref" : "edi_malformed";
+    return quarantine(deps, tenantSlug, partnerId, isaControl, rawBytes, err, rule);
   }
 
   // 2. PERSIST + APPEND. A fault here (D1/DO transient) throws → 500 → the partner retries; every write is
@@ -330,11 +309,10 @@ export async function handleInbound204(request: Request, deps: InboundDeps): Pro
   const config = await loadTenantRatingConfig(db, receivedTs);
   let accepted = false;
   if (config !== null) {
-    // The pricing request = the mapped lane+weight PLUS the measured dims read from the wire (parse-204 does not
-    // extract dims). The rater's dims-presence gate is "no price on air": a dims-less tender prices UNKNOWN and
-    // rests at quote.requested. The dims are server-sourced measured physics, never fabricated.
-    const wireDims = extractWireDims(raw);
-    const rateRequest: RateRequest = { ...requestedEvent.payload.request, ...(wireDims !== undefined ? { dims: wireDims } : {}) };
+    // Price the SAME request that was recorded as quote.requested — a SINGLE parse path: parse-204 populated the
+    // lane + weight + (measured) dims, map-204 threaded them in. The rater's dims-presence gate is "no price on
+    // air": a tender whose wire carried no complete inch-unit dims prices UNKNOWN and rests at quote.requested.
+    const rateRequest: RateRequest = requestedEvent.payload.request;
     const quote = priceShipment(rateRequest, config);
     if (quote.status === "PRICED") {
       const pricedId = await deterministicUuid(`edi:quote-priced:${plan.shipment.id}`);

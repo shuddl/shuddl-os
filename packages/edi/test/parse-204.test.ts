@@ -67,7 +67,8 @@ describe("parse204", () => {
       address: { street: "300 FINANCE BLVD", city: "CHICAGO", state: "IL", zip: "60601" },
     });
     expect(d.weightLb).toBe(15000);
-    expect(d.dims).toBeUndefined();
+    // AT804=40 now populates the piece count; the fixture carries no L4, so l/w/h stay UNKNOWN.
+    expect(d.dims).toEqual({ pieces: 40 });
   });
 
   it("leaves weight undefined when the 204 carries no AT8 (no price on air)", () => {
@@ -116,6 +117,63 @@ function hostileDoc(opts: { l11: Array<[string, string]>; at8?: string }): strin
     S("IEA", "1", "000000042")
   );
 }
+
+// A minimal priceable-shape 204 with a configurable L4 measurement + AT8 lading quantity, to prove the SINGLE
+// dims parse path: parse204 populates TenderDoc.dims from L4 ONLY when the unit is inches (IN) and l/w/h are
+// positive integers, and pieces from AT8 AT804 (last-VALID-wins). A CM/FT/zero L4 leaves l/w/h UNKNOWN (no
+// price on air — never a fabricated dimension in an unknown unit).
+function dimsDoc(opts: { l4?: [string, string, string, string]; at8Qty?: string; secondAt8Qty?: string }): string {
+  const S = (...f: string[]): string => f.join("*") + "~";
+  const l4 = opts.l4 === undefined ? "" : S("L4", ...opts.l4);
+  const at8 = S("AT8", "G", "L", "15000", opts.at8Qty ?? "");
+  const at8b = opts.secondAt8Qty === undefined ? "" : S("AT8", "G", "L", "16000", opts.secondAt8Qty);
+  return (
+    isaHeader("000000042") +
+    S("GS", "SM", "MEGA", "SHUDDL", "20260719", "1200", "77", "X", "004010") +
+    S("ST", "204", "0001") +
+    S("B2", "", "MEGA", "", "SHIP123", "", "PP") +
+    S("B2A", "00") +
+    S("N1", "SH", "ACME") +
+    S("N4", "NEWARK", "NJ", "07101") +
+    l4 +
+    at8 +
+    at8b +
+    S("SE", "9", "0001") +
+    S("GE", "1", "77") +
+    S("IEA", "1", "000000042")
+  );
+}
+
+describe("parse204 — dims from L4 + AT8 pieces (the single dims parse path, REQ-201/204)", () => {
+  it("L4 in inches + AT8 lading quantity populate dims (l/w/h + pieces)", () => {
+    const d = parse204(dimsDoc({ l4: ["48", "40", "60", "IN"], at8Qty: "40" }));
+    expect(d.dims).toEqual({ lengthIn: 48, widthIn: 40, heightIn: 60, pieces: 40 });
+  });
+
+  it("an L4 in CENTIMETRES leaves l/w/h UNKNOWN (no price on air — never a fabricated inch)", () => {
+    const d = parse204(dimsDoc({ l4: ["120", "100", "150", "CM"], at8Qty: "40" }));
+    expect(d.dims?.lengthIn).toBeUndefined();
+    expect(d.dims?.widthIn).toBeUndefined();
+    expect(d.dims?.heightIn).toBeUndefined();
+    expect(d.dims?.pieces).toBe(40); // pieces still parsed from AT8
+  });
+
+  it("a ZERO or non-integer L4 dimension is rejected (leaves l/w/h undefined)", () => {
+    expect(parse204(dimsDoc({ l4: ["0", "40", "60", "IN"], at8Qty: "40" })).dims?.lengthIn).toBeUndefined();
+    expect(parse204(dimsDoc({ l4: ["48.5", "40", "60", "IN"], at8Qty: "40" })).dims?.lengthIn).toBeUndefined();
+  });
+
+  it("pieces is LAST-VALID-wins — a later blank AT8 never clears an earlier valid quantity", () => {
+    // first AT8 carries qty 40, a second (blank AT804) must NOT reset pieces to undefined.
+    const d = parse204(dimsDoc({ l4: ["48", "40", "60", "IN"], at8Qty: "40", secondAt8Qty: "" }));
+    expect(d.dims?.pieces).toBe(40);
+  });
+
+  it("no L4 and no AT8 quantity → dims stays undefined entirely (no price on air)", () => {
+    const d = parse204(dimsDoc({}));
+    expect(d.dims).toBeUndefined();
+  });
+});
 
 describe("parse204 — untrusted-partner boundary hardening", () => {
   it("preserves refs whose qualifier collides with an Object.prototype member (no silent drop/corruption)", () => {

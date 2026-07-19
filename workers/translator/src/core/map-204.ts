@@ -47,12 +47,18 @@ export interface BookingPlan {
 
 export interface MapTenderCtx {
   partnerId: string;
-  // The interchange control number — the shipment-id fallback key when the tender carries no SID (B204).
-  isaControl: string;
   // The 204-arrival clock the worker injects (keeps the core pure/deterministic — no Date inside). Stamped as
   // the append's actor-claimed `ts`; the sequencer still stamps the authoritative recorded_at server-side.
   receivedTs: number;
 }
+
+// The stable business identity a shipment id is keyed on, in priority order: SID (B202-tender's B204) → BOL
+// (L11 qualifier BM) → PRO (L11 PRO) → PO (L11 PO). A per-interchange value (ISA13) is NEVER used: two
+// redeliveries of the SAME no-SID tender arrive under DIFFERENT interchange controls, so an ISA13-keyed id
+// would mint TWO shipment ids → two streams → two booking.created → a DUPLICATE freight commitment + invoice
+// for one physical load (REQ-191 one-booking-per-stream fires only WITHIN a stream, never across two). A tender
+// carrying NONE of these has no stable identifier — the worker QUARANTINES it rather than mint a dup-prone id.
+export const STABLE_REF_KEYS = ["SID", "BM", "PRO", "PO"] as const;
 
 async function sha256Hex(s: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
@@ -85,6 +91,22 @@ export async function mapTenderToBooking(tender: TenderDoc, ctx: MapTenderCtx): 
     throw new Error("MAP204_NO_LANE: a 204 without both stop zips is not priceable (no price on air)");
   }
 
+  // ── The stable shipment identity (SID → BOL → PRO → PO; NEVER the per-interchange ISA13) ─────────────────
+  // Resolved BEFORE any party/append work so a no-stable-ref tender fails fast: the worker quarantines it
+  // (edi_no_shipment_ref) rather than mint an ISA13-derived id that a redelivery under a new interchange would
+  // duplicate into a second booking. See STABLE_REF_KEYS.
+  let stableRef: string | undefined;
+  for (const key of STABLE_REF_KEYS) {
+    const v = tender.refs[key]?.trim();
+    if (v !== undefined && v !== "") {
+      stableRef = v;
+      break;
+    }
+  }
+  if (stableRef === undefined) {
+    throw new Error("MAP204_NO_SHIPMENT_REF: a 204 without a stable business ref (SID/BOL/PRO/PO) cannot mint an idempotent shipment id (would duplicate under a new ISA13)");
+  }
+
   // ── The party (bill-to, else the shipper) ──────────────────────────────────────────────────────────────
   let party: { id: string; kind: PartyKind; name: string; email?: string };
   const billTo = tender.billTo;
@@ -110,9 +132,8 @@ export async function mapTenderToBooking(tender: TenderDoc, ctx: MapTenderCtx): 
     party = { id: `party_${(await sha256Hex(`intake:party:name:${normName}`)).slice(0, 16)}`, kind: "shipper", name: shName };
   }
 
-  // ── The shipment id (deterministic; SID if present else the ISA control) ───────────────────────────────
-  const sidOrIsa = tender.refs["SID"] ?? ctx.isaControl;
-  const shipmentId = `shp_${(await sha256Hex(`edi:shipment:${ctx.partnerId}:${sidOrIsa}`)).slice(0, 16)}`;
+  // ── The shipment id (deterministic in the partner + the STABLE business ref resolved above) ─────────────
+  const shipmentId = `shp_${(await sha256Hex(`edi:shipment:${ctx.partnerId}:${stableRef}`)).slice(0, 16)}`;
 
   // ── The addresses (nothing dropped) ────────────────────────────────────────────────────────────────────
   const addresses: BookingPlan["addresses"] = {};
@@ -129,13 +150,26 @@ export async function mapTenderToBooking(tender: TenderDoc, ctx: MapTenderCtx): 
   if (consigneeStop !== undefined) stops.consignee = { name: consigneeStop.name, address: consigneeStop.address };
 
   // ── The append: a valid edi-source quote.requested ─────────────────────────────────────────────────────
-  const request: { origin_zip: string; dest_zip: string; weight_lb?: number } = { origin_zip: originZip, dest_zip: destZip };
+  const request: {
+    origin_zip: string;
+    dest_zip: string;
+    weight_lb?: number;
+    dims?: { l_in: number; w_in: number; h_in: number; pieces: number };
+  } = { origin_zip: originZip, dest_zip: destZip };
   // Attach weight ONLY when it is a SAFE positive integer (RateRequestPayload.weight_lb is SafeInt.min(1)):
   // Number.isSafeInteger rejects BOTH a fractional AT8 value AND an absurd one above Number.MAX_SAFE_INTEGER,
   // so either routes to UNKNOWN (the engine returns UNKNOWN — no price on air) rather than throwing opaquely at
   // EventInput.parse. A weight is never fabricated (no rounding).
   if (tender.weightLb !== undefined && Number.isSafeInteger(tender.weightLb) && tender.weightLb >= 1) {
     request.weight_lb = tender.weightLb;
+  }
+  // Attach dims ONLY when the wire carried a COMPLETE measured set (l/w/h from an inch-unit L4 + pieces from AT8
+  // AT804 — parse-204's single dims parse path). An incomplete/absent set leaves dims off ⇒ the rater returns
+  // UNKNOWN (no price on air, CLAUDE.md #4). This is the ONE place a 204's dims reach the pricing request — the
+  // handler prices the SAME recorded quote.requested request (no second parser, no divergence).
+  const d = tender.dims;
+  if (d?.lengthIn !== undefined && d.widthIn !== undefined && d.heightIn !== undefined && d.pieces !== undefined) {
+    request.dims = { l_in: d.lengthIn, w_in: d.widthIn, h_in: d.heightIn, pieces: d.pieces };
   }
   const append = EventInput.parse({
     id: await deterministicUuid(`edi:quote-requested:${shipmentId}`),

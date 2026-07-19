@@ -16,14 +16,14 @@ async function sha256Hex(s: string): Promise<string> {
 const tender = (billToName: string): TenderDoc => ({
   partnerScac: "ACME",
   purpose: "00",
-  refs: {},
+  refs: { SID: "PARITY-SID" }, // a stable business ref so the shipment id resolves (the party id is what's under test)
   stops: [
     { role: "SH", name: "ORIGIN WAREHOUSE", address: { zip: "97201" } },
     { role: "CN", name: "DEST STORE", address: { zip: "98101" } },
   ],
   billTo: { name: billToName },
 });
-const ctx = { partnerId: "partner_acme", isaControl: "000000042", receivedTs: 0 };
+const ctx = { partnerId: "partner_acme", receivedTs: 0 };
 
 describe("no-email party id parity (REQ-196, name axis) — map-204 ⇄ intake.ts:128", () => {
   it("derives the SAME name-keyed id intake.ts uses: party_<first16 sha256('intake:party:name:'+lower(name))>", async () => {

@@ -2,7 +2,17 @@
 // the tokenizer, maps N1/N3/N4 loops + G62 + AT8, and NEVER fabricates a value the wire omitted — a missing
 // weight/dims stays `undefined` so the downstream rater refuses to sell ("no price on air", CLAUDE.md #4).
 import { tokenize, type EdiSegment } from "./envelope.js";
-import { TenderDoc, type EdiAddress, type ApptWindow, type TenderStop, type TenderBillTo } from "./types.js";
+import { TenderDoc, type EdiAddress, type ApptWindow, type TenderStop, type TenderBillTo, type TenderDims } from "./types.js";
+
+// A strict positive integer from an X12 element ("48" ✓; "48.5"/"0"/"-4"/"0x10"/"1e5"/"" ✗). Freight physics
+// are whole units — anything else stays UNDEFINED (no price on air, never a fabricated/rounded value).
+function positiveInt(v: string | undefined): number | undefined {
+  if (v === undefined) return undefined;
+  const t = v.trim();
+  if (!/^\d+$/.test(t)) return undefined;
+  const n = Number(t);
+  return Number.isSafeInteger(n) && n > 0 ? n : undefined;
+}
 
 // G62 date/time qualifiers that pin the LATE / delivery end of an appointment window (everything else is
 // treated as the early / pickup start). Kept as data so a new qualifier is a one-line addition.
@@ -84,6 +94,12 @@ export function parse204(raw: string): TenderDoc {
   // ref is never lost or corrupted (Migrator rule, CLAUDE.md #10).
   const refs: Record<string, string> = Object.create(null);
   let weightLb: number | undefined;
+  // Measured dims (l/w/h inches, from an inch-unit L4) + pieces (AT8 AT804 lading quantity). Undefined until a
+  // VALID segment sets them; a later blank/invalid segment never clears an earlier valid value (no silent drop).
+  let lengthIn: number | undefined;
+  let widthIn: number | undefined;
+  let heightIn: number | undefined;
+  let pieces: number | undefined;
 
   const loops: N1Loop[] = [];
   let current: N1Loop | undefined;
@@ -119,6 +135,27 @@ export function parse204(raw: string): TenderDoc {
         if (raw8 !== undefined && /^\d+(\.\d+)?$/.test(raw8)) {
           const n = Number(raw8);
           if (n > 0) weightLb = n;
+        }
+        // AT804 = lading quantity (handling units) = the piece count the rater's dims gate needs. LAST-VALID
+        // wins: a later blank/invalid AT8 never clears a piece count an earlier AT8 already set.
+        const p = positiveInt(seg.elements[3]);
+        if (p !== undefined) pieces = p;
+        break;
+      }
+      case "L4": {
+        // L4 Measurement: L401=length, L402=width, L403=height, L404=unit qualifier. Accept a dimension ONLY
+        // when the unit is inches ("IN") AND every value is a positive integer — a CM/FT/zero/absent value
+        // leaves l/w/h UNKNOWN (no price on air, CLAUDE.md #4: never fabricate a dimension in an unknown unit).
+        // Set as a unit (all three or none) and LAST-VALID wins.
+        if (seg.elements[3]?.trim().toUpperCase() === "IN") {
+          const l = positiveInt(seg.elements[0]);
+          const w = positiveInt(seg.elements[1]);
+          const h = positiveInt(seg.elements[2]);
+          if (l !== undefined && w !== undefined && h !== undefined) {
+            lengthIn = l;
+            widthIn = w;
+            heightIn = h;
+          }
         }
         break;
       }
@@ -161,6 +198,16 @@ export function parse204(raw: string): TenderDoc {
   const doc: TenderDoc = { partnerScac, purpose, refs, stops };
   if (billTo) doc.billTo = billTo;
   if (weightLb !== undefined) doc.weightLb = weightLb;
+
+  // Assemble dims from whatever VALID measured physics the wire carried (l/w/h only when an inch-unit L4 set
+  // them; pieces from AT8). A partial dims (e.g. pieces but no l/w/h) is kept — the downstream rater treats an
+  // incomplete dims as UNKNOWN (no price on air), never a fabricated value.
+  const dims: TenderDims = {};
+  if (lengthIn !== undefined) dims.lengthIn = lengthIn;
+  if (widthIn !== undefined) dims.widthIn = widthIn;
+  if (heightIn !== undefined) dims.heightIn = heightIn;
+  if (pieces !== undefined) dims.pieces = pieces;
+  if (Object.keys(dims).length > 0) doc.dims = dims;
 
   // Validate at the boundary (.strict()): an unexpected shape is a hard reject, never a silent pass-through.
   // zod's z.record rebuilds refs on a {}-proto object and drops a literal `__proto__` key, so re-attach the

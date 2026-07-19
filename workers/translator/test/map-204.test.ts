@@ -24,7 +24,7 @@ const baseTender: TenderDoc = {
   billTo: { name: "Acme Brokerage", email: "Bob@Acme.com", address: { street: "500 Billing Rd", city: "BOISE", state: "ID", zip: "83702" } },
   weightLb: 1200,
 };
-const ctx = { partnerId: "partner_acme", isaControl: "000000042", receivedTs: 1_720_000_000_000 };
+const ctx = { partnerId: "partner_acme", receivedTs: 1_720_000_000_000 };
 
 describe("mapTenderToBooking — 204 → booking plan (REQ-201/196)", () => {
   it("bill-to email resolves to the SHARED party id (mixed case → the same party as CSR/Concierge)", async () => {
@@ -106,13 +106,38 @@ describe("mapTenderToBooking — 204 → booking plan (REQ-201/196)", () => {
     if (append.kind === "quote.requested") expect(append.payload.request.weight_lb).toBeUndefined();
   });
 
-  it("with no SID the shipment id falls back to the threaded ISA control (still deterministic)", async () => {
+  it("with no SID the shipment id falls back to the next STABLE ref (BOL), NEVER the per-interchange ISA13", async () => {
     const tender: TenderDoc = { ...baseTender, refs: { BM: "BOL-77" } };
     const a = await mapTenderToBooking(tender, ctx);
     const b = await mapTenderToBooking(tender, ctx);
-    expect(a.shipment.id).toBe(b.shipment.id);
-    // Different from the SID-keyed id (the fallback key differs).
+    expect(a.shipment.id).toBe(b.shipment.id); // deterministic in the BOL, not the interchange
+    // Different from the SID-keyed id (the resolved business ref differs).
     const sidPlan = await mapTenderToBooking(baseTender, ctx);
     expect(a.shipment.id).not.toBe(sidPlan.shipment.id);
+  });
+
+  it("a tender with NO stable business ref (no SID/BOL/PRO/PO) throws MAP204_NO_SHIPMENT_REF (worker quarantines it)", async () => {
+    // A per-interchange ISA13-derived id would duplicate a no-SID load under a second interchange — so a tender
+    // with no stable identifier is refused here rather than minting a dup-prone id.
+    const tender: TenderDoc = { ...baseTender, refs: {} };
+    await expect(mapTenderToBooking(tender, ctx)).rejects.toThrow(/MAP204_NO_SHIPMENT_REF/);
+  });
+
+  it("threads a COMPLETE inch-dims set (l/w/h + pieces) into the quote.requested pricing request", async () => {
+    const tender: TenderDoc = { ...baseTender, dims: { lengthIn: 48, widthIn: 40, heightIn: 60, pieces: 12 } };
+    const plan = await mapTenderToBooking(tender, ctx);
+    const append = plan.appends[0]!;
+    if (append.kind === "quote.requested") {
+      expect(append.payload.request.dims).toEqual({ l_in: 48, w_in: 40, h_in: 60, pieces: 12 });
+    }
+  });
+
+  it("an INCOMPLETE dims set (pieces but no l/w/h) is NOT threaded — the rater stays UNKNOWN (no price on air)", async () => {
+    const tender: TenderDoc = { ...baseTender, dims: { pieces: 12 } };
+    const plan = await mapTenderToBooking(tender, ctx);
+    const append = plan.appends[0]!;
+    if (append.kind === "quote.requested") {
+      expect(append.payload.request.dims).toBeUndefined();
+    }
   });
 });

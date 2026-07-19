@@ -37,32 +37,42 @@ function isaHeader(control: string): string {
 function seg(...f: string[]): string {
   return f.join("*") + "~";
 }
-function tender204(isa = "000000042"): string {
-  return (
-    isaHeader(isa) +
-    seg("GS", "SM", "MEGA", "SHUDDL", "20260719", "1200", "77", "X", "004010") +
-    seg("ST", "204", "0001") +
-    seg("B2", "", "MEGA", "", "SHIP123", "", "PP") +
-    seg("B2A", "00") +
-    seg("L11", "BOL987", "BM") +
-    seg("N1", "SH", "ACME SHIPPING") +
-    seg("N3", "100 DOCK ST") +
-    seg("N4", "PORTLAND", "OR", "97035") +
-    seg("N1", "CN", "BETA RECEIVING") +
-    seg("N3", "200 PORT AVE") +
-    seg("N4", "DENVER", "CO", "80012") +
-    seg("N1", "BT", "GAMMA BROKERS") +
-    seg("N3", "300 FINANCE BLVD") +
-    seg("N4", "CHICAGO", "IL", "60601") +
-    seg("PER", "BI", "ACCTS", "EM", BILL_TO_EMAIL) +
-    // L4 measurement (l/w/h in inches) + AT8 lading quantity (AT804=40 pieces): the measured physics the rater's
-    // "no price on air" gate requires. A dims-less tender would rest at quote.requested (see the dims-less case).
-    seg("L4", "48", "40", "60", "IN") +
-    seg("AT8", "G", "L", "15000", "40") +
-    seg("SE", "18", "0001") +
-    seg("GE", "1", "77") +
-    seg("IEA", "1", `${isa}`)
+// A parameterized PRICEABLE synthetic 204: shipper (Z1) + consignee (Z5) + a bill-to PER email + L4 dims + AT8
+// weight/pieces. `sid`/`bol` may be omitted (null) to exercise the stable-business-ref identity priority
+// (SID → BOL → PRO → PO) and the no-stable-ref quarantine; `l4:false` drops the measurement (no price on air).
+function mkTender(opts: { isa?: string; sid?: string | null; bol?: string | null; l4?: boolean } = {}): string {
+  const isa = opts.isa ?? "000000042";
+  const sid = opts.sid === undefined ? "SHIP123" : opts.sid;
+  const bol = opts.bol === undefined ? "BOL987" : opts.bol;
+  const l4 = opts.l4 ?? true;
+  const parts: string[] = [
+    isaHeader(isa),
+    seg("GS", "SM", "MEGA", "SHUDDL", "20260719", "1200", "77", "X", "004010"),
+    seg("ST", "204", "0001"),
+    seg("B2", "", "MEGA", "", sid ?? "", "", "PP"),
+    seg("B2A", "00"),
+  ];
+  if (bol !== null) parts.push(seg("L11", bol, "BM"));
+  parts.push(
+    seg("N1", "SH", "ACME SHIPPING"),
+    seg("N3", "100 DOCK ST"),
+    seg("N4", "PORTLAND", "OR", "97035"),
+    seg("N1", "CN", "BETA RECEIVING"),
+    seg("N3", "200 PORT AVE"),
+    seg("N4", "DENVER", "CO", "80012"),
+    seg("N1", "BT", "GAMMA BROKERS"),
+    seg("N3", "300 FINANCE BLVD"),
+    seg("N4", "CHICAGO", "IL", "60601"),
+    seg("PER", "BI", "ACCTS", "EM", BILL_TO_EMAIL),
   );
+  // L4 measurement (l/w/h inches) + AT8 lading quantity (AT804=40 pieces): the measured physics the rater's "no
+  // price on air" gate requires. Dropping L4 → dims UNKNOWN → the tender rests at quote.requested.
+  if (l4) parts.push(seg("L4", "48", "40", "60", "IN"));
+  parts.push(seg("AT8", "G", "L", "15000", "40"), seg("SE", "18", "0001"), seg("GE", "1", "77"), seg("IEA", "1", isa));
+  return parts.join("");
+}
+function tender204(isa = "000000042"): string {
+  return mkTender({ isa });
 }
 
 // The SEED-1-shaped synthetic tariff (dest 802xx → Z5 → rg-far). Mirrors workers/api/test/helpers.ts
@@ -257,9 +267,9 @@ describe("REQ-201/202 — inbound 204 → gated chain, NO booking.created", () =
   });
 
   it("a DIMS-LESS tender rests at quote.requested (no price on air) — no quote.priced, no quote.accepted, no bypass", async () => {
-    // Same tender minus the L4 measurement segment → the rater's dims gate returns UNKNOWN → the handler records
-    // the tender (shipment + quote.requested) but appends NO price/accept. The Booking agent is never triggered.
-    const noDims = tender204().replace(seg("L4", "48", "40", "60", "IN"), "");
+    // Drop the L4 measurement → the rater's dims gate returns UNKNOWN → the handler records the tender (shipment +
+    // quote.requested) but appends NO price/accept. The Booking agent is never triggered.
+    const noDims = mkTender({ l4: false });
     const seq = new RecordingSeq();
     const res = await handleInbound204(await signedRequest(noDims), makeDeps(seq, new RecordingTransport(), goodSecrets()));
     expect(res.status).toBe(200);
@@ -275,5 +285,46 @@ describe("REQ-201/202 — inbound 204 → gated chain, NO booking.created", () =
     expect(res.status).toBe(401);
     expect(seq.appended).toHaveLength(0);
     expect(await count(env.TENANT_A_DB, "shipments")).toBe(0);
+  });
+
+  // ── Finding 1 (Medium): a no-SID tender must key its identity off a STABLE business ref (SID→BOL→PRO→PO),
+  //    NEVER the per-interchange ISA13 (which differs per redelivery → two streams → two bookings → duplicate
+  //    freight commitment; REQ-191 one-booking-per-stream fires only WITHIN a stream). ──
+  it("(1a) a no-SID tender sent under TWO different ISA13 collapses to ONE shipment via its BOL (no ISA13 dup)", async () => {
+    const seq = new RecordingSeq();
+    const deps = makeDeps(seq, new RecordingTransport(), goodSecrets());
+    // Same BOL, DIFFERENT interchange controls — normal per-interchange behavior.
+    await handleInbound204(await signedRequest(mkTender({ isa: "000000042", sid: null, bol: "BOL-STABLE-1" })), deps);
+    await handleInbound204(await signedRequest(mkTender({ isa: "000000777", sid: null, bol: "BOL-STABLE-1" })), deps);
+    expect(await count(env.TENANT_A_DB, "shipments"), "one physical load = one shipment, regardless of ISA13").toBe(1);
+    // Idempotent via the stable BOL: the second interchange reproduces the same event ids → no second append set.
+    const acceptedCount = seq.appended.filter((a) => a.event.kind === "quote.accepted").length;
+    expect(acceptedCount, "one booking-triggering acceptance, not two").toBe(1);
+  });
+
+  it("(1b) a priceable 204 carrying NO SID/BOL/PRO/PO is QUARANTINED (no stable id) — no shipment, no appends", async () => {
+    const seq = new RecordingSeq();
+    const res = await handleInbound204(await signedRequest(mkTender({ sid: null, bol: null })), makeDeps(seq, new RecordingTransport(), goodSecrets()));
+    expect(res.status).toBe(200); // ack, never a retry-storm
+    expect(await count(env.TENANT_A_DB, "anomalies")).toBe(1);
+    expect(await count(env.TENANT_A_DB, "shipments"), "a tender with no stable ref mints NO id → NO shipment").toBe(0);
+    expect(seq.appended, "and appends NOTHING to the ledger").toHaveLength(0);
+    // The anomaly names the no-shipment-ref rule (distinct from a malformed-parse quarantine).
+    const anomaly = await env.TENANT_A_DB.prepare("SELECT rule FROM anomalies LIMIT 1").first<{ rule: string }>();
+    expect(anomaly?.rule).toBe("edi_no_shipment_ref");
+    const quarantined = await env.EVIDENCE.list({ prefix: `edi/tenant-a/quarantine/${PARTNER_ID}/` });
+    expect(quarantined.objects, "the raw bytes are preserved in R2 (never a silent drop)").toHaveLength(1);
+  });
+
+  // ── Finding 3 (Low): a storage-DoS cap — an over-cap body is rejected 413 BEFORE any read/persist. ──
+  it("(3) an over-cap POST → 413, nothing written (no shipment, no anomaly, no R2)", async () => {
+    const seq = new RecordingSeq();
+    const huge = "A".repeat(1_048_576 + 1); // > 1 MB
+    const res = await handleInbound204(await signedRequest(huge, { signature: "00" }), makeDeps(seq, new RecordingTransport(), goodSecrets()));
+    expect(res.status).toBe(413);
+    expect(seq.appended).toHaveLength(0);
+    expect(await count(env.TENANT_A_DB, "shipments")).toBe(0);
+    expect(await count(env.TENANT_A_DB, "anomalies")).toBe(0);
+    expect((await env.EVIDENCE.list({ prefix: "edi/tenant-a/" })).objects).toHaveLength(0);
   });
 });

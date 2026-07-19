@@ -50,13 +50,17 @@ export const TenderBillTo = z
   .strict();
 export type TenderBillTo = z.infer<typeof TenderBillTo>;
 
-// Freight dimensions in inches. All optional: "no price on air" (CLAUDE.md #4) — a missing dim stays UNKNOWN
-// here and the downstream rater refuses to sell, so this adapter must NOT default a zero.
+// Freight dimensions in inches + the handling-unit (piece) count. All optional: "no price on air" (CLAUDE.md
+// #4) — a missing dim stays UNKNOWN here and the downstream rater refuses to sell, so this adapter must NOT
+// default a zero. parse-204 populates l/w/h from an L4 measurement ONLY when its unit qualifier is inches (IN)
+// and each value is a positive integer, and `pieces` from the AT8 lading quantity (AT804) — a CM/FT/zero L4 or
+// a blank AT804 leaves the field UNDEFINED (never a fabricated dimension in an unknown unit).
 export const TenderDims = z
   .object({
     lengthIn: z.number().optional(),
     widthIn: z.number().optional(),
     heightIn: z.number().optional(),
+    pieces: z.number().optional(),
   })
   .strict();
 export type TenderDims = z.infer<typeof TenderDims>;
