@@ -1,14 +1,16 @@
 import { SELF, env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
-import type { EventKind } from "@shuddl/contracts";
+import { eventFixture, type EventKind } from "@shuddl/contracts";
 import { capture, type CaptureParams, type DeviceContext, type EvidenceField } from "@shuddl/driver-core";
 import { RecordingSender } from "@shuddl/agents";
 import type { EvidenceSender } from "@shuddl/agents";
+import { eventToRow } from "@shuddl/ledger/lens";
 import { TERMINAL_HOLD_BODY_REF_PREFIX, terminalHoldBodyRef } from "@shuddl/ledger/queries/unbilled";
 import { handlePodSigned, PodSignedMessage } from "../../agents/src/biller.js";
 import type { BillerDeps, SeqStubLike } from "../../agents/src/biller.js";
 import { RECON_MIN_AGE_MS, sweepTenantUnbilledRedrive } from "../../agents/src/recon-sweep.js";
 import type { QueueLike } from "../../agents/src/recon-sweep.js";
+import { runWatchtowerSweep, watchtowerAlarmId } from "../../agents/src/watchtower.js";
 import {
   ANOMALY_RATE_CONFIG,
   CONSENT,
@@ -110,6 +112,34 @@ function msgFor(shipmentId: string, podEventId: string): PodSignedMessage {
   return { kind: "pod.signed", tenant: TENANT, shipment_id: shipmentId, event_id: podEventId };
 }
 
+// A unique 64-hex EVENT hash — keeps the UNIQUE(hash) + append-only insert guard happy for a direct-seeded
+// event on the shared D1 (distinct from the sequencer-produced hashes the other cases use).
+const randomHex64 = (): string => [...crypto.getRandomValues(new Uint8Array(32))].map((b) => b.toString(16).padStart(2, "0")).join("");
+
+// Direct-insert a committed `pod.signed` on a stream (bypasses the sequencer + gates, mirrors watchtower.test's
+// seedEvent). This seeds ONLY the ledger event — never a shipments row — so whether the stream is "booked"
+// (billable) is decided SOLELY by whether the caller separately seedShipment'd it. Returns the pod event id.
+async function seedPodEvent(shipmentId: string, recordedAt: number): Promise<string> {
+  const id = crypto.randomUUID();
+  const e = eventFixture("pod.signed", {
+    id,
+    stream_id: `s:${shipmentId}`,
+    shipment_id: shipmentId,
+    seq: 0,
+    ts: recordedAt,
+    recorded_at: recordedAt,
+    visibility: "internal",
+    party_refs: [],
+  });
+  const row = eventToRow(e);
+  row.hash = randomHex64();
+  const cols = Object.keys(row);
+  await env.TENANT_A_DB.prepare(`INSERT INTO events (${cols.join(",")}) VALUES (${cols.map(() => "?").join(",")})`)
+    .bind(...cols.map((c) => row[c]))
+    .run();
+  return id;
+}
+
 // A recording queue producer — the injected re-enqueue seam (prod binds env.AGENT_QUEUE, cross-isolate).
 class RecordingQueue implements QueueLike {
   readonly messages: PodSignedMessage[] = [];
@@ -139,7 +169,7 @@ beforeAll(async () => {
   opsTok = await token({ sub: "u-recon-ops", tenant: TENANT, role: "ops" });
   // The bill-to party's billing email — the honest recipient the Biller resolves for a re-driven bill.
   await env.TENANT_A_DB.prepare("UPDATE parties SET contacts = ? WHERE id = 'party-bill-to'").bind(JSON.stringify([{ kind: "billing", email: BILL_TO_EMAIL }])).run();
-  for (const id of ["recon-selfclear", "recon-bound", "recon-window", "recon-marker-golden", "recon-marker-noquote", "recon-marker-anomaly", "recon-otherscope"]) {
+  for (const id of ["recon-selfclear", "recon-bound", "recon-window", "recon-marker-golden", "recon-marker-noquote", "recon-marker-anomaly", "recon-otherscope", "recon-orphan-booked"]) {
     await seedShipment(id);
     await seedDeliveryLeg(id);
   }
@@ -268,5 +298,50 @@ describe("Biller terminal-hold marker — emitted on holds only, never the golde
     expect(notes).toHaveLength(1);
     expect(notes[0]!.body_ref).toBe(terminalHoldBodyRef(shp, "anomaly"));
     expect(await invoiceCount(shp)).toBe(0); // the anomaly never auto-invoices — permanent hold
+  });
+});
+
+// ─── WP-11 exit audit — REQ-199: the recon re-drive EXCLUDES un-booked (orphan) POD streams ────────────
+//
+// An orphan `pod.signed` — a committed POD on a stream with NO `shipments` row (an un-booked / legacy-replayed
+// stream) — can NEVER be billed: the Biller returns `shipment_not_found` and writes no marker, so a
+// pod-without-invoice-without-marker anti-join would re-enqueue it EVERY cron tick, forever (unbounded, futile).
+// unbilledRedriveSql now appends `AND EXISTS (shipments row)` so the re-drive skips it. The SHARED
+// unbilledShipmentsSql is UNCHANGED, so the Watchtower `unbilled` alarm STILL surfaces the orphan — the data
+// fault is reported to ops, just not futilely re-driven.
+describe("Biller reconciliation sweep — REQ-199: excludes orphan (un-booked) POD streams, but the Watchtower still surfaces them", () => {
+  it("an ORPHAN pod.signed (no shipments row) is NEVER re-enqueued while a BOOKED pod on the same sweep IS — yet the orphan STILL fires the Watchtower 'unbilled' alarm (surfaced, not re-driven)", async () => {
+    const orphan = "recon-orphan-nobook"; // deliberately NOT seedShipment'd → NO shipments row (un-booked)
+    const booked = "recon-orphan-booked"; // seeded in beforeAll → HAS a shipments row (billable)
+    const BASE = 1_733_500_000_000;
+
+    // Seed a committed pod.signed on EACH stream, directly. The ONLY difference between the two is whether a
+    // shipments row exists — both are pod.signed-without-invoice (unbilled) and neither carries a hold marker.
+    const orphanPodId = await seedPodEvent(orphan, BASE);
+    const bookedPodId = await seedPodEvent(booked, BASE);
+
+    // Age both past the recon window; sweep the shared "recon-orphan-" prefix covering BOTH streams.
+    const now = BASE + MIN_AGE + 1;
+    const q = new RecordingQueue();
+    const res = await sweepTenantUnbilledRedrive(env.TENANT_A_DB, q, TENANT, now, { scope: "recon-orphan-", minAgeMs: MIN_AGE });
+
+    // The booked stream is re-enqueued; the orphan is EXCLUDED (REQ-199 — no shipments row → futile to re-drive).
+    expect(res.enqueued).toBe(1);
+    expect(q.messages).toEqual([msgFor(booked, bookedPodId)]);
+    expect(q.messages.some((m) => m.shipment_id === orphan), "the orphan pod is never re-enqueued").toBe(false);
+    // Guard against a false pass: the booked POD IS the one enqueued (the normal re-drive path still works).
+    expect(q.messages[0]!.event_id).toBe(bookedPodId);
+    void orphanPodId;
+
+    // BUT the fault is NOT hidden: the SHARED unbilled predicate (unchanged) still surfaces the orphan. Scope the
+    // Watchtower sweep to the orphan alone → its 'unbilled' alarm RAISES, proving the orphan is reported, not lost.
+    const wt = await runWatchtowerSweep(env.TENANT_A_DB, TENANT, now, { scope: orphan });
+    expect(wt.unbilled.count, "the orphan is a genuine POD-without-invoice — the alarm must see it").toBe(1);
+    const alarm = await env.TENANT_A_DB.prepare("SELECT rule, status FROM anomalies WHERE id = ?")
+      .bind(watchtowerAlarmId(TENANT, "unbilled", { scope: orphan }))
+      .first<{ rule: string; status: string }>();
+    expect(alarm, "the orphan STILL raises the Watchtower unbilled alarm").not.toBeNull();
+    expect(alarm!.rule).toBe("unbilled");
+    expect(alarm!.status).toBe("open");
   });
 });

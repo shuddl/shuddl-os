@@ -218,10 +218,14 @@ export function mountEvidenceRoutes(app: Hono<{ Bindings: Env; Variables: Vars }
       return c.json({ document_id: documentId, r2_key: key }, inserted.meta.changes > 0 ? 201 : 200);
     }
     // RE-INSTATE a retention-tombstoned doc: the bytes were just restored above; mark the row active again and
-    // restart its retention clock from this re-submission (a plain UPDATE — documents is a mutable projection).
+    // restart its retention clock from THIS RE-SUBMISSION (a wall-clock now, NOT recording.recorded_at — the
+    // recording event's ledger time is >retention old by definition of "already tombstoned", so binding it
+    // would make the next sweep tick re-delete the freshly re-uploaded bytes, REQ-198). The first-insert path
+    // above correctly binds recorded_at (a fresh capture is legitimately recent). Plain UPDATE — documents is
+    // a mutable projection.
     await db
       .prepare("UPDATE documents SET retention_status = 'active', created_ts = ? WHERE id = ?")
-      .bind(recording.recorded_at, documentId)
+      .bind(Date.now(), documentId)
       .run();
     return c.json({ document_id: documentId, r2_key: key }, 200);
   });

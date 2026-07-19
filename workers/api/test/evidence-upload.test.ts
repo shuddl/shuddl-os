@@ -1,7 +1,9 @@
 import { env, SELF } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
-import type { EventKind } from "@shuddl/contracts";
+import { eventFixture, type EventKind } from "@shuddl/contracts";
 import { capture, type CaptureParams, type DeviceContext, type EvidenceField } from "@shuddl/driver-core";
+import { eventToRow } from "@shuddl/ledger/lens";
+import { sweepTenantExpiredDocuments } from "@shuddl/ledger/documents/retention";
 import { MAX_EVIDENCE_BYTES } from "../src/routes/evidence.js";
 import {
   CONSENT,
@@ -45,6 +47,37 @@ async function sha256Hex(bytes: Uint8Array): Promise<string> {
 
 function r2Key(tenant: string, shipmentId: string, hash: string): string {
   return `evidence/${tenant}/${shipmentId}/${hash}`;
+}
+
+const YEAR_MS = 365 * 86_400_000;
+
+// A unique 64-hex EVENT hash (distinct from any payload photo_hash) — keeps the UNIQUE(hash) + append-only
+// insert guard happy for a direct-seeded event on the shared D1.
+const randomHex64 = (): string => [...crypto.getRandomValues(new Uint8Array(32))].map((b) => b.toString(16).padStart(2, "0")).join("");
+
+// Direct-insert a `freight.photographed` recording event with an OLD server `recorded_at` (mirrors
+// watchtower.test's seedEvent). The sequencer stamps recorded_at=Date.now() and `events` is append-only (no
+// UPDATE path), so the ONLY way to pin a >1yr-old recording clock — the real "already-tombstoned" precondition
+// for REQ-198 — is to seed the recording event directly. The route's RECORDING_EVENT_SQL then finds it and the
+// re-instate branch re-reads THIS recorded_at (which the fix must NOT bind as the re-instated created_ts).
+async function seedOldPlacedPhotoEvent(shipmentId: string, photoHash: string, recordedAt: number): Promise<void> {
+  const e = eventFixture("freight.photographed", {
+    id: crypto.randomUUID(),
+    stream_id: `s:${shipmentId}`,
+    shipment_id: shipmentId,
+    seq: 0,
+    ts: recordedAt,
+    recorded_at: recordedAt,
+    visibility: "internal",
+    party_refs: [],
+    payload: { photo_hash: photoHash, photo_kind: "placed" },
+  });
+  const row = eventToRow(e);
+  row.hash = randomHex64();
+  const cols = Object.keys(row);
+  await env.TENANT_A_DB.prepare(`INSERT INTO events (${cols.join(",")}) VALUES (${cols.map(() => "?").join(",")})`)
+    .bind(...cols.map((c) => row[c]))
+    .run();
 }
 
 interface UploadRes {
@@ -150,6 +183,7 @@ beforeAll(async () => {
     "ev-retention",
     "ev-retention-pod",
     "ev-reinstate",
+    "ev-req198",
   ]) {
     await seedShipment(id);
   }
@@ -424,5 +458,60 @@ describe("POST /v1/evidence — retention fields (REQ-116)", () => {
     const row = await env.TENANT_A_DB.prepare("SELECT retention_status FROM documents WHERE id = ?").bind(docId).first<{ retention_status: string }>();
     expect(row?.retention_status, "the row is active again — no active row ever claims deleted bytes").toBe("active");
     expect(await docCount(shp, hash), "re-instatement never duplicates the row").toBe(1);
+  });
+
+  it("REQ-198 — re-instating a >1yr-old tombstoned doc RESTARTS the retention clock from NOW, so the very next sweep does NOT re-delete the fresh bytes", async () => {
+    const shp = "ev-req198";
+    const bytes = nextEvidenceBytes();
+    const photoHash = await sha256Hex(bytes);
+    const key = r2Key(TENANT, shp, photoHash);
+    // The recording event is genuinely >1yr old (2yr → past the 1yr 'default' hold) — the real
+    // "already-tombstoned" precondition. Seed it directly (append-only events can't be back-dated by UPDATE).
+    const RECORDED_OLD = Date.now() - 2 * YEAR_MS;
+    await seedOldPlacedPhotoEvent(shp, photoHash, RECORDED_OLD);
+
+    // FIRST upload: the first-INSERT path (UNCHANGED by the fix) binds the recording event's recorded_at, so
+    // created_ts is genuinely >1yr old — a doc the retention sweep is entitled to tombstone.
+    const first = await upload({ shipment_id: shp, photo_hash: photoHash }, bytes, opsTok);
+    expect(first.status, JSON.stringify(first.json)).toBe(201);
+    const docId = first.json?.document_id as string;
+    const firstDoc = await env.TENANT_A_DB.prepare("SELECT created_ts, lifecycle_class FROM documents WHERE id = ?")
+      .bind(docId)
+      .first<{ created_ts: number; lifecycle_class: string }>();
+    expect(firstDoc?.lifecycle_class, "a photo is the shorter 'default' retention class").toBe("default");
+    expect(firstDoc?.created_ts, "the first-INSERT path binds the recording event's recorded_at (>1yr old)").toBe(RECORDED_OLD);
+
+    // Simulate the retention sweep having tombstoned this expired doc: bytes deleted, row → 'expired'.
+    await env.EVIDENCE.delete(key);
+    await env.TENANT_A_DB.prepare("UPDATE documents SET retention_status = 'expired' WHERE id = ?").bind(docId).run();
+    expect(await env.EVIDENCE.get(key), "the tombstoned doc's bytes are gone").toBeNull();
+
+    // RE-POST the same verified bytes → the re-instate branch. THE FIX: created_ts binds Date.now() (the
+    // re-submission time), NOT the recording event's ancient recorded_at.
+    const reSubmitStart = Date.now();
+    const again = await upload({ shipment_id: shp, photo_hash: photoHash }, bytes, opsTok);
+    expect([200, 201]).toContain(again.status);
+    expect(again.json?.document_id).toBe(docId);
+    expect(await docCount(shp, photoHash), "re-instatement never duplicates the row").toBe(1);
+    expect(await env.EVIDENCE.get(key), "the bytes are restored on re-instatement").not.toBeNull();
+
+    const reinstated = await env.TENANT_A_DB.prepare("SELECT created_ts, retention_status FROM documents WHERE id = ?")
+      .bind(docId)
+      .first<{ created_ts: number; retention_status: string }>();
+    expect(reinstated?.retention_status).toBe("active");
+    // THE CLOCK RESTARTED: created_ts is the fresh re-submission time, NOT the >1yr-old recorded_at.
+    expect(reinstated!.created_ts, "the retention clock restarts from the re-submission").toBeGreaterThanOrEqual(reSubmitStart);
+    expect(reinstated!.created_ts, "the re-instated clock is NOT the ancient recording time").not.toBe(RECORDED_OLD);
+
+    // ONE retention sweep tick JUST AFTER the re-submission: the re-instated doc must SURVIVE — its bytes are
+    // NOT re-deleted. RED WITHOUT THE FIX: binding recorded_at would leave created_ts >1yr old, so this very
+    // sweep would immediately re-expire the freshly re-uploaded doc (bytes deleted, row tombstoned) — the exact
+    // "re-instate then next-sweep re-deletes the fresh bytes" defect REQ-198 closes.
+    await sweepTenantExpiredDocuments(env.TENANT_A_DB, env.EVIDENCE, TENANT, reSubmitStart + 1_000);
+    const afterSweep = await env.TENANT_A_DB.prepare("SELECT retention_status FROM documents WHERE id = ?")
+      .bind(docId)
+      .first<{ retention_status: string }>();
+    expect(afterSweep?.retention_status, "the freshly re-instated doc stays active — its clock restarted from NOW").toBe("active");
+    expect(await env.EVIDENCE.get(key), "the re-instated bytes are NOT re-deleted by the next sweep").not.toBeNull();
   });
 });

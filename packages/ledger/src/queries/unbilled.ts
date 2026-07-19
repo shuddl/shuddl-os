@@ -80,6 +80,12 @@ export function unbilledRedriveSql(select: string, scopeClause = "", ageClause =
     unbilledShipmentsSql(select, scopeClause) +
     ` AND NOT EXISTS (SELECT 1 FROM events h WHERE h.kind = '${UNBILLED_HOLD_MARKER_KIND}' AND h.shipment_id = p.shipment_id` +
     ` AND json_extract(h.payload, '$.body_ref') LIKE '${TERMINAL_HOLD_BODY_REF_PREFIX}%')` +
+    // REQ-199 (WP-11 exit audit) — only re-enqueue a BILLABLE stream: one with a shipments row. An orphan
+    // pod.signed on an un-booked / legacy-replayed stream (no shipments row → the Biller returns
+    // shipment_not_found and writes no marker) is NOT re-drivable (the Biller can never bill it), so re-driving
+    // it every cron tick is futile + unbounded. Excluding it here bounds the re-drive. The SHARED
+    // unbilledShipmentsSql is left UNCHANGED, so the Watchtower "unbilled" alarm still surfaces the data fault.
+    ` AND EXISTS (SELECT 1 FROM shipments s WHERE s.id = p.shipment_id)` +
     ageClause
   );
 }
