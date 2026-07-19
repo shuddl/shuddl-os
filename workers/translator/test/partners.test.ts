@@ -103,6 +103,23 @@ describe("REQ-203/204 — allocatePartnerControls (outbound interchange numbers)
   it("throws PartnerControlError on an unknown partner id (no row to increment)", async () => {
     await expect(allocatePartnerControls(env.TENANT_A_DB, "partner-ghost-2")).rejects.toBeInstanceOf(PartnerControlError);
   });
+
+  // Finding #1 (Low) — a config that is valid JSON but NOT an object ('[]'/'null'/'5') must not produce a
+  // garbage ISA13. Basing json_set on a guaranteed object (+ a finite-number assert) turns former silent
+  // "00000null" garbage into a clean allocation from a fresh counter.
+  it("HARDENED: a non-object config '[]' allocates CLEANLY from a fresh object — never a garbage '00000null' ISA13", async () => {
+    const id = "partner-alloc-array";
+    await seedEdiPartner(env.TENANT_A_DB, id, "certified", "[]"); // valid JSON, but NOT an object
+    const out = await allocatePartnerControls(env.TENANT_A_DB, id);
+    expect(out).toEqual({ isaControl: "000000001", gsControl: "1" });
+    expect(out.isaControl, "no NaN/null garbage leaks onto the wire").not.toContain("null");
+  });
+
+  it("HARDENED: a 'null' config likewise allocates cleanly (never a bad wire number)", async () => {
+    const id = "partner-alloc-null";
+    await seedEdiPartner(env.TENANT_A_DB, id, "certified", "null");
+    expect((await allocatePartnerControls(env.TENANT_A_DB, id)).isaControl).toBe("000000001");
+  });
 });
 
 describe("partnerMapping — resolves the stored mapping, IGNORING the outbound counter", () => {

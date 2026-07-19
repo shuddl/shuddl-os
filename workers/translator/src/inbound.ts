@@ -261,10 +261,27 @@ export async function handleInbound204(request: Request, deps: InboundDeps): Pro
   const partner = await authenticate(request, rawBytes, deps);
   if (partner === null) return unauthorized();
   const { partnerId, tenantSlug } = partner;
+  const db = deps.tenantDbFor(tenantSlug);
 
   const raw = new TextDecoder().decode(rawBytes);
   const isaControl = await extractIsaControl(raw);
   const receivedTs = deps.now();
+
+  // 1a½. CERT GATE (REQ-203 / zero-risk mandate). A tender is parsed into a booking ONLY from a REPLAY-CERTIFIED
+  //     partner. Certification exists precisely to prove a partner's format round-trips BEFORE going live; parsing
+  //     + booking against an authenticated-but-UNCERTIFIED (possibly wrong) mapping risks a mis-booking. So an
+  //     uncertified partner's raw doc is QUARANTINED (edi_uncertified_partner) + ACKed 200 — NO parse-to-booking,
+  //     NO shipment, NO appends, NO 990-accept — held for certification (this also keeps the 990-accept path
+  //     certified-only). A missing integrations row is treated as uncertified (fail-closed). Same NEVER-A-SILENT-
+  //     DROP discipline as the malformed / no-stable-ref branches; the anomaly id is deterministic per partner+ISA13.
+  const partnerRow = await db
+    .prepare("SELECT cert_status FROM integrations WHERE kind = 'edi_partner' AND id = ? LIMIT 1")
+    .bind(partnerId)
+    .first<{ cert_status: string | null }>();
+  if (partnerRow === null || partnerRow.cert_status !== "certified") {
+    const reason = new Error(`partner not replay-certified (cert_status=${partnerRow?.cert_status ?? "none"})`);
+    return quarantine(deps, tenantSlug, partnerId, isaControl, rawBytes, reason, "edi_uncertified_partner");
+  }
 
   // 1b. PARSE + MAP (pure). An EdiParseError / non-priceable tender (MAP204_NO_LANE) / no-stable-ref tender
   //     (MAP204_NO_SHIPMENT_REF) / any other pure-core failure is a DETERMINISTIC bad document — quarantine +
@@ -280,8 +297,8 @@ export async function handleInbound204(request: Request, deps: InboundDeps): Pro
   }
 
   // 2. PERSIST + APPEND. A fault here (D1/DO transient) throws → 500 → the partner retries; every write is
-  //    idempotent so the retry produces no duplicate. The append set stops at quote.accepted (no-bypass).
-  const db = deps.tenantDbFor(tenantSlug);
+  //    idempotent so the retry produces no duplicate. The append set stops at quote.accepted (no-bypass). `db` was
+  //    resolved above (the cert gate needed it).
   const streamId = `s:${plan.shipment.id}`;
 
   await persistParty(db, plan);

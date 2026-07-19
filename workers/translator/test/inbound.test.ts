@@ -1,11 +1,12 @@
 import { env } from "cloudflare:test";
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { applyMigrations } from "@shuddl/ledger/migrate";
 import { EventInput, partyIdForEmail } from "@shuddl/contracts";
 import controlSql from "../../../db/control/migrations/0001_control.sql?raw";
 import { handleInbound204, StaticSecretResolver, type InboundDeps, type SeqStubLike } from "../src/inbound.js";
 import { RecordingTransport } from "../src/transport.js";
 import { tenderPrefix } from "../src/sweep-214.js";
+import { certifyPartner } from "../src/partners.js";
 import { tenantDb } from "../src/tenants.js";
 import { applyAll, seedEdiPartner } from "./helpers.js";
 
@@ -180,6 +181,13 @@ beforeAll(async () => {
 });
 
 describe("REQ-201/202 — inbound 204 → gated chain, NO booking.created", () => {
+  // REQ-203 cert gate: a tender is booked ONLY from a REPLAY-CERTIFIED partner. Certify the partner before each
+  // booking test (seeded per-test — isolatedStorage rolls it back). The uncertified proving test revokes it in-test.
+  beforeEach(async () => {
+    await seedEdiPartner(env.TENANT_A_DB, PARTNER_ID, null, "{}");
+    await certifyPartner(env.TENANT_A_DB, PARTNER_ID, "fixtures/edi/roundtrip.json");
+  });
+
   it("(a) a valid 204 → one shipment + one email-keyed party, and the chain quote.requested{edi} → … → quote.accepted with NO booking.created", async () => {
     const seq = new RecordingSeq();
     const res = await handleInbound204(await signedRequest(tender204()), makeDeps(seq, new RecordingTransport(), goodSecrets()));
@@ -267,9 +275,8 @@ describe("REQ-201/202 — inbound 204 → gated chain, NO booking.created", () =
   });
 
   it("(f) the 990 acknowledgment carries SHUDDL's ALLOCATED outbound control number, NOT the inbound 204's ISA13 (Task 9)", async () => {
-    // Seed the partner's integrations row (the outbound-counter store) in tenant-A — id = the pairing id the
-    // handler authenticates. A fresh counter → the first allocation is "000000001", provably NOT the inbound ISA.
-    await seedEdiPartner(env.TENANT_A_DB, PARTNER_ID, "certified");
+    // The partner is certified with a fresh counter (beforeEach, config "{}") → the first allocation is
+    // "000000001", provably NOT the inbound 204's ISA13.
     const transport = new RecordingTransport();
     const res = await handleInbound204(await signedRequest(tender204("000000042")), makeDeps(new RecordingSeq(), transport, goodSecrets()));
     expect(res.status).toBe(200);
@@ -277,6 +284,32 @@ describe("REQ-201/202 — inbound 204 → gated chain, NO booking.created", () =
     const isa = transport.sent990[0]!.bytes.split("~")[0]!.split("*")[13];
     expect(isa, "SHUDDL's own first outbound interchange number").toBe("000000001");
     expect(isa, "NOT an echo of the inbound 204's ISA13").not.toBe("000000042");
+  });
+
+  // ── REQ-203 CERT GATE — a tender from an authenticated-but-UNCERTIFIED partner is HELD for certification, never
+  //    booked. Certification exists precisely to prove a partner's format round-trips BEFORE going live; parsing +
+  //    booking against an unverified (possibly wrong) mapping risks a mis-booking, which the zero-risk mandate
+  //    forbids. This ALSO answers the 990 cert-gate question: only certified partners ever reach the 990-accept path. ──
+  it("(g) an authenticated-but-UNCERTIFIED partner's 204 is QUARANTINED (edi_uncertified_partner): 200, NO shipment, NO appends, NO 990-accept", async () => {
+    // Revoke certification for THIS test only (isolatedStorage rolls it back) — the partner is still authenticated.
+    await env.TENANT_A_DB.prepare("UPDATE integrations SET cert_status = NULL WHERE kind='edi_partner' AND id = ?").bind(PARTNER_ID).run();
+    const seq = new RecordingSeq();
+    const transport = new RecordingTransport();
+    const res = await handleInbound204(await signedRequest(tender204()), makeDeps(seq, transport, goodSecrets()));
+    expect(res.status).toBe(200); // held for certification, never a retry-storm
+
+    // exactly one anomalies row, named the uncertified rule (distinct from a malformed-parse / no-stable-ref quarantine).
+    expect(await count(env.TENANT_A_DB, "anomalies")).toBe(1);
+    const anomaly = await env.TENANT_A_DB.prepare("SELECT rule FROM anomalies LIMIT 1").first<{ rule: string }>();
+    expect(anomaly?.rule).toBe("edi_uncertified_partner");
+    // NO booking on an unverified mapping: no shipment, no party, no appends, no 990-accept.
+    expect(await count(env.TENANT_A_DB, "shipments"), "no shipment on an unverified mapping").toBe(0);
+    expect(await count(env.TENANT_A_DB, "parties")).toBe(0);
+    expect(seq.appended, "no appends to the ledger").toHaveLength(0);
+    expect(transport.sent990, "no 990-accept for an uncertified partner").toHaveLength(0);
+    // the raw bytes are preserved in R2 (never a silent drop — Migrator rule).
+    const quarantined = await env.EVIDENCE.list({ prefix: `edi/tenant-a/quarantine/${PARTNER_ID}/` });
+    expect(quarantined.objects, "the raw tender is preserved in R2").toHaveLength(1);
   });
 
   it("a DIMS-LESS tender rests at quote.requested (no price on air) — no quote.priced, no quote.accepted, no bypass", async () => {

@@ -17,8 +17,9 @@
 import { DEFAULT_004010, resolveMapping, type PartnerMapping } from "@shuddl/edi";
 
 // The reserved integrations.config key holding SHUDDL's outbound interchange counters. It is NOT a partner-
-// mapping field, so it is STRIPPED before any resolveMapping call (certify + partnerMapping). Keep this in
-// lock-step with the `$.outbound` JSON paths in the allocate UPDATE below.
+// mapping field, so it is STRIPPED before any resolveMapping call (certify + partnerMapping). The allocate
+// UPDATE's `$.outbound…` SQL paths are DERIVED from this same constant (never a second hardcoded literal), so
+// the JS strip and the SQL path can never silently drift.
 const OUTBOUND_KEY = "outbound";
 
 // X12 control-number widths (REQ-204): ISA13 is EXACTLY 9 digits (zero-padded). GS06 is 1–9 digits (no leading
@@ -118,21 +119,37 @@ export async function certifyPartner(db: D1Database, partnerId: string, fixtureR
  * `$.outbound` key (whose parent `$` always exists), so it works on an empty `'{}'` config too. A burned-but-
  * unused number (allocate then the send fails) is acceptable — gaps are legal in X12; a REUSED number is not.
  *
- * Throws PartnerControlError if the partner has no integrations row in this tenant (nothing to increment).
+ * Throws PartnerControlError if the partner has no integrations row in this tenant (nothing to increment), or if
+ * the RETURNING counter is somehow non-numeric (defense-in-depth — a caught defer, never a garbage wire number).
+ *
+ * HARDENING (finding #1): a config that is valid JSON but NOT an object ('null'/'[]'/'5') can't hold a `$.outbound`
+ * path, so json_set would no-op and RETURNING would yield NULL → a garbage "00000null" ISA13. The json_set is
+ * therefore based on a GUARANTEED object (`CASE WHEN json_type(config)='object' THEN config ELSE json_object()`),
+ * so a non-object config allocates cleanly from a fresh counter. The `$.outbound…` paths are DERIVED from
+ * OUTBOUND_KEY (not a second hardcoded literal) so the SQL path and the JS strip can never silently drift.
  */
 export async function allocatePartnerControls(db: D1Database, partnerId: string): Promise<{ isaControl: string; gsControl: string }> {
+  const isaPath = `$.${OUTBOUND_KEY}.isa`;
+  const gsPath = `$.${OUTBOUND_KEY}.gs`;
   const row = await db
     .prepare(
-      "UPDATE integrations SET config = json_set(config, '$.outbound', json_object(" +
-        "'isa', COALESCE(json_extract(config, '$.outbound.isa'), 0) + 1, " +
-        "'gs',  COALESCE(json_extract(config, '$.outbound.gs'),  0) + 1)) " +
-        "WHERE kind = 'edi_partner' AND id = ? " +
-        "RETURNING json_extract(config, '$.outbound.isa') AS isa, json_extract(config, '$.outbound.gs') AS gs",
+      `UPDATE integrations SET config = json_set(` +
+        `CASE WHEN json_type(config) = 'object' THEN config ELSE json_object() END, ` +
+        `'$.${OUTBOUND_KEY}', json_object(` +
+        `'isa', COALESCE(json_extract(config, '${isaPath}'), 0) + 1, ` +
+        `'gs',  COALESCE(json_extract(config, '${gsPath}'),  0) + 1)) ` +
+        `WHERE kind = 'edi_partner' AND id = ? ` +
+        `RETURNING json_extract(config, '${isaPath}') AS isa, json_extract(config, '${gsPath}') AS gs`,
     )
     .bind(partnerId)
     .first<{ isa: number; gs: number }>();
   if (row === null) {
     throw new PartnerControlError(`ALLOCATE_UNKNOWN_PARTNER: no edi_partner integration '${partnerId}' in this tenant`);
+  }
+  if (!Number.isFinite(row.isa) || !Number.isFinite(row.gs)) {
+    // The CASE guard makes this unreachable for well-formed JSON; kept as a hard stop so a non-numeric counter
+    // becomes a caught PartnerControlError (a deferred 990 / faulted-shipment skip), NEVER a garbage ISA13.
+    throw new PartnerControlError(`ALLOCATE_BAD_COUNTER: partner '${partnerId}' produced a non-numeric control number (isa=${String(row.isa)}, gs=${String(row.gs)})`);
   }
   return { isaControl: String(row.isa).padStart(ISA13_WIDTH, "0"), gsControl: String(row.gs) };
 }
