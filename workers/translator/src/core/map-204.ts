@@ -58,13 +58,23 @@ export interface MapTenderCtx {
   shipmentIdOverride?: string;
 }
 
-// The stable business identity a shipment id is keyed on, in priority order: SID (B202-tender's B204) → BOL
-// (L11 qualifier BM) → PRO (L11 PRO) → PO (L11 PO). A per-interchange value (ISA13) is NEVER used: two
-// redeliveries of the SAME no-SID tender arrive under DIFFERENT interchange controls, so an ISA13-keyed id
-// would mint TWO shipment ids → two streams → two booking.created → a DUPLICATE freight commitment + invoice
-// for one physical load (REQ-191 one-booking-per-stream fires only WITHIN a stream, never across two). A tender
-// carrying NONE of these has no stable identifier — the worker QUARANTINES it rather than mint a dup-prone id.
-export const STABLE_REF_KEYS = ["SID", "BM", "PRO", "PO"] as const;
+// ── The reference taxonomy that drives shipment identity (REQ-191) ─────────────────────────────────────────
+// LOAD-UNIQUE refs each identify ONE physical load: SID (B204), BOL (L11 BM), PRO (L11 PRO). The id seeds
+// deterministically on them, AND the inbound handler CONVERGES a re-tender onto a prior shipment sharing one
+// (a redelivery under a new interchange lands on the same stream — the true F-1 win).
+export const LOAD_UNIQUE_REF_KEYS = ["SID", "BM", "PRO"] as const;
+// ORDER-LEVEL refs are NOT a load id — one PO (purchase order) commonly spans MANY truckloads — so they must
+// NEVER be a convergence key: converging on a shared PO would silently merge two DISTINCT loads and drop the
+// second while ACKing 200 (a silent freight drop, CLAUDE.md #10). A tender whose ONLY stable ref is order-level
+// is treated as distinct-per-delivery by the handler (prefer a VISIBLE duplicate over a SILENT drop); the id is
+// still deterministic per delivery. Full B2A revision-code convergence is a go-live hardening item (REQ-205).
+export const ORDER_LEVEL_REF_KEYS = ["PO"] as const;
+// The shipment-id SEED priority (unchanged value: SID → BM → PRO → PO). A load-unique ref wins; PO is the
+// last-resort seed. A per-interchange value (ISA13) is NEVER used for a load-unique seed (two redeliveries of the
+// SAME no-SID tender arrive under DIFFERENT interchange controls → an ISA13-keyed id would mint two streams →
+// two booking.created → a duplicate freight commitment; REQ-191 fires only WITHIN a stream). A tender carrying
+// NONE of these has no stable identifier — the worker QUARANTINES it rather than mint a dup-prone id.
+export const STABLE_REF_KEYS = [...LOAD_UNIQUE_REF_KEYS, ...ORDER_LEVEL_REF_KEYS] as const;
 
 async function sha256Hex(s: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));

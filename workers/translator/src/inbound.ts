@@ -28,7 +28,7 @@ import { parse204, tokenize, build990 } from "@shuddl/edi";
 import type { TenderDoc } from "@shuddl/edi";
 import { priceShipment, assessApproval } from "@shuddl/rater";
 import type { RateRequest } from "@shuddl/rater";
-import { mapTenderToBooking, STABLE_REF_KEYS, type BookingPlan } from "./core/map-204.js";
+import { mapTenderToBooking, LOAD_UNIQUE_REF_KEYS, ORDER_LEVEL_REF_KEYS, type BookingPlan } from "./core/map-204.js";
 import { quarantineDescriptor, type QuarantineRule } from "./core/quarantine.js";
 import { tenderKey } from "./sweep-214.js";
 import { allocatePartnerControls, PartnerControlError } from "./partners.js";
@@ -228,22 +228,46 @@ async function persistParty(db: D1Database, plan: BookingPlan): Promise<void> {
     .run();
 }
 
-// F-1 CONVERGENCE: resolve the CANONICAL shipment id for THIS tender — the id of a PRIOR shipment from the same
-// partner that shares a QUALIFIED (qualifier,value) ref with this tender. Matching ONLY on the qualified pair
-// (partner + `$.<QUAL>` = value), NEVER a bare value, is what keeps two genuinely distinct loads that happen to
-// share a bare number across qualifiers (SID:5000 vs PO:5000) from over-merging (that would re-introduce F-2).
-// Returns the existing id (⇒ the re-tender lands on the ONE stream, and the per-stream one-booking guard
-// suppresses the duplicate booking) or undefined (⇒ a fresh qualifier-namespaced id). Tenant-isolated: `db` is
-// the resolved tenant's handle. STABLE_REF_KEYS is a fixed constant list, so the bound `$.<QUAL>` path is safe.
+// CONVERGENCE (F-1, corrected): resolve the CANONICAL shipment id for THIS tender — the id of a PRIOR shipment
+// from the same partner that shares a QUALIFIED (qualifier,value) LOAD-UNIQUE ref (SID/BM/PRO). ORDER-LEVEL refs
+// (PO) are DELIBERATELY EXCLUDED: one PO spans many truckloads, so converging on a shared PO would silently merge
+// two DISTINCT loads and drop the second (a silent freight drop — worse than a duplicate; CLAUDE.md #10). Match
+// ONLY on the qualified pair (partner + `$.<QUAL>` = value), never a bare value.
+//   AMBIGUITY GUARD: collect the DISTINCT candidate shipment ids across the tender's load-unique refs. Exactly
+//   ONE ⇒ converge onto it. ZERO ⇒ no convergence (a fresh id). ≥2 (a tender bridging two prior shipments — a
+//   data anomaly) ⇒ do NOT converge; the caller mints fresh (conservative: a visible possible-duplicate beats a
+//   WRONG merge). Tenant-isolated: `db` is the resolved tenant's handle; the ref keys are a fixed constant list,
+//   so the bound `$.<QUAL>` path is injection-safe.
 async function resolveCanonicalShipmentId(db: D1Database, partnerId: string, tender: TenderDoc): Promise<string | undefined> {
-  for (const key of STABLE_REF_KEYS) {
+  const candidates = new Set<string>();
+  for (const key of LOAD_UNIQUE_REF_KEYS) {
     const value = tender.refs[key]?.trim();
     if (value === undefined || value === "") continue;
-    const row = await db
-      .prepare("SELECT id FROM shipments WHERE json_extract(refs, '$.partner') = ?1 AND json_extract(refs, ?2) = ?3 LIMIT 1")
+    const rows = await db
+      .prepare("SELECT id FROM shipments WHERE json_extract(refs, '$.partner') = ?1 AND json_extract(refs, ?2) = ?3")
       .bind(partnerId, `$.${key}`, value)
-      .first<{ id: string }>();
-    if (row !== null) return row.id;
+      .all<{ id: string }>();
+    for (const r of rows.results) candidates.add(r.id);
+  }
+  if (candidates.size === 1) return [...candidates][0];
+  if (candidates.size >= 2) {
+    console.error(
+      `204-inbound: AMBIGUOUS convergence for partner ${partnerId} — ${candidates.size} candidate shipments (${[...candidates].join(", ")}) share this tender's load-unique refs; NOT merging (minting fresh — a visible possible-duplicate beats a wrong merge)`,
+    );
+  }
+  return undefined;
+}
+
+// ORDER-LEVEL-ONLY id (F-1 corrected, seed half): a tender whose ONLY stable ref is order-level (PO) has NO load
+// identity, so two such tenders are DISTINCT loads by default. Seed the id with the interchange control as a
+// per-delivery discriminator, so two distinct deliveries on one PO become two shipments (prefer a VISIBLE
+// duplicate over a SILENT drop) while a same-interchange retry still reproduces the id (idempotent). Returns
+// undefined when the tender carries no order-level ref either (⇒ map-204 throws MAP204_NO_SHIPMENT_REF → quarantine).
+async function orderLevelOnlyShipmentId(partnerId: string, tender: TenderDoc, isaControl: string): Promise<string | undefined> {
+  for (const key of ORDER_LEVEL_REF_KEYS) {
+    const value = tender.refs[key]?.trim();
+    if (value === undefined || value === "") continue;
+    return `shp_${(await sha256Hex(`edi:shipment:${partnerId}:${key}:${value}:${isaControl}`)).slice(0, 16)}`;
   }
   return undefined;
 }
@@ -312,13 +336,20 @@ export async function handleInbound204(request: Request, deps: InboundDeps): Pro
   let plan: BookingPlan;
   try {
     const tender = parse204(raw);
-    // F-1 convergence: if a prior tender for this load already exists (shares a qualified ref), reuse ITS id as
-    // the canonical id so ALL deterministic append ids + the stream compute against it (threaded through the ctx,
-    // never a post-hoc swap). A fresh load resolves to undefined → map-204 mints a fresh qualifier-namespaced id.
-    const canonicalId = await resolveCanonicalShipmentId(db, partnerId, tender);
+    // Resolve the shipment id BEFORE map so ALL deterministic append ids + the stream compute against it (threaded
+    // through the ctx, never a post-hoc swap):
+    //   1) CONVERGE on a prior shipment sharing a LOAD-UNIQUE ref (SID/BM/PRO) — the true F-1 re-tender win.
+    //   2) else, if the tender has NO load-unique ref (order-level PO only), mint a per-DELIVERY id so two distinct
+    //      loads on one PO are two shipments (PO is order-level, never a merge key — visible duplicate > silent drop).
+    //   3) else (has a load-unique ref but no prior match) leave it to map-204's fresh deterministic seed.
+    let shipmentIdOverride = await resolveCanonicalShipmentId(db, partnerId, tender);
+    if (shipmentIdOverride === undefined) {
+      const hasLoadUniqueRef = LOAD_UNIQUE_REF_KEYS.some((k) => (tender.refs[k]?.trim() ?? "") !== "");
+      if (!hasLoadUniqueRef) shipmentIdOverride = await orderLevelOnlyShipmentId(partnerId, tender, isaControl);
+    }
     plan = await mapTenderToBooking(
       tender,
-      canonicalId !== undefined ? { partnerId, receivedTs, shipmentIdOverride: canonicalId } : { partnerId, receivedTs },
+      shipmentIdOverride !== undefined ? { partnerId, receivedTs, shipmentIdOverride } : { partnerId, receivedTs },
     );
   } catch (err) {
     const rule: QuarantineRule = err instanceof Error && err.message.startsWith("MAP204_NO_SHIPMENT_REF") ? "edi_no_shipment_ref" : "edi_malformed";

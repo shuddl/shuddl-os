@@ -372,18 +372,69 @@ describe("REQ-201/202 — inbound 204 → gated chain, NO booking.created", () =
     expect(quarantined.objects, "the raw bytes are preserved in R2 (never a silent drop)").toHaveLength(1);
   });
 
-  // ── EXIT-AUDIT F-1 (Medium): a re-tender of ONE physical load that ADDS a higher-priority ref must converge
-  //    onto the existing shipment/stream — else two streams → two booking.created → duplicate invoice. ──
-  it("(F-1) a re-tender adding a higher-priority ref converges onto the SAME load (no duplicate booking/invoice)", async () => {
+  // ── EXIT-AUDIT F-1 (corrected): convergence is on LOAD-UNIQUE refs (SID/BM/PRO) ONLY. ──
+  // PO is order-level, not a convergence key; a PO-only tender that later adds a primary id is treated as distinct
+  // (prefer a visible duplicate over a silent drop). Full B2A replace-code convergence is a go-live hardening item
+  // (REQ-205). So this {PO:5000} → {PO:5000, SID:9000} case yields TWO shipments (no shared LOAD-UNIQUE ref between
+  // the two tenders — the first has no SID; PO does not converge them).
+  it("(F-1) a PO-only tender that later re-tenders with a NEW primary id is treated as DISTINCT (PO never converges)", async () => {
     const seq = new RecordingSeq();
     const deps = makeDeps(seq, new RecordingTransport(), goodSecrets());
-    // First tender: keyed on PO:5000.
-    await handleInbound204(await signedRequest(mkTender({ sid: null, bol: null, l11: [["5000", "PO"]] })), deps);
-    // Re-tender of the SAME load, now ALSO carrying a (higher-priority) SID — the naive per-ref id would differ.
-    await handleInbound204(await signedRequest(mkTender({ isa: "000000777", sid: "9000", bol: null, l11: [["5000", "PO"]] })), deps);
-    expect(await count(env.TENANT_A_DB, "shipments"), "one physical load = one shipment (converged via PO)").toBe(1);
+    await handleInbound204(await signedRequest(mkTender({ sid: null, bol: null, l11: [["5000", "PO"]] })), deps); // {PO:5000}
+    await handleInbound204(await signedRequest(mkTender({ isa: "000000777", sid: "9000", bol: null, l11: [["5000", "PO"]] })), deps); // {PO:5000, SID:9000}
+    expect(await count(env.TENANT_A_DB, "shipments"), "no shared LOAD-UNIQUE ref → two shipments (PO is not a merge key)").toBe(2);
     const accepted = seq.appended.filter((a) => a.event.kind === "quote.accepted");
-    expect(accepted, "exactly one booking-triggering acceptance, not two").toHaveLength(1);
+    expect(accepted, "each distinct load books (visible duplicate over silent drop)").toHaveLength(2);
+  });
+
+  // The corrected-F-1 REGRESSION: the review's over-merge. Two DISTINCT loads (different SID) sharing a PO must
+  // BOTH book — converging on the shared PO would silently drop the second (worse than a duplicate). RED before
+  // the fix (PO was a convergence key → load B merged into load A).
+  it("(F-1-fix) two DISTINCT loads sharing a PO but differing in SID BOTH book (no PO over-merge silent drop)", async () => {
+    const seq = new RecordingSeq();
+    const deps = makeDeps(seq, new RecordingTransport(), goodSecrets());
+    await handleInbound204(await signedRequest(mkTender({ isa: "000000042", sid: "A1", bol: null, l11: [["5000", "PO"]] })), deps); // load A
+    await handleInbound204(await signedRequest(mkTender({ isa: "000000777", sid: "B2", bol: null, l11: [["5000", "PO"]] })), deps); // load B
+    expect(await count(env.TENANT_A_DB, "shipments"), "distinct SIDs = two loads; a shared PO must NOT merge them").toBe(2);
+    expect(seq.appended.filter((a) => a.event.kind === "quote.accepted"), "both loads book — neither silently dropped").toHaveLength(2);
+  });
+
+  // PO-only distinct loads: two separate deliveries identified only by the same PO are TWO loads (order-level ref,
+  // per-delivery id). RED before the fix (PO-only tenders got one deterministic PO id → the second merged/dropped).
+  it("(F-1-fix) two PO-only tenders (distinct deliveries) BOTH book — PO spans many loads, never a silent merge", async () => {
+    const seq = new RecordingSeq();
+    const deps = makeDeps(seq, new RecordingTransport(), goodSecrets());
+    await handleInbound204(await signedRequest(mkTender({ isa: "000000042", sid: null, bol: null, l11: [["5000", "PO"]] })), deps);
+    await handleInbound204(await signedRequest(mkTender({ isa: "000000777", sid: null, bol: null, l11: [["5000", "PO"]] })), deps);
+    expect(await count(env.TENANT_A_DB, "shipments"), "two distinct PO-only deliveries = two loads (visible duplicate over silent drop)").toBe(2);
+    expect(seq.appended.filter((a) => a.event.kind === "quote.accepted")).toHaveLength(2);
+  });
+
+  // The TRUE F-1 win preserved: a realistic re-tender sharing a LOAD-UNIQUE SID converges onto ONE shipment/booking
+  // (a redelivery under a new interchange that adds a PO must NOT create a second booking). Stays green.
+  it("(F-1-fix) a re-tender sharing a load-unique SID converges to ONE shipment/booking (the real F-1 win)", async () => {
+    const seq = new RecordingSeq();
+    const deps = makeDeps(seq, new RecordingTransport(), goodSecrets());
+    await handleInbound204(await signedRequest(mkTender({ isa: "000000042", sid: "9000", bol: null })), deps);
+    await handleInbound204(await signedRequest(mkTender({ isa: "000000777", sid: "9000", bol: null, l11: [["5000", "PO"]] })), deps);
+    expect(await count(env.TENANT_A_DB, "shipments"), "shared load-unique SID → one shipment").toBe(1);
+    expect(seq.appended.filter((a) => a.event.kind === "quote.accepted"), "one booking, not two").toHaveLength(1);
+  });
+
+  // AMBIGUITY GUARD: a tender bridging TWO prior shipments (its SID matches load 1, its BM matches load 2 — a data
+  // anomaly) must NOT converge onto the wrong one. The guard refuses to merge (mints per its own primary seed),
+  // so no distinct prior load is silently absorbed. It lands on its SID seed (load 1), never load 2, and creates
+  // no spurious third shipment.
+  it("(F-1-fix) an AMBIGUOUS tender bridging two prior shipments does NOT wrong-merge (ambiguity guard)", async () => {
+    const seq = new RecordingSeq();
+    const deps = makeDeps(seq, new RecordingTransport(), goodSecrets());
+    await handleInbound204(await signedRequest(mkTender({ isa: "000000042", sid: "S1", bol: null })), deps); // load 1 (SID:S1)
+    await handleInbound204(await signedRequest(mkTender({ isa: "000000043", sid: null, bol: "M2" })), deps); // load 2 (BM:M2)
+    expect(await count(env.TENANT_A_DB, "shipments")).toBe(2);
+    // A tender carrying BOTH S1 and M2 bridges the two → ambiguous → do NOT converge; it lands on its own SID:S1
+    // seed (= load 1), never merges load 2 away, and mints no third shipment.
+    await handleInbound204(await signedRequest(mkTender({ isa: "000000044", sid: "S1", bol: "M2" })), deps);
+    expect(await count(env.TENANT_A_DB, "shipments"), "the ambiguous bridge does not wrong-merge or spawn a third").toBe(2);
   });
 
   // ── EXIT-AUDIT F-2 (Low): two DIFFERENT loads sharing a bare ref VALUE across qualifiers must NOT collide. ──

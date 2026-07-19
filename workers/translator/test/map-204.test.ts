@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { partyIdForEmail, EventInput } from "@shuddl/contracts";
 import type { TenderDoc } from "@shuddl/edi";
-import { mapTenderToBooking } from "../src/core/map-204.js";
+import { mapTenderToBooking, LOAD_UNIQUE_REF_KEYS, ORDER_LEVEL_REF_KEYS, STABLE_REF_KEYS } from "../src/core/map-204.js";
 
 // WP-12 Task 6 · REQ-201/196 — the 204→booking-plan core. A parsed X12 204 load tender maps to a deterministic
 // BookingPlan the worker (Task 7/8) INSERT-OR-IGNOREs: the bill-to party id converges with the CSR/Concierge
@@ -139,6 +139,17 @@ describe("mapTenderToBooking — 204 → booking plan (REQ-201/196)", () => {
     if (append.kind === "quote.requested") {
       expect(append.payload.request.dims).toBeUndefined();
     }
+  });
+
+  // ── EXIT-AUDIT F-1 (corrected): the ref taxonomy. PO is ORDER-LEVEL (one PO spans many truckloads), so it is
+  //    NEVER a convergence key — converging on a shared PO would silently merge two distinct loads. It stays in the
+  //    SEED priority (deterministic id) but out of the load-unique set. This pins the root-cause invariant. ──
+  it("PO is a SEED ref but NOT a load-unique (convergence) ref — the taxonomy that prevents the PO over-merge", () => {
+    expect(LOAD_UNIQUE_REF_KEYS).toEqual(["SID", "BM", "PRO"]);
+    expect(LOAD_UNIQUE_REF_KEYS as readonly string[]).not.toContain("PO");
+    expect(ORDER_LEVEL_REF_KEYS).toEqual(["PO"]);
+    // The seed priority is the concatenation (load-unique first, order-level last) — value unchanged: SID→BM→PRO→PO.
+    expect(STABLE_REF_KEYS).toEqual(["SID", "BM", "PRO", "PO"]);
   });
 
   // ── EXIT-AUDIT F-2: the id is QUALIFIER-NAMESPACED, so the SAME bare value under DIFFERENT qualifiers is TWO
