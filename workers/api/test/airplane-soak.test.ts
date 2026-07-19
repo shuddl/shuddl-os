@@ -395,5 +395,9 @@ describe("airplane-mode soak — 55 events / 2 devices / real sequencer (REQ-016
       const result = await verifyChain(events);
       expect(result.ok, `chain for ${shipmentId}`).toBe(true);
     }
-  });
+    // 30s ceiling (not the 5s default): this drives the REAL sequencer DO to append + chain-verify 55 events
+    // across 2 devices with a shuffled + duplicated re-send; under full-suite pool-workers DO contention that
+    // legitimately exceeds 5s (it runs in ~0.6-2.7s in isolation). The headroom removes the load flake without
+    // masking a real hang.
+  }, 30_000);
 });
