@@ -444,6 +444,34 @@ importers:
         specifier: ^4.51.0
         version: 4.107.1(@cloudflare/workers-types@4.20260702.1)
 
+  workers/translator:
+    dependencies:
+      '@shuddl/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@shuddl/edi':
+        specifier: workspace:*
+        version: link:../../packages/edi
+      '@shuddl/ledger':
+        specifier: workspace:*
+        version: link:../../packages/ledger
+    devDependencies:
+      '@cloudflare/vitest-pool-workers':
+        specifier: ^0.9.14
+        version: 0.9.14(@cloudflare/workers-types@4.20260702.1)(@vitest/runner@4.1.10)(@vitest/snapshot@4.1.10)(vitest@3.2.7(@types/node@26.1.1)(jsdom@29.1.1)(lightningcss@1.32.0)(tsx@4.23.0))
+      '@cloudflare/workers-types':
+        specifier: ^4.20251230.0
+        version: 4.20260702.1
+      typescript:
+        specifier: ^5.9.0
+        version: 5.9.3
+      vitest:
+        specifier: ~3.2.4
+        version: 3.2.7(@types/node@26.1.1)(jsdom@29.1.1)(lightningcss@1.32.0)(tsx@4.23.0)
+      wrangler:
+        specifier: ^4.51.0
+        version: 4.107.1(@cloudflare/workers-types@4.20260702.1)
+
 packages:
 
   '@asamuzakjp/css-color@5.1.11':

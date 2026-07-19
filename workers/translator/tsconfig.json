@@ -1,0 +1,7 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // The Translator worker serves no UI (no .tsx), so — unlike workers/agents — no jsx setting. The pure
+  // agent-core in src/core/ is D1/R2/network-free; the worker (Task 7/8) supplies the ports.
+  "compilerOptions": { "types": ["@cloudflare/workers-types", "@cloudflare/vitest-pool-workers"] },
+  "include": ["src", "test"]
+}
