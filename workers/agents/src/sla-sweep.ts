@@ -64,9 +64,20 @@ const OVERDUE_SQL =
 // silently suppress a genuinely-overdue inbound (fail-CLOSED would drop a real reply obligation). The
 // auto-reply the consumer sends carries `in_reply_to: <inbound event id>` (concierge.ts), so a satisfied SLA
 // is precisely a message.sent that answers THIS inbound.
+//
+// REQ-176 — but a message.sent whose send PERMANENTLY FAILED was RECORDED yet never DELIVERED (it is HELD). A
+// held reply must NOT read as answered — the overdue timer keeps running so ops sees the unanswered inbound.
+// The Concierge surfaces a hold as an INTERNAL note keyed off the held message.sent id (body_ref
+// `concierge-send-hold/<message.sent id>`, concierge.ts). So the "answered" signal is a message.sent that
+// answers THIS inbound AND carries NO such hold note. A SUCCESSFUL send (no hold note) STILL clears the SLA —
+// the REQ-174 backstop — because its message.sent has no correlated hold; only a HELD one is excluded here.
 const ANSWERED_SQL =
-  "SELECT 1 AS present FROM events WHERE stream_id = ?1 AND kind = 'message.sent' " +
-  "AND json_extract(payload, '$.in_reply_to') = ?2 LIMIT 1";
+  "SELECT 1 AS present FROM events s WHERE s.stream_id = ?1 AND s.kind = 'message.sent' " +
+  "AND json_extract(s.payload, '$.in_reply_to') = ?2 " +
+  "AND NOT EXISTS (" +
+  "  SELECT 1 FROM events h WHERE h.stream_id = ?1 AND h.kind = 'message.received' " +
+  "    AND json_extract(h.payload, '$.body_ref') = 'concierge-send-hold/' || s.id" +
+  ") LIMIT 1";
 
 async function sha256Hex(s: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));

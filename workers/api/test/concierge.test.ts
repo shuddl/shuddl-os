@@ -537,7 +537,7 @@ describe("Concierge consumer — message.received → resolve/price/reply (REQ-0
     expect(sender.messages).toHaveLength(1);
   });
 
-  it("SEND-FAILURE (permanent): a non-retriable send → issued_send_pending, HELD (not thrown), facts stand (REQ-100)", async () => {
+  it("SEND-FAILURE (permanent, REQ-176): a non-retriable send → issued_send_pending, HELD, facts stand, AND a durable internal HOLD note SURFACES the held reply (REQ-100)", async () => {
     await seedRateConfig(env.TENANT_A_DB, TEST_RATE_CONFIG);
     const msgId = await appendInbound(
       quoteEmail("permfail@shipper.example.com", "Quote from 97201 to 80012, 1100 lbs, 48x40x48, 2 pallets."),
@@ -549,9 +549,48 @@ describe("Concierge consumer — message.received → resolve/price/reply (REQ-0
     expect(outcome.status, JSON.stringify(outcome)).toBe("issued_send_pending");
     if (outcome.status !== "issued_send_pending") throw new Error("unreachable");
 
+    // REQ-176 — the ledger facts stand AND the held (undelivered) reply now SURFACES as a durable internal
+    // hold note (was a lone console.error). The note is a message.received{channel:note,visibility:internal}
+    // keyed off the held message.sent id — the SAME primitive the SLA sweep uses, no new kind/table.
     const events = await streamEvents(outcome.shipment_id);
-    expect(events.map((e) => e.kind)).toEqual(["quote.requested", "quote.priced", "message.sent"]);
+    expect(events.map((e) => e.kind)).toEqual(["quote.requested", "quote.priced", "message.sent", "message.received"]);
     expect(events.find((e) => e.id === outcome.message_sent_event_id)).toBeDefined();
+    const hold = events.find((e) => e.kind === "message.received")!;
+    expect(hold.visibility).toBe("internal");
+    expect((hold.payload as { channel: string }).channel).toBe("note");
+    expect((hold.payload as { body_ref: string }).body_ref).toBe(`concierge-send-hold/${outcome.message_sent_event_id}`);
+
+    // IDEMPOTENT: a redelivery re-holds to the SAME note (DO dedupe by deterministic id) — never a second note.
+    const again = await handleMessageReceived({ kind: "message.received", tenant: TENANT, event_id: msgId }, depsWith(new ThrowingSender(false), new DeterministicParser()));
+    expect(again.status).toBe("issued_send_pending");
+    const after = await streamEvents(outcome.shipment_id);
+    expect(after.filter((e) => e.kind === "message.received")).toHaveLength(1);
+  });
+
+  it("REQ-178 fast-path: the tenant from_name is PINNED in message.sent — a from-name config change cannot make the redelivery re-render diverge (no 409/spurious hold)", async () => {
+    await seedRateConfig(env.TENANT_A_DB, TEST_RATE_CONFIG);
+    const msgId = await appendInbound(
+      quoteEmail("frompin@shipper.example.com", "Please quote from 97201 to 80012, 1000 lbs, 48x40x48, 2 pallets."),
+      "from-pin",
+    );
+
+    const sender = new RecordingSender();
+    const first = await handleMessageReceived({ kind: "message.received", tenant: TENANT, event_id: msgId }, depsWith(sender, new DeterministicParser()));
+    expect(first.status, JSON.stringify(first)).toBe("issued_replied");
+    if (first.status !== "issued_replied") throw new Error("unreachable");
+    expect(sender.messages[0]!.html).toContain(FROM_NAME); // the original tenant voice on the fresh send
+    // The from_name is PINNED in the committed message.sent — the fast path reads it back, never a live config re-read.
+    const sent = (await streamEvents(first.shipment_id)).find((e) => e.kind === "message.sent")!;
+    expect((sent.payload as { from_name?: string }).from_name).toBe(FROM_NAME);
+
+    // A from-name CONFIG CHANGE between send + re-render: a LIVE re-read would render the NEW name, diverge from
+    // the committed send, and 409 the idempotency key → a spurious permanent hold on an already-sent reply.
+    const drifted: ConciergeDeps = { db: env.TENANT_A_DB, seq: seqStub, sender, parser: new DeterministicParser(), tenantFromName: "Totally Different Desk" };
+    const redelivered = await handleMessageReceived({ kind: "message.received", tenant: TENANT, event_id: msgId }, drifted);
+    expect(redelivered.status, JSON.stringify(redelivered)).toBe("issued_replied"); // NOT issued_send_pending — no 409
+    expect(sender.messages).toHaveLength(1); // byte-identical re-render → the sender's key-dedupe returns the original
+    expect(sender.messages[0]!.html).toContain(FROM_NAME); // still the ORIGINAL voice, never the drifted name
+    expect(sender.messages[0]!.html).not.toContain("Totally Different Desk");
   });
 
   it("POISON: a trigger whose event_id has no matching message.received → skipped, nothing appended", async () => {

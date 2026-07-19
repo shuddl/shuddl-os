@@ -128,6 +128,24 @@ async function shipmentIdFor(messageEventId: string): Promise<string> {
   return `shp_${(await sha256Hex(`concierge:shipment:${messageEventId}`)).slice(0, 16)}`;
 }
 
+// REQ-176 — the PERMANENT-HOLD note. The auto-reply appends `message.sent` (the obligation-to-deliver) BEFORE
+// calling the sender (append-then-send). If the send PERMANENTLY fails (a non-retriable SendError, or an
+// undeliverable recipient that can never succeed), the reply was RECORDED but never DELIVERED — it is HELD.
+// SURFACE the hold as a durable INTERNAL note — the SAME `message.received{channel:note,visibility:internal}`
+// primitive the SLA sweep uses (no new kind/table) — keyed DETERMINISTICALLY off the held `message.sent` id so
+// a redelivery re-holds to the SAME note (the DO dedupes by id → a re-append is a no-op). The sla-sweep's
+// ANSWERED check EXCLUDES a `message.sent` that carries this hold note: a held (undelivered) reply must NOT
+// clear the inbound's overdue timer, while a SUCCESSFUL send's `message.sent` (no hold note) STILL clears it —
+// the REQ-174 backstop distinguishes SENT from HELD by the presence of this note.
+function sendHoldBodyRef(messageSentEventId: string): string {
+  return `concierge-send-hold/${messageSentEventId}`;
+}
+async function sendHoldNoteId(messageSentEventId: string): Promise<string> {
+  const h = (await sha256Hex(`concierge:send-hold:${messageSentEventId}`)).slice(0, 32);
+  const variant = ((parseInt(h.slice(16, 17) || "0", 16) & 0x3) | 0x8).toString(16); // 8/9/a/b
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-${variant}${h.slice(17, 20)}-${h.slice(20, 32)}`;
+}
+
 // A created party's id is derived from the requester email via the SHARED @shuddl/contracts matcher
 // (partyIdForEmail, REQ-196) — the SAME id the CSR intake derives — so re-creation is stable AND the two
 // intake paths converge on one party row instead of forking a duplicate. (Was a Concierge-local
@@ -270,7 +288,7 @@ export async function handleMessageReceived(message: MessageReceivedTrigger, dep
   // no longer silently loses the customer's quote — the C1 fix).
   const sentEvent = await loadEventById(db, messageSentEventId, "message.sent");
   if (sentEvent !== null) {
-    return resendCommittedReply(db, sender, tenantFromName, shipmentId, sentEvent, { quoteRequestedEventId, quotePricedEventId, messageSentEventId });
+    return resendCommittedReply(db, seq, msg.tenant, sender, tenantFromName, shipmentId, sentEvent, { quoteRequestedEventId, quotePricedEventId, messageSentEventId });
   }
 
   // REDELIVERY (QUEUED). A quote.requested exists but NO message.sent ⇒ this inbound was already DECIDED as
@@ -444,6 +462,12 @@ export async function handleMessageReceived(message: MessageReceivedTrigger, dep
         // event, not a live config re-read (which could drift → a 409 hold on an already-sent reply). Absent
         // ⇒ the reply omitted the line, and the fast path omits it too — byte-identical either way.
         ...(transitDays !== undefined ? { transit_days: transitDays } : {}),
+        // REQ-178 — PIN the tenant voice (from-name) the fresh reply is signed with, so the redelivery fast
+        // path re-renders the SAME signature from THIS committed event, never a LIVE `tenantFromName` config
+        // re-read that a between-send config change would drift → a divergent body → a 409 on the send's
+        // idempotency key → a spurious permanent hold on an already-sent reply. Exactly what transit_days does
+        // (and what Task 7's dunning send does). Canonical-hash-safe: optional field, absent on prior events.
+        from_name: tenantFromName,
       },
     },
   });
@@ -459,9 +483,12 @@ export async function handleMessageReceived(message: MessageReceivedTrigger, dep
     idempotency_key: idempotencyKey, // one message.sent event, one reply — dedupe under redelivery
   };
   return sendConciergeReply({
+    seq,
+    tenant: msg.tenant,
     sender,
     message: sendMsg,
     shipmentId: resolved.shipment_id,
+    sentTs: inbound.recorded_at, // the committed message.sent's ts — the hold note (if any) rides the same instant
     partyId: resolved.party_id,
     partyCreated: resolved.party_created,
     quoteRequestedEventId,
@@ -474,9 +501,15 @@ export async function handleMessageReceived(message: MessageReceivedTrigger, dep
 // Everything here is DOWNSTREAM of the committed quote.requested/priced/message.sent: it may complete, hold,
 // or throw for redelivery, but it NEVER unwinds those facts (REQ-100 / Biller law).
 interface ReplySendCtx {
+  /** The DO append surface — REQ-176 records the permanent-HOLD note through it (the only write path). */
+  seq: SeqStubLike;
+  /** The message tenant (the DO re-derives its identity from `${tenant}|${streamId}`, REQ-025). */
+  tenant: string;
   sender: EvidenceSender;
   message: EvidenceMessage;
   shipmentId: string;
+  /** The committed message.sent's ts — the hold note (REQ-176) rides the SAME deterministic instant. */
+  sentTs: number;
   partyId: string;
   partyCreated: boolean;
   quoteRequestedEventId: string;
@@ -485,15 +518,38 @@ interface ReplySendCtx {
 }
 
 async function sendConciergeReply(cx: ReplySendCtx): Promise<ConciergeOutcome> {
-  const { sender, message, shipmentId, partyId, partyCreated, quoteRequestedEventId, quotePricedEventId, messageSentEventId } = cx;
-  const pending = (detail: string): ConciergeOutcome => {
+  const { seq, tenant, sender, message, shipmentId, sentTs, partyId, partyCreated, quoteRequestedEventId, quotePricedEventId, messageSentEventId } = cx;
+  // A PERMANENT hold: the message.sent is RECORDED but the reply is never DELIVERED. SURFACE it (REQ-176) as a
+  // durable internal note keyed off the held message.sent id (deterministic → idempotent under redelivery), so
+  // the sla-sweep's ANSWERED check excludes it (a held reply must not clear the overdue timer) — was a lone
+  // console.error. The note append rides the SAME sequencer DO on the shipment stream (no comms outside the
+  // ledger, REQ-100). If THIS append faults transiently it throws out to the queue; redelivery re-holds + re-
+  // appends the SAME note (dedupe-safe) — never a lost hold.
+  const pending = async (detail: string): Promise<ConciergeOutcome> => {
     console.error(`concierge: ${detail}`);
+    await seq.append({
+      tenant,
+      streamId: `s:${shipmentId}`,
+      input: {
+        id: await sendHoldNoteId(messageSentEventId),
+        shipment_id: shipmentId,
+        ts: sentTs,
+        actor: { party: "agent:concierge" },
+        party_refs: [],
+        evidence: [],
+        source: "native",
+        confidence: 10_000,
+        requested_visibility: "internal", // narrows message.received (counterparty) → internal, stamped server-side
+        kind: "message.received",
+        payload: { channel: "note", from_ref: "agent:concierge", body_ref: sendHoldBodyRef(messageSentEventId) },
+      },
+    });
     return { status: "issued_send_pending", shipment_id: shipmentId, party_id: partyId, quote_requested_event_id: quoteRequestedEventId, quote_priced_event_id: quotePricedEventId, message_sent_event_id: messageSentEventId, reason: "send_failed", detail };
   };
 
   // An undeliverable recipient can NEVER succeed (redelivery re-validates the same bytes): HOLD, do not send.
   if (!mailSafe(message.to)) {
-    return pending(`concierge reply recipient ${JSON.stringify(message.to)} is not a deliverable email (message.sent ${messageSentEventId}) — held send-pending, ledger facts stand`);
+    return await pending(`concierge reply recipient ${JSON.stringify(message.to)} is not a deliverable email (message.sent ${messageSentEventId}) — held send-pending, ledger facts stand`);
   }
   try {
     const receipt = await sender.send(message);
@@ -514,7 +570,7 @@ async function sendConciergeReply(cx: ReplySendCtx): Promise<ConciergeOutcome> {
       // events (dedupe-safe via the idempotency key). Mirrors the Biller — a transient blip self-heals, and
       // the ledger facts already stand. PERMANENT ⇒ redelivery cannot help; HOLD for a human (WP-11).
       if (err.retriable) throw err;
-      return pending(`concierge reply permanently failed for message.sent ${messageSentEventId}: ${err.message} — held send-pending, ledger facts stand`);
+      return await pending(`concierge reply permanently failed for message.sent ${messageSentEventId}: ${err.message} — held send-pending, ledger facts stand`);
     }
     // A non-SendError (an unexpected bug/fault) ⇒ THROW so the queue redelivers and it surfaces loudly.
     throw err;
@@ -527,6 +583,8 @@ async function sendConciergeReply(cx: ReplySendCtx): Promise<ConciergeOutcome> {
 // prior send failed transiently. No re-parse, no re-judge.
 async function resendCommittedReply(
   db: D1Database,
+  seq: SeqStubLike,
+  tenant: string,
   sender: EvidenceSender,
   tenantFromName: string,
   shipmentId: string,
@@ -535,7 +593,7 @@ async function resendCommittedReply(
 ): Promise<ConciergeOutcome> {
   const requested = await loadEventById(db, ids.quoteRequestedEventId, "quote.requested");
   const priced = await loadEventById(db, ids.quotePricedEventId, "quote.priced");
-  const sent = sentEvent.payload as { to_ref: string; body_ref: string; transit_days?: number };
+  const sent = sentEvent.payload as { to_ref: string; body_ref: string; transit_days?: number; from_name?: string };
   const partyId = sentEvent.party_refs[0] ?? "";
   if (requested === null || priced === null) {
     // message.sent committed but a preceding quote event is missing — cannot reconstruct the exact payload
@@ -549,15 +607,21 @@ async function resendCommittedReply(
   // byte-identical to the original send regardless of any later config/matrix mutation (a live re-resolve
   // could return a different effective row → a 409 on the idempotency key → a spurious hold on a sent reply).
   // Absent ⇒ the original omitted the line ⇒ this omits it too. The fast path now reads ONLY committed events.
+  // REQ-178 — the tenant voice (from-name) comes from the COMMITTED message.sent (`from_name`), NEVER the live
+  // `tenantFromName` config dep: the fresh path pinned exactly what it signed, so reading it back makes this
+  // re-render byte-identical to the original send regardless of a later from-name config change (a live re-read
+  // could return a different voice → a divergent body → a 409 on the idempotency key → a spurious hold on a
+  // sent reply). Absent ⇒ an OLDER send that predates the pin ⇒ fall back to the live dep (its historical
+  // behavior). Same shape as the transit_days read-back above; the fast path now reads ONLY committed events.
   const reply = renderQuoteReply({
     shipment_ref: shipmentId,
     lane: { origin_zip: req.origin_zip, dest_zip: req.dest_zip },
     sell_cents: sell,
-    tenant_from_name: tenantFromName,
+    tenant_from_name: sent.from_name ?? tenantFromName,
     ...(sent.transit_days !== undefined ? { transit_days: sent.transit_days } : {}),
   });
   const message: EvidenceMessage = { channel: "email", to: sent.to_ref, subject: reply.subject, html: reply.html, shipment_id: shipmentId, idempotency_key: sent.body_ref };
-  return sendConciergeReply({ sender, message, shipmentId, partyId, partyCreated: false, quoteRequestedEventId: ids.quoteRequestedEventId, quotePricedEventId: ids.quotePricedEventId, messageSentEventId: ids.messageSentEventId });
+  return sendConciergeReply({ seq, tenant, sender, message, shipmentId, sentTs: sentEvent.ts, partyId, partyCreated: false, quoteRequestedEventId: ids.quoteRequestedEventId, quotePricedEventId: ids.quotePricedEventId, messageSentEventId: ids.messageSentEventId });
 }
 
 // ---- append helpers ---------------------------------------------------------------------------------

@@ -1,8 +1,8 @@
 import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import { readEvents } from "@shuddl/ledger/lens";
-import { DeterministicParser, RecordingSender } from "@shuddl/agents";
-import type { ConciergeParser, EvidenceSender } from "@shuddl/agents";
+import { DeterministicParser, RecordingSender, SendError } from "@shuddl/agents";
+import type { ConciergeParser, EvidenceMessage, EvidenceSender, SendReceipt } from "@shuddl/agents";
 import { handleMessageReceived, SLA_REPLY_WINDOW_MS } from "../../agents/src/concierge.js";
 import type { ConciergeDeps } from "../../agents/src/concierge.js";
 import { sweepTenantOverdueInbound } from "../../agents/src/sla-sweep.js";
@@ -37,6 +37,14 @@ const seqStub: SeqStubLike = {
 };
 function depsWith(sender: EvidenceSender, parser: ConciergeParser): ConciergeDeps {
   return { db: env.TENANT_A_DB, seq: seqStub, sender, parser, tenantFromName: FROM_NAME };
+}
+
+// A sender whose send PERMANENTLY fails (non-retriable) — the auto-reply message.sent commits, then the send
+// HOLDS: the reply is RECORDED but never DELIVERED. The REQ-176 target (a held reply must not read as answered).
+class PermanentFailSender implements EvidenceSender {
+  async send(_m: EvidenceMessage): Promise<SendReceipt> {
+    throw new SendError("resend rejected the send (422)", false);
+  }
 }
 
 // A fresh quote email lands on a non-shipment intake stream (`q:…`) — no shipment yet.
@@ -182,6 +190,35 @@ describe("SLA overdue sweep — flags an unanswered overdue inbound (REQ-095)", 
     const { shipmentId, due } = await seedAutoRepliedInbound("autoreplied");
     await sweepTenantOverdueInbound(env.TENANT_A_DB, seqStub, TENANT, due + 1);
     expect(await overdueNotes(shipmentId)).toHaveLength(0); // answered → not flagged
+  });
+
+  it("REQ-176 — a PERMANENTLY-HELD auto-reply (message.sent committed, send held) is NOT counted answered — the sweep flags it overdue + a hold note surfaces the hold", async () => {
+    // The auto-reply appends message.sent BEFORE the send. A PERMANENT send failure records the reply but never
+    // DELIVERS it — it is HELD. A held message.sent must NOT clear the inbound's overdue timer (a DELIVERED
+    // reply still does — the REQ-174 backstop, proven above, distinguishes sent from held by the hold note).
+    // The Concierge surfaces the hold as an internal note keyed off the held message.sent id; the sweep's
+    // ANSWERED check EXCLUDES a message.sent carrying that note, so the inbound stays overdue and is flagged.
+    await seedRateConfig(env.TENANT_A_DB, TEST_RATE_CONFIG);
+    const msgId = await appendInbound("heldreply@shipper.example.com", "Please quote from 97201 to 80012, 1000 lbs, 48x40x48, 2 pallets.", "heldreply");
+    const deps: ConciergeDeps = { db: env.TENANT_A_DB, seq: seqStub, sender: new PermanentFailSender(), parser: new DeterministicParser(), tenantFromName: FROM_NAME };
+    const outcome = await handleMessageReceived({ kind: "message.received", tenant: TENANT, event_id: msgId }, deps);
+    expect(outcome.status, JSON.stringify(outcome)).toBe("issued_send_pending");
+    if (outcome.status !== "issued_send_pending") throw new Error("unreachable");
+    const shipmentId = outcome.shipment_id;
+
+    // The hold SURFACED immediately: exactly one internal note (message.received{channel:note}) on the stream.
+    expect(await overdueNotes(shipmentId)).toHaveLength(1);
+
+    // REQ-174 set the SLA at the TOP of the auto-reply block (before the held send), so the inbound is a candidate.
+    const rec = await env.TENANT_A_DB.prepare("SELECT recorded_at FROM events WHERE id = ?").bind(msgId).first<{ recorded_at: number }>();
+    const due = rec!.recorded_at + SLA_REPLY_WINDOW_MS;
+    expect((await slaRow(msgId)).sla_due_ts).toBe(due);
+
+    // The sweep does NOT count the HELD message.sent as answered → it flags the inbound overdue (a NEW note).
+    const res = await sweepTenantOverdueInbound(env.TENANT_A_DB, seqStub, TENANT, due + 1);
+    expect(res.appended).toBeGreaterThanOrEqual(1);
+    // The stream now carries BOTH notes (the hold note + the sweep's overdue note) — both message.received{note}.
+    expect(await overdueNotes(shipmentId)).toHaveLength(2);
   });
 
   it("REQ-174 PARTIAL-APPEND BACKSTOP — a dead auto-reply (quote.requested committed, message.sent append threw) IS flagged overdue", async () => {

@@ -463,6 +463,13 @@ async function sendEvidence(cx: SendContext): Promise<BillerOutcome> {
     invoice_ref: invoicePayload.invoice_id,
     total_cents: total,
     photos: {}, // close-out note: the R2-signed-URL resolver for signature/placed photos is not wired yet
+    // REQ-178 SIBLING HAZARD (OUT OF SCOPE HERE — flag only, do not fix): `referralBase` is a LIVE config dep,
+    // and the redelivery FAST PATH above re-renders this evidence email from the committed invoice.issued while
+    // reading `referralBase` LIVE — the SAME class of config-drift hazard the Concierge's from_name/transit_days
+    // pin closes (a between-send change to referralBase would drift the re-rendered body). Unlike the Concierge
+    // reply, the evidence send's idempotency does not key off this URL today, so it is not a 409 risk — but if a
+    // future change makes the referral URL body-load-bearing, PIN it into invoice.issued (or a sibling) and read
+    // it back here, exactly like from_name. Tracked as its own REQ, deliberately not widened into REQ-178.
     referral_url: `${referralBase}?ref=${encodeURIComponent(shipmentRef)}`,
   };
   // REQ-170 RESIDUAL (WP-06 follow-up — pairs with REQ-168's pre-upload residual, see
