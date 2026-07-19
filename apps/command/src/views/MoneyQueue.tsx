@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Mono } from "@shuddl/design";
+import { agedOpenArList } from "@shuddl/contracts";
 import { ApiError, get } from "../lib/api.js";
 import { formatCents } from "../intake/intake.js";
 import { DarkPanel } from "./ui.js";
@@ -21,43 +22,9 @@ interface InvoiceRow {
   due_ts: number | null;
 }
 
-const DAY_MS = 86_400_000;
-
-// The aging buckets, in display order. `test` maps days-past-due → membership; a null due_ts lands in NO TERMS.
-const BUCKETS: ReadonlyArray<{ label: string; test: (daysPastDue: number) => boolean }> = [
-  { label: "CURRENT", test: (d) => d <= 0 },
-  { label: "1–30D", test: (d) => d >= 1 && d <= 30 },
-  { label: "31–60D", test: (d) => d >= 31 && d <= 60 },
-  { label: ">60D", test: (d) => d > 60 },
-];
-
-interface Aged {
-  label: string;
-  cents: number;
-}
-
-// Sum open invoices into aging buckets (integer cents). Only status='issued' is open AR; 'paid' is settled.
-function ageOpenAr(invoices: InvoiceRow[], now: number): Aged[] {
-  const totals = new Map<string, number>();
-  let noTerms = 0;
-  for (const inv of invoices) {
-    if (inv.status !== "issued") continue; // open AR only — a settled ('paid') invoice is not aging
-    if (inv.due_ts === null) {
-      noTerms += inv.total_cents;
-      continue;
-    }
-    const daysPastDue = Math.floor((now - inv.due_ts) / DAY_MS);
-    const bucket = BUCKETS.find((b) => b.test(daysPastDue));
-    if (bucket) totals.set(bucket.label, (totals.get(bucket.label) ?? 0) + inv.total_cents);
-  }
-  const aged: Aged[] = [];
-  for (const b of BUCKETS) {
-    const cents = totals.get(b.label) ?? 0;
-    if (cents !== 0) aged.push({ label: b.label, cents });
-  }
-  if (noTerms !== 0) aged.push({ label: "NO TERMS", cents: noTerms });
-  return aged;
-}
+// Open-AR aging is SHARED math (@shuddl/contracts/agedOpenArList) — ONE definition of the buckets +
+// days-past-due assignment, so the command queue and the portal STATEMENT (REQ-090) never drift. Only
+// status='issued' ages; 'paid' is settled; a null due_ts is honest "NO TERMS", never fabricated overdue.
 
 export interface MoneyQueueProps {
   unbilled: KpiValue; // from the KPI strip's `unbilled` tile (GET /v1/kpis) — a real count, never fabricated
@@ -94,7 +61,7 @@ export function MoneyQueue({ unbilled, onAuthError, now }: MoneyQueueProps): Rea
   }, [onAuthError]);
 
   const clock = now ?? Date.now();
-  const aged = useMemo(() => ageOpenAr(invoices, clock), [invoices, clock]);
+  const aged = useMemo(() => agedOpenArList(invoices, clock), [invoices, clock]);
   const unbilledText = unbilled === "UNKNOWN" ? "—" : String(unbilled);
 
   return (

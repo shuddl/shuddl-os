@@ -6,6 +6,7 @@ import { ShipmentList } from "./components/ShipmentList.js";
 import { QuotePanel } from "./components/QuotePanel.js";
 import { DocumentsView } from "./views/DocumentsView.js";
 import { InvoicesView } from "./views/InvoicesView.js";
+import { StatementView } from "./views/StatementView.js";
 import { ClaimsView } from "./views/ClaimsView.js";
 
 // CLIENT PORTAL (REQ-085/051) — the SAME operational map, scoped to ONE party through the REAL session lens,
@@ -33,7 +34,10 @@ function initialMode(): Mode {
   return { kind: "reauth" };
 }
 
-export function App(): React.JSX.Element {
+// `initialView` opens the board directly on a tab — the portal router resolves a `?screen=statement`
+// (or `/statement`) deep-link so a bill-to party can be sent straight to its STATEMENT (REQ-090). Absent
+// or unknown ⇒ OVERVIEW, unchanged.
+export function App({ initialView }: { initialView?: PortalView | undefined } = {}): React.JSX.Element {
   const [mode, setMode] = useState<Mode>(initialMode);
 
   const handleAuthError = useCallback((): void => {
@@ -42,22 +46,25 @@ export function App(): React.JSX.Element {
   }, []);
 
   if (mode.kind === "reauth") return <ReAuthPrompt />;
-  return <Board partyId={mode.partyId} onAuthError={handleAuthError} />;
+  return <Board partyId={mode.partyId} onAuthError={handleAuthError} initialView={initialView} />;
 }
 
 // The board's secondary lists live behind a tiny tab nav. OVERVIEW keeps the WP-10 map + quote→book + the
 // ruled shipment/invoice list; the other tabs surface the WP-09 Task 6/7/8 views (documents / invoices /
 // custody-chain+claims). Documents and Claims need a SELECTED shipment (picked on OVERVIEW); until one is
 // chosen they show a hint rather than a broken read.
-type PortalView = "overview" | "documents" | "invoices" | "claims";
+// STATEMENT (REQ-090) is the bill-to party's account view — aging + paid-vs-open + a remit affordance —
+// rolled up client-side over the SAME lens-scoped GET /v1/invoices the INVOICES tab reads (not a new surface).
+export type PortalView = "overview" | "documents" | "invoices" | "statement" | "claims";
 const TABS: ReadonlyArray<{ view: PortalView; label: string }> = [
   { view: "overview", label: "OVERVIEW" },
   { view: "documents", label: "DOCUMENTS" },
   { view: "invoices", label: "INVOICES" },
+  { view: "statement", label: "STATEMENT" },
   { view: "claims", label: "CLAIMS" },
 ];
 
-function Board({ partyId, onAuthError }: { partyId: string; onAuthError: () => void }): React.JSX.Element {
+function Board({ partyId, onAuthError, initialView }: { partyId: string; onAuthError: () => void; initialView?: PortalView | undefined }): React.JSX.Element {
   // The party lens scopes the fleet to this party's own shipments (defence-in-depth; the server lens is
   // authoritative and never sends out-of-scope marks). The live DO fan-out is WP-10 — until then the source
   // is the demo fleet, scoped to the party, so a real party sees only its OWN marks (never another party's).
@@ -65,7 +72,7 @@ function Board({ partyId, onAuthError }: { partyId: string; onAuthError: () => v
   const { collection } = useFleet({ scope: "party", partyId }, source);
 
   const [selectedShipmentId, setSelectedShipmentId] = useState<string | undefined>(undefined);
-  const [view, setView] = useState<PortalView>("overview");
+  const [view, setView] = useState<PortalView>(initialView ?? "overview");
 
   return (
     <main style={{ position: "fixed", inset: 0, background: "var(--field)", overflow: "hidden" }}>
@@ -120,6 +127,7 @@ function Board({ partyId, onAuthError }: { partyId: string; onAuthError: () => v
             )
           ) : null}
           {view === "invoices" ? <InvoicesView onAuthError={onAuthError} /> : null}
+          {view === "statement" ? <StatementView onAuthError={onAuthError} /> : null}
           {view === "claims" ? (
             selectedShipmentId !== undefined ? (
               <ClaimsView shipmentId={selectedShipmentId} onAuthError={onAuthError} />

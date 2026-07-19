@@ -45,4 +45,10 @@ describe("resolveRoute (REQ-086/051)", () => {
   it("the #status Track link resolves to the status page", () => {
     expect(resolveRoute(loc("/", "", "#status"))).toEqual({ name: "status", cap: null });
   });
+
+  it("the STATEMENT deep-link opens the board on the statement tab (path + legacy screen switch) — REQ-090", () => {
+    expect(resolveRoute(loc("/statement"))).toEqual({ name: "board", tab: "statement" });
+    expect(resolveRoute(loc("/statement/"))).toEqual({ name: "board", tab: "statement" });
+    expect(resolveRoute(loc("/", "?screen=statement"))).toEqual({ name: "board", tab: "statement" });
+  });
 });

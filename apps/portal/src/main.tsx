@@ -22,7 +22,7 @@ function screen(): ReactNode {
     case "email":
       return <EvidenceEmail />;
     case "board":
-      return <App />;
+      return <App initialView={route.tab} />;
   }
 }
 
