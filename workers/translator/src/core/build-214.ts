@@ -11,7 +11,10 @@ import { StatusView, dialectStatus, DEFAULT_004010, type PartnerMapping } from "
 export interface StatusEventRow {
   id: string;
   kind: string;
-  ts: string;
+  // The canonical ledger timestamp: integer epoch-ms UTC (events.ts SafeInt), NOT a string — so "newest" is a
+  // NUMERIC comparison (a lexicographic string compare would mis-rank e.g. 9 vs 100). The worker passes the
+  // integer row `ts` straight through.
+  ts: number;
   payload: unknown;
 }
 
@@ -63,8 +66,12 @@ export function buildStatusView(input: BuildStatusViewInput): BuildStatusViewRes
     const statusCode = dialectStatus(token, mapping);
     const city = payloadString(e.payload, "city");
     const state = payloadString(e.payload, "state");
+    // The AT7 wire ts (StatusStop.ts is a string build214 digest into CCYYMMDD/HHMM) is the UTC ISO rendering
+    // of the integer epoch-ms row ts. toISOString() is always UTC — deterministic, host-timezone-independent
+    // (the very property build214.isoToDateTime preserves via digit extraction).
+    const wireTs = new Date(e.ts).toISOString();
     // exactOptionalPropertyTypes: only attach city/state when the wire carried them (never `undefined`).
-    const stop: { statusCode: string; ts: string; city?: string; state?: string } = { statusCode, ts: e.ts };
+    const stop: { statusCode: string; ts: string; city?: string; state?: string } = { statusCode, ts: wireTs };
     if (city !== undefined) stop.city = city;
     if (state !== undefined) stop.state = state;
     return stop;
@@ -80,9 +87,9 @@ export function buildStatusView(input: BuildStatusViewInput): BuildStatusViewRes
 
   // dedupeKey = "edi214/" + the id of the NEWEST status event (the Biller's `evidence-email/<invoiceEventId>`
   // precedent, workers/agents/src/biller.ts:502): one 214 per newest-status, deterministic under redelivery so
-  // the worker INSERT OR IGNOREs / dedups on it. "Newest" = the greatest ts, ties resolving to the later event
-  // in ledger order (append order is chronological). Empty status list → a stable "none" marker (a 214 with no
-  // AT7 stops is a no-op the worker can skip, but the key stays deterministic).
+  // the worker INSERT OR IGNOREs / dedups on it. "Newest" = the greatest NUMERIC epoch-ms ts, ties resolving to
+  // the later event in ledger order (append order is chronological). Empty status list → a stable "none" marker
+  // (a 214 with no AT7 stops is a no-op the worker can skip, but the key stays deterministic).
   const newest = statusEvents.reduce<StatusEventRow | undefined>((best, e) => (best === undefined || e.ts >= best.ts ? e : best), undefined);
   const dedupeKey = `edi214/${newest?.id ?? "none"}`;
 

@@ -32,7 +32,22 @@ describe("mapTenderToBooking — 204 → booking plan (REQ-201/196)", () => {
     expect(plan.party.id).toBe(await partyIdForEmail("bob@acme.com"));
     expect(plan.party.id).toBe(await partyIdForEmail("Bob@Acme.com")); // case-insensitive convergence
     expect(plan.party.name).toBe("Acme Brokerage");
-    expect(plan.party.email).toBe("Bob@Acme.com"); // original case stored for deliverability
+    expect(plan.party.email).toBe("bob@acme.com"); // stored NORMALIZED (trim+lower) — no stray case/whitespace
+  });
+
+  it("stores the bill-to contact email normalized (trim + lowercase) even from a messy wire value", async () => {
+    const tender: TenderDoc = { ...baseTender, billTo: { name: "Acme Brokerage", email: "  Bob@Acme.com  " } };
+    const plan = await mapTenderToBooking(tender, ctx);
+    expect(plan.party.email).toBe("bob@acme.com");
+    expect(plan.party.id).toBe(await partyIdForEmail("bob@acme.com")); // id still converges regardless of raw form
+  });
+
+  it("carries the 204 stop firm IDENTITIES (N102 names + addresses) — never dropped (Migrator rule 10)", async () => {
+    const plan = await mapTenderToBooking(baseTender, ctx);
+    expect(plan.stops.shipper?.name).toBe("ORIGIN WAREHOUSE");
+    expect(plan.stops.consignee?.name).toBe("DEST STORE");
+    expect(plan.stops.shipper?.address.zip).toBe("97201");
+    expect(plan.stops.consignee?.address.city).toBe("SEATTLE");
   });
 
   it("the append is a valid edi-source quote.requested carrying the lane + weight", async () => {
@@ -73,6 +88,22 @@ describe("mapTenderToBooking — 204 → booking plan (REQ-201/196)", () => {
     const expected = `party_${(await sha256Hex("intake:party:name:acme brokerage")).slice(0, 16)}`;
     expect(plan.party.id).toBe(expected);
     expect(plan.party.email).toBeUndefined();
+  });
+
+  it("an unsafe-integer (absurd) AT8 weight routes to undefined, not an opaque EventInput.parse throw", async () => {
+    // A weight beyond Number.MAX_SAFE_INTEGER fails SafeInt — it must OMIT weight_lb (UNKNOWN price, no lane
+    // fabrication), never throw at the schema boundary.
+    const tender: TenderDoc = { ...baseTender, weightLb: Number.MAX_SAFE_INTEGER + 2 };
+    const plan = await mapTenderToBooking(tender, ctx);
+    const append = plan.appends[0]!;
+    if (append.kind === "quote.requested") expect(append.payload.request.weight_lb).toBeUndefined();
+  });
+
+  it("a fractional AT8 weight routes to undefined (no fabricated rounding)", async () => {
+    const tender: TenderDoc = { ...baseTender, weightLb: 1200.5 };
+    const plan = await mapTenderToBooking(tender, ctx);
+    const append = plan.appends[0]!;
+    if (append.kind === "quote.requested") expect(append.payload.request.weight_lb).toBeUndefined();
   });
 
   it("with no SID the shipment id falls back to the threaded ISA control (still deterministic)", async () => {

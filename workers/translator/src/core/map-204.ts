@@ -11,7 +11,7 @@
 // EDI-created and a CSR-created name-only party still converge. IDEMPOTENCE: the shipment id + the whole plan
 // (incl. the append's event id) are deterministic in the tender + ctx, so a redelivered 204 reproduces the
 // SAME ids and the worker's INSERT OR IGNORE / id-dedup is a no-op (the make-agent-idempotent doctrine).
-import { partyIdForEmail, EventInput } from "@shuddl/contracts";
+import { partyIdForEmail, normalizePartyEmail, EventInput } from "@shuddl/contracts";
 import type { TenderDoc, EdiAddress } from "@shuddl/edi";
 
 // The parties.kind CHECK set (db/tenant/migrations/0002_domain.sql) — a 204 bill-to is the tendering
@@ -32,6 +32,13 @@ export interface BookingPlan {
     billToPartyId: string;
     refs: Record<string, string>;
   };
+  // The 204's DISTINCT freight-stop IDENTITIES per role: the N102 firm NAME + its N3/N4 address. Unlike a
+  // Concierge single-party quote (where consignee/bill-to are genuinely unknown), a 204 CARRIES real shipper +
+  // consignee firms — so their names must survive into the plan for Task 8's worker to persist (as party rows
+  // and/or shipment metadata) rather than be silently collapsed into the self-referenced bill-to FKs above
+  // (Migrator rule 10 / CLAUDE.md #10 — never a silent drop). `addresses` below is the flattened postal view
+  // (incl. bill-to, for parties.addresses); `stops` is the identity view (name-bearing) the FK collapse omits.
+  stops: { shipper?: { name: string; address: EdiAddress }; consignee?: { name: string; address: EdiAddress } };
   // Every N1/N3/N4 postal address the wire carried — carried through so the worker writes parties.addresses
   // and NOTHING is silently dropped (CLAUDE.md #10 / REQ-201).
   addresses: { shipper?: EdiAddress; consignee?: EdiAddress; billTo?: EdiAddress };
@@ -82,18 +89,22 @@ export async function mapTenderToBooking(tender: TenderDoc, ctx: MapTenderCtx): 
   let party: { id: string; kind: PartyKind; name: string; email?: string };
   const billTo = tender.billTo;
   if (billTo !== undefined) {
-    const rawEmail = billTo.email; // stored original-case; partyIdForEmail normalizes (trim+lower) internally
+    const rawEmail = billTo.email;
     if (rawEmail !== undefined && rawEmail.trim() !== "") {
-      // REQ-196: the SHARED matcher (normalizes internally) — the SAME id the CSR/Concierge derive.
-      party = { id: await partyIdForEmail(rawEmail), kind: "broker", name: billTo.name, email: rawEmail };
+      // REQ-196: the SHARED matcher (normalizes internally) — the SAME id the CSR/Concierge derive. The STORED
+      // contact email is normalized too (trim+lower) so a messy wire value carries no stray case/whitespace;
+      // the id already converges on the normalized form, and this keeps the stored value consistent with it.
+      party = { id: await partyIdForEmail(rawEmail), kind: "broker", name: billTo.name, email: normalizePartyEmail(rawEmail) };
     } else {
-      // EXACT intake.ts no-email derivation (workers/api/src/routes/intake.ts:128) — name-keyed convergence.
+      // MUST byte-match workers/api/src/routes/intake.ts:128 (REQ-196); pinned by test/party-id-parity.test.ts.
+      // A future non-WP-12 refactor should extract partyIdForName into @shuddl/contracts and repoint both surfaces.
       const normName = billTo.name.trim().toLowerCase();
       party = { id: `party_${(await sha256Hex(`intake:party:name:${normName}`)).slice(0, 16)}`, kind: "broker", name: billTo.name };
     }
   } else {
     // No bill-to on the tender: the shipper IS the counterparty (Concierge: requester = shipper). shipperStop
-    // is defined here (we returned above unless originZip came from it).
+    // is defined here (we returned above unless originZip came from it). Name-keyed derivation — see the
+    // byte-match note above (intake.ts:128, pinned by test/party-id-parity.test.ts).
     const shName = (shipperStop as NonNullable<typeof shipperStop>).name;
     const normName = shName.trim().toLowerCase();
     party = { id: `party_${(await sha256Hex(`intake:party:name:${normName}`)).slice(0, 16)}`, kind: "shipper", name: shName };
@@ -112,11 +123,18 @@ export async function mapTenderToBooking(tender: TenderDoc, ctx: MapTenderCtx): 
   if (consigneeAddr !== undefined) addresses.consignee = consigneeAddr;
   if (billToAddr !== undefined) addresses.billTo = billToAddr;
 
+  // ── The stop identities (the N102 firm names — never dropped, Migrator rule 10) ────────────────────────────
+  const stops: BookingPlan["stops"] = {};
+  if (shipperStop !== undefined) stops.shipper = { name: shipperStop.name, address: shipperStop.address };
+  if (consigneeStop !== undefined) stops.consignee = { name: consigneeStop.name, address: consigneeStop.address };
+
   // ── The append: a valid edi-source quote.requested ─────────────────────────────────────────────────────
   const request: { origin_zip: string; dest_zip: string; weight_lb?: number } = { origin_zip: originZip, dest_zip: destZip };
-  // Attach weight ONLY when it is a clean positive integer (RateRequestPayload.weight_lb is SafeInt.min(1)); a
-  // fractional/absent weight stays UNKNOWN — the engine returns UNKNOWN, never a fabricated (rounded) weight.
-  if (tender.weightLb !== undefined && Number.isInteger(tender.weightLb) && tender.weightLb >= 1) {
+  // Attach weight ONLY when it is a SAFE positive integer (RateRequestPayload.weight_lb is SafeInt.min(1)):
+  // Number.isSafeInteger rejects BOTH a fractional AT8 value AND an absurd one above Number.MAX_SAFE_INTEGER,
+  // so either routes to UNKNOWN (the engine returns UNKNOWN — no price on air) rather than throwing opaquely at
+  // EventInput.parse. A weight is never fabricated (no rounding).
+  if (tender.weightLb !== undefined && Number.isSafeInteger(tender.weightLb) && tender.weightLb >= 1) {
     request.weight_lb = tender.weightLb;
   }
   const append = EventInput.parse({
@@ -127,7 +145,11 @@ export async function mapTenderToBooking(tender: TenderDoc, ctx: MapTenderCtx): 
     party_refs: [party.id],
     evidence: [],
     source: "edi",
-    confidence: 10_000, // a structured EDI tender is a high-confidence, machine-originated request
+    // Envelope confidence is CAPTURE confidence (how sure we are the event was recorded correctly), NOT a trust
+    // score of the counterparty's data — a structured, machine-parsed 204 is captured at least as reliably as
+    // the Concierge's LLM-parsed inbound email, which appends quote.requested at 10_000 (concierge.ts:651). Held
+    // at 10_000 to match that quote.requested precedent (lowering it here would be unexplained drift).
+    confidence: 10_000,
     kind: "quote.requested",
     payload: { request },
   });
@@ -142,6 +164,7 @@ export async function mapTenderToBooking(tender: TenderDoc, ctx: MapTenderCtx): 
       billToPartyId: party.id,
       refs: { ...tender.refs },
     },
+    stops,
     addresses,
     appends: [append],
   };
