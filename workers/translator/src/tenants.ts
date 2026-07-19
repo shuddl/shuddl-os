@@ -3,8 +3,6 @@
 // swept. REQ-025 isolation: this server-side allowlist is the ONLY tenant→D1 map; there is no code path
 // from client input (or an R2 marker key) to a database handle.
 
-import type { EdiTransport } from "./transport.js";
-
 export type TranslatorEnv = {
   TENANT_A_DB: D1Database;
   TENANT_B_DB: D1Database;
@@ -20,12 +18,6 @@ export type TranslatorEnv = {
   EDI_TRANSPORT_URL?: string;
   EDI_TRANSPORT_TOKEN?: string;
 };
-
-/** DI surface a driven sweep needs beyond `env` — the outbound transport port, injected at the composition
- *  root (index.ts) or by a test. Mirrors the Biller's EvidenceSender injection discipline. */
-export interface SweepDeps {
-  transport: EdiTransport;
-}
 
 const TENANT_BINDINGS: Record<string, keyof Pick<TranslatorEnv, "TENANT_A_DB" | "TENANT_B_DB">> = {
   "tenant-a": "TENANT_A_DB",

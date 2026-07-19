@@ -153,8 +153,16 @@ export async function sweepTenant214(
       }
 
       // Project the shipment's status arc (kind-filtered read, tenant lens — the unredacted server truth).
-      const events = await readEvents(db, { scope: "tenant" }, { shipment_id: shipmentId, kind: STATUS_KINDS });
-      const rows: StatusEventRow[] = events.map((e) => ({ id: e.id, kind: e.kind, ts: e.ts, payload: e.payload }));
+      // order:"ts_desc" + a generous limit retains the FRESHEST rows under the LIMIT cap: a default
+      // (oldest-200 ascending) read on a chatty shipment (>200 mappable status events) would DROP the newest
+      // milestones → a wrong dedupeKey + a missing final status on the wire (the WP-10 exceptions truncate-
+      // before-complete class). We then re-sort ASCENDING so the 214 stops stay chronological — buildStatusView
+      // maps in input order (LX 1..n), and its dedupeKey is newest-by-numeric-ts (order-independent), so
+      // feeding it the freshest page in append order is both correct and byte-stable.
+      const events = await readEvents(db, { scope: "tenant" }, { shipment_id: shipmentId, kind: STATUS_KINDS, order: "ts_desc", limit: 1000 });
+      const rows: StatusEventRow[] = events
+        .map((e) => ({ id: e.id, kind: e.kind, ts: e.ts, payload: e.payload }))
+        .sort((a, b) => a.ts - b.ts);
       if (rows.length === 0) {
         summary.noStatus += 1;
         continue;
@@ -179,6 +187,11 @@ export async function sweepTenant214(
       const bytes = build214(view);
       // Transmit FIRST; mark sent ONLY on success — a failed/unwired transmit leaves no marker, so the next
       // tick re-attempts (the transport dedupes on the same idempotency key if it did land).
+      // NOTE for the future live VAN/AS2 adapter (CONFIRM-gated, unbuilt): `dedupeKey` is NOT tenant/partner-
+      // qualified (it is `edi214/<event id>`). That is fine here — our R2 sent-marker IS partner-scoped by the
+      // `edi/<tenant>/214/` key path, and NotConfiguredTransport transmits nothing. But a live adapter that
+      // dedupes PARTNER-SIDE on this bare key would risk a cross-partner collision if two partners ever shared
+      // an event id space — it MUST scope its dedup by (partnerId + key), never the bare key.
       await transport.send214(tender.partnerScac, bytes, dedupeKey);
       await r2.put(sentKey, bytes);
       summary.transmitted += 1;

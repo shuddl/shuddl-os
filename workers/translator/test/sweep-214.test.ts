@@ -68,6 +68,10 @@ beforeAll(async () => {
 beforeEach(() => resetCounter());
 
 describe("REQ-200 — outbound 214 sweep", () => {
+  // NOTE (freshest-status read): the sweep reads with order:"ts_desc" + a generous limit and re-sorts
+  // ascending, so a shipment with >200 mappable status events keeps the NEWEST rows (right dedupeKey + final
+  // milestone) instead of the default oldest-200. With ≤200 distinct-ts events this is byte-identical to a
+  // plain ascending read, which is exactly what this byte-stable assertion pins.
   it("transmits exactly ONE byte-stable 214, and a second run transmits NOTHING (R2 dedupe marker)", async () => {
     const rows = await seedDeliveredShipment();
     await seedEdiPartner(env.TENANT_A_DB, PARTNER_ID, "certified");
@@ -106,6 +110,46 @@ describe("REQ-200 — outbound 214 sweep", () => {
 
     expect(transport.sent, "uncertified partner is never transmitted").toHaveLength(0);
     expect(await env.EVIDENCE.get(sent214Key("tenant-a", exp.dedupeKey)), "no sent-marker for an uncertified partner").toBeNull();
+  });
+
+  // REQ-025 — cross-tenant isolation regression for the two new R2 key templates + the per-tenant
+  // `integrations` read. The tender marker sits under tenant-A's R2 prefix and names a partner that is
+  // CERTIFIED but exists ONLY in tenant-B's D1. The tenant-A iteration must resolve that partner via
+  // tenant-A's OWN db handle (→ null → a `noPartner` skip), NEVER borrow tenant-B's certified row. Nothing
+  // is transmitted, and no `edi/tenant-b/…` key is touched while processing tenant-a. (Task 11 broadens this
+  // into the full EDI isolation suite; this locks the sweep's tenant scoping now — rule #8, a merge gate.)
+  it("REQ-025 — a partner certified only in tenant-B is invisible to tenant-A's sweep (no cross-tenant read)", async () => {
+    const CROSS_ID = "shp-iso-1";
+    const B_ONLY_PARTNER = "partner-b-only";
+    await seedDeliveredShipment(CROSS_ID); // status events live in tenant-A
+    await seedEdiPartner(env.TENANT_B_DB, B_ONLY_PARTNER, "certified"); // the certified row is in tenant-B ONLY
+    await env.EVIDENCE.put(
+      tenderKey("tenant-a", CROSS_ID),
+      JSON.stringify({ partnerId: B_ONLY_PARTNER, partnerScac: PARTNER_SCAC, isaControl: ISA }),
+    );
+
+    const transport = new RecordingTransport();
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      await run214Sweep(env, transport);
+      const tenantALine = logSpy.mock.calls
+        .map((c) => c.find((a): a is string => typeof a === "string" && a.includes('"tenant":"tenant-a"')))
+        .find((s): s is string => s !== undefined);
+      expect(tenantALine, "a tenant-a sweep summary was logged").toBeDefined();
+      // The partner lookup hit tenant-A's D1 (partner absent) → noPartner skip. Crucially NOT `uncertified`
+      // and NOT `transmitted` — either of those would mean the lookup saw tenant-B's certified row (a leak).
+      expect(tenantALine).toContain('"noPartner":1');
+      expect(tenantALine).toContain('"transmitted":0');
+      expect(tenantALine).toContain('"uncertified":0');
+    } finally {
+      logSpy.mockRestore();
+    }
+
+    expect(transport.sent, "a tenant-B-only partner is never transmitted from tenant-a").toHaveLength(0);
+    // No key under tenant-B's R2 namespace was read or written while processing tenant-a (tenant-B had no
+    // tender marker of its own, so its whole `edi/tenant-b/` scope stays empty).
+    const tenantB = await env.EVIDENCE.list({ prefix: "edi/tenant-b/" });
+    expect(tenantB.objects, "no edi/tenant-b/ key touched while processing tenant-a").toHaveLength(0);
   });
 
   it("does NOT throw when a tendered shipment has no status events (clean skip)", async () => {
