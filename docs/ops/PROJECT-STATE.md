@@ -1,5 +1,7 @@
 # Project state & resume guide
 
+> **⚠️ This file is a resume pointer and is stale (as-of 2026-07-14, pre-WP-08). For the authoritative, always-current list of every OPERATOR / DEPLOY requirement and every TECHNICAL-DEBT item across all WPs — what a human must still do before go-live and what is deferred/fails-open — see [`docs/ops/GO-LIVE-CHECKLIST.md`](./GO-LIVE-CHECKLIST.md). Every WP close-out and REQ-119 audit appends there.**
+
 **As of 2026-07-14.** This is the "where are we / how do I pick back up" note. It is a pointer, not a spec — the authorities are `CLAUDE.md`, `genesis/`, `docs/wp/*`, and `genesis/09-REQUIREMENTS-REGISTER.csv`.
 
 ## Safety posture (read first)
