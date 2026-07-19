@@ -13,6 +13,8 @@
 // `scope` is applied ONLY as a BOUND `LIKE ?` param — never interpolated — and only over server-derived id
 // columns (never client input on this read).
 
+import { scopeLike, unbilledShipmentsSql } from "@shuddl/ledger/queries/unbilled";
+
 const DAY_MS = 86_400_000;
 
 export interface KpiOpts {
@@ -36,11 +38,11 @@ export interface LanePnl {
 }
 
 // A bound `LIKE ?` fragment for the optional test scope. col is a hardcoded literal at every call site (never
-// user input); scope is bound as a param so it can never be an injection or widen the read.
+// user input); scope is bound as a param so it can never be an injection or widen the read. Delegates to the
+// SHARED scopeLike (@shuddl/ledger/queries/unbilled) so the KPI computes and the Watchtower sweep apply the
+// identical scoping rule (one source of truth — skill share-lint-matchers-with-parity-tests).
 function likeClause(col: string, scope: string | undefined, params: (string | number)[]): string {
-  if (scope === undefined) return "";
-  params.push(`${scope}%`);
-  return ` AND ${col} LIKE ?`;
+  return scopeLike(col, scope, params);
 }
 
 // ─── 1. UNBILLED — the "=0 alarm" ─────────────────────────────────────────────────────────────────────
@@ -52,12 +54,10 @@ function likeClause(col: string, scope: string | undefined, params: (string | nu
 export async function computeUnbilled(db: D1Database, opts: KpiOpts = {}): Promise<number> {
   const params: (string | number)[] = [];
   const scoped = likeClause("p.shipment_id", opts.scope, params);
+  // The anti-join SQL is the SHARED unbilledShipmentsSql (@shuddl/ledger/queries/unbilled) — the SAME predicate
+  // the Watchtower alarm sweeps, so the KPI "=0" tile and the durable alarm can never disagree (REQ-036).
   const row = await db
-    .prepare(
-      `SELECT COUNT(DISTINCT p.shipment_id) AS n FROM events p
-       WHERE p.kind='pod.signed' AND p.shipment_id IS NOT NULL${scoped}
-       AND NOT EXISTS (SELECT 1 FROM events i WHERE i.kind='invoice.issued' AND i.shipment_id = p.shipment_id)`,
-    )
+    .prepare(unbilledShipmentsSql("COUNT(DISTINCT p.shipment_id) AS n", scoped))
     .bind(...params)
     .first<{ n: number }>();
   return row?.n ?? 0;

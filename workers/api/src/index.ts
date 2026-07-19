@@ -24,6 +24,7 @@ import { mountBoardRoutes } from "./routes/board.js";
 import { mountExportRoutes } from "./routes/export-journal.js";
 import { mountFullExportRoutes } from "./routes/export.js";
 import { mountDunningRoutes } from "./routes/dunning.js";
+import { mountWatchtowerRoutes } from "./routes/watchtower.js";
 import { mountPublicRoutes } from "./routes/public.js";
 
 export type Env = {
@@ -169,6 +170,11 @@ mountFullExportRoutes(app);
 // auth + idempotency already apply; roles admin/ops/finance, tenant off the JWT claim (tenantDb, REQ-025). NO new
 // table/kind — drafts are `messages` rows; the send is a `message.sent` event.
 mountDunningRoutes(app);
+// WP-11 Task 8 (REQ-036): GET /v1/watchtower — the thin READ over the durable `anomalies` alarms the Watchtower
+// cron (workers/agents/src/watchtower.ts) raises (unbilled / pricing_anomaly / floor_breach). The alarm STORE is
+// the deliverable; this surfaces the open alarms to the command surface. roles admin/ops/finance; tenant off the
+// JWT claim (tenantDb, REQ-025). A /v1 route, so auth + idempotency already apply. NO new table/kind/projection.
+mountWatchtowerRoutes(app);
 // WP-09 Task 3 (REQ-187/188): GET /pub/status/:cap — the PUBLIC, no-auth status read that consumes the cap
 // minted above. Mounted at /pub/* (NOT /v1/*), so app.use("/v1/*", auth) + idempotency do NOT run — the cap
 // is the authorization. This is the first public data read in the system; verifyStatusCap is the whole gate.

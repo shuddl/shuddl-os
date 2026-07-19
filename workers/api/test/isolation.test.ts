@@ -882,3 +882,34 @@ describe("REQ-025 growth: GET /v1/export is a SINGLE-TENANT export — never cro
     expect(res.status).toBe(403);
   });
 });
+
+// WP-11 Task 8 growth (REQ-036 + REQ-025): the Watchtower READ lists the durable `anomalies` alarms keyed off the
+// JWT claim via tenantDb — WITHIN the session's D1, never across tenants. A tenant-b-only alarm (in a DIFFERENT
+// physical D1) must never surface in a tenant-a read, and no client tenant hint may reach it.
+describe("REQ-025 growth: GET /v1/watchtower reads ONLY the JWT tenant's anomalies", () => {
+  const B_ALARM_ID = "iso-watchtower-tenant-b-only"; // a tenant-b alarm — must NEVER appear in a tenant-a read
+
+  beforeAll(async () => {
+    // Seed a UNIQUELY-marked OPEN alarm into tenant-b's D1 ONLY. tenant-a's read is keyed off the claim via
+    // tenantDb, so it can never physically address this row.
+    await env.TENANT_B_DB.prepare(
+      "INSERT OR IGNORE INTO anomalies (id, rule, object_kind, object_id, severity, detail, status) VALUES (?,?,?,?,?,?,?)",
+    )
+      .bind(B_ALARM_ID, "unbilled", "tenant", "tenant-b", "warn", JSON.stringify({ count: 1 }), "open")
+      .run();
+  });
+
+  it("a tenant-a session GETting /v1/watchtower never returns a tenant-b alarm (REQ-025)", async () => {
+    const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "ops" });
+    const res = await SELF.fetch("https://api.local/v1/watchtower?status=all", { headers: { Authorization: `Bearer ${t}` } });
+    expect(res.status).toBe(200);
+    const text = await res.text();
+    expect(text).not.toContain(B_ALARM_ID); // tenant-b's alarm never bleeds into tenant-a's watchtower
+  });
+
+  it("?tenant= query param on GET /v1/watchtower is rejected at auth", async () => {
+    const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "ops" });
+    const res = await SELF.fetch("https://api.local/v1/watchtower?tenant=tenant-b&status=open", { headers: { Authorization: `Bearer ${t}` } });
+    expect(res.status).toBe(403);
+  });
+});
