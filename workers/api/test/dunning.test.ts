@@ -3,7 +3,6 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { sweepTenantOverdueInvoices } from "../../agents/src/collector.js";
 import {
   dunningDraftId,
-  dunningBodyRef,
   RecordingSender,
   SendError,
   type EvidenceMessage,
