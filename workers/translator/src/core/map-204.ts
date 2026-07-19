@@ -50,6 +50,12 @@ export interface MapTenderCtx {
   // The 204-arrival clock the worker injects (keeps the core pure/deterministic — no Date inside). Stamped as
   // the append's actor-claimed `ts`; the sequencer still stamps the authoritative recorded_at server-side.
   receivedTs: number;
+  // The CANONICAL shipment id (F-1 convergence): when a PRIOR tender for this physical load already exists — a
+  // re-tender that ADDS or CHANGES a higher-priority ref (e.g. {PO} then {PO,SID}) — the worker resolves the
+  // existing shipment id and passes it HERE so EVERY deterministic append id + the stream compute against it.
+  // Threading it through the ctx (never a post-hoc id swap under already-built appends) keeps the
+  // shipment_id↔stream invariant intact and lets the per-stream one-booking guard suppress the duplicate.
+  shipmentIdOverride?: string;
 }
 
 // The stable business identity a shipment id is keyed on, in priority order: SID (B202-tender's B204) → BOL
@@ -96,14 +102,16 @@ export async function mapTenderToBooking(tender: TenderDoc, ctx: MapTenderCtx): 
   // (edi_no_shipment_ref) rather than mint an ISA13-derived id that a redelivery under a new interchange would
   // duplicate into a second booking. See STABLE_REF_KEYS.
   let stableRef: string | undefined;
+  let stableRefKey: string | undefined;
   for (const key of STABLE_REF_KEYS) {
     const v = tender.refs[key]?.trim();
     if (v !== undefined && v !== "") {
       stableRef = v;
+      stableRefKey = key; // F-2: the WINNING qualifier namespaces the id so SID:5000 ≠ PO:5000 (no bare collision)
       break;
     }
   }
-  if (stableRef === undefined) {
+  if (stableRef === undefined || stableRefKey === undefined) {
     throw new Error("MAP204_NO_SHIPMENT_REF: a 204 without a stable business ref (SID/BOL/PRO/PO) cannot mint an idempotent shipment id (would duplicate under a new ISA13)");
   }
 
@@ -132,8 +140,12 @@ export async function mapTenderToBooking(tender: TenderDoc, ctx: MapTenderCtx): 
     party = { id: `party_${(await sha256Hex(`intake:party:name:${normName}`)).slice(0, 16)}`, kind: "shipper", name: shName };
   }
 
-  // ── The shipment id (deterministic in the partner + the STABLE business ref resolved above) ─────────────
-  const shipmentId = `shp_${(await sha256Hex(`edi:shipment:${ctx.partnerId}:${stableRef}`)).slice(0, 16)}`;
+  // ── The shipment id ──────────────────────────────────────────────────────────────────────────────────────
+  // The canonical override (F-1 convergence) wins when a prior tender for this load already exists; otherwise a
+  // FRESH id seeded on (partner, QUALIFIER, value) — qualifier-namespaced (F-2) so SID:5000 and PO:5000 are two
+  // distinct loads, never one swallowing the other.
+  const shipmentId =
+    ctx.shipmentIdOverride ?? `shp_${(await sha256Hex(`edi:shipment:${ctx.partnerId}:${stableRefKey}:${stableRef}`)).slice(0, 16)}`;
 
   // ── The addresses (nothing dropped) ────────────────────────────────────────────────────────────────────
   const addresses: BookingPlan["addresses"] = {};

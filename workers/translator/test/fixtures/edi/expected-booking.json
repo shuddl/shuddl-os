@@ -6,7 +6,7 @@
     "email": "billing@synthbroker.example"
   },
   "shipment": {
-    "id": "shp_ac0337a5f2baabea",
+    "id": "shp_4458e2c605473d38",
     "partnerScac": "SYNC",
     "shipperPartyId": "party_39492788e237f57b",
     "consigneePartyId": "party_39492788e237f57b",
@@ -59,8 +59,8 @@
   },
   "appends": [
     {
-      "id": "3db43e13-d224-43ea-accb-461aeae0012e",
-      "shipment_id": "shp_ac0337a5f2baabea",
+      "id": "63df043b-f467-4490-b594-d3625af3817e",
+      "shipment_id": "shp_4458e2c605473d38",
       "ts": 1784289600000,
       "actor": {
         "party": "party_39492788e237f57b"

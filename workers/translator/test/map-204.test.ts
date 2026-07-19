@@ -140,4 +140,28 @@ describe("mapTenderToBooking — 204 → booking plan (REQ-201/196)", () => {
       expect(append.payload.request.dims).toBeUndefined();
     }
   });
+
+  // ── EXIT-AUDIT F-2: the id is QUALIFIER-NAMESPACED, so the SAME bare value under DIFFERENT qualifiers is TWO
+  //    distinct loads (SID:5000 ≠ PO:5000) — a bare-value seed would collide them onto one stream. ──
+  it("qualifier-namespaces the id: SID:5000 and PO:5000 map to DIFFERENT shipment ids (no bare-value collision)", async () => {
+    const sidPlan = await mapTenderToBooking({ ...baseTender, refs: { SID: "5000" } }, ctx);
+    const poPlan = await mapTenderToBooking({ ...baseTender, refs: { PO: "5000" } }, ctx);
+    expect(sidPlan.shipment.id).not.toBe(poPlan.shipment.id);
+    // still deterministic per (qualifier,value): a redelivery reproduces the same id.
+    const sidAgain = await mapTenderToBooking({ ...baseTender, refs: { SID: "5000" } }, ctx);
+    expect(sidPlan.shipment.id).toBe(sidAgain.shipment.id);
+  });
+
+  // ── EXIT-AUDIT F-1: shipmentIdOverride threads the CANONICAL id (a prior converged shipment) through so ALL
+  //    deterministic append ids + the stream compute against it — never a post-hoc id swap under built appends. ──
+  it("shipmentIdOverride forces the canonical id onto the shipment AND every append (stream↔shipment_id intact)", async () => {
+    const plan = await mapTenderToBooking(baseTender, { ...ctx, shipmentIdOverride: "shp_canonical01" });
+    expect(plan.shipment.id).toBe("shp_canonical01");
+    const append = plan.appends[0]!;
+    expect(append.shipment_id).toBe("shp_canonical01");
+    if (append.kind === "quote.requested") {
+      // the quote.requested event id is derived from the (canonical) shipment id, so it, too, tracks the override.
+      expect(append.id).not.toBe((await mapTenderToBooking(baseTender, ctx)).appends[0]!.id);
+    }
+  });
 });

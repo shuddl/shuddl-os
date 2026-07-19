@@ -27,15 +27,17 @@ import expected214 from "./fixtures/edi/expected-214.edi?raw";
 // fixtures/manifest touch). It mirrors inbound.test.ts's pool-workers harness (tenant D1 seed, control-plane
 // pairing, HMAC-signed 204 POST, the RecordingSeq that models the DO's dedupe-by-id).
 
-// The pairing id IS the shipment-id seed (mapTenderToBooking keys shp_… on `edi:shipment:<partnerId>:<stableRef>`),
-// so this id is what makes the inbound handler reproduce the golden shipment id shp_ac0337a5f2baabea below.
+// The pairing id IS the shipment-id seed (mapTenderToBooking keys shp_… on the QUALIFIER-NAMESPACED
+// `edi:shipment:<partnerId>:<stableRefKey>:<stableRef>`), so this id is what makes the inbound handler reproduce
+// the golden shipment id shp_4458e2c605473d38 below.
 const PARTNER_ID = "partner-synthco";
 const SECRET_REF = "edi-fixture-secret-ref";
 const SECRET = "edi-fixture-shared-secret-synthetic-only";
 const BILL_TO_EMAIL = "billing@synthbroker.example";
 const PARTNER_SCAC = "SYNC";
-// The primary-204.edi stable business ref (SID) → the deterministic golden shipment id (partnerId+SID keyed).
-const GOLDEN_SHIPMENT_ID = "shp_ac0337a5f2baabea";
+// The primary-204.edi stable business ref (SID) → the deterministic golden shipment id, keyed on the partner +
+// the WINNING qualifier (SID) + its value (SID-77012) — qualifier-namespaced so SID:x and PO:x never collide.
+const GOLDEN_SHIPMENT_ID = "shp_4458e2c605473d38";
 const INBOUND_ISA = "000000501"; // the primary-204.edi ISA13 (the partner's number; recorded on the tender marker)
 // The 204-arrival clock the golden expected-booking.json was pinned against (Date.UTC(2026,6,17,12,0)). The
 // mapping stamps it as the append `ts`, so the harness must inject the SAME value to reproduce the golden.

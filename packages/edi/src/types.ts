@@ -65,11 +65,20 @@ export const TenderDims = z
   .strict();
 export type TenderDims = z.infer<typeof TenderDims>;
 
+// The SCAC charset guard (F-4, defense-in-depth). A SCAC crosses VERBATIM into X12 envelopes (B202 inbound; the
+// ISA/GS receiver + B1/LX segments outbound), so a value bearing an X12 delimiter — `*` (element sep), `~`
+// (segment terminator), `>` (sub-element sep), or a newline/control char — could inject a segment/element or
+// corrupt outbound byte-stability. Constrain it to alphanumerics ONLY, on every SCAC-bearing schema. Real SCACs
+// are 2–4 alpha; `{2,15}` is generous (a longer/odd value fails .parse() → the worker quarantines it, fail-closed).
+// The `^…$` anchors + the `[A-Za-z0-9]` class exclude every delimiter, whitespace, and newline (JS `$` without
+// the `m` flag does NOT match before a trailing "\n", so a "MEGA\n" is correctly rejected).
+const PartnerScac = z.string().regex(/^[A-Za-z0-9]{2,15}$/, "SCAC must be 2–15 alphanumerics (no X12 delimiters/whitespace)");
+
 // TenderDoc — the normalized, engine-agnostic view of a parsed X12 204 load tender. weightLb/dims are
 // optional and left `undefined` when the wire omitted them (never fabricated).
 export const TenderDoc = z
   .object({
-    partnerScac: z.string(),
+    partnerScac: PartnerScac,
     purpose: z.enum(["00", "01"]),
     refs: z.record(z.string(), z.string()),
     stops: z.array(TenderStop),
@@ -100,7 +109,7 @@ export type StatusStop = z.infer<typeof StatusStop>;
 export const StatusView = z
   .object({
     shipmentRef: z.string(),
-    partnerScac: z.string(),
+    partnerScac: PartnerScac,
     isaControl: z.string(),
     gsControl: z.string(),
     stops: z.array(StatusStop),
@@ -113,7 +122,7 @@ export type StatusView = z.infer<typeof StatusView>;
 export const TenderResponse = z
   .object({
     shipmentRef: z.string(),
-    partnerScac: z.string(),
+    partnerScac: PartnerScac,
     isaControl: z.string(),
     gsControl: z.string(),
     action: z.enum(["A", "D"]),

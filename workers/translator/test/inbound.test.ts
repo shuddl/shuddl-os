@@ -41,7 +41,7 @@ function seg(...f: string[]): string {
 // A parameterized PRICEABLE synthetic 204: shipper (Z1) + consignee (Z5) + a bill-to PER email + L4 dims + AT8
 // weight/pieces. `sid`/`bol` may be omitted (null) to exercise the stable-business-ref identity priority
 // (SID → BOL → PRO → PO) and the no-stable-ref quarantine; `l4:false` drops the measurement (no price on air).
-function mkTender(opts: { isa?: string; sid?: string | null; bol?: string | null; l4?: boolean } = {}): string {
+function mkTender(opts: { isa?: string; sid?: string | null; bol?: string | null; l11?: Array<[string, string]>; l4?: boolean } = {}): string {
   const isa = opts.isa ?? "000000042";
   const sid = opts.sid === undefined ? "SHIP123" : opts.sid;
   const bol = opts.bol === undefined ? "BOL987" : opts.bol;
@@ -54,6 +54,8 @@ function mkTender(opts: { isa?: string; sid?: string | null; bol?: string | null
     seg("B2A", "00"),
   ];
   if (bol !== null) parts.push(seg("L11", bol, "BM"));
+  // Extra L11 qualified refs (e.g. [["5000","PO"]] → refs.PO="5000") for the stable-ref-identity/convergence tests.
+  for (const [value, qual] of opts.l11 ?? []) parts.push(seg("L11", value, qual));
   parts.push(
     seg("N1", "SH", "ACME SHIPPING"),
     seg("N3", "100 DOCK ST"),
@@ -160,6 +162,14 @@ function goodSecrets(): StaticSecretResolver {
 async function count(db: D1Database, table: string): Promise<number> {
   const row = await db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).first<{ n: number }>();
   return row?.n ?? 0;
+}
+
+// The partner's persisted outbound interchange counter (integrations.config.$.outbound.isa) — so a test can
+// prove a redelivered 990 does NOT re-allocate a fresh control number. undefined = never allocated.
+async function readCounter(db: D1Database, id: string): Promise<number | undefined> {
+  const row = await db.prepare("SELECT config FROM integrations WHERE kind='edi_partner' AND id=? LIMIT 1").bind(id).first<{ config: string }>();
+  if (row === null) return undefined;
+  return (JSON.parse(row.config) as { outbound?: { isa?: number } }).outbound?.isa;
 }
 
 beforeAll(async () => {
@@ -360,6 +370,47 @@ describe("REQ-201/202 — inbound 204 → gated chain, NO booking.created", () =
     expect(anomaly?.rule).toBe("edi_no_shipment_ref");
     const quarantined = await env.EVIDENCE.list({ prefix: `edi/tenant-a/quarantine/${PARTNER_ID}/` });
     expect(quarantined.objects, "the raw bytes are preserved in R2 (never a silent drop)").toHaveLength(1);
+  });
+
+  // ── EXIT-AUDIT F-1 (Medium): a re-tender of ONE physical load that ADDS a higher-priority ref must converge
+  //    onto the existing shipment/stream — else two streams → two booking.created → duplicate invoice. ──
+  it("(F-1) a re-tender adding a higher-priority ref converges onto the SAME load (no duplicate booking/invoice)", async () => {
+    const seq = new RecordingSeq();
+    const deps = makeDeps(seq, new RecordingTransport(), goodSecrets());
+    // First tender: keyed on PO:5000.
+    await handleInbound204(await signedRequest(mkTender({ sid: null, bol: null, l11: [["5000", "PO"]] })), deps);
+    // Re-tender of the SAME load, now ALSO carrying a (higher-priority) SID — the naive per-ref id would differ.
+    await handleInbound204(await signedRequest(mkTender({ isa: "000000777", sid: "9000", bol: null, l11: [["5000", "PO"]] })), deps);
+    expect(await count(env.TENANT_A_DB, "shipments"), "one physical load = one shipment (converged via PO)").toBe(1);
+    const accepted = seq.appended.filter((a) => a.event.kind === "quote.accepted");
+    expect(accepted, "exactly one booking-triggering acceptance, not two").toHaveLength(1);
+  });
+
+  // ── EXIT-AUDIT F-2 (Low): two DIFFERENT loads sharing a bare ref VALUE across qualifiers must NOT collide. ──
+  it("(F-2) SID:5000 and PO:5000 are DISTINCT loads (qualifier-namespaced id, no bare-value collision)", async () => {
+    const seq = new RecordingSeq();
+    const deps = makeDeps(seq, new RecordingTransport(), goodSecrets());
+    await handleInbound204(await signedRequest(mkTender({ sid: "5000", bol: null })), deps); // SID:5000
+    await handleInbound204(await signedRequest(mkTender({ sid: null, bol: null, l11: [["5000", "PO"]] })), deps); // PO:5000
+    expect(await count(env.TENANT_A_DB, "shipments"), "SID:5000 ≠ PO:5000 — two shipments, not one swallowed").toBe(2);
+    // Each redelivery reproduces its OWN qualified id — still two (never three, never merged to one).
+    await handleInbound204(await signedRequest(mkTender({ sid: "5000", bol: null })), deps);
+    await handleInbound204(await signedRequest(mkTender({ sid: null, bol: null, l11: [["5000", "PO"]] })), deps);
+    expect(await count(env.TENANT_A_DB, "shipments")).toBe(2);
+  });
+
+  // ── EXIT-AUDIT F-3 (Low): a redelivered accepted 204 must NOT re-send the 990 nor re-allocate a control number. ──
+  it("(F-3) a redelivered accepted 204 sends the 990 once and does NOT re-allocate the outbound control number", async () => {
+    const transport = new RecordingTransport();
+    const deps = makeDeps(new RecordingSeq(), transport, goodSecrets());
+    await handleInbound204(await signedRequest(tender204()), deps);
+    expect(transport.sent990, "the accepted tender is acknowledged with one 990").toHaveLength(1);
+    expect(await readCounter(env.TENANT_A_DB, PARTNER_ID), "one allocation on the first delivery").toBe(1);
+    expect((await env.EVIDENCE.list({ prefix: "edi/tenant-a/990/" })).objects, "a 990 ack-dedup marker written on success").toHaveLength(1);
+
+    await handleInbound204(await signedRequest(tender204()), deps); // exact redelivery
+    expect(transport.sent990, "no second 990 send").toHaveLength(1);
+    expect(await readCounter(env.TENANT_A_DB, PARTNER_ID), "the outbound counter did NOT advance on redelivery").toBe(1);
   });
 
   // ── Finding 3 (Low): a storage-DoS cap — an over-cap body is rejected 413 BEFORE any read/persist. ──

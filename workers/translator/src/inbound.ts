@@ -25,9 +25,10 @@
 // The X12 parse (tokenize/parse204), the 204→plan mapping (mapTenderToBooking), the quarantine descriptor, and
 // the 990 serialize are the PURE @shuddl/edi + Task-6 cores; this file is composition + I/O wiring only. LLM-free.
 import { parse204, tokenize, build990 } from "@shuddl/edi";
+import type { TenderDoc } from "@shuddl/edi";
 import { priceShipment, assessApproval } from "@shuddl/rater";
 import type { RateRequest } from "@shuddl/rater";
-import { mapTenderToBooking, type BookingPlan } from "./core/map-204.js";
+import { mapTenderToBooking, STABLE_REF_KEYS, type BookingPlan } from "./core/map-204.js";
 import { quarantineDescriptor, type QuarantineRule } from "./core/quarantine.js";
 import { tenderKey } from "./sweep-214.js";
 import { allocatePartnerControls, PartnerControlError } from "./partners.js";
@@ -227,11 +228,32 @@ async function persistParty(db: D1Database, plan: BookingPlan): Promise<void> {
     .run();
 }
 
+// F-1 CONVERGENCE: resolve the CANONICAL shipment id for THIS tender — the id of a PRIOR shipment from the same
+// partner that shares a QUALIFIED (qualifier,value) ref with this tender. Matching ONLY on the qualified pair
+// (partner + `$.<QUAL>` = value), NEVER a bare value, is what keeps two genuinely distinct loads that happen to
+// share a bare number across qualifiers (SID:5000 vs PO:5000) from over-merging (that would re-introduce F-2).
+// Returns the existing id (⇒ the re-tender lands on the ONE stream, and the per-stream one-booking guard
+// suppresses the duplicate booking) or undefined (⇒ a fresh qualifier-namespaced id). Tenant-isolated: `db` is
+// the resolved tenant's handle. STABLE_REF_KEYS is a fixed constant list, so the bound `$.<QUAL>` path is safe.
+async function resolveCanonicalShipmentId(db: D1Database, partnerId: string, tender: TenderDoc): Promise<string | undefined> {
+  for (const key of STABLE_REF_KEYS) {
+    const value = tender.refs[key]?.trim();
+    if (value === undefined || value === "") continue;
+    const row = await db
+      .prepare("SELECT id FROM shipments WHERE json_extract(refs, '$.partner') = ?1 AND json_extract(refs, ?2) = ?3 LIMIT 1")
+      .bind(partnerId, `$.${key}`, value)
+      .first<{ id: string }>();
+    if (row !== null) return row.id;
+  }
+  return undefined;
+}
+
 // Materialize the QUOTE-STAGE shipments row (NO booking.created, status_cache at its empty default) so the
 // first REAL booking is still first on the stream (the WP-09 one-booking-per-stream gate stays green). Mirrors
-// intake.ts's INSERT OR IGNORE shape; the partner SCAC + every tender ref are recorded in refs (no drop).
-async function persistShipment(db: D1Database, plan: BookingPlan, createdTs: number): Promise<void> {
-  const refs = JSON.stringify({ ...plan.shipment.refs, partner: plan.shipment.partnerScac });
+// intake.ts's INSERT OR IGNORE shape. `refs.partner` is the PARTNER ID (the convergence key above matches it);
+// `refs.partner_scac` preserves the tender's carrier SCAC (no drop), and every tender qualifier rides through.
+async function persistShipment(db: D1Database, plan: BookingPlan, partnerId: string, createdTs: number): Promise<void> {
+  const refs = JSON.stringify({ ...plan.shipment.refs, partner: partnerId, partner_scac: plan.shipment.partnerScac });
   await db
     .prepare(
       "INSERT OR IGNORE INTO shipments (id, shipper_party_id, consignee_party_id, bill_to_party_id, mode, division, refs, created_ts) VALUES (?,?,?,?,?,?,?,?)",
@@ -290,7 +312,14 @@ export async function handleInbound204(request: Request, deps: InboundDeps): Pro
   let plan: BookingPlan;
   try {
     const tender = parse204(raw);
-    plan = await mapTenderToBooking(tender, { partnerId, receivedTs });
+    // F-1 convergence: if a prior tender for this load already exists (shares a qualified ref), reuse ITS id as
+    // the canonical id so ALL deterministic append ids + the stream compute against it (threaded through the ctx,
+    // never a post-hoc swap). A fresh load resolves to undefined → map-204 mints a fresh qualifier-namespaced id.
+    const canonicalId = await resolveCanonicalShipmentId(db, partnerId, tender);
+    plan = await mapTenderToBooking(
+      tender,
+      canonicalId !== undefined ? { partnerId, receivedTs, shipmentIdOverride: canonicalId } : { partnerId, receivedTs },
+    );
   } catch (err) {
     const rule: QuarantineRule = err instanceof Error && err.message.startsWith("MAP204_NO_SHIPMENT_REF") ? "edi_no_shipment_ref" : "edi_malformed";
     return quarantine(deps, tenantSlug, partnerId, isaControl, rawBytes, err, rule);
@@ -302,7 +331,7 @@ export async function handleInbound204(request: Request, deps: InboundDeps): Pro
   const streamId = `s:${plan.shipment.id}`;
 
   await persistParty(db, plan);
-  await persistShipment(db, plan, receivedTs);
+  await persistShipment(db, plan, partnerId, receivedTs);
 
   // The tender marker the 214 sweep reads to learn which shipments are EDI-tendered + by whom (its schema is
   // fixed: {partnerId, partnerScac, isaControl}). Written idempotently before the appends so the sweep can find
@@ -440,30 +469,37 @@ export async function handleInbound204(request: Request, deps: InboundDeps): Pro
       });
       accepted = true;
 
-      // 3. 990 acceptance — best-effort through the transport port (idempotency-keyed on the accepted quote). With
-      //    NotConfiguredTransport this REJECTS and is swallowed here (the 204 is recorded + its chain appended;
-      //    only the partner acknowledgment is deferred until the CONFIRM-gated transport is wired). Any transport
-      //    failure is logged + swallowed — the same fail-closed discipline the 214 sweep uses.
-      try {
-        // SHUDDL's OWN outbound interchange control numbers for this partner (allocated + persisted, monotonic) —
-        // NEVER an echo of the inbound 204's ISA13, which is the PARTNER's number for a DIFFERENT interchange.
-        const { isaControl: ackIsa, gsControl: ackGs } = await allocatePartnerControls(db, partnerId);
-        const bytes = build990({
-          shipmentRef: plan.shipment.id,
-          partnerScac: plan.shipment.partnerScac,
-          isaControl: ackIsa,
-          gsControl: ackGs,
-          action: "A",
-        });
-        await deps.transport.send990(plan.shipment.partnerScac, bytes, `edi990/${acceptedId}`);
-      } catch (err) {
-        // A transport reject (unwired) OR an unallocatable partner (no integrations row in this tenant yet) DEFERS
-        // the best-effort ack — the 204 is recorded + its chain appended. A genuine serialize bug stays LOUD.
-        if (!(err instanceof TransportError) && !(err instanceof PartnerControlError)) throw err;
-        console.error(
-          `204-inbound: 990 ack for ${plan.shipment.id} not transmitted (deferred — the 204 is recorded):`,
-          err instanceof Error ? err.message : String(err),
-        );
+      // 3. 990 acceptance — best-effort through the transport port, dedup'd EXACTLY like the 214 sweep (F-3). A
+      //    redelivered accepted 204 must NOT re-send the 990 NOR re-allocate a fresh outbound control number
+      //    (which would burn a number every redelivery and send a byte-divergent 990). The `edi/<tenant>/990/
+      //    <acceptedId>` marker's PRESENCE means "already acknowledged" → skip allocate/build/send entirely; it is
+      //    written ONLY after a successful send (mark-on-success), so an unwired NotConfigured env writes no marker
+      //    and stays re-attemptable next delivery — the same discipline as sweep-214's sent-marker.
+      const ack990Key = `edi/${tenantSlug}/990/${acceptedId}`;
+      if ((await deps.evidence.head(ack990Key)) === null) {
+        try {
+          // SHUDDL's OWN outbound interchange control numbers for this partner (allocated + persisted, monotonic) —
+          // NEVER an echo of the inbound 204's ISA13, which is the PARTNER's number for a DIFFERENT interchange.
+          const { isaControl: ackIsa, gsControl: ackGs } = await allocatePartnerControls(db, partnerId);
+          const bytes = build990({
+            shipmentRef: plan.shipment.id,
+            partnerScac: plan.shipment.partnerScac,
+            isaControl: ackIsa,
+            gsControl: ackGs,
+            action: "A",
+          });
+          await deps.transport.send990(plan.shipment.partnerScac, bytes, `edi990/${acceptedId}`);
+          await deps.evidence.put(ack990Key, bytes); // mark-on-success — only a transmitted 990 is recorded
+        } catch (err) {
+          // A transport reject (unwired) OR an unallocatable partner (no integrations row in this tenant yet) DEFERS
+          // the best-effort ack — the 204 is recorded + its chain appended, and NO marker is written so a later
+          // delivery re-attempts. A genuine serialize bug stays LOUD.
+          if (!(err instanceof TransportError) && !(err instanceof PartnerControlError)) throw err;
+          console.error(
+            `204-inbound: 990 ack for ${plan.shipment.id} not transmitted (deferred — the 204 is recorded):`,
+            err instanceof Error ? err.message : String(err),
+          );
+        }
       }
     }
   }

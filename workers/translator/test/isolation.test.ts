@@ -315,6 +315,19 @@ describe("REQ-025 — inbound 204 tenant isolation", () => {
     expect(await count(env.TENANT_B_DB, "anomalies")).toBe(0);
     expect(await listKeys("edi/tenant-b/"), "no edi/tenant-b/ quarantine key").toBe(0);
   });
+
+  // CASE 3b (exit-audit F-3). The NEW 990 ack-dedup R2 key builder gets an isolation case (per the tenant-isolation
+  // skill: every new edi/<tenant>/ key builder is proven tenant-scoped). A tenant-a accepted tender writes its 990
+  // marker under edi/tenant-a/990/ ONLY — never edi/tenant-b/. CATCHES a dropped `${tenant}` prefix on the 990 key.
+  it("(3b) a tenant-a accepted 204's 990 ack marker lands under edi/tenant-a/990/ only; tenant-b keyspace untouched", async () => {
+    await seedEdiPartner(env.TENANT_A_DB, PARTNER_A, "certified", "{}");
+    const transport = new RecordingTransport();
+    const res = await handleInbound204(await signedRequest(tender204(), { partner: PARTNER_A, secret: SECRET_A }), makeDeps(new RecordingSeq(), transport, bothSecrets()));
+    expect(res.status).toBe(200);
+    expect(transport.sent990, "the accepted tender is acknowledged with a 990").toHaveLength(1);
+    expect(await listKeys("edi/tenant-a/990/"), "the 990 ack-dedup marker is under edi/tenant-a/990/").toBe(1);
+    expect(await listKeys("edi/tenant-b/"), "no edi/tenant-b/ key from a tenant-a 990 ack").toBe(0);
+  });
 });
 
 // ── SURFACE 2: the OUTBOUND 214 sweep (per-tenant integrations + ledger read, edi/<tenant>/ R2). ──

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { parse204 } from "../src/parse-204.js";
 import { EdiParseError } from "../src/envelope.js";
+import { TenderDoc, StatusView, TenderResponse } from "../src/types.js";
 
 function isaHeader(control: string): string {
   const c = control.padStart(9, "0").slice(-9);
@@ -172,6 +173,49 @@ describe("parse204 — dims from L4 + AT8 pieces (the single dims parse path, RE
   it("no L4 and no AT8 quantity → dims stays undefined entirely (no price on air)", () => {
     const d = parse204(dimsDoc({}));
     expect(d.dims).toBeUndefined();
+  });
+});
+
+// EXIT-AUDIT F-4 (Info — SCAC delimiter injection): the SCAC crosses into X12 envelopes verbatim, so a
+// delimiter-bearing value (`*` element sep, `~` segment terminator, `>` sub-element sep, newline) would inject a
+// segment/element or corrupt outbound byte-stability. Constrain the charset at the parse/serialize boundary on
+// ALL THREE SCAC-bearing schemas (defense-in-depth). Real SCACs are 2–4 alpha; `{2,15}` alphanumeric is generous.
+describe("SCAC charset guard — no X12 delimiter injection (REQ-202/204, F-4)", () => {
+  const okTender = { partnerScac: "MEGA", purpose: "00" as const, refs: {}, stops: [] };
+  const okStatus = { shipmentRef: "S1", partnerScac: "MEGA", isaControl: "000000042", gsControl: "42", stops: [] };
+  const okResponse = { shipmentRef: "S1", partnerScac: "MEGA", isaControl: "000000042", gsControl: "42", action: "A" as const };
+
+  it("rejects a delimiter/control-char-bearing SCAC on every SCAC-bearing schema", () => {
+    for (const bad of ["ME*GA", "AC~ME", "A>B", "MEGA\n", "ME GA", "M", ""]) {
+      expect(() => TenderDoc.parse({ ...okTender, partnerScac: bad }), `TenderDoc rejects ${JSON.stringify(bad)}`).toThrow();
+      expect(() => StatusView.parse({ ...okStatus, partnerScac: bad }), `StatusView rejects ${JSON.stringify(bad)}`).toThrow();
+      expect(() => TenderResponse.parse({ ...okResponse, partnerScac: bad }), `TenderResponse rejects ${JSON.stringify(bad)}`).toThrow();
+    }
+  });
+
+  it("still accepts real alphanumeric SCACs (the certification fixtures use SYNC/MEGA/ACME)", () => {
+    for (const good of ["MEGA", "ACME", "SYNC", "UPSN", "FDEG", "AA"]) {
+      expect(() => TenderDoc.parse({ ...okTender, partnerScac: good })).not.toThrow();
+      expect(() => StatusView.parse({ ...okStatus, partnerScac: good })).not.toThrow();
+      expect(() => TenderResponse.parse({ ...okResponse, partnerScac: good })).not.toThrow();
+    }
+  });
+
+  it("a delimiter-bearing B202 in a raw 204 fails parse204 (→ the worker quarantines it, fail-closed)", () => {
+    const S = (...f: string[]): string => f.join("*") + "~";
+    // A `>` (sub-element sep) survives tokenization inside B202 → the SCAC guard rejects it at TenderDoc.parse.
+    const doc =
+      isaHeader("000000042") +
+      S("GS", "SM", "MEGA", "SHUDDL", "20260719", "1200", "77", "X", "004010") +
+      S("ST", "204", "0001") +
+      S("B2", "", "ME>GA", "", "SHIP123", "", "PP") +
+      S("B2A", "00") +
+      S("N1", "SH", "ACME") +
+      S("N4", "NEWARK", "NJ", "07101") +
+      S("SE", "5", "0001") +
+      S("GE", "1", "77") +
+      S("IEA", "1", "000000042");
+    expect(() => parse204(doc)).toThrow();
   });
 });
 
