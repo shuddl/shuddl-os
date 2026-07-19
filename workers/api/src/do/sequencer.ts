@@ -16,6 +16,7 @@ import { projectStatusCache } from "@shuddl/ledger/projection/status-cache";
 import { applyMessageProjection } from "@shuddl/ledger/projection/messages";
 import { projectAppointment } from "@shuddl/ledger/projection/appointment";
 import { projectApprovals } from "@shuddl/ledger/projection/approvals";
+import { projectAgentRuns } from "@shuddl/ledger/projection/agent-runs";
 import { assertPodSigned } from "@shuddl/ledger/gates/invoice-gate";
 import {
   assertPickupDepart,
@@ -361,6 +362,9 @@ export class ShipmentSequencer extends DurableObject<Env> {
       // WP-10 T2 (REQ-082/194) — the approvals-queue read-model: approval.requested opens a row, approval.decided
       // flips it to decided. Rides the SAME batch (I1) so the queue row and its event commit atomically.
       ...projectApprovals(db, full),
+      // WP-11 T9 (REQ-113) — agent_runs metering: a committed agent.acted projects one per-run cost/latency row
+      // (the previously dead table, now LIVE). Same batch (I1); INSERT OR IGNORE keeps a redelivery idempotent.
+      ...projectAgentRuns(db, full),
     ];
     try {
       await db.batch(stmts);

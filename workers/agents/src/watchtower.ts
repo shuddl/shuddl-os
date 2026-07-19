@@ -11,6 +11,10 @@
 //                       quote → one CRITICAL alarm keyed by the quote EVENT id (the anomaly is permanent, REQ-040).
 //   3. floor_breach    — OPEN below-floor approvals (the WP-10 `approvals` read-model status='open'). count>0 →
 //                       RAISE a WARN alarm with the open count; count==0 → CLEAR.
+//   4. agent_drift     — per-agent cost/latency BUDGET (REQ-113, WP-11 T9). Aggregates a rolling window of
+//                       `agent_runs` (the metering projection) per agent; RAISES when the window's avg latency
+//                       or avg cost/run exceeds DEFAULT_AGENT_BUDGET; CLEARS when back in budget. One alarm per
+//                       agent, keyed by the agent (object), self-clearing. Honest: averages only REPORTED metrics.
 //
 // SELF-CLEARING + IDEMPOTENT (mirrors the anchor TSA alarm, anchor.ts:274-301): the alarm is written by the
 // ON-CONFLICT UPSERT — one row per deterministic id, open→re-raise on conflict, resolved when the condition
@@ -38,11 +42,30 @@ const UNBILLED_CRITICAL_AGE_MS = 7 * DAY_MS;
 // Cap the shipment list carried in a detail so a large backlog never bloats the row (the count is authoritative).
 const DETAIL_SHIPMENT_CAP = 50;
 
+// ── agent-drift budget (REQ-113, documented + deterministic) ─────────────────────────────────────────
+export interface AgentBudget {
+  /** Max acceptable AVERAGE run latency (ms) over the window before an agent is "drifting". */
+  maxAvgLatencyMs: number;
+  /** Max acceptable AVERAGE cost per run (integer cents) over the window. */
+  maxAvgCostCents: number;
+}
+// The DEFAULT per-agent budget (a tenant may override via opts.budget — the config seam). A window whose
+// average run wall-clock exceeds 5s OR whose average cost exceeds 50¢ ($0.50) is DRIFTING — worth an ops
+// alarm. Integer cents (REQ-167 synthetic).
+export const DEFAULT_AGENT_BUDGET: AgentBudget = { maxAvgLatencyMs: 5_000, maxAvgCostCents: 50 };
+// The rolling window over which per-agent averages are computed (24h). agent_runs carries no ts column, so the
+// window bound reads each metered run's `agent.acted` event ts via a JOIN.
+const AGENT_DRIFT_WINDOW_MS = DAY_MS;
+// A window average at/above this multiple of budget is a runaway → CRITICAL; merely over-budget → WARN.
+const AGENT_DRIFT_CRITICAL_RATIO = 2;
+
 export type AlarmSeverity = "info" | "warn" | "critical";
 
 export interface WatchtowerOpts {
   /** Test-only id-prefix scope (the shared-D1 hook). Undefined in production ⇒ tenant-wide alarms. */
   scope?: string;
+  /** Per-agent budget override (tenant config seam); merged over DEFAULT_AGENT_BUDGET for the drift rule. */
+  budget?: Partial<AgentBudget>;
 }
 
 export interface WatchtowerResult {
@@ -52,6 +75,22 @@ export interface WatchtowerResult {
   pricing_anomaly: { count: number };
   /** Open below-floor approvals — the count carried in the alarm. */
   floor_breach: { count: number; status: "open" | "resolved"; severity: AlarmSeverity | null };
+  /** Per-agent cost/latency budget check (REQ-113): every known agent gets a raise-OR-clear this sweep. */
+  agent_drift: {
+    /** How many agents were over budget this pass (one open alarm each). */
+    alarmed: number;
+    agents: Array<{
+      agent: string;
+      /** Runs counted IN the window (out-of-window runs are excluded from the averages). */
+      runs: number;
+      /** Window average latency (ms), over runs that REPORTED a latency; null if none did. */
+      avgLatencyMs: number | null;
+      /** Window average cost (cents), over runs that REPORTED a cost; null if none did. */
+      avgCostCents: number | null;
+      severity: AlarmSeverity | null;
+      status: "open" | "resolved";
+    }>;
+  };
 }
 
 /**
@@ -186,6 +225,106 @@ async function sweepFloorBreach(db: D1Database, tenant: string, opts: Watchtower
   return { count, status: "open", severity: "warn" };
 }
 
+// ── rule 4 — AGENT DRIFT (per-agent cost/latency budget, REQ-113) ──────────────────────────────────────
+// The metering projection (packages/ledger/src/projection/agent-runs.ts) writes one agent_runs row per
+// committed agent.acted, carrying that run's cost (`{cents:N}`, or `{}` when unreported) + latency_ms (or
+// NULL). This rule aggregates a rolling WINDOW of those runs PER agent, compares the window's AVERAGE latency
+// and AVERAGE cost-per-run to a per-agent BUDGET (DEFAULT_AGENT_BUDGET, overridable via opts.budget for tenant
+// config), and RAISES an `agent_drift` alarm — keyed per agent, deterministic id, self-clearing — when either
+// average is over budget; severity escalates to critical at AGENT_DRIFT_CRITICAL_RATIO× budget.
+//
+// HONESTY (the WP-10/11 metric law): an average is computed ONLY over runs that actually REPORTED that metric
+// (a `{}` cost / NULL latency is SKIPPED, never counted as 0) — the alarm fires on real drift, never on a
+// fabricated number, and an agent that reports no metrics can never be alarmed. SELF-CLEARING: EVERY agent
+// with any metered run (all-time, scoped) is enumerated and gets a raise-OR-clear each pass, so an agent whose
+// over-budget runs age out of the window resolves its alarm. agent_runs has no ts column, so the window bound
+// reads e.ts by JOINing each run to its agent.acted event.
+async function sweepAgentDrift(db: D1Database, tenant: string, now: number, opts: WatchtowerOpts): Promise<WatchtowerResult["agent_drift"]> {
+  const budget: AgentBudget = { ...DEFAULT_AGENT_BUDGET, ...(opts.budget ?? {}) };
+  const params: (string | number)[] = [];
+  const scoped = scopeLike("e.shipment_id", opts.scope, params);
+  // Every metered run (all-time, scoped) joined to its event for the window clock. Fetch-then-aggregate in JS
+  // (mirrors sweepUnbilled's JS dedup) so we can (a) enumerate every known agent to raise-OR-clear it, and
+  // (b) average ONLY the reported metrics (parse the cost JSON here rather than json_extract in SQL).
+  const rows = (
+    await db
+      .prepare(`SELECT ar.agent AS agent, ar.cost AS cost, ar.latency_ms AS latency_ms, e.ts AS ts FROM agent_runs ar JOIN events e ON e.id = ar.id WHERE 1=1${scoped}`)
+      .bind(...params)
+      .all<{ agent: string; cost: string; latency_ms: number | null; ts: number }>()
+  ).results;
+
+  interface Acc {
+    latSum: number;
+    latN: number;
+    costSum: number;
+    costN: number;
+    runs: number;
+  }
+  const byAgent = new Map<string, Acc>();
+  for (const r of rows) {
+    let acc = byAgent.get(r.agent);
+    if (acc === undefined) {
+      acc = { latSum: 0, latN: 0, costSum: 0, costN: 0, runs: 0 };
+      byAgent.set(r.agent, acc); // create the agent's entry even for an out-of-window row, so it gets a CLEAR
+    }
+    if (r.ts > now || r.ts < now - AGENT_DRIFT_WINDOW_MS) continue; // outside the rolling window — skip the metric
+    acc.runs += 1;
+    if (r.latency_ms !== null) {
+      acc.latSum += r.latency_ms;
+      acc.latN += 1;
+    }
+    let cents: number | null = null;
+    try {
+      const c = (JSON.parse(r.cost) as { cents?: unknown }).cents;
+      if (typeof c === "number" && Number.isInteger(c)) cents = c;
+    } catch {
+      /* unparseable cost → unknown, skip (never fabricate a cost) */
+    }
+    if (cents !== null) {
+      acc.costSum += cents;
+      acc.costN += 1;
+    }
+  }
+
+  const agents: WatchtowerResult["agent_drift"]["agents"] = [];
+  let alarmed = 0;
+  for (const agent of [...byAgent.keys()].sort()) {
+    const acc = byAgent.get(agent)!;
+    const avgLatencyMs = acc.latN > 0 ? Math.round(acc.latSum / acc.latN) : null;
+    const avgCostCents = acc.costN > 0 ? Math.round(acc.costSum / acc.costN) : null;
+    const id = watchtowerAlarmId(tenant, "agent_drift", { scope: opts.scope, object: agent });
+
+    const over: string[] = [];
+    let ratio = 0;
+    if (avgLatencyMs !== null && avgLatencyMs > budget.maxAvgLatencyMs) {
+      over.push("latency");
+      ratio = Math.max(ratio, avgLatencyMs / budget.maxAvgLatencyMs);
+    }
+    if (avgCostCents !== null && avgCostCents > budget.maxAvgCostCents) {
+      over.push("cost");
+      ratio = Math.max(ratio, avgCostCents / budget.maxAvgCostCents);
+    }
+
+    if (over.length === 0) {
+      await clearAlarm(db, id);
+      agents.push({ agent, runs: acc.runs, avgLatencyMs, avgCostCents, severity: null, status: "resolved" });
+      continue;
+    }
+    const severity: AlarmSeverity = ratio >= AGENT_DRIFT_CRITICAL_RATIO ? "critical" : "warn";
+    await raiseAlarm(db, id, "agent_drift", "agent", agent, severity, {
+      agent,
+      runs: acc.runs,
+      avg_latency_ms: avgLatencyMs,
+      avg_cost_cents: avgCostCents,
+      budget: { max_avg_latency_ms: budget.maxAvgLatencyMs, max_avg_cost_cents: budget.maxAvgCostCents },
+      over,
+    });
+    agents.push({ agent, runs: acc.runs, avgLatencyMs, avgCostCents, severity, status: "open" });
+    alarmed += 1;
+  }
+  return { alarmed, agents };
+}
+
 /**
  * Sweep ONE tenant's ledger for all three Watchtower alarm conditions and UPSERT/CLEAR the `anomalies` rows.
  * The caller binds `db`/`tenant` to that one tenant (REQ-025). `now` is the sweep clock (injected; the cron
@@ -196,5 +335,6 @@ export async function runWatchtowerSweep(db: D1Database, tenant: string, now: nu
   const unbilled = await sweepUnbilled(db, tenant, now, opts);
   const pricing_anomaly = await sweepPricingAnomaly(db, tenant, opts);
   const floor_breach = await sweepFloorBreach(db, tenant, opts);
-  return { unbilled, pricing_anomaly, floor_breach };
+  const agent_drift = await sweepAgentDrift(db, tenant, now, opts);
+  return { unbilled, pricing_anomaly, floor_breach, agent_drift };
 }

@@ -4,6 +4,7 @@ import type { LedgerEvent, PodSignedPayload } from "@shuddl/contracts";
 import { applyMigrations } from "../src/migrate.js";
 import { projectPassport } from "../src/projection/passports.js";
 import { projectStatusCache } from "../src/projection/status-cache.js";
+import { projectAgentRuns } from "../src/projection/agent-runs.js";
 import { eventInsertStmt, mkEvent, resetEventCounter } from "./helpers.js";
 import ledgerCore from "../../../db/tenant/migrations/0001_ledger_core.sql?raw";
 import domain from "../../../db/tenant/migrations/0002_domain.sql?raw";
@@ -22,6 +23,27 @@ async function appendStatus(e: LedgerEvent): Promise<void> {
 }
 async function appendPassport(e: LedgerEvent): Promise<void> {
   await DB.batch([eventInsertStmt(DB, e), ...projectPassport(DB, e)]);
+}
+async function appendAgentRun(e: LedgerEvent): Promise<void> {
+  await DB.batch([eventInsertStmt(DB, e), ...projectAgentRuns(DB, e)]);
+}
+interface AgentRunRow {
+  id: string;
+  agent: string;
+  trigger_event_id: string | null;
+  actions: string;
+  basis: string;
+  confidence: number | null;
+  cost: string;
+  latency_ms: number | null;
+  outcome: string | null;
+}
+async function agentRun(id: string): Promise<AgentRunRow | null> {
+  return DB.prepare(
+    "SELECT id, agent, trigger_event_id, actions, basis, confidence, cost, latency_ms, outcome FROM agent_runs WHERE id = ?",
+  )
+    .bind(id)
+    .first<AgentRunRow>();
 }
 async function statusCache(shipmentId: string): Promise<Record<string, unknown> | null> {
   const r = await DB.prepare("SELECT status_cache AS s FROM shipments WHERE id = ?").bind(shipmentId).first<{ s: string }>();
@@ -220,5 +242,71 @@ describe("REQ-009 — passports accrue from events (mutable projection; truth st
     expect(await scores("party-GHOST")).toBeNull();
     const evt = await DB.prepare("SELECT COUNT(*) AS c FROM events WHERE id = ?").bind(e.id).first<{ c: number }>();
     expect(evt?.c).toBe(0);
+  });
+});
+
+describe("REQ-113 — agent_runs meters per-run cost/latency from agent.acted (the LIVE table, not dead)", () => {
+  it("agent.acted populates agent_runs (agent, cost {cents}, latency, confidence, trigger, basis) keyed by event id", async () => {
+    const e = mkEvent("agent.acted", {
+      stream_id: "s:shp-ar1",
+      shipment_id: "shp-ar1",
+      payload: {
+        agent: "rater",
+        action: "priced",
+        basis: [
+          { kind: "event", id: "evt-priced-1" },
+          { kind: "config", id: "rc-tariff-v3" },
+        ],
+        confidence_bps: 10_000,
+        cost_cents: 0, // a deterministic engine: an HONEST 0
+        latency_ms: 42, // a REAL measured value
+      },
+    });
+    await appendAgentRun(e);
+    const row = await agentRun(e.id);
+    expect(row).not.toBeNull();
+    expect(row!.agent).toBe("rater");
+    expect(row!.latency_ms).toBe(42);
+    expect(JSON.parse(row!.cost)).toEqual({ cents: 0 }); // recorded exactly as reported — not fabricated
+    expect(row!.confidence).toBe(10_000);
+    // trigger_event_id = the first cited EVENT-kind basis link (the provenance event), config links skipped.
+    expect(row!.trigger_event_id).toBe("evt-priced-1");
+    expect(JSON.parse(row!.basis)).toEqual([
+      { kind: "event", id: "evt-priced-1" },
+      { kind: "config", id: "rc-tariff-v3" },
+    ]);
+    expect(JSON.parse(row!.actions)).toEqual(["priced"]);
+    expect(row!.outcome).toBe("priced");
+  });
+
+  it("IDEMPOTENT — re-projecting the SAME agent.acted event is a no-op (INSERT OR IGNORE on the event id)", async () => {
+    const e = mkEvent("agent.acted", {
+      stream_id: "s:shp-ar2",
+      shipment_id: "shp-ar2",
+      payload: { agent: "biller", action: "issue_invoice", basis: [{ kind: "event", id: "evt-y" }], confidence_bps: 9_000, cost_cents: 3, latency_ms: 100 },
+    });
+    await appendAgentRun(e);
+    await DB.batch(projectAgentRuns(DB, e)); // re-run the projection alone (a redelivered event)
+    const n = await DB.prepare("SELECT COUNT(*) AS c FROM agent_runs WHERE id = ?").bind(e.id).first<{ c: number }>();
+    expect(n!.c).toBe(1); // exactly one row
+    expect(JSON.parse((await agentRun(e.id))!.cost)).toEqual({ cents: 3 });
+  });
+
+  it("a non-agent.acted event projects NO agent_runs row", async () => {
+    const e = mkEvent("pod.signed", { stream_id: "s:shp-ar3", shipment_id: "shp-ar3" });
+    expect(projectAgentRuns(DB, e)).toHaveLength(0);
+  });
+
+  it("an agent.acted WITHOUT cost/latency records cost '{}' + latency NULL (unknown, NEVER a fabricated 0)", async () => {
+    const e = mkEvent("agent.acted", {
+      stream_id: "s:shp-ar4",
+      shipment_id: "shp-ar4",
+      payload: { agent: "concierge", action: "replied", basis: [{ kind: "doc", id: "d-1" }], confidence_bps: 8_000 },
+    });
+    await appendAgentRun(e);
+    const row = await agentRun(e.id);
+    expect(JSON.parse(row!.cost)).toEqual({}); // no cost reported → unknown, not fabricated as 0
+    expect(row!.latency_ms).toBeNull(); // no latency reported → NULL, not invented
+    expect(row!.trigger_event_id).toBeNull(); // no event-kind basis link
   });
 });

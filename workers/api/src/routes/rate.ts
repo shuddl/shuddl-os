@@ -108,6 +108,11 @@ async function deterministicEventId(idempotencyKey: string, shipmentId: string, 
 
 export function mountRateRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>): void {
   app.post("/v1/rate", requireRole("ops", "admin", "finance", "portal"), async (c) => {
+    // REQ-113 — the rater run's latency clock: wall-clock at handler entry, read again at the agent.acted
+    // emit. A REAL measured value (the service MAY read Date.now — the purity rule binds packages/rater, not
+    // this worker), never a fabricated number. Non-determinism across a retry is harmless: the sequencer
+    // dedupes agent.acted by its deterministic id, so a retry returns the first-committed run, latency intact.
+    const startedAt = Date.now();
     const session = c.get("session");
     const parsed = RateBody.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) throw new ApiError("VALIDATION_FAILED", 400, "INVALID RATE REQUEST");
@@ -242,6 +247,11 @@ export function mountRateRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>): 
         ...quote.versions.rate_config_ids.map((id) => ({ kind: "config", id })),
       ],
       confidence_bps: RATER_CONFIDENCE_BPS,
+      // REQ-113 metering — the rater is a DETERMINISTIC rule engine (no LLM/vendor call, REQ-024): its cost is
+      // an HONEST 0, not a fabricated number. latency_ms is the REAL measured wall-clock of this priced run.
+      // The agent_runs projection meters both; the Watchtower alarms per-agent drift against a budget.
+      cost_cents: 0,
+      latency_ms: Date.now() - startedAt,
     });
 
     // 3) below-floor approval gate — REQ-030 enforced HERE (the engine only DECIDED it). A dual approval is

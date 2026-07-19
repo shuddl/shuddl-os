@@ -102,6 +102,21 @@ describe("POST /v1/rate", () => {
     expect((acted.payload as { agent?: unknown }).agent).toBe("rater");
   });
 
+  it("agent.acted carries a REAL (deterministic=0) cost and a measured latency (REQ-113 metering)", async () => {
+    const shipment_id = "rate-meter-1";
+    const res = await rate({ shipment_id, ...PRICEABLE });
+    expect(res.status).toBe(200);
+    const events = await eventsFor(env.TENANT_A_DB, shipment_id);
+    const acted = pickKind(events, "agent.acted");
+    const p = acted.payload as { cost_cents?: unknown; latency_ms?: unknown };
+    // The rater is a DETERMINISTIC engine (no LLM/vendor call) → an HONEST 0 cost, never a fabricated number.
+    expect(p.cost_cents).toBe(0);
+    // latency_ms is the REAL measured wall-clock of the priced run — an integer, never negative, never invented.
+    expect(typeof p.latency_ms).toBe("number");
+    expect(Number.isInteger(p.latency_ms)).toBe(true);
+    expect(p.latency_ms as number).toBeGreaterThanOrEqual(0);
+  });
+
   it("missing weight → UNKNOWN, no quote.priced appended (no price on air)", async () => {
     const shipment_id = "rate-unknown-1";
     const res = await rate({ shipment_id, origin_zip: "97201", dest_zip: "80012", dims: DIMS }); // no weight_lb

@@ -2,6 +2,7 @@ import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import { eventFixture, type EventKind, type JsonObject, type LedgerEvent } from "@shuddl/contracts";
 import { eventToRow } from "@shuddl/ledger/lens";
+import { projectAgentRuns } from "@shuddl/ledger/projection/agent-runs";
 import { runWatchtowerSweep, watchtowerAlarmId } from "../../agents/src/watchtower.js";
 import { computeUnbilled } from "../src/kpis/compute.js";
 import { ensureSchema } from "./helpers.js";
@@ -84,6 +85,42 @@ async function alarm(id: string): Promise<AlarmRow | null> {
 async function alarmCount(id: string): Promise<number> {
   const r = await env.TENANT_A_DB.prepare("SELECT COUNT(*) AS n FROM anomalies WHERE id = ?").bind(id).first<{ n: number }>();
   return r?.n ?? 0;
+}
+
+// Seed a metered agent.acted event (into `events`) AND project it into `agent_runs` — the exact end-to-end
+// path the sequencer runs (REQ-113). Returns the event id. The drift sweep JOINs agent_runs→events for ts.
+async function seedAgentRun(
+  scope: string,
+  shipmentId: string,
+  seq: number,
+  opts: { agent: string; latencyMs?: number; costCents?: number; ts?: number },
+): Promise<string> {
+  const payload: JsonObject = {
+    agent: opts.agent,
+    action: "acted",
+    basis: [{ kind: "config", id: "rc-x" }],
+    confidence_bps: 10_000,
+    ...(opts.costCents !== undefined ? { cost_cents: opts.costCents } : {}),
+    ...(opts.latencyMs !== undefined ? { latency_ms: opts.latencyMs } : {}),
+  };
+  const e = eventFixture("agent.acted", {
+    id: crypto.randomUUID(),
+    stream_id: `s:${shipmentId}`,
+    shipment_id: shipmentId,
+    seq,
+    ts: opts.ts ?? NOW,
+    visibility: "internal",
+    party_refs: [],
+    payload,
+  });
+  const row = eventToRow(e);
+  row.hash = nextHash();
+  const cols = Object.keys(row);
+  await env.TENANT_A_DB.prepare(`INSERT INTO events (${cols.join(",")}) VALUES (${cols.map(() => "?").join(",")})`)
+    .bind(...cols.map((c) => row[c]))
+    .run();
+  await env.TENANT_A_DB.batch(projectAgentRuns(env.TENANT_A_DB, e));
+  return e.id;
 }
 
 async function seedOpenApproval(scope: string, objectId: string, reqEventId: string): Promise<void> {
@@ -197,5 +234,83 @@ describe("Watchtower — the floor-breach alarm (open below-floor approvals → 
     const r2 = await runWatchtowerSweep(env.TENANT_A_DB, TENANT, NOW, { scope });
     expect(r2.floor_breach.count).toBe(0);
     expect((await alarm(id))!.status).toBe("resolved");
+  });
+});
+
+describe("Watchtower — the agent-drift alarm (REQ-113 per-agent cost/latency budget)", () => {
+  it("RAISES a critical 'agent_drift' alarm when an agent's avg LATENCY exceeds budget", async () => {
+    const scope = "wt-drift-lat-";
+    const agent = "rater";
+    // Two runs BOTH far over the 5s default latency budget (avg 12s) → CRITICAL (>= 2× budget).
+    await seedAgentRun(scope, `${scope}s1`, 0, { agent, latencyMs: 12_000, costCents: 0 });
+    await seedAgentRun(scope, `${scope}s2`, 0, { agent, latencyMs: 12_000, costCents: 0 });
+
+    const r = await runWatchtowerSweep(env.TENANT_A_DB, TENANT, NOW, { scope });
+    expect(r.agent_drift.alarmed).toBe(1);
+    const id = watchtowerAlarmId(TENANT, "agent_drift", { scope, object: agent });
+    const a = await alarm(id);
+    expect(a).not.toBeNull();
+    expect(a!.rule).toBe("agent_drift");
+    expect(a!.object_kind).toBe("agent");
+    expect(a!.object_id).toBe(agent);
+    expect(a!.status).toBe("open");
+    expect(a!.severity).toBe("critical");
+    // The alarm carries the REAL computed averages, never a fabricated number.
+    expect(JSON.parse(a!.detail)).toMatchObject({ agent, avg_latency_ms: 12_000, avg_cost_cents: 0, over: ["latency"] });
+  });
+
+  it("RAISES on COST drift alone (avg cost per run over budget) with latency well inside budget", async () => {
+    const scope = "wt-drift-cost-";
+    const agent = "concierge";
+    await seedAgentRun(scope, `${scope}s1`, 0, { agent, latencyMs: 100, costCents: 200 }); // $2 avg vs $0.50 budget
+    const r = await runWatchtowerSweep(env.TENANT_A_DB, TENANT, NOW, { scope });
+    expect(r.agent_drift.alarmed).toBe(1);
+    const a = await alarm(watchtowerAlarmId(TENANT, "agent_drift", { scope, object: agent }));
+    expect(a!.status).toBe("open");
+    expect(JSON.parse(a!.detail)).toMatchObject({ agent, avg_cost_cents: 200, over: ["cost"] });
+  });
+
+  it("does NOT alarm an agent within budget (a real 0-cost deterministic run, fast latency)", async () => {
+    const scope = "wt-drift-ok-";
+    const agent = "rater";
+    await seedAgentRun(scope, `${scope}s1`, 0, { agent, latencyMs: 40, costCents: 0 });
+    const r = await runWatchtowerSweep(env.TENANT_A_DB, TENANT, NOW, { scope });
+    expect(r.agent_drift.alarmed).toBe(0);
+    // Never raised → no row (clearAlarm on a non-existent id is a safe no-op).
+    expect(await alarm(watchtowerAlarmId(TENANT, "agent_drift", { scope, object: agent }))).toBeNull();
+  });
+
+  it("NEVER fabricates a metric — an agent reporting NO cost/latency cannot trip a drift alarm", async () => {
+    const scope = "wt-drift-nofab-";
+    const agent = "booking";
+    await seedAgentRun(scope, `${scope}s1`, 0, { agent }); // no cost_cents, no latency_ms → '{}' / NULL
+    const r = await runWatchtowerSweep(env.TENANT_A_DB, TENANT, NOW, { scope });
+    expect(r.agent_drift.alarmed).toBe(0);
+    expect(await alarm(watchtowerAlarmId(TENANT, "agent_drift", { scope, object: agent }))).toBeNull();
+  });
+
+  it("SELF-CLEARS when the over-budget runs age out of the 24h window (avg back in budget)", async () => {
+    const scope = "wt-drift-clear-";
+    const agent = "biller";
+    await seedAgentRun(scope, `${scope}s1`, 0, { agent, latencyMs: 20_000, costCents: 0, ts: NOW });
+    await runWatchtowerSweep(env.TENANT_A_DB, TENANT, NOW, { scope });
+    const id = watchtowerAlarmId(TENANT, "agent_drift", { scope, object: agent });
+    expect((await alarm(id))!.status).toBe("open");
+
+    // Advance the sweep clock 3 days: the only metered run now falls OUTSIDE the 24h window → no in-window
+    // runs → the agent is back in budget → the alarm self-clears (resolved, not deleted).
+    const later = NOW + 3 * 86_400_000;
+    const r2 = await runWatchtowerSweep(env.TENANT_A_DB, TENANT, later, { scope });
+    expect(r2.agent_drift.alarmed).toBe(0);
+    expect((await alarm(id))!.status).toBe("resolved");
+  });
+
+  it("IDEMPOTENT — a re-sweep of the SAME drift state upserts the SAME row (never a duplicate)", async () => {
+    const scope = "wt-drift-idem-";
+    const agent = "rater";
+    await seedAgentRun(scope, `${scope}s1`, 0, { agent, latencyMs: 30_000, costCents: 0 });
+    await runWatchtowerSweep(env.TENANT_A_DB, TENANT, NOW, { scope });
+    await runWatchtowerSweep(env.TENANT_A_DB, TENANT, NOW, { scope }); // aggressive re-run
+    expect(await alarmCount(watchtowerAlarmId(TENANT, "agent_drift", { scope, object: agent }))).toBe(1);
   });
 });
