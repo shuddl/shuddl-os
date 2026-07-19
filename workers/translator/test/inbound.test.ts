@@ -7,7 +7,7 @@ import { handleInbound204, StaticSecretResolver, type InboundDeps, type SeqStubL
 import { RecordingTransport } from "../src/transport.js";
 import { tenderPrefix } from "../src/sweep-214.js";
 import { tenantDb } from "../src/tenants.js";
-import { applyAll } from "./helpers.js";
+import { applyAll, seedEdiPartner } from "./helpers.js";
 
 // WP-12 Task 8 · REQ-201/202 — THE INBOUND 204 HANDLER. A partner load tender authenticates by HMAC (the
 // partner's `pairings.secret_ref`, NOT a JWT), parses to a TenderDoc, materializes the party + a QUOTE-STAGE
@@ -264,6 +264,19 @@ describe("REQ-201/202 — inbound 204 → gated chain, NO booking.created", () =
     expect(markers.objects).toHaveLength(1);
     const marker = await env.EVIDENCE.get(markers.objects[0]!.key);
     expect(JSON.parse(await marker!.text())).toEqual({ partnerId: PARTNER_ID, partnerScac: "MEGA", isaControl: "000000042" });
+  });
+
+  it("(f) the 990 acknowledgment carries SHUDDL's ALLOCATED outbound control number, NOT the inbound 204's ISA13 (Task 9)", async () => {
+    // Seed the partner's integrations row (the outbound-counter store) in tenant-A — id = the pairing id the
+    // handler authenticates. A fresh counter → the first allocation is "000000001", provably NOT the inbound ISA.
+    await seedEdiPartner(env.TENANT_A_DB, PARTNER_ID, "certified");
+    const transport = new RecordingTransport();
+    const res = await handleInbound204(await signedRequest(tender204("000000042")), makeDeps(new RecordingSeq(), transport, goodSecrets()));
+    expect(res.status).toBe(200);
+    expect(transport.sent990, "the accepted tender is acknowledged with a 990").toHaveLength(1);
+    const isa = transport.sent990[0]!.bytes.split("~")[0]!.split("*")[13];
+    expect(isa, "SHUDDL's own first outbound interchange number").toBe("000000001");
+    expect(isa, "NOT an echo of the inbound 204's ISA13").not.toBe("000000042");
   });
 
   it("a DIMS-LESS tender rests at quote.requested (no price on air) — no quote.priced, no quote.accepted, no bypass", async () => {

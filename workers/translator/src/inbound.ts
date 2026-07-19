@@ -29,7 +29,8 @@ import { priceShipment, assessApproval } from "@shuddl/rater";
 import type { RateRequest } from "@shuddl/rater";
 import { mapTenderToBooking, type BookingPlan } from "./core/map-204.js";
 import { quarantineDescriptor, type QuarantineRule } from "./core/quarantine.js";
-import { tenderKey, gsControlFromIsa } from "./sweep-214.js";
+import { tenderKey } from "./sweep-214.js";
+import { allocatePartnerControls, PartnerControlError } from "./partners.js";
 import { loadTenantRatingConfig } from "./rate-config.js";
 import { TransportError, type EdiTransport } from "./transport.js";
 
@@ -427,17 +428,25 @@ export async function handleInbound204(request: Request, deps: InboundDeps): Pro
       //    only the partner acknowledgment is deferred until the CONFIRM-gated transport is wired). Any transport
       //    failure is logged + swallowed — the same fail-closed discipline the 214 sweep uses.
       try {
+        // SHUDDL's OWN outbound interchange control numbers for this partner (allocated + persisted, monotonic) —
+        // NEVER an echo of the inbound 204's ISA13, which is the PARTNER's number for a DIFFERENT interchange.
+        const { isaControl: ackIsa, gsControl: ackGs } = await allocatePartnerControls(db, partnerId);
         const bytes = build990({
           shipmentRef: plan.shipment.id,
           partnerScac: plan.shipment.partnerScac,
-          isaControl,
-          gsControl: gsControlFromIsa(isaControl),
+          isaControl: ackIsa,
+          gsControl: ackGs,
           action: "A",
         });
         await deps.transport.send990(plan.shipment.partnerScac, bytes, `edi990/${acceptedId}`);
       } catch (err) {
-        if (!(err instanceof TransportError)) throw err; // a serialize bug is loud; a transport reject is expected
-        console.error(`204-inbound: 990 ack for ${plan.shipment.id} not transmitted (transport unwired/failed — the 204 is recorded):`, err.message);
+        // A transport reject (unwired) OR an unallocatable partner (no integrations row in this tenant yet) DEFERS
+        // the best-effort ack — the 204 is recorded + its chain appended. A genuine serialize bug stays LOUD.
+        if (!(err instanceof TransportError) && !(err instanceof PartnerControlError)) throw err;
+        console.error(
+          `204-inbound: 990 ack for ${plan.shipment.id} not transmitted (deferred — the 204 is recorded):`,
+          err instanceof Error ? err.message : String(err),
+        );
       }
     }
   }

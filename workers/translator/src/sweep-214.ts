@@ -6,9 +6,10 @@
 // PARTNER↔SHIPMENT LINKAGE — the R2 MARKER CONTRACT (defined HERE; Task 8's 204 handler WRITES the tender):
 //   · tender marker  R2 key  edi/<tenant>/tender/<shipmentId>
 //                    body    { partnerId, partnerScac, isaControl }  (JSON)
-//        This sweep READS these to learn which shipments are EDI-tendered and by whom. gsControl is DERIVED
-//        deterministically from isaControl (leading zeros stripped) so the wire stays byte-stable without a
-//        second stored field — the marker carries only what the 204 knew.
+//        This sweep READS these to learn which shipments are EDI-tendered and by whom. The marker's `isaControl`
+//        is the PARTNER's inbound-204 interchange number; the sweep does NOT echo it onto the outbound 214.
+//        SHUDDL's OWN outbound ISA13/GS06 are ALLOCATED per partner (monotonic, persisted — partners.ts),
+//        assigned only AFTER the dedupe check so a re-send never burns a control number.
 //   · "214 sent"     R2 key  edi/<tenant>/214/<dedupeKey>          (dedupeKey = edi214/<newest-status id>)
 //                    body    the serialized 214 wire bytes
 //        The bytes ARE the sent-record — no new table (budget-safe). Its PRESENCE means "already transmitted",
@@ -21,8 +22,9 @@
 import { z } from "@shuddl/contracts";
 import type { EventKind } from "@shuddl/contracts";
 import { readEvents } from "@shuddl/ledger/lens";
-import { build214, resolveMapping, DEFAULT_004010, type PartnerMapping } from "@shuddl/edi";
+import { build214 } from "@shuddl/edi";
 import { buildStatusView, type StatusEventRow } from "./core/build-214.js";
+import { allocatePartnerControls, partnerMapping } from "./partners.js";
 import type { EdiTransport } from "./transport.js";
 import { TENANT_SLUGS, tenantDb, type TranslatorEnv } from "./tenants.js";
 
@@ -40,14 +42,6 @@ export function tenderKey(tenant: string, shipmentId: string): string {
 }
 export function sent214Key(tenant: string, dedupeKey: string): string {
   return `edi/${tenant}/214/${dedupeKey}`;
-}
-
-// GS06 (group control) derived from ISA13 (interchange control): leading zeros stripped, matching the Task-6
-// test convention ("000000042" → "42"). Deterministic ⇒ byte-stable. An all-zero/empty ISA falls back to the
-// ISA verbatim (never an empty control number on the wire).
-export function gsControlFromIsa(isaControl: string): string {
-  const stripped = isaControl.replace(/^0+/, "");
-  return stripped === "" ? isaControl : stripped;
 }
 
 // The tender marker body — Zod at the boundary (`.strict()`: an unknown field is a hard reject, never a
@@ -104,17 +98,6 @@ async function readTenderMarker(r2: R2Bucket, key: string): Promise<TenderMarker
   return res.success ? res.data : null;
 }
 
-// Resolve the partner's stored mapping. An empty/`{}` config yields exactly DEFAULT_004010; a malformed config
-// (unknown fields → resolveMapping throws) falls back to DEFAULT_004010 rather than fault the whole shipment
-// (Task 9 hardens partner-config validation at certification time).
-function mappingFor(config: string): PartnerMapping {
-  try {
-    return resolveMapping(JSON.parse(config));
-  } catch {
-    return DEFAULT_004010;
-  }
-}
-
 // Sweep ONE tenant. Isolated per shipment (log + continue) so one partner's outage never stalls the tenant's
 // tick; isolated per tenant by the caller. Never appends an event (reads only) — the 214 lives in R2.
 export async function sweepTenant214(
@@ -168,25 +151,34 @@ export async function sweepTenant214(
         continue;
       }
 
-      const { view, dedupeKey } = buildStatusView({
+      // Project the shipment's status arc into the byte-stable view MINUS its envelope control numbers, plus the
+      // deterministic dedupe key. ISA13/GS06 are a SEND-TIME envelope concern: they are allocated BELOW, AFTER the
+      // dedupe check, so a deduped (already-sent) shipment never burns a control number. dedupeKey is
+      // `edi214/<newest-status event id>` — independent of the control numbers — so deriving it here is safe.
+      const { view: projection, dedupeKey } = buildStatusView({
         shipmentRef: shipmentId,
         partnerScac: tender.partnerScac,
-        isaControl: tender.isaControl,
-        gsControl: gsControlFromIsa(tender.isaControl),
-        mapping: mappingFor(partner.config),
+        isaControl: "", // placeholder — SHUDDL's OWN outbound numbers are stamped on at send time below, NEVER
+        gsControl: "", //  the inbound 204's ISA13 (the partner's number for a DIFFERENT interchange).
+        mapping: partnerMapping(partner.config),
         events: rows,
       });
 
-      // Idempotency: the sent-marker's PRESENCE means this exact newest-status 214 already went out.
+      // Idempotency: the sent-marker's PRESENCE means this exact newest-status 214 already went out. Checked
+      // BEFORE allocation so a re-run does NOT burn a control number for an already-transmitted shipment.
       const sentKey = sent214Key(tenant, dedupeKey);
       if ((await r2.head(sentKey)) !== null) {
         summary.alreadySent += 1;
         continue;
       }
 
-      const bytes = build214(view);
-      // Transmit FIRST; mark sent ONLY on success — a failed/unwired transmit leaves no marker, so the next
-      // tick re-attempts (the transport dedupes on the same idempotency key if it did land).
+      // Allocate SHUDDL's OWN monotonically-increasing outbound ISA13/GS06 for this partner (persisted across
+      // sweeps) and stamp them onto the projection — the LAST step before build/send, so only a 214 that is
+      // actually transmitted consumes a number.
+      const { isaControl, gsControl } = await allocatePartnerControls(db, tender.partnerId);
+      const bytes = build214({ ...projection, isaControl, gsControl });
+      // Transmit FIRST; mark sent ONLY on success — a failed/unwired transmit leaves no marker, so the next tick
+      // re-attempts (it allocates a FRESH number; the burned-but-unsent number is a legal X12 gap, never reused).
       // NOTE for the future live VAN/AS2 adapter (CONFIRM-gated, unbuilt): `dedupeKey` is NOT tenant/partner-
       // qualified (it is `edi214/<event id>`). That is fine here — our R2 sent-marker IS partner-scoped by the
       // `edi/<tenant>/214/` key path, and NotConfiguredTransport transmits nothing. But a live adapter that
