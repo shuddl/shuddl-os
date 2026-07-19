@@ -8,7 +8,15 @@
 // toml, REQ-154) and drives the sweep. No LLM calls (this worker is deterministic, EDI-format only).
 import { run214Sweep } from "./sweep-214.js";
 import { NotConfiguredTransport, type EdiTransport } from "./transport.js";
-import type { TranslatorEnv } from "./tenants.js";
+import {
+  handleInbound204,
+  NotConfiguredSecretResolver,
+  INBOUND_204_PATH,
+  type InboundDeps,
+  type SecretResolver,
+  type SeqStubLike,
+} from "./inbound.js";
+import { tenantDb, type TranslatorEnv } from "./tenants.js";
 
 // THE COMPOSITION ROOT for the outbound transport (mirrors evidenceSender/conciergeParser in workers/agents).
 // A LIVE EdiTransport adapter (AS2/SFTP/VAN) is a CONFIRM-gated flip that binds HERE once EDI_TRANSPORT_URL +
@@ -21,13 +29,47 @@ export function transportFor(env: TranslatorEnv): EdiTransport {
   return new NotConfiguredTransport();
 }
 
+// THE COMPOSITION ROOT for the inbound-204 HMAC secret resolution (mirrors transportFor's fail-closed default).
+// Resolving a partner's shared secret from a real secret store is the CONFIRM-gated live flip (REQ-154 — secrets
+// never in the toml); until then this FAILS CLOSED (every 204 401s). The handler logic ships fully tested via an
+// injected resolver — going live is a config flip, not code.
+export function secretResolverFor(env: TranslatorEnv): SecretResolver {
+  void env; // read here when the live secret store binds — see the header
+  return new NotConfiguredSecretResolver();
+}
+
+// Route each append to the api worker's (tenant|stream) sequencer DO — the SAME id derivation the api routes +
+// the agents worker use, so the DO's identity re-derivation (REQ-025) accepts it. The 204 handler appends the
+// gated chain THROUGH this stub, up to and INCLUDING quote.accepted; it never appends booking.created.
+function sequencerFor(env: TranslatorEnv): SeqStubLike {
+  return {
+    append: (req) => (env.SHIPMENT_SEQ.get(env.SHIPMENT_SEQ.idFromName(`${req.tenant}|${req.streamId}`)) as unknown as SeqStubLike).append(req),
+  };
+}
+
+// The composition root for the inbound-204 handler deps — every port selected HERE, none read from inside the
+// orchestration (mirrors the agents worker's queue() composition).
+function inboundDeps(env: TranslatorEnv): InboundDeps {
+  return {
+    controlDb: env.CONTROL_DB,
+    tenantDbFor: (slug) => tenantDb(env, slug),
+    evidence: env.EVIDENCE,
+    seq: sequencerFor(env),
+    transport: transportFor(env),
+    secrets: secretResolverFor(env),
+    now: () => Date.now(),
+  };
+}
+
 export default {
-  // This worker serves no public HTTP surface in this task (the 204 inbound webhook lands in Task 8). Every
-  // path/method 404s — defensive and explicit.
+  // The ONLY public HTTP surface: the inbound 204 webhook (POST INBOUND_204_PATH), authenticated by the
+  // partner's shared secret (HMAC over the raw body), NOT a JWT. Every other path/method 404s — defensive and
+  // explicit; the webhook is exposed via an explicit route only (workers_dev = false).
   async fetch(request: Request, env: TranslatorEnv, ctx: ExecutionContext): Promise<Response> {
-    void request;
-    void env;
     void ctx;
+    if (request.method === "POST" && new URL(request.url).pathname === INBOUND_204_PATH) {
+      return handleInbound204(request, inboundDeps(env));
+    }
     return new Response("Not Found", { status: 404 });
   },
   // REQ-200 — the outbound 214 status sweep. The transport is selected at the composition root (transportFor)

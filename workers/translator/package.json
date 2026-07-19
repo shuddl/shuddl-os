@@ -9,7 +9,8 @@
   "dependencies": {
     "@shuddl/contracts": "workspace:*",
     "@shuddl/edi": "workspace:*",
-    "@shuddl/ledger": "workspace:*"
+    "@shuddl/ledger": "workspace:*",
+    "@shuddl/rater": "workspace:*"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.9.14",

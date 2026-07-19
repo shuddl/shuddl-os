@@ -37,6 +37,13 @@ binding = "TENANT_B_DB"
 database_name = "shuddl-t-tenant-b-dev"
 database_id = "local-translator-tenant-b"
 
+# Control plane (pairings + tenants). Task 8's 204 handler resolves the inbound partner's EDI pairing + its
+# tenant from here (auth only; never a tenant data path — REQ-025). Mirrors workers/api CONTROL_DB.
+[[d1_databases]]
+binding = "CONTROL_DB"
+database_name = "shuddl-control-dev"
+database_id = "local-control"
+
 # EDI markers live in R2: the tender linkage (edi/<tenant>/tender/<shipmentId>, written by Task 8's 204
 # handler) and the "214 already sent" dedupe marker (edi/<tenant>/214/<dedupeKey>, the wire bytes ARE the
 # sent-record — no new table). Same bucket the anchor/evidence flows use.
@@ -75,6 +82,12 @@ database_id = "1742fef3-f7bf-4d1a-9aaa-bf9366994528"
 binding = "TENANT_B_DB"
 database_name = "shuddl-t-tenant-b-staging"
 database_id = "aa3b23a8-567d-4479-8311-e9f1678a6797"
+
+# Control plane (must match workers/api [env.staging] CONTROL_DB id).
+[[env.staging.d1_databases]]
+binding = "CONTROL_DB"
+database_name = "shuddl-control-staging"
+database_id = "8e238970-2ed3-494d-960f-e4af082c1e8e"
 
 [[env.staging.r2_buckets]]
 binding = "EVIDENCE"

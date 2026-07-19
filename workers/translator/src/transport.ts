@@ -18,6 +18,13 @@
 export interface EdiTransport {
   /** Transmit the serialized 214 wire bytes to the partner (keyed by SCAC). REJECTS on any failure. */
   send214(partnerScac: string, bytes: string, idempotencyKey: string): Promise<void>;
+  /**
+   * Transmit the serialized 990 (tender response) wire bytes to the partner (keyed by SCAC). REJECTS on any
+   * failure — same discipline as send214: the Task-8 inbound handler treats a rejection as "not transmitted"
+   * (best-effort acknowledgment; the 204 was still recorded). The idempotency key is the accepted-quote-derived
+   * `edi990/<id>` so a live VAN/AS2 adapter dedupes a redelivered acceptance exactly as it dedupes a 214.
+   */
+  send990(partnerScac: string, bytes: string, idempotencyKey: string): Promise<void>;
 }
 
 /**
@@ -50,6 +57,18 @@ export class NotConfiguredTransport implements EdiTransport {
       true,
     );
   }
+
+  // Same fail-closed discipline as send214: the 990 acknowledgment is best-effort, so the inbound handler
+  // CATCHES this rejection and no-ops (the 204 was still recorded + the chain appended). No environment
+  // transmits a real 990 until the CONFIRM-gated transport is wired.
+  async send990(partnerScac: string, _bytes: string, idempotencyKey: string): Promise<void> {
+    throw new TransportError(
+      `EdiTransport is NOT CONFIGURED: no outbound transport is bound in this environment, so the 990 for ` +
+        `SCAC ${partnerScac} (${idempotencyKey}) was NOT transmitted. The inbound 204 was still recorded and ` +
+        `its gated chain appended; only the partner acknowledgment is deferred. Retriable once wired.`,
+      true,
+    );
+  }
 }
 
 export interface TransmittedRecord {
@@ -66,6 +85,8 @@ export interface TransmittedRecord {
  */
 export class RecordingTransport implements EdiTransport {
   readonly sent: TransmittedRecord[] = [];
+  /** 990 acknowledgments recorded separately from the 214 status stream (distinct doc types, distinct assertions). */
+  readonly sent990: TransmittedRecord[] = [];
   private readonly byKey = new Map<string, string>();
 
   async send214(partnerScac: string, bytes: string, idempotencyKey: string): Promise<void> {
@@ -82,5 +103,24 @@ export class RecordingTransport implements EdiTransport {
     }
     this.byKey.set(idempotencyKey, bytes);
     this.sent.push({ partnerScac, bytes, idempotencyKey });
+  }
+
+  // Mirrors send214's idempotency: a repeat key + identical bytes returns without a second record; a repeat key
+  // with DIFFERENT bytes is a byte-stability bug and rejects loudly. Keyed in the SAME map so a 214 and a 990
+  // can never collide on one key (they use disjoint `edi214/`/`edi990/` prefixes).
+  async send990(partnerScac: string, bytes: string, idempotencyKey: string): Promise<void> {
+    const prior = this.byKey.get(idempotencyKey);
+    if (prior !== undefined) {
+      if (prior !== bytes) {
+        throw new TransportError(
+          `RecordingTransport: byte-stability CONFLICT — idempotency key "${idempotencyKey}" was already ` +
+            `transmitted with DIFFERENT bytes. One accepted tender must serialize to exactly one 990.`,
+          false,
+        );
+      }
+      return;
+    }
+    this.byKey.set(idempotencyKey, bytes);
+    this.sent990.push({ partnerScac, bytes, idempotencyKey });
   }
 }

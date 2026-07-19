@@ -6,6 +6,9 @@
 export type TranslatorEnv = {
   TENANT_A_DB: D1Database;
   TENANT_B_DB: D1Database;
+  /** The control plane (pairings + tenants). Task 8's 204 handler resolves the inbound partner's EDI pairing +
+   *  its tenant from HERE (auth only; never a tenant data path — REQ-025). The 214 sweep does not read it. */
+  CONTROL_DB: D1Database;
   /** EDI markers (tender linkage + the 214 dedupe/sent-record) live under the `edi/<tenant>/…` R2 prefix. */
   EVIDENCE: R2Bucket;
   /** The api worker's sequencer DO (cross-script). Unused by the 214 sweep (no event append); Task 8's 204

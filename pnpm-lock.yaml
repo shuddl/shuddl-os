@@ -455,6 +455,9 @@ importers:
       '@shuddl/ledger':
         specifier: workspace:*
         version: link:../../packages/ledger
+      '@shuddl/rater':
+        specifier: workspace:*
+        version: link:../../packages/rater
     devDependencies:
       '@cloudflare/vitest-pool-workers':
         specifier: ^0.9.14
