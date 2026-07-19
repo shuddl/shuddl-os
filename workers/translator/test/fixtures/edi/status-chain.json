@@ -1,0 +1,20 @@
+[
+  {
+    "id": "evt-arrived-77012",
+    "kind": "stop.arrived",
+    "ts": 1784298600000,
+    "payload": { "city": "PORTLAND", "state": "OR" }
+  },
+  {
+    "id": "evt-departed-77012",
+    "kind": "stop.departed",
+    "ts": 1784303100000,
+    "payload": { "city": "PORTLAND", "state": "OR" }
+  },
+  {
+    "id": "evt-pod-77012",
+    "kind": "pod.signed",
+    "ts": 1784369700000,
+    "payload": { "city": "DENVER", "state": "CO" }
+  }
+]

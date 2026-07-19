@@ -1,0 +1,90 @@
+{
+  "party": {
+    "id": "party_39492788e237f57b",
+    "kind": "broker",
+    "name": "ZETA BROKERS INC",
+    "email": "billing@synthbroker.example"
+  },
+  "shipment": {
+    "id": "shp_ac0337a5f2baabea",
+    "partnerScac": "SYNC",
+    "shipperPartyId": "party_39492788e237f57b",
+    "consigneePartyId": "party_39492788e237f57b",
+    "billToPartyId": "party_39492788e237f57b",
+    "refs": {
+      "SID": "SID-77012",
+      "BM": "BOL-55023",
+      "PO": "PO-33001"
+    }
+  },
+  "stops": {
+    "shipper": {
+      "name": "DELTA SHIPPING CO",
+      "address": {
+        "street": "4200 FOUNDRY WAY",
+        "city": "PORTLAND",
+        "state": "OR",
+        "zip": "97035"
+      }
+    },
+    "consignee": {
+      "name": "EPSILON RECEIVING LLC",
+      "address": {
+        "street": "880 TERMINAL RD",
+        "city": "DENVER",
+        "state": "CO",
+        "zip": "80216"
+      }
+    }
+  },
+  "addresses": {
+    "shipper": {
+      "street": "4200 FOUNDRY WAY",
+      "city": "PORTLAND",
+      "state": "OR",
+      "zip": "97035"
+    },
+    "consignee": {
+      "street": "880 TERMINAL RD",
+      "city": "DENVER",
+      "state": "CO",
+      "zip": "80216"
+    },
+    "billTo": {
+      "street": "1500 COMMERCE PLAZA",
+      "city": "CHICAGO",
+      "state": "IL",
+      "zip": "60601"
+    }
+  },
+  "appends": [
+    {
+      "id": "3db43e13-d224-43ea-accb-461aeae0012e",
+      "shipment_id": "shp_ac0337a5f2baabea",
+      "ts": 1784289600000,
+      "actor": {
+        "party": "party_39492788e237f57b"
+      },
+      "party_refs": [
+        "party_39492788e237f57b"
+      ],
+      "evidence": [],
+      "source": "edi",
+      "confidence": 10000,
+      "kind": "quote.requested",
+      "payload": {
+        "request": {
+          "origin_zip": "97035",
+          "dest_zip": "80216",
+          "weight_lb": 18500,
+          "dims": {
+            "l_in": 96,
+            "w_in": 48,
+            "h_in": 52,
+            "pieces": 24
+          }
+        }
+      }
+    }
+  ]
+}
