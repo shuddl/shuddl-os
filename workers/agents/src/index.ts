@@ -14,6 +14,7 @@ import { QuoteAcceptedTrigger, handleQuoteAccepted, type BookingDeps } from "./b
 import { sweepTenantOverdueInbound } from "./sla-sweep.js";
 import { sweepTenantOverdueInvoices } from "./collector.js";
 import { runWatchtowerSweep } from "./watchtower.js";
+import { runWatchtowerSnapshots } from "./watchtower-snapshot.js";
 import { TENANT_SLUGS, tenantDb, type AgentsEnv } from "./tenants.js";
 
 // The queue's message union (REQ-039): a committed pod.signed fans out to the Biller, a committed
@@ -333,6 +334,12 @@ export default {
       // is deterministic. DECOUPLED from the anchor via the same finally so a per-tenant anchor fault never
       // skips it; it contains its own per-tenant faults, so the anchor's throw still surfaces after it runs.
       await runWatchtower(env, () => controller.scheduledTime);
+      // REQ-160 — the WEEKLY Watchtower telemetry snapshot rides this SAME daily tick but is DAY-OF-WEEK GATED
+      // (isSnapshotDay): it persists each tenant's 7-metric R2 manifest only on SNAPSHOT_DOW, a no-op every other
+      // day — so the daily cron carries the weekly snapshot with no new cron expression. DECOUPLED via the same
+      // finally; it contains its own per-tenant faults (write-once per ISO week, idempotent). NO external publish
+      // (CONFIRM-gated) — the R2 manifest IS the telemetry.
+      await runWatchtowerSnapshots(env, () => controller.scheduledTime);
     }
   },
   // REQ-159 (GTM — milestone gate, NOT a code deliverable): this consumer is the M-H substrate. The

@@ -13,15 +13,16 @@
 // `scope` is applied ONLY as a BOUND `LIKE ?` param — never interpolated — and only over server-derived id
 // columns (never client input on this read).
 
-import { scopeLike, unbilledShipmentsSql } from "@shuddl/ledger/queries/unbilled";
-
-const DAY_MS = 86_400_000;
+import { scopeLike } from "@shuddl/ledger/queries/unbilled";
+// WP-11 Task 10 (REQ-160) — computeUnbilled / computeDsoDays / computeCostRatioBps were MOVED to the shared
+// @shuddl/ledger/queries/metrics module so the KPI route (this file's importer) and the weekly Watchtower
+// snapshot import the ONE source and can never drift (a parity test locks it). Re-exported here UNCHANGED, so
+// this module's public surface — and every importer — is unaffected. The other three tiles (OTD/dwell/lane)
+// stay local; they are command-only and back no snapshot.
+export { computeUnbilled, computeDsoDays, computeCostRatioBps } from "@shuddl/ledger/queries/metrics";
 
 export interface KpiOpts {
   scope?: string;
-}
-export interface DsoOpts extends KpiOpts {
-  now: number; // injected clock so DSO is deterministic under test; the route passes Date.now()
 }
 
 export type KpiValue = number | "UNKNOWN";
@@ -43,24 +44,6 @@ export interface LanePnl {
 // identical scoping rule (one source of truth — skill share-lint-matchers-with-parity-tests).
 function likeClause(col: string, scope: string | undefined, params: (string | number)[]): string {
   return scopeLike(col, scope, params);
-}
-
-// ─── 1. UNBILLED — the "=0 alarm" ─────────────────────────────────────────────────────────────────────
-// Count of shipments with a committed `pod.signed` but NO `invoice.issued` (a POD-without-invoice anti-join).
-// The `kind='pod.signed'` existence predicate mirrors the invoice gate (packages/ledger/src/gates/
-// invoice-gate.ts:45); here it is inverted set-wise and anti-joined against invoice.issued on the same shipment.
-// A healthy tenant = 0 — and that 0 is the REAL anti-join result (0 unbilled shipments), the alarm itself, NOT a
-// fabricated placeholder. So unbilled is the ONE tile that is always a number: "no data" honestly means 0 unbilled.
-export async function computeUnbilled(db: D1Database, opts: KpiOpts = {}): Promise<number> {
-  const params: (string | number)[] = [];
-  const scoped = likeClause("p.shipment_id", opts.scope, params);
-  // The anti-join SQL is the SHARED unbilledShipmentsSql (@shuddl/ledger/queries/unbilled) — the SAME predicate
-  // the Watchtower alarm sweeps, so the KPI "=0" tile and the durable alarm can never disagree (REQ-036).
-  const row = await db
-    .prepare(unbilledShipmentsSql("COUNT(DISTINCT p.shipment_id) AS n", scoped))
-    .bind(...params)
-    .first<{ n: number }>();
-  return row?.n ?? 0;
 }
 
 // ─── 2. OTD — on-time delivery %, appt-window gated ───────────────────────────────────────────────────
@@ -193,78 +176,4 @@ export async function computeLanePnl(db: D1Database, opts: KpiOpts = {}): Promis
     });
 
   return { value: total, lanes };
-}
-
-// ─── 5. DSO — dollar-weighted average age of OPEN AR, days ────────────────────────────────────────────
-// Open = invoices.status='issued' (a payment.received flips a covered invoice to 'paid', removing it from open
-// AR — Task 4). Age = now − the invoice.issued event ts (joined via issued_event_id → events.ts). DSO = the
-// dollar-weighted mean age in days: Σ(total·age) / Σ(total). Accumulated in BigInt (no float, no overflow), then
-// rounded to whole days. No open invoices → UNKNOWN (never 0 — you cannot average the age of nothing).
-export async function computeDsoDays(db: D1Database, opts: DsoOpts): Promise<KpiValue> {
-  const params: (string | number)[] = [];
-  const scoped = likeClause("i.id", opts.scope, params);
-  const res = await db
-    .prepare(
-      `SELECT i.total_cents AS total, e.ts AS issue_ts
-       FROM invoices i JOIN events e ON e.id = i.issued_event_id
-       WHERE i.status='issued'${scoped}`,
-    )
-    .bind(...params)
-    .all<{ total: number; issue_ts: number }>();
-  if (res.results.length === 0) return "UNKNOWN"; // no open AR — honest UNKNOWN, never a fabricated 0
-
-  let weighted = 0n;
-  let totalCents = 0n;
-  for (const r of res.results) {
-    weighted += BigInt(r.total) * BigInt(opts.now - r.issue_ts);
-    totalCents += BigInt(r.total);
-  }
-  if (totalCents === 0n) return "UNKNOWN";
-  const dsoMs = weighted / totalCents; // integer ms (BigInt truncated); Number-safe (< ~1e13 for real ages)
-  return Math.round(Number(dsoMs) / DAY_MS);
-}
-
-// ─── 6. OR — HONEST cost/revenue ratio (NOT a true operating ratio) ───────────────────────────────────
-// THERE IS NO OPERATING-COST EVENT KIND (money_lines AP = interline + settlement fees only, NOT linehaul/driver/
-// asset op-cost). So a literal AP/AR is an INTERLINE ratio, not a true OR — labeling it "Operating Ratio" would
-// FABRICATE a meaning the data does not carry. Instead we compute an HONEST, clearly-labeled cost/revenue ratio
-// from the RATER's quoted cost BASIS: floors.full (the fully-allocated cost floor on quote.priced) over the AR
-// `sell`. It answers "what fraction of revenue does the quoted cost basis represent" — NOT true operating ratio.
-// One price per quote stream (the latest quote.priced, so a requote never double-counts). No quoted basis → UNKNOWN.
-export async function computeCostRatioBps(db: D1Database, opts: KpiOpts = {}): Promise<KpiValue> {
-  const params: (string | number)[] = [];
-  const scoped = likeClause("shipment_id", opts.scope, params);
-  const res = await db
-    .prepare(
-      `SELECT stream_id, seq, payload FROM events
-       WHERE kind='quote.priced'${scoped} ORDER BY stream_id, seq`,
-    )
-    .bind(...params)
-    .all<{ stream_id: string; seq: number; payload: string }>();
-
-  const latest = new Map<string, { seq: number; payload: string }>(); // stream_id → the max-seq priced payload
-  for (const r of res.results) {
-    const prev = latest.get(r.stream_id);
-    if (prev === undefined || r.seq > prev.seq) latest.set(r.stream_id, { seq: r.seq, payload: r.payload });
-  }
-
-  let costTotal = 0;
-  let sellTotal = 0;
-  for (const { payload } of latest.values()) {
-    let sell: unknown;
-    let full: unknown;
-    try {
-      const p = JSON.parse(payload) as { sell?: unknown; floors?: { full?: unknown } };
-      sell = p.sell;
-      full = p.floors?.full;
-    } catch {
-      continue; // unparseable payload — skip, never fabricate
-    }
-    if (typeof sell !== "number" || !Number.isInteger(sell) || sell <= 0) continue;
-    if (typeof full !== "number" || !Number.isInteger(full)) continue;
-    sellTotal += sell;
-    costTotal += full;
-  }
-  if (sellTotal <= 0) return "UNKNOWN"; // no quoted cost basis — honest UNKNOWN, never a placeholder ratio
-  return Math.round((costTotal * 10_000) / sellTotal);
 }
