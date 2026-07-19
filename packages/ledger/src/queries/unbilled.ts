@@ -33,6 +33,57 @@ export function unbilledShipmentsSql(select: string, scopeClause = ""): string {
   );
 }
 
+// ── WP-11 Task 13 (REQ-169) — the Biller reconciliation RE-DRIVE predicate + the terminal-hold marker ──────
+//
+// The reconciliation sweep (workers/agents/src/recon-sweep.ts) re-enqueues the Biller for any stream that was
+// DELIVERED (a committed pod.signed) but never billed AND never permanently held — the exact commit→enqueue
+// lost-trigger window. It reuses the SAME anti-join core above (pod.signed AND NOT invoice.issued — no drift)
+// and ADDS two exclusions so the re-enqueue is BOUNDED:
+//   · a TERMINAL HOLD MARKER exclusion — once the Biller permanently holds a POD (below_floor / no_quote /
+//     interline_unresolved / anomaly) it appends a durable internal note (message.received{channel:note,
+//     visibility:internal}) whose body_ref carries the `TERMINAL_HOLD_BODY_REF_PREFIX`. A shipment with such a
+//     marker is EXCLUDED, so a permanently-held POD is re-enqueued at most until the marker is written (once),
+//     then never again — otherwise the anti-join would re-drive a permanent hold every cron tick, forever.
+//   · an AGE filter (caller-built bound fragment on p.recorded_at) — a just-committed POD's trigger may still be
+//     in flight, so only PODs older than the window are re-driven (the age is measured from COMMIT time).
+//
+// The Biller EMITS the marker with `terminalHoldBodyRef` and the recon query EXCLUDES on
+// `TERMINAL_HOLD_BODY_REF_PREFIX` — ONE definition, shared by both, so the emit and the exclusion can never
+// drift (skill share-lint-matchers-with-parity-tests). The reason rides IN the body_ref (message.received's
+// payload is .strict(), so no extra field) — and is the human-readable surfacing of the hold (REQ-036).
+
+/** The body_ref prefix that marks a Biller terminal-hold note. The recon anti-join EXCLUDES any shipment
+ *  carrying a note with this prefix; the Biller writes it via `terminalHoldBodyRef`. Single source of truth. */
+export const TERMINAL_HOLD_BODY_REF_PREFIX = "biller-terminal-hold/";
+
+/** The DETERMINISTIC body_ref for a Biller terminal-hold marker on (shipment, reason). `reason` is one of the
+ *  terminal BillerOutcome held reasons (below_floor / no_quote / interline_unresolved / anomaly) — a clean slug,
+ *  safe in the ref and in the exclusion LIKE. */
+export function terminalHoldBodyRef(shipmentId: string, reason: string): string {
+  return `${TERMINAL_HOLD_BODY_REF_PREFIX}${shipmentId}/${reason}`;
+}
+
+/** The event kind the terminal-hold marker rides on — an internal note reuses the existing message.received kind
+ *  (NO new kind; the 35-catalog is frozen). */
+export const UNBILLED_HOLD_MARKER_KIND = "message.received";
+
+/**
+ * Build the reconciliation RE-DRIVE anti-join: the shared unbilled predicate (pod.signed, no invoice.issued),
+ * EXTENDED with the terminal-hold-marker exclusion and an optional caller-built, BOUND `ageClause` on
+ * `p.recorded_at` (e.g. ` AND p.recorded_at < ?`, its param pushed by the caller). Reuses `unbilledShipmentsSql`
+ * verbatim for the core so the "unbilled" definition stays a single source of truth. `select`/`scopeClause`
+ * follow the same rules as `unbilledShipmentsSql` (hardcoded literal / bound `LIKE ?`, never user input). The
+ * hold-marker prefix is a hardcoded constant interpolated literally (mirrors the UNBILLED_*_KIND interpolation).
+ */
+export function unbilledRedriveSql(select: string, scopeClause = "", ageClause = ""): string {
+  return (
+    unbilledShipmentsSql(select, scopeClause) +
+    ` AND NOT EXISTS (SELECT 1 FROM events h WHERE h.kind = '${UNBILLED_HOLD_MARKER_KIND}' AND h.shipment_id = p.shipment_id` +
+    ` AND json_extract(h.payload, '$.body_ref') LIKE '${TERMINAL_HOLD_BODY_REF_PREFIX}%')` +
+    ageClause
+  );
+}
+
 /**
  * A bound `LIKE ?` scope fragment — the SHARED test-scope hook used across the KPI computes and the Watchtower
  * sweep. `col` is a HARDCODED literal at every call site (never user input); `scope` is pushed as a BOUND param

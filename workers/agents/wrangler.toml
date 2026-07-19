@@ -53,6 +53,13 @@ max_batch_size = 10
 max_retries = 5
 dead_letter_queue = "shuddl-agent-dlq-dev"
 
+# REQ-169: the reconciliation sweep (cron) re-enqueues a LOST pod.signed Biller trigger onto the SAME queue this
+# worker consumes (and the api worker's sequencer DO produces to), closing the commit→enqueue gap. So this worker
+# is BOTH producer and consumer of the trigger queue. AGENT_QUEUE is the producer binding the sweep sends through.
+[[queues.producers]]
+queue = "shuddl-agent-triggers-dev"
+binding = "AGENT_QUEUE"
+
 # The Biller appends invoice.issued THROUGH the api worker's sequencer DO (cross-script binding) so
 # the I2 gate + the money projection run atomically there — this worker never writes events itself.
 [[durable_objects.bindings]]
@@ -99,6 +106,11 @@ queue = "shuddl-agent-triggers-staging"
 max_batch_size = 10
 max_retries = 5
 dead_letter_queue = "shuddl-agent-dlq-staging"
+
+# REQ-169 — the reconciliation sweep's re-enqueue producer (see the dev binding above).
+[[env.staging.queues.producers]]
+queue = "shuddl-agent-triggers-staging"
+binding = "AGENT_QUEUE"
 
 # Cross-script DO → the STAGING api worker (must be deployed first).
 [[env.staging.durable_objects.bindings]]

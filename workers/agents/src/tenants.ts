@@ -8,6 +8,9 @@ export type AgentsEnv = {
   EVIDENCE: R2Bucket;
   /** The api worker's sequencer DO (cross-script binding) — the Biller's ONLY write path (I2 + money projection run there). */
   SHIPMENT_SEQ: DurableObjectNamespace;
+  /** REQ-169 — the agent-trigger queue PRODUCER (the SAME queue this worker consumes + the DO produces to). The
+   *  reconciliation sweep re-enqueues a lost pod.signed Biller trigger here so the queue() consumer re-drives it. */
+  AGENT_QUEUE: Queue;
   ENVIRONMENT?: string;
   /** REQ-092/157 — BOTH present ⇒ ResendSender; otherwise NotConfiguredSender. Secrets via `wrangler secret`, never this file's toml. */
   RESEND_API_KEY?: string;

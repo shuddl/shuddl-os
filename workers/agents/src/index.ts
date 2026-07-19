@@ -12,6 +12,7 @@ import { handleInterlineSplit } from "./interline-split.js";
 import { MessageReceivedTrigger, handleMessageReceived, type ConciergeDeps } from "./concierge.js";
 import { QuoteAcceptedTrigger, handleQuoteAccepted, type BookingDeps } from "./booking.js";
 import { sweepTenantOverdueInbound } from "./sla-sweep.js";
+import { sweepTenantUnbilledRedrive } from "./recon-sweep.js";
 import { sweepTenantOverdueInvoices } from "./collector.js";
 import { runWatchtowerSweep } from "./watchtower.js";
 import { runWatchtowerSnapshots } from "./watchtower-snapshot.js";
@@ -71,6 +72,26 @@ export async function runSlaSweep(env: AgentsEnv, now: () => number = () => Date
       console.log(`concierge sla-sweep: tenant ${slug} → ${JSON.stringify(result)}`);
     } catch (err) {
       console.error(`concierge sla-sweep: tenant ${slug} failed (re-run next tick — the sweep is idempotent):`, err);
+    }
+  }
+}
+
+// REQ-169 — the Biller reconciliation sweep across every allowlisted tenant (REQ-025 isolation: one tenant's D1
+// per iteration; each re-enqueued trigger names ONLY that tenant, so it CANNOT re-drive another). It RE-ENQUEUES
+// the Biller trigger for any stream with a committed pod.signed but NO invoice.issued AND no terminal hold-marker,
+// older than the window — closing the commit→enqueue lost-trigger gap. Self-clearing + BOUNDED: once a POD is
+// billed (invoice.issued) or held (the marker the Biller writes), it drops out of the anti-join, so a permanently-
+// held POD is re-enqueued at most until its marker lands, then never again. Idempotent (deterministic invoice id +
+// DO dedupe), so re-driving every tick is safe; a per-tenant fault is contained + logged so one tenant never
+// stalls the rest. The cron reads wall-clock for `now` (deterministic in tests).
+export async function runReconSweep(env: AgentsEnv, now: () => number = () => Date.now()): Promise<void> {
+  const at = now();
+  for (const slug of TENANT_SLUGS) {
+    try {
+      const result = await sweepTenantUnbilledRedrive(tenantDb(env, slug), env.AGENT_QUEUE, slug, at);
+      console.log(`recon-sweep: tenant ${slug} → ${JSON.stringify(result)}`);
+    } catch (err) {
+      console.error(`recon-sweep: tenant ${slug} failed (re-run next tick — the sweep is idempotent):`, err);
     }
   }
 }
@@ -350,6 +371,12 @@ export default {
     } finally {
       await runSlaSweep(env, () => controller.scheduledTime);
       await runCollectorSweep(env, () => controller.scheduledTime);
+      // REQ-169 — the Biller reconciliation sweep rides this SAME tick, anchored to the fired-at instant so the
+      // age cutoff is deterministic. DECOUPLED from the anchor via the same finally so a per-tenant anchor fault
+      // never skips it; it contains its own per-tenant faults, so the anchor's throw still surfaces after it runs.
+      // It re-enqueues any lost-trigger pod.signed (unbilled + unheld, older than the window) so the Biller
+      // re-drives; self-clearing + idempotent (a billed/held stream drops out of the anti-join).
+      await runReconSweep(env, () => controller.scheduledTime);
       // REQ-036 — the Watchtower alarm sweep rides the SAME tick, anchored to the fired-at instant so severity
       // is deterministic. DECOUPLED from the anchor via the same finally so a per-tenant anchor fault never
       // skips it; it contains its own per-tenant faults, so the anchor's throw still surfaces after it runs.

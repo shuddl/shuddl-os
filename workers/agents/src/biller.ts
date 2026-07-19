@@ -28,6 +28,7 @@ import { z } from "@shuddl/contracts";
 import type { GeoStamp, InvoiceIssuedPayload, LedgerEvent, QuotePricedPayload } from "@shuddl/contracts";
 import { rowToEvent } from "@shuddl/ledger/lens";
 import { plausibleEmail } from "@shuddl/ledger/contacts";
+import { terminalHoldBodyRef } from "@shuddl/ledger/queries/unbilled";
 import { composeInvoice, renderEvidenceEmail, SendError } from "@shuddl/agents";
 import type { EvidenceEmailData, EvidenceMessage, EvidenceSender } from "@shuddl/agents";
 import type { Leg } from "@shuddl/rater";
@@ -100,6 +101,45 @@ export async function invoiceEventIdFor(podEventId: string): Promise<string> {
 // The payload invoice_id (the AR document number) — same derivation, different domain-separation tag.
 async function invoiceIdFor(podEventId: string): Promise<string> {
   return `inv_${(await sha256Hex(`biller:invoice:${podEventId}`)).slice(0, 16)}`;
+}
+
+// ---- the terminal-hold marker (REQ-169) --------------------------------------------------------------
+// A PERMANENT hold (below_floor / no_quote / interline_unresolved / anomaly) used to append NOTHING — just a
+// returned outcome + log line. That left two gaps: (1) the hold was INVISIBLE on the ledger (nothing to surface
+// on the exceptions queue, REQ-036), and (2) the REQ-169 reconciliation sweep's pod-without-invoice anti-join
+// would re-enqueue a permanently-held POD every cron tick, forever. This durable, idempotent MARKER closes both:
+// an INTERNAL message.received{channel:note} note (the sla-sweep.ts internal-note idiom — NO new event kind, the
+// 35-catalog is frozen) recording the hold (shipment + reason), appended THROUGH the sequencer. Its id is
+// DETERMINISTIC per (shipment, reason), so the DO dedupes a re-drive to a no-op; its body_ref
+// (`terminalHoldBodyRef`) is the SAME shape the recon anti-join excludes on (single source of truth,
+// @shuddl/ledger/queries/unbilled). ONLY a TERMINAL hold gets a marker — a RETRIABLE fault still THROWS
+// (redelivery). If the marker append itself faults transiently it THROWS too, redelivering the message; the
+// re-judged hold re-derives the SAME marker id, so the retry is safe (the marker lands at most once).
+async function emitTerminalHoldMarker(
+  seq: SeqStubLike,
+  msg: PodSignedMessage,
+  streamId: string,
+  podRecordedAt: number,
+  reason: "below_floor" | "no_quote" | "interline_unresolved" | "anomaly",
+): Promise<void> {
+  await seq.append({
+    tenant: msg.tenant,
+    streamId,
+    input: {
+      // Deterministic per (shipment, reason) — a re-drive re-derives it and the DO returns the ORIGINAL note.
+      id: await uuidFromSeed(`biller:terminal-hold:${msg.shipment_id}:${reason}`),
+      shipment_id: msg.shipment_id,
+      ts: podRecordedAt, // the POD commit instant — deterministic, no clock read (mirrors the invoice ts)
+      actor: { party: "agent:biller" }, // the server-controlled sentinel (same as the invoice.issued actor)
+      party_refs: [],
+      evidence: [],
+      source: "native",
+      confidence: 10_000,
+      requested_visibility: "internal", // narrows message.received's counterparty default → internal ops note
+      kind: "message.received",
+      payload: { channel: "note", from_ref: "agent:biller", body_ref: terminalHoldBodyRef(msg.shipment_id, reason) },
+    },
+  });
 }
 
 // ---- display formatting (pre-formatted HERE; renderEvidenceEmail is Date-free by contract) ----------
@@ -285,6 +325,9 @@ export async function handlePodSigned(message: PodSignedMessage, deps: BillerDep
   // projection of the RECORDED quote). No quote ⇒ HOLD — an unquoted shipment must never invoice ad hoc.
   const quoteEvent = await loadAcceptedQuote(db, streamId, pod.seq);
   if (quoteEvent === null || quoteEvent.kind !== "quote.priced") {
+    // TERMINAL: an unquoted shipment can never invoice ad hoc, and no quote can be recorded before this POD
+    // retroactively (append-only + seq<) — so this hold is permanent. Mark it (REQ-169 bounding + surfacing).
+    await emitTerminalHoldMarker(seq, msg, streamId, pod.recorded_at, "no_quote");
     return { status: "held", reason: "no_quote", detail: `no quote.priced precedes pod ${msg.event_id} on ${streamId} — nothing to project an invoice from` };
   }
   const acceptedQuote: QuotePricedPayload = quoteEvent.payload;
@@ -321,6 +364,9 @@ export async function handlePodSigned(message: PodSignedMessage, deps: BillerDep
     .all<LegRow>();
   const interline = resolveInterline(legRows.results, pod.actor.party);
   if (interline.kind === "unresolved") {
+    // TERMINAL (REQ-040 fail-closed): an interline move whose executing share cannot be judged must never
+    // auto-invoice; it holds for a human. Mark it (REQ-169 bounding + surfacing).
+    await emitTerminalHoldMarker(seq, msg, streamId, pod.recorded_at, "interline_unresolved");
     return { status: "held", reason: "interline_unresolved", detail: `shipment ${msg.shipment_id}: ${interline.detail} (REQ-040 fail-closed)` };
   }
 
@@ -337,7 +383,10 @@ export async function handlePodSigned(message: PodSignedMessage, deps: BillerDep
   });
 
   if (composed.status === "hold") {
-    // NO append, NO send. The outcome is the log line; the exceptions-queue surface is WP-11 (Watchtower).
+    // NO invoice, NO send — a below-floor executing share or an anomalous ($222k/35-lb) recorded quote is a
+    // PERMANENT hold (REQ-040). Append the durable, idempotent marker (REQ-169): it makes the hold visible on
+    // the exceptions queue (REQ-036) AND lets the reconciliation sweep EXCLUDE it (bounded re-enqueue).
+    await emitTerminalHoldMarker(seq, msg, streamId, pod.recorded_at, composed.reason);
     return { status: "held", reason: composed.reason, detail: composed.detail };
   }
 
