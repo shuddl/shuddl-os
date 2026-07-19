@@ -102,6 +102,19 @@ export const StatusView = z
   .strict();
 export type StatusView = z.infer<typeof StatusView>;
 
+// TenderResponse — the deterministic input to build990 (the 990 answer to a 204 load tender). action is the
+// B1 reservation action code: "A" accept / "D" decline. Control numbers are passed in for byte-stability.
+export const TenderResponse = z
+  .object({
+    shipmentRef: z.string(),
+    partnerScac: z.string(),
+    isaControl: z.string(),
+    gsControl: z.string(),
+    action: z.enum(["A", "D"]),
+  })
+  .strict();
+export type TenderResponse = z.infer<typeof TenderResponse>;
+
 // PartnerMapping — the per-partner format quirks as DATA, not code (REQ-034/203). statusDialect overrides the
 // canonical status→AT7 code per partner; refQualifiers renames an L11 qualifier to a canonical ref name. A
 // certified partner's mapping is stored config; this schema pins its shape.
