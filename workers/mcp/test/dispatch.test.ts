@@ -307,8 +307,12 @@ describe("[FIX 1] the mutation-check chain is composed EXPLICITLY, never a mutab
     const live = defaultDispatchDeps(env).beforeMutation;
     // Identity: the production chain IS the explicit source array — a declared-but-unlisted check is verifiably unrun.
     expect((live as ComposedMutationGate).checks).toBe(DEFAULT_MUTATION_CHECKS);
-    expect(DEFAULT_MUTATION_CHECKS).toEqual([]); // empty until Task 8/9 ADD checks explicitly at the marker
+    // Task 8 (REQ-105) ADDED capsCheck explicitly at the marker; Task 9 (confirm) is not composed yet. A
+    // declared-but-unlisted check would fail this identity assertion (the whole point of the explicit array).
+    expect(DEFAULT_MUTATION_CHECKS.map((c) => c.name)).toEqual(["caps"]);
 
+    // An empty tool ({}.name !== "book_shipment") is a caps pass-through, so the live chain resolves; the test
+    // global still must NOT fire (it is not a backdoor into production).
     await live({} as ToolCtx, {} as ToolDef, {});
     expect(fired).toEqual([]); // the test-global registration is NOT a backdoor into production
   });

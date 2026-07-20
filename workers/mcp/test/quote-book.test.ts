@@ -122,8 +122,12 @@ beforeAll(async () => {
   await applyControl(env.CONTROL_DB);
   await seedTenant(env.CONTROL_DB, TENANT_A, "tenant-qb-a");
   await seedTenant(env.CONTROL_DB, TENANT_B, "tenant-qb-b");
-  await seedPairing(env.CONTROL_DB, { id: PAIRING_A, tenantId: TENANT_A, kind: "mcp", status: "active", scopes: '["mcp"]' });
-  await seedPairing(env.CONTROL_DB, { id: PAIRING_B, tenantId: TENANT_B, kind: "mcp", status: "active", scopes: '["mcp"]' });
+  // Task 8 (REQ-105): book_shipment now runs the caps chokepoint. Seed GENEROUS spend/velocity caps (and no lane
+  // restriction) so these DoD-booking-path tests exercise the tool, not the cap edges — the caps EDGES (refuse/
+  // fail-closed/attribution) are proven in caps.test.ts. `spend` is integer cents; `velocity` is a count.
+  const OPEN_CAPS = JSON.stringify({ spend: 1_000_000_000, velocity: 100_000 });
+  await seedPairing(env.CONTROL_DB, { id: PAIRING_A, tenantId: TENANT_A, kind: "mcp", status: "active", scopes: '["mcp"]', caps: OPEN_CAPS });
+  await seedPairing(env.CONTROL_DB, { id: PAIRING_B, tenantId: TENANT_B, kind: "mcp", status: "active", scopes: '["mcp"]', caps: OPEN_CAPS });
   // Seed a real KV access-token→pairing grant (the OAuth ceremony's product; resolveTokenGrant reads it).
   const exp = Math.floor(Date.now() / 1000) + 3600;
   await env.GRANTS.put(`token:${TOKEN_A}`, JSON.stringify({ pairingId: PAIRING_A, scope: "mcp", exp }));
@@ -197,7 +201,14 @@ describe("quote_freight (Task 4) — parties → shipment → rate, over the api
 });
 
 describe("book_shipment (Task 5) — accept-quote ONLY (the no-bypass invariant)", () => {
+  // The caps chokepoint (Task 8, REQ-105) reads the accepted quote's sell BEFORE the handler runs, so a
+  // book_shipment now hops GET …/events?kind=quote.priced first (a READ). The fake serves that priced event
+  // (a sell WELL under the OPEN_CAPS spend) then the accept-quote write.
+  const PRICED_EVENT = { id: "evt-priced-1", kind: "quote.priced", seq: 1, payload: { sell: 187_400, basis: { zone: "Z2", matched_zip_prefix: "800" } } };
   const acceptApi: (r: Recorded) => Reply = (r) => {
+    if (r.method === "GET" && r.path === "/v1/shipments/shp_qb01/events") {
+      return { status: 200, json: { events: [PRICED_EVENT], next_cursor: null } };
+    }
     if (r.method === "POST" && r.path === "/v1/shipments/shp_qb01/accept-quote") {
       return { status: 201, json: { id: "evt-accepted-1", kind: "quote.accepted", seq: 2, stream_id: "s:shp_qb01" } };
     }
@@ -212,27 +223,32 @@ describe("book_shipment (Task 5) — accept-quote ONLY (the no-bypass invariant)
     expect(out.quote_event_id).toBe("evt-priced-1"); // the accepted priced quote
     expect(out.accepted_event_id).toBe("evt-accepted-1"); // the quote.accepted appended
 
-    // THE NO-BYPASS INVARIANT: the api-call SET is EXACTLY [POST …/accept-quote] with body {quote_event_id}.
-    expect(calls).toHaveLength(1);
-    expect(calls[0]?.method).toBe("POST");
-    expect(calls[0]?.path).toBe("/v1/shipments/shp_qb01/accept-quote");
-    expect(calls[0]?.body).toEqual({ quote_event_id: "evt-priced-1" });
-    // …and NEVER a booking.created append or a booking route.
+    // THE NO-BYPASS INVARIANT: the ONLY write is [POST …/accept-quote] with body {quote_event_id}; the sole
+    // preceding call is the caps READ (GET …/events). No extra write, and never a booking route.
+    const writes = calls.filter((c) => c.method !== "GET");
+    expect(writes).toHaveLength(1);
+    expect(writes[0]?.method).toBe("POST");
+    expect(writes[0]?.path).toBe("/v1/shipments/shp_qb01/accept-quote");
+    expect(writes[0]?.body).toEqual({ quote_event_id: "evt-priced-1" });
     for (const c of calls) {
       expect(c.path).not.toContain("booking");
       expect(c.body?.kind).not.toBe("booking.created");
     }
   });
 
-  it("a shipment the pairing does NOT own → the api's 404/403 is surfaced (not swallowed, not fabricated)", async () => {
-    // pairing B accepts a quote on shp_qb01 (originated by pairing A). The api's lens gate refuses it (a
-    // cross-tenant/cross-pairing shipment is not in B's scope) — modeled as 404 here; proven for real by the
-    // api's isolation suite. The tool must SURFACE it as an isError, and STILL stop at accept-quote.
-    const forbidApi: (r: Recorded) => Reply = () => ({ status: 404, json: { error: "SHIPMENT NOT IN YOUR SCOPE" } });
-    const { body, calls } = await runTool(TOKEN_B, "book_shipment", { shipment_id: "shp_qb01", quote_event_id: "evt-priced-1" }, forbidApi);
+  it("an api rejection on accept-quote is surfaced (not swallowed, not fabricated) and STILL stops at accept-quote", async () => {
+    // The caps read passes (pairing A's quote is readable, sell under cap); the api then refuses the accept-quote
+    // itself (e.g. its lens/existence gate — modeled as 404, proven for real by the api's isolation suite). The
+    // tool must SURFACE it as an isError, never a fabricated ACCEPTED, and never reach a booking route.
+    const rejectAcceptApi: (r: Recorded) => Reply = (r) => {
+      if (r.method === "GET" && r.path === "/v1/shipments/shp_qb01/events") return { status: 200, json: { events: [PRICED_EVENT], next_cursor: null } };
+      return { status: 404, json: { error: "SHIPMENT NOT IN YOUR SCOPE" } };
+    };
+    const { body, calls } = await runTool(TOKEN_A, "book_shipment", { shipment_id: "shp_qb01", quote_event_id: "evt-priced-1" }, rejectAcceptApi);
     expect(body.result?.isError).toBe(true); // surfaced, never a fabricated ACCEPTED
-    expect(calls).toHaveLength(1);
-    expect(calls[0]?.path).toBe("/v1/shipments/shp_qb01/accept-quote");
+    const writes = calls.filter((c) => c.method !== "GET");
+    expect(writes).toHaveLength(1);
+    expect(writes[0]?.path).toBe("/v1/shipments/shp_qb01/accept-quote");
     for (const c of calls) expect(c.path).not.toContain("booking");
   });
 });

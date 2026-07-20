@@ -34,6 +34,17 @@ database_id = "local-control"
 binding = "GRANTS"
 id = "local-grants"
 
+# WP-13 Task 8 (REQ-105) — the per-actor usage counter (spend/velocity caps). One DO per ACTING pairing
+# (idFromName(pairingId)); it maintains the mcp worker's own tally because the ledger does not record the acting
+# pairing. A Durable Object is NOT a D1 table — the 22-table ceiling (check:invariants) is untouched.
+[[durable_objects.bindings]]
+name = "CAPS_METER"
+class_name = "CapsMeter"
+
+[[migrations]]
+tag = "v1-caps-meter"
+new_sqlite_classes = ["CapsMeter"]
+
 # ── STAGING (synthetic only, REQ-154). The service binding targets the STAGING api worker (must be deployed
 #    first); the default (top-level) config keeps its local-* ids for tests + `wrangler dev`.
 [env.staging]
@@ -58,3 +69,12 @@ database_id = "8e238970-2ed3-494d-960f-e4af082c1e8e"
 [[env.staging.kv_namespaces]]
 binding = "GRANTS"
 id = "0000000000000000000000000000staging"
+
+# Per-actor usage counter (REQ-105) — same DO, mirrored into staging (a DO adds no table).
+[[env.staging.durable_objects.bindings]]
+name = "CAPS_METER"
+class_name = "CapsMeter"
+
+[[env.staging.migrations]]
+tag = "v1-caps-meter"
+new_sqlite_classes = ["CapsMeter"]

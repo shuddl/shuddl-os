@@ -12,6 +12,10 @@ import { handleOAuth, type OAuthDeps } from "./oauth.js";
 import { NotConfiguredSecretResolver, type SecretResolver } from "./principal.js";
 import { dispatch, defaultDispatchDeps } from "./tools/registry.js";
 
+// WP-13 Task 8 (REQ-105) — the Durable Object entry MUST be re-exported from the worker's main module (the
+// runtime binds `class_name = "CapsMeter"` to this export). Mirrors workers/api re-exporting ShipmentSequencer.
+export { CapsMeter } from "./caps-meter.js";
+
 export interface Env {
   /** THE reuse seam: a service binding to the api worker (its Hono app + every /v1 gate). In the test pool
    *  this resolves to an auxiliary worker running the real api in-process; in staging/prod to the deployed
@@ -28,6 +32,9 @@ export interface Env {
   JWT_SECRET: string;
   /** dev | staging | prod (the toml [vars] value). */
   ENVIRONMENT: string;
+  /** WP-13 Task 8 (REQ-105) — the per-actor usage counter (spend/velocity caps). One DO per acting pairing
+   *  (idFromName(pairingId)); NOT a D1 table (the 22-table ceiling is untouched). See caps-meter.ts. */
+  CAPS_METER: DurableObjectNamespace<import("./caps-meter.js").CapsMeter>;
 }
 
 /** The verbs an MCP tool drives the api with. `path` is an absolute /v1 (or /pub) path; `body` is JSON. */

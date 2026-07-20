@@ -14,6 +14,7 @@
 // dispatch chain IS this array (a declared-but-not-composed check fails loudly). `registerMutationCheck` survives
 // as a TEST-ONLY spy utility, decoupled from production; tests also inject `beforeMutation` via dispatch deps.
 import type { ToolCtx, ToolDef } from "./tools/registry.js";
+import { capsCheck } from "./caps.js";
 
 /**
  * Thrown by a mutation check to REFUSE a write. `code` is a stable machine token (e.g. "caps_exceeded",
@@ -51,7 +52,8 @@ export interface ComposedMutationGate {
  */
 export const DEFAULT_MUTATION_CHECKS: MutationCheck[] = [
   // ↓↓↓ ADD PRODUCTION CHECKS HERE, IN ORDER (an explicit edit — no import-side-effect registration) ↓↓↓
-  // Task 8 (REQ-105): capsCheck — spend / velocity / lane caps over the OAuth principal.
+  // Task 8 (REQ-105): capsCheck — spend / velocity / lane caps over the OAuth principal (keyed off ctx.pairingId).
+  capsCheck,
   // Task 9 (REQ-102): confirmCheck — the human-CONFIRM gate.
   // ↑↑↑ ADD PRODUCTION CHECKS HERE ↑↑↑
 ];
