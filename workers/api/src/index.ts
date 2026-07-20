@@ -35,6 +35,16 @@ export type Env = {
   // customer tenant DBs and from CONTROL_DB — reachable ONLY server-side via resolvePlatformTenantDb (never
   // the customer TENANT_BINDINGS/tenantDb path). The usage/credits billing ledger provisions against it.
   PLATFORM_TENANT_DB: D1Database;
+  // WP-14 Task 2 (REQ-121/025): the pre-provisioned tenant-D1 POOL for DARK dynamic provisioning. Bindings are
+  // static in a Worker, so self-serve signup CLAIMS one of these already-migrated slots (provisionTenant) rather
+  // than minting a binding. Reached ONLY server-side (resolveClaimedTenantDb / the claim), NEVER the customer
+  // TENANT_BINDINGS/tenantDb path — so the REQ-025 ISO-pub-5 subset-parity (HOST_TENANTS ⊆ TENANT_BINDINGS) is
+  // untouched. Grow the pool by adding a binding here + a wrangler slot + a sentinel row (0003_tenant_pool.sql).
+  TENANT_POOL_01_DB: D1Database;
+  TENANT_POOL_02_DB: D1Database;
+  // WP-14 Task 2 (REQ-121): the server-side provisioning FLAG. DARK by default — ABSENT from every wrangler.toml,
+  // so provisionTenant() fail-closes (refuses) until R4 flips it ON. Never a client input; read off the Env only.
+  PROVISIONING_ENABLED?: string;
   SHIPMENT_SEQ: DurableObjectNamespace<import("./do/sequencer.js").ShipmentSequencer>;
   AGENT_QUEUE: Queue; // WP-06 (REQ-031/039): committed pod.signed → Biller trigger (consumer: agents worker)
   IDEMPOTENCY: KVNamespace;

@@ -31,6 +31,21 @@ binding = "PLATFORM_TENANT_DB"
 database_name = "shuddl-t-platform-dev"
 database_id = "local-platform"
 
+# WP-14 Task 2 (REQ-121/025): the pre-provisioned tenant-D1 POOL for DARK dynamic provisioning. Bindings are
+# static in a Worker, so self-serve signup CLAIMS one of these already-migrated slots (provisionTenant); it can
+# never mint a binding. Reached ONLY server-side (resolveClaimedTenantDb / the claim) — NEVER the customer
+# TENANT_BINDINGS allowlist, so the REQ-025 ISO-pub-5 subset-parity is untouched. PLG DARK: the flag is OFF
+# until R4; the local ids keep tests + `wrangler dev` self-contained. Grow the pool = add a slot here + a row.
+[[d1_databases]]
+binding = "TENANT_POOL_01_DB"
+database_name = "shuddl-t-pool-01-dev"
+database_id = "local-pool-01"
+
+[[d1_databases]]
+binding = "TENANT_POOL_02_DB"
+database_name = "shuddl-t-pool-02-dev"
+database_id = "local-pool-02"
+
 [[kv_namespaces]]
 binding = "IDEMPOTENCY"
 id = "local-idempotency"
@@ -85,6 +100,18 @@ database_id = "8e238970-2ed3-494d-960f-e4af082c1e8e"
 binding = "PLATFORM_TENANT_DB"
 database_name = "shuddl-t-platform-staging"
 database_id = "00000000-0000-4000-8000-000000000014"
+
+# WP-14 Task 2 (REQ-121/025): the tenant-D1 POOL (PLG DARK — real resources pre-provisioned at R4). The
+# placeholder ids are intentional: WP-14 ships fail-closed and no code path binds these in staging until R4.
+[[env.staging.d1_databases]]
+binding = "TENANT_POOL_01_DB"
+database_name = "shuddl-t-pool-01-staging"
+database_id = "00000000-0000-4000-8000-000000000121"
+
+[[env.staging.d1_databases]]
+binding = "TENANT_POOL_02_DB"
+database_name = "shuddl-t-pool-02-staging"
+database_id = "00000000-0000-4000-8000-000000000122"
 
 [[env.staging.kv_namespaces]]
 binding = "IDEMPOTENCY"

@@ -23,11 +23,18 @@ export function isPlatformTenant(slug: string): boolean {
 }
 
 /**
- * Fail-closed guard for any customer-facing path that accepts a tenant slug (signup, intake tenant-claim,
- * provisioning). Throws if the caller named the reserved platform id where a CUSTOMER slug is expected, so
- * the reserved revenue tenant can never be claimed or addressed from a customer surface (REQ-025). Throws a
- * plain Error (contracts is the zod-only boundary package — it never depends on the workers' ApiError); the
- * customer HTTP resolver in workers/api maps its own FORBIDDEN separately.
+ * Fail-closed guard for any customer-facing path that accepts a tenant slug. Throws if the caller named the
+ * reserved platform id where a CUSTOMER slug is expected, so the reserved revenue tenant can never be claimed
+ * or addressed from a customer surface (REQ-025). Throws a plain Error (contracts is the zod-only boundary
+ * package — it never depends on the workers' ApiError); the customer HTTP resolver in workers/api maps its own
+ * FORBIDDEN separately.
+ *
+ * REAL CALLERS (WP-14): (1) workers/api/src/provision.ts provisionTenant() — the pool-based DYNAMIC tenant
+ * provisioner calls this on the requested customer slug so `_platform` can never be claimed as a customer
+ * (pool sentinels `_pool_0N` are additionally excluded by the DNS-label slug shape); and (2)
+ * resolveClaimedTenantDb() so the platform id can never resolve a claimed workspace. This closes the Task-1
+ * forward-looking note ("a future DYNAMIC slug provisioner cannot accept the reserved id"): that provisioner
+ * now exists and enforces it.
  */
 export function assertNotPlatformTenant(slug: string): void {
   if (isPlatformTenant(slug)) {
