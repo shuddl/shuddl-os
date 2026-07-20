@@ -8,6 +8,8 @@
     "dev": "wrangler dev"
   },
   "dependencies": {
+    "@shuddl/adapters": "workspace:*",
+    "@shuddl/agents": "workspace:*",
     "@shuddl/contracts": "workspace:*",
     "@shuddl/ledger": "workspace:*",
     "@shuddl/rater": "workspace:*",
@@ -17,7 +19,6 @@
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.9.14",
     "@cloudflare/workers-types": "^4.20251230.0",
-    "@shuddl/agents": "workspace:*",
     "@shuddl/driver-core": "workspace:*",
     "typescript": "^5.9.0",
     "vitest": "^3.2.7",

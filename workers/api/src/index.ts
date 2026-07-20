@@ -28,6 +28,7 @@ import { mountWatchtowerRoutes } from "./routes/watchtower.js";
 import { mountPublicRoutes } from "./routes/public.js";
 import { mountSignupRoutes } from "./routes/signup.js";
 import { mountTariffRoutes } from "./routes/tariff.js";
+import { mountImportRoutes } from "./routes/import.js";
 
 export type Env = {
   TENANT_A_DB: D1Database;
@@ -57,6 +58,9 @@ export type Env = {
   // ClaudeCopilot; anything less ⇒ the DeterministicCopilot floor. Unbound in CI, so the LLM is never called there.
   ANTHROPIC_API_KEY?: string;
   COPILOT_MODEL?: string;
+  // WP-14 Task 5 (REQ-127/035/024) — the Migrator column-guesser's OPTIONAL model id. With ANTHROPIC_API_KEY both
+  // present ⇒ the live ClaudeMigrator; anything less ⇒ the deterministic @shuddl/adapters mapping. Unbound in CI.
+  MIGRATOR_MODEL?: string;
   // WP-11 Task 7 (REQ-032/092/157) — the Collector dunning human-send. BOTH RESEND halves present ⇒ ResendSender;
   // anything less ⇒ NotConfiguredSender (rejects LOUDLY, retriable) — the SAME composition-root discipline as the
   // agents worker's evidenceSender. Unbound in CI, so the live sender is never reached (tests inject a recorder).
@@ -207,6 +211,14 @@ mountSignupRoutes(app);
 // so auth + idempotency already apply; roles admin/ops, tenant off the JWT claim (resolveTenantDb, REQ-025). NO
 // new table/kind — it rides the existing rate_config via the shared seedColdStartTariff (also the provisioning seed).
 mountTariffRoutes(app);
+// WP-14 Task 5 (REQ-127/035/025/030): POST /v1/import — the Migrator drag-drop import (light self-serve). Maps a
+// messy spreadsheet via the PURE @shuddl/adapters mapper (rescued by the @shuddl/agents LLM column-guesser, which
+// degrades to the deterministic mapping when unbound), LOOPS the intake verbs (findOrCreateParty/materializeShipment
+// — the SAME functions POST /v1/parties + /v1/shipments call, identical gate parity), writes EXACTLY ONE anomalies
+// row per unmapped/low-confidence column (CLAUDE.md rule 10 / REQ-035 — no silent drop; values ride refs/external_refs),
+// and records the run into agent_runs. roles admin/ops, tenant off the JWT claim (resolveTenantDb, REQ-025). Every id
+// is content-derived so a re-import makes no dupes. NO new table/kind/surface.
+mountImportRoutes(app);
 
 app.notFound((c) => envelope(c, "NOT_FOUND", 404, "NOT FOUND"));
 

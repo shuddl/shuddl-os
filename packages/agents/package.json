@@ -12,6 +12,7 @@
     "@shuddl/contracts": "workspace:*",
     "@shuddl/rater": "workspace:*",
     "@shuddl/design": "workspace:*",
+    "@shuddl/adapters": "workspace:*",
     "react": "^19.2.3",
     "react-dom": "^19.2.3"
   },

@@ -1,0 +1,4 @@
+Customer Name,Customer Email,Ship To,PRO #,BOL,Mode,Weight,Phone,Special Instructions,Salesperson
+Acme Distributing,ops@acme.example,Beta Foods,PRO123456,BOL9987,LTL,1200,555-0100,"Liftgate, call ahead",Dana
+Acme Distributing,ops@acme.example,Gamma Retail,PRO123457,BOL9988,Truckload,42000,555-0100,Appointment required,Dana
+Northwind Traders,ap@northwind.example,Delta Mfg,PRO223456,BOL7711,LTL,800,555-0200,,Priya

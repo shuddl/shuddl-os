@@ -1,0 +1,4 @@
+Customer,Email,Zip,Dest Zip,Reference,Commodity,mode
+Coastal Freight LLC,billing@coastal.example,97201,80012,REF-55,Palletized goods,ltl
+Coastal Freight LLC,billing@coastal.example,97201,84101,REF-56,Machine parts,LTL
+Summit Logistics,ops@summit.example,90001,,,Mixed,brokered

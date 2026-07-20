@@ -1,0 +1,3 @@
+﻿Bill To,Shipper,Consignee,Origin Zip,Dest Zip,Service Mode,Notes
+"Orion Freight, LLC",Acme Plant,"Beta Foods, Inc.",60601,30301,FTL,"Team drivers, hazmat"
+Northwind Traders,Acme Plant,Gamma Retail,60601,,drayage,

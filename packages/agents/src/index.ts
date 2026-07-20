@@ -75,3 +75,16 @@ export {
 export type { DunningBucket, DunningTone } from "./collector/aging.js";
 export { renderDunningDraft, DunningDraftView } from "./collector/dunning.js";
 export type { DunningDraftData } from "./collector/dunning.js";
+// WP-14 Task 5 (REQ-127/035/024) Migrator — the LLM column-guesser for a messy onboarding spreadsheet. LLM
+// ONLY here; the deterministic mapping + gap-row law live in the PURE @shuddl/adapters core. Config-gated
+// exactly like the Concierge/Copilot: an unbound LLM DEGRADES to the deterministic @shuddl/adapters mapping.
+export {
+  DeterministicMigrator,
+  NotConfiguredMigrator,
+  ClaudeMigrator,
+  MigratorError,
+  selectMigrator,
+  buildOverrides,
+  MIGRATOR_SYSTEM_PROMPT,
+} from "./migrator/guess.js";
+export type { MigratorGuesser, ColumnGuess, ClaudeMigratorConfig, MigratorLlmConfig } from "./migrator/guess.js";
