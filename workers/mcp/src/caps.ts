@@ -81,7 +81,7 @@ export function currentPeriod(now: number): string {
 }
 
 /** What the accepted quote contributes to the caps decision: its recorded sell + its lane tokens. */
-interface BookingBasis {
+export interface BookingBasis {
   spendCents: number;
   laneTokens: string[];
 }
@@ -92,8 +92,19 @@ interface BookingBasis {
  * quote_event_id (the exact quote being accepted), and reads `payload.sell` (cents) + `payload.basis` (the dest
  * zone / matched zip prefix the price was actually computed against). FAIL-CLOSED: any read/shape failure throws
  * MutationBlocked — an undeterminable spend/lane refuses the booking, it never defaults to allow.
+ *
+ * MEMOIZED on ctx (ctx.acceptedQuoteMemo) so the two money gates that both need the sell — caps (spend/lane) and
+ * confirm (amount match) — read the quote.priced event exactly ONCE per tool call, not twice. Exported so
+ * confirmCheck (confirm.ts) REUSES this single server-side sell lookup (the sell is the server's, never a client
+ * number). caps runs ahead of confirm (gate.ts chain order), so it owns the fetch + its fail-closed codes; confirm
+ * then reads the memo.
  */
-async function loadAcceptedQuote(ctx: ToolCtx, shipmentId: string, quoteEventId: string): Promise<BookingBasis> {
+export async function loadAcceptedQuote(ctx: ToolCtx, shipmentId: string, quoteEventId: string): Promise<BookingBasis> {
+  const memoKey = JSON.stringify([shipmentId, quoteEventId]);
+  const memo = (ctx.acceptedQuoteMemo ??= new Map());
+  const cached = memo.get(memoKey);
+  if (cached !== undefined) return cached;
+
   let res: Response;
   try {
     res = await ctx.callApi(ctx.env, {
@@ -129,7 +140,9 @@ async function loadAcceptedQuote(ctx: ToolCtx, shipmentId: string, quoteEventId:
   const laneTokens: string[] = [];
   if (typeof basis.zone === "string") laneTokens.push(basis.zone);
   if (typeof basis.matched_zip_prefix === "string") laneTokens.push(basis.matched_zip_prefix);
-  return { spendCents: sell, laneTokens };
+  const basisOut: BookingBasis = { spendCents: sell, laneTokens };
+  memo.set(memoKey, basisOut);
+  return basisOut;
 }
 
 /**

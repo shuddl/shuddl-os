@@ -70,6 +70,10 @@ export interface ToolCtx {
   /** Set true ONLY after the mutation chokepoint (beforeMutation) has run for this call. `mutatingCallApi` refuses a
    *  write when this is false — so a tool that POSTs but was mis-declared `mutating:false` cannot skip caps+confirm. */
   mutationCleared: boolean;
+  /** Per-call memo for the accepted-quote lookup (quote.priced `sell` + lane basis), so the caps + confirm checks
+   *  do NOT each re-fetch the same quote.priced event over callApi. Keyed by `${shipment_id}\0${quote_event_id}`;
+   *  populated lazily by loadAcceptedQuote (caps.ts). Optional + internal — never part of the MCP wire contract. */
+  acceptedQuoteMemo?: Map<string, { spendCents: number; laneTokens: string[] }>;
 }
 
 /**

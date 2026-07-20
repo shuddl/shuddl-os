@@ -161,7 +161,10 @@ beforeAll(async () => {
 describe("spend cap", () => {
   it("a booking that would exceed caps.spend is refused; the accept-quote is NOT made and the tally does not advance", async () => {
     // cap $2,000; each booking sells $1,200 → the 2nd would total $2,400 > cap.
-    const first = await runTool(TOK(P.SPEND), "book_shipment", { shipment_id: "shp_s1", quote_event_id: "q_s1" }, bookApi("shp_s1", "q_s1", { sell: 120_000 }));
+    // Task 9 (REQ-108): book_shipment now runs BEHIND the confirm gate too — an ACCEPTED booking must carry a
+    // matching confirm (amount_cents == the server sell). A caps refusal short-circuits ahead of confirm, so the
+    // refused calls below need no confirm; the ACCEPTED ones do.
+    const first = await runTool(TOK(P.SPEND), "book_shipment", { shipment_id: "shp_s1", quote_event_id: "q_s1", confirm: { intent: "book", amount_cents: 120_000 } }, bookApi("shp_s1", "q_s1", { sell: 120_000 }));
     expect(first.body.result?.structuredContent?.status).toBe("ACCEPTED");
     expect(first.calls.some((c) => c.path.endsWith("/accept-quote"))).toBe(true); // the write happened
     expect(await peekTally(P.SPEND)).toEqual({ spend: 120_000, count: 1 }); // tally advanced
@@ -178,7 +181,7 @@ describe("spend cap", () => {
 describe("velocity cap", () => {
   it("blocks the N+1 booking in the period; earlier ones pass", async () => {
     for (let i = 1; i <= 2; i++) {
-      const ok = await runTool(TOK(P.VEL), "book_shipment", { shipment_id: `shp_v${i}`, quote_event_id: `q_v${i}` }, bookApi(`shp_v${i}`, `q_v${i}`, { sell: 1_000 }));
+      const ok = await runTool(TOK(P.VEL), "book_shipment", { shipment_id: `shp_v${i}`, quote_event_id: `q_v${i}`, confirm: { intent: "book", amount_cents: 1_000 } }, bookApi(`shp_v${i}`, `q_v${i}`, { sell: 1_000 }));
       expect(ok.body.result?.structuredContent?.status).toBe("ACCEPTED");
     }
     const third = await runTool(TOK(P.VEL), "book_shipment", { shipment_id: "shp_v3", quote_event_id: "q_v3" }, bookApi("shp_v3", "q_v3", { sell: 1_000 }));
@@ -191,7 +194,7 @@ describe("velocity cap", () => {
 // ── LANE ──────────────────────────────────────────────────────────────────────────────────────────────────────
 describe("lane cap (allow-list, fail-closed)", () => {
   it("an on-lane booking passes (zone in the allow-list)", async () => {
-    const ok = await runTool(TOK(P.LANE), "book_shipment", { shipment_id: "shp_l1", quote_event_id: "q_l1" }, bookApi("shp_l1", "q_l1", { sell: 1_000, zone: "Z2" }));
+    const ok = await runTool(TOK(P.LANE), "book_shipment", { shipment_id: "shp_l1", quote_event_id: "q_l1", confirm: { intent: "book", amount_cents: 1_000 } }, bookApi("shp_l1", "q_l1", { sell: 1_000, zone: "Z2" }));
     expect(ok.body.result?.structuredContent?.status).toBe("ACCEPTED");
   });
 
@@ -237,7 +240,7 @@ describe("actor attribution (tally keyed by the ACTING pairing, never refs.pairi
     // shp_ab was created by pairing A (refs.pairing = A). Pairing B ACTS on book_shipment. Both have velocity 1.
     // B's booking must count against B (its 1 slot is spent → a 2nd B booking is refused), and A's slot must be
     // untouched (A can still make its 1 booking) — the exact bypass the review flagged, now impossible.
-    const bOk = await runTool(TOK(P.ATTR_B), "book_shipment", { shipment_id: "shp_ab", quote_event_id: "q_ab" }, bookApi("shp_ab", "q_ab", { sell: 5_000 }));
+    const bOk = await runTool(TOK(P.ATTR_B), "book_shipment", { shipment_id: "shp_ab", quote_event_id: "q_ab", confirm: { intent: "book", amount_cents: 5_000 } }, bookApi("shp_ab", "q_ab", { sell: 5_000 }));
     expect(bOk.body.result?.structuredContent?.status).toBe("ACCEPTED");
     expect(await peekTally(P.ATTR_B)).toEqual({ spend: 5_000, count: 1 }); // charged to B
     expect(await peekTally(P.ATTR_A)).toEqual({ spend: 0, count: 0 }); // A untouched by B's action
@@ -247,7 +250,7 @@ describe("actor attribution (tally keyed by the ACTING pairing, never refs.pairi
     expect(bSecond.body.error?.data?.code).toBe("velocity_cap_exceeded");
 
     // A can STILL book its own single slot — B never spent it.
-    const aOk = await runTool(TOK(P.ATTR_A), "book_shipment", { shipment_id: "shp_ab", quote_event_id: "q_ab" }, bookApi("shp_ab", "q_ab", { sell: 5_000 }));
+    const aOk = await runTool(TOK(P.ATTR_A), "book_shipment", { shipment_id: "shp_ab", quote_event_id: "q_ab", confirm: { intent: "book", amount_cents: 5_000 } }, bookApi("shp_ab", "q_ab", { sell: 5_000 }));
     expect(aOk.body.result?.structuredContent?.status).toBe("ACCEPTED");
     expect(await peekTally(P.ATTR_A)).toEqual({ spend: 5_000, count: 1 });
   });

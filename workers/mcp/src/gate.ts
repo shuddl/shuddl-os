@@ -15,6 +15,7 @@
 // as a TEST-ONLY spy utility, decoupled from production; tests also inject `beforeMutation` via dispatch deps.
 import type { ToolCtx, ToolDef } from "./tools/registry.js";
 import { capsCheck } from "./caps.js";
+import { confirmCheck } from "./confirm.js";
 
 /**
  * Thrown by a mutation check to REFUSE a write. `code` is a stable machine token (e.g. "caps_exceeded",
@@ -53,8 +54,11 @@ export interface ComposedMutationGate {
 export const DEFAULT_MUTATION_CHECKS: MutationCheck[] = [
   // ↓↓↓ ADD PRODUCTION CHECKS HERE, IN ORDER (an explicit edit — no import-side-effect registration) ↓↓↓
   // Task 8 (REQ-105): capsCheck — spend / velocity / lane caps over the OAuth principal (keyed off ctx.pairingId).
+  // It runs FIRST: it owns the accepted-quote fetch (memoized on ctx) + the fail-closed quote-read codes.
   capsCheck,
-  // Task 9 (REQ-102): confirmCheck — the human-CONFIRM gate.
+  // Task 9 (REQ-108): confirmCheck — the human-CONFIRM-before-money gate on book_shipment. Runs after caps and
+  // REUSES the memoized sell (no double-fetch). A refusal from EITHER check blocks the money-moving write.
+  confirmCheck,
   // ↑↑↑ ADD PRODUCTION CHECKS HERE ↑↑↑
 ];
 

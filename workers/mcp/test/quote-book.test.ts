@@ -216,7 +216,9 @@ describe("book_shipment (Task 5) — accept-quote ONLY (the no-bypass invariant)
   };
 
   it("accepts the priced quote → quote.accepted; surfaces the provenance ids", async () => {
-    const { body, calls } = await runTool(TOKEN_A, "book_shipment", { shipment_id: "shp_qb01", quote_event_id: "evt-priced-1" }, acceptApi);
+    // Task 9 (REQ-108): book_shipment now carries the CONFIRM-before-money block — amount_cents == the server sell
+    // (187_400). A missing/mismatched confirm would be refused by the chokepoint before the accept-quote.
+    const { body, calls } = await runTool(TOKEN_A, "book_shipment", { shipment_id: "shp_qb01", quote_event_id: "evt-priced-1", confirm: { intent: "book", amount_cents: 187_400 } }, acceptApi);
     const out = structured(body);
     expect(out.status).toBe("ACCEPTED");
     expect(out.shipment_id).toBe("shp_qb01");
@@ -244,7 +246,7 @@ describe("book_shipment (Task 5) — accept-quote ONLY (the no-bypass invariant)
       if (r.method === "GET" && r.path === "/v1/shipments/shp_qb01/events") return { status: 200, json: { events: [PRICED_EVENT], next_cursor: null } };
       return { status: 404, json: { error: "SHIPMENT NOT IN YOUR SCOPE" } };
     };
-    const { body, calls } = await runTool(TOKEN_A, "book_shipment", { shipment_id: "shp_qb01", quote_event_id: "evt-priced-1" }, rejectAcceptApi);
+    const { body, calls } = await runTool(TOKEN_A, "book_shipment", { shipment_id: "shp_qb01", quote_event_id: "evt-priced-1", confirm: { intent: "book", amount_cents: 187_400 } }, rejectAcceptApi);
     expect(body.result?.isError).toBe(true); // surfaced, never a fabricated ACCEPTED
     const writes = calls.filter((c) => c.method !== "GET");
     expect(writes).toHaveLength(1);

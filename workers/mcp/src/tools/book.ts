@@ -17,14 +17,29 @@ import { defineTool, mutatingCallApi, ToolError, type ToolCtx } from "./registry
 const MAX_ID_LEN = 200; // a shipment id / event id is a slug or uuid; bound length before the path/hop.
 const MAX_KEY_LEN = 200;
 
+// Task 9 (REQ-108): the human-CONFIRM-before-money block. book_shipment is the money commitment, so it MUST carry an
+// explicit, structured acknowledgement of the amount being committed. This surfaces the shape in tools/list; the
+// REQUIRED-and-matched enforcement (present + amount_cents === the SERVER-recorded sell) is the gate's job
+// (confirm.ts / gate.ts DEFAULT_MUTATION_CHECKS) — so a MISSING confirm is a MutationBlocked "confirm_required"
+// (fail-closed), not a generic Zod 400. Hence `confirm` is OPTIONAL here; the chokepoint, not Zod, requires it.
+const ConfirmBlock = z
+  .object({
+    // The intent this confirmation authorizes — the booking money commitment.
+    intent: z.literal("book"),
+    // The amount (integer cents) the caller is acknowledging — MUST equal the accepted quote's server-recorded sell.
+    amount_cents: z.number().int().nonnegative(),
+  })
+  .strict();
+
 const BookShipmentInput = z
   .object({
     shipment_id: z.string().min(1).max(MAX_ID_LEN),
     quote_event_id: z.string().min(1).max(MAX_ID_LEN),
     // The caller's explicit idempotency token (REQ-106) — a retried accept collapses to one quote.accepted.
     idempotency_key: z.string().min(1).max(MAX_KEY_LEN).optional(),
-    // NOTE (Task 9, REQ-102): the human-CONFIRM gate adds a `confirm` block here. Room is left deliberately;
-    // the money-moving accept is the CONFIRM-gated action.
+    // The human-CONFIRM-before-money acknowledgement (REQ-108). Optional in the schema, REQUIRED by the chokepoint:
+    // a missing/mismatched confirm is refused server-side (confirmCheck) before the accept-quote write.
+    confirm: ConfirmBlock.optional(),
   })
   .strict();
 type BookShipmentArgs = z.infer<typeof BookShipmentInput>;
