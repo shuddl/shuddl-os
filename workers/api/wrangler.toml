@@ -23,6 +23,14 @@ binding = "CONTROL_DB"
 database_name = "shuddl-control-dev"
 database_id = "local-control"
 
+# WP-14 Task 1 (REQ-123/025): the reserved PLATFORM revenue tenant's OWN D1. A DISTINCT binding from the
+# customer tenant DBs and the control plane — reached ONLY server-side (resolvePlatformTenantDb), never the
+# customer allowlist. PLG DARK: provisioned at R4; the local id keeps tests + `wrangler dev` self-contained.
+[[d1_databases]]
+binding = "PLATFORM_TENANT_DB"
+database_name = "shuddl-t-platform-dev"
+database_id = "local-platform"
+
 [[kv_namespaces]]
 binding = "IDEMPOTENCY"
 id = "local-idempotency"
@@ -70,6 +78,13 @@ database_id = "aa3b23a8-567d-4479-8311-e9f1678a6797"
 binding = "CONTROL_DB"
 database_name = "shuddl-control-staging"
 database_id = "8e238970-2ed3-494d-960f-e4af082c1e8e"
+
+# WP-14 Task 1 (REQ-123/025): reserved PLATFORM tenant D1 (PLG DARK — real resource provisioned at R4). The
+# placeholder id is intentional: WP-14 ships fail-closed, and no code path binds this in staging until R4.
+[[env.staging.d1_databases]]
+binding = "PLATFORM_TENANT_DB"
+database_name = "shuddl-t-platform-staging"
+database_id = "00000000-0000-4000-8000-000000000014"
 
 [[env.staging.kv_namespaces]]
 binding = "IDEMPOTENCY"

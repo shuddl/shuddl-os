@@ -31,6 +31,10 @@ export type Env = {
   TENANT_A_DB: D1Database;
   TENANT_B_DB: D1Database;
   CONTROL_DB: D1Database;
+  // WP-14 Task 1 (REQ-123/025): the reserved PLATFORM revenue tenant's OWN D1. A DISTINCT binding from the
+  // customer tenant DBs and from CONTROL_DB — reachable ONLY server-side via resolvePlatformTenantDb (never
+  // the customer TENANT_BINDINGS/tenantDb path). The usage/credits billing ledger provisions against it.
+  PLATFORM_TENANT_DB: D1Database;
   SHIPMENT_SEQ: DurableObjectNamespace<import("./do/sequencer.js").ShipmentSequencer>;
   AGENT_QUEUE: Queue; // WP-06 (REQ-031/039): committed pod.signed → Biller trigger (consumer: agents worker)
   IDEMPOTENCY: KVNamespace;
