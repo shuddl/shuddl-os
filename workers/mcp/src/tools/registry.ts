@@ -20,6 +20,10 @@ import { beforeMutation as gateBeforeMutation, MutationBlocked } from "../gate.j
 import { deriveIdempotencyKey } from "../idempotency.js";
 import { quoteFreightTool } from "./quote.js";
 import { bookShipmentTool } from "./book.js";
+import { trackTool } from "./track.js";
+import { getDocumentTool } from "./document.js";
+import { approveTool } from "./approve.js";
+import { disputeTool } from "./dispute.js";
 
 /** A JSON-RPC 2.0 message id: a string, a number, or null (JSON-RPC §4). */
 export type JsonRpcId = string | number | null;
@@ -169,14 +173,19 @@ const noopMutationTool = defineTool({
 });
 
 /** Build the default registry with the proof tools + the real WP-13 tools registered. Later tasks register
- *  their tools here too. quote_freight (Task 4) + book_shipment (Task 5) are the DoD booking path; both are
- *  mutating and route every write through mutatingCallApi (the chokepoint-linked seam). */
+ *  their tools here too. quote_freight (Task 4) + book_shipment (Task 5) are the DoD booking path; track +
+ *  get_document (Task 6) are the READS; approve + dispute (Task 7) are the decision writes. The two Task-7
+ *  writes are mutating and route every write through mutatingCallApi (the chokepoint-linked seam). */
 export function buildRegistry(): ToolRegistry {
   return new ToolRegistry()
     .register(whoamiTool)
     .register(noopMutationTool)
     .register(quoteFreightTool)
-    .register(bookShipmentTool);
+    .register(bookShipmentTool)
+    .register(trackTool)
+    .register(getDocumentTool)
+    .register(approveTool)
+    .register(disputeTool);
 }
 
 // ── JSON-RPC envelope helpers ────────────────────────────────────────────────────────────────────────────────
