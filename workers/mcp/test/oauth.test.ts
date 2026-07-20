@@ -15,21 +15,25 @@ import { applyControl, seedPairing, seedTenant } from "./helpers.js";
 //
 // A paired company's `mcp` pairing IS the confidential OAuth client: client_id = pairing id, and the client
 // credential is the pairing's `secret_ref` resolved through the injected fail-closed SecretResolver (the twin
-// of the translator's NotConfiguredSecretResolver). The client NEVER receives the internal SessionClaims JWT —
-// only an opaque access token this AS maps to the pairing. tenant/role are DERIVED from the pairing row at mint
-// time and can never be influenced by the client.
+// of the translator's NotConfiguredSecretResolver). BOTH /register and /token authenticate the client with that
+// secret, so knowing a pairing id (not a secret) grants nothing. The client NEVER receives the internal
+// SessionClaims JWT — only an opaque access token this AS maps to the pairing. tenant/role are DERIVED from the
+// pairing row and can never be influenced by the client; the requested scope is validated against the server
+// capability AND the pairing's own scopes allowlist.
 
 const ISSUER = "https://mcp.shuddl.test";
 const PAIRING = "prn-oauth";
+const PAIRING_NOSCOPE = "prn-oauth-noscope";
 const TENANT_ID = "t-oauth";
 const TENANT_SLUG = "tenant-oauth";
 const SECRET_REF = "mcp-secret-ref-oauth";
+const SECRET_REF_NOSCOPE = "mcp-secret-ref-noscope";
 const CLIENT_SECRET = "mcp-client-secret-do-not-use-in-prod";
 const REDIRECT_URI = "https://client.example/callback";
 const T0 = 1_760_000_000_000;
 
 function goodSecrets(): StaticSecretResolver {
-  return new StaticSecretResolver({ [SECRET_REF]: CLIENT_SECRET });
+  return new StaticSecretResolver({ [SECRET_REF]: CLIENT_SECRET, [SECRET_REF_NOSCOPE]: CLIENT_SECRET });
 }
 function deps(secrets: { resolve(ref: string): Promise<string | null> }, now = () => T0): OAuthDeps {
   return { controlDb: env.CONTROL_DB, grants: env.GRANTS, secrets, now, issuer: ISSUER };
@@ -47,12 +51,23 @@ async function challengeFor(verifier: string): Promise<string> {
 }
 
 // ── ceremony drivers (against an injected deps) ──────────────────────────────────────────────────────────────
-async function register(d: OAuthDeps, pairingId: string, redirectUris = [REDIRECT_URI]): Promise<Response> {
+async function register(
+  d: OAuthDeps,
+  pairingId: string,
+  opts: { redirectUris?: string[]; clientSecret?: string | undefined } = {},
+): Promise<Response> {
+  const bodyObj: Record<string, unknown> = {
+    pairing_id: pairingId,
+    redirect_uris: opts.redirectUris ?? [REDIRECT_URI],
+  };
+  // client_secret is included by default (authenticated DCR); a test drops it by passing { clientSecret: undefined }.
+  if (!("clientSecret" in opts)) bodyObj.client_secret = CLIENT_SECRET;
+  else if (opts.clientSecret !== undefined) bodyObj.client_secret = opts.clientSecret;
   return handleOAuth(
     new Request(`${ISSUER}/register`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ pairing_id: pairingId, redirect_uris: redirectUris }),
+      body: JSON.stringify(bodyObj),
     }),
     d,
   ) as Promise<Response>;
@@ -80,11 +95,39 @@ function codeFromRedirect(res: Response): string {
   if (code === null) throw new Error(`no code in redirect: ${loc}`);
   return code;
 }
+// Standard authorize params for PAIRING with a given PKCE challenge (+ optional extras/overrides).
+function authParams(challenge: string, extra: Record<string, string> = {}): Record<string, string> {
+  return {
+    response_type: "code",
+    client_id: PAIRING,
+    redirect_uri: REDIRECT_URI,
+    code_challenge: challenge,
+    code_challenge_method: "S256",
+    state: "s",
+    ...extra,
+  };
+}
 
 beforeAll(async () => {
   await applyControl(env.CONTROL_DB);
   await seedTenant(env.CONTROL_DB, TENANT_ID, TENANT_SLUG);
-  await seedPairing(env.CONTROL_DB, { id: PAIRING, tenantId: TENANT_ID, kind: "mcp", secretRef: SECRET_REF, status: "active" });
+  // PAIRING grants the "mcp" scope; PAIRING_NOSCOPE grants NOTHING (empty allowlist) to prove the pairing dimension.
+  await seedPairing(env.CONTROL_DB, {
+    id: PAIRING,
+    tenantId: TENANT_ID,
+    kind: "mcp",
+    secretRef: SECRET_REF,
+    status: "active",
+    scopes: '["mcp"]',
+  });
+  await seedPairing(env.CONTROL_DB, {
+    id: PAIRING_NOSCOPE,
+    tenantId: TENANT_ID,
+    kind: "mcp",
+    secretRef: SECRET_REF_NOSCOPE,
+    status: "active",
+    scopes: "[]",
+  });
 });
 
 describe("AS metadata (RFC 8414) is served and wired into the worker fetch", () => {
@@ -102,8 +145,8 @@ describe("AS metadata (RFC 8414) is served and wired into the worker fetch", () 
   });
 });
 
-describe("dynamic client registration (DCR)", () => {
-  it("registering against an ACTIVE mcp pairing returns client_id = pairing id", async () => {
+describe("dynamic client registration (DCR) is authenticated by the pairing secret", () => {
+  it("registering with the CORRECT client_secret returns client_id = pairing id (201)", async () => {
     const res = await register(deps(goodSecrets()), PAIRING);
     expect(res.status).toBe(201);
     const body = (await res.json()) as { client_id: string; redirect_uris: string[] };
@@ -111,9 +154,27 @@ describe("dynamic client registration (DCR)", () => {
     expect(body.redirect_uris).toContain(REDIRECT_URI);
   });
 
-  it("registering against an UNKNOWN / non-mcp pairing is rejected (no client is created)", async () => {
+  it("an UNAUTHENTICATED /register (no client_secret) for an active pairing → 401 (no client created/overwritten)", async () => {
+    // RED before the fix: today this returns 201 and OVERWRITES the pairing-client's redirect_uris (hijack primitive).
+    const res = await register(deps(goodSecrets()), PAIRING, { clientSecret: undefined });
+    expect(res.status).toBe(401);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toBe("invalid_client");
+  });
+
+  it("a /register with a WRONG client_secret → 401", async () => {
+    const res = await register(deps(goodSecrets()), PAIRING, { clientSecret: "not-the-secret" });
+    expect(res.status).toBe(401);
+  });
+
+  it("registering against an UNKNOWN / non-mcp pairing is rejected (400, before any secret check)", async () => {
     const res = await register(deps(goodSecrets()), "prn-nope");
     expect(res.status).toBe(400);
+  });
+
+  it("with the NotConfigured resolver /register fails closed (401) exactly like /token", async () => {
+    const res = await register(deps(new NotConfiguredSecretResolver()), PAIRING);
+    expect(res.status).toBe(401);
   });
 });
 
@@ -124,14 +185,7 @@ describe("authorization_code + PKCE round-trip", () => {
     const verifier = "verifier-0123456789-abcdefghijklmnopqrstuvwxyz-ABCDEFG";
     const challenge = await challengeFor(verifier);
 
-    const authRes = await authorize(d, {
-      response_type: "code",
-      client_id: PAIRING,
-      redirect_uri: REDIRECT_URI,
-      code_challenge: challenge,
-      code_challenge_method: "S256",
-      state: "state-xyz",
-    });
+    const authRes = await authorize(d, authParams(challenge, { state: "state-xyz" }));
     expect(authRes.status).toBe(302);
     expect(new URL(authRes.headers.get("location") as string).searchParams.get("state")).toBe("state-xyz");
     const code = codeFromRedirect(authRes);
@@ -151,8 +205,8 @@ describe("authorization_code + PKCE round-trip", () => {
     // The access token is OPAQUE and NOT the internal SessionClaims JWT (a JWT has two dots; this must not).
     expect(tok.access_token.split(".").length).toBe(1);
 
-    // The AS maps the token to the pairing — the seam the MCP session uses to mint the api principal.
-    const grant = await resolveTokenGrant(env.GRANTS, tok.access_token);
+    // The AS maps the token to the pairing — resolved under the SAME clock the grant was minted with.
+    const grant = await resolveTokenGrant(env.GRANTS, tok.access_token, () => T0);
     expect(grant?.pairingId).toBe(PAIRING);
   });
 
@@ -161,14 +215,7 @@ describe("authorization_code + PKCE round-trip", () => {
     await register(d, PAIRING);
     const challenge = await challengeFor("the-real-verifier-aaaaaaaaaaaaaaaaaaaaaaaaaaaa");
 
-    const authRes = await authorize(d, {
-      response_type: "code",
-      client_id: PAIRING,
-      redirect_uri: REDIRECT_URI,
-      code_challenge: challenge,
-      code_challenge_method: "S256",
-      state: "s",
-    });
+    const authRes = await authorize(d, authParams(challenge));
     const code = codeFromRedirect(authRes);
 
     const tokRes = await token(d, {
@@ -183,23 +230,90 @@ describe("authorization_code + PKCE round-trip", () => {
   });
 });
 
-describe("fail-closed token exchange (the NotConfigured resolver)", () => {
-  it("with the NotConfigured resolver every token exchange 401s — no principal minted, no token issued", async () => {
-    const failClosed = deps(new NotConfiguredSecretResolver());
-    await register(failClosed, PAIRING);
-    const verifier = "verifier-failclosed-cccccccccccccccccccccccccccc";
-    const challenge = await challengeFor(verifier);
+describe("requested scope is validated (server capability ∩ pairing allowlist)", () => {
+  it("an OUT-OF-ALLOWLIST scope (not in scopes_supported) is rejected → invalid_scope", async () => {
+    // RED before the fix: today /authorize stores scope unchecked and redirects with a code (no error).
+    const d = deps(goodSecrets());
+    await register(d, PAIRING);
+    const challenge = await challengeFor("verifier-scope-badbadbadbadbadbadbadbadbadbad");
+    const authRes = await authorize(d, authParams(challenge, { scope: "billing" }));
+    expect(authRes.status).toBe(302);
+    const loc = new URL(authRes.headers.get("location") as string);
+    expect(loc.searchParams.get("error")).toBe("invalid_scope");
+    expect(loc.searchParams.get("code")).toBeNull();
+  });
 
-    const authRes = await authorize(failClosed, {
+  it("a VALID subset scope ('mcp') is accepted (a code is issued)", async () => {
+    const d = deps(goodSecrets());
+    await register(d, PAIRING);
+    const challenge = await challengeFor("verifier-scope-goodgoodgoodgoodgoodgoodgood");
+    const authRes = await authorize(d, authParams(challenge, { scope: "mcp" }));
+    expect(authRes.status).toBe(302);
+    expect(codeFromRedirect(authRes)).toBeTruthy();
+  });
+
+  it("a server-SUPPORTED scope NOT in the pairing's own allowlist is rejected → invalid_scope", async () => {
+    // PAIRING_NOSCOPE has scopes=[] — even the supported "mcp" scope is not granted to it.
+    const d = deps(goodSecrets());
+    await register(d, PAIRING_NOSCOPE);
+    const challenge = await challengeFor("verifier-noscope-cccccccccccccccccccccccccccc");
+    const url = new URL(`${ISSUER}/authorize`);
+    for (const [k, v] of Object.entries({
       response_type: "code",
-      client_id: PAIRING,
+      client_id: PAIRING_NOSCOPE,
       redirect_uri: REDIRECT_URI,
       code_challenge: challenge,
       code_challenge_method: "S256",
       state: "s",
+      scope: "mcp",
+    })) {
+      url.searchParams.set(k, v);
+    }
+    const authRes = (await handleOAuth(new Request(url.toString(), { redirect: "manual" }), d)) as Response;
+    expect(authRes.status).toBe(302);
+    expect(new URL(authRes.headers.get("location") as string).searchParams.get("error")).toBe("invalid_scope");
+  });
+});
+
+describe("resolveTokenGrant enforces grant.exp (not just KV TTL)", () => {
+  it("a grant whose exp is in the past resolves to null even though the KV record is still present", async () => {
+    // RED before the fix: resolveTokenGrant relied solely on KV TTL and returned the grant regardless of the clock.
+    const d = deps(goodSecrets());
+    await register(d, PAIRING);
+    const verifier = "verifier-expiry-dddddddddddddddddddddddddddddddd";
+    const challenge = await challengeFor(verifier);
+    const authRes = await authorize(d, authParams(challenge));
+    const code = codeFromRedirect(authRes);
+    const tokRes = await token(d, {
+      grant_type: "authorization_code",
+      code,
+      redirect_uri: REDIRECT_URI,
+      client_id: PAIRING,
+      code_verifier: verifier,
+      client_secret: CLIENT_SECRET,
     });
+    const tok = (await tokRes.json()) as { access_token: string };
+
+    // Still valid at T0 (the mint clock)…
+    expect(await resolveTokenGrant(env.GRANTS, tok.access_token, () => T0)).not.toBeNull();
+    // …but a clock past the grant's exp (T0 + > 1h) returns null even though KV still holds the record.
+    const wayLater = T0 + 4000 * 1000;
+    expect(await resolveTokenGrant(env.GRANTS, tok.access_token, () => wayLater)).toBeNull();
+  });
+});
+
+describe("fail-closed token exchange (the NotConfigured resolver)", () => {
+  it("with the NotConfigured resolver every token exchange 401s — no principal minted, no token issued", async () => {
+    // Register + authorize with the GOOD resolver (so a client + code exist in the shared KV), then exchange with
+    // a fail-closed resolver: /token cannot resolve the client secret → 401 (the security spine).
+    const good = deps(goodSecrets());
+    await register(good, PAIRING);
+    const verifier = "verifier-failclosed-eeeeeeeeeeeeeeeeeeeeeeeeee";
+    const challenge = await challengeFor(verifier);
+    const authRes = await authorize(good, authParams(challenge));
     const code = codeFromRedirect(authRes);
 
+    const failClosed = deps(new NotConfiguredSecretResolver());
     const tokRes = await token(failClosed, {
       grant_type: "authorization_code",
       code,
@@ -211,25 +325,34 @@ describe("fail-closed token exchange (the NotConfigured resolver)", () => {
     expect(tokRes.status).toBe(401);
   });
 
-  it("the WIRED worker default fetch is fail-closed (prod NotConfigured): a full ceremony through worker.fetch 401s at /token", async () => {
-    const verifier = "verifier-worker-dddddddddddddddddddddddddddddddd";
-    const challenge = await challengeFor(verifier);
-    await worker.fetch(
+  it("the WIRED worker default fetch is fail-closed: /register 401s in prod (NotConfigured)", async () => {
+    const res = await worker.fetch(
       new Request(`${ISSUER}/register`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ pairing_id: PAIRING, redirect_uris: [REDIRECT_URI] }),
+        body: JSON.stringify({ pairing_id: PAIRING, redirect_uris: [REDIRECT_URI], client_secret: CLIENT_SECRET }),
       }),
       env,
     );
+    expect(res.status).toBe(401); // no secret store bound → the pairing secret never resolves → fail-closed DCR
+  });
+
+  it("the WIRED worker default fetch is fail-closed at /token (a code minted through the wired /authorize still 401s at exchange)", async () => {
+    // Seed a registered client via injected GOOD deps (shared KV/DB), then run /authorize AND /token through
+    // worker.fetch (prod NotConfigured, real clock) — proving the wired token endpoint fails closed at exchange.
+    const good = deps(goodSecrets());
+    await register(good, PAIRING);
+    const verifier = "verifier-worker-ffffffffffffffffffffffffffffffff";
+    const challenge = await challengeFor(verifier);
     const authRes = await worker.fetch(
       new Request(
-        `${ISSUER}/authorize?response_type=code&client_id=${PAIRING}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&code_challenge=${challenge}&code_challenge_method=S256&state=s`,
+        `${ISSUER}/authorize?response_type=code&client_id=${PAIRING}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&code_challenge=${challenge}&code_challenge_method=S256&state=s&scope=mcp`,
         { redirect: "manual" },
       ),
       env,
     );
     const code = codeFromRedirect(authRes);
+
     const tokRes = await worker.fetch(
       new Request(`${ISSUER}/token`, {
         method: "POST",
@@ -245,7 +368,7 @@ describe("fail-closed token exchange (the NotConfigured resolver)", () => {
       }),
       env,
     );
-    expect(tokRes.status).toBe(401); // no secret store bound → the pairing secret never resolves → fail-closed
+    expect(tokRes.status).toBe(401);
   });
 });
 
@@ -253,19 +376,10 @@ describe("tenant/role are pairing-derived, never client-influenced", () => {
   it("a client-supplied tenant/role in authorize AND token is IGNORED — the minted principal is the pairing's tenant + role=ops", async () => {
     const d = deps(goodSecrets());
     await register(d, PAIRING);
-    const verifier = "verifier-influence-eeeeeeeeeeeeeeeeeeeeeeeeeeee";
+    const verifier = "verifier-influence-gggggggggggggggggggggggggggg";
     const challenge = await challengeFor(verifier);
 
-    const authRes = await authorize(d, {
-      response_type: "code",
-      client_id: PAIRING,
-      redirect_uri: REDIRECT_URI,
-      code_challenge: challenge,
-      code_challenge_method: "S256",
-      state: "s",
-      tenant: "t-EVIL", // hostile: try to steer the tenant
-      role: "admin", // hostile: try to escalate the role
-    });
+    const authRes = await authorize(d, authParams(challenge, { tenant: "t-EVIL", role: "admin" }));
     const code = codeFromRedirect(authRes);
 
     const tokRes = await token(d, {
@@ -281,8 +395,8 @@ describe("tenant/role are pairing-derived, never client-influenced", () => {
     expect(tokRes.status).toBe(200);
     const tok = (await tokRes.json()) as { access_token: string };
 
-    // The grant records ONLY the pairing — nothing the client typed. Mint the principal and prove tenant/role.
-    const grant = await resolveTokenGrant(env.GRANTS, tok.access_token);
+    // The grant records ONLY the pairing (+ validated scope) — nothing the client typed. Mint the principal.
+    const grant = await resolveTokenGrant(env.GRANTS, tok.access_token, () => T0);
     const jwt = await mintPrincipalJwt(env, grant?.pairingId as string);
     const { payload } = decode(jwt);
     expect((payload as { tenant: string }).tenant).toBe(TENANT_ID); // NOT t-EVIL

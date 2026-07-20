@@ -10,11 +10,13 @@
 //
 // THE PAIRING IS THE CLIENT. A paired company's `mcp` pairing IS the confidential OAuth client: client_id =
 // pairing id, and the client credential is the pairing's `secret_ref` resolved through the injected
-// SecretResolver. So naming a pairing is not enough to obtain a token — the caller must present the pairing's
-// secret at /token, and with the fail-closed default NO secret ever resolves (every exchange 401s). The client
-// only ever receives an OPAQUE access token this AS maps to the pairing; it NEVER receives the internal
-// SessionClaims JWT (that is minted server-side per request in principal.ts). tenant/role are NEVER read from a
-// client request — the grant records ONLY the pairing id, so they cannot be influenced.
+// SecretResolver. So naming a pairing is not enough — the caller must present the pairing's secret to BOTH
+// /register (so it cannot claim/overwrite another pairing-client's redirect_uris) AND /token, and with the
+// fail-closed default NO secret ever resolves (every /register + /token 401s). The client only ever receives an
+// OPAQUE access token this AS maps to the pairing; it NEVER receives the internal SessionClaims JWT (that is
+// minted server-side per request in principal.ts). tenant/role are NEVER read from a client request; the grant
+// records ONLY the pairing id + the VALIDATED scope (scope ⊆ server capability ∩ the pairing's own allowlist),
+// so a client can influence neither the tenant, the role, nor an out-of-band scope.
 import { resolveActiveMcpPairing, type SecretResolver } from "./principal.js";
 
 export const OAUTH_METADATA_PATH = "/.well-known/oauth-authorization-server";
@@ -96,6 +98,28 @@ function timingSafeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
+// Parse a `pairings.scopes` JSON-array text (e.g. '["mcp"]') into a string[]; a malformed/absent value ⇒ [] (an
+// empty allowlist grants nothing — fail-closed, never fail-open).
+function parseScopeList(text: string): string[] {
+  try {
+    const parsed: unknown = JSON.parse(text);
+    return Array.isArray(parsed) ? parsed.filter((s): s is string => typeof s === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+// A requested OAuth `scope` (space-delimited per RFC 6749 §3.3) is granted ONLY when EVERY token is both a server
+// capability (SCOPES_SUPPORTED) AND in the pairing's own allowlist (`pairings.scopes`). An empty request grants
+// nothing (no bare-token widening); an empty pairing allowlist grants nothing (fail-closed).
+function scopeWithinAllowlist(requested: string, pairingScopesJson: string): boolean {
+  const tokens = requested.split(/\s+/).filter((t) => t.length > 0);
+  if (tokens.length === 0) return false;
+  const supported = new Set(SCOPES_SUPPORTED);
+  const allowed = new Set(parseScopeList(pairingScopesJson));
+  return tokens.every((t) => supported.has(t) && allowed.has(t));
+}
+
 async function readBody(request: Request): Promise<Record<string, string>> {
   const ctype = request.headers.get("content-type") ?? "";
   if (ctype.includes("application/json")) {
@@ -130,11 +154,14 @@ function metadata(issuer: string): Response {
   });
 }
 
-// ── dynamic client registration (RFC 7591, minimal) ──────────────────────────────────────────────────────────
+// ── dynamic client registration (RFC 7591, minimal) — AUTHENTICATED ──────────────────────────────────────────
 // A client registers AGAINST an existing active `mcp` pairing (the paired company): the returned client_id IS
 // the pairing id, so the whole ceremony keys off the pairing. Registering against an unknown/non-mcp/inactive
-// pairing is refused (no client is created). The client_secret is NOT returned here — it is the pairing's
-// secret_ref, provisioned out-of-band and resolved only at /token (so the secret never rides a DCR response).
+// pairing is refused (no client is created). CRITICAL: the registrant must AUTHENTICATE as the pairing owner by
+// presenting the pairing's client secret (resolved via the SAME fail-closed SecretResolver /token uses) — else a
+// caller who merely knows a pairing id (client_id is NOT a secret) could overwrite a pairing-client's
+// redirect_uris and set up a code-delivery hijack. Without the secret — or with no secret store bound — /register
+// 401s (fail-closed), symmetric with /token. The client_secret is NEVER returned in the DCR response.
 async function handleRegister(request: Request, deps: OAuthDeps): Promise<Response> {
   const body = await readBody(request);
   const pairingId = body.pairing_id ?? body.client_id;
@@ -142,6 +169,10 @@ async function handleRegister(request: Request, deps: OAuthDeps): Promise<Respon
 
   const pairing = await resolveActiveMcpPairing(deps.controlDb, pairingId);
   if (pairing === null) return oauthError(400, "invalid_client_metadata", "no active mcp pairing for pairing_id");
+
+  // AUTHENTICATE the registrant as the pairing owner (the fail-closed gate — mirrors /token's client auth).
+  const authFailure = await authenticateClient(deps, pairingId, body.client_secret ?? "");
+  if (authFailure !== null) return authFailure;
 
   let redirectUris: string[] = [];
   const raw = body.redirect_uris;
@@ -206,6 +237,10 @@ async function handleAuthorize(request: Request, deps: OAuthDeps): Promise<Respo
   const pairing = await resolveActiveMcpPairing(deps.controlDb, clientId);
   if (pairing === null) return fail("access_denied");
 
+  // SCOPE — the requested scope must be ⊆ the server capability AND ⊆ the pairing's own allowlist (pairings.scopes).
+  // An out-of-allowlist scope is rejected (RFC 6749 invalid_scope) rather than silently stored into the grant.
+  if (!scopeWithinAllowlist(scope, pairing.scopes)) return fail("invalid_scope");
+
   const code = randomToken("mcpc_");
   const record: AuthCodeRecord = {
     pairingId: clientId,
@@ -255,16 +290,14 @@ async function handleToken(request: Request, deps: OAuthDeps): Promise<Response>
   // every environment until the CONFIRM-gated secret store is bound. The confidential client must present the
   // matching secret (timing-safe). This runs BEFORE PKCE so an unwired env 401s (never a 400) — the task's
   // "the token exchange 401s (no principal minted)" contract.
-  const pairing = await resolveActiveMcpPairing(deps.controlDb, record.pairingId);
-  if (pairing === null) return oauthError(401, "invalid_client", "pairing is no longer active");
-  const expectedSecret = await deps.secrets.resolve(await pairingSecretRef(deps.controlDb, record.pairingId));
-  if (expectedSecret === null || expectedSecret === "") return oauthError(401, "invalid_client", "client secret unavailable");
-  if (!timingSafeEqual(expectedSecret, clientSecret)) return oauthError(401, "invalid_client", "client authentication failed");
+  const authFailure = await authenticateClient(deps, record.pairingId, clientSecret);
+  if (authFailure !== null) return authFailure;
 
   // PKCE — proof of possession of the code_verifier (RFC 7636). A mismatch is invalid_grant (400).
   if (!timingSafeEqual(record.codeChallenge, await s256(codeVerifier))) return oauthError(400, "invalid_grant", "PKCE verification failed");
 
-  // Issue the opaque access token and record the token→pairing grant (the ONLY thing persisted — no client input).
+  // Issue the opaque access token and record the token→pairing grant. The ONLY things persisted are the pairing
+  // id + the ALREADY-VALIDATED scope (checked ⊆ allowlist at /authorize) — never a client-chosen tenant/role.
   const accessToken = randomToken("mcpt_");
   const grant: TokenGrant = {
     pairingId: record.pairingId,
@@ -286,11 +319,34 @@ async function pairingSecretRef(db: D1Database, pairingId: string): Promise<stri
   return row?.secret_ref ?? "";
 }
 
-/** Resolve an opaque access token → its pairing grant (the MCP session→pairing mapping), or null if unknown/expired. */
-export async function resolveTokenGrant(grants: KVNamespace, accessToken: string): Promise<TokenGrant | null> {
+// THE FAIL-CLOSED CLIENT-AUTHENTICATION gate, shared by /register and /token. The pairing must still be active,
+// and the presented client_secret must equal the pairing's secret resolved through the SecretResolver. Returns a
+// 401 invalid_client Response on ANY failure (inactive pairing, unresolvable secret — NotConfigured ⇒ null ⇒
+// fail-closed everywhere, empty, or mismatch), or null on success. Timing-safe compare (no early-out).
+async function authenticateClient(deps: OAuthDeps, pairingId: string, presentedSecret: string): Promise<Response | null> {
+  const pairing = await resolveActiveMcpPairing(deps.controlDb, pairingId);
+  if (pairing === null) return oauthError(401, "invalid_client", "pairing is not active");
+  const expected = await deps.secrets.resolve(await pairingSecretRef(deps.controlDb, pairingId));
+  if (expected === null || expected === "") return oauthError(401, "invalid_client", "client secret unavailable");
+  if (!timingSafeEqual(expected, presentedSecret)) return oauthError(401, "invalid_client", "client authentication failed");
+  return null;
+}
+
+/**
+ * Resolve an opaque access token → its pairing grant (the MCP session→pairing mapping), or null if unknown or
+ * EXPIRED. Enforces grant.exp against the injected clock (not merely KV TTL) so a still-present record past its
+ * lifetime never authorizes an MCP session — mirrors the code path's expiry check.
+ */
+export async function resolveTokenGrant(
+  grants: KVNamespace,
+  accessToken: string,
+  now: () => number = () => Date.now(),
+): Promise<TokenGrant | null> {
   const raw = await grants.get(TOKEN_PREFIX + accessToken);
   if (raw === null) return null;
-  return JSON.parse(raw) as TokenGrant;
+  const grant = JSON.parse(raw) as TokenGrant;
+  if (grant.exp <= Math.floor(now() / 1000)) return null; // expired — fail-closed even if KV still holds it
+  return grant;
 }
 
 /**
