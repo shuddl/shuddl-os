@@ -21,12 +21,18 @@ ENVIRONMENT = "dev"
 binding = "API"
 service = "shuddl-api-dev"
 
-# Control plane (tenants +, later, OAuth client registrations). Auth-only; NEVER a tenant data path (REQ-025).
+# Control plane (tenants + `pairings` — the OAuth grant target). Auth-only; NEVER a tenant data path (REQ-025).
 # Mirrors workers/api + workers/translator CONTROL_DB.
 [[d1_databases]]
 binding = "CONTROL_DB"
 database_name = "shuddl-control-dev"
 database_id = "local-control"
+
+# WP-13 Task 2 (REQ-102) — the OAuth grants store: authorization codes, access-token→pairing grants, and
+# registered clients (all opaque). A SessionClaims JWT is NEVER stored here — it is minted per request (REQ-102).
+[[kv_namespaces]]
+binding = "GRANTS"
+id = "local-grants"
 
 # ── STAGING (synthetic only, REQ-154). The service binding targets the STAGING api worker (must be deployed
 #    first); the default (top-level) config keeps its local-* ids for tests + `wrangler dev`.
@@ -47,3 +53,8 @@ service = "shuddl-api-staging"
 binding = "CONTROL_DB"
 database_name = "shuddl-control-staging"
 database_id = "8e238970-2ed3-494d-960f-e4af082c1e8e"
+
+# OAuth grants store (staging id is a synthetic placeholder; provisioned at deploy — REQ-154).
+[[env.staging.kv_namespaces]]
+binding = "GRANTS"
+id = "0000000000000000000000000000staging"

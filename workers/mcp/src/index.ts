@@ -1,21 +1,29 @@
 // WP-13 Task 1 (REQ-101) — THE MCP WORKER ENTRY + the api service-binding reuse seam.
 //
-// This task ships the scaffold only: a health `fetch` (MCP transport + OAuth land in later tasks) and
-// `callApi` — THE seam every future MCP tool routes through. An MCP tool never touches D1/R2 or appends an
-// event directly; it calls the api worker's authenticated /v1/* routes over the `API` service binding, so
-// the api's server-side gates (auth, idempotency, Gatekeeper — REQ-030) run for an MCP caller exactly as for
-// a browser caller. There is no second gate here and no bypass.
+// Task 1 shipped the scaffold + `callApi` — THE seam every MCP tool routes through: an MCP tool never touches
+// D1/R2 or appends an event directly; it calls the api worker's authenticated /v1/* routes over the `API`
+// service binding, so the api's server-side gates (auth, idempotency, Gatekeeper — REQ-030) run for an MCP
+// caller exactly as for a browser caller. There is no second gate here and no bypass.
+//
+// WP-13 Task 2 (REQ-102) adds the client-facing OAuth 2.1 AS (oauth.ts) + the fail-closed pairing→SessionClaims
+// mint (principal.ts). The composition root here selects the FAIL-CLOSED SecretResolver (prod cannot complete a
+// token exchange until the CONFIRM-gated secret store is bound) and wires the AS into `fetch`.
+import { handleOAuth, type OAuthDeps } from "./oauth.js";
+import { NotConfiguredSecretResolver, type SecretResolver } from "./principal.js";
 
 export interface Env {
   /** THE reuse seam: a service binding to the api worker (its Hono app + every /v1 gate). In the test pool
    *  this resolves to an auxiliary worker running the real api in-process; in staging/prod to the deployed
    *  `shuddl-api-*` worker. callApi() is the only path an MCP tool uses to reach freight reality. */
   API: Fetcher;
-  /** Control plane (tenants +, later, OAuth client registrations). Auth-only; NEVER a tenant data path
-   *  (REQ-025). Not read in Task 1. */
+  /** Control plane (tenants + `pairings` — the OAuth grant target). Auth-only; NEVER a tenant data path
+   *  (REQ-025). Read in Task 2 by the principal mint + OAuth AS to resolve an active `mcp` pairing. */
   CONTROL_DB: D1Database;
-  /** HS256 secret used to MINT a session JWT for the api on behalf of an OAuth-authorized MCP client (later
-   *  task's token exchange). Secret, never the toml (REQ-154) — injected via `wrangler secret`. */
+  /** OAuth grants store (WP-13 Task 2): authorization codes, access-token→pairing grants, and registered
+   *  clients — all opaque, KV-backed. Never holds a SessionClaims JWT (that is minted per request, never stored). */
+  GRANTS: KVNamespace;
+  /** HS256 secret used to MINT a session JWT for the api on behalf of an OAuth-authorized MCP client (the
+   *  Task-2 principal mint). Secret, never the toml (REQ-154) — injected via `wrangler secret`. */
   JWT_SECRET: string;
   /** dev | staging | prod (the toml [vars] value). */
   ENVIRONMENT: string;
@@ -54,10 +62,35 @@ export async function callApi(env: Pick<Env, "API">, opts: CallApiOptions): Prom
   return env.API.fetch(request);
 }
 
+// THE COMPOSITION ROOT for OAuth client authentication (mirrors the translator's secretResolverFor). Resolving a
+// pairing's client secret from a real secret store is the CONFIRM-gated live flip (secrets never in the toml,
+// REQ-154); until then this FAILS CLOSED — NotConfiguredSecretResolver resolves nothing, so the token exchange
+// 401s in every environment. The OAuth ceremony ships fully tested via an injected static resolver; going live
+// is a config flip, not code.
+export function secretResolverFor(env: Env): SecretResolver {
+  void env; // read here when the live secret store binds — see the header
+  return new NotConfiguredSecretResolver();
+}
+
+// Assemble the OAuth deps from the request + env — every port selected HERE (the fail-closed resolver, the KV
+// grants store, the control DB), none read from inside the ceremony. The issuer is this request's origin.
+function oauthDeps(request: Request, env: Env): OAuthDeps {
+  return {
+    controlDb: env.CONTROL_DB,
+    grants: env.GRANTS,
+    secrets: secretResolverFor(env),
+    now: () => Date.now(),
+    issuer: new URL(request.url).origin,
+  };
+}
+
 export default {
-  // Health probe only in Task 1. The MCP JSON-RPC transport + OAuth authorize/token endpoints mount here in
-  // later tasks; until then every request returns the same liveness response.
-  async fetch(_request: Request, env: Env): Promise<Response> {
+  // The client-facing OAuth 2.1 AS (metadata / register / authorize / token) is wired here; a request that is
+  // not an OAuth path falls through to the health probe. The MCP JSON-RPC transport mounts here in a later task
+  // (it will map an opaque access token → pairing via resolveTokenGrant, then mintPrincipalJwt for callApi).
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const oauth = await handleOAuth(request, oauthDeps(request, env));
+    if (oauth !== null) return oauth;
     return Response.json({ ok: true, service: "mcp", env: env.ENVIRONMENT });
   },
 };
