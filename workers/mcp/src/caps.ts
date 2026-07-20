@@ -50,8 +50,10 @@ interface ParsedCaps {
 /**
  * Parse the pairing's `caps` JSON, FAIL-CLOSED. Returns null (⇒ refuse the booking) when caps are absent,
  * unparseable, not an object, or MISSING a valid spend/velocity — an unconfigured OR partial cap is treated as
- * unusable (ZERO capacity), never as infinite. `lanes`, when a string array, is an allow-list; anything else omits
- * it (⇒ no lane restriction). Units: `spend` is integer cents; `velocity` is a non-negative integer count.
+ * unusable (ZERO capacity), never as infinite. `lanes` is optional: ABSENT ⇒ no lane restriction; but a PRESENT
+ * `lanes` that is NOT an array is MALFORMED and fails CLOSED (returns null) — a malformed allow-list must never
+ * silently disable lane enforcement while spend/velocity stay enforced (exit audit F2). A present array is the
+ * allow-list (string members). Units: `spend` is integer cents; `velocity` is a non-negative integer count.
  */
 export function parseCaps(raw: string | null | undefined): ParsedCaps | null {
   if (typeof raw !== "string") return null;
@@ -68,7 +70,11 @@ export function parseCaps(raw: string | null | undefined): ParsedCaps | null {
   if (typeof spend !== "number" || !Number.isFinite(spend) || spend < 0) return null;
   if (typeof velocity !== "number" || !Number.isInteger(velocity) || velocity < 0) return null;
   const out: ParsedCaps = { spendCents: spend, velocity };
-  if (Array.isArray(rec.lanes)) out.lanes = rec.lanes.filter((x): x is string => typeof x === "string");
+  // A present-but-non-array `lanes` (a string, an object, null) fails CLOSED — never silently unrestricted (F2).
+  if (rec.lanes !== undefined) {
+    if (!Array.isArray(rec.lanes)) return null;
+    out.lanes = rec.lanes.filter((x): x is string => typeof x === "string");
+  }
   return out;
 }
 
@@ -96,8 +102,9 @@ export interface BookingBasis {
  * MEMOIZED on ctx (ctx.acceptedQuoteMemo) so the two money gates that both need the sell — caps (spend/lane) and
  * confirm (amount match) — read the quote.priced event exactly ONCE per tool call, not twice. Exported so
  * confirmCheck (confirm.ts) REUSES this single server-side sell lookup (the sell is the server's, never a client
- * number). caps runs ahead of confirm (gate.ts chain order), so it owns the fetch + its fail-closed codes; confirm
- * then reads the memo.
+ * number). The gate order is [confirm, caps] (gate.ts, exit-audit F1a), so CONFIRM populates the memo first and
+ * caps reads it; whichever gate reaches here first owns the one fetch — the memo makes it order-independent. This
+ * function's fail-closed quote-read codes (caps_quote_unresolved) surface from whichever gate triggered the fetch.
  */
 export async function loadAcceptedQuote(ctx: ToolCtx, shipmentId: string, quoteEventId: string): Promise<BookingBasis> {
   const memoKey = JSON.stringify([shipmentId, quoteEventId]);
@@ -194,7 +201,9 @@ async function runCapsCheck(ctx: ToolCtx, tool: ToolDef, args: unknown): Promise
   let result: ReserveResult;
   try {
     const stub = ctx.env.CAPS_METER.get(ctx.env.CAPS_METER.idFromName(ctx.pairingId)) as unknown as CapsMeterStub;
-    result = await stub.checkAndReserve({ period, spendCents, capSpendCents: caps.spendCents, capVelocity: caps.velocity });
+    // Thread the derived Idempotency-Key so a retried booking (same key ⇒ the api dedupes it to ONE quote.accepted)
+    // counts ONCE in the meter, not twice (exit audit F1b, REQ-106).
+    result = await stub.checkAndReserve({ period, spendCents, capSpendCents: caps.spendCents, capVelocity: caps.velocity, idemKey: ctx.idempotencyKey });
   } catch {
     throw new MutationBlocked("caps_meter_error", "usage meter unavailable; booking refused (fail-closed)");
   }

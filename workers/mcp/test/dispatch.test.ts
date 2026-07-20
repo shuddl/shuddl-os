@@ -309,7 +309,7 @@ describe("[FIX 1] the mutation-check chain is composed EXPLICITLY, never a mutab
     expect((live as ComposedMutationGate).checks).toBe(DEFAULT_MUTATION_CHECKS);
     // Task 8 (REQ-105) ADDED capsCheck and Task 9 (REQ-108) ADDED confirmCheck explicitly at the marker, IN ORDER.
     // A declared-but-unlisted check would fail this identity assertion (the whole point of the explicit array).
-    expect(DEFAULT_MUTATION_CHECKS.map((c) => c.name)).toEqual(["caps", "confirm"]);
+    expect(DEFAULT_MUTATION_CHECKS.map((c) => c.name)).toEqual(["confirm", "caps"]);
 
     // An empty tool ({}.name !== "book_shipment") is a pass-through for BOTH caps and confirm, so the live chain
     // resolves; the test global still must NOT fire (it is not a backdoor into production).

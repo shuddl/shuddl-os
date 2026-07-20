@@ -53,12 +53,16 @@ export interface ComposedMutationGate {
  */
 export const DEFAULT_MUTATION_CHECKS: MutationCheck[] = [
   // ↓↓↓ ADD PRODUCTION CHECKS HERE, IN ORDER (an explicit edit — no import-side-effect registration) ↓↓↓
-  // Task 8 (REQ-105): capsCheck — spend / velocity / lane caps over the OAuth principal (keyed off ctx.pairingId).
-  // It runs FIRST: it owns the accepted-quote fetch (memoized on ctx) + the fail-closed quote-read codes.
-  capsCheck,
-  // Task 9 (REQ-108): confirmCheck — the human-CONFIRM-before-money gate on book_shipment. Runs after caps and
-  // REUSES the memoized sell (no double-fetch). A refusal from EITHER check blocks the money-moving write.
+  // Task 9 (REQ-108): confirmCheck — the human-CONFIRM-before-money gate on book_shipment. It runs FIRST (exit
+  // audit F1a, REQ-105): a missing/mismatched confirm must refuse BEFORE caps reserves a slot, else a
+  // confirm-failed booking would permanently consume the pairing's own budget (a self-DoS). The accepted-quote
+  // fetch is memoized on ctx (loadAcceptedQuote), so running confirm first is fetch-order-independent — it
+  // populates the memo, caps then reads it. A refusal from EITHER check blocks the money-moving write.
   confirmCheck,
+  // Task 8 (REQ-105): capsCheck — spend / velocity / lane caps over the OAuth principal (keyed off ctx.pairingId).
+  // Runs AFTER confirm and reserves the money meter ONLY once a valid confirm has cleared. It reads the memoized
+  // sell (no double-fetch) and owns the caps fail-closed codes (caps_unconfigured / caps_quote_unresolved / …).
+  capsCheck,
   // ↑↑↑ ADD PRODUCTION CHECKS HERE ↑↑↑
 ];
 

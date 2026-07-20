@@ -31,6 +31,9 @@ const P = {
   LOW: "prn-caps-low", // hostile-prompt: a TINY cap the token pairing really has
   HIGH: "prn-caps-high", // hostile-prompt: the fat cap a malicious arg tries to name
   PASS: "prn-caps-pass", // generous — meter-error + pass-through drives
+  CONFIRMFIRST: "prn-caps-cf", // [F1a] generous caps: a confirm-fail must NOT reserve a slot
+  IDEM: "prn-caps-idem", // [F1b] generous caps: a retried key counts once
+  BADLANES: "prn-caps-badlanes", // [F2] caps carry a MALFORMED non-array `lanes`
 } as const;
 const TOK = (p: string): string => `mcpt_${p}`;
 
@@ -145,6 +148,9 @@ beforeAll(async () => {
     [P.LOW]: JSON.stringify({ spend: 100, velocity: 5 }), // $1 spend cap
     [P.HIGH]: JSON.stringify({ spend: BIG, velocity: BIG }),
     [P.PASS]: JSON.stringify({ spend: BIG, velocity: BIG }),
+    [P.CONFIRMFIRST]: JSON.stringify({ spend: BIG, velocity: BIG }),
+    [P.IDEM]: JSON.stringify({ spend: BIG, velocity: BIG }),
+    [P.BADLANES]: JSON.stringify({ spend: BIG, velocity: BIG, lanes: "ATL" }), // MALFORMED: lanes is a string, not an array
   };
   for (const [id, c] of Object.entries(caps)) {
     await seedPairing(env.CONTROL_DB, { id, tenantId: TENANT, kind: "mcp", status: "active", scopes: '["mcp"]', caps: c });
@@ -152,7 +158,7 @@ beforeAll(async () => {
   // KV token grants for the dispatch-driven pairings (+ a GHOST grant whose pairing row is deliberately absent).
   const exp = Math.floor(Date.now() / 1000) + 3600;
   const grant = (p: string): string => JSON.stringify({ pairingId: p, scope: "mcp", exp });
-  for (const p of [P.SPEND, P.VEL, P.LANE, P.NOCAPS, P.QUOTEFAIL, P.ATTR_A, P.ATTR_B, P.GHOST, P.LOW]) {
+  for (const p of [P.SPEND, P.VEL, P.LANE, P.NOCAPS, P.QUOTEFAIL, P.ATTR_A, P.ATTR_B, P.GHOST, P.LOW, P.CONFIRMFIRST, P.IDEM, P.BADLANES]) {
     await env.GRANTS.put(`token:${TOK(p)}`, grant(p));
   }
 });
@@ -161,15 +167,15 @@ beforeAll(async () => {
 describe("spend cap", () => {
   it("a booking that would exceed caps.spend is refused; the accept-quote is NOT made and the tally does not advance", async () => {
     // cap $2,000; each booking sells $1,200 → the 2nd would total $2,400 > cap.
-    // Task 9 (REQ-108): book_shipment now runs BEHIND the confirm gate too — an ACCEPTED booking must carry a
-    // matching confirm (amount_cents == the server sell). A caps refusal short-circuits ahead of confirm, so the
-    // refused calls below need no confirm; the ACCEPTED ones do.
+    // Gate order is [confirm, caps] (exit-audit F1a), so EVERY book_shipment — accepted OR caps-refused — must
+    // carry a matching confirm (amount_cents == the server sell) to reach caps; a missing confirm is refused as
+    // confirm_required first.
     const first = await runTool(TOK(P.SPEND), "book_shipment", { shipment_id: "shp_s1", quote_event_id: "q_s1", confirm: { intent: "book", amount_cents: 120_000 } }, bookApi("shp_s1", "q_s1", { sell: 120_000 }));
     expect(first.body.result?.structuredContent?.status).toBe("ACCEPTED");
     expect(first.calls.some((c) => c.path.endsWith("/accept-quote"))).toBe(true); // the write happened
     expect(await peekTally(P.SPEND)).toEqual({ spend: 120_000, count: 1 }); // tally advanced
 
-    const second = await runTool(TOK(P.SPEND), "book_shipment", { shipment_id: "shp_s2", quote_event_id: "q_s2" }, bookApi("shp_s2", "q_s2", { sell: 120_000 }));
+    const second = await runTool(TOK(P.SPEND), "book_shipment", { shipment_id: "shp_s2", quote_event_id: "q_s2", confirm: { intent: "book", amount_cents: 120_000 } }, bookApi("shp_s2", "q_s2", { sell: 120_000 }));
     expect(second.body.error?.code).toBe(-32001); // MUTATION_BLOCKED
     expect(second.body.error?.data?.code).toBe("spend_cap_exceeded");
     expect(second.calls.some((c) => c.method === "POST")).toBe(false); // accept-quote NEVER attempted
@@ -184,7 +190,7 @@ describe("velocity cap", () => {
       const ok = await runTool(TOK(P.VEL), "book_shipment", { shipment_id: `shp_v${i}`, quote_event_id: `q_v${i}`, confirm: { intent: "book", amount_cents: 1_000 } }, bookApi(`shp_v${i}`, `q_v${i}`, { sell: 1_000 }));
       expect(ok.body.result?.structuredContent?.status).toBe("ACCEPTED");
     }
-    const third = await runTool(TOK(P.VEL), "book_shipment", { shipment_id: "shp_v3", quote_event_id: "q_v3" }, bookApi("shp_v3", "q_v3", { sell: 1_000 }));
+    const third = await runTool(TOK(P.VEL), "book_shipment", { shipment_id: "shp_v3", quote_event_id: "q_v3", confirm: { intent: "book", amount_cents: 1_000 } }, bookApi("shp_v3", "q_v3", { sell: 1_000 }));
     expect(third.body.error?.data?.code).toBe("velocity_cap_exceeded");
     expect(third.calls.some((c) => c.method === "POST")).toBe(false);
     expect(await peekTally(P.VEL)).toEqual({ spend: 2_000, count: 2 });
@@ -199,13 +205,13 @@ describe("lane cap (allow-list, fail-closed)", () => {
   });
 
   it("an off-lane booking is refused; the accept-quote is NOT made", async () => {
-    const off = await runTool(TOK(P.LANE), "book_shipment", { shipment_id: "shp_l2", quote_event_id: "q_l2" }, bookApi("shp_l2", "q_l2", { sell: 1_000, zone: "Z9" }));
+    const off = await runTool(TOK(P.LANE), "book_shipment", { shipment_id: "shp_l2", quote_event_id: "q_l2", confirm: { intent: "book", amount_cents: 1_000 } }, bookApi("shp_l2", "q_l2", { sell: 1_000, zone: "Z9" }));
     expect(off.body.error?.data?.code).toBe("lane_not_allowed");
     expect(off.calls.some((c) => c.method === "POST")).toBe(false);
   });
 
   it("a booking whose lane cannot be determined is refused against a set allow-list (fail-closed)", async () => {
-    const blank = await runTool(TOK(P.LANE), "book_shipment", { shipment_id: "shp_l3", quote_event_id: "q_l3" }, bookApi("shp_l3", "q_l3", { sell: 1_000 })); // no zone/prefix
+    const blank = await runTool(TOK(P.LANE), "book_shipment", { shipment_id: "shp_l3", quote_event_id: "q_l3", confirm: { intent: "book", amount_cents: 1_000 } }, bookApi("shp_l3", "q_l3", { sell: 1_000 })); // no zone/prefix
     expect(blank.body.error?.data?.code).toBe("lane_not_allowed");
   });
 });
@@ -246,7 +252,7 @@ describe("actor attribution (tally keyed by the ACTING pairing, never refs.pairi
     expect(await peekTally(P.ATTR_A)).toEqual({ spend: 0, count: 0 }); // A untouched by B's action
 
     // B is now at its velocity cap — a second B booking (even of a different shipment) is refused.
-    const bSecond = await runTool(TOK(P.ATTR_B), "book_shipment", { shipment_id: "shp_ab2", quote_event_id: "q_ab2" }, bookApi("shp_ab2", "q_ab2", { sell: 1 }));
+    const bSecond = await runTool(TOK(P.ATTR_B), "book_shipment", { shipment_id: "shp_ab2", quote_event_id: "q_ab2", confirm: { intent: "book", amount_cents: 1 } }, bookApi("shp_ab2", "q_ab2", { sell: 1 }));
     expect(bSecond.body.error?.data?.code).toBe("velocity_cap_exceeded");
 
     // A can STILL book its own single slot — B never spent it.
@@ -258,24 +264,43 @@ describe("actor attribution (tally keyed by the ACTING pairing, never refs.pairi
 
 // ── FAIL-CLOSED ───────────────────────────────────────────────────────────────────────────────────────────────
 describe("fail-closed", () => {
-  it("an unconfigured cap ({}) refuses the booking and makes NO api call (an unconfigured cap is ZERO, not ∞)", async () => {
-    const { body, calls } = await runTool(TOK(P.NOCAPS), "book_shipment", { shipment_id: "shp_n1", quote_event_id: "q_n1" }, bookApi("shp_n1", "q_n1", { sell: 1 }));
+  it("an unconfigured cap ({}) refuses the booking; NO accept-quote write (an unconfigured cap is ZERO, not ∞)", async () => {
+    // With a matching confirm the chain reaches caps, which refuses the unconfigured `{}` caps. (confirm reads the
+    // quote first, so a caps-read GET occurs — but caps refuses before any WRITE; the money move never happens.)
+    const { body, calls } = await runTool(TOK(P.NOCAPS), "book_shipment", { shipment_id: "shp_n1", quote_event_id: "q_n1", confirm: { intent: "book", amount_cents: 1 } }, bookApi("shp_n1", "q_n1", { sell: 1 }));
     expect(body.error?.data?.code).toBe("caps_unconfigured");
-    expect(calls).toHaveLength(0); // refused before even the events hop
+    expect(calls.some((c) => c.method === "POST")).toBe(false);
   });
 
   it("an unresolvable pairing (no row) refuses the booking (fail-closed), never allows", async () => {
-    const { body, calls } = await runTool(TOK(P.GHOST), "book_shipment", { shipment_id: "shp_g1", quote_event_id: "q_g1" }, bookApi("shp_g1", "q_g1", { sell: 1 }));
-    expect(body.error?.data?.code).toBe("caps_unconfigured");
-    expect(calls).toHaveLength(0);
+    // Driven directly on capsCheck: through the chain, a no-confirm booking short-circuits at confirm_required, so
+    // capsCheck's OWN unresolvable-pairing guard is exercised here — SELECT caps → no row → null → caps_unconfigured,
+    // BEFORE any quote fetch or principal mint. (An unresolvable pairing is refused either path — always fail-closed.)
+    const { run, calls } = driveCapsCheck(P.GHOST, { shipment_id: "shp_g1", quote_event_id: "q_g1" }, bookApi("shp_g1", "q_g1", { sell: 1 }));
+    await expect(run).rejects.toMatchObject({ name: "MutationBlocked", code: "caps_unconfigured" });
+    expect(calls).toHaveLength(0); // refused before the events hop / mint
   });
 
-  it("an unreadable accepted quote (api 403 on the events hop) refuses the booking; the accept-quote is NOT made", async () => {
+  it("a booking with NO confirm short-circuits at the confirm gate (confirm_required) before any quote read", async () => {
+    // [confirm, caps] order (F1a): a missing confirm is refused by confirmCheck BEFORE the accepted-quote read —
+    // same fail-closed outcome (refused, no POST) as the caps quote-read path, a different diagnostic code.
     const forbidQuote: (r: Recorded) => Reply = (r) => {
       if (r.method === "GET") return { status: 403, json: { error: "NOT IN YOUR SCOPE" } };
       return { status: 201, json: { id: "should-not-happen" } };
     };
     const { body, calls } = await runTool(TOK(P.QUOTEFAIL), "book_shipment", { shipment_id: "shp_q1", quote_event_id: "q_q1" }, forbidQuote);
+    expect(body.error?.data?.code).toBe("confirm_required");
+    expect(calls.some((c) => c.method === "POST")).toBe(false);
+  });
+
+  it("an unreadable accepted quote (api 403) WITH a valid confirm refuses the booking (caps_quote_unresolved); no write", async () => {
+    // A valid confirm clears the confirm gate, so the chain reaches the accepted-quote read (loadAcceptedQuote); a
+    // 403 lens feed ⇒ caps_quote_unresolved (fail-closed), and the accept-quote write is never made.
+    const forbidQuote: (r: Recorded) => Reply = (r) => {
+      if (r.method === "GET") return { status: 403, json: { error: "NOT IN YOUR SCOPE" } };
+      return { status: 201, json: { id: "should-not-happen" } };
+    };
+    const { body, calls } = await runTool(TOK(P.QUOTEFAIL), "book_shipment", { shipment_id: "shp_q2", quote_event_id: "q_q2", confirm: { intent: "book", amount_cents: 1 } }, forbidQuote);
     expect(body.error?.data?.code).toBe("caps_quote_unresolved");
     expect(calls.some((c) => c.method === "POST")).toBe(false);
   });
@@ -288,6 +313,53 @@ describe("fail-closed", () => {
     const { run, calls } = driveCapsCheck(P.PASS, { shipment_id: "shp_m1", quote_event_id: "q_m1" }, bookApi("shp_m1", "q_m1", { sell: 1_000 }), { CAPS_METER: brokenMeter });
     await expect(run).rejects.toMatchObject({ name: "MutationBlocked", code: "caps_meter_error" });
     expect(calls.some((c) => c.method === "POST")).toBe(false); // the write never runs when the meter is down
+  });
+});
+
+// ── EXIT-AUDIT REGRESSIONS (REQ-105/106) — RED before the fix, GREEN after ────────────────────────────────────
+describe("[F1a] confirm validates BEFORE caps reserves — a confirm-failed booking never spends a slot", () => {
+  it("a caps-PASS but confirm-FAIL booking leaves the tally UNCHANGED (no reserve ahead of a confirm refusal)", async () => {
+    // Generous caps ⇒ caps WOULD pass; the confirm amount is wrong ⇒ the booking is refused. The money meter must
+    // NOT have reserved a slot for a booking that never committed (RED with the old [caps, confirm] order: caps
+    // reserved 5_000 before confirm threw; GREEN once confirm runs first).
+    const before = await peekTally(P.CONFIRMFIRST);
+    const r = await runTool(
+      TOK(P.CONFIRMFIRST),
+      "book_shipment",
+      { shipment_id: "shp_cf1", quote_event_id: "q_cf1", confirm: { intent: "book", amount_cents: 1 } },
+      bookApi("shp_cf1", "q_cf1", { sell: 5_000 }),
+    );
+    expect(r.body.error?.data?.code).toBe("confirm_mismatch"); // confirm refuses (1 ≠ the 5_000 server sell)
+    expect(r.calls.some((c) => c.method === "POST")).toBe(false); // no accept-quote write
+    expect(await peekTally(P.CONFIRMFIRST)).toEqual(before); // the slot was NOT reserved
+  });
+});
+
+describe("[F1b] the caps reserve is idempotency-aware — a retried booking counts ONCE", () => {
+  it("two book_shipment calls with the SAME idempotency_key advance the tally by ONE booking, not two", async () => {
+    // A legit retry (same idempotency_key ⇒ same derived Idempotency-Key ⇒ the api dedupes to ONE quote.accepted).
+    // The meter must dedupe too — else the tally reads 2× for one booking (RED before the fix).
+    const args = { shipment_id: "shp_idem", quote_event_id: "q_idem", idempotency_key: "RETRY-ONE-OP", confirm: { intent: "book", amount_cents: 7_000 } };
+    const first = await runTool(TOK(P.IDEM), "book_shipment", args, bookApi("shp_idem", "q_idem", { sell: 7_000 }));
+    expect(first.body.result?.structuredContent?.status).toBe("ACCEPTED");
+    const retry = await runTool(TOK(P.IDEM), "book_shipment", args, bookApi("shp_idem", "q_idem", { sell: 7_000 }));
+    expect(retry.body.result?.structuredContent?.status).toBe("ACCEPTED");
+    expect(await peekTally(P.IDEM)).toEqual({ spend: 7_000, count: 1 }); // ONE booking, not 14_000 / 2
+  });
+});
+
+describe("[F2] a malformed non-array `lanes` fails CLOSED (never silently disables lane enforcement)", () => {
+  it("a pairing whose caps carry a non-array lanes refuses book_shipment (caps_unconfigured); no accept-quote write", async () => {
+    // caps.lanes is the string "ATL" (malformed). The old parseCaps silently dropped it ⇒ the whole lane allow-list
+    // vanished ⇒ an off-lane booking sailed through (RED). It must instead fail closed like spend/velocity do.
+    const r = await runTool(
+      TOK(P.BADLANES),
+      "book_shipment",
+      { shipment_id: "shp_bl", quote_event_id: "q_bl", confirm: { intent: "book", amount_cents: 3_000 } },
+      bookApi("shp_bl", "q_bl", { sell: 3_000, zone: "Z9" }),
+    );
+    expect(r.body.error?.data?.code).toBe("caps_unconfigured");
+    expect(r.calls.some((c) => c.method === "POST")).toBe(false);
   });
 });
 

@@ -32,6 +32,10 @@ export interface ReserveRequest {
   capSpendCents: number;
   /** The acting pairing's velocity cap: max bookings per period. */
   capVelocity: number;
+  /** The derived Idempotency-Key for THIS tool call (registry.ts deriveIdempotencyKey). A retried booking carries
+   *  the SAME key, and the api dedupes it to ONE quote.accepted — so the meter must dedupe on it too, counting the
+   *  booking ONCE (exit audit F1b, REQ-106). Two DISTINCT bookings carry distinct keys and each count. */
+  idemKey: string;
 }
 
 /** The reservation result. `ok:false` carries which cap would be breached; the tally is UNCHANGED on a refusal. */
@@ -59,8 +63,9 @@ export class CapsMeter extends DurableObject {
 
   /**
    * Atomically read the current period tally, check BOTH caps, and — only if BOTH pass — commit the incremented
-   * tally. Returns `{ok:true}` with the post-increment tally, or `{ok:false, reason}` WITHOUT writing. A thrown
-   * error (storage fault) propagates to the caller, which fails the booking closed.
+   * tally. IDEMPOTENT (F1b): a repeat `idemKey` in the same period returns the tally as-of its first reserve WITHOUT
+   * re-incrementing (a retried booking counts once). Returns `{ok:true}` with the tally, or `{ok:false, reason}`
+   * WITHOUT writing. A thrown error (storage fault) propagates to the caller, which fails the booking closed.
    */
   checkAndReserve(req: ReserveRequest): Promise<ReserveResult> {
     const run = this.lock.then(() => this.#checkAndReserve(req));
@@ -69,14 +74,25 @@ export class CapsMeter extends DurableObject {
   }
 
   async #checkAndReserve(req: ReserveRequest): Promise<ReserveResult> {
-    const key = `tally:${req.period}`;
-    const cur = (await this.ctx.storage.get<Tally>(key)) ?? { spend: 0, count: 0 };
+    const tallyKey = `tally:${req.period}`;
+    const appliedKey = `applied:${req.period}:${req.idemKey}`;
+
+    // IDEMPOTENT REPLAY (F1b): if THIS idem key already reserved in this period, return that reserve's tally snapshot
+    // WITHOUT re-incrementing. A legit retry (same key ⇒ the api dedupes the accept-quote to one quote.accepted)
+    // must count ONCE in the meter too. The marker read is inside the mutex, so it cannot race a concurrent first.
+    const already = await this.ctx.storage.get<Tally>(appliedKey);
+    if (already !== undefined) return { ok: true, spendCents: already.spend, count: already.count };
+
+    const cur = (await this.ctx.storage.get<Tally>(tallyKey)) ?? { spend: 0, count: 0 };
     const nextSpend = cur.spend + req.spendCents;
     const nextCount = cur.count + 1;
     // Check BOTH caps BEFORE any write, so a refusal leaves the tally exactly as it was (no reserve on a breach).
     if (nextSpend > req.capSpendCents) return { ok: false, reason: "spend", spendCents: cur.spend, count: cur.count };
     if (nextCount > req.capVelocity) return { ok: false, reason: "velocity", spendCents: cur.spend, count: cur.count };
-    await this.ctx.storage.put(key, { spend: nextSpend, count: nextCount });
+    const nextTally: Tally = { spend: nextSpend, count: nextCount };
+    // Commit the advanced tally AND the per-idemKey replay marker in ONE storage.put (a single atomic write — no
+    // crash window between them). The marker records the tally-as-of-this-reserve so a later replay returns it.
+    await this.ctx.storage.put({ [tallyKey]: nextTally, [appliedKey]: nextTally });
     return { ok: true, spendCents: nextSpend, count: nextCount };
   }
 

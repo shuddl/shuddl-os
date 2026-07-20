@@ -12,8 +12,10 @@
 // ── THE SERVER SELL IS AUTHORITY, NEVER THE CLIENT'S CLAIMED PRICE ─────────────────────────────────────────────
 // `confirm.amount_cents` is compared to the sell READ FROM the quote.priced event server-side (loadAcceptedQuote),
 // not trusted as the price. A caller that confirms a cheap amount for an expensive booking is refused — the confirm
-// is a HUMAN acknowledgement of the real amount, not an input that sets it. This reuses the caps sell lookup,
-// MEMOIZED on ctx (ctx.acceptedQuoteMemo), so caps + confirm read the quote.priced event exactly once per call.
+// is a HUMAN acknowledgement of the real amount, not an input that sets it. This SHARES the single accepted-quote
+// lookup (loadAcceptedQuote, exported from caps.ts), MEMOIZED on ctx (ctx.acceptedQuoteMemo). confirm runs FIRST
+// (gate order [confirm, caps], exit-audit F1a — so caps never reserves ahead of a confirm refusal): confirm
+// populates the memo, caps reads it, and the quote.priced event is read exactly once per call.
 //
 // ── SCOPE: book_shipment ONLY; approve-confirm is DEFERRED (a REQ-108 follow-up) ──────────────────────────────
 // The `approve` decision (approve.ts) records approved/denied on a shipment's OPEN below-floor approval. It does NOT

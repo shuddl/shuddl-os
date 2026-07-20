@@ -16,8 +16,9 @@ import { applyControl, seedPairing, seedTenant } from "./helpers.js";
 //
 // Harness: the caps.test.ts precedent — the recording fake `env.API` threaded through the REAL
 // OAuth→mint→dispatch→chokepoint pipeline (the cross-worker api DO is unseedable from this pool). The chain is
-// [caps, confirm] (gate.ts): caps runs first (it owns the accepted-quote fetch + fail-closed codes), confirm reuses
-// the sell MEMOIZED on ctx (no double-fetch). Generous caps here so caps always passes and confirm is the decider.
+// [confirm, caps] (gate.ts, exit-audit F1a): confirm runs FIRST (so caps never reserves ahead of a confirm
+// refusal); it populates the accepted-quote memo on ctx and caps reuses the sell (no double-fetch). Generous caps
+// here so caps always passes and confirm is the decider.
 
 const ISSUER = "https://mcp.shuddl.test";
 const TENANT = "t-confirm";
@@ -25,7 +26,7 @@ const BIG = 1_000_000_000; // spend/velocity ceilings well above any test bookin
 
 const P = {
   OK: "prn-cfm-ok", // generous caps → caps passes, confirm decides
-  TIGHT: "prn-cfm-tight", // a $1 spend cap → caps refuses FIRST (proves caps still runs ahead of confirm)
+  TIGHT: "prn-cfm-tight", // a $1 spend cap → caps refuses even a matching confirm (a valid confirm can't smuggle past caps)
 } as const;
 const TOK = (p: string): string => `mcpt_${p}`;
 
@@ -175,9 +176,9 @@ describe("a matching confirm proceeds through the chain to the accept-quote", ()
 
 // ── BOTH GATES RUN — a refusal from EITHER blocks the write ────────────────────────────────────────────────────
 describe("caps + confirm both gate the booking (a refusal from either blocks it)", () => {
-  it("caps refuses FIRST when its cap is breached — even with a perfectly matching confirm (proves caps still runs)", async () => {
-    // P.TIGHT has a $1 spend cap; the booking sells $500 with a MATCHING confirm. caps runs ahead of confirm and
-    // refuses the spend — so a valid confirm does NOT smuggle a booking past caps.
+  it("caps refuses a cap-breaching booking even with a perfectly matching confirm (a valid confirm can't smuggle past caps)", async () => {
+    // P.TIGHT has a $1 spend cap; the booking sells $500 with a MATCHING confirm. confirm clears (amount == the
+    // server sell) but caps then refuses the spend — so a valid confirm does NOT smuggle a booking past caps.
     const args = { shipment_id: "shp_t1", quote_event_id: "q_t1", confirm: confirmFor(50_000) };
     const { body, calls } = await runTool(TOK(P.TIGHT), "book_shipment", args, bookApi("shp_t1", "q_t1", 50_000));
     expect(body.error?.data?.code).toBe("spend_cap_exceeded");
