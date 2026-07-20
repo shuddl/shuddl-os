@@ -124,6 +124,15 @@ All are **advisory-until-vendored**: harnesses loud-skip (exit 0), never false-g
 
 ---
 
+### WP-13 MCP v1 (appended 2026-07-20 per §1)
+
+| Item | Source WP/REQ | Action to complete | Blocks go-live? | Status |
+|---|---|---|---|---|
+| **`workers/mcp` worker deploy** | WP-13 · REQ-101 · `workers/mcp/wrangler.toml` | Provision the 4th worker + its bindings per env: `API` service binding → `shuddl-api-{env}`, `CONTROL_DB`, `JWT_SECRET`, `GRANTS` KV, `CAPS_METER` Durable Object | Yes (the whole MCP surface) | Not deployed |
+| **Live OAuth secret store + mcp pairing client secrets** | WP-13 · REQ-102/154 · `workers/mcp/src/{oauth,principal,secret-resolver}.ts` | Bind the pairing-secret store; `NotConfiguredSecretResolver` 401s every `/token` + `/register` until then (fail-closed) | Yes (all live MCP auth) | CONFIRM-gated flip |
+| **Per-pairing caps provisioning** | WP-13 · REQ-105 · `pairings.caps` · `workers/mcp/src/caps.ts` | Set `caps={spend,velocity,lanes}` on every `kind='mcp'` pairing; the no-caps default is a fail-closed **refuse**, so an unprovisioned pairing cannot `book_shipment` (deliberate hard cutover) | Yes (per pairing) | Fail-closed until provisioned |
+| **Webhook delivery activation** | WP-13 · REQ-109 · `workers/mcp/src/webhooks.ts` | Wire the live event-source (today `NotConfiguredEventSource` yields `[]` → inert); set the per-subscription webhook signing secret; receiver-side enforce a timestamp freshness window + restrict delivery URLs to `https://` | Only webhook delivery | Scaffolded / fail-closed |
+
 ## 3. Technical debt & known limitations
 
 Ordered severity-descending. **High** = weakens/blocks a gate or a go-live path; **Med** = correctness/privacy residual or env hazard; **Low** = deferred refinement, fail-safe, or informational.
@@ -197,6 +206,15 @@ Ordered severity-descending. **High** = weakens/blocks a gate or a go-live path;
 **Resolved after audit-discovery (verify register status advanced — several still read `*-DISCOVERED`):** positions.ts consent/auth bypass C-1 (REQ-190, **closed WP-09** via `gate-context.ts`) · duplicate-booking C-2 (REQ-191, **closed WP-09**) · Biller trigger-loss recon sweep (REQ-169, **closed WP-11** `recon-sweep.ts`) · held-reply surfacing (REQ-176) · from-name pin (REQ-178) · invoice.issued GL redaction (REQ-179, WP-09 `redact.ts`) · never-widen internal floor (REQ-180, WP-11) · full-tenant export (REQ-010, WP-11) · QB/statement export (WP-11) · held-invoice/Watchtower surface (WP-11) · OTD passport accrual (WP-08/10). These are **code-closed**; the debt is that `genesis/09` status tags may still read open — advance them at the next register review.
 
 ---
+
+**WP-13 MCP v1 (appended 2026-07-20):**
+
+| Item | Source file / REQ | Nature | Fix | Severity |
+|---|---|---|---|---|
+| Caps reserve-at-check over-counts on a post-`accept-quote` api failure | `workers/mcp/src/caps.ts` · REQ-105/106 | After the exit-audit fix the confirm-reject + retry facets are closed; only a rare api failure AFTER the reserve over-counts (fails **closed** — refuses a later booking; self-heals at UTC-month rollover) | A settle/release hook after a confirmed booking | **Low** (fail-closed) |
+| Immediate cross-method OAuth revocation deferred | `workers/mcp/src/tools/registry.ts` dispatch · REQ-102 | A revoked/suspended pairing's outstanding OAuth tokens still authenticate the non-minting `initialize`/`tools/list` handshake until token TTL (no data exposure; every data/mutation path re-resolves the pairing + fails closed) | One control-DB pairing re-resolve per `dispatch` after grant resolution | **Low** (hygiene) |
+| MCP lane cap is destination-zone-based | `workers/mcp/src/caps.ts` · REQ-105 | SEED-1 zoning is dest-based; origin-side lane restriction isn't expressible until origin zoning lands | Origin zoning + a per-leg lane key | **Low** |
+| Full DO-backed live-booking E2E is a staging smoke | `workers/mcp/test/quote-book.test.ts` · REQ-101 | The api tenant D1 + `ShipmentSequencer` DO are unseedable in the mcp vitest pool (aux-worker isolation), so the tests prove the MCP layer + no-bypass via a recording fake api; the api gates are proven by the api suites | A cross-worker staging smoke driving a real booking end-to-end | **Low** (test-harness) |
 
 ## 4. Cross-references (this ledger points, does not duplicate)
 
