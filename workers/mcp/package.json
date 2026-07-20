@@ -9,7 +9,8 @@
   },
   "dependencies": {
     "@shuddl/contracts": "workspace:*",
-    "hono": "^4.10.8"
+    "hono": "^4.10.8",
+    "zod": "^4.3.5"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.9.14",

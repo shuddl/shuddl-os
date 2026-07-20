@@ -10,6 +10,7 @@
 // token exchange until the CONFIRM-gated secret store is bound) and wires the AS into `fetch`.
 import { handleOAuth, type OAuthDeps } from "./oauth.js";
 import { NotConfiguredSecretResolver, type SecretResolver } from "./principal.js";
+import { dispatch, defaultDispatchDeps, RPC } from "./tools/registry.js";
 
 export interface Env {
   /** THE reuse seam: a service binding to the api worker (its Hono app + every /v1 gate). In the test pool
@@ -84,13 +85,29 @@ function oauthDeps(request: Request, env: Env): OAuthDeps {
   };
 }
 
+// THE MCP JSON-RPC ENDPOINT. A `POST /mcp` carries one JSON-RPC 2.0 message (Streamable HTTP). We parse the body
+// here and hand it to dispatch, which authenticates the OAuth bearer → pairing, then routes initialize/tools.* .
+// A body that is not JSON is a JSON-RPC parse error (-32700). The OAuth AS routes (Task 2) stay mounted ahead of it.
+const MCP_PATH = "/mcp";
+
 export default {
-  // The client-facing OAuth 2.1 AS (metadata / register / authorize / token) is wired here; a request that is
-  // not an OAuth path falls through to the health probe. The MCP JSON-RPC transport mounts here in a later task
-  // (it will map an opaque access token → pairing via resolveTokenGrant, then mintPrincipalJwt for callApi).
+  // Order: OAuth AS (Task 2) → the MCP JSON-RPC transport (Task 3) → the health probe. dispatch maps an opaque
+  // access token → pairing via resolveTokenGrant, then mintPrincipalJwt for callApi (all inside the tool ctx).
   async fetch(request: Request, env: Env): Promise<Response> {
     const oauth = await handleOAuth(request, oauthDeps(request, env));
     if (oauth !== null) return oauth;
+
+    const { pathname } = new URL(request.url);
+    if (pathname === MCP_PATH && request.method === "POST") {
+      let message: unknown;
+      try {
+        message = await request.json();
+      } catch {
+        return Response.json({ jsonrpc: "2.0", id: null, error: { code: RPC.PARSE_ERROR, message: "invalid JSON" } });
+      }
+      return dispatch(env, defaultDispatchDeps(env), request, message);
+    }
+
     return Response.json({ ok: true, service: "mcp", env: env.ENVIRONMENT });
   },
 };
