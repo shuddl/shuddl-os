@@ -1,0 +1,21 @@
+{
+  "name": "@shuddl/mcp",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "pretest": "cd ../api && wrangler deploy --dry-run --outdir ../mcp/dist/api",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@shuddl/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.9.14",
+    "@cloudflare/workers-types": "^4.20251230.0",
+    "hono": "^4.10.8",
+    "typescript": "^5.9.0",
+    "vitest": "~3.2.4",
+    "wrangler": "^4.51.0"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // The MCP worker serves no UI (no .tsx). Task 1 ships only the worker scaffold + the api service-binding
+  // reuse seam (callApi); the MCP tool surface + OAuth land in later tasks. hono/jwt is pulled in tests only
+  // (to mint an HS256 session JWT the api's auth middleware verifies), so no jsx setting is needed here.
+  "compilerOptions": { "types": ["@cloudflare/workers-types", "@cloudflare/vitest-pool-workers"] },
+  "include": ["src", "test"]
+}

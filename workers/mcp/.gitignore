@@ -1,0 +1,5 @@
+# The compiled api-worker bundle the test pool loads as an auxiliary worker lands in dist/api/ (root
+# .gitignore + the eslint flat config both already ignore **/dist/**, so the ~1.5 MB artifact never commits
+# or lints). Produced by the `pretest` script (`wrangler deploy --dry-run --outdir`) because
+# vitest-pool-workers auxiliary Workers CANNOT be TypeScript entrypoints — they must be pre-compiled to JS.
+dist/

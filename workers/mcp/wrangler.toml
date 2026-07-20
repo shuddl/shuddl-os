@@ -1,0 +1,49 @@
+# Naming per genesis/14 §02: shuddl-{svc}-{env}. NO SECRETS EVER IN THIS FILE (REQ-154, REQ-134).
+# WP-13 Task 1 (REQ-101) — THE MCP WORKER SCAFFOLD. It exposes NO tool/MCP/OAuth surface yet (those land in
+# later tasks); this task ships the api SERVICE-BINDING REUSE SEAM. Every future MCP tool reaches freight
+# reality ONLY through the api worker's authenticated /v1/* routes (callApi → env.API.fetch), so the api's
+# server-side gates (REQ-030) run for an MCP caller exactly as for a browser caller — no second gate, no bypass.
+name = "shuddl-mcp-dev"
+main = "src/index.ts"
+compatibility_date = "2025-08-01"
+# No auto *.workers.dev subdomain — the MCP + OAuth endpoints are exposed via an explicit route only (a later
+# task). No public HTTP surface ships in this task (the fetch handler is a health probe).
+workers_dev = false
+
+[vars]
+ENVIRONMENT = "dev"
+
+# THE REUSE SEAM: a service binding to the api worker (its Hono app + every /v1 gate). callApi() routes
+# THROUGH this binding, so an MCP tool can never touch a physical fact except through the api's server-side
+# gates (REQ-030/101). In-process (no Internet hop). Mirrors the cross-script bindings the translator/agents
+# workers already hold to `shuddl-api-dev`.
+[[services]]
+binding = "API"
+service = "shuddl-api-dev"
+
+# Control plane (tenants +, later, OAuth client registrations). Auth-only; NEVER a tenant data path (REQ-025).
+# Mirrors workers/api + workers/translator CONTROL_DB.
+[[d1_databases]]
+binding = "CONTROL_DB"
+database_name = "shuddl-control-dev"
+database_id = "local-control"
+
+# ── STAGING (synthetic only, REQ-154). The service binding targets the STAGING api worker (must be deployed
+#    first); the default (top-level) config keeps its local-* ids for tests + `wrangler dev`.
+[env.staging]
+name = "shuddl-mcp-staging"
+workers_dev = false
+
+[env.staging.vars]
+ENVIRONMENT = "staging"
+
+# Cross-service → the STAGING api worker (name per the <worker-name>-<environment> service convention).
+[[env.staging.services]]
+binding = "API"
+service = "shuddl-api-staging"
+
+# Control plane (must match workers/api [env.staging] CONTROL_DB id).
+[[env.staging.d1_databases]]
+binding = "CONTROL_DB"
+database_name = "shuddl-control-staging"
+database_id = "8e238970-2ed3-494d-960f-e4af082c1e8e"
