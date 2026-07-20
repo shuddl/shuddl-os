@@ -18,6 +18,8 @@ import { mintPrincipalJwt } from "../principal.js";
 import { resolveTokenGrant, type TokenGrant } from "../oauth.js";
 import { beforeMutation as gateBeforeMutation, MutationBlocked } from "../gate.js";
 import { deriveIdempotencyKey } from "../idempotency.js";
+import { quoteFreightTool } from "./quote.js";
+import { bookShipmentTool } from "./book.js";
 
 /** A JSON-RPC 2.0 message id: a string, a number, or null (JSON-RPC §4). */
 export type JsonRpcId = string | number | null;
@@ -166,9 +168,15 @@ const noopMutationTool = defineTool({
   handler: async (ctx) => ({ ok: true, idempotencyKey: ctx.idempotencyKey }),
 });
 
-/** Build the default registry with the proof tools registered. Later tasks register their tools here. */
+/** Build the default registry with the proof tools + the real WP-13 tools registered. Later tasks register
+ *  their tools here too. quote_freight (Task 4) + book_shipment (Task 5) are the DoD booking path; both are
+ *  mutating and route every write through mutatingCallApi (the chokepoint-linked seam). */
 export function buildRegistry(): ToolRegistry {
-  return new ToolRegistry().register(whoamiTool).register(noopMutationTool);
+  return new ToolRegistry()
+    .register(whoamiTool)
+    .register(noopMutationTool)
+    .register(quoteFreightTool)
+    .register(bookShipmentTool);
 }
 
 // ── JSON-RPC envelope helpers ────────────────────────────────────────────────────────────────────────────────
