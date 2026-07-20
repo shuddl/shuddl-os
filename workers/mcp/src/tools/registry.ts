@@ -13,11 +13,18 @@
 // handler → wrap its value in the MCP result envelope. A tool never reaches D1/R2; it drives the api via ctx.callApi
 // with a freshly minted principal, so every api-side gate (REQ-030) runs for the MCP caller exactly as for a browser.
 import { z } from "zod";
-import { callApi, type Env } from "../index.js";
+import { callApi, type CallApiOptions, type Env } from "../index.js";
 import { mintPrincipalJwt } from "../principal.js";
 import { resolveTokenGrant, type TokenGrant } from "../oauth.js";
 import { beforeMutation as gateBeforeMutation, MutationBlocked } from "../gate.js";
-import { deriveIdempotencyKey, type JsonRpcId } from "../idempotency.js";
+import { deriveIdempotencyKey } from "../idempotency.js";
+
+/** A JSON-RPC 2.0 message id: a string, a number, or null (JSON-RPC §4). */
+export type JsonRpcId = string | number | null;
+
+// The HTTP methods the api treats as mutations (and requires an Idempotency-Key for). Mirrors the api middleware's
+// own set — used by mutatingCallApi to STRUCTURALLY refuse a write that did not pass the chokepoint.
+const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 // ── MCP protocol constants ───────────────────────────────────────────────────────────────────────────────────
 const PROTOCOL_VERSION = "2025-06-18"; // the MCP revision this server implements (initialize handshake)
@@ -54,6 +61,25 @@ export interface ToolCtx {
   callApi: typeof callApi;
   /** The derived Idempotency-Key for this tool call — passed to callApi on a mutation so a retry never double-applies. */
   idempotencyKey: string;
+  /** Set true ONLY after the mutation chokepoint (beforeMutation) has run for this call. `mutatingCallApi` refuses a
+   *  write when this is false — so a tool that POSTs but was mis-declared `mutating:false` cannot skip caps+confirm. */
+  mutationCleared: boolean;
+}
+
+/**
+ * THE WRITE SEAM for a mutating tool (defense in depth, structurally linking a write to the chokepoint). It THROWS
+ * if the method is a mutation (POST/PUT/PATCH/DELETE) and the ctx has not been cleared by the chokepoint — so a
+ * tool that performs a write without being declared `mutating:true` (which is what runs beforeMutation) fails loudly
+ * instead of silently bypassing caps+confirm. It threads the minted principal + the derived Idempotency-Key onto the
+ * api round-trip. A read (GET) is allowed on an uncleared ctx. Real write tools (Tasks 4-7) use THIS, not raw callApi.
+ */
+export async function mutatingCallApi(ctx: ToolCtx, opts: { method: string; path: string; body?: unknown }): Promise<Response> {
+  if (MUTATING_METHODS.has(opts.method.toUpperCase()) && !ctx.mutationCleared) {
+    throw new Error("mutatingCallApi: a write requires a chokepoint-cleared ctx — declare the tool mutating:true");
+  }
+  const call: CallApiOptions = { method: opts.method, path: opts.path, jwt: await ctx.mintJwt(), idempotencyKey: ctx.idempotencyKey };
+  if (opts.body !== undefined) call.body = opts.body;
+  return ctx.callApi(ctx.env, call);
 }
 
 /** A registered tool. `mutating` decides whether the chokepoint runs; `inputSchema` validates `arguments` (Zod). */
@@ -211,7 +237,8 @@ export interface DispatchDeps {
   mintJwt: (env: Pick<Env, "CONTROL_DB" | "JWT_SECRET">, pairingId: string) => Promise<string>;
 }
 
-/** The composition-root deps: live grant resolver + principal mint + the module-level chokepoint + the proof tools. */
+/** The composition-root deps: live grant resolver + principal mint + the EXPLICITLY composed chokepoint
+ *  (gate.beforeMutation over DEFAULT_MUTATION_CHECKS, never a mutable global) + the proof tools. */
 export function defaultDispatchDeps(env: Env): DispatchDeps {
   return {
     grants: env.GRANTS,
@@ -224,25 +251,34 @@ export function defaultDispatchDeps(env: Env): DispatchDeps {
 }
 
 /**
- * Dispatch one MCP JSON-RPC message. AUTHENTICATE FIRST (OAuth bearer → pairing, else 401 with no mint/no api
- * call), then route: `initialize` handshake, `tools/list`, `tools/call` (validate → chokepoint-if-mutating →
- * handler). Returns the HTTP Response the /mcp endpoint sends (401 for auth failure; 200 with a JSON-RPC
- * result/error envelope otherwise).
+ * Dispatch one MCP JSON-RPC request. AUTHENTICATE FIRST — BEFORE reading/parsing the body — so an unauthenticated
+ * request gets a uniform 401 regardless of body validity (no mint, no api call, and no pre-auth -32700 that would
+ * differ from an authenticated malformed request). Then parse + route: `initialize`, `tools/list`, `tools/call`
+ * (validate → chokepoint-if-mutating → handler). Returns the HTTP Response the /mcp endpoint sends (401 for auth
+ * failure; 200 with a JSON-RPC result/error envelope otherwise).
  */
-export async function dispatch(env: Env, deps: DispatchDeps, request: Request, message: unknown): Promise<Response> {
-  // 1. AUTH — the OAuth bearer maps to a pairing, or the call is refused before anything else happens.
+export async function dispatch(env: Env, deps: DispatchDeps, request: Request): Promise<Response> {
+  // 1. AUTH FIRST — the OAuth bearer maps to a pairing, or the call is refused before the body is even read.
   const token = bearerFrom(request);
   const grant = token === null ? null : await deps.resolveGrant(deps.grants, token, deps.now);
   if (grant === null) return unauthorized();
 
-  // 2. JSON-RPC envelope.
+  // 2. Parse the JSON-RPC body (only now that the caller is authenticated).
+  let message: unknown;
+  try {
+    message = await request.json();
+  } catch {
+    return rpcError(null, RPC.PARSE_ERROR, "invalid JSON");
+  }
+
+  // 3. JSON-RPC envelope.
   const req = asJsonRpcRequest(message);
   if (req === null) {
     const id = isRecord(message) && (typeof message.id === "string" || typeof message.id === "number") ? message.id : null;
     return rpcError(id, RPC.INVALID_REQUEST, "not a valid JSON-RPC 2.0 request");
   }
 
-  // 3. Route by method.
+  // 4. Route by method.
   switch (req.method) {
     case "initialize":
       return rpcResult(req.id, {
@@ -280,19 +316,29 @@ async function handleToolsCall(env: Env, deps: DispatchDeps, pairingId: string, 
     pairingId,
     mintJwt: () => deps.mintJwt(env, pairingId),
     callApi,
-    idempotencyKey: await deriveIdempotencyKey(pairingId, tool.name, req.id),
+    // Key off the SEMANTIC operation (the validated arguments / a client idempotency_key), NEVER the envelope id.
+    idempotencyKey: await deriveIdempotencyKey(pairingId, tool.name, parsed.data),
+    mutationCleared: false, // set true only after the chokepoint runs (below) — mutatingCallApi enforces it
   };
 
   try {
     // THE CHOKEPOINT — for a mutating tool it runs BEFORE the handler; a refusal (MutationBlocked) means the
-    // handler never runs. A read tool skips it entirely.
-    if (tool.mutating) await deps.beforeMutation(ctx, tool, parsed.data);
+    // handler never runs. Clearing the ctx AFTER it structurally links a write to the chokepoint (mutatingCallApi).
+    // A read tool skips it entirely (mutationCleared stays false; reads use plain callApi).
+    if (tool.mutating) {
+      await deps.beforeMutation(ctx, tool, parsed.data);
+      ctx.mutationCleared = true;
+    }
     const value = await tool.handler(ctx, parsed.data);
     return rpcResult(req.id, toToolResult(value));
   } catch (err) {
     if (err instanceof MutationBlocked) return rpcError(req.id, RPC.MUTATION_BLOCKED, err.message, { code: err.code });
-    // A tool-execution failure is an isError RESULT (visible to the model), not a protocol error.
+    // A tool-execution failure is an isError RESULT (visible to the model), not a protocol error — its message is
+    // intentional and safe to surface.
     if (err instanceof ToolError) return rpcResult(req.id, { content: [{ type: "text", text: err.message }], isError: true });
-    return rpcError(req.id, RPC.INTERNAL_ERROR, err instanceof Error ? err.message : "internal error");
+    // REQ-192: the catch-all NEVER leaks an internal message (a PrincipalMintError carries the pairing id; a raw
+    // D1/KV error carries internals). Log the detail server-side; return a generic client message.
+    console.error("mcp tool handler error", { tool: tool.name, detail: err instanceof Error ? err.message : String(err) });
+    return rpcError(req.id, RPC.INTERNAL_ERROR, "internal error");
   }
 }

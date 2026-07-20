@@ -10,7 +10,7 @@
 // token exchange until the CONFIRM-gated secret store is bound) and wires the AS into `fetch`.
 import { handleOAuth, type OAuthDeps } from "./oauth.js";
 import { NotConfiguredSecretResolver, type SecretResolver } from "./principal.js";
-import { dispatch, defaultDispatchDeps, RPC } from "./tools/registry.js";
+import { dispatch, defaultDispatchDeps } from "./tools/registry.js";
 
 export interface Env {
   /** THE reuse seam: a service binding to the api worker (its Hono app + every /v1 gate). In the test pool
@@ -85,9 +85,10 @@ function oauthDeps(request: Request, env: Env): OAuthDeps {
   };
 }
 
-// THE MCP JSON-RPC ENDPOINT. A `POST /mcp` carries one JSON-RPC 2.0 message (Streamable HTTP). We parse the body
-// here and hand it to dispatch, which authenticates the OAuth bearer → pairing, then routes initialize/tools.* .
-// A body that is not JSON is a JSON-RPC parse error (-32700). The OAuth AS routes (Task 2) stay mounted ahead of it.
+// THE MCP JSON-RPC ENDPOINT. A `POST /mcp` carries one JSON-RPC 2.0 message (Streamable HTTP). The raw request is
+// handed to dispatch, which AUTHENTICATES the OAuth bearer → pairing BEFORE reading/parsing the body (so an
+// unauthenticated request is a uniform 401 regardless of body validity), then routes initialize / tools.* . The
+// OAuth AS routes (Task 2) stay mounted ahead of it.
 const MCP_PATH = "/mcp";
 
 export default {
@@ -99,13 +100,8 @@ export default {
 
     const { pathname } = new URL(request.url);
     if (pathname === MCP_PATH && request.method === "POST") {
-      let message: unknown;
-      try {
-        message = await request.json();
-      } catch {
-        return Response.json({ jsonrpc: "2.0", id: null, error: { code: RPC.PARSE_ERROR, message: "invalid JSON" } });
-      }
-      return dispatch(env, defaultDispatchDeps(env), request, message);
+      // No pre-parse here — dispatch authenticates first, then parses (auth before parse).
+      return dispatch(env, defaultDispatchDeps(env), request);
     }
 
     return Response.json({ ok: true, service: "mcp", env: env.ENVIRONMENT });

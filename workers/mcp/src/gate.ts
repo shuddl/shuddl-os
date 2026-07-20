@@ -5,14 +5,14 @@
 // (REQ-030): the api still runs its own gates on the callApi round-trip (there is no bypass), but caps + confirm
 // are POLICY the MCP layer owns over the OAuth principal, so they are enforced here, once, ahead of the write.
 //
-// This task ships the PLUMBING only: an ordered, registrable chain that is EMPTY today. Later tasks add checks —
-// Task 8 registers the spend/velocity/lane CAPS check (REQ-105), Task 9 the human-CONFIRM check (REQ-102) — each
-// via registerMutationCheck, in registration order. A check throws MutationBlocked to refuse the write; the
-// dispatcher maps that to a JSON-RPC error and the handler never runs (nothing is sent to the api).
-//
-// The chain is a module-level singleton so a later task's `registerMutationCheck(...)` at import time wires into
-// the same gate the composition root passes to dispatch(). Tests inject their own beforeMutation (or register a
-// spy + resetMutationChecks) — mirroring the OAuth module's injected-deps discipline.
+// THE CHAIN IS COMPOSED EXPLICITLY, NEVER BY IMPORT SIDE EFFECT. `DEFAULT_MUTATION_CHECKS` below is the SINGLE
+// production source of truth: a check runs iff it appears in this array. We deliberately do NOT populate the chain
+// via a module-global `registerMutationCheck` at import time — that pattern fails OPEN (a forgotten import, or a
+// bundler treating a "side-effect-free" check module as dead code, silently leaves caps+confirm unenforced while
+// everything still compiles and passes). With the explicit array, Task 8 (caps, REQ-105) and Task 9 (confirm,
+// REQ-102) ADD their check by an EXPLICIT code edit at the marker below, and the identity test proves the live
+// dispatch chain IS this array (a declared-but-not-composed check fails loudly). `registerMutationCheck` survives
+// as a TEST-ONLY spy utility, decoupled from production; tests also inject `beforeMutation` via dispatch deps.
 import type { ToolCtx, ToolDef } from "./tools/registry.js";
 
 /**
@@ -37,27 +37,53 @@ export interface MutationCheck {
   check(ctx: ToolCtx, tool: ToolDef, args: unknown): Promise<void>;
 }
 
-// The ordered chain. Empty in this task; Task 8/9 push their checks. Module-level so registrations at import time
-// (a later task's side-effecting `registerMutationCheck`) land in the gate the composition root actually runs.
-const mutationChecks: MutationCheck[] = [];
-
-/** Append a check to the chokepoint chain (runs in registration order). Later tasks call this at module load. */
-export function registerMutationCheck(check: MutationCheck): void {
-  mutationChecks.push(check);
-}
-
-/** Test-only: clear the chain so a suite that registers a spy check does not leak it into another suite. */
-export function resetMutationChecks(): void {
-  mutationChecks.length = 0;
+/** A composed chokepoint function that also exposes, by identity, the exact `checks` array it runs — so a test can
+ *  assert the live production chain IS the explicit source array (not some mutable, side-effect-populated global). */
+export interface ComposedMutationGate {
+  (ctx: ToolCtx, tool: ToolDef, args: unknown): Promise<void>;
+  readonly checks: readonly MutationCheck[];
 }
 
 /**
- * THE CHOKEPOINT. Run every registered check IN ORDER for a mutating tool call; the first to throw MutationBlocked
- * refuses the write (short-circuits — the remaining checks and the tool handler never run). Resolves (allows the
- * write) when every check passes — and trivially resolves today, since the chain is empty until Task 8/9.
+ * THE PRODUCTION MUTATION-CHECK CHAIN — the single, explicit source of truth. A check is enforced ONLY if it is
+ * listed here. EMPTY today; later tasks ADD their check at the marker (an explicit code edit, never an import
+ * side effect), so a check that is written but not listed here is simply, verifiably, not run.
  */
-export async function beforeMutation(ctx: ToolCtx, tool: ToolDef, args: unknown): Promise<void> {
-  for (const c of mutationChecks) {
-    await c.check(ctx, tool, args);
-  }
+export const DEFAULT_MUTATION_CHECKS: MutationCheck[] = [
+  // ↓↓↓ ADD PRODUCTION CHECKS HERE, IN ORDER (an explicit edit — no import-side-effect registration) ↓↓↓
+  // Task 8 (REQ-105): capsCheck — spend / velocity / lane caps over the OAuth principal.
+  // Task 9 (REQ-102): confirmCheck — the human-CONFIRM gate.
+  // ↑↑↑ ADD PRODUCTION CHECKS HERE ↑↑↑
+];
+
+/**
+ * Compose an ORDERED chain into a chokepoint function. The first check to throw MutationBlocked refuses the write
+ * (short-circuits — the remaining checks and the tool handler never run). The composed function carries its source
+ * `checks` array by identity for the anti-regression identity test.
+ */
+export function composeMutationChecks(checks: readonly MutationCheck[]): ComposedMutationGate {
+  const gate = async (ctx: ToolCtx, tool: ToolDef, args: unknown): Promise<void> => {
+    for (const c of checks) await c.check(ctx, tool, args);
+  };
+  return Object.assign(gate, { checks });
+}
+
+/**
+ * THE CHOKEPOINT the composition root passes to dispatch — composed from the EXPLICIT DEFAULT_MUTATION_CHECKS.
+ * Trivially resolves today (the chain is empty until Task 8/9 add checks EXPLICITLY to the array above).
+ */
+export const beforeMutation: ComposedMutationGate = composeMutationChecks(DEFAULT_MUTATION_CHECKS);
+
+// ── TEST-ONLY spy utilities (NOT a production registration path) ──────────────────────────────────────────────
+// A separate, mutable array a test may register a spy into to PROVE the production chain ignores it (there is no
+// import-side-effect backdoor into `beforeMutation`). Production never reads this; only `composeTestChain` does.
+const testChecks: MutationCheck[] = [];
+
+/** Test-only: register a spy check into the test chain (NEVER the production chain). */
+export function registerMutationCheck(check: MutationCheck): void {
+  testChecks.push(check);
+}
+/** Test-only: clear the test chain between suites. */
+export function resetMutationChecks(): void {
+  testChecks.length = 0;
 }

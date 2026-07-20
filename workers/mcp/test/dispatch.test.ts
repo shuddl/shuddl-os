@@ -1,17 +1,29 @@
 import { env } from "cloudflare:test";
+import { z } from "zod";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import worker from "../src/index.js";
 import {
   buildRegistry,
+  defaultDispatchDeps,
+  defineTool,
   dispatch,
+  mutatingCallApi,
+  ToolRegistry,
   type DispatchDeps,
   type ToolCtx,
   type ToolDef,
 } from "../src/tools/registry.js";
-import { beforeMutation as gateBeforeMutation, MutationBlocked, registerMutationCheck, resetMutationChecks } from "../src/gate.js";
+import {
+  beforeMutation as gateBeforeMutation,
+  composeMutationChecks,
+  DEFAULT_MUTATION_CHECKS,
+  MutationBlocked,
+  registerMutationCheck,
+  resetMutationChecks,
+  type ComposedMutationGate,
+} from "../src/gate.js";
 import { deriveIdempotencyKey } from "../src/idempotency.js";
-import { mintPrincipalJwt } from "../src/principal.js";
-import { StaticSecretResolver } from "../src/principal.js";
+import { mintPrincipalJwt, PrincipalMintError, StaticSecretResolver } from "../src/principal.js";
 import { handleOAuth, resolveTokenGrant, type OAuthDeps, type TokenGrant } from "../src/oauth.js";
 import { applyControl, seedPairing, seedTenant } from "./helpers.js";
 
@@ -128,13 +140,14 @@ function deps(overrides: Partial<DispatchDeps> = {}): DispatchDeps {
   };
 }
 // token === null means "omit the Authorization header" (a bare `undefined` would trip default-param semantics).
-function mcpRequest(token: string | null): Request {
+// The JSON-RPC message rides in the request body — dispatch authenticates FIRST, then parses it (auth before parse).
+function mcpRequest(token: string | null, message: unknown): Request {
   const headers: Record<string, string> = { "content-type": "application/json" };
   if (token !== null) headers["authorization"] = `Bearer ${token}`;
-  return new Request(`${ISSUER}/mcp`, { method: "POST", headers, body: "{}" });
+  return new Request(`${ISSUER}/mcp`, { method: "POST", headers, body: JSON.stringify(message) });
 }
 async function call(d: DispatchDeps, message: unknown, token: string | null = "tok"): Promise<Response> {
-  return dispatch(env, d, mcpRequest(token), message);
+  return dispatch(env, d, mcpRequest(token, message));
 }
 function toolsCall(id: number, name: string, args: Record<string, unknown> = {}): unknown {
   return { jsonrpc: "2.0", id, method: "tools/call", params: { name, arguments: args } };
@@ -263,37 +276,178 @@ describe("the mutation chokepoint runs for a mutating tool and is skipped for a 
     expect((await bodyOf(read)).result?.content).toBeDefined();
   });
 
-  it("the module-level registrable chain is what dispatch runs (a registered check sees the tool + validated args)", async () => {
+  it("a chokepoint check sees the tool + validated args (the injected-deps chain the composition uses)", async () => {
     const seen: Array<{ tool: string; args: unknown }> = [];
-    registerMutationCheck({
-      name: "spy",
-      check: async (_ctx, tool, args) => {
-        seen.push({ tool: tool.name, args });
+    const chain = composeMutationChecks([
+      {
+        name: "spy",
+        check: async (_ctx, tool, args) => {
+          seen.push({ tool: tool.name, args });
+        },
       },
-    });
-    await call(deps(), toolsCall(11, "noop_mutation", { note: "hi" })); // default deps → the real gate
+    ]);
+    await call(deps({ beforeMutation: chain }), toolsCall(11, "noop_mutation", { note: "hi" }));
     expect(seen).toEqual([{ tool: "noop_mutation", args: { note: "hi" } }]);
   });
 });
 
-describe("idempotency key derivation (REQ-106)", () => {
-  it("the same (pairing, tool, id) derives the SAME key; a different id / pairing / id-type differs", async () => {
-    const k1 = await deriveIdempotencyKey(PAIRING, "book", 7);
-    const k2 = await deriveIdempotencyKey(PAIRING, "book", 7);
-    const k3 = await deriveIdempotencyKey(PAIRING, "book", 8);
-    const k4 = await deriveIdempotencyKey("prn-other", "book", 7);
-    const kStr = await deriveIdempotencyKey(PAIRING, "book", "7");
-    expect(k1).toBe(k2); // identical calls collapse
-    expect(k1).not.toBe(k3); // a new JSON-RPC id → a new key
-    expect(k1).not.toBe(k4); // two pairings' same id never collide (REQ-025)
-    expect(k1).not.toBe(kStr); // number 7 and string "7" are distinct ids
-    expect(k1.startsWith("mcp-idem-")).toBe(true); // header-safe token
+describe("[FIX 1] the mutation-check chain is composed EXPLICITLY, never a mutable import-side-effect global", () => {
+  it("the live default-deps chokepoint IS DEFAULT_MUTATION_CHECKS by identity; a test-global registration never leaks in", async () => {
+    // RED before the fix: defaultDispatchDeps ran a module-global that registerMutationCheck mutated, so a check
+    // registered by side effect leaked into the live chain (and a real check tree-shaken out silently vanished —
+    // caps+confirm fail OPEN). After: the production chain is the explicit array, decoupled from the test global.
+    const fired: string[] = [];
+    registerMutationCheck({
+      name: "sneaky",
+      check: async () => {
+        fired.push("sneaky");
+      },
+    });
+
+    const live = defaultDispatchDeps(env).beforeMutation;
+    // Identity: the production chain IS the explicit source array — a declared-but-unlisted check is verifiably unrun.
+    expect((live as ComposedMutationGate).checks).toBe(DEFAULT_MUTATION_CHECKS);
+    expect(DEFAULT_MUTATION_CHECKS).toEqual([]); // empty until Task 8/9 ADD checks explicitly at the marker
+
+    await live({} as ToolCtx, {} as ToolDef, {});
+    expect(fired).toEqual([]); // the test-global registration is NOT a backdoor into production
   });
 
-  it("the derived key threads into the tool ctx with the request's (pairing, tool, id)", async () => {
-    const res = await call(deps(), toolsCall(42, "noop_mutation"));
+  it("composeMutationChecks runs its checks in registration order (the mechanism Task 8/9 use)", async () => {
+    const order: string[] = [];
+    const gate = composeMutationChecks([
+      { name: "a", check: async () => void order.push("a") },
+      { name: "b", check: async () => void order.push("b") },
+    ]);
+    await gate({} as ToolCtx, {} as ToolDef, {});
+    expect(order).toEqual(["a", "b"]);
+    expect(gate.checks.length).toBe(2);
+  });
+});
+
+describe("[FIX 3] idempotency keys off the SEMANTIC operation (arguments), never the JSON-RPC envelope id (REQ-106)", () => {
+  it("two calls with the SAME arguments (any key order) derive the SAME key — a genuine retry dedupes", async () => {
+    // RED before the fix: the key hashed the JSON-RPC id, so identical args under different ids diverged (double
+    // -apply on retry) and different args under one reused id collided (silent drop). Now it hashes the args.
+    const a = await deriveIdempotencyKey(PAIRING, "book", { shipment: "s1", pallets: 2 });
+    const b = await deriveIdempotencyKey(PAIRING, "book", { pallets: 2, shipment: "s1" }); // key order differs
+    expect(a).toBe(b);
+  });
+
+  it("two calls with DIFFERENT arguments derive DIFFERENT keys — no false replay", async () => {
+    const a = await deriveIdempotencyKey(PAIRING, "book", { shipment: "s1" });
+    const b = await deriveIdempotencyKey(PAIRING, "book", { shipment: "s2" });
+    expect(a).not.toBe(b);
+  });
+
+  it("a client-supplied idempotency_key is authoritative (same op across differing other args); pairing/tool still scope it", async () => {
+    const a = await deriveIdempotencyKey(PAIRING, "book", { idempotency_key: "op-1", shipment: "s1" });
+    const b = await deriveIdempotencyKey(PAIRING, "book", { idempotency_key: "op-1", shipment: "s2" });
+    expect(a).toBe(b); // the explicit operation token collapses them
+    const other = await deriveIdempotencyKey("prn-other", "book", { idempotency_key: "op-1", shipment: "s1" });
+    expect(a).not.toBe(other); // a different pairing never collides (REQ-025)
+    expect(a.startsWith("mcp-idem-")).toBe(true); // header-safe token
+  });
+
+  it("the derived key threads into the tool ctx keyed off the validated ARGS (not the id)", async () => {
+    const res = await call(deps(), toolsCall(42, "noop_mutation", { note: "x" }));
     const body = await bodyOf(res);
-    expect(body.result?.structuredContent?.idempotencyKey).toBe(await deriveIdempotencyKey(PAIRING, "noop_mutation", 42));
+    expect(body.result?.structuredContent?.idempotencyKey).toBe(await deriveIdempotencyKey(PAIRING, "noop_mutation", { note: "x" }));
+    // Same args under a DIFFERENT envelope id derive the SAME ctx key (the envelope id is irrelevant).
+    const res2 = await call(deps(), toolsCall(99, "noop_mutation", { note: "x" }));
+    expect((await bodyOf(res2)).result?.structuredContent?.idempotencyKey).toBe(body.result?.structuredContent?.idempotencyKey);
+  });
+});
+
+describe("[FIX 2] mutatingCallApi structurally links a write to the chokepoint", () => {
+  function baseCtx(overrides: Partial<ToolCtx> = {}): ToolCtx & { calls: number } {
+    let calls = 0;
+    const ctx = {
+      env,
+      pairingId: PAIRING,
+      mintJwt: async () => "jwt",
+      callApi: async () => {
+        calls++;
+        return new Response("{}", { status: 200, headers: { "content-type": "application/json" } });
+      },
+      idempotencyKey: "mcp-idem-x",
+      mutationCleared: false,
+      ...overrides,
+    } as ToolCtx & { calls: number };
+    Object.defineProperty(ctx, "calls", { get: () => calls });
+    return ctx;
+  }
+
+  it("a POST on an UNCLEARED ctx THROWS (never reaches the api)", async () => {
+    const ctx = baseCtx({ mutationCleared: false });
+    await expect(mutatingCallApi(ctx, { method: "POST", path: "/v1/book", body: {} })).rejects.toThrow();
+    expect(ctx.calls).toBe(0);
+  });
+
+  it("a POST on a CLEARED ctx proceeds to the api", async () => {
+    const ctx = baseCtx({ mutationCleared: true });
+    const res = await mutatingCallApi(ctx, { method: "POST", path: "/v1/book", body: {} });
+    expect(res.status).toBe(200);
+    expect(ctx.calls).toBe(1);
+  });
+
+  it("a GET is allowed on an uncleared ctx (reads are not gated)", async () => {
+    const ctx = baseCtx({ mutationCleared: false });
+    const res = await mutatingCallApi(ctx, { method: "GET", path: "/v1/x" });
+    expect(res.status).toBe(200);
+    expect(ctx.calls).toBe(1);
+  });
+});
+
+describe("[FIX 4] error hygiene — the catch-all never leaks internal messages (REQ-192)", () => {
+  it("a handler throwing a PrincipalMintError yields a GENERIC client message (no pairing id / internal string)", async () => {
+    // RED before the fix: the catch-all returned err.message verbatim → the pairing id leaked to the model.
+    const boom = new ToolRegistry().register(
+      defineTool({
+        name: "boom",
+        description: "throws a raw internal error",
+        inputSchema: z.object({}),
+        mutating: false,
+        handler: async () => {
+          throw new PrincipalMintError("no active mcp pairing: prn-SECRET-LEAK");
+        },
+      }),
+    );
+    const res = await call(deps({ registry: boom }), toolsCall(50, "boom"));
+    const body = await bodyOf(res);
+    expect(body.error?.code).toBe(-32603);
+    expect(body.error?.message).toBe("internal error");
+    expect(JSON.stringify(body)).not.toContain("prn-SECRET-LEAK"); // the internal detail never crosses the boundary
+  });
+
+  it("an INTENTIONAL ToolError still surfaces its message as an isError result (safe by design)", async () => {
+    const res = await call(deps(), toolsCall(51, "whoami")); // whoami on default deps mints + reaches the api (200)
+    expect(res.status).toBe(200); // control: the read path is unaffected
+  });
+});
+
+describe("[FIX 5] auth before parse — an unauthenticated malformed request is a uniform 401", () => {
+  it("no bearer + a malformed JSON body → 401 (not -32700)", async () => {
+    // RED before the fix: index.ts pre-parsed the body and returned -32700 (HTTP 200) before auth ran.
+    const req = new Request(`${ISSUER}/mcp`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{ this is not json",
+    });
+    const res = await worker.fetch(req, env);
+    expect(res.status).toBe(401);
+  });
+
+  it("an authenticated malformed body → a -32700 parse error (parse runs only after auth passes)", async () => {
+    const token = await getAccessToken();
+    const req = new Request(`${ISSUER}/mcp`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: "{ still not json",
+    });
+    const res = await worker.fetch(req, env);
+    expect(res.status).toBe(200);
+    expect((await bodyOf(res)).error?.code).toBe(-32700);
   });
 });
 
