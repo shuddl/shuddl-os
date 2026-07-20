@@ -5,7 +5,7 @@ import { selectCopilot, CopilotError } from "@shuddl/agents";
 import type { CopilotReadPort, CopilotReadQuery, ReadEvent } from "@shuddl/agents";
 import { ApiError } from "../middleware/error.js";
 import { requireRole } from "../middleware/auth.js";
-import { tenantDb } from "../tenants.js";
+import { resolveTenantDb } from "../tenants.js";
 import type { Env, Vars } from "../index.js";
 
 // WP-10 Task 7 (REQ-038/024) — the COPILOT surface: POST /v1/copilot/ask. A READ-ONLY question-answerer over
@@ -42,7 +42,7 @@ function copilotConfig(env: Env): { apiKey?: string; model?: string } {
 export function mountCopilotRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>): void {
   app.post("/v1/copilot/ask", requireRole(...COPILOT_ROLES), async (c) => {
     const session = c.get("session");
-    const db = tenantDb(c.env, session.tenant); // REQ-025 — D1 keyed off the claim ONLY
+    const db = await resolveTenantDb(c.env, session.tenant); // REQ-025 — D1 keyed off the claim ONLY
 
     const parsed = AskBody.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) throw new ApiError("VALIDATION_FAILED", 400, "BODY MUST BE {question: string}");

@@ -3,7 +3,7 @@ import { Hash64, z } from "@shuddl/contracts";
 import { retentionClassFor } from "@shuddl/ledger/documents/retention";
 import { ApiError, envelope } from "../middleware/error.js";
 import { requireRole } from "../middleware/auth.js";
-import { tenantDb } from "../tenants.js";
+import { resolveTenantDb } from "../tenants.js";
 import type { Env, Vars } from "../index.js";
 
 // REQ-168 — evidence byte-upload with SHA-256 verify (WP-06). The driver PWA hashes evidence AT
@@ -149,7 +149,7 @@ export function mountEvidenceRoutes(app: Hono<{ Bindings: Env; Variables: Vars }
 
     // Tenant scoping (REQ-025): the D1 handle is keyed off the JWT claim. A shipment the session
     // tenant's D1 does not hold is a plain 404 — indistinguishable from nonexistent, no write anywhere.
-    const db = tenantDb(c.env, session.tenant);
+    const db = await resolveTenantDb(c.env, session.tenant);
     const shipment = await db.prepare("SELECT 1 AS present FROM shipments WHERE id = ?").bind(shipment_id).first();
     if (shipment === null) throw new ApiError("NOT_FOUND", 404, "SHIPMENT NOT FOUND");
 

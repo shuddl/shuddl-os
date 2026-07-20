@@ -3,7 +3,7 @@ import { PositionInput } from "@shuddl/contracts";
 import { canonicalBytes, sha256Hex } from "@shuddl/ledger/canonical";
 import { ApiError } from "../middleware/error.js";
 import { requireRole } from "../middleware/auth.js";
-import { tenantDb } from "../tenants.js";
+import { resolveTenantDb } from "../tenants.js";
 import { assignmentOf, deviceOwnedBy, loadStreamPrior, assertPositionConsent } from "../gate-context.js";
 import { translateAppendError } from "./events.js";
 import type { Env, Vars } from "../index.js";
@@ -31,7 +31,7 @@ export function mountPositionRoutes(app: Hono<{ Bindings: Env; Variables: Vars }
     const p = parsed.data;
 
     const session = c.get("session");
-    const db = tenantDb(c.env, session.tenant);
+    const db = await resolveTenantDb(c.env, session.tenant);
 
     // (1) Driver write-scope — a driver may stamp GPS ONLY on a shipment the status-cache projection has
     // assigned to them (mirror of the events route). ops/admin are unrestricted by assignment. The

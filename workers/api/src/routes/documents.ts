@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
 import { lensFor, readEvents } from "@shuddl/ledger/lens";
 import { ApiError, envelope } from "../middleware/error.js";
-import { tenantDb } from "../tenants.js";
+import { resolveTenantDb } from "../tenants.js";
 import { mintDocDownloadCap, verifyDocDownloadCap } from "../pub/doc-cap.js";
 import type { Env, Vars } from "../index.js";
 
@@ -38,7 +38,7 @@ export function mountDocumentRoutes(app: Hono<{ Bindings: Env; Variables: Vars }
   // => same, on an assigned shipment.
   app.get("/v1/shipments/:id/documents", async (c) => {
     const session = c.get("session");
-    const db = tenantDb(c.env, session.tenant);
+    const db = await resolveTenantDb(c.env, session.tenant);
     const shipmentId = c.req.param("id") ?? "";
     if (shipmentId.length > MAX_SHIPMENT_ID_LEN) throw new ApiError("VALIDATION_FAILED", 400, "SHIPMENT ID TOO LONG");
     try {
@@ -66,7 +66,7 @@ export function mountDocumentRoutes(app: Hono<{ Bindings: Env; Variables: Vars }
   // 404 (never reveal an internal doc — or another tenant's doc — exists).
   app.get("/v1/documents/:id/url", async (c) => {
     const session = c.get("session");
-    const db = tenantDb(c.env, session.tenant);
+    const db = await resolveTenantDb(c.env, session.tenant);
     const documentId = c.req.param("id") ?? "";
     if (documentId.length > MAX_DOCUMENT_ID_LEN) throw new ApiError("VALIDATION_FAILED", 400, "DOCUMENT ID TOO LONG");
     try {

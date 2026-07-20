@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { Role, SessionClaims } from "@shuddl/contracts";
 import { ApiError } from "../middleware/error.js";
 import { requireRole } from "../middleware/auth.js";
-import { tenantDb } from "../tenants.js";
+import { resolveTenantDb } from "../tenants.js";
 import { translateAppendError, type SeqStub } from "./events.js";
 import type { AppendedEvent } from "../do/sequencer.js";
 import type { Env, Vars } from "../index.js";
@@ -110,7 +110,7 @@ export function mountApprovalRoutes(app: Hono<{ Bindings: Env; Variables: Vars }
     const session = c.get("session");
     const shipmentId = c.req.param("id") ?? "";
     if (shipmentId.length > MAX_SHIPMENT_ID_LEN) throw new ApiError("VALIDATION_FAILED", 400, "SHIPMENT ID TOO LONG");
-    const db = tenantDb(c.env, session.tenant); // REQ-025 — D1 keyed off the claim only
+    const db = await resolveTenantDb(c.env, session.tenant); // REQ-025 — D1 keyed off the claim only
 
     const parsed = DecisionBody.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) throw new ApiError("VALIDATION_FAILED", 400, "INVALID APPROVAL DECISION BODY");
@@ -158,7 +158,7 @@ export function mountApprovalRoutes(app: Hono<{ Bindings: Env; Variables: Vars }
   // is 'open'; an unknown status is a 400.
   app.get("/v1/approvals", requireRole("admin", "ops", "finance", "read"), async (c) => {
     const session = c.get("session");
-    const db = tenantDb(c.env, session.tenant);
+    const db = await resolveTenantDb(c.env, session.tenant);
     const status = c.req.query("status") ?? "open";
     if (!STATUS_VALUES.has(status)) throw new ApiError("VALIDATION_FAILED", 400, "status MUST BE open OR decided");
     const res = await db

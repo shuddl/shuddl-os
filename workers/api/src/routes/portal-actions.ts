@@ -4,7 +4,7 @@ import type { SessionClaims } from "@shuddl/contracts";
 import { lensFor, readEvents } from "@shuddl/ledger/lens";
 import { ApiError } from "../middleware/error.js";
 import { requireRole } from "../middleware/auth.js";
-import { tenantDb } from "../tenants.js";
+import { resolveTenantDb } from "../tenants.js";
 import { translateAppendError, type SeqStub } from "./events.js";
 import type { AppendedEvent } from "../do/sequencer.js";
 import type { Env, Vars } from "../index.js";
@@ -123,7 +123,7 @@ export function mountPortalActionRoutes(app: Hono<{ Bindings: Env; Variables: Va
     const session = c.get("session");
     const shipmentId = c.req.param("id") ?? "";
     if (shipmentId.length > MAX_SHIPMENT_ID_LEN) throw new ApiError("VALIDATION_FAILED", 400, "SHIPMENT ID TOO LONG");
-    const db = tenantDb(c.env, session.tenant);
+    const db = await resolveTenantDb(c.env, session.tenant);
 
     // 1) LENS GATE on :id (fail-closed) — checked FIRST so an unauthorized caller learns nothing about the body.
     await requireShipmentVisible(session, db, shipmentId);
@@ -161,7 +161,7 @@ export function mountPortalActionRoutes(app: Hono<{ Bindings: Env; Variables: Va
     const session = c.get("session");
     const shipmentId = c.req.param("id") ?? "";
     if (shipmentId.length > MAX_SHIPMENT_ID_LEN) throw new ApiError("VALIDATION_FAILED", 400, "SHIPMENT ID TOO LONG");
-    const db = tenantDb(c.env, session.tenant);
+    const db = await resolveTenantDb(c.env, session.tenant);
 
     await requireShipmentVisible(session, db, shipmentId);
 

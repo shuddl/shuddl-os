@@ -4,7 +4,7 @@ import { anchorProof, readAnchorManifest, runDailyAnchor } from "@shuddl/ledger/
 import { FakeTsaClient, HttpTsaClient, UnavailableTsaClient, type TsaClient } from "@shuddl/ledger/tsa/client";
 import { ApiError } from "../middleware/error.js";
 import { requireRole } from "../middleware/auth.js";
-import { tenantDb } from "../tenants.js";
+import { resolveTenantDb } from "../tenants.js";
 import type { Env, Vars } from "../index.js";
 
 // REQ-014 — the anchors read/verify surface (doc 14 §04). Tenant + party come from the JWT claim
@@ -50,7 +50,7 @@ export function mountAnchorRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>)
     const day = parseDay(c.req.param("day"));
     const leaf = LeafHex.safeParse(c.req.query("leaf"));
     if (!leaf.success) throw new ApiError("VALIDATION_FAILED", 400, "leaf MUST BE EVEN-LENGTH LOWER-CASE HEX");
-    const db = tenantDb(c.env, session.tenant);
+    const db = await resolveTenantDb(c.env, session.tenant);
     try {
       const proof = await anchorProof(db, day, leaf.data);
       const body: AnchorProofResponse = { day: proof.day, root: proof.root, proof: proof.steps, receipt_doc_id: proof.receipt_doc_id };
@@ -67,7 +67,7 @@ export function mountAnchorRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>)
   // tenant's unanchored days up to yesterday, oldest-first, capped per run.
   app.post("/v1/anchors/run", requireRole("admin"), async (c) => {
     const session = c.get("session");
-    const db = tenantDb(c.env, session.tenant);
+    const db = await resolveTenantDb(c.env, session.tenant);
     const tsa = await tsaClientFor(c.env, db);
     const res = await runDailyAnchor({ db, r2: c.env.EVIDENCE, tsa, tenant: session.tenant, now: () => new Date() });
     const body: AnchorRunResponse = res;

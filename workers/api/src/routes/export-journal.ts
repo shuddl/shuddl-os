@@ -4,7 +4,7 @@ import { exportJournal } from "@shuddl/ledger/gl/export";
 import { serializeJournalIIF } from "@shuddl/ledger/gl/iif";
 import { ApiError } from "../middleware/error.js";
 import { requireRole } from "../middleware/auth.js";
-import { tenantDb } from "../tenants.js";
+import { resolveTenantDb } from "../tenants.js";
 import type { Env, Vars } from "../index.js";
 
 // REQ-020 (WP-11 Task 2) — the QuickBooks JOURNAL EXPORT route. GET /v1/export/journal serves a balanced,
@@ -43,7 +43,7 @@ export function mountExportRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>)
     if (from >= to) throw new ApiError("VALIDATION_FAILED", 400, "from MUST BE < to");
     if (to - from > MAX_RANGE_MS) throw new ApiError("VALIDATION_FAILED", 400, "range EXCEEDS THE 366-DAY MAXIMUM");
 
-    const db = tenantDb(c.env, c.get("session").tenant); // REQ-025 — tenant off the claim, never client input
+    const db = await resolveTenantDb(c.env, c.get("session").tenant); // REQ-025 — tenant off the claim, never client input
     const lines = await exportJournal(db, { from, to }, division !== undefined ? { division } : undefined);
 
     if (format === "json") {

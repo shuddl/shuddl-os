@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
 import { ApiError } from "../middleware/error.js";
 import { requireRole } from "../middleware/auth.js";
-import { tenantDb } from "../tenants.js";
+import { resolveTenantDb } from "../tenants.js";
 import type { Env, Vars } from "../index.js";
 
 // WP-11 Task 8 (REQ-036) — the Watchtower READ. A thin, tenant-scoped list over the durable `anomalies` alarms
@@ -33,7 +33,7 @@ const SEVERITY_RANK: Record<string, number> = { critical: 0, warn: 1, info: 2 };
 export function mountWatchtowerRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>): void {
   app.get("/v1/watchtower", requireRole("admin", "ops", "finance"), async (c) => {
     const session = c.get("session");
-    const db = tenantDb(c.env, session.tenant); // REQ-025 — D1 keyed off the claim only
+    const db = await resolveTenantDb(c.env, session.tenant); // REQ-025 — D1 keyed off the claim only
 
     const status = c.req.query("status") ?? "open";
     if (!STATUS_VALUES.has(status)) throw new ApiError("VALIDATION_FAILED", 400, "status MUST BE open, resolved OR all");

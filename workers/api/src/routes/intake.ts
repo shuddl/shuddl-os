@@ -3,7 +3,7 @@ import { z } from "zod";
 import { normalizePartyEmail, partyIdForEmail } from "@shuddl/contracts";
 import { ApiError } from "../middleware/error.js";
 import { requireRole } from "../middleware/auth.js";
-import { tenantDb } from "../tenants.js";
+import { resolveTenantDb } from "../tenants.js";
 import type { Env, Vars } from "../index.js";
 
 // WP-10 Task 6 (REQ-150 / REQ-195 / REQ-030 / REQ-025) — THE SYNCHRONOUS CSR NET-NEW INTAKE SEAM.
@@ -88,7 +88,7 @@ export function mountIntakeRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>)
     const parsed = PartyBody.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) throw new ApiError("VALIDATION_FAILED", 400, "INVALID PARTY BODY");
     const { kind, name } = parsed.data;
-    const db = tenantDb(c.env, session.tenant); // REQ-025 — D1 keyed off the claim only
+    const db = await resolveTenantDb(c.env, session.tenant); // REQ-025 — D1 keyed off the claim only
 
     // The deterministic match key: a normalized email when present, else the normalized legal name. The email
     // path CONVERGES with the Concierge (REQ-196) via the shared @shuddl/contracts matcher — both find with
@@ -138,7 +138,7 @@ export function mountIntakeRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>)
     const parsed = ShipmentBody.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) throw new ApiError("VALIDATION_FAILED", 400, "INVALID SHIPMENT BODY");
     const body = parsed.data;
-    const db = tenantDb(c.env, session.tenant); // REQ-025 — D1 keyed off the claim only
+    const db = await resolveTenantDb(c.env, session.tenant); // REQ-025 — D1 keyed off the claim only
 
     // The three party FKs MUST exist in THIS tenant's parties (created via POST /v1/parties or already present).
     // The shipments table has no DB-level FK, so verify here — fail-fast with a clean 400 rather than leaving an

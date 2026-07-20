@@ -1,6 +1,6 @@
 import type { Hono } from "hono";
 import { requireRole } from "../middleware/auth.js";
-import { tenantDb } from "../tenants.js";
+import { resolveTenantDb } from "../tenants.js";
 import type { Env, Vars } from "../index.js";
 
 // WP-10 Task 9 (REQ-073/080) — GET /v1/board: the command map's live, lens-scoped fleet. The map IS the home,
@@ -57,7 +57,7 @@ export function mountBoardRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>):
   // no command board. Tenant from the JWT claim ONLY (tenantDb) — never a header/query param (REQ-025).
   app.get("/v1/board", requireRole("admin", "ops", "finance", "read"), async (c) => {
     const session = c.get("session");
-    const db = tenantDb(c.env, session.tenant);
+    const db = await resolveTenantDb(c.env, session.tenant);
 
     // Each ACTIVE shipment joined to its LATEST position (max ts per shipment). A shipment with no position is
     // dropped by the JOIN (no fabricated mark); a terminal shipment is dropped by the state filter. json_extract

@@ -4,7 +4,7 @@ import { priceShipment, assessApproval, resolveTransitDays } from "@shuddl/rater
 import type { RateRequest, Leg, PricedQuote, ApprovalDecision, TransitResult } from "@shuddl/rater";
 import { ApiError } from "../middleware/error.js";
 import { requireRole } from "../middleware/auth.js";
-import { tenantDb } from "../tenants.js";
+import { resolveTenantDb } from "../tenants.js";
 import { lensFor, readEvents } from "@shuddl/ledger/lens";
 import { loadTenantRatingConfig, loadTransitMatrix } from "../rate-config.js";
 import { translateAppendError, type SeqStub } from "./events.js";
@@ -118,6 +118,11 @@ export function mountRateRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>): 
     if (!parsed.success) throw new ApiError("VALIDATION_FAILED", 400, "INVALID RATE REQUEST");
     const body = parsed.data;
 
+    // REQ-025 — resolve the SESSION tenant's D1 ONCE (the per-request memo): the claimed-tenant-aware resolver
+    // is async (a non-static slug does a control-plane lookup), so the portal lens read + the config + the
+    // transit matrix below all reuse this ONE handle rather than re-resolving three times.
+    const db = await resolveTenantDb(c.env, session.tenant);
+
     // REQ-085 / REQ-025 — a portal party MAY price, but ONLY for a shipment its OWN lens can see. ops/admin/
     // finance (tenant lens) stay unrestricted. This reuses the SAME lens seam the events read + status-link
     // mint use (readEvents under lensFor), so a portal caller can never price against — and thereby append
@@ -128,7 +133,7 @@ export function mountRateRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>): 
     if (session.role === "portal") {
       try {
         const lens = lensFor(session);
-        const visible = await readEvents(tenantDb(c.env, session.tenant), lens, { shipment_id: body.shipment_id, limit: 1 });
+        const visible = await readEvents(db, lens, { shipment_id: body.shipment_id, limit: 1 });
         if (visible.length === 0) throw new ApiError("FORBIDDEN", 403, "SHIPMENT NOT IN YOUR SCOPE");
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
@@ -149,7 +154,7 @@ export function mountRateRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>): 
     // REQ-025 — the config comes from the SESSION tenant's D1 only (tenantDb allowlist, keyed off the JWT
     // claim), and only the tariff IN EFFECT as of `now` (a future-dated row must not price today). No tariff
     // ⇒ UNKNOWN no_tariff, and NO event (REQ-151: no tariff = no sell).
-    const config = await loadTenantRatingConfig(tenantDb(c.env, session.tenant), now);
+    const config = await loadTenantRatingConfig(db, now);
     if (config === null) return c.json({ status: "UNKNOWN", reason: "no_tariff" as const });
 
     const request: RateRequest = {
@@ -171,7 +176,7 @@ export function mountRateRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>): 
     // transit lane keys off exactly the zones the price did. An absent matrix OR an unresolvable lane ⇒
     // UNKNOWN ⇒ the response marks transit "unavailable"; a number is NEVER fabricated (the honest-window
     // law). Resolved only on the PRICED path — an UNKNOWN price carries no quote to attach a window to.
-    const transitMatrix = await loadTransitMatrix(tenantDb(c.env, session.tenant), now);
+    const transitMatrix = await loadTransitMatrix(db, now);
     const transit: TransitResult =
       transitMatrix === null
         ? { status: "UNKNOWN" }

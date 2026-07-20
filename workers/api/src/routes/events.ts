@@ -4,7 +4,7 @@ import { EVENT_KINDS, GATE_BLOCKED_PREFIX } from "@shuddl/contracts";
 import { lensFor, readEvents, type ReadQuery } from "@shuddl/ledger/lens";
 import { ApiError } from "../middleware/error.js";
 import { requireRole } from "../middleware/auth.js";
-import { tenantDb } from "../tenants.js";
+import { resolveTenantDb } from "../tenants.js";
 import { assignmentOf } from "../gate-context.js";
 import type { AppendedEvent } from "../do/sequencer.js";
 import type { Env, Vars } from "../index.js";
@@ -227,7 +227,7 @@ export function mountEventRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>):
     // the positions bypass route reuses (REQ-190 gate parity) — ONE query, so the two paths cannot drift.
     // shipmentId is the route :id (always present here); `?? ""` keeps the assignment query fail-closed
     // (an empty id matches no shipment → not assigned → 403) and satisfies the shared predicate's string arg.
-    if (session.role === "driver" && !(await assignmentOf(tenantDb(c.env, session.tenant), shipmentId ?? "", session.sub))) {
+    if (session.role === "driver" && !(await assignmentOf(await resolveTenantDb(c.env, session.tenant), shipmentId ?? "", session.sub))) {
       throw new ApiError("FORBIDDEN", 403, "DRIVER NOT ASSIGNED TO THIS SHIPMENT");
     }
 
@@ -245,7 +245,7 @@ export function mountEventRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>):
   // GET /v1/shipments/:id/events — the shipment feed through the caller's lens.
   app.get("/v1/shipments/:id/events", async (c) => {
     const session = c.get("session");
-    const db = tenantDb(c.env, session.tenant);
+    const db = await resolveTenantDb(c.env, session.tenant);
     try {
       const lens = lensFor(session);
       const limit = parseLimit(c.req.query("limit"));
@@ -268,7 +268,7 @@ export function mountEventRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>):
   // shipment (their lens narrows a single-shipment read, not the whole tenant). Composite keyset cursor.
   app.get("/v1/events", requireRole("admin", "ops", "finance", "read"), async (c) => {
     const session = c.get("session");
-    const db = tenantDb(c.env, session.tenant);
+    const db = await resolveTenantDb(c.env, session.tenant);
     try {
       const lens = lensFor(session); // tenant scope for these roles
       const limit = parseLimit(c.req.query("limit"));

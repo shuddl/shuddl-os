@@ -15,7 +15,7 @@ import {
 } from "@shuddl/agents";
 import { ApiError } from "../middleware/error.js";
 import { requireRole } from "../middleware/auth.js";
-import { tenantDb } from "../tenants.js";
+import { resolveTenantDb } from "../tenants.js";
 import { translateAppendError } from "./events.js";
 import type { AppendedEvent } from "../do/sequencer.js";
 import type { Env, Vars } from "../index.js";
@@ -411,7 +411,7 @@ export function mountDunningRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>
   // roles; a portal party/driver/read has no send authority here). Tenant off the JWT claim ONLY (tenantDb).
   app.get("/v1/dunning", requireRole("admin", "ops", "finance"), async (c) => {
     const session = c.get("session");
-    const db = tenantDb(c.env, session.tenant);
+    const db = await resolveTenantDb(c.env, session.tenant);
     const status = c.req.query("status") ?? "draft";
     if (status !== "draft" && status !== "sent") throw new ApiError("VALIDATION_FAILED", 400, "status MUST BE draft OR sent");
     const drafts = await listDunningDrafts(db, status, dunningFromName(c.env), Date.now());
@@ -425,7 +425,7 @@ export function mountDunningRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>
     const session = c.get("session");
     const draftId = c.req.param("id") ?? "";
     if (draftId.length > MAX_DRAFT_ID_LEN) throw new ApiError("VALIDATION_FAILED", 400, "DRAFT ID TOO LONG");
-    const db = tenantDb(c.env, session.tenant); // REQ-025 — D1 keyed off the claim only
+    const db = await resolveTenantDb(c.env, session.tenant); // REQ-025 — D1 keyed off the claim only
 
     const deps: DunningSendDeps = {
       db,

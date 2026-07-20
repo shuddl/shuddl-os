@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
 import { lensFor } from "@shuddl/ledger/lens";
 import { ApiError } from "../middleware/error.js";
-import { tenantDb } from "../tenants.js";
+import { resolveTenantDb } from "../tenants.js";
 import type { Env, Vars } from "../index.js";
 
 // REQ-085 (WP-09 Task 7) — the PORTAL INVOICES list. GET /v1/invoices returns the `invoices` read-model
@@ -36,7 +36,7 @@ export function mountInvoiceRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>
   // is impossible: a session only ever touches its own tenant's `invoices`.
   app.get("/v1/invoices", async (c) => {
     const session = c.get("session");
-    const db = tenantDb(c.env, session.tenant);
+    const db = await resolveTenantDb(c.env, session.tenant);
     try {
       const lens = lensFor(session);
       if (lens.scope === "driver") return c.json({ invoices: [] }); // no billing relationship — fail-closed

@@ -5,7 +5,7 @@ import { reqId, handleError, envelope, ApiError } from "./middleware/error.js";
 import { corsMiddleware } from "./middleware/cors.js";
 import { auth, requireRole } from "./middleware/auth.js";
 import { idempotency } from "./middleware/idempotency.js";
-import { tenantDb } from "./tenants.js";
+import { resolveTenantDb } from "./tenants.js";
 import { mountEventRoutes } from "./routes/events.js";
 import { mountPositionRoutes } from "./routes/positions.js";
 import { mountAnchorRoutes } from "./routes/anchors.js";
@@ -26,6 +26,7 @@ import { mountFullExportRoutes } from "./routes/export.js";
 import { mountDunningRoutes } from "./routes/dunning.js";
 import { mountWatchtowerRoutes } from "./routes/watchtower.js";
 import { mountPublicRoutes } from "./routes/public.js";
+import { mountSignupRoutes } from "./routes/signup.js";
 
 export type Env = {
   TENANT_A_DB: D1Database;
@@ -92,7 +93,7 @@ app.post("/v1/_echo", async (c) => {
 
 // REQ-025 probe: the isolation suite's read target. Reads ONLY the session tenant's D1.
 app.get("/v1/_probe", requireRole("admin", "ops", "finance"), async (c) => {
-  const db = tenantDb(c.env, c.get("session").tenant);
+  const db = await resolveTenantDb(c.env, c.get("session").tenant);
   const row = await db.prepare("SELECT tenant FROM probe LIMIT 1").first<{ tenant: string }>();
   return c.json({ tenant_marker: row?.tenant ?? null });
 });
@@ -193,6 +194,12 @@ mountWatchtowerRoutes(app);
 // minted above. Mounted at /pub/* (NOT /v1/*), so app.use("/v1/*", auth) + idempotency do NOT run — the cap
 // is the authorization. This is the first public data read in the system; verifyStatusCap is the whole gate.
 mountPublicRoutes(app);
+// WP-14 Task 3 (REQ-121/025): POST /pub/signup — the PRE-AUTH, DARK self-serve signup. Mounted at /pub/* (NOT
+// /v1/*), so auth + idempotency do NOT run (a stranger has no token). Behind PROVISIONING_ENABLED (OFF by
+// default → 404, DARK); when ON it CLAIMS a pool slot (provisionTenant) and mints the new tenant's admin session
+// so the customer can read their own workspace via the resolveTenantDb claimed-fallback (tenants.ts). No new
+// table/kind/surface — the claimed-registry is the existing `tenants` control table.
+mountSignupRoutes(app);
 
 app.notFound((c) => envelope(c, "NOT_FOUND", 404, "NOT FOUND"));
 

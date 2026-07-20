@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
 import type { EventKind } from "@shuddl/contracts";
 import { requireRole } from "../middleware/auth.js";
-import { tenantDb } from "../tenants.js";
+import { resolveTenantDb } from "../tenants.js";
 import {
   computeUnbilled,
   computeOtdBps,
@@ -45,7 +45,7 @@ export function mountKpiRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>): v
   // has no command strip. Tenant comes from the JWT claim ONLY (tenantDb) — never a header/query param (REQ-025).
   app.get("/v1/kpis", requireRole("admin", "ops", "finance", "read"), async (c) => {
     const session = c.get("session");
-    const db = tenantDb(c.env, session.tenant);
+    const db = await resolveTenantDb(c.env, session.tenant);
     const now = Date.now(); // DSO ages open AR against the server clock (the compute fn takes it explicitly)
 
     // Six independent read paths — run them together. Each returns a REAL number or the literal "UNKNOWN".

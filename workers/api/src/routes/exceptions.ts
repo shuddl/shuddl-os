@@ -3,7 +3,7 @@ import type { EventKind } from "@shuddl/contracts";
 import { lensFor, readEvents } from "@shuddl/ledger/lens";
 import { ApiError } from "../middleware/error.js";
 import { requireRole } from "../middleware/auth.js";
-import { tenantDb } from "../tenants.js";
+import { resolveTenantDb } from "../tenants.js";
 import type { Env, Vars } from "../index.js";
 
 // WP-10 Task 3 (REQ-082) — the command "exceptions" QUEUE: shipments that need attention. A DURABLE READ over
@@ -64,7 +64,7 @@ export function mountExceptionRoutes(app: Hono<{ Bindings: Env; Variables: Vars 
   // (tenantDb / lensFor(session)) — never a header or query param (REQ-025).
   app.get("/v1/exceptions", requireRole("admin", "ops", "finance", "read"), async (c) => {
     const session = c.get("session");
-    const db = tenantDb(c.env, session.tenant);
+    const db = await resolveTenantDb(c.env, session.tenant);
 
     const status = c.req.query("status") ?? "all";
     if (!STATUS_VALUES.has(status)) throw new ApiError("VALIDATION_FAILED", 400, "status MUST BE open OR all");

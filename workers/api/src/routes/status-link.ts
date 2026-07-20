@@ -2,7 +2,7 @@ import type { Hono } from "hono";
 import { lensFor, readEvents } from "@shuddl/ledger/lens";
 import { ApiError } from "../middleware/error.js";
 import { requireRole } from "../middleware/auth.js";
-import { tenantDb } from "../tenants.js";
+import { resolveTenantDb } from "../tenants.js";
 import { mintStatusCap } from "../pub/status-cap.js";
 import type { Env, Vars } from "../index.js";
 
@@ -21,7 +21,7 @@ export function mountStatusLinkRoutes(app: Hono<{ Bindings: Env; Variables: Vars
     // `?? ""` keeps this fail-closed (mirrors events.ts): an absent :id yields an empty shipment id, which
     // matches no events under any lens -> visibleCount 0 -> 403. It never reaches the cap as a real id.
     const id = c.req.param("id") ?? "";
-    const db = tenantDb(c.env, session.tenant);
+    const db = await resolveTenantDb(c.env, session.tenant);
 
     // The mint-authorization gate. Resolve :id through the caller's LENS exactly as GET /v1/shipments/:id/
     // events does: a portal party's lens narrows to visibility<>'internal' AND party_refs∋party_id, so a

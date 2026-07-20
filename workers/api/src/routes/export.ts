@@ -6,7 +6,7 @@ import { exportJournal, type JournalLine } from "@shuddl/ledger/gl/export";
 import { serializeJournalIIF } from "@shuddl/ledger/gl/iif";
 import { ApiError } from "../middleware/error.js";
 import { requireRole } from "../middleware/auth.js";
-import { tenantDb } from "../tenants.js";
+import { resolveTenantDb } from "../tenants.js";
 import type { Env, Vars } from "../index.js";
 
 // REQ-010 (WP-11 Task 5) — the ONE-CLICK FULL TENANT EXPORT in OPEN formats. GET /v1/export lets a tenant
@@ -170,7 +170,7 @@ export function mountFullExportRoutes(app: Hono<{ Bindings: Env; Variables: Vars
     const { cursor, limit, from, to } = parsed.data;
 
     const session = c.get("session");
-    const db = tenantDb(c.env, session.tenant); // REQ-025 — tenant off the claim, never client input
+    const db = await resolveTenantDb(c.env, session.tenant); // REQ-025 — tenant off the claim, never client input
     const generatedAt = Date.now(); // read the clock HERE; the assembler stays pure (generatedAt is a param)
 
     // The journal window: default the WHOLE history (0 → generated_at). A full export wants every money_line;
