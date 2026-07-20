@@ -167,9 +167,19 @@ describe("dynamic client registration (DCR) is authenticated by the pairing secr
     expect(res.status).toBe(401);
   });
 
-  it("registering against an UNKNOWN / non-mcp pairing is rejected (400, before any secret check)", async () => {
-    const res = await register(deps(goodSecrets()), "prn-nope");
-    expect(res.status).toBe(400);
+  it("an UNKNOWN pairing_id is INDISTINGUISHABLE from an active-but-unauthenticated one (both 401 invalid_client) — no enumeration oracle", async () => {
+    // F3 (RED before the fix): an unknown pairing returned a distinguishing 400 invalid_client_metadata while an
+    // ACTIVE pairing with a bad secret returned 401 invalid_client — a pre-auth oracle for live mcp client-ids.
+    const unknown = await register(deps(goodSecrets()), "prn-nope", { clientSecret: "garbage" });
+    const activeWrongSecret = await register(deps(goodSecrets()), PAIRING, { clientSecret: "garbage" });
+
+    expect(unknown.status).toBe(401);
+    expect(activeWrongSecret.status).toBe(401);
+    const unknownBody = (await unknown.json()) as { error: string };
+    const activeBody = (await activeWrongSecret.json()) as { error: string };
+    expect(unknownBody.error).toBe("invalid_client");
+    // Byte-identical status AND body — an attacker cannot tell a real active mcp pairing from an invalid id.
+    expect(unknownBody).toEqual(activeBody);
   });
 
   it("with the NotConfigured resolver /register fails closed (401) exactly like /token", async () => {

@@ -167,10 +167,10 @@ async function handleRegister(request: Request, deps: OAuthDeps): Promise<Respon
   const pairingId = body.pairing_id ?? body.client_id;
   if (pairingId === undefined || pairingId === "") return oauthError(400, "invalid_client_metadata", "pairing_id is required");
 
-  const pairing = await resolveActiveMcpPairing(deps.controlDb, pairingId);
-  if (pairing === null) return oauthError(400, "invalid_client_metadata", "no active mcp pairing for pairing_id");
-
-  // AUTHENTICATE the registrant as the pairing owner (the fail-closed gate — mirrors /token's client auth).
+  // AUTHENTICATE the registrant as the pairing owner (the fail-closed gate — mirrors /token's client auth). F3: we
+  // DO NOT pre-check the pairing's existence with a distinguishing 400 here — an unknown pairing_id and an active-
+  // but-unauthenticated one both collapse to authenticateClient's single 401 invalid_client, so /register leaks no
+  // pre-auth oracle for live mcp client-ids (client_id == pairing_id is a control-plane id, but need not be probeable).
   const authFailure = await authenticateClient(deps, pairingId, body.client_secret ?? "");
   if (authFailure !== null) return authFailure;
 
@@ -320,15 +320,17 @@ async function pairingSecretRef(db: D1Database, pairingId: string): Promise<stri
 }
 
 // THE FAIL-CLOSED CLIENT-AUTHENTICATION gate, shared by /register and /token. The pairing must still be active,
-// and the presented client_secret must equal the pairing's secret resolved through the SecretResolver. Returns a
-// 401 invalid_client Response on ANY failure (inactive pairing, unresolvable secret — NotConfigured ⇒ null ⇒
-// fail-closed everywhere, empty, or mismatch), or null on success. Timing-safe compare (no early-out).
+// and the presented client_secret must equal the pairing's secret resolved through the SecretResolver. Returns
+// null on success, or ONE indistinguishable 401 invalid_client on ANY failure — an inactive/unknown pairing, an
+// unresolvable secret (NotConfigured ⇒ null ⇒ fail-closed everywhere), an empty secret, or a mismatch all yield
+// the SAME status + body (F3: no pre-auth enumeration oracle for live mcp client-ids). Timing-safe compare.
 async function authenticateClient(deps: OAuthDeps, pairingId: string, presentedSecret: string): Promise<Response | null> {
+  const denied = oauthError(401, "invalid_client");
   const pairing = await resolveActiveMcpPairing(deps.controlDb, pairingId);
-  if (pairing === null) return oauthError(401, "invalid_client", "pairing is not active");
+  if (pairing === null) return denied;
   const expected = await deps.secrets.resolve(await pairingSecretRef(deps.controlDb, pairingId));
-  if (expected === null || expected === "") return oauthError(401, "invalid_client", "client secret unavailable");
-  if (!timingSafeEqual(expected, presentedSecret)) return oauthError(401, "invalid_client", "client authentication failed");
+  if (expected === null || expected === "") return denied;
+  if (!timingSafeEqual(expected, presentedSecret)) return denied;
   return null;
 }
 
