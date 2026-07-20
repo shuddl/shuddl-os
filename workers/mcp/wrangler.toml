@@ -13,6 +13,13 @@ workers_dev = false
 [vars]
 ENVIRONMENT = "dev"
 
+# WP-13 Task 10 (REQ-109) — the outbound webhook DELIVERY CRON. The `scheduled` handler runs runWebhookSweep,
+# which is FAIL-CLOSED by construction (a NotConfigured event source yields nothing + a NotConfigured
+# transport/secret resolver deliver nothing), so this tick is a safe no-op until the live ledger/queue event
+# feed + the signing-secret store are wired (documented go-live items — see webhooks.ts). Adding no table/kind.
+[triggers]
+crons = ["*/5 * * * *"]
+
 # THE REUSE SEAM: a service binding to the api worker (its Hono app + every /v1 gate). callApi() routes
 # THROUGH this binding, so an MCP tool can never touch a physical fact except through the api's server-side
 # gates (REQ-030/101). In-process (no Internet hop). Mirrors the cross-script bindings the translator/agents
@@ -53,6 +60,10 @@ workers_dev = false
 
 [env.staging.vars]
 ENVIRONMENT = "staging"
+
+# WP-13 Task 10 (REQ-109) — the webhook delivery cron, mirrored into staging (fail-closed no-op until wired).
+[env.staging.triggers]
+crons = ["*/5 * * * *"]
 
 # Cross-service → the STAGING api worker (name per the <worker-name>-<environment> service convention).
 [[env.staging.services]]

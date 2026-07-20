@@ -11,6 +11,8 @@
 import { handleOAuth, type OAuthDeps } from "./oauth.js";
 import { NotConfiguredSecretResolver, type SecretResolver } from "./principal.js";
 import { dispatch, defaultDispatchDeps } from "./tools/registry.js";
+import { handleRest } from "./rest.js";
+import { runWebhookSweep, webhookDepsFor } from "./webhooks.js";
 
 // WP-13 Task 8 (REQ-105) — the Durable Object entry MUST be re-exported from the worker's main module (the
 // runtime binds `class_name = "CapsMeter"` to this export). Mirrors workers/api re-exporting ShipmentSequencer.
@@ -99,11 +101,17 @@ function oauthDeps(request: Request, env: Env): OAuthDeps {
 const MCP_PATH = "/mcp";
 
 export default {
-  // Order: OAuth AS (Task 2) → the MCP JSON-RPC transport (Task 3) → the health probe. dispatch maps an opaque
-  // access token → pairing via resolveTokenGrant, then mintPrincipalJwt for callApi (all inside the tool ctx).
+  // Order: OAuth AS (Task 2) → the public REST mirror (Task 10) → the MCP JSON-RPC transport (Task 3) → the
+  // health probe. dispatch maps an opaque access token → pairing via resolveTokenGrant, then mintPrincipalJwt
+  // for callApi (all inside the tool ctx). The REST mirror (handleRest) REUSES that same dispatch, so a REST
+  // caller and an MCP caller run the identical auth + chokepoint + tool path (REQ-109 structural parity).
   async fetch(request: Request, env: Env): Promise<Response> {
     const oauth = await handleOAuth(request, oauthDeps(request, env));
     if (oauth !== null) return oauth;
+
+    // WP-13 Task 10 (REQ-109): the public JSON API mirror. Returns a Response for an /api/* route, or null.
+    const rest = await handleRest(request, env);
+    if (rest !== null) return rest;
 
     const { pathname } = new URL(request.url);
     if (pathname === MCP_PATH && request.method === "POST") {
@@ -112,5 +120,16 @@ export default {
     }
 
     return Response.json({ ok: true, service: "mcp", env: env.ENVIRONMENT });
+  },
+
+  // WP-13 Task 10 (REQ-109): the outbound webhook delivery cron. FAIL-CLOSED by construction — the production
+  // deps use a NotConfigured event source (yields nothing) + a NotConfigured transport/secret resolver, so this
+  // is a safe no-op until the live ledger/queue event feed + the signing secret store are wired (go-live items).
+  async scheduled(_controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(
+      runWebhookSweep(webhookDepsFor(env)).then((summary) => {
+        console.log(`webhook-sweep → ${JSON.stringify(summary)}`);
+      }),
+    );
   },
 };
