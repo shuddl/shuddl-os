@@ -1,0 +1,75 @@
+# Naming per genesis/14 §02: shuddl-{svc}-{env}. NO SECRETS EVER IN THIS FILE (REQ-154, REQ-134).
+# WP-14 Task 6 (REQ-123) — THE BILLING WORKER: the cross-DB METERING RECOMPUTE SWEEP. The metered unit is the
+# AI action = the frozen `agent.acted` event; `agent_runs` is already the idempotent one-row-per-`agent.acted`
+# meter (INSERT OR IGNORE on the event id), so COUNT(agent_runs) == COUNT(agent.acted) EXACTLY. The events
+# ledger is per-tenant D1; usage_credits is control-plane D1 (a SEPARATE database) — so the metering write
+# CANNOT ride the sequencer's single-DB batch. This cron RECOMPUTES {agent: count} per (tenant, period) from
+# each tenant's ledger and OVERWRITES usage_credits.metered (a full replace, never a += → drift-free).
+name = "shuddl-billing-dev"
+main = "src/index.ts"
+compatibility_date = "2025-08-01"
+# Cron-only worker. Keep it off the auto *.workers.dev subdomain — no public HTTP surface ships (the fetch
+# handler is a health probe only). The recompute is driven by scheduled(), never a route.
+workers_dev = false
+
+[vars]
+ENVIRONMENT = "dev"
+
+# REQ-123 — the metering recompute runs hourly. The sweep is a full recompute-from-ledger that OVERWRITES the
+# period blob (idempotent by construction — a re-run yields the identical result, never a double-count), so the
+# cadence is a freshness knob, not a correctness one: re-running each hour is always safe.
+[triggers]
+crons = ["0 * * * *"]
+
+# Per-tenant D1 (mirror workers/api/src/tenants.ts TENANT_BINDINGS + workers/translator/wrangler.toml; parity
+# is CI-enforced). Physical isolation. The sweep READS each tenant's `agent_runs`⋈`events` — it never writes
+# tenant D1 (no event append). The reserved `_platform` revenue tenant + pool sentinels are NOT bound here —
+# they are never metered as customers (REQ-025).
+[[d1_databases]]
+binding = "TENANT_A_DB"
+database_name = "shuddl-t-tenant-a-dev"
+database_id = "local-billing-tenant-a"
+
+[[d1_databases]]
+binding = "TENANT_B_DB"
+database_name = "shuddl-t-tenant-b-dev"
+database_id = "local-billing-tenant-b"
+
+# Control plane (usage_credits — the metering OVERWRITE target; tenants roster). A SEPARATE database from any
+# tenant D1 — this is exactly WHY the metering write is a scheduled recompute and not a sequencer batch. The
+# sweep WRITES only each customer tenant's OWN usage_credits row (tenant-scoped id `<tenant>:<period>`); it is
+# never a tenant DATA path (REQ-025). Mirrors workers/api + workers/translator CONTROL_DB.
+[[d1_databases]]
+binding = "CONTROL_DB"
+database_name = "shuddl-control-dev"
+database_id = "local-billing-control"
+
+# ── STAGING (synthetic only, REQ-154). Real resources mirror the api/agents/translator staging ids; the
+#    default (top-level) config keeps its local-* ids for tests + `wrangler dev`. NO secrets — the recompute
+#    reads/writes only D1, so there is nothing to gate.
+[env.staging]
+name = "shuddl-billing-staging"
+workers_dev = false
+
+[env.staging.vars]
+ENVIRONMENT = "staging"
+
+[env.staging.triggers]
+crons = ["0 * * * *"]
+
+# Same physical tenant DBs as the api/agents/translator workers (ids MUST match workers/api [env.staging]).
+[[env.staging.d1_databases]]
+binding = "TENANT_A_DB"
+database_name = "shuddl-t-tenant-a-staging"
+database_id = "1742fef3-f7bf-4d1a-9aaa-bf9366994528"
+
+[[env.staging.d1_databases]]
+binding = "TENANT_B_DB"
+database_name = "shuddl-t-tenant-b-staging"
+database_id = "aa3b23a8-567d-4479-8311-e9f1678a6797"
+
+# Control plane (must match workers/api [env.staging] CONTROL_DB id).
+[[env.staging.d1_databases]]
+binding = "CONTROL_DB"
+database_name = "shuddl-control-staging"
+database_id = "8e238970-2ed3-494d-960f-e4af082c1e8e"
