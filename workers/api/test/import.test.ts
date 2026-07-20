@@ -5,6 +5,7 @@ import { ensureSchema, ensureTenantBSchema, token, TENANT_SLUG } from "./helpers
 import brokerLoads from "../../../fixtures/migrator/broker-loads.csv?raw";
 import messyShipments from "../../../fixtures/migrator/messy-shipments.csv?raw";
 import tlDispatch from "../../../fixtures/migrator/tl-dispatch.csv?raw";
+import collidingHeaders from "../../../fixtures/migrator/colliding-headers.csv?raw";
 
 // WP-14 Task 5 (REQ-127/035/025/030) — THE MIGRATOR DRAG-DROP IMPORT. A stranger drag-drops their messy
 // spreadsheet → parties/shipments in their workspace. THE LAWS under test (the DoD):
@@ -125,6 +126,46 @@ describe("THE LAW — a <0.8 mapping is queued for review, NOT silently applied"
     expect(refs["Zip"]).toBe("97201"); // retained under the original header
     expect(refs["Reference"]).toBe("REF-55");
     expect(refs["Commodity"]).toBe("Palletized goods"); // the unmapped column's value, retained
+  });
+});
+
+describe("THE LAW — colliding / duplicate columns: airtight column↔anomaly count, zero silent drops", () => {
+  async function migAnomalyCount(importId: string): Promise<number> {
+    const row = await env.TENANT_A_DB
+      .prepare("SELECT COUNT(*) AS n FROM anomalies WHERE rule LIKE 'migrator.%' AND json_extract(detail,'$.import_id') = ?")
+      .bind(importId)
+      .first<{ n: number }>();
+    return row?.n ?? 0;
+  }
+
+  it("Customer,Notes,Notes: TWO distinct anomaly rows persist (not one) and BOTH values survive", async () => {
+    const ops = await opsTok();
+    const sheet = { headers: ["Customer", "Notes", "Notes"], rows: [["Acme Coll1", "First", "Second"]] };
+    const res = await SELF.fetch("https://api.local/v1/import", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${ops}`, "Idempotency-Key": crypto.randomUUID(), "content-type": "application/json" },
+      body: JSON.stringify({ sheet }),
+    });
+    const json = (await res.json()) as Record<string, unknown>;
+    const importId = json.import_id as string;
+    // TWO durable anomaly rows for the two Notes columns — the id must include the ordinal, not collapse to one.
+    expect(await migAnomalyCount(importId)).toBe(2);
+    // Both note values survive on the shipment refs under distinct keys.
+    const shp = await env.TENANT_A_DB
+      .prepare("SELECT refs FROM shipments WHERE json_extract(refs,'$.pro') IS NULL AND shipper_party_id IN (SELECT id FROM parties WHERE json_extract(names,'$.legal')='Acme Coll1') LIMIT 1")
+      .first<{ refs: string }>();
+    const refs = JSON.parse(shp!.refs) as Record<string, string>;
+    const noteVals = Object.values(refs).filter((v) => v === "First" || v === "Second");
+    expect(new Set(noteVals)).toEqual(new Set(["First", "Second"]));
+  });
+
+  it("colliding-headers.csv: count(gap columns) === count(migrator anomaly rows), EXACTLY", async () => {
+    const ops = await opsTok();
+    const r = await doImport(collidingHeaders, ops);
+    const importId = r.json?.import_id as string;
+    const gaps = (r.json?.unmapped_columns as number) + (r.json?.low_confidence_columns as number) + (r.json?.duplicate_columns as number);
+    expect(gaps).toBe(5);
+    expect(await migAnomalyCount(importId)).toBe(5); // airtight — one anomaly per gap column
   });
 });
 

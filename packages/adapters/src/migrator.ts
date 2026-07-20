@@ -265,14 +265,21 @@ export interface MappedShipment {
   refs: Record<string, string>;
 }
 
-export type GapReason = "unmapped" | "low_confidence";
+// `duplicate_field`: the column resolved to a canonical field ALREADY claimed by an earlier column, so its value
+// is retained (never silently dropped) but the FIRST column keeps the applied slot. `low_confidence`: a below-floor
+// guess routed to review. `unmapped`: no field fit at all. All three are gap rows — one per column, always counted.
+export type GapReason = "unmapped" | "low_confidence" | "duplicate_field";
 export interface GapRow {
   /** The ORIGINAL header that did not cleanly apply. One gap row per such column (the no-silent-drop law). */
   column: string;
+  /** The 0-based column ORDINAL — disambiguates duplicate-named headers so two `Notes` columns are two gap rows. */
+  columnOrdinal: number;
   reason: GapReason;
-  /** The suspected field for a low-confidence guess (absent for a fully unmapped column). */
+  /** The suspected field for a low-confidence guess or a duplicate-field collision (absent for a fully unmapped column). */
   suspectedField?: CanonicalField;
   confidence: number;
+  /** The disambiguated key the column's per-row values are retained under (refs / external_refs) — nothing lost. */
+  retentionKey: string;
   /** The first non-empty value in that column across the rows — the human's sample (null when the column is empty). */
   sample: string | null;
 }
@@ -324,29 +331,63 @@ export function mapSpreadsheet(sheet: ParsedSheet, mapping: unknown = {}): MapRe
     return { parties: [], shipments: [], rateConfig: rateHint, gapRows: [], fieldConfidence: {} };
   }
 
-  // fieldConfidence: the max confidence any APPLIED column reached for each canonical field.
-  const fieldConfidence: Record<string, number> = {};
-  for (const p of plans) {
+  // EFFECTIVE decision per column, claiming each canonical field for the FIRST applied column (first-wins). A
+  // LATER column resolving to an ALREADY-claimed field is NOT applied — it becomes a `duplicate_field` gap so its
+  // value is retained + flagged, never silently dropped (the collision bug). A review/unmapped column is a gap as
+  // before. This is the ONE place "apply" is decided; everything downstream reads `effective`.
+  const claimed = new Set<CanonicalField>();
+  const effective: (GapReason | "apply")[] = plans.map((p) => {
     if (p.decision === "apply" && p.field !== null) {
-      fieldConfidence[p.field] = Math.max(fieldConfidence[p.field] ?? 0, p.confidence);
+      if (!claimed.has(p.field)) {
+        claimed.add(p.field);
+        return "apply";
+      }
+      return "duplicate_field"; // a second column for a field already claimed — retained + flagged, not dropped
     }
-  }
+    if (p.decision === "review") return "low_confidence";
+    return "unmapped";
+  });
 
-  // gapRows: one per column that did not cleanly apply. Column-level (schema gap), independent of row count.
-  const gapRows: GapRow[] = [];
+  // fieldConfidence: the confidence of the WINNING applied column per canonical field (one per field now).
+  const fieldConfidence: Record<string, number> = {};
   for (let c = 0; c < plans.length; c++) {
     const p = plans[c]!;
-    if (p.decision === "apply") continue;
-    const sample = firstNonEmpty(c, sheet.rows);
-    if (p.decision === "review" && p.field !== null) {
-      gapRows.push({ column: p.header, reason: "low_confidence", suspectedField: p.field, confidence: p.confidence, sample });
-    } else {
-      gapRows.push({ column: p.header, reason: "unmapped", confidence: 0, sample });
-    }
+    if (effective[c] === "apply" && p.field !== null) fieldConfidence[p.field] = p.confidence;
   }
 
-  // Per-role applied field columns, and the retained (review/unmapped) columns — precomputed once.
-  const appliedCol = (field: CanonicalField): number => plans.findIndex((p) => p.decision === "apply" && p.field === field);
+  // The retained (non-applied) columns, in column order, and a STABLE per-column retention key computed ONCE from
+  // the header list (never from row data — so a value lands under the SAME key in every row). The key is the
+  // header, disambiguated with `#2`, `#3`, … on repeats and against the reserved canonical ref keys, so two
+  // same-named columns (or a header that clashes with a canonical ref) never overwrite each other. Party-scoped
+  // and shipment-scoped columns disambiguate in SEPARATE namespaces (they land in different maps).
+  const retainedCols = plans.map((p, c) => ({ p, c })).filter(({ c }) => effective[c] !== "apply");
+  const CANONICAL_REF_KEYS = ["pro", "bol", "origin_zip", "dest_zip", "weight_lb", "mode_raw"];
+  const usedShipmentKeys = new Set<string>(CANONICAL_REF_KEYS);
+  const usedPartyKeys = new Set<string>();
+  const retentionKeyByCol = new Map<number, string>();
+  for (const { p, c } of retainedCols) {
+    const used = p.partyScoped ? usedPartyKeys : usedShipmentKeys;
+    let key = p.header;
+    let n = 2;
+    while (used.has(key)) key = `${p.header}#${n++}`;
+    used.add(key);
+    retentionKeyByCol.set(c, key);
+  }
+
+  // gapRows: one per retained column (schema gap), independent of row count. Carries the column ordinal + the
+  // disambiguated retention key so the worker mints a DISTINCT anomaly per duplicate-named column.
+  const gapRows: GapRow[] = [];
+  for (const { p, c } of retainedCols) {
+    const reason = effective[c] as GapReason;
+    const gap: GapRow = { column: p.header, columnOrdinal: c, reason, confidence: p.confidence, retentionKey: retentionKeyByCol.get(c)!, sample: firstNonEmpty(c, sheet.rows) };
+    // A low-confidence or duplicate-field gap names the field it (weakly / redundantly) resolved to; an unmapped
+    // column has none. `confidence` for an unmapped column is 0 (its plan confidence already is).
+    if ((reason === "low_confidence" || reason === "duplicate_field") && p.field !== null) gap.suspectedField = p.field;
+    gapRows.push(gap);
+  }
+
+  // The WINNING applied column per field (effective === "apply"); -1 when the field was never applied.
+  const appliedCol = (field: CanonicalField): number => plans.findIndex((p, c) => effective[c] === "apply" && p.field === field);
   const idx = {
     shipper_name: appliedCol("shipper_name"),
     consignee_name: appliedCol("consignee_name"),
@@ -362,7 +403,6 @@ export function mapSpreadsheet(sheet: ParsedSheet, mapping: unknown = {}): MapRe
     dest_zip: appliedCol("dest_zip"),
     weight_lb: appliedCol("weight_lb"),
   };
-  const retainedCols = plans.map((p, c) => ({ p, c })).filter(({ p }) => p.decision !== "apply");
 
   const cell = (row: readonly string[], col: number): string | undefined => {
     if (col < 0) return undefined;
@@ -413,11 +453,12 @@ export function mapSpreadsheet(sheet: ParsedSheet, mapping: unknown = {}): MapRe
     for (const { p, c } of retainedCols) {
       const v = cell(row, c);
       if (v === undefined) continue;
+      const key = retentionKeyByCol.get(c)!; // disambiguated — two same-named columns never overwrite each other
       if (p.partyScoped) {
         const bill = partyByKey.get(billKey)!;
-        if (bill.external_refs[p.header] === undefined) bill.external_refs[p.header] = v;
+        if (bill.external_refs[key] === undefined) bill.external_refs[key] = v;
       } else {
-        refs[p.header] = v;
+        refs[key] = v;
       }
     }
 

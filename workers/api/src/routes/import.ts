@@ -159,27 +159,37 @@ export function mountImportRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>)
     }
 
     // ── THE NO-SILENT-DROP LEDGER: exactly one anomaly per gap column (idempotent by content) ──
+    // The anomaly id folds in the column ORDINAL so two same-named gap columns (e.g. a duplicate `Notes` header)
+    // mint DISTINCT rows — the column↔anomaly count is airtight even for colliding/duplicate headers.
+    const RULE_BY_REASON = {
+      unmapped: "migrator.unmapped_column",
+      low_confidence: "migrator.low_confidence_column",
+      duplicate_field: "migrator.duplicate_column",
+    } as const;
     let unmapped = 0;
     let lowConfidence = 0;
+    let duplicate = 0;
     for (const g of result.gapRows) {
-      const rule = g.reason === "unmapped" ? "migrator.unmapped_column" : "migrator.low_confidence_column";
       if (g.reason === "unmapped") unmapped++;
-      else lowConfidence++;
-      const id = `mig_${(await sha256Hex(`${importId}:${g.reason}:${g.column}`)).slice(0, 24)}`;
+      else if (g.reason === "low_confidence") lowConfidence++;
+      else duplicate++;
+      const id = `mig_${(await sha256Hex(`${importId}:${g.reason}:${g.columnOrdinal}:${g.column}`)).slice(0, 24)}`;
       const detail = JSON.stringify({
         import_id: importId,
         column: truncate(g.column, MAX_HEADER),
+        column_ordinal: g.columnOrdinal,
+        retention_key: truncate(g.retentionKey, MAX_HEADER),
         confidence: g.confidence,
         ...(g.suspectedField !== undefined ? { suspected_field: g.suspectedField } : {}),
         sample: g.sample !== null ? truncate(g.sample, MAX_SAMPLE) : null,
       });
       await db
         .prepare("INSERT OR IGNORE INTO anomalies (id, rule, object_kind, object_id, severity, detail, status) VALUES (?,?,?,?,?,?,'open')")
-        .bind(id, rule, "import_field", truncate(g.column, MAX_HEADER), "warn", detail)
+        .bind(id, RULE_BY_REASON[g.reason], "import_field", truncate(g.column, MAX_HEADER), "warn", detail)
         .run();
     }
 
-    await recordRun(db, importId, "migrator", startedAt, { parties_created: partiesCreated, shipments_created: shipmentsCreated, unmapped, low_confidence: lowConfidence, rate_seeded: false }, result);
+    await recordRun(db, importId, "migrator", startedAt, { parties_created: partiesCreated, shipments_created: shipmentsCreated, unmapped, low_confidence: lowConfidence, duplicate, rate_seeded: false }, result);
 
     return c.json({
       import_id: importId,
@@ -187,6 +197,7 @@ export function mountImportRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>)
       shipments_created: shipmentsCreated,
       unmapped_columns: unmapped,
       low_confidence_columns: lowConfidence,
+      duplicate_columns: duplicate,
       gap_rows: result.gapRows,
       field_confidence: result.fieldConfidence,
     });

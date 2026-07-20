@@ -9,6 +9,7 @@ import {
 import brokerLoads from "../../../fixtures/migrator/broker-loads.csv?raw";
 import messyShipments from "../../../fixtures/migrator/messy-shipments.csv?raw";
 import tlDispatch from "../../../fixtures/migrator/tl-dispatch.csv?raw";
+import collidingHeaders from "../../../fixtures/migrator/colliding-headers.csv?raw";
 
 // REQ-127 / REQ-035 (WP-14 Task 5) — the PURE Migrator core. These tests exercise the LAW directly on the
 // deterministic mapper: no worker, no D1, no ledger. THE gap-row no-silent-drop law lives here; the worker
@@ -144,6 +145,80 @@ describe("rate sheet detection (→ the Task-4 tariff path)", () => {
 
   it("a normal import (has party columns) is NEVER mistaken for a rate sheet", () => {
     expect(mapSpreadsheet(parseSheet(brokerLoads)).rateConfig).toBeUndefined();
+  });
+});
+
+// Every value present in the sheet must be present SOMEWHERE in the mapped output — as a party name/email, a
+// canonical or retained shipment ref, or a party external_ref. Nothing may vanish (CLAUDE.md rule 10 / REQ-035).
+function allRetainedValues(r: ReturnType<typeof mapSpreadsheet>): Set<string> {
+  const vals = new Set<string>();
+  for (const p of r.parties) {
+    vals.add(p.name);
+    if (p.email !== undefined) vals.add(p.email);
+    for (const v of Object.values(p.external_refs)) vals.add(v);
+  }
+  for (const s of r.shipments) {
+    for (const v of Object.values(s.refs)) vals.add(v);
+    if (s.mode !== undefined) vals.add(s.mode);
+    if (s.division !== undefined) vals.add(s.division);
+  }
+  return vals;
+}
+
+describe("THE LAW — colliding / duplicate columns are RETAINED and flagged, NEVER silently dropped", () => {
+  it("Customer,Account (both → bill_to_name): Account's value is retained AND a gap row is emitted", () => {
+    const r = mapSpreadsheet(parseSheet("Customer,Account\nAcme,Beta Holdings\n"));
+    // Customer wins bill_to_name; Account is a DUPLICATE-field column → NOT dropped.
+    const gap = r.gapRows.find((g) => g.column === "Account");
+    expect(gap).toBeDefined();
+    expect(gap?.reason).toBe("duplicate_field");
+    expect(gap?.suspectedField).toBe("bill_to_name");
+    // Account's value survives somewhere (a retained ref) — it is not lost.
+    expect(allRetainedValues(r).has("Beta Holdings")).toBe(true);
+  });
+
+  it("Customer,Notes,Notes (duplicate UNMAPPED header): BOTH note values survive under DISTINCT keys", () => {
+    const r = mapSpreadsheet(parseSheet("Customer,Notes,Notes\nAcme,First,Second\n"));
+    // Two gap rows for the two Notes columns (distinguished by ordinal), not one.
+    const noteGaps = r.gapRows.filter((g) => g.column === "Notes");
+    expect(noteGaps).toHaveLength(2);
+    expect(noteGaps.map((g) => g.columnOrdinal).sort()).toEqual([1, 2]);
+    // Both values present — the second Notes did not overwrite the first.
+    const vals = allRetainedValues(r);
+    expect(vals.has("First")).toBe(true);
+    expect(vals.has("Second")).toBe(true);
+    // …under DISTINCT retention keys on the shipment refs.
+    const refs = r.shipments[0]!.refs;
+    const noteKeys = Object.entries(refs).filter(([, v]) => v === "First" || v === "Second").map(([k]) => k);
+    expect(new Set(noteKeys).size).toBe(2);
+  });
+
+  it("Customer,PRO,PRO and Customer,Weight,Gross Weight: the duplicate canonical column is retained + flagged", () => {
+    const pro = mapSpreadsheet(parseSheet("Customer,PRO,PRO\nAcme,P1,P2\n"));
+    expect(pro.shipments[0]!.refs["pro"]).toBe("P1"); // first wins the canonical slot
+    expect(allRetainedValues(pro).has("P2")).toBe(true); // second NOT dropped
+    expect(pro.gapRows.some((g) => g.reason === "duplicate_field")).toBe(true);
+
+    const wt = mapSpreadsheet(parseSheet("Customer,Weight,Gross Weight\nAcme,1000,1005\n"));
+    expect(wt.shipments[0]!.refs["weight_lb"]).toBe("1000");
+    expect(allRetainedValues(wt).has("1005")).toBe(true);
+    expect(wt.gapRows.some((g) => g.column === "Gross Weight" && g.reason === "duplicate_field")).toBe(true);
+  });
+
+  it("colliding-headers.csv: EVERY source cell survives and column↔gap-row count is airtight", () => {
+    const sheet = parseSheet(collidingHeaders);
+    const r = mapSpreadsheet(sheet);
+    // 5 gap columns: Account + PRO#2 + Gross Weight (duplicate_field) and Notes + Notes (unmapped).
+    const nonApplied = resolveColumnMapping(sheet.headers); // baseline plan (pre-collision) for the header list
+    expect(nonApplied).toHaveLength(8);
+    expect(r.gapRows).toHaveLength(5);
+    expect(r.gapRows.filter((g) => g.reason === "duplicate_field")).toHaveLength(3);
+    expect(r.gapRows.filter((g) => g.reason === "unmapped")).toHaveLength(2);
+    // No source cell value is absent.
+    const vals = allRetainedValues(r);
+    for (const cell of ["Acme Distributing", "Beta Holdings", "First note", "Second note", "PRO900", "PRO901", "1000", "1005"]) {
+      expect(vals.has(cell), `missing ${cell}`).toBe(true);
+    }
   });
 });
 
