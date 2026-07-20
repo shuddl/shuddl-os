@@ -19,6 +19,11 @@ export { evaluateApproval, executingShare, executingShareCents, assessApproval }
 export type { ApprovalKind, ApprovalRule, ApprovalDecision, Leg } from "./approval.js";
 export { detectAnomaly, DEFAULT_MAX_CENTS_PER_LB } from "./anomaly.js";
 export type { AnomalyFlag } from "./anomaly.js";
+// REQ-151 (WP-14 Task 4) — rating COLD START. brokerageTemplate: market rate + margin → an immediately-rateable
+// rate_config bundle (the seed-at-provisioning + guided builder materialize it). assetTemplate: a documented
+// scaffold that fabricates NO tariff (no tariff ⇒ the engine returns UNKNOWN — no price on air, REQ-004).
+export { brokerageTemplate, assetTemplate } from "./tariff-templates.js";
+export type { BrokerageTemplateParams, ColdStartBundle, AssetTemplate } from "./tariff-templates.js";
 // REQ-004: class is an ISOLATED edge adapter (class ↔ density), never the engine foundation. The barrel
 // re-exports it for external callers; the CORE pricing modules never import it (enforced by check:rater-purity).
 export { classToDensityPcf } from "./adapters/class.js";

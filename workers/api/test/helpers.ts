@@ -271,6 +271,17 @@ export async function seedFacility(db: D1Database, facility: FacilitySeed): Prom
     .run();
 }
 
+// Full tenant-plane schema (events + domain, incl. rate_config) on an ARBITRARY D1. The provisioning POOL
+// slots are, in production, "pre-provisioned, MIGRATED tenant D1s" (provision.ts) — so a claimed slot's D1
+// already carries the rate_config table the REQ-151 cold-start seed writes into. This mirrors that: apply the
+// tenant migrations to a pool D1, guarded + idempotent (skip when `events` already exists) for the shared,
+// isolatedStorage-off D1. Used by provision.test to make the cold-start seed (and its proof) land.
+export async function ensureTenantPlaneSchema(db: D1Database): Promise<void> {
+  if (!(await tableExists(db, "events"))) {
+    await applyMigrations(db, TENANT_MIGRATIONS);
+  }
+}
+
 let schemaReadyB: Promise<void> | null = null;
 
 // tenant-b full tenant-plane schema (events + domain, incl. rate_config), applied ONCE and guarded like

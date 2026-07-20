@@ -3,7 +3,7 @@ import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { applyMigrations } from "@shuddl/ledger/migrate";
 import platformSql from "../../../db/control/migrations/0002_platform_tenant.sql?raw";
 import controlPoolSql from "../../../db/control/migrations/0003_tenant_pool.sql?raw";
-import { ensureSchema, ensureTenantBSchema } from "./helpers.js";
+import { ensureSchema, ensureTenantBSchema, ensureTenantPlaneSchema } from "./helpers.js";
 import {
   provisionTenant,
   resolveClaimedTenantDb,
@@ -12,6 +12,8 @@ import {
   POOL_BINDINGS,
 } from "../src/provision.js";
 import { TENANT_BINDINGS, tenantDb } from "../src/tenants.js";
+import { loadTenantRatingConfig } from "../src/rate-config.js";
+import { priceShipment } from "@shuddl/rater";
 import { PLATFORM_TENANT_ID } from "@shuddl/contracts";
 import type { Env } from "../src/index.js";
 
@@ -52,6 +54,9 @@ async function resetPool(): Promise<void> {
       .prepare("UPDATE tenants SET slug = ?, name = ?, plan = 'unclaimed', policy = ?, created_ts = 0 WHERE id = ?")
       .bind(id, `SHUDDL Pool Slot ${id}`, JSON.stringify({ pool_binding: binding }), id)
       .run();
+    // REQ-151 — clear each pool slot's cold-start tariff so every test starts from a true cold start (the seed
+    // now writes rate_config on a successful claim; a stale row from a prior test must not leak in).
+    await env[binding].prepare("DELETE FROM rate_config").run();
   }
 }
 
@@ -69,6 +74,10 @@ beforeAll(async () => {
     { path: "0002_platform_tenant.sql", sql: platformSql },
     { path: "0003_tenant_pool.sql", sql: controlPoolSql },
   ]);
+  // The pool slots are pre-provisioned, MIGRATED tenant D1s in production (provision.ts) — reflect that so the
+  // REQ-151 cold-start seed (a rate_config write on a successful claim) lands and the proof below can price.
+  await ensureTenantPlaneSchema(env.TENANT_POOL_01_DB);
+  await ensureTenantPlaneSchema(env.TENANT_POOL_02_DB);
   // Probe markers for the two-way isolation proof (mirrors platform-tenant-isolation.test.ts).
   for (const [db, marker] of [
     [env.TENANT_A_DB, "MARKER-TENANT-A"],
@@ -248,5 +257,36 @@ describe("a partial failure rolls back — no half-claimed slot (REQ-121)", () =
       const uc = await env.CONTROL_DB.prepare("SELECT COUNT(*) AS n FROM usage_credits WHERE tenant_id = ?").bind(id).first<{ n: number }>();
       expect(uc?.n).toBe(0);
     }
+  });
+});
+
+// ---- REQ-151 COLD START: a newly-claimed brokerage tenant is RATEABLE day one (demo #2) ----------------
+describe("a newly-provisioned tenant prices immediately from its cold-start tariff (REQ-151)", () => {
+  const DIMS = { l_in: 48, w_in: 40, h_in: 48, pieces: 2 };
+  const PRICEABLE = { origin_zip: "97201", dest_zip: "80012", weight_lb: 1000, dims: DIMS };
+
+  it("the cold-start seed writes the 4 required kinds and priceShipment yields a real sell (signup → first quote)", async () => {
+    const out = await provisionTenant(onEnv, baseInput("prov-cold", "admin@prov-cold.test"));
+
+    // the seed wrote exactly the four required rate_config kinds into the claimed tenant's OWN D1
+    const n = await out.db.prepare("SELECT COUNT(*) AS n FROM rate_config").first<{ n: number }>();
+    expect(n?.n).toBe(4);
+
+    // load that config through the REAL loader and price a priceable load — a PRICED sell on day one
+    const config = await loadTenantRatingConfig(out.db, Date.now());
+    expect(config).not.toBeNull();
+    const quote = priceShipment(PRICEABLE, config!);
+    expect(quote.status).toBe("PRICED");
+    if (quote.status !== "PRICED") throw new Error("unreachable");
+    expect(quote.sell_cents).toBeGreaterThan(0);
+    expect(quote.anomaly).toBeNull(); // a sane cold-start price, nowhere near the anomaly cap
+  });
+
+  it("NO price on air: a tenant with no tariff (seed absent) → the loader is null → /v1/rate answers UNKNOWN", async () => {
+    const out = await provisionTenant(onEnv, baseInput("prov-nocfg", "admin@prov-nocfg.test"));
+    // simulate an asset-mode / un-seeded workspace: remove the cold-start rows
+    await out.db.prepare("DELETE FROM rate_config").run();
+    const config = await loadTenantRatingConfig(out.db, Date.now());
+    expect(config).toBeNull(); // → the /rate service returns UNKNOWN no_tariff (REQ-004, never a fabricated price)
   });
 });

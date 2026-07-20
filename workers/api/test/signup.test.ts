@@ -4,7 +4,7 @@ import { verify } from "hono/jwt";
 import { applyMigrations } from "@shuddl/ledger/migrate";
 import platformSql from "../../../db/control/migrations/0002_platform_tenant.sql?raw";
 import controlPoolSql from "../../../db/control/migrations/0003_tenant_pool.sql?raw";
-import { ensureSchema, ensureTenantBSchema, token } from "./helpers.js";
+import { ensureSchema, ensureTenantBSchema, ensureTenantPlaneSchema, token } from "./helpers.js";
 import { provisionTenant } from "../src/provision.js";
 import { resolveTenantDb } from "../src/tenants.js";
 import { PLATFORM_TENANT_ID } from "@shuddl/contracts";
@@ -53,6 +53,9 @@ async function resetPool(): Promise<void> {
       .prepare("UPDATE tenants SET slug = ?, name = ?, plan = 'unclaimed', policy = ?, created_ts = 0 WHERE id = ?")
       .bind(id, `SHUDDL Pool Slot ${id}`, JSON.stringify({ pool_binding: binding }), id)
       .run();
+    // REQ-151 — clear each pool slot's cold-start tariff so a claim starts from a true cold start (signup now
+    // seeds a brokerage tariff into the claimed pool D1; a stale row from a prior test must not leak in).
+    await env[binding].prepare("DELETE FROM rate_config").run();
   }
 }
 
@@ -70,6 +73,9 @@ beforeAll(async () => {
   await env.TENANT_A_DB.exec("CREATE TABLE IF NOT EXISTS probe (tenant TEXT NOT NULL)");
   await env.TENANT_A_DB.prepare("INSERT OR IGNORE INTO probe (tenant) VALUES (?)").bind("MARKER-TENANT-A").run();
   for (const { binding, marker } of POOL_SLOTS) {
+    // The pool slots are pre-provisioned, MIGRATED tenant D1s in production — so the REQ-151 cold-start seed
+    // (a rate_config write on a successful claim) lands on signup, not just logs a miss.
+    await ensureTenantPlaneSchema(env[binding]);
     await env[binding].exec("CREATE TABLE IF NOT EXISTS probe (tenant TEXT NOT NULL)");
     await env[binding].prepare("INSERT OR IGNORE INTO probe (tenant) VALUES (?)").bind(marker).run();
   }

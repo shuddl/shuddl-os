@@ -1,4 +1,5 @@
 import { z, assertNotPlatformTenant } from "@shuddl/contracts";
+import { seedColdStartTariff } from "./tariff-seed.js";
 import type { Env } from "./index.js";
 
 // WP-14 Task 2 (REQ-121/025) — POOL-BASED DYNAMIC TENANT PROVISIONING, FLAG-GATED DARK.
@@ -159,7 +160,24 @@ export async function provisionTenant(env: Env, input: ProvisionInput): Promise<
 
     const claimed = (results[0]?.meta.changes ?? 0) === 1;
     if (claimed) {
-      return { tenant_id: slot.id, slug, plan, pool_binding: poolBinding, db: env[poolBinding] };
+      const workspaceDb = env[poolBinding];
+      // REQ-151 COLD START — a newly-claimed tenant is RATEABLE day one: seed a brokerage cold-start tariff
+      // (market rate + margin) into its OWN pre-migrated workspace D1, so "signup → first quote" works
+      // immediately (demo #2). This is inside the DARK flag already (step 1 refuses when the flag is off) and
+      // is a TENANT-plane write, deliberately SEPARATE from the control-plane claim batch above. effective_ts 0
+      // ⇒ always in effect; idPrefix folds in the slug so a (never-expected) re-claim is idempotent.
+      //
+      // NON-FATAL by design: the claim is already committed, so a seed hiccup must NOT half-roll it. Worst case
+      // the tenant simply has no tariff yet — /v1/rate answers UNKNOWN no_tariff (no price on air, REQ-004) until
+      // the admin runs the guided builder (POST /v1/tariff). We log LOUDLY rather than fabricate or crash.
+      try {
+        await seedColdStartTariff(workspaceDb, { idPrefix: `cold-${slug}`, effectiveTs: 0, approvedBy: "provision" });
+      } catch (e) {
+        console.error(
+          `REQ-151 cold-start tariff seed FAILED for newly-claimed tenant "${slug}" (${slot.id}); the tenant is claimed but not yet rateable — run POST /v1/tariff. Cause: ${(e as Error).message}`,
+        );
+      }
+      return { tenant_id: slot.id, slug, plan, pool_binding: poolBinding, db: workspaceDb };
     }
     // lost the CAS for this slot → try the next unclaimed one
   }

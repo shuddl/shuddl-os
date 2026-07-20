@@ -27,6 +27,7 @@ import { mountDunningRoutes } from "./routes/dunning.js";
 import { mountWatchtowerRoutes } from "./routes/watchtower.js";
 import { mountPublicRoutes } from "./routes/public.js";
 import { mountSignupRoutes } from "./routes/signup.js";
+import { mountTariffRoutes } from "./routes/tariff.js";
 
 export type Env = {
   TENANT_A_DB: D1Database;
@@ -200,6 +201,12 @@ mountPublicRoutes(app);
 // so the customer can read their own workspace via the resolveTenantDb claimed-fallback (tenants.ts). No new
 // table/kind/surface — the claimed-registry is the existing `tenants` control table.
 mountSignupRoutes(app);
+// WP-14 Task 4 (REQ-151/025/030): POST /v1/tariff — the GUIDED TARIFF BUILDER. Materializes a brokerage
+// cold-start tariff (market rate + margin) into the tenant's OWN rate_config so a fresh tenant quotes on day
+// one; asset mode fabricates NOTHING (no tariff ⇒ UNKNOWN no_tariff — no price on air, REQ-004). A /v1 route,
+// so auth + idempotency already apply; roles admin/ops, tenant off the JWT claim (resolveTenantDb, REQ-025). NO
+// new table/kind — it rides the existing rate_config via the shared seedColdStartTariff (also the provisioning seed).
+mountTariffRoutes(app);
 
 app.notFound((c) => envelope(c, "NOT_FOUND", 404, "NOT FOUND"));
 
