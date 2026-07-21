@@ -175,6 +175,57 @@ describe("flag ON — signup provisions a tenant + mints an admin session (REQ-1
   });
 });
 
+// ---- COLLISION → a clean 409, never a 500 (WP-14 exit audit Finding D, REQ-121) ----------------------
+// A taken workspace slug / admin email is the SINGLE most common signup error. It must tell the user to pick
+// another (409 Conflict), not 5xx-alert. A genuine provisioning fault still surfaces as a 500 (never masked).
+describe("a slug/email collision at signup is a clean 409, never a 500 (REQ-121)", () => {
+  it("a signup for a slug already claimed by an existing tenant → 409, no D1/secret leak", async () => {
+    // tenant-a already owns the slug "tenant-a" in the control plane (seeded by ensureSchema).
+    const res = await app.fetch(signupReq({ company: "Dup Co", email: "admin@dup-slug.test", slug: "tenant-a" }), onEnv);
+    expect(res.status).toBe(409);
+    const flat = JSON.stringify((await res.json()) as Record<string, unknown>);
+    expect(flat).not.toContain("UNIQUE"); // no D1 constraint detail
+    expect(flat).not.toContain("constraint");
+    expect(flat).not.toContain("_pool_0"); // no internal slot id
+    expect(flat).not.toContain(JWT_SECRET); // no secret
+  });
+
+  it("a signup with an already-registered admin email → 409, and nothing is claimed", async () => {
+    // driver@tenant-a.test is already a `users` row (seeded by ensureSchema); the slug itself is free.
+    const res = await app.fetch(signupReq({ company: "Dup Co", email: "driver@tenant-a.test", slug: "signup-email-dup" }), onEnv);
+    expect(res.status).toBe(409);
+    const row = await env.CONTROL_DB.prepare("SELECT COUNT(*) AS n FROM tenants WHERE slug = ?")
+      .bind("signup-email-dup")
+      .first<{ n: number }>();
+    expect(row?.n).toBe(0); // the email collided first — no slot was flipped
+  });
+
+  it("a GENUINE provisioning fault (a misconfigured pool slot) still → 500, not masked as a 409", async () => {
+    // Corrupt the first-picked slot's pool_binding so provisionTenant throws PROVISION_FAILED (a real fault,
+    // NOT a collision). beforeEach resetPool restores it for the next test.
+    await env.CONTROL_DB.prepare("UPDATE tenants SET policy = ? WHERE id = '_pool_01'")
+      .bind(JSON.stringify({ pool_binding: "BOGUS_NOT_ALLOWLISTED" }))
+      .run();
+    const res = await app.fetch(signupReq({ company: "Fault Co", email: "admin@signup-fault.test", slug: "signup-fault" }), onEnv);
+    expect(res.status).toBe(500); // a genuine fault is never downgraded to a collision 409
+  });
+});
+
+// ---- provisionTenant surfaces the collision with DISTINCT codes (the source the 409 maps from) -------
+describe("provisionTenant classifies a collision as SLUG_TAKEN / EMAIL_TAKEN, distinct from PROVISION_FAILED", () => {
+  it("a taken slug throws SLUG_TAKEN", async () => {
+    await expect(
+      provisionTenant(onEnv, { slug: "tenant-a", name: "X", plan: "pilot", admin: { email: "a@slugtaken.test" } }),
+    ).rejects.toMatchObject({ code: "SLUG_TAKEN" });
+  });
+
+  it("a taken admin email throws EMAIL_TAKEN", async () => {
+    await expect(
+      provisionTenant(onEnv, { slug: "signup-slug-ok", name: "X", plan: "pilot", admin: { email: "driver@tenant-a.test" } }),
+    ).rejects.toMatchObject({ code: "EMAIL_TAKEN" });
+  });
+});
+
 // ---- resolveTenantDb: the claimed-tenant fallback resolves a claim but NEVER widens REQ-025 -----------
 describe("resolveTenantDb — claimed fallback without widening isolation (REQ-025)", () => {
   it("hot path: a static customer slug (tenant-a) resolves to its binding", async () => {

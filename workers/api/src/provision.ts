@@ -55,6 +55,8 @@ export type ProvisionErrorCode =
   | "PROVISIONING_DISABLED" // the DARK flag is OFF (fail-closed default)
   | "INVALID_INPUT" // Zod-invalid input (incl. a sentinel-shaped slug)
   | "RESERVED_PLAN" // a customer cannot take a reserved plan value
+  | "SLUG_TAKEN" // the requested workspace slug is already claimed (a client collision → 409, not a 500)
+  | "EMAIL_TAKEN" // the admin email is already registered (a client collision → 409, not a 500)
   | "POOL_EXHAUSTED" // no unclaimed slot remains — ops must pre-provision more
   | "PROVISION_FAILED" // the atomic claim batch failed and ROLLED BACK (no half-claim)
   | "NOT_CLAIMED"; // resolveClaimedTenantDb: the slug is not a claimed pool tenant
@@ -115,7 +117,17 @@ export async function provisionTenant(env: Env, input: ProvisionInput): Promise<
   const billingPeriod = period ?? new Date(createdTs).toISOString().slice(0, 7); // YYYY-MM
   const userId = admin.user_id ?? `u-admin-${slug}`;
 
-  // 5. CLAIM — bounded retry: pick the lowest unclaimed slot and atomically flip it. A conditional UPDATE
+  // 5. COLLISION (the single most common signup error) — a taken workspace slug or admin email is CLIENT-
+  // fixable input, so detect it up front and surface a DISTINCT code (mapped to 409 Conflict), never letting
+  // it collapse into the batch's 500 PROVISION_FAILED and 5xx-alert. This is a best-effort pre-check; the
+  // atomic UNIQUE constraints below remain the integrity backstop for a TOCTOU race (re-classified in the
+  // batch catch), so a concurrent claim is a 409 too — never a half-claim, never a 500.
+  const slugTaken = await control.prepare("SELECT 1 AS x FROM tenants WHERE slug = ?").bind(slug).first();
+  if (slugTaken) throw new ProvisionError("SLUG_TAKEN", `workspace slug "${slug}" is already taken`);
+  const emailTaken = await control.prepare("SELECT 1 AS x FROM users WHERE email = ?").bind(admin.email).first();
+  if (emailTaken) throw new ProvisionError("EMAIL_TAKEN", "the admin email is already registered");
+
+  // 6. CLAIM — bounded retry: pick the lowest unclaimed slot and atomically flip it. A conditional UPDATE
   // (WHERE plan='unclaimed') is the compare-and-swap; if two signups race the same slot only one flips it
   // (changes===1) and the loser (changes===0) moves to the next slot. Bounded by the pool size.
   for (let attempt = 0; attempt < POOL_BINDINGS.length; attempt++) {
@@ -154,8 +166,17 @@ export async function provisionTenant(env: Env, input: ProvisionInput): Promise<
           .bind(creditsId, slot.id, billingPeriod, slot.id, slug, plan),
       ]);
     } catch (e) {
-      // The batch rolled back atomically (the flip is undone) — no half-claimed slot. Surface it fail-closed.
-      throw new ProvisionError("PROVISION_FAILED", `atomic claim failed and rolled back: ${(e as Error).message}`);
+      // The batch rolled back atomically (the flip is undone) — no half-claimed slot. A UNIQUE violation here is
+      // a TOCTOU race that won the slug/email between the pre-check and the batch: re-classify it as the SAME
+      // client-collision code (→ 409), so a race is never a 500. Anything else is a GENUINE fault → PROVISION_FAILED.
+      const msg = (e as Error).message;
+      if (/UNIQUE constraint failed:\s*tenants\.slug/i.test(msg)) {
+        throw new ProvisionError("SLUG_TAKEN", `workspace slug "${slug}" is already taken`);
+      }
+      if (/UNIQUE constraint failed:\s*users\.email/i.test(msg)) {
+        throw new ProvisionError("EMAIL_TAKEN", "the admin email is already registered");
+      }
+      throw new ProvisionError("PROVISION_FAILED", `atomic claim failed and rolled back: ${msg}`);
     }
 
     const claimed = (results[0]?.meta.changes ?? 0) === 1;

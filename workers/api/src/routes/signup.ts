@@ -86,6 +86,12 @@ function signupError(c: Ctx, e: unknown): Response {
       case "INVALID_INPUT":
       case "RESERVED_PLAN":
         return envelope(c, "VALIDATION_FAILED", 400, "INVALID SIGNUP REQUEST");
+      case "SLUG_TAKEN":
+        // A taken workspace slug is a CLIENT collision, not a fault: 409 Conflict, generic message (no D1
+        // detail / secret), so the user picks another slug instead of a 5xx page.
+        return envelope(c, "VALIDATION_FAILED", 409, "THAT WORKSPACE NAME IS ALREADY TAKEN");
+      case "EMAIL_TAKEN":
+        return envelope(c, "VALIDATION_FAILED", 409, "THAT EMAIL IS ALREADY REGISTERED");
       case "POOL_EXHAUSTED":
         return envelope(c, "INTERNAL", 503, "SIGNUP CAPACITY UNAVAILABLE"); // ops must pre-provision more slots
       default: // PROVISION_FAILED / NOT_CLAIMED — never leak the underlying reason
