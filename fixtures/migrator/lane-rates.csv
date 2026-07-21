@@ -1,0 +1,3 @@
+origin_zip,dest_zip,weight_break,market_rate,margin_bps,fuel_surcharge,effective_date
+97201,80012,500,3600,1900,2400,2026-01-01
+97201,84101,1000,3800,1900,2400,2026-01-01

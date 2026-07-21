@@ -325,10 +325,33 @@ export function mapSpreadsheet(sheet: ParsedSheet, mapping: unknown = {}): MapRe
   const plans = resolveColumnMapping(sheet.headers, mapping);
 
   // A rate sheet (rate/margin columns, no party columns) short-circuits to a tariff hint (Task-4 path). A normal
-  // import (any party column present) never takes this branch.
-  const rateHint = detectRateSheet(sheet, plans);
-  if (rateHint !== null) {
-    return { parties: [], shipments: [], rateConfig: rateHint, gapRows: [], fieldConfidence: {} };
+  // import (any party column present) never takes this branch. THE NO-SILENT-DROP LAW still binds: the flat-rate
+  // seed consumes ONLY the rate + margin cells of row 0, so EVERY other column AND every row past the first is
+  // flagged with a gap row (rule 10 / REQ-035) — the rateConfig itself is left as the intentional single-flat-rate
+  // seed. Without this, a stranger's multi-column/multi-row lane sheet vanished into a one-line tariff, zero trace.
+  const rateSheet = detectRateSheet(sheet, plans);
+  if (rateSheet !== null) {
+    const { hint, consumedCols } = rateSheet;
+    const gapRows: GapRow[] = [];
+    for (let c = 0; c < sheet.headers.length; c++) {
+      if (consumedCols.has(c)) continue; // the rate + margin headers ARE consumed (they seed the tariff)
+      const header = sheet.headers[c]!;
+      gapRows.push({ column: header, columnOrdinal: c, reason: "unmapped", confidence: 0, retentionKey: header, sample: firstNonEmpty(c, sheet.rows) });
+    }
+    // The seed reads only the FIRST lane row; flag that any further rows were not consumed (a synthetic ordinal
+    // past the real columns keeps the worker's per-column anomaly id distinct from every real column's).
+    const dataRowCount = sheet.rows.filter((row) => row.some((v) => v.trim() !== "")).length;
+    if (dataRowCount > 1) {
+      gapRows.push({
+        column: "(rows beyond the first lane)",
+        columnOrdinal: sheet.headers.length,
+        reason: "unmapped",
+        confidence: 0,
+        retentionKey: "__rate_sheet_extra_rows__",
+        sample: `${dataRowCount - 1} additional lane row(s) not consumed by the single-rate seed`,
+      });
+    }
+    return { parties: [], shipments: [], rateConfig: hint, gapRows, fieldConfidence: {} };
   }
 
   // EFFECTIVE decision per column, claiming each canonical field for the FIRST applied column (first-wins). A
@@ -416,7 +439,9 @@ export function mapSpreadsheet(sheet: ParsedSheet, mapping: unknown = {}): MapRe
     const key = partyKey(name, email);
     const existing = partyByKey.get(key);
     if (existing === undefined) {
-      const party: MappedParty = { key, role, kind: ROLE_KIND[role], name, external_refs: {} };
+      // external_refs is PROTOTYPE-LESS (nullMap): a retained column literally named `__proto__` must set an OWN
+      // property, not hit the Object.prototype `__proto__` setter (which would silently discard the value).
+      const party: MappedParty = { key, role, kind: ROLE_KIND[role], name, external_refs: nullMap<string>({}) };
       if (email !== undefined) party.email = email;
       partyByKey.set(key, party);
     } else if (existing.email === undefined && email !== undefined) {
@@ -444,8 +469,10 @@ export function mapSpreadsheet(sheet: ParsedSheet, mapping: unknown = {}): MapRe
     const consKey = consigneeName !== undefined ? upsertParty("consignee", consigneeName, cell(row, idx.consignee_email)) : billKey;
 
     // Shipment refs: canonical refs first, then EVERY retained value (nothing lost). A retained party-scoped
-    // value rides the bill_to party's external_refs instead; everything else rides the shipment refs.
-    const refs: Record<string, string> = {};
+    // value rides the bill_to party's external_refs instead; everything else rides the shipment refs. PROTOTYPE-
+    // LESS (nullMap) so a retained column literally named `__proto__` sets an OWN property instead of hitting the
+    // Object.prototype setter (which would silently drop the value — the retention half of no-silent-drop).
+    const refs: Record<string, string> = nullMap<string>({});
     for (const ref of ["pro", "bol", "origin_zip", "dest_zip", "weight_lb"] as const) {
       const v = cell(row, idx[ref]);
       if (v !== undefined) refs[ref] = v;
@@ -480,22 +507,26 @@ export function mapSpreadsheet(sheet: ParsedSheet, mapping: unknown = {}): MapRe
 
 // A rate sheet is detected ONLY when the sheet has NO party columns and DOES have a rate + margin column, so a
 // normal parties/shipments import (which always has a party column) can never be mistaken for one. Deterministic.
-function detectRateSheet(sheet: ParsedSheet, plans: readonly ColumnPlan[]): RateSheetHint | null {
+// Returns the flat-rate hint PLUS the column ordinals it CONSUMED (rate + margin), so the caller can flag every
+// OTHER column as a gap (no silent drop — the flat seed ingests only these two).
+function detectRateSheet(sheet: ParsedSheet, plans: readonly ColumnPlan[]): { hint: RateSheetHint; consumedCols: Set<number> } | null {
   const hasParty = plans.some((p) => p.field !== null && p.field.endsWith("_name"));
   if (hasParty) return null;
-  const norms = new Set(sheet.headers.map(normalizeHeader));
-  const rateHeader = ["market_rate_cents_per_cwt", "market_rate", "rate_cents_per_cwt", "linehaul_rate"].find((h) => norms.has(h));
-  const marginHeader = ["margin_bps", "margin", "markup_bps"].find((h) => norms.has(h));
+  const col = (h: string): number => sheet.headers.findIndex((x) => normalizeHeader(x) === h);
+  const rateHeader = ["market_rate_cents_per_cwt", "market_rate", "rate_cents_per_cwt", "linehaul_rate"].find((h) => col(h) >= 0);
+  const marginHeader = ["margin_bps", "margin", "markup_bps"].find((h) => col(h) >= 0);
   if (rateHeader === undefined || marginHeader === undefined) return null;
+  const rateCol = col(rateHeader);
+  const marginCol = col(marginHeader);
   const firstRow = sheet.rows.find((row) => row.some((v) => v.trim() !== ""));
   if (firstRow === undefined) return null;
-  const col = (h: string): number => sheet.headers.findIndex((x) => normalizeHeader(x) === h);
-  const rateVal = Number.parseInt((firstRow[col(rateHeader)] ?? "").trim(), 10);
-  const marginVal = Number.parseInt((firstRow[col(marginHeader)] ?? "").trim(), 10);
+  const rateVal = Number.parseInt((firstRow[rateCol] ?? "").trim(), 10);
+  const marginVal = Number.parseInt((firstRow[marginCol] ?? "").trim(), 10);
   const hint: RateSheetHint = {};
   if (Number.isInteger(rateVal) && rateVal > 0) hint.marketRateCentsPerCwt = rateVal;
   if (Number.isInteger(marginVal) && marginVal >= 0) hint.marginBps = marginVal;
-  return hint.marketRateCentsPerCwt !== undefined ? hint : null;
+  if (hint.marketRateCentsPerCwt === undefined) return null;
+  return { hint, consumedCols: new Set([rateCol, marginCol]) };
 }
 
 // ── parseSheet — a pure CSV reader (the R2/inline byte boundary) ────────────────────────────────

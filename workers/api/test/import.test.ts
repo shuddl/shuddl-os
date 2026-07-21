@@ -6,6 +6,7 @@ import brokerLoads from "../../../fixtures/migrator/broker-loads.csv?raw";
 import messyShipments from "../../../fixtures/migrator/messy-shipments.csv?raw";
 import tlDispatch from "../../../fixtures/migrator/tl-dispatch.csv?raw";
 import collidingHeaders from "../../../fixtures/migrator/colliding-headers.csv?raw";
+import laneRates from "../../../fixtures/migrator/lane-rates.csv?raw";
 
 // WP-14 Task 5 (REQ-127/035/025/030) — THE MIGRATOR DRAG-DROP IMPORT. A stranger drag-drops their messy
 // spreadsheet → parties/shipments in their workspace. THE LAWS under test (the DoD):
@@ -166,6 +167,28 @@ describe("THE LAW — colliding / duplicate columns: airtight column↔anomaly c
     const gaps = (r.json?.unmapped_columns as number) + (r.json?.low_confidence_columns as number) + (r.json?.duplicate_columns as number);
     expect(gaps).toBe(5);
     expect(await migAnomalyCount(importId)).toBe(5); // airtight — one anomaly per gap column
+  });
+});
+
+describe("THE LAW — a rate-sheet import flags every non-rate column + the unconsumed rows", () => {
+  async function migAnomalyCount(importId: string): Promise<number> {
+    const row = await env.TENANT_A_DB
+      .prepare("SELECT COUNT(*) AS n FROM anomalies WHERE rule LIKE 'migrator.%' AND json_extract(detail,'$.import_id') = ?")
+      .bind(importId)
+      .first<{ n: number }>();
+    return row?.n ?? 0;
+  }
+
+  it("seeds a tariff AND writes count(non-rate cols)+1 anomaly rows — the rate path is no longer a silent sink", async () => {
+    const ops = await opsTok();
+    const r = await doImport(laneRates, ops);
+    const importId = r.json?.import_id as string;
+    expect(r.json?.rate_seeded).toBe(true);
+    // 5 non-rate columns (origin_zip, dest_zip, weight_break, fuel_surcharge, effective_date) + 1 unconsumed-rows flag.
+    expect(await migAnomalyCount(importId)).toBe(6);
+    expect(r.json?.unmapped_columns).toBe(6);
+    // Targeted cleanup so the seeded tariff never bleeds into another suite on the shared D1 (approved_by is unique).
+    await env.TENANT_A_DB.prepare("DELETE FROM rate_config WHERE approved_by = 'migrator:im-ops'").run();
   });
 });
 

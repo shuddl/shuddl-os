@@ -10,6 +10,7 @@ import brokerLoads from "../../../fixtures/migrator/broker-loads.csv?raw";
 import messyShipments from "../../../fixtures/migrator/messy-shipments.csv?raw";
 import tlDispatch from "../../../fixtures/migrator/tl-dispatch.csv?raw";
 import collidingHeaders from "../../../fixtures/migrator/colliding-headers.csv?raw";
+import laneRates from "../../../fixtures/migrator/lane-rates.csv?raw";
 
 // REQ-127 / REQ-035 (WP-14 Task 5) — the PURE Migrator core. These tests exercise the LAW directly on the
 // deterministic mapper: no worker, no D1, no ledger. THE gap-row no-silent-drop law lives here; the worker
@@ -145,6 +146,41 @@ describe("rate sheet detection (→ the Task-4 tariff path)", () => {
 
   it("a normal import (has party columns) is NEVER mistaken for a rate sheet", () => {
     expect(mapSpreadsheet(parseSheet(brokerLoads)).rateConfig).toBeUndefined();
+  });
+
+  it("THE LAW — a rate sheet flags EVERY non-rate column + the unconsumed rows (no silent drop)", () => {
+    const sheet = parseSheet(laneRates);
+    const r = mapSpreadsheet(sheet);
+    // The intentional single-flat-rate seed is preserved.
+    expect(r.rateConfig).toEqual({ marketRateCentsPerCwt: 3600, marginBps: 1900 });
+    // Consumed: market_rate + margin_bps (2 cols). Flagged: the other 5 columns + 1 unconsumed-rows gap.
+    const consumed = ["market_rate", "margin_bps"];
+    const nonRate = sheet.headers.filter((h) => !consumed.includes(h));
+    expect(nonRate).toHaveLength(5);
+    expect(r.gapRows).toHaveLength(nonRate.length + 1);
+    const flagged = new Set(r.gapRows.map((g) => g.column));
+    for (const h of nonRate) expect(flagged.has(h), `missing gap for ${h}`).toBe(true);
+    // The consumed rate/margin headers are NOT flagged (they seeded the tariff, not dropped).
+    for (const h of consumed) expect(flagged.has(h)).toBe(false);
+    // Exactly one "rows beyond the first" gap, carried on a synthetic ordinal past the real columns.
+    expect(r.gapRows.filter((g) => g.columnOrdinal >= sheet.headers.length)).toHaveLength(1);
+    // Every gap is reason 'unmapped' (the flat seed consumed neither the lane columns nor the extra rows).
+    for (const g of r.gapRows) expect(g.reason).toBe("unmapped");
+  });
+});
+
+describe("THE LAW — prototype-safe retention (a __proto__ column keeps its value)", () => {
+  it("a __proto__-headed column emits a gap AND retains its value (no silent drop, no pollution)", () => {
+    const r = mapSpreadsheet(parseSheet("Customer,__proto__\nAcme,danger\n"));
+    // The gap row still fires (the column is unmapped)…
+    const gap = r.gapRows.find((g) => g.column === "__proto__");
+    expect(gap?.reason).toBe("unmapped");
+    // …AND the value is RETAINED as an own property under the __proto__ key (not swallowed by the prototype setter).
+    const refs = r.shipments[0]!.refs;
+    expect(Object.prototype.hasOwnProperty.call(refs, "__proto__")).toBe(true);
+    expect((refs as Record<string, string>)["__proto__"]).toBe("danger");
+    // No prototype pollution: a fresh object is unaffected.
+    expect(({} as Record<string, unknown>)["danger"]).toBeUndefined();
   });
 });
 

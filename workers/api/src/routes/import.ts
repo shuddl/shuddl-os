@@ -110,7 +110,11 @@ export function mountImportRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>)
     // id (party/shipment/anomaly/run) and INSERT OR IGNORE makes no duplicate rows.
     const importId = (await sha256Hex(`${session.tenant}:migrate:${JSON.stringify({ headers: sheet.headers, rows: sheet.rows })}`)).slice(0, 32);
 
-    // ── a rate sheet short-circuits to the Task-4 tariff path (no parties/shipments) ──────────
+    // ── a rate sheet seeds the Task-4 tariff (no parties/shipments) — but does NOT short-circuit ──────────
+    // The flat-rate seed consumes only row-0's rate + margin; `result.gapRows` already flags every OTHER column
+    // and the unconsumed rows, so the SAME no-silent-drop anomaly loop below runs on this path too (it must never
+    // be a silent sink). `result.parties`/`shipments` are empty here, so those loops no-op.
+    let rateSeeded = false;
     if (result.rateConfig !== undefined) {
       await seedColdStartTariff(db, {
         idPrefix: `import-${importId.slice(0, 16)}`,
@@ -120,8 +124,7 @@ export function mountImportRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>)
         },
         approvedBy: `migrator:${session.sub}`,
       });
-      await recordRun(db, importId, "migrator", startedAt, { parties_created: 0, shipments_created: 0, unmapped: 0, low_confidence: 0, rate_seeded: true }, result);
-      return c.json({ import_id: importId, rate_seeded: true, parties_created: 0, shipments_created: 0, gap_rows: [], field_confidence: result.fieldConfidence });
+      rateSeeded = true;
     }
 
     // ── loop the intake verbs: parties FIRST (so shipment FKs exist), then shipments ──────────
@@ -189,10 +192,11 @@ export function mountImportRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>)
         .run();
     }
 
-    await recordRun(db, importId, "migrator", startedAt, { parties_created: partiesCreated, shipments_created: shipmentsCreated, unmapped, low_confidence: lowConfidence, duplicate, rate_seeded: false }, result);
+    await recordRun(db, importId, "migrator", startedAt, { parties_created: partiesCreated, shipments_created: shipmentsCreated, unmapped, low_confidence: lowConfidence, duplicate, rate_seeded: rateSeeded }, result);
 
     return c.json({
       import_id: importId,
+      rate_seeded: rateSeeded,
       parties_created: partiesCreated,
       shipments_created: shipmentsCreated,
       unmapped_columns: unmapped,
