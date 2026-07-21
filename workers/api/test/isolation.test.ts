@@ -16,6 +16,7 @@ import { mintStatusCap, verifyStatusCap } from "../src/pub/status-cap.js";
 import { eventFixture, type EventKind } from "@shuddl/contracts";
 import { eventToRow } from "@shuddl/ledger/lens";
 import { computeUnbilled } from "../src/kpis/compute.js";
+import { computeModuleParity } from "@shuddl/ledger/parity";
 
 const JWT_SECRET = "test-secret-do-not-use-in-prod"; // === vitest.config.ts miniflare bindings.JWT_SECRET
 const nowS = (): number => Math.floor(Date.now() / 1000);
@@ -702,6 +703,55 @@ describe("REQ-025 growth: the KPI strip reads ONLY the JWT tenant's D1", () => {
     const ok = await SELF.fetch("https://api.local/v1/kpis", { headers: { Authorization: `Bearer ${t}` } });
     expect(ok.status).toBe(200);
     const spoof = await SELF.fetch("https://api.local/v1/kpis?tenant=tenant-b", { headers: { Authorization: `Bearer ${t}` } });
+    expect(spoof.status).toBe(403); // tenant is resolved server-side, never client-supplied
+  });
+});
+
+// WP-15 Task 6 growth (REQ-023/152/153 + REQ-025): the v_parity dashboard compute reads native-vs-legacy split
+// ONLY within the JWT tenant's own D1 (computeAllParity(tenantDb(session.tenant))). A tenant-b-only LEGACY mirror
+// event (in a DIFFERENT physical D1) must NEVER surface in tenant-a's parity — otherwise a neighbor's incumbent
+// export could fabricate (or poison) tenant-a's shadow-parity verdict and green a flip it should not.
+describe("REQ-025 growth: the v_parity compute reads ONLY the JWT tenant's D1 (source-split)", () => {
+  const B_LEG_INV = "iso-parity-b-legacy-inv"; // a tenant-b legacy invoice.issued — must never count for tenant-a
+  let pHashN = 0xe0000;
+  const pHash = (): string => (pHashN++).toString(16).padStart(64, "0");
+
+  beforeAll(async () => {
+    await ensureTenantBSchema(env);
+    // Direct-insert a LEGACY-source invoice.issued into tenant-b's D1 ONLY — the exact shape the invoicing parity
+    // sums on the legacy side. If any cross-tenant bleed existed, tenant-a's parity would see a legacy mirror.
+    const e = eventFixture("invoice.issued", {
+      id: crypto.randomUUID(),
+      stream_id: `s:${B_LEG_INV}`,
+      shipment_id: B_LEG_INV,
+      seq: 0,
+      source: "legacy",
+      visibility: "internal",
+      party_refs: [],
+      payload: { invoice_id: "iso-b-inv", party_id: "party-bill-to", division: "main", lines: [{ line_no: 1, kind: "freight", amount_cents: 654_321, gl_map: "4000-REV" }] },
+    });
+    const row = eventToRow(e);
+    row.hash = pHash();
+    const cols = Object.keys(row);
+    await env.TENANT_B_DB.prepare(`INSERT INTO events (${cols.join(",")}) VALUES (${cols.map(() => "?").join(",")})`)
+      .bind(...cols.map((c) => row[c]))
+      .run();
+  });
+
+  it("tenant-a's invoicing parity never sees the tenant-b-only legacy mirror (its legacy side stays UNKNOWN); tenant-b really has it", async () => {
+    // tenant-a has native invoices (other suites) but NO legacy mirror → legacy side UNKNOWN. tenant-b has the
+    // legacy row in its OWN physical D1 → its legacy side is exactly the seeded total. Cross-tenant bleed = 0.
+    const a = await computeModuleParity(env.TENANT_A_DB, "invoicing");
+    expect(a.legacy_value).toBe("UNKNOWN"); // tenant-a can never physically address tenant-b's legacy event
+    const b = await computeModuleParity(env.TENANT_B_DB, "invoicing");
+    expect(b.legacy_value).toBe(654_321); // tenant-b really carries it, in its own D1
+  });
+
+  it("GET /v1/parity is a tenant-lens surface (ops 200); ?tenant= is rejected at auth", async () => {
+    const t = await token({ sub: "u-parity-iso", tenant: TENANT_SLUG, role: "ops" });
+    const ok = await SELF.fetch("https://api.local/v1/parity", { headers: { Authorization: `Bearer ${t}` } });
+    expect(ok.status).toBe(200);
+    const spoof = await SELF.fetch("https://api.local/v1/parity?tenant=tenant-b", { headers: { Authorization: `Bearer ${t}` } });
     expect(spoof.status).toBe(403); // tenant is resolved server-side, never client-supplied
   });
 });

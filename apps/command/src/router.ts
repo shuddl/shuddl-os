@@ -5,7 +5,7 @@
 //
 // This organizes EXISTING canonical views (genesis/10) — it does not invent a 13th. The `board` maps to
 // v_board + v_kpi_strip; the three `queue` kinds map to v_queue_{approvals,exceptions,money}; the `kpi`
-// drill lands on the detail views (v_lane_pnl / v_aging / v_scoreboards / v_unbilled / v_parity) a metric
+// drill lands on the detail views (v_lane_pnl / v_aging / v_scoreboards / v_unbilled / v_operating_ratio) a metric
 // slug selects; `copilot` is the separate ⌘K command surface (the "+copilot", not one of the 12 views).
 
 /** The three canonical command queues (v_queue_{approvals,exceptions,money}). */
