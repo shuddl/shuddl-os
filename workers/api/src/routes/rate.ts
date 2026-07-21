@@ -7,6 +7,7 @@ import { requireRole } from "../middleware/auth.js";
 import { resolveTenantDb } from "../tenants.js";
 import { lensFor, readEvents } from "@shuddl/ledger/lens";
 import { loadTenantRatingConfig, loadTransitMatrix } from "../rate-config.js";
+import { authoritativeSource, resolveAuthority } from "../authority.js";
 import { translateAppendError, type SeqStub } from "./events.js";
 import type { AppendedEvent } from "../do/sequencer.js";
 import type { Env, Vars } from "../index.js";
@@ -275,6 +276,15 @@ export function mountRateRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>): 
         executing_share_bps: decision.executing_share_bps,
       });
     }
+
+    // WP-15 REQ-030/L8 — consult the shared authority read-seam for the RATING module before returning the
+    // authoritative (PRICED) output. `legacyValueAvailable` is false today (no legacy price mirror exists —
+    // Task 4), so authoritativeSource ALWAYS resolves to "native" and the native price computed above IS the
+    // authoritative one — behavior-identical to before. Surfaced as an ADDITIVE response header (never the
+    // body), so no body-shape test changes. When Tasks 4/6/8 supply a mirror, a still-legacy tenant's route
+    // would present the mirror price instead; the header lets the parity dashboard (Task 6) observe the seam.
+    const ratingAuthority = authoritativeSource(await resolveAuthority(db, "rating"), false);
+    c.header("X-Shuddl-Authority-Rating", ratingAuthority);
 
     // (The REQ-040 anomaly is recorded on quote.priced.basis above — see the note there. No exception.raised
     // is emitted from /rate; the client still sees `anomaly` in the response below.)

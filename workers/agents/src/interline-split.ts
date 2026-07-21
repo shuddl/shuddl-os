@@ -20,6 +20,7 @@
 import type { JsonValue, SplitComputedPayload } from "@shuddl/contracts";
 import { SplitComputedPayload as SplitComputedPayloadSchema } from "@shuddl/contracts";
 import { deriveSplitFromLegs } from "@shuddl/ledger/money/derive-split";
+import { authoritativeSource, resolveAuthority } from "@shuddl/ledger/authority";
 import { evaluateApproval, executingShare } from "@shuddl/rater";
 import type { Leg } from "@shuddl/rater";
 import {
@@ -133,6 +134,17 @@ export async function handleInterlineSplit(message: PodSignedMessage, deps: Inte
   const msg = PodSignedMessage.parse(message); // Zod at the boundary even when the caller pre-parsed
   const { db, seq } = deps;
   const streamId = `s:${msg.shipment_id}`;
+
+  // WP-15 REQ-030/L8 — consult the shared authority read-seam for the SETTLEMENT module before deriving the
+  // authoritative native interline split below. `legacyValueAvailable` is false today (no legacy settlement
+  // mirror exists — Task 4), so authoritativeSource ALWAYS resolves to "native" and this producer derives the
+  // native AP split exactly as before — behavior-identical. The dormant branch is where Tasks 4/6/8 defer to
+  // the incumbent's settlement; it is UNREACHABLE while legacyValueAvailable is false (native always wins).
+  const settlementAuthority = authoritativeSource(await resolveAuthority(db, "settlement"), false);
+  if (settlementAuthority === "legacy") {
+    // DORMANT until a legacy settlement mirror exists (Task 4). Unreachable today (native always wins).
+    console.error(`interline-split: settlement authority is 'legacy' for shipment ${msg.shipment_id} but no mirror is wired (WP-15 Task 4) — proceeding native`);
+  }
 
   // GUARD — the trigger POD must exist on this stream. A message referencing a nonexistent/foreign POD is
   // poison: redelivery cannot conjure it (the Biller's own backstop mirrors this).

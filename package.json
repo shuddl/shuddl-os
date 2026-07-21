@@ -16,6 +16,7 @@
     "seed:load": "tsx tools/seed/load.cli.ts",
     "check:invariants": "tsx tools/checks/invariants.ts",
     "check:rater-purity": "tsx tools/checks/rater-purity.ts",
+    "check:authority-coverage": "tsx tools/checks/authority-coverage.ts",
     "db:lock": "tsx tools/checks/invariants.ts --write",
     "check:traceability": "tsx tools/traceability/orphans.ts",
     "check:pr": "tsx tools/traceability/check-pr.ts",
@@ -28,7 +29,7 @@
     "audit:design": "tsx tools/design/audit.ts",
     "perf:map": "tsx tools/harness/playwright-guard.ts perf packages/map/playwright.config.ts",
     "test:visual": "tsx tools/harness/playwright-guard.ts visual playwright.config.ts",
-    "verify": "pnpm typecheck && pnpm lint && pnpm test && pnpm check:invariants && pnpm check:rater-purity && pnpm check:traceability && pnpm check:identity && pnpm check:fixtures && pnpm check:rater-parity && pnpm check:invoice-parity && pnpm check:concierge-parity && pnpm check:seed && pnpm audit:design"
+    "verify": "pnpm typecheck && pnpm lint && pnpm test && pnpm check:invariants && pnpm check:rater-purity && pnpm check:authority-coverage && pnpm check:traceability && pnpm check:identity && pnpm check:fixtures && pnpm check:rater-parity && pnpm check:invoice-parity && pnpm check:concierge-parity && pnpm check:seed && pnpm audit:design"
   },
   "devDependencies": {
     "@shuddl/contracts": "workspace:*",

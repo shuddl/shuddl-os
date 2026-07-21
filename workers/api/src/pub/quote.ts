@@ -5,6 +5,7 @@ import type { RateRequest, TransitResult } from "@shuddl/rater";
 import { ApiError, envelope } from "../middleware/error.js";
 import { tenantDb, TENANT_BINDINGS } from "../tenants.js";
 import { loadTenantRatingConfig, loadTransitMatrix } from "../rate-config.js";
+import { authoritativeSource, resolveAuthority } from "../authority.js";
 import { transitWindow } from "../routes/rate.js";
 import type { Env, Vars } from "../index.js";
 
@@ -160,6 +161,14 @@ export async function publicQuoteHandler(c: Ctx): Promise<Response> {
     transitMatrix === null
       ? { status: "UNKNOWN" }
       : resolveTransitDays(body.origin_zip, body.dest_zip, transitMatrix, config.zone_tariff);
+
+  // WP-15 REQ-030/L8 — consult the shared authority read-seam for the RATING module before returning the
+  // authoritative (PRICED) guest quote. Identical to the authed /v1/rate path: `legacyValueAvailable` is false
+  // today (no legacy price mirror — Task 4), so authoritativeSource ALWAYS resolves to "native" and this guest
+  // preview IS the native price — behavior-identical. Additive response header only (the strict body allowlist
+  // is untouched — headers are not part of the discriminated-union body), so no guest-quote body test changes.
+  const ratingAuthority = authoritativeSource(await resolveAuthority(db, "rating"), false);
+  c.header("X-Shuddl-Authority-Rating", ratingAuthority);
 
   // 5) Response allowlist — the PRICED price + the margin-free line breakdown + the honest window. The strict
   //    parse is the fail-closed backstop; floors/basis/versions/approval/anomaly are structurally absent (we

@@ -31,6 +31,7 @@
 import { z, normalizePartyEmail, partyIdForEmail } from "@shuddl/contracts";
 import type { LedgerEvent, MessageReceivedPayload, ZoneTariff } from "@shuddl/contracts";
 import { rowToEvent } from "@shuddl/ledger/lens";
+import { authoritativeSource, resolveAuthority } from "@shuddl/ledger/authority";
 import { resolveConcierge, composeConcierge, renderQuoteReply, SendError } from "@shuddl/agents";
 import { resolveTransitDays } from "@shuddl/rater";
 import type {
@@ -276,6 +277,17 @@ function makeResolvePort(db: D1Database, messageEventId: string, createdTs: numb
 export async function handleMessageReceived(message: MessageReceivedTrigger, deps: ConciergeDeps): Promise<ConciergeOutcome> {
   const msg = MessageReceivedTrigger.parse(message); // Zod at the boundary even when the caller pre-parsed
   const { db, seq, sender, parser, tenantFromName } = deps;
+
+  // WP-15 REQ-030/L8 — consult the shared authority read-seam for the COMMS module before this consumer emits
+  // the authoritative native reply (message.sent) below. `legacyValueAvailable` is false today (no legacy comms
+  // mirror exists — Task 4), so authoritativeSource ALWAYS resolves to "native" and the Concierge composes /
+  // sends exactly as before — behavior-identical. The dormant branch is where Tasks 4/6/8 defer to the
+  // incumbent's outbound comms; it is UNREACHABLE while legacyValueAvailable is false (native always wins).
+  const commsAuthority = authoritativeSource(await resolveAuthority(db, "comms"), false);
+  if (commsAuthority === "legacy") {
+    // DORMANT until a legacy comms mirror exists (Task 4). Unreachable today (native always wins).
+    console.error(`concierge: comms authority is 'legacy' for message ${msg.event_id} but no mirror is wired (WP-15 Task 4) — proceeding native`);
+  }
 
   // GUARD 1 — the trigger event must exist as a message.received on this tenant's ledger. A message that
   // references a nonexistent/foreign event is POISON: skip (non-retriable), never append.

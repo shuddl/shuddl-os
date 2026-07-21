@@ -16,6 +16,7 @@ import {
 import { ApiError } from "../middleware/error.js";
 import { requireRole } from "../middleware/auth.js";
 import { resolveTenantDb } from "../tenants.js";
+import { authoritativeSource, resolveAuthority } from "../authority.js";
 import { translateAppendError } from "./events.js";
 import type { AppendedEvent } from "../do/sequencer.js";
 import type { Env, Vars } from "../index.js";
@@ -234,6 +235,17 @@ async function renderAndSend(args: {
 
 export async function sendDunningDraft(deps: DunningSendDeps, draftId: string): Promise<DunningSendOutcome> {
   const { db, tenant, seq, sender, tenantFromName, now } = deps;
+
+  // WP-15 REQ-030/L8 — consult the shared authority read-seam for the COMMS module before this service emits
+  // the authoritative native dunning (message.sent) below. `legacyValueAvailable` is false today (no legacy
+  // comms mirror exists — Task 4), so authoritativeSource ALWAYS resolves to "native" and the human-send runs
+  // exactly as before — behavior-identical. The dormant branch is where Tasks 4/6/8 defer to the incumbent's
+  // outbound comms; it is UNREACHABLE while legacyValueAvailable is false (native always wins).
+  const commsAuthority = authoritativeSource(await resolveAuthority(db, "comms"), false);
+  if (commsAuthority === "legacy") {
+    // DORMANT until a legacy comms mirror exists (Task 4). Unreachable today (native always wins).
+    console.error(`dunning: comms authority is 'legacy' for draft ${draftId} but no mirror is wired (WP-15 Task 4) — proceeding native`);
+  }
 
   // 1 — load the DRAFT row (a Collector-drafted outbound `messages` row).
   const draft = await db
