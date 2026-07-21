@@ -100,6 +100,9 @@ const CheckoutSessionCompleted = z
     id: z.string().min(1),
     payment_intent: z.string().min(1).optional(),
     amount_total: z.number().int().positive(),
+    // 'paid' | 'unpaid' | 'no_payment_required'. A one-time credit pack completes 'paid' — that completion IS the
+    // settlement (prepaid). 'unpaid' (async payment method) issues only; the later paid event settles.
+    payment_status: z.string().optional(),
     metadata: z.object({ tenant: z.string().min(1) }).loose(),
   })
   .loose();
@@ -117,13 +120,51 @@ const SettlementObject = z
   })
   .loose();
 
+// ---- the settlement primitive (shared by the sale-at-completion path AND the settlement webhook) -----
+// Appends the payment.received (idempotent) THEN runs the re-runnable settle catch-up. Called by BOTH
+// emitCreditPurchase (prepaid completion) and emitCreditSettlement (the paid webhook), so the credit invoice
+// flips to 'paid' whichever webhook lands SECOND — the out-of-order fix (finding A). Returns the derived ids.
+async function settleCredit(
+  ledger: PlatformLedger,
+  correlationId: string,
+  tenant: string,
+  amount: number,
+  tsMs: number,
+): Promise<{ paymentEventId: string; invoiceId: string }> {
+  const invoiceId = await creditInvoiceIdFor(correlationId);
+  const paymentEventId = await paymentEventIdFor(correlationId);
+  const { streamId, shipmentId } = creditStream(correlationId);
+
+  const input = EventInput.parse({
+    id: paymentEventId,
+    shipment_id: shipmentId,
+    ts: tsMs,
+    actor: { party: CREDIT_ACTOR_PARTY },
+    party_refs: [],
+    evidence: [],
+    source: "native",
+    confidence: 10_000,
+    kind: "payment.received",
+    // method 'stripe' (not 'cod') → the projection posts NO money_line, only the AR settle flip (REQ-083).
+    payload: { invoice_id: invoiceId, amount_cents: amount, method: "stripe", party_id: tenant },
+  });
+  await ledger.append({ streamId, input });
+  // Re-runnable catch-up: flips the invoice even when the append above deduped (the payment.received was already
+  // committed by an earlier/out-of-order webhook) — the append's own batch projection would have skipped it.
+  await ledger.settleCreditInvoice({ invoiceId, paymentEventId, amountCents: amount });
+  return { paymentEventId, invoiceId };
+}
+
 // ---- the emitters -----------------------------------------------------------------------------------
 
 /**
  * checkout.session.completed → the credit-pack SALE. Appends an invoice.issued carrying ONE money_lines row
- * kind='credit_purchase' on the platform tenant (projected, never a direct write), then stamps the buyer's
- * usage_credits.stripe_refs. Idempotent: a redelivery/duplicate re-derives the same invoice event id and the
- * platform ledger dedups it.
+ * kind='credit_purchase' on the platform tenant (projected, never a direct write). A one-time credit pack is
+ * PREPAID, so a completion with payment_status='paid' IS the settlement: it also runs settleCredit in the SAME
+ * flow, so the invoice is never left 'issued' when the payment is covered — even if payment_intent.succeeded is
+ * delivered out of order (finding A): settleCredit's catch-up flips a payment.received a prior settlement already
+ * recorded. Then stamps the buyer's usage_credits.stripe_refs. Idempotent: a redelivery/duplicate re-derives the
+ * same ids and the platform ledger dedups them.
  */
 export async function emitCreditPurchase(
   ledger: PlatformLedger,
@@ -159,22 +200,29 @@ export async function emitCreditPurchase(
   });
   await ledger.append({ streamId, input });
 
+  // Prepaid ⇒ paid at completion. Settle in the same flow (finding A) — the ONLY thing that guarantees the credit
+  // invoice never stays 'issued' when covered, whatever the webhook order.
+  const settled = session.payment_status === "paid";
+  if (settled) await settleCredit(ledger, correlationId, tenant, session.amount_total, tsMs);
+
   await stampStripeRefs(control, tenant, period, {
     credit_invoice: invoiceId,
     payment_intent: correlationId,
     checkout_session: session.id,
     credit_cents: session.amount_total,
     sold_event: event.id,
+    settled,
   });
   return { invoiceEventId, invoiceId, tenant, period };
 }
 
 /**
- * invoice.paid / payment_intent.succeeded → the SETTLEMENT. Appends a payment.received on the platform tenant
- * naming the sale's credit invoice; the shipped AR projection (REQ-083) flips that invoice to 'paid' (only a
- * covering payment, only a still-issued invoice — idempotent). Then stamps usage_credits.stripe_refs. If the
- * sale has not been processed yet (out-of-order webhook), the invoice is unmatched and stays 'issued' — the
- * payment.received still records; a re-drive after the sale settles it.
+ * invoice.paid / payment_intent.succeeded → the SETTLEMENT webhook. Runs settleCredit: appends the
+ * payment.received naming the sale's credit invoice AND runs the re-runnable settle flip (REQ-083). Order-safe
+ * (finding A): if this settlement lands BEFORE its sale, the payment.received records but the flip finds no
+ * 'issued' invoice yet — a no-op; the LATER emitCreditPurchase's own settleCredit then flips it (the
+ * payment.received it re-appends deduplicates, and its catch-up does the flip). So a covering payment can never
+ * leave a credit invoice stuck 'issued'. Then stamps usage_credits.stripe_refs.
  */
 export async function emitCreditSettlement(
   ledger: PlatformLedger,
@@ -190,24 +238,7 @@ export async function emitCreditSettlement(
   }
   const tsMs = event.created * 1000;
   const period = periodOf(tsMs);
-  const invoiceId = await creditInvoiceIdFor(correlationId);
-  const paymentEventId = await paymentEventIdFor(correlationId);
-  const { streamId, shipmentId } = creditStream(correlationId);
-
-  const input = EventInput.parse({
-    id: paymentEventId,
-    shipment_id: shipmentId,
-    ts: tsMs,
-    actor: { party: CREDIT_ACTOR_PARTY },
-    party_refs: [],
-    evidence: [],
-    source: "native",
-    confidence: 10_000,
-    kind: "payment.received",
-    // method 'stripe' (not 'cod') → the projection posts NO money_line, only the AR settle flip (REQ-083).
-    payload: { invoice_id: invoiceId, amount_cents: amount, method: "stripe", party_id: tenant },
-  });
-  await ledger.append({ streamId, input });
+  const { paymentEventId, invoiceId } = await settleCredit(ledger, correlationId, tenant, amount, tsMs);
 
   await stampStripeRefs(control, tenant, period, {
     settled_invoice: invoiceId,

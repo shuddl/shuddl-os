@@ -38,6 +38,13 @@ export async function handleStripeWebhook(request: Request, env: BillingEnv): Pr
   }
 
   // ---- dispatch (idempotent emitter on the platform tenant) ----
+  // TASK-10 SWAP PREREQUISITES (exit-review): (B) REPLACE D1PlatformLedger with the real api sequencer for
+  // `_platform`, or make the secret-bind and the swap ATOMIC (binding STRIPE_WEBHOOK_SECRET here activates this
+  // interim ledger, so live credits must not run on the interim path once the sequencer is authoritative);
+  // (C) the real sequencer's POD gate (assertPodSigned, I2/REQ-030) would REJECT a credit invoice.issued — the
+  // swap must exempt platform credit invoices (a `_platform` bypass or an invoice_without_pod class);
+  // (D) narrow the `_platform` visibility policy to 'internal' for invoice.issued/payment.received (the real
+  // sequencer resolves them to 'counterparty' by default; this interim ledger already stamps 'internal').
   const ledger = new D1PlatformLedger(resolvePlatformTenantDb(env));
   try {
     switch (event.type) {

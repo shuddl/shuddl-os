@@ -52,10 +52,11 @@ describe("REQ-003/123 — a credit-pack sale is an invoice.issued carrying a cre
     expect(line["party_id"]).toBe("tenant-a"); // the buyer tenant is the AR party on the platform ledger
     expect(line["gl_map"]).toBe(GL_PLATFORM_CREDITS_AR);
 
-    // The invoices projection row exists and is OPEN (issued), awaiting the settlement.
+    // The invoices projection row exists, totals the pack, and is PAID — a paid checkout is prepaid, so it
+    // settles at completion (finding A). The credit line above stays the single AR record either way.
     const inv = await env.PLATFORM_TENANT_DB.prepare("SELECT status, total_cents, party_id FROM invoices WHERE id = ?").bind(invoiceId).first<{ status: string; total_cents: number; party_id: string }>();
     expect(inv).not.toBeNull();
-    expect(inv!.status).toBe("issued");
+    expect(inv!.status).toBe("paid");
     expect(inv!.total_cents).toBe(500_00);
     expect(inv!.party_id).toBe("tenant-a");
   });
@@ -101,18 +102,20 @@ describe("REQ-123 — idempotency: twice in = once out", () => {
 });
 
 describe("REQ-083 — settlement flips the credit invoice to paid (the shipped AR projection, unchanged)", () => {
-  it("a payment.received covering the credit invoice flips it issued → paid; posts NO extra money line", async () => {
+  it("a payment.received covering the credit invoice flips it to paid; posts NO extra money line", async () => {
     const sale = parse(checkoutEventBody({ eventId: "evt_s", tenant: "tenant-a", amountCents: 500_00, pi: "pi_settle", createdSec: CREATED }));
     const { invoiceId } = await emitCreditPurchase(ledger(), env.CONTROL_DB, sale);
-    expect((await env.PLATFORM_TENANT_DB.prepare("SELECT status FROM invoices WHERE id = ?").bind(invoiceId).first<{ status: string }>())!.status).toBe("issued");
+    // Prepaid ⇒ paid at completion (finding A). A subsequent explicit settlement webhook is then idempotent.
+    expect((await env.PLATFORM_TENANT_DB.prepare("SELECT status FROM invoices WHERE id = ?").bind(invoiceId).first<{ status: string }>())!.status).toBe("paid");
 
     const paid = parse(paymentSucceededBody({ eventId: "evt_p", tenant: "tenant-a", amountCents: 500_00, pi: "pi_settle", createdSec: CREATED }));
     await emitCreditSettlement(ledger(), env.CONTROL_DB, paid);
 
-    // The AR projection flipped it.
+    // Still paid after the redundant settlement (the AR flip is idempotent).
     expect((await env.PLATFORM_TENANT_DB.prepare("SELECT status FROM invoices WHERE id = ?").bind(invoiceId).first<{ status: string }>())!.status).toBe("paid");
-    // A payment.received event exists; method 'stripe' posts NO money_line (only the AR flip) — so credit_purchase
-    // is still the ONLY money line.
+    // ONE payment.received event (checkout + the settlement webhook share the payment-intent correlation id →
+    // the same deterministic event id → deduped); method 'stripe' posts NO money_line (only the AR flip) — so
+    // credit_purchase is still the ONLY money line.
     expect(await countEvents("payment.received")).toBe(1);
     const mlCount = await env.PLATFORM_TENANT_DB.prepare("SELECT COUNT(*) AS n FROM money_lines").first<{ n: number }>();
     expect(mlCount?.n).toBe(1);
@@ -132,6 +135,47 @@ describe("REQ-083 — settlement flips the credit invoice to paid (the shipped A
     await emitCreditSettlement(ledger(), env.CONTROL_DB, paid); // redelivery
 
     expect(await countEvents("payment.received")).toBe(1);
+  });
+});
+
+describe("REQ-123/083 — finding A: a prepaid credit pack settles at checkout completion, any webhook order", () => {
+  it("(iii) checkout.session.completed[paid] ALONE → the invoice is issued AND paid (settled at completion)", async () => {
+    const sale = parse(checkoutEventBody({ eventId: "evt_alone", tenant: "tenant-a", amountCents: 500_00, pi: "pi_alone", createdSec: CREATED }));
+    const { invoiceId } = await emitCreditPurchase(ledger(), env.CONTROL_DB, sale);
+
+    const inv = await env.PLATFORM_TENANT_DB.prepare("SELECT status FROM invoices WHERE id = ?").bind(invoiceId).first<{ status: string }>();
+    expect(inv!.status).toBe("paid"); // prepaid ⇒ paid at completion (RED before the fix: stays 'issued')
+    expect(await countEvents("payment.received")).toBe(1); // the settlement rides the same flow
+  });
+
+  it("(i) payment_intent.succeeded delivered BEFORE checkout → after both, the invoice is paid", async () => {
+    // The PI settlement lands FIRST — no issued invoice exists yet, so nothing flips at this point.
+    const paid = parse(paymentSucceededBody({ eventId: "evt_pi_first", tenant: "tenant-a", amountCents: 500_00, pi: "pi_ooo", createdSec: CREATED }));
+    await emitCreditSettlement(ledger(), env.CONTROL_DB, paid);
+
+    // The sale lands SECOND — issuing the invoice AND (re-runnable settle) flipping it to paid.
+    const sale = parse(checkoutEventBody({ eventId: "evt_sale_after", tenant: "tenant-a", amountCents: 500_00, pi: "pi_ooo", createdSec: CREATED }));
+    const { invoiceId } = await emitCreditPurchase(ledger(), env.CONTROL_DB, sale);
+
+    const inv = await env.PLATFORM_TENANT_DB.prepare("SELECT status FROM invoices WHERE id = ?").bind(invoiceId).first<{ status: string }>();
+    expect(inv!.status).toBe("paid"); // RED before the fix: stuck 'issued' forever (no _platform recon sweep)
+    expect(await countEvents("payment.received")).toBe(1); // still exactly one payment (same correlation id)
+  });
+
+  it("(ii) exact-redelivery of both, in either order → exactly one credit_purchase + one paid invoice", async () => {
+    const sale = parse(checkoutEventBody({ eventId: "evt_r_sale", tenant: "tenant-b", amountCents: 600_00, pi: "pi_redel", createdSec: CREATED }));
+    const paid = parse(paymentSucceededBody({ eventId: "evt_r_paid", tenant: "tenant-b", amountCents: 600_00, pi: "pi_redel", createdSec: CREATED }));
+    // Interleaved + redelivered in mixed order.
+    await emitCreditSettlement(ledger(), env.CONTROL_DB, paid);
+    await emitCreditPurchase(ledger(), env.CONTROL_DB, sale);
+    await emitCreditPurchase(ledger(), env.CONTROL_DB, sale); // redelivery
+    await emitCreditSettlement(ledger(), env.CONTROL_DB, paid); // redelivery
+
+    const lines = await env.PLATFORM_TENANT_DB.prepare("SELECT COUNT(*) AS n FROM money_lines WHERE kind = 'credit_purchase'").first<{ n: number }>();
+    expect(lines?.n).toBe(1); // one credit line
+    expect(await countEvents("payment.received")).toBe(1); // one payment event
+    const paidCount = await env.PLATFORM_TENANT_DB.prepare("SELECT COUNT(*) AS n FROM invoices WHERE party_id = 'tenant-b' AND status = 'paid'").first<{ n: number }>();
+    expect(paidCount?.n).toBe(1); // one paid invoice, no double-anything
   });
 });
 

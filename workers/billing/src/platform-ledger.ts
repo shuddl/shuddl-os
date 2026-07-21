@@ -29,6 +29,12 @@ import { applyMoneyProjection, type MoneyProjectionDeps } from "@shuddl/ledger/p
  *  world; here it is assigned by the caller (the emitter derives a per-purchase credit stream). */
 export interface PlatformLedger {
   append(req: { streamId: string; input: EventInput }): Promise<{ id: string }>;
+  /** REQ-083 (finding A) — the RE-RUNNABLE AR settle: flip the credit invoice to 'paid' iff a covering
+   *  payment.received event is already on the ledger AND the invoice is still 'issued'. It closes the
+   *  out-of-order-webhook gap the append's own batch-projection cannot (the append dedups by event id and skips
+   *  its projection on a redelivery, so a settlement that landed BEFORE its invoice would never flip). Idempotent
+   *  and money-as-events-safe: it never flips without a committed payment.received backing it. */
+  settleCreditInvoice(req: { invoiceId: string; paymentEventId: string; amountCents: number }): Promise<void>;
 }
 
 // The EXACT event columns the platform D1 carries under the billing migration set (0001–0004, 0007 — see
@@ -97,6 +103,25 @@ export class D1PlatformLedger implements PlatformLedger {
     ];
     await this.db.batch(stmts);
     return { id: full.id };
+  }
+
+  // REQ-083 (finding A) — the RE-RUNNABLE AR settle CATCH-UP. Flips the credit invoice 'issued' → 'paid' when a
+  // covering payment.received event is already committed. Runs OUTSIDE the append's id-dedup (so it flips whichever
+  // of the sale/settlement webhook lands SECOND), yet stays honest to money-as-events: it FIRST verifies a
+  // payment.received event actually exists on the ledger, so it never invents a paid state. Idempotent by
+  // construction — the UPDATE is guarded WHERE status='issued' (a no-op once paid) AND total_cents<=amount
+  // (pay-in-full coverage, matching the money projection's own settle condition). invoices is a mutable
+  // read-model (no append-only guard), so this UPDATE is the same legitimate projection write money.ts issues.
+  async settleCreditInvoice({ invoiceId, paymentEventId, amountCents }: { invoiceId: string; paymentEventId: string; amountCents: number }): Promise<void> {
+    const backing = await this.db
+      .prepare("SELECT 1 AS present FROM events WHERE id = ? AND kind = 'payment.received'")
+      .bind(paymentEventId)
+      .first<{ present: number }>();
+    if (backing === null) return; // no payment event on the ledger — nothing legitimately settles yet
+    await this.db
+      .prepare("UPDATE invoices SET status = 'paid' WHERE id = ? AND status = 'issued' AND total_cents <= ?")
+      .bind(invoiceId, amountCents)
+      .run();
   }
 
   // Mirror the sequencer's payment.received settlement matching (#matchOpenInvoice): resolve the OPEN invoice the
