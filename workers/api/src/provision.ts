@@ -1,4 +1,4 @@
-import { z, assertNotPlatformTenant } from "@shuddl/contracts";
+import { z, assertNotPlatformTenant, proofToCashEnabled, assertProofToCashEntitled, type TenantEntitlementRow } from "@shuddl/contracts";
 import { seedColdStartTariff } from "./tariff-seed.js";
 import type { Env } from "./index.js";
 
@@ -204,4 +204,35 @@ export async function resolveClaimedTenantDb(env: Env, slug: string): Promise<D1
     throw new ProvisionError("PROVISION_FAILED", `claimed tenant "${slug}" has no valid pool_binding`);
   }
   return env[poolBinding];
+}
+
+// ── REQ-162 (WP-14 Task 9) — PROOF-TO-CASH SKU entitlement, resolved server-side at the SKU's provisioning home ──
+//
+// The PROOF-TO-CASH SKU is a tenants.plan PLAN-FLAG, founder-led (provisioned at M-H/R1). These resolvers are the
+// SERVER-SIDE authority the SKU's feature-consumers call — the twin of Task 8's resolveSparkPlan (spark-caps.ts):
+// they read the CONTROL PLANE keyed off the SERVER slug (never a client field) and fail CLOSED. DARK-adjacent —
+// the check ships enforcing now; the granting plan is provisioned only at the SKU's milestone, so it refuses
+// every current (pilot/…) tenant until a founder provisions `proof_to_cash`. Live feature-route attachment
+// (status pages / evidence archive) lands with those surfaces at M-H; the pure predicate + fail-closed guard live
+// in @shuddl/contracts/entitlements.ts. [HYPOTHESIS] flag mechanism, not final packaging/price (REQ-130).
+
+/** Resolve whether the SERVER tenant `slug` is entitled to the PROOF-TO-CASH SKU. A MISSING control row (an
+ *  unknown tenant is not a CONFIRMED SKU tenant) OR any non-granting plan reads as NOT entitled (default OFF). */
+export async function resolveProofToCashEntitlement(control: D1Database, slug: string): Promise<boolean> {
+  const row = await control
+    .prepare("SELECT plan, policy FROM tenants WHERE slug = ?")
+    .bind(slug)
+    .first<TenantEntitlementRow>();
+  return row !== null && proofToCashEnabled(row);
+}
+
+/** Fail-closed guard variant: THROWS EntitlementError('proof_to_cash_not_entitled') unless the SERVER tenant is
+ *  SKU-entitled. A missing row fails closed (an empty-plan row is never a granting plan). A consumer maps the
+ *  refusal to its transport (a 403/FORBIDDEN in HTTP). */
+export async function assertProofToCashEntitledFor(control: D1Database, slug: string): Promise<void> {
+  const row = await control
+    .prepare("SELECT plan, policy FROM tenants WHERE slug = ?")
+    .bind(slug)
+    .first<TenantEntitlementRow>();
+  assertProofToCashEntitled(row ?? { plan: "", policy: "{}" });
 }

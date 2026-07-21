@@ -214,6 +214,61 @@ describe("both gates compose (REQ-042 + REQ-182)", () => {
   });
 });
 
+// ─── REQ-060 — HAZMAT booking requires per-tenant WORKSPACE enablement (server-side, control-plane flag) ──
+// A booking DECLARED hazmat (payload.hazmat === true) is REFUSED unless THIS tenant's control-plane policy
+// carries hazmat_enabled=true. The entitlement is read from the SERVER control plane keyed off the DO's pinned
+// tenant — never the client event body — so the flag is prompt/client-independent (REQ-030). Default OFF /
+// fail-closed. Each case uses a FRESH shipment id → a fresh sequencer DO → a fresh #policy read, so the ON case
+// sees the toggled policy; the ON case restores the shared {} policy so the rest of the suite is unaffected.
+describe("hazmat entitlement booking gate (REQ-060)", () => {
+  const HAZMAT_ON = '{"hazmat_enabled":true}';
+  const HAZMAT_OFF = "{}";
+  const setPolicy = (p: string): Promise<unknown> =>
+    env.CONTROL_DB.prepare("UPDATE tenants SET policy = ? WHERE slug = ?").bind(p, TENANT).run();
+
+  it("a DECLARED-hazmat booking for a NON-enabled tenant (default OFF) → 403 FORBIDDEN, ZERO append", async () => {
+    await setPolicy(HAZMAT_OFF);
+    const shp = "t9-hazmat-off";
+    const before = await countEvents(shp);
+    const r = await post(shp, bookingInput(shp, BILL_CLEAR, { hazmat: true }), await opsTok());
+    expect(r.status).toBe(403);
+    expect(r.json?.code).toBe("FORBIDDEN");
+    expect(await countEvents(shp)).toBe(before); // the shipment stream was never opened
+  });
+
+  it("the SAME booking for an ENABLED tenant (policy.hazmat_enabled=true) → 201; the declaration rides the append-only payload", async () => {
+    await setPolicy(HAZMAT_ON);
+    try {
+      const shp = "t9-hazmat-on";
+      const r = await post(shp, bookingInput(shp, BILL_CLEAR, { hazmat: true }), await opsTok());
+      expect(r.status).toBe(201);
+      expect(await countEvents(shp)).toBe(1);
+      const rows = await rawRows(shp);
+      expect(JSON.parse(String(rows[0]!.payload)).hazmat).toBe(true);
+    } finally {
+      await setPolicy(HAZMAT_OFF); // restore the shared tenant policy (the rest of the suite assumes {})
+    }
+  });
+
+  it("the entitlement is CONTROL-PLANE, not a client field: a payload cannot smuggle hazmat_enabled (.strict) → ZERO append", async () => {
+    await setPolicy(HAZMAT_OFF); // tenant NOT enabled
+    const shp = "t9-hazmat-spoof";
+    // hazmat_enabled is NOT a booking payload field — the strict payload rejects it (400); even if it parsed, the
+    // gate reads the SERVER control plane, never the body. Either way the tenant cannot self-grant → no append.
+    const r = await post(shp, bookingInput(shp, BILL_CLEAR, { hazmat: true, hazmat_enabled: true }), await opsTok());
+    expect([400, 403]).toContain(r.status);
+    expect(await countEvents(shp)).toBe(0);
+  });
+
+  it("a NON-hazmat booking is UNAFFECTED — the gate fires ONLY on payload.hazmat === true", async () => {
+    await setPolicy(HAZMAT_OFF); // tenant NOT hazmat-enabled, yet a plain booking still commits
+    const shp = "t9-hazmat-none";
+    const r = await post(shp, bookingInput(shp, BILL_CLEAR), await opsTok());
+    expect(r.status).toBe(201);
+    expect(await countEvents(shp)).toBe(1);
+  });
+});
+
 // ─── BINDING (C1/REQ-182): a gate-PASSING booking yields a RESOLVABLE evidence recipient ──────────────
 // The gate and the Biller are wired to the SAME party (bill_to) via the SAME predicate. This proves the
 // end-to-end guarantee directly: a booking that passes the gate (without opting out) is one whose bill_to

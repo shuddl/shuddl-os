@@ -1,5 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import { EventInput, LedgerEvent, type Visibility } from "@shuddl/contracts";
+import { EventInput, LedgerEvent, hazmatEnabled, type Visibility } from "@shuddl/contracts";
 import { GENESIS_HASH, hashEvent } from "@shuddl/ledger/chain";
 import { verifyEventSig } from "@shuddl/ledger/sign";
 import { resolveVisibility } from "@shuddl/ledger/visibility";
@@ -178,6 +178,10 @@ export class ShipmentSequencer extends DurableObject<Env> {
   private pin: { tenant: string; streamId: string } | null = null;
   private lock: Promise<unknown> = Promise.resolve();
   private policyCache: TenantPolicy | null = null;
+  // The RAW {plan, policy} control row for THIS tenant — the input the @shuddl/contracts entitlement helpers
+  // read (REQ-060/162). Populated ALONGSIDE policyCache by #policy (one control read), so an entitlement gate
+  // needs no extra subrequest. Fail-closed default (empty plan, {} policy) grants NOTHING.
+  private entitlementRowCache: { plan: string; policy: string } | null = null;
   private deviceKeys = new Map<string, JsonWebKey | null>();
 
   /**
@@ -666,6 +670,19 @@ export class ShipmentSequencer extends DurableObject<Env> {
       .first<{ present: number }>();
     if (priorBooking !== null) throw new GateValidationError("shipment_already_booked");
 
+    // REQ-060 — HAZMAT entitlement (fail-closed, SERVER-SIDE). A booking DECLARED hazmat (payload.hazmat === true)
+    // is REFUSED unless THIS tenant's control-plane policy enables it (policy.hazmat_enabled). The entitlement is
+    // read from the SERVER control plane keyed off the DO's pinned tenant (#entitlementRow) — NEVER the client
+    // payload; the payload's `hazmat` only DECLARES the freight is regulated, so a client can never self-grant the
+    // workspace enablement. Excluded from the Spark default (a Spark tenant's policy carries no hazmat_enabled).
+    // Runs BEFORE the credit/recipient gates: a tenant that may not book hazmat AT ALL is refused regardless of
+    // the bill_to's credit/contact. Both the ops/API path and the Booking agent append booking.created THROUGH
+    // this DO, so gate parity holds (REQ-030). FORBIDDEN (403) — an entitlement miss is an authorization refusal,
+    // not malformed input. NON-hazmat bookings never reach hazmatEnabled(), so the gate is inert for them.
+    if ((incoming.payload as { hazmat?: unknown }).hazmat === true && !hazmatEnabled(this.#entitlementRow())) {
+      throw rpcError("FORBIDDEN", { reason: "hazmat_not_enabled" });
+    }
+
     // ONE read of the bill_to party — its credit_status AND contacts feed both gates (the bill_to is who pays
     // AND who is emailed). A missing row (no such party) reads as null for both → credit passes (no hold),
     // recipient blocks (no contact) unless the payload opts out — fail-closed.
@@ -845,9 +862,23 @@ export class ShipmentSequencer extends DurableObject<Env> {
   // ---- control-plane reads (cached per instance; a DO is pinned to one tenant) ----
   async #policy(tenant: string): Promise<TenantPolicy> {
     if (this.policyCache) return this.policyCache;
-    const row = await this.env.CONTROL_DB.prepare("SELECT policy FROM tenants WHERE slug = ?").bind(tenant).first<{ policy: string }>();
+    // ONE read feeds BOTH the parsed gate policy AND the raw entitlement row (plan + policy). A MISSING control
+    // row fails closed on both: {} policy (no gate knobs) and an empty-plan entitlement row (no SKU/hazmat).
+    const row = await this.env.CONTROL_DB
+      .prepare("SELECT plan, policy FROM tenants WHERE slug = ?")
+      .bind(tenant)
+      .first<{ plan: string; policy: string }>();
+    this.entitlementRowCache = row ? { plan: row.plan, policy: row.policy } : { plan: "", policy: "{}" };
     this.policyCache = row ? (JSON.parse(row.policy) as TenantPolicy) : {};
     return this.policyCache;
+  }
+
+  /** The raw {plan, policy} control row for THIS tenant (the @shuddl/contracts entitlement helpers' input).
+   *  #policy — always awaited before any transition gate in #append — populates it; the fail-closed default
+   *  (empty plan, {} policy) grants NOTHING, so a gate that reads it before #policy ran refuses rather than
+   *  fails open. */
+  #entitlementRow(): { plan: string; policy: string } {
+    return this.entitlementRowCache ?? { plan: "", policy: "{}" };
   }
 
   async #deviceKey(tenant: string, deviceId: string): Promise<JsonWebKey | null> {

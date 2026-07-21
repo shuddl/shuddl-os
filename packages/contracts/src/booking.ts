@@ -54,6 +54,16 @@ export const BookingCreatedPayload = z
     // roundtrip/seed snapshot; the gate reads it only when present-and-true. Distinct from a REQ-049 gate
     // override: the opt-out is the purpose-built recipient escape, not a generic waiver.
     evidence_contact_opt_out: z.boolean().optional(),
+    // REQ-060 — the HAZMAT DECLARATION: this booking carries regulated (hazmat) freight. The canonical home for
+    // a shipment's hazmat flag is shipments.service_flags.hazmat (doc 10 §01), but that column is not populated
+    // yet AND the shipments row does not exist at booking-gate time (the projection creates it AFTER the gate),
+    // so the declaration rides the booking PAYLOAD — the cleanest available signal — exactly like
+    // evidence_contact_opt_out above, and for the same reason (a permanently-visible, append-only fact at gate
+    // time). The server-side ENTITLEMENT that governs it (tenants.policy.hazmat_enabled) is read from the control
+    // plane, NEVER this field — a client declares its freight is hazmat here; it can never self-grant the
+    // workspace enablement (sequencer #enforceBooking, packages/contracts entitlements.ts). OPTIONAL and absent
+    // by default, so it never moves the roundtrip/seed snapshot; the gate reads it only when present-and-true.
+    hazmat: z.boolean().optional(),
   })
   .strict();
 export type BookingCreatedPayload = z.infer<typeof BookingCreatedPayload>;
