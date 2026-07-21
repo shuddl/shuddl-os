@@ -17,6 +17,7 @@ import { applyMessageProjection } from "@shuddl/ledger/projection/messages";
 import { projectAppointment } from "@shuddl/ledger/projection/appointment";
 import { projectApprovals } from "@shuddl/ledger/projection/approvals";
 import { projectAgentRuns } from "@shuddl/ledger/projection/agent-runs";
+import { projectAuthority } from "@shuddl/ledger/projection/authority";
 import { assertPodSigned } from "@shuddl/ledger/gates/invoice-gate";
 import {
   assertPickupDepart,
@@ -417,6 +418,9 @@ export class ShipmentSequencer extends DurableObject<Env> {
       // WP-11 T9 (REQ-113) — agent_runs metering: a committed agent.acted projects one per-run cost/latency row
       // (the previously dead table, now LIVE). Same batch (I1); INSERT OR IGNORE keeps a redelivery idempotent.
       ...projectAgentRuns(db, full),
+      // WP-15 T1 (REQ-008/023, L8) — authority_map overlay: a committed authority.flipped UPSERTS the module's
+      // authority + records the flip. Same batch (I1); the EXISTS(json_each) append dedupe keeps a redelivery idempotent.
+      ...projectAuthority(db, full),
     ];
     let results: D1Result[];
     try {

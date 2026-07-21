@@ -374,6 +374,52 @@ describe("sequencer wiring sanity", () => {
   });
 });
 
+// WP-15 Task 1 (REQ-008/023, L8) — an authority.flipped appended through the REAL DO batch lands in the
+// authority_map read-model in the SAME db.batch() (I1). It rides a q: control stream (no shipment_id — the
+// per-module overlay is not shipment-scoped). authority_map has no other writer, so this projection is the
+// map's sole author. Asserts by MEMBERSHIP (not whole-array equality) because this file runs with shared D1.
+describe("authority_map is projected from an appended authority.flipped through the DO batch (REQ-008/023)", () => {
+  async function authorityRow(module: string): Promise<{ authority: string; gates_status: string; flipped_events: string } | null> {
+    return env.TENANT_A_DB.prepare("SELECT authority, gates_status, flipped_events FROM authority_map WHERE module = ?")
+      .bind(module)
+      .first<{ authority: string; gates_status: string; flipped_events: string }>();
+  }
+
+  it("a promote flip UPSERTS the module row (authority=to), records the event id, and writes gate_snapshot", async () => {
+    const streamId = "q:authority-int";
+    const stub = stubFor(streamId);
+    const r = await stub.append({
+      tenant: TENANT,
+      streamId,
+      input: inputFor(streamId, {
+        kind: "authority.flipped",
+        payload: { module: "dispatch", from: "legacy", to: "native", reason: "promote", gate_snapshot: { open_gates: 0 } },
+      }),
+    });
+    const row = await authorityRow("dispatch");
+    expect(row).not.toBeNull();
+    expect(row!.authority).toBe("native"); // the projection applied `to` in the same batch (I1)
+    expect(JSON.parse(row!.flipped_events)).toContain(r.id); // the flip's event id is recorded
+    expect(JSON.parse(row!.gates_status)).toEqual({ open_gates: 0 });
+  });
+
+  it("a redelivered flip (same event id) is idempotent — authority_map is unchanged, id recorded once", async () => {
+    const streamId = "q:authority-idem";
+    const stub = stubFor(streamId);
+    const input = inputFor(streamId, {
+      kind: "authority.flipped",
+      payload: { module: "comms", from: "legacy", to: "native", reason: "promote" },
+    });
+    const first = await stub.append({ tenant: TENANT, streamId, input });
+    const again = await stub.append({ tenant: TENANT, streamId, input }); // duplicate id → DO returns the original
+    expect(again.id).toBe(first.id);
+    const row = await authorityRow("comms");
+    expect(row!.authority).toBe("native");
+    const events = JSON.parse(row!.flipped_events) as string[];
+    expect(events.filter((id) => id === first.id)).toHaveLength(1); // recorded exactly once
+  });
+});
+
 // REQ-095 — the Concierge trigger-enqueue DECISION the DO uses (conciergeTriggerFor). The DO's AGENT_QUEUE
 // is cross-isolate (a queue push cannot be observed from a test), so the guard is proven at its pure seam:
 // an INTERNAL message.received (the Task-8 SLA-overdue note) NEVER enqueues, so it never re-enters the

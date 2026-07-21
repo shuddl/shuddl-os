@@ -104,6 +104,10 @@ function payloadFor(kind: EventKind): Record<string, unknown> {
       return { facility_id: "facility-1", window_start_ts: 1_720_000_000_000, window_end_ts: 1_720_003_600_000 };
     case "dispatch.assigned":
       return { driver_user_id: D1 };
+    // WP-15: authority.flipped now carries a typed AuthorityFlippedPayload (was loose {}). This lens
+    // fixture only needs the (internal-visibility) event ON the stream — a minimal earned forward flip.
+    case "authority.flipped":
+      return { module: "rating", from: "legacy", to: "native", reason: "promote" };
     default:
       return {};
   }
