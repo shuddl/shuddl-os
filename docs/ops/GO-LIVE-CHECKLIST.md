@@ -133,6 +133,19 @@ All are **advisory-until-vendored**: harnesses loud-skip (exit 0), never false-g
 | **Per-pairing caps provisioning** | WP-13 · REQ-105 · `pairings.caps` · `workers/mcp/src/caps.ts` | Set `caps={spend,velocity,lanes}` on every `kind='mcp'` pairing; the no-caps default is a fail-closed **refuse**, so an unprovisioned pairing cannot `book_shipment` (deliberate hard cutover) | Yes (per pairing) | Fail-closed until provisioned |
 | **Webhook delivery activation** | WP-13 · REQ-109 · `workers/mcp/src/webhooks.ts` | Wire the live event-source (today `NotConfiguredEventSource` yields `[]` → inert); set the per-subscription webhook signing secret; receiver-side enforce a timestamp freshness window + restrict delivery URLs to `https://` | Only webhook delivery | Scaffolded / fail-closed |
 
+### WP-14 PLG + metering (appended 2026-07-21 per §1) — all DARK until R4
+
+| Item | Source WP/REQ | Action to complete | Blocks go-live? | Status |
+|---|---|---|---|---|
+| **REQ-138 legal (ToS / Privacy / DPA)** | WP-14 · REQ-138 · genesis/09 | Counsel-authored ToS/Privacy/DPA — the door-opener; **public signup legally cannot open** without sign-off. Do-not-build (CONFIRM-2) | Yes (all public self-serve) | CONFIRM-GATED |
+| **Stripe keys + `STRIPE_WEBHOOK_SECRET`** | WP-14 · REQ-123/154 · `workers/billing/src/billing.ts` | Bind operator-injected (never toml); `NotConfiguredBilling` rejects until then | Yes (all billing) | DARK / fail-closed |
+| **`PROVISIONING_ENABLED` flag** | WP-14 · REQ-121 · `workers/api/src/provision.ts` | Flip ON to open self-serve signup/provisioning; default OFF → `/pub/signup` 404s | Yes (self-serve) | DARK / OFF |
+| **`PLATFORM_INTERNAL_SECRET`** | WP-14 · REQ-123/154 · `workers/api/src/internal-platform.ts` | Bind the credit-append/settle route secret (never toml); unbound → 503 | Yes (credit emission) | DARK / 503 |
+| **Tenant-D1 pool provisioning** | WP-14 · REQ-121 · `workers/api/wrangler.toml` (`TENANT_POOL_0N_DB`) | Ops pre-creates + migrates the pool D1s the provisioner claims; a pool-refill runbook | Yes (per-signup capacity) | Local pool only |
+| **Spark $5 tier plan-flag** | WP-14 · REQ-122/124 · `tenants.plan` | Provision the Spark plan on a tenant to activate the tier + caps; numbers `[HYPOTHESIS]` (REQ-130) | Gates the Spark tier | Plan-flag, unset |
+| **REQ-125 per-IP edge rate-limit** | WP-14 · REQ-125 | A Cloudflare per-IP edge rule on `/pub/signup` (like REQ-193) before public GA (the in-Worker `SparkMeter` is per-workspace only) | Yes (public GA) | Deploy note |
+| **Async/ACH checkout confirmation** | WP-14 · REQ-123 · `workers/billing/src/credits.ts` | Confirm the (landed) unpaid-branch settle reconciles a covered payment in staging before enabling async/ACH credit checkout | Only async checkout | Landed; verify in staging |
+
 ## 3. Technical debt & known limitations
 
 Ordered severity-descending. **High** = weakens/blocks a gate or a go-live path; **Med** = correctness/privacy residual or env hazard; **Low** = deferred refinement, fail-safe, or informational.
@@ -215,6 +228,16 @@ Ordered severity-descending. **High** = weakens/blocks a gate or a go-live path;
 | Immediate cross-method OAuth revocation deferred | `workers/mcp/src/tools/registry.ts` dispatch · REQ-102 | A revoked/suspended pairing's outstanding OAuth tokens still authenticate the non-minting `initialize`/`tools/list` handshake until token TTL (no data exposure; every data/mutation path re-resolves the pairing + fails closed) | One control-DB pairing re-resolve per `dispatch` after grant resolution | **Low** (hygiene) |
 | MCP lane cap is destination-zone-based | `workers/mcp/src/caps.ts` · REQ-105 | SEED-1 zoning is dest-based; origin-side lane restriction isn't expressible until origin zoning lands | Origin zoning + a per-leg lane key | **Low** |
 | Full DO-backed live-booking E2E is a staging smoke | `workers/mcp/test/quote-book.test.ts` · REQ-101 | The api tenant D1 + `ShipmentSequencer` DO are unseedable in the mcp vitest pool (aux-worker isolation), so the tests prove the MCP layer + no-bypass via a recording fake api; the api gates are proven by the api suites | A cross-worker staging smoke driving a real booking end-to-end | **Low** (test-harness) |
+
+**WP-14 PLG + metering (appended 2026-07-21):**
+
+| Item | Source file / REQ | Nature | Fix | Severity |
+|---|---|---|---|---|
+| REQ-124 tier numbers are `[HYPOTHESIS]` | `tenants.plan` · REQ-124/130 | The tier *mechanism* (plan-flag + usage meter, no seats) ships; the actual Pro/Scale prices/limits are unset pending the WP-16 pricing re-base | Set final tiers at WP-16 (REQ-130) | **Low** |
+| REQ-126 human escalation + SLA unbuilt | REQ-126 | Copilot-first support = the WP-10 copilot; human escalation + the Scale-tier SLA are product/ops deliverables, not code | Stand up the support model at go-live | **Low** (product/ops) |
+| Internal credit-append route hardening | `workers/api/src/internal-platform.ts` · REQ-123 | (Task-10 review, Low, internal-only/DARK) `credit-settle` doesn't bind `payload.invoice_id === invoiceId`; `#resolveDb` memo returns before the platform re-check | Bind payment→invoice + add the memo platform re-check before the secret is bound at R4 | **Low** (internal/dark) |
+| Platform-chart GL account uncovered | `workers/billing/src/credits.ts` `GL_PLATFORM_CREDITS_AR` · REQ-123 | The `_platform` credit chart is a second, unguarded GL chart (customer `CANONICAL_GL_ACCOUNTS` parity untouched) | Add parity coverage if a platform journal export is ever built | **Low** |
+| Metering sweep cadence | `workers/billing/src/metering.ts` · REQ-123 | Hourly cron; the OVERWRITE-recompute makes cadence a freshness knob, not a correctness one | Tune cadence at go-live | **Low** (info) |
 
 ## 4. Cross-references (this ledger points, does not duplicate)
 
