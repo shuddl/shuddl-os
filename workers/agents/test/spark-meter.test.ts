@@ -145,6 +145,30 @@ describe("SparkMeter DO — checkAndReserve (atomic, idempotency-keyed, UTC-mont
     expect(results.filter((r) => !r.ok)).toHaveLength(ATTEMPTS - ALLOT);
     expect(await m.peek(PERIOD)).toEqual({ count: ALLOT });
   });
+
+  it("TENANT ISOLATION (REQ-025): one tenant's reserves NEVER touch another tenant's meter — distinct idFromName", async () => {
+    // WP-14 Task 11 — the PLG tenant-isolation matrix's Spark seam (this harness alone binds SPARK_METER). The
+    // meter is a Durable Object PER `idFromName(tenant)`, so two tenants have physically-separate storage; there
+    // is no shared counter to collide on. Exhaust tenant-A's 1-slot allotment, then prove tenant-B is untouched
+    // (forward) and that spending tenant-B's own allotment never advances tenant-A's tally (reverse).
+    const a = meter("spark-iso-tenant-a");
+    const b = meter("spark-iso-tenant-b");
+
+    // forward: tenant-A spends its single slot; tenant-B's meter is still at ZERO and admits its OWN first reserve.
+    expect((await a.checkAndReserve({ period: PERIOD, allotment: 1, actionId: "a-1" })).ok).toBe(true);
+    expect((await a.checkAndReserve({ period: PERIOD, allotment: 1, actionId: "a-2" })).ok).toBe(false); // A exhausted
+    expect(await b.peek(PERIOD)).toEqual({ count: 0 }); // B's tally never moved
+    const bFirst = await b.checkAndReserve({ period: PERIOD, allotment: 1, actionId: "b-1" });
+    expect(bFirst.ok).toBe(true); // B has its OWN full allotment despite A being exhausted
+    expect(bFirst.count).toBe(1);
+
+    // reverse: A's tally is exactly 1 (its own reserve), never bumped by B's spend — the counters never crossed.
+    expect(await a.peek(PERIOD)).toEqual({ count: 1 });
+    expect(await b.peek(PERIOD)).toEqual({ count: 1 });
+    // a POSITIVE CONTROL that the meter mechanism works (so the isolation asserts aren't vacuous): re-reading the
+    // SAME tenant's meter returns its own advanced tally, not the sibling's.
+    expect((await a.checkAndReserve({ period: PERIOD, allotment: 1, actionId: "a-1" })).count).toBe(1); // idempotent replay of A's slot
+  });
 });
 
 // ─── B. resolveSparkPlan — the plan-flag gate off tenants.plan (control plane) ───────────────────────
