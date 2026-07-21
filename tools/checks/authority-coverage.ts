@@ -5,21 +5,36 @@ import { join } from "node:path";
 // prices / invoices / settles WITHOUT consulting the authority read-seam is a SILENT authority bypass — the
 // exact bug class workers/api/src/gate-context.ts (and its parity discipline) exist to prevent, the 2026-07-15
 // audit's C-1 lesson: a bypass path silently dropped a gate the main path enforced. This is a STATIC SOURCE
-// SCAN (mirroring tools/checks/rater-purity.ts, which scans for forbidden LLM imports): it asserts that EACH
-// registered module's authoritative-output file calls `resolveAuthority(`, so a future edit that drops the
-// consultation on one path fails the merge LOUDLY. A static scan is robust, behavior-neutral, and matches the
-// codebase's lint-as-test convention — far better than a fragile runtime spy.
+// SCAN (mirroring tools/checks/rater-purity.ts, which scans for forbidden LLM imports): it asserts that each
+// registered (module, file) pair calls `resolveAuthority(<db>, '<module>')`, so a future edit that drops the
+// consultation — or wires the WRONG module's authority — fails the merge LOUDLY. A static scan is robust,
+// behavior-neutral, and matches the codebase's lint-as-test convention — far better than a fragile runtime spy.
 //
-// LIMITATION (shared with rater-purity.ts): this is a regex over source, not a TS parser — a `resolveAuthority(`
-// written inside a comment/string would false-SATISFY the requirement. For a POSITIVE requirement (must be
-// present) that only risks a false PASS on a hand-crafted comment, which a reviewer catches; the fail-LOUD
-// direction (a real consultation dropped from live code) is the one that matters and is caught.
+// MODULE-AWARE: the check is per (module, file), keyed off the MODULE STRING argument, so a file that is
+// authoritative for MORE THAN ONE module must consult EACH. The Concierge auto-reply is the motivating case —
+// it emits message.sent (comms) AND independently prices + appends quote.priced (rating), so concierge.ts is
+// registered under BOTH `comms` and `rating` and must call resolveAuthority(db,'comms') AND (db,'rating').
+// A file-granular "consults SOME authority" scan would have missed the rating half (the file already had a
+// comms consult) — exactly the reviewer-flagged bypass.
+//
+// SEMANTIC LIMITATION (the honest boundary this lint does NOT cover; checked by the Task-10 exit audit):
+//   1. It proves "this file consults the registered module's authority SOMEWHERE," NOT "every authoritative
+//      sub-path in the file reaches that consult." A file could gain a SECOND authoritative function that skips
+//      the seam and still pass (the first function's call satisfies the regex).
+//   2. Registration is MANUAL: a NEW authoritative function added to an already-registered file, or a NEW
+//      emitter in a NEW file, passes for free until a human adds it to AUTHORITATIVE_FILES below.
+//   3. Regex over source, not a TS parser (shared with rater-purity.ts): a `resolveAuthority(db,'rating')`
+//      written inside a comment/string would false-SATISFY. For a POSITIVE requirement that only risks a false
+//      PASS on a hand-crafted comment (a reviewer catches it); the fail-LOUD direction — a real consultation
+//      dropped from live code — is the one that matters and is caught.
+// The WP-15 Task-10 exit audit owns the SEMANTIC coverage (every authoritative sub-path reaches the RIGHT
+// module's authority, and the registry is complete) that this fast static lint deliberately does not.
 //
 // DISPATCH's authoritative point is the sequencer DO gate: appointment.set / dispatch.assigned have no
 // native-compute SERVICE seam distinct from the generic events append, so — by the orchestrator's WP-15 Task 2
 // decision — the consult lives in workers/api/src/do/sequencer.ts #enforceTransitionGate, SCOPED to ONLY those
 // two rare gated kinds (one indexed SELECT on the 5-row authority_map, never the generic/every-kind append
-// path), feeding a dormant branch only. All 5 overlay modules are now registered here.
+// path), feeding a dormant branch only. All 5 overlay modules are registered here.
 
 export type CoverageModule = "rating" | "invoicing" | "settlement" | "comms" | "dispatch";
 
@@ -28,12 +43,14 @@ export interface AuthorityModuleFiles {
   files: readonly string[];
 }
 
-// The authoritative-output file(s) per overlay module that MUST consult resolveAuthority. Paths are
-// cwd-relative (matching rater-purity.ts + the CLI output). rating has TWO surfaces (the authed /v1/rate route
-// and the public guest quote); comms has TWO emitters of message.sent (the Concierge auto-reply and the
-// dunning human-send). Shrinking this registry is itself a red flag — the coverage test guards its shape.
+// The authoritative-output file(s) per overlay module that MUST consult resolveAuthority(db,'<module>'). Paths
+// are cwd-relative (matching rater-purity.ts + the CLI output). rating has THREE authoritative surfaces (the
+// authed /v1/rate route, the public guest quote, and the Concierge auto-reply which independently prices);
+// comms has TWO emitters of message.sent (the Concierge auto-reply and the dunning human-send). concierge.ts
+// therefore appears under BOTH rating and comms. Shrinking this registry is itself a red flag — the coverage
+// test guards its shape.
 export const AUTHORITATIVE_FILES: readonly AuthorityModuleFiles[] = [
-  { module: "rating", files: ["workers/api/src/routes/rate.ts", "workers/api/src/pub/quote.ts"] },
+  { module: "rating", files: ["workers/api/src/routes/rate.ts", "workers/api/src/pub/quote.ts", "workers/agents/src/concierge.ts"] },
   { module: "invoicing", files: ["workers/agents/src/biller.ts"] },
   { module: "settlement", files: ["workers/agents/src/interline-split.ts"] },
   { module: "comms", files: ["workers/agents/src/concierge.ts", "workers/api/src/routes/dunning.ts"] },
@@ -46,27 +63,32 @@ export interface CoverageViolation {
   detail: string;
 }
 
-// A REAL call to the seam: the name immediately followed by `(` (optional whitespace). A bare mention (e.g. an
-// import with no call) does NOT satisfy it — the point is a live consultation, not a dangling import.
-const CALL_RE = /\bresolveAuthority\s*\(/;
+// A REAL, MODULE-SPECIFIC consult: `resolveAuthority(<first-arg>, '<module>')`. The first arg is any non-comma/
+// paren token run (the tenant db handle in every call site); the SECOND arg must be the exact module string.
+// A bare `resolveAuthority` mention (a dangling import) does NOT satisfy it, and neither does consulting a
+// DIFFERENT module — that is the module-aware property the concierge bypass needs.
+function moduleCallRe(module: CoverageModule): RegExp {
+  return new RegExp(`\\bresolveAuthority\\s*\\(\\s*[^,()]+,\\s*["']${module}["']`);
+}
 
-// Pure analyzer: given each authoritative file's (module, path, content), return every file that fails to
-// consult the seam. Empty ⇒ every registered authoritative path consults resolveAuthority.
+// Pure analyzer: given each (module, path, content), return every pair whose file fails to consult THAT
+// module's authority. Empty ⇒ every registered authoritative path consults its module's resolveAuthority.
 export function analyzeAuthorityCoverage(files: readonly { module: CoverageModule; file: string; content: string }[]): CoverageViolation[] {
   const violations: CoverageViolation[] = [];
   for (const { module, file, content } of files) {
-    if (!CALL_RE.test(content)) {
+    if (!moduleCallRe(module).test(content)) {
       violations.push({
         module,
         file,
-        detail: `does not call resolveAuthority(...) — every ${module} authoritative-output path MUST consult the authority seam (REQ-030/L8) or it is a SILENT authority bypass.`,
+        detail: `does not call resolveAuthority(db, '${module}') — this file is authoritative for the ${module} module and MUST consult its authority (REQ-030/L8) or it is a SILENT authority bypass.`,
       });
     }
   }
   return violations;
 }
 
-// Read every registered authoritative file (paths cwd-relative, matching the analyzer + CLI output). Shared by
+// Read every registered (module, file) pair (paths cwd-relative, matching the analyzer + CLI output). A file
+// registered under two modules is read once per registration (concierge.ts under rating AND comms). Shared by
 // the CLI and the "real wired files consult" test.
 export function collectAuthoritativeFiles(cwd: string = process.cwd()): { module: CoverageModule; file: string; content: string }[] {
   const out: { module: CoverageModule; file: string; content: string }[] = [];
@@ -83,10 +105,12 @@ function main(): void {
     for (const v of violations) console.error(`FAIL authority-coverage [${v.module}] ${v.file}: ${v.detail}`);
     process.exit(1);
   }
+  const distinctFiles = new Set(scanned.map((s) => s.file)).size;
   console.log(
-    `authority-coverage OK — all ${scanned.length} registered authoritative files across ${AUTHORITATIVE_FILES.length} modules ` +
-      `(rating/invoicing/settlement/comms/dispatch) consult resolveAuthority (REQ-030/L8). dispatch's consult is ` +
-      `the sequencer DO gate, scoped to appointment.set/dispatch.assigned only.`,
+    `authority-coverage OK — all ${scanned.length} (module, file) consults across ${AUTHORITATIVE_FILES.length} modules ` +
+      `(rating/invoicing/settlement/comms/dispatch), ${distinctFiles} distinct files, each call resolveAuthority(db,'<module>') ` +
+      `(REQ-030/L8). concierge.ts consults BOTH rating (it prices) and comms; dispatch's consult is the sequencer DO ` +
+      `gate, scoped to appointment.set/dispatch.assigned only.`,
   );
 }
 

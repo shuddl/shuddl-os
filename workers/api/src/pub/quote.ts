@@ -163,12 +163,17 @@ export async function publicQuoteHandler(c: Ctx): Promise<Response> {
       : resolveTransitDays(body.origin_zip, body.dest_zip, transitMatrix, config.zone_tariff);
 
   // WP-15 REQ-030/L8 — consult the shared authority read-seam for the RATING module before returning the
-  // authoritative (PRICED) guest quote. Identical to the authed /v1/rate path: `legacyValueAvailable` is false
-  // today (no legacy price mirror — Task 4), so authoritativeSource ALWAYS resolves to "native" and this guest
-  // preview IS the native price — behavior-identical. Additive response header only (the strict body allowlist
-  // is untouched — headers are not part of the discriminated-union body), so no guest-quote body test changes.
+  // authoritative (PRICED) guest quote. `legacyValueAvailable` is false today (no legacy price mirror — Task 4),
+  // so authoritativeSource ALWAYS resolves to "native" and this guest preview IS the native price —
+  // behavior-identical. NO response header here: this is an UNAUTHENTICATED public endpoint, and emitting the
+  // authority level would disclose the tenant's rating maturity (legacy vs native) to anonymous callers once
+  // the seam is live. The consult feeds a DORMANT intent-marker branch, like the agents sites; the authed
+  // /v1/rate keeps its X-Shuddl-Authority-Rating header (intended parity observability behind auth).
   const ratingAuthority = authoritativeSource(await resolveAuthority(db, "rating"), false);
-  c.header("X-Shuddl-Authority-Rating", ratingAuthority);
+  if (ratingAuthority === "legacy") {
+    // DORMANT until a legacy price mirror exists (Task 4). Unreachable today (native always wins).
+    console.error(`pub/quote: rating authority is 'legacy' for tenant ${tenant} but no price mirror is wired (WP-15 Task 4) — proceeding native`);
+  }
 
   // 5) Response allowlist — the PRICED price + the margin-free line breakdown + the honest window. The strict
   //    parse is the fail-closed backstop; floors/basis/versions/approval/anomaly are structurally absent (we

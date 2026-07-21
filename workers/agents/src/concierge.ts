@@ -458,6 +458,19 @@ export async function handleMessageReceived(message: MessageReceivedTrigger, dep
   await setInboundSla(db, msg.event_id, inbound.recorded_at);
   await appendQuoteRequested(seq, msg, streamId, resolved, parse, quoteRequestedEventId, inbound.recorded_at);
 
+  // WP-15 REQ-030/L8 — the Concierge auto-reply INDEPENDENTLY PRICES (it loaded the rating config above and
+  // ran the Rater inside composeConcierge) and appends quote.priced below, so it is authoritative for the
+  // RATING module too — not only comms. Consult the rating seam HERE, before the native price is committed, so
+  // a future rating='legacy' tenant's concierge quote defers to the incumbent price mirror instead of silently
+  // shipping a native price (the exact bypass the coverage lint guards — a comms-only consult would miss it).
+  // `legacyValueAvailable` is false today ⇒ authoritativeSource ALWAYS resolves to "native" ⇒ behavior-identical;
+  // dormant intent-marker branch, same as the comms consult above and the other sites. Tasks 4/6/8 light it up.
+  const conciergeRatingAuthority = authoritativeSource(await resolveAuthority(db, "rating"), false);
+  if (conciergeRatingAuthority === "legacy") {
+    // DORMANT until a legacy price mirror exists (Task 4). Unreachable today (native always wins).
+    console.error(`concierge: rating authority is 'legacy' for message ${msg.event_id} but no price mirror is wired (WP-15 Task 4) — proceeding native`);
+  }
+
   await seq.append({
     tenant: msg.tenant,
     streamId,
