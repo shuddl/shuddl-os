@@ -171,6 +171,31 @@ describe("REQ-123/083 — finding A: a prepaid credit pack settles at checkout c
     const invId = (led.eventsOf("invoice.issued")[0]!.payload as { invoice_id: string }).invoice_id;
     expect(led.paid.has(invId)).toBe(true); // one paid invoice, no double-anything
   });
+
+  it("(iv) ASYNC/unpaid: payment_intent.succeeded BEFORE checkout[unpaid] → the invoice still ends paid", async () => {
+    const led = new RecordingLedger();
+    // ACH-style: the covering payment settles FIRST (no issued invoice yet → the catch-up is a no-op), then the
+    // checkout completes 'unpaid' (the paid event arrives separately, not at completion).
+    const paid = parse(paymentSucceededBody({ eventId: "evt_ach_paid", tenant: "tenant-a", amountCents: 500_00, pi: "pi_ach", createdSec: CREATED }));
+    await emitCreditSettlement(led, env.CONTROL_DB, paid);
+
+    const sale = parse(checkoutEventBody({ eventId: "evt_ach_sale", tenant: "tenant-a", amountCents: 500_00, pi: "pi_ach", createdSec: CREATED, paymentStatus: "unpaid" }));
+    const { invoiceId } = await emitCreditPurchase(led, env.CONTROL_DB, sale);
+
+    // The unpaid sale must STILL run the safe re-runnable catch-up, flipping the already-committed covering payment.
+    expect(led.paid.has(invoiceId)).toBe(true); // RED before the fix: the unpaid branch skipped the catch-up → stuck 'issued'
+    expect(led.count("payment.received")).toBe(1); // the settlement's own payment (deduped) — the sale appends none
+  });
+
+  it("(v) in-order unpaid WITHOUT a covering payment stays issued (the catch-up is a safe no-op)", async () => {
+    const led = new RecordingLedger();
+    const sale = parse(checkoutEventBody({ eventId: "evt_unpaid_only", tenant: "tenant-b", amountCents: 500_00, pi: "pi_unpaid_only", createdSec: CREATED, paymentStatus: "unpaid" }));
+    const { invoiceId } = await emitCreditPurchase(led, env.CONTROL_DB, sale);
+
+    expect(led.paid.has(invoiceId)).toBe(false); // no covering payment.received → nothing to settle, stays issued
+    expect(led.count("payment.received")).toBe(0); // the unpaid branch appends NO payment event itself
+    expect(led.count("invoice.issued")).toBe(1); // issued-only, as expected
+  });
 });
 
 describe("REQ-025 — the emitter appends ONLY to the platform ledger port (never a customer D1 handle)", () => {

@@ -29,8 +29,16 @@ export class RecordingLedger implements PlatformLedger {
 
   async settleCreditInvoice({ invoiceId, paymentEventId, amountCents }: { invoiceId: string; paymentEventId: string; amountCents: number }): Promise<void> {
     this.settleCalls.push({ invoiceId, paymentEventId, amountCents });
-    const backing = [...this.events.values()].find((e) => e.id === paymentEventId && e.kind === "payment.received");
-    if (backing !== undefined) this.paid.add(invoiceId);
+    // The api credit-settle route runs `UPDATE invoices SET status='paid' WHERE id=? AND status='issued'` only
+    // after verifying the covering payment.received exists — so a flip needs BOTH a committed payment.received AND
+    // a committed invoice.issued for this invoice (an invoice exists as 'issued' only once its event commits). Both
+    // preconditions are what make the out-of-order `unpaid` gap (finding A) observable: a settlement that lands
+    // BEFORE its invoice cannot flip, so ONLY the later sale's own catch-up can — which the unpaid branch skipped.
+    const paymentCommitted = [...this.events.values()].some((e) => e.id === paymentEventId && e.kind === "payment.received");
+    const invoiceIssued = [...this.events.values()].some(
+      (e) => e.kind === "invoice.issued" && (e.payload as { invoice_id?: unknown }).invoice_id === invoiceId,
+    );
+    if (paymentCommitted && invoiceIssued) this.paid.add(invoiceId);
   }
 
   /** Count of DISTINCT committed events of a kind (the once-out oracle). */

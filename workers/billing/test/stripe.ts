@@ -20,6 +20,8 @@ export async function signStripe(body: string, secret: string = TEST_WEBHOOK_SEC
 }
 
 // A checkout.session.completed event body (the credit-pack SALE). `pi` correlates the later settlement.
+// `paymentStatus` defaults to 'paid' (a card checkout, paid at completion); pass 'unpaid' for the async/ACH case
+// where the settlement (payment_intent.succeeded) arrives separately.
 export function checkoutEventBody(opts: {
   eventId: string;
   tenant: string;
@@ -27,6 +29,7 @@ export function checkoutEventBody(opts: {
   pi: string;
   sessionId?: string;
   createdSec?: number;
+  paymentStatus?: string;
 }): string {
   return JSON.stringify({
     id: opts.eventId,
@@ -39,7 +42,7 @@ export function checkoutEventBody(opts: {
         payment_intent: opts.pi,
         amount_total: opts.amountCents,
         currency: "usd",
-        payment_status: "paid",
+        payment_status: opts.paymentStatus ?? "paid",
         metadata: { tenant: opts.tenant },
       },
     },

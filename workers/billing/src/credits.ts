@@ -200,10 +200,19 @@ export async function emitCreditPurchase(
   });
   await ledger.append({ streamId, input });
 
-  // Prepaid ⇒ paid at completion. Settle in the same flow (finding A) — the ONLY thing that guarantees the credit
-  // invoice never stays 'issued' when covered, whatever the webhook order.
+  // Prepaid ('paid') ⇒ paid at completion: settle in the same flow (finding A). ASYNC ('unpaid', e.g. ACH) ⇒ the
+  // settlement webhook (payment_intent.succeeded) arrives separately, so DON'T append a payment here — but STILL run
+  // the SAFE re-runnable catch-up alone: if that covering payment already landed OUT OF ORDER (before this sale),
+  // the catch-up flips the now-issued invoice; otherwise it is a no-op (the api route verifies the payment.received
+  // exists first). Skipping it on the unpaid branch is exactly what left a paid invoice stuck 'issued' (finding A),
+  // and no `_platform` AR reconciliation sweep would ever catch it.
   const settled = session.payment_status === "paid";
-  if (settled) await settleCredit(ledger, correlationId, tenant, session.amount_total, tsMs);
+  if (settled) {
+    await settleCredit(ledger, correlationId, tenant, session.amount_total, tsMs);
+  } else {
+    const paymentEventId = await paymentEventIdFor(correlationId);
+    await ledger.settleCreditInvoice({ invoiceId, paymentEventId, amountCents: session.amount_total });
+  }
 
   await stampStripeRefs(control, tenant, period, {
     credit_invoice: invoiceId,
