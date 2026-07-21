@@ -37,6 +37,14 @@ binding = "TENANT_B_DB"
 database_name = "shuddl-t-tenant-b-dev"
 database_id = "local-agents-tenant-b"
 
+# WP-14 Task 8 (REQ-122/125) — the control plane (tenants.plan = the Spark tier flag; tenants.policy carries the
+# per-tenant AI-credit allotment). READ-ONLY here: the Spark convenience cap resolves the plan/allotment; it
+# never writes control rows. A SEPARATE database from any tenant D1 (REQ-025). Mirrors workers/api CONTROL_DB.
+[[d1_databases]]
+binding = "CONTROL_DB"
+database_name = "shuddl-control-dev"
+database_id = "local-agents-control"
+
 # Anchor receipts (.tsr) + manifests land in R2.
 [[r2_buckets]]
 binding = "EVIDENCE"
@@ -66,6 +74,19 @@ binding = "AGENT_QUEUE"
 name = "SHIPMENT_SEQ"
 class_name = "ShipmentSequencer"
 script_name = "shuddl-api-dev"
+
+# WP-14 Task 8 (REQ-122/125) — the per-TENANT Spark convenience meter (one DO per idFromName(tenant)). It caps
+# the LLM-powered agent conveniences (Concierge auto-quote) for a Spark tenant over its monthly AI-credit
+# allotment; it is NEVER consulted on the physical-truth append path or the Biller invoice ("credits throttle
+# conveniences, not truth", genesis/04:15). Defined + owned by THIS worker (re-exported from src/index.ts). A
+# Durable Object is NOT a D1 table — the 22-table ceiling (check:invariants) is untouched. Mirrors workers/mcp CapsMeter.
+[[durable_objects.bindings]]
+name = "SPARK_METER"
+class_name = "SparkMeter"
+
+[[migrations]]
+tag = "v1-spark-meter"
+new_sqlite_classes = ["SparkMeter"]
 
 # ── STAGING (synthetic only, REQ-154). Real resources created 2026-07-14; the default above keeps its
 #    local-* ids for tests + `wrangler dev`. RESEND_API_KEY / EVIDENCE_FROM / ALLOW_TEST_SEND are
@@ -97,6 +118,13 @@ binding = "TENANT_B_DB"
 database_name = "shuddl-t-tenant-b-staging"
 database_id = "aa3b23a8-567d-4479-8311-e9f1678a6797"
 
+# WP-14 Task 8 (REQ-122/125) — the control plane (Spark plan flag + allotment). Read-only; id MUST match
+# workers/api + workers/billing [env.staging] CONTROL_DB.
+[[env.staging.d1_databases]]
+binding = "CONTROL_DB"
+database_name = "shuddl-control-staging"
+database_id = "8e238970-2ed3-494d-960f-e4af082c1e8e"
+
 [[env.staging.r2_buckets]]
 binding = "EVIDENCE"
 bucket_name = "shuddl-evidence-staging"
@@ -117,3 +145,12 @@ binding = "AGENT_QUEUE"
 name = "SHIPMENT_SEQ"
 class_name = "ShipmentSequencer"
 script_name = "shuddl-api-staging"
+
+# WP-14 Task 8 (REQ-122/125) — the per-tenant Spark convenience meter, owned by THIS worker (see the dev binding).
+[[env.staging.durable_objects.bindings]]
+name = "SPARK_METER"
+class_name = "SparkMeter"
+
+[[env.staging.migrations]]
+tag = "v1-spark-meter"
+new_sqlite_classes = ["SparkMeter"]

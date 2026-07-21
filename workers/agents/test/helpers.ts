@@ -9,6 +9,7 @@ import domain from "../../../db/tenant/migrations/0002_domain.sql?raw";
 import insertGuards from "../../../db/tenant/migrations/0003_insert_guards.sql?raw";
 import partyRefsGuard from "../../../db/tenant/migrations/0004_party_refs_guard.sql?raw";
 import documentsRetention from "../../../db/tenant/migrations/0007_documents_retention.sql?raw";
+import controlSql from "../../../db/control/migrations/0001_control.sql?raw";
 
 const MIGRATIONS = [
   { path: "0001_ledger_core.sql", sql: ledgerCore },
@@ -25,6 +26,25 @@ async function tableExists(db: D1Database, name: string): Promise<boolean> {
 
 export async function applyAll(db: D1Database): Promise<void> {
   if (!(await tableExists(db, "events"))) await applyMigrations(db, MIGRATIONS);
+}
+
+// WP-14 Task 8 (REQ-122/125) — apply the control-plane migration to CONTROL_DB (so `tenants` exists) once.
+// Idempotent — skipped if `tenants` already exists in this isolate. Mirrors workers/mcp/test/helpers.ts.
+export async function applyControl(db: D1Database): Promise<void> {
+  if (!(await tableExists(db, "tenants"))) await applyMigrations(db, [{ path: "0001_control.sql", sql: controlSql }]);
+}
+
+// Seed a control-plane `tenants` row (idempotent). The Spark cap resolves plan/policy by SLUG. `plan='spark'`
+// makes the tenant metered; `policy` carries the `spark_ai_allotment` (a JSON string). Distinct slugs per case
+// keep rows from bleeding across `it`s.
+export async function seedControlTenant(
+  db: D1Database,
+  opts: { id: string; slug: string; plan: string; policy?: string },
+): Promise<void> {
+  await db
+    .prepare("INSERT OR IGNORE INTO tenants (id, name, slug, plan, policy, created_ts) VALUES (?,?,?,?,?,?)")
+    .bind(opts.id, opts.slug, opts.slug, opts.plan, opts.policy ?? "{}", 0)
+    .run();
 }
 
 const EVENT_COLUMNS = [

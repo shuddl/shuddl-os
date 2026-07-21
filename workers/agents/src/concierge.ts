@@ -43,6 +43,7 @@ import type {
 } from "@shuddl/agents";
 import { loadTenantRatingConfig, loadTransitMatrix } from "./rate-config.js";
 import type { SeqStubLike } from "./biller.js";
+import type { SparkGate } from "./spark-caps.js";
 
 // ---- the queue payload (Zod at the boundary; the producer is the sequencer DO) ----------------------
 // `shipment_id` is OPTIONAL: a fresh quote email arrives on a non-shipment stream (no shipment yet — the
@@ -70,6 +71,12 @@ export interface ConciergeDeps {
   parser: ConciergeParser;
   /** REQ-098 tenant voice — the config-seeded from-name that signs the reply (bounded, never model output). */
   tenantFromName: string;
+  /** WP-14 Task 8 (REQ-122/125) — the Spark convenience cap. This LLM-powered auto-quote is an agent CONVENIENCE
+   *  (genesis/04); before the parse runs, the gate reserves one AI action against a Spark tenant's monthly
+   *  allotment. A NON-Spark tenant's gate no-ops (uncapped). OPTIONAL: absent ⇒ uncapped — a unit harness with no
+   *  plan wired behaves as a non-Spark tenant; the composition root (index.ts queue()) ALWAYS injects it. The
+   *  physical-truth consumers (Biller/Booking) carry NO gate — the truth-path carve-out is STRUCTURAL. */
+  sparkGate?: SparkGate;
 }
 
 // ---- outcome ---------------------------------------------------------------------------------------
@@ -105,6 +112,11 @@ export type ConciergeOutcome =
     }
   | { status: "unresolved"; reason: "not_quote_intent" | "no_party_signal" | "no_request" | "low_confidence"; detail: string }
   | { status: "already_handled"; detail: string }
+  // WP-14 Task 8 (REQ-122/125) — the Spark tenant is over its monthly AI-credit allotment: the LLM auto-quote
+  // CONVENIENCE is throttled. NOTHING is parsed/appended/sent (the agent doing the quoting is lost). The truth
+  // path is UNAFFECTED — pod.signed still records + the Biller still invoices. queue() ACKs this (redelivery
+  // cannot restore the allotment; it is a deliberate throttle, not a transient fault).
+  | { status: "capped"; reason: "spark_over_allotment"; detail: string }
   | { status: "skipped"; reason: "message_not_found"; detail: string };
 
 // ---- deterministic ids (no Date, no random — redelivery must reproduce them exactly) ----------------
@@ -300,6 +312,26 @@ export async function handleMessageReceived(message: MessageReceivedTrigger, dep
   // message.sent absent, no draft row ⇒ an unfinished auto-reply) and re-drives it; the send stays idempotent.
   if ((await loadEventById(db, quoteRequestedEventId, "quote.requested")) !== null) {
     return { status: "already_handled", detail: `quote.requested already recorded (queued) for message ${msg.event_id}` };
+  }
+
+  // ── SPARK CAP (REQ-122/125) — THE AGENT-ACTION CHOKEPOINT, the CONVENIENCE seam ──────────────────────────
+  // This LLM-powered auto-quote is an agent CONVENIENCE (genesis/04). BEFORE the parse (the LLM seam) runs,
+  // reserve ONE AI action against this tenant's monthly Spark allotment. A NON-Spark tenant is UNCAPPED (the
+  // injected gate no-ops). A Spark tenant OVER its allotment → the convenience is THROTTLED: return `capped`
+  // (queue() ACKs it — redelivery cannot restore the allotment; the tenant records freight reality + invoices
+  // as ever, it just loses the AGENT doing the quoting). "Credits throttle conveniences, not truth"
+  // (genesis/04:15). Placed AFTER the redelivery guards so a completed/queued action is NOT re-charged, and
+  // BEFORE the parse so no LLM call, resolve, price, append, or send runs for an over-cap tenant. The reserve is
+  // keyed off a DETERMINISTIC per-inbound id, so a redelivery that re-reserves (e.g. after a downstream send
+  // throw) counts the action ONCE. THE INVERSION: this is the ONLY Spark-cap consult in the whole consumer; the
+  // sequencer append + the Biller invoice carry no gate at all, so the physical-truth path is never throttled.
+  const reserved = deps.sparkGate ? await deps.sparkGate.reserve(`spark:concierge:${msg.event_id}`) : ({ ok: true } as const);
+  if (!reserved.ok) {
+    return {
+      status: "capped",
+      reason: "spark_over_allotment",
+      detail: `tenant ${msg.tenant} is over its monthly Spark AI-credit allotment (${reserved.allotment}) — Concierge auto-quote throttled for message ${msg.event_id}; freight reality still records + invoices`,
+    };
   }
 
   // ── FRESH ─────────────────────────────────────────────────────────────────────────────────────────────

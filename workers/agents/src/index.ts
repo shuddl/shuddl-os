@@ -18,6 +18,12 @@ import { runWatchtowerSweep } from "./watchtower.js";
 import { runWatchtowerSnapshots } from "./watchtower-snapshot.js";
 import { sweepTenantExpiredDocuments } from "@shuddl/ledger/documents/retention";
 import { TENANT_SLUGS, tenantDb, type AgentsEnv } from "./tenants.js";
+import { sparkGateFor } from "./spark-caps.js";
+
+// WP-14 Task 8 (REQ-122/125) — the per-tenant Spark convenience meter DO MUST be re-exported from the worker's
+// main module (the runtime binds `class_name = "SparkMeter"` to this export). Mirrors workers/mcp re-exporting
+// CapsMeter and workers/api re-exporting ShipmentSequencer.
+export { SparkMeter } from "./spark-meter.js";
 
 // The queue's message union (REQ-039): a committed pod.signed fans out to the Biller, a committed
 // message.received to the Concierge, a committed quote.accepted to the Booking agent. Discriminated on `kind`,
@@ -451,6 +457,12 @@ export default {
             sender: evidenceSender(env),
             parser: conciergeParser(env),
             tenantFromName: env.CONCIERGE_FROM_NAME ?? DEFAULT_CONCIERGE_FROM_NAME,
+            // REQ-122/125 — the Spark convenience cap, resolved per-tenant at the composition root. A non-Spark
+            // tenant → UNCAPPED (no-op). This gate is built ONLY here (the message.received/Concierge branch) —
+            // the pod.signed (Biller) and quote.accepted (Booking) branches construct NO gate, so the physical-
+            // truth append + invoicing are never throttled (the carve-out is structural). A control-read fault
+            // throws → the message redelivers (truth is never on this path); it never runs the LLM un-metered.
+            sparkGate: await sparkGateFor(env, trigger.tenant),
           };
           const outcome = await handleMessageReceived(trigger, deps);
           console.log(`concierge: message ${trigger.event_id} → ${JSON.stringify(outcome)}`);

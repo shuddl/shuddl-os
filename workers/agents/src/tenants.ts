@@ -8,6 +8,15 @@ export type AgentsEnv = {
   EVIDENCE: R2Bucket;
   /** The api worker's sequencer DO (cross-script binding) — the Biller's ONLY write path (I2 + money projection run there). */
   SHIPMENT_SEQ: DurableObjectNamespace;
+  /** WP-14 Task 8 (REQ-122/125) — the control plane (`tenants.plan` = the Spark tier flag; `tenants.policy` =
+   *  the per-tenant AI-credit allotment). READ-ONLY here: the Spark convenience cap resolves the plan + allotment;
+   *  it NEVER writes control rows. A SEPARATE database from any tenant D1 (REQ-025). Mirrors workers/api CONTROL_DB. */
+  CONTROL_DB: D1Database;
+  /** WP-14 Task 8 (REQ-122/125) — the per-TENANT Spark convenience meter DO (`idFromName(tenant)`). Caps the
+   *  LLM-powered agent conveniences (Concierge auto-quote) for an over-allotment Spark tenant; it is NEVER
+   *  consulted on the physical-truth append path or the Biller invoice ("credits throttle conveniences, not
+   *  truth"). A Durable Object is NOT a D1 table — the 22-table ceiling is untouched. */
+  SPARK_METER: DurableObjectNamespace;
   /** REQ-169 — the agent-trigger queue PRODUCER (the SAME queue this worker consumes + the DO produces to). The
    *  reconciliation sweep re-enqueues a lost pod.signed Biller trigger here so the queue() consumer re-drives it. */
   AGENT_QUEUE: Queue;
