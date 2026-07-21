@@ -38,6 +38,7 @@ import {
 } from "@shuddl/ledger/gates/transition-gates";
 import { deriveOperatingState } from "@shuddl/ledger/geo/jurisdiction";
 import { loadFacility } from "../facilities.js";
+import { authoritativeSource, resolveAuthority } from "../authority.js";
 import { localWall, localServiceDate } from "../appointment-window.js";
 import { resolveTenantDb, resolvePlatformTenantDb } from "../tenants.js";
 import type { Env } from "../index.js";
@@ -589,12 +590,26 @@ export class ShipmentSequencer extends DurableObject<Env> {
         // override — consent is a legal precondition, not a waivable evidence requirement.
         assertConsentBeforeGps(await prior(), incoming, { operating_state: deriveOperatingState(incoming.payload.geo) });
         return {};
-      case "appointment.set":
+      case "appointment.set": {
         // REQ-028/052 — the dock-slot claim gate. All context is SERVER-SOURCED here (facility capacity from
         // this tenant's D1, the window's LOCAL wall clock from the facility tz, leg existence + occupancy from
         // the legs read-model) — never from the client event. Returns the computed service_date so #append can
         // hand the SAME value to the appointment projection (one impure tz derivation, reused by gate + write).
+        //
+        // WP-15 REQ-030/L8 — consult the shared authority read-seam for the DISPATCH module. SCOPED to ONLY this
+        // gated kind (a rare, dock-slot-claim event) — NOT the generic every-kind append path — so it is one
+        // indexed SELECT on the 5-row authority_map for an infrequent event, never the position/GPS firehose.
+        // `legacyValueAvailable` is false today (no legacy dispatch mirror — Task 4), so authoritativeSource
+        // ALWAYS resolves to "native" and the service_date computed below IS authoritative — behavior-IDENTICAL.
+        // The consult feeds a DORMANT branch ONLY: it NEVER touches the gate decision, the returned service_date,
+        // the event hash, the append, or the seq ordering. Tasks 4/6/8 light up the legacy branch.
+        const dispatchAuthority = authoritativeSource(await resolveAuthority(db, "dispatch"), false);
+        if (dispatchAuthority === "legacy") {
+          // DORMANT until a legacy dispatch mirror exists (Task 4). Unreachable today (native always wins).
+          console.error(`sequencer: dispatch authority is 'legacy' for ${shipmentId ?? streamId} (appointment.set) but no mirror is wired (WP-15 Task 4) — proceeding native`);
+        }
         return { appointmentServiceDate: await this.#enforceAppointment(db, shipmentId, incoming, ctx, prior) };
+      }
       case "booking.created":
         // REQ-042/182 — the booking gates. booking.created is the FIRST event on a fresh direct-booking
         // stream (prior may be []), so context is SERVER-SOURCED from the PARTIES read-model — BOTH the
@@ -603,13 +618,26 @@ export class ShipmentSequencer extends DurableObject<Env> {
         // (tenant-isolated), never the client event.
         await this.#enforceBooking(db, incoming, ctx);
         return {};
-      case "dispatch.assigned":
+      case "dispatch.assigned": {
         // REQ-043 — the DISPATCH gate. You don't send a driver before the stop is scheduled AND the carrier
         // paperwork exists. BOTH facts are SERVER-SOURCED from THIS tenant's D1 read-models (legs.appt_slot_key
         // for the claimed appointment, a documents row of the dispatch-required kind for the docs) — never from
         // the client event. A missing prerequisite → GATE_BLOCKED with the EXACT missing subset (REQ-030).
+        //
+        // WP-15 REQ-030/L8 — consult the shared authority read-seam for the DISPATCH module, SCOPED to ONLY this
+        // gated kind (a rare driver-assignment event), exactly like the appointment.set case above — one indexed
+        // SELECT on the 5-row authority_map, never the generic append path. `legacyValueAvailable` is false today
+        // (no legacy dispatch mirror — Task 4), so authoritativeSource ALWAYS resolves to "native" and the gate
+        // below runs exactly as before — behavior-IDENTICAL. The consult feeds a DORMANT branch ONLY: it NEVER
+        // touches the gate decision, the event hash, the append, or the ordering. Tasks 4/6/8 light it up.
+        const dispatchAuthority = authoritativeSource(await resolveAuthority(db, "dispatch"), false);
+        if (dispatchAuthority === "legacy") {
+          // DORMANT until a legacy dispatch mirror exists (Task 4). Unreachable today (native always wins).
+          console.error(`sequencer: dispatch authority is 'legacy' for ${shipmentId ?? streamId} (dispatch.assigned) but no mirror is wired (WP-15 Task 4) — proceeding native`);
+        }
         await this.#enforceDispatch(db, shipmentId, ctx);
         return {};
+      }
       default:
         // A GatedKind with no case above = a Set/switch desync. `assertNever` makes that a COMPILE error
         // (belt) and throws at runtime (suspenders) — never a silent fall-through to an ungated append.

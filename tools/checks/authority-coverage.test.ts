@@ -41,12 +41,13 @@ describe("the REAL wired authoritative files all consult resolveAuthority (REQ-0
     expect(analyzeAuthorityCoverage(files)).toEqual([]);
   });
 
-  it("registers 4 modules / 6 files — a shrink is a red flag the lint should surface, not hide", () => {
+  it("registers all 5 overlay modules / 7 files — a shrink is a red flag the lint should surface, not hide", () => {
     const modules = AUTHORITATIVE_FILES.map((m) => m.module);
-    expect(new Set(modules)).toEqual(new Set<CoverageModule>(["rating", "invoicing", "settlement", "comms"]));
-    expect(AUTHORITATIVE_FILES.reduce((n, m) => n + m.files.length, 0)).toBe(6);
-    // dispatch is DELIBERATELY absent (no native-compute service seam outside the sequencer hot path — pending
-    // an orchestrator decision). Assert it stays out until that lands, so re-adding it is a conscious edit.
-    expect(modules).not.toContain("dispatch");
+    expect(new Set(modules)).toEqual(new Set<CoverageModule>(["rating", "invoicing", "settlement", "comms", "dispatch"]));
+    expect(AUTHORITATIVE_FILES.reduce((n, m) => n + m.files.length, 0)).toBe(7);
+    // dispatch is NOW covered (orchestrator decision): its consult is the sequencer DO gate, scoped to the
+    // appointment.set / dispatch.assigned gated kinds. The registry maps it to that file so the scan enforces it.
+    expect(modules).toContain("dispatch");
+    expect(AUTHORITATIVE_FILES.find((m) => m.module === "dispatch")?.files).toEqual(["workers/api/src/do/sequencer.ts"]);
   });
 });

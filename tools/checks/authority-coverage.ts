@@ -15,14 +15,13 @@ import { join } from "node:path";
 // present) that only risks a false PASS on a hand-crafted comment, which a reviewer catches; the fail-LOUD
 // direction (a real consultation dropped from live code) is the one that matters and is caught.
 //
-// DISPATCH is DELIBERATELY NOT REGISTERED YET: appointment.set / dispatch.assigned have NO native-compute
-// SERVICE seam distinct from the generic events append — they are gated only INSIDE the sequencer DO hot path
-// (workers/api/src/do/sequencer.ts #enforceTransitionGate). The WP-15 Task 2 brief forbids forcing a
-// consultation into that hot path and asks the orchestrator where dispatch's authoritative service point is.
-// Until that decision, dispatch is an OPEN item (see the Task 2 report), NOT a silent omission; when resolved,
-// add its file(s) below and the scan enforces them.
+// DISPATCH's authoritative point is the sequencer DO gate: appointment.set / dispatch.assigned have no
+// native-compute SERVICE seam distinct from the generic events append, so — by the orchestrator's WP-15 Task 2
+// decision — the consult lives in workers/api/src/do/sequencer.ts #enforceTransitionGate, SCOPED to ONLY those
+// two rare gated kinds (one indexed SELECT on the 5-row authority_map, never the generic/every-kind append
+// path), feeding a dormant branch only. All 5 overlay modules are now registered here.
 
-export type CoverageModule = "rating" | "invoicing" | "settlement" | "comms";
+export type CoverageModule = "rating" | "invoicing" | "settlement" | "comms" | "dispatch";
 
 export interface AuthorityModuleFiles {
   module: CoverageModule;
@@ -38,6 +37,7 @@ export const AUTHORITATIVE_FILES: readonly AuthorityModuleFiles[] = [
   { module: "invoicing", files: ["workers/agents/src/biller.ts"] },
   { module: "settlement", files: ["workers/agents/src/interline-split.ts"] },
   { module: "comms", files: ["workers/agents/src/concierge.ts", "workers/api/src/routes/dunning.ts"] },
+  { module: "dispatch", files: ["workers/api/src/do/sequencer.ts"] },
 ] as const;
 
 export interface CoverageViolation {
@@ -85,8 +85,8 @@ function main(): void {
   }
   console.log(
     `authority-coverage OK — all ${scanned.length} registered authoritative files across ${AUTHORITATIVE_FILES.length} modules ` +
-      `(rating/invoicing/settlement/comms) consult resolveAuthority (REQ-030/L8). NOTE: dispatch is pending an ` +
-      `orchestrator decision — no native-compute service seam outside the sequencer DO hot path.`,
+      `(rating/invoicing/settlement/comms/dispatch) consult resolveAuthority (REQ-030/L8). dispatch's consult is ` +
+      `the sequencer DO gate, scoped to appointment.set/dispatch.assigned only.`,
   );
 }
 
