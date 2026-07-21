@@ -44,6 +44,16 @@ binding = "CONTROL_DB"
 database_name = "shuddl-control-dev"
 database_id = "local-billing-control"
 
+# WP-14 Task 7 (REQ-123/154) — the reserved PLATFORM revenue tenant's OWN D1, where credits append as money
+# events (invoice.issued kind='credit_purchase' → payment.received). A DISTINCT database, NOT in the customer
+# allowlist above and NOT the control plane, resolved SERVER-SIDE only (resolvePlatformTenantDb — no slug input),
+# so no customer path can reach it (REQ-025). NO SECRETS here — the Stripe webhook secret is operator-injected
+# via `wrangler secret` (REQ-154). Mirrors workers/api PLATFORM_TENANT_DB.
+[[d1_databases]]
+binding = "PLATFORM_TENANT_DB"
+database_name = "shuddl-t-_platform-dev"
+database_id = "local-billing-platform"
+
 # ── STAGING (synthetic only, REQ-154). Real resources mirror the api/agents/translator staging ids; the
 #    default (top-level) config keeps its local-* ids for tests + `wrangler dev`. NO secrets — the recompute
 #    reads/writes only D1, so there is nothing to gate.
@@ -73,3 +83,10 @@ database_id = "aa3b23a8-567d-4479-8311-e9f1678a6797"
 binding = "CONTROL_DB"
 database_name = "shuddl-control-staging"
 database_id = "8e238970-2ed3-494d-960f-e4af082c1e8e"
+
+# Reserved PLATFORM revenue tenant D1 (must match workers/api [env.staging] PLATFORM_TENANT_DB id). Synthetic
+# staging id (REQ-154); the credit ledger lives here. NO secrets — the Stripe webhook secret is a `wrangler secret`.
+[[env.staging.d1_databases]]
+binding = "PLATFORM_TENANT_DB"
+database_name = "shuddl-t-_platform-staging"
+database_id = "b7c1f2a4-9d3e-4c8a-b1f6-2e5a7c9d0f13"

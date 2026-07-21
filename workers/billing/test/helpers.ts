@@ -37,6 +37,14 @@ export async function applyControl(db: D1Database): Promise<void> {
   if (!(await tableExists(db, "usage_credits"))) await applyMigrations(db, [{ path: "0001_control.sql", sql: controlSql }]);
 }
 
+// WP-14 Task 7 — apply the tenant migrations to the reserved PLATFORM tenant's D1 (so `events` + `money_lines` +
+// `invoices` exist), where the credit-purchase money events land. Same migration set as applyTenant (the platform
+// tenant carries the same ledger schema); override_json (0005) is intentionally out of this set, matching the
+// D1PlatformLedger insert column list. Idempotent.
+export async function applyPlatform(db: D1Database): Promise<void> {
+  if (!(await tableExists(db, "events"))) await applyMigrations(db, TENANT_MIGRATIONS);
+}
+
 const EVENT_COLUMNS = [
   "stream_id", "seq", "id", "shipment_id", "ts", "recorded_at", "kind",
   "actor_party_id", "actor_user_id", "actor_device_id", "party_refs", "payload",

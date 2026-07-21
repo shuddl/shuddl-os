@@ -8,16 +8,24 @@
 // them, so the sweep recomputes {agent: count} per (tenant, period) from the ledger and OVERWRITES the control
 // row — drift-free by construction (a full replace, never a += counter).
 import { runMeteringSweep } from "./metering.js";
+import { handleStripeWebhook } from "./webhook.js";
 import type { BillingEnv } from "./tenants.js";
 
 export default {
-  // NO public HTTP surface — a health probe only. The recompute is cron-driven (scheduled()), never a route;
-  // every other path/method 404s (defensive; workers_dev = false keeps it off the auto subdomain).
+  // The ONLY public HTTP surface is the Stripe webhook (Stripe-authed via the signature, NOT customer-authed) —
+  // plus a health probe. The metering recompute is cron-driven (scheduled()), never a route. Every other
+  // path/method 404s (defensive; workers_dev = false keeps it off the auto subdomain).
   async fetch(request: Request, env: BillingEnv, ctx: ExecutionContext): Promise<Response> {
-    void env;
     void ctx;
-    if (request.method === "GET" && new URL(request.url).pathname === "/health") {
+    const url = new URL(request.url);
+    if (request.method === "GET" && url.pathname === "/health") {
       return new Response("ok", { status: 200 });
+    }
+    // WP-14 Task 7 (REQ-123/154) — the credit-purchase webhook. DARK until an operator binds STRIPE_WEBHOOK_SECRET
+    // at R4: billingFor → NotConfiguredBilling rejects loudly (503) and nothing charges/emits. Verified events drive
+    // the credit money-event flow on the PLATFORM tenant (resolved server-side; a customer JWT can never reach it).
+    if (request.method === "POST" && url.pathname === "/webhooks/stripe") {
+      return handleStripeWebhook(request, env);
     }
     return new Response("Not Found", { status: 404 });
   },
