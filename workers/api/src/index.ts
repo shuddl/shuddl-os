@@ -29,6 +29,7 @@ import { mountPublicRoutes } from "./routes/public.js";
 import { mountSignupRoutes } from "./routes/signup.js";
 import { mountTariffRoutes } from "./routes/tariff.js";
 import { mountImportRoutes } from "./routes/import.js";
+import { mountInternalPlatformRoutes } from "./routes/internal-platform.js";
 
 export type Env = {
   TENANT_A_DB: D1Database;
@@ -48,6 +49,11 @@ export type Env = {
   // WP-14 Task 2 (REQ-121): the server-side provisioning FLAG. DARK by default — ABSENT from every wrangler.toml,
   // so provisionTenant() fail-closes (refuses) until R4 flips it ON. Never a client input; read off the Env only.
   PROVISIONING_ENABLED?: string;
+  // WP-14 Task 10 (REQ-123/025): the server-to-server shared secret gating the INTERNAL platform-credit append
+  // route (routes/internal-platform.ts). The billing worker presents it (via the API service binding) to append
+  // credit money events onto `_platform` through the real sequencer. ABSENT ⇒ DARK: the internal route 503s and
+  // no platform-credit append is possible. Operator-injected via `wrangler secret`, NEVER wrangler.toml (REQ-154).
+  PLATFORM_INTERNAL_SECRET?: string;
   SHIPMENT_SEQ: DurableObjectNamespace<import("./do/sequencer.js").ShipmentSequencer>;
   AGENT_QUEUE: Queue; // WP-06 (REQ-031/039): committed pod.signed → Biller trigger (consumer: agents worker)
   IDEMPOTENCY: KVNamespace;
@@ -219,6 +225,12 @@ mountTariffRoutes(app);
 // and records the run into agent_runs. roles admin/ops, tenant off the JWT claim (resolveTenantDb, REQ-025). Every id
 // is content-derived so a re-import makes no dupes. NO new table/kind/surface.
 mountImportRoutes(app);
+// WP-14 Task 10 (REQ-123/025/003): the INTERNAL, server-to-server platform-credit append seam. Mounted at
+// /internal/* (NOT /v1/*), so app.use("/v1/*", auth) + idempotency do NOT run — a customer JWT never reaches it.
+// Its own fail-closed shared-secret gate (PLATFORM_INTERNAL_SECRET, DARK by default) is the sole authorization.
+// The billing worker (over the API service binding) appends credit money events onto `_platform` through the REAL
+// sequencer here — the ONLY caller that sets the sequencer's `platform: true` flag (the isolation invariant).
+mountInternalPlatformRoutes(app);
 
 app.notFound((c) => envelope(c, "NOT_FOUND", 404, "NOT FOUND"));
 

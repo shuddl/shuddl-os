@@ -20,6 +20,15 @@ export type BillingEnv = {
   /** REQ-154 — the operator-injected Stripe webhook signing secret (`wrangler secret`, NEVER wrangler.toml).
    *  ABSENT ⇒ DARK: billingFor → NotConfiguredBilling rejects loudly and nothing charges/emits until R4. */
   STRIPE_WEBHOOK_SECRET?: string;
+  /** WP-14 Task 10 (REQ-123/025) — the `API` service binding to the api worker (its Hono app + the internal,
+   *  secret-gated platform-credit route). Task 10 appends credit money events onto `_platform` through the REAL
+   *  sequencer over this binding (SequencerPlatformLedger), retiring the interim D1 mirror. Mirrors workers/mcp's
+   *  API binding + the cross-script bindings the translator/agents workers use to reach the api worker. */
+  API: Fetcher;
+  /** WP-14 Task 10 (REQ-123/025/154) — the server-to-server shared secret the internal platform-credit route
+   *  requires. ABSENT ⇒ DARK: the platform ledger rejects LOUDLY (never a silent no-op) and no credit appends.
+   *  Operator-injected via `wrangler secret`, NEVER wrangler.toml. Matches workers/api Env.PLATFORM_INTERNAL_SECRET. */
+  PLATFORM_INTERNAL_SECRET?: string;
   ENVIRONMENT?: string;
 };
 

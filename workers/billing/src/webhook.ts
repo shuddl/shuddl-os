@@ -12,10 +12,13 @@
 // emitter is safe. A verification failure returns 4xx/503 (no retry helps an unsigned/forged/DARK request).
 import { billingFor, BillingNotConfiguredError } from "./billing.js";
 import { emitCreditPurchase, emitCreditSettlement } from "./credits.js";
-import { D1PlatformLedger } from "./platform-ledger.js";
-import { resolvePlatformTenantDb, type BillingEnv } from "./tenants.js";
+import { platformLedgerFor, type PlatformLedger } from "./platform-ledger.js";
+import type { BillingEnv } from "./tenants.js";
 
-export async function handleStripeWebhook(request: Request, env: BillingEnv): Promise<Response> {
+// `ledger` is injectable purely for the tests (which splice a recording PlatformLedger to assert the emitter's
+// calls without the real api sequencer). Production passes the default: platformLedgerFor(env) — the live
+// SequencerPlatformLedger over the API service binding + the internal, secret-gated platform-credit route.
+export async function handleStripeWebhook(request: Request, env: BillingEnv, ledger: PlatformLedger = platformLedgerFor(env)): Promise<Response> {
   const billing = billingFor(env);
   // Read the RAW body ONCE — the signature is over the exact bytes; never re-serialize before verifying.
   const rawBody = await request.text();
@@ -37,15 +40,12 @@ export async function handleStripeWebhook(request: Request, env: BillingEnv): Pr
     return new Response("signature verification failed", { status: 400 });
   }
 
-  // ---- dispatch (idempotent emitter on the platform tenant) ----
-  // TASK-10 SWAP PREREQUISITES (exit-review): (B) REPLACE D1PlatformLedger with the real api sequencer for
-  // `_platform`, or make the secret-bind and the swap ATOMIC (binding STRIPE_WEBHOOK_SECRET here activates this
-  // interim ledger, so live credits must not run on the interim path once the sequencer is authoritative);
-  // (C) the real sequencer's POD gate (assertPodSigned, I2/REQ-030) would REJECT a credit invoice.issued — the
-  // swap must exempt platform credit invoices (a `_platform` bypass or an invoice_without_pod class);
-  // (D) narrow the `_platform` visibility policy to 'internal' for invoice.issued/payment.received (the real
-  // sequencer resolves them to 'counterparty' by default; this interim ledger already stamps 'internal').
-  const ledger = new D1PlatformLedger(resolvePlatformTenantDb(env));
+  // ---- dispatch (idempotent emitter, appended through the REAL api sequencer) ----
+  // Task 10 swapped the interim D1PlatformLedger for the live SequencerPlatformLedger (via `ledger` above): the
+  // credit money events append onto `_platform` through the ONE canonical ledger core (the api sequencer), which
+  // now resolves `_platform` (finding B), exempts the platform credit POD gate (finding C), and clamps the credit
+  // events to 'internal' visibility (finding D). The emitter is IDEMPOTENT (the sequencer dedups by event id), so a
+  // redelivery/duplicate emits nothing more.
   try {
     switch (event.type) {
       case "checkout.session.completed":

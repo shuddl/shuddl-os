@@ -1,5 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import { EventInput, LedgerEvent, hazmatEnabled, type Visibility } from "@shuddl/contracts";
+import { EventInput, LedgerEvent, hazmatEnabled, isPlatformTenant, type Visibility } from "@shuddl/contracts";
 import { GENESIS_HASH, hashEvent } from "@shuddl/ledger/chain";
 import { verifyEventSig } from "@shuddl/ledger/sign";
 import { resolveVisibility } from "@shuddl/ledger/visibility";
@@ -38,7 +38,7 @@ import {
 import { deriveOperatingState } from "@shuddl/ledger/geo/jurisdiction";
 import { loadFacility } from "../facilities.js";
 import { localWall, localServiceDate } from "../appointment-window.js";
-import { tenantDb } from "../tenants.js";
+import { resolveTenantDb, resolvePlatformTenantDb } from "../tenants.js";
 import type { Env } from "../index.js";
 
 // doc 14 §06 — one Durable Object per (tenant|stream) IS the sequencer. It assigns `seq`/`prev_hash`,
@@ -51,7 +51,12 @@ import type { Env } from "../index.js";
 // and GateError's own `GATE_BLOCKED:{"required_evidence":[...]}`). Task 14 maps these back to ApiError.
 // This DO NEVER throws ApiError.
 
-type AppendReq = { tenant: string; streamId: string; input: unknown };
+// `platform` is the INTERNAL, server-minted credit path discriminator (WP-14 T10, finding B). It is set ONLY by
+// the internal billing route (routes/internal-platform.ts), NEVER by a customer route (which hard-codes append
+// WITHOUT it). It selects the reserved platform D1 (resolvePlatformTenantDb) instead of the customer resolver,
+// so a customer JWT can never drive a `_platform` append: the customer path resolves through resolveTenantDb,
+// which REJECTS `_platform`. See #resolveDb.
+type AppendReq = { tenant: string; streamId: string; input: unknown; platform?: boolean };
 
 // The RPC return shape. Deliberately NOT `LedgerEvent`: that union's `payload: JsonObject` is a
 // recursive (z.lazy) type, and Workers-RPC's structural type mapper recurses into every return type,
@@ -150,6 +155,23 @@ export function conciergeTriggerFor(
     : { kind: "message.received", tenant, shipment_id: e.shipment_id, event_id: e.id };
 }
 
+// finding C (REQ-030/123, WP-14 T10) — the NARROW POD-gate exemption predicate. Exported + PURE so the
+// exemption's exact boundary is unit-tested. TRUE only for a `_platform` CREDIT invoice: the tenant IS the
+// reserved platform tenant AND every money line is kind='credit_purchase' (the prepaid credit-pack sale the
+// billing emitter builds — a sale with no delivered shipment, hence no POD by nature). It is FALSE for ANY
+// customer tenant, so a CUSTOMER invoice.issued is ALWAYS POD-gated (the I2 gate is UNCHANGED), and false for a
+// `_platform` invoice that is not a pure credit-purchase invoice (fail-safe: only the exact credit shape exempts).
+export function isPlatformCreditInvoiceIssued(tenant: string, kind: string, payload: unknown): boolean {
+  if (kind !== "invoice.issued") return false;
+  if (!isPlatformTenant(tenant)) return false; // customer invoices are NEVER exempt
+  const lines = (payload as { lines?: unknown } | null | undefined)?.lines;
+  return (
+    Array.isArray(lines) &&
+    lines.length > 0 &&
+    lines.every((l) => l !== null && typeof l === "object" && (l as { kind?: unknown }).kind === "credit_purchase")
+  );
+}
+
 const EVENT_COLUMNS = [
   "stream_id", "seq", "id", "shipment_id", "ts", "recorded_at", "kind",
   "actor_party_id", "actor_user_id", "actor_device_id", "party_refs", "payload",
@@ -183,6 +205,10 @@ export class ShipmentSequencer extends DurableObject<Env> {
   // needs no extra subrequest. Fail-closed default (empty plan, {} policy) grants NOTHING.
   private entitlementRowCache: { plan: string; policy: string } | null = null;
   private deviceKeys = new Map<string, JsonWebKey | null>();
+  // The resolved tenant D1 handle for THIS pinned (tenant, stream). Memoized after the first append: the DO is
+  // pinned to ONE tenant (id + pin), so the handle never changes — a claimed slug pays its control-plane read
+  // once per wake, not per append. See #resolveDb.
+  private dbHandle: D1Database | null = null;
 
   /**
    * The mutex — MEASURED load-bearing, not speculative. A Cloudflare DO input gate closes only during the
@@ -208,7 +234,7 @@ export class ShipmentSequencer extends DurableObject<Env> {
     });
   }
 
-  async #append({ tenant, streamId, input }: AppendReq): Promise<AppendedEvent> {
+  async #append({ tenant, streamId, input, platform }: AppendReq): Promise<AppendedEvent> {
     // REQ-025 — structural tenant pinning. The caller-declared identity must re-derive to OUR OWN id.
     // A forged tenant produces a DIFFERENT DurableObjectId, so this instance can never be bound to
     // another tenant's D1. The route derives the id from the JWT `tenant` claim only.
@@ -235,7 +261,7 @@ export class ShipmentSequencer extends DurableObject<Env> {
       await this.ctx.storage.put("pin", this.pin);
     }
 
-    const db = tenantDb(this.env, tenant);
+    const db = await this.#resolveDb(tenant, platform === true);
 
     // The request body is the client-suppliable subset — never LedgerEvent (which would let a client
     // supply seq/prev_hash/hash). A parse failure is VALIDATION_FAILED, not a raw ZodError.
@@ -288,7 +314,14 @@ export class ShipmentSequencer extends DurableObject<Env> {
     // always enforces (fail-safe: a POD is always required; a tenant configuring the exemption gets no
     // effect, never an accidental bypass). Wire serviceClass from shipments.service once the invoice write
     // path models it; enabling a POD-gate bypass needs its own test before it ships (register note).
-    if (parsed.kind === "invoice.issued") await assertPodSigned(db, streamId, policy);
+    //
+    // finding C (WP-14 T10) — the ONE narrow exemption: a `_platform` CREDIT invoice (all lines credit_purchase)
+    // is a prepaid credit-pack sale with no delivered shipment, so it has no POD by nature and is EXEMPT. The
+    // predicate requires the reserved platform tenant, so a CUSTOMER invoice.issued is NEVER exempted — its I2
+    // POD gate is byte-for-byte UNCHANGED (a customer invoice with no pod.signed still GATE_BLOCKs).
+    if (parsed.kind === "invoice.issued" && !isPlatformCreditInvoiceIssued(tenant, parsed.kind, parsed.payload)) {
+      await assertPodSigned(db, streamId, policy);
+    }
 
     // D1 is truth: load the tail once per wake, from D1. The in-memory cache is bumped only AFTER the
     // batch commits, so a crash between insert and bump self-heals from D1 on the next wake.
@@ -308,7 +341,15 @@ export class ShipmentSequencer extends DurableObject<Env> {
     // rowToEvent could never reproduce the hash and every read-back would fail chain verification.
     // Destructure it out and build the event from the remaining client fields.
     const { requested_visibility, ...clientFields } = parsed;
-    const visibility = resolveVisibility(parsed.kind, policy.visibility, requested_visibility, correctedVis);
+    let visibility = resolveVisibility(parsed.kind, policy.visibility, requested_visibility, correctedVis);
+    // finding D (REQ-025/123, WP-14 T10) — the reserved platform tenant's credit money events are INTERNAL. The
+    // shared resolver defaults invoice.issued/payment.received to `counterparty` (correct for a REAL tenant, whose
+    // counterparty MUST see its invoice); on `_platform` there is no counterparty, so clamp them to `internal`
+    // server-side. This is the SERVER's enforcement (belt to the emitter's own requested_visibility:'internal') —
+    // a narrowing only (internal < counterparty), so it can never widen a stamped value.
+    if (isPlatformTenant(tenant) && (parsed.kind === "invoice.issued" || parsed.kind === "payment.received")) {
+      visibility = "internal";
+    }
 
     // REQ-186 (WP-08 exit audit) — PIN shipment_id to the stream. stream_id is DO-authoritative (set below);
     // shipment_id must name the SAME shipment (the events CHECK is `stream_id = 's:' || shipment_id`). But the
@@ -355,7 +396,7 @@ export class ShipmentSequencer extends DurableObject<Env> {
     // the WHOLE append atomically. The messages projection (REQ-100) mirrors the money one: a committed
     // message.* event projects its `messages` row in this SAME batch, so no communication exists outside
     // the ledger (INSERT OR IGNORE on a deterministic id keeps re-projection idempotent).
-    const deps = await this.#moneyDeps(db, full);
+    const deps = await this.#moneyDeps(db, full, tenant);
     const moneyStmts = applyMoneyProjection(db, full, deps);
     const passportStmts = projectPassport(db, full);
     const statusStmts = projectStatusCache(db, full);
@@ -790,7 +831,7 @@ export class ShipmentSequencer extends DurableObject<Env> {
   }
 
   // ---- money projection dependencies (loaded from D1; kept off the pure projection) ----
-  async #moneyDeps(db: D1Database, e: LedgerEvent): Promise<MoneyProjectionDeps> {
+  async #moneyDeps(db: D1Database, e: LedgerEvent, tenant: string): Promise<MoneyProjectionDeps> {
     if (e.kind === "invoice.corrected") {
       // The in-effect (positive) lines of the event this correction targets — the projection negates
       // them and inherits their party/division for the reissue.
@@ -805,6 +846,9 @@ export class ShipmentSequencer extends DurableObject<Env> {
     // honest source is the documented system default (net-30). The projection turns it into terms + due_ts;
     // if this were ever undefined, the projection stores NULL (no terms on file), never a fabricated date.
     if (e.kind === "invoice.issued") {
+      // A `_platform` credit invoice is PREPAID — no net terms (terms/due_ts project NULL), matching the retired
+      // D1PlatformLedger's credit behavior. A CUSTOMER invoice keeps the documented net-30 default (REQ-083).
+      if (isPlatformTenant(tenant)) return {};
       return { termsDays: DEFAULT_TERMS_DAYS };
     }
     // split/cod/settle payloads don't carry a division — take it from the shipment.
@@ -857,6 +901,35 @@ export class ShipmentSequencer extends DurableObject<Env> {
   async #visibilityOf(db: D1Database, eventId: string): Promise<Visibility | undefined> {
     const row = await db.prepare("SELECT visibility FROM events WHERE id = ?").bind(eventId).first<{ visibility: Visibility }>();
     return row?.visibility;
+  }
+
+  // REQ-025/123 (WP-14 T10) — SERVER-SIDE tenant→D1 resolution for the append (WRITE) path. TWO disjoint doors,
+  // and the ISOLATION INVARIANT lives in which door a caller can open:
+  //   · CUSTOMER (platform=false, the DEFAULT): resolveTenantDb resolves a STATIC (tenant-a/b) OR a CLAIMED pool
+  //     slug, and REJECTS `_platform` (throws ApiError). The DO id + `tenant` come from the authenticated session
+  //     claim (the route derives idFromName(`${tenant}|${streamId}`)), so a customer JWT — even one forged to
+  //     carry tenant=`_platform` — dies here, exactly as on the read path. This is what lets a CLAIMED tenant now
+  //     WRITE to its OWN pool D1 (the Task-3 read resolver, now on the append path) WITHOUT widening isolation.
+  //   · PLATFORM (platform=true): the INTERNAL, server-minted credit path — set ONLY by the internal billing
+  //     route (routes/internal-platform.ts), which is secret-gated and is NOT a customer route. It resolves the
+  //     reserved platform D1 and ASSERTS the tenant IS `_platform` (belt: the flag can never bind a customer slug).
+  // Memoized on `dbHandle`: the DO is pinned to ONE (tenant, stream) by the identity + pin checks that run BEFORE
+  // this, so the resolved handle is stable — a claimed slug pays its control read once per wake, not per append.
+  async #resolveDb(tenant: string, platform: boolean): Promise<D1Database> {
+    if (this.dbHandle) return this.dbHandle;
+    if (platform) {
+      if (!isPlatformTenant(tenant)) throw rpcError("FORBIDDEN", { reason: "platform append requires the platform tenant" });
+      this.dbHandle = resolvePlatformTenantDb(this.env);
+      return this.dbHandle;
+    }
+    try {
+      // resolveTenantDb REJECTS `_platform` and resolves static + claimed. Its ApiError must not cross the RPC
+      // hop, so map any miss to the DO's own FORBIDDEN contract (the SAME fail-closed refusal a static miss gets).
+      this.dbHandle = await resolveTenantDb(this.env, tenant);
+    } catch {
+      throw rpcError("FORBIDDEN", { reason: "unknown tenant" });
+    }
+    return this.dbHandle;
   }
 
   // ---- control-plane reads (cached per instance; a DO is pinned to one tenant) ----

@@ -17,7 +17,10 @@ import type { Env, Vars } from "../index.js";
 // The DO's RPC surface. Its return type is a 35-member zod union whose recursive payload makes the
 // generic DurableObjectStub mapper explode, so we bind a hand-written surface (as sequencer.test does).
 export type SeqStub = DurableObjectStub & {
-  append(req: { tenant: string; streamId: string; input: unknown }): Promise<AppendedEvent>;
+  // `platform` is the INTERNAL credit-append discriminator — set ONLY by routes/internal-platform.ts (never a
+  // customer route). Optional here so every existing customer caller (this route, rate.ts, the agents) is
+  // unchanged. See do/sequencer.ts #resolveDb for the isolation invariant it selects.
+  append(req: { tenant: string; streamId: string; input: unknown; platform?: boolean }): Promise<AppendedEvent>;
 };
 
 // ---- error translation (Workers RPC preserves only Error name/message, so `instanceof ApiError` is

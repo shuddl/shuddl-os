@@ -3,7 +3,8 @@ import { beforeAll, describe, expect, it } from "vitest";
 import worker from "../src/index.js";
 import { handleStripeWebhook } from "../src/webhook.js";
 import type { BillingEnv } from "../src/tenants.js";
-import { applyPlatform, applyControl } from "./helpers.js";
+import { applyControl } from "./helpers.js";
+import { RecordingLedger } from "./recording-ledger.js";
 import {
   TEST_WEBHOOK_SECRET,
   signStripe,
@@ -13,7 +14,11 @@ import {
   webhookRequest,
 } from "./stripe.js";
 
-// WP-14 Task 7 · REQ-123/154 — the idempotent, fail-closed Stripe webhook, driven end-to-end.
+// WP-14 Task 10 · REQ-123/154 — the idempotent, fail-closed Stripe webhook, driven end-to-end. As of Task 10 the
+// credit money events append onto `_platform` through the REAL api sequencer (SequencerPlatformLedger). These
+// suites inject a RecordingLedger (modeling the sequencer's once-out + settle contracts) so the webhook's dispatch
+// + fail-closed behavior is proven without the cross-worker sequencer; the real append/projection is proven in the
+// api harness (workers/api/test/platform-credit.test.ts). The worker.fetch route (health/404/DARK) is unchanged.
 
 const CREATED = Math.floor(Date.UTC(2026, 6, 15, 9, 0, 0) / 1000);
 
@@ -29,93 +34,95 @@ function darkEnv(): BillingEnv {
 function ctx(): ExecutionContext {
   return { waitUntil() {}, passThroughOnException() {} } as unknown as ExecutionContext;
 }
-async function countEvents(kind: string): Promise<number> {
-  const row = await env.PLATFORM_TENANT_DB.prepare("SELECT COUNT(*) AS n FROM events WHERE kind = ?").bind(kind).first<{ n: number }>();
-  return row?.n ?? 0;
-}
 
 beforeAll(async () => {
-  await applyPlatform(env.PLATFORM_TENANT_DB);
-  await applyControl(env.CONTROL_DB);
+  await applyControl(env.CONTROL_DB); // usage_credits — the emitter's stripe_refs stamp target
 });
 
 describe("DARK — a webhook does NOTHING until a secret is bound (nothing charges/emits)", () => {
-  it("a (signed) checkout webhook to a DARK env is rejected 503 and emits NOTHING", async () => {
+  it("a (signed) checkout webhook to a DARK env is rejected 503 and appends NOTHING", async () => {
+    const led = new RecordingLedger();
     const body = checkoutEventBody({ eventId: "evt_dark", tenant: "tenant-a", amountCents: 500_00, pi: "pi_dark", createdSec: CREATED });
-    const res = await handleStripeWebhook(webhookRequest(body, await signStripe(body)), darkEnv());
+    const res = await handleStripeWebhook(webhookRequest(body, await signStripe(body)), darkEnv(), led);
     expect(res.status).toBe(503);
-    expect(await countEvents("invoice.issued")).toBe(0);
+    expect(led.count("invoice.issued")).toBe(0); // verify fails first — the ledger is never reached
   });
 
-  it("drives through the worker.fetch route (POST /webhooks/stripe) — DARK ⇒ 503, nothing emitted", async () => {
+  it("drives through the worker.fetch route (POST /webhooks/stripe) — DARK ⇒ 503", async () => {
     const body = checkoutEventBody({ eventId: "evt_dark2", tenant: "tenant-a", amountCents: 500_00, pi: "pi_dark2", createdSec: CREATED });
     const res = await worker.fetch(webhookRequest(body, await signStripe(body)), darkEnv(), ctx());
-    expect(res.status).toBe(503);
-    expect(await countEvents("invoice.issued")).toBe(0);
+    expect(res.status).toBe(503); // signature verification is DARK before any ledger construction
   });
 });
 
 describe("fail-closed — unsigned / bad-signature webhooks are rejected", () => {
-  it("an UNSIGNED webhook (no Stripe-Signature) is rejected 400, emits nothing", async () => {
+  it("an UNSIGNED webhook (no Stripe-Signature) is rejected 400, appends nothing", async () => {
+    const led = new RecordingLedger();
     const body = checkoutEventBody({ eventId: "evt_unsigned", tenant: "tenant-a", amountCents: 500_00, pi: "pi_unsigned", createdSec: CREATED });
-    const res = await handleStripeWebhook(webhookRequest(body, null), liveEnv());
+    const res = await handleStripeWebhook(webhookRequest(body, null), liveEnv(), led);
     expect(res.status).toBe(400);
-    expect(await countEvents("invoice.issued")).toBe(0);
+    expect(led.count("invoice.issued")).toBe(0);
   });
 
-  it("a BAD-signature webhook (wrong secret) is rejected 400, emits nothing", async () => {
+  it("a BAD-signature webhook (wrong secret) is rejected 400, appends nothing", async () => {
+    const led = new RecordingLedger();
     const body = checkoutEventBody({ eventId: "evt_bad", tenant: "tenant-a", amountCents: 500_00, pi: "pi_bad", createdSec: CREATED });
     const badSig = await signStripe(body, "whsec_wrong");
-    const res = await handleStripeWebhook(webhookRequest(body, badSig), liveEnv());
+    const res = await handleStripeWebhook(webhookRequest(body, badSig), liveEnv(), led);
     expect(res.status).toBe(400);
-    expect(await countEvents("invoice.issued")).toBe(0);
+    expect(led.count("invoice.issued")).toBe(0);
   });
 });
 
-describe("REQ-123 — a verified checkout webhook emits EXACTLY ONE credit_purchase invoice; redelivery emits nothing more", () => {
-  it("a verified checkout.session.completed emits one credit_purchase invoice.issued on the platform tenant", async () => {
+describe("REQ-123 — a verified checkout webhook appends EXACTLY ONE credit_purchase sale; redelivery appends nothing more", () => {
+  it("a verified checkout.session.completed appends one credit_purchase invoice.issued through the ledger", async () => {
+    const led = new RecordingLedger();
     const body = checkoutEventBody({ eventId: "evt_ok", tenant: "tenant-a", amountCents: 500_00, pi: "pi_ok", createdSec: CREATED });
-    const res = await handleStripeWebhook(webhookRequest(body, await signStripe(body)), liveEnv());
+    const res = await handleStripeWebhook(webhookRequest(body, await signStripe(body)), liveEnv(), led);
     expect(res.status).toBe(200);
 
-    expect(await countEvents("invoice.issued")).toBe(1);
-    const line = await env.PLATFORM_TENANT_DB.prepare("SELECT kind, amount_cents, party_id FROM money_lines WHERE kind = 'credit_purchase'").first<{ kind: string; amount_cents: number; party_id: string }>();
-    expect(line).not.toBeNull();
-    expect(line!.amount_cents).toBe(500_00);
-    expect(line!.party_id).toBe("tenant-a");
+    expect(led.count("invoice.issued")).toBe(1);
+    const inv = led.eventsOf("invoice.issued")[0]!;
+    const payload = inv.payload as { party_id: string; lines: Array<{ kind: string; amount_cents: number }> };
+    expect(payload.lines[0]!.kind).toBe("credit_purchase");
+    expect(payload.lines[0]!.amount_cents).toBe(500_00);
+    expect(payload.party_id).toBe("tenant-a");
   });
 
-  it("a REDELIVERED webhook (same Stripe event) emits NOTHING more (idempotent)", async () => {
+  it("a REDELIVERED webhook (same Stripe event) appends NOTHING more (idempotent, once-out)", async () => {
+    const led = new RecordingLedger();
     const body = checkoutEventBody({ eventId: "evt_redeliver", tenant: "tenant-b", amountCents: 400_00, pi: "pi_redeliver", createdSec: CREATED });
     const sig = await signStripe(body);
-    const r1 = await handleStripeWebhook(webhookRequest(body, sig), liveEnv());
-    const r2 = await handleStripeWebhook(webhookRequest(body, sig), liveEnv()); // Stripe redelivers
+    const r1 = await handleStripeWebhook(webhookRequest(body, sig), liveEnv(), led);
+    const r2 = await handleStripeWebhook(webhookRequest(body, sig), liveEnv(), led); // Stripe redelivers
     expect(r1.status).toBe(200);
     expect(r2.status).toBe(200);
-    expect(await countEvents("invoice.issued")).toBe(1);
+    expect(led.count("invoice.issued")).toBe(1);
   });
 
-  it("drives the full acceptance path through worker.fetch: sale then settlement flips to paid", async () => {
+  it("the full acceptance path — sale then settlement flips the credit invoice to paid", async () => {
+    const led = new RecordingLedger();
     const saleBody = checkoutEventBody({ eventId: "evt_e2e_sale", tenant: "tenant-a", amountCents: 750_00, pi: "pi_e2e", createdSec: CREATED });
-    const sres = await worker.fetch(webhookRequest(saleBody, await signStripe(saleBody)), liveEnv(), ctx());
+    const sres = await handleStripeWebhook(webhookRequest(saleBody, await signStripe(saleBody)), liveEnv(), led);
     expect(sres.status).toBe(200);
 
     const paidBody = paymentSucceededBody({ eventId: "evt_e2e_paid", tenant: "tenant-a", amountCents: 750_00, pi: "pi_e2e", createdSec: CREATED });
-    const pres = await worker.fetch(webhookRequest(paidBody, await signStripe(paidBody)), liveEnv(), ctx());
+    const pres = await handleStripeWebhook(webhookRequest(paidBody, await signStripe(paidBody)), liveEnv(), led);
     expect(pres.status).toBe(200);
 
-    const inv = await env.PLATFORM_TENANT_DB.prepare("SELECT status FROM invoices WHERE party_id = 'tenant-a' AND total_cents = 75000").first<{ status: string }>();
-    expect(inv!.status).toBe("paid");
+    const invId = (led.eventsOf("invoice.issued")[0]!.payload as { invoice_id: string }).invoice_id;
+    expect(led.paid.has(invId)).toBe(true);
   });
 });
 
-describe("verified but unhandled event types are ACKed (200) and emit nothing", () => {
+describe("verified but unhandled event types are ACKed (200) and append nothing", () => {
   it("an unhandled type returns 200 and appends no ledger event", async () => {
+    const led = new RecordingLedger();
     const body = unhandledEventBody("evt_unhandled");
-    const res = await handleStripeWebhook(webhookRequest(body, await signStripe(body)), liveEnv());
+    const res = await handleStripeWebhook(webhookRequest(body, await signStripe(body)), liveEnv(), led);
     expect(res.status).toBe(200);
-    expect(await countEvents("invoice.issued")).toBe(0);
-    expect(await countEvents("payment.received")).toBe(0);
+    expect(led.count("invoice.issued")).toBe(0);
+    expect(led.count("payment.received")).toBe(0);
   });
 });
 

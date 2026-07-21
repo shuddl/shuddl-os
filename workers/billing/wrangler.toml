@@ -54,6 +54,15 @@ binding = "PLATFORM_TENANT_DB"
 database_name = "shuddl-t-_platform-dev"
 database_id = "local-billing-platform"
 
+# WP-14 Task 10 (REQ-123/025) — the api worker service binding. Task 10 appends credit money events onto
+# `_platform` through the REAL sequencer over this binding (SequencerPlatformLedger → the api worker's internal,
+# secret-gated platform-credit route), retiring the interim D1 mirror. Mirrors workers/mcp's API binding + the
+# cross-script bindings the translator/agents workers use to reach the api worker. NO SECRETS — the internal
+# shared secret (PLATFORM_INTERNAL_SECRET) is a `wrangler secret`, never this toml (REQ-154).
+[[services]]
+binding = "API"
+service = "shuddl-api-dev"
+
 # ── STAGING (synthetic only, REQ-154). Real resources mirror the api/agents/translator staging ids; the
 #    default (top-level) config keeps its local-* ids for tests + `wrangler dev`. NO secrets — the recompute
 #    reads/writes only D1, so there is nothing to gate.
@@ -90,3 +99,9 @@ database_id = "8e238970-2ed3-494d-960f-e4af082c1e8e"
 binding = "PLATFORM_TENANT_DB"
 database_name = "shuddl-t-_platform-staging"
 database_id = "b7c1f2a4-9d3e-4c8a-b1f6-2e5a7c9d0f13"
+
+# WP-14 Task 10 (REQ-123/025) — the api worker service binding targets the STAGING api worker (must be deployed).
+# The credit flow appends through its real sequencer over this binding. NO secrets in this toml (REQ-154).
+[[env.staging.services]]
+binding = "API"
+service = "shuddl-api-staging"
