@@ -466,4 +466,37 @@ describe("REQ-008/023 — authority_map projects authority.flipped (the module-b
     const e = mkEvent("pod.signed", { stream_id: "s:shp-au9", shipment_id: "shp-au9" });
     expect(projectAuthority(DB, e)).toHaveLength(0);
   });
+
+  it("FULL-STREAM replay-equivalence — re-projecting the SAME flip stream onto a WIPED map lands byte-identical state (L8: the read-model is a pure function of the event stream)", async () => {
+    // A multi-flip stream for ONE module: promote → drift → promote-again. Build the events ONCE (fixed ids
+    // via mkEvent's counter) so BOTH applications replay the IDENTICAL stream — the id set, order, and
+    // payloads are pinned. gates_status carries a DIFFERENT snapshot on each promote so "last snapshot wins"
+    // is exercised (and the middle drift, carrying none, must NOT clobber it — the COALESCE-keep path).
+    const s1 = flip({ module: "rating", from: "legacy", to: "native", reason: "promote", gate_snapshot: { open_gates: 0 } }, 0);
+    const s2 = flip({ module: "rating", from: "native", to: "legacy", reason: "drift", drift_ref: "anom-z" }, 1);
+    const s3 = flip({ module: "rating", from: "legacy", to: "native", reason: "promote", gate_snapshot: { open_gates: 1 } }, 2);
+    const stream = [s1, s2, s3];
+
+    // Run 1: apply the stream (event insert + projection) in order; capture the FULL end state.
+    for (const e of stream) await appendAuthority(e);
+    const first = await authorityMap("rating");
+    expect(first).not.toBeNull();
+
+    // WIPE the read-model — authority_map is UNGUARDED (no append-only DELETE trigger; only events/positions/
+    // money_lines carry them), so a projection rebuild is legal. Then RE-PROJECT the SAME events (already on
+    // the ledger) from scratch — projection-only, no re-insert (the events append-only, so they are NOT
+    // re-appended). A byte-identical end state PROVES the projection is a pure deterministic function of the
+    // event stream — the L8 audit-trail guarantee: authority_map is fully reconstructible from the ledger.
+    await DB.prepare("DELETE FROM authority_map WHERE module = 'rating'").run();
+    expect(await authorityMap("rating")).toBeNull(); // proven wiped — the rebuild starts from an absent row
+    for (const e of stream) await DB.batch(projectAuthority(DB, e));
+    const second = await authorityMap("rating");
+
+    // Byte-identical: same authority, same flipped_events IN THE SAME ORDER, same gates_status (one deep-equal
+    // over the whole row covers all three), then spelled out for a legible failure.
+    expect(second).toEqual(first);
+    expect(second!.authority).toBe("native"); // s3.to
+    expect(JSON.parse(second!.flipped_events)).toEqual([s1.id, s2.id, s3.id]); // full history, replay order preserved
+    expect(JSON.parse(second!.gates_status)).toEqual({ open_gates: 1 }); // last promote's snapshot; the drift did not clobber it
+  });
 });
