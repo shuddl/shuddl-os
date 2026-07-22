@@ -1,4 +1,4 @@
-import { env } from "cloudflare:test";
+import { env, SELF } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import { eventFixture, type EventKind } from "@shuddl/contracts";
 import { eventToRow, readEvents } from "@shuddl/ledger/lens";
@@ -213,6 +213,27 @@ describe("WP-15 Task 4b — source-aware ledger: legacy is a parity-only shadow 
     expect(invParityAfter.status).not.toBe("UNKNOWN");
     // dispatch: a COUNT of dispatch.assigned + appointment.set — the legacy side gained exactly my 2 legacy facts.
     expect(num(dispParityAfter.legacy_value) - num(dispParityBefore.legacy_value)).toBe(2);
+  });
+
+  it("(7) GET /v1/events honors includeShadow=true — the legacy shadow surfaces on the Task-7 parity drill-through ONLY when opted in (REQ-021/152/153)", async () => {
+    // The Command v_parity dashboard's LEGACY drill reads GET /v1/events?kind=...&includeShadow=true. Prove the
+    // HTTP firehose (not just readEvents) honors the opt-in: DEFAULT excludes the legacy invoice; includeShadow=true
+    // includes it. Runs on the pool tenant (its token resolves to POOL_DB via the beforeAll control row).
+    const ops = await token({ sub: "lgp-shadow-ops", tenant: TENANT, role: "ops" });
+    const url = (extra: string): string => `https://api.local/v1/events?kind=invoice.issued&limit=1000${extra}`;
+
+    // DEFAULT: the firehose is native-visible only — the legacy invoice is ABSENT (reconciles with the KPIs).
+    const def = await SELF.fetch(url(""), { headers: { Authorization: `Bearer ${ops}` } });
+    expect(def.status).toBe(200);
+    const defBody = (await def.json()) as { events: Array<{ id: string; source: string }> };
+    expect(defBody.events.some((e) => e.id === legacyInvoiceEventId)).toBe(false);
+    expect(defBody.events.every((e) => e.source !== "legacy")).toBe(true);
+
+    // OPT-IN: includeShadow=true INCLUDES the legacy shadow row — the drill's LEGACY side sees the mirror fact.
+    const opt = await SELF.fetch(url("&includeShadow=true"), { headers: { Authorization: `Bearer ${ops}` } });
+    expect(opt.status).toBe(200);
+    const optBody = (await opt.json()) as { events: Array<{ id: string; source: string }> };
+    expect(optBody.events.some((e) => e.id === legacyInvoiceEventId && e.source === "legacy")).toBe(true);
   });
 
   it("(4) a NATIVE invoice.issued with no POD is STILL GATE_BLOCKED — the I2 gate is intact for source='native'", async () => {

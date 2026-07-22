@@ -318,6 +318,14 @@ export function mountEventRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>):
       // Validated against the 35-kind catalog (unknown -> 400) and ANDed onto the lens WHERE + cursor in readEvents.
       const kinds = parseKinds(c.req.query("kind"));
       if (kinds !== undefined) q.kind = kinds;
+      // WP-15 Task 7 (REQ-021/152/153) — the LEGACY-SHADOW opt-in for the Command v_parity dashboard drill-through.
+      // By DEFAULT readEvents excludes `source:'legacy'` (the timeline/queues/export reconcile with the source-aware
+      // KPIs); `includeShadow=true` opts the legacy mirror rows back in so the parity drill's LEGACY side can show
+      // the incumbent-mirror facts that back the parity number. Wired ONLY on this TENANT-LENS firehose (admin/ops/
+      // finance/read) — deliberately NOT on GET /v1/shipments/:id/events, which a portal party / driver can reach:
+      // exposing the shadow mirror to a counterparty lens would leak the incumbent's history. Any value other than
+      // the literal "true" leaves the native-only default intact (fail-closed).
+      if (c.req.query("includeShadow") === "true") q.includeShadow = true;
       if (limit !== undefined) q.limit = limit;
       const events = await readEvents(db, lens, q);
       return c.json({ events, next_cursor: nextCursor(events, limit) });

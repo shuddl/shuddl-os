@@ -177,6 +177,13 @@ describe("command board chrome — live + router-wired (REQ-082/083/038/084)", (
       if (url.includes("/v1/approvals")) return Promise.resolve(jsonResponse({ approvals: [] }));
       if (url.includes("/v1/exceptions")) return Promise.resolve(jsonResponse({ exceptions: [] }));
       if (url.includes("/v1/invoices")) return Promise.resolve(jsonResponse({ invoices: [] }));
+      if (url.includes("/v1/parity")) {
+        return Promise.resolve(
+          jsonResponse({
+            modules: [{ module: "invoicing", native_value: 90_000, legacy_value: 63_100, drift_bps: 4_263, within_gate: false, status: "DRIFT", backing_kinds: ["invoice.issued"] }],
+          }),
+        );
+      }
       return Promise.resolve(jsonResponse({ code: "NOT_FOUND", message: "NOT FOUND" }, 404));
     });
     vi.stubGlobal("fetch", mock);
@@ -208,6 +215,17 @@ describe("command board chrome — live + router-wired (REQ-082/083/038/084)", (
     render(<App />);
 
     expect(await screen.findByText("ASK THE LEDGER")).toBeTruthy();
+    window.history.pushState(null, "", "/");
+  });
+
+  it("the /parity route resolves to the v_parity shadow-parity dashboard (REQ-152/153), consuming GET /v1/parity", async () => {
+    window.history.pushState(null, "", "/parity");
+    stubChrome();
+    render(<App />);
+
+    // the canonical v_parity view mounts and renders the server-computed per-module parity (no client recompute)
+    expect(await screen.findByText("SHADOW PARITY")).toBeTruthy();
+    expect(await screen.findByRole("button", { name: /invoicing parity row/i })).toBeTruthy();
     window.history.pushState(null, "", "/");
   });
 });

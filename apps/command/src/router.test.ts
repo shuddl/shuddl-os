@@ -47,6 +47,11 @@ describe("resolveRoute (REQ-081)", () => {
     expect(resolveRoute(loc("/copilot"))).toEqual({ name: "copilot" });
   });
 
+  it("/parity is the WP-15 v_parity shadow-parity dashboard (REQ-152/153)", () => {
+    expect(resolveRoute(loc("/parity"))).toEqual({ name: "parity" });
+    expect(resolveRoute(loc("/parity/"))).toEqual({ name: "parity" });
+  });
+
   it("trailing slashes do not change the route", () => {
     expect(resolveRoute(loc("/queue/approvals/"))).toEqual({ name: "queue", kind: "approvals" });
     expect(resolveRoute(loc("/copilot/"))).toEqual({ name: "copilot" });

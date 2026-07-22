@@ -24,6 +24,7 @@ import { MoneyQueue } from "./views/MoneyQueue.js";
 import { DunningQueue } from "./views/DunningQueue.js";
 import { KpiStrip } from "./views/KpiStrip.js";
 import { KpiDrill } from "./views/KpiDrill.js";
+import { ParityDashboard } from "./views/ParityDashboard.js";
 import { CopilotPanel } from "./views/CopilotPanel.js";
 import type { KpiTile, KpiValue } from "./views/registry.js";
 
@@ -235,6 +236,17 @@ export function App(): React.JSX.Element {
               {l}
             </Mono>
           ))}
+          {/* WP-15 (REQ-152/153) — the reachable nav affordance for the v_parity shadow-parity dashboard. A
+              transparent, borderless control (design-clean) that navigates to the canonical /parity route, which
+              mounts the overlay below — exactly how a KPI tile / the ⌘K copilot reach their route-driven views. */}
+          <button
+            type="button"
+            onClick={() => navigate("/parity")}
+            aria-label="Open shadow parity dashboard"
+            style={{ background: "transparent", border: "none", padding: 0, margin: 0, cursor: "pointer" }}
+          >
+            <Mono size={11}>PARITY</Mono>
+          </button>
           <Button>New Quote</Button>
         </div>
       </nav>
@@ -294,6 +306,9 @@ export function App(): React.JSX.Element {
           onClose={() => navigate("/")}
           onAuthError={clearSession}
         />
+      ) : null}
+      {!perf && route.name === "parity" ? (
+        <ParityDashboard onOpenShipment={openShipment} onClose={() => navigate("/")} onAuthError={clearSession} />
       ) : null}
       {!perf && route.name === "copilot" ? <CopilotPanel onOpenShipment={openShipment} onClose={() => navigate("/")} /> : null}
     </main>
