@@ -142,13 +142,19 @@ export interface ParsedFeed {
 
 // Prototype-less string map so a column literally named `__proto__` / `toString` sets an OWN property instead of
 // hitting Object.prototype (which would silently discard the retained value — the retention half of no-silent-drop).
-function nullMap(): Record<string, string> {
+// EXPORTED as a shared echo-contract primitive: the Task-5 project-OUT (legacy-project-out.ts) builds its outbound
+// cells with the SAME prototype-safe map, so a legacy header named `__proto__` survives the round-trip both ways.
+export function nullMap(): Record<string, string> {
   return Object.create(null) as Record<string, string>;
 }
 
 // Deterministic stable stringify (sorted keys, recursive) — the id seed folds this so identical content always
 // yields identical bytes (the echo-safety anchor). Payloads are plain JSON (objects/arrays/primitives).
-function stableStringify(value: unknown): string {
+// EXPORTED as THE ONE canonical stringify for the echo contract (share-lint-matchers-with-parity-tests): the
+// project-OUT + the bidirectional soak (Task 5) reuse THIS function, never a re-implemented copy, so the mirror-IN
+// idSeed and the round-trip convergence proof agree byte-for-byte (a divergent stringify would be a silent
+// ping-pong). The worker's mirror-sweep keeps a hot-path replica for its own id derivation.
+export function stableStringify(value: unknown): string {
   if (value === null || typeof value !== "object") return JSON.stringify(value) ?? "null";
   if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
   const obj = value as Record<string, unknown>;
