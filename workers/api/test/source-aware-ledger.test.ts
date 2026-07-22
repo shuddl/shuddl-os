@@ -1,7 +1,7 @@
 import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import { eventFixture, type EventKind } from "@shuddl/contracts";
-import { eventToRow } from "@shuddl/ledger/lens";
+import { eventToRow, readEvents } from "@shuddl/ledger/lens";
 import { computeModuleParity, type ParityValue } from "@shuddl/ledger/parity";
 import { computeCostRatioBps } from "@shuddl/ledger/queries/metrics";
 import type { AppendedEvent } from "../src/do/sequencer.js";
@@ -238,6 +238,23 @@ describe("WP-15 Task 4b — source-aware ledger: legacy is a parity-only shadow 
     // nothing was written — the native gate blocks BEFORE the append.
     const n = await POOL_DB.prepare("SELECT COUNT(*) AS n FROM events WHERE stream_id = ?").bind(streamId).first<{ n: number }>();
     expect(n?.n).toBe(0);
+  });
+
+  it("(6) readEvents (tenant lens) EXCLUDES the legacy shadow by DEFAULT (timeline/queues/export/copilot reconcile with the KPIs); includeShadow:true opts it back in", async () => {
+    // DEFAULT: the native lens read of the legacy invoice's stream returns NOTHING — a source:'legacy' event
+    // never surfaces on the Command timeline / queues / export / copilot grounding (all readEvents-backed).
+    const def = await readEvents(POOL_DB, { scope: "tenant" }, { shipment_id: "lgproof-inv" });
+    expect(def).toHaveLength(0);
+    // OPT-IN (the Task-7 parity dashboard drill-through): includeShadow:true INCLUDES the legacy backing event.
+    const opt = await readEvents(POOL_DB, { scope: "tenant" }, { shipment_id: "lgproof-inv", includeShadow: true });
+    expect(opt.length).toBeGreaterThan(0);
+    expect(opt.every((e) => e.source === "legacy")).toBe(true);
+    expect(opt.map((e) => e.kind)).toContain("invoice.issued");
+    // native/edi/email are STILL returned by the default read — the filter excludes ONLY legacy. The direct-
+    // inserted NATIVE invoice on lgproof-nat-inv surfaces normally (proving the default is not a blanket block).
+    const nat = await readEvents(POOL_DB, { scope: "tenant" }, { shipment_id: "lgproof-nat-inv" });
+    expect(nat.map((e) => e.kind)).toContain("invoice.issued");
+    expect(nat.every((e) => e.source === "native")).toBe(true);
   });
 
   it("(5) KPIs/AR exclude the legacy shadow — a legacy quote.priced does NOT move the native cost-ratio KPI; the legacy invoice backs no AR", async () => {
