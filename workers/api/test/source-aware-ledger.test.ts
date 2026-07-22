@@ -5,7 +5,7 @@ import { eventToRow, readEvents } from "@shuddl/ledger/lens";
 import { computeModuleParity, type ParityValue } from "@shuddl/ledger/parity";
 import { computeCostRatioBps } from "@shuddl/ledger/queries/metrics";
 import type { AppendedEvent } from "../src/do/sequencer.js";
-import { ensureSchema, ensureTenantPlaneSchema } from "./helpers.js";
+import { ensureSchema, ensureTenantPlaneSchema, post, token, requiredEvidence, streamCount, TENANT_SLUG } from "./helpers.js";
 
 // WP-15 Task 4b (REQ-021/022/030) — THE SOURCE-AWARE-LEDGER PROOF, against the REAL ShipmentSequencer DO.
 //
@@ -265,5 +265,61 @@ describe("WP-15 Task 4b — source-aware ledger: legacy is a parity-only shadow 
     // AR: the legacy invoice backs NO money_line and NO invoices row (re-asserted here as the AR statement of (2)).
     const ar = await POOL_DB.prepare("SELECT COUNT(*) AS n FROM money_lines WHERE event_id = ?").bind(legacyInvoiceEventId).first<{ n: number }>();
     expect(ar?.n).toBe(0);
+  });
+});
+
+// WP-15 Task 4b (REQ-030/021) — THE FORGEABILITY LOCK, at the ROUTE (over real HTTP via `post`). The single
+// most security-critical line is events.ts:200 (force source:'native'). These tests prove a CLIENT cannot forge
+// `source:'legacy'` to reach the DO's legacy gate-carve-out. Run on tenant-a (ensureSchema seeds it); the forged
+// gated append is GATE_BLOCKED so NOTHING lands — no parity pollution.
+describe("WP-15 Task 4b — the forgeability lock at the events route (REQ-030/021)", () => {
+  const evt = (shipmentId: string, kind: string, payload: Record<string, unknown>): Record<string, unknown> => ({
+    id: crypto.randomUUID(),
+    shipment_id: shipmentId,
+    ts: 1_720_000_000_000,
+    actor: { party: "party-carrier" },
+    party_refs: [],
+    evidence: [],
+    source: "legacy", // the FORGERY — the route MUST coerce this to native before the DO append
+    confidence: 10_000,
+    kind,
+    payload,
+  });
+
+  it("a client POST of a GATED kind with source:'legacy' is COERCED to native → the native gate FIRES → GATE_BLOCKED, nothing lands", async () => {
+    // dispatch.assigned is a CLIENT-APPENDABLE gated kind (unlike invoice.issued, which the route refuses upstream
+    // as server-emitted — see the belt below). Forged source:'legacy' + no appointment/docs on the stream: the
+    // route coerces to native, so #enforceDispatch runs and BLOCKS. This is the RED-sensitive proof — removing the
+    // events.ts:200 coercion lets the legacy source survive → the DO gate-EXEMPTS it → it would 201-append instead.
+    const ops = await token({ sub: "lgp-forge-ops", tenant: TENANT_SLUG, role: "ops" });
+    const r = await post("lgp-forge-disp", evt("lgp-forge-disp", "dispatch.assigned", { driver_user_id: "d-forge" }), ops);
+    expect(r.status).toBe(403);
+    expect(requiredEvidence(r).length).toBeGreaterThan(0); // GATE_BLOCKED carries the missing evidence
+    expect(await streamCount("lgp-forge-disp")).toBe(0); // append-on-block is impossible — nothing forged in
+  });
+
+  it("a client POST that COMMITS lands source='native' (the coercion is real, not just a gate side effect)", async () => {
+    const ops = await token({ sub: "lgp-forge-ops2", tenant: TENANT_SLUG, role: "ops" });
+    // quote.requested is ungated → it commits. Posted with source:'legacy'; the response event + the stored row
+    // must both read source='native'.
+    const r = await post("lgp-forge-commit", evt("lgp-forge-commit", "quote.requested", { request: { origin_zip: "97201", dest_zip: "98101" } }), ops);
+    expect(r.status).toBe(201);
+    expect(r.json?.source).toBe("native"); // the committed event, as returned by the route
+    const row = await env.TENANT_A_DB.prepare("SELECT source FROM events WHERE stream_id = ? ORDER BY seq DESC LIMIT 1").bind("s:lgp-forge-commit").first<{ source: string }>();
+    expect(row?.source).toBe("native"); // and as stored in the ledger
+  });
+
+  it("belt: invoice.issued is refused UPSTREAM as server-emitted (a second, independent lock) — never reaches the append", async () => {
+    // invoice.issued can never be client-appended via this route (SERVER_EMITTED_KINDS), so the forged legacy
+    // source is moot for it — a plain FORBIDDEN, not a GATE_BLOCKED (no required_evidence). Documents the layering.
+    const ops = await token({ sub: "lgp-forge-ops3", tenant: TENANT_SLUG, role: "ops" });
+    const r = await post(
+      "lgp-forge-inv",
+      evt("lgp-forge-inv", "invoice.issued", { invoice_id: "f1", party_id: "party-bill-to", division: "main", lines: [{ line_no: 1, kind: "freight", amount_cents: 10_000, gl_map: "4000-REV" }] }),
+      ops,
+    );
+    expect(r.status).toBe(403);
+    expect(requiredEvidence(r)).toHaveLength(0); // FORBIDDEN (server-emitted), not a gate block
+    expect(await streamCount("lgp-forge-inv")).toBe(0);
   });
 });

@@ -196,7 +196,9 @@ export function mountEventRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>):
     // did this" record. Coercing the source HERE, before the DO append, makes `source:'legacy'` (and 'edi'/'email')
     // UNFORGEABLE via any client route — the mirror carve-out can be reached only by the internal seam. This is
     // the general write route's lock; rate.ts / portal-actions / dunning / approvals / authority all already
-    // hardcode 'native'. (A non-object body is left as-is → the DO's EventInput.parse returns VALIDATION_FAILED.)
+    // hardcode 'native', and the one other append seam — /internal/platform/credit-append (internal-platform.ts,
+    // the secret-gated `_platform` credit door) — COERCES it the same way. (A non-object body is left as-is → the
+    // DO's EventInput.parse returns VALIDATION_FAILED.)
     if (input !== null && typeof input === "object") {
       (input as { source?: unknown }).source = "native";
     }

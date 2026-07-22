@@ -74,6 +74,15 @@ export function mountInternalPlatformRoutes(app: Hono<{ Bindings: Env; Variables
     if (!parsed.success) throw new ApiError("VALIDATION_FAILED", 400, "INVALID CREDIT APPEND BODY");
     const { streamId, input } = parsed.data;
 
+    // WP-15 Task 4b (REQ-021/030) — FORCE source:'native' here too. This is the SECOND append seam that can pass
+    // `platform:true` (the reserved `_platform` tenant), and its body is a loose z.record — so an input carrying
+    // `source:'legacy'` would land a gate-exempt, projection-skipped SHADOW credit event (no money_lines / AR) on
+    // the revenue tenant. NOT reachable today (secret-gated, server-to-server; the sole caller billing/credits.ts
+    // hardcodes native), but the "source:'legacy' is producible ONLY by the internal mirror seam" invariant
+    // forbids leaving the latent hole. Coerced here exactly as the public events route does (events.ts:200), so a
+    // credit event is always a REAL native money projection, never a legacy shadow.
+    input.source = "native";
+
     const stub = c.env.SHIPMENT_SEQ.get(
       c.env.SHIPMENT_SEQ.idFromName(`${PLATFORM_TENANT_ID}|${streamId}`),
     ) as unknown as SeqStub;
