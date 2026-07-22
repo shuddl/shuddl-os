@@ -276,6 +276,18 @@ export class ShipmentSequencer extends DurableObject<Env> {
     // positions bypass the sequencer entirely (Task 14 owns POST /v1/positions -> partitioned stream).
     if (parsed.kind === "position.updated") throw rpcError("VALIDATION_FAILED", { reason: "position.updated bypasses the sequencer" });
 
+    // WP-15 Task 3 (REQ-030/023, L8) — authority.flipped is a TENANT-LEVEL control event with ONE blessed home:
+    // the t:root stream (the admin-only, gated flip route). It must NEVER land on a shipment (s:) or quote (q:)
+    // stream: projectAuthority applies ANY authority.flipped to authority_map regardless of stream, so an
+    // authority.flipped on a shipment stream would flip authority while BYPASSING the flip guard (gatesGreenFor +
+    // the admin restriction + the money gate) AND shatter the single-stream/seq-order invariant. Enforced HERE at
+    // the DO — the single chokepoint EVERY append (every route, every internal seam) traverses — so no caller can
+    // inject one no matter which route it reaches. This is the structural twin of the events-route refusal
+    // (defense in depth); rejected BEFORE the tail read / gate / batch, so nothing is written and nothing projects.
+    if (parsed.kind === "authority.flipped" && streamId !== "t:root") {
+      throw rpcError("FORBIDDEN", { reason: "authority.flipped may only append on t:root (WP-15 flip guard)" });
+    }
+
     // Idempotency — replay by event id returns the original row (no second append).
     const byId = await db.prepare("SELECT * FROM events WHERE id = ?").bind(parsed.id).first<Record<string, string | number | null>>();
     if (byId) return rowToEvent(byId);

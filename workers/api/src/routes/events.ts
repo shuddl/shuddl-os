@@ -103,6 +103,16 @@ const PRIVILEGED_DECISION_ROLES: ReadonlySet<Role> = new Set<Role>(["finance", "
 // and never traverses this route, so the blessed emission is unaffected.
 const BLESSED_DECISION_KINDS: ReadonlySet<string> = new Set<string>(["approval.decided"]);
 
+// WP-15 Task 3 (REQ-030/023, L8) — authority.flipped is a TENANT-LEVEL control event with ONE blessed home:
+// POST /v1/authority/:module/flip (admin-only; it evaluates the gate FRESH and appends on t:root). Letting a
+// client append it through this GENERAL shipment route would BYPASS the entire flip guard — gatesGreenFor, the
+// admin-only restriction (ops/driver/finance can reach THIS route), the money clean-close gate — AND the t:root
+// single-stream/seq-order invariant, because projectAuthority applies ANY authority.flipped to authority_map
+// regardless of stream. Refused HERE for every role, before the driver write-scope + the DO append, so a refused
+// one appends NOTHING and never projects. The sequencer DO ALSO structurally rejects an authority.flipped off
+// t:root (defense in depth); the blessed flip route appends on t:root directly and never traverses this route.
+const CONTROL_PLANE_KINDS: ReadonlySet<string> = new Set<string>(["authority.flipped"]);
+
 const LIMIT_CAP = 1000;
 const DEFAULT_LIMIT = 200; // mirrors @shuddl/ledger/lens readEvents so next_cursor agrees with the page size
 // A shipment id far under any DO-name / KV-key limit; a real id is a slug, never kilobytes. Length only —
@@ -192,6 +202,14 @@ export function mountEventRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>):
     // to bypass that check. Checked before the driver write-scope + the DO append, so a refused one appends NOTHING.
     if (typeof inKind === "string" && BLESSED_DECISION_KINDS.has(inKind)) {
       throw new ApiError("FORBIDDEN", 403, "approval.decided IS RECORDED VIA /approval-decision (REQ-194)");
+    }
+
+    // REQ-030/023 (WP-15 Task 3) — authority.flipped is recorded ONLY via POST /v1/authority/:module/flip (the
+    // admin-only, gated, t:root-scoped flip guard). Refused here for every role so this general route can never be
+    // used to bypass the guard or the t:root single-stream invariant. Checked before the driver write-scope + the
+    // DO append, so a refused one appends NOTHING.
+    if (typeof inKind === "string" && CONTROL_PLANE_KINDS.has(inKind)) {
+      throw new ApiError("FORBIDDEN", 403, "authority.flipped IS RECORDED VIA /v1/authority/:module/flip (REQ-030/023)");
     }
 
     // REQ-185 — the PRIVILEGED-DECISION authorization boundary (see PRIVILEGED_DECISION_KINDS). Enforced HERE,

@@ -5,6 +5,7 @@ import { eventFixture, type EventKind, type LedgerEvent } from "@shuddl/contract
 import { eventToRow } from "@shuddl/ledger/lens";
 import { computeModuleParity } from "@shuddl/ledger/parity";
 import { resolveAuthority } from "@shuddl/ledger/authority";
+import { gatesGreenFor } from "../src/routes/authority.js";
 
 // WP-15 Task 3 (REQ-023/030, Ten Laws L8) — the Gatekeeper FLIP GUARD. A per-module authority flip is a
 // SERVER-SIDE Gatekeeper decision, never a UI toggle: POST /v1/authority/:module/flip evaluates the gate
@@ -264,5 +265,73 @@ describe("POST /v1/authority/:module/flip — the Gatekeeper flip guard (REQ-023
       .first<{ n: number }>();
     expect(bCount?.n ?? 0).toBe(0);
     expect(await resolveAuthority(env.TENANT_B_DB, "rating")).toBe("legacy"); // tenant-b map untouched
+  });
+
+  it("M1 — the money gate is blocked-by-construction: cleanCloseCount is 0, so a money forward flip stays blocked even with parity forced GREEN", async () => {
+    await forceParityGreen(env.TENANT_A_DB, "settlement", "settlement.executed", settlementPayload, SETTLEMENT_UNIT);
+    expect((await computeModuleParity(env.TENANT_A_DB, "settlement")).within_gate).toBe(true); // parity IS green
+    const gate = await gatesGreenFor(env.TENANT_A_DB, "settlement");
+    expect(gate.snapshot.clean_closes).toBe(0); // pinned: no honest in-repo close signal exists (genesis/13)
+    expect(gate.snapshot.clean_closes_required).toBe(2);
+    expect(gate.green).toBe(false); // ⇒ money authority cannot be earned in-repo, by construction
+    expect(gate.missing).toContain("clean_closes>=2");
+  });
+});
+
+// C1 (CRITICAL regression) — the flip guard MUST NOT be bypassable through any other API path. projectAuthority
+// applies ANY authority.flipped to authority_map regardless of stream, so an authority.flipped landing on a
+// SHIPMENT stream (reachable by the generic events route, which ops/driver can hit) would flip authority while
+// bypassing gatesGreenFor, the admin-only restriction, the money gate, AND the t:root single-stream invariant.
+// Closed at BOTH layers (defense in depth): the generic events route REFUSES the kind, and the sequencer DO — the
+// single chokepoint every append traverses — structurally rejects an authority.flipped off t:root.
+type SeqStub = DurableObjectStub & { append(req: { tenant: string; streamId: string; input: unknown }): Promise<{ id: string } & Record<string, unknown>> };
+
+async function postEvent(shipmentId: string, input: unknown, tok: string): Promise<{ status: number }> {
+  const res = await SELF.fetch(`https://api.local/v1/shipments/${shipmentId}/events`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${tok}`, "Idempotency-Key": crypto.randomUUID(), "content-type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  return { status: res.status };
+}
+
+const forgedFlip = (module: string, shipmentId: string): Record<string, unknown> => ({
+  id: crypto.randomUUID(),
+  shipment_id: shipmentId,
+  ts: Date.now(),
+  actor: { party: "party-shipper" },
+  party_refs: [],
+  evidence: [],
+  source: "native",
+  confidence: 10_000,
+  kind: "authority.flipped",
+  payload: { module, from: "legacy", to: "native", reason: "promote" }, // a hand-crafted, ungated promote
+});
+
+describe("C1 — the flip guard cannot be bypassed via any other API path (REQ-030, CLAUDE.md rule 3)", () => {
+  it("ROUTE layer: an admin's forged authority.flipped POSTed to the generic events route is REFUSED (403); authority_map is unchanged", async () => {
+    const admin = await token({ sub: "c1-admin", tenant: TENANT_SLUG, role: "admin" });
+    await setLegacy("comms", admin); // known baseline: the injection tries to flip comms→native
+    const r = await postEvent("c1-forge-route", forgedFlip("comms", "c1-forge-route"), admin);
+    expect(r.status).toBe(403); // refused at the general write route (its one home is /v1/authority/:module/flip)
+    expect(await resolveAuthority(env.TENANT_A_DB, "comms")).toBe("legacy"); // no projection ran — map untouched
+  });
+
+  it("ROUTE layer: an OPS principal (who can reach the generic route but NOT the admin flip route) cannot inject one either", async () => {
+    const admin = await token({ sub: "c1-admin-2", tenant: TENANT_SLUG, role: "admin" });
+    const ops = await token({ sub: "c1-ops", tenant: TENANT_SLUG, role: "ops" });
+    await setLegacy("dispatch", admin);
+    const r = await postEvent("c1-forge-ops", forgedFlip("dispatch", "c1-forge-ops"), ops);
+    expect(r.status).toBe(403); // the privilege-escalation vector (ops flipping authority) is closed
+    expect(await resolveAuthority(env.TENANT_A_DB, "dispatch")).toBe("legacy");
+  });
+
+  it("DO chokepoint: an authority.flipped appended on a non-t:root (shipment) stream is structurally rejected by the sequencer", async () => {
+    const admin = await token({ sub: "c1-admin-3", tenant: TENANT_SLUG, role: "admin" });
+    await setLegacy("comms", admin);
+    const streamId = "s:c1-forge-do";
+    const stub = env.SHIPMENT_SEQ.get(env.SHIPMENT_SEQ.idFromName(`${TENANT_SLUG}|${streamId}`)) as unknown as SeqStub;
+    await expect(stub.append({ tenant: TENANT_SLUG, streamId, input: forgedFlip("comms", "c1-forge-do") })).rejects.toThrow();
+    expect(await resolveAuthority(env.TENANT_A_DB, "comms")).toBe("legacy"); // rejected before any projection — map untouched
   });
 });

@@ -126,12 +126,13 @@ export async function gatesGreenFor(db: D1Database, module: AuthorityModule): Pr
   return { green, snapshot, missing };
 }
 
-// Deterministic, STABLE event id derived from the Idempotency-Key (present on every mutation — the idempotency
-// middleware enforces it). This route appends ONE event; a mid-flight 5xx is not HTTP-cached, so a retry re-runs
-// the handler — a random id would then DUPLICATE an already-committed flip. Deriving the id from
-// (idempotencyKey, module, to) makes a retry reproduce the SAME id, and the sequencer dedupes by id (returns the
-// existing row, never a second append). Shaped into a v4-variant UUID so it satisfies EventInput.id. Mirrors
-// rate.ts deterministicEventId.
+// Deterministic, STABLE event id derived from the Idempotency-Key. The idempotency middleware 400s a mutation
+// missing the header, so a request that reaches this handler ALWAYS carries one (the crypto.randomUUID fallback
+// at the call site is defensive-only — unreachable in practice). This route appends ONE event; a mid-flight 5xx
+// is not HTTP-cached, so a retry re-runs the handler — a random id would then DUPLICATE an already-committed flip.
+// Deriving the id from (idempotencyKey, module, to) makes a retry reproduce the SAME id, and the sequencer dedupes
+// by id (returns the existing row, never a second append). Shaped into a v4-variant UUID so it satisfies
+// EventInput.id. Mirrors rate.ts deterministicEventId.
 async function flipEventId(idempotencyKey: string, module: string, to: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`authority.flip:${idempotencyKey}:${module}:${to}`));
   const h = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
@@ -158,6 +159,8 @@ export function mountAuthorityRoutes(app: Hono<{ Bindings: Env; Variables: Vars 
     const db = await resolveTenantDb(c.env, session.tenant);
 
     // from = the CURRENT authority (fail-closed to legacy). Idempotent no-op when nothing changes — NO event.
+    // CONTRACT (client branches on this): a NO-OP returns 200 { module, from, to, flipped: false } and appends
+    // nothing; a REAL flip returns 201 with the appended authority.flipped event body. Status distinguishes them.
     const from: AuthorityLevel = await resolveAuthority(db, module);
     if (to === from) return c.json({ module, from, to, flipped: false });
 
@@ -185,7 +188,7 @@ export function mountAuthorityRoutes(app: Hono<{ Bindings: Env; Variables: Vars 
     const streamId = "t:root";
     const stub = c.env.SHIPMENT_SEQ.get(c.env.SHIPMENT_SEQ.idFromName(`${session.tenant}|${streamId}`)) as unknown as SeqStub;
     const idemKey = c.req.header("Idempotency-Key");
-    const id = idemKey === undefined ? crypto.randomUUID() : await flipEventId(idemKey, module, to);
+    const id = idemKey === undefined ? crypto.randomUUID() : await flipEventId(idemKey, module, to); // fallback defensive-only (middleware requires the header)
 
     let event: AppendedEvent;
     try {

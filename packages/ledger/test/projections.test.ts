@@ -406,10 +406,12 @@ describe("REQ-113 — agent_runs meters per-run cost/latency from agent.acted (t
 // never enforces a gate — that is the server-side Gatekeeper's job in a later task). The table ships UNSEEDED,
 // so a first-ever flip of a module must UPSERT. e.id is recorded in flipped_events idempotently. ─────────────
 describe("REQ-008/023 — authority_map projects authority.flipped (the module-by-module overlay, L8)", () => {
-  // stream_id must match the envelope regex (s:… | q:… | t:root); an authority flip is a queue-level control
-  // event, so it rides a q: stream and carries no shipment_id.
+  // An authority flip is a TENANT-LEVEL control event that rides the t:root stream (WP-15 Task 3 makes t:root its
+  // ONLY valid stream — the DO structurally rejects one off t:root) and carries no shipment_id. The projection
+  // itself is stream-agnostic (it applies `to` for any authority.flipped; the stream is the DO's gate, not the
+  // read-model's), but the fixture uses t:root to match the real single-stream invariant.
   function flip(payload: AuthorityFlippedPayload, seq = 0): LedgerEvent {
-    return mkEvent("authority.flipped", { stream_id: "q:authority", shipment_id: undefined, seq, actor: { party: "party-ops" }, payload });
+    return mkEvent("authority.flipped", { stream_id: "t:root", shipment_id: undefined, seq, actor: { party: "party-ops" }, payload });
   }
 
   it("a promote flip sets authority='native', records e.id in flipped_events, and writes gate_snapshot to gates_status", async () => {

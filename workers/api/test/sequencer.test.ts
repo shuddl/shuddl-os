@@ -375,9 +375,12 @@ describe("sequencer wiring sanity", () => {
 });
 
 // WP-15 Task 1 (REQ-008/023, L8) — an authority.flipped appended through the REAL DO batch lands in the
-// authority_map read-model in the SAME db.batch() (I1). It rides a q: control stream (no shipment_id — the
-// per-module overlay is not shipment-scoped). authority_map has no other writer, so this projection is the
-// map's sole author. Asserts by MEMBERSHIP (not whole-array equality) because this file runs with shared D1.
+// authority_map read-model in the SAME db.batch() (I1). It rides the TENANT-LEVEL t:root control stream (no
+// shipment_id — the per-module overlay is not shipment-scoped). WP-15 Task 3 makes t:root the ONLY stream an
+// authority.flipped may land on: the DO structurally rejects one off t:root (the flip-guard chokepoint), so these
+// integration seeds append on t:root (the single-stream invariant the flip route also upholds), not a q: stream.
+// authority_map has no other writer, so this projection is the map's sole author. Asserts by MEMBERSHIP (not
+// whole-array equality) because this file runs with shared D1 (the flip route + this suite both write t:root).
 describe("authority_map is projected from an appended authority.flipped through the DO batch (REQ-008/023)", () => {
   async function authorityRow(module: string): Promise<{ authority: string; gates_status: string; flipped_events: string } | null> {
     return env.TENANT_A_DB.prepare("SELECT authority, gates_status, flipped_events FROM authority_map WHERE module = ?")
@@ -386,7 +389,7 @@ describe("authority_map is projected from an appended authority.flipped through 
   }
 
   it("a promote flip UPSERTS the module row (authority=to), records the event id, and writes gate_snapshot", async () => {
-    const streamId = "q:authority-int";
+    const streamId = "t:root";
     const stub = stubFor(streamId);
     const r = await stub.append({
       tenant: TENANT,
@@ -404,7 +407,7 @@ describe("authority_map is projected from an appended authority.flipped through 
   });
 
   it("a redelivered flip (same event id) is idempotent — authority_map is unchanged, id recorded once", async () => {
-    const streamId = "q:authority-idem";
+    const streamId = "t:root";
     const stub = stubFor(streamId);
     const input = inputFor(streamId, {
       kind: "authority.flipped",
