@@ -1,6 +1,6 @@
 import { SELF, env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
-import { ensureSchema, token, TENANT_SLUG } from "./helpers.js";
+import { ensureSchema, ensureTenantPlaneSchema, token, TENANT_SLUG } from "./helpers.js";
 import { eventFixture, type EventKind, type LedgerEvent } from "@shuddl/contracts";
 import { eventToRow } from "@shuddl/ledger/lens";
 import { computeAllParity, PARITY_MODULES, type ModuleParity } from "@shuddl/ledger/parity";
@@ -13,7 +13,14 @@ import { computeAllParity, PARITY_MODULES, type ModuleParity } from "@shuddl/led
 // The DETERMINISTIC drift/anti-false-green correctness lives in the ledger package (packages/ledger/test/
 // parity.test.ts, isolatedStorage per-test). The api test D1 is SHARED across files (isolatedStorage off), so a
 // whole-tenant parity read reflects other suites' native events — hence the route test proves wiring, not exact
-// drift. No api suite seeds `source:'legacy'`, so the honest baseline here is "no legacy mirror ⇒ UNKNOWN".
+// drift. No api suite seeds a `source:'legacy'` invoice.issued into tenant-a, so tenant-a's invoicing legacy
+// side is honestly UNKNOWN (isolation.test.ts pins that, REQ-025). The one end-to-end LEGACY-MIRROR case below
+// therefore runs on a DEDICATED claimed-pool tenant (its own physical D1, never tenant-a) — mirroring
+// source-aware-ledger.test.ts — so its persistent, undeletable (append-only) legacy invoice can never bleed
+// into tenant-a's pinned parity. Everything else here stays on tenant-a (no persistent legacy seed).
+
+const DEDICATED_TENANT = "parity-mirror-tenant"; // a dedicated claimed tenant → its own pool D1 (never tenant-a)
+const DEDICATED_DB = env.TENANT_POOL_01_DB;
 
 let hashN = 0xa11000;
 const nextHash = (): string => (hashN++).toString(16).padStart(64, "0");
@@ -59,6 +66,16 @@ async function getParity(tok: string): Promise<{ status: number; modules: Module
 
 beforeAll(async () => {
   await ensureSchema(env);
+  // Provision the DEDICATED claimed-pool tenant for the end-to-end legacy-mirror case. Migrate its pool D1
+  // (idempotent, guarded) and register a control row → resolveClaimedTenantDb("parity-mirror-tenant") returns
+  // TENANT_POOL_01_DB. A DISTINCT id from the `_pool_0N` sentinels, so provision.test's resetPool (keyed by
+  // `_pool_0N`) never touches it. POOL_01 is chosen deliberately: no other api suite seeds a `source:'legacy'`
+  // invoice.issued there (source-aware-ledger.test.ts uses POOL_02), so this file is the SOLE legacy invoice
+  // seeder in that D1 and the surfaced legacy_value is exactly the one mirrored total.
+  await ensureTenantPlaneSchema(DEDICATED_DB);
+  await env.CONTROL_DB.prepare("INSERT OR IGNORE INTO tenants (id, name, slug, plan, policy, created_ts) VALUES (?,?,?,?,?,?)")
+    .bind("t-parity-mirror", "Parity-Mirror Tenant", DEDICATED_TENANT, "pilot", JSON.stringify({ pool_binding: "TENANT_POOL_01_DB" }), 0)
+    .run();
 });
 
 describe("GET /v1/parity — the v_parity overlay dashboard compute (REQ-023/152/153)", () => {
@@ -97,12 +114,17 @@ describe("GET /v1/parity — the v_parity overlay dashboard compute (REQ-023/152
   });
 
   it("surfaces a seeded legacy mirror end-to-end: with both a native AND a legacy invoice.issued, invoicing is no longer UNKNOWN", async () => {
-    // Seed the ONLY legacy invoice in the tenant D1 (77_777) + a native invoice (so the native side is present
-    // regardless of file order). legacy_value is deterministic (I am the sole legacy seeder); status is MATCH/DRIFT.
-    await seedEvent(env.TENANT_A_DB, "invoice.issued", { shipmentId: "parity-nat-inv", seq: 0, source: "native", payload: invoicePayload(80_000) });
-    await seedEvent(env.TENANT_A_DB, "invoice.issued", { shipmentId: "parity-leg-inv", seq: 0, source: "legacy", payload: invoicePayload(77_777) });
-    const ops = await token({ sub: "parity-both", tenant: TENANT_SLUG, role: "ops" });
+    // Seed the native (80_000) + legacy (77_777) invoices on the DEDICATED pool tenant (NOT tenant-a). Because
+    // `events` is append-only (a BEFORE DELETE guard blocks any teardown), a legacy invoice on tenant-a would
+    // persist and pollute tenant-a's whole-tenant invoicing parity — which isolation.test.ts pins to UNKNOWN
+    // (REQ-025). Seeding on a distinct physical D1 (where this file is the SOLE legacy seeder) keeps legacy_value
+    // deterministic AND leaves tenant-a clean. Drive the SAME GET /v1/parity route: the dedicated tenant's token
+    // resolves to its pool D1 via resolveClaimedTenantDb, so this proves the real wiring, not just the primitive.
+    await seedEvent(DEDICATED_DB, "invoice.issued", { shipmentId: "parity-nat-inv", seq: 0, source: "native", payload: invoicePayload(80_000) });
+    await seedEvent(DEDICATED_DB, "invoice.issued", { shipmentId: "parity-leg-inv", seq: 0, source: "legacy", payload: invoicePayload(77_777) });
+    const ops = await token({ sub: "parity-both", tenant: DEDICATED_TENANT, role: "ops" });
     const r = await getParity(ops);
+    expect(r.status).toBe(200); // the dedicated-tenant token resolved to its own pool D1 (route wiring, end-to-end)
     const invoicing = r.modules.find((m) => m.module === "invoicing") as ModuleParity;
     expect(invoicing.legacy_value).toBe(77_777); // the one legacy mirror total, surfaced honestly
     expect(typeof invoicing.native_value).toBe("number"); // native side present
