@@ -20,6 +20,7 @@ import { mountApprovalRoutes } from "./routes/approvals.js";
 import { mountExceptionRoutes } from "./routes/exceptions.js";
 import { mountKpiRoutes } from "./routes/kpis.js";
 import { mountParityRoutes } from "./routes/parity.js";
+import { mountAuthorityRoutes } from "./routes/authority.js";
 import { mountCopilotRoutes } from "./routes/copilot.js";
 import { mountBoardRoutes } from "./routes/board.js";
 import { mountExportRoutes } from "./routes/export-journal.js";
@@ -167,6 +168,14 @@ mountKpiRoutes(app);
 // so gate/dashboard/alarm can never drift. A DURABLE READ over `events` split by `source` — NO new table/kind/
 // projection. Tenant-lens roles only; tenant off the JWT claim (tenantDb, REQ-025). Task 7 renders the tile.
 mountParityRoutes(app);
+// WP-15 Task 3 (REQ-023/030, L8): POST /v1/authority/:module/flip — the Gatekeeper FLIP GUARD. A per-module
+// authority flip is a SERVER-SIDE decision, never a UI toggle: it evaluates the gate FRESH (parity via the shared
+// primitive + the money clean-close leg) and either PROMOTES a module to native (FORWARD — blocked until parity
+// is proven green) or FALLS BACK to legacy (BACKWARD — always allowed), recording a co-signed, append-only
+// authority.flipped event on the tenant-level t:root stream. authority_map changes ONLY via the Task-1 projection
+// of that event — never a direct write. admin-only; tenant off the JWT claim (resolveTenantDb, REQ-025). A /v1
+// route, so auth + idempotency already apply. NO new table/kind (authority.flipped is the frozen #35).
+mountAuthorityRoutes(app);
 // WP-10 Task 7 (REQ-038/024): POST /v1/copilot/ask — the READ-ONLY, cite-or-abstain ledger copilot. Binds a
 // lens-scoped D1 read port (readEvents(db, lensFor(session), q)) and runs the pure copilot core (@shuddl/agents,
 // where the LLM lives — statically linted). NO write path: the route only reads + returns {text, citations,
