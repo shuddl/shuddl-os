@@ -13,7 +13,8 @@
     "WP-11",
     "WP-12",
     "WP-13",
-    "WP-14"
+    "WP-14",
+    "WP-15"
   ],
   "note": "REQs in active WPs must have >=1 source annotation. Grows as WPs open; rows never leave."
 }
