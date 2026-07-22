@@ -375,7 +375,11 @@ export async function driftFallbackEventId(tenant: string, module: AuthorityModu
 
 // The reverting promotion EPISODE marker = the module's LAST recorded flip id. Because authority is native ONLY
 // when the last-applied flip set it native (the projection applies every flip's `to` in seq order and records its
-// id), the tail of flipped_events IS the promotion this fallback reverts. Missing/empty ⇒ "" (still deterministic).
+// id), the tail of flipped_events IS the promotion this fallback reverts.
+// L8 INVARIANT: native authority is reachable ONLY through a projected authority.flipped, and projectAuthority
+// ALWAYS records that flip's id in flipped_events — so a native module ALWAYS has a NON-empty flipped_events. The
+// empty ⇒ "" branch is therefore UNREACHABLE in a well-formed ledger; it is kept only as a deterministic fail-safe
+// (never a throw / random) for a hypothetically-corrupt map (a native row with no event = an L8 violation upstream).
 async function episodeMarkerFor(db: D1Database, module: AuthorityModule): Promise<string> {
   const row = await db.prepare("SELECT flipped_events FROM authority_map WHERE module = ?").bind(module).first<{ flipped_events: string }>();
   try {
@@ -462,9 +466,17 @@ async function sweepParityDrift(
     // parity_drift anomaly id (the audit link). The Task-1 projection reverts authority_map to legacy.
     let didFallback = false;
     if (seq !== undefined && (await resolveAuthority(db, module)) === "native") {
-      await appendDriftFallback(db, seq, tenant, module, id, now);
-      fell_back += 1;
-      didFallback = true;
+      // PER-MODULE FAULT CONTAINMENT: the alarm is ALREADY raised above, so a persistent append fault here must NOT
+      // abort the sweep and skip every LATER module's raise/clear (a newly-drifting one would go unalarmed, a
+      // reconverged one un-cleared). Log + CONTINUE — the deterministic per-episode fallback id makes a next-tick
+      // retry safe (the DO dedupes). Mirrors the per-tenant containment the cron wraps each tenant's sweep in.
+      try {
+        await appendDriftFallback(db, seq, tenant, module, id, now);
+        fell_back += 1;
+        didFallback = true;
+      } catch (err) {
+        console.error(`watchtower parity_drift: ${tenant}/${module} fallback append failed (alarm raised; retry next tick):`, err);
+      }
     }
     modules.push({ module, status: "DRIFT", raised: true, fell_back: didFallback });
   }

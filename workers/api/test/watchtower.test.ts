@@ -369,12 +369,16 @@ const committedFlipIds = new Map<string, number>();
 // EventInput (the DO's boundary — a malformed payload throws, so the test proves the fallback is a valid event);
 // (3) dedupes by id (the DO's replay-by-id — a repeat returns the original, NO re-projection); (4) runs the Task-1
 // projectAuthority in a batch (the DO's batch), reverting authority_map + recording the id in flipped_events.
-function recordingSeq(): Recorder {
+// `throwForModule` (optional) INJECTS a persistent append fault for one module — the per-module fault-containment test.
+function recordingSeq(throwForModule?: string): Recorder {
   const flips: RecordedFlip[] = [];
   const seq = {
     append: async (req: { tenant: string; streamId: string; input: unknown }): Promise<{ id: string }> => {
       const parsed = EventInput.parse(req.input); // the DO's boundary check — a bad fallback payload throws here
       if (parsed.kind === "authority.flipped") flips.push({ streamId: req.streamId, input: req.input as FlipInput });
+      if (parsed.kind === "authority.flipped" && (req.input as FlipInput).payload.module === throwForModule) {
+        throw new Error(`injected append fault for module ${throwForModule}`); // simulate a persistent DO/append fault
+      }
       const prior = committedFlipIds.get(parsed.id);
       if (prior !== undefined) return { id: parsed.id }; // replay-by-id: the DO returns the original, no re-project
       committedFlipIds.set(parsed.id, 1);
@@ -590,5 +594,57 @@ describe("Watchtower — parity_drift auto-fallback-to-legacy (REQ-008, the forc
     expect(flipsFor(s, module).length).toBe(0);
     // ...and a native module whose mirror is UNKNOWN is NOT auto-fallen-back (the documented "unmonitored" gap).
     expect(await resolveAuthority(env.TENANT_A_DB, module)).toBe("native");
+  });
+
+  it("PER-MODULE FAULT CONTAINMENT: a fallback append fault on one module does NOT stall the others (alarm still raised; later modules still evaluated; sweep does not throw) (REQ-008)", async () => {
+    // rating (FIRST in PARITY_MODULES): native + DRIFT ⇒ the fallback append is ATTEMPTED — and injected to throw.
+    await seedPromoted("rating", crypto.randomUUID());
+    expect((await forceDrift(seedRating, "rating")).status).toBe("DRIFT");
+    // settlement (a LATER module in PARITY_MODULES): legacy + DRIFT ⇒ it must STILL be RAISED this same sweep.
+    await env.TENANT_A_DB.prepare(
+      "INSERT INTO authority_map (module, authority) VALUES ('settlement','legacy') ON CONFLICT(module) DO UPDATE SET authority = 'legacy'",
+    ).run();
+    expect((await forceDrift(seedSettlement, "settlement")).status).toBe("DRIFT");
+    // CLEAR settlement's alarm first so a raise THIS sweep is observable (not a stale open from an earlier test).
+    const settleAlarmId = watchtowerAlarmId(TENANT, "parity_drift", { object: "settlement" });
+    await env.TENANT_A_DB.prepare("UPDATE anomalies SET status = 'resolved' WHERE id = ?").bind(settleAlarmId).run();
+
+    const s = recordingSeq("rating"); // the seq THROWS on rating's fallback append (a persistent enforcement fault)
+    // CONTAINMENT: the sweep RESOLVES (does not throw) despite the rating append fault.
+    await expect(runWatchtowerSweep(env.TENANT_A_DB, TENANT, NOW, {}, s.seq)).resolves.toBeDefined();
+
+    // rating's CRITICAL alarm is STILL raised (alarm-before-append ordering held) and it did NOT flip (append threw).
+    const ra = await alarm(watchtowerAlarmId(TENANT, "parity_drift", { object: "rating" }));
+    expect(ra!.severity).toBe("critical");
+    expect(ra!.status).toBe("open");
+    expect(await resolveAuthority(env.TENANT_A_DB, "rating")).toBe("native"); // fault ⇒ NO flip; the retry is next tick
+
+    // ...and SETTLEMENT (evaluated AFTER rating in the loop) was STILL raised THIS sweep — the loop did not abort.
+    const sa = await alarm(settleAlarmId);
+    expect(sa!.status).toBe("open");
+    expect(sa!.severity).toBe("critical");
+
+    // cleanup: leave rating legacy for sibling suites (its aggregate stays DRIFT but authority reverts).
+    await env.TENANT_A_DB.prepare("UPDATE authority_map SET authority = 'legacy' WHERE module = 'rating'").run();
+  });
+
+  it("seq-optional contract: WITHOUT a seq the rule RAISES the alarm but does NOT enforce (fail-safe, no flip); WITH a seq it DOES flip (the cron threads sequencerFor(env))", async () => {
+    const module = "rating";
+    await seedPromoted(module, crypto.randomUUID());
+    expect((await forceDrift(seedRating, module)).status).toBe("DRIFT");
+    const alarmId = watchtowerAlarmId(TENANT, "parity_drift", { object: module });
+
+    // WITHOUT a seq (the other 4 rules' calling convention): alarm RAISED, NO enforcement — authority stays native.
+    await runWatchtowerSweep(env.TENANT_A_DB, TENANT, NOW, {}); // no 5th arg
+    const noSeq = await alarm(alarmId);
+    expect(noSeq!.status).toBe("open");
+    expect(noSeq!.severity).toBe("critical");
+    expect(await resolveAuthority(env.TENANT_A_DB, module)).toBe("native"); // seq-absent ⇒ NO flip (fail-safe)
+
+    // WITH a seq (what the cron's runWatchtower threads via sequencerFor(env)): the SAME drift now DOES flip to legacy.
+    const s = recordingSeq();
+    await runWatchtowerSweep(env.TENANT_A_DB, TENANT, NOW, {}, s.seq);
+    expect(flipsFor(s, module).length).toBe(1);
+    expect(await resolveAuthority(env.TENANT_A_DB, module)).toBe("legacy");
   });
 });
