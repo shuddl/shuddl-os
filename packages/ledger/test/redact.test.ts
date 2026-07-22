@@ -161,3 +161,42 @@ describe("redactEvent: booking.created + dispatch.assigned internals (REQ-192)",
     }
   });
 });
+
+// REQ-074 (doc 07 §02, WP-16 verify) — the SERVER-SIDE geo-privacy boundary. The WP-03 threat-model flagged
+// that `generalizePosition` was "client-consumed" and the "true boundary is server-side scoping (WP-02 lens)".
+// It IS the lens boundary: redactEvent (server-side) coarsens PARTY geo to ~11 km + drops accuracy until
+// out-for-delivery; DRIVER + TENANT keep exact geo (an ops/driver privilege). Proven here so no
+// party-reachable read can leak an exact microdegree coordinate (a REQ-074 breach). The coarsening walk is
+// STRUCTURAL (top-level lat_e6/lon_e6 AND nested `geo`), so a future geo-bearing kind cannot silently reopen it.
+describe("redactEvent: party geo-privacy is generalized SERVER-SIDE (REQ-074)", () => {
+  const RAW = { lat_e6: 39_712_345, lon_e6: -104_987_654, accuracy_m: 5 };
+  const posEvent = (): LedgerEvent => ({ kind: "position.updated", payload: { ...RAW } }) as unknown as LedgerEvent;
+
+  it("PARTY lens coarsens lat/lon to ~11 km + drops accuracy — the exact coordinate never reaches a consignee", () => {
+    const red = redactEvent({ scope: "party" }, posEvent()).payload as Record<string, unknown>;
+    expect(red.lat_e6).toBe(39_700_000); // 0.1-deg grid (100_000 microdeg ≈ 11 km)
+    expect(red.lon_e6).toBe(-105_000_000);
+    expect("accuracy_m" in red).toBe(false); // the precision signal is dropped with the coords
+    expect(red.lat_e6).not.toBe(RAW.lat_e6); // the raw microdegree never survives the party lens
+  });
+
+  it("DRIVER + TENANT lenses keep EXACT geo (an ops/driver privilege)", () => {
+    for (const scope of ["driver", "tenant"] as const) {
+      const red = redactEvent({ scope }, posEvent()).payload as Record<string, unknown>;
+      expect(red.lat_e6).toBe(RAW.lat_e6);
+      expect(red.lon_e6).toBe(RAW.lon_e6);
+    }
+  });
+
+  it("PARTY lens unlocks exact geo ONLY at out-for-delivery (the forwardable-cap boundary)", () => {
+    const red = redactEvent({ scope: "party" }, posEvent(), true).payload as Record<string, unknown>;
+    expect(red.lat_e6).toBe(RAW.lat_e6);
+  });
+
+  it("nested `geo` (pod.signed) is coarsened for a party lens — structural, not kind-enumerated", () => {
+    const podEvent = { kind: "pod.signed", payload: { geo: { ...RAW } } } as unknown as LedgerEvent;
+    const geo = (redactEvent({ scope: "party" }, podEvent).payload as Record<string, unknown>).geo as Record<string, unknown>;
+    expect(geo.lat_e6).toBe(39_700_000);
+    expect("accuracy_m" in geo).toBe(false);
+  });
+});
