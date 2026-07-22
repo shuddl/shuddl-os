@@ -44,13 +44,14 @@ export interface AuthorityModuleFiles {
 }
 
 // The authoritative-output file(s) per overlay module that MUST consult resolveAuthority(db,'<module>'). Paths
-// are cwd-relative (matching rater-purity.ts + the CLI output). rating has THREE authoritative surfaces (the
-// authed /v1/rate route, the public guest quote, and the Concierge auto-reply which independently prices);
-// comms has TWO emitters of message.sent (the Concierge auto-reply and the dunning human-send). concierge.ts
-// therefore appears under BOTH rating and comms. Shrinking this registry is itself a red flag — the coverage
-// test guards its shape.
+// are cwd-relative (matching rater-purity.ts + the CLI output). rating has FOUR authoritative surfaces (the
+// authed /v1/rate route, the public guest quote, the Concierge auto-reply which independently prices, and the
+// EDI 204 inbound handler which prices a partner load tender — the same authoritative-emitter class as the
+// Concierge); comms has TWO emitters of message.sent (the Concierge auto-reply and the dunning human-send).
+// concierge.ts therefore appears under BOTH rating and comms. Shrinking this registry is itself a red flag —
+// the coverage test guards its shape.
 export const AUTHORITATIVE_FILES: readonly AuthorityModuleFiles[] = [
-  { module: "rating", files: ["workers/api/src/routes/rate.ts", "workers/api/src/pub/quote.ts", "workers/agents/src/concierge.ts"] },
+  { module: "rating", files: ["workers/api/src/routes/rate.ts", "workers/api/src/pub/quote.ts", "workers/agents/src/concierge.ts", "workers/translator/src/inbound.ts"] },
   { module: "invoicing", files: ["workers/agents/src/biller.ts"] },
   { module: "settlement", files: ["workers/agents/src/interline-split.ts"] },
   { module: "comms", files: ["workers/agents/src/concierge.ts", "workers/api/src/routes/dunning.ts"] },

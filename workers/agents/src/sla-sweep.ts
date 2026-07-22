@@ -18,6 +18,7 @@
 // PURITY OF INPUTS: `now` is supplied by the caller (the cron may read wall-clock); the signal's own ts is the
 // deterministic due ts, so nothing here reads a fresh clock.
 
+import { nativeVisibleSourceSql } from "@shuddl/ledger/queries/unbilled";
 import type { SeqStubLike } from "./biller.js";
 
 export interface SlaSweepResult {
@@ -49,13 +50,22 @@ interface OverdueRow {
 // the candidate set — so a queued-forever inbound is flagged exactly once, never re-appended every tick. The
 // "answered" check is deliberately NOT in this WHERE (kept as a scoped per-row query below) so the log can
 // distinguish answered-skips from genuinely-new appends.
+// SOURCE-AWARE (forward-safety): every `events` read here is restricted to NATIVE_VISIBLE_SOURCES (native/edi/
+// email — EXCLUDES the `legacy` shadow) via nativeVisibleSourceSql, the SAME single definition the KPI/metrics/
+// Watchtower aggregates share (@shuddl/ledger/queries/unbilled — no second copy). It is INERT today (no message
+// kind is mirrored — MIRROR_KINDS is quote.priced/invoice.issued/split.computed/dispatch.assigned/appointment.set),
+// but it upholds the invariant "native read-models exclude the legacy shadow" so a future comms mirror can never
+// make this sweep count legacy messages. `<alias>.source` is a HARDCODED literal at each call site, never input.
 const OVERDUE_SQL =
   "SELECT m.id AS msg_id, m.sla_due_ts AS due, e.stream_id AS stream_id, e.shipment_id AS shipment_id " +
   "FROM messages m " +
-  "JOIN events e ON e.kind = 'quote.requested' AND json_extract(e.payload, '$.source_message_event_id') = substr(m.id, 5) " +
+  "JOIN events e ON e.kind = 'quote.requested'" +
+  nativeVisibleSourceSql("e.source") +
+  " AND json_extract(e.payload, '$.source_message_event_id') = substr(m.id, 5) " +
   "WHERE m.direction = 'in' AND m.sla_due_ts IS NOT NULL AND m.sla_due_ts < ?1 " +
   "AND NOT EXISTS (" +
-  "  SELECT 1 FROM events n WHERE n.stream_id = e.stream_id AND n.kind = 'message.received' " +
+  "  SELECT 1 FROM events n WHERE n.stream_id = e.stream_id AND n.kind = 'message.received'" +
+  nativeVisibleSourceSql("n.source") +
   "    AND json_extract(n.payload, '$.body_ref') = 'concierge-sla-overdue/' || substr(m.id, 5)" +
   ")";
 
@@ -72,10 +82,12 @@ const OVERDUE_SQL =
 // answers THIS inbound AND carries NO such hold note. A SUCCESSFUL send (no hold note) STILL clears the SLA —
 // the REQ-174 backstop — because its message.sent has no correlated hold; only a HELD one is excluded here.
 const ANSWERED_SQL =
-  "SELECT 1 AS present FROM events s WHERE s.stream_id = ?1 AND s.kind = 'message.sent' " +
-  "AND json_extract(s.payload, '$.in_reply_to') = ?2 " +
+  "SELECT 1 AS present FROM events s WHERE s.stream_id = ?1 AND s.kind = 'message.sent'" +
+  nativeVisibleSourceSql("s.source") +
+  " AND json_extract(s.payload, '$.in_reply_to') = ?2 " +
   "AND NOT EXISTS (" +
-  "  SELECT 1 FROM events h WHERE h.stream_id = ?1 AND h.kind = 'message.received' " +
+  "  SELECT 1 FROM events h WHERE h.stream_id = ?1 AND h.kind = 'message.received'" +
+  nativeVisibleSourceSql("h.source") +
   "    AND json_extract(h.payload, '$.body_ref') = 'concierge-send-hold/' || s.id" +
   ") LIMIT 1";
 

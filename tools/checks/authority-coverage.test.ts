@@ -5,7 +5,7 @@ import { analyzeAuthorityCoverage, collectAuthoritativeFiles, AUTHORITATIVE_FILE
 // SYNTHETIC inputs to prove it (a) flags an authoritative file that DROPS the resolveAuthority consultation,
 // (b) is MODULE-AWARE — flags a file registered for module X that only consults module Y (the Concierge
 // rating-bypass class), and (c) passes a file that consults the right module; then assert the REAL wired files
-// all consult, and that the registry shape (5 modules / 8 (module,file) consults / 7 distinct files) has not
+// all consult, and that the registry shape (5 modules / 9 (module,file) consults / 8 distinct files) has not
 // silently shrunk.
 
 describe("analyzeAuthorityCoverage — flags a dropped or WRONG-MODULE consultation, passes the right one", () => {
@@ -61,12 +61,12 @@ describe("the REAL wired authoritative files all consult their module's resolveA
     expect(analyzeAuthorityCoverage(files)).toEqual([]);
   });
 
-  it("registers all 5 overlay modules / 8 (module,file) consults / 7 distinct files — a shrink is a red flag", () => {
+  it("registers all 5 overlay modules / 9 (module,file) consults / 8 distinct files — a shrink is a red flag", () => {
     const modules = AUTHORITATIVE_FILES.map((m) => m.module);
     expect(new Set(modules)).toEqual(new Set<CoverageModule>(["rating", "invoicing", "settlement", "comms", "dispatch"]));
     const pairs = collectAuthoritativeFiles();
-    expect(pairs.length).toBe(8); // (module,file) consults — concierge.ts counts under BOTH rating and comms
-    expect(new Set(pairs.map((p) => p.file)).size).toBe(7); // distinct files
+    expect(pairs.length).toBe(9); // (module,file) consults — concierge.ts counts under BOTH rating and comms
+    expect(new Set(pairs.map((p) => p.file)).size).toBe(8); // distinct files
     // dispatch is covered (orchestrator decision): its consult is the sequencer DO gate, scoped to the
     // appointment.set / dispatch.assigned gated kinds.
     expect(modules).toContain("dispatch");
@@ -74,5 +74,7 @@ describe("the REAL wired authoritative files all consult their module's resolveA
     // concierge.ts is authoritative for BOTH comms (it sends) and rating (it prices) — registered under both.
     expect(AUTHORITATIVE_FILES.find((m) => m.module === "rating")?.files).toContain("workers/agents/src/concierge.ts");
     expect(AUTHORITATIVE_FILES.find((m) => m.module === "comms")?.files).toContain("workers/agents/src/concierge.ts");
+    // the EDI 204 inbound handler independently prices a partner load tender → authoritative for rating, registered.
+    expect(AUTHORITATIVE_FILES.find((m) => m.module === "rating")?.files).toContain("workers/translator/src/inbound.ts");
   });
 });

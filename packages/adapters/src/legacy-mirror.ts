@@ -153,7 +153,9 @@ export function nullMap(): Record<string, string> {
 // EXPORTED as THE ONE canonical stringify for the echo contract (share-lint-matchers-with-parity-tests): the
 // project-OUT + the bidirectional soak (Task 5) reuse THIS function, never a re-implemented copy, so the mirror-IN
 // idSeed and the round-trip convergence proof agree byte-for-byte (a divergent stringify would be a silent
-// ping-pong). The worker's mirror-sweep keeps a hot-path replica for its own id derivation.
+// ping-pong). There is exactly ONE stableStringify — THIS definition; the mirror-IN idSeed (below), the Task-5
+// project-OUT (legacy-project-out.ts re-exports it), and the worker's mirror-sweep (which imports it from
+// @shuddl/adapters) ALL fold this SAME function — no hot-path replica anywhere (the Task-5 cleanup removed it).
 export function stableStringify(value: unknown): string {
   if (value === null || typeof value !== "object") return JSON.stringify(value) ?? "null";
   if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
