@@ -32,7 +32,7 @@
 // aggregate alarm ids, so a test case's rows never disturb a sibling's. Production passes no scope: one
 // tenant-wide alarm per (tenant, rule).
 
-import { scopeLike, unbilledShipmentsSql } from "@shuddl/ledger/queries/unbilled";
+import { scopeLike, unbilledShipmentsSql, nativeVisibleSourceSql } from "@shuddl/ledger/queries/unbilled";
 
 // ── severity thresholds (documented, deterministic) ─────────────────────────────────────────────────
 const DAY_MS = 86_400_000;
@@ -174,7 +174,7 @@ async function sweepPricingAnomaly(db: D1Database, tenant: string, opts: Watchto
   // detectAnomaly(...) at pricing; a sane price is basis.anomaly === null → SQL NULL → excluded here).
   const rows = (
     await db
-      .prepare(`SELECT id, shipment_id, payload FROM events WHERE kind = 'quote.priced' AND json_extract(payload, '$.basis.anomaly') IS NOT NULL${scoped}`)
+      .prepare(`SELECT id, shipment_id, payload FROM events WHERE kind = 'quote.priced'${nativeVisibleSourceSql("source")} AND json_extract(payload, '$.basis.anomaly') IS NOT NULL${scoped}`)
       .bind(...params)
       .all<{ id: string; shipment_id: string | null; payload: string }>()
   ).results;

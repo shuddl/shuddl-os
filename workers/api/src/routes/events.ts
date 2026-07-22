@@ -187,6 +187,20 @@ export function mountEventRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>):
 
     const input: unknown = await c.req.json().catch(() => null); // NEVER LedgerEvent.parse a request body — the DO parses EventInput
 
+    // WP-15 Task 4b (REQ-021/022/030) — FORCE source:'native' on EVERY client post, overriding any
+    // client-supplied `source`. `source:'legacy'` is a SHADOW mirror record producible ONLY by the internal
+    // mirror seam (workers/agents mirror-sweep, which calls the sequencer DO directly — never this route); the
+    // 'edi'/'email' seams are the inbound translator + email pipelines (likewise DO-direct). A client that could
+    // self-declare `source:'legacy'` would — now that the DO exempts legacy from the native physical-precondition
+    // gates (invoice→POD, appointment, dispatch) — BYPASS those gates entirely, forging a "the incumbent already
+    // did this" record. Coercing the source HERE, before the DO append, makes `source:'legacy'` (and 'edi'/'email')
+    // UNFORGEABLE via any client route — the mirror carve-out can be reached only by the internal seam. This is
+    // the general write route's lock; rate.ts / portal-actions / dunning / approvals / authority all already
+    // hardcode 'native'. (A non-object body is left as-is → the DO's EventInput.parse returns VALIDATION_FAILED.)
+    if (input !== null && typeof input === "object") {
+      (input as { source?: unknown }).source = "native";
+    }
+
     // REQ-030 / REQ-003 — a server-emitted money kind can NEVER be appended by a client, no matter the
     // role. Refused HERE, before the override handling, the driver write-scope, and the DO append — so
     // even an elevated ops/admin principal (and even a well-formed one on a pod-bearing stream, where the

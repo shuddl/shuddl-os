@@ -13,7 +13,7 @@
 // `scope` is applied ONLY as a BOUND `LIKE ?` param — never interpolated — and only over server-derived id
 // columns (never client input on this read).
 
-import { scopeLike } from "@shuddl/ledger/queries/unbilled";
+import { scopeLike, nativeVisibleSourceSql } from "@shuddl/ledger/queries/unbilled";
 // WP-11 Task 10 (REQ-160) — computeUnbilled / computeDsoDays / computeCostRatioBps were MOVED to the shared
 // @shuddl/ledger/queries/metrics module so the KPI route (this file's importer) and the weekly Watchtower
 // snapshot import the ONE source and can never drift (a parity test locks it). Re-exported here UNCHANGED, so
@@ -59,7 +59,7 @@ export async function computeOtdBps(db: D1Database, opts: KpiOpts = {}): Promise
     .prepare(
       `SELECT p.pod_ts AS pod_ts, dl.appt_end AS appt_end FROM
          (SELECT shipment_id, MIN(ts) AS pod_ts FROM events
-            WHERE kind='pod.signed' AND shipment_id IS NOT NULL${podScope} GROUP BY shipment_id) p
+            WHERE kind='pod.signed' AND shipment_id IS NOT NULL${nativeVisibleSourceSql("source")}${podScope} GROUP BY shipment_id) p
        JOIN
          (SELECT shipment_id, MAX(appt_window_end_ts) AS appt_end FROM legs
             WHERE kind='delivery' AND appt_window_end_ts IS NOT NULL${legScope} GROUP BY shipment_id) dl
@@ -83,7 +83,7 @@ export async function computeDwellMinutes(db: D1Database, opts: KpiOpts = {}): P
   const res = await db
     .prepare(
       `SELECT stream_id, seq, kind, ts FROM events
-       WHERE kind IN ('stop.arrived','stop.departed') AND shipment_id IS NOT NULL${scoped}
+       WHERE kind IN ('stop.arrived','stop.departed') AND shipment_id IS NOT NULL${nativeVisibleSourceSql("source")}${scoped}
        ORDER BY stream_id, seq`,
     )
     .bind(...params)

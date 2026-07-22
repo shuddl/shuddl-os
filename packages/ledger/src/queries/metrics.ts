@@ -18,7 +18,7 @@
 // in packages/ledger. `scope` (an id PREFIX) is applied ONLY as a BOUND `LIKE ?` param over server-derived id
 // columns (never interpolated, never client input) — the shared test-scope hook the KPI computes already use.
 
-import { scopeLike, unbilledShipmentsSql } from "./unbilled.js";
+import { scopeLike, unbilledShipmentsSql, nativeVisibleSourceSql } from "./unbilled.js";
 
 const DAY_MS = 86_400_000;
 /** The trailing window (7 days) the WEEKLY snapshot passes to the FLOW metrics (latency/duration), so each
@@ -97,7 +97,7 @@ export async function computeDsoDays(db: D1Database, opts: DsoMetricOpts): Promi
     .prepare(
       `SELECT i.total_cents AS total, e.ts AS issue_ts
        FROM invoices i JOIN events e ON e.id = i.issued_event_id
-       WHERE i.status='issued'${scoped}`,
+       WHERE i.status='issued'${nativeVisibleSourceSql("e.source")}${scoped}`,
     )
     .bind(...params)
     .all<{ total: number; issue_ts: number }>();
@@ -123,7 +123,7 @@ export async function computeCostRatioBps(db: D1Database, opts: MetricOpts = {})
   const res = await db
     .prepare(
       `SELECT stream_id, seq, payload FROM events
-       WHERE kind='quote.priced'${scoped} ORDER BY stream_id, seq`,
+       WHERE kind='quote.priced'${nativeVisibleSourceSql("source")}${scoped} ORDER BY stream_id, seq`,
     )
     .bind(...params)
     .all<{ stream_id: string; seq: number; payload: string }>();
@@ -168,10 +168,10 @@ export async function computePodToInvoiceLatencyMs(db: D1Database, opts: FlowMet
     .prepare(
       `SELECT p.pod_ts AS pod_ts, i.inv_ts AS inv_ts FROM
          (SELECT shipment_id, MIN(ts) AS pod_ts FROM events
-            WHERE kind='pod.signed' AND shipment_id IS NOT NULL${podScope} GROUP BY shipment_id) p
+            WHERE kind='pod.signed' AND shipment_id IS NOT NULL${nativeVisibleSourceSql("source")}${podScope} GROUP BY shipment_id) p
        JOIN
          (SELECT shipment_id, MIN(ts) AS inv_ts FROM events
-            WHERE kind='invoice.issued' AND shipment_id IS NOT NULL${invScope} GROUP BY shipment_id) i
+            WHERE kind='invoice.issued' AND shipment_id IS NOT NULL${nativeVisibleSourceSql("source")}${invScope} GROUP BY shipment_id) i
        ON i.shipment_id = p.shipment_id`,
     )
     .bind(...params)
@@ -226,7 +226,7 @@ export async function computeDisputesOpen(db: D1Database, opts: MetricOpts = {})
     .prepare(
       `SELECT ev.shipment_id AS sid, json_extract(s.status_cache,'$.state') AS state
        FROM events ev LEFT JOIN shipments s ON s.id = ev.shipment_id
-       WHERE ev.kind IN ('exception.raised','osd.captured') AND ev.shipment_id IS NOT NULL${scoped}
+       WHERE ev.kind IN ('exception.raised','osd.captured') AND ev.shipment_id IS NOT NULL${nativeVisibleSourceSql("ev.source")}${scoped}
        GROUP BY ev.shipment_id`,
     )
     .bind(...params)
@@ -254,10 +254,10 @@ export async function computeCloseDurationMs(db: D1Database, opts: FlowMetricOpt
     .prepare(
       `SELECT b.booking_ts AS booking_ts, t.term_ts AS term_ts FROM
          (SELECT shipment_id, MIN(ts) AS booking_ts FROM events
-            WHERE kind='booking.created' AND shipment_id IS NOT NULL${bookScope} GROUP BY shipment_id) b
+            WHERE kind='booking.created' AND shipment_id IS NOT NULL${nativeVisibleSourceSql("source")}${bookScope} GROUP BY shipment_id) b
        JOIN
          (SELECT shipment_id, MIN(ts) AS term_ts FROM events
-            WHERE kind IN (${termKinds}) AND shipment_id IS NOT NULL${termScope} GROUP BY shipment_id) t
+            WHERE kind IN (${termKinds}) AND shipment_id IS NOT NULL${nativeVisibleSourceSql("source")}${termScope} GROUP BY shipment_id) t
        ON t.shipment_id = b.shipment_id`,
     )
     .bind(...params)
