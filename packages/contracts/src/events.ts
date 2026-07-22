@@ -21,6 +21,7 @@ import {
   PickupScheduledPayload,
   DispatchAssignedPayload,
 } from "./booking.js";
+import { AuthorityFlippedPayload } from "./authority.js";
 
 // REQ-011 / doc 10 §01: the complete v1 catalog. Exactly 35 — adding a kind is a
 // register amendment (a test pins .length === 35 and the strings against doc 10).
@@ -332,7 +333,7 @@ export const LedgerEvent = z
     ev("approval.requested", JsonObject),
     ev("approval.decided", JsonObject),
     ev("agent.acted", AgentActedPayload),
-    ev("authority.flipped", JsonObject),
+    ev("authority.flipped", AuthorityFlippedPayload),
   ])
   .superRefine((e, ctx) => {
     // offline-dedupe refine (mirrors EventBase; the union cannot inherit it directly).
@@ -443,7 +444,7 @@ export const EventInput = z
     evInput("approval.requested", JsonObject),
     evInput("approval.decided", JsonObject),
     evInput("agent.acted", AgentActedPayload),
-    evInput("authority.flipped", JsonObject),
+    evInput("authority.flipped", AuthorityFlippedPayload),
   ])
   .superRefine((e, ctx) => {
     if (e.device_id !== undefined && e.device_seq === undefined) {
@@ -602,6 +603,10 @@ function fixturePayload(kind: EventKind): Record<string, unknown> {
       return { facility_id: "facility-1", window_start_ts: FIXTURE_TS, window_end_ts: FIXTURE_TS + 3_600_000 };
     case "dispatch.assigned":
       return { driver_user_id: "user-driver" };
+    // WP-15 (REQ-008/023): a minimal earned forward flip. gate_snapshot / drift_ref stay OMITTED so the
+    // fixture's canonical bytes carry only the four required keys (frozen-byte law: undefined keys drop).
+    case "authority.flipped":
+      return { module: "rating", from: "legacy", to: "native", reason: "promote" };
     default:
       return {};
   }

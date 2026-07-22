@@ -1,5 +1,6 @@
 import { LedgerEvent, type EventKind, type SessionClaims } from "@shuddl/contracts";
 import { redactEvent } from "./redact.js";
+import { NATIVE_VISIBLE_SOURCES } from "./queries/unbilled.js";
 
 // REQ-015 / I6: a lens is the server-derived scope a session reads through. It is computed
 // from JWT claims only (like `tenant`) — never from a query param or header.
@@ -94,6 +95,14 @@ export interface ReadQuery {
   // passes it).
   order?: "seq" | "ts_desc";
   before_ts?: number;
+  // WP-15 Task 4b (REQ-021) — the LEGACY-SHADOW opt-in. A `source:'legacy'` event exists in `events` for the
+  // native-vs-legacy PARITY compute ONLY (computeModuleParity, which reads `events` DIRECTLY, never via this
+  // lens); it is a mirror record of the incumbent's history, NOT a native fact. By DEFAULT readEvents EXCLUDES it
+  // from every native read surface it backs — the Command timeline (GET /v1/events), the command queues, the
+  // tenant export, the copilot grounding — so those RECONCILE with the source-aware KPI aggregates (which also
+  // exclude legacy). Set `includeShadow:true` to INCLUDE legacy rows: the ONLY legitimate caller is the Task-7
+  // v_parity dashboard drill-through, which shows a module's legacy BACKING events. Omitted/false ⇒ native only.
+  includeShadow?: boolean;
 }
 
 const LIMIT_CAP = 1000;
@@ -112,6 +121,15 @@ export async function readEvents(db: D1Database, lens: Lens, q: ReadQuery = {}):
   const w = lensWhere(lens);
   const clauses = [w.sql];
   const params: (string | number)[] = [...w.params];
+  // WP-15 Task 4b (REQ-021) — EXCLUDE the legacy shadow by DEFAULT. Native-visible = native/edi/email (the SAME
+  // NATIVE_VISIBLE_SOURCES single source of truth the KPI/metrics aggregates use — one definition, no drift), so
+  // the lens-backed timeline/queues/export/copilot reconcile with the Change-D aggregates. Bound as `?` params
+  // (never interpolated) exactly like every other value here — SQL-injection-safe. `includeShadow:true` opts in
+  // (Task-7 parity drill-through only). INERT on all native data: every native/edi/email row still matches.
+  if (q.includeShadow !== true) {
+    clauses.push(`e.source IN (${NATIVE_VISIBLE_SOURCES.map(() => "?").join(",")})`);
+    params.push(...NATIVE_VISIBLE_SOURCES);
+  }
   if (q.shipment_id !== undefined) {
     clauses.push("e.shipment_id = ?");
     params.push(q.shipment_id);

@@ -1,5 +1,5 @@
 import { SELF, env } from "cloudflare:test";
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   ensureSchema,
   ensureTenantBSchema,
@@ -8,14 +8,19 @@ import {
   TENANT_B_RATE_CONFIG,
   token,
   post,
+  retryOnDoInvalidation,
   TENANT_SLUG,
 } from "./helpers.js";
 import { HOST_TENANTS } from "../src/pub/quote.js";
 import { TENANT_BINDINGS } from "../src/tenants.js";
 import { mintStatusCap, verifyStatusCap } from "../src/pub/status-cap.js";
-import { eventFixture, type EventKind } from "@shuddl/contracts";
+import { eventFixture, EventInput, type EventKind, type LedgerEvent } from "@shuddl/contracts";
 import { eventToRow } from "@shuddl/ledger/lens";
 import { computeUnbilled } from "../src/kpis/compute.js";
+import { computeModuleParity } from "@shuddl/ledger/parity";
+import { resolveAuthority } from "@shuddl/ledger/authority";
+import { projectAuthority } from "@shuddl/ledger/projection/authority";
+import { runWatchtowerSweep } from "../../agents/src/watchtower.js";
 
 const JWT_SECRET = "test-secret-do-not-use-in-prod"; // === vitest.config.ts miniflare bindings.JWT_SECRET
 const nowS = (): number => Math.floor(Date.now() / 1000);
@@ -706,6 +711,55 @@ describe("REQ-025 growth: the KPI strip reads ONLY the JWT tenant's D1", () => {
   });
 });
 
+// WP-15 Task 6 growth (REQ-023/152/153 + REQ-025): the v_parity dashboard compute reads native-vs-legacy split
+// ONLY within the JWT tenant's own D1 (computeAllParity(tenantDb(session.tenant))). A tenant-b-only LEGACY mirror
+// event (in a DIFFERENT physical D1) must NEVER surface in tenant-a's parity — otherwise a neighbor's incumbent
+// export could fabricate (or poison) tenant-a's shadow-parity verdict and green a flip it should not.
+describe("REQ-025 growth: the v_parity compute reads ONLY the JWT tenant's D1 (source-split)", () => {
+  const B_LEG_INV = "iso-parity-b-legacy-inv"; // a tenant-b legacy invoice.issued — must never count for tenant-a
+  let pHashN = 0xe0000;
+  const pHash = (): string => (pHashN++).toString(16).padStart(64, "0");
+
+  beforeAll(async () => {
+    await ensureTenantBSchema(env);
+    // Direct-insert a LEGACY-source invoice.issued into tenant-b's D1 ONLY — the exact shape the invoicing parity
+    // sums on the legacy side. If any cross-tenant bleed existed, tenant-a's parity would see a legacy mirror.
+    const e = eventFixture("invoice.issued", {
+      id: crypto.randomUUID(),
+      stream_id: `s:${B_LEG_INV}`,
+      shipment_id: B_LEG_INV,
+      seq: 0,
+      source: "legacy",
+      visibility: "internal",
+      party_refs: [],
+      payload: { invoice_id: "iso-b-inv", party_id: "party-bill-to", division: "main", lines: [{ line_no: 1, kind: "freight", amount_cents: 654_321, gl_map: "4000-REV" }] },
+    });
+    const row = eventToRow(e);
+    row.hash = pHash();
+    const cols = Object.keys(row);
+    await env.TENANT_B_DB.prepare(`INSERT INTO events (${cols.join(",")}) VALUES (${cols.map(() => "?").join(",")})`)
+      .bind(...cols.map((c) => row[c]))
+      .run();
+  });
+
+  it("tenant-a's invoicing parity never sees the tenant-b-only legacy mirror (its legacy side stays UNKNOWN); tenant-b really has it", async () => {
+    // tenant-a has native invoices (other suites) but NO legacy mirror → legacy side UNKNOWN. tenant-b has the
+    // legacy row in its OWN physical D1 → its legacy side is exactly the seeded total. Cross-tenant bleed = 0.
+    const a = await computeModuleParity(env.TENANT_A_DB, "invoicing");
+    expect(a.legacy_value).toBe("UNKNOWN"); // tenant-a can never physically address tenant-b's legacy event
+    const b = await computeModuleParity(env.TENANT_B_DB, "invoicing");
+    expect(b.legacy_value).toBe(654_321); // tenant-b really carries it, in its own D1
+  });
+
+  it("GET /v1/parity is a tenant-lens surface (ops 200); ?tenant= is rejected at auth", async () => {
+    const t = await token({ sub: "u-parity-iso", tenant: TENANT_SLUG, role: "ops" });
+    const ok = await SELF.fetch("https://api.local/v1/parity", { headers: { Authorization: `Bearer ${t}` } });
+    expect(ok.status).toBe(200);
+    const spoof = await SELF.fetch("https://api.local/v1/parity?tenant=tenant-b", { headers: { Authorization: `Bearer ${t}` } });
+    expect(spoof.status).toBe(403); // tenant is resolved server-side, never client-supplied
+  });
+});
+
 // WP-10 Task 7 growth (REQ-038 + REQ-025): the copilot answers ONLY over the JWT tenant's D1, through the
 // caller's lens. Its read port is readEvents(db, lensFor(session), q) keyed off the claim via tenantDb — it
 // can never ground an answer on another tenant's events. A tenant-b-only exception (in a DIFFERENT physical
@@ -911,5 +965,231 @@ describe("REQ-025 growth: GET /v1/watchtower reads ONLY the JWT tenant's anomali
     const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "ops" });
     const res = await SELF.fetch("https://api.local/v1/watchtower?tenant=tenant-b&status=open", { headers: { Authorization: `Bearer ${t}` } });
     expect(res.status).toBe(403);
+  });
+});
+
+// ─── WP-15 Task 9 — COMPLETE the mirror + parity + authority tenant-isolation matrix (REQ-025) ─────────
+// The four WP-15 tenant-scoped WRITE/READ paths whose isolation the central matrix still lacked. Each seeds
+// tenant-b state that WOULD surface (or a write that WOULD land) in tenant-a if a leak existed, then asserts
+// tenant-a is clean AND that the real effect happened on the intended tenant (the non-tautology control).
+
+// (Path 1) WP-15 Task 3 growth (REQ-023/030 + REQ-025): the authority FLIP WRITE — POST /v1/authority/:module/flip.
+// A per-module flip is a co-signed authority.flipped appended on the tenant-level t:root stream and projected into
+// authority_map, keyed off the JWT tenant via the DO's structural (tenant|stream) pin. A tenant-a admin flip must
+// NEVER touch tenant-b's authority_map; the tenant comes from the JWT claim ONLY. The WRITE-lands-only-in-tenant-a
+// proof is two-part and DELIBERATELY not re-run here: (i) authority-flip.test.ts:257 already asserts a tenant-a flip
+// leaves tenant-b's ledger + authority_map untouched (its own file, where the cross-worker t:root DO is exercised
+// within-file); (ii) the DO's structural (tenant|stream) pin — a tenant-a append can never re-key onto tenant-b's D1
+// — is proven by the sequencer suite AND the mirror-DO block below. The central matrix intentionally avoids a SECOND
+// cross-file real-t:root-DO append (a documented pool-workers reload flake that leaks a 500 into sibling SELF.fetch
+// suites; watchtower.test.ts avoids it for the same reason). What it DOES pin here is the auth-boundary: the flip
+// route rejects EVERY client tenant hint, exactly like every other /v1 route in this matrix.
+describe("REQ-025 growth: POST /v1/authority/:module/flip resolves tenant server-side, never a client hint", () => {
+  async function flip(query: string, headers: Record<string, string>, tok: string): Promise<Response> {
+    return SELF.fetch(`https://api.local/v1/authority/rating/flip${query}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tok}`, "Idempotency-Key": crypto.randomUUID(), "content-type": "application/json", ...headers },
+      body: JSON.stringify({ to: "legacy" }),
+    });
+  }
+
+  it("?tenant= query param on the flip is rejected at auth (TENANT_MISMATCH) — the flip binds the JWT tenant", async () => {
+    const admin = await token({ sub: "iso-flip-qp", tenant: TENANT_SLUG, role: "admin" });
+    const res = await flip("?tenant=tenant-b", {}, admin);
+    expect(res.status).toBe(403); // rejected BEFORE the flip logic / any t:root append — tenant-b can never be re-keyed
+  });
+
+  it("X-Tenant-Id header on the flip is rejected at auth (TENANT_MISMATCH)", async () => {
+    const admin = await token({ sub: "iso-flip-hdr", tenant: TENANT_SLUG, role: "admin" });
+    const res = await flip("", { "X-Tenant-Id": "tenant-b" }, admin);
+    expect(res.status).toBe(403);
+  });
+});
+
+// (Path 2) WP-15 Task 4 growth (REQ-021/022 + REQ-025): the MIRROR WRITE path at the api/DO level. The legacy-mirror
+// sweep appends source:'legacy' SHADOW events THROUGH the ShipmentSequencer DO. mirror-sweep.test.ts proves the sweep
+// only ever CALLS append with the swept tenant (a stubbed seq); this proves the REAL DO honors it — a legacy event
+// appended on tenant-a's stream lands in tenant-a's physical D1 ONLY, never tenant-b's. The DO structurally pins
+// (tenant|stream) → its OWN id (do/sequencer.ts:240-243), so a tenant-a append can never re-key onto tenant-b's D1.
+// Non-tautological: tenant-a really receives the shadow (the write executed), tenant-b never does.
+describe("REQ-025 growth: a legacy mirror event appended via the DO lands ONLY in the swept tenant's D1", () => {
+  type SeqStub = DurableObjectStub & {
+    append(req: { tenant: string; streamId: string; input: unknown }): Promise<{ id: string } & Record<string, unknown>>;
+  };
+  const A_MIRROR_SHP = "iso-mirror-tenant-a-only"; // the swept (tenant-a) shadow shipment
+  const A_MIRROR_STREAM = `s:${A_MIRROR_SHP}`;
+
+  // The exact shape the mirror sweep appends: the agent:legacy-mirror sentinel actor, source:'legacy', no parties
+  // FK / device sig. dispatch.assigned is a REAL mirror kind, NATIVE-gated (carrier docs) but LEGACY-exempt, so a
+  // clean append also reconfirms the source-aware carve-out. It is chosen over invoice.issued deliberately: the
+  // DO-level tenant pin is kind-agnostic, and invoice.issued would perturb the pinned whole-tenant invoicing
+  // legacy_value (parity.test.ts / the v_parity iso case). dispatch is a COUNT no suite pins absolutely.
+  const legacyMirrorInput = (): Record<string, unknown> => ({
+    id: crypto.randomUUID(),
+    shipment_id: A_MIRROR_SHP,
+    ts: 1_720_000_000_000,
+    actor: { party: "agent:legacy-mirror" },
+    party_refs: [],
+    evidence: [],
+    source: "legacy",
+    confidence: 10_000,
+    kind: "dispatch.assigned",
+    payload: { driver_user_id: "iso-mirror-driver" },
+  });
+
+  it("a tenant-a legacy append via the DO writes tenant-a's events ONLY, never tenant-b's (REQ-025)", async () => {
+    const input = legacyMirrorInput();
+    const stub = env.SHIPMENT_SEQ.get(env.SHIPMENT_SEQ.idFromName(`${TENANT_SLUG}|${A_MIRROR_STREAM}`)) as unknown as SeqStub;
+    const appended = await retryOnDoInvalidation(() => stub.append({ tenant: TENANT_SLUG, streamId: A_MIRROR_STREAM, input }));
+    const eventId = appended.id;
+
+    const legacyCountIn = async (db: D1Database): Promise<number> =>
+      (await db.prepare("SELECT COUNT(*) AS n FROM events WHERE id = ? AND source = 'legacy'").bind(eventId).first<{ n: number }>())?.n ?? 0;
+    expect(await legacyCountIn(env.TENANT_A_DB)).toBe(1); // the swept tenant really received the shadow (write executed)
+    expect(await legacyCountIn(env.TENANT_B_DB)).toBe(0); // and it NEVER landed in tenant-b's D1 (a different physical handle)
+  });
+});
+
+// (Path 3) WP-15 Task 7 growth (REQ-021/152/153 + REQ-025): the v_parity LEGACY DRILL — GET /v1/events?…&includeShadow=true.
+// The Command v_parity dashboard's legacy drill-through opts the source:'legacy' shadow rows back into the firehose.
+// source-aware-ledger.test.ts proves the OPT-IN behavior (default excludes, includeShadow includes) on the pool
+// tenant; this proves the drill stays TENANT-SCOPED — includeShadow widens the SOURCE filter, NEVER the tenant. A
+// tenant-a operator's shadow drill reads tenant-a's D1 only (tenantDb off the claim); a tenant-b legacy mirror event
+// (a DIFFERENT physical D1) must NEVER surface, or a neighbor's incumbent export would bleed into tenant-a's drill.
+describe("REQ-025 growth: the includeShadow drill reads ONLY the JWT tenant's legacy shadow", () => {
+  const B_SHADOW_SHP = "iso-shadow-tenant-b-only"; // a tenant-b legacy mirror event — must NEVER appear for tenant-a
+  const SHADOW_KIND: EventKind = "dispatch.assigned"; // a real mirror kind; NOT invoice.issued (pinned invoicing legacy)
+  const shHash = (): string => crypto.randomUUID().replace(/-/g, "").padEnd(64, "0");
+  let bShadowEventId = "";
+
+  async function seedLegacyShadow(db: D1Database, shipmentId: string): Promise<string> {
+    const e = eventFixture(SHADOW_KIND, {
+      id: crypto.randomUUID(),
+      stream_id: `s:${shipmentId}`,
+      shipment_id: shipmentId,
+      seq: 0,
+      source: "legacy",
+      visibility: "internal",
+      party_refs: [],
+      payload: { driver_user_id: `${shipmentId}-driver` },
+    });
+    const row = eventToRow(e);
+    row.hash = shHash();
+    const cols = Object.keys(row);
+    await db.prepare(`INSERT INTO events (${cols.join(",")}) VALUES (${cols.map(() => "?").join(",")})`).bind(...cols.map((c) => row[c])).run();
+    return e.id;
+  }
+
+  beforeAll(async () => {
+    bShadowEventId = await seedLegacyShadow(env.TENANT_B_DB, B_SHADOW_SHP);
+  });
+
+  it("a tenant-a includeShadow firehose NEVER returns a tenant-b legacy event; tenant-b's own drill DOES (REQ-025)", async () => {
+    const url = `https://api.local/v1/events?kind=${SHADOW_KIND}&limit=1000&includeShadow=true`;
+
+    // tenant-a: the shadow drill opts legacy IN, but only WITHIN tenant-a's D1 — tenant-b's mirror is unreachable.
+    const aTok = await token({ sub: "iso-shadow-a", tenant: TENANT_SLUG, role: "ops" });
+    const aRes = await SELF.fetch(url, { headers: { Authorization: `Bearer ${aTok}` } });
+    expect(aRes.status).toBe(200);
+    const aBody = (await aRes.json()) as { events: Array<{ id: string; shipment_id?: string }> };
+    expect(aBody.events.some((e) => e.id === bShadowEventId)).toBe(false); // tenant-b's shadow never bleeds in
+    expect(aBody.events.some((e) => e.shipment_id === B_SHADOW_SHP)).toBe(false);
+
+    // NON-TAUTOLOGY CONTROL: tenant-b's OWN includeShadow drill DOES surface it — proving the seed is real AND that
+    // includeShadow would surface it if the physical D1 were shared. tenant-a's clean read is isolation, not a filter no-op.
+    const bTok = await token({ sub: "iso-shadow-b", tenant: "tenant-b", role: "ops" });
+    const bRes = await SELF.fetch(url, { headers: { Authorization: `Bearer ${bTok}` } });
+    expect(bRes.status).toBe(200);
+    const bBody = (await bRes.json()) as { events: Array<{ id: string; source: string }> };
+    expect(bBody.events.some((e) => e.id === bShadowEventId && e.source === "legacy")).toBe(true);
+  });
+
+  it("?tenant= query param on the includeShadow firehose is rejected at auth", async () => {
+    const t = await token({ sub: "iso-shadow-a2", tenant: TENANT_SLUG, role: "ops" });
+    const res = await SELF.fetch("https://api.local/v1/events?includeShadow=true&tenant=tenant-b", { headers: { Authorization: `Bearer ${t}` } });
+    expect(res.status).toBe(403);
+  });
+});
+
+// (Path 4) WP-15 Task 8 growth (REQ-008 + REQ-025): the Watchtower parity_drift AUTO-FALLBACK. The 5th rule auto-flips
+// a DRIFTED native module back to legacy by appending authority.flipped on t:root through the sequencer. The Watchtower
+// is tenant-scoped BY CONSTRUCTION — runWatchtowerSweep binds ONE tenant's db + tenant string, and the fallback append
+// carries that tenant. This proves the enforcement reaches ONLY the swept tenant's authority_map: with BOTH tenants set
+// up native + drifting (equally flippable), a tenant-a-ONLY sweep flips tenant-a's rating to legacy and leaves tenant-b's
+// authority_map untouched (native). Non-tautological: tenant-b stays native ONLY because its db was never swept — a leak
+// into a shared/other-tenant map would flip it too (the recording seq routes the projection by the APPEND'S tenant).
+describe("REQ-025 growth: a tenant-a parity_drift auto-fallback flips ONLY tenant-a's authority_map", () => {
+  const NOW = Date.parse("2026-07-20T00:00:00Z");
+  const committedFlipIds = new Set<string>();
+  let wSeq = 0;
+  const wHash = (): string => crypto.randomUUID().replace(/-/g, "").padEnd(64, "0");
+
+  // A recording SeqStub modeling the DO: VALIDATE the EventInput (the boundary), dedupe by id, and run the Task-1
+  // projectAuthority against the APPEND'S OWN tenant db (so a leak that appended with tenant-b WOULD flip tenant-b).
+  function recordingSeq(): { append(req: { tenant: string; streamId: string; input: unknown }): Promise<{ id: string }> } {
+    return {
+      append: async (req: { tenant: string; streamId: string; input: unknown }): Promise<{ id: string }> => {
+        const parsed = EventInput.parse(req.input); // the DO's boundary check
+        const db = req.tenant === TENANT_SLUG ? env.TENANT_A_DB : env.TENANT_B_DB; // route by the APPEND'S declared tenant
+        if (!committedFlipIds.has(parsed.id)) {
+          committedFlipIds.add(parsed.id); // replay-by-id: one projection per fallback id
+          await db.batch(projectAuthority(db, parsed as unknown as LedgerEvent));
+        }
+        return { id: parsed.id };
+      },
+    };
+  }
+
+  async function seedRating(db: D1Database, source: "native" | "legacy", v: number): Promise<void> {
+    const shp = `iso-wt-${source}-${wSeq++}`;
+    const e = eventFixture("quote.priced", { id: crypto.randomUUID(), stream_id: `s:${shp}`, shipment_id: shp, seq: 0, source, visibility: "internal", party_refs: [], payload: { sell: v, lines: [{ kind: "freight", code: "LINEHAUL", amount_cents: v }], floors: { contribution: 1, full: 1, target: 1 }, versions: { rate_config_ids: ["zt-iso-wt"] }, basis: {} } });
+    const row = eventToRow(e);
+    row.hash = wHash();
+    const cols = Object.keys(row);
+    await db.prepare(`INSERT INTO events (${cols.join(",")}) VALUES (${cols.map(() => "?").join(",")})`).bind(...cols.map((c) => row[c])).run();
+  }
+  // Promote a tenant's rating to native with a marker in flipped_events (the episode marker the fallback id folds in).
+  async function seedPromotedNative(db: D1Database): Promise<void> {
+    const marker = `iso-wt-promo-${wSeq++}`;
+    await db.prepare(
+      "INSERT INTO authority_map (module, authority, gates_status, flipped_events) VALUES ('rating','native','{}',json_array(?)) ON CONFLICT(module) DO UPDATE SET authority = 'native', flipped_events = json_array(?)",
+    ).bind(marker, marker).run();
+  }
+  // Force rating into DRIFT with a BOUNDED, ADAPTIVE aggregate (robust to shared-D1 pollution): a tiny legacy seed
+  // guarantees both sides present (⇒ DRIFT not UNKNOWN); the native seed clears the larger current side by ≥100%.
+  async function forceDrift(db: D1Database): Promise<void> {
+    await seedRating(db, "legacy", 1_000);
+    const p0 = await computeModuleParity(db, "rating");
+    const nat = p0.native_value === "UNKNOWN" ? 0 : (p0.native_value as number);
+    const leg = p0.legacy_value === "UNKNOWN" ? 0 : (p0.legacy_value as number);
+    await seedRating(db, "native", Math.max(nat, leg, 1_000_000) * 2 + 1_000_000);
+    expect((await computeModuleParity(db, "rating")).status).toBe("DRIFT");
+  }
+
+  // Restore the fail-closed default for sibling suites regardless of pass/fail (an order-independent suite must not
+  // leave tenant-b's rating 'native' — authority-flip.test.ts's own iso case asserts it is 'legacy').
+  afterAll(async () => {
+    await env.TENANT_A_DB.prepare("UPDATE authority_map SET authority = 'legacy' WHERE module = 'rating'").run();
+    await env.TENANT_B_DB.prepare("UPDATE authority_map SET authority = 'legacy' WHERE module = 'rating'").run();
+  });
+
+  it("both tenants native + drifting; a tenant-a-ONLY sweep flips tenant-a to legacy, leaves tenant-b native (REQ-025)", async () => {
+    // set up BOTH tenants identically: rating promoted native + forced into DRIFT (both equally flippable).
+    await seedPromotedNative(env.TENANT_A_DB);
+    await seedPromotedNative(env.TENANT_B_DB);
+    await forceDrift(env.TENANT_A_DB);
+    await forceDrift(env.TENANT_B_DB);
+    expect(await resolveAuthority(env.TENANT_A_DB, "rating")).toBe("native");
+    expect(await resolveAuthority(env.TENANT_B_DB, "rating")).toBe("native");
+
+    // sweep ONLY tenant-a (its db + tenant). The fallback append carries tenant-a → projects onto tenant-a's map.
+    const s = recordingSeq();
+    await runWatchtowerSweep(env.TENANT_A_DB, TENANT_SLUG, NOW, {}, s);
+
+    expect(await resolveAuthority(env.TENANT_A_DB, "rating")).toBe("legacy"); // POSITIVE CONTROL: the swept tenant auto-fell-back
+    // ISOLATION: tenant-b was equally native + drifting, but its db was NEVER swept — its authority_map is untouched.
+    expect(await resolveAuthority(env.TENANT_B_DB, "rating")).toBe("native");
+    const bFallback = await env.TENANT_B_DB.prepare("SELECT flipped_events FROM authority_map WHERE module = 'rating'").first<{ flipped_events: string }>();
+    expect((JSON.parse(bFallback?.flipped_events ?? "[]") as string[]).length).toBe(1); // ONLY the promo marker — no fallback appended to tenant-b
   });
 });

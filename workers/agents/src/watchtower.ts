@@ -15,6 +15,18 @@
 //                       `agent_runs` (the metering projection) per agent; RAISES when the window's avg latency
 //                       or avg cost/run exceeds DEFAULT_AGENT_BUDGET; CLEARS when back in budget. One alarm per
 //                       agent, keyed by the agent (object), self-clearing. Honest: averages only REPORTED metrics.
+//   5. parity_drift    — (WP-15 Task 8, REQ-008) the OVERLAY safety net. Per overlay module, computes the SHARED
+//                       computeModuleParity; a DRIFT (a promoted-native module that has diverged from the legacy
+//                       mirror beyond tolerance) RAISES a CRITICAL alarm keyed (tenant, module) AND — when that
+//                       module is CURRENTLY native — AUTO-FALLS-BACK to legacy by appending authority.flipped
+//                       {to:'legacy',reason:'drift'} on t:root via the SeqStub (the Task-1 projection reverts
+//                       authority_map). MATCH/UNKNOWN → CLEAR. THE ASYMMETRY: fallback DOWN is AUTOMATIC on a
+//                       single breach; promotion UP is NEVER automatic — this rule ONLY EVER appends to:'legacy'.
+//                       The fallback event id is DETERMINISTIC in the reverting promotion EPISODE (the last flip
+//                       recorded on the module), so a concurrent/re-run sweep dedupes at the DO (at most one
+//                       fallback per episode) while a later re-promotion that drifts again is a NEW episode ⇒ a
+//                       NEW fallback. After a fallback the module is legacy, so the rule never re-fires — re-
+//                       promotion is the gated flip route ONLY (never auto-re-promote). LLM-free (REQ-024).
 //
 // SELF-CLEARING + IDEMPOTENT (mirrors the anchor TSA alarm, anchor.ts:274-301): the alarm is written by the
 // ON-CONFLICT UPSERT — one row per deterministic id, open→re-raise on conflict, resolved when the condition
@@ -32,7 +44,10 @@
 // aggregate alarm ids, so a test case's rows never disturb a sibling's. Production passes no scope: one
 // tenant-wide alarm per (tenant, rule).
 
-import { scopeLike, unbilledShipmentsSql } from "@shuddl/ledger/queries/unbilled";
+import { scopeLike, unbilledShipmentsSql, nativeVisibleSourceSql } from "@shuddl/ledger/queries/unbilled";
+import { computeModuleParity, PARITY_MODULES, PARITY_TOLERANCE_BPS, type AuthorityModule, type ParityStatus } from "@shuddl/ledger/parity";
+import { resolveAuthority } from "@shuddl/ledger/authority";
+import { uuidFromSeed, type SeqStubLike } from "./biller.js";
 
 // ── severity thresholds (documented, deterministic) ─────────────────────────────────────────────────
 const DAY_MS = 86_400_000;
@@ -58,6 +73,14 @@ export const DEFAULT_AGENT_BUDGET: AgentBudget = { maxAvgLatencyMs: 5_000, maxAv
 const AGENT_DRIFT_WINDOW_MS = DAY_MS;
 // A window average at/above this multiple of budget is a runaway → CRITICAL; merely over-budget → WARN.
 const AGENT_DRIFT_CRITICAL_RATIO = 2;
+
+// ── parity-drift auto-fallback (WP-15 Task 8, REQ-008) ────────────────────────────────────────────────
+// The server sentinel that CO-SIGNS the auto-fallback authority.flipped (mirrors mirror-sweep's agent:legacy-
+// mirror + the flip route's system:gatekeeper). authority.flipped accrues no parties-FK, so the sentinel party
+// is safe; there is no `user` (this is a machine decision, not a human co-sign).
+const WATCHTOWER_ACTOR = "agent:watchtower";
+// A deterministic server control decision — full confidence (matches the flip route's authority.flipped).
+const FLIP_CONFIDENCE = 10_000;
 
 export type AlarmSeverity = "info" | "warn" | "critical";
 
@@ -89,6 +112,21 @@ export interface WatchtowerResult {
       avgCostCents: number | null;
       severity: AlarmSeverity | null;
       status: "open" | "resolved";
+    }>;
+  };
+  /** WP-15 Task 8 (REQ-008) — the overlay parity-drift check + auto-fallback, per overlay module. */
+  parity_drift: {
+    /** Modules in DRIFT this pass (one critical alarm each). */
+    alarmed: number;
+    /** Native modules AUTO-flipped back to legacy this pass (one authority.flipped on t:root each). */
+    fell_back: number;
+    modules: Array<{
+      module: AuthorityModule;
+      status: ParityStatus;
+      /** A CRITICAL parity_drift alarm was raised (DRIFT); false ⇒ cleared (MATCH/UNKNOWN). */
+      raised: boolean;
+      /** A native module was auto-flipped back to legacy (DRIFT + authority native + seq wired). */
+      fell_back: boolean;
     }>;
   };
 }
@@ -174,7 +212,7 @@ async function sweepPricingAnomaly(db: D1Database, tenant: string, opts: Watchto
   // detectAnomaly(...) at pricing; a sane price is basis.anomaly === null → SQL NULL → excluded here).
   const rows = (
     await db
-      .prepare(`SELECT id, shipment_id, payload FROM events WHERE kind = 'quote.priced' AND json_extract(payload, '$.basis.anomaly') IS NOT NULL${scoped}`)
+      .prepare(`SELECT id, shipment_id, payload FROM events WHERE kind = 'quote.priced'${nativeVisibleSourceSql("source")} AND json_extract(payload, '$.basis.anomaly') IS NOT NULL${scoped}`)
       .bind(...params)
       .all<{ id: string; shipment_id: string | null; payload: string }>()
   ).results;
@@ -325,16 +363,147 @@ async function sweepAgentDrift(db: D1Database, tenant: string, now: number, opts
   return { alarmed, agents };
 }
 
+// ── rule 5 — PARITY DRIFT + AUTO-FALLBACK-TO-LEGACY (WP-15 Task 8, REQ-008) ─────────────────────────────
+// The DETERMINISTIC fallback event id. Folds the reverting promotion EPISODE (the module's last recorded flip)
+// into the seed so: within one native episode the id is STABLE (a concurrent/re-run sweep reproduces it ⇒ the DO
+// dedupes ⇒ at most one fallback event), while a LATER re-promotion (a new gated flip to native ⇒ a new last
+// flip) is a NEW episode ⇒ a NEW id. No Date/random (REQ-024, replay-safe) — reuses the Biller's v4-variant
+// uuidFromSeed so it satisfies EventInput's uuid id.
+export async function driftFallbackEventId(tenant: string, module: AuthorityModule, episodeMarker: string): Promise<string> {
+  return uuidFromSeed(`watchtower:drift-fallback:${tenant}:${module}:${episodeMarker}`);
+}
+
+// The reverting promotion EPISODE marker = the module's LAST recorded flip id. Because authority is native ONLY
+// when the last-applied flip set it native (the projection applies every flip's `to` in seq order and records its
+// id), the tail of flipped_events IS the promotion this fallback reverts.
+// L8 INVARIANT: native authority is reachable ONLY through a projected authority.flipped, and projectAuthority
+// ALWAYS records that flip's id in flipped_events — so a native module ALWAYS has a NON-empty flipped_events. The
+// empty ⇒ "" branch is therefore UNREACHABLE in a well-formed ledger; it is kept only as a deterministic fail-safe
+// (never a throw / random) for a hypothetically-corrupt map (a native row with no event = an L8 violation upstream).
+async function episodeMarkerFor(db: D1Database, module: AuthorityModule): Promise<string> {
+  const row = await db.prepare("SELECT flipped_events FROM authority_map WHERE module = ?").bind(module).first<{ flipped_events: string }>();
+  try {
+    const arr = JSON.parse(row?.flipped_events ?? "[]") as unknown[];
+    const last = arr.length > 0 ? arr[arr.length - 1] : undefined;
+    return typeof last === "string" ? last : "";
+  } catch {
+    return "";
+  }
+}
+
+// Append the auto-fallback authority.flipped{from:'native',to:'legacy',reason:'drift',drift_ref} on t:root via the
+// SeqStub (exactly like the mirror sweep appends). ALWAYS to:'legacy' — the rule is structurally incapable of
+// promoting (the asymmetry). A BACKWARD flip needs NO gate (Task 3), so it just appends; the DO validates the
+// EventInput + runs the Task-1 projectAuthority (reverting authority_map). Idempotent: the deterministic id makes
+// a re-drive dedupe at the DO. `now` stamps ts (injected; no clock read here).
+async function appendDriftFallback(
+  db: D1Database,
+  seq: SeqStubLike,
+  tenant: string,
+  module: AuthorityModule,
+  driftRef: string,
+  now: number,
+): Promise<void> {
+  const episode = await episodeMarkerFor(db, module);
+  const id = await driftFallbackEventId(tenant, module, episode);
+  const input = {
+    id,
+    // NO shipment_id — a t:root control event carries none (the events CHECK forbids one off a non-s: stream).
+    ts: now,
+    actor: { party: WATCHTOWER_ACTOR }, // the CO-SIGN: a machine decision, no human `user`
+    party_refs: [] as string[],
+    evidence: [] as { doc_id: string; hash: string }[],
+    source: "native" as const, // the flip event is a NATIVE control event — authority.flipped is never source:'legacy'
+    confidence: FLIP_CONFIDENCE,
+    kind: "authority.flipped" as const,
+    payload: { module, from: "native" as const, to: "legacy" as const, reason: "drift" as const, drift_ref: driftRef },
+  };
+  await seq.append({ tenant, streamId: "t:root", input });
+}
+
+// For each overlay module: RAISE/CLEAR the parity_drift alarm off the SHARED computeModuleParity, and on a native
+// DRIFT auto-fall-back to legacy. UNKNOWN (a side missing) is unassessable ⇒ CLEAR + no fallback (the documented
+// "a native module whose mirror went UNKNOWN is unmonitored" gap — deliberately NOT an auto-fallback trigger). The
+// alarm is a self-clearing UPSERT keyed (tenant, module) — the SAME idiom as the other rules (NO new table/kind).
+async function sweepParityDrift(
+  db: D1Database,
+  tenant: string,
+  now: number,
+  opts: WatchtowerOpts,
+  seq: SeqStubLike | undefined,
+): Promise<WatchtowerResult["parity_drift"]> {
+  const modules: WatchtowerResult["parity_drift"]["modules"] = [];
+  let alarmed = 0;
+  let fell_back = 0;
+
+  for (const module of PARITY_MODULES) {
+    // REUSE the SHARED primitive — the SAME parity the flip gate + the dashboard read (no second computation).
+    const parity = await computeModuleParity(db, module);
+    const id = watchtowerAlarmId(tenant, "parity_drift", { scope: opts.scope, object: module });
+
+    if (parity.status !== "DRIFT") {
+      // MATCH (within gate) or UNKNOWN (a side missing) → CLEAR. UNKNOWN NEVER raises and NEVER auto-falls-back.
+      await clearAlarm(db, id);
+      modules.push({ module, status: parity.status, raised: false, fell_back: false });
+      continue;
+    }
+
+    // DRIFT → RAISE a CRITICAL alarm keyed (tenant, module); carry the drift + native/legacy values (the audit).
+    await raiseAlarm(db, id, "parity_drift", "module", module, "critical", {
+      module,
+      drift_bps: parity.drift_bps,
+      native_value: parity.native_value,
+      legacy_value: parity.legacy_value,
+      tolerance_bps: PARITY_TOLERANCE_BPS[module],
+      backing_kinds: parity.backing_kinds,
+    });
+    alarmed += 1;
+
+    // THE ENFORCEMENT: a native module that has drifted is AUTO-flipped back to legacy. resolveAuthority is the
+    // SAME fail-closed seam the compute paths consult; only 'native' triggers a fallback (a legacy module is
+    // already reverted — nothing to fall back to). Guarded on `seq` (production always wires it via sequencerFor;
+    // a seq-less call — the other rules' unit tests — raises the alarm but performs no append). drift_ref = the
+    // parity_drift anomaly id (the audit link). The Task-1 projection reverts authority_map to legacy.
+    let didFallback = false;
+    if (seq !== undefined && (await resolveAuthority(db, module)) === "native") {
+      // PER-MODULE FAULT CONTAINMENT: the alarm is ALREADY raised above, so a persistent append fault here must NOT
+      // abort the sweep and skip every LATER module's raise/clear (a newly-drifting one would go unalarmed, a
+      // reconverged one un-cleared). Log + CONTINUE — the deterministic per-episode fallback id makes a next-tick
+      // retry safe (the DO dedupes). Mirrors the per-tenant containment the cron wraps each tenant's sweep in.
+      try {
+        await appendDriftFallback(db, seq, tenant, module, id, now);
+        fell_back += 1;
+        didFallback = true;
+      } catch (err) {
+        console.error(`watchtower parity_drift: ${tenant}/${module} fallback append failed (alarm raised; retry next tick):`, err);
+      }
+    }
+    modules.push({ module, status: "DRIFT", raised: true, fell_back: didFallback });
+  }
+
+  return { alarmed, fell_back, modules };
+}
+
 /**
- * Sweep ONE tenant's ledger for all three Watchtower alarm conditions and UPSERT/CLEAR the `anomalies` rows.
- * The caller binds `db`/`tenant` to that one tenant (REQ-025). `now` is the sweep clock (injected; the cron
- * reads wall-clock, tests pass a fixed instant). Idempotent + SELF-CLEARING: safe to call every cron tick —
- * a re-sweep of the same state upserts the same rows, and a cleared condition resolves its alarm.
+ * Sweep ONE tenant's ledger for all FIVE Watchtower alarm conditions and UPSERT/CLEAR the `anomalies` rows. The
+ * caller binds `db`/`tenant` to that one tenant (REQ-025). `now` is the sweep clock (injected; the cron reads
+ * wall-clock, tests pass a fixed instant). `seq` is the api sequencer DO append surface — the fallback path of the
+ * parity_drift rule appends authority.flipped on t:root through it (the cron passes sequencerFor(env)); OMITTED, the
+ * parity_drift rule still raises/clears its alarm but performs no auto-fallback (the other 4 rules never need seq).
+ * Idempotent + SELF-CLEARING: safe to call every cron tick — a re-sweep of the same state upserts the same rows, a
+ * cleared condition resolves its alarm, and the deterministic fallback id dedupes a re-driven flip at the DO.
  */
-export async function runWatchtowerSweep(db: D1Database, tenant: string, now: number, opts: WatchtowerOpts = {}): Promise<WatchtowerResult> {
+export async function runWatchtowerSweep(
+  db: D1Database,
+  tenant: string,
+  now: number,
+  opts: WatchtowerOpts = {},
+  seq?: SeqStubLike,
+): Promise<WatchtowerResult> {
   const unbilled = await sweepUnbilled(db, tenant, now, opts);
   const pricing_anomaly = await sweepPricingAnomaly(db, tenant, opts);
   const floor_breach = await sweepFloorBreach(db, tenant, opts);
   const agent_drift = await sweepAgentDrift(db, tenant, now, opts);
-  return { unbilled, pricing_anomaly, floor_breach, agent_drift };
+  const parity_drift = await sweepParityDrift(db, tenant, now, opts, seq);
+  return { unbilled, pricing_anomaly, floor_breach, agent_drift, parity_drift };
 }

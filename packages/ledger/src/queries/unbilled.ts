@@ -17,6 +17,27 @@ export const UNBILLED_POD_KIND = "pod.signed";
 /** The kind whose ABSENCE (per shipment) marks the shipment still unbilled. */
 export const UNBILLED_INVOICE_KIND = "invoice.issued";
 
+// ── WP-15 Task 4b (REQ-021/022/030) — the NATIVE-VISIBLE SOURCE predicate ──────────────────────────────────
+// A `source:'legacy'` event is a SHADOW mirror record of the incumbent's history: it lives in `events` for the
+// native-vs-legacy PARITY compute ONLY (computeModuleParity reads `source IN ('native','legacy')`) and must
+// drive NO native read-model / KPI / AR / alarm. The projection layer is the FIRST lock (the sequencer skips
+// every projection spread for a legacy event, so money_lines/invoices/status/legs/… carry no legacy row); this
+// predicate is the SECOND lock, for the native reads that aggregate the `events` table DIRECTLY. Native
+// read-models include SHUDDL's own facts PLUS the inbound EDI/email seams — everything EXCEPT the legacy shadow.
+// Defined ONCE and shared by every native aggregate read (the KPI computes, the metrics module, the Watchtower
+// sweeps) so "what counts as native" can never drift (skill share-lint-matchers-with-parity-tests) — the exact
+// complement of parity.ts's TRACKED_SOURCES (native+legacy). The source literals are a FROZEN, code-owned enum
+// (the events.source CHECK), never client input, so they are interpolated literally exactly like UNBILLED_POD_KIND
+// above — no bound param needed. INERT on all pre-legacy data (every native/edi/email row already matches).
+export const NATIVE_VISIBLE_SOURCES = ["native", "edi", "email"] as const;
+
+/** A native-visible SQL predicate ` AND <col> IN ('native','edi','email')` — restricts a native aggregate read
+ *  over `events` to the native-visible sources (EXCLUDES the `legacy` shadow). `col` is a HARDCODED literal at
+ *  every call site (e.g. "p.source", "source", "ev.source"), never user input. */
+export function nativeVisibleSourceSql(col: string): string {
+  return ` AND ${col} IN (${NATIVE_VISIBLE_SOURCES.map((s) => `'${s}'`).join(",")})`;
+}
+
 /**
  * Build the unbilled anti-join query. `select` is the projection over the driving `events p` rows (a HARDCODED
  * literal at every call site — e.g. `COUNT(DISTINCT p.shipment_id) AS n` for the KPI, `p.shipment_id AS
@@ -27,8 +48,12 @@ export const UNBILLED_INVOICE_KIND = "invoice.issued";
  */
 export function unbilledShipmentsSql(select: string, scopeClause = ""): string {
   return (
+    // WP-15 Task 4b — the DRIVING pod.signed aggregate is native-visible ONLY: a `source:'legacy'` pod (a mirror
+    // shadow) must never count toward the unbilled alarm OR the recon RE-DRIVE (a legacy stream even carries a
+    // synthetic shipments row, so the recon's EXISTS(shipments) would otherwise re-bill it). The `i` anti-join
+    // needs no filter — a legacy invoice lands on a legacy shipment_id namespace (shp_lg_…), never a native one.
     `SELECT ${select} FROM events p ` +
-    `WHERE p.kind = '${UNBILLED_POD_KIND}' AND p.shipment_id IS NOT NULL${scopeClause} ` +
+    `WHERE p.kind = '${UNBILLED_POD_KIND}' AND p.shipment_id IS NOT NULL${nativeVisibleSourceSql("p.source")}${scopeClause} ` +
     `AND NOT EXISTS (SELECT 1 FROM events i WHERE i.kind = '${UNBILLED_INVOICE_KIND}' AND i.shipment_id = p.shipment_id)`
   );
 }

@@ -16,6 +16,7 @@ export * from "./gl-accounts.js";
 export * from "./comms.js";
 export * from "./copilot.js";
 export * from "./booking.js";
+export * from "./authority.js";
 export * from "./entitlements.js";
 export * from "./facilities.js";
 export * from "./rating.js";

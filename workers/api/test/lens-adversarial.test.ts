@@ -104,6 +104,10 @@ function payloadFor(kind: EventKind): Record<string, unknown> {
       return { facility_id: "facility-1", window_start_ts: 1_720_000_000_000, window_end_ts: 1_720_003_600_000 };
     case "dispatch.assigned":
       return { driver_user_id: D1 };
+    // WP-15: authority.flipped now carries a typed AuthorityFlippedPayload (was loose {}). This lens
+    // fixture only needs the (internal-visibility) event ON the stream — a minimal earned forward flip.
+    case "authority.flipped":
+      return { module: "rating", from: "legacy", to: "native", reason: "promote" };
     default:
       return {};
   }
@@ -214,9 +218,12 @@ async function listFirehose(tok: string, query = ""): Promise<ListResult> {
 
 const kindsOf = (events: Array<Record<string, unknown>>): Set<string> => new Set(events.map((e) => e.kind as string));
 
-// The route-appendable kinds: every kind except position.updated (which bypasses the sequencer and lives
-// in the `positions` partition — POST /v1/positions, not the events table; the DO rejects it here).
-const APPENDABLE = EVENT_KINDS.filter((k) => k !== "position.updated");
+// The SHIPMENT-appendable kinds: every kind except two the DO refuses on a shipment (s:) stream —
+//  · position.updated bypasses the sequencer (the `positions` partition — POST /v1/positions), and
+//  · authority.flipped is a TENANT-LEVEL control event that may ONLY land on t:root (WP-15 Task 3 flip guard),
+//    so it can never appear on a shipment stream. Its internal visibility is proven by the frozen 35-pair
+//    snapshot (case 9b) — never by seeding it onto a shipment (which the DO structurally rejects).
+const APPENDABLE = EVENT_KINDS.filter((k) => k !== "position.updated" && k !== "authority.flipped");
 
 // Seeded ids captured for cross-referencing (invoice.issued -> invoice.corrected -> netting).
 let invoiceIssuedId = "";
@@ -298,7 +305,9 @@ beforeAll(async () => {
     "exception.raised", "osd.captured", "pod.signed", "delivery.evidenced",
     "invoice.issued", "payment.received", "settlement.executed", "split.computed",
     "message.received", "message.sent", "call.transcribed",
-    "document.attached", "approval.requested", "approval.decided", "agent.acted", "authority.flipped",
+    "document.attached", "approval.requested", "approval.decided", "agent.acted",
+    // authority.flipped is OMITTED — it is a tenant-level control event that may only append on t:root
+    // (WP-15 Task 3); the DO structurally rejects it on a shipment stream, so it is never seeded here.
   ];
   // The WP-05 Gatekeeper gates are enforced SERVER-SIDE on this real append path, so the fixture must
   // now carry the evidence each gated transition needs: a ConsentAck before the first GPS stamp
@@ -583,7 +592,10 @@ describe("case 9b: independent I6 guards (do NOT import the map under test)", ()
   it("no internal control kind ever reaches a party or driver lens (hardcoded literal, not the map)", async () => {
     const party = await listShipment(SHP_A, await portalTok(P1));
     const driver = await listShipment(SHP_A, await driverTok(D1));
-    // shipment A carries one event of every appendable kind (incl. all seven below), so a leak shows up.
+    // shipment A carries one event of every shipment-appendable kind, so a leak of the internal ones shows up.
+    // (authority.flipped is in this frozen list but is NOT shipment-appendable — it lives on t:root, WP-15 T3;
+    // the assertion still holds — it can never surface in a party/driver shipment lens — and case 9b's frozen
+    // 35-pair map below is the authoritative proof that authority.flipped is internal.)
     for (const kind of INTERNAL_KINDS_FROZEN) {
       expect(party.body, `party lens leaked internal kind ${kind}`).not.toContain(kind);
       expect(driver.body, `driver lens leaked internal kind ${kind}`).not.toContain(kind);

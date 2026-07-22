@@ -103,6 +103,16 @@ const PRIVILEGED_DECISION_ROLES: ReadonlySet<Role> = new Set<Role>(["finance", "
 // and never traverses this route, so the blessed emission is unaffected.
 const BLESSED_DECISION_KINDS: ReadonlySet<string> = new Set<string>(["approval.decided"]);
 
+// WP-15 Task 3 (REQ-030/023, L8) — authority.flipped is a TENANT-LEVEL control event with ONE blessed home:
+// POST /v1/authority/:module/flip (admin-only; it evaluates the gate FRESH and appends on t:root). Letting a
+// client append it through this GENERAL shipment route would BYPASS the entire flip guard — gatesGreenFor, the
+// admin-only restriction (ops/driver/finance can reach THIS route), the money clean-close gate — AND the t:root
+// single-stream/seq-order invariant, because projectAuthority applies ANY authority.flipped to authority_map
+// regardless of stream. Refused HERE for every role, before the driver write-scope + the DO append, so a refused
+// one appends NOTHING and never projects. The sequencer DO ALSO structurally rejects an authority.flipped off
+// t:root (defense in depth); the blessed flip route appends on t:root directly and never traverses this route.
+const CONTROL_PLANE_KINDS: ReadonlySet<string> = new Set<string>(["authority.flipped"]);
+
 const LIMIT_CAP = 1000;
 const DEFAULT_LIMIT = 200; // mirrors @shuddl/ledger/lens readEvents so next_cursor agrees with the page size
 // A shipment id far under any DO-name / KV-key limit; a real id is a slug, never kilobytes. Length only —
@@ -177,6 +187,22 @@ export function mountEventRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>):
 
     const input: unknown = await c.req.json().catch(() => null); // NEVER LedgerEvent.parse a request body — the DO parses EventInput
 
+    // WP-15 Task 4b (REQ-021/022/030) — FORCE source:'native' on EVERY client post, overriding any
+    // client-supplied `source`. `source:'legacy'` is a SHADOW mirror record producible ONLY by the internal
+    // mirror seam (workers/agents mirror-sweep, which calls the sequencer DO directly — never this route); the
+    // 'edi'/'email' seams are the inbound translator + email pipelines (likewise DO-direct). A client that could
+    // self-declare `source:'legacy'` would — now that the DO exempts legacy from the native physical-precondition
+    // gates (invoice→POD, appointment, dispatch) — BYPASS those gates entirely, forging a "the incumbent already
+    // did this" record. Coercing the source HERE, before the DO append, makes `source:'legacy'` (and 'edi'/'email')
+    // UNFORGEABLE via any client route — the mirror carve-out can be reached only by the internal seam. This is
+    // the general write route's lock; rate.ts / portal-actions / dunning / approvals / authority all already
+    // hardcode 'native', and the one other append seam — /internal/platform/credit-append (internal-platform.ts,
+    // the secret-gated `_platform` credit door) — COERCES it the same way. (A non-object body is left as-is → the
+    // DO's EventInput.parse returns VALIDATION_FAILED.)
+    if (input !== null && typeof input === "object") {
+      (input as { source?: unknown }).source = "native";
+    }
+
     // REQ-030 / REQ-003 — a server-emitted money kind can NEVER be appended by a client, no matter the
     // role. Refused HERE, before the override handling, the driver write-scope, and the DO append — so
     // even an elevated ops/admin principal (and even a well-formed one on a pod-bearing stream, where the
@@ -192,6 +218,14 @@ export function mountEventRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>):
     // to bypass that check. Checked before the driver write-scope + the DO append, so a refused one appends NOTHING.
     if (typeof inKind === "string" && BLESSED_DECISION_KINDS.has(inKind)) {
       throw new ApiError("FORBIDDEN", 403, "approval.decided IS RECORDED VIA /approval-decision (REQ-194)");
+    }
+
+    // REQ-030/023 (WP-15 Task 3) — authority.flipped is recorded ONLY via POST /v1/authority/:module/flip (the
+    // admin-only, gated, t:root-scoped flip guard). Refused here for every role so this general route can never be
+    // used to bypass the guard or the t:root single-stream invariant. Checked before the driver write-scope + the
+    // DO append, so a refused one appends NOTHING.
+    if (typeof inKind === "string" && CONTROL_PLANE_KINDS.has(inKind)) {
+      throw new ApiError("FORBIDDEN", 403, "authority.flipped IS RECORDED VIA /v1/authority/:module/flip (REQ-030/023)");
     }
 
     // REQ-185 — the PRIVILEGED-DECISION authorization boundary (see PRIVILEGED_DECISION_KINDS). Enforced HERE,
@@ -284,6 +318,14 @@ export function mountEventRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>):
       // Validated against the 35-kind catalog (unknown -> 400) and ANDed onto the lens WHERE + cursor in readEvents.
       const kinds = parseKinds(c.req.query("kind"));
       if (kinds !== undefined) q.kind = kinds;
+      // WP-15 Task 7 (REQ-021/152/153) — the LEGACY-SHADOW opt-in for the Command v_parity dashboard drill-through.
+      // By DEFAULT readEvents excludes `source:'legacy'` (the timeline/queues/export reconcile with the source-aware
+      // KPIs); `includeShadow=true` opts the legacy mirror rows back in so the parity drill's LEGACY side can show
+      // the incumbent-mirror facts that back the parity number. Wired ONLY on this TENANT-LENS firehose (admin/ops/
+      // finance/read) — deliberately NOT on GET /v1/shipments/:id/events, which a portal party / driver can reach:
+      // exposing the shadow mirror to a counterparty lens would leak the incumbent's history. Any value other than
+      // the literal "true" leaves the native-only default intact (fail-closed).
+      if (c.req.query("includeShadow") === "true") q.includeShadow = true;
       if (limit !== undefined) q.limit = limit;
       const events = await readEvents(db, lens, q);
       return c.json({ events, next_cursor: nextCursor(events, limit) });

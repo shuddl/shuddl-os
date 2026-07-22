@@ -146,6 +146,19 @@ All are **advisory-until-vendored**: harnesses loud-skip (exit 0), never false-g
 | **REQ-125 per-IP edge rate-limit** | WP-14 · REQ-125 | A Cloudflare per-IP edge rule on `/pub/signup` (like REQ-193) before public GA (the in-Worker `SparkMeter` is per-workspace only) | Yes (public GA) | Deploy note |
 | **Async/ACH checkout confirmation** | WP-14 · REQ-123 · `workers/billing/src/credits.ts` | Confirm the (landed) unpaid-branch settle reconciles a covered payment in staging before enabling async/ACH credit checkout | Only async checkout | Landed; verify in staging |
 
+### WP-15 Overlay/authority (appended 2026-07-22 per §1) — DARK/inert until Phase-0 cutover
+
+The overlay machinery is built + fixture-proven; nothing mirrors, flips, or falls back until an operator wires a live feed and the tenant-calendar gates go green. The M-AUTHORITY flip gates are **calendar objects that compress for no one** (genesis/13 §04) — a merge cannot close them.
+
+| Item | Source WP/REQ | Action to complete | Blocks go-live? | Status |
+|---|---|---|---|---|
+| **Live legacy-feed provisioning** | WP-15 · REQ-152 · `workers/agents/src/mirror-sweep.ts` (`NotConfiguredFeedReader`) + `integrations.config` | Wire the tenant-0 legacy-TMS export/API feed into `integrations.config`; the sweep no-ops until then | Yes (the whole mirror) | DARK / no-op |
+| **Tenant-0 config pack** | WP-15 · REQ-058/152/153 · engagement workspace (genesis/13) | The 171 literal column headers + field mapping, the pro-ranges + continuity (REQ-058), the flip/close calendar dates (REQ-153). Generic/config-driven in-repo; literal values are tenant-pack (no identity in-repo, REQ-167) | Yes (a real mirror + flips) | Tenant-pack, unbuilt |
+| **M-AUTHORITY calendar gates** | WP-15 · REQ-153 · genesis/13 §04 | 30-day shadow ±2% · two consecutive clean closes · pilot-week <0.5% exceptions — calendar objects; flips gate on the milestone (M-H mirror / M-AUTHORITY flips), NEVER a week number. Non-compressible | Yes (per-module flips) | Calendar-gated |
+| **Clean-close signal** | WP-15 · REQ-023 · `workers/api/src/routes/authority.ts` (`cleanCloseCount`) | No in-repo period-close representation → money-module (invoicing/settlement) forward flips are BLOCKED-BY-CONSTRUCTION until a real close signal is wired | Yes (money authority) | Blocked-by-construction |
+| **Defer-to-mirror suppression** | WP-15 · REQ-030 · the 8 `resolveAuthority` consult sites (dormant `if(authority==='legacy')` intent-markers) | Light up per-module at cutover: a legacy-authoritative module with a live mirror value presents the legacy value / suppresses the native customer-facing output. Behavior-neutral (dormant) in-repo | Gates a real cutover | Dormant seam |
+| **`cursorColumn` monotonic-on-change** | WP-15 · REQ-035 · `packages/adapters/src/legacy-mirror.ts:69` | Verify the tenant-pack feed `cursorColumn` bumps on every in-place edit (a last-modified/version cursor, not creation-only) — else continuous no-silent-drop degrades silently | Gates a correct mirror | Tenant-pack precondition |
+
 ## 3. Technical debt & known limitations
 
 Ordered severity-descending. **High** = weakens/blocks a gate or a go-live path; **Med** = correctness/privacy residual or env hazard; **Low** = deferred refinement, fail-safe, or informational.
@@ -238,6 +251,16 @@ Ordered severity-descending. **High** = weakens/blocks a gate or a go-live path;
 | Internal credit-append route hardening | `workers/api/src/internal-platform.ts` · REQ-123 | (Task-10 review, Low, internal-only/DARK) `credit-settle` doesn't bind `payload.invoice_id === invoiceId`; `#resolveDb` memo returns before the platform re-check | Bind payment→invoice + add the memo platform re-check before the secret is bound at R4 | **Low** (internal/dark) |
 | Platform-chart GL account uncovered | `workers/billing/src/credits.ts` `GL_PLATFORM_CREDITS_AR` · REQ-123 | The `_platform` credit chart is a second, unguarded GL chart (customer `CANONICAL_GL_ACCOUNTS` parity untouched) | Add parity coverage if a platform journal export is ever built | **Low** |
 | Metering sweep cadence | `workers/billing/src/metering.ts` · REQ-123 | Hourly cron; the OVERWRITE-recompute makes cadence a freshness knob, not a correctness one | Tune cadence at go-live | **Low** (info) |
+
+**WP-15 Overlay/authority (appended 2026-07-22):**
+
+| Item | Source file / REQ | Nature | Fix | Severity |
+|---|---|---|---|---|
+| Defer-to-mirror suppression is a dormant seam | the 8 `resolveAuthority` consult sites · REQ-030 | The dormant `if(authority==='legacy')` intent-markers do not yet present the legacy value / suppress the native customer-facing output when a module is legacy-authoritative WITH a live mirror — that is a customer-facing CUTOVER behavior, left inert in-repo | Light up per-module at the tenant cutover (§2) | **Low** (cutover; also §2) |
+| Dual-control on money promotions unbuilt | `workers/api/src/routes/authority.ts` · REQ-023 | The flip guard records the single deciding admin (co-sign); a second-approver (dual-control) on invoicing/settlement promotes is not built | Candidate R4 hardening (a REQ amendment) | **Low** (candidate) |
+| UNKNOWN-while-native liveness unmonitored | `workers/agents/src/watchtower.ts` · REQ-008 | A native module whose legacy mirror goes UNKNOWN (feed stops) is unmonitored — drift is unassessable so there is correctly no auto-fallback, but no alarm either | A low-severity "mirror absent" liveness alarm (later task) | **Low** (fail-safe) |
+| DO trusts `parsed.source` (legacy lock is route-layer) | `workers/api/src/do/sequencer.ts` · REQ-030 | `source:'legacy'` is locked at the route layer (force-native on every seam) + the coverage discipline; the DO itself does not restrict legacy to a verified internal marker — a future append seam added without forcing native would reopen the hole | Defense-in-depth: a DO-level restriction of legacy to a verified internal marker | **Low** (defense-in-depth) |
+| Duplicate-fallback TOCTOU under concurrent same-tenant sweep | `workers/agents/src/watchtower.ts` · REQ-008 | Two concurrent same-tenant Watchtower sweeps could emit a duplicate (differently-seeded) `authority.flipped{drift}`; end state is still legacy (never re-promote) | Serialize per-tenant if the cron ever runs concurrently (unreachable on the daily sequential cron today) | **Low** (benign/unreachable) |
 
 ## 4. Cross-references (this ledger points, does not duplicate)
 

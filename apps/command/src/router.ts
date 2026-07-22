@@ -5,7 +5,7 @@
 //
 // This organizes EXISTING canonical views (genesis/10) — it does not invent a 13th. The `board` maps to
 // v_board + v_kpi_strip; the three `queue` kinds map to v_queue_{approvals,exceptions,money}; the `kpi`
-// drill lands on the detail views (v_lane_pnl / v_aging / v_scoreboards / v_unbilled / v_parity) a metric
+// drill lands on the detail views (v_lane_pnl / v_aging / v_scoreboards / v_unbilled / v_operating_ratio) a metric
 // slug selects; `copilot` is the separate ⌘K command surface (the "+copilot", not one of the 12 views).
 
 /** The three canonical command queues (v_queue_{approvals,exceptions,money}). */
@@ -21,6 +21,7 @@ export type Route =
   | { name: "board" }
   | { name: "queue"; kind: QueueKind }
   | { name: "kpi"; metric: string | null }
+  | { name: "parity" }
   | { name: "copilot" };
 
 /** Resolve a Location-shaped value to a Route. Pure — no window access, so it is trivially testable. */
@@ -44,6 +45,10 @@ export function resolveRoute(loc: { pathname: string; search: string; hash: stri
   const kpiPath = path.match(/^\/kpi\/(.+)$/);
   if (kpiPath) return { name: "kpi", metric: decodeURIComponent(kpiPath[1] ?? "") };
   if (path === "/kpi") return { name: "kpi", metric: null };
+
+  // WP-15 (REQ-152/153) — the v_parity shadow-parity dashboard: SHUDDL's native compute vs the incumbent's legacy
+  // mirror, per module. A canonical command VIEW (the reclaimed `v_parity` slug), organized here — never a 13th.
+  if (path === "/parity") return { name: "parity" };
 
   // The ⌘K copilot surface.
   if (path === "/copilot") return { name: "copilot" };

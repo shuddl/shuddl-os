@@ -8,7 +8,7 @@ import { KPI_DRILL_VIEW, kpiFormat, kpiScale, type KpiTile } from "./registry.js
 // click lands here on /kpi/:metric, which resolves the tile's `backing.kinds` (from GET /v1/kpis — the SERVER owns
 // the backing kinds) and reads GET /v1/events?kind=<kinds> (the Task-1 kind filter). The drill is one component
 // parameterized by metric onto the canonical detail views (v_lane_pnl / v_aging / v_scoreboards / v_unbilled /
-// v_parity) — NOT a 13th view (REQ-084). Each backing event is clickable to open its shipment's lens on the board.
+// v_operating_ratio) — NOT a 13th view (REQ-084). Each backing event is clickable to open its shipment's lens on the board.
 // A null metric is the drill INDEX (pick a KPI). Read-only.
 
 // The stored-event fields the drill needs (a LedgerEvent on the wire carries more; we read only these).

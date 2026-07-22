@@ -17,6 +17,7 @@ import { applyMessageProjection } from "@shuddl/ledger/projection/messages";
 import { projectAppointment } from "@shuddl/ledger/projection/appointment";
 import { projectApprovals } from "@shuddl/ledger/projection/approvals";
 import { projectAgentRuns } from "@shuddl/ledger/projection/agent-runs";
+import { projectAuthority } from "@shuddl/ledger/projection/authority";
 import { assertPodSigned } from "@shuddl/ledger/gates/invoice-gate";
 import {
   assertPickupDepart,
@@ -37,6 +38,7 @@ import {
 } from "@shuddl/ledger/gates/transition-gates";
 import { deriveOperatingState } from "@shuddl/ledger/geo/jurisdiction";
 import { loadFacility } from "../facilities.js";
+import { authoritativeSource, resolveAuthority } from "../authority.js";
 import { localWall, localServiceDate } from "../appointment-window.js";
 import { resolveTenantDb, resolvePlatformTenantDb } from "../tenants.js";
 import type { Env } from "../index.js";
@@ -274,6 +276,18 @@ export class ShipmentSequencer extends DurableObject<Env> {
     // positions bypass the sequencer entirely (Task 14 owns POST /v1/positions -> partitioned stream).
     if (parsed.kind === "position.updated") throw rpcError("VALIDATION_FAILED", { reason: "position.updated bypasses the sequencer" });
 
+    // WP-15 Task 3 (REQ-030/023, L8) — authority.flipped is a TENANT-LEVEL control event with ONE blessed home:
+    // the t:root stream (the admin-only, gated flip route). It must NEVER land on a shipment (s:) or quote (q:)
+    // stream: projectAuthority applies ANY authority.flipped to authority_map regardless of stream, so an
+    // authority.flipped on a shipment stream would flip authority while BYPASSING the flip guard (gatesGreenFor +
+    // the admin restriction + the money gate) AND shatter the single-stream/seq-order invariant. Enforced HERE at
+    // the DO — the single chokepoint EVERY append (every route, every internal seam) traverses — so no caller can
+    // inject one no matter which route it reaches. This is the structural twin of the events-route refusal
+    // (defense in depth); rejected BEFORE the tail read / gate / batch, so nothing is written and nothing projects.
+    if (parsed.kind === "authority.flipped" && streamId !== "t:root") {
+      throw rpcError("FORBIDDEN", { reason: "authority.flipped may only append on t:root (WP-15 flip guard)" });
+    }
+
     // Idempotency — replay by event id returns the original row (no second append).
     const byId = await db.prepare("SELECT * FROM events WHERE id = ?").bind(parsed.id).first<Record<string, string | number | null>>();
     if (byId) return rowToEvent(byId);
@@ -319,7 +333,16 @@ export class ShipmentSequencer extends DurableObject<Env> {
     // is a prepaid credit-pack sale with no delivered shipment, so it has no POD by nature and is EXEMPT. The
     // predicate requires the reserved platform tenant, so a CUSTOMER invoice.issued is NEVER exempted — its I2
     // POD gate is byte-for-byte UNCHANGED (a customer invoice with no pod.signed still GATE_BLOCKs).
-    if (parsed.kind === "invoice.issued" && !isPlatformCreditInvoiceIssued(tenant, parsed.kind, parsed.payload)) {
+    //
+    // WP-15 Task 4b (REQ-021/030) — a `source:'legacy'` invoice.issued is a HISTORICAL MIRROR RECORD of an
+    // invoice the incumbent ALREADY issued, NOT a native physical assertion. The I2 POD gate is a NATIVE
+    // physical-precondition ("SHUDDL will not create an invoice without a signed POD on ITS ledger"); it must
+    // NOT re-judge a mirror record against SHUDDL's own physics (the incumbent's POD lives in the incumbent's
+    // system, not this stream). So a legacy invoice is EXEMPT here. `source:'legacy'` is producible ONLY by the
+    // internal mirror seam (the events route FORCES native), so this carve-out is unforgeable by a client. Every
+    // STRUCTURAL law still applies to it below: the seq/prev_hash/hash chain, the append-only guards, tenant
+    // isolation, and the authority.flipped-only-on-t:root check above (legacy is never authority.flipped).
+    if (parsed.kind === "invoice.issued" && parsed.source !== "legacy" && !isPlatformCreditInvoiceIssued(tenant, parsed.kind, parsed.payload)) {
       await assertPodSigned(db, streamId, policy);
     }
 
@@ -391,33 +414,55 @@ export class ShipmentSequencer extends DurableObject<Env> {
     const hash = await hashEvent(event);
     const full = { ...event, hash } as LedgerEvent;
 
-    // ONE batch — event + money lines + passport counters + status_cache + messages read-model. A
-    // projection failure (e.g. a missing parties FK, or a second correction of the same event) aborts
-    // the WHOLE append atomically. The messages projection (REQ-100) mirrors the money one: a committed
-    // message.* event projects its `messages` row in this SAME batch, so no communication exists outside
-    // the ledger (INSERT OR IGNORE on a deterministic id keeps re-projection idempotent).
-    const deps = await this.#moneyDeps(db, full, tenant);
-    const moneyStmts = applyMoneyProjection(db, full, deps);
-    const passportStmts = projectPassport(db, full);
-    const statusStmts = projectStatusCache(db, full);
-    // REQ-183 — the credit.checked→parties.credit_status UPDATE rides this batch (statusStmts, exactly one
-    // statement for a credit.checked). Its rows-affected, read off the batch result at this offset AFTER the
-    // commit, tells us whether the party row was absent (a silent no-op to surface loudly, never fabricate).
-    const statusOffset = 1 + moneyStmts.length + passportStmts.length;
-    const stmts = [
-      insertEventStmt(db, full),
-      ...moneyStmts,
-      ...passportStmts,
-      ...statusStmts,
-      ...projectAppointment(db, full, gateResult.appointmentServiceDate),
-      ...applyMessageProjection(db, full),
-      // WP-10 T2 (REQ-082/194) — the approvals-queue read-model: approval.requested opens a row, approval.decided
-      // flips it to decided. Rides the SAME batch (I1) so the queue row and its event commit atomically.
-      ...projectApprovals(db, full),
-      // WP-11 T9 (REQ-113) — agent_runs metering: a committed agent.acted projects one per-run cost/latency row
-      // (the previously dead table, now LIVE). Same batch (I1); INSERT OR IGNORE keeps a redelivery idempotent.
-      ...projectAgentRuns(db, full),
-    ];
+    // WP-15 Task 4b (REQ-021/022/030) — SOURCE-AWARE SHADOW BATCH. A `source:'legacy'` event is a HISTORICAL
+    // MIRROR RECORD of what the incumbent already did, NOT a native physical assertion. It lands in `events` —
+    // where the native-vs-legacy PARITY compute reads it RAW (computeModuleParity's `source IN ('native','legacy')`)
+    // — but drives NO native read-model / projection: SKIP every projection spread, so it writes NO money_lines /
+    // invoices / AR / status_cache / legs / passport / approval / agent_run / authority row. This ONE branch
+    // covers every projection-based native read-model in a single place. The event INSERT itself still runs (the
+    // legacy row is a real, chained ledger entry), and so do ALL the structural laws around it: the
+    // seq/prev_hash/hash chain (`full` above), the append-only + party_refs D1 guards (events_guard_ins etc. fire
+    // on THIS insert), and tenant isolation (REQ-025 — `db` is this tenant's D1). Native (native/edi/email) is
+    // byte-for-byte UNCHANGED — the else-branch is the exact prior batch.
+    const isLegacy = full.source === "legacy";
+    let statusStmts: D1PreparedStatement[] = [];
+    let statusOffset = -1;
+    let stmts: D1PreparedStatement[];
+    if (isLegacy) {
+      // Parity-only shadow: the event insert ALONE. No #moneyDeps read, no projection spread — nothing native.
+      stmts = [insertEventStmt(db, full)];
+    } else {
+      // ONE batch — event + money lines + passport counters + status_cache + messages read-model. A
+      // projection failure (e.g. a missing parties FK, or a second correction of the same event) aborts
+      // the WHOLE append atomically. The messages projection (REQ-100) mirrors the money one: a committed
+      // message.* event projects its `messages` row in this SAME batch, so no communication exists outside
+      // the ledger (INSERT OR IGNORE on a deterministic id keeps re-projection idempotent).
+      const deps = await this.#moneyDeps(db, full, tenant);
+      const moneyStmts = applyMoneyProjection(db, full, deps);
+      const passportStmts = projectPassport(db, full);
+      statusStmts = projectStatusCache(db, full);
+      // REQ-183 — the credit.checked→parties.credit_status UPDATE rides this batch (statusStmts, exactly one
+      // statement for a credit.checked). Its rows-affected, read off the batch result at this offset AFTER the
+      // commit, tells us whether the party row was absent (a silent no-op to surface loudly, never fabricate).
+      statusOffset = 1 + moneyStmts.length + passportStmts.length;
+      stmts = [
+        insertEventStmt(db, full),
+        ...moneyStmts,
+        ...passportStmts,
+        ...statusStmts,
+        ...projectAppointment(db, full, gateResult.appointmentServiceDate),
+        ...applyMessageProjection(db, full),
+        // WP-10 T2 (REQ-082/194) — the approvals-queue read-model: approval.requested opens a row, approval.decided
+        // flips it to decided. Rides the SAME batch (I1) so the queue row and its event commit atomically.
+        ...projectApprovals(db, full),
+        // WP-11 T9 (REQ-113) — agent_runs metering: a committed agent.acted projects one per-run cost/latency row
+        // (the previously dead table, now LIVE). Same batch (I1); INSERT OR IGNORE keeps a redelivery idempotent.
+        ...projectAgentRuns(db, full),
+        // WP-15 T1 (REQ-008/023, L8) — authority_map overlay: a committed authority.flipped UPSERTS the module's
+        // authority + records the flip. Same batch (I1); the EXISTS(json_each) append dedupe keeps a redelivery idempotent.
+        ...projectAuthority(db, full),
+      ];
+    }
     let results: D1Result[];
     try {
       results = await db.batch(stmts);
@@ -437,6 +482,14 @@ export class ShipmentSequencer extends DurableObject<Env> {
     }
 
     this.tail = { seq: full.seq, hash }; // bump AFTER commit — crash self-heals from the D1 tail
+
+    // WP-15 Task 4b (REQ-021/030) — a legacy shadow record drives NO native SIDE EFFECT either: no
+    // credit-gap surface, and NO Biller/Booking/Concierge trigger. An agent activation is even more
+    // native-polluting than a read-model row (it would emit a native invoice/booking/reply against the
+    // mirror), so it must not fire. MIRROR_KINDS today excludes every trigger kind (pod.signed /
+    // quote.accepted / message.received), so this is belt-and-suspenders AND forward-safe (the `comms`
+    // module mirrors message.received in a later task). Return the committed legacy event unchanged.
+    if (isLegacy) return full;
 
     // REQ-183 — surface a LOUD gap if the credit.checked→parties.credit_status projection was a silent no-op
     // (the party row does not exist yet). Runs AFTER the commit: the credit.checked event is truth regardless,
@@ -531,6 +584,21 @@ export class ShipmentSequencer extends DurableObject<Env> {
   // persisted on the event (override_json). The prior stream is loaded LAZILY and at most once, so only
   // the gates that inspect prior events pay for the read — the exception gate reads only `incoming`.
   async #enforceTransitionGate(db: D1Database, streamId: string, incoming: LedgerEvent, policy: TenantPolicy): Promise<GateResult> {
+    // WP-15 Task 4b (REQ-021/030) — a `source:'legacy'` event is a HISTORICAL MIRROR RECORD of a transition the
+    // incumbent ALREADY made (an appointment it set, a driver it dispatched), NOT a native physical assertion, so
+    // it is EXEMPT from EVERY native physical/business-precondition transition gate: #enforceAppointment
+    // (facility+leg+capacity), #enforceDispatch (a claimed appointment + carrier docs), #enforceBooking
+    // (credit/recipient/hazmat), the pickup-depart / delivery-geofence / interline / consent-before-GPS / exception
+    // gates. These gates encode SHUDDL's OWN physics ("a driver may not roll before the stop is scheduled ON THIS
+    // LEDGER"); re-judging a mirror record against them would refuse a fact the incumbent already performed. Every
+    // STRUCTURAL law still binds a legacy event (enforced OUTSIDE this method): the append-only guards, the
+    // seq/prev_hash/hash chain, tenant isolation (REQ-025), and the Task-3 authority.flipped-only-on-t:root check
+    // (a legacy event is never authority.flipped — MIRROR_KINDS excludes it). `source:'legacy'` is producible ONLY
+    // by the internal mirror seam (the public events route FORCES native), so this carve-out is unforgeable by a
+    // client — the review's exact concern. Returning {} means no appointmentServiceDate is computed, which is
+    // correct: the legacy appointment.set projection is ALSO skipped (the source-aware batch below), so no gate,
+    // and no write, re-derives the incumbent's slot on SHUDDL's dock model.
+    if (incoming.source === "legacy") return {};
     if (!isGatedKind(incoming.kind)) return {};
 
     const shipmentId = streamId.startsWith("s:") ? streamId.slice(2) : undefined;
@@ -585,12 +653,26 @@ export class ShipmentSequencer extends DurableObject<Env> {
         // override — consent is a legal precondition, not a waivable evidence requirement.
         assertConsentBeforeGps(await prior(), incoming, { operating_state: deriveOperatingState(incoming.payload.geo) });
         return {};
-      case "appointment.set":
+      case "appointment.set": {
         // REQ-028/052 — the dock-slot claim gate. All context is SERVER-SOURCED here (facility capacity from
         // this tenant's D1, the window's LOCAL wall clock from the facility tz, leg existence + occupancy from
         // the legs read-model) — never from the client event. Returns the computed service_date so #append can
         // hand the SAME value to the appointment projection (one impure tz derivation, reused by gate + write).
+        //
+        // WP-15 REQ-030/L8 — consult the shared authority read-seam for the DISPATCH module. SCOPED to ONLY this
+        // gated kind (a rare, dock-slot-claim event) — NOT the generic every-kind append path — so it is one
+        // indexed SELECT on the 5-row authority_map for an infrequent event, never the position/GPS firehose.
+        // `legacyValueAvailable` is false today (no legacy dispatch mirror — Task 4), so authoritativeSource
+        // ALWAYS resolves to "native" and the service_date computed below IS authoritative — behavior-IDENTICAL.
+        // The consult feeds a DORMANT branch ONLY: it NEVER touches the gate decision, the returned service_date,
+        // the event hash, the append, or the seq ordering. Tasks 4/6/8 light up the legacy branch.
+        const dispatchAuthority = authoritativeSource(await resolveAuthority(db, "dispatch"), false);
+        if (dispatchAuthority === "legacy") {
+          // DORMANT until a legacy dispatch mirror exists (Task 4). Unreachable today (native always wins).
+          console.error(`sequencer: dispatch authority is 'legacy' for ${shipmentId ?? streamId} (appointment.set) but no mirror is wired (WP-15 Task 4) — proceeding native`);
+        }
         return { appointmentServiceDate: await this.#enforceAppointment(db, shipmentId, incoming, ctx, prior) };
+      }
       case "booking.created":
         // REQ-042/182 — the booking gates. booking.created is the FIRST event on a fresh direct-booking
         // stream (prior may be []), so context is SERVER-SOURCED from the PARTIES read-model — BOTH the
@@ -599,13 +681,26 @@ export class ShipmentSequencer extends DurableObject<Env> {
         // (tenant-isolated), never the client event.
         await this.#enforceBooking(db, incoming, ctx);
         return {};
-      case "dispatch.assigned":
+      case "dispatch.assigned": {
         // REQ-043 — the DISPATCH gate. You don't send a driver before the stop is scheduled AND the carrier
         // paperwork exists. BOTH facts are SERVER-SOURCED from THIS tenant's D1 read-models (legs.appt_slot_key
         // for the claimed appointment, a documents row of the dispatch-required kind for the docs) — never from
         // the client event. A missing prerequisite → GATE_BLOCKED with the EXACT missing subset (REQ-030).
+        //
+        // WP-15 REQ-030/L8 — consult the shared authority read-seam for the DISPATCH module, SCOPED to ONLY this
+        // gated kind (a rare driver-assignment event), exactly like the appointment.set case above — one indexed
+        // SELECT on the 5-row authority_map, never the generic append path. `legacyValueAvailable` is false today
+        // (no legacy dispatch mirror — Task 4), so authoritativeSource ALWAYS resolves to "native" and the gate
+        // below runs exactly as before — behavior-IDENTICAL. The consult feeds a DORMANT branch ONLY: it NEVER
+        // touches the gate decision, the event hash, the append, or the ordering. Tasks 4/6/8 light it up.
+        const dispatchAuthority = authoritativeSource(await resolveAuthority(db, "dispatch"), false);
+        if (dispatchAuthority === "legacy") {
+          // DORMANT until a legacy dispatch mirror exists (Task 4). Unreachable today (native always wins).
+          console.error(`sequencer: dispatch authority is 'legacy' for ${shipmentId ?? streamId} (dispatch.assigned) but no mirror is wired (WP-15 Task 4) — proceeding native`);
+        }
         await this.#enforceDispatch(db, shipmentId, ctx);
         return {};
+      }
       default:
         // A GatedKind with no case above = a Set/switch desync. `assertNever` makes that a COMPILE error
         // (belt) and throws at runtime (suspenders) — never a silent fall-through to an ungated append.

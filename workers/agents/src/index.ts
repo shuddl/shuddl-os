@@ -14,6 +14,7 @@ import { QuoteAcceptedTrigger, handleQuoteAccepted, type BookingDeps } from "./b
 import { sweepTenantOverdueInbound } from "./sla-sweep.js";
 import { sweepTenantUnbilledRedrive } from "./recon-sweep.js";
 import { sweepTenantOverdueInvoices } from "./collector.js";
+import { sweepTenantLegacyMirror, NotConfiguredFeedReader, LEGACY_MIRROR_INTEGRATION_ID, type FeedReader } from "./mirror-sweep.js";
 import { runWatchtowerSweep } from "./watchtower.js";
 import { runWatchtowerSnapshots } from "./watchtower-snapshot.js";
 import { sweepTenantExpiredDocuments } from "@shuddl/ledger/documents/retention";
@@ -120,18 +121,25 @@ export async function runCollectorSweep(env: AgentsEnv, now: () => number = () =
   }
 }
 
-// REQ-036 — the Watchtower alarm sweep across every allowlisted tenant (REQ-025 isolation: one tenant's D1 per
-// iteration; the sweep names no tenant in a ledger append — it UPSERTs `anomalies` rows in that one D1 only, so
-// it CANNOT touch another). It raises/clears the unbilled, pricing_anomaly, and floor_breach alarms as durable
-// `anomalies` rows (NO event, NO new table). Exported so the cron test and a manual re-drive both hit the
-// identical path. Idempotent + self-clearing (deterministic alarm id per (tenant, rule[, object]) + ON-CONFLICT
-// upsert), so re-running every tick is safe; a per-tenant fault is contained + logged so one tenant never stalls
-// the rest. The cron reads wall-clock for `now` (deterministic in tests); it feeds only the unbilled age→severity.
+// REQ-036 / REQ-008 — the Watchtower alarm sweep across every allowlisted tenant (REQ-025 isolation: one tenant's
+// D1 per iteration; each append names ONLY that tenant, so it CANNOT touch another). It raises/clears the unbilled,
+// pricing_anomaly, floor_breach, agent_drift, and parity_drift alarms as durable `anomalies` rows (NO new table,
+// NO new kind). The parity_drift rule ALSO auto-falls-back a drifted native module to legacy by appending the
+// FROZEN authority.flipped #35 on t:root THROUGH the api sequencer DO (sequencerFor) — the ONLY ledger write the
+// sweep makes, and ALWAYS to:'legacy' (the overlay asymmetry). Exported so the cron test and a manual re-drive both
+// hit the identical path. Idempotent + self-clearing (deterministic alarm ids + ON-CONFLICT upsert; the fallback's
+// deterministic per-episode id dedupes at the DO), so re-running every tick is safe; a per-tenant fault is
+// contained + logged so one tenant never stalls the rest. The cron reads wall-clock for `now` (deterministic in
+// tests); it stamps the fallback ts and feeds the unbilled age→severity.
 export async function runWatchtower(env: AgentsEnv, now: () => number = () => Date.now()): Promise<void> {
+  // WP-15 Task 8 (REQ-008) — the parity_drift rule's auto-fallback appends authority.flipped on t:root through the
+  // SAME api sequencer DO seam every other append uses (sequencerFor), so the flip is gate-checked + projected by
+  // the ONE chokepoint. The other 4 rules ignore it (they only UPSERT anomalies rows).
+  const seq = sequencerFor(env);
   const at = now();
   for (const slug of TENANT_SLUGS) {
     try {
-      const result = await runWatchtowerSweep(tenantDb(env, slug), slug, at);
+      const result = await runWatchtowerSweep(tenantDb(env, slug), slug, at, {}, seq);
       console.log(`watchtower: tenant ${slug} → ${JSON.stringify(result)}`);
     } catch (err) {
       console.error(`watchtower: tenant ${slug} failed (re-run next tick — the sweep is idempotent):`, err);
@@ -154,6 +162,43 @@ export async function runRetentionSweep(env: AgentsEnv, now: () => number = () =
       console.log(`retention-sweep: tenant ${slug} → ${JSON.stringify(result)}`);
     } catch (err) {
       console.error(`retention-sweep: tenant ${slug} failed (re-run next tick — the sweep is idempotent):`, err);
+    }
+  }
+}
+
+// WP-15 Task 4 (REQ-021/022/035) — the FeedReader composition root. FAIL-CLOSED by default: the incumbent's
+// legacy export is mirrored ONLY once a tenant pack deliberately wires a real feed at Phase-0 cutover
+// (genesis/13) — the SAME NotConfigured posture as evidenceSender/conciergeParser. So the mirror cron below is
+// INERT (a no-op) in every environment today, exactly as the overlay's authority map ships unflipped. Wiring a
+// live R2/API feed reader here is a CONFIRM-gated config step, not code that turns on by itself.
+function feedReaderFor(_env: AgentsEnv, _slug: string): FeedReader {
+  return new NotConfiguredFeedReader();
+}
+
+// REQ-021/022/035 — the continuous legacy-mirror sweep across every allowlisted tenant (REQ-025 isolation: one
+// tenant's D1 per iteration; each append names ONLY that tenant, so it CANNOT touch another). It mirrors every
+// NEW/CHANGED legacy-export row into the ledger as a `source:'legacy'` event THROUGH the api sequencer DO
+// (Task-6 parity's legacy side), re-raises a gap `anomalies` row for every unmapped column (continuous no-silent-
+// drop), skips SHUDDL echoes + dedupes on deterministic ids (no ping-pong), and advances the per-tenant watermark
+// on integrations.config. Idempotent + BOUNDED + FAIL-CLOSED: absent a wired feed/integration it no-ops, so
+// re-running every tick is safe; a per-tenant fault is contained + logged so one tenant never stalls the rest.
+// Exported so the cron test + a manual re-drive hit the identical path. The cron reads wall-clock for `now`.
+export async function runMirrorSweep(env: AgentsEnv, now: () => number = () => Date.now()): Promise<void> {
+  const seq = sequencerFor(env);
+  const at = now();
+  for (const slug of TENANT_SLUGS) {
+    try {
+      const result = await sweepTenantLegacyMirror({
+        db: tenantDb(env, slug),
+        seq,
+        feed: feedReaderFor(env, slug),
+        integrationId: LEGACY_MIRROR_INTEGRATION_ID,
+        tenant: slug,
+        now: at,
+      });
+      console.log(`legacy-mirror: tenant ${slug} → ${JSON.stringify(result)}`);
+    } catch (err) {
+      console.error(`legacy-mirror: tenant ${slug} failed (re-run next tick — the sweep is idempotent):`, err);
     }
   }
 }
@@ -392,6 +437,12 @@ export default {
       // its own per-tenant faults, so the anchor's throw still surfaces after it runs. It DELETEs expired non-POD
       // R2 bytes + tombstones the row (row-iff-bytes preserved); a POD is 7yr and never swept. Idempotent.
       await runRetentionSweep(env, () => controller.scheduledTime);
+      // REQ-021/022/035 — the continuous LEGACY-MIRROR sweep rides this SAME tick, anchored to the fired-at
+      // instant so the re-raised gap-anomaly ids are deterministic. DECOUPLED via the same finally so a per-tenant
+      // anchor fault never skips it; it contains its own per-tenant faults, so the anchor's throw still surfaces
+      // after it runs. FAIL-CLOSED: with no wired feed/integration it no-ops (the overlay stays dormant until a
+      // Phase-0 cutover wires a real feed — genesis/13), so this is inert in every environment today.
+      await runMirrorSweep(env, () => controller.scheduledTime);
       // REQ-160 — the WEEKLY Watchtower telemetry snapshot rides this SAME daily tick but is DAY-OF-WEEK GATED
       // (isSnapshotDay): it persists each tenant's 7-metric R2 manifest only on SNAPSHOT_DOW, a no-op every other
       // day — so the daily cron carries the weekly snapshot with no new cron expression. DECOUPLED via the same

@@ -1,6 +1,6 @@
 import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
-import type { LedgerEvent, PodSignedPayload } from "@shuddl/contracts";
+import type { LedgerEvent, PodSignedPayload, AuthorityFlippedPayload } from "@shuddl/contracts";
 import { applyMigrations } from "../src/migrate.js";
 import { projectPassport } from "../src/projection/passports.js";
 import {
@@ -9,6 +9,7 @@ import {
   CREDIT_PROJECTION_GAP_RULE,
 } from "../src/projection/status-cache.js";
 import { projectAgentRuns } from "../src/projection/agent-runs.js";
+import { projectAuthority } from "../src/projection/authority.js";
 import { eventInsertStmt, mkEvent, resetEventCounter } from "./helpers.js";
 import ledgerCore from "../../../db/tenant/migrations/0001_ledger_core.sql?raw";
 import domain from "../../../db/tenant/migrations/0002_domain.sql?raw";
@@ -30,6 +31,20 @@ async function appendPassport(e: LedgerEvent): Promise<void> {
 }
 async function appendAgentRun(e: LedgerEvent): Promise<void> {
   await DB.batch([eventInsertStmt(DB, e), ...projectAgentRuns(DB, e)]);
+}
+async function appendAuthority(e: LedgerEvent): Promise<void> {
+  await DB.batch([eventInsertStmt(DB, e), ...projectAuthority(DB, e)]);
+}
+interface AuthorityRow {
+  module: string;
+  authority: string;
+  gates_status: string;
+  flipped_events: string;
+}
+async function authorityMap(module: string): Promise<AuthorityRow | null> {
+  return DB.prepare("SELECT module, authority, gates_status, flipped_events FROM authority_map WHERE module = ?")
+    .bind(module)
+    .first<AuthorityRow>();
 }
 interface AgentRunRow {
   id: string;
@@ -383,5 +398,107 @@ describe("REQ-113 — agent_runs meters per-run cost/latency from agent.acted (t
     expect(JSON.parse(row!.cost)).toEqual({}); // no cost reported → unknown, not fabricated as 0
     expect(row!.latency_ms).toBeNull(); // no latency reported → NULL, not invented
     expect(row!.trigger_event_id).toBeNull(); // no event-kind basis link
+  });
+});
+
+// ─── WP-15 Task 1 (REQ-008/023, Ten Laws L8) — authority_map is the PROJECTION of the append-only, co-signed
+// authority.flipped EVENT. The event is truth; the projection APPLIES `to` (never re-derives from prior state,
+// never enforces a gate — that is the server-side Gatekeeper's job in a later task). The table ships UNSEEDED,
+// so a first-ever flip of a module must UPSERT. e.id is recorded in flipped_events idempotently. ─────────────
+describe("REQ-008/023 — authority_map projects authority.flipped (the module-by-module overlay, L8)", () => {
+  // An authority flip is a TENANT-LEVEL control event that rides the t:root stream (WP-15 Task 3 makes t:root its
+  // ONLY valid stream — the DO structurally rejects one off t:root) and carries no shipment_id. The projection
+  // itself is stream-agnostic (it applies `to` for any authority.flipped; the stream is the DO's gate, not the
+  // read-model's), but the fixture uses t:root to match the real single-stream invariant.
+  function flip(payload: AuthorityFlippedPayload, seq = 0): LedgerEvent {
+    return mkEvent("authority.flipped", { stream_id: "t:root", shipment_id: undefined, seq, actor: { party: "party-ops" }, payload });
+  }
+
+  it("a promote flip sets authority='native', records e.id in flipped_events, and writes gate_snapshot to gates_status", async () => {
+    const e = flip({ module: "rating", from: "legacy", to: "native", reason: "promote", gate_snapshot: { open_gates: 0, ok: true } });
+    await appendAuthority(e);
+    const row = await authorityMap("rating");
+    expect(row).not.toBeNull();
+    expect(row!.authority).toBe("native");
+    expect(JSON.parse(row!.flipped_events)).toEqual([e.id]);
+    expect(JSON.parse(row!.gates_status)).toEqual({ open_gates: 0, ok: true });
+  });
+
+  it("works when the module row is ABSENT beforehand (UPSERT — the table ships unseeded)", async () => {
+    expect(await authorityMap("comms")).toBeNull(); // no seed row (writes here roll back after the test)
+    const e = flip({ module: "comms", from: "legacy", to: "native", reason: "promote" });
+    await appendAuthority(e);
+    const row = await authorityMap("comms");
+    expect(row!.authority).toBe("native");
+    expect(JSON.parse(row!.flipped_events)).toEqual([e.id]);
+    // no gate_snapshot supplied → gates_status keeps the '{}' default (never fabricated)
+    expect(JSON.parse(row!.gates_status)).toEqual({});
+  });
+
+  it("IDEMPOTENT — re-applying the SAME authority.flipped lands identical state (e.id appears exactly once)", async () => {
+    const e = flip({ module: "dispatch", from: "legacy", to: "native", reason: "promote" });
+    await appendAuthority(e);
+    await DB.batch(projectAuthority(DB, e)); // redelivered event: re-run the projection alone
+    const row = await authorityMap("dispatch");
+    expect(row!.authority).toBe("native"); // unchanged
+    expect(JSON.parse(row!.flipped_events)).toEqual([e.id]); // recorded ONCE, not twice
+  });
+
+  it("a drift fallback sets authority back to 'legacy' and APPENDS its event id (history accrues, not replaces)", async () => {
+    const promote = flip({ module: "settlement", from: "legacy", to: "native", reason: "promote" });
+    await appendAuthority(promote);
+    const drift = flip({ module: "settlement", from: "native", to: "legacy", reason: "drift", drift_ref: "anom-x" }, 1);
+    await appendAuthority(drift);
+    const row = await authorityMap("settlement");
+    expect(row!.authority).toBe("legacy"); // the auto-fallback applied
+    expect(JSON.parse(row!.flipped_events)).toEqual([promote.id, drift.id]); // both flips recorded, in order
+  });
+
+  it("a flip WITHOUT gate_snapshot does NOT clobber a previously recorded gates_status", async () => {
+    const withSnap = flip({ module: "invoicing", from: "legacy", to: "native", reason: "promote", gate_snapshot: { open_gates: 0 } });
+    await appendAuthority(withSnap);
+    const noSnap = flip({ module: "invoicing", from: "native", to: "legacy", reason: "drift", drift_ref: "anom-y" }, 1);
+    await appendAuthority(noSnap);
+    const row = await authorityMap("invoicing");
+    expect(row!.authority).toBe("legacy");
+    expect(JSON.parse(row!.gates_status)).toEqual({ open_gates: 0 }); // the earlier snapshot survives
+  });
+
+  it("a non-authority.flipped event projects NO authority_map statement", () => {
+    const e = mkEvent("pod.signed", { stream_id: "s:shp-au9", shipment_id: "shp-au9" });
+    expect(projectAuthority(DB, e)).toHaveLength(0);
+  });
+
+  it("FULL-STREAM replay-equivalence — re-projecting the SAME flip stream onto a WIPED map lands byte-identical state (L8: the read-model is a pure function of the event stream)", async () => {
+    // A multi-flip stream for ONE module: promote → drift → promote-again. Build the events ONCE (fixed ids
+    // via mkEvent's counter) so BOTH applications replay the IDENTICAL stream — the id set, order, and
+    // payloads are pinned. gates_status carries a DIFFERENT snapshot on each promote so "last snapshot wins"
+    // is exercised (and the middle drift, carrying none, must NOT clobber it — the COALESCE-keep path).
+    const s1 = flip({ module: "rating", from: "legacy", to: "native", reason: "promote", gate_snapshot: { open_gates: 0 } }, 0);
+    const s2 = flip({ module: "rating", from: "native", to: "legacy", reason: "drift", drift_ref: "anom-z" }, 1);
+    const s3 = flip({ module: "rating", from: "legacy", to: "native", reason: "promote", gate_snapshot: { open_gates: 1 } }, 2);
+    const stream = [s1, s2, s3];
+
+    // Run 1: apply the stream (event insert + projection) in order; capture the FULL end state.
+    for (const e of stream) await appendAuthority(e);
+    const first = await authorityMap("rating");
+    expect(first).not.toBeNull();
+
+    // WIPE the read-model — authority_map is UNGUARDED (no append-only DELETE trigger; only events/positions/
+    // money_lines carry them), so a projection rebuild is legal. Then RE-PROJECT the SAME events (already on
+    // the ledger) from scratch — projection-only, no re-insert (the events append-only, so they are NOT
+    // re-appended). A byte-identical end state PROVES the projection is a pure deterministic function of the
+    // event stream — the L8 audit-trail guarantee: authority_map is fully reconstructible from the ledger.
+    await DB.prepare("DELETE FROM authority_map WHERE module = 'rating'").run();
+    expect(await authorityMap("rating")).toBeNull(); // proven wiped — the rebuild starts from an absent row
+    for (const e of stream) await DB.batch(projectAuthority(DB, e));
+    const second = await authorityMap("rating");
+
+    // Byte-identical: same authority, same flipped_events IN THE SAME ORDER, same gates_status (one deep-equal
+    // over the whole row covers all three), then spelled out for a legible failure.
+    expect(second).toEqual(first);
+    expect(second!.authority).toBe("native"); // s3.to
+    expect(JSON.parse(second!.flipped_events)).toEqual([s1.id, s2.id, s3.id]); // full history, replay order preserved
+    expect(JSON.parse(second!.gates_status)).toEqual({ open_gates: 1 }); // last promote's snapshot; the drift did not clobber it
   });
 });

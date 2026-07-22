@@ -28,6 +28,7 @@ import { parse204, tokenize, build990 } from "@shuddl/edi";
 import type { TenderDoc } from "@shuddl/edi";
 import { priceShipment, assessApproval } from "@shuddl/rater";
 import type { RateRequest } from "@shuddl/rater";
+import { authoritativeSource, resolveAuthority } from "@shuddl/ledger/authority";
 import { mapTenderToBooking, LOAD_UNIQUE_REF_KEYS, ORDER_LEVEL_REF_KEYS, type BookingPlan } from "./core/map-204.js";
 import { quarantineDescriptor, type QuarantineRule } from "./core/quarantine.js";
 import { tenderKey } from "./sweep-214.js";
@@ -395,6 +396,22 @@ export async function handleInbound204(request: Request, deps: InboundDeps): Pro
     if (quote.status === "PRICED") {
       const pricedId = await deterministicUuid(`edi:quote-priced:${plan.shipment.id}`);
       const acceptedId = await deterministicUuid(`edi:quote-accepted:${pricedId}`);
+
+      // WP-15 REQ-030/L8 — this EDI 204 handler INDEPENDENTLY PRICES via the native Rater (priceShipment above)
+      // and appends a source:"native" quote.priced below, so it is authoritative for the RATING module — the
+      // SAME authoritative-emitter class as the Concierge auto-reply (concierge.ts). Consult the rating seam HERE,
+      // before the native price is committed, so a future rating='legacy' tenant's EDI-tendered quote defers to
+      // the incumbent price mirror instead of silently shipping a native price (the exact bypass the coverage lint
+      // guards). `legacyValueAvailable` is false today ⇒ authoritativeSource ALWAYS resolves to "native" ⇒
+      // behavior-identical; dormant intent-marker branch, same as the concierge/biller/rate consult sites. Task 4
+      // lights it up when a legacy price mirror exists.
+      const ratingAuthority = authoritativeSource(await resolveAuthority(db, "rating"), false);
+      if (ratingAuthority === "legacy") {
+        // DORMANT until a legacy price mirror exists (Task 4). Unreachable today (native always wins).
+        console.error(
+          `204-inbound: rating authority is 'legacy' for shipment ${plan.shipment.id} but no price mirror is wired (WP-15 Task 4) — proceeding native`,
+        );
+      }
 
       // quote.priced — byte-identical to rate.ts: the sell, the itemized breakdown the invoice projects (Σ ===
       // sell), the three floors, the pinned config versions (I5), and the audit basis carrying the REQ-040 anomaly.

@@ -27,6 +27,7 @@
 import { z } from "@shuddl/contracts";
 import type { GeoStamp, InvoiceIssuedPayload, LedgerEvent, QuotePricedPayload } from "@shuddl/contracts";
 import { rowToEvent } from "@shuddl/ledger/lens";
+import { authoritativeSource, resolveAuthority } from "@shuddl/ledger/authority";
 import { plausibleEmail } from "@shuddl/ledger/contacts";
 import { terminalHoldBodyRef } from "@shuddl/ledger/queries/unbilled";
 import { composeInvoice, renderEvidenceEmail, SendError } from "@shuddl/agents";
@@ -282,6 +283,19 @@ export async function handlePodSigned(message: PodSignedMessage, deps: BillerDep
   const msg = PodSignedMessage.parse(message); // Zod at the boundary even when the caller pre-parsed
   const { db, seq, sender, referralBase } = deps;
   const streamId = `s:${msg.shipment_id}`;
+
+  // WP-15 REQ-030/L8 — consult the shared authority read-seam for the INVOICING module before composing the
+  // authoritative native invoice below. `legacyValueAvailable` is false today (no legacy AR mirror exists —
+  // Task 4 ships the 171-col mirror adapter), so authoritativeSource ALWAYS resolves to "native" and this
+  // consumer projects the native invoice exactly as before — behavior-identical. The dormant branch is where
+  // Tasks 4/6/8 light up the incumbent-mirror path; it is UNREACHABLE while legacyValueAvailable is false
+  // (native always wins), so it never runs today — the seam is load-bearing but inert.
+  const invoicingAuthority = authoritativeSource(await resolveAuthority(db, "invoicing"), false);
+  if (invoicingAuthority === "legacy") {
+    // DORMANT until a legacy AR mirror exists (Task 4): defer to the incumbent's invoice instead of composing
+    // a native one. Unreachable today (legacyValueAvailable=false ⇒ authoritativeSource never yields legacy).
+    console.error(`biller: invoicing authority is 'legacy' for shipment ${msg.shipment_id} but no mirror is wired (WP-15 Task 4) — proceeding native`);
+  }
 
   // GUARD 1 — the trigger event must exist ON THIS STREAM as a pod.signed. A message that references a
   // nonexistent/foreign POD is POISON: redelivery cannot conjure the event, so skip (non-retriable),

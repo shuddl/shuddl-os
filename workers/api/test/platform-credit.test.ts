@@ -268,4 +268,23 @@ describe("the INTERNAL platform route — DARK without the secret, authorized wi
     const inv = await platform().prepare("SELECT status FROM invoices WHERE id = ?").bind(invoiceId).first<{ status: string }>();
     expect(inv!.status).toBe("paid");
   });
+
+  // WP-15 Task 4b (REQ-021/030) — the SECOND append seam FORCES source:'native' too (defense-in-depth I1). A
+  // forged `source:'legacy'` on this internal body is COERCED, so the credit event lands as a REAL native money
+  // projection — never a gate-exempt / projection-skipped legacy shadow on the revenue tenant. (Not reachable
+  // today: secret-gated, and billing/credits.ts hardcodes native — this closes the latent hole structurally.)
+  it("COERCES a forged source:'legacy' on the credit-append body to native (the event lands source='native' AND projects a money_line)", async () => {
+    const { invoiceId, shipmentId, streamId } = creditIds();
+    const forged = { ...creditInvoiceInput({ invoiceId, shipmentId, party: "tenant-a", cents: 500_00 }), source: "legacy" };
+    const res = await app.fetch(appendReq(streamId, forged, PLATFORM_INTERNAL_SECRET), secretEnv);
+    expect(res.status).toBe(200);
+    const id = ((await res.json()) as { id: string }).id;
+    // source was coerced to native (not the forged legacy):
+    const row = await platform().prepare("SELECT source FROM events WHERE id = ?").bind(id).first<{ source: string }>();
+    expect(row!.source).toBe("native");
+    // and BECAUSE it is native, it PROJECTED a credit money_line — a legacy shadow would have skipped projections
+    // (this money_line's presence is what a non-coerced legacy source would have made vanish → the I1 RED signal).
+    const line = await platform().prepare("SELECT kind FROM money_lines WHERE event_id = ?").bind(id).first<{ kind: string }>();
+    expect(line!.kind).toBe("credit_purchase");
+  });
 });

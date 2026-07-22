@@ -1,0 +1,9 @@
+rec_id,rec_type,feed_seq,shuddl_ref,ship_ref,amount_cents,driver_ref,facility_ref,slot_ref,win_start_ms,win_end_ms,misc_note,legacy_status
+R-1001,RATE,1,,SH-1001,120000,,,,,,rush lane,OPEN
+R-1002,INVOICE,2,,SH-1001,120000,,,,,,net30,BILLED
+R-1003,SETTLE,3,,SH-1001,90000,,,,,,interline,SETTLED
+R-1004,DISPATCH,4,,SH-1002,,DRV-7,,,,,team run,DISPATCHED
+R-1005,APPOINT,5,,SH-1002,,,FAC-3,SLOT-9,1720000000000,1720003600000,dock door 4,SCHEDULED
+R-1006,RATE,6,7f3a1c22-0000-4000-8000-00000000abcd,SH-1003,55000,,,,,,echoed back,OPEN
+R-1007,RATE,7,,SH-1004,,,,,,,missing rate,OPEN
+R-1008,WIDGET,8,,SH-1005,4200,,,,,,unknown kind,ODD

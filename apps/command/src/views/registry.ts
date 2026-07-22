@@ -2,8 +2,13 @@
 //
 // THE 12-VIEW BUDGET (REQ-084 / genesis/10 §views). These are the ONLY command views. The map board's furniture
 // (the KPI strip + the three queues) ARE views here; the ⌘K copilot is the "+copilot" surface (a command, not a
-// view — genesis/10) and is deliberately NOT counted. 10 named, 2 headroom — NEVER a 13th (no report builder,
+// view — genesis/10) and is deliberately NOT counted. 11 named, 1 headroom — NEVER a 13th (no report builder,
 // REQ-084). `assertViewBudget()` proves ≤12 at import so a future add is caught by the unit suite, not a reviewer.
+//
+// WP-15 (REQ-152/153): `v_parity` is the overlay's shadow-parity dashboard (native-vs-legacy per module). The
+// OR (operating-ratio / cost-rev) drill that historically borrowed the `v_parity` slug was RENAMED to
+// `v_operating_ratio` to return the genesis/10-reserved `v_parity` name to the overlay dashboard — a pure slug
+// rename (the OR drill's behavior is unchanged), NOT a 13th view: this spends ONE of the 2 headroom slots.
 import type { EventKind } from "@shuddl/contracts";
 import { formatCents } from "../intake/intake.js";
 
@@ -17,7 +22,8 @@ export const CANONICAL_VIEWS = [
   "v_aging", // KpiDrill(dso) — the open-AR aging drill
   "v_scoreboards", // KpiDrill(otd|dwell) — operational scoreboards
   "v_unbilled", // KpiDrill(unbilled)
-  "v_parity", // KpiDrill(or) — the cost/rev parity drill
+  "v_operating_ratio", // KpiDrill(or) — the cost/rev (operating-ratio) drill (renamed from v_parity; WP-15)
+  "v_parity", // WP-15 overlay shadow-parity dashboard — native-vs-legacy per module (REQ-152/153)
 ] as const;
 export type CanonicalView = (typeof CANONICAL_VIEWS)[number];
 
@@ -52,7 +58,7 @@ export const KPI_DRILL_VIEW: Record<string, CanonicalView> = {
   unbilled: "v_unbilled",
   dso: "v_aging",
   lane_pnl: "v_lane_pnl",
-  or: "v_parity",
+  or: "v_operating_ratio", // the OR (cost/rev, "operating ratio") drill — renamed from v_parity (WP-15 reclaimed the slug)
   otd: "v_scoreboards",
   dwell: "v_scoreboards",
 };
