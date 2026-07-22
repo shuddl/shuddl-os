@@ -32,7 +32,7 @@
 // deliberately wires a real feed at Phase-0 cutover (genesis/13). The read-model projection interaction (a legacy
 // invoice.issued would otherwise project AR alongside native) is the Task-2 DORMANT native-suppression / cutover
 // concern (NON-scope here) — this task ships the mirror-IN machinery fail-closed and does NOT change compute paths.
-import { mapLegacyExport, parseSheet, LegacyMirrorConfigSchema } from "@shuddl/adapters";
+import { mapLegacyExport, parseSheet, LegacyMirrorConfigSchema, stableStringify } from "@shuddl/adapters";
 import type { LegacyMirrorConfig, MirrorEventDraft, MirrorQuarantine } from "@shuddl/adapters";
 import { EventInput } from "@shuddl/contracts";
 
@@ -111,12 +111,9 @@ async function deterministicUuid(seed: string): Promise<string> {
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-${variant}${h.slice(17, 20)}-${h.slice(20, 32)}`;
 }
 const truncate = (s: string, n: number): string => (s.length > n ? s.slice(0, n) : s);
-function stableStringify(value: unknown): string {
-  if (value === null || typeof value !== "object") return JSON.stringify(value) ?? "null";
-  if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
-  const obj = value as Record<string, unknown>;
-  return `{${Object.keys(obj).sort().map((k) => `${JSON.stringify(k)}:${stableStringify(obj[k])}`).join(",")}}`;
-}
+// stableStringify is imported from @shuddl/adapters — THE ONE canonical echo-contract stringify (shared by the
+// mirror-IN idSeed, the project-OUT, and this worker's quarantine-id derivation). No hand-copied replica ⇒ the
+// real-world idSeed can never silently drift from the echo contract (REQ-022; a drifted stringify = a ping-pong).
 
 // Resolve the mapping config + watermark cursor off the integrations row. Returns null when the row/section is
 // absent (⇒ the sweep no-ops — fail-closed). Validates the mapping at the boundary (Zod), so a malformed pack
