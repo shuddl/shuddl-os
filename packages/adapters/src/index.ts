@@ -27,3 +27,21 @@ export type {
   PartyRole,
   MigratorMapping,
 } from "./migrator.js";
+
+// REQ-021/REQ-022/REQ-035 (WP-15 Task 4) — the HEAVY continuous 171-col legacy-mirror: the PURE, config-driven
+// mapper that turns a legacy export row into the SAME canonical event kind, tagged source:'legacy', echo-safe,
+// with the continuous gap-row no-silent-drop law. The WORKER (workers/agents/src/mirror-sweep.ts) does the I/O.
+export { mapLegacyExport, LegacyMirrorConfigSchema, MIRROR_KINDS, MIRROR_MODULES } from "./legacy-mirror.js";
+export type {
+  LegacyMirrorConfig,
+  LegacyRecordSpec,
+  LegacyFieldSpec,
+  MirrorResult,
+  MirrorRecord,
+  MirrorEventDraft,
+  MirrorQuarantine,
+  MirrorQuarantineReason,
+  MirrorKind,
+  MirrorModule,
+  ParsedFeed,
+} from "./legacy-mirror.js";

@@ -385,6 +385,9 @@ importers:
 
   workers/agents:
     dependencies:
+      '@shuddl/adapters':
+        specifier: workspace:*
+        version: link:../../packages/adapters
       '@shuddl/agents':
         specifier: workspace:*
         version: link:../../packages/agents
