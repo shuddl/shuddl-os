@@ -1,7 +1,3 @@
-The repo layout confirms all cross-reference paths. Here is the synthesized ledger.
-
----
-
 # SHUDDL — Go-Live Checklist & Technical-Debt Ledger
 
 **Path:** `docs/ops/GO-LIVE-CHECKLIST.md` · **Owner:** register owner · **Last synthesized:** 2026-07-19 (from the 5 WP-12-era audit sweeps)
