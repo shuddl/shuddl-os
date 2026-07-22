@@ -85,6 +85,17 @@ describe("REQ-014 — verifyTsaSignature: fail-closed rejections", () => {
     await expect(verifyTsaSignature(resp, { trustAnchors: [rogueCaCertDer] })).rejects.toThrow(/NO_CHAIN/);
   });
 
+  it("expectedImprintHex mismatch (a validly-signed receipt for a DIFFERENT document) -> IMPRINT_MISMATCH", async () => {
+    // The receipt's signature legitimately binds OUR imprint; a caller declaring a DIFFERENT expected
+    // imprint must be rejected — a real TSA receipt the authority signed for another doc cannot be replayed.
+    const resp = await mkResp({ signerCertDer: signerCertValid });
+    const wrong = "ff".repeat(32);
+    await expect(verifyTsaSignature(resp, { trustAnchors: [caCertDer], expectedImprintHex: wrong })).rejects.toThrow(/IMPRINT_MISMATCH/);
+    // positive control: the correct expected imprint passes.
+    const ok = await verifyTsaSignature(resp, { trustAnchors: [caCertDer], expectedImprintHex: bytesToHex(IMPRINT) });
+    expect(ok.verified).toBe(true);
+  });
+
   it("expired signer cert (genTime outside validity) -> CERT_EXPIRED", async () => {
     const expiredCert = await buildSignerCert({
       cn: SIGNER_CN,

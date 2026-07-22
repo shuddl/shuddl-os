@@ -65,6 +65,14 @@ export interface VerifyTsaOptions {
   trustAnchors?: Uint8Array[];
   /** Validity instant; defaults to the receipt's genTime. */
   at?: Date;
+  /**
+   * Lower-case hex of the imprint this receipt MUST attest. When set, the SIGNATURE-BOUND imprint from
+   * the signed TSTInfo is asserted equal to it (throws IMPRINT_MISMATCH otherwise) — so a real TSA
+   * receipt the authority signed for a DIFFERENT document cannot be replayed as ours when the seam is
+   * wired (a multi-TSTInfo response could otherwise let the protocol layer find a decoy carrying our
+   * imprint while the signature legitimately binds a different eContent).
+   */
+  expectedImprintHex?: string | undefined;
 }
 
 export interface TsaSignatureResult {
@@ -417,6 +425,12 @@ export async function verifyTsaSignature(respBytes: Uint8Array, opts: VerifyTsaO
 
   // TSTInfo: pull genTime (default validity instant) + the bound imprint for the caller to cross-check.
   const { genTime, imprintDigestHex } = parseTstInfoFields(eContent);
+  // Bind the imprint AT THE SOURCE: when the caller declares the imprint this receipt must attest, the
+  // SIGNATURE-BOUND imprint must equal it — so a validly-signed receipt for a DIFFERENT document cannot
+  // be replayed as ours (closes the decoy-TSTInfo vector before the seam is wired into the anchor flow).
+  if (opts.expectedImprintHex !== undefined && opts.expectedImprintHex !== imprintDigestHex) {
+    throw new TsaVerifyError("IMPRINT_MISMATCH", `signature binds imprint ${imprintDigestHex}, expected ${opts.expectedImprintHex}`);
+  }
   const at = opts.at ?? genTime;
 
   // Chain the signer to a configured trust anchor, time-valid at `at`.
