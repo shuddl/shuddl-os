@@ -121,18 +121,25 @@ export async function runCollectorSweep(env: AgentsEnv, now: () => number = () =
   }
 }
 
-// REQ-036 — the Watchtower alarm sweep across every allowlisted tenant (REQ-025 isolation: one tenant's D1 per
-// iteration; the sweep names no tenant in a ledger append — it UPSERTs `anomalies` rows in that one D1 only, so
-// it CANNOT touch another). It raises/clears the unbilled, pricing_anomaly, and floor_breach alarms as durable
-// `anomalies` rows (NO event, NO new table). Exported so the cron test and a manual re-drive both hit the
-// identical path. Idempotent + self-clearing (deterministic alarm id per (tenant, rule[, object]) + ON-CONFLICT
-// upsert), so re-running every tick is safe; a per-tenant fault is contained + logged so one tenant never stalls
-// the rest. The cron reads wall-clock for `now` (deterministic in tests); it feeds only the unbilled age→severity.
+// REQ-036 / REQ-008 — the Watchtower alarm sweep across every allowlisted tenant (REQ-025 isolation: one tenant's
+// D1 per iteration; each append names ONLY that tenant, so it CANNOT touch another). It raises/clears the unbilled,
+// pricing_anomaly, floor_breach, agent_drift, and parity_drift alarms as durable `anomalies` rows (NO new table,
+// NO new kind). The parity_drift rule ALSO auto-falls-back a drifted native module to legacy by appending the
+// FROZEN authority.flipped #35 on t:root THROUGH the api sequencer DO (sequencerFor) — the ONLY ledger write the
+// sweep makes, and ALWAYS to:'legacy' (the overlay asymmetry). Exported so the cron test and a manual re-drive both
+// hit the identical path. Idempotent + self-clearing (deterministic alarm ids + ON-CONFLICT upsert; the fallback's
+// deterministic per-episode id dedupes at the DO), so re-running every tick is safe; a per-tenant fault is
+// contained + logged so one tenant never stalls the rest. The cron reads wall-clock for `now` (deterministic in
+// tests); it stamps the fallback ts and feeds the unbilled age→severity.
 export async function runWatchtower(env: AgentsEnv, now: () => number = () => Date.now()): Promise<void> {
+  // WP-15 Task 8 (REQ-008) — the parity_drift rule's auto-fallback appends authority.flipped on t:root through the
+  // SAME api sequencer DO seam every other append uses (sequencerFor), so the flip is gate-checked + projected by
+  // the ONE chokepoint. The other 4 rules ignore it (they only UPSERT anomalies rows).
+  const seq = sequencerFor(env);
   const at = now();
   for (const slug of TENANT_SLUGS) {
     try {
-      const result = await runWatchtowerSweep(tenantDb(env, slug), slug, at);
+      const result = await runWatchtowerSweep(tenantDb(env, slug), slug, at, {}, seq);
       console.log(`watchtower: tenant ${slug} → ${JSON.stringify(result)}`);
     } catch (err) {
       console.error(`watchtower: tenant ${slug} failed (re-run next tick — the sweep is idempotent):`, err);
