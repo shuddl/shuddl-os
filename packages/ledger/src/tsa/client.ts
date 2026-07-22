@@ -6,8 +6,10 @@
 //
 // A client's job is protocol correctness: send a nonce, and REFUSE any response that isn't `granted`,
 // that stamps a different imprint, or that echoes a different nonce (a replayed/substituted receipt).
-// CMS signature + cert-chain verification is deferred to WP-16 (Decision 15) — the raw bytes are kept
-// in R2 so that verification can run offline later, forever.
+// CMS signature + cert-chain verification landed in WP-16 (see ./cms.ts `verifyTsaSignature`): given the
+// deployment's trust anchors it verifies the SignerInfo signature and chains the signer cert to a trusted
+// root, offline. This client stays protocol-only; the crypto verify is a SEPARATE opt-in step over the
+// same raw `.tsr` bytes kept in R2 — so a receipt is verifiable offline, forever.
 //
 // PURE of I/O except the injected fetch; no LLM (REQ-024).
 
