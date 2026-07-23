@@ -23,6 +23,11 @@ export function auditTokens(path: string): { colorTokens: string[]; violations: 
   const tokens = readTokens(path);
   const violations: string[] = [];
   const colorTokens = Object.keys(tokens).filter((k) => k !== "--field-on-dark");
+  // H-4 (REQ-207): the "5 color tokens" hard budget is enforced BY THE GATE here, by COUNT — a 6th
+  // token (or a dropped one) fails the audit itself, not just a hardcoded `toEqual` in the test.
+  if (colorTokens.length !== 5) {
+    violations.push(`REQ-145/207: ${colorTokens.length} color token(s) defined — the hard budget is exactly 5 (${colorTokens.join(", ")})`);
+  }
   const deep = tokens["--signal-deep"];
   const field = tokens["--field"];
   if (deep && field && contrastRatio(deep, field) < 4.5) {
@@ -244,11 +249,15 @@ function isTokenSource(f: string): boolean {
 
 // The scanned file set: css/tsx/ts/jsx/mjs/html under apps + packages, so a screen styling from
 // a `.ts` module or an `index.html` <style> block can't slip past the glob (C4). node_modules/
-// dist stay excluded (never git-tracked here anyway).
+// dist stay excluded (never git-tracked here anyway). H-3 (REQ-206): the runtime map-style JSON
+// (`*-style.json`, e.g. packages/map/greige-style.json — the shipped basemap with RAW paint
+// colors, imported by style.ts) is scanned too, so a non-token color in the basemap is caught by
+// the color-token audit. Only `*-style.json` is added, not every `.json`, so package/tsconfig
+// manifests can't false-positive.
 export function scannedFiles(): string[] {
   const patterns = [
-    "apps/**/*.css", "apps/**/*.tsx", "apps/**/*.ts", "apps/**/*.jsx", "apps/**/*.mjs", "apps/**/*.html",
-    "packages/**/*.css", "packages/**/*.tsx", "packages/**/*.ts", "packages/**/*.jsx", "packages/**/*.mjs", "packages/**/*.html",
+    "apps/**/*.css", "apps/**/*.tsx", "apps/**/*.ts", "apps/**/*.jsx", "apps/**/*.mjs", "apps/**/*.html", "apps/**/*-style.json",
+    "packages/**/*.css", "packages/**/*.tsx", "packages/**/*.ts", "packages/**/*.jsx", "packages/**/*.mjs", "packages/**/*.html", "packages/**/*-style.json",
   ];
   return execSync(`git ls-files ${patterns.map((p) => `"${p}"`).join(" ")}`, { encoding: "utf8" })
     .split("\n")

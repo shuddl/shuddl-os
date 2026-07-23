@@ -1,0 +1,17 @@
+{
+  "note": "Machine-checked coverage homes for RECORDED-DEFERRAL register rows (vNEXT / CONFIRM-GATED) that check:coverage (REQ-118/119) requires to be accounted for but that are NOT cited in a REQ-\\d{3} regex-visible form in docs/ops/GO-LIVE-CHECKLIST.md. Listing a REQ id here is its recorded disposition, so a deferral is RECORDED, never silent. Rules: (1) append-only-aware — add a row here whenever a NEW deferred REQ has no checklist citation; (2) NEVER list a BUILT row here — built dispositions require a source annotation and the gate ignores this file for them, so it cannot be used to bypass annotation; (3) every id must exist in genesis/09 (check:coverage fails on a stale/unregistered id).",
+  "dispositions": {
+    "REQ-029": "vNEXT — Dispatcher copilot suggestion-only; board-approval design deferred post-v1 (not built).",
+    "REQ-054": "vNEXT — COD prompt at delivery; COD event + remit line deferred post-v1.",
+    "REQ-055": "vNEXT — Master-job grouping for consolidated invoicing; multi-shipment single-invoice deferred post-v1.",
+    "REQ-066": "vNEXT — Photo dims / dimensioner capture; density estimate deferred (dims price-inert under the cwt engine today).",
+    "REQ-068": "vNEXT — Cartage-partner mode (external drivers run the gated legs); partner-leg pilot deferred post-v1.",
+    "REQ-072": "vNEXT — ELD/telematics position adapters v1.5; the position-ingestion API is ready at v1, adapters land later.",
+    "REQ-088": "vNEXT — Portal spend analytics + scorecards; QBR pack deferred post-v1.",
+    "REQ-089": "vNEXT — White-label portal/driver for Scale tenants; tenant-wordmark theming deferred post-v1.",
+    "REQ-110": "vNEXT — Agent-to-agent capability tokens v2; token-scope work deferred post-v1.",
+    "REQ-128": "vNEXT — Demand-trap micro-sites feeding Concierge (growth module); lead→quote pipeline deferred post-v1.",
+    "REQ-137": "CONFIRM-GATED — Call-recording consent policy per state; counsel-gated do-not-build (CONFIRM-2). Also in GO-LIVE-CHECKLIST §2 'vNEXT CONFIRM-gated OUT features' as REQ-096/137; recorded here for a regex-visible home. Pairs with REQ-096.",
+    "REQ-143": "CONFIRM-GATED — Settle/escrow money-transmission review; counsel route-choice gated do-not-build (CONFIRM-2). Also in GO-LIVE-CHECKLIST §2 as REQ-033/143; recorded here for a regex-visible home. Pairs with REQ-033."
+  }
+}

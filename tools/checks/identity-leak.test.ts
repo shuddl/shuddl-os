@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseDenylist, scanForIdentityLeaks } from "./identity-leak.js";
+import { parseDenylist, resolveIdentityLeakOutcome, scanForIdentityLeaks } from "./identity-leak.js";
 
 // REQ-167 DoD: a seeded denylist name in a PR fails CI. Tests inject a fake term —
 // real names live only in the client-side denylist, never here.
@@ -27,5 +27,53 @@ describe("REQ-167: identity-leak lint", () => {
 
   it("parses denylists from newline/comma-separated input, ignoring blanks and comments", () => {
     expect(parseDenylist("Alpha Corp\n# comment\nbeta-inc, Gamma LLC\n\n")).toEqual(["Alpha Corp", "beta-inc", "Gamma LLC"]);
+  });
+});
+
+// REQ-167 (WP-16): the disposition of an ABSENT denylist is the one fail-open gate left in the build.
+// It must fail CLOSED in CI / at a WP-exit run, and preserve warn-and-skip only for local dev.
+// resolveIdentityLeakOutcome is the pure decision the CLI wraps — tested here without touching process.exit.
+describe("REQ-167: absent-denylist disposition fails CLOSED in CI (the last fail-open gate)", () => {
+  it("CI + no denylist → code 1, level 'fail' (was exit 0 — this was the fail-open)", () => {
+    const o = resolveIdentityLeakOutcome({ terms: null, ci: true, requireDenylist: false, leaks: [] });
+    expect(o.code).toBe(1);
+    expect(o.level).toBe("fail");
+    expect(o.message).toMatch(/REQ-167/);
+  });
+
+  it("REQUIRE_DENYLIST + no denylist (even outside CI) → code 1, level 'fail'", () => {
+    const o = resolveIdentityLeakOutcome({ terms: null, ci: false, requireDenylist: true, leaks: [] });
+    expect(o.code).toBe(1);
+    expect(o.level).toBe("fail");
+  });
+
+  it("local dev (no CI, no REQUIRE_DENYLIST) + no denylist → code 0, level 'warn' (preserved)", () => {
+    const o = resolveIdentityLeakOutcome({ terms: null, ci: false, requireDenylist: false, leaks: [] });
+    expect(o.code).toBe(0);
+    expect(o.level).toBe("warn");
+    expect(o.message).toMatch(/REQ-167/);
+  });
+
+  it("clean scan: denylist present + no leaks → code 0, level 'ok' (green even in CI)", () => {
+    const o = resolveIdentityLeakOutcome({ terms: ["ZEBRA-CARRIER-TESTNAME"], ci: true, requireDenylist: true, leaks: [] });
+    expect(o.code).toBe(0);
+    expect(o.level).toBe("ok");
+  });
+
+  it("leak found: denylist present + a seeded leak (via scanForIdentityLeaks) → code 1, level 'fail'", () => {
+    // The scanner logic is unchanged — feed it an in-memory tree with one planted name.
+    const leaks = scanForIdentityLeaks(
+      ["ZEBRA-CARRIER-TESTNAME"],
+      new Map([
+        ["src/ok.ts", "export const x = 1;"],
+        ["docs/leak.md", "We visited Zebra-Carrier-Testname's dock yesterday."],
+      ]),
+    );
+    expect(leaks.length).toBe(1);
+    const o = resolveIdentityLeakOutcome({ terms: ["ZEBRA-CARRIER-TESTNAME"], ci: false, requireDenylist: false, leaks });
+    expect(o.code).toBe(1);
+    expect(o.level).toBe("fail");
+    // the masked term never leaks back through the disposition message either
+    expect(o.message).not.toContain("ZEBRA-CARRIER-TESTNAME");
   });
 });

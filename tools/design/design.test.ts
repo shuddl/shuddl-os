@@ -1,4 +1,6 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { contrastRatio } from "./contrast.js";
 import {
@@ -289,5 +291,55 @@ describe("M6/REQ-146: rendered-case is guaranteed by the primitives, not parsed 
 describe("Hardened audit must not over-reach: clean on the real repo", () => {
   it("auditRepo() returns zero violations against the shipped tokens/primitives/screens", () => {
     expect(auditRepo()).toEqual([]);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+// WP-16 exit-audit reconciliation (REQ-119). Two design-CI blind spots from the 2026-07-15 audit.
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+
+describe("H-3/REQ-206: the runtime basemap style JSON is inside the design scan", () => {
+  it("RED→GREEN: scannedFiles() now includes the runtime greige-style.json", () => {
+    // The shipped basemap (style.ts imports it) carries RAW paint colors; it must be scanned or an
+    // operator could set fill-color:#3388FF (blue water) with zero CI signal even once blocking.
+    expect(scannedFiles()).toContain("packages/map/greige-style.json");
+  });
+  it("a seeded raw (non-token) color in a JSON style layer is caught by the color audit", () => {
+    const badLayer = `{ "id": "water", "type": "fill", "paint": { "fill-color": "#3388FF" } }`;
+    expect(auditColor("greige-style.json", badLayer, ALLOWED_HEX).some((v) => v.includes("#3388FF"))).toBe(true);
+  });
+  it("the REAL greige-style.json is token-clean (only the three basemap tokens + the signal transparent)", () => {
+    const text = readFileSync("packages/map/greige-style.json", "utf8");
+    expect(auditColor("packages/map/greige-style.json", text, ALLOWED_HEX)).toEqual([]);
+  });
+});
+
+describe("H-4/REQ-207: the 5-color-token hard budget is enforced BY COUNT, not only a hardcoded test", () => {
+  const write6 = (): string => {
+    const p = join(tmpdir(), `tokens-6-${Date.now()}-${Math.random().toString(36).slice(2)}.css`);
+    writeFileSync(
+      p,
+      ":root{--field:#D5D1CC;--signal:#FF4A33;--signal-deep:#A52F18;--ink-dark:#1A1A1A;--progress:#00C4B4;--brand:#0000FF;}",
+    );
+    return p;
+  };
+  const write4 = (): string => {
+    const p = join(tmpdir(), `tokens-4-${Date.now()}-${Math.random().toString(36).slice(2)}.css`);
+    writeFileSync(p, ":root{--field:#D5D1CC;--signal:#FF4A33;--signal-deep:#A52F18;--ink-dark:#1A1A1A;}");
+    return p;
+  };
+  it("RED→GREEN: a 6th color token fails the audit by count", () => {
+    const res = auditTokens(write6());
+    expect(res.colorTokens.length).toBe(6);
+    expect(res.violations.some((v) => /color token/i.test(v) && v.includes("5"))).toBe(true);
+  });
+  it("RED→GREEN: a DROPPED token (4) also fails by count", () => {
+    const res = auditTokens(write4());
+    expect(res.violations.some((v) => /color token/i.test(v) && v.includes("5"))).toBe(true);
+  });
+  it("the real tokens.css (exactly 5) raises NO count violation", () => {
+    const res = auditTokens("packages/design/tokens.css");
+    expect(res.colorTokens).toHaveLength(5);
+    expect(res.violations.some((v) => /color token/i.test(v))).toBe(false);
   });
 });

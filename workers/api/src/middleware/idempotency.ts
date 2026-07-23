@@ -32,7 +32,12 @@ export async function idempotency(c: Context<{ Bindings: Env; Variables: Vars }>
   }
   await next();
   const res = c.res.clone();
-  if (res.status < 500) {
+  // REQ-206 (H-5): cache ONLY a 2xx success. Idempotency protects a *committed* mutation from being
+  // double-applied; a 4xx precondition failure (422 VALIDATION_FAILED, 409 conflict) or a 5xx
+  // committed nothing, so it must stay RETRYABLE — caching it would replay the stale failure on a
+  // same-key retry and `next()` would never re-run, silently losing the write the corrected retry
+  // intended (the Driver-PWA offline-replay evidence-loss path).
+  if (res.status >= 200 && res.status < 300) {
     await c.env.IDEMPOTENCY.put(scope, JSON.stringify({ status: res.status, body: await res.text() }), { expirationTtl: 60 * 60 * 24 });
   }
 }

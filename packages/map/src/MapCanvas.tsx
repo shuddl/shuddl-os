@@ -11,6 +11,7 @@ import {
   type FleetFeature,
 } from "./entities.js";
 import { chevronImage } from "./chevron.js";
+import { animateToward } from "./bearing.js";
 
 // The operational canvas (REQ-073 full-viewport). MapLibre draws the greige basemap + the entity GL
 // layers; positions glide via a throttled setData (~30fps ease-to-target, so 30s-sparse GPS reads as
@@ -42,12 +43,6 @@ function hasVisibleException(fleet: FleetCollection): boolean {
 function prefersReducedMotion(): boolean {
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") return true;
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
-
-/** Planar heading, 0° = north (matches the chevron art), clockwise. */
-function bearingTo(lng: number, lat: number, tlng: number, tlat: number): number {
-  const deg = (Math.atan2(tlng - lng, tlat - lat) * 180) / Math.PI;
-  return (deg + 360) % 360;
 }
 
 function cloneFeature(f: FleetFeature): FleetFeature {
@@ -84,18 +79,6 @@ function mergeAnimated(prev: FleetCollection, fleet: FleetCollection): FleetColl
       return cloneFeature(f);
     }),
   };
-}
-
-function animateToward(fleet: FleetCollection, targets: ReadonlyMap<string, [number, number]>): void {
-  for (const f of fleet.features) {
-    const t = targets.get(String(f.id));
-    if (!t) continue;
-    const c = f.geometry.coordinates;
-    const lng = c[0] ?? t[0];
-    const lat = c[1] ?? t[1];
-    f.geometry.coordinates = [lng + (t[0] - lng) * 0.2, lat + (t[1] - lat) * 0.2];
-    f.properties.bearing = bearingTo(lng, lat, t[0], t[1]);
-  }
 }
 
 /** Re-assert feature-state for the small non-healthy set after a setData (clusters can drop it). */

@@ -7,6 +7,7 @@ import {
   mapMoneyProjectionError,
   type OriginalLine,
 } from "../src/projection/money.js";
+import { computeDsoDays } from "../src/queries/metrics.js";
 import { allocateCents } from "../src/money/split.js";
 import { appendWithMoney, mkEvent, resetEventCounter } from "./helpers.js";
 import ledgerCore from "../../../db/tenant/migrations/0001_ledger_core.sql?raw";
@@ -14,6 +15,9 @@ import domain from "../../../db/tenant/migrations/0002_domain.sql?raw";
 import insertGuards from "../../../db/tenant/migrations/0003_insert_guards.sql?raw";
 
 const DB = env.TENANT_A_DB;
+
+const DAY_MS = 86_400_000;
+const NOW = Date.parse("2026-07-20T00:00:00Z");
 
 const ISSUE_LINES = [
   { line_no: 1, kind: "freight" as const, amount_cents: 100_000, gl_map: "4000-FREIGHT" },
@@ -112,7 +116,7 @@ describe("REQ-012 — projectMoneyLines is a pure projection of the event payloa
     ]);
   });
 
-  it("invoice.corrected with empty reissue_lines is a VOID: credits only, no reissue, no invoice upsert", () => {
+  it("invoice.corrected with empty reissue_lines is a VOID: credits only, no reissue, AND the invoices row flips to void/0 (REQ-119 read-model consistency)", () => {
     const e = mkEvent("invoice.corrected", {
       payload: { invoice_id: "inv-1", corrects_event_id: "evt-orig", reason: "void", reissue_lines: [] },
     });
@@ -120,7 +124,10 @@ describe("REQ-012 — projectMoneyLines is a pure projection of the event payloa
     expect(p.lines).toHaveLength(3);
     expect(p.lines.every((l) => l.kind === "correction_credit")).toBe(true);
     expect(p.lines.reduce((s, l) => s + l.amount_cents, 0)).toBe(-120_000);
-    expect(p.invoices).toEqual([]);
+    // A void is a correction, NOT a no-op on the AR row: the invoices projection flips OUT of 'issued' to
+    // {status:'void', total_cents:0} in the SAME batch as the reversing credits, so the AR read-model and
+    // money_lines both land on 0 (the divergence the WP-16 launch audit caught — previously emitted []).
+    expect(p.invoices).toEqual([{ mode: "void", id: "inv-1", total_cents: 0, status: "void" }]);
   });
 
   it("Exit audit (REQ-119) I7: voiding an all-positive invoice nets stream AR to EXACTLY 0", () => {
@@ -139,7 +146,8 @@ describe("REQ-012 — projectMoneyLines is a pure projection of the event payloa
     const voidSum = p.lines.reduce((s, l) => s + l.amount_cents, 0);
     expect(issuedSum + voidSum).toBe(0); // AR after the void: exactly zero
     expect(p.lines.every((l) => l.kind === "correction_credit")).toBe(true);
-    expect(p.invoices).toEqual([]); // a void reissues nothing
+    // a void reissues nothing, but it DOES flip the invoices AR row to void/0 (read-model consistency)
+    expect(p.invoices).toEqual([{ mode: "void", id: "inv-1", total_cents: 0, status: "void" }]);
   });
 
   it("split.computed -> interline_split AP rows via Hamilton allocation; zero-cent shares are dropped", () => {
@@ -285,6 +293,54 @@ describe("REQ-012 / I7 — applyMoneyProjection through real D1 (append batch + 
     expect(paid?.status).toBe("paid");
     const cod = await DB.prepare("SELECT amount_cents, kind FROM money_lines WHERE event_id = ?").bind(pay.id).all<{ amount_cents: number; kind: string }>();
     expect(cod.results).toEqual([{ amount_cents: -120_000, kind: "cod_collect" }]);
+  });
+
+  it("Exit audit (REQ-119) read-model consistency: after issue->void the invoices AR (status='issued') == money_lines net (both 0)", async () => {
+    const issue = mkEvent("invoice.issued", {
+      stream_id: "s:shp-void-rec", shipment_id: "shp-void-rec", seq: 0,
+      payload: { invoice_id: "void-rec-1", party_id: "party-bill", division: "north", lines: ISSUE_LINES },
+    });
+    await appendWithMoney(DB, issue);
+    const orig = await loadInEffectLines(issue.id);
+    const voidEvt = mkEvent("invoice.corrected", {
+      stream_id: "s:shp-void-rec", shipment_id: "shp-void-rec", seq: 1,
+      payload: { invoice_id: "void-rec-1", corrects_event_id: issue.id, reason: "void", reissue_lines: [] },
+    });
+    await appendWithMoney(DB, voidEvt, { originalLines: orig });
+
+    // the invoices AR row flipped OUT of 'issued' to void/0 (was RED: it stayed {status:'issued', 120_000})
+    const inv = await DB.prepare("SELECT status, total_cents FROM invoices WHERE id = 'void-rec-1'").first<{ status: string; total_cents: number }>();
+    expect(inv).toEqual({ status: "void", total_cents: 0 });
+
+    // THE RECONCILIATION: the two read-models of the SAME invoice AGREE. Open AR (SUM of status='issued'
+    // total_cents) and the money_lines net both == 0 — they no longer diverge (the QB/GL export reads
+    // money_lines and already reconciled to 0; now the AR surface does too).
+    const openAr = await DB.prepare("SELECT COALESCE(SUM(total_cents),0) AS s FROM invoices WHERE id = 'void-rec-1' AND status = 'issued'").first<{ s: number }>();
+    const mlNet = await DB.prepare("SELECT COALESCE(SUM(amount_cents),0) AS s FROM money_lines WHERE shipment_id = 'shp-void-rec'").first<{ s: number }>();
+    expect(openAr?.s).toBe(0);
+    expect(mlNet?.s).toBe(0);
+    expect(openAr?.s).toBe(mlNet?.s); // no divergence
+  });
+
+  it("Exit audit (REQ-119) read-model: computeDsoDays EXCLUDES a voided invoice (no phantom open AR in DSO)", async () => {
+    const issueTs = NOW - 30 * DAY_MS; // 30 days old — a real DSO number while OPEN
+    const issue = mkEvent("invoice.issued", {
+      stream_id: "s:shp-void-dso", shipment_id: "shp-void-dso", seq: 0, ts: issueTs,
+      payload: { invoice_id: "void-dso-1", party_id: "party-bill", division: "north", lines: ISSUE_LINES },
+    });
+    await appendWithMoney(DB, issue, { termsDays: 30 });
+    // while OPEN it IS open AR — DSO is a real number (sanity: the invoice is genuinely in scope).
+    expect(await computeDsoDays(DB, { now: NOW, scope: "void-dso-" })).not.toBe("UNKNOWN");
+
+    const orig = await loadInEffectLines(issue.id);
+    const voidEvt = mkEvent("invoice.corrected", {
+      stream_id: "s:shp-void-dso", shipment_id: "shp-void-dso", seq: 1,
+      payload: { invoice_id: "void-dso-1", corrects_event_id: issue.id, reason: "void", reissue_lines: [] },
+    });
+    await appendWithMoney(DB, voidEvt, { originalLines: orig });
+    // after the void the invoice is OUT of 'issued' -> no open AR in scope -> honest UNKNOWN.
+    // RED before the fix: the void did NOT flip status, so DSO still counted the full-face invoice.
+    expect(await computeDsoDays(DB, { now: NOW, scope: "void-dso-" })).toBe("UNKNOWN");
   });
 
   it("double-correcting the same event violates ux_ml_corrects -> mapped to VALIDATION_FAILED (I7)", async () => {

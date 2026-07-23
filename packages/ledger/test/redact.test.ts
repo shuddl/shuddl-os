@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { eventFixture, type EventKind, type LedgerEvent } from "@shuddl/contracts";
+import { eventFixture, type EventKind, type JsonObject, type LedgerEvent } from "@shuddl/contracts";
 import { redactEvent, INTERNAL_NESTED } from "../src/redact.js";
 import { KIND_VISIBILITY_DEFAULTS } from "../src/visibility.js";
 
@@ -136,6 +136,13 @@ describe("redactEvent: booking.created + dispatch.assigned internals (REQ-192)",
 
   it("GENERAL fail-closed guard: NO known-internal key survives the party lens for ANY counterparty-default kind", () => {
     const KNOWN_INTERNAL = ["gl_map", "division", "driver_user_id", "cost", "buy_rate"];
+    // Loose-JsonObject counterparty kinds (payment.received / settlement.executed) build a minimal `{}` payload,
+    // so the guard would pass TRIVIALLY on them. Seed a known-internal `division` (the org/margin dimension their
+    // money projection reads, money.ts:234/258) so the guard genuinely EXERCISES the strip on these kinds too.
+    const INTERNAL_SEED: Partial<Record<EventKind, JsonObject>> = {
+      "payment.received": { method: "ach", amount_cents: 120_000, division: "leak-canary" },
+      "settlement.executed": { fee_cents: 2_500, division: "leak-canary" },
+    };
     const hasKeyDeep = (node: unknown, key: string): boolean => {
       if (Array.isArray(node)) return node.some((n) => hasKeyDeep(n, key));
       if (node === null || typeof node !== "object") return false;
@@ -146,12 +153,15 @@ describe("redactEvent: booking.created + dispatch.assigned internals (REQ-192)",
       (k) => KIND_VISIBILITY_DEFAULTS[k] === "counterparty",
     );
     for (const kind of counterpartyKinds) {
+      const seed = INTERNAL_SEED[kind];
       let e: LedgerEvent;
       try {
-        e = eventFixture(kind, { visibility: "counterparty" });
+        e = eventFixture(kind, seed ? { visibility: "counterparty", payload: seed } : { visibility: "counterparty" });
       } catch {
         continue; // a kind eventFixture can't build with a bare visibility override — not this guard's target
       }
+      // If we seeded an internal field, the STORED payload must actually carry it (else the guard is vacuous).
+      if (seed !== undefined) expect(hasKeyDeep(e.payload, "division")).toBe(true);
       const red = redactEvent({ scope: "party" }, e).payload;
       for (const bad of KNOWN_INTERNAL) {
         if (hasKeyDeep(red, bad)) {
@@ -159,5 +169,78 @@ describe("redactEvent: booking.created + dispatch.assigned internals (REQ-192)",
         }
       }
     }
+  });
+});
+
+// REQ-119 (WP-16 launch audit) — the FORWARD-GUARD for the two OTHER counterparty-default money kinds whose
+// money projection reads payload.division (money.ts:234/258): payment.received and settlement.executed. Both are
+// loose JsonObject payloads, so a real-tenant emitter that ever stamps `division` on one would leak the org/margin
+// dimension to the PARTY lens unless division is registered in INTERNAL_NESTED. Not reachable today (the only
+// payment.received emitter is _platform billing with no division; settlement.executed is CONFIRM-gated/dormant) —
+// this closes it before it can go live.
+describe("redactEvent: payment.received + settlement.executed division forward-guard (REQ-119)", () => {
+  for (const kind of ["payment.received", "settlement.executed"] as const) {
+    it(`${kind} — party/driver lens strips payload.division; the tenant lens keeps it`, () => {
+      const e = eventFixture(kind, {
+        visibility: "counterparty",
+        payload: { method: "ach", amount_cents: 120_000, fee_cents: 2_500, division: "north" },
+      });
+      // sanity: the STORED event carries the internal dimension (else the assertion proves nothing).
+      expect((e.payload as Record<string, unknown>).division).toBe("north");
+      for (const scope of ["party", "driver"] as const) {
+        const red = redactEvent({ scope }, e).payload as Record<string, unknown>;
+        expect(red.division).toBeUndefined(); // the org/margin dimension never reaches a counterparty
+        expect(red.amount_cents ?? red.fee_cents).toBeDefined(); // the money a party legitimately sees stays
+        expect(JSON.stringify(red)).not.toContain("north");
+      }
+      // redaction is per-lens: the tenant (ops/finance) lens sees the unredacted dimension.
+      expect((redactEvent({ scope: "tenant" }, e).payload as Record<string, unknown>).division).toBe("north");
+      // and the stored event is never mutated (READ projection).
+      expect((e.payload as Record<string, unknown>).division).toBe("north");
+    });
+  }
+
+  it("INTERNAL_NESTED registers payment.received + settlement.executed with division (completeness)", () => {
+    expect(INTERNAL_NESTED["payment.received"]).toEqual(["division"]);
+    expect(INTERNAL_NESTED["settlement.executed"]).toEqual(["division"]);
+  });
+});
+
+// REQ-074 (doc 07 §02, WP-16 verify) — the SERVER-SIDE geo-privacy boundary. The WP-03 threat-model flagged
+// that `generalizePosition` was "client-consumed" and the "true boundary is server-side scoping (WP-02 lens)".
+// It IS the lens boundary: redactEvent (server-side) coarsens PARTY geo to ~11 km + drops accuracy until
+// out-for-delivery; DRIVER + TENANT keep exact geo (an ops/driver privilege). Proven here so no
+// party-reachable read can leak an exact microdegree coordinate (a REQ-074 breach). The coarsening walk is
+// STRUCTURAL (top-level lat_e6/lon_e6 AND nested `geo`), so a future geo-bearing kind cannot silently reopen it.
+describe("redactEvent: party geo-privacy is generalized SERVER-SIDE (REQ-074)", () => {
+  const RAW = { lat_e6: 39_712_345, lon_e6: -104_987_654, accuracy_m: 5 };
+  const posEvent = (): LedgerEvent => ({ kind: "position.updated", payload: { ...RAW } }) as unknown as LedgerEvent;
+
+  it("PARTY lens coarsens lat/lon to ~11 km + drops accuracy — the exact coordinate never reaches a consignee", () => {
+    const red = redactEvent({ scope: "party" }, posEvent()).payload as Record<string, unknown>;
+    expect(red.lat_e6).toBe(39_700_000); // 0.1-deg grid (100_000 microdeg ≈ 11 km)
+    expect(red.lon_e6).toBe(-105_000_000);
+    expect("accuracy_m" in red).toBe(false); // the precision signal is dropped with the coords
+    expect(red.lat_e6).not.toBe(RAW.lat_e6); // the raw microdegree never survives the party lens
+  });
+
+  it("DRIVER + TENANT lenses keep EXACT geo (an ops/driver privilege)", () => {
+    for (const scope of ["driver", "tenant"] as const) {
+      const red = redactEvent({ scope }, posEvent()).payload as Record<string, unknown>;
+      expect(red.lat_e6).toBe(RAW.lat_e6);
+      expect(red.lon_e6).toBe(RAW.lon_e6);
+    }
+  });
+
+  it("PARTY lens unlocks exact geo ONLY at out-for-delivery (the forwardable-cap boundary)", () => {
+    const red = redactEvent({ scope: "party" }, posEvent(), true).payload as Record<string, unknown>;
+    expect(red.lat_e6).toBe(RAW.lat_e6);
+  });
+
+  it("nested `geo` (pod.signed) is coarsened for a party lens — structural, not kind-enumerated", () => {
+    const podEvent = { kind: "pod.signed", payload: { geo: { ...RAW } } } as unknown as LedgerEvent;
+    const geo = (redactEvent({ scope: "party" }, podEvent).payload as Record<string, unknown>).geo as Record<string, unknown>;
+    expect(geo.lat_e6).toBe(39_700_000);
+    expect("accuracy_m" in geo).toBe(false);
   });
 });

@@ -3,8 +3,9 @@
 // SCOPE (Decision 15): we encode a TimeStampReq and extract {status, imprint, nonce} from a
 // TimeStampResp so the daily anchor can (a) send a request and (b) verify the TSA echoed our exact
 // imprint + nonce with status `granted`. We do NOT verify the CMS signature or the TSA cert chain
-// here — that is deferred to the WP-16 audit. The raw `.tsr` bytes are retained in R2 so the receipt
-// stays cryptographically verifiable offline, forever, once the CMS verifier lands.
+// here — that lives in the WP-16 CMS verifier (./cms.ts `verifyTsaSignature`), which REUSES the DER
+// primitives exported below (TAG, tlv, concat, readTlv, readChildren, …). The raw `.tsr` bytes are
+// retained in R2 so the receipt stays cryptographically verifiable offline, forever.
 //
 // THE CLASSIC BUG this file exists to get right: a DER INTEGER is two's-complement SIGNED. A value
 // whose most-significant bit is set (>= 0x80 in the top byte) MUST be prefixed with a 0x00 pad byte,
@@ -17,7 +18,9 @@ import { bytesToHex, hexToBytes } from "../merkle.js";
 
 // ---- primitive encoders -------------------------------------------------------------------------
 
-const TAG = {
+// Generic DER primitives are exported so the WP-16 CMS/X.509 verifier (cms.ts) reuses this ONE
+// reader/encoder instead of forking a second, subtly-different DER parser (REQ-014).
+export const TAG = {
   BOOLEAN: 0x01,
   INTEGER: 0x02,
   OCTET_STRING: 0x04,
@@ -43,7 +46,7 @@ export function encodeLength(len: number): Uint8Array {
   return Uint8Array.from([0x80 | bytes.length, ...bytes]);
 }
 
-function tlv(tag: number, content: Uint8Array): Uint8Array {
+export function tlv(tag: number, content: Uint8Array): Uint8Array {
   const len = encodeLength(content.length);
   const out = new Uint8Array(1 + len.length + content.length);
   out[0] = tag;
@@ -69,7 +72,7 @@ export function encodeDerInteger(value: number | bigint): Uint8Array {
   return tlv(TAG.INTEGER, Uint8Array.from(bytes));
 }
 
-function concat(parts: Uint8Array[]): Uint8Array {
+export function concat(parts: Uint8Array[]): Uint8Array {
   const total = parts.reduce((n, p) => n + p.length, 0);
   const out = new Uint8Array(total);
   let off = 0;
@@ -110,14 +113,16 @@ export function encodeTimeStampReq({ digestHex, nonce }: TimeStampReqInput): Uin
 
 // ---- TLV reader (for parsing a TimeStampResp) ---------------------------------------------------
 
-interface Tlv {
+export interface Tlv {
   tag: number;
+  /** Offset of the identifier octet (the element's first byte) — needed to slice raw element DER. */
+  start: number;
   contentStart: number;
   contentEnd: number;
   end: number;
 }
 
-function readTlv(buf: Uint8Array, offset: number): Tlv {
+export function readTlv(buf: Uint8Array, offset: number): Tlv {
   if (offset >= buf.length) throw new Error("DER: read past end");
   const tag = buf[offset]!;
   let pos = offset + 1;
@@ -140,10 +145,10 @@ function readTlv(buf: Uint8Array, offset: number): Tlv {
   const contentStart = pos;
   const contentEnd = pos + len;
   if (contentEnd > buf.length) throw new Error("DER: content overruns buffer");
-  return { tag, contentStart, contentEnd, end: contentEnd };
+  return { tag, start: offset, contentStart, contentEnd, end: contentEnd };
 }
 
-function readChildren(buf: Uint8Array, start: number, end: number): Tlv[] {
+export function readChildren(buf: Uint8Array, start: number, end: number): Tlv[] {
   const out: Tlv[] = [];
   let pos = start;
   while (pos < end) {
@@ -154,7 +159,7 @@ function readChildren(buf: Uint8Array, start: number, end: number): Tlv[] {
   return out;
 }
 
-const isConstructed = (tag: number): boolean => (tag & 0x20) !== 0;
+export const isConstructed = (tag: number): boolean => (tag & 0x20) !== 0;
 
 // Content of a DER INTEGER interpreted as a non-negative magnitude, lower-case hex (leading 0x00 sign
 // pad stripped). Zero renders "00". Used to compare a response nonce against the request nonce.
@@ -275,11 +280,11 @@ const OID_SIGNED_DATA = Uint8Array.from([0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x0
 const OID_CT_TSTINFO = Uint8Array.from([0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x09, 0x10, 0x01, 0x04]); // 1.2.840.113549.1.9.16.1.4
 const OID_TSA_POLICY = Uint8Array.from([0x2a, 0x03, 0x04, 0x01]); // 1.2.3.4.1 — a placeholder policy id
 
-function explicit(tagNumber: number, content: Uint8Array): Uint8Array {
+export function explicit(tagNumber: number, content: Uint8Array): Uint8Array {
   return tlv(0xa0 | tagNumber, content); // context-specific, constructed, EXPLICIT
 }
 
-function generalizedTime(d: Date): Uint8Array {
+export function generalizedTime(d: Date): Uint8Array {
   const p = (n: number, w = 2): string => String(n).padStart(w, "0");
   const s = `${p(d.getUTCFullYear(), 4)}${p(d.getUTCMonth() + 1)}${p(d.getUTCDate())}${p(d.getUTCHours())}${p(d.getUTCMinutes())}${p(d.getUTCSeconds())}Z`;
   return tlv(0x18, new TextEncoder().encode(s));

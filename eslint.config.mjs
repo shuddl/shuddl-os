@@ -7,7 +7,7 @@ export default tseslint.config(
   // .claude/skills/** are governance/guidance docs (like CLAUDE.md), not build source. Their SKILL.md
   // reference snippets ship illustrative .ts/.sql that intentionally won't typecheck standalone — the
   // build linter must not gate on them.
-  { ignores: ["**/dist/**", "**/node_modules/**", "**/.wrangler/**", "genesis/**", "fixtures/**", "docs/**", "seed/**", "apps/*/public/**", "shuddl-site/**", ".claude/**"] },
+  { ignores: ["**/dist/**", "**/node_modules/**", "**/.wrangler/**", "genesis/**", "fixtures/**", "docs/**", "seed/**", "apps/*/public/**", "shuddl-site/**", "marketing-site/**", ".agents/**", ".claude/**"] },
   ...tseslint.configs.recommended,
   {
     rules: {
