@@ -34,9 +34,14 @@ jobs:
         run: pnpm check:pr
       - name: traceability — orphan detector (REQ-118)
         run: pnpm check:traceability
-      - name: identity-leak lint (REQ-167 — denylist is a CI secret, never in repo)
+      - name: register coverage 100% (REQ-118/119 — every register row accounted for)
+        run: pnpm check:coverage
+      - name: authority-coverage lint (REQ-030/L8 — every module consults resolveAuthority)
+        run: pnpm check:authority-coverage
+      - name: identity-leak lint (REQ-167 — denylist is a CI secret, never in repo; fails CLOSED without it)
         env:
           IDENTITY_DENYLIST: ${{ secrets.IDENTITY_DENYLIST }}
+          REQUIRE_DENYLIST: "1"
         run: pnpm check:identity
       - name: tenant isolation suite (REQ-025)
         run: pnpm --filter @shuddl/api test -- isolation

@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, globSync, readFileSync, writeFileSync } from "node:fs";
+import { execSync } from "node:child_process";
 import { join } from "node:path";
 import { stripSqlComments } from "@shuddl/ledger/migrate";
 
@@ -202,7 +203,10 @@ export function checkLock(
 // a fixture, or vendored. Only db/**/migrations/*.sql is exempt under db/ — a file
 // like db/tenant/seed.sql is scanned by neither glob otherwise, so it is a stray.
 export function isStraySql(path: string, migrations: ReadonlySet<string>): boolean {
-  if (path.includes("node_modules") || path.startsWith("fixtures/")) return false;
+  // node_modules + fixtures are vendored; `.claude/` is skills/governance prose (a skill may carry a
+  // reference/example .sql), excluded exactly as the traceability scan + eslint exclude it — it is not
+  // product schema. Everything else outside db/*/migrations is a real stray (an I3/I8 evasion).
+  if (path.includes("node_modules") || path.startsWith("fixtures/") || path.startsWith(".claude/")) return false;
   return !migrations.has(path);
 }
 
@@ -213,7 +217,21 @@ export function isStraySql(path: string, migrations: ReadonlySet<string>): boole
 // real decision runs on the RESULT array, whose entries are full, cwd-relative paths.
 export function findStraySql(cwd: string = process.cwd()): string[] {
   const migrations = new Set(globSync("db/**/migrations/*.sql", { cwd }));
-  return globSync("**/*.sql", { cwd, exclude: (p) => p.includes("node_modules") }).filter((p) => isStraySql(p, migrations));
+  // GIT-AWARE scan: the fence catches a PRODUCT `.sql` sneaking outside `db/*/migrations` (an I3/I8 evasion).
+  // A git-IGNORED path (`.gitignore` / `.git/info/exclude` — e.g. a separate untracked sibling project that
+  // shares the repo dir) is explicitly NOT the product, so it must not trip the product invariant. `git
+  // ls-files --cached --others --exclude-standard` lists tracked + untracked-but-NOT-ignored files, applying
+  // every git ignore rule — so a genuinely-strayed uncommitted product `.sql` is still caught, while an
+  // ignored sibling's SQL is skipped. Fall back to the filesystem glob outside a git repo.
+  let candidates: string[];
+  try {
+    candidates = execSync("git ls-files --cached --others --exclude-standard -z -- '*.sql'", { cwd, encoding: "utf8" })
+      .split("\0")
+      .filter(Boolean);
+  } catch {
+    candidates = globSync("**/*.sql", { cwd, exclude: (p) => p.includes("node_modules") });
+  }
+  return candidates.filter((p) => isStraySql(p, migrations));
 }
 
 // Defense in depth (D1 runs recursive_triggers=0): application code must never issue a REPLACE
