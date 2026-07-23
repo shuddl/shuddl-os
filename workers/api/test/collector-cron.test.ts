@@ -124,15 +124,19 @@ describe("Collector dunning sweep — DRAFTS a tone-matched dunning for an OPEN 
     expect((await draftRows("collector-inv-final")).map((r) => r.id)).toEqual([dunningDraftId("collector-inv-final", "final")]);
   });
 
-  it("does NOT draft a CURRENT (not-yet-due) invoice, nor a PAID one, nor one with NO terms (NULL due_ts)", async () => {
+  it("does NOT draft a CURRENT (not-yet-due) invoice, nor a PAID one, nor a VOIDED one, nor one with NO terms (NULL due_ts)", async () => {
     await seedParty("collector-p-skip", "billing@collector-skip.example.com");
     await seedInvoice("collector-inv-current", "collector-p-skip", { dueTs: NOW + 5 * DAY }); // due in the future
     await seedInvoice("collector-inv-paid", "collector-p-skip", { status: "paid", dueTs: NOW - 30 * DAY }); // overdue but PAID
+    // REQ-119 launch audit: a VOIDED invoice (status='void', flipped OUT of 'issued' by the void projection,
+    // money.ts) is overdue-by-due_ts but is NOT open AR — the sweep must never dun a fully-voided invoice.
+    await seedInvoice("collector-inv-void", "collector-p-skip", { status: "void", dueTs: NOW - 30 * DAY, totalCents: 0 });
     await seedInvoice("collector-inv-noterms", "collector-p-skip", { dueTs: null }); // no terms → no due date → cannot be overdue
 
     await sweepTenantOverdueInvoices(env.TENANT_A_DB, NOW);
     expect(await draftRows("collector-inv-current")).toHaveLength(0);
     expect(await draftRows("collector-inv-paid")).toHaveLength(0);
+    expect(await draftRows("collector-inv-void")).toHaveLength(0);
     expect(await draftRows("collector-inv-noterms")).toHaveLength(0);
   });
 

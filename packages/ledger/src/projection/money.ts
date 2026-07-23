@@ -44,12 +44,16 @@ export interface MoneyLineRow {
 }
 
 // The invoices projection row (REQ-057: division filterable everywhere). `insert` upserts on issue (carrying
-// REQ-083 terms/due_ts); `update` re-totals an existing invoice on a reissue (a void emits none); `settle`
-// flips a matched OPEN invoice to 'paid' when a payment.received covers it (REQ-083, the AR-settlement write
-// an honest DSO needs). invoices is a MUTABLE read-model — all three are legal (events/money_lines are not).
+// REQ-083 terms/due_ts); `update` re-totals an existing invoice on a reissue; `void` flips a fully-reversed
+// invoice OUT of 'issued' to {status:'void', total_cents:0} (REQ-119: a void is a correction, not a no-op —
+// the AR read-model must land on the same 0 the reversing money_lines do, else every read that scopes open AR
+// on status='issued' — the Collector dunning sweep, computeDsoDays, the aging rollup — overstates it forever);
+// `settle` flips a matched OPEN invoice to 'paid' when a payment.received covers it (REQ-083, the AR-settlement
+// write an honest DSO needs). invoices is a MUTABLE read-model — all four are legal (events/money_lines are not).
 export type InvoiceUpsert =
   | { mode: "insert"; id: string; party_id: string; division: string; total_cents: number; status: string; issued_event_id: string; terms: string | null; due_ts: number | null }
   | { mode: "update"; id: string; total_cents: number; status: string; issued_event_id: string }
+  | { mode: "void"; id: string; total_cents: number; status: string }
   | { mode: "settle"; id: string; status: string };
 
 // The in-effect (positive) money_lines of the event a correction targets. The caller loads these
@@ -174,7 +178,11 @@ export function projectMoneyLines(e: LedgerEvent, deps: MoneyProjectionDeps): Mo
       );
       const invoices: InvoiceUpsert[] =
         p.reissue_lines.length === 0
-          ? [] // a void reissues nothing (plan: "or none on void")
+          // A void reissues nothing, but it is NOT a no-op on the AR row: flip the invoices projection OUT of
+          // 'issued' to {status:'void', total_cents:0} so every read that scopes open AR on status='issued'
+          // (Collector dunning, computeDsoDays, aging rollup) drops it — the credits net money_lines to 0 in
+          // this SAME batch, so both read-models of the event land on the same economic truth (REQ-119, I1).
+          ? [{ mode: "void", id: p.invoice_id, total_cents: 0, status: "void" }]
           : [{ mode: "update", id: p.invoice_id, total_cents: p.reissue_lines.reduce((s, l) => s + l.amount_cents, 0), status: "issued", issued_event_id: e.id }];
       return { lines: [...credits, ...debits], invoices };
     }
@@ -310,6 +318,11 @@ const INVOICE_UPSERT_SQL =
   "INSERT INTO invoices (id, party_id, division, shipment_ids, total_cents, status, issued_event_id, terms, due_ts) VALUES (?,?,?,'[]',?,?,?,?,?) " +
   "ON CONFLICT(id) DO UPDATE SET party_id=excluded.party_id, division=excluded.division, total_cents=excluded.total_cents, status=excluded.status, issued_event_id=excluded.issued_event_id, terms=excluded.terms, due_ts=excluded.due_ts";
 const INVOICE_UPDATE_SQL = "UPDATE invoices SET total_cents=?, status=?, issued_event_id=? WHERE id=?";
+// REQ-119 — the VOID write: flip a fully-reversed invoice OUT of 'issued' to {status:'void', total_cents:0}.
+// Unconditional (like the reissue UPDATE) so the AR row always lands on the void truth; redelivery is already
+// blocked upstream by the ux_ml_corrects UNIQUE on the reversing money_lines (a second void of the same event
+// aborts the whole batch), so this UPDATE never re-runs standalone.
+const INVOICE_VOID_SQL = "UPDATE invoices SET status=?, total_cents=? WHERE id=?";
 // REQ-083 — the settlement write: flip an OPEN invoice to 'paid'. Guarded WHERE status='issued' so a
 // re-projected payment (or a second payment) is a harmless no-op, never a re-flip of an already-settled row.
 const INVOICE_SETTLE_SQL = "UPDATE invoices SET status=? WHERE id=? AND status='issued'";
@@ -338,6 +351,8 @@ export function applyMoneyProjection(
       stmts.push(db.prepare(INVOICE_UPSERT_SQL).bind(inv.id, inv.party_id, inv.division, inv.total_cents, inv.status, inv.issued_event_id, inv.terms, inv.due_ts));
     } else if (inv.mode === "update") {
       stmts.push(db.prepare(INVOICE_UPDATE_SQL).bind(inv.total_cents, inv.status, inv.issued_event_id, inv.id));
+    } else if (inv.mode === "void") {
+      stmts.push(db.prepare(INVOICE_VOID_SQL).bind(inv.status, inv.total_cents, inv.id));
     } else {
       stmts.push(db.prepare(INVOICE_SETTLE_SQL).bind(inv.status, inv.id));
     }
