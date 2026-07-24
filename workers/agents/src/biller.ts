@@ -62,6 +62,12 @@ export interface BillerDeps {
   sender: EvidenceSender;
   /** REQ-129 — the referral link base; `?ref=<shipment_ref>` is appended here. */
   referralBase: string;
+  /** Task 9 (REQ-170) — the tenant-shared evidence R2 bucket. When present, the Biller REQUIRES the POD's
+   *  signature bytes to be STORED (an active, tenant-scoped POD document + a present R2 object) before it mints
+   *  the invoice + sends the proof email; a miss HOLDS(evidence_missing). Production (workers/agents index.ts)
+   *  ALWAYS wires it, so the precondition always runs there; a unit test that is not exercising the evidence
+   *  precondition may omit it, and the check is then skipped (the byte gate is opt-in for those tests). */
+  evidence?: R2Bucket;
 }
 
 // ---- outcome ---------------------------------------------------------------------------------------
@@ -74,7 +80,7 @@ export type BillerOutcome =
       reason: "send_failed_permanent" | "recipient_unresolved";
       detail: string;
     }
-  | { status: "held"; reason: "anomaly" | "below_floor" | "no_quote" | "interline_unresolved"; detail: string }
+  | { status: "held"; reason: "anomaly" | "below_floor" | "no_quote" | "interline_unresolved" | "evidence_missing"; detail: string }
   | { status: "skipped"; reason: "pod_not_found" | "shipment_not_found"; detail: string };
 
 // ---- deterministic ids (no Date, no random — redelivery must reproduce them exactly) ----------------
@@ -265,6 +271,30 @@ export async function deliveryStopGeo(db: D1Database, shipmentId: string): Promi
   return typeof g.lat_e6 === "number" && typeof g.lon_e6 === "number" ? { lat_e6: g.lat_e6, lon_e6: g.lon_e6 } : undefined;
 }
 
+// Task 9 (REQ-170) — the ACTIVE, tenant-scoped POD evidence document for a recorded signature hash. Returns the
+// row ONLY when a POD document on THIS shipment records EXACTLY this hash (so a stale/other-hash doc never
+// satisfies the check), is retention-ACTIVE (the row-iff-bytes invariant: an 'active' row means bytes are
+// stored — a tombstoned 'expired' row is not proof), AND its R2 key sits under THIS tenant's `evidence/<tenant>/`
+// prefix (REQ-025 — a mis-scoped row can never stand in for the tenant's own evidence). Any miss returns null →
+// the caller HOLDS. The R2 `head` on the returned key is the caller's belt that the bytes physically exist.
+export interface PodEvidenceDoc {
+  r2_key: string;
+}
+export async function loadActivePodDocument(
+  db: D1Database,
+  tenant: string,
+  shipmentId: string,
+  evidenceHash: string,
+): Promise<PodEvidenceDoc | null> {
+  const row = await db
+    .prepare("SELECT r2_key FROM documents WHERE shipment_id = ? AND hash = ? AND kind = 'POD' AND retention_status = 'active' LIMIT 1")
+    .bind(shipmentId, evidenceHash)
+    .first<{ r2_key: string }>();
+  if (row === null) return null;
+  if (!row.r2_key.startsWith(`evidence/${tenant}/`)) return null; // REQ-025 — the row must live in THIS tenant's key space
+  return { r2_key: row.r2_key };
+}
+
 // ---- interline resolution (REQ-040 — the executing share, never gross; FAIL-CLOSED) -----------------
 const LEG_KINDS: ReadonlySet<string> = new Set(["pickup", "linehaul", "interline", "cartage", "delivery", "dray"]);
 export type LegRow = { kind: string; executor_party_id: string; split_bps: number | null };
@@ -434,6 +464,29 @@ export async function handlePodSigned(message: PodSignedMessage, deps: BillerDep
     // auto-invoice; it holds for a human. Mark it (REQ-169 bounding + surfacing).
     await emitTerminalHoldMarker(seq, msg, streamId, pod.recorded_at, "interline_unresolved");
     return { status: "held", reason: "interline_unresolved", detail: `shipment ${msg.shipment_id}: ${interline.detail} (REQ-040 fail-closed)` };
+  }
+
+  // Task 9 (REQ-170) — REQUIRE STORED POD BYTES BEFORE THE PROOF EMAIL. The evidence email frames itself as the
+  // delivery RECORD, so it must never assert proof over ZERO stored bytes: a POD gated through with a fabricated
+  // signature hash and no upload (the REQ-170 residual the delivery gate + the upload byte-verify could not
+  // close on their own) would otherwise still bill + send. Before minting the invoice, require the POD's recorded
+  // signature_hash to have an ACTIVE, tenant-scoped POD document (D1) AND a present R2 object (head). A miss FAILS
+  // CLOSED: held(evidence_missing) — NO invoice, NO send, and NO terminal marker (the hold is TEMPORARY: the byte
+  // upload re-drives the Biller (routes/evidence.ts), and the REQ-169 recon sweep re-drives it meanwhile because
+  // an evidence-held POD has NO invoice + NO marker, so it stays in the anti-join until the bytes land).
+  // GATED on deps.evidence: production (workers/agents index.ts) always wires the R2 bucket, so the precondition
+  // always runs there; a unit test not exercising the byte gate omits it and the check is skipped.
+  if (deps.evidence !== undefined) {
+    const evidenceHash = pod.payload.signature_hash;
+    const document = await loadActivePodDocument(db, msg.tenant, msg.shipment_id, evidenceHash);
+    const object = document !== null ? await deps.evidence.head(document.r2_key) : null;
+    if (document === null || object === null) {
+      return {
+        status: "held",
+        reason: "evidence_missing",
+        detail: `POD ${msg.event_id} on ${streamId}: no stored bytes for signature_hash ${evidenceHash} (no active tenant-scoped POD document + present R2 object) — the proof email cannot assert evidence it does not have (REQ-170)`,
+      };
+    }
   }
 
   // Compose — pure, deterministic, LLM-free. Both ids derive from the POD event id (redelivery-stable;

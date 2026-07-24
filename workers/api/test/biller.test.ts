@@ -674,6 +674,136 @@ describe("Task 7 — the invoice projects the exact accepted booking quote, not 
   });
 });
 
+// ─── Task 9 (REQ-170) — THE BILLER REQUIRES STORED POD BYTES BEFORE THE PROOF EMAIL ────────────────────
+//
+// The evidence email frames itself as the delivery RECORD, so it must never assert proof over ZERO stored
+// bytes. The Biller now REQUIRES the POD's recorded signature_hash to have an ACTIVE, tenant-scoped POD document
+// AND a present R2 object before it mints the invoice + sends. A miss HOLDS(evidence_missing) — no invoice, no
+// send, no marker (temporary: the byte upload re-drives the Biller; the recon sweep re-drives it meanwhile).
+describe("Task 9 — the Biller requires stored POD bytes before the proof email (REQ-170)", () => {
+  function depsWithEvidence(sender: EvidenceSender): BillerDeps {
+    return { db: env.TENANT_A_DB, seq: seqStub, sender, referralBase: REFERRAL_BASE, evidence: env.EVIDENCE };
+  }
+  async function setup(shipmentId: string): Promise<void> {
+    await seedShipment(shipmentId);
+    await seedDeliveryLeg(shipmentId);
+    await priceQuote(shipmentId);
+  }
+  // Drive the full gated flow to a committed pod.signed, CAPTURING the deferred signature bytes+hash so a test
+  // can upload them (or not). Mirrors driveToPod but keeps the signature evidence for the byte-upload path.
+  async function driveToPodWithSig(shipmentId: string): Promise<{ podId: string; sigHash: string; sigBytes: Uint8Array }> {
+    expect((await driveStep(shipmentId, "document.attached", { ...CONSENT })).status).toBe(201);
+    expect((await driveStep(shipmentId, "stop.arrived", { geo: { ...INSIDE }, auto: false })).status).toBe(201);
+    expect((await driveStep(shipmentId, "freight.photographed", { photo_kind: "placed" }, "photo_hash")).status).toBe(201);
+    const sigBytes = nextEvidenceBytes();
+    const ts = clock++;
+    const params: CaptureParams = {
+      shipment_id: shipmentId,
+      kind: "pod.signed",
+      payload: { geo: { ...INSIDE } },
+      ts,
+      captured_ts: ts,
+      actor_user: "user-driver",
+      evidence: { bytes: sigBytes, field: "signature_hash" },
+    };
+    const { event, deferred } = await capture(params, deviceCtx);
+    const res = await post(shipmentId, event, opsTok);
+    expect(res.status, JSON.stringify(res.json)).toBe(201);
+    if (deferred === undefined) throw new Error("pod capture must defer a signature upload");
+    return { podId: (res.json as { id: string }).id, sigHash: deferred.hash, sigBytes };
+  }
+  async function uploadSig(shipmentId: string, hash: string, bytes: Uint8Array): Promise<number> {
+    const res = await SELF.fetch(`https://api.local/v1/evidence?shipment_id=${shipmentId}&photo_hash=${hash}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${opsTok}`, "Idempotency-Key": crypto.randomUUID(), "content-type": "application/octet-stream" },
+      body: new Uint8Array(bytes),
+    });
+    return res.status;
+  }
+  async function podSigHash(podId: string): Promise<string> {
+    const r = await env.TENANT_A_DB.prepare("SELECT json_extract(payload,'$.signature_hash') AS h FROM events WHERE id = ?").bind(podId).first<{ h: string }>();
+    return r!.h;
+  }
+
+  it("MISSING DOCUMENT: a POD whose signature bytes were never uploaded → held(evidence_missing), NO invoice/money/send", async () => {
+    const shp = "biller-t9-nodoc";
+    await setup(shp);
+    const { podId } = await driveToPodWithSig(shp); // captured but NOT uploaded
+    const sender = new RecordingSender();
+    const outcome = await handlePodSigned(msgFor(shp, podId), depsWithEvidence(sender));
+    expect(outcome.status, JSON.stringify(outcome)).toBe("held");
+    if (outcome.status !== "held") throw new Error("unreachable");
+    expect(outcome.reason).toBe("evidence_missing");
+    expect(await invoiceEvents(shp)).toHaveLength(0);
+    expect(await moneyLines(shp)).toHaveLength(0);
+    expect(sender.messages).toHaveLength(0);
+  });
+
+  it("UPLOAD THEN RE-DRIVE: once the signature bytes are stored, a re-drive issues the invoice + ONE email; a duplicate re-drive stays at one invoice/one send", async () => {
+    const shp = "biller-t9-updrive";
+    await setup(shp);
+    const { podId, sigHash, sigBytes } = await driveToPodWithSig(shp);
+    // First drive: bytes missing → held, NO invoice.
+    expect((await handlePodSigned(msgFor(shp, podId), depsWithEvidence(new RecordingSender()))).status).toBe("held");
+    expect(await invoiceEvents(shp)).toHaveLength(0);
+    // Upload the POD signature bytes.
+    expect(await uploadSig(shp, sigHash, sigBytes)).toBe(201);
+    // Re-drive: the evidence precondition now passes → the invoice issues + one email.
+    const sender = new RecordingSender();
+    const out = await handlePodSigned(msgFor(shp, podId), depsWithEvidence(sender));
+    expect(out.status, JSON.stringify(out)).toBe("issued_sent");
+    expect(await invoiceEvents(shp)).toHaveLength(1);
+    expect(sender.messages).toHaveLength(1);
+    // A DUPLICATE re-drive is idempotent: still exactly one invoice, one send.
+    await handlePodSigned(msgFor(shp, podId), depsWithEvidence(new RecordingSender()));
+    expect(await invoiceEvents(shp)).toHaveLength(1);
+  });
+
+  it("MISSING R2 OBJECT: the document row exists but the R2 bytes are gone (torn) → held(evidence_missing)", async () => {
+    const shp = "biller-t9-nor2";
+    await setup(shp);
+    const { podId, sigHash, sigBytes } = await driveToPodWithSig(shp);
+    expect(await uploadSig(shp, sigHash, sigBytes)).toBe(201);
+    await env.EVIDENCE.delete(`evidence/${TENANT}/${shp}/${sigHash}`); // delete the bytes, leave the row
+    const out = await handlePodSigned(msgFor(shp, podId), depsWithEvidence(new RecordingSender()));
+    expect(out.status).toBe("held");
+    if (out.status !== "held") throw new Error("unreachable");
+    expect(out.reason).toBe("evidence_missing");
+    expect(await invoiceEvents(shp)).toHaveLength(0);
+  });
+
+  it("TOMBSTONED DOCUMENT: a retention-'expired' document is not proof of present bytes → held(evidence_missing)", async () => {
+    const shp = "biller-t9-tomb";
+    await setup(shp);
+    const { podId, sigHash, sigBytes } = await driveToPodWithSig(shp);
+    expect(await uploadSig(shp, sigHash, sigBytes)).toBe(201);
+    await env.TENANT_A_DB.prepare("UPDATE documents SET retention_status = 'expired' WHERE shipment_id = ? AND hash = ?").bind(shp, sigHash).run();
+    const out = await handlePodSigned(msgFor(shp, podId), depsWithEvidence(new RecordingSender()));
+    expect(out.status).toBe("held");
+    if (out.status !== "held") throw new Error("unreachable");
+    expect(out.reason).toBe("evidence_missing");
+  });
+
+  it("CROSS-TENANT KEY (REQ-025): a POD document whose r2_key is under ANOTHER tenant's prefix is never accepted → held(evidence_missing)", async () => {
+    const shp = "biller-t9-xkey";
+    await setup(shp);
+    const { podId } = await driveToPodWithSig(shp); // no legit upload
+    const hash = await podSigHash(podId);
+    const foreignKey = `evidence/tenant-b/${shp}/${hash}`; // an active POD doc, but the key is a FOREIGN tenant's
+    await env.TENANT_A_DB.prepare(
+      "INSERT OR IGNORE INTO documents (id, shipment_id, party_id, kind, r2_key, hash, lifecycle_class, visibility, created_ts, retention_status) VALUES (?,?,?,?,?,?,?,?,?,'active')",
+    )
+      .bind(`evidence:${shp}:${hash}`, shp, null, "POD", foreignKey, hash, "pod-7yr", "counterparty", 0)
+      .run();
+    await env.EVIDENCE.put(foreignKey, new Uint8Array([1, 2, 3])); // even if bytes exist under the FOREIGN key
+    const out = await handlePodSigned(msgFor(shp, podId), depsWithEvidence(new RecordingSender()));
+    expect(out.status).toBe("held");
+    if (out.status !== "held") throw new Error("unreachable");
+    expect(out.reason).toBe("evidence_missing"); // a foreign-tenant key never stands in for THIS tenant's evidence
+    expect(await invoiceEvents(shp)).toHaveLength(0);
+  });
+});
+
 // ─── WP-08 T5 hardening (REQ-028/052) — deliveryStopGeo must PREFER a non-empty-geo delivery leg so the
 // empty booking.created skeleton (deterministic `${id}:delivery`, geo '{}') can never SHADOW the real
 // coordinates T8/dispatch provisions — even if the real leg lands at a HIGHER seq (INSERT, not UPDATE). ──

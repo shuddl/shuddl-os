@@ -515,6 +515,9 @@ export default {
             seq: sequencerFor(env),
             sender: evidenceSender(env),
             referralBase: env.REFERRAL_BASE ?? DEFAULT_REFERRAL_BASE,
+            // Task 9 (REQ-170) — wire the evidence R2 bucket so the Biller REQUIRES stored POD bytes before the
+            // proof email. Production always provides it here, so the byte precondition always runs in prod.
+            evidence: env.EVIDENCE,
           };
           const outcome = await handlePodSigned(trigger, deps);
           // The outcome IS the log line until WP-11's exceptions queue lands (holds surface there).

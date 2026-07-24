@@ -5,6 +5,7 @@ import { capture, type CaptureParams, type DeviceContext, type EvidenceField } f
 import { eventToRow } from "@shuddl/ledger/lens";
 import { sweepTenantExpiredDocuments } from "@shuddl/ledger/documents/retention";
 import { MAX_EVIDENCE_BYTES } from "../src/routes/evidence.js";
+import { loadActivePodDocument } from "../../agents/src/biller.js";
 import {
   CONSENT,
   INSIDE,
@@ -513,5 +514,40 @@ describe("POST /v1/evidence — retention fields (REQ-116)", () => {
       .first<{ retention_status: string }>();
     expect(afterSweep?.retention_status, "the freshly re-instated doc stays active — its clock restarted from NOW").toBe("active");
     expect(await env.EVIDENCE.get(key), "the re-instated bytes are NOT re-deleted by the next sweep").not.toBeNull();
+  });
+});
+
+// ─── Task 9 (REQ-170) — A VERIFIED POD SIGNATURE UPLOAD SATISFIES THE BILLER'S EVIDENCE PRECONDITION ────
+//
+// The Biller HOLDS a POD whose signature bytes are not stored; a verified upload is what unblocks it. This binds
+// the upload route directly to loadActivePodDocument — the EXACT query the Biller's evidence gate runs — so the
+// two cannot drift: before the upload the precondition is null; after it, it resolves the ACTIVE, tenant-scoped
+// POD doc. A placed-photo upload is a 'photo' doc, so it NEVER satisfies the POD precondition (kind filter).
+// (The route's Biller re-drive enqueue is best-effort on AGENT_QUEUE — a cross-isolate producer not observable
+// from this harness; its end-to-end effect is proven in biller.test.ts's "upload then re-drive".)
+describe("POST /v1/evidence — Task 9: a POD signature upload satisfies the Biller's evidence precondition (REQ-170)", () => {
+  it("before upload loadActivePodDocument is null; after a verified POD upload it resolves the tenant-scoped active doc", async () => {
+    const shp = "ev-t9-precond";
+    await seedShipment(shp);
+    await appendEvent(shp, "document.attached", { ...CONSENT }); // consent-before-GPS (REQ-166)
+    const sigBytes = nextEvidenceBytes();
+    const sigHash = await appendEvent(shp, "pod.signed", { geo: { ...INSIDE } }, { bytes: sigBytes, field: "signature_hash" });
+
+    // Before the upload: the Biller's precondition is UNMET (no active POD doc for the recorded signature hash).
+    expect(await loadActivePodDocument(env.TENANT_A_DB, TENANT, shp, sigHash!)).toBeNull();
+
+    // A verified upload → the precondition resolves the active, tenant-scoped POD document.
+    expect((await upload({ shipment_id: shp, photo_hash: sigHash! }, sigBytes, opsTok)).status).toBe(201);
+    const doc = await loadActivePodDocument(env.TENANT_A_DB, TENANT, shp, sigHash!);
+    expect(doc, "a verified POD upload satisfies the Biller's evidence gate").not.toBeNull();
+    expect(doc!.r2_key).toBe(r2Key(TENANT, shp, sigHash!));
+
+    // A placed-photo upload is a 'photo' doc — it NEVER satisfies the POD precondition (the kind filter holds).
+    const shp2 = "ev-t9-photo";
+    await seedShipment(shp2);
+    const photoBytes = nextEvidenceBytes();
+    const photoHash = await recordPlacedPhoto(shp2, photoBytes);
+    expect((await upload({ shipment_id: shp2, photo_hash: photoHash }, photoBytes, opsTok)).status).toBe(201);
+    expect(await loadActivePodDocument(env.TENANT_A_DB, TENANT, shp2, photoHash), "a photo upload is NOT a POD document").toBeNull();
   });
 });
