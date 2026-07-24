@@ -32,6 +32,7 @@ import { mountSignupRoutes } from "./routes/signup.js";
 import { mountTariffRoutes } from "./routes/tariff.js";
 import { mountImportRoutes } from "./routes/import.js";
 import { mountInternalPlatformRoutes } from "./routes/internal-platform.js";
+import { mountDriverManifestRoutes } from "./routes/driver-manifest.js";
 
 export type Env = {
   TENANT_A_DB: D1Database;
@@ -247,6 +248,13 @@ mountImportRoutes(app);
 // The billing worker (over the API service binding) appends credit money events onto `_platform` through the REAL
 // sequencer here — the ONLY caller that sets the sequencer's `platform: true` flag (the isolation invariant).
 mountInternalPlatformRoutes(app);
+// Task 10 (REQ-030/025/013): GET /v1/driver/manifest — the driver PWA's authenticated, server-scoped day
+// sheet that REPLACES the fictional DAY_SHEET fixture. Tenant + driver resolve from the JWT claim ONLY
+// (resolveTenantDb + session.sub vs status_cache.assigned_driver), so a cross-driver/cross-tenant probe
+// returns no stops; the POD-before-next-address reveal is enforced server-side (withheld future geo is
+// serialized null). A /v1 route, so auth + idempotency already apply; requireRole("driver") inside. NO new
+// table/kind/projection — a durable read over shipments (status_cache) + legs + events.
+mountDriverManifestRoutes(app);
 
 app.notFound((c) => envelope(c, "NOT_FOUND", 404, "NOT FOUND"));
 
