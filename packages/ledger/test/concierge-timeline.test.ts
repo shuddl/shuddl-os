@@ -35,8 +35,11 @@ const STREAM = `s:${SHIP}`;
 const PARTY = "party-tl"; // the resolved counterparty on this shipment
 const DRIVER = "drv-tl"; // the assigned driver (driver lens)
 
+// Task 8 widened resolveVisibility's return to ResolvedVisibility (Visibility | "unresolved"); the "unresolved"
+// arm is reachable ONLY for the inherited-visibility kind invoice.corrected, never the message.*/note kinds this
+// suite stamps — so the narrowing cast is sound here.
 const vis = (kind: EventKind, requested?: Visibility): Visibility =>
-  resolveVisibility(kind, undefined, requested);
+  resolveVisibility(kind, undefined, requested) as Visibility;
 
 let seqCounter = 0;
 let hashCounter = 0;

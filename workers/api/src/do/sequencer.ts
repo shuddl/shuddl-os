@@ -2,7 +2,7 @@ import { DurableObject } from "cloudflare:workers";
 import { EventInput, LedgerEvent, hazmatEnabled, isPlatformTenant, type Visibility } from "@shuddl/contracts";
 import { GENESIS_HASH, hashEvent } from "@shuddl/ledger/chain";
 import { verifyEventSig } from "@shuddl/ledger/sign";
-import { resolveVisibility } from "@shuddl/ledger/visibility";
+import { resolveVisibility, UNRESOLVED_VISIBILITY } from "@shuddl/ledger/visibility";
 import { eventToRow, rowToEvent } from "@shuddl/ledger/lens";
 import {
   applyMoneyProjection,
@@ -371,15 +371,26 @@ export class ShipmentSequencer extends DurableObject<Env> {
       this.tail = row ? { seq: row.seq, hash: row.hash } : { seq: -1, hash: GENESIS_HASH };
     }
 
-    // invoice.corrected inherits the corrected event's visibility (so I7 netting stays in one lens).
+    // Task 8 (REQ-015 / I7) — invoice.corrected inherits its parent's visibility so I7 netting stays inside the
+    // parent's EXACT lens. Resolve the parent by STREAM + KIND (not just id): it must be an invoice.issued or a
+    // prior invoice.corrected ON THIS STREAM. A missing / wrong-kind / cross-stream / cross-tenant parent yields
+    // NO visibility → resolveVisibility returns UNRESOLVED_VISIBILITY → we reject below (fail closed, zero append).
+    // The DO is tenant-pinned and this reads THIS tenant's db, so a cross-tenant parent id can never match here.
     const correctedVis =
-      parsed.kind === "invoice.corrected" ? await this.#visibilityOf(db, parsed.payload.corrects_event_id) : undefined;
+      parsed.kind === "invoice.corrected" ? await this.#parentInvoiceVisibility(db, streamId, parsed.payload.corrects_event_id) : undefined;
 
     // requested_visibility is INPUT-ONLY: it has no DB column, so if it entered the hashed envelope
     // rowToEvent could never reproduce the hash and every read-back would fail chain verification.
     // Destructure it out and build the event from the remaining client fields.
     const { requested_visibility, ...clientFields } = parsed;
-    let visibility = resolveVisibility(parsed.kind, policy.visibility, requested_visibility, correctedVis);
+    const resolvedVisibility = resolveVisibility(parsed.kind, policy.visibility, requested_visibility, correctedVis);
+    // Task 8 (REQ-015 / I7) — FAIL CLOSED on an unresolved correction lens. An invoice.corrected whose parent's
+    // visibility could not be resolved must NOT default to counterparty (a phantom charge in a lens the original
+    // never appeared in); reject BEFORE the append so nothing is written, projected, or netted.
+    if (resolvedVisibility === UNRESOLVED_VISIBILITY) {
+      throw rpcError("VALIDATION_FAILED", { reason: "invoice_correction_unresolved_parent" });
+    }
+    let visibility: Visibility = resolvedVisibility;
     // finding D (REQ-025/123, WP-14 T10) — the reserved platform tenant's credit money events are INTERNAL. The
     // shared resolver defaults invoice.issued/payment.received to `counterparty` (correct for a REAL tenant, whose
     // counterparty MUST see its invoice); on `_platform` there is no counterparty, so clamp them to `internal`
@@ -1051,8 +1062,15 @@ export class ShipmentSequencer extends DurableObject<Env> {
     return undefined;
   }
 
-  async #visibilityOf(db: D1Database, eventId: string): Promise<Visibility | undefined> {
-    const row = await db.prepare("SELECT visibility FROM events WHERE id = ?").bind(eventId).first<{ visibility: Visibility }>();
+  // Task 8 (REQ-015 / I7) — the EXACT parent's visibility for an invoice.corrected. Resolved by STREAM + KIND,
+  // not merely by id: the parent must be an invoice.issued (or a prior invoice.corrected in the netting chain) ON
+  // THIS STREAM. A missing / wrong-kind / cross-stream parent returns undefined → the caller resolves UNRESOLVED
+  // and fails closed. Cross-tenant is structurally excluded (this reads the DO's own tenant db, REQ-025).
+  async #parentInvoiceVisibility(db: D1Database, streamId: string, eventId: string): Promise<Visibility | undefined> {
+    const row = await db
+      .prepare("SELECT visibility FROM events WHERE stream_id = ? AND id = ? AND kind IN ('invoice.issued','invoice.corrected') LIMIT 1")
+      .bind(streamId, eventId)
+      .first<{ visibility: Visibility }>();
     return row?.visibility;
   }
 

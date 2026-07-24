@@ -77,22 +77,42 @@ const INTERNAL_FLOOR: ReadonlySet<EventKind> = new Set<EventKind>([
   "split.computed", // superset: NOT named by REQ-180, but code-default-internal + interline/margin-bearing
 ]);
 
+// Task 8 (REQ-015 / I7) — the INHERITED-VISIBILITY kinds: kinds whose visibility is NOT a default of their own
+// but is INHERITED from a specific parent event (today only invoice.corrected, which inherits the visibility of
+// the invoice.issued / prior invoice.corrected it nets against). For these kinds there is NO fallback default:
+// the resolution is exact-parent-or-nothing.
+const INHERITED_VISIBILITY_KINDS: ReadonlySet<EventKind> = new Set<EventKind>(["invoice.corrected"]);
+
+// Task 8 (REQ-015 / I7) — the sentinel returned when an INHERITED-visibility kind's parent visibility could NOT
+// be resolved (the parent is missing, the wrong kind, on another stream, or in another tenant). It is NOT a
+// Visibility and is NEVER stored: the append-time caller (the sequencer) MUST reject a correction that resolves
+// to it, failing closed. A correction that instead defaulted to `counterparty` when its parent could not be
+// resolved could surface a phantom charge in a lens the original never appeared in — I7 netting must stay inside
+// the parent's EXACT lens, so an unresolved parent is a hard refusal, never a permissive default.
+export const UNRESOLVED_VISIBILITY = "unresolved" as const;
+export type ResolvedVisibility = Visibility | typeof UNRESOLVED_VISIBILITY;
+
 /**
  * Server-side, append-time visibility resolution (REQ-015). Clients never set visibility
  * directly — `requested` is advisory and may only NARROW the resolved value.
  *
- * @param correctedEventVisibility — for `invoice.corrected` only: the visibility of the
- *   `invoice.issued` it corrects. A correction inherits it verbatim so I7 netting stays
- *   inside a single counterparty lens (a correction visible where the original is not would
- *   leave a party seeing a phantom charge).
+ * @param correctedEventVisibility — for an INHERITED-visibility kind (`invoice.corrected`) only: the
+ *   resolved visibility of the `invoice.issued` / prior `invoice.corrected` it corrects (the sequencer
+ *   resolves it by exact stream + kind). A correction inherits it VERBATIM so I7 netting stays inside the
+ *   parent's single lens (a correction visible where the original is not would leave a party seeing a phantom
+ *   charge). When it is undefined the parent could not be resolved, so this returns `UNRESOLVED_VISIBILITY`
+ *   (fail closed) — NEVER the per-kind default.
  */
 export function resolveVisibility(
   kind: EventKind,
   policy: Record<string, Visibility> | undefined,
   requested: Visibility | undefined,
   correctedEventVisibility?: Visibility,
-): Visibility {
-  if (kind === "invoice.corrected" && correctedEventVisibility) return correctedEventVisibility;
+): ResolvedVisibility {
+  // An inherited-visibility kind resolves to its parent's EXACT visibility, or UNRESOLVED when the parent could
+  // not be resolved. It has no default of its own (KIND_VISIBILITY_DEFAULTS keeps an entry only for map
+  // exhaustiveness) and its inheritance is verbatim — a requested_visibility can neither widen nor narrow it.
+  if (INHERITED_VISIBILITY_KINDS.has(kind)) return correctedEventVisibility ?? UNRESOLVED_VISIBILITY;
   let v = policy?.[kind] ?? KIND_VISIBILITY_DEFAULTS[kind];
   if (requested && RANK[requested] < RANK[v]) v = requested; // narrow-only
   // REQ-180 NEVER-WIDEN FLOOR: an inherently-internal kind is clamped to `internal` no matter what a policy

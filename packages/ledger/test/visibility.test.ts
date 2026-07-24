@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { EVENT_KINDS, eventFixture, type EventKind, type Visibility } from "@shuddl/contracts";
 import { buildChain } from "../src/chain.js";
-import { KIND_VISIBILITY_DEFAULTS, resolveVisibility } from "../src/visibility.js";
+import { KIND_VISIBILITY_DEFAULTS, UNRESOLVED_VISIBILITY, resolveVisibility } from "../src/visibility.js";
 import { REDACTIONS, generalizePosition, redactEvent } from "../src/redact.js";
 
 // The 7 margin/credit/consent/control kinds default to internal; every other kind is
@@ -56,13 +56,21 @@ describe("resolveVisibility: default -> tenant policy -> per-event narrow-only",
       "internal",
     );
   });
-  it("invoice.corrected INHERITS the corrected event's visibility (I7 nets inside one lens)", () => {
+  it("invoice.corrected INHERITS the corrected event's visibility EXACTLY — internal AND counterparty (I7 nets inside one lens)", () => {
     expect(resolveVisibility("invoice.corrected", undefined, undefined, "internal")).toBe("internal");
-    // inheritance wins even over a request — the correction must sit in the same lens as the original
+    expect(resolveVisibility("invoice.corrected", undefined, undefined, "counterparty")).toBe("counterparty");
+    // inheritance wins even over a request — the correction must sit in the SAME lens as the original (either way)
     expect(resolveVisibility("invoice.corrected", undefined, "counterparty", "internal")).toBe("internal");
+    expect(resolveVisibility("invoice.corrected", undefined, "internal", "counterparty")).toBe("counterparty");
   });
-  it("invoice.corrected without a corrected-visibility falls back to its default", () => {
-    expect(resolveVisibility("invoice.corrected", undefined, undefined)).toBe("counterparty");
+  it("Task 8 — invoice.corrected with NO resolvable parent visibility returns UNRESOLVED (fail closed — never the default)", () => {
+    // Pre-fix this fell back to counterparty (a phantom-charge lens leak). Now an unresolved parent is a hard
+    // sentinel the sequencer rejects — a correction may NEVER default its lens.
+    expect(resolveVisibility("invoice.corrected", undefined, undefined)).toBe(UNRESOLVED_VISIBILITY);
+    // a request cannot conjure a visibility either — without a parent it stays UNRESOLVED
+    expect(resolveVisibility("invoice.corrected", undefined, "internal")).toBe(UNRESOLVED_VISIBILITY);
+    // even a tenant policy naming invoice.corrected cannot supply the lens — inheritance is exact-parent-only
+    expect(resolveVisibility("invoice.corrected", { "invoice.corrected": "internal" }, undefined)).toBe(UNRESOLVED_VISIBILITY);
   });
 });
 
