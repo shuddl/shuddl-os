@@ -4,6 +4,11 @@ import { join } from "node:path";
 import { parseRegister } from "./register.js";
 
 // REQ-118: orphan detector, both directions — spec'd-but-unbuilt and built-but-unspec'd.
+function isDeferredStatus(status: string): boolean {
+  const normalizedStatus = status.trim();
+  return normalizedStatus === "vNEXT" || normalizedStatus === "CONFIRM-GATED";
+}
+
 export function findOrphans(input: { activeWps: string[]; sourceAnnotations: Set<string> }): {
   specdButUnbuilt: string[];
   builtButUnspecd: string[];
@@ -11,7 +16,7 @@ export function findOrphans(input: { activeWps: string[]; sourceAnnotations: Set
   const rows = parseRegister();
   const known = new Set(rows.map((r) => r.req_id));
   const active = rows.filter(
-    (r) => input.activeWps.some((wp) => r.wp.includes(wp)) && !["vNEXT", "CONFIRM-GATED"].includes(r.status),
+    (r) => input.activeWps.some((wp) => r.wp.includes(wp)) && !isDeferredStatus(r.status),
   );
   return {
     specdButUnbuilt: active.filter((r) => !input.sourceAnnotations.has(r.req_id)).map((r) => r.req_id),
@@ -27,7 +32,9 @@ export function scanSourceAnnotations(cwd = process.cwd()): Set<string> {
   // genuinely-unbuilt active-WP REQ and, if a skill cited an unregistered REQ, false-fail the gate).
   // Implementation docs (docs/ops, docs/security, docs/wp) DO count — they are deliverables —
   // except for the exact governance framework/checklist, deferred coverage manifest, and audit history.
-  const statusById = new Map(parseRegister(join(cwd, "genesis/09-REQUIREMENTS-REGISTER.csv")).map((row) => [row.req_id, row.status]));
+  const deferredById = new Map(
+    parseRegister(join(cwd, "genesis/09-REQUIREMENTS-REGISTER.csv")).map((row) => [row.req_id, isDeferredStatus(row.status)]),
+  );
   const result = spawnSync(
     "git",
     [
@@ -63,8 +70,7 @@ export function scanSourceAnnotations(cwd = process.cwd()): Set<string> {
     const docsWp = normalizedPath.startsWith("docs/wp/");
     const ids = readFileSync(join(cwd, relativePath), "utf8").match(/REQ-\d{3}/g) ?? [];
     for (const id of ids) {
-      const status = statusById.get(id);
-      if (docsWp && (status === "vNEXT" || status === "CONFIRM-GATED")) continue;
+      if (docsWp && deferredById.get(id) === true) continue;
       annotations.add(id);
     }
   }

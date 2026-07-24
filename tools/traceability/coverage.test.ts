@@ -18,6 +18,7 @@ const ACTIVE = [
 const fake = (n: string): string => ["REQ", n].join("-");
 const suiteTempRoot = mkdtempSync(join(tmpdir(), "coverage-suite-"));
 const annotationIds = {
+  docsWpConfirmGated: fake("990"),
   source: fake("991"),
   manifest: fake("992"),
   framework: fake("993"),
@@ -42,13 +43,14 @@ beforeAll(() => {
   execFileSync("git", ["init", "--quiet"], { cwd: annotationRepo });
   const registerHeader = "req_id,domain,requirement,source,spec,wp,dod_test,status";
   const registerRows = [
+    coverageRow(annotationIds.docsWpConfirmGated, " CONFIRM-GATED ", "WP-07"),
     coverageRow(annotationIds.source, "F0-SPEC'D", "WP-01"),
     coverageRow(annotationIds.manifest, "vNEXT", "vNEXT"),
     coverageRow(annotationIds.framework, "vNEXT", "vNEXT"),
     coverageRow(annotationIds.implementationDoc, "vNEXT", "vNEXT"),
     coverageRow(annotationIds.goLiveChecklist, "vNEXT", "vNEXT"),
     coverageRow(annotationIds.audit, "vNEXT", "vNEXT"),
-    coverageRow(annotationIds.docsWpDeferred, "vNEXT", "vNEXT"),
+    coverageRow(annotationIds.docsWpDeferred, "vNEXT ", "vNEXT"),
     coverageRow(annotationIds.docsWpBuilt, "F0-SPEC'D", "WP-01"),
     coverageRow(annotationIds.deferredSource, "vNEXT", "vNEXT"),
   ].map((row) => [row.req_id, row.domain, row.requirement, row.source, row.spec, row.wp, row.dod_test, row.status].join(","));
@@ -59,7 +61,10 @@ beforeAll(() => {
   writeRepoFile("docs/ops/IMPLEMENTATION-EVIDENCE.md", `# Implementation evidence\n\n${annotationIds.implementationDoc}\n`);
   writeRepoFile("docs/ops/GO-LIVE-CHECKLIST.md", `# Governance checklist\n\n${annotationIds.goLiveChecklist}\n`);
   writeRepoFile("docs/audits/history/IMPLEMENTATION-REVIEW.md", `# Audit history\n\n${annotationIds.audit}\n`);
-  writeRepoFile("docs/wp/WP-TEST.md", `# Work package\n\nDeferred: ${annotationIds.docsWpDeferred}\n\nBuilt: ${annotationIds.docsWpBuilt}\n`);
+  writeRepoFile(
+    "docs/wp/WP-TEST.md",
+    `# Work package\n\nConfirmation-gated: ${annotationIds.docsWpConfirmGated}\n\nDeferred: ${annotationIds.docsWpDeferred}\n\nBuilt: ${annotationIds.docsWpBuilt}\n`,
+  );
   execFileSync("git", ["add", "."], { cwd: annotationRepo });
   fixtureAnnotations = scanSourceAnnotations(annotationRepo);
 });
@@ -190,6 +195,7 @@ describe("implementation annotation integrity", () => {
     expect(fixtureAnnotations).not.toContain(annotationIds.framework);
     expect(fixtureAnnotations).not.toContain(annotationIds.goLiveChecklist);
     expect(fixtureAnnotations).not.toContain(annotationIds.audit);
+    expect(fixtureAnnotations).not.toContain(annotationIds.docsWpConfirmGated);
     expect(fixtureAnnotations).not.toContain(annotationIds.docsWpDeferred);
     expect(fixtureAnnotations).toContain(annotationIds.docsWpBuilt);
   });
@@ -200,6 +206,7 @@ describe("implementation annotation integrity", () => {
       coverageRow(annotationIds.framework, "F0-SPEC'D", "WP-01"),
       coverageRow(annotationIds.audit, "F0-SPEC'D", "WP-01"),
       coverageRow(annotationIds.docsWpBuilt, "F0-SPEC'D", "WP-01"),
+      coverageRow(annotationIds.docsWpConfirmGated, " CONFIRM-GATED ", "WP-07"),
       coverageRow(annotationIds.manifest, "vNEXT", "vNEXT"),
       coverageRow(annotationIds.goLiveChecklist, "vNEXT", "vNEXT"),
       coverageRow(annotationIds.docsWpDeferred, "vNEXT", "vNEXT"),
@@ -212,6 +219,7 @@ describe("implementation annotation integrity", () => {
       recordedHomes: new Set([
         annotationIds.manifest,
         annotationIds.goLiveChecklist,
+        annotationIds.docsWpConfirmGated,
         annotationIds.docsWpDeferred,
         annotationIds.implementationDoc,
         annotationIds.deferredSource,
@@ -225,6 +233,7 @@ describe("implementation annotation integrity", () => {
     expect(res.unaccounted.map((row) => row.req_id)).not.toContain(annotationIds.docsWpBuilt);
     expect(res.drift).not.toContain(annotationIds.manifest);
     expect(res.drift).not.toContain(annotationIds.goLiveChecklist);
+    expect(res.drift).not.toContain(annotationIds.docsWpConfirmGated);
     expect(res.drift).not.toContain(annotationIds.docsWpDeferred);
     expect(res.drift).toContain(annotationIds.implementationDoc);
     expect(res.drift).toContain(annotationIds.deferredSource);
