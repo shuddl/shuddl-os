@@ -31,11 +31,17 @@ export interface FleetItem {
 }
 
 /** The viewer's scope. Command sees the whole tenant fleet; driver only its assignments; party only
- * its own shipments, generalized to ~city until out-for-delivery (REQ-074). */
+ * its own shipments, generalized to ~city until out-for-delivery (REQ-074).
+ *
+ * `serverScoped` (party only): the source is the AUTHORITATIVE server board (GET /v1/board), which already
+ * applied the REQ-074 precise/coarse projection SERVER-SIDE. When set, useFleet does NOT re-generalize —
+ * re-coarsening would wrongly blur an out-for-delivery shipment's exact position the server intentionally
+ * sent. The party_refs filter still runs (defence-in-depth against client-side data mixing). Omitted/false ⇒
+ * the synthetic-source path where the client generalizes as the client mirror of the server law. */
 export type Lens =
   | { scope: "command" }
   | { scope: "driver"; driverId: string }
-  | { scope: "party"; partyId: string };
+  | { scope: "party"; partyId: string; serverScoped?: boolean };
 
 /** The mirrored feature-state MapCanvas applies with setEntityState after each setData. */
 export interface FleetEntityState {
@@ -95,9 +101,14 @@ export function useFleet(lens: Lens, source: readonly FleetItem[]): UseFleetResu
   const scoped = useMemo(() => scopeToLens(lens, source), [lens, source]);
 
   const collection = useMemo<FleetCollection>(() => {
+    // The party lens generalizes positions to ~city until OFD (REQ-074) — EXCEPT serverScoped, where the SERVER
+    // already applied the authoritative precise/coarse projection; re-coarsening here would blur an OFD
+    // shipment's exact position the server intentionally sent. Trust the server; never double-generalize. The
+    // party_refs FILTER (scopeToLens) still runs as defence-in-depth against client-side data mixing.
+    const clientGeneralize = lens.scope === "party" && lens.serverScoped !== true;
     const features = scoped.map((item) => {
       const feature = toFeature(item, statesRef.current.get(item.id));
-      return lens.scope === "party" ? generalizePosition(feature, item.out_for_delivery ?? false) : feature;
+      return clientGeneralize ? generalizePosition(feature, item.out_for_delivery ?? false) : feature;
     });
     // `version` is a dependency so a setState re-derives the mirrored properties.
     void version;
