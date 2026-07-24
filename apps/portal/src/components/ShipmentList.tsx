@@ -3,60 +3,38 @@ import { Divider, EmptyState, Loading, Mono, TextLink } from "@shuddl/design";
 import { ApiError, get } from "../lib/api.js";
 import { formatCents } from "../lib/money.js";
 
-// REQ-085 — the portal board's ruled lists, wired to the real server (the WP-03 shell had hardcoded fixture
-// arrays). GET /v1/invoices is the ONE list a portal PARTY can read through its own lens (invoices billed to
-// it; documents/events reads need a shipment id). The party's SHIPMENTS are derived from those invoices'
-// shipment_ids — the only lens-scoped way to enumerate them here (the /v1/events firehose excludes portal).
-// Each shipment row is selectable so the QuotePanel can quote → book against a shipment the party OWNS.
+// REQ-085 / remediation Task 12 — the portal board's ruled lists.
+//   • SHIPMENTS is the party's LIVE freight, passed down from the SERVER-SCOPED board (GET /v1/board): the same
+//     positioned shipments the map draws, party-scoped + generalized server-side (App.tsx / api/board.ts). This
+//     replaces the earlier workaround that enumerated shipments from invoice.shipment_ids — the board is the
+//     authoritative, live source, so a shipment shows here iff it is on the map. Each row is selectable so the
+//     QuotePanel / documents / custody views act on a shipment the party OWNS.
+//   • INVOICES is the party's billing summary (GET /v1/invoices) — invoices billed to it, through its own lens.
 // Design is unchanged: 1px-ruled lists, no cards, mono micro-labels, integer-cents money.
 
 interface InvoiceRow {
   id: string;
   party_id: string;
-  shipment_ids: unknown; // TEXT JSON on the wire (invoices.shipment_ids DEFAULT '[]') — parsed defensively
   total_cents: number;
   status: string;
   due_ts: number | null;
 }
 
-interface DerivedShipment {
+// A live board shipment as the list renders it: the id + its map status (healthy | at-risk | exception),
+// shown as the row's honest meta. Supplied by App from the server board — never derived on the client.
+export interface BoardShipment {
   id: string;
-  meta: string; // the honest state we can show from the invoice header (its billing status)
-}
-
-// invoices.shipment_ids is a JSON-array TEXT column; tolerate an already-parsed array too. Fail CLOSED to an
-// empty list on anything malformed — never throw a render.
-function parseShipmentIds(raw: unknown): string[] {
-  if (Array.isArray(raw)) return raw.filter((x): x is string => typeof x === "string");
-  if (typeof raw === "string") {
-    try {
-      const parsed: unknown = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === "string") : [];
-    } catch {
-      return [];
-    }
-  }
-  return [];
-}
-
-// The distinct shipments across the party's invoices, each tagged with its (first-seen) invoice status.
-function deriveShipments(invoices: readonly InvoiceRow[]): DerivedShipment[] {
-  const seen = new Map<string, string>();
-  for (const inv of invoices) {
-    for (const sid of parseShipmentIds(inv.shipment_ids)) {
-      if (!seen.has(sid)) seen.set(sid, inv.status.toUpperCase());
-    }
-  }
-  return [...seen.entries()].map(([id, meta]) => ({ id, meta }));
+  status: string;
 }
 
 export interface ShipmentListProps {
+  shipments: readonly BoardShipment[];
   onAuthError: () => void;
   onSelectShipment: (id: string) => void;
   selectedShipmentId?: string | undefined;
 }
 
-export function ShipmentList({ onAuthError, onSelectShipment, selectedShipmentId }: ShipmentListProps): React.JSX.Element {
+export function ShipmentList({ shipments, onAuthError, onSelectShipment, selectedShipmentId }: ShipmentListProps): React.JSX.Element {
   const [loading, setLoading] = useState(true);
   const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -76,7 +54,7 @@ export function ShipmentList({ onAuthError, onSelectShipment, selectedShipmentId
           onAuthError();
           return;
         }
-        setError(e instanceof ApiError ? e.message : "COULD NOT LOAD YOUR BOARD");
+        setError(e instanceof ApiError ? e.message : "COULD NOT LOAD YOUR INVOICES");
       })
       .finally(() => {
         if (live) setLoading(false);
@@ -85,8 +63,6 @@ export function ShipmentList({ onAuthError, onSelectShipment, selectedShipmentId
       live = false;
     };
   }, [onAuthError]);
-
-  const shipments = deriveShipments(invoices);
 
   return (
     <aside
@@ -102,58 +78,56 @@ export function ShipmentList({ onAuthError, onSelectShipment, selectedShipmentId
         gap: 20,
       }}
     >
-      {loading ? (
-        <Loading label="SYNCING YOUR FREIGHT" />
-      ) : error !== null ? (
-        <Mono size={11} color="var(--signal-deep)">
-          {error}
+      {/* SHIPMENTS — the live server board (App owns its loading); a mark shows here iff it is on the map. */}
+      <section style={{ display: "flex", flexDirection: "column" }}>
+        <Mono size={10} color="var(--signal-55)">
+          SHIPMENTS
         </Mono>
-      ) : (
-        <>
-          <section style={{ display: "flex", flexDirection: "column" }}>
-            <Mono size={10} color="var(--signal-55)">
-              SHIPMENTS
-            </Mono>
-            <div style={{ marginTop: 8 }}>
-              {shipments.length === 0 ? (
-                <EmptyState>No active shipments</EmptyState>
-              ) : (
-                shipments.map((s) => (
-                  <ShipmentRow
-                    key={s.id}
-                    shipment={s}
-                    selected={s.id === selectedShipmentId}
-                    onSelect={() => onSelectShipment(s.id)}
-                  />
-                ))
-              )}
-            </div>
-          </section>
+        <div style={{ marginTop: 8 }}>
+          {shipments.length === 0 ? (
+            <EmptyState>No active shipments</EmptyState>
+          ) : (
+            shipments.map((s) => (
+              <ShipmentRow
+                key={s.id}
+                shipment={s}
+                selected={s.id === selectedShipmentId}
+                onSelect={() => onSelectShipment(s.id)}
+              />
+            ))
+          )}
+        </div>
+      </section>
 
-          <section style={{ display: "flex", flexDirection: "column" }}>
-            <Mono size={10} color="var(--signal-55)">
-              INVOICES
+      {/* INVOICES — the party's billing summary (its own lens-scoped read). */}
+      <section style={{ display: "flex", flexDirection: "column" }}>
+        <Mono size={10} color="var(--signal-55)">
+          INVOICES
+        </Mono>
+        <div style={{ marginTop: 8 }}>
+          {loading ? (
+            <Loading label="SYNCING YOUR INVOICES" />
+          ) : error !== null ? (
+            <Mono size={11} color="var(--signal-deep)">
+              {error}
             </Mono>
-            <div style={{ marginTop: 8 }}>
-              {invoices.length === 0 ? (
-                <EmptyState>No invoices yet</EmptyState>
-              ) : (
-                invoices.map((inv) => (
-                  <div key={inv.id}>
-                    <Divider />
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 16, padding: "10px 0" }}>
-                      <Mono size={12}>{inv.id}</Mono>
-                      <Mono size={12} color="var(--signal-55)">
-                        {formatCents(inv.total_cents)} · {inv.status.toUpperCase()}
-                      </Mono>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </section>
-        </>
-      )}
+          ) : invoices.length === 0 ? (
+            <EmptyState>No invoices yet</EmptyState>
+          ) : (
+            invoices.map((inv) => (
+              <div key={inv.id}>
+                <Divider />
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 16, padding: "10px 0" }}>
+                  <Mono size={12}>{inv.id}</Mono>
+                  <Mono size={12} color="var(--signal-55)">
+                    {formatCents(inv.total_cents)} · {inv.status.toUpperCase()}
+                  </Mono>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
 
       <TextLink href="#status">Track a shipment</TextLink>
     </aside>
@@ -165,7 +139,7 @@ function ShipmentRow({
   selected,
   onSelect,
 }: {
-  shipment: DerivedShipment;
+  shipment: BoardShipment;
   selected: boolean;
   onSelect: () => void;
 }): React.JSX.Element {
@@ -189,7 +163,7 @@ function ShipmentRow({
           {selected ? `▸ ${shipment.id}` : shipment.id}
         </Mono>
         <Mono size={12} color="var(--signal-55)">
-          {shipment.meta}
+          {shipment.status.toUpperCase()}
         </Mono>
       </div>
     </div>

@@ -1,7 +1,8 @@
 import { useCallback, useMemo, useState } from "react";
 import { Button, Display, Mono } from "@shuddl/design";
-import { DEMO_GLYPHS_URL, DEMO_TILE_URL, MapCanvas, demoFleet, useFleet } from "@shuddl/map";
+import { DEMO_GLYPHS_URL, DEMO_TILE_URL, MapCanvas, useFleet } from "@shuddl/map";
 import { adoptTokenFromUrl, clear, getClaims, isAuthed } from "./session.js";
+import { freshnessLabel, usePartyBoard, type PartyBoardState } from "./api/board.js";
 import { ShipmentList } from "./components/ShipmentList.js";
 import { QuotePanel } from "./components/QuotePanel.js";
 import { DocumentsView } from "./views/DocumentsView.js";
@@ -65,11 +66,15 @@ const TABS: ReadonlyArray<{ view: PortalView; label: string }> = [
 ];
 
 function Board({ partyId, onAuthError, initialView }: { partyId: string; onAuthError: () => void; initialView?: PortalView | undefined }): React.JSX.Element {
-  // The party lens scopes the fleet to this party's own shipments (defence-in-depth; the server lens is
-  // authoritative and never sends out-of-scope marks). The live DO fan-out is WP-10 — until then the source
-  // is the demo fleet, scoped to the party, so a real party sees only its OWN marks (never another party's).
-  const source = useMemo(() => demoFleet(), []);
-  const { collection } = useFleet({ scope: "party", partyId }, source);
+  // The party's live fleet from the AUTHORITATIVE server board (GET /v1/board) — scoped to this party AND
+  // generalized SERVER-SIDE (REQ-085/074/025). No demoFleet anywhere: a failure shows an honest stale/empty/
+  // unavailable state, never a fabricated fleet (usePartyBoard). serverScoped keeps useFleet from re-coarsening
+  // the already-generalized coords, while its party_refs filter still guards against any stray non-party mark.
+  const board = usePartyBoard(partyId, onAuthError);
+  const lens = useMemo(() => ({ scope: "party" as const, partyId, serverScoped: true }), [partyId]);
+  const { collection } = useFleet(lens, board.items);
+  // The ruled SHIPMENTS list mirrors the same live board (the positioned freight the party owns), selectable.
+  const shipments = useMemo(() => board.items.map((i) => ({ id: i.shipment_id, status: i.status })), [board.items]);
 
   const [selectedShipmentId, setSelectedShipmentId] = useState<string | undefined>(undefined);
   const [view, setView] = useState<PortalView>(initialView ?? "overview");
@@ -90,6 +95,7 @@ function Board({ partyId, onAuthError, initialView }: { partyId: string; onAuthE
           YOUR FREIGHT · LIVE
         </Mono>
         <Display size="hero">{partyId}</Display>
+        <BoardStatusLine state={board} />
         <nav style={{ display: "flex", gap: 16, marginTop: 12 }}>
           {TABS.map((t) => (
             <button
@@ -112,6 +118,7 @@ function Board({ partyId, onAuthError, initialView }: { partyId: string; onAuthE
         <>
           <QuotePanel shipmentId={selectedShipmentId} onAuthError={onAuthError} />
           <ShipmentList
+            shipments={shipments}
             onAuthError={onAuthError}
             onSelectShipment={setSelectedShipmentId}
             selectedShipmentId={selectedShipmentId}
@@ -159,6 +166,30 @@ function ViewPanel({ children }: { children: React.ReactNode }): React.JSX.Eleme
     >
       {children}
     </aside>
+  );
+}
+
+// The honest freshness/health line for the live map: loading | live (with a server-derived AS OF stamp) | no
+// active freight | stale (last-good stamp retained) | unavailable. It never claims freshness the server did not
+// vouch for — the timestamp is the board's own `as_of`, formatted UTC (deterministic). An alarm state (stale /
+// unavailable) is drawn in the one saturated token; a healthy board stays label-light on the greige field.
+function boardStatusText(s: PartyBoardState): string {
+  if (s.phase === "loading") return "LIVE MAP · SYNCING";
+  if (s.phase === "unavailable") return "LIVE MAP · UNAVAILABLE";
+  const stamp = s.asOf !== null ? freshnessLabel(s.asOf) : "—";
+  if (s.stale) return `LIVE MAP · STALE · LAST OK ${stamp} UTC`;
+  if (s.empty) return `LIVE MAP · NO ACTIVE FREIGHT · AS OF ${stamp} UTC`;
+  return `LIVE MAP · LIVE · AS OF ${stamp} UTC`;
+}
+
+function BoardStatusLine({ state }: { state: PartyBoardState }): React.JSX.Element {
+  const alarm = state.phase === "unavailable" || state.stale;
+  return (
+    <div data-testid="board-status" style={{ marginTop: 8 }}>
+      <Mono size={10} color={alarm ? "var(--signal)" : "var(--signal-55)"}>
+        {boardStatusText(state)}
+      </Mono>
+    </div>
   );
 }
 
