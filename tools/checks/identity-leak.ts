@@ -1,5 +1,9 @@
 import { execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
+// V1 remediation Task 3 (REQ-288): an ABSENT denylist is a missing prerequisite — advisory (PENDING)
+// locally, non-promotable (BLOCKED) under merge/release; an actual leak is a FAIL. run-gate consumes the
+// structured GateResult, never this file's prose.
+import { parseMode, unavailableStatus, formatGateResult, type GateMode, type GateResult } from "../release/evidence.js";
 
 // REQ-167 (doc 13 §02): identity-leak lint. The denylist (tenant names, person names,
 // incumbent-vendor names, customer names) is maintained CLIENT-SIDE:
@@ -74,6 +78,21 @@ export function resolveIdentityLeakOutcome(input: {
   return { code: 0, level: "ok", message: `identity-leak lint: clean (${terms.length} terms checked)` };
 }
 
+// The mode-aware disposition as a PURE GateResult (REQ-288). An absent/empty denylist is a MISSING
+// prerequisite (PENDING local / BLOCKED merge-release), a found leak is a FAIL, a clean scan is a PASS
+// whose assertions = files scanned. This never leaks a name (only masked leaks / counts appear).
+export function identityGateResult(input: { terms: string[] | null; mode: GateMode; leaks: Leak[]; filesScanned: number }): GateResult {
+  const { terms, mode, leaks, filesScanned } = input;
+  if (!terms || terms.length === 0) {
+    const { status } = unavailableStatus(mode);
+    return { gate: "identity-leak", status, executed: false, assertions: 0, detail: "no denylist (set IDENTITY_DENYLIST secret or .identity-denylist.local)" };
+  }
+  if (leaks.length > 0) {
+    return { gate: "identity-leak", status: "FAIL", executed: true, assertions: filesScanned, detail: `${leaks.length} identity leak(s): ${leaks.map((l) => `${l.file}:${l.masked}`).join(", ")}` };
+  }
+  return { gate: "identity-leak", status: "PASS", executed: true, assertions: filesScanned, detail: `${filesScanned} files scanned against ${terms.length} denylist term(s)` };
+}
+
 // Treat empty / "0" / "false" as unset so a stray CI="" or CI=0 doesn't spuriously fail a local run.
 function envFlag(v: string | undefined): boolean {
   return v !== undefined && v !== "" && v !== "0" && v.toLowerCase() !== "false";
@@ -101,11 +120,24 @@ function trackedFiles(): Map<string, string> {
 
 function main(): void {
   const terms = loadDenylist();
+  const argv = process.argv.slice(2);
+  const files = terms ? trackedFiles() : new Map<string, string>();
+  const leaks = terms ? scanForIdentityLeaks(terms, files) : [];
+
+  // NEW (REQ-288): explicit --mode local|merge|release path emits a structured GateResult so run-gate
+  // records BLOCKED (not a masquerading green) for an absent denylist. Callers that pass no --mode keep
+  // the exact legacy CI disposition below (REQUIRE_DENYLIST/CI fail-closed), unchanged.
+  if (argv.includes("--mode")) {
+    const mode = parseMode(argv);
+    const g = identityGateResult({ terms, mode, leaks, filesScanned: files.size });
+    const sink = g.status === "PASS" ? console.log : g.status === "FAIL" ? console.error : console.warn;
+    sink(g.detail ?? g.status);
+    console.log(formatGateResult(g));
+    process.exit(g.status === "FAIL" ? 1 : g.status === "BLOCKED" ? 2 : 0);
+  }
+
   const ci = envFlag(process.env["CI"]);
   const requireDenylist = envFlag(process.env["REQUIRE_DENYLIST"]);
-  // Only scan when a denylist exists (the scan reads every tracked file); the absent-denylist
-  // disposition below is what fails CLOSED in CI.
-  const leaks = terms ? scanForIdentityLeaks(terms, trackedFiles()) : [];
   const outcome = resolveIdentityLeakOutcome({ terms, ci, requireDenylist, leaks });
   const sink = outcome.level === "ok" ? console.log : outcome.level === "warn" ? console.warn : console.error;
   sink(outcome.message);

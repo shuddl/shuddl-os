@@ -20,6 +20,9 @@ import { GL_MAP } from "../../packages/agents/src/biller/gl-map.js";
 // hashPath is the SAME path+bytes hash tools/fixtures/verify.ts pins fixtures by — the pin check is
 // only meaningful if it hashes exactly the way the manifest recorded it.
 import { hashPath } from "../fixtures/verify.js";
+// V1 remediation Task 3 (REQ-288): merge/release turns the advisory PENDING skip into a non-promotable
+// BLOCKED. run-gate consumes the structured GateResult, never this file's prose.
+import { parseMode, unavailableStatus, formatGateResult } from "../release/evidence.js";
 
 // REQ-031 — WP-06 DoD: "Invoice math matches Rater to the penny on 500-fixture replay."
 //
@@ -491,6 +494,7 @@ function printMismatches(mismatches: readonly ReplayMismatch[]): void {
 }
 
 function main(): void {
+  const mode = parseMode(process.argv.slice(2));
   // ── 1. SMOKE — always runs; the harness's liveness proof. A failure here is the composition path
   //       itself drifting (rater → recorded payload → composeInvoice) and blocks regardless of the
   //       pending 500-set. Its green line is worded as SMOKE — it is never the DoD claim.
@@ -560,7 +564,14 @@ function main(): void {
     console.warn(
       "INVOICE PARITY PENDING — vendor the engagement fixtures into fixtures/invoice-replay and fixtures/tariff to activate the WP-06 DoD gate (invoice math matches Rater to the penny on 500-fixture replay). Advisory (exit 0) until then.",
     );
-    return;
+    // REQ-288: local stays advisory (PENDING, exit 0); merge/release BLOCKS (exit 2) on the absent
+    // private replay set — a release gate never greens on absent DoD data.
+    const { status, exitCode } = unavailableStatus(mode);
+    if (mode !== "local") {
+      console.error(`invoice-parity: BLOCKED under --mode ${mode} — the 500-quote replay set is not vendored; no promotion on absent private fixtures.`);
+    }
+    console.log(formatGateResult({ gate: "invoice-parity", status, executed: false, assertions: 0, detail: "engagement fixtures not vendored (fixtures/invoice-replay, fixtures/tariff)" }));
+    process.exit(exitCode);
   }
 
   // PRESENT — but presence is NOT a pass: require vendored + hash-pinned, exactly like the rater gate.
@@ -591,11 +602,13 @@ function main(): void {
   if (result.mismatches.length > 0) {
     printMismatches(result.mismatches);
     console.error("INVOICE PARITY FAILED — the invoice diverges from the rater on the 500-fixture replay (REQ-031 / WP-06 DoD). No merge.");
+    console.log(formatGateResult({ gate: "invoice-parity", status: "FAIL", executed: true, assertions: result.total, detail: `${result.mismatches.length} mismatch(es) vs the rater` }));
     process.exit(1);
   }
   console.log(
     `INVOICE PARITY GREEN — WP-06 DoD reproduced: invoice math matches the Rater to the penny on the ${EXPECTED_REPLAY_CASES}-fixture replay.`,
   );
+  console.log(formatGateResult({ gate: "invoice-parity", status: "PASS", executed: true, assertions: result.total, detail: "WP-06 DoD reproduced penny-for-penny" }));
 }
 
 if (process.argv[1]?.endsWith("invoice-parity.ts")) main();

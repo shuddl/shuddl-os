@@ -22,6 +22,9 @@ coverage/
 seed/SEED-1.json
 tools/design/report.json
 
+# release/merge evidence records (REQ-288) — generated per run, never committed
+artifacts/
+
 # Playwright advisory harness output (perf + screenshot diff) — never committed
 test-results/
 playwright-report/
