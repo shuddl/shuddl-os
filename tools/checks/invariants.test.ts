@@ -393,6 +393,64 @@ describe("Exit audit (REQ-119) positive controls: legitimate SQL still passes", 
   });
 });
 
+// Task 5 (REQ-002/011, I3/I1) — guard COMPLETENESS. A BEFORE INSERT guard only closes the
+// recursive_triggers=0 REPLACE hole for the UNIQUE keys its WHEN-clause actually enumerates. A UNIQUE
+// column / UNIQUE(...) constraint / CREATE UNIQUE INDEX on a guarded table that NO guard-ins predicate
+// enumerates is an open door: an INSERT OR REPLACE colliding on it deletes the chained victim row and the
+// guard never fires. The scanner compares every UNIQUE target on a guarded table against the (normalized)
+// equality column-sets of its BEFORE INSERT guards; an uncovered target is a completeness violation.
+describe("Task 5 — I3 guard completeness: every UNIQUE target on a guarded table needs a guard-ins predicate", () => {
+  const guards = (whenExtra = "") =>
+    "CREATE TRIGGER events_guard_upd BEFORE UPDATE ON events BEGIN SELECT RAISE(ABORT,'I3'); END;\n" +
+    "CREATE TRIGGER events_guard_del BEFORE DELETE ON events BEGIN SELECT RAISE(ABORT,'I3'); END;\n" +
+    `CREATE TRIGGER events_guard_ins BEFORE INSERT ON events WHEN EXISTS (SELECT 1 FROM events WHERE id = NEW.id${whenExtra}) BEGIN SELECT RAISE(ABORT,'I3'); END;`;
+
+  it("flags a CREATE UNIQUE INDEX on events whose columns no guard-ins predicate enumerates", () => {
+    const sql = "CREATE TABLE events (id TEXT, hash TEXT);\nCREATE UNIQUE INDEX ux_events_hash ON events (hash);\n" + guards();
+    const r = checkMigrationSql([sql]);
+    expect(r.ok).toBe(false);
+    expect(r.violations.join(" ")).toContain("completeness");
+    expect(r.violations.join(" ")).toContain("hash");
+  });
+
+  it("passes once a guard-ins disjunct enumerates the UNIQUE-index columns", () => {
+    const sql = "CREATE TABLE events (id TEXT, hash TEXT);\nCREATE UNIQUE INDEX ux_events_hash ON events (hash);\n" + guards(" OR hash = NEW.hash");
+    expect(checkMigrationSql([sql]).ok).toBe(true);
+  });
+
+  it("flags a UNIQUE COLUMN constraint with no matching guard predicate", () => {
+    const sql = "CREATE TABLE events (id TEXT, hash TEXT UNIQUE);\n" + guards();
+    const r = checkMigrationSql([sql]);
+    expect(r.ok).toBe(false);
+    expect(r.violations.join(" ")).toContain("completeness");
+  });
+
+  it("flags a composite UNIQUE(...) constraint uncovered by the guard, passes once enumerated", () => {
+    const base = (whenExtra: string) =>
+      "CREATE TABLE money_lines (id TEXT PRIMARY KEY, event_id TEXT, line_no INTEGER, UNIQUE (event_id, line_no));\n" +
+      "CREATE TRIGGER money_lines_guard_upd BEFORE UPDATE ON money_lines BEGIN SELECT RAISE(ABORT,'I1'); END;\n" +
+      "CREATE TRIGGER money_lines_guard_del BEFORE DELETE ON money_lines BEGIN SELECT RAISE(ABORT,'I1'); END;\n" +
+      `CREATE TRIGGER money_lines_guard_ins BEFORE INSERT ON money_lines WHEN EXISTS (SELECT 1 FROM money_lines WHERE id = NEW.id${whenExtra}) BEGIN SELECT RAISE(ABORT,'I1'); END;`;
+    expect(checkMigrationSql([base("")]).ok).toBe(false); // UNIQUE(event_id, line_no) uncovered
+    expect(checkMigrationSql([base(" OR (event_id = NEW.event_id AND line_no = NEW.line_no)")]).ok).toBe(true);
+  });
+
+  it("a PRIMARY KEY (composite) target must be enumerated too", () => {
+    const sql =
+      "CREATE TABLE events (stream_id TEXT, seq INTEGER, id TEXT, PRIMARY KEY (stream_id, seq));\n" +
+      "CREATE TRIGGER events_guard_upd BEFORE UPDATE ON events BEGIN SELECT RAISE(ABORT,'I3'); END;\n" +
+      "CREATE TRIGGER events_guard_del BEFORE DELETE ON events BEGIN SELECT RAISE(ABORT,'I3'); END;\n" +
+      "CREATE TRIGGER events_guard_ins BEFORE INSERT ON events WHEN EXISTS (SELECT 1 FROM events WHERE id = NEW.id) BEGIN SELECT RAISE(ABORT,'I3'); END;";
+    expect(checkMigrationSql([sql]).ok).toBe(false); // (stream_id, seq) PK is uncovered by the id-only guard
+    const covered =
+      "CREATE TABLE events (stream_id TEXT, seq INTEGER, id TEXT, PRIMARY KEY (stream_id, seq));\n" +
+      "CREATE TRIGGER events_guard_upd BEFORE UPDATE ON events BEGIN SELECT RAISE(ABORT,'I3'); END;\n" +
+      "CREATE TRIGGER events_guard_del BEFORE DELETE ON events BEGIN SELECT RAISE(ABORT,'I3'); END;\n" +
+      "CREATE TRIGGER events_guard_ins BEFORE INSERT ON events WHEN EXISTS (SELECT 1 FROM events WHERE (stream_id = NEW.stream_id AND seq = NEW.seq) OR id = NEW.id) BEGIN SELECT RAISE(ABORT,'I3'); END;";
+    expect(checkMigrationSql([covered]).ok).toBe(true);
+  });
+});
+
 describe("C2: forward-only migration lock (checkLock)", () => {
   const path = "db/tenant/migrations/0001_ledger_core.sql";
   it("check mode fails when a migration on disk is not pinned in the lock", () => {
