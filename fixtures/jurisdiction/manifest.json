@@ -1,0 +1,30 @@
+{
+  "note": "REQ-166 — version/hash-pinned admin-boundary artifacts for deriveOperatingState point-in-polygon (packages/ledger/src/geo). Hash-pinned; changing a vendored artifact requires a register note. The ACTIVE artifact is SYNTHETIC (an in-repo, coarse, 5-state test/dev stand-in that proves the resolver + the hash-mismatch fail-closed path). The PRODUCTION artifact — the cartographically-accurate, all-states+territories LICENSED dataset — is a BLOCKED external HOLD (license + approved fixture process); it is NOT committed. Go-live swaps it in and re-pins. Until then any coordinate outside the synthetic coverage derives to XX (fail-closed), blocking GPS consent for unsupported jurisdictions.",
+  "border_policy": "A point strictly interior to exactly one state resolves to that USPS code; a point exterior to all, on any boundary edge, or interior to more than one state resolves to XX (fail-closed). Boundary precedes interior.",
+  "artifacts": [
+    {
+      "id": "us-states-synthetic-v1",
+      "role": "active",
+      "kind": "synthetic",
+      "status": "vendored",
+      "path": "fixtures/jurisdiction/us-states.synthetic.json",
+      "sha256": "c60066c98b4dff9c58be0f689d5479a95901acdfc3a99754f3809bda5318d93c",
+      "version": "synthetic-2026-07-24",
+      "coverage": ["CA", "OR", "WA", "TX", "NY"],
+      "license": "in-repo synthetic; no third-party license. REQ-167: US state names only — no tenant/person/customer/incumbent identity.",
+      "source": "Hand-authored COARSE state outlines generated in-repo for the point-in-polygon resolver and its hash-mismatch fail-closed proof (packages/ledger/test/jurisdiction.test.ts). NOT survey-accurate; NOT a licensed cartographic product. Byte-bound to packages/ledger/src/geo/jurisdiction.ts (SYNTHETIC_US_STATES) by that test."
+    },
+    {
+      "id": "us-admin-boundaries-licensed",
+      "role": "production",
+      "kind": "licensed",
+      "status": "blocked",
+      "path": null,
+      "sha256": null,
+      "version": null,
+      "coverage": "all US states + territories, precise coastlines",
+      "license": "[CONFIRM] — licensed admin-boundary dataset (public-domain Census TIGER/Line derivative or a commercial equivalent); license approval + attribution PENDING. Owner: ops + counsel.",
+      "source": "EXTERNAL HOLD — NOT committed to this repo. Obtained and vendored through the approved fixture process. GO-LIVE CONSUMES IT BY: (1) vendor the artifact bytes under fixtures/jurisdiction/, (2) pin its sha256 here and flip status to vendored, (3) point packages/ledger/src/geo/jurisdiction.ts ACTIVE artifact at it, (4) re-run the jurisdiction + consent + position suites green. Until (1)-(4) complete, jurisdiction resolution runs on the synthetic 5-state set and every coordinate outside that coverage derives to XX (fail-closed), blocking GPS consent for unsupported jurisdictions (REQ-166)."
+    }
+  ]
+}
