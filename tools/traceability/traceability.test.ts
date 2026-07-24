@@ -1,13 +1,43 @@
 import { describe, expect, it } from "vitest";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { parseRegister } from "./register.js";
 import { checkPrText } from "./check-pr.js";
 import { findOrphans } from "./orphans.js";
 
+const registerHeader = "req_id,domain,requirement,source,spec,wp,dod_test,status";
+
+function writeRegister(ids: string[]): string {
+  const path = join(mkdtempSync(join(tmpdir(), "register-")), "register.csv");
+  const rows = ids.map((id) => `${id},TEST,Requirement ${id},test design,test spec,vNEXT,Observable test,vNEXT`);
+  writeFileSync(path, [registerHeader, ...rows].join("\n"));
+  return path;
+}
+
 describe("register parser", () => {
-  it("parses all rows of genesis/09 with exactly 8 fields each (no silent drops)", () => {
+  it("keeps the authoritative register contiguous from REQ-001 through REQ-288", () => {
     const rows = parseRegister();
-    expect(rows.length).toBeGreaterThanOrEqual(167); // append-only: the register grows, never shrinks (167 at WP-01 start)
-    expect(rows[0]?.req_id).toBe("REQ-001");
+    expect(rows).toHaveLength(288);
+    for (const [index, row] of rows.entries()) {
+      expect(row.req_id).toBe(`REQ-${String(index + 1).padStart(3, "0")}`);
+    }
+    expect(rows[rows.length - 1]?.req_id).toBe("REQ-288");
+  });
+
+  it("rejects a duplicate requirement ID", () => {
+    const path = writeRegister(["REQ-001", "REQ-002", "REQ-002"]);
+    expect(() => parseRegister(path)).toThrow(/expected REQ-003/i);
+  });
+
+  it("rejects a gap in requirement IDs", () => {
+    const path = writeRegister(["REQ-001", "REQ-002", "REQ-004"]);
+    expect(() => parseRegister(path)).toThrow(/expected REQ-003/i);
+  });
+
+  it("rejects reordered requirement IDs", () => {
+    const path = writeRegister(["REQ-001", "REQ-003", "REQ-002"]);
+    expect(() => parseRegister(path)).toThrow(/expected REQ-002/i);
   });
 });
 
