@@ -1,5 +1,7 @@
 import { readFileSync } from "node:fs";
 
+const REGISTER_HEADER = "req_id,domain,requirement,source,spec,wp,dod_test,status";
+
 export type ReqRow = {
   req_id: string;
   domain: string;
@@ -12,10 +14,21 @@ export type ReqRow = {
 };
 
 export function parseRegister(path = "genesis/09-REQUIREMENTS-REGISTER.csv"): ReqRow[] {
-  const lines = readFileSync(path, "utf8").trim().split("\n");
+  const content = readFileSync(path, "utf8");
+  if (content.trim().length === 0) throw new Error(`register ${path} is empty`);
+
+  const lines = content.split(/\r?\n/);
+  while (lines[lines.length - 1] === "") lines.pop();
+
+  const header = lines.shift();
+  if (header !== REGISTER_HEADER) {
+    throw new Error(`register ${path} has invalid header; expected exactly: ${REGISTER_HEADER}`);
+  }
+  if (lines.length === 0) throw new Error(`register ${path} has no requirement rows`);
+
   const rows: ReqRow[] = [];
   let expectedNumber: number | undefined;
-  for (const [i, line] of lines.slice(1).entries()) {
+  for (const [i, line] of lines.entries()) {
     const fields = line.split(",");
     // The register is authored comma-safe (semicolons inside fields). A row that
     // splits to anything but 8 fields is a register defect — fail loudly, never guess.

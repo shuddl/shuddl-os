@@ -36,7 +36,7 @@ export const INTERNAL_NESTED: Partial<Record<EventKind, readonly string[]>> = {
   // NO known-internal field survives the party lens for ANY counterparty-default kind.
   "booking.created": ["division"],
   "dispatch.assigned": ["driver_user_id"],
-  // REQ-119 (WP-16 launch audit) — the two OTHER counterparty-default money kinds whose money projection reads
+  // REQ-210 / REQ-119 (WP-16 launch audit) — the two OTHER counterparty-default money kinds whose money projection reads
   // payload.division (money.ts:234/258). Both are loose JsonObject payloads, so a real-tenant emitter that ever
   // stamps `division` on a payment.received / settlement.executed would leak the org/margin dimension to the
   // party lens. FORWARD-GUARD: not reachable today (the only payment.received emitter is _platform billing with

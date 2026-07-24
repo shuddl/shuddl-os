@@ -172,13 +172,13 @@ describe("redactEvent: booking.created + dispatch.assigned internals (REQ-192)",
   });
 });
 
-// REQ-119 (WP-16 launch audit) — the FORWARD-GUARD for the two OTHER counterparty-default money kinds whose
+// REQ-210 / REQ-119 (WP-16 launch audit) — the FORWARD-GUARD for the two OTHER counterparty-default money kinds whose
 // money projection reads payload.division (money.ts:234/258): payment.received and settlement.executed. Both are
 // loose JsonObject payloads, so a real-tenant emitter that ever stamps `division` on one would leak the org/margin
 // dimension to the PARTY lens unless division is registered in INTERNAL_NESTED. Not reachable today (the only
 // payment.received emitter is _platform billing with no division; settlement.executed is CONFIRM-gated/dormant) —
 // this closes it before it can go live.
-describe("redactEvent: payment.received + settlement.executed division forward-guard (REQ-119)", () => {
+describe("redactEvent: payment.received + settlement.executed division forward-guard (REQ-210)", () => {
   for (const kind of ["payment.received", "settlement.executed"] as const) {
     it(`${kind} — party/driver lens strips payload.division; the tenant lens keeps it`, () => {
       const e = eventFixture(kind, {
