@@ -13,6 +13,17 @@
 
 Nothing is deployed, armed, or sending — the product is a green, fully-tested codebase (`pnpm verify`), advanced one work-package at a time. External launch, tenant-0 phases, and live sending gate on F1-B/C + the M-H milestone (doc 14/15) — never on the build.
 
+### Runtime contract (required before anything)
+The suite is verified under **Node 22.15.0 + pnpm 11.10.0 only** (pinned in `.node-version`, `engines`, and `packageManager`). Node 20 mis-resolves the `vitest-pool-workers`/chai chain and changes D1 append-only trigger behaviour, so a green run under Node 20 proves nothing. Activate the pinned runtime before running any gate:
+
+```
+nvm install 22.15.0 && nvm use 22.15.0    # or: fnm use (reads .node-version)
+corepack use pnpm@11.10.0
+pnpm check:runtime                          # fails closed on any mismatch, printing installed vs required
+```
+
+`pnpm check:runtime` is the first step of every verification script; it exits non-zero and prints the installed vs required versions if you are on the wrong Node/pnpm.
+
 _History: F0.2 complete + third-party audited 2026-07-09 (register 167 rows; identity-leak law REQ-167 enforced repo-wide)._
 
 ## The five demos that define "working"
