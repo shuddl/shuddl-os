@@ -292,3 +292,73 @@ describe("binding: gate-pass ⇒ resolveRecipient(bill_to) is non-null (REQ-182)
     expect(await resolveRecipient(env.TENANT_A_DB, BILL_NOCONTACT)).toBeUndefined();
   });
 });
+
+// ─── Task 7 (REQ-031/003) — BOOKING QUOTE AUTHORITY: an ON-STREAM quote_event_id must be an ACCEPTED
+// quote.priced. The invoice later projects the quote the booking accepted, so a booking must never commit
+// bound to a quote it did not accept. The DO validates before the append (REQ-030 parity). A reference that
+// resolves to a real event ON THIS STREAM must be a quote.priced named by a quote.accepted; a wrong-kind or
+// unaccepted on-stream reference is rejected (VALIDATION_FAILED, ZERO append). A NON-resolving reference
+// (placeholder / cross-stream / cross-tenant) is tolerated here and fail-closed at the Biller (biller.test).
+describe("Task 7 — booking quote authority (REQ-031/003)", () => {
+  async function seedEvent(shp: string, kind: string, payload: Record<string, unknown>): Promise<string> {
+    const input = {
+      id: crypto.randomUUID(),
+      shipment_id: shp,
+      ts: 1_720_000_000_000,
+      actor: { party: "party-shipper" },
+      party_refs: [],
+      evidence: [],
+      source: "native",
+      confidence: 10_000,
+      kind,
+      payload,
+    };
+    const r = await post(shp, input, await opsTok());
+    expect(r.status, JSON.stringify(r.json)).toBe(201);
+    return r.json!.id as string;
+  }
+  const pricedPayload = (sell: number): Record<string, unknown> => ({
+    sell,
+    lines: [{ kind: "freight", code: "freight", amount_cents: sell }],
+    floors: { contribution: 1, full: 1, target: 1 },
+    versions: { rate_config_ids: ["rc-t7-gate"] },
+    basis: {},
+  });
+  const bookings = async (shp: string): Promise<number> => (await rawRows(shp)).filter((r) => r.kind === "booking.created").length;
+
+  it("UNACCEPTED: a booking naming an on-stream quote.priced never accepted → 400 VALIDATION_FAILED, ZERO booking append", async () => {
+    const shp = "t7-unaccepted";
+    const quoteId = await seedEvent(shp, "quote.priced", pricedPayload(100_000)); // priced, NOT accepted
+    const r = await post(shp, bookingInput(shp, BILL_CLEAR, { quote_event_id: quoteId }), await opsTok());
+    expect(r.status).toBe(400);
+    expect(r.json?.code).toBe("VALIDATION_FAILED");
+    expect(await bookings(shp)).toBe(0);
+  });
+
+  it("WRONG-KIND: a booking naming an on-stream event that is NOT a quote.priced → 400 VALIDATION_FAILED, ZERO booking append", async () => {
+    const shp = "t7-wrongkind";
+    const quoteId = await seedEvent(shp, "quote.priced", pricedPayload(100_000));
+    const acceptId = await seedEvent(shp, "quote.accepted", { quote_event_id: quoteId }); // a real on-stream quote.accepted
+    // Point the booking at the ACCEPT's id (a real event, wrong kind) rather than the priced quote.
+    const r = await post(shp, bookingInput(shp, BILL_CLEAR, { quote_event_id: acceptId }), await opsTok());
+    expect(r.status).toBe(400);
+    expect(r.json?.code).toBe("VALIDATION_FAILED");
+    expect(await bookings(shp)).toBe(0);
+  });
+
+  it("ACCEPTED: a booking naming an on-stream quote.priced that WAS accepted → 201 (the honest chain passes)", async () => {
+    const shp = "t7-accepted-ok";
+    const quoteId = await seedEvent(shp, "quote.priced", pricedPayload(100_000));
+    await seedEvent(shp, "quote.accepted", { quote_event_id: quoteId });
+    const r = await post(shp, bookingInput(shp, BILL_CLEAR, { quote_event_id: quoteId }), await opsTok());
+    expect(r.status, JSON.stringify(r.json)).toBe(201);
+    expect(await bookings(shp)).toBe(1);
+  });
+
+  it("NON-RESOLVING: a booking naming a quote id NOT on this stream is TOLERATED at the gate → 201 (the Biller fail-closes at bill time)", async () => {
+    const shp = "t7-nonresolving";
+    const r = await post(shp, bookingInput(shp, BILL_CLEAR, { quote_event_id: crypto.randomUUID() }), await opsTok());
+    expect(r.status, JSON.stringify(r.json)).toBe(201); // write-time tolerated; Biller holds at bill time (biller.test INCONSISTENT)
+    expect(await bookings(shp)).toBe(1);
+  });
+});

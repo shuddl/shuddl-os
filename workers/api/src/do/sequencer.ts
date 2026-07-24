@@ -2,7 +2,7 @@ import { DurableObject } from "cloudflare:workers";
 import { EventInput, LedgerEvent, hazmatEnabled, isPlatformTenant, type Visibility } from "@shuddl/contracts";
 import { GENESIS_HASH, hashEvent } from "@shuddl/ledger/chain";
 import { verifyEventSig } from "@shuddl/ledger/sign";
-import { resolveVisibility } from "@shuddl/ledger/visibility";
+import { resolveVisibility, UNRESOLVED_VISIBILITY } from "@shuddl/ledger/visibility";
 import { eventToRow, rowToEvent } from "@shuddl/ledger/lens";
 import {
   applyMoneyProjection,
@@ -12,7 +12,8 @@ import {
   type OriginalLine,
 } from "@shuddl/ledger/projection/money";
 import { projectPassport } from "@shuddl/ledger/projection/passports";
-import { projectStatusCache, surfaceCreditProjectionGapIfMissed } from "@shuddl/ledger/projection/status-cache";
+import { projectStatusCache, surfaceCreditProjectionGapIfMissed, CREDIT_PROJECTION_GAP_RULE } from "@shuddl/ledger/projection/status-cache";
+import { reconcileCreditForParty } from "@shuddl/ledger/reconcile/credit";
 import { applyMessageProjection } from "@shuddl/ledger/projection/messages";
 import { projectAppointment } from "@shuddl/ledger/projection/appointment";
 import { projectApprovals } from "@shuddl/ledger/projection/approvals";
@@ -320,6 +321,20 @@ export class ShipmentSequencer extends DurableObject<Env> {
       if (!jwk || !(await verifyEventSig(parsed, jwk))) throw rpcError("UNAUTHORIZED", { reason: "device signature" });
     }
 
+    // Task 6 (REQ-042/183/185) — a NATIVE credit.checked must name a party that ALREADY EXISTS. The decision
+    // writes tenant-global parties.credit_status that the REQ-042 booking credit-hold gate reads; a decision for
+    // an ABSENT party used to append and surface a projection GAP that a later booking could read as NULL and
+    // pass (a silent credit-gate defeat). FAIL CLOSED at the write boundary: reject BEFORE any append, so an
+    // unresolvable credit decision produces ZERO events and NEVER fabricates a party row. Scoped to
+    // source:'native' (the client-postable path the events route forces to native) — a historical/imported
+    // (source≠native) credit decision keeps the projection-gap handling below, which the shared reconciler + the
+    // booking-gate block resolve fail-closed. Reached AFTER the idempotency checks, so a replay of the same event
+    // id still returns the original row rather than re-judging it.
+    if (parsed.kind === "credit.checked" && parsed.source === "native") {
+      const party = await db.prepare("SELECT id FROM parties WHERE id = ?").bind(parsed.payload.party_id).first();
+      if (party === null) throw rpcError("VALIDATION_FAILED", { reason: "credit_party_not_found" });
+    }
+
     const policy = await this.#policy(tenant);
     // I2 (REQ-030) — no invoice without a signed POD on this stream. Gate BEFORE the append.
     // TODO(REQ-030): the `serviceClass` exemption (policy.gates.invoice_without_pod_classes) is UNWIRED.
@@ -356,15 +371,26 @@ export class ShipmentSequencer extends DurableObject<Env> {
       this.tail = row ? { seq: row.seq, hash: row.hash } : { seq: -1, hash: GENESIS_HASH };
     }
 
-    // invoice.corrected inherits the corrected event's visibility (so I7 netting stays in one lens).
+    // Task 8 (REQ-015 / I7) — invoice.corrected inherits its parent's visibility so I7 netting stays inside the
+    // parent's EXACT lens. Resolve the parent by STREAM + KIND (not just id): it must be an invoice.issued or a
+    // prior invoice.corrected ON THIS STREAM. A missing / wrong-kind / cross-stream / cross-tenant parent yields
+    // NO visibility → resolveVisibility returns UNRESOLVED_VISIBILITY → we reject below (fail closed, zero append).
+    // The DO is tenant-pinned and this reads THIS tenant's db, so a cross-tenant parent id can never match here.
     const correctedVis =
-      parsed.kind === "invoice.corrected" ? await this.#visibilityOf(db, parsed.payload.corrects_event_id) : undefined;
+      parsed.kind === "invoice.corrected" ? await this.#parentInvoiceVisibility(db, streamId, parsed.payload.corrects_event_id) : undefined;
 
     // requested_visibility is INPUT-ONLY: it has no DB column, so if it entered the hashed envelope
     // rowToEvent could never reproduce the hash and every read-back would fail chain verification.
     // Destructure it out and build the event from the remaining client fields.
     const { requested_visibility, ...clientFields } = parsed;
-    let visibility = resolveVisibility(parsed.kind, policy.visibility, requested_visibility, correctedVis);
+    const resolvedVisibility = resolveVisibility(parsed.kind, policy.visibility, requested_visibility, correctedVis);
+    // Task 8 (REQ-015 / I7) — FAIL CLOSED on an unresolved correction lens. An invoice.corrected whose parent's
+    // visibility could not be resolved must NOT default to counterparty (a phantom charge in a lens the original
+    // never appeared in); reject BEFORE the append so nothing is written, projected, or netted.
+    if (resolvedVisibility === UNRESOLVED_VISIBILITY) {
+      throw rpcError("VALIDATION_FAILED", { reason: "invoice_correction_unresolved_parent" });
+    }
+    let visibility: Visibility = resolvedVisibility;
     // finding D (REQ-025/123, WP-14 T10) — the reserved platform tenant's credit money events are INTERNAL. The
     // shared resolver defaults invoice.issued/payment.received to `counterparty` (correct for a REAL tenant, whose
     // counterparty MUST see its invoice); on `_platform` there is no counterparty, so clamp them to `internal`
@@ -806,6 +832,32 @@ export class ShipmentSequencer extends DurableObject<Env> {
       .first<{ present: number }>();
     if (priorBooking !== null) throw new GateValidationError("shipment_already_booked");
 
+    // Task 7 (REQ-031/003) — BOOKING QUOTE AUTHORITY. booking.created.quote_event_id anchors the accepted quote
+    // the Biller will later project into the invoice, so a booking must never commit bound to a quote it did not
+    // accept. Validated SERVER-SIDE before the append (REQ-030 parity: both the ops/API path and the Booking agent
+    // traverse this DO). SCOPED to a reference that RESOLVES to a real event ON THIS STREAM: if it resolves, it
+    // MUST be a quote.priced that a quote.accepted on this stream NAMES (exact id / stream / kind / accepted) —
+    // else the booking is rejected (VALIDATION_FAILED), ZERO append. A reference that does NOT resolve on this
+    // stream (a cross-stream / cross-tenant / not-yet-materialized id) is deliberately NOT rejected here: the
+    // Biller's fail-closed billing check (loadAcceptedBookingQuote) HOLDS it with zero money/send, and rejecting
+    // every non-co-located reference at write time would break the many existing streams whose booking carries a
+    // placeholder quote id. This gate closes the on-stream wrong-kind / unaccepted holes at write time; the Biller
+    // closes the rest at bill time. `incoming.stream_id` is DO-authoritative.
+    const referencedQuote = await db
+      .prepare("SELECT kind FROM events WHERE stream_id = ? AND id = ? LIMIT 1")
+      .bind(incoming.stream_id, p.quote_event_id)
+      .first<{ kind: string }>();
+    if (referencedQuote !== null) {
+      if (referencedQuote.kind !== "quote.priced") {
+        throw rpcError("VALIDATION_FAILED", { reason: "booking_quote_not_priced" });
+      }
+      const acceptedRef = await db
+        .prepare("SELECT 1 AS present FROM events WHERE stream_id = ? AND kind = 'quote.accepted' AND json_extract(payload, '$.quote_event_id') = ? LIMIT 1")
+        .bind(incoming.stream_id, p.quote_event_id)
+        .first<{ present: number }>();
+      if (acceptedRef === null) throw rpcError("VALIDATION_FAILED", { reason: "booking_quote_not_accepted" });
+    }
+
     // REQ-060 — HAZMAT entitlement (fail-closed, SERVER-SIDE). A booking DECLARED hazmat (payload.hazmat === true)
     // is REFUSED unless THIS tenant's control-plane policy enables it (policy.hazmat_enabled). The entitlement is
     // read from the SERVER control plane keyed off the DO's pinned tenant (#entitlementRow) — NEVER the client
@@ -819,16 +871,33 @@ export class ShipmentSequencer extends DurableObject<Env> {
       throw rpcError("FORBIDDEN", { reason: "hazmat_not_enabled" });
     }
 
+    // Task 6 (REQ-042/183) — RECONCILE any credit projection gap for the bill_to FIRST (idempotent, bounded; the
+    // SAME shared fn the agents cron drives), so a decision that landed after the party materialized is applied
+    // before we read credit. Then fail CLOSED if a gap SURVIVES: an unresolved gap means the party is still
+    // absent or no credit.checked decision is on the ledger, so the credit_status read is unreliable and booking
+    // must block. Tenant-isolated — `db` is this DO's one tenant (REQ-025).
+    await reconcileCreditForParty(db, p.bill_to_party_id);
+
     // ONE read of the bill_to party — its credit_status AND contacts feed both gates (the bill_to is who pays
-    // AND who is emailed). A missing row (no such party) reads as null for both → credit passes (no hold),
-    // recipient blocks (no contact) unless the payload opts out — fail-closed.
+    // AND who is emailed). Read AFTER reconcile so credit_status reflects any just-applied decision. A missing
+    // row (no such party) reads as null for both → the credit gate fails closed via the gap below, the recipient
+    // gate blocks (no contact) unless the payload opts out — fail-closed.
     const billTo = await db
       .prepare("SELECT credit_status, contacts FROM parties WHERE id = ?")
       .bind(p.bill_to_party_id)
       .first<{ credit_status: string | null; contacts: string | null }>();
 
-    // Credit (REQ-042): only an explicit 'hold' blocks. Overridable (REQ-049) — ctx carries the override.
-    assertBookingCredit(billTo?.credit_status ?? null, ctx);
+    // An OPEN credit_projection_gap for the bill_to that SURVIVED reconciliation → the credit decision may not
+    // have landed. Presence fails the credit gate closed with a DISTINCT reason (Task 6).
+    const creditGapUnresolved =
+      (await db
+        .prepare("SELECT 1 AS present FROM anomalies WHERE rule = ?1 AND object_id = ?2 AND status = 'open' LIMIT 1")
+        .bind(CREDIT_PROJECTION_GAP_RULE, p.bill_to_party_id)
+        .first<{ present: number }>()) !== null;
+
+    // Credit (REQ-042/183): an unresolved gap OR an explicit 'hold' blocks. Overridable (REQ-049) — ctx carries
+    // the override, which releases both (an accountable finance book-over).
+    assertBookingCredit(billTo?.credit_status ?? null, creditGapUnresolved, ctx);
 
     // Evidence-recipient contact (REQ-182): the bill_to's contacts JSON, parsed defensively here (a missing
     // row or unparseable JSON → null → no deliverable contact → the gate blocks unless the payload opts out).
@@ -993,8 +1062,15 @@ export class ShipmentSequencer extends DurableObject<Env> {
     return undefined;
   }
 
-  async #visibilityOf(db: D1Database, eventId: string): Promise<Visibility | undefined> {
-    const row = await db.prepare("SELECT visibility FROM events WHERE id = ?").bind(eventId).first<{ visibility: Visibility }>();
+  // Task 8 (REQ-015 / I7) — the EXACT parent's visibility for an invoice.corrected. Resolved by STREAM + KIND,
+  // not merely by id: the parent must be an invoice.issued (or a prior invoice.corrected in the netting chain) ON
+  // THIS STREAM. A missing / wrong-kind / cross-stream parent returns undefined → the caller resolves UNRESOLVED
+  // and fails closed. Cross-tenant is structurally excluded (this reads the DO's own tenant db, REQ-025).
+  async #parentInvoiceVisibility(db: D1Database, streamId: string, eventId: string): Promise<Visibility | undefined> {
+    const row = await db
+      .prepare("SELECT visibility FROM events WHERE stream_id = ? AND id = ? AND kind IN ('invoice.issued','invoice.corrected') LIMIT 1")
+      .bind(streamId, eventId)
+      .first<{ visibility: Visibility }>();
     return row?.visibility;
   }
 

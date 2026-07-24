@@ -54,35 +54,72 @@ function blockedEvidence(fn: () => void): string[] {
 // =====================================================================================
 describe("REQ-042 assertBookingCredit — a bill_to credit HOLD blocks booking.created (overridable)", () => {
   it("credit_status 'hold' blocks with ['credit_clear']", () => {
-    expect(blockedEvidence(() => assertBookingCredit("hold"))).toEqual([REQUIRED_EVIDENCE.credit_clear]);
+    expect(blockedEvidence(() => assertBookingCredit("hold", false))).toEqual([REQUIRED_EVIDENCE.credit_clear]);
   });
 
   it("'clear' passes", () => {
-    expect(() => assertBookingCredit("clear")).not.toThrow();
+    expect(() => assertBookingCredit("clear", false)).not.toThrow();
   });
 
   it("'review' passes (only an explicit hold blocks)", () => {
-    expect(() => assertBookingCredit("review")).not.toThrow();
+    expect(() => assertBookingCredit("review", false)).not.toThrow();
   });
 
   it("null / undefined credit_status passes (no decision on file is not a hold)", () => {
-    expect(() => assertBookingCredit(null)).not.toThrow();
-    expect(() => assertBookingCredit(undefined)).not.toThrow();
+    expect(() => assertBookingCredit(null, false)).not.toThrow();
+    expect(() => assertBookingCredit(undefined, false)).not.toThrow();
   });
 
   it("a valid named override releases the hold (REQ-049)", () => {
-    expect(() => assertBookingCredit("hold", { override: OK_OVERRIDE })).not.toThrow();
+    expect(() => assertBookingCredit("hold", false, { override: OK_OVERRIDE })).not.toThrow();
   });
 
   it("a blank/unaccountable override is a VALIDATION_FAILED (never a silent pass)", () => {
-    expect(() => assertBookingCredit("hold", { override: { by: "  ", reason: "" } })).toThrow(GateValidationError);
-    expect(() => assertBookingCredit("hold", { override: { by: "x", reason: "" } })).toThrow(/VALIDATION_FAILED/);
+    expect(() => assertBookingCredit("hold", false, { override: { by: "  ", reason: "" } })).toThrow(GateValidationError);
+    expect(() => assertBookingCredit("hold", false, { override: { by: "x", reason: "" } })).toThrow(/VALIDATION_FAILED/);
   });
 
   it("the block is a GATE_BLOCKED envelope, not the appointment gate's VALIDATION_FAILED", () => {
     let caught: unknown;
     try {
-      assertBookingCredit("hold");
+      assertBookingCredit("hold", false);
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(GateError);
+    expect((caught as Error).message).toContain("GATE_BLOCKED");
+    expect((caught as Error).message).not.toContain("VALIDATION_FAILED");
+  });
+});
+
+// =====================================================================================
+// Task 6 (REQ-042/183) — an UNRESOLVED credit projection gap for the bill_to FAILS CLOSED. When the
+// decision may not have landed (the party materialized after the credit.checked, or an imported gap has
+// not reconciled), the credit_status read is unreliable, so the DO passes creditGapUnresolved=true and the
+// gate blocks with the DISTINCT ['credit_unresolved'] reason — never a permissive default. A named finance
+// override releases it exactly like a hold (the same fail-closed credit result, an accountable book-over).
+describe("Task 6 assertBookingCredit — an unresolved credit projection gap blocks (distinct reason, overridable)", () => {
+  it("creditGapUnresolved=true blocks with ['credit_unresolved'] even when credit_status is null", () => {
+    expect(blockedEvidence(() => assertBookingCredit(null, true))).toEqual([REQUIRED_EVIDENCE.credit_unresolved]);
+  });
+
+  it("creditGapUnresolved=true blocks with ['credit_unresolved'] even when credit_status reads 'clear'", () => {
+    // The gap is checked BEFORE the hold read, so an unreliable 'clear' can never leak through.
+    expect(blockedEvidence(() => assertBookingCredit("clear", true))).toEqual([REQUIRED_EVIDENCE.credit_unresolved]);
+  });
+
+  it("creditGapUnresolved=false with a clean status passes (no gap → normal credit path)", () => {
+    expect(() => assertBookingCredit("clear", false)).not.toThrow();
+  });
+
+  it("a valid named override releases the gap (REQ-049) — the same accountable book-over as a hold", () => {
+    expect(() => assertBookingCredit(null, true, { override: OK_OVERRIDE })).not.toThrow();
+  });
+
+  it("the gap block is a GATE_BLOCKED envelope, not VALIDATION_FAILED", () => {
+    let caught: unknown;
+    try {
+      assertBookingCredit("clear", true);
     } catch (e) {
       caught = e;
     }

@@ -36,7 +36,11 @@ export type CreditCheckedPayload = z.infer<typeof CreditCheckedPayload>;
 // optional refinements. `.strict()` — the legacy `created_ts` does NOT belong here (the envelope carries ts).
 export const BookingCreatedPayload = z
   .object({
-    quote_event_id: z.string().min(1), // the accepted quote.* event this booking realizes
+    // The accepted quote.priced event this booking realizes. Task 7 (REQ-031/003) BINDING LAW: this is the SOLE
+    // authority the Biller projects the invoice from (loadAcceptedBookingQuote) — never "the latest quote.priced
+    // before the POD". The sequencer validates it before append (an on-stream reference must be a quote.priced a
+    // quote.accepted names); the Biller fail-closes (HOLD) on any reference it cannot resolve to an accepted quote.
+    quote_event_id: z.string().min(1),
     shipper_party_id: z.string().min(1),
     consignee_party_id: z.string().min(1),
     bill_to_party_id: z.string().min(1),

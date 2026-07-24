@@ -13,6 +13,7 @@ import { MessageReceivedTrigger, handleMessageReceived, type ConciergeDeps } fro
 import { QuoteAcceptedTrigger, handleQuoteAccepted, type BookingDeps } from "./booking.js";
 import { sweepTenantOverdueInbound } from "./sla-sweep.js";
 import { sweepTenantUnbilledRedrive } from "./recon-sweep.js";
+import { sweepTenantCreditGaps } from "./credit-recon-sweep.js";
 import { sweepTenantOverdueInvoices } from "./collector.js";
 import { sweepTenantLegacyMirror, NotConfiguredFeedReader, LEGACY_MIRROR_INTEGRATION_ID, type FeedReader } from "./mirror-sweep.js";
 import { runWatchtowerSweep } from "./watchtower.js";
@@ -99,6 +100,25 @@ export async function runReconSweep(env: AgentsEnv, now: () => number = () => Da
       console.log(`recon-sweep: tenant ${slug} → ${JSON.stringify(result)}`);
     } catch (err) {
       console.error(`recon-sweep: tenant ${slug} failed (re-run next tick — the sweep is idempotent):`, err);
+    }
+  }
+}
+
+// Task 6 (REQ-042/183) — the CREDIT projection-gap reconciliation sweep across every allowlisted tenant (REQ-025
+// isolation: one tenant's D1 per iteration; the sweep reconciles only that tenant's parties/anomalies). It drives
+// the SAME shared @shuddl/ledger reconciler the DO booking gate uses, applying the latest valid credit decision
+// once the party materializes and marking the gap resolved. FAIL CLOSED + idempotent + self-clearing (a party
+// still absent / with no decision leaves the gap open; a resolved gap drops out of the scan), so re-running every
+// tick is safe; a per-tenant fault is contained + logged so one tenant never stalls the rest. Time-independent
+// (reconcile depends on ledger state, not the clock). Exported so the cron test + a manual re-drive hit the
+// identical path.
+export async function runCreditReconSweep(env: AgentsEnv): Promise<void> {
+  for (const slug of TENANT_SLUGS) {
+    try {
+      const result = await sweepTenantCreditGaps(tenantDb(env, slug));
+      console.log(`credit-recon-sweep: tenant ${slug} → ${JSON.stringify(result)}`);
+    } catch (err) {
+      console.error(`credit-recon-sweep: tenant ${slug} failed (re-run next tick — the sweep is idempotent):`, err);
     }
   }
 }
@@ -428,6 +448,12 @@ export default {
       // It re-enqueues any lost-trigger pod.signed (unbilled + unheld, older than the window) so the Biller
       // re-drives; self-clearing + idempotent (a billed/held stream drops out of the anti-join).
       await runReconSweep(env, () => controller.scheduledTime);
+      // Task 6 (REQ-042/183) — the CREDIT projection-gap reconciliation sweep rides this SAME tick. DECOUPLED from
+      // the anchor via the same finally so a per-tenant anchor fault never skips it; it contains its own per-tenant
+      // faults, so the anchor's throw still surfaces after it runs. It reconciles any historical/imported credit
+      // gap once the party materializes (applies the latest decision, resolves the gap). Idempotent + self-clearing;
+      // time-independent (no `now` — reconcile keys off ledger state, not the clock).
+      await runCreditReconSweep(env);
       // REQ-036 — the Watchtower alarm sweep rides the SAME tick, anchored to the fired-at instant so severity
       // is deterministic. DECOUPLED from the anchor via the same finally so a per-tenant anchor fault never
       // skips it; it contains its own per-tenant faults, so the anchor's throw still surfaces after it runs.
@@ -489,6 +515,9 @@ export default {
             seq: sequencerFor(env),
             sender: evidenceSender(env),
             referralBase: env.REFERRAL_BASE ?? DEFAULT_REFERRAL_BASE,
+            // Task 9 (REQ-170) — wire the evidence R2 bucket so the Biller REQUIRES stored POD bytes before the
+            // proof email. Production always provides it here, so the byte precondition always runs in prod.
+            evidence: env.EVIDENCE,
           };
           const outcome = await handlePodSigned(trigger, deps);
           // The outcome IS the log line until WP-11's exceptions queue lands (holds surface there).

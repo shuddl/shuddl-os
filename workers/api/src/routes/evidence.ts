@@ -44,7 +44,7 @@ const EvidenceQuery = z
 // `recorded_at` (the server-stamped ledger time) rides the SELECT too — it is the retention CLOCK START the
 // documents row records at write (REQ-116): a doc's 7yr-POD / shorter-other hold is measured from when the
 // ledger witnessed the recording event, NOT the upload wall-clock (an airplane-mode late upload cannot reset it).
-const RECORDING_EVENT_SQL = `SELECT kind, visibility, recorded_at FROM events WHERE stream_id = ? AND (
+const RECORDING_EVENT_SQL = `SELECT id, kind, visibility, recorded_at FROM events WHERE stream_id = ? AND (
   (kind IN ('freight.photographed','seal.applied','osd.captured') AND json_extract(payload,'$.photo_hash') = ?)
   OR (kind = 'delivery.evidenced' AND json_extract(payload,'$.placed_photo_hash') = ?)
   OR (kind = 'pod.signed' AND json_extract(payload,'$.signature_hash') = ?)
@@ -121,6 +121,24 @@ async function sha256Hex(bytes: Uint8Array<ArrayBuffer>): Promise<string> {
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+// Task 9 (REQ-170 / REQ-169) — RE-DRIVE THE BILLER AFTER A POD SIGNATURE UPLOAD. The Biller now HOLDS
+// (evidence_missing) a POD whose signature bytes are not yet stored; storing them is what unblocks it. So on a
+// successful POD-signature store, enqueue EXACTLY the pod.signed Biller trigger the sequencer would have — the
+// consumer re-runs the Biller, whose evidence precondition now passes, and the invoice + proof email go out.
+// Deterministic (the trigger names the recording pod event id), best-effort (a failed push is logged, never
+// thrown — the byte store is committed truth, and the REQ-169 recon sweep re-drives the still-unbilled POD as
+// the backstop), and idempotent downstream (the Biller dedupes the invoice + the send). Fires ONLY for a POD
+// signature (recording.kind === 'pod.signed'); a placed/freight/seal photo does not gate the invoice.
+function redrivePodBilling(c: Ctx, tenant: string, shipmentId: string, recording: { id: string; kind: string }): void {
+  if (recording.kind !== "pod.signed") return;
+  const trigger = { kind: "pod.signed", tenant, shipment_id: shipmentId, event_id: recording.id };
+  c.executionCtx.waitUntil(
+    c.env.AGENT_QUEUE.send(trigger).catch((err: unknown) => {
+      console.error(`evidence: Biller re-drive enqueue failed for pod ${recording.id} on ${shipmentId} (bytes stored; the REQ-169 recon sweep recovers it):`, err);
+    }),
+  );
+}
+
 export function mountEvidenceRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>): void {
   // POST /v1/evidence?shipment_id=…&photo_hash=… — raw evidence bytes as the body.
   // driver uploads its own deferred capture; ops/admin can backfill. portal/read/finance never write
@@ -159,7 +177,7 @@ export function mountEvidenceRoutes(app: Hono<{ Bindings: Env; Variables: Vars }
     const recording = await db
       .prepare(RECORDING_EVENT_SQL)
       .bind(`s:${shipment_id}`, photo_hash, photo_hash, photo_hash)
-      .first<{ kind: string; visibility: string; recorded_at: number }>();
+      .first<{ id: string; kind: string; visibility: string; recorded_at: number }>();
     if (recording === null) {
       return evidenceRejection(c, "hash_not_recorded", "NO EVENT ON THIS SHIPMENT STREAM RECORDS THE DECLARED photo_hash");
     }
@@ -198,6 +216,8 @@ export function mountEvidenceRoutes(app: Hono<{ Bindings: Env; Variables: Vars }
       .bind(documentId)
       .first<{ r2_key: string; retention_status: string }>();
     if (existing !== null && existing.retention_status === "active") {
+      // Bytes already stored — re-drive the Biller too (a prior re-drive may have been lost; the Biller dedupes).
+      redrivePodBilling(c, session.tenant, shipment_id, recording);
       return c.json({ document_id: documentId, r2_key: existing.r2_key }, 200);
     }
 
@@ -215,6 +235,7 @@ export function mountEvidenceRoutes(app: Hono<{ Bindings: Env; Variables: Vars }
         )
         .bind(documentId, shipment_id, null, docKind, key, photo_hash, lifecycleClass, documentVisibilityFor(recording.visibility), recording.recorded_at)
         .run();
+      redrivePodBilling(c, session.tenant, shipment_id, recording); // Task 9 — a stored POD signature unblocks the Biller
       return c.json({ document_id: documentId, r2_key: key }, inserted.meta.changes > 0 ? 201 : 200);
     }
     // RE-INSTATE a retention-tombstoned doc: the bytes were just restored above; mark the row active again and
@@ -227,6 +248,7 @@ export function mountEvidenceRoutes(app: Hono<{ Bindings: Env; Variables: Vars }
       .prepare("UPDATE documents SET retention_status = 'active', created_ts = ? WHERE id = ?")
       .bind(Date.now(), documentId)
       .run();
+    redrivePodBilling(c, session.tenant, shipment_id, recording); // Task 9 — a re-instated POD signature unblocks the Biller
     return c.json({ document_id: documentId, r2_key: key }, 200);
   });
 }

@@ -6,6 +6,8 @@ import { RecordingSender } from "@shuddl/agents";
 import type { EvidenceSender } from "@shuddl/agents";
 import { eventToRow } from "@shuddl/ledger/lens";
 import { TERMINAL_HOLD_BODY_REF_PREFIX, terminalHoldBodyRef } from "@shuddl/ledger/queries/unbilled";
+import { reconcileCreditForParty } from "@shuddl/ledger/reconcile/credit";
+import { CREDIT_PROJECTION_GAP_RULE } from "@shuddl/ledger/projection/status-cache";
 import { handlePodSigned, PodSignedMessage } from "../../agents/src/biller.js";
 import type { BillerDeps, SeqStubLike } from "../../agents/src/biller.js";
 import { RECON_MIN_AGE_MS, sweepTenantUnbilledRedrive } from "../../agents/src/recon-sweep.js";
@@ -19,6 +21,7 @@ import {
   TEST_DEVICE_ID,
   TEST_RATE_CONFIG,
   ensureSchema,
+  ensureTenantBSchema,
   nextEvidenceBytes,
   post,
   retryOnDoInvalidation,
@@ -343,5 +346,122 @@ describe("Biller reconciliation sweep — REQ-199: excludes orphan (un-booked) P
     expect(alarm, "the orphan STILL raises the Watchtower unbilled alarm").not.toBeNull();
     expect(alarm!.rule).toBe("unbilled");
     expect(alarm!.status).toBe("open");
+  });
+});
+
+// ─── Task 6 (REQ-042/183) — THE CREDIT PROJECTION-GAP RECONCILIATION ────────────────────────────────
+//
+// A historical/imported credit.checked whose party had not materialized leaves an OPEN credit_projection_gap
+// anomaly and an UNPROJECTED parties.credit_status — a silent-defeat risk (a later booking reads NULL and passes
+// as if clear). The SHARED ledger reconcile fn (packages/ledger/src/reconcile/credit.ts) — invoked by the DO
+// booking gate AND the agents cron — applies the LATEST valid decision once the party exists and marks the gap
+// resolved, in ONE idempotent D1 batch. FAIL CLOSED: while the party is absent or no decision is on file it does
+// NOTHING (the gap stays open, booking stays blocked). It NEVER fabricates a party (append-only law).
+
+describe("Task 6 — credit projection-gap reconciliation (shared ledger fn, REQ-042/183/025)", () => {
+  const CREDIT_HEX = randomHex64;
+
+  async function partyCredit(db: D1Database, id: string): Promise<string | null> {
+    const r = await db.prepare("SELECT credit_status FROM parties WHERE id = ?").bind(id).first<{ credit_status: string | null }>();
+    return r?.credit_status ?? null;
+  }
+  async function gapStatus(db: D1Database, id: string): Promise<string | null> {
+    const r = await db.prepare("SELECT status FROM anomalies WHERE id = ?").bind(id).first<{ status: string }>();
+    return r?.status ?? null;
+  }
+  // Direct-seed a committed credit.checked on a shipment stream (bypasses the sequencer, mirrors seedPodEvent) —
+  // simulating a historical/imported decision. Distinct recorded_at controls the latest-wins ordering.
+  async function seedCredit(db: D1Database, sid: string, partyId: string, status: string, recordedAt: number): Promise<string> {
+    const e = eventFixture("credit.checked", {
+      id: crypto.randomUUID(),
+      stream_id: `s:${sid}`,
+      shipment_id: sid,
+      seq: 0,
+      ts: recordedAt,
+      recorded_at: recordedAt,
+      visibility: "internal",
+      party_refs: [],
+      payload: { party_id: partyId, status },
+    });
+    const row = eventToRow(e);
+    row.hash = CREDIT_HEX();
+    const cols = Object.keys(row);
+    await db.prepare(`INSERT INTO events (${cols.join(",")}) VALUES (${cols.map(() => "?").join(",")})`).bind(...cols.map((c) => row[c])).run();
+    return e.id;
+  }
+  async function seedGap(db: D1Database, id: string, partyId: string): Promise<void> {
+    await db
+      .prepare("INSERT OR IGNORE INTO anomalies (id, rule, object_kind, object_id, severity, detail, status) VALUES (?,?,?,?,?,?,'open')")
+      .bind(id, CREDIT_PROJECTION_GAP_RULE, "party", partyId, "critical", "{}")
+      .run();
+  }
+  async function seedParty(db: D1Database, id: string): Promise<void> {
+    await db.prepare("INSERT OR IGNORE INTO parties (id, kind, names, contacts) VALUES (?,?,?,?)").bind(id, "broker", "{}", "[]").run();
+  }
+
+  it("party creation + reconcile applies the latest valid decision and resolves the anomaly; re-running is idempotent", async () => {
+    const P = "party-t6-recon";
+    const gapId = "credit-projection-gap:t6-recon-1";
+    await seedCredit(env.TENANT_A_DB, "t6cr-recon", P, "hold", 1_000);
+    await seedGap(env.TENANT_A_DB, gapId, P);
+
+    // party ABSENT → reconcile is a FAIL-CLOSED no-op (gap stays open; NO party fabricated)
+    const before = await reconcileCreditForParty(env.TENANT_A_DB, P);
+    expect(before.resolved).toBe(false);
+    expect(before.applied_status).toBeNull();
+    expect(await partyCredit(env.TENANT_A_DB, P)).toBeNull();
+    expect(await gapStatus(env.TENANT_A_DB, gapId)).toBe("open");
+    expect(await env.TENANT_A_DB.prepare("SELECT 1 AS x FROM parties WHERE id = ?").bind(P).first()).toBeNull();
+
+    // create the party → reconcile applies the hold + resolves the gap, in one batch
+    await seedParty(env.TENANT_A_DB, P);
+    const res = await reconcileCreditForParty(env.TENANT_A_DB, P);
+    expect(res.resolved).toBe(true);
+    expect(res.applied_status).toBe("hold");
+    expect(await partyCredit(env.TENANT_A_DB, P)).toBe("hold");
+    expect(await gapStatus(env.TENANT_A_DB, gapId)).toBe("resolved");
+
+    // IDEMPOTENT — a second run changes nothing and does not throw
+    await reconcileCreditForParty(env.TENANT_A_DB, P);
+    expect(await partyCredit(env.TENANT_A_DB, P)).toBe("hold");
+    expect(await gapStatus(env.TENANT_A_DB, gapId)).toBe("resolved");
+  });
+
+  it("a later CLEAR supersedes an earlier HOLD (the latest valid decision wins)", async () => {
+    const P = "party-t6-supersede";
+    const gapId = "credit-projection-gap:t6-supersede-1";
+    await seedParty(env.TENANT_A_DB, P);
+    await seedCredit(env.TENANT_A_DB, "t6cr-sup-a", P, "hold", 1_000); // earlier
+    await seedCredit(env.TENANT_A_DB, "t6cr-sup-b", P, "clear", 2_000); // later — higher recorded_at wins
+    await seedGap(env.TENANT_A_DB, gapId, P);
+
+    const res = await reconcileCreditForParty(env.TENANT_A_DB, P);
+    expect(res.applied_status).toBe("clear");
+    expect(await partyCredit(env.TENANT_A_DB, P)).toBe("clear");
+    expect(await gapStatus(env.TENANT_A_DB, gapId)).toBe("resolved");
+  });
+
+  it("REQ-025 isolation — a cross-tenant credit.checked / gap NEVER affects the current tenant", async () => {
+    await ensureTenantBSchema(env);
+    const P = "party-t6-xtenant";
+    const gapA = "credit-projection-gap:t6-xtenant-A";
+    const gapB = "credit-projection-gap:t6-xtenant-B";
+    // tenant A: party + a HOLD decision + an open gap
+    await seedParty(env.TENANT_A_DB, P);
+    await seedCredit(env.TENANT_A_DB, "t6cr-xt-a", P, "hold", 1_000);
+    await seedGap(env.TENANT_A_DB, gapA, P);
+    // tenant B: the SAME party id + a CLEAR decision (later) + an open gap — must never leak into A
+    await seedParty(env.TENANT_B_DB, P);
+    await seedCredit(env.TENANT_B_DB, "t6cr-xt-b", P, "clear", 5_000);
+    await seedGap(env.TENANT_B_DB, gapB, P);
+
+    // reconcile ONLY tenant A → applies A's HOLD, never B's later CLEAR
+    const res = await reconcileCreditForParty(env.TENANT_A_DB, P);
+    expect(res.applied_status).toBe("hold");
+    expect(await partyCredit(env.TENANT_A_DB, P)).toBe("hold");
+    expect(await gapStatus(env.TENANT_A_DB, gapA)).toBe("resolved");
+    // tenant B is UNTOUCHED — no leak in either direction
+    expect(await partyCredit(env.TENANT_B_DB, P)).toBeNull();
+    expect(await gapStatus(env.TENANT_B_DB, gapB)).toBe("open");
   });
 });

@@ -15,6 +15,13 @@
 // unbounded/noisy). SELF-CLEARING: once a stream is billed (invoice.issued) OR held (marker), it drops out of the
 // anti-join.
 //
+// Task 9 (REQ-170) BACKSTOP: the Biller now HOLDS(evidence_missing) — with NO invoice and NO terminal marker —
+// a POD whose signature bytes are not yet stored. Such a POD stays in this anti-join (pod.signed AND NOT
+// invoice.issued AND NO marker), so this sweep keeps re-driving it until the bytes are uploaded, at which point
+// the re-drive bills it and it drops out. The evidence route's own post-upload re-drive is the fast path; this
+// sweep is the backstop when that enqueue is lost. No change was needed here — an evidence-held POD is, by
+// construction, exactly the unbilled-unheld shape the existing anti-join already recovers.
+//
 // SHARED PREDICATE (no drift): the unbilled core (pod.signed AND NOT invoice.issued) is the SAME
 // @shuddl/ledger/queries/unbilled predicate the KPI "=0" tile and the Watchtower alarm read; unbilledRedriveSql
 // EXTENDS it with the marker exclusion + the age filter (skill share-lint-matchers-with-parity-tests).

@@ -62,6 +62,12 @@ export interface BillerDeps {
   sender: EvidenceSender;
   /** REQ-129 — the referral link base; `?ref=<shipment_ref>` is appended here. */
   referralBase: string;
+  /** Task 9 (REQ-170) — the tenant-shared evidence R2 bucket. When present, the Biller REQUIRES the POD's
+   *  signature bytes to be STORED (an active, tenant-scoped POD document + a present R2 object) before it mints
+   *  the invoice + sends the proof email; a miss HOLDS(evidence_missing). Production (workers/agents index.ts)
+   *  ALWAYS wires it, so the precondition always runs there; a unit test that is not exercising the evidence
+   *  precondition may omit it, and the check is then skipped (the byte gate is opt-in for those tests). */
+  evidence?: R2Bucket;
 }
 
 // ---- outcome ---------------------------------------------------------------------------------------
@@ -74,7 +80,7 @@ export type BillerOutcome =
       reason: "send_failed_permanent" | "recipient_unresolved";
       detail: string;
     }
-  | { status: "held"; reason: "anomaly" | "below_floor" | "no_quote" | "interline_unresolved"; detail: string }
+  | { status: "held"; reason: "anomaly" | "below_floor" | "no_quote" | "interline_unresolved" | "evidence_missing"; detail: string }
   | { status: "skipped"; reason: "pod_not_found" | "shipment_not_found"; detail: string };
 
 // ---- deterministic ids (no Date, no random — redelivery must reproduce them exactly) ----------------
@@ -182,6 +188,34 @@ export async function loadAcceptedQuote(db: D1Database, streamId: string, before
   return row === null ? null : rowToEvent(row);
 }
 
+// Task 7 (REQ-031/003) — the stream's single booking.created's accepted-quote reference, or null when the
+// shipment is UN-BOOKED (no booking.created — a legacy/quote-stage shipment). booking.created is idempotent per
+// stream (REQ-191, sequencer #enforceBooking), so ORDER BY seq LIMIT 1 IS the one booking. The value is the
+// accepted quote.priced's event id (BookingCreatedPayload.quote_event_id) — the authority the invoice must project.
+export async function loadBookingQuoteRef(db: D1Database, streamId: string): Promise<string | null> {
+  const row = await db
+    .prepare("SELECT json_extract(payload, '$.quote_event_id') AS quote_event_id FROM events WHERE stream_id = ? AND kind = 'booking.created' ORDER BY seq LIMIT 1")
+    .bind(streamId)
+    .first<{ quote_event_id: string | null }>();
+  return row?.quote_event_id ?? null;
+}
+
+// Task 7 (REQ-031/003) — resolve a booking's quote_event_id to the ACCEPTED quote.priced ON THIS STREAM. Returns
+// the quote.priced event ONLY when (a) an event with that exact id on this stream is a quote.priced AND (b) a
+// quote.accepted on this stream NAMES it (payload.quote_event_id). Any authority inconsistency — the id is
+// dangling, the wrong kind, on another stream (the stream_id filter excludes it — cross-stream/cross-tenant), or
+// never accepted — returns null, which the caller treats as a fail-closed hold. This is the exact-ID / stream /
+// kind / accepted verification the plan requires (verify tenant/stream/order/exact ID before we bind money to it).
+export async function loadAcceptedBookingQuote(db: D1Database, streamId: string, quoteEventId: string): Promise<LedgerEvent | null> {
+  const quote = await loadEvent(db, streamId, quoteEventId, "quote.priced");
+  if (quote === null) return null;
+  const accepted = await db
+    .prepare("SELECT 1 AS present FROM events WHERE stream_id = ? AND kind = 'quote.accepted' AND json_extract(payload, '$.quote_event_id') = ? LIMIT 1")
+    .bind(streamId, quoteEventId)
+    .first<{ present: number }>();
+  return accepted === null ? null : quote;
+}
+
 type ShipmentRow = { bill_to_party_id: string; bill_terms: string | null; division: string; refs: string };
 
 // The bill-to recipient: parties.contacts (a JSON array) is the tenant plane's ONLY email-bearing
@@ -235,6 +269,30 @@ export async function deliveryStopGeo(db: D1Database, shipmentId: string): Promi
   if (geo === null || typeof geo !== "object") return undefined;
   const g = geo as Record<string, unknown>;
   return typeof g.lat_e6 === "number" && typeof g.lon_e6 === "number" ? { lat_e6: g.lat_e6, lon_e6: g.lon_e6 } : undefined;
+}
+
+// Task 9 (REQ-170) — the ACTIVE, tenant-scoped POD evidence document for a recorded signature hash. Returns the
+// row ONLY when a POD document on THIS shipment records EXACTLY this hash (so a stale/other-hash doc never
+// satisfies the check), is retention-ACTIVE (the row-iff-bytes invariant: an 'active' row means bytes are
+// stored — a tombstoned 'expired' row is not proof), AND its R2 key sits under THIS tenant's `evidence/<tenant>/`
+// prefix (REQ-025 — a mis-scoped row can never stand in for the tenant's own evidence). Any miss returns null →
+// the caller HOLDS. The R2 `head` on the returned key is the caller's belt that the bytes physically exist.
+export interface PodEvidenceDoc {
+  r2_key: string;
+}
+export async function loadActivePodDocument(
+  db: D1Database,
+  tenant: string,
+  shipmentId: string,
+  evidenceHash: string,
+): Promise<PodEvidenceDoc | null> {
+  const row = await db
+    .prepare("SELECT r2_key FROM documents WHERE shipment_id = ? AND hash = ? AND kind = 'POD' AND retention_status = 'active' LIMIT 1")
+    .bind(shipmentId, evidenceHash)
+    .first<{ r2_key: string }>();
+  if (row === null) return null;
+  if (!row.r2_key.startsWith(`evidence/${tenant}/`)) return null; // REQ-025 — the row must live in THIS tenant's key space
+  return { r2_key: row.r2_key };
 }
 
 // ---- interline resolution (REQ-040 — the executing share, never gross; FAIL-CLOSED) -----------------
@@ -335,9 +393,33 @@ export async function handlePodSigned(message: PodSignedMessage, deps: BillerDep
     });
   }
 
-  // GUARD 2 — an accepted quote with recorded itemized lines must exist (REQ-003/031: the invoice is a
-  // projection of the RECORDED quote). No quote ⇒ HOLD — an unquoted shipment must never invoice ad hoc.
-  const quoteEvent = await loadAcceptedQuote(db, streamId, pod.seq);
+  // GUARD 2 — bind the invoice to the EXACT ACCEPTED BOOKING QUOTE (Task 7, REQ-031/003). The invoice is a
+  // projection of the RECORDED quote the booking ACCEPTED — never "the latest quote.priced before the POD": a
+  // re-quote (quote B) priced AFTER the booking but BEFORE the POD used to win that latest-pre-POD selection and
+  // MIS-BILL (bill B instead of the booked A). Load the stream's single booking.created; when present, resolve
+  // booking.quote_event_id to an ACCEPTED quote.priced ON THIS STREAM (loadAcceptedBookingQuote verifies exact
+  // id / stream / kind / accepted). An UN-booked stream (no booking.created — a legacy/quote-stage shipment)
+  // FALLS BACK to the latest-pre-POD quote (the prior behavior, preserved so an un-booked POD still bills; in
+  // production every real shipment is booked, so the exact-quote binding is what runs).
+  let quoteEvent: LedgerEvent | null;
+  const bookingQuoteRef = await loadBookingQuoteRef(db, streamId);
+  if (bookingQuoteRef !== null) {
+    quoteEvent = await loadAcceptedBookingQuote(db, streamId, bookingQuoteRef);
+    if (quoteEvent === null) {
+      // AUTHORITY INCONSISTENCY (fail closed): the booking names a quote that is not an accepted quote.priced on
+      // THIS stream (dangling / wrong-kind / cross-stream / cross-tenant / never accepted). HOLD — zero money/send.
+      // In production a booking always carries a real accepted quote (the booking agent's GUARD 2 + the
+      // accept-quote route guarantee it), so this is the fail-closed belt, never the golden path.
+      await emitTerminalHoldMarker(seq, msg, streamId, pod.recorded_at, "no_quote");
+      return {
+        status: "held",
+        reason: "no_quote",
+        detail: `booking on ${streamId} names quote ${bookingQuoteRef}, which is not an accepted quote.priced on this stream — cannot bind the invoice (Task 7 authority, REQ-031/003)`,
+      };
+    }
+  } else {
+    quoteEvent = await loadAcceptedQuote(db, streamId, pod.seq);
+  }
   if (quoteEvent === null || quoteEvent.kind !== "quote.priced") {
     // TERMINAL: an unquoted shipment can never invoice ad hoc, and no quote can be recorded before this POD
     // retroactively (append-only + seq<) — so this hold is permanent. Mark it (REQ-169 bounding + surfacing).
@@ -382,6 +464,29 @@ export async function handlePodSigned(message: PodSignedMessage, deps: BillerDep
     // auto-invoice; it holds for a human. Mark it (REQ-169 bounding + surfacing).
     await emitTerminalHoldMarker(seq, msg, streamId, pod.recorded_at, "interline_unresolved");
     return { status: "held", reason: "interline_unresolved", detail: `shipment ${msg.shipment_id}: ${interline.detail} (REQ-040 fail-closed)` };
+  }
+
+  // Task 9 (REQ-170) — REQUIRE STORED POD BYTES BEFORE THE PROOF EMAIL. The evidence email frames itself as the
+  // delivery RECORD, so it must never assert proof over ZERO stored bytes: a POD gated through with a fabricated
+  // signature hash and no upload (the REQ-170 residual the delivery gate + the upload byte-verify could not
+  // close on their own) would otherwise still bill + send. Before minting the invoice, require the POD's recorded
+  // signature_hash to have an ACTIVE, tenant-scoped POD document (D1) AND a present R2 object (head). A miss FAILS
+  // CLOSED: held(evidence_missing) — NO invoice, NO send, and NO terminal marker (the hold is TEMPORARY: the byte
+  // upload re-drives the Biller (routes/evidence.ts), and the REQ-169 recon sweep re-drives it meanwhile because
+  // an evidence-held POD has NO invoice + NO marker, so it stays in the anti-join until the bytes land).
+  // GATED on deps.evidence: production (workers/agents index.ts) always wires the R2 bucket, so the precondition
+  // always runs there; a unit test not exercising the byte gate omits it and the check is skipped.
+  if (deps.evidence !== undefined) {
+    const evidenceHash = pod.payload.signature_hash;
+    const document = await loadActivePodDocument(db, msg.tenant, msg.shipment_id, evidenceHash);
+    const object = document !== null ? await deps.evidence.head(document.r2_key) : null;
+    if (document === null || object === null) {
+      return {
+        status: "held",
+        reason: "evidence_missing",
+        detail: `POD ${msg.event_id} on ${streamId}: no stored bytes for signature_hash ${evidenceHash} (no active tenant-scoped POD document + present R2 object) — the proof email cannot assert evidence it does not have (REQ-170)`,
+      };
+    }
   }
 
   // Compose — pure, deterministic, LLM-free. Both ids derive from the POD event id (redelivery-stable;

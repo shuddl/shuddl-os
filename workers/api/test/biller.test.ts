@@ -552,6 +552,258 @@ describe("Biller consumer — POD fires invoice.issued + evidence send (REQ-031/
   });
 });
 
+// ─── Task 7 (REQ-031/003) — THE INVOICE BINDS TO THE EXACT ACCEPTED BOOKING QUOTE ──────────────────────
+//
+// A booked shipment's invoice MUST project the quote the booking ACCEPTED — never the "latest quote.priced
+// before the POD". The bug: a re-quote (quote B) priced AFTER the booking but BEFORE the POD used to win the
+// latest-pre-POD selection, billing quote B instead of the booked quote A. The fix binds the Biller to
+// booking.created.payload.quote_event_id. An inconsistent booking quote (dangling / wrong-kind / not-accepted
+// on this stream) FAILS CLOSED: a durable held invoice reason, zero money/send.
+describe("Task 7 — the invoice projects the exact accepted booking quote, not a later quote (REQ-031/003)", () => {
+  let t7clock = 1_744_000_000_000;
+  // A penny-parity-valid quote.priced with a chosen sell (lines sum to sell), appended through the real DO.
+  async function seedQuotePricedSell(shipmentId: string, sell: number): Promise<string> {
+    const id = crypto.randomUUID();
+    await seqStub.append({
+      tenant: TENANT,
+      streamId: `s:${shipmentId}`,
+      input: {
+        id,
+        shipment_id: shipmentId,
+        ts: t7clock++,
+        actor: { party: "agent:concierge" },
+        party_refs: [],
+        evidence: [],
+        source: "native",
+        confidence: 10_000,
+        kind: "quote.priced",
+        payload: {
+          sell,
+          lines: [{ kind: "freight", code: "freight", amount_cents: sell }],
+          floors: { contribution: 1, full: 1, target: 1 }, // sell ≫ target ⇒ clears the floor (issues)
+          versions: { rate_config_ids: ["rc-t7-v1"] },
+          basis: {},
+        },
+      },
+    });
+    return id;
+  }
+  async function seedAccepted(shipmentId: string, quoteId: string): Promise<string> {
+    const id = crypto.randomUUID();
+    await seqStub.append({
+      tenant: TENANT,
+      streamId: `s:${shipmentId}`,
+      input: {
+        id, shipment_id: shipmentId, ts: t7clock++, actor: { party: "party-shipper" },
+        party_refs: [], evidence: [], source: "native", confidence: 10_000,
+        kind: "quote.accepted", payload: { quote_event_id: quoteId },
+      },
+    });
+    return id;
+  }
+  // booking.created through the real gated DO — refs `quoteId`. bill_to = party-bill-to (deliverable email,
+  // clear credit) so the T6 gates pass and the booking commits.
+  async function seedBooking(shipmentId: string, quoteId: string): Promise<void> {
+    await seqStub.append({
+      tenant: TENANT,
+      streamId: `s:${shipmentId}`,
+      input: {
+        id: crypto.randomUUID(), shipment_id: shipmentId, ts: t7clock++, actor: { party: "party-shipper" },
+        party_refs: [], evidence: [], source: "native", confidence: 10_000,
+        kind: "booking.created",
+        payload: {
+          quote_event_id: quoteId,
+          shipper_party_id: "party-shipper",
+          consignee_party_id: "party-consignee",
+          bill_to_party_id: "party-bill-to",
+          division: "main",
+        },
+      },
+    });
+    // booking.created materializes skeleton legs whose provisional executor is the bill_to; simulate dispatch
+    // provisioning the tenant's OWN executor (the POD signer, party-carrier) so the shipment is DIRECT — not
+    // misread as interline by resolveInterline (2 distinct executors). The seeded delivery leg keeps its geo.
+    await env.TENANT_A_DB.prepare("UPDATE legs SET executor_party_id = 'party-carrier' WHERE shipment_id = ?").bind(shipmentId).run();
+  }
+
+  it("AUTHORITY CHAIN: quote A priced → accepted → booking refs A → quote B priced later → POD → the invoice equals A (never the later B)", async () => {
+    const shp = "biller-t7-authority";
+    await seedShipment(shp);
+    await seedDeliveryLeg(shp);
+    const sellA = 111_100;
+    const sellB = 222_200; // a DIFFERENT, later quote — must be IGNORED
+    const quoteA = await seedQuotePricedSell(shp, sellA);
+    await seedAccepted(shp, quoteA);
+    await seedBooking(shp, quoteA);
+    await seedQuotePricedSell(shp, sellB); // priced AFTER the booking, BEFORE the POD — the latest-pre-POD trap
+    const podId = await driveToPod(shp);
+
+    const sender = new RecordingSender();
+    const outcome = await handlePodSigned(msgFor(shp, podId), depsWith(sender));
+    expect(outcome.status, JSON.stringify(outcome)).toBe("issued_sent");
+
+    // The invoice projects the BOOKED quote A, never the later B.
+    const inv = (await invoiceEvents(shp))[0]!;
+    const lines = (inv.payload as { lines: { amount_cents: number }[] }).lines;
+    expect(lines.reduce((s, l) => s + l.amount_cents, 0)).toBe(sellA);
+    expect(lines.reduce((s, l) => s + l.amount_cents, 0)).not.toBe(sellB);
+    const moneyTotal = (await moneyLines(shp)).reduce((s, l) => s + l.amount_cents, 0);
+    expect(moneyTotal).toBe(sellA);
+    expect(sender.messages[0]!.html).toContain(formatCents(sellA));
+  });
+
+  it("INCONSISTENT BOOKING QUOTE: a booking whose quote_event_id is not an accepted quote.priced on the stream → held(no_quote), ZERO invoice/money/send", async () => {
+    const shp = "biller-t7-dangling";
+    await seedShipment(shp);
+    await seedDeliveryLeg(shp);
+    // A booking that references a NON-EXISTENT quote (never priced/accepted) — an authority inconsistency.
+    await seedBooking(shp, crypto.randomUUID());
+    // A stray quote.priced exists on the stream, but it is NOT the booked one — the Biller must NOT fall back to it.
+    await seedQuotePricedSell(shp, 150_000);
+    const podId = await driveToPod(shp);
+
+    const sender = new RecordingSender();
+    const outcome = await handlePodSigned(msgFor(shp, podId), depsWith(sender));
+    expect(outcome.status, JSON.stringify(outcome)).toBe("held");
+    if (outcome.status !== "held") throw new Error("unreachable");
+    expect(outcome.reason).toBe("no_quote");
+
+    expect(await invoiceEvents(shp)).toHaveLength(0);
+    expect(await moneyLines(shp)).toHaveLength(0);
+    expect(sender.messages).toHaveLength(0);
+  });
+});
+
+// ─── Task 9 (REQ-170) — THE BILLER REQUIRES STORED POD BYTES BEFORE THE PROOF EMAIL ────────────────────
+//
+// The evidence email frames itself as the delivery RECORD, so it must never assert proof over ZERO stored
+// bytes. The Biller now REQUIRES the POD's recorded signature_hash to have an ACTIVE, tenant-scoped POD document
+// AND a present R2 object before it mints the invoice + sends. A miss HOLDS(evidence_missing) — no invoice, no
+// send, no marker (temporary: the byte upload re-drives the Biller; the recon sweep re-drives it meanwhile).
+describe("Task 9 — the Biller requires stored POD bytes before the proof email (REQ-170)", () => {
+  function depsWithEvidence(sender: EvidenceSender): BillerDeps {
+    return { db: env.TENANT_A_DB, seq: seqStub, sender, referralBase: REFERRAL_BASE, evidence: env.EVIDENCE };
+  }
+  async function setup(shipmentId: string): Promise<void> {
+    await seedShipment(shipmentId);
+    await seedDeliveryLeg(shipmentId);
+    await priceQuote(shipmentId);
+  }
+  // Drive the full gated flow to a committed pod.signed, CAPTURING the deferred signature bytes+hash so a test
+  // can upload them (or not). Mirrors driveToPod but keeps the signature evidence for the byte-upload path.
+  async function driveToPodWithSig(shipmentId: string): Promise<{ podId: string; sigHash: string; sigBytes: Uint8Array }> {
+    expect((await driveStep(shipmentId, "document.attached", { ...CONSENT })).status).toBe(201);
+    expect((await driveStep(shipmentId, "stop.arrived", { geo: { ...INSIDE }, auto: false })).status).toBe(201);
+    expect((await driveStep(shipmentId, "freight.photographed", { photo_kind: "placed" }, "photo_hash")).status).toBe(201);
+    const sigBytes = nextEvidenceBytes();
+    const ts = clock++;
+    const params: CaptureParams = {
+      shipment_id: shipmentId,
+      kind: "pod.signed",
+      payload: { geo: { ...INSIDE } },
+      ts,
+      captured_ts: ts,
+      actor_user: "user-driver",
+      evidence: { bytes: sigBytes, field: "signature_hash" },
+    };
+    const { event, deferred } = await capture(params, deviceCtx);
+    const res = await post(shipmentId, event, opsTok);
+    expect(res.status, JSON.stringify(res.json)).toBe(201);
+    if (deferred === undefined) throw new Error("pod capture must defer a signature upload");
+    return { podId: (res.json as { id: string }).id, sigHash: deferred.hash, sigBytes };
+  }
+  async function uploadSig(shipmentId: string, hash: string, bytes: Uint8Array): Promise<number> {
+    const res = await SELF.fetch(`https://api.local/v1/evidence?shipment_id=${shipmentId}&photo_hash=${hash}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${opsTok}`, "Idempotency-Key": crypto.randomUUID(), "content-type": "application/octet-stream" },
+      body: new Uint8Array(bytes),
+    });
+    return res.status;
+  }
+  async function podSigHash(podId: string): Promise<string> {
+    const r = await env.TENANT_A_DB.prepare("SELECT json_extract(payload,'$.signature_hash') AS h FROM events WHERE id = ?").bind(podId).first<{ h: string }>();
+    return r!.h;
+  }
+
+  it("MISSING DOCUMENT: a POD whose signature bytes were never uploaded → held(evidence_missing), NO invoice/money/send", async () => {
+    const shp = "biller-t9-nodoc";
+    await setup(shp);
+    const { podId } = await driveToPodWithSig(shp); // captured but NOT uploaded
+    const sender = new RecordingSender();
+    const outcome = await handlePodSigned(msgFor(shp, podId), depsWithEvidence(sender));
+    expect(outcome.status, JSON.stringify(outcome)).toBe("held");
+    if (outcome.status !== "held") throw new Error("unreachable");
+    expect(outcome.reason).toBe("evidence_missing");
+    expect(await invoiceEvents(shp)).toHaveLength(0);
+    expect(await moneyLines(shp)).toHaveLength(0);
+    expect(sender.messages).toHaveLength(0);
+  });
+
+  it("UPLOAD THEN RE-DRIVE: once the signature bytes are stored, a re-drive issues the invoice + ONE email; a duplicate re-drive stays at one invoice/one send", async () => {
+    const shp = "biller-t9-updrive";
+    await setup(shp);
+    const { podId, sigHash, sigBytes } = await driveToPodWithSig(shp);
+    // First drive: bytes missing → held, NO invoice.
+    expect((await handlePodSigned(msgFor(shp, podId), depsWithEvidence(new RecordingSender()))).status).toBe("held");
+    expect(await invoiceEvents(shp)).toHaveLength(0);
+    // Upload the POD signature bytes.
+    expect(await uploadSig(shp, sigHash, sigBytes)).toBe(201);
+    // Re-drive: the evidence precondition now passes → the invoice issues + one email.
+    const sender = new RecordingSender();
+    const out = await handlePodSigned(msgFor(shp, podId), depsWithEvidence(sender));
+    expect(out.status, JSON.stringify(out)).toBe("issued_sent");
+    expect(await invoiceEvents(shp)).toHaveLength(1);
+    expect(sender.messages).toHaveLength(1);
+    // A DUPLICATE re-drive is idempotent: still exactly one invoice, one send.
+    await handlePodSigned(msgFor(shp, podId), depsWithEvidence(new RecordingSender()));
+    expect(await invoiceEvents(shp)).toHaveLength(1);
+  });
+
+  it("MISSING R2 OBJECT: the document row exists but the R2 bytes are gone (torn) → held(evidence_missing)", async () => {
+    const shp = "biller-t9-nor2";
+    await setup(shp);
+    const { podId, sigHash, sigBytes } = await driveToPodWithSig(shp);
+    expect(await uploadSig(shp, sigHash, sigBytes)).toBe(201);
+    await env.EVIDENCE.delete(`evidence/${TENANT}/${shp}/${sigHash}`); // delete the bytes, leave the row
+    const out = await handlePodSigned(msgFor(shp, podId), depsWithEvidence(new RecordingSender()));
+    expect(out.status).toBe("held");
+    if (out.status !== "held") throw new Error("unreachable");
+    expect(out.reason).toBe("evidence_missing");
+    expect(await invoiceEvents(shp)).toHaveLength(0);
+  });
+
+  it("TOMBSTONED DOCUMENT: a retention-'expired' document is not proof of present bytes → held(evidence_missing)", async () => {
+    const shp = "biller-t9-tomb";
+    await setup(shp);
+    const { podId, sigHash, sigBytes } = await driveToPodWithSig(shp);
+    expect(await uploadSig(shp, sigHash, sigBytes)).toBe(201);
+    await env.TENANT_A_DB.prepare("UPDATE documents SET retention_status = 'expired' WHERE shipment_id = ? AND hash = ?").bind(shp, sigHash).run();
+    const out = await handlePodSigned(msgFor(shp, podId), depsWithEvidence(new RecordingSender()));
+    expect(out.status).toBe("held");
+    if (out.status !== "held") throw new Error("unreachable");
+    expect(out.reason).toBe("evidence_missing");
+  });
+
+  it("CROSS-TENANT KEY (REQ-025): a POD document whose r2_key is under ANOTHER tenant's prefix is never accepted → held(evidence_missing)", async () => {
+    const shp = "biller-t9-xkey";
+    await setup(shp);
+    const { podId } = await driveToPodWithSig(shp); // no legit upload
+    const hash = await podSigHash(podId);
+    const foreignKey = `evidence/tenant-b/${shp}/${hash}`; // an active POD doc, but the key is a FOREIGN tenant's
+    await env.TENANT_A_DB.prepare(
+      "INSERT OR IGNORE INTO documents (id, shipment_id, party_id, kind, r2_key, hash, lifecycle_class, visibility, created_ts, retention_status) VALUES (?,?,?,?,?,?,?,?,?,'active')",
+    )
+      .bind(`evidence:${shp}:${hash}`, shp, null, "POD", foreignKey, hash, "pod-7yr", "counterparty", 0)
+      .run();
+    await env.EVIDENCE.put(foreignKey, new Uint8Array([1, 2, 3])); // even if bytes exist under the FOREIGN key
+    const out = await handlePodSigned(msgFor(shp, podId), depsWithEvidence(new RecordingSender()));
+    expect(out.status).toBe("held");
+    if (out.status !== "held") throw new Error("unreachable");
+    expect(out.reason).toBe("evidence_missing"); // a foreign-tenant key never stands in for THIS tenant's evidence
+    expect(await invoiceEvents(shp)).toHaveLength(0);
+  });
+});
+
 // ─── WP-08 T5 hardening (REQ-028/052) — deliveryStopGeo must PREFER a non-empty-geo delivery leg so the
 // empty booking.created skeleton (deterministic `${id}:delivery`, geo '{}') can never SHADOW the real
 // coordinates T8/dispatch provisions — even if the real leg lands at a HIGHER seq (INSERT, not UPDATE). ──
