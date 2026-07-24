@@ -1,6 +1,6 @@
 import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import worker, { runReconSweep } from "../src/index.js";
+import worker, { runReconSweep, runCreditReconSweep } from "../src/index.js";
 import { applyAll } from "./helpers.js";
 
 // REQ-169 / REQ-025 — the reconciliation sweep's CRON WRAPPER contract (the per-tenant BEHAVIOR is proven end-
@@ -35,6 +35,29 @@ describe("REQ-169 — reconciliation sweep cron wrapper", () => {
       await worker.scheduled(controller(), env, ctx());
       const sweepLogged = logSpy.mock.calls.some((call) => call.some((a) => typeof a === "string" && a.includes("recon-sweep: tenant")));
       expect(sweepLogged, "scheduled() must invoke runReconSweep").toBe(true);
+    } finally {
+      logSpy.mockRestore();
+    }
+  });
+});
+
+// Task 6 (REQ-042/183/025) — the CREDIT reconciliation sweep's CRON WRAPPER contract (the per-tenant reconcile
+// BEHAVIOR is proven in workers/api/test/recon-sweep.test.ts against the migrated D1). This pins that the wrapper
+// iterates the tenant allowlist and that scheduled() drives it. With no open credit_projection_gap anomalies the
+// sweep resolves nothing and completes cleanly across BOTH allowlisted tenants (both DBs migrated).
+describe("Task 6 — credit reconciliation sweep cron wrapper", () => {
+  it("runCreditReconSweep resolves across every allowlisted tenant when there are no open gaps (no resolve)", async () => {
+    await expect(runCreditReconSweep(env)).resolves.toBeUndefined();
+  });
+
+  it("scheduled() ACTUALLY drives the credit reconcile sweep (per-tenant log emitted) — non-tautological", async () => {
+    // Spy the per-tenant log so deleting the runCreditReconSweep call from scheduled() fails this test. It logs
+    // `credit-recon-sweep: tenant <slug> → …` for every tenant — matched specifically (not the biller recon log).
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      await worker.scheduled(controller(), env, ctx());
+      const sweepLogged = logSpy.mock.calls.some((call) => call.some((a) => typeof a === "string" && a.includes("credit-recon-sweep: tenant")));
+      expect(sweepLogged, "scheduled() must invoke runCreditReconSweep").toBe(true);
     } finally {
       logSpy.mockRestore();
     }

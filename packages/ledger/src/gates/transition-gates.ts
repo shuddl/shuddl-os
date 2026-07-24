@@ -56,6 +56,7 @@ export const REQUIRED_EVIDENCE = {
   reason_code: "reason_code",
   consent: "consent",
   credit_clear: "credit_clear", // REQ-042 — the bill_to party's credit hold must be cleared (or overridden)
+  credit_unresolved: "credit_unresolved", // Task 6 (REQ-042/183) — the bill_to has an UNRESOLVED credit projection gap (the decision may not have landed); fail closed until it reconciles (or is overridden)
   evidence_recipient: "evidence_recipient", // REQ-182 — the evidence recipient (bill_to) needs a deliverable contact (or an opt-out)
   appointment: "appointment", // REQ-043 — dispatch is blocked until the shipment has a claimed dock appointment
   docs: "docs", // REQ-043 — dispatch is blocked until the required carrier paperwork (a rate-con-class doc) exists
@@ -492,14 +493,29 @@ export function assertAppointment(prior: readonly LedgerEvent[], incoming: Ledge
 // booking is well-formed but a prerequisite — credit clearance, a reachable recipient — is absent).
 
 /**
- * REQ-042 — a booking is BLOCKED when the bill_to party is on a credit HOLD. `creditStatus` is the
- * SERVER-SOURCED parties.credit_status of the bill_to party (loaded by the DO from D1, never the client
- * event). Only an explicit `"hold"` blocks → GateError(["credit_clear"]); `"clear"` / `"review"` / null /
- * undefined (no decision on file) all pass. OVERRIDABLE (REQ-049): a named+reasoned override runs FIRST and
- * releases the hold, exactly like the physical gates — a finance principal can book over a hold accountably.
+ * REQ-042 — a booking is BLOCKED when the bill_to party is on a credit HOLD, OR when the bill_to has an
+ * UNRESOLVED credit projection gap (Task 6, REQ-183). Both read SERVER-SOURCED state (loaded by the DO from
+ * D1, never the client event):
+ *   - `creditStatus`: parties.credit_status of the bill_to. Only an explicit `"hold"` blocks →
+ *     GateError(["credit_clear"]); `"clear"` / `"review"` / null / undefined (no decision on file) all pass.
+ *   - `creditGapUnresolved`: TRUE when an OPEN credit_projection_gap anomaly for the bill_to survived the DO's
+ *     reconciliation attempt (the party never materialized, or no credit.checked decision is on the ledger).
+ *     The credit_status read is then UNRELIABLE — the decision may not have landed — so this FAILS CLOSED with
+ *     the DISTINCT ["credit_unresolved"] reason, checked BEFORE the hold read so an unreliable "clear" can never
+ *     leak a booking through. It is a REQUIRED positional (not an optional flag): a caller that forgets it is a
+ *     COMPILE error, never a silent fail-open — the same fail-loud discipline as assertInterline's isInterline.
+ *
+ * OVERRIDABLE (REQ-049): a named+reasoned override runs FIRST and releases BOTH the hold and the gap — a finance
+ * principal can book over an unresolved-credit situation accountably (the same fail-closed credit result as a
+ * hold, per Task 6). A blank/unaccountable override throws GateValidationError (never a silent pass).
  */
-export function assertBookingCredit(creditStatus: string | null | undefined, ctx?: GateCtx): void {
-  if (overrideSatisfies(ctx?.override)) return; // REQ-049 — an accountable override releases the hold
+export function assertBookingCredit(
+  creditStatus: string | null | undefined,
+  creditGapUnresolved: boolean,
+  ctx?: GateCtx,
+): void {
+  if (overrideSatisfies(ctx?.override)) return; // REQ-049 — an accountable override releases the hold AND the gap
+  if (creditGapUnresolved) throw new GateError([REQUIRED_EVIDENCE.credit_unresolved]); // Task 6 — fail closed on an unresolved gap
   if (creditStatus === "hold") throw new GateError([REQUIRED_EVIDENCE.credit_clear]);
 }
 

@@ -12,7 +12,8 @@ import {
   type OriginalLine,
 } from "@shuddl/ledger/projection/money";
 import { projectPassport } from "@shuddl/ledger/projection/passports";
-import { projectStatusCache, surfaceCreditProjectionGapIfMissed } from "@shuddl/ledger/projection/status-cache";
+import { projectStatusCache, surfaceCreditProjectionGapIfMissed, CREDIT_PROJECTION_GAP_RULE } from "@shuddl/ledger/projection/status-cache";
+import { reconcileCreditForParty } from "@shuddl/ledger/reconcile/credit";
 import { applyMessageProjection } from "@shuddl/ledger/projection/messages";
 import { projectAppointment } from "@shuddl/ledger/projection/appointment";
 import { projectApprovals } from "@shuddl/ledger/projection/approvals";
@@ -318,6 +319,20 @@ export class ShipmentSequencer extends DurableObject<Env> {
       // still verify the device signature (REQ-011/016). verifyEventSig returns false, never throws.
       const jwk = await this.#deviceKey(tenant, parsed.actor.device);
       if (!jwk || !(await verifyEventSig(parsed, jwk))) throw rpcError("UNAUTHORIZED", { reason: "device signature" });
+    }
+
+    // Task 6 (REQ-042/183/185) — a NATIVE credit.checked must name a party that ALREADY EXISTS. The decision
+    // writes tenant-global parties.credit_status that the REQ-042 booking credit-hold gate reads; a decision for
+    // an ABSENT party used to append and surface a projection GAP that a later booking could read as NULL and
+    // pass (a silent credit-gate defeat). FAIL CLOSED at the write boundary: reject BEFORE any append, so an
+    // unresolvable credit decision produces ZERO events and NEVER fabricates a party row. Scoped to
+    // source:'native' (the client-postable path the events route forces to native) — a historical/imported
+    // (source≠native) credit decision keeps the projection-gap handling below, which the shared reconciler + the
+    // booking-gate block resolve fail-closed. Reached AFTER the idempotency checks, so a replay of the same event
+    // id still returns the original row rather than re-judging it.
+    if (parsed.kind === "credit.checked" && parsed.source === "native") {
+      const party = await db.prepare("SELECT id FROM parties WHERE id = ?").bind(parsed.payload.party_id).first();
+      if (party === null) throw rpcError("VALIDATION_FAILED", { reason: "credit_party_not_found" });
     }
 
     const policy = await this.#policy(tenant);
@@ -819,16 +834,33 @@ export class ShipmentSequencer extends DurableObject<Env> {
       throw rpcError("FORBIDDEN", { reason: "hazmat_not_enabled" });
     }
 
+    // Task 6 (REQ-042/183) — RECONCILE any credit projection gap for the bill_to FIRST (idempotent, bounded; the
+    // SAME shared fn the agents cron drives), so a decision that landed after the party materialized is applied
+    // before we read credit. Then fail CLOSED if a gap SURVIVES: an unresolved gap means the party is still
+    // absent or no credit.checked decision is on the ledger, so the credit_status read is unreliable and booking
+    // must block. Tenant-isolated — `db` is this DO's one tenant (REQ-025).
+    await reconcileCreditForParty(db, p.bill_to_party_id);
+
     // ONE read of the bill_to party — its credit_status AND contacts feed both gates (the bill_to is who pays
-    // AND who is emailed). A missing row (no such party) reads as null for both → credit passes (no hold),
-    // recipient blocks (no contact) unless the payload opts out — fail-closed.
+    // AND who is emailed). Read AFTER reconcile so credit_status reflects any just-applied decision. A missing
+    // row (no such party) reads as null for both → the credit gate fails closed via the gap below, the recipient
+    // gate blocks (no contact) unless the payload opts out — fail-closed.
     const billTo = await db
       .prepare("SELECT credit_status, contacts FROM parties WHERE id = ?")
       .bind(p.bill_to_party_id)
       .first<{ credit_status: string | null; contacts: string | null }>();
 
-    // Credit (REQ-042): only an explicit 'hold' blocks. Overridable (REQ-049) — ctx carries the override.
-    assertBookingCredit(billTo?.credit_status ?? null, ctx);
+    // An OPEN credit_projection_gap for the bill_to that SURVIVED reconciliation → the credit decision may not
+    // have landed. Presence fails the credit gate closed with a DISTINCT reason (Task 6).
+    const creditGapUnresolved =
+      (await db
+        .prepare("SELECT 1 AS present FROM anomalies WHERE rule = ?1 AND object_id = ?2 AND status = 'open' LIMIT 1")
+        .bind(CREDIT_PROJECTION_GAP_RULE, p.bill_to_party_id)
+        .first<{ present: number }>()) !== null;
+
+    // Credit (REQ-042/183): an unresolved gap OR an explicit 'hold' blocks. Overridable (REQ-049) — ctx carries
+    // the override, which releases both (an accountable finance book-over).
+    assertBookingCredit(billTo?.credit_status ?? null, creditGapUnresolved, ctx);
 
     // Evidence-recipient contact (REQ-182): the bill_to's contacts JSON, parsed defensively here (a missing
     // row or unparseable JSON → null → no deliverable contact → the gate blocks unless the payload opts out).

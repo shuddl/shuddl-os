@@ -1,6 +1,6 @@
 import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
-import { TENANT_SLUG, ensureSchema, post, streamCount as countEvents, token } from "./helpers.js";
+import { TENANT_SLUG, ensureSchema, post, requiredEvidence, streamCount as countEvents, token } from "./helpers.js";
 
 // REQ-185 (WP-08 exit audit) — credit.checked is a PRIVILEGED FINANCE DECISION, authorized at the WRITE
 // BOUNDARY (POST /v1/shipments/:id/events), BEFORE the DO append. It is client-appendable (unlike a
@@ -146,43 +146,78 @@ describe("credit.checked requires finance-role authorization (REQ-185)", () => {
   });
 });
 
-// REQ-183 — the credit.checked→parties.credit_status projection is a SILENT no-op when the party row does not
-// exist yet: the UPDATE matches nothing, the hold never lands, and a later booking reads NULL and PASSES the
-// credit gate. This proves the end-to-end sequencer path surfaces that miss LOUDLY (a durable `anomalies` row)
-// and NEVER fabricates the missing party.
-describe("REQ-183 — a credit.checked for an unmaterialized party appends but surfaces a LOUD projection gap", () => {
-  async function anomalyRow(id: string): Promise<{ rule: string; object_id: string; severity: string } | null> {
-    return env.TENANT_A_DB.prepare("SELECT rule, object_id, severity FROM anomalies WHERE id = ?")
-      .bind(id)
-      .first<{ rule: string; object_id: string; severity: string }>();
-  }
+// Task 6 (REQ-042/183/185) — a NATIVE credit.checked writes tenant-global parties.credit_status that the
+// REQ-042 booking credit-hold gate reads. A decision for an absent party USED to append + surface a projection
+// GAP (silent-defeat risk: a later booking read NULL and passed as if clear). The fix FAILS CLOSED at the write
+// boundary: reject the native write before any append, so an unresolvable credit decision produces ZERO events
+// and never fabricates a party. The projection-gap mechanism stays for historical/imported (source≠native) rows,
+// which the reconcile + booking-gate block then resolve fail-closed.
+describe("Task 6 (REQ-042/183) — a NATIVE credit.checked for an unmaterialized party FAILS CLOSED at the write boundary", () => {
+  it("finance posts credit.checked{hold} for a party that does NOT exist → 400 VALIDATION_FAILED, ZERO append, NO party fabricated", async () => {
+    const ghost = "party-t6-never-created"; // deliberately NOT seeded — no parties row
+    const shp = "ca-t6-reject";
+    const before = await countEvents(shp);
+    const input = creditInput(shp, ghost, "hold");
+    const r = await post(shp, input, await financeTok());
+    expect(r.status).toBe(400); // rejected at the DO before append (VALIDATION_FAILED → 400)
+    expect(r.json?.code).toBe("VALIDATION_FAILED");
 
-  it("finance posts credit.checked{hold} for a party that does NOT exist → 201, NO party fabricated, gap surfaced", async () => {
-    const ghost = "party-183-never-created"; // deliberately NOT seeded — no parties row
-    const input = creditInput("ca-183-gap", ghost, "hold");
-    const r = await post("ca-183-gap", input, await financeTok());
-    expect(r.status).toBe(201); // the credit.checked EVENT is committed truth even though the projection missed
-
-    // no party row was fabricated by the projection (append-only / no-invented-data law)
+    // ZERO append — nothing committed for an unresolvable credit decision
+    expect(await countEvents(shp)).toBe(before);
+    // no party row fabricated, credit_status still null
     const party = await env.TENANT_A_DB.prepare("SELECT 1 AS x FROM parties WHERE id = ?").bind(ghost).first();
     expect(party).toBeNull();
     expect(await creditStatus(ghost)).toBeNull();
-
-    // the projection gap is surfaced LOUDLY on the durable anomalies table (rule + object_id + critical)
-    const a = await anomalyRow(`credit-projection-gap:${input.id as string}`);
-    expect(a).not.toBeNull();
-    expect(a!.rule).toBe("credit_projection_gap");
-    expect(a!.object_id).toBe(ghost);
-    expect(a!.severity).toBe("critical");
   });
 
-  it("finance posts credit.checked{hold} for an EXISTING party → 201, projects credit_status, NO gap row", async () => {
-    const present = "party-183-present-api";
+  it("finance posts credit.checked{hold} for an EXISTING party → 201, projects credit_status (the honest path is unchanged)", async () => {
+    const present = "party-t6-present-api";
     await seedBareParty(present);
-    const input = creditInput("ca-183-present", present, "hold");
-    const r = await post("ca-183-present", input, await financeTok());
+    const input = creditInput("ca-t6-present", present, "hold");
+    const r = await post("ca-t6-present", input, await financeTok());
     expect(r.status).toBe(201);
     expect(await creditStatus(present)).toBe("hold"); // the UPDATE landed
-    expect(await anomalyRow(`credit-projection-gap:${input.id as string}`)).toBeNull(); // no gap on a hit
+  });
+});
+
+// Task 6 (REQ-042/183) — an UNRESOLVED credit_projection_gap for the bill_to FAILS CLOSED: the booking gate
+// consults open gaps scoped to the bill_to (after attempting reconciliation) and blocks with the DISTINCT
+// ['credit_unresolved'] reason — the credit_status read is unreliable when a decision may not have landed. Zero
+// append, unbypassable by any API path (REQ-030).
+describe("Task 6 — an unresolved credit projection gap for the bill_to BLOCKS booking.created", () => {
+  it("bill_to with an OPEN gap and no landed decision → booking GATE_BLOCKED ['credit_unresolved'], ZERO append", async () => {
+    // The bill_to EXISTS and has a deliverable contact (so ONLY credit can fail), but carries an UNRESOLVED
+    // credit_projection_gap and NO credit.checked decision on the ledger → reconcile cannot clear it → fail closed.
+    const party = "party-t6-gap-bill";
+    await seedBareParty(party, [{ kind: "billing", email: "gap@ca.example" }]);
+    await env.TENANT_A_DB.prepare(
+      "INSERT OR IGNORE INTO anomalies (id, rule, object_kind, object_id, severity, detail, status) VALUES (?,?,?,?,?,?,'open')",
+    )
+      .bind("credit-projection-gap:t6-seed-gap", "credit_projection_gap", "party", party, "critical", "{}")
+      .run();
+
+    const booking = {
+      id: crypto.randomUUID(),
+      shipment_id: "ca-t6-gap-book",
+      ts: 1_720_000_000_000,
+      actor: { party: "party-shipper" },
+      party_refs: [],
+      evidence: [],
+      source: "native",
+      confidence: 10_000,
+      kind: "booking.created",
+      payload: {
+        quote_event_id: "evt-q",
+        shipper_party_id: "party-shipper",
+        consignee_party_id: "party-consignee",
+        bill_to_party_id: party,
+        division: "main",
+      },
+    };
+    const rb = await post("ca-t6-gap-book", booking, await opsTok());
+    expect(rb.status).toBe(403);
+    expect(rb.json?.code).toBe("GATE_BLOCKED");
+    expect(requiredEvidence(rb)).toEqual(["credit_unresolved"]);
+    expect(await countEvents("ca-t6-gap-book")).toBe(0);
   });
 });
