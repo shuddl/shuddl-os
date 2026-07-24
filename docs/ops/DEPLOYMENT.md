@@ -28,9 +28,21 @@ API base URL: `https://shuddl-api-staging.<account>.workers.dev` (all routes JWT
 
 **What this means for safety:** staging tenants are synthetic, so a real email only goes to whatever recipient a shipment's bill-to party actually carries in `parties.contacts` (most synthetic parties carry none → `recipient_unresolved`, no send). The only real address wired in staging is an owner test inbox seeded on `party-bill-to`. **To turn staging sending back OFF:** unset `EVIDENCE_FROM` in `[env.staging.vars]` and redeploy — the Biller reverts to `NotConfiguredSender`. Prod sending remains milestone-gated (REQ-159).
 
+## Runtime contract (do this first, every session)
+
+The suite is verified under **Node 22.15.0 + pnpm 11.10.0 only**, pinned in `.node-version`, `engines`, and `packageManager`. **Node 20 is not supported** — it mis-resolves the `vitest-pool-workers`/chai chain and changes D1 append-only trigger behaviour, so a green run under Node 20 is not evidence the build is sound (this was a real failure mode). Activate the pinned runtime and prove it before any deploy or gate:
+
+```bash
+nvm install 22.15.0 && nvm use 22.15.0   # or `fnm use` — both read .node-version
+corepack use pnpm@11.10.0
+pnpm check:runtime                         # fails closed, printing installed vs required, on any mismatch
+```
+
+`pnpm check:runtime` is the first step of every `verify*` script and of CI; it exits non-zero on the wrong Node/pnpm.
+
 ## Deploy from scratch (or re-deploy)
 
-1. Preflight: Workers **Paid** plan active (Queues + DO need it); `pnpm verify` green.
+1. Preflight: the runtime contract above is green (`pnpm check:runtime`); Workers **Paid** plan active (Queues + DO need it); `pnpm verify` green.
 2. Provision (once): `wrangler d1 create` ×3, `wrangler kv namespace create`, `wrangler r2 bucket create`, `wrangler queues create` ×2 — put the returned ids into the `[env.staging]` blocks of both wrangler.tomls (already done; see the ids above).
 3. Migrate each D1 (remote): tenant migrations `0001..0005` → both tenant DBs; control `0001` → control DB — `cd workers/api && npx wrangler d1 execute <db> --remote --yes --file ../../db/tenant/migrations/<f>.sql`.
 4. Secret: `printf '%s' "$JWT" | (cd workers/api && npx wrangler secret put JWT_SECRET --env staging)`. **Do NOT set `RESEND_API_KEY`** (keeps sending gated).

@@ -19,6 +19,9 @@ import type { RateRequest, TenantRatingConfig, QuoteResult } from "../../package
 // Reusing it (not re-implementing) guarantees the parity gate compares bytes exactly the way they were
 // pinned — the hash pin below is only meaningful if it is computed identically to how it was recorded.
 import { hashPath } from "../fixtures/verify.js";
+// V1 remediation Task 3 (REQ-288): merge/release mode turns the advisory PENDING skip into a
+// non-promotable BLOCKED. The structured GateResult is what run-gate consumes — never this file's prose.
+import { parseMode, unavailableStatus, formatGateResult } from "../release/evidence.js";
 
 // REQ-027 ("the 48 legacy tests pass in the service") + REQ-165 ("reproduces tenant-0 quotes exactly").
 //
@@ -309,6 +312,7 @@ function main(): void {
   const manifest = JSON.parse(readFileSync("fixtures/manifest.json", "utf8")) as Manifest;
   const rows = manifest.fixtures.filter((e) => PARITY_FIXTURE_IDS.includes(e.id));
   const present = inputsPresent();
+  const mode = parseMode(process.argv.slice(2));
 
   // DORMANCY GUARD — a vendored manifest claim and a dormant gate must never coexist. If the manifest marks
   // any parity fixture "vendored" but inputsPresent() is false (e.g. a future vendoring used different
@@ -344,7 +348,14 @@ function main(): void {
     console.warn(
       "PARITY PENDING — vendor the engagement fixtures (manifest.private M-01/M-02…) into fixtures/rater/48-tests, fixtures/rater/504-sweep and fixtures/tariff to activate REQ-027/REQ-165 parity. Advisory (exit 0) until then — see tools/rater/README.md.",
     );
-    return;
+    // REQ-288: local stays advisory (PENDING, exit 0); merge/release turns the absent private fixtures
+    // into a non-promotable BLOCKED (exit 2) — a release gate never greens on absent audited data.
+    const { status, exitCode } = unavailableStatus(mode);
+    if (mode !== "local") {
+      console.error(`rater-parity: BLOCKED under --mode ${mode} — the audited REQ-027/REQ-165 fixtures are not vendored; no promotion on absent private fixtures.`);
+    }
+    console.log(formatGateResult({ gate: "rater-parity", status, executed: false, assertions: 0, detail: "engagement fixtures not vendored (fixtures/rater/*, fixtures/tariff)" }));
+    process.exit(exitCode);
   }
 
   // PRESENT — but presence is NOT a pass. Before loading/running/greening, REQUIRE the set be vendored AND
@@ -407,11 +418,13 @@ function main(): void {
     console.error(
       "PARITY FAILED — the service diverges from the audited engine (REQ-027/REQ-165). No merge.",
     );
+    console.log(formatGateResult({ gate: "rater-parity", status: "FAIL", executed: true, assertions: result.total, detail: `${result.mismatches.length} mismatch(es) vs the audited engine` }));
     process.exit(1);
   }
   console.log(
     `PARITY GREEN — REQ-027 (${EXPECTED_48_TESTS_CASES} tests + ${EXPECTED_504_SWEEP_CASES} sweep = ${result.total} cases) and REQ-165 (tenant-0 tariff) reproduced exactly.`,
   );
+  console.log(formatGateResult({ gate: "rater-parity", status: "PASS", executed: true, assertions: result.total, detail: "REQ-027/REQ-165 reproduced exactly" }));
 }
 
 if (process.argv[1]?.endsWith("parity.ts")) main();

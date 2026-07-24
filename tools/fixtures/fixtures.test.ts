@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { verifyManifest } from "./verify.js";
+import { fixtureGateResult, verifyManifest } from "./verify.js";
 
 describe("REQ-112: fixture registry", () => {
   it("verifies a vendored entry by hash and fails on mismatch", () => {
@@ -31,5 +31,32 @@ describe("REQ-112: fixture registry", () => {
     });
     expect(r.ok).toBe(false);
     expect(r.failures[0]).toContain("in-repo-test missing");
+  });
+});
+
+// REQ-288 (V1 remediation Task 3): pending private fixtures are advisory locally but a non-promotable
+// BLOCKED under merge/release; a real failure is FAIL regardless of mode.
+describe("REQ-288: fixtureGateResult — pending fixtures BLOCK a merge/release gate", () => {
+  const pending = { ok: true, failures: [], pending: ["legacy-export-replay", "synthetic-blitz-3100"] };
+  it("pending + local → PENDING (advisory, exit 0 preserved)", () => {
+    expect(fixtureGateResult("local", pending, 5).status).toBe("PENDING");
+  });
+  it("pending + merge → BLOCKED (the advisory skip that used to green)", () => {
+    const g = fixtureGateResult("merge", pending, 5);
+    expect(g.status).toBe("BLOCKED");
+    expect(g.detail).toContain("legacy-export-replay");
+  });
+  it("pending + release → BLOCKED", () => {
+    expect(fixtureGateResult("release", pending, 5).status).toBe("BLOCKED");
+  });
+  it("a hash-mismatch failure is FAIL regardless of mode", () => {
+    const failed = { ok: false, failures: ["x: hash mismatch"], pending: [] };
+    expect(fixtureGateResult("local", failed, 5).status).toBe("FAIL");
+    expect(fixtureGateResult("merge", failed, 5).status).toBe("FAIL");
+  });
+  it("clean + no pending → PASS with assertions = verified count", () => {
+    const g = fixtureGateResult("merge", { ok: true, failures: [], pending: [] }, 7);
+    expect(g.status).toBe("PASS");
+    expect(g.assertions).toBe(7);
   });
 });

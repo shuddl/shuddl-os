@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseDenylist, resolveIdentityLeakOutcome, scanForIdentityLeaks } from "./identity-leak.js";
+import { identityGateResult, parseDenylist, resolveIdentityLeakOutcome, scanForIdentityLeaks } from "./identity-leak.js";
 
 // REQ-167 DoD: a seeded denylist name in a PR fails CI. Tests inject a fake term —
 // real names live only in the client-side denylist, never here.
@@ -75,5 +75,38 @@ describe("REQ-167: absent-denylist disposition fails CLOSED in CI (the last fail
     expect(o.level).toBe("fail");
     // the masked term never leaks back through the disposition message either
     expect(o.message).not.toContain("ZEBRA-CARRIER-TESTNAME");
+  });
+});
+
+// REQ-288 (V1 remediation Task 3): the mode-aware GateResult the run-gate orchestrator consumes. An
+// ABSENT denylist is a missing PREREQUISITE — PENDING locally (promotable=advisory) but BLOCKED under
+// merge/release. A found leak is FAIL; a clean scan is PASS with assertions = files scanned.
+describe("REQ-288: identityGateResult — absent denylist BLOCKS a merge/release gate", () => {
+  it("no denylist + local → PENDING (advisory, promotable only for dev)", () => {
+    const g = identityGateResult({ terms: null, mode: "local", leaks: [], filesScanned: 0 });
+    expect(g.status).toBe("PENDING");
+    expect(g.executed).toBe(false);
+  });
+  it("no denylist + merge → BLOCKED (the skip that used to green)", () => {
+    expect(identityGateResult({ terms: null, mode: "merge", leaks: [], filesScanned: 0 }).status).toBe("BLOCKED");
+  });
+  it("no denylist + release → BLOCKED", () => {
+    expect(identityGateResult({ terms: null, mode: "release", leaks: [], filesScanned: 0 }).status).toBe("BLOCKED");
+  });
+  it("an empty denylist is treated as absent (nothing was actually asserted)", () => {
+    expect(identityGateResult({ terms: [], mode: "merge", leaks: [], filesScanned: 10 }).status).toBe("BLOCKED");
+  });
+  it("denylist present + a leak → FAIL, assertions>0, and never echoes the raw name", () => {
+    const leaks = scanForIdentityLeaks(["ZEBRA-CARRIER-TESTNAME"], new Map([["docs/leak.md", "Zebra-Carrier-Testname"]]));
+    const g = identityGateResult({ terms: ["ZEBRA-CARRIER-TESTNAME"], mode: "merge", leaks, filesScanned: 1 });
+    expect(g.status).toBe("FAIL");
+    expect(g.assertions).toBeGreaterThan(0);
+    expect(JSON.stringify(g)).not.toContain("ZEBRA-CARRIER-TESTNAME");
+  });
+  it("denylist present + clean → PASS with assertions = files scanned", () => {
+    const g = identityGateResult({ terms: ["ZEBRA-CARRIER-TESTNAME"], mode: "merge", leaks: [], filesScanned: 42 });
+    expect(g.status).toBe("PASS");
+    expect(g.executed).toBe(true);
+    expect(g.assertions).toBe(42);
   });
 });

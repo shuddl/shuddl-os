@@ -1,30 +1,28 @@
-# PR gates in genesis/14 §07 order: typecheck → lint → unit + fixtures → traceability → isolation.
+# The COMPLETE merge surface (design §5 WP0 / REQ-288 / REQ-276). Every claim is non-skippable: the
+# merge-evidence gate (pnpm verify:merge) records a structured result per gate and BLOCKS — it does not
+# green — on an absent identity denylist, unvendored private fixtures, or a missing browser. CI installs
+# the Playwright browser so the strict visual/a11y/perf gates run for real, and provisions the denylist
+# secret; the private engagement fixtures still BLOCK until vendored (that is the fail-closed contract, not
+# a bug). Every action is pinned to an immutable commit SHA with its release tag in the trailing comment.
 name: ci
 on:
   pull_request:
   push: { branches: [main] }
+
 jobs:
-  gates:
+  merge-gate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with: { fetch-depth: 0 }
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: pnpm }
+      - uses: pnpm/action-setup@7088e561eb65bb68695d245aa206f005ef30921d # v4.1.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: typecheck (strict, no any)
-        run: pnpm typecheck
-      - name: lint (incl. REQ-024 LLM-in-ledger ban, REQ-163 prior-codebase ban)
-        run: pnpm lint
-      - name: unit tests (tools + packages + workers)
-        run: pnpm test
-      - name: fixture registry (REQ-112)
-        run: pnpm check:fixtures
-      - name: seed determinism (REQ-155)
-        run: pnpm check:seed
-      - name: invariants I3/I8
-        run: pnpm check:invariants
+      - name: runtime contract (Node 22.15 / pnpm 11.10 — fail closed)
+        run: pnpm check:runtime
       - name: traceability — PR REQ-IDs (REQ-118)
         if: github.event_name == 'pull_request'
         env:
@@ -32,34 +30,51 @@ jobs:
             ${{ github.event.pull_request.title }}
             ${{ github.event.pull_request.body }}
         run: pnpm check:pr
-      - name: traceability — orphan detector (REQ-118)
-        run: pnpm check:traceability
-      - name: register coverage 100% (REQ-118/119 — every register row accounted for)
-        run: pnpm check:coverage
-      - name: authority-coverage lint (REQ-030/L8 — every module consults resolveAuthority)
-        run: pnpm check:authority-coverage
-      - name: identity-leak lint (REQ-167 — denylist is a CI secret, never in repo; fails CLOSED without it)
+      - name: build every workspace (apps + workers + packages)
+        run: pnpm -r --if-present build
+      - name: acceptance
+        run: pnpm test:acceptance
+      - name: install Playwright browser + OS deps (strict browser gates run for real in CI)
+        run: pnpm exec playwright install --with-deps chromium
+      - name: strict visual (merge mode — an absent browser BLOCKS, never skips)
+        run: pnpm test:visual -- --mode merge
+      - name: strict accessibility (merge mode)
+        run: pnpm test:a11y -- --mode merge
+      - name: strict performance — 1K-entity map frame budget (merge mode)
+        run: pnpm perf:map -- --mode merge
+      - name: merge evidence gate — the complete non-skippable surface (REQ-288)
         env:
           IDENTITY_DENYLIST: ${{ secrets.IDENTITY_DENYLIST }}
-          REQUIRE_DENYLIST: "1"
-        run: pnpm check:identity
-      - name: tenant isolation suite (REQ-025)
-        run: pnpm --filter @shuddl/api test -- isolation
+        run: pnpm verify:merge
+      - name: production dependency audit
+        run: pnpm audit --prod
+      - name: upload merge evidence (even when a gate fails)
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: merge-evidence
+          path: artifacts/release/**
+          if-no-files-found: ignore
+
   design-advisory:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: pnpm }
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: pnpm/action-setup@7088e561eb65bb68695d245aa206f005ef30921d # v4.1.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: design audit (REQ-158 — advisory until WP-10 exit)
         run: pnpm audit:design
+
   secrets:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with: { fetch-depth: 0 }
-      - uses: gitleaks/gitleaks-action@v2
+      - name: history-wide secret scan (gitleaks)
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

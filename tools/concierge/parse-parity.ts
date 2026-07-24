@@ -25,6 +25,9 @@ import type { TenantRatingConfig } from "../../packages/rater/src/price.js";
 // hashPath is the SAME path+bytes hash tools/fixtures/verify.ts pins fixtures by — the pin check is only
 // meaningful if it hashes exactly the way the manifest recorded it.
 import { hashPath } from "../fixtures/verify.js";
+// V1 remediation Task 3 (REQ-288): merge/release turns the advisory PENDING skip into a non-promotable
+// BLOCKED. run-gate consumes the structured GateResult, never this file's prose.
+import { parseMode, unavailableStatus, formatGateResult } from "../release/evidence.js";
 
 // REQ-026/093/098/171 — WP-07 Concierge DoD: "≥90% of real historical quote emails parse; 100% of the
 // quotes we AUTO-SEND are floor-clean." This harness MIRRORS the rater parity harnesses' honest contract
@@ -564,6 +567,7 @@ function printMismatches(mismatches: readonly Mismatch[]): void {
 }
 
 async function main(): Promise<void> {
+  const mode = parseMode(process.argv.slice(2));
   // ── 1. SMOKE — always runs; the harness's liveness proof. It must EXERCISE both a real send and a real
   //       hard-queue: guard that the inline set still carries ≥1 auto_reply AND ≥1 below_floor, so a future
   //       edit can never hollow the smoke into an all-green no-op.
@@ -644,7 +648,14 @@ async function main(): Promise<void> {
     console.warn(
       "CONCIERGE PARSE PENDING — vendor the engagement fixtures into fixtures/concierge/parse-50 and fixtures/tariff to activate the WP-07 DoD gate (≥90% parsed, 100% floor-clean sends). Advisory (exit 0) until then.",
     );
-    return;
+    // REQ-288: local stays advisory (PENDING, exit 0); merge/release BLOCKS (exit 2) on the absent
+    // private email corpus — a release gate never greens on absent DoD data.
+    const { status, exitCode } = unavailableStatus(mode);
+    if (mode !== "local") {
+      console.error(`concierge-parse: BLOCKED under --mode ${mode} — the 50-email corpus is not vendored; no promotion on absent private fixtures.`);
+    }
+    console.log(formatGateResult({ gate: "concierge-parse", status, executed: false, assertions: 0, detail: "engagement fixtures not vendored (fixtures/concierge/parse-50, fixtures/tariff)" }));
+    process.exit(exitCode);
   }
 
   // PRESENT — but presence is NOT a pass: require vendored + hash-pinned, exactly like the rater gate.
@@ -692,6 +703,7 @@ async function main(): Promise<void> {
   console.log(
     `CONCIERGE PARSE GREEN — WP-07 DoD reproduced: ≥${MIN_PARSED_BPS / 100}% of the ${EXPECTED_REAL_CASES} real emails parsed and 100% of auto-sends are floor-clean.`,
   );
+  console.log(formatGateResult({ gate: "concierge-parse", status: "PASS", executed: true, assertions: result.total, detail: "WP-07 DoD reproduced (parse floor + floor-clean sends)" }));
 }
 
 if (process.argv[1]?.endsWith("parse-parity.ts")) void main();
