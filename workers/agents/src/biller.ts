@@ -182,6 +182,34 @@ export async function loadAcceptedQuote(db: D1Database, streamId: string, before
   return row === null ? null : rowToEvent(row);
 }
 
+// Task 7 (REQ-031/003) — the stream's single booking.created's accepted-quote reference, or null when the
+// shipment is UN-BOOKED (no booking.created — a legacy/quote-stage shipment). booking.created is idempotent per
+// stream (REQ-191, sequencer #enforceBooking), so ORDER BY seq LIMIT 1 IS the one booking. The value is the
+// accepted quote.priced's event id (BookingCreatedPayload.quote_event_id) — the authority the invoice must project.
+export async function loadBookingQuoteRef(db: D1Database, streamId: string): Promise<string | null> {
+  const row = await db
+    .prepare("SELECT json_extract(payload, '$.quote_event_id') AS quote_event_id FROM events WHERE stream_id = ? AND kind = 'booking.created' ORDER BY seq LIMIT 1")
+    .bind(streamId)
+    .first<{ quote_event_id: string | null }>();
+  return row?.quote_event_id ?? null;
+}
+
+// Task 7 (REQ-031/003) — resolve a booking's quote_event_id to the ACCEPTED quote.priced ON THIS STREAM. Returns
+// the quote.priced event ONLY when (a) an event with that exact id on this stream is a quote.priced AND (b) a
+// quote.accepted on this stream NAMES it (payload.quote_event_id). Any authority inconsistency — the id is
+// dangling, the wrong kind, on another stream (the stream_id filter excludes it — cross-stream/cross-tenant), or
+// never accepted — returns null, which the caller treats as a fail-closed hold. This is the exact-ID / stream /
+// kind / accepted verification the plan requires (verify tenant/stream/order/exact ID before we bind money to it).
+export async function loadAcceptedBookingQuote(db: D1Database, streamId: string, quoteEventId: string): Promise<LedgerEvent | null> {
+  const quote = await loadEvent(db, streamId, quoteEventId, "quote.priced");
+  if (quote === null) return null;
+  const accepted = await db
+    .prepare("SELECT 1 AS present FROM events WHERE stream_id = ? AND kind = 'quote.accepted' AND json_extract(payload, '$.quote_event_id') = ? LIMIT 1")
+    .bind(streamId, quoteEventId)
+    .first<{ present: number }>();
+  return accepted === null ? null : quote;
+}
+
 type ShipmentRow = { bill_to_party_id: string; bill_terms: string | null; division: string; refs: string };
 
 // The bill-to recipient: parties.contacts (a JSON array) is the tenant plane's ONLY email-bearing
@@ -335,9 +363,33 @@ export async function handlePodSigned(message: PodSignedMessage, deps: BillerDep
     });
   }
 
-  // GUARD 2 — an accepted quote with recorded itemized lines must exist (REQ-003/031: the invoice is a
-  // projection of the RECORDED quote). No quote ⇒ HOLD — an unquoted shipment must never invoice ad hoc.
-  const quoteEvent = await loadAcceptedQuote(db, streamId, pod.seq);
+  // GUARD 2 — bind the invoice to the EXACT ACCEPTED BOOKING QUOTE (Task 7, REQ-031/003). The invoice is a
+  // projection of the RECORDED quote the booking ACCEPTED — never "the latest quote.priced before the POD": a
+  // re-quote (quote B) priced AFTER the booking but BEFORE the POD used to win that latest-pre-POD selection and
+  // MIS-BILL (bill B instead of the booked A). Load the stream's single booking.created; when present, resolve
+  // booking.quote_event_id to an ACCEPTED quote.priced ON THIS STREAM (loadAcceptedBookingQuote verifies exact
+  // id / stream / kind / accepted). An UN-booked stream (no booking.created — a legacy/quote-stage shipment)
+  // FALLS BACK to the latest-pre-POD quote (the prior behavior, preserved so an un-booked POD still bills; in
+  // production every real shipment is booked, so the exact-quote binding is what runs).
+  let quoteEvent: LedgerEvent | null;
+  const bookingQuoteRef = await loadBookingQuoteRef(db, streamId);
+  if (bookingQuoteRef !== null) {
+    quoteEvent = await loadAcceptedBookingQuote(db, streamId, bookingQuoteRef);
+    if (quoteEvent === null) {
+      // AUTHORITY INCONSISTENCY (fail closed): the booking names a quote that is not an accepted quote.priced on
+      // THIS stream (dangling / wrong-kind / cross-stream / cross-tenant / never accepted). HOLD — zero money/send.
+      // In production a booking always carries a real accepted quote (the booking agent's GUARD 2 + the
+      // accept-quote route guarantee it), so this is the fail-closed belt, never the golden path.
+      await emitTerminalHoldMarker(seq, msg, streamId, pod.recorded_at, "no_quote");
+      return {
+        status: "held",
+        reason: "no_quote",
+        detail: `booking on ${streamId} names quote ${bookingQuoteRef}, which is not an accepted quote.priced on this stream — cannot bind the invoice (Task 7 authority, REQ-031/003)`,
+      };
+    }
+  } else {
+    quoteEvent = await loadAcceptedQuote(db, streamId, pod.seq);
+  }
   if (quoteEvent === null || quoteEvent.kind !== "quote.priced") {
     // TERMINAL: an unquoted shipment can never invoice ad hoc, and no quote can be recorded before this POD
     // retroactively (append-only + seq<) — so this hold is permanent. Mark it (REQ-169 bounding + surfacing).

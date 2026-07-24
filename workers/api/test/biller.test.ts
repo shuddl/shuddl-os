@@ -552,6 +552,128 @@ describe("Biller consumer — POD fires invoice.issued + evidence send (REQ-031/
   });
 });
 
+// ─── Task 7 (REQ-031/003) — THE INVOICE BINDS TO THE EXACT ACCEPTED BOOKING QUOTE ──────────────────────
+//
+// A booked shipment's invoice MUST project the quote the booking ACCEPTED — never the "latest quote.priced
+// before the POD". The bug: a re-quote (quote B) priced AFTER the booking but BEFORE the POD used to win the
+// latest-pre-POD selection, billing quote B instead of the booked quote A. The fix binds the Biller to
+// booking.created.payload.quote_event_id. An inconsistent booking quote (dangling / wrong-kind / not-accepted
+// on this stream) FAILS CLOSED: a durable held invoice reason, zero money/send.
+describe("Task 7 — the invoice projects the exact accepted booking quote, not a later quote (REQ-031/003)", () => {
+  let t7clock = 1_744_000_000_000;
+  // A penny-parity-valid quote.priced with a chosen sell (lines sum to sell), appended through the real DO.
+  async function seedQuotePricedSell(shipmentId: string, sell: number): Promise<string> {
+    const id = crypto.randomUUID();
+    await seqStub.append({
+      tenant: TENANT,
+      streamId: `s:${shipmentId}`,
+      input: {
+        id,
+        shipment_id: shipmentId,
+        ts: t7clock++,
+        actor: { party: "agent:concierge" },
+        party_refs: [],
+        evidence: [],
+        source: "native",
+        confidence: 10_000,
+        kind: "quote.priced",
+        payload: {
+          sell,
+          lines: [{ kind: "freight", code: "freight", amount_cents: sell }],
+          floors: { contribution: 1, full: 1, target: 1 }, // sell ≫ target ⇒ clears the floor (issues)
+          versions: { rate_config_ids: ["rc-t7-v1"] },
+          basis: {},
+        },
+      },
+    });
+    return id;
+  }
+  async function seedAccepted(shipmentId: string, quoteId: string): Promise<string> {
+    const id = crypto.randomUUID();
+    await seqStub.append({
+      tenant: TENANT,
+      streamId: `s:${shipmentId}`,
+      input: {
+        id, shipment_id: shipmentId, ts: t7clock++, actor: { party: "party-shipper" },
+        party_refs: [], evidence: [], source: "native", confidence: 10_000,
+        kind: "quote.accepted", payload: { quote_event_id: quoteId },
+      },
+    });
+    return id;
+  }
+  // booking.created through the real gated DO — refs `quoteId`. bill_to = party-bill-to (deliverable email,
+  // clear credit) so the T6 gates pass and the booking commits.
+  async function seedBooking(shipmentId: string, quoteId: string): Promise<void> {
+    await seqStub.append({
+      tenant: TENANT,
+      streamId: `s:${shipmentId}`,
+      input: {
+        id: crypto.randomUUID(), shipment_id: shipmentId, ts: t7clock++, actor: { party: "party-shipper" },
+        party_refs: [], evidence: [], source: "native", confidence: 10_000,
+        kind: "booking.created",
+        payload: {
+          quote_event_id: quoteId,
+          shipper_party_id: "party-shipper",
+          consignee_party_id: "party-consignee",
+          bill_to_party_id: "party-bill-to",
+          division: "main",
+        },
+      },
+    });
+    // booking.created materializes skeleton legs whose provisional executor is the bill_to; simulate dispatch
+    // provisioning the tenant's OWN executor (the POD signer, party-carrier) so the shipment is DIRECT — not
+    // misread as interline by resolveInterline (2 distinct executors). The seeded delivery leg keeps its geo.
+    await env.TENANT_A_DB.prepare("UPDATE legs SET executor_party_id = 'party-carrier' WHERE shipment_id = ?").bind(shipmentId).run();
+  }
+
+  it("AUTHORITY CHAIN: quote A priced → accepted → booking refs A → quote B priced later → POD → the invoice equals A (never the later B)", async () => {
+    const shp = "biller-t7-authority";
+    await seedShipment(shp);
+    await seedDeliveryLeg(shp);
+    const sellA = 111_100;
+    const sellB = 222_200; // a DIFFERENT, later quote — must be IGNORED
+    const quoteA = await seedQuotePricedSell(shp, sellA);
+    await seedAccepted(shp, quoteA);
+    await seedBooking(shp, quoteA);
+    await seedQuotePricedSell(shp, sellB); // priced AFTER the booking, BEFORE the POD — the latest-pre-POD trap
+    const podId = await driveToPod(shp);
+
+    const sender = new RecordingSender();
+    const outcome = await handlePodSigned(msgFor(shp, podId), depsWith(sender));
+    expect(outcome.status, JSON.stringify(outcome)).toBe("issued_sent");
+
+    // The invoice projects the BOOKED quote A, never the later B.
+    const inv = (await invoiceEvents(shp))[0]!;
+    const lines = (inv.payload as { lines: { amount_cents: number }[] }).lines;
+    expect(lines.reduce((s, l) => s + l.amount_cents, 0)).toBe(sellA);
+    expect(lines.reduce((s, l) => s + l.amount_cents, 0)).not.toBe(sellB);
+    const moneyTotal = (await moneyLines(shp)).reduce((s, l) => s + l.amount_cents, 0);
+    expect(moneyTotal).toBe(sellA);
+    expect(sender.messages[0]!.html).toContain(formatCents(sellA));
+  });
+
+  it("INCONSISTENT BOOKING QUOTE: a booking whose quote_event_id is not an accepted quote.priced on the stream → held(no_quote), ZERO invoice/money/send", async () => {
+    const shp = "biller-t7-dangling";
+    await seedShipment(shp);
+    await seedDeliveryLeg(shp);
+    // A booking that references a NON-EXISTENT quote (never priced/accepted) — an authority inconsistency.
+    await seedBooking(shp, crypto.randomUUID());
+    // A stray quote.priced exists on the stream, but it is NOT the booked one — the Biller must NOT fall back to it.
+    await seedQuotePricedSell(shp, 150_000);
+    const podId = await driveToPod(shp);
+
+    const sender = new RecordingSender();
+    const outcome = await handlePodSigned(msgFor(shp, podId), depsWith(sender));
+    expect(outcome.status, JSON.stringify(outcome)).toBe("held");
+    if (outcome.status !== "held") throw new Error("unreachable");
+    expect(outcome.reason).toBe("no_quote");
+
+    expect(await invoiceEvents(shp)).toHaveLength(0);
+    expect(await moneyLines(shp)).toHaveLength(0);
+    expect(sender.messages).toHaveLength(0);
+  });
+});
+
 // ─── WP-08 T5 hardening (REQ-028/052) — deliveryStopGeo must PREFER a non-empty-geo delivery leg so the
 // empty booking.created skeleton (deterministic `${id}:delivery`, geo '{}') can never SHADOW the real
 // coordinates T8/dispatch provisions — even if the real leg lands at a HIGHER seq (INSERT, not UPDATE). ──

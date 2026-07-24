@@ -821,6 +821,32 @@ export class ShipmentSequencer extends DurableObject<Env> {
       .first<{ present: number }>();
     if (priorBooking !== null) throw new GateValidationError("shipment_already_booked");
 
+    // Task 7 (REQ-031/003) — BOOKING QUOTE AUTHORITY. booking.created.quote_event_id anchors the accepted quote
+    // the Biller will later project into the invoice, so a booking must never commit bound to a quote it did not
+    // accept. Validated SERVER-SIDE before the append (REQ-030 parity: both the ops/API path and the Booking agent
+    // traverse this DO). SCOPED to a reference that RESOLVES to a real event ON THIS STREAM: if it resolves, it
+    // MUST be a quote.priced that a quote.accepted on this stream NAMES (exact id / stream / kind / accepted) —
+    // else the booking is rejected (VALIDATION_FAILED), ZERO append. A reference that does NOT resolve on this
+    // stream (a cross-stream / cross-tenant / not-yet-materialized id) is deliberately NOT rejected here: the
+    // Biller's fail-closed billing check (loadAcceptedBookingQuote) HOLDS it with zero money/send, and rejecting
+    // every non-co-located reference at write time would break the many existing streams whose booking carries a
+    // placeholder quote id. This gate closes the on-stream wrong-kind / unaccepted holes at write time; the Biller
+    // closes the rest at bill time. `incoming.stream_id` is DO-authoritative.
+    const referencedQuote = await db
+      .prepare("SELECT kind FROM events WHERE stream_id = ? AND id = ? LIMIT 1")
+      .bind(incoming.stream_id, p.quote_event_id)
+      .first<{ kind: string }>();
+    if (referencedQuote !== null) {
+      if (referencedQuote.kind !== "quote.priced") {
+        throw rpcError("VALIDATION_FAILED", { reason: "booking_quote_not_priced" });
+      }
+      const acceptedRef = await db
+        .prepare("SELECT 1 AS present FROM events WHERE stream_id = ? AND kind = 'quote.accepted' AND json_extract(payload, '$.quote_event_id') = ? LIMIT 1")
+        .bind(incoming.stream_id, p.quote_event_id)
+        .first<{ present: number }>();
+      if (acceptedRef === null) throw rpcError("VALIDATION_FAILED", { reason: "booking_quote_not_accepted" });
+    }
+
     // REQ-060 — HAZMAT entitlement (fail-closed, SERVER-SIDE). A booking DECLARED hazmat (payload.hazmat === true)
     // is REFUSED unless THIS tenant's control-plane policy enables it (policy.hazmat_enabled). The entitlement is
     // read from the SERVER control plane keyed off the DO's pinned tenant (#entitlementRow) — NEVER the client
