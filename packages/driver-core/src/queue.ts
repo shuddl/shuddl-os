@@ -5,12 +5,39 @@
 import type { EventInput } from "@shuddl/contracts";
 import type { DeferredUpload } from "./capture.js";
 
+// Task 11 (REQ-016/017) — the DURABLE sync phase persisted per queue item. The sync engine (sync.ts)
+// advances an item through this state machine and PERSISTS the phase after each ACK, so a tab-kill /
+// reload resumes at the exact boundary and never re-sends an already-acked leg:
+//   captured → event_pending → event_acked → evidence_pending → evidence_acked → synced
+export type SyncPhase =
+  | "captured"
+  | "event_pending"
+  | "event_acked"
+  | "evidence_pending"
+  | "evidence_acked"
+  | "synced";
+
+export interface SyncState {
+  phase: SyncPhase;
+  /** Retry attempts for the CURRENT leg (drives the exponential backoff). */
+  attempts: number;
+  /** Clock ms before which this item must not be retried (0 = ready now). */
+  nextAttemptAt: number;
+  /**
+   * A terminal-ish block. `auth` (401) halts the whole sync loop until the session is refreshed; `operator`
+   * (403/422) parks THIS item pending a dispatcher/operator resolution — neither is retried on a timer.
+   */
+  blocked?: { kind: "auth" | "operator"; status: number };
+}
+
 export interface QueueItem {
   /** The event id — the queue's primary key (re-enqueuing the same event is idempotent). */
   id: string;
   event: EventInput;
   /** The deferred evidence upload, if this capture carried bytes (REQ-017). */
   deferred?: DeferredUpload;
+  /** The durable sync phase. Absent on a freshly-enqueued item ⇒ treated as `captured`. */
+  sync?: SyncState;
 }
 
 /**
@@ -44,5 +71,14 @@ export class OfflineQueue {
   /** Drop an item once the sequencer has ACKed it. */
   async markSynced(id: string): Promise<void> {
     await this.store.remove(id);
+  }
+
+  /**
+   * Durably persist an item's updated state (its sync phase). The sync engine calls this after every leg
+   * so the phase survives a reload — the durable `put` resolves only after the write commits (same
+   * durability contract as `enqueue`), which is what makes "resume after event ACK" crash-safe.
+   */
+  async persist(item: QueueItem): Promise<void> {
+    await this.store.put(item);
   }
 }

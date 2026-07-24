@@ -45,13 +45,14 @@ describe("captures — consent precedes the first GPS stamp on EVERY stream (REQ
 // POD FIRES with its evidence bundle; the money + <5s email is WP-06 and is NOT emitted here.
 describe("captures — the delivery terminal fires the POD (delivery.evidenced) with placed hash + geo (REQ-046)", () => {
   const PLACED_HASH = "a1b2c3d4e5f60718293a4b5c6d7e8f90112233445566778899aabbccddeeff00";
-  // The known arrival geo the delivery flow stamps into the POD (captures.ts MOCK_GEO). Asserting the
-  // exact value means a regression that threaded a zeroed/default/wrong geo fails — the POD's whole
-  // semantic is WHERE it was left. WP-05 fires ONLY this POD; the invoice + email is the Biller (WP-06).
+  // The arrival geo threaded into the POD. Task 11 removed the hardcoded MOCK_GEO — geo now comes from
+  // CaptureContext.geo (GatedFlow's foreground watchPosition fix), so the test SUPPLIES it and asserts it
+  // flows through verbatim. A regression that dropped/zeroed the geo still fails — the POD's whole semantic
+  // is WHERE it was left. WP-05 fires ONLY this POD; the invoice + email is the Biller (WP-06).
   const ARRIVAL_GEO = { lat_e6: 45_523_100, lon_e6: -122_676_500, accuracy_m: 5 };
 
   it("`delivered` emits EXACTLY the delivery.evidenced POD with the threaded placed_photo_hash + arrival geo", () => {
-    const caps = capturesForStep("delivery", "delivered", { shipmentId: "s1", ts: 1, placedPhotoHash: PLACED_HASH });
+    const caps = capturesForStep("delivery", "delivered", { shipmentId: "s1", ts: 1, geo: ARRIVAL_GEO, placedPhotoHash: PLACED_HASH });
     expect(caps).toHaveLength(1); // the flow-layer WP-06 boundary: ONE event, the POD — no invoice, no email
     const pod = caps[0];
     expect(pod?.kind).toBe("delivery.evidenced");

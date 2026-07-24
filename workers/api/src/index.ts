@@ -32,6 +32,8 @@ import { mountSignupRoutes } from "./routes/signup.js";
 import { mountTariffRoutes } from "./routes/tariff.js";
 import { mountImportRoutes } from "./routes/import.js";
 import { mountInternalPlatformRoutes } from "./routes/internal-platform.js";
+import { mountDriverManifestRoutes } from "./routes/driver-manifest.js";
+import { mountDeviceRoutes } from "./routes/devices.js";
 
 export type Env = {
   TENANT_A_DB: D1Database;
@@ -247,6 +249,19 @@ mountImportRoutes(app);
 // The billing worker (over the API service binding) appends credit money events onto `_platform` through the REAL
 // sequencer here — the ONLY caller that sets the sequencer's `platform: true` flag (the isolation invariant).
 mountInternalPlatformRoutes(app);
+// Task 10 (REQ-030/025/013): GET /v1/driver/manifest — the driver PWA's authenticated, server-scoped day
+// sheet that REPLACES the fictional DAY_SHEET fixture. Tenant + driver resolve from the JWT claim ONLY
+// (resolveTenantDb + session.sub vs status_cache.assigned_driver), so a cross-driver/cross-tenant probe
+// returns no stops; the POD-before-next-address reveal is enforced server-side (withheld future geo is
+// serialized null). A /v1 route, so auth + idempotency already apply; requireRole("driver") inside. NO new
+// table/kind/projection — a durable read over shipments (status_cache) + legs + events.
+mountDriverManifestRoutes(app);
+// Task 11 Step 4 (REQ-013/016/011/025): POST/GET /v1/devices + POST /v1/devices/:id/revoke — authenticated
+// device enrollment. Binds a driver's P-256 PUBLIC key (device_id DERIVED server-side, never body-trusted)
+// to the authenticated principal (session.sub) in the JWT tenant, with uniqueness, revocation, and tenant
+// isolation. A /v1 route, so auth + idempotency already apply; requireRole("driver") inside. Writes only
+// the control-plane users.device_keys[] — NO tenant table/kind.
+mountDeviceRoutes(app);
 
 app.notFound((c) => envelope(c, "NOT_FOUND", 404, "NOT FOUND"));
 
