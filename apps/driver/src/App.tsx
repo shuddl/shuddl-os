@@ -8,6 +8,7 @@ import { GatedFlow } from "./components/GatedFlow.js";
 import { Screen } from "./components/Screen.js";
 import { createManifestClient, type ManifestClient } from "./api/client.js";
 import { createAuthSession, type AuthSession } from "./auth/session.js";
+import { useSync } from "./sync/useSync.js";
 
 // DRIVER PWA (doc 07 §03) — the day sheet + the gated per-stop flow, now over an AUTHENTICATED server
 // read (Task 10, REQ-030/025/013). The FICTIONAL DAY_SHEET fixture is GONE: the App fetches the driver's
@@ -76,6 +77,9 @@ export function App(deps: AppDeps = {}): React.JSX.Element {
   const [client] = useState<ManifestClient>(
     () => deps.client ?? createManifestClient({ baseUrl: apiBase(), getToken: () => session.getToken() }),
   );
+  // Task 11 — drain the durable offline capture queue in the background while the driver is signed in and
+  // foreground. Inert without IndexedDB (test/SSR); a 401 here clears the session, same as the manifest read.
+  useSync({ session, baseUrl: apiBase() });
   const [data, setData] = useState<Data>({ kind: "loading" });
   const [view, setView] = useState<View>({ kind: "daysheet" });
   // The last manifest that loaded cleanly — the source of the `stale` state when a later refresh fails.

@@ -33,6 +33,7 @@ import { mountTariffRoutes } from "./routes/tariff.js";
 import { mountImportRoutes } from "./routes/import.js";
 import { mountInternalPlatformRoutes } from "./routes/internal-platform.js";
 import { mountDriverManifestRoutes } from "./routes/driver-manifest.js";
+import { mountDeviceRoutes } from "./routes/devices.js";
 
 export type Env = {
   TENANT_A_DB: D1Database;
@@ -255,6 +256,12 @@ mountInternalPlatformRoutes(app);
 // serialized null). A /v1 route, so auth + idempotency already apply; requireRole("driver") inside. NO new
 // table/kind/projection — a durable read over shipments (status_cache) + legs + events.
 mountDriverManifestRoutes(app);
+// Task 11 Step 4 (REQ-013/016/011/025): POST/GET /v1/devices + POST /v1/devices/:id/revoke — authenticated
+// device enrollment. Binds a driver's P-256 PUBLIC key (device_id DERIVED server-side, never body-trusted)
+// to the authenticated principal (session.sub) in the JWT tenant, with uniqueness, revocation, and tenant
+// isolation. A /v1 route, so auth + idempotency already apply; requireRole("driver") inside. Writes only
+// the control-plane users.device_keys[] — NO tenant table/kind.
+mountDeviceRoutes(app);
 
 app.notFound((c) => envelope(c, "NOT_FOUND", 404, "NOT FOUND"));
 

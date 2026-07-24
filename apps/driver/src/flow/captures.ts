@@ -9,19 +9,28 @@ import type { StepId, StopKind } from "./stop-flow.js";
 
 // REQ-071 (positions v1 — gate-stamp half BUILT): "positions v1 = driver GPS 30s moving + gate stamps". The
 // GATE STAMPS (stop.arrived / stop.departed, each carrying a GeoStamp below) are emitted here as part of the
-// flow. The continuous 30s-cadence position.updated emitter (the "GPS 30s moving" half → the live map dot) is
-// a FOLLOW-UP: the payload contract exists (PositionUpdatedPayload) but no background cadence loop ships in WP-05.
-// REQ-070 (battery/data budget — [CONFIRM]/pilot): the <5%/day-at-30s budget is a FIELD MEASUREMENT on a real
-// device, not a CI claim; its intended mechanism is that same 30s position cadence (the follow-up emitter),
-// whose power/data cost is measured at pilot.
-const MOCK_GEO = { lat_e6: 45_523_100, lon_e6: -122_676_500, accuracy_m: 5 } as const;
+// flow. Task 11 removes the hardcoded MOCK_GEO: the geo comes from the foreground `watchPosition` reader in
+// GatedFlow (a real device fix), threaded in as `ctx.geo`. A GPS step is only reached with a fresh permitted
+// fix (GatedFlow gates it behind an explicit permission/stale screen), so `ctx.geo` is present in production;
+// absence never fabricates a coordinate — a GPS payload with no geo fails capture (EventInput.parse), which
+// GatedFlow surfaces rather than enqueuing a fake stamp. The continuous 30s position.updated cadence (the live
+// map dot) remains a follow-up. REQ-070 battery/data budget stays a [CONFIRM]/pilot FIELD measurement.
 const DRIVER_USER = "u:driver";
 const SHIPPER_PARTY = "p:shipper";
 const CARRIER_PARTY = "p:carrier";
 
+/** A device GPS fix (integer microdegrees, canonical law) — the geo stamped into a GPS-bearing capture. */
+export interface GeoFix {
+  readonly lat_e6: number;
+  readonly lon_e6: number;
+  readonly accuracy_m?: number;
+}
+
 export interface CaptureContext {
   readonly shipmentId: string;
   readonly ts: number;
+  /** The current foreground GPS fix, threaded from GatedFlow's watchPosition reader (Task 11). */
+  readonly geo?: GeoFix;
   /** Evidence bytes for the current step (a photo frame or signature strokes), when applicable. */
   readonly bytes?: Uint8Array;
   /** The placed-freight photo hash, threaded from photo_placed → delivered's delivery.evidenced. */
@@ -33,6 +42,7 @@ type Base = Pick<CaptureParams, "shipment_id" | "ts">;
 /** The event(s) a completed step emits, in capture order. Empty when a step has no artifact to persist yet. */
 export function capturesForStep(kind: StopKind, stepId: StepId, ctx: CaptureContext): CaptureParams[] {
   const base: Base = { shipment_id: ctx.shipmentId, ts: ctx.ts };
+  const geo = ctx.geo; // a real device fix (present when a GPS step is reached); never a mock
 
   switch (stepId) {
     case "arrive": {
@@ -40,7 +50,7 @@ export function capturesForStep(kind: StopKind, stepId: StepId, ctx: CaptureCont
       // alike — emits the consent doc (derived from the session ack) BEFORE its `stop.arrived`. The
       // first (pickup) stop of the day would otherwise 403 ["consent"] the moment sync lands (Task 9).
       const consent: CaptureParams = { ...base, kind: "document.attached", payload: consentAckPayload() };
-      const arrived: CaptureParams = { ...base, kind: "stop.arrived", payload: { geo: MOCK_GEO, auto: false } };
+      const arrived: CaptureParams = { ...base, kind: "stop.arrived", payload: { geo, auto: false } };
       return [consent, arrived];
     }
     case "count":
@@ -55,19 +65,19 @@ export function capturesForStep(kind: StopKind, stepId: StepId, ctx: CaptureCont
           ...base,
           kind: "custody.transferred",
           actor_user: DRIVER_USER,
-          payload: { from_party: SHIPPER_PARTY, to_party: CARRIER_PARTY, geo: MOCK_GEO },
+          payload: { from_party: SHIPPER_PARTY, to_party: CARRIER_PARTY, geo },
         }];
       }
-      return [podSigned(base, ctx.bytes)];
+      return [podSigned(base, geo, ctx.bytes)];
     case "photo_placed":
       return [freightPhoto(base, "placed", ctx.bytes)];
     case "depart":
-      return [{ ...base, kind: "stop.departed", payload: { geo: MOCK_GEO, auto: false, out_for_delivery: true } }];
+      return [{ ...base, kind: "stop.departed", payload: { geo, auto: false, out_for_delivery: true } }];
     case "delivered":
       // The gated transition. Reuses the placed photo hash captured at photo_placed (delivery.evidenced
       // requires it). If somehow absent, emit nothing rather than a schema-invalid event.
       return ctx.placedPhotoHash
-        ? [{ ...base, kind: "delivery.evidenced", payload: { placed_photo_hash: ctx.placedPhotoHash, geo: MOCK_GEO } }]
+        ? [{ ...base, kind: "delivery.evidenced", payload: { placed_photo_hash: ctx.placedPhotoHash, geo } }]
         : [];
   }
 }
@@ -77,7 +87,7 @@ function freightPhoto(base: Base, photo_kind: "freight" | "placed", bytes?: Uint
   return bytes ? { ...params, evidence: { bytes, field: "photo_hash" } } : params;
 }
 
-function podSigned(base: Base, bytes?: Uint8Array): CaptureParams {
-  const params: CaptureParams = { ...base, kind: "pod.signed", actor_user: DRIVER_USER, payload: { geo: MOCK_GEO } };
+function podSigned(base: Base, geo: GeoFix | undefined, bytes?: Uint8Array): CaptureParams {
+  const params: CaptureParams = { ...base, kind: "pod.signed", actor_user: DRIVER_USER, payload: { geo } };
   return bytes ? { ...params, evidence: { bytes, field: "signature_hash" } } : params;
 }
