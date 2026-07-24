@@ -74,15 +74,15 @@ export function gateResultProblem(g: GateResult): string | null {
 
 function recordProblems(record: EvidenceRecord): string[] {
   const problems: string[] = [];
-  const strings: [keyof EvidenceRecord, string][] = [
+  const required: [string, unknown][] = [
     ["commit", record?.commit],
     ["environment", record?.environment],
     ["generatedAt", record?.generatedAt],
     ["expiresAt", record?.expiresAt],
     ["fixturesHash", record?.fixturesHash],
     ["deployment", record?.deployment],
-  ].map(([k, v]) => [k, v as string]);
-  for (const [k, v] of strings) if (typeof v !== "string" || v.length === 0) problems.push(`missing ${String(k)}`);
+  ];
+  for (const [k, v] of required) if (typeof v !== "string" || v.length === 0) problems.push(`missing ${k}`);
   if (record?.profile !== "merge" && record?.profile !== "release") problems.push("profile must be 'merge' or 'release'");
   if (!Array.isArray(record?.gates) || record.gates.length === 0) {
     problems.push("gates missing or empty — a record that asserted nothing proves nothing");
