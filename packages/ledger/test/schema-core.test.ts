@@ -4,6 +4,7 @@ import { applyMigrations } from "../src/migrate.js";
 import ledgerCore from "../../../db/tenant/migrations/0001_ledger_core.sql?raw";
 import domain from "../../../db/tenant/migrations/0002_domain.sql?raw";
 import insertGuards from "../../../db/tenant/migrations/0003_insert_guards.sql?raw";
+import uniqueGuards from "../../../db/tenant/migrations/0008_append_only_unique_guards.sql?raw";
 
 // Task 2 (REQ-011, REQ-002, I3): events + positions against a REAL D1 (pool-workers),
 // proving the append-only guards, the composite PK, the stream_id/shipment_id CHECK,
@@ -48,6 +49,31 @@ async function insertPosition(deviceId: string): Promise<D1Result> {
     .run();
 }
 
+// A money_lines row (append-only projection, I1). event_id is a FK into events(id), so the
+// two events it points at must already exist. corrects_event_id is a free TEXT (no FK) that
+// feeds the ux_ml_corrects UNIQUE INDEX (corrects_event_id, line_no) WHERE corrects_event_id IS NOT NULL.
+function moneyLineRow(over: Row = {}): Row {
+  return {
+    id: `ml-${(n += 1)}`,
+    shipment_id: "ship1",
+    event_id: "mlE-a",
+    line_no: 1,
+    direction: "ar",
+    kind: "correction_credit",
+    amount_cents: 100,
+    currency: "USD",
+    party_id: "p:acme",
+    division: "main",
+    gl_map: "{}",
+    created_ts: 1000,
+    ...over,
+  };
+}
+function moneyLineStmt(verb: "INSERT" | "INSERT OR REPLACE", row: Row): D1PreparedStatement {
+  const c = Object.keys(row);
+  return DB.prepare(`${verb} INTO money_lines (${c.join(", ")}) VALUES (${c.map(() => "?").join(", ")})`).bind(...Object.values(row));
+}
+
 beforeAll(async () => {
   // 0003's money_lines_guard_ins references the money_lines table (0002), so the full tenant
   // migration set is applied here; the events/positions assertions below are unaffected by it.
@@ -55,6 +81,8 @@ beforeAll(async () => {
     { path: "0001_ledger_core.sql", sql: ledgerCore },
     { path: "0002_domain.sql", sql: domain },
     { path: "0003_insert_guards.sql", sql: insertGuards },
+    // 0008 adds the events.hash / ux_events_device and money_lines ux_ml_corrects BEFORE INSERT guards.
+    { path: "0008_append_only_unique_guards.sql", sql: uniqueGuards },
   ]);
 });
 
@@ -142,5 +170,64 @@ describe("Task 2 fix — REPLACE cannot rewrite history (I3, recursive_triggers=
   it("a normal INSERT of a genuinely new event still succeeds (happy path — Task 13 appends these)", async () => {
     const r = await insertEvent(eventRow({ seq: 60 }));
     expect(r.success).toBe(true);
+  });
+});
+
+// Task 5 (REQ-002, REQ-011, I3, I1): 0003's events_guard_ins WHEN-clause enumerated ONLY (stream_id, seq)
+// and id; it OMITTED the `hash` UNIQUE column and the ux_events_device UNIQUE index. money_lines_guard_ins
+// omitted ux_ml_corrects. So an out-of-band INSERT OR REPLACE colliding ONLY on one of those un-enumerated
+// keys (not on the enumerated PK/id) slipped past the BEFORE INSERT guard, and — with recursive_triggers=0
+// — REPLACE's implicit DELETE (which never fires the BEFORE DELETE guard) SILENTLY erased the chained
+// victim row. Migration 0008 enumerates every remaining uniqueness surface, so each collision now aborts
+// and the victim stays byte-for-byte intact.
+describe("Task 5 — REPLACE cannot destroy a row through an UNENUMERATED unique key (0008)", () => {
+  const cols =
+    "stream_id, seq, id, shipment_id, ts, recorded_at, kind, actor_party_id, prev_hash, hash, visibility";
+  const devCols = `${cols}, device_id, device_seq`;
+
+  it("INSERT OR REPLACE colliding ONLY on the events.hash UNIQUE is aborted; the victim is byte-for-byte intact", async () => {
+    await insertEvent(eventRow({ seq: 80, id: "hash-victim", hash: "a".repeat(64) }));
+    const before = await DB.prepare("SELECT * FROM events WHERE id = 'hash-victim'").first();
+    await expect(
+      DB.prepare(
+        // same hash, but a fresh (stream_id, seq) and a fresh id: the ONLY collision is events.hash UNIQUE
+        `INSERT OR REPLACE INTO events (${cols}) VALUES ('s:ship1', 81, 'hash-attacker', 'ship1', 2000, 2000, 'quote.priced', 'p:evil', ?, ?, 'internal')`,
+      )
+        .bind("0".repeat(64), "a".repeat(64))
+        .run(),
+    ).rejects.toThrow(/I3/);
+    const after = await DB.prepare("SELECT * FROM events WHERE id = 'hash-victim'").first();
+    expect(after).toEqual(before); // present + byte-for-byte unchanged, NOT replaced by the attacker
+    expect((after as { seq: number } | null)?.seq).toBe(80);
+  });
+
+  it("INSERT OR REPLACE colliding ONLY on ux_events_device (stream_id, device_id, device_seq) is aborted; victim intact", async () => {
+    await insertEvent(eventRow({ seq: 70, id: "dev-victim", device_id: "dev-X", device_seq: 9 }));
+    const before = await DB.prepare("SELECT * FROM events WHERE id = 'dev-victim'").first();
+    await expect(
+      DB.prepare(
+        // fresh seq/id/hash — the ONLY collision is the ux_events_device tuple (s:ship1, dev-X, 9)
+        `INSERT OR REPLACE INTO events (${devCols}) VALUES ('s:ship1', 71, 'dev-attacker', 'ship1', 2000, 2000, 'quote.priced', 'p:evil', ?, ?, 'internal', 'dev-X', 9)`,
+      )
+        .bind("0".repeat(64), "d".repeat(64))
+        .run(),
+    ).rejects.toThrow(/I3/);
+    const after = await DB.prepare("SELECT * FROM events WHERE id = 'dev-victim'").first();
+    expect(after).toEqual(before);
+    expect((after as { seq: number } | null)?.seq).toBe(70);
+  });
+
+  it("INSERT OR REPLACE colliding ONLY on ux_ml_corrects (corrects_event_id, line_no) is aborted; victim intact", async () => {
+    await insertEvent(eventRow({ seq: 100, id: "mlE-a" }));
+    await insertEvent(eventRow({ seq: 101, id: "mlE-b" }));
+    await moneyLineStmt("INSERT", moneyLineRow({ id: "ml-victim", event_id: "mlE-a", line_no: 1, corrects_event_id: "CE-1" })).run();
+    const before = await DB.prepare("SELECT * FROM money_lines WHERE id = 'ml-victim'").first();
+    await expect(
+      // fresh id + fresh (event_id, line_no) → the ONLY collision is ux_ml_corrects (CE-1, 1)
+      moneyLineStmt("INSERT OR REPLACE", moneyLineRow({ id: "ml-attacker", event_id: "mlE-b", line_no: 1, corrects_event_id: "CE-1" })).run(),
+    ).rejects.toThrow(/I1/);
+    const after = await DB.prepare("SELECT * FROM money_lines WHERE id = 'ml-victim'").first();
+    expect(after).toEqual(before);
+    expect((after as { id: string } | null)?.id).toBe("ml-victim");
   });
 });

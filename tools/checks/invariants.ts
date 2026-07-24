@@ -43,6 +43,131 @@ const onConflictUpdateRe = (tables: string): RegExp =>
 
 export type InvariantResult = { ok: boolean; tableCount: number; violations: string[]; warnings: string[] };
 
+// ---- guard-completeness (Task 5, REQ-002/011) --------------------------------------------------------
+// A BEFORE INSERT guard only closes the recursive_triggers=0 REPLACE hole for the UNIQUE keys its WHEN
+// clause actually enumerates. Any UNIQUE column / UNIQUE(...) constraint / PRIMARY KEY / CREATE UNIQUE
+// INDEX on a guarded table that NO guard-ins predicate covers is an open door — an INSERT OR REPLACE
+// colliding there deletes the chained victim row while the guard stays silent. Below: extract every
+// unique target's column-set, extract every guard-ins disjunct's equality column-set, require each
+// target to be enumerated (exact set match) by some disjunct.
+
+// Normalize an identifier: drop a wrapping quote/backtick/bracket, lowercase.
+function normIdent(s: string): string {
+  return s.trim().replace(/^["'`[]/, "").replace(/["'`\]]$/, "").toLowerCase();
+}
+// A comma-separated column list → the leading identifier of each entry (drops ASC/DESC/COLLATE tails).
+function colList(list: string): string[] {
+  return list.split(",").map((c) => normIdent(c.trim().split(/\s+/)[0] ?? "")).filter(Boolean);
+}
+// The parenthesized body of `CREATE TABLE <table> ( ... )`, via string-aware balanced-paren matching so a
+// string literal or a nested CHECK(... IN (...)) cannot throw the depth count off.
+function tableBody(clean: string, table: string): string | null {
+  const re = new RegExp(`CREATE\\s+TABLE(?:\\s+IF\\s+NOT\\s+EXISTS)?${DELIM}${SCHEMA}${Q}${table}${QCLOSE}\\s*\\(`, "i");
+  const m = re.exec(clean);
+  if (!m) return null;
+  let depth = 1;
+  const start = m.index + m[0].length;
+  let i = start;
+  while (i < clean.length && depth > 0) {
+    const ch = clean.charAt(i);
+    if (ch === "'") { i += 1; while (i < clean.length && clean.charAt(i) !== "'") i += 1; }
+    else if (ch === "(") depth += 1;
+    else if (ch === ")") depth -= 1;
+    i += 1;
+  }
+  return clean.slice(start, i - 1);
+}
+// Split a table body / clause on top-level commas — respecting parens and single-quoted strings.
+function splitTopLevel(body: string, sep: "," | "or"): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let buf = "";
+  let i = 0;
+  while (i < body.length) {
+    const ch = body.charAt(i);
+    if (ch === "'") { buf += ch; i += 1; while (i < body.length) { buf += body.charAt(i); if (body.charAt(i) === "'") { i += 1; break; } i += 1; } continue; }
+    if (ch === "(") { depth += 1; buf += ch; i += 1; continue; }
+    if (ch === ")") { depth -= 1; buf += ch; i += 1; continue; }
+    if (depth === 0 && sep === "," && ch === ",") { parts.push(buf); buf = ""; i += 1; continue; }
+    if (depth === 0 && sep === "or" && (ch === "O" || ch === "o") && /r/i.test(body.charAt(i + 1))) {
+      const before = i === 0 ? " " : body.charAt(i - 1);
+      const after = i + 2 >= body.length ? " " : body.charAt(i + 2);
+      if (!/\w/.test(before) && !/\w/.test(after)) { parts.push(buf); buf = ""; i += 2; continue; }
+    }
+    buf += ch;
+    i += 1;
+  }
+  parts.push(buf);
+  return parts;
+}
+// Every UNIQUE target on a guarded table, each as a sorted column-set: table-level PRIMARY KEY / UNIQUE(...),
+// column-level PRIMARY KEY / UNIQUE, and every CREATE UNIQUE INDEX ... ON <table> (...).
+function uniqueTargets(clean: string, table: string): string[][] {
+  const targets: string[][] = [];
+  const body = tableBody(clean, table);
+  if (body) {
+    for (const raw of splitTopLevel(body, ",")) {
+      const item = raw.trim();
+      let mm: RegExpExecArray | null;
+      if ((mm = /^PRIMARY\s+KEY\s*\(([^)]*)\)/i.exec(item))) targets.push(colList(mm[1]));
+      else if ((mm = /^UNIQUE\s*\(([^)]*)\)/i.exec(item))) targets.push(colList(mm[1]));
+      else if (/^(?:CONSTRAINT\b|CHECK\b|FOREIGN\s+KEY\b|PRIMARY\s+KEY\b|UNIQUE\b)/i.test(item)) {
+        // a table-level constraint form other than the two handled above — no column target to add
+      } else {
+        // a column definition: `<name> <type> [constraints…]`
+        const first = item.split(/\s+/)[0] ?? "";
+        const name = normIdent(first);
+        if (!name) continue;
+        const rest = item.slice(first.length);
+        if (/\bPRIMARY\s+KEY\b/i.test(rest) || /\bUNIQUE\b/i.test(rest)) targets.push([name]);
+      }
+    }
+  }
+  const idxRe = new RegExp(
+    `CREATE\\s+UNIQUE\\s+INDEX(?:\\s+IF\\s+NOT\\s+EXISTS)?\\s+${SCHEMA}${Q}\\w+${QCLOSE}\\s+ON${DELIM}${SCHEMA}${Q}${table}${QCLOSE}\\s*\\(([^)]*)\\)`,
+    "gi",
+  );
+  for (const m of clean.matchAll(idxRe)) targets.push(colList(m[1]));
+  return targets;
+}
+// Every BEFORE INSERT guard on a guarded table, decomposed into its OR-disjuncts, each disjunct as the set
+// of columns it compares for EQUALITY against NEW.* (a `col = NEW.col`). Non-equality refinements
+// (`hash <> NEW.hash`, `NEW.x IS NOT NULL`, json_type(...)) contribute no column and are ignored.
+function guardPredicateSets(clean: string, table: string): Set<string>[] {
+  const sets: Set<string>[] = [];
+  const re = new RegExp(
+    `CREATE\\s+TRIGGER\\s+${SCHEMA}${Q}\\w+${QCLOSE}\\s+BEFORE\\s+INSERT\\s+ON${DELIM}${SCHEMA}${Q}${table}${QCLOSE}\\s+WHEN\\s+EXISTS\\s*\\(\\s*SELECT[\\s\\S]*?\\bWHERE\\b([\\s\\S]*?)\\)\\s*BEGIN`,
+    "gi",
+  );
+  for (const m of clean.matchAll(re)) {
+    for (const disj of splitTopLevel(m[1] ?? "", "or")) {
+      const set = new Set<string>();
+      for (const eq of disj.matchAll(/(\w+)\s*=\s*NEW\.\w+/gi)) set.add(eq[1].toLowerCase());
+      if (set.size > 0) sets.push(set);
+    }
+  }
+  return sets;
+}
+function checkGuardCompleteness(clean: string, tables: ReadonlySet<string>): string[] {
+  const violations: string[] = [];
+  for (const t of GUARDED_TABLES) {
+    if (!tables.has(t)) continue;
+    const guardSets = guardPredicateSets(clean, t);
+    for (const target of uniqueTargets(clean, t)) {
+      if (target.length === 0) continue;
+      const want = new Set(target);
+      const covered = guardSets.some((s) => s.size === want.size && [...want].every((c) => s.has(c)));
+      if (!covered) {
+        violations.push(
+          `I3 VIOLATION: append-only guard completeness — the UNIQUE target (${target.join(", ")}) on ${t} has no BEFORE INSERT guard predicate enumerating it; ` +
+            `an INSERT OR REPLACE colliding on it would silently delete a chained row (D1 recursive_triggers=0). Add it to a *_guard_ins WHEN clause.`,
+        );
+      }
+    }
+  }
+  return violations;
+}
+
 export function checkMigrationSql(sqlFiles: string[]): InvariantResult {
   const violations: string[] = [];
   const warnings: string[] = [];
@@ -160,6 +285,10 @@ export function checkMigrationSql(sqlFiles: string[]): InvariantResult {
       }
     }
   }
+  // Completeness: a guard-ins is only as good as the UNIQUE keys its WHEN clause enumerates. Every UNIQUE
+  // target on a guarded table must be covered, or an INSERT OR REPLACE colliding on the uncovered key
+  // silently deletes a chained row (recursive_triggers=0). A new unique target without coverage fails here.
+  violations.push(...checkGuardCompleteness(clean, tables));
   return { ok: violations.length === 0, tableCount: effective, violations, warnings };
 }
 
