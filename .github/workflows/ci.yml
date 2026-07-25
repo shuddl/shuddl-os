@@ -38,9 +38,11 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
       - name: strict visual (merge mode — an absent browser BLOCKS, never skips)
         run: pnpm test:visual -- --mode merge
-      - name: strict accessibility (merge mode)
+      - name: strict accessibility — zero serious/critical axe findings (merge mode)
         run: pnpm test:a11y -- --mode merge
-      - name: strict performance — 1K-entity map frame budget (merge mode)
+      - name: strict end-to-end — driver offline durability + portal party isolation (merge mode)
+        run: pnpm test:e2e -- --mode merge
+      - name: strict performance — 1K-entity interaction + long-task budget (merge mode)
         run: pnpm perf:map -- --mode merge
       - name: merge evidence gate — the complete non-skippable surface (REQ-288)
         env:

@@ -33,12 +33,33 @@ describe("CI strict browser/accessibility/performance jobs", () => {
     expect(CI).toMatch(/playwright install/);
   });
 
-  it("runs strict visual, accessibility, and performance in merge mode (BLOCK, never skip)", () => {
+  it("runs strict visual, accessibility, end-to-end, and performance in merge mode (BLOCK, never skip)", () => {
     expect(CI).toMatch(/test:visual/);
     expect(CI).toMatch(/test:a11y/);
+    expect(CI).toMatch(/test:e2e/);
     expect(CI).toMatch(/perf:map/);
     // the strict browser gates are invoked in a non-local mode so an absent browser BLOCKS rather than skips
     expect(CI).toMatch(/--mode merge/);
+  });
+});
+
+describe("each browser gate selects its own Playwright project", () => {
+  // Task 14: `test:a11y` used to point at a config whose testDir was ./tests/visual, so the accessibility
+  // step silently re-ran the screenshot tests. A gate whose name does not match the tests it runs is
+  // worse than no gate — it reports a green for a claim nobody checked.
+  const PKG = JSON.parse(readFileSync("package.json", "utf8")) as { scripts: Record<string, string> };
+
+  it.each([
+    ["test:visual", "visual"],
+    ["test:a11y", "a11y"],
+    ["test:e2e", "e2e"],
+  ])("%s runs --project %s", (script, project) => {
+    expect(PKG.scripts[script]).toContain(`--project ${project}`);
+  });
+
+  it("declares a distinct project per gate so no two gates run the same tests", () => {
+    const projects = ["test:visual", "test:a11y", "test:e2e"].map((s) => /--project (\S+)/.exec(PKG.scripts[s] ?? "")?.[1]);
+    expect(new Set(projects).size).toBe(3);
   });
 });
 

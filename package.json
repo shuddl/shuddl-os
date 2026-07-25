@@ -30,8 +30,9 @@
     "check:seed": "tsx tools/seed/verify.ts",
     "audit:design": "tsx tools/design/audit.ts",
     "perf:map": "tsx tools/harness/playwright-guard.ts perf packages/map/playwright.config.ts",
-    "test:visual": "tsx tools/harness/playwright-guard.ts visual playwright.config.ts",
-    "test:a11y": "tsx tools/harness/playwright-guard.ts a11y playwright.config.ts",
+    "test:visual": "tsx tools/harness/playwright-guard.ts visual playwright.config.ts --project visual",
+    "test:a11y": "tsx tools/harness/playwright-guard.ts a11y playwright.config.ts --project a11y",
+    "test:e2e": "tsx tools/harness/playwright-guard.ts e2e playwright.config.ts --project e2e",
     "test:acceptance": "tsx tools/acceptance/run.ts",
     "verify:dev": "pnpm check:runtime && pnpm typecheck && pnpm lint && pnpm test && pnpm check:invariants && pnpm check:rater-purity && pnpm check:authority-coverage && pnpm check:traceability && pnpm check:coverage && pnpm check:identity && pnpm check:fixtures && pnpm check:rater-parity && pnpm check:invoice-parity && pnpm check:concierge-parity && pnpm check:seed && pnpm audit:design",
     "verify:merge": "tsx tools/release/run-gate.ts --profile merge",
@@ -39,6 +40,8 @@
     "verify": "pnpm verify:dev"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.12.1",
+    "@playwright/test": "1.61.1",
     "@shuddl/contracts": "workspace:*",
     "@shuddl/ledger": "workspace:*",
     "@types/node": "^26.1.1",

@@ -61,6 +61,8 @@ function gatesFor(profile: Profile): GateSpec[] {
     { kind: "cmd", gate: "concierge-parse", script: "check:concierge-parity", modeArg: true },
     { kind: "cmd", gate: "perf", script: "perf:map", modeArg: true },
     { kind: "cmd", gate: "visual", script: "test:visual", modeArg: true },
+    { kind: "cmd", gate: "a11y", script: "test:a11y", modeArg: true },
+    { kind: "cmd", gate: "e2e", script: "test:e2e", modeArg: true },
   ];
   if (profile === "merge") return [...plain, ...skippable];
   // release adds the infra evidence that this repo cannot produce without prod creds / Task-15 tooling —
