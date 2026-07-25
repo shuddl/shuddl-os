@@ -30,3 +30,26 @@ Live send is OFF until both `RESEND_API_KEY` and `EVIDENCE_FROM` are present in 
 3. Revoke the old key for future use; run chain verification over a device's history spanning the rotation.
 
 The drill is executable once device signing lands (WP-05); the procedure is law now so WP-05 builds to it.
+
+## Release-tooling inputs (Task 15)
+
+Never committed; supplied per environment by the operator or by CI.
+
+| Name | Consumer | Purpose | Absent ⇒ |
+|---|---|---|---|
+| `SMOKE_API_BASE` | `pnpm smoke:staging` | the deployed API origin to smoke | BLOCKED (2) |
+| `SMOKE_JWT_SECRET` / `SMOKE_JWT_SECRET_FILE` | `pnpm smoke:staging` | mints the ops/driver sessions the smoke drives | BLOCKED (2) |
+| `SMOKE_CONTROL_DB` / `SMOKE_TENANT_DB` | `pnpm smoke:staging` | override the seeded database names | defaults to `*-<RELEASE_ENVIRONMENT>` |
+| `DEPLOYMENT_VERSION` | `pnpm smoke:staging` | pins the evidence record to a deployment | resolved via `wrangler deployments list`, else `unresolved` |
+| `RELEASE_ENVIRONMENT` | run-gate, preflight, smoke | which environment the evidence describes | `staging` |
+| `CLOUDFLARE_API_TOKEN` | nightly `backup` job | `wrangler d1 export` | BLOCKED (2) — **no backup is taken** |
+| `CLOUDFLARE_ACCOUNT_ID` | nightly `backup` job | account scope | BLOCKED (2) |
+| `IDENTITY_DENYLIST` | `pnpm check:identity` | REQ-167 leak lint | BLOCKED in CI |
+| `PERF_REFERENCE_MACHINE` | `pnpm perf:map` | enables the 55 FPS assertion | FPS measured, not enforced |
+
+**The smoke JWT secret was previously read from a hardcoded scratchpad path containing a dead session
+id** — a path no machine but one could ever satisfy. It is an environment input now.
+
+Canary: `tools/deploy/preflight.ts` BLOCKS any environment whose `JWT_SECRET` equals the in-repo test
+value `test-secret-do-not-use-in-prod`; a forged token would otherwise be accepted. Secret VALUES are
+never echoed into a preflight problem detail — only names.

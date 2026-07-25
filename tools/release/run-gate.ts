@@ -65,15 +65,20 @@ function gatesFor(profile: Profile): GateSpec[] {
     { kind: "cmd", gate: "e2e", script: "test:e2e", modeArg: true },
   ];
   if (profile === "merge") return [...plain, ...skippable];
-  // release adds the infra evidence that this repo cannot produce without prod creds / Task-15 tooling —
-  // declared BLOCKED, never faked green. These are the named external HOLDs.
-  const releaseExternal: GateSpec[] = [
-    { kind: "external", gate: "deploy-preflight", detail: "tools/deploy/preflight.ts (Task 15) + prod D1/R2/KV/queue/DO bindings, secrets, routes" },
-    { kind: "external", gate: "restore-verify", detail: "tools/deploy/restore-verify.ts (Task 15) + a backup artifact to reconcile" },
-    { kind: "external", gate: "staging-smoke", detail: "a deployed environment + JWT secret (tools/deploy/staging-smoke.ts)" },
-    { kind: "external", gate: "backup-manifest", detail: "OIDC/external backup credentials (nightly export) — absent in-repo" },
+  // Release adds the infra evidence. Task 15 turned three of these from hardcoded "external" declarations
+  // into REAL commands: each now runs, inspects what it can actually see, and returns its own structured
+  // verdict — PASS when the environment genuinely satisfies it, BLOCKED (exit 2) when a prerequisite is
+  // absent. That is strictly stronger than a hardcoded BLOCKED, which could never become a pass and so
+  // could never tell you the environment had been fixed.
+  const releaseInfra: GateSpec[] = [
+    { kind: "cmd", gate: "deploy-preflight", script: "preflight", modeArg: true },
+    { kind: "cmd", gate: "restore-verify", script: "restore:verify", modeArg: true },
+    { kind: "cmd", gate: "staging-smoke", script: "smoke:staging", modeArg: true },
+    // The backup manifest is produced by the nightly workflow against external credentials; nothing in a
+    // release run can synthesize one, so it stays a declared hold.
+    { kind: "external", gate: "backup-manifest", detail: "OIDC/external backup credentials (.github/workflows/nightly.yml) — absent in-repo" },
   ];
-  return [...plain, ...skippable, ...releaseExternal];
+  return [...plain, ...skippable, ...releaseInfra];
 }
 
 function synthesize(gate: string, exitCode: number | null): GateResult {

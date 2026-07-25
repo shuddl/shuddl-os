@@ -72,3 +72,80 @@ npx wrangler d1 delete shuddl-t-tenant-a-staging && npx wrangler d1 delete shudd
 npx wrangler kv namespace delete --namespace-id 119880a9442c4b8cae8383183a2877e1
 ```
 (Delete the workers before their bound resources.)
+
+---
+
+## Production resource inventory (REQ-114 / REQ-117) — NOT YET PROVISIONED
+
+`wrangler deploy --env prod` is **unsafe today.** Only `workers/api/wrangler.toml` declares an
+`[env.prod]` block at all, and that block contains a worker name and nothing else: zero D1, zero KV, zero
+R2, zero Durable Objects, zero queues, zero vars. Deploying it would ship a worker that crashes on the
+first request that dereferences any binding. The other four workers have no `[env.prod]` scope whatsoever.
+
+Run the preflight before any deploy; it is the authority and it currently BLOCKS both environments:
+
+```bash
+pnpm preflight -- --env staging --state ./preflight-state.json
+pnpm preflight -- --env prod    --state ./preflight-state.json
+```
+
+`--state` supplies the account-side facts this repo cannot read (bound secret names, the served CORS
+allowlist, sender-domain verification, the TSA endpoint, the newest backup manifest). **Without it those
+are UNPROVEN, and unproven is BLOCKED** — the preflight never treats an absent fact as a satisfied one.
+
+What must exist per environment, per worker (the checker's own contract, `REQUIRED_BINDINGS`):
+
+| Worker | D1 | KV | R2 | DO | Queues | Services | Secrets |
+|---|---|---|---|---|---|---|---|
+| api | TENANT_A_DB, TENANT_B_DB, CONTROL_DB, PLATFORM_TENANT_DB, TENANT_POOL_01_DB, TENANT_POOL_02_DB | IDEMPOTENCY | EVIDENCE | SHIPMENT_SEQ | AGENT_QUEUE (producer) | — | JWT_SECRET |
+| agents | TENANT_A_DB, TENANT_B_DB, CONTROL_DB | — | EVIDENCE | SHIPMENT_SEQ (→api), SPARK_METER | AGENT_QUEUE + consumer w/ DLQ | — | RESEND_API_KEY (to send) |
+| billing | TENANT_A_DB, TENANT_B_DB, CONTROL_DB, PLATFORM_TENANT_DB | — | — | — | — | API (→api) | STRIPE_WEBHOOK_SECRET, PLATFORM_INTERNAL_SECRET |
+| mcp | CONTROL_DB | GRANTS | — | CAPS_METER | — | API (→api) | JWT_SECRET |
+| translator | TENANT_A_DB, TENANT_B_DB, CONTROL_DB | — | EVIDENCE | SHIPMENT_SEQ (→api) | — | — | — |
+
+### Known configuration defects the preflight reports today
+
+- `shuddl-api-prod` declares **no bindings and no `ENVIRONMENT` var**.
+- Placeholder resource ids in staging: `PLATFORM_TENANT_DB`, `TENANT_POOL_01_DB`, `TENANT_POOL_02_DB`
+  (all-zero UUIDs) and the mcp `GRANTS` KV id (`0000000000000000000000000000staging`, not a 32-hex id).
+- **`PLATFORM_TENANT_DB` binding drift:** api binds `shuddl-t-platform-<env>`, billing binds
+  `shuddl-t-_platform-<env>` (leading underscore) with a different `database_id`. One logical binding,
+  two physical databases — money written through one worker is invisible to the other.
+
+## Deploy and migration order
+
+Order is load-bearing: agents and translator bind `SHIPMENT_SEQ` cross-script to the api worker, and
+billing and mcp bind api as a service. The api worker must exist first or those bindings fail to resolve.
+
+1. `pnpm preflight -- --env <env> --state <file>` — must not BLOCK.
+2. Apply migrations, control plane first, then each tenant D1, in filename order:
+   - control: `0001_control.sql`, `0002_platform_tenant.sql`, `0003_tenant_pool.sql`
+   - tenant: `0001_ledger_core.sql` … `0008_append_only_unique_guards.sql`
+   - `wrangler d1 execute <db> --remote --file db/<scope>/migrations/<file>`
+   - Never edit a pinned migration. Forward-only; `pnpm db:lock` maintains `db/migrations.lock.json`.
+3. Deploy `shuddl-api-<env>` (owns the ShipmentSequencer DO).
+4. Deploy `shuddl-agents-<env>`, `shuddl-translator-<env>` (cross-script DO consumers).
+5. Deploy `shuddl-billing-<env>`, `shuddl-mcp-<env>` (service bindings on api).
+6. `pnpm smoke:staging -- --mode release` and confirm the evidence record.
+
+Teardown reverses this: workers before their queues and databases.
+
+## Rollback and forward-repair
+
+See docs/ops/dr-backups.md — `wrangler rollback` for code; forward-repair migrations for schema; a new
+correcting event for ledger data. The `events` table is forward-only and is never rolled back (I3/I7).
+
+## Smoke test — evidence, not a console verdict
+
+```bash
+SMOKE_API_BASE=https://shuddl-api-staging.<account>.workers.dev \
+SMOKE_JWT_SECRET_FILE=/path/to/staging-jwt.txt \
+RELEASE_ENVIRONMENT=staging \
+pnpm smoke:staging -- --mode release
+```
+
+Writes `artifacts/release/<commit>/<env>/smoke-<ts>.json` recording the commit, the resolved deployment
+version, the environment, the count of assertions actually executed, and the invoice/evidence outcome
+(quote cents, invoice cents, money-line count, penny parity). Missing `SMOKE_API_BASE` or JWT secret
+exits **2 = BLOCKED**, never 0 and never 1 — a smoke that never ran is not a smoke that failed, and
+neither one is a pass.

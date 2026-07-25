@@ -10,32 +10,47 @@
 // P-256 keypair and rate config are copied verbatim from workers/api/test/helpers.ts, and JWTs are
 // minted with the staging secret. Everything here is SYNTHETIC and REQ-167-clean (no real names).
 //
-// Run:  pnpm exec tsx tools/deploy/staging-smoke.ts
+// Run:  pnpm smoke:staging -- --mode release
+//
+// Task 15 (REQ-288) — this emits a COMPLETE evidence record, not a console verdict. It records the exact
+// deployment version/SHA it ran against, the environment, the number of assertions actually executed,
+// the invoice/evidence outcome, and the artifact path — because tools/release/evidence.ts refuses to
+// promote a PASS that never executed or asserted anything. Its prerequisites (a deployed environment and
+// the staging JWT secret) are read from the environment; when they are absent it exits BLOCKED (2), NOT
+// failed and never green. It previously read the secret from a hardcoded scratchpad path containing a
+// dead session id, which no machine but one could ever satisfy.
 //
 // The signed-capture path is REUSED from the workspace (packages/driver-core `capture`, which co-signs
 // with @shuddl/ledger `signEvent` over the canonical bytes) — signing is NEVER hand-rolled here, so the
 // deployed sequencer verifies these events exactly as it verifies a real driver PWA's.
 
 import { execFileSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { EVIDENCE_EXIT, formatGateResult, parseMode, type EvidenceRecord, type GateResult } from "../release/evidence.js";
 import { capture, type CaptureParams, type DeviceContext, type EvidenceField } from "../../packages/driver-core/src/capture.js";
 import type { EventKind } from "@shuddl/contracts";
 
 // ── deployed environment ─────────────────────────────────────────────────────────────────────────────
-const BASE = "https://shuddl-api-staging.spencer-896.workers.dev";
-const CONTROL_DB = "shuddl-control-staging";
-const TENANT_DB = "shuddl-t-tenant-a-staging";
+// Every one of these is an ENVIRONMENT input. Nothing about which deployment this ran against may be
+// baked into the file, or the evidence record would describe a machine rather than a release.
+const ENVIRONMENT = process.env["RELEASE_ENVIRONMENT"] ?? "staging";
+const BASE = process.env["SMOKE_API_BASE"] ?? "";
+const CONTROL_DB = process.env["SMOKE_CONTROL_DB"] ?? `shuddl-control-${ENVIRONMENT}`;
+const TENANT_DB = process.env["SMOKE_TENANT_DB"] ?? `shuddl-t-tenant-a-${ENVIRONMENT}`;
 const TENANT_SLUG = "tenant-a";
 const CONTROL_TENANT_ID = "t-a";
 const DRIVER_USER = "u-driver";
-const SECRET_PATH =
-  "/private/tmp/claude-501/-Users-spencerpro-Desktop-shuddl-os/cc650534-111c-459e-a308-3069e051a4e2/scratchpad/staging-jwt.txt";
+// The staging JWT secret: supplied directly (CI secret) or via a path the operator controls.
+const SECRET_PATH = process.env["SMOKE_JWT_SECRET_FILE"] ?? "";
+const SECRET_INLINE = process.env["SMOKE_JWT_SECRET"] ?? "";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const API_DIR = join(HERE, "..", "..", "workers", "api"); // wrangler runs from workers/api (its wrangler.toml)
-const TMP = dirname(SECRET_PATH); // scratchpad — for the generated seed .sql files
+const REPO_ROOT = join(HERE, "..", "..");
+const TMP = mkdtempSync(join(tmpdir(), "shuddl-smoke-")); // for the generated seed .sql files
 
 // ── the FIXED test device (copied from workers/api/test/helpers.ts — synthetic, deterministic) ────────
 const TEST_DEVICE_ID = "device-1";
@@ -71,13 +86,54 @@ const TEST_RATE_CONFIG = {
 
 // ── tiny assert / log ─────────────────────────────────────────────────────────────────────────────────
 const failures: string[] = [];
+// EXECUTED assertions, counted. evidence.ts rejects a PASS whose assertion count is zero — "everything
+// passed" out of a run that asserted nothing is a skip wearing a green shirt.
+let assertions = 0;
 function check(cond: boolean, msg: string): void {
+  assertions += 1;
   console.log(`${cond ? "PASS" : "FAIL"}  ${msg}`);
   if (!cond) failures.push(msg);
 }
 function fatal(msg: string): never {
   console.error(`\nFATAL: ${msg}`);
-  process.exit(1);
+  process.exit(EVIDENCE_EXIT.ASSERTIONS_FAILED);
+}
+// A missing prerequisite (no deployed environment, no secret) is BLOCKED — a distinct disposition from
+// a failed assertion, and the one run-gate must never read as a green.
+function blocked(detail: string): never {
+  console.error(`\nstaging-smoke: BLOCKED — ${detail}`);
+  console.error("staging-smoke: nothing was exercised; this is a named external hold, not a pass.");
+  if (parseMode(process.argv.slice(2)) !== "local") {
+    console.log(formatGateResult({ gate: "staging-smoke", status: "BLOCKED", executed: false, assertions: 0, detail }));
+  }
+  process.exit(EVIDENCE_EXIT.PREREQ_BLOCKED);
+}
+
+// The exact deployment this ran against. Without it the evidence record describes "some deployment",
+// which evidence.ts treats as a context mismatch at promotion time.
+function deploymentVersion(): string {
+  const supplied = process.env["DEPLOYMENT_VERSION"];
+  if (supplied !== undefined && supplied.length > 0) return supplied;
+  try {
+    const out = execFileSync("npx", ["wrangler", "deployments", "list", "--name", `shuddl-api-${ENVIRONMENT}`, "--json"], {
+      cwd: API_DIR,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    const parsed = JSON.parse(out.slice(out.indexOf("["))) as { id?: string; version_id?: string }[];
+    const latest = parsed[parsed.length - 1];
+    return latest?.version_id ?? latest?.id ?? "unresolved";
+  } catch {
+    return "unresolved";
+  }
+}
+
+function gitHead(): string {
+  try {
+    return execFileSync("git", ["rev-parse", "HEAD"], { cwd: REPO_ROOT, encoding: "utf8" }).trim();
+  } catch {
+    return "unknown-commit";
+  }
 }
 
 // ── wrangler d1 (remote) plumbing ────────────────────────────────────────────────────────────────────
@@ -153,7 +209,19 @@ function nextEvidenceBytes(): Uint8Array {
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 
 async function main(): Promise<void> {
-  const secret = readFileSync(SECRET_PATH, "utf8");
+  // ── prerequisites: absent ⇒ BLOCKED, never a silent pass and never a failed assertion ──
+  if (BASE.length === 0) blocked("SMOKE_API_BASE is not set — there is no deployed environment to smoke");
+  const secret = (() => {
+    if (SECRET_INLINE.length > 0) return SECRET_INLINE;
+    if (SECRET_PATH.length === 0) blocked("neither SMOKE_JWT_SECRET nor SMOKE_JWT_SECRET_FILE is set — cannot mint a session");
+    try {
+      return readFileSync(SECRET_PATH, "utf8").trim();
+    } catch {
+      return blocked(`SMOKE_JWT_SECRET_FILE (${SECRET_PATH}) is unreadable`);
+    }
+  })();
+  if (secret.length === 0) blocked("the staging JWT secret resolved empty");
+
   const shipmentId = `SMK-${Math.random().toString(36).slice(2, 8)}${Math.random().toString(36).slice(2, 6)}`;
   const streamId = `s:${shipmentId}`;
   console.log(`\n=== SHUDDL staging POD→invoice smoke ===`);
@@ -303,10 +371,58 @@ async function main(): Promise<void> {
 
   console.log(`\n=== ${failures.length === 0 ? "SMOKE PASS ✅" : `SMOKE FAIL ❌ (${failures.length})`} ===`);
   console.log(`shipment=${shipmentId} quote.sell_cents=${sellCents} invoice.total_cents=${totalCents} status=${inv.status}`);
-  if (failures.length > 0) {
-    for (const f of failures) console.log(`  FAILED: ${f}`);
-    process.exit(1);
+  if (failures.length > 0) for (const f of failures) console.log(`  FAILED: ${f}`);
+
+  // ── the evidence record (REQ-288) ──────────────────────────────────────────────────────────────────
+  // Everything a promotion decision needs, tied to the exact commit and deployment: what ran, where,
+  // how many assertions actually executed, and what the money came out as.
+  const mode = parseMode(process.argv.slice(2));
+  const commit = gitHead();
+  const deployment = deploymentVersion();
+  const generatedAt = new Date().toISOString();
+  const outcome =
+    `shipment=${shipmentId} quote=${sellCents}¢ invoice=${totalCents}¢ status=${String(inv.status)} ` +
+    `money_lines=${money.length} penny_parity=${pennyParity ? "HELD" : "BROKEN"}`;
+
+  const gate: GateResult = failures.length === 0
+    ? { gate: "staging-smoke", status: "PASS", executed: true, assertions, detail: outcome }
+    : { gate: "staging-smoke", status: "FAIL", executed: true, assertions, detail: `${failures.length} failed — ${outcome}` };
+
+  const record: EvidenceRecord = {
+    commit,
+    environment: ENVIRONMENT,
+    profile: "release",
+    generatedAt,
+    expiresAt: new Date(Date.parse(generatedAt) + 72 * 3600_000).toISOString(),
+    fixturesHash: (() => {
+      try {
+        return readFileSync(join(REPO_ROOT, "fixtures", "manifest.json"), "utf8").length > 0
+          ? execFileSync("node", ["-e", `const{createHash}=require("node:crypto"),{readFileSync}=require("node:fs");process.stdout.write(createHash("sha256").update(readFileSync(${JSON.stringify(join(REPO_ROOT, "fixtures", "manifest.json"))})).digest("hex"))`], { encoding: "utf8" })
+          : "0".repeat(64);
+      } catch {
+        return "0".repeat(64);
+      }
+    })(),
+    deployment,
+    gates: [gate],
+  };
+
+  const dir = join(REPO_ROOT, "artifacts", "release", commit, ENVIRONMENT);
+  mkdirSync(dir, { recursive: true });
+  const artifactPath = join(dir, `smoke-${generatedAt.replace(/[:.]/g, "-")}.json`);
+  writeFileSync(artifactPath, `${JSON.stringify(record, null, 2)}\n`);
+
+  console.log(`\nenvironment: ${ENVIRONMENT}`);
+  console.log(`commit:      ${commit}`);
+  console.log(`deployment:  ${deployment}`);
+  console.log(`assertions:  ${assertions} executed`);
+  console.log(`artifact:    ${artifactPath}`);
+  if (deployment === "unresolved") {
+    console.warn("staging-smoke: the deployment version could not be resolved — this record cannot back a promotion (evidence.ts will reject the context).");
   }
+  if (mode !== "local") console.log(formatGateResult(gate));
+
+  process.exit(failures.length > 0 ? EVIDENCE_EXIT.ASSERTIONS_FAILED : EVIDENCE_EXIT.OK);
 }
 
 main().catch((e: unknown) => fatal(e instanceof Error ? `${e.message}\n${e.stack ?? ""}` : String(e)));

@@ -285,3 +285,37 @@ Ordered severity-descending. **High** = weakens/blocks a gate or a go-live path;
 | Scope + status of record | `genesis/09-REQUIREMENTS-REGISTER.csv` | Every REQ row + register status tags (`F0-SPEC'D`, `vNEXT`, `*-DISCOVERED`, `F0-DEPLOY-NOTE`, `CONFIRM-GATED`) | This ledger's REQ ids trace here; register is source-of-truth for scope |
 | Per-WP DoD & follow-ups | `docs/wp/WP-01.md … WP-12.md` | Each close-out's operator line-items + logged follow-ups | This ledger is the merged, deduped roll-up of all twelve |
 | Open-audit history | `docs/audits/2026-07-15-full-audit-and-skill-plan.md` | 60-agent audit + fix plan (positions.ts C-1, skills) | C-1/C-2 now **closed WP-09** (recorded above for traceability) |
+---
+
+## External holds — named owners (Task 15, REQ-288)
+
+Every one of these is BLOCKED, not failed, and none may be relabelled PASS. `pnpm verify:release` runs
+each as a real command and returns its own verdict, so a hold clears the moment the environment is
+genuinely fixed — no code change required.
+
+| Hold | Gate | Blocked on | Owner |
+|---|---|---|---|
+| Production bindings | `deploy-preflight` | `[env.prod]` declares a worker name and zero bindings; four workers have no prod scope at all | infrastructure |
+| Staging placeholder ids | `deploy-preflight` | all-zero D1 UUIDs (`PLATFORM_TENANT_DB`, both `TENANT_POOL_*`) and the mcp `GRANTS` KV id | infrastructure |
+| `PLATFORM_TENANT_DB` drift | `deploy-preflight` | api and billing bind different databases for one logical binding | backend |
+| Secrets bound | `deploy-preflight` | `JWT_SECRET` and the rest per docs/ops/secrets.md | infrastructure |
+| CORS origins | `deploy-preflight` | no served allowlist; `.example` placeholders remain in `cors.ts` | backend |
+| TSA endpoint | `deploy-preflight` | no RFC 3161 authority configured — anchors cannot be timestamped | infrastructure |
+| Backups | `backup-manifest` | `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` unbound; **no backup exists** | infrastructure |
+| Restore drill | `restore-verify` | no backup artifact to reconcile | on-call |
+| Deployed smoke | `staging-smoke` | `SMOKE_API_BASE` + JWT secret | infrastructure |
+| On-call rota | all SLO alerts | no human is named; alerts have no recipient | founder |
+| 7-year monthly snapshots | — | retention is 30 days; the REQ-116 archive tier is unimplemented | infrastructure |
+
+## Repository-owned failures (NOT external holds)
+
+These are ours, they are reproducible locally, and they fail their gates on purpose:
+
+| Failure | Gate | Detail |
+|---|---|---|
+| 1,000-entity long task | `perf` | ~580ms main-thread block in the operating window, identical on a production build — a real REQ-079 defect, not a harness artifact |
+| No blessed screenshots | `visual` | `tests/visual/blessed/` holds only a README; every screenshot test fails for want of a baseline |
+| Stale visual ready-selectors | `visual` | three specs in `tests/visual/screens.spec.ts` wait for text the surfaces stopped rendering at Task 10 |
+
+Both visual failures were invisible until Task 14 installed the browser: the harness self-skipped to
+exit 0, so a suite that could never pass reported green.

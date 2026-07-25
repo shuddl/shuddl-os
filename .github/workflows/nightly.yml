@@ -1,19 +1,108 @@
-# Nightly assurance: register ↔ code orphan diff (REQ-118 §02.2). Snapshot job
-# (REQ-117) activates when F1-A provides Cloudflare OIDC creds and WP-02 creates
-# the databases — spec in docs/ops/dr-backups.md.
+# Nightly assurance (REQ-117 / REQ-118 / REQ-288). Two jobs:
+#   orphan-audit — the register ↔ code diff, which needs no credentials and always runs.
+#   backup       — exports EVERY tenant and control D1, writes a SHA-256 manifest, and retains it for the
+#                  policy window. Cloudflare credentials are external (OIDC / repository secrets); when
+#                  they are absent the job exits BLOCKED (2), it does NOT pass. A backup job that goes
+#                  green without producing a backup is how you discover, on the day you need it, that
+#                  there is nothing to restore.
+# Every action is pinned to an immutable commit SHA with its release tag in the trailing comment.
 name: nightly
 on:
   schedule: [{ cron: "0 8 * * *" }]
   workflow_dispatch:
+
+env:
+  # The retention policy the preflight enforces (tools/deploy/preflight.ts BACKUP_RETENTION_DAYS).
+  BACKUP_RETENTION_DAYS: "30"
+
 jobs:
   orphan-audit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with: { fetch-depth: 0 }
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: pnpm }
+      - uses: pnpm/action-setup@7088e561eb65bb68695d245aa206f005ef30921d # v4.1.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: register ↔ code orphan diff (files issues once GH remote is live)
+      - name: register ↔ code orphan diff (REQ-118)
         run: pnpm check:traceability
+
+  backup:
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_ENVIRONMENT: staging
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: pnpm/action-setup@7088e561eb65bb68695d245aa206f005ef30921d # v4.1.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: require backup credentials (absent ⇒ BLOCKED, never a green)
+        run: |
+          if [ -z "${CLOUDFLARE_API_TOKEN}" ] || [ -z "${CLOUDFLARE_ACCOUNT_ID}" ]; then
+            echo "backup: BLOCKED — CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID are not bound."
+            echo "backup: no export was taken. This is a named external hold (docs/ops/dr-backups.md), not a pass."
+            echo '##SHUDDL-GATE## {"gate":"backup-manifest","status":"BLOCKED","executed":false,"assertions":0,"detail":"Cloudflare credentials absent"}'
+            exit 2
+          fi
+
+      - name: export every tenant and control database
+        working-directory: workers/api
+        run: |
+          set -euo pipefail
+          mkdir -p "${GITHUB_WORKSPACE}/artifacts/backup"
+          for DB in shuddl-control-staging shuddl-t-tenant-a-staging shuddl-t-tenant-b-staging shuddl-t-platform-staging; do
+            echo "exporting ${DB} …"
+            npx wrangler d1 export "${DB}" --remote --output "${GITHUB_WORKSPACE}/artifacts/backup/${DB}.sql"
+          done
+
+      - name: write the SHA-256 manifest
+        working-directory: artifacts/backup
+        run: |
+          set -euo pipefail
+          # The manifest digest is the restore's source-of-truth: tools/deploy/restore-verify.ts compares
+          # it against the digest recomputed from the restored database.
+          node -e '
+            const { readFileSync, writeFileSync, statSync, readdirSync } = require("node:fs");
+            const { createHash } = require("node:crypto");
+            const files = readdirSync(".").filter((f) => f.endsWith(".sql")).sort();
+            if (files.length === 0) { console.error("backup: FAIL — no export files were produced"); process.exit(1); }
+            const entries = files.map((f) => ({
+              file: f,
+              bytes: statSync(f).size,
+              sha256: createHash("sha256").update(readFileSync(f)).digest("hex"),
+            }));
+            const manifest = {
+              version: "shuddl-backup-v1",
+              environment: process.env.RELEASE_ENVIRONMENT,
+              commit: process.env.GITHUB_SHA,
+              takenAt: new Date().toISOString(),
+              retentionDays: Number(process.env.BACKUP_RETENTION_DAYS),
+              entries,
+            };
+            const digest = createHash("sha256").update(JSON.stringify(manifest)).digest("hex");
+            writeFileSync("manifest.json", JSON.stringify({ ...manifest, digest }, null, 2) + "\n");
+            console.log(`backup: ${entries.length} database(s), manifest digest ${digest}`);
+          '
+          cat manifest.json
+
+      - name: emit the release evidence line
+        run: |
+          COUNT=$(node -e 'console.log(JSON.parse(require("node:fs").readFileSync("artifacts/backup/manifest.json","utf8")).entries.length)')
+          echo "##SHUDDL-GATE## {\"gate\":\"backup-manifest\",\"status\":\"PASS\",\"executed\":true,\"assertions\":${COUNT},\"detail\":\"${COUNT} database export(s) with a sha256 manifest\"}"
+
+      - name: retain the backup for the policy window
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: d1-backup-${{ github.run_id }}
+          path: artifacts/backup/**
+          retention-days: 30
+          if-no-files-found: error
