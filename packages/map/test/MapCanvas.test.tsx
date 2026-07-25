@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, cleanup } from "@testing-library/react";
 import type { FleetCollection, FleetFeature, Status } from "../src/entities.js";
 
@@ -8,11 +8,12 @@ import type { FleetCollection, FleetFeature, Status } from "../src/entities.js";
 // (REQ-080); it AUTO-DIMS the world when a visible exception exists (REQ-077, acceptance demo #5); and
 // its pulse throbs a cluster that CONTAINS an exception.
 
-const { ctorSpy, onSpy, paintSpy, worldDimSpy } = vi.hoisted(() => ({
+const { ctorSpy, onSpy, paintSpy, worldDimSpy, setDataSpy } = vi.hoisted(() => ({
   ctorSpy: vi.fn(),
   onSpy: vi.fn(),
   paintSpy: vi.fn<(layerId: string, name: string, value: unknown) => void>(),
   worldDimSpy: vi.fn<(map: unknown, on: boolean) => void>(),
+  setDataSpy: vi.fn<(data: unknown) => void>(),
 }));
 
 vi.mock("maplibre-gl", () => {
@@ -32,8 +33,8 @@ vi.mock("maplibre-gl", () => {
     setPaintProperty(layerId: string, name: string, value: unknown): void {
       paintSpy(layerId, name, value);
     }
-    getSource(): { setData: () => void; getClusterExpansionZoom: () => Promise<number> } {
-      return { setData: () => {}, getClusterExpansionZoom: () => Promise.resolve(1) };
+    getSource(): { setData: (data: unknown) => void; getClusterExpansionZoom: () => Promise<number> } {
+      return { setData: (data: unknown) => setDataSpy(data), getClusterExpansionZoom: () => Promise.resolve(1) };
     }
     getCanvas(): { style: Record<string, string> } {
       return { style: {} };
@@ -170,5 +171,89 @@ describe("MapCanvas — a clustered exception throbs (operational-map §6)", () 
     expect(typeof v?.[2]).toBe("number"); // the throbbing width
     expect(v?.[3]).toBe(1); // calm clusters keep the static 1px stroke
     expect(v?.[2] as number).toBeGreaterThan(v?.[3] as number); // lit AND throbbing > calm
+  });
+});
+
+// The glide loop pushes a full setData onto a CLUSTERED source, which MapLibre cannot diff — every
+// push reloads and re-parses every tile. So the loop must push only when something actually changed.
+// "Changed" has two halves, and dropping either one is a bug: a coordinate moved (the glide's own
+// signal) OR a fleet frame brought new properties (status/chip) without moving anything.
+describe("MapCanvas — the throttled push fires only on real change (REQ-079)", () => {
+  const frames: FrameRequestCallback[] = [];
+
+  /** Run every currently-queued animation frame at `now`; each one re-queues itself. */
+  function flush(now: number): void {
+    for (const cb of frames.splice(0)) cb(now);
+  }
+
+  beforeEach(() => {
+    ctorSpy.mockClear();
+    onSpy.mockClear();
+    paintSpy.mockClear();
+    worldDimSpy.mockClear();
+    setDataSpy.mockClear();
+    frames.length = 0;
+    cleanup();
+    // Motion ON — otherwise the component takes the reduced-motion path and never schedules the loop.
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }));
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => frames.push(cb));
+    vi.stubGlobal("cancelAnimationFrame", () => {});
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("skips the push when nothing moved and nothing changed", () => {
+    render(<MapCanvas tileUrl="t" glyphsUrl="g" fleet={fleet} onSelect={() => {}} />);
+    flush(1000); // the mount frame carries the initial fleet
+    setDataSpy.mockClear();
+    flush(2000); // > 33ms later, but the marks are already at their targets
+    flush(3000);
+    expect(setDataSpy).not.toHaveBeenCalled();
+  });
+
+  it("STILL pushes a frame that changed only properties — a status must never wait for motion", () => {
+    const { rerender } = render(<MapCanvas tileUrl="t" glyphsUrl="g" fleet={fleet} onSelect={() => {}} />);
+    flush(1000);
+    setDataSpy.mockClear();
+    flush(2000);
+    expect(setDataSpy).not.toHaveBeenCalled(); // quiescent
+
+    // Same coordinates, new status. The glide reports no movement; the push must happen anyway.
+    const restatused: FleetCollection = {
+      type: "FeatureCollection",
+      features: [mark("shp-1", "exception")],
+    };
+    rerender(<MapCanvas tileUrl="t" glyphsUrl="g" fleet={restatused} onSelect={() => {}} />);
+    flush(3000);
+    expect(setDataSpy).toHaveBeenCalledTimes(1);
+    const pushed = setDataSpy.mock.calls[0]?.[0] as FleetCollection;
+    expect(pushed.features[0]?.properties.statusStr).toBe("exception");
+
+    // …and exactly once: the dirty flag is consumed by the push that carries it.
+    setDataSpy.mockClear();
+    flush(4000);
+    expect(setDataSpy).not.toHaveBeenCalled();
+  });
+
+  it("pushes while a mark is genuinely travelling", () => {
+    const { rerender } = render(<MapCanvas tileUrl="t" glyphsUrl="g" fleet={fleet} onSelect={() => {}} />);
+    flush(1000);
+
+    const movedFleet: FleetCollection = {
+      type: "FeatureCollection",
+      features: [{ ...mark("shp-1", "healthy"), geometry: { type: "Point", coordinates: [-90, 35] } }],
+    };
+    rerender(<MapCanvas tileUrl="t" glyphsUrl="g" fleet={movedFleet} onSelect={() => {}} />);
+    flush(2000);
+    setDataSpy.mockClear();
+    flush(3000); // still easing toward the new target
+    expect(setDataSpy).toHaveBeenCalledTimes(1);
   });
 });

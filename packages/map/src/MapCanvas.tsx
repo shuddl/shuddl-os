@@ -11,7 +11,7 @@ import {
   type FleetFeature,
 } from "./entities.js";
 import { chevronImage } from "./chevron.js";
-import { animateToward } from "./bearing.js";
+import { animateToward } from "./glide.js";
 
 // The operational canvas (REQ-073 full-viewport). MapLibre draws the greige basemap + the entity GL
 // layers; positions glide via a throttled setData (~30fps ease-to-target, so 30s-sparse GPS reads as
@@ -133,6 +133,10 @@ export function MapCanvas({ tileUrl, glyphsUrl, fleet, onSelect, dim, mapboxToke
   const rafRef = useRef<number | null>(null);
   const pulseRafRef = useRef<number | null>(null);
   const lastDataRef = useRef(0);
+  /** A fleet frame arrived whose PROPERTIES changed (status/chip/membership) without necessarily
+   * moving anything. The glide loop's `moved` signal cannot see that, so it is recorded here and
+   * cleared by the push that carries it. */
+  const dirtyRef = useRef(false);
   const reducedRef = useRef(false);
   const loadedRef = useRef(false);
   const fleetRef = useRef(fleet);
@@ -160,9 +164,15 @@ export function MapCanvas({ tileUrl, glyphsUrl, fleet, onSelect, dim, mapboxToke
     reducedRef.current = prefersReducedMotion();
 
     const tick = (now: number): void => {
-      animateToward(animatedRef.current, targetsRef.current);
-      if (now - lastDataRef.current >= 33) {
+      const moved = animateToward(animatedRef.current, targetsRef.current);
+      // A clustered source cannot diff (MapLibre's _applyDiffToSource short-circuits on cluster:true), so
+      // every setData reloads and re-parses EVERY tile. Pushing an unchanged collection costs a full
+      // source rebuild and changes not one pixel — measured at 48 worker round-trips/second in ?perf.
+      // `dirtyRef` is the other half of the truth: a fleet frame can change PROPERTIES (status, chip)
+      // without moving a coordinate, and that still has to reach the source exactly once.
+      if ((moved || dirtyRef.current) && now - lastDataRef.current >= 33) {
         pushDataIfReady(map, animatedRef.current);
+        dirtyRef.current = false;
         lastDataRef.current = now;
       }
       rafRef.current = requestAnimationFrame(tick);
@@ -229,6 +239,10 @@ export function MapCanvas({ tileUrl, glyphsUrl, fleet, onSelect, dim, mapboxToke
   useEffect(() => {
     targetsRef.current = targetsOf(fleet);
     animatedRef.current = mergeAnimated(animatedRef.current, fleet);
+    // The mirrored properties (statusStr/chip) and the membership just changed. Even if not one
+    // coordinate moves, that has to reach the source, or a mark would keep the status it had when it
+    // last happened to be travelling.
+    dirtyRef.current = true;
     const map = mapRef.current;
     if (!map || !loadedRef.current) return;
     if (reducedRef.current) {
@@ -237,6 +251,7 @@ export function MapCanvas({ tileUrl, glyphsUrl, fleet, onSelect, dim, mapboxToke
         if (t) f.geometry.coordinates = [t[0], t[1]];
       }
       pushDataIfReady(map, animatedRef.current);
+      dirtyRef.current = false; // this push carried it; the glide loop is not even scheduled here
     }
   }, [fleet]);
 
