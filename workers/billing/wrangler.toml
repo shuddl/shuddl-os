@@ -51,7 +51,12 @@ database_id = "local-billing-control"
 # via `wrangler secret` (REQ-154). Mirrors workers/api PLATFORM_TENANT_DB.
 [[d1_databases]]
 binding = "PLATFORM_TENANT_DB"
-database_name = "shuddl-t-_platform-dev"
+# ONE logical binding, ONE physical database. The `_platform` spelling here was a second, non-existent
+# database: control-plane slugs carry a leading underscore (db/control/migrations/0003_tenant_pool.sql),
+# but the deployed d1 name drops it — `_pool_01` is `shuddl-t-pool-01-dev` in workers/api. Nothing reads
+# `database_name` at runtime (both resolvers return the binding object), so the underscore bought nothing
+# and cost a divergent target.
+database_name = "shuddl-t-platform-dev"
 database_id = "local-billing-platform"
 
 # WP-14 Task 10 (REQ-123/025) — the api worker service binding. Task 10 appends credit money events onto
@@ -97,8 +102,13 @@ database_id = "8e238970-2ed3-494d-960f-e4af082c1e8e"
 # staging id (REQ-154); the credit ledger lives here. NO secrets — the Stripe webhook secret is a `wrangler secret`.
 [[env.staging.d1_databases]]
 binding = "PLATFORM_TENANT_DB"
-database_name = "shuddl-t-_platform-staging"
-database_id = "b7c1f2a4-9d3e-4c8a-b1f6-2e5a7c9d0f13"
+database_name = "shuddl-t-platform-staging"
+# The id is the api placeholder VERBATIM, and that is the point twice over. It converges the binding
+# (preflight compares name|id, so a matching name alone would not clear the drift), and it restores the
+# BLOCK this line was hiding: the previous value was a well-formed random UUID, so an unprovisioned
+# database read as provisioned while api's placeholder was correctly flagged. No platform D1 exists in
+# staging (docs/ops/DEPLOYMENT.md); the gate must keep saying so until one does.
+database_id = "00000000-0000-4000-8000-000000000014"
 
 # WP-14 Task 10 (REQ-123/025) — the api worker service binding targets the STAGING api worker (must be deployed).
 # The credit flow appends through its real sequencer over this binding. NO secrets in this toml (REQ-154).

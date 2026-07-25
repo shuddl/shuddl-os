@@ -380,10 +380,37 @@ describe("the real repository configuration", () => {
     }
   });
 
-  it("confirms the staging PLATFORM_TENANT_DB drift between api and billing is still present", () => {
+  it("confirms the staging PLATFORM_TENANT_DB drift between api and billing is CLOSED", () => {
     const api = targetFromWrangler(parseWranglerToml(readFileSync("workers/api/wrangler.toml", "utf8")), "staging");
     const billing = targetFromWrangler(parseWranglerToml(readFileSync("workers/billing/wrangler.toml", "utf8")), "staging");
     const report = checkDeployTarget({ environment: "staging", workers: [api, billing], secrets: {}, corsOrigins: [], now: NOW });
-    expect(report.problems.map((p) => p.code)).toContain("binding-drift");
+    expect(report.problems.map((p) => p.code)).not.toContain("binding-drift");
+  });
+
+  it("keeps BLOCKING the converged platform database as unprovisioned — convergence is not provisioning", () => {
+    // Closing the drift must not quietly promote a database that does not exist. Billing's old id was a
+    // well-formed random UUID that passed the placeholder check; the converged id is the api placeholder,
+    // so BOTH workers now block on it. A green here would mean the gate stopped telling the truth.
+    const api = targetFromWrangler(parseWranglerToml(readFileSync("workers/api/wrangler.toml", "utf8")), "staging");
+    const billing = targetFromWrangler(parseWranglerToml(readFileSync("workers/billing/wrangler.toml", "utf8")), "staging");
+    const report = checkDeployTarget({ environment: "staging", workers: [api, billing], secrets: {}, corsOrigins: [], now: NOW });
+    const placeholders = report.problems.filter((p) => p.code === "placeholder-resource-id");
+    expect(placeholders.map((p) => p.resource)).toContain("shuddl-billing-staging.PLATFORM_TENANT_DB");
+    expect(placeholders.map((p) => p.resource)).toContain("shuddl-api-staging.PLATFORM_TENANT_DB");
+  });
+
+  it("resolves PLATFORM_TENANT_DB to ONE database in every deployable scope", () => {
+    // The drift was invisible until someone diffed two files by hand. Pinned as an equality over the
+    // parsed configs so a future edit to either side re-opens it here, not in staging.
+    for (const scope of ["staging"] as const) {
+      const api = targetFromWrangler(parseWranglerToml(readFileSync("workers/api/wrangler.toml", "utf8")), scope);
+      const billing = targetFromWrangler(parseWranglerToml(readFileSync("workers/billing/wrangler.toml", "utf8")), scope);
+      const platform = (t: typeof api): string => {
+        const d = t.d1.find((x) => x.binding === "PLATFORM_TENANT_DB");
+        if (!d) throw new Error(`${t.worker} declares no PLATFORM_TENANT_DB in ${scope}`);
+        return `${d.databaseName}|${d.databaseId}`;
+      };
+      expect(platform(billing), `PLATFORM_TENANT_DB diverges in ${scope}`).toBe(platform(api));
+    }
   });
 });
