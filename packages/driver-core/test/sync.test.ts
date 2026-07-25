@@ -10,8 +10,6 @@ import {
   type SyncPorts,
   type TransportResponse,
 } from "../src/sync.js";
-import type { EventInput } from "@shuddl/contracts";
-import type { DeferredUpload } from "../src/capture.js";
 
 // Task 11 (REQ-016/017/030) — the DURABLE driver sync state machine, proven in isolation. Retry
 // classification + phase transitions live HERE (pure over injected storage / clock / jitter / transports);

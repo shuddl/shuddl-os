@@ -112,7 +112,6 @@ export function App(deps: AppDeps = {}): React.JSX.Element {
       ac.abort();
     };
     // Runs once for the stable injected client/session; a login flow (REQ-069) will re-trigger it later.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client, session]);
 
   // An open gated-stop flow overlays the day sheet regardless of refresh state.
