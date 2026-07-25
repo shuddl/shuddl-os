@@ -154,3 +154,68 @@ class_name = "SparkMeter"
 [[env.staging.migrations]]
 tag = "v1-spark-meter"
 new_sqlite_classes = ["SparkMeter"]
+
+# ── PRODUCTION ────────────────────────────────────────────────────────────────────────────────────────
+# Structurally mirrors [env.staging]; every id is an all-zero placeholder so the preflight keeps BLOCKING
+# until an operator provisions the resources (see workers/api/wrangler.toml [env.prod] for the full
+# reasoning). NOT deployable — declared, not provisioned.
+#
+# DELIBERATELY ABSENT: EVIDENCE_FROM. Without it evidenceSender() stays a NotConfiguredSender, so a prod
+# deploy cannot send a single evidence email until someone consciously turns sending on. That fail-closed
+# posture is worth more than scope symmetry, and the preflight reports the sender separately.
+[env.prod]
+name = "shuddl-agents-prod"
+workers_dev = false
+
+[env.prod.vars]
+ENVIRONMENT = "prod"
+REFERRAL_BASE = "https://shuddl.tech"
+
+[env.prod.triggers]
+crons = ["0 1 * * *"]
+
+# Same physical tenant DBs as the api worker (ids MUST match workers/api [env.prod]).
+[[env.prod.d1_databases]]
+binding = "TENANT_A_DB"
+database_name = "shuddl-t-tenant-a-prod"
+database_id = "00000000-0000-4000-8000-000000000301"
+
+[[env.prod.d1_databases]]
+binding = "TENANT_B_DB"
+database_name = "shuddl-t-tenant-b-prod"
+database_id = "00000000-0000-4000-8000-000000000302"
+
+[[env.prod.d1_databases]]
+binding = "CONTROL_DB"
+database_name = "shuddl-control-prod"
+database_id = "00000000-0000-4000-8000-000000000303"
+
+[[env.prod.r2_buckets]]
+binding = "EVIDENCE"
+bucket_name = "shuddl-evidence-prod"
+
+[[env.prod.queues.consumers]]
+queue = "shuddl-agent-triggers-prod"
+max_batch_size = 10
+max_retries = 5
+dead_letter_queue = "shuddl-agent-dlq-prod"
+
+# REQ-169 — the reconciliation sweep's re-enqueue producer.
+[[env.prod.queues.producers]]
+queue = "shuddl-agent-triggers-prod"
+binding = "AGENT_QUEUE"
+
+# Cross-script DO → the PROD api worker (must be deployed first).
+[[env.prod.durable_objects.bindings]]
+name = "SHIPMENT_SEQ"
+class_name = "ShipmentSequencer"
+script_name = "shuddl-api-prod"
+
+# The per-tenant Spark convenience meter, owned by THIS worker.
+[[env.prod.durable_objects.bindings]]
+name = "SPARK_METER"
+class_name = "SparkMeter"
+
+[[env.prod.migrations]]
+tag = "v1-spark-meter"
+new_sqlite_classes = ["SparkMeter"]

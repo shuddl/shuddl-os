@@ -89,3 +89,43 @@ class_name = "CapsMeter"
 [[env.staging.migrations]]
 tag = "v1-caps-meter"
 new_sqlite_classes = ["CapsMeter"]
+
+# ── PRODUCTION ────────────────────────────────────────────────────────────────────────────────────────
+# Structurally mirrors [env.staging]; every id is an all-zero placeholder so the preflight keeps BLOCKING
+# until an operator provisions the resources. NOT deployable — declared, not provisioned.
+[env.prod]
+name = "shuddl-mcp-prod"
+workers_dev = false
+
+[env.prod.vars]
+ENVIRONMENT = "prod"
+
+# REQ-109 — the webhook delivery cron (fail-closed no-op until wired).
+[env.prod.triggers]
+crons = ["*/5 * * * *"]
+
+# Cross-service → the PROD api worker (<worker-name>-<environment> service convention).
+[[env.prod.services]]
+binding = "API"
+service = "shuddl-api-prod"
+
+# Control plane (id MUST match workers/api [env.prod] CONTROL_DB).
+[[env.prod.d1_databases]]
+binding = "CONTROL_DB"
+database_name = "shuddl-control-prod"
+database_id = "00000000-0000-4000-8000-000000000303"
+
+# OAuth grants store. NOT 32-hex on purpose — an all-zero 32-hex id would pass the shape check and read
+# as provisioned; this one keeps BLOCKING.
+[[env.prod.kv_namespaces]]
+binding = "GRANTS"
+id = "0000000000000000000000000000prod"
+
+# Per-actor usage counter (REQ-105) — same DO, mirrored into prod (a DO adds no table).
+[[env.prod.durable_objects.bindings]]
+name = "CAPS_METER"
+class_name = "CapsMeter"
+
+[[env.prod.migrations]]
+tag = "v1-caps-meter"
+new_sqlite_classes = ["CapsMeter"]

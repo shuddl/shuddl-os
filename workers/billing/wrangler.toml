@@ -115,3 +115,44 @@ database_id = "00000000-0000-4000-8000-000000000014"
 [[env.staging.services]]
 binding = "API"
 service = "shuddl-api-staging"
+
+# ── PRODUCTION ────────────────────────────────────────────────────────────────────────────────────────
+# Structurally mirrors [env.staging]; every id is an all-zero placeholder so the preflight keeps BLOCKING
+# until an operator provisions the resources. NOT deployable — declared, not provisioned. NO SECRETS
+# here: STRIPE_WEBHOOK_SECRET and PLATFORM_INTERNAL_SECRET are operator-injected via `wrangler secret`
+# and are now required by the preflight contract (REQ-154).
+[env.prod]
+name = "shuddl-billing-prod"
+workers_dev = false
+
+[env.prod.vars]
+ENVIRONMENT = "prod"
+
+[env.prod.triggers]
+crons = ["0 * * * *"]
+
+# Same physical tenant DBs as the api/agents/translator workers (ids MUST match workers/api [env.prod]).
+[[env.prod.d1_databases]]
+binding = "TENANT_A_DB"
+database_name = "shuddl-t-tenant-a-prod"
+database_id = "00000000-0000-4000-8000-000000000301"
+
+[[env.prod.d1_databases]]
+binding = "TENANT_B_DB"
+database_name = "shuddl-t-tenant-b-prod"
+database_id = "00000000-0000-4000-8000-000000000302"
+
+[[env.prod.d1_databases]]
+binding = "CONTROL_DB"
+database_name = "shuddl-control-prod"
+database_id = "00000000-0000-4000-8000-000000000303"
+
+# ONE logical binding, ONE physical database — the id MUST match workers/api [env.prod].
+[[env.prod.d1_databases]]
+binding = "PLATFORM_TENANT_DB"
+database_name = "shuddl-t-platform-prod"
+database_id = "00000000-0000-4000-8000-000000000304"
+
+[[env.prod.services]]
+binding = "API"
+service = "shuddl-api-prod"

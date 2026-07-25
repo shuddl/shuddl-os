@@ -435,17 +435,19 @@ database_id = "8e238970-2ed3-494d-960f-e4af082c1e8e"
 });
 
 describe("the real repository configuration", () => {
-  // A dry-run against the committed configs. This is a REGRESSION LOCK on a known, documented defect:
-  // workers/api/wrangler.toml declares [env.prod] with a name and nothing else, so `wrangler deploy
-  // --env prod` would ship a worker with zero bindings. Task 15 records it; it is not silently fixed here
-  // because provisioning prod resources is an external hold (no account, no ids).
-  it("finds the api [env.prod] scope declaring no bindings", () => {
+  // A dry-run against the committed configs. This pinned a known defect — api's [env.prod] declaring a
+  // name and nothing else, so `wrangler deploy --env prod` would ship a worker with zero bindings. The
+  // scope is now structurally complete, so the lock is INVERTED: it asserts the bindings exist AND that
+  // prod is still, honestly, not deployable. Those are two different claims and both must hold.
+  // Provisioning remains an external hold; declaring a shape is not provisioning it.
+  it("declares a COMPLETE api [env.prod] scope that is still not deployable", () => {
     const doc = parseWranglerToml(readFileSync("workers/api/wrangler.toml", "utf8"));
     const prod = targetFromWrangler(doc, "prod");
     expect(prod.worker).toBe("shuddl-api-prod");
-    expect(prod.d1).toEqual([]);
-    expect(prod.kv).toEqual([]);
-    expect(prod.r2).toEqual([]);
+    expect(prod.d1.map((d) => d.binding).sort()).toEqual([...REQUIRED_BINDINGS.api.d1].sort());
+    expect(prod.kv.map((k) => k.binding)).toEqual(REQUIRED_BINDINGS.api.kv);
+    expect(prod.r2.map((r) => r.binding)).toEqual(REQUIRED_BINDINGS.api.r2);
+    expect(prod.vars["ENVIRONMENT"]).toBe("prod");
 
     const report = checkDeployTarget({
       environment: "prod",
@@ -454,8 +456,34 @@ describe("the real repository configuration", () => {
       corsOrigins: [],
       now: NOW,
     });
+    // Still blocked, and blocked for the RIGHT reason: unprovisioned resources, not absent declarations.
     expect(report.ok).toBe(false);
-    expect(report.problems.filter((p) => p.severity === "BLOCK").length).toBeGreaterThan(3);
+    const blocked = report.problems.filter((p) => p.severity === "BLOCK");
+    expect(blocked.length).toBeGreaterThan(3);
+    expect(blocked.map((p) => p.code)).not.toContain("missing-binding");
+    expect(blocked.map((p) => p.code)).toContain("placeholder-resource-id");
+  });
+
+  it("binds no test-only affordance anywhere in prod", () => {
+    // ALLOW_TEST_SEND / TEST_SEND_* in a production scope is a live send path with the safety off. The
+    // preflight blocks it; this fails at merge, before anyone runs the preflight.
+    for (const path of WORKER_CONFIGS) {
+      const prod = targetFromWrangler(parseWranglerToml(readFileSync(path, "utf8")), "prod");
+      for (const [name] of Object.entries(prod.vars)) {
+        expect(name, `${path} binds ${name} in prod`).not.toMatch(/^(ALLOW_TEST_SEND|TEST_SEND_)/);
+      }
+    }
+  });
+
+  it("keeps the CONFIRM-gated and fail-closed omissions OUT of prod", () => {
+    // These absences are load-bearing, not oversights, and an absence is exactly what a later "make the
+    // scopes symmetrical" edit would helpfully fill in.
+    const agents = targetFromWrangler(parseWranglerToml(readFileSync("workers/agents/wrangler.toml", "utf8")), "prod");
+    expect(agents.vars["EVIDENCE_FROM"], "agents prod must stay a NotConfiguredSender").toBeUndefined();
+
+    const translator = targetFromWrangler(parseWranglerToml(readFileSync("workers/translator/wrangler.toml", "utf8")), "prod");
+    expect(translator.vars["EDI_TRANSPORT_URL"], "the EDI transport is CONFIRM-gated (REQ-154)").toBeUndefined();
+    expect(translator.vars["EDI_TRANSPORT_TOKEN"]).toBeUndefined();
   });
 
   it("parses every committed wrangler config without throwing", () => {

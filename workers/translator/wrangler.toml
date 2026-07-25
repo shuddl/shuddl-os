@@ -98,3 +98,46 @@ bucket_name = "shuddl-evidence-staging"
 name = "SHIPMENT_SEQ"
 class_name = "ShipmentSequencer"
 script_name = "shuddl-api-staging"
+
+# ── PRODUCTION ────────────────────────────────────────────────────────────────────────────────────────
+# Structurally mirrors [env.staging]; every id is an all-zero placeholder so the preflight keeps BLOCKING
+# until an operator provisions the resources. NOT deployable — declared, not provisioned.
+#
+# DELIBERATELY ABSENT: EDI_TRANSPORT_URL / EDI_TRANSPORT_TOKEN. The outbound transport is CONFIRM-GATED
+# (REQ-154) and stays dark in production until that CONFIRM is signed. Declaring the vars here would
+# quietly open it on the first deploy.
+[env.prod]
+name = "shuddl-translator-prod"
+workers_dev = false
+
+[env.prod.vars]
+ENVIRONMENT = "prod"
+
+[env.prod.triggers]
+crons = ["*/5 * * * *"]
+
+# Same physical tenant DBs as the api/agents workers (ids MUST match workers/api [env.prod]).
+[[env.prod.d1_databases]]
+binding = "TENANT_A_DB"
+database_name = "shuddl-t-tenant-a-prod"
+database_id = "00000000-0000-4000-8000-000000000301"
+
+[[env.prod.d1_databases]]
+binding = "TENANT_B_DB"
+database_name = "shuddl-t-tenant-b-prod"
+database_id = "00000000-0000-4000-8000-000000000302"
+
+[[env.prod.d1_databases]]
+binding = "CONTROL_DB"
+database_name = "shuddl-control-prod"
+database_id = "00000000-0000-4000-8000-000000000303"
+
+[[env.prod.r2_buckets]]
+binding = "EVIDENCE"
+bucket_name = "shuddl-evidence-prod"
+
+# Cross-script DO → the PROD api worker (must be deployed first).
+[[env.prod.durable_objects.bindings]]
+name = "SHIPMENT_SEQ"
+class_name = "ShipmentSequencer"
+script_name = "shuddl-api-prod"

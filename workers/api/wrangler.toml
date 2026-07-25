@@ -133,5 +133,75 @@ new_sqlite_classes = ["ShipmentSequencer"]
 binding = "AGENT_QUEUE"
 queue = "shuddl-agent-triggers-staging"
 
+# ── PRODUCTION ────────────────────────────────────────────────────────────────────────────────────────
+# Wrangler does NOT inherit top-level bindings into a named environment, so this scope declaring only a
+# name meant `wrangler deploy --env prod` would have shipped a worker with ZERO bindings — every
+# `env.TENANT_A_DB` undefined at the first request. It is now structurally complete.
+#
+# EVERY id here is an all-zero placeholder, deliberately. Nothing in this repo can invent a Cloudflare
+# resource id, so the honest state is "declared, not provisioned", and the preflight must keep BLOCKING
+# on it (placeholder-resource-id) until an operator provisions the resources and replaces these. Filling
+# them with plausible-looking values is the exact failure this file just had in billing's staging scope,
+# where a well-formed random UUID made a non-existent database read as provisioned.
+#
+# [env.prod] IS STILL NOT DEPLOYABLE. That is the point: the shape is now checkable at merge time
+# (tools/deploy/wrangler-scope-parity.test.ts), and the provisioning hold is visible instead of hidden
+# behind an empty scope.
 [env.prod]
 name = "shuddl-api-prod"
+workers_dev = false
+
+[env.prod.vars]
+ENVIRONMENT = "prod"
+
+[[env.prod.d1_databases]]
+binding = "TENANT_A_DB"
+database_name = "shuddl-t-tenant-a-prod"
+database_id = "00000000-0000-4000-8000-000000000301"
+
+[[env.prod.d1_databases]]
+binding = "TENANT_B_DB"
+database_name = "shuddl-t-tenant-b-prod"
+database_id = "00000000-0000-4000-8000-000000000302"
+
+[[env.prod.d1_databases]]
+binding = "CONTROL_DB"
+database_name = "shuddl-control-prod"
+database_id = "00000000-0000-4000-8000-000000000303"
+
+[[env.prod.d1_databases]]
+binding = "PLATFORM_TENANT_DB"
+database_name = "shuddl-t-platform-prod"
+database_id = "00000000-0000-4000-8000-000000000304"
+
+[[env.prod.d1_databases]]
+binding = "TENANT_POOL_01_DB"
+database_name = "shuddl-t-pool-01-prod"
+database_id = "00000000-0000-4000-8000-000000000305"
+
+[[env.prod.d1_databases]]
+binding = "TENANT_POOL_02_DB"
+database_name = "shuddl-t-pool-02-prod"
+database_id = "00000000-0000-4000-8000-000000000306"
+
+# NOT 32-hex on purpose. A KV id is only checked for shape, so an all-zero 32-hex string would PASS the
+# placeholder check and read as provisioned — the same trap the billing UUID set. This one blocks.
+[[env.prod.kv_namespaces]]
+binding = "IDEMPOTENCY"
+id = "0000000000000000000000000000prod"
+
+[[env.prod.r2_buckets]]
+binding = "EVIDENCE"
+bucket_name = "shuddl-evidence-prod"
+
+[[env.prod.durable_objects.bindings]]
+name = "SHIPMENT_SEQ"
+class_name = "ShipmentSequencer"
+
+[[env.prod.migrations]]
+tag = "v2-sequencer"
+new_sqlite_classes = ["ShipmentSequencer"]
+
+[[env.prod.queues.producers]]
+binding = "AGENT_QUEUE"
+queue = "shuddl-agent-triggers-prod"
