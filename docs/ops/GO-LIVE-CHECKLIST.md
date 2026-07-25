@@ -313,7 +313,7 @@ These are ours, they are reproducible locally, and they fail their gates on purp
 
 | Failure | Gate | Detail |
 |---|---|---|
-| 1,000-entity long task | `perf` | ~580ms main-thread block in the operating window, identical on a production build — a real REQ-079 defect, not a harness artifact |
+| 1,000-entity long task | `perf` | compositor rasterization in a GPU-less harness, NOT map code (a zero-entity board blocks 358ms; a real GPU blocks 0ms). Superseded by the real finding: 58-62% main-thread occupancy drawing a static picture. |
 | No blessed screenshots | `visual` | `tests/visual/blessed/` holds only a README; every screenshot test fails for want of a baseline |
 | Stale visual ready-selectors | `visual` | three specs in `tests/visual/screens.spec.ts` wait for text the surfaces stopped rendering at Task 10 |
 

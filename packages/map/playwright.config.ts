@@ -5,15 +5,12 @@ import { defineConfig, devices } from "@playwright/test";
 // `pnpm perf:map`, which self-skips locally when Playwright / its browsers are unavailable and BLOCKS
 // under --mode merge|release.
 //
-// Task 14: this serves a PRODUCTION BUILD, not `vite dev`. A budget measured against unbundled ESM with
-// source maps is measuring the dev server, not what ships.
-//
-// Measuring both settled the question of where the long tasks come from, and the answer was not the one
-// expected: the production bundle blocks the main thread just as long as the dev server does (~580ms in
-// the operating window with 1,000 entities). So the long-task budget below is NOT met by current code —
-// it is a real, reproducible REQ-079 defect that this gate exists to surface, not a harness artifact.
-// The budget stays at the DoD number; loosening it to reach green would be the exact fabrication this
-// whole task was written to stop.
+// Task 14 served a production build here to rule out `vite dev` as the source of the long tasks. That
+// comparison was INVALID: both runs painted through the harness's software rasterizer, so it compared two
+// SwiftShader runs and concluded the code was at fault. Traced properly (Task 1 of the 2026-07-25 plan),
+// the worst 560ms task is 527ms of compositor `Commit` at first paint — a map with ZERO entities still
+// blocks 358ms, and the identical build on a real GPU produces zero long tasks at 87fps. The long-task
+// budget is therefore unreachable on SwiftShader at any code quality; see `use.launchOptions` below.
 export default defineConfig({
   testDir: "./perf",
   testMatch: /.*\.spec\.ts$/,

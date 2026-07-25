@@ -40,7 +40,11 @@ Enforced by `pnpm perf:map` (`packages/map/perf/perf.spec.ts`) against a **produ
 Reference machine: Apple M-series · macOS 15+ · Chromium with GPU · 1440x900 · AC power. FPS is measured
 on every run but enforced only there — a GPU-less CI runner would be asserting SwiftShader, not this code.
 
-> **Open:** the long-task budget is currently NOT met. The 1,000-entity board blocks the main thread for
-> ~580ms in the operating window, reproduced identically on the production bundle, so it is product
-> behaviour rather than a harness artifact. `pnpm perf:map` fails on it deliberately. Re-baselining is not
-> the fix; the render path is.
+> **Corrected 2026-07-25.** An earlier note here claimed the 1,000-entity board blocked the main thread
+> for ~580ms as product behaviour. That was a mis-attribution: the block is compositor rasterization in a
+> GPU-less harness (527ms of a 560ms task is `Commit`, and a zero-entity board still blocks 358ms). On a
+> real GPU the same build produces zero long tasks at 87fps. The long-task budget is enforced only where
+> a hardware rasterizer is present — see the enforcement column.
+>
+> **The real REQ-079 finding:** the board spends 58–62% of the main thread rendering a *static* picture.
+> The per-frame data-driven pulse and the 30Hz full-`setData` are the two owners. Tasks 2–3 remove them.
