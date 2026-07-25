@@ -295,10 +295,9 @@ genuinely fixed — no code change required.
 
 | Hold | Gate | Blocked on | Owner |
 |---|---|---|---|
-| Production bindings | `deploy-preflight` | `[env.prod]` declares a worker name and zero bindings; four workers have no prod scope at all | infrastructure |
+| Production resources | `deploy-preflight` | all five `[env.prod]` scopes are structurally complete, but every id is an all-zero placeholder — declared, not provisioned | infrastructure |
 | Staging placeholder ids | `deploy-preflight` | all-zero D1 UUIDs (`PLATFORM_TENANT_DB`, both `TENANT_POOL_*`) and the mcp `GRANTS` KV id | infrastructure |
-| `PLATFORM_TENANT_DB` drift | `deploy-preflight` | api and billing bind different databases for one logical binding | backend |
-| Secrets bound | `deploy-preflight` | `JWT_SECRET` and the rest per docs/ops/secrets.md | infrastructure |
+| Secrets bound | `deploy-preflight` | `JWT_SECRET`, `RESEND_API_KEY`, `STRIPE_WEBHOOK_SECRET`, `PLATFORM_INTERNAL_SECRET` (the last three were required by DEPLOYMENT.md but absent from the checker's contract, so their absence read as satisfied until 2026-07-25) | infrastructure |
 | CORS origins | `deploy-preflight` | no served allowlist; `.example` placeholders remain in `cors.ts` | backend |
 | TSA endpoint | `deploy-preflight` | no RFC 3161 authority configured — anchors cannot be timestamped | infrastructure |
 | Backups | `backup-manifest` | `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` unbound; **no backup exists** | infrastructure |
@@ -313,9 +312,15 @@ These are ours, they are reproducible locally, and they fail their gates on purp
 
 | Failure | Gate | Detail |
 |---|---|---|
-| 1,000-entity long task | `perf` | compositor rasterization in a GPU-less harness, NOT map code (a zero-entity board blocks 358ms; a real GPU blocks 0ms). Superseded by the real finding: 58-62% main-thread occupancy drawing a static picture. |
-| No blessed screenshots | `visual` | `tests/visual/blessed/` holds only a README; every screenshot test fails for want of a baseline |
-| Stale visual ready-selectors | `visual` | three specs in `tests/visual/screens.spec.ts` wait for text the surfaces stopped rendering at Task 10 |
+| `anchors/run` backfill flake | `unit-tests` | INTERMITTENT, pre-dates this branch. `POST /v1/anchors/run` 500s in ~half of full-suite runs of `workers/api` and passes in isolation. Root cause: the route backfills every unanchored day in the tenant DB, which under `isolatedStorage:false` + `singleWorker:true` holds whatever every other test file wrote, so a per-day exception escapes `anchorDay` and fails the whole request. Two fixes are available and neither was taken here (out of scope for the T14/T15 plan): scope the run test to its own tenant (the precedent in 43661ff), or catch per-day in `runDailyAnchor` and push to the `failed[]` array the contract already has. |
 
-Both visual failures were invisible until Task 14 installed the browser: the harness self-skipped to
+Cleared 2026-07-25 (all four browser gates now PASS in `--mode merge`):
+
+| Was failing | Gate | Now |
+|---|---|---|
+| 1,000-entity long task | `perf` | NOT a defect — it was compositor rasterization in a GPU-less harness (a zero-entity board blocked 358ms; a real GPU blocks 0ms). The budget is enforced where a hardware rasterizer exists. The REAL finding it masked — 58-62% main-thread occupancy drawing a static picture — is closed: **measured 58.6% → 20.3%**. |
+| No blessed screenshots | `visual` | five blessed, each opened and reviewed. `visual: PASS — 5 passed`. |
+| Stale visual ready-selectors | `visual` | repaired — and a fourth screen was found rotten the same way: `command.png` was capturing five NETWORK REQUEST FAILED panels, because its ready selector waited for a `canvas` that the failure state also has. |
+
+Those visual failures were invisible until Task 14 installed the browser: the harness self-skipped to
 exit 0, so a suite that could never pass reported green.

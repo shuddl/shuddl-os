@@ -105,12 +105,29 @@ What must exist per environment, per worker (the checker's own contract, `REQUIR
 
 ### Known configuration defects the preflight reports today
 
-- `shuddl-api-prod` declares **no bindings and no `ENVIRONMENT` var**.
+- **Every id in `[env.prod]` is an all-zero placeholder.** All five workers now declare a structurally
+  complete prod scope (binding names and resource names), but none of the resources exist, so
+  `--env prod` reports 19 `placeholder-resource-id` BLOCKs plus the unproven account facts.
+  **`[env.prod]` is declared, not provisioned, and is NOT deployable.** Provisioning is the external
+  hold; the shape is now checked at merge time by `tools/deploy/wrangler-scope-parity.test.ts`.
 - Placeholder resource ids in staging: `PLATFORM_TENANT_DB`, `TENANT_POOL_01_DB`, `TENANT_POOL_02_DB`
   (all-zero UUIDs) and the mcp `GRANTS` KV id (`0000000000000000000000000000staging`, not a 32-hex id).
-- **`PLATFORM_TENANT_DB` binding drift:** api binds `shuddl-t-platform-<env>`, billing binds
-  `shuddl-t-_platform-<env>` (leading underscore) with a different `database_id`. One logical binding,
-  two physical databases — money written through one worker is invisible to the other.
+
+### Closed (2026-07-25)
+
+- ~~`shuddl-api-prod` declares no bindings and no `ENVIRONMENT` var~~ — and neither did four workers,
+  which had no `[env.prod]` at all. All five are structurally complete; see above for the honest state.
+- ~~**`PLATFORM_TENANT_DB` binding drift**~~ — api and billing bound two different databases for one
+  logical binding. Converged onto `shuddl-t-platform-<env>` with a single id. Note what the drift was
+  hiding: billing's staging `database_id` was a well-formed random UUID, so an unprovisioned database
+  **passed** the placeholder check. Converging it onto the api placeholder ADDED a BLOCK — that is the
+  correct direction. Closing a drift is not provisioning a database.
+
+> **A note on placeholder ids, for whoever provisions these.** Fill them with real ids or leave them
+> all-zero. Never fill them with something that merely *looks* real: the preflight's placeholder check
+> is shape-based, so a plausible UUID (or an all-zero 32-hex KV id) reads as provisioned and the gate
+> goes quiet about a resource that does not exist. That is exactly how the billing drift stayed
+> invisible. KV placeholders are deliberately non-hex for this reason.
 
 ## Deploy and migration order
 
