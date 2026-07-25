@@ -45,15 +45,59 @@ function portalBearer(partyId: string): string {
   })}.visual-not-verified`;
 }
 
-/** Three positioned shipments in the party's own board shape — {board, as_of}, strict (api/board.ts).
- * One exception so the capture also carries the world-dim and the pulse at rest (REQ-077). */
+/** Positioned shipments, CONUS-spread, exactly one exception so every capture carries the world-dim
+ * and the alarm at rest (REQ-077). */
+const MARKS = [
+  { shipment_id: "SHP-0001", lat_e6: 45_515_000, lon_e6: -122_678_000, status: "healthy" },
+  { shipment_id: "SHP-0002", lat_e6: 39_739_000, lon_e6: -104_990_000, status: "at-risk" },
+  { shipment_id: "SHP-0003", lat_e6: 32_776_000, lon_e6: -96_797_000, status: "exception" },
+  { shipment_id: "SHP-0004", lat_e6: 41_878_000, lon_e6: -87_629_000, status: "healthy" },
+  { shipment_id: "SHP-0005", lat_e6: 33_749_000, lon_e6: -84_388_000, status: "healthy" },
+] as const;
+
+/** The PARTY board shape — {board, as_of}, strict (apps/portal/src/api/board.ts). */
 function partyBoard(): unknown {
+  return { as_of: AS_OF, board: MARKS.slice(0, 3) };
+}
+
+/** The COMMAND board shape — {board} only, and ALSO strict (apps/command/src/lib/board.ts). Sending
+ * the portal's `as_of` here would fail the parse and collapse the map to its honest empty state, which
+ * is precisely the kind of silently-wrong baseline this task exists to stop. */
+function commandBoard(): unknown {
+  return { board: MARKS };
+}
+
+/** One open approval and one open exception — the two queues that carry the board's left rail. Both
+ * are plain row shapes the views read directly (no Zod at this seam), and the exception's `ts` is
+ * fixed because the row renders it as UTC HH:MM (views/ui.tsx hhmm). */
+function commandApprovals(): unknown {
   return {
-    as_of: AS_OF,
-    board: [
-      { shipment_id: "SHP-0001", lat_e6: 45_515_000, lon_e6: -122_678_000, status: "healthy" },
-      { shipment_id: "SHP-0002", lat_e6: 39_739_000, lon_e6: -104_990_000, status: "at-risk" },
-      { shipment_id: "SHP-0003", lat_e6: 32_776_000, lon_e6: -96_797_000, status: "exception" },
+    approvals: [
+      {
+        id: "apr-1",
+        object_kind: "shipment",
+        object_id: "SHP-0003",
+        rule: "MARGIN_FLOOR",
+        required_role: "dispatcher",
+        requested_event_id: "evt-req-1",
+        decided_event_id: null,
+        status: "open",
+      },
+    ],
+  };
+}
+
+function commandExceptions(): unknown {
+  return {
+    exceptions: [
+      {
+        shipment_id: "SHP-0003",
+        exception_event_id: "evt-exc-1",
+        kind: "exception.raised",
+        reason_code: "DWELL",
+        ts: AS_OF,
+        open: true,
+      },
     ],
   };
 }
@@ -116,7 +160,28 @@ const SCREENS: readonly Screen[] = [
   {
     name: "command.png",
     url: `${COMMAND}/`,
-    ready: canvasReady,
+    setup: async (page) => {
+      // The board mounts five reads at once. Unpinned, EVERY one of them renders
+      // "NETWORK REQUEST FAILED" — the first capture of this screen was five red failure panels over an
+      // empty map, and the ready selector (`canvas`) was happy with it, because a canvas exists in the
+      // failure state too. Money and KPIs stay EMPTY deliberately: invoice aging is computed against
+      // Date.now(), so an aged row would repaint on every run.
+      await page.route("**/v1/**", async (route) => {
+        const url = route.request().url();
+        if (url.includes("/v1/board")) return route.fulfill({ json: commandBoard() });
+        if (url.includes("/v1/approvals")) return route.fulfill({ json: commandApprovals() });
+        if (url.includes("/v1/exceptions")) return route.fulfill({ json: commandExceptions() });
+        if (url.includes("/v1/invoices")) return route.fulfill({ json: { invoices: [] } });
+        if (url.includes("/v1/dunning")) return route.fulfill({ json: { drafts: [] } });
+        if (url.includes("/v1/kpis")) return route.fulfill({ json: { kpis: [] } });
+        return route.fulfill({ json: {} });
+      });
+    },
+    ready: async (page) => {
+      await canvasReady(page);
+      // The board proper, never the failure state that also owns a canvas.
+      await expect(page.getByText("NETWORK REQUEST FAILED")).toHaveCount(0);
+    },
   },
   {
     name: "portal.png",
@@ -135,6 +200,10 @@ const SCREENS: readonly Screen[] = [
       await canvasReady(page);
       // The authed board, not the re-auth prompt: the party's own hero is on screen.
       await page.getByRole("heading", { name: PARTY_ID }).waitFor({ timeout: 30_000 });
+      // …and the board actually LOADED. The hero is the party id off the session claims, so it renders
+      // just the same when the board read fails — on its own it would happily bless a SYNCING, STALE or
+      // UNAVAILABLE map. The status line is the honest one.
+      await expect(page.getByTestId("board-status")).toHaveText(/LIVE MAP · LIVE · AS OF /);
     },
   },
   {
