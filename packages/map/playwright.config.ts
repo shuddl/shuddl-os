@@ -24,6 +24,12 @@ export default defineConfig({
     baseURL: "http://localhost:4310",
     reducedMotion: "no-preference",
     ...devices["Desktop Chrome"],
+    launchOptions: {
+      // SwiftShader's compositor Commit floor (~360-520ms at first paint) makes the 100ms long-task
+      // budget unreachable regardless of code quality. Ask for the real GPU; the spec verifies whether
+      // it was granted and refuses to assert the budget against a software rasterizer.
+      args: ["--enable-gpu", "--use-angle=metal", "--ignore-gpu-blocklist", "--enable-features=Vulkan"],
+    },
   },
   webServer: {
     command:

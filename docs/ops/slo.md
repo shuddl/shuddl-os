@@ -33,7 +33,7 @@ Enforced by `pnpm perf:map` (`packages/map/perf/perf.spec.ts`) against a **produ
 | Budget | Value | Enforced |
 |---|---|---|
 | Board interaction p95, 1,000 entities | <= 500ms | everywhere |
-| Longest main-thread task, operating window | <= 100ms | everywhere |
+| Longest main-thread task, operating window | <= 100ms | wherever a hardware rasterizer is present |
 | Sustained frame rate, 1,000 entities | >= 55 FPS | reference machine only (`PERF_REFERENCE_MACHINE=1`) |
 | Serious/critical accessibility findings | 0 | everywhere (`pnpm test:a11y`) |
 
