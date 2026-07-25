@@ -77,7 +77,9 @@ export const REQUIRED_BINDINGS = {
     do: ["SHIPMENT_SEQ", "SPARK_METER"],
     queueProducers: ["AGENT_QUEUE"],
     services: [] as string[],
-    secrets: [] as string[],
+    // Without it evidenceSender() is a NotConfiguredSender: the POD email — the whole money-follows-
+    // physics demo — silently never sends (docs/ops/DEPLOYMENT.md).
+    secrets: ["RESEND_API_KEY"],
   },
   billing: {
     d1: ["TENANT_A_DB", "TENANT_B_DB", "CONTROL_DB", "PLATFORM_TENANT_DB"],
@@ -86,7 +88,10 @@ export const REQUIRED_BINDINGS = {
     do: [] as string[],
     queueProducers: [] as string[],
     services: ["API"],
-    secrets: [] as string[],
+    // Without these billing cannot verify a Stripe webhook signature, nor authenticate itself to the
+    // api's internal surface — it would accept forged callbacks or fail every internal call
+    // (docs/ops/DEPLOYMENT.md).
+    secrets: ["STRIPE_WEBHOOK_SECRET", "PLATFORM_INTERNAL_SECRET"],
   },
   mcp: {
     d1: ["CONTROL_DB"],
@@ -228,9 +233,17 @@ export function checkDeployTarget(target: DeployTarget): PreflightReport {
   for (const [binding, uses] of byBinding) {
     if (uses.length < 2) continue;
     checked += 1;
-    const distinct = new Set(uses.map((u) => `${u.name}|${u.id}`));
-    if (distinct.size > 1) {
-      add("binding-drift", binding, `${binding} resolves to ${distinct.size} different databases: ${uses.map((u) => `${u.worker}→${u.name}`).join(", ")}`);
+    // The NAME is the logical database and must always agree. The ID is compared only between REAL
+    // ids: a `local-` id is a per-worker alias for the same logical database — wrangler gives every
+    // worker its own local store — so two differing aliases are the design, not a divergence. Treating
+    // them as drift made `--env dev` report three false positives, and a check that cries wolf is the
+    // one nobody reads on the day it is right. A `local-` id somewhere it cannot be real is still
+    // caught, by placeholder-resource-id above.
+    const names = new Set(uses.map((u) => u.name));
+    const realIds = new Set(uses.filter((u) => !u.id.startsWith("local-")).map((u) => u.id));
+    if (names.size > 1 || realIds.size > 1) {
+      const what = names.size > 1 ? `${names.size} different databases` : `${realIds.size} different ids for one name`;
+      add("binding-drift", binding, `${binding} resolves to ${what}: ${uses.map((u) => `${u.worker}→${u.name}`).join(", ")}`);
     }
   }
 

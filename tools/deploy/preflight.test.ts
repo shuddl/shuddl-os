@@ -208,6 +208,73 @@ describe("cross-worker references", () => {
     expect(blocks(t)).toContain("queue-without-dlq");
   });
 
+  // A local-* id is a PER-WORKER alias for the same logical database — that is how wrangler's local
+  // dev works, and every worker having its own is the design, not a divergence. Reporting it as drift
+  // trained the reader to skim past `binding-drift`, which is the one line that must never be noise.
+  it("does NOT report drift when one database name carries per-worker local-* aliases in dev", () => {
+    const t: DeployTarget = {
+      environment: "dev",
+      workers: [
+        worker({
+          worker: "shuddl-api-dev",
+          environment: "dev",
+          vars: { ENVIRONMENT: "dev" },
+          d1: [{ binding: "CONTROL_DB", databaseName: "shuddl-control-dev", databaseId: "local-control" }],
+        }),
+        worker({
+          worker: "shuddl-billing-dev",
+          environment: "dev",
+          vars: { ENVIRONMENT: "dev" },
+          d1: [{ binding: "CONTROL_DB", databaseName: "shuddl-control-dev", databaseId: "local-billing-control" }],
+        }),
+      ],
+      secrets: {},
+      corsOrigins: [],
+      now: NOW,
+    };
+    expect(checkDeployTarget(t).problems.map((p) => p.code)).not.toContain("binding-drift");
+  });
+
+  it("STILL reports drift when the same binding name maps to two different NAMES, aliases or not", () => {
+    const t: DeployTarget = {
+      environment: "dev",
+      workers: [
+        worker({
+          worker: "shuddl-api-dev",
+          environment: "dev",
+          vars: { ENVIRONMENT: "dev" },
+          d1: [{ binding: "CONTROL_DB", databaseName: "shuddl-control-dev", databaseId: "local-control" }],
+        }),
+        worker({
+          worker: "shuddl-billing-dev",
+          environment: "dev",
+          vars: { ENVIRONMENT: "dev" },
+          d1: [{ binding: "CONTROL_DB", databaseName: "shuddl-_control-dev", databaseId: "local-control" }],
+        }),
+      ],
+      secrets: {},
+      corsOrigins: [],
+      now: NOW,
+    };
+    expect(checkDeployTarget(t).problems.map((p) => p.code)).toContain("binding-drift");
+  });
+
+  it("STILL reports drift when two REAL ids diverge under one name", () => {
+    const t = healthyTarget({
+      workers: [
+        worker({
+          worker: "shuddl-api-staging",
+          d1: [{ binding: "CONTROL_DB", databaseName: "shuddl-control-staging", databaseId: "1742fef3-f7bf-4d1a-9aaa-bf9366994520" }],
+        }),
+        worker({
+          worker: "shuddl-billing-staging",
+          d1: [{ binding: "CONTROL_DB", databaseName: "shuddl-control-staging", databaseId: "99999999-f7bf-4d1a-9aaa-bf9366994520" }],
+        }),
+      ],
+    });
+    expect(blocks(t)).toContain("binding-drift");
+  });
+
   it("BLOCKS the same logical binding resolving to different databases across workers", () => {
     // The real drift: api PLATFORM_TENANT_DB -> shuddl-t-platform-staging, billing -> shuddl-t-_platform-staging.
     const t = healthyTarget({
@@ -226,6 +293,30 @@ describe("cross-worker references", () => {
 });
 
 describe("secrets", () => {
+  // The contract is the checker's copy of docs/ops/DEPLOYMENT.md. Where it was EMPTY, the preflight
+  // reported a clean bill of health for a worker that cannot do its job: billing cannot verify a Stripe
+  // webhook signature and agents cannot send a single evidence email. An unasserted requirement is not
+  // a requirement.
+  it("requires the secrets billing genuinely cannot run without", () => {
+    expect(REQUIRED_BINDINGS.billing.secrets).toContain("STRIPE_WEBHOOK_SECRET");
+    expect(REQUIRED_BINDINGS.billing.secrets).toContain("PLATFORM_INTERNAL_SECRET");
+  });
+
+  it("requires the sender key agents cannot send without", () => {
+    expect(REQUIRED_BINDINGS.agents.secrets).toContain("RESEND_API_KEY");
+  });
+
+  it("names those secrets as BLOCKs when they are absent from a real deploy target", () => {
+    const t = healthyTarget({
+      workers: [worker({ worker: "shuddl-billing-staging" }), worker({ worker: "shuddl-agents-staging" })],
+      secrets: {},
+    });
+    const missing = checkDeployTarget(t).problems.filter((p) => p.code === "missing-secret").map((p) => p.resource);
+    expect(missing).toContain("STRIPE_WEBHOOK_SECRET");
+    expect(missing).toContain("PLATFORM_INTERNAL_SECRET");
+    expect(missing).toContain("RESEND_API_KEY");
+  });
+
   it("BLOCKS a missing required secret", () => {
     expect(blocks(healthyTarget({ secrets: {} }))).toContain("missing-secret");
   });
