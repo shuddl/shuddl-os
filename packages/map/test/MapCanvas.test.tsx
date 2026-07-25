@@ -150,9 +150,10 @@ describe("MapCanvas — auto world-dim on a visible exception (REQ-077, demo #5)
   });
 });
 
-// m1 — a cluster that CONTAINS the exception must throb, not just stay lit. The pulse now drives the
-// clusters layer's circle-stroke-width on the 1.6s urgent sine, gated to clusters whose aggregated
-// maxStatus === 2 (exception); calmer clusters keep the static 1px stroke.
+// m1 — a cluster that CONTAINS the exception must throb, not just stay lit. The gating moved from the
+// paint expression into the layer split (`clusters-exception` filters on the aggregated maxStatus), so
+// the pulse is now a CONSTANT write to that layer: same 1.6s urgent sine, no per-feature upload. The
+// calm `clusters` layer is never written, keeping its static 1px stroke from the layer spec.
 describe("MapCanvas — a clustered exception throbs (operational-map §6)", () => {
   beforeEach(() => {
     ctorSpy.mockClear();
@@ -162,15 +163,39 @@ describe("MapCanvas — a clustered exception throbs (operational-map §6)", () 
     cleanup();
   });
 
-  it("pulses the clusters stroke-width gated to maxStatus === 2, leaving other clusters calm", () => {
+  it("pulses clusters-exception with a constant width and leaves the calm cluster layer alone", () => {
     render(<MapCanvas tileUrl="t" glyphsUrl="g" fleet={exceptionFleet} onSelect={() => {}} />);
-    const v = lastPaint("clusters", "circle-stroke-width") as unknown[] | undefined;
-    expect(v).toBeDefined();
-    expect(v?.[0]).toBe("case");
-    expect(v?.[1]).toEqual(["==", ["get", "maxStatus"], 2]); // only exception-bearing clusters
-    expect(typeof v?.[2]).toBe("number"); // the throbbing width
-    expect(v?.[3]).toBe(1); // calm clusters keep the static 1px stroke
-    expect(v?.[2] as number).toBeGreaterThan(v?.[3] as number); // lit AND throbbing > calm
+    const v = lastPaint("clusters-exception", "circle-stroke-width");
+    expect(typeof v).toBe("number");
+    expect(v as number).toBeGreaterThan(1); // lit AND throbbing > the calm 1px stroke
+    expect(lastPaint("clusters", "circle-stroke-width")).toBeUndefined();
+  });
+
+  it("throbs the exception leaf and breathes at-risk, both as constants, never touching healthy", () => {
+    render(<MapCanvas tileUrl="t" glyphsUrl="g" fleet={exceptionFleet} onSelect={() => {}} />);
+    expect(typeof lastPaint("rest-exception", "circle-stroke-width")).toBe("number");
+    expect(typeof lastPaint("rest-at-risk", "circle-stroke-width")).toBe("number");
+    expect(lastPaint("rest-healthy", "circle-stroke-width")).toBeUndefined();
+    expect(lastPaint("rest-exception", "circle-stroke-width") as number).toBeGreaterThan(
+      lastPaint("rest-at-risk", "circle-stroke-width") as number,
+    );
+  });
+
+  it("writes NO per-feature expression per frame — that is the whole defect being closed (REQ-079)", () => {
+    render(<MapCanvas tileUrl="t" glyphsUrl="g" fleet={exceptionFleet} onSelect={() => {}} />);
+    const pulsed = paintSpy.mock.calls.filter((c) => c[1] === "circle-stroke-width");
+    expect(pulsed.length).toBeGreaterThan(0);
+    for (const [layerId, , value] of pulsed) {
+      expect(typeof value, `pulse write to '${layerId}' must be a scalar, not an expression`).toBe("number");
+    }
+  });
+
+  it("opens the lens from EVERY at-rest leaf layer, so an exception mark stays clickable (REQ-080)", () => {
+    render(<MapCanvas tileUrl="t" glyphsUrl="g" fleet={exceptionFleet} onSelect={() => {}} />);
+    const clickLayers = onSpy.mock.calls.filter((c) => c[0] === "click").map((c) => c[1]);
+    for (const id of ["rest-healthy", "rest-at-risk", "rest-exception", "trucks", "clusters", "clusters-exception"]) {
+      expect(clickLayers, `no click handler on '${id}'`).toContain(id);
+    }
   });
 });
 

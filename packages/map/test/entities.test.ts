@@ -1,7 +1,15 @@
 import { describe, it, expect } from "vitest";
 import type { LayerSpecification } from "maplibre-gl";
 import { greigeStyle } from "../src/style.js";
-import { fleetSource, entityLayers, STATUS_NUM, setEntityState, setWorldDim } from "../src/entities.js";
+import {
+  CLUSTER_LAYERS,
+  REST_LAYERS,
+  fleetSource,
+  entityLayers,
+  STATUS_NUM,
+  setEntityState,
+  setWorldDim,
+} from "../src/entities.js";
 import { chevronImage } from "../src/chevron.js";
 
 // The map is 80% custom style; the entities are the only saturated marks. These specs are the
@@ -76,8 +84,90 @@ describe("entityLayers — the paint-only rule + teal discipline (REQ-076/077/07
     expect(clusters.paint?.["circle-color"]).toBe("#FF4A33");
   });
 
-  it("exposes exactly the six entity layers", () => {
-    expect(entityLayers().map((l) => l.id)).toEqual(["clusters", "cluster-count", "rest", "trucks", "chips", "eta"]);
+  it("exposes exactly the entity layers, in draw order (clusters under → eta on top)", () => {
+    expect(entityLayers().map((l) => l.id)).toEqual([
+      "clusters",
+      "clusters-exception",
+      "cluster-count",
+      "rest-healthy",
+      "rest-at-risk",
+      "rest-exception",
+      "trucks",
+      "chips",
+      "eta",
+    ]);
+  });
+});
+
+// REQ-079: the pulse targets are separate layers so the ANIMATED paint value can be a constant. That
+// only works if the split partitions the fleet exactly — every mark drawn once, by the layer whose
+// pulse matches its status. A gap loses marks from the board; an overlap double-draws them (visible as
+// a darker ring) and pays the cost twice.
+describe("entityLayers — the pulse split partitions the fleet (REQ-079)", () => {
+  /** Evaluate the subset of the filter grammar these layers use, against a plain feature. */
+  function matches(filter: unknown, props: Record<string, unknown>): boolean {
+    if (!Array.isArray(filter)) return true;
+    const [op, ...rest] = filter as [string, ...unknown[]];
+    const value = (operand: unknown): unknown => {
+      if (Array.isArray(operand) && operand[0] === "get") return props[operand[1] as string];
+      return operand;
+    };
+    if (op === "all") return rest.every((f) => matches(f, props));
+    if (op === "!") return !matches(rest[0], props);
+    if (op === "has") return props[rest[0] as string] !== undefined;
+    if (op === "==") return value(rest[0]) === value(rest[1]);
+    if (op === "!=") return value(rest[0]) !== value(rest[1]);
+    throw new Error(`unhandled filter op '${op}'`);
+  }
+
+  const layerFilter = (id: string): unknown => {
+    const l = layer(id);
+    return "filter" in l ? l.filter : undefined;
+  };
+
+  it("draws every LEAF exactly once, whatever its status", () => {
+    for (const statusStr of ["healthy", "at-risk", "exception", "something-unforeseen"]) {
+      const hits = ["rest-healthy", "rest-at-risk", "rest-exception"].filter((id) =>
+        matches(layerFilter(id), { statusStr }),
+      );
+      expect(hits, `statusStr='${statusStr}' must match exactly one leaf layer`).toHaveLength(1);
+    }
+  });
+
+  it("draws every CLUSTER exactly once, whatever it aggregates", () => {
+    for (const maxStatus of [0, 1, 2, undefined]) {
+      const hits = ["clusters", "clusters-exception"].filter((id) =>
+        matches(layerFilter(id), { point_count: 7, maxStatus }),
+      );
+      expect(hits, `maxStatus=${String(maxStatus)} must match exactly one cluster layer`).toHaveLength(1);
+    }
+  });
+
+  it("keeps clusters and leaves disjoint — a cluster is never drawn as a leaf, or vice versa", () => {
+    const clusterFeature = { point_count: 7, maxStatus: 2 };
+    const leafFeature = { statusStr: "exception" };
+    for (const id of ["rest-healthy", "rest-at-risk", "rest-exception"]) {
+      expect(matches(layerFilter(id), clusterFeature), `${id} must not draw clusters`).toBe(false);
+    }
+    for (const id of ["clusters", "clusters-exception"]) {
+      expect(matches(layerFilter(id), leafFeature), `${id} must not draw leaves`).toBe(false);
+    }
+  });
+
+  it("gives the three leaf layers byte-identical paint apart from the pulsed stroke width", () => {
+    const paints = ["rest-healthy", "rest-at-risk", "rest-exception"].map((id) => {
+      const l = layer(id);
+      if (l.type !== "circle") throw new Error(`${id} must be a circle layer`);
+      return JSON.stringify(l.paint);
+    });
+    expect(new Set(paints).size, "a mark's look must not depend on which layer draws it").toBe(1);
+  });
+
+  it("filters on the STATIC status mirror only — a filter can never read feature-state", () => {
+    for (const l of entityLayers()) {
+      const filter = "filter" in l ? l.filter : undefined;
+      expect(JSON.stringify(filter ?? [])).not.toContain("feature-state");
+    }
   });
 });
 
@@ -105,7 +195,11 @@ describe("STATUS_NUM — worst-state ordering", () => {
 });
 
 describe("setWorldDim — dim the world by contrast, exempt the exception (REQ-077)", () => {
-  function recorder(): { map: { setPaintProperty: (l: string, p: string, v: unknown) => void; setFeatureState: () => void }; get: (l: string, p: string) => unknown } {
+  function recorder(): {
+    map: { setPaintProperty: (l: string, p: string, v: unknown) => void; setFeatureState: () => void };
+    get: (l: string, p: string) => unknown;
+    touched: () => string[];
+  } {
     const calls: Array<[string, string, unknown]> = [];
     return {
       map: {
@@ -115,31 +209,54 @@ describe("setWorldDim — dim the world by contrast, exempt the exception (REQ-0
         setFeatureState: (): void => {},
       },
       get: (l, p) => calls.find(([cl, cp]) => cl === l && cp === p)?.[2],
+      touched: () => calls.map(([l]) => l),
     };
   }
 
   it("keeps the exception lit on leaves via feature-state and on clusters via maxStatus", () => {
     const { map, get } = recorder();
     setWorldDim(map, true);
-    expect(JSON.stringify(get("rest", "circle-opacity"))).toContain("feature-state");
-    expect(JSON.stringify(get("rest", "circle-opacity"))).toContain("exception");
+    for (const id of REST_LAYERS) {
+      expect(JSON.stringify(get(id, "circle-opacity"))).toContain("feature-state");
+      expect(JSON.stringify(get(id, "circle-opacity"))).toContain("exception");
+    }
     expect(JSON.stringify(get("trucks", "icon-opacity"))).toContain("feature-state");
-    expect(JSON.stringify(get("clusters", "circle-opacity"))).toContain('["get","maxStatus"]');
+    for (const id of CLUSTER_LAYERS) {
+      expect(JSON.stringify(get(id, "circle-opacity"))).toContain('["get","maxStatus"]');
+    }
     expect(JSON.stringify(get("cluster-count", "text-opacity"))).toContain('["get","maxStatus"]');
   });
 
   it("dims everything else to 0.35 when on", () => {
     const { map, get } = recorder();
     setWorldDim(map, true);
-    expect(JSON.stringify(get("rest", "circle-opacity"))).toContain("0.35");
+    for (const id of REST_LAYERS) expect(JSON.stringify(get(id, "circle-opacity"))).toContain("0.35");
   });
 
   it("restores full opacity when off (dim factor 1, exception unchanged)", () => {
     const { map, get } = recorder();
     setWorldDim(map, false);
-    const restOpacity = JSON.stringify(get("rest", "circle-opacity"));
-    expect(restOpacity).not.toContain("0.35");
-    expect(restOpacity).toContain("1");
+    for (const id of REST_LAYERS) {
+      const restOpacity = JSON.stringify(get(id, "circle-opacity"));
+      expect(restOpacity).not.toContain("0.35");
+      expect(restOpacity).toContain("1");
+    }
+  });
+
+  // The split multiplied the layers the world-dim has to reach. A layer it forgets stays fully lit
+  // while the world darkens around it — the alarm would no longer be the only lit thing (REQ-077).
+  // Pinned as an EQUALITY so adding a layer without dimming it fails here rather than on the map.
+  // `chips` is deliberately absent and was before the split: the chip text is the label of the mark
+  // that is speaking, and it has never been dimmed. Changing that is a design decision, not a
+  // performance one, so it is out of scope here.
+  it("reaches exactly the layers it is meant to — the split left none behind", () => {
+    const { map, touched } = recorder();
+    setWorldDim(map, true);
+    expect(new Set(touched())).toEqual(
+      new Set([...REST_LAYERS, ...CLUSTER_LAYERS, "trucks", "cluster-count", "eta"]),
+    );
+    const dimmable = new Set(entityLayers().map((l) => l.id));
+    for (const id of touched()) expect(dimmable, `dims a layer that does not exist: '${id}'`).toContain(id);
   });
 });
 

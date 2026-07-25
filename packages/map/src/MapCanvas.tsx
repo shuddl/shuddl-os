@@ -3,6 +3,8 @@ import * as maplibregl from "maplibre-gl";
 import type { GeoJSONSource, MapLayerMouseEvent } from "maplibre-gl";
 import { greigeStyle, greigeStyleMapbox, mapboxTransformRequest } from "./style.js";
 import {
+  CLUSTER_LAYERS,
+  REST_LAYERS,
   entityLayers,
   fleetSource,
   setEntityState,
@@ -12,6 +14,7 @@ import {
 } from "./entities.js";
 import { chevronImage } from "./chevron.js";
 import { animateToward } from "./glide.js";
+import { pulseWidths } from "./pulse.js";
 
 // The operational canvas (REQ-073 full-viewport). MapLibre draws the greige basemap + the entity GL
 // layers; positions glide via a throttled setData (~30fps ease-to-target, so 30s-sparse GPS reads as
@@ -97,29 +100,20 @@ function pushDataIfReady(map: maplibregl.Map, fleet: FleetCollection): void {
 }
 
 /** The two pulses off one sine: exception throbs (1.6s), at-risk breathes (3s), healthy is static.
- * Leaves throb via feature-state on the `rest` layer; a CLUSTER holding an exception (aggregated
- * `maxStatus === 2`) throbs on the same 1.6s urgent sine via its stroke-width — clusters have no
- * feature-state, so the gate reads the `maxStatus` property. Calmer clusters keep the static 1px
- * stroke, so a cluster containing the alarm is lit AND throbbing (operational-map §6) while its
- * neighbours stay quiet. Reduced-motion renders one static frame (the loop is never scheduled). */
+ * A CLUSTER holding an exception (aggregated `maxStatus === 2`) throbs on the same urgent sine, so a
+ * cluster containing the alarm is lit AND throbbing (operational-map §6) while its neighbours stay
+ * quiet. Reduced-motion renders one static frame (the loop is never scheduled).
+ *
+ * Every write here is a CONSTANT (REQ-079). It used to be a `match`/`case` over ["get", …] — a
+ * source-kind expression, which MapLibre binds as a per-feature vertex attribute and re-uploads for
+ * all 1,000 entities on every write, ~100×/second, to animate a stroke width. Which mark is throbbing
+ * is now decided by the layer split in `entities.ts` (a filter on the static status mirror), leaving
+ * these three writes as bare numbers bound to a uniform. */
 function applyPulse(map: maplibregl.Map, ts: number): void {
-  const urgent = 0.5 + 0.5 * Math.sin((ts / 1600) * 2 * Math.PI);
-  const calm = 0.5 + 0.5 * Math.sin((ts / 3000) * 2 * Math.PI);
-  map.setPaintProperty("rest", "circle-stroke-width", [
-    "match",
-    ["coalesce", ["feature-state", "status"], ["get", "statusStr"], "healthy"],
-    "exception",
-    2 + 4 * urgent,
-    "at-risk",
-    1 + 1.5 * calm,
-    1,
-  ]);
-  map.setPaintProperty("clusters", "circle-stroke-width", [
-    "case",
-    ["==", ["get", "maxStatus"], 2],
-    2 + 4 * urgent, // exception-bearing cluster: the same fat, throbbing ring
-    1, // everything else: the static 1px stroke
-  ]);
+  const w = pulseWidths(ts);
+  map.setPaintProperty("rest-exception", "circle-stroke-width", w.exception);
+  map.setPaintProperty("rest-at-risk", "circle-stroke-width", w.atRisk);
+  map.setPaintProperty("clusters-exception", "circle-stroke-width", w.exception);
 }
 
 export function MapCanvas({ tileUrl, glyphsUrl, fleet, onSelect, dim, mapboxToken }: MapCanvasProps): React.JSX.Element {
@@ -198,8 +192,11 @@ export function MapCanvas({ tileUrl, glyphsUrl, fleet, onSelect, dim, mapboxToke
         if (typeof sid === "string") onSelectRef.current(sid);
       };
       map.on("click", "trucks", openLens);
-      map.on("click", "rest", openLens);
-      map.on("click", "clusters", (e: MapLayerMouseEvent) => {
+      // Every at-rest leaf layer, or the split would quietly make an exception mark unclickable —
+      // the one mark an operator most needs to open (REQ-080).
+      for (const id of REST_LAYERS) map.on("click", id, openLens);
+
+      const expandCluster = (e: MapLayerMouseEvent): void => {
         const cid = e.features?.[0]?.properties?.["cluster_id"];
         const geometry = e.features?.[0]?.geometry;
         const src = map.getSource("fleet");
@@ -209,7 +206,8 @@ export function MapCanvas({ tileUrl, glyphsUrl, fleet, onSelect, dim, mapboxToke
             map.easeTo({ center: [geometry.coordinates[0] ?? 0, geometry.coordinates[1] ?? 0], zoom });
           }
         });
-      });
+      };
+      for (const id of CLUSTER_LAYERS) map.on("click", id, expandCluster);
       map.on("mouseenter", "trucks", () => {
         map.getCanvas().style.cursor = "pointer";
       });

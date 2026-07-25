@@ -33,6 +33,10 @@ export type FleetProperties = {
 export type FleetFeature = Feature<Point, FleetProperties>;
 export type FleetCollection = FeatureCollection<Point, FleetProperties>;
 
+/** The paint slot of a circle layer — named so the split's shared paint builders stay one definition
+ * instead of three drifting literals. */
+type CirclePaint = NonNullable<Extract<LayerSpecification, { type: "circle" }>["paint"]>;
+
 const EMPTY_FLEET: FleetCollection = { type: "FeatureCollection", features: [] };
 
 /** ONE clustered GeoJSON source for the whole fleet. `promoteId` gives every entity a stable id
@@ -50,23 +54,47 @@ export function fleetSource(data: FleetCollection = EMPTY_FLEET): GeoJSONSourceS
   };
 }
 
-/** The six entity layers, in draw order (clusters underneath → eta on top). Every state-driven
- * paint value reads `["coalesce", ["feature-state","status"], ["get","statusStr"], "healthy"]` so it
- * works whether or not feature-state was applied yet, and survives a cluster `setData`. */
+/** The entity layers, in draw order (clusters underneath → eta on top). Every state-driven paint
+ * value reads `["coalesce", ["feature-state","status"], ["get","statusStr"], "healthy"]` so it works
+ * whether or not feature-state was applied yet, and survives a cluster `setData`.
+ *
+ * THE SPLIT (REQ-079): the two PULSED values — the exception's throbbing ring and at-rest's calmer
+ * breath — are written ~100×/second. MapLibre binds a paint value by expression kind: anything reading
+ * `["get", …]` or `["feature-state", …]` is `source`-kind and binds through a per-feature vertex
+ * attribute array that is repopulated and re-uploaded for every feature on every write. One animated
+ * data-driven expression over 1,000 leaves therefore costs two 1,000-element buffer uploads per frame
+ * to change a stroke width. So each pulse target gets its OWN layer, selected by a filter on the
+ * STATIC `statusStr` / `maxStatus` property, and the animated value becomes a bare number bound to a
+ * uniform. Filters cannot read feature-state (that is the paint-only rule), which is exactly why the
+ * status mirror in the properties exists. Non-animated values keep their feature-state expressions —
+ * they are written only when the world dims, not per frame. */
 export function entityLayers(): LayerSpecification[] {
   // (a) Clusters — 1,000 points collapse to counts at low zoom. Size by count, single red family.
+  //     Split calm/exception so the throb (operational-map §6: a cluster holding the alarm is lit AND
+  //     throbbing) is a constant write rather than a per-cluster attribute upload.
+  const clusterPaint = (): CirclePaint => ({
+    "circle-color": TOKENS.signal,
+    "circle-opacity": 0.85,
+    "circle-radius": ["step", ["get", "point_count"], 12, 50, 18, 250, 26],
+    "circle-stroke-color": TOKENS.field,
+    "circle-stroke-width": 1,
+  });
+
   const clusters: LayerSpecification = {
     id: "clusters",
     type: "circle",
     source: "fleet",
-    filter: ["has", "point_count"],
-    paint: {
-      "circle-color": TOKENS.signal,
-      "circle-opacity": 0.85,
-      "circle-radius": ["step", ["get", "point_count"], 12, 50, 18, 250, 26],
-      "circle-stroke-color": TOKENS.field,
-      "circle-stroke-width": 1,
-    },
+    // `!=` (not `== 0/1`) so a cluster with a missing/unknown maxStatus still draws, calm.
+    filter: ["all", ["has", "point_count"], ["!=", ["get", "maxStatus"], STATUS_NUM.exception]],
+    paint: clusterPaint(),
+  };
+
+  const clustersException: LayerSpecification = {
+    id: "clusters-exception",
+    type: "circle",
+    source: "fleet",
+    filter: ["all", ["has", "point_count"], ["==", ["get", "maxStatus"], STATUS_NUM.exception]],
+    paint: clusterPaint(),
   };
 
   const clusterCount: LayerSpecification = {
@@ -84,26 +112,39 @@ export function entityLayers(): LayerSpecification[] {
   };
 
   // (b) At-rest leaves — opacity/rings by STATE via feature-state (paint only). Exception + at-risk
-  //     stay fully lit; everything else 0.9.
-  const rest: LayerSpecification = {
-    id: "rest",
+  //     stay fully lit; everything else 0.9. One layer per pulse target (see THE SPLIT above); the
+  //     paint is otherwise byte-identical across the three, so a mark's appearance depends on its
+  //     status, never on which layer happens to draw it.
+  const restPaint = (): CirclePaint => ({
+    "circle-color": TOKENS.signal,
+    "circle-opacity": [
+      "match",
+      ["coalesce", ["feature-state", "status"], ["get", "statusStr"], "healthy"],
+      "exception", 1,
+      "at-risk", 1,
+      0.9,
+    ],
+    "circle-radius": ["interpolate", ["linear"], ["zoom"], 6, 3, 12, 6, 16, 9],
+    "circle-stroke-color": TOKENS.signal,
+    "circle-stroke-width": 1,
+  });
+
+  const leaf = (id: string, statusFilter: ExpressionSpecification): LayerSpecification => ({
+    id,
     type: "circle",
     source: "fleet",
-    filter: ["!", ["has", "point_count"]],
-    paint: {
-      "circle-color": TOKENS.signal,
-      "circle-opacity": [
-        "match",
-        ["coalesce", ["feature-state", "status"], ["get", "statusStr"], "healthy"],
-        "exception", 1,
-        "at-risk", 1,
-        0.9,
-      ],
-      "circle-radius": ["interpolate", ["linear"], ["zoom"], 6, 3, 12, 6, 16, 9],
-      "circle-stroke-color": TOKENS.signal,
-      "circle-stroke-width": 1,
-    },
-  };
+    filter: ["all", ["!", ["has", "point_count"]], statusFilter],
+    paint: restPaint(),
+  });
+
+  // Drawn calm-first so the alarm lands on top of its quiet neighbours where marks overlap.
+  const restHealthy = leaf("rest-healthy", [
+    "all",
+    ["!=", ["get", "statusStr"], "at-risk"],
+    ["!=", ["get", "statusStr"], "exception"],
+  ]);
+  const restAtRisk = leaf("rest-at-risk", ["==", ["get", "statusStr"], "at-risk"]);
+  const restException = leaf("rest-exception", ["==", ["get", "statusStr"], "exception"]);
 
   // (c) Moving trucks as chevrons oriented to heading — icon-rotate reads the `bearing` PROPERTY
   //     (a layout property; it cannot read feature-state). The chevron art points north at 0°.
@@ -148,8 +189,16 @@ export function entityLayers(): LayerSpecification[] {
     paint: { "line-color": TOKENS.progress, "line-width": 2, "line-opacity": 0.9 },
   };
 
-  return [clusters, clusterCount, rest, trucks, chips, eta];
+  return [clusters, clustersException, clusterCount, restHealthy, restAtRisk, restException, trucks, chips, eta];
 }
+
+/** The at-rest leaf layers, calm → alarm. Anything that used to address the single `rest` layer
+ * (world-dim, click-to-lens) must address all three, so the list lives here rather than being
+ * re-typed at each call site — one rule, one implementation. */
+export const REST_LAYERS = ["rest-healthy", "rest-at-risk", "rest-exception"] as const;
+
+/** The cluster circle layers, calm → alarm. Same reason. */
+export const CLUSTER_LAYERS = ["clusters", "clusters-exception"] as const;
 
 /** The minimal MapLibre surface the state mutators touch — a real `maplibregl.Map` is assignable to
  * it, and a test can supply a two-method stub. */
@@ -177,9 +226,9 @@ export function setWorldDim(map: StatefulMap, on: boolean): void {
     dim,
   ];
   const keepCluster: ExpressionSpecification = ["case", ["==", ["get", "maxStatus"], 2], 1, dim];
-  map.setPaintProperty("rest", "circle-opacity", keepLeaf);
+  for (const id of REST_LAYERS) map.setPaintProperty(id, "circle-opacity", keepLeaf);
   map.setPaintProperty("trucks", "icon-opacity", keepLeaf);
   map.setPaintProperty("eta", "line-opacity", on ? dim : 0.9);
-  map.setPaintProperty("clusters", "circle-opacity", keepCluster);
+  for (const id of CLUSTER_LAYERS) map.setPaintProperty(id, "circle-opacity", keepCluster);
   map.setPaintProperty("cluster-count", "text-opacity", keepCluster);
 }
