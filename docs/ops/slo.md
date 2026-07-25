@@ -46,5 +46,18 @@ on every run but enforced only there — a GPU-less CI runner would be asserting
 > real GPU the same build produces zero long tasks at 87fps. The long-task budget is enforced only where
 > a hardware rasterizer is present — see the enforcement column.
 >
-> **The real REQ-079 finding:** the board spends 58–62% of the main thread rendering a *static* picture.
-> The per-frame data-driven pulse and the 30Hz full-`setData` are the two owners. Tasks 2–3 remove them.
+> **The real REQ-079 finding:** the board spent 58–62% of the main thread rendering a *static* picture.
+> The per-frame data-driven pulse and the 30Hz full-`setData` were the two owners. Tasks 3–4 removed
+> them.
+>
+> **Measured, 3 repeats each, same machine and GPU** (CDP `Performance.getMetrics` `TaskDuration` over
+> a 5s steady-state window on the 1,000-entity `?perf=1` board, after a 3s settle):
+>
+> | Build | Main-thread occupancy | Script |
+> |---|---|---|
+> | Before (both defects present) | **58.6%** (58.4 / 58.6 / 58.8) | 34.5% |
+> | After (Tasks 3 + 4) | **20.3%** (19.8 / 20.2 / 20.9) | 17.9% |
+>
+> A 38.3-point reduction — two thirds of the main-thread cost of drawing a static board. Note this is
+> less than the ~53 points the two owners were individually estimated at: the estimates were measured
+> in isolation and overlap, so they do not sum. The board still holds 0 long tasks and ~86fps.
