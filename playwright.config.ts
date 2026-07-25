@@ -27,6 +27,18 @@ export default defineConfig({
   },
   projects: [
     {
+      // THE DETERMINISM CONTRACT for the blessed refs. A baseline is only worth having if the only
+      // thing that can change it is our own code, so the capture is pinned on three axes:
+      //   • motion      — reducedMotion + `animations: "disabled"`, so pulses and count-ups rest.
+      //   • data        — every server read the screens make is fulfilled with a pinned payload, and
+      //                   every rendered timestamp comes from a fixed stamp, never a clock.
+      //   • third party — the spec ABORTS the public demo basemap (tiles + glyphs). It is a live fetch
+      //                   of a moving `latest` build that owns ~3.6% of the 1440×900 frame, against the
+      //                   2% maxDiffPixelRatio below: a stranger's tile deploy could otherwise fail
+      //                   this gate with no change of ours. Blocking it is a capture decision only —
+      //                   the production tile source is a separate, documented hold (REQ-075).
+      // The tolerance stays at 2%: it absorbs GPU-level AA differences between machines, which is what
+      // it is for, and it is no longer absorbing a third party's cartography.
       name: "visual",
       testDir: "./tests/visual",
       testMatch: /.*\.spec\.ts$/,

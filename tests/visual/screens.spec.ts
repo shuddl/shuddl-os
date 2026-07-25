@@ -176,12 +176,49 @@ async function settle(page: Page): Promise<void> {
   await page.waitForTimeout(3000);
 }
 
+/** Everything served from the public demo tile host: vector tiles AND glyph PBFs (demo.ts DEMO_TILE_URL
+ * / DEMO_GLYPHS_URL). */
+const THIRD_PARTY_BASEMAP = /tiles\.openfreemap\.org/;
+
+/** Origins the capture is allowed to depend on.
+ *
+ *  • our own dev servers;
+ *  • the SYNTHETIC api host (apps/portal/src/lib/api.ts DEFAULT_API_BASE). `.example` is reserved by
+ *    RFC 2606 and can never resolve, so a request to it that FINISHED is proof it was fulfilled by a
+ *    pinned payload above — it cannot have come from a real server. An unintercepted read there fails
+ *    DNS and never reaches this list.
+ *
+ * Anything else is a moving target owned by someone else. */
+const OURS = /^(http:\/\/localhost:(4321|4322|4323)\/|https:\/\/api\.shuddl\.example\/)/;
+
 for (const s of SCREENS) {
   test(`canonical screen — ${s.name}`, async ({ page }) => {
+    // The greige ground, the entity layers and the chrome are OURS and are what the blessed refs assert.
+    // The basemap is a live third-party fetch of a moving `latest` build that owns ~3.6% of the frame —
+    // more than the 2% diff tolerance — so leaving it in makes a stranger's deploy able to fail our CI.
+    // Registered BEFORE the screen's own setup so nothing can navigate ahead of it.
+    await page.route(THIRD_PARTY_BASEMAP, (route) => route.abort());
+
+    // Blocking one hostname is only as good as the hostname staying current. Record every request that
+    // actually COMPLETED so the assertion below is about what reached the pixels, not about what we
+    // intended to block: if the tile host is renamed, self-hosted (REQ-075), or a new third-party asset
+    // is introduced into a canonical screen, this fails instead of quietly re-opening the capture.
+    const foreign = new Set<string>();
+    page.on("requestfinished", (req) => {
+      const url = req.url();
+      if (url.startsWith("data:") || url.startsWith("blob:")) return;
+      if (!OURS.test(url)) foreign.add(new URL(url).origin);
+    });
+
     await s.setup?.(page);
     await page.goto(s.url);
     await s.ready(page);
     await settle(page);
+
+    expect(
+      [...foreign],
+      "a canonical capture may not depend on any origin we do not control",
+    ).toEqual([]);
     await expect.soft(page).toHaveScreenshot(s.name);
   });
 }
