@@ -453,15 +453,38 @@ export function targetFromWrangler(doc: WranglerDoc, environment: string | undef
   };
 }
 
-// ── CLI ───────────────────────────────────────────────────────────────────────────────────────────────
+// ── The deployable surface, published ─────────────────────────────────────────────────────────────────
 
-const WORKER_CONFIGS = [
+/** Every wrangler config this repo deploys. EXPORTED because more than one check has to walk exactly
+ * this list, and a check that re-types it drifts from the one that matters (share-lint-matchers: one
+ * rule, one implementation). A worker added here is a worker every check sees. */
+export const WORKER_CONFIGS = [
   "workers/api/wrangler.toml",
   "workers/agents/wrangler.toml",
   "workers/billing/wrangler.toml",
   "workers/mcp/wrangler.toml",
   "workers/translator/wrangler.toml",
-];
+] as const;
+
+/** The named environments a deploy can target. The top-level (unnamed) scope is dev. */
+export const DEPLOYABLE_SCOPES = ["staging", "prod"] as const;
+
+/** The six binding-name sets a scope declares. Names only — ids are a provisioning question, and this
+ * is the SHAPE question: whether a scope binds the same things its siblings do. Wrangler does NOT
+ * inherit top-level bindings into a named environment, so a scope that omits a set genuinely has none
+ * at runtime, and `wrangler deploy --env prod` would ship a worker that dereferences undefined. */
+export function bindingSets(t: WorkerTarget): Record<string, string[]> {
+  return {
+    d1: t.d1.map((b) => b.binding).sort(),
+    kv: t.kv.map((b) => b.binding).sort(),
+    r2: t.r2.map((b) => b.binding).sort(),
+    durableObjects: t.durableObjects.map((b) => b.binding).sort(),
+    queueProducers: t.queueProducers.map((b) => b.binding).sort(),
+    services: t.services.map((b) => b.binding).sort(),
+  };
+}
+
+// ── CLI ───────────────────────────────────────────────────────────────────────────────────────────────
 
 // The account-side facts this repo cannot read: bound secret names, the CORS allowlist actually served,
 // sender-domain verification, the TSA endpoint, and the newest backup manifest. An operator (or the

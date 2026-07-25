@@ -5,6 +5,7 @@ import {
   parseWranglerToml,
   targetFromWrangler,
   REQUIRED_BINDINGS,
+  WORKER_CONFIGS,
   RPO_HOURS,
   BACKUP_RETENTION_DAYS,
   TEST_JWT_CANARY,
@@ -458,13 +459,9 @@ describe("the real repository configuration", () => {
   });
 
   it("parses every committed wrangler config without throwing", () => {
-    for (const f of [
-      "workers/api/wrangler.toml",
-      "workers/agents/wrangler.toml",
-      "workers/billing/wrangler.toml",
-      "workers/mcp/wrangler.toml",
-      "workers/translator/wrangler.toml",
-    ]) {
+    // WORKER_CONFIGS, not a second hand-typed copy of it: a worker added to the deployable surface must
+    // become visible to this check automatically, or the check silently stops covering the repo.
+    for (const f of WORKER_CONFIGS) {
       const doc = parseWranglerToml(readFileSync(f, "utf8"));
       expect(targetFromWrangler(doc, undefined).worker, f).toMatch(/^shuddl-/);
       expect(targetFromWrangler(doc, "staging").worker, f).toMatch(/-staging$/);
