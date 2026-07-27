@@ -49,6 +49,13 @@ async function seedLeg(shipmentId: string, seq: number, kind: string, latE6: num
     .run();
 }
 
+// A 64-hex hash, like every other direct-insert fixture in this suite (its own offset so the values
+// never collide with theirs under the shared, isolatedStorage-off D1). `events.hash` is the Merkle leaf
+// data for the daily anchor — the anchor backfill hex-decodes it — so a fixture that writes a non-hex
+// value poisons that day's tree for every OTHER test file sharing this database.
+let hashN = 0xd33000;
+const nextHash = (): string => (hashN++).toString(16).padStart(64, "0");
+
 // Seed a terminal driver event DIRECTLY (bypassing the sequencer) so the reveal pointer advances. The
 // insert guard only aborts on a duplicate (stream_id,seq)/id, so a fresh row with a unique hash is fine.
 async function seedTerminalEvent(shipmentId: string, kind: string, seq: number): Promise<void> {
@@ -69,7 +76,7 @@ async function seedTerminalEvent(shipmentId: string, kind: string, seq: number):
       "{}",
       "[]",
       "GENESIS",
-      `hash-${shipmentId}-${kind}-${seq}`,
+      nextHash(),
       "counterparty",
       "native",
       10000,

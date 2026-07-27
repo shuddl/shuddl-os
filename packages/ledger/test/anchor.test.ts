@@ -54,6 +54,15 @@ const failingTsa: TsaClient = { timestamp: () => Promise.reject(new Error("TSA_D
 // becomes anchorable again once R2 recovers), so it can prove both escalation and the clear-on-success.
 const failingR2 = { put: () => Promise.reject(new Error("R2_DOWN")) } as unknown as R2Bucket;
 
+// A D1 whose `anomalies` statements ALWAYS reject, passing everything else through to the real DB.
+// This is the CORRELATED fault the guards exist for: the failure recorder and the day itself are both
+// D1 writes, so whatever breaks one is the likeliest thing to break the other.
+function anomaliesBrokenDb(): D1Database {
+  const reject = (): Promise<never> => Promise.reject(new Error("D1_DOWN"));
+  const broken = { bind: () => ({ first: reject, all: reject, run: reject }) } as unknown as D1PreparedStatement;
+  return { prepare: (sql: string) => (sql.includes("anomalies") ? broken : DB.prepare(sql)) } as unknown as D1Database;
+}
+
 beforeAll(async () => {
   resetEventCounter();
   await applyMigrations(DB, [
@@ -204,6 +213,42 @@ describe("REQ-014 — determinism, bucketing, gaps, failures, positions", () => 
     const ok = await runDailyAnchor({ db: DB, r2: R2, tsa: new FakeTsaClient(), tenant: TENANT, now: FIRE });
     expect(ok.anchored).toContain(day);
     expect(await anchorHash(day)).not.toBeNull();
+    expect(await failureRow("anchor-build", day)).toBeNull();
+  });
+
+  it("a D1 fault in the failure bookkeeping changes no verdict and never re-raises", async () => {
+    // Both guards under one fault. The recorder runs inside the contained catch: unguarded, its
+    // rejection escapes runDailyAnchor and the 500 is back. The marker clear runs inside anchorDay
+    // AFTER the documents row: unguarded, its rejection reports a fully anchored, witnessed, verifiable
+    // day as `failed` — a verdict nothing can ever correct, because the next run sees that documents
+    // row, marks the day `skipped`, and never calls anchorDay again.
+    const poisoned = "2026-07-08";
+    const clean = "2026-07-09";
+    const bad = mkEvent("stop.arrived", { stream_id: "s:d1-poison", shipment_id: "d1-poison", seq: 0, recorded_at: noon(poisoned) });
+    await eventInsertStmt(DB, { ...bad, hash: "y".repeat(64) }).run();
+    await seed("stop.arrived", { stream_id: "s:d1-clean", shipment_id: "d1-clean", seq: 0, recorded_at: noon(clean) });
+
+    const res = await runDailyAnchor({ db: anomaliesBrokenDb(), r2: R2, tsa: new FakeTsaClient(), tenant: TENANT, now: FIRE });
+
+    expect(res.failed).toContain(poisoned); // the unrecordable failure is still contained
+    expect(res.anchored).toContain(clean); // the unclearable success is still reported as success
+    expect(await anchorHash(clean)).not.toBeNull(); // ...and the day really is anchored
+  });
+
+  it("a day can carry BOTH markers at once, and anchoring clears both", async () => {
+    const day = "2026-07-09";
+    await seed("stop.arrived", { stream_id: "s:both", shipment_id: "both", seq: 0, recorded_at: noon(day) });
+
+    // the TSA refuses -> anchor-tsa; then the TSA is fine but the write fails -> anchor-build beside it
+    await runDailyAnchor({ db: DB, r2: R2, tsa: failingTsa, tenant: TENANT, now: FIRE });
+    await runDailyAnchor({ db: DB, r2: failingR2, tsa: new FakeTsaClient(), tenant: TENANT, now: FIRE });
+    expect(await failureRow("anchor-tsa", day)).not.toBeNull();
+    expect(await failureRow("anchor-build", day)).not.toBeNull();
+
+    // the day anchors: EVERY reason it previously could not is resolved, so both markers go
+    const ok = await runDailyAnchor({ db: DB, r2: R2, tsa: new FakeTsaClient(), tenant: TENANT, now: FIRE });
+    expect(ok.anchored).toContain(day);
+    expect(await failureRow("anchor-tsa", day)).toBeNull();
     expect(await failureRow("anchor-build", day)).toBeNull();
   });
 

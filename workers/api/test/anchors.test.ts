@@ -132,6 +132,10 @@ describe("REQ-014 — POST /v1/anchors/run (admin only)", () => {
     const body = (await res.json()) as { anchored: string[]; skipped: string[]; failed: string[] };
     expect(Array.isArray(body.anchored)).toBe(true);
     expect(Array.isArray(body.skipped)).toBe(true);
-    expect(Array.isArray(body.failed)).toBe(true);
+    // NOT merely an array: the backfill walks every unanchored day in the tenant DB, which under
+    // isolatedStorage:false holds whatever every other test file wrote. `failed` empty is what
+    // distinguishes "backfilled everything" from "gave up on everything" — the run used to 500 here,
+    // and a shape-only assertion could not tell the difference.
+    expect(body.failed).toEqual([]);
   });
 });

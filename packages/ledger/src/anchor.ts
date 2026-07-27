@@ -43,7 +43,7 @@ export interface AnchorRunResult {
   anchored: string[];
   /** Days already carrying their `documents` row — a no-op. */
   skipped: string[];
-  /** Days that could not anchor (TSA failure or boundary race) — retried next run. */
+  /** Days that could not anchor (TSA refusal, boundary race, or a day that could not be built) — retried next run. */
   failed: string[];
 }
 
@@ -166,7 +166,13 @@ async function anchorDay(deps: AnchorDeps, day: string): Promise<"anchored" | "f
   try {
     tsr = await tsa.timestamp(imprint);
   } catch (err) {
-    await recordAnchorFailure(db, TSA_UNAVAILABLE, tenant, day, err);
+    // Guarded: a D1 fault while recording a TSA outage must not escape into the caller's per-day
+    // containment, where it would be recorded a SECOND time as `anchor.build_failed` — exactly the
+    // mislabelling the two kinds exist to prevent. The day is `failed` either way; only the note is
+    // best-effort.
+    await recordAnchorFailure(db, TSA_UNAVAILABLE, tenant, day, err).catch((recErr: unknown) => {
+      console.error(`[REQ-014] anchor day ${day} (tenant ${tenant}): TSA failure could not be recorded: ${recErr instanceof Error ? recErr.message : "unknown"}`);
+    });
     return "failed";
   }
 
@@ -202,7 +208,14 @@ async function anchorDay(deps: AnchorDeps, day: string): Promise<"anchored" | "f
     .bind(anchorDocId(day), null, null, "tsa_receipt", receiptKey, rootHex, retentionClassFor("tsa_receipt"), "internal")
     .run();
 
-  await clearAnchorFailures(db, tenant, day);
+  // The day IS anchored now — R2 written, documents row committed. Clearing the markers is RECOVERY
+  // BOOKKEEPING, not part of anchoring, so it is guarded HERE rather than left to the caller's per-day
+  // containment: a rejection there would report an anchored, witnessed, verifiable day as `failed`, and
+  // nothing could ever correct that verdict — the next run sees this documents row, marks the day
+  // `skipped`, and never calls anchorDay again, so the stale marker could never clear or escalate.
+  await clearAnchorFailures(db, tenant, day).catch((err: unknown) => {
+    console.error(`[REQ-014] anchor day ${day} (tenant ${tenant}) anchored, but its failure markers could not be cleared: ${err instanceof Error ? err.message : "unknown"}`);
+  });
   return "anchored";
 }
 
@@ -243,26 +256,17 @@ export async function runDailyAnchor(deps: AnchorDeps): Promise<AnchorRunResult>
     // row reaching the leaf reader, an R2 fault — so the run reports that day in `failed`, the array
     // this result declares for exactly this purpose, instead of throwing away every good day with it.
     // A backfill spans up to MAX_DAYS_PER_RUN days; failing all of them on one bad day is the wrong
-    // trade. The day stays unanchored and is retried next run: NO `documents` row (it is written last,
-    // so the row-exists-iff-fully-anchored invariant holds on every throwing path). An R2 fault between
-    // the two puts can leave an orphan object, exactly as it could before this catch existed — it is
-    // unreachable without the documents row and the next successful run overwrites it.
+    // trade. What holds for a day contained here: NO `documents` row — it is anchorDay's LAST write, so
+    // nothing that throws before it can have written one. (An R2 fault between the two puts can orphan
+    // a receipt object, exactly as it could before this catch existed; it is unreachable without the
+    // documents row and the next successful run overwrites it.) Everything anchorDay does AFTER that
+    // row is guarded there, so a day that IS anchored is never reported failed here.
     let outcome: "anchored" | "failed";
     try {
       outcome = await anchorDay(deps, day);
     } catch (err) {
-      // LOUD *and* durable. The cause cannot reach `AnchorRunResult` (it is a list of days), and the
-      // scheduled caller — runAllTenants in workers/agents — discards the result entirely, so on the
-      // cron path nothing but this survives the run. A day that can never be witnessed is a REQ-014
-      // failure and gets the same accounting as a TSA refusal, under its own rule.
-      const cause = err instanceof Error ? err.message : String(err);
-      console.error(`[REQ-014] anchor day ${day} (tenant ${deps.tenant}) could not be built and stays unanchored: ${cause}`);
-      // The recorder is itself a D1 write. If whatever broke the day also breaks this write, the run
-      // must still finish — re-raising here would re-create the very 500 this containment removes.
-      await recordAnchorFailure(db, BUILD_FAILED, deps.tenant, day, err).catch((recErr: unknown) => {
-        console.error(`[REQ-014] and the failure could not be recorded for ${day}: ${recErr instanceof Error ? recErr.message : String(recErr)}`);
-      });
-      outcome = "failed";
+      outcome = "failed"; // the verdict is decided FIRST — nothing below may change it or re-raise
+      await noteBuildFailure(deps, day, err);
     }
     (outcome === "anchored" ? result.anchored : result.failed).push(day);
   }
@@ -341,6 +345,23 @@ async function recordAnchorFailure(
     )
     .bind(id, kind.rule, "anchor", day, severity, detail)
     .run();
+}
+
+// The notice for a day the caller has already given up on: LOUD *and* durable, because the cause cannot
+// reach `AnchorRunResult` (a list of days) and the scheduled caller — runAllTenants in workers/agents —
+// discards the result entirely, so on the cron path nothing else survives the run. EVERY statement sits
+// inside the guard: String(err) throws for a null-prototype thrown value, and the D1 write shares the
+// fault class that broke the day. This function CANNOT re-raise — if it could, it would re-create the
+// 500 that per-day containment exists to remove.
+async function noteBuildFailure(deps: AnchorDeps, day: string, err: unknown): Promise<void> {
+  try {
+    const cause = err instanceof Error ? err.message : String(err);
+    console.error(`[REQ-014] anchor day ${day} (tenant ${deps.tenant}) could not be built and stays unanchored: ${cause}`);
+    await recordAnchorFailure(deps.db, BUILD_FAILED, deps.tenant, day, err);
+  } catch {
+    // Static message: nothing left that can itself throw.
+    console.error(`[REQ-014] anchor day ${day}: the build failure could not be recorded`);
+  }
 }
 
 // The day is anchored — every reason it previously could not be is resolved, so BOTH markers go. An
