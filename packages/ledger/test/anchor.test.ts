@@ -43,7 +43,16 @@ async function anchorHash(day: string): Promise<string | null> {
   return r?.hash ?? null;
 }
 
+async function failureRow(prefix: "anchor-tsa" | "anchor-build", day: string): Promise<{ rule: string; severity: string; detail: string } | null> {
+  return DB.prepare("SELECT rule, severity, detail FROM anomalies WHERE id = ?")
+    .bind(`${prefix}:${TENANT}:${day}`)
+    .first<{ rule: string; severity: string; detail: string }>();
+}
+
 const failingTsa: TsaClient = { timestamp: () => Promise.reject(new Error("TSA_DOWN")) };
+// An R2 whose put ALWAYS throws — a build fault that is transient (unlike a poisoned row, the day
+// becomes anchorable again once R2 recovers), so it can prove both escalation and the clear-on-success.
+const failingR2 = { put: () => Promise.reject(new Error("R2_DOWN")) } as unknown as R2Bucket;
 
 beforeAll(async () => {
   resetEventCounter();
@@ -160,6 +169,42 @@ describe("REQ-014 — determinism, bucketing, gaps, failures, positions", () => 
     expect(await anchorHash(poisoned)).toBeNull();
     expect(await R2.get(`anchors/${TENANT}/${poisoned}/tsr.der`)).toBeNull();
     expect(await R2.get(`anchors/${TENANT}/${poisoned}/manifest.json`)).toBeNull();
+
+    // ...and it is DURABLY recorded. The cron (workers/agents runAllTenants) discards the run result,
+    // so on the scheduled path the anomalies row is the only thing that outlives the run — a day that
+    // can never be witnessed must not depend on someone reading a log line. Its own rule, not the TSA
+    // one, so the alert names the real condition.
+    const rec = await failureRow("anchor-build", poisoned);
+    expect(rec?.rule).toBe("anchor.build_failed");
+    expect(rec?.severity).toBe("warn"); // first failure
+    const detail = JSON.parse(rec!.detail) as { day: string; consecutive: number; last_error: string };
+    expect(detail).toMatchObject({ day: poisoned, consecutive: 1 });
+    expect(detail.last_error).toContain("non-hex");
+    // the TSA seam is NOT co-opted for a non-TSA cause
+    expect(await failureRow("anchor-tsa", poisoned)).toBeNull();
+  });
+
+  it("a build failure escalates like a TSA failure and clears when the day finally anchors", async () => {
+    const day = "2026-07-09";
+    await seed("stop.arrived", { stream_id: "s:r2-fault", shipment_id: "r2-fault", seq: 0, recorded_at: noon(day) });
+
+    // three consecutive runs against a dead R2 — same accounting the TSA seam already does
+    for (let i = 1; i <= 3; i++) {
+      const res = await runDailyAnchor({ db: DB, r2: failingR2, tsa: new FakeTsaClient(), tenant: TENANT, now: FIRE });
+      expect(res.failed).toContain(day);
+      expect(await anchorHash(day)).toBeNull(); // the documents row is written LAST — never on a failure
+    }
+    const escalated = await failureRow("anchor-build", day);
+    expect(escalated?.severity).toBe("critical");
+    const detail = JSON.parse(escalated!.detail) as { consecutive: number; last_error: string };
+    expect(detail.consecutive).toBe(3);
+    expect(detail.last_error).toBe("R2_DOWN");
+
+    // recovery: a working R2 anchors the day and clears the marker (an anomaly nobody can close is debt)
+    const ok = await runDailyAnchor({ db: DB, r2: R2, tsa: new FakeTsaClient(), tenant: TENANT, now: FIRE });
+    expect(ok.anchored).toContain(day);
+    expect(await anchorHash(day)).not.toBeNull();
+    expect(await failureRow("anchor-build", day)).toBeNull();
   });
 
   it("positions participate: a day with ONLY positions produces a stable root (positions hash in like everything else)", async () => {

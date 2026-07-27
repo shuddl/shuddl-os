@@ -166,7 +166,7 @@ async function anchorDay(deps: AnchorDeps, day: string): Promise<"anchored" | "f
   try {
     tsr = await tsa.timestamp(imprint);
   } catch (err) {
-    await recordTsaFailure(db, tenant, day, err);
+    await recordAnchorFailure(db, TSA_UNAVAILABLE, tenant, day, err);
     return "failed";
   }
 
@@ -202,7 +202,7 @@ async function anchorDay(deps: AnchorDeps, day: string): Promise<"anchored" | "f
     .bind(anchorDocId(day), null, null, "tsa_receipt", receiptKey, rootHex, retentionClassFor("tsa_receipt"), "internal")
     .run();
 
-  await clearTsaFailure(db, tenant, day);
+  await clearAnchorFailures(db, tenant, day);
   return "anchored";
 }
 
@@ -243,18 +243,25 @@ export async function runDailyAnchor(deps: AnchorDeps): Promise<AnchorRunResult>
     // row reaching the leaf reader, an R2 fault — so the run reports that day in `failed`, the array
     // this result declares for exactly this purpose, instead of throwing away every good day with it.
     // A backfill spans up to MAX_DAYS_PER_RUN days; failing all of them on one bad day is the wrong
-    // trade. The day stays unanchored (no documents row, no R2 object) and is retried next run.
+    // trade. The day stays unanchored and is retried next run: NO `documents` row (it is written last,
+    // so the row-exists-iff-fully-anchored invariant holds on every throwing path). An R2 fault between
+    // the two puts can leave an orphan object, exactly as it could before this catch existed — it is
+    // unreachable without the documents row and the next successful run overwrites it.
     let outcome: "anchored" | "failed";
     try {
       outcome = await anchorDay(deps, day);
     } catch (err) {
-      // LOUD, not silent: the cause never reaches `AnchorRunResult` (it is a day list), and a day that
-      // can never be witnessed is a REQ-014 problem. No anomalies row — the TSA seam owns that table
-      // for the failure it diagnoses, and mislabelling this as `anchor.tsa_unavailable` would send ops
-      // after the wrong thing. A day that keeps failing stays in `failed` on every subsequent run, so
-      // the condition is not lost — it is reported by the run result and named here.
+      // LOUD *and* durable. The cause cannot reach `AnchorRunResult` (it is a list of days), and the
+      // scheduled caller — runAllTenants in workers/agents — discards the result entirely, so on the
+      // cron path nothing but this survives the run. A day that can never be witnessed is a REQ-014
+      // failure and gets the same accounting as a TSA refusal, under its own rule.
       const cause = err instanceof Error ? err.message : String(err);
       console.error(`[REQ-014] anchor day ${day} (tenant ${deps.tenant}) could not be built and stays unanchored: ${cause}`);
+      // The recorder is itself a D1 write. If whatever broke the day also breaks this write, the run
+      // must still finish — re-raising here would re-create the very 500 this containment removes.
+      await recordAnchorFailure(db, BUILD_FAILED, deps.tenant, day, err).catch((recErr: unknown) => {
+        console.error(`[REQ-014] and the failure could not be recorded for ${day}: ${recErr instanceof Error ? recErr.message : String(recErr)}`);
+      });
       outcome = "failed";
     }
     (outcome === "anchored" ? result.anchored : result.failed).push(day);
@@ -295,12 +302,28 @@ export async function readAnchorManifest(r2: R2Bucket, tenant: string, day: stri
   return JSON.parse(await obj.text()) as AnchorManifest;
 }
 
-// ---- TSA failure accounting (no new table): one mutable `anomalies` row per (tenant, day) ---------
+// ---- anchor failure accounting (no new table): one mutable `anomalies` row per (kind, tenant, day) --
 // Consecutive failures accrue in the row's detail; at 3 the row escalates to `critical` — the alert
-// that a day cannot be witnessed. On success the marker is cleared (the day is anchored regardless).
+// that a day cannot be witnessed. On success the markers are cleared (the day is anchored regardless).
+//
+// TWO kinds, because "we built a root and the TSA refused to stamp it" and "we could not build the day
+// at all" send ops after different things. Same accounting, same escalation, separate id + rule so the
+// alert names the real condition.
+const TSA_UNAVAILABLE = { idPrefix: "anchor-tsa", rule: "anchor.tsa_unavailable" } as const;
+const BUILD_FAILED = { idPrefix: "anchor-build", rule: "anchor.build_failed" } as const;
+type AnchorFailureKind = typeof TSA_UNAVAILABLE | typeof BUILD_FAILED;
 
-async function recordTsaFailure(db: D1Database, tenant: string, day: string, err: unknown): Promise<void> {
-  const id = `anchor-tsa:${tenant}:${day}`;
+const ANCHOR_FAILURE_KINDS: readonly AnchorFailureKind[] = [TSA_UNAVAILABLE, BUILD_FAILED];
+const failureId = (kind: AnchorFailureKind, tenant: string, day: string): string => `${kind.idPrefix}:${tenant}:${day}`;
+
+async function recordAnchorFailure(
+  db: D1Database,
+  kind: AnchorFailureKind,
+  tenant: string,
+  day: string,
+  err: unknown,
+): Promise<void> {
+  const id = failureId(kind, tenant, day);
   const existing = await db.prepare("SELECT detail FROM anomalies WHERE id = ?").bind(id).first<{ detail: string }>();
   const prev = existing ? (JSON.parse(existing.detail) as { consecutive?: number }) : {};
   const consecutive = (prev.consecutive ?? 0) + 1;
@@ -316,10 +339,15 @@ async function recordTsaFailure(db: D1Database, tenant: string, day: string, err
     .prepare(
       "INSERT INTO anomalies (id, rule, object_kind, object_id, severity, detail, status) VALUES (?,?,?,?,?,?,'open') ON CONFLICT(id) DO UPDATE SET severity = excluded.severity, detail = excluded.detail",
     )
-    .bind(id, "anchor.tsa_unavailable", "anchor", day, severity, detail)
+    .bind(id, kind.rule, "anchor", day, severity, detail)
     .run();
 }
 
-async function clearTsaFailure(db: D1Database, tenant: string, day: string): Promise<void> {
-  await db.prepare("DELETE FROM anomalies WHERE id = ?").bind(`anchor-tsa:${tenant}:${day}`).run();
+// The day is anchored — every reason it previously could not be is resolved, so BOTH markers go. An
+// anomaly nobody can close is ops debt.
+async function clearAnchorFailures(db: D1Database, tenant: string, day: string): Promise<void> {
+  await db
+    .prepare(`DELETE FROM anomalies WHERE id IN (${ANCHOR_FAILURE_KINDS.map(() => "?").join(",")})`)
+    .bind(...ANCHOR_FAILURE_KINDS.map((k) => failureId(k, tenant, day)))
+    .run();
 }
