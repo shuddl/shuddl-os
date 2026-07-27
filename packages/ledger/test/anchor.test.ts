@@ -139,6 +139,29 @@ describe("REQ-014 — determinism, bucketing, gaps, failures, positions", () => 
     expect(cleared).toBeNull();
   });
 
+  it("a day that THROWS lands in failed[] — one unreadable day never sinks the rest of the backfill", async () => {
+    // The backfill walks every unanchored day, so it is only as robust as its worst day. anchorDay owns
+    // its own failure modes (the boundary race, a TSA refusal); anything ELSE — here a row whose `hash`
+    // is not hex, which the events schema permits (TEXT, no format constraint) and which dayLeaves feeds
+    // straight to hexToBytes — used to escape runDailyAnchor entirely and fail the whole request, losing
+    // every good day with the bad one.
+    const poisoned = "2026-07-08";
+    const clean = "2026-07-09";
+    const bad = mkEvent("stop.arrived", { stream_id: "s:poison", shipment_id: "poison", seq: 0, recorded_at: noon(poisoned) });
+    await eventInsertStmt(DB, { ...bad, hash: "x".repeat(64) }).run();
+    await seed("stop.arrived", { stream_id: "s:clean", shipment_id: "clean", seq: 0, recorded_at: noon(clean) });
+
+    const res = await runDailyAnchor({ db: DB, r2: R2, tsa: new FakeTsaClient(), tenant: TENANT, now: FIRE });
+
+    expect(res.failed).toContain(poisoned);
+    expect(res.anchored).toContain(clean); // the good day still anchors
+
+    // the failed day leaves NO partial anchor behind: no documents row, no R2 receipt, no manifest
+    expect(await anchorHash(poisoned)).toBeNull();
+    expect(await R2.get(`anchors/${TENANT}/${poisoned}/tsr.der`)).toBeNull();
+    expect(await R2.get(`anchors/${TENANT}/${poisoned}/manifest.json`)).toBeNull();
+  });
+
   it("positions participate: a day with ONLY positions produces a stable root (positions hash in like everything else)", async () => {
     const day = "2026-07-09";
     const row: PositionRow = { shipment_id: "pos-ship", device_id: "dev-1", ts: 1_720_000_000_000, lat_e6: 37_421_000, lon_e6: -122_084_000, accuracy_m: 5, speed_cms: null };

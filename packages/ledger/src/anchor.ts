@@ -238,7 +238,25 @@ export async function runDailyAnchor(deps: AnchorDeps): Promise<AnchorRunResult>
   }
 
   for (const day of candidates) {
-    const outcome = await anchorDay(deps, day);
+    // One unreadable day must not abandon the others. anchorDay already returns "failed" for the two
+    // failures it owns (the boundary race, a TSA refusal); this contains everything else — a malformed
+    // row reaching the leaf reader, an R2 fault — so the run reports that day in `failed`, the array
+    // this result declares for exactly this purpose, instead of throwing away every good day with it.
+    // A backfill spans up to MAX_DAYS_PER_RUN days; failing all of them on one bad day is the wrong
+    // trade. The day stays unanchored (no documents row, no R2 object) and is retried next run.
+    let outcome: "anchored" | "failed";
+    try {
+      outcome = await anchorDay(deps, day);
+    } catch (err) {
+      // LOUD, not silent: the cause never reaches `AnchorRunResult` (it is a day list), and a day that
+      // can never be witnessed is a REQ-014 problem. No anomalies row — the TSA seam owns that table
+      // for the failure it diagnoses, and mislabelling this as `anchor.tsa_unavailable` would send ops
+      // after the wrong thing. A day that keeps failing stays in `failed` on every subsequent run, so
+      // the condition is not lost — it is reported by the run result and named here.
+      const cause = err instanceof Error ? err.message : String(err);
+      console.error(`[REQ-014] anchor day ${day} (tenant ${deps.tenant}) could not be built and stays unanchored: ${cause}`);
+      outcome = "failed";
+    }
     (outcome === "anchored" ? result.anchored : result.failed).push(day);
   }
   return result;
