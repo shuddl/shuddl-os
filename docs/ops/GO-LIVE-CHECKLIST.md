@@ -346,6 +346,8 @@ Both totals match the aggregate the tool prints, so no BLOCK is unaccounted for.
 
 **No hold without a gate — FAILS for two rows.** *On-call rota* and *7-year monthly snapshots* have no executable gate at all; nothing in this repo can observe either fact. They are true, they are named, and they are unmeasurable, so they can only be re-read, never re-run. Closing that asymmetry (a gate that reads a named-owner file; a gate that asserts the archive tier exists) is itself deferred work.
 
+**Re-confirmed 2026-07-27 at HEAD `c09d9a5` (the V1 evidence sweep, Task 7).** The staging column was re-run — `pnpm preflight -- --mode release` → `deploy-preflight … "12 blocked: placeholder-resource-id, missing-secret, no-origins, tsa-unconfigured, no-backup"`, with the same 5/4/1/1/1 split — and `restore-verify` and `staging-smoke` returned the same two BLOCKED sentinels quoted in their rows above. No hold cleared, no hold was added, and no verdict changed. The prod column was not re-run this session; it is unchanged since `72b2fc2` because no `[env.prod]` block has been touched. Full sweep, including every gate that could **not** be run and why: [`RELEASE-EVIDENCE.md`](./RELEASE-EVIDENCE.md) § *Sweep — 2026-07-27*.
+
 ## Repository-owned failures & debt (NOT external holds)
 
 These are ours: reproducible from this checkout, closable by a commit. Same eight fields.
