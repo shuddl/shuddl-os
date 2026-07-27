@@ -165,17 +165,49 @@ describe("REQ-118/119: check:coverage — 100% register-coverage gate", () => {
   });
 
   it("5) surfaces status-drift (vNEXT/*-DISCOVERED with shipped annotations) as advisory, not a fail", () => {
-    const rows = parseRegister();
+    // Proven over a SYNTHETIC register, deliberately: drift is an advisory that ASKS for the real
+    // row's tag to be advanced, so pinning a live REQ id here would make the rule's own proof fail
+    // the moment anyone complies with it. The rule is pinned instead — in both deferred vocabularies
+    // and in both directions.
+    const drifted = fake("904"); // *-DISCOVERED + annotation → code shipped, tag lags ⇒ drift
+    const driftedVnext = fake("905"); // vNEXT + annotation + recorded home ⇒ drift
+    const quiet = fake("906"); // *-DISCOVERED, zero annotations ⇒ nothing shipped, no drift claim
+    const built = fake("907"); // already-advanced buildable tag ⇒ nothing left to advance
+    const csv = [
+      "req_id,domain,requirement,source,spec,wp,dod_test,status",
+      `${drifted},X,discovered row whose code shipped,src,spec,WP-05,test,WP07-DISCOVERED`,
+      `${driftedVnext},X,deferred row whose code shipped,src,spec,vNEXT,test,vNEXT`,
+      `${quiet},X,discovered row with no annotation,src,spec,WP-05,test,WP08-DISCOVERED`,
+      `${built},X,plain buildable annotated row,src,spec,WP-05,test,F0-SPEC'D`,
+    ].join("\n");
+    const p = join(mkdtempSync(join(suiteTempRoot, "drift-")), "reg.csv");
+    writeFileSync(p, csv);
+
     const res = computeCoverage({
-      rows,
+      rows: parseRegister(p),
+      annotations: new Set([drifted, driftedVnext, built]),
+      recordedHomes: new Set([driftedVnext]),
+      activeWps: ACTIVE,
+    });
+    expect(res.drift).toContain(drifted);
+    expect(res.drift).toContain(driftedVnext);
+    expect(res.drift).not.toContain(quiet); // no annotation ⇒ no "code has shipped" claim
+    expect(res.drift).not.toContain(built); // already advanced ⇒ nothing to advise
+    // Drift is ADVISORY: it never makes the row unaccounted.
+    const ids = res.unaccounted.map((u) => u.req_id);
+    expect(ids).not.toContain(drifted);
+    expect(ids).not.toContain(driftedVnext);
+
+    // …and the same advisory-not-fail property holds over the REAL register, asserted without
+    // pinning any row id so that advancing a row can never break it.
+    const real = computeCoverage({
+      rows: parseRegister(),
       annotations: scanSourceAnnotations(),
       recordedHomes: scanRecordedHomes(),
       activeWps: ACTIVE,
     });
-    // Every WP07-DISCOVERED row is annotated in shipped source → must be flagged for advancement.
-    expect(res.drift).toContain("REQ-171");
-    // Drift is advisory: it never makes the row unaccounted.
-    expect(res.unaccounted.map((u) => u.req_id)).not.toContain("REQ-171");
+    const realUnaccounted = new Set(real.unaccounted.map((u) => u.req_id));
+    for (const id of real.drift) expect(realUnaccounted.has(id)).toBe(false);
   });
 
   it("6) records ClaudeParser deterministic-request work as confirmation-gated until it ships", () => {
