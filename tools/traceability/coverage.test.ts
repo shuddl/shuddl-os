@@ -24,6 +24,7 @@ const annotationIds = {
   framework: fake("993"),
   implementationDoc: fake("994"),
   goLiveChecklist: fake("995"),
+  projectState: fake("989"),
   audit: fake("996"),
   docsWpDeferred: fake("997"),
   docsWpBuilt: fake("998"),
@@ -43,6 +44,8 @@ beforeAll(() => {
   execFileSync("git", ["init", "--quiet"], { cwd: annotationRepo });
   const registerHeader = "req_id,domain,requirement,source,spec,wp,dod_test,status";
   const registerRows = [
+    // Must stay in strict ascending REQ order — parseRegister enforces append-only numbering.
+    coverageRow(annotationIds.projectState, "vNEXT", "vNEXT"),
     coverageRow(annotationIds.docsWpConfirmGated, " CONFIRM-GATED ", "WP-07"),
     coverageRow(annotationIds.source, "F0-SPEC'D", "WP-01"),
     coverageRow(annotationIds.manifest, "vNEXT", "vNEXT"),
@@ -60,6 +63,8 @@ beforeAll(() => {
   writeRepoFile("docs/ops/V2-EXECUTION-FRAMEWORK.md", `# Governance framework\n\n${annotationIds.framework}\n`);
   writeRepoFile("docs/ops/IMPLEMENTATION-EVIDENCE.md", `# Implementation evidence\n\n${annotationIds.implementationDoc}\n`);
   writeRepoFile("docs/ops/GO-LIVE-CHECKLIST.md", `# Governance checklist\n\n${annotationIds.goLiveChecklist}\n`);
+  // A status pointer citing a REQ to say it is NOT built must not read as evidence that it is.
+  writeRepoFile("docs/ops/PROJECT-STATE.md", `# Project state\n\nNo ${annotationIds.projectState} behaviour is built.\n`);
   writeRepoFile("docs/audits/history/IMPLEMENTATION-REVIEW.md", `# Audit history\n\n${annotationIds.audit}\n`);
   writeRepoFile(
     "docs/wp/WP-TEST.md",
@@ -226,6 +231,10 @@ describe("implementation annotation integrity", () => {
     expect(fixtureAnnotations).not.toContain(annotationIds.manifest);
     expect(fixtureAnnotations).not.toContain(annotationIds.framework);
     expect(fixtureAnnotations).not.toContain(annotationIds.goLiveChecklist);
+    // PROJECT-STATE.md is a status pointer, not a deliverable: its citations describe what is and is
+    // not built, so they must never satisfy built coverage. Note this holds WHILE the generic
+    // docs/ops implementation-doc case above still counts — the exclusion is exact, not a directory.
+    expect(fixtureAnnotations).not.toContain(annotationIds.projectState);
     expect(fixtureAnnotations).not.toContain(annotationIds.audit);
     expect(fixtureAnnotations).not.toContain(annotationIds.docsWpConfirmGated);
     expect(fixtureAnnotations).not.toContain(annotationIds.docsWpDeferred);

@@ -32,6 +32,15 @@ export function scanSourceAnnotations(cwd = process.cwd()): Set<string> {
   // genuinely-unbuilt active-WP REQ and, if a skill cited an unregistered REQ, false-fail the gate).
   // Implementation docs (docs/ops, docs/security, docs/wp) DO count — they are deliverables —
   // except for the exact governance framework/checklist, deferred coverage manifest, and audit history.
+  // docs/ops/PROJECT-STATE.md joins that exception list for the same reason: it is a status POINTER,
+  // not a spec (its own header says so). It cites requirement ids to DESCRIBE state — including,
+  // necessarily, the state "the whole V2 id range is not built" — so counting its citations would let a
+  // sentence whose meaning is "this shipped nothing" stand as the evidence that code shipped. That is not
+  // hypothetical: re-baselining it on 2026-07-27 added exactly one false annotation (the first V2 id) and
+  // with it a phantom drift row. Rule for the next governance doc under docs/ops: if it records state
+  // rather than implementing a requirement, it belongs here — and coverage.test.ts pins that both ways.
+  // NOTE: never write a literal requirement id into this file or any other scanned source to illustrate
+  // a point — this scanner reads itself, and the first draft of this very comment re-created the bug.
   const deferredById = new Map(
     parseRegister(join(cwd, "genesis/09-REQUIREMENTS-REGISTER.csv")).map((row) => [row.req_id, isDeferredStatus(row.status)]),
   );
@@ -55,6 +64,7 @@ export function scanSourceAnnotations(cwd = process.cwd()): Set<string> {
       ":(exclude)tools/traceability/coverage-manifest.json",
       ":(exclude)docs/ops/V2-EXECUTION-FRAMEWORK.md",
       ":(exclude)docs/ops/GO-LIVE-CHECKLIST.md",
+      ":(exclude)docs/ops/PROJECT-STATE.md",
       ":(exclude)docs/audits",
     ],
     { cwd, encoding: "utf8" },
