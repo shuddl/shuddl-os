@@ -214,7 +214,10 @@ const SCREENS: readonly Screen[] = [
     },
     ready: async (page) => {
       await canvasReady(page);
-      // The resolved public status, not the uniform "STATUS UNAVAILABLE" deny.
+      // The resolved public status — asserted POSITIVELY. Today neither the loading nor the
+      // "STATUS UNAVAILABLE" state renders a map at all, so waiting for a canvas already implies the
+      // resolved one; naming the milestone keeps that true if either of those states ever gains one.
+      await expect(page.getByRole("heading", { name: "DELIVERED" })).toBeVisible();
       await expect(page.getByText("STATUS UNAVAILABLE")).toHaveCount(0);
     },
   },
