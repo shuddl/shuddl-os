@@ -1,50 +1,300 @@
 # Project state & resume guide
 
-> **⚠️ This file is a resume pointer and is stale (as-of 2026-07-14, pre-WP-08). For the authoritative, always-current list of every OPERATOR / DEPLOY requirement and every TECHNICAL-DEBT item across all WPs — what a human must still do before go-live and what is deferred/fails-open — see [`docs/ops/GO-LIVE-CHECKLIST.md`](./GO-LIVE-CHECKLIST.md). Every WP close-out and REQ-119 audit appends there.**
+**As of 2026-07-27** · branch `codex/v1-remediation-v2-framework` · HEAD `7c1a0b4` · 386 commits.
+Re-baselined from the 2026-07-14 note, which stopped at WP-06 and named WP-07 as next. All sixteen work
+packages have since closed and the T14/T15 browser/release remediation landed after them.
 
-**As of 2026-07-14.** This is the "where are we / how do I pick back up" note. It is a pointer, not a spec — the authorities are `CLAUDE.md`, `genesis/`, `docs/wp/*`, and `genesis/09-REQUIREMENTS-REGISTER.csv`.
+This is the "where are we / how do I pick back up" note. It is a pointer, not a spec — the authorities are
+`CLAUDE.md`, `genesis/`, `docs/wp/WP-01…WP-16.md`, and `genesis/09-REQUIREMENTS-REGISTER.csv`. The
+operator/deploy line-items and the technical-debt ledger live in
+[`docs/ops/GO-LIVE-CHECKLIST.md`](./GO-LIVE-CHECKLIST.md); this file does not duplicate them — it sorts the
+state into the five buckets below so that "the build is green" is never mistaken for "the product can go
+live."
 
 ## Safety posture (read first)
 
-There is no live production and no outbound email/SMS/money flow is enabled. A **staging** environment is deployed to Cloudflare (`shuddl-{api,agents}-staging`) with **synthetic data only**. As of 2026-07-14 staging evidence sending is **LIVE** — `send.shuddl.tech` is verified and both `RESEND_API_KEY` (sending-only, scoped) + `EVIDENCE_FROM` are set, so the deployed Biller sends real evidence email. Proven end-to-end: a synthetic POD produced a delivered `DELIVERED · SMK-… · PROOF + INVOICE` email from `pod@send.shuddl.tech` (acceptance demo #1 on live infra). Because tenants are synthetic, mail only reaches whatever address a shipment's party carries (an owner test inbox is the only real one wired). To disable: unset `EVIDENCE_FROM` + redeploy. **Prod is not deployed and its sending stays milestone-gated (REQ-159).** Runbook: `docs/ops/DEPLOYMENT.md`. No committed API key, no real customer/tenant data in the repo. Every feature that *could* touch the outside world (email send, billing) ships **CONFIRM-gated** — inert by default, activated only by an operator setting secrets. `prod` is not stood up (gates on F1-B/C + M-H). The whole product is a rigorously-tested codebase (`pnpm verify` = 1,131 tests, all the invariant/design/traceability gates), advanced one work-package at a time on branches that merge only when green. **Staging runbook + teardown: `docs/ops/DEPLOYMENT.md`.**
+There is no live production and no prod outbound email/SMS/money flow is enabled. A **staging** environment
+is deployed to Cloudflare (`shuddl-api-staging`, `shuddl-agents-staging`) with **synthetic data only**.
+Staging evidence sending is **LIVE**: `send.shuddl.tech` is verified and both `RESEND_API_KEY`
+(sending-only, scoped) and `EVIDENCE_FROM` are set, so the deployed Biller sends real evidence email. Proven
+end-to-end — a synthetic POD produced a delivered `DELIVERED · SMK-… · PROOF + INVOICE` email from
+`pod@send.shuddl.tech` (acceptance demo #1's chain, on live infra). Because staging tenants are synthetic,
+mail only reaches whatever address a shipment's party actually carries; one owner test inbox is the only
+real one wired. To disable: unset `EVIDENCE_FROM` in `[env.staging.vars]` and redeploy — the Biller reverts
+to `NotConfiguredSender`. **Prod is not provisioned and its sending stays milestone-gated (REQ-159).**
 
-## Done (merged to `main`)
+No committed API key, no real customer/tenant data in the repo. Every feature that could touch the outside
+world (email send, billing, EDI transport, MCP pairing, PLG provisioning) ships **fail-closed and
+CONFIRM-gated** — inert by default, activated only by an operator binding a secret or flipping a flag.
+Runbook and teardown: `docs/ops/DEPLOYMENT.md`.
 
-| WP | What it delivered | Close-out |
+## The five states — do not collapse them
+
+Only the first is a statement about this repository; the rest are statements about the world outside it,
+and none of those is satisfied. They are independent, and a returning engineer who reads one as the others
+will be wrong about what is safe to do next.
+
+| # | State | Today |
 |---|---|---|
-| WP-01 | Repo/CI scaffold, the CI gates + hard budgets | `docs/wp/WP-01.md` |
-| WP-02 | Ledger core — 21 tables, hash chain, DO sequencer, lenses, money projections, Merkle/TSA anchoring | `docs/wp/WP-02.md` |
-| WP-03 | Design system package + the live map shell (greige/coral; opt-in Mapbox tiles) | `docs/wp/WP-03.md` |
-| WP-04 | Rater — config-driven integer-cents pricing engine + `/v1/rate` gate (no price on air; the $222K floor law) | `docs/wp/WP-04.md` |
-| WP-05 | Driver PWA + Gatekeeper — server-side transition gates, offline signed capture, the POD heartbeat | `docs/wp/WP-05.md` |
-| WP-06 | Biller — POD → penny-exact `invoice.issued` + the evidence email; live send CONFIRM-gated | `docs/wp/WP-06.md` |
+| 1 | Repository green | Every gate that ran, passed; five gates are BLOCKED on named private fixtures and six suites could not run |
+| 2 | Staging certified | Partly — two of five workers deployed; the POD→invoice→email chain proven on live infra |
+| 3 | Pilot holds | Blocked — no tenant-0 config pack, no vendored fixtures, no counsel sign-off, no field runs |
+| 4 | Production holds | **Declared, not provisioned, not deployable** — every `[env.prod]` id is an all-zero placeholder |
+| 5 | V2 planned | Approved and specified; **not built** |
 
-Confirm the build is green anytime: `pnpm verify` (from the repo root).
+---
 
-## Next on the roadmap
+### 1. Repository green
 
-**WP-07 Concierge** (email-in quoting): inbound email → parse → Rater → auto-reply drafts. Its core can be built provider-agnostic (behind an inbound port) with the live Resend webhook deferred — the same pattern WP-06 used for outbound. Roadmap order + DoD: `genesis/08-GAP-AUDIT-ROADMAP-ASSURANCE.md`.
+All sixteen WPs are merged to `main` and closed (`docs/wp/WP-01.md` … `WP-16.md`; the WP-16 launch-gate
+audit swarm is `docs/audits/2026-07-22-wp16-launch-gate-audit.md`, zero open Criticals).
+`pnpm check:traceability` reports no orphans in either direction across the sixteen active WPs.
 
-## Parked — resume when convenient (zero risk while parked)
+**Gates run on 2026-07-27 at HEAD `7c1a0b4`.** Each verdict below is a command that was executed, not an
+estimate.
 
-### Evidence-email live send (the CONFIRM-gated tail of WP-06)
+| Gate | Command | Verdict |
+|---|---|---|
+| Runtime contract | `pnpm check:runtime` | PASS (Node 22.15.0 / pnpm 11 pinned) |
+| Typecheck | `pnpm -r --workspace-concurrency=2 --if-present run typecheck` | PASS |
+| Lint | `pnpm lint` | PASS |
+| Schema invariants | `pnpm check:invariants` | PASS |
+| Rater purity (REQ-024) | `pnpm check:rater-purity` | PASS |
+| Authority coverage | `pnpm check:authority-coverage` | PASS |
+| Traceability (REQ orphans) | `pnpm check:traceability` | PASS — no orphans, 16 active WPs |
+| Register coverage | `pnpm check:coverage` | PASS — 288/288 rows classified, 0 unaccounted |
+| Seed | `pnpm check:seed` | PASS |
+| Design audit | `pnpm audit:design` | PASS — "design audit: clean" |
+| Dependency audit | `pnpm audit --prod` | No known vulnerabilities |
 
-The Biller composes and would send the delivery evidence email, but **live sending is off**: with no `RESEND_API_KEY` the Biller uses `NotConfiguredSender`, which never touches the network. Nothing to turn off — it's already dormant.
+**Register:** 288 rows, 100% classified, 0 unaccounted. Eight rows remain status-drifted — code shipped but
+the register tag still reads `*-DISCOVERED`/`vNEXT`: REQ-045, 170, 184, 249, 276, 284, 285, 288. Seven of
+the eight cannot be advanced by a status edit alone: their `wp` column names no active WP, so advancing
+them routes the row to `unclassified` and fails `check:coverage`. They need a `wp` reassignment in the same
+amendment.
 
-Two ways to pick it back up (details in `docs/ops/secrets.md` and `docs/wp/WP-06.md`):
+#### Unit tests
 
-- **See the email render in your own inbox (zero DNS setup):** create `workers/agents/.dev.vars` (git-ignored) with `ALLOW_TEST_SEND=1`, a `TEST_SEND_TOKEN`, your `RESEND_API_KEY`, `EVIDENCE_FROM=SHUDDL <onboarding@resend.dev>` (Resend's sandbox sender delivers only to your own account email), and `TEST_SEND_TO=<your Resend account email>`. Then `cd workers/agents && npx wrangler dev` and `curl -X POST localhost:8787/_dev/evidence-test-send -H "Authorization: Bearer <token>"`. The guarded probe route (sink-only, flag+token gated) is in `workers/agents/src/index.ts`.
-- **Go live to real consignees (deferred, milestone-gated):** verify `shuddl.tech` in Resend + add DKIM/SPF/DMARC DNS (REQ-092); set `RESEND_API_KEY` + `EVIDENCE_FROM=SHUDDL <pod@shuddl.tech>` as deployed Worker secrets — the Biller's `ResendSender` then activates with no code change. Warm the domain first (REQ-157); real consignee volume waits for heartbeat-on-real-freight / the M-H milestone (REQ-159).
+`pnpm test` runs 18 workspace projects. **Twelve were measured on 2026-07-27; six could not run** (see
+below). Measured: **1,470 tests across 116 files.**
 
-### Other CONFIRM-gated / deferred items (tracked in the register)
+| Project | Files | Tests |
+|---|---:|---:|
+| tools (`pnpm test:tools`) | 18 | 410 |
+| `packages/contracts` | 14 | 273 |
+| `packages/agents` | 10 | 217 |
+| `packages/rater` | 12 | 154 |
+| `apps/command` | 17 | 95 |
+| `packages/map` | 10 | 83 |
+| `apps/portal` | 13 | 80 |
+| `apps/driver` | 8 | 41 |
+| `packages/adapters` | 3 | 38 |
+| `packages/driver-core` | 4 | 37 |
+| `packages/edi` | 5 | 33 |
+| `packages/design` | 2 | 9 |
+| **Measured total** | **116** | **1,470** |
 
-- Live SMS fallback — port exists, Twilio wiring deferred (REQ-097).
-- Photo/PII retention policy publish — counsel deliverable (REQ-140, CONFIRM-2).
-- The evidence photo-URL resolver + the "missing-evidence" send-gate (REQ-170) — lands with the resolver.
-- Biller trigger-loss reconciliation sweep (REQ-169) — WP-11 (the agents cron).
-- QuickBooks / statement export (WP-11); inbound email parsing (WP-07).
-- Engagement-workspace fixtures not yet vendored → the Rater parity + the invoice-500-replay DoD run as **PENDING-advisory** until vendored (never false-green). See `tools/rater/README.md`.
+**Not measured on 2026-07-27:** `packages/ledger`, `workers/api`, `workers/agents`, `workers/billing`,
+`workers/mcp`, `workers/translator`. All six run on `vitest-pool-workers`, and the local `workerd` runtime
+was wedged for the whole session — `workerd --version` itself never returned, and the count of `workerd`
+processes orphaned in uninterruptible-exit (`UE`, parent PID 1) went from 118 to 124 as each new attempt
+added one. This is a machine condition, not a suite failure and not load: it reproduced at load average 4,
+and no other process on the machine was in a stuck state. **Re-run `pnpm test` on a clean boot and replace
+this paragraph with the real totals** — do not carry a figure forward from an earlier session, which is
+exactly how the previous baseline came to cite a three-week-old count.
 
-## Environment gotcha
+Two consequences of the same condition:
 
-The repo sits on an iCloud-synced Desktop, which periodically spawns `name 2.ext` duplicate files that can corrupt file-count gates (a duplicate migration breaks the invariant check). Before `pnpm verify`, if `find . -name "* 2.*" -not -path "./.git/*"` finds any, verify each is a byte-copy of its original and delete it (`.gitignore` blocks committing them). The durable fix is moving the repo off `~/Desktop` or excluding it from iCloud sync.
+- `pnpm test:acceptance` (the five acceptance demos' in-repo causal-chain spine) could not run either — it
+  executes each spine test in its own package's config, and four of the five live in `workers/api` and
+  `workers/mcp`.
+- The intermittent `POST /v1/anchors/run` backfill failure that `docs/ops/GO-LIVE-CHECKLIST.md` records as
+  a repository-owned failure was addressed on this branch (commits `1aa0db5`…`6e33e89`: a per-day
+  exception is now contained to that day and recorded durably instead of sinking the whole backfill). That
+  fix is **not re-verified here**, because `workers/api` is one of the six suites that did not run.
+
+#### Gates that BLOCK, and why that is correct
+
+`pnpm verify:merge` aggregates 21 gates: twelve plain ones (most of the table above, plus `unit-tests` and
+`test:acceptance` — note `pnpm audit --prod` is not among them), and nine "skippable" ones that receive
+`--mode merge` so they BLOCK rather than skip. Four of those nine are the browser gates, and they pass.
+The other five cannot, and should not: each returns `BLOCKED` (exit 2 — not a pass and not a failure)
+because a named private input is absent. Under the plain local script they loud-skip to exit 0. Both
+behaviours were verified individually on 2026-07-27; the aggregate `verify:merge` itself was not run,
+because its `unit-tests` gate needs the wedged `workerd`.
+
+| Gate | `--mode merge` verdict | Blocked on |
+|---|---|---|
+| `check:identity` | BLOCKED | No `IDENTITY_DENYLIST` secret / `.identity-denylist.local`. Fails closed in CI via `REQUIRE_DENYLIST`; the skip is local-dev only (REQ-167) |
+| `check:fixtures` | BLOCKED | 9 of 15 manifest fixtures not vendored |
+| `check:rater-parity` | BLOCKED | `rater-48-tests`, `rater-504-sweep`, `zone-tariff-v1` absent |
+| `check:invoice-parity` | BLOCKED | `invoice-500-replay` absent |
+| `check:concierge-parity` | BLOCKED | `concierge-parse-50` absent |
+
+In every case the BLOCKED verdict is an absent input, not a code defect — the fixtures are
+engagement-workspace artifacts that never enter this repo (REQ-167). It is still a real hold: under the
+merge profile a BLOCKED gate makes the candidate NOT PROMOTABLE, and each one additionally blocks its
+**WP DoD claim**. `zone-tariff-v1` is the keystone — it gates WP-04, WP-06 and WP-07 simultaneously.
+Vendoring the nine fixtures clears the last four rows; `check:identity` is independent and needs the
+denylist secret.
+
+#### Browser and performance gates
+
+All four run and pass under `--mode merge`, measured 2026-07-27:
+
+| Gate | Command | Verdict |
+|---|---|---|
+| Accessibility | `pnpm test:a11y -- --mode merge` | PASS — 4 assertions |
+| End-to-end | `pnpm test:e2e -- --mode merge` | PASS — 6 assertions |
+| Visual (blessed screens) | `pnpm test:visual -- --mode merge` | PASS — 5 assertions |
+| Map performance | `pnpm perf:map -- --mode merge` | PASS — 1 assertion |
+
+These were installed and made blocking during the T14/T15 remediation. Before that the harness self-skipped
+to exit 0, so a visual suite that could never pass reported green — three ready-selectors had rotted and
+`command.png` had been capturing five NETWORK REQUEST FAILED panels, because its ready selector waited for
+a `canvas` that the failure state also has. The five blessed screenshots were each opened and reviewed.
+Map board main-thread occupancy was measured 58.6% → 20.3% (CDP `Performance.getMetrics` `TaskDuration`,
+5s steady-state window, 1,000 entities, 3 repeats; recorded in `docs/ops/slo.md`).
+
+---
+
+### 2. Staging — what is certified, and what is only declared
+
+**Deployed and proven** (`docs/ops/DEPLOYMENT.md`):
+
+- `shuddl-api-staging` (HTTPS + the `ShipmentSequencer` DO) and `shuddl-agents-staging` (queue consumer +
+  cron). D1 ×3 with real ids (tenant-a, tenant-b, control), KV idempotency, R2 evidence, Queue + DLQ.
+- The staging smoke (`pnpm smoke:staging`) seeds a synthetic shipment, drives the gated driver flow over
+  HTTPS through `pod.signed`, waits for the real Queue to trigger the Biller, and asserts an
+  `invoice.issued` landed in the real tenant-a D1 penny-exact. First green run: invoice 55,800¢.
+- Evidence email genuinely sends (see the safety posture above).
+
+**Declared but not proven:**
+
+- **Three of the five workers are not deployed.** `billing`, `mcp` and `translator` declare `[env.staging]`
+  scopes; no staging deploy of them is recorded. The whole MCP surface (acceptance demo #4) is therefore
+  un-deployed.
+- `pnpm preflight -- --env staging` returns **BLOCKED — 12 unsatisfied prerequisites**: 5
+  `placeholder-resource-id` (`PLATFORM_TENANT_DB`, `TENANT_POOL_01_DB`, `TENANT_POOL_02_DB` are all-zero
+  UUIDs; the mcp `GRANTS` KV id is not 32-hex), 4 `missing-secret`, 1 `no-origins`, 1 `tsa-unconfigured`,
+  1 `no-backup`.
+- Read that carefully: **without `--state`, account-side facts are UNPROVEN, and unproven is BLOCKED.**
+  `JWT_SECRET` and `RESEND_API_KEY` *are* bound on staging — that is how sending works — but the checker
+  cannot see them from the repo and correctly refuses to assume. The five placeholder ids, by contrast, are
+  real repo-visible defects. Supply `--state` to separate the two.
+- No backup of staging exists. The nightly snapshot workflow is a stub, `CLOUDFLARE_API_TOKEN` /
+  `CLOUDFLARE_ACCOUNT_ID` are unbound, and the restore drill has never been run.
+
+In V2 release-grade terms (`docs/ops/V2-EXECUTION-FRAMEWORK.md` §9), staging has **not** reached R2.
+
+---
+
+### 3. Pilot holds — what blocks a first real tenant
+
+- **Tenant-0 config pack** — the 171 legacy column headers and field mapping, pro-number ranges and
+  continuity (REQ-058), and the flip/close calendar dates (REQ-153) live in the engagement workspace,
+  outside this repo, and are unbuilt. The in-repo side is generic and config-driven.
+- **Nine of fifteen fixtures unvendored**, including `zone-tariff-v1` (above), `legacy-export-replay`
+  (whose original export path is itself an open `[CONFIRM]`), and `concierge-parse-50`.
+- **Live legacy-TMS mirror feed** not provisioned — `NotConfiguredFeedReader` no-ops, so the whole overlay
+  mirror is dark. Phase-0 exit needs a 3-day unattended run (REQ-152).
+- **Counsel deliverables**, all CONFIRM-gated: ToS/Privacy/DPA for PLG signup (REQ-138), photo/PII
+  retention policy and consignee notice (REQ-140, CONFIRM-2), e-signature validity per mode and the driver
+  location-consent text (REQ-142/166).
+- **Driver login and lockout are unbuilt** (REQ-069) — a per-device P-256 key exists, but there is no
+  magic-link/PIN login and no lockout counter.
+- **Ratecon generation is unbuilt** (REQ-184/043) — nothing writes a `documents` row of kind `ratecon`, so
+  the dispatch gate cannot pass without a REQ-049 override. Correctly fail-closed, but there is no real
+  dispatch until it is built.
+- **Field evidence not collected** — a real driver completing a gated stop unassisted on real hardware
+  (REQ-164/006), outdoor readability, and the battery/data budget are all pilot measurements.
+- **On-call rota has no named human**, so none of the `docs/ops/slo.md` alerts has a recipient. The restore
+  drill log is empty.
+- **The five acceptance demos are two-tier** (`docs/wp/acceptance-demos.md`). The in-repo causal-chain
+  spine is built for all five; the filmed tenant-0 half — wall-clock latency, a real stranger, a real
+  driver, a real Claude-via-MCP booking, the live visual world-dim — are launch-gate calendar objects on
+  real freight. **A merge cannot close them.**
+- **M-H heartbeat** gates all GTM (REQ-159). It is a milestone decision, never a code flag.
+
+---
+
+### 4. Production holds — declared, not provisioned, not deployable
+
+All five workers now declare a **structurally complete** `[env.prod]` scope, and merge-time parity
+(`tools/deploy/wrangler-scope-parity.test.ts`) keeps them that way. That is a shape guarantee and nothing
+more: **every id in `[env.prod]` is an all-zero placeholder.** None of the resources exist.
+`wrangler deploy --env prod` would ship workers that crash on the first request that dereferences a
+binding.
+
+`pnpm preflight -- --env prod` returns **BLOCKED — 26 unsatisfied prerequisites**, measured 2026-07-27:
+
+| Code | Count | Detail |
+|---|---:|---|
+| `placeholder-resource-id` | 19 | Every prod D1 `database_id` is an all-zero UUID; the mcp `GRANTS` KV id is not 32-hex |
+| `missing-secret` | 4 | `JWT_SECRET`, `RESEND_API_KEY`, `STRIPE_WEBHOOK_SECRET`, `PLATFORM_INTERNAL_SECRET` |
+| `no-origins` | 1 | No CORS allowlist; `portal.example` / `status.example` placeholders remain in `cors.ts` |
+| `tsa-unconfigured` | 1 | No RFC-3161 timestamp authority — a day is left UNANCHORED, never faked |
+| `no-backup` | 1 | No backup manifest exists for the environment |
+
+Also unproven for prod, beyond the preflight:
+
+- **Sender identity** — the prod sending domain is not verified, the apex-vs-subdomain divergence
+  (`shuddl.tech` vs `send.shuddl.tech`) is unresolved, and the two-week deliverability warmup (REQ-157) has
+  not been run.
+- **Cloudflare OIDC (F1-A)** is not configured, so there is no CI deploy path and no nightly snapshot.
+- **Per-IP edge rate limits** on `/pub/*` (REQ-193) and `/pub/signup` (REQ-125) are not provisioned. These
+  are deliberately edge rules, not in-Worker gates.
+- **PLG is DARK end to end** — `PROVISIONING_ENABLED` off (`/pub/signup` 404s), Stripe keys unbound,
+  `PLATFORM_INTERNAL_SECRET` unbound (credit route 503s).
+- **Pen-test** (`docs/security/pen-test-basics.md`) reports clean for the **in-repo perimeter only**; its
+  deploy-dependent items are exactly the rows above.
+
+**Do not describe this build as "ready to launch."** It is ready to be provisioned. Provisioning is an
+external hold with a named owner in `docs/ops/GO-LIVE-CHECKLIST.md`.
+
+> A note for whoever provisions these: fill the ids with real values or leave them all-zero. Never fill
+> them with something that merely *looks* real. The preflight's placeholder check is shape-based, so a
+> plausible UUID reads as provisioned and the gate goes quiet about a resource that does not exist. KV
+> placeholders are deliberately non-hex for this reason.
+
+---
+
+### 5. V2 — planned, not built
+
+The V2 framework is approved and specified in [`docs/ops/V2-EXECUTION-FRAMEWORK.md`](./V2-EXECUTION-FRAMEWORK.md),
+with authority in register rows **REQ-214 through REQ-288**. It covers tenant-0 internal operations:
+structured facilities and authoritative geocoding, AI-assisted quote-to-book, conversational pricing
+configuration, backhaul detection and marginal pricing, co-load and dispatch proposals, real driver
+synchronisation, live server-scoped views, and a durable proposal/approval lifecycle.
+
+**No REQ-214…288 behaviour is built.** The framework document says so itself, and the phase gates enforce
+it: P0 cannot open until V1 has an R2 (staging-certified) PASS record for an exact SHA, and no V2 feature
+receives read or write authority before that. The R5 shadow period is at least 30 consecutive calendar days
+and is noncompressible.
+
+---
+
+## Environment gotchas
+
+- **iCloud duplicates.** The repo sits on an iCloud-synced Desktop, which periodically spawns `name 2.ext`
+  copies that can corrupt file-count gates (a duplicate migration breaks the invariant check). Before
+  `pnpm verify`, run `find . -name "* 2.*" -not -path "*/node_modules/*" -not -path "./.git/*"`; verify each
+  hit is a byte-copy of its original and delete it (`.gitignore` blocks committing them). Note the nested
+  `node_modules` exclusion — copies also accumulate in the per-package vite caches, where they are harmless
+  to the gates but will confuse a plain `find`. The durable fix is moving the repo off `~/Desktop`.
+- **Wedged `workerd`.** The `vitest-pool-workers` suites can leave `workerd` processes orphaned in
+  uninterruptible-exit (`UE`, parent PID 1) — typically after a run is interrupted. Once enough accumulate,
+  *every* new `workerd` wedges too, including a bare `workerd --version`, and all six workerd-pool suites
+  hang at "Starting isolated runtimes" indefinitely. Diagnose with
+  `ps -eo stat,command | grep '[w]orkerd' | grep -c '^UE'`; a non-trivial count with no live `workerd` is
+  the signature. On 2026-07-27 they could not be killed (`kill -9` does not apply to `UE`) and did not
+  clear over roughly two hours of observation — the count only grew. A reboot is the expected remedy; that
+  was not tested. **Do not mistake this for a suite failure, and never report a suite that did not run as
+  one that passed.**
+- **Machine load.** Separately from the above, at load average >12 vitest fork workers time out and a suite
+  reports `Test Files no tests` with `Failed to start forks worker`. Check `uptime`, wait for load under
+  ~8, re-run. Wait — do not reinstall and do not "fix" anything.
+- **Node is pinned.** Node 22.15.0 + pnpm 11 only (`.node-version`, `engines`, `packageManager`). Node 20
+  mis-resolves the `vitest-pool-workers`/chai chain and changes D1 append-only trigger behaviour, so a
+  green run under Node 20 is not evidence the build is sound. `pnpm check:runtime` fails closed on
+  mismatch.
