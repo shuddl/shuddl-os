@@ -28,7 +28,8 @@
 //                       NEW fallback. After a fallback the module is legacy, so the rule never re-fires — re-
 //                       promotion is the gated flip route ONLY (never auto-re-promote). LLM-free (REQ-024).
 //
-// SELF-CLEARING + IDEMPOTENT (mirrors the anchor alarms — anchor.ts:309-374, recordAnchorFailure): the alarm is written by the
+// SELF-CLEARING + IDEMPOTENT (the deterministic-id UPSERT mirrors the anchor alarms — anchor.ts:309-374,
+// recordAnchorFailure — which differ in that they do NOT re-open a resolved row): the alarm is written by the
 // ON-CONFLICT UPSERT — one row per deterministic id, open→re-raise on conflict, resolved when the condition
 // clears. A re-sweep of the SAME state upserts the SAME row (no duplicate); when the condition clears the row
 // flips to 'resolved' (NOT deleted — the alarm history persists). The `anomalies` table is a MUTABLE ops table

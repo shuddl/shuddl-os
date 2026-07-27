@@ -63,6 +63,25 @@ function anomaliesBrokenDb(): D1Database {
   return { prepare: (sql: string) => (sql.includes("anomalies") ? broken : DB.prepare(sql)) } as unknown as D1Database;
 }
 
+// A D1 that rejects ONLY the anomalies statements carrying the TSA marker id; the build marker is
+// written for real. A blanket fault cannot tell a guarded TSA recorder from an unguarded one — both
+// leave the day `failed` — so the discriminator has to be which anomaly ends up on the table.
+function tsaMarkerBrokenDb(): D1Database {
+  const reject = (): Promise<never> => Promise.reject(new Error("D1_DOWN"));
+  return {
+    prepare: (sql: string) => {
+      const stmt = DB.prepare(sql);
+      if (!sql.includes("anomalies")) return stmt;
+      return {
+        bind: (...args: unknown[]) =>
+          args.some((a) => typeof a === "string" && a.startsWith("anchor-tsa:"))
+            ? { first: reject, all: reject, run: reject }
+            : stmt.bind(...args),
+      } as unknown as D1PreparedStatement;
+    },
+  } as unknown as D1Database;
+}
+
 beforeAll(async () => {
   resetEventCounter();
   await applyMigrations(DB, [
@@ -217,11 +236,12 @@ describe("REQ-014 — determinism, bucketing, gaps, failures, positions", () => 
   });
 
   it("a D1 fault in the failure bookkeeping changes no verdict and never re-raises", async () => {
-    // Both guards under one fault. The recorder runs inside the contained catch: unguarded, its
-    // rejection escapes runDailyAnchor and the 500 is back. The marker clear runs inside anchorDay
-    // AFTER the documents row: unguarded, its rejection reports a fully anchored, witnessed, verifiable
-    // day as `failed` — a verdict nothing can ever correct, because the next run sees that documents
-    // row, marks the day `skipped`, and never calls anchorDay again.
+    // Two of the three guards, under one fault. The build recorder runs inside the contained catch:
+    // unguarded, its rejection escapes runDailyAnchor and the 500 is back. The marker clear runs inside
+    // anchorDay AFTER the documents row: unguarded, its rejection reports a fully anchored, witnessed,
+    // verifiable day as `failed` — a verdict nothing can ever correct, because the next run sees that
+    // documents row, marks the day `skipped`, and never calls anchorDay again. (The third guard, on the
+    // TSA recorder, needs a sharper fault to observe — the test below.)
     const poisoned = "2026-07-08";
     const clean = "2026-07-09";
     const bad = mkEvent("stop.arrived", { stream_id: "s:d1-poison", shipment_id: "d1-poison", seq: 0, recorded_at: noon(poisoned) });
@@ -233,6 +253,22 @@ describe("REQ-014 — determinism, bucketing, gaps, failures, positions", () => 
     expect(res.failed).toContain(poisoned); // the unrecordable failure is still contained
     expect(res.anchored).toContain(clean); // the unclearable success is still reported as success
     expect(await anchorHash(clean)).not.toBeNull(); // ...and the day really is anchored
+  });
+
+  it("a TSA outage whose marker cannot be written is never relabelled a build failure", async () => {
+    // The third guard. recordAnchorFailure(TSA_UNAVAILABLE) is itself a D1 write; unguarded, its
+    // rejection escapes anchorDay into the per-day containment, which records the day under
+    // `anchor.build_failed` — sending ops after an unreadable ledger when the truth is that the
+    // timestamping authority refused. Both paths leave the day `failed`, so the anomaly IS the assertion.
+    const day = "2026-07-09";
+    await seed("stop.arrived", { stream_id: "s:tsa-guard", shipment_id: "tsa-guard", seq: 0, recorded_at: noon(day) });
+
+    const res = await runDailyAnchor({ db: tsaMarkerBrokenDb(), r2: R2, tsa: failingTsa, tenant: TENANT, now: FIRE });
+
+    expect(res.failed).toContain(day); // contained — the run still resolves
+    expect(await anchorHash(day)).toBeNull();
+    expect(await failureRow("anchor-tsa", day)).toBeNull(); // the marker genuinely could not be written
+    expect(await failureRow("anchor-build", day)).toBeNull(); // ...and the outage was NOT relabelled
   });
 
   it("a day can carry BOTH markers at once, and anchoring clears both", async () => {

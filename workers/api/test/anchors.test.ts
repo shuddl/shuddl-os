@@ -13,6 +13,7 @@ const RECEIPT_KEY = `anchors/${TENANT_SLUG}/${DAY}/tsr.der`;
 const noon = Date.parse(`${DAY}T12:00:00Z`);
 const H1 = "aa".repeat(32);
 const H2 = "bb".repeat(32);
+const H3 = "ee".repeat(32);
 
 const EVENT_COLUMNS = [
   "stream_id", "seq", "id", "shipment_id", "ts", "recorded_at", "kind",
@@ -42,6 +43,20 @@ beforeAll(async () => {
   const e2 = eventFixture("pod.signed", { id: "00000000-0000-4000-8000-0000000a0002", hash: H2, stream_id: "s:anch-2", shipment_id: "anch-2", seq: 0, recorded_at: noon });
   await insertEvent(e1);
   await insertEvent(e2);
+  // One event on a PAST day, so POST /v1/anchors/run always has something to backfill no matter where
+  // this file lands in the suite order. Without it the run can return empty — the fixtures above sit in
+  // 2999, so if no other file has yet written an older row, MIN(recorded_at) is in the future and the
+  // backfill returns before the day loop, which would make the `failed` assertion below vacuous.
+  await insertEvent(
+    eventFixture("stop.arrived", {
+      id: "00000000-0000-4000-8000-0000000a0003",
+      hash: H3,
+      stream_id: "s:anch-3",
+      shipment_id: "anch-3",
+      seq: 0,
+      recorded_at: Date.parse("2026-01-05T12:00:00Z"),
+    }),
+  );
   // events order by (stream_id, seq): s:anch-1 then s:anch-2
   root = bytesToHex(await merkleRoot([hexToBytes(H1), hexToBytes(H2)]));
 
@@ -132,10 +147,12 @@ describe("REQ-014 — POST /v1/anchors/run (admin only)", () => {
     const body = (await res.json()) as { anchored: string[]; skipped: string[]; failed: string[] };
     expect(Array.isArray(body.anchored)).toBe(true);
     expect(Array.isArray(body.skipped)).toBe(true);
-    // NOT merely an array: the backfill walks every unanchored day in the tenant DB, which under
-    // isolatedStorage:false holds whatever every other test file wrote. `failed` empty is what
-    // distinguishes "backfilled everything" from "gave up on everything" — the run used to 500 here,
-    // and a shape-only assertion could not tell the difference.
+    // NOT merely arrays: the backfill walks every unanchored day in the tenant DB, which under
+    // isolatedStorage:false holds whatever every other test file wrote. The run used to 500 here, and a
+    // shape-only assertion could not tell "backfilled everything" from "gave up on everything". These
+    // two together can: the beforeAll seeds a past day, so the loop ALWAYS runs (never a vacuous pass
+    // on an empty result), and no day may end in `failed`.
+    expect(body.anchored.length + body.skipped.length).toBeGreaterThan(0);
     expect(body.failed).toEqual([]);
   });
 });
