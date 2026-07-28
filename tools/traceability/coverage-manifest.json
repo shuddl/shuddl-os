@@ -87,6 +87,6 @@
     "REQ-285": "vNEXT — V2-F WCAG 2.2 AA and device-matrix acceptance defined by the approved V2 framework; not built.",
     "REQ-286": "vNEXT — P0 durable proposal lifecycle defined by the approved V2 framework; not built.",
     "REQ-287": "vNEXT — P0/D authoritative asset capacity location and HOS abstention rule defined by the approved V2 framework; not built.",
-    "REQ-288": "vNEXT — P0 exact-artifact release evidence contract defined by the approved V2 framework; not built."
+    "REQ-288": "vNEXT — P0 exact-artifact release evidence contract defined by the approved V2 framework; not built. NOTE (2026-07-27): check:coverage lists this row as status-drift because ~25 files cite it — they implement the evidence PRODUCER (the record run-gate writes). The requirement specifies the CONSUMER: release promotion that rejects stale/mismatched/zero-assertion evidence. No promotion step exists (evaluateEvidence has two callers: run-gate and its own test), and run-gate builds its PromotionContext from the record it just wrote, so the mismatch checks can never fire. The drift flag is a FALSE POSITIVE and this disposition is correct — do not advance the row. See docs/ops/GO-LIVE-CHECKLIST.md."
   }
 }
