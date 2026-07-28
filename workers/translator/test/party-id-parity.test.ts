@@ -3,7 +3,7 @@ import type { TenderDoc } from "@shuddl/edi";
 import { mapTenderToBooking } from "../src/core/map-204.js";
 
 // WP-12 Task 6 review fix (Important, REQ-196 name axis) — the ZERO-TOUCH parity LOCK. map-204's no-email party
-// id inlines the scheme workers/api/src/intake-core.ts:64 uses (`party_<first16 sha256("intake:party:name:"
+// id inlines the scheme `workers/api/src/intake-core.ts:64@intake:party:name:` uses (`party_<first16 sha256("intake:party:name:"
 // +lower(name))>`). The ideal de-dup (a shared partyIdForName in @shuddl/contracts) would touch a shipped file,
 // forbidden here — so this additive test PINS the two surfaces to one byte-exact scheme, so they cannot silently
 // drift into duplicate broker parties (the split-billing / credit-hold-evasion risk, on the name axis). If a

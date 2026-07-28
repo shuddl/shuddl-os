@@ -8,10 +8,14 @@ import {
   type RepoIndex,
 } from "./citation-links.js";
 
-// A stub repo: path -> line count. `checkCitations` is pure over this, so every resolution and
-// bounds rule below is provable without touching the tree.
-function stubIndex(files: Record<string, number>): RepoIndex {
-  return { paths: Object.keys(files), lineCount: (p) => files[p] ?? null };
+// A stub repo: path -> either a line COUNT (filler lines, for the bounds rules) or the actual lines
+// (for the anchor rules). `checkCitations` is pure over this, so every rule below is provable
+// without touching the tree.
+function stubIndex(files: Record<string, number | string[]>): RepoIndex {
+  const lines = new Map<string, string[]>(
+    Object.entries(files).map(([p, v]) => [p, typeof v === "number" ? Array.from({ length: v }, (_, i) => `filler ${i + 1}`) : v]),
+  );
+  return { paths: [...lines.keys()], lines: (p) => lines.get(p) ?? null };
 }
 
 const INDEX = stubIndex({
@@ -204,10 +208,106 @@ describe("the escape hatch and the output contract", () => {
   });
 });
 
+// ---------------------------------------------------------------------------------------------
+// Content anchors: the OPT-IN `path:line@symbol` form. This is the only rule that can see the
+// defect class where the line still exists and the content moved out from under it.
+// ---------------------------------------------------------------------------------------------
+
+const ANCHORED = stubIndex({
+  "packages/ledger/src/anchor.ts": [
+    "line 1", "line 2", "line 3", "line 4", "line 5",
+    "async function recordAnchorFailure(", // 6
+    "line 7", "line 8", "line 9", "line 10",
+    "  await clearAnchorFailures(db, tenant, day);", // 11
+    "line 12", "line 13", "line 14", "line 15",
+  ],
+  "docs/x.md": ["a", "b", "c", "d", "e", "f", "g", "h"],
+});
+
+describe("content anchors: `path:line@symbol` (opt-in)", () => {
+  it("parses the anchor off a single line and off a range", () => {
+    const cs = one("docs/a.md", "`packages/ledger/src/anchor.ts:6@recordAnchorFailure` and `packages/ledger/src/anchor.ts:6-11@clearAnchorFailures`");
+    expect(cs.map((c) => [c.spec, c.symbol])).toEqual([
+      ["6", "recordAnchorFailure"],
+      ["6-11", "clearAnchorFailures"],
+    ]);
+  });
+
+  it("an UNanchored citation carries no symbol — the 492 existing ones must not change meaning", () => {
+    expect(one("docs/a.md", "`packages/ledger/src/anchor.ts:6`")[0]?.symbol).toBeUndefined();
+  });
+
+  it("accepts a symbol containing `:`, `(`, `.`, `-`, `_` — the corpus is full of them", () => {
+    const cs = one("tools/x.ts", "// see `workers/api/src/intake-core.ts:64@intake:party:name:` and a.md:1@foo.bar-baz_qux(");
+    expect(cs.map((c) => c.symbol)).toEqual(["intake:party:name:", "foo.bar-baz_qux("]);
+  });
+
+  it("passes when the symbol is ON the cited line", () => {
+    expect(checkCitations(one("docs/a.md", "`packages/ledger/src/anchor.ts:6@recordAnchorFailure`"), ANCHORED)).toEqual([]);
+  });
+
+  it("passes within the ±2 tolerance (the target drifted by one line)", () => {
+    expect(checkCitations(one("docs/a.md", "`packages/ledger/src/anchor.ts:4@recordAnchorFailure`"), ANCHORED)).toEqual([]);
+    expect(checkCitations(one("docs/a.md", "`packages/ledger/src/anchor.ts:8@recordAnchorFailure`"), ANCHORED)).toEqual([]);
+  });
+
+  it("FAILS just outside the tolerance — this is the drift the gate exists to catch", () => {
+    const v = checkCitations(one("docs/a.md", "`packages/ledger/src/anchor.ts:3@recordAnchorFailure`"), ANCHORED);
+    expect(v).toHaveLength(1);
+    expect(v[0]?.reason).toMatch(/not found in lines 1-5/);
+  });
+
+  it("tells the reader WHERE the symbol actually is, so the fix needs no file opened", () => {
+    const [v] = checkCitations(one("docs/a.md", "`packages/ledger/src/anchor.ts:14@recordAnchorFailure`"), ANCHORED);
+    expect(v?.reason).toMatch(/it IS at :6/);
+    expect(v?.reason).toMatch(/repoint/);
+  });
+
+  it("says so plainly when the symbol is nowhere in the file (a wrong anchor, not a moved one)", () => {
+    const [v] = checkCitations(one("docs/a.md", "`packages/ledger/src/anchor.ts:6@noSuchSymbol`"), ANCHORED);
+    expect(v?.reason).toMatch(/appears nowhere in/);
+  });
+
+  it("widens the window at BOTH ends of a range, not just the start", () => {
+    expect(checkCitations(one("docs/a.md", "`packages/ledger/src/anchor.ts:1-4@recordAnchorFailure`"), ANCHORED)).toEqual([]);
+    expect(checkCitations(one("docs/a.md", "`packages/ledger/src/anchor.ts:8-15@recordAnchorFailure`"), ANCHORED)).toEqual([]);
+    expect(checkCitations(one("docs/a.md", "`packages/ledger/src/anchor.ts:9-15@recordAnchorFailure`"), ANCHORED)).toHaveLength(1);
+  });
+
+  it("is a literal substring, not a regex — a symbol with `(` matches literally and never explodes", () => {
+    expect(checkCitations(one("docs/a.md", "`packages/ledger/src/anchor.ts:6@recordAnchorFailure(`"), ANCHORED)).toEqual([]);
+    expect(checkCitations(one("docs/a.md", "`packages/ledger/src/anchor.ts:6@record.*Failure`"), ANCHORED)).toHaveLength(1);
+  });
+
+  it("is case-sensitive — these are code identifiers", () => {
+    expect(checkCitations(one("docs/a.md", "`packages/ledger/src/anchor.ts:6@recordanchorfailure`"), ANCHORED)).toHaveLength(1);
+  });
+
+  it("checks BOUNDS before the anchor — an out-of-range line reports the bound, not the symbol", () => {
+    const [v] = checkCitations(one("docs/a.md", "`packages/ledger/src/anchor.ts:99@recordAnchorFailure`"), ANCHORED);
+    expect(v?.reason).toMatch(/15 lines/);
+  });
+
+  it("with an ambiguous path, one candidate satisfying the anchor is enough", () => {
+    const amb = stubIndex({
+      "a/dup.ts": ["nope", "nope", "nope"],
+      "b/dup.ts": ["nope", "recordAnchorFailure", "nope"],
+    });
+    expect(checkCitations(one("docs/a.md", "`dup.ts:2@recordAnchorFailure`"), amb)).toEqual([]);
+    expect(checkCitations(one("docs/a.md", "`dup.ts:2@absent`"), amb)).toHaveLength(1);
+  });
+
+  it("puts the symbol in the formatted output so the violation is self-explaining", () => {
+    const [v] = checkCitations(one("docs/a.md", "`packages/ledger/src/anchor.ts:14@recordAnchorFailure`"), ANCHORED);
+    expect(formatViolation(v!)).toMatch(/^docs\/a\.md:1 → packages\/ledger\/src\/anchor\.ts:14@recordAnchorFailure — /);
+  });
+});
+
 describe("KNOWN LIMITATION, pinned so nobody claims more than this gate delivers", () => {
-  it("does NOT catch an in-bounds citation that points at the wrong content", () => {
+  it("does NOT catch an in-bounds citation that points at the wrong content — UNLESS it is anchored", () => {
     // The historical sequencer defect: the cited range exists, it just names the booking gate instead
-    // of the ratecon deferral. Only a content anchor could see that; line existence cannot.
+    // of the ratecon deferral. Bounds cannot see that. An anchor can, and that is the whole point of
+    // the opt-in form above — so the limitation now has an escape, one citation at a time.
     expect(checkCitations(one("docs/a.md", "`workers/api/src/do/sequencer.ts:700-708`"), INDEX)).toEqual([]);
   });
 });
