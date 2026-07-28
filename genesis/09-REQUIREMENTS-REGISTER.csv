@@ -43,7 +43,7 @@ REQ-041,GATES,Quote→Booked blocked without weight/dims (no price on air),Doc01
 REQ-042,GATES,Booked blocked on credit hold per policy,Doc01§4,10§1,WP-08,Hold blocks booking event,F0-SPEC'D
 REQ-043,GATES,Dispatch blocked until docs+appointment,Doc01§4,WP-08,WP-08,Negative test,F0-SPEC'D
 REQ-044,GATES,Pickup departure blocked without count+photos(+dims if fitted)+sign,Doc01§4,WP-05,WP-05,Gate UI+API enforce,F0-SPEC'D
-REQ-045,GATES,Interline handoff requires seal scan + receiver ack,Doc01§4,WP-05,vNEXT,Co-signed interchange event,vNEXT
+REQ-045,GATES,Interline handoff requires seal scan + receiver ack,Doc01§4,WP-05,WP-05,Co-signed interchange event,F0-SPEC'D
 REQ-046,GATES,Delivery completes only w/ geofence+signature+placed-freight photo,User brief,01§4,WP-05,Cannot complete outside fence w/o override,F0-SPEC'D
 REQ-047,GATES,Booking gate requires consignee email/SMS or named opt-out,08 GA-6,01§4,WP-08,Heartbeat email has recipient 100%,F0-SPEC'D
 REQ-048,GATES,Below-floor price requires named approval per matrix,PRD rules,01§4,WP-04,LOSS needs dual approval event,F0-SPEC'D
