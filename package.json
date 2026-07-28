@@ -23,6 +23,7 @@
     "check:coverage": "tsx tools/traceability/coverage.ts",
     "check:pr": "tsx tools/traceability/check-pr.ts",
     "check:identity": "tsx tools/checks/identity-leak.ts",
+    "check:citations": "tsx tools/checks/citation-links.ts",
     "check:fixtures": "tsx tools/fixtures/verify.ts",
     "check:rater-parity": "tsx tools/rater/parity.ts",
     "check:invoice-parity": "tsx tools/rater/invoice-parity.ts",

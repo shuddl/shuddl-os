@@ -136,7 +136,9 @@ export async function mapTenderToBooking(tender: TenderDoc, ctx: MapTenderCtx): 
       // the id already converges on the normalized form, and this keeps the stored value consistent with it.
       party = { id: await partyIdForEmail(rawEmail), kind: "broker", name: billTo.name, email: normalizePartyEmail(rawEmail) };
     } else {
-      // MUST byte-match workers/api/src/routes/intake.ts:128 (REQ-196); pinned by test/party-id-parity.test.ts.
+      // MUST byte-match workers/api/src/intake-core.ts:64 (REQ-196); pinned by test/party-id-parity.test.ts.
+      // (Citation repointed 2026-07-27: the scheme moved into the shared `findOrCreateParty` matcher, and
+      // the old pointer into `routes/intake.ts` had rotted past that file's end.)
       // A future non-WP-12 refactor should extract partyIdForName into @shuddl/contracts and repoint both surfaces.
       const normName = billTo.name.trim().toLowerCase();
       party = { id: `party_${(await sha256Hex(`intake:party:name:${normName}`)).slice(0, 16)}`, kind: "broker", name: billTo.name };
@@ -144,7 +146,7 @@ export async function mapTenderToBooking(tender: TenderDoc, ctx: MapTenderCtx): 
   } else {
     // No bill-to on the tender: the shipper IS the counterparty (Concierge: requester = shipper). shipperStop
     // is defined here (we returned above unless originZip came from it). Name-keyed derivation — see the
-    // byte-match note above (intake.ts:128, pinned by test/party-id-parity.test.ts).
+    // byte-match note above (intake-core.ts:64, pinned by test/party-id-parity.test.ts).
     const shName = (shipperStop as NonNullable<typeof shipperStop>).name;
     const normName = shName.trim().toLowerCase();
     party = { id: `party_${(await sha256Hex(`intake:party:name:${normName}`)).slice(0, 16)}`, kind: "shipper", name: shName };
