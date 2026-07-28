@@ -62,6 +62,16 @@ describe("citation parser: the forms this repo actually writes", () => {
   it("does NOT read TypeScript code — only comments (a string literal is not a citation)", () => {
     expect(one("tools/x.ts", `const s = "workers/api/src/do/sequencer.ts:99999";`)).toEqual([]);
   });
+
+  it("does NOT treat a `//` INSIDE a string literal as a comment", () => {
+    // The gate's first false positive was on its own test file, from exactly this shape.
+    expect(one("tools/x.ts", `expect(parse("// packages/map/test/bearing.test.ts:9999")).toEqual([]);`)).toEqual([]);
+  });
+
+  it("still reads a real comment that FOLLOWS a string containing a slash", () => {
+    const cs = one("tools/x.ts", `const sep = "a/b"; // see packages/map/test/bearing.test.ts:9-21`);
+    expect(cs.map((c) => c.spec)).toEqual(["9-21"]);
+  });
 });
 
 describe("citation parser: the false-positive shapes that would train readers to skim past this gate", () => {

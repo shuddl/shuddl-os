@@ -124,6 +124,7 @@ export function commentTextOf(line: string, inBlock: boolean): { text: string; i
   let out = "";
   let i = 0;
   let block = inBlock;
+  let quote: string | null = null;
   while (i < masked.length) {
     if (block) {
       const end = masked.indexOf("*/", i);
@@ -136,15 +137,33 @@ export function commentTextOf(line: string, inBlock: boolean): { text: string; i
       block = false;
       continue;
     }
-    const lineComment = masked.indexOf("//", i);
-    const blockComment = masked.indexOf("/*", i);
-    if (lineComment === -1 && blockComment === -1) break;
-    if (lineComment !== -1 && (blockComment === -1 || lineComment < blockComment)) {
-      out += ` ${masked.slice(lineComment)}`;
+    const ch = masked[i];
+    // Quote tracking is what makes "it never reads code" true: a `//` INSIDE a string literal opens
+    // no comment. Without it, a test that passes a comment-SHAPED string to the parser is itself read
+    // as a citation — which is exactly how this gate first false-positived, on its own test file.
+    if (quote !== null) {
+      if (ch === "\\") i += 2;
+      else {
+        if (ch === quote) quote = null;
+        i += 1;
+      }
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === "`") {
+      quote = ch;
+      i += 1;
+      continue;
+    }
+    if (ch === "/" && masked[i + 1] === "/") {
+      out += ` ${masked.slice(i)}`;
       break;
     }
-    i = blockComment + 2;
-    block = true;
+    if (ch === "/" && masked[i + 1] === "*") {
+      block = true;
+      i += 2;
+      continue;
+    }
+    i += 1;
   }
   return { text: out, inBlock: block };
 }
