@@ -619,8 +619,11 @@ drift, code annotated while the row still reads `vNEXT`.
 > open, seven of them High, and two of those ten have no gate that could ever observe them; ~~fifteen
 > repository-owned rows are open~~ **fifteen repository-owned rows are RECORDED — at `dc26ea8` thirteen `OPEN`,
 > one `FIXED †`, one `BLOCKED`**⟨3⟩,
-> none Critical and none open-High — though the one High among them reads `FIXED †` precisely because it has
-> never been observed green here⟨4⟩, and §3 still grades three unbuilt, fail-closed rows High. V1 is not ready to
+> none Critical and none open-High — ~~though the one High among them reads `FIXED †` precisely because it has
+> never been observed green here~~ **and at `3fc592b` that row reads plain `FIXED`: the reboot cleared the
+> wedge and the fix WAS observed green — `packages/ledger` 598/598 and `workers/api` 719/719 three consecutive
+> times, against an original failure rate of roughly four runs in five**⟨4⟩, and §3 still grades three unbuilt,
+> fail-closed rows High. V1 is not ready to
 > launch, and no promotion is available from this commit: ~~the merge gate has not run, so under rule 1 of
 > `RELEASE-EVIDENCE.md` this SHA carries no evidence record at all~~ **the merge gate has now run, at
 > `3fc592b`, and the record it wrote says BLOCKED — 16 gates PASS, 5 BLOCKED, NOT PROMOTABLE**⟨4⟩**.**
