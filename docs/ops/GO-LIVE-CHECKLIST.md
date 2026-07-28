@@ -1,6 +1,6 @@
 # SHUDDL — Go-Live Checklist & Technical-Debt Ledger
 
-**Path:** `docs/ops/GO-LIVE-CHECKLIST.md` · **Owner:** register owner · **Last synthesized:** 2026-07-19 (from the 5 WP-12-era audit sweeps) · **Last re-audited:** 2026-07-27 (V1 close-out Task 6 — every hold and failure row re-run against a live command *where one exists*; two holds have no gate at all and now say so. See §1.1 for the row schema and the bottom two ledgers for the schema applied)
+**Path:** `docs/ops/GO-LIVE-CHECKLIST.md` · **Owner:** register owner · **Last synthesized:** 2026-07-19 (from the 5 WP-12-era audit sweeps) · **Last re-audited:** 2026-07-27 (V1 close-out Task 6 — every hold and failure row re-run against a live command *where one exists*; two holds have no gate at all and now say so. See §1.1 for the row schema and the bottom two ledgers for the schema applied) · **Closed out:** 2026-07-27 (V1 close-out Task 8 — the six objective questions, each answered with a citation or an honest no, and the close-out statement itself, are **§5 at the foot of this file**)
 
 ## 1. Purpose & upkeep
 
@@ -364,6 +364,10 @@ These are ours: reproducible from this checkout, closable by a commit. Same eigh
 | **REQ-167 is unverified in every local run** — `check:identity` reports `Lint SKIPPED — no denylist available` and fails closed only in CI (the eight-field restatement of the §3 row, which this re-audit downgraded from High to Med) | Med | Repo (the gate) + External (the denylist secret) | `pnpm -s check:identity` → `REQ-167: no denylist available … Lint SKIPPED — wire the secret before external contributions. NOTE: this gate fails CLOSED in CI (or when REQUIRE_DENYLIST is set); the skip is local-dev only.` exit 0. `pnpm -s check:identity -- --mode merge` → `##SHUDDL-GATE## {"gate":"identity-leak","status":"BLOCKED","executed":false,"assertions":0,"detail":"no denylist …"}`. CI binds it at `.github/workflows/ci.yml:49` | register owner (denylist contents) / infrastructure (the secret) | OPEN | **R1** for any *locally-made* mergeable claim; CI is closed | on binding `IDENTITY_DENYLIST` or creating `.identity-denylist.local`, or when `tools/checks/identity-leak.ts` changes |
 | **REQ-288 is recorded as unbuilt while ~25 files implement it — and the fix is entangled** | Med | Repo (register + manifest data) | `tools/traceability/coverage-manifest.json:90` reads `"REQ-288": "vNEXT — P0 exact-artifact release evidence contract defined by the approved V2 framework; not built."` while `git grep -l "REQ-288"` returns 25 files including `tools/release/evidence.ts`, `tools/release/run-gate.ts` and `.github/workflows/ci.yml:47`; `pnpm check:coverage` lists it among the 8 drift rows. **Entanglement (why this is not a one-line fix):** the register row also carries `wp=P0`, which names no active WP, so advancing `status` alone routes it to `unclassified` and fails `check:coverage` (`tools/traceability/coverage.ts:105`) — while the manifest's own rule forbids a *built* row holding a deferral disposition. The `wp` amendment and the manifest removal must land together. **Deliberately not attempted in Task 6**, which owns this file, not the register | register owner | OPEN | **R1** (a coverage ledger that misrecords built scope is open Med debt) | when `genesis/09-REQUIREMENTS-REGISTER.csv` or `coverage-manifest.json` changes |
 | **REQ-045 is a register DATA defect, not a build gap** — and it is the cleanest single fix among the eight drift rows | Low | Repo (one register cell) | Built: `packages/ledger/src/gates/transition-gates.ts:261-275` (`assertInterline`). Tested: `packages/ledger/test/transition-gates.test.ts:273`, `workers/api/test/gates.test.ts:163`. Register row: `spec=WP-05`, `wp=vNEXT`, `status=vNEXT` — the `spec` column **already names the WP** the `wp` column is missing, so the correct value is not a judgement call. Listed by `pnpm check:coverage` as drift | register owner | OPEN | **R1** | when `genesis/09-REQUIREMENTS-REGISTER.csv` changes |
+| **§3's status-page row now misstates the portal** — it still reads "`GET /v1/board` is tenant-only; the portal party fleet is synthetic". That was true at WP-16 and was superseded by remediation Task 12; it is a stale record, **not** a regression | Med | Repo (this file) | Source read — no command reproduces a doc claim. The route serves TWO lenses: `workers/api/src/routes/board.ts:17-31` documents and implements the PARTY lens (party-relationship predicate in SQL + `generalizePosition`, REQ-085/074/025). The portal consumes it: `apps/portal/src/api/board.ts:6-7` (the seam's own header) and `:59-60` fetch `GET /v1/board` and Zod-`.strict()`-parse it. Corroborating grep: `git grep -n "demoFleet" -- ':(exclude)docs'` → the only definition is `packages/map/src/demo.ts:112`, **no app imports it**, and `apps/portal/src/App.test.tsx:77,88,124,145,156` asserts it is never called on five paths | assurance | OPEN | none (the code is right; the record is not) | when `workers/api/src/routes/board.ts` or `apps/portal/src/api/board.ts` changes |
+| **Two path citations in this file do not resolve** | Med | Repo (this file) | Link-check of every backticked path in this file (113 distinct, `existsSync` each): `workers/api/src/internal-platform.ts` — cited twice, the file is `workers/api/src/routes/internal-platform.ts`; and `workers/api/src/do/sequencer.ts:700-708` for REQ-184 — that range is the `booking.created` gate, while the ratecon fail-closed marker is at `:926-929`. The two other misses are **not** defects: `docs/ops/threat-model.md` is cited as a negative example, and the `.claude/skills/…/reference-0006_….sql` name is elided prose | register owner | OPEN | none (record accuracy) | when this file or either cited source changes |
+| **The 2026-07-15 60-agent audit — the closure record for both V1 Criticals — is not in the repository** | Med | Repo | `ls docs/audits/` → exactly one file, `2026-07-22-wp16-launch-gate-audit.md`. `git log --all --oneline -- docs/audits/2026-07-15-full-audit-and-skill-plan.md` → empty; it was never committed. (That command also prints `fatal: bad object refs/heads/codex/cl-d-driver 2` on this machine — an iCloud-spawned duplicate of a branch ref, i.e. the §3 iCloud hazard reaching `.git/refs`, not a result.) §4 of this file and `docs/audits/2026-07-22-wp16-launch-gate-audit.md:8` both cite it as the record that C-1 (REQ-190) and C-2 (REQ-191) are closed. The **closures** are independently checkable — both register rows read `F0-SPEC'D`, both are annotated, `pnpm check:traceability` is clean — but the audit that graded them cannot be re-read from a checkout | register owner | OPEN | **R0** (a baseline audit absent from the tree cannot be re-read at a later SHA) | when the audit is committed, or the citation is replaced by one that resolves |
+| **The V2 phase vocabulary diverges between the register and the framework** | Low | Repo (register/doc data) | The 75 V2 register rows carry `wp` cells `P0` / `V2-A`…`V2-F` / `Cross-cutting` (`awk -F, '$1~/^REQ-2[1-8][0-9]$/' genesis/09-REQUIREMENTS-REGISTER.csv`); `docs/ops/V2-EXECUTION-FRAMEWORK.md` §6 allocates those same rows to phases named `P0` / `PA`…`PF`, and the string `V2-A` appears nowhere in it (`git grep -n "V2-A" -- docs` hits only the design plan and this file). Nothing is unallocated — §6's ranges cover the register's contiguous 75 rows with no gaps — but no document declares that `V2-A` and `PA` are the same phase | register owner | OPEN | none (naming) | when the register `wp` column or framework §6 changes |
 | **Seven of the eight drift rows cannot be advanced by a status edit** — the register needs a `wp` amendment pass | Med | Repo (register data) | `pnpm check:coverage` → `coverage: 8 status-drift row(s) … REQ-045, REQ-170, REQ-184, REQ-249, REQ-276, REQ-284, REQ-285, REQ-288`. Their `wp` cells read: REQ-045 `vNEXT` · REQ-184 `vNEXT` · REQ-249 `V2-E` · REQ-276 `P0` · REQ-284 `P0` · REQ-285 `V2-F` · REQ-288 `P0` — **none names an active WP** (`tools/traceability/active-wps.json` = WP-01..WP-16), so a status edit routes each to `unclassified` and fails the gate (`coverage.ts:105`). Verified end-to-end on a scratch CSV in Task 5. **REQ-170 is the eighth and is different**: a genuine unbuilt residual, deliberately reverted (`workers/agents/src/biller.ts:594-601`). **Caution for the next auditor:** "unadvanceable by a status edit" ≠ "built". REQ-184's annotation is a fail-closed marker at `workers/api/src/do/sequencer.ts:700-708`, not an implementation — whether each of the seven is genuinely built is a separate, per-row question | register owner (owner-signed amendment) | OPEN | **R1** | when `genesis/09-REQUIREMENTS-REGISTER.csv` or `active-wps.json` changes |
 
 Cleared 2026-07-25 (all four browser gates now PASS in `--mode merge`):
@@ -391,3 +395,189 @@ Task 14 found:
 
 Sixteen assertions, all executed, none skipped. That evidence expires at the next change to
 `apps/**`, `packages/map/**` or the blessed baselines under `tests/visual/`.
+
+---
+
+## 5. The V1 close-out — the objective, question by question (Task 8, 2026-07-27, HEAD `dc26ea8`)
+
+The close-out question is not "did the tasks finish" but **is the objective met**. Each answer below cites
+either a command run at this SHA, or a file a reader can open. Where the proof **could not be produced
+here**, the answer names the suite, states its last known verdict *and where that verdict came from*, and
+marks it **unverified at this SHA**. A "no, and here is what would prove it" is a complete answer; a
+green-sounding paragraph resting on an unrun suite is not.
+
+Two facts govern every answer:
+
+- **The environment hold.** `workerd` is wedged on this machine (failures ledger, row 2), so
+  `packages/ledger`, all five `workers/*` suites, `pnpm test`, `pnpm test:acceptance`, `pnpm verify:dev`,
+  `pnpm verify:merge` and `pnpm verify:release` could not be run during this entire close-out. Full
+  diagnostic and remedy: [`RELEASE-EVIDENCE.md`](./RELEASE-EVIDENCE.md) § *Sweep — 2026-07-27*.
+- **Which SHA the Task-7 sweep measured.** Its verdicts were obtained at `c09d9a5`. `dc26ea8` differs from
+  it in two documentation files only (`git diff --name-only c09d9a5 dc26ea8` → `docs/ops/GO-LIVE-CHECKLIST.md`,
+  `docs/ops/RELEASE-EVIDENCE.md`) — no source, test, fixture or config — so nothing those gates measure could
+  have changed. **Rule 1 of `RELEASE-EVIDENCE.md` still binds an artifact to its exact SHA**, so they are
+  formally evidence about `c09d9a5`. Where an answer below needed a verdict *at this SHA*, the command was
+  re-run here and is marked as such.
+
+### Q1 — Is all V1 Critical/High **code** debt closed? · **Criticals yes. Highs no: four survive.**
+
+- **Criticals: zero open.** The two from the 2026-07-15 60-agent audit — C-1 `POST /v1/positions` consent/auth
+  bypass (REQ-190) and C-2 duplicate `booking.created` (REQ-191) — closed at WP-09; both register rows read
+  `F0-SPEC'D`, both are annotated, and `pnpm check:traceability` reports no orphan in either direction. The
+  WP-16 launch-gate swarm re-probed the crown jewels and recorded
+  `docs/audits/2026-07-22-wp16-launch-gate-audit.md:6` — *"Verdict: ZERO open Criticals. CLEAR-TO-CLOSE."*
+  **Caveat, now a debt row:** the 2026-07-15 audit document itself was never committed, so its narrative
+  cannot be re-read from a checkout; only its outcomes can.
+- **Highs closed with a fix commit.** WP-16's one High — invoice-void AR divergence (REQ-209) — is **FIXED at
+  `1d3cf83`** ("invoice void flips AR out of issued"). Its regression test exists and is readable
+  (`packages/ledger/test/money-projection.test.ts:119`) but is a `workerd` suite, so **it was not run here**;
+  the "reconciliation-tested" claim is the WP-16 audit's, at that SHA, not this close-out's. The four
+  code-unremediated Highs the 2026-07-15 audit carried (identity-leak fail-open, idempotency-4xx memoization,
+  design-CI blind spots, map bearing) were fixed and reconciled at WP-16 as REQ-167/206/207/208 — REQ-206/207/208
+  read `F0-SPEC'D`, REQ-167 reads `F0.2-SPEC'D` (a standing process row), and all four are annotated. The
+  `credit_status` write-ordering High landed at WP-11 (REQ-183, §3).
+- **Four Highs survive, and each is a *stated hold*, not a closed row:**
+  1. `anchors/run` backfill containment — **`FIXED †`** (`1aa0db5`, `8f24e68`, `501330c`, `6e33e89`, approved
+     after three review rounds) but **never observed green in this environment**. The † is the whole point.
+  2. **Ratecon generation unbuilt** (§3, REQ-184) — nothing writes a `documents` row of kind `ratecon`, so the
+     REQ-043 dispatch gate cannot pass without a REQ-049 override. Fail-**closed**, at
+     `workers/api/src/do/sequencer.ts:926-929`. Register `vNEXT`.
+  3. **EDI B2A 04/05 convergence deferred** (§3, REQ-205) — `workers/translator/src/core/map-204.ts:70`; a
+     PO-only re-tender yields a visible duplicate. Deliberate: a visible duplicate beats a silent merge.
+  4. **EDI transport + inbound-204 HMAC resolver unwired** (§3, REQ-034/154) —
+     `workers/translator/src/index.ts:27,36` return `NotConfiguredTransport` / `NotConfiguredSecretResolver`;
+     every live 204 401s and nothing transmits.
+- **Consequence for the grade.** §9 R1 reads *"zero open repository Critical/High debt **and** the
+  authoritative merge gate passes."* Both clauses fail: three of the four Highs above are still graded High in
+  §3, and `pnpm verify:merge` cannot be run at all. Either those three are re-graded with a written rationale
+  (they are unbuilt scope behind fail-closed gates, not live defects), or R1 waits on them.
+
+### Q2 — Is there a demo/mock success path in production clients? · **No fabricated data. Yes, a third-party demo tile host.**
+
+The prescribed grep, run at this SHA, returns **six hits across five files, and all six are comments**:
+
+```text
+apps/command/src/lib/board.ts:3          "replaces the synthetic demoFleet() the map used to render"
+apps/portal/src/App.tsx:70               "No demoFleet anywhere: a failure shows an honest stale/empty/…"
+apps/portal/src/api/board.ts:7,40        "REPLACES the synthetic demoFleet…" / "a re-introduced demoFleet would be dropped"
+apps/driver/src/components/GatedFlow.tsx:40   "the FOREGROUND geolocation reader that REPLACES the hardcoded MOCK_GEO"
+apps/driver/src/flow/captures.ts:12      "Task 11 removes the hardcoded MOCK_GEO"
+```
+
+Proof, not assertion, that nothing behind them ships:
+
+- `git grep -n "demoFleet" -- ':(exclude)docs'` — the only **definition** is `packages/map/src/demo.ts:112`; **no
+  app imports it**. Every remaining reference is a test spy, and `apps/portal/src/App.test.tsx:77,88,124,145,156`
+  asserts on five separate paths that it is never called.
+- `git grep -n "MOCK_GEO"` — **no definition anywhere.** Three comments record its removal.
+- The boards are server-scoped reads: `apps/portal/src/api/board.ts:59-60` fetches `GET /v1/board` and
+  Zod-`.strict()`-parses it; `workers/api/src/routes/board.ts:17-31` resolves the lens from the JWT claim,
+  applies the party-relationship predicate in SQL and generalizes coordinates server-side (REQ-085/074/025).
+  A forged `?party_id` buys nothing.
+- `git grep -niE "synthetic|fake|stub|placeholder" -- 'apps/*/src'` minus tests → **zero hits.**
+
+**The honest residual.** All three shipping surfaces hardcode a public third-party demo basemap:
+`apps/command/src/App.tsx:209`, `apps/portal/src/App.tsx:85` and `apps/portal/src/status.tsx:78` pass
+`DEMO_TILE_URL` / `DEMO_GLYPHS_URL` = `https://tiles.openfreemap.org/{planet,fonts}`
+(`packages/map/src/demo.ts:119,123`) — constants, not build vars. It fabricates no freight, no fleet and no
+position, but it *is* a demo dependency on a shipping path and it sits against REQ-075's no-third-party rule
+until the R2 self-host lands. Already recorded in §2 (*Self-hosted Protomaps vectors on R2*, blocks go-live).
+**And a record defect found here:** §3's status-page row still says the portal party fleet is synthetic — three
+tasks out of date. New failures-ledger row.
+
+### Q3 — Is financial / evidence authority proven at this SHA? · **No. It is unproven, and the largest unproven thing in this close-out.**
+
+| Claim | Suite / gate | Verdict, and where it was obtained |
+|---|---|---|
+| Invoice math matches the Rater **to the penny** on a 500-case replay (REQ-031, WP-06 DoD) | `pnpm check:invoice-parity -- --mode merge` | **BLOCKED, run at `dc26ea8`** — exit **2**, `##SHUDDL-GATE## {"gate":"invoice-parity","status":"BLOCKED","executed":false,"assertions":0,…}`. `invoice-500-replay` and `zone-tariff-v1` are not vendored. The harness's in-repo smoke did run: `invoice parity smoke — 5/5 in-repo synthetic cases: invoice === rater, penny for penny (harness live; NOT the 500-replay DoD)`. **Five synthetic cases are not the DoD** |
+| **QB export reconciles to the penny** (CLAUDE.md rule 6) | `packages/ledger/test/qb-journal.fixture.test.ts`, `.../gl-netting.fixture.test.ts`, `.../iif.test.ts`, `workers/api/test/export-journal.test.ts` | **NOT RUN at this SHA — unverified.** All four are `vitest-pool-workers` suites (`packages/ledger/vitest.config.ts:1` is `defineWorkersConfig`), and `workerd` is wedged. The last recorded execution of those pools is the close-out plan's starting-state table (`docs/plans/2026-07-27-v1-closeout-t16-t17.md`, HEAD **`f269f95`**: api 719 tests / 65 files) — a SHA *before* the four Task-1 ledger commits, and **the same table records that suite as intermittently failing**. What *did* run here: `tools/checks/gl-accounts-parity.test.ts` → **6 passed at `dc26ea8`**, which proves the Biller's `GL_MAP` and the ledger money projection agree on the canonical GL chart — **not** that any export reconciles |
+| Evidence hash / chain / anchor authority (canonical byte law, Merkle root, device signature, CMS receipt, upload hash-verify) | `packages/ledger/test/{canonical,roundtrip,chain,merkle,sign,cms,anchor}.test.ts`; `workers/api/test/{evidence-upload,documents,anchors}.test.ts` | **NOT RUN at this SHA — unverified.** Same pool, same hold, and no later verdict exists for these files anywhere: `PROJECT-STATE.md:97` lists all six pools under *"Not measured on 2026-07-27"*. The most recent recorded execution is the same `f269f95` starting-state table above. Nothing in this close-out re-observed any of them |
+
+So: **this SHA proves nothing about the ledger, the sequencer, the gates, the queues or the API surface** — the
+same line Task 7 drew. What would prove it, in order: reboot the machine → `pnpm -F @shuddl/ledger test` and
+`pnpm -F @shuddl/api test` → `pnpm verify:merge` (one artifact replaces most of this page) → and, for the DoD
+half of the money claim, vendor `invoice-500-replay` + `zone-tariff-v1` from the engagement workspace.
+
+### Q4 — Are the release checks non-skippable? · **Yes mechanically, and its own guard tests execute here — but the gate they protect has never been run at this SHA.**
+
+- `tools/release/run-gate.ts:41-81` — 12 plain + 9 skippable gates under `--profile merge`; 4 more under
+  `--profile release`. Every skippable gate is spawned with `--mode <profile>` (`run-gate.ts:91-92`), so it never
+  chooses the advisory branch.
+- `tools/release/evidence.ts:148-151` `unavailableStatus` — the single disposition rule: `local` ⇒ `PENDING`
+  (exit 0), `merge`/`release` ⇒ **`BLOCKED` (exit 2)**. `evidence.ts:130` — BLOCKED and PENDING both fail to
+  promote; `evidence.ts:70-71` — a PASS must additionally carry `executed: true` and `assertions > 0`
+  (*"a PASS asserting nothing is a skip in disguise"*), so a skip cannot wear a green coat.
+- `tools/harness/playwright-guard.ts:59-64,89-92` — under `--mode merge|release` an absent browser, an empty
+  suite or an all-skipped suite is BLOCKED with exit 2: *"every test was skipped … a skip is not a pass."*
+- **Executed at `dc26ea8`:** `pnpm exec vitest run --config vitest.tools.config.ts tools/harness/playwright-guard.test.ts
+  tools/release/evidence.test.ts tools/release/ci-contract.test.ts` → **3 files, 69 tests passed**, plus
+  `tools/fixtures/fixtures.test.ts:39-52` (REQ-288: *"pending + merge → BLOCKED"*). Live behaviour at the same
+  SHA: `check:invoice-parity -- --mode merge` exited **2**, not 0.
+- **Three limits stated plainly:** (1) `pnpm verify:merge` itself cannot be run here, so the aggregate has never
+  been observed at this SHA — under rule 1 this SHA has **no evidence record at all**; (2) `verify:release` is
+  wired into no workflow (`RELEASE-EVIDENCE.md:129`) — a release record exists only if a human made one;
+  (3) the record's own commit/environment/fixtures/deployment binding is **self-satisfied** by construction
+  (`run-gate.ts:142-144`; failures ledger row 7), so it cannot catch a stale record until a separate promote
+  step exists.
+
+### Q5 — Is all technical debt documented? · **No at the start of this task; yes at this commit — and, by design, with the eight fields only in the two bottom ledgers.**
+
+- **Scope of the schema.** §1.1 states it: the eight fields govern the **External holds** (10 rows) and
+  **Repository-owned failures & debt** (11 rows before this task, **15 after**) ledgers. §2's operator tables and
+  §3's debt tables keep their original columns as narrative history. That is a deliberate, declared exclusion —
+  but the arithmetic is worth stating: this file carries **245 table rows**, and **25** of them carry the eight
+  fields. Every known defect is *recorded* here; only those 25 are recorded to the schema.
+- **This audit found four record defects that were not documented anywhere.** All four are now rows in the
+  failures ledger with all eight fields: the stale portal-is-synthetic claim; two unresolvable path citations;
+  the never-committed 2026-07-15 audit; and the V2 phase-vocabulary divergence.
+- **A property worth knowing before editing this file.** Every `REQ-nnn` written here is a *recorded home* for
+  `pnpm check:coverage` (`tools/traceability/coverage.ts:134`), and this file is excluded from the annotation
+  scan (`tools/traceability/orphans.ts:66`). Citing an id here therefore records a **deferral** and can never
+  mint a false claim that code shipped — the failure mode Task 3 hit in `PROJECT-STATE.md`. Rewording a row is
+  safe; **deleting the last citation of a deferred id is not** — it drops that row's home and fails the gate.
+
+### Q6 — Is the V2 design, requirements, DAG, owners, estimates, acceptance and evidence contract authoritative? · **Six of the seven are complete; estimates are complete for five of seven phases, by explicit design.**
+
+| Part | Where | State |
+|---|---|---|
+| Design | `V2-EXECUTION-FRAMEWORK.md` §3 (storage/authority ownership + write-and-recovery rules), §4 (the single durable proposal state machine), §14 (failure semantics); design source `docs/plans/2026-07-23-v1-remediation-v2-framework-design.md` — **present in the tree** | Complete |
+| Requirements | `genesis/09-REQUIREMENTS-REGISTER.csv` REQ-214…REQ-288 — **75 rows, verified contiguous, no gaps**, every row `vNEXT` with a phase in its `wp` cell | Complete |
+| DAG | §5 — V1 R2 → P0 → PA → {PB, PC, PE} → PD → PF → R3/R4 → 30-day shadow → R5, with the shadow declared noncompressible | Complete |
+| Owners | §6 (accountable lead per phase) + §11 (nine accountable roles, with *"no role may self-approve a control for which it produced the sole evidence"*) | Complete — **per phase and per role, not per requirement row**; the register carries no owner column |
+| Estimates | §13 — P0 3–5 · PA 7–10 · PB 10–15 · PD 10–15 · PF 5–8 engineer-days | **5 of 7.** PC and PE are deliberately un-baselined until export size and the device matrix are measured; external lead times are named as lead times rather than hidden in engineering estimates |
+| Acceptance | §8 — AT-1…AT-6, each requiring API assertions, role/cross-tenant probes, browser interaction, accessibility, degraded behaviour, reconciliation, a recording where material, and an exact-SHA evidence record | Complete |
+| Evidence contract | §10 (the per-gate record schema + the anti-skip rules) with §9's six release grades R0…R5 | Complete |
+
+Two caveats a reader must carry: (a) the register's `wp` cells say `V2-A`…`V2-F` while §6 says `PA`…`PF`, and
+no document declares the equivalence — nothing is unallocated (§6's ranges cover all 75 rows), but the mapping
+is inferred (new failures-ledger row); (b) **"authoritative" means recorded and approved, never built** — §1 of
+the framework says so itself, and five V2 rows (REQ-249, REQ-276, REQ-284, REQ-285, REQ-288) already show status
+drift, code annotated while the row still reads `vNEXT`.
+
+### The close-out statement
+
+> **At `dc26ea8`, V1 is a repository whose static, traceability, design and browser gates all pass and whose
+> twelve runnable test suites pass 1,470 assertions with zero failures — and whose six ledger/Worker suites,
+> five-demo acceptance spine and authoritative merge gate could not be executed here at all, so this SHA proves
+> nothing about the ledger, the sequencer, the gates, the queues or the API surface. Staging is partially
+> provisioned and certified in no respect: five placeholder resource ids, four secrets the checker cannot see,
+> no CORS origins, no timestamp authority, no backup, and nothing deployed to smoke. Production is
+> unprovisioned — nineteen placeholder ids, its secrets absent. Ten external holds are open, seven of them
+> High, and two of those ten have no gate that could ever observe them; fifteen repository-owned rows are open,
+> none Critical and none open-High — though the one High among them reads `FIXED †` precisely because it has
+> never been observed green here, and §3 still grades three unbuilt, fail-closed rows High. V1 is not ready to
+> launch, and no promotion is available from this commit: the merge gate has not run, so under rule 1 of
+> `RELEASE-EVIDENCE.md` this SHA carries no evidence record at all.**
+>
+> *Where those green verdicts came from:* the gate list and the 1,470 assertions are the Task-7 sweep at
+> `c09d9a5`, from which this SHA differs in two documentation files and no executable byte
+> (`git diff --name-only c09d9a5 dc26ea8`). `check:coverage`, `check:traceability`, `check:invoice-parity` and
+> the anti-skip guard tests were re-run at `dc26ea8` itself. Nothing in this statement is inferred from a gate
+> that did not run.
+
+What would change that sentence, in dependency order: **reboot** (clears H1 and the four † claims) → run
+`pnpm verify:merge` (produces the first evidence record this SHA can have) → vendor the nine engagement
+fixtures and bind `IDENTITY_DENYLIST` (clears five fail-closed gates) → provision staging resources and supply
+`preflight --state` (converts *unproven* to *proven*) → deploy and smoke (clears H9 and unblocks the field rows)
+→ back up and reconcile a restore (clears H8, then the drill) → name the on-call human and build the archive
+tier (the two holds no command can see). Nothing in this repository can do any of them.
