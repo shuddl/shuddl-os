@@ -1,8 +1,8 @@
 # Project state & resume guide
 
-**As of 2026-07-27** · branch `codex/v1-remediation-v2-framework` · HEAD `7c1a0b4` · 386 commits.
-Re-baselined from the 2026-07-14 note, which stopped at WP-06 and named WP-07 as next. All sixteen work
-packages have since closed and the T14/T15 browser/release remediation landed after them.
+**As of 2026-07-28** · branch `codex/v1-remediation-v2-framework` · HEAD `3fc592b` · 401 commits. Supersedes
+the 2026-07-27 baseline at `7c1a0b4` (itself re-baselined from the 2026-07-14 note that stopped at WP-06).
+All sixteen WPs are closed, T14/T15 landed after them, and a 2026-07-28 reboot cleared the `workerd` wedge.
 
 This is the "where are we / how do I pick back up" note. It is a pointer, not a spec — the authorities are
 `CLAUDE.md`, `genesis/`, `docs/wp/WP-01…WP-16.md`, and `genesis/09-REQUIREMENTS-REGISTER.csv`. The
@@ -39,7 +39,7 @@ will be wrong about what is safe to do next.
 
 | # | State | Today |
 |---|---|---|
-| 1 | Repository green | Every gate that ran, passed; five gates are BLOCKED on named private fixtures and six suites could not run |
+| 1 | Repository green | Yes, and measured: **all 18 test projects run** (`pnpm test` — 258 files / 3,243 tests PASS) and `pnpm verify:merge` executes end-to-end. Five of its 21 gates are **BLOCKED** on named private inputs, so the aggregate is **NOT PROMOTABLE** |
 | 2 | Staging certified | Partly — two of five workers deployed; the POD→invoice→email chain proven on live infra |
 | 3 | Pilot holds | Blocked — no tenant-0 config pack, no vendored fixtures, no counsel sign-off, no field runs |
 | 4 | Production holds | **Declared, not provisioned, not deployable** — every `[env.prod]` id is an all-zero placeholder |
@@ -73,21 +73,52 @@ estimate.
 **Re-run at the branch tip `79ae54d` on 2026-07-27, verdicts identical** — every row above except
 `pnpm audit --prod`, plus `pnpm test:tools` (18 files / 410 tests), all four browser gates (4 / 6 / 5 / 1)
 and both preflights (staging 12, prod 26). The commands and their printed verdicts are in
-[`RELEASE-EVIDENCE.md`](./RELEASE-EVIDENCE.md) § *Tip verdict*. The six `workerd` suites remain unrunnable
-there too, so nothing below about the ledger or the Workers gained evidence.
+[`RELEASE-EVIDENCE.md`](./RELEASE-EVIDENCE.md) § *Tip verdict*. ~~The six `workerd` suites remain unrunnable
+there too, so nothing below about the ledger or the Workers gained evidence.~~
 
-**Register:** 288 rows, 100% classified, 0 unaccounted. Eight rows remain status-drifted — code shipped but
+**Superseded 2026-07-28 at HEAD `3fc592b` — the six `workerd` suites are runnable and were run.** A reboot
+cleared the wedge, and `pnpm verify:merge` was executed end-to-end for the first time on this branch. It
+aggregates all of the above plus `unit-tests` and `acceptance`, and its record is the authority now:
+**16 gates PASS, 5 BLOCKED, aggregate BLOCKED (exit 2) — NOT PROMOTABLE.** PASS: runtime, typecheck, lint,
+`unit-tests`, invariants, rater-purity, authority-coverage, traceability, coverage, seed, `acceptance`,
+design-audit, perf (1), visual (5), a11y (4), e2e (6). BLOCKED: the same five private-input gates tabled
+below. The record is written to `artifacts/release/<sha>/merge/` and is **gitignored by design** — the
+repository holds the contract, the run holds the output ([`RELEASE-EVIDENCE.md`](./RELEASE-EVIDENCE.md)
+rule 3), so retrieve it from the run, never from the tree. The full post-reboot sweep, with the artifact
+path and every verdict, is [`RELEASE-EVIDENCE.md`](./RELEASE-EVIDENCE.md) § *Post-reboot sweep*.
+
+**Register:** 288 rows, 100% classified, 0 unaccounted. ~~Eight rows remain status-drifted — code shipped but
 the register tag still reads `*-DISCOVERED`/`vNEXT`: REQ-045, 170, 184, 249, 276, 284, 285, 288. Seven of
-the eight cannot be advanced by a status edit alone: their `wp` column names no active WP, so advancing
+the eight cannot be advanced by a status edit alone~~ **Corrected 2026-07-28 (`pnpm check:coverage`, run at
+HEAD `3fc592b`): seven rows remain status-drifted — REQ-170, 184, 249, 276, 284, 285, 288.** REQ-045 was
+the eighth and was fixed at commit `13161e9`. Six of the seven cannot be advanced by a status edit alone:
+their `wp` column names no active WP, so advancing
 them routes the row to `unclassified` and fails `check:coverage`. They need a `wp` reassignment in the same
-amendment.
+amendment. REQ-170 is the exception and is different: a genuine unbuilt residual, deliberately left open.
 
 #### Unit tests
 
-`pnpm test` runs 18 workspace projects. **Twelve were measured on 2026-07-27; six could not run** (see
-below). Measured: **1,470 tests across 116 files.**
+`pnpm test` runs 18 workspace projects. **All eighteen ran on 2026-07-28 at HEAD `3fc592b`: 258 files /
+3,243 tests, zero failures.** The two that carry the ledger and the API were also run on their own, and
+`workers/api` three consecutive times — the disposition the `anchors/run` fix required, since the defect it
+closed failed roughly four runs in five.
 
-| Project | Files | Tests |
+| Suite | Command | Files | Tests | Verdict |
+|---|---|---:|---:|---|
+| every workspace + tools | `pnpm test` | 258 | 3,243 | **PASS** |
+| `packages/ledger` | `pnpm -F @shuddl/ledger test` | 34 | 598 | **PASS** |
+| `workers/api` | `pnpm -F @shuddl/api test` | 65 | 719 | **PASS — three consecutive runs** |
+
+`pnpm test:acceptance` — the five acceptance demos' in-repo causal-chain spine — is **GREEN: all 7 spine
+tests pass.** Four of the five spine files live in `workers/api` / `workers/mcp`, which is why it shared the
+`workerd` hold and is why it is worth stating separately now that it does not.
+
+~~**Twelve were measured on 2026-07-27; six could not run.** Measured: 1,470 tests across 116 files.~~
+**Superseded 2026-07-28.** The 2026-07-27 per-project counts are kept below as history — they are a strict
+subset of the 258 / 3,243 above and **must not be quoted as a total**. Quoting them as one is the exact
+failure this file was re-baselined to fix.
+
+| Project (measured 2026-07-27, history) | Files | Tests |
 |---|---:|---:|
 | tools (`pnpm test:tools`) | 18 | 410 |
 | `packages/contracts` | 14 | 273 |
@@ -101,26 +132,37 @@ below). Measured: **1,470 tests across 116 files.**
 | `packages/driver-core` | 4 | 37 |
 | `packages/edi` | 5 | 33 |
 | `packages/design` | 2 | 9 |
-| **Measured total** | **116** | **1,470** |
+| **2026-07-27 subtotal (history — NOT the total)** | **116** | **1,470** |
 
-**Not measured on 2026-07-27:** `packages/ledger`, `workers/api`, `workers/agents`, `workers/billing`,
+~~**Not measured on 2026-07-27:** `packages/ledger`, `workers/api`, `workers/agents`, `workers/billing`,
 `workers/mcp`, `workers/translator`. All six run on `vitest-pool-workers`, and the local `workerd` runtime
 was wedged for the whole session — `workerd --version` itself never returned, and the count of `workerd`
 processes orphaned in uninterruptible-exit (`UE`, parent PID 1) went from 118 to 124 as each new attempt
 added one. This is a machine condition, not a suite failure and not load: it reproduced at load average 4,
 and no other process on the machine was in a stuck state. **Re-run `pnpm test` on a clean boot and replace
 this paragraph with the real totals** — do not carry a figure forward from an earlier session, which is
-exactly how the previous baseline came to cite a three-week-old count.
+exactly how the previous baseline came to cite a three-week-old count.~~
 
-Two consequences of the same condition:
+**Measured 2026-07-28 at HEAD `3fc592b` — the instruction above was followed and this paragraph is its
+replacement.** The machine was rebooted; `workerd --version` returns `workerd 2025-10-11` immediately and
+`ps -eo stat,command | grep '[w]orkerd' | grep -c '^UE'` returns 0. All six `vitest-pool-workers` suites —
+`packages/ledger`, `workers/api`, `workers/agents`, `workers/billing`, `workers/mcp`, `workers/translator`
+— now run, and the totals in the table above are the real ones. The wedge itself was a machine condition,
+not a suite failure and not load; it **recurs**, so its diagnostic is kept under *Environment gotchas*.
 
-- `pnpm test:acceptance` (the five acceptance demos' in-repo causal-chain spine) could not run either — it
+Two consequences of the same condition, both now discharged:
+
+- ~~`pnpm test:acceptance` (the five acceptance demos' in-repo causal-chain spine) could not run either — it
   executes each spine test in its own package's config, and four of the five live in `workers/api` and
-  `workers/mcp`.
+  `workers/mcp`.~~ **Ran 2026-07-28: GREEN, all 7 spine tests pass.**
 - The intermittent `POST /v1/anchors/run` backfill failure that `docs/ops/GO-LIVE-CHECKLIST.md` records as
   a repository-owned failure was addressed on this branch (commits `1aa0db5`…`6e33e89`: a per-day
-  exception is now contained to that day and recorded durably instead of sinking the whole backfill). That
-  fix is **not re-verified here**, because `workers/api` is one of the six suites that did not run.
+  exception is now contained to that day and recorded durably instead of sinking the whole backfill).
+  ~~That fix is **not re-verified here**, because `workers/api` is one of the six suites that did not run.~~
+  **Re-verified 2026-07-28: `packages/ledger` 598/598 and `workers/api` 719/719, the latter three
+  consecutive times against a defect that used to fail roughly four runs in five.** The checklist row is
+  now plain `FIXED`; its dagger — the marker for "not verified in this environment" — is gone, and no row
+  in that file carries one.
 
 #### Gates that BLOCK, and why that is correct
 
@@ -129,8 +171,12 @@ Two consequences of the same condition:
 `--mode merge` so they BLOCK rather than skip. Four of those nine are the browser gates, and they pass.
 The other five cannot, and should not: each returns `BLOCKED` (exit 2 — not a pass and not a failure)
 because a named private input is absent. Under the plain local script they loud-skip to exit 0. Both
-behaviours were verified individually on 2026-07-27; the aggregate `verify:merge` itself was not run,
-because its `unit-tests` gate needs the wedged `workerd`.
+behaviours were verified individually on 2026-07-27; ~~the aggregate `verify:merge` itself was not run,
+because its `unit-tests` gate needs the wedged `workerd`.~~ **and the aggregate was run on 2026-07-28 at
+HEAD `3fc592b`: `unit-tests` and `acceptance` both PASS, and these five are the only non-PASS rows in the
+record — 16 PASS, 5 BLOCKED, exit 2, NOT PROMOTABLE.** Vendoring the nine fixtures and binding the denylist
+is therefore the whole remaining distance between this build and a promotable merge record; nothing else in
+the merge profile is red.
 
 | Gate | `--mode merge` verdict | Blocked on |
 |---|---|---|
@@ -304,8 +350,12 @@ and is noncompressible.
   hang at "Starting isolated runtimes" indefinitely. Diagnose with
   `ps -eo stat,command | grep '[w]orkerd' | grep -c '^UE'`; a non-trivial count with no live `workerd` is
   the signature. On 2026-07-27 they could not be killed (`kill -9` does not apply to `UE`) and did not
-  clear over roughly two hours of observation — the count only grew. A reboot is the expected remedy; that
-  was not tested. **Do not mistake this for a suite failure, and never report a suite that did not run as
+  clear over roughly two hours of observation — the count only grew. ~~A reboot is the expected remedy; that
+  was not tested.~~ **A reboot is the remedy, and on 2026-07-28 it was tested and it worked**: after the
+  reboot `workerd --version` returned `workerd 2025-10-11` instantly, the `UE` count was **0**, and all six
+  suites, `pnpm test`, `pnpm test:acceptance` and `pnpm verify:merge` ran. **Keep this entry — the condition
+  recurs**, it costs a whole session when it is misread, and nothing in this repository can clear it.
+  **Do not mistake this for a suite failure, and never report a suite that did not run as
   one that passed.**
 - **Machine load.** Separately from the above, at load average >12 vitest fork workers time out and a suite
   reports `Test Files no tests` with `Failed to start forks worker`. Check `uptime`, wait for load under

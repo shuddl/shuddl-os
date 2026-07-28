@@ -1,6 +1,6 @@
 # SHUDDL — Go-Live Checklist & Technical-Debt Ledger
 
-**Path:** `docs/ops/GO-LIVE-CHECKLIST.md` · **Owner:** register owner · **Last synthesized:** 2026-07-19 (from the 5 WP-12-era audit sweeps) · **Last re-audited:** 2026-07-27 (V1 close-out Task 6 — every hold and failure row re-run against a live command *where one exists*; two holds have no gate at all and now say so. See §1.1 for the row schema and the bottom two ledgers for the schema applied) · **Closed out:** 2026-07-27 (V1 close-out Task 8 — the six objective questions, each answered with a citation or an honest no, and the close-out statement itself, are **§5 at the foot of this file**) · **Record-corrected:** 2026-07-27 (final cross-task review — defects visible only when two tasks' output is read together: the "nothing deployed" denial vs. a deployed, live-sending staging; the stale portal-is-synthetic claim in the REQ-136 launch-gate artifact; three miscounts; three unresolvable citations. Every correction is superseded in place per §1.1, and every corrected figure comes from a command re-run at `79ae54d`)
+**Path:** `docs/ops/GO-LIVE-CHECKLIST.md` · **Owner:** register owner · **Last synthesized:** 2026-07-19 (from the 5 WP-12-era audit sweeps) · **Last re-audited:** 2026-07-27 (V1 close-out Task 6 — every hold and failure row re-run against a live command *where one exists*; two holds have no gate at all and now say so. See §1.1 for the row schema and the bottom two ledgers for the schema applied) · **Closed out:** 2026-07-27 (V1 close-out Task 8 — the six objective questions, each answered with a citation or an honest no, and the close-out statement itself, are **§5 at the foot of this file**) · **Record-corrected:** 2026-07-27 (final cross-task review — defects visible only when two tasks' output is read together: the "nothing deployed" denial vs. a deployed, live-sending staging; the stale portal-is-synthetic claim in the REQ-136 launch-gate artifact; three miscounts; three unresolvable citations. Every correction is superseded in place per §1.1, and every corrected figure comes from a command re-run at `79ae54d`) · **Post-reboot reconciliation:** 2026-07-28 at HEAD `3fc592b` — the machine was rebooted, the `workerd` wedge cleared, and everything that was unmeasurable was measured: `packages/ledger` 598 tests, `workers/api` 719 tests (three consecutive runs), the full `pnpm test` 3,243 tests, `pnpm test:acceptance` green, and `pnpm verify:merge` run for the first time on this branch (16 gates PASS / 5 BLOCKED, aggregate **NOT PROMOTABLE** on absent private fixtures). The dagger comes off the failures ledger's first row, the `workerd` row is RESOLVED, and §5's "carries no evidence record at all" is superseded in place
 
 ## 1. Purpose & upkeep
 
@@ -17,7 +17,7 @@ Every row in the two ledgers at the **bottom** of this file — **External holds
 | **Ownership** | **Repo** = reproducible from this checkout and closable by a commit · **External** = needs an account, a credential, a licence, a vendored private artifact, or a named human; no commit can clear it |
 | **Proof** | the exact command and the verdict it printed — never a summary. A row whose claim no command can produce says so plainly — **"no gate exists"**, or **"source read"** with the `file:line` a reader can open — and never dresses a reading up as a run. That absence is itself a finding. |
 | **Owner** | infrastructure · backend · assurance · ops · counsel · founder · on-call · register owner |
-| **Status** | `OPEN` · `FIXED` · `BLOCKED` (external; cannot be worked from here) · `NOT_APPLICABLE`. A **†** after the status means the claim is **not verified in this environment** — see the workerd row in the failures table. |
+| **Status** | `OPEN` · `FIXED` · `BLOCKED` (external; cannot be worked from here) · `NOT_APPLICABLE`. A **†** after the status means the claim is **not verified in this environment** — ~~see the workerd row in the failures table~~ **superseded 2026-07-28: no row in this file carries a † any more.** Exactly one ever did — the `anchors/run` containment fix in the failures ledger — and it was observed green at HEAD `3fc592b` once the reboot cleared the `workerd` wedge, so both that row and the wedge row below it are now resolved. The marker keeps its definition because the condition that minted it **recurs**: the next wedged run re-earns a dagger, and a claim that cannot be run here must wear one rather than read as a pass. |
 | **Blocks grade** | the lowest V2 release grade (`docs/ops/V2-EXECUTION-FRAMEWORK.md` §9: R0 audited → R1 mergeable → R2 staging-certified → R3 pilot-ready → R4 production-ready → R5 authority cutover) this row denies |
 | **Evidence expires** | when the verdict above stops being evidence — **at the earlier of** (a) the SHA changing in the files the proof reads, and (b) the external fact it depends on changing (credentials rotated, resources provisioned, fixtures vendored, a human named). Past either, the row is unproven: re-run the command. |
 
@@ -314,18 +314,18 @@ is a *declared* hold (`run-gate.ts:79`) because nothing in a release run can syn
 last two rows have no gate at any profile. The rest of the sentence stands: a real-command hold clears the
 moment the environment is genuinely fixed, with no code change.
 
-**Every proof below was re-run on 2026-07-27 at HEAD `72b2fc2`.** Two rows are the exception and say so: they have **no gate at all**, which is why they are still here after two close-outs. `pnpm verify:release` itself could **not** be run end-to-end this session — it spawns `unit-tests` first, and the workerd runtime is wedged (see the failures ledger); each hold's own gate command was therefore run directly, which is what `verify:release` would have spawned.
+**Every proof below was re-run on 2026-07-27 at HEAD `72b2fc2`.** Two rows are the exception and say so: they have **no gate at all**, which is why they are still here after two close-outs. `pnpm verify:release` itself could **not** be run end-to-end this session — it spawns `unit-tests` first, and the workerd runtime is wedged (see the failures ledger); each hold's own gate command was therefore run directly, which is what `verify:release` would have spawned. **(Updated 2026-07-28: the wedge is cleared and `unit-tests` passes, so that particular obstacle is gone — `pnpm verify:merge` ran end-to-end at HEAD `3fc592b`. `verify:release` still returns BLOCKED, but now on the release-infra holds in this very table rather than on the runtime. No hold below cleared, none was added, and none of the ten proofs was re-run at `3fc592b` — they remain evidence about `72b2fc2`/`c09d9a5` under rule 1.)**
 
 | Hold — and what it is blocked on | Severity | Ownership | Proof — command → verdict | Owner | Status | Blocks grade | Evidence expires |
 |---|---|---|---|---|---|---|---|
 | **Production resources** — all five `[env.prod]` scopes are structurally complete, but every id is an all-zero placeholder — declared, not provisioned | High | External (the resources must exist before the ids can be pasted) | `pnpm exec tsx tools/deploy/preflight.ts --env prod` → **19** × `BLOCK placeholder-resource-id`, e.g. `shuddl-api-prod.CONTROL_DB — database_id for shuddl-control-prod is an all-zero placeholder UUID`; run verdict `preflight: BLOCKED — 26 unsatisfied prerequisites. This is not a green.` | infrastructure | BLOCKED | **R4** | when any `[env.prod]` block in the five `wrangler.toml`s changes (SHA), or the moment the D1/KV resources are provisioned — whichever is sooner |
 | **Staging placeholder ids** — all-zero D1 UUIDs (`PLATFORM_TENANT_DB`, both `TENANT_POOL_*`) and the mcp `GRANTS` KV id | High | External (same: provision, then paste) — but the placeholder ids themselves are repo-visible defects | `pnpm exec tsx tools/deploy/preflight.ts --env staging` → **5** × `BLOCK placeholder-resource-id`: `shuddl-api-staging.{PLATFORM_TENANT_DB,TENANT_POOL_01_DB,TENANT_POOL_02_DB}`, `shuddl-billing-staging.PLATFORM_TENANT_DB`, `shuddl-mcp-staging.GRANTS`; run verdict `BLOCKED — 12 unsatisfied prerequisites` | infrastructure | BLOCKED | **R2** | same rule as the prod row, against the `[env.staging]` scopes |
-| **Secrets bound** — `JWT_SECRET`, `RESEND_API_KEY`, `STRIPE_WEBHOOK_SECRET`, `PLATFORM_INTERNAL_SECRET` (the last three were required by DEPLOYMENT.md but absent from the checker's contract, so their absence read as satisfied until 2026-07-25) | High | External | Both envs → **4** × `BLOCK missing-secret`, e.g. `JWT_SECRET is not bound in prod (wrangler secret put JWT_SECRET --env prod)`. **Read this verdict precisely:** the same run prints `preflight: no --state supplied — account-side facts (secrets, origins, sender, TSA, backups) are UNPROVEN and therefore blocked.` On staging `JWT_SECRET` and `RESEND_API_KEY` *are in fact bound* (that is how staging sending works — `PROJECT-STATE.md:182`), so the staging verdict proves **unproven**, not **absent**; the prod verdict is a genuine absence | infrastructure | BLOCKED | **R2** (staging, unproven) · **R4** (prod, absent) | on any secret rotation, and on the first `preflight --state <file>` run that supplies account-side facts — whichever is sooner. Nothing in-repo can extend it |
+| **Secrets bound** — `JWT_SECRET`, `RESEND_API_KEY`, `STRIPE_WEBHOOK_SECRET`, `PLATFORM_INTERNAL_SECRET` (the last three were required by DEPLOYMENT.md but absent from the checker's contract, so their absence read as satisfied until 2026-07-25) | High | External | Both envs → **4** × `BLOCK missing-secret`, e.g. `JWT_SECRET is not bound in prod (wrangler secret put JWT_SECRET --env prod)`. **Read this verdict precisely:** the same run prints `preflight: no --state supplied — account-side facts (secrets, origins, sender, TSA, backups) are UNPROVEN and therefore blocked.` On staging `JWT_SECRET` and `RESEND_API_KEY` *are in fact bound* (that is how staging sending works — ~~`PROJECT-STATE.md:182`~~ **`PROJECT-STATE.md:244`, repointed 2026-07-28**), so the staging verdict proves **unproven**, not **absent**; the prod verdict is a genuine absence | infrastructure | BLOCKED | **R2** (staging, unproven) · **R4** (prod, absent) | on any secret rotation, and on the first `preflight --state <file>` run that supplies account-side facts — whichever is sooner. Nothing in-repo can extend it |
 | **CORS origins** — no served allowlist; `.example` placeholders remain in `cors.ts` | High | External for the real origins; **Repo** for the placeholder (`workers/api/src/middleware/cors.ts:15-20`) | Both envs → `BLOCK no-origins  cors — no origin allowlist is configured for <env>; every browser surface would be refused` | backend | BLOCKED | **R2** | when `cors.ts` changes (SHA) or when the Portal/status deploy origins first exist |
 | **TSA endpoint** — no RFC 3161 authority configured — anchors cannot be timestamped | High | External (an `integrations` row per prod tenant + the F1 CONFIRM) | Both envs → `BLOCK tsa-unconfigured  tsa — no RFC 3161 timestamp authority endpoint is configured` | infrastructure (F1 CONFIRM: owner) | BLOCKED | **R4** | when the F1 CONFIRM closes or an `integrations` row `kind='tsa'` is inserted. Until then every day is left UNANCHORED, never faked (`anchors.ts:19`) |
 | **Backups** — `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` unbound; **no backup exists** | High | External | Two independent verdicts: (1) both envs → `BLOCK no-backup  backups — no backup manifest exists for this environment`; (2) the release profile declares `backup-manifest: BLOCKED — OIDC/external backup credentials (.github/workflows/nightly.yml) — absent in-repo` (`tools/release/run-gate.ts:79` — a *static* hold, the only one left, because nothing in a release run can synthesize a manifest) | infrastructure | BLOCKED | **R2** | on the first successful nightly run, or on binding the two credentials — whichever is sooner |
 | **Restore drill** — no backup artifact to reconcile | High | External | `pnpm -s restore:verify -- --mode release` → `##SHUDDL-GATE## {"gate":"restore-verify","status":"BLOCKED","executed":false,"assertions":0,"detail":"no --source/--restored snapshots supplied; a restore has not been reconciled"}` | on-call | BLOCKED | **R3** | the moment a backup artifact exists (this hold is downstream of Backups; it cannot clear first) |
-| **Deployed smoke** — `SMOKE_API_BASE` + JWT secret **are not bound in this checkout**, so the gate has nothing to drive. **Qualified 2026-07-27 (final cross-task review): this is a visibility gap, not an absence.** A staging environment **is** deployed (`shuddl-api-staging`, `shuddl-agents-staging`) and a smoke has already driven a gated stop over HTTPS to a penny-exact `invoice.issued` — `PROJECT-STATE.md:172-179`. Read the verdict's wording accordingly: the gate reads an env var, never the account | Med | External | `pnpm -s smoke:staging -- --mode release` → `staging-smoke: BLOCKED — SMOKE_API_BASE is not set — there is no deployed environment to smoke` / `nothing was exercised; this is a named external hold, not a pass.` (verbatim; the phrase "no deployed environment" is the tool's wording for "no base URL was supplied to me") | infrastructure | BLOCKED | **R2** | ~~on the first deploy that publishes a reachable base URL~~ **on binding `SMOKE_API_BASE` + the staging JWT secret here, or on any redeploy of the environment already running** |
+| **Deployed smoke** — `SMOKE_API_BASE` + JWT secret **are not bound in this checkout**, so the gate has nothing to drive. **Qualified 2026-07-27 (final cross-task review): this is a visibility gap, not an absence.** A staging environment **is** deployed (`shuddl-api-staging`, `shuddl-agents-staging`) and a smoke has already driven a gated stop over HTTPS to a penny-exact `invoice.issued` — ~~`PROJECT-STATE.md:172-179`~~ **`PROJECT-STATE.md:218-225` (repointed 2026-07-28: the post-reboot re-baseline of that file moved the block)**. Read the verdict's wording accordingly: the gate reads an env var, never the account | Med | External | `pnpm -s smoke:staging -- --mode release` → `staging-smoke: BLOCKED — SMOKE_API_BASE is not set — there is no deployed environment to smoke` / `nothing was exercised; this is a named external hold, not a pass.` (verbatim; the phrase "no deployed environment" is the tool's wording for "no base URL was supplied to me") | infrastructure | BLOCKED | **R2** | ~~on the first deploy that publishes a reachable base URL~~ **on binding `SMOKE_API_BASE` + the staging JWT secret here, or on any redeploy of the environment already running** |
 | **On-call rota** — no human is named; alerts have no recipient | Med | External | **NO GATE EXISTS.** No command in this repo can verify that a human is named — the original "Gate: all SLO alerts" column named a policy, not a runnable check. The claim rests on two documents: `docs/ops/slo.md:25` (*"The rota is **not yet staffed** — naming a human is a launch prerequisite"*) and `docs/ops/dr-backups.md:76`. Recorded as a finding in its own right: **this is a hold with no gate** | founder | BLOCKED | **R3** | never expires automatically — a document assertion, not a measurement. Re-read both lines at every close-out |
 | **7-year monthly snapshots** — retention is 30 days; the REQ-116 archive tier is unimplemented | Low | External | **NO GATE EXISTS** (the original row's gate column was literally `—`). Rests on `docs/ops/dr-backups.md:23-24`: *"Monthly snapshots kept 7 years (matching the POD lifecycle, REQ-116) are **not yet implemented** — the nightly artifact retention is 30 days."* Second hold with no gate | infrastructure | BLOCKED | **R4** | document assertion; re-read `dr-backups.md:23-24` at every close-out |
 
@@ -355,8 +355,8 @@ These are ours: reproducible from this checkout, closable by a commit. Same eigh
 
 | Item | Severity | Ownership | Proof — command → verdict | Owner | Status | Blocks grade | Evidence expires |
 |---|---|---|---|---|---|---|---|
-| ~~`anchors/run` backfill flake~~ **FIXED 2026-07-27** — original text preserved: *"INTERMITTENT, pre-dates this branch. `POST /v1/anchors/run` 500s in ~half of full-suite runs of `workers/api` and passes in isolation. Root cause: the route backfills every unanchored day in the tenant DB, which under `isolatedStorage:false` + `singleWorker:true` holds whatever every other test file wrote, so a per-day exception escapes `anchorDay` and fails the whole request. ~~Two fixes are available and neither was taken here (out of scope for the T14/T15 plan): scope the run test to its own tenant (the precedent in 43661ff), or catch per-day in `runDailyAnchor` and push to the `failed[]` array the contract already has.~~"* **Resolution (Task 1): the second fix was taken, and more** — per-day containment (`1aa0db5`), a durable contained `anchor.build_failed` record with escalation (`8f24e68`, `packages/ledger/src/anchor.ts:317`), three recorder guards + a narrowed contained region (`501330c`), and the actual root cause: a **non-hex hash at epoch 0** in `workers/api/test/driver-manifest.test.ts` | High (was) → resolved | Repo | `git log --oneline` → `1aa0db5`, `8f24e68`, `501330c`, `6e33e89`, approved after three review rounds. **The fix has NOT been observed green in this environment**: `pnpm test` and `pnpm -F @shuddl/ledger test` cannot execute — `workerd` is wedged (next row). That is why this row carries a † | backend | FIXED † | — (was R1) | **already expired for the verification half.** Re-run `pnpm -F @shuddl/ledger test` and `pnpm -F @shuddl/api test` after a reboot; until someone does, "fixed" rests on the diff and the review, not on a green |
-| **The `workerd` runtime is wedged on this machine** — `packages/ledger`, all five `workers/*` suites, `pnpm test`, `test:acceptance`, `verify:dev`, `verify:merge` and `verify:release` could not be run during this entire close-out | Med (environment) | External (the machine, not the code) | `workerd --version` never returns. Diagnostic: `ps -eo stat,command \| grep '[w]orkerd' \| grep -c '^UE'` → **127** (of 128 workerd processes) stuck in uninterruptible-exit, with load average 5.18 on an otherwise idle box. Remedy: **reboot** | on-call / founder | BLOCKED | **R1** (the authoritative merge gate cannot be run at all) | at reboot. Every † in this file expires with it |
+| ~~`anchors/run` backfill flake~~ **FIXED 2026-07-27** — original text preserved: *"INTERMITTENT, pre-dates this branch. `POST /v1/anchors/run` 500s in ~half of full-suite runs of `workers/api` and passes in isolation. Root cause: the route backfills every unanchored day in the tenant DB, which under `isolatedStorage:false` + `singleWorker:true` holds whatever every other test file wrote, so a per-day exception escapes `anchorDay` and fails the whole request. ~~Two fixes are available and neither was taken here (out of scope for the T14/T15 plan): scope the run test to its own tenant (the precedent in 43661ff), or catch per-day in `runDailyAnchor` and push to the `failed[]` array the contract already has.~~"* **Resolution (Task 1): the second fix was taken, and more** — per-day containment (`1aa0db5`), a durable contained `anchor.build_failed` record with escalation (`8f24e68`, `packages/ledger/src/anchor.ts:317`), three recorder guards + a narrowed contained region (`501330c`), and the actual root cause: a **non-hex hash at epoch 0** in `workers/api/test/driver-manifest.test.ts` | High (was) → resolved | Repo | `git log --oneline` → `1aa0db5`, `8f24e68`, `501330c`, `6e33e89`, approved after three review rounds. ~~**The fix has NOT been observed green in this environment**: `pnpm test` and `pnpm -F @shuddl/ledger test` cannot execute — `workerd` is wedged (next row). That is why this row carries a †~~ **OBSERVED GREEN 2026-07-28 at HEAD `3fc592b`, after the reboot cleared the wedge:** `pnpm -F @shuddl/ledger test` → **34 files / 598 tests PASS**; `pnpm -F @shuddl/api test` → **65 files / 719 tests PASS, three consecutive runs**; the full `pnpm test` → **258 files / 3,243 tests PASS** across every workspace and the tools suite. The original defect failed roughly four runs in five, so three consecutive clean runs of the suite that carried it is the disposition this branch itself asked for. The † is removed | backend | ~~FIXED †~~ **FIXED** (2026-07-28) | — (was R1) | ~~**already expired for the verification half.** Re-run `pnpm -F @shuddl/ledger test` and `pnpm -F @shuddl/api test` after a reboot; until someone does, "fixed" rests on the diff and the review, not on a green~~ **Re-run and observed 2026-07-28; "fixed" now rests on a green, not on the diff and the review.** Expires when `packages/ledger/src/anchor.ts`, `workers/api/src/routes/anchors.ts` or `workers/api/test/driver-manifest.test.ts` changes — the run is evidence about `3fc592b` and nothing else |
+| ~~**The `workerd` runtime is wedged on this machine** — `packages/ledger`, all five `workers/*` suites, `pnpm test`, `test:acceptance`, `verify:dev`, `verify:merge` and `verify:release` could not be run during this entire close-out~~ **RESOLVED 2026-07-28 by reboot — original text preserved above.** Every one of those suites and gates now runs. **Read this before the next close-out: the condition RECURS.** It is minted by interrupted `vitest-pool-workers` runs, it is not load, `kill -9` does not touch a `UE` process, and nothing in this repository can clear it. The remedy is a reboot, and the reboot is now tested rather than assumed. Full diagnostic kept in `docs/ops/PROJECT-STATE.md` § *Environment gotchas* | Med (environment) | External (the machine, not the code) | ~~`workerd --version` never returns. Diagnostic: `ps -eo stat,command \| grep '[w]orkerd' \| grep -c '^UE'` → **127** (of 128 workerd processes) stuck in uninterruptible-exit, with load average 5.18 on an otherwise idle box. Remedy: **reboot**~~ **Post-reboot, 2026-07-28 at `3fc592b`: `workerd --version` → `workerd 2025-10-11`, returned instantly; `ps -eo stat,command \| grep '[w]orkerd' \| grep -c '^UE'` → **0**.** The suites followed: `packages/ledger` 598 tests PASS, `workers/api` 719 tests PASS ×3, `pnpm test` 3,243 tests PASS, `pnpm test:acceptance` green, `pnpm verify:merge` executed end-to-end and wrote a record | on-call / founder | ~~BLOCKED~~ **RESOLVED** (2026-07-28) | ~~**R1** (the authoritative merge gate cannot be run at all)~~ **none — the merge gate runs; it now BLOCKS on absent private fixtures instead, which is a different row** | ~~at reboot. Every † in this file expires with it~~ **the reboot happened; every † expired with it, as written.** This resolution expires the moment a `workerd` process is seen in `UE` again — re-run the diagnostic at the start of any session that must produce ledger or Worker evidence |
 | **A stale anomaly marker can outlive a day that anchors** — if `clearAnchorFailures` rejects *after* the `documents` row commits, the markers survive; the next run sees the documents row, marks the day `skipped`, `anchorDay` is never called again, and the markers can never clear or escalate | Low | Repo | Source read, no command reproduces it: `packages/ledger/src/anchor.ts:216` awaits `clearAnchorFailures(...).catch(...)`, logs, and returns `"anchored"`; `anchor.ts:245` then skips any day already carrying a `tsa_receipt` documents row. Raised by an adversarial reviewer in Task 1, judged real, consciously deferred. **UNKNOWN** how reachable it is in practice — it needs a D1 fault confined to that one statement, and nothing measures that | backend | OPEN | none (Low; R1 requires zero Critical/High) | when `packages/ledger/src/anchor.ts` changes |
 | **`runDailyAnchor`'s two pre-loop queries are uncontained** — so `POST /v1/anchors/run` can still 500 on a fault there. **The claim "the endpoint cannot 500" is false**; what shipped was *per-day* containment | Med (it corrects a claim a reader would otherwise trust) | Repo | Source read: `packages/ledger/src/anchor.ts:226-228` (the `MIN(recorded_at)` union) and `:237-239` (the anchored-days sweep) both `await db.prepare(...)` **outside** the per-day try/catch that `1aa0db5` introduced | backend | OPEN | none by grade — but any doc that claims the endpoint is 500-proof is wrong until this closes | when `packages/ledger/src/anchor.ts` changes |
 | **The anchor test seam discriminates on a SQL substring and stubs only `.bind()`** — a future unbound `anomalies` statement would throw a `TypeError` that the guard swallows, leaving the test green for the wrong reason | Low | Repo | Source read: `packages/ledger/test/anchor.test.ts:60` (`anomaliesBrokenDb()`) and `:69` (`tsaMarkerBrokenDb()`), consumed at `:251` and `:266` | assurance | OPEN | none (Low) | when `packages/ledger/test/anchor.test.ts` changes |
@@ -410,9 +410,10 @@ green-sounding paragraph resting on an unrun suite is not.
 
 Two facts govern every answer:
 
-- **The environment hold.** `workerd` is wedged on this machine (failures ledger, row 2), so
+- **The environment hold** — **NO LONGER TRUE; see the superseding block immediately below this list.**
+  ~~`workerd` is wedged on this machine (failures ledger, row 2), so
   `packages/ledger`, all five `workers/*` suites, `pnpm test`, `pnpm test:acceptance`, `pnpm verify:dev`,
-  `pnpm verify:merge` and `pnpm verify:release` could not be run during this entire close-out. Full
+  `pnpm verify:merge` and `pnpm verify:release` could not be run during this entire close-out.~~ Full
   diagnostic and remedy: [`RELEASE-EVIDENCE.md`](./RELEASE-EVIDENCE.md) § *Sweep — 2026-07-27*.
 - **Which SHA the Task-7 sweep measured.** Its verdicts were obtained at `c09d9a5`. `dc26ea8` differs from
   it in two documentation files only (`git diff --name-only c09d9a5 dc26ea8` → `docs/ops/GO-LIVE-CHECKLIST.md`,
@@ -421,7 +422,27 @@ Two facts govern every answer:
   formally evidence about `c09d9a5`. Where an answer below needed a verdict *at this SHA*, the command was
   re-run here and is marked as such.
 
-### Q1 — Is all V1 Critical/High **code** debt closed? · **Criticals yes. Highs no: four survive.**
+**Superseded in place — 2026-07-28, HEAD `3fc592b` (post-reboot). The first of those two governing facts is
+no longer true, and every answer below inherits the correction.** The machine was rebooted:
+`workerd --version` returns `workerd 2025-10-11` instantly and
+`ps -eo stat,command | grep '[w]orkerd' | grep -c '^UE'` returns **0**. Everything that could not be run
+during the close-out has now been run, at `3fc592b`:
+
+| What was unrunnable at `dc26ea8` | Verdict at `3fc592b`, 2026-07-28 |
+|---|---|
+| `pnpm -F @shuddl/ledger test` | **PASS — 34 files / 598 tests** |
+| `pnpm -F @shuddl/api test` | **PASS — 65 files / 719 tests, three consecutive runs** |
+| `pnpm test` (every workspace + the tools suite) | **PASS — 258 files / 3,243 tests** |
+| `pnpm test:acceptance` (the five demos' in-repo spine) | **GREEN — all 7 spine tests pass** |
+| `pnpm verify:merge` (the authoritative merge gate) | **16 gates PASS, 5 BLOCKED — aggregate BLOCKED, exit 2, NOT PROMOTABLE** |
+
+Read the rest of §5 with that applied: wherever an answer says a suite "could not be run" or is "unverified
+at this SHA", it is a true statement about `dc26ea8` and a **false** one about `3fc592b`. What did **not**
+change: the five BLOCKED gates (all five are absent private fixtures or an unset secret, none is a code
+defect), every external hold, that production is unprovisioned, and that V1 is **not promotable**. The
+reboot converted *unmeasured* into *measured*. It provisioned nothing and vendored nothing.
+
+### Q1 — Is all V1 Critical/High **code** debt closed? · **Criticals yes. Highs no: four survive.** *(Superseded 2026-07-28: **three** survive — the first was observed green at `3fc592b`.)*
 
 - **Criticals: zero open.** The two from the 2026-07-15 60-agent audit — C-1 `POST /v1/positions` consent/auth
   bypass (REQ-190) and C-2 duplicate `booking.created` (REQ-191) — closed at WP-09; both register rows read
@@ -439,8 +460,11 @@ Two facts govern every answer:
   read `F0-SPEC'D`, REQ-167 reads `F0.2-SPEC'D` (a standing process row), and all four are annotated. The
   `credit_status` write-ordering High landed at WP-11 (REQ-183, §3).
 - **Four Highs survive, and each is a *stated hold*, not a closed row:**
-  1. `anchors/run` backfill containment — **`FIXED †`** (`1aa0db5`, `8f24e68`, `501330c`, `6e33e89`, approved
-     after three review rounds) but **never observed green in this environment**. The † is the whole point.
+  1. ~~`anchors/run` backfill containment — **`FIXED †`** (`1aa0db5`, `8f24e68`, `501330c`, `6e33e89`, approved
+     after three review rounds) but **never observed green in this environment**. The † is the whole point.~~
+     **CLOSED 2026-07-28 at `3fc592b`:** observed green — `packages/ledger` 598/598 and `workers/api` 719/719,
+     the latter three consecutive times against a defect that failed roughly four runs in five. The † is off;
+     three Highs survive, not four.
   2. **Ratecon generation unbuilt** (§3, REQ-184) — nothing writes a `documents` row of kind `ratecon`, so the
      REQ-043 dispatch gate cannot pass without a REQ-049 override. Fail-**closed**, at
      `workers/api/src/do/sequencer.ts:926-929@ratecon`. Register `vNEXT`.
@@ -451,7 +475,11 @@ Two facts govern every answer:
      every live 204 401s and nothing transmits.
 - **Consequence for the grade.** §9 R1 reads *"zero open repository Critical/High debt **and** the
   authoritative merge gate passes."* Both clauses fail: three of the four Highs above are still graded High in
-  §3, and `pnpm verify:merge` cannot be run at all. Either those three are re-graded with a written rationale
+  §3, and ~~`pnpm verify:merge` cannot be run at all~~ **(superseded 2026-07-28) `pnpm verify:merge` runs and
+  returns BLOCKED — exit 2, NOT PROMOTABLE, on five absent private inputs.** The second clause therefore still
+  fails, but for a materially different reason: not because the gate cannot start, but because it started,
+  executed sixteen gates green, and refused to promote on inputs that never enter this repository. Either those
+  three Highs are re-graded with a written rationale
   (they are unbuilt scope behind fail-closed gates, not live defects), or R1 waits on them.
 
 ### Q2 — Is there a demo/mock success path in production clients? · **No fabricated data. Yes, a third-party demo tile host.**
@@ -489,18 +517,29 @@ tasks out of date. New failures-ledger row. **(Closed 2026-07-27, final cross-ta
 place, and the same stale claim corrected in `docs/security/pen-test-basics.md` §5 and
 `docs/security/threat-model.md` — the failures-ledger row now reads FIXED.)**
 
-### Q3 — Is financial / evidence authority proven at this SHA? · **No. It is unproven, and the largest unproven thing in this close-out.**
+### Q3 — Is financial / evidence authority proven at this SHA? · **No. It is unproven, and the largest unproven thing in this close-out.** *(Superseded 2026-07-28 at `3fc592b`: **proven by suite, unproven by DoD fixture** — see the note under the table.)*
 
 | Claim | Suite / gate | Verdict, and where it was obtained |
 |---|---|---|
 | Invoice math matches the Rater **to the penny** on a 500-case replay (REQ-031, WP-06 DoD) | `pnpm check:invoice-parity -- --mode merge` | **BLOCKED, run at `dc26ea8`** — exit **2**, `##SHUDDL-GATE## {"gate":"invoice-parity","status":"BLOCKED","executed":false,"assertions":0,…}`. `invoice-500-replay` and `zone-tariff-v1` are not vendored. The harness's in-repo smoke did run: `invoice parity smoke — 5/5 in-repo synthetic cases: invoice === rater, penny for penny (harness live; NOT the 500-replay DoD)`. **Five synthetic cases are not the DoD** |
-| **QB export reconciles to the penny** (CLAUDE.md rule 6) | `packages/ledger/test/qb-journal.fixture.test.ts`, `.../gl-netting.fixture.test.ts`, `.../iif.test.ts`, `workers/api/test/export-journal.test.ts` | **NOT RUN at this SHA — unverified.** All four are `vitest-pool-workers` suites (`packages/ledger/vitest.config.ts:1` is `defineWorkersConfig`), and `workerd` is wedged. The last recorded execution of those pools is the close-out plan's starting-state table (`docs/plans/2026-07-27-v1-closeout-t16-t17.md`, HEAD **`f269f95`**: api 719 tests / 65 files) — a SHA *before* the four Task-1 ledger commits, and **the same table records that suite as intermittently failing**. What *did* run here: `tools/checks/gl-accounts-parity.test.ts` → **6 passed at `dc26ea8`**, which proves the Biller's `GL_MAP` and the ledger money projection agree on the canonical GL chart — **not** that any export reconciles |
-| Evidence hash / chain / anchor authority (canonical byte law, Merkle root, device signature, CMS receipt, upload hash-verify) | `packages/ledger/test/{canonical,roundtrip,chain,merkle,sign,cms,anchor}.test.ts`; `workers/api/test/{evidence-upload,documents,anchors}.test.ts` | **NOT RUN at this SHA — unverified.** Same pool, same hold, and no later verdict exists for these files anywhere: `PROJECT-STATE.md:97` lists all six pools under *"Not measured on 2026-07-27"*. The most recent recorded execution is the same `f269f95` starting-state table above. Nothing in this close-out re-observed any of them |
+| **QB export reconciles to the penny** (CLAUDE.md rule 6) | `packages/ledger/test/qb-journal.fixture.test.ts`, `.../gl-netting.fixture.test.ts`, `.../iif.test.ts`, `workers/api/test/export-journal.test.ts` | **NOT RUN at this SHA — unverified.** All four are `vitest-pool-workers` suites (`packages/ledger/vitest.config.ts:1` is `defineWorkersConfig`), and `workerd` is wedged. The last recorded execution of those pools is the close-out plan's starting-state table (`docs/plans/2026-07-27-v1-closeout-t16-t17.md`, HEAD **`f269f95`**: api 719 tests / 65 files) — a SHA *before* the four Task-1 ledger commits, and **the same table records that suite as intermittently failing**. What *did* run here: `tools/checks/gl-accounts-parity.test.ts` → **6 passed at `dc26ea8`**, which proves the Biller's `GL_MAP` and the ledger money projection agree on the canonical GL chart — **not** that any export reconciles. **Superseded 2026-07-28: run at `3fc592b` — see the note under this table** |
+| Evidence hash / chain / anchor authority (canonical byte law, Merkle root, device signature, CMS receipt, upload hash-verify) | `packages/ledger/test/{canonical,roundtrip,chain,merkle,sign,cms,anchor}.test.ts`; `workers/api/test/{evidence-upload,documents,anchors}.test.ts` | **NOT RUN at this SHA — unverified.** Same pool, same hold, and no later verdict exists for these files anywhere: ~~`PROJECT-STATE.md:97` lists all six pools under *"Not measured on 2026-07-27"*~~ **(that paragraph was superseded 2026-07-28 — `PROJECT-STATE.md` now records measured totals for all eighteen projects).** The most recent recorded execution is the same `f269f95` starting-state table above. Nothing in this close-out re-observed any of them. **Superseded 2026-07-28: run at `3fc592b` — see the note under this table** |
 
 So: **this SHA proves nothing about the ledger, the sequencer, the gates, the queues or the API surface** — the
 same line Task 7 drew. What would prove it, in order: reboot the machine → `pnpm -F @shuddl/ledger test` and
 `pnpm -F @shuddl/api test` → `pnpm verify:merge` (one artifact replaces most of this page) → and, for the DoD
 half of the money claim, vendor `invoice-500-replay` + `zone-tariff-v1` from the engagement workspace.
+
+**Superseded 2026-07-28 at HEAD `3fc592b` — the first three steps of that list were taken, and the answer to
+Q3 changes.** Rows 2 and 3 above are no longer unverified: the reboot cleared the wedge, `packages/ledger` ran
+**34 files / 598 tests PASS** and `workers/api` ran **65 files / 719 tests PASS** (three consecutive runs), and
+the QB-export, canonical-byte-law, chain, Merkle, signature, CMS-receipt and anchor suites those rows name live
+inside those two projects. The full `pnpm test` ran **258 files / 3,243 tests PASS**, and `pnpm verify:merge`
+executed end-to-end and wrote a record. **Row 1 is unchanged and still BLOCKED**: `invoice-500-replay` and
+`zone-tariff-v1` are still not vendored, so the 500-case penny-parity *DoD* remains unproven — a fixture hold,
+never a runtime one, and no amount of rebooting touches it. The honest restatement, then: financial and
+evidence authority is now **proven by suite and unproven by DoD fixture**, where before it was unproven by
+both. The one thing that would close the remainder is the fourth step, unchanged: vendor the two fixtures.
 
 ### Q4 — Are the release checks non-skippable? · **Yes mechanically, and its own guard tests execute here — but the gate they protect has never been run at this SHA.**
 
@@ -517,8 +556,11 @@ half of the money claim, vendor `invoice-500-replay` + `zone-tariff-v1` from the
   tools/release/evidence.test.ts tools/release/ci-contract.test.ts` → **3 files, 69 tests passed**, plus
   `tools/fixtures/fixtures.test.ts:39-52` (REQ-288: *"pending + merge → BLOCKED"*). Live behaviour at the same
   SHA: `check:invoice-parity -- --mode merge` exited **2**, not 0.
-- **Three limits stated plainly:** (1) `pnpm verify:merge` itself cannot be run here, so the aggregate has never
-  been observed at this SHA — under rule 1 this SHA has **no evidence record at all**; (2) `verify:release` is
+- **Three limits stated plainly:** (1) ~~`pnpm verify:merge` itself cannot be run here, so the aggregate has never
+  been observed at this SHA — under rule 1 this SHA has **no evidence record at all**~~ **superseded 2026-07-28:
+  `verify:merge` ran at `3fc592b` and wrote this branch's first evidence record — 16 gates PASS, 5 BLOCKED,
+  aggregate BLOCKED (exit 2). The limit that replaces it is narrower and still real: an evidence record exists,
+  it is complete, and it says NOT PROMOTABLE**; (2) `verify:release` is
   wired into no workflow (`RELEASE-EVIDENCE.md:129`) — a release record exists only if a human made one;
   (3) the record's own commit/environment/fixtures/deployment binding is **self-satisfied** by construction
   (`run-gate.ts:142-144`; failures ledger row 7), so it cannot catch a stale record until a separate promote
@@ -569,7 +611,7 @@ drift, code annotated while the row still reads `vNEXT`.
 > **At `dc26ea8`, V1 is a repository whose static, traceability, design and browser gates all pass and whose
 > twelve runnable test suites pass 1,470 assertions with zero failures — and whose six ledger/Worker suites,
 > five-demo acceptance spine and authoritative merge gate could not be executed here at all, so this SHA proves
-> nothing about the ledger, the sequencer, the gates, the queues or the API surface. Staging is partially
+> nothing about the ledger, the sequencer, the gates, the queues or the API surface⟨4⟩. Staging is partially
 > provisioned and certified in no respect: five placeholder resource ids, four secrets the checker cannot see,
 > no CORS origins, no timestamp authority, no backup, and ~~nothing deployed to smoke~~ **no `SMOKE_API_BASE`
 > bound in this checkout, so the smoke gate cannot see the deployment that does exist**⟨1⟩. Production is
@@ -578,9 +620,10 @@ drift, code annotated while the row still reads `vNEXT`.
 > repository-owned rows are open~~ **fifteen repository-owned rows are RECORDED — at `dc26ea8` thirteen `OPEN`,
 > one `FIXED †`, one `BLOCKED`**⟨3⟩,
 > none Critical and none open-High — though the one High among them reads `FIXED †` precisely because it has
-> never been observed green here, and §3 still grades three unbuilt, fail-closed rows High. V1 is not ready to
-> launch, and no promotion is available from this commit: the merge gate has not run, so under rule 1 of
-> `RELEASE-EVIDENCE.md` this SHA carries no evidence record at all.**
+> never been observed green here⟨4⟩, and §3 still grades three unbuilt, fail-closed rows High. V1 is not ready to
+> launch, and no promotion is available from this commit: ~~the merge gate has not run, so under rule 1 of
+> `RELEASE-EVIDENCE.md` this SHA carries no evidence record at all~~ **the merge gate has now run, at
+> `3fc592b`, and the record it wrote says BLOCKED — 16 gates PASS, 5 BLOCKED, NOT PROMOTABLE**⟨4⟩**.**
 >
 > *Where those green verdicts came from:* the gate list and the 1,470 assertions are the Task-7 sweep at
 > `c09d9a5`, from which this SHA differs in two documentation files and no executable byte
@@ -590,13 +633,15 @@ drift, code annotated while the row still reads `vNEXT`.
 >
 > *Corrected 2026-07-27 (final cross-task review — three figures above did not survive re-measurement; the
 > verdicts they describe are unchanged). The `⟨n⟩` markers are deliberately **not** daggers: §1.1 `:20` gives †
-> a specific meaning — "not verified in this environment" — and exactly one row in this file carries it
-> (`:358`).*
+> a specific meaning — "not verified in this environment" — and ~~exactly one row in this file carries it
+> (`:358`)~~ **as of 2026-07-28 no row carries one: that row was observed green at `3fc592b` and the dagger
+> came off. See ⟨4⟩.**
 >
 > **⟨1⟩ "nothing deployed to smoke" was wrong, and wrong in the unsafe direction.** `shuddl-api-staging` and
 > `shuddl-agents-staging` **are** deployed; a smoke has driven a gated stop over HTTPS through `pod.signed` to a
 > penny-exact `invoice.issued` (first green run 55,800¢); and the deployed Biller sends **real** evidence email
-> from `pod@send.shuddl.tech` on a live `RESEND_API_KEY` — `PROJECT-STATE.md:19-27`, `:172-179`. The true claim is
+> from `pod@send.shuddl.tech` on a live `RESEND_API_KEY` — `PROJECT-STATE.md:19-27`, ~~`:172-179`~~ `:218-225`
+> (repointed 2026-07-28). The true claim is
 > narrower: `SMOKE_API_BASE` is unset **in this checkout**, so `staging-smoke` has no base URL and returns
 > BLOCKED. That verdict is correct and stands; it is about this checkout, never about the account. The failure
 > this correction prevents: an engineer reads "nothing is deployed", seeds or replays data, or re-enables
@@ -615,6 +660,29 @@ drift, code annotated while the row still reads `vNEXT`.
 > (the wedged `workerd`, `:359`). **This commit closes two more of the thirteen** — the stale
 > portal-is-synthetic record (`:368`) and the unresolvable path citations (`:369`), both record defects in this
 > file — leaving **eleven `OPEN`**. "None Critical and none open-High" is unchanged and still holds.
+>
+> **⟨4⟩ superseded 2026-07-28 at HEAD `3fc592b` — the two unmeasurable clauses are now measured, and the
+> conclusion survives them.** The machine was rebooted and the `workerd` wedge cleared. Everything the statement
+> called unexecutable ran: `packages/ledger` **34 files / 598 tests PASS**; `workers/api` **65 files / 719 tests
+> PASS, three consecutive runs**; the full `pnpm test` **258 files / 3,243 tests PASS** across every workspace
+> and the tools suite; `pnpm test:acceptance` **GREEN — all 7 spine tests pass**. So *"this SHA proves nothing
+> about the ledger, the sequencer, the gates, the queues or the API surface"* was true of `dc26ea8` and is
+> **false of `3fc592b`**. And *"this SHA carries no evidence record at all"* is superseded outright:
+> `pnpm verify:merge` ran and wrote one, at
+> `artifacts/release/3fc592b0064086850393d01acc6a2a16be19e650/merge/gate-merge-2026-07-28T20-28-28-799Z.json`
+> — gitignored under rule 3 of `RELEASE-EVIDENCE.md`, because the repository holds the contract and the run
+> holds the output. **Its verdict: 16 gates PASS, 5 BLOCKED, aggregate BLOCKED — exit 2, NOT PROMOTABLE.**
+> PASS: runtime, typecheck, lint, **unit-tests**, invariants, rater-purity, authority-coverage, traceability,
+> coverage, seed, **acceptance**, design-audit, perf (1), visual (5), a11y (4), e2e (6). BLOCKED:
+> `identity-leak` (no denylist — set the `IDENTITY_DENYLIST` secret or a gitignored `.identity-denylist.local`),
+> `fixtures` (9 not vendored: rater-48-tests, rater-504-sweep, zone-tariff-v1, invoice-500-replay,
+> concierge-parse-50, customer-roster, legacy-import-formats, legacy-export-replay, synthetic-blitz-3100),
+> `rater-parity`, `invoice-parity` and `concierge-parse` (engagement fixtures not vendored). **All five are an
+> absent private input; not one is a code defect, and no commit can close any of them.** Read the change
+> precisely: *not promotable* is unchanged, and its reason is now completely different and much narrower — no
+> longer "no evidence exists" but "the evidence exists, it is complete, and it names five absent inputs".
+> Nothing else in the statement moves: production is still unprovisioned, staging is still certified in no
+> respect, the ten external holds are still open, and V1 is still not ready to launch.
 
 What would change that sentence, in dependency order: **reboot** (clears H1 and ~~the four † claims~~ **the one
 † claim — corrected 2026-07-27: §1.1 `:20` defines the dagger and exactly one row carries it, the `anchors/run`
@@ -626,3 +694,23 @@ staging JWT secret and smoke the environment that is already deployed** (clears 
 additionally need the three undeployed workers, two provisioned tenants and a device) → back up and reconcile a
 restore (clears H8, then the drill) → name the on-call human and build the archive tier (the two holds no
 command can see). Nothing in this repository can do any of them.
+
+**Updated 2026-07-28 (post-reboot, HEAD `3fc592b`) — the first two steps of that chain are DONE; the rest is
+unchanged.** The reboot happened: `workerd --version` answers, zero processes sit in `UE`, H1 is RESOLVED and
+the last dagger is off this file. `pnpm verify:merge` then ran and produced this branch's first evidence
+record — **16 PASS, 5 BLOCKED, still NOT PROMOTABLE** (⟨4⟩ above). What remains, in the same dependency order:
+
+1. **Vendor the nine engagement fixtures and bind `IDENTITY_DENYLIST`.** These five gates are now the *only*
+   non-PASS rows in the **merge** profile at this SHA, so this step alone is what stands between the build and
+   a promotable *merge* record. Nothing else in `verify:merge` is red. It buys nothing beyond R1: R2 and
+   everything above it still need steps 2–5, and the release profile adds four gates none of this touches.
+2. **Provision staging resources and supply `preflight --state`** — converts *unproven* into *proven*.
+3. **Bind `SMOKE_API_BASE` + the staging JWT secret and smoke the environment that is already deployed**
+   (clears H9; field rows 4 and 7 additionally need the three undeployed workers, two provisioned tenants and
+   a device).
+4. **Back up and reconcile a restore** (clears H8, then the drill).
+5. **Name the on-call human and build the archive tier** — the two holds no command can see.
+
+Nothing in this repository can do any of them, which was true before the reboot and is still true. The reboot
+did not move the build one step closer to launch; it moved it from *unmeasured* to *measured*, which is a
+different and smaller thing, and the whole point of this page is not to confuse the two.

@@ -225,6 +225,14 @@ to supply the input, never to relax the gate. Current per-gate status:
 
 ## Sweep — 2026-07-27, commit `c09d9a5`
 
+> **Read with the correction dated 2026-07-28 applied.** This whole section is evidence about `c09d9a5`,
+> and by rule 1 it says nothing about any other SHA — that has not changed. What has changed is the
+> environment: the `workerd` wedge that BLOCKED six suites, the acceptance spine and both promotion gates
+> here was cleared by a reboot, and every one of them has since been run at HEAD `3fc592b`. Their verdicts,
+> the merge-gate artifact path and the five surviving holds are at the foot of this file:
+> § *Post-reboot sweep — 2026-07-28*. Nothing below is deleted; the record of what could not be measured is
+> itself worth keeping.
+
 The V1 close-out evidence sweep (Task 7). Everything below is the verbatim verdict of a command that
 was actually run at this SHA on this machine. **Nothing here was inferred, and no BLOCKED or unrun
 gate was relabelled.**
@@ -385,7 +393,7 @@ commands, so each was run directly, which is exactly what `verify:release` would
 `detail` is the gate's own wording for *"no base URL was supplied to me"* — the gate reads
 `SMOKE_API_BASE` and nothing else, so it can only ever report what this checkout binds, never what the
 account runs. A staging environment **is** deployed and **does** send real evidence email
-(`PROJECT-STATE.md:19-27`, `:172-179`; hold H9 below). The BLOCKED verdict is right; the sentence
+(`PROJECT-STATE.md:19-27`, ~~`:172-179`~~ `:218-225` — repointed 2026-07-28; hold H9 below). The BLOCKED verdict is right; the sentence
 "there is no deployed environment" is the tool's, and it is about this checkout.
 
 `deploy-preflight` is the informative one: it **executed** 71 checks against staging and returned 12
@@ -433,15 +441,15 @@ be relabelled.
 
 | # | Hold | Blocks | Waits on | Owner |
 |---|---|---|---|---|
-| H1 | **`workerd` wedged** — 127 processes in `UE`, `kill -9`-proof | 6 suites, `pnpm test`, `test:acceptance`, `verify:dev`, `verify:merge`, `verify:release` — i.e. **the authoritative merge gate cannot be run at all** | a machine reboot | on-call / founder |
-| H2 | **Task 1 `anchors/run` fix unverified here** — sound on diff and three review rounds, never observed green | the `FIXED †` in `GO-LIVE-CHECKLIST.md` stays daggered | H1. Re-run `pnpm -F @shuddl/ledger test` and the `workers/api` suite after reboot | backend |
+| H1 | ~~**`workerd` wedged** — 127 processes in `UE`, `kill -9`-proof~~ **RESOLVED 2026-07-28 by reboot.** `workerd --version` → `workerd 2025-10-11`, instantly; `UE` count → **0**. **The condition recurs** — it is minted by interrupted `vitest-pool-workers` runs — so keep the diagnostic (`PROJECT-STATE.md` § *Environment gotchas*) and re-run it at the start of any session that must produce ledger or Worker evidence | ~~6 suites, `pnpm test`, `test:acceptance`, `verify:dev`, `verify:merge`, `verify:release` — i.e. **the authoritative merge gate cannot be run at all**~~ **nothing — all six suites, `pnpm test`, `test:acceptance` and `verify:merge` ran at `3fc592b`** | ~~a machine reboot~~ **done** | on-call / founder |
+| H2 | ~~**Task 1 `anchors/run` fix unverified here** — sound on diff and three review rounds, never observed green~~ **RESOLVED 2026-07-28 at HEAD `3fc592b` — observed green:** `packages/ledger` **34 files / 598 tests PASS**, `workers/api` **65 files / 719 tests PASS across three consecutive runs**, full `pnpm test` **258 files / 3,243 tests PASS**. The defect it closed failed roughly four runs in five, so three consecutive clean runs is the disposition the branch asked for | ~~the `FIXED †` in `GO-LIVE-CHECKLIST.md` stays daggered~~ **nothing — that row now reads plain `FIXED` and no row in that file carries a †** | ~~H1. Re-run `pnpm -F @shuddl/ledger test` and the `workers/api` suite after reboot~~ **done; expires when the anchor route, its ledger module or `workers/api/test/driver-manifest.test.ts` changes** | backend |
 | H3 | **`IDENTITY_DENYLIST` unset** | `check:identity` (REQ-167) | the CI secret, or a gitignored `.identity-denylist.local`. Fails **closed** in CI, open locally | founder |
 | H4 | **9 engagement fixtures not vendored** | `check:fixtures`, `check:rater-parity`, `check:invoice-parity`, `check:concierge-parity` — and with them the WP-04/06/07 DoDs | the engagement-workspace config pack (outside this repo by REQ-167) | founder |
 | H5 | **Staging + prod resources are placeholders** — 5 staging all-zero ids, measured here; 19 prod, carried from `GO-LIVE-CHECKLIST.md` at `72b2fc2` and **not re-measured in this sweep** (re-measured 2026-07-27 at `79ae54d` — still 26 blocks, 19 of them placeholder ids, 17 D1 + 2 KV: § *Tip verdict*) | `deploy-preflight`, and every field row above | provisioning, then pasting the returned ids | infrastructure |
 | H6 | **Secrets unproven / unbound** — 4 on staging, measured here. Read as *unproven*: with no `--state`, the gate cannot see a secret that is in fact bound | `deploy-preflight` | binding on prod; a `--state` snapshot to prove staging | infrastructure |
 | H7 | **No CORS origins, no TSA endpoint** | `deploy-preflight`; anchors stay UNANCHORED (never faked) | real deploy origins; an `integrations` row `kind='tsa'` + the F1 CONFIRM | backend / infrastructure |
 | H8 | **No backup exists** | `backup-manifest`, `restore-verify`, field rows 5 and 6 | `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` | infrastructure |
-| H9 | ~~**Nothing is deployed**~~ **Superseded 2026-07-27 (final cross-task review) — the correct claim is narrower: THE GATE CANNOT SEE A DEPLOYMENT.** `SMOKE_API_BASE` is unset **in this checkout**, so `staging-smoke` has no base URL to drive and returns BLOCKED. That verdict is correct and stands. It is **not** an observation about the account: `shuddl-api-staging` and `shuddl-agents-staging` **are** deployed, a smoke has driven a gated stop over HTTPS through `pod.signed` to a penny-exact `invoice.issued` (first green run 55,800¢), and the deployed Biller sends **real** evidence email from `pod@send.shuddl.tech` on a live `RESEND_API_KEY` — `PROJECT-STATE.md:19-27`, `:172-179`. **Read it as a live environment**: do not seed, replay, or re-enable `EVIDENCE_FROM` on the belief that nothing can leave the box | `staging-smoke`, field rows 3, 4, 7 | `SMOKE_API_BASE` + a staging JWT secret bound **here** (field rows 4 and 7 additionally need the three undeployed workers, two provisioned tenants, and a device) | infrastructure |
+| H9 | ~~**Nothing is deployed**~~ **Superseded 2026-07-27 (final cross-task review) — the correct claim is narrower: THE GATE CANNOT SEE A DEPLOYMENT.** `SMOKE_API_BASE` is unset **in this checkout**, so `staging-smoke` has no base URL to drive and returns BLOCKED. That verdict is correct and stands. It is **not** an observation about the account: `shuddl-api-staging` and `shuddl-agents-staging` **are** deployed, a smoke has driven a gated stop over HTTPS through `pod.signed` to a penny-exact `invoice.issued` (first green run 55,800¢), and the deployed Biller sends **real** evidence email from `pod@send.shuddl.tech` on a live `RESEND_API_KEY` — `PROJECT-STATE.md:19-27`, ~~`:172-179`~~ `:218-225` (repointed 2026-07-28). **Read it as a live environment**: do not seed, replay, or re-enable `EVIDENCE_FROM` on the belief that nothing can leave the box | `staging-smoke`, field rows 3, 4, 7 | `SMOKE_API_BASE` + a staging JWT secret bound **here** (field rows 4 and 7 additionally need the three undeployed workers, two provisioned tenants, and a device) | infrastructure |
 | H10 | **Two holds with no gate** — on-call rota, 7-year snapshots | nothing mechanically; they are unmeasurable | a human naming a human; the archive tier being built | founder / infrastructure |
 
 **Bottom line.** ~~Twenty gates PASS at `c09d9a5`~~ **Corrected 2026-07-27 (final cross-task review):
@@ -455,6 +463,12 @@ available from this commit** — `verify:merge`
 cannot be run, and until it can, rule 1 of this document means this SHA has no evidence record at all.
 The next person to reboot this machine should re-run `pnpm verify:merge` first; it is the one
 outstanding thing that would convert most of this page into a single artifact.
+
+**Done, 2026-07-28.** The machine was rebooted and `pnpm verify:merge` was run at HEAD `3fc592b`,
+producing this branch's first evidence record. It does **not** promote — 16 gates PASS, 5 BLOCKED, exit 2 —
+but it exists, it is complete, and it names exactly what it waits on. Full verdicts and the artifact path:
+§ *Post-reboot sweep — 2026-07-28* below. Everything above remains evidence about `c09d9a5` and is not
+restated as a measurement of any other tree.
 
 ---
 
@@ -493,7 +507,9 @@ cleared, none was added, no verdict changed from the `c09d9a5` sweep.
   `packages/ledger`, the five `workers/*` suites, `pnpm test`, `pnpm test:acceptance`, `pnpm verify:dev`,
   `pnpm verify:merge` and `pnpm verify:release` were not attempted here either. This SHA still proves
   nothing about the ledger, the sequencer, the gates, the queues or the API surface, and still carries
-  **no evidence record at all**.
+  **no evidence record at all**. *(True of `79ae54d`, and superseded for `3fc592b`: the reboot on
+  2026-07-28 cleared H1 and all of those ran — § Post-reboot sweep below. Under rule 1 this bullet stays
+  as written, because it is a statement about the tree it measured.)*
 - **The eleven non-`workerd` workspace suites were not re-run in this pass.** Only `test:tools` was. The
   1,470-assertion figure remains the Task-7 sweep's, at `c09d9a5` — do not restate it as a tip
   measurement.
@@ -508,3 +524,91 @@ identical verdicts: `check:traceability` clean, `check:coverage` 288/288 with dr
 ids, `test:tools` 18 files / 410 tests, `lint` exit 0, `typecheck` 17 of 17, `git diff --check` exit 0.
 Under rule 1 this is still a claim about two SHAs rather than one, and it is stated here rather than
 smoothed over.
+
+---
+
+## Post-reboot sweep — 2026-07-28, commit `3fc592b`
+
+**This section is evidence about `3fc592b` and nothing else.** Rule 1 is this document's own thesis, so it
+binds here first: none of the verdicts below transfer to `79ae54d`, to `c09d9a5`, or to any commit that
+follows. Every line is a command that ran on this machine at this SHA.
+
+**What changed since the two sweeps above: the environment, and only the environment.** The machine was
+rebooted. `workerd --version` returns `workerd 2025-10-11` immediately, and
+`ps -eo stat,command | grep '[w]orkerd' | grep -c '^UE'` returns **0**. H1 is RESOLVED, H2 with it, and
+everything the previous two sweeps had to record as unmeasurable has now been measured. **No hold that
+depends on an account, a credential, a licence or a vendored private artifact moved at all** — a reboot
+provisions nothing.
+
+### The suites
+
+| Suite | Command | Files | Tests | Verdict |
+|---|---|---:|---:|---|
+| ledger | `pnpm -F @shuddl/ledger test` | 34 | 598 | **PASS** |
+| api | `pnpm -F @shuddl/api test` | 65 | 719 | **PASS — three consecutive runs** |
+| everything (`test:tools` + every workspace project) | `pnpm test` | 258 | 3,243 | **PASS** |
+| acceptance spine (the five doc-00 demos, in-repo half) | `pnpm test:acceptance` | — | 7 | **GREEN — all 7 spine tests pass** |
+
+`workers/api` was run three consecutive times deliberately. The defect the Task-1 `anchors/run` containment
+fix closed failed roughly four runs in five, so a single green would not have discharged it; three would.
+That is why H2 is resolved and why the `FIXED †` in `GO-LIVE-CHECKLIST.md` is now a plain `FIXED`.
+
+### The merge gate — and the first evidence record this branch has ever produced
+
+```text
+pnpm verify:merge   →   16 gates PASS, 5 BLOCKED
+                        aggregate: BLOCKED, exit 2 — NOT PROMOTABLE
+```
+
+```text
+artifacts/release/3fc592b0064086850393d01acc6a2a16be19e650/merge/gate-merge-2026-07-28T20-28-28-799Z.json
+```
+
+That path is **gitignored and must not be committed** (rule 3): the repository holds the contract, the run
+holds the output. Retrieve it from the run.
+
+| | Gates |
+|---|---|
+| **PASS (16)** | `runtime`, `typecheck`, `lint`, **`unit-tests`**, `invariants`, `rater-purity`, `authority-coverage`, `traceability`, `coverage`, `seed`, **`acceptance`**, `design-audit`, `perf` (1), `visual` (5), `a11y` (4), `e2e` (6) |
+| **BLOCKED (5)** | `identity-leak`, `fixtures`, `rater-parity`, `invoice-parity`, `concierge-parse` |
+
+`unit-tests` and `acceptance` are the two that had never executed under the aggregate before. Both PASS.
+
+### The five holds this record carries — every one an absent private input
+
+None is a code defect. None can be closed by a commit. This is the fail-closed contract working exactly as
+rule 2 describes: a missing external prerequisite is `BLOCKED` under `--mode merge`, and `BLOCKED` never
+promotes.
+
+| Gate | Verdict detail, as recorded | What would clear it |
+|---|---|---|
+| `identity-leak` | `no denylist (set IDENTITY_DENYLIST secret or .identity-denylist.local)` | the CI secret, or a gitignored `.identity-denylist.local` |
+| `fixtures` | `pending (not vendored)`: `rater-48-tests`, `rater-504-sweep`, `zone-tariff-v1`, `invoice-500-replay`, `concierge-parse-50`, `customer-roster`, `legacy-import-formats`, `legacy-export-replay`, `synthetic-blitz-3100` — **9** | vendoring the nine from the engagement workspace (outside this repo by REQ-167) |
+| `rater-parity` | `engagement fixtures not vendored (fixtures/rater/*, fixtures/tariff)` | `rater-48-tests`, `rater-504-sweep`, `zone-tariff-v1` |
+| `invoice-parity` | `engagement fixtures not vendored (fixtures/invoice-replay, fixtures/tariff)` | `invoice-500-replay`, `zone-tariff-v1` |
+| `concierge-parse` | `engagement fixtures not vendored (fixtures/concierge/parse-50, fixtures/tariff)` | `concierge-parse-50`, `zone-tariff-v1` |
+
+**These five are now the entire distance between this build and a promotable merge record.** Nothing else
+in the merge profile is anything but PASS. `zone-tariff-v1` is the keystone: it appears in three of the
+five rows.
+
+### What this sweep does NOT prove
+
+- **It does not make V1 promotable.** The aggregate is BLOCKED, exit 2. That is not a green and not a
+  failure; it is a refusal, and the fix is to supply the input, never to relax the gate.
+- **It says nothing about the release profile.** `verify:release` adds `deploy-preflight`,
+  `restore-verify`, `staging-smoke` and `backup-manifest`; none of those was run at this SHA, and all four
+  were BLOCKED at the last SHA that did run them. Nothing about them changed.
+- **It says nothing about any environment.** The merge profile's `deployment` is the literal string
+  `"n/a"`. Neither preflight was run at this SHA and no account-side fact was re-measured, so every figure
+  for staging and production — 5 and 19 placeholder ids, 4 absent secrets, no origins, no timestamp
+  authority, no backup — is **carried forward from the `79ae54d` tip verdict above, not re-observed here**.
+  Nothing in this sweep could have changed one of them, and the external holds H3 through H10 stand exactly
+  as recorded above.
+- **It expires.** Merge records live 24h (`run-gate.ts:127`), and rule 1 voids this one at the next commit
+  regardless. Re-run the gate; do not quote this section against a different tree.
+
+**Bottom line.** `3fc592b` is the first commit on this branch that carries a real evidence record. The
+record's verdict is **NOT PROMOTABLE**, and the reason is now narrow and nameable: five absent private
+inputs, not a runtime that could not start and not a defect in the build. "Ready to launch" remains false,
+and nothing in this sweep moves it.
