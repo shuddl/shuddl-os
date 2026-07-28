@@ -9,7 +9,10 @@ This is the "where are we / how do I pick back up" note. It is a pointer, not a 
 operator/deploy line-items and the technical-debt ledger live in
 [`docs/ops/GO-LIVE-CHECKLIST.md`](./GO-LIVE-CHECKLIST.md); this file does not duplicate them — it sorts the
 state into the five buckets below so that "the build is green" is never mistaken for "the product can go
-live."
+live." **What each gate proves, what artifact survives it, and what makes that artifact stop being true is
+[`docs/ops/RELEASE-EVIDENCE.md`](./RELEASE-EVIDENCE.md)** — the evidence contract, the V1 sweep with every
+verdict quoted, the named holds H1–H10, and the tip-verdict table. Read it before trusting any green on
+this page: its rule 1 is that evidence does not transfer across commits.
 
 ## Safety posture (read first)
 
@@ -66,6 +69,12 @@ estimate.
 | Seed | `pnpm check:seed` | PASS |
 | Design audit | `pnpm audit:design` | PASS — "design audit: clean" |
 | Dependency audit | `pnpm audit --prod` | No known vulnerabilities |
+
+**Re-run at the branch tip `79ae54d` on 2026-07-27, verdicts identical** — every row above except
+`pnpm audit --prod`, plus `pnpm test:tools` (18 files / 410 tests), all four browser gates (4 / 6 / 5 / 1)
+and both preflights (staging 12, prod 26). The commands and their printed verdicts are in
+[`RELEASE-EVIDENCE.md`](./RELEASE-EVIDENCE.md) § *Tip verdict*. The six `workerd` suites remain unrunnable
+there too, so nothing below about the ledger or the Workers gained evidence.
 
 **Register:** 288 rows, 100% classified, 0 unaccounted. Eight rows remain status-drifted — code shipped but
 the register tag still reads `*-DISCOVERED`/`vNEXT`: REQ-045, 170, 184, 249, 276, 284, 285, 288. Seven of
@@ -174,10 +183,17 @@ Map board main-thread occupancy was measured 58.6% → 20.3% (CDP `Performance.g
 - **Three of the five workers are not deployed.** `billing`, `mcp` and `translator` declare `[env.staging]`
   scopes; no staging deploy of them is recorded. The whole MCP surface (acceptance demo #4) is therefore
   un-deployed.
-- `pnpm preflight -- --env staging` returns **BLOCKED — 12 unsatisfied prerequisites**: 5
-  `placeholder-resource-id` (`PLATFORM_TENANT_DB`, `TENANT_POOL_01_DB`, `TENANT_POOL_02_DB` are all-zero
-  UUIDs; the mcp `GRANTS` KV id is not 32-hex), 4 `missing-secret`, 1 `no-origins`, 1 `tsa-unconfigured`,
-  1 `no-backup`.
+- `pnpm preflight -- --env staging` returns **BLOCKED — 12 unsatisfied prerequisites** (re-measured
+  2026-07-27 at `79ae54d`): 5 `placeholder-resource-id`, 4 `missing-secret`, 1 `no-origins`,
+  1 `tsa-unconfigured`, 1 `no-backup`. ~~(`PLATFORM_TENANT_DB`, `TENANT_POOL_01_DB`, `TENANT_POOL_02_DB`
+  are all-zero UUIDs; the mcp `GRANTS` KV id is not 32-hex)~~ **Corrected 2026-07-27 — that listed four
+  of the five.** All five, verbatim from the gate: `shuddl-api-staging.PLATFORM_TENANT_DB`,
+  `shuddl-api-staging.TENANT_POOL_01_DB`, `shuddl-api-staging.TENANT_POOL_02_DB` and
+  **`shuddl-billing-staging.PLATFORM_TENANT_DB`** are all-zero UUIDs; `shuddl-mcp-staging.GRANTS` is not
+  a 32-hex KV id. Billing's binding addresses the *same logical* database as the api's
+  (`shuddl-t-platform-staging`), so one provisioned id fills both — but it must be pasted into both
+  `wrangler.toml`s, and a provisioner working from the old four-item list leaves a worker pointed at a
+  database that does not exist.
 - Read that carefully: **without `--state`, account-side facts are UNPROVEN, and unproven is BLOCKED.**
   `JWT_SECRET` and `RESEND_API_KEY` *are* bound on staging — that is how sending works — but the checker
   cannot see them from the repo and correctly refuses to assume. The five placeholder ids, by contrast, are
@@ -230,7 +246,7 @@ binding.
 
 | Code | Count | Detail |
 |---|---:|---|
-| `placeholder-resource-id` | 19 | Every prod D1 `database_id` is an all-zero UUID; the mcp `GRANTS` KV id is not 32-hex |
+| `placeholder-resource-id` | 19 | ~~Every prod D1 `database_id` is an all-zero UUID; the mcp `GRANTS` KV id is not 32-hex~~ **Corrected 2026-07-27 (re-measured at `79ae54d`): the 19 are 17 D1 + 2 KV.** The 17 D1 are every prod `database_id` — api ×6 (`TENANT_A`, `TENANT_B`, `CONTROL`, `PLATFORM_TENANT`, `TENANT_POOL_01`, `TENANT_POOL_02`), agents ×3, billing ×4, mcp ×1, translator ×3 — all all-zero UUIDs. The 2 KV are `shuddl-mcp-prod.GRANTS` **and `shuddl-api-prod.IDEMPOTENCY`**, neither a 32-hex id. The api `IDEMPOTENCY` namespace appeared in no document before this correction: a provisioner working the old wording creates every D1 and one KV, and ships an api worker whose idempotency store does not exist |
 | `missing-secret` | 4 | `JWT_SECRET`, `RESEND_API_KEY`, `STRIPE_WEBHOOK_SECRET`, `PLATFORM_INTERNAL_SECRET` |
 | `no-origins` | 1 | No CORS allowlist; `portal.example` / `status.example` placeholders remain in `cors.ts` |
 | `tsa-unconfigured` | 1 | No RFC-3161 timestamp authority — a day is left UNANCHORED, never faked |

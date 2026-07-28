@@ -25,6 +25,7 @@ const annotationIds = {
   implementationDoc: fake("994"),
   goLiveChecklist: fake("995"),
   projectState: fake("989"),
+  releaseEvidence: fake("988"),
   audit: fake("996"),
   docsWpDeferred: fake("997"),
   docsWpBuilt: fake("998"),
@@ -45,6 +46,7 @@ beforeAll(() => {
   const registerHeader = "req_id,domain,requirement,source,spec,wp,dod_test,status";
   const registerRows = [
     // Must stay in strict ascending REQ order — parseRegister enforces append-only numbering.
+    coverageRow(annotationIds.releaseEvidence, "vNEXT", "vNEXT"),
     coverageRow(annotationIds.projectState, "vNEXT", "vNEXT"),
     coverageRow(annotationIds.docsWpConfirmGated, " CONFIRM-GATED ", "WP-07"),
     coverageRow(annotationIds.source, "F0-SPEC'D", "WP-01"),
@@ -65,6 +67,9 @@ beforeAll(() => {
   writeRepoFile("docs/ops/GO-LIVE-CHECKLIST.md", `# Governance checklist\n\n${annotationIds.goLiveChecklist}\n`);
   // A status pointer citing a REQ to say it is NOT built must not read as evidence that it is.
   writeRepoFile("docs/ops/PROJECT-STATE.md", `# Project state\n\nNo ${annotationIds.projectState} behaviour is built.\n`);
+  // Same rule, second application: the release-evidence record describes gates for requirements that are
+  // NOT built ("BLOCKED", "not vendored"), so its citations must not satisfy built coverage either.
+  writeRepoFile("docs/ops/RELEASE-EVIDENCE.md", `# Release evidence\n\nThe ${annotationIds.releaseEvidence} gate is BLOCKED; nothing implements it.\n`);
   writeRepoFile("docs/audits/history/IMPLEMENTATION-REVIEW.md", `# Audit history\n\n${annotationIds.audit}\n`);
   writeRepoFile(
     "docs/wp/WP-TEST.md",
@@ -235,6 +240,9 @@ describe("implementation annotation integrity", () => {
     // not built, so they must never satisfy built coverage. Note this holds WHILE the generic
     // docs/ops implementation-doc case above still counts — the exclusion is exact, not a directory.
     expect(fixtureAnnotations).not.toContain(annotationIds.projectState);
+    // RELEASE-EVIDENCE.md records state for the same reason and is excluded the same way: it describes
+    // gates, most of them for unbuilt requirements. Delete its exclusion in orphans.ts and this fails.
+    expect(fixtureAnnotations).not.toContain(annotationIds.releaseEvidence);
     expect(fixtureAnnotations).not.toContain(annotationIds.audit);
     expect(fixtureAnnotations).not.toContain(annotationIds.docsWpConfirmGated);
     expect(fixtureAnnotations).not.toContain(annotationIds.docsWpDeferred);
@@ -253,6 +261,7 @@ describe("implementation annotation integrity", () => {
       coverageRow(annotationIds.docsWpDeferred, "vNEXT", "vNEXT"),
       coverageRow(annotationIds.implementationDoc, "vNEXT", "vNEXT"),
       coverageRow(annotationIds.deferredSource, "vNEXT", "vNEXT"),
+      coverageRow(annotationIds.releaseEvidence, "vNEXT", "vNEXT"),
     ];
     const res = computeCoverage({
       rows,
@@ -270,12 +279,16 @@ describe("implementation annotation integrity", () => {
 
     expect(res.unaccounted.map((row) => row.req_id)).toContain(annotationIds.framework);
     expect(res.unaccounted.map((row) => row.req_id)).toContain(annotationIds.audit);
+    // RELEASE-EVIDENCE.md is neither an annotation source NOR a recorded home (scanRecordedHomes reads
+    // only GO-LIVE-CHECKLIST.md + the manifest), so a deferred row cited only there stays unaccounted.
+    expect(res.unaccounted.map((row) => row.req_id)).toContain(annotationIds.releaseEvidence);
     expect(res.unaccounted.map((row) => row.req_id)).not.toContain(annotationIds.source);
     expect(res.unaccounted.map((row) => row.req_id)).not.toContain(annotationIds.docsWpBuilt);
     expect(res.drift).not.toContain(annotationIds.manifest);
     expect(res.drift).not.toContain(annotationIds.goLiveChecklist);
     expect(res.drift).not.toContain(annotationIds.docsWpConfirmGated);
     expect(res.drift).not.toContain(annotationIds.docsWpDeferred);
+    expect(res.drift).not.toContain(annotationIds.releaseEvidence);
     expect(res.drift).toContain(annotationIds.implementationDoc);
     expect(res.drift).toContain(annotationIds.deferredSource);
   });

@@ -39,6 +39,11 @@ export function scanSourceAnnotations(cwd = process.cwd()): Set<string> {
   // hypothetical: re-baselining it on 2026-07-27 added exactly one false annotation (the first V2 id) and
   // with it a phantom drift row. Rule for the next governance doc under docs/ops: if it records state
   // rather than implementing a requirement, it belongs here — and coverage.test.ts pins that both ways.
+  // docs/ops/RELEASE-EVIDENCE.md is the next application of that rule (added 2026-07-27): it is a status
+  // record too — a table of gates, most of them for requirements that are NOT built, whose rows read
+  // "BLOCKED", "not vendored", "no such consumer exists". Exactly the sentence shape above. Before adding
+  // it, every requirement id it cites was checked to survive on real source elsewhere (all of them do, in
+  // 4+ non-excluded files each), so the exclusion drops no row's only annotation.
   // NOTE: never write a literal requirement id into this file or any other scanned source to illustrate
   // a point — this scanner reads itself, and the first draft of this very comment re-created the bug.
   const deferredById = new Map(
@@ -65,6 +70,7 @@ export function scanSourceAnnotations(cwd = process.cwd()): Set<string> {
       ":(exclude)docs/ops/V2-EXECUTION-FRAMEWORK.md",
       ":(exclude)docs/ops/GO-LIVE-CHECKLIST.md",
       ":(exclude)docs/ops/PROJECT-STATE.md",
+      ":(exclude)docs/ops/RELEASE-EVIDENCE.md",
       ":(exclude)docs/audits",
     ],
     { cwd, encoding: "utf8" },

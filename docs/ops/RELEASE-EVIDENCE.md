@@ -14,6 +14,20 @@ the audit swarm at every exit). The related operational documents are
 [`DEPLOYMENT.md`](./DEPLOYMENT.md) for the runbook, [`dr-backups.md`](./dr-backups.md) for backup
 policy, and `GO-LIVE-CHECKLIST.md` for the operator line-items.
 
+**Before you edit this file — it is excluded from the annotation scan (added 2026-07-27).** This
+document *records state*: nearly every row describes a gate for a requirement that is BLOCKED, unbuilt,
+or waiting on an absent input. That is the exact sentence shape that once minted a false annotation out
+of `PROJECT-STATE.md` — a sentence meaning "this shipped nothing" standing as the evidence that code
+shipped. It is therefore on the `scanSourceAnnotations` exclusion list
+(`tools/traceability/orphans.ts:42-46`, `:73`) and pinned there both ways by
+`tools/traceability/coverage.test.ts` — delete the exclusion and two assertions go red. Two
+consequences for an editor: citing a requirement id here is **safe** (it can never fake an
+implementation), and it **buys nothing** — every id this file names must also be annotated in real
+source, and at the time of the exclusion each of the thirteen appeared in at least four other
+non-excluded files. Nor is this file a *recorded home*: `scanRecordedHomes` reads only
+`GO-LIVE-CHECKLIST.md` and the coverage manifest (`tools/traceability/coverage.ts:124-125`, `:134-139`), so a
+deferral cited only here is still unaccounted.
+
 ---
 
 ## The three rules
@@ -367,6 +381,13 @@ commands, so each was run directly, which is exactly what `verify:release` would
 ##SHUDDL-GATE## {"gate":"staging-smoke","status":"BLOCKED","executed":false,"assertions":0,"detail":"SMOKE_API_BASE is not set — there is no deployed environment to smoke"}
 ```
 
+**Read the `staging-smoke` sentinel literally (note added 2026-07-27, final cross-task review).** Its
+`detail` is the gate's own wording for *"no base URL was supplied to me"* — the gate reads
+`SMOKE_API_BASE` and nothing else, so it can only ever report what this checkout binds, never what the
+account runs. A staging environment **is** deployed and **does** send real evidence email
+(`PROJECT-STATE.md:19-27`, `:172-179`; hold H9 below). The BLOCKED verdict is right; the sentence
+"there is no deployed environment" is the tool's, and it is about this checkout.
+
 `deploy-preflight` is the informative one: it **executed** 71 checks against staging and returned 12
 unsatisfied prerequisites — 5 × `placeholder-resource-id` (all-zero D1 UUIDs on `PLATFORM_TENANT_DB`,
 both `TENANT_POOL_*`, `shuddl-billing-staging.PLATFORM_TENANT_DB`, and a malformed mcp `GRANTS` KV id),
@@ -393,7 +414,7 @@ deploy-day runbook** — in dependency order, since several cannot clear before 
 
 | # | Field claim | The command that would produce it | Waits on | Owner |
 |---|---|---|---|---|
-| 1 | **Production configuration preflight** — every binding, secret, origin, sender and TSA satisfied | `pnpm preflight -- --mode release --env prod --state <facts.json>` | Provisioned D1/KV/R2/Queue resources **and** a `--state` snapshot of account-side facts; without `--state` the answer can only ever be UNPROVEN. (**Not measured in this sweep** — only the staging environment was run. `GO-LIVE-CHECKLIST.md` records 26 prod blocks incl. 19 placeholder ids as of `72b2fc2`; no `[env.prod]` block has changed since) | infrastructure |
+| 1 | **Production configuration preflight** — every binding, secret, origin, sender and TSA satisfied | `pnpm preflight -- --mode release --env prod --state <facts.json>` | Provisioned D1/KV/R2/Queue resources **and** a `--state` snapshot of account-side facts; without `--state` the answer can only ever be UNPROVEN. (**Not measured in this sweep** — only the staging environment was run. `GO-LIVE-CHECKLIST.md` records 26 prod blocks incl. 19 placeholder ids as of `72b2fc2`; no `[env.prod]` block has changed since. **Measured 2026-07-27 at `79ae54d`** and unchanged at 26 — but still without `--state`, so every account-side fact remains UNPROVEN: § *Tip verdict*) | infrastructure |
 | 2 | **Staging migration dry-run** — the tenant and control migrations apply cleanly to real remote D1 | `cd workers/api && npx wrangler d1 execute <db> --remote --yes --file ../../db/tenant/migrations/<f>.sql`, per `DEPLOYMENT.md:42` | Real D1 database ids (the staging ids are the 5 all-zero placeholders measured above) + Cloudflare API credentials. Note: `wrangler` is itself a `workerd` host, so this is doubly blocked here. Also worth resolving first: `check:invariants` counts **11** migration files, while `DEPLOYMENT.md:42` enumerates only `0001..0005` + control `0001` — confirm which list is current before applying anything | infrastructure |
 | 3 | **Deployed smoke** — gated driver stop → `pod.signed` → Queue → penny-exact `invoice.issued` against a live environment | `pnpm smoke:staging -- --mode release` | `SMOKE_API_BASE` (a deployed, reachable base URL) and `SMOKE_JWT_SECRET` / `SMOKE_JWT_SECRET_FILE`. Bound to the deployed `DEPLOYMENT_VERSION` — any redeploy voids it | infrastructure |
 | 4 | **Tenant isolation probe against a deployed environment** — no cross-tenant read on any live path | the in-repo suites `workers/api/test/{isolation,platform-tenant-isolation,plg-isolation-matrix}.test.ts` prove it against the local pool; a *deployed* probe needs two provisioned tenants and two live tokens against `SMOKE_API_BASE` | Downstream of #3. Also blocked locally today: those three suites are `workerd` suites and did not run in this sweep | backend |
@@ -416,16 +437,74 @@ be relabelled.
 | H2 | **Task 1 `anchors/run` fix unverified here** — sound on diff and three review rounds, never observed green | the `FIXED †` in `GO-LIVE-CHECKLIST.md` stays daggered | H1. Re-run `pnpm -F @shuddl/ledger test` and the `workers/api` suite after reboot | backend |
 | H3 | **`IDENTITY_DENYLIST` unset** | `check:identity` (REQ-167) | the CI secret, or a gitignored `.identity-denylist.local`. Fails **closed** in CI, open locally | founder |
 | H4 | **9 engagement fixtures not vendored** | `check:fixtures`, `check:rater-parity`, `check:invoice-parity`, `check:concierge-parity` — and with them the WP-04/06/07 DoDs | the engagement-workspace config pack (outside this repo by REQ-167) | founder |
-| H5 | **Staging + prod resources are placeholders** — 5 staging all-zero ids, measured here; 19 prod, carried from `GO-LIVE-CHECKLIST.md` at `72b2fc2` and **not re-measured in this sweep** | `deploy-preflight`, and every field row above | provisioning, then pasting the returned ids | infrastructure |
+| H5 | **Staging + prod resources are placeholders** — 5 staging all-zero ids, measured here; 19 prod, carried from `GO-LIVE-CHECKLIST.md` at `72b2fc2` and **not re-measured in this sweep** (re-measured 2026-07-27 at `79ae54d` — still 26 blocks, 19 of them placeholder ids, 17 D1 + 2 KV: § *Tip verdict*) | `deploy-preflight`, and every field row above | provisioning, then pasting the returned ids | infrastructure |
 | H6 | **Secrets unproven / unbound** — 4 on staging, measured here. Read as *unproven*: with no `--state`, the gate cannot see a secret that is in fact bound | `deploy-preflight` | binding on prod; a `--state` snapshot to prove staging | infrastructure |
 | H7 | **No CORS origins, no TSA endpoint** | `deploy-preflight`; anchors stay UNANCHORED (never faked) | real deploy origins; an `integrations` row `kind='tsa'` + the F1 CONFIRM | backend / infrastructure |
 | H8 | **No backup exists** | `backup-manifest`, `restore-verify`, field rows 5 and 6 | `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` | infrastructure |
-| H9 | **Nothing is deployed** | `staging-smoke`, field rows 3, 4, 7 | a deploy, which is downstream of H5 and H6 | infrastructure |
+| H9 | ~~**Nothing is deployed**~~ **Superseded 2026-07-27 (final cross-task review) — the correct claim is narrower: THE GATE CANNOT SEE A DEPLOYMENT.** `SMOKE_API_BASE` is unset **in this checkout**, so `staging-smoke` has no base URL to drive and returns BLOCKED. That verdict is correct and stands. It is **not** an observation about the account: `shuddl-api-staging` and `shuddl-agents-staging` **are** deployed, a smoke has driven a gated stop over HTTPS through `pod.signed` to a penny-exact `invoice.issued` (first green run 55,800¢), and the deployed Biller sends **real** evidence email from `pod@send.shuddl.tech` on a live `RESEND_API_KEY` — `PROJECT-STATE.md:19-27`, `:172-179`. **Read it as a live environment**: do not seed, replay, or re-enable `EVIDENCE_FROM` on the belief that nothing can leave the box | `staging-smoke`, field rows 3, 4, 7 | `SMOKE_API_BASE` + a staging JWT secret bound **here** (field rows 4 and 7 additionally need the three undeployed workers, two provisioned tenants, and a device) | infrastructure |
 | H10 | **Two holds with no gate** — on-call rota, 7-year snapshots | nothing mechanically; they are unmeasurable | a human naming a human; the archive tier being built | founder / infrastructure |
 
-**Bottom line.** Twenty gates PASS at `c09d9a5`, and every one of those verdicts is quoted above from a
-command that ran. Two gates are BLOCKED on the local runtime, five on named private inputs, and four on
-an environment that does not exist yet. **No promotion is available from this commit** — `verify:merge`
+**Bottom line.** ~~Twenty gates PASS at `c09d9a5`~~ **Corrected 2026-07-27 (final cross-task review):
+SEVENTEEN gates PASS at `c09d9a5`.** The Step-1 table has twenty data *rows*, of which **13 are PASS and
+7 BLOCKED**; Step 2 adds the four browser passes — **13 + 4 = 17**. The original figure counted rows
+rather than verdicts, in the one document whose thesis is that nothing here was inferred. Every one of
+those seventeen verdicts is quoted above from a command that ran. Two gates are BLOCKED on the local
+runtime, five on named private inputs, and four on environment facts this checkout cannot reach — of
+which only `staging-smoke` is a *visibility* gap rather than an absence (H9). **No promotion is
+available from this commit** — `verify:merge`
 cannot be run, and until it can, rule 1 of this document means this SHA has no evidence record at all.
 The next person to reboot this machine should re-run `pnpm verify:merge` first; it is the one
 outstanding thing that would convert most of this page into a single artifact.
+
+---
+
+## Tip verdict — 2026-07-27, commit `79ae54d` (+ this record-accuracy commit)
+
+Rule 1 of this document means the sweep above is evidence about `c09d9a5` and nothing else, so by the
+branch's own law **nothing vouched for the tip** until these were run. Every runnable gate was therefore
+re-executed at `79ae54d`, on this machine, in this checkout. Each line is a command that ran.
+
+| Gate | Command | Verdict as printed | Result |
+|---|---|---|---|
+| runtime contract | `pnpm check:runtime` | `runtime contract OK — Node v22.15.0 (>=22.15.0 <23), pnpm 11.10.0` | **PASS** |
+| invariants | `pnpm check:invariants` | `invariants OK — 21/22 tables, events append-only (11 migration files, lock: check)` | **PASS** |
+| rater purity | `pnpm check:rater-purity` | `rater-purity OK — no class-as-foundation, no LLM/agent imports in packages/rater/src …` | **PASS** |
+| authority coverage | `pnpm check:authority-coverage` | `authority-coverage OK — all 9 (module, file) consults across 5 modules (rating/invoicing/settlement/comms/dispatch), 8 distinct files …` | **PASS** |
+| seed | `pnpm check:seed` | `SEED-1 hash verified` | **PASS** |
+| design audit | `pnpm audit:design` | `design audit: clean` | **PASS** |
+| lint | `pnpm lint` | exit 0, no output | **PASS** |
+| typecheck | `pnpm -r --workspace-concurrency=2 --if-present run typecheck` | exit 0; **17 of 17** workspaces `typecheck: Done` | **PASS** |
+| tools suite | `pnpm test:tools` | **18 files, 410 tests passed**, 0 failed, 0 skipped | **PASS** |
+| traceability | `pnpm check:traceability` | `traceability: no orphans in either direction (active: WP-01 … WP-16)` | **PASS** |
+| coverage | `pnpm check:coverage` | `coverage: 100% — all 288 register rows accounted for (0 unaccounted).` + `8 status-drift row(s)` | **PASS** |
+| a11y | `pnpm test:a11y -- --mode merge` | `{"gate":"a11y","status":"PASS","executed":true,"assertions":4,"detail":"4 passed"}` | **PASS (4)** |
+| e2e | `pnpm test:e2e -- --mode merge` | `{"gate":"e2e","status":"PASS","executed":true,"assertions":6,"detail":"6 passed"}` | **PASS (6)** |
+| visual | `pnpm test:visual -- --mode merge` | `{"gate":"visual","status":"PASS","executed":true,"assertions":5,"detail":"5 passed"}` | **PASS (5)** |
+| perf:map | `pnpm perf:map -- --mode merge` | `frames=401 p50=10.00ms p95=10.80ms`; `interaction p95=21.80ms over 12 pan/zoom samples`; `operating-window long tasks = 0, worst = 0.00ms` | **PASS (1)** |
+| preflight (staging) | `pnpm exec tsx tools/deploy/preflight.ts --env staging` | `preflight: BLOCKED — 12 unsatisfied prerequisites. This is not a green.` — 5 `placeholder-resource-id` / 4 `missing-secret` / 1 `no-origins` / 1 `tsa-unconfigured` / 1 `no-backup` | **BLOCKED — as recorded** |
+| preflight (prod) | `pnpm exec tsx tools/deploy/preflight.ts --env prod` | `preflight: BLOCKED — 26 unsatisfied prerequisites. This is not a green.` — 19 / 4 / 1 / 1 / 1, same split | **BLOCKED — as recorded** |
+
+**Fifteen gates PASS and both preflights BLOCK at exactly the counts the ledgers claim.** No hold
+cleared, none was added, no verdict changed from the `c09d9a5` sweep.
+
+**What this note does NOT re-prove, stated as plainly as the sweep states it:**
+
+- **The six `workerd` suites are still BLOCKED.** H1 is unchanged — nothing was rebooted, so
+  `packages/ledger`, the five `workers/*` suites, `pnpm test`, `pnpm test:acceptance`, `pnpm verify:dev`,
+  `pnpm verify:merge` and `pnpm verify:release` were not attempted here either. This SHA still proves
+  nothing about the ledger, the sequencer, the gates, the queues or the API surface, and still carries
+  **no evidence record at all**.
+- **The eleven non-`workerd` workspace suites were not re-run in this pass.** Only `test:tools` was. The
+  1,470-assertion figure remains the Task-7 sweep's, at `c09d9a5` — do not restate it as a tip
+  measurement.
+- **The five private-input gates were not re-run** (`check:identity`, `check:fixtures`, and the three
+  parity gates). Their inputs are unchanged and absent; they BLOCK for the same reasons.
+
+**Which tree this measured.** The gates above ran at `79ae54d`. The commit carrying this note is a
+record-accuracy pass over five documents **plus two executable files** — `tools/traceability/orphans.ts`
+(this document joins the annotation-scan exclusion list) and `tools/traceability/coverage.test.ts` (the
+test that pins it). Every gate those two changes can move was therefore re-run *after* the edits, with
+identical verdicts: `check:traceability` clean, `check:coverage` 288/288 with drift 8 and the same eight
+ids, `test:tools` 18 files / 410 tests, `lint` exit 0, `typecheck` 17 of 17, `git diff --check` exit 0.
+Under rule 1 this is still a claim about two SHAs rather than one, and it is stated here rather than
+smoothed over.
