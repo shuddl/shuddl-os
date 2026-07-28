@@ -115,7 +115,8 @@ function parseDunningRef(bodyRef: string): { invoiceId: string; bucket: DunningB
 
 // ---- recipient resolution (a MIRROR of the Biller's, pinned to the SHARED predicate — anti-drift) -----------
 // A `kind:"billing"` contact wins over the first plausible one; `plausibleEmail` (@shuddl/ledger/contacts) is the
-// SAME per-entry predicate the Biller's resolveRecipient (workers/agents/src/biller.ts:153) and the Collector
+// SAME per-entry predicate the Biller's resolveRecipient (`workers/agents/src/biller.ts:228@resolveRecipient`
+// — repointed 2026-07-28 by the citation gate: `:153` had rotted onto `formatUtc`) and the Collector
 // sweep apply — re-implemented here (the api worker does not import the agents worker's internals) but pinned to
 // that one predicate, so the SEND reaches EXACTLY the address the sweep validated before drafting (no drift).
 async function resolveDunningRecipient(db: D1Database, partyId: string): Promise<string | undefined> {

@@ -1,6 +1,14 @@
 import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import {
+  RATCHET_CONFIG_PATH,
+  checkRatchet,
+  countUnanchored,
+  formatRatchetViolation,
+  loadRatchetConfig,
+  writeRatchetBaseline,
+} from "./citation-ratchet.js";
 
 // The citation link-checker: a `path:line` reference in a document or a source comment must name a
 // file that exists AND a line that exists inside it. The predecessor of this gate was a one-off
@@ -231,7 +239,8 @@ function baseOf(path: string): string {
 /**
  * Every file the cited path could plausibly mean, most-specific first:
  *   1. the path read from the repo root;
- *   2. the path read as a sibling of the citing file (how `threat-model.md:8` and `anchor.ts:309` read);
+ *   2. the path read as a sibling of the citing file — how a bare basename in a doc, or in a source
+ *      comment next to the file it names, is meant to be read;
  *   3. every tracked file whose path ENDS with it — this is what lets a partial path
  *      (`contracts/src/events.ts`) and a bare basename (`money.ts`) resolve at all.
  * An explicitly relative citation (`./x`, `../x`) is resolved relative to the citing file only.
@@ -407,7 +416,8 @@ export function collectCitations(cwd: string = process.cwd()): Citation[] {
 
 function main(): void {
   const citations = collectCitations();
-  const violations = checkCitations(citations, buildRepoIndex());
+  const index = buildRepoIndex();
+  const violations = checkCitations(citations, index);
   if (violations.length > 0) {
     for (const v of violations) console.error(`FAIL citation-links ${formatViolation(v)}`);
     console.error(`\n${violations.length} rotted citation(s) of ${citations.length} checked.`);
@@ -418,6 +428,24 @@ function main(): void {
     `citation-links OK — ${citations.length} path:line citations resolve to a real file and an in-bounds line; ` +
       `${anchored} of them are content-anchored (the symbol still sits within ±${ANCHOR_TOLERANCE} lines of the cited span)`,
   );
+
+  // The adoption ratchet runs only once the citations themselves are clean: a rotted citation is the
+  // more basic fault, and reporting an adoption count on top of it would bury the defect.
+  const config = loadRatchetConfig();
+  const live = countUnanchored(citations, config.targets, (cited, citing) => resolveCandidates(cited, citing, index.paths));
+  if (process.argv.includes("--write-ratchet")) {
+    writeRatchetBaseline(live, process.cwd());
+    const total = Object.values(live).reduce((sum, per) => sum + Object.values(per).reduce((a, b) => a + b, 0), 0);
+    console.log(`citation-ratchet: baseline rewritten — ${total} unanchored citation(s) into ${config.targets.length} ratcheted target(s). Commit ${RATCHET_CONFIG_PATH}.`);
+    return;
+  }
+  const drift = checkRatchet(live, config);
+  if (drift.length > 0) {
+    for (const d of drift) console.error(`FAIL citation-ratchet ${formatRatchetViolation(d)}`);
+    process.exit(1);
+  }
+  const total = Object.values(live).reduce((sum, per) => sum + Object.values(per).reduce((a, b) => a + b, 0), 0);
+  console.log(`citation-ratchet OK — ${total} unanchored citation(s) into ${config.targets.length} high-churn target(s), exactly the frozen baseline (it may fall, never grow)`);
 }
 
 if (process.argv[1]?.endsWith("citation-links.ts")) main();

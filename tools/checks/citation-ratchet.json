@@ -1,0 +1,102 @@
+{
+  "note": "Adoption ratchet for content anchors (see tools/checks/citation-ratchet.ts). `targets` is a HAND-CURATED list of high-churn files: a bare `path:line` citation into one of these rots faster than anywhere else, because these are the files that move. `baseline` freezes today's count of UNANCHORED citations into them, keyed (citing file -> target). The gate fails when a count GROWS (write the new citation as `path:line@symbol`) and also when a count FALLS without being banked (run `pnpm check:citations --write-ratchet`), because a fall that is not banked lets the ratchet loosen back to the old ceiling. Nothing is retrofitted: the ~480 unanchored citations into NON-target files are untouched, deliberately — a bulk retrofit would produce anchors chosen in a hurry, and this gate cannot tell a strong anchor from a weak one. EDIT `targets` BY HAND ONLY; `--write-ratchet` regenerates `baseline` and never touches it. REJECTED as a target: `index.ts` — it resolves to 14 different files in this repo, so every bare `index.ts:N` citation is ambiguous, would be counted against all 14, and no failure message could name the file the author meant. A ratchet on an unidentifiable target is ceremony. `events.ts` and `watchtower.ts` resolve to 2 files each; both are listed, and an ambiguous citation counts against both (fail-closed, and a nudge to write the full path).",
+  "targets": [
+    "packages/contracts/src/events.ts",
+    "packages/ledger/src/anchor.ts",
+    "workers/agents/src/biller.ts",
+    "workers/agents/src/watchtower.ts",
+    "workers/api/src/do/sequencer.ts",
+    "workers/api/src/intake-core.ts",
+    "workers/api/src/routes/events.ts",
+    "workers/api/src/routes/watchtower.ts",
+    "workers/translator/src/core/map-204.ts",
+    "workers/translator/src/inbound.ts"
+  ],
+  "baseline": {
+    "docs/ops/GO-LIVE-CHECKLIST.md": {
+      "packages/ledger/src/anchor.ts": 5,
+      "workers/agents/src/biller.ts": 6,
+      "workers/agents/src/watchtower.ts": 2,
+      "workers/api/src/do/sequencer.ts": 2,
+      "workers/api/src/routes/watchtower.ts": 1,
+      "workers/translator/src/core/map-204.ts": 2,
+      "workers/translator/src/inbound.ts": 2
+    },
+    "docs/plans/2026-07-12-wp06-biller.md": {
+      "packages/contracts/src/events.ts": 1,
+      "workers/api/src/do/sequencer.ts": 1
+    },
+    "docs/plans/2026-07-15-wp08-scheduler-booking.md": {
+      "packages/contracts/src/events.ts": 2,
+      "workers/api/src/do/sequencer.ts": 2,
+      "workers/api/src/routes/events.ts": 2
+    },
+    "docs/plans/2026-07-16-wp09-portal.md": {
+      "packages/contracts/src/events.ts": 2,
+      "workers/agents/src/biller.ts": 2,
+      "workers/api/src/routes/events.ts": 2
+    },
+    "docs/plans/2026-07-16-wp10-command.md": {
+      "packages/contracts/src/events.ts": 2,
+      "workers/api/src/routes/events.ts": 2
+    },
+    "docs/plans/2026-07-18-wp11-collector.md": {
+      "workers/agents/src/biller.ts": 1
+    },
+    "docs/plans/2026-07-19-wp12-edi-translator.md": {
+      "packages/contracts/src/events.ts": 1,
+      "workers/agents/src/biller.ts": 1
+    },
+    "docs/plans/2026-07-19-wp13-mcp-v1.md": {
+      "packages/contracts/src/events.ts": 1,
+      "workers/api/src/do/sequencer.ts": 1,
+      "workers/api/src/routes/events.ts": 1
+    },
+    "docs/plans/2026-07-20-wp14-plg-metering.md": {
+      "workers/agents/src/watchtower.ts": 1,
+      "workers/api/src/routes/watchtower.ts": 1
+    },
+    "docs/plans/2026-07-21-wp15-overlay-authority.md": {
+      "packages/contracts/src/events.ts": 1,
+      "workers/api/src/routes/events.ts": 1
+    },
+    "docs/plans/2026-07-27-v1-closeout-t16-t17.md": {
+      "packages/ledger/src/anchor.ts": 1
+    },
+    "docs/security/pen-test-basics.md": {
+      "packages/contracts/src/events.ts": 1,
+      "workers/api/src/do/sequencer.ts": 1,
+      "workers/api/src/routes/events.ts": 1
+    },
+    "packages/ledger/src/documents/retention.ts": {
+      "packages/ledger/src/anchor.ts": 1
+    },
+    "packages/ledger/src/projection/agent-runs.ts": {
+      "packages/contracts/src/events.ts": 1
+    },
+    "workers/api/src/pub/doc-cap.ts": {
+      "workers/agents/src/biller.ts": 1
+    },
+    "workers/api/src/routes/dunning.ts": {
+      "workers/agents/src/biller.ts": 1
+    },
+    "workers/api/src/routes/exceptions.ts": {
+      "packages/contracts/src/events.ts": 1,
+      "workers/api/src/routes/events.ts": 1
+    },
+    "workers/api/src/routes/internal-platform.ts": {
+      "packages/contracts/src/events.ts": 1,
+      "workers/api/src/routes/events.ts": 1
+    },
+    "workers/api/test/isolation.test.ts": {
+      "workers/api/src/do/sequencer.ts": 1
+    },
+    "workers/api/test/source-aware-ledger.test.ts": {
+      "packages/contracts/src/events.ts": 2,
+      "workers/api/src/routes/events.ts": 2
+    },
+    "workers/translator/src/core/build-214.ts": {
+      "workers/agents/src/biller.ts": 1
+    }
+  }
+}
