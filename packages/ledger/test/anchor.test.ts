@@ -288,6 +288,43 @@ describe("REQ-014 — determinism, bucketing, gaps, failures, positions", () => 
     expect(await failureRow("anchor-build", day)).toBeNull();
   });
 
+  it("a marker an operator RESOLVED re-opens when its condition re-fails — only the kind that re-failed", async () => {
+    // An anchor marker is a watchtower alarm: the default lens is GET /v1/watchtower?status=open
+    // (workers/api/src/routes/watchtower.ts). If a re-failing condition refreshes severity + detail but
+    // leaves status = 'resolved', the row keeps re-failing while reading resolved — the alarm hides
+    // itself from the only lens ops look at. workers/agents raiseAlarm already re-opens on re-raise and
+    // calls itself a mirror of this UPSERT; this test is what makes that claim true.
+    const day = "2026-07-09";
+    await seed("stop.arrived", { stream_id: "s:reopen", shipment_id: "reopen", seq: 0, recorded_at: noon(day) });
+    const statusOf = async (prefix: "anchor-tsa" | "anchor-build"): Promise<{ status: string; detail: string } | null> =>
+      DB.prepare("SELECT status, detail FROM anomalies WHERE id = ?").bind(`${prefix}:${TENANT}:${day}`).first<{ status: string; detail: string }>();
+
+    // both kinds fire once: the TSA refuses, then the TSA is fine but the write fails
+    await runDailyAnchor({ db: DB, r2: R2, tsa: failingTsa, tenant: TENANT, now: FIRE });
+    await runDailyAnchor({ db: DB, r2: failingR2, tsa: new FakeTsaClient(), tenant: TENANT, now: FIRE });
+    expect((await statusOf("anchor-tsa"))?.status).toBe("open");
+    expect((await statusOf("anchor-build"))?.status).toBe("open");
+
+    // an operator resolves BOTH (what workers/agents clearAlarm does, and what an ops UI offers)
+    await DB.prepare("UPDATE anomalies SET status = 'resolved' WHERE id IN (?,?)")
+      .bind(`anchor-tsa:${TENANT}:${day}`, `anchor-build:${TENANT}:${day}`)
+      .run();
+
+    // the TSA refuses AGAIN: its marker must come back to 'open' and keep counting
+    await runDailyAnchor({ db: DB, r2: R2, tsa: failingTsa, tenant: TENANT, now: FIRE });
+    const tsa = await statusOf("anchor-tsa");
+    expect(tsa?.status).toBe("open"); // visible to the DEFAULT ?status=open lens again
+    expect((JSON.parse(tsa!.detail) as { consecutive: number }).consecutive).toBe(2);
+    // ...and the kind that did NOT re-fail stays resolved — a re-raise is not a blanket un-resolve
+    expect((await statusOf("anchor-build"))?.status).toBe("resolved");
+
+    // the build kind behaves the same way when IT re-fails
+    await runDailyAnchor({ db: DB, r2: failingR2, tsa: new FakeTsaClient(), tenant: TENANT, now: FIRE });
+    const build = await statusOf("anchor-build");
+    expect(build?.status).toBe("open");
+    expect((JSON.parse(build!.detail) as { consecutive: number }).consecutive).toBe(2);
+  });
+
   it("positions participate: a day with ONLY positions produces a stable root (positions hash in like everything else)", async () => {
     const day = "2026-07-09";
     const row: PositionRow = { shipment_id: "pos-ship", device_id: "dev-1", ts: 1_720_000_000_000, lat_e6: 37_421_000, lon_e6: -122_084_000, accuracy_m: 5, speed_cms: null };

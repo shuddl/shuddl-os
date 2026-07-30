@@ -339,9 +339,17 @@ async function recordAnchorFailure(
   });
   // anomalies is a mutable ops table (no append-only guard); ON CONFLICT keeps exactly one row per
   // (tenant, day). Not INSERT OR REPLACE (that verb is lint-banned; ON CONFLICT DO UPDATE is not).
+  //
+  // `status = 'open'` is part of the UPDATE, not decoration: an anchor marker IS a watchtower alarm, and
+  // the default ops lens is `GET /v1/watchtower?status=open`. Refreshing severity + detail while leaving a
+  // resolved row resolved would give an operator who closed a marker a row that keeps re-failing while
+  // reading `resolved` — an alarm hiding itself from the only lens anyone looks at. This is the same
+  // re-open-on-re-raise that raiseAlarm in workers/agents does, which names this UPSERT as its model;
+  // the two SQL fragments now actually agree. A kind that did NOT re-fail is untouched, so re-opening is
+  // never a blanket un-resolve.
   await db
     .prepare(
-      "INSERT INTO anomalies (id, rule, object_kind, object_id, severity, detail, status) VALUES (?,?,?,?,?,?,'open') ON CONFLICT(id) DO UPDATE SET severity = excluded.severity, detail = excluded.detail",
+      "INSERT INTO anomalies (id, rule, object_kind, object_id, severity, detail, status) VALUES (?,?,?,?,?,?,'open') ON CONFLICT(id) DO UPDATE SET severity = excluded.severity, detail = excluded.detail, status = 'open'",
     )
     .bind(id, kind.rule, "anchor", day, severity, detail)
     .run();
