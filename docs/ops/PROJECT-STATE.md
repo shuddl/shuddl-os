@@ -16,6 +16,25 @@ this page: its rule 1 is that evidence does not transfer across commits.
 
 ## Safety posture (read first)
 
+> ### ⚠ 2026-07-30 — the staging claim below could NOT be confirmed, and the contrary evidence is strong
+>
+> Queried the only Cloudflare account reachable from this workstation (`wrangler whoami` lists exactly one;
+> OAuth-authenticated). It contains the worker `shuddl-tech` (the marketing site) and:
+> **no `shuddl-api-staging`, no `shuddl-agents-staging`, zero `shuddl-*` D1 databases (of 20), zero
+> `shuddl-*` KV namespaces (of 36).**
+>
+> Two readings fit, and this repository cannot distinguish them: the staging environment lives in a
+> **second Cloudflare account** not reachable from here (multi-account is a known fact — the `shuddl.tech`
+> zone was previously found to sit in a different account), **or it was torn down** and the paragraph below
+> outlived it.
+>
+> Until an operator confirms which, treat every claim in the next paragraph as **unverified**, including the
+> live-sending posture and the "proven end-to-end on live infra" chain. **Do not rely on it as evidence that
+> a deployed environment exists.** The safety consequence cuts both ways: if the deployment *is* live in
+> another account with a real `RESEND_API_KEY`, then seeding or replaying data there sends real mail; if it
+> is gone, then no acceptance demo has been proven on live infrastructure. See
+> [`docs/ops/LAUNCH-RUNBOOK.md`](./LAUNCH-RUNBOOK.md) Step 0.
+
 There is no live production and no prod outbound email/SMS/money flow is enabled. A **staging** environment
 is deployed to Cloudflare (`shuddl-api-staging`, `shuddl-agents-staging`) with **synthetic data only**.
 Staging evidence sending is **LIVE**: `send.shuddl.tech` is verified and both `RESEND_API_KEY`
