@@ -13,6 +13,11 @@
     "workers/translator/src/inbound.ts"
   ],
   "baseline": {
+    "docs/audits/2026-07-15-full-audit-and-skill-plan.md": {
+      "packages/contracts/src/events.ts": 1,
+      "workers/api/src/do/sequencer.ts": 6,
+      "workers/api/src/routes/events.ts": 1
+    },
     "docs/ops/GO-LIVE-CHECKLIST.md": {
       "packages/ledger/src/anchor.ts": 1,
       "workers/agents/src/biller.ts": 6,
