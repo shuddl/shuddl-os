@@ -133,7 +133,13 @@ const KV_ID = /^[0-9a-f]{32}$/i;
 
 // A resource id that cannot be real in a deployed environment: a local dev alias, an all-zero placeholder
 // UUID, or anything that is not the shape Cloudflare issues.
-function placeholderReason(kind: "d1" | "kv", id: string, environment: string): string | null {
+//
+// EXPORTED because the provisioner (tools/deploy/provision-prod.ts) must decide "is this id a placeholder
+// I may overwrite, or a real id I must refuse to clobber?" using EXACTLY this law. Two copies would
+// eventually disagree, and the disagreement that matters is the one where the provisioner overwrites an id
+// the preflight considers real — a live database silently orphaned (share-lint-matchers: one rule, one
+// implementation).
+export function placeholderReason(kind: "d1" | "kv", id: string, environment: string): string | null {
   if (environment === "dev") return null; // local-* ids are the whole point of dev
   if (id.startsWith("local-")) return "a local dev alias";
   if (kind === "kv") return KV_ID.test(id) ? null : "not a 32-hex KV namespace id";
