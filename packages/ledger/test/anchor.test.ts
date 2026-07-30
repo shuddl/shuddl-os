@@ -54,33 +54,94 @@ const failingTsa: TsaClient = { timestamp: () => Promise.reject(new Error("TSA_D
 // becomes anchorable again once R2 recovers), so it can prove both escalation and the clear-on-success.
 const failingR2 = { put: () => Promise.reject(new Error("R2_DOWN")) } as unknown as R2Bucket;
 
-// A D1 whose `anomalies` statements ALWAYS reject, passing everything else through to the real DB.
-// This is the CORRELATED fault the guards exist for: the failure recorder and the day itself are both
-// D1 writes, so whatever breaks one is the likeliest thing to break the other.
-function anomaliesBrokenDb(): D1Database {
-  const reject = (): Promise<never> => Promise.reject(new Error("D1_DOWN"));
-  const broken = { bind: () => ({ first: reject, all: reject, run: reject }) } as unknown as D1PreparedStatement;
-  return { prepare: (sql: string) => (sql.includes("anomalies") ? broken : DB.prepare(sql)) } as unknown as D1Database;
+// ── the D1 fault seam ─────────────────────────────────────────────────────────────────────────────
+// A façade over the real D1 that faults SELECTED statements and passes everything else through. Two
+// properties are load-bearing, and the `sql.includes("anomalies")` version of this seam had neither:
+//
+//  1. It discriminates on a statement's ROLE — verb AND table, anchored at the head of the statement —
+//     never on a floating substring. A substring also matches the word in a comment, in a column name,
+//     or in a statement that merely joins the table, so it can fault a write nobody meant to fault and
+//     never say so.
+//  2. It COUNTS what it did, and every test asserts those counts. That is what stops a green for the
+//     wrong reason: a seam that quietly stops matching leaves the guard under test unexercised, and
+//     every assertion about "the day is still contained" passes vacuously. THREE counters, because they
+//     catch three different ways this goes wrong:
+//       · `faults > 0`   — the seam matched something at all.
+//       · `unbound === 0` — no faulted statement arrived without bound parameters. The old stub
+//         implemented ONLY `.bind()`, so an anomalies statement executed WITHOUT bind called
+//         `undefined()` — a TypeError the production guards swallow exactly like a D1 rejection, leaving
+//         the suite green while the seam tested nothing. Every statement here implements the full
+//         surface, so an unbound execution rejects like any other fault AND is counted.
+//       · `unmatched === 0` — the TRIPWIRE. A statement that names the seam's table but matches no role
+//         (it was rewritten, aliased, or schema-qualified to `main.anomalies`) passes straight through
+//         to the real DB, so `faults` can stay non-zero on the OTHER roles and hide the miss. The loose
+//         substring that used to be the discriminator is exactly the right instrument for this job —
+//         demoted from deciding the fault to reporting a role matcher that has gone blind.
+type StatementRole = "anomalies_read" | "anomalies_write" | "anomalies_clear";
+
+const ROLE_SQL: Record<StatementRole, RegExp> = {
+  anomalies_read: /^\s*SELECT\b[\s\S]*\bFROM\s+anomalies\b/i,
+  anomalies_write: /^\s*INSERT\s+INTO\s+anomalies\b/i,
+  anomalies_clear: /^\s*DELETE\s+FROM\s+anomalies\b/i,
+};
+/** The table a role acts on — the role name's own prefix, so a role can never disagree with its table. */
+const tableOf = (role: StatementRole): string => role.slice(0, role.indexOf("_"));
+
+interface FaultSeam {
+  /** The D1 façade to inject. */
+  db: D1Database;
+  /** Statement executions this seam faulted. Assert `> 0`: a seam that matched nothing proves nothing. */
+  faults: () => number;
+  /** Faulted executions that arrived with NO bound parameters. Assert `0` — see (2) above. */
+  unbound: () => number;
+  /** Statements naming a targeted table that matched no role. Assert `0` — the tripwire above. */
+  unmatched: () => number;
 }
 
-// A D1 that rejects ONLY the anomalies statements carrying the TSA marker id; the build marker is
-// written for real. A blanket fault cannot tell a guarded TSA recorder from an unguarded one — both
-// leave the day `failed` — so the discriminator has to be which anomaly ends up on the table.
-function tsaMarkerBrokenDb(): D1Database {
-  const reject = (): Promise<never> => Promise.reject(new Error("D1_DOWN"));
-  return {
-    prepare: (sql: string) => {
-      const stmt = DB.prepare(sql);
-      if (!sql.includes("anomalies")) return stmt;
+function faultSeam(roles: StatementRole[], when?: (args: unknown[]) => boolean): FaultSeam {
+  let faults = 0;
+  let unbound = 0;
+  let unmatched = 0;
+  const tables = [...new Set(roles.map(tableOf))].map((t) => new RegExp(String.raw`\b${t}\b`, "i"));
+  const exec = (bound: boolean): Record<string, () => Promise<never>> => {
+    const reject = (): Promise<never> => {
+      faults += 1;
+      if (!bound) unbound += 1;
+      return Promise.reject(new Error("D1_DOWN"));
+    };
+    return { first: reject, all: reject, run: reject, raw: reject };
+  };
+  const faulty = (bound: boolean): D1PreparedStatement =>
+    ({ bind: () => faulty(true), ...exec(bound) }) as unknown as D1PreparedStatement;
+  const db = {
+    prepare: (sql: string): D1PreparedStatement => {
+      if (!roles.some((r) => ROLE_SQL[r].test(sql))) {
+        if (tables.some((t) => t.test(sql))) unmatched += 1; // named a targeted table, matched no role
+        return DB.prepare(sql);
+      }
+      if (!when) return faulty(false);
+      // An argument-scoped fault can only be decided at bind, so an unbound execution cannot be
+      // classified: it faults AND is counted, rather than slipping through to the real DB unnoticed.
+      const real = DB.prepare(sql);
       return {
-        bind: (...args: unknown[]) =>
-          args.some((a) => typeof a === "string" && a.startsWith("anchor-tsa:"))
-            ? { first: reject, all: reject, run: reject }
-            : stmt.bind(...args),
+        ...exec(false),
+        bind: (...args: unknown[]) => (when(args) ? faulty(true) : real.bind(...args)),
       } as unknown as D1PreparedStatement;
     },
   } as unknown as D1Database;
+  return { db, faults: () => faults, unbound: () => unbound, unmatched: () => unmatched };
 }
+
+// Every `anomalies` statement rejects. This is the CORRELATED fault the guards exist for: the failure
+// recorder and the day itself are both D1 writes, so whatever breaks one is the likeliest thing to
+// break the other.
+const anomaliesBrokenDb = (): FaultSeam => faultSeam(["anomalies_read", "anomalies_write", "anomalies_clear"]);
+
+// Only the anomalies statements carrying the TSA marker id reject; the build marker is written for
+// real. A blanket fault cannot tell a guarded TSA recorder from an unguarded one — both leave the day
+// `failed` — so the discriminator has to be which anomaly ends up on the table.
+const tsaMarkerBrokenDb = (): FaultSeam =>
+  faultSeam(["anomalies_read", "anomalies_write"], (args) => args.some((a) => typeof a === "string" && a.startsWith("anchor-tsa:")));
 
 beforeAll(async () => {
   resetEventCounter();
@@ -248,11 +309,15 @@ describe("REQ-014 — determinism, bucketing, gaps, failures, positions", () => 
     await eventInsertStmt(DB, { ...bad, hash: "y".repeat(64) }).run();
     await seed("stop.arrived", { stream_id: "s:d1-clean", shipment_id: "d1-clean", seq: 0, recorded_at: noon(clean) });
 
-    const res = await runDailyAnchor({ db: anomaliesBrokenDb(), r2: R2, tsa: new FakeTsaClient(), tenant: TENANT, now: FIRE });
+    const seam = anomaliesBrokenDb();
+    const res = await runDailyAnchor({ db: seam.db, r2: R2, tsa: new FakeTsaClient(), tenant: TENANT, now: FIRE });
 
     expect(res.failed).toContain(poisoned); // the unrecordable failure is still contained
     expect(res.anchored).toContain(clean); // the unclearable success is still reported as success
     expect(await anchorHash(clean)).not.toBeNull(); // ...and the day really is anchored
+    expect(seam.faults()).toBeGreaterThan(0); // the seam really did fault the bookkeeping (not a vacuous pass)
+    expect(seam.unbound()).toBe(0); // ...and every faulted statement was bound — no swallowed TypeError
+    expect(seam.unmatched()).toBe(0); // ...and no anomalies statement slipped past the role matchers
   });
 
   it("a TSA outage whose marker cannot be written is never relabelled a build failure", async () => {
@@ -263,12 +328,16 @@ describe("REQ-014 — determinism, bucketing, gaps, failures, positions", () => 
     const day = "2026-07-09";
     await seed("stop.arrived", { stream_id: "s:tsa-guard", shipment_id: "tsa-guard", seq: 0, recorded_at: noon(day) });
 
-    const res = await runDailyAnchor({ db: tsaMarkerBrokenDb(), r2: R2, tsa: failingTsa, tenant: TENANT, now: FIRE });
+    const seam = tsaMarkerBrokenDb();
+    const res = await runDailyAnchor({ db: seam.db, r2: R2, tsa: failingTsa, tenant: TENANT, now: FIRE });
 
     expect(res.failed).toContain(day); // contained — the run still resolves
     expect(await anchorHash(day)).toBeNull();
     expect(await failureRow("anchor-tsa", day)).toBeNull(); // the marker genuinely could not be written
     expect(await failureRow("anchor-build", day)).toBeNull(); // ...and the outage was NOT relabelled
+    expect(seam.faults()).toBeGreaterThan(0); // the TSA-marker statements really were faulted
+    expect(seam.unbound()).toBe(0); // ...all of them bound, so nothing was a TypeError in disguise
+    expect(seam.unmatched()).toBe(0); // ...and no anomalies statement slipped past the role matchers
   });
 
   it("a day can carry BOTH markers at once, and anchoring clears both", async () => {
