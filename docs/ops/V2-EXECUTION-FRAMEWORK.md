@@ -197,6 +197,34 @@ The R5 shadow is at least 30 consecutive calendar days. Staffing cannot compress
 
 ## 6. Requirement Allocation
 
+### 6.0 Phase vocabulary — the register and this document name the same phases differently
+
+Added 2026-07-29. This document allocates work to phases `P0` and `PA`…`PF`. The scope authority,
+`genesis/09-REQUIREMENTS-REGISTER.csv`, spells the same phases `P0` and `V2-A`…`V2-F` in its `wp` column, and
+the string `PA` appears nowhere in it. Both spellings were in use with nothing declaring the equivalence, so a
+reader grepping either vocabulary found only half the picture. The mapping is one-to-one:
+
+| This document | Register `wp` |
+|---|---|
+| `P0` | `P0` (and `P0/D` for the one row shared with PD) |
+| `PA` | `V2-A` |
+| `PB` | `V2-B` |
+| `PC` | `V2-C` |
+| `PD` | `V2-D` |
+| `PE` | `V2-E` (and `V2-E/F` for the one row shared with PF) |
+| `PF` | `V2-F` |
+
+Two register values have **no phase in this document, deliberately** — they are outside V2 and this framework
+does not plan them: `V2.5` (11 rows) and `V3` (1 row). A third, `Cross-cutting` (8 rows), spans phases rather
+than belonging to one; §6's per-phase ranges below are what allocate those rows, not the `wp` cell.
+
+Neither spelling is being changed. The register's `wp` column is append-only scope data that other gates read
+(`tools/traceability/coverage.ts` keys its dispositions on it), and renaming 75 cells to match prose would
+churn the scope authority to settle a naming question. This table is the declaration; it is the thing that was
+missing.
+
+### 6.1 Per-phase allocation
+
 | Phase | Authoritative requirements | Accountable lead | Primary proof |
 |---|---|---|---|
 | P0 | REQ-271 through REQ-273; REQ-275 through REQ-284; REQ-286 through REQ-288 | Technical lead | Governance contract tests and release evidence |
