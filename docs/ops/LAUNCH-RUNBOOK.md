@@ -70,8 +70,18 @@ pnpm provision:prod --account-id <PRODUCT_ACCOUNT_ID> --apply
 
 What it does: creates the 6 logical D1 databases, the 2 KV namespaces and the R2 bucket
 `shuddl-evidence-prod`, then writes the real ids into the `[env.prod]` scope of all five
-`workers/*/wrangler.toml`. It is idempotent (adopts existing resources by name), refuses to overwrite a
-non-placeholder id without `--force`, and warns if the account it is pointed at looks like the marketing one.
+`workers/*/wrangler.toml`. It is idempotent (adopts existing resources by name, so a second `--apply` is a
+no-op) and refuses to overwrite a non-placeholder id without `--force`.
+
+**It does not merely warn about the wrong account — it stops.** `--account-id` is mandatory, the account's
+worker/D1/KV/R2 inventory is printed before anything is created, `--apply` makes you retype the account id,
+and an account holding `shuddl-tech` but no `shuddl-api-staging` ABORTS the run at exit 2 (override with
+`--override-account-warning` only if you are certain). This is not hypothetical: the first dry-run pointed at
+the default-reachable account, and that account is the marketing one.
+
+**Token prerequisite:** the API token needs an R2 scope (Workers R2 Storage: Edit) alongside d1 and
+workers_kv. Without it the bucket list cannot be read at all, and the tool refuses to `--apply` rather than
+mistake an unreadable store for an empty one and fail on the bucket after the databases exist.
 
 **The property to check in the dry-run output:** a shared binding must show ONE id across every worker that
 binds it. `TENANT_A_DB` appears in api, agents, billing and translator — four workers, one id. If those
