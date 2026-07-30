@@ -357,6 +357,67 @@ describe("REQ-014 — determinism, bucketing, gaps, failures, positions", () => 
     expect(await failureRow("anchor-build", day)).toBeNull();
   });
 
+  it("a marker that OUTLIVES its clear is swept on a later run — a day that is anchored never keeps an anomaly", async () => {
+    // The one hazard the guard on clearAnchorFailures leaves behind. Clearing is recovery bookkeeping,
+    // so it must never gate anchoring (a persistent anomalies fault would otherwise stop a witnessable
+    // day from being witnessed) — which means a clear that rejects AFTER the documents row commits
+    // leaves the markers standing while the day is genuinely anchored. From then on the day is `skipped`
+    // every run, anchorDay is never called again, and nothing could clear or escalate the markers: a
+    // permanent open alarm for a day that is witnessed and verifiable. The backstop is a run-level sweep
+    // that keys on the anchored-ness of the day itself, so it does not care which run left the marker.
+    const day = "2026-07-09";
+    await seed("stop.arrived", { stream_id: "s:stale", shipment_id: "stale", seq: 0, recorded_at: noon(day) });
+
+    // 1. the TSA refuses — the day carries a marker
+    await runDailyAnchor({ db: DB, r2: R2, tsa: failingTsa, tenant: TENANT, now: FIRE });
+    expect(await failureRow("anchor-tsa", day)).not.toBeNull();
+
+    // 2. the day anchors, but every anomalies DELETE faults: the day is correctly reported `anchored`
+    //    (the guard holds) and the marker outlives it
+    const seam = faultSeam(["anomalies_clear"]);
+    const anchored = await runDailyAnchor({ db: seam.db, r2: R2, tsa: new FakeTsaClient(), tenant: TENANT, now: FIRE });
+    expect(anchored.anchored).toContain(day);
+    expect(await anchorHash(day)).not.toBeNull(); // the day IS witnessed
+    expect(seam.faults()).toBeGreaterThan(0);
+    expect(seam.unbound()).toBe(0);
+    expect(seam.unmatched()).toBe(0);
+    expect(await failureRow("anchor-tsa", day)).not.toBeNull(); // ...and the stale marker is standing
+
+    // 3. the next healthy run SKIPS the day (it has its documents row) and sweeps the marker anyway
+    const next = await runDailyAnchor({ db: DB, r2: R2, tsa: new FakeTsaClient(), tenant: TENANT, now: FIRE });
+    expect(next.skipped).toContain(day);
+    expect(next.anchored).not.toContain(day); // anchorDay is NOT called again — the sweep is what clears
+    expect(await failureRow("anchor-tsa", day)).toBeNull();
+    expect(await failureRow("anchor-build", day)).toBeNull();
+  });
+
+  it("the sweep clears ONLY markers for days that are anchored — a still-failing day keeps its alarm", async () => {
+    // The sweep must not become a blanket "delete the anchor alarms": a day that is still unanchored is
+    // exactly the day whose alarm has to survive to escalate.
+    const anchoredDay = "2026-07-08";
+    const failingDay = "2026-07-09";
+    await seed("stop.arrived", { stream_id: "s:sw-a", shipment_id: "sw-a", seq: 0, recorded_at: noon(anchoredDay) });
+    await seed("stop.arrived", { stream_id: "s:sw-f", shipment_id: "sw-f", seq: 0, recorded_at: noon(failingDay) });
+
+    // both days fail against a dead TSA
+    await runDailyAnchor({ db: DB, r2: R2, tsa: failingTsa, tenant: TENANT, now: FIRE });
+    expect(await failureRow("anchor-tsa", anchoredDay)).not.toBeNull();
+    expect(await failureRow("anchor-tsa", failingDay)).not.toBeNull();
+
+    // now the earlier day anchors while the later one is still refused: a TSA that stamps once, then dies
+    let stamps = 0;
+    const fake = new FakeTsaClient();
+    const flakyTsa: TsaClient = { timestamp: (m) => (stamps++ === 0 ? fake.timestamp(m) : Promise.reject(new Error("TSA_DOWN"))) };
+    const res = await runDailyAnchor({ db: DB, r2: R2, tsa: flakyTsa, tenant: TENANT, now: FIRE });
+    expect(res.anchored).toEqual([anchoredDay]);
+    expect(res.failed).toEqual([failingDay]);
+
+    expect(await failureRow("anchor-tsa", anchoredDay)).toBeNull(); // cleared: the day is witnessed
+    const alive = await failureRow("anchor-tsa", failingDay);
+    expect(alive).not.toBeNull(); // NOT swept: still unanchored, and its count must keep climbing
+    expect((JSON.parse(alive!.detail) as { consecutive: number }).consecutive).toBe(2);
+  });
+
   it("a marker an operator RESOLVED re-opens when its condition re-fails — only the kind that re-failed", async () => {
     // An anchor marker is a watchtower alarm: the default lens is GET /v1/watchtower?status=open
     // (workers/api/src/routes/watchtower.ts). If a re-failing condition refreshes severity + detail but

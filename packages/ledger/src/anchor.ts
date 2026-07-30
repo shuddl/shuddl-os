@@ -270,6 +270,18 @@ export async function runDailyAnchor(deps: AnchorDeps): Promise<AnchorRunResult>
     }
     (outcome === "anchored" ? result.anchored : result.failed).push(day);
   }
+
+  // The BACKSTOP for the one hazard anchorDay's guarded clear leaves behind: a clear that rejects after
+  // the documents row commits leaves the markers standing on a day that IS anchored, and that day is
+  // `skipped` from then on — anchorDay is never called again, so nothing could ever clear or escalate
+  // them. This sweep keys on the anchored-ness of the DAY, not on this run's outcome, so it collects a
+  // marker no matter which run stranded it. Guarded and last, like every other piece of bookkeeping here:
+  // a fault must not touch the verdicts above. Skipped when no day is anchored — nothing to sweep.
+  if (result.anchored.length + result.skipped.length > 0) {
+    await sweepAnchoredDayMarkers(db, deps.tenant).catch((err: unknown) => {
+      console.error(`[REQ-014] anchor run (tenant ${deps.tenant}): stale marker sweep failed: ${err instanceof Error ? err.message : "unknown"}`);
+    });
+  }
   return result;
 }
 
@@ -378,5 +390,25 @@ async function clearAnchorFailures(db: D1Database, tenant: string, day: string):
   await db
     .prepare(`DELETE FROM anomalies WHERE id IN (${ANCHOR_FAILURE_KINDS.map(() => "?").join(",")})`)
     .bind(...ANCHOR_FAILURE_KINDS.map((k) => failureId(k, tenant, day)))
+    .run();
+}
+
+// Every anchor marker whose DAY already carries its `tsa_receipt` documents row — stale by definition,
+// because a marker is only ever written for a day that could not be anchored. ONE statement for the whole
+// run (never one per day: a two-year-old tenant would otherwise pay hundreds of point deletes per run),
+// and window-independent, so it also collects a day stranded beyond MAX_DAYS_PER_RUN. The id predicate is
+// BUILT from the same idPrefix constants that write the marker and re-derives the whole id including the
+// tenant, so this can only ever delete a row that failureId() itself would have produced for this tenant
+// and that day — never another tenant's marker, and never a non-anchor anomaly. The EXISTS clause is the
+// precision: without it the sweep would also delete the alarm of a day that is STILL failing, which is
+// exactly the alarm that has to survive to escalate.
+async function sweepAnchoredDayMarkers(db: D1Database, tenant: string): Promise<void> {
+  const ids = ANCHOR_FAILURE_KINDS.map((k) => `'${k.idPrefix}:' || ? || ':' || object_id`).join(", ");
+  await db
+    .prepare(
+      `DELETE FROM anomalies WHERE id IN (${ids}) ` +
+        `AND EXISTS (SELECT 1 FROM documents WHERE documents.id = 'anchor:' || anomalies.object_id AND documents.kind = 'tsa_receipt')`,
+    )
+    .bind(...ANCHOR_FAILURE_KINDS.map(() => tenant))
     .run();
 }
