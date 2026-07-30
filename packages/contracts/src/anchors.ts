@@ -52,11 +52,22 @@ export const AnchorProofResponse = z
   .strict();
 export type AnchorProofResponse = z.infer<typeof AnchorProofResponse>;
 
+// The two queries a run makes BEFORE it can name a single day: the earliest `recorded_at` in the ledger,
+// then the set of days already anchored. Neither is about one day, so a fault in either has no day to
+// report — it is the run not knowing what its work IS. One source of truth for the stage names, shared
+// with packages/ledger (which reads `.options`) so the wire and the recorder can never disagree.
+export const AnchorScanStage = z.enum(["first_day", "anchored_days"]);
+export type AnchorScanStage = z.infer<typeof AnchorScanStage>;
+
 export const AnchorRunResponse = z
   .object({
     anchored: z.array(AnchorDay),
     skipped: z.array(AnchorDay),
     failed: z.array(AnchorDay),
+    // PRESENT IFF the run could not determine its work — the three arrays above are then all empty
+    // because NO day was examined, which is emphatically not the same fact as "nothing to anchor".
+    // Absent on every run that got as far as looking at days, including a run where every day failed.
+    scan_failed: z.object({ stage: AnchorScanStage, error: z.string() }).strict().optional(),
   })
   .strict();
 export type AnchorRunResponse = z.infer<typeof AnchorRunResponse>;

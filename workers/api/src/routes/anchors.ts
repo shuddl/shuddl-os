@@ -65,6 +65,14 @@ export function mountAnchorRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>)
 
   // POST /v1/anchors/run — admin-triggered backfill (the cron does this on a schedule). Anchors this
   // tenant's unanchored days up to yesterday, oldest-first, capped per run.
+  //
+  // A 200 reports what the RUN did, which is not the same question as whether the request was served. Both
+  // failure modes are inside the body, and neither is silent: a day that could not anchor is named in
+  // `failed[]`, and a run that could not even determine its days is named in `scan_failed` (all three
+  // arrays then empty) — the honest distinction from "nothing to anchor", which is the same body without
+  // that field. Both are also durably alarmed in `anomalies`, so the cron path (which discards this result)
+  // still reports them, and both are visible at GET /v1/watchtower?status=open. What this endpoint must not
+  // do is 500: runDailyAnchor contains every D1 fault it can meet, per-day and pre-loop alike.
   app.post("/v1/anchors/run", requireRole("admin"), async (c) => {
     const session = c.get("session");
     const db = await resolveTenantDb(c.env, session.tenant);

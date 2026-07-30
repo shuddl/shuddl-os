@@ -144,9 +144,14 @@ describe("REQ-014 — POST /v1/anchors/run (admin only)", () => {
   it("admin runs the backfill and gets the three-arrays result", async () => {
     const res = await SELF.fetch(`https://x/v1/anchors/run`, { method: "POST", headers: { ...bearer(await adminTok()), "Idempotency-Key": "anch-run-admin" } });
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { anchored: string[]; skipped: string[]; failed: string[] };
+    const body = (await res.json()) as { anchored: string[]; skipped: string[]; failed: string[]; scan_failed?: unknown };
     expect(Array.isArray(body.anchored)).toBe(true);
     expect(Array.isArray(body.skipped)).toBe(true);
+    // The run determined its work. `scan_failed` is the ONLY thing that distinguishes an empty result from
+    // a run that never looked at a day, so a healthy run must not carry it — and if the pre-loop scan ever
+    // faults here, this asserts the endpoint reports that instead of 500ing (the whole point of REQ-014's
+    // pre-loop containment).
+    expect(body.scan_failed).toBeUndefined();
     // NOT merely arrays: the backfill walks every unanchored day in the tenant DB, which under
     // isolatedStorage:false holds whatever every other test file wrote. The run used to 500 here, and a
     // shape-only assertion could not tell "backfilled everything" from "gave up on everything". These

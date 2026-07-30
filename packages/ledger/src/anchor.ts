@@ -20,6 +20,7 @@
 //
 // PURE of LLM (REQ-024). WebCrypto + injected D1/R2/TSA only.
 
+import { AnchorScanStage } from "@shuddl/contracts";
 import { canonicalBytes, sha256Hex } from "./canonical.js";
 import { bytesToHex, hexToBytes, inclusionProof, merkleRoot, type ProofStep } from "./merkle.js";
 import { retentionClassFor } from "./documents/retention.js";
@@ -45,6 +46,12 @@ export interface AnchorRunResult {
   skipped: string[];
   /** Days that could not anchor (TSA refusal, boundary race, or a day that could not be built) — retried next run. */
   failed: string[];
+  /**
+   * Set IFF the run could not determine its work — the two queries that precede the day loop. The three
+   * arrays above are then all empty because NO day was examined, which is a DIFFERENT fact from "nothing
+   * to anchor" and the reason this field exists rather than an empty result that reads like success.
+   */
+  scan_failed?: { stage: AnchorScanStage; error: string };
 }
 
 // UTC day bucket (YYYY-MM-DD) of an epoch-ms `recorded_at`. UTC, never local time.
@@ -222,33 +229,61 @@ async function anchorDay(deps: AnchorDeps, day: string): Promise<"anchored" | "f
 export async function runDailyAnchor(deps: AnchorDeps): Promise<AnchorRunResult> {
   const { db, now } = deps;
   const result: AnchorRunResult = { anchored: [], skipped: [], failed: [] };
-
-  const minRow = await db
-    .prepare("SELECT MIN(recorded_at) AS m FROM (SELECT recorded_at FROM events UNION ALL SELECT recorded_at FROM positions)")
-    .first<{ m: number | null }>();
-  if (minRow?.m == null) return result; // nothing recorded yet
-
-  const todayStart = dayStartMs(dayOf(now().getTime()));
-  const yesterdayStart = todayStart - DAY_MS; // anchor only days that can no longer grow (past midnight)
-  const firstDayStart = dayStartMs(dayOf(minRow.m));
-  if (firstDayStart > yesterdayStart) return result; // only today's data exists
-
-  // One query for every already-anchored day, so a long backlog doesn't fan out into N point reads.
-  const existing = await db
-    .prepare("SELECT id FROM documents WHERE kind = 'tsa_receipt' AND id LIKE 'anchor:%'")
-    .all<{ id: string }>();
-  const anchoredDays = new Set(existing.results.map((r) => r.id.slice("anchor:".length)));
-
   const candidates: string[] = [];
-  for (let ds = firstDayStart; ds <= yesterdayStart; ds += DAY_MS) {
-    const day = dayOf(ds);
-    if (anchoredDays.has(day)) {
-      result.skipped.push(day);
-      continue;
+  const skipped: string[] = []; // held back until the scan SUCCEEDS, so a fault cannot leave a half-filled result
+
+  // THE SCAN — the two queries that decide what this run has to do, CONTAINED (REQ-014). Per-day
+  // containment cannot cover these: a fault here is not a day failing, it is the run not knowing what the
+  // days ARE, so there is no day to put in `failed[]`. Returning the bare three empty arrays would assert
+  // "nothing to anchor" — a different claim, and a false one — so the fault is NAMED in `scan_failed`,
+  // logged, and durably alarmed. What this must never do is throw: the only callers are an admin endpoint
+  // (POST /v1/anchors/run, which would 500) and the cron fan-out over every tenant, which would abandon
+  // every tenant after the first faulting one.
+  let stage: AnchorScanStage = "first_day";
+  try {
+    const minRow = await db
+      .prepare("SELECT MIN(recorded_at) AS m FROM (SELECT recorded_at FROM events UNION ALL SELECT recorded_at FROM positions)")
+      .first<{ m: number | null }>();
+    const todayStart = dayStartMs(dayOf(now().getTime()));
+    const yesterdayStart = todayStart - DAY_MS; // anchor only days that can no longer grow (past midnight)
+    const firstDayStart = minRow?.m == null ? null : dayStartMs(dayOf(minRow.m));
+    // firstDayStart null = nothing recorded yet; past yesterday = only today's data exists. Either way
+    // there is no candidate day and the scan SUCCEEDED — it determined that the work is empty.
+    if (firstDayStart !== null && firstDayStart <= yesterdayStart) {
+      stage = "anchored_days";
+      // One query for every already-anchored day, so a long backlog doesn't fan out into N point reads.
+      // Its result is not optional: without it the loop below would re-run anchorDay for days that are
+      // already anchored, and anchorDay puts the receipt to R2 BEFORE its INSERT OR IGNORE — overwriting
+      // a stored TSA receipt with a freshly stamped one destroys the witness time that is the evidence.
+      const existing = await db
+        .prepare("SELECT id FROM documents WHERE kind = 'tsa_receipt' AND id LIKE 'anchor:%'")
+        .all<{ id: string }>();
+      const anchoredDays = new Set(existing.results.map((r) => r.id.slice("anchor:".length)));
+      for (let ds = firstDayStart; ds <= yesterdayStart; ds += DAY_MS) {
+        const day = dayOf(ds);
+        if (anchoredDays.has(day)) {
+          skipped.push(day);
+          continue;
+        }
+        candidates.push(day); // empty days included -> gap-free day chain
+        if (candidates.length >= MAX_DAYS_PER_RUN) break; // oldest-first, capped
+      }
     }
-    candidates.push(day); // empty days included -> gap-free day chain
-    if (candidates.length >= MAX_DAYS_PER_RUN) break; // oldest-first, capped
+  } catch (err) {
+    // The verdict FIRST, from the one expression that cannot itself throw (String(err) can, for a
+    // null-prototype thrown value — see noteScanFailure). Nothing below may change it or re-raise.
+    result.scan_failed = { stage, error: err instanceof Error ? err.message : "unknown" };
+    await noteScanFailure(deps, stage, err);
+    return result;
   }
+
+  // The scan succeeded, so any scan marker is resolved. This sits OUTSIDE the day work on purpose: the
+  // two exits above return no candidates, and a run that keeps taking one of them would otherwise never
+  // reach the clear and would strand a critical alarm forever. Guarded — bookkeeping, not anchoring.
+  await clearScanFailures(db, deps.tenant).catch((err: unknown) => {
+    console.error(`[REQ-014] anchor run (tenant ${deps.tenant}): the scan marker could not be cleared: ${err instanceof Error ? err.message : "unknown"}`);
+  });
+  result.skipped.push(...skipped);
 
   for (const day of candidates) {
     // One unreadable day must not abandon the others. anchorDay already returns "failed" for the two
@@ -318,34 +353,38 @@ export async function readAnchorManifest(r2: R2Bucket, tenant: string, day: stri
   return JSON.parse(await obj.text()) as AnchorManifest;
 }
 
-// ---- anchor failure accounting (no new table): one mutable `anomalies` row per (kind, tenant, day) --
+// ---- anchor failure accounting (no new table): one mutable `anomalies` row per (kind, tenant, scope) --
 // Consecutive failures accrue in the row's detail; at 3 the row escalates to `critical` — the alert
 // that a day cannot be witnessed. On success the markers are cleared (the day is anchored regardless).
 //
-// TWO kinds, because "we built a root and the TSA refused to stamp it" and "we could not build the day
-// at all" send ops after different things. Same accounting, same escalation, separate id + rule so the
-// alert names the real condition.
-const TSA_UNAVAILABLE = { idPrefix: "anchor-tsa", rule: "anchor.tsa_unavailable" } as const;
-const BUILD_FAILED = { idPrefix: "anchor-build", rule: "anchor.build_failed" } as const;
-type AnchorFailureKind = typeof TSA_UNAVAILABLE | typeof BUILD_FAILED;
+// THREE kinds, because "we built a root and the TSA refused to stamp it", "we could not build the day at
+// all" and "we could not work out which days there are" send ops after different things. Same accounting,
+// same escalation, separate id + rule so the alert names the real condition. `scopeKey` is the detail field
+// that identifies WHAT failed: the two day-scoped kinds are per day, the scan is per stage of the scan —
+// it is not about a day, and calling its scope a `day` in an operator-facing row would be a lie.
+const TSA_UNAVAILABLE = { idPrefix: "anchor-tsa", rule: "anchor.tsa_unavailable", scopeKey: "day" } as const;
+const BUILD_FAILED = { idPrefix: "anchor-build", rule: "anchor.build_failed", scopeKey: "day" } as const;
+const SCAN_FAILED = { idPrefix: "anchor-scan", rule: "anchor.scan_failed", scopeKey: "stage" } as const;
+type AnchorFailureKind = typeof TSA_UNAVAILABLE | typeof BUILD_FAILED | typeof SCAN_FAILED;
 
-const ANCHOR_FAILURE_KINDS: readonly AnchorFailureKind[] = [TSA_UNAVAILABLE, BUILD_FAILED];
-const failureId = (kind: AnchorFailureKind, tenant: string, day: string): string => `${kind.idPrefix}:${tenant}:${day}`;
+/** The DAY-scoped kinds only — what clears when a day anchors. SCAN_FAILED is per run and never belongs here. */
+const DAY_FAILURE_KINDS: readonly AnchorFailureKind[] = [TSA_UNAVAILABLE, BUILD_FAILED];
+const failureId = (kind: AnchorFailureKind, tenant: string, scope: string): string => `${kind.idPrefix}:${tenant}:${scope}`;
 
 async function recordAnchorFailure(
   db: D1Database,
   kind: AnchorFailureKind,
   tenant: string,
-  day: string,
+  scope: string,
   err: unknown,
 ): Promise<void> {
-  const id = failureId(kind, tenant, day);
+  const id = failureId(kind, tenant, scope);
   const existing = await db.prepare("SELECT detail FROM anomalies WHERE id = ?").bind(id).first<{ detail: string }>();
   const prev = existing ? (JSON.parse(existing.detail) as { consecutive?: number }) : {};
   const consecutive = (prev.consecutive ?? 0) + 1;
   const severity = consecutive >= CONSECUTIVE_FAILURE_ESCALATION ? "critical" : "warn";
   const detail = JSON.stringify({
-    day,
+    [kind.scopeKey]: scope,
     consecutive,
     last_error: err instanceof Error ? err.message : String(err),
   });
@@ -363,7 +402,7 @@ async function recordAnchorFailure(
     .prepare(
       "INSERT INTO anomalies (id, rule, object_kind, object_id, severity, detail, status) VALUES (?,?,?,?,?,?,'open') ON CONFLICT(id) DO UPDATE SET severity = excluded.severity, detail = excluded.detail, status = 'open'",
     )
-    .bind(id, kind.rule, "anchor", day, severity, detail)
+    .bind(id, kind.rule, "anchor", scope, severity, detail)
     .run();
 }
 
@@ -384,12 +423,38 @@ async function noteBuildFailure(deps: AnchorDeps, day: string, err: unknown): Pr
   }
 }
 
+// The notice for a run that could not work out what its days ARE: same law as noteBuildFailure — LOUD
+// *and* durable, every statement inside the guard, and it CANNOT re-raise, because re-raising would
+// re-create the 500 this containment exists to remove. It records something strictly louder than a failed
+// day: this tenant anchored NOTHING this run, and on the cron path (runAllTenants discards the result)
+// the anomalies row is the only thing that survives to say so.
+async function noteScanFailure(deps: AnchorDeps, stage: AnchorScanStage, err: unknown): Promise<void> {
+  try {
+    const cause = err instanceof Error ? err.message : String(err);
+    console.error(`[REQ-014] anchor run (tenant ${deps.tenant}) could not determine its work at stage '${stage}' — NOTHING was anchored: ${cause}`);
+    await recordAnchorFailure(deps.db, SCAN_FAILED, deps.tenant, stage, err);
+  } catch {
+    // Static message: nothing left that can itself throw.
+    console.error("[REQ-014] anchor run: the scan failure could not be recorded");
+  }
+}
+
+// The run determined its work, so neither stage is failing any more. Both ids, because a run only ever
+// reaches the second stage after the first succeeded — the marker to clear may be from either.
+async function clearScanFailures(db: D1Database, tenant: string): Promise<void> {
+  const stages = AnchorScanStage.options;
+  await db
+    .prepare(`DELETE FROM anomalies WHERE id IN (${stages.map(() => "?").join(",")})`)
+    .bind(...stages.map((s) => failureId(SCAN_FAILED, tenant, s)))
+    .run();
+}
+
 // The day is anchored — every reason it previously could not be is resolved, so BOTH markers go. An
 // anomaly nobody can close is ops debt.
 async function clearAnchorFailures(db: D1Database, tenant: string, day: string): Promise<void> {
   await db
-    .prepare(`DELETE FROM anomalies WHERE id IN (${ANCHOR_FAILURE_KINDS.map(() => "?").join(",")})`)
-    .bind(...ANCHOR_FAILURE_KINDS.map((k) => failureId(k, tenant, day)))
+    .prepare(`DELETE FROM anomalies WHERE id IN (${DAY_FAILURE_KINDS.map(() => "?").join(",")})`)
+    .bind(...DAY_FAILURE_KINDS.map((k) => failureId(k, tenant, day)))
     .run();
 }
 
@@ -403,12 +468,12 @@ async function clearAnchorFailures(db: D1Database, tenant: string, day: string):
 // precision: without it the sweep would also delete the alarm of a day that is STILL failing, which is
 // exactly the alarm that has to survive to escalate.
 async function sweepAnchoredDayMarkers(db: D1Database, tenant: string): Promise<void> {
-  const ids = ANCHOR_FAILURE_KINDS.map((k) => `'${k.idPrefix}:' || ? || ':' || object_id`).join(", ");
+  const ids = DAY_FAILURE_KINDS.map((k) => `'${k.idPrefix}:' || ? || ':' || object_id`).join(", ");
   await db
     .prepare(
       `DELETE FROM anomalies WHERE id IN (${ids}) ` +
         `AND EXISTS (SELECT 1 FROM documents WHERE documents.id = 'anchor:' || anomalies.object_id AND documents.kind = 'tsa_receipt')`,
     )
-    .bind(...ANCHOR_FAILURE_KINDS.map(() => tenant))
+    .bind(...DAY_FAILURE_KINDS.map(() => tenant))
     .run();
 }

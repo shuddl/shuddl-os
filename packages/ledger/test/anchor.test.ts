@@ -67,25 +67,33 @@ const failingR2 = { put: () => Promise.reject(new Error("R2_DOWN")) } as unknown
 //     every assertion about "the day is still contained" passes vacuously. THREE counters, because they
 //     catch three different ways this goes wrong:
 //       · `faults > 0`   — the seam matched something at all.
-//       · `unbound === 0` — no faulted statement arrived without bound parameters. The old stub
-//         implemented ONLY `.bind()`, so an anomalies statement executed WITHOUT bind called
-//         `undefined()` — a TypeError the production guards swallow exactly like a D1 rejection, leaving
-//         the suite green while the seam tested nothing. Every statement here implements the full
-//         surface, so an unbound execution rejects like any other fault AND is counted.
-//       · `unmatched === 0` — the TRIPWIRE. A statement that names the seam's table but matches no role
-//         (it was rewritten, aliased, or schema-qualified to `main.anomalies`) passes straight through
-//         to the real DB, so `faults` can stay non-zero on the OTHER roles and hide the miss. The loose
-//         substring that used to be the discriminator is exactly the right instrument for this job —
-//         demoted from deciding the fault to reporting a role matcher that has gone blind.
-type StatementRole = "anomalies_read" | "anomalies_write" | "anomalies_clear";
+//       · `unbound === 0` — no statement carrying `?` placeholders was executed without binding them.
+//         The old stub implemented ONLY `.bind()`, so such a statement called `undefined()` — a TypeError
+//         the production guards swallow exactly like a D1 rejection, leaving the suite green while the
+//         seam tested nothing. Every statement here implements the full surface, so it rejects like any
+//         other fault instead, AND is counted: real D1 refuses an unbound parameterised statement too
+//         ("wrong number of parameter bindings"), so a non-zero count is a genuine caller bug, not a
+//         property of the seam. Parameterless statements are exempt — they are correct unbound.
+//       · `unmatched === 0` — the TRIPWIRE. A statement that names a targeted table but matches NO role
+//         at all (it was rewritten, aliased, or schema-qualified to `main.anomalies`) passes straight
+//         through to the real DB, so `faults` can stay non-zero on the OTHER roles and hide the miss. The
+//         loose substring that used to be the discriminator is exactly the right instrument for this job —
+//         demoted from deciding the fault to reporting a role matcher that has gone blind. Matching a role
+//         this seam did not target is NOT a miss: that is the seam being selective, which is the point.
+type StatementRole = "anomalies_read" | "anomalies_write" | "anomalies_clear" | "scan_first_day" | "scan_anchored_days";
 
-const ROLE_SQL: Record<StatementRole, RegExp> = {
-  anomalies_read: /^\s*SELECT\b[\s\S]*\bFROM\s+anomalies\b/i,
-  anomalies_write: /^\s*INSERT\s+INTO\s+anomalies\b/i,
-  anomalies_clear: /^\s*DELETE\s+FROM\s+anomalies\b/i,
+// `tripwire` names the table whose MENTION means "a statement of this role should have matched". It is
+// null for the two scan roles on purpose: their absence is DIRECTLY observable (a scan the seam failed to
+// fault produces a run with no `scan_failed`, which the assertions state exactly), whereas an anomalies
+// fault's effect is the ABSENCE of a row — indistinguishable from a seam that never matched, which is why
+// those three need the tripwire.
+const ROLES: Record<StatementRole, { match: RegExp; tripwire: string | null }> = {
+  anomalies_read: { match: /^\s*SELECT\b[\s\S]*\bFROM\s+anomalies\b/i, tripwire: "anomalies" },
+  anomalies_write: { match: /^\s*INSERT\s+INTO\s+anomalies\b/i, tripwire: "anomalies" },
+  anomalies_clear: { match: /^\s*DELETE\s+FROM\s+anomalies\b/i, tripwire: "anomalies" },
+  scan_first_day: { match: /^\s*SELECT\s+MIN\(recorded_at\)/i, tripwire: null },
+  scan_anchored_days: { match: /^\s*SELECT\s+id\s+FROM\s+documents\b/i, tripwire: null },
 };
-/** The table a role acts on — the role name's own prefix, so a role can never disagree with its table. */
-const tableOf = (role: StatementRole): string => role.slice(0, role.indexOf("_"));
 
 interface FaultSeam {
   /** The D1 façade to inject. */
@@ -102,30 +110,34 @@ function faultSeam(roles: StatementRole[], when?: (args: unknown[]) => boolean):
   let faults = 0;
   let unbound = 0;
   let unmatched = 0;
-  const tables = [...new Set(roles.map(tableOf))].map((t) => new RegExp(String.raw`\b${t}\b`, "i"));
-  const exec = (bound: boolean): Record<string, () => Promise<never>> => {
+  const tripwires = [...new Set(roles.map((r) => ROLES[r].tripwire).filter((t): t is string => t !== null))].map(
+    (t) => new RegExp(String.raw`\b${t}\b`, "i"),
+  );
+  const knownRoles = Object.values(ROLES);
+  const exec = (parameterised: boolean, bound: boolean): Record<string, () => Promise<never>> => {
     const reject = (): Promise<never> => {
       faults += 1;
-      if (!bound) unbound += 1;
+      if (parameterised && !bound) unbound += 1;
       return Promise.reject(new Error("D1_DOWN"));
     };
     return { first: reject, all: reject, run: reject, raw: reject };
   };
-  const faulty = (bound: boolean): D1PreparedStatement =>
-    ({ bind: () => faulty(true), ...exec(bound) }) as unknown as D1PreparedStatement;
+  const faulty = (sql: string, bound: boolean): D1PreparedStatement =>
+    ({ bind: () => faulty(sql, true), ...exec(sql.includes("?"), bound) }) as unknown as D1PreparedStatement;
   const db = {
     prepare: (sql: string): D1PreparedStatement => {
-      if (!roles.some((r) => ROLE_SQL[r].test(sql))) {
-        if (tables.some((t) => t.test(sql))) unmatched += 1; // named a targeted table, matched no role
+      if (!roles.some((r) => ROLES[r].match.test(sql))) {
+        // A statement naming a targeted table that NO role recognises: the matchers have gone blind.
+        if (tripwires.some((t) => t.test(sql)) && !knownRoles.some((r) => r.match.test(sql))) unmatched += 1;
         return DB.prepare(sql);
       }
-      if (!when) return faulty(false);
+      if (!when) return faulty(sql, false);
       // An argument-scoped fault can only be decided at bind, so an unbound execution cannot be
       // classified: it faults AND is counted, rather than slipping through to the real DB unnoticed.
       const real = DB.prepare(sql);
       return {
-        ...exec(false),
-        bind: (...args: unknown[]) => (when(args) ? faulty(true) : real.bind(...args)),
+        ...exec(sql.includes("?"), false),
+        bind: (...args: unknown[]) => (when(args) ? faulty(sql, true) : real.bind(...args)),
       } as unknown as D1PreparedStatement;
     },
   } as unknown as D1Database;
@@ -355,6 +367,74 @@ describe("REQ-014 — determinism, bucketing, gaps, failures, positions", () => 
     expect(ok.anchored).toContain(day);
     expect(await failureRow("anchor-tsa", day)).toBeNull();
     expect(await failureRow("anchor-build", day)).toBeNull();
+  });
+
+  it("a D1 fault while DETERMINING the work is contained and NAMED — not an empty result that reads like success", async () => {
+    // The two pre-loop queries decide WHAT this run has to do, so a fault in either is not a day failing:
+    // there is no day to put in `failed[]`. Returning the bare three empty arrays would state "nothing to
+    // anchor", which is a different fact and a false one — hence `scan_failed`, which says the run never
+    // got as far as looking at a day.
+    const day = "2026-07-09";
+    await seed("stop.arrived", { stream_id: "s:scan1", shipment_id: "scan1", seq: 0, recorded_at: noon(day) });
+
+    const seam = faultSeam(["scan_first_day"]);
+    const res = await runDailyAnchor({ db: seam.db, r2: R2, tsa: new FakeTsaClient(), tenant: TENANT, now: FIRE });
+
+    expect(res).toEqual({ anchored: [], skipped: [], failed: [], scan_failed: { stage: "first_day", error: "D1_DOWN" } });
+    expect(seam.faults()).toBeGreaterThan(0);
+    expect(seam.unbound()).toBe(0);
+    expect(await anchorHash(day)).toBeNull(); // a day that WOULD have anchored is untouched, not lost
+
+    // DURABLE, for the same reason a failed day is: the cron (runAllTenants) discards the result, so on
+    // the scheduled path the anomalies row is all that outlives the run — and this row means the tenant
+    // anchored NOTHING, which is strictly louder than one day failing.
+    const rec = await DB.prepare("SELECT rule, severity, detail, status FROM anomalies WHERE id = ?")
+      .bind(`anchor-scan:${TENANT}:first_day`)
+      .first<{ rule: string; severity: string; detail: string; status: string }>();
+    expect(rec?.rule).toBe("anchor.scan_failed");
+    expect(rec?.severity).toBe("warn");
+    expect(rec?.status).toBe("open");
+    expect(JSON.parse(rec!.detail) as Record<string, unknown>).toMatchObject({ stage: "first_day", consecutive: 1, last_error: "D1_DOWN" });
+  });
+
+  it("the anchored-days query is contained too, and a run that cannot read it anchors NOTHING", async () => {
+    // Proceeding without the anchored-day set would re-run anchorDay for days that are already anchored,
+    // and anchorDay puts the receipt to R2 before its INSERT OR IGNORE — so it would overwrite a stored
+    // TSA receipt with a freshly stamped one, replacing the witness time that IS the evidence. The run
+    // stops instead: not knowing which days are done is not a licence to redo them.
+    const day = "2026-07-09";
+    await seed("stop.arrived", { stream_id: "s:scan2", shipment_id: "scan2", seq: 0, recorded_at: noon(day) });
+
+    const seam = faultSeam(["scan_anchored_days"]);
+    const res = await runDailyAnchor({ db: seam.db, r2: R2, tsa: new FakeTsaClient(), tenant: TENANT, now: FIRE });
+
+    expect(res.scan_failed).toEqual({ stage: "anchored_days", error: "D1_DOWN" });
+    expect(res.anchored).toEqual([]); // no day was examined...
+    expect(res.skipped).toEqual([]);
+    expect(res.failed).toEqual([]);
+    expect(await anchorHash(day)).toBeNull(); // ...and none was anchored
+    expect(await R2.get(`anchors/${TENANT}/${day}/tsr.der`)).toBeNull();
+  });
+
+  it("consecutive scan failures escalate; a run that CAN determine its work clears the marker", async () => {
+    // No seeded rows at all, so the clearing run takes the "nothing recorded yet" early exit — the path
+    // that would otherwise strand a critical alarm forever: it returns before the day loop, so if the
+    // clear lived with the day work, every later run would exit early and never reach it.
+    for (let i = 1; i <= 3; i++) {
+      const seam = faultSeam(["scan_first_day"]);
+      const res = await runDailyAnchor({ db: seam.db, r2: R2, tsa: new FakeTsaClient(), tenant: TENANT, now: FIRE });
+      expect(res.scan_failed?.stage).toBe("first_day");
+    }
+    const escalated = await DB.prepare("SELECT severity, detail FROM anomalies WHERE id = ?")
+      .bind(`anchor-scan:${TENANT}:first_day`)
+      .first<{ severity: string; detail: string }>();
+    expect(escalated?.severity).toBe("critical");
+    expect((JSON.parse(escalated!.detail) as { consecutive: number }).consecutive).toBe(3);
+
+    const ok = await runDailyAnchor({ db: DB, r2: R2, tsa: new FakeTsaClient(), tenant: TENANT, now: FIRE });
+    expect(ok.scan_failed).toBeUndefined(); // the scan succeeded — there was simply nothing to anchor
+    expect(ok).toEqual({ anchored: [], skipped: [], failed: [] });
+    expect(await DB.prepare("SELECT 1 AS x FROM anomalies WHERE id = ?").bind(`anchor-scan:${TENANT}:first_day`).first()).toBeNull();
   });
 
   it("a marker that OUTLIVES its clear is swept on a later run — a day that is anchored never keeps an anomaly", async () => {
