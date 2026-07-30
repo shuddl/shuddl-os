@@ -35,6 +35,7 @@
     "test:a11y": "tsx tools/harness/playwright-guard.ts a11y playwright.config.ts --project a11y",
     "test:e2e": "tsx tools/harness/playwright-guard.ts e2e playwright.config.ts --project e2e",
     "preflight": "tsx tools/deploy/preflight.ts",
+    "provision:prod": "tsx tools/deploy/provision-prod.ts",
     "restore:verify": "tsx tools/deploy/restore-verify.ts",
     "smoke:staging": "tsx tools/deploy/staging-smoke.ts",
     "test:acceptance": "tsx tools/acceptance/run.ts",
