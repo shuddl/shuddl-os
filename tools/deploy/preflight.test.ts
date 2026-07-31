@@ -382,11 +382,11 @@ describe("the state-file channel", () => {
   // account-side facts were unreadable, unproven, and therefore blocked no matter what was true of the
   // account. An env var is the only channel the spawn actually carries.
   it("reads its state file from PREFLIGHT_STATE when no --state flag is given", () => {
-    expect(resolveStatePath([], { PREFLIGHT_STATE: "/env/state.json" })).toBe("/env/state.json");
+    expect(resolveStatePath([], { PREFLIGHT_STATE: "/env/state.json" })).toEqual({ path: "/env/state.json", channel: "PREFLIGHT_STATE" });
   });
 
   it("lets an explicit --state flag win over the env var", () => {
-    expect(resolveStatePath(["--state", "/flag/path.json"], { PREFLIGHT_STATE: "/env/state.json" })).toBe("/flag/path.json");
+    expect(resolveStatePath(["--state", "/flag/path.json"], { PREFLIGHT_STATE: "/env/state.json" })).toEqual({ path: "/flag/path.json", channel: "--state" });
   });
 
   it("resolves to undefined when neither channel supplies a path", () => {
@@ -397,7 +397,38 @@ describe("the state-file channel", () => {
   });
 
   it("ignores a trailing --state with no value rather than reading the next flag", () => {
-    expect(resolveStatePath(["--mode", "release", "--state"], { PREFLIGHT_STATE: "/env/state.json" })).toBe("/env/state.json");
+    expect(resolveStatePath(["--mode", "release", "--state"], { PREFLIGHT_STATE: "/env/state.json" })).toEqual({ path: "/env/state.json", channel: "PREFLIGHT_STATE" });
+  });
+
+  it("names the channel it used, because the two are not interchangeable to an operator", () => {
+    // `flag()` reads only the space-separated form, so `--state=/typed/path.json` is invisible to it and the
+    // run falls back to whatever PREFLIGHT_STATE is exported in the shell. That substitution can turn stale
+    // account facts into a reported PASS, so the channel is part of the answer, not decoration.
+    const equalsForm = resolveStatePath(["--state=/typed/path.json"], { PREFLIGHT_STATE: "/stale/state.json" });
+    expect(equalsForm).toEqual({ path: "/stale/state.json", channel: "PREFLIGHT_STATE" });
+  });
+});
+
+describe("the state-file channel actually reaches the release gate", () => {
+  // The unit tests above prove resolveStatePath's precedence, but the line that CLOSES the defect is the
+  // one call site — `resolveStatePath(argv, process.env)` — plus run-gate spawning the child with an
+  // inherited environment. Both are invisible to a pure test: mutating the call site to pass `{}` restores
+  // the original bug with every assertion above still green. These two read the source text and assert the
+  // structural facts the fix depends on, in the same idiom as tools/release/ci-contract.test.ts.
+  const PREFLIGHT_SRC = readFileSync("tools/deploy/preflight.ts", "utf8");
+  const RUN_GATE_SRC = readFileSync("tools/release/run-gate.ts", "utf8");
+
+  it("passes the real process environment at the call site, not a literal", () => {
+    expect(PREFLIGHT_SRC).toMatch(/resolveStatePath\(argv,\s*process\.env\)/);
+  });
+
+  it("spawns each gate with an inherited environment", () => {
+    // spawnSync with no `env` option inherits process.env, which is the ONLY channel carrying the state
+    // path into the child. A future "let's pin the child env" refactor would silently re-open the hole and
+    // no other test in the repo would notice.
+    const spawn = /spawnSync\("pnpm",\s*args,\s*\{([^}]*)\}/.exec(RUN_GATE_SRC);
+    expect(spawn, "run-gate no longer spawns pnpm with an options object this test can read").not.toBeNull();
+    expect(spawn?.[1]).not.toMatch(/\benv\b/);
   });
 });
 

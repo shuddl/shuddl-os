@@ -545,25 +545,33 @@ function flag(argv: string[], name: string): string | undefined {
  *
  * An explicit flag still wins: an operator naming a path on the command line means that path. Absent both,
  * the answer is undefined, and undefined keeps the account-side facts UNPROVEN — which stays BLOCKED. */
-export function resolveStatePath(argv: string[], env: NodeJS.ProcessEnv): string | undefined {
+export type StateSource = { path: string; channel: "--state" | "PREFLIGHT_STATE" };
+
+export function resolveStatePath(argv: string[], env: NodeJS.ProcessEnv): StateSource | undefined {
   const fromFlag = flag(argv, "--state");
-  if (fromFlag !== undefined && fromFlag !== "") return fromFlag;
+  if (fromFlag !== undefined && fromFlag !== "") return { path: fromFlag, channel: "--state" };
   const fromEnv = env["PREFLIGHT_STATE"];
-  return fromEnv !== undefined && fromEnv !== "" ? fromEnv : undefined;
+  return fromEnv !== undefined && fromEnv !== "" ? { path: fromEnv, channel: "PREFLIGHT_STATE" } : undefined;
 }
 
 function main(): void {
   const argv = process.argv.slice(2);
   const mode = parseMode(argv);
   const environment = flag(argv, "--env") ?? process.env["RELEASE_ENVIRONMENT"] ?? "staging";
-  const statePath = resolveStatePath(argv, process.env);
+  const stateSource = resolveStatePath(argv, process.env);
+  const statePath = stateSource?.path;
 
   let state: StateFile = {};
-  if (statePath !== undefined) {
+  if (stateSource !== undefined) {
+    // Report WHICH channel supplied the path. `flag()` reads only the space-separated form, so a typo'd
+    // `--state=/path/to.json` is not seen as a flag at all and the run silently falls back to whatever
+    // PREFLIGHT_STATE happens to be exported in the operator's shell — possibly stale facts reported as a
+    // PASS. Naming the channel on every run makes that substitution visible instead of silent.
+    console.log(`preflight: state file ${stateSource.path} (via ${stateSource.channel})`);
     try {
-      state = JSON.parse(readFileSync(statePath, "utf8")) as StateFile;
+      state = JSON.parse(readFileSync(stateSource.path, "utf8")) as StateFile;
     } catch (e) {
-      console.error(`preflight: could not read state file ${statePath}: ${e instanceof Error ? e.message : String(e)}`);
+      console.error(`preflight: could not read state file ${stateSource.path}: ${e instanceof Error ? e.message : String(e)}`);
       process.exit(EVIDENCE_EXIT.MALFORMED);
     }
   }
