@@ -554,16 +554,33 @@ describe("the real repository configuration", () => {
     expect(report.problems.map((p) => p.code)).not.toContain("binding-drift");
   });
 
-  it("keeps BLOCKING the converged platform database as unprovisioned — convergence is not provisioning", () => {
-    // Closing the drift must not quietly promote a database that does not exist. Billing's old id was a
-    // well-formed random UUID that passed the placeholder check; the converged id is the api placeholder,
-    // so BOTH workers now block on it. A green here would mean the gate stopped telling the truth.
+  it("never reports the converged platform database as provisioned in one worker and not the other", () => {
+    // ORIGINAL INTENT (2026-07-25): closing the api/billing PLATFORM_TENANT_DB drift must not quietly
+    // promote a database that did not exist. Billing's old id was a well-formed random UUID that PASSED
+    // the placeholder check; converging it onto the api placeholder made both workers block, which was the
+    // honest outcome. That version asserted both were placeholders.
+    //
+    // RETIRED 2026-07-31: `shuddl-t-platform-staging` was created and migrated, so the placeholder
+    // assertion now fails for the right reason — the database exists. The intent survives as the property
+    // that never expires: whatever the id is, BOTH workers must agree on it, and the preflight must reach
+    // the SAME verdict for both. A per-worker divergence is the actual defect, and it is invisible to a
+    // test that only checks for placeholders.
     const api = targetFromWrangler(parseWranglerToml(readFileSync("workers/api/wrangler.toml", "utf8")), "staging");
     const billing = targetFromWrangler(parseWranglerToml(readFileSync("workers/billing/wrangler.toml", "utf8")), "staging");
+    const idOf = (t: typeof api): string => {
+      const d = t.d1.find((x) => x.binding === "PLATFORM_TENANT_DB");
+      if (!d) throw new Error(`${t.worker} declares no PLATFORM_TENANT_DB in staging`);
+      return `${d.databaseName}|${d.databaseId}`;
+    };
+    expect(idOf(billing)).toBe(idOf(api));
+
     const report = checkDeployTarget({ environment: "staging", workers: [api, billing], secrets: {}, corsOrigins: [], now: NOW });
-    const placeholders = report.problems.filter((p) => p.code === "placeholder-resource-id");
-    expect(placeholders.map((p) => p.resource)).toContain("shuddl-billing-staging.PLATFORM_TENANT_DB");
-    expect(placeholders.map((p) => p.resource)).toContain("shuddl-api-staging.PLATFORM_TENANT_DB");
+    expect(report.problems.map((p) => p.code)).not.toContain("binding-drift");
+    // One resource, one verdict: it is either flagged for BOTH workers or for neither, never for one.
+    const flagged = report.problems
+      .filter((p) => p.code === "placeholder-resource-id" && p.resource.endsWith(".PLATFORM_TENANT_DB"))
+      .map((p) => p.resource);
+    expect(flagged.length === 0 || flagged.length === 2, `one-sided verdict: ${flagged.join(", ")}`).toBe(true);
   });
 
   it("resolves PLATFORM_TENANT_DB to ONE database in every deployable scope", () => {
