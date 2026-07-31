@@ -108,7 +108,7 @@ database_name = "shuddl-t-platform-staging"
 # BLOCK this line was hiding: the previous value was a well-formed random UUID, so an unprovisioned
 # database read as provisioned while api's placeholder was correctly flagged. No platform D1 exists in
 # staging (docs/ops/DEPLOYMENT.md); the gate must keep saying so until one does.
-database_id = "00000000-0000-4000-8000-000000000014"
+database_id = "ebbcd4f9-fc66-4529-a3aa-de51fc67bc8f"
 
 # WP-14 Task 10 (REQ-123/025) — the api worker service binding targets the STAGING api worker (must be deployed).
 # The credit flow appends through its real sequencer over this binding. NO secrets in this toml (REQ-154).

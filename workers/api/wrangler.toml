@@ -79,6 +79,16 @@ name = "shuddl-api-staging"
 [env.staging.vars]
 ENVIRONMENT = "staging"
 
+# Staging needs a reachable hostname for the same reason prod does: `tools/deploy/staging-smoke.ts`
+# drives a real POD->invoice chain over HTTPS through the DEPLOYED api, and an unrouted worker cannot
+# be smoked. Routing staging is also what keeps that proof OFF the production ledger — prod events are
+# append-only, so a synthetic smoke shipment there would be permanent.
+# SINGLE-level host on purpose: Cloudflare universal TLS covers `*.shuddl.tech` but NOT a second label,
+# so `api.staging.shuddl.tech` fails the handshake while `api-staging.shuddl.tech` works.
+[[env.staging.routes]]
+pattern = "api-staging.shuddl.tech/*"
+zone_name = "shuddl.tech"
+
 [[env.staging.d1_databases]]
 binding = "TENANT_A_DB"
 database_name = "shuddl-t-tenant-a-staging"
@@ -99,19 +109,19 @@ database_id = "8e238970-2ed3-494d-960f-e4af082c1e8e"
 [[env.staging.d1_databases]]
 binding = "PLATFORM_TENANT_DB"
 database_name = "shuddl-t-platform-staging"
-database_id = "00000000-0000-4000-8000-000000000014"
+database_id = "ebbcd4f9-fc66-4529-a3aa-de51fc67bc8f"
 
 # WP-14 Task 2 (REQ-121/025): the tenant-D1 POOL (PLG DARK — real resources pre-provisioned at R4). The
 # placeholder ids are intentional: WP-14 ships fail-closed and no code path binds these in staging until R4.
 [[env.staging.d1_databases]]
 binding = "TENANT_POOL_01_DB"
 database_name = "shuddl-t-pool-01-staging"
-database_id = "00000000-0000-4000-8000-000000000121"
+database_id = "6f087baf-ae70-4c6c-8ef4-79ae42b5e939"
 
 [[env.staging.d1_databases]]
 binding = "TENANT_POOL_02_DB"
 database_name = "shuddl-t-pool-02-staging"
-database_id = "00000000-0000-4000-8000-000000000122"
+database_id = "fbebe252-f33b-4ac7-b3f6-4d775e036ef5"
 
 [[env.staging.kv_namespaces]]
 binding = "IDEMPOTENCY"
