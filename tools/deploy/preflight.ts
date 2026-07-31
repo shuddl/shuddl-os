@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { EVIDENCE_EXIT, formatGateResult, parseMode, type GateResult } from "../release/evidence.js";
 
 // V1 remediation Task 15 (REQ-288 / REQ-114 / REQ-117 / REQ-284) — THE ENVIRONMENT PREFLIGHT.
@@ -528,6 +529,38 @@ export function bindingSets(t: WorkerTarget): Record<string, string[]> {
 // unproven is BLOCKED — the preflight never assumes an absent fact is a satisfied one.
 type StateFile = Partial<Pick<DeployTarget, "secrets" | "corsOrigins" | "sender" | "tsa" | "backups">>;
 
+/** A provenance label for the evidence record: WHICH channel supplied the state file, and a digest of the
+ * facts it asserted.
+ *
+ * WHY THE RECORD NEEDS THIS. Before the PREFLIGHT_STATE channel existed, `deploy-preflight` could only
+ * ever be BLOCKED inside a release run, so its record was unambiguous. Now several of the checks it counts
+ * are satisfied by a hand-written, untracked JSON file — and `##SHUDDL-GATE##` is the ONLY thing run-gate
+ * persists. A PASS whose provenance lives on stdout is a PASS nobody can audit later: a stale
+ * PREFLIGHT_STATE still exported in an operator's shell produces a record indistinguishable from one
+ * earned against a freshly verified account.
+ *
+ * WHAT IS DIGESTED, AND WHAT IS NOT. The facts, never the values — secret NAMES only, because this string
+ * lands in an artifact and a secret value there would be a leak with a long tail. The file PATH is
+ * excluded too: it is a local filename, not a fact about the account, and two operators asserting
+ * identical facts from different paths should produce the same digest. Arrays and key sets are sorted so
+ * the digest is a function of the assertion rather than of the file's formatting.
+ *
+ * Deliberately node:crypto rather than the ledger's `sha256Hex`: this labels an artifact, it does not bind
+ * a ledger fact, and keeping it synchronous keeps `main()` synchronous. */
+export function stateProvenance(source: StateSource | undefined, state: StateFile): string {
+  if (source === undefined) return "state: none";
+  const facts = {
+    secrets: Object.keys(state.secrets ?? {}).sort(),
+    corsOrigins: [...(state.corsOrigins ?? [])].sort(),
+    sender: state.sender?.from ?? null,
+    senderVerified: state.sender?.domainVerified ?? null,
+    tsa: state.tsa?.url ?? null,
+    backupsAt: state.backups?.lastManifestAt ?? null,
+    retentionDays: state.backups?.retentionDays ?? null,
+  };
+  return `state: ${source.channel} sha256:${createHash("sha256").update(JSON.stringify(facts)).digest("hex").slice(0, 12)}`;
+}
+
 function flag(argv: string[], name: string): string | undefined {
   const i = argv.indexOf(name);
   return i >= 0 ? argv[i + 1] : undefined;
@@ -613,8 +646,8 @@ function main(): void {
   else console.error(`\npreflight: BLOCKED — ${blocking.length} unsatisfied prerequisite${blocking.length === 1 ? "" : "s"}. This is not a green.`);
 
   const result: GateResult = blocking.length === 0
-    ? { gate: "deploy-preflight", status: "PASS", executed: true, assertions: report.checked, detail: `${report.checked} checks passed for ${environment}` }
-    : { gate: "deploy-preflight", status: "BLOCKED", executed: true, assertions: report.checked, detail: `${blocking.length} blocked: ${[...new Set(blocking.map((p) => p.code))].join(", ")}` };
+    ? { gate: "deploy-preflight", status: "PASS", executed: true, assertions: report.checked, detail: `${report.checked} checks passed for ${environment} (${stateProvenance(stateSource, state)})` }
+    : { gate: "deploy-preflight", status: "BLOCKED", executed: true, assertions: report.checked, detail: `${blocking.length} blocked: ${[...new Set(blocking.map((p) => p.code))].join(", ")} (${stateProvenance(stateSource, state)})` };
   if (mode !== "local") console.log(formatGateResult(result));
 
   process.exit(blocking.length === 0 ? EVIDENCE_EXIT.OK : EVIDENCE_EXIT.PREREQ_BLOCKED);

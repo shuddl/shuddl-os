@@ -34,3 +34,7 @@ tests/visual/blessed/*-actual.png
 # macOS/iCloud name-collision duplicates (see WP-06 session note) — never commit these
 * 2.*
 *\ 2.*
+
+# Operator-supplied preflight state (account-side facts). Named at the repo root by
+# docs/ops/LAUNCH-RUNBOOK.md Step 3 — it asserts what is bound in a live account and is never committed.
+*-state.json

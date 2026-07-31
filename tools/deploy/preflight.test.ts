@@ -4,6 +4,7 @@ import {
   checkDeployTarget,
   parseWranglerToml,
   resolveStatePath,
+  stateProvenance,
   targetFromWrangler,
   REQUIRED_BINDINGS,
   WORKER_CONFIGS,
@@ -419,6 +420,54 @@ describe("the state-file channel", () => {
     // account facts into a reported PASS, so the channel is part of the answer, not decoration.
     const equalsForm = resolveStatePath(["--state=/typed/path.json"], { PREFLIGHT_STATE: "/stale/state.json" });
     expect(equalsForm).toEqual({ path: "/stale/state.json", channel: "PREFLIGHT_STATE" });
+  });
+});
+
+describe("the evidence record says WHERE a PASS came from", () => {
+  // Before PREFLIGHT_STATE existed, deploy-preflight could only ever be BLOCKED in a release run, so its
+  // record was unambiguous. Now several of the checks are satisfied by a hand-written, untracked JSON file
+  // — and `##SHUDDL-GATE##` is the ONLY thing run-gate persists. A PASS whose provenance lives on stdout
+  // is a PASS nobody can audit six months later: a stale PREFLIGHT_STATE left exported in a shell produces
+  // a record indistinguishable from one earned against a re-verified account.
+  it("names the channel and digests the asserted facts", () => {
+    const state = {
+      secrets: { JWT_SECRET: "value-must-never-be-digested" },
+      corsOrigins: ["https://command.shuddl.tech"],
+      tsa: { url: "https://freetsa.org/tsr" },
+    };
+    const p = stateProvenance({ path: "/tmp/s.json", channel: "PREFLIGHT_STATE" }, state);
+    expect(p).toMatch(/^state: PREFLIGHT_STATE sha256:[0-9a-f]{12}$/);
+    // The PATH is deliberately absent — it is a local filename, not a fact about the account, and it
+    // varies between operators who assert exactly the same thing.
+    expect(p).not.toContain("/tmp/s.json");
+  });
+
+  it("digests the facts asserted, never a secret VALUE", () => {
+    // The record is written to an artifact. A secret value reaching it would be a leak with a long tail.
+    const names = { secrets: { JWT_SECRET: "aaa" } };
+    const sameNamesOtherValues = { secrets: { JWT_SECRET: "zzz" } };
+    const src = { path: "/p", channel: "--state" } as const;
+    expect(stateProvenance(src, names)).toBe(stateProvenance(src, sameNamesOtherValues));
+    // …but a DIFFERENT set of secret names is a different assertion and must digest differently.
+    expect(stateProvenance(src, { secrets: { JWT_SECRET: "aaa", RESEND_API_KEY: "b" } })).not.toBe(stateProvenance(src, names));
+  });
+
+  it("is stable under reordering, so two operators asserting the same facts produce the same digest", () => {
+    const src = { path: "/p", channel: "--state" } as const;
+    const a = { corsOrigins: ["https://a.shuddl.tech", "https://b.shuddl.tech"], secrets: { X: "1", Y: "2" } };
+    const b = { corsOrigins: ["https://b.shuddl.tech", "https://a.shuddl.tech"], secrets: { Y: "2", X: "1" } };
+    expect(stateProvenance(src, a)).toBe(stateProvenance(src, b));
+  });
+
+  it("says plainly when no state file was supplied", () => {
+    expect(stateProvenance(undefined, {})).toBe("state: none");
+  });
+
+  it("distinguishes a changed account fact — the whole point of digesting it", () => {
+    const src = { path: "/p", channel: "--state" } as const;
+    const before = { tsa: { url: "https://freetsa.org/tsr" }, backups: { lastManifestAt: "2026-07-31T00:00:00.000Z", retentionDays: 30 } };
+    const after = { tsa: { url: "https://freetsa.org/tsr" }, backups: { lastManifestAt: "2026-06-01T00:00:00.000Z", retentionDays: 30 } };
+    expect(stateProvenance(src, before)).not.toBe(stateProvenance(src, after));
   });
 });
 
