@@ -636,7 +636,56 @@ Stripe webhook refuses both an unsigned and a forged request with **400**.
 bound, a backup exists. It is not `verify:release`, and it says nothing about the five fixture-gated
 proofs (`fixtures`, `rater-parity`, `invoice-parity`, `concierge-parse`, `identity-leak`), which still
 BLOCK on private engagement data absent from this repository. It also does not mean the product has served
-a real shipment: no tenant is onboarded, the surfaces are not deployed, and **outbound email is
-deliberately dark** — `EVIDENCE_FROM` is absent from the agents prod scope, so `evidenceSender()` stays a
-`NotConfiguredSender`. The state file backing this PASS is an operator artifact and is not committed; it
-names secrets.
+a real shipment: no tenant is onboarded, ~~the surfaces are not deployed~~ (**they are, later the same day
+— see the sweep below**), and **outbound email is deliberately dark** — `EVIDENCE_FROM` is absent from the
+agents prod scope, so `evidenceSender()` stays a `NotConfiguredSender`. The state file backing this PASS is
+an operator artifact and is not committed; it names secrets.
+
+---
+
+## Release sweep — 2026-07-31, after the surfaces shipped
+
+`RELEASE_ENVIRONMENT=prod PREFLIGHT_STATE=<operator state file> pnpm verify:release` →
+**16 PASS, 8 BLOCKED, aggregate BLOCKED (exit 2) — NOT PROMOTABLE.**
+
+Two gates changed state, and neither changed because a test was loosened:
+
+| Gate | Was | Now | Why |
+|---|---|---|---|
+| `deploy-preflight` | BLOCKED, always | **PASS, 72 checks** | `run-gate` spawns the preflight with `--mode` only, and the preflight read its state file from `--state` alone — so this gate was *structurally incapable* of reporting PASS regardless of the account. `PREFLIGHT_STATE` is the channel the spawn actually carries |
+| `perf` · `visual` · `a11y` · `e2e` | BLOCKED (no browser) | **PASS** (1 / 5 / 4 / 6) | the matching Chromium build was installed; nothing about the assertions changed |
+
+**A PASS on this gate now names its own provenance**, because it depends on an untracked operator file:
+`72 checks passed for prod (state: PREFLIGHT_STATE sha256:a89a9229dc99)`. The digest covers the facts
+asserted — secret NAMES, origins, sender, TSA, backup posture — never a value, since this string lands in
+an artifact. A BLOCKED record carries `(state: none)`, which is usually the whole explanation.
+
+**The 8 that remain, and why none of them is a regression:**
+
+- **5 need private engagement data** — `fixtures`, `rater-parity`, `invoice-parity`, `concierge-parse` (nine
+  un-vendored fixture sets) and `identity-leak` (no denylist). Synthesising any of them would make the gate
+  lie about the only thing it checks.
+- **3 need external inputs** — `backup-manifest` (OIDC credentials), `restore-verify` (`run-gate` passes it
+  no snapshot pair, so it cannot see that a real drill *was* run and passed — `dr-backups.md`), and
+  `staging-smoke` (`SMOKE_API_BASE` unset).
+
+**`staging-smoke` was left BLOCKED deliberately.** It seeds a synthetic shipment and drives it through to a
+penny-exact `invoice.issued`. Pointed at production that writes synthetic freight into an **append-only**
+ledger where corrections are new events and nothing can be removed (I3, I7). Clearing this gate is an
+owner's decision about production data, not a step to take in passing.
+
+### The surfaces, verified in a browser rather than by deploy output
+
+`command` · `portal` · `driver` · `track.shuddl.tech` serve as assets-only Workers on custom domains
+(`track` is a route inside the portal bundle, not a fourth surface). `PROD_SURFACE_BASE=shuddl.tech pnpm
+test:surfaces` → **5 passed**. What it establishes: each surface loads a bundle that actually runs, reaches
+`api.shuddl.tech` and no other host, and states plainly that it has no session rather than rendering a calm
+empty board — command's unbilled-PODs figure is an em dash, not a zero, because a zero is a claim about
+freight made by a surface that never got to look.
+
+That gate is honest about its own limits, having failed to be once: its first driver test asserted only
+that no same-origin API call occurred, and an unauthenticated driver makes **no** calls at all, so it was
+green for every build — including a bundle that never loaded. It now asserts the rendered screen and reads
+the shipped script bytes. Portal's request-shaped assertion is vacuous for the same structural reason; its
+rendered-text assertion is what carries it, and command and track are the two that positively prove they
+reached the API.
