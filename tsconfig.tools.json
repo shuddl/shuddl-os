@@ -25,17 +25,17 @@
     "**/dist/**",
     // Has its own config (tools/live/tsconfig.render.json) because it pulls .tsx sources in and needs the
     // automatic JSX runtime + DOM lib. It is a one-off local render tool, not part of any gate.
-    "tools/live/render-email.ts",
-    // HELD OUT, and this is a finding rather than a convenience. Both files write `use: { reducedMotion:
-    // "reduce" }`, which does not typecheck — and the reason it does not is that Playwright 1.61 has no
-    // such test option: `_combinedContextOptions` (playwright/lib/index.js) is assembled from an
-    // enumerated fixture list that does not include it, plus `contextOptions`. Playwright ignores the
-    // unknown key silently (`playwright test --list` loads both configs without complaint), so the
-    // "motion" axis of the blessed-screenshot determinism contract is currently INERT. The correct
-    // spelling is `use: { contextOptions: { reducedMotion: "reduce" } }` — but applying it CHANGES the
-    // captured pixels (prefers-reduced-motion would finally reach the page), which is a re-blessing
-    // decision, not a typecheck fix. Fold these back in with that change.
-    "playwright.config.ts",
-    "playwright.prod.config.ts"
+    "tools/live/render-email.ts"
+    // playwright.config.ts / playwright.prod.config.ts USED to be excluded here, because both wrote
+    // `use: { reducedMotion: "reduce" }` and that does not typecheck: Playwright 1.61 has no such test
+    // option (`_combinedContextOptions` is assembled from an enumerated fixture list that does not
+    // include it, plus `contextOptions`), so it was dropped silently and the "motion" axis of the
+    // blessed-screenshot determinism contract was INERT. That was corrected on 2026-07-29 —
+    // `use: { contextOptions: { reducedMotion: "reduce" } }` in the three browser projects, and dropped
+    // outright from the prod field gate, which takes no screenshots — and the exclusion came off with
+    // the reason for it. Re-capturing with the preference actually delivered moved zero pixels, so no
+    // ref was re-blessed. Keeping them IN is now the third guard on the spelling: a revert to the bare
+    // key fails `pnpm typecheck` as well as the capture assertion in tests/visual/screens.spec.ts and
+    // the config assertion in tools/release/ci-contract.test.ts.
   ]
 }

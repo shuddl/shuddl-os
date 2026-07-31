@@ -29,7 +29,22 @@ export default defineConfig({
     {
       // THE DETERMINISM CONTRACT for the blessed refs. A baseline is only worth having if the only
       // thing that can change it is our own code, so the capture is pinned on three axes:
-      //   • motion      — reducedMotion + `animations: "disabled"`, so pulses and count-ups rest.
+      //   • motion      — `contextOptions.reducedMotion` + `animations: "disabled"`, so pulses and
+      //                   count-ups rest. The two halves cover different machinery and neither
+      //                   substitutes for the other: `animations: "disabled"` is a screenshot option
+      //                   that rests CSS animations/transitions, while the map pulse (MapCanvas) and
+      //                   CountUp (design/motion) are requestAnimationFrame loops that read
+      //                   `prefers-reduced-motion` themselves and are untouched by it.
+      //                   THE SPELLING IS LOAD-BEARING. This was `use: { reducedMotion: "reduce" }`
+      //                   until 2026-07-29 — not a Playwright test option in 1.61 (the fixture list
+      //                   behind `_combinedContextOptions` has no such entry), so it was dropped
+      //                   silently and this axis was INERT for the whole life of the blessed refs:
+      //                   `matchMedia("(prefers-reduced-motion: reduce)").matches` was `false` in every
+      //                   capture. The refs were NOT compromised — re-running them with the preference
+      //                   actually delivered moved zero pixels — but a contract that names an axis it
+      //                   does not enforce is a gate that cannot report PASS. Guarded now in two
+      //                   places: tests/visual/screens.spec.ts asserts the media query at the point of
+      //                   capture, and tools/release/ci-contract.test.ts asserts this config object.
       //   • data        — every server read the screens make is fulfilled with a pinned payload, and
       //                   every rendered timestamp comes from a fixed stamp, never a clock.
       //   • third party — the spec ABORTS the public demo basemap (tiles + glyphs). It is a live fetch
@@ -42,19 +57,19 @@ export default defineConfig({
       name: "visual",
       testDir: "./tests/visual",
       testMatch: /.*\.spec\.ts$/,
-      use: { reducedMotion: "reduce" },
+      use: { contextOptions: { reducedMotion: "reduce" } },
     },
     {
       name: "e2e",
       testDir: "./tests/e2e",
       testMatch: /(driver-offline-sync|portal-isolation)\.spec\.ts$/,
-      use: { reducedMotion: "reduce" },
+      use: { contextOptions: { reducedMotion: "reduce" } },
     },
     {
       name: "a11y",
       testDir: "./tests/e2e",
       testMatch: /accessibility\.spec\.ts$/,
-      use: { reducedMotion: "reduce" },
+      use: { contextOptions: { reducedMotion: "reduce" } },
     },
   ],
   webServer: [

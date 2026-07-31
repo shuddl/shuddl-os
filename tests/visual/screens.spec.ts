@@ -284,6 +284,20 @@ for (const s of SCREENS) {
 
     await s.setup?.(page);
     await page.goto(s.url);
+
+    // THE MOTION AXIS, ASSERTED AT THE POINT OF CAPTURE. The config used to write `use: {
+    // reducedMotion: "reduce" }`, which is not a Playwright test option — the only channel is
+    // `contextOptions` — so the key was dropped silently and this axis of the determinism contract was
+    // INERT for the whole life of the blessed refs. Nothing failed, because a typo'd option cannot fail.
+    // The config spelling is guarded structurally in tools/release/ci-contract.test.ts; this is the
+    // other half — the capture itself refusing to proceed unless the preference actually reached the
+    // page. `animations: "disabled"` only rests CSS; the map pulse and CountUp are rAF-driven and read
+    // this media query directly (packages/map/src/MapCanvas.tsx, packages/design/src/motion.tsx).
+    expect(
+      await page.evaluate(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches),
+      "the capture is not running under reduced motion — the determinism contract's motion axis is inert",
+    ).toBe(true);
+
     await s.ready(page);
     await settle(page);
 

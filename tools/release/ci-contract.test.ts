@@ -63,6 +63,57 @@ describe("each browser gate selects its own Playwright project", () => {
   });
 });
 
+describe("the blessed-screenshot determinism contract actually delivers reduced motion", () => {
+  // THE DEFECT THIS EXISTS FOR. playwright.config.ts declared the motion axis of its determinism
+  // contract as `use: { reducedMotion: "reduce" }` on all three browser projects. That is not a
+  // Playwright test option — 1.61 assembles `_combinedContextOptions` from an enumerated fixture list
+  // that has no such entry, plus `contextOptions` — so the key was dropped SILENTLY. The config loaded
+  // clean, every gate stayed green, and `matchMedia("(prefers-reduced-motion: reduce)").matches` was
+  // `false` in every blessed capture for the whole life of the refs. A typo'd option cannot fail, which
+  // is exactly why it survived: the only thing that noticed was a typecheck the config was excluded
+  // from.
+  //
+  // These assertions read the RESOLVED CONFIG OBJECT — the same object Playwright consumes — rather
+  // than the file's text, so they cannot be satisfied by a comment and cannot be fooled by
+  // reformatting. Reverting either config to the bare key turns them RED.
+  //
+  // The sibling guards, deliberately at different altitudes: tests/visual/screens.spec.ts asserts the
+  // media query inside the browser at the point of capture (the end of the channel), and
+  // tsconfig.tools.json now compiles both configs, so the bare key is a type error too.
+
+  it("pins reduced motion through contextOptions — the only channel Playwright reads — on every project", async () => {
+    const config = (await import("../../playwright.config.js")).default;
+    const projects = config.projects ?? [];
+    expect(projects.map((p) => p.name)).toEqual(["visual", "e2e", "a11y"]);
+
+    for (const p of projects) {
+      const use = p.use ?? {};
+      // The trap, named. `use.reducedMotion` is the spelling that looks right, typechecks nowhere, and
+      // does nothing. Its presence is the regression, whether or not contextOptions is also set.
+      expect(Object.keys(use), `${p.name}: reducedMotion sits directly on \`use\`, where Playwright never reads it`).not.toContain("reducedMotion");
+      expect(use.contextOptions?.reducedMotion, `${p.name}: the capture is not pinned to reduced motion`).toBe("reduce");
+    }
+  });
+
+  it("keeps the capture's own assertion that the preference reached the page", () => {
+    // Config-shape alone would still pass if a future Playwright renamed the channel. The screenshot
+    // spec asks the browser directly, and that question must not be quietly deleted.
+    const SPEC = readFileSync("tests/visual/screens.spec.ts", "utf8");
+    expect(SPEC).toMatch(/matchMedia\("\(prefers-reduced-motion: reduce\)"\)\.matches/);
+  });
+
+  it("does NOT pin reduced motion on the deployed-surface field gate", async () => {
+    // A deliberate asymmetry, not an oversight. playwright.prod.config.ts takes no screenshots, so it
+    // has no baseline to keep deterministic, and its entire purpose is to observe what a stranger sees
+    // — a stranger who does not arrive with a non-default OS accessibility preference set. Copying the
+    // knob across would make the field observation less faithful, not more.
+    const prod = (await import("../../playwright.prod.config.js")).default;
+    const use = prod.use ?? {};
+    expect(Object.keys(use)).not.toContain("reducedMotion");
+    expect(use.contextOptions?.reducedMotion).toBeUndefined();
+  });
+});
+
 describe("CI supply-chain + secret surface", () => {
   it("runs a production dependency audit", () => {
     expect(CI).toMatch(/audit --prod/);
