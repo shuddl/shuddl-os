@@ -8,12 +8,12 @@
 
 `.github/workflows/nightly.yml` → job `backup`, 08:00 UTC daily.
 
-1. Exports every tenant and control D1 with `wrangler d1 export <db> --remote`:
-   `shuddl-control-staging`, `shuddl-t-tenant-a-staging`, `shuddl-t-tenant-b-staging`,
-   `shuddl-t-platform-staging`.
+1. Runs `pnpm backup -- --env <env> --mode release` (`tools/deploy/backup.ts`), which DERIVES the
+   database set from the committed `[env.<env>]` scopes — six for staging, six for production, never a
+   list — and exports each with `wrangler d1 export <db> --remote`. One failed export fails the run.
 2. Writes `manifest.json` — per-file sha256 + byte size, the environment, the commit, `takenAt`, the
-   retention window, and a `digest` over the whole manifest. That digest is what
-   `tools/deploy/restore-verify.ts` reconciles against a restored database.
+   retention window, and a `digest` (canonical-JSON sha256 over the manifest body). That digest is what
+   `tools/deploy/restore-verify.ts` reconciles against a restored database. Never over a partial export.
 3. Retains the artifact for 30 days.
 
 **When `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` are unbound the job exits 2 (BLOCKED) and takes
