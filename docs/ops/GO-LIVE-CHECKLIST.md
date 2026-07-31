@@ -335,7 +335,7 @@ moment the environment is genuinely fixed, with no code change.
 
 | Preflight verdict | prod | staging | Hold row |
 |---|---|---|---|
-| `placeholder-resource-id` | 19 | — | Production resources |
+| `placeholder-resource-id` | 19 | — | ~~Production resources~~ **PROVISIONED + DEPLOYED 2026-07-30/31** |
 | `placeholder-resource-id` | — | 5 | Staging placeholder ids |
 | `missing-secret` | 4 | 4 | Secrets bound |
 | `no-origins` | 1 | 1 | CORS origins |

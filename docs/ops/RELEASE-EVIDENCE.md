@@ -612,3 +612,31 @@ five rows.
 record's verdict is **NOT PROMOTABLE**, and the reason is now narrow and nameable: five absent private
 inputs, not a runtime that could not start and not a defect in the build. "Ready to launch" remains false,
 and nothing in this sweep moves it.
+
+## Production preflight — PASS, 2026-07-31
+
+`pnpm exec tsx tools/deploy/preflight.ts --env prod --state <operator state file>` →
+**`PASS — every declared binding, reference, secret, origin, and backup obligation is satisfied.`** (72 checks)
+
+It read **BLOCKED, 26** on the morning of 2026-07-30. What closed it, in order:
+
+| Was | Cleared by |
+|---|---|
+| 19 × `placeholder-resource-id` | `pnpm provision:prod --apply` — 6 D1, 2 KV, 1 R2 created in the product account, 19 ids written across 5 configs, one id per logical resource |
+| 4 × `missing-secret` | `wrangler secret put` ×4. `JWT_SECRET` (api+mcp), `PLATFORM_INTERNAL_SECRET` (api+billing) and `RESEND_API_KEY` (agents+api) each carry ONE value across the pair that reads them; `STRIPE_WEBHOOK_SECRET` is the signing secret of a live Stripe webhook endpoint on `billing.shuddl.tech/webhooks/stripe` |
+| `no-origins` | the four real browser origins, declared in `CORS_ALLOWED_ORIGINS` and in the state file |
+| `tsa-unconfigured` | `https://freetsa.org/tsr`, the endpoint staging already uses |
+| `no-backup` | `pnpm backup -- --env prod` — 6 databases exported, manifest digest `47e4d9ec…`, `##SHUDDL-GATE## backup-manifest PASS assertions=6` |
+
+**Deployed and verified live**, not merely configured: `api.shuddl.tech/v1/board` returns **401** without a
+token (the gate is server-side), `billing.shuddl.tech/health` and `mcp.shuddl.tech/` return 200, and the
+Stripe webhook refuses both an unsigned and a forged request with **400**.
+
+**What this PASS does NOT mean.** It is the *deploy* preflight: every binding resolves, every secret is
+bound, a backup exists. It is not `verify:release`, and it says nothing about the five fixture-gated
+proofs (`fixtures`, `rater-parity`, `invoice-parity`, `concierge-parse`, `identity-leak`), which still
+BLOCK on private engagement data absent from this repository. It also does not mean the product has served
+a real shipment: no tenant is onboarded, the surfaces are not deployed, and **outbound email is
+deliberately dark** — `EVIDENCE_FROM` is absent from the agents prod scope, so `evidenceSender()` stays a
+`NotConfiguredSender`. The state file backing this PASS is an operator artifact and is not committed; it
+names secrets.
