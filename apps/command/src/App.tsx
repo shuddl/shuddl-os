@@ -13,7 +13,7 @@ import {
 } from "@shuddl/map";
 import { ApiError, get, post } from "./lib/api.js";
 import { fetchBoard, fetchShipmentEvents } from "./lib/board.js";
-import { clear as clearSession } from "./session.js";
+import { adoptTokenFromUrl, clear as clearSession, getToken } from "./session.js";
 import { CommandBar } from "./command/CommandBar.js";
 import type { CommandDeps } from "./command/registry.js";
 import { IntakeFlow } from "./intake/IntakeFlow.js";
@@ -134,6 +134,18 @@ function useShipmentEvents(shipmentId: string | null): LensEvent[] {
   return events;
 }
 
+// Resolve the session ONCE, on the first render: adopt a magic-link `?token=` if the URL carries one —
+// persisting it and STRIPPING it from the URL so the bearer never lingers in history or a shared link — then
+// report the active bearer. This mirrors the portal's initialMode() exactly (apps/portal/src/App.tsx); command
+// had the adopt function built and unit-tested but NEVER called it, so `command.shuddl.tech/?token=…` silently
+// dropped its token and the operator's first board read went out unauthenticated. Nothing is verified here:
+// the server lens is the only real gate (REQ-030/081), and a session-less visitor still gets the honest 401
+// re-auth banner below rather than a login screen (there is no magic-link endpoint on this surface yet).
+function initialSession(): string | null {
+  adoptTokenFromUrl();
+  return getToken();
+}
+
 function currentLocation(): { pathname: string; search: string; hash: string } {
   return { pathname: window.location.pathname, search: window.location.search, hash: window.location.hash };
 }
@@ -157,6 +169,11 @@ function useRouter(): { route: Route; navigate: (path: string) => void } {
 }
 
 export function App(): React.JSX.Element {
+  // Adopt the magic-link token in a useState INITIALIZER — it runs during the FIRST render, before the board
+  // and KPI effects fire, so the adopted bearer is persisted in time for the very first server read (the same
+  // ordering guarantee the portal relies on). The value itself is not rendered: this surface's session state
+  // is expressed by what the server says (the 401 re-auth note below), never by a client-side claim.
+  useState(initialSession);
   const perf = usePerfMode();
   // ?perf ⇒ the deterministic 1,000-entity fixture (frame-budget harness); otherwise the REAL live board.
   const perfSource = useMemo(() => (perf ? fleet1k() : null), [perf]);

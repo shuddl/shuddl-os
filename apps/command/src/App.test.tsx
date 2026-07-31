@@ -36,8 +36,9 @@ function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 }
 
-/** A fetch stub that routes by URL: the board read, the per-shipment event tail, else 404. */
-function stubFetch(routes: { board?: unknown; events?: Record<string, unknown>; boardStatus?: number }): void {
+/** A fetch stub that routes by URL: the board read, the per-shipment event tail, else 404. Returns the mock
+ *  so a test can inspect what the surface actually SENT (e.g. whether a bearer rode the first board read). */
+function stubFetch(routes: { board?: unknown; events?: Record<string, unknown>; boardStatus?: number }): ReturnType<typeof vi.fn> {
   const mock = vi.fn().mockImplementation((url: string) => {
     if (url.endsWith("/v1/board")) return Promise.resolve(jsonResponse(routes.board ?? { board: [] }, routes.boardStatus ?? 200));
     const m = url.match(/\/v1\/shipments\/([^/]+)\/events/);
@@ -55,6 +56,7 @@ function stubFetch(routes: { board?: unknown; events?: Record<string, unknown>; 
     return Promise.resolve(jsonResponse({ code: "NOT_FOUND", message: "NOT FOUND" }, 404));
   });
   vi.stubGlobal("fetch", mock);
+  return mock;
 }
 
 describe("command map home — real board feed (REQ-073/080, demo #5)", () => {
@@ -131,6 +133,69 @@ describe("command map home — real board feed (REQ-073/080, demo #5)", () => {
     // The lens panel renders the REAL ledger tail, not the old hardcoded PICKUP/IN TRANSIT stub.
     expect(await screen.findByText("pod.signed")).toBeTruthy();
     expect(screen.queryByText("IN TRANSIT")).toBeNull();
+  });
+});
+
+// REQ-081 — the MAGIC-LINK ENTRY PATH. `adoptTokenFromUrl` was built and unit-tested in session.ts but no
+// non-test file in this app ever called it, so `command.shuddl.tech/?token=…` silently ignored its token and
+// the operator landed on a session-less board. The portal has always adopted it (its initialMode()); command
+// now does the same thing, in the same place — a first-render adoption, BEFORE the board/KPI effects fire, so
+// the very first server read carries the bearer. This is a wiring fix only: there is no login screen and no
+// client-side verification — the server lens remains the only real gate (REQ-030).
+function b64url(obj: unknown): string {
+  return btoa(JSON.stringify(obj)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function makeJwt(claims: Record<string, unknown>): string {
+  return `${b64url({ alg: "none", typ: "JWT" })}.${b64url(claims)}.sig`;
+}
+// A synthetic tenant-lens operator claim (REQ-167) — never a real tenant/user.
+const OPS_CLAIMS = { sub: "u:ops-1", tenant: "t:synthetic", role: "ops", exp: Math.floor(Date.now() / 1000) + 3600 };
+
+/** The headers the surface sent on its /v1/board read (the client passes a plain Record). */
+function boardAuthHeader(mock: ReturnType<typeof vi.fn>): string | undefined {
+  const call = mock.mock.calls.find((c) => String(c[0]).endsWith("/v1/board"));
+  const init = call?.[1] as RequestInit | undefined;
+  return ((init?.headers ?? {}) as Record<string, string>)["authorization"];
+}
+
+describe("command magic-link entry (REQ-081)", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    window.history.replaceState(null, "", "/");
+  });
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+    localStorage.clear();
+    window.history.replaceState(null, "", "/");
+  });
+
+  it("adopts a ?token= magic link, STRIPS it from the URL, and sends it as the bearer on the FIRST board read", async () => {
+    const jwt = makeJwt(OPS_CLAIMS);
+    window.history.replaceState(null, "", `/?token=${jwt}&x=1`);
+    const fetchMock = stubFetch({ board: { board: [] } });
+
+    render(<App />);
+
+    await waitFor(() => expect(getToken()).toBe(jwt)); // the token was adopted, not ignored
+    // The bearer must never linger in history or a copied/shared link.
+    expect(window.location.search).not.toContain("token");
+    expect(window.location.search).toContain("x=1"); // unrelated params survive
+    // Adoption happened BEFORE the first server read — otherwise the operator's first board is a spurious 401.
+    await waitFor(() => expect(boardAuthHeader(fetchMock)).toBe(`Bearer ${jwt}`));
+  });
+
+  it("a URL with NO token leaves the surface unauthenticated — no bearer sent, and the honest 401 banner shows", async () => {
+    window.history.replaceState(null, "", "/");
+    const fetchMock = stubFetch({ board: { code: "UNAUTHORIZED", message: "MISSING BEARER TOKEN", req_id: "r1" }, boardStatus: 401 });
+
+    render(<App />);
+
+    await waitFor(() => expect(fetchMock.mock.calls.some((c) => String(c[0]).endsWith("/v1/board"))).toBe(true));
+    expect(getToken()).toBeNull(); // nothing is minted client-side — adoption is strictly opt-in via the URL
+    expect(boardAuthHeader(fetchMock)).toBeUndefined();
+    // The server's 401 is surfaced honestly rather than as a silently-empty board.
+    expect(await screen.findByText(/SESSION EXPIRED/)).toBeTruthy();
   });
 });
 
