@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { canonicalize, sha256Hex } from "@shuddl/ledger/canonical";
-import { verifyChain, type ChainResult } from "@shuddl/ledger/chain";
+import { GENESIS_HASH, verifyChain, type ChainResult } from "@shuddl/ledger/chain";
 import { rowToEvent } from "@shuddl/ledger/lens";
 import type { LedgerEvent } from "@shuddl/contracts";
 import { EVIDENCE_EXIT, formatGateResult, parseMode, type GateResult } from "../release/evidence.js";
@@ -34,7 +34,15 @@ export type LedgerSnapshot = {
 
 // The chain verdict for the RESTORED database, produced by verifyChainOfRows (or any caller that has the
 // rows). Mirrors packages/ledger ChainResult so the ledger stays the single authority on chain validity.
-export type ChainVerdict = { ok: true; head: string; count: number } | { ok: false; failure: { seq: number; reason: string } };
+//
+// `reason` stays the BARE ledger reason token ("seq_gap", "hash_mismatch", …) — consumers match on it
+// exactly. The stream rides in its own optional field instead: this ledger is chained per stream, so a
+// bare `seq 0` is ambiguous across streams, and an operator reading a failed restore mid-incident needs
+// to know WHICH stream broke before they can look at anything. Optional because a single-stream caller
+// (and every verdict this gate constructed before) has nothing to name.
+export type ChainVerdict =
+  | { ok: true; head: string; count: number }
+  | { ok: false; failure: { seq: number; reason: string; stream?: string } };
 
 // The number of independent dimensions reconcileRestore inspects. Exported so a clean report can assert
 // it actually looked at all of them — a "0 problems" result from a checker that examined two fields is
@@ -63,7 +71,8 @@ export function reconcileRestore(source: LedgerSnapshot, restored: LedgerSnapsho
 
   // ── chain ──
   if (!chain.ok) {
-    fail("chain-broken", "chain", `restored chain fails at seq ${chain.failure.seq}: ${chain.failure.reason}`);
+    const where = chain.failure.stream === undefined ? "" : ` of stream ${chain.failure.stream}`;
+    fail("chain-broken", "chain", `restored chain fails at seq ${chain.failure.seq}${where}: ${chain.failure.reason}`);
   } else {
     if (chain.count !== restored.events.count) {
       fail("chain-count-mismatch", "chain", `chain walked ${chain.count} events but the snapshot claims ${restored.events.count}`);
@@ -113,13 +122,67 @@ export async function snapshotDigest(value: unknown): Promise<string> {
   return sha256Hex(new TextEncoder().encode(canonicalize(value)));
 }
 
-// Walk the restored rows through the ledger's own chain verifier. Kept separate from the pure
-// reconciliation so the ledger remains the single authority on what a valid chain is.
+/**
+ * Walk the restored rows through the ledger's own chain verifier — ONE WALK PER STREAM.
+ *
+ * SHUDDL chains PER STREAM: `events` is `PRIMARY KEY (stream_id, seq)`, so every stream restarts at
+ * seq 0 with `prev_hash = GENESIS_HASH`. `verifyChain` walks a SINGLE monotonic chain by contract
+ * (expectedSeq from `fromSeq ?? 0`, expectedPrev from genesis) — exactly right for one stream, and it
+ * returns `seq_gap` the moment it meets the second stream's first event. Handing it every row of a
+ * tenant database therefore made the one dimension that RE-DERIVES the chain from the restored rows
+ * unpassable on any real tenant, and it cried data loss where there was none (observed in the
+ * 2026-07-31 staging drill: 40 events, 5 streams, data intact, `seq_gap at seq 0`). A DR gate that
+ * false-alarms is worse than one that is absent — it trains the operator to ignore it during the exact
+ * incident it exists for.
+ *
+ * The ledger stays the single authority on validity: `chain.ts` is unchanged and knows nothing about
+ * streams. This function only groups, orders and aggregates; `verifyChain` still decides.
+ *
+ * ORDERING — grouped by `stream_id`, ordered by `seq` within a stream. Nothing here trusts the order the
+ * caller supplied: a `.sql` export's row order is not a contract.
+ *
+ * HEAD — `ChainVerdict` carries ONE head, and `reconcileRestore` compares it against the snapshot's
+ * `events.headHash`, which `tools/deploy/snapshot-ledger.ts` defines as
+ * `SELECT hash FROM events ORDER BY stream_id DESC, seq DESC LIMIT 1`: the last event under the total
+ * order `(stream_id, seq)` — the same total order the daily anchor uses for leaf ordering. So the
+ * aggregate head is the head of the LEXICOGRAPHICALLY-LAST stream, and matching that definition exactly
+ * is what keeps this fix from trading a false `chain-broken` for a false `chain-head-mismatch`. Streams
+ * are sorted with JS's default (UTF-16 code-unit) comparison, which is byte-identical to D1's BINARY
+ * collation here because a stream_id is ASCII by contract (`^(s:[\w-]+|q:[\w-]+|t:root)$`,
+ * packages/contracts/src/events.ts) — the same convention `surveyStreamChains` sorts by.
+ *
+ * COUNT — every event in every stream.
+ *
+ * EMPTY — zero rows is a valid chain of length zero whose head IS genesis, which is precisely what
+ * `captureSnapshot` records for a 0-event database, so the two sides agree on a real value instead of
+ * comparing two absences. Deliberately NOT a failure: the prod ledgers are empty today, and a gate
+ * permanently red on a true fact is the same trained-to-ignore failure this function was fixed for.
+ * What zero rows does not prove is that anything was RESTORED — `main()` says so out loud, and a walk of
+ * zero against a snapshot claiming events still fails as `chain-count-mismatch` / `chain-head-mismatch`.
+ */
 export async function verifyChainOfRows(rows: Record<string, string | number | null>[]): Promise<ChainVerdict> {
-  const events: LedgerEvent[] = rows.map((r) => rowToEvent(r));
-  const result: ChainResult = await verifyChain(events);
-  if (result.ok) return { ok: true, head: result.head, count: result.count };
-  return { ok: false, failure: { seq: result.failure.seq, reason: result.failure.reason } };
+  const byStream = new Map<string, LedgerEvent[]>();
+  for (const row of rows) {
+    // rowToEvent validates through the LedgerEvent schema, so a row with no usable stream_id throws
+    // here rather than being silently bucketed under some default and walked as if it belonged.
+    const e = rowToEvent(row);
+    const found = byStream.get(e.stream_id);
+    if (found === undefined) byStream.set(e.stream_id, [e]);
+    else found.push(e);
+  }
+
+  let head = GENESIS_HASH;
+  let count = 0;
+  for (const streamId of [...byStream.keys()].sort()) {
+    const events = (byStream.get(streamId) ?? []).sort((a, b) => a.seq - b.seq);
+    const result: ChainResult = await verifyChain(events);
+    if (!result.ok) return { ok: false, failure: { seq: result.failure.seq, reason: result.failure.reason, stream: streamId } };
+    // The last stream walked is the lexicographically last one, so its head is the head of the whole
+    // database under (stream_id, seq) — the snapshot's definition.
+    head = result.head;
+    count += result.count;
+  }
+  return { ok: true, head, count };
 }
 
 // ── CLI ───────────────────────────────────────────────────────────────────────────────────────────────
@@ -164,6 +227,14 @@ async function main(): Promise<void> {
   if (rowsPath !== undefined) {
     const rows = load<Record<string, string | number | null>[]>(rowsPath, "restored rows");
     chain = await verifyChainOfRows(rows);
+    if (rows.length === 0) {
+      // An empty chain is valid (head = genesis) and cannot fail this dimension — so say plainly that
+      // it also proves nothing. "0 == 0, PASS" is reachable on today's empty prod ledgers, and an
+      // operator must not read it as evidence that a restore carried anything.
+      console.warn("restore-verify: --rows contained ZERO event rows. An empty chain is valid at genesis, so the chain dimension cannot fail here — it also proves nothing was restored. Read the event counts below, not this line.");
+    } else if (chain.ok) {
+      console.log(`restore-verify: chain re-walked per stream from ${rows.length} restored row(s) — ${chain.count} event(s) intact, head ${chain.head.slice(0, 12)}….`);
+    }
   } else {
     console.log("restore-verify: no --rows supplied — the hash chain is taken from the snapshot rather than re-walked.");
   }

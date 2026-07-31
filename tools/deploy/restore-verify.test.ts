@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
+import type { LedgerEvent } from "@shuddl/contracts";
+import { GENESIS_HASH, buildChain } from "@shuddl/ledger/chain";
+import { eventToRow } from "@shuddl/ledger/lens";
 import {
   reconcileRestore,
   snapshotDigest,
+  verifyChainOfRows,
   RESTORE_CHECKS,
   type LedgerSnapshot,
   type ChainVerdict,
@@ -153,6 +157,150 @@ describe("the verdict is never optimistic", () => {
       manifestDigest: "1".repeat(64),
     });
     expect(reconcileRestore(snapshot(), restored, CHAIN_OK).problems.length).toBeGreaterThanOrEqual(4);
+  });
+});
+
+// ── the chain walk (this ledger is chained PER STREAM) ────────────────────────────────────────────────
+//
+// `events` is `PRIMARY KEY (stream_id, seq)`: every stream restarts at seq 0 with `prev_hash` = genesis.
+// `verifyChain` walks ONE monotonic chain by contract — correct for a single stream, and it reports
+// `seq_gap` at the second stream's first event when it is handed a whole tenant's rows. So the one
+// dimension that RE-DERIVES the chain from the restored rows could not pass on any real database: it
+// cried data loss where there was none, which is worse than no gate at all — it trains the operator to
+// ignore the gate during the exact incident it exists for. Observed in the 2026-07-31 staging drill
+// (tenant-a: 40 events, 5 streams, data verified intact) as `chain-broken … seq_gap at seq 0`.
+//
+// Events are built the one way this repo builds them: the ledger's own buildChain + eventToRow.
+
+type Row = Record<string, string | number | null>;
+
+function event(streamId: string, i: number): LedgerEvent {
+  return {
+    id: crypto.randomUUID(),
+    stream_id: streamId,
+    seq: i,
+    ts: 1_753_900_000_000 + i,
+    recorded_at: 1_753_900_000_000 + i,
+    kind: "exception.raised",
+    actor: { party: "party-ops" },
+    party_refs: [],
+    evidence: [],
+    payload: {},
+    prev_hash: GENESIS_HASH,
+    visibility: "internal",
+    source: "native",
+    confidence: 10_000,
+  } as unknown as LedgerEvent;
+}
+
+/** One stream's rows, hashed and linked by the ledger itself — dense seq from 0, prev_hash from genesis. */
+async function streamRows(streamId: string, n: number): Promise<Row[]> {
+  const chained = await buildChain(Array.from({ length: n }, (_, i) => event(streamId, i)));
+  return chained.map((e) => eventToRow(e));
+}
+
+/** The snapshot's head definition, spelled out: the last row under the total order (stream_id, seq) —
+ * `SELECT hash FROM events ORDER BY stream_id DESC, seq DESC LIMIT 1` (tools/deploy/snapshot-ledger.ts). */
+function headOf(rows: Row[]): string | number | null | undefined {
+  const total = [...rows].sort((x, y) => {
+    const a = String(x.stream_id);
+    const b = String(y.stream_id);
+    return a < b ? -1 : a > b ? 1 : Number(x.seq) - Number(y.seq);
+  });
+  return total[total.length - 1]?.hash;
+}
+
+describe("verifyChainOfRows over a real (multi-stream) ledger", () => {
+  it("PASSES two streams that each start at seq 0 — the per-stream restart is not a gap", async () => {
+    // THE REGRESSION. Both streams are internally valid; before the fix this reported seq_gap at seq 0.
+    const rows = [...(await streamRows("s:SHP-a", 4)), ...(await streamRows("s:SHP-b", 3))];
+    const verdict = await verifyChainOfRows(rows);
+    expect(verdict.ok, verdict.ok ? "" : `${verdict.failure.reason} at seq ${verdict.failure.seq}`).toBe(true);
+    if (!verdict.ok) return;
+    expect(verdict.count).toBe(7);
+  });
+
+  it("still catches a DROPPED row in the SECOND stream — the fix is not a rubber stamp", async () => {
+    // The failure mode that matters most: walking per stream must not become "walk nothing, return ok".
+    const a = await streamRows("s:SHP-a", 4);
+    const b = await streamRows("s:SHP-b", 3);
+    const verdict = await verifyChainOfRows([...a, ...b.filter((r) => r.seq !== 1)]);
+    expect(verdict.ok).toBe(false);
+    if (verdict.ok) return;
+    expect(verdict.failure.reason).toBe("seq_gap");
+    expect(verdict.failure.seq).toBe(2);
+    expect(verdict.failure.stream).toBe("s:SHP-b");
+  });
+
+  it("still catches a tampered payload inside a stream — hash_mismatch, and it says which stream", async () => {
+    const rows = [...(await streamRows("s:SHP-a", 4)), ...(await streamRows("s:SHP-b", 3))];
+    const victim = rows[5]; // s:SHP-b, seq 1
+    if (victim === undefined) throw new Error("fixture");
+    victim.payload = JSON.stringify({ tampered: true });
+    const verdict = await verifyChainOfRows(rows);
+    expect(verdict.ok).toBe(false);
+    if (verdict.ok) return;
+    expect(verdict.failure.reason).toBe("hash_mismatch");
+    expect(verdict.failure.seq).toBe(1);
+    expect(verdict.failure.stream).toBe("s:SHP-b");
+  });
+
+  it("catches a break in the FIRST stream too — no stream is walked on trust", async () => {
+    const rows = [...(await streamRows("s:SHP-a", 4)), ...(await streamRows("s:SHP-b", 3))];
+    const victim = rows[2]; // s:SHP-a, seq 2
+    if (victim === undefined) throw new Error("fixture");
+    victim.payload = JSON.stringify({ tampered: true });
+    const verdict = await verifyChainOfRows(rows);
+    expect(verdict.ok).toBe(false);
+    if (verdict.ok) return;
+    expect(verdict.failure.stream).toBe("s:SHP-a");
+  });
+
+  it("aggregates the head as the LAST event under (stream_id, seq), matching the snapshot's definition", async () => {
+    // If the walk aggregated any other head, the fix would trade a false chain-broken for a false
+    // chain-head-mismatch. Streams are supplied in the WRONG order here on purpose.
+    const rows = [...(await streamRows("s:SHP-b", 3)), ...(await streamRows("s:SHP-a", 4))];
+    const verdict = await verifyChainOfRows(rows);
+    expect(verdict.ok).toBe(true);
+    if (!verdict.ok) return;
+    expect(verdict.head).toBe(headOf(rows));
+    expect(verdict.head).not.toBe(rows[rows.length - 1]?.hash); // not merely "the last row handed in"
+  });
+
+  it("verifies rows supplied out of order — a .sql export's row order is not a contract", async () => {
+    const rows = [...(await streamRows("s:SHP-a", 4)), ...(await streamRows("s:SHP-b", 3))];
+    const jumbled = [...rows].sort((x, y) => Number(y.seq) - Number(x.seq)); // seq descending, streams interleaved
+    expect(await verifyChainOfRows(jumbled)).toEqual(await verifyChainOfRows(rows));
+    expect((await verifyChainOfRows(jumbled)).ok).toBe(true);
+  });
+
+  it("reconciles a multi-stream restore clean through the REAL reconciler", async () => {
+    const rows = [...(await streamRows("s:SHP-a", 4)), ...(await streamRows("s:SHP-b", 3))];
+    const verdict = await verifyChainOfRows(rows);
+    if (!verdict.ok) throw new Error(`chain walk failed: ${verdict.failure.reason} at seq ${verdict.failure.seq}`);
+    const snap = snapshot({ events: { count: verdict.count, headHash: verdict.head } });
+    expect(reconcileRestore(snap, snap, verdict).problems).toEqual([]);
+  });
+
+  it("names the stream in the operator-facing detail — a bare seq 0 is ambiguous across streams", async () => {
+    const b = (await streamRows("s:SHP-b", 3)).filter((r) => r.seq !== 1);
+    const verdict = await verifyChainOfRows([...(await streamRows("s:SHP-a", 4)), ...b]);
+    const detail = reconcileRestore(snapshot(), snapshot(), verdict).problems.find((p) => p.code === "chain-broken")?.detail;
+    expect(detail).toContain("s:SHP-b");
+    expect(detail).toContain("seq_gap");
+  });
+
+  it("treats zero rows as a valid empty chain AT GENESIS — the same head an empty database snapshots", async () => {
+    // captureSnapshot records GENESIS_HASH for a 0-event database, so the two sides agree instead of
+    // comparing two absences. Deliberately not a failure: the prod ledgers are empty today, and a gate
+    // permanently red on a true fact is the same trained-to-ignore failure this function was fixed for.
+    expect(await verifyChainOfRows([])).toEqual({ ok: true, head: GENESIS_HASH, count: 0 });
+  });
+
+  it("an empty walk against a snapshot that CLAIMS events fails loudly — 0 never launders a truncation", async () => {
+    const found = codes(snapshot(), snapshot(), await verifyChainOfRows([]));
+    expect(found).toContain("chain-count-mismatch");
+    expect(found).toContain("chain-head-mismatch");
   });
 });
 
