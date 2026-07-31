@@ -156,9 +156,9 @@ tag = "v1-spark-meter"
 new_sqlite_classes = ["SparkMeter"]
 
 # ── PRODUCTION ────────────────────────────────────────────────────────────────────────────────────────
-# Structurally mirrors [env.staging]; every id is an all-zero placeholder so the preflight keeps BLOCKING
+# Structurally mirrors [env.staging]; ids were all-zero placeholders until 2026-07-30; they are now real (the preflight blocked
 # until an operator provisions the resources (see workers/api/wrangler.toml [env.prod] for the full
-# reasoning). NOT deployable — declared, not provisioned.
+# reasoning). ~~NOT deployable — declared, not provisioned.~~ PROVISIONED AND DEPLOYED 2026-07-30; ids are real.
 #
 # DELIBERATELY ABSENT: EVIDENCE_FROM. Without it evidenceSender() stays a NotConfiguredSender, so a prod
 # deploy cannot send a single evidence email until someone consciously turns sending on. That fail-closed

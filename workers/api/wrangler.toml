@@ -138,13 +138,13 @@ queue = "shuddl-agent-triggers-staging"
 # name meant `wrangler deploy --env prod` would have shipped a worker with ZERO bindings — every
 # `env.TENANT_A_DB` undefined at the first request. It is now structurally complete.
 #
-# EVERY id here is an all-zero placeholder, deliberately. Nothing in this repo can invent a Cloudflare
+# ~~EVERY id here is an all-zero placeholder~~ SUPERSEDED 2026-07-30 — provisioned; ids are real. Nothing in this repo can invent a Cloudflare
 # resource id, so the honest state is "declared, not provisioned", and the preflight must keep BLOCKING
 # on it (placeholder-resource-id) until an operator provisions the resources and replaces these. Filling
 # them with plausible-looking values is the exact failure this file just had in billing's staging scope,
 # where a well-formed random UUID made a non-existent database read as provisioned.
 #
-# [env.prod] IS STILL NOT DEPLOYABLE. That is the point: the shape is now checkable at merge time
+# [env.prod] IS NOW DEPLOYED (api.shuddl.tech). Superseded 2026-07-30. The shape stayed checkable: the shape is now checkable at merge time
 # (tools/deploy/wrangler-scope-parity.test.ts), and the provisioning hold is visible instead of hidden
 # behind an empty scope.
 [env.prod]
@@ -190,7 +190,8 @@ binding = "TENANT_POOL_02_DB"
 database_name = "shuddl-t-pool-02-prod"
 database_id = "20564820-573d-425b-8803-41fc984096d0"
 
-# NOT 32-hex on purpose. A KV id is only checked for shape, so an all-zero 32-hex string would PASS the
+# (Historical: this id was deliberately non-32-hex while unprovisioned, so a shape-only check could not
+# mistake it for real. It is now the real namespace id.) A KV id is only checked for shape, so an all-zero 32-hex string would PASS the
 # placeholder check and read as provisioned — the same trap the billing UUID set. This one blocks.
 [[env.prod.kv_namespaces]]
 binding = "IDEMPOTENCY"

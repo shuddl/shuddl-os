@@ -117,8 +117,8 @@ binding = "API"
 service = "shuddl-api-staging"
 
 # ── PRODUCTION ────────────────────────────────────────────────────────────────────────────────────────
-# Structurally mirrors [env.staging]; every id is an all-zero placeholder so the preflight keeps BLOCKING
-# until an operator provisions the resources. NOT deployable — declared, not provisioned. NO SECRETS
+# Structurally mirrors [env.staging]; ids were all-zero placeholders until 2026-07-30; they are now real (the preflight blocked
+# until an operator provisions the resources. ~~NOT deployable — declared, not provisioned.~~ PROVISIONED AND DEPLOYED 2026-07-30; ids are real. NO SECRETS
 # here: STRIPE_WEBHOOK_SECRET and PLATFORM_INTERNAL_SECRET are operator-injected via `wrangler secret`
 # and are now required by the preflight contract (REQ-154).
 [env.prod]

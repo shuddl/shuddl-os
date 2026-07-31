@@ -91,8 +91,8 @@ tag = "v1-caps-meter"
 new_sqlite_classes = ["CapsMeter"]
 
 # ── PRODUCTION ────────────────────────────────────────────────────────────────────────────────────────
-# Structurally mirrors [env.staging]; every id is an all-zero placeholder so the preflight keeps BLOCKING
-# until an operator provisions the resources. NOT deployable — declared, not provisioned.
+# Structurally mirrors [env.staging]; ids were all-zero placeholders until 2026-07-30; they are now real (the preflight blocked
+# until an operator provisions the resources. ~~NOT deployable — declared, not provisioned.~~ PROVISIONED AND DEPLOYED 2026-07-30; ids are real.
 [env.prod]
 name = "shuddl-mcp-prod"
 workers_dev = false
@@ -121,7 +121,8 @@ binding = "CONTROL_DB"
 database_name = "shuddl-control-prod"
 database_id = "e91b8e7c-c878-437d-b25d-34530280fe85"
 
-# OAuth grants store. NOT 32-hex on purpose — an all-zero 32-hex id would pass the shape check and read
+# OAuth grants store. (Historical: kept non-32-hex while unprovisioned so a shape-only check could not read it
+# as real; it is now the real namespace id.) An all-zero 32-hex id would pass the shape check and read
 # as provisioned; this one keeps BLOCKING.
 [[env.prod.kv_namespaces]]
 binding = "GRANTS"
