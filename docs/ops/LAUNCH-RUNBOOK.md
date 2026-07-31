@@ -225,8 +225,10 @@ pnpm exec tsx tools/deploy/restore-verify.ts \
 PREFLIGHT_STATE="$PWD/prod-state.json" pnpm verify:release
 ```
 
-Pass `--rows` or the chain is taken on trust from the snapshot instead of re-derived — the tool says so
-when you omit it. Re-walking is the only dimension that independently re-proves the restored ledger.
+**`--rows` is not optional.** Omit it and the two chain dimensions are not checked at all — the run reports
+`9` of 11 and comes back **BLOCKED**, never PASS. Re-walking the chain is the only dimension that
+independently re-proves the restored ledger rather than comparing a snapshot's metadata to itself: a
+mid-stream `prev_hash` flip leaves row count, head hash and every money figure byte-identical.
 
 `staging-smoke` drives a gated stop through to a penny-exact `invoice.issued` over real HTTPS. Until it has
 run against prod, no document should describe production as certified.

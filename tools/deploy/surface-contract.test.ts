@@ -80,6 +80,71 @@ describe("assets-only serving", () => {
   });
 });
 
+describe("the scope wrangler would actually deploy", () => {
+  // `assets`, `main` and `workers_dev` are INHERITABLE: `wrangler deploy --env prod` resolves each as
+  // `[env.prod].<key> ?? <root>.<key>`, the env value replacing the root one WHOLESALE. Reading only the
+  // root would miss a prod override; reading only prod would miss today's configs, which state these keys
+  // once at the root and inherit them. The check has to resolve them the same way wrangler does.
+
+  const prodAssets = (app: string, body: string): string => `${real(app)}\n[env.prod.assets]\n${body}\n`;
+
+  it("FAILS when [env.prod.assets] overrides the SPA fallback away", () => {
+    // The plausible-looking edit: "prod shouldn't mask 404s". The root table still says
+    // single-page-application, so a root-only reader passes it — while the deploy ships 404 handling and
+    // every minted track.shuddl.tech/status/:cap link breaks.
+    const text = prodAssets("portal", 'directory = "./dist"\nnot_found_handling = "404-page"');
+    expect(codes("portal", text)).toContain("no-spa-fallback");
+  });
+
+  it("FAILS when [env.prod.assets] overrides the directory", () => {
+    const text = prodAssets("command", 'directory = "./public"\nnot_found_handling = "single-page-application"');
+    expect(codes("command", text)).toContain("assets-directory");
+  });
+
+  it("FAILS when [env.prod.assets] adds a binding to an assets-only worker", () => {
+    const text = prodAssets("driver", 'directory = "./dist"\nnot_found_handling = "single-page-application"\nbinding = "ASSETS"');
+    expect(codes("driver", text)).toContain("assets-only");
+  });
+
+  it("FAILS when [env.prod] grows a worker script the root does not have", () => {
+    const text = real("driver").replace('[env.prod]\nname = "shuddl-driver-prod"', '[env.prod]\nname = "shuddl-driver-prod"\nmain = "src/index.ts"');
+    expect(codes("driver", text)).toContain("assets-only");
+  });
+
+  it("PASSES a config that states [assets] once at the root and inherits it, which is what is committed", () => {
+    // The other direction of the same fix: reading prod-only would fail all three real files, none of which
+    // declares [env.prod.assets]. Verified against wrangler's own resolver, and live —
+    // https://command.shuddl.tech/kpi/foo answers 200 text/html.
+    for (const s of SURFACES) expect(readFileSync(s.config, "utf8")).not.toContain("[env.prod.assets]");
+    expect(codes("command", real("command"))).toEqual([]);
+  });
+});
+
+describe("no second, unaudited origin", () => {
+  // All three configs argue this key is load-bearing — a dispatcher board reachable at one known hostname,
+  // an unauthenticated public status page with no widened attack surface, a PWA that installs against ONE
+  // origin. An argued config is one to assert, not assume.
+
+  it("FAILS when nothing in the file turns the workers.dev subdomain off", () => {
+    for (const app of ["command", "portal", "driver"]) {
+      expect(codes(app, real(app).replaceAll("workers_dev = false", ""))).toContain("workers-dev-enabled");
+    }
+  });
+
+  it("FAILS when [env.prod] turns the workers.dev subdomain back on", () => {
+    // The override direction: the root still says false, and the prod scope wins.
+    const text = real("portal").replace('[env.prod]\nname = "shuddl-portal-prod"\nworkers_dev = false', '[env.prod]\nname = "shuddl-portal-prod"\nworkers_dev = true');
+    expect(codes("portal", text)).toContain("workers-dev-enabled");
+  });
+
+  it("PASSES when only the root states it, because prod INHERITS it", () => {
+    // Deleting the prod line leaves a config wrangler still deploys with workers.dev off. Failing it would
+    // be the checker encoding a rule the deployment does not have.
+    const text = real("driver").replace('[env.prod]\nname = "shuddl-driver-prod"\nworkers_dev = false', '[env.prod]\nname = "shuddl-driver-prod"');
+    expect(codes("driver", text)).toEqual([]);
+  });
+});
+
 describe("the API base actually reaching the bundle", () => {
   // The failure this whole file exists for: VITE_API_BASE is read at BUILD time, and a surface built
   // without it serves its entire chrome over an API host it can never reach. It looks deployed.

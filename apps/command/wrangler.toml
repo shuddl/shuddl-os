@@ -33,9 +33,10 @@ workers_dev = false
 ENVIRONMENT = "prod"
 
 # A CUSTOM DOMAIN, not a route: Cloudflare creates the DNS record and issues the certificate itself, which
-# is how the marketing worker's hostnames are already managed. The four routed workers (api/mcp/billing)
-# instead use `pattern`+`zone_name` and carry hand-made proxied `AAAA <host> -> 100::` records; matching
-# that here would mean maintaining a fifth hand-made record for no gain.
+# is how the marketing worker's hostnames are already managed. The three routed workers (api/mcp/billing —
+# agents and translator are deliberately unrouted) instead use `pattern`+`zone_name` and carry hand-made
+# proxied `AAAA <host> -> 100::` records; matching that here would mean hand-maintaining another record
+# for no gain.
 #
 # SINGLE-LABEL, deliberately. Cloudflare universal TLS covers *.shuddl.tech but NOT a second label:
 # `command.staging.shuddl.tech` would fail the handshake where `command-staging.shuddl.tech` succeeds.

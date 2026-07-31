@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { parseWranglerToml, targetFromWrangler } from "./preflight.js";
+import { parseWranglerToml, targetFromWrangler, type WranglerDoc } from "./preflight.js";
 import { EVIDENCE_EXIT } from "../release/evidence.js";
 
 // THE SURFACE DEPLOY CONTRACT.
@@ -21,6 +21,9 @@ import { EVIDENCE_EXIT } from "../release/evidence.js";
 //     typo'd into a second label (`command.staging.shuddl.tech`) is worse than a typo: universal TLS
 //     covers `*.shuddl.tech` but NOT a second label, so it deploys clean and fails the TLS handshake.
 //  3. SPA FALLBACK MISSING. Each surface has client-side routes with no file behind them.
+//  4. A SECOND, UNAUDITED ORIGIN. `workers_dev = false` is argued in all three configs — one known
+//     hostname for the board, no extra surface on the unauthenticated status page, one origin for the
+//     installed PWA. Argued and unchecked is how it gets deleted.
 
 export const SURFACES = [
   { app: "command", config: "apps/command/wrangler.toml", worker: "shuddl-command-prod", hosts: ["command.shuddl.tech"] },
@@ -38,6 +41,32 @@ export function isSingleLabelHost(host: string, zone = "shuddl.tech"): boolean {
   if (!host.endsWith(`.${zone}`)) return false;
   const label = host.slice(0, -(zone.length + 1));
   return label.length > 0 && !label.includes(".");
+}
+
+/** The value `wrangler deploy --env <env>` would actually use for an INHERITABLE key.
+ *
+ * Wrangler resolves inheritable keys as `env[key] ?? root[key] ?? <wrangler's default>` — its own
+ * `inheritable()` helper, verified against wrangler 4.107.1's resolver. Two properties of that rule decide
+ * the shape of this function, and getting either backwards silently breaks a real config:
+ *
+ *  - THE ENV VALUE WINS WHEN PRESENT. Reading only the root is the bug this exists to prevent: a
+ *    plausible-looking `[env.prod.assets] not_found_handling = "404-page"` ("prod shouldn't mask 404s")
+ *    leaves the root table saying `single-page-application`, so a root-only check passes while the deploy
+ *    ships 404 handling and every minted status link 404s. Same shape for `[env.prod] main = "…"`.
+ *  - THE ROOT VALUE WINS WHEN THE ENV OMITS THE KEY. Reading only prod is the opposite bug, and it would
+ *    fail all three configs as committed: each states `[assets]` and `workers_dev` ONCE at the root and
+ *    lets prod inherit them. That is the deployed reality — command.shuddl.tech/kpi/foo answers 200
+ *    text/html today, which is the inherited SPA fallback doing its job.
+ *
+ * The env value REPLACES the root value wholesale; wrangler does not merge tables key-by-key, so an
+ * `[env.prod.assets]` that omits `directory` really does deploy without one (and is caught here as such).
+ * `??` and not `||` deliberately: `workers_dev = false` in the env scope must win over the root, not fall
+ * through to it. */
+function inherited(doc: WranglerDoc, environment: string, key: string): unknown {
+  const envs = (doc.root["env"] ?? {}) as Record<string, unknown>;
+  const scope = envs[environment];
+  const scoped = typeof scope === "object" && scope !== null ? (scope as Record<string, unknown>)[key] : undefined;
+  return scoped ?? doc.root[key];
 }
 
 /** Check ONE surface's committed config. Pure: the caller supplies the TOML text. */
@@ -73,14 +102,26 @@ export function checkSurfaceConfig(surface: (typeof SURFACES)[number], text: str
   }
 
   // Assets: an assets-only Worker must omit `main`, and MUST answer unmatched paths with the SPA shell.
-  const assets = (doc.root["assets"] ?? {}) as Record<string, unknown>;
-  if (assets["directory"] !== "./dist") fail("assets-directory", `[assets] directory is ${JSON.stringify(assets["directory"])}, expected "./dist"`);
+  // Read at the EFFECTIVE scope (see `inherited`) — `assets` and `main` are inheritable, so what prod
+  // deploys is the prod override if there is one and the root table otherwise.
+  const assets = (inherited(doc, "prod", "assets") ?? {}) as Record<string, unknown>;
+  if (assets["directory"] !== "./dist") fail("assets-directory", `effective [assets] directory is ${JSON.stringify(assets["directory"])}, expected "./dist"`);
   if (assets["not_found_handling"] !== "single-page-application") {
-    fail("no-spa-fallback", `[assets] not_found_handling is ${JSON.stringify(assets["not_found_handling"])}; client-side routes would 404`);
+    fail("no-spa-fallback", `effective [assets] not_found_handling is ${JSON.stringify(assets["not_found_handling"])}; client-side routes would 404`);
   }
-  if (doc.root["main"] !== undefined) fail("assets-only", "declares `main`; these surfaces ship no worker script");
+  if (inherited(doc, "prod", "main") !== undefined) fail("assets-only", "declares `main`; these surfaces ship no worker script");
   // A binding is only valid alongside a script, and there is none.
   if (assets["binding"] !== undefined) fail("assets-only", "declares an [assets] binding, which is only valid with a worker script");
+
+  // No second origin. `workers_dev` is inheritable too, so stating it once at the root covers prod — but
+  // it must be stated SOMEWHERE and it must resolve to false. Absent everywhere is not "off": wrangler
+  // falls back to its own default, which the published config reference gives as `true` while the shipped
+  // resolver derives it from the route count — a posture three configs argue for in prose should not rest
+  // on which of those two a future wrangler applies.
+  const workersDev = inherited(doc, "prod", "workers_dev");
+  if (workersDev !== false) {
+    fail("workers-dev-enabled", `effective workers_dev is ${JSON.stringify(workersDev)}, expected false — a *.workers.dev origin nobody audits would serve this surface too`);
+  }
 
   return problems;
 }
@@ -88,11 +129,28 @@ export function checkSurfaceConfig(surface: (typeof SURFACES)[number], text: str
 /** Did the BUILD actually bake the expected API base into the emitted bundle?
  *
  * What this proves and what it does not. The surfaces resolve their base as
- * `import.meta.env.VITE_API_BASE ?? <compiled-in default>`, and esbuild does NOT fold that `??` — so a
- * CORRECT build still contains the default literal, and "the placeholder is absent" is not an assertion
- * that can ever hold. What separates a correct build from a broken one is simply whether the expected base
- * reached the bundle at all: no source file mentions the prod API host, so the string is present if and
- * only if VITE_API_BASE was set when vite ran. That is precisely the failure mode worth gating on. */
+ * `import.meta.env.VITE_API_BASE ?? <compiled-in default>`, so it is tempting to ALSO assert that the
+ * `.example` placeholder is absent from a correct build. That cannot be asserted — but not because the
+ * `??` survives minification. It often does not. Whether it survives is simply not uniform across the
+ * three surfaces, from source that gives the minifier nothing to distinguish: the three `apiBase()`
+ * bodies are character-identical (apps/command/src/lib/api.ts, apps/portal/src/lib/api.ts,
+ * apps/driver/src/api/base.ts) and the three vite configs are identical too. The bundles disagree anyway.
+ *
+ *  - VITE_API_BASE UNSET — vite substitutes `undefined`, esbuild collapses the `??`, and only the
+ *    placeholder survives: `const eE="https://api.shuddl.example";function jm(){return eE.replace(…)}`.
+ *    Every surface behaves this way; it is the shape the "not baked" fixture in the tests models.
+ *  - VITE_API_BASE SET — the fold is a coin toss per bundle. The three bundles this branch DEPLOYED:
+ *      driver   `function jm(){return"https://api.shuddl.tech".replace(…)}` — folded, and
+ *               `api.shuddl.example` appears NOWHERE in the bundle
+ *      command  `const ez="https://api.shuddl.example";function tz(){return("https://api.shuddl.tech"??ez)…`
+ *      portal   the same shape as command, placeholder kept
+ *    Reproducible from this tree: the same `vite build` with and without the variable reproduces both.
+ *
+ * So placeholder-presence tracks how a chunk happened to be laid out, not whether the deploy is correct,
+ * and an assertion in either direction would fail on some surface for an unrelated reason. What DOES
+ * separate a correct build from a broken one is whether the expected base reached the bundle at all: no
+ * source file mentions the prod API host, so the string is present if and only if VITE_API_BASE was set
+ * when vite ran. That is precisely the failure mode worth gating on. */
 export function checkBuiltApiBase(assetsDir: string, expected: string, app: string): SurfaceProblem[] {
   let files: string[];
   try {

@@ -177,11 +177,15 @@ export type ChainSurvey =
 /**
  * Re-walk EVERY stream's hash chain through the ledger's own verifier.
  *
- * `restore-verify.ts --rows` walks the supplied rows as ONE chain (`verifyChain` expects a dense seq from
- * 0 and a single prev_hash walk), which is correct for one stream and cannot express a ledger that has
- * more than one. This groups by `stream_id` first and walks each, so the chain evidence for a real tenant
- * database is complete rather than partial. The ledger stays the single authority on chain validity:
- * `verifyChainOfRows` is restore-verify's own function, which calls `verifyChain`.
+ * `verifyChain` expects a dense seq from 0 and a single prev_hash walk — correct for ONE stream, and this
+ * ledger chains per stream (`PRIMARY KEY (stream_id, seq)`). So both sides group by `stream_id` first and
+ * walk each: this survey, and `restore-verify.ts`'s own `verifyChainOfRows`.
+ *
+ * (Historical, because the comment here asserted otherwise until 2026-07-31: `verifyChainOfRows` DID walk
+ * every row as one chain, so `restore-verify --rows` reported `seq_gap` at the second stream's `seq 0` on
+ * any real tenant — crying data loss where there was none. Fixed the same day the first drill found it.)
+ *
+ * The ledger stays the single authority on chain validity; neither side reimplements `verifyChain`.
  */
 export async function surveyStreamChains(rows: SnapshotRow[]): Promise<ChainSurvey> {
   const byStream = new Map<string, SnapshotRow[]>();
