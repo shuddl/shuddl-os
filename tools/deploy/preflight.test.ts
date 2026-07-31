@@ -438,9 +438,9 @@ describe("the real repository configuration", () => {
   // A dry-run against the committed configs. This pinned a known defect — api's [env.prod] declaring a
   // name and nothing else, so `wrangler deploy --env prod` would ship a worker with zero bindings. The
   // scope is now structurally complete, so the lock is INVERTED: it asserts the bindings exist AND that
-  // prod is still, honestly, not deployable. Those are two different claims and both must hold.
-  // Provisioning remains an external hold; declaring a shape is not provisioning it.
-  it("declares a COMPLETE api [env.prod] scope that is still not deployable", () => {
+  // no configuration this repo can commit is by itself enough to call prod deployable. Those are two
+  // different claims and both must hold.
+  it("declares a COMPLETE api [env.prod] scope that the committed config alone can never make deployable", () => {
     const doc = parseWranglerToml(readFileSync("workers/api/wrangler.toml", "utf8"));
     const prod = targetFromWrangler(doc, "prod");
     expect(prod.worker).toBe("shuddl-api-prod");
@@ -456,12 +456,23 @@ describe("the real repository configuration", () => {
       corsOrigins: [],
       now: NOW,
     });
-    // Still blocked, and blocked for the RIGHT reason: unprovisioned resources, not absent declarations.
+    // RETIRED ASSERTION. "Still not deployable" used to be proved by requiring a `placeholder-resource-id`
+    // BLOCK — the all-zero ids that stood in [env.prod] until an operator provisioned the account. Those
+    // ids are real now, so that proof expired with the state it described, and it was never the durable
+    // claim anyway: it said "nobody has provisioned yet", not "this repo cannot certify a deploy on its
+    // own". (The old `not.toContain("missing-binding")` line went with it: no check ever emits that code —
+    // they are `missing-d1-binding`, `missing-kv-binding` and so on — so it could not have failed.)
+    //
+    // What replaces it is true in EITHER world. Supplied with no account-side facts — no bound secret
+    // names, no origin allowlist, no TSA, no backup manifest — the preflight must still refuse, because
+    // an unproven prerequisite is never a green. And every BLOCK it raises must be an account-side fact
+    // or an unprovisioned id, NEVER an absent declaration: an absent declaration is the defect this scope
+    // was rebuilt to remove, and it would be a merge-time regression rather than a provisioning hold.
     expect(report.ok).toBe(false);
-    const blocked = report.problems.filter((p) => p.severity === "BLOCK");
-    expect(blocked.length).toBeGreaterThan(3);
-    expect(blocked.map((p) => p.code)).not.toContain("missing-binding");
-    expect(blocked.map((p) => p.code)).toContain("placeholder-resource-id");
+    const codes = report.problems.filter((p) => p.severity === "BLOCK").map((p) => p.code);
+    expect(codes).toEqual(expect.arrayContaining(["missing-secret", "no-origins", "tsa-unconfigured", "no-backup"]));
+    const accountSideOrUnprovisioned = new Set(["missing-secret", "no-origins", "tsa-unconfigured", "no-backup", "placeholder-resource-id"]);
+    expect(codes.filter((c) => !accountSideOrUnprovisioned.has(c))).toEqual([]);
   });
 
   it("binds no test-only affordance anywhere in prod", () => {

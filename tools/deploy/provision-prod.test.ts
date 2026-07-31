@@ -19,21 +19,131 @@ import {
   type PlannedResource,
   type RunOptions,
 } from "./provision-prod.js";
-import { WORKER_CONFIGS, checkDeployTarget, parseWranglerToml, targetFromWrangler } from "./preflight.js";
+import { WORKER_CONFIGS, checkDeployTarget, parseWranglerToml, placeholderReason, targetFromWrangler } from "./preflight.js";
 
 // THE PRODUCTION PROVISIONER.
 //
-// `preflight --env prod` blocks on nineteen unprovisioned resource ids. provision-prod.ts is the command
-// that creates them and writes the real ids back. Two properties carry the whole file:
+// provision-prod.ts is the command that creates the [env.prod] resources and writes their real ids back
+// into the configs. Two properties carry the whole file:
 //
 //   1. ONE logical resource gets ONE id in EVERY worker that binds it. Four workers bind TENANT_A_DB; if
 //      their ids diverge, four workers read four databases and every test still passes.
 //   2. It cannot provision into the wrong Cloudflare account. The default-reachable account hosts the
 //      MARKETING site; putting the ledger's production databases there is unrecoverable from a config file.
 //
-// Both are proven here against the REAL committed configs, with Cloudflare behind a fake gateway — no
-// network, no account, no resource created by a test run. Same discipline as preflight.test.ts.
+// Both are proven against a SYNTHETIC repo, with Cloudflare behind a fake gateway — no network, no
+// account, no file read, no resource created by a test run.
+//
+// WHY SYNTHETIC. This suite used to run against the committed workers/*/wrangler.toml, which meant every
+// property was expressed as an assertion about the contents of five files that exist precisely in order
+// to change: it asserted that production was UNPROVISIONED. That was true the day it was written and
+// false the hour an operator ran the command — thirteen tests went red on a successful provisioning run,
+// with nothing wrong in the code they cover. Idempotency, derivation, patching and plan-clearing are
+// properties of the TOOL; what they need is an unprovisioned INPUT, not an unprovisioned production. So
+// the pure core gets a fixture tree, exactly as tools/traceability/coverage.test.ts and
+// tools/checks/citation-links.test.ts give theirs one, and the single thing the real files must satisfy
+// forever — in any state of provisioning — gets its own test at the bottom of this file.
 
+// ── an UNPROVISIONED repo, synthesised ────────────────────────────────────────────────────────────────
+//
+// The fixture MIRRORS the real topology (five workers, six databases, seventeen D1 binding sites, two KV
+// namespaces, one bucket) because that shape is what makes the property visible: four workers binding
+// TENANT_A_DB is the case where a divergent id would be silent. It does NOT track the committed files and
+// must not be edited to match them — the real files are guarded by their own invariant, not by
+// resemblance to this. Nothing here is a Cloudflare resource: the paths are `fixture/`, and every prod id
+// is the sentinel an unprovisioned scope carries.
+
+type FixtureEnv = "dev" | "staging" | "prod";
+type DbBinding = "TENANT_A_DB" | "TENANT_B_DB" | "CONTROL_DB" | "PLATFORM_TENANT_DB" | "TENANT_POOL_01_DB" | "TENANT_POOL_02_DB";
+type KvBindingName = "IDEMPOTENCY" | "GRANTS";
+
+/** Six logical databases. The prod id is an all-zero placeholder UUID and is IDENTICAL in every worker
+ * that binds the database — one logical resource, one id, even before the resource exists. */
+const FIXTURE_D1: Record<DbBinding, { slug: string; prod: string; staging: string }> = {
+  TENANT_A_DB: { slug: "t-tenant-a", prod: "00000000-0000-4000-8000-000000000301", staging: "8e238970-2ed3-494d-960f-e4af082c1e01" },
+  TENANT_B_DB: { slug: "t-tenant-b", prod: "00000000-0000-4000-8000-000000000302", staging: "8e238970-2ed3-494d-960f-e4af082c1e02" },
+  CONTROL_DB: { slug: "control", prod: "00000000-0000-4000-8000-000000000303", staging: "8e238970-2ed3-494d-960f-e4af082c1e03" },
+  PLATFORM_TENANT_DB: { slug: "t-platform", prod: "00000000-0000-4000-8000-000000000304", staging: "8e238970-2ed3-494d-960f-e4af082c1e04" },
+  TENANT_POOL_01_DB: { slug: "t-pool-01", prod: "00000000-0000-4000-8000-000000000305", staging: "8e238970-2ed3-494d-960f-e4af082c1e05" },
+  TENANT_POOL_02_DB: { slug: "t-pool-02", prod: "00000000-0000-4000-8000-000000000306", staging: "8e238970-2ed3-494d-960f-e4af082c1e06" },
+};
+
+/** Two KV namespaces. The prod id is 32 characters and deliberately NOT hex: a KV id is only checked for
+ * shape, so an all-zero 32-HEX string would pass that check and read as provisioned. */
+const FIXTURE_KV: Record<KvBindingName, { prod: string; staging: string }> = {
+  IDEMPOTENCY: { prod: "0000000000000000000000000000prod", staging: "aa1180a9442c4b8cae8383183a280001" },
+  GRANTS: { prod: "0000000000000000000000000000prod", staging: "aa1180a9442c4b8cae8383183a280002" },
+};
+
+type FixtureWorker = { path: string; role: string; d1: DbBinding[]; kv: KvBindingName[]; r2: boolean };
+
+const FIXTURE_WORKERS: FixtureWorker[] = [
+  { path: "fixture/api/wrangler.toml", role: "api", d1: ["TENANT_A_DB", "TENANT_B_DB", "CONTROL_DB", "PLATFORM_TENANT_DB", "TENANT_POOL_01_DB", "TENANT_POOL_02_DB"], kv: ["IDEMPOTENCY"], r2: true },
+  { path: "fixture/agents/wrangler.toml", role: "agents", d1: ["TENANT_A_DB", "TENANT_B_DB", "CONTROL_DB"], kv: [], r2: true },
+  { path: "fixture/billing/wrangler.toml", role: "billing", d1: ["TENANT_A_DB", "TENANT_B_DB", "CONTROL_DB", "PLATFORM_TENANT_DB"], kv: [], r2: false },
+  { path: "fixture/mcp/wrangler.toml", role: "mcp", d1: ["CONTROL_DB"], kv: ["GRANTS"], r2: false },
+  { path: "fixture/translator/wrangler.toml", role: "translator", d1: ["TENANT_A_DB", "TENANT_B_DB", "CONTROL_DB"], kv: [], r2: true },
+];
+
+/** One synthetic wrangler.toml: a dev scope on local aliases, a staging scope on real ids, and a prod
+ * scope on placeholders — the three-scope shape the patcher has to navigate, comments and all. */
+function fixtureToml(w: FixtureWorker): string {
+  const lines: string[] = [
+    `# SYNTHETIC fixture — ${w.role}. Not a copy of any committed config and not maintained against one.`,
+    `name = "shuddl-${w.role}-dev"`,
+    'main = "src/index.ts"',
+    "",
+    "[vars]",
+    'ENVIRONMENT = "dev"',
+    "",
+  ];
+
+  const d1Id = (b: DbBinding, env: FixtureEnv): string =>
+    env === "prod" ? FIXTURE_D1[b].prod : env === "staging" ? FIXTURE_D1[b].staging : `local-${FIXTURE_D1[b].slug}`;
+  const kvId = (b: KvBindingName, env: FixtureEnv): string =>
+    env === "prod" ? FIXTURE_KV[b].prod : env === "staging" ? FIXTURE_KV[b].staging : `local-${b.toLowerCase()}`;
+
+  const emit = (env: FixtureEnv): void => {
+    const p = env === "dev" ? "" : `env.${env}.`;
+    if (env !== "dev") {
+      lines.push(`# ── ${env.toUpperCase()} ${"─".repeat(40)}`);
+      if (env === "prod") lines.push("# Every id below is a placeholder, deliberately: declared, not provisioned.");
+      lines.push(`[env.${env}]`, `name = "shuddl-${w.role}-${env}"`, "", `[env.${env}.vars]`, `ENVIRONMENT = "${env}"`, "");
+    }
+    for (const b of w.d1) {
+      lines.push(
+        `# ${b} — one logical database, however many workers bind it.`,
+        `[[${p}d1_databases]]`,
+        `binding = "${b}"`,
+        `database_name = "shuddl-${FIXTURE_D1[b].slug}-${env}"`,
+        `database_id = "${d1Id(b, env)}"`,
+        "",
+      );
+    }
+    for (const b of w.kv) {
+      lines.push(
+        "# A kv_namespaces entry records only an id, so its title has to be derived.",
+        `[[${p}kv_namespaces]]`,
+        `binding = "${b}"`,
+        `id = "${kvId(b, env)}"`,
+        "",
+      );
+    }
+    if (w.r2) {
+      lines.push("# Bound by NAME: there is no id here for the provisioner to write.", `[[${p}r2_buckets]]`, 'binding = "EVIDENCE"', `bucket_name = "shuddl-evidence-${env}"`, "");
+    }
+  };
+
+  emit("dev");
+  emit("staging");
+  emit("prod");
+  return lines.join("\n");
+}
+
+const fixtureConfigs = (): { path: string; text: string }[] =>
+  FIXTURE_WORKERS.map((w) => ({ path: w.path, text: fixtureToml(w) }));
+
+/** The committed configs. Read by exactly ONE test in this file — the invariant at the bottom. */
 const realConfigs = (): { path: string; text: string }[] =>
   WORKER_CONFIGS.map((path) => ({ path: path as string, text: readFileSync(path, "utf8") }));
 
@@ -108,7 +218,7 @@ function run(over: Partial<RunOptions> & { gateway: CloudflareGateway }): {
     accountId: "acct-product-0000",
     force: false,
     overrideAccountWarning: false,
-    configs: realConfigs(),
+    configs: fixtureConfigs(),
     confirm: () => "acct-product-0000",
     write: (p, t) => void written.set(p, t),
     log: (l) => void lines.push(l),
@@ -121,7 +231,7 @@ function run(over: Partial<RunOptions> & { gateway: CloudflareGateway }): {
 
 describe("the binding→resource map is derived from the configs, and shares one id across workers", () => {
   it("groups TENANT_A_DB's four binding sites onto ONE logical database", () => {
-    const { resources, conflicts } = derivePlan(realConfigs());
+    const { resources, conflicts } = derivePlan(fixtureConfigs());
     expect(conflicts).toEqual([]);
     const tenantA = resources.find((r) => r.kind === "d1" && r.resourceName === "shuddl-t-tenant-a-prod");
     expect(tenantA).toBeDefined();
@@ -135,8 +245,8 @@ describe("the binding→resource map is derived from the configs, and shares one
     expect(new Set(tenantA?.sites.map((s) => s.binding))).toEqual(new Set(["TENANT_A_DB"]));
   });
 
-  it("covers exactly the resources the prod configs declare — 6 databases, 2 KV namespaces, 1 bucket", () => {
-    const { resources } = derivePlan(realConfigs());
+  it("covers exactly the resources the prod scopes declare — 6 databases, 2 KV namespaces, 1 bucket", () => {
+    const { resources } = derivePlan(fixtureConfigs());
     const kinds = (k: string): string[] => resources.filter((r) => r.kind === k).map((r) => r.resourceName).sort();
     expect(kinds("d1")).toEqual([
       "shuddl-control-prod",
@@ -150,8 +260,8 @@ describe("the binding→resource map is derived from the configs, and shares one
     expect(kinds("r2")).toEqual(["shuddl-evidence-prod"]);
   });
 
-  it("accounts for all 17 D1 binding sites — the 17 database_id placeholders the preflight blocks on", () => {
-    const { resources } = derivePlan(realConfigs());
+  it("accounts for all 17 D1 binding sites — every database_id an unprovisioned prod blocks on", () => {
+    const { resources } = derivePlan(fixtureConfigs());
     const sites = resources.filter((r) => r.kind === "d1").reduce((n, r) => n + r.sites.length, 0);
     expect(sites).toBe(17);
     // 17 sites, 6 databases: the whole point is that 11 of those sites SHARE an id with another.
@@ -159,8 +269,8 @@ describe("the binding→resource map is derived from the configs, and shares one
   });
 
   it("is derived, not hand-typed: a database renamed in one config splits into two resources and CONFLICTS", () => {
-    const configs = realConfigs().map((c) =>
-      c.path === "workers/billing/wrangler.toml"
+    const configs = fixtureConfigs().map((c) =>
+      c.path === "fixture/billing/wrangler.toml"
         ? { ...c, text: c.text.replaceAll('database_name = "shuddl-control-prod"', 'database_name = "shuddl-control-prod-2"') }
         : c,
     );
@@ -170,11 +280,11 @@ describe("the binding→resource map is derived from the configs, and shares one
   });
 
   it("REFUSES a plan where one logical resource already carries two different real ids", () => {
-    const configs = realConfigs().map((c) =>
-      c.path === "workers/agents/wrangler.toml"
-        ? { ...c, text: c.text.replaceAll("00000000-0000-4000-8000-000000000301", uuidFor(7)) }
-        : c.path === "workers/billing/wrangler.toml"
-          ? { ...c, text: c.text.replaceAll("00000000-0000-4000-8000-000000000301", uuidFor(8)) }
+    const configs = fixtureConfigs().map((c) =>
+      c.path === "fixture/agents/wrangler.toml"
+        ? { ...c, text: c.text.replaceAll(FIXTURE_D1.TENANT_A_DB.prod, uuidFor(7)) }
+        : c.path === "fixture/billing/wrangler.toml"
+          ? { ...c, text: c.text.replaceAll(FIXTURE_D1.TENANT_A_DB.prod, uuidFor(8)) }
           : c,
     );
     const { conflicts } = derivePlan(configs);
@@ -295,7 +405,7 @@ describe("idempotency", () => {
     expect(first.written.size).toBe(5);
 
     // Re-run against the same account with the configs the first run produced.
-    const patched = realConfigs().map((c) => ({ path: c.path, text: first.written.get(c.path) ?? c.text }));
+    const patched = fixtureConfigs().map((c) => ({ path: c.path, text: first.written.get(c.path) ?? c.text }));
     fake.calls.length = 0;
     const second = run({ gateway: fake.gateway, mode: "apply", configs: patched });
     expect(second.result.noop).toBe(true);
@@ -309,7 +419,7 @@ describe("idempotency", () => {
   it("does not prompt on a no-op run — there is nothing to confirm", () => {
     const fake = productAccount();
     const first = run({ gateway: fake.gateway, mode: "apply" });
-    const patched = realConfigs().map((c) => ({ path: c.path, text: first.written.get(c.path) ?? c.text }));
+    const patched = fixtureConfigs().map((c) => ({ path: c.path, text: first.written.get(c.path) ?? c.text }));
     let asked = 0;
     run({
       gateway: fake.gateway,
@@ -330,7 +440,7 @@ describe("idempotency", () => {
 
     const byName = new Map(fake.state.d1.map((d) => [d.name, d.id]));
     const seen = new Map<string, Set<string>>();
-    for (const { path } of realConfigs()) {
+    for (const { path } of fixtureConfigs()) {
       const text = written.get(path);
       if (text === undefined) continue;
       const prod = targetFromWrangler(parseWranglerToml(text), PROD_SCOPE);
@@ -346,26 +456,25 @@ describe("idempotency", () => {
   });
 
   it("clears every placeholder-resource-id and binding-drift BLOCK the preflight reports for prod", () => {
-    const before = checkDeployTarget({
-      environment: PROD_SCOPE,
-      workers: realConfigs().map((c) => targetFromWrangler(parseWranglerToml(c.text), PROD_SCOPE)),
-      secrets: {},
-      corsOrigins: [],
-      now: "2026-07-29T12:00:00.000Z",
-    });
+    const report = (configs: { path: string; text: string }[]) =>
+      checkDeployTarget({
+        environment: PROD_SCOPE,
+        workers: configs.map((c) => targetFromWrangler(parseWranglerToml(c.text), PROD_SCOPE)),
+        secrets: {},
+        corsOrigins: [],
+        now: "2026-07-29T12:00:00.000Z",
+      });
+
+    // 19 ids the preflight will not accept: 17 database_id sites + 2 KV namespaces.
+    const before = report(fixtureConfigs());
     expect(before.problems.filter((p) => p.code === "placeholder-resource-id")).toHaveLength(19);
 
     const { written } = run({ gateway: productAccount().gateway, mode: "apply" });
-    const after = checkDeployTarget({
-      environment: PROD_SCOPE,
-      workers: realConfigs().map((c) => targetFromWrangler(parseWranglerToml(written.get(c.path) ?? c.text), PROD_SCOPE)),
-      secrets: {},
-      corsOrigins: [],
-      now: "2026-07-29T12:00:00.000Z",
-    });
+    const after = report(fixtureConfigs().map((c) => ({ path: c.path, text: written.get(c.path) ?? c.text })));
     expect(after.problems.filter((p) => p.code === "placeholder-resource-id")).toEqual([]);
     expect(after.problems.filter((p) => p.code === "binding-drift")).toEqual([]);
-    // Still BLOCKED overall, and honestly so: secrets, origins, TSA and backups are not this tool's job.
+    // Still BLOCKED overall, and honestly so: every remaining problem is something this tool does not
+    // claim to do — secrets, origins, TSA, backups, and the bindings a config author writes by hand.
     expect(after.ok).toBe(false);
   });
 });
@@ -374,15 +483,15 @@ describe("idempotency", () => {
 
 describe("refusing to clobber a real id", () => {
   const handProvisioned = (): { path: string; text: string }[] =>
-    realConfigs().map((c) =>
-      c.path === "workers/api/wrangler.toml"
+    fixtureConfigs().map((c) =>
+      c.path === "fixture/api/wrangler.toml"
         ? { ...c, text: c.text.replace(/(binding = "CONTROL_DB"\ndatabase_name = "shuddl-control-prod"\ndatabase_id = )"[^"]+"/, `$1"${uuidFor(21)}"`) }
         : c,
     );
 
   it("aborts, names the id and says why, when the account disagrees with a real id in the config", () => {
     const configs = handProvisioned();
-    expect(configs.find((c) => c.path === "workers/api/wrangler.toml")?.text).toContain(uuidFor(21));
+    expect(configs.find((c) => c.path === "fixture/api/wrangler.toml")?.text).toContain(uuidFor(21));
 
     const fake = fakeAccount({ workers: [STAGING_SENTINEL], d1: [{ name: "shuddl-control-prod", id: uuidFor(22) }] });
     const { result, written, output } = run({ gateway: fake.gateway, mode: "apply", configs });
@@ -401,26 +510,26 @@ describe("refusing to clobber a real id", () => {
     const { result, written } = run({ gateway: fake.gateway, mode: "apply", configs: handProvisioned(), force: true });
     expect(result.aborted).toBeNull();
     expect(result.refusals).toEqual([]);
-    const api = written.get("workers/api/wrangler.toml") ?? "";
+    const api = written.get("fixture/api/wrangler.toml") ?? "";
     expect(api).toContain(uuidFor(22));
     expect(api).not.toContain(uuidFor(21));
   });
 
   it("treats a real id that already MATCHES the account as done, not as a conflict", () => {
-    const configs = realConfigs().map((c) =>
-      c.path === "workers/api/wrangler.toml"
-        ? { ...c, text: c.text.replaceAll("00000000-0000-4000-8000-000000000303", uuidFor(31)) }
+    const configs = fixtureConfigs().map((c) =>
+      c.path === "fixture/api/wrangler.toml"
+        ? { ...c, text: c.text.replaceAll(FIXTURE_D1.CONTROL_DB.prod, uuidFor(31)) }
         : c,
     );
     const fake = fakeAccount({ workers: [STAGING_SENTINEL], d1: [{ name: "shuddl-control-prod", id: uuidFor(31) }] });
     const { result } = run({ gateway: fake.gateway, mode: "apply", configs });
     expect(result.refusals).toEqual([]);
-    // api is already correct; the other three CONTROL_DB sites still hold placeholders and get patched.
+    // api is already correct; the other four CONTROL_DB sites still hold placeholders and get patched.
     expect(result.edits.filter((e) => e.resourceName === "shuddl-control-prod").map((e) => e.config).sort()).toEqual([
-      "workers/agents/wrangler.toml",
-      "workers/billing/wrangler.toml",
-      "workers/mcp/wrangler.toml",
-      "workers/translator/wrangler.toml",
+      "fixture/agents/wrangler.toml",
+      "fixture/billing/wrangler.toml",
+      "fixture/mcp/wrangler.toml",
+      "fixture/translator/wrangler.toml",
     ]);
   });
 
@@ -445,7 +554,7 @@ describe("patching touches only [env.prod]", () => {
   it("leaves the dev and staging scopes byte-identical", () => {
     const { written } = run({ gateway: productAccount().gateway, mode: "apply" });
     expect(written.size).toBe(5);
-    for (const { path, text } of realConfigs()) {
+    for (const { path, text } of fixtureConfigs()) {
       const after = written.get(path);
       expect(after, path).toBeDefined();
       for (const scope of [undefined, "staging"] as const) {
@@ -458,7 +567,7 @@ describe("patching touches only [env.prod]", () => {
 
   it("changes ONLY database_id / id lines — never a name, a binding, a comment or a blank line", () => {
     const { written } = run({ gateway: productAccount().gateway, mode: "apply" });
-    for (const { path, text } of realConfigs()) {
+    for (const { path, text } of fixtureConfigs()) {
       const before = text.split("\n");
       const after = (written.get(path) ?? "").split("\n");
       expect(after, path).toHaveLength(before.length);
@@ -472,7 +581,7 @@ describe("patching touches only [env.prod]", () => {
 
   it("preserves every comment in the file", () => {
     const { written } = run({ gateway: productAccount().gateway, mode: "apply" });
-    for (const { path, text } of realConfigs()) {
+    for (const { path, text } of fixtureConfigs()) {
       const comments = (s: string): string[] => s.split("\n").filter((l) => l.trimStart().startsWith("#"));
       expect(comments(written.get(path) ?? ""), path).toEqual(comments(text));
     }
@@ -590,7 +699,7 @@ describe("the marketing-account heuristic", () => {
   });
 
   it("probes the marketing worker, the staging sentinel and every prod worker by name", () => {
-    const { resources } = derivePlan(realConfigs());
+    const { resources } = derivePlan(fixtureConfigs());
     expect(probeNames(resources)).toEqual([
       "shuddl-agents-prod",
       "shuddl-api-prod",
@@ -761,5 +870,53 @@ describe("planPatches", () => {
     const out = planPatches([r], new Map([["d1:shuddl-control-prod", uuidFor(62)]]), { force: false });
     expect(out.edits).toEqual([]);
     expect(out.alreadyCorrect).toHaveLength(1);
+  });
+});
+
+// ── 10. the committed configs, in whatever state of provisioning they are in ──────────────────────────
+
+describe("the real [env.prod] scopes", () => {
+  // THE ONLY TEST IN THIS FILE THAT READS workers/*/wrangler.toml, and it asserts nothing about WHETHER
+  // production is provisioned — that is a fact about an account, it changes the hour an operator runs the
+  // command, and a test that pins it fails on success. It asserts that whatever state those files are in
+  // is a COHERENT one. Every clause below held on the all-zero configs this tool was written against and
+  // holds on the provisioned ones, which is the definition of the right thing to lock:
+  //
+  //   · the plan sees every id the preflight sees — no binding silently dropped from the provisioner's view
+  //   · no id is a hand-typed invention: it is either the sentinel of a scope that says "not provisioned"
+  //     or a well-formed Cloudflare id. A `local-` alias, a truncated uuid or a plausible-looking guess is
+  //     none of those — a well-formed random UUID in billing's staging scope once made a database that did
+  //     not exist read as provisioned
+  //   · one logical resource carries ONE id in every worker that binds it
+  //
+  // The last is the one that catches a REAL mis-provisioning: a single transposed character in one of the
+  // four files that bind TENANT_A_DB splits the ledger's events across two databases while every other
+  // test in this repo stays green.
+  it("are internally coherent, provisioned or not", () => {
+    const configs = realConfigs();
+    const { resources, conflicts } = derivePlan(configs);
+    expect(conflicts).toEqual([]);
+
+    const declared = configs.map((c) => targetFromWrangler(parseWranglerToml(c.text), PROD_SCOPE));
+    const sitesOf = (kind: string): number => resources.filter((r) => r.kind === kind).reduce((n, r) => n + r.sites.length, 0);
+    expect(sitesOf("d1")).toBe(declared.reduce((n, t) => n + t.d1.length, 0));
+    expect(sitesOf("kv")).toBe(declared.reduce((n, t) => n + t.kv.length, 0));
+    expect(sitesOf("r2")).toBe(declared.reduce((n, t) => n + t.r2.length, 0));
+
+    for (const r of resources) {
+      const ids = new Set(r.sites.map((s) => s.currentId));
+      expect(ids.size, `${r.resourceName} carries ${ids.size} ids across ${r.sites.length} binding sites`).toBe(1);
+      if (r.kind === "r2") continue; // bound by name; there is no id
+
+      const kind = r.kind === "kv" ? "kv" : "d1";
+      for (const s of r.sites) {
+        const why = placeholderReason(kind, s.currentId, PROD_SCOPE);
+        if (why === null) continue; // a well-formed Cloudflare id
+        // Not provisioned is fine. Only the DELIBERATE sentinel is fine: pinning the exact reason keeps
+        // "unprovisioned" from quietly widening to cover a malformed or invented id.
+        expect(why, `${s.config} ${s.binding} = ${s.currentId}`).toBe(kind === "kv" ? "not a 32-hex KV namespace id" : "an all-zero placeholder UUID");
+        expect(s.currentId, `${s.config} ${s.binding}`).toMatch(kind === "kv" ? /^.{32}$/ : /^0{8}-0000-4000-8000-[0-9a-f]{12}$/);
+      }
+    }
   });
 });
