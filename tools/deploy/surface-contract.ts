@@ -62,7 +62,10 @@ export function checkSurfaceConfig(surface: (typeof SURFACES)[number], text: str
     if (!routed.has(host)) fail("missing-route", `no [[env.prod.routes]] resolves to ${host} (parsed: ${[...routed].join(", ") || "none"})`);
   }
   for (const r of routed) {
-    if (!surface.hosts.includes(r as (typeof surface.hosts)[number])) fail("unexpected-route", `${r} is routed but not declared for this surface`);
+    // `surface` is a UNION of the three SURFACES members, so `surface.hosts` is a union of readonly tuples
+    // and `.includes` resolves its parameter to the INTERSECTION of their element types — `never`. Widened
+    // to `readonly string[]` (the check is a membership test on strings; nothing depends on the literals).
+    if (!(surface.hosts as readonly string[]).includes(r)) fail("unexpected-route", `${r} is routed but not declared for this surface`);
     // Checked against what the config ACTUALLY routes, not against the expected list — the expected hosts
     // are constants in this file and are single-label by construction, so checking those would be a test
     // of nothing. The hostname that can carry a second label is the one somebody typed into the TOML.

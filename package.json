@@ -8,7 +8,8 @@
     "pnpm": "11.10.0"
   },
   "scripts": {
-    "typecheck": "pnpm -r --if-present run typecheck",
+    "typecheck": "pnpm run typecheck:tools && pnpm -r --if-present run typecheck",
+    "typecheck:tools": "tsc -p tsconfig.tools.json",
     "lint": "eslint .",
     "test": "pnpm run test:tools && pnpm -r --if-present run test",
     "test:tools": "vitest run --config vitest.tools.config.ts",
@@ -52,6 +53,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "4.12.1",
+    "@cloudflare/workers-types": "^4.20251230.0",
     "@playwright/test": "1.61.1",
     "@shuddl/contracts": "workspace:*",
     "@shuddl/ledger": "workspace:*",

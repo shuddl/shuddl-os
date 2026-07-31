@@ -109,8 +109,8 @@ function uniqueTargets(clean: string, table: string): string[][] {
     for (const raw of splitTopLevel(body, ",")) {
       const item = raw.trim();
       let mm: RegExpExecArray | null;
-      if ((mm = /^PRIMARY\s+KEY\s*\(([^)]*)\)/i.exec(item))) targets.push(colList(mm[1]));
-      else if ((mm = /^UNIQUE\s*\(([^)]*)\)/i.exec(item))) targets.push(colList(mm[1]));
+      if ((mm = /^PRIMARY\s+KEY\s*\(([^)]*)\)/i.exec(item))) targets.push(colList(mm[1] ?? ""));
+      else if ((mm = /^UNIQUE\s*\(([^)]*)\)/i.exec(item))) targets.push(colList(mm[1] ?? ""));
       else if (/^(?:CONSTRAINT\b|CHECK\b|FOREIGN\s+KEY\b|PRIMARY\s+KEY\b|UNIQUE\b)/i.test(item)) {
         // a table-level constraint form other than the two handled above — no column target to add
       } else {
@@ -127,7 +127,7 @@ function uniqueTargets(clean: string, table: string): string[][] {
     `CREATE\\s+UNIQUE\\s+INDEX(?:\\s+IF\\s+NOT\\s+EXISTS)?\\s+${SCHEMA}${Q}\\w+${QCLOSE}\\s+ON${DELIM}${SCHEMA}${Q}${table}${QCLOSE}\\s*\\(([^)]*)\\)`,
     "gi",
   );
-  for (const m of clean.matchAll(idxRe)) targets.push(colList(m[1]));
+  for (const m of clean.matchAll(idxRe)) targets.push(colList(m[1] ?? ""));
   return targets;
 }
 // Every BEFORE INSERT guard on a guarded table, decomposed into its OR-disjuncts, each disjunct as the set
@@ -142,7 +142,12 @@ function guardPredicateSets(clean: string, table: string): Set<string>[] {
   for (const m of clean.matchAll(re)) {
     for (const disj of splitTopLevel(m[1] ?? "", "or")) {
       const set = new Set<string>();
-      for (const eq of disj.matchAll(/(\w+)\s*=\s*NEW\.\w+/gi)) set.add(eq[1].toLowerCase());
+      for (const eq of disj.matchAll(/(\w+)\s*=\s*NEW\.\w+/gi)) {
+        // Group 1 always participates when the pattern matches; narrowed rather than defaulted so a
+        // hypothetical miss can never seed the set with an empty column name.
+        const col = eq[1];
+        if (col !== undefined) set.add(col.toLowerCase());
+      }
       if (set.size > 0) sets.push(set);
     }
   }

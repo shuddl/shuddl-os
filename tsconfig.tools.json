@@ -1,0 +1,41 @@
+{
+  // The build's OWN code — everything outside a workspace package. `pnpm typecheck` fans out with
+  // `pnpm -r`, which visits apps/*, workers/* and packages/* and nothing else, so tools/ and tests/ had
+  // no compile-time check anywhere: the deploy/release tooling that DECIDES whether a deploy may happen
+  // (preflight, provision-prod, backup, restore-verify, snapshot-ledger, surface-contract, run-gate, the
+  // traceability + citation checkers) was shipped type-unchecked. `.test.ts` under tools/ is executed by
+  // `pnpm test:tools`, but vitest transpiles without typechecking, so a type error there surfaced only as
+  // a runtime failure on a path that happened to run.
+  //
+  // Same strictness as everything else: it extends tsconfig.base.json and relaxes NOTHING.
+  //
+  // Non-default filename on purpose, for the reason tools/live/tsconfig.render.json already documents: a
+  // root `tsconfig.json` is auto-discovered by every tsx invocation in the repo (all 25 `tsx tools/...`
+  // scripts), which would silently change how those scripts compile. This config is only ever passed
+  // explicitly, via `pnpm typecheck:tools`.
+  // `types` carries @cloudflare/workers-types because the deploy tools import @shuddl/ledger, whose source
+  // (lens/migrate/projection) is typed against the D1 globals — the same reason workers/*/tsconfig.json
+  // lists it. `jsx` exists for the same reason workers/api's does: an import chain reaches a .tsx view
+  // (tools/concierge/parse-parity.ts → @shuddl/agents concierge/compose → quote-reply.tsx); no tool renders UI.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": { "types": ["node", "@cloudflare/workers-types"], "jsx": "react-jsx" },
+  "include": ["tools/**/*.ts", "tests/**/*.ts", "*.config.ts"],
+  "exclude": [
+    "**/node_modules/**",
+    "**/dist/**",
+    // Has its own config (tools/live/tsconfig.render.json) because it pulls .tsx sources in and needs the
+    // automatic JSX runtime + DOM lib. It is a one-off local render tool, not part of any gate.
+    "tools/live/render-email.ts",
+    // HELD OUT, and this is a finding rather than a convenience. Both files write `use: { reducedMotion:
+    // "reduce" }`, which does not typecheck — and the reason it does not is that Playwright 1.61 has no
+    // such test option: `_combinedContextOptions` (playwright/lib/index.js) is assembled from an
+    // enumerated fixture list that does not include it, plus `contextOptions`. Playwright ignores the
+    // unknown key silently (`playwright test --list` loads both configs without complaint), so the
+    // "motion" axis of the blessed-screenshot determinism contract is currently INERT. The correct
+    // spelling is `use: { contextOptions: { reducedMotion: "reduce" } }` — but applying it CHANGES the
+    // captured pixels (prefers-reduced-motion would finally reach the page), which is a re-blessing
+    // decision, not a typecheck fix. Fold these back in with that change.
+    "playwright.config.ts",
+    "playwright.prod.config.ts"
+  ]
+}

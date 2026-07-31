@@ -350,9 +350,11 @@ export function checkCitations(citations: readonly Citation[], index: RepoIndex)
     // Same ambiguity discipline as bounds: a violation only when EVERY viable candidate fails.
     const reasons = inBounds.map((x) => anchorReason(c, x.path, x.lines));
     if (reasons.some((r) => r === null)) continue;
-    const first = reasons[0];
+    // `.some(r => r === null)` above already returned for any null, but that cannot narrow the array —
+    // collapse the out-of-range `undefined` into `null` so the single-candidate branch is a plain string.
+    const first = reasons[0] ?? null;
     const reason =
-      reasons.length === 1 && first !== undefined
+      reasons.length === 1 && first !== null
         ? first
         : `anchor "${c.symbol}" holds in none of the ${reasons.length} candidate files — ${inBounds.map((x, i) => `${x.path}: ${reasons[i] ?? ""}`).join(" | ")}`;
     violations.push({ ...base, reason });

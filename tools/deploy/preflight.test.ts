@@ -73,6 +73,19 @@ function healthyTarget(over: Partial<DeployTarget> = {}): DeployTarget {
   };
 }
 
+/** The healthy target with its backups section ABSENT — the shape a target has when nothing has ever
+ *  produced a manifest. `healthyTarget({ backups: undefined })` said the same thing, but
+ *  exactOptionalPropertyTypes correctly refuses an explicit `undefined` for an optional property (absent
+ *  and present-but-undefined are distinguishable), so the key is deleted rather than assigned. The
+ *  assertion path is unchanged: `checkDeployTarget` reads it as `target.backups?.lastManifestAt`, which
+ *  short-circuits identically for both shapes. Deliberately NOT `{ backups: {} }` — that would stop
+ *  covering the absent-section case. */
+function targetWithoutBackups(): DeployTarget {
+  const t = healthyTarget();
+  delete t.backups;
+  return t;
+}
+
 const blocks = (t: DeployTarget): string[] => checkDeployTarget(t).problems.filter((p) => p.severity === "BLOCK").map((p) => p.code);
 
 describe("a fully-provisioned target", () => {
@@ -86,7 +99,7 @@ describe("a fully-provisioned target", () => {
     const broken: DeployTarget[] = [
       healthyTarget({ workers: [worker({ worker: "shuddl-api-staging" })] }),
       healthyTarget({ secrets: {} }),
-      healthyTarget({ backups: undefined }),
+      targetWithoutBackups(),
       healthyTarget({ tsa: {} }),
     ];
     for (const t of broken) {
@@ -357,7 +370,7 @@ describe("sender, TSA, and backup posture", () => {
   });
 
   it("BLOCKS when no backup manifest exists at all", () => {
-    expect(blocks(healthyTarget({ backups: undefined }))).toContain("no-backup");
+    expect(blocks(targetWithoutBackups())).toContain("no-backup");
   });
 
   it(`BLOCKS a backup older than the ${RPO_HOURS}h RPO`, () => {

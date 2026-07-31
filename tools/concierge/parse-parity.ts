@@ -60,12 +60,16 @@ type ConciergeReason = (typeof CONCIERGE_REASONS)[number];
 
 // What the DeterministicParser is expected to have extracted. `weight_lb` undefined ⇒ MUST be absent;
 // `dims` (when given) asserts dims PRESENCE (Boolean); `accessorials` is compared as a SET (default empty).
+// The optionals carry an explicit `| undefined` because these values arrive from `ExpectedRequestShape`
+// (zod `.optional()`), whose inferred type is `number | undefined` — under exactOptionalPropertyTypes a
+// bare `?:` would refuse that assignment. The type now states exactly what the schema produces; the
+// strictness flag is untouched, and every read below already handles the absent case.
 interface ExpectedRequest {
   origin_zip: string;
   dest_zip: string;
-  weight_lb?: number;
-  dims?: boolean;
-  accessorials?: readonly string[];
+  weight_lb?: number | undefined;
+  dims?: boolean | undefined;
+  accessorials?: readonly string[] | undefined;
 }
 type ExpectedDecision = { status: "auto_reply" } | { status: "queued"; reason: ConciergeReason };
 interface Expected {
