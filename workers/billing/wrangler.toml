@@ -128,6 +128,13 @@ workers_dev = false
 [env.prod.vars]
 ENVIRONMENT = "prod"
 
+# Stripe must be able to REACH the credit-purchase webhook (POST /webhooks/stripe), so this worker needs
+# a route even though it is otherwise cron-driven. The handler answers /health and that one path; every
+# other request 404s, and the webhook itself stays DARK until STRIPE_WEBHOOK_SECRET is bound.
+[[env.prod.routes]]
+pattern = "billing.shuddl.tech/*"
+zone_name = "shuddl.tech"
+
 [env.prod.triggers]
 crons = ["0 * * * *"]
 

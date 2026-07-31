@@ -14,8 +14,20 @@ import type { MiddlewareHandler } from "hono";
 // The list is exported so the isolation/CORS suites can assert against the SAME source the worker mounts —
 // a future edit that drops an origin (or slips in `*`) fails a test, not just a code review.
 export const CORS_ALLOWED_ORIGINS: readonly string[] = [
-  "https://portal.example", // the authed Portal surface (synthetic placeholder host — REQ-167)
-  "https://status.example", // the public status page that consumes /pub/status/:cap
+  // ── The real deploy origins (added 2026-07-30 when the prod zone was routed). These are the three
+  //    browser surfaces; `shuddl.tech` is an active zone in the same Cloudflare account as the workers,
+  //    so each resolves to a real deployment rather than a stand-in. They are NOT tenant/customer names
+  //    (REQ-167) — they are the product's own hostnames, which is what this allowlist is for.
+  "https://command.shuddl.tech", // Command — the dispatcher board
+  "https://portal.shuddl.tech", // the authed Client Portal
+  "https://driver.shuddl.tech", // the Driver PWA
+  "https://track.shuddl.tech", // the PUBLIC status page that consumes /pub/status/:cap (no session)
+  // ── The synthetic placeholders the surfaces used before a real origin existed. Kept because the
+  //    design/screenshot harness and the contract tests still assert against them; deleting them would
+  //    fail those, not free anything. They can never resolve (`.example` is RFC 2606 reserved).
+  "https://portal.example",
+  "https://status.example",
+  // ── Local development.
   "http://localhost:5173", // Portal Vite dev server (apps/portal — Vite's default dev port)
   "http://localhost:4322", // design / screenshot harness dev origin
 ];

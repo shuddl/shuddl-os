@@ -154,6 +154,12 @@ workers_dev = false
 [env.prod.vars]
 ENVIRONMENT = "prod"
 
+# The public API surface. Command, Portal and the Driver PWA are browser clients on their own origins,
+# so every /v1 read is cross-origin and gated by CORS_ALLOWED_ORIGINS (never `*`).
+[[env.prod.routes]]
+pattern = "api.shuddl.tech/*"
+zone_name = "shuddl.tech"
+
 [[env.prod.d1_databases]]
 binding = "TENANT_A_DB"
 database_name = "shuddl-t-tenant-a-prod"

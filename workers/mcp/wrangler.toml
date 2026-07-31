@@ -100,6 +100,12 @@ workers_dev = false
 [env.prod.vars]
 ENVIRONMENT = "prod"
 
+# The MCP + OAuth endpoints. Routed on its own hostname so the OAuth callback and the tool surface are
+# addressable without widening the api worker's route.
+[[env.prod.routes]]
+pattern = "mcp.shuddl.tech/*"
+zone_name = "shuddl.tech"
+
 # REQ-109 — the webhook delivery cron (fail-closed no-op until wired).
 [env.prod.triggers]
 crons = ["*/5 * * * *"]
