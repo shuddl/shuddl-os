@@ -3,6 +3,7 @@ import type { LedgerEvent } from "@shuddl/contracts";
 import { GENESIS_HASH, buildChain } from "@shuddl/ledger/chain";
 import { eventToRow } from "@shuddl/ledger/lens";
 import {
+  gateCrashResult,
   reconcileRestore,
   snapshotDigest,
   verifyChainOfRows,
@@ -10,6 +11,7 @@ import {
   type LedgerSnapshot,
   type ChainVerdict,
 } from "./restore-verify.js";
+import { formatGateResult, gateResultProblem, parseGateResults } from "../release/evidence.js";
 
 // V1 remediation Task 15 (REQ-117/REQ-284/REQ-288) — RESTORE RECONCILIATION.
 //
@@ -301,6 +303,118 @@ describe("verifyChainOfRows over a real (multi-stream) ledger", () => {
     const found = codes(snapshot(), snapshot(), await verifyChainOfRows([]));
     expect(found).toContain("chain-count-mismatch");
     expect(found).toContain("chain-head-mismatch");
+  });
+});
+
+// ── a row that is not a readable event ────────────────────────────────────────────────────────────────
+//
+// Byte-level corruption (a flipped hash, a broken prev_hash, a dropped row) already produces a verdict:
+// the row still PARSES, so the walk reaches it and `verifyChain` names the break. A row whose payload no
+// longer satisfies the schema never gets that far — `rowToEvent` throws a raw ZodError inside the parse
+// loop, which under `--mode release` left the process dead on a stack trace with NO ##SHUDDL-GATE##
+// sentinel: run-gate then recorded the gate from a bare exit code, with no structured result. It was
+// never a false pass (exit 1 is not green), but a gate that stack-traces has not reported a verdict, and
+// the structured record is how an operator reads a release. The unreadable row is a chain break like any
+// other and says so, naming the stream and the seq.
+describe("a row that is not a readable event", () => {
+  it("returns a verdict naming the stream and seq instead of throwing", async () => {
+    const rows = [...(await streamRows("s:SHP-a", 4)), ...(await streamRows("s:SHP-b", 3))];
+    const victim = rows[5]; // s:SHP-b, seq 1
+    if (victim === undefined) throw new Error("fixture");
+    victim.payload = JSON.stringify("not-an-object"); // schema-invalid, not merely hash-divergent
+    const verdict = await verifyChainOfRows(rows);
+    expect(verdict.ok).toBe(false);
+    if (verdict.ok) return;
+    expect(verdict.failure.reason).toBe("row_unreadable");
+    expect(verdict.failure.seq).toBe(1);
+    expect(verdict.failure.stream).toBe("s:SHP-b");
+    expect(verdict.failure.detail).toBeTruthy();
+  });
+
+  it("survives payload bytes that are not JSON at all — the parse throws a SyntaxError, not a ZodError", async () => {
+    const rows = await streamRows("s:SHP-a", 3);
+    const victim = rows[2];
+    if (victim === undefined) throw new Error("fixture");
+    victim.payload = "{not json";
+    const verdict = await verifyChainOfRows(rows);
+    expect(verdict.ok).toBe(false);
+    if (verdict.ok) return;
+    expect(verdict.failure.reason).toBe("row_unreadable");
+    expect(verdict.failure.seq).toBe(2);
+    expect(verdict.failure.stream).toBe("s:SHP-a");
+  });
+
+  it("still answers when the row's OWN identity is the unreadable part", async () => {
+    // No usable stream_id and no usable seq: the verdict must still be a verdict, and must not claim a
+    // stream or a seq it cannot see.
+    const rows = await streamRows("s:SHP-a", 2);
+    const victim = rows[1];
+    if (victim === undefined) throw new Error("fixture");
+    victim.stream_id = null;
+    victim.seq = null;
+    const verdict = await verifyChainOfRows(rows);
+    expect(verdict.ok).toBe(false);
+    if (verdict.ok) return;
+    expect(verdict.failure.reason).toBe("row_unreadable");
+    expect(verdict.failure.stream).toBeUndefined();
+    expect(verdict.failure.seq).toBe(-1);
+  });
+
+  it("reaches the operator as a chain-broken problem that names the stream and the reason", async () => {
+    const rows = [...(await streamRows("s:SHP-a", 4)), ...(await streamRows("s:SHP-b", 3))];
+    const victim = rows[5];
+    if (victim === undefined) throw new Error("fixture");
+    victim.payload = JSON.stringify("not-an-object");
+    const verdict = await verifyChainOfRows(rows);
+    const problem = reconcileRestore(snapshot(), snapshot(), verdict).problems.find((p) => p.code === "chain-broken");
+    expect(problem).toBeDefined();
+    expect(problem?.detail).toContain("s:SHP-b");
+    expect(problem?.detail).toContain("row_unreadable");
+  });
+
+  it("does not regress the byte-level corruptions, which must still name their own reasons", async () => {
+    // The unreadable-row branch must not swallow a plain hash divergence: a row that PARSES is walked.
+    const tampered = [...(await streamRows("s:SHP-a", 4)), ...(await streamRows("s:SHP-b", 3))];
+    const victim = tampered[5];
+    if (victim === undefined) throw new Error("fixture");
+    victim.payload = JSON.stringify({ tampered: true }); // still a valid JsonObject
+    const hashBreak = await verifyChainOfRows(tampered);
+    expect(hashBreak.ok).toBe(false);
+    if (!hashBreak.ok) expect(hashBreak.failure.reason).toBe("hash_mismatch");
+
+    const dropped = await verifyChainOfRows((await streamRows("s:SHP-a", 4)).filter((r) => r.seq !== 2));
+    expect(dropped.ok).toBe(false);
+    if (!dropped.ok) expect(dropped.failure.reason).toBe("seq_gap");
+  });
+});
+
+describe("the gate's own crash verdict", () => {
+  it("is a FAIL that run-gate can read, with the cause in the detail", () => {
+    const result = gateCrashResult(new TypeError("cannot read properties of undefined"));
+    expect(result.status).toBe("FAIL");
+    expect(result.executed).toBe(true);
+    expect(result.detail).toContain("TypeError");
+    // A FAIL is well-formed with 0 assertions; a PASS would not be. That asymmetry is the point.
+    expect(gateResultProblem(result)).toBeNull();
+  });
+
+  it("is a well-formed sentinel run-gate parses back to the same verdict", () => {
+    const result = gateCrashResult(new Error("boom"));
+    const parsed = parseGateResults(formatGateResult(result));
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0]?.status).toBe("FAIL");
+  });
+
+  it("survives a non-Error throw", () => {
+    expect(gateCrashResult("a bare string").detail).toContain("a bare string");
+  });
+
+  it("clips the detail to one line and a bounded length — this string lands in the evidence artifact", () => {
+    // A raw ZodError message is a multi-line JSON dump that can carry row content.
+    const detail = gateCrashResult(new Error(`ZodError: [\n  {\n    "path": ["payload"],\n${"x".repeat(2000)}\n  }\n]`)).detail ?? "";
+    expect(detail).not.toContain("\n");
+    expect(detail.length).toBeLessThanOrEqual(340);
+    expect(detail.endsWith("…")).toBe(true);
   });
 });
 

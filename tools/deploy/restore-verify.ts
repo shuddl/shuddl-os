@@ -40,9 +40,40 @@ export type LedgerSnapshot = {
 // bare `seq 0` is ambiguous across streams, and an operator reading a failed restore mid-incident needs
 // to know WHICH stream broke before they can look at anything. Optional because a single-stream caller
 // (and every verdict this gate constructed before) has nothing to name.
+//
+// `detail` is free prose for the one reason that cannot be read off the token alone — ROW_UNREADABLE,
+// where the useful fact is WHICH field failed validation. It is a separate field precisely so `reason`
+// stays exact-matchable.
 export type ChainVerdict =
   | { ok: true; head: string; count: number }
-  | { ok: false; failure: { seq: number; reason: string; stream?: string } };
+  | { ok: false; failure: { seq: number; reason: string; stream?: string; detail?: string } };
+
+// A row that does not parse as a LedgerEvent at all. Not one of the ledger's own ChainFailure reasons —
+// `verifyChain` never sees such a row — but it IS a chain break: an event whose bytes no longer describe
+// an event cannot be linked, hashed, or replayed, and a restore carrying one is not the same ledger.
+export const ROW_UNREADABLE = "row_unreadable";
+
+/** Seq/stream taken from the RAW row, because the row failed validation and there is no parsed event to
+ *  ask. A row that cannot even name itself reports seq -1 and no stream rather than inventing either. */
+function rowIdentity(row: Record<string, string | number | null>): { seq: number; stream?: string } {
+  const seq = typeof row["seq"] === "number" && Number.isFinite(row["seq"]) ? row["seq"] : -1;
+  const streamId = row["stream_id"];
+  return typeof streamId === "string" && streamId.length > 0 ? { seq, stream: streamId } : { seq };
+}
+
+/** A compact, value-free summary of why the row would not parse: zod issue paths + messages, or the raw
+ *  error text for a non-zod throw (malformed JSON in a payload/evidence column reaches JSON.parse first).
+ *  Deliberately carries no row CONTENT — this string is printed by a gate and lands in an evidence
+ *  artifact, and a tampered payload is exactly the thing not to echo. */
+function unreadableDetail(err: unknown): string {
+  const issues = (err as { issues?: { path?: unknown[]; message?: string }[] } | undefined)?.issues;
+  const summary = Array.isArray(issues)
+    ? issues.map((i) => `${(i.path ?? []).join(".") || "(root)"}: ${i.message ?? "invalid"}`).join("; ")
+    : err instanceof Error
+      ? `${err.name}: ${err.message}`
+      : String(err);
+  return summary.length > 300 ? `${summary.slice(0, 297)}…` : summary;
+}
 
 // The number of independent dimensions reconcileRestore inspects. Exported so a clean report can assert
 // it actually looked at all of them — a "0 problems" result from a checker that examined two fields is
@@ -72,7 +103,8 @@ export function reconcileRestore(source: LedgerSnapshot, restored: LedgerSnapsho
   // ── chain ──
   if (!chain.ok) {
     const where = chain.failure.stream === undefined ? "" : ` of stream ${chain.failure.stream}`;
-    fail("chain-broken", "chain", `restored chain fails at seq ${chain.failure.seq}${where}: ${chain.failure.reason}`);
+    const why = chain.failure.detail === undefined ? "" : ` (${chain.failure.detail})`;
+    fail("chain-broken", "chain", `restored chain fails at seq ${chain.failure.seq}${where}: ${chain.failure.reason}${why}`);
   } else {
     if (chain.count !== restored.events.count) {
       fail("chain-count-mismatch", "chain", `chain walked ${chain.count} events but the snapshot claims ${restored.events.count}`);
@@ -163,9 +195,23 @@ export async function snapshotDigest(value: unknown): Promise<string> {
 export async function verifyChainOfRows(rows: Record<string, string | number | null>[]): Promise<ChainVerdict> {
   const byStream = new Map<string, LedgerEvent[]>();
   for (const row of rows) {
-    // rowToEvent validates through the LedgerEvent schema, so a row with no usable stream_id throws
+    // rowToEvent validates through the LedgerEvent schema, so a row with no usable stream_id is rejected
     // here rather than being silently bucketed under some default and walked as if it belonged.
-    const e = rowToEvent(row);
+    //
+    // UNREADABLE ⇒ A VERDICT, NOT A CRASH. It used to be a bare `rowToEvent(row)`, and a tampered payload
+    // therefore escaped as a raw ZodError (or a SyntaxError from JSON.parse, for bytes that are not JSON
+    // at all): the process died on a stack trace with no ##SHUDDL-GATE## sentinel, so under --mode
+    // release run-gate recorded this gate from a bare exit code with no structured result. Never a false
+    // pass — but a stack trace is not a verdict, and the structured record is how an operator reads a
+    // release. The walk stops at the first such row: the row cannot be attributed to a stream with any
+    // confidence, so continuing would be walking a chain we cannot claim is the chain.
+    let e: LedgerEvent;
+    try {
+      e = rowToEvent(row);
+    } catch (err) {
+      const { seq, ...where } = rowIdentity(row);
+      return { ok: false, failure: { seq, reason: ROW_UNREADABLE, ...where, detail: unreadableDetail(err) } };
+    }
     const found = byStream.get(e.stream_id);
     if (found === undefined) byStream.set(e.stream_id, [e]);
     else found.push(e);
@@ -253,4 +299,33 @@ async function main(): Promise<void> {
   process.exit(report.ok ? EVIDENCE_EXIT.OK : EVIDENCE_EXIT.ASSERTIONS_FAILED);
 }
 
-if (process.argv[1] !== undefined && /restore-verify\.ts$/.test(process.argv[1])) void main();
+/**
+ * The verdict for the case nobody planned: the gate itself threw.
+ *
+ * The unreadable-row throw above was ONE instance of a class — a gate that dies on a stack trace has not
+ * reported anything, and run-gate then records it from a bare exit code with no structured result. It is
+ * never a false pass, but the structured record is how an operator reads a release, and "the process
+ * exited 1" does not say which gate failed or why. Anything unforeseen becomes a FAIL like any other.
+ *
+ * `assertions: 0` is deliberate and correct here: a crash asserted nothing. `gateResultProblem` only
+ * requires assertions > 0 for a PASS — precisely so a failure cannot be dressed up as one.
+ *
+ * The detail is CLIPPED to one line and 300 chars. A raw ZodError message is a multi-line JSON dump that
+ * can carry row content, and this string is written verbatim into the evidence artifact.
+ */
+export function gateCrashResult(err: unknown): GateResult {
+  const raw = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+  const oneLine = raw.replace(/\s+/g, " ").trim();
+  const detail = oneLine.length > 300 ? `${oneLine.slice(0, 297)}…` : oneLine;
+  return { gate: "restore-verify", status: "FAIL", executed: true, assertions: 0, detail: `the gate itself threw — ${detail}` };
+}
+
+if (process.argv[1] !== undefined && /restore-verify\.ts$/.test(process.argv[1])) {
+  // main() exits on every normal path, so this only ever fires on the unforeseen.
+  void main().catch((err: unknown) => {
+    const result = gateCrashResult(err);
+    console.error(`restore-verify: FAIL — ${result.detail}`);
+    if (parseMode(process.argv.slice(2)) !== "local") console.log(formatGateResult(result));
+    process.exit(EVIDENCE_EXIT.ASSERTIONS_FAILED);
+  });
+}

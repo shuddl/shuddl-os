@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { LedgerEvent } from "@shuddl/contracts";
 import { GENESIS_HASH, buildChain } from "@shuddl/ledger/chain";
 import { eventToRow } from "@shuddl/ledger/lens";
-import { reconcileRestore, type LedgerSnapshot } from "./restore-verify.js";
+import { ROW_UNREADABLE, reconcileRestore, type LedgerSnapshot } from "./restore-verify.js";
 import {
   SNAPSHOT_SQL,
   captureSnapshot,
@@ -212,5 +212,37 @@ describe("surveyStreamChains", () => {
     expect(survey.ok).toBe(false);
     if (survey.ok) return;
     expect(survey.failure.reason).toBe("seq_gap");
+  });
+
+  // Same defect class as restore-verify's: a row that is not a readable event used to escape as a raw
+  // throw, killing the capture mid-survey. Here the disposition is not a gate sentinel — snapshot-ledger
+  // is an operator/nightly command, not one of run-gate's gates — it is "say which row, write NOTHING".
+  // A survey that crashes leaves the operator with a stack trace and no idea which row to look at, during
+  // the one procedure where they need to know exactly that.
+  it("returns a verdict for a schema-invalid row instead of throwing", async () => {
+    const rows = [...(await streamRows("s:SHP-a", 4)), ...(await streamRows("s:SHP-b", 3))];
+    const victim = rows[5]; // s:SHP-b, seq 1
+    if (victim === undefined) throw new Error("fixture");
+    victim.payload = JSON.stringify("not-an-object");
+    const survey = await surveyStreamChains(rows);
+    expect(survey.ok).toBe(false);
+    if (survey.ok) return;
+    expect(survey.failure.reason).toBe(ROW_UNREADABLE);
+    expect(survey.streamId).toBe("s:SHP-b");
+    expect(survey.failure.seq).toBe(1);
+    expect(survey.failure.detail).toContain("payload");
+  });
+
+  it("returns a verdict for a row that carries no stream_id at all — it cannot be attributed", async () => {
+    const rows = await streamRows("s:SHP-a", 3);
+    const victim = rows[1];
+    if (victim === undefined) throw new Error("fixture");
+    victim.stream_id = null;
+    const survey = await surveyStreamChains(rows);
+    expect(survey.ok).toBe(false);
+    if (survey.ok) return;
+    expect(survey.failure.reason).toBe(ROW_UNREADABLE);
+    expect(survey.streamId).toBeNull(); // null, never a guessed or defaulted stream
+    expect(survey.failure.detail).toContain("stream_id");
   });
 });

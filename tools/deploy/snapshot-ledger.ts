@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { GENESIS_HASH } from "@shuddl/ledger/chain";
-import { verifyChainOfRows } from "./restore-verify.js";
+import { ROW_UNREADABLE, verifyChainOfRows } from "./restore-verify.js";
 import { manifestDigest, unsignManifest, type SignedBackupManifest } from "./backup.js";
 import type { AnchorSummary, LedgerSnapshot } from "./restore-verify.js";
 import { EVIDENCE_EXIT } from "../release/evidence.js";
@@ -167,9 +167,12 @@ function captureAnchors(io: SnapshotIo): AnchorSummary[] {
 // ── the chain survey ──────────────────────────────────────────────────────────────────────────────────
 
 export type StreamChain = { streamId: string; count: number; head: string };
+// `streamId` is null for the one failure that cannot be attributed to a stream: a row whose own
+// `stream_id` column is unreadable. Null rather than "" or a placeholder — a survey must not name a
+// stream it cannot see, and the operator line prints "(unattributed)" so nobody goes looking for one.
 export type ChainSurvey =
   | { ok: true; streams: StreamChain[]; count: number }
-  | { ok: false; streams: StreamChain[]; streamId: string; failure: { seq: number; reason: string } };
+  | { ok: false; streams: StreamChain[]; streamId: string | null; failure: { seq: number; reason: string; detail?: string } };
 
 /**
  * Re-walk EVERY stream's hash chain through the ledger's own verifier.
@@ -184,7 +187,14 @@ export async function surveyStreamChains(rows: SnapshotRow[]): Promise<ChainSurv
   const byStream = new Map<string, SnapshotRow[]>();
   for (const row of rows) {
     const streamId = typeof row.stream_id === "string" ? row.stream_id : null;
-    if (streamId === null) throw new Error(`snapshot-ledger: an event row carries no stream_id: ${JSON.stringify(row).slice(0, 200)}`);
+    if (streamId === null) {
+      // A VERDICT, NOT A CRASH — the same disposition verifyChainOfRows now takes for a row that will not
+      // parse. This used to `throw`, which killed the capture mid-survey and (worse) dumped 200 bytes of
+      // the offending row into the operator's terminal. The survey's contract is already "say which row,
+      // write NOTHING"; a throw only removed the "say which row" half.
+      const seq = typeof row.seq === "number" && Number.isFinite(row.seq) ? row.seq : -1;
+      return { ok: false, streams: [], streamId: null, failure: { seq, reason: ROW_UNREADABLE, detail: "the row carries no usable stream_id, so it cannot be attributed to a chain" } };
+    }
     const found = byStream.get(streamId) ?? [];
     found.push(row);
     byStream.set(streamId, found);
@@ -335,7 +345,8 @@ async function main(): Promise<void> {
     if (!survey.ok) {
       // A snapshot taken from a database whose chain is broken would launder that break: both sides
       // record the same broken head and reconcile clean. Nothing is written.
-      console.error(`snapshot-ledger: the hash chain of ${databaseName} is BROKEN — stream ${survey.streamId} fails at seq ${survey.failure.seq} (${survey.failure.reason}).`);
+      const why = survey.failure.detail === undefined ? "" : `: ${survey.failure.detail}`;
+      console.error(`snapshot-ledger: the hash chain of ${databaseName} is BROKEN — stream ${survey.streamId ?? "(unattributed)"} fails at seq ${survey.failure.seq} (${survey.failure.reason}${why}).`);
       console.error("snapshot-ledger: no snapshot and no rows were written. Do not reconcile against this database.");
       process.exit(EVIDENCE_EXIT.ASSERTIONS_FAILED);
     }
