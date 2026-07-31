@@ -3,7 +3,7 @@ import { canonicalize, sha256Hex } from "@shuddl/ledger/canonical";
 import { GENESIS_HASH, verifyChain, type ChainResult } from "@shuddl/ledger/chain";
 import { rowToEvent } from "@shuddl/ledger/lens";
 import type { LedgerEvent } from "@shuddl/contracts";
-import { EVIDENCE_EXIT, formatGateResult, parseMode, type GateResult } from "../release/evidence.js";
+import { EVIDENCE_EXIT, formatGateResult, parseMode, unavailableStatus, type GateMode, type GateResult } from "../release/evidence.js";
 
 // V1 remediation Task 15 (REQ-117 / REQ-284 / REQ-288) — RESTORE RECONCILIATION.
 //
@@ -15,9 +15,15 @@ import { EVIDENCE_EXIT, formatGateResult, parseMode, type GateResult } from "../
 //
 // The reconciliation is PURE over metadata so the whole decision surface is unit-testable without a
 // database. `main()` reads two snapshot files and feeds them in.
+//
+// Metadata alone cannot prove a restore. Two of the eleven dimensions require a WALK of the restored rows
+// (`--rows`); without it they are skipped, not assumed, and the gate reports what it actually checked and
+// refuses to PASS. See RESTORE_CHECKS / CHAIN_CHECKS and restoreDisposition below.
 
 export type RestoreProblem = { code: string; dimension: string; detail: string };
-export type RestoreReport = { ok: boolean; problems: RestoreProblem[]; checked: number };
+// `checked` is what actually RAN, never what the gate wishes it had run; `chainWalked` says whether the
+// rows were re-derived, because that is the difference between a reconciliation and a proof.
+export type RestoreReport = { ok: boolean; problems: RestoreProblem[]; checked: number; chainWalked: boolean };
 
 export type AnchorSummary = { day: string; root: string; leafCount: number };
 
@@ -75,12 +81,28 @@ function unreadableDetail(err: unknown): string {
   return summary.length > 300 ? `${summary.slice(0, 297)}…` : summary;
 }
 
-// The number of independent dimensions reconcileRestore inspects. Exported so a clean report can assert
-// it actually looked at all of them — a "0 problems" result from a checker that examined two fields is
-// the same lie as a skipped test.
+// The number of independent dimensions reconcileRestore inspects WHEN THE CHAIN WAS RE-WALKED. Exported
+// so a clean report can assert it actually looked at all of them — a "0 problems" result from a checker
+// that examined two fields is the same lie as a skipped test.
 export const RESTORE_CHECKS = 11;
 
-export function reconcileRestore(source: LedgerSnapshot, restored: LedgerSnapshot, chain: ChainVerdict): RestoreReport {
+// Two of those eleven exist only because someone handed this function a walk of the restored ROWS: chain
+// validity, and the walked chain's agreement with the snapshot's head + count. Without `--rows` neither
+// can run, so neither may be counted.
+//
+// It used to be counted anyway. `main()` synthesized a verdict from the restored snapshot itself
+// (`{ ok: true, head: restored.events.headHash, count: restored.events.count }`), which made
+// `chain-broken`, `chain-count-mismatch` and `chain-head-mismatch` structurally unreachable — the
+// checker was comparing the snapshot against itself — and then reported `assertions: RESTORE_CHECKS`
+// and printed "the restored ledger is the same ledger". The corruption that walks straight through
+// that: one row's `prev_hash` flipped mid-stream. The row count does not move, and neither does
+// `SELECT hash … ORDER BY stream_id DESC, seq DESC LIMIT 1`, so all ten metadata dimensions match —
+// and the eleventh, the only one that would have caught it, never ran.
+export const CHAIN_CHECKS = 2;
+export const RESTORE_CHECKS_NO_CHAIN = RESTORE_CHECKS - CHAIN_CHECKS;
+
+/** `chain === null` means the rows were never walked: the chain dimensions are skipped, not assumed. */
+export function reconcileRestore(source: LedgerSnapshot, restored: LedgerSnapshot, chain: ChainVerdict | null): RestoreReport {
   const problems: RestoreProblem[] = [];
   const fail = (code: string, dimension: string, detail: string): void => {
     problems.push({ code, dimension, detail });
@@ -100,17 +122,19 @@ export function reconcileRestore(source: LedgerSnapshot, restored: LedgerSnapsho
     fail("head-hash-mismatch", "events", `head ${source.events.headHash.slice(0, 12)}… → ${restored.events.headHash.slice(0, 12)}…`);
   }
 
-  // ── chain ──
-  if (!chain.ok) {
-    const where = chain.failure.stream === undefined ? "" : ` of stream ${chain.failure.stream}`;
-    const why = chain.failure.detail === undefined ? "" : ` (${chain.failure.detail})`;
-    fail("chain-broken", "chain", `restored chain fails at seq ${chain.failure.seq}${where}: ${chain.failure.reason}${why}`);
-  } else {
-    if (chain.count !== restored.events.count) {
-      fail("chain-count-mismatch", "chain", `chain walked ${chain.count} events but the snapshot claims ${restored.events.count}`);
-    }
-    if (chain.head !== restored.events.headHash) {
-      fail("chain-head-mismatch", "chain", `chain head ${chain.head.slice(0, 12)}… ≠ snapshot head ${restored.events.headHash.slice(0, 12)}…`);
+  // ── chain (only when the rows were actually walked) ──
+  if (chain !== null) {
+    if (!chain.ok) {
+      const where = chain.failure.stream === undefined ? "" : ` of stream ${chain.failure.stream}`;
+      const why = chain.failure.detail === undefined ? "" : ` (${chain.failure.detail})`;
+      fail("chain-broken", "chain", `restored chain fails at seq ${chain.failure.seq}${where}: ${chain.failure.reason}${why}`);
+    } else {
+      if (chain.count !== restored.events.count) {
+        fail("chain-count-mismatch", "chain", `chain walked ${chain.count} events but the snapshot claims ${restored.events.count}`);
+      }
+      if (chain.head !== restored.events.headHash) {
+        fail("chain-head-mismatch", "chain", `chain head ${chain.head.slice(0, 12)}… ≠ snapshot head ${restored.events.headHash.slice(0, 12)}…`);
+      }
     }
   }
 
@@ -145,7 +169,56 @@ export function reconcileRestore(source: LedgerSnapshot, restored: LedgerSnapsho
     fail("manifest-digest-mismatch", "manifest", `${source.manifestDigest.slice(0, 12)}… → ${restored.manifestDigest.slice(0, 12)}…`);
   }
 
-  return { ok: problems.length === 0, problems, checked: RESTORE_CHECKS };
+  const chainWalked = chain !== null;
+  return { ok: problems.length === 0, problems, checked: chainWalked ? RESTORE_CHECKS : RESTORE_CHECKS_NO_CHAIN, chainWalked };
+}
+
+/**
+ * The gate's disposition, and the exit code that must accompany it. Pure, so the SENTINEL is unit-tested
+ * rather than eyeballed: `run-gate` reads the `##SHUDDL-GATE##` line and nothing else, so any weakening
+ * of the claim has to live there, not in the prose above it.
+ *
+ * THE THREE OUTCOMES, and why they rank this way:
+ *
+ *   FAIL     — a mismatch was FOUND. It outranks everything, walked or not: `evaluateEvidence` already
+ *              ranks an executed failure above a blocked prerequisite ("a broken build is worse than an
+ *              absent one"), and a nine-dimension run that caught a money drift caught it for real.
+ *
+ *   BLOCKED  — every dimension that ran came back clean, but the chain was never re-walked. NOT a PASS.
+ *   /PENDING   This gate's whole promise is "the restored ledger IS the ledger"; without the walk it has
+ *              not tested that, and the corruption class it misses (a mid-stream `prev_hash` flip) is
+ *              invisible to all nine of the dimensions that did run. Honest counting alone would not fix
+ *              it: `assertions: 9` inside a PASS is still a PASS to `evaluateEvidence`, which is the only
+ *              consumer that decides anything. A missing `--rows` is a missing EVIDENCE INPUT — the same
+ *              species as the missing `--source`/`--restored` case below it, one dimension narrower — so
+ *              it takes the repo's shared disposition for that species: `unavailableStatus(mode)`,
+ *              PENDING locally (exit 0, a dev metadata reconcile stays usable) and BLOCKED under
+ *              merge/release (exit 2, never green). This does not newly redden CI: `run-gate` passes this
+ *              gate no snapshots at all, so its release verdict is already BLOCKED.
+ *
+ *   PASS     — clean AND walked, which is the run the DR runbook now prescribes (`docs/ops/dr-backups.md`).
+ *
+ * `executed: true` and a real `assertions` count ride on the BLOCKED too: work WAS done, and saying how
+ * much of it is the difference between "we could not check" and "we checked nine of eleven".
+ */
+export function restoreDisposition(report: RestoreReport, mode: GateMode): { result: GateResult; exitCode: number } {
+  const gate = "restore-verify";
+  if (!report.ok) {
+    const codes = report.problems.map((p) => p.code).join(", ");
+    const detail = report.chainWalked ? codes : `${codes} (and the chain was NOT re-walked — no --rows)`;
+    return { result: { gate, status: "FAIL", executed: true, assertions: report.checked, detail }, exitCode: EVIDENCE_EXIT.ASSERTIONS_FAILED };
+  }
+  if (!report.chainWalked) {
+    const { status, exitCode } = unavailableStatus(mode);
+    const detail =
+      `chain NOT re-walked (no --rows): ${report.checked} of ${RESTORE_CHECKS} dimensions checked, ` +
+      "chain validity and chain/snapshot head+count agreement were not exercised";
+    return { result: { gate, status, executed: true, assertions: report.checked, detail }, exitCode };
+  }
+  return {
+    result: { gate, status: "PASS", executed: true, assertions: report.checked, detail: `restore reconciles across ${report.checked} dimensions, chain re-walked from the restored rows` },
+    exitCode: EVIDENCE_EXIT.OK,
+  };
 }
 
 // One digest, computed the same way on both sides. Canonical JSON is the repo's frozen byte law
@@ -269,7 +342,9 @@ async function main(): Promise<void> {
   const source = load<LedgerSnapshot>(sourcePath, "source");
   const restored = load<LedgerSnapshot>(restoredPath, "restored");
 
-  let chain: ChainVerdict = { ok: true, head: restored.events.headHash, count: restored.events.count };
+  // null until something actually walks the rows. It used to be seeded from the restored snapshot itself,
+  // which reconciled the snapshot against a copy of its own two fields and counted that as two dimensions.
+  let chain: ChainVerdict | null = null;
   if (rowsPath !== undefined) {
     const rows = load<Record<string, string | number | null>[]>(rowsPath, "restored rows");
     chain = await verifyChainOfRows(rows);
@@ -282,21 +357,26 @@ async function main(): Promise<void> {
       console.log(`restore-verify: chain re-walked per stream from ${rows.length} restored row(s) — ${chain.count} event(s) intact, head ${chain.head.slice(0, 12)}….`);
     }
   } else {
-    console.log("restore-verify: no --rows supplied — the hash chain is taken from the snapshot rather than re-walked.");
+    console.warn("restore-verify: no --rows supplied — the hash chain is NOT re-walked. The chain dimensions are neither checked nor counted, and this run cannot PASS.");
   }
 
   const report = reconcileRestore(source, restored, chain);
-  console.log(`restore-verify: tenant=${restored.tenant} checks=${report.checked} problems=${report.problems.length}`);
+  console.log(`restore-verify: tenant=${restored.tenant} checks=${report.checked}/${RESTORE_CHECKS} problems=${report.problems.length}`);
   for (const p of report.problems) console.log(`  MISMATCH  ${p.code.padEnd(28)} ${p.dimension} — ${p.detail}`);
 
-  const result: GateResult = report.ok
-    ? { gate: "restore-verify", status: "PASS", executed: true, assertions: report.checked, detail: `restore reconciles across ${report.checked} dimensions` }
-    : { gate: "restore-verify", status: "FAIL", executed: true, assertions: report.checked, detail: report.problems.map((p) => p.code).join(", ") };
-  if (report.ok) console.log("\nrestore-verify: PASS — the restored ledger is the same ledger.");
-  else console.error(`\nrestore-verify: FAIL — ${report.problems.length} mismatch(es). The restore is NOT usable.`);
+  const { result, exitCode } = restoreDisposition(report, mode);
+  if (result.status === "FAIL") console.error(`\nrestore-verify: FAIL — ${report.problems.length} mismatch(es). The restore is NOT usable.`);
+  else if (result.status === "PASS") console.log("\nrestore-verify: PASS — the restored ledger is the same ledger.");
+  else {
+    console.error(
+      `\nrestore-verify: ${result.status} — ${report.checked} of ${RESTORE_CHECKS} dimensions reconciled clean, but the chain was never re-walked, so this is NOT proof the restored ledger is the same ledger. ` +
+        "A mid-stream prev_hash flip leaves the event count and the head hash identical — the dimensions that ran cannot see it. " +
+        "Re-run with --rows <events.json> (snapshot-ledger.ts --rows-out writes that file).",
+    );
+  }
   if (mode !== "local") console.log(formatGateResult(result));
 
-  process.exit(report.ok ? EVIDENCE_EXIT.OK : EVIDENCE_EXIT.ASSERTIONS_FAILED);
+  process.exit(exitCode);
 }
 
 /**

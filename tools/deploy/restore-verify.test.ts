@@ -5,13 +5,15 @@ import { eventToRow } from "@shuddl/ledger/lens";
 import {
   gateCrashResult,
   reconcileRestore,
+  restoreDisposition,
   snapshotDigest,
   verifyChainOfRows,
+  CHAIN_CHECKS,
   RESTORE_CHECKS,
   type LedgerSnapshot,
   type ChainVerdict,
 } from "./restore-verify.js";
-import { formatGateResult, gateResultProblem, parseGateResults } from "../release/evidence.js";
+import { EVIDENCE_EXIT, formatGateResult, gateResultProblem, parseGateResults } from "../release/evidence.js";
 
 // V1 remediation Task 15 (REQ-117/REQ-284/REQ-288) — RESTORE RECONCILIATION.
 //
@@ -303,6 +305,115 @@ describe("verifyChainOfRows over a real (multi-stream) ledger", () => {
     const found = codes(snapshot(), snapshot(), await verifyChainOfRows([]));
     expect(found).toContain("chain-count-mismatch");
     expect(found).toContain("chain-head-mismatch");
+  });
+});
+
+// ── a run that never re-walked the chain (no --rows) ──────────────────────────────────────────────────
+//
+// The gate used to synthesize its chain verdict FROM THE RESTORED SNAPSHOT ITSELF when `--rows` was
+// absent — `{ ok: true, head: restored.events.headHash, count: restored.events.count }` — so the three
+// chain codes were structurally unreachable: the checker compared the snapshot against itself. It then
+// reported `assertions: RESTORE_CHECKS` and printed "PASS — the restored ledger is the same ledger"
+// regardless. Eleven dimensions claimed, nine exercised. A checker that examined two fields and found
+// "0 problems" is telling the same lie as a skipped test, and this one told it about the ONE dimension
+// that independently re-derives the ledger from its rows.
+//
+// `null` is now the honest third argument: the chain was not walked, so it is neither checked nor counted.
+describe("a run that never re-walked the chain", () => {
+  it("does not count the two chain dimensions it did not exercise", () => {
+    const report = reconcileRestore(snapshot(), snapshot(), null);
+    expect(report.checked).toBe(RESTORE_CHECKS - CHAIN_CHECKS);
+    expect(report.checked).toBeLessThan(RESTORE_CHECKS);
+    expect(report.chainWalked).toBe(false);
+  });
+
+  it("cannot report a chain problem, because it never looked for one", () => {
+    const short = snapshot({ events: { count: 1199, headHash: "a".repeat(64) } });
+    const report = reconcileRestore(snapshot(), short, null);
+    expect(report.problems.map((p) => p.code)).toEqual(["event-count-mismatch"]);
+    expect(report.problems.some((p) => p.dimension === "chain")).toBe(false);
+  });
+
+  it("does not reach run-gate as a PASS — the sentinel is the only thing run-gate reads", () => {
+    const { result, exitCode } = restoreDisposition(reconcileRestore(snapshot(), snapshot(), null), "release");
+    expect(result.status).not.toBe("PASS");
+    expect(result.status).toBe("BLOCKED");
+    expect(result.assertions).toBe(RESTORE_CHECKS - CHAIN_CHECKS);
+    expect(exitCode).toBe(EVIDENCE_EXIT.PREREQ_BLOCKED);
+    expect(gateResultProblem(result)).toBeNull();
+    // …and it survives the round trip run-gate actually performs.
+    const parsed = parseGateResults(formatGateResult(result));
+    expect(parsed[0]?.status).toBe("BLOCKED");
+    expect(parsed[0]?.assertions).toBe(RESTORE_CHECKS - CHAIN_CHECKS);
+  });
+
+  it("claims no dimension it did not exercise, in the detail an operator reads", () => {
+    const { result } = restoreDisposition(reconcileRestore(snapshot(), snapshot(), null), "release");
+    // The PASS wording, which this run has not earned. "9 of 11" is fine — that is the honest fraction.
+    expect(result.detail).not.toContain(`reconciles across ${RESTORE_CHECKS} dimensions`);
+    expect(result.detail).toMatch(/not re-walked/i);
+    expect(result.detail).toContain(`${RESTORE_CHECKS - CHAIN_CHECKS} of ${RESTORE_CHECKS}`);
+  });
+
+  it("is a local PENDING, not a BLOCKED — a metadata reconcile at a dev desk is not a release record", () => {
+    const { result, exitCode } = restoreDisposition(reconcileRestore(snapshot(), snapshot(), null), "local");
+    expect(result.status).toBe("PENDING");
+    expect(exitCode).toBe(EVIDENCE_EXIT.OK);
+  });
+
+  it("still FAILs on a real mismatch — an absent dimension never outranks a broken one", () => {
+    const { result, exitCode } = restoreDisposition(reconcileRestore(snapshot(), snapshot({ tenant: "tenant-b" }), null), "release");
+    expect(result.status).toBe("FAIL");
+    expect(exitCode).toBe(EVIDENCE_EXIT.ASSERTIONS_FAILED);
+    expect(result.detail).toContain("tenant-mismatch");
+  });
+
+  it("does not weaken the walked run: it still PASSes and still counts all 11", () => {
+    const report = reconcileRestore(snapshot(), snapshot(), CHAIN_OK);
+    expect(report.chainWalked).toBe(true);
+    expect(report.checked).toBe(RESTORE_CHECKS);
+    const { result, exitCode } = restoreDisposition(report, "release");
+    expect(result.status).toBe("PASS");
+    expect(result.assertions).toBe(RESTORE_CHECKS);
+    expect(exitCode).toBe(EVIDENCE_EXIT.OK);
+    expect(gateResultProblem(result)).toBeNull();
+  });
+});
+
+describe("the corruption an un-walked run permits", () => {
+  it("a mid-stream prev_hash flip leaves every metadata dimension identical — only the walk sees it", async () => {
+    const rows = [...(await streamRows("s:SHP-a", 4)), ...(await streamRows("s:SHP-b", 3))];
+    const before = { count: rows.length, headHash: String(headOf(rows)) };
+
+    // Mid-stream, and deliberately NOT the row the snapshot's head is read from.
+    const victim = rows[2]; // s:SHP-a, seq 2
+    if (victim === undefined) throw new Error("fixture");
+    const prev = String(victim.prev_hash);
+    victim.prev_hash = `${prev.slice(0, 63)}${prev.endsWith("0") ? "1" : "0"}`;
+
+    // THE PREMISE: the row count is unchanged and `SELECT hash … ORDER BY stream_id DESC, seq DESC LIMIT 1`
+    // is unchanged, which is exactly what a mid-stream byte flip produces. All ten metadata dimensions match.
+    const after = { count: rows.length, headHash: String(headOf(rows)) };
+    expect(after).toEqual(before);
+
+    const snap = snapshot({ events: after });
+    const blind = reconcileRestore(snap, snap, null);
+    expect(blind.problems).toEqual([]); // nothing to find — and therefore nothing to claim
+    const unwalked = restoreDisposition(blind, "release");
+    expect(unwalked.result.status).not.toBe("PASS");
+    expect(unwalked.result.detail).not.toContain("the same ledger");
+    expect(unwalked.result.assertions).toBe(RESTORE_CHECKS - CHAIN_CHECKS);
+
+    // Walked, the same corruption is a verdict that names its stream.
+    const verdict = await verifyChainOfRows(rows);
+    expect(verdict.ok).toBe(false);
+    if (verdict.ok) return;
+    expect(verdict.failure.reason).toBe("prev_hash_mismatch");
+    expect(verdict.failure.seq).toBe(2);
+    expect(verdict.failure.stream).toBe("s:SHP-a");
+    const walked = restoreDisposition(reconcileRestore(snap, snap, verdict), "release");
+    expect(walked.result.status).toBe("FAIL");
+    expect(walked.result.detail).toContain("chain-broken");
   });
 });
 

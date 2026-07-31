@@ -30,21 +30,21 @@ you need it, that there is nothing to restore.
 wrangler d1 create shuddl-restore-drill
 wrangler d1 execute shuddl-restore-drill --remote --file ./shuddl-t-tenant-a-staging.sql
 
-# 2. Reconcile the restored ledger against the source snapshot. Any mismatch fails.
-pnpm exec tsx tools/deploy/snapshot-ledger.ts --db <source-db>   --tenant <t> --manifest ./backup/manifest.json --out ./backup/src.json
-pnpm exec tsx tools/deploy/snapshot-ledger.ts --db <restored-db> --tenant <t> --manifest ./backup/manifest.json --out ./backup/dst.json --rows-out ./backup/rows.json
-pnpm restore:verify -- --source ./backup/src.json --restored ./backup/dst.json --mode release
-# --rows re-walks the chain but assumes ONE stream, so it fails on any real tenant — see the drill log.
+# 2. Capture BOTH snapshots — nothing else writes the files restore-verify reads — then reconcile.
+#    --rows-out dumps the restored event rows; without that file the chain is never walked (see below).
+pnpm snapshot:ledger -- --db <source-db>   --tenant <t> --manifest ./backup/manifest.json --out ./backup/src.json
+pnpm snapshot:ledger -- --db <restored-db> --tenant <t> --manifest ./backup/manifest.json --out ./backup/dst.json --rows-out ./backup/rows.json
+pnpm restore:verify -- --source ./backup/src.json --restored ./backup/dst.json --rows ./backup/rows.json --mode release
 
 # 3. Re-point and smoke, only after the reconcile passes.
 SMOKE_API_BASE=https://<deployed> SMOKE_JWT_SECRET_FILE=./jwt.txt pnpm smoke:staging -- --mode release
 ```
 
-`restore:verify` reconciles 11 dimensions and fails on any one of them: tenant identity, event count,
-head hash, chain validity (walked through the ledger's own `verifyChain`), chain count/head agreement,
-invoice count and total cents, money-line count and sum, every anchor day's merkle root and leaf count,
-and the manifest digest. A restore that "mostly" matches is silent data loss — and on an append-only
-ledger there is no later diff that can tell you which rows went missing.
+`restore:verify` reconciles **11 dimensions with `--rows`, 9 without**, failing on any one: tenant identity ·
+event count · head hash · chain validity (re-derived through the ledger's own `verifyChain`) · chain/snapshot
+count+head agreement · invoice count and total · money-line count and sum · every anchor day's root and leaf
+count · manifest digest. **Omit `--rows` and the two chain dimensions go unchecked: 9, BLOCKED, never PASS** —
+a mid-stream `prev_hash` flip leaves the other nine identical, and silent data loss has no later diff to find it.
 
 ## Rollback and forward-repair
 
@@ -113,6 +113,10 @@ Reconciled numbers — **identical on both sides, byte for byte, apart from `cap
 `restore-verify --source … --restored …` → `PASS — the restored ledger is the same ledger`, 11 checks,
 0 problems (`##SHUDDL-GATE## {"gate":"restore-verify","status":"PASS","executed":true,"assertions":11}`).
 
+> **That verdict was over-claimed, and the drill did not notice.** The run had no `--rows`, so the chain was
+> never walked — yet the gate counted all 11 and said "the same ledger". Corrected below; the same command
+> at HEAD reports `assertions: 9` and **BLOCKED**. See *The count, corrected*.
+
 **And then, with `--rows`, it FAILED — and the failure is in the checker, not the data:**
 
 ```text
@@ -175,3 +179,38 @@ An empty walk returns `{ok, head: GENESIS_HASH, count: 0}` rather than failing �
 today, and a gate permanently red on a true fact trains the same "skip it" reflex this fix removes. It is
 not a silent pass: the tool prints that an empty walk proves nothing, and an empty walk against a snapshot
 claiming events still fails `chain-count-mismatch` and `chain-head-mismatch`.
+
+### The count, corrected (2026-07-31)
+
+The drill's own headline verdict — `PASS`, **11 checks**, `assertions:11` — was produced by a run that never
+walked a chain. Without `--rows`, `main()` synthesized the chain verdict **from the restored snapshot itself**
+(`{ok: true, head: restored.events.headHash, count: restored.events.count}`), so `chain-broken`,
+`chain-count-mismatch` and `chain-head-mismatch` were structurally unreachable — the checker was comparing the
+snapshot against a copy of its own two fields — and the report still counted the hardcoded 11.
+
+The corruption that walks straight through that: **one row's `prev_hash` flipped mid-stream**. The row count
+does not move, and neither does `SELECT hash … ORDER BY stream_id DESC, seq DESC LIMIT 1`. All ten metadata
+dimensions match. Old verdict: `PASS`, `assertions: 11`, *"the restored ledger is the same ledger"*.
+
+Now the count is what actually ran, and the disposition follows it — run end to end on chained fixture rows
+(the drill's negative controls on real staging data are in the table above):
+
+| run | checks | sentinel | exit |
+|---|---|---|---|
+| clean, `--rows` | 11/11 | `{"status":"PASS","assertions":11}` | 0 |
+| clean, no `--rows` | 9/11 | `{"status":"BLOCKED","assertions":9,"detail":"chain NOT re-walked (no --rows)…"}` | 2 |
+| `prev_hash` flipped, `--rows` | 11/11 | `{"status":"FAIL","assertions":11,"detail":"chain-broken"}` — *at seq 2 of stream `s:SHP-a`* | 1 |
+
+**Why BLOCKED and not a PASS with an honest 9.** `run-gate` reads the sentinel and nothing else, and
+`evaluateEvidence` treats *any* `PASS` as green — so `assertions: 9` inside a `PASS` would have fixed the
+printed number while leaving the machine verdict identical to the fabricated one. A missing `--rows` is a
+missing *evidence input* — the same species as the missing `--source`/`--restored` case `restore-verify` has
+always BLOCKED on — so it takes the repo's shared disposition for that species (`unavailableStatus`): **PENDING**
+locally, exit 0, so a metadata reconcile at a desk stays usable; **BLOCKED**, exit 2, under merge/release.
+This reddens no pipeline that was green — `run-gate` already passes this gate no snapshots at all. A real
+mismatch still outranks both: a nine-dimension run that catches a money drift is a `FAIL`, exit 1, because an
+absent dimension must never outrank a broken one.
+
+What is still weaker than it looks: `--rows` pointing at **zero** rows counts 11 while proving nothing about a
+restore. That is the deliberate empty-ledger decision above, and the tool says so out loud — but it is the
+same disease in remission, and it should be revisited the day prod carries freight.
