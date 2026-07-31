@@ -300,6 +300,37 @@ export function planPatches(
   return { edits, refusals, alreadyCorrect };
 }
 
+/**
+ * The refusals knowable BEFORE a single resource is created — the other half of the same law.
+ *
+ * `planPatches` can only refuse over a RESOLVED id, so it says nothing about a resource the account does
+ * not have yet: in an empty account it has nothing to compare a config id against and reports no refusal at
+ * all. But a config that already carries a real id for a resource this account is MISSING is the loudest
+ * possible signal that the account is the wrong one — the resource exists somewhere, just not here — and
+ * creating it here would both orphan a resource and overwrite that id.
+ *
+ * Same law, one source: `isOverwritable` → the preflight's `placeholderReason`. Nothing is re-decided here.
+ */
+export function planCreateRefusals(missing: PlannedResource[], opts: { force: boolean }): Refusal[] {
+  if (opts.force) return [];
+  const refusals: Refusal[] = [];
+  for (const r of missing) {
+    if (r.kind === "r2") continue; // bound by name; there is no id to clobber
+    for (const s of r.sites) {
+      if (isOverwritable(r.kind, s.currentId)) continue;
+      refusals.push({
+        config: s.config,
+        binding: s.binding,
+        resourceName: r.resourceName,
+        currentId: s.currentId,
+        wouldBecome: "(whatever id a create would assign here)",
+        why: `${r.resourceName} does not exist in this account, yet the config already holds a real Cloudflare id for it — either this is the wrong account or the resource lives in another one. Creating it here would leave an orphan behind and overwrite that id (pass --force if that is genuinely intended)`,
+      });
+    }
+  }
+  return refusals;
+}
+
 // ── Account safety ────────────────────────────────────────────────────────────────────────────────────
 
 /** The marketing site's worker. Its presence is the strongest available signal that an account is the
@@ -588,13 +619,28 @@ export function provision(opts: RunOptions): RunResult {
   log(`to create:           ${missing.length}${missing.length > 0 ? ` (${missing.map(label).sort().join(", ")})` : ""}`);
   log("");
 
-  if (pre.refusals.length > 0) {
+  // THE CLOBBER CHECK RUNS AGAINST THE PLANNED SET, HERE, BEFORE THE CREATE LOOP — not only after it.
+  //
+  // The post-create pass below is a real check but it is useless as a GUARD: it can only refuse over ids
+  // the account has resolved, so in an empty account there is nothing to compare against until the nine
+  // resources exist, and by the time it fires the orphans are already created and billed. It aborts before
+  // writing a config, which protects the repo and nothing else. An operator who passes a wrong
+  // --account-id that happens to clear the marketing heuristic is exactly the person this must catch, and
+  // the only moment the catch is worth anything is before the first create.
+  const createRefusals = planCreateRefusals(missing, { force: opts.force });
+  const refusals = [...pre.refusals, ...createRefusals];
+
+  if (refusals.length > 0) {
     for (const f of pre.refusals) {
       log(`  REFUSED  ${f.config} ${f.binding} holds ${f.currentId}, the account says ${f.wouldBecome}`);
       log(`           ${f.why}`);
     }
+    for (const f of createRefusals) {
+      log(`  REFUSED  ${f.config} ${f.binding} holds ${f.currentId}, and ${f.resourceName} is not in account ${opts.accountId}`);
+      log(`           ${f.why}`);
+    }
     log("");
-    result.refusals = pre.refusals;
+    result.refusals = refusals;
     result.aborted = "would-clobber-real-id";
     result.exitCode = EVIDENCE_EXIT.ASSERTIONS_FAILED;
     log("provision-prod: ABORTED — nothing created, nothing written.");
@@ -676,6 +722,9 @@ export function provision(opts: RunOptions): RunResult {
     return result;
   }
 
+  // Belt and braces to the pre-create check above: a resource can appear in the account between the two
+  // passes (a concurrent operator, a wrangler that created what a list had not yet shown), and an id the
+  // account resolves late must still never be written over a real one.
   const post = planPatches(resources, resolved, { force: opts.force });
   result.edits = post.edits;
   result.refusals = post.refusals;

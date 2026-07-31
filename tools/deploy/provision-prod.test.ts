@@ -505,6 +505,43 @@ describe("refusing to clobber a real id", () => {
     expect(output).toContain("--force");
   });
 
+  it("refuses before creating anything when the configs carry ids it would have to clobber", () => {
+    // THE ORPHAN WINDOW. The pre-create pass could only ever see resources the account ALREADY had, so in
+    // an empty account it had nothing to compare a config id against: all nine resources were created and
+    // only THEN did the post-create pass raise would-clobber-real-id. The abort wrote no config, but the
+    // resources persisted — a wrong --account-id that happens to clear the marketing heuristic left nine
+    // orphaned Cloudflare resources behind, created, billed, and referenced by nothing.
+    //
+    // Every CONTROL_DB site carries the same real id, so this is a coherent plan (no id-divergence), and
+    // the account holds nothing at all. The only correct behaviour is to refuse with the account untouched.
+    const configs = fixtureConfigs().map((c) => ({ ...c, text: c.text.replaceAll(FIXTURE_D1.CONTROL_DB.prod, uuidFor(23)) }));
+    const fake = productAccount(); // the staging sentinel is deployed; not one prod resource exists
+    const { result, written, output } = run({ gateway: fake.gateway, mode: "apply", configs });
+
+    expect(fake.calls.filter((c) => c.startsWith("create"))).toEqual([]);
+    expect(result.created).toEqual([]);
+    expect(fake.state.d1).toEqual([]);
+    expect(fake.state.kv).toEqual([]);
+    expect(fake.state.buckets).toEqual([]);
+
+    expect(result.aborted).toBe("would-clobber-real-id");
+    expect(result.ok).toBe(false);
+    expect(result.exitCode).not.toBe(0);
+    expect(written.size).toBe(0);
+    expect(output).toContain(uuidFor(23));
+    expect(output).toContain("CONTROL_DB");
+    expect(output).toContain("shuddl-control-prod");
+    expect(output).toContain("--force");
+  });
+
+  it("still creates under --force, because the refusal is a guard and not a wall", () => {
+    const configs = fixtureConfigs().map((c) => ({ ...c, text: c.text.replaceAll(FIXTURE_D1.CONTROL_DB.prod, uuidFor(23)) }));
+    const fake = productAccount();
+    const { result } = run({ gateway: fake.gateway, mode: "apply", configs, force: true });
+    expect(result.aborted).toBeNull();
+    expect(result.created).toHaveLength(9);
+  });
+
   it("overwrites it only with --force", () => {
     const fake = fakeAccount({ workers: [STAGING_SENTINEL], d1: [{ name: "shuddl-control-prod", id: uuidFor(22) }] });
     const { result, written } = run({ gateway: fake.gateway, mode: "apply", configs: handProvisioned(), force: true });
