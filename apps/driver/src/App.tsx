@@ -6,6 +6,7 @@ import type { StepId } from "./flow/stop-flow.js";
 import { DaySheet } from "./components/DaySheet.js";
 import { GatedFlow } from "./components/GatedFlow.js";
 import { Screen } from "./components/Screen.js";
+import { apiBase } from "./api/base.js";
 import { createManifestClient, type ManifestClient } from "./api/client.js";
 import { createAuthSession, type AuthSession } from "./auth/session.js";
 import { useSync } from "./sync/useSync.js";
@@ -32,15 +33,6 @@ export interface AppDeps {
   readonly client?: ManifestClient;
   /** Injectable auth session (tests supply a fake; prod reads persistent storage). */
   readonly session?: AuthSession;
-}
-
-// The API origin. Same-origin by default; a build may point the PWA at a distinct API host via env.
-function apiBase(): string {
-  try {
-    return (import.meta as { env?: { VITE_API_BASE?: string } }).env?.VITE_API_BASE ?? "";
-  } catch {
-    return "";
-  }
 }
 
 // Map a server manifest stop into the display `Stop`. A WITHHELD future stop shows a locked, non-fictional
