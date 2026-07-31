@@ -424,8 +424,38 @@ export function targetFromWrangler(doc: WranglerDoc, environment: string | undef
   const varsTable = (scope["vars"] ?? {}) as TomlTable;
   for (const [k, v] of Object.entries(varsTable)) if (typeof v === "string") vars[k] = v;
 
+  // Wrangler accepts THREE route spellings and this reader must understand all of them, because a route
+  // it cannot see reads as "this worker is unrouted" — which is indistinguishable from a worker that is
+  // genuinely unreachable. That silence is the dangerous direction: a future route check would pass a
+  // deployment it never actually inspected.
+  //   routes = ["host/*"]                                  — bare strings
+  //   routes = [{ pattern = "host/*", zone_name = "..." }] — inline tables
+  //   [[env.prod.routes]] pattern = "…"                    — array of tables (what the prod scopes use)
+  // The last two are the same shape once parsed; only `pattern` identifies the route.
   const routesRaw = scope["routes"];
-  const routes = Array.isArray(routesRaw) ? routesRaw.filter((r): r is string => typeof r === "string") : [];
+  const routes = Array.isArray(routesRaw)
+    ? routesRaw.flatMap((r): string[] => {
+        if (typeof r === "string") {
+          // This reader's TOML subset does not implement INLINE tables, so `routes = [{ pattern = "x" }]`
+          // arrives here as comma-split fragments (`{ pattern = "x"`, `zone_name = "y" }`) rather than as
+          // objects. Accepting those would register a syntactically impossible route pattern and report a
+          // worker as routed when nothing parsed — the precise silence this function exists to prevent.
+          // Fail loudly and name the supported form instead.
+          if (r.includes("=") || r.trimStart().startsWith("{")) {
+            throw new Error(
+              `unsupported inline-table route ${JSON.stringify(r)} — this reader does not implement inline tables; ` +
+                `use a [[env.<scope>.routes]] block with a \`pattern\` key, or a bare string route`,
+            );
+          }
+          return [r];
+        }
+        if (r !== null && typeof r === "object") {
+          const pattern = (r as TomlTable)["pattern"];
+          if (typeof pattern === "string" && pattern.length > 0) return [pattern];
+        }
+        return [];
+      })
+    : [];
   const single = str(scope, "route");
   if (single !== undefined) routes.push(single);
 

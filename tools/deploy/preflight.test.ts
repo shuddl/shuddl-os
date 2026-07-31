@@ -497,6 +497,46 @@ describe("the real repository configuration", () => {
     expect(translator.vars["EDI_TRANSPORT_TOKEN"]).toBeUndefined();
   });
 
+  // A route this reader cannot see is reported as "unrouted", which is indistinguishable from a worker
+  // that is genuinely unreachable — so a future route check would pass a deployment it never inspected.
+  // This bit for real: the prod scopes were routed with `[[env.prod.routes]]` (array of tables) while the
+  // reader only accepted bare strings, so all three routed workers parsed as `routes: []` even though
+  // wrangler deployed them correctly.
+  it("reads every route spelling wrangler accepts, not just bare strings", () => {
+    const scope = (body: string): string[] =>
+      targetFromWrangler(parseWranglerToml(`name = "w-prod"\n[env.prod]\nname = "w-prod"\n${body}`), "prod").routes;
+
+    expect(scope('routes = ["a.example/*"]')).toEqual(["a.example/*"]);
+    expect(scope('[[env.prod.routes]]\npattern = "c.example/*"\nzone_name = "example"')).toEqual(["c.example/*"]);
+    expect(scope('route = "d.example/*"')).toEqual(["d.example/*"]);
+    expect(scope("")).toEqual([]);
+    // A route table with no `pattern` contributes nothing rather than throwing — it is a malformed entry,
+    // not an unsupported syntax, and the surrounding scope may still be valid.
+    expect(scope("[[env.prod.routes]]\nzone_name = \"example\"")).toEqual([]);
+
+    // INLINE tables are NOT supported by this reader's TOML subset: `routes = [{ pattern = "…" }]` would
+    // arrive as comma-split fragments. Silently keeping those would report a worker as routed on a
+    // pattern that never parsed, so it throws and names the form to use instead.
+    expect(() => scope('routes = [{ pattern = "b.example/*", zone_name = "example" }]')).toThrow(
+      /unsupported inline-table route/,
+    );
+  });
+
+  it("sees the routes the committed prod scopes actually declare", () => {
+    // The three workers with a public surface are routed; the two fail-closed ones deliberately are not.
+    // agents exposes only handleTestSend (ALLOW_TEST_SEND is banned in prod) and translator only the
+    // CONFIRM-gated EDI inbound, so an empty list is the CORRECT answer for those two — which is exactly
+    // why the reader has to be able to tell "no route" from "a route I could not parse".
+    const routesOf = (w: string): string[] =>
+      targetFromWrangler(parseWranglerToml(readFileSync(`workers/${w}/wrangler.toml`, "utf8")), "prod").routes;
+
+    expect(routesOf("api")).toEqual(["api.shuddl.tech/*"]);
+    expect(routesOf("mcp")).toEqual(["mcp.shuddl.tech/*"]);
+    expect(routesOf("billing")).toEqual(["billing.shuddl.tech/*"]);
+    expect(routesOf("agents")).toEqual([]);
+    expect(routesOf("translator")).toEqual([]);
+  });
+
   it("parses every committed wrangler config without throwing", () => {
     // WORKER_CONFIGS, not a second hand-typed copy of it: a worker added to the deployable surface must
     // become visible to this check automatically, or the check silently stops covering the repo.
