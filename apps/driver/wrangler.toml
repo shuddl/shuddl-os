@@ -1,0 +1,37 @@
+# Naming per genesis/14 §02: shuddl-{svc}-{env}. NO SECRETS EVER IN THIS FILE (REQ-154, REQ-134).
+# THE DRIVER PWA, SERVED. Assets-only: no `main`, no ASSETS binding. Every dynamic fact comes from the api
+# worker over CORS; its server-side gates run for a driver exactly as for any other caller (REQ-030).
+name = "shuddl-driver-dev"
+compatibility_date = "2025-08-01"
+# No auto *.workers.dev subdomain. A driver's phone installs this as a PWA against ONE origin — a second
+# origin would install as a second app with its own service-worker cache.
+workers_dev = false
+
+# Inherited by [env.prod] (assets is an inheritable key; bindings are not).
+#
+# `single-page-application` here carries a HAZARD worth naming, because it is the reason the API base is
+# not allowed to be empty in this app. SPA fallback answers an unmatched path with 200 + index.html rather
+# than 404. If a driver build ever resolved its API to same-origin, `GET /v1/...` would return the HTML
+# shell with a 200, and apps/driver/public/sw.js would cache-first that shell under the API path — on a
+# phone, surviving redeploys, unrecoverable without a manual cache clear. The build bakes an absolute
+# VITE_API_BASE and the service worker refuses to cache API paths; this comment exists so neither is
+# "simplified" away by someone who sees only one of the two.
+[assets]
+directory = "./dist"
+not_found_handling = "single-page-application"
+
+[vars]
+ENVIRONMENT = "dev"
+
+[env.prod]
+name = "shuddl-driver-prod"
+workers_dev = false
+
+[env.prod.vars]
+ENVIRONMENT = "prod"
+
+# Custom domain rather than a route — Cloudflare manages the DNS record and certificate, matching the
+# account's other static-assets worker. SINGLE-LABEL: universal TLS covers *.shuddl.tech, not a second label.
+[[env.prod.routes]]
+pattern = "driver.shuddl.tech"
+custom_domain = true

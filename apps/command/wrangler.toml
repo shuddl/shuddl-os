@@ -1,0 +1,44 @@
+# Naming per genesis/14 §02: shuddl-{svc}-{env}. NO SECRETS EVER IN THIS FILE (REQ-154, REQ-134).
+# THE COMMAND SURFACE, SERVED. Command is a static SPA bundle — there is no server code here and no
+# `main` (assets-only Workers omit it, and omit the ASSETS binding too: a binding is only valid alongside
+# a Worker script). Every dynamic fact this surface shows comes from the api worker over CORS, so the
+# server-side gates run for it exactly as for any other caller (REQ-030) — nothing is enforced here.
+#
+# WHY A WORKER AND NOT PAGES: the account's only other static site (the marketing worker) is Workers
+# Static Assets with custom domains. One hosting pattern per account, not two.
+name = "shuddl-command-dev"
+compatibility_date = "2025-08-01"
+# No auto *.workers.dev subdomain — a dispatcher board must be reachable at ONE known hostname, not also
+# at a workers.dev address nobody audits. Matches the api/mcp/billing posture.
+workers_dev = false
+
+# Inherited by [env.prod] (assets is an inheritable key; bindings are not).
+#
+# `single-page-application` is REQUIRED, not cosmetic: apps/command/src/router.ts resolves real client-side
+# paths (/kpi/:key, /parity) that exist in no file on disk. With the default 404 handling a dispatcher
+# deep-linking a KPI would get a bare 404. The marketing worker deliberately does NOT set this — it has
+# real files per path — which is why the value is stated here rather than assumed.
+[assets]
+directory = "./dist"
+not_found_handling = "single-page-application"
+
+[vars]
+ENVIRONMENT = "dev"
+
+[env.prod]
+name = "shuddl-command-prod"
+workers_dev = false
+
+[env.prod.vars]
+ENVIRONMENT = "prod"
+
+# A CUSTOM DOMAIN, not a route: Cloudflare creates the DNS record and issues the certificate itself, which
+# is how the marketing worker's hostnames are already managed. The four routed workers (api/mcp/billing)
+# instead use `pattern`+`zone_name` and carry hand-made proxied `AAAA <host> -> 100::` records; matching
+# that here would mean maintaining a fifth hand-made record for no gain.
+#
+# SINGLE-LABEL, deliberately. Cloudflare universal TLS covers *.shuddl.tech but NOT a second label:
+# `command.staging.shuddl.tech` would fail the handshake where `command-staging.shuddl.tech` succeeds.
+[[env.prod.routes]]
+pattern = "command.shuddl.tech"
+custom_domain = true

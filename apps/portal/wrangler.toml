@@ -1,0 +1,44 @@
+# Naming per genesis/14 §02: shuddl-{svc}-{env}. NO SECRETS EVER IN THIS FILE (REQ-154, REQ-134).
+# THE PORTAL SURFACE, SERVED — and the public status page with it. Assets-only: no `main`, no ASSETS
+# binding. Every dynamic fact comes from the api worker over CORS, so its server-side gates run for this
+# surface exactly as for any other caller (REQ-030); nothing is enforced here.
+#
+# ONE WORKER, TWO HOSTNAMES. track.shuddl.tech is NOT a fourth app — apps/portal/src/status.tsx is a route
+# inside this same bundle (apps/portal/src/router.ts resolves /status/:cap and /status?cap= with no
+# session). Serving it from a second worker would mean a second copy of the same bundle, and a fourth
+# surface is forbidden outright (CLAUDE.md do-not-build; the register keeps the surface count at three).
+name = "shuddl-portal-dev"
+compatibility_date = "2025-08-01"
+# No auto *.workers.dev subdomain. This surface serves an unauthenticated public page, so an unaudited
+# second hostname is a widened attack surface, not a convenience.
+workers_dev = false
+
+# Inherited by [env.prod] (assets is an inheritable key; bindings are not).
+#
+# `single-page-application` is REQUIRED: /status/:cap is a client-side route with no file behind it, so
+# default 404 handling would break every status link the moment one is minted.
+[assets]
+directory = "./dist"
+not_found_handling = "single-page-application"
+
+[vars]
+ENVIRONMENT = "dev"
+
+[env.prod]
+name = "shuddl-portal-prod"
+workers_dev = false
+
+[env.prod.vars]
+ENVIRONMENT = "prod"
+
+# Custom domains rather than routes — Cloudflare manages the DNS record and certificate, matching how the
+# account's other static-assets worker is already hosted. Both hostnames are SINGLE-LABEL because universal
+# TLS covers *.shuddl.tech but not a second label.
+[[env.prod.routes]]
+pattern = "portal.shuddl.tech"
+custom_domain = true
+
+# The PUBLIC status page (no session). It resolves to the same bundle; the router picks the screen.
+[[env.prod.routes]]
+pattern = "track.shuddl.tech"
+custom_domain = true
