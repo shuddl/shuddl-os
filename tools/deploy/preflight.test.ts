@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import {
   checkDeployTarget,
   parseWranglerToml,
+  resolveStatePath,
   targetFromWrangler,
   REQUIRED_BINDINGS,
   WORKER_CONFIGS,
@@ -372,6 +373,31 @@ describe("sender, TSA, and backup posture", () => {
 
   it("BLOCKS retention shorter than policy", () => {
     expect(blocks(healthyTarget({ backups: { lastManifestAt: NOW, retentionDays: 3 } }))).toContain("retention-too-short");
+  });
+});
+
+describe("the state-file channel", () => {
+  // The release gate spawns this tool as `pnpm -s preflight -- --mode release` and has no way to append a
+  // path, so a flag-only reader made deploy-preflight structurally incapable of reporting PASS: the
+  // account-side facts were unreadable, unproven, and therefore blocked no matter what was true of the
+  // account. An env var is the only channel the spawn actually carries.
+  it("reads its state file from PREFLIGHT_STATE when no --state flag is given", () => {
+    expect(resolveStatePath([], { PREFLIGHT_STATE: "/env/state.json" })).toBe("/env/state.json");
+  });
+
+  it("lets an explicit --state flag win over the env var", () => {
+    expect(resolveStatePath(["--state", "/flag/path.json"], { PREFLIGHT_STATE: "/env/state.json" })).toBe("/flag/path.json");
+  });
+
+  it("resolves to undefined when neither channel supplies a path", () => {
+    // Absent is absent: no path means the account-side facts stay UNPROVEN, and unproven stays BLOCKED.
+    expect(resolveStatePath([], {})).toBeUndefined();
+    // An empty env var is not a path — it must not be mistaken for one.
+    expect(resolveStatePath([], { PREFLIGHT_STATE: "" })).toBeUndefined();
+  });
+
+  it("ignores a trailing --state with no value rather than reading the next flag", () => {
+    expect(resolveStatePath(["--mode", "release", "--state"], { PREFLIGHT_STATE: "/env/state.json" })).toBe("/env/state.json");
   });
 });
 

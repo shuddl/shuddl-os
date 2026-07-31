@@ -524,8 +524,8 @@ export function bindingSets(t: WorkerTarget): Record<string, string[]> {
 
 // The account-side facts this repo cannot read: bound secret names, the CORS allowlist actually served,
 // sender-domain verification, the TSA endpoint, and the newest backup manifest. An operator (or the
-// nightly job) supplies them as JSON via --state. Without it they are UNPROVEN, and unproven is BLOCKED —
-// the preflight never assumes an absent fact is a satisfied one.
+// nightly job) supplies them as JSON via --state or PREFLIGHT_STATE. Without it they are UNPROVEN, and
+// unproven is BLOCKED — the preflight never assumes an absent fact is a satisfied one.
 type StateFile = Partial<Pick<DeployTarget, "secrets" | "corsOrigins" | "sender" | "tsa" | "backups">>;
 
 function flag(argv: string[], name: string): string | undefined {
@@ -533,18 +533,37 @@ function flag(argv: string[], name: string): string | undefined {
   return i >= 0 ? argv[i + 1] : undefined;
 }
 
+/** Where the state file comes from: `--state <path>` if given, else the PREFLIGHT_STATE environment
+ * variable, else nowhere.
+ *
+ * THE ENV VAR IS LOAD-BEARING — do not "simplify" it away. The release gate spawns this tool as
+ * `pnpm -s preflight -- --mode <profile>` (tools/release/run-gate.ts, the deploy-preflight GateSpec) and
+ * has no channel for a path argument. With a flag-only reader the account-side facts were unreadable from
+ * inside a release run, so `deploy-preflight` was structurally incapable of reporting PASS no matter how
+ * completely the account satisfied it — and a gate that cannot express the truth teaches the reader to
+ * discount it. The env var is inherited by the spawn; the flag is not.
+ *
+ * An explicit flag still wins: an operator naming a path on the command line means that path. Absent both,
+ * the answer is undefined, and undefined keeps the account-side facts UNPROVEN — which stays BLOCKED. */
+export function resolveStatePath(argv: string[], env: NodeJS.ProcessEnv): string | undefined {
+  const fromFlag = flag(argv, "--state");
+  if (fromFlag !== undefined && fromFlag !== "") return fromFlag;
+  const fromEnv = env["PREFLIGHT_STATE"];
+  return fromEnv !== undefined && fromEnv !== "" ? fromEnv : undefined;
+}
+
 function main(): void {
   const argv = process.argv.slice(2);
   const mode = parseMode(argv);
   const environment = flag(argv, "--env") ?? process.env["RELEASE_ENVIRONMENT"] ?? "staging";
-  const statePath = flag(argv, "--state");
+  const statePath = resolveStatePath(argv, process.env);
 
   let state: StateFile = {};
   if (statePath !== undefined) {
     try {
       state = JSON.parse(readFileSync(statePath, "utf8")) as StateFile;
     } catch (e) {
-      console.error(`preflight: could not read --state ${statePath}: ${e instanceof Error ? e.message : String(e)}`);
+      console.error(`preflight: could not read state file ${statePath}: ${e instanceof Error ? e.message : String(e)}`);
       process.exit(EVIDENCE_EXIT.MALFORMED);
     }
   }
@@ -579,7 +598,7 @@ function main(): void {
 
   console.log(`preflight: environment=${environment} workers=${workers.length} checks=${report.checked}`);
   if (statePath === undefined) {
-    console.log("preflight: no --state supplied — account-side facts (secrets, origins, sender, TSA, backups) are UNPROVEN and therefore blocked.");
+    console.log("preflight: no state file supplied (--state <path> or PREFLIGHT_STATE=<path>) — account-side facts (secrets, origins, sender, TSA, backups) are UNPROVEN and therefore blocked.");
   }
   for (const p of report.problems) console.log(`  ${p.severity.padEnd(5)} ${p.code.padEnd(24)} ${p.resource} — ${p.detail}`);
   if (blocking.length === 0) console.log("\npreflight: PASS — every declared binding, reference, secret, origin, and backup obligation is satisfied.");
