@@ -44,7 +44,22 @@ pnpm check:runtime                         # fails closed, printing installed vs
 
 1. Preflight: the runtime contract above is green (`pnpm check:runtime`); Workers **Paid** plan active (Queues + DO need it); `pnpm verify` green.
 2. Provision (once): `wrangler d1 create` ×3, `wrangler kv namespace create`, `wrangler r2 bucket create`, `wrangler queues create` ×2 — put the returned ids into the `[env.staging]` blocks of both wrangler.tomls (already done; see the ids above).
-3. Migrate each D1 (remote): tenant migrations `0001..0005` → both tenant DBs; control `0001` → control DB — `cd workers/api && npx wrangler d1 execute <db> --remote --yes --file ../../db/tenant/migrations/<f>.sql`.
+3. Migrate each D1 (remote). ~~tenant migrations `0001..0005` → both tenant DBs; control `0001` → control DB~~
+   **Corrected 2026-07-30 — that enumeration was stale and would UNDER-MIGRATE.** There are **eight** tenant
+   migrations and **three** control migrations (11 total, which is the count `pnpm check:invariants` reports):
+
+   - tenant `0001..0008` → **every tenant-plane database**, which is more than "both tenant DBs": tenant-a,
+     tenant-b, the reserved platform tenant, and both pool databases. All five carry the identical 19-table
+     ledger schema; the platform tenant is a tenant-shaped ledger (its money events are appended, not
+     special-cased) and the pools are pre-provisioned tenant planes.
+   - control `0001..0003` → the control database only (5 tables).
+
+   Apply them **in order and exactly once** — no `CREATE` in these files is `IF NOT EXISTS` guarded (0 of 42),
+   so re-running a migration against a database that already has it fails partway and leaves the schema half
+   applied. Verify after: `SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'`
+   must return **19** on each tenant plane and **5** on control.
+
+   `cd workers/api && npx wrangler d1 execute <db> --remote --yes --file ../../db/tenant/migrations/<f>.sql`
 4. Secret: `printf '%s' "$JWT" | (cd workers/api && npx wrangler secret put JWT_SECRET --env staging)`. **Do NOT set `RESEND_API_KEY`** (keeps sending gated).
 5. Deploy in order: `cd workers/api && npx wrangler deploy --env staging`, then `cd workers/agents && npx wrangler deploy --env staging` (api first — the agents DO binding needs the api script to exist).
 
