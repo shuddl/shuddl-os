@@ -405,8 +405,14 @@ likely to be misread later are *what changed* and *what still has not*.
   lacks it, ahead of `wrangler` in `deploy:surfaces`. Proven both directions before the deploy, then
   re-verified against the live bundles over the wire.
 - **`tests/e2e/prod-surface.spec.ts` watches the deployed pages** — a FIELD gate, self-skipping unless
-  `PROD_SURFACE_BASE` is set. Five assertions, green: each surface reaches `api.shuddl.tech` and no other
-  host, and each tells the truth about having no session.
+  `PROD_SURFACE_BASE` is set, and routed through `playwright-guard` like every other browser gate, so an
+  all-skipped run reports BLOCKED rather than a green exit 0. Five tests, green, and each begins by proving
+  the BUNDLE RAN — command, portal, track and driver all assert on their real rendered unauthenticated
+  screen, so an `index.html` whose script tag dangles fails all five. On top of that: command proves it
+  reached `api.shuddl.tech` and got a 401, track proves it reached `/pub/`, and the driver — which with no
+  token issues no request at all, so no traffic can carry the signal — has its API base read out of the
+  module bytes the edge is serving (`api.shuddl.tech` present, the synthetic `.example` default absent).
+  Portal makes no unauthenticated call, so it is held only to what it renders.
 - **The DR restore gate can execute at all.** `tools/deploy/snapshot-ledger.ts` writes the `LedgerSnapshot`
   pair that `restore-verify` reads. Nothing had ever written one, so the gate was not failing — it was
   structurally unable to run, on any environment, in any account. A real drill then ran on staging

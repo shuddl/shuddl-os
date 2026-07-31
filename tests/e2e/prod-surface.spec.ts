@@ -14,7 +14,13 @@ import { expect, test, type Page, type Request } from "@playwright/test";
 //      from the migration seeds, so every read comes back 401. The correct behaviour is to say so and show
 //      NOTHING. A zero rendered as a KPI is a lie about freight.
 //
-// FIELD gate: skipped unless PROD_SURFACE_BASE names the zone.
+// Every test here therefore asserts on RENDERED CONTENT before it asserts on anything else. A surface that
+// served an index.html with a dangling script tag issues no request at all, and a suite built only out of
+// "no request went to the wrong host" would pass it — silently, forever. A negative over an empty set is
+// not evidence.
+//
+// FIELD gate: skipped unless PROD_SURFACE_BASE names the zone. `pnpm test:surfaces` routes it through
+// tools/harness/playwright-guard.ts, so an all-skipped run is BLOCKED, never a green exit 0 (REQ-288).
 const ZONE = process.env["PROD_SURFACE_BASE"];
 const API = "https://api.shuddl.tech";
 
@@ -36,7 +42,12 @@ function watchApi(page: Page): { calls: { url: string; status: number | null }[]
       if (!isApi(r.url())) return;
       const res = await r.response();
       calls.push({ url: r.url(), status: res?.status() ?? null });
-    })();
+    })().catch(() => {
+      // The listener is never detached, so a lookup can still be in flight when the page fixture tears
+      // down; `r.response()` then rejects with "Target page, context or browser has been closed". That is
+      // teardown, not a finding — unhandled, Playwright would attribute it to whatever test ran next and
+      // `retries: 1` would dress the result up as flake.
+    });
   });
   page.on("requestfailed", (r: Request) => {
     if (isApi(r.url())) calls.push({ url: r.url(), status: null });
@@ -98,16 +109,45 @@ test("the public status page is reachable with no session and refuses an unknown
   await expect(page.getByText(/DELIVERED|IN TRANSIT|PICKED UP/i)).toHaveCount(0);
 });
 
-test("the driver PWA stays unauthenticated and never poisons its cache with an API path", async ({ page }) => {
+test("the driver PWA runs a real bundle, says it has no session, and never poisons its cache with an API path", async ({ page }) => {
   const seen = watchApi(page);
+  // Every same-origin script the page actually pulled. The driver is the one surface where request traffic
+  // cannot carry the signal: an unauthenticated driver issues ZERO API calls by construction — App.tsx
+  // returns before the manifest read when `session.getToken()` is null, and useSync returns before its
+  // first pass for the same reason — so the shipped module bytes are the only place the field can read
+  // which host this build was compiled to talk to.
+  const scripts: string[] = [];
+  page.on("request", (r: Request) => {
+    if (r.resourceType() === "script" && r.url().startsWith(`https://driver.${ZONE}/`)) scripts.push(r.url());
+  });
+
   await page.goto(`https://driver.${ZONE}/`, { waitUntil: "networkidle" });
 
   expect(seen.foreign, `driver called a host that cannot serve it: ${seen.foreign.join(", ")}`).toEqual([]);
 
-  // The hazard this guards: if the driver build ever resolved its API to same-origin, SPA fallback would
-  // answer GET /v1/* with 200 + the HTML shell and the service worker would cache-first that shell on a
-  // phone — surviving redeploys, unrecoverable without a manual cache clear. Same-origin API traffic is
-  // therefore the signal, and there must be none.
+  // PROOF OF LIFE, and it comes first because nothing below it means anything without it. Deploy an
+  // index.html whose script tag dangles — no bundle, blank page, not one request issued — and every
+  // request-shaped assertion in this test passes on an empty array. These two lines are the difference
+  // between a working deploy and a shell: they can only be satisfied by JS that parsed, mounted, and ran
+  // App's state machine to `case "unauthenticated"` (apps/driver/src/App.tsx).
+  await expect(page.getByText(/^\s*Sign in\s*$/i)).toBeVisible();
+  await expect(page.getByText(/SIGN IN TO LOAD YOUR DAY/i)).toBeVisible();
+
+  // …and the module that ran is the one built WITH VITE_API_BASE. apps/driver/src/api/base.ts falls back
+  // to the synthetic `api.shuddl.example`, a reserved TLD that can never resolve; with no session there is
+  // no request on which to catch that, so read the bytes the edge is serving.
+  expect(scripts.length, "the driver page loaded no same-origin script — that is a shell, not an app").toBeGreaterThan(0);
+  const modules = await Promise.all(scripts.map(async (url) => ({ url, body: await (await page.request.get(url)).text() })));
+  expect(
+    modules.filter((m) => m.body.includes("api.shuddl.example")).map((m) => m.url),
+    "a shipped driver module carries the synthetic `.example` base — this build lost VITE_API_BASE",
+  ).toEqual([]);
+  expect(modules.some((m) => m.body.includes(API)), `no shipped driver module names ${API} — this build points somewhere else`).toBe(true);
+
+  // The hazard the rest guards: if the driver build ever resolved its API to same-origin, SPA fallback
+  // would answer GET /v1/* with 200 + the HTML shell and the service worker would cache-first that shell
+  // on a phone — surviving redeploys, unrecoverable without a manual cache clear. Same-origin API traffic
+  // is the signal, and there must be none.
   const sameOrigin = seen.calls.filter((c) => c.url.startsWith(`https://driver.${ZONE}/`));
   expect(sameOrigin, `driver issued same-origin API requests: ${JSON.stringify(sameOrigin)}`).toEqual([]);
 
