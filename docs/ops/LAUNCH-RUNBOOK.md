@@ -153,6 +153,21 @@ into an unrecoverable one.
 pnpm exec tsx tools/deploy/preflight.ts --env prod --state prod-state.json   # expect PASS
 ```
 
+**For `verify:release`, export the path instead of passing it.** `run-gate` invokes the preflight as
+`pnpm -s preflight -- --mode release` and has no channel for a path argument, so a flag-only reader made
+`deploy-preflight` structurally incapable of reporting PASS no matter how completely the account satisfied
+it. Use the env var, which the spawn inherits:
+
+```bash
+export PREFLIGHT_STATE="$PWD/prod-state.json"        # NEVER commit this file — it names secrets
+pnpm exec tsx tools/deploy/preflight.ts --env prod   # same PASS, via the same channel the gate uses
+```
+
+Every run now prints which channel supplied the path (`state file … (via PREFLIGHT_STATE)`). Read that
+line: the flag parser accepts only the space-separated form, so a typo'd `--state=/path.json` is invisible
+to it and the run silently falls back to whatever `PREFLIGHT_STATE` is already exported in your shell —
+possibly stale facts, reported as a PASS.
+
 ## Step 4 — deploy, api first
 
 The api worker owns the `ShipmentSequencer` Durable Object that agents, billing, translator and mcp bind
@@ -170,13 +185,48 @@ Then apply migrations to each provisioned D1 (`db/tenant/migrations/`, `db/contr
 `docs/ops/DEPLOYMENT.md`. **Migrate before smoking** — a deployed worker against an unmigrated database
 fails on its first append.
 
+### Then the three browser surfaces
+
+One command, because the order inside it is load-bearing:
+
+```bash
+pnpm deploy:surfaces   # build (bakes VITE_API_BASE) → check:surfaces --built → wrangler deploy ×3
+```
+
+**Do not deploy a surface with a bare `wrangler deploy`.** The API base is read at BUILD time. A bundle
+built without `VITE_API_BASE` renders its entire chrome against a host that cannot resolve, so every call
+fails as a NETWORK error rather than an auth error — empty panels, no warning, a page that looks perfectly
+deployed and can never work. `check:surfaces -- --built` exists to refuse exactly that bundle, and running
+`wrangler` directly skips it.
+
+The driver PWA is the one where this is unrecoverable rather than merely wrong: its service worker would
+cache the SPA shell under an API path on a driver's phone and keep serving it across redeploys.
+
+Four hostnames come up, on three workers — `track.shuddl.tech` is a route inside the portal bundle, not a
+fourth surface. Custom domains mean Cloudflare creates the DNS records and certificates; nothing is
+hand-made. Every hostname is single-label because universal TLS covers `*.shuddl.tech` and **not** a
+second label (`api.staging.shuddl.tech` failed the handshake; `api-staging.shuddl.tech` did not).
+
 ## Step 5 — prove it
 
 ```bash
 SMOKE_API_BASE=https://<prod-api-host> pnpm exec tsx tools/deploy/staging-smoke.ts --mode release
-pnpm exec tsx tools/deploy/restore-verify.ts --mode release   # after a real backup exists
-pnpm verify:release
+
+# The surfaces, in a real browser: each must reach api.shuddl.tech and no other host, and must admit
+# it has no session rather than rendering a calm empty board.
+PROD_SURFACE_BASE=shuddl.tech pnpm test:surfaces
+
+# The restore drill. restore-verify reconciles two snapshots — capture them first; nothing else writes them.
+pnpm snapshot:ledger -- --db <source-db> --tenant <tenant> --out /tmp/source.json
+pnpm snapshot:ledger -- --db <restored-db> --tenant <tenant> --out /tmp/restored.json --rows-out /tmp/rows.json
+pnpm exec tsx tools/deploy/restore-verify.ts \
+  --source /tmp/source.json --restored /tmp/restored.json --rows /tmp/rows.json --mode release
+
+PREFLIGHT_STATE="$PWD/prod-state.json" pnpm verify:release
 ```
+
+Pass `--rows` or the chain is taken on trust from the snapshot instead of re-derived — the tool says so
+when you omit it. Re-walking is the only dimension that independently re-proves the restored ledger.
 
 `staging-smoke` drives a gated stop through to a penny-exact `invoice.issued` over real HTTPS. Until it has
 run against prod, no document should describe production as certified.

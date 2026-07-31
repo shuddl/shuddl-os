@@ -1,6 +1,6 @@
 # Project state & resume guide
 
-**As of 2026-07-28** · branch `codex/v1-remediation-v2-framework` · HEAD `3fc592b` · 401 commits. Supersedes
+**As of 2026-07-31** · branch `main` · 435 commits (was: 2026-07-28, `codex/v1-remediation-v2-framework`, `3fc592b`). Supersedes
 the 2026-07-27 baseline at `7c1a0b4` (itself re-baselined from the 2026-07-14 note that stopped at WP-06).
 All sixteen WPs are closed, T14/T15 landed after them, and a 2026-07-28 reboot cleared the `workerd` wedge.
 
@@ -16,7 +16,7 @@ this page: its rule 1 is that evidence does not transfer across commits.
 
 ## Safety posture (read first)
 
-> ### ⚠ 2026-07-30 — the staging claim below could NOT be confirmed, and the contrary evidence is strong
+> ### ~~⚠ 2026-07-30 — the staging claim below could NOT be confirmed~~ RESOLVED 2026-07-31: it is confirmed. The first reading was right — a second account. Everything below is superseded; see §6
 >
 > Queried the only Cloudflare account reachable from this workstation (`wrangler whoami` lists exactly one;
 > OAuth-authenticated). It contains the worker `shuddl-tech` (the marketing site) and:
@@ -28,12 +28,12 @@ this page: its rule 1 is that evidence does not transfer across commits.
 > zone was previously found to sit in a different account), **or it was torn down** and the paragraph below
 > outlived it.
 >
-> Until an operator confirms which, treat every claim in the next paragraph as **unverified**, including the
-> live-sending posture and the "proven end-to-end on live infra" chain. **Do not rely on it as evidence that
-> a deployed environment exists.** The safety consequence cuts both ways: if the deployment *is* live in
-> another account with a real `RESEND_API_KEY`, then seeding or replaying data there sends real mail; if it
-> is gone, then no acceptance demo has been proven on live infrastructure. See
-> [`docs/ops/LAUNCH-RUNBOOK.md`](./LAUNCH-RUNBOOK.md) Step 0.
+> ~~Until an operator confirms which, treat every claim in the next paragraph as **unverified**~~ —
+> **confirmed 2026-07-31 against account `89618ce…`, which holds the `shuddl.tech` zone AND every resource:**
+> 13 `shuddl-*` D1 databases (staging and prod), five deployed workers, `api.shuddl.tech` routed and
+> answering. The workstation had been querying a different account. The safety consequence that cut both
+> ways is settled the live way: staging IS real and `shuddl-t-tenant-a-staging` holds 40 events / 5 invoices
+> / 279,000¢, so seeding or replaying there sends real mail. See §6 and `LAUNCH-RUNBOOK.md` Step 0.
 
 There is no live production and no prod outbound email/SMS/money flow is enabled. A **staging** environment
 is deployed to Cloudflare (`shuddl-api-staging`, `shuddl-agents-staging`) with **synthetic data only**.
@@ -263,8 +263,10 @@ Map board main-thread occupancy was measured 58.6% → 20.3% (CDP `Performance.g
   `JWT_SECRET` and `RESEND_API_KEY` *are* bound on staging — that is how sending works — but the checker
   cannot see them from the repo and correctly refuses to assume. The five placeholder ids, by contrast, are
   real repo-visible defects. Supply `--state` to separate the two.
-- No backup of staging exists. The nightly snapshot workflow is a stub, `CLOUDFLARE_API_TOKEN` /
-  `CLOUDFLARE_ACCOUNT_ID` are unbound, and the restore drill has never been run.
+- ~~No backup of staging exists. The nightly snapshot workflow is a stub, `CLOUDFLARE_API_TOKEN` /
+  `CLOUDFLARE_ACCOUNT_ID` are unbound, and the restore drill has never been run.~~ **Superseded
+  2026-07-31 — see §6 below.** A real staging backup was taken and a full restore drill run and
+  reconciled. The nightly workflow's credentials remain unbound; that half stands.
 
 In V2 release-grade terms (`docs/ops/V2-EXECUTION-FRAMEWORK.md` §9), staging has **not** reached R2.
 
@@ -383,3 +385,49 @@ and is noncompressible.
   mis-resolves the `vitest-pool-workers`/chai chain and changes D1 append-only trigger behaviour, so a
   green run under Node 20 is not evidence the build is sound. `pnpm check:runtime` fails closed on
   mismatch.
+
+---
+
+## 6. 2026-07-31 — the surfaces went live, and the DR gate was made able to run
+
+This section supersedes anything above it that it contradicts. It is dated because the two facts most
+likely to be misread later are *what changed* and *what still has not*.
+
+### What is now true
+
+- **All three browser surfaces are deployed and serving.** `command`, `portal` and `driver.shuddl.tech`,
+  plus `track.shuddl.tech` on the portal worker — assets-only Workers on Cloudflare custom domains,
+  following the account's existing static-site pattern rather than a second one. Before this, the backend
+  had been live for days with no UI at all: no DNS, no wrangler config, no deploy script.
+  `track` is **not** a fourth surface — it is a route inside the portal bundle, which is what keeps the
+  surface count at three.
+- **The prod API base is baked in and gated.** `pnpm check:surfaces -- --built` refuses a bundle that
+  lacks it, ahead of `wrangler` in `deploy:surfaces`. Proven both directions before the deploy, then
+  re-verified against the live bundles over the wire.
+- **`tests/e2e/prod-surface.spec.ts` watches the deployed pages** — a FIELD gate, self-skipping unless
+  `PROD_SURFACE_BASE` is set. Five assertions, green: each surface reaches `api.shuddl.tech` and no other
+  host, and each tells the truth about having no session.
+- **The DR restore gate can execute at all.** `tools/deploy/snapshot-ledger.ts` writes the `LedgerSnapshot`
+  pair that `restore-verify` reads. Nothing had ever written one, so the gate was not failing — it was
+  structurally unable to run, on any environment, in any account. A real drill then ran on staging
+  tenant-a: PASS, 11 checks. Two defects it surfaced are fixed (`verifyChainOfRows` walked all streams as
+  one chain; `provision-prod` created nine resources before it refused).
+- **`deploy-preflight` can report PASS.** `run-gate` invokes the preflight with `--mode` only, and the
+  preflight read its state file from `--state` alone, so the release profile could never see a satisfied
+  account fact. `PREFLIGHT_STATE` closes it.
+
+### What is still NOT true — read this before claiming the product works
+
+- **Nobody can sign in.** Prod's control plane holds exactly three tenants — `_platform`, `_pool_01`,
+  `_pool_02` — all system rows from migration seeds. The `users` table is **empty**. The only endpoint that
+  mints a session is `POST /pub/signup`, and it is dark (`PROVISIONING_ENABLED` is bound nowhere, so the
+  route 404s). There is no magic-link endpoint. Every surface therefore renders its unauthenticated state,
+  which is correct behaviour and is exactly what the field gate asserts — but a deployed surface is not an
+  onboarded tenant, and the gap between those two is the whole remaining product.
+- **No real tenant is onboarded.** That needs the tenant-0 config pack from the engagement workspace.
+- **Outbound email is dark in prod** (`EVIDENCE_FROM` unbound ⇒ `NotConfiguredSender`).
+- **The production tile source is still a public third-party demo host** (REQ-075).
+- **Five release gates still BLOCK on absent private fixtures** and the identity denylist.
+- **The nightly backup workflow's credentials are still unbound.** The drill was run by hand.
+- **`run-gate` still passes `restore:verify` no snapshots**, so that gate stays BLOCKED in the release
+  profile even though the drill it represents has now genuinely been run.

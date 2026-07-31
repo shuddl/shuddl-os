@@ -138,5 +138,40 @@ snapshot-ledger: hash chain re-walked — 5 stream(s), 40 event(s), all intact.
 ```
 
 40 of 40 events verified, and the last stream's head is the snapshot's head hash. So the restore is sound;
-the gate's own chain path is not. Fixing `verifyChainOfRows` to walk per stream (or to accept a
-stream-grouped rows file) is the follow-up, and it needs a register row before it is written.
+the gate's own chain path is not.
+
+### The chain path, fixed the same day (2026-07-31)
+
+`verifyChainOfRows` now groups rows by `stream_id`, orders each group by `seq`, and walks each group
+through the ledger's own `verifyChain`. `packages/ledger/src/chain.ts` is untouched and still knows nothing
+about streams — it remains the single authority on what a valid chain is, and this function only groups,
+orders, and aggregates. Caller order is not trusted: rows supplied `seq`-descending with streams
+interleaved produce a byte-identical verdict.
+
+The aggregate head is the head of the lexicographically-last stream — the last event under
+`(stream_id, seq)`, which is exactly what `snapshot-ledger.ts` captures
+(`ORDER BY stream_id DESC, seq DESC LIMIT 1`). The two definitions had to reconcile or the fix would have
+traded a false `chain-broken` for a false `chain-head-mismatch`; they do, and it was proven on the drill's
+real data rather than in principle — the walked head equals the snapshot's `headHash` character for
+character. A failure now names its stream (`at seq 5 of stream s:SMK-…`), because a bare `seq 0` is
+ambiguous across streams to an operator reading it mid-incident.
+
+Re-run against the same real staging artifacts:
+
+```text
+restore-verify: chain re-walked per stream from 40 restored row(s) — 40 event(s) intact, head 2c504f982d24…
+restore-verify: PASS — the restored ledger is the same ledger.   (11 checks, 0 problems)
+```
+
+And the negative controls on that same real data, which are what make the PASS mean anything:
+
+| tamper | verdict |
+|---|---|
+| drop one row | `chain fails at seq 5 of stream s:SMK-ikr326on5l: seq_gap` |
+| flip a byte in `hash` | `seq 6 of stream s:SMK-zhab5mmi3x: hash_mismatch` |
+| flip a byte in `prev_hash` | `seq 2 of stream s:SMK-pd3coz6lz5: prev_hash_mismatch` |
+
+An empty walk returns `{ok, head: GENESIS_HASH, count: 0}` rather than failing — prod's ledgers are empty
+today, and a gate permanently red on a true fact trains the same "skip it" reflex this fix removes. It is
+not a silent pass: the tool prints that an empty walk proves nothing, and an empty walk against a snapshot
+claiming events still fails `chain-count-mismatch` and `chain-head-mismatch`.
