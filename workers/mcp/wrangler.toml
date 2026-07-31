@@ -113,13 +113,13 @@ service = "shuddl-api-prod"
 [[env.prod.d1_databases]]
 binding = "CONTROL_DB"
 database_name = "shuddl-control-prod"
-database_id = "00000000-0000-4000-8000-000000000303"
+database_id = "e91b8e7c-c878-437d-b25d-34530280fe85"
 
 # OAuth grants store. NOT 32-hex on purpose — an all-zero 32-hex id would pass the shape check and read
 # as provisioned; this one keeps BLOCKING.
 [[env.prod.kv_namespaces]]
 binding = "GRANTS"
-id = "0000000000000000000000000000prod"
+id = "ff8395f3c05e4240b24690bb9f696cbb"
 
 # Per-actor usage counter (REQ-105) — same DO, mirrored into prod (a DO adds no table).
 [[env.prod.durable_objects.bindings]]

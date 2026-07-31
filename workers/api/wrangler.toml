@@ -157,38 +157,38 @@ ENVIRONMENT = "prod"
 [[env.prod.d1_databases]]
 binding = "TENANT_A_DB"
 database_name = "shuddl-t-tenant-a-prod"
-database_id = "00000000-0000-4000-8000-000000000301"
+database_id = "7fb36070-86b3-4673-8bc9-de08ac0fa363"
 
 [[env.prod.d1_databases]]
 binding = "TENANT_B_DB"
 database_name = "shuddl-t-tenant-b-prod"
-database_id = "00000000-0000-4000-8000-000000000302"
+database_id = "c6752655-df5b-4b8c-b150-95b04c990e99"
 
 [[env.prod.d1_databases]]
 binding = "CONTROL_DB"
 database_name = "shuddl-control-prod"
-database_id = "00000000-0000-4000-8000-000000000303"
+database_id = "e91b8e7c-c878-437d-b25d-34530280fe85"
 
 [[env.prod.d1_databases]]
 binding = "PLATFORM_TENANT_DB"
 database_name = "shuddl-t-platform-prod"
-database_id = "00000000-0000-4000-8000-000000000304"
+database_id = "a79a005f-6cef-48d6-9f36-1fcb887eea87"
 
 [[env.prod.d1_databases]]
 binding = "TENANT_POOL_01_DB"
 database_name = "shuddl-t-pool-01-prod"
-database_id = "00000000-0000-4000-8000-000000000305"
+database_id = "dafdbec9-ebc5-4db7-9306-db96a0b3021f"
 
 [[env.prod.d1_databases]]
 binding = "TENANT_POOL_02_DB"
 database_name = "shuddl-t-pool-02-prod"
-database_id = "00000000-0000-4000-8000-000000000306"
+database_id = "20564820-573d-425b-8803-41fc984096d0"
 
 # NOT 32-hex on purpose. A KV id is only checked for shape, so an all-zero 32-hex string would PASS the
 # placeholder check and read as provisioned — the same trap the billing UUID set. This one blocks.
 [[env.prod.kv_namespaces]]
 binding = "IDEMPOTENCY"
-id = "0000000000000000000000000000prod"
+id = "24c3937963654249a4ad4ac971ce74c1"
 
 [[env.prod.r2_buckets]]
 binding = "EVIDENCE"

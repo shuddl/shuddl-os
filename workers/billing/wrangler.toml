@@ -135,23 +135,23 @@ crons = ["0 * * * *"]
 [[env.prod.d1_databases]]
 binding = "TENANT_A_DB"
 database_name = "shuddl-t-tenant-a-prod"
-database_id = "00000000-0000-4000-8000-000000000301"
+database_id = "7fb36070-86b3-4673-8bc9-de08ac0fa363"
 
 [[env.prod.d1_databases]]
 binding = "TENANT_B_DB"
 database_name = "shuddl-t-tenant-b-prod"
-database_id = "00000000-0000-4000-8000-000000000302"
+database_id = "c6752655-df5b-4b8c-b150-95b04c990e99"
 
 [[env.prod.d1_databases]]
 binding = "CONTROL_DB"
 database_name = "shuddl-control-prod"
-database_id = "00000000-0000-4000-8000-000000000303"
+database_id = "e91b8e7c-c878-437d-b25d-34530280fe85"
 
 # ONE logical binding, ONE physical database — the id MUST match workers/api [env.prod].
 [[env.prod.d1_databases]]
 binding = "PLATFORM_TENANT_DB"
 database_name = "shuddl-t-platform-prod"
-database_id = "00000000-0000-4000-8000-000000000304"
+database_id = "a79a005f-6cef-48d6-9f36-1fcb887eea87"
 
 [[env.prod.services]]
 binding = "API"
