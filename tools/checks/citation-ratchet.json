@@ -13,6 +13,43 @@
     "workers/translator/src/inbound.ts"
   ],
   "baseline": {
+    ".claude/skills/enforce-server-side-gate-parity/SKILL.md": {
+      "packages/contracts/src/events.ts": 4,
+      "workers/api/src/do/sequencer.ts": 9,
+      "workers/api/src/routes/events.ts": 4
+    },
+    ".claude/skills/enforce-server-side-gate-parity/reference-gate-parity-lint.md": {
+      "packages/contracts/src/events.ts": 1,
+      "workers/api/src/do/sequencer.ts": 2,
+      "workers/api/src/routes/events.ts": 1
+    },
+    ".claude/skills/enforce-server-side-gate-parity/reference-predicates.ts": {
+      "packages/contracts/src/events.ts": 2,
+      "workers/api/src/do/sequencer.ts": 4,
+      "workers/api/src/routes/events.ts": 2
+    },
+    ".claude/skills/make-agent-idempotent-and-adapter-ported/SKILL.md": {
+      "workers/agents/src/biller.ts": 3
+    },
+    ".claude/skills/make-agent-idempotent-and-adapter-ported/references/uuid-shaping.md": {
+      "workers/agents/src/biller.ts": 2
+    },
+    ".claude/skills/preserve-canonical-hash-byte-law/SKILL.md": {
+      "packages/ledger/src/anchor.ts": 3
+    },
+    ".claude/skills/prove-tenant-isolation-read-paths/SKILL.md": {
+      "packages/ledger/src/anchor.ts": 2
+    },
+    ".claude/skills/prove-tenant-isolation-read-paths/reference/read-path-registry.md": {
+      "packages/ledger/src/anchor.ts": 2
+    },
+    ".claude/skills/redact-counterparty-payloads-completely/SKILL.md": {
+      "packages/contracts/src/events.ts": 2,
+      "workers/api/src/routes/events.ts": 1
+    },
+    ".claude/skills/redact-counterparty-payloads-completely/redaction-completeness.guard.md": {
+      "packages/contracts/src/events.ts": 1
+    },
     "docs/audits/2026-07-15-full-audit-and-skill-plan.md": {
       "packages/contracts/src/events.ts": 1,
       "workers/api/src/do/sequencer.ts": 6,
@@ -62,6 +99,22 @@
     "docs/plans/2026-07-21-wp15-overlay-authority.md": {
       "packages/contracts/src/events.ts": 1,
       "workers/api/src/routes/events.ts": 1
+    },
+    "docs/plans/2026-07-23-codex-goal-clear-technical-debt.md": {
+      "packages/contracts/src/events.ts": 1,
+      "packages/ledger/src/anchor.ts": 2,
+      "workers/agents/src/biller.ts": 2,
+      "workers/api/src/do/sequencer.ts": 3,
+      "workers/api/src/routes/events.ts": 1,
+      "workers/translator/src/core/map-204.ts": 1,
+      "workers/translator/src/inbound.ts": 2
+    },
+    "docs/plans/2026-07-23-v2-technical-debt-register.md": {
+      "packages/contracts/src/events.ts": 1,
+      "workers/agents/src/biller.ts": 1,
+      "workers/api/src/do/sequencer.ts": 1,
+      "workers/translator/src/core/map-204.ts": 2,
+      "workers/translator/src/inbound.ts": 2
     },
     "docs/plans/2026-07-27-v1-closeout-t16-t17.md": {
       "packages/ledger/src/anchor.ts": 1

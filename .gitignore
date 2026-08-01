@@ -38,3 +38,13 @@ tests/visual/blessed/*-actual.png
 # Operator-supplied preflight state (account-side facts). Named at the repo root by
 # docs/ops/LAUNCH-RUNBOOK.md Step 3 — it asserts what is bound in a live account and is never committed.
 *-state.json
+
+# Per-session loop state written by the ralph-loop plugin (iteration counter, session id) —
+# transient machine state; a bulk `git add` of the untracked set must never sweep it in (2026-08-01 audit).
+.claude/ralph-loop.local.md
+
+# Editor-generated agent-instruction packs (VS Code Mermaid extension "Install AI Skills" etc.) —
+# vendor tooling, referenced by nothing tracked; committing them would make them repo-wide agent
+# instructions nobody reviewed (2026-08-01 audit). Author real instructions deliberately if ever wanted.
+.github/copilot-instructions.md
+.github/instructions/
