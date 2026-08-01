@@ -72,7 +72,9 @@ export const REQUIRED_BINDINGS = {
     secrets: ["JWT_SECRET"],
   },
   agents: {
-    d1: ["TENANT_A_DB", "TENANT_B_DB", "CONTROL_DB"],
+    // TENANT_POOL_* added 2026-08-01 (audit C3): the agents worker serves claimed pool tenants, so its
+    // scopes must bind the same pool planes the api worker does — ids converged per env.
+    d1: ["TENANT_A_DB", "TENANT_B_DB", "CONTROL_DB", "TENANT_POOL_01_DB", "TENANT_POOL_02_DB"],
     kv: [] as string[],
     r2: ["EVIDENCE"],
     do: ["SHIPMENT_SEQ", "SPARK_METER"],

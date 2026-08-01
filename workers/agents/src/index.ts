@@ -19,7 +19,7 @@ import { sweepTenantLegacyMirror, NotConfiguredFeedReader, LEGACY_MIRROR_INTEGRA
 import { runWatchtowerSweep } from "./watchtower.js";
 import { runWatchtowerSnapshots } from "./watchtower-snapshot.js";
 import { sweepTenantExpiredDocuments } from "@shuddl/ledger/documents/retention";
-import { TENANT_SLUGS, tenantDb, type AgentsEnv } from "./tenants.js";
+import { allTenantSlugs, resolveTenantDb, type AgentsEnv } from "./tenants.js";
 import { sparkGateFor } from "./spark-caps.js";
 
 // WP-14 Task 8 (REQ-122/125) — the per-tenant Spark convenience meter DO MUST be re-exported from the worker's
@@ -56,13 +56,20 @@ async function tsaFor(env: AgentsEnv, db: D1Database): Promise<TsaClient> {
   return cfg.url ? new HttpTsaClient({ url: cfg.url }) : new UnavailableTsaClient("TSA_URL_MISSING");
 }
 
-// Anchor every allowlisted tenant. Exported so the cron test and a manual backfill both drive the
-// identical path. A per-tenant failure is contained — one tenant's TSA outage never stalls the rest.
+// Anchor every tenant — the static roster plus every CLAIMED pool tenant (2026-08-01 audit C3). Exported so
+// the cron test and a manual backfill both drive the identical path. A per-tenant failure is contained — one
+// tenant's TSA outage, or a claimed slug un-claimed mid-sweep, never stalls the rest (the containment this
+// header always claimed now includes resolution: runDailyAnchor contains its own scan faults, but a
+// resolveTenantDb/tsaFor throw used to abort every remaining tenant).
 export async function runAllTenants(env: AgentsEnv, now: () => Date = () => new Date()): Promise<void> {
-  for (const slug of TENANT_SLUGS) {
-    const db = tenantDb(env, slug);
-    const tsa = await tsaFor(env, db);
-    await runDailyAnchor({ db, r2: env.EVIDENCE, tsa, tenant: slug, now });
+  for (const slug of await allTenantSlugs(env)) {
+    try {
+      const db = await resolveTenantDb(env, slug);
+      const tsa = await tsaFor(env, db);
+      await runDailyAnchor({ db, r2: env.EVIDENCE, tsa, tenant: slug, now });
+    } catch (err) {
+      console.error(`anchor cron: tenant ${slug} failed before/at anchoring (contained; next run retries):`, err);
+    }
   }
 }
 
@@ -74,9 +81,9 @@ export async function runAllTenants(env: AgentsEnv, now: () => Date = () => new 
 export async function runSlaSweep(env: AgentsEnv, now: () => number = () => Date.now()): Promise<void> {
   const seq = sequencerFor(env);
   const at = now();
-  for (const slug of TENANT_SLUGS) {
+  for (const slug of await allTenantSlugs(env)) {
     try {
-      const result = await sweepTenantOverdueInbound(tenantDb(env, slug), seq, slug, at);
+      const result = await sweepTenantOverdueInbound(await resolveTenantDb(env, slug), seq, slug, at);
       console.log(`concierge sla-sweep: tenant ${slug} → ${JSON.stringify(result)}`);
     } catch (err) {
       console.error(`concierge sla-sweep: tenant ${slug} failed (re-run next tick — the sweep is idempotent):`, err);
@@ -94,9 +101,9 @@ export async function runSlaSweep(env: AgentsEnv, now: () => number = () => Date
 // stalls the rest. The cron reads wall-clock for `now` (deterministic in tests).
 export async function runReconSweep(env: AgentsEnv, now: () => number = () => Date.now()): Promise<void> {
   const at = now();
-  for (const slug of TENANT_SLUGS) {
+  for (const slug of await allTenantSlugs(env)) {
     try {
-      const result = await sweepTenantUnbilledRedrive(tenantDb(env, slug), env.AGENT_QUEUE, slug, at);
+      const result = await sweepTenantUnbilledRedrive(await resolveTenantDb(env, slug), env.AGENT_QUEUE, slug, at);
       console.log(`recon-sweep: tenant ${slug} → ${JSON.stringify(result)}`);
     } catch (err) {
       console.error(`recon-sweep: tenant ${slug} failed (re-run next tick — the sweep is idempotent):`, err);
@@ -113,9 +120,9 @@ export async function runReconSweep(env: AgentsEnv, now: () => number = () => Da
 // (reconcile depends on ledger state, not the clock). Exported so the cron test + a manual re-drive hit the
 // identical path.
 export async function runCreditReconSweep(env: AgentsEnv): Promise<void> {
-  for (const slug of TENANT_SLUGS) {
+  for (const slug of await allTenantSlugs(env)) {
     try {
-      const result = await sweepTenantCreditGaps(tenantDb(env, slug));
+      const result = await sweepTenantCreditGaps(await resolveTenantDb(env, slug));
       console.log(`credit-recon-sweep: tenant ${slug} → ${JSON.stringify(result)}`);
     } catch (err) {
       console.error(`credit-recon-sweep: tenant ${slug} failed (re-run next tick — the sweep is idempotent):`, err);
@@ -131,9 +138,9 @@ export async function runCreditReconSweep(env: AgentsEnv): Promise<void> {
 // one tenant never stalls the rest. The cron reads wall-clock for `now` (deterministic in tests).
 export async function runCollectorSweep(env: AgentsEnv, now: () => number = () => Date.now()): Promise<void> {
   const at = now();
-  for (const slug of TENANT_SLUGS) {
+  for (const slug of await allTenantSlugs(env)) {
     try {
-      const result = await sweepTenantOverdueInvoices(tenantDb(env, slug), at);
+      const result = await sweepTenantOverdueInvoices(await resolveTenantDb(env, slug), at);
       console.log(`collector dunning-sweep: tenant ${slug} → ${JSON.stringify(result)}`);
     } catch (err) {
       console.error(`collector dunning-sweep: tenant ${slug} failed (re-run next tick — the sweep is idempotent):`, err);
@@ -157,9 +164,9 @@ export async function runWatchtower(env: AgentsEnv, now: () => number = () => Da
   // the ONE chokepoint. The other 4 rules ignore it (they only UPSERT anomalies rows).
   const seq = sequencerFor(env);
   const at = now();
-  for (const slug of TENANT_SLUGS) {
+  for (const slug of await allTenantSlugs(env)) {
     try {
-      const result = await runWatchtowerSweep(tenantDb(env, slug), slug, at, {}, seq);
+      const result = await runWatchtowerSweep(await resolveTenantDb(env, slug), slug, at, {}, seq);
       console.log(`watchtower: tenant ${slug} → ${JSON.stringify(result)}`);
     } catch (err) {
       console.error(`watchtower: tenant ${slug} failed (re-run next tick — the sweep is idempotent):`, err);
@@ -176,9 +183,9 @@ export async function runWatchtower(env: AgentsEnv, now: () => number = () => Da
 // per-tenant fault is contained + logged so one tenant never stalls the rest. The cron reads wall-clock for `now`.
 export async function runRetentionSweep(env: AgentsEnv, now: () => number = () => Date.now()): Promise<void> {
   const at = now();
-  for (const slug of TENANT_SLUGS) {
+  for (const slug of await allTenantSlugs(env)) {
     try {
-      const result = await sweepTenantExpiredDocuments(tenantDb(env, slug), env.EVIDENCE, slug, at);
+      const result = await sweepTenantExpiredDocuments(await resolveTenantDb(env, slug), env.EVIDENCE, slug, at);
       console.log(`retention-sweep: tenant ${slug} → ${JSON.stringify(result)}`);
     } catch (err) {
       console.error(`retention-sweep: tenant ${slug} failed (re-run next tick — the sweep is idempotent):`, err);
@@ -206,10 +213,10 @@ function feedReaderFor(_env: AgentsEnv, _slug: string): FeedReader {
 export async function runMirrorSweep(env: AgentsEnv, now: () => number = () => Date.now()): Promise<void> {
   const seq = sequencerFor(env);
   const at = now();
-  for (const slug of TENANT_SLUGS) {
+  for (const slug of await allTenantSlugs(env)) {
     try {
       const result = await sweepTenantLegacyMirror({
-        db: tenantDb(env, slug),
+        db: await resolveTenantDb(env, slug),
         seq,
         feed: feedReaderFor(env, slug),
         integrationId: LEGACY_MIRROR_INTEGRATION_ID,
@@ -506,7 +513,7 @@ export default {
       const trigger: AgentTrigger = parsed.data;
       let db: D1Database;
       try {
-        db = tenantDb(env, trigger.tenant); // REQ-025 — the allowlist is the only tenant→D1 map
+        db = await resolveTenantDb(env, trigger.tenant); // REQ-025 — static allowlist + server-side claimed-pool resolution, nothing else
       } catch (err) {
         // NOT an ack: an unrostered tenant may be a CLAIMED POOL tenant the api worker fully serves. Retry
         // toward the DLQ so the trigger survives as a recoverable record (see the queue() doc note above).
