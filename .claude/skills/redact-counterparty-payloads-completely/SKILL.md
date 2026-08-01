@@ -1,6 +1,6 @@
 ---
 name: redact-counterparty-payloads-completely
-description: Use when adding or reviewing an EventKind whose default visibility is counterparty or public, when a payload carries internal-only fields (gl_map, division, floors, basis, cost/buy amounts), or when editing redact.ts / REDACTIONS. Trigger on any new outbound-visible event kind or a nested-in-array internal field.
+description: Use when adding or reviewing an EventKind whose default visibility is counterparty or public, when a payload carries internal-only fields (gl_map, division, floors, basis, cost/buy amounts), when editing redact.ts / REDACTIONS — AND when any authed route or synchronous response can reach a portal/counterparty role. Trigger on any new outbound-visible event kind, a nested-in-array internal field, or a route handler returning one response shape to every role.
 ---
 
 > **Grounding note (added 2026-08-01, on commit — 16 days after writing):** the examples and
@@ -63,3 +63,26 @@ Completeness check: `counterparty|public kinds × internal-field list → assert
 - **Trusting `party_refs: []`.** Latent ≠ safe. A producer populating the ref flips it live (`events.ts:620`).
 
 REQUIRED BACKGROUND: the geo model to copy is `coarsenGeoInPlace` (`redact.ts:32`); visibility resolution is `resolveVisibility` (`visibility.ts:61`).
+
+## Addendum (2026-08-01): the law binds SYNCHRONOUS RESPONSES, not just event reads
+
+**The RED that forced this addendum — this skill existed and did not prevent it.** `POST /v1/rate`
+admitted role `portal` and returned one `pricedResponse()` unbranched by lens: `floors`
+(cost-derivable), `versions`, and the ApprovalDecision's evaluated/gross/executing-share economics —
+the exact fields `REDACTIONS["quote.priced"]` strips on the events read. The SAME party saw `floors`
+stripped from the ledger and received them synchronously at pricing time. The skill's triggers all
+pointed at EventKind payloads and `redact.ts`, so a route handler never tripped it (2026-08-01
+audit, C1; fixed at `workers/api/src/routes/rate.ts:322@portalPricedResponse`).
+
+The completeness rule therefore runs over EVERY wire a counterparty can read:
+1. The events read (redactEvent — the original scope).
+2. **Every authed route response, branched by session lens** — a role admitted to a route is a lens;
+   `pricedResponse` vs `portalPricedResponse` is the model: the counterparty shape re-maps
+   collections field-by-field (a `PriceLine` that later grows an internal cannot reach the wire) and
+   keeps only the gate RESULT, never its economics.
+3. The public twin (`/pub/*` — its `.strict()` allowlist parse is the fail-closed backstop to copy).
+
+**Guard test shape:** an exact-key-set assertion per role —
+`expect(Object.keys(body).sort()).toEqual([...allowlist])` — so a future field addition must
+consciously pass the gate (`workers/api/test/portal-actions.test.ts`). A client-side type that
+omits the field is NOT redaction; "the server already redacts them" must be true of the server.
