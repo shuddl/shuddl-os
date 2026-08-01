@@ -38,8 +38,14 @@ describe("CI strict browser/accessibility/performance jobs", () => {
     expect(CI).toMatch(/test:a11y/);
     expect(CI).toMatch(/test:e2e/);
     expect(CI).toMatch(/perf:map/);
-    // the strict browser gates are invoked in a non-local mode so an absent browser BLOCKS rather than skips
-    expect(CI).toMatch(/--mode merge/);
+    // EVERY strict browser gate is invoked in a non-local mode so an absent browser BLOCKS rather than
+    // skips. Asserted per-step (2026-08-01 audit): a single /--mode merge/ match let three of the four
+    // steps silently lose their flag and fall back to local mode, where an all-skipped run exits 0.
+    for (const step of ["test:visual", "test:a11y", "test:e2e", "perf:map"]) {
+      const line = CI.split("\n").find((l) => l.includes(`pnpm ${step}`));
+      expect(line, `ci.yml must invoke ${step}`).toBeDefined();
+      expect(line, `${step} must carry --mode merge — without it playwright-guard runs local and cannot block`).toContain("--mode merge");
+    }
   });
 });
 

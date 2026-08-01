@@ -87,6 +87,20 @@ function synthesize(gate: string, exitCode: number | null): GateResult {
   return { gate, status: "FAIL", executed: true, assertions: 1, detail: `command exited ${exitCode ?? "null"}` };
 }
 
+// 2026-08-01 audit (test-debt): a sentinel may DEGRADE an exit-0 run but may never UPGRADE a failing one.
+// The last ##SHUDDL-GATE## line in a child's combined output used to win outright — but wrapper gates
+// (unit-tests captures the full output of every workspace run) relay NESTED children's sentinels, so a
+// nested PASS printed before the wrapper failed recorded PASS. Where sentinel and exit code disagree, the
+// pessimistic verdict wins: exit 1/null ⇒ FAIL, exit 2 ⇒ BLOCKED, each naming the disagreement.
+// Exported for its unit test; returns undefined when there is no sentinel (caller synthesizes).
+export function reconcileSentinel(gate: string, sentinel: GateResult | undefined, exitCode: number | null): GateResult | undefined {
+  if (sentinel === undefined) return undefined;
+  const own = { ...sentinel, gate };
+  if (exitCode === 0 || own.status !== "PASS") return own;
+  const status = exitCode === EVIDENCE_EXIT.PREREQ_BLOCKED ? "BLOCKED" : "FAIL";
+  return { ...own, status, detail: `sentinel said PASS but the command exited ${exitCode ?? "null"} — the exit code wins (the PASS may be a nested child's): ${own.detail}` };
+}
+
 function runCmd(spec: Extract<GateSpec, { kind: "cmd" }>, profile: Profile): GateResult {
   const args = ["-s", spec.script];
   if (spec.modeArg) args.push("--", "--mode", profile);
@@ -95,10 +109,10 @@ function runCmd(spec: Extract<GateSpec, { kind: "cmd" }>, profile: Profile): Gat
   const out = `${res.stdout ?? ""}${res.stderr ?? ""}`;
   if (out.trim()) process.stdout.write(out.endsWith("\n") ? out : `${out}\n`);
   if (res.error) return { gate: spec.gate, status: "FAIL", executed: false, assertions: 0, detail: `spawn error: ${res.error.message}` };
-  // Prefer the gate's own structured result (last sentinel wins); else synthesize from the stable exit code.
+  // Prefer the gate's own structured result (last sentinel wins), reconciled against the exit code so a
+  // nested sentinel can never out-green a failing command; else synthesize from the stable exit code.
   const own = parseGateResults(out);
-  const last = own.length > 0 ? own[own.length - 1] : undefined;
-  return last ? { ...last, gate: spec.gate } : synthesize(spec.gate, res.status);
+  return reconcileSentinel(spec.gate, own.length > 0 ? own[own.length - 1] : undefined, res.status) ?? synthesize(spec.gate, res.status);
 }
 
 function gitHead(): string {
@@ -166,4 +180,6 @@ function main(): void {
   process.exit(evaluation.exitCode);
 }
 
-main();
+// Guarded (playwright-guard precedent) so the reconcileSentinel unit test can import this module without
+// executing a full gate run. Both verify scripts invoke this file directly, so the guard always passes there.
+if (process.argv[1] !== undefined && /run-gate\.ts$/.test(process.argv[1])) main();
