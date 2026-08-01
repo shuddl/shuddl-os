@@ -127,7 +127,7 @@ export const CustodyTransferredPayload = z
     from_party: z.string().min(1),
     to_party: z.string().min(1),
     geo: GeoStamp.optional(),
-    cosig: z.string().optional(), // co-sign ack reserved for WP-05
+    cosig: z.string().optional(), // co-sign ack — consumed by the REQ-045 interline gate (assertInterline requires a non-blank receiver cosig)
     unwitnessed: z.literal(true).optional(),
   })
   .strict();

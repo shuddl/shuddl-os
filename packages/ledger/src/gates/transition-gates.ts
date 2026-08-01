@@ -189,9 +189,9 @@ export function assertPickupDepart(
  *       caller able to EMIT events can still gate a POD through with a fabricated hash BEFORE/without any
  *       upload — the delivery completes with zero stored bytes — so the Biller path must surface a POD
  *       whose recorded hash has no documents row / R2 object as MISSING evidence, never silently pass it.
- *       This mitigation is UNIMPLEMENTED (it pairs with the deferred photo-URL resolver that would fetch
- *       those bytes for the email); until it lands, the Biller sends the evidence email without checking
- *       that any bytes were stored (see workers/agents/src/biller.ts sendEvidence). Tracked as REQ-170.
+ *       This mitigation LANDED for the signature hash (Task 9: workers/agents/src/biller.ts handlePodSigned
+ *       REQUIRES an active POD document + present R2 object before the invoice mints — held(evidence_missing),
+ *       fail-closed). RESIDUAL: the placed-photo hash and the redelivery fast path are not byte-checked (REQ-170).
  *
  * `ctx.fence` is REQUIRED. Without an override it is a hard caller error (GateValidationError → 400,
  * never a silent pass) — the gate cannot judge a geofence with no fence.

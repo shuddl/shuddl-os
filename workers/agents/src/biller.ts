@@ -176,10 +176,10 @@ export async function loadEvent(db: D1Database, streamId: string, eventId: strin
   return row === null ? null : rowToEvent(row);
 }
 
-// The accepted quote. ASSUMPTION (stated, per plan): no booking/acceptance flow exists yet —
-// `quote.accepted` is a defined kind but nothing emits it — so the LATEST quote.priced recorded
-// BEFORE the POD is the quote this shipment moved under. When booking lands (WP-08), switch to the
-// quote event the booking references.
+// The FALLBACK quote for a stream with NO booking (the booking path resolves + verifies its NAMED quote
+// via loadAcceptedBookingQuote below — Task 7, REQ-031/003): the LATEST quote.priced recorded BEFORE the
+// POD is the quote the shipment moved under. Kept because a directly-dispatched (bookingless) shipment
+// still invoices; a booked one never reaches this — the caller branches on the booking's quote ref first.
 export async function loadAcceptedQuote(db: D1Database, streamId: string, beforeSeq: number): Promise<LedgerEvent | null> {
   const row = await db
     .prepare("SELECT * FROM events WHERE stream_id = ? AND kind = 'quote.priced' AND seq < ? ORDER BY seq DESC LIMIT 1")
@@ -591,14 +591,14 @@ async function sendEvidence(cx: SendContext): Promise<BillerOutcome> {
     // it back here, exactly like from_name. Tracked as its own REQ, deliberately not widened into REQ-178.
     referral_url: `${referralBase}?ref=${encodeURIComponent(shipmentRef)}`,
   };
-  // REQ-170 RESIDUAL (WP-06 follow-up — pairs with REQ-168's pre-upload residual, see
-  // packages/ledger/src/gates/transition-gates.ts): this send does NOT yet verify that the POD's recorded
-  // evidence hashes (signature/placed-photo) have MATCHING STORED BYTES (a documents row / R2 object). A
-  // POD gated through with a fabricated hash and no upload would still send the evidence email, whose
-  // template frames itself as the record/proof — asserting proof over zero stored bytes. The missing-
-  // evidence gate (surface as MISSING, or hold the send) lands WITH the deferred photo-URL resolver: the
-  // same resolver that fetches the bytes for `photos` is what can confirm they exist. Until then the
-  // invoice still stands (REQ-031) — the gap is the EMAIL's proof claim, not the ledger.
+  // REQ-170 (Task 9 note — pairs with REQ-168's pre-upload residual, see
+  // packages/ledger/src/gates/transition-gates.ts): the SIGNATURE hash IS byte-verified upstream in
+  // handlePodSigned — an active POD document + present R2 object are REQUIRED before the invoice mints
+  // (a miss is held(evidence_missing), fail-closed) — so this send never asserts proof over zero stored
+  // signature bytes. RESIDUAL, deliberately narrow: the placed-photo hash is not byte-checked (its
+  // resolver — the same one that would fetch bytes for `photos` — is still deferred), and the
+  // routes/evidence.ts redelivery fast path re-drives the Biller without re-checking. The email's proof
+  // claim rests on the signature bytes; the invoice stands on the ledger either way (REQ-031).
   const rendered = renderEvidenceEmail(emailData);
 
   const recipient = await resolveRecipient(db, shipment.bill_to_party_id);

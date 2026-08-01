@@ -164,9 +164,9 @@ export async function resolveConcierge(
 
   // A QUOTE-STAGE shipment: a quote request rarely names the consignee or the payer yet, and the three
   // party FKs are NOT NULL — so all three point at the requester party (a deliberate self-reference).
-  // ASSUMPTION (not a guarantee): the real consignee/bill-to firm up at BOOKING (WP-08). Today
-  // booking.created's projection (ledger/src/projection/status-cache.ts) updates ONLY status_cache,
-  // never the party FKs — so WP-08 MUST add an explicit party-correction, or the self-reference persists.
+  // ASSUMPTION (not a guarantee): the real consignee/bill-to firm up at BOOKING (WP-08) — and the WP-08
+  // projection DELIVERS that correction: booking.created's BOOKING_SQL (ledger/src/projection/status-cache.ts)
+  // overwrites consignee_party_id + bill_to_party_id on conflict, so the self-reference is transitional.
   // `refs` carries the source message event id — the dedup/provenance key. The AUTHORITATIVE link back to
   // message.received is the quote.requested event's `source_message_event_id` the consumer appends (below).
   const shipment = await port.createShipment({

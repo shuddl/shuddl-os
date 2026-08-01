@@ -673,10 +673,11 @@ export class ShipmentSequencer extends DurableObject<Env> {
       case "stop.arrived":
         // REQ-166 consent-before-GPS. The operating state is DERIVED SERVER-SIDE from the stamp's raw
         // coordinates (deriveOperatingState) — the client supplies geo, the server decides the state, so
-        // the state is not a client-supplied CLAIM. But server-derived ≠ authoritative: the coarse box
-        // lookup is a documented stub (a precise point-in-polygon reverse-geocode is the WP-08
-        // refinement), and legal sufficiency of any consent is [CONFIRM]/counsel. This gate takes NO
-        // override — consent is a legal precondition, not a waivable evidence requirement.
+        // the state is not a client-supplied CLAIM. But server-derived ≠ authoritative: the resolver is
+        // exact point-in-polygon (V1 Task 13, geo/jurisdiction.ts) over a SYNTHETIC 5-state artifact — a
+        // licensed boundary set is a deploy input — and legal sufficiency of any consent is
+        // [CONFIRM]/counsel. This gate takes NO override — consent is a legal precondition, not a waivable
+        // evidence requirement.
         assertConsentBeforeGps(await prior(), incoming, { operating_state: deriveOperatingState(incoming.payload.geo) });
         return {};
       case "appointment.set": {

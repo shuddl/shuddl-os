@@ -291,7 +291,8 @@ export function generalizedTime(d: Date): Uint8Array {
 }
 
 // Build a granted TimeStampResp whose TSTInfo echoes `imprint` and `nonce`. Structurally a real CMS
-// SignedData wrapping a real TSTInfo (empty signerInfos — signatures are out of scope, Decision 15),
+// SignedData wrapping a real TSTInfo (empty signerInfos — the SYNTHETIC fixture stays unsigned; a real
+// `.tsr`'s SignerInfo signature + cert chain verify via cms.ts, landed WP-16),
 // so parseTimeStampResp walks the identical shape it would on a live TSA `.tsr`.
 export function buildGrantedTimeStampResp(imprint: Uint8Array, nonce: number | bigint, genTime: Date): Uint8Array {
   if (imprint.length !== 32) throw new Error(`buildGrantedTimeStampResp: imprint must be 32 bytes, got ${imprint.length}`);
@@ -320,7 +321,7 @@ export function buildGrantedTimeStampResp(imprint: Uint8Array, nonce: number | b
       encodeDerInteger(3), // CMS SignedData version
       tlv(TAG.SET, new Uint8Array(0)), // digestAlgorithms (empty)
       encapContentInfo,
-      tlv(TAG.SET, new Uint8Array(0)), // signerInfos (empty — CMS verification deferred)
+      tlv(TAG.SET, new Uint8Array(0)), // signerInfos (empty — synthetic fixture; cms.ts verifies real ones)
     ]),
   );
 
