@@ -36,7 +36,7 @@
     "test:visual": "tsx tools/harness/playwright-guard.ts visual playwright.config.ts --project visual",
     "test:a11y": "tsx tools/harness/playwright-guard.ts a11y playwright.config.ts --project a11y",
     "test:e2e": "tsx tools/harness/playwright-guard.ts e2e playwright.config.ts --project e2e",
-    "test:surfaces": "tsx tools/harness/playwright-guard.ts surfaces playwright.prod.config.ts",
+    "test:surfaces": "tsx tools/harness/playwright-guard.ts surfaces playwright.prod.config.ts --mode release",
     "preflight": "tsx tools/deploy/preflight.ts",
     "provision:prod": "tsx tools/deploy/provision-prod.ts",
     "backup": "tsx tools/deploy/backup.ts",

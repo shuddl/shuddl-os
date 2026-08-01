@@ -20,7 +20,10 @@ import { expect, test, type Page, type Request } from "@playwright/test";
 // not evidence.
 //
 // FIELD gate: skipped unless PROD_SURFACE_BASE names the zone. `pnpm test:surfaces` routes it through
-// tools/harness/playwright-guard.ts, so an all-skipped run is BLOCKED, never a green exit 0 (REQ-288).
+// tools/harness/playwright-guard.ts with `--mode release` BAKED INTO the package script — a field gate has
+// no advisory use, and without a blocking mode the guard's local default turns an all-skipped run (unset or
+// typo'd PROD_SURFACE_BASE) into exit 0. Under release mode an all-skipped run is BLOCKED, never a green
+// exit 0 (REQ-288).
 const ZONE = process.env["PROD_SURFACE_BASE"];
 const API = "https://api.shuddl.tech";
 
