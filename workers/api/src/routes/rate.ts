@@ -288,11 +288,17 @@ export function mountRateRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>): 
 
     // (The REQ-040 anomaly is recorded on quote.priced.basis above — see the note there. No exception.raised
     // is emitted from /rate; the client still sees `anomaly` in the response below.)
-    return c.json(pricedResponse(quote, decision, transit));
+    //
+    // REQ-085 / REQ-074 — the response shape is LENS-BRANCHED. The redaction law
+    // (packages/ledger/src/redact.ts REDACTIONS["quote.priced"] = ["floors","basis","versions"]) strips the
+    // margin internals from every non-tenant lens on the events read; the same party must not receive them
+    // synchronously at pricing time. A portal (counterparty) session gets the counterparty shape below —
+    // the guest twin (src/pub/quote.ts) declares these fields EXCLUDED forever for the same reason.
+    return c.json(session.role === "portal" ? portalPricedResponse(quote, decision, transit) : pricedResponse(quote, decision, transit));
   });
 }
 
-// The PRICED response the client sees — the price plus the SERVER's gate result. The UI only reflects it.
+// The PRICED response the TENANT lens sees — the price plus the SERVER's gate result. The UI only reflects it.
 function pricedResponse(quote: PricedQuote, decision: ApprovalDecision, transit: TransitResult) {
   return {
     status: "PRICED" as const,
@@ -303,6 +309,29 @@ function pricedResponse(quote: PricedQuote, decision: ApprovalDecision, transit:
     approval: decision,
     anomaly: quote.anomaly,
     transit: transitWindow(transit), // REQ-059 — honest window, or an explicit "unavailable" (never a fake number)
+  };
+}
+
+// The PRICED response a COUNTERPARTY (portal) lens sees — the price and the gate RESULT, never the margin
+// internals. floors are cost-derivable fractions (packages/rater/src/floors.ts), versions pin the tenant's
+// tariff, and the ApprovalDecision's evaluated/gross/share trio is executing-share economics — all tenant-only.
+// approval keeps exactly the four matrix fields the portal UI reflects (a pending sell must not present as
+// firm); anomaly stays (the portal client flags an anomalous price as not-firm — code/detail carry no margin).
+// lines are RE-MAPPED to kind/code/amount_cents, mirroring the /pub/quote guard: a PriceLine that later grows
+// an internal field cannot reach this wire.
+function portalPricedResponse(quote: PricedQuote, decision: ApprovalDecision, transit: TransitResult) {
+  return {
+    status: "PRICED" as const,
+    sell_cents: quote.sell_cents,
+    lines: quote.lines.map((l) => ({ kind: l.kind, code: l.code, amount_cents: l.amount_cents })),
+    approval: {
+      approval: decision.approval,
+      approvals_required: decision.approvals_required,
+      rule: decision.rule,
+      required_role: decision.required_role,
+    },
+    anomaly: quote.anomaly,
+    transit: transitWindow(transit),
   };
 }
 

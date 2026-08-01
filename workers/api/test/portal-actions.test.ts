@@ -135,6 +135,36 @@ describe("Piece 1 — POST /v1/rate lens-gated for portal (REQ-085)", () => {
     expect(r.status).toBe(200);
     expect(r.json?.status).toBe("PRICED");
   });
+
+  // REQ-085 / REQ-074 — the COUNTERPARTY response shape. The redaction law (packages/ledger/src/redact.ts
+  // REDACTIONS["quote.priced"]) strips floors/basis/versions from every non-tenant lens on the events read;
+  // the same party must not receive them synchronously at pricing time. The guest twin (/pub/quote) already
+  // declares these EXCLUDED forever; this pins the authed portal response to the same law.
+  it("the portal PRICED response carries NO margin internals — floors/versions/basis and the approval cents/share never reach a counterparty (REQ-085/074)", async () => {
+    const r = await rate(SHP, await portalTok(PORTAL_P));
+    expect(r.status).toBe(200);
+    const body = r.json as Record<string, unknown>;
+    expect(body.status).toBe("PRICED");
+    // The exact allowlist and NOTHING else — a future field addition must consciously pass this gate.
+    expect(Object.keys(body).sort()).toEqual(["anomaly", "approval", "lines", "sell_cents", "status", "transit"]);
+    expect(body.floors).toBeUndefined();
+    expect(body.versions).toBeUndefined();
+    expect(body.basis).toBeUndefined();
+    // approval keeps only the gate RESULT the UI reflects — never the evaluated/gross/share economics.
+    const approval = body.approval as Record<string, unknown>;
+    expect(Object.keys(approval).sort()).toEqual(["approval", "approvals_required", "required_role", "rule"]);
+    // each line is margin-free by re-map: kind/code/amount_cents only.
+    for (const line of body.lines as Array<Record<string, unknown>>) {
+      expect(Object.keys(line).sort()).toEqual(["amount_cents", "code", "kind"]);
+    }
+  });
+
+  it("the tenant lens keeps the full shape (control) — ops still receives floors + versions", async () => {
+    const r = await rate(SHP, await opsTok());
+    expect(r.status).toBe(200);
+    expect(r.json?.floors).toBeDefined();
+    expect(r.json?.versions).toBeDefined();
+  });
 });
 
 // ---- Piece 2: the narrow lens-gated accept seam ----------------------------------------------------
