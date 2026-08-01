@@ -123,7 +123,8 @@ const SYNONYMS: Record<string, Synonym> = nullMap<Synonym>({
   division: { field: "division", confidence: 1 },
   branch: { field: "division", confidence: 0.85 },
   office: { field: "division", confidence: 0.85 },
-  // shipment refs — strong
+  // shipment refs — strong. Legacy pros map VERBATIM (REQ-058 continuity mechanism — the literal
+  // per-tenant ranges are tenant-pack config, outside this repo).
   pro: { field: "pro", confidence: 1 },
   pro_number: { field: "pro", confidence: 1 },
   pro_no: { field: "pro", confidence: 0.9 },

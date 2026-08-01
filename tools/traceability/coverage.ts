@@ -169,7 +169,11 @@ function main(): void {
   console.log(formatReport(res));
 
   if (res.drift.length > 0) {
-    console.log(`\ncoverage: ${res.drift.length} status-drift row(s) — code has shipped but the register tag still reads *-DISCOVERED/vNEXT (advance at register review): ${res.drift.join(", ")}`);
+    // 2026-08-01 audit: this line used to assert "code has shipped … advance at register review" — but a
+    // drift row only proves a CITATION exists, and for some rows (REQ-184, REQ-276) every citation is a
+    // fail-closed deferral marker, not an implementation. Following the old advice would mark unbuilt
+    // scope as built. The message now says what the detector actually knows.
+    console.log(`\ncoverage: ${res.drift.length} status-drift row(s) — a source citation exists while the register tag reads *-DISCOVERED/vNEXT. Per row, VERIFY whether the citation is an implementation or a deferral marker before advancing anything (the coverage-manifest NOTE pattern records the verdict): ${res.drift.join(", ")}`);
   }
 
   let failed = false;

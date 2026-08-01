@@ -318,7 +318,7 @@ const INVOICE_UPSERT_SQL =
   "INSERT INTO invoices (id, party_id, division, shipment_ids, total_cents, status, issued_event_id, terms, due_ts) VALUES (?,?,?,'[]',?,?,?,?,?) " +
   "ON CONFLICT(id) DO UPDATE SET party_id=excluded.party_id, division=excluded.division, total_cents=excluded.total_cents, status=excluded.status, issued_event_id=excluded.issued_event_id, terms=excluded.terms, due_ts=excluded.due_ts";
 const INVOICE_UPDATE_SQL = "UPDATE invoices SET total_cents=?, status=?, issued_event_id=? WHERE id=?";
-// REQ-119 — the VOID write: flip a fully-reversed invoice OUT of 'issued' to {status:'void', total_cents:0}.
+// REQ-119 / REQ-209 — the VOID write: flip a fully-reversed invoice OUT of 'issued' to {status:'void', total_cents:0}.
 // Unconditional (like the reissue UPDATE) so the AR row always lands on the void truth; redelivery is already
 // blocked upstream by the ux_ml_corrects UNIQUE on the reversing money_lines (a second void of the same event
 // aborts the whole batch), so this UPDATE never re-runs standalone.
