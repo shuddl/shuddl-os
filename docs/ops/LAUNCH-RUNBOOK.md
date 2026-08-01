@@ -5,6 +5,16 @@ and `pnpm verify:merge` reports 16 gates PASS. Nothing below is a code task. Eve
 input that does not exist inside this repository, which is why the build cannot advance itself past this
 point.
 
+> **RUN RECORD, 2026-08-01: Steps 0–5 of this runbook were EXECUTED on 2026-07-30/31.** The account
+> question resolved (the product account `89618ce…` holds everything — Step 0's warning was the
+> two-account confusion it suspected), resources were provisioned, secrets bound, migrations applied,
+> `preflight --env prod --state <file>` → **PASS, 72 checks**, the workers and the three surfaces
+> deployed, and a prod backup taken (`tools/deploy/backup.ts` — the "no way to back up production" gap
+> below was CLOSED before the run; the paragraph is kept as history). The sweep record:
+> `RELEASE-EVIDENCE.md` § *Production preflight — PASS* and § *Release sweep — 2026-07-31*. What still
+> waits on an owner: tenant onboarding, the `EVIDENCE_FROM` sending flip (REQ-159), the five private
+> fixture gates, nightly OIDC credentials, and the ledgered holds in `GO-LIVE-CHECKLIST.md`.
+
 This file exists so that launch is **five owner actions**, each one command, rather than a research project.
 Read `docs/ops/DEPLOYMENT.md` for the mechanics of each tool and `docs/ops/GO-LIVE-CHECKLIST.md` for the
 full hold ledger; this is the ordered sequence and nothing else.
@@ -124,7 +134,7 @@ The preflight cannot read your account, so it treats unproven as blocked. Give i
     "STRIPE_WEBHOOK_SECRET": "bound",
     "PLATFORM_INTERNAL_SECRET": "bound"
   },
-  "corsOrigins": ["https://command.shuddl.tech", "https://portal.shuddl.tech", "https://driver.shuddl.tech"],
+  "corsOrigins": ["https://command.shuddl.tech", "https://portal.shuddl.tech", "https://driver.shuddl.tech", "https://track.shuddl.tech"],
   "sender": { "from": "SHUDDL <pod@send.shuddl.tech>", "domainVerified": true },
   "tsa": { "url": "https://freetsa.org/tsr" },
   "backups": { "lastManifestAt": "<ISO timestamp of the run below>", "retentionDays": 30 }
@@ -134,19 +144,22 @@ The preflight cannot read your account, so it treats unproven as blocked. Give i
 The values are yours to decide — the origins must be the real prod hostnames (a `.example` placeholder is
 rejected), and the TSA must be a reachable RFC 3161 endpoint (staging uses `freetsa.org/tsr`).
 
-**The backup needs work before it can run against prod, and this is a real gap.** There is no
+~~**The backup needs work before it can run against prod, and this is a real gap.** There is no
 `tools/deploy/backup.ts`. The only backup implementation is inline in `.github/workflows/nightly.yml`, and
-its export loop **hardcodes the four staging database names**:
+its export loop **hardcodes the four staging database names**:~~
 
-```
+```text
 shuddl-control-staging  shuddl-t-tenant-a-staging  shuddl-t-tenant-b-staging  shuddl-t-platform-staging
 ```
 
-So there is no way to back up production today. Either parameterise that loop by environment or extract it
-into a script; `tools/deploy/restore-verify.ts` already consumes the SHA-256 manifest it writes, so the
-manifest format is fixed and must not change. Until that is done, `lastManifestAt` for prod cannot honestly
-be filled — and per `docs/ops/dr-backups.md` a database with no backup is the one hold that turns a bad day
-into an unrecoverable one.
+~~So there is no way to back up production today.~~ **CLOSED before the launch run (audit D4, corrected
+2026-08-01): `tools/deploy/backup.ts` exists (`pnpm backup -- --env <env>`), derives the database set from
+the wrangler configs rather than a hardcoded list, and a PROD backup ran on 2026-07-31 — 6 databases,
+manifest digest `47e4d9ec…`, `backup-manifest` gate PASS assertions=6 (`RELEASE-EVIDENCE.md`).**
+`tools/deploy/restore-verify.ts` consumes the SHA-256 manifest it writes, so the manifest format is fixed
+and must not change; `lastManifestAt` for prod is honestly fillable from that run — and per
+`docs/ops/dr-backups.md` a database with no backup is the one hold that turns a bad day into an
+unrecoverable one, which is why the NIGHTLY credentials (still unbound) remain a ledgered hold.
 
 ```bash
 # once a prod backup exists:

@@ -679,7 +679,10 @@ owner's decision about production data, not a step to take in passing.
 `command` · `portal` · `driver` · `track.shuddl.tech` serve as assets-only Workers on custom domains
 (`track` is a route inside the portal bundle, not a fourth surface). `PROD_SURFACE_BASE=shuddl.tech pnpm
 test:surfaces` → **5 passed**. What it establishes: each surface loads a bundle that actually runs, reaches
-`api.shuddl.tech` and no other host, and states plainly that it has no session rather than rendering a calm
+`api.shuddl.tech` ~~and no other host~~ *(corrected 2026-08-01: the spec's foreign-host set is only the
+synthetic `.example` host and localhost — it does NOT assert "no other host", and every deployed surface
+also contacts the third-party demo tile host, the documented REQ-075 hold)*, and states plainly that it has
+no session rather than rendering a calm
 empty board — command's unbilled-PODs figure is an em dash, not a zero, because a zero is a claim about
 freight made by a surface that never got to look.
 

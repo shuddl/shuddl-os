@@ -35,7 +35,14 @@ this page: its rule 1 is that evidence does not transfer across commits.
 > ways is settled the live way: staging IS real and `shuddl-t-tenant-a-staging` holds 40 events / 5 invoices
 > / 279,000¢, so seeding or replaying there sends real mail. See §6 and `LAUNCH-RUNBOOK.md` Step 0.
 
-There is no live production and no prod outbound email/SMS/money flow is enabled. A **staging** environment
+~~There is no live production and~~ **Superseded 2026-08-01 (audit D1) — production EXISTS and is live:**
+provisioned 2026-07-30 (`provision:prod --apply` — 6 D1, 2 KV, 1 R2), five workers deployed,
+`api.shuddl.tech` routed and answering 401 without a token, preflight **PASS 72 checks** on 2026-07-31
+(`RELEASE-EVIDENCE.md` § *Production preflight — PASS*), and the three browser surfaces serving (§6). What
+**remains true and is the actual safety line**: no prod outbound email/SMS/money flow is enabled
+(`EVIDENCE_FROM` absent ⇒ `NotConfiguredSender`), and **no real tenant exists** — prod control holds only
+three system rows, so nobody can log in. Treat prod as a LIVE environment: do not seed, replay, or test
+against it on the belief that nothing can leave the box. A **staging** environment
 is deployed to Cloudflare (`shuddl-api-staging`, `shuddl-agents-staging`) with **synthetic data only**.
 Staging evidence sending is **LIVE**: `send.shuddl.tech` is verified and both `RESEND_API_KEY`
 (sending-only, scoped) and `EVIDENCE_FROM` are set, so the deployed Biller sends real evidence email. Proven
@@ -43,7 +50,9 @@ end-to-end — a synthetic POD produced a delivered `DELIVERED · SMK-… · PRO
 `pod@send.shuddl.tech` (acceptance demo #1's chain, on live infra). Because staging tenants are synthetic,
 mail only reaches whatever address a shipment's party actually carries; one owner test inbox is the only
 real one wired. To disable: unset `EVIDENCE_FROM` in `[env.staging.vars]` and redeploy — the Biller reverts
-to `NotConfiguredSender`. **Prod is not provisioned and its sending stays milestone-gated (REQ-159).**
+to `NotConfiguredSender`. ~~**Prod is not provisioned and**~~ **its sending stays milestone-gated (REQ-159)**
+*(struck 2026-08-01: prod IS provisioned and deployed — see the supersession at the head of this section;
+the sending gate is the half that stands)*.
 
 No committed API key, no real customer/tenant data in the repo. Every feature that could touch the outside
 world (email send, billing, EDI transport, MCP pairing, PLG provisioning) ships **fail-closed and
@@ -61,7 +70,7 @@ will be wrong about what is safe to do next.
 | 1 | Repository green | Yes, and measured: **all 18 test projects run** (`pnpm test` — 258 files / 3,243 tests PASS) and `pnpm verify:merge` executes end-to-end. Five of its 21 gates are **BLOCKED** on named private inputs, so the aggregate is **NOT PROMOTABLE** |
 | 2 | Staging certified | Partly — two of five workers deployed; the POD→invoice→email chain proven on live infra |
 | 3 | Pilot holds | Blocked — no tenant-0 config pack, no vendored fixtures, no counsel sign-off, no field runs |
-| 4 | Production holds | **Declared, not provisioned, not deployable** — every `[env.prod]` id is an all-zero placeholder |
+| 4 | Production holds | ~~**Declared, not provisioned, not deployable** — every `[env.prod]` id is an all-zero placeholder~~ **Superseded 2026-08-01 (audit D2): provisioned 2026-07-30, five workers + three surfaces deployed, preflight PASS 72 checks (2026-07-31).** The REAL prod holds now: no tenant onboarded · outbound email dark (`EVIDENCE_FROM` unbound, REQ-159) · five private-fixture gates BLOCKED · demo tile host (REQ-075) · nightly backup credentials unbound |
 | 5 | V2 planned | Approved and specified; **not built** |
 
 ---
@@ -245,12 +254,17 @@ Map board main-thread occupancy was measured 58.6% → 20.3% (CDP `Performance.g
 
 **Declared but not proven:**
 
-- **Three of the five workers are not deployed.** `billing`, `mcp` and `translator` declare `[env.staging]`
+- ~~**Three of the five workers are not deployed.** `billing`, `mcp` and `translator` declare `[env.staging]`
   scopes; no staging deploy of them is recorded. The whole MCP surface (acceptance demo #4) is therefore
-  un-deployed.
+  un-deployed.~~ **Superseded 2026-08-01 (audit): in PRODUCTION all five workers are deployed —
+  `mcp.shuddl.tech` and `billing.shuddl.tech` answer 200 (`RELEASE-EVIDENCE.md` § *Production preflight*),
+  so the MCP surface exists in prod.** The *staging* scopes of billing/mcp/translator remain undeployed as
+  written — the struck sentence was wrong only in reading a staging fact as the whole world.
 - `pnpm preflight -- --env staging` returns **BLOCKED — 12 unsatisfied prerequisites** (re-measured
-  2026-07-27 at `79ae54d`): 5 `placeholder-resource-id`, 4 `missing-secret`, 1 `no-origins`,
-  1 `tsa-unconfigured`, 1 `no-backup`. ~~(`PLATFORM_TENANT_DB`, `TENANT_POOL_01_DB`, `TENANT_POOL_02_DB`
+  2026-07-27 at `79ae54d`; **note 2026-08-01:** staging was then provisioned and routed on 2026-07-31
+  (commit `b961dfc`) — the three staging D1 placeholder ids below became real; only the mcp `GRANTS` KV
+  placeholder remains, and the staging preflight has not been re-run since): 5 `placeholder-resource-id`,
+  4 `missing-secret`, 1 `no-origins`, 1 `tsa-unconfigured`, 1 `no-backup`. ~~(`PLATFORM_TENANT_DB`, `TENANT_POOL_01_DB`, `TENANT_POOL_02_DB`
   are all-zero UUIDs; the mcp `GRANTS` KV id is not 32-hex)~~ **Corrected 2026-07-27 — that listed four
   of the five.** All five, verbatim from the gate: `shuddl-api-staging.PLATFORM_TENANT_DB`,
   `shuddl-api-staging.TENANT_POOL_01_DB`, `shuddl-api-staging.TENANT_POOL_02_DB` and
@@ -301,15 +315,25 @@ In V2 release-grade terms (`docs/ops/V2-EXECUTION-FRAMEWORK.md` §9), staging ha
 
 ---
 
-### 4. Production holds — declared, not provisioned, not deployable
+### 4. Production holds — ~~declared, not provisioned, not deployable~~ PROVISIONED + DEPLOYED (superseded 2026-08-01)
+
+> **SUPERSEDED 2026-08-01 (audit D2). Everything measured below was true on 2026-07-27 and is kept as
+> history; none of it describes HEAD.** On 2026-07-30 `provision:prod --apply` created the resources
+> (6 D1, 2 KV, 1 R2 — 19 real ids across the five configs), the four secrets were bound, and on
+> 2026-07-31 `preflight --env prod --state <operator file>` returned **PASS, 72 checks**; all five
+> workers and the three browser surfaces are deployed and answering
+> (`RELEASE-EVIDENCE.md` § *Production preflight — PASS, 2026-07-31*). The bullets under "Also unproven
+> for prod" below remain the REAL open prod holds (sender warmup, OIDC/nightly credentials, edge rate
+> limits, PLG dark, pen-test's deploy-dependent rows), joined by: no tenant onboarded, outbound email
+> dark (REQ-159), the demo tile host (REQ-075), and the five private-fixture merge holds.
 
 All five workers now declare a **structurally complete** `[env.prod]` scope, and merge-time parity
-(`tools/deploy/wrangler-scope-parity.test.ts`) keeps them that way. That is a shape guarantee and nothing
+(`tools/deploy/wrangler-scope-parity.test.ts`) keeps them that way. ~~That is a shape guarantee and nothing
 more: **every id in `[env.prod]` is an all-zero placeholder.** None of the resources exist.
 `wrangler deploy --env prod` would ship workers that crash on the first request that dereferences a
-binding.
+binding.~~ *(struck 2026-08-01 — the ids are real and the workers are deployed; see the banner above)*
 
-`pnpm preflight -- --env prod` returns **BLOCKED — 26 unsatisfied prerequisites**, measured 2026-07-27:
+`pnpm preflight -- --env prod` returns ~~**BLOCKED — 26 unsatisfied prerequisites**~~ *(historical)*, measured 2026-07-27:
 
 | Code | Count | Detail |
 |---|---:|---|
@@ -332,8 +356,10 @@ Also unproven for prod, beyond the preflight:
 - **Pen-test** (`docs/security/pen-test-basics.md`) reports clean for the **in-repo perimeter only**; its
   deploy-dependent items are exactly the rows above.
 
-**Do not describe this build as "ready to launch."** It is ready to be provisioned. Provisioning is an
-external hold with a named owner in `docs/ops/GO-LIVE-CHECKLIST.md`.
+**Do not describe this build as "ready to launch."** ~~It is ready to be provisioned. Provisioning is an
+external hold with a named owner in `docs/ops/GO-LIVE-CHECKLIST.md`.~~ *(2026-08-01: provisioning
+happened — the sentence that stands is the first one. Launch still waits on a tenant, the sending flip,
+the fixtures, and the ledgered holds.)*
 
 > A note for whoever provisions these: fill the ids with real values or leave them all-zero. Never fill
 > them with something that merely *looks* real. The preflight's placeholder check is shape-based, so a

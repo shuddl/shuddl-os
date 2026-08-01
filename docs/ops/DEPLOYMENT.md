@@ -1,6 +1,6 @@
 # Deployment runbook
 
-**Environments:** `dev` = the default (top-level) wrangler config, used by the 1,131-test suite + local `wrangler dev` (its `database_id`s are `local-*` placeholders — never deployed). `staging` = a real, deployed Cloudflare environment (`[env.staging]` blocks), **synthetic data only, evidence sending OFF**. `prod` = not stood up (gates on F1-B/C + the M-H milestone — genesis/12,14).
+**Environments:** `dev` = the default (top-level) wrangler config, used by the 1,131-test suite + local `wrangler dev` (its `database_id`s are `local-*` placeholders — never deployed). `staging` = a real, deployed Cloudflare environment (`[env.staging]` blocks), **synthetic data only, evidence sending ~~OFF~~ LIVE** *(corrected 2026-08-01 — this header contradicted its own Sending section below: `send.shuddl.tech` is verified and the deployed Biller sends real evidence email)*. `prod` = ~~not stood up~~ **provisioned + deployed 2026-07-30/31** *(superseded 2026-08-01: preflight PASS 72 checks, five workers + three surfaces live — `RELEASE-EVIDENCE.md`; outbound email/money stay dark and GTM stays gated on F1-B/C + the M-H milestone — genesis/12,14)*.
 
 ## Staging — what's deployed (first stood up 2026-07-14)
 
@@ -90,14 +90,23 @@ npx wrangler kv namespace delete --namespace-id 119880a9442c4b8cae8383183a2877e1
 
 ---
 
-## Production resource inventory (REQ-114 / REQ-117) — NOT YET PROVISIONED
+## Production resource inventory (REQ-114 / REQ-117) — ~~NOT YET PROVISIONED~~ PROVISIONED 2026-07-30
 
-`wrangler deploy --env prod` is **unsafe today.** Only `workers/api/wrangler.toml` declares an
+> **SUPERSEDED 2026-08-01 (audit D3).** The paragraph below was written before the `[env.prod]` scopes
+> were completed and long before provisioning; it is kept as history. At HEAD: all five workers declare
+> complete `[env.prod]` scopes with REAL resource ids (6 D1, 2 KV, 1 R2 created by
+> `pnpm provision:prod --apply` on 2026-07-30), the four secrets are bound, and
+> `preflight --env prod --state <file>` returned **PASS, 72 checks** on 2026-07-31. All five workers are
+> deployed; `api.shuddl.tech` answers. Deploying to prod is no longer unsafe-by-configuration — it is a
+> LIVE environment, which is its own discipline: coordinate redeploys, never seed or replay into it.
+
+~~`wrangler deploy --env prod` is **unsafe today.** Only `workers/api/wrangler.toml` declares an
 `[env.prod]` block at all, and that block contains a worker name and nothing else: zero D1, zero KV, zero
 R2, zero Durable Objects, zero queues, zero vars. Deploying it would ship a worker that crashes on the
-first request that dereferences any binding. The other four workers have no `[env.prod]` scope whatsoever.
+first request that dereferences any binding. The other four workers have no `[env.prod]` scope whatsoever.~~
 
-Run the preflight before any deploy; it is the authority and it currently BLOCKS both environments:
+Run the preflight before any deploy; it is the authority ~~and it currently BLOCKS both environments~~
+*(2026-08-01: prod PASSes with `--state`; staging has not been re-run since its 2026-07-31 provisioning)*:
 
 ```bash
 pnpm preflight -- --env staging --state ./preflight-state.json
@@ -120,13 +129,14 @@ What must exist per environment, per worker (the checker's own contract, `REQUIR
 
 ### Known configuration defects the preflight reports today
 
-- **Every id in `[env.prod]` is an all-zero placeholder.** All five workers now declare a structurally
-  complete prod scope (binding names and resource names), but none of the resources exist, so
-  `--env prod` reports 19 `placeholder-resource-id` BLOCKs plus the unproven account facts.
-  **`[env.prod]` is declared, not provisioned, and is NOT deployable.** Provisioning is the external
-  hold; the shape is now checked at merge time by `tools/deploy/wrangler-scope-parity.test.ts`.
-- Placeholder resource ids in staging: `PLATFORM_TENANT_DB`, `TENANT_POOL_01_DB`, `TENANT_POOL_02_DB`
-  (all-zero UUIDs) and the mcp `GRANTS` KV id (`0000000000000000000000000000staging`, not a 32-hex id).
+- ~~**Every id in `[env.prod]` is an all-zero placeholder.** … **`[env.prod]` is declared, not
+  provisioned, and is NOT deployable.**~~ **Superseded 2026-08-01: provisioned 2026-07-30, all 19 ids
+  real, preflight PASS 72 (see the banner above).** The shape stays checked at merge time by
+  `tools/deploy/wrangler-scope-parity.test.ts`.
+- ~~Placeholder resource ids in staging: `PLATFORM_TENANT_DB`, `TENANT_POOL_01_DB`, `TENANT_POOL_02_DB`
+  (all-zero UUIDs) and~~ *(2026-08-01: those three staging D1 ids became real on 2026-07-31, commit
+  `b961dfc`; the one that remains is)* the mcp `GRANTS` KV id
+  (`0000000000000000000000000000staging`, not a 32-hex id).
 
 ### Closed (2026-07-25)
 

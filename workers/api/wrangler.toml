@@ -104,15 +104,17 @@ binding = "CONTROL_DB"
 database_name = "shuddl-control-staging"
 database_id = "8e238970-2ed3-494d-960f-e4af082c1e8e"
 
-# WP-14 Task 1 (REQ-123/025): reserved PLATFORM tenant D1 (PLG DARK — real resource provisioned at R4). The
-# placeholder id is intentional: WP-14 ships fail-closed, and no code path binds this in staging until R4.
+# WP-14 Task 1 (REQ-123/025): reserved PLATFORM tenant D1. ~~placeholder id is intentional~~ superseded
+# 2026-07-31: the id below is a REAL provisioned staging database (commit b961dfc). PLG stays DARK — no
+# code path binds this in staging until R4 — but the resource exists; do not "restore" a placeholder here.
 [[env.staging.d1_databases]]
 binding = "PLATFORM_TENANT_DB"
 database_name = "shuddl-t-platform-staging"
 database_id = "ebbcd4f9-fc66-4529-a3aa-de51fc67bc8f"
 
-# WP-14 Task 2 (REQ-121/025): the tenant-D1 POOL (PLG DARK — real resources pre-provisioned at R4). The
-# placeholder ids are intentional: WP-14 ships fail-closed and no code path binds these in staging until R4.
+# WP-14 Task 2 (REQ-121/025): the tenant-D1 POOL. ~~placeholder ids are intentional~~ superseded 2026-07-31:
+# both ids below are REAL provisioned staging databases (commit b961dfc). PLG stays DARK — no code path
+# binds these in staging until R4 — but the resources exist; do not "restore" placeholders here.
 [[env.staging.d1_databases]]
 binding = "TENANT_POOL_01_DB"
 database_name = "shuddl-t-pool-01-staging"

@@ -103,11 +103,11 @@ database_id = "8e238970-2ed3-494d-960f-e4af082c1e8e"
 [[env.staging.d1_databases]]
 binding = "PLATFORM_TENANT_DB"
 database_name = "shuddl-t-platform-staging"
-# The id is the api placeholder VERBATIM, and that is the point twice over. It converges the binding
-# (preflight compares name|id, so a matching name alone would not clear the drift), and it restores the
-# BLOCK this line was hiding: the previous value was a well-formed random UUID, so an unprovisioned
-# database read as provisioned while api's placeholder was correctly flagged. No platform D1 exists in
-# staging (docs/ops/DEPLOYMENT.md); the gate must keep saying so until one does.
+# The id is the api worker's id VERBATIM — the binding must converge (preflight compares name|id, so a
+# matching name alone would not clear the drift). History this line carries: it was once a well-formed
+# RANDOM UUID that read as provisioned while api's placeholder was correctly flagged — the fix was to
+# mirror api exactly, placeholder or real. ~~No platform D1 exists in staging; the gate must keep saying
+# so~~ superseded 2026-07-31: the shared id below is a REAL provisioned database (commit b961dfc).
 database_id = "ebbcd4f9-fc66-4529-a3aa-de51fc67bc8f"
 
 # WP-14 Task 10 (REQ-123/025) — the api worker service binding targets the STAGING api worker (must be deployed).
