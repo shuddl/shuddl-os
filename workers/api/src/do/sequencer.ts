@@ -553,7 +553,7 @@ export class ShipmentSequencer extends DurableObject<Env> {
         const trigger = { kind: "pod.signed", tenant, shipment_id: full.shipment_id, event_id: full.id };
         this.ctx.waitUntil(
           this.env.AGENT_QUEUE.send(trigger).catch((err: unknown) => {
-            console.error(`biller trigger enqueue failed for pod ${full.id} (POD committed; the REQ-169 sweep recovers it):`, err);
+            console.error(`biller trigger enqueue failed for pod ${full.id} (POD committed; the REQ-169 sweep recovers it for STATIC-ROSTER tenants only — the agents crons cannot enumerate claimed pool tenants):`, err);
           }),
         );
       }
@@ -574,7 +574,7 @@ export class ShipmentSequencer extends DurableObject<Env> {
         const trigger = { kind: "quote.accepted", tenant, shipment_id: full.shipment_id, event_id: full.id };
         this.ctx.waitUntil(
           this.env.AGENT_QUEUE.send(trigger).catch((err: unknown) => {
-            console.error(`booking trigger enqueue failed for quote.accepted ${full.id} (accept committed; the sweep recovers it):`, err);
+            console.error(`booking trigger enqueue failed for quote.accepted ${full.id} (accept committed; the sweep recovers it for static-roster tenants only):`, err);
           }),
         );
       }
@@ -595,7 +595,7 @@ export class ShipmentSequencer extends DurableObject<Env> {
     if (conciergeTrigger) {
       this.ctx.waitUntil(
         this.env.AGENT_QUEUE.send(conciergeTrigger).catch((err: unknown) => {
-          console.error(`concierge trigger enqueue failed for message ${full.id} (message committed; the sweep recovers it):`, err);
+          console.error(`concierge trigger enqueue failed for message ${full.id} (message committed; the sweep recovers it for static-roster tenants only):`, err);
         }),
       );
     }

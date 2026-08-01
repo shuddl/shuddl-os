@@ -5,9 +5,13 @@ import worker from "../src/index.js";
 // WP-06 — queue() DISPATCH SEMANTICS (REQ-031/039). The Biller's business behavior is proven
 // end-to-end in workers/api/test/biller.test.ts (the harness with the real DO + migrated D1); THIS
 // file pins the thin dispatch contract that protects the queue itself:
-//   · POISON (an unparseable body; an unknown tenant) is ACKed — redelivering a message that can
-//     never parse/route would only delay real work. The loud log is the record until WP-11's DLQ
-//     consumer (REQ-169) lands.
+//   · POISON (an unparseable BODY) is ACKed — redelivering a message that can never parse would only
+//     delay real work; there is no tenant to recover it for.
+//   · an UNKNOWN TENANT is RETRIED, never acked (2026-08-01 audit, C3): the api worker + sequencer DO
+//     serve claimed pool tenants this worker's static roster cannot resolve, so "unknown" here can mean
+//     "not yet rostered", not "garbage". retry() → max_retries → the configured DLQ
+//     (shuddl-agent-dlq-*, wrangler.toml) parks it as a recoverable record — an invoice trigger is
+//     destroyed by ack, and no sweep can rebuild it for a tenant the crons cannot enumerate.
 //   · a THROWN handler failure retries the MESSAGE (per-message, not the batch) — redelivery is the
 //     retry, safe because the Biller's append id + email idempotency key are deterministic.
 // Messages are hand-built fakes: miniflare exposes no way to push through a real queue here, and the
@@ -61,11 +65,11 @@ describe("agents queue() — per-message dispatch (REQ-031/039)", () => {
     expect(junk.state.retried).toBe(false);
   });
 
-  it("POISON tenant (not on the allowlist) → ACKed — REQ-025: no allowlist row, no D1, no retry loop", async () => {
-    const { message, state } = mkMessage({ kind: "pod.signed", tenant: "tenant-evil", shipment_id: "shp-1", event_id: "evt-1" });
+  it("UNKNOWN tenant (not on the static roster) → RETRIED toward the DLQ, never acked — a pool tenant's invoice trigger must survive (REQ-025/169)", async () => {
+    const { message, state } = mkMessage({ kind: "pod.signed", tenant: "tenant-unrostered", shipment_id: "shp-1", event_id: "evt-1" });
     await worker.queue(mkBatch([message]), env, createExecutionContext());
-    expect(state.acked).toBe(true);
-    expect(state.retried).toBe(false);
+    expect(state.retried).toBe(true);
+    expect(state.acked).toBe(false);
   });
 
   it("a THROWN handler → retry() called (per-message), not ack — redelivery is the retry", async () => {
@@ -87,7 +91,8 @@ describe("agents queue() — per-message dispatch (REQ-031/039)", () => {
   });
 
   // WP-07: the Concierge sibling rides the SAME queue, discriminated on `kind`. The dispatch contract is
-  // identical — poison acks, an unknown tenant acks, a routable message whose D1 read throws retries.
+  // identical — an unparseable body acks, an unknown tenant retries toward the DLQ, a routable message
+  // whose D1 read throws retries.
   it("message.received POISON body (missing event_id) → ACKed as poison", async () => {
     const { message, state } = mkMessage({ kind: "message.received", tenant: "tenant-a" }); // no event_id
     await worker.queue(mkBatch([message]), env, createExecutionContext());
@@ -95,11 +100,11 @@ describe("agents queue() — per-message dispatch (REQ-031/039)", () => {
     expect(state.retried).toBe(false);
   });
 
-  it("message.received POISON tenant (not on the allowlist) → ACKed (REQ-025)", async () => {
-    const { message, state } = mkMessage({ kind: "message.received", tenant: "tenant-evil", event_id: "evt-1" });
+  it("message.received UNKNOWN tenant → RETRIED toward the DLQ, never acked (REQ-025/169)", async () => {
+    const { message, state } = mkMessage({ kind: "message.received", tenant: "tenant-unrostered", event_id: "evt-1" });
     await worker.queue(mkBatch([message]), env, createExecutionContext());
-    expect(state.acked).toBe(true);
-    expect(state.retried).toBe(false);
+    expect(state.retried).toBe(true);
+    expect(state.acked).toBe(false);
   });
 
   it("message.received THROWN handler (unmigrated D1) → retry() (per-message), not ack", async () => {
@@ -117,7 +122,7 @@ describe("agents queue() — per-message dispatch (REQ-031/039)", () => {
   });
 
   // WP-08: the Booking agent rides the SAME queue, discriminated on kind (quote.accepted → Booking). The
-  // dispatch contract is identical to the Biller/Concierge — poison acks, an unknown tenant acks, a routable
+  // dispatch contract is identical to the Biller/Concierge — poison acks, an unknown tenant retries, a routable
   // message whose D1 read throws retries.
   it("quote.accepted POISON body (missing shipment_id/event_id) → ACKed as poison", async () => {
     const bad = mkMessage({ kind: "quote.accepted", tenant: "tenant-a", shipment_id: "shp-1" }); // no event_id
@@ -129,11 +134,11 @@ describe("agents queue() — per-message dispatch (REQ-031/039)", () => {
     expect(alsoBad.state.retried).toBe(false);
   });
 
-  it("quote.accepted POISON tenant (not on the allowlist) → ACKed (REQ-025)", async () => {
-    const { message, state } = mkMessage({ kind: "quote.accepted", tenant: "tenant-evil", shipment_id: "shp-1", event_id: "evt-1" });
+  it("quote.accepted UNKNOWN tenant → RETRIED toward the DLQ, never acked (REQ-025/169)", async () => {
+    const { message, state } = mkMessage({ kind: "quote.accepted", tenant: "tenant-unrostered", shipment_id: "shp-1", event_id: "evt-1" });
     await worker.queue(mkBatch([message]), env, createExecutionContext());
-    expect(state.acked).toBe(true);
-    expect(state.retried).toBe(false);
+    expect(state.retried).toBe(true);
+    expect(state.acked).toBe(false);
   });
 
   it("quote.accepted routable message → dispatched to the Booking agent (unmigrated D1 throws → retry(), NOT poison-ack)", async () => {

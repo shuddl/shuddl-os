@@ -486,8 +486,12 @@ export default {
   //
   // REQ-039 / WP-06/07: the agent consumers, dispatched by `kind` — pod.signed → Biller, message.received
   // → Concierge. Per-message ack/retry — one poison message never stalls the batch. POISON (a body matching
-  // neither trigger shape, an unknown tenant) is ACKed with a loud log: redelivery cannot fix it, and
-  // retrying it forever would only delay real work (the DLQ + exceptions surface land WP-11). A THROWN
+  // neither trigger shape) is ACKed with a loud log: redelivery cannot fix a shape, and there is no tenant
+  // to recover it for. An UNKNOWN TENANT is NOT poison (2026-08-01 audit, C3): the api worker + sequencer DO
+  // serve claimed pool tenants this worker's static roster cannot resolve, so "unknown" can mean "not yet
+  // rostered here" — the trigger RETRIES toward the configured DLQ (shuddl-agent-dlq-*, max_retries then
+  // dead_letter_queue in wrangler.toml), parking a recoverable record instead of destroying an invoice
+  // trigger the REQ-169 sweep can never rebuild (the crons enumerate only the static roster). A THROWN
   // handler failure (a retriable parse/send, a transient D1/DO fault) retries the MESSAGE — safe end to end
   // because BOTH consumers' append ids + send idempotency keys are deterministic (dedupe both sides).
   async queue(batch: MessageBatch, env: AgentsEnv, ctx: ExecutionContext): Promise<void> {
@@ -504,8 +508,10 @@ export default {
       try {
         db = tenantDb(env, trigger.tenant); // REQ-025 — the allowlist is the only tenant→D1 map
       } catch (err) {
-        console.error(`agents queue: message ${message.id} names an unknown tenant — ack as poison:`, err);
-        message.ack();
+        // NOT an ack: an unrostered tenant may be a CLAIMED POOL tenant the api worker fully serves. Retry
+        // toward the DLQ so the trigger survives as a recoverable record (see the queue() doc note above).
+        console.error(`agents queue: message ${message.id} names a tenant outside this worker's static roster — retrying toward the DLQ (a pool tenant's trigger must survive):`, err);
+        message.retry();
         continue;
       }
       try {
