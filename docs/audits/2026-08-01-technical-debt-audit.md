@@ -189,3 +189,30 @@ the ignore rules. Carried forward, phase-gated, on the checklist: C3 resolver (p
 gate into the release record (R2) · preflight-vs-served CORS reconciliation (R2) · EDI send-time date
 stamping (pre-EDI-flip) · `TEST_SEND_TOKEN` secret visibility (R4) · prod-surface retry posture (Low) ·
 marketing-site version control (External, owner) · the five private-input merge holds (External, owner).
+
+## §6 — Iteration 2 (2026-08-01, loop continuation): the carry-forward list is closed
+
+Every repo-owned carry-forward row above landed, then an adversarial 5-lens review of that very diff
+found 17 further defects (2 high) — closed the same session:
+
+- **C3 resolver built** (`494765f`): claimed-aware `resolveTenantDb` mirroring the api contract, pool
+  bindings in all three wrangler scopes (ids converged), all cron fan-outs on `allTenantSlugs`,
+  preflight contract extended. The review then caught the **ninth fan-out** hiding outside index.ts
+  (converted; the regression pin now globs every src module), **pool-binding exclusivity** (two claimed
+  rows naming one binding now exclude BOTH, fail-closed), and — the sharpest catch — **static-slug
+  shadowing**: `provisionTenant` would have let a post-flip stranger claim `tenant-a` and route to the
+  real carrier's D1; static-roster slugs are now structurally refused (`def564c`).
+- **Surfaces gate in the release record** (`efdf7d1`, 26 gates), with the review's addendum: the PASS
+  now stamps the zone it drove (the stateProvenance lesson).
+- **EDI real send-instant stamping** (`3899ae6`): `sentAt` follows the control-number seam exactly;
+  writer stays pure; fixtures stay byte-stable; the sweep is byte-deterministic given its injected clock.
+- **CORS env-aware and fail-closed** (`736ed29` + review inversion): prod — and every UNKNOWN
+  environment — serves only the four real origins; the dev list is the allowlisted exception. The
+  preflight now reconciles the operator state's prod origins against the committed served list
+  (`origin-not-served`), and a secret-bound `TEST_SEND_TOKEN` blocks in prod.
+
+Still open, deliberately: the **translator worker's roster gap** (dark behind the unbuilt CONFIRM-gated
+EDI transport; ledgered on the EDI activation row as a pre-activation line) · prod-surface retry posture
+(Low, recorded) · the External/owner holds, unchanged. The §4 stopping-point line is now satisfied for
+every repo-owned row this audit raised: what remains is owner-supplied (fixtures, denylist, credentials,
+the sending flip, tenant onboarding) or rides a CONFIRM-gated activation it is ledgered against.
