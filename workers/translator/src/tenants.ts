@@ -88,7 +88,7 @@ async function resolveClaimedTenantDb(env: TranslatorEnv, slug: string): Promise
 }
 
 /** The claimed-aware resolver: static allowlist hot path (no control-plane read), claimed-pool fallback.
- *  The platform tenant can never resolve on an agent path — guarded via the SHARED contracts sentinel
+ *  The platform tenant can never resolve on a translator path — guarded via the SHARED contracts sentinel
  *  (isPlatformTenant), the same source the api's resolver consults, so the two guards cannot drift. */
 export async function resolveTenantDb(env: TranslatorEnv, slug: string): Promise<D1Database> {
   if (isPlatformTenant(slug)) throw new Error(`UNKNOWN_TENANT: ${slug}`);

@@ -551,7 +551,14 @@ export default {
   // serve claimed pool tenants this worker's static roster cannot resolve, so "unknown" can mean "not yet
   // rostered here" — the trigger RETRIES toward the configured DLQ (shuddl-agent-dlq-*, max_retries then
   // dead_letter_queue in wrangler.toml), parking a recoverable record instead of destroying an invoice
-  // trigger the REQ-169 sweep can never rebuild (the crons enumerate only the static roster). A THROWN
+  // trigger. ~~(the crons enumerate only the static roster)~~ THAT JUSTIFICATION IS STALE (2026-08-02 §35):
+  // it was true when C3 was hardened, and §11–§13 then made every cron enumerate `allTenantSlugs`, so the
+  // REQ-169 sweep CAN now rebuild a lost trigger for a claimed tenant. The retry is still right, for two
+  // reasons that outlive the original one: resolution can fail for causes no sweep will fix (an unusable or
+  // absent control-plane policy now REFUSES every append — §18/§19/§29), and a recoverable record beats
+  // destroying a money trigger regardless of who could rebuild it. Corrected rather than deleted because the
+  // stale parenthetical would have led a reader to the opposite conclusion — "the sweep covers it now, so we
+  // can ack" — which is wrong for a reason the comment no longer stated. A THROWN
   // handler failure (a retriable parse/send, a transient D1/DO fault) retries the MESSAGE — safe end to end
   // because BOTH consumers' append ids + send idempotency keys are deterministic (dedupe both sides).
   async queue(batch: MessageBatch, env: AgentsEnv, ctx: ExecutionContext): Promise<void> {

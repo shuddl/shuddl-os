@@ -1632,3 +1632,47 @@ name of a law that also covers discoverability. Nothing in the code was wrong �
 it, which is the artifact a future reader trusts instead of re-deriving.
 
 **Verification.** translator 94; typecheck 0, citations OK.
+
+---
+
+## §35 — Iteration 29 (2026-08-02): sweeping my own comments, since the pattern was four-for-four
+
+Four times this session a comment I wrote claimed more than the code delivered (§13, §18, §30, §34). Four
+instances of one narrow shape is enough signal to stop fixing them individually and go look for the rest.
+
+Swept every comment line **I added this session** (`git diff 0415148..HEAD` over `*.ts`) for claims of the
+form *"can never / always / by construction / satisfies / the law / guarantee"* — **35 lines**, and checked
+the strongest ones against the code rather than re-reading them.
+
+**Most held.** `CLAIMED_TENANT_PLAN_SQL` really is built from the frozen array (pinned by test). Reusing the
+`Visibility` union really does mean a new rank cannot leave the predicate behind. The platform-tenant
+exclusion really does route through the one shared `isPlatformTenant`. The §32 `AggregateError` really does
+restore pre-§24 propagation.
+
+**One was stale, and my own later work is what made it stale.** The queue consumer justifies retrying an
+unknown-tenant trigger toward the DLQ rather than acking it, and gave this reason:
+
+> *…instead of destroying an invoice trigger the REQ-169 sweep can never rebuild (the crons enumerate only
+> the static roster).*
+
+That was true when C3 was hardened. Then §11–§13 made **every cron enumerate `allTenantSlugs`**, so the
+sweep *can* now rebuild a lost trigger for a claimed tenant — and the parenthetical became false without
+anyone touching that line. The danger is specific: a reader checking whether the retry is still warranted
+would find the stated reason no longer holds and conclude *"the sweep covers it now, so we can ack"* — the
+opposite of correct. The retry is still right, for two reasons that outlive the original: resolution can
+fail for causes no sweep will fix (an unusable policy now refuses **every** append), and a recoverable record
+beats destroying a money trigger regardless of who could rebuild it. Corrected in place, both reasons named.
+
+**Two were ported verbatim and named the wrong worker.** The billing and translator resolvers both said "the
+platform tenant can never resolve on an **agent** path" — true in substance, wrong in provenance, because
+the comment was copied from the agents worker along with the code. Harmless individually; collectively it is
+how a reader learns to skim comments instead of trusting them.
+
+**The lesson is narrower than "write better comments."** A claim can rot two ways: it can be wrong when
+written (§13/§18/§30/§34 — thinking about one half of a problem and naming a law covering both), or it can be
+*made* wrong later by a change somewhere else that never touches it (§35). The second kind is invisible to
+review of the changing commit, because the stale line is not in that diff. The only thing that finds it is
+periodically re-reading what the old comments assert against what the code now does — which is what this
+sweep was.
+
+**Verification.** billing 56, translator 94, agents 106; typecheck 0, lint 0.
