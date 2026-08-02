@@ -38,7 +38,7 @@ function parseProfile(argv: string[]): Profile {
 // The complete merge surface (design §5 WP0). Skippable gates carry modeArg so they receive --mode <profile>
 // and BLOCK instead of skipping. The heavy build/acceptance/browser jobs are ALSO wired into CI (Task 4);
 // here the browser jobs BLOCK without a browser, which is the whole point.
-function gatesFor(profile: Profile): GateSpec[] {
+export function gatesFor(profile: Profile): GateSpec[] {
   const plain: GateSpec[] = [
     { kind: "cmd", gate: "runtime", script: "check:runtime" },
     { kind: "cmd", gate: "typecheck", script: "typecheck" },
@@ -74,6 +74,11 @@ function gatesFor(profile: Profile): GateSpec[] {
     { kind: "cmd", gate: "deploy-preflight", script: "preflight", modeArg: true },
     { kind: "cmd", gate: "restore-verify", script: "restore:verify", modeArg: true },
     { kind: "cmd", gate: "staging-smoke", script: "smoke:staging", modeArg: true },
+    // 2026-08-01 (audit, iteration 2): the deployed-surface proof enters the release record. The package
+    // script bakes --mode release (no modeArg needed); without PROD_SURFACE_BASE it returns BLOCKED
+    // (exit 2) with its own sentinel — the same env-guarded field posture as staging-smoke. It hits the
+    // public internet, so it deliberately does NOT run under the merge profile.
+    { kind: "cmd", gate: "surfaces", script: "test:surfaces" },
     // The backup manifest is produced by the nightly workflow against external credentials; nothing in a
     // release run can synthesize one, so it stays a declared hold.
     { kind: "external", gate: "backup-manifest", detail: "OIDC/external backup credentials (.github/workflows/nightly.yml) — absent in-repo" },

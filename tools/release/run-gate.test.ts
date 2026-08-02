@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { reconcileSentinel } from "./run-gate.js";
+import { gatesFor, reconcileSentinel } from "./run-gate.js";
 import type { GateResult } from "./evidence.js";
 
 // 2026-08-01 audit (test-debt): runCmd preferred the LAST ##SHUDDL-GATE## sentinel found anywhere in a
@@ -60,5 +60,19 @@ describe("reconcileSentinel — the exit code can never be out-greened by a nest
 
   it("no sentinel → undefined (the caller synthesizes from the exit code as before)", () => {
     expect(reconcileSentinel("lint", undefined, 0)).toBeUndefined();
+  });
+});
+
+describe("gatesFor — the deployed-surface proof is part of the release record (REQ-288)", () => {
+  // 2026-08-01 audit (test-debt, Low → closed iteration 2): the surfaces field gate existed only as a
+  // manual runbook step, so no REQ-288 structured release record ever carried the deployed-surface
+  // verdict — unlike the three other field gates (deploy-preflight, restore-verify, staging-smoke),
+  // which run under the release profile and BLOCK when their environment input is absent.
+  it("the release profile runs test:surfaces; the merge profile does not (it needs the public internet)", () => {
+    const release = gatesFor("release");
+    const surfaces = release.find((g) => g.gate === "surfaces");
+    expect(surfaces).toBeDefined();
+    expect(surfaces).toMatchObject({ kind: "cmd", script: "test:surfaces" });
+    expect(gatesFor("merge").find((g) => g.gate === "surfaces")).toBeUndefined();
   });
 });
