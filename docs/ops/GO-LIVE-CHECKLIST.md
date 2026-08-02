@@ -570,9 +570,12 @@ both. The one thing that would close the remainder is the fourth step, unchanged
   aggregate BLOCKED (exit 2). The limit that replaces it is narrower and still real: an evidence record exists,
   it is complete, and it says NOT PROMOTABLE**; (2) `verify:release` is
   wired into no workflow (`RELEASE-EVIDENCE.md:129`) — a release record exists only if a human made one;
-  (3) the record's own commit/environment/fixtures/deployment binding is **self-satisfied** by construction
+  (3) ~~the record's own commit/environment/fixtures/deployment binding is **self-satisfied** by construction
   (`run-gate.ts:142-144`; failures ledger row 7), so it cannot catch a stale record until a separate promote
-  step exists.
+  step exists.~~ **SUPERSEDED 2026-08-02 (audit §16, commit `10a95f5`):** `run-gate` re-observes the context
+  after the gates run instead of copying it from the record, so all four comparisons are live — and they bite
+  today rather than only once a promote step exists, because a gate run spans minutes and a commit or
+  fixtures change mid-run now invalidates the record. (1) and (2) above are unchanged.
 
 ### Q5 — Is all technical debt documented? · **No at the start of this task; yes at this commit — and, by design, with the eight fields only in the two bottom ledgers.**
 

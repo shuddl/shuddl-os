@@ -182,9 +182,17 @@ and no gate was skipped into silence.
   profile, and only with `--state`.
 - **That the claims in the second table hold** — build, dependency audit, secret scan are outside the
   record.
-- **That the binding fields were independently checked.** `run-gate` constructs its own
+- ~~**That the binding fields were independently checked.**~~ **SUPERSEDED 2026-08-02 (audit §16, commit
+  `10a95f5`) — THEY NOW ARE.** `run-gate` RE-OBSERVES its `PromotionContext` after the gates run
+  (`gitHead()`, `fixturesHash()`, and the two env vars read afresh) instead of copying it from the record it
+  just wrote, so all four comparisons are live. They also bite BEFORE any promote step exists: a gate run
+  spans minutes, so a commit landing or a fixtures-manifest change mid-run now invalidates the record instead
+  of being certified by it. Pinned by a source-reading test in `tools/release/run-gate.test.ts` and
+  mutation-proved (restoring the copied form fails 3 of its 4 assertions). The paragraph below is the
+  historical description and is retained for the reasoning it carries about a future promote step.
+- ~~**That the binding fields were independently checked.** `run-gate` constructs its own
   `PromotionContext` from the record it just wrote (`run-gate.ts:143`), so the commit/environment/
-  fixtures/deployment comparison is self-satisfied by construction and can never fire there. Those
+  fixtures/deployment comparison is self-satisfied by construction and can never fire there.~~ Those
   checks bite only when a **separate** consumer evaluates a stored record against a context derived
   independently — from the git SHA it is about to promote, the environment it is promoting into, and
   the deployment it observes. **No such consumer exists in this repository today**: `evaluateEvidence`

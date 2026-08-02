@@ -2007,3 +2007,41 @@ generalisation against a case it did not come from is what exposed it.
 
 **Verification.** All five supersedes applied; no un-superseded "self-satisfied" claim remains in
 `docs/security`; citations OK.
+
+## §44 — running the missing reverse-index by hand, and the two more it found
+
+§43 named the gap: `check:citations` answers *"does this citation resolve?"* but not *"which documents cite
+the file I just changed?"* Building that is declined scope — but **running it once, by hand, for this
+session is auditing, not building.** So it was run: every source file changed since `0415148`, cross-indexed
+against every maintained `.md`.
+
+**39 changed source files are cited in the record.** The reverse index immediately paid for itself:
+
+- **`sequencer.ts` is cited by NINE documents**, including three `docs/wp/*` work-package files I had never
+  opened this session. Checked: their "policy" references are retention-policy and consent-policy text, a
+  different sense of the word entirely. **Clean — but only knowable by looking.**
+- **`run-gate.ts` is cited by five.** §43 fixed two of them. The index pointed at the other three, and **two
+  more carried the same dead claim**: `RELEASE-EVIDENCE.md`'s *"It does not prove"* section (the very
+  section the security docs cited as the system of record for this exposure) and a `GO-LIVE-CHECKLIST.md`
+  Q4 prose answer. Both now superseded.
+
+**Seven instances of one dead claim, across four documents.** My §42 sweep of `docs/ops` missed two of them
+for a reason worth naming: **I grepped for the vocabulary of the defects I remembered** — "falls back",
+"gate-knob", "static roster", "retry-storm" — and the §16 defect's word was *self-satisfied*, which was not
+on my list. A keyword sweep finds what you already thought of. The reverse index doesn't need you to
+remember anything; it starts from the diff.
+
+### What this settles
+
+Three sections in a row generalised about *why* records rot — form (§41), then confirmed by prediction
+(§42), then corrected to proximity (§43). §44 is the one that actually matters operationally, and it is
+duller than all three: **the mechanism is a reverse lookup, and this repo has the forward half only.** A
+fix-author cannot be expected to remember which of nine documents cites the file they are editing; that is
+what an index is for.
+
+The gap is now named with its exact shape (§43), demonstrated to find real debt when run manually (§44,
+three documents it caught that keyword sweeps missed), and left unbuilt because a new gate needs an
+owner-signed REQ row. That is the most useful state I can leave it in without straying.
+
+**Verification.** All seven instances superseded; zero un-superseded `self-satisfied` claims remain in the
+maintained record; citations OK.
