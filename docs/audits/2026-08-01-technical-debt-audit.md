@@ -590,3 +590,29 @@ it has a guard, a comment, a rationale, and a green suite. The only thing that d
 from the right one was tracing every consumer of the value being defaulted and asking, per consumer, which
 direction the default moves. "Fail-closed" is not a property of catching an exception; it is a property of
 what the fallback VALUE means to each thing that reads it.
+
+### §15a — sweeping the repo for the same defect class
+
+Finding a fallback that read as fail-closed and was not raises the obvious question: **how many others are
+there?** Enumerated every `catch` in `packages/ledger/src`, `packages/contracts/src`, `packages/rater/src`,
+`workers/api/src` and `workers/agents/src` that substitutes a value rather than rethrowing — **18 sites** —
+and traced each one's consumer for direction rather than reading its comment.
+
+All 18 are genuinely fail-closed, several with the reasoning already written down:
+
+- `geo/polygon-source.ts` → `null` on a hash mismatch or unparseable bytes → `deriveOperatingState` returns
+  the `"XX"` sentinel → `transition-gates.ts:360` **throws** `GateError([consent])`. `"XX"` is deliberately
+  not a USPS code, so no `ConsentAck.operating_state` can ever equal it — the sentinel cannot be satisfied
+  by accident.
+- `sequencer.ts` `#deliveryFence` → `undefined` on malformed leg geo → `assertDelivery` **throws**
+  `GateValidationError` ("the gate cannot judge a geofence with no fence"). Absent is refused, not waived.
+- `sign.ts` → `false` (a verification fault is a failed verification); `routes/devices.ts` → `null` (key
+  absent ⇒ signature cannot verify); `routes/driver-manifest.ts` → no coordinate ("never fabricate a
+  location"); `rate-config.ts` → omits the transit window rather than inventing one; `routes/import.ts` →
+  `{}` LLM overrides, which degrades to the **deterministic** path — the conservative direction for that
+  consumer, unlike `{}` for a gate-knob bag.
+
+So the class was **not systemic — the §13 fallback was the single outlier**, and the codebase's own
+convention was already the right one. Worth stating plainly, because "I found one, there must be more" is
+a reasonable fear and the answer here is no; and because several of these sites document the *direction*
+in their comment, which is the habit that would have prevented the defect in the first place.
