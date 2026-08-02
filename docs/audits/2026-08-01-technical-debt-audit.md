@@ -1115,3 +1115,51 @@ the day a sweep gains a binding lookup or a pre-fan-out read, the assumption tho
 silently becomes false, and neither failure mode announces itself.
 
 **Verification.** agents 17 files / 106; typecheck 0, lint 0.
+
+---
+
+## §25 — Iteration 20 (2026-08-02): the enumeration closed, and why three parsers of one column is correct
+
+### Every sequencer caller, enumerated and answered
+
+§18 changed what the sequencer does with an unusable tenant policy. §19 and §23 and §24 chased that change
+outward one caller at a time; this closes the list. **Six call paths, and the right answer differs on four
+of them** — which is the whole point of enumerating rather than generalising:
+
+| caller | what a policy refusal does | verdict |
+|---|---|---|
+| api routes (×7) | `translateAppendError` → **400** to the client | correct as-is |
+| EDI translator inbound-204 | was a 500 the VAN retried forever, with projection rows accumulating per retry | **fixed §19** — preflight quarantines before any write |
+| agents queue consumer | retry → `max_retries=5` → DLQ (a recoverable record) | posture correct; **label fixed §23** |
+| agents crons (×9) | per-tenant `try/catch` in every one; verified per-sweep | correct — but the eight were not contained from EACH OTHER, **fixed §24** |
+| MCP worker | proxies the api's 400 through; `caps.ts` fails closed on any non-ok read | correct as-is |
+| api internal platform-credit route | `_platform` is the one carve-out — no customer lens, own D1 | correct by construction |
+
+Four of six needed nothing, or nothing structural. That ratio is the argument for the enumeration: "we fixed
+this class over there" was wrong about half the time, in both directions — the translator needed more than
+expected, the queue consumer needed less.
+
+### Three parsers of `tenants.policy`, and why unifying them would be a defect
+
+The same sweep surfaced something that looks like debt and is not. `tenants.policy` has **three** readers
+with **three different failure behaviours**:
+
+- `parseTenantPolicy` (gates + visibility — the sequencer and the EDI preflight) → **refuses**
+- `readEntitlementPolicy` (hazmat) → floors to `{}`
+- `resolveSparkPlan` (the AI allotment) → floors to no allotment
+
+That is not sloppiness; it is the §15a direction lens applied correctly. For an **entitlement**, `{}` grants
+nothing — the restrictive answer — so flooring is right, and refusing would take a tenant's entire workspace
+down over a hazmat flag. For a **gate bag**, `{}` is the permissive end (`dims_required` reads false, the
+geofence widens to the 150m default, visibility falls to per-kind defaults), and the visibility half is
+stamped irreversibly onto append-only events. Same column, opposite correct defaults.
+
+**The risk is a future "cleanup".** Three parsers of one column is exactly the shape this audit has spent
+ten sections consolidating — §14 merged seven copies of the reserved-plan SQL, §19 merged two copies of this
+very predicate. A reader who pattern-matches without re-deriving the direction will unify these three and
+silently break one: flooring in the sequencer re-opens the §15 disclosure; refusing in the entitlement
+readers turns a missing flag into an outage. The asymmetry is now documented **in the code**, at the
+definition, with the failure mode of each wrong unification named — because a comment in an audit file does
+not reach the person doing the cleanup.
+
+**Verification.** typecheck 0; contracts 276, agents 106, api 730, translator 93, billing 56, mcp 175.

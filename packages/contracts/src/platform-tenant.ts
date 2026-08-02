@@ -110,6 +110,27 @@ export function usageCreditsId(tenantSlug: string, period: string): string {
 // So the predicate lives HERE, once, and both callers read it. A duplicated copy is how the sequencer and
 // the translator would come to disagree about which tenants may append (the seven-copies-of-one-rule shape
 // §14 closed). Returns the parsed policy, or null when the tenant cannot safely append.
+//
+// ── DO NOT "UNIFY" THIS WITH THE OTHER TWO READERS OF tenants.policy (2026-08-02 §25) ──────────────────
+//
+// There are three parsers of this column and they disagree ON PURPOSE. Enumerated and verified:
+//
+//   · THIS one (gates + visibility, the sequencer + the EDI preflight) → REFUSES an unusable policy.
+//   · `readEntitlementPolicy` (entitlements.ts, hazmat)                → floors to `{}`.
+//   · `resolveSparkPlan` (agents/spark-caps.ts, the AI allotment)      → floors to no allotment.
+//
+// The difference is not sloppiness, it is the direction the default MOVES each consumer. For an
+// ENTITLEMENT, `{}` grants nothing — the restrictive answer, so flooring is correct and refusing would
+// take a tenant's whole workspace down over a hazmat flag. For a GATE BAG, `{}` is the permissive end:
+// `gates.dims_required` is read `=== true` so it reads false, `geofence_radius_m` falls to the WIDER 150m
+// default, and `visibility` falls to per-kind defaults — dropping every narrowing override onto events
+// that are stamped at append time and immutable. That last one is irreversible, which is why this reader
+// alone refuses.
+//
+// A future editor who sees three parsers of one column and unifies them WILL break one of the two
+// directions — flooring here re-opens the §15 disclosure, refusing there turns a missing hazmat flag into
+// a total outage. If you touch this, re-derive the direction per consumer first; the reasoning is in the
+// audit at §15a/§18/§25.
 // The SHAPE of the knobs that actually steer a gate. `.passthrough()` is deliberate — a tenant policy
 // carries tenant-specific keys this package has no business enumerating (hazmat_enabled, pool_binding, …),
 // and refusing those would break every tenant. What IS pinned is that the gate-bearing keys, WHEN PRESENT,
