@@ -183,9 +183,15 @@ may only stop — when all four are simultaneously true:
    Two open Highs remain and **both are External, not repository-closable**: a real driver's custody
    handoff needs manifest party refs + the deferred REQ-069 identity seam, and the live EDI adapter
    needs its transport credentials. Neither can be closed from inside the repo without straying.
-2. **Every baseline gate green** at the closing SHA (the **13**-gate static set — 11 until §50 added
-   `citations` and `table-shape` to the merge surface — plus the four browser gates and `pnpm test` when the
-   host permits), and `verify:merge` BLOCKED **only** on the five named private-input holds.
+2. **Every baseline gate green** at the closing SHA — the merge surface being whatever
+   `gatesFor("merge")` returns (`tools/release/run-gate.ts`), **not a number written here** — and
+   `verify:merge` BLOCKED **only** on the five named private-input holds.
+   *Corrected 2026-08-02 (§57). This clause used to name an "11-gate static set", which §52 updated to 13 and
+   §56 would have made 14. **None of those reconcile with the actual list**: the merge surface is 24 gates —
+   15 non-skippable plus 9 skippable, of which 4 are the browser gates. The figure was a hand-maintained
+   count of a list the build already owns, so it drifted every time a gate was added and was wrong before this
+   session touched it. Replaced with the source of truth instead of a fourth number to maintain — the same
+   defect this audit keeps finding in prose, in its own phase gate.*
    **`pnpm test` means BOTH surfaces:** `test:tools && pnpm -r test` — the 691-test root `tools/` suite and
    all 17 workspaces (2,867). §38's headline counted 16 workspaces and 2,648, omitting `packages/agents`
    entirely as well as `tools/`; corrected in §52. The `&&` also means a tools failure short-circuits before
@@ -2473,6 +2479,10 @@ commit** (`CLAUDE.md`: a register row is owner-signed scope), so it stays red an
    REQ-289 alone.
    **Condition 2's own wording is now stale and is corrected here:** it says *"the 11-gate static set"*;
    §50 added `citations` and `table-shape` to the merge surface, making it **13**.
+   > **SUPERSEDED by §57.** "13" was wrong too, and so was the "11" it corrected. The merge surface is **24**
+   > gates (15 non-skippable + 9 skippable, 4 of them browser). I replaced one unreconcilable hand-count with
+   > another instead of reading `gatesFor("merge")` — the exact move this audit criticises elsewhere, made
+   > while correcting a stale number. Condition 2 now points at the list rather than counting it.
 3. **Remaining debt entirely External or CONFIRM-gated — SATISFIED**, unchanged: five private-fixture holds,
    two External Highs, the GTM register row, R2–R5 grades, and the two no-gate holds (on-call rota, 7-year
    archive). Plus one deliberately-deferred record item: threat rows for the 17 boundary modules §48
@@ -2814,3 +2824,23 @@ Scope: enforcement of REQ-025/030/156, all existing rows. No new capability, no 
 
 **Verification.** `workers/api` 736 tests / 67 files green (up 6); both mutations proved RED with actionable
 messages; source restored byte-identical.
+
+### 57.4 A postscript on §4 condition 2 — I made the same mistake while fixing it
+
+Adding the `append-chokepoint` gate meant condition 2's "13-gate static set" was stale again, having been
+stale in §52 too. I updated it to **14** — and then checked, and 14 is wrong. So were 13 and 11.
+
+`gatesFor("merge")` returns **24** gates: 15 non-skippable plus 9 skippable, of which 4 are the browser gates.
+No grouping of that list yields 11, 13, or 14. **The figure never reconciled**, including before this session
+touched it; each pass incremented the previous wrong number by the gates it had just added, which preserves
+the error exactly.
+
+The fix is not a fourth number. Condition 2 now names `gatesFor("merge")` as the surface and counts nothing —
+because a hand-maintained count of a list the build already owns will drift every time, and drifted three
+times here.
+
+Worth recording as a **process** finding rather than a content one: I was one edit from committing 14, and the
+only reason I did not is that I ran the list instead of trusting my own arithmetic. That is the fifth instance
+this loop of *"the record was the defect"*, and the second where the defective record was one I had just
+written (§50 fused a row while adding one; this incremented a wrong count while correcting it). **Both times
+the failure was doing the arithmetic in prose instead of asking the system.**
