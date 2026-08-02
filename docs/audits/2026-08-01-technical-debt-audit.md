@@ -3210,3 +3210,53 @@ gate that can pass does; the one red gate and three red tests share a single cau
 signature. Beyond this line the build consumes accounts, credentials, devices, fixtures and counsel — working
 past it from inside the repo produces either scope-straying or gate-relaxing, both forbidden by
 `CLAUDE.md`/`genesis/00`.
+
+---
+
+## §66 — §64's rule applied as a method: PROJECT-STATE had exactly two unscoped observations
+
+§64 predicts which sentences rot. `docs/ops/PROJECT-STATE.md` is the best available test of that prediction —
+it is 465 lines of pure observation, it describes itself as *"where are we / how do I pick back up"*, and it
+had already been caught stale once (fixed 2026-07-27).
+
+The prediction held, and so did its converse. Five stated counts; the rule sorted them correctly.
+
+**Three were correctly scoped and were NOT touched.** Each carries a date and a SHA — *"All eighteen ran on
+2026-07-28 at HEAD `3fc592b`: 258 files / 3,243 tests, zero failures"*, *"Re-run at the branch tip `79ae54d`
+on 2026-07-27"*, *"16 gates PASS, 5 BLOCKED"* at that same tip. These are §64's third disposition working:
+a measurement that names when and what it measured cannot go stale, because it never claimed to describe now.
+Editing them would have destroyed the evidence trail — the §55 mistake, where two apparently-rotted citations
+turned out to be historical rows recording their own correction.
+
+**Two were unscoped and both had decayed:**
+
+- The bucket-1 summary row asserted current repository state with no stamp: *"all 18 test projects run —
+  258 files / 3,243 tests PASS"*. Real total today: **3,580** (17 workspaces / 2,877, plus `tools/` 703).
+  ~337 short. Re-measured, stamped `3e1f31d`, and annotated with the `&&` short-circuit §52 found, since a
+  reader seeing `pnpm test` fail needs to know the workspaces may never have run.
+- *"`pnpm verify:merge` aggregates 21 gates: twelve plain ones"* — **the identical drift §58 found in the
+  audit's own phase gate**, in a different document, discovered independently. `gatesFor("merge")` returns
+  **24** (15 plain + 9 skippable). Notably this sentence was *correct when written*; this loop added three
+  gates and the number decayed underneath it. Rewritten to name `gatesFor("merge")` and tell the reader to
+  read the list rather than trust a count.
+
+### 66.1 What the resume guide was missing
+
+It never linked `docs/audits/2026-08-01-technical-debt-audit.md` — the primary artifact of the 99 commits
+between its header date and today, carrying the phase gate a returning reader most needs. Its header also
+still read *"As of 2026-07-31 · 435 commits"* while the body carried inline *"superseded 2026-08-01"* markers
+from this very audit: internally inconsistent, and in the direction that matters least (the body was newer
+than the header, so a careful reader would have caught it — but only a careful one).
+
+Header re-stamped to `3e1f31d` / 534 commits, with a pointer to the audit naming what changed that a returning
+reader needs: the three added gates, the corrected `CLAUDE.md` rule 4, and §64's rule itself.
+
+### 66.2 The rule earning its keep
+
+Two documents, found independently, carrying the same rotted gate count — and in both the fix is the same
+one: **stop restating a list the build owns.** That is now applied in three places (the audit's condition 2,
+`fixtures/README.md`, and here), and each replacement points at the authority rather than at a fresher number
+that would rot on the same schedule.
+
+**Verification.** `check:tables` and `check:citations` PASS; both corrected figures verified against their
+authorities (`gatesFor("merge")` executed, workspace + tools suites re-run) before being written down.
