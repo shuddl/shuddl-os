@@ -32,8 +32,13 @@ export const INTERNAL_NESTED: Partial<Record<EventKind, readonly string[]>> = {
   // stripped for the party/driver lens exactly as invoice.issued's is: booking.created carries `division`
   // (the org/margin dimension, booking.ts:43), dispatch.assigned carries `driver_user_id` (an internal user
   // id — REQ-167 — booking.ts:99; a forward guard: dispatch.assigned is not yet emitted with customer
-  // party_refs, but this closes it before it can go live). The general fail-closed test (redact.test) asserts
-  // NO known-internal field survives the party lens for ANY counterparty-default kind.
+  // party_refs, but this closes it before it can go live). The general fail-closed test (redact.test) runs the
+  // party lens over all 28 counterparty-default kinds — but READ IT BEFORE RELYING ON IT (audit §51): the
+  // assertion only bites on a kind whose fixture payload actually CARRIES one of its five known-internal keys,
+  // which is 5 of the 28 (three naturally, two seeded there on purpose). For the other 23 it is trivially true.
+  // It is the net under the REGISTRY, not proof that every kind was checked; the per-kind tests in that file
+  // are the primary protection. Adding a kind here means adding its per-kind test — the general guard will not
+  // catch what its fixture does not carry.
   "booking.created": ["division"],
   "dispatch.assigned": ["driver_user_id"],
   // REQ-210 / REQ-119 (WP-16 launch audit) — the two OTHER counterparty-default money kinds whose money projection reads

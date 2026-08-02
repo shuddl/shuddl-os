@@ -2345,3 +2345,66 @@ the newly-wired check caught all three in the same commit that wired it.
 directions; 36 gate-contract tests green; `check:tables` OK across 109 markdown files; 956 citations resolve;
 ratchet at its frozen baseline. Threat-model MCP row moved from **ENUMERATED-NOT-VERIFIED** to **CLOSED —
 verified against source, with one coverage gap found and fixed.**
+
+---
+
+## §51 — measuring a guard that says "ANY", and finding it means "five of twenty-eight"
+
+§50's lesson was a class, not an incident: **a control whose coverage nobody measured**. The open-redirect guard
+existed and was pinned by nothing. So this section went looking for the same shape at the highest-stakes
+boundary — redaction, where an unpinned strip is a leak with no net.
+
+### 51.1 The redaction strips are genuinely well pinned
+
+Unlike the OAuth surface, `packages/ledger/src/redact.ts` is covered: 18 tests, per-kind, both directions
+(the party/driver lens loses the field, the tenant lens keeps it), plus a depth test that plants an internal
+field in an off-contract nested shape and proves the structural strip still reaches it. Mutation-proved:
+unregistering `booking.created`/`division` fails the suite with the intended message. **No defect here.**
+
+### 51.2 But the general guard's name overstates it by a factor of five
+
+One test is called *"GENERAL fail-closed guard: NO known-internal key survives the party lens for ANY
+counterparty-default kind"*, and `redact.ts` cited it as proof that no internal field survives for **any** kind.
+Measured rather than trusted:
+
+- It loops **28** counterparty-default kinds. All 28 build — the claim's headline is true as far as it goes.
+- Its assertion only bites on a kind whose fixture payload actually **carries** one of its five known-internal
+  keys. That is **5** of the 28: `booking.created`/`division`, `dispatch.assigned`/`driver_user_id`,
+  `invoice.issued`/`gl_map`+`division`, plus `payment.received` and `settlement.executed`, which an earlier pass
+  seeded on purpose precisely because it had spotted the vacuity risk for those two.
+- For the other **23** the assertion is trivially true. And `KNOWN_INTERNAL` is a five-key hand list —
+  `floors`, `basis`, `versions` (real quote internals, stripped via `REDACTIONS`) are not in it.
+
+So a loop over 28 kinds does real work on 5. That is the same overstatement §50 kept finding, in the place
+hardest to notice it: a test name. The per-kind tests carry the actual protection; this one is a net under the
+**registry**, not evidence that every kind was checked.
+
+### 51.3 The silent `continue` — dormant, and one new kind away from mattering
+
+The loop used to swallow a fixture failure with a bare `continue`. Nothing was skipped today, so it cost
+nothing. But a future counterparty kind that `eventFixture` cannot express would have dropped out of "ANY"
+with **no report at all** — the guard would still pass, the name would still say ANY, and the coverage loss
+would be invisible. This is precisely how `check:citations` came to be cited in five documents while wired into
+no gate: nothing announces its own absence.
+
+### 51.4 What changed
+
+Three things, all inside REQ-192/REQ-210, none of them new scope:
+
+1. **Skipped kinds now fail the test and are named**, instead of vanishing.
+2. **An exercised-count ratchet** (`>= 5`) so a fixture change that hollows out a currently-exercised kind
+   fails rather than quietly reducing the guard's reach. Mutation-proved: removing the `division` seed from
+   `settlement.executed` drops it to 4 and fails.
+3. **The `redact.ts` comment now states what the guard actually verifies**, and says to read it before relying
+   on it — including the sentence that matters to whoever extends this next: *adding a kind here means adding
+   its per-kind test, because the general guard will not catch what its fixture does not carry.*
+
+**Not done, deliberately:** widening `KNOWN_INTERNAL` to the quote internals, or seeding all 23 vacuous kinds.
+Both would be me choosing, in a hurry and alone, what counts as an internal field for two dozen event kinds —
+the same judgement call §49 declined to bulk-write for the seventeen boundary modules. The gap is now measured
+and stated, which is what makes it reviewable.
+
+**Verification.** `packages/ledger` 607 tests / 34 files green (run in-package; a root-level `vitest run` reports
+16 collection failures against the same tree, a config artifact of the workspace layout, not a real failure —
+worth knowing before anyone reads a root run as a regression). Both new assertions mutation-proved, and the
+guard's core purpose re-proved by unregistering a real strip. 956 citations resolve; ratchet at baseline.

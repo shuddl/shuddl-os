@@ -152,14 +152,21 @@ describe("redactEvent: booking.created + dispatch.assigned internals (REQ-192)",
     const counterpartyKinds = (Object.keys(KIND_VISIBILITY_DEFAULTS) as EventKind[]).filter(
       (k) => KIND_VISIBILITY_DEFAULTS[k] === "counterparty",
     );
+    // Audit §51 — this loop USED to `continue` silently when eventFixture could not build a kind, so a future
+    // counterparty kind the fixture cannot express would have dropped out of "ANY" with nothing reporting it.
+    // All 28 build today; the two accumulators below make that a measured fact instead of an assumption.
+    const skipped: string[] = [];
+    const exercised: string[] = [];
     for (const kind of counterpartyKinds) {
       const seed = INTERNAL_SEED[kind];
       let e: LedgerEvent;
       try {
         e = eventFixture(kind, seed ? { visibility: "counterparty", payload: seed } : { visibility: "counterparty" });
       } catch {
-        continue; // a kind eventFixture can't build with a bare visibility override — not this guard's target
+        skipped.push(kind);
+        continue;
       }
+      if (KNOWN_INTERNAL.some((bad) => hasKeyDeep(e.payload, bad))) exercised.push(kind);
       // If we seeded an internal field, the STORED payload must actually carry it (else the guard is vacuous).
       if (seed !== undefined) expect(hasKeyDeep(e.payload, "division")).toBe(true);
       const red = redactEvent({ scope: "party" }, e).payload;
@@ -169,6 +176,19 @@ describe("redactEvent: booking.created + dispatch.assigned internals (REQ-192)",
         }
       }
     }
+
+    // A kind that cannot be built is a kind this guard did not check. Silence there would let "ANY" quietly
+    // become "most" — fail instead, and name the kinds, so whoever adds one decides what to do about it.
+    expect(skipped, `counterparty kinds eventFixture could not build — this guard did NOT check them`).toEqual([]);
+    expect(counterpartyKinds.length).toBe(28);
+
+    // HOW MUCH OF "ANY" IS REAL. Only kinds whose payload actually CARRIES a known-internal key exercise the
+    // strip; for the rest the assertion above is trivially true, and calling that coverage would be the same
+    // overstatement audit §50 kept finding. Today: 3 carry one naturally (booking.created/division,
+    // dispatch.assigned/driver_user_id, invoice.issued/gl_map+division) and 2 are seeded above = 5. The floor
+    // is a RATCHET, not a target: it fails if a fixture change hollows out a kind that used to be exercised.
+    // The per-kind tests in this file are the primary protection; this guard is the net under the registry.
+    expect(exercised.length, `kinds genuinely exercising the strip: ${exercised.join(", ")}`).toBeGreaterThanOrEqual(5);
   });
 });
 
