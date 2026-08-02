@@ -1074,3 +1074,44 @@ a conclusion; and the fix that is right in one place can be unnecessary in anoth
 the call site.
 
 **Verification.** agents 17 files / **106** (the new pin included); typecheck 0, lint 0.
+
+---
+
+## §24 — Iteration 19 (2026-08-02): an assumption stated eight times and enforced nowhere
+
+Continuing the "what else does the §18 refusal reach?" sweep past the queue consumer (§23) to the **nine
+cron sweeps**. The audit result is mostly a **negative** one, which is worth recording as carefully as a
+defect: every one of the nine wraps its per-tenant body in `try/catch`, so one tenant's deterministic
+refusal cannot stall anchoring, recon, retention or any other sweep for the rest of the roster. That
+containment is real and was verified per-sweep, not inferred from one example.
+
+**What the audit did find is one level up.** `scheduled()` runs the anchor in a `try` and the other eight
+sweeps sequentially in its `finally`. Each of those eight carries a comment asserting it "contains its own
+per-tenant faults, so the anchor's throw still surfaces after it runs" — the same sentence, eight times.
+That is true of the per-tenant loops and was an **assumption about the top of each sweep**, enforced
+nowhere. If any sweep throws *outside* its loop, two things follow:
+
+1. **Every later sweep is skipped for every tenant** — including `runReconSweep`, the REQ-169 sweep that
+   re-enqueues lost `pod.signed` Biller triggers. A skipped tick there is unbilled freight.
+2. **The throw happens inside `finally`, so it replaces the anchor's in-flight error** — precisely the
+   masking that block's own comment promises does not happen ("the finally never masks the anchor's error").
+   The anchor failure would vanish and the cron would retry against the wrong diagnosis.
+
+A `contain(name, run)` wrapper now makes the eight independent, and makes those eight comments true rather
+than assumed.
+
+### The part worth keeping: it ships with no test, deliberately
+
+Every sweep was checked for throwable work before its per-tenant loop and **none has any** — `sequencerFor`
+returns a closure without touching `env`, `now()` is injected, and `allTenantSlugs` catches its own
+control-plane faults and degrades to the static roster with a loud log. So the branch is currently
+**unreachable**, and no test can reach it without contorting the code to make one pass.
+
+The §18 review taught this exact lesson about `#deviceKey`: a guard that cannot be reached should say so,
+not imply coverage it does not have. So the source comment states the reachability plainly, and the test I
+first wrote — which mocked a binding and was caught by per-tenant containment instead, passing for the
+wrong reason — was **deleted rather than adjusted until green**. What the wrapper guards is the *next* edit:
+the day a sweep gains a binding lookup or a pre-fan-out read, the assumption those eight comments encode
+silently becomes false, and neither failure mode announces itself.
+
+**Verification.** agents 17 files / 106; typecheck 0, lint 0.

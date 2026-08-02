@@ -444,44 +444,76 @@ export default {
     // REQ-032 — the Collector dunning sweep ALSO rides this tick (DRAFTS only; no send). It is DECOUPLED from
     // the anchor via the same finally so a per-tenant anchor fault never skips it; each sweep contains its own
     // per-tenant faults, so the anchor's throw still surfaces (and the cron retries) after both sweeps run.
+    // 2026-08-02 §24 — EACH SWEEP IS CONTAINED FROM THE OTHERS, not just from the anchor.
+    //
+    // Every comment in this block states that a sweep "contains its own per-tenant faults, so the anchor's
+    // throw still surfaces after it runs." That is true of the per-tenant loops — all nine were audited and
+    // every one wraps its per-tenant body in try/catch. But it was an ASSUMPTION about the top of each
+    // sweep, asserted eight times and enforced nowhere, and two things break if any sweep throws OUTSIDE
+    // its loop (a binding lookup, a control-plane read before the fan-out, a future refactor):
+    //
+    //   1. Every LATER sweep is skipped for EVERY tenant — including `runReconSweep`, the REQ-169 sweep
+    //      that re-enqueues lost `pod.signed` Biller triggers. A skipped tick there is unbilled freight.
+    //   2. The throw happens inside `finally`, so it REPLACES the anchor's in-flight error — precisely the
+    //      masking this block's own comment promises does not happen ("the finally never masks the anchor's
+    //      error"). The anchor failure would vanish and the cron would retry against the wrong diagnosis.
+    //
+    // `contain` makes the eight independent and makes those comments TRUE rather than assumed. A sweep that
+    // throws is logged and the tick continues; the anchor's error still propagates because nothing rethrows.
+    //
+    // HONESTLY: this is DEFENCE-IN-DEPTH for a path that is currently unreachable, and it ships with no test
+    // for exactly that reason. Every sweep was checked — none does throwable work before its per-tenant loop
+    // (`sequencerFor` returns a closure without touching env, `now()` is injected, and `allTenantSlugs`
+    // catches its own control-plane faults and degrades to the static roster). So no test can reach this
+    // branch without contorting the code to make one pass, which is worse than an honest note. What it
+    // guards is the NEXT edit: the day a sweep gains a binding lookup or a pre-fan-out read, the assumption
+    // those eight comments encode silently becomes false, and the failure mode is a skipped recon tick
+    // (unbilled freight) plus a masked anchor error — neither of which announces itself.
+    const contain = async (name: string, run: () => Promise<unknown>): Promise<void> => {
+      try {
+        await run();
+      } catch (err) {
+        console.error(`agents cron: sweep ${name} failed at its TOP level (its per-tenant containment did not catch this) — the remaining sweeps still run this tick:`, err);
+      }
+    };
     try {
       await runAllTenants(env, () => new Date(controller.scheduledTime));
     } finally {
-      await runSlaSweep(env, () => controller.scheduledTime);
-      await runCollectorSweep(env, () => controller.scheduledTime);
+      await contain("sla", () => runSlaSweep(env, () => controller.scheduledTime));
+      await contain("collector", () => runCollectorSweep(env, () => controller.scheduledTime));
       // REQ-169 — the Biller reconciliation sweep rides this SAME tick, anchored to the fired-at instant so the
       // age cutoff is deterministic. DECOUPLED from the anchor via the same finally so a per-tenant anchor fault
       // never skips it; it contains its own per-tenant faults, so the anchor's throw still surfaces after it runs.
       // It re-enqueues any lost-trigger pod.signed (unbilled + unheld, older than the window) so the Biller
       // re-drives; self-clearing + idempotent (a billed/held stream drops out of the anti-join).
-      await runReconSweep(env, () => controller.scheduledTime);
+      await contain("recon", () => runReconSweep(env, () => controller.scheduledTime));
       // Task 6 (REQ-042/183) — the CREDIT projection-gap reconciliation sweep rides this SAME tick. DECOUPLED from
       // the anchor via the same finally so a per-tenant anchor fault never skips it; it contains its own per-tenant
       // faults, so the anchor's throw still surfaces after it runs. It reconciles any historical/imported credit
       // gap once the party materializes (applies the latest decision, resolves the gap). Idempotent + self-clearing;
       // time-independent (no `now` — reconcile keys off ledger state, not the clock).
-      await runCreditReconSweep(env);
+      await contain("credit-recon", () => runCreditReconSweep(env));
       // REQ-036 — the Watchtower alarm sweep rides the SAME tick, anchored to the fired-at instant so severity
       // is deterministic. DECOUPLED from the anchor via the same finally so a per-tenant anchor fault never
       // skips it; it contains its own per-tenant faults, so the anchor's throw still surfaces after it runs.
-      await runWatchtower(env, () => controller.scheduledTime);
+      await contain("watchtower", () => runWatchtower(env, () => controller.scheduledTime));
       // REQ-116 — the R2 RETENTION sweep rides this SAME tick, anchored to the fired-at instant so "expired" is
       // deterministic. DECOUPLED via the same finally so a per-tenant anchor fault never skips it; it contains
       // its own per-tenant faults, so the anchor's throw still surfaces after it runs. It DELETEs expired non-POD
       // R2 bytes + tombstones the row (row-iff-bytes preserved); a POD is 7yr and never swept. Idempotent.
-      await runRetentionSweep(env, () => controller.scheduledTime);
+      await contain("retention", () => runRetentionSweep(env, () => controller.scheduledTime));
       // REQ-021/022/035 — the continuous LEGACY-MIRROR sweep rides this SAME tick, anchored to the fired-at
       // instant so the re-raised gap-anomaly ids are deterministic. DECOUPLED via the same finally so a per-tenant
       // anchor fault never skips it; it contains its own per-tenant faults, so the anchor's throw still surfaces
       // after it runs. FAIL-CLOSED: with no wired feed/integration it no-ops (the overlay stays dormant until a
       // Phase-0 cutover wires a real feed — genesis/13), so this is inert in every environment today.
-      await runMirrorSweep(env, () => controller.scheduledTime);
+      await contain("mirror", () => runMirrorSweep(env, () => controller.scheduledTime));
       // REQ-160 — the WEEKLY Watchtower telemetry snapshot rides this SAME daily tick but is DAY-OF-WEEK GATED
       // (isSnapshotDay): it persists each tenant's 7-metric R2 manifest only on SNAPSHOT_DOW, a no-op every other
       // day — so the daily cron carries the weekly snapshot with no new cron expression. DECOUPLED via the same
       // finally; it contains its own per-tenant faults (write-once per ISO week, idempotent). NO external publish
       // (CONFIRM-gated) — the R2 manifest IS the telemetry.
-      await runWatchtowerSnapshots(env, () => controller.scheduledTime);
+      await contain("watchtower-snapshots", () => runWatchtowerSnapshots(env, () => controller.scheduledTime));
     }
   },
   // REQ-159 (GTM — milestone gate, NOT a code deliverable): this consumer is the M-H substrate. The
