@@ -2257,3 +2257,91 @@ threats actually are, which is exactly the kind of work that wants a second pair
 **Verification.** Threat model + pen-test record updated; two content-anchored citations repointed after the
 insertion shifted them (four shifts this session, four caught by `check:citations`, zero escapes); 956
 citations resolve; ratchet at its frozen baseline.
+
+---
+
+## §50 — verifying the row §49 left unverified, and finding that §49 had damaged the document while writing it
+
+§49 ended by marking the MCP OAuth row **ENUMERATED-NOT-VERIFIED** and naming its own next step: read
+`oauth.ts`/`caps-meter.ts` against the row and either fill in the proofs or record what is missing. This
+section does that. It found one real code gap, and — while looking — two defects §49 itself introduced.
+
+### 50.1 The controls are real (read from source, not assumed)
+
+`workers/mcp/src/oauth.ts` (367 lines) and `caps.ts`/`caps-meter.ts` hold up. PKCE **S256 required**, no plain
+fallback. The authorization code is **deleted up front**, before anything that could throw, so it cannot survive
+a failed exchange. Expiry is enforced **logically** on `record.exp`, with the KV `expirationTtl` as a GC belt
+rather than as the check. `/register` requires the pairing secret via `timingSafeEqual`, so knowing a `client_id`
+does not let a caller overwrite `redirect_uris`; an unknown pairing and an unauthenticated one are
+**indistinguishable** (both `401 invalid_client`) — no enumeration oracle. Scope must be ⊆ the server capability
+**and** ⊆ the pairing's own allowlist, and is *rejected*, never silently truncated. Tenant and role are
+pairing-derived; a client-supplied `tenant`/`role` in either call is ignored. The access token is opaque — the
+client never receives the `SessionClaims` JWT. Caps: spend and velocity are a read-modify-write in the
+`CapsMeter` DO (mutex-chained, idempotent by `idemKey`, a storage fault fails the booking **closed**); the lane
+allowlist lives in `caps.ts` and fails closed when present-but-malformed; an unconfigured cap (`{}`) is **zero**
+capacity, never ∞.
+
+### 50.2 The code gap: the open-redirect guard was pinned by nothing
+
+`/authorize` exact-matches `redirect_uri` against the registered set — the guard against the classic OAuth
+open-redirect / authorization-code-interception attack. **No test exercised it.** All sixteen existing cases used
+the registered URI, so deleting the guard left the entire suite green.
+
+Two cases added, both mutation-proved:
+
+- **Presence** — an unregistered `redirect_uri` must be refused *directly* (400, no `location` header). A 302
+  here **is** the vulnerability, whatever the query string says.
+- **Ordering** — the guard must run *before* the `fail()` closure that reports errors via redirect. This is the
+  case that matters: with the guard merely *moved below* the first `fail()`, the presence test still passes while
+  `response_type=token` + an attacker URI yields a live 302 to the attacker carrying `error` + `state`.
+
+Mutation results: removing the guard fails both new cases and **all 16 pre-existing cases still pass** — the
+removal was invisible to the suite that existed. Moving it below `fail()` fails only the ordering case. A control
+with no test is a control that leaves silently.
+
+### 50.3 The record gaps: §49 damaged the document in the same edit that improved it
+
+Two formatting defects, both invisible in a source diff, both drifting the record toward **claiming more safety
+than exists** — the dangerous direction.
+
+1. **A fused row.** §49's insert omitted a trailing newline and welded the pre-existing **CI/supply chain —
+   dependencies** row (lockfile pinning, gitleaks, OIDC, the REQ-167 denylist lint) into the MCP row's last cell:
+   9 pipes on a 4-column row. Markdown keeps four cells and drops the rest, so an entire mitigation row vanished
+   from the rendered threat model — deleted by the edit that added one.
+2. **Three over-wide rows.** The table header declares **3** columns; the rows added in §47, §49 and §50 each
+   carried a 4th "status" cell. That cell is dropped at render — and it is exactly where the residual risk lives:
+   *"the endpoint is DARK in every environment"* (Stripe), *"nothing authenticates a real partner today"* (EDI).
+   The rendered document showed controls **without their caveats**. A reader would conclude Stripe webhook
+   verification was live. It is not.
+
+Both fixed by merging the overflow into the last column; nothing was deleted to achieve it.
+
+### 50.4 What this says about §49's own verification
+
+§49 closed with "Verification: threat model + pen-test record updated; 956 citations resolve; ratchet at
+baseline" — and every word was true while the document was broken. `check:citations` passes on a fused row,
+because a fused row has no citations in it. **The verification checked the half that was fine.** That is the
+third instance this session of a claim written about the half being solved (§13/§30/§45), and the first where
+the claim was mine about work I had done ten minutes earlier.
+
+### 50.5 Two gates, one of which was already ceremony
+
+- **`check:tables`** (new, `tools/docs/check-table-shape.mjs`): a table row must have exactly as many cells as
+  its header. Under-wide rows are not flagged — markdown pads them and nothing is lost. Mutation-proved against
+  both shapes above (over-wide → caught; fused → caught, reported as 7 cells against a 3-column header).
+- **`check:citations`** (existing): found to be **wired into no gate at all** — not `ci.yml`, not `verify:dev`,
+  not the release profile. It is discussed in five documents and has caught **seven** citation-rot defects this
+  session, every one of them only because a human happened to type the command. It could not have blocked a
+  merge. Now on the merge surface.
+
+Both are pinned by name in `tools/release/ci-contract.test.ts`, mutation-proved (removing the citations gate
+fails the contract test), because a record gate is the easiest kind to quietly drop: nothing breaks when it goes,
+the build stays green, and the damage only surfaces the next time somebody trusts a document.
+
+**Immediately vindicated:** adding those 7 lines to `run-gate.ts` shifted three content-anchored citations, and
+the newly-wired check caught all three in the same commit that wired it.
+
+**Verification.** `workers/mcp` 177 tests green (was 175); the two new OAuth cases mutation-proved in both
+directions; 36 gate-contract tests green; `check:tables` OK across 109 markdown files; 956 citations resolve;
+ratchet at its frozen baseline. Threat-model MCP row moved from **ENUMERATED-NOT-VERIFIED** to **CLOSED —
+verified against source, with one coverage gap found and fixed.**

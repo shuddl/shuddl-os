@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { gatesFor } from "./run-gate.js";
 
 // V1 remediation Task 4 (REQ-288 / REQ-276) — CI must exercise the COMPLETE merge surface, not a subset,
 // and every claim must be non-skippable. This contract parses the workflow text and fails if a required
@@ -25,6 +26,16 @@ describe("CI runtime + workspace surface", () => {
     // verify:merge is run-gate: it runs rater/invoice/concierge parity, the identity-leak gate, the
     // invariant/authority/traceability/coverage gates, and the browser BLOCK detection in one record.
     expect(CI).toMatch(/verify:merge/);
+  });
+
+  // Audit §50. Both of these are RECORD gates, and a record gate is the easiest kind to drop: nothing breaks
+  // when it goes, the build stays green, and the damage only shows up the next time someone trusts a document.
+  // `check:citations` was in this state already — cited by five documents, wired into no gate, catching rot only
+  // when a human happened to type it. Pinned here by gate NAME so removing either from the merge surface fails.
+  it("the merge surface includes the doc-integrity gates (citations + table shape) — they were enforced by nothing until §50", () => {
+    const merge = gatesFor("merge").map((g) => g.gate);
+    expect(merge).toContain("citations");
+    expect(merge).toContain("table-shape");
   });
 });
 

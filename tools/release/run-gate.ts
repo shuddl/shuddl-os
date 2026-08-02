@@ -50,6 +50,13 @@ export function gatesFor(profile: Profile): GateSpec[] {
     { kind: "cmd", gate: "traceability", script: "check:traceability" },
     { kind: "cmd", gate: "coverage", script: "check:coverage" },
     { kind: "cmd", gate: "seed", script: "check:seed" },
+    // Doc-integrity gates. Both existed as hand-run tools and were enforced by NOTHING — audit §50 found
+    // `check:citations` cited in five documents and wired into no gate, after it had caught four citation-rot
+    // defects in one session purely because someone typed it. `check:tables` is new in that section: a markdown
+    // row wider than its header renders with the extra cells DROPPED, which silently deleted a mitigation row
+    // and three residual-risk statements from the threat model. A record gate nobody runs is not a gate.
+    { kind: "cmd", gate: "citations", script: "check:citations" },
+    { kind: "cmd", gate: "table-shape", script: "check:tables" },
     { kind: "cmd", gate: "acceptance", script: "test:acceptance" },
     { kind: "cmd", gate: "design-audit", script: "audit:design" },
   ];

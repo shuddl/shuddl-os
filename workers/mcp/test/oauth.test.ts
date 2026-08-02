@@ -283,6 +283,37 @@ describe("requested scope is validated (server capability ∩ pairing allowlist)
     expect(authRes.status).toBe(302);
     expect(new URL(authRes.headers.get("location") as string).searchParams.get("error")).toBe("invalid_scope");
   });
+
+  // ── open redirect / code interception ────────────────────────────────────────────────────────────────────────
+  // The classic OAuth flaw: /authorize redirects to a caller-supplied URI, so an attacker who can get a victim to
+  // hit the link receives the authorization code at their own endpoint. The guard existed from the start; until
+  // 2026-08-02 (audit §50) NOTHING PINNED IT — every test above uses the registered REDIRECT_URI, so deleting the
+  // `client.redirectUris.includes(...)` line left the whole suite green. Both cases below fail without it.
+  it("an UNREGISTERED redirect_uri is refused DIRECTLY (400) — never a 302 to the attacker's endpoint", async () => {
+    const d = deps(goodSecrets());
+    await register(d, PAIRING); // registers REDIRECT_URI only
+    const challenge = await challengeFor("verifier-redirect-eeeeeeeeeeeeeeeeeeeeeeee");
+    const res = await authorize(d, authParams(challenge, { redirect_uri: "https://attacker.example/steal" }));
+    // A 302 here would BE the vulnerability, whatever the query string says.
+    expect(res.status).toBe(400);
+    expect(res.headers.get("location")).toBeNull();
+    expect((await res.json()) as { error: string }).toMatchObject({ error: "invalid_request" });
+  });
+
+  it("the redirect_uri check runs BEFORE any error is reported via redirect — a second, invalid param cannot turn it into a 302", async () => {
+    // Ordering guard. handleAuthorize defines fail() (which 302s to redirectUri) only after the URI is trusted;
+    // if that check were moved below fail(), this request would 302 to the attacker carrying error+state — a
+    // redirect primitive on an unregistered endpoint. response_type is the first thing fail() handles.
+    const d = deps(goodSecrets());
+    await register(d, PAIRING);
+    const challenge = await challengeFor("verifier-ordering-ffffffffffffffffffffffff");
+    const res = await authorize(
+      d,
+      authParams(challenge, { redirect_uri: "https://attacker.example/steal", response_type: "token" }),
+    );
+    expect(res.status).toBe(400);
+    expect(res.headers.get("location")).toBeNull();
+  });
 });
 
 describe("resolveTokenGrant enforces grant.exp (not just KV TTL)", () => {
