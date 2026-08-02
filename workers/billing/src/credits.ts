@@ -172,7 +172,15 @@ export async function emitCreditPurchase(
   event: StripeWebhookEvent,
 ): Promise<{ invoiceEventId: string; invoiceId: string; tenant: string; period: string }> {
   const session = CheckoutSessionCompleted.parse(event.data.object);
-  const correlationId = session.payment_intent ?? session.id;
+  // 2026-08-01 convergence audit: the sale and settlement emitters MUST derive the SAME correlation id,
+  // and the settlement side can only ever see the payment intent — so a session with no PI (a credit
+  // pack misconfigured as subscription/setup mode) must REFUSE loudly (the webhook 500s and Stripe
+  // retries/alerts) rather than fall back to the session id and mint a sale invoice the settlement can
+  // never find (a phantom stream stuck 'issued' forever, invisible to any sweep).
+  if (session.payment_intent === undefined || session.payment_intent === null) {
+    throw new Error(`CREDIT_SALE_NO_PAYMENT_INTENT: checkout session ${session.id} carries no payment_intent — a one-time credit pack always does; refusing an unlinkable sale (fix the Stripe product mode)`);
+  }
+  const correlationId = session.payment_intent;
   const tenant = session.metadata.tenant;
   const tsMs = event.created * 1000;
   const period = periodOf(tsMs);
@@ -220,7 +228,11 @@ export async function emitCreditPurchase(
     checkout_session: session.id,
     credit_cents: session.amount_total,
     sold_event: event.id,
-    settled,
+    // NEVER stamp `settled: false` (2026-08-01 audit): webhook delivery is unordered and the purchase
+    // leg is redeliverable for days — a late unpaid-snapshot replay would json_patch-overwrite the
+    // settlement's `settled: true` and the reconciliation blob would misreport forever. The unpaid
+    // branch simply does not claim; only a positive settlement fact is ever written.
+    ...(settled ? { settled: true } : {}),
   });
   return { invoiceEventId, invoiceId, tenant, period };
 }

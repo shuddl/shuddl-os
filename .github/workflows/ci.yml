@@ -58,7 +58,10 @@ jobs:
           path: artifacts/release/**
           if-no-files-found: ignore
 
-  design-advisory:
+  # BLOCKING since the WP-10 exit flip (design-ci.json mode:"blocking") — renamed 2026-08-01 from the
+  # advisory-era label: a job name that says advisory invites a reader (or a branch-protection config)
+  # to treat its red as optional, and the gate has real teeth (audit.ts exits 1 on violations).
+  design-gate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -68,7 +71,7 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: design audit (REQ-158 — advisory until WP-10 exit)
+      - name: design audit (REQ-158 — blocking since WP-10 exit)
         run: pnpm audit:design
 
   secrets:

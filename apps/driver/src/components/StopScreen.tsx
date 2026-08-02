@@ -54,7 +54,7 @@ export function StopScreen({
               border: "1px solid var(--signal-55)",
               borderRadius: 4,
               color: "var(--field-on-dark)",
-              fontFamily: "inherit",
+              fontFamily: "var(--mono)",
               fontSize: 32,
               padding: "12px 16px",
               width: "8ch",

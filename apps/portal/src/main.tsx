@@ -20,7 +20,13 @@ function screen(): ReactNode {
     case "quote":
       return <GuestQuote />;
     case "email":
-      return <EvidenceEmail />;
+      // The evidence-email SPECIMEN — the blessed-screenshot fixture (tests/visual/screens.spec.ts): a
+      // FULLY FICTIONAL delivery + invoice record. Harness/dev builds only (2026-08-01 audit: it was
+      // publicly reachable on the deployed portal at ?screen=email with no hint it was fiction). A
+      // deploy build bakes VITE_API_BASE (build:surfaces + check:surfaces --built), so its presence is
+      // the deploy discriminator: baked ⇒ the route falls through to the real board's honest no-session
+      // state; unbaked (harness/dev) ⇒ the specimen renders for the screenshot.
+      return import.meta.env["VITE_API_BASE"] === undefined ? <EvidenceEmail /> : <App />;
     case "board":
       return <App initialView={route.tab} />;
   }

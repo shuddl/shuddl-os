@@ -47,6 +47,39 @@ describe("CI strict browser/accessibility/performance jobs", () => {
       expect(line, `${step} must carry --mode merge — without it playwright-guard runs local and cannot block`).toContain("--mode merge");
     }
   });
+
+  // 2026-08-01 convergence audit — two contract gaps the sweep found:
+  it("the REQ-118 PR-traceability step (check:pr) cannot vanish silently — it is the ONLY enforcement of 'every PR references REQ-IDs'", () => {
+    expect(CI).toMatch(/check:pr/);
+  });
+
+  it("the design job is named for its real force — blocking, never 'advisory'", () => {
+    expect(CI).toMatch(/design-gate:/);
+    expect(CI).not.toMatch(/design-advisory/);
+  });
+});
+
+// 2026-08-01 convergence audit — nightly.yml (the one workflow holding CLOUDFLARE credentials) had ZERO
+// contract coverage: its action pins and the backup invocation's fail-closed mode flag could drift with
+// no red anywhere. Same defect class as the surfaces gate's missing --mode (audit C2).
+describe("nightly.yml contract — pins and the backup gate's blocking mode", () => {
+  const NIGHTLY = readFileSync(".github/workflows/nightly.yml", "utf8");
+
+  it("every action in nightly.yml is pinned to a 40-hex commit SHA (no mutable tags)", () => {
+    const uses = [...NIGHTLY.matchAll(/uses:\s*([^\s#]+)/g)].map((m) => m[1]!);
+    expect(uses.length).toBeGreaterThan(0);
+    for (const ref of uses) {
+      expect(ref, `${ref} must be pinned to a full commit SHA`).toMatch(/@[0-9a-f]{40}$/);
+    }
+  });
+
+  it("the backup step carries --mode release — without it parseMode defaults local, where absent credentials exit 0 and a credential-less nightly reads green with no backup produced", () => {
+    // Match the RUN line, not a comment mentioning the command (the first draft's loose finder matched
+    // the header prose and asserted against it).
+    const line = NIGHTLY.split("\n").find((l) => l.trim().startsWith("run:") && l.includes("backup"));
+    expect(line, "nightly.yml must invoke the backup").toBeDefined();
+    expect(line).toContain("--mode release");
+  });
 });
 
 describe("each browser gate selects its own Playwright project", () => {

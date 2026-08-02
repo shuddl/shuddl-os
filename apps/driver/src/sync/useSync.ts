@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { syncOnce, DEFAULT_BACKOFF } from "@shuddl/driver-core/sync";
 import { getSession, pendingCount } from "../session.js";
 import { createAuthSession, type AuthSession } from "../auth/session.js";
+import { apiBase } from "../api/base.js";
 import { createTransports } from "./transport.js";
 
 // Task 11 (REQ-016/017/030) — the React seam that DRAINS the durable offline queue. It runs the pure sync
@@ -41,7 +42,10 @@ export function useSync(options: UseSyncOptions = {}): SyncStatus {
     if (!enabled || typeof indexedDB === "undefined") return;
 
     const session = options.session ?? createAuthSession();
-    const baseUrl = options.baseUrl ?? "";
+    // NEVER same-origin (2026-08-01 audit): the Workers Static Assets SPA fallback answers any unmatched
+    // same-origin path with 200 + the HTML shell, so a bare "" default institutionalized the exact footgun
+    // apps/driver/src/api/base.ts documents. The api-base module is the one source of the API host.
+    const baseUrl = options.baseUrl ?? apiBase();
     const intervalMs = options.intervalMs ?? 15_000;
     const transports = createTransports({ baseUrl, getToken: () => session.getToken() });
     let cancelled = false;
