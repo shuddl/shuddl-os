@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PLATFORM_TENANT_ID, isPlatformTenant, assertNotPlatformTenant, RESERVED_TENANT_PLANS, UNCLAIMED_TENANT_PLAN, PLATFORM_TENANT_PLAN, CLAIMED_TENANT_PLAN_SQL, CLAIMED_TENANT_BY_SLUG_SQL, CLAIMED_TENANTS_SQL } from "./platform-tenant.js";
+import { PLATFORM_TENANT_ID, isPlatformTenant, assertNotPlatformTenant, RESERVED_TENANT_PLANS, UNCLAIMED_TENANT_PLAN, PLATFORM_TENANT_PLAN, CLAIMED_TENANT_PLAN_SQL, CLAIMED_TENANT_BY_SLUG_SQL, CLAIMED_TENANTS_SQL, parseTenantPolicy } from "./platform-tenant.js";
 
 // REQ-123/025 (WP-14 Task 1): the reserved PLATFORM revenue tenant + its two-way isolation lock.
 // These tests PIN the sentinel value + the guards. If PLATFORM_TENANT_ID ever changes, or a guard
@@ -62,5 +62,48 @@ describe("reserved tenant plans + the shared claimed-tenant predicate", () => {
     // something else became parameterised, which is the shape this constant exists to prevent.
     expect((CLAIMED_TENANT_BY_SLUG_SQL.match(/\?/g) ?? []).length).toBe(1);
     expect(CLAIMED_TENANTS_SQL).not.toContain("?");
+  });
+});
+
+// ---- parseTenantPolicy — the SHARED "may this tenant append?" predicate (2026-08-02 §19) --------------
+// One predicate, two callers: the sequencer (which refuses the append) and the EDI translator's preflight
+// (which must reach the SAME verdict before it writes anything, or the append's 500 becomes a partner
+// retry-storm against a deterministic condition). Two copies would let them disagree about a security
+// refusal, which is the drift §14 closed for the reserved plans.
+describe("parseTenantPolicy — usable vs not", () => {
+  it("a well-formed policy parses, including tenant-specific keys this package does not enumerate", () => {
+    expect(parseTenantPolicy("{}")).toEqual({});
+    expect(parseTenantPolicy('{"gates":{"dims_required":true}}')).toEqual({ gates: { dims_required: true } });
+    expect(parseTenantPolicy('{"hazmat_enabled":true,"pool_binding":"TENANT_POOL_01_DB"}')).toEqual({
+      hazmat_enabled: true,
+      pool_binding: "TENANT_POOL_01_DB",
+    });
+  });
+
+  it("unparseable, absent, and non-OBJECT policies are all unusable", () => {
+    for (const bad of ["{not json", "", "null", "7", '"a string"', "[1,2]"]) {
+      expect(parseTenantPolicy(bad), `${bad} must be unusable`).toBeNull();
+    }
+    expect(parseTenantPolicy(null)).toBeNull();
+    expect(parseTenantPolicy(undefined)).toBeNull();
+  });
+
+  it("a MIS-KEYED policy is unusable — the likelier ops error, and the one an object check alone accepts", () => {
+    // Each of these parses AND is an object, so a null+typeof guard admits it — and then every gate reader
+    // sees `undefined` and takes the permissive branch, which is exactly the `{}` widening. A truncated
+    // paste rarely parses; a mis-keyed one always does.
+    expect(parseTenantPolicy('{"gates":[1,2]}'), "gates as an array reads dims_required=false").toBeNull();
+    expect(parseTenantPolicy('{"gates":"strict"}'), "gates as a string reads dims_required=false").toBeNull();
+    expect(parseTenantPolicy('{"gates":{"dims_required":"true"}}'), "the STRING 'true' is not true").toBeNull();
+    expect(parseTenantPolicy('{"gates":{"geofence_radius_m":"50"}}'), "a string radius falls to the 150m default").toBeNull();
+    expect(parseTenantPolicy('{"visibility":"internal"}'), "visibility must be a per-kind map, not a scalar").toBeNull();
+  });
+
+  it("a `{\"gate\":{…}}` TYPO is NOT caught — passthrough is deliberate, and this records the limit", () => {
+    // Honest boundary: the schema passes through unknown keys because a tenant policy legitimately carries
+    // keys this package must not enumerate. So a misspelled `gate` survives as an unknown key and the real
+    // `gates` is simply absent — indistinguishable, here, from a tenant that set no gates at all. Catching
+    // it needs a closed schema, which would refuse every tenant-specific key. Recorded, not pretended away.
+    expect(parseTenantPolicy('{"gate":{"dims_required":true}}')).toEqual({ gate: { dims_required: true } });
   });
 });

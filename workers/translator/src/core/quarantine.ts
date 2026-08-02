@@ -10,7 +10,9 @@
 // shipment id, so it cannot become a booking without risking a duplicate; `edi_uncertified_partner` = a doc from
 // an authenticated partner whose mapping is NOT replay-certified yet (REQ-203) — HELD for certification, never
 // parsed into a booking on an unverified mapping. All three surface on the exceptions queue.
-export type QuarantineRule = "edi_malformed" | "edi_no_shipment_ref" | "edi_uncertified_partner";
+// edi_tenant_policy_unusable (2026-08-02 §19): the tenant control row is missing or its policy is unusable,
+// so the sequencer would refuse every append. DETERMINISTIC — quarantine + 200, never a 5xx retry-storm.
+export type QuarantineRule = "edi_malformed" | "edi_no_shipment_ref" | "edi_uncertified_partner" | "edi_tenant_policy_unusable";
 
 export interface QuarantineInput {
   partnerId: string;

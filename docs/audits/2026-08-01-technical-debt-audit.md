@@ -807,3 +807,56 @@ this session keeps closing, produced while closing it:
 then wrote a comment certifying that branch safe.** The comment is the dangerous artifact — it converts an
 unexamined branch into one a future reader will not re-examine. Tracing consumers is not enough if you only
 trace them for the code path you happened to be editing.
+
+---
+
+## §19 — Iteration 14 (2026-08-02): closing two of the four §18 carry-forwards
+
+### The retry-storm the refusal reintroduced
+
+§18 ledgered it honestly: the sequencer's new refusal escapes `handleInbound204` as a 500, and a VAN retries
+a 500 forever. The condition is deterministic — a corrupt control row cannot be fixed by retrying — and this
+handler's own law, stated thirty lines above the append chain, is that *"a DETERMINISTIC bad document —
+quarantine + 200, never a 5xx retry-storm."* Worse, the persists and the tender marker run **before** the
+appends and write straight to tenant D1, so each retry would accumulate parties, shipments and markers with
+no ledger behind them: a projection with no events.
+
+The fix is a **preflight**, placed beside the cert gate where nothing has been written yet, using the **same
+predicate the sequencer uses** — hoisted into `@shuddl/contracts` as `parseTenantPolicy`. Two copies of "may
+this tenant append?" is the seven-copies-of-one-rule shape §14 closed, and this instance would be worse: the
+two sides would disagree about a *security refusal*. An unusable policy now quarantines with
+`edi_tenant_policy_unusable` + 200, nothing written, raw bytes preserved. Mutation-proved.
+
+**One test was written wrong and corrected rather than deleted.** A missing control row was expected to
+quarantine identically; it returns **401**. EDI auth resolves the tenant *through* the control plane, so a
+missing row cannot authenticate at all — fail-closed one layer earlier than the preflight. The test now
+asserts that, and says why. The preflight therefore covers the case that *can* authenticate: a row that
+exists carrying an unusable policy.
+
+### The mis-keyed policy — Zod at the boundary, and an honest limit
+
+`TenantPolicy` was a bare TS type, so `parsed as TenantPolicy` accepted anything object-shaped. The threat
+this session kept describing was "one truncated ops paste" — but **a truncated paste rarely parses, and a
+mis-keyed one always does**, which makes the mis-keyed paste both likelier and invisible. `{"gates":[1,2]}`,
+`{"gates":"strict"}`, `{"gates":{"dims_required":"true"}}` (the *string* "true"), and
+`{"visibility":"internal"}` all pass an object check and then produce exactly the `{}` widening, because
+every reader takes the permissive branch on `undefined`.
+
+`parseTenantPolicy` now `safeParse`s a `.passthrough()` shape: the gate-bearing keys are typed when present,
+everything tenant-specific (`hazmat_enabled`, `pool_binding`, …) passes through untouched.
+
+**The limit is recorded rather than pretended away**, in its own test: a `{"gate":{…}}` **typo is NOT
+caught**. Passthrough is deliberate — a closed schema would refuse every tenant-specific key — so a
+misspelled key survives as an unknown one and the real `gates` is simply absent, indistinguishable from a
+tenant that set no gates. Catching that needs a closed schema and an enumerated key list, which is a
+different (and much larger) decision than this fix.
+
+### Still carried forward
+
+Two of §18's four remain open and are unchanged by this iteration: **Watchtower swallowing the refusal**
+into its permissive drift-fallback path (a module stays on `native` authority while drifting, with only a
+log), and the **api suite's randomized file order** over a shared control plane, plus the second flake
+cluster (`authority-flip`, already documented in-repo by two other files as a pool-workers reload flake).
+
+**Verification.** api 66 files / 730 · contracts 276 · ledger 607 · billing 56 · translator 93 · agents 105 ·
+mcp 175; typecheck 0, lint 0.

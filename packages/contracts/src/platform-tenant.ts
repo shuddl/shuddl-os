@@ -1,3 +1,4 @@
+import { z } from "zod";
 // REQ-123/025 (WP-14 Task 1): the reserved PLATFORM revenue tenant.
 //
 // WP-14 ships PLG DARK (fail-closed until R4). This module names the single well-known tenant the credits/
@@ -91,4 +92,56 @@ export const CLAIMED_TENANTS_SQL = `SELECT slug, policy FROM tenants WHERE ${CLA
 // noted on the DDL in db/control/migrations/0001_control.sql so a future JOIN does not assume otherwise.
 export function usageCreditsId(tenantSlug: string, period: string): string {
   return `${tenantSlug}:${period}`;
+}
+
+// ---- Is a tenant's control-plane policy USABLE? (2026-08-02 §19 — REQ-030/025/180) ---------------------
+//
+// `tenants.policy` is D1 `TEXT NOT NULL DEFAULT '{}'` — NOT NULL, but never constrained to valid JSON. The
+// sequencer REFUSES every append for a tenant whose policy is unusable, because proceeding on `{}` is not a
+// floor: it drops `gates.dims_required`, widens `gates.geofence_radius_m` to the 150m default, and drops
+// every narrowing visibility override — and visibility is stamped onto an APPEND-ONLY event, so that last
+// one is irreversible.
+//
+// The refusal has a second consumer. The EDI translator must decide, BEFORE it writes anything, whether a
+// tender can be appended at all: if it discovers the refusal only when the append throws, the 500 becomes a
+// partner retry-storm against a DETERMINISTIC condition, while parties/shipments/tender-markers accumulate
+// with no ledger behind them — which is exactly the harm its own quarantine law forbids.
+//
+// So the predicate lives HERE, once, and both callers read it. A duplicated copy is how the sequencer and
+// the translator would come to disagree about which tenants may append (the seven-copies-of-one-rule shape
+// §14 closed). Returns the parsed policy, or null when the tenant cannot safely append.
+// The SHAPE of the knobs that actually steer a gate. `.passthrough()` is deliberate — a tenant policy
+// carries tenant-specific keys this package has no business enumerating (hazmat_enabled, pool_binding, …),
+// and refusing those would break every tenant. What IS pinned is that the gate-bearing keys, WHEN PRESENT,
+// have the type the readers assume: `policy.gates?.dims_required === true` reads `false` from a `gates`
+// that is an array or a string, which is the permissive direction. A truncated ops paste rarely parses; a
+// MIS-KEYED one always does, and the mis-keyed one is the likelier mistake.
+const TenantPolicyShape = z
+  .object({
+    gates: z
+      .object({
+        dims_required: z.boolean().optional(),
+        geofence_radius_m: z.number().optional(),
+        invoice_without_pod_classes: z.array(z.string()).optional(),
+      })
+      .passthrough()
+      .optional(),
+    visibility: z.record(z.string(), z.string()).optional(),
+  })
+  .passthrough();
+
+export function parseTenantPolicy(raw: string | null | undefined): Record<string, unknown> | null {
+  if (typeof raw !== "string") return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  // `typeof [] === "object"`, so Array.isArray is load-bearing: a JSON array behaves exactly like `{}` and
+  // would widen silently. A first cut of this check omitted it and `[1,2]` appended 201.
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+  // Zod at the boundary (CLAUDE.md): the object check alone accepts `{"gates":[1,2]}` and a `{"gate":{…}}`
+  // typo, both of which then produce EXACTLY the `{}` widening this predicate exists to refuse.
+  return TenantPolicyShape.safeParse(parsed).success ? (parsed as Record<string, unknown>) : null;
 }

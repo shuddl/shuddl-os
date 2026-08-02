@@ -24,6 +24,7 @@
 //
 // The X12 parse (tokenize/parse204), the 204→plan mapping (mapTenderToBooking), the quarantine descriptor, and
 // the 990 serialize are the PURE @shuddl/edi + Task-6 cores; this file is composition + I/O wiring only. LLM-free.
+import { parseTenantPolicy } from "@shuddl/contracts";
 import { parse204, tokenize, build990 } from "@shuddl/edi";
 import type { TenderDoc } from "@shuddl/edi";
 import { priceShipment, assessApproval } from "@shuddl/rater";
@@ -334,6 +335,33 @@ export async function handleInbound204(request: Request, deps: InboundDeps): Pro
   if (partnerRow === null || partnerRow.cert_status !== "certified") {
     const reason = new Error(`partner not replay-certified (cert_status=${partnerRow?.cert_status ?? "none"})`);
     return quarantine(deps, db, tenantSlug, partnerId, isaControl, rawBytes, reason, "edi_uncertified_partner");
+  }
+
+  // 1a¾. TENANT-POLICY PREFLIGHT (2026-08-02 §19 — REQ-030/200). The sequencer REFUSES every append for a
+  //     tenant whose control-plane policy is unusable (unparseable / null / an array / a non-object), and
+  //     for a tenant with no control row at all — because proceeding on `{}` silently widens the dims gate,
+  //     the geofence and, irreversibly, visibility on append-only events.
+  //
+  //     That refusal must be discovered HERE, not at the append. This handler's own law, stated thirty
+  //     lines below, is that a DETERMINISTIC bad document quarantines with a 200 and never a 5xx: a corrupt
+  //     control row is exactly as deterministic as a malformed 204, and letting the append's throw become a
+  //     500 hands the VAN an infinite retry against a condition no retry can fix. Worse, the persists and
+  //     the tender marker at step 2 run BEFORE the appends and write straight to tenant D1 — so every retry
+  //     would accumulate parties, shipments and markers with no ledger behind them, a projection with no
+  //     events. Checked before anything is written, using the SAME predicate the sequencer uses.
+  //
+  //     The platform tenant is exempt there and is not reachable here (no EDI partner tenders to it).
+  const policyRow = await deps.controlDb
+    .prepare("SELECT policy FROM tenants WHERE slug = ?")
+    .bind(tenantSlug)
+    .first<{ policy: string }>();
+  if (policyRow === null || parseTenantPolicy(policyRow.policy) === null) {
+    const reason = new Error(
+      policyRow === null
+        ? `tenant ${tenantSlug} has NO control-plane row — the sequencer refuses every append until one exists`
+        : `tenant ${tenantSlug} has an UNUSABLE control-plane policy — the sequencer refuses every append until it is fixed`,
+    );
+    return quarantine(deps, db, tenantSlug, partnerId, isaControl, rawBytes, reason, "edi_tenant_policy_unusable");
   }
 
   // 1b. PARSE + MAP (pure). An EdiParseError / non-priceable tender (MAP204_NO_LANE) / no-stable-ref tender

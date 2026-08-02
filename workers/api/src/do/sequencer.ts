@@ -1,5 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import { EventInput, LedgerEvent, hazmatEnabled, isPlatformTenant, type Visibility } from "@shuddl/contracts";
+import { EventInput, LedgerEvent, hazmatEnabled, isPlatformTenant, parseTenantPolicy, type Visibility } from "@shuddl/contracts";
 import { GENESIS_HASH, hashEvent } from "@shuddl/ledger/chain";
 import { verifyEventSig } from "@shuddl/ledger/sign";
 import { resolveVisibility, UNRESOLVED_VISIBILITY } from "@shuddl/ledger/visibility";
@@ -1139,18 +1139,13 @@ export class ShipmentSequencer extends DurableObject<Env> {
     // operator exactly which row to fix. `JSON.parse("null")` and any non-object are refused the same way
     // (a null would also defeat the `if (this.policyCache)` cache line above and re-read on every call).
     if (row) {
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(row.policy);
-      } catch (err) {
-        console.error(`sequencer: tenant ${tenant} has a MALFORMED policy — REFUSING every append until the control row is fixed (a {} fallback would silently OPEN the dims gate, widen the geofence and drop visibility overrides onto immutable events):`, err);
-        throw rpcError("VALIDATION_FAILED", { reason: "tenant policy malformed" });
-      }
-      // Array.isArray is NOT redundant: `typeof [] === "object"`, so a JSON array policy would sail past a
-      // null+typeof check and behave exactly like `{}` — the widening this guard exists to prevent. The test
-      // for this case is what caught it (`[1,2]` appended 201 on the first cut of this guard).
-      if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
-        console.error(`sequencer: tenant ${tenant} policy is not a JSON object — REFUSING every append until the control row is fixed`);
+      // The predicate is SHARED from @shuddl/contracts (2026-08-02 §19) — the EDI translator must reach the
+      // same verdict BEFORE it writes anything, or its append throws a 500 that a partner retry-storms
+      // against. Two copies of "may this tenant append?" is precisely the drift §14 closed for the reserved
+      // plans; this one is worse, because the two sides would disagree about a security refusal.
+      const parsed = parseTenantPolicy(row.policy);
+      if (parsed === null) {
+        console.error(`sequencer: tenant ${tenant} has an UNUSABLE policy (unparseable, null, an array, or a non-object) — REFUSING every append until the control row is fixed; a {} fallback would silently OPEN the dims gate, widen the geofence and drop visibility overrides onto immutable events`);
         throw rpcError("VALIDATION_FAILED", { reason: "tenant policy malformed" });
       }
       this.policyCache = parsed as TenantPolicy;

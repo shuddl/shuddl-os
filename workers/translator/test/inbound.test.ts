@@ -322,6 +322,52 @@ describe("REQ-201/202 — inbound 204 → gated chain, NO booking.created", () =
     expect(quarantined.objects, "the raw tender is preserved in R2").toHaveLength(1);
   });
 
+  // ── 2026-08-02 §19 (REQ-030/200) — THE TENANT-POLICY PREFLIGHT ──────────────────────────────────────
+  //    The sequencer now REFUSES every append for a tenant whose control-plane policy is unusable, and for a
+  //    tenant with no control row at all (proceeding on {} silently widens the dims gate, the geofence and —
+  //    irreversibly — visibility on append-only events). Without a preflight that refusal surfaces only when
+  //    the append throws: a 500, which the VAN retries forever against a DETERMINISTIC condition, while the
+  //    persists and the tender marker at step 2 run BEFORE the appends and write straight to tenant D1 — so
+  //    each retry accumulates parties, shipments and markers with NO ledger behind them. This handler's own
+  //    law is that a deterministic bad document quarantines with a 200; a corrupt control row is exactly as
+  //    deterministic as a malformed 204.
+  it("(h) an UNUSABLE tenant policy is QUARANTINED (edi_tenant_policy_unusable): 200, NOTHING written, no retry-storm", async () => {
+    await env.CONTROL_DB.prepare("UPDATE tenants SET policy = ? WHERE slug = ?").bind("{not json", "tenant-a").run();
+    const seq = new RecordingSeq();
+    const transport = new RecordingTransport();
+    const res = await handleInbound204(await signedRequest(tender204()), makeDeps(seq, transport, goodSecrets()));
+
+    expect(res.status, "deterministic → 200 ACK, never the 5xx a VAN retries forever").toBe(200);
+    const anomaly = await env.TENANT_A_DB.prepare("SELECT rule FROM anomalies LIMIT 1").first<{ rule: string }>();
+    expect(anomaly?.rule).toBe("edi_tenant_policy_unusable");
+
+    // THE LOAD-BEARING HALF: the preflight runs BEFORE step 2, so no projection outlives the refusal.
+    expect(await count(env.TENANT_A_DB, "shipments"), "no shipment without a ledger behind it").toBe(0);
+    expect(await count(env.TENANT_A_DB, "parties"), "no party without a ledger behind it").toBe(0);
+    expect(seq.appended, "no appends — the sequencer would have refused them anyway").toHaveLength(0);
+    expect(transport.sent990, "no 990-accept for a tender that was never booked").toHaveLength(0);
+    const markers = await env.EVIDENCE.list({ prefix: "edi/tenant-a/tender/" });
+    expect(markers.objects, "no tender marker for a shipment that does not exist").toHaveLength(0);
+    // never a silent drop (Migrator rule): the raw bytes are preserved.
+    const quarantined = await env.EVIDENCE.list({ prefix: `edi/tenant-a/quarantine/${PARTNER_ID}/` });
+    expect(quarantined.objects, "the raw tender is preserved in R2").toHaveLength(1);
+  });
+
+  it("(h2) a MISSING tenant control row fails closed EARLIER — 401 at auth, nothing written", async () => {
+    // Written expecting a quarantine, and corrected to what actually happens. EDI auth resolves the tenant
+    // THROUGH the control plane (the pairing names a tenant_id that must join to a tenants row), so a
+    // missing row cannot even authenticate — the request 401s before the policy preflight is reached.
+    // That is fail-closed a layer earlier than the sequencer refusal, and it means the preflight above
+    // covers the case that CAN authenticate: a row that exists and carries an unusable policy.
+    await env.CONTROL_DB.prepare("DELETE FROM tenants WHERE slug = ?").bind("tenant-a").run();
+    const seq = new RecordingSeq();
+    const res = await handleInbound204(await signedRequest(tender204()), makeDeps(seq, new RecordingTransport(), goodSecrets()));
+    expect(res.status, "auth cannot resolve a tenant with no control row").toBe(401);
+    expect(await count(env.TENANT_A_DB, "shipments"), "nothing written on a 401").toBe(0);
+    expect(await count(env.TENANT_A_DB, "anomalies"), "a 401 is not a quarantine — no anomaly row").toBe(0);
+    expect(seq.appended).toHaveLength(0);
+  });
+
   it("a DIMS-LESS tender rests at quote.requested (no price on air) — no quote.priced, no quote.accepted, no bypass", async () => {
     // Drop the L4 measurement → the rater's dims gate returns UNKNOWN → the handler records the tender (shipment +
     // quote.requested) but appends NO price/accept. The Booking agent is never triggered.
