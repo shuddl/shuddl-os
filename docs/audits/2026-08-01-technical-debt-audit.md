@@ -1964,3 +1964,46 @@ re-measured by hand at `fb212fd`, the last unswept lens came back a clean negati
 own two prose summaries are stamped. What remains is owner input: the GTM workstream's `REQ-289`, the two
 External Highs, the five private-fixture holds, and the R2→R5 grades that consume accounts, credentials,
 devices and counsel.
+
+---
+
+## §43 — the security record still listed a closed defect as an OPEN threat, and it corrects §41's hypothesis
+
+§42 swept `docs/ops` and declared the record clean. **That sweep had a hole I named its scope after: the
+maintained record also includes `docs/security`, which the audit cites and never checked.** Closing my own
+gap found real debt.
+
+**`threat-model.md` still carried the release-record binding as an OPEN threat row** — *"the comparison is
+self-satisfied by construction and can never fire"* — for a defect **closed in §16** (`10a95f5`), twenty-five
+sections earlier. Four more instances in `pen-test-basics.md`: a DISPOSITIONED residual row, a Low finding
+row, and two prose re-verdicts. **A security reviewer reading the threat model today would find an open
+threat that no longer exists**, and would reasonably plan work around it. All five are now superseded in
+place with the commit and the evidence.
+
+### This corrects §41, and the correction is the more useful finding
+
+§41 concluded that **per-row tables stay true for free, because closing a row edits it in place.** Four of
+these five stale claims are *table rows with status cells*. The form did not save them.
+
+The refinement: **a table row stays true only if whoever closes the finding knows the row exists.** The row
+makes the update *possible*; it does not make it *happen*. What actually kept `docs/ops` current was not its
+tabular form but that the same person, in the same session, closed the finding and edited its ledger — the
+ops record was in my working set, and `docs/security` was not. §16 fixed `tools/release/run-gate.ts` without
+either of us knowing that two security documents cited that exact file:line as an open exposure.
+
+**So the real mechanism is the citation link, and this repo has half of it.** `check:citations` verifies that
+every `path:line` in the docs resolves to a real file and an in-bounds line — it answers *"does this citation
+point somewhere valid?"* It cannot answer the question that would have caught this: *"which documents cite
+the file I just changed?"* That reverse index is the missing piece, and it is exactly what a fix-author
+needs at commit time.
+
+Naming it and not building it: a reverse-citation check is **new scope**, and `CLAUDE.md` requires a REQ row
+signed by the owner before it gets built. Recorded here as the specific, actionable gap it is.
+
+**The honest correction to my own three-section theory:** §41 and §42 attributed to *form* what was really
+*proximity*. The ops ledger stayed true because it was the document I had open, not because it had columns.
+That is worth more than the original claim, and it is the second time this session that testing a
+generalisation against a case it did not come from is what exposed it.
+
+**Verification.** All five supersedes applied; no un-superseded "self-satisfied" claim remains in
+`docs/security`; citations OK.
