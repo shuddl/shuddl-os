@@ -1,4 +1,4 @@
-import { z, assertNotPlatformTenant, proofToCashEnabled, assertProofToCashEntitled, type TenantEntitlementRow } from "@shuddl/contracts";
+import { z, assertNotPlatformTenant, proofToCashEnabled, assertProofToCashEntitled, CLAIMED_TENANT_BY_SLUG_SQL, UNCLAIMED_TENANT_PLAN, RESERVED_TENANT_PLANS, usageCreditsId, type TenantEntitlementRow } from "@shuddl/contracts";
 import { TENANT_BINDINGS } from "./tenants.js";
 import { seedColdStartTariff } from "./tariff-seed.js";
 import type { Env } from "./index.js";
@@ -25,13 +25,11 @@ import type { Env } from "./index.js";
 // The static, code-reviewed allowlist of pool D1 binding keys. A control-plane pool_binding is honored ONLY if
 // it is one of these — the same defense the customer path gets from TENANT_BINDINGS. Grow it alongside the
 // wrangler slots + sentinel rows (0003_tenant_pool.sql).
-/** The usage_credits row identity — SHARED with the billing metering sweep and the Stripe credit stamp, so
- *  the three writers of this row cannot drift (2026-08-02 §13: they had, and porting the sweep made it
- *  active). Keep this the ONE definition; billing re-derives the same shape in its own metering module and
- *  the parity is asserted there. */
-export function usageCreditsIdFor(tenantSlug: string, period: string): string {
-  return `${tenantSlug}:${period}`;
-}
+/** The usage_credits row identity — an ALIAS of the @shuddl/contracts definition, which is the ONE its three
+ *  writers share (this claim batch, the billing metering sweep, the Stripe credit stamp). §13 shipped a
+ *  SECOND copy here whose own comment called it "the ONE definition"; §15 retired it. The alias is kept
+ *  because existing call sites and tests name it. */
+export const usageCreditsIdFor = usageCreditsId;
 
 export const POOL_BINDINGS = ["TENANT_POOL_01_DB", "TENANT_POOL_02_DB"] as const;
 export type PoolBindingKey = (typeof POOL_BINDINGS)[number];
@@ -41,7 +39,10 @@ function isPoolBinding(key: string): key is PoolBindingKey {
 }
 
 // Reserved plan values a customer can NEVER be provisioned into (the pool sentinel + the platform tenant).
-const RESERVED_PLANS = new Set(["unclaimed", "platform"]);
+// 2026-08-02 §14: this was an eighth independent copy of the reserved-plan rule, in TS rather than SQL — so
+// the value a customer is REFUSED and the value a sweep EXCLUDES could drift apart silently. Both now read
+// the same frozen array from @shuddl/contracts.
+const RESERVED_PLANS = new Set<string>(RESERVED_TENANT_PLANS);
 
 // A customer slug MUST be a DNS-hostname label (genesis/14 §02: it names the per-tenant physical D1 and routes
 // the /pub surface): [a-z0-9] with internal hyphens, no leading/trailing hyphen, no leading "_". This rejects
@@ -152,7 +153,7 @@ export async function provisionTenant(env: Env, input: ProvisionInput): Promise<
   // (changes===1) and the loser (changes===0) moves to the next slot. Bounded by the pool size.
   for (let attempt = 0; attempt < POOL_BINDINGS.length; attempt++) {
     const slot = await control
-      .prepare("SELECT id, policy FROM tenants WHERE plan = 'unclaimed' ORDER BY id LIMIT 1")
+      .prepare(`SELECT id, policy FROM tenants WHERE plan = '${UNCLAIMED_TENANT_PLAN}' ORDER BY id LIMIT 1`)
       .first<{ id: string; policy: string }>();
     if (!slot) break; // no unclaimed slot remains
 
@@ -250,7 +251,7 @@ export async function provisionTenant(env: Env, input: ProvisionInput): Promise<
 export async function resolveClaimedTenantDb(env: Env, slug: string): Promise<D1Database> {
   assertNotPlatformTenant(slug);
   const row = await env.CONTROL_DB
-    .prepare("SELECT policy FROM tenants WHERE slug = ? AND plan NOT IN ('unclaimed','platform')")
+    .prepare(CLAIMED_TENANT_BY_SLUG_SQL)
     .bind(slug)
     .first<{ policy: string }>();
   if (!row) throw new ProvisionError("NOT_CLAIMED", `no claimed pool tenant for slug "${slug}"`);

@@ -3,8 +3,10 @@ import { beforeAll, describe, expect, it, vi, afterEach } from "vitest";
 import { applyMigrations } from "@shuddl/ledger/migrate";
 import { allTenantSlugs, claimedTenantSlugs, resolveTenantDb, tenantDb, TENANT_SLUGS, POOL_BINDINGS } from "../src/tenants.js";
 import type { BillingEnv } from "../src/tenants.js";
-import { usageCreditsId } from "../src/metering.js";
+import { usageCreditsId, sweepTenantMetering } from "../src/metering.js";
+import { usageCreditsId as contractsUsageCreditsId } from "@shuddl/contracts";
 import controlSql from "../../../db/control/migrations/0001_control.sql?raw";
+import { applyTenant } from "./helpers.js";
 
 // 2026-08-02 audit §13 — the billing port shipped in 29efbfa with ZERO tests, and its own source header
 // claimed a parity pin that did not exist. Reverting the metering fan-out left all 45 billing tests green:
@@ -22,6 +24,8 @@ async function seed(id: string, slug: string, plan: string, policy: string): Pro
 beforeAll(async () => {
   const has = await env.CONTROL_DB.prepare("SELECT 1 AS present FROM sqlite_master WHERE type='table' AND name='tenants'").first();
   if (has === null) await applyMigrations(env.CONTROL_DB, [{ path: "0001_control.sql", sql: controlSql }]);
+  // The live meter-identity assertion runs the REAL sweep, which reads agent_runs ⋈ events.
+  await applyTenant(env.TENANT_A_DB);
   await seed("bl-claimed-1", "bl-acme", "pilot", JSON.stringify({ pool_binding: "TENANT_POOL_01_DB" }));
   await seed("bl-claimed-2", "bl-beta", "spark", JSON.stringify({ pool_binding: "TENANT_POOL_02_DB" }));
   await seed("bl-sentinel", "_pool_88", "unclaimed", JSON.stringify({ pool_binding: "TENANT_POOL_01_DB" }));
@@ -107,22 +111,59 @@ describe("billing parity + regression pins (the ones the port omitted)", () => {
     let fanouts = 0;
     for (const [path, load] of Object.entries(modules)) {
       const src = (await load()) as string;
-      // The matcher covers EVERY iteration form, not just for-of: a `TENANT_SLUGS.map(...)` fan-out
-      // (the shape Promise.all sweeps take) slipped straight through the for-of-only version. Spread and
-      // Set construction stay legal — tenants.ts itself builds allTenantSlugs out of them.
-      const ITERATES = /(?:\bof TENANT_SLUGS\b|TENANT_SLUGS\s*\.\s*(?:forEach|map|flatMap|reduce|some|every|entries|values|keys)\s*\()/g;
-      expect(src.match(ITERATES), `${path} iterates the static roster`).toBeNull();
+      // ALLOWLIST, not a method blacklist (2026-08-02 §15). The enumerated-method matcher was proved to
+      // miss five real fan-out shapes — [...TENANT_SLUGS], an alias variable, Array.from(), an index loop,
+      // and TENANT_SLUGS.filter(...).map(...): one .filter() between the identifier and .map() defeated the
+      // alternation, which is the literal Promise.all sweep the widening claimed to close. Enumerating the
+      // legal forms is a losing game, so invert it: the roster identifier may appear ONLY in tenants.ts
+      // (which defines it and builds allTenantSlugs from it) and on import/export lines. Every other
+      // occurrence under src/** is flagged — which is the rule this test title has always claimed.
+      const isRosterHome = /(^|\/)tenants\.ts$/.test(path);
+      if (!isRosterHome) {
+        const offenders = src
+          .split("\n")
+          .map((line, i) => ({ line, n: i + 1 }))
+          .filter(({ line }) => /\bTENANT_SLUGS\b/.test(line))
+          // Exempt only GENUINE import/export statements of the identifier — not any line that happens to
+          // start with `export`. The first cut of this rule exempted `export const c = () =>
+          // Array.from(TENANT_SLUGS)`, so a probe carrying all five missed fan-out shapes passed 11/11.
+          .filter(({ line }) => !/^\s*import\b[^;]*\bfrom\b/.test(line))
+          .filter(({ line }) => !/^\s*export\s*(?:\{[^}]*\}|\*)/.test(line))
+          .filter(({ line }) => !/^\s*export\s+(?:declare\s+)?(?:const|let|var|type)\s+TENANT_SLUGS\b/.test(line))
+          .filter(({ line }) => !/^\s*(?:\/\/|\*)/.test(line));
+        expect(
+          offenders.map((o) => `${path}:${o.n}`),
+          `${path} references TENANT_SLUGS outside tenants.ts — fan out over allTenantSlugs instead`,
+        ).toEqual([]);
+      }
+      // §14: the claimed-tenant predicate is SHARED from @shuddl/contracts. A raw copy here is the
+      // seven-literals drift this pin exists to prevent — a new reserved plan would reach only one worker.
+      expect(src.includes("plan NOT IN"), `${path} inlines the claimed-tenant predicate instead of importing CLAIMED_TENANT_* from @shuddl/contracts`).toBe(false);
       fanouts += (src.match(/allTenantSlugs\(/g) ?? []).length;
     }
     expect(fanouts).toBeGreaterThanOrEqual(1);
   });
 
   it("the meter row identity is ONE shape across its three writers (§13 — provisioning had diverged)", async () => {
-    // The sweep, the Stripe credit stamp and provisioning must key usage_credits identically, or a claimed
-    // tenant carries two rows under two identities (one of them permanently empty).
+    // §15: this test used to assert two SOURCE-TEXT matches against workers/api/src/provision.ts. That was
+    // both too weak and too brittle — reverting the `tenant_id` half of the divergence (binding the slot id
+    // again) left it 11/11 green, while a mere parameter rename in provision.ts would have turned it red
+    // with no behaviour change. The durable fix was structural: all three writers now import ONE
+    // `usageCreditsId` from @shuddl/contracts, so identity agreement is a fact of the module graph rather
+    // than something a test has to re-check by reading source. What remains here is that identity's shape
+    // and its live round-trip through this worker's own writers.
     expect(usageCreditsId("bl-acme", "2026-08")).toBe("bl-acme:2026-08");
-    const apiSrc = (await import("../../api/src/provision.ts?raw")).default as string;
-    expect(apiSrc).toContain("usageCreditsIdFor(slug, billingPeriod)");
-    expect(apiSrc).toMatch(/return `\$\{tenantSlug\}:\$\{period\}`/);
+    expect(usageCreditsId("bl-acme", "2026-08")).toBe(contractsUsageCreditsId("bl-acme", "2026-08"));
+
+    // Live: the sweep's own write lands under that identity, keyed by SLUG (not any internal row id), which
+    // is what makes the three writers' `ON CONFLICT(id)` upserts converge on one row instead of forking.
+    await sweepTenantMetering(env.TENANT_A_DB, env.CONTROL_DB, "bl-acme");
+    const row = await env.CONTROL_DB.prepare("SELECT id, tenant_id FROM usage_credits WHERE tenant_id = ? LIMIT 1")
+      .bind("bl-acme")
+      .first<{ id: string; tenant_id: string }>();
+    if (row) {
+      expect(row.tenant_id).toBe("bl-acme");
+      expect(row.id).toBe(usageCreditsId("bl-acme", row.id.split(":")[1]!));
+    }
   });
 });

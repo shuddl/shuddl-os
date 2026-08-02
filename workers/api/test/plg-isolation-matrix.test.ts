@@ -134,7 +134,13 @@ async function eventCount(db: D1Database, streamId: string): Promise<number> {
 async function resetPool(): Promise<void> {
   for (const { id, binding } of POOL_SLOTS) {
     await env.CONTROL_DB.prepare("DELETE FROM users WHERE tenant_id = ?").bind(id).run();
-    await env.CONTROL_DB.prepare("DELETE FROM usage_credits WHERE tenant_id = ?").bind(id).run();
+    // 2026-08-02 §15: the credits purge used to bind ONLY the slot id. Since the row is keyed by SLUG, that
+    // deleted nothing — and with isolatedStorage:false every claimed tenant’s meter row survived the whole
+    // run, so a future test claiming the same slug twice would hit UNIQUE(usage_credits.id) inside the
+    // atomic batch and surface as PROVISION_FAILED rather than SLUG_TAKEN. Purge BOTH shapes: the slot id
+    // (legacy rows) and whatever slug currently occupies the slot.
+    const occupant = await env.CONTROL_DB.prepare("SELECT slug FROM tenants WHERE id = ?").bind(id).first<{ slug: string }>();
+    await env.CONTROL_DB.prepare("DELETE FROM usage_credits WHERE tenant_id = ? OR tenant_id = ?").bind(id, occupant?.slug ?? id).run();
     await env.CONTROL_DB
       .prepare("UPDATE tenants SET slug = ?, name = ?, plan = 'unclaimed', policy = ?, created_ts = 0 WHERE id = ?")
       .bind(id, `SHUDDL Pool Slot ${id}`, JSON.stringify({ pool_binding: binding }), id)

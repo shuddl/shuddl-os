@@ -2,7 +2,7 @@
 // drift, a tenant silently stops being anchored (its daily Merkle root never gets a TSA receipt). A
 // parity unit test (test/tenants-parity.test.ts) asserts the slug sets match, so drift fails CI.
 
-import { isPlatformTenant } from "@shuddl/contracts";
+import { isPlatformTenant, CLAIMED_TENANT_BY_SLUG_SQL, CLAIMED_TENANTS_SQL } from "@shuddl/contracts";
 
 export type AgentsEnv = {
   TENANT_A_DB: D1Database;
@@ -85,7 +85,7 @@ function isPoolBinding(key: string): key is PoolBindingKey {
 /** Claimed-slug → pool D1, server-side only. Throws UNKNOWN_TENANT for every non-claimed shape. */
 async function resolveClaimedTenantDb(env: AgentsEnv, slug: string): Promise<D1Database> {
   const row = await env.CONTROL_DB
-    .prepare("SELECT policy FROM tenants WHERE slug = ? AND plan NOT IN ('unclaimed','platform')")
+    .prepare(CLAIMED_TENANT_BY_SLUG_SQL)
     .bind(slug)
     .first<{ policy: string }>();
   if (!row) throw new Error(`UNKNOWN_TENANT: ${slug}`);
@@ -127,7 +127,7 @@ export async function resolveTenantDb(env: AgentsEnv, slug: string): Promise<D1D
  *  REQ-025), so BOTH slugs are dropped with a loud log until an operator fixes the rows. */
 export async function claimedTenantSlugs(env: AgentsEnv): Promise<string[]> {
   const rows = await env.CONTROL_DB
-    .prepare("SELECT slug, policy FROM tenants WHERE plan NOT IN ('unclaimed','platform')")
+    .prepare(CLAIMED_TENANTS_SQL)
     .all<{ slug: string; policy: string }>();
   const byBinding = new Map<string, string[]>();
   for (const row of rows.results ?? []) {

@@ -41,3 +41,54 @@ export function assertNotPlatformTenant(slug: string): void {
     throw new Error(`PLATFORM_TENANT_FORBIDDEN: "${slug}" is the reserved platform tenant — not addressable from a customer path`);
   }
 }
+
+// ---- The RESERVED plan values, and the one predicate that separates a customer from a sentinel --------
+//
+// 2026-08-02 audit §14 (REQ-121/123/025). `tenants.plan` carries two reserved values that mean "this row is
+// NOT a billable customer": an `unclaimed` pool slot waiting to be claimed, and the reserved `platform`
+// revenue tenant. Every claimed-tenant read in every worker must exclude both — the resolve path (api
+// `resolveClaimedTenantDb`, and the agents/translator/billing `resolveTenantDb` fallbacks) and the
+// enumeration path (`claimedTenantSlugs`, which drives the metering sweep, the nine agent crons and the
+// 214 sweep).
+//
+// It was written SEVEN times as a raw SQL string across four workers, with no parity pin — the exact shape
+// of every divergence this audit has been closing. The rule and its SQL now have one home. A NEW reserved
+// plan (a `suspended` delinquent, a `churned` account) added to this array propagates to all seven call
+// sites at once; adding it to one worker's string literal, as the duplicated form invited, would have left
+// billing metering a suspended tenant and the translator still transmitting its EDI.
+//
+// The fragment is built from the frozen array so the two can never disagree. It is a CONSTANT and must stay
+// one: nothing here may ever be composed from input — the only bound parameter in these queries is `slug`.
+export const UNCLAIMED_TENANT_PLAN = "unclaimed";
+export const PLATFORM_TENANT_PLAN = "platform";
+export const RESERVED_TENANT_PLANS = [UNCLAIMED_TENANT_PLAN, PLATFORM_TENANT_PLAN] as const;
+
+/** `plan NOT IN ('unclaimed','platform')` — the WHERE fragment every claimed-tenant read shares. */
+export const CLAIMED_TENANT_PLAN_SQL = `plan NOT IN (${RESERVED_TENANT_PLANS.map((p) => `'${p}'`).join(",")})`;
+
+/** The single claimed row by slug (resolve path). Bind: slug. */
+export const CLAIMED_TENANT_BY_SLUG_SQL = `SELECT policy FROM tenants WHERE slug = ? AND ${CLAIMED_TENANT_PLAN_SQL}`;
+
+/** Every claimed row (enumeration path — the sweeps' fan-out). No binds. */
+export const CLAIMED_TENANTS_SQL = `SELECT slug, policy FROM tenants WHERE ${CLAIMED_TENANT_PLAN_SQL}`;
+
+// ---- The usage_credits row identity (REQ-123) ---------------------------------------------------------
+//
+// THREE writers touch this control-plane row and all three upsert `ON CONFLICT(id)`, so they must agree on
+// `id` byte for byte or the conflict never fires and the tenant silently carries two rows:
+//   · workers/billing/src/metering.ts  — the hourly recompute that OVERWRITES `metered`
+//   · workers/billing/src/credits.ts   — the Stripe stamp that MERGES `stripe_refs`
+//   · workers/api/src/provision.ts     — the initial row in the atomic claim batch
+//
+// 2026-08-02: provisioning had in fact diverged (`uc-<slot>-<period>`, and the SLOT id as `tenant_id`), so a
+// claimed tenant's provisioned row could never merge with either writer — it stayed permanently empty while
+// the real meter and the real Stripe refs accumulated on the other. §13 fixed the shape but left TWO
+// definitions, one of which called itself "the ONE definition" while the other predated it. This is now
+// genuinely the one: the workers re-export it, they do not redefine it.
+//
+// `tenant_id` is the SLUG, matching this id — deliberately NOT `tenants.id`, which is the convention
+// `users.tenant_id` follows. The two are not joined anywhere today (verified 2026-08-02); the divergence is
+// noted on the DDL in db/control/migrations/0001_control.sql so a future JOIN does not assume otherwise.
+export function usageCreditsId(tenantSlug: string, period: string): string {
+  return `${tenantSlug}:${period}`;
+}

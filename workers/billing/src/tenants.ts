@@ -1,4 +1,4 @@
-import { isPlatformTenant } from "@shuddl/contracts";
+import { isPlatformTenant, CLAIMED_TENANT_BY_SLUG_SQL, CLAIMED_TENANTS_SQL } from "@shuddl/contracts";
 // Tenant allowlist for the Billing worker's metering sweep. A MIRROR of workers/api/src/tenants.ts
 // (TENANT_BINDINGS) and workers/translator/src/tenants.ts — the SAME customer tenants the rest of the platform
 // binds. REQ-025 isolation: this server-side allowlist is the ONLY tenant→D1 map; there is no code path from
@@ -84,7 +84,7 @@ function isPoolBinding(key: string): key is PoolBindingKey {
 /** Claimed-slug → pool D1, server-side only. Throws UNKNOWN_TENANT for every non-claimed shape. */
 async function resolveClaimedTenantDb(env: BillingEnv, slug: string): Promise<D1Database> {
   const row = await env.CONTROL_DB
-    .prepare("SELECT policy FROM tenants WHERE slug = ? AND plan NOT IN ('unclaimed','platform')")
+    .prepare(CLAIMED_TENANT_BY_SLUG_SQL)
     .bind(slug)
     .first<{ policy: string }>();
   if (!row) throw new Error(`UNKNOWN_TENANT: ${slug}`);
@@ -126,7 +126,7 @@ export async function resolveTenantDb(env: BillingEnv, slug: string): Promise<D1
  *  REQ-025), so BOTH slugs are dropped with a loud log until an operator fixes the rows. */
 export async function claimedTenantSlugs(env: BillingEnv): Promise<string[]> {
   const rows = await env.CONTROL_DB
-    .prepare("SELECT slug, policy FROM tenants WHERE plan NOT IN ('unclaimed','platform')")
+    .prepare(CLAIMED_TENANTS_SQL)
     .all<{ slug: string; policy: string }>();
   const byBinding = new Map<string, string[]>();
   for (const row of rows.results ?? []) {

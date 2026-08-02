@@ -10,6 +10,7 @@ import {
   provisioningEnabled,
   ProvisionError,
   POOL_BINDINGS,
+  usageCreditsIdFor,
 } from "../src/provision.js";
 import { TENANT_BINDINGS, tenantDb } from "../src/tenants.js";
 import { loadTenantRatingConfig } from "../src/rate-config.js";
@@ -49,7 +50,13 @@ function baseInput(slug: string, email: string) {
 async function resetPool(): Promise<void> {
   for (const { id, binding } of POOL_SLOTS) {
     await env.CONTROL_DB.prepare("DELETE FROM users WHERE tenant_id = ?").bind(id).run();
-    await env.CONTROL_DB.prepare("DELETE FROM usage_credits WHERE tenant_id = ?").bind(id).run();
+    // 2026-08-02 §15: the credits purge used to bind ONLY the slot id. Since the row is keyed by SLUG, that
+    // deleted nothing — and with isolatedStorage:false every claimed tenant’s meter row survived the whole
+    // run, so a future test claiming the same slug twice would hit UNIQUE(usage_credits.id) inside the
+    // atomic batch and surface as PROVISION_FAILED rather than SLUG_TAKEN. Purge BOTH shapes: the slot id
+    // (legacy rows) and whatever slug currently occupies the slot.
+    const occupant = await env.CONTROL_DB.prepare("SELECT slug FROM tenants WHERE id = ?").bind(id).first<{ slug: string }>();
+    await env.CONTROL_DB.prepare("DELETE FROM usage_credits WHERE tenant_id = ? OR tenant_id = ?").bind(id, occupant?.slug ?? id).run();
     await env.CONTROL_DB
       .prepare("UPDATE tenants SET slug = ?, name = ?, plan = 'unclaimed', policy = ?, created_ts = 0 WHERE id = ?")
       .bind(id, `SHUDDL Pool Slot ${id}`, JSON.stringify({ pool_binding: binding }), id)
@@ -290,9 +297,15 @@ describe("a partial failure rolls back — no half-claimed slot (REQ-121)", () =
     for (const { id } of POOL_SLOTS) {
       const row = await env.CONTROL_DB.prepare("SELECT plan FROM tenants WHERE id = ?").bind(id).first<{ plan: string }>();
       expect(row?.plan).toBe("unclaimed");
-      const uc = await env.CONTROL_DB.prepare("SELECT COUNT(*) AS n FROM usage_credits WHERE tenant_id = ?").bind(id).first<{ n: number }>();
-      expect(uc?.n).toBe(0);
     }
+    // 2026-08-02 §15: this orphan check used to bind the pool SLOT id. After §13 rebound the credits row to
+    // the SLUG, no writer produces that shape at all — so the count was 0 unconditionally and the assertion
+    // could not fail. Proved by moving the credits INSERT out of the atomic batch: a real orphan appeared and
+    // the test stayed green. Bind what the writers actually write.
+    const orphan = await env.CONTROL_DB.prepare("SELECT COUNT(*) AS n FROM usage_credits WHERE tenant_id = ? OR id = ?")
+      .bind("prov-fail", usageCreditsIdFor("prov-fail", "2026-07"))
+      .first<{ n: number }>();
+    expect(orphan?.n, "a rolled-back claim must leave NO usage_credits row").toBe(0);
   });
 });
 

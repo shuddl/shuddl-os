@@ -112,11 +112,34 @@ describe("source-level pin — no translator fan-out may regress to the static r
     let fanouts = 0;
     for (const [path, load] of Object.entries(modules)) {
       const src = (await load()) as string;
-      // The matcher covers EVERY iteration form, not just for-of: a `TENANT_SLUGS.map(...)` fan-out
-      // (the shape Promise.all sweeps take) slipped straight through the for-of-only version. Spread and
-      // Set construction stay legal — tenants.ts itself builds allTenantSlugs out of them.
-      const ITERATES = /(?:\bof TENANT_SLUGS\b|TENANT_SLUGS\s*\.\s*(?:forEach|map|flatMap|reduce|some|every|entries|values|keys)\s*\()/g;
-      expect(src.match(ITERATES), `${path} iterates the static roster`).toBeNull();
+      // ALLOWLIST, not a method blacklist (2026-08-02 §15). The enumerated-method matcher was proved to
+      // miss five real fan-out shapes — [...TENANT_SLUGS], an alias variable, Array.from(), an index loop,
+      // and TENANT_SLUGS.filter(...).map(...): one .filter() between the identifier and .map() defeated the
+      // alternation, which is the literal Promise.all sweep the widening claimed to close. Enumerating the
+      // legal forms is a losing game, so invert it: the roster identifier may appear ONLY in tenants.ts
+      // (which defines it and builds allTenantSlugs from it) and on import/export lines. Every other
+      // occurrence under src/** is flagged — which is the rule this test title has always claimed.
+      const isRosterHome = /(^|\/)tenants\.ts$/.test(path);
+      if (!isRosterHome) {
+        const offenders = src
+          .split("\n")
+          .map((line, i) => ({ line, n: i + 1 }))
+          .filter(({ line }) => /\bTENANT_SLUGS\b/.test(line))
+          // Exempt only GENUINE import/export statements of the identifier — not any line that happens to
+          // start with `export`. The first cut of this rule exempted `export const c = () =>
+          // Array.from(TENANT_SLUGS)`, so a probe carrying all five missed fan-out shapes passed 11/11.
+          .filter(({ line }) => !/^\s*import\b[^;]*\bfrom\b/.test(line))
+          .filter(({ line }) => !/^\s*export\s*(?:\{[^}]*\}|\*)/.test(line))
+          .filter(({ line }) => !/^\s*export\s+(?:declare\s+)?(?:const|let|var|type)\s+TENANT_SLUGS\b/.test(line))
+          .filter(({ line }) => !/^\s*(?:\/\/|\*)/.test(line));
+        expect(
+          offenders.map((o) => `${path}:${o.n}`),
+          `${path} references TENANT_SLUGS outside tenants.ts — fan out over allTenantSlugs instead`,
+        ).toEqual([]);
+      }
+      // §14: the claimed-tenant predicate is SHARED from @shuddl/contracts. A raw copy here is the
+      // seven-literals drift this pin exists to prevent — a new reserved plan would reach only one worker.
+      expect(src.includes("plan NOT IN"), `${path} inlines the claimed-tenant predicate instead of importing CLAIMED_TENANT_* from @shuddl/contracts`).toBe(false);
       fanouts += (src.match(/allTenantSlugs\(/g) ?? []).length;
     }
     expect(fanouts).toBeGreaterThanOrEqual(1);

@@ -16,6 +16,7 @@
 // `<tenant>:<period>` keeps a tenant's rows in its own key space. LLM-free, deterministic. No new table — a
 // worker + a cron is not a table.
 import { allTenantSlugs, resolveTenantDb, type BillingEnv } from "./tenants.js";
+import { usageCreditsId } from "@shuddl/contracts";
 
 // The metering period: the UTC calendar month, "YYYY-MM", off the event's ts (epoch ms). Mirrors
 // workers/mcp/src/caps.ts `currentPeriod` — a clear, deterministic window.
@@ -27,11 +28,11 @@ export function periodOf(tsMs: number): string {
 }
 
 // The control-row identity for a (tenant, period). Deterministic, so a recompute OVERWRITES in place (one row
-// per tenant-period forever — never a duplicate, never a stray). The sweep OWNS this row; a future Stripe
-// reconciliation must key `stripe_refs` on the SAME id so the two never fork.
-export function usageCreditsId(tenant: string, period: string): string {
-  return `${tenant}:${period}`;
-}
+// per tenant-period forever — never a duplicate, never a stray). Its THREE writers (this sweep, the Stripe
+// stamp in credits.ts, the provisioning claim in workers/api) all upsert ON CONFLICT(id), so the definition
+// lives in @shuddl/contracts and is re-exported here — 2026-08-02 §15: it was briefly defined twice, once
+// with a comment calling itself "the ONE definition".
+export { usageCreditsId };
 
 // THE RECONCILIATION JOIN — the EXACT shape workers/agents/src/watchtower.ts sweepAgentDrift uses. agent_runs
 // is one-row-per-`agent.acted` (INSERT OR IGNORE on the event id), and the row rides in its event's commit

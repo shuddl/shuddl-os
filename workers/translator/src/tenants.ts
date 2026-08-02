@@ -1,4 +1,4 @@
-import { isPlatformTenant } from "@shuddl/contracts";
+import { isPlatformTenant, CLAIMED_TENANT_BY_SLUG_SQL, CLAIMED_TENANTS_SQL } from "@shuddl/contracts";
 
 // Tenant allowlist for the Translator worker. A MIRROR of workers/api/src/tenants.ts (and
 // workers/agents/src/tenants.ts) — if the sets drift, a tenant silently stops getting its outbound 214s
@@ -63,7 +63,7 @@ function isPoolBinding(key: string): key is PoolBindingKey {
 /** Claimed-slug → pool D1, server-side only. Throws UNKNOWN_TENANT for every non-claimed shape. */
 async function resolveClaimedTenantDb(env: TranslatorEnv, slug: string): Promise<D1Database> {
   const row = await env.CONTROL_DB
-    .prepare("SELECT policy FROM tenants WHERE slug = ? AND plan NOT IN ('unclaimed','platform')")
+    .prepare(CLAIMED_TENANT_BY_SLUG_SQL)
     .bind(slug)
     .first<{ policy: string }>();
   if (!row) throw new Error(`UNKNOWN_TENANT: ${slug}`);
@@ -105,7 +105,7 @@ export async function resolveTenantDb(env: TranslatorEnv, slug: string): Promise
  *  REQ-025), so BOTH slugs are dropped with a loud log until an operator fixes the rows. */
 export async function claimedTenantSlugs(env: TranslatorEnv): Promise<string[]> {
   const rows = await env.CONTROL_DB
-    .prepare("SELECT slug, policy FROM tenants WHERE plan NOT IN ('unclaimed','platform')")
+    .prepare(CLAIMED_TENANTS_SQL)
     .all<{ slug: string; policy: string }>();
   const byBinding = new Map<string, string[]>();
   for (const row of rows.results ?? []) {

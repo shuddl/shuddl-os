@@ -1114,23 +1114,50 @@ export class ShipmentSequencer extends DurableObject<Env> {
       .bind(tenant)
       .first<{ plan: string; policy: string }>();
     this.entitlementRowCache = row ? { plan: row.plan, policy: row.policy } : { plan: "", policy: "{}" };
-    // A MALFORMED policy is the {} floor too (2026-08-02 §13). This parse was unguarded: one stray
-    // character in a hand-edited control row threw a SyntaxError out of #policy — which #append awaits
-    // BEFORE any gate — so EVERY append for that tenant 500'd, forever, and the translator's inbound-204
-    // chain would retry-storm against it. The comment above already promised a fail-closed floor for a
-    // MISSING row; a malformed one now takes the same floor, matching the discipline its two sibling
-    // readers of this column already state (spark-caps resolveSparkPlan, contracts readEntitlementPolicy).
-    // `JSON.parse("null")` is caught by the object check, not just the try — a null policy would defeat
-    // the `if (this.policyCache)` cache line above and re-read on every call.
-    this.policyCache = {};
+    // A MALFORMED policy REFUSES THE APPEND with a named code (2026-08-02 §15). Read the correction here,
+    // because the first attempt at this guard was a security defect and the reasoning matters:
+    //
+    // The parse was originally unguarded — one stray character in a hand-edited control row threw a raw
+    // SyntaxError out of #policy (which #append awaits BEFORE any gate), so every append for that tenant
+    // 500'd forever and the translator's inbound-204 chain retry-stormed against it. §13 "fixed" that by
+    // falling back to `{}` and letting appends proceed, calling `{}` the gate-knob floor.
+    //
+    // `{}` IS NOT A FLOOR. It is the floor for exactly one knob and the CEILING for three:
+    //   · gates.dims_required — `=== true`, so {} yields FALSE and DROPS the REQ-045 dims precondition
+    //   · gates.geofence_radius_m — `?? 150`, so {} widens any tenant that configured a tighter fence
+    //   · visibility — resolveVisibility falls to per-kind DEFAULTS, dropping every narrowing override
+    //   · invoice_without_pod_classes — `[]`, the only genuinely tighter one (and it is UNWIRED)
+    //
+    // The visibility case is the unrecoverable one: visibility is STAMPED on the event at append time, and
+    // events are immutable (I3/I7). A tenant who set `document.attached: internal` and then suffered one
+    // corrupt byte would have had those events stamped `counterparty` and exposed through the portal lens
+    // PERMANENTLY — repairing the control row afterwards cannot un-stamp a committed event. A loud 500 is a
+    // bad failure; a silent, permanent, irreversible disclosure is a far worse one.
+    //
+    // So: refuse, with a code that names the cause. This keeps the fail-closed posture the original had
+    // while replacing the opaque SyntaxError 500 with a diagnosable VALIDATION_FAILED that tells the
+    // operator exactly which row to fix. `JSON.parse("null")` and any non-object are refused the same way
+    // (a null would also defeat the `if (this.policyCache)` cache line above and re-read on every call).
     if (row) {
+      let parsed: unknown;
       try {
-        const parsed: unknown = JSON.parse(row.policy);
-        if (parsed !== null && typeof parsed === "object") this.policyCache = parsed as TenantPolicy;
-        else console.error(`sequencer: tenant ${tenant} policy is not an object — using the {} gate-knob floor`);
+        parsed = JSON.parse(row.policy);
       } catch (err) {
-        console.error(`sequencer: tenant ${tenant} has a MALFORMED policy — using the {} gate-knob floor (appends proceed; fix the control row):`, err);
+        console.error(`sequencer: tenant ${tenant} has a MALFORMED policy — REFUSING every append until the control row is fixed (a {} fallback would silently OPEN the dims gate, widen the geofence and drop visibility overrides onto immutable events):`, err);
+        throw rpcError("VALIDATION_FAILED", { reason: "tenant policy malformed" });
       }
+      // Array.isArray is NOT redundant: `typeof [] === "object"`, so a JSON array policy would sail past a
+      // null+typeof check and behave exactly like `{}` — the widening this guard exists to prevent. The test
+      // for this case is what caught it (`[1,2]` appended 201 on the first cut of this guard).
+      if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+        console.error(`sequencer: tenant ${tenant} policy is not a JSON object — REFUSING every append until the control row is fixed`);
+        throw rpcError("VALIDATION_FAILED", { reason: "tenant policy malformed" });
+      }
+      this.policyCache = parsed as TenantPolicy;
+    } else {
+      // A MISSING row is different and genuinely fail-closed: no tenant means no overrides to lose, and the
+      // sibling entitlement row above grants nothing. This is the long-standing documented behaviour.
+      this.policyCache = {};
     }
     return this.policyCache;
   }
@@ -1154,7 +1181,20 @@ export class ShipmentSequencer extends DurableObject<Env> {
       )
       .bind(tenant, deviceId)
       .first<{ entry: string }>();
-    const jwk = row ? (JSON.parse(row.entry) as DeviceKeyEntry).public_jwk : null;
+    // 2026-08-02 §15 — the sibling of the #policy guard above, on the same column class. Lower risk (the
+    // value round-trips through SQLite's json_each, so it parsed as JSON at least once), but the failure
+    // mode is the same shape: an unguarded throw here escapes onto the DRIVER-AUTH path. Fail CLOSED to
+    // null — an unusable key means the signature does not verify, which is the correct answer for a
+    // malformed key entry; it must never be an unhandled crash, and it must never be a bypass.
+    let jwk: JsonWebKey | null = null;
+    if (row) {
+      try {
+        const entry = JSON.parse(row.entry) as DeviceKeyEntry;
+        jwk = entry?.public_jwk ?? null;
+      } catch (err) {
+        console.error(`sequencer: tenant ${tenant} device ${deviceId} has a MALFORMED device_keys entry — treating the key as ABSENT (signatures will not verify):`, err);
+      }
+    }
     this.deviceKeys.set(deviceId, jwk);
     return jwk;
   }
