@@ -315,10 +315,52 @@ export async function handleInbound204(request: Request, deps: InboundDeps): Pro
   const partner = await authenticate(request, rawBytes, deps);
   if (partner === null) return unauthorized();
   const { partnerId, tenantSlug } = partner;
-  const db = await deps.tenantDbFor(tenantSlug);
 
+  // Decoded + ISA extracted BEFORE tenant resolution (§29): both are PURE (no db, no control plane), and
+  // the resolution guard below needs the ISA to key the preserved bytes so a redelivery overwrites rather
+  // than accumulating one R2 object per attempt.
   const raw = new TextDecoder().decode(rawBytes);
   const isaControl = await extractIsaControl(raw);
+
+  // 2026-08-02 §29 — RESOLUTION IS ALSO A DETERMINISTIC REFUSAL, and it runs BEFORE the policy preflight.
+  //
+  // §19 added a preflight so a corrupt control row quarantines instead of 500ing the VAN. It was placed
+  // beside the cert gate, 36 lines below here — and for a STATIC-roster tenant that is fine, because
+  // `tenantDbFor` is a pure map lookup that cannot throw. For a CLAIMED POOL tenant it is
+  // `resolveClaimedTenantDb`, which reads THE SAME `tenants.policy` and throws `UNKNOWN_TENANT` when the
+  // policy is unparseable or names no valid `pool_binding`. So the exact condition the preflight exists to
+  // catch still reached the runtime as a 500 — and 500 is what a VAN retries forever. The §19 test only
+  // exercised the static path, which is why it passed while this hole stayed open. (Dark today behind
+  // `PROVISIONING_ENABLED`; the harm is the storm, not lost data — nothing is written before this line.)
+  //
+  // It CANNOT quarantine: quarantine writes an anomalies row to the tenant's own D1, which is precisely what
+  // failed to resolve. So the honest answer is a deterministic 4xx — no retry, nothing written, and a loud
+  // server-side log naming the tenant. That matches how this handler already treats an unresolvable tenant
+  // at auth (401), and it keeps the one law that matters here: a deterministic condition never returns 5xx.
+  let db: D1Database;
+  try {
+    db = await deps.tenantDbFor(tenantSlug);
+  } catch (err) {
+    // NEVER A SILENT DROP (CLAUDE.md #10 / the Migrator rule, and this module's own stated law). The first
+    // cut of this guard returned 422 and discarded the tender — trading a retry-storm for a LOST DOCUMENT,
+    // which is the worse of the two failures and the one this handler explicitly forbids. It cannot
+    // quarantine (the anomalies row needs the tenant D1, which is exactly what failed to resolve), but the
+    // RAW BYTES do not need it: the R2 key is `edi/<slug>/...`, keyed by slug alone. So preserve them, then
+    // refuse. Best-effort — an R2 fault must not turn a deterministic 4xx back into a 5xx retry-storm.
+    const r2Key = `edi/${tenantSlug}/unresolvable/${partnerId}/${isaControl}`;
+    try {
+      const capped = rawBytes.byteLength > MAX_BODY_BYTES ? rawBytes.slice(0, MAX_BODY_BYTES) : rawBytes;
+      await deps.evidence.put(r2Key, capped);
+    } catch (putErr) {
+      console.error(`edi inbound-204: could not preserve the unresolvable tender at ${r2Key} (the refusal still stands):`, putErr);
+    }
+    console.error(
+      `edi inbound-204: tenant ${tenantSlug} could not be RESOLVED (a claimed-pool row whose policy is unusable, or which names no valid pool_binding) — refusing 422, NOT 5xx: this is deterministic and a retry cannot fix it. The raw tender is preserved at ${r2Key}; no anomalies row is possible because the tenant D1 is what failed to resolve:`,
+      err,
+    );
+    return json(422, { error: "tenant unresolvable" });
+  }
+
   const receivedTs = deps.now();
 
   // 1a½. CERT GATE (REQ-203 / zero-risk mandate). A tender is parsed into a booking ONLY from a REPLAY-CERTIFIED

@@ -1,5 +1,5 @@
 import { env } from "cloudflare:test";
-import { beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { applyMigrations } from "@shuddl/ledger/migrate";
 import { EventInput, partyIdForEmail } from "@shuddl/contracts";
 import controlSql from "../../../db/control/migrations/0001_control.sql?raw";
@@ -351,6 +351,37 @@ describe("REQ-201/202 — inbound 204 → gated chain, NO booking.created", () =
     // never a silent drop (Migrator rule): the raw bytes are preserved.
     const quarantined = await env.EVIDENCE.list({ prefix: `edi/tenant-a/quarantine/${PARTNER_ID}/` });
     expect(quarantined.objects, "the raw tender is preserved in R2").toHaveLength(1);
+  });
+
+  it("(h3) a CLAIMED-POOL tenant that cannot RESOLVE refuses 422, never 5xx — the §19 hole (§29)", async () => {
+    // §19 put the policy preflight 36 lines BELOW the tenant-D1 resolution. For a static tenant that is
+    // fine (a pure map lookup). For a CLAIMED POOL tenant, tenantDbFor is resolveClaimedTenantDb, which
+    // reads the SAME tenants.policy and throws UNKNOWN_TENANT on an unusable one — so the very condition
+    // the preflight exists to catch still reached the runtime as a 500, which a VAN retries forever. The
+    // §19 test only exercised the static path, which is why it passed while this stayed open.
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const seq = new RecordingSeq();
+      const deps = makeDeps(seq, new RecordingTransport(), goodSecrets());
+      const boom = {
+        ...deps,
+        tenantDbFor: (): Promise<D1Database> => Promise.reject(new Error("UNKNOWN_TENANT: claimed row policy unusable")),
+      };
+      const res = await handleInbound204(await signedRequest(tender204()), boom);
+
+      expect(res.status, "deterministic → 4xx, never the 5xx a VAN retries forever").toBe(422);
+      expect(res.status, "and specifically not a 5xx").toBeLessThan(500);
+      expect(seq.appended, "nothing appended").toHaveLength(0);
+      expect(errSpy.mock.calls.flat().some((a) => typeof a === "string" && a.includes("could not be RESOLVED"))).toBe(true);
+
+      // NEVER A SILENT DROP (CLAUDE.md #10). The first cut of this guard returned 422 and discarded the
+      // tender — trading a retry-storm for a LOST DOCUMENT, the worse of the two. It cannot write an
+      // anomalies row (that needs the tenant D1, which is what failed), but the R2 key is slug-only.
+      const preserved = await env.EVIDENCE.list({ prefix: "edi/tenant-a/unresolvable/" });
+      expect(preserved.objects, "the raw tender must survive an unresolvable tenant").toHaveLength(1);
+    } finally {
+      errSpy.mockRestore();
+    }
   });
 
   it("(h2) a MISSING tenant control row fails closed EARLIER — 401 at auth, nothing written", async () => {

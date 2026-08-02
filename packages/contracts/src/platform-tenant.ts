@@ -112,26 +112,43 @@ export function usageCreditsId(tenantSlug: string, period: string): string {
 // the translator would come to disagree about which tenants may append (the seven-copies-of-one-rule shape
 // §14 closed). Returns the parsed policy, or null when the tenant cannot safely append.
 //
-// ── DO NOT "UNIFY" THIS WITH THE OTHER TWO READERS OF tenants.policy (2026-08-02 §25) ──────────────────
+// ── DO NOT "UNIFY" THE READERS OF tenants.policy — THEY DISAGREE ON PURPOSE (§25, corrected §30) ───────
 //
-// There are three parsers of this column and they disagree ON PURPOSE. Enumerated and verified:
+// FOUR reader families, twelve call sites, four different failure directions. §25 said THREE and claimed
+// "enumerated and verified"; it had missed the fourth and got a third one backwards. Both corrections are
+// kept visible because this comment's whole job is to certify these directions, and a confident wrong
+// certification is worse than none — the omitted reader is precisely where §29's HIGH turned up.
 //
-//   · THIS one (gates + visibility, the sequencer + the EDI preflight) → REFUSES an unusable policy.
-//   · `readEntitlementPolicy` (entitlements.ts, hazmat)                → floors to `{}`.
-//   · `resolveSparkPlan` (agents/spark-caps.ts, the AI allotment)      → floors to no allotment.
+//   1. THIS one — `parseTenantPolicy` (gates + visibility): the sequencer + the EDI preflight.
+//      → REFUSES an unusable policy. `{}` is the PERMISSIVE end for a gate bag (`dims_required` reads
+//        false, the geofence widens to the 150m default, visibility falls to per-kind defaults), and the
+//        visibility half is stamped irreversibly onto append-only events.
 //
-// The difference is not sloppiness, it is the direction the default MOVES each consumer. For an
-// ENTITLEMENT, `{}` grants nothing — the restrictive answer, so flooring is correct and refusing would
-// take a tenant's whole workspace down over a hazmat flag. For a GATE BAG, `{}` is the permissive end:
-// `gates.dims_required` is read `=== true` so it reads false, `geofence_radius_m` falls to the WIDER 150m
-// default, and `visibility` falls to per-kind defaults — dropping every narrowing override onto events
-// that are stamped at append time and immutable. That last one is irreversible, which is why this reader
-// alone refuses.
+//   2. `readEntitlementPolicy` (entitlements.ts, hazmat) → FLOORS to `{}`.
+//      → Correct: for a GRANT, `{}` grants nothing. Refusing would take a whole workspace down over a
+//        hazmat flag.
 //
-// A future editor who sees three parsers of one column and unifies them WILL break one of the two
-// directions — flooring here re-opens the §15 disclosure, refusing there turns a missing hazmat flag into
-// a total outage. If you touch this, re-derive the direction per consumer first; the reasoning is in the
-// audit at §15a/§18/§25.
+//   3. `resolveSparkPlan` (agents/spark-caps.ts, the AI allotment) → TWO directions, and §25 named only
+//      the safe one. A MALFORMED policy on a `spark`-plan row floors to zero (restrictive). But a MISSING
+//      row — or any non-Spark plan — returns `{ capped: false, allotment: 0 }`, i.e. UNCAPPED: the fully
+//      permissive answer. That is deliberate (an unknown tenant is not a confirmed Spark tenant, so there
+//      is nothing to meter), but it is the OPPOSITE of what §25 wrote, on exactly the missing-row case
+//      §18 exists for.
+//
+//   4. THE POOL-BINDING RESOLVER — the one §25 missed entirely. Eight call sites, all a bare
+//      `JSON.parse(row.policy) as { pool_binding?: string }`: agents/translator/billing `tenants.ts`
+//      (resolve + enumerate each) and api `provision.ts` (claim + resolve).
+//      → A FOURTH direction, and it is split: on RESOLVE it throws `UNKNOWN_TENANT` (refuse-routing); on
+//        ENUMERATE (`claimedTenantSlugs`) it SILENTLY SKIPS the tenant, dropping it from every cron sweep.
+//      This is the most security-relevant read of the column — it decides which physical D1 a slug maps
+//      to (REQ-025) — and it is the mis-keyed-cast shape the Zod schema here was added to close,
+//      duplicated eight times. §29's HIGH (a claimed-pool tender 500ing the VAN) is a direct consequence:
+//      the translator preflight was placed AFTER this reader because the enumeration did not include it.
+//
+// The differences are not sloppiness; they are the direction each default moves ITS consumer. A reader who
+// pattern-matches without re-deriving that will unify these and silently break one: flooring here
+// re-opens the §15 disclosure; refusing in the entitlement readers turns a missing flag into an outage.
+// If you touch this, re-derive per consumer first; the reasoning is in the audit at §15a/§18/§25/§30.
 // The SHAPE of the knobs that actually steer a gate. `.passthrough()` is deliberate — a tenant policy
 // carries tenant-specific keys this package has no business enumerating (hazmat_enabled, pool_binding, …),
 // and refusing those would break every tenant. What IS pinned is that the gate-bearing keys, WHEN PRESENT,

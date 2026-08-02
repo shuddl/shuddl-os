@@ -1334,3 +1334,71 @@ lost the trust of one gate. Recorded as a known, reasoned gap rather than re-lit
 | 5 | The `TenantPolicy` **type** was not deduplicated even though the predicate was (three partial copies) | Low |
 
 **Verification.** typecheck 0, lint 0, api 66 files / 730 (×2, deterministic order), citations OK.
+
+---
+
+## §29–§30 — Iteration 24 (2026-08-02): the second review, and the finding my own enumeration caused
+
+The second review landed while I was mid-fix on the claimed-pool gap. It found that gap **independently**
+(its HIGH-1), found two problems in the in-flight fix itself, and — the one that matters most — showed that
+the gap existed *because* of a false claim I had written two sections earlier.
+
+### §29 — the claimed-pool resolution gap, and the silent drop in my first fix
+
+§19 placed the policy preflight beside the cert gate, 36 lines below `tenantDbFor`. For a **static** tenant
+that is fine (a map lookup that cannot throw). For a **claimed pool tenant** `tenantDbFor` is
+`resolveClaimedTenantDb`, which reads **the same `tenants.policy`** with a bare `JSON.parse` and throws
+`UNKNOWN_TENANT` — *before* the preflight. Uncaught, that is a **500 to the VAN**: the exact retry-storm §19
+claims to close, for the exact corruption §19 names as the threat. The §19 test used `tenant-a`, a static
+slug — the one path where the fix works — which is why it passed with the hole open.
+
+Now guarded: resolution failure returns a deterministic **422**, never 5xx.
+
+**My first cut of that guard broke a stated law of the module.** It returned 422 and discarded the tender —
+trading a retry-storm for a **lost document**, which is the worse failure and the one `CLAUDE.md` #10 and
+this handler's own header explicitly forbid ("NEVER A SILENT DROP"). It cannot quarantine (the anomalies row
+needs the tenant D1, which is what failed to resolve) — but the raw bytes never needed it: the R2 key is
+`edi/<slug>/…`, keyed by slug alone. The bytes are now preserved at `edi/<slug>/unresolvable/<partner>/<isa>`
+before the refusal, best-effort so an R2 fault cannot turn a deterministic 4xx back into a 5xx. The decode
+and ISA extraction moved above the guard (both pure) so the key can carry the ISA and a redelivery
+overwrites instead of accumulating one object per attempt.
+
+### §30 — the enumeration that caused the gap
+
+§25 documented "three parsers of `tenants.policy`, enumerated and verified". **Both halves were wrong.**
+
+There are **four reader families across twelve call sites**. The one I missed is the pool-binding resolver —
+eight bare `JSON.parse(row.policy) as { pool_binding?: string }` sites across agents/translator/billing
+`tenants.ts` and api `provision.ts`. It has a **fourth direction, itself split**: on RESOLVE it throws
+`UNKNOWN_TENANT`; on ENUMERATE it **silently skips the tenant**, dropping it from every cron sweep. It is
+also the most security-relevant read of the column — it decides which physical D1 a slug maps to (REQ-025) —
+and it is the mis-keyed-cast shape `parseTenantPolicy`'s Zod schema was added to close, duplicated eight
+times.
+
+And the direction I gave for `resolveSparkPlan` was **backwards**: a malformed policy on a `spark` row does
+floor to zero, but a **missing row returns `{capped:false}` — uncapped, the fully permissive answer**. That
+is deliberate (an unknown tenant is not a confirmed Spark tenant), but §25 asserted the opposite, on exactly
+the missing-row case §18 exists for.
+
+**The causal link is the lesson.** §29's HIGH is not an unrelated bug that happened to turn up later. The
+translator preflight was placed *after* the pool-binding reader **because my enumeration did not contain
+it** — I checked three readers, concluded the picture was coherent, and sited a security guard on that
+picture. An enumeration asserted as complete is load-bearing in a way an ordinary comment is not: everything
+downstream is reasoned about as if the list were exhaustive. Writing "enumerated and verified" without
+having grepped for every reader of the column is how a documentation error becomes a 500 on a money path.
+
+The comment now names four families, twelve sites, both Spark directions, and keeps both corrections visible
+rather than quietly restating the conclusion.
+
+### Still open from the second review
+
+| # | Finding | Severity |
+|---|---|---|
+| 1 | The queue classifier is an **unshared string literal** (`/tenant policy malformed/i`) while the repo has the `GATE_BLOCKED_PREFIX` precedent four lines away in `booking.ts`; the test hardcodes the same literal, so a reword leaves the branch dead AND the test green. (The review's probe with a real cross-script DO confirmed the message *does* survive the RPC boundary, so the branch is live.) | Med |
+| 2 | The refusal log names the wrong cause — "unparseable, null, an array, or a non-object" for what is now also a *shape* rejection; it should log the failing key paths | Med |
+| 3 | The `policyRow === null` branch in the preflight is **unreachable** (auth joins `pairings → tenants`, so a missing row 401s first — test (h2) asserts exactly that) and its comment claims to cover it | Low |
+| 4 | Three reads of one control row per inbound 204 (auth join, `tenantDbFor`, preflight) | Low |
+| 5 | `contain` makes a top-level sweep fault invisible to the platform — previously it rejected `scheduled()` and marked the invocation errored; consider an `AggregateError` rethrow after all eight run | Low |
+| 6 | The watchtower re-upsert sits outside the containment `try/catch`; `edi_tenant_policy_unusable` is stamped `warn` per `(partner, ISA13)`; the `TenantPolicy` **type** is still triplicated | Low |
+
+**Verification.** contracts 282, translator 94, agents 106, api 730; typecheck 0, lint 0.
