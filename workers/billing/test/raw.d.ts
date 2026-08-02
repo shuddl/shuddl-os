@@ -4,3 +4,9 @@ declare module "*?raw" {
   const content: string;
   export default content;
 }
+
+// Vite import.meta.glob, typed for the roster-regression pin (claimed-tenants.test.ts). The call must
+// stay a literal import.meta.glob(...) — Vite transforms it statically.
+interface ImportMeta {
+  glob(pattern: string, opts: { query: string; import: string }): Record<string, () => Promise<unknown>>;
+}

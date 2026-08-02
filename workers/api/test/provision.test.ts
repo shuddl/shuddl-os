@@ -160,12 +160,26 @@ describe("flag ON — claim provisions an isolated tenant atomically (REQ-121/02
     expect(u?.role).toBe("admin");
     expect(u?.email).toBe("admin@prov-acme.test");
 
-    // an initial usage_credits row (the metering seed, REQ-123 lives on the platform tenant; this is the
-    // per-tenant meter row) exists for the period
-    const uc = await env.CONTROL_DB.prepare("SELECT tenant_id, period FROM usage_credits WHERE tenant_id = ?")
-      .bind(out.tenant_id)
-      .first<{ tenant_id: string; period: string }>();
+    // An initial usage_credits row (the metering seed, REQ-123 lives on the platform tenant; this is the
+    // per-tenant meter row) exists for the period — keyed the way its OTHER TWO WRITERS key it.
+    //
+    // 2026-08-02 §13: this assertion used to read `WHERE tenant_id = out.tenant_id` (the pool SLOT id) and
+    // so encoded a real divergence instead of catching it. The billing metering sweep and the Stripe credit
+    // stamp both write id=`<slug>:<period>`, tenant_id=<slug>, and both upsert `ON CONFLICT(id)` — so a
+    // provisioning row under the slot id could never merge: the claimed tenant carried TWO rows, and the one
+    // provisioning made was permanently empty (the sweep's `metered` and billing's `stripe_refs` landed on
+    // the other). Pin the SHARED shape here, in the writer that had drifted.
+    const uc = await env.CONTROL_DB.prepare("SELECT id, tenant_id, period FROM usage_credits WHERE tenant_id = ?")
+      .bind(out.slug)
+      .first<{ id: string; tenant_id: string; period: string }>();
     expect(uc?.period).toBe("2026-07");
+    expect(uc?.id).toBe(`${out.slug}:2026-07`);
+    expect(uc?.tenant_id).toBe(out.slug);
+    // …and NOT under the slot id, which is what the divergence looked like.
+    const stale = await env.CONTROL_DB.prepare("SELECT id FROM usage_credits WHERE tenant_id = ?")
+      .bind(out.tenant_id)
+      .first<{ id: string }>();
+    expect(stale, "a usage_credits row under the SLOT id is the §13 divergence").toBeNull();
   });
 
   it("the provisioned tenant is BINDABLE server-side and ISOLATED in both directions (REQ-025)", async () => {

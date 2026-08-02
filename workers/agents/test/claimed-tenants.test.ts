@@ -144,11 +144,15 @@ describe("source-level pins — no sweep may regress to the static roster (REQ-1
   it("NO src module iterates bare TENANT_SLUGS — every fan-out goes through allTenantSlugs (the review caught the ninth fan-out hiding in watchtower-snapshot.ts, which an index.ts-only pin could never see)", async () => {
     // The call must stay a LITERAL import.meta.glob — Vite transforms it statically (aliasing broke at
     // runtime); the type lives in raw.d.ts. Dynamic discovery is the point: a NEW module cannot escape.
-    const modules = import.meta.glob("../src/*.ts", { query: "?raw", import: "default" });
+    const modules = import.meta.glob("../src/**/*.ts", { query: "?raw", import: "default" });
     let fanouts = 0;
     for (const [path, load] of Object.entries(modules)) {
       const src = (await load()) as string;
-      expect(src.match(/of TENANT_SLUGS\b/g), `${path} iterates the static roster`).toBeNull();
+      // The matcher covers EVERY iteration form, not just for-of: a `TENANT_SLUGS.map(...)` fan-out
+      // (the shape Promise.all sweeps take) slipped straight through the for-of-only version. Spread and
+      // Set construction stay legal — tenants.ts itself builds allTenantSlugs out of them.
+      const ITERATES = /(?:\bof TENANT_SLUGS\b|TENANT_SLUGS\s*\.\s*(?:forEach|map|flatMap|reduce|some|every|entries|values|keys)\s*\()/g;
+      expect(src.match(ITERATES), `${path} iterates the static roster`).toBeNull();
       fanouts += (src.match(/allTenantSlugs\(/g) ?? []).length;
     }
     expect(fanouts).toBeGreaterThanOrEqual(9);

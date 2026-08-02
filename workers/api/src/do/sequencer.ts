@@ -1114,7 +1114,24 @@ export class ShipmentSequencer extends DurableObject<Env> {
       .bind(tenant)
       .first<{ plan: string; policy: string }>();
     this.entitlementRowCache = row ? { plan: row.plan, policy: row.policy } : { plan: "", policy: "{}" };
-    this.policyCache = row ? (JSON.parse(row.policy) as TenantPolicy) : {};
+    // A MALFORMED policy is the {} floor too (2026-08-02 §13). This parse was unguarded: one stray
+    // character in a hand-edited control row threw a SyntaxError out of #policy — which #append awaits
+    // BEFORE any gate — so EVERY append for that tenant 500'd, forever, and the translator's inbound-204
+    // chain would retry-storm against it. The comment above already promised a fail-closed floor for a
+    // MISSING row; a malformed one now takes the same floor, matching the discipline its two sibling
+    // readers of this column already state (spark-caps resolveSparkPlan, contracts readEntitlementPolicy).
+    // `JSON.parse("null")` is caught by the object check, not just the try — a null policy would defeat
+    // the `if (this.policyCache)` cache line above and re-read on every call.
+    this.policyCache = {};
+    if (row) {
+      try {
+        const parsed: unknown = JSON.parse(row.policy);
+        if (parsed !== null && typeof parsed === "object") this.policyCache = parsed as TenantPolicy;
+        else console.error(`sequencer: tenant ${tenant} policy is not an object — using the {} gate-knob floor`);
+      } catch (err) {
+        console.error(`sequencer: tenant ${tenant} has a MALFORMED policy — using the {} gate-knob floor (appends proceed; fix the control row):`, err);
+      }
+    }
     return this.policyCache;
   }
 

@@ -66,8 +66,9 @@ export function resolvePlatformTenantDb(env: BillingEnv): D1Database {
 //
 // The api worker + sequencer DO serve CLAIMED pool tenants; this worker must too, or their committed
 // events enqueue triggers it can only park and every sweep excludes them. The resolver MIRRORS
-// workers/api/src/provision.ts resolveClaimedTenantDb — same fail-closed contract, pinned by the pool
-// parity test the way the slug roster already is: a control row whose plan is NOT unclaimed/platform AND
+// workers/api/src/provision.ts resolveClaimedTenantDb — same fail-closed contract, pinned by
+// test/claimed-tenants.test.ts (2026-08-02 §13: this line once claimed a pin that did not exist, and
+// reverting the metering fan-out left all 45 billing tests green): a control row whose plan is NOT unclaimed/platform AND
 // whose policy.pool_binding is one of the static POOL_BINDINGS resolves; a sentinel, an unclaimed row,
 // an unknown slug, the platform tenant, or a misconfigured slot all throw UNKNOWN_TENANT. No
 // client-input → arbitrary-handle path: the binding key never comes from the wire, only from the

@@ -25,6 +25,14 @@ import type { Env } from "./index.js";
 // The static, code-reviewed allowlist of pool D1 binding keys. A control-plane pool_binding is honored ONLY if
 // it is one of these — the same defense the customer path gets from TENANT_BINDINGS. Grow it alongside the
 // wrangler slots + sentinel rows (0003_tenant_pool.sql).
+/** The usage_credits row identity — SHARED with the billing metering sweep and the Stripe credit stamp, so
+ *  the three writers of this row cannot drift (2026-08-02 §13: they had, and porting the sweep made it
+ *  active). Keep this the ONE definition; billing re-derives the same shape in its own metering module and
+ *  the parity is asserted there. */
+export function usageCreditsIdFor(tenantSlug: string, period: string): string {
+  return `${tenantSlug}:${period}`;
+}
+
 export const POOL_BINDINGS = ["TENANT_POOL_01_DB", "TENANT_POOL_02_DB"] as const;
 export type PoolBindingKey = (typeof POOL_BINDINGS)[number];
 
@@ -148,12 +156,26 @@ export async function provisionTenant(env: Env, input: ProvisionInput): Promise<
       .first<{ id: string; policy: string }>();
     if (!slot) break; // no unclaimed slot remains
 
-    const poolBinding = (JSON.parse(slot.policy) as { pool_binding?: string }).pool_binding;
+    // Guarded (2026-08-02 §13): an unguarded parse threw a raw SyntaxError out of provisionTenant for one
+    // malformed slot, which signup maps to a generic 500 instead of the ProvisionError its contract
+    // promises. A misconfigured slot is now a per-slot refusal, so the loop's next attempt can still find
+    // a healthy one rather than one bad row bricking signup.
+    let poolBinding: string | undefined;
+    try {
+      poolBinding = (JSON.parse(slot.policy) as { pool_binding?: string }).pool_binding;
+    } catch {
+      poolBinding = undefined;
+    }
     if (!poolBinding || !isPoolBinding(poolBinding)) {
       throw new ProvisionError("PROVISION_FAILED", `pool slot ${slot.id} has no valid pool_binding — pool is misconfigured`);
     }
     const newPolicy = JSON.stringify({ pool_binding: poolBinding });
-    const creditsId = `uc-${slot.id}-${billingPeriod}`;
+    // The meter row is keyed on the SLUG (2026-08-02 §13), the identity the metering sweep and the Stripe
+    // credit stamp both own (billing metering.ts usageCreditsId, credits.ts stampStripeRefs). It used to be
+    // keyed `uc-<slot.id>-<period>` with tenant_id = the pool sentinel — harmless while a claimed tenant was
+    // never swept, but porting the sweep made that divergence ACTIVE: the tenant would carry TWO rows, one
+    // of them permanently empty under a `_pool_0N` identity. One writer identity, one row per tenant-month.
+    const creditsId = usageCreditsIdFor(slug, billingPeriod);
 
     // ONE atomic batch (D1 wraps it in a single transaction; any failure rolls back ALL of it). The two
     // INSERTs are GATED on the flip winning — `WHERE EXISTS (the tenants row now carries OUR slug+plan)` —
@@ -175,7 +197,7 @@ export async function provisionTenant(env: Env, input: ProvisionInput): Promise<
             "INSERT INTO usage_credits (id, tenant_id, period, metered, stripe_refs) " +
               "SELECT ?, ?, ?, '{}', '{}' WHERE EXISTS (SELECT 1 FROM tenants WHERE id = ? AND slug = ? AND plan = ?)",
           )
-          .bind(creditsId, slot.id, billingPeriod, slot.id, slug, plan),
+          .bind(creditsId, slug, billingPeriod, slot.id, slug, plan), // tenant_id = the SLUG — one identity with the sweep + the Stripe stamp (§13)
       ]);
     } catch (e) {
       // The batch rolled back atomically (the flip is undone) — no half-claimed slot. A UNIQUE violation here is

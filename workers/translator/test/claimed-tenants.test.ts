@@ -108,11 +108,15 @@ describe("parity — the translator's pool allowlist matches the api's (the rost
 // ninth fan-out hiding outside index.ts, so this globs EVERY src module rather than naming one.
 describe("source-level pin — no translator fan-out may regress to the static roster (REQ-200/025)", () => {
   it("NO src module iterates bare TENANT_SLUGS; at least one fans out over allTenantSlugs", async () => {
-    const modules = import.meta.glob("../src/*.ts", { query: "?raw", import: "default" });
+    const modules = import.meta.glob("../src/**/*.ts", { query: "?raw", import: "default" });
     let fanouts = 0;
     for (const [path, load] of Object.entries(modules)) {
       const src = (await load()) as string;
-      expect(src.match(/of TENANT_SLUGS\b/g), `${path} iterates the static roster`).toBeNull();
+      // The matcher covers EVERY iteration form, not just for-of: a `TENANT_SLUGS.map(...)` fan-out
+      // (the shape Promise.all sweeps take) slipped straight through the for-of-only version. Spread and
+      // Set construction stay legal — tenants.ts itself builds allTenantSlugs out of them.
+      const ITERATES = /(?:\bof TENANT_SLUGS\b|TENANT_SLUGS\s*\.\s*(?:forEach|map|flatMap|reduce|some|every|entries|values|keys)\s*\()/g;
+      expect(src.match(ITERATES), `${path} iterates the static roster`).toBeNull();
       fanouts += (src.match(/allTenantSlugs\(/g) ?? []).length;
     }
     expect(fanouts).toBeGreaterThanOrEqual(1);
