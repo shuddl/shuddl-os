@@ -1511,3 +1511,49 @@ consolidate the fourth.**
 | 2 | `edi_tenant_policy_unusable` is `warn`, keyed per `(partner, ISA13)` — a tenant-wide outage mints one row per tender | Open — the severity vocabulary and the exceptions-queue grouping are a product decision, not a code fix |
 
 **Verification.** contracts 285, ledger 607, api 730, agents 106, translator 94; typecheck 0, lint 0.
+
+---
+
+## §33 — Iteration 27 (2026-08-02): I found the fourth one myself, by asking the reviewer's question
+
+Before the fourth review reported, I worked through the questions I had written *for* it — on the grounds
+that if I could only think to ask them of someone else, I could think to ask them of my own code. Two of
+them found something.
+
+### The `attempted` field lied exactly when the fallback worked
+
+§32 added `attempted` to the parity-drift alarm so "not attempted" and "not reported" would stop being
+indistinguishable. It derived the value like this:
+
+```ts
+attempted: seq !== undefined && (await resolveAuthority(db, module)) === "native",
+```
+
+That is a **second** call to `resolveAuthority`, made *after* the fallback ran. And a successful fallback
+**appends `authority.flipped → legacy`** — so the second call returns `"legacy"` and `attempted` reads
+**false precisely when the fallback succeeded.** It was correct only by accident in the failure path, where
+authority is still `native` — and the failure path is the one the existing test covered, which is why it
+shipped green.
+
+A reporting field that inverts on the outcome it exists to report is worse than no field: the alarm now says
+"drifting, and we did not even try" about a module that fell back correctly. The decision is now **captured**
+into `attemptedFallback` at the point it is made and reused. Mutation-proved against the success path in
+`workers/api/test/watchtower.test.ts`, which drives a real fallback end-to-end.
+
+**The general shape, and it is the third instance this session:** a value re-derived at a later point in the
+same function, where something in between changed the world. §13's `usage_credits` identity, §32's
+`attempted`, and the §20 `raiseAlarm` placement are all the same mistake — *reading state again instead of
+carrying the answer forward.* When the code between the two reads is the code whose effect you are reporting
+on, re-deriving is guaranteed to be wrong.
+
+### The AggregateError does not add a retry hazard — verified, not assumed
+
+"A throw here re-runs the whole tick" would be a real hazard (the anchor plus eight sweeps, replayed), so it
+was checked. Pre-§24 those sweeps were bare `await`s in the same `finally` **with no catch**, so a top-level
+throw already propagated out of `scheduled()`. §24 swallowed it — and in doing so silently downgraded a
+failed tick to a successful one. §32 restores the original propagation while adding the guarantee that all
+eight run first. The retry posture is therefore exactly what it was before §24, not something new.
+`AggregateError` was probed directly in the pool-workers runtime rather than inferred from the spec. Both
+facts are recorded in the source.
+
+**Verification.** agents 106, api 730 (incl. the new success-path assertions); typecheck 0, lint 0.

@@ -468,7 +468,13 @@ async function sweepParityDrift(
     // parity_drift anomaly id (the audit link). The Task-1 projection reverts authority_map to legacy.
     let didFallback = false;
     let fallbackError: string | undefined;
-    if (seq !== undefined && (await resolveAuthority(db, module)) === "native") {
+    // CAPTURE the decision — do not re-derive it later (2026-08-02 §33). A successful fallback APPENDS
+    // authority.flipped→legacy, so asking resolveAuthority again after the attempt returns "legacy" and any
+    // "did we try?" derived from it reads FALSE precisely when the fallback WORKED. The first cut of the
+    // `attempted` alarm field did exactly that: it was correct only by accident in the failure case, and
+    // inverted in the success case — a reporting field that lies about the outcome it exists to report.
+    const attemptedFallback = seq !== undefined && (await resolveAuthority(db, module)) === "native";
+    if (attemptedFallback) {
       // PER-MODULE FAULT CONTAINMENT: the alarm is ALREADY raised above, so a persistent append fault here must NOT
       // abort the sweep and skip every LATER module's raise/clear (a newly-drifting one would go unalarmed, a
       // reconverged one un-cleared). Log + CONTINUE — the deterministic per-episode fallback id makes a next-tick
@@ -510,7 +516,7 @@ async function sweepParityDrift(
       await raiseAlarm(db, id, "parity_drift", "module", module, "critical", {
         ...detail,
         fell_back: didFallback,
-        attempted: seq !== undefined && (await resolveAuthority(db, module)) === "native",
+        attempted: attemptedFallback,
         ...(fallbackError === undefined ? {} : { fallback_error: fallbackError, still_on_native: true }),
       });
     } catch (err) {

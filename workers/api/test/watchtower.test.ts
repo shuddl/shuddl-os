@@ -476,6 +476,16 @@ describe("Watchtower — parity_drift auto-fallback-to-legacy (REQ-008, the forc
     expect(a!.object_id).toBe(module);
     expect(JSON.parse(a!.detail)).toMatchObject({ module, drift_bps: p.drift_bps });
 
+    // 2026-08-02 §33 — the alarm must report the fallback OUTCOME truthfully, and this is the case where the
+    // first cut of that field lied. `attempted` was re-derived by calling resolveAuthority AGAIN after the
+    // attempt — but a SUCCESSFUL fallback appends authority.flipped→legacy, so the second call returns
+    // "legacy" and `attempted` read FALSE precisely when the fallback had worked. It was correct only by
+    // accident in the failure path (authority still native), which is the path the existing test covered.
+    const d1 = JSON.parse(a!.detail) as { fell_back?: boolean; attempted?: boolean; still_on_native?: boolean };
+    expect(d1.fell_back, "the fallback SUCCEEDED — the alarm must say so").toBe(true);
+    expect(d1.attempted, "…and must record that it was attempted, even though authority is now legacy").toBe(true);
+    expect(d1.still_on_native, "a successful fallback is not still on native").toBeUndefined();
+
     // (c) an authority.flipped{ reason:'drift', to:'legacy' } appended on t:root (source:'native' control event)
     const s1flips = flipsFor(s1, module);
     expect(s1flips.length).toBe(1);
