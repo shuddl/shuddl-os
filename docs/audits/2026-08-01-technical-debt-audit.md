@@ -1745,3 +1745,28 @@ that phrase in an email would mislabel a retriable failure as deterministic and 
 matches the structured field `"reason":"…"`, which survives RPC wrapping and cannot come from prose.
 
 **Verification.** contracts 285, translator 95, agents 106, api 730, billing 56; typecheck 0, lint 0.
+
+### §37 — the last review finding, and the older gap it exposed
+
+The review's final Low: the new `edi/<t>/unresolvable/…` key was an inline template literal with no builder
+and no isolation case, while `isolation.test.ts` pins `tenderKey`/`tenderPrefix`/`sent214Key` as exported
+builders precisely so a dropped `${tenant}` cannot slip through. The repo's own
+`prove-tenant-isolation-read-paths` discipline requires both.
+
+**Fixing it surfaced that `edi/<t>/quarantine/…` had the same gap since WP-12** — also inline, also
+unpinned, and much older than anything this session introduced. The review flagged the new one; the old one
+had been sitting behind the same blind spot the whole time. Both are now builders (`quarantineKey`,
+`unresolvableKey`) beside the existing three, and both are covered by isolation case (7).
+
+The case pins the property that actually matters rather than just the string shape: the discriminator is
+**partner-influenced** — an ISA13 read verbatim off the wire — so the test feeds it
+`"../../tenant-b/quarantine/p9/steal"` and asserts the object still lands under `edi/tenant-a/`. R2 keys are
+flat strings, so `..` is literal rather than traversal, but the guarantee worth pinning is structural: the
+discriminator is appended **after** the tenant segment and never interpolated before it, so no content in it
+can move an object out of its own tenant's prefix (REQ-025). Mutation-proved — dropping `${tenant}` from
+`unresolvableKey` fails the case.
+
+**Every finding from all four adversarial reviews is now closed.**
+
+**Verification.** translator 96 (incl. the new isolation case), contracts 285, agents 106, api 730,
+billing 56; typecheck 0, lint 0.

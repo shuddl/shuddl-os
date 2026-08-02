@@ -32,7 +32,7 @@ import type { RateRequest } from "@shuddl/rater";
 import { authoritativeSource, resolveAuthority } from "@shuddl/ledger/authority";
 import { mapTenderToBooking, LOAD_UNIQUE_REF_KEYS, ORDER_LEVEL_REF_KEYS, type BookingPlan } from "./core/map-204.js";
 import { quarantineDescriptor, type QuarantineRule } from "./core/quarantine.js";
-import { tenderKey } from "./sweep-214.js";
+import { tenderKey, quarantineKey, unresolvableKey } from "./sweep-214.js";
 import { allocatePartnerControls, PartnerControlError } from "./partners.js";
 import { loadTenantRatingConfig } from "./rate-config.js";
 import { TransportError, type EdiTransport } from "./transport.js";
@@ -200,7 +200,7 @@ async function quarantine(
   err: unknown,
   rule: QuarantineRule,
 ): Promise<Response> {
-  const r2Key = `edi/${tenantSlug}/quarantine/${partnerId}/${isaControl}`;
+  const r2Key = quarantineKey(tenantSlug, partnerId, isaControl);
   const descriptor = quarantineDescriptor({
     partnerId,
     isaControl,
@@ -383,7 +383,7 @@ export async function handleInbound204(request: Request, deps: InboundDeps): Pro
     // document identity: two distinct unresolvable tenders sharing one (a rolled-over counter, a test
     // partner pinned at 000000001) silently overwrote each other. Truncate the tail and append a body hash,
     // so redelivery still overwrites (same bytes ⇒ same key) while a DIFFERENT document cannot.
-    const r2Key = `edi/${tenantSlug}/unresolvable/${partnerId}/${isaControl.slice(0, 64)}-${(await sha256Hex(raw)).slice(0, 16)}`;
+    const r2Key = unresolvableKey(tenantSlug, partnerId, `${isaControl.slice(0, 64)}-${(await sha256Hex(raw)).slice(0, 16)}`);
     try {
       const capped = rawBytes.byteLength > MAX_BODY_BYTES ? rawBytes.slice(0, MAX_BODY_BYTES) : rawBytes;
       await deps.evidence.put(r2Key, capped);

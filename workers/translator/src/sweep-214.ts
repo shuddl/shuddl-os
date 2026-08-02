@@ -47,6 +47,22 @@ export function sent214Key(tenant: string, dedupeKey: string): string {
   return `edi/${tenant}/214/${dedupeKey}`;
 }
 
+// The two REFUSAL key builders (2026-08-02 §37). Both were inline template literals in inbound.ts with no
+// builder and no isolation case, so the prefix-regression net below could not see them — and per this
+// repo's prove-tenant-isolation-read-paths discipline, a tenant-scoped R2 key needs both. The
+// `unresolvable` one is newer (§29) but the `quarantine` one has been inline since WP-12.
+//
+// The DISCRIMINATOR is caller-supplied and partner-influenced (an ISA13 off the wire, or an ISA13 plus a
+// body hash). It is appended AFTER the tenant segment and never interpolated before it, so no discriminator
+// content — however long or however many slashes it contains — can move an object out of its own tenant's
+// prefix. That is the property the isolation case pins.
+export function quarantineKey(tenant: string, partnerId: string, discriminator: string): string {
+  return `edi/${tenant}/quarantine/${partnerId}/${discriminator}`;
+}
+export function unresolvableKey(tenant: string, partnerId: string, discriminator: string): string {
+  return `edi/${tenant}/unresolvable/${partnerId}/${discriminator}`;
+}
+
 // The tender marker body — Zod at the boundary (`.strict()`: an unknown field is a hard reject, never a
 // silent pass-through). Task 8 writes this; this sweep reads it, so validating here catches a malformed marker
 // as a per-shipment skip rather than a thrown sweep.

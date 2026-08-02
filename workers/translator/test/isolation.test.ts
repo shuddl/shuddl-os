@@ -5,7 +5,7 @@ import { EventInput } from "@shuddl/contracts";
 import controlSql from "../../../db/control/migrations/0001_control.sql?raw";
 import { handleInbound204, StaticSecretResolver, INBOUND_204_PATH, type InboundDeps, type SeqStubLike } from "../src/inbound.js";
 import { RecordingTransport } from "../src/transport.js";
-import { run214Sweep, sweepTenant214, tenderKey, tenderPrefix, sent214Key } from "../src/sweep-214.js";
+import { run214Sweep, sweepTenant214, tenderKey, tenderPrefix, sent214Key, quarantineKey, unresolvableKey } from "../src/sweep-214.js";
 import { allocatePartnerControls } from "../src/partners.js";
 import { resolveTenantDb, tenantDb } from "../src/tenants.js";
 import { applyAll, seedEdiPartner, seedEvent, resetCounter } from "./helpers.js";
@@ -444,5 +444,27 @@ describe("REQ-025 — EDI R2 key builders embed the tenant slug", () => {
     expect(tenderKey("tenant-a", "s1")).not.toBe(tenderKey("tenant-b", "s1"));
     expect(sent214Key("tenant-a", "k1")).not.toBe(sent214Key("tenant-b", "k1"));
     expect(tenderPrefix("tenant-a")).not.toBe(tenderPrefix("tenant-b"));
+  });
+
+  // 2026-08-02 §37 — the two REFUSAL keys. Both were inline template literals in inbound.ts with no
+  // builder and no case here, so this net could not see them: quarantine since WP-12, unresolvable since
+  // §29. A review flagged the newer one; the older had the same gap.
+  it("(7) quarantineKey / unresolvableKey embed the tenant, and NO discriminator content can escape it", () => {
+    expect(quarantineKey("tenant-a", "p1", "000000001")).toBe("edi/tenant-a/quarantine/p1/000000001");
+    expect(unresolvableKey("tenant-a", "p1", "000000001-abcdef")).toBe("edi/tenant-a/unresolvable/p1/000000001-abcdef");
+    expect(quarantineKey("tenant-a", "p1", "x")).not.toBe(quarantineKey("tenant-b", "p1", "x"));
+    expect(unresolvableKey("tenant-a", "p1", "x")).not.toBe(unresolvableKey("tenant-b", "p1", "x"));
+
+    // THE LOAD-BEARING PROPERTY (REQ-025). The discriminator is partner-influenced — an ISA13 read verbatim
+    // off the wire. It is appended AFTER the tenant segment, so however many slashes or traversal-looking
+    // segments it carries, the object still lands under its OWN tenant prefix: a crafted ISA cannot make a
+    // tenant-a refusal appear in a tenant-b listing. (R2 keys are flat strings, so .. is literal, not a path.)
+    const hostile = "../../tenant-b/quarantine/p9/steal";
+    for (const k of [quarantineKey("tenant-a", "p1", hostile), unresolvableKey("tenant-a", "p1", hostile)]) {
+      expect(k.startsWith("edi/tenant-a/"), k + " must stay under its own tenant prefix").toBe(true);
+      expect(k.startsWith("edi/tenant-b/")).toBe(false);
+    }
+    // …and the partnerId segment is likewise after the tenant (it comes from the pairing row, but pin it).
+    expect(quarantineKey("tenant-a", hostile, "x").startsWith("edi/tenant-a/")).toBe(true);
   });
 });
