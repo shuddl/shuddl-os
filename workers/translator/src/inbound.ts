@@ -341,12 +341,28 @@ export async function handleInbound204(request: Request, deps: InboundDeps): Pro
   try {
     db = await deps.tenantDbFor(tenantSlug);
   } catch (err) {
-    // NEVER A SILENT DROP (CLAUDE.md #10 / the Migrator rule, and this module's own stated law). The first
-    // cut of this guard returned 422 and discarded the tender — trading a retry-storm for a LOST DOCUMENT,
-    // which is the worse of the two failures and the one this handler explicitly forbids. It cannot
-    // quarantine (the anomalies row needs the tenant D1, which is exactly what failed to resolve), but the
-    // RAW BYTES do not need it: the R2 key is `edi/<slug>/...`, keyed by slug alone. So preserve them, then
-    // refuse. Best-effort — an R2 fault must not turn a deterministic 4xx back into a 5xx retry-storm.
+    // NO DATA LOSS — but NOT a full quarantine, and the difference is stated rather than glossed (§34).
+    //
+    // The first cut of this guard returned 422 and discarded the tender, trading a retry-storm for a LOST
+    // DOCUMENT — the worse failure, and the one CLAUDE.md #10 / the Migrator rule and this module's own
+    // header forbid. The raw bytes are now preserved, and they do not need the tenant D1: the R2 key is
+    // keyed by slug alone.
+    //
+    // What this does NOT do is what `quarantine()` does — write an `anomalies` row. It cannot: that row
+    // lives in the tenant D1, which is precisely what failed to resolve. So the tender survives but does NOT
+    // surface on the exceptions queue; the only active signal is the loud log below. That is an honest
+    // partial: the DATA-LOSS half of the law is satisfied, the DISCOVERABILITY half is not.
+    //
+    // It is acceptable HERE and nowhere else, for a specific reason: this branch means the tenant cannot be
+    // resolved at all, so every append for it is already being refused and every tender already 422s — the
+    // tenant is comprehensively down and will be noticed for reasons much louder than one missing queue row.
+    // If a future change makes this branch reachable for a HEALTHY tenant, that reasoning evaporates and the
+    // anomaly must find another home (the control plane) before it does.
+    //
+    // Isolation holds regardless of the ISA content (REQ-025): `tenantSlug` and `partnerId` are read from
+    // the control-plane pairing row (`t.slug`, `p.id`), never from the client header, so the key is always
+    // under an AUTHENTICATED tenant prefix — a crafted ISA cannot make it match another tenant's listing.
+    // Best-effort — an R2 fault must not turn a deterministic 4xx back into a 5xx retry-storm.
     const r2Key = `edi/${tenantSlug}/unresolvable/${partnerId}/${isaControl}`;
     try {
       const capped = rawBytes.byteLength > MAX_BODY_BYTES ? rawBytes.slice(0, MAX_BODY_BYTES) : rawBytes;

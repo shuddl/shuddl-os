@@ -1596,3 +1596,39 @@ producer is now the single shared constant — so the looseness costs nothing an
 correctness.
 
 **Verification.** No code changed by this section; the `attempted` fix and its pin are §33.
+
+---
+
+## §34 — Iteration 28 (2026-08-02): my own comment claimed a law it only half-satisfied
+
+Continuing the self-check on §29's 422 path. Two questions; one clean, one an overclaim of mine.
+
+**Isolation holds regardless of the ISA content (REQ-025) — verified.** The R2 key is
+`edi/<tenantSlug>/unresolvable/<partnerId>/<isaControl>`, and `isaControl` comes off the wire. But
+`tenantSlug` and `partnerId` are read from the **control-plane pairing row** (`t.slug`, `p.id`), never from
+the client header — the header value is only ever a lookup key, and a miss is a 401. So the object always
+lands under an authenticated tenant prefix, and a crafted ISA (even one containing slashes) cannot make it
+match another tenant's prefix listing. R2 keys are flat strings, so `..` carries no traversal meaning either.
+
+**The overclaim.** The comment said preserving the bytes satisfied *"NEVER A SILENT DROP (CLAUDE.md #10 / the
+Migrator rule, and this module's own stated law)."* It does not, quite. This module's law is what
+`quarantine()` does — **an `anomalies` row AND the raw bytes**. The 422 path writes bytes and a log; it
+cannot write the anomalies row, because that row lives in the tenant D1 which is exactly what failed to
+resolve. So the tender survives but never reaches the exceptions queue: **the data-loss half of the law is
+satisfied, the discoverability half is not.**
+
+That is now what the comment says, along with why the partial is acceptable *here specifically*: this branch
+means the tenant cannot be resolved at all, so every append is already refused and every tender already
+422s — the tenant is comprehensively down and will be noticed for reasons far louder than one missing queue
+row. And the condition on that reasoning is written down: **if a future change makes this branch reachable
+for a healthy tenant, the justification evaporates and the anomaly needs another home before it does.**
+
+**This is the fourth comment of mine this session to claim more than the code delivered** — after "genuinely
+fail-closed" for the missing-row branch (§18), "pinned by the pool parity test" for a test that did not exist
+(§13), and "three parsers … enumerated and verified" when there were four (§30). The pattern is narrow and
+consistent: **the claim is written while thinking about the half of the problem being solved, and it
+silently annexes the half that is not.** I preserved the bytes, was thinking about data loss, and wrote the
+name of a law that also covers discoverability. Nothing in the code was wrong — only the sentence describing
+it, which is the artifact a future reader trusts instead of re-deriving.
+
+**Verification.** translator 94; typecheck 0, citations OK.
