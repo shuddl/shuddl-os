@@ -2960,3 +2960,54 @@ factual claim about repository state was corrected, which needs no register amen
 
 **Verification.** `packages/rater` 154 tests green; `check:fixtures` exit 0 local / exit 2 merge (unchanged —
 the correction describes the gate, it does not alter it); citations and tables PASS.
+
+---
+
+## §61 — my own §60 fix created a divergence, and rule 6 names a gate that does not exist
+
+Two consequences of §60, one of them self-inflicted.
+
+### 61.1 The correction was applied to the copy, not the source
+
+`CLAUDE.md` is **generated from `genesis/11-REPO-CLAUDE-MD.md`**, and that file carries the identical rule-4
+sentence at line 24. So §60 corrected the copy and left the source saying the false thing — meaning the next
+regeneration of `CLAUDE.md` would silently reintroduce the claim I had just removed, and the corrected file
+would look like the deviant one.
+
+That is the **fix-the-instance-not-the-class** pattern this audit has already recorded twice (§55 found a
+correction applied to one of three citation sites; the memory note `enumerate-callers-dont-generalize-the-fix`
+exists for it) — and I walked into it while fixing a record defect, which is the second time this loop that
+the act of correcting produced a new defect (§50 fused a table row while adding one; §58 incremented a wrong
+count while correcting it).
+
+Closed by annotating `genesis/11` with the same dated correction, phrased so the **law text is untouched** and
+only the parenthetical is marked wrong. The note says explicitly that `CLAUDE.md` is generated from it, so the
+two cannot drift apart again silently.
+
+### 61.2 Rule 6 lists four fixture gates; one of them does not exist
+
+*"Fixtures gate merges: legacy-export replay ±2% aggregate · **routes ±10%** · QB export reconciles to the
+penny · airplane-mode soak for driver flows."* Checked one by one:
+
+| Named gate | Reality |
+|---|---|
+| legacy-export replay ±2% | Real — `legacy-export-replay` in the manifest, `status: pending` (an owner hold, correctly reported) |
+| QB export reconciles to the penny | Real and **green** — `qb-journal-month` vendored with a sha256; `qb-journal.fixture.test.ts` 7 tests pass |
+| airplane-mode soak | Real and **green** — `airplane-soak`, `status: in-repo-test`; 2 tests pass |
+| **routes ±10%** | **Nothing.** No row in `fixtures/manifest.json`. No row in `fixtures/README.md` — *the very file rule 6 cites*. No REQ row. No routing, mileage, or distance capability anywhere in the register |
+
+The phrase traces to `genesis/11:26`, so it is inherited intent rather than a local invention — which makes it
+the owner's to resolve, not mine.
+
+**Deliberately NOT built.** `CLAUDE.md` is unambiguous: *if it isn't a REQ row, it doesn't get built; if you
+discover scope, ADD A ROW first.* Inventing a route-parity harness because a sentence names one would be
+precisely the straying this loop is instructed to avoid — and it would be worse than the gap, because then a
+gate WOULD report PASS for a property nobody specified. Recorded on the GO-LIVE checklist with the two
+dispositions available to the owner: add a register row if route/mileage parity is real scope, or strike the
+clause from `genesis/11` as vestigial.
+
+**Severity is Low and worth saying why:** a named gate that does not exist reports nothing, so there is no
+false green anywhere. The cost is a reader believing coverage exists — the same cost as §60, one tier quieter.
+
+**Verification.** `genesis/11` annotated; GO-LIVE row added; `packages/rater` 154, QB fixture 7, airplane soak
+2 — all green; tables and citations PASS.

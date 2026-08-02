@@ -22,6 +22,15 @@ Cloudflare Workers + Hono · D1 per-tenant (control plane separate) · R2 eviden
 2. **Events are append-only**: no UPDATE/DELETE paths on `events`, ever, including migrations. Corrections are new events (I3, I7).
 3. **Gates are server-side** (Gatekeeper); UIs merely reflect them. Any flow reachable by API must enforce the same gate (REQ-030).
 4. **No price on air**: missing weight/dims → UNKNOWN, no sell. (The 504-quote monotonic sweep and 48 engine tests ship in `fixtures/` and must stay green.)
+   > **FACTUAL CORRECTION 2026-08-02 (audit §60/§61) — the law is untouched; only the parenthetical was wrong.**
+   > Those two artifacts do **not** ship in `fixtures/`. `fixtures/manifest.json` marks `rater-504-sweep` and
+   > `rater-48-tests` `status: "pending"`, `sha256: null`, sourced from the engagement workspace
+   > (`manifest.private M-01`); `check:fixtures` reports `PENDING, executed: false, assertions: 0` and exits 2
+   > under `--mode merge` — one of the five private-fixture holds. What is green in-repo is
+   > `packages/rater/test/sweep.test.ts`, a representative **property** test (7 zones × 72 weights = 504 priced
+   > cells) proving the same monotonicity against tariffs this repo controls. The imperative — *no price on
+   > air* — stands exactly as written. `CLAUDE.md` carries the same correction; this note keeps the two from
+   > diverging, since `CLAUDE.md` is generated from this file and would otherwise reintroduce the claim.
 5. **Interline floors compare the executing share, never gross.** The $222,084/35-lb anomaly regression is permanent (REQ-040).
 6. **Fixtures gate merges**: legacy-export replay ±2% aggregate · routes ±10% · QB export reconciles to the penny · airplane-mode soak for driver flows (`fixtures/README.md`).
 7. **Design CI**: color/contrast/font/case/radius/shadow/motion audits + 5 blessed screenshots. `--signal-deep` is tuned by the contrast test, not by eye. **Advisory (report-only) until WP-10 exits, blocking thereafter (REQ-158).**
