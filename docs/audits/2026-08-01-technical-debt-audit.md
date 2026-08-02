@@ -179,6 +179,48 @@ may only stop — when all four are simultaneously true:
 4. **The record agrees with the world** — no ops document asserts a state the evidence record
    contradicts.
 
+**STATUS AT `14398fd` (2026-08-02, §21) — measured against those four conditions, one by one.**
+
+1. **Zero open repository-owned Critical/High: SATISFIED.** Every finding from the two adversarial
+   reviews of this session's own commits is closed — including the two the reviews found in *my* fixes
+   (the `{}` policy fallback that opened three gate knobs, §15→§18; and the missing-row branch four lines
+   below it that did the same, §18). All four §18 carry-forwards are closed (§19–§21). The two remaining
+   open Highs are unchanged and **External**: a real driver's custody handoff needs manifest party refs +
+   the deferred REQ-069 identity seam, and the live EDI adapter needs its transport credentials. The one
+   pre-R4 *repo* carry-forward is still **resolve-path pool-binding exclusivity** (§12) — a Med, dark
+   behind `PROVISIONING_ENABLED`, whose fix is a control-plane UNIQUE index, not a runtime check.
+
+2. **Baseline gates green: SATISFIED, with one exception that is not this loop's.** typecheck (0), lint
+   (0), invariants (21/22 tables), citations (946 resolve, ratchet at its frozen baseline), traceability
+   (no orphans), authority-coverage, rater-purity, runtime-contract, seed, design audit — all PASS. Suites:
+   api 66 files / 730 **×3 with a now-deterministic file order**, contracts 276, ledger 607, billing 56,
+   translator 93, agents 105, mcp 175, driver-core 39, rater 154, edi 38, adapters 38, map 84, design 9,
+   command 97, driver 54, portal 80. `check:fixtures` and the three parity gates remain PENDING on the five
+   named private-input holds — unchanged and by design.
+
+   **THE EXCEPTION:** `check:coverage` **FAILS** on an uncommitted `REQ-289` (GTM — "Pre-GTM Demand Lane",
+   `wp=GTM-0`, `status=ACTIVE`) added by the concurrent GTM workstream, which also breaks two
+   register-parser tests. Isolated by experiment (with the committed register, `test:tools` is 25 files /
+   672 PASS; with the row, exactly 3 fail and all name REQ-289). Adding a register row **is** the
+   documented way to introduce scope, so this is that workstream's decision to complete — it needs either
+   an active WP or a `coverage-manifest.json` disposition **from its owner**. Left untouched deliberately;
+   dispositioning it here would mean inventing intent. **This is the one thing standing between the tree
+   and a fully green gate set, and it is not repository-closable by this loop.**
+
+3. **Remaining debt External or CONFIRM-gated: SATISFIED** — every row in the checklist carries owner,
+   grade and expiry; the two no-gate holds (on-call rota, 7-year archive) are re-read here and unchanged.
+
+4. **The record agrees with the world: SATISFIED, and re-verified rather than assumed.** Three false
+   claims *written by this loop* were found and corrected in-place rather than quietly replaced: an
+   absolute "no roster instance remains anywhere" (§12), a comment asserting a parity pin that did not
+   exist (§13), and "api, agents, translator and billing all enumerate `allTenantSlugs`" (§15 — the api
+   worker has no `scheduled()` handler at all). Each correction names what was wrong and why, because a
+   record whose value is being true has to show its own errors.
+
+**So the loop is AT its stopping line for repository-owned work.** What remains is owner input: the five
+private-fixture holds, the two External Highs, the GTM workstream's own register row, and the R2→R5 grades
+that consume accounts, credentials, devices and counsel. Further iterations inside the repo would produce
+either scope-straying or gate-relaxing — both forbidden by `CLAUDE.md` and `genesis/00`.
 Beyond that line the build cannot advance itself: R2→R5 consume accounts, credentials, fixtures,
 devices, counsel, and owner decisions. Working past the line from inside the repo produces either
 scope-straying (building CONFIRM-gated features) or gate-relaxing (synthesizing private fixtures) —
