@@ -662,3 +662,148 @@ afterwards. It is a deliberate scope decision owned by that workstream — addin
 to introduce scope (`CLAUDE.md` source-of-truth §1) — so it is **left untouched here rather than
 dispositioned on a guess about its intent**. It needs either an active WP or a recorded-deferred disposition
 in `tools/traceability/coverage-manifest.json` from its owner. Flagged, not fixed, deliberately.
+
+---
+
+## §17 — Iteration 12 (2026-08-02): which gates can actually fail, and the flake that had a name
+
+§16 found a gate wired so it could never fire. That raised the systematic question: **how many of this
+repo's gates have ever been proved capable of saying no?** Mapped every `check:*`/`audit:*` script that
+resolves to a `tools/**` source — **16 of them** — to its test coverage by import graph. (Two false starts
+worth recording: a filename heuristic was too strict, since `orphans.ts` is covered by
+`traceability.test.ts` rather than `orphans.test.ts`; and a first count said "17 gates, 14 covered" because
+it swept in `test:tools`, which is a composite vitest invocation and not a gate with a source of its own.
+The number below is the recounted one.)
+
+**Thirteen are covered with real negative assertions. Three had none at all** — and they are exactly the
+three that are BLOCKED/PENDING on engagement fixtures that have never been vendored:
+
+| gate | source | negative coverage before |
+|---|---|---|
+| `check:rater-parity` | `tools/rater/parity.ts` | none — nothing imported it |
+| `check:invoice-parity` | `tools/rater/invoice-parity.ts` | none |
+| `check:concierge-parity` | `tools/concierge/parse-parity.ts` | none |
+
+That combination is the §16 shape waiting to happen. These harnesses have never executed against real
+inputs AND nothing proved their comparison logic works. On the day the owner vendors the fixtures, three
+gates flip from PENDING to blocking — and if a comparison is inverted, a tolerance backwards, or a field
+silently skipped, the gate either blocks a correct release or **certifies a wrong one**, with no evidence
+today that would say which.
+
+The private fixtures are not needed to answer that. Both rater harnesses take an **injectable price
+function** and `invoice-parity` ships an in-repo SMOKE set, so the detection logic is fully testable;
+the concierge harness needed its two pure comparators exported (the rater harnesses already export their
+run functions for exactly this reason). `tools/rater/parity-detection.test.ts` — **18 tests** — now pins
+that each gate can say no: one cent of sell divergence, a decisive status divergence, each floor compared
+individually, a hollow `PRICED` expectation refused, an UNKNOWN reason compared, a thrown comparison
+recorded as a mismatch rather than swallowed, accessorials compared as a set, and a queued reason that
+differs. Four mutations applied and each caught: `sell_cents` comparison disabled, exception-swallowing,
+`compareDecision`'s reason check disabled, `compareRequest`'s accessorials check disabled.
+
+What stays untestable without the fixtures is whether tenant-0's real numbers match — which is the gate's
+job, not this file's. **This file proves the gate is capable of refusing; only the fixtures can prove the
+tenant is correct.** That distinction is the whole point, and it is why the five private-input holds in §4
+are unaffected by this work.
+
+### The flake had a name, and it was the review's F4
+
+§15 recorded, honestly, an unidentified api-suite failure seen once in five runs. Captured properly this
+time — full output to a file per run rather than through a pipe — it reproduced on run 3 of 5 with **14
+failures across four files at once**: `plg-isolation-matrix`, `provision`, `signup` and `signup-to-quote.e2e`.
+Every one traced to a single root cause:
+
+> `ProvisionError: atomic claim failed and rolled back: D1_ERROR: UNIQUE constraint failed: usage_credits.id`
+
+That is **precisely** what the §15 review predicted as a latent consequence of the meter-identity change,
+and it was already live rather than hypothetical. The §15 fix purged only the slot's *current occupant*;
+`usage_credits` is keyed `<slug>:<period>`, so a row survives any reset that does not know both the slug and
+the period that wrote it. All four helpers now purge every non-static meter row — exact rather than broad,
+because nothing in `workers/api` writes a meter row for a static tenant (metering lives in the billing
+worker).
+
+**The lesson is about the earlier record, not the bug.** §15 wrote "an unidentified 1-in-6 flake … the next
+auditor should capture failures to a file rather than a pipe so an identity survives." Following that note
+one iteration later turned an anecdote into a named defect with a root cause in a single run. A flake
+recorded honestly with the technique to catch it is worth more than a flake dismissed as noise — and
+substantially more than one silently retried until green.
+
+---
+
+## §18 — Iteration 13 (2026-08-02): the review of the security fix found the same defect four lines below it
+
+The §15 fix refused a MALFORMED policy. Its own `else` branch handed a MISSING row the identical `{}` — the
+ceiling the refusal exists to prevent — under a comment I wrote asserting it was **"genuinely fail-closed:
+no tenant means no overrides to lose"**. That claim was false, and the review proved it by probe: with
+`visibility.freight.photographed = internal` an append stamps `internal`; DELETE the tenants row and the
+identical append stamps **`counterparty`**, permanently, with no log and no refusal. Same event kind, same
+widening, same immutability — reached through absence instead of corruption.
+
+It is reachable, not theoretical. A STATIC tenant resolves its D1 on the hot path with **no control-plane
+read**, so it appends happily with zero control rows; and **no migration creates a static tenant's row** —
+`0001` makes the table, `0002` inserts `_platform`, `0003` the pool sentinels. The row is hand-provisioned
+(`tools/deploy/staging-smoke.ts`, `test/helpers.ts`) and therefore hand-deletable, by exactly the operator
+whose hand-corruption the sibling branch defends against. The old split was also internally inconsistent: a
+missing row is fail-CLOSED for entitlements (`#entitlementRow` yields `plan:""`, so hazmat and SKU grant
+nothing) and was fail-OPEN for gates and visibility.
+
+Both branches now refuse, with **one carve-out**: the reserved platform tenant, resolved server-side with no
+slug input, whose ledger no customer path can reach and which has no counterparty lens — `{}` there widens
+nothing anyone outside the platform can read.
+
+**The guard found a real instance the moment it existed.** The api suite went red on `rate.test.ts`, and the
+cause was not the guard: **`tenant-b` — a fully bound static tenant — had no control row at all**. It had
+been appending with silently-widened visibility for as long as the fixture has existed, and nothing noticed
+because the sequencer fell back to `{}`. `ensureTenantBSchema` now seeds it, so the fixture reflects the
+invariant the sequencer enforces. **This is the operational prerequisite the change makes load-bearing: every
+bound tenant needs a `tenants` row before it can append.**
+
+### What else the review found, and what it says about this session
+
+Thirteen findings. Beyond the HIGH above, four were **my own tests that could not fail** — the exact class
+this session keeps closing, produced while closing it:
+
+- The billing "live round-trip" assertion was wrapped in `if (row)` and the sweep wrote **no** row, so both
+  assertions inside were unreachable. It now seeds a run first and asserts unconditionally.
+- The provisioning atomicity test pre-seeded a duplicate **email** and expected the batch to roll back — but
+  `provision.ts` runs an email PRE-CHECK before the claim loop, so `control.batch(...)` was never executed
+  and every "did it roll back?" assertion was vacuous. It now plants the `usage_credits` row the claim will
+  write, so the third batch statement violates `UNIQUE(id)` and the rollback is genuinely exercised; the
+  error CODE is pinned (previously any `ProvisionError` satisfied it) and the orphaned `users` row checked.
+  Mutation-proved with the exact mutation that defeated the old version.
+- The roster matcher — **on its fourth cut** — was defeated by a one-line `import {TENANT_SLUGS} from "…";
+  export const p = () => TENANT_SLUGS.map(f);` (the whole line was exempt because it *began* with an import)
+  and simultaneously produced false positives on a Prettier-wrapped multi-line import and on a `/** block
+  comment */` naming the roster. **A line was simply the wrong unit.** It now strips comments and
+  import/export STATEMENTS and scans the residue; all four cases verified — both escapes caught, both false
+  positives cleared.
+- The `#deviceKey` catch is defence-in-depth that is probably **not reachable** through its own query
+  (`je.value` comes out of `json_each`, so it parsed once already). Reverting it left the suite green, which
+  is true and expected. The comment now says so, and identifies the part that does earn its place: the
+  `?? null` collapses a missing `public_jwk` from `undefined` (cached and handed to the verifier, where the
+  failure is a crash) to null (an absent key, which is a refusal).
+
+**Deliberately ledgered, not fixed here** — each is real, none is a regression from this session's changes:
+
+1. **The translator retry-storm is reintroduced under a new name.** `handleInbound204` has no catch around
+   the append chain, so the new `VALIDATION_FAILED` escapes → 500 → the VAN retries forever, while
+   `persistParty`/`persistShipment`/the tender marker (written before the appends, direct to tenant D1)
+   accumulate — a projection with no ledger. The same file states the opposite law thirty lines up: *"a
+   DETERMINISTIC bad document — quarantine + 200, never a 5xx retry-storm."* A corrupt control row is as
+   deterministic as a malformed 204. Fix: classify it as a deterministic refusal → quarantine + 200.
+2. **`TenantPolicy` is a bare TS type, not a Zod schema**, against "Zod at every boundary". `{"gates":[1,2]}`
+   or a `{"gate":{…}}` typo passes the object check and then produces exactly the `{}` widening. A truncated
+   paste rarely parses; a **mis-keyed** one always does — and the mis-keyed one is the likelier ops error.
+3. **Watchtower swallows the refusal into a permissive path** (`watchtower.ts` drift fallback catches and
+   continues), so under a bad policy a module stays on `native` authority while drifting. Every other
+   append caller re-throws; this one needs the cause surfaced into the alarm row.
+4. **The api suite's file ORDER is randomized between runs** while 66 files share one control plane
+   (`isolatedStorage:false`, `singleWorker:true`), so greenness is partly a function of order. A second flake
+   cluster exists beyond §17's — `authority-flip.test.ts` returning 500, which two other files already
+   document in-repo as "a pool-workers reload flake". §17's cluster-B fix held over five clean runs; this
+   one is separate and untouched. Pinning `sequence.shuffle:false` would make runs reproducible.
+
+**The lesson.** §15 said a fix meant to close a fail-closed defect can open one. §18 is narrower and worse:
+**the fix closed the branch it was looking at and left the identical defect in the branch four lines below,
+then wrote a comment certifying that branch safe.** The comment is the dangerous artifact — it converts an
+unexamined branch into one a future reader will not re-examine. Tracing consumers is not enough if you only
+trace them for the code path you happened to be editing.
