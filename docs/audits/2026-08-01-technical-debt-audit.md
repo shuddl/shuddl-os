@@ -504,3 +504,89 @@ silently in a way the fix does not. A broken fix shows up as a failing test; a b
 nothing at all. Every pin added here was therefore mutated before it was trusted, and the two mutations
 that mattered (the fan-out revert and the `.map` form) both proved a pin that would otherwise have read
 as protection while protecting nothing.
+
+---
+
+## §14–15 — Iteration 10 (2026-08-02): the fix that opened the gate it was closing
+
+### §14 — one rule, written eight times
+
+`tenants.plan` carries two reserved values meaning "this row is not a billable customer": an `unclaimed`
+pool slot and the reserved `platform` tenant. Every claimed-tenant read must exclude both — on the resolve
+path and on the enumeration path that drives the metering sweep, the nine agent crons and the 214 sweep.
+It was written **seven times as a raw SQL string** across four workers, plus an eighth copy as a TypeScript
+`Set` in `provisionTenant`, with no parity pin anywhere.
+
+Nothing is broken today — all eight agree. But it is the precise shape of every divergence this audit has
+been closing, and its failure mode is expensive: add a `suspended` plan for a delinquent tenant to the api's
+literal and forget one worker, and billing keeps metering them while the translator keeps transmitting their
+EDI. The rule now has one home (`@shuddl/contracts`), the SQL is *derived* from the frozen array so the two
+cannot disagree, and each worker's source-glob pin bans an inlined copy. Mutation-proved: adding
+`'suspended'` to billing's own query fails the pin by name.
+
+### §15 — the review of the previous commit, and the security defect in it
+
+Ten findings. The first was mine, and it inverted the guard §13 had just shipped.
+
+**The `{}` fallback was a CEILING, not a floor.** §13 caught an unguarded `JSON.parse` on `tenants.policy`
+(one corrupt byte 5xx'd every append for that tenant, forever) and "fixed" it by falling back to `{}` and
+letting appends proceed — calling `{}` the gate-knob floor. Tracing all four consumers says otherwise:
+
+| knob | `{}` yields | direction |
+|---|---|---|
+| `gates.dims_required` (read `=== true`) | `false` | **looser** — drops the REQ-045 dims precondition |
+| `gates.geofence_radius_m` (`?? 150`) | 150 m | **looser** than any tighter tenant setting |
+| `visibility` (`policy?.[kind] ?? DEFAULTS[kind]`) | per-kind defaults | **looser** — drops every narrowing override |
+| `invoice_without_pod_classes` | `[]` | tighter, and unwired |
+
+The visibility row is the unrecoverable one. Visibility is stamped **on** the event at append time and events
+are immutable (I3/I7): a tenant who set `document.attached: internal` and then suffered one corrupt byte would
+have had those events stamped `counterparty` and exposed through the portal lens **permanently**. Repairing
+the control row cannot un-stamp a committed event. A loud 500 is a bad failure; a silent, permanent,
+irreversible disclosure is a far worse one. The append is now **refused** with a named `VALIDATION_FAILED` —
+the original fail-closed posture, with a cause an operator can act on.
+
+Two things about that fix are worth keeping. First, `Array.isArray` is not redundant in the object check:
+`typeof [] === "object"`, so a JSON array policy sailed through the first cut and appended `201`. **The test
+caught that, not the review and not me.** Second, the review proved that **both** of §13's HIGH fixes had zero
+tests — reverting either left 725/725 green — so that commit's own claim of "each mutation-proved" was false
+for two of five. `workers/api/test/tenant-policy-malformed.test.ts` closes it and is proved RED against
+*both* prior wrong answers.
+
+**The matcher, twice more.** §13's widened matcher still missed five real fan-out shapes: `[...TENANT_SLUGS]`,
+an alias variable, `Array.from()`, an index loop, and `TENANT_SLUGS.filter(…).map(…)` — the literal
+`Promise.all` sweep §13 claimed to have closed, defeated by one `.filter()` between the identifier and
+`.map(`. Enumerating legal forms is a losing game, so the rule was inverted to an allowlist: the roster
+identifier may appear only in `tenants.ts` and in genuine import/export statements. **The first cut of that
+rule exempted any line beginning with `export`**, so a probe carrying all five shapes passed 11/11. Tightened,
+then re-proved against the same probe.
+
+Also closed: `usageCreditsId` is now one definition in contracts (there were two, one of which called itself
+"the ONE definition"); the provisioning atomicity test asserted "no orphan rows" against a slot id no writer
+produces anymore, so its count was 0 unconditionally; all four `resetPool` helpers purged `usage_credits` by
+slot id and had therefore been purging nothing; `#deviceKey` carried the same unguarded parse twenty lines
+below the one §13 fixed, on the driver-auth path; and `GO-LIVE:379` claimed all four workers enumerate
+`allTenantSlugs` — false (the api worker has no `scheduled()` handler at all), and written in the paragraph
+that invokes the §12 lesson about over-broad claims.
+
+One fix was **written and reverted by a gate**: a clarifying note on the `usage_credits` DDL. The migration
+lock refused it — migrations are forward-only — which is the gate working. The note lives with the code.
+
+**Verification.** api 66 files / 729 PASS · contracts 276 · ledger 607 · billing 56 · translator 91 ·
+agents 105 · mcp 175 · driver-core 39 · rater 154 · edi 38 · adapters 38 · map 84 · design 9 · command 97 ·
+driver 54 · portal 80. Typecheck, lint, citations, invariants, coverage 288/288, traceability,
+authority-coverage green; `check:fixtures` and the three parity gates unchanged at PENDING on the five
+absent private inputs.
+
+**One observation left open, honestly.** In five full runs of the api suite, one run failed a single test
+whose identity I did not capture before the process exited; five subsequent full runs (three plain, two under
+the exact batch conditions) were clean, and the suite is 729/729 at this SHA. It is recorded here rather than
+dismissed: an unidentified 1-in-6 flake in a merge-gating suite is real, and the next auditor should capture
+failures to a file rather than a pipe so an identity survives.
+
+**Lesson.** §13's was that the artifact proving a fix can itself be wrong. §15's is sharper and less
+comfortable: **a fix written to close a fail-closed defect can open one**, and it will still look like a fix —
+it has a guard, a comment, a rationale, and a green suite. The only thing that distinguished the wrong answer
+from the right one was tracing every consumer of the value being defaulted and asking, per consumer, which
+direction the default moves. "Fail-closed" is not a property of catching an exception; it is a property of
+what the fallback VALUE means to each thing that reads it.
