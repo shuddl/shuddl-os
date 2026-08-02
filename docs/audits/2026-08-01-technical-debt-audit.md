@@ -1820,3 +1820,27 @@ can move an object out of its own tenant's prefix (REQ-025). Mutation-proved —
 
 **Verification.** translator 96 (incl. the new isolation case), contracts 285, agents 106, api 730,
 billing 56; typecheck 0, lint 0.
+
+### §39 — the re-derived-state lens, swept properly (a clean negative)
+
+§33 named a pattern behind three separate defects — **a value read twice in one flow, where code in between
+changed what the second read returns** (`usage_credits` identity §13, the `attempted` alarm field §32, the
+`raiseAlarm` placement §20). The pattern was named but never swept for, so it was.
+
+Scanned every non-test source file in `packages/ledger`, `packages/agents` and all five `workers/*/src` for
+the same `await`-ed read appearing more than once inside one function — `resolveAuthority`,
+`resolveTenantDb`, `parseTenantPolicy`, `computeModuleParity`, `loadTenantRatingConfig`, `allTenantSlugs`.
+**Eight candidates, zero genuine instances:**
+
+- Seven are `mountXRoutes()` resolving `resolveTenantDb` once per route handler. Same function *lexically*,
+  separate requests at runtime — not a re-derivation, just how the router is written.
+- The eighth is `sequencer.ts #append()` consulting `resolveAuthority(db, "dispatch")` twice, at `:698` and
+  `:725`. Those are the **mutually exclusive** `appointment.set` and `dispatch.assigned` branches; exactly
+  one runs per append, and neither is followed by a write that changes authority.
+
+So the three known instances were the population, not a sample. Worth recording as a negative for the same
+reason §26 was: the next reader should not have to re-run this to find out, and "we found three of these"
+invites an assumption that more are hiding.
+
+**The lens is now exhausted** — which, with every review finding closed and §4 re-measured by hand at
+`fb212fd`, is the honest end of repository-owned auditing for this loop.
