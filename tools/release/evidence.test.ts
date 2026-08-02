@@ -177,6 +177,20 @@ describe("parseMode / unavailableStatus — the local↔merge/release dispositio
     expect(parseMode(["--mode", "release"])).toBe("release");
     expect(parseMode(["--mode", "local"])).toBe("local");
   });
+  // 2026-08-01 convergence audit — a PRESENT but unrecognized --mode is MALFORMED, never a silent
+  // downgrade to advisory. The old coercion turned `--mode releas` into `local`, where every skippable
+  // gate's blocked prerequisite exits 0: a typo bought a green.
+  it("a typo'd or wrong-case --mode is MALFORMED — it never coerces to local", () => {
+    const seen: string[] = [];
+    const onMalformed = ((v: string) => {
+      seen.push(v);
+      return "local" as const; // stand-in for the CLI's process.exit, so the assertion can observe it
+    }) as unknown as (value: string) => never;
+    parseMode(["--mode", "releas"], onMalformed);
+    parseMode(["--mode", "Release"], onMalformed);
+    parseMode(["--mode"], onMalformed); // flag present, value missing
+    expect(seen).toEqual(["releas", "Release", ""]);
+  });
   it("local: an absent prerequisite is PENDING and exits 0", () => {
     expect(unavailableStatus("local")).toEqual({ status: "PENDING", exitCode: EVIDENCE_EXIT.OK });
   });

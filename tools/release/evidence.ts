@@ -136,10 +136,22 @@ export function evaluateEvidence(record: EvidenceRecord, ctx: PromotionContext, 
 
 // ── Gate mode + missing-prerequisite disposition ─────────────────────────────────────────────────────────
 
-export function parseMode(argv: string[]): GateMode {
+// ABSENT --mode ⇒ the documented `local` default (developer convenience). A --mode that is PRESENT but
+// unrecognized is a MALFORMED invocation, not a silent downgrade (2026-08-01 convergence audit): the old
+// coercion turned `--mode releas` or `--mode Release` into advisory `local`, where a blocked prerequisite
+// exits 0 — the same defaulted-mode shape audit row C2 closed at one call site, surviving in the shared
+// parser. `onMalformed` is injected so the pure parser stays testable; the CLI default exits MALFORMED.
+export function parseMode(argv: string[], onMalformed: (value: string) => never = exitMalformedMode): GateMode {
   const i = argv.indexOf("--mode");
-  const v = i >= 0 ? argv[i + 1] : undefined;
-  return v === "merge" || v === "release" || v === "local" ? v : "local";
+  if (i < 0) return "local";
+  const v = argv[i + 1];
+  if (v === "merge" || v === "release" || v === "local") return v;
+  return onMalformed(v ?? "");
+}
+
+function exitMalformedMode(value: string): never {
+  console.error(`--mode ${value === "" ? "(missing value)" : value}: expected merge | release | local. Refusing to downgrade to advisory mode.`);
+  process.exit(EVIDENCE_EXIT.MALFORMED);
 }
 
 // The one disposition rule the skippable gates share: a MISSING external prerequisite (no browser, no

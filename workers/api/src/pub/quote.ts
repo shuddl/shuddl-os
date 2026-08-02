@@ -58,13 +58,16 @@ const GuestDims = z
   })
   .strict();
 
+// Every field is BOUNDED (2026-08-01 convergence audit): this is an anonymous compute endpoint, and the
+// per-IP edge rule (REQ-193) limits request VOLUME, not per-request payload size — an unbounded zip or
+// accessorial list carried arbitrary bytes into the engine. Mirrors SignupBody's bounding discipline.
 const GuestQuoteBody = z
   .object({
-    origin_zip: z.string().min(1),
-    dest_zip: z.string().min(1),
+    origin_zip: z.string().min(1).max(16),
+    dest_zip: z.string().min(1).max(16),
     weight_lb: z.number().int().positive().optional(),
     dims: GuestDims.nullish(), // absent OR null ⇒ UNKNOWN missing_physics (the engine decides, not a 400)
-    accessorials: z.array(z.string()).optional(),
+    accessorials: z.array(z.string().max(64)).max(32).optional(),
   })
   .strict();
 
