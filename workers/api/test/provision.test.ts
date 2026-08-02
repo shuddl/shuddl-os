@@ -97,6 +97,28 @@ describe("flag OFF is the default — provisioning is dark, fail-closed (REQ-121
     expect(provisioningEnabled(env)).toBe(false);
   });
 
+  it("a STATIC roster slug can NEVER be claimed — slug shadowing is structurally refused (REQ-025, 2026-08-01 review)", async () => {
+    // Both resolvers are static-first, so a claimed row named "tenant-a" would make that customer's
+    // sessions and triggers resolve to the REAL static tenant's D1 — cross-tenant by shadowing. No prod
+    // migration seeds control rows for the static slugs, so SLUG_TAKEN's collision pre-check could never
+    // fire for them; the refusal must be structural, from the same roster the resolver consults.
+    for (const reserved of ["tenant-a", "tenant-b"]) {
+      let err: unknown;
+      try {
+        await provisionTenant(onEnv, baseInput(reserved, `admin@${reserved}.test`));
+      } catch (e) {
+        err = e;
+      }
+      expect(err).toBeInstanceOf(ProvisionError);
+      expect((err as ProvisionError).code).toBe("SLUG_TAKEN"); // the client sees the same 409 as any collision
+      // fail-closed: no pool slot was flipped by the attempt
+      for (const { id } of POOL_SLOTS) {
+        const row = await env.CONTROL_DB.prepare("SELECT plan FROM tenants WHERE id = ?").bind(id).first<{ plan: string }>();
+        expect(row?.plan).toBe("unclaimed");
+      }
+    }
+  });
+
   it("provisionTenant on the default env REFUSES with PROVISIONING_DISABLED and writes NOTHING", async () => {
     const before = await tenantRow("prov-dark");
     expect(before).toBeNull();

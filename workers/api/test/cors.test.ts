@@ -99,4 +99,13 @@ describe("prod serves ONLY the real deploy origins (2026-08-01)", () => {
     expect(effectiveOrigins("dev")).toEqual(CORS_ALLOWED_ORIGINS);
     expect(effectiveOrigins("staging")).toEqual(CORS_ALLOWED_ORIGINS);
   });
+
+  it("UNKNOWN fails CLOSED: an unset, typo'd, or unrecognized ENVIRONMENT serves the prod list, never the dev one", async () => {
+    // The review caught the first cut restricting only the literal "prod" — a scope that lost its [vars]
+    // would have served localhost from production. The dev list is now allowlisted, not the prod one.
+    const { effectiveOrigins } = await import("../src/middleware/cors.js");
+    expect(effectiveOrigins("")).toEqual(effectiveOrigins("prod"));
+    expect(effectiveOrigins("production")).toEqual(effectiveOrigins("prod"));
+    expect(effectiveOrigins("").some((o) => o.includes("localhost") || o.includes(".example"))).toBe(false);
+  });
 });

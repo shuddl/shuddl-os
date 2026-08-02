@@ -229,3 +229,19 @@ describe("parseStats reads Playwright's json report, never its prose", () => {
     expect(parseStats("")).toBeNull();
   });
 });
+
+describe("stampFieldProvenance — the surfaces record row names the zone it drove (2026-08-01 review)", () => {
+  const pass = { gate: "surfaces", status: "PASS", executed: true, assertions: 5, detail: "5 passed" } as const;
+
+  it("appends the zone for the surfaces label", async () => {
+    const { stampFieldProvenance } = await import("./playwright-guard.js");
+    expect(stampFieldProvenance({ ...pass }, "shuddl.tech").detail).toBe("5 passed — against shuddl.tech");
+  });
+
+  it("leaves every other gate and an unset zone untouched", async () => {
+    const { stampFieldProvenance } = await import("./playwright-guard.js");
+    expect(stampFieldProvenance({ ...pass, gate: "a11y" }, "shuddl.tech").detail).toBe("5 passed");
+    expect(stampFieldProvenance({ ...pass }, undefined).detail).toBe("5 passed");
+    expect(stampFieldProvenance({ ...pass }, "").detail).toBe("5 passed");
+  });
+});

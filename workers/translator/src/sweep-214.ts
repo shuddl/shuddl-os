@@ -17,8 +17,11 @@
 //        never leaves a phantom sent-marker and the next tick re-attempts.
 //
 // REQ-025 isolation: one tenant's D1 + its `edi/<tenant>/…` R2 key scope per iteration; the sweep never reads
-// or writes another tenant's namespace. LLM-free and deterministic (no Date, no random) — the whole 214 is a
-// pure function of the recorded events + the tender marker.
+// or writes another tenant's namespace. LLM-free and deterministic GIVEN ITS INJECTED CLOCK (no ambient Date,
+// no random — 2026-08-01: the send instant is a `now` input stamped into ISA09/ISA10/GS04/GS05, so the 214 is
+// byte-DETERMINISTIC, no longer byte-CONSTANT) — a pure function of the recorded events + the tender marker +
+// the send instant. No dedupe path compares wire bytes (the sent-marker check is R2 presence-only), and none
+// may be added that rebuilds bytes under a different clock.
 import { z } from "@shuddl/contracts";
 import type { EventKind } from "@shuddl/contracts";
 import { readEvents } from "@shuddl/ledger/lens";

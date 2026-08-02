@@ -2,6 +2,8 @@
 // drift, a tenant silently stops being anchored (its daily Merkle root never gets a TSA receipt). A
 // parity unit test (test/tenants-parity.test.ts) asserts the slug sets match, so drift fails CI.
 
+import { isPlatformTenant } from "@shuddl/contracts";
+
 export type AgentsEnv = {
   TENANT_A_DB: D1Database;
   TENANT_B_DB: D1Database;
@@ -93,28 +95,41 @@ async function resolveClaimedTenantDb(env: AgentsEnv, slug: string): Promise<D1D
 }
 
 /** The claimed-aware resolver: static allowlist hot path (no control-plane read), claimed-pool fallback.
- *  The platform tenant can never resolve on an agent path. */
+ *  The platform tenant can never resolve on an agent path — guarded via the SHARED contracts sentinel
+ *  (isPlatformTenant), the same source the api's resolver consults, so the two guards cannot drift. */
 export async function resolveTenantDb(env: AgentsEnv, slug: string): Promise<D1Database> {
-  if (slug === "_platform") throw new Error(`UNKNOWN_TENANT: ${slug}`);
+  if (isPlatformTenant(slug)) throw new Error(`UNKNOWN_TENANT: ${slug}`);
   const binding = TENANT_BINDINGS[slug];
   if (binding) return env[binding];
   return resolveClaimedTenantDb(env, slug);
 }
 
-/** Every claimed slug with a valid pool_binding — the cron sweeps' dynamic half. Server-side only. */
+/** Every claimed slug with a valid pool_binding — the cron sweeps' dynamic half. Server-side only.
+ *  EXCLUSIVITY is enforced fail-closed (2026-08-01 review): the one-tenant-per-pool-D1 model every sweep
+ *  and the un-tenant-scoped tenant schema depend on rests on control-plane DATA, and pool slots are grown
+ *  by hand-added ops rows — the exact vector for a duplicate. Two claimed rows naming ONE binding would
+ *  make every sweep run the same physical D1 twice under two identities (a cross-tenant read/write,
+ *  REQ-025), so BOTH slugs are dropped with a loud log until an operator fixes the rows. */
 export async function claimedTenantSlugs(env: AgentsEnv): Promise<string[]> {
   const rows = await env.CONTROL_DB
     .prepare("SELECT slug, policy FROM tenants WHERE plan NOT IN ('unclaimed','platform')")
     .all<{ slug: string; policy: string }>();
-  const out: string[] = [];
+  const byBinding = new Map<string, string[]>();
   for (const row of rows.results ?? []) {
     if (slugIsStatic(row.slug)) continue; // the static roster enumerates itself
     try {
       const poolBinding = (JSON.parse(row.policy) as { pool_binding?: string }).pool_binding;
-      if (poolBinding !== undefined && isPoolBinding(poolBinding)) out.push(row.slug);
+      if (poolBinding !== undefined && isPoolBinding(poolBinding)) {
+        byBinding.set(poolBinding, [...(byBinding.get(poolBinding) ?? []), row.slug]);
+      }
     } catch {
       // a malformed policy row is not a routable tenant; the resolver would refuse it the same way
     }
+  }
+  const out: string[] = [];
+  for (const [binding, slugs] of byBinding) {
+    if (slugs.length === 1) out.push(slugs[0]!);
+    else console.error(`agents: pool-binding exclusivity VIOLATED — ${binding} is claimed by ${slugs.length} tenants (${slugs.join(", ")}); ALL are excluded from sweeps until the control rows are fixed (one claimed row per pool binding, REQ-025)`);
   }
   return out;
 }

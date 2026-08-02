@@ -190,7 +190,9 @@ function main(): void {
   }
 
   console.log(`${label}: running Playwright harness (${configPath}${project ? ` --project ${project}` : ""}) [mode=${mode}${strict ? " --strict" : ""}] …`);
-  const { result, exitCode } = classifyRun(label, mode, strict, runPlaywright(configPath, project));
+  const classified = classifyRun(label, mode, strict, runPlaywright(configPath, project));
+  const { exitCode } = classified;
+  const result = stampFieldProvenance(classified.result, process.env["PROD_SURFACE_BASE"]);
 
   const human =
     result.status === "PASS"
@@ -204,6 +206,15 @@ function main(): void {
     console.error(`${label}: a merge/release gate does not green on an absent browser, an empty suite, or a skipped one.`);
   }
   process.exit(exitCode);
+}
+
+// 2026-08-01 review: a field gate's PASS must carry WHAT it proved — the surfaces record row previously
+// held only Playwright counters, so a prod-derived PASS was indistinguishable from any other zone's (the
+// same defect class stateProvenance closed for the preflight). The zone is not a secret; stamp it into the
+// persisted detail for the surfaces label. Pure + exported for its unit test.
+export function stampFieldProvenance(result: GateResult, zone: string | undefined): GateResult {
+  if (result.gate !== "surfaces" || zone === undefined || zone.length === 0) return result;
+  return { ...result, detail: `${result.detail} — against ${zone}` };
 }
 
 // Only run as a CLI — the pure classifier above is imported directly by the negative-control tests.

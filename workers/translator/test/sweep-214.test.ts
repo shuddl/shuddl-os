@@ -118,8 +118,10 @@ describe("REQ-200/204 — outbound 214 sweep with allocated control numbers", ()
     // (2026-08-01) the wire carries the REAL send instant, never the year-2000 fixture constants a partner
     // VAN would reject: ISA09/ISA10 from the injected clock, and no 000101/20000101 anywhere in the envelope.
     expect(first!.bytes).toContain("*260801*1200*U*");
-    expect(first!.bytes).not.toContain("000101");
-    expect(first!.bytes).not.toContain("20000101");
+    // delimiter-bounded (the review caught the bare substrings false-failing on a legitimate control
+    // number: "000000101" contains "000101") — anchor to the envelope date positions, like the positive.
+    expect(first!.bytes).not.toContain("*000101*0000*U*");
+    expect(first!.bytes).not.toContain("*20000101*0000*");
     expect(await readOutboundIsa(), "the counter advanced exactly once (41 → 42)").toBe(42);
 
     // the sent-record IS the R2 marker (the wire bytes, no new table).

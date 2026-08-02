@@ -4,6 +4,7 @@ import {
   checkDeployTarget,
   parseWranglerToml,
   resolveStatePath,
+  servedProdOrigins,
   stateProvenance,
   targetFromWrangler,
   REQUIRED_BINDINGS,
@@ -734,5 +735,34 @@ describe("the real repository configuration", () => {
       };
       expect(platform(billing), `PLATFORM_TENANT_DB diverges in ${scope}`).toBe(platform(api));
     }
+  });
+});
+
+describe("served-vs-state origin reconciliation (2026-08-01 review)", () => {
+  it("servedProdOrigins extracts exactly the product-zone https literals from the real committed source", () => {
+    const src = readFileSync("workers/api/src/middleware/cors.ts", "utf8");
+    expect(servedProdOrigins(src).sort()).toEqual([
+      "https://command.shuddl.tech",
+      "https://driver.shuddl.tech",
+      "https://portal.shuddl.tech",
+      "https://track.shuddl.tech",
+    ]);
+  });
+
+  it("BLOCKS a prod state origin the committed allowlist does not serve — the PASS may not assert what browsers cannot experience", () => {
+    const t = healthyTarget({
+      environment: "prod",
+      corsOrigins: ["https://command.shuddl.tech", "https://elsewhere.shuddl.tech"],
+      servedOrigins: ["https://command.shuddl.tech", "https://portal.shuddl.tech", "https://driver.shuddl.tech", "https://track.shuddl.tech"],
+    });
+    expect(blocks(t)).toContain("origin-not-served");
+  });
+
+  it("a fully-served prod state passes, and a missing servedOrigins (unreadable source) skips rather than blocks", () => {
+    const served = ["https://command.shuddl.tech", "https://portal.shuddl.tech", "https://driver.shuddl.tech", "https://track.shuddl.tech"];
+    const ok = healthyTarget({ environment: "prod", corsOrigins: [...served], servedOrigins: served });
+    expect(blocks(ok)).not.toContain("origin-not-served");
+    const skipped = healthyTarget({ environment: "prod", corsOrigins: ["https://command.shuddl.tech"] });
+    expect(blocks(skipped)).not.toContain("origin-not-served");
   });
 });

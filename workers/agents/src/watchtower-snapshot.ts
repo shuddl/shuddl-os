@@ -6,7 +6,7 @@
 // PUBLISHING (external) is CONFIRM-gated (Doc 12 §06) — NOT built here: the R2 manifest IS the telemetry.
 
 import { persistWatchtowerSnapshot, isSnapshotDay } from "@shuddl/ledger/watchtower-snapshot";
-import { TENANT_SLUGS, tenantDb, type AgentsEnv } from "./tenants.js";
+import { allTenantSlugs, resolveTenantDb, type AgentsEnv } from "./tenants.js";
 
 // Re-export the pure surface so the agents cron test (and any agents-side caller) has ONE import site; the
 // ledger module is the single source of truth for the compute/key/gate logic.
@@ -34,9 +34,11 @@ export {
 export async function runWatchtowerSnapshots(env: AgentsEnv, now: () => number = () => Date.now()): Promise<void> {
   const at = now();
   if (!isSnapshotDay(at)) return; // WEEKLY gate — only fires the snapshot on SNAPSHOT_DOW
-  for (const slug of TENANT_SLUGS) {
+  // Claimed-aware (2026-08-01 review of audit C3): this was the NINTH fan-out — the one that lived
+  // outside index.ts and escaped both the conversion and the source pin, which now scans this file too.
+  for (const slug of await allTenantSlugs(env)) {
     try {
-      const result = await persistWatchtowerSnapshot(env.EVIDENCE, tenantDb(env, slug), slug, { now: at });
+      const result = await persistWatchtowerSnapshot(env.EVIDENCE, await resolveTenantDb(env, slug), slug, { now: at });
       console.log(`watchtower-snapshot: tenant ${slug} → ${JSON.stringify(result)}`);
     } catch (err) {
       console.error(`watchtower-snapshot: tenant ${slug} failed (re-run next tick — the snapshot is idempotent):`, err);

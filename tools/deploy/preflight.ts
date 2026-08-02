@@ -51,11 +51,25 @@ export type DeployTarget = {
   // value only ever supplied by a test/canary check. Values are never logged.
   secrets: Record<string, string | undefined>;
   corsOrigins: string[];
+  /** The origins the COMMITTED worker code actually serves for this environment (extracted from
+   *  workers/api cors.ts by servedProdOrigins — 2026-08-01 review: the state file is operator-TYPED, so
+   *  without this a PASS could assert origins the deployed worker refuses). Optional: absent when the
+   *  source is unreadable (a state-only invocation), and the reconciliation is then skipped, never faked. */
+  servedOrigins?: string[];
   sender?: { from?: string; domainVerified?: boolean };
   tsa?: { url?: string };
   backups?: { lastManifestAt?: string; retentionDays?: number };
   now: string;
 };
+
+/** Extract the prod-effective served allowlist from the cors.ts SOURCE (no import — the middleware pulls
+ *  hono, and a deploy tool must not). Mirrors effectiveOrigins' prod filter: string literals inside the
+ *  file that are https origins under the product zone. The regex is deliberately narrow: a quoted literal,
+ *  scheme + host only. */
+export function servedProdOrigins(corsSource: string): string[] {
+  const literals = [...corsSource.matchAll(/"(https:\/\/[a-z0-9.-]+)"/g)].map((m) => m[1]!);
+  return [...new Set(literals.filter((o) => o.endsWith(".shuddl.tech")))];
+}
 
 // ── The contract ──────────────────────────────────────────────────────────────────────────────────────
 // What each worker role MUST have bound for its code to run. Derived from the Env types each worker
@@ -293,6 +307,17 @@ export function checkDeployTarget(target: DeployTarget): PreflightReport {
   for (const o of target.corsOrigins) {
     if (o === "*") add("wildcard-origin", "cors", "a wildcard origin defeats the tenant-scoped browser surface");
     else if (/\.example(\.|$)|example\.com/i.test(o)) add("placeholder-origin", "cors", `${o} is a placeholder origin`);
+  }
+  // Served-vs-state reconciliation (2026-08-01 review): the state file is operator-typed; the worker serves
+  // what its COMMITTED allowlist compiles. A prod state origin the code will not serve makes the PASS a lie
+  // about the one thing browsers experience — BLOCK it. Skipped (never faked) when the source was unreadable.
+  if (env === "prod" && target.servedOrigins !== undefined) {
+    for (const o of target.corsOrigins) {
+      checked += 1;
+      if (!target.servedOrigins.includes(o)) {
+        add("origin-not-served", "cors", `${o} is declared in the state file but the committed prod allowlist does not serve it (workers/api/src/middleware/cors.ts effectiveOrigins)`);
+      }
+    }
   }
 
   // ── sender ──
@@ -637,11 +662,21 @@ function main(): void {
     }
   }
 
+  // The committed served allowlist, for the prod served-vs-state reconciliation. Best-effort: an
+  // unreadable source skips the check with a warning rather than fabricating a served set.
+  let servedOrigins: string[] | undefined;
+  try {
+    servedOrigins = servedProdOrigins(readFileSync("workers/api/src/middleware/cors.ts", "utf8"));
+  } catch {
+    console.warn("preflight: workers/api/src/middleware/cors.ts unreadable — served-vs-state origin reconciliation skipped");
+  }
+
   const target: DeployTarget = {
     environment,
     workers,
     secrets: state.secrets ?? {},
     corsOrigins: state.corsOrigins ?? [],
+    ...(servedOrigins !== undefined ? { servedOrigins } : {}),
     ...(state.sender ? { sender: state.sender } : {}),
     ...(state.tsa ? { tsa: state.tsa } : {}),
     ...(state.backups ? { backups: state.backups } : {}),

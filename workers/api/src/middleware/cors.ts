@@ -32,14 +32,18 @@ export const CORS_ALLOWED_ORIGINS: readonly string[] = [
   "http://localhost:4322", // design / screenshot harness dev origin
 ];
 
-// 2026-08-01 audit (config-deploy) — the served list is ENV-AWARE. The full list above compiled into every
-// deploy, so prod served the two localhost dev origins and the two `.example` fixtures. Prod now serves
-// EXACTLY the real deploy origins; dev/staging keep the full development list (the screenshot/contract
-// harnesses assert against the fixtures, which is why they stay on the list at all). Exported pure so the
-// suite and the deploy tooling read the same law.
+// 2026-08-01 audit (config-deploy) — the served list is ENV-AWARE, and unknown fails CLOSED. The full list
+// above compiled into every deploy, so prod served the two localhost dev origins and the two `.example`
+// fixtures. The development list is now served ONLY for an explicitly recognized non-prod environment;
+// everything else — "prod", an UNSET var, a typo, a scope that lost its [vars] — gets exactly the real
+// deploy origins (the first cut restricted only the literal "prod", which the review caught failing OPEN
+// on a missing var — the direction the fail-closed law forbids). The `.example` fixtures stay on the dev
+// list because the screenshot/contract harnesses assert against them. Exported pure; its consumers are
+// the cors.test.ts pins and the deploy preflight's served-vs-state reconciliation.
 const PROD_ORIGIN = (o: string): boolean => o.startsWith("https://") && o.endsWith(".shuddl.tech");
+const DEV_ENVIRONMENTS = new Set(["dev", "staging"]);
 export function effectiveOrigins(environment: string): readonly string[] {
-  return environment === "prod" ? CORS_ALLOWED_ORIGINS.filter(PROD_ORIGIN) : CORS_ALLOWED_ORIGINS;
+  return DEV_ENVIRONMENTS.has(environment) ? CORS_ALLOWED_ORIGINS : CORS_ALLOWED_ORIGINS.filter(PROD_ORIGIN);
 }
 
 // Built on hono's own `cors` middleware (the idiomatic choice in the pinned hono@4.12 — it handles the

@@ -1,4 +1,5 @@
 import { z, assertNotPlatformTenant, proofToCashEnabled, assertProofToCashEntitled, type TenantEntitlementRow } from "@shuddl/contracts";
+import { TENANT_BINDINGS } from "./tenants.js";
 import { seedColdStartTariff } from "./tariff-seed.js";
 import type { Env } from "./index.js";
 
@@ -122,6 +123,17 @@ export async function provisionTenant(env: Env, input: ProvisionInput): Promise<
   // it collapse into the batch's 500 PROVISION_FAILED and 5xx-alert. This is a best-effort pre-check; the
   // atomic UNIQUE constraints below remain the integrity backstop for a TOCTOU race (re-classified in the
   // batch catch), so a concurrent claim is a 409 too — never a half-claim, never a 500.
+  //
+  // 5a. STATIC-ROSTER SHADOWING (REQ-025, 2026-08-01 review): every resolver is static-FIRST, so a claimed
+  // row named "tenant-a" would make that customer's sessions and triggers resolve to the REAL static
+  // tenant's D1 — cross-tenant by shadowing. No prod migration seeds control rows for the static slugs, so
+  // the row-collision check below can never fire for them; the refusal is STRUCTURAL, read from the same
+  // roster the resolver consults (TENANT_BINDINGS — the import is cyclic with tenants.ts but only consumed
+  // at call time, by when both modules are initialized). Surfaced as SLUG_TAKEN: to the client a reserved
+  // name and a taken name are the same 409, and no slug-existence oracle is added.
+  if (slug in TENANT_BINDINGS) {
+    throw new ProvisionError("SLUG_TAKEN", `workspace slug "${slug}" is a reserved static-roster tenant and can never be claimed`);
+  }
   const slugTaken = await control.prepare("SELECT 1 AS x FROM tenants WHERE slug = ?").bind(slug).first();
   if (slugTaken) throw new ProvisionError("SLUG_TAKEN", `workspace slug "${slug}" is already taken`);
   const emailTaken = await control.prepare("SELECT 1 AS x FROM users WHERE email = ?").bind(admin.email).first();

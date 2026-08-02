@@ -72,6 +72,18 @@ describe("claimedTenantSlugs / allTenantSlugs — the cron enumeration (REQ-169/
     expect(new Set(all).size).toBe(all.length);
   });
 
+  it("pool-binding exclusivity fails CLOSED — two claimed rows naming ONE binding exclude BOTH slugs with a loud log (REQ-025)", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    // ct-acme already claims TENANT_POOL_01_DB (beforeAll); this second row makes the binding ambiguous.
+    // isolatedStorage rolls this seed back after the test, so the duplicate never leaks into siblings.
+    await seedControlTenant(env.CONTROL_DB, { id: "ct-dup-1", slug: "ct-dup", plan: "pilot", policy: JSON.stringify({ pool_binding: "TENANT_POOL_01_DB" }) });
+    const claimed = await claimedTenantSlugs(env);
+    expect(claimed).not.toContain("ct-acme");
+    expect(claimed).not.toContain("ct-dup");
+    expect(claimed).toContain("ct-beta"); // the unambiguous binding is unaffected
+    expect(spy.mock.calls.some((c) => String(c[0]).includes("exclusivity VIOLATED"))).toBe(true);
+  });
+
   it("a control-plane fault yields the STATIC roster with a loud log — anchoring must never be hostage to enumeration", async () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     const broken = { ...env, CONTROL_DB: { prepare: () => { throw new Error("D1_DOWN"); } } } as unknown as AgentsEnv;
@@ -119,9 +131,18 @@ describe("queue() dispatch — a claimed tenant's trigger is ROUTED, never roste
 });
 
 describe("source-level pins — no sweep may regress to the static roster (REQ-169)", () => {
-  it("index.ts iterates NO bare TENANT_SLUGS — every fan-out goes through allTenantSlugs", () => {
+  it("NO src module iterates bare TENANT_SLUGS — every fan-out goes through allTenantSlugs (the review caught the ninth fan-out hiding in watchtower-snapshot.ts, which an index.ts-only pin could never see)", async () => {
+    // The call must stay a LITERAL import.meta.glob — Vite transforms it statically (aliasing broke at
+    // runtime); the type lives in raw.d.ts. Dynamic discovery is the point: a NEW module cannot escape.
+    const modules = import.meta.glob("../src/*.ts", { query: "?raw", import: "default" });
+    let fanouts = 0;
+    for (const [path, load] of Object.entries(modules)) {
+      const src = (await load()) as string;
+      expect(src.match(/of TENANT_SLUGS\b/g), `${path} iterates the static roster`).toBeNull();
+      fanouts += (src.match(/allTenantSlugs\(/g) ?? []).length;
+    }
+    expect(fanouts).toBeGreaterThanOrEqual(9);
     expect(indexSrc.match(/of TENANT_SLUGS\b/g)).toBeNull();
-    expect((indexSrc.match(/allTenantSlugs\(/g) ?? []).length).toBeGreaterThanOrEqual(8);
   });
 
   it("the agents POOL_BINDINGS allowlist mirrors the api's (same parity law as the slug roster)", async () => {
