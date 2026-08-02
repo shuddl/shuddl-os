@@ -55,8 +55,14 @@ async function resetPool(): Promise<void> {
     // run, so a future test claiming the same slug twice would hit UNIQUE(usage_credits.id) inside the
     // atomic batch and surface as PROVISION_FAILED rather than SLUG_TAKEN. Purge BOTH shapes: the slot id
     // (legacy rows) and whatever slug currently occupies the slot.
-    const occupant = await env.CONTROL_DB.prepare("SELECT slug FROM tenants WHERE id = ?").bind(id).first<{ slug: string }>();
-    await env.CONTROL_DB.prepare("DELETE FROM usage_credits WHERE tenant_id = ? OR tenant_id = ?").bind(id, occupant?.slug ?? id).run();
+    // Purge EVERY non-static meter row, not just this slot occupant (2026-08-02 §17). The narrower
+    // occupant-only purge still left rows behind and the api suite failed ~1 run in 5 with
+    // "UNIQUE constraint failed: usage_credits.id" inside the atomic claim — surfacing as PROVISION_FAILED
+    // across four files at once. usage_credits is keyed <slug>:<period>, so a row survives any reset that
+    // does not know the slug AND period that wrote it; the only reliable predicate is "not a static tenant".
+    // Nothing in workers/api writes a meter row for a static tenant (metering lives in the billing worker),
+    // so this is exact rather than broad.
+    await env.CONTROL_DB.prepare("DELETE FROM usage_credits WHERE tenant_id NOT IN (?, ?)").bind("tenant-a", "tenant-b").run();
     await env.CONTROL_DB
       .prepare("UPDATE tenants SET slug = ?, name = ?, plan = 'unclaimed', policy = ?, created_ts = 0 WHERE id = ?")
       .bind(id, `SHUDDL Pool Slot ${id}`, JSON.stringify({ pool_binding: binding }), id)
@@ -277,20 +283,35 @@ describe("the reserved platform + pool-sentinel ids can never be claimed as a cu
 
 // ---- ATOMICITY: a partial failure leaves NO half-claimed slot (the batch rolls back) ----------------
 describe("a partial failure rolls back — no half-claimed slot (REQ-121)", () => {
-  it("the admin-user INSERT failing aborts the whole claim; the slot stays unclaimed, no orphan rows", async () => {
-    // Pre-seed a users row with the email the claim will use → the claim's users INSERT hits UNIQUE(email)
-    // and the whole atomic batch (incl. the slot flip) rolls back.
-    await env.CONTROL_DB.prepare("INSERT OR IGNORE INTO users (id, tenant_id, email, role, auth, device_keys) VALUES (?,?,?,?,?,?)")
-      .bind("u-prov-dup", "t-a", "dup@prov-fail.test", "read", "{}", "[]")
+  it("a failure INSIDE the atomic batch aborts the whole claim; the slot stays unclaimed, no orphan rows", async () => {
+    // 2026-08-02 §18 — this test used to pre-seed a duplicate admin EMAIL and expect the batch's users
+    // INSERT to fail. It never reached the batch: provision.ts runs an email PRE-CHECK (SELECT 1 FROM users
+    // WHERE email = ?) before the claim loop and throws EMAIL_TAKEN first, so `control.batch(...)` was never
+    // executed and every "did the batch roll back?" assertion below was vacuous. Proved by hoisting the
+    // usage_credits INSERT out of the batch — a real orphan appeared and the test still passed.
+    //
+    // Force the failure where the test claims it happens: pre-insert the usage_credits row the claim will
+    // write, so the THIRD batch statement violates UNIQUE(id) and D1 rolls the batch back.
+    const PERIOD = baseInput("x", "x@x.test").period;
+    await env.CONTROL_DB.prepare("INSERT OR IGNORE INTO usage_credits (id, tenant_id, period, metered, stripe_refs) VALUES (?,?,?,'{}','{}')")
+      .bind(usageCreditsIdFor("prov-fail", PERIOD), "prov-fail", PERIOD)
       .run();
 
     let err: unknown;
     try {
-      await provisionTenant(onEnv, baseInput("prov-fail", "dup@prov-fail.test"));
+      await provisionTenant(onEnv, baseInput("prov-fail", "fresh@prov-fail.test"));
     } catch (e) {
       err = e;
     }
     expect(err).toBeInstanceOf(ProvisionError);
+    // Pin the CODE: without this, POOL_EXHAUSTED or an unrelated PROVISION_FAILED satisfies the assertion
+    // identically and the test stops being about atomicity at all.
+    expect((err as ProvisionError).code).toBe("PROVISION_FAILED");
+    // The admin user must NOT survive a rolled-back claim either.
+    const orphanUser = await env.CONTROL_DB.prepare("SELECT id FROM users WHERE email = ?")
+      .bind("fresh@prov-fail.test")
+      .first<{ id: string }>();
+    expect(orphanUser, "a rolled-back claim must leave NO users row").toBeNull();
 
     // no half-claim: no tenant row for the slug, both slots still unclaimed, no credits orphan
     expect(await tenantRow("prov-fail")).toBeNull();
@@ -298,14 +319,17 @@ describe("a partial failure rolls back — no half-claimed slot (REQ-121)", () =
       const row = await env.CONTROL_DB.prepare("SELECT plan FROM tenants WHERE id = ?").bind(id).first<{ plan: string }>();
       expect(row?.plan).toBe("unclaimed");
     }
-    // 2026-08-02 §15: this orphan check used to bind the pool SLOT id. After §13 rebound the credits row to
-    // the SLUG, no writer produces that shape at all — so the count was 0 unconditionally and the assertion
-    // could not fail. Proved by moving the credits INSERT out of the atomic batch: a real orphan appeared and
-    // the test stayed green. Bind what the writers actually write.
-    const orphan = await env.CONTROL_DB.prepare("SELECT COUNT(*) AS n FROM usage_credits WHERE tenant_id = ? OR id = ?")
-      .bind("prov-fail", usageCreditsIdFor("prov-fail", "2026-07"))
-      .first<{ n: number }>();
-    expect(orphan?.n, "a rolled-back claim must leave NO usage_credits row").toBe(0);
+    // Exactly ONE usage_credits row for this slug: the one this test planted to trip the batch. A second
+    // would mean the batch's INSERT survived a rollback. (§15 bound the pool SLOT id here — a shape no
+    // writer produces since the identity fix — so the count was 0 unconditionally; §18 makes the number
+    // load-bearing by planting a row the assertion must find exactly once.)
+    const rows = await env.CONTROL_DB.prepare("SELECT id, metered FROM usage_credits WHERE tenant_id = ?")
+      .bind("prov-fail")
+      .all<{ id: string; metered: string }>();
+    expect(rows.results.map((r) => r.id), "the rolled-back batch must not have added a credits row").toEqual([
+      usageCreditsIdFor("prov-fail", PERIOD),
+    ]);
+    expect(rows.results[0]?.metered, "the planted row must be untouched by the rollback").toBe("{}");
   });
 });
 

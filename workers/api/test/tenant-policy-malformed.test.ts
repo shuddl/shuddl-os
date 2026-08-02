@@ -117,3 +117,32 @@ describe("a MALFORMED tenants.policy REFUSES the append — it never proceeds on
     expect(row?.visibility).toBe("internal");
   });
 });
+
+describe("a MISSING control row refuses IDENTICALLY — absence is not permission (§18)", () => {
+  it("deleting the tenants row makes the append refuse, where it used to widen visibility silently", async () => {
+    // The §15 revision special-cased this branch to {} with a comment calling it "genuinely fail-closed".
+    // It was not: a static tenant resolves its D1 with no control read, so it appends with zero control
+    // rows, and {} drops every narrowing visibility override onto an APPEND-ONLY event. The probe that
+    // caught it: with visibility.freight.photographed=internal an append stamps internal; delete the row
+    // and the identical append stamps counterparty, permanently, with no log and no refusal.
+    const row = await env.CONTROL_DB.prepare("SELECT id, name, slug, plan, policy, created_ts FROM tenants WHERE slug = ?")
+      .bind(TENANT)
+      .first<{ id: string; name: string; slug: string; plan: string; policy: string; created_ts: number }>();
+    expect(row, "the harness must have a control row to delete").not.toBeNull();
+    try {
+      await env.CONTROL_DB.prepare("DELETE FROM tenants WHERE slug = ?").bind(TENANT).run();
+      const shp = `${SHP}-norow`;
+      await seedShipment(shp);
+      const before = await countEvents(shp);
+      const r = await post(shp, photographedInput(shp, HASH), await opsTok());
+      expect(r.status).toBeGreaterThanOrEqual(400);
+      expect((r.json as { code?: string } | undefined)?.code).toBe("VALIDATION_FAILED");
+      expect(await countEvents(shp), "a tenant with no control row must append NOTHING").toBe(before);
+    } finally {
+      await env.CONTROL_DB
+        .prepare("INSERT OR REPLACE INTO tenants (id, name, slug, plan, policy, created_ts) VALUES (?,?,?,?,?,?)")
+        .bind(row!.id, row!.name, row!.slug, row!.plan, row!.policy, row!.created_ts)
+        .run();
+    }
+  });
+});

@@ -71,7 +71,7 @@ interface ExpectedRequest {
   dims?: boolean | undefined;
   accessorials?: readonly string[] | undefined;
 }
-type ExpectedDecision = { status: "auto_reply" } | { status: "queued"; reason: ConciergeReason };
+export type ExpectedDecision = { status: "auto_reply" } | { status: "queued"; reason: ConciergeReason };
 interface Expected {
   request?: ExpectedRequest; // absent ⇒ the parser must NOT have formed a request (both zips required)
   decision: ExpectedDecision;
@@ -90,7 +90,7 @@ interface EvalUnit {
   composeParse?: ParseResult;
 }
 
-interface Mismatch {
+export interface Mismatch {
   name: string;
   field: string;
   expected: unknown;
@@ -121,8 +121,10 @@ function sameStringSet(a: readonly string[], b: readonly string[]): boolean {
   return true;
 }
 
-/** Compare the DeterministicParser's extracted request to the expectation; push any divergence. */
-function compareRequest(
+/** Compare the DeterministicParser's extracted request to the expectation; push any divergence.
+ *  EXPORTED for parity-detection.test.ts (2026-08-02 §17): this harness had no negative test at all, so
+ *  nothing proved it could report a divergence rather than silently agreeing with whatever it was given. */
+export function compareRequest(
   name: string,
   actual: ParseResult["request"],
   expected: ExpectedRequest | undefined,
@@ -171,7 +173,8 @@ function describeDecision(d: ConciergeDecision): string {
 }
 
 /** Compare the composed decision to the expectation; push any divergence. */
-function compareDecision(name: string, actual: ConciergeDecision, expected: ExpectedDecision, out: Mismatch[]): void {
+/** EXPORTED for parity-detection.test.ts (§17) — see compareRequest above. */
+export function compareDecision(name: string, actual: ConciergeDecision, expected: ExpectedDecision, out: Mismatch[]): void {
   if (actual.status !== expected.status) {
     out.push({ name, field: "decision.status", expected: expected.status, actual: describeDecision(actual) });
     return; // status diverged — the reason is not comparable

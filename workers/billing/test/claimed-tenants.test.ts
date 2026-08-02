@@ -6,7 +6,7 @@ import type { BillingEnv } from "../src/tenants.js";
 import { usageCreditsId, sweepTenantMetering } from "../src/metering.js";
 import { usageCreditsId as contractsUsageCreditsId } from "@shuddl/contracts";
 import controlSql from "../../../db/control/migrations/0001_control.sql?raw";
-import { applyTenant } from "./helpers.js";
+import { applyTenant, seedRun } from "./helpers.js";
 
 // 2026-08-02 audit §13 — the billing port shipped in 29efbfa with ZERO tests, and its own source header
 // claimed a parity pin that did not exist. Reverting the metering fan-out left all 45 billing tests green:
@@ -111,28 +111,24 @@ describe("billing parity + regression pins (the ones the port omitted)", () => {
     let fanouts = 0;
     for (const [path, load] of Object.entries(modules)) {
       const src = (await load()) as string;
-      // ALLOWLIST, not a method blacklist (2026-08-02 §15). The enumerated-method matcher was proved to
-      // miss five real fan-out shapes — [...TENANT_SLUGS], an alias variable, Array.from(), an index loop,
-      // and TENANT_SLUGS.filter(...).map(...): one .filter() between the identifier and .map() defeated the
-      // alternation, which is the literal Promise.all sweep the widening claimed to close. Enumerating the
-      // legal forms is a losing game, so invert it: the roster identifier may appear ONLY in tenants.ts
-      // (which defines it and builds allTenantSlugs from it) and on import/export lines. Every other
-      // occurrence under src/** is flagged — which is the rule this test title has always claimed.
+      // ALLOWLIST over the STATEMENT, not the line (2026-08-02 §18). Three cuts of this rule leaked:
+      // an enumerated-method blacklist missed [...TENANT_SLUGS] / Array.from / an index loop /
+      // .filter().map(); exempting any line starting with `export` let a five-shape probe pass 11/11; and
+      // exempting any line MATCHING an import let `import {TENANT_SLUGS} from "./tenants.js"; export const
+      // p = () => TENANT_SLUGS.map(f);` through on one line while flagging a Prettier-wrapped import and a
+      // /** block comment */ mentioning the name. A line is simply the wrong unit. Strip comments and
+      // import/export STATEMENTS from the source, then scan whatever is left: anything naming the roster
+      // outside tenants.ts is a fan-out.
       const isRosterHome = /(^|\/)tenants\.ts$/.test(path);
       if (!isRosterHome) {
-        const offenders = src
-          .split("\n")
-          .map((line, i) => ({ line, n: i + 1 }))
-          .filter(({ line }) => /\bTENANT_SLUGS\b/.test(line))
-          // Exempt only GENUINE import/export statements of the identifier — not any line that happens to
-          // start with `export`. The first cut of this rule exempted `export const c = () =>
-          // Array.from(TENANT_SLUGS)`, so a probe carrying all five missed fan-out shapes passed 11/11.
-          .filter(({ line }) => !/^\s*import\b[^;]*\bfrom\b/.test(line))
-          .filter(({ line }) => !/^\s*export\s*(?:\{[^}]*\}|\*)/.test(line))
-          .filter(({ line }) => !/^\s*export\s+(?:declare\s+)?(?:const|let|var|type)\s+TENANT_SLUGS\b/.test(line))
-          .filter(({ line }) => !/^\s*(?:\/\/|\*)/.test(line));
+        const residue = src
+          .replace(/\/\*[\s\S]*?\*\//g, " ") // block + jsdoc comments, however many lines
+          .replace(/\/\/[^\n]*/g, " ") // line comments
+          .replace(/\bimport\b[^;]*?\bfrom\b\s*["'][^"']*["']\s*;?/g, " ") // import ... from "..."; (wrapped or not)
+          .replace(/\bexport\s*(?:\{[^}]*\}|\*)\s*(?:from\s*["'][^"']*["'])?\s*;?/g, " ") // export {..} / export * [from ".."];
+          .replace(/\bexport\s+(?:declare\s+)?(?:const|let|var|type)\s+TENANT_SLUGS\b/g, " "); // the declaration itself
         expect(
-          offenders.map((o) => `${path}:${o.n}`),
+          residue.match(/\bTENANT_SLUGS\b/g) ?? [],
           `${path} references TENANT_SLUGS outside tenants.ts — fan out over allTenantSlugs instead`,
         ).toEqual([]);
       }
@@ -157,13 +153,20 @@ describe("billing parity + regression pins (the ones the port omitted)", () => {
 
     // Live: the sweep's own write lands under that identity, keyed by SLUG (not any internal row id), which
     // is what makes the three writers' `ON CONFLICT(id)` upserts converge on one row instead of forking.
-    await sweepTenantMetering(env.TENANT_A_DB, env.CONTROL_DB, "bl-acme");
-    const row = await env.CONTROL_DB.prepare("SELECT id, tenant_id FROM usage_credits WHERE tenant_id = ? LIMIT 1")
+    // §18: this block was `if (row) { … }` and the sweep wrote NO row, so both assertions inside were
+    // unreachable — an assertion that cannot fail, introduced by the very commit that exists to close that
+    // defect class. The sweep recomputes from `agent_runs ⋈ events`, so with an empty ledger there is
+    // nothing to meter and nothing to write. Seed a run first, then assert unconditionally.
+    const ts = Date.UTC(2026, 7, 15); // 2026-08
+    await seedRun(env.TENANT_A_DB, "biller", ts);
+    const summary = await sweepTenantMetering(env.TENANT_A_DB, env.CONTROL_DB, "bl-acme");
+    expect(summary.runs, "the sweep must actually meter something for this to prove anything").toBeGreaterThan(0);
+
+    const row = await env.CONTROL_DB.prepare("SELECT id, tenant_id, period FROM usage_credits WHERE tenant_id = ? LIMIT 1")
       .bind("bl-acme")
-      .first<{ id: string; tenant_id: string }>();
-    if (row) {
-      expect(row.tenant_id).toBe("bl-acme");
-      expect(row.id).toBe(usageCreditsId("bl-acme", row.id.split(":")[1]!));
-    }
+      .first<{ id: string; tenant_id: string; period: string }>();
+    expect(row, "the sweep must have written a row under the SLUG").not.toBeNull();
+    expect(row!.tenant_id).toBe("bl-acme");
+    expect(row!.id).toBe(usageCreditsId("bl-acme", row!.period));
   });
 });

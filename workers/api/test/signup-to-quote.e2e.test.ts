@@ -47,8 +47,14 @@ async function resetPool(): Promise<void> {
     // run, so a future test claiming the same slug twice would hit UNIQUE(usage_credits.id) inside the
     // atomic batch and surface as PROVISION_FAILED rather than SLUG_TAKEN. Purge BOTH shapes: the slot id
     // (legacy rows) and whatever slug currently occupies the slot.
-    const occupant = await env.CONTROL_DB.prepare("SELECT slug FROM tenants WHERE id = ?").bind(id).first<{ slug: string }>();
-    await env.CONTROL_DB.prepare("DELETE FROM usage_credits WHERE tenant_id = ? OR tenant_id = ?").bind(id, occupant?.slug ?? id).run();
+    // Purge EVERY non-static meter row, not just this slot occupant (2026-08-02 §17). The narrower
+    // occupant-only purge still left rows behind and the api suite failed ~1 run in 5 with
+    // "UNIQUE constraint failed: usage_credits.id" inside the atomic claim — surfacing as PROVISION_FAILED
+    // across four files at once. usage_credits is keyed <slug>:<period>, so a row survives any reset that
+    // does not know the slug AND period that wrote it; the only reliable predicate is "not a static tenant".
+    // Nothing in workers/api writes a meter row for a static tenant (metering lives in the billing worker),
+    // so this is exact rather than broad.
+    await env.CONTROL_DB.prepare("DELETE FROM usage_credits WHERE tenant_id NOT IN (?, ?)").bind("tenant-a", "tenant-b").run();
     await env.CONTROL_DB
       .prepare("UPDATE tenants SET slug = ?, name = ?, plan = 'unclaimed', policy = ?, created_ts = 0 WHERE id = ?")
       .bind(id, `SHUDDL Pool Slot ${id}`, JSON.stringify({ pool_binding: binding }), id)

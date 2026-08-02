@@ -296,6 +296,15 @@ async function applyTenantB(env: Env): Promise<void> {
   if (!(await tableExists(env.TENANT_B_DB, "events"))) {
     await applyMigrations(env.TENANT_B_DB, TENANT_MIGRATIONS);
   }
+  // 2026-08-02 §18 — tenant-b needs its CONTROL row, exactly as tenant-a has one in ensureSchema.
+  // This was missing, and the harness never noticed because the sequencer used to fall back to `{}` for a
+  // tenant with no control row. That fallback is now a refusal (it silently dropped every narrowing
+  // visibility override onto append-only events), and this seed is what the guard immediately surfaced:
+  // tenant-b is a fully BOUND static tenant that had been appending with no control row at all. Seeding it
+  // makes the fixture reflect the invariant the sequencer now enforces — a bound tenant has a control row.
+  await env.CONTROL_DB.prepare("INSERT OR IGNORE INTO tenants (id, name, slug, plan, policy, created_ts) VALUES (?,?,?,?,?,?)")
+    .bind("t-b", "Tenant B", "tenant-b", "pilot", "{}", 0)
+    .run();
   for (const [id, kind, contacts] of PARTIES) {
     await env.TENANT_B_DB.prepare("INSERT OR IGNORE INTO parties (id, kind, names, contacts) VALUES (?,?,?,?)").bind(id, kind, "{}", contacts).run();
   }

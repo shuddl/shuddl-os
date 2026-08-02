@@ -1155,8 +1155,35 @@ export class ShipmentSequencer extends DurableObject<Env> {
       }
       this.policyCache = parsed as TenantPolicy;
     } else {
-      // A MISSING row is different and genuinely fail-closed: no tenant means no overrides to lose, and the
-      // sibling entitlement row above grants nothing. This is the long-standing documented behaviour.
+      // A MISSING row refuses TOO (2026-08-02 §18). The previous revision special-cased it with a comment
+      // asserting it was "genuinely fail-closed: no tenant means no overrides to lose". That was FALSE, and
+      // it sat four lines below the guard that exists because the same `{}` is a CEILING: with no row, an
+      // append proceeds with dims_required dropped, the geofence widened to the 150m default, and — the
+      // irreversible one — every narrowing visibility override gone, stamped permanently onto an immutable
+      // event. Proved by probe: with a `visibility.freight.photographed=internal` policy the append stamps
+      // `internal`; DELETE the tenants row and the identical append stamps `counterparty`, silently.
+      //
+      // It is reachable. A STATIC tenant resolves its D1 on the hot path with NO control-plane read
+      // (src/tenants.ts TENANT_BINDINGS), so it appends happily with zero control rows; and no migration
+      // creates a static tenant's row — `0001` makes the table, `0002` inserts `_platform`, `0003` the pool
+      // sentinels. The row is hand-provisioned (tools/deploy/staging-smoke.ts, test/helpers.ts), therefore
+      // hand-DELETABLE, by exactly the operator whose hand-corruption the branch above defends against. A
+      // control-plane restore or a re-pointed CONTROL_DB binding lands here too.
+      //
+      // The old split was also internally inconsistent: a missing row is fail-CLOSED for entitlements
+      // (#entitlementRow yields plan:"" so hazmat/SKU grant nothing) and was fail-OPEN for gates and
+      // visibility. One row, one policy: a tenant the control plane does not know is not a tenant that may
+      // append. OPERATIONAL PREREQUISITE this makes load-bearing: every bound tenant needs a `tenants` row
+      // before it can append — see the GO-LIVE row, which now names it.
+      // ONE carve-out, and only one: the reserved PLATFORM revenue tenant. It is resolved SERVER-SIDE with
+      // no slug input, its ledger lives in its own D1 that no customer path can reach (REQ-025), and it has
+      // no counterparty lens — so `{}` there widens nothing that anyone outside the platform can read, and
+      // requiring a row would couple the credit ledger to whether migration 0002 has run. Every CUSTOMER
+      // tenant refuses.
+      if (!isPlatformTenant(tenant)) {
+        console.error(`sequencer: tenant ${tenant} has NO control-plane row — REFUSING every append until one exists (proceeding on {} would silently widen visibility onto append-only events)`);
+        throw rpcError("VALIDATION_FAILED", { reason: "tenant policy malformed" });
+      }
       this.policyCache = {};
     }
     return this.policyCache;
@@ -1181,11 +1208,16 @@ export class ShipmentSequencer extends DurableObject<Env> {
       )
       .bind(tenant, deviceId)
       .first<{ entry: string }>();
-    // 2026-08-02 §15 — the sibling of the #policy guard above, on the same column class. Lower risk (the
-    // value round-trips through SQLite's json_each, so it parsed as JSON at least once), but the failure
-    // mode is the same shape: an unguarded throw here escapes onto the DRIVER-AUTH path. Fail CLOSED to
-    // null — an unusable key means the signature does not verify, which is the correct answer for a
-    // malformed key entry; it must never be an unhandled crash, and it must never be a bypass.
+    // 2026-08-02 §15/§18 — the sibling of the #policy guard above, on the same column class, with an HONEST
+    // note on reachability: the catch is defence-in-depth and is probably NOT reachable through this query,
+    // because `je.value` comes out of SQLite's json_each and so already parsed as JSON once. A review
+    // reverted this guard and the whole api suite still passed, which is true and expected for that half.
+    //
+    // The `?? null` is the part that earns its place. A key entry missing `public_jwk` previously yielded
+    // `undefined`, which is not the same as "no key": it is cached as undefined and handed to the verifier,
+    // where the failure mode is a crash rather than a refusal. Collapsing both to null makes an unusable key
+    // mean exactly one thing — the signature does not verify — on the DRIVER-AUTH path, where a crash and a
+    // bypass are the two outcomes that must never happen.
     let jwk: JsonWebKey | null = null;
     if (row) {
       try {

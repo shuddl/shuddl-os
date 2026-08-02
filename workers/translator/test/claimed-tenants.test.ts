@@ -112,28 +112,24 @@ describe("source-level pin — no translator fan-out may regress to the static r
     let fanouts = 0;
     for (const [path, load] of Object.entries(modules)) {
       const src = (await load()) as string;
-      // ALLOWLIST, not a method blacklist (2026-08-02 §15). The enumerated-method matcher was proved to
-      // miss five real fan-out shapes — [...TENANT_SLUGS], an alias variable, Array.from(), an index loop,
-      // and TENANT_SLUGS.filter(...).map(...): one .filter() between the identifier and .map() defeated the
-      // alternation, which is the literal Promise.all sweep the widening claimed to close. Enumerating the
-      // legal forms is a losing game, so invert it: the roster identifier may appear ONLY in tenants.ts
-      // (which defines it and builds allTenantSlugs from it) and on import/export lines. Every other
-      // occurrence under src/** is flagged — which is the rule this test title has always claimed.
+      // ALLOWLIST over the STATEMENT, not the line (2026-08-02 §18). Three cuts of this rule leaked:
+      // an enumerated-method blacklist missed [...TENANT_SLUGS] / Array.from / an index loop /
+      // .filter().map(); exempting any line starting with `export` let a five-shape probe pass 11/11; and
+      // exempting any line MATCHING an import let `import {TENANT_SLUGS} from "./tenants.js"; export const
+      // p = () => TENANT_SLUGS.map(f);` through on one line while flagging a Prettier-wrapped import and a
+      // /** block comment */ mentioning the name. A line is simply the wrong unit. Strip comments and
+      // import/export STATEMENTS from the source, then scan whatever is left: anything naming the roster
+      // outside tenants.ts is a fan-out.
       const isRosterHome = /(^|\/)tenants\.ts$/.test(path);
       if (!isRosterHome) {
-        const offenders = src
-          .split("\n")
-          .map((line, i) => ({ line, n: i + 1 }))
-          .filter(({ line }) => /\bTENANT_SLUGS\b/.test(line))
-          // Exempt only GENUINE import/export statements of the identifier — not any line that happens to
-          // start with `export`. The first cut of this rule exempted `export const c = () =>
-          // Array.from(TENANT_SLUGS)`, so a probe carrying all five missed fan-out shapes passed 11/11.
-          .filter(({ line }) => !/^\s*import\b[^;]*\bfrom\b/.test(line))
-          .filter(({ line }) => !/^\s*export\s*(?:\{[^}]*\}|\*)/.test(line))
-          .filter(({ line }) => !/^\s*export\s+(?:declare\s+)?(?:const|let|var|type)\s+TENANT_SLUGS\b/.test(line))
-          .filter(({ line }) => !/^\s*(?:\/\/|\*)/.test(line));
+        const residue = src
+          .replace(/\/\*[\s\S]*?\*\//g, " ") // block + jsdoc comments, however many lines
+          .replace(/\/\/[^\n]*/g, " ") // line comments
+          .replace(/\bimport\b[^;]*?\bfrom\b\s*["'][^"']*["']\s*;?/g, " ") // import ... from "..."; (wrapped or not)
+          .replace(/\bexport\s*(?:\{[^}]*\}|\*)\s*(?:from\s*["'][^"']*["'])?\s*;?/g, " ") // export {..} / export * [from ".."];
+          .replace(/\bexport\s+(?:declare\s+)?(?:const|let|var|type)\s+TENANT_SLUGS\b/g, " "); // the declaration itself
         expect(
-          offenders.map((o) => `${path}:${o.n}`),
+          residue.match(/\bTENANT_SLUGS\b/g) ?? [],
           `${path} references TENANT_SLUGS outside tenants.ts — fan out over allTenantSlugs instead`,
         ).toEqual([]);
       }
