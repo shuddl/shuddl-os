@@ -2045,3 +2045,42 @@ owner-signed REQ row. That is the most useful state I can leave it in without st
 
 **Verification.** All seven instances superseded; zero un-superseded `self-satisfied` claims remain in the
 maintained record; citations OK.
+
+## §45 — the reverse index, continued: a security boundary that shipped with no record entry
+
+§44 ran the reverse index and then stopped after following up **2 of the 39** cited files. Continuing with
+the security-relevant ones found a different kind of gap — and one that drifts in the *opposite* direction
+from everything else this session.
+
+**`packages/ledger/src/redact.ts` is cited by six documents, including both security records.** Its payload
+claims (party geo coarsened to ~11 km, margin/GL internals stripped) are still exactly true. But this session
+added **envelope redaction** — the law binds the whole event, not just the payload — and **neither security
+document mentions it. Zero hits.**
+
+What was leaking: `override` (REQ-049 — an internal ops **user id** plus the **free-text reason** a
+server-side gate was waived) reached party AND driver lenses through the `{ ...event }` spread, so a party
+reading an overridden `invoice.issued` learned it was force-billed over the POD gate, by whom, and why —
+the same leak class as the C1 margin defect. And `actor.user` reached party lenses, defeating the
+REQ-192/REQ-167 rationale that strips `payload.driver_user_id` by letting the same id ride the envelope.
+
+**The fix shipped 2026-08-01. The record entry did not.** Now added: a surface row in `pen-test-basics.md`
+beside the other `redact.ts` rows, and a dated `threat-model.md` log entry.
+
+### Why an *understated* record is still debt
+
+Every other stale claim this session drifted in the dangerous direction — the record asserting a protection
+or an openness that was not real. This one is the opposite: **the record understated the protection.** That
+is safe for a reader making decisions today, and it is still debt, for two reasons that only matter later:
+
+1. **A pen-tester works from this document.** A boundary absent from the surface table does not get probed —
+   so the one artifact whose job is to enumerate what must be attacked would have skipped it.
+2. **The table is the regression net.** A future refactor could drop the envelope strip and nothing in the
+   security record would flag it, because the record never claimed it existed. A protection nobody has
+   written down is a protection nobody will notice losing.
+
+**The reverse index found this and a keyword sweep never could have** — there was no stale phrase to grep
+for. The absence of a claim has no vocabulary. That is the strongest argument yet for the reverse-citation
+index named in §43: it starts from *what changed*, so it surfaces both the claims that went false and the
+claims that were never written.
+
+**Verification.** Both security documents updated; citations OK.
