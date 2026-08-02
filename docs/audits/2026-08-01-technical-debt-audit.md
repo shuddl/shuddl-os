@@ -2114,7 +2114,7 @@ threat row is **qualified** with the dependency and how it is enforced, there is
 ### The forward half caught my own edit while I was writing this
 
 Inserting the log entry shifted `threat-model.md` by three lines, and `check:citations` failed immediately:
-a content-anchored citation from `GO-LIVE-CHECKLIST.md:58` pointed at `threat-model.md:60@provenance` and the
+a content-anchored citation from `GO-LIVE-CHECKLIST.md:58` pointed at `threat-model.md:62@provenance` and the
 anchor had moved to `:58`. Repointed; 954 citations resolve.
 
 That is worth noting beside §43–§45, because it shows the two halves are complementary rather than
@@ -2213,3 +2213,47 @@ to find things that were *never said*. The second class is invisible to every te
 before it — a keyword sweep needs a phrase to search for, and the absence of a claim has none. That is the
 argument for the reverse-citation check (§43), now with five sections of evidence behind it and still
 correctly unbuilt pending an owner-signed REQ row.
+
+## §49 — filling the two §48 gaps that were VERIFIED, and only those two
+
+§48 enumerated nineteen boundary modules absent from the operating record and deliberately did not fill
+them. Two had been checked by name and confirmed as real gaps; those two are now written, and the other
+seventeen are still just enumerated.
+
+**The Stripe webhook ingress** had been discussed exactly once in the security record — as a *consequence*
+of the missing-secret deploy control ("billing accepting forged Stripe callbacks"), never as an attack
+surface of its own. It now has a threat row and a probeable pen-test row, with every control read from
+source first: the raw body is read once and never re-serialized before verification; the Stripe scheme is
+implemented in-repo with no SDK (`t=<unix>,v1=<hex>`, signed payload `${t}.${rawBody}`), HMAC-SHA256 on the
+full `whsec_…` secret, **constant-time against every `v1` candidate** (multiple signatures during key
+rotation); a **5-minute timestamp tolerance** closes the replay window with the idempotent emitter as the
+second line, since credit events append through the real sequencer and dedupe by event id.
+
+One detail worth surfacing because it is a deliberate design choice rather than an accident: an **unbound
+secret returns 503, a forged or stale request returns 400.** Those are kept distinct on purpose — one means
+*configure the server*, the other means *this request is not genuine* — and conflating them would hide an
+outage as an attack, or an attack as an outage.
+
+### The MCP OAuth row says it has not been verified
+
+`oauth.ts` and `caps-meter.ts` mediate agent access through control-plane pairings with scopes and caps. The
+row records the surface and then **states plainly that its controls were not re-read in this pass.** §48
+established the surface is missing from the operating record — that is the finding, and it is complete. The
+controls are a separate verification that has not happened.
+
+Writing it any other way would have been this session's own signature failure: §13 shipped a comment
+claiming a parity pin that did not exist; §30 claimed an enumeration "verified" when it was not. **A threat
+row asserting controls nobody checked is worse than one that admits it has not checked them** — the first
+gets trusted, the second gets worked. The row names its own next step.
+
+### Why seventeen stay unfilled
+
+Not fatigue, and not scope-avoidance: enumerating an attack surface is a security deliverable, and it should
+be reviewed rather than produced in bulk by whoever happened to find the gap. §47 and the Stripe row were
+written because their gaps were unambiguous **and** their controls were already implemented and tested — the
+writing was transcription, not judgement. The remaining seventeen need someone to decide what each surface's
+threats actually are, which is exactly the kind of work that wants a second pair of eyes.
+
+**Verification.** Threat model + pen-test record updated; two content-anchored citations repointed after the
+insertion shifted them (four shifts this session, four caught by `check:citations`, zero escapes); 956
+citations resolve; ratchet at its frozen baseline.
