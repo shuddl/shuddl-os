@@ -193,7 +193,7 @@ may only stop — when all four are simultaneously true:
 2. **Baseline gates green: SATISFIED, with one exception that is not this loop's.** typecheck (0), lint
    (0), invariants (21/22 tables), citations (946 resolve, ratchet at its frozen baseline), traceability
    (no orphans), authority-coverage, rater-purity, runtime-contract, seed, design audit — all PASS. Suites:
-   api 66 files / 730 **×3 with a now-deterministic file order**, contracts 276, ledger 607, billing 56,
+   api 66 files / 730 **×3 with a now-deterministic file order**, contracts ~~276~~ 280 (§27: 276 was the PRE-change count, copied forward through four sections), ledger 607, billing 56,
    translator 93, agents 105, mcp 175, driver-core 39, rater 154, edi 38, adapters 38, map 84, design 9,
    command 97, driver 54, portal 80. `check:fixtures` and the three parity gates remain PENDING on the five
    named private-input holds — unchanged and by design.
@@ -614,7 +614,7 @@ that invokes the §12 lesson about over-broad claims.
 One fix was **written and reverted by a gate**: a clarifying note on the `usage_credits` DDL. The migration
 lock refused it — migrations are forward-only — which is the gate working. The note lives with the code.
 
-**Verification.** api 66 files / 729 PASS · contracts 276 · ledger 607 · billing 56 · translator 91 ·
+**Verification.** api 66 files / 729 PASS · contracts ~~276~~ 280 (§27: 276 was the PRE-change count, copied forward through four sections) · ledger 607 · billing 56 · translator 91 ·
 agents 105 · mcp 175 · driver-core 39 · rater 154 · edi 38 · adapters 38 · map 84 · design 9 · command 97 ·
 driver 54 · portal 80. Typecheck, lint, citations, invariants, coverage 288/288, traceability,
 authority-coverage green; `check:fixtures` and the three parity gates unchanged at PENDING on the five
@@ -900,7 +900,7 @@ into its permissive drift-fallback path (a module stays on `native` authority wh
 log), and the **api suite's randomized file order** over a shared control plane, plus the second flake
 cluster (`authority-flip`, already documented in-repo by two other files as a pool-workers reload flake).
 
-**Verification.** api 66 files / 730 · contracts 276 · ledger 607 · billing 56 · translator 93 · agents 105 ·
+**Verification.** api 66 files / 730 · contracts ~~276~~ 280 (§27: 276 was the PRE-change count, copied forward through four sections) · ledger 607 · billing 56 · translator 93 · agents 105 ·
 mcp 175; typecheck 0, lint 0.
 
 ---
@@ -956,7 +956,7 @@ until green.
 | 3 | Watchtower swallows the refusal | **FIXED §20** — the alarm carries `fell_back` + `still_on_native` + cause |
 | 4 | Randomized file order over a shared control plane | **DIAGNOSED §20, not fixed** — pinning proved a real order-dependence in `lens-adversarial`; reproduction recorded in `workers/api/vitest.config.ts`, fix is the next iteration's first task |
 
-**Verification.** api 66 files / 730 · contracts 276 · ledger 607 · billing 56 · translator 93 · agents 105 ·
+**Verification.** api 66 files / 730 · contracts ~~276~~ 280 (§27: 276 was the PRE-change count, copied forward through four sections) · ledger 607 · billing 56 · translator 93 · agents 105 ·
 mcp 175; typecheck 0, lint 0.
 
 ---
@@ -1005,7 +1005,7 @@ long as it has had 66 files.
 
 **All four §18 carry-forwards are now closed.** Nothing from the last two reviews remains open.
 
-**Verification.** api 66 files / 730 (×3, deterministic order) · contracts 276 · ledger 607 · billing 56 ·
+**Verification.** api 66 files / 730 (×3, deterministic order) · contracts ~~276~~ 280 (§27: 276 was the PRE-change count, copied forward through four sections) · ledger 607 · billing 56 ·
 translator 93 · agents 105 · mcp 175; typecheck 0, lint 0; invariants, citations, traceability,
 authority-coverage, design audit all PASS.
 
@@ -1162,7 +1162,7 @@ readers turns a missing flag into an outage. The asymmetry is now documented **i
 definition, with the failure mode of each wrong unification named — because a comment in an audit file does
 not reach the person doing the cleanup.
 
-**Verification.** typecheck 0; contracts 276, agents 106, api 730, translator 93, billing 56, mcp 175.
+**Verification.** typecheck 0; contracts ~~276~~ 280 (§27: 276 was the PRE-change count, copied forward through four sections), agents 106, api 730, translator 93, billing 56, mcp 175.
 
 ---
 
@@ -1193,3 +1193,87 @@ than by an assertion, and spot-checks found no counterexample. Recorded as swept
 re-proved — the two above were selected because they are the ones a defect would cost money.
 
 **Verification.** No code changed in this section; contracts 280, agents 106, api 730, ledger 607 unchanged.
+
+---
+
+## §27 — Iteration 22 (2026-08-02): the review found two tenant outages in my own §19 fix
+
+**First, a correction about process.** I checked the review agent's output file, saw 147 bytes unchanged for
+51 minutes, concluded it was dead, and said so. It was not — it was still working and delivered a full
+report shortly after. The check was wrong (that file is not written incrementally) and the conclusion was
+stated with more confidence than the evidence supported. Recorded because this document's value is being
+true about its own process too.
+
+The review found **two HIGH defects, both inside the §19 Zod tightening I had written to make policy
+handling safer.** Both are tenant-wide outages. Both were proved with probes against the real sequencer.
+
+### HIGH-1 — a visibility TYPO passed the predicate and 500'd deep inside the sequencer
+
+`visibility: z.record(z.string(), z.string())` pinned the KEY type and left the VALUE as any string, while
+`Visibility` is the union `internal | counterparty | public`. So `{"visibility":{"freight.photographed":"publc"}}`
+— one transposed character — **passed `parseTenantPolicy`, passed the translator preflight**, and then threw
+a raw `ZodError` out of `LedgerEvent.parse` inside the sequencer. A raw ZodError is not an `rpcError`, so the
+route mapped it to **500**, not a named refusal.
+
+That is verbatim the harm §19 exists to prevent, reached through the same corrupt-policy vector: the persists
+and the tender marker run before the append, so the VAN retries forever and each retry re-accumulates
+parties, shipments and markers with no ledger behind them. **The comment four lines above the schema claimed
+it pinned "the gate-bearing keys, WHEN PRESENT, have the type the readers assume" — for `visibility` it did
+not.** The value is now the shared `Visibility` union, so a new rank can never leave the predicate behind.
+
+### HIGH-2 — `null` meant "unset" to every reader and "refuse every append" to the new predicate
+
+Zod's `.optional()` admits `undefined` and **rejects `null`**. Every knob used it, so `{"gates":null}`,
+`{"visibility":null}`, `{"gates":{"dims_required":null}}` were all refused — and a refusal from this
+predicate means the sequencer declines **every append for that tenant** and the EDI preflight quarantines
+**every tender**. A total outage.
+
+Every consumer already treats these as absent: `policy.gates?.dims_required === true`,
+`?? DEFAULT_FENCE_RADIUS_M`, `?? []`, `policy?.[kind] ?? KIND_VISIBILITY_DEFAULTS[kind]`. Null could not
+harm any of them. And it is not an exotic input — **it is exactly what a YAML key with no value serialises
+to**, and tenant #0's policy is generated from a config pack **outside this repo** (genesis/13). The cruellest
+case the review surfaced: a tenant that correctly set `dims_required: true` is taken down because a *sibling*
+knob is null. All five knobs are now `.nullish()`.
+
+Both fixes are mutation-proved: reverting `.nullish()` → `.optional()` fails the null pin; reverting the
+visibility value to `z.string()` fails the typo pin.
+
+### The pattern, now three-for-three
+
+Every adversarial review this session has found a HIGH inside a fix I had just written and believed correct:
+the `{}` fallback that opened three gate knobs (§15→§18), the identical defect left in the branch four lines
+below it (§18), and now two outages in the hardening that was supposed to close the class (§27). The common
+shape is not carelessness in the fix — it is that **a fix aimed at one failure mode gets reasoned about only
+in terms of that failure mode.** §19 was thinking about *malformed* policies and never asked what the new
+schema does to *well-formed* ones. The probe the review ran — feed real shapes through and see what the
+sequencer actually does — is the step that was missing, and it is cheap.
+
+### Also corrected from the same review
+
+- **A stale count, copied forward four times.** "contracts 276" appears in §20/§21/§22 and three commit
+  messages; the commit that reported it had itself added four tests in the same change, so the true count
+  was 280 (282 now). Corrected in place with the reason, not silently overwritten.
+
+### Still open from that review (ledgered, not yet fixed)
+
+1. **MEDIUM — the preflight is not before every failure for CLAIMED POOL tenants.** `tenantDbFor` resolves
+   36 lines earlier and, for a claimed tenant, reads the same `tenants.policy` and throws `UNKNOWN_TENANT`
+   on an unparseable one → uncaught → 500 → the storm. Nothing is written in that case, so the orphan half
+   does not apply. My test only exercised the static path. Dark today behind `PROVISIONING_ENABLED`.
+2. **MEDIUM — the shared sequencer imports `BaseSequencer` from vitest 4** (root) while all five workers pin
+   vitest 3.2.x. It works because `sort()` is fully overridden and v3 calls `shard()` only under `--shard`.
+   Needs a root override or a workspace package that pins the workers' version.
+3. **MEDIUM — the refusal log now names the wrong cause** ("unparseable, null, an array, or a non-object")
+   for what is now also a *shape* rejection. It should log the failing key paths.
+4. **LOW — the watchtower re-upsert sits outside the containment try/catch**; a D1 fault there aborts the
+   per-tenant loop the containment exists to protect.
+5. **LOW — a comment cites a GO-LIVE row that does not exist** (`sequencer.ts`, introduced in §18).
+   `check:citations` only validates `path:line` forms, so prose references are unguarded — the same class as
+   two defects earlier reviews found.
+6. **LOW — `edi_tenant_policy_unusable` is stamped `warn`** and keyed per `(partner, ISA13)`, so a
+   tenant-wide outage mints one warn row per tender instead of one alarm saying the tenant is down.
+7. **LOW — the TenantPolicy TYPE was not deduplicated** even though the predicate was (three partial copies).
+
+**Verification.** contracts 282, api 730, translator 93, typecheck 0. The agents suite currently reports
+17/18 files because the *second* review is mid-run with its own probe files in that worker — not a
+regression, and re-verified after it reports.

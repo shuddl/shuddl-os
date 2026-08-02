@@ -99,6 +99,40 @@ describe("parseTenantPolicy — usable vs not", () => {
     expect(parseTenantPolicy('{"visibility":"internal"}'), "visibility must be a per-kind map, not a scalar").toBeNull();
   });
 
+  it("NULL is ABSENT, not a refusal — the §27 outage (a YAML key with no value serialises to null)", () => {
+    // .optional() admits undefined and REJECTS null, so these were all refused — and a refusal means the
+    // sequencer declines EVERY append for the tenant and the EDI preflight quarantines every tender. Tenant
+    // #0's policy is generated from a config pack OUTSIDE this repo, where an empty YAML key is exactly null.
+    // Every consumer already treats null as absent (?. and ??), so it can harm nothing.
+    for (const pol of [
+      '{"gates":null}',
+      '{"visibility":null}',
+      '{"gates":{"dims_required":null}}',
+      '{"gates":{"geofence_radius_m":null}}',
+      '{"gates":{"invoice_without_pod_classes":null}}',
+      // the cruellest one: a correctly-set knob taken down by a SIBLING being null
+      '{"gates":{"dims_required":true,"geofence_radius_m":null}}',
+    ]) {
+      expect(parseTenantPolicy(pol), pol + " must be ACCEPTED — null means unset").not.toBeNull();
+    }
+  });
+
+  it("a visibility TYPO is refused HERE, not thrown as a raw ZodError deep in the sequencer (§27)", () => {
+    // The first cut typed only the KEY (z.record(z.string(), z.string())), so any string value passed this
+    // predicate AND the translator preflight — then LedgerEvent.parse threw a raw ZodError inside the
+    // sequencer: a 500, not a named refusal, which is the VAN retry-storm §19 exists to prevent, reached
+    // through the same corrupt-policy vector and with the projection orphans intact.
+    for (const bad of ["publc", "Internal", "privte", "COUNTERPARTY", ""]) {
+      expect(
+        parseTenantPolicy(JSON.stringify({ visibility: { "freight.photographed": bad } })),
+        bad + " is not a Visibility rank",
+      ).toBeNull();
+    }
+    for (const good of ["internal", "counterparty", "public"]) {
+      expect(parseTenantPolicy(JSON.stringify({ visibility: { "freight.photographed": good } }))).not.toBeNull();
+    }
+  });
+
   it("a `{\"gate\":{…}}` TYPO is NOT caught — passthrough is deliberate, and this records the limit", () => {
     // Honest boundary: the schema passes through unknown keys because a tenant policy legitimately carries
     // keys this package must not enumerate. So a misspelled `gate` survives as an unknown key and the real

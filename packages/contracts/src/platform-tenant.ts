@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { Visibility } from "./events.js";
 // REQ-123/025 (WP-14 Task 1): the reserved PLATFORM revenue tenant.
 //
 // WP-14 ships PLG DARK (fail-closed until R4). This module names the single well-known tenant the credits/
@@ -137,17 +138,34 @@ export function usageCreditsId(tenantSlug: string, period: string): string {
 // have the type the readers assume: `policy.gates?.dims_required === true` reads `false` from a `gates`
 // that is an array or a string, which is the permissive direction. A truncated ops paste rarely parses; a
 // MIS-KEYED one always does, and the mis-keyed one is the likelier mistake.
+// `.nullish()`, NOT `.optional()`, on every knob (2026-08-02 §27). Zod's `.optional()` admits `undefined`
+// and REJECTS `null` — so `{"gates":null}` was refused, and a refusal here means the sequencer declines
+// EVERY append for that tenant and the EDI preflight quarantines every tender. A total outage.
+//
+// `null` is not an exotic input: it is exactly what a YAML key with no value serializes to, and tenant #0's
+// policy is generated from a config pack OUTSIDE this repo (genesis/13). Every consumer already treats it as
+// absent — `policy.gates?.dims_required === true`, `?? DEFAULT_FENCE_RADIUS_M`, `?? []`,
+// `policy?.[kind] ?? KIND_VISIBILITY_DEFAULTS[kind]` — so null can harm nothing and must not refuse. The
+// cruellest case this fixes: a tenant that correctly set `dims_required: true` taken down because a SIBLING
+// knob was null.
+//
+// The visibility VALUE is the shared `Visibility` union, not `z.string()`. The first cut typed only the key
+// and let any string through, so a one-character typo (`"publc"`, `"Internal"`) passed this predicate AND
+// the translator preflight, and then threw a raw ZodError out of `LedgerEvent.parse` inside the sequencer —
+// a 500, not a named refusal, which is precisely the VAN retry-storm §19 exists to prevent, reached through
+// the same corrupt-policy vector and with the projection orphans intact. Reusing the union means a new
+// visibility rank can never leave this predicate behind.
 const TenantPolicyShape = z
   .object({
     gates: z
       .object({
-        dims_required: z.boolean().optional(),
-        geofence_radius_m: z.number().optional(),
-        invoice_without_pod_classes: z.array(z.string()).optional(),
+        dims_required: z.boolean().nullish(),
+        geofence_radius_m: z.number().nullish(),
+        invoice_without_pod_classes: z.array(z.string()).nullish(),
       })
       .passthrough()
-      .optional(),
-    visibility: z.record(z.string(), z.string()).optional(),
+      .nullish(),
+    visibility: z.record(z.string(), Visibility).nullish(),
   })
   .passthrough();
 
