@@ -113,5 +113,22 @@ export function redactEvent(
   // position.updated — exact coordinates are an ops/driver privilege (doc 07 §02, REQ-074).
   // Driver lenses keep exact geo.
   const projected = lens.scope === "party" ? generalizePosition(payload, outForDelivery) : payload;
-  return { ...event, payload: projected } as unknown as LedgerEvent;
+  // ENVELOPE redaction (2026-08-01 convergence audit — the law binds the whole event, not just the
+  // payload). Two internal envelope fields were passing through `{ ...event }` to non-tenant lenses:
+  //   · `override` (REQ-049) — an internal ops user id + the free-text reason a server-side gate was
+  //     waived. A party reading an overridden invoice.issued learned it was force-billed over the POD
+  //     gate, by whom, and why. Same class as the C1 margin leak; stripped for party AND driver — the
+  //     UI reflects the gate RESULT, never its internal justification.
+  //   · `actor.user` for PARTY lenses — an internal user id (the REQ-192/REQ-167 rationale that strips
+  //     payload.driver_user_id was defeated by the same id riding the envelope actor). The actor PARTY
+  //     survives (parties are the counterparty-visible identity model); driver lenses keep actor.user
+  //     (a driver reads its own captures). Read-projection only — stored hashed bytes are untouched.
+  const { override: _override, ...envelope } = { ...event, payload: projected } as unknown as LedgerEvent & { override?: unknown };
+  void _override;
+  if (lens.scope === "party" && typeof envelope.actor === "object" && envelope.actor !== null && "user" in envelope.actor) {
+    const { user: _user, ...actor } = envelope.actor as { user?: unknown; party: string };
+    void _user;
+    return { ...envelope, actor } as unknown as LedgerEvent;
+  }
+  return envelope as unknown as LedgerEvent;
 }

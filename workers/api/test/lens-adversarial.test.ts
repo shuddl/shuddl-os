@@ -463,6 +463,14 @@ describe("case 5: consignee P2 geo coarsens pre-OFD, unlocks post-OFD", () => {
       expect(g.lon_e6).toBe(GEO.lon_e6);
       expect(g.accuracy_m).toBe(GEO.accuracy_m);
     }
+
+    // 2026-08-01 convergence audit — the REQ-049 override the flip above carries is an INTERNAL waiver
+    // trail (ops user id + free-text reason a server gate was bypassed). The party wire body must carry
+    // NONE of it: not the field, not the id, not the reason (envelope redaction in redactEvent).
+    const wire = JSON.stringify(post.events);
+    expect(wire).not.toContain("adv-ops");
+    expect(wire).not.toContain("OFD flip fixture");
+    expect(post.events.some((e) => "override" in (e as unknown as Record<string, unknown>))).toBe(false);
   });
 });
 

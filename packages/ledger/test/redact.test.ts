@@ -244,3 +244,41 @@ describe("redactEvent: party geo-privacy is generalized SERVER-SIDE (REQ-074)", 
     expect("accuracy_m" in geo).toBe(false);
   });
 });
+
+// 2026-08-01 convergence audit — ENVELOPE redaction. redactEvent used to strip only the payload; the
+// REQ-049 `override` field (internal ops user id + free-text gate-waiver reason) and the envelope
+// actor.user (the same internal id the payload strip protects) passed through `{ ...event }` to
+// non-tenant lenses. The law binds every field a counterparty can read, not just the payload.
+describe("redactEvent: envelope redaction — override and party-lens actor.user (REQ-049/REQ-167)", () => {
+  function withOverride(): LedgerEvent {
+    const e = eventFixture("invoice.issued", { visibility: "counterparty" }) as LedgerEvent & {
+      override?: { by: string; reason: string };
+    };
+    e.override = { by: "u-internal-ops", reason: "force-billed over the POD gate" };
+    return e as LedgerEvent;
+  }
+
+  it("the tenant lens keeps the override (ops sees the waiver trail)", () => {
+    const red = redactEvent({ scope: "tenant" }, withOverride()) as LedgerEvent & { override?: unknown };
+    expect(red.override).toEqual({ by: "u-internal-ops", reason: "force-billed over the POD gate" });
+  });
+
+  it("party AND driver lenses receive NO override — not the internal user id, not the reason", () => {
+    for (const lens of [{ scope: "party" as const }, { scope: "driver" as const }]) {
+      const red = redactEvent(lens, withOverride()) as LedgerEvent & { override?: unknown };
+      expect(red.override).toBeUndefined();
+      expect(JSON.stringify(red)).not.toContain("u-internal-ops");
+      expect(JSON.stringify(red)).not.toContain("force-billed");
+    }
+  });
+
+  it("a party lens loses actor.user but keeps actor.party; a driver lens keeps actor.user (its own captures)", () => {
+    const e = withOverride();
+    (e as { actor: { party: string; user?: string } }).actor = { party: "p-carrier-x", user: "u-internal-driver-7" };
+    const party = redactEvent({ scope: "party" }, e);
+    expect((party.actor as { user?: string }).user).toBeUndefined();
+    expect((party.actor as { party: string }).party).toBe("p-carrier-x");
+    const driver = redactEvent({ scope: "driver" }, e);
+    expect((driver.actor as { user?: string }).user).toBe("u-internal-driver-7");
+  });
+});
