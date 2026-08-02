@@ -3161,3 +3161,52 @@ something in the build already knows it, and if so, point at that instead.*
 
 **Verification.** No code changed; both `CLAUDE.md` observations re-verified against their authorities; tables
 and citations PASS.
+
+---
+
+## §65 — phase gate re-measured at `f026527`
+
+§52 stamped `64fc9b7`. Thirteen sections later — including three new gates, four corrected records, and two
+corrections to corrections — an unre-measured stopping line is the asserted-not-measured claim this audit
+exists to catch. Measured again, condition by condition.
+
+**1. Zero open repository-owned Critical/High — SATISFIED.**
+§53–§64 closed everything they opened: the import-only REQ-024 lint (§53), the untripwired surface budget
+(§54), the rotted GO-LIVE citation (§55), the unenforced append chokepoint (§56), the unpinned auth surface
+(§57), the hand-counted gate figure (§58), the four-mechanism idempotency surface (§59), and the false rule-4
+claim in `CLAUDE.md` **and** its genesis template (§60/§61/§62). Counted by hand per §38's warning that a grep
+over prose under-reports — and §55 supplied a fourth demonstration of exactly that.
+
+The two open Highs are unchanged and **External**: a real driver's custody handoff (needs manifest party refs
+plus the deferred REQ-069 seam) and the live EDI adapter (needs transport credentials). The one pre-R4 repo
+carry-forward is still resolve-path pool-binding exclusivity (§12), dark behind `PROVISIONING_ENABLED`.
+
+**2. Baseline gates green — SATISFIED but for the one row that is not this loop's.**
+**17 workspaces, 2,877 tests, exit 0** (2,867 at §52 plus the ten auth-surface cases from §57/§59). Root
+`tools/`: **703 tests, 3 failing** — the same three register-parsing failures, isolated by experiment to the
+GTM workstream's uncommitted `REQ-289` (stash it and they pass; restore and they fail). `check:coverage` is
+red on that row alone: `classified 288/289`.
+
+All twelve static gates PASS: runtime, invariants, rater-purity, **append-chokepoint** (new, §56),
+authority-coverage, traceability, seed, citations, **tables** (§50), design-audit, typecheck, lint.
+`check:fixtures` behaves as designed — exit 0 local, **exit 2 on merge**, one of the five private-fixture
+holds, with its hash law mutation-proved in §63.
+
+**3. Remaining debt entirely External or CONFIRM-gated — SATISFIED**, with one addition this pass: the
+`routes ±10%` clause (§61), a merge gate named in `genesis/11` with no REQ row, no fixture entry, and no
+routing capability in the register. Deliberately not built; recorded on the GO-LIVE checklist with the owner's
+two dispositions. Otherwise unchanged: five private-fixture holds, two External Highs, the GTM register row,
+R2–R5 grades, and the two no-gate holds (on-call rota, 7-year archive). Plus the standing record item — threat
+rows for the 17 boundary modules §48 enumerated, still left for review rather than bulk-written.
+
+**4. The record agrees with the world — SATISFIED, and this is the condition that did the work this loop.**
+It was false when this iteration opened, in the highest-visibility place available: `CLAUDE.md` rule 4 told
+every session that two fixtures were present and green when the manifest marked them pending. §64 names the
+mechanism behind that and the three like it — **a document restating something the build already computes** —
+and the standing rule now recorded: docs may state laws, not observations.
+
+**The stopping line is unchanged and is reached again at `f026527`.** Repo-owned Critical/High is zero; every
+gate that can pass does; the one red gate and three red tests share a single cause requiring an owner
+signature. Beyond this line the build consumes accounts, credentials, devices, fixtures and counsel — working
+past it from inside the repo produces either scope-straying or gate-relaxing, both forbidden by
+`CLAUDE.md`/`genesis/00`.
