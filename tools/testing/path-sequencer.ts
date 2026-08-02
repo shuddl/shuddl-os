@@ -1,4 +1,4 @@
-import { BaseSequencer } from "vitest/node";
+import type { TestSpecification } from "vitest/node";
 
 /**
  * Order test FILES by path, deterministically, for every vitest project in this repo.
@@ -16,25 +16,38 @@ import { BaseSequencer } from "vitest/node";
  *
  * The api worker needs this most — it runs `isolatedStorage: false`, so 66 files share ONE D1 with no
  * per-test rollback and file order is literally part of the fixture. But the other workers are not immune:
- * `beforeAll` writes are never rolled back even when `isolatedStorage` is on, so cross-file state exists
- * there too. Determinism is also worth having for its own sake — a flaky failure you can reproduce is a bug,
- * one you cannot is a rumour.
+ * `beforeAll` writes are never rolled back even when `isolatedStorage` is on. Determinism is also worth
+ * having for its own sake — a flaky failure you can reproduce is a bug, one you cannot is a rumour.
  *
- * Sorting by PATH is the only ordering that does not depend on run history. It is deliberately not
- * alphabetical-by-basename: the full module id keeps directories grouped, which is the stable choice.
- *
- * ONE definition, imported by every config, rather than a copy per project — the same rule this audit
- * applied to the reserved-plan SQL and the usage_credits id, and for the same reason: five copies of an
- * ordering rule is five chances for four of them to drift.
+ * NO BASE CLASS, DELIBERATELY (§28). This first shipped as `class PathSequencer extends BaseSequencer`.
+ * A review caught the consequence: the root pins vitest ^4.1.10 while ALL FIVE workers pin 3.2.x, so
+ * importing the class from `tools/` handed a **v4 base class to a v3 runner**. It happened to work — `sort`
+ * is fully overridden and v3 only calls `shard()` under `--shard`, which CI does not pass — but "happens to
+ * work across a major version" is not a property to depend on in the harness that decides whether every
+ * other test is trustworthy. Implementing the two methods directly removes the coupling: the only import
+ * left is a TYPE, which is erased at runtime, so each project instantiates a plain class of its own vintage.
  */
-export class PathSequencer extends BaseSequencer {
-  // `ReturnType<BaseSequencer["sort"]>` is ALREADY `Promise<…>` — wrapping it again in `Promise<>` is what
-  // the first cut did, and it typechecked inside the vitest config (not covered by a tsconfig) while
-  // failing the moment the class moved into `tools/`. A good argument for the shared module.
-  async sort(files: Parameters<BaseSequencer["sort"]>[0]): ReturnType<BaseSequencer["sort"]> {
+export class PathSequencer {
+  /**
+   * Stable, history-independent order. Sorting by the full module id (not the basename) keeps directories
+   * grouped, which is the property that makes a failure reproducible rather than merely alphabetical.
+   */
+  async sort(files: TestSpecification[]): Promise<TestSpecification[]> {
     const key = (f: unknown): string =>
       typeof f === "string" ? f : (((f as { moduleId?: string }).moduleId ?? String((f as unknown[])?.[1] ?? f)) as string);
     return [...files].sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));
+  }
+
+  /**
+   * `--shard` support. Not used by CI today, but implemented rather than stubbed: a sequencer that silently
+   * returned every file to every shard would make a sharded run pass while re-running the whole suite N
+   * times, which is exactly the kind of quietly-wrong harness this module exists to prevent. Shards the
+   * PATH-SORTED list so a given file lands in the same shard on every run.
+   */
+  async shard(files: TestSpecification[], index: number, count: number): Promise<TestSpecification[]> {
+    const sorted = await this.sort(files);
+    const per = Math.ceil(sorted.length / count);
+    return sorted.slice((index - 1) * per, index * per);
   }
 }
 

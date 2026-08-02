@@ -1277,3 +1277,60 @@ sequencer actually does — is the step that was missing, and it is cheap.
 **Verification.** contracts 282, api 730, translator 93, typecheck 0. The agents suite currently reports
 17/18 files because the *second* review is mid-run with its own probe files in that worker — not a
 regression, and re-verified after it reports.
+
+---
+
+## §28 — Iteration 23 (2026-08-02): two of the seven ledgered findings closed
+
+Working the §27 ledger. Two closed here; the rest remain open and are listed at the end.
+
+### The shared sequencer handed a vitest 4 class to a vitest 3 runner
+
+Measured: the root pins `vitest ^4.1.10`, all five workers pin `3.2.x`. `tools/testing/path-sequencer.ts`
+resolves `vitest/node` from the ROOT, so `class PathSequencer extends BaseSequencer` built a **v4 base class
+that every v3 runner then instantiated**. It worked — `sort()` is fully overridden and v3 calls `shard()`
+only under `--shard`, which CI never passes — but *"happens to work across a major version"* is not a
+property to rest on in the harness that decides whether every other test is trustworthy. It is also exactly
+the kind of latent coupling that surfaces as an inexplicable failure two upgrades later.
+
+The fix is to remove the coupling rather than paper over it with a version override: **no base class**. The
+two methods are implemented directly and the only remaining import is a `type`, which is erased at runtime,
+so each project instantiates a plain class of its own vintage. A global `vitest` override in
+`pnpm-workspace.yaml` was the other option and was rejected — it would pin the root's own tooling to the
+workers' version to satisfy one test-infra file.
+
+`shard()` is **implemented, not stubbed.** A sequencer that returned every file to every shard would make a
+sharded run pass while silently re-running the whole suite N times — the precise class of quietly-wrong
+harness this module exists to prevent. It shards the path-sorted list, so a file lands in the same shard on
+every run. Verified after the change: api 730/730 twice, file order byte-identical, 66 files.
+
+### A comment cited a GO-LIVE row that did not exist
+
+`sequencer.ts` said *"see the GO-LIVE row, which now names it"* about the operational prerequisite the §18
+refusal creates. There was no such row — the comment had been asserting one since §18.
+
+**The row was written rather than the reference deleted**, because the prerequisite is real and go-live
+genuinely needs it: *every bound tenant needs a `tenants` control row before it can append*. No migration
+creates one for a static tenant (`0001` makes the table, `0002` inserts `_platform`, `0003` the pool
+sentinels); it is hand-provisioned and therefore hand-deletable — and the guard found a real instance the
+day it shipped, `tenant-b` appending with no control row at all. The row also carries the §27 authoring
+note: an empty YAML key serialises to `null` and is accepted as *unset*, but a visibility value must be
+exactly one of the three ranks.
+
+**The gate gap behind this one is left open deliberately.** `check:citations` validates `path:line` forms
+only, so a prose reference like "see the GO-LIVE row" is unguarded — the same class as two defects earlier
+reviews found. Extending the checker to prose was **measured and rejected** at `GO-LIVE-CHECKLIST` §375
+(411 checked → 25 unresolved → ~19 false, a ~76% false-positive rate), and cry-wolf is how this repo already
+lost the trust of one gate. Recorded as a known, reasoned gap rather than re-litigated.
+
+### Still open from the §27 review
+
+| # | Finding | Severity |
+|---|---|---|
+| 1 | The preflight is **not** before every failure for CLAIMED POOL tenants — `tenantDbFor` resolves 36 lines earlier and throws `UNKNOWN_TENANT` on the same unparseable policy → 500 → the storm. Nothing is written, so the orphan half does not apply. Dark behind `PROVISIONING_ENABLED` | Med |
+| 2 | The refusal log names the wrong cause — it says "unparseable, null, an array, or a non-object" for what is now also a *shape* rejection; it should log the failing key paths | Med |
+| 3 | The watchtower re-upsert sits **outside** the containment `try/catch`, so a D1 fault there aborts the per-tenant loop the containment protects | Low |
+| 4 | `edi_tenant_policy_unusable` is stamped `warn` and keyed per `(partner, ISA13)`, so a tenant-wide outage mints one warn row per tender | Low |
+| 5 | The `TenantPolicy` **type** was not deduplicated even though the predicate was (three partial copies) | Low |
+
+**Verification.** typecheck 0, lint 0, api 66 files / 730 (×2, deterministic order), citations OK.
