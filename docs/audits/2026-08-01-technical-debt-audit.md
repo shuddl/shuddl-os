@@ -2903,3 +2903,60 @@ pass for the intended reason. The mutation confirms it: dropping the key require
 the `[400, 401]` version would have survived.
 
 **Verification.** `auth-surface.test.ts` 10 tests green; both mutations RED; source restored byte-identical.
+
+---
+
+## §60 — `CLAUDE.md` asserted as green two fixtures the manifest marks pending
+
+Rule 4 carried a parenthetical: *"The 504-quote monotonic sweep and 48 engine tests ship in `fixtures/` and
+must stay green."* Both halves are checkable, and this is the governing file — the first thing every session
+reads.
+
+### 60.1 They do not ship, and the gate says so
+
+`fixtures/manifest.json`:
+
+```
+{ "id": "rater-48-tests",  "status": "pending", "sha256": null, "source": "manifest.private M-01 …" }
+{ "id": "rater-504-sweep", "status": "pending", "sha256": null, "source": "manifest.private M-01" }
+```
+
+Both are engagement-workspace artifacts that have never been vendored. `check:fixtures` reports
+`PENDING, executed: false, assertions: 0` and lists them among nine pending rows — and **exits 2 under
+`--mode merge`**, which is exactly one of the five known private-fixture holds.
+
+**The system is honest here; the document was not.** The gate blocks, prints its pending rows on every run,
+and refuses to record a PASS it did not earn. `CLAUDE.md` told the reader those artifacts were present and
+green.
+
+### 60.2 What is actually green, and it is not nothing
+
+`packages/rater/test/sweep.test.ts` is a deliberate **stand-in**, and says so in its own header: a *property*
+test rather than a fixture replay, over 7 zones × 72 ascending weights (50…19,930 lb, straddling every break
+boundary) — `expect(cells).toHaveLength(504)`, every cell `PRICED`, weight-monotone and distance-monotone.
+It proves the same invariant against tariffs this repo controls, which is why deficit-weight guarantees it for
+any valid ascending-break tariff.
+
+So "504" in-repo is a **coincidence of grid shape**, not the audited engine's 504 quotes. Both are real; they
+are not the same artifact, and the parenthetical conflated them.
+
+### 60.3 This was found once before and only half-recorded
+
+The 2026-07-15 audit already logged it (row **L-10**): *"The Law-4 headline fixtures gate (48 engine tests +
+504 sweep, REQ-027/165) is dormant in the `verify` chain — only exercised in-repo, not by the gate."* That
+finding is accurate and it is **thirteen months** of sessions old in audit-time. What never happened is the
+correction propagating to the sentence that caused the confusion. The finding lived in an audit; the false
+claim lived in the file everyone reads first.
+
+That is the §45 lesson exactly — a correction recorded somewhere true but not where it is load-bearing — and
+the most consequential instance of it found this loop, because of *where* the stale sentence sat.
+
+### 60.4 Corrected
+
+Rule 4's parenthetical now states what is pending, what blocks (`--mode merge` → exit 2), what is green
+in-repo, and that the audited engine's sweep arrives with the vendored fixture. **No law, budget, or scope
+changed** — the imperative ("no price on air: missing weight/dims → UNKNOWN, no sell") is untouched. Only a
+factual claim about repository state was corrected, which needs no register amendment.
+
+**Verification.** `packages/rater` 154 tests green; `check:fixtures` exit 0 local / exit 2 merge (unchanged —
+the correction describes the gate, it does not alter it); citations and tables PASS.
