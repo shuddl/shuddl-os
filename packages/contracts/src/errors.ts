@@ -39,10 +39,34 @@ export const VALIDATION_FAILED_PREFIX = `${ErrorCode.enum.VALIDATION_FAILED}:` a
 // hop intact, so the consumer branch is live — the risk was drift, not reachability.
 export const TENANT_POLICY_MALFORMED_REASON = "tenant policy malformed" as const;
 
+// The tenant-RESOLUTION refusal, shared for the same reason (2026-08-02 §36).
+//
+// `resolveTenantDb` throws `UNKNOWN_TENANT: <slug>` for every DETERMINISTIC non-resolution (unknown slug,
+// sentinel, platform, unclaimed row, malformed policy, no valid pool_binding). But it also does a LIVE D1
+// read, and a transient fault there throws too — a completely different condition with the opposite correct
+// answer. The EDI handler's first cut caught both with one `catch` and answered 422 (permanent, not
+// retried), so one D1 blip on a HEALTHY tenant became a refused-and-effectively-lost tender.
+//
+// Classify by inspecting the ERROR, never by position in the code — the same discipline
+// `isTenantPolicyRefusal` above exists for, applied to the sibling condition.
+export const UNKNOWN_TENANT_PREFIX = "UNKNOWN_TENANT:" as const;
+
+/** True ONLY for a deterministic non-resolution. A transient D1 fault is NOT this, and must stay retriable. */
+export function isUnknownTenant(err: unknown): boolean {
+  return err instanceof Error && err.message.includes(UNKNOWN_TENANT_PREFIX);
+}
+
 /** True for the sequencer's tenant-policy refusal, whatever wrapping the RPC hop applied. Producer and every
  *  consumer must go through this — never a literal (see above). */
 export function isTenantPolicyRefusal(err: unknown): boolean {
-  return err instanceof Error && err.message.includes(TENANT_POLICY_MALFORMED_REASON);
+  // Match the STRUCTURED field the producer emits, not the bare phrase (§36). §33a defended the loose form
+  // on the grounds that nothing else in the repo produces that text — true of the repo, but the catch this
+  // feeds also wraps the Concierge LLM path and Resend sends, whose messages can embed inbound EMAIL text
+  // and third-party response bodies. A shipper who writes "tenant policy malformed" in an email, or a model
+  // that echoes it, would mislabel a genuinely retriable failure as deterministic and skip its 429 backoff.
+  // `"reason":"…"` survives arbitrary RPC wrapping (which is why not startsWith) and cannot be produced by
+  // free prose.
+  return err instanceof Error && err.message.includes(`"reason":"${TENANT_POLICY_MALFORMED_REASON}"`);
 }
 
 export const ErrorEnvelope = z.object({

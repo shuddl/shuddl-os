@@ -526,15 +526,28 @@ export default {
     // Every sweep ran; now let the platform see that some did not succeed. Deliberately AFTER the finally,
     // so this never masks an anchor error (an anchor throw propagates from the try and this line is skipped).
     //
-    // VERIFIED before shipping this, because "a throw here re-runs the whole tick" would be a real hazard
-    // (the anchor plus eight sweeps, replayed): it does NOT introduce one. Pre-§24 these were bare `await`
-    // calls in this same `finally` with no catch, so a top-level sweep throw ALREADY propagated out of
-    // scheduled(). §24 swallowed it (and silently downgraded a failed tick to a successful one); this
-    // restores the original propagation while ADDING the guarantee that all eight sweeps run first. So the
-    // retry posture is exactly what it was before §24, not something new. `AggregateError` is available in
-    // workerd (probed directly, not assumed).
+    // CORRECTED (§36) — my earlier note here said the retry posture was "exactly what it was before §24".
+    // It is not, and the review that caught it is right on both counts:
+    //
+    //   · Cloudflare DOES retry a scheduled() that throws — which is precisely why ScheduledController
+    //     carries noRetry(), present in the workers-types this repo pins.
+    //   · Pre-§24 a throw from sweep N propagated IMMEDIATELY, so sweeps N+1..8 never ran and the replay
+    //     re-ran a short prefix. Now all eight run and THEN it throws, so a replay re-runs the anchor plus
+    //     all eight — including the seven that succeeded. The replayed work is strictly LARGER than the
+    //     baseline I was comparing against, not equal to it.
+    //
+    // And the condition being reported is DETERMINISTIC by construction: the comment above establishes this
+    // branch is only reachable via a binding lookup or a pre-fan-out read, i.e. a config/deployment fault.
+    // A retry fails identically every time — the same "retriable status on a deterministic condition" the
+    // translator refused three commits earlier, in this same session, for the same reason.
+    //
+    // So: keep the throw (the platform SHOULD record a failed tick) and suppress the replay. One errored
+    // invocation, no storm. Replay safety was verified independently (the anchor skips anchored days,
+    // retention/mirror/watchtower/credit-recon are upsert-or-no-op, recon re-enqueues into an at-least-once
+    // queue) — so this is about waste and honesty, not corruption.
     if (sweepFailures.length > 0) {
-      throw new AggregateError(sweepFailures, `agents cron: ${sweepFailures.length} sweep(s) failed at their top level (all sweeps still ran)`);
+      controller.noRetry();
+      throw new AggregateError(sweepFailures, `agents cron: ${sweepFailures.length} sweep(s) failed at their top level (all sweeps still ran; NOT retried — the condition is deterministic)`);
     }
   },
   // REQ-159 (GTM — milestone gate, NOT a code deliverable): this consumer is the M-H substrate. The

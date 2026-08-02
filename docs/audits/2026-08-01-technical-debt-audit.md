@@ -1676,3 +1676,72 @@ periodically re-reading what the old comments assert against what the code now d
 sweep was.
 
 **Verification.** billing 56, translator 94, agents 106; typecheck 0, lint 0.
+
+---
+
+## §36 — Iteration 30 (2026-08-02): the fourth review, and the HIGH my own §34 comment described but did not see
+
+The fourth review confirmed §33's `attempted` fix and §33a's re-derived count independently, then found a
+HIGH in §29 that I had walked right past.
+
+### HIGH — the 422 catch was unconditional, so a blip on a HEALTHY tenant lost a tender
+
+`catch (err)` around `tenantDbFor` trapped **every** throw. But that call is not only a deterministic
+classifier: for a claimed-pool tenant it does a **live control-plane D1 read**. A transient fault there — a
+connection blip, a D1 overload — landed in the same catch and produced **422**, which a VAN does not retry,
+on a perfectly healthy tenant. The tender then existed only as an R2 object under a prefix nothing in
+non-test source enumerates: no anomalies row, no alarm, no queue entry. **A lost freight tender from a
+network hiccup — the exact "worse of the two failures" the guard was written to prevent.**
+
+Two things make this worse than an ordinary miss. First, **§34's comment states the escape condition** —
+*"if a future change makes this branch reachable for a HEALTHY tenant, that reasoning evaporates"* — and I
+failed to notice no future change was required; it was already reachable. Second, it was **internally
+inconsistent with the same session**: §31 added `isTenantPolicyRefusal` precisely so a consumer could tell
+deterministic from retriable **by inspecting the error**, and this guard classified by *position in the code*.
+I applied the right discipline in one worker and the wrong one in another, days apart in the same sitting.
+
+Now: `isUnknownTenant` (shared from contracts, beside the §31 predicate) gates the 422; anything else
+**rethrows** → 5xx → the VAN retries, which is correct for the one condition a retry can fix. Pinned by a
+test injecting a `D1_ERROR: Network connection lost` and asserting it stays retriable. The §29 test could not
+have caught this: it injected an `UNKNOWN_TENANT` rejection, so it would have passed identically if the
+resolver had thrown a D1 error — **it certified the wrong property.**
+
+### MEDIUM — the R2 key could delete the only copy it was preserving
+
+`isaControl` is verbatim ISA13 off the wire: unbounded, partner-chosen. Over ~1 KB it blows R2's key limit,
+`put` throws, the inner catch swallows it, and the tender is **gone** — no bytes, no row. (`quarantine()`
+survives this because it writes its anomalies row *before* the put; this path had nothing before it.) And
+ISA13 is an interchange counter, not a document identity: two distinct unresolvable tenders sharing one
+silently overwrote. Now truncated to 64 chars with a body-hash suffix — redelivery still overwrites (same
+bytes, same key), a different document cannot.
+
+### MEDIUM — the cron AggregateError did cause a full-tick replay, and my equivalence claim was wrong
+
+Cloudflare **does** retry a throwing `scheduled()` — which is why `ScheduledController.noRetry()` exists in
+the workers-types this repo pins. And my note claiming "the retry posture is exactly what it was before §24"
+was wrong in a way I should have caught: pre-§24 a throw propagated **immediately**, so sweeps N+1..8 never
+ran and the replay re-ran a short prefix; now all eight run and *then* it throws, so the replay re-runs the
+anchor plus all eight including the seven that succeeded. **Strictly larger than the baseline I compared it
+to.** The condition is deterministic by construction (a binding or pre-fan-out fault), so the retry fails
+identically forever — the same "retriable status on a deterministic condition" the translator refused three
+commits earlier. `controller.noRetry()` now precedes the throw: one errored invocation, no storm.
+
+### LOW — the leak test asserted the one branch where a leak was impossible
+
+`describeTenantPolicyRejection` emitted key paths, and §33a claimed those "carry no tenant data". False for
+`visibility.*`: every key under it is arbitrary tenant-supplied text, so
+`{"visibility":{"CUSTOMER-ACME-SECRET-KEY":"bogus"}}` put that string straight into an operator log. **And
+the test written to prove no leak planted its sentinel under `gates.dims_required` — a fixed-key branch
+where a leak was structurally impossible.** It asserted the safe half and skipped the only unsafe one: the
+"fix that cannot fail" shape, inside the test whose entire purpose was to prevent this. The segment is now
+collapsed to `visibility.<kind>` with an entry count, and the test covers the branch that actually leaked.
+
+### LOW — the refusal predicate matched free prose
+
+`isTenantPolicyRefusal` used `.includes("tenant policy malformed")`. §33a defended that because nothing in
+the repo produces the phrase — true, but the catch it feeds also wraps the **Concierge LLM path and Resend
+sends**, whose messages can embed inbound email text and third-party response bodies. A shipper who writes
+that phrase in an email would mislabel a retriable failure as deterministic and skip its 429 backoff. Now
+matches the structured field `"reason":"…"`, which survives RPC wrapping and cannot come from prose.
+
+**Verification.** contracts 285, translator 95, agents 106, api 730, billing 56; typecheck 0, lint 0.

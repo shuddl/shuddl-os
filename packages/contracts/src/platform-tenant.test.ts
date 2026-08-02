@@ -161,11 +161,28 @@ describe("describeTenantPolicyRejection — names the cause, not a guess", () =>
     expect(d).toContain("wrong shape");
     expect(d).toContain("gates.dims_required");
     const v = describeTenantPolicyRejection('{"visibility":{"freight.photographed":"publc"}}');
-    expect(v).toContain("visibility.freight.photographed");
+    // §36: the visibility SEGMENT is collapsed — the kind name is tenant-controlled text and must not reach
+    // an operator log, so the describer names the knob and counts the entries instead of listing them.
+    expect(v).toContain("visibility.<kind>");
+    expect(v).not.toContain("freight.photographed");
   });
 
-  it("carries key PATHS only — never a policy VALUE (a log is not a place for tenant config)", () => {
-    const d = describeTenantPolicyRejection('{"gates":{"dims_required":"SECRET-VALUE-XYZ"}}');
-    expect(d).not.toContain("SECRET-VALUE-XYZ");
+  it("carries key PATHS only — never a policy VALUE, and never a tenant-CONTROLLED key (§36)", () => {
+    // The first version of this test planted its sentinel as a VALUE under `gates.dims_required` — a
+    // FIXED-key branch where a leak was structurally impossible. It asserted the safe half and skipped the
+    // only unsafe one, so it passed while `visibility.<arbitrary tenant key>` went straight into the log.
+    // That is the "fix that cannot fail" shape inside the very test written to prove a leak could not happen.
+    expect(describeTenantPolicyRejection('{"gates":{"dims_required":"SECRET-VALUE-XYZ"}}')).not.toContain("SECRET-VALUE-XYZ");
+
+    // THE BRANCH THAT ACTUALLY LEAKED: every key under `visibility` is arbitrary tenant-supplied text.
+    const d = describeTenantPolicyRejection('{"visibility":{"CUSTOMER-ACME-SECRET-KEY":"bogus"}}');
+    expect(d, "a tenant-controlled key must never reach an operator log").not.toContain("CUSTOMER-ACME-SECRET-KEY");
+    expect(d, "…but the operator must still learn WHICH knob is wrong").toContain("visibility");
+    expect(d).toContain("1 visibility entry");
+
+    // …and the count is honest for several bad entries.
+    const many = describeTenantPolicyRejection('{"visibility":{"a.b":"x","c.d":"y","e.f":"z"}}');
+    expect(many).toContain("3 visibility entries");
+    for (const k of ["a.b", "c.d", "e.f"]) expect(many).not.toContain(k);
   });
 });

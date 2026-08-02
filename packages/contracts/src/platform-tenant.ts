@@ -233,6 +233,23 @@ export function describeTenantPolicyRejection(raw: string | null | undefined): s
   if (typeof parsed !== "object") return `policy is a JSON ${typeof parsed}, not an object`;
   const r = TenantPolicyShape.safeParse(parsed);
   if (r.success) return "policy is usable";
-  const paths = [...new Set(r.error.issues.map((i) => i.path.join(".") || "(root)"))];
-  return `policy parses but these keys have the wrong shape: ${paths.join(", ")}`;
+  // §36 — `visibility` is `z.record(z.string(), Visibility)`, so EVERY key under it is arbitrary
+  // tenant-supplied text that would otherwise become a path segment in an operator log. §33a claimed "key
+  // paths only: they carry no tenant data" and that was false for exactly this branch — the pinning test
+  // planted its sentinel under `gates.dims_required`, a FIXED-key branch where a leak was structurally
+  // impossible, so it asserted the safe half and skipped the only unsafe one. Collapse the tenant-controlled
+  // segment to a count: an operator learns WHICH knob is wrong without the log becoming a place tenant
+  // config leaks to.
+  const paths = [
+    ...new Set(
+      r.error.issues.map((i) => {
+        const p0 = i.path[0];
+        if (p0 === "visibility") return i.path.length > 1 ? "visibility.<kind>" : "visibility";
+        return i.path.join(".") || "(root)";
+      }),
+    ),
+  ];
+  const visKeys = r.error.issues.filter((i) => i.path[0] === "visibility" && i.path.length > 1).length;
+  const suffix = visKeys > 0 ? ` (${visKeys} visibility entr${visKeys === 1 ? "y" : "ies"})` : "";
+  return `policy parses but these keys have the wrong shape: ${paths.join(", ")}${suffix}`;
 }

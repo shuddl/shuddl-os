@@ -384,6 +384,19 @@ describe("REQ-201/202 — inbound 204 → gated chain, NO booking.created", () =
     }
   });
 
+  it("(h4) a TRANSIENT resolution fault stays RETRIABLE (5xx) — only a deterministic one is 422 (§36)", async () => {
+    // The §29 guard caught EVERY throw from tenantDbFor and answered 422. But that call does a live
+    // control-plane D1 read, so one blip on a HEALTHY claimed tenant became a PERMANENT refusal (a VAN does
+    // not retry a 422) plus a tender preserved only under a prefix nothing enumerates. A lost tender from a
+    // network hiccup — the exact failure the guard exists to prevent. Classify by the ERROR, not by where
+    // it was thrown: this is the one condition where a VAN retry is the correct answer.
+    const seq = new RecordingSeq();
+    const deps = makeDeps(seq, new RecordingTransport(), goodSecrets());
+    const blip = { ...deps, tenantDbFor: (): Promise<D1Database> => Promise.reject(new Error("D1_ERROR: Network connection lost")) };
+    await expect(handleInbound204(await signedRequest(tender204()), blip)).rejects.toThrow(/Network connection lost/);
+    expect(seq.appended, "nothing appended on a transient fault").toHaveLength(0);
+  });
+
   it("(h2) a MISSING tenant control row fails closed EARLIER — 401 at auth, nothing written", async () => {
     // Written expecting a quarantine, and corrected to what actually happens. EDI auth resolves the tenant
     // THROUGH the control plane (the pairing names a tenant_id that must join to a tenants row), so a

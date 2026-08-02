@@ -24,7 +24,7 @@
 //
 // The X12 parse (tokenize/parse204), the 204→plan mapping (mapTenderToBooking), the quarantine descriptor, and
 // the 990 serialize are the PURE @shuddl/edi + Task-6 cores; this file is composition + I/O wiring only. LLM-free.
-import { parseTenantPolicy, describeTenantPolicyRejection } from "@shuddl/contracts";
+import { parseTenantPolicy, describeTenantPolicyRejection, isUnknownTenant } from "@shuddl/contracts";
 import { parse204, tokenize, build990 } from "@shuddl/edi";
 import type { TenderDoc } from "@shuddl/edi";
 import { priceShipment, assessApproval } from "@shuddl/rater";
@@ -341,6 +341,20 @@ export async function handleInbound204(request: Request, deps: InboundDeps): Pro
   try {
     db = await deps.tenantDbFor(tenantSlug);
   } catch (err) {
+    // DISCRIMINATE ON THE ERROR, not on where it was thrown (2026-08-02 §36). The first cut caught EVERY
+    // throw from tenantDbFor and answered 422 — but that call also does a LIVE control-plane D1 read, so a
+    // transient blip on a perfectly HEALTHY claimed tenant produced a PERMANENT refusal (a VAN does not
+    // retry a 422) plus a tender preserved only under an R2 prefix nothing enumerates. A lost freight tender
+    // from a network hiccup: the exact "worse of the two failures" this guard was added to avoid.
+    //
+    // §34 wrote the escape condition — "if a future change makes this branch reachable for a HEALTHY tenant,
+    // that reasoning evaporates" — and missed that no future change was needed; it was already reachable.
+    // It was also internally inconsistent: §31 had just added `isTenantPolicyRefusal` so the agents consumer
+    // could tell deterministic from retriable BY INSPECTING THE ERROR, and this guard classified by position.
+    //
+    // A transient fault now RETHROWS → 5xx → the VAN retries, which is the correct answer for the one
+    // condition a retry can actually fix.
+    if (!isUnknownTenant(err)) throw err;
     // NO DATA LOSS — but NOT a full quarantine, and the difference is stated rather than glossed (§34).
     //
     // The first cut of this guard returned 422 and discarded the tender, trading a retry-storm for a LOST
@@ -363,7 +377,13 @@ export async function handleInbound204(request: Request, deps: InboundDeps): Pro
     // the control-plane pairing row (`t.slug`, `p.id`), never from the client header, so the key is always
     // under an AUTHENTICATED tenant prefix — a crafted ISA cannot make it match another tenant's listing.
     // Best-effort — an R2 fault must not turn a deterministic 4xx back into a 5xx retry-storm.
-    const r2Key = `edi/${tenantSlug}/unresolvable/${partnerId}/${isaControl}`;
+    // BOUNDED + DISAMBIGUATED (§36). isaControl is verbatim wire content (ISA13), unbounded and
+    // partner-chosen. An over-long one blows the 1024-byte R2 key limit so `put` throws, the inner catch
+    // swallows it, and the tender is GONE — no bytes, no row. And ISA13 is an interchange counter, not a
+    // document identity: two distinct unresolvable tenders sharing one (a rolled-over counter, a test
+    // partner pinned at 000000001) silently overwrote each other. Truncate the tail and append a body hash,
+    // so redelivery still overwrites (same bytes ⇒ same key) while a DIFFERENT document cannot.
+    const r2Key = `edi/${tenantSlug}/unresolvable/${partnerId}/${isaControl.slice(0, 64)}-${(await sha256Hex(raw)).slice(0, 16)}`;
     try {
       const capped = rawBytes.byteLength > MAX_BODY_BYTES ? rawBytes.slice(0, MAX_BODY_BYTES) : rawBytes;
       await deps.evidence.put(r2Key, capped);
