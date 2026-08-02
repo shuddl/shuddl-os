@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PLATFORM_TENANT_ID, isPlatformTenant, assertNotPlatformTenant, RESERVED_TENANT_PLANS, UNCLAIMED_TENANT_PLAN, PLATFORM_TENANT_PLAN, CLAIMED_TENANT_PLAN_SQL, CLAIMED_TENANT_BY_SLUG_SQL, CLAIMED_TENANTS_SQL, parseTenantPolicy } from "./platform-tenant.js";
+import { PLATFORM_TENANT_ID, isPlatformTenant, assertNotPlatformTenant, RESERVED_TENANT_PLANS, UNCLAIMED_TENANT_PLAN, PLATFORM_TENANT_PLAN, CLAIMED_TENANT_PLAN_SQL, CLAIMED_TENANT_BY_SLUG_SQL, CLAIMED_TENANTS_SQL, parseTenantPolicy, describeTenantPolicyRejection } from "./platform-tenant.js";
 
 // REQ-123/025 (WP-14 Task 1): the reserved PLATFORM revenue tenant + its two-way isolation lock.
 // These tests PIN the sentinel value + the guards. If PLATFORM_TENANT_ID ever changes, or a guard
@@ -139,5 +139,33 @@ describe("parseTenantPolicy — usable vs not", () => {
     // `gates` is simply absent — indistinguishable, here, from a tenant that set no gates at all. Catching
     // it needs a closed schema, which would refuse every tenant-specific key. Recorded, not pretended away.
     expect(parseTenantPolicy('{"gate":{"dims_required":true}}')).toEqual({ gate: { dims_required: true } });
+  });
+});
+
+// ---- describeTenantPolicyRejection — the operator-facing WHY (2026-08-02 §31) -------------------------
+// A refusal takes the whole tenant down, so the log has to point at the row AND the key. The prior wording
+// ("unparseable, null, an array, or a non-object") was accurate before the Zod shape landed and became
+// misleading after it: the commonest real cause is a mis-keyed paste on a row that parses perfectly.
+describe("describeTenantPolicyRejection — names the cause, not a guess", () => {
+  it("distinguishes every rejection class", () => {
+    expect(describeTenantPolicyRejection(null)).toBe("no control-plane row");
+    expect(describeTenantPolicyRejection("{not json")).toBe("policy is not valid JSON");
+    expect(describeTenantPolicyRejection("null")).toBe("policy is JSON null");
+    expect(describeTenantPolicyRejection("[1,2]")).toBe("policy is a JSON array, not an object");
+    expect(describeTenantPolicyRejection("7")).toContain("not an object");
+    expect(describeTenantPolicyRejection("{}")).toBe("policy is usable");
+  });
+
+  it("a SHAPE rejection names the offending key path — the whole point", () => {
+    const d = describeTenantPolicyRejection('{"gates":{"dims_required":"true"}}');
+    expect(d).toContain("wrong shape");
+    expect(d).toContain("gates.dims_required");
+    const v = describeTenantPolicyRejection('{"visibility":{"freight.photographed":"publc"}}');
+    expect(v).toContain("visibility.freight.photographed");
+  });
+
+  it("carries key PATHS only — never a policy VALUE (a log is not a place for tenant config)", () => {
+    const d = describeTenantPolicyRejection('{"gates":{"dims_required":"SECRET-VALUE-XYZ"}}');
+    expect(d).not.toContain("SECRET-VALUE-XYZ");
   });
 });

@@ -1,5 +1,6 @@
 import { createExecutionContext, env } from "cloudflare:test";
 import { describe, expect, it, vi } from "vitest";
+import { TENANT_POLICY_MALFORMED_REASON, VALIDATION_FAILED_PREFIX } from "@shuddl/contracts";
 import worker from "../src/index.js";
 
 // WP-06 — queue() DISPATCH SEMANTICS (REQ-031/039). The Biller's business behavior is proven
@@ -91,7 +92,7 @@ describe("agents queue() — per-message dispatch (REQ-031/039)", () => {
     try {
       // Stand in for the sequencer refusal: the handler throws the same message the DO raises.
       const spy = vi.spyOn(env.TENANT_A_DB, "prepare").mockImplementation(() => {
-        throw new Error(`VALIDATION_FAILED:{"reason":"tenant policy malformed"}`);
+        throw new Error(`${VALIDATION_FAILED_PREFIX}{"reason":"${TENANT_POLICY_MALFORMED_REASON}"}`);
       });
       const { message, state } = mkMessage({ kind: "pod.signed", tenant: "tenant-a", shipment_id: "shp-det", event_id: "evt-det" });
       await worker.queue(mkBatch([message]), env, createExecutionContext());

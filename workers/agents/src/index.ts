@@ -2,7 +2,7 @@
 // consumers (WP-06: the Biller — src/biller.ts). LLM calls live here and in packages/agents — never
 // in the ledger (REQ-024); the Biller itself is deterministic and LLM-free.
 
-import { z } from "@shuddl/contracts";
+import { z, isTenantPolicyRefusal } from "@shuddl/contracts";
 import { runDailyAnchor } from "@shuddl/ledger/anchor";
 import { FakeTsaClient, HttpTsaClient, UnavailableTsaClient, type TsaClient } from "@shuddl/ledger/tsa/client";
 import { ClaudeParser, NotConfiguredParser, NotConfiguredSender, ParseError, ResendSender, SendError, renderEvidenceEmail } from "@shuddl/agents";
@@ -618,7 +618,7 @@ export default {
         // as such. Same discipline the translator got in §19, minus the quarantine: there, the 500 went to
         // an external VAN with no DLQ and each retry accumulated projection rows, so it had to be refused
         // before any write; here the DLQ already bounds it, so only the diagnosis needed correcting.
-        const deterministic = err instanceof Error && /tenant policy malformed/i.test(err.message);
+        const deterministic = isTenantPolicyRefusal(err);
         if (deterministic) {
           console.error(
             `agents queue: DETERMINISTIC refusal for ${trigger.kind} ${trigger.event_id} (tenant ${trigger.tenant}) — the sequencer refuses every append while this tenant's control-plane policy row is unusable or missing. Retrying toward the DLQ so the trigger survives, but NO retry will succeed until an operator fixes the tenants row:`,

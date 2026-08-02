@@ -1,5 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import { EventInput, LedgerEvent, hazmatEnabled, isPlatformTenant, parseTenantPolicy, type Visibility } from "@shuddl/contracts";
+import { EventInput, LedgerEvent, hazmatEnabled, isPlatformTenant, parseTenantPolicy, describeTenantPolicyRejection, TENANT_POLICY_MALFORMED_REASON, type Visibility } from "@shuddl/contracts";
 import { GENESIS_HASH, hashEvent } from "@shuddl/ledger/chain";
 import { verifyEventSig } from "@shuddl/ledger/sign";
 import { resolveVisibility, UNRESOLVED_VISIBILITY } from "@shuddl/ledger/visibility";
@@ -1145,8 +1145,8 @@ export class ShipmentSequencer extends DurableObject<Env> {
       // plans; this one is worse, because the two sides would disagree about a security refusal.
       const parsed = parseTenantPolicy(row.policy);
       if (parsed === null) {
-        console.error(`sequencer: tenant ${tenant} has an UNUSABLE policy (unparseable, null, an array, or a non-object) — REFUSING every append until the control row is fixed; a {} fallback would silently OPEN the dims gate, widen the geofence and drop visibility overrides onto immutable events`);
-        throw rpcError("VALIDATION_FAILED", { reason: "tenant policy malformed" });
+        console.error(`sequencer: tenant ${tenant} has an UNUSABLE policy — ${describeTenantPolicyRejection(row.policy)} — REFUSING every append until the control row is fixed; a {} fallback would silently OPEN the dims gate, widen the geofence and drop visibility overrides onto immutable events`);
+        throw rpcError("VALIDATION_FAILED", { reason: TENANT_POLICY_MALFORMED_REASON });
       }
       this.policyCache = parsed as TenantPolicy;
     } else {
@@ -1178,7 +1178,7 @@ export class ShipmentSequencer extends DurableObject<Env> {
       // tenant refuses.
       if (!isPlatformTenant(tenant)) {
         console.error(`sequencer: tenant ${tenant} has NO control-plane row — REFUSING every append until one exists (proceeding on {} would silently widen visibility onto append-only events)`);
-        throw rpcError("VALIDATION_FAILED", { reason: "tenant policy malformed" });
+        throw rpcError("VALIDATION_FAILED", { reason: TENANT_POLICY_MALFORMED_REASON });
       }
       this.policyCache = {};
     }

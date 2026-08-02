@@ -201,3 +201,24 @@ export function parseTenantPolicy(raw: string | null | undefined): Record<string
   // typo, both of which then produce EXACTLY the `{}` widening this predicate exists to refuse.
   return TenantPolicyShape.safeParse(parsed).success ? (parsed as Record<string, unknown>) : null;
 }
+
+/** WHY a policy was rejected, for the operator-facing log. A refusal takes the whole tenant down, so the log
+ *  has to point at the row AND the key — "unparseable, null, an array, or a non-object" was accurate before
+ *  the Zod shape landed and became misleading after it (§27 admits SHAPE rejections too, and the commonest
+ *  is a mis-keyed paste on a row that parses fine). Key PATHS only: they carry no tenant data. */
+export function describeTenantPolicyRejection(raw: string | null | undefined): string {
+  if (typeof raw !== "string") return "no control-plane row";
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return "policy is not valid JSON";
+  }
+  if (parsed === null) return "policy is JSON null";
+  if (Array.isArray(parsed)) return "policy is a JSON array, not an object";
+  if (typeof parsed !== "object") return `policy is a JSON ${typeof parsed}, not an object`;
+  const r = TenantPolicyShape.safeParse(parsed);
+  if (r.success) return "policy is usable";
+  const paths = [...new Set(r.error.issues.map((i) => i.path.join(".") || "(root)"))];
+  return `policy parses but these keys have the wrong shape: ${paths.join(", ")}`;
+}

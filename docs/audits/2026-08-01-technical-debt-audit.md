@@ -1402,3 +1402,60 @@ rather than quietly restating the conclusion.
 | 6 | The watchtower re-upsert sits outside the containment `try/catch`; `edi_tenant_policy_unusable` is stamped `warn` per `(partner, ISA13)`; the `TenantPolicy` **type** is still triplicated | Low |
 
 **Verification.** contracts 282, translator 94, agents 106, api 730; typecheck 0, lint 0.
+
+---
+
+## §31 — Iteration 25 (2026-08-02): three more from the second review, including the law I broke that was written four lines away
+
+### The classifier was a free-text literal, next to the precedent that forbids it
+
+§23 classified the sequencer's tenant-policy refusal in the agents queue consumer with
+`/tenant policy malformed/i` — a regex over an error message produced in a different worker. Four lines from
+`booking.ts:89`, which imports `GATE_BLOCKED_PREFIX` from `@shuddl/contracts` for exactly this purpose, under
+a comment that states the rule I had just broken:
+
+> *"ONE source of truth for the three modules that otherwise hardcode the literal disjointly … (share-lint
+> law: one rule enforced in >1 place shares its matcher)."*
+
+Worse, the §23 test built the thrown message from its **own** copy of the literal. So rewording the
+producer's `reason` would have left the consumer branch dead **and the test green** — the "fix that cannot
+fail" shape, one level up from the code it guards. The reason is now
+`TENANT_POLICY_MALFORMED_REASON` in `errors.ts` beside the prefixes, with an `isTenantPolicyRefusal`
+predicate; producer (both throw sites), consumer, and test all derive from it.
+
+Proved by mutation: rewording the constant to `"tenant policy unusable"` keeps all three consistent and the
+suite green (12/12). Before, that same reword would have silently killed the branch. *(The review's own probe
+— a real cross-script DO whose `append()` throws — confirmed the message survives the RPC hop intact, so the
+branch was live; the exposure was drift, not reachability.)*
+
+### The refusal log named a cause that was no longer true
+
+Both refusal sites said *"unparseable, null, an array, or a non-object"*. That was accurate before §19's Zod
+shape and misleading after it: the predicate now also rejects **shape** errors, and the likeliest real cause
+is a mis-keyed paste on a row that parses perfectly. An operator was being sent to look for a truncated paste
+on a row that has none — while a refusal takes the **whole tenant** down.
+
+`describeTenantPolicyRejection` now names the class and, for a shape rejection, **the offending key paths**
+(`gates.dims_required`, `visibility.freight.photographed`). Both the sequencer log and the translator's
+quarantine reason use it. Key paths only — pinned by a test asserting a policy VALUE never reaches the log,
+because a log is not a place for tenant config.
+
+### The unreachable arm now says so
+
+The preflight's `policyRow === null` arm is **not reachable**: `authenticate` joins `pairings → tenants`, so
+a tenant with no control row 401s first — and this file's own test (h2) asserts exactly that. Kept as
+defence-in-depth (an auth refactor could expose it) but the comment no longer implies coverage it does not
+have. Same treatment as `#deviceKey` (§18) and `contain` (§24) — the third time this session that stating
+reachability honestly was the right answer instead of deleting or pretending.
+
+### Still open
+
+| # | Finding | Severity |
+|---|---|---|
+| 1 | Three reads of one control row per inbound 204 (auth join, `tenantDbFor`, preflight) — threading `t.policy` through the auth join removes two subrequests | Low |
+| 2 | `contain` makes a top-level sweep fault invisible to the platform; an `AggregateError` rethrow after all eight run would complete the tick AND mark the invocation errored | Low |
+| 3 | The watchtower re-upsert sits outside the containment `try/catch` | Low |
+| 4 | `edi_tenant_policy_unusable` is stamped `warn` and keyed per `(partner, ISA13)`, so a tenant-wide outage mints one row per tender | Low |
+| 5 | The `TenantPolicy` **type** is still triplicated (contracts Zod shape, sequencer TS type, invoice-gate partial) even though the predicate is shared | Low |
+
+**Verification.** contracts 285, translator 94, agents 106, api 730; typecheck 0, lint 0.

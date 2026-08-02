@@ -24,7 +24,7 @@
 //
 // The X12 parse (tokenize/parse204), the 204→plan mapping (mapTenderToBooking), the quarantine descriptor, and
 // the 990 serialize are the PURE @shuddl/edi + Task-6 cores; this file is composition + I/O wiring only. LLM-free.
-import { parseTenantPolicy } from "@shuddl/contracts";
+import { parseTenantPolicy, describeTenantPolicyRejection } from "@shuddl/contracts";
 import { parse204, tokenize, build990 } from "@shuddl/edi";
 import type { TenderDoc } from "@shuddl/edi";
 import { priceShipment, assessApproval } from "@shuddl/rater";
@@ -393,6 +393,13 @@ export async function handleInbound204(request: Request, deps: InboundDeps): Pro
   //     events. Checked before anything is written, using the SAME predicate the sequencer uses.
   //
   //     The platform tenant is exempt there and is not reachable here (no EDI partner tenders to it).
+  //
+  //     REACHABILITY, stated honestly (§31): the `policyRow === null` arm below is DEFENCE-IN-DEPTH and is
+  //     NOT reachable today — `authenticate` joins `pairings → tenants`, so a tenant with no control row
+  //     401s before this line, and test (h2) asserts exactly that. It is kept rather than deleted because
+  //     the two are independent (an auth refactor that resolves the tenant another way would expose it),
+  //     but the comment must not imply coverage it does not have: what this preflight actually catches is
+  //     a row that EXISTS and carries an unusable policy.
   const policyRow = await deps.controlDb
     .prepare("SELECT policy FROM tenants WHERE slug = ?")
     .bind(tenantSlug)
@@ -401,7 +408,7 @@ export async function handleInbound204(request: Request, deps: InboundDeps): Pro
     const reason = new Error(
       policyRow === null
         ? `tenant ${tenantSlug} has NO control-plane row — the sequencer refuses every append until one exists`
-        : `tenant ${tenantSlug} has an UNUSABLE control-plane policy — the sequencer refuses every append until it is fixed`,
+        : `tenant ${tenantSlug} has an UNUSABLE control-plane policy (${describeTenantPolicyRejection(policyRow.policy)}) — the sequencer refuses every append until it is fixed`,
     );
     return quarantine(deps, db, tenantSlug, partnerId, isaControl, rawBytes, reason, "edi_tenant_policy_unusable");
   }
