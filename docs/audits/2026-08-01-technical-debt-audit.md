@@ -299,3 +299,38 @@ tenant's data, a filmed acceptance demo, a pen test) needs inputs no commit can 
 iteration has no named lens set left that this audit has not run.** Its honest form is a REGRESSION
 watch: re-run the baseline gates and the full suite, confirm the ledgered open-by-design rows have not
 silently changed state, and stop — not another speculative sweep.
+
+## §9 — Iteration 5 (2026-08-01): the regression watch, run as §8 prescribed
+
+Not a sweep. §8 named the form and this is it, executed at `3050ff2`.
+
+**Gates.** Every static gate PASS: `check:runtime`, `check:invariants` (21/22 tables, append-only
+intact), `check:rater-purity`, `check:authority-coverage`, `check:seed`, `check:traceability` (no
+orphans either direction), `audit:design` (clean), `check:coverage` (288/288, 0 unaccounted),
+`check:citations` (945 resolve, 24 content-anchored; ratchet exactly at its frozen 131). `pnpm lint`
+clean, `typecheck` clean across every workspace, `pnpm audit --prod` reports no known vulnerabilities.
+**`pnpm test` exit 0 — 3,485 tests across 267 files, 18 projects.** Hygiene: no iCloud duplicates, no
+wedged `workerd`, working tree clean but for the three deliberately-untracked marketing docs.
+
+**The twelve ledgered open-by-design rows, each re-verified — none has silently changed state:**
+
+| # | Row | Verified still true |
+|---|---|---|
+| 1 | Driver custody parties fail closed | No fabrication constants in `captures.ts` (the only match is the audit comment); `App.tsx` still passes no `custodyParties` |
+| 2 | Translator roster is static | Still one bare roster loop; still zero pool bindings in its wrangler — as ledgered on the EDI activation row |
+| 3 | EDI transport CONFIRM-gated | The NotConfigured composition roots are all present |
+| 4 | `PROVISIONING_ENABLED` dark | Absent from the api wrangler in every scope |
+| 5 | Prod outbound email dark | `EVIDENCE_FROM` appears in the prod agents scope only as the comment explaining its deliberate absence |
+| 6 | Tiles on the demo host (REQ-075) | Unchanged |
+| 7 | Nine private fixtures unvendored | `check:fixtures --mode merge` → BLOCKED, same nine |
+| 8 | Identity gate fail-closed | `check:identity --mode merge` → BLOCKED, no denylist |
+| 9 | Signup email oracle (R4) | Unchanged, as accepted |
+| 10 | Prod-surface `retries: 1` (Low) | Unchanged, as accepted |
+| 11 | `hashPath` unframed digest | Unchanged — fix only alongside a re-pin |
+| 12 | `?perf` synthetic harness path | Unchanged, documented REQ-079 |
+
+**Verdict: no regression, no drift, nothing new to fix.** This is what the stopping line looks like when
+it holds. Iteration 6 and beyond have the same honest form as this one — re-run the watch when the tree
+changes — and the loop's remaining value is now entirely in the OWNER inputs the External rows name.
+Running further speculative sweeps against an unchanged tree would burn effort re-deriving the same
+verdict; running the watch after a real change is what keeps it true.
