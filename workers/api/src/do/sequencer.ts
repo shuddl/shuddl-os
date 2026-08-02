@@ -93,6 +93,8 @@ export interface AppendedEvent {
 // The tenant policy JSON (control plane `tenants.policy`): visibility overrides + gate config. The
 // `gates` block carries the invoice-gate exception (invoice_without_pod_classes) AND the Task-5
 // transition-gate knobs: whether a lane is dims-fitted, and the delivery geofence radius.
+// The typed view of tenants.policy. Hand-written on purpose — see the note beside TenantPolicyShape in
+// @shuddl/contracts (§32): inferring it collides with exactOptionalPropertyTypes at every consumer.
 type TenantPolicy = {
   gates?: {
     invoice_without_pod_classes?: string[];

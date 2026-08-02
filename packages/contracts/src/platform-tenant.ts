@@ -186,6 +186,20 @@ const TenantPolicyShape = z
   })
   .passthrough();
 
+/* NOT exported as a shared TYPE — considered and rejected (2026-08-02 §32).
+ *
+ * The predicate is shared (§19); the TYPE stays hand-written in its two consumers. Inferring it from this
+ * schema was tried and reverted: `.nullish()` + `.passthrough()` infers keys as REQUIRED-with-undefined
+ * (`gates: X | undefined`) rather than OPTIONAL (`gates?: X`), which `exactOptionalPropertyTypes: true`
+ * rejects at every consumer. Closing that needs either transform gymnastics here — which make the schema
+ * harder to read than the duplication removes — or loosening the gate signatures in packages/ledger, which
+ * is the wrong direction on the file that decides whether an append is refused.
+ *
+ * So this is duplication kept ON PURPOSE, with the reason recorded, rather than a fragile dedup on a
+ * security-critical path. The drift risk is bounded: the schema is the only thing that decides ACCEPTANCE,
+ * and a consumer type that disagrees with it fails to compile against the parsed value.
+ */
+
 export function parseTenantPolicy(raw: string | null | undefined): Record<string, unknown> | null {
   if (typeof raw !== "string") return null;
   let parsed: unknown;

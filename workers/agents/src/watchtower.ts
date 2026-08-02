@@ -495,12 +495,26 @@ async function sweepParityDrift(
     // operator reading the alarm sees "drifting AND could not fall back", plus the cause. This is the one
     // append caller that catches and continues; the containment is still correct — the sweep must not
     // abort and skip every later module's raise/clear — but containment is not a reason to under-report.
-    if (didFallback || fallbackError !== undefined) {
+    // 2026-08-02 §32 — this re-upsert is itself CONTAINED, and it always runs.
+    //
+    // Two corrections to how §20 shipped it. First, the await sat OUTSIDE the try/catch that contains the
+    // fallback fault, so a D1 failure here aborted the whole per-tenant loop — the exact outcome the
+    // containment three lines up exists to prevent, just reached one step later. A reporting improvement
+    // must not become the thing that stops the report.
+    //
+    // Second, it was gated on `didFallback || fallbackError`, so when a drifting module was ALREADY on
+    // `legacy` neither branch ran and the row carried no `fell_back` key at all — leaving "not attempted"
+    // and "not reported" indistinguishable to whoever reads the alarm. It now always writes the key, with
+    // `attempted` saying which of the two it was.
+    try {
       await raiseAlarm(db, id, "parity_drift", "module", module, "critical", {
         ...detail,
         fell_back: didFallback,
+        attempted: seq !== undefined && (await resolveAuthority(db, module)) === "native",
         ...(fallbackError === undefined ? {} : { fallback_error: fallbackError, still_on_native: true }),
       });
+    } catch (err) {
+      console.error(`watchtower parity_drift: ${tenant}/${module} could not record the fallback OUTCOME on the alarm (the alarm itself stands; the sweep continues):`, err);
     }
     modules.push({ module, status: "DRIFT", raised: true, fell_back: didFallback });
   }

@@ -469,11 +469,19 @@ export default {
     // guards is the NEXT edit: the day a sweep gains a binding lookup or a pre-fan-out read, the assumption
     // those eight comments encode silently becomes false, and the failure mode is a skipped recon tick
     // (unbilled freight) plus a masked anchor error — neither of which announces itself.
+    // COLLECTED, not swallowed (2026-08-02 §32). §24 shipped this as log-and-continue, which completed the
+    // tick but made a top-level sweep fault INVISIBLE to the platform: `scheduled()` resolved, so the cron
+    // invocation was recorded as a success. Previously such a throw rejected the handler and the invocation
+    // was marked errored — so the containment traded one real property for another. Both are wanted: every
+    // sweep still runs (a failure in the second must not skip the remaining six), AND the tick is still
+    // reported as failed. Failures are collected here and rethrown together after all eight have run.
+    const sweepFailures: Error[] = [];
     const contain = async (name: string, run: () => Promise<unknown>): Promise<void> => {
       try {
         await run();
       } catch (err) {
         console.error(`agents cron: sweep ${name} failed at its TOP level (its per-tenant containment did not catch this) — the remaining sweeps still run this tick:`, err);
+        sweepFailures.push(new Error(`sweep ${name}: ${err instanceof Error ? err.message : String(err)}`, { cause: err }));
       }
     };
     try {
@@ -514,6 +522,11 @@ export default {
       // finally; it contains its own per-tenant faults (write-once per ISO week, idempotent). NO external publish
       // (CONFIRM-gated) — the R2 manifest IS the telemetry.
       await contain("watchtower-snapshots", () => runWatchtowerSnapshots(env, () => controller.scheduledTime));
+    }
+    // Every sweep ran; now let the platform see that some did not succeed. Deliberately AFTER the finally,
+    // so this never masks an anchor error (an anchor throw propagates from the try and this line is skipped).
+    if (sweepFailures.length > 0) {
+      throw new AggregateError(sweepFailures, `agents cron: ${sweepFailures.length} sweep(s) failed at their top level (all sweeps still ran)`);
     }
   },
   // REQ-159 (GTM — milestone gate, NOT a code deliverable): this consumer is the M-H substrate. The

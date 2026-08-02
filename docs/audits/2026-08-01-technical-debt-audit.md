@@ -1459,3 +1459,55 @@ reachability honestly was the right answer instead of deleting or pretending.
 | 5 | The `TenantPolicy` **type** is still triplicated (contracts Zod shape, sequencer TS type, invoice-gate partial) even though the predicate is shared | Low |
 
 **Verification.** contracts 285, translator 94, agents 106, api 730; typecheck 0, lint 0.
+
+---
+
+## §32 — Iteration 26 (2026-08-02): the last Low findings, and one dedup deliberately NOT done
+
+### `contain` completed the tick but told the platform it succeeded
+
+§24 wrapped the eight cron sweeps so one top-level fault could not skip the rest. It shipped as
+log-and-continue — which completed the tick and **made the failure invisible**: `scheduled()` resolved, so
+the cron invocation was recorded as a success. Before §24, such a throw rejected the handler and the
+invocation was marked errored. So the containment had traded one real property for another rather than
+adding one.
+
+Both are wanted: every sweep must still run (a failure in the second must not skip the remaining six) **and**
+the tick must still be reported as failed. Failures are now collected and rethrown as an `AggregateError`
+after all eight have run — placed after the `finally`, so it can never mask an anchor error (an anchor throw
+propagates from the `try` and skips this line entirely).
+
+### The watchtower re-upsert was outside the containment it was added inside
+
+Two corrections to how §20 shipped it. The `await raiseAlarm(...)` sat **outside** the `try/catch` that
+contains the fallback fault, so a D1 failure there aborted the whole per-tenant loop — the exact outcome the
+containment three lines above exists to prevent, reached one step later. *A reporting improvement must not
+become the thing that stops the report.* And it was gated on `didFallback || fallbackError`, so a drifting
+module **already on `legacy`** got no `fell_back` key at all, leaving "not attempted" and "not reported"
+indistinguishable to whoever reads the alarm. It now always writes the key, with `attempted` saying which.
+
+### The TenantPolicy type dedup: tried, reverted, and recorded as a decision
+
+The review's last Low was that §19 shared the *predicate* but left the *type* triplicated. Inferring
+`TenantPolicy` from the schema was implemented and then **reverted**: `.nullish()` + `.passthrough()` infers
+keys as REQUIRED-with-undefined (`gates: X | undefined`) rather than OPTIONAL (`gates?: X`), which
+`exactOptionalPropertyTypes: true` rejects at every consumer. Closing that needs either transform gymnastics
+in the schema — which make it harder to read than the duplication removes — or loosening the gate signatures
+in `packages/ledger`, which is the wrong direction on the code that decides whether an append is refused.
+
+**So this is duplication kept on purpose, with the reason recorded at the schema.** The drift risk is bounded
+in a way the earlier duplications were not: the schema alone decides *acceptance*, and a consumer type that
+disagrees with it fails to compile against the parsed value. That is a different situation from seven copies
+of a SQL predicate (§14) or two copies of an id function (§13), where each copy independently decided
+behaviour — and the distinction is exactly what §30 got wrong by pattern-matching. Worth stating plainly:
+**not every duplication is the drift class, and "we consolidated the last three" is not a reason to
+consolidate the fourth.**
+
+### Remaining, and why they stay open
+
+| # | Finding | Disposition |
+|---|---|---|
+| 1 | Three reads of one control row per inbound 204 (auth join, `tenantDbFor`, preflight) | Open — a performance refactor of the auth join on the highest-risk EDI seam, for two subrequests. Not worth the risk in the same session that changed this file four times |
+| 2 | `edi_tenant_policy_unusable` is `warn`, keyed per `(partner, ISA13)` — a tenant-wide outage mints one row per tender | Open — the severity vocabulary and the exceptions-queue grouping are a product decision, not a code fix |
+
+**Verification.** contracts 285, ledger 607, api 730, agents 106, translator 94; typecheck 0, lint 0.
