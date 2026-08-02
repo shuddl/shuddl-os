@@ -66,3 +66,43 @@ describe("captures — the delivery terminal fires the POD (delivery.evidenced) 
     expect(capturesForStep("delivery", "delivered", { shipmentId: "s1", ts: 1 })).toEqual([]);
   });
 });
+
+// 2026-08-01 convergence audit — the fabrication cluster is CLOSED and pinned: a hardcoded pieces:6 was
+// recorded on every real pickup, dims were a fixed 48x40x36, and custody/POD named fictional parties
+// (u:driver / p:shipper / p:carrier). Physical facts now arrive through CaptureContext or the capture
+// THROWS (the geo precedent: absence never fabricates).
+describe("captures — physical facts are never fabricated (CAPTURE_INPUT_MISSING fail-closed)", () => {
+  const GEO = { lat_e6: 45_523_100, lon_e6: -122_676_500, accuracy_m: 5 };
+
+  it("count records the REAL entered pieces and refuses to build without them", () => {
+    const caps = capturesForStep("pickup", "count", { shipmentId: "s1", ts: 1, pieces: 4 });
+    expect(caps).toHaveLength(1);
+    expect(caps[0]?.payload).toEqual({ pieces: 4 });
+    expect(() => capturesForStep("pickup", "count", { shipmentId: "s1", ts: 1 })).toThrow(/CAPTURE_INPUT_MISSING/);
+  });
+
+  it("dims refuses to build without real measurements (latent V2 lane — fail-closed, not fabricated)", () => {
+    expect(() => capturesForStep("pickup", "dims", { shipmentId: "s1", ts: 1 })).toThrow(/CAPTURE_INPUT_MISSING/);
+    const caps = capturesForStep("pickup", "dims", { shipmentId: "s1", ts: 1, dims: { l_in: 40, w_in: 30, h_in: 20, pieces: 2 } });
+    expect(caps[0]?.payload).toEqual({ l_in: 40, w_in: 30, h_in: 20, pieces: 2, method: "manual" });
+  });
+
+  it("pickup custody carries the REAL party pair + authenticated driver, and refuses their absence", () => {
+    const [c] = capturesForStep("pickup", "sign", {
+      shipmentId: "s1", ts: 1, geo: GEO, driverUserId: "u-d1",
+      custodyParties: { from: "p-real-shipper", to: "p-real-carrier" },
+    });
+    expect(c?.kind).toBe("custody.transferred");
+    expect(c?.actor_user).toBe("u-d1");
+    expect(c?.payload.from_party).toBe("p-real-shipper");
+    expect(c?.payload.to_party).toBe("p-real-carrier");
+    expect(() => capturesForStep("pickup", "sign", { shipmentId: "s1", ts: 1, geo: GEO, driverUserId: "u-d1" })).toThrow(/CAPTURE_INPUT_MISSING/);
+  });
+
+  it("pod.signed's actor is the authenticated driver, never a constant", () => {
+    const [pod] = capturesForStep("delivery", "sign", { shipmentId: "s1", ts: 1, geo: GEO, driverUserId: "u-d1" });
+    expect(pod?.kind).toBe("pod.signed");
+    expect(pod?.actor_user).toBe("u-d1");
+    expect(() => capturesForStep("delivery", "sign", { shipmentId: "s1", ts: 1, geo: GEO })).toThrow(/CAPTURE_INPUT_MISSING/);
+  });
+});

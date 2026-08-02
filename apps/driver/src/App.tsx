@@ -113,6 +113,11 @@ export function App(deps: AppDeps = {}): React.JSX.Element {
         stop={view.stop}
         {...(view.startStep ? { startStep: view.startStep } : {})}
         onExit={() => setView({ kind: "daysheet" })}
+        // The AUTHENTICATED principal from the manifest (never a constant — 2026-08-01: 'u:driver' is
+        // gone). custodyParties is deliberately NOT passed: no real source exists until the manifest
+        // carries parties (the ledgered REQ-069/REQ-190 pre-pilot hold), so a pickup handoff fails
+        // closed rather than recording a fictional one.
+        {...(data.kind === "ready" ? { driverUserId: data.manifest.driver_id } : {})}
       />
     );
   }

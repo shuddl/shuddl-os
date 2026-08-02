@@ -60,7 +60,7 @@ describe("GatedFlow — the POD (delivery.evidenced) is never silently dropped (
     });
 
     const onExit = vi.fn();
-    const { findByText } = render(<GatedFlow stop={DELIVERY} onExit={onExit} />);
+    const { findByText } = render(<GatedFlow stop={DELIVERY} onExit={onExit} driverUserId="u-test-driver" />);
 
     fireEvent.click(await findByText("mock-stop-arrive")); // arrive → consent + stop.arrived
     fireEvent.click(await findByText("mock-camera-commit")); // photo_placed → freight.photographed (hash)
@@ -84,7 +84,7 @@ describe("GatedFlow — the POD (delivery.evidenced) is never silently dropped (
     });
 
     const onExit = vi.fn();
-    const { findByText, queryByText } = render(<GatedFlow stop={DELIVERY} onExit={onExit} />);
+    const { findByText, queryByText } = render(<GatedFlow stop={DELIVERY} onExit={onExit} driverUserId="u-test-driver" />);
 
     fireEvent.click(await findByText("mock-stop-arrive")); // arrive ok
     fireEvent.click(await findByText("mock-camera-commit")); // placed photo capture throws
@@ -101,7 +101,7 @@ describe("GatedFlow — a ?screen= deep-linked terminal cannot enqueue a gate-in
   it("deep-link to the pickup terminal (depart) enqueues NOTHING — the upstream events weren't emitted", async () => {
     enqueue.mockResolvedValue({});
     const onExit = vi.fn();
-    const { findByText } = render(<GatedFlow stop={PICKUP} startStep="depart" onExit={onExit} />);
+    const { findByText } = render(<GatedFlow stop={PICKUP} startStep="depart" onExit={onExit} driverUserId="u-test-driver" custodyParties={{ from: "p-test-shipper", to: "p-test-carrier" }} />);
 
     fireEvent.click(await findByText("mock-stop-depart"));
 
@@ -113,7 +113,7 @@ describe("GatedFlow — a ?screen= deep-linked terminal cannot enqueue a gate-in
   it("deep-link to the delivery terminal (delivered) enqueues NO delivery.evidenced", async () => {
     enqueue.mockResolvedValue({});
     const onExit = vi.fn();
-    const { findByText } = render(<GatedFlow stop={DELIVERY} startStep="delivered" onExit={onExit} />);
+    const { findByText } = render(<GatedFlow stop={DELIVERY} startStep="delivered" onExit={onExit} driverUserId="u-test-driver" />);
 
     fireEvent.click(await findByText("mock-stop-delivered"));
 

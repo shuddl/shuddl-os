@@ -148,16 +148,28 @@ export function GatedFlow({
   stop,
   startStep,
   onExit,
+  driverUserId,
+  custodyParties,
 }: {
   stop: Stop;
   startStep?: StepId;
   onExit: () => void;
+  /** The AUTHENTICATED driver principal (DriverManifest.driver_id) — the actor_user on custody/POD.
+   *  Absent ⇒ those captures fail closed (2026-08-01: absence never fabricates an identity). */
+  driverUserId?: string;
+  /** The shipment's REAL custody pair for a pickup handoff. Production passes nothing until the
+   *  manifest carries real parties (the ledgered REQ-069/REQ-190 pre-pilot hold) — the sign step then
+   *  surfaces CAPTURE_INPUT_MISSING instead of recording a fictional handoff. */
+  custodyParties?: { from: string; to: string };
 }): React.JSX.Element {
   const opts: FlowOptions = useMemo(() => (stop.dimsRequired === true ? { dimsRequired: true } : {}), [stop]);
   const flow = useMemo(() => buildFlow(stop.kind, opts), [stop.kind, opts]);
   const [state, setState] = useState<FlowState>(() => (startStep ? stateAtStep(flow, startStep) : initialState(flow)));
   const [captureError, setCaptureError] = useState<string | null>(null);
   const [geoNonce, setGeoNonce] = useState(0); // bumped to re-arm the geolocation watch on a retry
+  // The REAL piece count the driver enters on the count step (2026-08-01: the audit found a hardcoded 6
+  // recorded on every pickup; the count is now an input, and the capture refuses to build without it).
+  const [pieces, setPieces] = useState<number | undefined>(undefined);
   const placedHash = useRef<string | undefined>(undefined);
   // Evidence tokens whose events were ACTUALLY captured+enqueued this session (not synthesized by a
   // deep-link's stateAtStep). The terminal emit is gated on this — the client mirror of the server gate.
@@ -184,6 +196,11 @@ export function GatedFlow({
       ...(geo.status === "ready" && geo.fix ? { geo: geo.fix } : {}),
       ...(bytes ? { bytes } : {}),
       ...(placedHash.current ? { placedPhotoHash: placedHash.current } : {}),
+      // The REAL entered piece count (count-step input) and the authenticated identities — same law as
+      // geo: threaded when really captured, and their absence makes the capture THROW, never fabricate.
+      ...(pieces !== undefined ? { pieces } : {}),
+      ...(driverUserId !== undefined ? { driverUserId } : {}),
+      ...(custodyParties !== undefined ? { custodyParties } : {}),
     };
     try {
       for (const params of capturesForStep(flow.kind, stepId, ctx)) {
@@ -287,6 +304,21 @@ export function GatedFlow({
         question={step.question}
         caption={step.caption}
         onCommit={onCommit}
+      />
+    );
+  }
+
+  // The count step is the one gate whose answer is a NUMBER: the screen collects it and the button
+  // stays disabled until a valid count exists, so the recorded fact is what the driver actually counted.
+  if (step.id === "count") {
+    return (
+      <StopScreen
+        key={step.id}
+        header={header}
+        progress={prog}
+        step={step}
+        onComplete={complete}
+        count={{ value: pieces, onChange: setPieces }}
       />
     );
   }

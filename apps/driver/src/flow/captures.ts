@@ -15,9 +15,12 @@ import type { StepId, StopKind } from "./stop-flow.js";
 // absence never fabricates a coordinate — a GPS payload with no geo fails capture (EventInput.parse), which
 // GatedFlow surfaces rather than enqueuing a fake stamp. The continuous 30s position.updated cadence (the live
 // map dot) remains a follow-up. REQ-070 battery/data budget stays a [CONFIRM]/pilot FIELD measurement.
-const DRIVER_USER = "u:driver";
-const SHIPPER_PARTY = "p:shipper";
-const CARRIER_PARTY = "p:carrier";
+// 2026-08-01 convergence audit — the fabrication constants (u:driver / p:shipper / p:carrier and the
+// hardcoded pieces/dims) are GONE. Every physical fact in a capture now arrives through CaptureContext
+// or the capture THROWS (surfaced by GatedFlow's capture-error path), exactly the rule Task 11
+// established for GPS: absence never fabricates. The driver principal is the manifest's authenticated
+// driver_id; the custody party pair rides the REQ-069/REQ-190 identity work and is a ledgered
+// pre-pilot hold until the manifest carries real parties.
 
 /** A device GPS fix (integer microdegrees, canonical law) — the geo stamped into a GPS-bearing capture. */
 export interface GeoFix {
@@ -35,6 +38,20 @@ export interface CaptureContext {
   readonly bytes?: Uint8Array;
   /** The placed-freight photo hash, threaded from photo_placed → delivered's delivery.evidenced. */
   readonly placedPhotoHash?: string;
+  /** The REAL piece count the driver entered on the count step. Absent ⇒ the capture throws. */
+  readonly pieces?: number;
+  /** Real measured dims for a dims-required lane (V2-flagged; unreachable in V1). Absent ⇒ throws. */
+  readonly dims?: { readonly l_in: number; readonly w_in: number; readonly h_in: number; readonly pieces: number };
+  /** The AUTHENTICATED driver principal (DriverManifest.driver_id) — the actor_user on custody/POD. */
+  readonly driverUserId?: string;
+  /** The shipment's REAL custody pair for a pickup handoff. Absent ⇒ throws (ledgered REQ-069 hold). */
+  readonly custodyParties?: { readonly from: string; readonly to: string };
+}
+
+/** Fail-closed input read: a physical fact that was not really captured is never fabricated. */
+function required<T>(value: T | undefined, what: string): T {
+  if (value === undefined) throw new Error(`CAPTURE_INPUT_MISSING: ${what} was not captured — refusing to record a fabricated fact`);
+  return value;
 }
 
 type Base = Pick<CaptureParams, "shipment_id" | "ts">;
@@ -54,21 +71,25 @@ export function capturesForStep(kind: StopKind, stepId: StepId, ctx: CaptureCont
       return [consent, arrived];
     }
     case "count":
-      return [{ ...base, kind: "freight.counted", payload: { pieces: 6 } }];
+      // The REAL entered count — never a constant (the audit found a hardcoded 6 recorded on every pickup).
+      return [{ ...base, kind: "freight.counted", payload: { pieces: required(ctx.pieces, "the piece count") } }];
     case "photo_freight":
       return [freightPhoto(base, "freight", ctx.bytes)];
-    case "dims":
-      return [{ ...base, kind: "dims.captured", payload: { l_in: 48, w_in: 40, h_in: 36, pieces: 6, method: "manual" } }];
+    case "dims": {
+      const d = required(ctx.dims, "measured dims");
+      return [{ ...base, kind: "dims.captured", payload: { l_in: d.l_in, w_in: d.w_in, h_in: d.h_in, pieces: d.pieces, method: "manual" } }];
+    }
     case "sign":
       if (kind === "pickup") {
+        const parties = required(ctx.custodyParties, "the custody party pair");
         return [{
           ...base,
           kind: "custody.transferred",
-          actor_user: DRIVER_USER,
-          payload: { from_party: SHIPPER_PARTY, to_party: CARRIER_PARTY, geo },
+          actor_user: required(ctx.driverUserId, "the authenticated driver id"),
+          payload: { from_party: parties.from, to_party: parties.to, geo },
         }];
       }
-      return [podSigned(base, geo, ctx.bytes)];
+      return [podSigned(base, geo, ctx.bytes, required(ctx.driverUserId, "the authenticated driver id"))];
     case "photo_placed":
       return [freightPhoto(base, "placed", ctx.bytes)];
     case "depart":
@@ -87,7 +108,7 @@ function freightPhoto(base: Base, photo_kind: "freight" | "placed", bytes?: Uint
   return bytes ? { ...params, evidence: { bytes, field: "photo_hash" } } : params;
 }
 
-function podSigned(base: Base, geo: GeoFix | undefined, bytes?: Uint8Array): CaptureParams {
-  const params: CaptureParams = { ...base, kind: "pod.signed", actor_user: DRIVER_USER, payload: { geo } };
+function podSigned(base: Base, geo: GeoFix | undefined, bytes: Uint8Array | undefined, driverUserId: string): CaptureParams {
+  const params: CaptureParams = { ...base, kind: "pod.signed", actor_user: driverUserId, payload: { geo } };
   return bytes ? { ...params, evidence: { bytes, field: "signature_hash" } } : params;
 }
