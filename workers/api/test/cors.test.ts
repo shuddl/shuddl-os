@@ -75,3 +75,28 @@ describe("actual (non-preflight) responses", () => {
     expect(res.headers.get("Access-Control-Allow-Origin")).toBe(ALLOWED);
   });
 });
+
+// 2026-08-01 audit (config-deploy): the served allowlist was env-agnostic — two localhost dev origins and
+// the two .example placeholders compiled into EVERY deploy including prod, and the deploy-preflight's
+// origin checks read only the operator state file, so no gate observed what prod actually served. The
+// served list is now ENV-AWARE: prod serves exactly the real deploy origins; dev/staging keep the full
+// development list (the harness fixtures still assert against it).
+describe("prod serves ONLY the real deploy origins (2026-08-01)", () => {
+  it("effectiveOrigins('prod') is exactly the four real surfaces — no localhost, no .example, no wildcard", async () => {
+    const { effectiveOrigins } = await import("../src/middleware/cors.js");
+    const prod = effectiveOrigins("prod");
+    expect([...prod].sort()).toEqual([
+      "https://command.shuddl.tech",
+      "https://driver.shuddl.tech",
+      "https://portal.shuddl.tech",
+      "https://track.shuddl.tech",
+    ]);
+    expect(prod.some((o) => o.includes("localhost") || o.includes(".example"))).toBe(false);
+  });
+
+  it("non-prod keeps the full development list (fixtures + local Vite origins)", async () => {
+    const { effectiveOrigins } = await import("../src/middleware/cors.js");
+    expect(effectiveOrigins("dev")).toEqual(CORS_ALLOWED_ORIGINS);
+    expect(effectiveOrigins("staging")).toEqual(CORS_ALLOWED_ORIGINS);
+  });
+});

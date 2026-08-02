@@ -187,6 +187,25 @@ describe("environment identity", () => {
     });
     expect(blocks(t)).toContain("test-affordance-in-prod");
   });
+
+  // 2026-08-01 audit (config-deploy): the guard read only [vars], but the agents toml instructs operators
+  // to bind TEST_SEND_TOKEN via `wrangler secret put` — a SECRET-bound affordance was invisible to it (and
+  // the secrets loop checks only required-and-missing, never present-and-forbidden). The state file's
+  // declared secret NAMES are the account-side channel, so a prod state honestly listing one now blocks.
+  it("BLOCKS a test affordance bound as a SECRET in prod (declared in the state file), not only as a var", () => {
+    const t = healthyTarget({
+      environment: "prod",
+      secrets: { JWT_SECRET: "bound", RESEND_API_KEY: "bound", STRIPE_WEBHOOK_SECRET: "bound", PLATFORM_INTERNAL_SECRET: "bound", TEST_SEND_TOKEN: "bound" },
+    });
+    expect(blocks(t)).toContain("test-affordance-in-prod");
+  });
+
+  it("a secret-bound test affordance is LEGAL outside prod (the dev/staging probe is the point)", () => {
+    const t = healthyTarget({
+      secrets: { JWT_SECRET: "bound", RESEND_API_KEY: "bound", STRIPE_WEBHOOK_SECRET: "bound", PLATFORM_INTERNAL_SECRET: "bound", TEST_SEND_TOKEN: "bound" },
+    });
+    expect(blocks(t)).not.toContain("test-affordance-in-prod");
+  });
 });
 
 describe("cross-worker references", () => {

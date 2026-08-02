@@ -272,6 +272,18 @@ export function checkDeployTarget(target: DeployTarget): PreflightReport {
       add("test-secret-deployed", s, `${s} is the in-repo test canary value — a forged token would be accepted`);
     }
   }
+  // Present-and-forbidden (2026-08-01 audit): a test affordance bound as a SECRET is invisible to the
+  // per-worker [vars] scan above — the agents toml itself tells operators to bind TEST_SEND_TOKEN via
+  // `wrangler secret put`, and the loop above checks only required-and-missing. The state file's declared
+  // secret NAMES are the account-side channel, so a prod state honestly listing one BLOCKS here.
+  if (env === "prod") {
+    for (const v of TEST_ONLY_VARS) {
+      checked += 1;
+      if (v in target.secrets) {
+        add("test-affordance-in-prod", v, `${v} is declared bound as a SECRET in production (wrangler secret delete ${v} --env prod)`);
+      }
+    }
+  }
 
   // ── origins ──
   checked += 1;

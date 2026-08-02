@@ -32,6 +32,16 @@ export const CORS_ALLOWED_ORIGINS: readonly string[] = [
   "http://localhost:4322", // design / screenshot harness dev origin
 ];
 
+// 2026-08-01 audit (config-deploy) — the served list is ENV-AWARE. The full list above compiled into every
+// deploy, so prod served the two localhost dev origins and the two `.example` fixtures. Prod now serves
+// EXACTLY the real deploy origins; dev/staging keep the full development list (the screenshot/contract
+// harnesses assert against the fixtures, which is why they stay on the list at all). Exported pure so the
+// suite and the deploy tooling read the same law.
+const PROD_ORIGIN = (o: string): boolean => o.startsWith("https://") && o.endsWith(".shuddl.tech");
+export function effectiveOrigins(environment: string): readonly string[] {
+  return environment === "prod" ? CORS_ALLOWED_ORIGINS.filter(PROD_ORIGIN) : CORS_ALLOWED_ORIGINS;
+}
+
 // Built on hono's own `cors` middleware (the idiomatic choice in the pinned hono@4.12 — it handles the
 // OPTIONS preflight + `Vary: Origin` for us). The `origin` callback ECHOES the matched origin back as
 // `Access-Control-Allow-Origin` (never `*`) or returns null (=> no ACAO header, denied). Methods + headers
@@ -43,7 +53,7 @@ export const CORS_ALLOWED_ORIGINS: readonly string[] = [
 // spec forbids is structurally impossible here (we echo a specific origin and send no credentials flag).
 export function corsMiddleware(): MiddlewareHandler {
   return cors({
-    origin: (origin) => (CORS_ALLOWED_ORIGINS.includes(origin) ? origin : null),
+    origin: (origin, c) => (effectiveOrigins((c.env as { ENVIRONMENT?: string }).ENVIRONMENT ?? "").includes(origin) ? origin : null),
     allowMethods: ["GET", "POST", "OPTIONS"],
     allowHeaders: ["Authorization", "Content-Type", "Idempotency-Key"],
     maxAge: 86_400, // 24h — cache the preflight so the browser stops re-asking on every call
