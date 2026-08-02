@@ -216,3 +216,43 @@ EDI transport; ledgered on the EDI activation row as a pre-activation line) · p
 (Low, recorded) · the External/owner holds, unchanged. The §4 stopping-point line is now satisfied for
 every repo-owned row this audit raised: what remains is owner-supplied (fixtures, denylist, credentials,
 the sending flip, tenant onboarding) or rides a CONFIRM-gated activation it is ledgered against.
+
+## §7 — Iteration 3 (2026-08-01, loop continuation): the convergence test FAILED, then passed
+
+Iteration 3 was designed as a convergence check — six fresh lenses over the areas the first two
+iterations covered least (the browser apps, map/design, migrations/guards, CI workflows, ledger core,
+agents packages) plus a completeness critic. **It did not converge: 18 findings, 6 High** — proof the
+under-audited areas were exactly where the debt hid. All repo-actionable rows closed the same session:
+
+- **The driver capture layer fabricated freight facts** (`a3b667a`) — a hardcoded `pieces: 6` recorded
+  as a signed, gate-satisfying, counterparty-visible `freight.counted` on every real pickup; fixed dims;
+  fictional custody/actor identities. Physical facts now thread through CaptureContext or the capture
+  THROWS (the geo precedent); the count step has a real input; the custody party pair fails closed and
+  is a ledgered R3 row (it genuinely needs the REQ-069 identity work + manifest party refs).
+- **The go-live "no fabricated data" verdict was a false green** — its proof grep's pathspec matched
+  zero files. Superseded with the truth and the lesson: a proof command must be exercised against a
+  file known to contain the pattern.
+- **Envelope redaction** (`04e6dab`) — the REQ-049 override (internal ops id + gate-waiver reason) and
+  the party-lens actor.user passed through `{ ...event }` to counterparties; the redaction law now
+  binds the whole event, pinned at the wire in the adversarial lens suite.
+- **Map truthfulness** (`75da631`) — a recovered mark kept its exception feature-state forever (a
+  phantom alarm exempt from the world-dim); applyStates now clears on recovery.
+- **Five mediums** (`1b4e494`): useSync's forbidden same-origin default; a credit sale that could mint
+  an invoice its settlement could never find (now refuses loudly) + the settled-flag overwrite;
+  nightly.yml joined the CI contract (pins + the backup's `--mode release`) and `check:pr` is pinned;
+  the design job shed its advisory-era name; the portal's fictional evidence-email specimen no longer
+  ships in deploy builds.
+
+**Corrections to the critic's two findings, for the record:** the full `pnpm test` HAS run green at
+each iteration's closing state — exit 0 at `2dc2bd4` and exit 0 at exactly `ee09351` (the runs were
+performed but never written into the record; this section is that record). The identity-corpus point
+stands and is noted on the checklist's identity-leak hold row: the first denylist run must screen the
+`6a6c88e` blobs, not only HEAD.
+
+**The stopping line, restated after three iterations:** repo-owned Critical/High debt is again zero.
+Open by design: the custody-party R3 row (fail-closed, needs REQ-069) · the translator roster line on
+the EDI activation row · `?perf`'s documented synthetic harness path · prod-surface retries:1 (Low) ·
+the External/owner holds. A fourth iteration should re-run the convergence test with ANOTHER set of
+fresh lenses (packages/driver-core, workers/mcp, the pub/ routes, tools/fixtures were not among
+iteration 3's six); convergence is claimed only when a fresh-lens sweep returns zero repo-owned
+Critical/High.
