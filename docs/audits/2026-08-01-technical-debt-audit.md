@@ -1008,3 +1008,38 @@ long as it has had 66 files.
 **Verification.** api 66 files / 730 (×3, deterministic order) · contracts 276 · ledger 607 · billing 56 ·
 translator 93 · agents 105 · mcp 175; typecheck 0, lint 0; invariants, citations, traceability,
 authority-coverage, design audit all PASS.
+
+---
+
+## §22 — Iteration 17 (2026-08-02): the same question, asked of the other four workers
+
+§21 fixed the api suite's order-dependence and pinned its file order. That raised the obvious follow-up:
+**is the api worker special, or was it just the one where the defect happened to bite?**
+
+Measured rather than assumed. The api worker is the only project running `isolatedStorage: false` (66 files
+sharing one D1 with no per-test rollback), so it is the most exposed — but the other four are **not immune**,
+because `beforeAll` writes are never rolled back even when `isolatedStorage` is on. And their order is just
+as unpinned: two consecutive runs of the agents suite reordered its first three files.
+
+So the fix is applied to all five. The rule lives in **one** module — `tools/testing/path-sequencer.ts` —
+imported by every vitest config, rather than copied five times. Five copies of an ordering rule is five
+chances for four of them to drift, which is the same reasoning §14 applied to the reserved-plan SQL and §19
+to the tenant-policy predicate. The api config, which had grown its own copy plus two stacked comment
+blocks from §20 and §21, now imports the shared one and carries a single consolidated note.
+
+**Two things worth recording about the move itself.** First, `sequence.shuffle: false` is a *different knob*
+and does not pin anything — vitest orders by cached duration from prior runs, so the order drifts on its own
+as timings move. Second, the sequencer's `sort` signature had a latent type error (`Promise<ReturnType<…>>`
+double-wraps, since `ReturnType` is already a Promise) that **typechecked fine while it lived inside the
+vitest config** — configs are not covered by a tsconfig — and failed the instant the class moved into
+`tools/`. That is a small argument for the shared module beyond DRY: code in a config file is code nothing
+is checking.
+
+**Verified:** all five suites green *and* order-stable across repeat runs — api 730 ×2 (identical order),
+billing 56, translator 93, agents 105, mcp 175, each with byte-identical file order across two runs.
+typecheck 0 (workspace **and** tools), lint 0.
+
+**What this buys.** Nothing today; every suite is green. What it removes is the *category*: the next
+order-dependent defect anywhere in the test estate fails on every run instead of one in five. This session
+paid for that class twice, at several full suite runs each just to identify. A flaky failure you can
+reproduce is a bug; one you cannot is a rumour.

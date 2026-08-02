@@ -1,4 +1,5 @@
 import { defineWorkersConfig } from "@cloudflare/vitest-pool-workers/config";
+import { DETERMINISTIC_SEQUENCE } from "../../tools/testing/path-sequencer.js";
 import { fileURLToPath } from "node:url";
 
 // WP-13 Task 1 (REQ-101) — proves the api SERVICE-BINDING reuse seam runs the REAL api worker in-process.
@@ -25,6 +26,11 @@ const apiBundlePath = fileURLToPath(new URL("./dist/api/index.js", import.meta.u
 
 export default defineWorkersConfig({
   test: {
+    // 2026-08-02 §22 — deterministic FILE order (see tools/testing/path-sequencer.ts). Vitest orders
+    // files by cached duration from prior runs, so the order drifts on its own; measured varying here.
+    // `beforeAll` writes are never rolled back even with isolatedStorage on, so cross-file state exists
+    // in this project too — and an intermittent failure you cannot reproduce is a rumour, not a bug.
+    sequence: DETERMINISTIC_SEQUENCE,
     poolOptions: {
       workers: {
         singleWorker: true,
