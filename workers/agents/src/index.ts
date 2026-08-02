@@ -525,6 +525,14 @@ export default {
     }
     // Every sweep ran; now let the platform see that some did not succeed. Deliberately AFTER the finally,
     // so this never masks an anchor error (an anchor throw propagates from the try and this line is skipped).
+    //
+    // VERIFIED before shipping this, because "a throw here re-runs the whole tick" would be a real hazard
+    // (the anchor plus eight sweeps, replayed): it does NOT introduce one. Pre-§24 these were bare `await`
+    // calls in this same `finally` with no catch, so a top-level sweep throw ALREADY propagated out of
+    // scheduled(). §24 swallowed it (and silently downgraded a failed tick to a successful one); this
+    // restores the original propagation while ADDING the guarantee that all eight sweeps run first. So the
+    // retry posture is exactly what it was before §24, not something new. `AggregateError` is available in
+    // workerd (probed directly, not assumed).
     if (sweepFailures.length > 0) {
       throw new AggregateError(sweepFailures, `agents cron: ${sweepFailures.length} sweep(s) failed at their top level (all sweeps still ran)`);
     }
