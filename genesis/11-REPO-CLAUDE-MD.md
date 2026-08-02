@@ -29,8 +29,14 @@ Cloudflare Workers + Hono · D1 per-tenant (control plane separate) · R2 eviden
    > under `--mode merge` — one of the five private-fixture holds. What is green in-repo is
    > `packages/rater/test/sweep.test.ts`, a representative **property** test (7 zones × 72 weights = 504 priced
    > cells) proving the same monotonicity against tariffs this repo controls. The imperative — *no price on
-   > air* — stands exactly as written. `CLAUDE.md` carries the same correction; this note keeps the two from
-   > diverging, since `CLAUDE.md` is generated from this file and would otherwise reintroduce the claim.
+   > air* — stands exactly as written. `CLAUDE.md` carries the same correction.
+   >
+   > *Why correct BOTH (refined in §62, after actually diffing them): this file is a **template** — "drop
+   > this file at repo root, verbatim, when the repo is created" — and the root `CLAUDE.md` is its
+   > instantiation with paths resolved (`genesis/09-…`) plus a few clarifying additions. They already diverge
+   > intentionally in several places, so they are not kept byte-identical and no regeneration will clobber the
+   > root file. The reason to fix the template is simpler: it is the artifact a future repo (or a reader
+   > reaching for the canonical wording) starts from, and it should not hand them a claim that is false.*
 5. **Interline floors compare the executing share, never gross.** The $222,084/35-lb anomaly regression is permanent (REQ-040).
 6. **Fixtures gate merges**: legacy-export replay ±2% aggregate · routes ±10% · QB export reconciles to the penny · airplane-mode soak for driver flows (`fixtures/README.md`).
 7. **Design CI**: color/contrast/font/case/radius/shadow/motion audits + 5 blessed screenshots. `--signal-deep` is tuned by the contrast test, not by eye. **Advisory (report-only) until WP-10 exits, blocking thereafter (REQ-158).**

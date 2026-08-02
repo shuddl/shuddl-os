@@ -3011,3 +3011,43 @@ false green anywhere. The cost is a reader believing coverage exists — the sam
 
 **Verification.** `genesis/11` annotated; GO-LIVE row added; `packages/rater` 154, QB fixture 7, airplane soak
 2 — all green; tables and citations PASS.
+
+---
+
+## §62 — I diffed the two files and my own §61 reasoning was wrong
+
+§61 justified annotating `genesis/11` by asserting that *"`CLAUDE.md` is generated from this file and would
+otherwise reintroduce the claim."* Then I diffed them. **That mechanism does not exist.**
+
+`genesis/11`'s own title says what it is: *"drop this file at repo root, verbatim, when the repo is created."*
+It is a **one-time template**, not a source that regenerates anything. And the two files already differ in
+several deliberate ways:
+
+- Path resolution throughout — `09-REQUIREMENTS-REGISTER.csv` → `genesis/09-REQUIREMENTS-REGISTER.csv`,
+  `Shuddl-OS-Genesis/` → `genesis/`.
+- Rule 7 carries an extra clause in the root file: *"pixel law must not stall ledger work."*
+- The never-build list says `(REQ-167)` in the template, `(REQ-167 identity-leak lint)` in the root.
+
+So they are **not** kept byte-identical, nothing regenerates the root file, and no drift would clobber my §60
+correction. The annotation is still right — a template should not hand a future repo a false claim — but the
+*reason I gave for it was invented*, and it was the kind of plausible mechanism that reads as fact.
+
+**This is the fourth self-inflicted record defect this loop**, and it completes an unwelcome pattern:
+
+| § | The defect | What it was doing at the time |
+|---|---|---|
+| §50 | Fused a threat-model row, deleting a mitigation from the render | Adding a threat-model row |
+| §58 | Incremented a gate count that had never reconciled | Correcting a stale gate count |
+| §61 | Corrected the copy and left the source | Correcting a false claim in the copy |
+| §62 | Asserted a regeneration mechanism that does not exist | Justifying the fix to the source |
+
+**Every one occurred while improving the record**, and three of the four were caught only by *running something*
+— the table checker, `gatesFor("merge")`, and now `diff`. The one constant: whenever I reasoned about a
+relationship between two artifacts instead of comparing them, I was wrong.
+
+The genesis annotation now states the accurate reason: this file is the artifact a future repo (or a reader
+reaching for canonical wording) starts from, so it should not carry a claim that is false. No regeneration
+story, because there is no regeneration.
+
+**Verification.** `diff genesis/11 CLAUDE.md` inspected in full (45 lines, every hunk accounted for above);
+tables and citations PASS.
