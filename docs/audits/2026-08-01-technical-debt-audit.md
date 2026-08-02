@@ -156,15 +156,20 @@ Grades from `V2-EXECUTION-FRAMEWORK.md` §9. What this audit adds to each bar:
 | **R1 — Mergeable** | C1, C2 (repo Critical/High); the comment rot in security-load-bearing files | C1, C2 fixed. **R1's remaining distance is unchanged and external**: the five private-input gates (`identity-leak`, `fixtures`, 3 × parity) BLOCK the merge aggregate — fail-closed by design, cleared only by the owner vendoring the engagement pack |
 | **R2 — Staging-certified** | Deployed-surface gate absent from the release record; preflight-vs-served CORS seam; staging-smoke binding | Recorded, each on the checklist with an owner. External inputs: `SMOKE_API_BASE` + JWT binding, nightly OIDC credentials |
 | **R3 — Pilot-ready** | On-call rota (no gate exists), restore-drill gate plumbing in the release profile | Unchanged external holds, named owners |
-| **R4 — Production-ready** | **C3's remainder** (claimed-aware agents resolver + cron enumeration — before any `PROVISIONING_ENABLED` flip), EDI date-stamping before transport flip, `TEST_SEND_TOKEN` secret-visibility, tiles (REQ-075), sender warmup (REQ-157), edge rate-limits (REQ-193/125), 7-year archive (REQ-116) | C3 hardened fail-loud; the resolver build is the named pre-R4 repo work item |
+| **R4 — Production-ready** | **C3's remainder** (claimed-aware agents resolver + cron enumeration — before any `PROVISIONING_ENABLED` flip), EDI date-stamping before transport flip, `TEST_SEND_TOKEN` secret-visibility, tiles (REQ-075), sender warmup (REQ-157), edge rate-limits (REQ-193/125), 7-year archive (REQ-116) | ~~C3 hardened fail-loud; the resolver build is the named pre-R4 repo work item~~ **C3 CLOSED §11–§13** — the claimed-aware resolver + `allTenantSlugs` fan-out now ship in all four workers (api, agents, translator, billing), each pinned by a mutation-proved source-glob test, and the `usage_credits` row identity is reconciled across its three writers. EDI date-stamping closed `3899ae6`. **The pre-R4 repo carry-forward is now ONE row**: resolve-path pool-binding exclusivity (§12) — enforced on enumeration, not on resolution, whose structural answer is a control-plane UNIQUE index on the claimed `pool_binding`. The rest of this row is External or CONFIRM-gated |
 | **R5 — Authority cutover** | Nothing new — the 30-day shadow and fixture-parity DoDs stand as specified | — |
 
 **The stopping point, stated as the loop's exit condition.** Repository-closable debt work stops — and
 may only stop — when all four are simultaneously true:
 
 1. **Zero open repository-owned Critical/High rows** across this audit and the checklist failures
-   ledger (C1–C3-hardening, D1–D5, U1–U4: closed this session; C3's resolver is phase-gated pre-R4
-   repo work, Med while PLG is dark, and is the one named carry-forward).
+   ledger (C1–C3-hardening, D1–D5, U1–U4: closed this session). ~~C3's resolver is phase-gated pre-R4
+   repo work … the one named carry-forward~~ **C3 closed outright across all four workers (§11–§13).**
+   The named pre-R4 carry-forward is now **resolve-path pool-binding exclusivity** (§12) — a Med, dark
+   behind `PROVISIONING_ENABLED`, whose fix is a control-plane UNIQUE index rather than a runtime check.
+   Two open Highs remain and **both are External, not repository-closable**: a real driver's custody
+   handoff needs manifest party refs + the deferred REQ-069 identity seam, and the live EDI adapter
+   needs its transport credentials. Neither can be closed from inside the repo without straying.
 2. **Every baseline gate green** at the closing SHA (the 11-gate static set + the four browser gates +
    `pnpm test` when the host permits), and `verify:merge` BLOCKED **only** on the five named
    private-input holds.
@@ -431,3 +436,71 @@ behind `PROVISIONING_ENABLED`.
 
 **The lesson worth carrying:** an absolute claim ("nowhere in the repo") is a liability in a record whose
 whole value is being true. State closure per-artifact and let the reader compose it.
+
+---
+
+## §13 — Iteration 9 (2026-08-02): the port that shipped with no way to fail
+
+The §12 review's headline finding was about §12 itself. The billing claimed-tenant port shipped with
+**zero tests**, and its own source header claimed it was "pinned by the pool parity test the way the slug
+roster already is" — a test that did not exist. Reverting the metering fan-out left all 45 billing tests
+green. That is the exact "the fix could not fail" defect the *same commit* had just fixed for the
+translator, reintroduced one worker over. Writing the pin and writing the claim that a pin exists are
+different acts, and only one of them was performed.
+
+Five defects closed in `ab34962`, each mutation-proved:
+
+**HIGH — a malformed control row would 5xx every append for that tenant, forever.** The sequencer DO's
+policy read (`workers/api/src/do/sequencer.ts`) called `JSON.parse` on `row.policy` with no guard. D1
+declares the column `TEXT NOT NULL DEFAULT '{}'` but does not constrain it to valid JSON, so one bad ops
+write — a truncated paste, a hand-edited row — turns the DO's cached policy read into a throw on the
+append path, and the throw is inside the cache fill, so it recurs on every request. It now falls back to
+the `{}` gate-knob floor and logs loudly: appends proceed, the operator sees exactly which tenant to fix.
+A non-object parse (`"null"`, `"[]"`, `"7"`) is refused the same way rather than being cast.
+
+**HIGH — the `usage_credits` row identity, which my own §12 port made ACTIVE.** The billing metering
+sweep and the Stripe credit stamp both write `id=<slug>:<period>`, `tenant_id=<slug>`, and both upsert
+`ON CONFLICT(id)` precisely so their order never matters (`metered` is the sweep's, `stripe_refs` is
+billing's). Provisioning wrote `uc-<slot>-<period>` with the pool SLOT id as `tenant_id`. A claimed
+tenant therefore carried **two rows under two identities**, and the provisioned one could never merge with
+either writer — it stayed permanently empty while the real meter and the real Stripe refs accumulated on
+the other. The GO-LIVE ledger had this as Low/DARK on the reasoning that no claimed tenant is swept; §12
+removed exactly that premise. Provisioning now keys through a shared `usageCreditsIdFor(slug, period)`.
+
+**HIGH — the missing suite.** `workers/billing/test/claimed-tenants.test.ts`, 11 tests: the resolver per
+row shape, the five fail-closed misses (sentinel, unclaimed, unknown, `_platform`, out-of-allowlist
+binding, malformed policy), enumeration inclusion and exclusion, control-plane fault degradation,
+exclusivity failing closed on both duplicate slugs, the `POOL_BINDINGS` and static-slug parity assertions
+against `workers/api`, the source-glob roster pin, and a meter-identity pin that reads the provisioning
+call site by source. The source comment now names this file.
+
+**MED — the claim loop's policy parse was equally unguarded.** One malformed slot row aborted the entire
+claim rather than skipping that slot.
+
+**LOW→ the pin itself was weak in two ways, in all three workers.** This is the finding worth keeping.
+The glob was `../src/*.ts` — blind to every nested directory, so it checked **zero** of the translator's
+three `src/core/` modules and would check none of the api worker's 38 nested files if that pin were ever
+ported there. And the matcher was `for…of`-only, so a `TENANT_SLUGS.map(...)` fan-out — the shape a
+`Promise.all` sweep naturally takes — passed straight through. Both widened in agents, translator and
+billing; each mutation-proved RED (a `.map` probe appended to `translator/src/index.ts` now fails the pin,
+and did not before). **A regression pin has its own coverage question**, and "the pin exists" answers
+neither half of it.
+
+**The api test asserted the divergence rather than catching it.** `provision.test.ts` read
+`WHERE tenant_id = out.tenant_id` (the slot id) — the assertion had been written from the implementation,
+so it encoded the bug as the contract and could only ever go green. It now pins the shared shape and
+additionally asserts that **no** row exists under the slot id.
+
+**Verification.** api 65 files / 725 PASS · billing 5 / 56 · translator 10 / 91 · agents 17 / 105 ·
+typecheck, lint, `check:citations` (945 resolve, ratchet at its frozen baseline), `check:invariants`
+(21/22 tables), `check:traceability` (no orphans), `check:coverage` (288/288, 0 unaccounted),
+`check:authority-coverage`, `check:rater-purity` all green. `check:fixtures` remains PENDING on the five
+absent private inputs — an unchanged, ledgered hold, not a regression. The seven coverage status-drift
+rows are byte-identical to what GO-LIVE §3 already records as the owner-gated register amendment.
+
+**Lesson (§12's, sharpened).** §12's was: never write an absolute closure claim. §13's is narrower and
+more useful — **the artifact that proves a fix is itself an artifact that can be wrong**, and it fails
+silently in a way the fix does not. A broken fix shows up as a failing test; a broken *test* shows up as
+nothing at all. Every pin added here was therefore mutated before it was trusted, and the two mutations
+that mattered (the fan-out revert and the `.map` form) both proved a pin that would otherwise have read
+as protection while protecting nothing.
