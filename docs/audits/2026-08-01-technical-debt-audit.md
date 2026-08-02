@@ -292,6 +292,24 @@ repo-owned rows → re-verify → stop at this line, every iteration, until an o
 
 ## §5 — Session disposition summary
 
+> **AS OF ITERATION 1 (`0415148`→ that session's close). Stamped 2026-08-02, §41** — the same treatment §40
+> gave the headline, for the same reason. The CARRIED-FORWARD list below is the state after iteration 1 and
+> is now materially out of date; §6's title ("the carry-forward list is closed") already supersedes part of
+> it, and later sections close more. Verified against the tree today:
+>
+> - **C3 resolver (pre-R4) — CLOSED.** Not just the agents worker: the claimed-aware resolver and the
+>   `allTenantSlugs` fan-out now ship in api, agents, translator AND billing (§11–§13), each with its own
+>   mutation-proved source-glob pin.
+> - **EDI send-time date stamping (pre-EDI-flip) — CLOSED** at `3899ae6`; the 214 sweep and the 990 ack
+>   stamp the real send instant through an injectable clock.
+> - **Still open, unchanged and External/phase-gated:** the deployed-surface gate into the release record,
+>   preflight-vs-served CORS, `TEST_SEND_TOKEN` visibility, prod-surface retry posture, marketing-site
+>   version control, and the five private-input merge holds.
+>
+> **For the CURRENT state read §4's re-measurement at `fb212fd`, not this list.** Left in place rather than
+> edited because it records what iteration 1 actually disposed of; a carry-forward list that is silently
+> rewritten stops being evidence of anything.
+
 Fixed and verified this session (each with its focused tests + the full static-gate sweep): C1, C2, C3
 (hardening half), D1–D5, U1–U4, 8 comment-rot rows, 2 gate-integrity rows (run-gate sentinel, CI
 contract), 3 register-disposition amendments, the RELEASE-EVIDENCE overclaim, the runbook template, and
@@ -1886,3 +1904,29 @@ deliberately re-reading the oldest claims against the newest state — which is 
 **The general rule this session earns:** a long-lived record needs its early sections stamped with the state
 they describe, or it will confidently mislead exactly the reader who trusts it most — the one who starts at
 the top.
+
+### §41 — the rest of the early sections, checked rather than assumed unique
+
+§40 found the headline stale. Finding one instance and stopping would repeat the reasoning error §39 exists
+to prevent, so the other early sections were checked against the tree.
+
+**§5 (session disposition summary) was stale the same way** — and stamped. Its carry-forward list is the
+state after iteration 1; two entries have since closed and were verified today, not assumed: the **C3
+resolver** (now shipped in all four workers, §11–§13, each with a mutation-proved pin) and **EDI send-time
+date stamping** (`3899ae6`). The remaining six are genuinely still open and unchanged. §6's own title — *"the
+carry-forward list is closed"* — already superseded part of §5 thirty-five sections ago, which is the tell:
+a document that supersedes a section in a later *title* has no mechanism to tell a reader of the earlier one.
+
+**§2 and §3 are NOT stale, for a structural reason worth noting.** They are tables, and every row carries its
+own inline status (`FIXED this session`, `Med→resolved`, `OPEN`). A row that closes gets edited in place, so
+the section cannot drift from the tree. **§1 and §5 rotted precisely because they are PROSE summaries** — a
+paragraph asserting "three code defects" has nowhere to put a status, so closing the defects leaves the
+sentence untouched and wrong.
+
+That is the generalizable finding, and it is about form rather than diligence: **in a long-lived record, a
+per-row table stays true for free; a prose summary of the same facts needs an explicit as-of stamp or it
+will silently become a lie.** The two sections that misled were the two written as prose, and they were the
+two most likely to be read first.
+
+Stamps rather than rewrites throughout — §1 and §5 are the record of what those iterations *found* and
+*disposed of*. A carry-forward list that is silently rewritten stops being evidence of anything.
