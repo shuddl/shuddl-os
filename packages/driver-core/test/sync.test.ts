@@ -7,6 +7,7 @@ import {
   classifyStatus,
   backoffDelay,
   DEFAULT_BACKOFF,
+  OPERATOR_REPROBE_MS,
   type SyncPorts,
   type TransportResponse,
 } from "../src/sync.js";
@@ -220,10 +221,12 @@ describe("syncOnce — the durable sync state machine (REQ-016/017/030)", () => 
     const first = await syncOnce(ports({ queue: q, sendEvent }));
     expect(first.synced).not.toContain(id);
     expect(store.m.get(id)?.sync?.blocked?.kind).toBe("operator");
-    // A parked item is skipped next pass — no endless retry against an operator refusal.
+    // A parked item waits out its re-probe window rather than being hammered — but it is NOT skipped
+    // forever (2026-08-01 convergence audit: the park had no exit and stranded signed captures).
     const second = await syncOnce(ports({ queue: q, sendEvent }));
     expect(second.synced).not.toContain(id);
     expect(sendEvent.calls).toHaveLength(1);
+    expect(second.parked).toBe(1); // and it is VISIBLE, not silent
   });
 
   it("422 parks the item as an operator block too (a gate/validation refusal is not retryable)", async () => {
@@ -233,5 +236,69 @@ describe("syncOnce — the durable sync state machine (REQ-016/017/030)", () => 
     const pass = await syncOnce(ports({ queue: q, sendEvent: recorder([422]) }));
     expect(pass.synced).not.toContain(id);
     expect(store.m.get(id)?.sync?.blocked?.kind).toBe("operator");
+  });
+});
+
+// 2026-08-01 convergence audit (CRITICAL + High) — the two halves of the stranded-capture defect.
+describe("drain order + park recovery — a signed capture can never be silently stranded", () => {
+  // The real IndexedDB store returns ascending key order over `id` (a random UUID), NOT capture order.
+  // This store reverses insertion order to stand in for that shuffle; the MemStore's Map (insertion
+  // order) had been masking the bug entirely.
+  class ShuffledStore implements QueueStore {
+    readonly m = new Map<string, QueueItem>();
+    async all(): Promise<QueueItem[]> {
+      return [...this.m.values()].reverse();
+    }
+    async put(item: QueueItem): Promise<void> {
+      this.m.set(item.id, item);
+    }
+    async remove(id: string): Promise<void> {
+      this.m.delete(id);
+    }
+  }
+
+  it("drains in CAPTURE order (device_seq) even when the store yields a shuffled order", async () => {
+    const store = new ShuffledStore();
+    const q = new OfflineQueue(store);
+    const ctx = await deviceCtx(); // one device context ⇒ monotonic device_seq across the three captures
+    const ids: string[] = [];
+    for (const pieces of [1, 2, 3]) {
+      const { event } = await capture({ kind: "freight.counted", payload: { pieces }, ts: 1, shipment_id: "s-1" }, ctx);
+      await q.enqueue(event);
+      ids.push(event.id);
+    }
+
+    const seen: string[] = [];
+    const sendEvent = async (e: { id: string }): Promise<TransportResponse> => {
+      seen.push(e.id);
+      return { status: 202 };
+    };
+    await syncOnce(ports({ queue: q, sendEvent: sendEvent as never }));
+    expect(seen).toEqual(ids); // capture order, NOT the store's reversed order
+  });
+
+  it("a parked item RE-PROBES after its window and drains when the refusal clears (an ordering race self-heals)", async () => {
+    const store = new MemStore();
+    const q = new OfflineQueue(store);
+    const id = await enqueue(q);
+    let clock = 1_000;
+    const statuses = [403, 202];
+    let i = 0;
+    const sendEvent = async (): Promise<TransportResponse> => ({ status: statuses[Math.min(i++, statuses.length - 1)]! });
+
+    const first = await syncOnce(ports({ queue: q, sendEvent: sendEvent as never, now: () => clock }));
+    expect(first.synced).not.toContain(id);
+    expect(first.parked).toBe(1);
+
+    // Before the window elapses: still waiting, still visible, no extra send.
+    const early = await syncOnce(ports({ queue: q, sendEvent: sendEvent as never, now: () => clock + 60_000 }));
+    expect(early.synced).not.toContain(id);
+    expect(i).toBe(1);
+
+    // After it: re-probed, the server now accepts (the prerequisite landed), and the capture drains.
+    clock += OPERATOR_REPROBE_MS + 1;
+    const later = await syncOnce(ports({ queue: q, sendEvent: sendEvent as never, now: () => clock }));
+    expect(later.synced).toContain(id);
+    expect(store.m.has(id)).toBe(false); // drained — the ledger holds the fact
   });
 });

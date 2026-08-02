@@ -69,6 +69,10 @@ export interface SyncPass {
   authBlocked: boolean;
   /** The earliest future retry time across still-waiting items, or null when none are waiting. */
   nextWake: number | null;
+  /** Items currently operator-parked (a 4xx refusal awaiting its re-probe). Surfaced so a stranded
+   *  capture is VISIBLE — it used to ride the pending count forever with no error and no UI signal
+   *  (2026-08-01 convergence audit). Zero on a healthy pass. */
+  parked: number;
 }
 
 const phaseOf = (item: QueueItem): SyncState["phase"] => item.sync?.phase ?? "captured";
@@ -112,11 +116,27 @@ async function applyResult(
     await ports.queue.persist(item);
     return { kind: "authBlock" };
   }
-  // operator
-  item.sync = { phase: pendingPhase, attempts: prevAttempts, nextAttemptAt: 0, blocked: { kind: "operator", status: res.status } };
+  // operator — a park, NOT a grave (2026-08-01 convergence audit, Critical + High). Two things were
+  // wrong: an ordering race made a legitimately-capturable event take a 403 GATE_BLOCKED (its
+  // prerequisite had not drained yet), and the park had no exit at all — no listing, no retry, no
+  // un-park anywhere in the repo, so one transient 4xx stranded a signed capture forever with the
+  // evidence bytes never uploading. The park is now RE-PROBED on a long, bounded schedule: the server
+  // append is idempotent by event id, so a re-probe is always safe, and a dispatcher-side fix (the
+  // prerequisite lands, an assignment is restored) self-heals without anyone touching the device.
+  const attempts = prevAttempts + 1;
+  item.sync = {
+    phase: pendingPhase,
+    attempts,
+    nextAttemptAt: ports.now() + OPERATOR_REPROBE_MS,
+    blocked: { kind: "operator", status: res.status },
+  };
   await ports.queue.persist(item);
   return { kind: "operatorBlock" };
 }
+
+/** How long a parked item waits before the engine re-probes it. Long enough not to hammer a genuine
+ *  refusal, short enough that a dispatcher-side fix lands the capture the same shift. */
+export const OPERATOR_REPROBE_MS = 15 * 60_000;
 
 async function drain(item: QueueItem, ports: SyncPorts): Promise<Step> {
   item.sync = { phase: "synced", attempts: 0, nextAttemptAt: 0 };
@@ -163,11 +183,15 @@ export async function syncOnce(ports: SyncPorts): Promise<SyncPass> {
     nextWake = nextWake === null ? at : Math.min(nextWake, at);
   };
 
+  let parked = 0;
   for (const item of items) {
     const state = item.sync;
-    if (state?.blocked?.kind === "operator") continue; // parked — a human/dispatcher must resolve it
+    if (state?.blocked?.kind === "operator") parked += 1; // visible, whether or not it re-probes this pass
+    // A parked item is no longer skipped forever: it waits out OPERATOR_REPROBE_MS like any backoff and
+    // is then re-tried (the append is idempotent by event id, so re-probing is safe). This is what lets
+    // an ordering race or a transient dispatcher-side refusal self-heal instead of stranding evidence.
     if (state && state.nextAttemptAt > ports.now()) {
-      noteWake(state.nextAttemptAt); // still backing off
+      noteWake(state.nextAttemptAt); // still backing off (or parked, awaiting its re-probe)
       continue;
     }
 
@@ -179,10 +203,11 @@ export async function syncOnce(ports: SyncPorts): Promise<SyncPass> {
       if (step.kind === "synced") synced.push(step.id);
       else if (step.kind === "waiting") noteWake(step.at);
       else if (step.kind === "authBlock") authBlocked = true;
+      else if (step.kind === "operatorBlock") parked += 1; // parked THIS pass — counted here, not at the top
       break;
     }
     if (authBlocked) break; // a 401 stops the whole loop — do not attempt further items
   }
 
-  return { synced, authBlocked, nextWake };
+  return { synced, authBlocked, nextWake, parked };
 }

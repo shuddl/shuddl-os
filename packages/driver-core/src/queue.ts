@@ -63,9 +63,33 @@ export class OfflineQueue {
     await this.store.put(deferred ? { id: event.id, event, deferred } : { id: event.id, event });
   }
 
-  /** Everything still awaiting sync. Order is the store's; callers must not assume a global order. */
+  /**
+   * Everything still awaiting sync, in CAPTURE ORDER (2026-08-01 convergence audit, Critical).
+   *
+   * The store's own order is NOT capture order: the real IndexedDB store returns ascending key order
+   * over `id`, and an event id is a random UUID — so a drain in store order shuffles the queue. The
+   * server's transition gates are ORDER-DEPENDENT (consent before stop.arrived; count+photo+custody
+   * before stop.departed; arrival+POD+placed photo before delivery.evidenced), so a shuffled drain
+   * makes a gated event arrive before its prerequisite, take a 403 GATE_BLOCKED, and get parked
+   * permanently — a signed airplane-mode capture silently stranded on the device forever.
+   *
+   * `device_seq` is the per-device monotonic capture counter minted at capture time (REQ-016), which
+   * is exactly the ordering the gates assume. Items without one (no device context) sort last but keep
+   * a stable relative order, so nothing is dropped or reordered arbitrarily.
+   */
   async pending(): Promise<QueueItem[]> {
-    return this.store.all();
+    const items = await this.store.all();
+    return items
+      .map((item, index) => ({ item, index }))
+      .sort((a, b) => {
+        const sa = a.item.event.device_seq;
+        const sb = b.item.event.device_seq;
+        if (sa === undefined && sb === undefined) return a.index - b.index; // stable
+        if (sa === undefined) return 1;
+        if (sb === undefined) return -1;
+        return sa === sb ? a.index - b.index : sa - sb;
+      })
+      .map((w) => w.item);
   }
 
   /** Drop an item once the sequencer has ACKed it. */

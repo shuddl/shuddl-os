@@ -17,13 +17,16 @@ export interface SyncStatus {
   syncing: boolean;
   /** A 401 halted the loop; the session was cleared. */
   authBlocked: boolean;
+  /** Captures the server REFUSED (a 4xx) that are awaiting their re-probe. Non-zero means evidence is
+   *  sitting on this device unrecorded — it used to be invisible (2026-08-01 convergence audit). */
+  parked: number;
   lastError: string | null;
 }
 
 export interface UseSyncOptions {
   /** The driver's auth session (bearer + clear-on-401). Defaults to the persistent store. */
   session?: AuthSession;
-  /** The API origin. Same-origin by default. */
+  /** The API origin. Defaults to apiBase() — NEVER same-origin (see the note at the read site). */
   baseUrl?: string;
   /** Poll cadence in ms (bounded, truthful — not a background guarantee). */
   intervalMs?: number;
@@ -31,7 +34,7 @@ export interface UseSyncOptions {
   enabled?: boolean;
 }
 
-const IDLE: SyncStatus = { pending: 0, syncing: false, authBlocked: false, lastError: null };
+const IDLE: SyncStatus = { pending: 0, syncing: false, authBlocked: false, parked: 0, lastError: null };
 
 export function useSync(options: UseSyncOptions = {}): SyncStatus {
   const [status, setStatus] = useState<SyncStatus>(IDLE);
@@ -70,7 +73,7 @@ export function useSync(options: UseSyncOptions = {}): SyncStatus {
         });
         const pending = await pendingCount();
         if (pass.authBlocked) session.clear(); // a 401 drops the session — no stale data survives
-        if (!cancelled) setStatus({ pending, syncing: false, authBlocked: pass.authBlocked, lastError: null });
+        if (!cancelled) setStatus({ pending, syncing: false, authBlocked: pass.authBlocked, parked: pass.parked, lastError: null });
       } catch (e) {
         if (!cancelled) setStatus((st) => ({ ...st, syncing: false, lastError: e instanceof Error ? e.message : "sync error" }));
       } finally {
