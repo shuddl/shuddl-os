@@ -186,6 +186,12 @@ async function extractIsaControl(raw: string): Promise<string> {
 // The R2 payload is capped defensively (the body is already ≤ MAX_BODY_BYTES; this is belt-and-suspenders).
 async function quarantine(
   deps: InboundDeps,
+  // The ALREADY-RESOLVED tenant handle (2026-08-01 §12). This used to re-resolve through
+  // deps.tenantDbFor — an in-memory map lookup before the claimed-tenant work, but a live control-plane
+  // query after it. A blip in that window turned this module's law ("a malformed tender is QUARANTINED
+  // and ACKed 200 — never dropped, never a retry-storm") into a 500 the partner retries forever on a
+  // document that can never parse. Both callers already hold the handle.
+  db: D1Database,
   tenantSlug: string,
   partnerId: string,
   isaControl: string,
@@ -202,7 +208,6 @@ async function quarantine(
     r2Key,
     rule,
   });
-  const db = await deps.tenantDbFor(tenantSlug);
   await db
     .prepare("INSERT OR IGNORE INTO anomalies (id, rule, object_kind, object_id, severity, detail) VALUES (?,?,?,?,?,?)")
     .bind(descriptor.anomalyId, descriptor.rule, descriptor.objectKind, descriptor.objectId, descriptor.severity, JSON.stringify(descriptor.detail))
@@ -328,7 +333,7 @@ export async function handleInbound204(request: Request, deps: InboundDeps): Pro
     .first<{ cert_status: string | null }>();
   if (partnerRow === null || partnerRow.cert_status !== "certified") {
     const reason = new Error(`partner not replay-certified (cert_status=${partnerRow?.cert_status ?? "none"})`);
-    return quarantine(deps, tenantSlug, partnerId, isaControl, rawBytes, reason, "edi_uncertified_partner");
+    return quarantine(deps, db, tenantSlug, partnerId, isaControl, rawBytes, reason, "edi_uncertified_partner");
   }
 
   // 1b. PARSE + MAP (pure). An EdiParseError / non-priceable tender (MAP204_NO_LANE) / no-stable-ref tender
@@ -355,7 +360,7 @@ export async function handleInbound204(request: Request, deps: InboundDeps): Pro
     );
   } catch (err) {
     const rule: QuarantineRule = err instanceof Error && err.message.startsWith("MAP204_NO_SHIPMENT_REF") ? "edi_no_shipment_ref" : "edi_malformed";
-    return quarantine(deps, tenantSlug, partnerId, isaControl, rawBytes, err, rule);
+    return quarantine(deps, db, tenantSlug, partnerId, isaControl, rawBytes, err, rule);
   }
 
   // 2. PERSIST + APPEND. A fault here (D1/DO transient) throws → 500 → the partner retries; every write is

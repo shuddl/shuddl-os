@@ -122,10 +122,10 @@ What must exist per environment, per worker (the checker's own contract, `REQUIR
 | Worker | D1 | KV | R2 | DO | Queues | Services | Secrets |
 |---|---|---|---|---|---|---|---|
 | api | TENANT_A_DB, TENANT_B_DB, CONTROL_DB, PLATFORM_TENANT_DB, TENANT_POOL_01_DB, TENANT_POOL_02_DB | IDEMPOTENCY | EVIDENCE | SHIPMENT_SEQ | AGENT_QUEUE (producer) | — | JWT_SECRET |
-| agents | TENANT_A_DB, TENANT_B_DB, CONTROL_DB | — | EVIDENCE | SHIPMENT_SEQ (→api), SPARK_METER | AGENT_QUEUE + consumer w/ DLQ | — | RESEND_API_KEY (to send) |
-| billing | TENANT_A_DB, TENANT_B_DB, CONTROL_DB, PLATFORM_TENANT_DB | — | — | — | — | API (→api) | STRIPE_WEBHOOK_SECRET, PLATFORM_INTERNAL_SECRET |
+| agents | TENANT_A_DB, TENANT_B_DB, CONTROL_DB, TENANT_POOL_01_DB, TENANT_POOL_02_DB | — | EVIDENCE | SHIPMENT_SEQ (→api), SPARK_METER | AGENT_QUEUE + consumer w/ DLQ | — | RESEND_API_KEY (to send) |
+| billing | TENANT_A_DB, TENANT_B_DB, CONTROL_DB, PLATFORM_TENANT_DB, TENANT_POOL_01_DB, TENANT_POOL_02_DB | — | — | — | — | API (→api) | STRIPE_WEBHOOK_SECRET, PLATFORM_INTERNAL_SECRET |
 | mcp | CONTROL_DB | GRANTS | — | CAPS_METER | — | API (→api) | JWT_SECRET |
-| translator | TENANT_A_DB, TENANT_B_DB, CONTROL_DB | — | EVIDENCE | SHIPMENT_SEQ (→api) | — | — | — |
+| translator | TENANT_A_DB, TENANT_B_DB, CONTROL_DB, TENANT_POOL_01_DB, TENANT_POOL_02_DB | — | EVIDENCE | SHIPMENT_SEQ (→api) | — | — | — |
 
 ### Known configuration defects the preflight reports today
 

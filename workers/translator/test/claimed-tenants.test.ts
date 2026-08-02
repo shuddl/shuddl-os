@@ -47,6 +47,16 @@ describe("translator resolveTenantDb — static hot path, claimed fallback, fail
     }
   });
 
+
+
+  it("a MALFORMED policy row refuses as UNKNOWN_TENANT rather than throwing a SyntaxError", async () => {
+    await env.CONTROL_DB
+      .prepare("INSERT OR IGNORE INTO tenants (id, name, slug, plan, policy, created_ts) VALUES (?,?,?,?,?,0)")
+      .bind("tr-bad-json", "tr-bad-json", "tr-bad-json", "pilot", "{not json")
+      .run();
+    await expect(resolveTenantDb(env, "tr-bad-json")).rejects.toThrow(/UNKNOWN_TENANT/);
+  });
+
   it("the sync static resolver is unchanged", () => {
     expect(tenantDb(env, "tenant-a")).toBe(env.TENANT_A_DB);
     expect(() => tenantDb(env, "tr-acme")).toThrow(/UNKNOWN_TENANT/);
@@ -90,5 +100,29 @@ describe("parity — the translator's pool allowlist matches the api's (the rost
     const apiProvision = (await import("../../api/src/provision.ts?raw")).default as string;
     const apiPools = [...new Set([...apiProvision.matchAll(/"(TENANT_POOL_[0-9]+_DB)"/g)].map((m) => m[1]))].sort();
     expect(apiPools).toEqual([...POOL_BINDINGS].sort());
+  });
+});
+
+// 2026-08-01 §12 — the regression pin the port omitted. Without it, reverting the 214 sweep's fan-out to
+// the static roster leaves every test above green: the fix could not fail. The agents version caught a
+// ninth fan-out hiding outside index.ts, so this globs EVERY src module rather than naming one.
+describe("source-level pin — no translator fan-out may regress to the static roster (REQ-200/025)", () => {
+  it("NO src module iterates bare TENANT_SLUGS; at least one fans out over allTenantSlugs", async () => {
+    const modules = import.meta.glob("../src/*.ts", { query: "?raw", import: "default" });
+    let fanouts = 0;
+    for (const [path, load] of Object.entries(modules)) {
+      const src = (await load()) as string;
+      expect(src.match(/of TENANT_SLUGS\b/g), `${path} iterates the static roster`).toBeNull();
+      fanouts += (src.match(/allTenantSlugs\(/g) ?? []).length;
+    }
+    expect(fanouts).toBeGreaterThanOrEqual(1);
+  });
+
+  it("the static slug roster MIRRORS workers/api — the parity this file's header promises", async () => {
+    const apiSrc = (await import("../../api/src/tenants.ts?raw")).default as string;
+    const ownSrc = (await import("../src/tenants.ts?raw")).default as string;
+    const slugs = (s: string): string[] => [...new Set([...s.matchAll(/"(tenant-[a-z0-9-]+)"/g)].map((m) => m[1]!))].sort();
+    expect(slugs(ownSrc)).toEqual(slugs(apiSrc));
+    expect([...TENANT_SLUGS].sort()).toEqual(slugs(ownSrc));
   });
 });

@@ -15,7 +15,7 @@
 // REQ-025: one tenant's D1 read + only that tenant's OWN control row write per iteration; the deterministic id
 // `<tenant>:<period>` keeps a tenant's rows in its own key space. LLM-free, deterministic. No new table — a
 // worker + a cron is not a table.
-import { TENANT_SLUGS, tenantDb, type BillingEnv } from "./tenants.js";
+import { allTenantSlugs, resolveTenantDb, type BillingEnv } from "./tenants.js";
 
 // The metering period: the UTC calendar month, "YYYY-MM", off the event's ts (epoch ms). Mirrors
 // workers/mcp/src/caps.ts `currentPeriod` — a clear, deterministic window.
@@ -96,9 +96,10 @@ export async function sweepTenantMetering(
 // control rows per iteration). Per-tenant fault isolation: one tenant's failure is logged and never aborts the
 // rest. The whole sweep is idempotent (OVERWRITE), so re-running each cron tick is safe.
 export async function runMeteringSweep(env: BillingEnv): Promise<void> {
-  for (const slug of TENANT_SLUGS) {
+  // Claimed-aware (2026-08-01 §12): an unmetered claimed tenant is UNBILLED usage the day PLG flips.
+  for (const slug of await allTenantSlugs(env)) {
     try {
-      const summary = await sweepTenantMetering(tenantDb(env, slug), env.CONTROL_DB, slug);
+      const summary = await sweepTenantMetering(await resolveTenantDb(env, slug), env.CONTROL_DB, slug);
       console.log(`metering-sweep: tenant ${slug} → ${JSON.stringify(summary)}`);
     } catch (err) {
       console.error(`metering-sweep: tenant ${slug} failed (re-run next tick — the sweep is idempotent):`, err);

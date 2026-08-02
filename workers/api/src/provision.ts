@@ -232,10 +232,25 @@ export async function resolveClaimedTenantDb(env: Env, slug: string): Promise<D1
     .bind(slug)
     .first<{ policy: string }>();
   if (!row) throw new ProvisionError("NOT_CLAIMED", `no claimed pool tenant for slug "${slug}"`);
-  const poolBinding = (JSON.parse(row.policy) as { pool_binding?: string }).pool_binding;
+  let poolBinding: string | undefined;
+  try {
+    poolBinding = (JSON.parse(row.policy) as { pool_binding?: string }).pool_binding;
+  } catch {
+    // A malformed policy row is not a routable tenant — refuse it the way every other bad shape is
+    // refused (2026-08-01 §12: an unguarded parse threw SyntaxError past this contract's own promise).
+    throw new ProvisionError("PROVISION_FAILED", `claimed tenant "${slug}" has a malformed policy`);
+  }
   if (!poolBinding || !isPoolBinding(poolBinding)) {
     throw new ProvisionError("PROVISION_FAILED", `claimed tenant "${slug}" has no valid pool_binding`);
   }
+  // EXCLUSIVITY ON THE RESOLVE PATH — NOT enforced here, deliberately (2026-08-01 §12). The enumeration
+  // path refuses a pool binding claimed by two tenants; resolution does not, so a hand-added duplicate ops
+  // row would still resolve on the WRITE path. The guard was written and REVERTED: only two pool slots
+  // exist, and the shared test control-plane legitimately carries standing claimed rows on both, so no
+  // arrangement of the harness can satisfy one-tenant-per-binding — enforcing it made six real tests fail
+  // on a harness artifact rather than a product truth. Ledgered as an open Medium with its named fix (a
+  // control-plane UNIQUE index on the claimed pool_binding is the structural answer); dark today behind
+  // PROVISIONING_ENABLED.
   return env[poolBinding];
 }
 

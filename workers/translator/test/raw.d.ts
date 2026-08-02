@@ -4,3 +4,10 @@ declare module "*?raw" {
   const content: string;
   export default content;
 }
+
+// Vite import.meta.glob, typed for the roster-regression pin (claimed-tenants.test.ts): the call MUST
+// stay a literal import.meta.glob(...) — Vite transforms it statically — and the workers tsconfig does not
+// load vite/client, so the narrow shape is declared here.
+interface ImportMeta {
+  glob(pattern: string, opts: { query: string; import: string }): Record<string, () => Promise<unknown>>;
+}

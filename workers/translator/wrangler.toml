@@ -44,8 +44,9 @@ binding = "CONTROL_DB"
 database_name = "shuddl-control-dev"
 database_id = "local-control"
 
-# 2026-08-01 audit §11 (REQ-121/123/025) — claimed-tenant pool planes, ids VERBATIM from workers/api
-# (same physical databases). Bound so the 214 sweep + the inbound-204 handler serve a CLAIMED pool tenant.
+# 2026-08-01 §11 (REQ-121/123/025) — claimed-tenant pool planes. STAGING/PROD ids are VERBATIM from
+# workers/api (the same physical databases); the DEV ids are worker-local aliases like every other dev
+# binding here (§12 correction — the original comment overreached). Bound so the 214 sweep + the inbound-204 handler serve a CLAIMED pool tenant.
 [[d1_databases]]
 binding = "TENANT_POOL_01_DB"
 database_name = "shuddl-t-pool-01-dev"
@@ -102,8 +103,9 @@ binding = "CONTROL_DB"
 database_name = "shuddl-control-staging"
 database_id = "8e238970-2ed3-494d-960f-e4af082c1e8e"
 
-# 2026-08-01 audit §11 (REQ-121/123/025) — claimed-tenant pool planes, ids VERBATIM from workers/api
-# (same physical databases). Bound so the 214 sweep + the inbound-204 handler serve a CLAIMED pool tenant.
+# 2026-08-01 §11 (REQ-121/123/025) — claimed-tenant pool planes. STAGING/PROD ids are VERBATIM from
+# workers/api (the same physical databases); the DEV ids are worker-local aliases like every other dev
+# binding here (§12 correction — the original comment overreached). Bound so the 214 sweep + the inbound-204 handler serve a CLAIMED pool tenant.
 [[env.staging.d1_databases]]
 binding = "TENANT_POOL_01_DB"
 database_name = "shuddl-t-pool-01-staging"
@@ -158,8 +160,9 @@ binding = "CONTROL_DB"
 database_name = "shuddl-control-prod"
 database_id = "e91b8e7c-c878-437d-b25d-34530280fe85"
 
-# 2026-08-01 audit §11 (REQ-121/123/025) — claimed-tenant pool planes, ids VERBATIM from workers/api
-# (same physical databases). Bound so the 214 sweep + the inbound-204 handler serve a CLAIMED pool tenant.
+# 2026-08-01 §11 (REQ-121/123/025) — claimed-tenant pool planes. STAGING/PROD ids are VERBATIM from
+# workers/api (the same physical databases); the DEV ids are worker-local aliases like every other dev
+# binding here (§12 correction — the original comment overreached). Bound so the 214 sweep + the inbound-204 handler serve a CLAIMED pool tenant.
 [[env.prod.d1_databases]]
 binding = "TENANT_POOL_01_DB"
 database_name = "shuddl-t-pool-01-prod"

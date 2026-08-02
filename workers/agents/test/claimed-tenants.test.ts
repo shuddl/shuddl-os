@@ -50,6 +50,16 @@ describe("resolveTenantDb — static hot path, claimed fallback, fail-closed mis
     await expect(resolveTenantDb(env, "_platform")).rejects.toThrow(/UNKNOWN_TENANT/);
   });
 
+
+
+  it("a MALFORMED policy row refuses as UNKNOWN_TENANT rather than throwing a SyntaxError", async () => {
+    await env.CONTROL_DB
+      .prepare("INSERT OR IGNORE INTO tenants (id, name, slug, plan, policy, created_ts) VALUES (?,?,?,?,?,0)")
+      .bind("ct-bad-json", "ct-bad-json", "ct-bad-json", "pilot", "{not json")
+      .run();
+    await expect(resolveTenantDb(env, "ct-bad-json")).rejects.toThrow(/UNKNOWN_TENANT/);
+  });
+
   it("the sync static resolver is unchanged (anchor-cron hot path)", () => {
     expect(tenantDb(env, "tenant-a")).toBe(env.TENANT_A_DB);
     expect(() => tenantDb(env, "ct-acme")).toThrow(/UNKNOWN_TENANT/);

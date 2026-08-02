@@ -99,7 +99,8 @@ export const REQUIRED_BINDINGS = {
     secrets: ["RESEND_API_KEY"],
   },
   billing: {
-    d1: ["TENANT_A_DB", "TENANT_B_DB", "CONTROL_DB", "PLATFORM_TENANT_DB"],
+    // TENANT_POOL_* added 2026-08-01 (§12): the metering sweep serves claimed pool tenants too.
+    d1: ["TENANT_A_DB", "TENANT_B_DB", "CONTROL_DB", "PLATFORM_TENANT_DB", "TENANT_POOL_01_DB", "TENANT_POOL_02_DB"],
     kv: [] as string[],
     r2: [] as string[],
     do: [] as string[],

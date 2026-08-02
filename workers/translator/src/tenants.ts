@@ -9,7 +9,7 @@ export type TranslatorEnv = {
   TENANT_A_DB: D1Database;
   TENANT_B_DB: D1Database;
   /** The control plane (pairings + tenants). Task 8's 204 handler resolves the inbound partner's EDI pairing +
-   *  its tenant from HERE (auth only; never a tenant data path — REQ-025). The 214 sweep does not read it. */
+   *  its tenant from HERE (auth only; never a tenant data path — REQ-025). The 214 sweep DOES read it since 2026-08-01 (§11) — claimed-tenant enumeration + resolution, read-only, still never a tenant data path. */
   CONTROL_DB: D1Database;
   /** 2026-08-01 audit §11 (REQ-121/123/025) — the claimed-tenant POOL planes, mirroring workers/api and
    *  workers/agents. Bound so the 214 sweep and the inbound-204 handler can serve a CLAIMED pool tenant;
@@ -67,8 +67,23 @@ async function resolveClaimedTenantDb(env: TranslatorEnv, slug: string): Promise
     .bind(slug)
     .first<{ policy: string }>();
   if (!row) throw new Error(`UNKNOWN_TENANT: ${slug}`);
-  const poolBinding = (JSON.parse(row.policy) as { pool_binding?: string }).pool_binding;
+  let poolBinding: string | undefined;
+  try {
+    poolBinding = (JSON.parse(row.policy) as { pool_binding?: string }).pool_binding;
+  } catch {
+    // A malformed policy row is not a routable tenant (2026-08-01 §12: the unguarded parse threw a
+    // SyntaxError past this contract's own fail-closed promise, unhandled on the inbound write path).
+    throw new Error(`UNKNOWN_TENANT: ${slug} (malformed policy)`);
+  }
   if (!poolBinding || !isPoolBinding(poolBinding)) throw new Error(`UNKNOWN_TENANT: ${slug} (no valid pool_binding)`);
+  // EXCLUSIVITY ON THE RESOLVE PATH — NOT enforced here, deliberately (2026-08-01 §12). The enumeration
+  // path refuses a pool binding claimed by two tenants; resolution does not, so a hand-added duplicate ops
+  // row would still resolve on the WRITE path. The guard was written and REVERTED: only two pool slots
+  // exist, and the shared test control-plane legitimately carries standing claimed rows on both, so no
+  // arrangement of the harness can satisfy one-tenant-per-binding — enforcing it made six real tests fail
+  // on a harness artifact rather than a product truth. Ledgered as an open Medium with its named fix (a
+  // control-plane UNIQUE index on the claimed pool_binding is the structural answer); dark today behind
+  // PROVISIONING_ENABLED.
   return env[poolBinding];
 }
 

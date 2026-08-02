@@ -44,6 +44,19 @@ binding = "CONTROL_DB"
 database_name = "shuddl-control-dev"
 database_id = "local-billing-control"
 
+
+# 2026-08-01 §12 (REQ-121/123/025) — claimed-tenant pool planes; staging/prod ids VERBATIM from
+# workers/api (same physical databases). Dev ids are worker-local aliases, like every other dev binding here.
+[[d1_databases]]
+binding = "TENANT_POOL_01_DB"
+database_name = "shuddl-t-pool-01-dev"
+database_id = "local-billing-pool-01"
+
+[[d1_databases]]
+binding = "TENANT_POOL_02_DB"
+database_name = "shuddl-t-pool-02-dev"
+database_id = "local-billing-pool-02"
+
 # WP-14 Task 7 (REQ-123/154) — the reserved PLATFORM revenue tenant's OWN D1, where credits append as money
 # events (invoice.issued kind='credit_purchase' → payment.received). A DISTINCT database, NOT in the customer
 # allowlist above and NOT the control plane, resolved SERVER-SIDE only (resolvePlatformTenantDb — no slug input),
@@ -97,6 +110,19 @@ database_id = "aa3b23a8-567d-4479-8311-e9f1678a6797"
 binding = "CONTROL_DB"
 database_name = "shuddl-control-staging"
 database_id = "8e238970-2ed3-494d-960f-e4af082c1e8e"
+
+
+# 2026-08-01 §12 (REQ-121/123/025) — claimed-tenant pool planes; staging/prod ids VERBATIM from
+# workers/api (same physical databases). Dev ids are worker-local aliases, like every other dev binding here.
+[[env.staging.d1_databases]]
+binding = "TENANT_POOL_01_DB"
+database_name = "shuddl-t-pool-01-staging"
+database_id = "6f087baf-ae70-4c6c-8ef4-79ae42b5e939"
+
+[[env.staging.d1_databases]]
+binding = "TENANT_POOL_02_DB"
+database_name = "shuddl-t-pool-02-staging"
+database_id = "fbebe252-f33b-4ac7-b3f6-4d775e036ef5"
 
 # Reserved PLATFORM revenue tenant D1 (must match workers/api [env.staging] PLATFORM_TENANT_DB id). Synthetic
 # staging id (REQ-154); the credit ledger lives here. NO secrets — the Stripe webhook secret is a `wrangler secret`.
@@ -153,6 +179,19 @@ database_id = "c6752655-df5b-4b8c-b150-95b04c990e99"
 binding = "CONTROL_DB"
 database_name = "shuddl-control-prod"
 database_id = "e91b8e7c-c878-437d-b25d-34530280fe85"
+
+
+# 2026-08-01 §12 (REQ-121/123/025) — claimed-tenant pool planes; staging/prod ids VERBATIM from
+# workers/api (same physical databases). Dev ids are worker-local aliases, like every other dev binding here.
+[[env.prod.d1_databases]]
+binding = "TENANT_POOL_01_DB"
+database_name = "shuddl-t-pool-01-prod"
+database_id = "dafdbec9-ebc5-4db7-9306-db96a0b3021f"
+
+[[env.prod.d1_databases]]
+binding = "TENANT_POOL_02_DB"
+database_name = "shuddl-t-pool-02-prod"
+database_id = "20564820-573d-425b-8803-41fc984096d0"
 
 # ONE logical binding, ONE physical database — the id MUST match workers/api [env.prod].
 [[env.prod.d1_databases]]

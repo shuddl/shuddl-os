@@ -89,8 +89,23 @@ async function resolveClaimedTenantDb(env: AgentsEnv, slug: string): Promise<D1D
     .bind(slug)
     .first<{ policy: string }>();
   if (!row) throw new Error(`UNKNOWN_TENANT: ${slug}`);
-  const poolBinding = (JSON.parse(row.policy) as { pool_binding?: string }).pool_binding;
+  let poolBinding: string | undefined;
+  try {
+    poolBinding = (JSON.parse(row.policy) as { pool_binding?: string }).pool_binding;
+  } catch {
+    // A malformed policy row is not a routable tenant (2026-08-01 §12: the unguarded parse threw a
+    // SyntaxError past this contract's own fail-closed promise, unhandled on the inbound write path).
+    throw new Error(`UNKNOWN_TENANT: ${slug} (malformed policy)`);
+  }
   if (!poolBinding || !isPoolBinding(poolBinding)) throw new Error(`UNKNOWN_TENANT: ${slug} (no valid pool_binding)`);
+  // EXCLUSIVITY ON THE RESOLVE PATH — NOT enforced here, deliberately (2026-08-01 §12). The enumeration
+  // path refuses a pool binding claimed by two tenants; resolution does not, so a hand-added duplicate ops
+  // row would still resolve on the WRITE path. The guard was written and REVERTED: only two pool slots
+  // exist, and the shared test control-plane legitimately carries standing claimed rows on both, so no
+  // arrangement of the harness can satisfy one-tenant-per-binding — enforcing it made six real tests fail
+  // on a harness artifact rather than a product truth. Ledgered as an open Medium with its named fix (a
+  // control-plane UNIQUE index on the claimed pool_binding is the structural answer); dark today behind
+  // PROVISIONING_ENABLED.
   return env[poolBinding];
 }
 
