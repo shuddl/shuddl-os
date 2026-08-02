@@ -365,3 +365,32 @@ harnesses still loud-skip on their absent private fixtures exactly as before.
 custody-party R3 fail-close (needs REQ-069), the translator roster line on the EDI activation row, the
 accepted signup-oracle and retry-posture calls, the `?perf` harness path, and the External/owner inputs.
 The honest form of iteration 7 is unchanged from §9: run the watch when the tree changes.
+
+## §11 — Iteration 7 (2026-08-01): the watch on a changed tree, and the last roster instance closed
+
+The tree HAD changed (§10's digest framing is load-bearing — it is the law that gates merges), so the
+watch was due rather than redundant. **It passed clean:** every static gate, `check:fixtures` verifying
+all seven re-pinned digests, coverage 288/288, citations 945 with the ratchet at its frozen 131, lint
+and typecheck across every workspace, and the full suite already exit 0 at 3,487 tests.
+
+**Then one ledgered row closed on its merits** (`805dbb8`). The translator worker was the last surviving
+instance of the C3 roster class: a static two-slug map, so a claimed pool tenant's outbound 214s could
+never be swept and its inbound 204 could not resolve a database at all. It was ledgered as a
+pre-activation line on the EDI row because that transport is CONFIRM-gated and dark — but REQ-025 is a
+law, not a feature, and applying an existing law to a worker that already serves tenants is hardening,
+not new scope. The agents contract is ported verbatim: static hot path with no control-plane read, then
+a control row whose plan is not unclaimed/platform and whose `pool_binding` sits in the parity-pinned
+allowlist; sentinel, unclaimed, out-of-allowlist, unknown and platform slugs all fail closed;
+pool-binding exclusivity excludes both slugs on a duplicate; an enumeration fault degrades the sweep to
+the static roster with a loud log rather than stalling it. Pool D1s are bound in all three scopes with
+api-converged ids and the preflight requires them. Nine tests pin it, including the api parity check.
+
+**No roster instance of this class remains anywhere in the repo** — the defect first found in the agents
+worker on 2026-08-01 is now closed in every worker that serves tenants.
+
+**What this leaves.** Repo-owned Critical/High: zero. Remaining ledgered rows: the custody-party R3
+fail-close (genuinely needs the REQ-069 driver-identity build — v2 scope, so building it here would be
+straying), two accepted calls (the signup email oracle, the prod-surface retry posture), the `?perf`
+harness path, and the External/owner inputs. **Every remaining row is either owner-supplied or
+explicitly out of the documented build.** Iteration 8's honest form is §9's: run the watch when the
+tree changes — and there is no longer a ledgered repo-owned row for a future iteration to close.
