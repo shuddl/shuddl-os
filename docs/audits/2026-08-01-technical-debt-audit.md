@@ -2555,3 +2555,61 @@ event"*, and that route is now closed.
 
 **Verification.** lint 0, typecheck 0, `check:rater-purity` PASS, tools/checks 246 tests green (7 in
 `lint-guards`, 3 of them new), citations 956 resolving, tables OK.
+
+---
+
+## §54 — auditing the hard-budget line: six of seven already enforced, and two of my own "unenforced" calls were wrong
+
+§53's method — take a claim `CLAUDE.md` states as enforced and go verify the enforcement — applies directly to
+the **hard budgets**, declared there as *"CI-enforced; exceeding = the PR is wrong"*. Seven checkable claims.
+
+| Budget | Enforcement found | Verdict |
+|---|---|---|
+| ≤22 tables | `check:invariants` — reports `21/22 tables` on every run | **Enforced** |
+| Events append-only | `check:invariants` — 11 migration files walked, lock checked | **Enforced** |
+| 35 event kinds | Four separate assertions: `events.test.ts`, `booking.test.ts`, `comms.test.ts`, and `visibility.test.ts` on the defaults map | **Enforced** |
+| ≤12 canonical views | `apps/command/src/views/registry.ts` — `assertViewBudget()` is called AT MODULE IMPORT, so any importer trips it, plus `registry.test.ts` (which also tests name-uniqueness, so a duplicate cannot hide an over-budget add) | **Enforced** |
+| 5 color tokens | `tools/design/audit.ts` — `NAMED_COLORS` denylist (REQ-145) | **Enforced** |
+| 2 font families | `tools/design/audit.ts` font audit | **Enforced** |
+| 0 shadows/gradients/radius>4px | `tools/design/audit.ts` shadow/gradient/radius audits | **Enforced** |
+| **3 surfaces** | `SURFACES` in `tools/deploy/surface-contract.ts` — a hardcoded three-entry deploy contract, **with no count tripwire** | **Gap — closed here** |
+
+### 54.1 Two absence claims I made from greps were both wrong
+
+Working through the list I twice concluded a budget was unenforced and printed `(none = unenforced)` — for
+event kinds and for canonical views. **Both were wrong, and both are enforced.** The greps missed them because
+the enforcement does not look like the pattern I searched for: the view budget is a runtime `throw` on
+`length > MAX_CANONICAL_VIEWS`, not a `toBe(12)`.
+
+Recorded because it is the *third* time in two sections that a grep-shaped absence claim failed in the
+under-reporting direction (§53's `fetch(` miss, then these two). The pattern is now unmistakable: **a grep
+proves presence, never absence.** Each time it was caught only by opening the file. Nothing in this session has
+made me wrong about absence when I actually read the code — and nothing has made me right about it when I
+only grepped.
+
+### 54.2 The one real gap, and why its interesting direction is the reverse one
+
+The 3-surface budget had no tripwire. But the failure worth guarding is **not** a fourth surface — nobody adds
+an entire app by accident, and a fourth surface is already a never-build item under owner signature.
+
+The realistic failure is the reverse: **an app directory that exists while `SURFACES` does not list it.** That
+app then deploys nowhere, and *every* surface gate stays green — because each one iterates `SURFACES`, so an
+unlisted app is not checked, not deployed, and not reported. A silent drop, which the Migrator rule forbids
+outright, in the one place where the gate's own data structure defines what gets looked at.
+
+Two tests added to `surface-contract.test.ts`, both mutation-proved:
+
+- Dropping `driver` from the contract fails (and takes 8 sibling tests with it — the existing suite partly
+  covered this, but nothing *named* the failure).
+- Creating a fourth app directory on disk fails the disk-vs-contract test alone, cleanly.
+
+### 54.3 Verdict
+
+**The hard-budget line in `CLAUDE.md` is honest.** Six of seven budgets were already enforced, several better
+than the line implies — the view registry's uniqueness test and the import-time assertion are stronger than a
+count check, and the event-kind budget is pinned in four places. This is largely a **clean negative**, which is
+worth writing down: an audit that only records what it broke gives no signal about what it examined and found
+sound.
+
+**Verification.** `tools/deploy` 24 tests green; both new tests mutation-proved in both directions; lint,
+typecheck, citations (956), tables all PASS.

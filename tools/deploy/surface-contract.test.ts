@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -175,5 +175,29 @@ describe("the API base actually reaching the bundle", () => {
   it("FAILS on an absent or empty build rather than passing vacuously", () => {
     expect(checkBuiltApiBase(join(tmpdir(), "surface-does-not-exist-xyz"), PROD_API_BASE, "portal").map((p) => p.code)).toEqual(["no-build"]);
     expect(checkBuiltApiBase(dist(null), PROD_API_BASE, "portal").map((p) => p.code)).toEqual(["no-build"]);
+  });
+});
+
+// Audit §54 — the 3-surface hard budget (CLAUDE.md; a fourth surface is on the never-build list) was the ONE
+// declared budget with no count tripwire. The others all have one: ≤22 tables in `check:invariants`, 35 event
+// kinds in four contracts tests, ≤12 canonical views via `assertViewBudget()` at import.
+//
+// The realistic failure here is NOT a fourth surface — nobody adds an entire app by accident. It is the
+// reverse: an app directory that exists while SURFACES does not list it. That app then deploys NOWHERE, and
+// every surface gate stays green because each one iterates SURFACES. A silent drop, which is the one thing
+// the Migrator rule says never to allow.
+describe("the 3-surface budget is enforced in BOTH directions (audit §54)", () => {
+  const APPS_DIR = join(import.meta.dirname, "..", "..", "apps");
+
+  it("SURFACES holds exactly the three canonical surfaces — a fourth is a never-build item", () => {
+    expect(SURFACES.map((s) => s.app).sort()).toEqual(["command", "driver", "portal"]);
+  });
+
+  it("every app directory on disk appears in SURFACES — an unlisted app deploys nowhere and no gate notices", () => {
+    const onDisk = readdirSync(APPS_DIR, { withFileTypes: true })
+      .filter((e) => e.isDirectory() && existsSync(join(APPS_DIR, e.name, "package.json")))
+      .map((e) => e.name)
+      .sort();
+    expect(onDisk).toEqual(SURFACES.map((s) => s.app).sort());
   });
 });
