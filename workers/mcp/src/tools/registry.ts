@@ -255,7 +255,7 @@ export interface DispatchDeps {
   now: () => number;
   registry: ToolRegistry;
   beforeMutation: (ctx: ToolCtx, tool: ToolDef, args: unknown) => Promise<void>;
-  mintJwt: (env: Pick<Env, "CONTROL_DB" | "JWT_SECRET">, pairingId: string) => Promise<string>;
+  mintJwt: (env: Pick<Env, "CONTROL_DB" | "JWT_SECRET">, pairingId: string, now?: () => number, grantScope?: string) => Promise<string>;
 }
 
 /** The composition-root deps: live grant resolver + principal mint + the EXPLICITLY composed chokepoint
@@ -310,7 +310,7 @@ export async function dispatch(env: Env, deps: DispatchDeps, request: Request): 
     case "tools/list":
       return rpcResult(req.id, { tools: deps.registry.listForRpc() });
     case "tools/call":
-      return handleToolsCall(env, deps, grant.pairingId, req);
+      return handleToolsCall(env, deps, grant.pairingId, req, grant.scope);
     default:
       // A notification (e.g. notifications/initialized) carries no result — acknowledge with 202, no body.
       if (req.method.startsWith("notifications/")) return new Response(null, { status: 202 });
@@ -318,7 +318,7 @@ export async function dispatch(env: Env, deps: DispatchDeps, request: Request): 
   }
 }
 
-async function handleToolsCall(env: Env, deps: DispatchDeps, pairingId: string, req: JsonRpcRequest): Promise<Response> {
+async function handleToolsCall(env: Env, deps: DispatchDeps, pairingId: string, req: JsonRpcRequest, grantScope: string): Promise<Response> {
   const params = req.params;
   const name = isRecord(params) ? params.name : undefined;
   if (typeof name !== "string") return rpcError(req.id, RPC.INVALID_PARAMS, "tools/call requires a string `name`");
@@ -335,7 +335,9 @@ async function handleToolsCall(env: Env, deps: DispatchDeps, pairingId: string, 
   const ctx: ToolCtx = {
     env,
     pairingId,
-    mintJwt: () => deps.mintJwt(env, pairingId),
+    // The grant's recorded scope rides every mint so a NARROWED pairing allowlist takes effect on the
+    // next call rather than after the token's full hour (2026-08-01 convergence audit).
+    mintJwt: () => deps.mintJwt(env, pairingId, deps.now, grantScope),
     callApi,
     // Key off the SEMANTIC operation (the validated arguments / a client idempotency_key), NEVER the envelope id.
     idempotencyKey: await deriveIdempotencyKey(pairingId, tool.name, parsed.data),

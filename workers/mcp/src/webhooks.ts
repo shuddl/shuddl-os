@@ -53,7 +53,9 @@ const WebhookConfig = z
       .string()
       .min(1)
       .max(2000)
-      .refine((u) => u.startsWith("https://") || u.startsWith("http://"), "url must be an http(s) URL"),
+      // https ONLY (2026-08-01 audit): the signature proves authenticity, never confidentiality, and the
+    // body carries shipment ids + milestone kinds. Cleartext delivery of shipment milestones is refused.
+    .refine((u) => u.startsWith("https://"), "url must be an http(s) URL"),
     // Optional allow-list of terminal kinds; absent ⇒ all three terminal kinds are delivered.
     events: z.array(z.enum(TERMINAL_WEBHOOK_KINDS)).max(TERMINAL_WEBHOOK_KINDS.length).optional(),
   })
@@ -91,6 +93,15 @@ export async function resolveWebhookSubscription(db: D1Database, originatorPairi
     .bind(id)
     .first<{ id: string; tenant_id: string; caps: string; secret_ref: string; status: string }>();
   if (row === null || row.status !== "active") return null;
+  // TENANT PARITY (REQ-025, 2026-08-01 convergence audit): the subscription's tenant was loaded and never
+  // compared to the ORIGINATOR's. `pairings.id` is a global primary key, so a `webhook:<pairing-A>` row
+  // provisioned under tenant B would route tenant A's milestones to tenant B's endpoint. Both rows must
+  // name the same tenant, or nothing is delivered.
+  const originator = await db
+    .prepare("SELECT tenant_id FROM pairings WHERE id = ?1 AND kind = 'mcp' LIMIT 1")
+    .bind(originatorPairingId)
+    .first<{ tenant_id: string }>();
+  if (originator === null || originator.tenant_id !== row.tenant_id) return null;
   let parsedCaps: unknown;
   try {
     parsedCaps = JSON.parse(row.caps);

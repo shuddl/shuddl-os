@@ -33,6 +33,7 @@ const P = {
   PASS: "prn-caps-pass", // generous — meter-error + pass-through drives
   CONFIRMFIRST: "prn-caps-cf", // [F1a] generous caps: a confirm-fail must NOT reserve a slot
   IDEM: "prn-caps-idem", // [F1b] generous caps: a retried key counts once
+  IDEM2: "prn-caps-idem2", // 2026-08-01: the same key on a DIFFERENT shipment must NOT replay
   BADLANES: "prn-caps-badlanes", // [F2] caps carry a MALFORMED non-array `lanes`
 } as const;
 const TOK = (p: string): string => `mcpt_${p}`;
@@ -150,6 +151,7 @@ beforeAll(async () => {
     [P.PASS]: JSON.stringify({ spend: BIG, velocity: BIG }),
     [P.CONFIRMFIRST]: JSON.stringify({ spend: BIG, velocity: BIG }),
     [P.IDEM]: JSON.stringify({ spend: BIG, velocity: BIG }),
+    [P.IDEM2]: JSON.stringify({ spend: BIG, velocity: BIG }),
     [P.BADLANES]: JSON.stringify({ spend: BIG, velocity: BIG, lanes: "ATL" }), // MALFORMED: lanes is a string, not an array
   };
   for (const [id, c] of Object.entries(caps)) {
@@ -158,7 +160,7 @@ beforeAll(async () => {
   // KV token grants for the dispatch-driven pairings (+ a GHOST grant whose pairing row is deliberately absent).
   const exp = Math.floor(Date.now() / 1000) + 3600;
   const grant = (p: string): string => JSON.stringify({ pairingId: p, scope: "mcp", exp });
-  for (const p of [P.SPEND, P.VEL, P.LANE, P.NOCAPS, P.QUOTEFAIL, P.ATTR_A, P.ATTR_B, P.GHOST, P.LOW, P.CONFIRMFIRST, P.IDEM, P.BADLANES]) {
+  for (const p of [P.SPEND, P.VEL, P.LANE, P.NOCAPS, P.QUOTEFAIL, P.ATTR_A, P.ATTR_B, P.GHOST, P.LOW, P.CONFIRMFIRST, P.IDEM, P.IDEM2, P.BADLANES]) {
     await env.GRANTS.put(`token:${TOK(p)}`, grant(p));
   }
 });
@@ -345,6 +347,21 @@ describe("[F1b] the caps reserve is idempotency-aware — a retried booking coun
     const retry = await runTool(TOK(P.IDEM), "book_shipment", args, bookApi("shp_idem", "q_idem", { sell: 7_000 }));
     expect(retry.body.result?.structuredContent?.status).toBe("ACCEPTED");
     expect(await peekTally(P.IDEM)).toEqual({ spend: 7_000, count: 1 }); // ONE booking, not 14_000 / 2
+  });
+
+  // 2026-08-01 convergence audit (REQ-105 cap bypass) — the replay marker must bind the TARGET. A
+  // client-supplied idempotency_key derives a key that DISCARDS the arguments, so the same key across two
+  // DIFFERENT shipments used to share one reserve: each booking committed a real quote.accepted (the api
+  // dedupe folds the pathname into its scope) while the meter counted one — a velocity cap of 1 booking N.
+  it("the SAME idempotency_key on a DIFFERENT shipment does NOT replay — each booking is counted", async () => {
+    const key = "ONE-KEY-TWO-SHIPMENTS";
+    const a = { shipment_id: "shp_bind_a", quote_event_id: "q_bind_a", idempotency_key: key, confirm: { intent: "book", amount_cents: 5_000 } };
+    const b = { shipment_id: "shp_bind_b", quote_event_id: "q_bind_b", idempotency_key: key, confirm: { intent: "book", amount_cents: 5_000 } };
+    const first = await runTool(TOK(P.IDEM2), "book_shipment", a, bookApi("shp_bind_a", "q_bind_a", { sell: 5_000 }));
+    expect(first.body.result?.structuredContent?.status).toBe("ACCEPTED");
+    await runTool(TOK(P.IDEM2), "book_shipment", b, bookApi("shp_bind_b", "q_bind_b", { sell: 5_000 }));
+    // BOTH are counted: two distinct targets are two bookings, whatever the client called its key.
+    expect(await peekTally(P.IDEM2)).toEqual({ spend: 10_000, count: 2 });
   });
 });
 

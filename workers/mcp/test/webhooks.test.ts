@@ -80,6 +80,12 @@ beforeAll(async () => {
   await seedPairing(env.CONTROL_DB, { id: webhookSubIdFor(ORIGINATOR), tenantId: TENANT_W, kind: "webhook", secretRef: SECRET_REF, caps: JSON.stringify({ url: HOOK_URL }) });
   await seedPairing(env.CONTROL_DB, { id: webhookSubIdFor(ORIGINATOR_SUSPENDED), tenantId: TENANT_W, kind: "webhook", secretRef: SECRET_REF, status: "suspended", caps: JSON.stringify({ url: HOOK_URL }) });
   await seedPairing(env.CONTROL_DB, { id: webhookSubIdFor(ORIGINATOR_MALFORMED), tenantId: TENANT_W, kind: "webhook", secretRef: SECRET_REF, caps: "{not json" });
+  // The ORIGINATOR mcp pairings themselves — real provisioning always creates both rows, and resolution
+  // now REQUIRES them to name the same tenant (2026-08-01 audit: a webhook row under another tenant would
+  // otherwise route this tenant's milestones to it).
+  for (const o of [ORIGINATOR, ORIGINATOR_SUSPENDED, ORIGINATOR_MALFORMED]) {
+    await seedPairing(env.CONTROL_DB, { id: o, tenantId: TENANT_W, kind: "mcp", scopes: '["mcp"]', caps: "{}" });
+  }
 });
 
 describe("svix-style HMAC signing + verification", () => {
@@ -232,5 +238,30 @@ describe("runWebhookSweep — the cron body (fail-closed + idempotent)", () => {
 
   it("the production NotConfiguredWebhookTransport refuses to deliver (fail-closed by construction)", async () => {
     await expect(new NotConfiguredWebhookTransport().send(HOOK_URL, {}, "{}")).rejects.toThrow();
+  });
+});
+
+// 2026-08-01 convergence audit (REQ-025) — the subscription's tenant must MATCH the originator's.
+describe("tenant parity — a webhook row under another tenant cannot claim an originator", () => {
+  it("resolves to null when the webhook row's tenant differs from the originator pairing's", async () => {
+    const foreign = "prn-wh-foreign";
+    await seedTenant(env.CONTROL_DB, "t-wh-other", "tenant-wh-other");
+    // The originator belongs to TENANT_W; the webhook row is provisioned under a DIFFERENT tenant.
+    await seedPairing(env.CONTROL_DB, { id: foreign, tenantId: TENANT_W, kind: "mcp", scopes: '["mcp"]', caps: "{}" });
+    await seedPairing(env.CONTROL_DB, {
+      id: webhookSubIdFor(foreign), tenantId: "t-wh-other", kind: "webhook", secretRef: SECRET_REF,
+      caps: JSON.stringify({ url: HOOK_URL }),
+    });
+    expect(await resolveWebhookSubscription(env.CONTROL_DB, foreign)).toBeNull();
+  });
+
+  it("a cleartext http:// delivery URL is refused — signatures prove authenticity, never confidentiality", async () => {
+    const plain = "prn-wh-plain";
+    await seedPairing(env.CONTROL_DB, { id: plain, tenantId: TENANT_W, kind: "mcp", scopes: '["mcp"]', caps: "{}" });
+    await seedPairing(env.CONTROL_DB, {
+      id: webhookSubIdFor(plain), tenantId: TENANT_W, kind: "webhook", secretRef: SECRET_REF,
+      caps: JSON.stringify({ url: "http://hooks.example/inbound" }),
+    });
+    expect(await resolveWebhookSubscription(env.CONTROL_DB, plain)).toBeNull();
   });
 });

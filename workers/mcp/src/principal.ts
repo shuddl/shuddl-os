@@ -103,6 +103,24 @@ export async function resolveActiveMcpPairing(db: D1Database, pairingId: string)
   return { id: row.id, tenant_id: row.tenant_id, scopes: row.scopes, caps: row.caps };
 }
 
+/** Every token of a recorded grant scope must still sit in the pairing's CURRENT allowlist. Fail-closed on
+ *  an empty scope, an empty allowlist, or a malformed allowlist JSON — the same posture the /authorize-time
+ *  check takes (oauth.ts scopeWithinAllowlist); duplicated here rather than imported to avoid a cycle, and
+ *  pinned against it by the parity test in principal.test.ts. */
+function scopeStillAllowed(grantScope: string, pairingScopesJson: string): boolean {
+  const tokens = grantScope.split(/\s+/).filter((t) => t.length > 0);
+  if (tokens.length === 0) return false;
+  let allowed: unknown;
+  try {
+    allowed = JSON.parse(pairingScopesJson);
+  } catch {
+    return false;
+  }
+  if (!Array.isArray(allowed)) return false;
+  const set = new Set(allowed.filter((s): s is string => typeof s === "string"));
+  return tokens.every((t) => set.has(t));
+}
+
 /**
  * Mint the api-facing SessionClaims JWT for an authorized MCP pairing. FAILS CLOSED: a missing / inactive /
  * non-mcp pairing throws PrincipalMintError (nothing is issued). tenant comes ONLY from the pairing row; role is
@@ -115,9 +133,18 @@ export async function mintPrincipalJwt(
   env: Pick<Env, "CONTROL_DB" | "JWT_SECRET">,
   pairingId: string,
   now: () => number = () => Date.now(),
+  /** The scope recorded on the OAuth grant, re-checked against the pairing's CURRENT allowlist
+   *  (2026-08-01 convergence audit): scope was validated once at /authorize and never again, so
+   *  NARROWING a pairing's scopes left an already-issued token acting for its full hour. Status-based
+   *  revocation was already honored here; this closes the scope half at the same seam. Omitted ⇒ no
+   *  scope claim to re-check (an internal mint), which is unchanged behavior. */
+  grantScope?: string,
 ): Promise<string> {
   const pairing = await resolveActiveMcpPairing(env.CONTROL_DB, pairingId);
   if (pairing === null) throw new PrincipalMintError(`no active mcp pairing: ${pairingId}`);
+  if (grantScope !== undefined && !scopeStillAllowed(grantScope, pairing.scopes)) {
+    throw new PrincipalMintError(`grant scope no longer within the pairing allowlist: ${pairingId}`);
+  }
 
   const claims: SessionClaims = {
     sub: subForPairing(pairingId),

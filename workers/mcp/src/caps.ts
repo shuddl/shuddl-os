@@ -202,8 +202,15 @@ async function runCapsCheck(ctx: ToolCtx, tool: ToolDef, args: unknown): Promise
   try {
     const stub = ctx.env.CAPS_METER.get(ctx.env.CAPS_METER.idFromName(ctx.pairingId)) as unknown as CapsMeterStub;
     // Thread the derived Idempotency-Key so a retried booking (same key ⇒ the api dedupes it to ONE quote.accepted)
-    // counts ONCE in the meter, not twice (exit audit F1b, REQ-106).
-    result = await stub.checkAndReserve({ period, spendCents, capSpendCents: caps.spendCents, capVelocity: caps.velocity, idemKey: ctx.idempotencyKey });
+    // counts ONCE in the meter, not twice (exit audit F1b, REQ-106) — BOUND TO THE TARGET (2026-08-01
+    // convergence audit, REQ-105 cap bypass): a CLIENT-supplied `idempotency_key` derives a key that
+    // discards the arguments, so two DIFFERENT shipments could share one replay marker. The api's own
+    // dedupe folds the request pathname into its scope, so those two bookings are two REAL writes — while
+    // the meter counted one, clearing unlimited further bookings under a velocity cap of 1. Composing the
+    // target into the marker restores parity: the same-shipment retry still replays (identical composite),
+    // a different shipment cannot.
+    const idemKey = `${ctx.idempotencyKey}:${shipmentId}:${quoteEventId}`;
+    result = await stub.checkAndReserve({ period, spendCents, capSpendCents: caps.spendCents, capVelocity: caps.velocity, idemKey });
   } catch {
     throw new MutationBlocked("caps_meter_error", "usage meter unavailable; booking refused (fail-closed)");
   }

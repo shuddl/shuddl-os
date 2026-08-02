@@ -91,3 +91,23 @@ describe("pairingIdFromSub / subForPairing round-trip", () => {
     expect(pairingIdFromSub("portal:party-1")).toBeNull();
   });
 });
+
+// 2026-08-01 convergence audit — a NARROWED pairing allowlist must bite the NEXT call, not after the
+// token's full hour. Scope was validated once at /authorize and never re-read; status-based revocation
+// was already honored at this same seam, so the scope half now rides it too.
+describe("mint re-checks the grant's scope against the pairing's CURRENT allowlist", () => {
+  const PN = "prn-scope-narrow";
+  const TN = "t-scope-narrow";
+
+  it("mints while the grant scope is still within the allowlist, and REFUSES once it is narrowed", async () => {
+    await seedTenant(env.CONTROL_DB, TN, "tenant-scope-narrow");
+    await seedPairing(env.CONTROL_DB, { id: PN, tenantId: TN, kind: "mcp", scopes: '["mcp"]', caps: "{}" });
+    // In-allowlist: mints exactly as before.
+    await expect(mintPrincipalJwt(env, PN, () => Date.now(), "mcp")).resolves.toBeTypeOf("string");
+    // The operator narrows the pairing's scopes; the already-issued grant still says "mcp".
+    await env.CONTROL_DB.prepare("UPDATE pairings SET scopes = ?1 WHERE id = ?2").bind("[]", PN).run();
+    await expect(mintPrincipalJwt(env, PN, () => Date.now(), "mcp")).rejects.toThrow(/scope no longer/);
+    // A mint with no recorded scope (an internal caller) is unchanged.
+    await expect(mintPrincipalJwt(env, PN)).resolves.toBeTypeOf("string");
+  });
+});

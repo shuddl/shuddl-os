@@ -2,7 +2,7 @@ import type { Context } from "hono";
 import { z } from "@shuddl/contracts";
 import { generalizePosition } from "@shuddl/ledger/redact";
 import { envelope } from "../middleware/error.js";
-import { tenantDb } from "../tenants.js";
+import { resolveTenantDb } from "../tenants.js";
 import { verifyStatusCap } from "./status-cap.js";
 import type { Env, Vars } from "../index.js";
 
@@ -63,10 +63,16 @@ export async function publicStatusHandler(c: Ctx): Promise<Response> {
   }
 
   // 2) ONLY AFTER a valid MAC, resolve the tenant D1 and read the PROJECTION. Everything here is
-  //    fail-closed to the SAME 401: an unknown tenant (tenantDb throws), a missing shipment, or any read
-  //    fault is indistinguishable from a bad cap — no oracle, no 500 to probe.
+  //    fail-closed to the SAME 401: an unknown tenant (the resolver throws), a missing shipment, or any
+  //    read fault is indistinguishable from a bad cap — no oracle, no 500 to probe.
+  //
+  //    CLAIMED-AWARE (2026-08-01 convergence audit): this used the STATIC-only tenantDb while the mint
+  //    route (routes/status-link.ts) uses the claimed-aware resolver — so every status link a claimed
+  //    pool tenant minted resolved to a uniform 401 and a customer's tracking link just read STATUS
+  //    UNAVAILABLE. resolveTenantDb fail-closes identically (FORBIDDEN for sentinel/unclaimed/unknown
+  //    slugs, caught into the same 401 below), so the no-oracle posture is unchanged.
   try {
-    const db = tenantDb(c.env, claims.t);
+    const db = await resolveTenantDb(c.env, claims.t);
 
     // PROJECTION READS ONLY — status_cache for the milestone; the latest positions row for geo. NEVER the
     // events table, NEVER lensFor/readEvents (that is the authenticated party lens, with its own OFD rules).
