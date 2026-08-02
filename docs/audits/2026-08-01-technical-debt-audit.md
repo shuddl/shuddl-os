@@ -221,6 +221,56 @@ may only stop — when all four are simultaneously true:
 private-fixture holds, the two External Highs, the GTM workstream's own register row, and the R2→R5 grades
 that consume accounts, credentials, devices and counsel. Further iterations inside the repo would produce
 either scope-straying or gate-relaxing — both forbidden by `CLAUDE.md` and `genesis/00`.
+**RE-MEASURED AT `fb212fd` (2026-08-02, §38).** The §21 measurement above is stamped `14398fd` and is now
+ten commits stale — including four adversarial reviews and every fix they produced. A stopping point that
+is only *asserted* is the thing this audit exists to catch, so it is measured again, condition by condition.
+
+**A caution about the method first, because it nearly produced a false all-clear.** The row-enumeration
+used in §16 (grep for a High/Critical severity + `OPEN`, minus rows matching `resolved|FIXED|CLOSED`)
+returned **zero open High/Critical rows** on this tree. That is wrong. The custody-handoff row is open and
+High — it was filtered out because its body contains the phrase *"closed at `a3b667a`"*, describing a
+**different, already-fixed** defect inside the same row. A crude filter over prose will do this, and the
+failure direction is the dangerous one: it reports fewer open items than exist. The counts below were read
+by hand.
+
+1. **Zero open repository-owned Critical/High: SATISFIED.** Every finding from all four adversarial
+   reviews is closed (§27, §30–§32, §36–§37), including the four HIGHs the reviews found inside fixes this
+   loop had just written: the `{}` fallback that opened three gate knobs, the identical defect left four
+   lines below it, a schema that both refused `null` and admitted a visibility typo, and an unconditional
+   catch that turned a D1 blip into a lost tender. **Two open Highs remain and both are External**, both
+   unchanged: a real driver's custody handoff needs manifest party refs plus the deferred REQ-069 identity
+   seam, and the live EDI adapter needs its transport credentials. The pre-R4 *repo* carry-forward is
+   still the single resolve-path pool-binding exclusivity row (§12), dark behind `PROVISIONING_ENABLED`.
+
+2. **Baseline gates green: SATISFIED but for the one row that is not this loop's.** Suites: **2,648 tests
+   across all 16 workspaces, every one passing** — contracts 285 · ledger 607 · rater 154 · driver-core 39
+   · edi 38 · adapters 38 · map 84 · design 9 · api 730 · agents 106 · billing 56 · translator 96 · mcp 175
+   · command 97 · driver 54 · portal 80. Gates: typecheck (workspace **and** tools) 0, lint 0, runtime,
+   invariants (21/22 tables), citations (ratchet at its frozen baseline), traceability, authority-coverage,
+   rater-purity, seed, design audit, and **`check:fixtures` — which now PASSES** where it was PENDING.
+
+   `check:coverage` **FAILS**, on exactly one unaccounted row: the concurrent GTM workstream's uncommitted
+   `REQ-289` (`wp=GTM-0`, `status=ACTIVE`). Isolated by experiment, not assumed — with the committed
+   register `test:tools` is 672 PASS; with the row, exactly 3 fail and all name REQ-289. Adding a register
+   row **is** the documented way to introduce scope, so it needs an active WP or a coverage-manifest
+   disposition **from its owner**; dispositioning it here would mean inventing intent. **It is the single
+   thing between this tree and a fully green gate set, and it is not repository-closable by this loop.**
+
+3. **Remaining debt External or CONFIRM-gated: SATISFIED.** Every row carries owner, grade and expiry. Two
+   Lows are dispositioned-open with reasons rather than silently dropped (§32): three control-row reads per
+   inbound 204, and the `warn` severity/keying of `edi_tenant_policy_unusable`.
+
+4. **The record agrees with the world: SATISFIED, and re-verified rather than asserted.** This loop wrote
+   **six** claims that were false or became false, and each was corrected in place naming what was wrong:
+   an absolute "nowhere in the repo" (§12); a comment citing a parity test that did not exist (§13);
+   "api … enumerate `allTenantSlugs`" when the api worker has no cron (§15); "three parsers, enumerated
+   and verified" when there were four — the omission that *caused* a HIGH (§30); a law claimed satisfied
+   when only half of it was (§34); and one made false later by this loop's own C3 work (§35). A record
+   whose value is being true has to show its own errors, including the ones it introduced.
+
+**The loop is at its stopping line for repository-owned work**, on the same terms §4 has stated throughout.
+What remains needs owner input: the five private-fixture holds, the two External Highs, the GTM register
+row, and the R2→R5 grades that consume accounts, credentials, devices and counsel.
 Beyond that line the build cannot advance itself: R2→R5 consume accounts, credentials, fixtures,
 devices, counsel, and owner decisions. Working past the line from inside the repo produces either
 scope-straying (building CONFIRM-gated features) or gate-relaxing (synthesizing private fixtures) —
