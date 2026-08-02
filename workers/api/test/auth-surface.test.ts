@@ -1,6 +1,7 @@
 import { env } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import app from "../src/index.js";
+import { token } from "./helpers.js";
 
 // REQ-025/030/156 — THE AUTHENTICATION SURFACE (audit §57).
 //
@@ -70,5 +71,57 @@ describe("REQ-025/156: the authentication surface has no accidental holes", () =
   it("BEHAVIOUR: a client-supplied tenant is REJECTED outright, not ignored (REQ-156)", async () => {
     const res = await app.fetch(new Request("https://api.test/v1/whoami", { headers: { "X-Tenant-Id": "tenant-b" } }), env);
     expect(res.status).toBe(403);
+  });
+});
+
+// REQ-106/156 — THE IDEMPOTENCY SURFACE (audit §59).
+//
+// `app.use("/v1/*", idempotency)` REQUIRES an Idempotency-Key on every mutation and 400s without one. Like
+// auth, it is mounted by prefix — so the six mutating routes OUTSIDE /v1/* are not covered by it. Each is
+// nonetheless idempotent, by a mechanism suited to what it does; the four mechanisms were read from source
+// and are named below. That is the point: "idempotency keys on all mutations" is satisfied here by FOUR
+// different designs, only one of which is the middleware, so a reader who assumes the middleware covers
+// everything would be wrong, and a seventh route added to these namespaces would inherit nothing.
+const DEDUPED_WITHOUT_THE_MIDDLEWARE = new Map<string, string>([
+  ["POST /pub/quote", "appends NOTHING — zero-append by construction (the module imports no sequencer/DO/append surface), so a retry merely re-prices."],
+  ["POST /pub/signup", "structural: the workspace slug and email are UNIQUE, so a duplicate signup is a 409, never a second tenant."],
+  ["POST /internal/platform/credit-append", "the event id is content-derived, so a redelivery re-derives the SAME id and the sequencer dedupes it (once-out)."],
+  ["POST /internal/platform/credit-settle", "a no-op once paid: it flips issued→paid only while a covering payment.received is committed and the total is uncovered."],
+]);
+
+describe("REQ-106: every mutation is deduplicated, by the middleware or by a named mechanism", () => {
+  it("the /v1/* idempotency middleware is registered", () => {
+    expect(routes().some((r) => r.path === "/v1/*" && r.handler?.name === "idempotency")).toBe(true);
+  });
+
+  it("every mutating route outside /v1/* names how it deduplicates", () => {
+    const MUTATING = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+    const outside = routes()
+      .filter((r) => MUTATING.has(r.method) && !r.path.startsWith("/v1/") && r.path !== "/*")
+      .map((r) => `${r.method} ${r.path}`);
+    for (const r of new Set(outside)) {
+      expect(DEDUPED_WITHOUT_THE_MIDDLEWARE.has(r), `${r} mutates outside /v1/*, so the idempotency middleware does NOT run for it. Either mount it under /v1/*, or record here HOW it deduplicates a retry.`).toBe(true);
+    }
+  });
+
+  it("the recorded mechanisms are reasons, not restatements", () => {
+    for (const why of DEDUPED_WITHOUT_THE_MIDDLEWARE.values()) expect(why.length).toBeGreaterThan(60);
+  });
+
+  it("BEHAVIOUR: an AUTHENTICATED /v1 mutation without an Idempotency-Key is refused 400", async () => {
+    // Deliberately authenticated. The first draft of this case accepted [400, 401], which passes on the 401
+    // a token-less request already gets — it would have proved nothing about idempotency at all (the exact
+    // "asserts the one branch where the property cannot fail" shape audit §51 measured).
+    const t = await token({ sub: "u1", tenant: "tenant-a", role: "ops" });
+    const res = await app.fetch(
+      new Request("https://api.test/v1/shipments", {
+        method: "POST",
+        headers: { authorization: `Bearer ${t}`, "content-type": "application/json" },
+        body: "{}",
+      }),
+      env,
+    );
+    expect(res.status).toBe(400);
+    expect(JSON.stringify(await res.json())).toContain("IDEMPOTENCY");
   });
 });

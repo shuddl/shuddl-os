@@ -2844,3 +2844,62 @@ only reason I did not is that I ran the list instead of trusting my own arithmet
 this loop of *"the record was the defect"*, and the second where the defective record was one I had just
 written (§50 fused a row while adding one; this incremented a wrong count while correcting it). **Both times
 the failure was doing the arithmetic in prose instead of asking the system.**
+
+---
+
+## §59 — "idempotency keys on all mutations" is true, via four mechanisms, only one of which is the middleware
+
+Two claims tested this pass. The first was a **clean negative in one command**: `CLAUDE.md` rule 5 declares
+*"the $222,084/35-lb anomaly regression is permanent (REQ-040)"*, and it is — `fixtures/anomaly/the-222084-case.json`
+plus `packages/rater/test/anomaly.test.ts`, which pins the exact figures (35 lb, 22,208,400¢), asserts
+`over_per_lb` against the safety cap, and separately checks the fixture's own stated expectation. A named
+regression declared permanent, and actually permanent.
+
+The second is REQ-106/156: **"Idempotency-Key required on all mutations."**
+
+### 59.1 The middleware is strong, and it is mounted by prefix
+
+`middleware/idempotency.ts` **requires** the key (400, not a shrug), scopes the KV key by hashing
+`tenant∥method∥path∥key` with a NUL separator so one tenant can never replay another's response (REQ-025) and
+a ~10KB path segment cannot overflow KV's 512-byte limit — a real past bug. And it caches **only 2xx**
+(REQ-206): a 4xx precondition failure or a 5xx committed nothing, so it must stay retryable; caching it would
+replay a stale failure while `next()` never re-runs, silently losing the write a corrected retry intended.
+
+But it is `app.use("/v1/*", idempotency)` — the same prefix mounting §57 examined. **Six mutating routes sit
+outside `/v1/*`** and the middleware never runs for them.
+
+### 59.2 All six are idempotent — by four different designs
+
+Read from source, not assumed:
+
+- `POST /pub/quote` — **appends nothing, by construction.** The module imports no sequencer/DO/append surface
+  at all, so a retry merely re-prices.
+- `POST /pub/signup` — **structural.** Workspace slug and email are UNIQUE, so a duplicate signup is a 409,
+  never a second tenant.
+- `POST /internal/platform/credit-append` — **content-derived event id.** A redelivery re-derives the same id
+  and the sequencer dedupes it (once-out).
+- `POST /internal/platform/credit-settle` — **a no-op once paid**: it flips issued→paid only while a covering
+  `payment.received` is committed and the total is uncovered.
+
+So the law holds everywhere. **What was missing is that this is four designs, not one** — a reader who assumes
+the middleware covers the whole API is wrong, and a seventh route added to `/pub/*` or `/internal/*` would
+inherit no deduplication at all. On `/pub/*` a duplicate is usually harmless; on `/internal/*` it is money.
+
+Four cases added to `auth-surface.test.ts`: the middleware is registered; every mutating route outside `/v1/*`
+must appear in a map that **names how it deduplicates**; those reasons must be reasons rather than
+restatements; and a behavioural check. Mutation-proved on both shapes — a new `POST /pub/contact` fails
+naming the route and telling you to mount it under `/v1/*` or record its mechanism, and removing the
+middleware's key requirement fails the behavioural case.
+
+### 59.3 The behavioural case was worthless as first written
+
+I first wrote it as `expect([400, 401]).toContain(res.status)` against an **unauthenticated** request. That
+passes on the 401 a token-less request already gets — it would have proved nothing about idempotency, while
+appearing to. It is the same shape §51 measured (a test asserting the one branch where the property cannot
+fail), authored by me one section after documenting it.
+
+Rewritten to authenticate first and assert `400` **and** that the body names the requirement, so it can only
+pass for the intended reason. The mutation confirms it: dropping the key requirement now turns it RED, which
+the `[400, 401]` version would have survived.
+
+**Verification.** `auth-surface.test.ts` 10 tests green; both mutations RED; source restored byte-identical.
