@@ -1,6 +1,15 @@
 # fixtures/ — golden data that gates merges (vendor at WP-01)
 Every engine/ledger change replays these. CI references fixtures by hash; changing a fixture requires a register note.
 
+> **`fixtures/manifest.json` is the authoritative registry — this table is not (clarified 2026-08-02, audit §63).**
+> The table below is the **WP-01 vendor-in list**: the private, engagement-workspace datasets to obtain and hash.
+> The manifest carries those *plus* the fixtures generated in-repo since (`gl-netting`, `merkle-vectors`,
+> `interline-partner-statement`, `migrator-formats`, `legacy-mirror-export`) and the two later private holds
+> (`invoice-500-replay`, `concierge-parse-50`) — **17 rows against this table's 10**, all of which gate merges.
+> Deliberately NOT mirrored here: a second hand-maintained copy of a list the build already owns is what drifts
+> (audit §58). `pnpm check:fixtures` reads the manifest, recomputes every vendored `sha256`, and FAILS on a
+> mismatch in any mode — mutation-proved in §63.
+
 **Separation law (REQ-167):** this file names datasets by role and size only. Real source paths, filenames, and tenant identifiers live in the tenant's **`fixtures-manifest.private`** in its engagement workspace, outside this repo. At WP-01 vendor-in, bytes are copied here, hashed, and referenced by hash forever after — the private manifest maps hash → origin.
 
 | Fixture | Gates | Vendor-in source |

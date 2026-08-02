@@ -3051,3 +3051,55 @@ story, because there is no regeneration.
 
 **Verification.** `diff genesis/11 CLAUDE.md` inspected in full (45 lines, every hunk accounted for above);
 tables and citations PASS.
+
+---
+
+## §63 — the fixture layer, audited end to end: the hash law is real, and the second copy of the list was the defect
+
+§60 and §61 both traced to the fixture registry, so this section audited that layer directly rather than
+another claim about it. Three questions, each answered by running something (§62's rule).
+
+### 63.1 Is the REQ-112 hash law real, or decoration?
+
+**Real, and mutation-proved.** `tools/fixtures/verify.ts` recomputes `hashPath()` over every vendored entry and
+compares it to the pinned `sha256`. Flipping a single byte in `fixtures/anomaly/the-222084-case.json`
+(`22208400` → `22208401`) produces:
+
+```
+FAIL anomaly-222084-35lb: hash mismatch (pinned 7f0d3d07abe7… actual a41abb9a0762…)
+##SHUDDL-GATE## {"gate":"fixtures","status":"FAIL","executed":true,"assertions":8}
+```
+
+A hash mismatch is **FAIL in every mode**, unlike a pending private fixture (advisory locally, BLOCK on merge).
+That is the right asymmetry: an absent fixture is an owner hold, a *changed* one is a law violation.
+
+### 63.2 Is every pinned fixture actually doing work?
+
+A fixture can be hash-pinned and read by nothing — the pin then guards a file no test replays, which is the
+§50 shape (a control that cannot fail). Checked per row: **all seven vendored fixtures have consuming tests** —
+`anomaly.test.ts`, `qb-journal.fixture.test.ts`, `gl-netting.fixture.test.ts`, `merkle.test.ts`,
+`derive-split.test.ts`, `migrator.test.ts`, `legacy-mirror.test.ts`. Nothing is decoratively pinned.
+
+### 63.3 The defect: two lists of the same thing, and only one is authoritative
+
+`fixtures/README.md` presents itself as *"golden data that gates merges"* and carries **10** rows.
+`fixtures/manifest.json` carries **17**. The seven absent from the README are not obscure — `gl-netting`
+(I7), `merkle-vectors` (REQ-014), `interline-partner-statement` (REQ-019), `migrator-formats`,
+`legacy-mirror-export`, plus the `invoice-500-replay` and `concierge-parse-50` private holds. **All of them
+gate merges.** A reader working from the README does not know they exist.
+
+The README is defensible as the *WP-01 vendor-in list* — the private datasets to obtain — but its title claims
+more than that, and this is exactly how §60 happened: a document describing the fixture set, drifting from the
+fixture set.
+
+**Fixed by pointing, not mirroring.** The README now names `manifest.json` as authoritative, states the split
+(vendor-in list vs full registry), names the seven, and says why it does not copy them: *a second
+hand-maintained copy of a list the build already owns is what drifts* — the §58 lesson applied preventively
+rather than after the fact. Mirroring 17 rows here would have created a third artifact to keep in sync and
+guaranteed the next drift.
+
+Counts verified by reading both files programmatically before writing them down (10 and 17), not by counting
+by eye — §58's failure was exactly an eye-count of a machine-owned list.
+
+**Verification.** Byte-flip mutation FAILs and restores clean (0 mismatches); all 7 vendored fixtures have
+consumers; `check:fixtures` exit 0 local / exit 2 merge, unchanged; tables and citations PASS.
