@@ -616,3 +616,49 @@ So the class was **not systemic — the §13 fallback was the single outlier**, 
 convention was already the right one. Worth stating plainly, because "I found one, there must be more" is
 a reasonable fear and the answer here is no; and because several of these sites document the *direction*
 in their comment, which is the habit that would have prevented the defect in the first place.
+
+---
+
+## §16 — Iteration 11 (2026-08-02): the evidence record that certified itself
+
+Verifying §4's stopping condition 1 by **enumerating open High/Critical rows in the ledger rather than
+trusting the summary** turned one up that the previous iteration's closing statement had not accounted for:
+the release-record binding. Its ledgered severity is Low-today (High the day a separate promote step reads a
+record it did not write), so condition 1 still held — but the defect is the *exact* class this session has
+been closing, so it was fixed rather than left as a tripwire.
+
+`tools/release/run-gate.ts` built its `PromotionContext` out of the same four variables it had just used to
+build the `EvidenceRecord`, so every comparison in `evaluateEvidence` compared a value with itself. The SHA,
+environment, fixtures and deployment mismatch checks were **dead code in the only live consumer**.
+
+The detection logic was never the problem — `evidence.ts` is real and `evidence.test.ts` exercises it by
+constructing mismatched contexts directly. Only the wiring made it inert, which is precisely why every test
+stayed green and why the row could sit OPEN as "latent". **This is the third distinct shape of the same
+failure this session**: a fix with no test (§13), a pin that could not fail (§13/§15), and now correct logic
+wired so it can never run.
+
+Re-reading the world **after** the gates run makes the checks live, and makes them useful *now* rather than
+only once a promote step exists. A gate run spans minutes; if a commit lands, the fixtures manifest changes,
+or `RELEASE_ENVIRONMENT`/`DEPLOYMENT_VERSION` move while the gates are running, the record no longer describes
+the tree it claims to describe. That is now caught instead of certified. In CI the checkout is fixed, so a
+mismatch is always a true positive rather than a flake.
+
+`main()` is not exported and shells out to `git`, so the wiring is not unit-testable from outside. The pin
+therefore reads the source and asserts the context comes from the observation functions and the environment —
+and specifically that **no field is copied off `record`**, which is what made it self-satisfied.
+Mutation-proved: restoring the copied form fails 3 of the 4 new assertions.
+
+### A register row from another workstream is currently red
+
+Not this loop's change, recorded because it fails a merge gate right now. The working tree carries an
+**uncommitted `REQ-289`** (GTM — "Pre-GTM Demand Lane", `wp=GTM-0`, `status=ACTIVE`) from the concurrent GTM
+workstream. `check:coverage` **FAILS** on it — `GTM-0` names no active WP, so the row routes to
+`unclassified` — and it breaks two register-parser tests (the 288-row terminal-ID contiguity check and the
+disposition totality check).
+
+Isolated by experiment rather than assumed: with the committed register, `pnpm test:tools` is **25 files /
+672 PASS**; with the row present, exactly 3 fail and all three name `REQ-289`. The row was restored intact
+afterwards. It is a deliberate scope decision owned by that workstream — adding a row *is* the documented way
+to introduce scope (`CLAUDE.md` source-of-truth §1) — so it is **left untouched here rather than
+dispositioned on a guess about its intent**. It needs either an active WP or a recorded-deferred disposition
+in `tools/traceability/coverage-manifest.json` from its owner. Flagged, not fixed, deliberately.
