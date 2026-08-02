@@ -1557,3 +1557,42 @@ eight run first. The retry posture is therefore exactly what it was before §24,
 facts are recorded in the source.
 
 **Verification.** agents 106, api 730 (incl. the new success-path assertions); typecheck 0, lint 0.
+
+### §33a — the rest of the self-check, including the count I had already got wrong once
+
+Working the remaining questions I had written for the fourth review. §33's `attempted` inversion came out of
+this; the rest are negatives, recorded because leaving publicly-posed questions unanswered is its own debt.
+
+**The "four reader families, twelve call sites" count is right this time** — and it was worth re-deriving
+rather than trusting, since the previous version of that same sentence said *three* and the error caused a
+HIGH. Enumerated every `tenants.policy` read in non-test source (23 raw matches, filtered to consumers):
+
+| family | sites |
+|---|---|
+| `parseTenantPolicy` (gates + visibility) | 2 — sequencer, translator preflight |
+| `readEntitlementPolicy` (hazmat) | 1 |
+| `resolveSparkPlan` (AI allotment) | 1 |
+| bare `JSON.parse(row.policy) as { pool_binding? }` | 8 — agents/translator/billing ×2 each, api provision ×2 |
+
+**Twelve.** The near-miss worth noting: `provision.ts:294` and `:305` both `SELECT plan, policy` and *look*
+like two more, but `proofToCashEnabled` reads **only `row.plan`** — the policy column is over-selected and
+never consumed there. Counting them would have made it fourteen and the comment wrong in the other
+direction. Checked, not assumed.
+
+**The two parses cannot disagree.** `describeTenantPolicyRejection` re-parses the raw string, so the concern
+was that it might describe a different value than the one the refusal decision was made on. Both call sites
+pass the *same variable* the decision used — `row.policy` in the sequencer, `policyRow.policy` in the
+translator — so they are parsing identical bytes. (The cost is a second `JSON.parse` on an already-refusing
+path, which is not the hot path: an accepted append never reaches the describer.)
+
+**The describer emits key paths, never values** — pinned by a test that plants `SECRET-VALUE-XYZ` inside a
+policy and asserts it never appears in the output. A refusal log is read by whoever is fixing the row; it
+must name the key, and it must not become a place tenant config leaks to.
+
+**`isTenantPolicyRefusal` uses `.includes`, deliberately.** `startsWith(VALIDATION_FAILED_PREFIX)` would be
+stricter but breaks the moment the DO RPC hop wraps the message (`Error: VALIDATION_FAILED:{…}`), which is
+exactly the boundary this predicate exists to cross. Nothing else in the repo produces that phrase — the
+producer is now the single shared constant — so the looseness costs nothing and the strictness would cost
+correctness.
+
+**Verification.** No code changed by this section; the `attempted` fix and its pin are §33.
