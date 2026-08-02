@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { applyStates } from "../src/MapCanvas.js";
 import { render, cleanup } from "@testing-library/react";
 import type { FleetCollection, FleetFeature, Status } from "../src/entities.js";
 
@@ -280,5 +281,43 @@ describe("MapCanvas — the throttled push fires only on real change (REQ-079)",
     setDataSpy.mockClear();
     flush(3000); // still easing toward the new target
     expect(setDataSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+// 2026-08-01 convergence audit — a recovered mark must LOSE its alarm feature-state. applyStates used to
+// re-assert the non-healthy set only, so a once-exception entity kept status:"exception" forever: exempt
+// from the world-dim and lit at full opacity as a phantom alarm while the world dimmed for a different,
+// still-live exception. The instrument may lag the data in neither direction.
+describe("applyStates — recovery clears the alarm state (map instrument truthfulness, REQ-077)", () => {
+  function fleetOf(entries: Array<[string, "healthy" | "at-risk" | "exception"]>): Parameters<typeof applyStates>[1] {
+    return {
+      type: "FeatureCollection",
+      features: entries.map(([id, statusStr]) => ({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [0, 0] },
+        properties: { id, statusStr },
+      })),
+    } as unknown as Parameters<typeof applyStates>[1];
+  }
+
+  it("an exception that returns to healthy gets an explicit healthy state write; a live one is re-asserted", () => {
+    const writes: Array<{ id: unknown; status: unknown }> = [];
+    const map = {
+      setFeatureState: (target: { id: unknown }, state: { status: unknown }): void => {
+        writes.push({ id: target.id, status: state.status });
+      },
+    } as unknown as Parameters<typeof applyStates>[0];
+
+    applyStates(map, fleetOf([["e1", "exception"], ["e2", "at-risk"], ["e3", "healthy"]]));
+    expect(writes).toEqual([
+      { id: "e1", status: "exception" },
+      { id: "e2", status: "at-risk" },
+    ]); // healthy entities get no write on first sight — only the marked set is tracked
+
+    writes.length = 0;
+    applyStates(map, fleetOf([["e1", "healthy"], ["e2", "at-risk"], ["e3", "healthy"]]));
+    expect(writes).toContainEqual({ id: "e1", status: "healthy" }); // the recovery CLEARS the stale alarm
+    expect(writes).toContainEqual({ id: "e2", status: "at-risk" }); // the live one is re-asserted
+    expect(writes.some((w) => w.id === "e3")).toBe(false); // never-marked entities are never touched
   });
 });

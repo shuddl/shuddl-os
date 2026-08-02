@@ -84,11 +84,27 @@ function mergeAnimated(prev: FleetCollection, fleet: FleetCollection): FleetColl
   };
 }
 
-/** Re-assert feature-state for the small non-healthy set after a setData (clusters can drop it). */
-function applyStates(map: maplibregl.Map, fleet: FleetCollection): void {
+/** Re-assert feature-state for the small non-healthy set after a setData (clusters can drop it) —
+ * and CLEAR it for every entity that RECOVERED (2026-08-01 convergence audit: a once-exception mark
+ * kept its stale feature-state forever, staying exempt from the world-dim and rendering at full
+ * opacity as a phantom alarm while the world dimmed for a different, still-live exception). The map
+ * instrument must lag the data in NEITHER direction. */
+const markedByMap = new WeakMap<maplibregl.Map, Set<string>>();
+export function applyStates(map: maplibregl.Map, fleet: FleetCollection): void {
+  const marked = markedByMap.get(map) ?? new Set<string>();
+  markedByMap.set(map, marked);
+  const nowMarked = new Set<string>();
   for (const f of fleet.features) {
-    if (f.properties.statusStr !== "healthy") setEntityState(map, f.properties.id, f.properties.statusStr);
+    if (f.properties.statusStr !== "healthy") {
+      setEntityState(map, f.properties.id, f.properties.statusStr);
+      nowMarked.add(f.properties.id);
+    }
   }
+  for (const id of marked) {
+    if (!nowMarked.has(id)) setEntityState(map, id, "healthy"); // recovery clears the alarm state
+  }
+  marked.clear();
+  for (const id of nowMarked) marked.add(id);
 }
 
 function pushDataIfReady(map: maplibregl.Map, fleet: FleetCollection): void {
