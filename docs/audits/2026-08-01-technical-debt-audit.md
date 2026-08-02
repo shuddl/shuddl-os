@@ -2487,3 +2487,71 @@ gate that can pass does; the one red gate and the three red tests share a single
 signature. Beyond this line the build consumes accounts, credentials, devices, fixtures and counsel — working
 past it from inside the repo produces either scope-straying or gate-relaxing, both forbidden by
 `CLAUDE.md`/`genesis/00`.
+
+---
+
+## §53 — REQ-024 was enforced against imports only, and my first attempt to close it rested on a wrong measurement
+
+§52 found that `packages/agents` had been absent from the audit's test count. That raised the obvious follow-up:
+if it was invisible to the measurement, was the boundary it sits on ever actually checked? `CLAUDE.md` states
+REQ-024 as law — *LLM calls only inside `packages/agents/*` — **never** in `packages/ledger`, statically
+linted*. So: verify the "statically linted" part.
+
+### 53.1 The lint is real, and it only sees imports
+
+`eslint.config.mjs` bans a genuine family for `packages/ledger` (`@anthropic-ai/*`, `anthropic*`, `openai*`,
+`@openai/*`, `ai`, `@ai-sdk/*`, `@shuddl/agents*`, `*agents*`), `tools/checks/rater-purity.ts` mirrors it for
+the rater, and both are tested. **But both are import-based.** A model is reachable with
+
+```ts
+await fetch("https://api.anthropic.com/v1/messages", { method: "POST", body })
+```
+
+and no import at all. The lint passes that. `rater-purity.ts` is admirably explicit about its regex/import
+limitations — but neither file mentioned this route, so the gap was not merely open, it was unrecorded.
+
+### 53.2 My first fix asserted a fact I had not actually measured
+
+I wrote a package-wide `fetch` ban and justified it in the comment with *"this package is network-free today
+(measured, not assumed)"*. It is not. `pnpm lint` immediately failed on
+`packages/ledger/src/tsa/client.ts:61` — an RFC 3161 trusted-timestamp client, a legitimate, reviewed network
+egress that has been there all along.
+
+**Why the measurement missed it, exactly:** I grepped for `fetch(`. The line reads
+`private readonly fetchImpl: typeof fetch = fetch,` — the token appears three times and **not once followed by
+a parenthesis**. The grep could not have found it. This is the same defect shape as §16's false all-clear (a
+crude pattern over source that under-reports) and it failed in the same direction: it told me a hazard was
+absent when it was present. **The lint caught my error in the same minute I wrote it**, which is the argument
+for the gate rather than against it.
+
+### 53.3 What shipped, corrected to the real shape
+
+A package-wide ban with **one named, tested exemption**:
+
+- **`packages/ledger/**`** — `fetch` banned. The message names the sanctioned alternative rather than just
+  refusing.
+- **`packages/ledger/src/tsa/**`** — exempt. Safe for a reason worth stating: `HttpTsaClient` takes
+  `fetchImpl: typeof fetch = fetch`, so every caller can inject a stub and the default is a convenience; and it
+  speaks to a timestamp authority whose response is **verified** (imprint and nonce are checked against what
+  was sent), not to a model. Keeping the ban package-wide with a single exception is the point — it makes that
+  egress the only one, *visibly*, so a second cannot appear without editing the config and explaining itself.
+- **`packages/rater/**`** — `fetch` banned outright; the rater genuinely has no `fetch` token anywhere. Framed
+  as REQ-004 first: a price that depends on a network call is not reproducible, which is a determinism problem
+  before it is ever an LLM problem.
+
+Three tests added to `lint-guards.test.ts`, covering the ban, the rater, **and the exemption** — an untested
+exception is how a rule silently becomes no rule. Mutation-proved: widening the exemption from `src/tsa/**` to
+`packages/ledger/**` fails the ledger-core test, which is precisely the edit that would hollow it out.
+
+### 53.4 Scope note
+
+This is enforcement of an existing law, not new scope: REQ-024 and REQ-004 are register rows, `CLAUDE.md`
+already asserts REQ-024 is statically linted, and this closes the distance between that claim and the
+enforcement. No new capability, no new REQ row required.
+
+**What it does not do:** stop deliberate obfuscation (`globalThis["fet"+"ch"]`). True of every lint in this
+repo, and not the threat model — the realistic case is a well-meaning *"just ask the model to classify this
+event"*, and that route is now closed.
+
+**Verification.** lint 0, typecheck 0, `check:rater-purity` PASS, tools/checks 246 tests green (7 in
+`lint-guards`, 3 of them new), citations 956 resolving, tables OK.
