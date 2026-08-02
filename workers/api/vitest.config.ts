@@ -1,4 +1,22 @@
 import { defineWorkersConfig } from "@cloudflare/vitest-pool-workers/config";
+import { BaseSequencer } from "vitest/node";
+
+// Sort test FILES by path, always. `sequence.shuffle: false` alone is NOT enough: vitest orders files by
+// their CACHED DURATION from previous runs, so the order drifts on its own as timings move — two
+// consecutive runs of this suite began with disjoint file lists even with shuffle off. Sorting by path is
+// the only ordering that does not depend on run history.
+//
+// This matters here more than in a normal suite: 66 files share ONE D1 with no per-test rollback
+// (isolatedStorage:false below), so file order is part of the fixture. Leaving it to chance means an
+// order-dependent defect shows up in maybe one run in five and vanishes when you look for it — which is
+// exactly what happened twice (audit §17, §20). Pinned, such a defect fails on EVERY run and can be fixed.
+class PathSequencer extends BaseSequencer {
+  async sort(files: Parameters<BaseSequencer["sort"]>[0]): Promise<ReturnType<BaseSequencer["sort"]>> {
+    const key = (f: unknown): string =>
+      typeof f === "string" ? f : (((f as { moduleId?: string }).moduleId ?? String((f as unknown[])?.[1] ?? f)) as string);
+    return [...files].sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));
+  }
+}
 
 export default defineWorkersConfig({
   test: {
@@ -9,18 +27,11 @@ export default defineWorkersConfig({
     // this suite produced two distinct intermittent failure clusters that took several full runs each to
     // even identify. Order-dependence between files is a real defect worth finding, but it must be found
     // REPRODUCIBLY: with the order pinned, a failure recurs on the next run instead of hiding for five.
-    // 2026-08-02 §20 — shuffle off, but the order is STILL not deterministic: vitest's default sequencer
-    // orders files by their CACHED DURATION from previous runs, so two consecutive runs of this suite start
-    // with disjoint file lists even with shuffle off. Pinning it fully needs a custom path sequencer.
-    //
-    // That was WRITTEN AND REVERTED, deliberately, and the reason is the finding: with the order pinned,
-    // `lens-adversarial` fails REPRODUCIBLY (2 tests, "expected 500 to be 200") because some earlier file
-    // seeds `events` rows whose `id`/`prev_hash` do not satisfy the LedgerEvent schema, and the firehose
-    // 500s when `rowToEvent` reads them. It passes 44/44 in isolation. So the suite is order-DEPENDENT
-    // today and the randomization has been hiding it. Pinning the order without fixing that dependence
-    // would trade an intermittent red for a permanent one, and the fix touches the canonical-hash read
-    // path — not something to change in a hurry. Ledgered in the audit §20 with this exact reproduction.
-    sequence: { shuffle: false, concurrent: false },
+    // 2026-08-02 §21 — DETERMINISTIC FILE ORDER, landed after the order-dependence it exposed was fixed.
+    // §20 wrote this pin, found it made `lens-adversarial` fail reproducibly, and REVERTED it rather than
+    // trade an intermittent red for a permanent one. The cause was a fixture in driver-manifest.test.ts
+    // seeding schema-invalid `events` rows that the firehose then 500'd on; with that fixed, the pin lands.
+    sequence: { shuffle: false, concurrent: false, sequencer: PathSequencer },
     poolOptions: {
       workers: {
         // isolatedStorage snapshots each test's storage by copying the backing SQLite files;

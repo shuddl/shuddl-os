@@ -66,16 +66,32 @@ async function seedTerminalEvent(shipmentId: string, kind: string, seq: number):
     .bind(
       `s:${shipmentId}`,
       seq,
-      `ev-${shipmentId}-${kind}-${seq}`,
+      // 2026-08-02 §21 — SCHEMA-VALID, because this row is READ BY OTHER FILES.
+      //
+      // This seeder used to write id=`ev-<shipment>-<kind>-<seq>` (not a UUID), prev_hash="GENESIS" (not
+      // 64-hex) and payload="{}" (no geo/auto for a stop.* kind) — while stamping visibility="counterparty",
+      // which puts the row squarely in the firehose lens. 66 files share ONE D1 here (isolatedStorage:false),
+      // so those rows outlive this file, and `lens-adversarial`'s firehose 500s when `rowToEvent` parses
+      // them: FOUR Zod errors, exactly the id/prev_hash/geo/auto set. It was invisible only because vitest
+      // orders files by cached duration and `lens-adversarial` usually drew an earlier slot; pinning the
+      // order made it fail every run (audit §20).
+      //
+      // The rule this violated is the one the `nextHash` comment above already states for `hash`: a row
+      // seeded straight into `events` must be a row the PRODUCT could have produced. A fixture that
+      // fabricates an impossible state is not a shortcut — it is a defect that surfaces in someone else's
+      // test, days later, as an unexplained 500.
+      crypto.randomUUID(),
       shipmentId,
       1000,
       1000,
       kind,
       "party-carrier",
       "[]",
-      "{}",
+      // stop.arrived / stop.departed both require {geo, auto} (contracts events.ts); the manifest reveal
+      // pointer only cares that a TERMINAL event exists, so any valid payload serves.
+      JSON.stringify({ geo: { lat_e6: 45_000_000, lon_e6: -122_000_000, accuracy_m: 5 }, auto: false }),
       "[]",
-      "GENESIS",
+      "0".repeat(64),
       nextHash(),
       "counterparty",
       "native",

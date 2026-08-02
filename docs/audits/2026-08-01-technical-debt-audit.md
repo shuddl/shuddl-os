@@ -916,3 +916,53 @@ until green.
 
 **Verification.** api 66 files / 730 · contracts 276 · ledger 607 · billing 56 · translator 93 · agents 105 ·
 mcp 175; typecheck 0, lint 0.
+
+---
+
+## §21 — Iteration 16 (2026-08-02): the order-dependence, found and fixed
+
+§20 pinned the api suite's file order, watched `lens-adversarial` fail reproducibly, and reverted the pin
+rather than trade an intermittent red for a permanent one — leaving the reproduction inline and naming this
+as the next iteration's first task. It was.
+
+**The culprit: a fixture writing a row the product could never produce.** `driver-manifest.test.ts`'s
+`seedTerminalEvent` inserted straight into `events` with `id = "ev-<shipment>-<kind>-<seq>"` (not a UUID),
+`prev_hash = "GENESIS"` (not 64-hex), and `payload = "{}"` (no `geo`/`auto` for a `stop.*` kind) — while
+stamping `visibility: "counterparty"`, which puts the row squarely in the firehose lens. Those are exactly
+the four Zod errors the failure reported. With 66 files on one D1 and no rollback, the rows outlive the file
+that wrote them, so `lens-adversarial`'s firehose 500s when `rowToEvent` parses them.
+
+**The file already knew this rule and had written it down** — for a different column. Its `nextHash` comment
+says a fixture writing a non-hex `hash` "poisons that day's tree for every OTHER test file sharing this
+database." The same reasoning applies to `id`, `prev_hash` and `payload`, and was not applied. A row seeded
+directly into `events` must be a row the product could have produced; a fixture that fabricates an
+impossible state is not a shortcut, it is a defect that surfaces in someone else's test as an unexplained
+500.
+
+**My first fix was itself wrong, and the determinism is what showed it.** I wrote `geo: {…, acc_m: 5}`;
+`GeoStamp` is `.strict()` and the field is `accuracy_m`. The failure went from four Zod errors to exactly
+one — mine — and pointed at it by name. Under the old randomized order that correction would have taken
+another several-run hunt.
+
+**The pin now lands.** `sequence.shuffle: false` is not sufficient (vitest orders by cached duration from
+prior runs, so the order drifts on its own); a `BaseSequencer` subclass sorting by path is. Verified: three
+consecutive full runs, **730/730 each, byte-identical file order across all three**.
+
+### What the four-iteration arc cost and bought
+
+| iteration | state of this defect |
+|---|---|
+| §15 | "an unidentified api failure, 1 in 5 runs" + the capture technique to catch it |
+| §17 | technique applied → cluster B named (`usage_credits.id`), root-caused, fixed |
+| §20 | order pinned → the remaining cluster becomes reproducible; pin reverted, reproduction recorded |
+| §21 | fixture fixed, pin landed, 3× 730/730 with deterministic order |
+
+Each step cost one iteration and made the next cheaper. The alternative — retrying until green — would have
+left both clusters in place and the suite quietly order-dependent, which is the state it had been in for as
+long as it has had 66 files.
+
+**All four §18 carry-forwards are now closed.** Nothing from the last two reviews remains open.
+
+**Verification.** api 66 files / 730 (×3, deterministic order) · contracts 276 · ledger 607 · billing 56 ·
+translator 93 · agents 105 · mcp 175; typecheck 0, lint 0; invariants, citations, traceability,
+authority-coverage, design audit all PASS.
