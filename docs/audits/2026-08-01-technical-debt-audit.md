@@ -2114,7 +2114,7 @@ threat row is **qualified** with the dependency and how it is enforced, there is
 ### The forward half caught my own edit while I was writing this
 
 Inserting the log entry shifted `threat-model.md` by three lines, and `check:citations` failed immediately:
-a content-anchored citation from `GO-LIVE-CHECKLIST.md:58` pointed at `threat-model.md:55@provenance` and the
+a content-anchored citation from `GO-LIVE-CHECKLIST.md:58` pointed at `threat-model.md:60@provenance` and the
 anchor had moved to `:58`. Repointed; 954 citations resolve.
 
 That is worth noting beside §43–§45, because it shows the two halves are complementary rather than
@@ -2125,3 +2125,44 @@ half found when run by hand.
 
 **Verification.** Both security documents updated; the shifted citation repointed; 954 citations resolve;
 ratchet at its frozen baseline.
+
+## §47 — the highest-risk external ingress had no threat row at all
+
+The reverse index (§44) listed which documents cite each changed file. `workers/translator/src/inbound.ts`
+came back cited by **plans and WP docs only** — nothing in the maintained security record. That is the
+strongest signal the index produced, and following it found the largest record gap of the session.
+
+**`POST /edi/204/inbound` had no threat-model row and no pen-test surface row.** The module's own header
+calls it *"the highest-risk EDI seam"*. It is an **authenticated external write path**: an outside partner
+POSTs over the public internet, and the handler persists parties and shipments to tenant D1, writes R2
+objects, and appends through the api sequencer DO. The threat model enumerates email in/out, deploy
+configuration, TSA receipts, lens leakage, forged `party_id` — and not this.
+
+**The code is not the problem.** Every control was read from source before being written down, not assumed:
+HMAC-SHA256 over the raw body against the pairing's `secret_ref` with a deliberately non-short-circuiting
+compare; the pairing must be `kind='edi'` AND `status='active'`; any auth failure is a 401 with nothing
+written; the composition root binds `NotConfiguredSecretResolver` so every live 204 401s until the
+CONFIRM-gated secret store is wired; a non-`certified` partner is quarantined rather than parsed (REQ-203);
+a 1 MiB cap rejects before any read; the tenant slug and partner id come from the pairing JOIN rather than
+the client header; every R2 key is built tenant-segment-first and pinned by isolation case (7); and the
+append set stops at `quote.accepted` so `booking.created` is unreachable from here (REQ-030).
+
+**The defect was that none of it was enumerated where a reviewer looks.** An ingress absent from the attack
+surface does not get attacked in a review — the threat model *is* the list a pen-tester works from, and this
+one was not on it. Now added: a STRIDE row with each control and its proof, plus two probeable surface rows
+(forged/replayed 204; a partner reaching another tenant's R2/D1).
+
+### What the index was actually good for
+
+§43–§46 each found a claim that had gone false or was never written. This one is different in kind: **the
+index flagged a file whose citations were all in non-maintained documents.** That pattern — *"cited only by
+plans"* — is a specific, mechanical signal that a piece of the system exists in the design record and never
+made it into the operating record. No keyword sweep produces that; it falls out of the shape of the index.
+
+**And the forward check caught me again, twice.** Both §46's and §47's insertions shifted `threat-model.md`,
+rotting a content-anchored citation each time (`:55@provenance` → `:58` → `:60`). Both repointed; 956
+citations resolve. Three shifts, three catches, zero escapes — the forward half is doing its job precisely
+while the reverse half stays absent.
+
+**Verification.** Threat model + pen-test record updated with source-verified controls; 956 citations
+resolve; ratchet at its frozen baseline.
