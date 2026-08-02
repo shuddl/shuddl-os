@@ -256,3 +256,46 @@ the External/owner holds. A fourth iteration should re-run the convergence test 
 fresh lenses (packages/driver-core, workers/mcp, the pub/ routes, tools/fixtures were not among
 iteration 3's six); convergence is claimed only when a fresh-lens sweep returns zero repo-owned
 Critical/High.
+
+## §8 — Iteration 4 (2026-08-01): the named sweep ran, and it found the worst defect of the loop
+
+§7's named lens set ran (driver-core, workers/mcp, the `pub/` routes, fixtures tooling) with a
+completeness critic. **13 findings — one CRITICAL, three High — and the critic returned EMPTY**, its
+first endorsement of coverage across four iterations. Every repo-actionable row closed the same session:
+
+- **CRITICAL — signed captures could be stranded on-device forever** (`d3b75c7`). The sync engine drained
+  the durable queue in STORE order; the real IndexedDB store returns ascending key order over a
+  random-UUID id, so capture order was shuffled — while the server's transition gates are strictly
+  order-dependent. A gated event arriving before its prerequisite took a 403 GATE_BLOCKED, which the
+  engine parks as an operator refusal, and a parked item was skipped on every later pass **forever**: the
+  event never reached the ledger, its evidence bytes never uploaded (that leg only runs after the event
+  ACKs), and nothing surfaced — no error, no UI signal, a pending count that never fell. The in-memory
+  test store returned insertion order, so every existing test passed. Now: `pending()` sorts by
+  `device_seq` (the per-device capture counter the gates assume), a park RE-PROBES on a bounded schedule
+  (the append is idempotent by event id, so re-probing is always safe), and the parked count is surfaced
+  through `SyncPass` and the driver's `SyncStatus`. Pinned by a shuffled-store drain-order test and a
+  park→re-probe→drain test.
+- **High — a client key could bypass the booking caps** (`ee2b407`). The CapsMeter's replay marker keyed
+  on the derived idempotency key alone, and a client-supplied `idempotency_key` derives that key with the
+  ARGUMENTS DISCARDED — so one reserve cleared unlimited further bookings across different shipments
+  (each of which committed a real `quote.accepted`, because the api's own dedupe folds the request path
+  into its scope). A velocity cap of 1 could book N. The marker now binds the operation target.
+- **High — a webhook could cross tenants** and **High — claimed tenants' status links always 401'd**
+  (same commit): the subscription's tenant was never compared to the originator's (`pairings.id` is a
+  global key), and `GET /pub/status/:cap` resolved through the STATIC-only resolver while its mint route
+  is claimed-aware. Also closed: an OAuth grant's scope is re-checked against the pairing's current
+  allowlist, and cleartext `http://` webhook delivery is refused.
+- **Mediums/lows** (`1043431`): a typo'd `--mode` silently bought a green across every skippable gate
+  (now MALFORMED); two fixture directories that gate merges sat outside the REQ-112 hash law (registered
+  with computed pins); the anonymous guest quote bounded nothing; a stale "the ONE place /pub routes are
+  declared" claim corrected. Ledgered rather than changed: the signup email-existence oracle (a UX call,
+  fenced by the unbuilt REQ-125 edge rule) and `hashPath`'s unframed digest (fix only alongside a re-pin).
+
+**Convergence status after four iterations.** Repo-owned Critical/High is zero, and for the first time
+the completeness critic endorsed the coverage rather than naming an uncovered modality. That is the
+strongest claim this loop can make from inside the repository — but it is a claim about STATIC review
+plus the full suite, not about a running system: the remaining proof (a real driver on a real device, a
+tenant's data, a filmed acceptance demo, a pen test) needs inputs no commit can supply. **A fifth
+iteration has no named lens set left that this audit has not run.** Its honest form is a REGRESSION
+watch: re-run the baseline gates and the full suite, confirm the ledgered open-by-design rows have not
+silently changed state, and stop — not another speculative sweep.
