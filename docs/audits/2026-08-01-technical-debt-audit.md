@@ -3260,3 +3260,49 @@ that would rot on the same schedule.
 
 **Verification.** `check:tables` and `check:citations` PASS; both corrected figures verified against their
 authorities (`gatesFor("merge")` executed, workspace + tools suites re-run) before being written down.
+
+---
+
+## §67 — the same sweep across all nine ops documents: a clean negative, and why it must not become a gate
+
+§66 fixed two unscoped observations in `PROJECT-STATE.md`. The obvious next question is whether the other ops
+documents carry the same defect, so the same test ran across all nine: find every stated count, then check
+whether anything nearby scopes it to a date or a SHA.
+
+**38 candidates. Every one outside `PROJECT-STATE.md` was a false positive.**
+
+- `DEPLOYMENT.md`, `secrets.md`, `slo.md` — no stated counts at all.
+- `GO-LIVE-CHECKLIST.md` (13 candidates) — the counts sit in a table whose **header** reads *"Verdict at
+  `3fc592b`, 2026-07-28"*. Every row is scoped; the scope is just two lines above the rows.
+- `RELEASE-EVIDENCE.md` (8) — same shape, and by design: line 489 reads *"re-executed at `79ae54d`, on this
+  machine, in this checkout"*, and the document's own rule 1 is that **evidence does not transfer across
+  commits**. It holds itself to it.
+- `LAUNCH-RUNBOOK.md` (1), `V2-EXECUTION-FRAMEWORK.md` (1), `dr-backups.md` (9) — scoped by their enclosing
+  dated blocks, or describing procedure inputs rather than measurements.
+- `PROJECT-STATE.md` (6) — two were the genuine ones fixed in §66; the rest are the dated historical rows
+  §66 deliberately left alone. One deserves naming: *"288/288 rows classified"* looks stale against a register
+  that has 289 rows today — but the 289th is the GTM workstream's **uncommitted** `REQ-289`. For the
+  repository as committed, 288/288 is exactly right.
+
+### 67.1 The heuristic is wrong in the expensive direction, which settles §64's open question
+
+§64 declined to turn the laws-vs-observations rule into a checker, on the grounds that it would have to parse
+intent. This sweep shows the failure is worse than that and entirely concrete: **scope usually lives in a
+table header or a section heading, not on the line with the number.** A window-based check therefore
+over-reports massively — 38 flags, 2 real, a 5% precision — and every false positive points at a document
+that is *already doing the right thing*.
+
+A gate like that trains people to ignore it, and the thing it would teach them to ignore is the correctly
+scoped table. Confirmed as a rule for authors, not a lint. **§64's decision stands, now with evidence rather
+than an argument.**
+
+### 67.2 What the negative is worth
+
+Eight of nine ops documents were already applying §64's third disposition before the rule was written down —
+dating and SHA-stamping measurements, in table headers, block prefixes, and one explicit contract rule. The
+practice was sound; what was missing was the name for it and two places where it had lapsed. That is a
+materially different finding from "the docs are rotten", and worth recording as such: an audit that only
+reports what it broke gives no signal about what it examined and found sound (§54).
+
+**Verification.** All nine `docs/ops/*.md` swept; every non-PROJECT-STATE candidate traced to its scoping
+header by hand; `check:tables` and `check:citations` PASS.
