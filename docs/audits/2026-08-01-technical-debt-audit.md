@@ -183,9 +183,13 @@ may only stop — when all four are simultaneously true:
    Two open Highs remain and **both are External, not repository-closable**: a real driver's custody
    handoff needs manifest party refs + the deferred REQ-069 identity seam, and the live EDI adapter
    needs its transport credentials. Neither can be closed from inside the repo without straying.
-2. **Every baseline gate green** at the closing SHA (the 11-gate static set + the four browser gates +
-   `pnpm test` when the host permits), and `verify:merge` BLOCKED **only** on the five named
-   private-input holds.
+2. **Every baseline gate green** at the closing SHA (the **13**-gate static set — 11 until §50 added
+   `citations` and `table-shape` to the merge surface — plus the four browser gates and `pnpm test` when the
+   host permits), and `verify:merge` BLOCKED **only** on the five named private-input holds.
+   **`pnpm test` means BOTH surfaces:** `test:tools && pnpm -r test` — the 691-test root `tools/` suite and
+   all 17 workspaces (2,867). §38's headline counted 16 workspaces and 2,648, omitting `packages/agents`
+   entirely as well as `tools/`; corrected in §52. The `&&` also means a tools failure short-circuits before
+   any workspace runs, so "`pnpm test` is red" does not tell you the workspaces were even reached.
 3. **The remaining debt is entirely External or CONFIRM-gated** — each row named in the checklist with
    owner, grade, and expiry; none silently fail-open; the two no-gate holds (on-call rota, 7-year
    archive) re-read at every close-out.
@@ -2408,3 +2412,78 @@ and stated, which is what makes it reviewable.
 16 collection failures against the same tree, a config artifact of the workspace layout, not a real failure —
 worth knowing before anyone reads a root run as a regression). Both new assertions mutation-proved, and the
 guard's core purpose re-proved by unregistering a real strip. 956 citations resolve; ratchet at baseline.
+
+---
+
+## §52 — re-measuring the phase gate, and finding the measurement itself had a hole
+
+§4's last stamp is `fb212fd` (§38). Thirteen sections and several commits later — including §50, which
+**changed the gate set itself** — an unre-measured stopping line is exactly the asserted-not-measured claim this
+audit exists to catch. Re-measured at `cf97a0f`, condition by condition.
+
+### 52.1 The headline test count was missing a quarter of the tests
+
+§38 reported **"2,648 tests across all 16 workspaces, every one passing"** and enumerated them. Re-run today:
+**17 workspaces, 2,867 tests, all passing** (`pnpm -r test`, exit 0). The arithmetic closes exactly:
+
+    2,648  (§38's figure)
+    +  217  packages/agents — AN ENTIRE WORKSPACE, absent from §38's list
+    +    2  the two open-redirect cases added in §50
+    = 2,867
+
+§38's list contains one `agents` entry (106 = `workers/agents`). **`packages/agents` — 217 tests in 9 files —
+was never in the count.** It is not a peripheral workspace: it holds the 13 agents, and it is one side of the
+REQ-024 boundary that CLAUDE.md declares statically linted (*LLM calls only inside `packages/agents`, never in
+`packages/ledger`*).
+
+And a second surface was missing: the **root `tools/` suite — 691 tests in 26 files**, which is where the tests
+*of the gates* live (traceability, coverage, the release-gate contract). The measurement that certified the
+gates excluded the tests that certify the gates.
+
+**Real total: 3,558 tests** across 18 surfaces. The audit's headline named 2,648 — **908 short, about a
+quarter.** The gate itself was never fooled: `verify:merge`'s `unit-tests` gate runs `test`, which is
+`test:tools && pnpm -r test`, so both surfaces were always executed. **What was wrong is the record, not the
+enforcement** — and a reader auditing coverage from this document would have believed two workspaces' worth of
+tests did not exist.
+
+### 52.2 `pnpm test` is RED, and short-circuits before the workspaces
+
+`pnpm test` fails today — and because it is `test:tools && pnpm -r test`, it fails **at the tools stage and
+never reaches a single workspace**. Three failing tests, all register parsing:
+`traceability.test.ts` (register contiguity past the approved terminal ID) and two in `coverage.test.ts`
+(100%-classification, and the pure/total disposition).
+
+Root cause isolated **by experiment, not inference**: stash the uncommitted `REQ-289` row → 23/23 pass and
+`check:coverage` goes green; restore it → red again. Every one of the three failures, and the
+`check:coverage` failure, is the concurrent GTM workstream's uncommitted register row. **Not this loop's to
+commit** (`CLAUDE.md`: a register row is owner-signed scope), so it stays red and stays named.
+
+### 52.3 The four conditions at `cf97a0f`
+
+1. **Zero open repository-owned Critical/High — SATISFIED.** §50 and §51 each closed what they found
+   (the unpinned open-redirect guard; the unmeasured guard coverage plus its silent `continue`). Counted by
+   hand, per §38's warning that a grep over prose under-reports. The two open Highs are unchanged and
+   **External**: driver custody handoff (needs manifest party refs + the deferred REQ-069 seam) and the live
+   EDI adapter (needs transport credentials). The one pre-R4 repo carry-forward is still resolve-path
+   pool-binding exclusivity (§12), dark behind `PROVISIONING_ENABLED`.
+2. **Baseline gates green — SATISFIED but for the one row that is not this loop's.** 2,867 workspace tests
+   pass; the 691-test tools surface has the 3 REQ-289 failures above. Static gates: runtime, invariants,
+   rater-purity, authority-coverage, traceability, seed, citations (956 resolving, ratchet at frozen
+   baseline), **tables** (new, §50), design audit, typecheck, lint — all PASS. `check:coverage` FAILS on
+   REQ-289 alone.
+   **Condition 2's own wording is now stale and is corrected here:** it says *"the 11-gate static set"*;
+   §50 added `citations` and `table-shape` to the merge surface, making it **13**.
+3. **Remaining debt entirely External or CONFIRM-gated — SATISFIED**, unchanged: five private-fixture holds,
+   two External Highs, the GTM register row, R2–R5 grades, and the two no-gate holds (on-call rota, 7-year
+   archive). Plus one deliberately-deferred record item: threat rows for the 17 boundary modules §48
+   enumerated, left for review rather than bulk-written (§49's reasoning still stands).
+4. **The record agrees with the world — SATISFIED ONLY AFTER THIS SECTION.** It did not when the section
+   opened: §38's test count omitted 908 tests, and §50 found the threat model rendering three residual-risk
+   statements as nothing. Both corrected. This is the fourth time this loop that **the record was the defect**
+   while the code was fine.
+
+**The stopping line is unchanged and is reached again at `cf97a0f`.** Repo-owned Critical/High is zero; every
+gate that can pass does; the one red gate and the three red tests share a single cause that requires an owner
+signature. Beyond this line the build consumes accounts, credentials, devices, fixtures and counsel — working
+past it from inside the repo produces either scope-straying or gate-relaxing, both forbidden by
+`CLAUDE.md`/`genesis/00`.
