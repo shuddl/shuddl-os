@@ -1930,3 +1930,37 @@ two most likely to be read first.
 
 Stamps rather than rewrites throughout — §1 and §5 are the record of what those iterations *found* and
 *disposed of*. A carry-forward list that is silently rewritten stops being evidence of anything.
+
+### §42 — the structural hypothesis, tested against the ops record (it held)
+
+§41 claimed a cause rather than an observation: **prose summaries rot because they have nowhere to put a
+status; per-row tables stay true because closing a row edits it in place.** A cause is worth more than a
+pattern only if it predicts something, so it was tested on the record it did not come from.
+
+**Prediction:** the `docs/ops` ledgers should be *un*-rotted by this session's work, despite covering exactly
+the seams that changed — because they are tables.
+
+**Result: held.** Swept `docs/ops/*.md` for behavioural claims about what this session changed — the `{}`
+policy fallback, cron enumeration, retry posture, the EDI 500. **Zero un-superseded stale claims.** Every one
+is struck through in place with a dated supersede, several chained across multiple corrections in a single
+row (the C3 row at `GO-LIVE-CHECKLIST.md:380` carries four). The new sequencer refusal has its own row
+(§28). The row form forced each closure to touch the claim.
+
+**The test-count claims are also not stale, for a second reason worth separating:** they are *dated
+evidence* ("translator 10 files / 91 PASS (2026-08-02)"), not current-state assertions. A dated measurement
+does not rot — it stays a true statement about that moment. Rewriting them to today's numbers would destroy
+evidence to gain nothing. **Undated** counts would be a different matter; there are none.
+
+So the two rot modes have two different remedies, and neither is "try harder":
+
+| form | rots? | remedy |
+|---|---|---|
+| per-row table with inline status | no — closing edits the row | none needed |
+| dated evidence claim | no — it is true of its moment | none needed |
+| **undated prose summary** | **yes, silently** | an explicit as-of stamp (§40, §41) |
+
+**This is the end of repository-owned auditing for this loop.** Every review finding is closed, §4 is
+re-measured by hand at `fb212fd`, the last unswept lens came back a clean negative (§39), and the record's
+own two prose summaries are stamped. What remains is owner input: the GTM workstream's `REQ-289`, the two
+External Highs, the five private-fixture holds, and the R2→R5 grades that consume accounts, credentials,
+devices and counsel.
