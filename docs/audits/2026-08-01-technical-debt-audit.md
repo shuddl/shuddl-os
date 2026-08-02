@@ -1163,3 +1163,33 @@ definition, with the failure mode of each wrong unification named — because a 
 not reach the person doing the cleanup.
 
 **Verification.** typecheck 0; contracts 276, agents 106, api 730, translator 93, billing 56, mcp 175.
+
+---
+
+## §26 — Iteration 21 (2026-08-02): the prose-vs-enforcement lens, run over the money paths
+
+§24 found a defect by asking a narrow question: **which invariants are asserted in prose and enforced
+nowhere?** Eight comments claimed each cron sweep contained its own faults; the per-tenant loops did, the
+sweep tops did not. That is a cheap, high-yield lens, so it was run over the money and ledger paths — the
+places where a false claim is most expensive.
+
+Enumerated every absolute claim (`can never`, `by construction`, `impossible`, `guaranteed`) in the comments
+of `packages/ledger/src` and `packages/rater/src`: **36**. The two most checkable and most money-critical
+were verified against the code rather than read:
+
+| claim | verdict |
+|---|---|
+| `gl/export.ts:4` — "the export is balanced BY CONSTRUCTION — and we **assert** Σdebits === Σcredits before returning" | **TRUE.** `export.ts:77-78` genuinely compares and throws `double-entry violated`. The claimed assertion exists. |
+| `money/split.ts:49` + `derive-split.ts:15` — the derivation and the money projection "can never round apart" because "both share `largestRemainder`" | **TRUE, and shared for real.** `largestRemainder` has exactly ONE definition (`split.ts:86`). `derive-split` imports `apportion` from `split.js` and derives `share_bps` as `apportion(10_000, weights)`; the projection converts those bps to cents with `allocateCents`. Both exported functions route through that one algorithm, so bps and cents are allocated by identical rounding (REQ-003/040/112). |
+
+**A clean negative result, and it is worth the same care as a defect.** The interline split is the path that
+produced this build's permanent regression (the $222,084/35-lb anomaly, REQ-040), so "the two halves cannot
+round apart" is exactly the kind of claim that would be expensive to have wrong — and it is backed by a
+single shared function rather than by two implementations that happen to agree today.
+
+The remaining 34 claims are architectural in form ("ONE shared seam so X can never drift", "tenant-scoped by
+construction because `db` is already the tenant's own D1"). Those are true by the shape of the code rather
+than by an assertion, and spot-checks found no counterexample. Recorded as swept, not as individually
+re-proved — the two above were selected because they are the ones a defect would cost money.
+
+**Verification.** No code changed in this section; contracts 280, agents 106, api 730, ledger 607 unchanged.
