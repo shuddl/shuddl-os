@@ -394,3 +394,40 @@ straying), two accepted calls (the signup email oracle, the prod-surface retry p
 harness path, and the External/owner inputs. **Every remaining row is either owner-supplied or
 explicitly out of the documented build.** Iteration 8's honest form is §9's: run the watch when the
 tree changes — and there is no longer a ledgered repo-owned row for a future iteration to close.
+
+## §12 — Iteration 8 (2026-08-02): the review caught my own false claim
+
+The watch ran clean on the changed tree. Then a three-lens adversarial review of the §11 commit — the
+newest substantive change, and unreviewed — returned **16 findings, 4 High.** The most important one is
+about this document.
+
+**§11 asserted "No roster instance of this class remains anywhere in the repo." That was false when
+written.** The billing worker's metering sweep still iterated the static two-slug roster with no pool
+bindings — and that sweep OVERWRITES `usage_credits`, so a claimed tenant never metered is unbilled
+usage the day PLG flips. The gap had been ledgered Low/DARK at §3 for weeks; the absolute claim I wrote
+in §11 wrongly overrode its own ledger. That is exactly the failure mode this audit exists to catch, and
+it took an adversarial reader to catch it — a self-review would not have. **Billing is ported here**
+(resolver, enumerator, pool bindings in three scopes, preflight contract), and both the checklist and
+this section now state the closure per worker rather than absolutely.
+
+Also fixed: a malformed control-plane policy row threw a raw `SyntaxError` past each resolver's own
+fail-closed contract (now `UNKNOWN_TENANT`, all four workers); the translator's `quarantine()` takes the
+already-resolved handle rather than re-resolving, so a control-plane blip can no longer turn "a
+malformed tender is quarantined and ACKed 200" into a 500 the partner retries forever; the translator
+gained the source-glob pin the port omitted (without it, reverting the fan-out left every new test
+green — the fix could not fail) and the api slug-parity test its own header promised; `DEPLOYMENT.md`'s
+binding table, which states it IS `REQUIRED_BINDINGS`, now matches it.
+
+**One High was NOT shipped, and the reason is the finding.** The review is right that exclusivity is
+enforced on enumeration but not on resolution — and resolution is the path a write travels. The guard
+was written, and reverting it was the honest call: only two pool slots exist, while the shared api
+control-plane carries standing claimed rows on both (`parity.test.ts`, `source-aware-ledger.test.ts`)
+alongside files that claim slots dynamically. **No arrangement of 65 shared-DB test files can satisfy
+one-tenant-per-binding**, so enforcing it failed six real tests on a harness artifact rather than a
+product truth. Shipping it would have meant rewriting fixtures under pressure to make a guard pass —
+which is how a harness starts lying. It is ledgered as an open Medium with its structural answer (a
+control-plane UNIQUE index makes the duplicate unrepresentable and needs no runtime check), dark today
+behind `PROVISIONING_ENABLED`.
+
+**The lesson worth carrying:** an absolute claim ("nowhere in the repo") is a liability in a record whose
+whole value is being true. State closure per-artifact and let the reader compose it.
