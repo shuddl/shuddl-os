@@ -2166,3 +2166,50 @@ while the reverse half stays absent.
 
 **Verification.** Threat model + pen-test record updated with source-verified controls; 956 citations
 resolve; ratchet at its frozen baseline.
+
+## §48 — the "cited only by plans" signal, run across the whole repo
+
+§47 found the EDI ingress missing from the security record because the reverse index showed it cited by
+**plans and WP docs only**. That signal is mechanical, so it was run over every source file rather than only
+the ones this session changed: for each `workers/**` and `packages/{ledger,agents}/src` module, is it cited
+in the **operating** record (`docs/ops`, `docs/security`) or only in the **design** record (`docs/plans`,
+`docs/wp`)?
+
+**69 modules are in the design record and absent from the operating one. Nineteen are boundary-shaped** —
+routes, public capability endpoints, webhooks, auth:
+
+```
+pub/doc-cap.ts · pub/status-cap.ts · routes/{approvals,devices,documents,driver-manifest,export-journal,
+export,import,intake,invoices,kpis,portal-actions,public,status-link,tariff}.ts ·
+billing/src/webhook.ts · mcp/src/{caps-meter,oauth}.ts
+```
+
+**Path-matching alone would over-claim, so the significant ones were checked by NAME** — the §46 lesson that
+a true claim can exist without citing a file. Result: **`/pub` is genuinely covered** (8 references across
+the security record) and is *not* a gap. Two are:
+
+1. **The Stripe webhook ingress (`workers/billing/src/webhook.ts`)** — covered only *obliquely*. The security
+   record discusses it exactly once, as a **consequence of a different control**: "a worker deploys without
+   the secret it cannot run without — billing accepting forged Stripe callbacks." That is a deploy-config
+   row. There is no row for the ingress itself: signature verification, replay, or the idempotency of the
+   credit stamp it drives. Same shape as §47 — a surface named as a side effect, never enumerated.
+2. **MCP OAuth (`workers/mcp/src/oauth.ts`)** — appears once, in the *"stack under test"* preamble
+   (`MCP OAuth pairings`). Named as existing; no threat row, no surface row, no proof references.
+
+### Recorded rather than filled, deliberately
+
+Nineteen boundary modules is a **bounded, visible piece of work** — enumerating an attack surface is exactly
+the kind of thing that should be reviewed, not appended silently across one iteration by the same person who
+found it. §47 was written because the gap was unambiguous (the highest-risk seam, zero coverage, and the
+controls were already in code and tested). Extending that to nineteen modules in a single pass would produce
+a large volume of security-record prose with no independent check — the failure mode this session has
+demonstrated four times over.
+
+**So the deliverable here is the enumeration and its priority order**, with the two verified instances named
+and `/pub` explicitly cleared. The next iteration — or a reviewer — can work the list without re-deriving it.
+
+**The broader point about the index:** §43–§46 used it to find claims that were *wrong*. §47 and §48 use it
+to find things that were *never said*. The second class is invisible to every technique this session tried
+before it — a keyword sweep needs a phrase to search for, and the absence of a claim has none. That is the
+argument for the reverse-citation check (§43), now with five sections of evidence behind it and still
+correctly unbuilt pending an owner-signed REQ row.
