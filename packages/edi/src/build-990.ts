@@ -15,5 +15,6 @@ export function build990(r: TenderResponse): string {
     gsControl: v.gsControl,
     receiver: v.partnerScac,
     data,
+    ...(v.sentAt !== undefined ? { sentAt: v.sentAt } : {}),
   });
 }

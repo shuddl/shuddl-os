@@ -535,6 +535,7 @@ export async function handleInbound204(request: Request, deps: InboundDeps): Pro
             isaControl: ackIsa,
             gsControl: ackGs,
             action: "A",
+            sentAt: deps.now(), // real interchange date at send (2026-08-01 audit — never the year-2000 fixture constant)
           });
           await deps.transport.send990(plan.shipment.partnerScac, bytes, `edi990/${acceptedId}`);
           await deps.evidence.put(ack990Key, bytes); // mark-on-success — only a transmitted 990 is recorded

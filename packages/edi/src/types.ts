@@ -113,6 +113,7 @@ export const StatusView = z
     isaControl: z.string(),
     gsControl: z.string(),
     stops: z.array(StatusStop),
+    sentAt: z.number().int().positive().optional(), // real send instant (epoch ms) — stamped by the sweep at send
   })
   .strict();
 export type StatusView = z.infer<typeof StatusView>;
@@ -126,6 +127,7 @@ export const TenderResponse = z
     isaControl: z.string(),
     gsControl: z.string(),
     action: z.enum(["A", "D"]),
+    sentAt: z.number().int().positive().optional(), // real send instant (epoch ms) — stamped at send
   })
   .strict();
 export type TenderResponse = z.infer<typeof TenderResponse>;

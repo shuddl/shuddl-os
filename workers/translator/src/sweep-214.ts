@@ -105,6 +105,10 @@ export async function sweepTenant214(
   r2: R2Bucket,
   tenant: string,
   transport: EdiTransport,
+  // The send clock (injectable so tests stay byte-deterministic): stamps the REAL interchange date/time
+  // (ISA09/ISA10/GS04/GS05) at the same send-time step that stamps control numbers — 2026-08-01 audit:
+  // the fixed year-2000 fixture constants would be rejected by partner VANs the day the transport flips.
+  now: () => number = () => Date.now(),
 ): Promise<Tenant214Summary> {
   const summary: Tenant214Summary = {
     tenant, scanned: 0, transmitted: 0, alreadySent: 0, uncertified: 0, noPartner: 0, noStatus: 0, malformed: 0, failed: 0,
@@ -176,7 +180,7 @@ export async function sweepTenant214(
       // sweeps) and stamp them onto the projection — the LAST step before build/send, so only a 214 that is
       // actually transmitted consumes a number.
       const { isaControl, gsControl } = await allocatePartnerControls(db, tender.partnerId);
-      const bytes = build214({ ...projection, isaControl, gsControl });
+      const bytes = build214({ ...projection, isaControl, gsControl, sentAt: now() });
       // Transmit FIRST; mark sent ONLY on success — a failed/unwired transmit leaves no marker, so the next tick
       // re-attempts (it allocates a FRESH number; the burned-but-unsent number is a legal X12 gap, never reused).
       // NOTE for the future live VAN/AS2 adapter (CONFIRM-gated, unbuilt): `dedupeKey` is NOT tenant/partner-
@@ -200,10 +204,10 @@ export async function sweepTenant214(
 // The transport is INJECTED (selected at the worker composition root, or a recording fake in tests). A per-
 // tenant fault is contained + logged so one tenant never stalls the rest; the whole sweep is idempotent, so
 // re-running every cron tick is safe.
-export async function run214Sweep(env: TranslatorEnv, transport: EdiTransport): Promise<void> {
+export async function run214Sweep(env: TranslatorEnv, transport: EdiTransport, now: () => number = () => Date.now()): Promise<void> {
   for (const slug of TENANT_SLUGS) {
     try {
-      const summary = await sweepTenant214(tenantDb(env, slug), env.EVIDENCE, slug, transport);
+      const summary = await sweepTenant214(tenantDb(env, slug), env.EVIDENCE, slug, transport, now);
       console.log(`214-sweep: tenant ${slug} → ${JSON.stringify(summary)}`);
     } catch (err) {
       console.error(`214-sweep: tenant ${slug} failed (re-run next tick — the sweep is idempotent):`, err);

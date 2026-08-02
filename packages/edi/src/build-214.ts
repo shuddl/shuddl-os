@@ -37,5 +37,6 @@ export function build214(view: StatusView): string {
     gsControl: v.gsControl,
     receiver: v.partnerScac,
     data,
+    ...(v.sentAt !== undefined ? { sentAt: v.sentAt } : {}),
   });
 }

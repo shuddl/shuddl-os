@@ -81,7 +81,7 @@ function expected(rows: StatusEventRow[], shipmentId = SHIPMENT_ID): { bytes: st
     mapping: DEFAULT_004010,
     events: rows,
   });
-  return { bytes: build214(view), dedupeKey };
+  return { bytes: build214({ ...view, sentAt: SENT_AT }), dedupeKey };
 }
 
 beforeAll(async () => {
@@ -89,6 +89,11 @@ beforeAll(async () => {
   await applyAll(env.TENANT_B_DB);
 });
 beforeEach(() => resetCounter());
+
+// The fixed send instant every run in this suite stamps (2026-08-01: real interchange dates at send —
+// the sweep is byte-DETERMINISTIC given its injected clock, no longer byte-CONSTANT).
+const SENT_AT = Date.UTC(2026, 7, 1, 12, 0, 0);
+const clock = (): number => SENT_AT;
 
 describe("REQ-200/204 — outbound 214 sweep with allocated control numbers", () => {
   it("transmits ONE byte-stable 214 carrying SHUDDL's ALLOCATED ISA13 (not the inbound one); a second run transmits NOTHING and burns no number", async () => {
@@ -98,7 +103,7 @@ describe("REQ-200/204 — outbound 214 sweep with allocated control numbers", ()
     const exp = expected(rows);
 
     const transport = new RecordingTransport();
-    await run214Sweep(env, transport);
+    await run214Sweep(env, transport, clock);
 
     // (a) exactly one 214, byte-for-byte equal to the projection stamped with the ALLOCATED control numbers.
     expect(transport.sent).toHaveLength(1);
@@ -110,6 +115,11 @@ describe("REQ-200/204 — outbound 214 sweep with allocated control numbers", ()
     // the wire carries SHUDDL's ALLOCATED ISA13, NEVER the partner's inbound-204 number (the echo bug is fixed).
     expect(isaOf(first!.bytes)).toBe(ALLOC_ISA);
     expect(isaOf(first!.bytes)).not.toBe(INBOUND_ISA);
+    // (2026-08-01) the wire carries the REAL send instant, never the year-2000 fixture constants a partner
+    // VAN would reject: ISA09/ISA10 from the injected clock, and no 000101/20000101 anywhere in the envelope.
+    expect(first!.bytes).toContain("*260801*1200*U*");
+    expect(first!.bytes).not.toContain("000101");
+    expect(first!.bytes).not.toContain("20000101");
     expect(await readOutboundIsa(), "the counter advanced exactly once (41 → 42)").toBe(42);
 
     // the sent-record IS the R2 marker (the wire bytes, no new table).
@@ -118,7 +128,7 @@ describe("REQ-200/204 — outbound 214 sweep with allocated control numbers", ()
     expect(await marker!.text()).toBe(exp.bytes);
 
     // (b) a SECOND run sees the dedupe marker: no re-transmit AND — crucially — no control-number burn.
-    await run214Sweep(env, transport);
+    await run214Sweep(env, transport, clock);
     expect(transport.sent, "second sweep is idempotent — no re-transmit").toHaveLength(1);
     expect(await readOutboundIsa(), "a dedup skip must NOT burn a control number").toBe(42);
   });
@@ -131,7 +141,7 @@ describe("REQ-200/204 — outbound 214 sweep with allocated control numbers", ()
     await seedTenderMarker("shp-edi-b");
 
     const transport = new RecordingTransport();
-    await run214Sweep(env, transport);
+    await run214Sweep(env, transport, clock);
 
     expect(transport.sent).toHaveLength(2);
     const isas = transport.sent.map((s) => isaOf(s.bytes)).sort();
@@ -146,14 +156,14 @@ describe("REQ-200/204 — outbound 214 sweep with allocated control numbers", ()
     const exp = expected(rows);
 
     const transport = new RecordingTransport();
-    await run214Sweep(env, transport);
+    await run214Sweep(env, transport, clock);
     expect(transport.sent, "uncertified → nothing transmitted").toHaveLength(0);
     expect(await env.EVIDENCE.get(sent214Key("tenant-a", exp.dedupeKey)), "no sent-marker for an uncertified partner").toBeNull();
     expect(await readOutboundIsa(), "uncertified → no control-number burn").toBe(41);
 
     // certify THROUGH the Task-9 entrypoint → the SAME sweep now transmits + allocates the first number.
     await certifyPartner(env.TENANT_A_DB, PARTNER_ID, "fixtures/edi/roundtrip.json");
-    await run214Sweep(env, transport);
+    await run214Sweep(env, transport, clock);
     expect(transport.sent, "certified → transmitted").toHaveLength(1);
     expect(transport.sent[0]!.bytes).toBe(exp.bytes);
     expect(await readOutboundIsa(), "certified → the counter advanced (41 → 42)").toBe(42);
@@ -177,7 +187,7 @@ describe("REQ-200/204 — outbound 214 sweep with allocated control numbers", ()
     const transport = new RecordingTransport();
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
     try {
-      await run214Sweep(env, transport);
+      await run214Sweep(env, transport, clock);
       const tenantALine = logSpy.mock.calls
         .map((c) => c.find((a): a is string => typeof a === "string" && a.includes('"tenant":"tenant-a"')))
         .find((s): s is string => s !== undefined);
