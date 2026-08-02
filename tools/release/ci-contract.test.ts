@@ -37,6 +37,13 @@ describe("CI runtime + workspace surface", () => {
     expect(merge).toContain("citations");
     expect(merge).toContain("table-shape");
   });
+
+  // Audit §56. Same reason as the two above, different law: this one enforces an ABSENCE — that the events
+  // table has exactly one application writer. Nothing else in the build notices if it stops running, because
+  // "no second writer exists" produces no failing test when it becomes false.
+  it("the merge surface includes the REQ-030 append-chokepoint gate", () => {
+    expect(gatesFor("merge").map((g) => g.gate)).toContain("append-chokepoint");
+  });
 });
 
 describe("CI strict browser/accessibility/performance jobs", () => {

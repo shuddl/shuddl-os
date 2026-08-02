@@ -2687,3 +2687,65 @@ consecutive section to find the declared laws honestly enforced. The defect foun
 
 **Verification.** 957 citations resolve (26 content-anchored, up one); ratchet banked at 130 and green;
 tables OK.
+
+---
+
+## §56 — the append chokepoint was true by coincidence, and nothing was guarding it
+
+`CLAUDE.md` rule 3: *gates are server-side; any flow reachable by API must enforce the same gate (REQ-030)*.
+The sequencer's own comment states the mechanism — the DO is *"the single chokepoint EVERY append (every
+route, every internal seam) traverses"*. §54 and §55 both ended in clean negatives, so this section went at
+the strongest structural claim in the system rather than another enumerable list.
+
+### 56.1 The claim is true — and held up by nothing
+
+Every writer of the `events` table in non-test source, enumerated:
+
+- `workers/api/src/do/sequencer.ts` — the chokepoint.
+- `tools/seed/load.ts` — the developer seed loader, not reachable by API.
+
+That is the whole list. **The property is real. Nothing enforces it.** There is no lint, no test, and no type
+that would notice a third writer appearing.
+
+**And the database cannot cover for it.** The append-only triggers (`0003`, `0008`) are collision guards:
+they `RAISE(ABORT)` on a duplicate `id`, `(stream_id, seq)`, `hash`, or device slot. A direct insert with a
+*fresh* id collides with nothing, so it is accepted — and it skips the POD gate (I2), the booking gates, the
+interline floors, the credit-authorization gate, the visibility stamp, and the `prev_hash` chain, writing
+whatever chain values it likes. Every gate in the system lives on the path this bypasses.
+
+This is the same shape as §50's open-redirect guard and §53's import-only REQ-024 lint, but on the highest-value
+target yet: REQ-024 (no LLM in the ledger) and REQ-004 (rater purity) each already have a source-glob lint,
+while the **append path — where every gate actually is** — had none.
+
+### 56.2 `check:chokepoint`
+
+`tools/checks/append-chokepoint.ts`: the `events` table may be written only by an allowlisted module, and the
+allowlist carries a *reason* per entry, not just a path. A new writer fails with the specific consequence
+("bypassing the sequencer DO — and with it EVERY gate…") and an instruction that adding to the allowlist
+requires an owner-signed register note.
+
+Mutation-proved on both realistic shapes: a new route doing `INSERT INTO events`, and an agent using
+`INSERT OR IGNORE INTO "events"` — the quoted-identifier, alternate-verb variant that a naive matcher misses.
+
+**It flagged its own documentation on the first run**, along with `invariants.ts`'s explanation of the same
+rule — both matches inside comments. That produced the comment-stripper, which is now the most carefully
+tested part of the check, because it is where a **false negative** would hide: over-strip and a real bypass
+inside a template literal becomes invisible. Four tests pin it, including a `//` inside a string (a URL is not
+a comment) and an escaped quote.
+
+Wired into the merge surface and pinned by name in `ci-contract.test.ts` — mutation-proved: unwiring the gate
+fails the contract test. Pinning matters more than usual here, because a gate enforcing an **absence**
+produces no failing test when it stops running.
+
+### 56.3 What this does not claim
+
+Static, regex over source text — the same guarantee class as `rater-purity.ts`, and its limitation is written
+into the file. It does not resolve a table name assembled at runtime, and it is not a substitute for reviewing
+anything that builds SQL dynamically. It closes the realistic regression — *a new route or agent that writes
+the ledger directly because it is convenient* — not a determined author.
+
+Scope: enforcement of REQ-030, an existing register row and a stated `CLAUDE.md` law. No new capability, no
+new REQ row.
+
+**Verification.** `check:chokepoint` OK (2 allowlisted writers); 6 chokepoint tests + 25 CI-contract tests
+green; both bypass shapes and the gate-unwiring mutation proved RED; lint, typecheck, citations, tables PASS.

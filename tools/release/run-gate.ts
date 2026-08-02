@@ -46,6 +46,9 @@ export function gatesFor(profile: Profile): GateSpec[] {
     { kind: "cmd", gate: "unit-tests", script: "test" },
     { kind: "cmd", gate: "invariants", script: "check:invariants" },
     { kind: "cmd", gate: "rater-purity", script: "check:rater-purity" },
+    // REQ-030/I3 (audit §56): the events table has exactly one application writer. The DB triggers fire on
+    // COLLISIONS, so a direct insert with a fresh id is accepted and skips every gate — nothing else catches it.
+    { kind: "cmd", gate: "append-chokepoint", script: "check:chokepoint" },
     { kind: "cmd", gate: "authority-coverage", script: "check:authority-coverage" },
     { kind: "cmd", gate: "traceability", script: "check:traceability" },
     { kind: "cmd", gate: "coverage", script: "check:coverage" },

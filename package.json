@@ -18,6 +18,7 @@
     "seed:load": "tsx tools/seed/load.cli.ts",
     "check:invariants": "tsx tools/checks/invariants.ts",
     "check:rater-purity": "tsx tools/checks/rater-purity.ts",
+    "check:chokepoint": "tsx tools/checks/append-chokepoint.ts",
     "check:authority-coverage": "tsx tools/checks/authority-coverage.ts",
     "db:lock": "tsx tools/checks/invariants.ts --write",
     "check:traceability": "tsx tools/traceability/orphans.ts",

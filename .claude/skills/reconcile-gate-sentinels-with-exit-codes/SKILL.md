@@ -25,7 +25,7 @@ into the package script — a mode left to the caller is a mode that gets droppe
 **1. The last sentinel won outright.** `run-gate.ts` runCmd preferred the last sentinel found
 anywhere in combined stdout+stderr over the child's exit code. Wrapper gates relay NESTED output, so
 a nested child's PASS printed before the wrapper failed recorded PASS — a false green in the one
-artifact promotion reads. Fixed by `reconcileSentinel` (`tools/release/run-gate.ts:108@reconcileSentinel`):
+artifact promotion reads. Fixed by `reconcileSentinel` (`tools/release/run-gate.ts:111@reconcileSentinel`):
 exit 1/null + PASS ⇒ FAIL; exit 2 + PASS ⇒ BLOCKED; each names the disagreement in `detail`.
 
 **2. The documented invocation could not fail.** `pnpm test:surfaces` carried no `--mode`, so
