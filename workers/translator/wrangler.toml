@@ -44,6 +44,19 @@ binding = "CONTROL_DB"
 database_name = "shuddl-control-dev"
 database_id = "local-control"
 
+# 2026-08-01 audit §11 (REQ-121/123/025) — claimed-tenant pool planes, ids VERBATIM from workers/api
+# (same physical databases). Bound so the 214 sweep + the inbound-204 handler serve a CLAIMED pool tenant.
+[[d1_databases]]
+binding = "TENANT_POOL_01_DB"
+database_name = "shuddl-t-pool-01-dev"
+database_id = "local-translator-pool-01"
+
+[[d1_databases]]
+binding = "TENANT_POOL_02_DB"
+database_name = "shuddl-t-pool-02-dev"
+database_id = "local-translator-pool-02"
+
+
 # EDI markers live in R2: the tender linkage (edi/<tenant>/tender/<shipmentId>, written by Task 8's 204
 # handler) and the "214 already sent" dedupe marker (edi/<tenant>/214/<dedupeKey>, the wire bytes ARE the
 # sent-record — no new table). Same bucket the anchor/evidence flows use.
@@ -89,6 +102,19 @@ binding = "CONTROL_DB"
 database_name = "shuddl-control-staging"
 database_id = "8e238970-2ed3-494d-960f-e4af082c1e8e"
 
+# 2026-08-01 audit §11 (REQ-121/123/025) — claimed-tenant pool planes, ids VERBATIM from workers/api
+# (same physical databases). Bound so the 214 sweep + the inbound-204 handler serve a CLAIMED pool tenant.
+[[env.staging.d1_databases]]
+binding = "TENANT_POOL_01_DB"
+database_name = "shuddl-t-pool-01-staging"
+database_id = "6f087baf-ae70-4c6c-8ef4-79ae42b5e939"
+
+[[env.staging.d1_databases]]
+binding = "TENANT_POOL_02_DB"
+database_name = "shuddl-t-pool-02-staging"
+database_id = "fbebe252-f33b-4ac7-b3f6-4d775e036ef5"
+
+
 [[env.staging.r2_buckets]]
 binding = "EVIDENCE"
 bucket_name = "shuddl-evidence-staging"
@@ -131,6 +157,19 @@ database_id = "c6752655-df5b-4b8c-b150-95b04c990e99"
 binding = "CONTROL_DB"
 database_name = "shuddl-control-prod"
 database_id = "e91b8e7c-c878-437d-b25d-34530280fe85"
+
+# 2026-08-01 audit §11 (REQ-121/123/025) — claimed-tenant pool planes, ids VERBATIM from workers/api
+# (same physical databases). Bound so the 214 sweep + the inbound-204 handler serve a CLAIMED pool tenant.
+[[env.prod.d1_databases]]
+binding = "TENANT_POOL_01_DB"
+database_name = "shuddl-t-pool-01-prod"
+database_id = "dafdbec9-ebc5-4db7-9306-db96a0b3021f"
+
+[[env.prod.d1_databases]]
+binding = "TENANT_POOL_02_DB"
+database_name = "shuddl-t-pool-02-prod"
+database_id = "20564820-573d-425b-8803-41fc984096d0"
+
 
 [[env.prod.r2_buckets]]
 binding = "EVIDENCE"

@@ -10,7 +10,7 @@ import { buildStatusView, type StatusEventRow } from "../src/core/build-214.js";
 import { RecordingTransport } from "../src/transport.js";
 import { tenderPrefix, tenderKey } from "../src/sweep-214.js";
 import { certifyPartner } from "../src/partners.js";
-import { tenantDb } from "../src/tenants.js";
+import { resolveTenantDb } from "../src/tenants.js";
 import { applyAll, seedEdiPartner } from "./helpers.js";
 import primary204 from "./fixtures/edi/primary-204.edi?raw";
 import malformed204 from "./fixtures/edi/malformed-204.edi?raw";
@@ -91,7 +91,7 @@ class RecordingSeq implements SeqStubLike {
 function makeDeps(seq: SeqStubLike, transport: RecordingTransport): InboundDeps {
   return {
     controlDb: env.CONTROL_DB,
-    tenantDbFor: (slug) => tenantDb(env, slug),
+    tenantDbFor: (slug) => resolveTenantDb(env, slug),
     evidence: env.EVIDENCE,
     seq,
     transport,

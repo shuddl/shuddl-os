@@ -29,7 +29,7 @@ import { build214 } from "@shuddl/edi";
 import { buildStatusView, type StatusEventRow } from "./core/build-214.js";
 import { allocatePartnerControls, partnerMapping } from "./partners.js";
 import type { EdiTransport } from "./transport.js";
-import { TENANT_SLUGS, tenantDb, type TranslatorEnv } from "./tenants.js";
+import { allTenantSlugs, resolveTenantDb, type TranslatorEnv } from "./tenants.js";
 
 // The SHUDDL status kinds a 214 projects (the same set the core's STATUS_KIND_TO_TOKEN maps). Kind-filter the
 // ledger read to these so the sweep touches only status rows. `custody.transferred` is deliberately excluded —
@@ -208,9 +208,11 @@ export async function sweepTenant214(
 // tenant fault is contained + logged so one tenant never stalls the rest; the whole sweep is idempotent, so
 // re-running every cron tick is safe.
 export async function run214Sweep(env: TranslatorEnv, transport: EdiTransport, now: () => number = () => Date.now()): Promise<void> {
-  for (const slug of TENANT_SLUGS) {
+  // Claimed-aware (2026-08-01 audit §11): the static roster plus every CLAIMED pool tenant, so a
+  // self-served tenant's outbound 214s are actually swept — the last instance of the C3 roster class.
+  for (const slug of await allTenantSlugs(env)) {
     try {
-      const summary = await sweepTenant214(tenantDb(env, slug), env.EVIDENCE, slug, transport, now);
+      const summary = await sweepTenant214(await resolveTenantDb(env, slug), env.EVIDENCE, slug, transport, now);
       console.log(`214-sweep: tenant ${slug} → ${JSON.stringify(summary)}`);
     } catch (err) {
       console.error(`214-sweep: tenant ${slug} failed (re-run next tick — the sweep is idempotent):`, err);

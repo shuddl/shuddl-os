@@ -7,7 +7,7 @@ import { handleInbound204, StaticSecretResolver, type InboundDeps, type SeqStubL
 import { RecordingTransport } from "../src/transport.js";
 import { tenderPrefix } from "../src/sweep-214.js";
 import { certifyPartner } from "../src/partners.js";
-import { tenantDb } from "../src/tenants.js";
+import { resolveTenantDb } from "../src/tenants.js";
 import { applyAll, seedEdiPartner } from "./helpers.js";
 
 // WP-12 Task 8 · REQ-201/202 — THE INBOUND 204 HANDLER. A partner load tender authenticates by HMAC (the
@@ -146,7 +146,7 @@ class RecordingSeq implements SeqStubLike {
 function makeDeps(seq: SeqStubLike, transport: RecordingTransport, secrets: StaticSecretResolver, now = T0): InboundDeps {
   return {
     controlDb: env.CONTROL_DB,
-    tenantDbFor: (slug) => tenantDb(env, slug),
+    tenantDbFor: (slug) => resolveTenantDb(env, slug),
     evidence: env.EVIDENCE,
     seq,
     transport,

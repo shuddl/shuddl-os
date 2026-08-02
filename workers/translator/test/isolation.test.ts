@@ -7,7 +7,7 @@ import { handleInbound204, StaticSecretResolver, INBOUND_204_PATH, type InboundD
 import { RecordingTransport } from "../src/transport.js";
 import { run214Sweep, sweepTenant214, tenderKey, tenderPrefix, sent214Key } from "../src/sweep-214.js";
 import { allocatePartnerControls } from "../src/partners.js";
-import { tenantDb } from "../src/tenants.js";
+import { resolveTenantDb, tenantDb } from "../src/tenants.js";
 import { applyAll, seedEdiPartner, seedEvent, resetCounter } from "./helpers.js";
 
 // WP-12 Task 11 · REQ-025 (CLAUDE.md rule #8: a cross-tenant read/write ANYWHERE is a build failure) — THE
@@ -148,7 +148,7 @@ function makeDeps(seq: SeqStubLike, transport: RecordingTransport, secrets: Stat
   return {
     controlDb: env.CONTROL_DB,
     // The ONLY tenant→D1 map (REQ-025). The handler picks the slug from the pairing, never from a client hint.
-    tenantDbFor: (slug) => tenantDb(env, slug),
+    tenantDbFor: (slug) => resolveTenantDb(env, slug),
     evidence: env.EVIDENCE,
     seq,
     transport,

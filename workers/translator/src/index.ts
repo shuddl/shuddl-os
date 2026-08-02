@@ -16,7 +16,7 @@ import {
   type SecretResolver,
   type SeqStubLike,
 } from "./inbound.js";
-import { tenantDb, type TranslatorEnv } from "./tenants.js";
+import { resolveTenantDb, type TranslatorEnv } from "./tenants.js";
 
 // THE COMPOSITION ROOT for the outbound transport (mirrors evidenceSender/conciergeParser in workers/agents).
 // A LIVE EdiTransport adapter (AS2/SFTP/VAN) is a CONFIRM-gated flip that binds HERE once EDI_TRANSPORT_URL +
@@ -52,7 +52,7 @@ function sequencerFor(env: TranslatorEnv): SeqStubLike {
 function inboundDeps(env: TranslatorEnv): InboundDeps {
   return {
     controlDb: env.CONTROL_DB,
-    tenantDbFor: (slug) => tenantDb(env, slug),
+    tenantDbFor: (slug) => resolveTenantDb(env, slug),
     evidence: env.EVIDENCE,
     seq: sequencerFor(env),
     transport: transportFor(env),

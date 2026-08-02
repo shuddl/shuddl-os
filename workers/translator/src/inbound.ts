@@ -73,7 +73,8 @@ export interface InboundDeps {
   /** The control plane (pairings + tenants) — auth resolution ONLY; never a tenant data path (REQ-025). */
   controlDb: D1Database;
   /** Resolve a tenant slug → its OWN D1 handle (the allowlist; the ONLY tenant→D1 map — REQ-025). */
-  tenantDbFor: (slug: string) => D1Database;
+  /** ASYNC since 2026-08-01 (§11): a CLAIMED pool tenant resolves through the control plane. */
+  tenantDbFor: (slug: string) => Promise<D1Database>;
   /** EDI markers + quarantine bytes live under the `edi/<tenant>/…` R2 prefix. */
   evidence: R2Bucket;
   /** The api sequencer DO append surface (the ONLY event write path — the gates + projections run there). */
@@ -201,7 +202,7 @@ async function quarantine(
     r2Key,
     rule,
   });
-  const db = deps.tenantDbFor(tenantSlug);
+  const db = await deps.tenantDbFor(tenantSlug);
   await db
     .prepare("INSERT OR IGNORE INTO anomalies (id, rule, object_kind, object_id, severity, detail) VALUES (?,?,?,?,?,?)")
     .bind(descriptor.anomalyId, descriptor.rule, descriptor.objectKind, descriptor.objectId, descriptor.severity, JSON.stringify(descriptor.detail))
@@ -308,7 +309,7 @@ export async function handleInbound204(request: Request, deps: InboundDeps): Pro
   const partner = await authenticate(request, rawBytes, deps);
   if (partner === null) return unauthorized();
   const { partnerId, tenantSlug } = partner;
-  const db = deps.tenantDbFor(tenantSlug);
+  const db = await deps.tenantDbFor(tenantSlug);
 
   const raw = new TextDecoder().decode(rawBytes);
   const isaControl = await extractIsaControl(raw);

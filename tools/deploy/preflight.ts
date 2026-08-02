@@ -120,7 +120,8 @@ export const REQUIRED_BINDINGS = {
     secrets: ["JWT_SECRET"],
   },
   translator: {
-    d1: ["TENANT_A_DB", "TENANT_B_DB", "CONTROL_DB"],
+    // TENANT_POOL_* added 2026-08-01 (§11): the translator serves claimed pool tenants too.
+    d1: ["TENANT_A_DB", "TENANT_B_DB", "CONTROL_DB", "TENANT_POOL_01_DB", "TENANT_POOL_02_DB"],
     kv: [] as string[],
     r2: ["EVIDENCE"],
     do: ["SHIPMENT_SEQ"],
