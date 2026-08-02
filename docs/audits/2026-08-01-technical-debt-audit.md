@@ -2084,3 +2084,44 @@ index named in §43: it starts from *what changed*, so it surfaces both the clai
 claims that were never written.
 
 **Verification.** Both security documents updated; citations OK.
+
+## §46 — a threat row marked CLOSED, resting on a mitigation whose failure mode was unrecorded
+
+Continuing the §44 reverse index into the rest of the security-relevant changes. This one is the most
+significant record gap of the session, and it is not a stale claim — it is a **true claim with an unstated
+dependency.**
+
+`threat-model.md` carries **"Lens / geo leakage … CLOSED"**, and names its mitigation as *"server-side lens
+filtering + **per-event visibility** + redaction."* Every word of that is true. But §18's vector runs
+underneath it:
+
+**Visibility is resolved from `tenants.policy` and stamped onto the event AT APPEND TIME, and events are
+immutable (I3/I7).** A policy row that was unreadable, absent, `null`-valued, or carrying a one-character
+`visibility` typo fell through to `{}` / per-kind defaults — dropping every narrowing override. A tenant that
+had set `document.attached: internal` would have had those events stamped `counterparty` and exposed through
+the portal lens **permanently**, and the lens would have behaved *exactly as designed the whole time*.
+
+**Not a lens defect. A defect in what the lens was asked to enforce.** The row's mitigation is only a
+mitigation while the stamp is right, and nothing in the security record said the stamp had a failure mode.
+A threat row reads as CLOSED while resting on an assumption nobody wrote down.
+
+Closed at the source across three iterations — §18 (refuse rather than stamp on defaults), §19 (the shared
+predicate plus the EDI preflight), §27 (`.nullish()` so `null` means unset, and the `Visibility` union so a
+typo is refused at the boundary instead of 500ing mid-append) — each mutation-proved. Now recorded: the
+threat row is **qualified** with the dependency and how it is enforced, there is a dated log entry, and
+`pen-test-basics.md` gains a surface row for the stamp-time vector with its proofs.
+
+### The forward half caught my own edit while I was writing this
+
+Inserting the log entry shifted `threat-model.md` by three lines, and `check:citations` failed immediately:
+a content-anchored citation from `GO-LIVE-CHECKLIST.md:58` pointed at `threat-model.md:55@provenance` and the
+anchor had moved to `:58`. Repointed; 954 citations resolve.
+
+That is worth noting beside §43–§45, because it shows the two halves are complementary rather than
+redundant. **The forward check is excellent at what it does** — it caught a line shift within seconds of my
+making it. What it cannot do is answer *"which documents should I re-read because I changed
+`sequencer.ts`?"* Both halves are needed; this repo has one, and the sections above are what the missing
+half found when run by hand.
+
+**Verification.** Both security documents updated; the shifted citation repointed; 954 citations resolve;
+ratchet at its frozen baseline.
