@@ -3103,3 +3103,61 @@ by eye — §58's failure was exactly an eye-count of a machine-owned list.
 
 **Verification.** Byte-flip mutation FAILs and restores clean (0 mismatches); all 7 vendored fixtures have
 consumers; `check:fixtures` exit 0 local / exit 2 merge, unchanged; tables and citations PASS.
+
+---
+
+## §64 — the mechanism behind every record defect this loop: docs may state laws, not observations
+
+Fourteen sections in, the record defects are no longer individually interesting — they are the same defect.
+Naming the mechanism is worth more than finding a fifteenth instance.
+
+**Every one was a document restating something the build already computes.**
+
+| § | The restatement | The authority it copied |
+|---|---|---|
+| §52 | "2,648 tests across all 16 workspaces" | the actual suites (2,867 across 17, plus 691 in `tools/`) |
+| §58 | "the 11-gate static set" → 13 → nearly 14 | `gatesFor("merge")` — which returns 24 |
+| §60 | "the 504 sweep and 48 engine tests ship in `fixtures/`" | `fixtures/manifest.json` — both `status: pending` |
+| §63 | `fixtures/README.md`'s 10-row table | `fixtures/manifest.json`'s 17 rows |
+
+### 64.1 The distinction that predicts which sentences rot
+
+A document sentence is one of two things, and they behave oppositely:
+
+- **A law** — *"≤22 tables"*, *"35 event kinds"*, *"no price on air"*, *"gates are server-side"*. Declarative.
+  The code must conform to it, so it **cannot go stale**: if reality diverges, reality is the bug and a gate
+  says so. Laws belong in `CLAUDE.md` and `genesis/`, and every budget checked in §54 was one.
+- **An observation** — *"21 used"*, *"2,648 tests"*, *"13 gates"*, *"ships in `fixtures/`"*, a `path:line`
+  citation. Descriptive. It was true when written and **decays from the moment it is committed**, silently,
+  because nothing recomputes it.
+
+Every defect in the table above is an observation written where a law belongs. Every clean negative in §54 and
+§55 was a law.
+
+### 64.2 The three dispositions for an observation
+
+1. **Delete it and point at the authority** — §58 (condition 2 now names `gatesFor("merge")` and counts
+   nothing) and §63 (the README now names `manifest.json` rather than mirroring it). Best where an authority
+   exists.
+2. **Anchor it so decay fails a gate** — a `path:line@symbol` citation, which `check:citations` re-resolves.
+   §55's rotted GO-LIVE citation had drifted 61 lines *in bounds*, so it passed unanchored; anchored, the same
+   drift is RED.
+3. **Date and scope it** — where the observation is genuinely the point, as in this audit's own measurements.
+   §4's status blocks carry their SHA precisely so a reader knows what they describe and when it stopped being
+   true.
+
+### 64.3 Applied here, and the two remaining observations checked
+
+Both surviving observations in `CLAUDE.md` were verified against their authority rather than trusted:
+*"21 used"* of ≤22 tables — `check:invariants` reports `21/22`, correct. *"13 agents"* — a product
+description, not a state claim: `genesis/05` scopes V1 to **6 of the 13**, and the built ones are distributed
+across `packages/agents`, `packages/rater`, the sequencer's gate catalog, and `workers/agents`. Neither is
+stale.
+
+**What this does not become:** a checker. A generic "verify every number in prose" gate would have to parse
+intent, and would flag laws (which must not change to match reality) alongside observations. The mechanism is
+a rule for authors, not a lint — *before writing a number or a state claim into a document, ask whether
+something in the build already knows it, and if so, point at that instead.*
+
+**Verification.** No code changed; both `CLAUDE.md` observations re-verified against their authorities; tables
+and citations PASS.
