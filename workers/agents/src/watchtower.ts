@@ -450,14 +450,15 @@ async function sweepParityDrift(
     }
 
     // DRIFT → RAISE a CRITICAL alarm keyed (tenant, module); carry the drift + native/legacy values (the audit).
-    await raiseAlarm(db, id, "parity_drift", "module", module, "critical", {
+    const detail = {
       module,
       drift_bps: parity.drift_bps,
       native_value: parity.native_value,
       legacy_value: parity.legacy_value,
       tolerance_bps: PARITY_TOLERANCE_BPS[module],
       backing_kinds: parity.backing_kinds,
-    });
+    };
+    await raiseAlarm(db, id, "parity_drift", "module", module, "critical", detail);
     alarmed += 1;
 
     // THE ENFORCEMENT: a native module that has drifted is AUTO-flipped back to legacy. resolveAuthority is the
@@ -466,6 +467,7 @@ async function sweepParityDrift(
     // a seq-less call — the other rules' unit tests — raises the alarm but performs no append). drift_ref = the
     // parity_drift anomaly id (the audit link). The Task-1 projection reverts authority_map to legacy.
     let didFallback = false;
+    let fallbackError: string | undefined;
     if (seq !== undefined && (await resolveAuthority(db, module)) === "native") {
       // PER-MODULE FAULT CONTAINMENT: the alarm is ALREADY raised above, so a persistent append fault here must NOT
       // abort the sweep and skip every LATER module's raise/clear (a newly-drifting one would go unalarmed, a
@@ -476,8 +478,29 @@ async function sweepParityDrift(
         fell_back += 1;
         didFallback = true;
       } catch (err) {
+        fallbackError = err instanceof Error ? err.message : String(err);
         console.error(`watchtower parity_drift: ${tenant}/${module} fallback append failed (alarm raised; retry next tick):`, err);
       }
+    }
+
+    // 2026-08-02 §20 — THE ALARM MUST SAY WHETHER THE FALLBACK HAPPENED.
+    //
+    // The alarm above is raised BEFORE the fallback is attempted, so on a failure the row read "this module
+    // has drifted" while omitting the far more urgent half: it is STILL ON NATIVE AUTHORITY. "Retry next
+    // tick" is the right posture for a TRANSIENT fault, but not every fault is transient — a tenant whose
+    // control-plane policy is unusable now has every append REFUSED (§18/§19), so this append fails
+    // deterministically and every later tick fails identically. Silently, forever, with only a log line.
+    //
+    // Re-upsert the SAME alarm id (raiseAlarm is ON CONFLICT DO UPDATE) carrying the outcome, so an
+    // operator reading the alarm sees "drifting AND could not fall back", plus the cause. This is the one
+    // append caller that catches and continues; the containment is still correct — the sweep must not
+    // abort and skip every later module's raise/clear — but containment is not a reason to under-report.
+    if (didFallback || fallbackError !== undefined) {
+      await raiseAlarm(db, id, "parity_drift", "module", module, "critical", {
+        ...detail,
+        fell_back: didFallback,
+        ...(fallbackError === undefined ? {} : { fallback_error: fallbackError, still_on_native: true }),
+      });
     }
     modules.push({ module, status: "DRIFT", raised: true, fell_back: didFallback });
   }

@@ -860,3 +860,59 @@ cluster (`authority-flip`, already documented in-repo by two other files as a po
 
 **Verification.** api 66 files / 730 · contracts 276 · ledger 607 · billing 56 · translator 93 · agents 105 ·
 mcp 175; typecheck 0, lint 0.
+
+---
+
+## §20 — Iteration 15 (2026-08-02): the last two carry-forwards, one closed and one made reproducible
+
+### Watchtower: containment is not a reason to under-report
+
+The parity-drift rule catches a failed auto-fallback append, logs, and continues. That containment is
+**correct** — the alarm is already raised, and a persistent fault must not abort the sweep and skip every
+later module's raise/clear. But the alarm is raised *before* the fallback is attempted, so on a failure the
+row said only "this module has drifted" and omitted the more urgent half: **it is still on native
+authority.**
+
+"Retry next tick" is the right posture for a *transient* fault. Not every fault is transient: a tenant whose
+control-plane policy is unusable now has every append REFUSED (§18/§19), so this append fails
+deterministically and every later tick fails identically — silently, forever, behind one log line. The alarm
+is now re-upserted (`raiseAlarm` is `ON CONFLICT DO UPDATE`, so it is the same row) carrying `fell_back`,
+and on failure `still_on_native: true` plus the cause. Mutation-proved: removing the re-upsert fails the
+assertion with `expected undefined to be false`.
+
+### Test order: the fix was written, reverted, and the reason is the finding
+
+The review's recommendation was to pin the api suite's file order, since 66 files share one control plane
+with no rollback. Two things came out of doing it:
+
+1. **`sequence.shuffle: false` is not sufficient.** Vitest's default sequencer orders files by their
+   **cached duration from previous runs**, so the order drifts on its own as timings move — two consecutive
+   runs still began with disjoint file lists. Full determinism needs a custom path sequencer.
+2. **With the order pinned, the suite fails REPRODUCIBLY** — `lens-adversarial`, 2 tests, `expected 500 to
+   be 200`, identically on both runs. The cause is visible in the log: some earlier file seeds `events` rows
+   whose `id` and `prev_hash` do not satisfy the `LedgerEvent` schema, and the firehose 500s when
+   `rowToEvent` reads them. The file passes **44/44 in isolation**.
+
+So the suite is genuinely **order-dependent**, and the randomization has been hiding it. The pin was
+therefore **written and reverted deliberately**: landing it would trade an intermittent red for a permanent
+one, and the real fix touches either a test seeder's fidelity or `rowToEvent`'s strictness on the
+canonical-hash read path — which is not a change to make in a hurry at the end of an iteration. The config
+carries the reproduction inline; this is the next iteration's first task.
+
+**What this is worth.** §15 recorded "an unidentified flake" and the technique to catch it. §17 used that
+technique and named cluster B. §20 pins the order and turns the remaining cluster from "intermittent, seen
+twice in six runs" into "fails every run, here is the file and the assertion". Each step cost one iteration
+and made the next one cheaper — which is the argument for recording a flake honestly rather than retrying
+until green.
+
+### The four §18 carry-forwards, closed out
+
+| # | Item | Status |
+|---|---|---|
+| 1 | Translator retry-storm on the new refusal | **FIXED §19** — preflight quarantines before any write, mutation-proved |
+| 2 | `TenantPolicy` unvalidated; a mis-keyed paste widens | **FIXED §19** — Zod passthrough shape; the `{"gate":…}` typo limit recorded in its own test |
+| 3 | Watchtower swallows the refusal | **FIXED §20** — the alarm carries `fell_back` + `still_on_native` + cause |
+| 4 | Randomized file order over a shared control plane | **DIAGNOSED §20, not fixed** — pinning proved a real order-dependence in `lens-adversarial`; reproduction recorded in `workers/api/vitest.config.ts`, fix is the next iteration's first task |
+
+**Verification.** api 66 files / 730 · contracts 276 · ledger 607 · billing 56 · translator 93 · agents 105 ·
+mcp 175; typecheck 0, lint 0.

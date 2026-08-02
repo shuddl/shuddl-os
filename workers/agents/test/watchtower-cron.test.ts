@@ -95,6 +95,21 @@ describe("REQ-008 — parity_drift auto-fallback cron wrapper", () => {
         c.some((a) => typeof a === "string" && a.includes("watchtower parity_drift") && a.includes("tenant-a/rating") && a.includes("fallback append failed")),
       );
       expect(contained).toBe(true);
+
+      // 2026-08-02 §20 — CONTAINMENT IS NOT A REASON TO UNDER-REPORT. The alarm is raised BEFORE the
+      // fallback is attempted, so on a failure the row used to say only "this module has drifted" while
+      // omitting the more urgent half: it is STILL ON NATIVE AUTHORITY. "Retry next tick" is right for a
+      // TRANSIENT fault, but not every fault is transient — a tenant whose control-plane policy is unusable
+      // has every append REFUSED (§18/§19), so this append fails deterministically and every later tick
+      // fails identically, silently, with only a log line. The alarm must carry the outcome.
+      const alarm = await env.TENANT_A_DB.prepare(
+        "SELECT detail FROM anomalies WHERE rule = 'parity_drift' AND object_id = 'rating' LIMIT 1",
+      ).first<{ detail: string }>();
+      expect(alarm, "the drift alarm must exist").not.toBeNull();
+      const detail = JSON.parse(alarm!.detail) as { fell_back?: boolean; still_on_native?: boolean; fallback_error?: string };
+      expect(detail.fell_back, "the alarm must say the fallback did NOT happen").toBe(false);
+      expect(detail.still_on_native, "…and that the module is still on native authority").toBe(true);
+      expect(detail.fallback_error, "…and carry the cause an operator needs").toContain("append seam reached");
     } finally {
       getSpy.mockRestore();
       errSpy.mockRestore();
