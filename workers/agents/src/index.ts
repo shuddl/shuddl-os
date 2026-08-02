@@ -574,6 +574,27 @@ export default {
         }
         message.ack();
       } catch (err) {
+        // 2026-08-02 §23 — NAME A DETERMINISTIC REFUSAL AS ONE. The sequencer now REFUSES every append for a
+        // tenant whose control-plane policy is unusable or absent (§18/§19: proceeding on `{}` silently
+        // widened the dims gate, the geofence and — irreversibly — visibility on append-only events). That
+        // refusal arrives here as a throw, and the RETRY POSTURE below is right: max_retries=5 then the DLQ,
+        // which is this worker's documented law that a deterministic bug must leave a recoverable record.
+        //
+        // What was wrong was the LABEL. Five identical lines reading "retriable failure … will redeliver"
+        // tell an operator to wait for a transient condition to clear, when nothing will clear until a
+        // control row is fixed — and they name no fix. The message is not more retriable for being logged
+        // as such. Same discipline the translator got in §19, minus the quarantine: there, the 500 went to
+        // an external VAN with no DLQ and each retry accumulated projection rows, so it had to be refused
+        // before any write; here the DLQ already bounds it, so only the diagnosis needed correcting.
+        const deterministic = err instanceof Error && /tenant policy malformed/i.test(err.message);
+        if (deterministic) {
+          console.error(
+            `agents queue: DETERMINISTIC refusal for ${trigger.kind} ${trigger.event_id} (tenant ${trigger.tenant}) — the sequencer refuses every append while this tenant's control-plane policy row is unusable or missing. Retrying toward the DLQ so the trigger survives, but NO retry will succeed until an operator fixes the tenants row:`,
+            err,
+          );
+          message.retry();
+          continue;
+        }
         console.error(`agents queue: retriable failure for ${trigger.kind} ${trigger.event_id} — message will redeliver:`, err);
         // A 429 from a provider (Resend send OR the Anthropic parse) means we're being throttled: immediate
         // redelivery would re-trip the limiter, so back the retry off. Both SendError and ParseError thread

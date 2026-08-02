@@ -1,5 +1,5 @@
 import { createExecutionContext, env } from "cloudflare:test";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import worker from "../src/index.js";
 
 // WP-06 — queue() DISPATCH SEMANTICS (REQ-031/039). The Biller's business behavior is proven
@@ -80,6 +80,35 @@ describe("agents queue() — per-message dispatch (REQ-031/039)", () => {
     await worker.queue(mkBatch([message]), env, createExecutionContext());
     expect(state.retried).toBe(true);
     expect(state.acked).toBe(false);
+  });
+
+  // 2026-08-02 §23 — a DETERMINISTIC refusal is retried toward the DLQ (the recoverable-record law) but is
+  // LOGGED AS DETERMINISTIC, naming the operator action. The sequencer refuses every append for a tenant
+  // whose control-plane policy row is unusable or absent (§18/§19). Five identical "retriable failure …
+  // will redeliver" lines tell an operator to wait for something that will never clear, and name no fix.
+  it("a tenant-policy refusal → still retry() toward the DLQ, but logged as DETERMINISTIC with the fix", async () => {
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      // Stand in for the sequencer refusal: the handler throws the same message the DO raises.
+      const spy = vi.spyOn(env.TENANT_A_DB, "prepare").mockImplementation(() => {
+        throw new Error(`VALIDATION_FAILED:{"reason":"tenant policy malformed"}`);
+      });
+      const { message, state } = mkMessage({ kind: "pod.signed", tenant: "tenant-a", shipment_id: "shp-det", event_id: "evt-det" });
+      await worker.queue(mkBatch([message]), env, createExecutionContext());
+      spy.mockRestore();
+
+      // The POSTURE is unchanged — the trigger must survive as a recoverable record, never be acked away.
+      expect(state.retried, "the trigger must still reach the DLQ").toBe(true);
+      expect(state.acked, "a refusal is never acked away — that would lose the trigger").toBe(false);
+
+      // The DIAGNOSIS is what changed.
+      const lines = errSpy.mock.calls.flat().filter((a): a is string => typeof a === "string");
+      expect(lines.some((l) => l.includes("DETERMINISTIC refusal")), "must name it deterministic").toBe(true);
+      expect(lines.some((l) => l.includes("until an operator fixes the tenants row")), "must name the fix").toBe(true);
+      expect(lines.some((l) => l.includes("retriable failure")), "must NOT also claim it is retriable").toBe(false);
+    } finally {
+      errSpy.mockRestore();
+    }
   });
 
   it("one poison message never stalls the batch: its neighbor is still dispatched", async () => {

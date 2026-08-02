@@ -1043,3 +1043,34 @@ typecheck 0 (workspace **and** tools), lint 0.
 order-dependent defect anywhere in the test estate fails on every run instead of one in five. This session
 paid for that class twice, at several full suite runs each just to identify. A flaky failure you can
 reproduce is a bug; one you cannot is a rumour.
+
+---
+
+## §23 — Iteration 18 (2026-08-02): asking the translator's question of the queue consumer
+
+§19 fixed a retry-storm the §18 refusal created in the EDI translator. The obvious follow-up is whether the
+refusal creates the same hazard on the **other** path that appends through the sequencer: the agents queue
+consumer, which handles `pod.signed`, `message.received` and `quote.accepted`.
+
+**It does not, and the reason is worth recording because it is the opposite conclusion from §19.** The
+consumer's catch routes every throw to `message.retry()`, and `workers/agents/wrangler.toml` sets
+`max_retries = 5` with a dead-letter queue. So a policy refusal is bounded: five attempts, then the trigger
+lands in the DLQ as a **recoverable record** — which is this worker's own documented law ("a deterministic
+bug must leave a recoverable record; no invoice AND no trace would be the worst failure"). The translator
+case was different on both counts: its 500 went to an external VAN with no DLQ and no bound, and each retry
+re-ran the persists and the tender marker, accumulating projection rows with no ledger behind them. That is
+why the translator needed a refusal *before any write* and this path does not.
+
+**What was wrong here was the LABEL, not the posture.** A deterministic refusal produced five identical
+lines reading *"retriable failure … message will redeliver"* — telling an operator to wait for a transient
+condition to clear when nothing will clear until a control row is fixed, and naming no fix. The refusal is
+now classified and logged as DETERMINISTIC, naming the tenant and the operator action, while the retry
+toward the DLQ is unchanged. Mutation-proved: removing the classification fails the new pin.
+
+**The general point.** Two paths, one upstream change, opposite correct answers — and the difference was not
+visible from the change itself. It came from reading each path's *bound*: does something downstream cap the
+retry, and does each attempt leave residue? "We fixed this class over there" is a hypothesis about here, not
+a conclusion; and the fix that is right in one place can be unnecessary in another that looks identical from
+the call site.
+
+**Verification.** agents 17 files / **106** (the new pin included); typecheck 0, lint 0.
