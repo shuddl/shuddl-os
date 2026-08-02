@@ -159,7 +159,27 @@ function main(): void {
   }
 
   const record: EvidenceRecord = { commit, environment, profile, generatedAt, expiresAt, fixturesHash: fixturesHash(), deployment, gates };
-  const context: PromotionContext = { commit, environment, fixturesHash: record.fixturesHash, deployment };
+
+  // 2026-08-02 §16 — THE CONTEXT IS RE-OBSERVED, NOT COPIED (REQ-288).
+  //
+  // This used to read `{ commit, environment, fixturesHash: record.fixturesHash, deployment }` — the very
+  // variables `record` was just built from — so every comparison in evaluateEvidence compared a value with
+  // itself and the SHA/environment/fixtures/deployment mismatch checks could never fire. The detection
+  // logic is real and unit-tested in evidence.test.ts; only this wiring made it inert in its one live
+  // consumer. That is the same "the gate could not fail" defect class this audit has been closing all
+  // session, and it was ledgered Low only because no separate promote step exists yet.
+  //
+  // Re-reading the world AFTER the gates ran turns the checks into a genuine STALENESS guard, which is
+  // what a record spanning a multi-minute gate run actually needs: if a commit lands, the fixtures manifest
+  // changes, or the environment/deployment variables move WHILE the gates are running, the record no
+  // longer describes the tree it claims to describe — and that is now caught rather than certified. In CI
+  // the checkout is fixed, so these re-reads are stable and a mismatch is always a true positive.
+  const context: PromotionContext = {
+    commit: gitHead(),
+    environment: profile === "merge" ? "merge" : process.env["RELEASE_ENVIRONMENT"] ?? "staging",
+    fixturesHash: fixturesHash(),
+    deployment: profile === "merge" ? "n/a" : process.env["DEPLOYMENT_VERSION"] ?? "unresolved",
+  };
   const evaluation = evaluateEvidence(record, context, new Date().toISOString());
 
   // Write the evidence artifact even when a gate fails (design §5 exit). artifacts/ is gitignored.

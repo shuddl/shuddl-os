@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 import { gatesFor, reconcileSentinel } from "./run-gate.js";
 import type { GateResult } from "./evidence.js";
 
@@ -74,5 +75,37 @@ describe("gatesFor — the deployed-surface proof is part of the release record 
     expect(surfaces).toBeDefined();
     expect(surfaces).toMatchObject({ kind: "cmd", script: "test:surfaces" });
     expect(gatesFor("merge").find((g) => g.gate === "surfaces")).toBeUndefined();
+  });
+});
+
+// ── §16 (REQ-288) — the PromotionContext must be RE-OBSERVED, never copied from the record ────────────
+//
+// `evaluateEvidence` compares a record against a context. Its mismatch logic is real and covered in
+// evidence.test.ts — but run-gate built the context out of the same four variables it had just used to
+// build the record, so every comparison compared a value with itself and the SHA/environment/fixtures/
+// deployment checks could never fire in the ONE live consumer. The unit tests passed throughout; the
+// wiring was the defect. That is un-unit-testable from outside (main() is not exported and shells out to
+// git), so this pin reads the source: the context's fields must come from the observation functions and
+// the environment, NOT from `record.*` or from the variables bound before the gates ran.
+describe("§16 — the release-record binding is re-observed, so the mismatch checks can actually fire", () => {
+  const src = readFileSync(new URL("./run-gate.ts", import.meta.url), "utf8");
+  const ctxBlock = src.slice(src.indexOf("const context: PromotionContext"), src.indexOf("const evaluation ="));
+
+  it("the context block exists and is not empty", () => {
+    expect(ctxBlock.length).toBeGreaterThan(0);
+  });
+
+  it("commit and fixturesHash are RE-READ through their observation functions", () => {
+    expect(ctxBlock).toMatch(/commit:\s*gitHead\(\)/);
+    expect(ctxBlock).toMatch(/fixturesHash:\s*fixturesHash\(\)/);
+  });
+
+  it("NO field is copied off the record — that is precisely what made the checks self-satisfied", () => {
+    expect(ctxBlock).not.toMatch(/record\./);
+  });
+
+  it("environment and deployment are re-read from the process env, not from the pre-gate bindings", () => {
+    expect(ctxBlock).toMatch(/process\.env\["RELEASE_ENVIRONMENT"\]/);
+    expect(ctxBlock).toMatch(/process\.env\["DEPLOYMENT_VERSION"\]/);
   });
 });
