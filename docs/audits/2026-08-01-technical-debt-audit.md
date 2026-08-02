@@ -26,6 +26,19 @@ an implementation annotation, and an audit describing *unbuilt* scope must not f
 
 ## §1 — The headline
 
+> **READ THIS FIRST (added 2026-08-02, §40). Everything in §1 is written in the PRESENT TENSE and describes
+> the OPENING state at `0415148`. All three of its findings were closed during this same audit** — the ops
+> record was corrected (D1/D2: `PROJECT-STATE.md`, `DEPLOYMENT.md` and `LAUNCH-RUNBOOK.md` now say
+> production exists and is live, struck-through in place), and C1/C2/C3 plus the comment rot are all marked
+> FIXED in §2. A reader landing here would otherwise conclude that three code defects are open and that the
+> ops record still misleads about production. **Neither is true. For the CURRENT state, read §4's
+> re-measurement at `fb212fd`.**
+>
+> Left in the present tense rather than rewritten, because §1 is the historical record of what the audit
+> FOUND; rewriting it would erase the finding. Stamping it is the correction — and the need for that stamp
+> is itself an instance of the rot mode §35 names: a claim made false later by work that never touched the
+> line. Here the invalidating work was this audit's own, in its own most-read section.
+
 The build's **machinery held**: every runnable gate was green at HEAD before the audit began, no
 append-only, budget, purity, or isolation law is violated anywhere, and the adversarial pass could not
 refute a single finding as already-fixed-but-unrecorded. What drifted is **the record and three seams**:
@@ -1844,3 +1857,32 @@ invites an assumption that more are hiding.
 
 **The lens is now exhausted** — which, with every review finding closed and §4 re-measured by hand at
 `fb212fd`, is the honest end of repository-owned auditing for this loop.
+
+### §40 — the rot mode, found in this document's own headline
+
+§35 named two ways a claim rots: **wrong when written**, or **made wrong later** by a change elsewhere that
+never touches the line. That sweep was run over source comments. It was never run over **this document** —
+which by now is forty sections deep, with its earliest claims written thirty iterations ago.
+
+**§1, the headline — the first thing any reader lands on — was stale in exactly that way.** It is written in
+the present tense and asserts three things: that the ops record materially misleads about production, that
+three code defects are open, and that there is comment rot in security-load-bearing places. **All three were
+closed during this same audit.** Verified rather than assumed: `PROJECT-STATE.md`, `DEPLOYMENT.md` and
+`LAUNCH-RUNBOOK.md` now carry struck-through supersedes saying production exists and is live (D1/D2), and
+C1/C2/C3 plus the rot are marked FIXED in §2.
+
+So a reader arriving at the top of the audit would conclude the build has three open code defects and an ops
+record that lies about production. Neither is true, and the document's own §4 says so — forty sections later.
+
+**Stamped, not rewritten.** §1 is the historical record of what the audit *found*; rewriting it would erase
+the finding. The stamp says what state it describes and points at §4's current measurement.
+
+**The instructive part is who invalidated it.** Not a third party, not a later workstream — **this audit's own
+remediation**, in this audit's own most-read section. That is the sharpest available demonstration of why the
+"made wrong later" mode is the harder one: nobody edits the headline while closing a finding thirty sections
+below it, so nothing about the closing commit surfaces the staleness. The only thing that finds it is
+deliberately re-reading the oldest claims against the newest state — which is what this was.
+
+**The general rule this session earns:** a long-lived record needs its early sections stamped with the state
+they describe, or it will confidently mislead exactly the reader who trusts it most — the one who starts at
+the top.
