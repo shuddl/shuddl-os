@@ -334,3 +334,34 @@ it holds. Iteration 6 and beyond have the same honest form as this one — re-ru
 changes — and the loop's remaining value is now entirely in the OWNER inputs the External rows name.
 Running further speculative sweeps against an unchanged tree would burn effort re-deriving the same
 verdict; running the watch after a real change is what keeps it true.
+
+## §10 — Iteration 6 (2026-08-01): proving the fixes have teeth, and closing the last deferrable row
+
+With the tree unchanged since §9, re-running the watch would only re-derive its verdict. Two things had
+real value instead, and both are hardening rather than discovery.
+
+**Mutation proofs — do the new tests actually bite?** This repo's own discipline is that a fix which
+could have been vacuous carries a mutation proof. The iteration-3/4 fixes did not yet have one. Each
+mutation was applied, observed, and reverted; the tree was verified clean after every revert.
+
+| Mutation (the defect, restored) | Result |
+|---|---|
+| `pending()` returns the store's order verbatim (pre-fix drain) | RED — *"drains in CAPTURE order (device_seq) even when the store yields a shuffled order"* |
+| Operator-parked items skipped forever (pre-fix park) | RED — *"a parked item RE-PROBES after its window and drains when the refusal clears"* |
+| Caps replay marker unbound from the target | RED — *"the SAME idempotency_key on a DIFFERENT shipment does NOT replay"* |
+| Envelope redaction removed (payload-only projection) | RED ×2 — the override test and the party-lens `actor.user` test |
+
+Four for four, each on exactly the test written for it and no other. The Critical fix, the cap-bypass
+fix, and the counterparty envelope leak are all genuinely pinned.
+
+**The `hashPath` framing row closed on its own terms** (`3a0d412`). It was ledgered as fixable only
+alongside a re-pin, because framing changes every digest — so the framing and the recomputation of all
+seven vendored pins landed in one commit, with the manifest note recording the reason and no fixture
+bytes changed. Injectivity is now proved against real files in a temp tree (a byte moved from a filename
+into content changes the digest) rather than asserted. `check:fixtures` verifies all seven; the parity
+harnesses still loud-skip on their absent private fixtures exactly as before.
+
+**What is left is what was left.** No repo-owned Critical/High. The remaining ledgered rows are the
+custody-party R3 fail-close (needs REQ-069), the translator roster line on the EDI activation row, the
+accepted signup-oracle and retry-posture calls, the `?perf` harness path, and the External/owner inputs.
+The honest form of iteration 7 is unchanged from §9: run the watch when the tree changes.
