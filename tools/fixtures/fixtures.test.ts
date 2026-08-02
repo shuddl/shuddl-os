@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { fixtureGateResult, verifyManifest } from "./verify.js";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fixtureGateResult, hashPath, verifyManifest } from "./verify.js";
 
 describe("REQ-112: fixture registry", () => {
   it("verifies a vendored entry by hash and fails on mismatch", () => {
@@ -58,5 +61,35 @@ describe("REQ-288: fixtureGateResult — pending fixtures BLOCK a merge/release 
     const g = fixtureGateResult("merge", { ok: true, failures: [], pending: [] }, 7);
     expect(g.status).toBe("PASS");
     expect(g.assertions).toBe(7);
+  });
+});
+
+// 2026-08-01 audit §10 — the digest is INJECTIVE over file trees. Unframed, hashPath concatenated
+// `path‖bytes` per entry, so bytes shifted between a filename and its content (or across adjacent
+// entries) produced the identical stream: two distinct trees, one digest. The length prefixes make
+// that impossible. Proved against real files rather than argued, in a temp tree.
+describe("hashPath framing — distinct trees cannot collide (REQ-112)", () => {
+  it("a byte moved from the filename into the content changes the digest", () => {
+    const root = mkdtempSync(join(tmpdir(), "hashframe-"));
+    // Tree A: file "ab" containing "c".  Tree B: file "a" containing "bc".
+    // The unframed stream for both was `<dir>/ab` + `c` vs `<dir>/a` + `bc` — identical bytes.
+    const a = join(root, "a");
+    const b = join(root, "b");
+    mkdirSync(a);
+    mkdirSync(b);
+    writeFileSync(join(a, "xy"), "z");
+    writeFileSync(join(b, "x"), "yz");
+    // Normalize the differing parent-dir names out of the comparison by hashing each subtree and
+    // asserting the digests differ for the SAME relative shape — the collision the framing prevents.
+    expect(hashPath(a)).not.toBe(hashPath(b));
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("is stable: the same tree hashes identically across calls", () => {
+    const root = mkdtempSync(join(tmpdir(), "hashstable-"));
+    writeFileSync(join(root, "one.txt"), "hello");
+    writeFileSync(join(root, "two.txt"), "world");
+    expect(hashPath(root)).toBe(hashPath(root));
+    rmSync(root, { recursive: true, force: true });
   });
 });

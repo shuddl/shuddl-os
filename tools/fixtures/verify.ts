@@ -10,13 +10,29 @@ import { parseMode, unavailableStatus, formatGateResult, type GateMode, type Gat
 type Entry = { id: string; gates: string; status: "vendored" | "pending" | "planned" | "in-repo-test"; path: string; sha256: string | null; source: string };
 type Manifest = { fixtures: Entry[] };
 
+/**
+ * The fixture-tree digest. FRAMED (2026-08-01, audit §10): each entry contributes its path and its
+ * bytes with EXPLICIT LENGTH PREFIXES, so the stream is injective over file trees. Unframed, the
+ * concatenation `path₁‖bytes₁‖path₂‖bytes₂…` could in principle collide — bytes shifted between a
+ * filename and its content, or across adjacent entries, produce the identical stream. The framing
+ * makes that impossible rather than merely improbable.
+ *
+ * Changing this changes EVERY digest, which is why the audit deferred it until it could land together
+ * with a re-pin of all vendored sha256s in one commit (the manifest note records the re-pin).
+ */
 export function hashPath(p: string): string {
   const h = createHash("sha256");
+  const frame = (bytes: Buffer | string): void => {
+    const buf = typeof bytes === "string" ? Buffer.from(bytes, "utf8") : bytes;
+    h.update(`${buf.length}:`); // length prefix — the delimiter that makes the stream injective
+    h.update(buf);
+  };
   const walk = (f: string): void => {
     if (statSync(f).isDirectory()) {
       for (const child of readdirSync(f).sort()) walk(join(f, child));
     } else {
-      h.update(f).update(readFileSync(f));
+      frame(f);
+      frame(readFileSync(f));
     }
   };
   walk(p);
