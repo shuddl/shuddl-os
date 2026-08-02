@@ -2749,3 +2749,68 @@ new REQ row.
 
 **Verification.** `check:chokepoint` OK (2 allowlisted writers); 6 chokepoint tests + 25 CI-contract tests
 green; both bypass shapes and the gate-unwiring mutation proved RED; lint, typecheck, citations, tables PASS.
+
+---
+
+## §57 — the /v1 prefix does not imply authentication, and the guard I nearly wrote would have said it did
+
+§56 pinned the append chokepoint. The same question, asked of the other chokepoint: **REQ-025/156 — the tenant
+is resolved server-side, never client-supplied, and a cross-tenant read is a build failure.** What stops a new
+route from being reachable without a token at all?
+
+### 57.1 What is already right
+
+`workers/api/src/middleware/auth.ts` does better than ignore a client-supplied tenant — it **rejects** the
+request outright (`403 TENANT IS RESOLVED SERVER-SIDE, NEVER CLIENT-SUPPLIED`) if `X-Tenant-Id` or `?tenant=`
+is present at all. Refusing is the right posture: ignoring would leave a caller believing it had switched
+tenant.
+
+And `app.use("/v1/*", auth)` is a genuine wildcard chokepoint — 39 of the 46 mounted paths sit under it and
+none of them can forget it. The other seven are accounted for: four `/pub/*` (the stranger-facing funnel plus
+two unguessable cap-token reads) and two `/internal/*` (behind the fail-closed `PLATFORM_INTERNAL_SECRET`,
+DARK by default). No route is unaccounted for.
+
+### 57.2 The premise I was about to encode was false
+
+I was one step from writing the obvious guard — *every path must start with `/v1/` or be allowlisted* — which
+encodes "the `/v1` prefix implies authentication".
+
+**It does not.** Hono runs matching handlers in **registration order**, and `GET /v1/health` is registered
+*above* `app.use("/v1/*", auth)`. Probed rather than reasoned about:
+
+```
+NO-TOKEN /v1/health -> 200
+NO-TOKEN /v1/whoami -> 401
+```
+
+`/v1/health` is deliberate and documented (REQ-111/114 probe target, returning `{ok, env}` and nothing else),
+so this is not a defect. **The defect would have been the guard**: it would have passed while asserting
+something untrue, and gone on passing for the next route someone registers above that line — which is exactly
+where an accidental hole would appear, since the line is 96 of a 270-line file and nothing marks it.
+
+That is the §51 failure mode (a test whose name claims more than it checks) caught *before* shipping instead
+of after, and the thing that caught it was the same as every other time this loop: **probing instead of
+reasoning.** The route table said `/v1/health`; only the request said `200`.
+
+### 57.3 `auth-surface.test.ts`
+
+Six cases asserting the real mechanism:
+
+1. The auth middleware **is registered** — the premise every other case rests on. Without this the rest prove
+   nothing about a file that deleted it.
+2. **Nothing answers before auth** except an allowlisted probe — computed from registration order, not from
+   the path. The `app.use("*")` middleware entries (reqId, cors) are excluded as non-handlers.
+3. Every mounted path is `/v1/*` or in a **self-gated namespace**, each carrying its own stated gate.
+4. Both allowlists must carry a *reason*, not a bare path.
+5. **Behaviour:** `/v1/whoami` 401s without a token while `/v1/health` answers 200 — the wiring claims above,
+   re-checked against what the server actually returns.
+6. **Behaviour:** a client-supplied `X-Tenant-Id` is rejected 403, not ignored.
+
+Mutation-proved on the two shapes that would really happen: a route registered one line *above* the middleware
+(caught, naming the route and telling you to move it below or justify it), and a route on a new top-level
+prefix (caught, saying it has no authorization at all).
+
+Scope: enforcement of REQ-025/030/156, all existing rows. No new capability, no new REQ row.
+
+**Verification.** `workers/api` 736 tests / 67 files green (up 6); both mutations proved RED with actionable
+messages; source restored byte-identical.
