@@ -2613,3 +2613,77 @@ sound.
 
 **Verification.** `tools/deploy` 24 tests green; both new tests mutation-proved in both directions; lint,
 typecheck, citations (956), tables all PASS.
+
+---
+
+## §55 — the I1–I8 invariants, swept: all eight enforced; one operator-facing citation rotted onto the wrong code
+
+§54 audited the hard budgets as an enumerable set. The same method applied to the deeper set: the schema
+invariants **I1–I8** in `genesis/10`, which sit at **#2 in the source-of-truth order** — above the design
+system, above the build spec.
+
+| Invariant | Enforcement, read (not grepped) | Verdict |
+|---|---|---|
+| **I1** no money_line without event | `event_id TEXT NOT NULL REFERENCES events(id)` in `0002_domain.sql`, **verified empirically** (below), pinned by `schema-domain.test.ts:55` and again by an `INSERT OR REPLACE` case so REPLACE cannot defeat it | **Enforced** |
+| **I2** no invoice without `pod.signed` | The I2 gate runs in the sequencer BEFORE the append, with three documented carve-outs (`_platform` credit-pack sale, `source:'legacy'` mirror record, and the INERT serviceClass exemption) | **Enforced** |
+| **I3** no event edit/delete at DB level | Append-only triggers, pinned across `schema-core.test.ts` for UPDATE, DELETE, `INSERT OR REPLACE` on four distinct UNIQUE collisions, and `ON CONFLICT DO UPDATE` | **Enforced** |
+| **I4** custody events co-signed | `events.ts` `superRefine`: a device-namespaced event must satisfy `device_id === actor.device` AND carry `sig` — binding the offline dedupe key to the signing key, so no device can squat another's slot | **Enforced** |
+| **I5** every quote pins rate_config versions | `z.object({ rate_config_ids: z.array(z.string()).min(1) }).strict()` at the event boundary | **Enforced** |
+| **I6** visibility respected by every view | Stamp-time visibility + per-lens redaction; §51 measured the general guard's real reach and ratcheted it | **Enforced** |
+| **I7** correction pairs net zero in GL | `lens-adversarial` case 8 plus the `gen-gl-netting` fixture, which pins the round-trip to the penny | **Enforced** |
+| **I8** any 22nd table = build failure | `check:invariants`, reporting `21/22` on every run | **Enforced** |
+
+### 55.1 I1 was verified by experiment, and the experiment lied twice first
+
+The FK is written in DDL — but SQLite **ignores foreign keys unless `PRAGMA foreign_keys=ON`**, this repo sets
+that pragma nowhere, and it has already been bitten by a D1 pragma default (`recursive_triggers=0`, which is
+why the append-only guards need BEFORE INSERT triggers). So "the DDL says REFERENCES" is not an answer.
+
+A throwaway probe answered it: **`PRAGMA foreign_keys = 1`** in D1/miniflare, and an otherwise-valid
+money_line whose only defect is a dangling `event_id` fails with
+`D1_ERROR: FOREIGN KEY constraint failed: SQLITE_CONSTRAINT`. I1 holds at runtime.
+
+**Both earlier attempts returned "rejected: true" for the wrong reason** — first `no such table` (migrations
+not applied), then `NOT NULL constraint failed: money_lines.party_id`. Either would have been recorded as
+"I1 enforced" by anyone reading only the boolean. A rejection is only evidence when you read *why* it was
+rejected; the probe had to be narrowed until the FK was the single remaining defect.
+
+### 55.2 A fourth grep-absence failure, one section after writing the rule down
+
+I concluded "no test pins I1" from `grep money_lines … | grep -i orphan|FK|reject`. The test exists and is
+named *"event_id FK rejects **a money_line** for an unknown event"* — **singular**. The grep for `money_lines`
+could not match it.
+
+That is the fourth such failure in three sections, and it came immediately after §54 recorded the rule and a
+memory was written for it. The rule is not "grep more carefully" — it is that **a null grep result is not
+evidence of absence, ever.** What saved it here was not caution but method: running the experiment and then
+opening the file. The wrong conclusion was never published.
+
+### 55.3 The one real defect: a checklist row aimed at the wrong code
+
+`GO-LIVE-CHECKLIST.md` carries a correct, well-graded row for the inert POD-gate exemption — fail-**safe**
+direction stated, remediation named. Its citation — `sequencer.ts` line 281 — had **drifted ~61 lines onto the
+`authority.flipped` stream guard**. An operator following it lands on an unrelated invariant and reasonably
+concludes the row is stale or the gap is gone.
+
+`check:citations` cannot catch this: line 281 is *in bounds*, so the citation "resolves". This is exactly the
+rot the anchor ratchet exists to discourage — and `sequencer.ts` is one of its ten high-churn targets.
+Re-pointed to `workers/api/src/do/sequencer.ts:342@invoice_without_pod_classes`, **with an anchor**, so the
+next drift fails the gate instead of silently mis-aiming a reader. The ratchet correctly demanded the
+improvement be banked (2 → 1 unanchored for this pair); baseline now 130.
+
+**Two further citations looked identically rotted and were deliberately NOT touched.** Lines 370 and 373 cite
+the same stale `sequencer.ts` line-700 range — but they are *historical rows recording that very correction*
+("that range is the `booking.created` gate, while the ratecon marker is at `:926-929`"). The stale citation is
+their subject. Editing them would have destroyed the record of a fix in the name of tidying it — the same
+mistake in the opposite direction, and the reason §5's superseded lists are annotated rather than rewritten.
+
+### 55.4 Verdict
+
+**All eight invariants are enforced**, several in more than one place, and I1/I3 far more thoroughly than the
+one-line statements in `genesis/10` imply. This is a **clean negative** on the invariant layer — the second
+consecutive section to find the declared laws honestly enforced. The defect found was, once again, in the
+**record** rather than the code.
+
+**Verification.** 957 citations resolve (26 content-anchored, up one); ratchet banked at 130 and green;
+tables OK.
