@@ -3762,3 +3762,52 @@ Checking per-kind coverage, `credit_purchase` showed **zero** files — I had sc
 the billing worker, not the ledger package. Sixth instance this loop, caught before it was written down.
 
 **Verdict: clean negative.** `money.ts` restored byte-identical; GL parity 6/6 green.
+
+---
+
+## §77 — the dispatch sites, swept; and a correction to §76's own framing
+
+§76 concluded *"audit the dispatch sites, not the data-carrying ones."* That was directionally right and
+imprecise, and the sweep it prescribed shows why.
+
+### 77.1 The highest-consequence dispatch site is compile-time complete
+
+The sequencer's per-kind gate switch is where a forgotten member would cost the most: a `GATED_KIND` with no
+case means its gate silently does not run. It is protected by an exhaustiveness guard, and the source says so
+— *"if `GATED_KINDS` gains a kind without a switch case, the call stops COMPILING."*
+
+Mutation-proved: adding `"pod.signed"` to `GATED_KINDS` without a case yields
+`TS2345: Argument of type '"pod.signed"' is not assignable to parameter of type 'never'`. And `assertNever`
+throws at runtime too, so a Set/switch desync cannot fall through to an ungated append even if the type check
+were bypassed. Belt and suspenders, both real.
+
+### 77.2 The other typeof-dispatch sites all fail closed
+
+Five modules use `canonical.ts`'s shape (`typeof x === …` chains): `canonical.ts`, `parity.ts`,
+`polygon-source.ts`, `tsa/der.ts`, `projection/money.ts`. `der.ts` is the closest analogue — another
+byte-level serializer — and it **throws** on every unsupported input (negative length, negative integer, wrong
+digest size, truncated buffer, unsupported length form). No silent fallthrough.
+
+### 77.3 The correction: §70's gap was not an unhandled member
+
+`canonicalize` also throws on unsupported types — floats, `-0`, unsafe integers, lone surrogates, sparse
+holes. **Booleans were never unhandled.** They were handled correctly (`v ? "true" : "false"`) and simply had
+no test.
+
+So the bug class is narrower and more specific than §76 stated. It is not "dispatch sites" as a category. It
+is:
+
+> **a member that IS handled, whose output is consumed silently, and which no test pins.**
+
+All three conditions are required. A member that is unhandled throws. A member whose output is checked
+downstream (a GL account against the canonical set, a DER structure the TSA rejects) surfaces on its own. Only
+where handled-and-silent-and-untested overlap — a hash, where any bytes are *a* valid answer and nothing
+downstream disagrees — does a wrong answer travel undetected. That is precisely the canonical byte law, and it
+is why the fix there was a **known-answer vector** rather than another behavioural test.
+
+**§76's "audit the dispatch sites" is superseded by this.** The sharper question, and the one worth carrying:
+*where does this code produce bytes that nothing downstream can disagree with?* In this repo that set is
+small — canonical JSON, the Merkle vectors, the DER request — and all three now carry known-answer vectors.
+
+**Verification.** `sequencer.ts` restored byte-identical; the exhaustiveness mutation proved RED at the type
+level; all five `typeof`-dispatch modules read for silent-fallthrough behaviour; gates PASS.
