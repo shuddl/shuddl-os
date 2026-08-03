@@ -3811,3 +3811,42 @@ small — canonical JSON, the Merkle vectors, the DER request — and all three 
 
 **Verification.** `sequencer.ts` restored byte-identical; the exhaustiveness mutation proved RED at the type
 level; all five `typeof`-dispatch modules read for silent-fallthrough behaviour; gates PASS.
+
+---
+
+## §78 — phase gate re-measured at `0a8b6da`
+
+§65 stamped `f026527`. Thirteen sections later, measured again.
+
+**1. Zero open repository-owned Critical/High — SATISFIED.** §66–§77 opened two real defects and closed both:
+the canonical byte law's unpinned boolean (§70) and this loop's own chokepoint-lint evasion (§71). Everything
+else was a clean negative. The two open Highs remain **External** and unchanged (driver custody handoff, live
+EDI adapter); the pre-R4 repo carry-forward is still resolve-path pool-binding exclusivity.
+
+**2. Baseline gates green — SATISFIED but for the one row that is not this loop's.** **17 workspaces, 2,879
+tests, exit 0** (2,877 at §65 plus §70's two new byte-law vectors). Root `tools/`: **715 tests, 3 failing** —
+the same three register-parsing failures, and `check:coverage` reports `classified 288/289, unaccounted: 1`.
+Isolated by experiment in §52 to the GTM workstream's uncommitted `REQ-289`. All twelve static gates PASS.
+
+**3. Remaining debt entirely External or CONFIRM-gated — SATISFIED**, unchanged from §65, including the
+`routes ±10%` owner decision (§61/§68 — now traced to **two** genesis documents, so it is settled intent
+rather than a stray phrase) and the seventeen §48 boundary-module threat rows still deliberately unwritten.
+
+**4. The record agrees with the world — SATISFIED.** §77 corrected §76's own framing within the same
+iteration; §73 caught a mis-targeted mutation before it became a false finding about the isolation suite.
+
+### 78.1 What thirteen sections of mutation-testing established
+
+Nine security-critical rules were reverted to their pre-fix form and the suite watched. **Seven held**, several
+at two or three independent layers (§72's inherited visibility: resolver sentinel + type system + four
+behavioural tests; §74's C3 path: resolver + dispatch + sweep enumeration). **Two had real gaps**, and both
+were in recently-written code — §70's boolean vector had been missing since the byte law was written, and §71's
+evasion was introduced by this very loop in §56.
+
+The durable finding is about test *naming*, recorded in §75: every rule that held was pinned by a test named
+for **what an attacker could attempt**; both gaps were covered only by tests named for **what the code does**.
+And §77 narrowed the residual bug class to its precise shape — *a member that is handled, whose output is
+consumed silently, and which no test pins* — which in this repo is the small set of byte-producing surfaces
+(canonical JSON, Merkle vectors, DER), all three now carrying known-answer vectors.
+
+**The stopping line is unchanged and is reached again at `0a8b6da`.**
