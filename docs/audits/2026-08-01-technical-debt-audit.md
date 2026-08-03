@@ -4140,3 +4140,45 @@ the refusal.
 
 **Verification.** All six route files restored byte-identical (`git status` clean for `workers/api/src`);
 `booking-gate.test.ts` 23/23 with the new case; the mutation proved RED.
+
+---
+
+## §85 — phase gate re-measured at `1909df4`
+
+§78 stamped `0a8b6da`. Seven sections later, measured again.
+
+**1. Zero open repository-owned Critical/High — SATISFIED.** §79–§84 opened one real defect and closed it:
+the gate-override authorization gap (§84), which was the sole enforcement of "only an elevated role may waive
+a server-side gate" and had no negative test. Everything else in that span was a clean negative. The two open
+Highs remain **External** and unchanged; the pre-R4 repo carry-forward is still resolve-path pool-binding
+exclusivity.
+
+**2. Baseline gates green — SATISFIED but for the one row that is not this loop's.** **17 workspaces, 2,880
+tests, exit 0** (2,879 at §78 plus §84's override-refusal case). Root `tools/`: **715 tests, 3 failing** — the
+same three register-parsing failures; `check:coverage` reports one unclassified row. All **twelve** static
+gates PASS.
+
+**3. Remaining debt entirely External or CONFIRM-gated — SATISFIED.** One checklist item **closed** this span
+(the multi-guard 403 sweep, §82→§84) rather than carried. The `routes ±10%` owner decision stands.
+
+**4. The record agrees with the world — SATISFIED**, after three self-corrections in this span: §79 corrected
+§77's "three byte surfaces" to seven, §83 corrected §82's route count (comment lines inflated it), and §84's
+write-up was itself caught by the citation ratchet for introducing bare line numbers into churn-prone files.
+
+### 85.1 What the mutation programme found, in total
+
+Across §69–§84, **thirty-one** guards, invariants and byte surfaces were reverted to their pre-fix form and
+the suite watched. **Twenty-eight held.** Three did not:
+
+| Defect | Where |
+|---|---|
+| Canonical byte law had no boolean vector (§70) | Oldest, most-tested surface in the repo |
+| The chokepoint lint carried the evasion its own skill documents (§71) | Code written **by this loop**, in §56 |
+| Gate-override authority had one enforcement and no refusal test (§84) | The most powerful client capability in the API |
+
+Every one was a **coverage** defect; not one was a missing or wrong guard. That is the shape of a codebase
+whose controls are sound and whose tests grew around what the features *do*. The durable rules extracted —
+name tests for the adversary (§75), assert the reason not the shared status (§81), and write the refusal when
+you add a capability (§84) — are all corrections to *how coverage is written*, not to how the system behaves.
+
+**The stopping line is unchanged and is reached again at `1909df4`.**
