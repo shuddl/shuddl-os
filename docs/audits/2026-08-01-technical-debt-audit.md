@@ -3625,3 +3625,50 @@ break, with the positive controls doing the load-bearing work. No defect.
 
 **Verification.** `tenants.ts` restored byte-identical; `isolation.test.ts` 64/64 green; both mutation sites
 confirmed by line number before drawing any conclusion from either.
+
+---
+
+## §74 — the C3 loss path, mutation-tested at all three layers it needs
+
+`park-unroutable-work-never-destroy-it` records the loop's worst defect: `workers/agents` resolved tenants
+through a static two-slug map and **ACKed** any trigger naming a tenant it could not resolve — while the api
+worker and sequencer DO fully served claimed-pool tenants. A pool tenant's committed `pod.signed` enqueued a
+Biller trigger the agents worker destroyed: no invoice, no DLQ record, one log line. Fail-**silent**, not
+fail-closed.
+
+The skill's sharpest observation is not the defect but its shape: *"the sweep that would recover it usually
+shares the same roster blind spot."* The recovery paths — the REQ-169 recon sweep, the Watchtower unbilled
+alarm — iterated the **same** static roster, so they excluded exactly the tenants that had lost work. A
+defect and its own remedy, disabled by one shared assumption.
+
+That makes it a three-layer fix, and each layer was mutation-tested separately.
+
+| Layer reverted to its pre-fix form | Tests that fire |
+|---|---|
+| **Resolver** — `resolveTenantDb` throws instead of falling back to `resolveClaimedTenantDb` | 2 — *"a CLAIMED pool tenant resolves to the pool binding its control row names"*, and *"a claimed tenant's `pod.signed` reaches the handler … WITHOUT the roster log"* |
+| **Sweep enumeration** — `allTenantSlugs` returns only the static roster | 2 — *"static roster first, then claimed, deduped"*, and the control-plane-fault case |
+
+The dispatch test is the one that matters most: it pins that the work is **routed**, not merely that a slug
+resolves. A fix that made the resolver correct while leaving the consumer parking the trigger would still
+destroy the invoice, and only that test would notice.
+
+### 74.1 One design decision worth surfacing
+
+The second enumeration test reads: *"a control-plane fault yields the STATIC roster with a loud log —
+anchoring must never be hostage to enumeration."* That is a deliberate **fail-soft**, and it is the right call
+in a place where this audit has otherwise insisted on fail-closed: if the control plane is unreachable, the
+daily anchor still runs for the tenants it can name, rather than skipping anchoring entirely. The
+loud log is what keeps it honest — a silent narrowing here would be the original C3 defect wearing a different
+hat. Worth naming because "fail-closed everywhere" is the wrong rule; the right one is *fail in the direction
+that does not destroy work, and make the degraded mode audible.*
+
+### 74.2 Verdict
+
+**Clean negative.** All three layers hold, each independently pinned, all mutations proved RED and restored
+byte-identical. Combined with §69 (append-only guards), §72 (inherited visibility), and §73 (tenant
+isolation), that is four consecutive security-critical skills whose rules are genuinely enforced — and the
+two real defects this lens found (§70's unpinned boolean, §71's own evasion) were both in the *newest* code,
+not the oldest.
+
+**Verification.** `workers/agents` 106 tests / 17 files green; both mutation sites confirmed live by line
+number before running (§73's guard rail); `tenants.ts` restored byte-identical.
