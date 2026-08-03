@@ -3366,3 +3366,60 @@ both mentions are vestigial and want striking. The GO-LIVE row now cites both.
 **Verification.** `pnpm test:acceptance` — **GREEN, all 7 spine tests pass**; 5 new drift tests, both
 directions mutation-proved, source restored byte-identical; tools suite 708 (up 5) with the same three
 `REQ-289` failures; tables and citations PASS.
+
+---
+
+## §69 — the append-only guard chain: a clean negative, and the only complete remediation shape in the repo
+
+The `.claude/skills/` are instructions **future sessions follow**, so a stale one misleads an agent rather than
+a reader — a strictly worse failure than a stale document. Sixteen exist. `complete-append-only-insert-guards`
+is the most mechanically checkable, and it turns out to be the best-defended invariant in the repository.
+
+### 69.1 Every claim verified against the migrations
+
+The skill states that `events` has **four** conflict surfaces and that `positions` has none beyond its PK.
+Compared against `db/tenant/migrations/*.sql` rather than trusted:
+
+- `events` — `PRIMARY KEY (stream_id, seq)`, `id TEXT NOT NULL UNIQUE`, `hash TEXT NOT NULL UNIQUE`, and
+  `CREATE UNIQUE INDEX ux_events_device ... WHERE device_id IS NOT NULL`. **Four.** Correct.
+- `positions` — `PRIMARY KEY (shipment_id, device_id, ts)` and nothing else. Correct, which is what licenses
+  its deliberately narrower `hash <>` guard shape (Decision 14's idempotent re-ingest).
+- `money_lines` — PK `id`, `UNIQUE (event_id, line_no)`, `ux_ml_corrects`. **Three**, all guarded.
+
+The guards in `0003` + `0008` together enumerate every one.
+
+### 69.2 And a gate enforces it — mutation-proved
+
+`check:invariants` does not merely check that guards exist: it **enumerates every UNIQUE target on a guarded
+table** (table-level PK/UNIQUE, column-level, and every `CREATE UNIQUE INDEX ... ON <table>`) and fails if any
+lacks a `*_guard_ins` predicate. Adding `CREATE UNIQUE INDEX ux_events_mutation ON events(shipment_id,
+recorded_at)` produces:
+
+```
+FAIL I3 VIOLATION: append-only guard completeness — the UNIQUE target (shipment_id, recorded_at) on events
+has no BEFORE INSERT guard predicate enumerating it; an INSERT OR REPLACE colliding on it would silently
+delete a chained row (D1 recursive_triggers=0). Add it to a *_guard_ins WHEN clause.
+```
+
+It names the target, the consequence, and the fix.
+
+### 69.3 Why this one is worth writing up as a negative
+
+This invariant went through the **complete** remediation shape, and it is the only place in the repo where all
+four steps are present:
+
+1. **The hole was hit** — `0003`'s guard enumerated only `(stream_id, seq)` and `id`, omitting `hash` and the
+   device index.
+2. **Fixed** — `0008` added the missing predicates.
+3. **Written down** — the skill explains *why* (D1 pins `recursive_triggers = 0`, so REPLACE's implicit DELETE
+   never fires the BEFORE DELETE guard, making BEFORE INSERT the only backstop), so the next author
+   understands the rule rather than copying it.
+4. **Gated** — and the gate is generative: it catches a UNIQUE key that does not exist yet.
+
+Most remediation in this loop stopped at 2+3. Step 4 is what makes a fix survive the person who wrote it, and
+step 3 is what stops step 4 being cargo-culted. **A defect this thoroughly closed is worth recording precisely
+because nothing was found** — it is the template, not the exception.
+
+**Verification.** Skill claims compared against all 11 tenant migrations; guard predicates enumerated by hand;
+the completeness gate mutation-proved RED with a synthetic UNIQUE index and restored clean
+(`invariants OK — 21/22 tables, 11 migration files`).
