@@ -3894,3 +3894,37 @@ Seventh instance this loop. The tally is now unambiguous: **seven absence claims
 corrected by reading or running rather than by searching harder.
 
 **Verification.** All seven vectors located and read; no code changed; gates PASS.
+
+---
+
+## §80 — read-model consistency: pinned at four layers, including the business consequence
+
+`keep-readmodel-consistent-with-ledger` records a defect worth restating precisely, because it is the kind
+that produces **wrong money with everything green**: `invoice.corrected` with empty `reissue_lines` is a
+**void**. The RED emitted the netting credits onto `money_lines` but returned `[]` for the invoices upsert — so
+the ledger netted the invoice to zero while the AR read-model still showed it `issued` at its original total.
+Two read-models of one event, disagreeing, with no error anywhere.
+
+Reverting that single branch to `[]` turns **four** tests red, and their layering is the point:
+
+1. **The projection** — *"invoice.corrected with empty reissue_lines is a VOID: credits only, no reissue, AND
+   the invoices row flips to void/0."*
+2. **The invariant** — *"I7: voiding an all-positive invoice nets stream AR to EXACTLY 0."*
+3. **Through real D1** — *"after issue→void the invoices AR (status='issued') == money_lines net (both 0)."*
+   The two read-models compared against each other, not each against a hard-coded expectation.
+4. **The business consequence** — *"computeDsoDays EXCLUDES a voided invoice (no phantom open AR in DSO)."*
+
+The fourth is the one that matters most and the one most suites omit. Layers 1–3 assert the projection is
+correct; layer 4 asserts that **the thing the projection exists for** — a DSO figure someone will read — is
+correct. A fix that flipped the row to `void` but left the DSO query scoping on something else would satisfy
+1–3 and still report phantom open AR. It is §75's rule again: name the scenario, not the mechanism.
+
+Layer 3 deserves a note too. It asserts the two read-models **agree with each other** rather than each
+matching a literal. That is the right shape for a consistency invariant — a drift that moved both would be a
+real change worth failing on, while a hard-coded pair would go stale the first time the fixture's amounts
+changed.
+
+**Verdict: clean negative.** `packages/ledger` 609 tests / 34 files green; mutation proved RED at all four
+layers; `money.ts` restored byte-identical; mutation site confirmed live by line number first (§73).
+
+This is the eighth skill mutation-tested (§69–§80). **Six clean, two real gaps**, both already closed.
