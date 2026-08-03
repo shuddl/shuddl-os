@@ -105,10 +105,15 @@ describe("POST /v1/positions — server-side gate parity (REQ-190)", () => {
     expect(r.status).toBe(201);
   });
 
-  it("driver posting to a shipment NOT assigned to them → 403, nothing inserted", async () => {
+  // Audit §81 — asserts the REASON, not just the status. All three gates below answer 403, and SHP_OTHER
+  // deliberately has no consent, so this case passed even with the assignment gate DELETED: it 403d from the
+  // consent gate instead. A wrong-reason pass on a security test is indistinguishable from a right one until
+  // someone removes the gate, which is exactly when you need it.
+  it("driver posting to a shipment NOT assigned to them → 403 DRIVER NOT ASSIGNED (not merely some 403), nothing inserted", async () => {
     const ts = 1_720_000_100_001;
     const res = await postPosition(positionInput(SHP_OTHER, TEST_DEVICE_ID, ts), await driverTok());
     expect(res.status).toBe(403);
+    expect(JSON.stringify(res.body)).toContain("DRIVER NOT ASSIGNED");
     expect(await positionCountAll(SHP_OTHER)).toBe(0);
   });
 
@@ -116,6 +121,7 @@ describe("POST /v1/positions — server-side gate parity (REQ-190)", () => {
     const ts = 1_720_000_100_002;
     const res = await postPosition(positionInput(SHP_ASSIGNED, "device-not-registered", ts), await driverTok());
     expect(res.status).toBe(403);
+    expect(JSON.stringify(res.body)).toContain("DEVICE NOT REGISTERED");
     expect(await positionCount(SHP_ASSIGNED, "device-not-registered", ts)).toBe(0);
   });
 

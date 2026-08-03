@@ -3928,3 +3928,56 @@ changed.
 layers; `money.ts` restored byte-identical; mutation site confirmed live by line number first (§73).
 
 This is the eighth skill mutation-tested (§69–§80). **Six clean, two real gaps**, both already closed.
+
+---
+
+## §81 — a security test that passed for the wrong reason: the positions assignment gate
+
+`enforce-server-side-gate-parity` covers the routes that **bypass the sequencer** — chiefly `POST /v1/positions`,
+the high-volume raw-GPS path that skips `seq`/hash-chaining but must not skip the gates. Its RED was a write
+with no consent check that bound a client-supplied `shipment_id`/`device_id` unverified.
+
+Three gates now stand there, in order: **driver-assignment**, **device-registration**, **consent**. Each was
+reverted separately.
+
+- Remove **device-registration** → 1 test red, and the right one (*"assigned driver but device_id NOT
+  registered to them → 403, nothing inserted"*).
+- Remove **consent** → 1 test red (*"…NO consent on the stream → 403 GATE_BLOCKED(consent)"*).
+- Remove **driver-assignment** → **the entire `workers/api` suite passed. 740/740.**
+
+### 81.1 The test existed, was named correctly, and proved nothing
+
+This is not a missing test. `positions-gate.test.ts:108` reads *"driver posting to a shipment NOT assigned to
+them → 403, nothing inserted"* — exactly the right case. It asserted `status === 403` and a zero row count.
+
+**All three gates answer 403.** The fixture posts to `SHP_OTHER`, which the suite's own setup comment says is
+assigned to a different driver — and which, by that same setup, has **no consent** (*"Consent (CA) lives ONLY
+on SHP_ASSIGNED"*). So with the assignment gate deleted the request fell through to the consent gate, got its
+403, inserted nothing, and the test passed. Green, for a reason unrelated to what it was written to check.
+
+A wrong-reason pass is worse than a missing test. A missing test is visible in coverage; this one occupies the
+slot, carries the right name, and reports success — and it would have gone on doing so for as long as the gate
+was absent.
+
+### 81.2 The asymmetry that pointed at it
+
+`assignmentOf` has exactly two callers: the events route and the positions route — one predicate, deliberately
+shared so the paths cannot drift (the skill's own prescription). Mutating the **events** side turns
+`lens-adversarial.test.ts` red (*"D2 cannot append to D1's shipment"*). Mutating the **positions** side turned
+nothing red.
+
+So the predicate was shared and the *coverage* was not, on the path explicitly documented as the sanctioned
+bypass. That is the share-lint family again (§71): two callers of one rule, one of them unguarded.
+
+### 81.3 The fix, and why it is about reasons
+
+Both refusal tests now assert the **distinguishing message** — `DRIVER NOT ASSIGNED`, `DEVICE NOT REGISTERED` —
+not merely the status they share with every sibling gate. Mutation-proved: removing the assignment gate now
+turns that case red, where before it stayed green.
+
+The general form is worth stating, because this repo's gates all answer 403 by design: **when several guards
+share a status code, asserting the status tests none of them.** The assertion has to name the guard that was
+supposed to fire.
+
+**Verification.** `positions-gate.test.ts` 4/4 green restored; the assignment mutation now RED (was 740/740
+green); `positions.ts` and `events.ts` both restored byte-identical.
