@@ -28,6 +28,37 @@ describe("canonical JSON — the byte law", () => {
   it("known-answer: sha256 of canonical {} is stable", async () => {
     expect(await sha256Hex(canonicalBytes({}))).toBe("44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a");
   });
+
+  // Audit §70 — BOOLEANS were the one member of the JsonValue union with no golden vector. Every other
+  // member is pinned above by an exact-output assertion (number/string via key-sort + escape, null via
+  // the undefined-omission case, array + nested object via the ordering case), but nothing asserted the
+  // bytes of `true`/`false`. `canonicalize` emits them at src/canonical.ts:23 (`v ? "true" : "false"`),
+  // and they REACH hashed data: `stop.arrived` and `stop.departed` payloads both carry `auto: z.boolean()`
+  // (plus `out_for_delivery`). A well-meaning "improvement" to that line — emitting 1/0, or capitalised —
+  // would have rewritten the hash of every arrival and departure event with nothing failing.
+  it("booleans serialize as bare true/false — the last unpinned member of the value union", () => {
+    expect(canonicalize({ t: true, f: false })).toBe('{"f":false,"t":true}');
+  });
+
+  // The end-to-end vector. The {} known-answer above pins the pipeline for a structure that exercises
+  // none of the law; this one carries ALL SIX JsonValue types in one object — string, number (negative),
+  // boolean, null, array (mixed), nested object (needing its own key sort) — and freezes the resulting
+  // sha256. `canonicalBytes` is TextEncoder over `canonicalize`, and `sha256Hex` is WebCrypto, so this
+  // single hash pins the whole chain: any drift in serialization, UTF-8 encoding, or digest formatting
+  // moves it. Both the bytes and the hash are asserted, so a failure says WHICH half moved.
+  it("known-answer: a structure spanning every JsonValue type hashes stably", async () => {
+    const rich = {
+      arr: [1, true, null, "x"],
+      b: false,
+      n: -7,
+      nul: null,
+      obj: { z: true, a: 0 },
+      s: 'q"\\',
+      t: true,
+    };
+    expect(canonicalize(rich)).toBe('{"arr":[1,true,null,"x"],"b":false,"n":-7,"nul":null,"obj":{"a":0,"z":true},"s":"q\\"\\\\","t":true}');
+    expect(await sha256Hex(canonicalBytes(rich))).toBe("dfd46fde61659ca55c63ee78d12c7607789d6dd850a652949af376446dfd3590");
+  });
 });
 
 // REQ-011/REQ-002: a frozen-forever primitive must never emit malformed bytes. A sparse

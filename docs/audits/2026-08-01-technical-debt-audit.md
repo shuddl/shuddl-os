@@ -3423,3 +3423,51 @@ because nothing was found** — it is the template, not the exception.
 **Verification.** Skill claims compared against all 11 tenant migrations; guard predicates enumerated by hand;
 the completeness gate mutation-proved RED with a synthetic UNIQUE index and restored clean
 (`invariants OK — 21/22 tables, 11 migration files`).
+
+---
+
+## §70 — the frozen byte law had one unpinned value type, and it reaches hashed events
+
+§69 verified one skill's rule end to end. Continuing through the sixteen, `preserve-canonical-hash-byte-law`
+guards the ledger's integrity foundation: *"any byte drift in the serializer"* invalidates every stored event's
+hash and signature. So the question is whether the law is pinned by **golden vectors** or only by behavioural
+tests — because behavioural tests and the serializer can drift together and still agree.
+
+### 70.1 Mostly pinned, and pinned the right way
+
+Better than expected. The suite does not merely assert behaviour, it hardcodes **exact output bytes**:
+`canonicalize({b:1,a:2})` → `'{"a":2,"b":1}'` pins key ordering; the escape case pins
+`'{"s":"\\u0001\\"\\\\"}'` character for character; the nesting case pins array order plus inner key sort; the
+`undefined`/`null` case pins omission. Those are golden vectors. And `canonicalBytes` is `TextEncoder` over
+`canonicalize` while `sha256Hex` is WebCrypto — thin wrappers over standard primitives — so pinning the string
+pins the hash transitively.
+
+### 70.2 The gap: booleans
+
+Of the six members of the `JsonValue` union — string, number, boolean, null, array, object — **five were
+pinned by an exact-output assertion and boolean was not.** `canonical.ts:23` emits `v ? "true" : "false"`, and
+nothing asserted it.
+
+Not theoretical: **booleans reach hashed events.** `StopArrivedPayload` and `StopDepartedPayload` both carry
+`auto: z.boolean()`, and departure additionally carries `out_for_delivery`. A plausible "improvement" to that
+line — emitting `1`/`0`, or capitalised — would have silently rewritten the canonical bytes, and therefore the
+hash and signature, of **every arrival and departure event ever recorded**, breaking chain verification for
+the whole stream.
+
+**Mutation-proved, and the discrimination is the point:** changing booleans to `1`/`0` fails both new vectors
+while **all eleven pre-existing byte-law tests still pass.** The gap was real, not hypothetical — the change
+was invisible to the entire existing suite.
+
+### 70.3 What was added
+
+- A boolean golden: `canonicalize({t:true,f:false})` → `'{"f":false,"t":true}'`.
+- An **end-to-end known-answer over every type at once**. The existing `{}` known-answer pins the pipeline for
+  a structure that exercises none of the law; the new vector carries all six types — string, negative number,
+  boolean, null, mixed array, nested object needing its own key sort — and freezes both the bytes **and** the
+  resulting sha256, so a failure says which half moved. Any drift in serialization, UTF-8 encoding, or digest
+  formatting now moves that hash.
+
+Scope: REQ-011/REQ-002, existing rows, tightening a law the repo already declares frozen. No new capability.
+
+**Verification.** `packages/ledger` 609 tests / 34 files green (up 2); the boolean mutation proved RED on both
+new vectors and GREEN on all eleven prior ones; `canonical.ts` restored byte-identical.
