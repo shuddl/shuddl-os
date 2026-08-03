@@ -3524,3 +3524,51 @@ this loop has now used them twice as an audit lens (§69, §70) and once — her
 
 **Verification.** `check:chokepoint` and `check:invariants` PASS; 13 chokepoint tests (up 7); `tools/checks`
 259 tests green; all three evasion forms confirmed caught against a live file; typecheck and lint clean.
+
+---
+
+## §72 — inherited visibility: defended three deep, and the fifth grep that nearly reported a hole
+
+`fail-closed-on-inherited-visibility` states the rule: when an event inherits a security attribute from a
+referenced event, a **missing** inherited value is a hard error — never a fall-through to the kind's open
+default, because "the widest default is exactly the leak the inherit was added to prevent." Its RED was
+`visibility.ts` returning the `invoice.corrected` kind default (`counterparty`) when the parent's visibility
+could not be resolved — surfacing a phantom charge in a lens the original never appeared in.
+
+**Closed, and defended at three independent layers.**
+
+1. **The resolver.** `INHERITED_VISIBILITY_KINDS` has no default of its own; `resolveVisibility` returns
+   `correctedEventVisibility ?? UNRESOLVED_VISIBILITY`. The sentinel is deliberately **not** a `Visibility` and
+   is documented as never stored. Pinned by `visibility.test.ts` — including the exact case
+   ("NO resolvable parent visibility returns UNRESOLVED — fail closed, never the default").
+2. **The type system.** `let visibility: Visibility = resolvedVisibility` only compiles because the refusal
+   above it narrows the union. Deleting the refusal is a **typecheck error**
+   (`Type '"unresolved"' is not assignable to type '"internal" | "counterparty" | "public"'`), and `typecheck`
+   is on the merge surface. The sentinel's type is load-bearing, not decorative.
+3. **Four behavioural tests.** `invoice-correction.test.ts` covers each way a parent can fail to resolve —
+   **missing**, **wrong-kind**, **cross-stream**, and **cross-tenant** (REQ-025) — each asserting *rejected,
+   zero append*. All four fail when the refusal is removed.
+
+Mutation-proved end to end: deleting the sequencer's `if` breaks typecheck **and** turns those four red.
+
+### 72.1 The methodological note, which is the reason to write this up
+
+I searched for the refusal's reason string, `invoice_correction_unresolved_parent`, across the entire
+repository. **It appears only in the source** — no test mentions it. I was one sentence from reporting that
+the sequencer's enforcement was unpinned.
+
+It is pinned four times over. The tests assert on `/VALIDATION_FAILED/` — the error *code* — not on the
+reason string, which is a perfectly reasonable way to write them.
+
+That is the **fifth** absence claim this loop that a grep would have gotten wrong (after §53's `fetch(`,
+§54's two budget counts, and §55's `money_lines` singular/plural). The pattern is now completely stable:
+**every single time I have concluded "X is not enforced" from an empty grep, I have been wrong** — and every
+time, what corrected me was running something rather than reading harder. Here it was the mutation: I removed
+the guard expecting silence and got four failures and a type error.
+
+The rule has earned a stronger form than "grep carefully": **for an absence claim about enforcement, the grep
+is not evidence at all — the mutation is the evidence.** Deleting the thing and watching what screams is both
+faster and sound, where a search over the vocabulary someone else chose is neither.
+
+**Verification.** `sequencer.ts` restored byte-identical; `workers/api` typecheck clean;
+`invoice-correction.test.ts` 6/6 green.
