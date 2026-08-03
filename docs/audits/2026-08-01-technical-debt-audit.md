@@ -4028,3 +4028,58 @@ concluded for record claims.
 
 **Verification.** `portal-actions.ts` restored byte-identical; its two guard tests confirmed RED under
 mutation; the 116/34/82 counts produced by script, not by eye.
+
+---
+
+## §83 — clearing §82's open item, and a broken instrument that reported false all-clears
+
+§82 recorded ~24 unmutated guards as outstanding rather than claiming a sweep. This clears most of it, and
+corrects §82's own arithmetic on the way.
+
+### 83.1 The field is smaller than §82 said
+
+§82 counted "11 routes with ≥2 403 sites" by grepping for `403` — which counts **comment lines**.
+`documents.ts` was listed with 2 and has exactly **one** real guard; its other hit is prose.
+
+Counting only lines that actually construct a 403 (`ApiError`/`envelope`, comments excluded): **6 routes, 18
+real guards** — `events.ts` 8, and 2 each in `board.ts`, `portal-actions.ts`, `positions.ts`, `rate.ts`,
+`status-link.ts`. Third arithmetic correction to my own count this loop (after §58's gate figure and §79's
+"three" byte surfaces), and the same cause each time: counting a pattern instead of the thing.
+
+### 83.2 The harness reported false UNPINNED until it was validated
+
+I wrote a per-guard mutation harness and ran it first against `positions.ts` — whose two guards §81 had
+**proved** pinned. It reported both **UNPINNED**.
+
+The bug: the runner piped vitest to `tail`, so `execSync` saw *tail's* exit code (always 0), never threw, and
+every guard scored green-under-mutation. Had I aimed it at an unaudited route first, it would have reported a
+clean sweep of guards it never actually tested — a false all-clear delivered with a tidy table.
+
+This is §73's rule one level up. There it was *confirm the mutation landed in the function under test*; here it
+is **confirm the detector can detect**. The cheapest way to know is to run any new audit instrument against a
+case whose answer you already have, before running it on the ones you don't.
+
+### 83.3 Results, with reachability as the deciding property
+
+| Guard | Verdict |
+|---|---|
+| `positions.ts` × 2 | **PINNED** (§81, after the assignment case was strengthened) |
+| `rate.ts:138` — portal rating a shipment it cannot see | **PINNED** — by a test *outside* `rate.test.ts`, which is why the per-route pass had to escalate |
+| `rate.ts:141` — `LENS_UNRESOLVED` | **PINNED** (same escalation) |
+| `board.ts:78` — `LENS_UNRESOLVED` | **PINNED** — *"a portal…"* case in `board.test.ts` |
+| `board.ts:185` — driver branch | **Unpinned — and correctly so** |
+
+That last row is the one worth explaining. `requireRole("admin","ops","finance","read","portal")` **excludes
+driver**, so the driver branch is unreachable through the route; the source says exactly that (*"unreachable
+via requireRole; kept fail-closed as defence-in-depth"*). Mutating it alone leaves 740/740 green because no
+request can get there. **An unreachable defence-in-depth branch cannot be pinned by a route test, and its
+being unpinned is not a defect** — deleting it would be, which is why it stays.
+
+So "unpinned" is not the finding; **"reachable and unpinned"** is. That is the same shape as §82's "82 bare
+assertions are not 82 defects": the raw count is a candidate list, and reachability is the filter.
+
+**Remaining: `events.ts` (8) and `status-link.ts` (2)**, plus `portal-actions.ts`'s second guard. The GO-LIVE
+row is updated rather than closed.
+
+**Verification.** All mutated files restored byte-identical (`git status` clean for `workers/api/src`); the
+harness validated against known-pinned guards before use; `board.ts:185` isolated for its own full-suite run.
