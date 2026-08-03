@@ -3981,3 +3981,50 @@ supposed to fire.
 
 **Verification.** `positions-gate.test.ts` 4/4 green restored; the assignment mutation now RED (was 740/740
 green); `positions.ts` and `events.ts` both restored byte-identical.
+
+---
+
+## §82 — hunting §81's pattern: 82 bare 403 assertions, and why that number is not 82 defects
+
+§81 found a security test passing for a sibling gate's reason. The obvious next question is how widespread
+that is, so the mechanical form was measured: **116** assertions of `toBe(403)` across `workers/api/test`, of
+which **34** also assert a reason/message/gate and **82** assert the bare status.
+
+**82 is not a defect count, and reporting it as one would be the kind of inflated finding this audit exists to
+avoid.** A bare status assertion is only hazardous when *both* conditions hold:
+
+1. the route has **two or more independent guards** that answer the same status, and
+2. the test's fixture **trips more than one of them**, so the assertion cannot tell which fired.
+
+§81 met both: `positions.ts` has three 403 guards, and `SHP_OTHER` was simultaneously unassigned *and*
+consent-less. On a single-guard route a bare 403 is unambiguous and perfectly sound.
+
+Condition 1 narrows the field to eleven routes (`events.ts` 13 sites, `positions.ts` 6, `board.ts` 5,
+`status-link.ts` 5, `portal-actions.ts` 4, `rate.ts` 4, `approvals.ts` 3, `authority.ts` 3,
+`internal-platform.ts` 3, `documents.ts` 2, `invoices.ts` 2). Condition 2 can only be settled per guard, by
+mutation.
+
+### 82.1 What was actually checked
+
+- **`positions.ts`** — all three guards reverted individually (§81). Two pinned, one not; fixed.
+- **`events.ts`** — the shared `assignmentOf` guard reverted; **pinned** (`lens-adversarial.test.ts`,
+  *"D2 cannot append to D1's shipment"*).
+- **`portal-actions.ts`** — the scope guard (`visibleCount === 0`) reverted; **pinned**, by two well-named
+  cases: *"accepting on a shipment it CANNOT see → 403"* and the claim equivalent.
+
+**Not checked: the remaining guards on the other eight routes.** Each needs its own mutation, and each
+mutation costs a full suite run. That is a bounded, mechanical follow-up — roughly two dozen mutations — and it
+is recorded here as outstanding rather than quietly folded into "swept".
+
+### 82.2 The rule worth keeping
+
+The defect is not "a test asserts a bare status." It is **a test whose fixture satisfies more than one guard
+while its assertion distinguishes none of them.** Stated that way it is checkable at authoring time without
+any sweep: *when I write this fixture, how many of this route's guards does it trip? If more than one, the
+assertion must name the one I mean.*
+
+That is cheaper than auditing 82 call sites, and it is where the rule belongs — with the author, as §64
+concluded for record claims.
+
+**Verification.** `portal-actions.ts` restored byte-identical; its two guard tests confirmed RED under
+mutation; the 116/34/82 counts produced by script, not by eye.
