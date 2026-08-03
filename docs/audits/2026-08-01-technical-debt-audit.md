@@ -3850,3 +3850,47 @@ consumed silently, and which no test pins* — which in this repo is the small s
 (canonical JSON, Merkle vectors, DER), all three now carrying known-answer vectors.
 
 **The stopping line is unchanged and is reached again at `0a8b6da`.**
+
+---
+
+## §79 — the byte-producing surfaces, enumerated properly: seven, not three, and all seven pinned
+
+§77 closed with a claim I asserted rather than checked: *"in this repo that set is small — canonical JSON, the
+Merkle vectors, the DER request — and all three now carry known-answer vectors."* §62's rule applies to my own
+sentences, so the enumeration was redone by looking.
+
+**The set is seven.** Every one produces bytes that nothing inside the repo can disagree with — a wrong answer
+is still *an* answer, and no downstream consumer objects:
+
+| Surface | Its known-answer vector |
+|---|---|
+| Canonical JSON | `canonical.test.ts` — four exact-output goldens, the `{}` sha256, and (§70) a boolean golden plus an all-six-types hash |
+| Merkle tree | `fixtures/merkle-vectors/` — vendored, sha256-pinned, RFC 6962 known answers |
+| DER (TSA request) | `der.test.ts:21` — *"encodes version/imprint/nonce/certReq to the exact expected DER"* |
+| **QuickBooks IIF** | `iif.test.ts:95` — *"byte-equals the pinned fixture"*, plus order-insensitivity and a Σ=0 penny check |
+| **EDI 214 outbound** | `build-214.test.ts:39` — the expected document assembled from literal segments, compared with `toBe` |
+| **EDI 990 outbound** | `build-990.test.ts` — ACCEPT and DECLINE each to exact bytes |
+| **Signed `clientView`** | `sign.test.ts:45` — the signed field set frozen as an exact 10-key array |
+
+The last one is worth drawing out: `clientView` pins **which fields are signed**, and §70's byte law pins
+**how those fields serialize**. Neither alone fixes the signed bytes; together they do. A frozen field set over
+a drifting serializer, or a frozen serializer over a drifting field set, would each leave the signature
+verifiable-but-different — and this repo has both halves.
+
+**So §77's "three" was wrong and its conclusion was right.** The bug class it named — *handled, silently
+consumed, untested* — is real, and the surfaces where it can bite are more numerous than I said. Every one of
+them is nonetheless pinned by a known-answer vector, which is the strongest available evidence that this
+codebase already understood the class before this loop named it. §70's boolean was the single member that
+slipped, in the oldest and most-tested of the seven.
+
+### 79.1 A seventh grep near-miss
+
+Checking EDI, `grep -cE 'toBe\("|toContain\("ISA'` over `build-214.test.ts` returned **0**, and the test is
+named *"serializes … to the exact expected X12 214 bytes"* — a name §51 taught me not to trust. Reading it
+showed a genuine vector: `expected` is a `const` assembled from an array of literal segments, so the
+assertion is `toBe(expected)` and matches no pattern I searched for.
+
+Seventh instance this loop. The tally is now unambiguous: **seven absence claims, seven wrong**, every one
+corrected by reading or running rather than by searching harder.
+
+**Verification.** All seven vectors located and read; no code changed; gates PASS.
