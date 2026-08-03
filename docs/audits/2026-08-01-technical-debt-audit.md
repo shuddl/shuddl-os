@@ -3471,3 +3471,56 @@ Scope: REQ-011/REQ-002, existing rows, tightening a law the repo already declare
 
 **Verification.** `packages/ledger` 609 tests / 34 files green (up 2); the boolean mutation proved RED on both
 new vectors and GREEN on all eleven prior ones; `canonical.ts` restored byte-identical.
+
+---
+
+## §71 — I shipped the exact defect the repo has a skill about, in §56, and the skill named it in advance
+
+Continuing through the sixteen skills, `share-lint-matchers-with-parity-tests` states the rule: when one rule
+is enforced in two places, hand-tuned copies drift, and *"the copy that got less attention becomes an evasion
+vector."* It documents the historical RED precisely — `INSERT OR REPLACE INTO"events"` (abutting quote, no
+whitespace) and `INSERT OR REPLACE INTO main.events` (schema-qualified) both walked past a hand-written
+matcher that the shared-fragment matcher caught.
+
+**I read that skill against my own §56 work and found I had reproduced half of it.**
+
+`append-chokepoint.ts` shipped with a hand-written regex requiring `INTO\s+`. Tested empirically rather than
+reasoned about:
+
+- `INSERT OR REPLACE INTO main.events` → **caught** (I had included a schema fragment).
+- `INSERT INTO"events"` → **MISSED.** The gate that exists to guarantee every append traverses the sequencer
+  could be bypassed by deleting one space.
+
+That is not a hypothetical: it is the specific string the `legs` evasion corpus in `invariants.test.ts`
+already tests for, in a file whose section header reads *"shared target matchers (share-lint) — ONE builder
+both surfaces consume, so the two scanners can never drift."* The infrastructure to do it right was
+twenty lines above where I would have looked, and §56's own commit message claimed the check handled "the
+quoted-identifier, alternate-verb variant that a naive matcher misses." It handled that one. It missed the
+other.
+
+### 71.1 Fixed the way the skill prescribes
+
+`insertIntoRe(tables)` is now **exported** from `invariants.ts`, built from the same `DELIM`/`SCHEMA`/`Q`
+fragments as `replaceFamilyRe` and `onConflictUpdateRe`, and `append-chokepoint.ts` consumes it instead of
+carrying a copy. All three forms — abutting quote, schema-qualified, bracket — are now caught, verified
+against a live file rather than by reading the regex.
+
+And the corpus came with it: seven cases mirroring the `legs` corpus, including `INSERT INTO "main" . "events"`
+(quoted schema, spaces around the dot) and a **negative** — `events_archive` must NOT read as `events`, since
+a matcher that flags everything is as useless as one that flags nothing.
+
+### 71.2 What this says about §56, and about the loop
+
+§56 was mutation-proved. Twice, on two shapes I chose. **Both shapes were ones my own regex handled** — I
+tested the check against my model of it, not against the adversary's model, and a mutation test only proves
+what its mutations cover. The `legs` corpus existed precisely because someone had already learned this, and
+the skill existed to transmit it. Neither reached me, because I never went looking for prior art before
+writing a matcher in a directory the skill explicitly names (*"You are reviewing anything under
+`tools/checks/`"*).
+
+The correction is not "be more careful with regexes." It is: **before writing a matcher for a rule this repo
+already enforces somewhere, find that enforcement and consume it.** The skills are the index for that, and
+this loop has now used them twice as an audit lens (§69, §70) and once — here — as a review of its own output.
+
+**Verification.** `check:chokepoint` and `check:invariants` PASS; 13 chokepoint tests (up 7); `tools/checks`
+259 tests green; all three evasion forms confirmed caught against a live file; typecheck and lint clean.

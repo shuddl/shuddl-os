@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ALLOWED_EVENT_WRITERS, findChokepointViolations, stripComments } from "./append-chokepoint.js";
+import { insertIntoRe } from "./invariants.js";
 
 // REQ-030 / I3 (audit §56). Every gate in the system is applied on the way to ONE `INSERT INTO events` in the
 // sequencer DO. That was true only because no second writer happened to exist — the DB triggers fire on
@@ -45,5 +46,37 @@ describe("comment stripping is exact enough to be trusted", () => {
   it("handles block comments and an escaped quote without losing the code after them", () => {
     expect(stripComments('/* INSERT INTO events */ const ok = 1;')).toContain("const ok = 1;");
     expect(stripComments('const s = "a\\"b"; const SQL = "INSERT INTO events";')).toContain("INSERT INTO events");
+  });
+});
+
+// Audit §71 — the evasion corpus, mirroring the legs corpus in `invariants.test.ts`.
+//
+// This check shipped in §56 with a HAND-WRITTEN matcher requiring `INTO\s+`, so `INSERT INTO"events"` walked
+// past it — the exact blind spot `share-lint-matchers-with-parity-tests` exists to prevent, already covered
+// for `legs`, reproduced here anyway. The matcher is now the shared `insertIntoRe` builder; this corpus is
+// what keeps that true, and what a future delimiter form gets added to.
+describe("REQ-030: every delimiter/schema form of an event write is caught (share-lint parity)", () => {
+  const EVASIONS = [
+    'INSERT INTO events (id) VALUES (?)', // whitespace, bare
+    'INSERT INTO"events" (id) VALUES (?)', // abutting quote — the \s+ blind spot that shipped in §56
+    'INSERT OR REPLACE INTO main.events (id) VALUES (?)', // schema-qualified
+    'INSERT OR IGNORE INTO [events] (id) VALUES (?)', // bracket delimiter
+    'INSERT INTO `events` (id) VALUES (?)', // backtick
+    'INSERT INTO "main" . "events" (id) VALUES (?)', // quoted schema, spaces around the dot
+  ];
+  for (const sql of EVASIONS) {
+    it(`flags: ${sql.slice(0, 46)}…`, () => {
+      const re = insertIntoRe("events");
+      re.lastIndex = 0;
+      expect(re.test(sql)).toBe(true);
+    });
+  }
+
+  it("does NOT flag a write to a DIFFERENT table whose name merely starts with the target", () => {
+    // `events_archive` must not read as `events` — \b after the alternation is what prevents it. Without
+    // this the allowlist would be unfalsifiable: everything would look like a violation.
+    const re = insertIntoRe("events");
+    re.lastIndex = 0;
+    expect(re.test('INSERT INTO events_archive (id) VALUES (?)')).toBe(false);
   });
 });

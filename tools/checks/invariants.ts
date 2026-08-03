@@ -38,6 +38,20 @@ const DELIM = `(?:\\s+|(?=${QOPEN}))`;
 // table names ("events|positions|money_lines" or "legs"); `gi` so matchAll can sweep a whole file/statement.
 const replaceFamilyRe = (tables: string): RegExp =>
   new RegExp(`\\b(INSERT\\s+OR\\s+REPLACE\\s+INTO|REPLACE\\s+INTO)${DELIM}${SCHEMA}${Q}(${tables})\\b`, "gi");
+
+/**
+ * ANY `INSERT [OR …] INTO <table>` — delimiter- and schema-tolerant, built from the same fragments as the
+ * matchers above. Exported for `tools/checks/append-chokepoint.ts` (REQ-030), which must see every write to
+ * `events` wherever it appears.
+ *
+ * Shared rather than copied for the reason this whole section exists (audit §71): the chokepoint lint
+ * shipped in §56 with a hand-written `INTO\s+…`, which the abutting-quote form `INSERT INTO"events"` walked
+ * straight past — the EXACT blind spot the `share-lint-matchers-with-parity-tests` skill documents, and the
+ * one the legs corpus already tests for. A second hand-rolled copy of a matcher is a second thing to get
+ * wrong, and the copy nobody re-reads is the one an evasion goes through.
+ */
+export const insertIntoRe = (tables: string): RegExp =>
+  new RegExp(`\\bINSERT\\s+(?:OR\\s+(?:ROLLBACK|ABORT|FAIL|IGNORE|REPLACE)\\s+)?INTO${DELIM}${SCHEMA}${Q}(${tables})\\b`, "gi");
 const onConflictUpdateRe = (tables: string): RegExp =>
   new RegExp(`\\bINSERT\\s+(?:OR\\s+(?:ROLLBACK|ABORT|FAIL|IGNORE|REPLACE)\\s+)?INTO${DELIM}${SCHEMA}${Q}(${tables})\\b[^;]*?\\bON\\s+CONFLICT\\b[^;]*?\\bDO\\s+UPDATE\\b`, "gi");
 

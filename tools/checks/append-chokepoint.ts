@@ -1,4 +1,5 @@
 import { globSync, readFileSync } from "node:fs";
+import { insertIntoRe } from "./invariants.js";
 
 // REQ-030 / I3 — THE APPEND CHOKEPOINT (audit §56).
 //
@@ -41,8 +42,15 @@ const SCAN_GLOBS = [
   "tools/**/*.ts",
 ];
 
-// `INSERT [OR ...] INTO [schema.]["]events["]` — the same delimiter tolerance invariants.ts uses.
-const EVENT_INSERT = /\bINSERT\s+(?:OR\s+(?:ROLLBACK|ABORT|FAIL|IGNORE|REPLACE)\s+)?INTO\s+(?:["'`[]?\w+["'`\]]?\s*\.\s*)?["'`[]?events["'`\]]?\b/gi;
+// `INSERT [OR ...] INTO [schema.]["]events["]` — the SHARED matcher from invariants.ts, not a copy.
+//
+// This was a hand-written regex until audit §71, and it required `INTO\s+` — so `INSERT INTO"events"`
+// (abutting quote, no whitespace) walked straight past the gate. That is the precise blind spot the
+// `share-lint-matchers-with-parity-tests` skill was written about, already covered by the legs evasion
+// corpus, and I reproduced it in §56 while building this check. Consuming the shared builder means this
+// scanner inherits every delimiter and schema form the migration scanner already handles, and any future
+// form is fixed in ONE place.
+const EVENT_INSERT = insertIntoRe("events");
 
 export interface ChokepointViolation {
   file: string;
