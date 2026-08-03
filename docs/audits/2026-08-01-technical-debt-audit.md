@@ -4064,10 +4064,10 @@ case whose answer you already have, before running it on the ones you don't.
 | Guard | Verdict |
 |---|---|
 | `positions.ts` × 2 | **PINNED** (§81, after the assignment case was strengthened) |
-| `rate.ts:138` — portal rating a shipment it cannot see | **PINNED** — by a test *outside* `rate.test.ts`, which is why the per-route pass had to escalate |
-| `rate.ts:141` — `LENS_UNRESOLVED` | **PINNED** (same escalation) |
-| `board.ts:78` — `LENS_UNRESOLVED` | **PINNED** — *"a portal…"* case in `board.test.ts` |
-| `board.ts:185` — driver branch | **Unpinned — and correctly so** |
+| `rate.ts` line 138 — portal rating a shipment it cannot see | **PINNED** — by a test *outside* `rate.test.ts`, which is why the per-route pass had to escalate |
+| `rate.ts` line 141 — `LENS_UNRESOLVED` | **PINNED** (same escalation) |
+| `board.ts` line 78 — `LENS_UNRESOLVED` | **PINNED** — *"a portal…"* case in `board.test.ts` |
+| `board.ts` line 185 — driver branch | **Unpinned — and correctly so** |
 
 That last row is the one worth explaining. `requireRole("admin","ops","finance","read","portal")` **excludes
 driver**, so the driver branch is unreachable through the route; the source says exactly that (*"unreachable
@@ -4082,4 +4082,61 @@ assertions are not 82 defects": the raw count is a candidate list, and reachabil
 row is updated rather than closed.
 
 **Verification.** All mutated files restored byte-identical (`git status` clean for `workers/api/src`); the
-harness validated against known-pinned guards before use; `board.ts:185` isolated for its own full-suite run.
+harness validated against known-pinned guards before use; `board.ts` line 185 isolated for its own full-suite run.
+
+---
+
+## §84 — the multi-guard 403 sweep, finished: one real hole, and it was the sole enforcement of gate-override authority
+
+§82 opened this as an item and §83 cleared part of it. All **18** real 403 guards across the **6** multi-guard
+routes now have a verdict, each by neutralising the guard and running the **full** `workers/api` suite.
+
+**Thirteen PINNED.** `positions.ts` ×2, `rate.ts` ×2, `board.ts` line 78, `status-link.ts` line 43,
+`portal-actions.ts` line 62, and five of the eight on `events.ts` — including the no-bypass rules that matter most:
+server-emitted kinds (REQ-030), `approval.decided` must route via `/approval-decision` (REQ-194),
+`credit.checked` privileged-decision (REQ-185), the finance-scope rule, and the driver write-scope.
+
+**Five unpinned for good reasons**, each verified rather than assumed:
+
+| Guard | Why unpinned is correct |
+|---|---|
+| `board.ts` line 185 | `requireRole` excludes `driver`, so the driver branch is unreachable through the route. Documented as defence-in-depth. |
+| `events.ts` line 228 (`authority.flipped`) | **Masked downstream.** The route derives `streamId = \`s:${shipmentId}\``, and the DO refuses `authority.flipped` on any stream but `t:root`. Removing the route guard changes no observable behaviour — the append is refused either way. |
+| `events.ts` line 68, `status-link.ts` line 40, `portal-actions.ts` line 59 | All three are the same shape: `LENS_UNRESOLVED` → a clean 403 instead of an opaque 500. Defensive translation of an internal failure, not an authorization decision. |
+
+**And one real hole — `events.ts` line 255.**
+
+### 84.1 Gate-override authority had exactly one enforcement, and no test
+
+```ts
+if (!ELEVATED.has(session.role)) throw new ApiError("FORBIDDEN", 403, "OVERRIDE REQUIRES AN ELEVATED ROLE");
+```
+
+`ELEVATED` is `{ops, admin, finance}`; `requireRole` on this route admits `{admin, ops, driver, finance}`. **The
+one role that reaches the check and must fail it is `driver`** — so it is reachable by exactly the principal
+with the least authority.
+
+It is also the **sole** enforcement: the sequencer stamps `override` onto the event (author forced to
+`session.sub`) but never re-checks the author's *role*. Nothing downstream masks it, unlike `events.ts` line 228.
+
+So deleting that line would let a driver attach `override: {reason}` to a gated append and **waive a
+server-side gate** — REQ-049's accountability record would faithfully name them as the waiving author, which is
+precisely the audit trail working while the authorization did not. And all **740** api tests stayed green.
+
+The positive case existed — *"a named override (elevated role) releases the hold → 201 + override stamped"* —
+and proved that an elevated role **may**. Nothing proved a non-elevated role **may not**. That is §75's rule
+once more: the suite tested what the feature does, never what an attacker wants.
+
+Test added and mutation-proved: *"a DRIVER attaching an override is 403 — only an elevated role may waive a
+gate (REQ-049)"*, asserting the 403, the `ELEVATED` reason (not the shared status — §81), and **zero appends**.
+Removing the guard now turns it red.
+
+### 84.2 The shape of the whole sweep
+
+Eighteen guards, one hole. The hole was not in an obscure branch — it was in the authorization for the single
+most powerful client capability in the API, *waiving a server-side gate*. It survived because the coverage
+grew around the feature (does the override work? is it stamped? is it on the hashed event?) and never around
+the refusal.
+
+**Verification.** All six route files restored byte-identical (`git status` clean for `workers/api/src`);
+`booking-gate.test.ts` 23/23 with the new case; the mutation proved RED.

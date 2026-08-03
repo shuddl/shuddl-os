@@ -100,6 +100,21 @@ describe("credit-hold booking gate (REQ-042)", () => {
     expect(await countEvents(shp)).toBe(before); // the shipment stream was never opened
   });
 
+  // Audit §84 — the NEGATIVE half of the override authorization (REQ-049). The positive case below proves an
+  // ELEVATED role may waive a gate; nothing proved a non-elevated one may NOT. `events.ts` is the SOLE
+  // enforcement — the sequencer stamps `override` without re-checking the author role — and `requireRole` on
+  // this route admits "driver", so a driver is exactly the principal that reaches the check and must fail it.
+  // Mutation-proved: deleting that guard left all 740 api tests green before this case existed.
+  it("a DRIVER attaching an override is 403 — only an elevated role may waive a gate (REQ-049)", async () => {
+    const shp = "t6-credit-override-driver";
+    const before = await countEvents(shp);
+    const driverTok = await token({ sub: "u-t6-driver", tenant: TENANT, role: "driver" });
+    const r = await post(shp, bookingInput(shp, BILL_HOLD, {}, { override: { by: "x", reason: "let me through" } }), driverTok);
+    expect(r.status).toBe(403);
+    expect(JSON.stringify(r.json)).toContain("ELEVATED");
+    expect(await countEvents(shp)).toBe(before); // nothing appended
+  });
+
   it("a named override (elevated role) releases the hold → 201 + override stamped to the authenticated author", async () => {
     const shp = "t6-credit-override";
     const clientClaim = { by: "not-the-author", reason: "prepay wired; hold released by finance" };
