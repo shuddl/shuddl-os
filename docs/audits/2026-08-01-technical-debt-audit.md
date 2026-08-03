@@ -3714,3 +3714,51 @@ adversary wants covers the case the author did not.
 
 **Verdict: clean negative.** `packages/agents` 217 tests / 10 files green; both mutations proved RED and
 restored byte-identical; mutation sites confirmed live by line number before running (§73).
+
+---
+
+## §76 — hunting §70's bug class in the money chain, and the design property that makes it impossible there
+
+§70 found a real gap by asking a mechanical question: **which members of a value space have no test?** The
+canonical byte law covered five of the six `JsonValue` members and missed booleans. That question generalises,
+so it was aimed at the highest-consequence value space in the system — the nine `money_lines.kind` values,
+each of which must reach the QB journal export correctly for REQ-020's penny reconcile.
+
+### 76.1 The answer, and why it is structural rather than lucky
+
+All nine kinds have a `gl_map` source: three from the Biller's `GL_MAP` (freight/fsc/accessorial), five
+assigned by the money projection (`cod_collect`, `correction_credit`, `correction_debit`, `interline_split`,
+`settle_fee`), and `credit_purchase` from the platform credit path.
+
+**But the interesting finding is that §70's bug class cannot occur here at all.** `exportJournal` has **no
+per-kind branching** — it selects `gl_map` from each row and uses it, carrying `kind` only as a label. The
+schema makes `gl_map` `NOT NULL`, so the decision is *stamped at projection time* and merely *read* at export.
+
+That is the difference from `canonicalize`, which **dispatches on type** (`if (typeof v === "boolean") …`).
+Wherever code dispatches per member, there is a member you can forget — that is exactly how the boolean gap
+existed. Wherever the decision is **carried on the data** instead of re-derived per member, the
+forgotten-member class is structurally impossible. Worth stating as a design property, because it tells you
+where to go looking next: **audit the dispatch sites, not the data-carrying ones.**
+
+### 76.2 The value is constrained too, and the parity test is bidirectional
+
+`NOT NULL` only guarantees presence — a `gl_map` of `""` would satisfy it and break the journal.
+`CANONICAL_GL_ACCOUNTS` closes that: a frozen set whose comment says *"membership IS the parity invariant."*
+
+Mutation-proved. Emitting `"9999-ROGUE-ACCOUNT"` for `cod_collect` turns **two** tests red:
+
+- *"the ledger money projection emits only canonical accounts"* — no unregistered code escapes, and
+- *"the canonical set is exactly the union of every emitting surface (no orphan account)"* — the **reverse**
+  direction, so a constant that stops being emitted cannot linger in the set either.
+
+The bidirectional half is the one most suites omit. It is what stops the canonical set drifting into a
+wish-list of accounts nobody posts to.
+
+### 76.3 A sixth grep near-miss, noted for the count
+
+Checking per-kind coverage, `credit_purchase` showed **zero** files — I had scoped the search to
+`packages/ledger/test` and the QB/netting fixtures. It is covered in four files (`platform-credit`,
+`plg-isolation-matrix`, `webhook`, `credits`), because it lives on the `_platform` tenant and is exercised by
+the billing worker, not the ledger package. Sixth instance this loop, caught before it was written down.
+
+**Verdict: clean negative.** `money.ts` restored byte-identical; GL parity 6/6 green.
