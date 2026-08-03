@@ -3306,3 +3306,63 @@ reports what it broke gives no signal about what it examined and found sound (§
 
 **Verification.** All nine `docs/ops/*.md` swept; every non-PROJECT-STATE candidate traced to its scoping
 header by hand; `check:tables` and `check:citations` PASS.
+
+---
+
+## §68 — the five acceptance demos: the honesty is exemplary, the anti-drift claim was aspiration
+
+`CLAUDE.md` closes with the five demos that "define done enough to show", and `PROJECT-STATE` reports the
+spine GREEN. That is the production-readiness headline, so it gets §51's question: **does the thing named for
+the property actually assert the property?**
+
+### 68.1 This is the best-built claim audited this loop
+
+`tools/acceptance/demos.ts` declares a **two-tier DoD** and refuses to blur the tiers. Per demo it names the
+code path, the in-repo spine test(s) — *the code-provable half* — and, critically, the **filmed delta: what
+the spine deliberately will not fabricate.** Demo 1's entry says it outright: the spine proves the causal
+chain is complete and code-path-real but "refuses to fabricate a latency number". The `<5s`, the `<10min`, the
+real driver on real glass, the real Claude booking, the visual world-dim — each is named as *not* asserted
+here.
+
+The runner matches: it invokes each spine file in its own package's vitest config, and notes that vitest exits
+non-zero on "no test files found", so **a typo'd filter cannot pass as green** — the silent-no-op failure this
+audit found in a browser gate back in C2.
+
+And the browser gap is recorded with a precision worth quoting. `genesis/14` promises "Playwright e2e scripted
+to the five acceptance demos"; today `browser` is `null` for all five. The manifest does not hide that — it
+names which demos are not browser-drivable *and why* (demo 1 is a real-substrate latency measurement, demo 4 a
+cross-worker staging smoke), and for demo 2 it names **the concrete blocker**: the Playwright dev-servers boot
+with no flag env, so `PROVISIONING_ENABLED` is off and `/pub/signup` 404s. It even pre-commits the specs to be
+**blocking, not advisory**, when built. That is a deferral documented well enough to act on.
+
+### 68.2 The one gap: "can never drift" was a claim about a mechanism that did not exist
+
+`demos.ts` describes itself as *"the single source of truth shared by the runner (`run.ts`) and the manifest
+(`docs/wp/acceptance-demos.md`), so the two can never drift."*
+
+Half true. `run.ts` **imports** this module, so the runner genuinely cannot drift. The manifest is
+**hand-written markdown** — it cites `demos.ts` but derives nothing from it. Adding a demo, renaming a spine
+file, or dropping one would have left the manifest stale with nothing failing. Compared today: the two agree
+exactly, all 7 files. **The state was fine; the guarantee was imaginary** — §62's shape again, and again a
+claimed relationship between two artifacts that only a comparison could settle.
+
+Five tests now make the claim true, mutation-proved in **both** directions: renaming a spine file in
+`demos.ts` fails ("must name demo 1's spine file…"), and dropping one while the manifest still lists it fails
+the reverse check. The reverse direction matters more — a spine file lingering in the manifest after leaving
+the module reads as coverage that no longer runs, which is the failure that overstates. The tests also pin
+that all five demos exist, each with ≥1 spine test and a **non-trivial filmed delta**, because a blank
+`filmed` would silently promote "the code path exists" to "the demo is done".
+
+The manifest stays prose. It carries the filmed-half narrative, which is the point of it and is not derivable
+— only the *facts* it shares with the module are now checked.
+
+### 68.3 `routes ±10%` is in two genesis docs, not one
+
+§61 traced that unbacked gate name to `genesis/11:41`. It is also in **`genesis/14:52`**, in the fixture-replay
+gate list. Two source-of-truth documents, so it is **settled intent rather than a stray phrase** — which makes
+the owner decision sharper, not softer: either route/mileage parity is real scope and wants a register row, or
+both mentions are vestigial and want striking. The GO-LIVE row now cites both.
+
+**Verification.** `pnpm test:acceptance` — **GREEN, all 7 spine tests pass**; 5 new drift tests, both
+directions mutation-proved, source restored byte-identical; tools suite 708 (up 5) with the same three
+`REQ-289` failures; tables and citations PASS.
