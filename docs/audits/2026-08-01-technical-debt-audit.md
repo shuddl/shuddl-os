@@ -3572,3 +3572,56 @@ faster and sound, where a search over the vocabulary someone else chose is neith
 
 **Verification.** `sequencer.ts` restored byte-identical; `workers/api` typecheck clean;
 `invoice-correction.test.ts` 6/6 green.
+
+---
+
+## §73 — REQ-025 mutation-tested at the resolver, and the failure mode of mutation testing itself
+
+§72 concluded that for an enforcement claim, **the mutation is the evidence, not the grep.** This section is
+that rule applied to the strongest claim in `CLAUDE.md` — *"a cross-tenant read anywhere is a build failure
+(REQ-025)"* — and then the rule turning on itself.
+
+### 73.1 The suite catches a resolver-level break, via its POSITIVE controls
+
+Mutating `resolveTenantDb` so `tenant-b` resolves to tenant-a's database — a total isolation break, not a
+subtle one — turns **three** tests red:
+
+- *"a valid tenant-b session never sees tenant-a data (symmetry)"*
+- *"a tenant-b cap surfaces tenant-b's state, never tenant-a's (identical shipment id in both DBs)"*
+- *"tenant-b's own includeShadow drill DOES return its legacy event"*
+
+All three are **positive-direction**: they assert tenant-b sees tenant-**B** data. That is the structural
+point, and it is worth stating because it is counter-intuitive: the many *"tenant-a must not see tenant-b"*
+cases — the ones that look like the isolation tests — **cannot** catch this break, because under it tenant-a
+still correctly reads tenant-a. A suite of negative assertions alone would be hollow against the single most
+consequential failure. This one is not, because it keeps positive controls (the file labels one
+`describe("positive control")`), and those are what make a resolver-level break detectable.
+
+### 73.2 The mutation lied first, and I nearly published it
+
+My first mutation targeted `const binding = TENANT_BINDINGS[tenantSlug];` by string replace. That string
+occurs **twice** — in the synchronous `tenantDb` and in the async `resolveTenantDb` — and `String.replace`
+takes the first. I mutated `tenantDb`; `/v1/_probe` and most of the suite use `resolveTenantDb`.
+
+Result: **63 of 64 tests passed**, and the single failure was an unrelated `/pub/quote` case that happens to
+use the sync variant. I was drafting the sentence *"the isolation suite is hollow — 63 tests passed while
+tenant-b read tenant-a's entire database."* That would have been a serious false finding against a suite that
+is, in fact, sound.
+
+What caught it was checking that the mutation had landed where I believed — `grep` showed the edit at line 23,
+inside `tenantDb`, while `resolveTenantDb` sat untouched at line 53.
+
+**So §72's rule needs its own guard rail.** "The mutation is the evidence" holds — but a mutation is only
+evidence for the code path it actually reached. Before reading a green suite as a hole, confirm the mutation
+is live *in the function under test*. The failure mode is exact and mundane: a helper and its async sibling
+sharing a line of code, and a string replace that silently picks one. It produces the most dangerous possible
+result — a false all-clear about a security suite, arrived at by the very method adopted to avoid false
+conclusions.
+
+### 73.3 Verdict
+
+**REQ-025's suite is sound at the resolver.** 64 tests, three of which fail on a resolver-level cross-tenant
+break, with the positive controls doing the load-bearing work. No defect.
+
+**Verification.** `tenants.ts` restored byte-identical; `isolation.test.ts` 64/64 green; both mutation sites
+confirmed by line number before drawing any conclusion from either.
