@@ -8386,3 +8386,51 @@ Two of roughly sixty holds are non-flat. That is a small enough number to annota
 
 **No finding, no new debt.** The mechanisms are correct, the grade is right, and the row now says what the
 grade cannot.
+
+---
+
+## §168 — the phase gate, re-measured at `e27307f`
+
+§141 measured at `78499e9`. **Twenty-seven commits since**, of which exactly **one touched non-documentation
+code**: §144's added appointment close-boundary test. Re-measured anyway, because a gate asserted rather than
+run is the failure this loop has found in its own record four times (§110, §118, §126, §162).
+
+| surface | result |
+|---|---|
+| ten static gates | **all PASS** |
+| `typecheck` · `lint` | **PASS** |
+| workspace suite | **17 workspaces · 2,889 tests · 0 failures · exit 0** |
+| root `tools/` suite | 715 tests, 712 passing — the 3 failures remain `REQ-289` |
+| acceptance spine | **GREEN** — 7 files |
+| `check:coverage` | **FAIL — `REQ-289` only** |
+
+**2,889, up exactly one from §141's 2,888** — §144's boundary test, and nothing else moved. That is the
+expected result and it is worth stating: twenty-seven commits of record work changed no behaviour, which is
+what "record work" should mean.
+
+### 168.1 What the last twenty-seven sections added
+
+None of it was code. All of it was the record telling the truth about things it already contained:
+
+| sections | what they established |
+|---|---|
+| §142–§148 | the MCP chokepoint, middleware order, view registry, public cap, concurrency model and **all seven meta-guards** proved able to fire |
+| §150–§153 | three stated gaps — 43 forward references, 45 weak DoDs, 67 comment claims — **discharged**, zero findings |
+| §156–§158 | every **historical Critical/High** fix independently re-proved |
+| §159–§161 | **mechanism vs evidence** separated for every blocked gate and external adapter |
+| §162–§163 | the handoff made navigable; a decayed pointer in its most-read line fixed |
+| §164–§167 | every design constraint's **recovery path** found; three holds annotated with their NO-branch cost; the one **partly irreversible** hold identified |
+
+### 168.2 The stopping point, unchanged and re-earned
+
+§126's six holds stand with their verification commands re-run (§141). The five proposed-scope findings
+(§123, §131, §133, §135, §137) still await owner-signed REQ rows. `REQ-289` remains the single red gate and
+the single highest-leverage owner action, still masking the workspace suite from `pnpm test`.
+
+What has changed is not the debt but **what the record says about it**: every hold now carries a verification
+command, an expiry trigger, its cost if the answer is no, and — where it matters — whether waiting makes it
+worse. An owner can now sequence this work from the document instead of from a conversation.
+
+> The audit's remaining value is no longer in finding defects. It is in the record being **exactly as
+> trustworthy as its most careless sentence** — which is why the last twenty-seven sections were spent on
+> sentences.
