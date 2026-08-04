@@ -6886,3 +6886,60 @@ a constraint.
 
 **Verdict: clean negative.** No new debt. The billing surface is the first dormant one swept that required no
 row at all.
+
+---
+
+## §140 — finishing the hold sweep, and correcting "complete"
+
+§139 closed with a table headed *"dormant-surface sweep, complete"* listing six surfaces. **That was the
+§136 error in my own summary**: six is what I had swept, not what exists. The checklist carries more holds,
+and calling a subset complete is exactly the failure §123 and §136 spent sections naming. Finishing it here.
+
+**`ALLOW_TEST_SEND` / `TEST_SEND_TOKEN` — the inverse dormant surface, and exemplary.** This is a capability
+that is dark and must *stay* dark: a live evidence-send probe. Its guards, read in full:
+
+- the route 404s unless `ALLOW_TEST_SEND === "1"` — an exact match, so any other value stays inert
+- bearer-token gated, and **fail-closed**: the flag set without `TEST_SEND_TOKEN` returns **500 misconfigured**, never open
+- the flag is commented out in `wrangler.toml`; the token is a `wrangler secret`, never in the file
+- **the recipient cannot be client-supplied** — a body carrying `to`/`recipient` is refused with an explanatory 400, defaulting to `TEST_SEND_TO` or a `delivered@resend.dev` sink
+- it is the worker's *only* HTTP surface; every other path 404s, and it never touches `queue()` or `scheduled()`
+
+The safety property is stated at the guard: *"it must be impossible for this route to email a body-supplied
+address."* A dangerous capability with its own invariant written next to it, failing closed on every axis.
+Clean.
+
+**Self-hosted tiles — recorded, with a dimension its row did not name.** The Command surface uses
+`DEMO_TILE_URL = "https://tiles.openfreemap.org/planet"`, and `CLAUDE.md`'s stack mandates *self-hosted
+Protomaps vectors*. The hold exists and names the URLs — but frames the work purely as a deploy task ("host
+tiles on R2; swap placeholders").
+
+What it did not say is **why it matters beyond tidiness**: while the demo source is live, every map viewport
+tells a third party which geographic area a dispatcher is looking at. No shipment data, PII or party identity
+leaves the system — the exposure is coarse viewport bounds correlated by IP and time — but that is a
+data-exposure property, not merely an un-self-hosted dependency.
+
+**Added as a rationale on the existing row, not as a new one.** The fix already recorded (self-host) closes it
+automatically, and §134 warned specifically against manufacturing findings where a bound already exists
+elsewhere. A ledger inflated with rows that a single recorded action closes is harder to act on, not easier.
+
+**The remainder have no code seam.** Device signing root key, the backups bucket, glyph PBFs, the optional
+Mapbox token, per-pairing caps provisioning, the weekly telemetry series — each is an operational or
+account-level act with nothing in the repo that assumes its absence. §135's heuristic returns nothing on them
+because there is nothing to return: no shipped mechanism changes behaviour on the day they land.
+
+### 140.1 The honest tally
+
+| surface | verdict |
+|---|---|
+| `ANTHROPIC_API_KEY` (Concierge) | **finding** — cost/latency unmetered (§135/§136) |
+| `ANTHROPIC_API_KEY` (Copilot) | spec-mandated silence — REQ-038 read-only (§136) |
+| TSA RFC-3161 | clean — fail-closed, bounded 30-day backfill (§137) |
+| `RESEND_API_KEY` | **finding** — non-retriable send branch unsurfaced (§137) |
+| `PROVISIONING_ENABLED` | two live rows wake together (§138) |
+| Stripe / billing | clean — purchase-driven, no usage invoicing (§139) |
+| `ALLOW_TEST_SEND` | clean — inert, token-gated, fail-closed, sink-only (§140) |
+| self-hosted tiles | recorded hold; rationale added (§140) |
+| root key · backups · glyphs · Mapbox token · caps · telemetry | no code seam — operational acts only |
+
+**Nine surfaces plus six seamless ones. Two findings, both recorded as proposed scope.** That is the sweep,
+and this time the word "complete" is earned rather than assumed.
