@@ -8486,3 +8486,48 @@ encoded it already, in a single paragraph, at the top of twelve files.
 > evidence the rule is real** — two independent derivations from different defects reaching the same
 > discipline. It is also a reminder to read the process documentation *before* the code: this section cost
 > twenty minutes and would have saved several earlier ones.
+
+---
+
+## §170 — a stale count in the one field the grounding note does not cover
+
+§169 found the skills corpus sound: twelve of sixteen carry a grounding note freezing their examples, and the
+four without have nothing to freeze. §169 then closed with *"read the process documentation before the code."*
+Doing exactly that — reading all sixteen **triggers** rather than their bodies — found the one defect the
+grounding note could not have caught.
+
+`harden-agent-against-model-trust` triggered on:
+
+> *Use when building any of SHUDDL's **11 unbuilt agents** (Scheduler, Dispatcher, **Watchtower**, etc.) or
+> extending Concierge/Biller …*
+
+**Twelve of the thirteen agents are built** (§122). Scheduler has 2 implementation files and 33 test cases;
+Watchtower has 4 and 31. The trigger named two demonstrably-built agents as unbuilt and stated **11** where
+the measured figure is **1**.
+
+### 170.1 Why this one mattered more than a wrong number
+
+Two failure modes, and the second is the real one:
+
+- someone reads *"11 unbuilt agents"* and concludes Watchtower does not exist — recoverable, one `ls` away;
+- someone **extending** Watchtower reads *"use when building any of the unbuilt agents … or extending
+  Concierge/Biller"*, sees their agent in neither category, and **skips the skill entirely.**
+
+The skill's law is about not trusting model output with identity, price fields, or auto-send decisions. The
+description quietly excluded ten agents from a hardening rule that applies to all of them.
+
+### 170.2 The structural point
+
+The grounding note — the mechanism §169 praised — scopes *"the examples and `path:line` citations in this
+skill."* A count in the YAML `description` is **neither an example nor a citation**, so the note does not
+reach it. And `description` is the highest-leverage text in the file: it is what decides whether the skill is
+read at all.
+
+> **The field that determines whether a document is read is the field least likely to be re-read.** A
+> scoping note protects the body a maintainer revisits; nobody revisits the trigger.
+
+Corrected to be **state-independent** — *"any SHUDDL agent (built or unbuilt)"* — rather than to a fresher
+count, per §110's rule that a number restated is a number that will decay again. The correction is recorded in
+the body beside the grounding note rather than applied silently.
+
+**Swept the other fifteen descriptions for the same shape: none carries a count.** This was the only one.

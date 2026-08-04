@@ -1,8 +1,17 @@
 ---
 name: harden-agent-against-model-trust
-description: Use when building any of SHUDDL's 11 unbuilt agents (Scheduler, Dispatcher, Watchtower, etc.) or extending Concierge/Biller — specifically when an agent consumes LLM output, resolves a party/identity from a message, decides whether to auto-send, or lets a model touch a price-affecting field (weight, dims, accessorials). Symptoms: gating on parse.confidence, keying identity off a model-extracted email, auto-sending on the model's word, re-parsing on redelivery.
+description: Use when building or extending ANY SHUDDL agent (built or unbuilt) — specifically when an agent consumes LLM output, resolves a party/identity from a message, decides whether to auto-send, or lets a model touch a price-affecting field (weight, dims, accessorials). Symptoms: gating on parse.confidence, keying identity off a model-extracted email, auto-sending on the model's word, re-parsing on redelivery.
 ---
 
+> **Description corrected 2026-08-04 (audit §170).** It read *"any of SHUDDL's 11 UNBUILT agents
+> (Scheduler, Dispatcher, Watchtower, etc.)"*. Twelve of the thirteen agents are now built — Scheduler and
+> Watchtower among them (audit §122) — so the trigger both mis-stated the count and, worse, implied the
+> skill does **not** apply to the agents it named. Anyone extending Watchtower would have read past it.
+> Rewritten to be state-independent: the law applies to any agent that lets a model touch a decision,
+> whether that agent exists yet or not. Note the grounding note below scopes *examples and citations* —
+> a count in the YAML `description` is neither, and `description` is the field that decides whether this
+> skill is loaded at all.
+>
 > **Grounding note (added 2026-08-01, on commit — 16 days after writing):** the examples and
 > `path:line` citations in this skill are observations FROZEN as-of its writing (2026-07-15/16).
 > Several RED examples have since been FIXED in live code — verify against HEAD before treating any
