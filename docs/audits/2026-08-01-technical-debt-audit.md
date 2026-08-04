@@ -6091,3 +6091,50 @@ reporting a comfortable green against a fabricated input.
 > list; the requirement it named covers two mechanisms. §113 measured repository holds; the sentence above it
 > promised every hold. Neither statement was false — both were **narrower than they read**, and nothing in a
 > test suite can detect that.
+
+---
+
+## §125 — sweeping the authority: every repo-owned checklist row, verified
+
+§124 found one stale row in `GO-LIVE-CHECKLIST.md` **by chance** — because §112 had independently measured
+REQ-170. Chance is not a method. The systematic version rests on a distinction the checklist itself makes:
+
+> **Only repo-owned rows can go stale.** An external hold (counsel, a secret, an infrastructure decision)
+> cannot be invalidated by a commit. A row claiming *repository state* can be, silently, by any merge.
+
+Twenty-five rows carry `Repo` ownership. **Twenty are already superseded in place** — struck through with a
+dated fix and the original text preserved, exactly the ops-record discipline §109 named. That is the record
+working: whoever maintained this page never rewrote history, and the strikethroughs make the live set
+trivially separable from the closed one.
+
+**The five live ones, each re-verified at this commit:**
+
+| line | claim | verdict |
+|---|---|---|
+| 371 | `check:identity` reports *"no denylist available … Lint SKIPPED"*, failing closed only in CI | **accurate** — the gate prints that string verbatim today |
+| 382 | `POST /pub/signup` returns a distinct 409 for a taken admin email (an enumeration oracle) | **accurate** — `signup.ts:94` maps `EMAIL_TAKEN` → 409 *"THAT EMAIL IS ALREADY REGISTERED"*; the cited line still resolves |
+| 383 | pool-binding exclusivity enforced on enumeration but not resolution | **accurate** — §12's named pre-R4 carry-forward, already in §113 |
+| 386 | a pickup custody handoff cannot record real parties | **accurate** — the External High needing REQ-069 |
+| 185 | REQ-170 send-gate | **was stale — corrected in §124** |
+
+One defect in twenty-five, found and fixed. The checklist is sound as the authority §123 named it.
+
+### 125.1 Why row 382 is worth reading even though it is accurate
+
+It is the clearest example on the page of debt recorded *properly*: a **Med**, explicitly *accepted-for-now*,
+with the reasoning stated (a taken slug is inherent to the signup UX; a taken email is not), the mitigating
+context named (the route is dark behind `PROVISIONING_ENABLED`), an owner assigned, a grade at which it must
+be resolved (**R4**, public GA), and three **expiry triggers** — when the error mapping changes, when the
+flag flips, or when the REQ-125 edge rule lands.
+
+That is what every hold in this audit should look like. A row with an expiry cannot rot quietly: the trigger
+tells a future reader when the verdict stopped being evidence. Compare §110's stale test count and §124's
+superseded risk statement — neither carried one, and both outlived their measurement by weeks.
+
+> **A recorded hold without an expiry trigger is a claim with no way to notice it has died.**
+
+### 125.2 The phase gate is unchanged
+
+Nothing in this sweep moves §113 (as scoped by §123). The five owner-blocked repo-adjacent holds stand, the
+47 further checklist items stand, and the one correction (§124) *reduced* open exposure rather than adding
+any. Static gates all PASS; the sole red remains the other workstream's uncommitted `REQ-289`.
