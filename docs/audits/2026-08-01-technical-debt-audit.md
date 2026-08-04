@@ -4255,3 +4255,46 @@ fixture that writes must add, never replace** — and a per-file green is not ev
 
 **Verification.** `devices.test.ts` + `positions-gate.test.ts` 14/14; full `workers/api` suite re-run after
 the fixture was made non-destructive.
+
+---
+
+## §87 — the limitations-flagged-only-in-code sweep, after §86 proved the class can hide a live hole
+
+§86's defect lived in an accurate, well-written code comment that **no document carried**, and it hid a real
+security gap for the whole life of the file. That makes the class worth sweeping rather than treating as one
+incident: *what else is flagged in source and absent from the operating record?*
+
+**Marker sweep** (`TODO`, `FIXME`, "not yet", "does NOT yet", "follow-up") across `workers/*/src` and
+`packages/*/src`: **two hits, both known.** The POD-gate `serviceClass` exemption (fail-**safe**, on the
+GO-LIVE checklist since §55) and the `revoked_ts` note §86 closed. The conventional-marker channel is clean.
+
+**Phrasing sweep** ("unwired", "dormant", "deferred", "cannot yet", "does not enforce") found the rest, mostly
+feature names (`deferred evidence upload`) or deliberate design notes. One was a genuine record gap.
+
+### 87.1 Below-floor interline splits hold forever, by design, and nothing said so
+
+`approvalGranted` is **intentionally unwired** in both the Biller and the interline splitter, symmetrically. A
+below-floor share — or one carrying an anomaly — **HOLDS and never appends** until the approvals queue lands.
+
+Direction checked first, because that is what decides severity: this is fail-**closed**. The deferral blocks
+money rather than releasing it, which is the correct conservative choice and the opposite of §86, where the
+deferral left a revoked device writing.
+
+So the gap is **operational, not behavioural**. An operator watching interline splits sit unresolved had
+nothing in the record telling them this is designed rather than broken, and that the release path is the
+approvals queue rather than a retry or an escalation. Now a checklist row, with the wiring instruction for
+when the queue ships (both callers, deliberately symmetric).
+
+### 87.2 What the sweep says about the class
+
+Two limitations flagged in code across two workers and eleven packages, one of which was a live security hole
+(§86) and one an operational blind spot (this). Both were *correctly identified by their authors* — the defect
+was never the engineering judgement, it was that **the note stopped at the file it was about.**
+
+The cheap discipline that would have caught both: when you write "this is not yet enforced" in a comment, the
+same commit adds the row. A comment records it for whoever opens that file; the checklist records it for
+whoever is deciding whether to go live. §86 shows the difference is not cosmetic — it was the whole reason a
+revoked device kept its write access.
+
+**Verification.** Both sweeps run across `workers/*/src` and `packages/*/src`; every hit read and classified;
+tables and citations PASS.
