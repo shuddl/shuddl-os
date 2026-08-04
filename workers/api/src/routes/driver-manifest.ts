@@ -66,6 +66,10 @@ export function mountDriverManifestRoutes(app: Hono<{ Bindings: Env; Variables: 
 
     // The driver's assigned pickup/delivery stops, in a deterministic day-sheet order (created_ts, then
     // shipment id, then leg seq). assigned_driver is compared to session.sub — the client cannot widen it.
+    // INDEX HOLD (audit §185): `EXPLAIN QUERY PLAN` returns `SCAN l` for this join — `legs` carries only an
+    // id PK and the PARTIAL ux_legs_slot, so nothing supports the shipment_id filter. This runs on every
+    // driver app open and `legs` grows with every shipment ever booked. Fix is one additive index; see
+    // GO-LIVE-CHECKLIST for why it is an owner call (composite-vs-single needs real cardinality).
     const legs = await db
       .prepare(
         `SELECT l.shipment_id AS shipment_id, l.seq AS seq, l.kind AS kind, l.geo AS geo, s.created_ts AS created_ts

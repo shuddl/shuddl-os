@@ -48,6 +48,11 @@ export function mountInvoiceRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>
         return c.json({ invoices: res.results });
       }
       // tenant lens (admin/ops/finance/read): every in-tenant invoice, division included.
+      // VOLUME HOLD (audit §183 + §185, GO-LIVE-CHECKLIST): this is the worst of the five unbounded list
+      // reads — no WHERE, no LIMIT, no cursor, on the highest-volume durable object a carrier has, and
+      // `EXPLAIN QUERY PLAN` returns SCAN for the party-lens sibling above (no index on party_id). Correct
+      // at fixture volume, one 128MB Worker response at tenant volume. The fix is a keyset cursor, exactly
+      // as REQ-197 specified for the exceptions queue — NOT a bare LIMIT, which truncates silently.
       const res = await db.prepare(`SELECT ${INVOICE_COLS_TENANT} FROM invoices ORDER BY id`).all();
       return c.json({ invoices: res.results });
     } catch (e) {

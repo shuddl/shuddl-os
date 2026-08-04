@@ -38,6 +38,9 @@ export function mountWatchtowerRoutes(app: Hono<{ Bindings: Env; Variables: Vars
     const status = c.req.query("status") ?? "open";
     if (!STATUS_VALUES.has(status)) throw new ApiError("VALIDATION_FAILED", 400, "status MUST BE open, resolved OR all");
 
+    // VOLUME HOLD (audit §183 + §185): `status=all` drops the WHERE entirely, so this returns every
+    // anomaly the tenant has ever raised, unbounded; `EXPLAIN QUERY PLAN` returns a bare SCAN either way
+    // (no index on anomalies.status). Bounding it needs a REQ row — see GO-LIVE-CHECKLIST.
     const where = status === "all" ? "" : " WHERE status = ?";
     const stmt = db.prepare(`SELECT id, rule, object_kind, object_id, severity, detail, status FROM anomalies${where}`);
     const bound = status === "all" ? stmt : stmt.bind(status);

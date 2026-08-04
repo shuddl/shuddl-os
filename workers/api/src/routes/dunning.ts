@@ -375,6 +375,9 @@ export async function listDunningDrafts(
   now: number,
 ): Promise<DunningListItem[]> {
   const existence = status === "draft" ? "NOT EXISTS" : "EXISTS";
+  // VOLUME HOLD (audit §183 + §185): no LIMIT, and `EXPLAIN QUERY PLAN` returns a bare SCAN — `messages`
+  // has only an id PK, so neither drafted_by_agent nor direction is indexed, and collector drafts
+  // accumulate every dunning cycle. See GO-LIVE-CHECKLIST for the keyset fix (not a bare LIMIT).
   const rows = (
     await db
       .prepare(

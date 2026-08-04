@@ -114,6 +114,9 @@ export async function assembleTenantExport(opts: AssembleOptions): Promise<Tenan
   // DOCUMENTS — the read-model rows as REFS (bytes excluded by construction; only r2_key travels). Ordered by
   // id for a deterministic archive. (This includes the tsa_receipt anchor rows, which also surface distinctly
   // below as verifiable roots.)
+  // VOLUME HOLD (audit §183): the ASYMMETRY in this one response — the EVENTS above are keyset-paginated
+  // (DEFAULT_LIMIT/LIMIT_CAP + events_next_cursor, REQ-010) and the documents below are not. Same request,
+  // same file: one half bounded, one half returning every document row the tenant has. See GO-LIVE-CHECKLIST.
   const docsRes = await db.prepare(`SELECT ${DOC_EXPORT_COLS} FROM documents ORDER BY id`).all<DocumentRef>();
   const documents = docsRes.results;
 

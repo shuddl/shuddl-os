@@ -9170,7 +9170,7 @@ the set. It is an assertion that cannot fail in either branch — the shape
 [[mutation-prove-the-pin-not-just-the-fix]] exists to catch.
 
 **Severity is Low, and saying so matters:** the real guard is server-side — `DriverManifest.parse` is
-strict and throws rather than leaks (`workers/api/src/routes/driver-manifest.ts:122@DriverManifest`).
+strict and throws rather than leaks (`workers/api/src/routes/driver-manifest.ts:126@DriverManifest`).
 Nothing leaked. What was wrong was the *proof*, and a test named for a leak that cannot detect one is
 worse than no test, because it is counted.
 
@@ -9411,11 +9411,11 @@ reached, and several hits are bounded by their `WHERE` regardless. Adjudicated e
 | `workers/api/src/do/sequencer.ts:650@stream_id`, `:1014@money_lines` | `WHERE stream_id = ?` / `WHERE event_id = ?` | bounded — one shipment, one event |
 | `routes/documents.ts:57@DOC_LIST_COLS` | `WHERE shipment_id = ?` | bounded — a handful per shipment |
 | `routes/board.ts`, `routes/exceptions.ts`, `routes/approvals.ts` | `LIMIT ?` / `EXCEPTIONS_LIMIT` | **already bounded** |
-| **`routes/invoices.ts:51@INVOICE_COLS_TENANT`** | **none — no `WHERE` at all** | **unbounded** |
+| **`routes/invoices.ts:56@INVOICE_COLS_TENANT`** | **none — no `WHERE` at all** | **unbounded** |
 | **`routes/invoices.ts:45@INVOICE_COLS_PARTY`** | `WHERE party_id = ?` | **unbounded per party** |
-| **`routes/watchtower.ts:42@anomalies`** | `status=all` drops the `WHERE` | **unbounded** |
-| **`routes/dunning.ts:380@drafted_by_agent`** | `LIKE 'msg:dunning:%'` | **unbounded** — drafts accumulate per cycle |
-| **`routes/export.ts:117@DOC_EXPORT_COLS`, `:123`** | none | **unbounded** |
+| **`routes/watchtower.ts:45@anomalies`** | `status=all` drops the `WHERE` | **unbounded** |
+| **`routes/dunning.ts:385@drafted_by_agent`** | `LIKE 'msg:dunning:%'` | **unbounded** — drafts accumulate per cycle |
+| **`routes/export.ts:120@DOC_EXPORT_COLS`, `:123`** | none | **unbounded** |
 
 **Five sites, four routes.** The worst is `/v1/invoices` under a tenant lens: no `WHERE` clause of any
 kind, on the highest-volume durable business object a carrier has, in a tenant whose history is also
@@ -9877,3 +9877,56 @@ each verdict is a small independent measurement and the ones that matter are ext
 fixtures, a rota). What this session contributes is the method and the base rate: **enumerate the absence
 claims, and re-verify the cheap ones first — a stale hold that understates the build costs an operator a
 day of rebuilding something that already ships, and nothing else in the system will ever contradict it.**
+
+---
+
+## §191 — putting the holds where the reader is, and the anchors catching me doing it
+
+§190 named L283 as the pattern worth copying: the hold and `watchtower.ts:427@UNKNOWN` state one fact in
+two places, so **neither can rot alone**. Measured against that, my own recorded findings were half-done.
+§182's `clear()` note and §178's demo constraint sit at their code; **§183 (unbounded reads) and §185
+(full-SCAN reads) lived only in the checklist** — a developer reading `invoices.ts` had no way to know
+either finding existed.
+
+That is the same defect as a hold nobody re-verifies, one step earlier: a record filed where the person
+who could act on it never looks.
+
+Five sites now carry the finding inline, each naming the measurement and the reason it is not being fixed
+here:
+
+| Site | Note |
+|---|---|
+| `routes/invoices.ts:56@INVOICE_COLS_TENANT` | the worst of the five — no `WHERE`, no `LIMIT`, no cursor, on the highest-volume durable object; the party-lens sibling `SCAN`s for want of a `party_id` index |
+| `routes/watchtower.ts:45@anomalies` | `status=all` drops the `WHERE`; a bare `SCAN` either way |
+| `routes/dunning.ts:385@drafted_by_agent` | drafts accumulate per cycle; `messages` has only an `id` PK |
+| `routes/export.ts:120@DOC_EXPORT_COLS` | **the asymmetry, stated where it lives**: events keyset-paginated (REQ-010), documents not — one response, one file |
+| `routes/driver-manifest.ts` legs join | `SCAN l` on every driver app open; `legs` grows with every shipment |
+
+Each says what the fix is (a keyset cursor, an additive index) **and what it is not** — *"not a bare
+`LIMIT`, which truncates silently"* — because the wrong fix is cheaper than the right one and the next
+reader will be under time pressure.
+
+### The gate caught me immediately, and it is worth showing
+
+Inserting those comments shifted line numbers, and `check:citations` went red on **five** citations —
+including two of my own from §183/§185, and §180's anchored citation into `driver-manifest.ts` (written here
+without its line number: naming the stale address is indistinguishable from making one, and the gate
+rejected this sentence too — the third time this session, after §175's two):
+
+```
+FAIL … driver-manifest.ts:126@DriverManifest — anchor "DriverManifest" not found in lines 120-124
+FAIL … invoices.ts:56@INVOICE_COLS_TENANT   — anchor not found
+FAIL … export.ts:120@DOC_EXPORT_COLS        — anchor not found
+```
+
+**Every one was content-anchored, and rule 1 would have missed all five** — the lines still existed and
+were in bounds; only the symbol had moved. That is exactly the failure §175 said anchors are the only
+defence against, demonstrated on this section's own edit, four sections after adopting them. Re-pointed;
+1035 citations resolve, 66 anchored.
+
+### The rule
+
+**A finding is filed where its reader is, or it is not filed.** The checklist is the operator's list; the
+code comment is the engineer's. §183 and §185 will be encountered by someone optimising a slow endpoint
+long before anyone re-reads a checklist row — and that person now finds the `EXPLAIN QUERY PLAN` verdict,
+the REQ-197 precedent, and the reason a bare `LIMIT` is the wrong answer, without leaving the file.
