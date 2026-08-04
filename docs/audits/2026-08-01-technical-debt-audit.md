@@ -5088,3 +5088,41 @@ dependency is enforced or merely true.**
 
 **Verdict: clean negative.** Ninth skill mutation-tested or verified; the live half of the rule is enforced
 three ways.
+
+---
+
+## §107 — the gate-sentinel reconciliation, and the same bug I wrote in §83
+
+`reconcile-gate-sentinels-with-exit-codes` records a defect with the worst possible blast radius: `run-gate.ts`
+once preferred the **last `##SHUDDL-GATE##` sentinel** found anywhere in combined output over the child's exit
+code. Wrapper gates relay nested output, so a nested child's `PASS` printed before the wrapper failed recorded
+**PASS — a false green in the one artifact promotion reads.**
+
+**Closed and well-pinned.** `reconcileSentinel` makes the exit code win, and disabling it turns **three** tests
+red — one per disagreement:
+
+- `exit 1 + PASS → FAIL`, with the disagreement named in `detail`;
+- `exit 2 + PASS → BLOCKED` (exit 2 is a prerequisite hold, not a failure);
+- `null exit + PASS → FAIL` — *"a killed/timed-out child proves nothing"*, the case most harnesses forget.
+
+### 107.1 I wrote the same bug in this audit, in §83
+
+My per-guard mutation harness piped `vitest` to `tail`, so `execSync` saw **tail's** exit code — always 0 —
+never threw, and scored every guard "unpinned". Aimed at an unaudited route first it would have produced a
+clean sweep of guards it never tested. I caught it only by validating against guards §81 had already proved
+pinned.
+
+That is *precisely* this skill's RED: **a PASS recorded for a command that exited non-zero.** The repository
+learned the lesson, encoded the fix, and wrote three tests for it. I then made the identical mistake in a
+throwaway script — because I treated my own tooling as outside the standard the codebase holds itself to.
+
+The skill's own "When to Use" would have caught it: *"Writing or reviewing anything that parses gate output."*
+A ten-line harness that decides whether a security guard is tested is exactly that, and it deserved the same
+scrutiny as `run-gate.ts`.
+
+**The generalisable form:** audit tooling is production code for the duration of the audit. Its false
+negatives do not fail loudly — they arrive as reassuring green tables, which is the same failure mode this
+whole section is about.
+
+**Verdict: clean negative** on the repository; the finding is about how I used it. Tenth skill verified;
+`run-gate.ts` restored byte-identical.
