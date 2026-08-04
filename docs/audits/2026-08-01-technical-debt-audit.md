@@ -6356,3 +6356,62 @@ remains open.
 
 What remains is what §126's table already names: six holds, none repository-closable, each with a command that
 proves whether it is still live.
+
+---
+
+## §130 — queue redelivery: the dedupe chain, and three invalid probes before a valid one
+
+Cloudflare Queues are **at-least-once**. Every consumer must therefore be idempotent, or a redelivery
+duplicates its side effect — and in this system the side effects are a **second invoice** and a **second
+evidence email to a customer**. That is demo #1's blast radius, and this loop had never tested it.
+
+**The surface is small:** one consumer (`workers/agents/src/index.ts`) and three producers (`do/sequencer.ts`
+×3, `routes/evidence.ts`, `recon-sweep.ts`).
+
+**The dedupe chain, verified end to end:**
+
+| link | mechanism |
+|---|---|
+| trigger → event id | `invoiceEventIdFor(pod.id)` and `conciergeEventId("message-sent", msg.event_id)` — derived from the triggering event, never a clock or a UUID (grep for `Date.now`/`randomUUID`/`Math.random` in both agents: none, with a control confirming the probe could see the files) |
+| event id → send key | `evidence-email/${invoiceEventId}` · `concierge-reply/${messageSentEventId}` |
+| send key → provider | Zod-validated `idempotency_key`, 1–256 chars, whose own schema message reads *"dedupe is load-bearing under queue redelivery"* |
+
+**Mutation-proved.** Making either id nondeterministic goes RED: the biller id breaks **4 of 47** cases, the
+concierge id **5 of 47**, against tests named exactly for the property — *"the same message twice → ONE
+invoice event, ONE money projection, ONE email"* and *"a held message redelivered → already_handled, NO
+duplicate draft, NO send."* The consumer's comment claiming *"BOTH consumers' append ids + send idempotency
+keys are deterministic"* is true.
+
+### 130.1 I nearly published "queue redelivery dedupe is UNPINNED"
+
+Three probes preceded the valid one, and the second produced a clean, plausible, **false HIGH**:
+
+| # | what I ran | reported | actually |
+|---|---|---|---|
+| 1 | `npx vitest --dir workers/agents` from the repo root | **RED** | root config lacks the `cloudflare:test` pool — 14 files failed to *load*. Red for the wrong reason (§116, repeated) |
+| 2 | same, under the package's own config | **GREEN — "dedupe UNPINNED"** | baseline genuinely green (106 passing) — but the dedupe tests live in `workers/api`, not `workers/agents` (§96/§97, repeated) |
+| 3 | `workers/api` biller + concierge suites, baseline asserted first | **RED, 4 and 5** | valid |
+
+Probe 2 is the dangerous one. It had a *correct baseline* — 106 tests, exit 0, no environment error — which
+is the check §116 taught me to add, and it still produced a false negative. The baseline being green proves
+the harness works; it does not prove the harness contains a test that **could** fail.
+
+> **A mutation's GREEN means "no test here caught it," never "no guard exists."** Before believing one, name
+> the test you expected to fail and confirm it is in the suite you ran. If you cannot name it, the probe has
+> not yet asked a question.
+
+That is the missing half of §111.2's rule. §111.2 said a mutation with no diff proves nothing; this adds that
+a mutation with no *relevant test in scope* proves nothing either — and it looks far more convincing, because
+the diff is real, the suite is green, and the verdict is a crisp GREEN.
+
+### 130.2 Seventh instance, and the pattern is now fully characterised
+
+Every instrument failure in this loop has been one of exactly three shapes:
+
+1. **The probe never ran** — glob aborted, anchor missed, no diff written (§101, §111.2, §117.2)
+2. **The probe ran the wrong thing** — wrong config, wrong suite, wrong file, wrong scope window (§73, §116, §122.2, §129, and probes 1–2 here)
+3. **The probe measured something adjacent** — an annotation not a mechanism, a ceiling that was legal, a similarity score not a judgment (§114.1, §117.1, §121.1)
+
+All three are invisible in the output. The only defences that have ever worked are the three this section
+used together: **assert the diff**, **assert the baseline**, and **name the test that should fail before
+running it**.
