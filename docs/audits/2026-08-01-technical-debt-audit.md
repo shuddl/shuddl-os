@@ -7619,3 +7619,59 @@ The classifier error is the more dangerous, because it pointed the *safe* way: i
 built rows in the residual, nothing to read" and been wrong in the direction of doing less work. Every other
 instrument failure this loop pointed toward *more* work — a false finding to chase. This one would have
 quietly closed the question.
+
+---
+
+## §153 — the third decline discharged: comment→test citations, all accurate
+
+§132 built a probe for comments claiming *"pinned by \<test name\>"*, got **67 candidates that were almost
+all error strings and code fragments**, and refused to report the number — correctly, since a measurement
+that cannot separate signal from noise is not evidence. §151's rule says to improve the instrument before
+accepting that as final.
+
+**The precise instrument was available all along: match against the *real vocabulary*.** Extract every
+`it(`/`test(`/`describe(` name that actually exists — **4,241 of them** — and check each claimed name against
+that set, rather than guessing whether an arbitrary quoted string looks like a test. Tightening the claim side
+too (a pin/prove/assert verb *and* a 12-character minimum) cut 67 → **11**.
+
+**All eleven read.** Ten are not test-name claims at all:
+
+| what it actually is | example |
+|---|---|
+| sentence fragment | *" does NOT cover a stamp taken while operating in "* |
+| Playwright project name | *"strict accessibility"* |
+| prose quoted for emphasis | *"this file consults the registered module's authority SOMEWHERE"* |
+| example output | *"0 == 0, PASS"* · *"table already exists"* |
+| status value | *"unclassified"* |
+
+**The eleventh is a genuine citation, and it is correct.** `concierge.ts` cites *"the reply SLA is durable
+BEFORE the append"*, and the test exists — `concierge.test.ts:781`, as
+`describe("REQ-092: the reply SLA is durable BEFORE the append (crash-ordering, audit §97)")`.
+
+**Zero findings.** Every comment in this build that claims a test pins something either is not making that
+claim or is accurate.
+
+### 153.1 The instrument needed a fourth fix, found by reading the one plausible candidate
+
+My matcher tried exact, normalised, and **prefix** matches. It failed on the one real citation because the
+comment quotes the *distinctive middle* of the describe name — the real name carries a `REQ-092:` prefix and a
+`(crash-ordering, audit §97)` suffix, so neither string starts with the other. A `contains` check would have
+matched instantly.
+
+That is the fourth iteration of this instrument across two sections, and the fix came from **reading the
+single candidate that looked plausible** rather than from improving the matcher again. A useful stopping
+rule: once the residual is small enough that one of them is obviously worth reading, read it — the read is
+cheaper than the next matcher revision and it tells you what the revision should have been.
+
+### 153.2 Three declines, discharged
+
+| decline | stated gap | discharged | result |
+|---|---|---|---|
+| §134 | 45 weak DoDs unread | §152 | 0 new findings |
+| §150 | 43 forward references unverified | §151 | 0 dropped scope |
+| §132 | 67 comment claims unresolvable | §153 | 0 findings |
+
+**None of the three found anything.** That is the point worth stating plainly: their value was converting
+*"unverified"* into *"verified"*, which is the only difference that matters at a phase gate. An audit that
+ends with three open "I didn't check that" clauses is a different artifact from one that ends with none, even
+when the checking changes nothing.
