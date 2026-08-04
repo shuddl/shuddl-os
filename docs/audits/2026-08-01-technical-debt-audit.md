@@ -5488,3 +5488,53 @@ countermeasures apply. The rule needs a third clause:
 
 Had I acted on it, §114 would have reported the 12-view budget as having no mechanism at all — a fabricated
 Critical against a gate that works.
+
+---
+
+## §115 — the ten non-negotiable engineering rules, proof status
+
+§111 and §114 proved the *budgets*. `CLAUDE.md` also states ten **non-negotiable engineering rules**, which
+are the load-bearing ones — they govern behaviour, not counts. Four had never been mutation-proved. All four
+now are, each restored byte-identically:
+
+| rule | probe | verdict |
+|---|---|---|
+| **1** — traceability blocks orphans both directions | a source file citing `REQ-999`, absent from the register | **RED** |
+| **4** — no price on air | the weight guard removed → **RED (9 tests)**; the dims guard removed → **RED (3 tests)** | **RED, both halves independently** |
+| **5** — interline floors compare the executing share, never gross | `shareCents` swapped for the gross `sell` — the exact REQ-040 defect | **RED (3 tests)** |
+| **10** — no silent drops in migration | the `unmapped` gap row suppressed → **RED (2)**; `low_confidence` silently applied → **RED (1)** | **RED, both halves** |
+
+**Full status across the ten.** Eight are mutation-proved (1, 2 §69, 3 §84, 4, 5, 7 §111, 8 §73, 10); rule 6
+(fixtures gate merges) is BLOCKED on the five private-fixture holds and cannot be proved in-repo; rule 9
+(adversarial swarm at WP exit) is a *process* rule, resolved in §99 — it has no code gate by design.
+
+### 115.1 Rule 1's second direction is being demonstrated right now
+
+I probed only the code→register direction (a citation to a row that does not exist). The register→code
+direction — a row with no implementation — needs no probe this session, because **`REQ-289` is failing it
+live**: `check:coverage` reports one unaccounted row, which *is* that direction firing. §113 called REQ-289 a
+blocker; it is simultaneously the standing proof that half of rule 1 works.
+
+### 115.2 Rule 4 had two identical returns, and `replace` took the first
+
+The weight and dims guards end in a **byte-identical** line:
+
+```ts
+return { status: "UNKNOWN", reason: "missing_physics" };
+```
+
+A naive `String.replace` mutates the weight guard and leaves dims untouched — precisely §73's trap, which
+once nearly produced "the isolation suite is hollow." Anchoring on the *condition* rather than the shared
+return proved the dims half separately (3 tests, a different set from the weight half's 9).
+
+This is §93's rule paying off a third time: the question is never "did the guard fail," it is **"does each of
+the N fail on its own."** Two guards sharing a return value are as indistinguishable to a mutation as two
+guards sharing an HTTP status are to a test (§81) — the same defect, one layer down.
+
+### 115.3 What is left is not provable from inside the repo
+
+With the budgets (§111/§114) and the engineering rules (§115) proved, the mechanical laws of this build are
+demonstrated rather than asserted. Every remaining hold in §113's table needs an owner: a register row to
+commit, fixtures to vendor from the engagement workspace, credentials for the EDI transport, an identity seam
+to specify, and grades to sign. None of them is a coding task, and none can be closed by another loop
+iteration without straying from the documented build.
