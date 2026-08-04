@@ -5011,3 +5011,39 @@ The device pair was written correctly from the start — each query's comment na
 standard the other two now meet, and it cost its author one sentence at the time.
 
 **Verification.** `documents.test.ts` 12/12; typecheck, lint, citations and tables PASS.
+
+---
+
+## §105 — the dependency-claim sweep, and the phase gate re-measured at `0a5b3c3`
+
+**The sweep.** §103/§104 fixed three couplings by hand; the mechanical follow-up is to find the rest by their
+own words. Scanning `workers/*/src` and `packages/*/src` for asserted dependencies ("only works because",
+"relies on", "depends on", "assumes that") returns twelve hits, and the shape of them is reassuring: most are
+**negative** claims of independence — *"the required loader never depends on it"*, *"no event's durability
+depends on the actor party"*, *"the only package that depends on zod"* — which are the opposite of a hidden
+coupling. Two are the ones §103/§104 just wrote.
+
+**One is a real cross-file coupling:** `sequencer.ts` warns that a change to its error text would *"break the
+`CODE:json` split Task 14 relies on"* — the DO emits `CODE:{json}` and `translateAppendError` in the events
+route parses it back into an envelope. Mutation-tested by changing the separator from `:` to `|`: a test does
+turn red (*"a malformed (blank) override is a clean 400 VALIDATION_FAILED, not a silent pass"*), so the format
+is pinned — but by **one** case out of 26 in the two files most likely to catch it. Thinly held, and held.
+
+Not raised as a defect: the coupling is documented on the producing side, the consumer is one function, and a
+break is loud rather than silent (a mis-split yields a 500, not a wrong answer). Recorded so the thinness is
+known.
+
+### 105.1 Phase gate at `0a5b3c3`
+
+§98 stamped `96a131a`. Seven sections later:
+
+1. **Zero open repository-owned Critical/High — SATISFIED.** §99–§104 opened no code defects: one stale DoD
+   box resolved with its history, two clean negatives on WP records, three mechanical integrity checks, and
+   three cross-file couplings documented (two of which were genuinely one-sided).
+2. **Baseline gates green — SATISFIED but for the one row that is not this loop's.** **17 workspaces, 2,888
+   tests, exit 0**; `tools/` 715 with the same three `REQ-289` failures; **all twelve** static gates PASS.
+3. **Remaining debt External or CONFIRM-gated — SATISFIED**, plus one new owner item (§99: `CLAUDE.md` rule 9
+   says "every WP exit" while the practice became periodic whole-codebase audits).
+4. **The record agrees with the world — SATISFIED.**
+
+**The stopping line is unchanged and is reached again at `0a5b3c3`.**
