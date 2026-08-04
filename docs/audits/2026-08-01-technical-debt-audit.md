@@ -6943,3 +6943,56 @@ because there is nothing to return: no shipped mechanism changes behaviour on th
 
 **Nine surfaces plus six seamless ones. Two findings, both recorded as proposed scope.** That is the sweep,
 and this time the word "complete" is earned rather than assumed.
+
+---
+
+## §141 — the phase gate, re-measured at `78499e9`
+
+§113 measured the stopping point at `99ae4ca`. **Twenty-eight commits have landed since**, five of them
+touching source: `tools/acceptance/run.ts` (§118's files-vs-tests fix), `tools/checks/append-chokepoint.ts`
+and `tools/checks/invariants.ts` (§120's widened scan globs), `tools/docs/check-table-shape.mjs` (§119's NUL
+bytes), and `workers/api/src/do/sequencer.ts` (§131's corrected backstop claim). None of those had been
+re-verified against the full suite. Doing that here.
+
+| surface | result |
+|---|---|
+| ten static gates (runtime · invariants · rater-purity · chokepoint · authority-coverage · traceability · seed · citations · tables · design) | **all PASS** |
+| `typecheck` · `lint` | **PASS** |
+| workspace suite (`pnpm -r test`) | **17 workspaces · 2,888 tests · 0 failures · exit 0** |
+| root `tools/` suite | 715 tests, 712 passing — **the 3 failures are `REQ-289`** |
+| acceptance spine | **GREEN** — 7 files / 36 tests across 4 packages |
+| `check:coverage` | **FAIL — `REQ-289` only** (1 unaccounted of 289) |
+
+**2,888 and 0 failures is identical to §113's figure.** The two widened gate globs, the byte fix, the runner
+correction and the sequencer comment changed no behaviour the suite can see — which is the right outcome for
+four record fixes and one scan-coverage fix, and is the first evidence that §120's widening (six new glob
+patterns across two gates) did not accidentally catch anything pre-existing.
+
+### 141.1 The four §126 hold-table commands, re-run
+
+Every verification cell in §126's table was executed again at this commit rather than assumed:
+
+- `pnpm check:coverage` → exit 1, *"1 unaccounted register row"* ✅ as documented
+- `pnpm check:fixtures -- --mode merge` → exit 2 BLOCKED, naming all nine ✅
+- `pnpm check:identity -- --mode merge` → exit 2 BLOCKED ✅
+
+That is the property §126 built the table for: a reader six weeks out can establish which rows are still live
+by running three commands. Three commands, three matching verdicts.
+
+### 141.2 What the loop has produced
+
+| | |
+|---|---|
+| commits | **75** |
+| audit sections | **131** |
+| source-file touches | 26 |
+| findings recorded as **proposed scope** (owner REQ row required) | **5** — §123 REQ-180 alignment · §131 booking backstop · §133 SLA cadence · §135 Concierge cost metering · §137 unsurfaced send failure |
+| repository-closable debt remaining | **none identified** |
+
+**The stopping point is unchanged and re-earned.** §126's six holds stand with verified commands; §123's
+scoping (the repo-adjacent subset, with `GO-LIVE-CHECKLIST.md` as the authoritative enumeration) stands;
+§138's activation map indexes what wakes on each trigger. Every remaining item needs an owner: a register row
+to commit, fixtures to vendor, secrets to bind, a flag to flip, or five REQ rows to sign.
+
+Nothing in this section is new work. It is the measurement that lets the previous forty sections be trusted
+at a specific commit — which is the only form a phase gate can honestly take.
