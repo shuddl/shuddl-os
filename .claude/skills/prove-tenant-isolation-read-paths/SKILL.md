@@ -24,7 +24,7 @@ Trigger when you:
 Do NOT skip because the route "obviously" uses `tenantDb` — the point is the *proof*, not the intent.
 
 ## The gap this closes (the RED)
-`workers/api/test/isolation.test.ts:5` promises the suite "grows a case for every read path added in later WPs." It covers `_probe`, ledger events, and positions. It has **zero** cases for three shipped tenant-storage paths:
+`workers/api/test/isolation.test.ts:29@WPs` promises the suite "grows a case for every read path added in later WPs." It covers `_probe`, ledger events, and positions. It has **zero** cases for three shipped tenant-storage paths:
 - `evidence.ts` — `evidenceKey(session.tenant, ...)` builds `evidence/${tenant}/${shipmentId}/${hash}` (evidence.ts:60 defines it; the route calls `evidenceKey(session.tenant, ...)` before `EVIDENCE.put`).
 - `anchors.ts:38` — `readAnchorManifest(c.env.EVIDENCE, session.tenant, day)`, keyed by `anchorManifestKey` = `anchors/${tenant}/${day}/manifest.json` (packages/ledger/src/anchor.ts:58,61).
 - `rate.ts:127` — `loadTenantRatingConfig(tenantDb(c.env, session.tenant), now)`.

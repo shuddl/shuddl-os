@@ -8756,3 +8756,91 @@ defect): **the skills were written from the same unverified beliefs as the code 
 them.** Three of sixteen have now been found stating something false about the repo. That is the standing
 carry-forward — skills are unversioned, uncited prose asserting facts about a moving codebase, and §174 is the
 third instance in three consecutive sections.
+
+---
+
+## §175 — the citation gate reads skills; it cannot read the sentence around the citation
+
+§174's carry-forward was that skills assert facts no gate reads. That needed measuring, not repeating,
+so the first question was whether the citation gate covers `.claude/skills/` at all. Its scope comment
+says *"every tracked `.md` file in full"* — but §163 is the standing lesson that a scope comment is a
+claim. Mutated a skill citation to line `999999`:
+
+```
+FAIL citation-links .claude/skills/prove-tenant-isolation-read-paths/SKILL.md:70
+  → evidence-upload.test.ts, line 999999 — workers/api/test/evidence-upload.test.ts has 553 lines
+```
+
+> Quoted with the line number de-linked from the path on purpose. Written as the gate actually printed
+> it — `path:999999` — this fence FAILS the citation gate, because the gate reads every tracked `.md`
+> in full and cannot tell a demonstration from an assertion. It caught exactly that when §175 was first
+> written. **A gated document cannot quote its own gate's failure output verbatim**, and the
+> strikethrough exemption is the wrong tool here: `~~` means *this was a real record and is now
+> superseded*, which would be a lie about a line that was never a citation at all.
+>
+> The **ratchet** then caught this section a second time, on the table row below: a bare `events.ts` with
+> a line number is an ambiguous basename that resolves into TWO high-churn files, so it scored `0 → 1` against both
+> `packages/contracts/src/events.ts` and `workers/api/src/routes/events.ts`. Its message named the fix
+> (*"use the full path if an ambiguous basename pulled it in here"*) and the row now carries the full
+> path plus an anchor. §148 proved every meta-guard CAN fire on a planted defect; this is both of them
+> firing unplanted, on the prose written to describe them.
+
+**The gate does read skills** (32 tracked files). So the §174 carry-forward was too broad: citations in
+skills are gated. What is *not* gated is the sentence wrapped around them — §170's "11 unbuilt agents",
+§173's stale sweep, §174's "NO — add" column. Every one resolved to a real file at a real line and was
+still false. **Rule 1 proves a citation POINTS somewhere; nothing proves it MEANS what the prose says.**
+
+### Two instruments, one of them wrong first
+
+A dangling-reference sweep (bare `` `path/file.ts` `` refs, no line number — the form rule 1 skips) over
+26 skill files found **1 of 27** dangling: `contracts/src/errors.ts`, shorthand for `packages/contracts/`.
+The prose claim around it was **true** (both codes are in that file). But reading it to check exposed two
+*neighbours* the sweep wasn't looking for: `gates/invoice-gate.ts:12` and `gates/transition-gates.ts:60`
+both pointed at unrelated lines — the real construction sites are `:16` and `:74`.
+
+Which named the real instrument: apply the **content-anchor rule retroactively**. For every unanchored
+`path:line` citation in a skill, do the identifiers named in the same prose line still sit within ±3
+lines? First build resolved bare filenames by guessing a root list — `index.ts:339` matched *some*
+`index.ts`, and several "findings" printed an empty source line. That is §122's instrument error again,
+and it inflates. Rebuilt to resolve **only on a unique suffix match**: 99 decidable, **51 flagged**, 36
+ambiguous paths and 60 with no symbol to anchor against, both reported rather than silently dropped.
+
+### What 51 is worth
+
+51 is a candidate count, not a defect count — a citation may legitimately point at a *comment* stating
+the law while the prose names symbols implemented elsewhere. Sampled three:
+
+| Candidate | Verdict |
+|---|---|
+| `isolation.test.ts:5` cited as promising *"grows a case for every read path"* | **ROTTED** — line 5 is an import; the promise is at `:29` |
+| `invariants.ts:204` cited twice, for `FORBIDDEN_REPLACE` and for `SCHEMA`/`DELIM` | **ROTTED both times** — they live at `:392` and `:29`/`:32` |
+| `packages/contracts/src/events.ts` cited at line 620, naming `party_refs` | **false positive** — it is at `packages/contracts/src/events.ts:625@party_refs`, 5 lines out; my window was ±3 |
+
+Two of three real. So the class is confirmed and the magnitude is *not* 51 — the honest statement is that
+roughly half the flagged set is likely rot and the rest is window tightness, and **the sample is three**.
+
+### Fix
+
+Five rotted citations across three skills, each re-pointed **and given a content anchor**, which is the
+only rule that catches this failure — `invoice-gate.ts:16@GATE_BLOCKED_PREFIX`,
+`transition-gates.ts:74@VALIDATION_FAILED`, `isolation.test.ts:29@WPs`,
+`invariants.ts:392@FORBIDDEN_REPLACE` (×2), plus `invariants.ts:29@SCHEMA`. Anchored citations went
+**28 → 34**; 987 citations resolve; the ratchet holds at its frozen 130.
+
+The remaining ~48 candidates are **not** swept in this pass, and saying so is the point (§175 is not a
+clean negative). Hand-adjudicating them costs more than it returns right now: these citations are
+developer-facing navigation aids, and rot there costs a future agent minutes, not the product its
+correctness. The structural answer, when it is worth doing, is to **adopt anchors on skill citations as
+they are touched** — every anchor converts a silent rot into a gate failure, which is exactly how the
+five above were caught rather than argued about.
+
+### The rule
+
+**A gate that validates the address does not validate the assertion.** Rule 1 is bounds-checking, and it
+passed all five of these while they pointed at imports, closing braces and unrelated mappings. The anchor
+is opt-in, so the rot rate is highest precisely where nobody thought a citation was worth pinning. §174
+found the sentence lying; §175 finds the address lying; both were invisible for the same reason — **the
+gate's green covers a narrower claim than the reader assumes it does.**
+
+> And a third time, on the sentence directly above — which quoted the ambiguous citation in order to
+> explain it. Naming a bad citation is indistinguishable from making one, to a gate that reads prose.
