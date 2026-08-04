@@ -6571,3 +6571,49 @@ and ask what the requirement *meant*.
 > **A DoD that states an event ("timer events fire") rather than a bound ("within N") cannot be violated by
 > being slow.** Requirements written as existence claims are satisfied by any implementation that exists —
 > which is exactly how a four-hour promise ends up with a daily detector and every gate stays green.
+
+---
+
+## §134 — auditing the register as a specification: 49 weak DoDs, and why only one was a gap
+
+§133 found a four-hour SLA with a daily detector, green because `REQ-095`'s DoD reads *"Timer events fire"* —
+an **existence claim**, which slowness cannot violate. That is a property of the *specification*, not the
+code, so the register itself deserves the sweep: how many DoDs are written that way, and how many hide a
+real gap behind them?
+
+**Forty-nine of 289 rows** are time-sensitive (timers, sweeps, alerts, backups, exports, retention) with a
+DoD naming an event rather than a bound. Rather than report 49 as a finding, the three strongest were read:
+
+| row | DoD as written | is there a bound anywhere? |
+|---|---|---|
+| **REQ-114** — uptime/SLO targets per surface | *"Status monitors live"* | **Yes** — `docs/ops/slo.md` carries **31 numeric targets**: 99.9%/mo api, p95 300ms reads / 800ms mutations, POD→email p95 <5s, plus alert thresholds with severity and owner |
+| **REQ-113** — per-agent cost + latency budgets | *"Budget breach alarm test"* | **Yes** — `DEFAULT_AGENT_BUDGET = { maxAvgLatencyMs: 5_000, maxAvgCostCents: 50 }` in `watchtower.ts`, with a tenant override seam |
+| **REQ-135** — DR backups | *"Restore drill"* | **Yes** — the bound is in the requirement text itself: *"RPO 24h RTO 4h v1"* |
+| **REQ-095** — SLA timers (§133) | *"Timer events fire"* | **No** — nowhere in the register, the ops docs, or the code |
+
+**So a weak DoD is usually not a gap.** The specification in this build is *distributed*: the bound lives in
+the requirement's own prose, or in an ops document, or as a named constant in code. The register is an
+**index of scope**, not a complete acceptance spec, and reading it as the latter would produce 49 false
+findings.
+
+### 134.1 What this actually costs
+
+The distribution is not itself a defect — but it means **nothing tells you which weak DoD is the one where no
+bound exists anywhere.** REQ-095 and REQ-114 look identical in the CSV; one is fully specified in a document
+three directories away and the other is specified nowhere. Only reading each candidate to exhaustion
+distinguishes them, which is why §133 took a targeted read and this sweep took four.
+
+That is the honest limit of a register audit: it can produce the *candidate list* (49 rows, mechanically) but
+never the verdict. The verdict costs one careful read per row, and the yield so far is **one in four**.
+
+### 134.2 Not proposed as a register change
+
+Rewriting 49 DoDs to carry bounds would be a large, owner-signed amendment to an append-only register, and it
+would be mostly wrong: three of the four read here are already bounded elsewhere, and restating a bound in
+two places is precisely the duplication §110 and §126 spent sections undoing. The right treatment is the one
+§133 already applied — when a *specific* row turns out to be unbounded everywhere, record that row.
+
+**Phase gate, unchanged.** §126's six holds stand, and three findings now sit beside them as **proposed
+scope awaiting an owner's REQ row**: REQ-180's register alignment (§123), the missing booking backstop
+(§131), and the SLA cadence (§133). None is repository-closable without a row, and all three are recorded
+with severity, owner, verification and expiry.
