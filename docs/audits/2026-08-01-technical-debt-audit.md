@@ -7291,3 +7291,62 @@ metric produced a tidy, actionable-looking headline.
 **No finding, no debt, no change.** Recorded so the next person who wonders about coverage shape knows this
 was measured, why the obvious metrics mislead here, and what would actually be required: per-module reasoning
 about what each test *reaches*, which is the same one-read-per-item price §134, §132 and §145 all arrived at.
+
+---
+
+## §147 — the concurrency model: what the mutex does not cover, and what covers it instead
+
+Races are the one defect class no static sweep finds, and this loop had never examined the concurrency model.
+It rests on a single fact worth stating precisely:
+
+**The sequencer DO is keyed `${tenant}|${streamId}` — per *stream*, not per tenant.** Two appends to one
+stream share a DO and are serialised by its mutex (itself measured, not assumed: *"Verified by deleting this
+mutex"*). Two appends to *different* streams are **different DO instances with no shared lock at all.**
+
+So every invariant spanning streams needs a different mechanism, and in D1 that means a UNIQUE index. There
+are exactly four, and all four are named in tests:
+
+| index | protects | scope |
+|---|---|---|
+| `ux_legs_slot(facility_id, appt_slot_key, appt_service_date)` | two shipments claiming one dock slot | **cross-stream** |
+| `ux_ml_corrects(corrects_event_id, line_no)` | a second correction of the same event | cross-stream |
+| `ux_events_device(stream_id, device_id, device_seq)` | offline capture dedupe | per-stream — same scope as the mutex, deliberately |
+| `UNIQUE(event_id, line_no)` on `money_lines` | duplicate projection lines | per-event |
+
+### 147.1 The D1 hazard these indexes create, and the guard that answers it
+
+A UNIQUE index is not free here. `db/tenant/migrations/0008` exists because of what it can do:
+
+> *D1 runs `PRAGMA recursive_triggers = 0`, so an `INSERT OR REPLACE` that collides on a UNIQUE key the
+> BEFORE INSERT guard's WHEN-clause does NOT enumerate slips PAST the guard (its WHEN is false), and
+> REPLACE's implicit row-DELETE — which never fires the BEFORE DELETE guard when `recursive_triggers=0` —
+> SILENTLY erases the chained victim row (a history rewrite / chain break).*
+
+**This already happened.** `0003`'s `events_guard_ins` enumerated only `(stream_id, seq)` and `id`; it omitted
+the `hash` UNIQUE column *and* `ux_events_device`. `money_lines_guard_ins` omitted `ux_ml_corrects`. Migration
+`0008` closed all three. So the failure mode is not hypothetical — every UNIQUE surface added without
+extending the guard reopens a silent history-rewrite path on an append-only ledger.
+
+### 147.2 The guard-of-the-guard, mutation-proved
+
+`check:invariants` carries a **completeness** rule: every UNIQUE target on a guarded table must be enumerated
+by some disjunct of that table's BEFORE INSERT guard. Probed by adding a new migration with a UNIQUE index
+and leaving the guard untouched:
+
+```
+add UNIQUE index, guard untouched → RED
+  I3 VIOLATION: append-only guard completeness — the UNIQUE target
+  (stream_id, kind, ts) on events has no BEFORE INSERT guard disjunct
+```
+
+The exact diagnostic, naming the un-enumerated target. **A future engineer cannot silently reopen the hole
+that produced `0008`** — the check fails their migration before it merges.
+
+That is the strongest shape a guard can take: not a rule someone must remember, but a mechanism that fails
+when the rule is forgotten, verified by breaking it on purpose. §111 proved the design gate could fail; §144
+proved a boundary could; this proves the *meta*-guard can — the check that exists to stop a class of defect
+from recurring is itself capable of firing.
+
+**No finding.** The concurrency model is coherent: per-stream serialisation where streams are independent,
+UNIQUE indexes where they are not, and a static check ensuring the append-only guards keep pace with every
+uniqueness surface added.
