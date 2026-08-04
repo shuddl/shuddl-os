@@ -7448,3 +7448,61 @@ question an owner actually has at a launch gate — **"if I do one thing this we
 
 **No finding, no new debt.** Every row here is already recorded; the join is an index, dated like §138's, with
 each cell pointing at the ledger entry that owns the truth.
+
+---
+
+## §150 — the WP deferral chain, and the fifth false number from a prose sweep
+
+Sixteen WP documents record not only what each work package delivered but what it **deferred** — sections
+headed *"LATER WP (recorded, not built here)"*, *"Deferred slices (owned elsewhere)"*, *"CONFIRM-gated /
+DEFERRED TAIL"*. Dropped scope would hide there: WP-N defers to WP-M, WP-M never takes it, and every gate
+stays green because nothing in the code claims otherwise.
+
+**The checkbox half is clean.** WP-01–03 use `- [ ]` DoD boxes: **13 boxes, 13 checked, 0 unchecked.** WP-04
+onward dropped the format entirely — consistent with §99's finding that the per-WP practice changed after
+WP-03.
+
+**The deferral half is where the interesting claim lives:** 129 recorded deferrals, of which **43 are forward
+references** naming a specific later WP.
+
+### 150.1 My matcher said 28 were dropped. All four spot-checks were false negatives.
+
+The probe took each deferral's first backticked or bolded token and asked whether the target WP's text
+contained it. It reported **28 of 43 unresolved** — which, in a build where all sixteen WPs are closed and
+`check:traceability` passes in both directions, is not a plausible number. §127's rule applied, so I sampled
+before publishing:
+
+| deferral | target | matcher | reality |
+|---|---|---|---|
+| POD → invoice + evidence email | WP-06 | NOT FOUND | **in the title**: *"WP-06 — Biller + Evidence Email (POD → MONEY, same second)"* |
+| QuickBooks / statement export | WP-11 | NOT FOUND | **in the title**: *"WP-11 — Collector + QuickBooks Export + Watchtower"* |
+| MCP / command-bar booking intake | WP-10 | NOT FOUND | present — the ⌘K palette section |
+| `transit_matrix` rate_config kind | WP-08 | NOT FOUND | present — the honest-transit-window section |
+
+Four for four. The matcher fails whenever the receiving WP describes the same work **in different words**,
+which is what a well-written document does. The 28 is noise, and the forward-reference chain is intact as far
+as sampling and the traceability gate can establish.
+
+### 150.2 The fifth false number, and the rule it earns
+
+| section | sweep over prose | reported | actual |
+|---|---|---|---|
+| §132 | quoted test-case names in comments | 67 unverified claims | ~0 — error strings and code fragments |
+| §142 | chain-array entries split on commas | 8 entries, 4 "unpinned" | 2 entries, all pinned |
+| §146 | coverage density, twice | two contradictory "thinnest areas" | both artifacts |
+| §150 | WP forward references | 28 dropped deferrals | 0 in a 4/4 sample |
+
+> **A mechanical sweep over prose finds broken *identifiers* and nothing else.** Filenames, symbols, REQ ids —
+> anything with a canonical spelling. The moment the claim is expressed in words a human chose, the regex is
+> measuring vocabulary overlap, not truth.
+
+Every one of these produced a large, quotable, actionable-looking number. Four of the five would have sent
+someone chasing nothing.
+
+### 150.3 The bounded decision
+
+Verifying all 43 forward references properly costs 43 careful reads. Given a 4/4 clean sample, all sixteen
+WPs closed, and traceability green in both directions, that is low-yield — so **I did not do it, and say so
+here rather than implying coverage I do not have.** What is established: the checkbox DoDs are complete, the
+deferral sections exist and are populated, and the sampled forward references resolved. What is not
+established: that all 43 did.
