@@ -201,6 +201,28 @@ describe("device_id is bound to the signing key — no offline-slot squatting (R
     expect(await eventsFor(streamId)).toHaveLength(0);
   });
 
+  // REQ-254 (audit §93) — the SIGNATURE half of revocation. §86 added `revoked_ts IS NULL` to BOTH readers
+  // but pinned only the positions one (deviceOwnedBy); removing the sequencer clause left all 745 api tests
+  // green. They are separate queries with the same clause COPIED, so one edit can remove either — §92 test
+  // for "redundant mechanisms", which need a pin each. Without this, a revoked device could still append
+  // SIGNED EVENTS to the ledger, the more serious of the two paths.
+  it("a REVOKED device cannot sign an append — its key no longer resolves (REQ-254)", async () => {
+    const streamId = "s:shp-e-revoked";
+    const revokedId = "device-revoked-seq";
+    const row = await env.CONTROL_DB.prepare("SELECT device_keys FROM users WHERE id = ?").bind("u-driver").first<{ device_keys: string }>();
+    const entries = JSON.parse(String(row?.device_keys ?? "[]")) as Array<Record<string, unknown>>;
+    const active = entries.find((e) => e.device_id === TEST_DEVICE_ID);
+    if (!entries.some((e) => e.device_id === revokedId)) {
+      // APPEND (never replace) — the control row is shared across every test file (isolatedStorage:false).
+      entries.push({ ...(active ?? {}), device_id: revokedId, revoked_ts: 2 });
+      await env.CONTROL_DB.prepare("UPDATE users SET device_keys = ? WHERE id = ?").bind(JSON.stringify(entries), "u-driver").run();
+    }
+    const input = await signedDeviceInput(streamId, { actor: { party: "party-carrier", user: "user-driver", device: revokedId }, device_id: revokedId });
+    const err = await stubFor(streamId).append({ tenant: TENANT, streamId, input }).then(() => null, (e: Error) => e);
+    expect(err, "a revoked device must NOT be able to append").not.toBeNull();
+    expect(await eventsFor(streamId)).toHaveLength(0);
+  });
+
   it("the honest case (device_id === actor.device, signed) IS stored", async () => {
     const streamId = "s:shp-e-ok";
     const stub = stubFor(streamId);

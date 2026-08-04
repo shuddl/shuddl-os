@@ -4509,3 +4509,40 @@ rather than by more searching, exactly as §72 prescribed.
 
 **Verdict: clean negative.** `workers/mcp` 177/177; the status filter mutation-proved RED; `principal.ts` and
 `oauth.ts` restored byte-identical.
+
+---
+
+## §93 — §92's rule turned on §86's own fix: the signature half was never pinned
+
+§92 gave a test for "belt and suspenders": **can one edit remove one of them?** Applied to my own §86 fix, the
+answer was yes, and I had missed it.
+
+§86 added `revoked_ts IS NULL` to **two** readers — `gate-context.ts deviceOwnedBy` (positions) and the
+sequencer's `#deviceKey` (signature verification). Those are **separate queries with the same clause copied**,
+not two calls to one predicate. By §92's classification they are redundant *mechanisms*, and each needs its own
+pin.
+
+I pinned one. Removing the clause from the sequencer alone left **all 745 api tests green.**
+
+**And the unpinned half is the more serious one.** `deviceOwnedBy` gates the positions partition; `#deviceKey`
+gates whether a device's **signature verifies**, which is what lets a signed event into the ledger. A future
+edit could have re-opened exactly the §86 defect on the path that matters most, with nothing red.
+
+Test added — *"a REVOKED device cannot sign an append — its key no longer resolves (REQ-254)"* — asserting the
+refusal **and** zero events on the stream. Mutation-proved: removing only the sequencer clause now turns it
+red, and removing only the positions clause turns §86's case red. Each mechanism pinned by its own case.
+
+### 93.1 This is the fix-the-instance-not-the-class pattern, in my own work, twice removed
+
+§55 recorded a correction applied to one of three citation sites. §61 corrected `CLAUDE.md` and left
+`genesis/11`. Now §86 fixed both readers but pinned one. The repo has a memory note named for this
+(`enumerate-callers-dont-generalize-the-fix`), and it still happened — because the *fix* enumerated both call
+sites correctly while the *coverage* did not follow it.
+
+That is the sharpened form worth keeping: **when a fix touches N call sites, the question is not "did I fix all
+N" but "does each of the N fail independently."** The first is easy to satisfy by copy-paste; only the second
+survives the next edit. §92's one-edit test is how to tell them apart, and it should be run against one's own
+patch, not only against the code one is auditing.
+
+**Verification.** `sequencer.test.ts` 27/27; the sequencer-only mutation proved RED; `sequencer.ts` restored
+byte-identical; fixture appends rather than replaces (§86.4's rule), full suite re-run.
