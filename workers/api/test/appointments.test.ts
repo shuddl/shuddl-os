@@ -377,3 +377,39 @@ describe("(F) appointment.set pins shipment_id to the stream (REQ-186)", () => {
     expect(await legSlot(victim)).toBeNull(); // the victim's leg was never touched
   });
 });
+
+// ── DST: the appointment gate's whole notion of "local" rests on this converter (audit §186) ──────────
+// `localWall` is the ONLY thing turning an instant into the wall-clock minute the gate compares against a
+// slot template, and it is called on every appointment.set evaluation. That makes it a standing candidate
+// for the obvious optimization — `Intl.DateTimeFormat` construction is famously slow, so "resolve the tz
+// offset once and cache it" is the change a future reader is most likely to make. A cached offset is
+// correct for ~363 days a year, which is exactly why nothing here would have caught it: no fixture lands
+// on a transition. These three cases fail loudly the moment the conversion stops consulting the IANA
+// database. Instants below were computed against the real tz data, not asserted from memory.
+describe("REQ-028/052 — localWall is DST-correct, not fixed-offset", () => {
+  const NY = "America/New_York";
+
+  it("the SAME UTC hour is a different local hour in winter and summer (no fixed offset)", () => {
+    expect(localWall(Date.parse("2026-01-15T17:00:00Z"), NY).minuteOfDay).toBe(12 * 60); // 12:00 EST
+    expect(localWall(Date.parse("2026-07-15T17:00:00Z"), NY).minuteOfDay).toBe(13 * 60); // 13:00 EDT
+  });
+
+  it("SPRING FORWARD (2026-03-08) — the 02:00 hour does not exist, so an hour of UTC steps over it", () => {
+    expect(localWall(Date.parse("2026-03-08T06:30:00Z"), NY).minuteOfDay).toBe(90); // 01:30 EST
+    expect(localWall(Date.parse("2026-03-08T07:30:00Z"), NY).minuteOfDay).toBe(210); // 03:30 EDT — not 02:30
+  });
+
+  it("FALL BACK (2026-11-01) — TWO instants share one local wall clock AND service date", () => {
+    const edt = localWall(Date.parse("2026-11-01T05:30:00Z"), NY); // 01:30 EDT
+    const est = localWall(Date.parse("2026-11-01T06:30:00Z"), NY); // 01:30 EST, one hour later
+    expect(edt.minuteOfDay).toBe(90);
+    expect(est.minuteOfDay).toBe(90);
+    expect(edt.serviceDate).toBe(est.serviceDate);
+    // So on this one day the gate's window_mismatch check CANNOT distinguish them — two different
+    // window_start_ts both satisfy the slot template. What prevents a double-claim is not the time math
+    // but `ux_legs_slot (facility_id, appt_slot_key, appt_service_date)`: the second claim loses to the
+    // UNIQUE index, fail-closed, first-committer-wins. Recorded so the backstop is not removed as redundant.
+    expect(localServiceDate(Date.parse("2026-11-01T05:30:00Z"), NY)).toBe("2026-11-01");
+    expect(localServiceDate(Date.parse("2026-11-01T06:30:00Z"), NY)).toBe("2026-11-01");
+  });
+});

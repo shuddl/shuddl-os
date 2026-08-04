@@ -9576,3 +9576,69 @@ schema is a fact, and it cost about a minute — build the migrations into a scr
 verdict. It also caught my instrument's blind spot in the same motion: had I trusted the first table, I
 would have reported the ledger's own id lookup as a full scan, which is both the most alarming claim in
 this section and false.
+
+---
+
+## §186 — the appointment suite was blind to DST because its fixture calls the converter it tests
+
+A production class no fixture lands on: **the two days a year a timezone changes offset.** The
+appointment gate compares a wall-clock minute against a slot template, and every notion of "local" in
+that gate comes from one function — `workers/api/src/appointment-window.ts:32@localWall`, called on every
+`appointment.set` evaluation.
+
+**The implementation is correct**, and deliberately so: `Intl.DateTimeFormat` with the *named* zone (so
+the IANA database supplies the offset for that instant), `hourCycle: "h23"`, a `% 24` guard against a
+stray `"24"` on old ICU, and `dow` derived from the **local** Y/M/D rather than the UTC one. Nothing to
+fix.
+
+Nothing pinned it either. `localWall` appears in three test files and **no test exercised a transition** —
+no `dst`, no `America/New_York` boundary case anywhere in the suite.
+
+That matters because of which change is likely. `Intl.DateTimeFormat` construction is famously slow and
+this runs per gate evaluation, so **"resolve the offset once and cache it"** is the single most plausible
+future edit to this file — and a cached offset is correct for ~363 days a year.
+
+### The measurement, and the reason it is not redundant
+
+Three cases added, with instants computed against the real tz data rather than asserted from memory: a
+winter/summer control (the same UTC hour is 12:00 EST and 13:00 EDT), spring-forward (an hour of UTC steps
+over the missing 02:00), and fall-back (**two instants share one local wall clock and one service date**).
+
+Then the faithful mutation — not a garbled one. My first attempt broke the arithmetic and produced
+nonsense; the honest version of the optimization is a fixed-offset zone (`Etc/GMT+5`, EST year-round),
+which is *right in winter and wrong in summer*. Under it:
+
+```
+× the SAME UTC hour is a different local hour …   expected 720 to be 780   (12:00, should be 13:00)
+× SPRING FORWARD …                                expected 150 to be 210   (02:30, should be 03:30)
+× FALL BACK …                                     expected  30 to be  90
+```
+
+**Only those three fail. The other eleven appointment tests pass** against a converter that has silently
+stopped consulting the IANA database.
+
+The reason is §174's pattern in a new place, and it is worth naming precisely: the file's own fixture
+helper `zonedTimeToEpoch` builds its test instants **by calling `localWall`** — it inverts the converter
+using the converter. Code and fixture therefore move together under any mutation, staying perfectly
+self-consistent while both are wrong. That is the DRY-blindness of §174 (a hardcoded key literal replaced
+by the key builder) arriving via a different route: not a refactor that *created* the coupling, but a
+helper written coupled from the start.
+
+### The fall-back collision, recorded because its backstop looks redundant
+
+On the fall-back day two distinct `window_start_ts` values produce the same `localMinuteOfDay` **and** the
+same `serviceDate`, so the gate's `window_mismatch` check cannot separate them — the comment claiming a
+caller "can't smuggle a 2nd instant for the same slot/day" is true for 364 days a year. What actually
+prevents the double-claim is `ux_legs_slot (facility_id, appt_slot_key, appt_service_date)`: the second
+loses to the UNIQUE index, fail-closed, first-committer-wins. Pinned in the test body so that index is not
+someday removed as duplicative of a gate check that does not cover this hour.
+
+Spring-forward is the mirror image and needs no guard: a slot templated at 02:30 is simply unbookable that
+day, because no instant maps there.
+
+### The rule
+
+**A fixture that derives its expectation from the code under test can only ever prove self-consistency.**
+The tell is mechanical — does the helper import the thing being asserted? Here `zonedTimeToEpoch` calls
+`localWall`, so eleven tests rode a converter they could not falsify. Constants computed against an
+external source of truth (the real tz database, here) are what make a transition test capable of failing.
