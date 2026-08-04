@@ -73,6 +73,14 @@ export function mountDocumentRoutes(app: Hono<{ Bindings: Env; Variables: Vars }
       const lens = lensFor(session);
       // Look the doc up in the SESSION tenant's D1 only (tenantDb is claim-keyed, REQ-025). Not found — OR a
       // doc that lives only in another tenant's D1 — is a plain 404, indistinguishable from nonexistent.
+      // RETENTION COUPLING — this query deliberately does NOT filter `retention_status` (audit §95/§104).
+      // An EXPIRED (tombstoned) row is still resolvable here, and that is safe for ONE reason: the retention
+      // sweep DELETES the R2 bytes BEFORE it tombstones the row (`packages/ledger/src/documents/retention.ts`),
+      // so an expired row's bytes never exist and the byte fetch below takes its graceful 404. Reverse that
+      // ordering and the torn state becomes "row expired, bytes present" — which THIS query would happily
+      // serve. The ordering is pinned by `packages/ledger/test/retention.test.ts` ("a FAILING tombstone leaves
+      // the row ACTIVE with bytes already gone"). If you ever make a missing object anything other than a
+      // clean miss here, read that test first.
       const doc = await db
         .prepare("SELECT shipment_id, r2_key, visibility FROM documents WHERE id = ?")
         .bind(documentId)

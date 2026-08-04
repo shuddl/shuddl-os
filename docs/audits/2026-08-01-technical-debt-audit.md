@@ -4974,3 +4974,40 @@ plausible refactor and a silently unanswered customer email.
 
 **Verification.** `workers/agents` suite green; `workers/api/test/concierge.test.ts` 24/24; typecheck, lint,
 citations and tables PASS.
+
+---
+
+## §104 — the same asymmetry §103 fixed, in the coupling §95 found
+
+§103 established that a cross-file coupling needs the **reciprocal** reference more than the forward one:
+whoever reads the gap is already thinking about it; whoever is about to break it has no reason to open the
+other file. §95's retention finding is the identical shape, and I left it half-referenced.
+
+**The coupling.** `routes/documents.ts` resolves a document id to its `r2_key` **without** filtering
+`retention_status`. That is safe only because the retention sweep deletes R2 bytes **before** tombstoning the
+row, so an expired row's bytes never exist and the byte fetch takes a graceful 404.
+
+**The asymmetry.** `retention.ts` already carried the forward reference — *"exactly the graceful miss the /pub
+bytes proxy already 404s on (routes/documents.ts)"*. `documents.ts` said **nothing** about retention at all.
+
+So the file whose behaviour the design *depends on* was the one with no idea it was load-bearing. An editor
+there — adding a cache, changing a missing object from a clean miss to a 500, or "helpfully" serving a stale
+copy — would have had no signal that a privacy property rode on it.
+
+`documents.ts` now states it: the omitted filter is deliberate, the ordering is what makes it safe, the torn
+state a reversal produces is *"row expired, bytes present — which THIS query would happily serve"*, and the
+test that pins it is named. Ending with the instruction that matters: *if you ever make a missing object
+anything other than a clean miss here, read that test first.*
+
+### 104.1 Three couplings, one pattern
+
+| Coupling | Forward ref | Reciprocal | Status |
+|---|---|---|---|
+| concierge SLA ordering ↔ sla-sweep backstop | absent (named the wrong sweep) | absent | **both added, §103** |
+| retention delete-order ↔ documents resolve | present | **absent** | **added, §104** |
+| `deviceOwnedBy` ↔ sequencer `#deviceKey` | present (each names the other) | present | already correct (§86/§93) |
+
+The device pair was written correctly from the start — each query's comment names its sibling. That is the
+standard the other two now meet, and it cost its author one sentence at the time.
+
+**Verification.** `documents.test.ts` 12/12; typecheck, lint, citations and tables PASS.
