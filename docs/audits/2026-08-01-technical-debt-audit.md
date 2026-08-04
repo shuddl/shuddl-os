@@ -4465,3 +4465,47 @@ The lesson §81 drew was about asserting reasons rather than shared statuses. Th
 
 **Verification.** `pub-status.test.ts` 13/13; each new case proved RED under its own layer's mutation and
 green under the other's; `status-cap.ts` restored (plus the deliberate `CAP_TYP` export).
+
+---
+
+## §92 — redundant CALLS versus redundant MECHANISMS: when one pin is enough
+
+§91 found two defences masking each other and concluded both needed pinning. The MCP OAuth flow looked like
+the same shape — the source calls its authorize-time pairing check *"belt with `/token`'s re-resolution"*, and
+the oauth suite seeds **only** `status: "active"`, so no inactive pairing is exercised there at all. That
+looked like §86's defect in a new subsystem: an MCP client whose pairing is revoked, still authorizing.
+
+It is not, and the reason is worth separating from §91.
+
+**Both call sites invoke the same predicate.** `resolveActiveMcpPairing` filters `status !== "active"` in one
+place, and `/authorize` and `/token` each call it. Mutating that single filter turns exactly one test red —
+`principal.test.ts`'s *"an INACTIVE pairing throws (fail-closed) — nothing is minted"* — which seeds a
+`status: "revoked"` pairing, the fixture the oauth suite lacks.
+
+So the predicate is pinned once, and both callers inherit it. **That is correct, and one pin is sufficient**,
+because there is only one thing to break: no edit can remove the check from `/authorize` while leaving it at
+`/token`, since neither owns it.
+
+### 92.1 The distinction
+
+| Shape | Pinning needed |
+|---|---|
+| **Redundant calls to one shared predicate** (MCP pairing status) | **One pin, on the predicate.** The redundancy is in the call graph, not the logic — a single edit cannot remove one copy, because there are no copies |
+| **Redundant independent mechanisms** (§91's derived key *and* `typ` literal) | **One pin per mechanism.** Each can be deleted on its own, and the survivor masks the loss |
+
+§91's cap defences were two *different ideas* implemented separately. The MCP checks are two *calls* to one
+idea. Only the first can silently degrade — and it did nothing but look identical from the route's outside.
+
+The practical test when you see "belt and suspenders": **ask whether one edit can remove one of them.** If the
+answer is no because they share an implementation, pin the implementation and stop. If yes, each needs its
+own case.
+
+### 92.2 The eighth near-miss
+
+Searching `oauth.test.ts` for an inactive-pairing fixture returned nothing, and I was again a sentence from
+"the pairing status check is untested." It is tested — in `principal.test.ts`, the file that owns the
+predicate rather than the file that owns the route. Eighth instance this loop, corrected by the mutation
+rather than by more searching, exactly as §72 prescribed.
+
+**Verdict: clean negative.** `workers/mcp` 177/177; the status filter mutation-proved RED; `principal.ts` and
+`oauth.ts` restored byte-identical.
