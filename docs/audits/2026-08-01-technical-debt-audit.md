@@ -4632,3 +4632,48 @@ that says "ordering is crash-safe" is a claim; the test that swaps the lines is 
 
 **Verification.** `packages/ledger/test/retention.test.ts` 12/12; the order-swap mutation proved RED on the
 new case alone; `retention.ts` restored byte-identical.
+
+---
+
+## §96 — sweeping §95's class: ordering claims that nothing executes
+
+§95's defect was a comment reasoning correctly about crash-safety with no test behind it. That is a class, so
+the marker sweep ran across `workers/*/src` and `packages/*/src` for ordering/atomicity language
+("crash-safe", "FIRST, THEN", "before the append", "atomically", "order matters").
+
+Most hits are **atomicity** claims about the DO batch (`interline-split.ts`, `booking.ts`: *"runs atomically
+with the event insert (I1)"*) — a property of the sequencer's batch, already pinned by the I1 suite, not
+per-caller ordering. `spark-meter.ts`'s mutex and single-`storage.put` commit are likewise structural.
+
+**One is genuinely §95's shape, at three call sites.** `concierge.ts` sets `sla_due_ts` **before** appending
+`quote.requested`, and says why:
+
+> If a crash lands between the `quote.requested` append and here, the redelivery guard returns
+> `already_handled` — so setting the SLA before the append guarantees an owed inbound always carries its due ts.
+
+Swapping the two statements at all three sites leaves **`workers/agents` 106/106 green.** The 106 tests never
+exercise the concierge queue handler; the two files that mention it cover the SLA *sweep* and the spark meter.
+
+**The consequence if the order ever reversed** is the fail-silent family this audit already has a name for
+(C3, §74): a crash in that window leaves an owed customer inbound with **no due ts**, so it never surfaces in
+the overdue sweep and is simply never answered — no error, no alarm, no queue entry.
+
+### 96.1 Recorded, not fixed in place
+
+Pinning it needs a concierge queue-handler harness that `workers/agents/test` does not have. Building one to
+land a single case is a larger change than this section should make unilaterally, and §49's precedent applies:
+work that wants a second pair of eyes gets recorded with the exact test to write, not improvised at the end of
+a sweep.
+
+The GO-LIVE row states the test (make the append fail, assert `sla_due_ts` is already set, then swap the order
+and confirm red), the severity (**Med** — fail-silent, narrow window), and why it is deferred.
+
+### 96.2 Two clean, one open
+
+The class now stands at: **§95 retention ordering — found and pinned**; **atomicity claims — structural,
+already covered**; **concierge SLA ordering — found, unpinned, recorded.** A comment that reasons about
+ordering is a hypothesis about a crash nobody has staged. Two of the three had someone stage it; the third now
+has a written recipe for doing so.
+
+**Verification.** All four swap sites restored (`git status` clean for `workers/agents/src`); `workers/agents`
+106/106 on the restored tree; tables and citations PASS.
