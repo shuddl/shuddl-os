@@ -57,7 +57,7 @@
     },
     "docs/ops/GO-LIVE-CHECKLIST.md": {
       "packages/ledger/src/anchor.ts": 1,
-      "workers/agents/src/biller.ts": 6,
+      "workers/agents/src/biller.ts": 5,
       "workers/api/src/do/sequencer.ts": 1,
       "workers/translator/src/core/map-204.ts": 2,
       "workers/translator/src/inbound.ts": 2

@@ -8965,3 +8965,80 @@ Two corrections fall out, both of my own writing:
 **The rule: before adjudicating, check whether the verdict is already recorded — and when the record
 turns out to be right, say so as loudly as a defect.** A loop that only reports what it changed will
 slowly imply the record is worse than it is. The instrument-validating negative is a finding.
+
+---
+
+## §178 — the flagship demo promises photos the product does not send
+
+`CLAUDE.md` defines five acceptance demos as "done enough to show", and #1 is the flagship:
+*"signature at a door → invoice **+ photos** in the client's inbox <5s."* The acceptance spine is green
+— 7 files, one per demo's causal chain, and the design is honest: each demo names its in-repo spine AND
+what only the filmed half can show, refusing to fabricate a latency number.
+
+Demo 1's spine (`workers/api/test/heartbeat.test.ts`) is a real proof: **48 assertions** through one
+chain — quote → gated driver flow → `pod.signed` → queue → `invoice.issued` + evidence email — pinning
+the invoice total against the rate, the recipient, subject, the amount and referral link in the body,
+and the ordering (`inv.seq > podEvent.seq`, monotonic `recorded_at`). It drives `freight.photographed`
+through the gate.
+
+It does **not** assert photos in the email. Neither does anything else, because:
+
+```
+workers/agents/src/biller.ts:584@photos
+  photos: {}, // close-out note: the R2-signed-URL resolver for signature/placed photos is not wired yet
+```
+
+That is the **only** production construction of `EvidenceEmailData` (the other is a health probe). So
+the delivered email renders the documentary placeholder slot where the signature and placed-freight
+photographs belong. The view is not at fault and is well covered —
+`packages/agents/test/evidence-email.test.tsx` pins a real `<img>` per URL, a caption-swap trap, and the
+placeholder path. **Nothing resolves the URLs.**
+
+### Three artifacts, three different claims
+
+| Artifact | Says |
+|---|---|
+| `CLAUDE.md` demo #1 | invoice **+ photos** in the client's inbox |
+| REQ-087 (WP-06, `F0-SPEC'D`, no manifest disposition → accounted **built**) | *"Delivery notification email: DELIVERED display type + sig/pallet photos"* |
+| `workers/agents/src/biller.ts:584@photos` | `photos: {}` — resolver unwired |
+
+Per [[two-mechanisms-disagreeing-is-the-finding]], the disagreement *is* the finding. REQ-087's DoD is
+*"Design-system email renders across clients"* — which the view tests satisfy — so the row passes
+coverage on a DoD narrower than its own requirement text. That is how a half-shipped row reads green.
+
+### The near-miss, which is the more useful half
+
+I checked `docs/wp/acceptance-demos.md` (zero mentions of "photo") and `tools/acceptance/demos.ts`
+(demo 1's title reads "POD → invoice + evidence email", silently narrower than `CLAUDE.md`'s) and was
+one step from recording this as **unregistered deferred scope**. It is registered:
+`docs/ops/GO-LIVE-CHECKLIST.md` carries *"Photos absent from evidence email (`photos: {}`)"* as a
+**Med**. Two silent greps nearly produced a fourteenth wrong absence claim in this loop
+([[grep-proves-presence-never-absence]]).
+
+But that checklist row cited **`biller.ts`, line 465** — an unrelated interline hold marker, ~119 lines off.
+§175's exact class (unanchored ⇒ bounds-checked only), now in an *operational* document rather than a
+skill. Its neighbour row's `workers/agents/src/biller.ts:594-601@REQ-170` citation for the REQ-170 residual is correct, so this was
+one rotted citation, not a rotted table.
+
+### Fix — surfacing, not building
+
+Wiring the resolver is new behaviour and would need an owner's REQ row, so it is **not** done here.
+What is done is making the constraint visible where it is acted on:
+
+- **`GO-LIVE-CHECKLIST.md`** — citation corrected to `biller.ts:584@photos` **with an anchor**, and the
+  row now names what it had omitted: that this is also the "+ photos" half of demo #1 and of REQ-087's
+  DoD, and that **demo #1 cannot be filmed showing photos until it lands.** The ratchet FELL 130 → 129
+  on the anchor and was banked so it cannot loosen back.
+- **`docs/wp/acceptance-demos.md`** and **`tools/acceptance/demos.ts`** — demo 1 now carries the
+  constraint explicitly, including the instruction that matters most: *film it as "invoice + evidence
+  email", or land the resolver first — **do not stage photos into the capture to make the film match
+  the sentence.*** A demo that stages its evidence is the exact failure the spine/filmed split exists
+  to prevent, and until today nothing in the filming path said so.
+
+### The rule
+
+**A DoD narrower than its requirement text will pass coverage while half the row is unbuilt.** REQ-087
+asks for photos and is graded on rendering; the rendering is excellent and the photos are absent. Every
+gate reported green — coverage, traceability, acceptance — because each was measuring something true.
+This is the same shape as §174 (an incidental catch) and §176 (a red gate hiding green suites): **the
+gates were not wrong, they were narrower than the sentence a reader takes away from them.**
