@@ -5435,3 +5435,56 @@ What remains needs an owner, not another loop iteration:
 | 3 | two External Highs | REQ-069 identity seam; EDI transport credentials |
 | 4 | `routes ±10%` disposition | named in `genesis/11:41` and `genesis/14:52`; needs one written answer |
 | 5 | R2–R5 grades | owner sign-off per `V2-EXECUTION-FRAMEWORK.md` §9 |
+
+---
+
+## §114 — every hard budget in CLAUDE.md, mutation-proved
+
+`CLAUDE.md` opens with seven budgets declared **"CI-enforced; exceeding = the PR is wrong."** §111 proved
+three (colour tokens, font families, chrome). This closes the other four. Each was mutated to a genuine
+breach, with the diff asserted non-empty before the verdict was believed (§111.2's rule):
+
+| budget | mechanism | breach | verdict |
+|---|---|---|---|
+| ≤22 tables | `tools/checks/invariants.ts` `TABLE_BUDGET` | a 23rd `CREATE TABLE` in the tenant migration | **RED** |
+| 35 event kinds | `packages/contracts/src/events.ts` + four contracts tests | a 36th kind | **RED** — *expected 36 to be 35* |
+| ≤12 canonical views | `apps/command/src/views/registry.ts` `assertViewBudget()` at import | a 13th view | **RED** — *REQ-084: 13 canonical views exceeds the 12-view budget* |
+| 3 surfaces | `tools/deploy/surface-contract.test.ts` (§54, bidirectional) | an app directory absent from `SURFACES` | **RED** |
+
+All seven budgets are now proved able to fail. The 3-surface probe is the one worth naming: §54 built it
+against the *realistic* risk, which is not a fourth surface (nobody adds an app by accident) but **an app on
+disk that `SURFACES` does not list** — it would deploy nowhere while every surface gate stayed green, because
+each gate iterates `SURFACES`. That is the Migrator rule's silent drop wearing a deployment costume, and the
+probe confirms it is caught.
+
+### 114.1 A GREEN I nearly reported as a defect — again
+
+The first view probe returned **GREEN, NOT CAUGHT**, and I was one step from writing "the 12-view budget is
+unenforced." It wasn't. `CANONICAL_VIEWS` holds **11** entries with one slot of deliberate headroom, so my
+one-element mutation produced 12 — *exactly at* a `≤12` ceiling, and therefore legal. The gate was right and
+the probe was wrong.
+
+Re-run at both boundaries, it behaves precisely as specified: **12 passes, 13 fails.** That is a stronger
+result than a bare RED, because it proves the ceiling sits where the register says rather than merely
+somewhere.
+
+Second instance in two sections of §111.1's rule — *a mutation's verdict is only as good as the reason behind
+it* — and this time in the opposite direction: §111 had a RED that fired for the wrong reason, this had a
+GREEN that was correct for a reason I hadn't checked. Both fail the same way if you read only the exit code.
+
+### 114.2 A new variant of the absence-claim failure: right command, wrong scope
+
+Looking for the view mechanism, `grep -rn "assertViewBudget" packages tools` returned empty — **and the
+command succeeded.** No glob error, no zsh abort, correct syntax, exit status clean. Every guard I had built
+this session passed, and the answer was still wrong: `assertViewBudget` lives in `apps/`, which I had not
+searched.
+
+This is the family's seventh instance and its most dangerous shape yet, because none of the existing
+countermeasures apply. The rule needs a third clause:
+
+> **A clean empty result also requires that you searched where the thing would be.** Before concluding
+> absence, widen to the whole tracked corpus (`git grep`, no path filter). A path-scoped search proves
+> absence *within that scope only* — which is rarely the claim being made.
+
+Had I acted on it, §114 would have reported the 12-view budget as having no mechanism at all — a fabricated
+Critical against a gate that works.
