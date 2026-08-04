@@ -9452,3 +9452,63 @@ surface can see this: the suites pass, the invariants hold, the isolation tests 
 these queries is correct — it returns exactly the right rows. It only fails on a tenant with history,
 which is the one environment no gate here runs against. The detector for that class is not a test; it is
 asking, of every read, **what bounds this on the largest tenant we intend to serve?**
+
+---
+
+## §184 — the N+1 sweep comes back nearly clean, and my one scary scenario was false
+
+§183's rule pointed at the harder version of the same class: a storage call issued **per row**. Workers cap
+subrequests per invocation, so an N+1 is a hard failure at volume rather than a slowdown.
+
+Swept every `for`/`while`/`.map`/`.forEach` body in `workers|packages/*/src` for an awaited D1/R2 call:
+**3 hits, in one file.** One of the three is `retention.ts:168` — a `for (;;)` around `r2.list({ cursor })`,
+which is the *correct* pagination idiom, not an N+1. The codebase is clean on this axis, and that is the
+result, not a preamble to one.
+
+The other two are the retention sweep's body: `await r2.delete(row.r2_key)` then
+`await db.prepare(TOMBSTONE_SQL)` per expired document — 2 subrequests each — over rows from a
+`CANDIDATES_SQL` with **no `LIMIT`**.
+
+### Where I was wrong, twice, before the finding got small
+
+**First:** I read `CANDIDATES_SQL` — *"active AND kind NOT IN ('POD','tsa_receipt')"*, with expiry computed
+in JS from `retentionMsFor` — and started writing that the scan grows monotonically forever. It does not.
+The default class is a **1-year** hold, and expired rows are tombstoned out of `retention_status='active'`,
+so the candidate set is bounded by roughly one year of non-POD documents.
+
+**Second:** I then reached for the failure that *would* still hurt — a post-migration backlog, where
+onboarding imports a carrier's legacy documents with historical `created_ts`, every one instantly expired,
+tens of thousands of deletions against a subrequest cap. Checked it before writing it: the **migrator does
+not touch `documents` or `created_ts` at all**. No document import exists. The scenario is false.
+
+Steady state, then: a working carrier expiring roughly a day's non-POD evidence per nightly run is a few
+hundred subrequests — comfortably inside the cap.
+
+### What actually survives
+
+**Low, with a clean fix.** The sweep scans its *whole* active set to find the fraction that has expired,
+because the expiry comparison lives in JS rather than SQL. For the swept kinds the class resolves to a
+single duration (POD/receipt are already excluded by the `WHERE`), so this is one comparison —
+`created_ts < :now - :defaultMs` — that would cut the scan from a year of documents to the day's expiries.
+`LIMIT` then becomes meaningful rather than a silent truncation, because the rows are genuinely the work.
+
+Two things worth crediting rather than filing:
+
+- **The ordering is deliberately crash-safe** — bytes deleted first (idempotent), tombstone second, so an
+  interrupted run re-heals on the next tick instead of leaving a row claiming bytes that are gone.
+- **Tenant safety is fail-closed** — a row whose `r2_key` is outside this tenant's evidence namespace is
+  *skipped and counted* (`skipped_foreign_key`), never deleted (REQ-025).
+
+The one thing I would raise if this sweep were carrying more load: `runRetentionSweep` catches per tenant
+and `console.error`s — *"re-run next tick — the sweep is idempotent"* — and raises **no anomaly**. Retention
+is a compliance obligation (REQ-116, and REQ-140's schedule is a counsel/CONFIRM-2 deliverable), so a
+tenant whose sweep never completes is visible only in Workers logs. Not filed as a defect while the sweep
+comfortably fits its budget; named here so it is not rediscovered from scratch.
+
+### The rule
+
+**Check the premise of the failure scenario before you write it up.** Both of my drafts here were
+plausible, volume-flavoured, and wrong — one about a retention window I had not read, one about an import
+that does not exist. §174 said an unmeasured claim rots like any other; the corollary is that an unmeasured
+claim is also how a **Low** gets published as a **Med**. The sweep that produces three hits and two
+corrections is worth exactly as much as the one that produces a defect.
