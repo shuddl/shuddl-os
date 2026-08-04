@@ -9979,3 +9979,56 @@ fails the gate rather than drifting.
 That is the §175 blind spot demonstrated from the other side: the file only ever grew, so every unanchored
 citation into it still *resolved* and the gate stayed green while the content moved out from under them.
 **Growth is the dangerous direction** — a file that shrinks trips rule 1, a file that grows never does.
+
+---
+
+## §193 — two rotted citations in the operator's document, found by attacking the ratchet
+
+§192's rule — **growth is the dangerous direction**, because a file that only grows keeps every
+unanchored citation resolving while the content moves out from under it — has a measurable target: the
+ratchet's **129 unanchored citations into 10 hand-curated high-churn files.** Every one of those is
+bounds-checked only, in exactly the files most likely to move.
+
+They concentrate, which makes the work tractable:
+
+| Citing file | Count | Live? |
+|---|---|---|
+| `enforce-server-side-gate-parity` (3 files) | 29 | live skill — §175 already flagged several as suspect |
+| **`docs/ops/GO-LIVE-CHECKLIST.md`** | **11** | **live, operator-facing** |
+| `docs/plans/*` (5 files) | 33 | dated historical records — rot expected, harmless |
+| `docs/audits/2026-07-15-*` | 8 | dated record |
+
+Took the checklist's, because §189 and §190 established that its rows drive real decisions. Verified each
+against the row that cites it — the point of adopting an anchor is that you must first prove the citation
+is *right*, so the exercise finds rot rather than cementing it.
+
+### Two were wrong, both in live rows
+
+| Row | Cited | Actually there | Correct |
+|---|---|---|---|
+| `referralBase` config-drift on evidence fast-path | `biller.ts`, line 456 | *"Interline: the executing share is judged, never gross (REQ-040)"* — an unrelated floor check | `biller.ts:585@referralBase`, where the hazard is stated verbatim |
+| 990 ack best-effort / no-ops when transport unwired | `inbound.ts`, line 505 | the `/v1/rate` + accept-quote payload note | `inbound.ts:83@NotConfigured`, the port declaration |
+
+Neither would ever have been caught by rule 1: both lines exist, both are in bounds, both sit in files
+that have only grown. An operator following the `referralBase` row would have landed in the interline
+floor logic and found nothing resembling the hazard described.
+
+The rest verified correct — `workers/translator/src/core/map-204.ts:70@B2A` genuinely is the B2A convergence note, `workers/agents/src/biller.ts:594-601@REQ-170`
+genuinely is the REQ-170 residual — and were **anchored rather than left**, since a correct citation into
+a churning file is simply rot that has not happened yet.
+
+### Result
+
+Anchored citations **74 → 82**; the ratchet fell **129 → 122** and was re-banked so it cannot loosen. Six
+of the eleven checklist citations into high-churn files are now anchored, two of them after correction.
+
+**The struck rows were deliberately left alone.** Lines 367–381 carry superseded findings inside `~~…~~`,
+which this repo's convention declares stale by construction and the gate exempts from resolution.
+Anchoring a citation whose whole purpose is to preserve what a now-corrected record used to say would
+convert a history into a maintenance burden.
+
+### The rule
+
+**Adopt the anchor on the citation you just verified, not on the one you are about to write.** The
+verification is the work; the anchor only makes it stick. Both defects here surfaced because adopting an
+anchor forces you to read the cited line — and rule 1, which had passed both for months, cannot.
