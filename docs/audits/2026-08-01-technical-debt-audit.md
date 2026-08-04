@@ -5892,3 +5892,65 @@ similarity score paired them because they look alike, and looking alike is all a
 This is the same failure as §114.1's off-by-one at a `≤N` ceiling and §117.1's annotation edits: the
 instrument returned a technically-correct measurement of the wrong thing. Three sections running, the
 discipline that caught it was identical — **read the reason, never the verdict.**
+
+---
+
+## §122 — the agent mesh: 12 of 13 built, the 13th correctly deferred
+
+`CLAUDE.md` opens by claiming **13 agents that run the protocol**. `genesis/01 §2` lists them in a table;
+`genesis/05` scopes V1 to *"6 of the 13"*. Nothing in the repo maps any of those names to code, and the last
+document that tried — `docs/audits/2026-07-15-full-audit-and-skill-plan.md` — recorded *"of the 13 agents,
+only Concierge and Biller are built,"* which was true then and is badly stale now.
+
+**The table does contain exactly 13 rows** (counted, not eyeballed — see §122.2). Mapped to implementations
+and test cases at this commit:
+
+| # | agent | V1 scope | impl files | test cases | status |
+|---|---|---|---|---|---|
+| 1 | Concierge | V1 | 7 | 45 | built + tested |
+| 2 | Rater | V1 | 13 | 154 | built + tested |
+| 3 | Scheduler | V1 | 2 | 33 | built + tested |
+| 4 | **Dispatcher copilot** | — | **0** | **0** | **NOT BUILT — REQ-029, vNEXT** |
+| 5 | Gatekeeper | V1 | 2 | 107 | built + tested |
+| 6 | Biller | V1 | 6 | 23 | built + tested |
+| 7 | Collector | — | 5 | 36 | built + tested |
+| 8 | Settler | — | 1 | 13 | built + tested |
+| 9 | Translator | — | 10 | 96 | built + tested |
+| 10 | Migrator | V1 | 3 | 47 | built + tested |
+| 11 | Watchtower | — | 4 | 31 | built + tested |
+| 12 | Credit officer | — | 1 | 33 | built + tested |
+| 13 | Copilot | — | 5 | 36 | built + tested |
+
+**All six V1 agents are built and tested — 409 test cases between them.** Six more shipped beyond the V1
+minimum, and that is scoped work rather than scope creep: `check:traceability` passes **in both directions**,
+so every one of those implementation files maps to a register row and every row maps to code.
+
+**The single gap is `REQ-029` — "Dispatcher copilot suggestion-only v1", status `vNEXT`.** It is the one
+agent deliberately not built, its deferral is recorded, and `check:coverage` classifies it (288/289, the sole
+unaccounted row being the other workstream's `REQ-289`). Nothing to fix; something to *know*, and the record
+did not previously say it anywhere.
+
+### 122.1 What the roster is worth at a phase gate
+
+§113 listed five owner-blocked holds. This adds the shape of the delivered system to that picture: an owner
+asking *"is the documented build actually built?"* now has an answer with evidence attached rather than a
+count in a preamble. The stale 2026-07-15 line stays where it is — it is a **dated snapshot**, and this audit
+does not rewrite history (§109's rule); this section is the current measurement, dated 2026-08-03.
+
+### 122.2 Three instrument errors in one section, all the same shape
+
+Producing this table took three wrong measurements first, and each would have published a false claim:
+
+1. **Rater and Gatekeeper reported "0 tests."** I reused the *implementation* path matcher for tests, and
+   `packages/rater/src/` cannot match `packages/rater/test/`. Rater has 154 cases; Gatekeeper 107.
+2. **The agent names came out as eleven, not thirteen.** Extracting `**Bolded**` names missed
+   *Dispatcher copilot* and *Credit officer* — both contain a space, and my pattern stopped at the first
+   word boundary. Counting table **rows** instead gave 13.
+3. **"Dispatcher copilot: NOT BUILT"** was believed only after searching the register for what it would be
+   called if it existed under another name — which is how `REQ-029` surfaced and turned a suspected gap into
+   a recorded deferral.
+
+Every one is the failure this loop keeps meeting: *the instrument measured something adjacent to the
+question.* Sections §114.1, §116, §117.1 and §121.1 are the same error in four other costumes. The only
+defence that has ever worked is the one applied here — **when a measurement says something is missing, spend
+the next probe trying to find it a different way before writing it down.**
