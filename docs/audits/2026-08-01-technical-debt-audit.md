@@ -4334,3 +4334,47 @@ audit applies to the codebase is the same one it has to apply to itself, and run
 is not an optional step.
 
 **The stopping line is unchanged and is reached again at `4739965`.**
+
+---
+
+## §89 — the state-marker class that produced §86, swept to completion
+
+§86's defect had a precise, reusable shape: **a column marks something inactive, and a reader does not filter
+on it.** Revocation wrote `revoked_ts`; the two readers that gate writes matched on `device_id` alone. That is
+sweepable, so it was swept.
+
+**The state markers in this schema are few.** No `expires_*`, `deleted_ts`, `suppressed_*`, or `disabled`
+columns exist. The inactive-marker surface is three things: `pairings.status` (default `'active'`), the
+`revoked_ts` field inside `users.device_keys[]` (§86, fixed), and `invoices.status` (§80 verified the
+void/DSO exclusion).
+
+**Every reader of `pairings` enumerated — six — and each classified:**
+
+| Reader | Filters `status`? | Verdict |
+|---|---|---|
+| `principal.ts` (mint) | selects + checks | **Correct** — §50 |
+| `webhooks.ts` (subscription) | selects + checks (`status !== "active"` ⇒ null) | **Correct** |
+| `inbound.ts` (EDI) | requires `kind='edi'` AND active | **Correct** — §47 |
+| `oauth.ts` `pairingSecretRef` | no | **Masked** — its only caller, `authenticateClient`, calls `resolveActiveMcpPairing` first and denies on null. Read separately by design, "to keep that helper's surface to what the principal mint needs" |
+| `caps.ts` (cap lookup) | no | **Masked** — keyed on `ctx.pairingId`, which exists only after the principal mint resolved an ACTIVE pairing |
+| `webhooks.ts` (originator) | no | **Masked** — a tenant-**parity** comparison reached after the subscription row's own active check; it compares `tenant_id`, and an inactive originator could not have authenticated |
+
+Three filter directly, three are masked by an upstream active check that was verified, not assumed — each by
+reading the caller, per §84's rule that a guard's absence only matters where nothing upstream refuses first.
+
+### 89.1 Why §86 was the exception
+
+The three masked readers share a property the device path lacked: **the active check and the use sit on the
+same request path**, one calling the other. `deviceOwnedBy` and the sequencer's `#deviceKey` had no such
+upstream — they *were* the check, on paths (positions, signature verification) reached directly from a client
+request. Nothing else could refuse first, so the missing predicate was the whole gate.
+
+That is the useful generalisation: **an unfiltered read of a state column is only a defect when it is the
+first authority on that state.** Where a caller has already resolved the row as active, the second query is
+retrieval, not authorization.
+
+**Verdict: clean negative** — the class that produced a live security defect has one instance, now fixed, and
+no siblings.
+
+**Verification.** Schema scanned for state-marker columns; all six `pairings` readers read and classified by
+their callers; gates PASS.
