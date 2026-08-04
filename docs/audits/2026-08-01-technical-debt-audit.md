@@ -8234,3 +8234,55 @@ activation map already carries the deployed-environment dependency.
 **No finding.** Recorded because "forward-only migrations" is the kind of design choice that reads as a risk
 until you find the recovery path, and the recovery path here is documented, correctly ungated, correctly
 sequenced, and — for the half that can be — already exercised in anger.
+
+---
+
+## §165 — append-only versus erasure: the one hold whose answer could be an architecture change
+
+§164's rule — *a design constraint reads as risk until you find its recovery path* — has a harder case than
+migrations. **An append-only ledger cannot delete.** Privacy regimes contemplate erasure. What reconciles
+them?
+
+**Three mechanisms exist, and two are relevant:**
+
+| mechanism | what it does | what it touches |
+|---|---|---|
+| `retention.ts` (REQ-116) | deletes R2 evidence **bytes**, then tombstones the `documents` row | R2 + a projection row |
+| `redact.ts` (REQ-015/179) | strips margin/GL/operator-only fields **at read time** for non-tenant lenses | nothing — *"It NEVER mutates the stored event"* |
+| I3 append-only guards | forbid any UPDATE/DELETE on `events`, in code **and** by DB trigger | — |
+
+So the system can satisfy *"delete the photos after N years"* and *"counterparties never see PII"* today. It
+**cannot** satisfy *"erase this person from the record"*, because the `events` rows carry party refs and
+payload data and are immutable by construction — §117 and §147 both proved that guard fires.
+
+### 165.1 The hold understated what its own answer might cost
+
+`REQ-140` (*Photo/PII retention policy + consignee notice*) is **CONFIRM-GATED** — counsel must define the
+policy before anything is built, which is exactly right per `CLAUDE.md`'s do-not-build rule. Guessing at a
+privacy design ahead of counsel would be straying.
+
+But the checklist row framed the question as *"what's kept, how long, notice wording (`lifecycle_class` /
+`visibility` knobs exist)"* — which reads as **a policy publication answerable with existing configuration**.
+For one class of answer that is true. For another it is not:
+
+- *"Keep PODs seven years, purge photos at two, notify the consignee"* → **configuration**, available today.
+- *"Support subject erasure requests against the ledger"* → **architecture** — payload encryption with
+  per-subject keys and crypto-shredding, or a documented legal position that these records are retained on
+  legitimate-interest / legal-obligation grounds.
+
+Those are different orders of work, and nothing in the record said so. **Recorded as a rationale on the
+existing row** — not a new row, per §140's precedent, since the hold already exists and this scopes rather
+than adds it.
+
+### 165.2 Why this is the right treatment
+
+I am not counsel, and the audit has no business choosing between those answers. What it *can* do is make sure
+the person who asks counsel knows the question's blast radius — which is the same service §149 performed for
+the demos and §160 for the fixtures: **a hold's cost, stated alongside the hold.**
+
+> **When a gated decision could be answered two ways with wildly different implementation cost, record both
+> readings on the hold.** A CONFIRM that looks like a document to write, but might be a schema to redesign, is
+> the most expensive kind of surprise a launch gate can hold.
+
+**No finding, no new debt.** The mechanisms are correct and proved; the gate is correctly closed; the row now
+says what answering it might require.
