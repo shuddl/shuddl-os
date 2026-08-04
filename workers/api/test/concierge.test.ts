@@ -769,3 +769,36 @@ describe("Timeline visibility + no-comms-outside-the-ledger (REQ-094/099/100)", 
     expect(timeline.some((e) => (e.payload as Record<string, unknown>).channel === "note")).toBe(false);
   });
 });
+
+// REQ-092/095 (audit §97) — the SLA-BEFORE-APPEND ORDERING, staged as the crash it reasons about.
+//
+// `concierge.ts` sets `sla_due_ts` BEFORE appending `quote.requested`, at three call sites, and explains why:
+// a crash between the append and the SLA write makes the redelivery guard return `already_handled`, so the
+// SLA would never be set — leaving an owed customer inbound with no due ts, invisible to the overdue sweep,
+// answered by nobody, with no error anywhere. Swapping the two statements left BOTH `workers/agents` (106)
+// and this file's own suite green: the ordering was a documented claim with nothing executing it (§95's
+// class). This stages the crash by making the append throw, and asserts the SLA is already durable.
+describe("REQ-092: the reply SLA is durable BEFORE the append (crash-ordering, audit §97)", () => {
+  it("when the quote.requested append THROWS, the inbound already carries its sla_due_ts", async () => {
+    // The BELOW-FLOOR anomaly input: it takes the QUEUED branch, where the SLA-then-append pair is the
+    // first thing that runs — the branch whose ordering the comment is about. (A clean quote email is
+    // auto-answered and never reaches it; my first draft used one and asserted against the wrong branch.)
+    await seedRateConfig(env.TENANT_A_DB, ANOMALY_RATE_CONFIG);
+    const msgId = await appendInbound(
+      quoteEmail("ordering@shipper.example.com", "Quote from 97201 to 80016, 1 lb, 48x40x48."),
+      "ordering",
+    );
+    const recordedAt = await inboundRecordedAt(msgId);
+
+    // A seq whose append ALWAYS fails — the crash the comment reasons about, staged deterministically.
+    const failingSeq: SeqStubLike = { append: async () => { throw new Error("simulated crash mid-append"); } };
+    const deps: ConciergeDeps = { ...depsWith(new RecordingSender(), new DeterministicParser()), seq: failingSeq };
+
+    await handleMessageReceived({ kind: "message.received", tenant: TENANT, event_id: msgId }, deps).catch(() => undefined);
+
+    // The ONLY property that matters: the owed inbound is already due, so the overdue sweep can find it even
+    // though the append never landed and a redelivery may short-circuit as already_handled.
+    const row = await slaRow(msgId);
+    expect(row?.sla_due_ts, "sla_due_ts must be set BEFORE the append, not after").toBe(recordedAt + SLA_REPLY_WINDOW_MS);
+  });
+});

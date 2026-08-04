@@ -4677,3 +4677,41 @@ has a written recipe for doing so.
 
 **Verification.** All four swap sites restored (`git status` clean for `workers/agents/src`); `workers/agents`
 106/106 on the restored tree; tables and citations PASS.
+
+---
+
+## §97 — closing §96's deferral, which was based on a claim I had not checked
+
+§96 recorded the concierge SLA-ordering gap as deferred, on the stated grounds that pinning it "needs a
+concierge queue-handler harness `workers/agents/test` does not have." **That was asserted, not verified, and
+it was wrong.**
+
+`handleMessageReceived` is exported and fully dependency-injected (`db`, `seq`, `sender`, `parser`), the source
+comments name the test doubles by class (*"RecordingSender in tests"*, *"Deterministic in tests"*), and
+`workers/api/test/concierge.test.ts` has been calling it all along with a `depsWith()` factory, an
+`appendInbound` seeder, an `inboundRecordedAt` reader, and a `slaRow` helper. Everything the test needed
+already existed. I deferred work on the strength of an absence I never checked — the exact failure §72 named,
+in the same section that swept for it.
+
+**A second error rode along.** §96 concluded "unpinned" after running only `workers/agents` (106 tests) — but
+the coverage for that file lives in `workers/api`. I ran the wrong suite and got the right answer by luck; the
+correct suites (`concierge` + `sla-sweep`, 31 tests) also stay green under the swap, so the finding held.
+Recorded because a conclusion that happens to be right for the wrong reason is not evidence, and §73 made
+exactly this mistake with the isolation suite.
+
+### 97.1 The test, and the branch it had to target
+
+Staged as the crash the comment reasons about: a `seq` whose `append` always throws, then assert the inbound
+already carries `sla_due_ts`.
+
+My first draft used a clean quote email — which is **auto-answered** and never reaches the SLA branch, so it
+asserted against the wrong path and failed for an unrelated reason. Retargeted at the below-floor anomaly
+input, which takes the **queued** branch where the SLA-then-append pair is the first thing that runs.
+
+Mutation-proved: swapping the two statements at all four sites turns **only** this case red — 23 of 24 stay
+green, which is why the ordering needed its own case at all.
+
+The GO-LIVE row is closed rather than carried.
+
+**Verification.** `workers/api/test/concierge.test.ts` 24/24; the swap mutation proved RED on the new case
+alone; `concierge.ts` restored byte-identical.
