@@ -6833,3 +6833,56 @@ No new debt is recorded here and no severity moves. The five proposed-scope find
 This section adds an index, not an item — and the honest note is that an index only helps if it is
 maintained, so it carries the same expiry discipline as everything else: **it is accurate as of this commit,
 and every row in it points at the ledger entry that owns the truth.**
+
+---
+
+## §139 — the billing dormant surface: clean, and clean for an instructive reason
+
+§138's map named five activation triggers. The one it did not cover is **Stripe binding**, and it carries the
+sharpest possible failure: metering accumulates per-month rows while billing is dark, so if anything invoiced
+*from* that accumulation, flipping Stripe would produce a retroactive bill for months of usage — a
+customer-facing failure with no undo.
+
+**It cannot happen, and the reason is architectural.** Billing here is **purchase-driven**, not
+usage-invoiced: a Stripe `checkout.session.completed` webhook becomes an `invoice.issued` carrying a
+`credit_purchase` money line on the reserved `_platform` tenant, and `invoice.paid` becomes a
+`payment.received`. Charges originate from **purchase events**, never from a meter reading. Searched
+directly: no path anywhere creates a charge, invoice, or Stripe usage record *from* `usage_credits.metered`.
+
+`metered` is a **read-model**: an hourly recompute-from-ledger that OVERWRITES each `(tenant, period)` blob —
+never `+=`, so it is drift-free by construction. It is consumed as a **quota** (a Spark tenant's monthly
+convenience allotment), not as a bill. The two writers are disjoint by design: the sweep overwrites only
+`metered`, the Stripe path merges only `stripe_refs`, so their arrival order never matters.
+
+### 139.1 The one real activation risk here was already found — by this same loop
+
+`metering.ts` carries the concern in its own source:
+
+> *"Claimed-aware (2026-08-01 §12): an unmetered claimed tenant is UNBILLED usage the day PLG flips."*
+
+A metering sweep iterating only the static roster would silently miss every **claimed pool tenant**, so their
+consumption would be zero on the day provisioning opened. §12 closed it — the sweep now enumerates
+`allTenantSlugs(env)`.
+
+That is §138's heuristic applied *before* §138 named it, by an earlier iteration of this audit. Worth
+recording plainly: the activation-map idea was not new when §138 formalised it; it was **already in use ad
+hoc**, and the one time it was applied here it caught a real gap. Formalising it is what makes it repeatable
+rather than lucky.
+
+### 139.2 The cadence comparison that indicts §133
+
+The two workers sit side by side:
+
+| worker | cron | polices |
+|---|---|---|
+| `workers/billing` | `0 * * * *` — **hourly** | a monthly usage quota |
+| `workers/agents` | `0 1 * * *` — **daily** | among other things, a **four-hour** reply SLA |
+
+The hourly sweep watches the slower-moving quantity. Nothing is wrong with the billing cadence — an hourly
+recompute of a monthly figure is cheap and drift-free. But it settles the question §133 left open about
+whether sub-daily scheduling was available: **it is, it is already in use, and it is in use on the concern
+that needs it least.** That is not a new finding; it is the evidence that makes §133's a decision rather than
+a constraint.
+
+**Verdict: clean negative.** No new debt. The billing surface is the first dormant one swept that required no
+row at all.
