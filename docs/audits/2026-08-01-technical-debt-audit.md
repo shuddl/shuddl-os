@@ -8141,3 +8141,48 @@ were all closed in its own §2.
 
 > **A record's usability is part of its correctness.** An accurate document nobody can navigate produces the
 > same outcome as an inaccurate one: a reader who acts on the wrong thing.
+
+---
+
+## §163 — sweeping for decayed pointers, and why the sweep could not have found §162's
+
+§162 found a stale pointer where §110/§127/§129 had only ever swept for stale **counts**. The obvious follow-up
+is the corpus-wide sweep: **252 SHA-shaped references** across the tracked markdown.
+
+| | |
+|---|---|
+| resolve to a real commit | **244** |
+| do not resolve | **6** |
+| genuinely decayed | **0** |
+
+The six non-resolving are all correctly not commits: a **KV namespace id** (`119880a9…`, labelled *"KV
+(idempotency)"*), a **Cloudflare account id** (`89618ced…`, cited three times across two plans), and two
+**teaching placeholders** — `abc1234` and `def5678`, in a sentence explaining that *"a record produced at
+`abc1234` says nothing about `def5678`."* Nothing stale.
+
+### 163.1 The sweep could not have found the defect that motivated it
+
+This is the part worth keeping. §162's pointer — *"read §4's re-measurement at `fb212fd`"* — **resolves
+perfectly.** `fb212fd` is a real commit in this repository. A resolution check passes it without comment.
+
+What was wrong with it was **semantic**: §4 had been re-measured nine times since, so the pointer aimed at a
+superseded state while presenting itself as current guidance. No mechanical check can see that, because
+nothing about the reference is malformed.
+
+> **A pointer can resolve perfectly and still be wrong.** Link-checking finds broken references; it cannot
+> find references that lead somewhere real and obsolete — and those are the more dangerous kind, because they
+> produce a confident reader rather than an error.
+
+That is the same shape as §134's register finding (a DoD can be perfectly well-formed and still unbounded) and
+§150's (a document can describe delivered work in words no matcher will match). Three different sweeps, one
+conclusion: **the mechanical check bounds the search; it never terminates it.**
+
+### 163.2 Hex identifiers are ambiguous by construction
+
+A practical note for anyone re-running this: a git short-SHA, a Cloudflare account id, and a KV namespace id
+are all lowercase hex and **indistinguishable by shape**. My first pass reported eight non-resolving
+"pointers"; two were fragments of `the-222084-case.json` caught by a loose pattern, and the rest were
+infrastructure ids. Only the surrounding words — *"account"*, *"KV (idempotency)"* — separate them.
+
+**No finding.** The pointer corpus is sound, §162's was the only decayed one, and it was found by reading the
+sentence rather than by any sweep.
