@@ -8337,3 +8337,52 @@ and is correctly gated; what was missing was what answering it "no" would cost.
 
 > **A hold's action column describes the work if the answer is yes. Nobody writes down the work if the answer
 > is no** — and that is the number an owner needs to sequence by.
+
+---
+
+## §167 — the only hold whose cost is partly irreversible
+
+§166 found a hold whose cost **grows with time** (every commit adds occurrences of a provisional name). That
+raised a question the ledger has no column for: **which holds get more expensive the longer they wait?** Most
+cost the same on any day. Two do not, and one is worse than growing — it is partly **irreversible**.
+
+**Scope it precisely first, because the row reads more alarmingly than it is.** Three retentions exist here
+and only one has a gap:
+
+| retention | status |
+|---|---|
+| live `events` rows | **append-only, never deleted** (I3, enforced by DB trigger — §147) |
+| evidence bytes (POD, `tsa_receipt`) | **7 years, implemented** — `retentionClassFor` assigns the class and the sweep excludes them *"both by kind-exclusion and by the 7yr duration"* |
+| monthly point-in-time DB snapshots | **not implemented** — nightly artifacts retained 30 days |
+
+So no freight record and no evidence byte is at risk. What is missing is narrower: **a monthly snapshot of
+database state.**
+
+**But that one cannot be back-filled.** A snapshot of an elapsed month can only be produced from that month's
+nightly artifacts, and those are deleted after thirty days. Every month that passes without the archive tier
+is one monthly snapshot that will **never exist** — not delayed, absent.
+
+**Low is the right grade** for operational recovery: restores work, the RPO/RTO targets are met inside the
+window, and nothing a customer sees depends on it. What the grade cannot express is that *waiting costs
+something unrecoverable rather than nothing* — which is a different fact from severity and belongs on the row.
+Added there, per the §140/§165/§166 pattern.
+
+### 167.1 The dimension the ledger lacks
+
+Every hold in this build carries severity, owner, grade and an expiry trigger (§125/§126). None carries a
+**time property**, and holds divide three ways:
+
+| shape | example | what it implies |
+|---|---|---|
+| **flat** — costs the same whenever cleared | vendoring a fixture, binding a secret | sequence by value |
+| **growing** — costs more the longer you wait | trademark clearance, +occurrences per commit (§166) | sequence early |
+| **partly irreversible** — waiting destroys something | monthly snapshots, one lost per month | sequence early **and** accept a permanent floor |
+
+> **Severity says how bad it is if you never fix it. It says nothing about what changes while you wait.**
+> Those are independent, and a ledger that records only the first will sequence badly.
+
+Two of roughly sixty holds are non-flat. That is a small enough number to annotate by hand, which is what
+§166 and this section did — and a large enough consequence that noticing it mattered.
+
+**No finding, no new debt.** The mechanisms are correct, the grade is right, and the row now says what the
+grade cannot.
