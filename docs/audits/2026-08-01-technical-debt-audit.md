@@ -8531,3 +8531,46 @@ count, per §110's rule that a number restated is a number that will decay again
 the body beside the grounding note rather than applied silently.
 
 **Swept the other fifteen descriptions for the same shape: none carries a count.** This was the only one.
+
+---
+
+## §171 — the governing file, audited whole
+
+§170's rule — *the highest-leverage text is the least-maintained* — points at one document above every other:
+`CLAUDE.md`. It is read at the start of every session, it overrides instinct by construction, and a stale
+claim in it propagates into every decision made afterwards. §60 found one defect there. This audits it whole.
+
+**Every numeric claim in the governing file is independently verified by this loop's own measurements:**
+
+| claim | verified by |
+|---|---|
+| 13 agents | §122 — thirteen in the `genesis/01` roster; twelve built, one correctly deferred (REQ-029) |
+| 3 surfaces | §54/§114 — `SURFACES` holds exactly command/driver/portal, tested bidirectionally |
+| ≤22 tables, 21 used | §119 — `check:invariants` reports 21/22 effective (22 raw − 1 partition); `NAMED_TABLES` = 21 |
+| 12 canonical views | §154 — 11 declared, ceiling enforced by `assertViewBudget()` at import |
+| 35 event kinds | §123 — `EVENT_KINDS.length === 35`, all live, visibility exhaustive **by type** |
+| 5 colour tokens · 2 font families | §111 — mutation-proved; a 6th colour and a 3rd font each fail |
+| 504-cell sweep · 48 engine tests | §160 — the 504 grid is proved in-repo; the 48 are a pending fixture |
+| $222,084 anomaly | §115 — REQ-040 regression mutation-proved RED |
+| 171-column legacy export | the Migrator rule's width |
+
+Nine claims, nine confirmations, drawn from measurements taken for other reasons across sixty sections. The
+remaining numeric tokens are document ids (`genesis/09`, `/10`, `/14`) — false positives of the sweep.
+
+### 171.1 The one defect ever found here was not a count
+
+§60's finding was rule 4 asserting that the 504-quote sweep and 48 engine tests *"ship in `fixtures/` and must
+stay green."* They do not ship — both are `status: "pending"`, `sha256: null`, and `check:fixtures` exits 2 on
+`--mode merge`. The correction is still in place and still accurate, verified at HEAD.
+
+**That defect was an observation embedded inside a law.** The law — *no price on air; missing weight/dims →
+UNKNOWN* — was and is correct. What decayed was the parenthetical claim about which artifacts were green.
+
+> **Counts that are budgets are laws and they hold. Claims about what currently ships are observations and
+> they rot.** In the one file where every number is a *ceiling*, every number survived sixty sections of
+> measurement — and the only thing that went stale was the sentence describing a file's state.
+
+That is §64's rule confirmed from the opposite direction: not "here is another observation that decayed", but
+"here are nine laws that did not, in the same document, over the same period."
+
+**No finding.** The governing file is accurate at HEAD.
