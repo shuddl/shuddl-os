@@ -9128,3 +9128,76 @@ Two things worth keeping:
    and brought their own dangling references. That is the second time this session a gate has been more
    useful than its name (§175: bounds-checking is narrower than it reads; here: wider). Neither was
    predictable from the gate's description — **only from running it.**
+
+---
+
+## §180 — an assertion that lives inside a loop over a derived set is not a proof
+
+§179's rule — *write the assertion over the population, not the specimen* — has an in-repo counterpart
+that is mine to fix rather than an owner's: **a test that loops over a discovered set and asserts inside
+it passes, having checked nothing, when the set comes back empty.**
+
+Detector: every `for (const x of X)` / `X.forEach` whose body contains `expect()`, where `X` is derived
+at runtime (a query, filter, glob, `Object.keys`) and nothing nearby pins its size. **328 loops across
+280 test files → 10 candidates.** (The first build crashed on a regex assembled from an unescaped
+identifier — `serverRequiredEvidence(kind,` — a reminder that an instrument building patterns out of
+source text needs the same escaping discipline as the code it audits.)
+
+### One real defect, and it guards a leak
+
+`workers/api/test/driver-manifest.test.ts` — *"the response is a STRICT allowlist — no assigned_driver /
+status_cache / internal fields leak."* **Every assertion in it sat inside a loop over
+`body?.stops ?? []` or `Object.keys(body ?? {})`** — both with explicit empty fallbacks.
+
+Proven, not argued, in three mutations:
+
+| Mutation | Old test | Why |
+|---|---|---|
+| inject `assigned_driver` into a stop | **RED** — but at the TOP-level loop | the route's strict parse throws → error envelope → its `code` key trips the outer allowlist. The **stop-level** loop, the one that names the leaking field, never ran: `body.stops` no longer exists |
+| route returns **zero stops** (valid envelope) | **GREEN** | fully vacuous — the leak guard asserted nothing |
+| same, against the fixed test | **RED** — `expected 0 to be greater than 0` | |
+
+The second row is the finding. The third is the proof the fix is load-bearing.
+
+Note what the first row shows: the inner loop is **structurally incapable of failing** while the strict
+parse stands. A contract-clean stop has no extra keys; a leaking stop makes the parse throw and empties
+the set. It is an assertion that cannot fail in either branch — the shape
+[[mutation-prove-the-pin-not-just-the-fix]] exists to catch.
+
+**Severity is Low, and saying so matters:** the real guard is server-side — `DriverManifest.parse` is
+strict and throws rather than leaks (`workers/api/src/routes/driver-manifest.ts:122@DriverManifest`).
+Nothing leaked. What was wrong was the *proof*, and a test named for a leak that cannot detect one is
+worse than no test, because it is counted.
+
+**Fix:** pin status `200`, a non-null body, and `stops.length > 0` **before** the loops, plus per-assertion
+messages naming the offending key. The failure now reports `expected 500 to be 200` — the precondition —
+instead of an obscure envelope-key mismatch.
+
+### The other nine, adjudicated
+
+**One minor:** `platform-credit.test.ts` confirmed stored `visibility` by looping `rows.results` with no
+size pin; its two direct assertions carry the claim, so this was a silently-skippable *DB-level
+confirmation*, not a hole. Pinned to `toHaveLength(2)`.
+
+**Eight clean** — and two of them are the pattern worth copying:
+
+- `pub-status.test.ts` / `pub-quote.test.ts` — the same `Object.keys(json)` allowlist shape on the
+  **public** surface, the highest-exposure one, and both are properly defended: the body shape is pinned
+  first (`status).toBe(200)`, `json.status).toBe("PRICED")`), the forbidden keys are asserted **directly**
+  (`"assigned_driver" in json` → false), and a raw-body substring check runs that no loop can skip.
+  *"belt + suspenders"*, as `pub-status` puts it.
+- `redact.test.ts` is the repo's **own prior art**: audit §51 already fixed this exact class there, adding
+  `skipped`/`exercised` accumulators so a counterparty kind the fixture cannot build is reported rather
+  than silently `continue`d — *"a measured fact instead of an assumption."*
+
+So the correct pattern was already written down here, twice, and the driver-manifest test predates
+neither. **A rule this repo had learned did not reach one file**, which is the ordinary way coverage
+regresses — not by anyone deciding against it.
+
+### The rule
+
+**Before asserting over a set, assert the set.** `for (const x of derived) expect(...)` is a conditional
+promise: *if* anything is here, it is well-formed. Leak guards, allowlists and redaction checks need the
+unconditional form, and the one-line difference is a size pin. 1 real defect in 10 candidates across 328
+loops is a low rate — the point is that the one it found guards a privacy boundary, and it had been
+green since the day it was written.

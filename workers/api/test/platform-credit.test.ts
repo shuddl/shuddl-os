@@ -180,6 +180,10 @@ describe("finding D — _platform credit money events are INTERNAL visibility, n
     expect(pay.visibility).toBe("internal");
     // …and the stored rows agree (the shared resolver defaults these kinds to counterparty; the clamp wins).
     const rows = await platform().prepare("SELECT kind, visibility FROM events WHERE stream_id = ? ORDER BY seq").bind(streamId).all<{ kind: string; visibility: string }>();
+    // Pin the population before asserting over it (audit §180): two appends → exactly two rows. Without
+    // this the loop is vacuous — a seeding change that stored nothing would keep this DB-level
+    // confirmation green while confirming nothing.
+    expect(rows.results).toHaveLength(2);
     for (const r of rows.results) expect(r.visibility).toBe("internal");
   });
 });

@@ -176,16 +176,29 @@ describe("GET /v1/driver/manifest (REQ-030/025) — authenticated, server-scoped
 
   it("the response is a STRICT allowlist — no assigned_driver / status_cache / internal fields leak", async () => {
     const t = await token({ sub: DRIVER_A, tenant: TENANT_SLUG, role: "driver" });
-    const { body } = await getManifest(t);
+    const { status, body } = await getManifest(t);
+
+    // PIN THE POPULATION FIRST (audit §180). Every assertion below lives inside a loop over a set
+    // derived from the response, and both loops used to be written `body?.stops ?? []` / `body ?? {}`
+    // — so an empty or error body made them assert NOTHING and the test passed. That is not
+    // hypothetical here: injecting `assigned_driver` into a stop makes the route's STRICT
+    // DriverManifest.parse throw, the handler returns an ERROR envelope, and `body.stops` ceases to
+    // exist — so the stop-level allowlist, the one that names the leaking field, cannot ever fire.
+    // It failed only because an error-envelope key ("code") tripped the TOP-level loop, reporting a
+    // wrong-envelope mismatch instead of the leak. These three lines make the failure name the defect.
+    expect(status).toBe(200);
+    expect(body).not.toBeNull();
+    expect(body!.stops.length).toBeGreaterThan(0);
+
     const allowedStopKeys = new Set(["shipment_id", "seq", "kind", "status", "revealed", "geo"]);
-    for (const stop of body?.stops ?? []) {
+    for (const stop of body!.stops) {
       for (const key of Object.keys(stop)) {
-        expect(allowedStopKeys.has(key)).toBe(true);
+        expect(allowedStopKeys.has(key), `stop carries a non-allowlisted field: ${key}`).toBe(true);
       }
     }
     const allowedTop = new Set(["server_ts", "tenant", "driver_id", "stops"]);
-    for (const key of Object.keys(body ?? {})) {
-      expect(allowedTop.has(key)).toBe(true);
+    for (const key of Object.keys(body!)) {
+      expect(allowedTop.has(key), `response carries a non-allowlisted top-level field: ${key}`).toBe(true);
     }
   });
 
