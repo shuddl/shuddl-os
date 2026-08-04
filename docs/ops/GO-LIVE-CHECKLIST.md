@@ -585,7 +585,7 @@ both. The one thing that would close the remainder is the fourth step, unchanged
 ### Q5 — Is all technical debt documented? · **No at the start of this task; yes at this commit — and, by design, with the eight fields only in the two bottom ledgers.**
 
 - **Scope of the schema.** §1.1 states it: the eight fields govern the **External holds** (10 rows) and
-  **Repository-owned failures & debt** (11 rows before this task, **15 after**) ledgers. §2's operator tables and
+  **Repository-owned failures & debt** (11 rows before this task, **15 after**) ledgers. *(Current at 2026-08-03, audit §128: External holds still **10 rows**, exactly as stated. The repo-owned ledger has since grown across **3 tables to 32 rows — 19 struck through as closed, 13 live**. The "15 after" above is correctly scoped to Task 15 by its own before/after phrasing and is not restated as current; this note exists so a reader need not count.)* §2's operator tables and
   §3's debt tables keep their original columns as narrative history. That is a deliberate, declared exclusion —
   but the arithmetic is worth stating: this file carries ~~**245 table rows**~~ **244 table rows at `dc26ea8`
   (corrected 2026-07-27: the original figure was never measured; an `awk` pass over lines beginning `|`, with

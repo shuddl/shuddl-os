@@ -6257,3 +6257,50 @@ Sixth time in this loop that the first version of a probe produced a number I wo
 in §111.2, §114.1, §117.1, §121.1 and §122.2, the tell was **volume**: 119 defects in a document that had
 been reviewed 117 times is not a plausible result. An implausible yield is an instrument error until proven
 otherwise.
+
+---
+
+## §128 — the sweep §127 called for, and §127's prediction was wrong
+
+§127 measured count density across four documents and named `GO-LIVE-CHECKLIST.md` the highest-risk
+remaining surface: **90 count-phrases in 736 lines**, the densest measured, against an audit document that
+proved structurally immune. Doing that sweep is this section, and the prediction did not survive it.
+
+**Six unscoped candidates in the whole file, and none is a defect:**
+
+| candidate | verdict |
+|---|---|
+| `rater-48-tests` / "48 cases" (×3) | a fixture **specification**, not an observation — the fixture must contain exactly 48; the number is the contract |
+| `legacy-export-replay` (9,314-bill / 4,405 re-rate) | same: the fixture's declared size |
+| "External holds (10 rows)" | **verified exactly right** — the section has 10 |
+| "Repository-owned … 11 rows before this task, **15 after**" | correctly scoped by its own *before/after* phrasing to Task 15 |
+
+The last one is worth a moment. Counted precisely, that ledger now spans **3 tables, 32 data rows — 19 struck
+through as closed, 13 live**. Fifteen is neither current nor wrong: it is what the ledger held when Task 15
+finished, and the sentence says so. Annotated with today's figures anyway, so a future reader need not count,
+per §125's discipline.
+
+### 128.1 Why the prediction failed, which is the useful part
+
+§127 estimated risk from **density** — counts per line — and density is not risk. The same mechanism that
+makes the audit immune protects this file too, and the evidence was in §125 all along: **19 of 32 repo-owned
+rows are struck through in place.** Whoever maintained this page superseded rather than rewrote, which is
+precisely §109's rule, and it converts a living document into a chronological one paragraph by paragraph.
+
+> **Decay risk is set by the editing discipline, not by the number of counts.** A document with a hundred
+> figures that supersedes in place is safer than one with three that overwrites.
+
+`DEPLOYMENT.md` — where §110 found the one real stale count — is the counter-example: a short, low-density
+file that states what the environments *are*, with no superseded history at all. Low density, high risk. I had
+the relationship backwards, and one section later the measurement says so.
+
+### 128.2 Where that leaves the record sweep
+
+Four documents are now swept for this class and all four are clean or corrected: the audit (§127, 163 counts,
+zero), the go-live checklist (here, 90 counts, zero), `DEPLOYMENT.md` (§110, one found and fixed),
+`LAUNCH-RUNBOOK.md` (§109, one state contradiction found and fixed). The remaining ops documents were swept in
+§67 under the pre-§110 pattern that could not see hyphenated counts — a **known-narrow** negative, and the last
+outstanding piece of this thread.
+
+Stated plainly rather than left implied: that re-sweep has not been done, and §67's clean negative for the
+other five documents should be read as *"clean for space-separated counts"* until it is.
