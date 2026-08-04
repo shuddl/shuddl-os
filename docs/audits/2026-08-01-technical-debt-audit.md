@@ -5126,3 +5126,35 @@ whole section is about.
 
 **Verdict: clean negative** on the repository; the finding is about how I used it. Tenth skill verified;
 `run-gate.ts` restored byte-identical.
+
+---
+
+## §108 — the anonymous quote surface: a positive allowlist, which is the shape C1 lacked
+
+`redact-counterparty-payloads-completely` has three triggers; §51 covered the event-kind and nested-field
+halves. The third is unswept: *"a route handler returning one response shape to every role."*
+
+**Three routes do no role or lens handling at all** — `internal-platform.ts`, `public.ts`, `signup.ts`. Each is
+correct: the first is the server-to-server credit seam behind `PLATFORM_INTERNAL_SECRET` (§57), and the other
+two are **anonymous** surfaces with no session to shape a response for.
+
+That makes `/pub/quote` the sharpest case in the repo: it returns a **price to an unauthenticated caller**, and
+C1 — the loop's first Critical — was `POST /v1/rate` handing the *portal* role the tenant's margin floors,
+pinned config versions and approval internals.
+
+**It is built the opposite way to C1, and that is the finding.** The guest response is a **positive allowlist**:
+a `.strict()` schema of exactly `{status, sell_cents, lines?, transit}`, with the source naming what is
+excluded *forever* — floors, basis, versions, approval, anomaly — and each `PriceLine` re-mapped to
+`kind/code/amount_cents` so it is margin-free by construction. C1 leaked because a spread carried everything
+not explicitly removed; this cannot, because nothing is carried that is not explicitly named.
+
+**And the allowlist is pinned two ways.** `pub-quote.test.ts` asserts every top-level key is in `ALLOWED_KEYS`
+(a set membership, not a substring), *and* that each margin key appears **"not as a key, not as a byte anywhere
+in the body"** — a serialized-text check that would catch a leak nested inside `lines` or `transit`, which a
+key-set assertion alone would miss.
+
+That byte-level assertion is the same instinct as §70's known-answer vectors: when the failure mode is "a value
+travels somewhere nobody looks", assert against the bytes, not the shape.
+
+**Verdict: clean negative**, and the redaction skill's third trigger is now covered. Eleventh skill verified;
+no code changed.
