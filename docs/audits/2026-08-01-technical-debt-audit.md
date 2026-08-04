@@ -4298,3 +4298,39 @@ revoked device kept its write access.
 
 **Verification.** Both sweeps run across `workers/*/src` and `packages/*/src`; every hit read and classified;
 tables and citations PASS.
+
+---
+
+## §88 — phase gate re-measured at `4739965`
+
+§85 stamped `1909df4`. Measured again after §86–§87.
+
+**1. Zero open repository-owned Critical/High — SATISFIED.** §86 found and closed a **live security defect**:
+a revoked device retained full write access to positions and the signed-event path (REQ-254). Both readers now
+carry `revoked_ts IS NULL`, mutation-proved, with a positive control so a fix that refused everything could
+not pass. The two open Highs remain **External** and unchanged.
+
+**2. Baseline gates green — SATISFIED but for the one row that is not this loop's.** **17 workspaces, 2,882
+tests, exit 0** (2,880 at §85 plus §86's two revocation cases). Root `tools/`: 715 with the same three
+register-parsing failures. All **twelve** static gates PASS.
+
+**3. Remaining debt entirely External or CONFIRM-gated — SATISFIED**, with one row **added** (§87: below-floor
+interline splits hold by design, fail-closed, previously unrecorded) and one **closed** last span.
+
+**4. The record agrees with the world — SATISFIED**, and this span is the clearest evidence for why the
+condition exists. §86's defect was invisible to every document; it lived in one accurate code comment.
+
+### 88.1 Two process failures of mine this span, both recorded where they happened
+
+- **A test fixture that replaced instead of appending** broke ten unrelated Biller tests. The api worker runs
+  with `isolatedStorage: false`, so one control-plane row is shared across every test file. The per-file run stayed
+  6/6 green throughout; only the full suite caught it.
+- **A commit shipped with a failing typecheck** — a duplicate import vitest's esbuild tolerated and `tsc` did
+  not. I ran the gate set *after* committing rather than before, which is the wrong order and is precisely why
+  it reached a commit.
+
+Neither changed a conclusion, both are recorded, and the second is the more embarrassing: the discipline this
+audit applies to the codebase is the same one it has to apply to itself, and running gates before the commit
+is not an optional step.
+
+**The stopping line is unchanged and is reached again at `4739965`.**
