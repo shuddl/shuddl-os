@@ -6785,3 +6785,51 @@ learned again. The yield is smaller and the claims are true, which is the trade 
 on since §123.
 
 **Fifth finding recorded as proposed scope rather than built** (§123, §131, §133, §135, this).
+
+---
+
+## §138 — the activation map: what wakes when each hold clears
+
+§137 observed that four of five proposed-scope findings activate on a **specific known event**. That is not a
+coincidence — it is what §135's heuristic selects for. But the record stores debt by *domain* and by *owner*,
+and never by **trigger**, so no document answers the question an owner actually asks before flipping a switch:
+*what wakes up when I do this?*
+
+This is that view. Every row below is already recorded elsewhere; the grouping is the new part.
+
+| trigger event | what activates | severity · grade |
+|---|---|---|
+| **`PROVISIONING_ENABLED` = true** | the `/pub/signup` email-existence oracle (a distinct 409 for a taken admin email, whose only fence is the unbuilt REQ-125 edge rule) — **and** pool-binding exclusivity enforced on enumeration but not resolution (§12's pre-R4 carry-forward, fixed by a control-plane UNIQUE index) | Med · **R4** · Med · **pre-R4** |
+| **`ANTHROPIC_API_KEY` binds** | the Concierge becomes cost-bearing, and its cost-in-cents / latency-in-ms are the two quantities REQ-113's drift alarm averages and cannot see (§135/§136) | Med · **R2** |
+| **`RESEND_API_KEY` + `EVIDENCE_FROM` bind** | the non-retriable send branch becomes reachable: a permanently-failed evidence email surfaces nowhere, and `recon-sweep` cannot catch it because the invoice exists (§137) | Med · **R2** |
+| **`REQ-289` committed or dropped** | `tools/` goes green **and** the workspace suite becomes reachable — `pnpm test` currently short-circuits before running 2,888 tests (§113) | blocking · now |
+| **the nine private fixtures vendored** | four gates unblock; `identity-leak` needs its denylist secret separately (§126) | blocking · now |
+
+**Two of these compound.** `PROVISIONING_ENABLED` is the only trigger that wakes **two** independent Med rows
+at once, and neither row mentions the other or names the flag as a shared trigger — each was recorded on its
+own merits, months apart. An owner reading either row alone would not learn that the flip also activates the
+other.
+
+### 138.1 Why this grouping is the useful one
+
+Debt registers are organised for the person *recording* an item — by domain, severity, owner. That is the
+wrong axis for the person *clearing* one. Every hold in this build has a moment when it stops being
+theoretical, and for most of them that moment is a single deliberate act: binding a secret, flipping a flag,
+vendoring a file.
+
+> **Group debt by its activation event, not only by its domain.** The question "what is broken?" is answered
+> by the ledger; the question "what will be broken *the moment I do this*?" has no answer unless someone
+> builds this view.
+
+It also explains why the §135–§137 arc found four findings in three sections after a long clean stretch:
+asking *what assumes this capability is absent* is a search over the **dormant** surface, and the dormant
+surface is exactly where a green build hides its debt. Nothing in it fails today, so nothing tests it, and no
+gate can go red.
+
+### 138.2 What this does not change
+
+No new debt is recorded here and no severity moves. The five proposed-scope findings (§123, §131, §133, §135,
+§137) still need owner-signed REQ rows, and §126's six holds still stand with their verification commands.
+This section adds an index, not an item — and the honest note is that an index only helps if it is
+maintained, so it carries the same expiry discipline as everything else: **it is accurate as of this commit,
+and every row in it points at the ledger entry that owns the truth.**
