@@ -5771,3 +5771,58 @@ findings. The tools built to detect drift drift too, and nothing was auditing th
 
 > **An instrument that has never been pointed at itself is not evidence.** Every gate in this repo now has:
 > a proof it can fail (§111/§114/§115/§117), and a check that what it *says* is true (§119).
+
+---
+
+## §120 — two I3 gates disagreed about where a violation could live; four of six cells were blind
+
+§119 ended on the observation that a file can be invisible to a scan without anything reporting an error.
+The natural next question is whether the **gates' own file enumeration** has that property — a gate that
+scans the wrong set can be bypassed by *placement*, and nothing fails.
+
+Mapping how each gate selects its corpus separated them cleanly:
+
+| enumeration | gates | risk |
+|---|---|---|
+| `git ls-files` (whole corpus) | `check:citations`, `check:identity`, `audit:design` | none — the corpus *is* the tracked repo |
+| `globSync` with path prefixes | `check:invariants`, `check:chokepoint`, `check:rater-purity` | a prefix that does not match the corpus |
+
+`check:rater-purity` scans `packages/rater/src` and that is its whole subject, so it is correct by
+definition. The other two guard **I3** (no event edit/delete paths) — and they disagreed with each other
+about where such a violation could be written.
+
+**Measured, by planting one violation at a time across trees × extensions:**
+
+| | `check:invariants` (.ts / .tsx) | `check:chokepoint` (.ts / .tsx) |
+|---|---|---|
+| `workers/` | CAUGHT / **MISSED** | CAUGHT / **MISSED** |
+| `packages/` | CAUGHT / **MISSED** | CAUGHT / **MISSED** |
+| `apps/` | **MISSED** / **MISSED** | CAUGHT / **MISSED** |
+
+`check:invariants` was blind in **four of six** cells; `check:chokepoint` in three. Both were `.ts`-only.
+The chokepoint already scanned `apps/`, so the two gates guarding one invariant held different beliefs about
+its blast radius — and the narrower belief was silently winning wherever only that gate looked.
+
+**Severity, stated honestly: LOW today, and the fix is one glob list each.** The three apps are browser PWAs
+with no D1 binding — they call the API — so SQL in a `.tsx` is not executable as written. But `.tsx` is an
+entirely ordinary place to put a helper, `apps/driver` does carry offline capture logic, and the chokepoint's
+own source says a direct insert *"skips every gate — nothing else catches it."* A guard whose reach depends
+on a file extension is not a guard; it is a convention.
+
+Both gates now scan `{workers,packages,apps}/*/src/**/*.{ts,tsx}` (chokepoint keeps `tools/**` as well).
+Re-probed: **0 of 6 blind cells** for each. `check:invariants` and `check:chokepoint` still PASS on a clean
+tree, `tools/checks` suite 259/259, lint and typecheck PASS.
+
+### 120.1 The tell was an inconsistency, not a symptom
+
+Nothing was failing. No test was red, no output was wrong, and §119's sweep had just confirmed every gate
+reports truthfully. The gap surfaced only from noticing that **two gates guarding the same law scanned
+different sets** — and asking which one was right.
+
+> **When two mechanisms enforce one invariant, their disagreement is the finding.** Neither has to be
+> obviously wrong; the delta between them is a claim someone made twice and answered differently, and one of
+> the answers is doing less work than the record assumes.
+
+That is a distinct search from everything else in this loop. §111–§117 asked *can this fail?* and §119 asked
+*does it say what it means?* This asks a third thing: **does it look everywhere it claims to?** A gate can
+pass both earlier tests and still be trivially avoidable.

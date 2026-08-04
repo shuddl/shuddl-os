@@ -428,7 +428,18 @@ export function scanSourceForLegsReplace(sources: ReadonlyArray<{ path: string; 
 }
 
 export function findForbiddenReplaceSources(cwd: string = process.cwd()): string[] {
-  const files = [...globSync("packages/*/src/**/*.ts", { cwd }), ...globSync("workers/*/src/**/*.ts", { cwd })];
+  // Audit §120: this scanned packages + workers, .ts only — so 4 of 6 (tree x extension) cells were blind.
+  // check:chokepoint already scanned apps/ for the same class of violation; the two gates guard I3 together
+  // and disagreed about where it could live. An INSERT OR REPLACE on an append-only table is forbidden
+  // wherever it is written, so the glob set now matches the corpus rather than a subset of it.
+  const files = [
+    ...globSync("packages/*/src/**/*.ts", { cwd }),
+    ...globSync("packages/*/src/**/*.tsx", { cwd }),
+    ...globSync("workers/*/src/**/*.ts", { cwd }),
+    ...globSync("workers/*/src/**/*.tsx", { cwd }),
+    ...globSync("apps/*/src/**/*.ts", { cwd }),
+    ...globSync("apps/*/src/**/*.tsx", { cwd }),
+  ];
   const texts = files.map((p) => ({ path: p, text: readFileSync(join(cwd, p), "utf8") }));
   return [...scanSourceForForbiddenReplace(texts), ...scanSourceForLegsReplace(texts)];
 }

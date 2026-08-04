@@ -35,11 +35,18 @@ const ALLOWED = new Map<string, string>([
   ],
 ]);
 
+// Audit §120: the .tsx half was missing. A React component is an ordinary place to put a helper, and a
+// direct events INSERT bypasses the sequencer DO and with it EVERY gate — the file extension must not decide
+// whether that is caught. Probed: before this line existed, a violation in ANY .tsx file was invisible.
 const SCAN_GLOBS = [
   "workers/*/src/**/*.ts",
+  "workers/*/src/**/*.tsx",
   "packages/*/src/**/*.ts",
+  "packages/*/src/**/*.tsx",
   "apps/*/src/**/*.ts",
+  "apps/*/src/**/*.tsx",
   "tools/**/*.ts",
+  "tools/**/*.tsx",
 ];
 
 // `INSERT [OR ...] INTO [schema.]["]events["]` — the SHARED matcher from invariants.ts, not a copy.
