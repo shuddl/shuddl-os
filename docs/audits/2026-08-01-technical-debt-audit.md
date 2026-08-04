@@ -4715,3 +4715,47 @@ The GO-LIVE row is closed rather than carried.
 
 **Verification.** `workers/api/test/concierge.test.ts` 24/24; the swap mutation proved RED on the new case
 alone; `concierge.ts` restored byte-identical.
+
+---
+
+## §98 — phase gate re-measured at `96a131a`, with a full post-mutation integrity check
+
+§88 stamped `4739965`. Ten sections later, and after roughly **thirty** source mutations applied and reverted
+across this span, the first thing to establish is not a finding but **that the tree is what it should be.**
+
+**Integrity of the working tree.** No mutation marker (`MUTATED`, `MUT-A`, `simulated crash`) survives in any
+non-test source under `workers/*/src`, `packages/*/src`, or `tools/`. Every mutated file was restored and
+diffed byte-identical at the time. The untracked set is the same seven paths present at session start, all
+belonging to the concurrent GTM/launch-site workstream — nothing this loop produced leaked into the tree.
+
+**1. Zero open repository-owned Critical/High — SATISFIED.** This span closed one live security defect
+(§86, revoked devices retaining write access) and its unpinned sibling (§93), plus four coverage gaps
+(§84 override authority, §91 cap layers, §94 re-claim, §95/§97 two ordering claims). The two open Highs remain
+**External**.
+
+**2. Baseline gates green — SATISFIED but for the one row that is not this loop's.** **17 workspaces, 2,888
+tests, exit 0** (2,882 at §88 plus six added since). Root `tools/`: 715 with the same three register-parsing
+failures. **All twelve** static gates PASS. `pnpm test:acceptance`: **GREEN, all 7 spine tests**.
+
+**3. Remaining debt External or CONFIRM-gated — SATISFIED.** Two checklist rows **closed** this span
+(§84's 403 sweep, §97's SLA ordering); one **added** (§87's fail-closed interline hold, operational only).
+
+**4. The record agrees with the world — SATISFIED**, after five self-corrections this span alone.
+
+### 98.1 The honest note on this span's error rate
+
+Five of my own errors surfaced in ten sections: a fixture that replaced instead of appending (§86.4, broke ten
+tests), a commit shipped with a failing typecheck (§88.1), a wrong-reason test I wrote one section after
+documenting the pattern (§91.1), a deferral resting on an unchecked claim plus the wrong suite run (§97), and
+a test aimed at the wrong code branch (§97.1).
+
+**Every one was caught by executing something** — the full suite, the gate set, a mutation against my own new
+test. None was caught by re-reading. That is the same result the audit reached about the codebase (§72: for an
+enforcement claim the mutation is the evidence, not the grep), now demonstrated on the auditor.
+
+It is also a rate worth naming rather than burying: the density of self-inflicted errors rose as the session
+got longer, and each was found only because a mechanical check ran. **The value of this loop's verification
+discipline is not that it makes the work error-free — it visibly did not — but that no error survived to a
+conclusion.**
+
+**The stopping line is unchanged and is reached again at `96a131a`.**
