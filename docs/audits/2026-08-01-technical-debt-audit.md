@@ -7177,3 +7177,57 @@ Distinguishing those two GREENs took reading both guards' surrounding code — t
 register DoDs. **A boundary mutation's GREEN means either "no test covers this" or "this boundary is
 unreachable", and only the code can say which.** Reporting them identically would have manufactured one
 finding and missed the other.
+
+---
+
+## §145 — the money-path boundaries, and a third kind of GREEN
+
+§144 introduced boundary mutation and found one gap in five probes. This continues it across the money path,
+where an off-by-one is a mispricing rather than an inconvenience.
+
+| boundary | what changes at the threshold | verdict |
+|---|---|---|
+| `r * 2n >= divisor` (`halfUpBig`) | **exactly half rounds up or down** — the tie-break under every price | **RED (8)** |
+| `decision.approvals_required > grantedStrength` | a split whose approvals **exactly meet** the requirement proceeds or holds (REQ-048) | **RED (3)** |
+| `divisor <= 0` (`roundHalfUp`, `mulDivHalfUp`) | a zero divisor is rejected at the domain guard or reaches BigInt | **GREEN** |
+
+Adding §144's five, that is **nine money- and gate-deciding comparisons probed, seven pinned, one real gap
+(fixed), one correct-GREEN — and one that is a third thing entirely.**
+
+### 145.1 The third kind of GREEN: both sides fail loudly
+
+§144 named two meanings for a boundary GREEN — *no test covers this* (a gap) and *this boundary is
+unreachable* (correct). The `divisor <= 0` guards are neither.
+
+Relaxing them to `divisor < 0` changes behaviour only when `divisor === 0`, and in that case control reaches
+`halfUpBig`, which divides BigInts — **and BigInt division by zero throws `RangeError` on its own.** So both
+the guarded and unguarded paths throw. The mutation degrades a clear domain error (*"expects numerator >= 0
+and divisor > 0"*) into a generic runtime one. It cannot misprice, cannot corrupt, cannot return a wrong
+number — which is exactly what `money.ts` claims for itself: *"fails LOUDLY otherwise, never misprices."*
+
+> **A third meaning: the mutation changes the diagnostic, not the outcome.** Both sides of the boundary
+> refuse; only the error message differs. Nothing is at risk, and a test would pin a message rather than a
+> behaviour.
+
+**No test added, deliberately.** §134 and §140 both established that a ledger — or a suite — inflated with
+assertions nobody will act on is worse than a lean one. Pinning an error string here would convert a
+defence-in-depth guard into a maintenance obligation, and the property that matters (a zero divisor never
+produces a number) is already guaranteed twice over.
+
+### 145.2 The taxonomy, and why it is the useful output
+
+Three probes, three GREENs, three different correct responses:
+
+| GREEN means | example | response |
+|---|---|---|
+| no test covers a reachable boundary | appointment close-time (§144) | **write the test**, prove it fails under the mutation |
+| the boundary is unreachable | `anomaly.ts` zero weight, rejected upstream | **nothing** — record why |
+| both sides fail loudly | `divisor <= 0`, BigInt throws anyway | **nothing** — record why |
+
+A boundary sweep that reported these identically would have produced *"three unpinned money boundaries"* — a
+headline finding, entirely false in two thirds. The cost of telling them apart is one careful read of the
+surrounding code per GREEN, which is the same price §134 established for register DoDs and §132 for
+cross-component claims.
+
+That price is now the loop's consistent finding: **mechanical sweeps produce candidates at scale; only reading
+produces verdicts.** Nine boundaries cost three reads and yielded one fix.
