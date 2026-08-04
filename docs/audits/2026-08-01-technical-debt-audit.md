@@ -7402,3 +7402,49 @@ breaking it on purpose and watching it complain.
 
 No finding. The remaining debt is unchanged: §126's six holds and the five proposed-scope findings, all
 owner-blocked.
+
+---
+
+## §149 — the demo-unblock join: what each hold *enables*, not only what it exposes
+
+§138 built the activation map — for each trigger, what dormant defect wakes. That is the **cost** side of
+clearing a hold. The benefit side existed nowhere: the five acceptance demos are `CLAUDE.md`'s definition of
+*"done enough to show"*, each has a filmed half no in-repo test can reach, and each film has prerequisites —
+but nothing joined the two.
+
+**Both halves were sound before joining them.** `demos.ts` states each filmed delta precisely (what the spine
+proves versus what the camera must add), and `acceptance-demos.md`'s launch-gate checklist names each demo's
+gate. Verified: every stated prerequisite is a recorded hold, with one deliberate exception — `REQ-006`
+appears in demo 3's line but not the hold list, because its DoD is *"Both acceptance tests pass on video with
+real users."* It **is** the filmed requirement, not a blocker of it.
+
+### 149.1 The join
+
+| clearing this hold | …makes filmable | …and activates (§138) |
+|---|---|---|
+| `RESEND_API_KEY` + `EVIDENCE_FROM` | **Demo 1** — POD→invoice+email timed <5s on real Queues + Resend | the non-retriable send branch, unsurfaced (§137) |
+| `PROVISIONING_ENABLED` | **Demo 2** — a stranger, unassisted, signup→quote <10 min | the signup email oracle **and** pool-binding resolution exclusivity — two Med rows at once |
+| `REQ-138` legal (ToS · Privacy · DPA) | **Demo 2** (its other gate) | — |
+| tenant-0 pilot (real driver, real hardware) | **Demo 3** — a gated stop with zero instruction | — |
+| deployed staging + OAuth/pairing secrets | **Demo 4** — a real Claude-via-MCP booking | — |
+| deployed Command surface (+ self-hosted tiles) | **Demo 5** — the world-dim captured on the live board | third-party viewport exposure ends (§140) |
+| `ANTHROPIC_API_KEY` | *no demo* | the Concierge becomes cost-bearing and unmetered (§135) |
+
+**Two readings fall straight out.** `PROVISIONING_ENABLED` is the highest-leverage single act — it unblocks a
+demo *and* is the only trigger waking two independent defects, so it should be cleared deliberately rather
+than incidentally. And `ANTHROPIC_API_KEY` is the only hold that is **pure cost**: clearing it enables no
+demo and activates a metering gap, which is an argument for closing §135's row *before* the key binds rather
+than after.
+
+### 149.2 Why the join is the artifact, not either half
+
+A hold list answers *what is blocked*. A demo manifest answers *what must be filmed*. Neither answers the
+question an owner actually has at a launch gate — **"if I do one thing this week, which one moves the most?"**
+— because that requires reading both documents against each other, which nobody does.
+
+> **When two records enumerate the same world from different angles, the join is usually missing and usually
+> the useful one.** §138 joined holds to defects; this joins holds to deliverables. Both existed as facts and
+> neither existed as a view.
+
+**No finding, no new debt.** Every row here is already recorded; the join is an index, dated like §138's, with
+each cell pointing at the ledger entry that owns the truth.
