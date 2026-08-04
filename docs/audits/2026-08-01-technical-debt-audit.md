@@ -7868,3 +7868,53 @@ at the site is the cheapest possible thing to audit** — one read, no probe req
 
 **No finding.** All three layers hold, and the one that cannot be broken by mutation is the one that is
 provably never reached.
+
+---
+
+## §158 — the C-1/H-1 positions guards, all four independently re-proved
+
+The 2026-07-15 audit's Critical was *"`positions.ts` has no driver write-scope and no device verification"* —
+an unauthenticated-in-effect write path into the ledger's position stream. §81 reverted its guards
+individually and found **two pinned, one not**, then fixed the gap. §86 later added a fourth (revocation).
+§156's rule says re-prove it at HEAD rather than trust the record.
+
+Four guards, each neutered **independently** — §93's rule that the question is never *"did the guard fail"*
+but *"does each of the N fail on its own"*:
+
+| guard | mutation | verdict |
+|---|---|---|
+| **assignment** — the driver is assigned to this shipment | `assignmentOf` returns `true` unconditionally | **RED — 1** |
+| **device ownership** — the device belongs to this driver | `deviceOwnedBy` returns `true` unconditionally | **RED — 2** |
+| **revocation** — a revoked device is not owned (§86, REQ-254) | the `revoked_ts IS NULL` predicate dropped from the SQL | **RED — 1** |
+| **consent** — GPS requires prior consent | `assertConsentBeforeGps` removed | **RED — 1** |
+
+Four for four, against a valid baseline of 70. The Critical that started this audit's lineage is closed and
+each of its four defences fails independently when broken.
+
+### 158.1 The historical-fix re-proof sweep, complete
+
+§156 introduced the rule; four applications now exist, and they cover every Critical/High-severity fix in
+this project's recorded history:
+
+| historical defect | severity | re-proved |
+|---|---|---|
+| `positions.ts` — no write-scope, no device verification | **Critical (C-1/H-1)** | §158 — 4 guards, 4 REDs |
+| driver drain-order — a signed capture stranded forever | **worst-in-loop** | §156 — RED, adversary-named test |
+| `{}` policy fallback opening three gate knobs | **security** | §157 — RED ×8 + RED ×1 |
+| append-only guard completeness (`0003` → `0008`) | **history-rewrite** | §147 — RED, meta-guard |
+
+**One historical item is deliberately absent from that table**: resolve-path pool-binding exclusivity (§12).
+It is not a fix to re-prove — it is **still open**, the single named pre-R4 carry-forward, a Med dark behind
+`PROVISIONING_ENABLED` whose fix is a control-plane UNIQUE index. §138's activation map has it waking with
+that flag.
+
+### 158.2 What re-proving cost, and why it is worth doing
+
+Four sections, roughly a dozen mutations, and **zero regressions found**. That is the expected result — these
+fixes are recent and well-tested — but it is not the point. The point is that a fix's *pin* can rot silently
+in ways the fix itself cannot: a test renamed, a suite split, a helper moved to another package (which §157
+hit twice). Re-proving is the only thing that distinguishes *"this was fixed"* from *"this is fixed."*
+
+> **Periodically re-run the mutation for every historical Critical.** It is the cheapest high-information test
+> available against a codebase you did not just write, and the one most likely to be skipped precisely because
+> the record already says the work is done.
