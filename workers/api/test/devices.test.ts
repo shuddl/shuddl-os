@@ -89,6 +89,24 @@ describe("POST /v1/devices — authenticated device enrollment (REQ-013/016/025)
     expect(listed.ids.filter((d) => d === first.body?.device_id)).toHaveLength(1);
   });
 
+  // Audit §94 — the COMPLEMENT of the uniqueness rule, and the third revoked_ts site. The 409 above is
+  // scoped to an ACTIVE registration: once a device is revoked it must be re-claimable, or an off-boarded
+  // driver's handset is permanently unusable by the next driver. Removing the `revoked_ts IS NULL` clause
+  // from that uniqueness query left the suite green (§93's "does each site fail independently" applied to
+  // all five revoked_ts sites), so the fail-CLOSED direction was unpinned.
+  it("a REVOKED device CAN be claimed by another driver — the 409 is scoped to ACTIVE registrations", async () => {
+    const jwk = await genPublicJwk();
+    const ta = await token({ sub: DRIVER_A, tenant: TENANT_SLUG, role: "driver" });
+    const ta2 = await token({ sub: DRIVER_A2, tenant: TENANT_SLUG, role: "driver" });
+    const first = await enroll(ta, { public_jwk: jwk });
+    const deviceId = String(first.body?.device_id);
+    expect(await revoke(ta, deviceId)).toBe(200);
+    // Now the SAME key enrols for a different driver: the prior registration is revoked, so it does not block.
+    const reclaimed = await enroll(ta2, { public_jwk: jwk });
+    expect(reclaimed.status === 200 || reclaimed.status === 201).toBe(true);
+    expect((await listDevices(ta2)).ids).toContain(deviceId);
+  });
+
   it("UNIQUENESS: a device registered to one driver cannot be claimed by another (409)", async () => {
     const jwk = await genPublicJwk();
     const ta = await token({ sub: DRIVER_A, tenant: TENANT_SLUG, role: "driver" });

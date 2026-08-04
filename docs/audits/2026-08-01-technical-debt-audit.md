@@ -4546,3 +4546,48 @@ patch, not only against the code one is auditing.
 
 **Verification.** `sequencer.test.ts` 27/27; the sequencer-only mutation proved RED; `sequencer.ts` restored
 byte-identical; fixture appends rather than replaces (§86.4's rule), full suite re-run.
+
+---
+
+## §94 — enumerating ALL five `revoked_ts` sites, because §93 proved two was the wrong number
+
+§93 fixed the coverage on the *second* revocation reader after §86 pinned only the first. The obvious next
+move, and the one §93's own lesson demands, is to stop guessing how many sites there are and count them.
+
+**There are five, not two.** A repeated-fragment scan across `workers/*/src` and `packages/*/src` found
+`revoked_ts` in five places:
+
+| Site | Purpose | Verdict |
+|---|---|---|
+| `gate-context.ts` `deviceOwnedBy` | positions write gate | **Pinned** (§86) |
+| `sequencer.ts` `#deviceKey` | signature verification | **Pinned** (§93) |
+| `devices.ts` uniqueness query | a device registered to *another* driver blocks re-claim | **Was unpinned** — fixed here |
+| `devices.ts` active-list filter | `GET /v1/devices` | **Pinned** |
+| `devices.ts` revoke handler | finds the ACTIVE entry to stamp | **Unpinned, benign** — see below |
+
+Each was tested by removing its clause alone and running the devices suite. That is §93's rule applied
+properly: not "did I fix all of them" but **"does each fail independently."**
+
+### 94.1 The third site encoded a real product rule that nothing asserted
+
+The uniqueness query's `revoked_ts IS NULL` is what scopes the 409 to **active** registrations. Without it, a
+revoked device is permanently unclaimable — an off-boarded driver's handset could never be issued to the next
+driver. Fail-**closed**, so not a security defect, but a real behaviour with a real operational cost, and the
+suite had only the positive 409 case.
+
+Test added — *"a REVOKED device CAN be claimed by another driver — the 409 is scoped to ACTIVE
+registrations"* — and mutation-proved: removing that clause now turns it red.
+
+### 94.2 The fifth site is unpinned and left that way, deliberately
+
+The revoke handler's `&& e.revoked_ts == null` selects the *active* entry to stamp. Without it, re-revoking an
+already-revoked device re-stamps its timestamp instead of 404ing — idempotent, invisible, and harmless. Adding
+a test for it would be coverage theatre: it pins no rule anyone relies on.
+
+**Recording the decision rather than silently skipping it.** "Unpinned" has now meant four different things
+across this audit — a real hole (§84), an unreachable branch (§83), a downstream-masked guard (§84), and now a
+behaviour too trivial to assert. Only the first is debt; conflating them would inflate the finding count and
+bury the one that matters.
+
+**Verification.** `devices.test.ts` 9/9; the uniqueness mutation proved RED; all five sites individually
+mutated; `devices.ts` restored byte-identical.
