@@ -4806,3 +4806,48 @@ a signature this loop does not have.
 
 **Verification.** Unchecked DoD boxes across all sixteen WP docs: **0**; WP-02/WP-03 sections read for
 comparison; the three superseding audits confirmed present in `docs/audits/`; citations and tables PASS.
+
+---
+
+## §100 — every REQ row a work package proposed reached the register
+
+Second mechanical lens, same family as §99: the WP documents each carry a **"New REQ rows proposed"** section —
+scope discovered *during* the work. `CLAUDE.md` is emphatic that discovery must land as a row before it is
+built (*"if you discover scope, ADD A ROW first"*), so a proposed row that never reached
+`genesis/09` would be scope discovered and lost.
+
+**Eight rows were proposed across the sixteen documents. All eight are in the register:**
+
+| Proposed in | Rows |
+|---|---|
+| WP-05 | REQ-168 (evidence photos device-signed at capture) |
+| WP-06 | REQ-170 (Biller surfaces a POD whose evidence hash has no match) |
+| WP-07 | REQ-171 (corroboration must cover EVERY price-affecting field or fail closed) |
+| WP-08 | REQ-181 (`booking.created` party-correction projection) |
+| WP-09 | REQ-187 / 188 / 189 (status capability, lens-scoped mint, anonymous coarse geo) |
+| WP-10 | REQ-194 (`approval.decided` authorized against the matrix `required_role`) |
+
+WP-01, WP-03 and WP-04 record *"none — no scope discovered outside the register"*, which is a positive
+statement rather than an omission. WP-11 states its 14 scope rows pre-existed the build.
+
+### 100.1 The same section-drop as §99, and why it is not a second finding
+
+**WP-02 and WP-12…WP-16 have no such section.** That is the identical pattern §99 found for the exit-audit
+swarm: a structural section the early WP documents carried and the later ones dropped, with nothing recording
+the change.
+
+It matters less here, because the *substantive* guarantee is gated rather than documentary:
+`check:traceability` reports **no orphans in either direction** across all sixteen active WPs, so every
+register row maps to a WP and every WP's work maps to rows — including the 75 post-REQ-194 rows added under
+the approved V1/V2 framework. A missing prose section cannot hide scope while that gate is green; it can only
+make the *discovery story* harder to reconstruct.
+
+So this is **one finding, not two**: the WP-document template decayed after the early packages, and §99's
+owner item already covers it. Recording it here as a second instance strengthens that item rather than opening
+a new one — the distinction §94 drew about not inflating a count.
+
+**Verdict: clean negative** on the substance. Every proposed row exists; traceability has no orphans either
+way.
+
+**Verification.** All eight proposed rows grepped against `genesis/09` by id; `check:traceability` green;
+post-194 rows counted by WP.
