@@ -576,7 +576,15 @@ export class ShipmentSequencer extends DurableObject<Env> {
         const trigger = { kind: "quote.accepted", tenant, shipment_id: full.shipment_id, event_id: full.id };
         this.ctx.waitUntil(
           this.env.AGENT_QUEUE.send(trigger).catch((err: unknown) => {
-            console.error(`booking trigger enqueue failed for quote.accepted ${full.id} (accept committed; the sweep recovers it for static-roster tenants only):`, err);
+            // AUDIT §131 — CORRECTED. This line previously read "the sweep recovers it for static-roster
+          // tenants only", which named a recovery that DOES NOT EXIST. The pod.signed -> invoice window has
+          // one (REQ-169: `queries/unbilled.ts` anti-joins committed PODs against invoices and `recon-sweep.ts`
+          // re-drives them). There is NO equivalent for quote.accepted -> booking.created: no unbooked query,
+          // and none of the seven crons (sla, recon, credit-recon, collector, mirror, watchtower, retention)
+          // reconciles bookings. A lost trigger here leaves the accept committed and the shipment UNBOOKED
+          // indefinitely, recoverable only by a human re-driving it. Proposed as a register row in audit §131;
+          // building the sweep needs that row first (CLAUDE.md: no build without a REQ).
+          console.error(`booking trigger enqueue failed for quote.accepted ${full.id} (accept committed; NO SWEEP RECOVERS THIS — see audit §131, the shipment stays unbooked until a human re-drives it):`, err);
           }),
         );
       }

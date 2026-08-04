@@ -6415,3 +6415,66 @@ Every instrument failure in this loop has been one of exactly three shapes:
 All three are invisible in the output. The only defences that have ever worked are the three this section
 used together: **assert the diff**, **assert the baseline**, and **name the test that should fail before
 running it**.
+
+---
+
+## §131 — a fire-and-forget trigger whose backstop does not exist
+
+§130 proved queue *redelivery* is safe. This asks the other half: what happens when the enqueue itself
+**fails**? Four sites do `AGENT_QUEUE.send(...).catch(log)` — deliberately fire-and-forget, because the event
+is already committed and throwing would fail a request over a trigger. Each therefore depends on a sweep to
+rebuild what was lost, and each names one in its log line.
+
+**Three name a backstop that exists. One names a backstop that does not.**
+
+| site | trigger | claimed recovery | real |
+|---|---|---|---|
+| `do/sequencer.ts` (pod.signed) | Biller | "the REQ-169 sweep recovers it" | ✅ `queries/unbilled.ts` anti-join + `recon-sweep.ts` |
+| `routes/evidence.ts` (POD re-drive) | Biller | "the REQ-169 recon sweep re-drives the still-unbilled POD" | ✅ same |
+| `do/sequencer.ts` (message.received) | Concierge | "the sweep recovers it" | ✅ `sla-sweep.ts` (the coupling §103 documented) |
+| `do/sequencer.ts` (**quote.accepted**) | Booking | *"the sweep recovers it for static-roster tenants only"* | ❌ **no sweep reconciles bookings** |
+
+**The finding.** If that send fails transiently, `quote.accepted` is committed to the ledger and **no booking
+is ever created**. Nothing rebuilds it: none of the seven crons (sla · recon · credit-recon · collector ·
+mirror · watchtower · retention) touches bookings, and no unbooked-quote query exists. The only trace is a
+`console.error`; the only recovery is a human noticing and re-driving.
+
+**Verified by control, not by absence.** The working pattern is visible: `pod.signed` and `invoice.issued`
+co-occur in `packages/ledger/src/queries/unbilled.ts` **and** `workers/agents/src/recon-sweep.ts` — the
+anti-join and the sweep that consumes it. `quote.accepted` and `booking.created` co-occur in fifteen files,
+**none of which is a reconciliation** — contracts, projections, the handler, the sequencer, routes. The
+mechanism that exists for money has no counterpart for booking.
+
+**Severity: Med–High.** The identical window on the money path was judged serious enough to build REQ-169's
+sweep for. A stranded accept is customer-visible — someone accepted a quote and nothing happened — and it is
+silent.
+
+### 131.1 What I did, and what I deliberately did not
+
+**Corrected the comment.** It read *"the sweep recovers it for static-roster tenants only"*, which is worse
+than saying nothing: a future engineer reading it would believe recovery exists and not look further. It now
+states plainly that no sweep recovers this, with the control evidence and a pointer here.
+
+**Recorded it as proposed scope**, in `GO-LIVE-CHECKLIST.md`'s repo-owned ledger, carrying all six elements
+§125 identified — severity, posture, reasoning, owner, resolution grade (**R3**, pilot), and an expiry
+trigger (*when a booking-reconciliation sweep lands, or when the accept→book path stops being a
+fire-and-forget enqueue*).
+
+**Did not build the sweep.** `CLAUDE.md` is unambiguous: *"If it isn't a REQ row, it doesn't get built; if you
+discover scope, ADD A ROW first."* The register is append-only and owner-signed, and it currently carries
+another workstream's uncommitted `REQ-289` — appending behind that would compound a state I do not own. This
+follows REQ-180's precedent exactly (§123): the proposal rides in code and in the checklist, and the owner
+signs the row.
+
+### 131.2 The citation gate caught rot I caused, mid-fix
+
+Inserting the eight-line correction shifted `sequencer.ts` down, and three content-anchored citations into it
+(anchored on the `ratecon` symbol, previously at line 926) immediately went red — the anchor had moved nine
+lines down. *(Deliberately written without the old path:line@symbol form: quoting a rotted citation verbatim
+makes it a live citation again, and the gate rejected this section's first draft for precisely that.)* The gate named the new
+location in its failure message, and the fix was mechanical.
+
+Worth recording because it is the **first time this loop has seen a gate catch a defect introduced by the
+audit itself, in the same commit that introduced it.** Every other instrument finding here was archaeology.
+Content-anchored citations — the form §50 built and the ratchet freezes — are the only reason a comment
+insertion could not silently rot three references in a document nobody would have re-read.
