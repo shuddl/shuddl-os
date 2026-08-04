@@ -37,9 +37,15 @@ export async function assignmentOf(db: D1Database, shipmentId: string, driverSub
 export async function deviceOwnedBy(control: D1Database, tenant: string, deviceId: string, ownerSub: string): Promise<boolean> {
   const row = await control
     .prepare(
+      // REQ-254 (audit §86) — a REVOKED device is not owned. Until this predicate existed, revocation
+      // dropped the key off the enrollment surface's active list while this reader still accepted it, so a
+      // revoked (stolen, lost, off-boarded) device kept its write access to positions. `revoked_ts` is
+      // absent on an active entry and json_extract returns NULL for both a missing key and an explicit
+      // null, so `IS NULL` is the correct active test for both shapes.
       "SELECT 1 AS ok FROM users u, json_each(u.device_keys) je " +
         "WHERE u.tenant_id = (SELECT id FROM tenants WHERE slug = ?1) " +
-        "AND u.id = ?2 AND json_extract(je.value,'$.device_id') = ?3 LIMIT 1",
+        "AND u.id = ?2 AND json_extract(je.value,'$.device_id') = ?3 " +
+        "AND json_extract(je.value,'$.revoked_ts') IS NULL LIMIT 1",
     )
     .bind(tenant, ownerSub, deviceId)
     .first<{ ok: number }>();

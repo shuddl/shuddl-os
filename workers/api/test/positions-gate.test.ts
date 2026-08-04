@@ -1,5 +1,6 @@
 import { SELF, env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
+import { env } from "cloudflare:test";
 import { TENANT_SLUG, TEST_DEVICE_ID, ensureSchema, post, seedShipment, token } from "./helpers.js";
 
 // REQ-190 (2026-07-15 audit C-1) — SERVER-SIDE GATE PARITY for the raw-GPS bypass (REQ-030/166).
@@ -136,6 +137,45 @@ describe("POST /v1/positions — server-side gate parity (REQ-190)", () => {
 
   it("assigned driver + registered device + a consent document present → 201, the row lands", async () => {
     const ts = 1_720_000_100_004;
+    const res = await postPosition(positionInput(SHP_ASSIGNED, TEST_DEVICE_ID, ts), await driverTok());
+    expect(res.status).toBe(201);
+    expect(await positionCount(SHP_ASSIGNED, TEST_DEVICE_ID, ts)).toBe(1);
+  });
+});
+
+// REQ-254 (audit §86) — REVOCATION MUST REVOKE.
+//
+// The devices suite proved a revoked key drops off the enrollment surface's active list. Nothing proved it
+// loses WRITE access, and it did not: `deviceOwnedBy` (this route) and the sequencer's `#deviceKey` both
+// matched on device_id alone, ignoring `revoked_ts`. So revoking a stolen or off-boarded driver's phone
+// removed it from a list while it kept appending positions and signed events — the operator's one lever
+// against a compromised device did nothing to the two paths that matter.
+//
+// A `devices.ts` comment had flagged exactly this ("needs a matching predicate in those two readers") and it
+// lived ONLY there — no checklist row, no test. Both readers now carry `revoked_ts IS NULL`.
+describe("REQ-254: a REVOKED device loses write access, not just its place on a list", () => {
+  const REVOKED_DEVICE = "device-revoked-1";
+
+  it("a revoked device is refused (403 DEVICE NOT REGISTERED), nothing inserted", async () => {
+    // APPEND a revoked device — never rewrite the array. The api worker runs with isolatedStorage:false, so
+    // this control-plane row is SHARED with every other test file; an earlier draft replaced device_keys
+    // wholesale with a stub public_jwk and broke ten Biller tests that verify real POD signatures. Read,
+    // append, write back.
+    const row = await env.CONTROL_DB.prepare("SELECT device_keys FROM users WHERE id = ?").bind("u-driver").first<{ device_keys: string }>();
+    const entries = JSON.parse(String(row?.device_keys ?? "[]")) as Array<Record<string, unknown>>;
+    if (!entries.some((e) => e.device_id === REVOKED_DEVICE)) {
+      entries.push({ device_id: REVOKED_DEVICE, public_jwk: {}, enrolled_ts: 1, revoked_ts: 2 });
+      await env.CONTROL_DB.prepare("UPDATE users SET device_keys = ? WHERE id = ?").bind(JSON.stringify(entries), "u-driver").run();
+    }
+    const ts = 1_720_000_100_009;
+    const res = await postPosition(positionInput(SHP_ASSIGNED, REVOKED_DEVICE, ts), await driverTok());
+    expect(res.status).toBe(403);
+    expect(JSON.stringify(res.body)).toContain("DEVICE NOT REGISTERED");
+    expect(await positionCount(SHP_ASSIGNED, REVOKED_DEVICE, ts)).toBe(0);
+  });
+
+  it("the driver's still-ACTIVE device is unaffected — revocation is per-device, not per-driver", async () => {
+    const ts = 1_720_000_100_010;
     const res = await postPosition(positionInput(SHP_ASSIGNED, TEST_DEVICE_ID, ts), await driverTok());
     expect(res.status).toBe(201);
     expect(await positionCount(SHP_ASSIGNED, TEST_DEVICE_ID, ts)).toBe(1);

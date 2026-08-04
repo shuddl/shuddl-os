@@ -4182,3 +4182,76 @@ name tests for the adversary (§75), assert the reason not the shared status (§
 you add a capability (§84) — are all corrections to *how coverage is written*, not to how the system behaves.
 
 **The stopping line is unchanged and is reached again at `1909df4`.**
+
+---
+
+## §86 — revocation that did not revoke: a security limitation flagged only in a code comment
+
+§84's rule — *when you add a capability, write the refusal* — pointed at the next capability without one:
+device enrollment and **revocation** (REQ-254, *"binds P-256 keys to the authenticated driver with revocation
+and lockout"*).
+
+`devices.ts` carried an honest note from its author:
+
+> the sequencer's device-signature accept path (`#deviceKey`) and the positions ownership check
+> (`deviceOwnedBy`) do NOT yet exclude a `revoked_ts`-marked entry … **Flagged rather than silently editing
+> files this task does not own.**
+
+Verified still true, by reading both queries: each matched on `device_id` alone.
+
+### 86.1 What that meant
+
+Revoking a device removed it from the enrollment surface's active list — and **nothing else**. The two readers
+that gate writes still accepted it:
+
+- `deviceOwnedBy` → a revoked device kept posting **positions**;
+- the sequencer's `#deviceKey` → a revoked device's **signature still verified**, so it kept appending signed
+  events to the ledger.
+
+A stolen or off-boarded driver's phone therefore retained full write access after the operator revoked it.
+**The one lever available against a compromised device did nothing to the two paths that matter** — and
+REQ-254 names revocation as part of its acceptance, so this was an incomplete row rather than absent scope.
+
+### 86.2 Why it survived: the flag lived only in the code
+
+`revoked_ts` appears in **no document** — not the GO-LIVE checklist, not the threat model, not this audit
+before now. The note was accurate, well-written, and invisible to everyone who does not read that file's
+header. That is §45's finding exactly (*a correction recorded somewhere true but not where it is
+load-bearing*), and here it hid a live security gap rather than an understatement.
+
+The devices suite made it easy to miss: it has *"REVOCATION: a revoked device drops off the active list;
+re-enrolling reactivates it"* — coverage of the **surface**, none of the **consequence**. Precisely §84's
+shape, one section later, in a different subsystem.
+
+### 86.3 The fix
+
+`json_extract(je.value,'$.revoked_ts') IS NULL` added to both readers — one rule, both call sites, each
+carrying a comment naming the other (share-lint, §71). `revoked_ts` is absent on an active entry and
+`json_extract` yields NULL for both a missing key and an explicit null, so `IS NULL` is the correct active
+test for both shapes.
+
+Two tests, written as part of the fix rather than after it:
+
+- *"a revoked device is refused (403 DEVICE NOT REGISTERED), nothing inserted"* — asserting the
+  distinguishing reason (§81), not the shared 403.
+- *"the driver's still-ACTIVE device is unaffected — revocation is per-device, not per-driver"* — the
+  positive control, so a mutation that refused *everything* could not pass as a fix.
+
+Mutation-proved: reverting `deviceOwnedBy` to its pre-fix query turns the first red. The stale note in
+`devices.ts` is struck through and closed in place rather than deleted, so the record shows what was true and
+when it stopped being true.
+
+### 86.4 The first draft of the fix broke ten unrelated tests
+
+Worth recording because it is a hazard specific to this suite. The api worker runs with
+`isolatedStorage: false`, so **one control-plane row is shared by every test file**. My first version of the
+revocation test replaced `u-driver`'s `device_keys` wholesale, substituting a stub `public_jwk: {}` for the
+real signing key — and turned **ten Biller reconciliation tests red**, because they verify genuine POD
+signatures against that key.
+
+Caught only by running the FULL suite; the per-file run was 6/6 green throughout. Rewritten to read, append,
+and write back, so the shared row gains a revoked entry and loses nothing. **In a shared-storage suite a
+fixture that writes must add, never replace** — and a per-file green is not evidence that it did.
+
+**Verification.** `devices.test.ts` + `positions-gate.test.ts` 14/14; full `workers/api` suite re-run after
+the fixture was made non-destructive.

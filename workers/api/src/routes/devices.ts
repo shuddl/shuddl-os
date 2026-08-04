@@ -19,12 +19,15 @@ import type { Env, Vars } from "../index.js";
 //   · TENANT ISOLATION — every read/write is scoped by the tenant slug from the JWT (join to tenants), so
 //     a device in one tenant is invisible to another.
 //
-// NOTE (follow-up, outside Task 11's file list): the sequencer's device-signature accept path
-// (workers/api/src/do/sequencer.ts #deviceKey) and the positions ownership check (gate-context.ts
-// deviceOwnedBy) do NOT yet exclude a `revoked_ts`-marked entry — so revocation is enforced here at the
-// control-plane record + this surface's reads, but end-to-end signature REJECTION of a revoked device
-// needs a matching predicate in those two readers. Flagged rather than silently editing files this task
-// does not own.
+// ~~NOTE (follow-up): the sequencer's device-signature accept path and the positions ownership check do
+// NOT yet exclude a `revoked_ts`-marked entry, so end-to-end signature REJECTION of a revoked device needs
+// a matching predicate in those two readers.~~
+// **CLOSED 2026-08-03 (audit §86).** Both readers now carry `json_extract(je.value,'$.revoked_ts') IS NULL`:
+// `gate-context.ts deviceOwnedBy` (the positions path) and the sequencer's `#deviceKey` (the signature
+// path). Revocation is enforced where it matters, not only on this surface's list — mutation-proved by
+// `positions-gate.test.ts` (REQ-254), which also pins that revocation is PER-DEVICE: the driver's other
+// active device is unaffected. The flag was correct and lived ONLY in this comment for its whole life —
+// no checklist row, no test — which is why it survived. See audit §45 on limitations recorded out of sight.
 
 // The strict enrollment body — ONLY the public key. Any extra top-level field (a body-supplied driver_id
 // / sub) fails .strict() ⇒ 400, so the client can never smuggle an identity claim. The inner JWK allows

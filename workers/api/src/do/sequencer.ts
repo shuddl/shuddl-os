@@ -1201,8 +1201,14 @@ export class ShipmentSequencer extends DurableObject<Env> {
     // The device's public JWK lives on the user that registered it (users.device_keys[]).
     const row = await this.env.CONTROL_DB
       .prepare(
+        // REQ-254 (audit §86) — a REVOKED device's key must not verify a signature. Without the
+        // `revoked_ts IS NULL` clause, revoking a stolen device removed it from the enrollment surface
+        // while this path kept accepting its signed appends: the revocation was cosmetic on the two
+        // readers that matter. Mirrors the identical predicate in gate-context's deviceOwnedBy — one rule,
+        // both readers (share-lint: if this shape grows a third reader, factor it).
         "SELECT je.value AS entry FROM users u, json_each(u.device_keys) je " +
-          "WHERE u.tenant_id = (SELECT id FROM tenants WHERE slug = ?1) AND json_extract(je.value, '$.device_id') = ?2 LIMIT 1",
+          "WHERE u.tenant_id = (SELECT id FROM tenants WHERE slug = ?1) AND json_extract(je.value, '$.device_id') = ?2 " +
+          "AND json_extract(je.value, '$.revoked_ts') IS NULL LIMIT 1",
       )
       .bind(tenant, deviceId)
       .first<{ entry: string }>();
