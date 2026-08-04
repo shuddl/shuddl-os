@@ -5197,3 +5197,47 @@ provisioning the freight ledger into the marketing account remains, in the runbo
 this runbook that is expensive to undo." Narrowing a warning is not the same as removing it.
 
 **Verification.** Every ops-doc state claim re-read in context; tables and citations PASS.
+
+---
+
+## §110 — a stale count §67's own sweep could not see, because of a hyphen
+
+§109 checked the ops record for *state* drift. This checks it for **count** drift — §64's class — and finds
+one, plus a flaw in the sweep that was supposed to have found it.
+
+**First, the internal contradiction the skill named is closed.** `DEPLOYMENT.md`'s header once said "evidence
+sending OFF" while its own Sending section said LIVE. The header now reads *"Sending status — LIVE on staging
+(2026-07-14)"*. Consistent.
+
+**The stale count.** Its environments line read *"`dev` = the default wrangler config, used by the
+**1,131-test suite**"*. The real figure today is ~3,603 (2,888 across 17 workspaces + 715 in `tools/`) — the
+claim was short by a factor of three, undated, and presented as current.
+
+Replaced with *"used by the unit/integration suites"* — a **durable description** rather than a fresher
+number. §64's first disposition: where an authority exists (the suites themselves), point at the thing rather
+than restating a value that decays. A corrected count would have been wrong again within the week; this
+sentence never will be.
+
+### 110.1 Why §67 reported a clean negative here
+
+§67 swept all nine ops documents for unscoped counts and recorded `DEPLOYMENT.md — 0`. Its pattern was
+`\b(\d{1,4}) (tests|gates|checks|files|…)\b` — a **space** between number and noun. This claim is
+`1,131-test suite`: hyphenated, and singular. The sweep could not see it.
+
+Re-run with the hyphenated form included, the ops corpus yields 40 candidates — and every one *except* this is
+a false positive of a kind already understood: the fixture id `rater-48-tests`, counts under dated table
+headers (§67's finding), or values quoted **inside** a superseded annotation (`PROJECT-STATE`'s "21 gates",
+which is §66's own correction explaining what the sentence used to say).
+
+So the corrected tally is: **one real stale count in nine ops documents**, not zero. §67's conclusion was right
+in spirit and wrong in fact, and it was wrong for the most ordinary reason available — a regex that encoded
+one spelling of a thing that has two.
+
+That is the thirteenth instance this loop of an absence claim failing, and the first where the flawed
+instrument was **another section of this same audit**. §67 even argued that the laws-vs-observations rule
+should stay a rule for authors rather than becoming a checker, on the grounds that a checker would be noisy.
+It would also, as this shows, have been **incomplete** — which is the better argument for the same
+conclusion.
+
+**Verification.** `DEPLOYMENT.md` header/section consistency re-read; the replaced sentence carries no count;
+all 40 hyphenated-form candidates classified; tables and citations PASS.
