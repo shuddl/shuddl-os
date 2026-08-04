@@ -6205,3 +6205,55 @@ audit's own holds have met the standard the audit set for everyone else's.
 Nothing about the *substance* changed: the same work remains blocked on the same owners. What changed is that
 a reader six weeks from now can tell, by running three commands, which of these six rows are still true —
 and that is the only property that has ever kept a record honest.
+
+---
+
+## §127 — sweeping the audit itself: why it carries 163 counts and no stale ones
+
+§67 and §110 swept the nine ops documents for unscoped counts. **This document was never swept**, and it is
+now the largest record in the repo: 6,208 lines, 117 sections, **163 count-phrases**. Given that three of
+this loop's findings were count defects (§110 hyphenated, §118 files-as-tests, §126 gates-as-fixtures), a
+document with 163 of them is the obvious place for the fourth.
+
+**There isn't one.** Every candidate resolves to one of three legitimate forms:
+
+- a **per-section verification line** (*"`packages/ledger` 609 tests / 34 files green"*) — a measurement of
+  that section, at that section's commit;
+- a **quoted historical value** inside a correction, where the whole point is to show what a figure *used* to
+  say (§64's decay table is nothing but these);
+- a **fixture identifier** that merely looks numeric — `rater-48-tests`, `the-222084-case.json`.
+
+The one candidate worth chasing — *"a loop over 28 kinds does real work on 5"* — is internally consistent
+(5 + 23 = 28) and scoped to §51's subject, a specific test's registry loop, not the 35-kind catalog.
+
+### 127.1 The structural reason, which is the actual finding
+
+This document is **append-only and chronological**. A count written in §51 is scoped by §51 — it is a record
+of what was true when that section was written, and no reader takes it as a present-tense claim. The ops
+documents are **living**: `DEPLOYMENT.md` says what the environments *are*, so a count in it reads as current
+forever, and §110 found exactly that (a "1,131-test suite" short by a factor of three).
+
+> **The count-decay class lives in living documents, not chronological ones.** A number in an append-only
+> record carries its own timestamp — its position. A number in a living document carries none, and outlives
+> its measurement silently.
+
+That is a search rule with immediate value: of the four documents measured here, the audit (163 counts) is
+structurally immune, while `GO-LIVE-CHECKLIST.md` (90 counts in 736 lines — the densest by far) is the
+highest-risk surface remaining. §125 swept its repo-owned *claims*; its **counts** are a separate sweep, and
+one worth doing before anyone treats a figure on that page as current.
+
+It also retroactively justifies §109's ops-record rule — *supersede in place, never rewrite history*. That
+rule is precisely what converts a living document into a chronological one, and with it, immunity to this
+whole class. The twenty struck-through rows §125 found are not clutter; they are the mechanism.
+
+### 127.2 The instrument, twice
+
+The first sweep reported **119 candidates** and was useless: it looked for scope within ±1 line, while this
+document's scope markers (a dated `## §N` heading, a `**Verification.**` lead-in, a `STATUS AT <sha>` block)
+sit up to forty lines above the count they govern. Widening the scope search to the nearest preceding marker
+cut it to 42, and reading those 42 cut it to zero.
+
+Sixth time in this loop that the first version of a probe produced a number I would have published — and, as
+in §111.2, §114.1, §117.1, §121.1 and §122.2, the tell was **volume**: 119 defects in a document that had
+been reviewed 117 times is not a plausible result. An implausible yield is an instrument error until proven
+otherwise.
