@@ -192,8 +192,10 @@ may only stop — when all four are simultaneously true:
    count of a list the build already owns, so it drifted every time a gate was added and was wrong before this
    session touched it. Replaced with the source of truth instead of a fourth number to maintain — the same
    defect this audit keeps finding in prose, in its own phase gate.*
-   **`pnpm test` means BOTH surfaces:** `test:tools && pnpm -r test` — the 691-test root `tools/` suite and
-   all 17 workspaces (2,867). §38's headline counted 16 workspaces and 2,648, omitting `packages/agents`
+   **`pnpm test` means BOTH surfaces:** `test:tools && pnpm -r test` — the root `tools/` suite and every
+   workspace. *(Corrected 2026-08-03, §113: this clause named "the 691-test root suite and all 17 workspaces
+   (2,867)". Both figures had decayed — the counts are the suites' to state, not this document's, per §64/§110.
+   Read them from a run, never from here.)* §38's headline counted 16 workspaces and 2,648, omitting `packages/agents`
    entirely as well as `tools/`; corrected in §52. The `&&` also means a tools failure short-circuits before
    any workspace runs, so "`pnpm test` is red" does not tell you the workspaces were even reached.
 3. **The remaining debt is entirely External or CONFIRM-gated** — each row named in the checklist with
@@ -5367,3 +5369,69 @@ not hold:
 > **In an audit probe, never let a shell glob resolve a path.** Use `find`/`git ls-files` and assert the
 > result is non-empty before using it. Quote `--include='*.ts'` — unquoted, zsh expands it and kills the
 > whole command, so the empty output reads exactly like a clean negative.
+
+---
+
+## §113 — the stopping point, re-measured at `99ae4ca`
+
+Measured against §4's four exit conditions, one by one. Every figure below comes from a run at this commit.
+
+**1. Zero open repository-owned Critical/High — SATISFIED.** Unchanged from §105: C3 closed in all four
+workers; the one named pre-R4 carry-forward remains resolve-path pool-binding exclusivity (a Med, dark behind
+`PROVISIONING_ENABLED`, fixed by a control-plane UNIQUE index). The two open Highs are still **External**:
+driver custody handoff (needs the deferred REQ-069 identity seam) and the live EDI adapter (needs transport
+credentials). Neither is closable from inside the repo without straying.
+
+**2. Baseline gates green — SATISFIED for everything this repo owns.**
+
+| surface | result |
+|---|---|
+| eleven static gates (runtime, invariants, rater-purity, chokepoint, authority-coverage, traceability, seed, citations, table-shape, design-audit) | **PASS** |
+| `check:coverage` | **FAIL — REQ-289 only** (see below) |
+| workspace suite (`pnpm -r test`) | **17 workspaces · 246 files · 2,888 tests · 0 failures · exit 0** |
+| root `tools/` suite | **715 tests, 712 passing** — the 3 failures are REQ-289 |
+| design gate | PASS, and **proved able to fail** — 12 rules, each RED alone (§111) |
+
+**3. Remaining debt entirely External or CONFIRM-gated — SATISFIED**, unchanged: five private-fixture holds,
+two no-gate holds (on-call rota, 7-year archive), the two External Highs, R2–R5 owner grades.
+
+**4. The record agrees with the world — SATISFIED at this commit.** §109 reconciled the last two ops documents
+that disagreed; §110 removed the last stale count from `DEPLOYMENT.md`; §112 gave all eight status-drift rows
+a recorded verdict, which was the last standing "somebody should check this" in a gate's own output.
+
+### 113.1 REQ-289 is not one red gate — it hides the entire workspace suite
+
+Worth stating precisely, because the headline "one failing gate" understates it. `pnpm test` is
+`test:tools && pnpm -r test`. The uncommitted `REQ-289` row breaks three register-parser tests in `tools/`, so
+the `&&` **short-circuits and the workspace suite never runs at all**. Anyone typing `pnpm test` today sees a
+red that says nothing whatsoever about the 2,888 workspace tests.
+
+Proved by removing the row and re-running: **23/23 traceability tests pass and `check:coverage` classifies
+288/288 with zero unaccounted.** Restored immediately; the row is another workstream's and untouched.
+
+So the honest statement of repo health is: *green on every surface this repo owns, behind one owner-signed
+register row that currently masks the largest suite.* §4 clause 2 predicted this mechanism in the abstract —
+this is the first time it has actually bitten, and it is the single highest-leverage thing an owner can clear.
+
+### 113.2 What this loop is no longer finding
+
+Thirteen sections since the last defect of substance (§104). §105–§113 produced: two ops-record
+reconciliations, one stale count, one instrument correction, eight drift verdicts, and a mutation proof of a
+gate that turned out to be sound. The last *behavioural* defects were §86/§93 (revocation that did not revoke)
+and §84 (a driver able to waive a server-side gate).
+
+That is the signature of a search whose yield has moved from defects to record accuracy — the audit is now
+mostly finding places where the **documentation** of a correct system had drifted. Three of this session's
+last four findings were defects in *this audit's own instruments* (§110's sweep, §112's manifest, §4's counts),
+which is the clearest available signal that the code surface is quieter than the record surface.
+
+**The stopping point is here, and it is a phase gate, not a finish line.** Repository-closable debt is closed.
+What remains needs an owner, not another loop iteration:
+
+| # | Hold | Owner action |
+|---|---|---|
+| 1 | `REQ-289` uncommitted | commit or drop the row — unblocks `tools/` **and** unmasks the workspace suite |
+| 2 | five private-fixture holds | vendor from the engagement workspace (`manifest.private M-01`) |
+| 3 | two External Highs | REQ-069 identity seam; EDI transport credentials |
+| 4 | `routes ±10%` disposition | named in `genesis/11:41` and `genesis/14:52`; needs one written answer |
+| 5 | R2–R5 grades | owner sign-off per `V2-EXECUTION-FRAMEWORK.md` §9 |
