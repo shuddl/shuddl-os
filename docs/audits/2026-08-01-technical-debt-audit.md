@@ -7819,3 +7819,52 @@ one-read-per-GREEN price §145 established for boundary mutations and §152 for 
 **No finding.** The project's worst recorded defect has a fix that is pinned, by a test named for the
 adversary, in the package that owns the behaviour — and the two suites that stay green when it breaks are
 demonstrably not the ones that should care.
+
+---
+
+## §157 — re-proving the security-severity historical fix: the `{}` policy fallback
+
+§156 established the rule — *a fix nobody re-proves is a fix nobody knows still works* — and the highest-
+severity historical defect to apply it to is the one this audit found **in its own earlier fix**: a `{}`
+policy fallback that silently opened three gate knobs, because catching the exception is not the guarantee —
+**the fallback VALUE is**.
+
+Three fail-closed layers now guard that path. Each mutated:
+
+| layer | mutation | verdict |
+|---|---|---|
+| a tenant with **no control-plane row** | refusal removed — tolerate the missing row | **RED — 1** (*"REFUSING every append until one exists"*) |
+| the entitlement flag's grant test | `=== true` → `!== false`, so an **absent key reads as ON** | **RED — 8** (in `packages/contracts`) |
+| `#entitlementRow()`'s fail-closed default | `{ plan: "" }` → `{ plan: "scale" }` | GREEN — **correctly** (see below) |
+
+**The `{}` property is pinned eight ways.** An absent `hazmat_enabled` key, a string `"true"`, a `1` — all
+read as OFF, and eight tests fail the moment that stops being true.
+
+### 157.1 Two distinct instrument errors on one probe
+
+This probe went wrong twice before it was right, in two different ways:
+
+1. **The mutation was too weak.** My first attempt replaced `=== true` with `!== undefined` — but under a
+   `{}` policy the value *is* `undefined`, so `undefined !== undefined` is false and the gate **still
+   denied**. The mutation never exercised the defect it was named for. A mutation must be checked against the
+   *specific input* the property is about, not just be a plausible-looking weakening.
+2. **Then it ran against the wrong suite.** With the correct mutation (`=== true` → `!== false`, so an absent
+   key grants), `workers/api` returned GREEN — because `hazmatEnabled` lives in `packages/contracts`, and so
+   do its tests. Running the owning package turned it RED with eight failures.
+
+That second error is §130's, appearing for the **third** time (queue dedupe §130, seed hash §148, here). Each
+time the fix was the same question: *what package owns this behaviour, and did I run its suite?*
+
+### 157.2 The third GREEN is correct, and its reason is written at the definition
+
+`#entitlementRow()`'s permissive-plan mutation stayed green because the state it guards is **unreachable**:
+`#policy` is *"always awaited before any transition gate in `#append`"*, so the cache is populated before any
+gate reads it. The default exists so that *"a gate that reads it before `#policy` ran refuses rather than
+fails open"* — defence-in-depth against a call-order that the code prevents.
+
+That is §145's second category exactly (*the boundary is unreachable*), and the comment at the definition
+supplies the reasoning without needing archaeology. **A fail-closed default whose unreachability is documented
+at the site is the cheapest possible thing to audit** — one read, no probe required.
+
+**No finding.** All three layers hold, and the one that cannot be broken by mutation is the one that is
+provably never reached.
