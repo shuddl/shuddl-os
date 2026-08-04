@@ -7565,3 +7565,57 @@ became cheap once the instrument stopped requiring shared vocabulary.
 
 §150's bounded statement is now discharged: **all 43 forward references are adjudicated, zero scope was
 dropped, and the single thin deferral is correctly unregistered and independently safe.**
+
+---
+
+## §152 — §151's rule applied backwards: discharging §134's decline
+
+§151 earned a rule — *before declining a verification as too expensive, spend one iteration improving the
+instrument* — and the obvious next move is to apply it to the **other** declines. The largest was §134: forty-
+nine time-sensitive requirements whose DoD states an event rather than a bound, of which I read four (yield
+1 in 4, one real Med — §133's SLA cadence) and stopped.
+
+**The better instrument.** §134 read DoDs one at a time. Instead, search the **whole tracked corpus** for a
+numeric bound within four lines of *any citation of that REQ id* — because §134's own finding was that the
+bound usually lives elsewhere (an ops doc, the requirement's prose, a code constant). Result: **33 of 49
+bounded somewhere**, residual **16**. The same ~two-thirds cut §151 got.
+
+**Then the status filter, which I got wrong.** Splitting the 16 by register status put all sixteen in
+"pending/unbuilt", where a missing bound is correct. That was false: my filter treated `F0-SPEC'D` as
+unbuilt, and **§133's own finding (REQ-095) is `F0-SPEC'D` and demonstrably built** — four source files, four
+test files. Checking directly, three of the sixteen are built:
+
+| row | source files | test files |
+|---|---|---|
+| REQ-173 | 4 | 1 |
+| REQ-182 | 7 | 10 |
+| REQ-195 | 1 | 1 |
+
+**Reading those three closes it.** All are **behavioural** requirements, and a bound is the wrong shape for
+any of them:
+
+- **REQ-173** — *"gracefully QUEUE an unpriceable request rather than throw into the redelivery loop"*: the
+  property is catch-and-record versus throw. Latency is meaningless.
+- **REQ-182** — *"the booking gate must guarantee the evidence email has a DELIVERABLE recipient by checking
+  the bill_to"*: a correctness property about **which party** is checked.
+- **REQ-195** — *"POST /v1/parties … DETERMINISTICALLY and synchronously — no LLM"*: a determinism property.
+
+My `TIME_SENSITIVE` filter caught them on incidental words — `QUEUE`, `heartbeat`, `synchronously`.
+
+**Verdict: zero new findings.** §133's REQ-095 remains the only built, time-sensitive requirement with no
+bound anywhere. §134's stated gap — *"45 candidates unread"* — is discharged, not deferred.
+
+### 152.1 This time the FILTER was the artifact, not the matcher
+
+§150's failure was a **matcher** requiring shared vocabulary. §146's was a **denominator**. Here it was the
+**filter**: `TIME_SENSITIVE` selected 49 rows on keyword presence, and of the residual it produced, the three
+that survived every other cut were all false positives of that first filter.
+
+> **A sweep has three independent places to be wrong — what it selects, what it matches, and how it
+> classifies — and each produces a different flavour of confident nonsense.** §152 hit two of the three in
+> one pass: a filter that over-selected, and a status classifier that mislabelled built rows as pending.
+
+The classifier error is the more dangerous, because it pointed the *safe* way: it would have concluded "0
+built rows in the residual, nothing to read" and been wrong in the direction of doing less work. Every other
+instrument failure this loop pointed toward *more* work — a false finding to chase. This one would have
+quietly closed the question.
