@@ -8624,3 +8624,61 @@ Every document class in this repo has now been audited for stale state claims, a
 > **Five document classes, five defects, all the same shape: a sentence describing state, written once and
 > never re-read.** None was a count in a table — every one was prose, and every one was in the part of its
 > document a maintainer had no reason to revisit.
+
+---
+
+## §173 — the skill built to prevent §172's defect could not detect it
+
+§172 corrected two stale claims in `README.md` and closed with a rule: **enumerate document classes, not
+directories** — the README was missed because every sweep targeted `docs/`. Applying that rule to the fifty
+tracked markdown files outside `docs/` surfaced one file worth reading, and it is the most instructive
+possible result.
+
+**`.claude/skills/keep-ops-record-reconciled-with-deploys` exists to prevent exactly the defect §172 found.**
+Its own text names the failure mode precisely:
+
+> *the UNDER-WARNING direction is the dangerous kind: a reader told nothing is live treats prod-targeting
+> [commands as safe]*
+
+That is §172's README defect, described in advance, in a skill written weeks earlier.
+
+### 173.1 It failed on both axes
+
+The skill's detection step was:
+
+```
+git grep -il 'not provisioned\|not deployed\|not stood up\|no backup\|placeholder' docs/ops workers/*/wrangler.toml
+```
+
+The README carried *"**Nothing** is deployed, armed, or sending"* for five days after production was
+provisioned. The sweep could not see it, for two independent reasons:
+
+| axis | why it missed |
+|---|---|
+| **scope** | `README.md` is at the repo root; the sweep scanned `docs/ops` and the wrangler files |
+| **phrasing** | `Nothing is deployed` does not contain the substring `not deployed` |
+
+Either alone would have been enough. A correct scope with the wrong phrase still misses; the right phrase in
+the wrong directory still misses. **A detection procedure needs both axes right, and nothing in it declares
+which axis it is betting on.**
+
+### 173.2 Fixed, and dry-run
+
+Widened to `-- '*.md' 'workers/*/wrangler.toml'` — **all tracked markdown, by class rather than directory** —
+and to include the `nothing is deployed` / `nothing is live` phrasings. The correction is recorded inline with
+what it missed and why, so the next reader learns the failure rather than inheriting a silently better regex.
+
+Dry-run at HEAD returns eight files including `README.md` — the file the old form could not reach.
+
+### 173.3 The recursion worth naming
+
+This audit has now found, in order: a defect in a document (§172), then a defect in the **mechanism written to
+catch that class of defect** (§173) — and the mechanism's flaw was *the same flaw* the defect had, one level
+up. Directory-scoped thinking produced both.
+
+> **When a defect slips past a control that was designed for it, the control almost always shares the
+> defect's blind spot.** Do not just fix the instance; ask what the control assumed, and check whether the
+> assumption is the same one that let the instance through.
+
+§148 proved every meta-guard *can fire*. This is the complementary failure: a guard that fires correctly, on
+too small a world.

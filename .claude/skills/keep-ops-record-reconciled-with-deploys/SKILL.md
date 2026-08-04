@@ -38,8 +38,17 @@ The mechanism: the deploying session updated the evidence record and one table, 
 other restatement stood.
 
 ## The sweep (do all of it, same session)
-1. `git grep -il 'not provisioned\|not deployed\|not stood up\|no backup\|placeholder' docs/ops workers/*/wrangler.toml`
+1. `git grep -il 'not provisioned\|not deployed\|nothing is deployed\|nothing is live\|not stood up\|no backup\|placeholder' -- '*.md' 'workers/*/wrangler.toml'`
    — then judge each hit against the action just taken.
+
+   > **Widened 2026-08-04 (audit §173) after this sweep missed a real instance.** It previously scanned
+   > `docs/ops` and the wrangler files only, matching `not deployed`. `README.md` — the repo's most-read
+   > file — carried *"Nothing is deployed, armed, or sending"* for five days after production was
+   > provisioned, and the sweep could not see it on EITHER axis: wrong directory (the README is at the
+   > root, not under `docs/ops`) and wrong phrasing (`Nothing is deployed` does not contain
+   > `not deployed`). Both are now covered. The general lesson, which cost audit §172 to learn: **scope a
+   > record sweep by DOCUMENT CLASS (all tracked `*.md`), never by directory — the highest-read file in a
+   > repo is usually at the root, and every directory-scoped sweep misses it.**
 2. Supersede in place: `~~old claim~~ **superseded <date>:** <new fact> (<evidence pointer>)`. Keep
    what REMAINS true and restate it as the real hold (email dark, no tenant, credentials unbound).
 3. Hold-row hygiene: flip Status with the proof COMMAND + verdict; adjust Blocks-grade; never delete.
