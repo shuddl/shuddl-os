@@ -6730,3 +6730,58 @@ This is the same shape as §123 (a subset presented as a whole) and §124 (a cla
 not what it was about), now in its third appearance — and the first where I made the error *while writing a
 section about that exact error*. The defence remains reading the conclusion back and asking which words the
 evidence actually earns.
+
+---
+
+## §137 — the external-hold sweep: two clean, one narrow finding
+
+Continuing §135's heuristic across the remaining external holds — *what already-shipped mechanism assumes
+this capability is absent, and what will it do when it arrives?*
+
+**TSA (RFC-3161) — clean.** A `tsa.timestamp()` failure records `TSA_UNAVAILABLE` and the day simply does not
+anchor; the receipt document "exists IFF fully anchored", so no anchor ever claims a timestamp it did not
+receive. On the day a TSA binds, the backfill is **bounded**: `MAX_DAYS_PER_RUN = 30`, oldest-first, plus a
+window-independent collector for any day stranded beyond it. Fail-closed with a bounded catch-up — exactly
+what the pattern asks for.
+
+**Resend / evidence email — today's path is sound.** `NotConfiguredSender` *"validates, then rejects
+LOUDLY — a silent no-op is forbidden"*, and its error is **retriable** (*"binding a provider and redelivering
+succeeds"*). So with no key bound, the Biller throws, the queue redelivers, and the message parks in the DLQ:
+a recoverable record, not a lost one. The invoice append is idempotent, so a DLQ replay after the key binds
+re-drives without duplicating.
+
+### 137.1 The narrow finding: the branch that is not today's path
+
+`issued_send_pending` is returned only for a **non-retriable** send failure — a live provider issuing a
+permanent rejection. On that branch:
+
+- the invoice is issued and stands (correctly — *"money is a projection of physics"*, the send can never
+  unmake the record);
+- the queue consumer `console.log`s the outcome and acks;
+- **nothing records it**, and `recon-sweep` cannot catch it — its anti-join finds a committed POD with **no
+  invoice**, and here the invoice exists.
+
+The Concierge's identical case is specified *and built*: `REQ-176` requires a permanently-held reply to
+surface and not count as answered, and `concierge.ts` records a permanent-hold note through the DO append
+surface. **The Biller has neither the REQ nor the mechanism** — a register search for a Biller equivalent
+returns only REQ-170 (missing evidence *bytes*, a different case).
+
+So demo #1's payload — *signature at a door → invoice + photos in the client's inbox* — can fail permanently
+with no trace outside a log line. Dormant today, live the moment a provider binds. Recorded at **R2** with
+that binding as its expiry trigger.
+
+### 137.2 §136's lesson applied three times in one section
+
+Each of these started as a larger claim and was narrowed by one more read:
+
+| first draft | after reading |
+|---|---|
+| "the anchor may claim a timestamp it never got" | it fails closed; the receipt exists IFF anchored |
+| "a lost evidence email is unsurfaced" | today it DLQs; only the non-retriable branch is unsurfaced |
+| "the Biller's send failures are unrecorded" | only *permanent* failures, from a *live* provider |
+
+That is §136's rule — *"X does not cover Y" is not "Y is uncovered"* — working as intended rather than being
+learned again. The yield is smaller and the claims are true, which is the trade this loop has been converging
+on since §123.
+
+**Fifth finding recorded as proposed scope rather than built** (§123, §131, §133, §135, this).
