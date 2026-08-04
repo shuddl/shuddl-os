@@ -9930,3 +9930,52 @@ defence against, demonstrated on this section's own edit, four sections after ad
 code comment is the engineer's. §183 and §185 will be encountered by someone optimising a slow endpoint
 long before anyone re-reads a checklist row — and that person now finds the `EXPLAIN QUERY PLAN` verdict,
 the REQ-197 precedent, and the reason a bare `LIMIT` is the wrong answer, without leaving the file.
+
+---
+
+## §192 — the remaining holds filed at their code, and I repeated §179's staging error one section later
+
+§191 filed §183/§185 where an engineer would meet them. Checking the rest of this audit's open findings
+against the same standard: **§133, §135/§136 and §137 lived only in the audit.** Now filed:
+
+- **`workers/agents/src/sla-sweep.ts`** — the cadence hold. The sweep is correct; its *schedule* is not.
+  `SLA_REPLY_WINDOW_MS` is four hours, the agents worker has one cron (`0 1 * * *`), and all seven sweeps
+  ride it — so an inbound due at 06:00 surfaces at 01:00 the next day, a detector six times coarser than
+  what it measures. The note says why the fix is cheap (the sweep is already idempotent and self-clearing,
+  so a tighter tick is safe) and why it still needs a REQ row (a second cron is a deploy-surface change).
+- **`workers/agents/src/concierge.ts`**, at the LLM seam — the metering hold. This call is the only
+  variable cost in the build and emits no `agent.acted`, so the meter that bills AI actions and the budget
+  the Watchtower enforces never observe it. The note carries §136's correction (SparkMeter *does* count the
+  action — a count, no cost, no latency) and §179's mechanism (REQ-039's DoD grades `agent_runs rows
+  complete`, and the rater's rows are complete).
+- **`workers/agents/src/biller.ts`**, in the permanent-`SendError` branch — the surfacing hold. *"Hold for
+  a human"* is the right decision and there is no human to hold it for: a `console.error` and a status
+  string, no anomaly, no queue row. The contrast is one branch below, where the retriable path is made
+  visible by the queue itself.
+
+### And then I repeated the §179 coda's error, verbatim
+
+§191's commit staged with `git add -A docs` and swept in the same **39 untracked files** belonging to the
+concurrent workstream — one section after §179 recorded that exact mistake and the rule *"stage explicit
+paths in a shared checkout."* Caught the same way, too: `check:citations` went red on dangling
+`worker/index.js` references inside their drafts, which only enter the gate's universe when the files
+become tracked. Nothing was pushed; the commit was rebuilt with its seven real files and the 39 returned
+to untracked, byte-unchanged.
+
+**Writing a rule down does not install it.** §179 produced the rule, I read it back while writing §191,
+and still typed the habitual command. The durable fix is not another sentence in the audit — it is that
+`git status --porcelain | grep '^??'` before every commit takes two seconds, and I have now paid for it
+twice.
+
+### A second-order rot I introduced, and one I merely inherited
+
+Inserting comments shifted `concierge.ts`, and two skill citations into it — `:201` and `:555`, both
+claiming to point at `INSERT OR IGNORE` read-model rows — now pointed further off. Checking them
+properly: **neither landed on an `INSERT OR IGNORE` even before my edit** (the real ones are at 258, 267
+and 751). They were pre-existing rot, among §175's explicitly-deferred ~48 candidates, and my shift only
+moved them further. Re-pointed to `:258@parties` / `:751@messages` **with anchors**, so the next shift
+fails the gate rather than drifting.
+
+That is the §175 blind spot demonstrated from the other side: the file only ever grew, so every unanchored
+citation into it still *resolved* and the gate stayed green while the content moved out from under them.
+**Growth is the dangerous direction** — a file that shrinks trips rule 1, a file that grows never does.

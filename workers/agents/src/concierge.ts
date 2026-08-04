@@ -368,6 +368,17 @@ export async function handleMessageReceived(message: MessageReceivedTrigger, dep
 
   // PARSE (REQ-024) — the ONLY LLM seam, injected. A NotConfigured/network/5xx failure THROWS (retriable via
   // the parse port) and the queue redelivers; we deliberately do NOT catch it here (the send-port law).
+  //
+  // METERING HOLD (audit §135/§136, corrected by §179). This call is the ONLY variable COST in the build —
+  // every other agent is deterministic — and it emits no `agent.acted`. Only the rater does, from two
+  // byte-identical paths, reporting an honest `cost_cents: 0`. Since `agent.acted` IS the metered AI action
+  // (workers/billing/src/metering.ts) and the quantity the Watchtower budgets, the meter never observes the
+  // one agent that spends money. The plumbing is complete and honest end-to-end — agent_runs carries
+  // cost/latency, the projection records what an agent REPORTS and `{}` means unknown (never fabricated),
+  // and the Watchtower averages ONLY reported metrics, so nothing here fails open. It simply never fires.
+  // NOTE what IS metered: SparkMeter counts the Concierge convenience ACTION (REQ-122/125) — a count, with
+  // no cost and no latency. §179 adds why no gate caught this: REQ-039's DoD is `agent_runs rows complete`,
+  // and the rater's rows ARE complete, so it cannot detect that eleven of twelve built agents write none.
   const parse = await parser.parse(email);
 
   // RESOLVE (REQ-093) — tie the inbound to a Party + Shipment, or explain why it can't. The port does the

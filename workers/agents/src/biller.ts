@@ -633,6 +633,14 @@ async function sendEvidence(cx: SendContext): Promise<BillerOutcome> {
     if (err instanceof SendError && !err.retriable) {
       // Redelivery cannot help (validation-adjacent 4xx / idempotency conflict / unwired channel):
       // hold for a human, do NOT throw — throwing would redeliver a message that can never succeed.
+      //
+      // SURFACING HOLD (audit §137). "Hold for a human" is the right decision and there is no human to hold
+      // it FOR: this path console.errors and returns `issued_send_pending`, raising NO anomaly and writing
+      // no queue row, so the ONLY trace that a customer never received their proof-and-invoice is a Workers
+      // log line. The invoice is correctly issued and the ledger is correct — what is missing is the
+      // OPERATOR SIGNAL. Contrast the retriable branch below, which the queue itself makes visible by
+      // redelivering. Raising an anomaly here is new behaviour (a REQ row); recorded in GO-LIVE-CHECKLIST
+      // as Med-LATENT because it is inert until a real sender is wired.
       const detail = `evidence email permanently failed for invoice event ${invoiceEventId}: ${err.message}`;
       console.error(`biller: ${detail}`);
       return { status: "issued_send_pending", invoice_event_id: invoiceEventId, invoice_id: invoicePayload.invoice_id, reason: "send_failed_permanent", detail };

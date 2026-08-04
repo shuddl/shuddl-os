@@ -125,6 +125,14 @@ function overdueBodyRef(inboundEventId: string): string {
  * The caller binds `db`/`seq`/`tenant` to that one tenant (REQ-025). `now` is the sweep clock. Idempotent +
  * SELF-CLEARING: safe to call every cron tick — the query excludes already-noted rows (so a re-run appends
  * ZERO) and the deterministic signal id backstops the DO dedupe.
+ *
+ * CADENCE HOLD (audit §133 — the sweep is correct, its SCHEDULE is not). `SLA_REPLY_WINDOW_MS` is FOUR
+ * HOURS (concierge.ts), but the agents worker has ONE cron — `crons = ["0 1 * * *"]`, daily at 01:00 —
+ * and all seven sweeps ride it. So an inbound arriving 02:00 is due at 06:00 and surfaces at 01:00 the
+ * NEXT day: ~19 hours late, a detector six times coarser than the thing it measures. Daily is defensible
+ * for the other six (retention, mirror, dunning, reconciliation are day-scale); it is not for this one.
+ * Idempotence above is exactly what makes the fix cheap — this is safe to run on a tighter tick — but
+ * adding a second cron is a deploy-surface change, so it needs a REQ row first. See GO-LIVE-CHECKLIST.
  */
 export async function sweepTenantOverdueInbound(
   db: D1Database,
