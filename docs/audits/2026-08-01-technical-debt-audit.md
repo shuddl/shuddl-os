@@ -7723,3 +7723,46 @@ false **positives** (a comment read as an implementation).
 **No finding.** The view budget is enforced, the registry is consumed, the bridge to the router is typed and
 tested, and the router fails safe. This closes the last declared-versus-delivered surface: agents (§122),
 event kinds (§123), surfaces (§54/§114), and now views.
+
+---
+
+## §155 — the public status-cap surface: lens-scoped mint and uniform denial, both proved
+
+The `/pub/status/:cap` surface is the highest-exposure code in the build — unauthenticated, internet-facing,
+and the only place a customer's tracking link is redeemed. REQ-187 governs it, and it had not been probed.
+
+**The mint half answers §120 by construction.** `POST /v1/shipments/:id/status-link` resolves `:id` through
+`lensFor(session)` and `readEvents` — *the same lens seam `GET /v1/shipments/:id/events` uses* — so, in the
+route's own words, *"mint scope can never drift from read scope."* Not two mechanisms kept in sync: one
+mechanism used twice.
+
+**Four mutations, four REDs**, against a valid baseline of 87 (mint) and 23 (public read):
+
+| mutation | what it would allow | verdict |
+|---|---|---|
+| mint scope check removed | any authenticated party mints a link for any shipment | **RED — 1** |
+| tenant taken from `:id` rather than `session.tenant` | a cap minted for a tenant the caller is not authenticated into | **RED — 4** |
+| a distinguishable **404** for a missing shipment | an enumeration oracle on shipment existence | **RED — 1** |
+| a varying **message** on the same 401 | a *message-level* oracle behind an identical status code | **RED — 3** |
+
+### 155.1 One test, and it is the right one
+
+Removing the mint scope check fails exactly **one** test — thin-looking for a security property, until you
+read which: **`PS-7: a portal party NOT on the shipment is denied (cross-party mint → 403)`**. That is
+REQ-187's core adversarial case stated verbatim. §81's rule — *when guards share an outcome, assert the
+reason* — applies to coverage too: **one test aimed at the actual adversary beats five aimed at the
+mechanism.**
+
+### 155.2 The anti-oracle property is pinned at both levels
+
+Most systems that test uniform denial assert the **status code** and stop, leaving a message-level oracle: a
+403 that says *"no such shipment"* versus one that says *"bad signature"* is still an enumeration primitive.
+Here the mutation that kept the 401 and varied only the message string still failed **three** tests — so the
+assertions pin the exact envelope, body included.
+
+The implementation earns it: a single `deny()` producer used at all three failure sites, verification before
+any DB access, and the comment stating the design law — *"a bad MAC, an unknown tenant, and a missing shipment
+ALL return this one envelope … no oracle, no 500 to probe."*
+
+**No finding.** The public surface's two REQ-187 properties — lens-scoped mint, uniform denial — are both
+mutation-proved, and the mint's scope cannot drift from read scope because it is the same code path.
