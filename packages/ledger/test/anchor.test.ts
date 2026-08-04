@@ -2,7 +2,15 @@ import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import type { EventKind, LedgerEvent } from "@shuddl/contracts";
 import { applyMigrations } from "../src/migrate.js";
-import { anchorProof, canonicalPositionBytes, dayOf, runDailyAnchor, type PositionRow } from "../src/anchor.js";
+import {
+  anchorManifestKey,
+  anchorProof,
+  anchorReceiptKey,
+  canonicalPositionBytes,
+  dayOf,
+  runDailyAnchor,
+  type PositionRow,
+} from "../src/anchor.js";
 import { bytesToHex, hexToBytes, merkleRoot, verifyInclusion } from "../src/merkle.js";
 import { parseTimeStampResp } from "../src/tsa/der.js";
 import { FakeTsaClient, type TsaClient } from "../src/tsa/client.js";
@@ -554,5 +562,29 @@ describe("REQ-014 — determinism, bucketing, gaps, failures, positions", () => 
   it("dayOf buckets on the UTC calendar day", () => {
     expect(dayOf(Date.parse("2026-07-09T23:59:59.999Z"))).toBe("2026-07-09");
     expect(dayOf(Date.parse("2026-07-10T00:00:00.000Z"))).toBe("2026-07-10");
+  });
+});
+
+// Audit §174. The anchor routes (/v1/anchors/:day, /proof, /run) read R2 under keys built from
+// `session.tenant`, so tenant separation on those routes IS the key builder. Dropping `${tenant}`
+// from either template is already caught — but only INCIDENTALLY, and never in this package:
+// the receipt key by the REQ-014 DoD test above (it reads the hardcoded literal
+// `anchors/${TENANT}/${day}/tsr.der`), the manifest key by two cases in
+// workers/api/test/anchors.test.ts (they SEED a hardcoded literal, then read through the route).
+// Both catches depend on a test-side literal sitting opposite the builder. The obvious cleanup —
+// replacing those literals with calls to the builder — would move seed and read together and
+// blind every one of them at once, with no test failing to announce it. This assertion is the
+// one that survives that refactor, because asserting the literal shape IS its purpose.
+// Measured, not assumed: mutating each builder alone, then re-running both suites (audit §174).
+describe("REQ-025 — anchor R2 keys are tenant-partitioned", () => {
+  it("both builders embed the tenant, so no two tenants can address the same object", () => {
+    expect(anchorManifestKey("tenant-a", "2026-07-15")).toBe("anchors/tenant-a/2026-07-15/manifest.json");
+    expect(anchorReceiptKey("tenant-a", "2026-07-15")).toBe("anchors/tenant-a/2026-07-15/tsr.der");
+
+    // the property that matters: same day, different tenant → disjoint keys
+    for (const key of [anchorManifestKey, anchorReceiptKey]) {
+      expect(key("tenant-a", "2026-07-15")).not.toBe(key("tenant-b", "2026-07-15"));
+      expect(key("tenant-a", "2026-07-15").startsWith("anchors/tenant-a/")).toBe(true);
+    }
   });
 });

@@ -29,7 +29,7 @@ Do NOT skip because the route "obviously" uses `tenantDb` — the point is the *
 - `anchors.ts:38` — `readAnchorManifest(c.env.EVIDENCE, session.tenant, day)`, keyed by `anchorManifestKey` = `anchors/${tenant}/${day}/manifest.json` (packages/ledger/src/anchor.ts:58,61).
 - `rate.ts:127` — `loadTenantRatingConfig(tenantDb(c.env, session.tenant), now)`.
 
-So a regression that dropped `${tenant}` from `evidenceKey` or `anchorManifestKey` would ship green. Close it two ways: (1) an isolation.test case per path with all attack shapes; (2) a direct unit assertion that each key builder embeds the tenant.
+~~So a regression that dropped `${tenant}` from `evidenceKey` or `anchorManifestKey` would ship green.~~ **Measured false, 2026-08-04 (audit §174) — see the Quick Reference note.** Both mutations fail loudly today. But they fail on *incidental* nets (test-side literals and one duplicated key helper), so the two fixes below still apply — as durability, not as first coverage: (1) an isolation.test case per path with all attack shapes; (2) a direct unit assertion that each key builder embeds the tenant, which is the only net that survives DRY-ing the test literals against the builder.
 
 ## The pattern — one grounded example
 For every new read path, add BOTH:
@@ -66,9 +66,20 @@ See `reference/read-path-registry.md` for the full registry + attack-shape matri
 | `/v1/_probe` | probe table | yes (isolation.test.ts:20) |
 | `/v1/shipments/:id/events`, `/v1/events` | `tenantDb` | yes (isolation.test.ts:73) |
 | `/v1/positions` | `tenantDb` | yes |
-| `/v1/anchors/:day`, `/proof`, `/run` | `anchorManifestKey`, `anchorReceiptKey`, `tenantDb` | **NO — add** |
-| evidence upload/serve | `evidenceKey(session.tenant,…)` | **NO — add** |
-| `/v1/rate` | `loadTenantRatingConfig(tenantDb…)` | **NO — add** |
+| `/v1/anchors/:day`, `/proof`, `/run` | `anchorManifestKey`, `anchorReceiptKey`, `tenantDb` | key partitioning yes, explicitly (packages/ledger/test/anchor.test.ts, "REQ-025 — anchor R2 keys are tenant-partitioned"); no route-level cross-tenant case, and see the note below on why one adds little here |
+| evidence upload/serve | `evidenceKey(session.tenant,…)` | yes — route-level cross-tenant (evidence-upload.test.ts:311: tenant B's token against tenant A's shipment → 404, NOTHING written); key shape held incidentally by 6 cases |
+| `/v1/rate` | `loadTenantRatingConfig(tenantDb…)` | **NO — add** (unverified: this row has not been re-measured) |
+
+> **Rows re-measured 2026-08-04 (audit §174).** The first two said **"NO — add"** and were wrong — one of them for
+> the strongest possible reason: the evidence path already had a full route-level cross-tenant case. The RED above
+> claimed a dropped `${tenant}` "would ship green"; mutating each builder alone and re-running both suites shows
+> **every variant fails** (anchors: 2 api cases + the ledger DoD test; evidence: 6 cases). **The premise was never
+> measured.** What survives the measurement is narrower and still worth acting on: those catches are *incidental* —
+> each depends on a hardcoded literal or a duplicated key helper on the test side (evidence-upload.test.ts:50
+> re-implements `evidenceKey`). DRY them against the builder and seed and read move together, blinding all of them
+> silently. That is why the anchor row's fix was an explicit literal assertion, not a route test. **Before using
+> this skill's "NO — add" column as a work list, mutate the builder and run the suite — a stale NO costs a
+> redundant test, but the belief that a gap exists where none does is how a registry rots.**
 
 ## Common Mistakes
 - **Testing only a sample of attack shapes.** A route may reject `X-Tenant-Id` but honor `?tenant=`. Hit all four shapes on every path (isolation.test.ts:29).

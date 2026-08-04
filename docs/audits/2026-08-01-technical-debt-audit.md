@@ -8682,3 +8682,77 @@ up. Directory-scoped thinking produced both.
 
 §148 proved every meta-guard *can fire*. This is the complementary failure: a guard that fires correctly, on
 too small a world.
+
+---
+
+## §174 — a skill's own RED was never measured, and its work list said "add" where coverage already existed
+
+§173 ended on a rule: *after widening a detection rule, check whether the narrow form survives elsewhere.*
+Applying it across all sixteen skills found only four executable detection commands, two of them path-scoped —
+§173's own (fixed) and `prove-tenant-isolation-read-paths:55`. Reading the second to judge its scope surfaced
+something larger than the scope question: a **Quick Reference registry** whose "Isolation case today?" column
+marked three read paths **"NO — add"**, and a stated RED (§L32) that a regression dropping `${tenant}` from
+`evidenceKey` or `anchorManifestKey` **"would ship green."**
+
+That RED is the skill's entire justification. It had never been run.
+
+### What the mutations actually say
+
+Four mutations, each builder alone, each suite re-run from an asserted baseline:
+
+| Mutation | Result | Caught by |
+|---|---|---|
+| `anchorManifestKey` + `anchorReceiptKey` (both) | **RED** | ledger DoD test + the new assertion |
+| `anchorManifestKey` alone | **RED** | 2 of 9 cases in `workers/api/test/anchors.test.ts` |
+| `anchorReceiptKey` alone (via the pair above) | **RED** | the REQ-014 DoD test's hardcoded `anchors/${TENANT}/${day}/tsr.der` |
+| `evidenceKey` | **RED** | 6 cases across `evidence-upload.test.ts` + `biller.test.ts` |
+
+**Nothing would ship green.** The skill's premise is false, and the registry was stale in two rows — one of them
+(`evidence upload/serve`) marked "NO — add" while a full route-level cross-tenant case sits at
+`evidence-upload.test.ts:311`: *tenant B's token against tenant A's shipment → 404, NOTHING written.* That is the
+strongest form of the very test the skill was asking a future agent to go write.
+
+The **manifest-alone** mutation is also where I made this loop's wrong-suite error for the fourth time (§130,
+§148, §157): the ledger package went 18-green under it, and I read that as "only my new test catches this."
+The api suite — which owns the route that serves the manifest — was two tests red. *What package owns this
+behaviour, and did I run its suite?*
+
+### The finding that survives
+
+Every one of those catches is **incidental**. Each depends on a literal sitting on the test side, opposite the
+builder: a hardcoded seed key (`anchors.test.ts:12,68`), a hardcoded read (`RECEIPT_KEY`), and — most fragile —
+`evidence-upload.test.ts:50`, which **re-implements `evidenceKey` verbatim** as a local helper. None of them
+names REQ-025, and none exists to prove tenant partitioning; they hold it as a side effect of needing *some*
+key to seed.
+
+The failure mode is specific and plausible: the obvious cleanup — replacing those literals with calls to the
+real builder — moves seed and read together. Every one of the nine catches vanishes at once, silently, in a
+refactor that looks like pure hygiene and passes green. REQ-025 is `CLAUDE.md` rule 8, *"a cross-tenant read
+anywhere is a build failure"*; it should not rest on a duplicated string in a test fixture.
+
+### Fix
+
+`packages/ledger/test/anchor.test.ts` gains one case — **"REQ-025 — anchor R2 keys are tenant-partitioned"** —
+asserting both builders' literal shape and, as the property that matters, that the same day under two tenants
+yields disjoint keys. Asserting the literal *is its purpose*, so it is the one net that survives the DRY
+refactor. Ledger 611 → **612 green**; api anchors 9 green; the manifest-alone mutation now fails in both
+packages instead of one. No new behaviour, so no REQ row — the §144 precedent for pinning a live boundary.
+
+A **route-level** cross-tenant anchor case was considered and deliberately not added: these routes derive the
+tenant from `session.tenant` and build the key from it, so tenant B cannot name tenant A's object — such a test
+would assert that tenant B's own empty day 404s, which `anchors.test.ts` already covers as "no-manifest 404."
+The key builder is the real boundary here, and it is now pinned. The `/v1/rate` row is left **"NO — add"** and
+explicitly marked *unverified* rather than silently inherited.
+
+### The rule
+
+**A skill's RED is a claim, and an unmeasured claim rots like any other.** This registry sent a reader toward
+work that was already done, using a gap that did not exist — and would have cost that reader a redundant test
+plus the false belief that the isolation suite was thinner than it is. The skill now carries the measurement,
+the strikethrough, and an instruction to mutate before trusting the column.
+
+Same shape as §170 (a skill trigger naming built agents as unbuilt) and §173 (a skill unable to detect its own
+defect): **the skills were written from the same unverified beliefs as the code they audit, and no gate reads
+them.** Three of sixteen have now been found stating something false about the repo. That is the standing
+carry-forward — skills are unversioned, uncited prose asserting facts about a moving codebase, and §174 is the
+third instance in three consecutive sections.
