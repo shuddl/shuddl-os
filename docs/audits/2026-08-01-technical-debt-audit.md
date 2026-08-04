@@ -7117,3 +7117,63 @@ this audit has identified is pinned by at least one test that fails on transposi
 Recorded because the *absence* of this table was itself a small risk: six independent orderings, proved in six
 different sections across two months, with nothing telling a future engineer that "the order matters here" is
 a property someone already checked — or which chains were never asked.
+
+---
+
+## §144 — a new mutation class: boundary shifts, and the one gap they found
+
+§143 observed that transposition finds what removal misses. The same argument applies to whole **mutation
+classes**: this loop had used removal, predicate inversion, sign flips, nondeterminism injection, bound
+relaxation and transposition — but never **boundary shifts**, where `>=` becomes `>` and inclusivity at the
+exact threshold changes hands. An off-by-one on a money floor is a real defect, and nothing had probed for one.
+
+Seventy threshold comparisons live in the money and gate code. The five that decide something were mutated,
+each against a valid baseline:
+
+| comparison | what an off-by-one changes | verdict |
+|---|---|---|
+| `evaluatedSellCents >= floors.target` | a sell **exactly at** the target floor needs approval or not | **RED (1)** |
+| `evaluatedSellCents >= floors.contribution` | same, at the contribution floor | **RED (1)** |
+| `weight <= 0` (engine) | a zero-weight quote prices or returns UNKNOWN | **RED (2)** |
+| `iv.open_min <= slot.window_start_min` | a slot starting **exactly at** opening is inside hours or not | **RED (9)** |
+| `iv.close_min >= slot.window_end_min` | a slot ending **exactly at** closing is inside hours or not | **GREEN — unpinned** |
+
+### 144.1 The gap, and why it existed
+
+Rule 4 of the appointment gate is `iv.open_min <= start && iv.close_min >= end`. The default test fixture sits
+**exactly on the open boundary** — `open_min: 480` against `window_start_min: 480` — so mutating that side
+fails nine tests. But `close_min: 1020` sits three hundred minutes above `window_end_min: 720`, so **nothing
+in the 610-test ledger suite exercised the close boundary at all.** Flipping it passed everything.
+
+The asymmetry is the tell: one side of the same conjunction was covered by accident of fixture choice and the
+other was not. Nobody decided the close boundary didn't matter — it simply never had a case sitting on it.
+
+**Consequence if it drifted:** a facility closing at exactly the moment a window ends would have its slot
+rejected as `outside_hours`. That is a **false refusal** — fail-closed, so a usability defect rather than a
+safety one, which is why it is Low and why it merited a test rather than a register row.
+
+### 144.2 Fixed, and the fix proved
+
+Added `"4 a facility closing EXACTLY when the window ends is still open for that slot (>= boundary)"` to
+`packages/ledger/test/appointment-gate.test.ts`, with the reasoning inline so a future reader knows why a
+seemingly redundant case exists.
+
+Verified both directions, which is the discipline a new test earns:
+
+- it **passes** against unmutated source (23 in that file; **611** across the ledger suite, up from 610)
+- it **fails** under the `>=` → `>` mutation — so it catches the thing it was written for
+
+`typecheck` PASS, `lint` PASS.
+
+### 144.3 Two correct GREENs, distinguished from the gap
+
+`anomaly.ts`'s `weight_lb <= 0` also came back GREEN, and that one is **right**. Its own comment explains why:
+*"A non-positive / non-integer weight is a CALLER error, not an anomaly … priceFreight returns UNKNOWN on ≤0
+weight, so this only trips on misuse — fail loud."* The engine rejects zero weight first (proved RED, 2
+tests), so the anomaly guard's boundary is unreachable in any real flow. A defensive assertion, correctly
+unpinned.
+
+Distinguishing those two GREENs took reading both guards' surrounding code — the same cost §134 named for
+register DoDs. **A boundary mutation's GREEN means either "no test covers this" or "this boundary is
+unreachable", and only the code can say which.** Reporting them identically would have manufactured one
+finding and missed the other.

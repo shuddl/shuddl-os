@@ -75,6 +75,19 @@ describe("assertAppointment — block reasons, in order", () => {
     const closedMon: AppointmentFacility = { ...FAC, hours: { tz: FAC.hours.tz, weekly: { "1": [{ open_min: 600, close_min: 1020 }] } } };
     expect(() => assertAppointment([], apptEvent(), ctx({ facility: closedMon }))).toThrow(/outside_hours/);
   });
+  // Audit §144 — THE CLOSE BOUNDARY. Rule 4 is `iv.open_min <= start && iv.close_min >= end`, and the
+  // default fixture already sits exactly ON the open boundary (open_min 480 === window_start_min 480), so a
+  // `<=` -> `<` mutation there fails nine tests. Nothing sat on the CLOSE boundary — close_min 1020 is far
+  // above window_end_min 720 — so `>=` -> `>` passed the whole 610-test suite. A facility that closes at
+  // exactly the moment the window ends IS open for that slot; without this, that inclusivity was unpinned.
+  it("4 a facility closing EXACTLY when the window ends is still open for that slot (>= boundary)", () => {
+    const closesAtWindowEnd: AppointmentFacility = {
+      ...FAC,
+      hours: { tz: FAC.hours.tz, weekly: { "1": [{ open_min: 480, close_min: 720 }] } },
+    };
+    expect(() => assertAppointment([], apptEvent(), ctx({ facility: closesAtWindowEnd }))).not.toThrow();
+  });
+
   it("5 rule_violation when inside the lead-time window", () => {
     // now only 60 min before the window (< the 120-min lead).
     expect(() => assertAppointment([], apptEvent(), ctx({ now: WINDOW_START - 60 * 60_000 }))).toThrow(/rule_violation/);
