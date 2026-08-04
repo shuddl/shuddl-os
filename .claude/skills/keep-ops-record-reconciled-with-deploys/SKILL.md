@@ -1,6 +1,6 @@
 ---
 name: keep-ops-record-reconciled-with-deploys
-description: Use immediately after any world-changing operator action (provisioning, deploy, secret binding, backup, DNS/routing change) and when reviewing docs/ops/* for currency. Symptoms — a "read first" section asserting a state the evidence record contradicts, a hold row still BLOCKED while a reconciliation table in the same file says PROVISIONED, "not deployed / not provisioned / no backup exists / prod pending" older than the latest deploy commit, wrangler comments calling real ids placeholders.
+description: Use immediately after any world-changing operator action (provisioning, deploy, secret binding, backup, DNS/routing change) and when reviewing ANY tracked markdown for currency — docs/ops/*, but also README.md and any root-level file, which is where the most-read and least-swept claims live (audit §173). Symptoms — a "read first" section asserting a state the evidence record contradicts, a hold row still BLOCKED while a reconciliation table in the same file says PROVISIONED, "not deployed / nothing is deployed / nothing is live / not provisioned / no backup exists / prod pending" older than the latest deploy commit, wrangler comments calling real ids placeholders.
 ---
 
 # Keep The Ops Record Reconciled With Deploys
