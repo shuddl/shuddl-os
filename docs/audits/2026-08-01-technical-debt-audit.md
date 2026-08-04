@@ -24,6 +24,27 @@ an implementation annotation, and an audit describing *unbuilt* scope must not f
 
 ---
 
+## START HERE — the owner-facing sections (index added 2026-08-04, §162)
+
+This document is 152 sections and grows by append. It is a **record of an audit**, not a summary, and a
+reader arriving today lands on a method note from its first day. These are the sections an owner actually
+needs, each of which points at the ledger entry that owns the truth rather than restating it:
+
+| question | section |
+|---|---|
+| **What blocks release, and how do I check each?** | **§113** (the stopping point) as scoped by **§123**, with the hold table rewritten in **§126** to carry a verification command and an expiry trigger per row |
+| **What is the current measured state?** | **§4**, re-measured continuously — nine times to date, the latest in **§141** |
+| **What breaks the moment I flip a flag or bind a secret?** | **§138** — the activation map |
+| **What becomes filmable when I clear a hold?** | **§149** — the demo-unblock join |
+| **What does vendoring each blocked fixture buy?** | **§160** — mechanism proved vs evidence added |
+| **What needs an owner-signed REQ row?** | the five proposed-scope findings: **§123** (REQ-180 alignment), **§131** (booking backstop), **§133** (SLA cadence), **§135/§136** (Concierge cost metering), **§137** (unsurfaced send failure) |
+| **Is the record itself trustworthy?** | **§125** (every repo-owned checklist row re-verified), **§127**/**§129** (counts swept across all documents) |
+
+Everything else is the working record: what was probed, what it showed, and where the instruments lied.
+The sections numbered above are the only ones that answer a question someone has to act on.
+
+---
+
 ## §1 — The headline
 
 > **READ THIS FIRST (added 2026-08-02, §40). Everything in §1 is written in the PRESENT TENSE and describes
@@ -31,8 +52,12 @@ an implementation annotation, and an audit describing *unbuilt* scope must not f
 > record was corrected (D1/D2: `PROJECT-STATE.md`, `DEPLOYMENT.md` and `LAUNCH-RUNBOOK.md` now say
 > production exists and is live, struck-through in place), and C1/C2/C3 plus the comment rot are all marked
 > FIXED in §2. A reader landing here would otherwise conclude that three code defects are open and that the
-> ops record still misleads about production. **Neither is true. For the CURRENT state, read §4's
-> re-measurement at `fb212fd`.**
+> ops record still misleads about production. **Neither is true. For the CURRENT state, read §4 — which is
+> re-measured continuously (nine times to date; the latest is §141).**
+> *(Pointer corrected 2026-08-04, §162: this line named a specific SHA, `fb212fd`, which had been
+> superseded nine times and is not among the recorded re-measurements at all. Naming the SECTION rather
+> than a commit is the rule §110 established and §126 applied to the hold table — the same defect, in this
+> document's most-read sentence.)*
 >
 > Left in the present tense rather than rewritten, because §1 is the historical record of what the audit
 > FOUND; rewriting it would erase the finding. Stamping it is the correction — and the need for that stamp
@@ -8070,3 +8095,49 @@ The distinction, stated once so future judgement calls are consistent:
 
 > **Fix a coverage gap that permits a wrong outcome. Record a coverage gap that permits only a wrong message.**
 > Both are real; only the first is worth a permanent assertion.
+
+---
+
+## §162 — the handoff artifact, made usable — and a decayed pointer in its most-read line
+
+§127 verified this document's **counts** are accurate. It never asked the other question a record has to
+answer: **can the person it is for actually use it?** At 8,000 lines and 152 sections, arriving here means
+landing on a method note describing a 19-agent workflow from its first day.
+
+**Two fixes, both pure record work.**
+
+### 162.1 The "READ THIS FIRST" pointer had decayed — nine times over
+
+§1 already carries a redirect added in §40, telling a reader that §1 is historical and to *"read §4's
+re-measurement at `fb212fd`."* That pointer is stale in the worst available way: **§4 has been re-measured
+nine times** (`14398fd` → … → `78499e9`), and `fb212fd` **is not among them at all**.
+
+So the single most-read sentence in this audit sent readers to a commit that no recorded measurement matches.
+It is §110's defect — *point at the authority, not at a value* — occurring in the sentence whose entire job is
+to point somewhere.
+
+Corrected to name the **section**, which is continuously re-measured, rather than a SHA that cannot be.
+That is the same fix §126 applied to the hold table and §110 to a stale test count; this is its third
+appearance, and the first where the decayed value was a *pointer* rather than a figure.
+
+### 162.2 An owner index, added
+
+A `START HERE` block now sits between the header and §1, mapping the seven questions an owner actually has to
+the sections that answer them: what blocks release and how to check each (§113 as scoped by §123, table in
+§126), the current measured state (§4/§141), what breaks on a flag flip (§138), what becomes filmable (§149),
+what vendoring buys (§160), what needs an owner-signed REQ row (the five proposed-scope findings), and whether
+the record itself is trustworthy (§125, §127, §129).
+
+Every row points at a section; none restates its content. The index says so explicitly, because an index that
+summarises becomes a second source of truth and decays exactly as the pointer above did.
+
+### 162.3 Why this counts as debt
+
+It is tempting to file navigability under polish. It is not: this document **is** the phase-gate artifact, and
+§123 established that a record which misleads is worse than no record. A reader who follows the one
+instruction the document gives them lands on a commit that was superseded three weeks and nine measurements
+ago — and every conclusion they draw from there is drawn from the opening state of an audit whose findings
+were all closed in its own §2.
+
+> **A record's usability is part of its correctness.** An accurate document nobody can navigate produces the
+> same outcome as an inaccurate one: a reader who acts on the wrong thing.
