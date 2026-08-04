@@ -7350,3 +7350,55 @@ from recurring is itself capable of firing.
 **No finding.** The concurrency model is coherent: per-stream serialisation where streams are independent,
 UNIQUE indexes where they are not, and a static check ensuring the append-only guards keep pace with every
 uniqueness surface added.
+
+---
+
+## §148 — every meta-guard, proved able to fire
+
+§147 proved one *meta*-guard: the check that stops a rule from being silently forgotten. That is a distinct
+category from a normal gate — a gate catches a bad value, a meta-guard catches **a missing rule** — and it is
+the category most worth verifying, because its failure mode is that nothing ever fails.
+
+Seven exist in this build. All seven now fire on demand, each with a diagnostic that names the exact
+violation:
+
+| meta-guard | what it stops being forgotten | proved |
+|---|---|---|
+| append-only guard completeness | a UNIQUE index added without extending the BEFORE INSERT guard — reopening `0008`'s silent history-rewrite | §147 — *"the UNIQUE target (stream_id, kind, ts) on events has no BEFORE INSERT guard disjunct"* |
+| migration forward-only lock | editing a migration already pinned in the lock, so repo and deployed schema diverge | **RED** — *"was EDITED after it was committed to the lock — migrations are forward-only"* |
+| stray-SQL detection | DDL in a `.sql` file outside `db/*/migrations`, evading the I3/I8 lint entirely | **RED** — *"stray SQL outside db/\*/migrations (evades I3/I8 lint)"* |
+| I3 migration rule | an `UPDATE`/`DELETE` on `events` inside a migration | **RED** — *"migrations may only CREATE/INDEX events — Corrections are new events."* |
+| seed hash pin | the seeded dataset drifting from its pinned hash | **RED** — *"SEED-1 hash drift: pinned 6c10c37ddad8… vs actual 24308f0c4f18…"* |
+| citation link resolution | a `path:line@symbol` citation rotting when code moves | §131 — fired on my own commit |
+| citation ratchet | unanchored citations into high-churn files **growing** | §131 — blocked my own commit |
+
+### 148.1 The two strongest proofs were accidents
+
+Five of these were probed deliberately. Two were not: in §131 I inserted an eight-line comment into
+`sequencer.ts`, and three content-anchored citations immediately went red — then my draft of that very
+section was rejected for *quoting* the rotted citation, which made it live again.
+
+**Unplanned firings are stronger evidence than deliberate ones.** A probe proves a guard *can* fire when
+aimed at it; an accident proves it fires when nobody is looking, on a change nobody thought was risky. The
+citation gates are the only two in this table with that grade of evidence, and they earned it by catching the
+auditor.
+
+### 148.2 The GREEN that was a wrong target
+
+The seed-hash probe first came back **GREEN — "seed hash NOT enforced"**, and it was an artifact. I had
+perturbed an unrelated `seed.json` found by pattern-matching, while `check:seed` hashes the **output of
+`generateSeed()`** against a pinned `seed.hash` — it never reads that file at all.
+
+Reading what the check actually consumes, then perturbing a real generator constant, produced the drift
+diagnostic immediately. That is §130's shape for the third time — *a GREEN means the thing I ran does not
+cover the thing I changed* — and the fix is always the same question: **what does this check actually read?**
+
+### 148.3 What this closes
+
+The "can it fail?" thread is now complete across three levels: **gates** (§111, §114, §115, §117 — budgets,
+rules, invariants), **boundaries** (§144, §145 — nine comparisons), and **meta-guards** (§147, §148 — the
+seven rules-about-rules). Every mechanism this build relies on to stay honest has been shown to fire, by
+breaking it on purpose and watching it complain.
+
+No finding. The remaining debt is unchanged: §126's six holds and the five proposed-scope findings, all
+owner-blocked.
