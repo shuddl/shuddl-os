@@ -7918,3 +7918,55 @@ hit twice). Re-proving is the only thing that distinguishes *"this was fixed"* f
 > **Periodically re-run the mutation for every historical Critical.** It is the cheapest high-information test
 > available against a codebase you did not just write, and the one most likely to be skipped precisely because
 > the record already says the work is done.
+
+---
+
+## §159 — the GL journal's double entry: two guards, probed separately
+
+The QuickBooks journal export is the last money-critical surface unprobed. `export.ts` claims two things:
+each money_line becomes *"a balanced double entry … balanced BY CONSTRUCTION"*, **and** *"we assert
+Σdebits === Σcredits before returning."* Two guards over one property — so §120's question applies: are they
+complementary, or is one carrying the other?
+
+**Probed separately, then together** — which is what makes the answer legible:
+
+| mutation | verdict | what it means |
+|---|---|---|
+| **A.** assertion removed, construction intact | **GREEN** | correct — with sound construction the assertion never fires, so removing it changes nothing observable |
+| **B.** construction broken, assertion intact | **RED — 1** | the runtime assertion catches a mis-posted entry |
+| **C.** *both* — assertion removed **and** construction broken | **RED — 1** | **a test catches an unbalanced journal independently of the assertion** |
+
+C is the one that matters. Had it come back GREEN, the export's correctness would rest entirely on a single
+runtime `if` — a guard with no test behind it, which is exactly the shape §148 calls a meta-guard failure.
+Instead the catching test is
+`qb-journal.fixture.test.ts > "REQ-020 DoD — a synthetic month reconciles to the penny (the QB journal
+export)"`, and A's green is then correctly readable as §145's third category: **defence-in-depth over a
+construction that is already right**.
+
+### 159.1 A refinement to §115's rule-6 claim
+
+§115 recorded engineering rule 6 (*fixtures gate merges · QB export reconciles to the penny*) as **BLOCKED on
+the five private-fixture holds and unprovable in-repo**. That is true of the **gate** and too strong about the
+**property**:
+
+- the *fixture-backed* proof — a real month of tenant-0 data reconciling to the penny — is genuinely blocked,
+  and `check:invoice-parity` exits 2 until those fixtures are vendored (§126)
+- the *property* — that the journal balances and reconciles to the penny — **is proved in-repo today**,
+  against a synthetic month, by the test above
+
+So rule 6's status is more precisely: **mechanism proved on synthetic data; the real-data gate awaits its
+fixture.** That is a materially better statement for an owner deciding what vendoring the fixtures buys —
+it buys evidence on real data, not the first evidence of correctness.
+
+### 159.2 The method: mutate two guards separately *and* together
+
+A single combined probe would have shown RED and taught nothing — RED only says *something* caught it.
+Separating them answered three distinct questions in three runs: is the assertion load-bearing alone (no), is
+it sufficient alone (yes), and is anything behind it (yes, a test).
+
+> **When two mechanisms protect one property, mutate each alone and then both.** The pairwise result tells you
+> which layer is load-bearing, which is defence-in-depth, and — the only dangerous case — whether the property
+> would survive losing both. A combined mutation cannot distinguish those.
+
+**No finding.** The journal balances by construction, an assertion guards the construction, and a
+penny-reconciliation test guards the assertion.
