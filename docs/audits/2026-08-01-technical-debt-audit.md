@@ -6996,3 +6996,67 @@ to commit, fixtures to vendor, secrets to bind, a flag to flip, or five REQ rows
 
 Nothing in this section is new work. It is the measurement that lets the previous forty sections be trusted
 at a specific commit — which is the only form a phase gate can honestly take.
+
+---
+
+## §142 — the MCP surface: REQ-030 parity is structural, and the chokepoint's order is pinned
+
+The MCP worker is demo #4's subject, externally reachable (Claude connects to it), and had never been audited
+in this loop. The governing question is `CLAUDE.md` rule 3 / REQ-030: **any flow reachable by API must
+enforce the same gate.** MCP reaches the same ledger through a different door.
+
+**Parity is structural, not maintained.** Every MCP write tool delegates to `mutatingCallApi` — the tools are
+clients of `/v1` over HTTP. None binds the sequencer DO, none opens D1, none issues raw SQL. So every gate the
+api enforces applies automatically, and there is no second gate implementation that could drift. That is the
+strongest possible answer to REQ-030: not "we keep them in sync" but "there is only one."
+
+**MCP's own gate layer complements rather than duplicates.** `beforeMutation` enforces **caps + confirm over
+the OAuth principal** — policy the MCP layer owns, which the api has no principal to evaluate. Its header is
+explicit that this is additive: *"the api still runs its own gates on the callApi round-trip (there is no
+bypass)."*
+
+### 142.1 The chain's design rationale, and its proof
+
+`DEFAULT_MUTATION_CHECKS` is an explicit array, and the source states why it is not a registration list:
+
+> *a module-global `registerMutationCheck` at import time … fails OPEN (a forgotten import, or a bundler
+> treating a "side-effect-free" check module as dead code, silently leaves caps+confirm unenforced while
+> everything still compiles and passes).*
+
+That is a fail-open failure mode identified and designed out. Two tests pin it — `toBe(DEFAULT_MUTATION_CHECKS)`
+(the live chokepoint **is** that array by identity) and `toEqual(["confirm", "caps"])` (exact contents **and
+order**). Mutation-proved against a valid baseline of 177:
+
+| mutation | verdict |
+|---|---|
+| remove `confirmCheck` | **RED — 10 failed** |
+| remove `capsCheck` | **RED — 17 failed** |
+| **swap the order** (caps before confirm) | **RED — 3 failed** |
+
+The reorder result is the one worth keeping. Order here is load-bearing for a stated reason: *"a
+missing/mismatched confirm must refuse BEFORE caps reserves a slot, else a confirm-failed booking would
+permanently consume the pairing's own budget (a self-DoS)."* A chain that pins membership but not sequence
+would let that regression through silently. This one pins both.
+
+### 142.2 One duplication found, and deliberately not recorded
+
+`MUTATING_METHODS` in the MCP registry carries the comment *"Mirrors the api middleware's own set"* — a
+constant duplicated across two workers, which is exactly §120's shape. Compared: both are
+`["POST","PUT","PATCH","DELETE"]`, identical.
+
+**Not recorded as debt.** The set is HTTP's mutating verbs — closed and stable for decades — so the
+divergence risk is theoretical rather than real, and §134 and §140 both established that a ledger inflated
+with rows nobody will ever act on is harder to use, not safer. Noting the judgement here so a future reader
+sees the duplication was found and *dismissed on the evidence*, rather than missed.
+
+### 142.3 My first probe was garbage, and is discarded
+
+The initial mutation split the chain array on commas — but the array body is mostly **comments**, which
+contain commas. It produced eight "entries" like `IN`, `else`, `so` and `//`, mutated comment text, and
+reported four confident **GREEN — check UNPINNED** results.
+
+Every one was an artifact. That is §117.1's rule (*mutating an annotation is not mutating a mechanism*)
+combined with a parser that never verified its own output was plausible — eight entries in a two-entry array
+should have stopped me before the first run, exactly as §127's implausible yield did.
+
+Discarded rather than reported, and the correct probe anchored on the bare identifier lines instead.
