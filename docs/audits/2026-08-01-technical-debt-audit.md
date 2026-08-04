@@ -5437,13 +5437,20 @@ What remains needs an owner, not another loop iteration.
 > checklist, not this count — the same rule §110 applied to a stale test figure, now applied to my own phase
 > gate.
 
-| # | Hold | Owner action |
-|---|---|---|
-| 1 | `REQ-289` uncommitted | commit or drop the row — unblocks `tools/` **and** unmasks the workspace suite |
-| 2 | five private-fixture holds | vendor from the engagement workspace (`manifest.private M-01`) |
-| 3 | two External Highs | REQ-069 identity seam; EDI transport credentials |
-| 4 | `routes ±10%` disposition | named in `genesis/11:41` and `genesis/14:52`; needs one written answer |
-| 5 | R2–R5 grades | owner sign-off per `V2-EXECUTION-FRAMEWORK.md` §9 |
+*Rewritten 2026-08-03 (§126) to the standard §125 established: every hold carries a **verification command**
+and an **expiry trigger**, because a hold with no trigger cannot signal that its verdict has died. The
+previous table had two columns and neither. It also said "five private-fixture holds", conflating **five
+blocked gates** with the **nine pending fixtures** behind four of them — the fifth blocks on a secret, not a
+fixture. That is §118's class again: a number meaning something other than what it says.*
+
+| # | Hold | Owner action | Verify | Stops being true when |
+|---|---|---|---|---|
+| 1 | `REQ-289` uncommitted (another workstream's row) | commit or drop it — unblocks `tools/` **and** unmasks the workspace suite | `pnpm check:coverage` → exit 1, "1 unaccounted register row" | the row is committed or removed; the gate returns 289/289 |
+| 2 | **four** fixture-backed gates BLOCKED, behind **nine** pending fixtures | vendor from the engagement workspace (`manifest.private M-01`) | `pnpm check:fixtures -- --mode merge` → exit 2, naming all nine | a fixture flips `status:"pending"` to a `sha256`; the gate names one fewer |
+| 3 | `identity-leak` BLOCKED on a **secret**, not a fixture | bind `IDENTITY_DENYLIST` (or create `.identity-denylist.local`) | `pnpm check:identity -- --mode merge` → exit 2 BLOCKED | the secret binds — and note the first run must screen commit `6a6c88e`'s blobs, not only HEAD (checklist row 371) |
+| 4 | two External Highs | REQ-069 identity seam (custody handoff); EDI transport credentials | `GO-LIVE-CHECKLIST.md` row 386, and the EDI hold beside it | REQ-069 lands with manifest party refs; the credentials bind |
+| 5 | `routes ±10%` disposition | one written answer — it names a merge gate with nothing behind it | cited at `genesis/11:41` and `genesis/14:52` | either document records a disposition, or the gate gains an implementation |
+| 6 | R2–R5 grades unsigned | owner sign-off per `V2-EXECUTION-FRAMEWORK.md` §9 | that document's §9 grade table | a grade is signed and dated there |
 
 ---
 
@@ -6138,3 +6145,63 @@ superseded risk statement — neither carried one, and both outlived their measu
 Nothing in this sweep moves §113 (as scoped by §123). The five owner-blocked repo-adjacent holds stand, the
 47 further checklist items stand, and the one correction (§124) *reduced* open exposure rather than adding
 any. Static gates all PASS; the sole red remains the other workstream's uncommitted `REQ-289`.
+
+---
+
+## §126 — applying §125's rule to the phase gate that failed it
+
+§125 ended with a rule drawn from the best row in the go-live checklist:
+
+> A recorded hold without an expiry trigger is a claim with no way to notice it has died.
+
+The document that wrote that sentence did not follow it. §113's hold table had **two columns** — *Hold* and
+*Owner action* — and neither a verification command nor a trigger. Every one of this loop's record defects
+(§110's stale count, §118's mislabelled figure, §124's superseded risk statement) was a claim that outlived
+its measurement with nothing to signal the death. §113's own table was five more of them waiting.
+
+### 126.1 And one of the five was already wrong
+
+Hold 2 read **"five private-fixture holds."** Measured:
+
+| gate (under `--mode merge`) | exit | blocks on |
+|---|---|---|
+| `check:fixtures` | 2 BLOCKED | nine pending fixtures |
+| `check:rater-parity` | 2 BLOCKED | fixtures |
+| `check:invoice-parity` | 2 BLOCKED | fixtures |
+| `check:concierge-parity` | 2 BLOCKED | fixtures |
+| `check:identity` | 2 BLOCKED | **a secret** — the denylist, not a fixture |
+
+So the five is a count of **blocked gates**, four fixture-backed and one secret-backed, and the fixtures
+behind them number **nine** (`rater-48-tests`, `rater-504-sweep`, `zone-tariff-v1`, `invoice-500-replay`,
+`concierge-parse-50`, `customer-roster`, `legacy-import-formats`, `legacy-export-replay`,
+`synthetic-blitz-3100` — the manifest and the gate's own detail string agree exactly). "Five
+private-fixture holds" was §118's class precisely: a number meaning something other than what it says. A
+reader vendoring five fixtures would find four gates still red.
+
+`GO-LIVE-CHECKLIST.md:308` had it right all along — *"9 pending hash-pinned fixtures"*. The audit's summary
+of the checklist was wrong where the checklist was not, which is the third time this loop has found the
+derived record less accurate than the source it derived from (§110, §123, here).
+
+### 126.2 The table now
+
+Rewritten to six rows, splitting the secret-backed hold from the fixture-backed ones, and carrying two new
+columns — **Verify** and **Stops being true when**. Every verification command in it was run before it was
+written down:
+
+- `pnpm check:coverage` → exit 1, *"1 unaccounted register row"*
+- `pnpm check:fixtures -- --mode merge` → exit 2, naming all nine
+- `pnpm check:identity -- --mode merge` → exit 2 BLOCKED
+
+That last discipline matters more than the columns. §124's probe cited a stats shape that did not exist and
+crashed; a *table* citing a command that does not print what it claims would not crash — it would simply be
+believed. **A verification column is only worth having if every cell in it has been executed.**
+
+### 126.3 What this closes
+
+The phase gate now states, for each hold: what it is, who must act, how to check it, and what event ends it.
+That is the same six-element shape §125 identified in the checklist's best row, and it is the first time this
+audit's own holds have met the standard the audit set for everyone else's.
+
+Nothing about the *substance* changed: the same work remains blocked on the same owners. What changed is that
+a reader six weeks from now can tell, by running three commands, which of these six rows are still true —
+and that is the only property that has ever kept a record honest.
