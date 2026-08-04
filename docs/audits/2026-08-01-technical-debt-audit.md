@@ -5158,3 +5158,42 @@ travels somewhere nobody looks", assert against the bytes, not the shape.
 
 **Verdict: clean negative**, and the redaction skill's third trigger is now covered. Eleventh skill verified;
 no code changed.
+
+---
+
+## §109 — two ops documents disagreeing about whether a launch-blocking question was answered
+
+`keep-ops-record-reconciled-with-deploys` exists because of D1–D5: prod was provisioned and deployed while
+`PROJECT-STATE.md` still told readers *"there is no live production"*. Its rule — sweep the ops record after
+any deploy, and treat **under-warning** as the dangerous direction — was tested against today's tree.
+
+**The under-warning drift is gone.** Every surviving "not provisioned / does not exist / all-zero placeholder"
+string is either struck through with a dated supersession, a **genuinely open** hold (the legacy-TMS mirror
+feed, per-IP edge rate limits), or prose *about* the failure mode rather than a claim of state.
+
+*(A note on method: my first sweep filtered lines containing `~~`, and flagged the all-zero-placeholder claim
+as surviving. It is struck — but the strikethrough **spans several lines**, so a line-based filter cannot see
+it. Twelfth near-miss this loop, caught by opening the file.)*
+
+**But the two documents disagree in the other direction.** `LAUNCH-RUNBOOK.md` still read:
+
+> `PROJECT-STATE.md` claims a deployed, live-sending staging environment; that claim now carries a dated
+> warning because it could not be confirmed. **Resolve this before Step 1.**
+
+`PROJECT-STATE.md` resolved exactly that on **2026-07-31**: *"RESOLVED — it is confirmed. The first reading was
+right — a second account."* So an operator opening the runbook — the document you read when you are about to
+launch — was told to stop and resolve a question answered two days earlier.
+
+This is **over**-warning, the safer direction, and still a defect: a runbook that halts on a resolved question
+trains its reader to skip its warnings, which is precisely how the under-warning drift of D1–D5 would slip
+past next time. The value of a launch gate is that every stop in it is real.
+
+Reconciled in place — strikethrough plus the dated resolution and its evidence (prod provisioned 2026-07-30,
+preflight **PASS 72 checks** 2026-07-31) — never deleted, per the skill's own rule.
+
+**One thing preserved deliberately.** The step still says *"resolve the ACCOUNT TARGET before Step 1"*, because
+the resolution answers *where the environment is*, not *which account this workstation is pointed at* — and
+provisioning the freight ledger into the marketing account remains, in the runbook's words, "the one step in
+this runbook that is expensive to undo." Narrowing a warning is not the same as removing it.
+
+**Verification.** Every ops-doc state claim re-read in context; tables and citations PASS.

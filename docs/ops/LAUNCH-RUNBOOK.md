@@ -51,10 +51,16 @@ contains the worker `shuddl-tech` (the marketing site) and:
 
 So the product environment is **not reachable from this workstation**. Either it lives in a second
 Cloudflare account (multi-account is a known fact here — the `shuddl.tech` zone was previously found in a
-different account), or it does not exist. `docs/ops/PROJECT-STATE.md` claims a deployed, live-sending
-staging environment; that claim now carries a dated warning because it could not be confirmed.
+different account), or it does not exist. ~~`docs/ops/PROJECT-STATE.md` claims a deployed, live-sending
+staging environment; that claim now carries a dated warning because it could not be confirmed.~~
+**RESOLVED 2026-07-31 — the first reading was right: a SECOND ACCOUNT** (`PROJECT-STATE.md` §Safety posture,
+banner dated 2026-07-31; prod was provisioned 2026-07-30 and preflight recorded **PASS 72 checks** on
+2026-07-31 in `RELEASE-EVIDENCE.md`). *Reconciled here 2026-08-03 (audit §109): this runbook still framed the
+question as open and told the operator to "resolve this before Step 1" for something answered two days
+earlier. Left as a strikethrough rather than a deletion, per the ops-record rule — supersede in place, never
+rewrite history.*
 
-**Resolve this before Step 1.** Provisioning the freight ledger's production databases into the marketing
+**Still resolve the ACCOUNT TARGET before Step 1** (the resolution above answers *where it is*, not *which account this workstation is pointed at*). Provisioning the freight ledger's production databases into the marketing
 account would put customer freight data in the wrong tenancy and point all five worker configs at ids the
 deployed workers cannot bind — and it is the one step in this runbook that is expensive to undo.
 
