@@ -4890,3 +4890,49 @@ a minified bundle under `apps/portal/dist/` — a build artifact, not a test.
 **Verdict: three clean negatives**, and the ninth reminder that the shape of my errors has not changed all
 session: every one has been a claim about absence, and every one was caught by running something properly
 rather than reading more carefully.
+
+---
+
+## §102 — the agent-idempotency doctrine, and a KNOWN GAP whose safety net is a different sweep than its comment implies
+
+`make-agent-idempotent-and-adapter-ported` states the rule Cloudflare Queues forces: delivery is
+**at-least-once**, so "twice in → once out" must be layered — deterministic ids, `INSERT OR IGNORE` on every
+read-model row, a committed-terminal-event guard, and sender dedupe by idempotency key. By §92's test these are
+**independent mechanisms**, so each needs its own pin.
+
+**Layer 3 — the redelivery fast-path — is pinned four times over.** Disabling it turns four tests red,
+including the one that states the doctrine outright: *"IDEMPOTENCY (auto-reply): the same message twice → ONE
+shipment, ONE quote.requested, ONE reply"*, plus both send-failure cases (retriable self-heals, permanent
+holds with facts standing).
+
+### 102.1 The KNOWN GAP beside it, and where its net actually is
+
+The same guard carries an honest note: if a **fresh** auto-reply dies *after* appending `quote.requested` but
+*before* `message.sent`, the redelivery guard also returns `already_handled`, so that reply never completes.
+It then claims: *"The sweep detects it structurally (quote.priced present, message.sent absent, no draft row
+⇒ an unfinished auto-reply) and re-drives it."*
+
+Chased, because a mitigation named in a comment is exactly §95's class. Two corrections:
+
+1. **It is not the recon sweep.** `recon-sweep.ts` is the *Biller* reconciliation (REQ-169) — committed
+   `pod.signed` with no invoice, re-enqueuing the billing trigger. It has no concept of replies. The comment
+   invites that reading by saying "same class as REQ-169's Biller commit→enqueue window".
+2. **The net is the SLA sweep**, which finds inbounds past their due with **no answering `message.sent`** and
+   **appends an internal overdue signal** through the sequencer. Detection is real. But it **signals; it does
+   not re-drive** — the comment's "and re-drives it" overstates what happens. A human works the overdue queue.
+
+**And §97 is load-bearing for exactly this.** The SLA sweep can only find that inbound because `sla_due_ts` is
+written *before* the append — the ordering §97 pinned two sections ago after §96 found it unpinned. Had that
+ordering ever silently reversed, the dead auto-reply would carry no due ts, the SLA sweep would never see it,
+and the documented safety net for this known gap would have been quietly disconnected.
+
+That is the most consequential thing this section found: **two documented properties that only work together**,
+recorded in different files, with no cross-reference — and until §97, one of them untested.
+
+**Verdict: clean on the code, one wording correction owed.** The comment's "re-drives it" should read
+"surfaces it as an overdue signal for a human". Left as a recorded finding rather than an edit to a file this
+section did not otherwise touch — the §49 discipline.
+
+**Verification.** Fast-path mutation proved RED on four tests; `concierge.ts` restored byte-identical; all four
+sweeps read for the claimed pattern (a first attempt used a glob that matched nothing and errored — §101's
+mistake, caught in the same turn and re-run explicitly).
