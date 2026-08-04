@@ -6524,3 +6524,50 @@ this named sweep exist?") rather than a general one ("are comments accurate?"). 
 That is a usable rule for what remains of this audit: **cross-component claims are worth checking one at a
 time, by reading, when the claim is load-bearing.** Mechanised sweeps over prose find broken *filenames* and
 nothing else, because prose is where the interesting claims live and prose is what a regex cannot parse.
+
+---
+
+## §133 — a 4-hour SLA policed by a 24-hour detector
+
+§132 concluded that load-bearing cross-component claims are worth checking **one at a time, by reading**.
+This is one such question, in exactly §131's shape: *a backstop that exists in code but never runs is not a
+backstop* — so does each sweep's **cadence** match what it polices?
+
+**The agents worker has one cron: `crons = ["0 1 * * *"]` — daily, at 01:00.** All seven sweeps ride that
+single tick (sla · collector · recon · credit-recon · retention · mirror · watchtower, plus the daily anchor).
+
+For six of them a daily cadence is defensible — retention, mirror ingest, dunning and reconciliation are all
+day-scale concerns. **The SLA sweep is not.** `SLA_REPLY_WINDOW_MS` is **four hours**, so an inbound arriving
+at 02:00 is due at 06:00 and is not surfaced until 01:00 the following day: **~19 hours late, a detector six
+times coarser than the thing it measures.**
+
+**Nothing else detects it.** `sla_due_ts` is referenced in exactly three places — the projection that writes
+it NULL, `setInboundSla` which sets it, and the sweep that reads it. No live query in the api worker, the
+Command queues, or the ledger computes overdue on read. The daily tick is the only detector there is.
+
+**Two facts settle whether this is a quibble.** First, `REQ-095`'s DoD is *"Timer events fire"* — no latency
+bound, so a daily tick **satisfies the register as written**; this is a gap between the requirement and the
+intent, not a violation. Second, `workers/billing` in this same repo already runs an **hourly** cron
+(recorded at `GO-LIVE-CHECKLIST.md:272`), so sub-daily cadence is available here and simply was not chosen.
+
+**Severity: Med, with an honest mitigation.** The primary path is the auto-reply, which completes in seconds.
+The SLA sweep exists to catch replies that died mid-append (the REQ-174 backstop §103 documented), so the
+affected population is small. What is at stake is *how long an unanswered customer email stays invisible*,
+not whether it is answered at all.
+
+### 133.1 Recorded, not changed
+
+Moving the cron to hourly would re-cadence **all seven sweeps**, including retention deletes and the legacy
+mirror ingest — a behaviour and cost change well beyond a latency fix, and one no REQ row authorises.
+`CLAUDE.md` is explicit that scope precedes build, so this follows §131's pattern exactly: a checklist row
+carrying all six elements §125 identified, with an **R3** grade and three expiry triggers (a sub-daily cron
+expression, a live overdue read in the Command queues, or a latency bound added to REQ-095).
+
+That is now the third finding this loop has recorded as **proposed scope rather than built** — REQ-180's
+register alignment (§123), the booking sweep (§131), and this. All three share a shape worth naming: the code
+is not wrong, the register is not wrong, and the gap is only visible when you hold them against each other
+and ask what the requirement *meant*.
+
+> **A DoD that states an event ("timer events fire") rather than a bound ("within N") cannot be violated by
+> being slow.** Requirements written as existence claims are satisfied by any implementation that exists —
+> which is exactly how a four-hour promise ends up with a daily detector and every gate stays green.
