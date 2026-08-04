@@ -186,6 +186,11 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 
 ## §4 — Phase gating and the stopping point
 
+> **CURRENT MEASUREMENT: §188, at `7d0a17e`.** This section states the four exit clauses and the grade
+> table; the *numbers* in it decay and are re-measured per session (§113 `99ae4ca` → §141 `78499e9` →
+> §168 `e27307f` → §176 `71edfbe` → **§188 `7d0a17e`**). Read the clauses here and the posture there — and
+> per §64/§110, read every count from a run, never from this page.
+
 Grades from `V2-EXECUTION-FRAMEWORK.md` §9. What this audit adds to each bar:
 
 | Grade | What this audit found blocking it | After this session |
@@ -9697,3 +9702,72 @@ The section's real cost was the instrument: two of three passes produced numbers
 retract. **113 → 49 → 11 is the shape of every sweep in this audit that turned out to be worth
 trusting** — and the pass that flagged the exemplary security test as the worst offender is the reason
 none of the intermediate numbers were written down anywhere but here.
+
+---
+
+## §188 — the phase gate re-measured at `7d0a17e`, and the stopping point restated
+
+Fifth re-measurement of §4 (after §113 `99ae4ca`, §141 `78499e9`, §168 `e27307f`, §176 `71edfbe`),
+**11 commits** after the last one.
+
+### The gate has not moved, and that is the finding
+
+| | §176 (`71edfbe`) | §188 (`7d0a17e`) |
+|---|---|---|
+| merge surface | 24 gates | **24 gates** |
+| PASS / BLOCKED / FAIL | 17 / 5 / 2 | **17 / 5 / 2** |
+| blocking cause | `REQ-289`, one uncommitted register row | **`REQ-289`, unchanged** |
+| full suite, row set aside | 274 files, 3,605 tests, exit 0 | **274 files, 3,608 tests, exit 0** |
+
+Eleven commits — six of them touching test or production files — moved the gate not at all, and the
++3 tests are exactly the DST cases of §186. **No gate was broken and none was fixed**, which is the
+correct outcome for a hardening pass: everything shipped was a pin on behaviour that was already correct,
+or a record correction. The two FAILs remain one `git commit` by another workstream's owner.
+
+### What the eleven commits actually changed
+
+**Shipped (behaviour-preserving hardening, no REQ row needed):**
+
+| § | Fix |
+|---|---|
+| 174 | anchor R2 keys pinned tenant-partitioned (REQ-025) — the only assertion surviving a DRY of the test literals |
+| 175 | five rotted citations re-pointed **and anchored**; anchored citations 28 → 65 |
+| 180 | a leak guard that could not fail (`driver-manifest` allowlist) + `platform-credit`'s DB confirmation |
+| 181 | the **gate sentinel** that passed against a blinded harness; `map-204`'s no-price-on-air guard; `export`'s keyset test, whose fixture had only ever had one page |
+| 186 | `localWall` pinned against DST — 11 sibling tests could not falsify their own converter |
+
+**Recorded for an owner (proposed scope — none built):**
+
+| § | Item | Grade |
+|---|---|---|
+| 178 | demo #1's *"+ photos"* half does not ship (`photos: {}`); REQ-087 is accounted BUILT on a DoD narrower than its own text | Med |
+| 183 | five unbounded list reads — the keyset rule REQ-197/010 established reached 2 of 7 readers | Med |
+| 185 | six read paths full-`SCAN`, confirmed by `EXPLAIN QUERY PLAN`; `invoices(party_id)` compounds §183 | Med |
+| 182 | `AuthSession.clear()` fails open — **safe today**, with the trigger named (REQ-069's login) | Low→Med |
+| 184 | retention sweep scans a year of documents to find a day's expiries | Low |
+| 179 | 31 register rows whose DoD grades fewer deliverables than the requirement names | shortlist |
+
+### The stopping point, restated
+
+**§4's four clauses hold, and clause 2 is still not an engineering task.** Its distance to green is one
+uncommitted row belonging to the concurrent demand-program workstream. This loop must not adopt it: the
+register is source-of-truth #1, `REQ-289` is GTM scope owned by someone else, and turning a gate green by
+absorbing a foreign row is precisely the "straying from the documented build" the instruction forbids.
+
+What is **repository-closable** is closed. Everything remaining is one of three kinds, and all three need
+a decision this loop cannot make:
+
+1. **Owner scope** — the six recorded items above. Each needs a REQ row before a line is written; two
+   (§183, §185) are the ones that will actually bite a real tenant, and they compound each other.
+2. **External** — nine private fixtures, the identity denylist secret, REQ-069's identity seam, EDI
+   transport credentials, the `routes ±10%` disposition, R2–R5 grades.
+3. **Owner judgment** — `REQ-289`'s disposition, and whether demo #1 is filmed as *"invoice + evidence
+   email"* or held until the photo resolver lands.
+
+### What five re-measurements have established about this gate
+
+The merge surface has read **24 gates, 17 PASS, 5 BLOCKED** at four consecutive commits spanning three
+sessions. The BLOCKED five have never moved because they are absent private inputs, not defects. The
+suite has grown 3,605 → 3,608 without a single regression. **The build is not drifting**, and the
+remaining risk is concentrated entirely in the two places no gate here can see: production data volume
+(§183/§185) and the record's agreement with intent (§178).
