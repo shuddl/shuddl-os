@@ -9512,3 +9512,67 @@ plausible, volume-flavoured, and wrong — one about a retention window I had no
 that does not exist. §174 said an unmeasured claim rots like any other; the corollary is that an unmeasured
 claim is also how a **Low** gets published as a **Med**. The sweep that produces three hits and two
 corrections is worth exactly as much as the one that produces a defect.
+
+---
+
+## §185 — six read paths full-SCAN their table, and SQLite says so rather than I do
+
+The third leg of the volume triad, after §183 (unbounded reads) and §184 (N+1): **a query with no
+supporting index.** Correct at every volume, ruinous at one.
+
+Cross-referenced every declared index in `db/tenant/migrations/*.sql` against every column production
+filters on. **The first run was wrong** — it flagged `events.id` (6 queries) and `money_lines.event_id` as
+uncovered, which would have been this audit's scariest claim yet: a full scan of the ledger on an event-id
+lookup. Both are `... TEXT NOT NULL UNIQUE`, and **SQLite backs a UNIQUE constraint with an automatic
+index.** The detector only counted PK-leading columns and `CREATE INDEX` statements. Fixed to parse inline
+and table-level `UNIQUE` before believing any of its output (§122/§150 — spend the iteration on the
+instrument).
+
+### Measured, not inferred
+
+Rather than argue from a missing `CREATE INDEX`, I built the real schema in a local SQLite from the
+migrations and asked the planner. `SEARCH` = an index seek; `SCAN` = walking the table.
+
+| Read path | Plan |
+|---|---|
+| **control** — sequencer stream read | `SEARCH events USING INDEX sqlite_autoindex_events_3 (stream_id=?)` ✅ |
+| driver manifest (`legs` ⋈ `shipments`) | `SEARCH s USING INDEX …(id=?)` then **`SCAN l`** |
+| portal invoice list (`invoices WHERE party_id`) | **`SCAN invoices USING INDEX sqlite_autoindex_invoices_1`** |
+| per-shipment documents | **`SCAN documents USING INDEX sqlite_autoindex_documents_1`** |
+| watchtower (`anomalies WHERE status`) | **`SCAN anomalies`** |
+| approvals queue (`WHERE status`) | **`SCAN approvals`** |
+| dunning drafts (`messages`) | **`SCAN d`** |
+
+**The control is the point.** A method that returns "everything is a scan" measures nothing; this one
+returns `SEARCH` for the hot ledger path — `PRIMARY KEY (stream_id, seq)` covering the sequencer's
+`WHERE stream_id = ? ORDER BY seq` exactly — and `SCAN` for six others. The two most-scrutinised tables in
+this build, `events` and `money_lines`, are indexed correctly.
+
+Note what `SCAN … USING INDEX` means on the invoices row: the planner walks an index end-to-end to satisfy
+`ORDER BY id` while testing `party_id` per row. It is a full pass wearing an index's name.
+
+### Why it matters here specifically
+
+- **`legs` runs on every driver app open.** Five queries filter it by `shipment_id`; the table has only an
+  `id` PK and a *partial* `ux_legs_slot(facility_id, …)`. It grows with every shipment ever booked.
+- **`invoices(party_id)` compounds §183.** That portal list is *both* uncapped *and* scanned — the two
+  findings multiply rather than add.
+- `anomalies`, `approvals`, `messages` back operator queues, which are read often and grow with operations.
+
+### Recorded, not built
+
+The fix is one additive migration — `legs(shipment_id)`, `invoices(party_id)`, `documents(shipment_id)`,
+`anomalies(status)`, `approvals(status)`, `messages(drafted_by_agent, direction)` — touching no data, no
+behaviour, and no table budget. I am not writing it, for two reasons that are about correctness rather
+than caution: **the composite-vs-single choice should be validated against real cardinality** (an index on
+a low-selectivity `status` may not be chosen by the planner at all), and a migration against a live D1 is
+a deliberate act with a rollout, which is an owner's call. Logged in `GO-LIVE-CHECKLIST.md` as **Med** with
+the plans above, so the next person inherits the evidence rather than the hunt.
+
+### The rule
+
+**Ask the planner.** A missing `CREATE INDEX` is a hypothesis; `EXPLAIN QUERY PLAN` against the real
+schema is a fact, and it cost about a minute — build the migrations into a scratch SQLite and read the
+verdict. It also caught my instrument's blind spot in the same motion: had I trusted the first table, I
+would have reported the ledger's own id lookup as a full scan, which is both the most alarming claim in
+this section and false.
