@@ -9387,3 +9387,68 @@ exist, and the note reaches the person who creates that caller — which the che
 failing in three different directions is the signal — not the presence of a `catch`. 0 empty catches and
 17 correct `.catch(() => null)` in 160 files says this codebase already handles errors deliberately; the
 single finding is a handler whose *safety is supplied by its callers*, and callers change.
+
+---
+
+## §183 — five list reads that grow with the tenant, and the rule this repo already wrote twice
+
+A production-volume class the earlier sweeps could not surface, because it is invisible at fixture
+volume: **a many-row D1 read with no `LIMIT` and no cursor.** Every row a tenant has ever accumulated
+lands in one 128 MB Worker response.
+
+Swept every `prepare()`/`exec()` SQL string in `workers|packages/*/src`: **63 SELECTs**, 23 many-row
+(`.all()`) with no `LIMIT` inside the matcher's window. That 23 is a candidate count, and the window lied
+in both directions — `board.ts` and `exceptions.ts` carry their `LIMIT` on a later line than the regex
+reached, and several hits are bounded by their `WHERE` regardless. Adjudicated each by opening it:
+
+| Site | Bound | Verdict |
+|---|---|---|
+| `workers/api/src/do/sequencer.ts:650@stream_id`, `:1014@money_lines` | `WHERE stream_id = ?` / `WHERE event_id = ?` | bounded — one shipment, one event |
+| `routes/documents.ts:57@DOC_LIST_COLS` | `WHERE shipment_id = ?` | bounded — a handful per shipment |
+| `routes/board.ts`, `routes/exceptions.ts`, `routes/approvals.ts` | `LIMIT ?` / `EXCEPTIONS_LIMIT` | **already bounded** |
+| **`routes/invoices.ts:51@INVOICE_COLS_TENANT`** | **none — no `WHERE` at all** | **unbounded** |
+| **`routes/invoices.ts:45@INVOICE_COLS_PARTY`** | `WHERE party_id = ?` | **unbounded per party** |
+| **`routes/watchtower.ts:42@anomalies`** | `status=all` drops the `WHERE` | **unbounded** |
+| **`routes/dunning.ts:380@drafted_by_agent`** | `LIKE 'msg:dunning:%'` | **unbounded** — drafts accumulate per cycle |
+| **`routes/export.ts:117@DOC_EXPORT_COLS`, `:123`** | none | **unbounded** |
+
+**Five sites, four routes.** The worst is `/v1/invoices` under a tenant lens: no `WHERE` clause of any
+kind, on the highest-volume durable business object a carrier has, in a tenant whose history is also
+imported from a 171-column legacy export.
+
+### What makes this a finding rather than a risk assessment
+
+**This repo already identified this exact problem, twice, and registered it both times.**
+
+- **REQ-197** — *"The exceptions queue durable read orders by ts DESC and **paginates by a `before_ts`
+  keyset so its bounded page retains the FRESHEST**."* Someone reasoned all the way to *which* rows a
+  bounded page should keep.
+- **REQ-010 / `export.ts`** — the event stream is cursor-paginated, with `DEFAULT_LIMIT` 200 and
+  `LIMIT_CAP` 1000, and a comment explaining that a full page hands back a keyset cursor.
+
+So the rule is written, registered, implemented — and reached two readers out of seven. `export.ts` is
+the sharpest illustration, because **both halves live in one response**: its events paginate and its
+documents do not. Same file, same request, same author, one bounded and one not.
+
+That is §180's shape again at a different altitude — *a rule this codebase had already learned did not
+reach every place it applies* — and it is the third time this session (§180's vacuous loop, §182's
+asymmetric `catch`, this).
+
+### Recorded, not built
+
+Bounding these changes the API contract (a `limit`/`cursor` parameter and a `next_cursor` in the
+response), so it needs a REQ row: **proposed scope**, following REQ-197's precedent exactly. Logged in
+`GO-LIVE-CHECKLIST.md` as **Med**, with the five sites and their severity ordering.
+
+**And a bare `LIMIT` would be the wrong fix, not a partial one.** It truncates silently — the caller
+cannot tell a complete list from a clipped one — which is precisely what this repo forbids everywhere
+else (the Migrator rule: any legacy column that does not map raises a gap row, *never disappears*). The
+fix has to be a keyset with a cursor, exactly as REQ-197 specified for exceptions.
+
+### The rule
+
+**Volume-dependent defects are invisible to every gate that runs on fixtures.** Nothing in the merge
+surface can see this: the suites pass, the invariants hold, the isolation tests are green, and each of
+these queries is correct — it returns exactly the right rows. It only fails on a tenant with history,
+which is the one environment no gate here runs against. The detector for that class is not a test; it is
+asking, of every read, **what bounds this on the largest tenant we intend to serve?**
