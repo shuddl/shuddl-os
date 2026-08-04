@@ -5693,3 +5693,81 @@ recorded in `docs/wp/acceptance-demos.md`.
 
 **Verification:** `test:acceptance` GREEN (7 files, 36 tests), `typecheck` PASS, `lint` PASS, the manifest
 drift suite 5/5.
+
+---
+
+## §119 — do the gates tell the truth about themselves? (and a NUL byte in the audit's own tool)
+
+§118 found a merge gate printing a file count as a test count. That raises a systematic question this audit
+had never asked: every gate emits numbers, and the record quotes them. **Are the other numbers true?**
+
+Each numeric claim was verified against an independently-computed value:
+
+| gate | claim | independent check | verdict |
+|---|---|---|---|
+| `check:tables` | "109 markdown files" | `git ls-files '*.md'` = 109 | ✅ |
+| `check:citations` | "970 citations, 27 content-anchored" | `citations.length`; `filter(c => c.symbol !== undefined)` | ✅ |
+| `check:citations` | "130 unanchored into 10 high-churn targets" | ratchet config: 10 targets, baseline sums to 130 | ✅ |
+| `check:invariants` | "21/22 tables" | 22 raw `CREATE TABLE` − 1 partition (`positions` shares `events`) = 21; `NAMED_TABLES` = 21 | ✅ |
+| `check:authority-coverage` | "9 consults, 5 modules, 8 distinct files" | 9 pairs / 8 files because `concierge.ts` registers under *both* rating and comms | ✅ |
+| `check:chokepoint` | "2 allowlisted modules" | `ALLOWED` map: `do/sequencer.ts`, `tools/seed/load.ts` | ✅ |
+| `check:coverage` | "288/289 classified" | 290 register lines − 1 header = 289 rows | ✅ |
+| `check:runtime`, `check:seed`, `check:rater-purity`, `audit:design` | no counts — statements only | — | ✅ |
+
+**§118's defect was isolated, not systemic.** Every other gate says what it means.
+
+Two are worth singling out. `check:invariants`'s "21/22" is the subtlest: a hand count of `CREATE TABLE`
+returns **22**, and only the partition rule (a partition shares its parent's budget slot) reconciles it to 21
+— accurate, but a reader recomputing it would think the spare slot was spent. And
+`check:authority-coverage` is the standard the others should be held to: it states its own **limits** in its
+source — *"proves this file consults the registered module's authority SOMEWHERE, NOT that every
+authoritative path does."* A gate that publishes what it does **not** prove is the strongest form of the
+honesty obligation §118 named.
+
+### 119.1 The shell's `grep` cannot see binary-classified files — and one of ours was
+
+Mid-sweep, `grep -c "markdown" tools/docs/check-table-shape.mjs` returned **exit 1, no output**, on a file
+that plainly contains the word. `command grep` found 4. The cause is environmental: the shell's `grep` is a
+**ugrep wrapper carrying `-I`** (ignore binary files), so anything `file(1)` classifies as binary is
+*silently invisible* — no error, no warning, clean exit.
+
+And `file` did classify it as binary:
+
+```
+tools/docs/check-table-shape.mjs: a /usr/bin/env node script executable (binary data)
+```
+
+### 119.2 The cause was three NUL bytes in a tool I wrote in §50
+
+```js
+const stripped = line.replace(/`[^`]*`/g, (m) => "\0".repeat(m.length)).replace(/\\\|/g, "\0\0");
+```
+
+Those look like spaces in every editor and in the `Read` tool. They are **NUL (0x00)** — almost certainly
+introduced by shell escaping when §50 created the file. Consequences:
+
+- The file was classified **binary**, so every `grep`-based sweep in this repo silently skipped it — including
+  my own audits of my own tooling.
+- Functionally it happened to work: the bytes only blank out code spans so pipes inside backticks are not
+  counted as delimiters, and NUL is as much "not a pipe" as a space is. **A latent defect, not an active
+  one** — which is exactly why it survived four months and eleven audit sections.
+
+Replaced with real spaces. `file` now reports *"text executable, Unicode text, UTF-8 text"*, `grep` finds it,
+and the gate's behaviour is unchanged — mutation-proved on all three branches the bytes served:
+
+| case | expected | result |
+|---|---|---|
+| over-wide row | fail | exit 1 ✅ |
+| pipe inside backticks | pass | exit 0 ✅ |
+| escaped pipe | pass | exit 0 ✅ |
+
+**Swept the rest of the repo:** 848 tracked text-extension files, **zero** others contain NUL bytes. Isolated.
+
+### 119.3 The pattern this completes
+
+Three consecutive sections have found the defect inside the audit's own instruments — §110's sweep regex,
+§112's coverage manifest, §118's acceptance runner, and now §119's table checker. Four of the last six
+findings. The tools built to detect drift drift too, and nothing was auditing them.
+
+> **An instrument that has never been pointed at itself is not evidence.** Every gate in this repo now has:
+> a proof it can fail (§111/§114/§115/§117), and a check that what it *says* is true (§119).
