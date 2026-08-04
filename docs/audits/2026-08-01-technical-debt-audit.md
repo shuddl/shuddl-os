@@ -5301,3 +5301,69 @@ nearly published *"the isolation suite is hollow — 63 tests passed"*). The rul
 - **iCloud duplicates: zero tracked.** The standing hazard (`"name 2.ext"` copies corrupting file-count gates)
   found 5 `.css` duplicates under `apps/*/dist/` — all untracked, all invisible to every gate. `git ls-files`
   matching the ` N.ext` pattern returns **0**.
+
+---
+
+## §112 — the eight status-drift rows, adjudicated
+
+`check:coverage` emits a warning nobody had ever discharged:
+
+> *8 status-drift row(s) — a source citation exists while the register tag reads \*-DISCOVERED/vNEXT. Per row,
+> VERIFY whether the citation is an implementation or a deferral marker before advancing anything.*
+
+That is a real question with a real answer per row, and it is the exact failure mode this loop keeps finding:
+a citation that *looks* like proof of work but might be a note saying "not done." Six rows already carried
+recorded verdicts. Two — REQ-170 and REQ-184 — were absent from the manifest entirely, and one of the six had
+decayed.
+
+### 112.1 The two unadjudicated rows land on opposite verdicts
+
+| row | citations are | verdict |
+|---|---|---|
+| REQ-170 | **implementations** | BUILT, with a named residual |
+| REQ-184 | **deferral markers** | correctly UNBUILT, fail-closed |
+
+**REQ-170** — the Biller genuinely refuses to send a proof email without stored POD bytes: an ACTIVE
+tenant-scoped evidence document must resolve for the recorded `signature_hash`, or it `HOLDS(evidence_missing)`
+with no invoice and no terminal marker; the upload route re-drives it; `recon-sweep.ts` backstops a stranded
+hold. Three separate suites pin it. The residual recorded in `transition-gates.ts` (placed-photo hash and
+redelivery fast path not byte-verified) is unchanged and keeps the row's tag.
+
+**REQ-184** — every citation says, in terms, that it is *not* built. `do/sequencer.ts` records that nothing
+writes a `ratecon` document yet, *"so this gate is FAIL-CLOSED"*, and the two heartbeat suites **seed** a
+ratecon precisely because generation is deferred. The deferral carries no exposure: absent generation, the
+REQ-043 dispatch gate refuses dispatch without paperwork rather than waving it through. That is the shape a
+deferral should have, and it is worth naming as a positive finding — most of this loop's defects were
+deferrals that failed *open*.
+
+### 112.2 A recorded verdict decayed within two days
+
+REQ-254's note read *"not built"* — accurate on 2026-08-01, wrong by 2026-08-03, because **§86 and §93 built
+part of it**. Its DoD has four clauses; three now ship and are pinned:
+
+- cross-driver enrollment rejects (409, scoped to ACTIVE registrations — `devices.test.ts`)
+- a REVOKED key cannot append (§86's `revoked_ts IS NULL` on *both* readers — `positions-gate.test.ts`,
+  `sequencer.test.ts`)
+- an ACTIVE bound key can
+
+The fourth, **lockout**, is unbuilt — no failed-attempt mechanism exists in any worker (verified negative, and
+verified with a *quoted* grep, per §111.2). The row stays `vNEXT` for that remainder.
+
+This is §64's class landing on the audit's own instrument: the manifest exists to stop the register from
+stating stale observations, and the manifest stated one. Two days of decay, caused by my own work.
+
+**Register status is untouched throughout.** Adjudicating a citation is recording what is true; advancing a
+row is scope, and scope is owner-signed. All eight rows keep their tags.
+
+### 112.3 The zsh glob hazard, now six instances
+
+Locating the manifest, I ran `ls tools/checks/coverage-manifest*` — no match, zsh aborted, the path variable
+went empty, and the probe reported **all eight rows unadjudicated**. Six of them had notes. This is the same
+failure as §101, §102 and §111.2, and it happened *minutes after* I wrote the rule into memory.
+
+The lesson is no longer "be careful." Six repetitions under active attention is evidence the discipline does
+not hold:
+
+> **In an audit probe, never let a shell glob resolve a path.** Use `find`/`git ls-files` and assert the
+> result is non-empty before using it. Quote `--include='*.ts'` — unquoted, zsh expands it and kills the
+> whole command, so the empty output reads exactly like a clean negative.
