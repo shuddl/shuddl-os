@@ -16,7 +16,7 @@ import { z } from "zod";
 // and callable from BOTH the authed mint route (Task 2) and the public read (verifyStatusCap, Task 3).
 
 const DOMAIN = "shuddl-status-cap-v1";
-const CAP_TYP = "status-cap";
+export const CAP_TYP = "status-cap"; // exported for tests that must forge a payload with the REAL typ
 
 // The signed payload. `.strict()` so a MAC-valid token carrying ANY extra claim is rejected — a real
 // session JWT that somehow shared the MAC would still fail here (it carries sub/role/…). typ is pinned to

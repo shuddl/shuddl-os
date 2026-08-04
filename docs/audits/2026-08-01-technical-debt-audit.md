@@ -4422,3 +4422,46 @@ it answered the intended one, and this audit has already caught itself doing exa
 
 **Verdict: clean negative**, and the strongest surface examined. `pub-status.test.ts` 11/11; `status-cap.ts`
 restored byte-identical.
+
+---
+
+## §91 — finishing §90's follow-up: both cap defences are real, neither was pinned, and my first pin was a wrong-reason pass
+
+§90 left an explicit open question and said it should not be written up as answered: is the cap's `typ`
+confinement **independently** load-bearing, or was key separation carrying it? Answering it needed the
+mutation §90 got wrong — moving **both** mint and verify to the shared secret.
+
+**Both defences are independently sufficient.** Measured, not reasoned:
+
+| Mutation | Route suite |
+|---|---|
+| Key separation removed (mint **and** verify on `JWT_SECRET`) | **11/11 green** — `typ` + `.strict()` alone refuse a session JWT |
+| `typ` literal + `.strict()` removed, derivation kept | **11/11 green** — key separation alone refuses it |
+
+That is genuine defence-in-depth: either layer holds the line by itself. **And it is exactly why neither was
+pinned** — removing one changes nothing observable through the route, because the other refuses. §84's
+"masked" situation, symmetric.
+
+Harmless today, and a trap tomorrow: a refactor could delete one layer, see green, and reduce two defences to
+one with no signal — after which a change to the survivor opens the hole with nothing to catch it.
+
+Two unit-level cases now pin each layer where the other cannot mask it: a token signed with the **raw**
+`JWT_SECRET` but otherwise perfect (only derivation can refuse it), and a token on the **correct** cap key
+with no `typ` (only `.strict()` can). Each was mutation-proved to fail for *its own* layer and no other.
+
+### 91.1 My first version of the key-separation test was itself a wrong-reason pass
+
+I hardcoded `typ: "shuddl.status.v1"` — a guess. The real constant is `"status-cap"`. So the token was
+rejected for a **type mismatch**, not a key mismatch: the test passed, and went on passing with key separation
+fully removed, which is precisely the defect it existed to catch.
+
+**That is §81's wrong-reason pass, written by me one section after §81 documented it** — and caught only
+because I ran the mutation against my own new test rather than trusting it green. `CAP_TYP` is now exported
+and imported by the test, so the forged payload always carries the real value and the case can only pass for
+the reason it names.
+
+The lesson §81 drew was about asserting reasons rather than shared statuses. This adds the author-side half:
+**a test that hardcodes a constant it could import is asserting your memory of the value, not the value.**
+
+**Verification.** `pub-status.test.ts` 13/13; each new case proved RED under its own layer's mutation and
+green under the other's; `status-cap.ts` restored (plus the deliberate `CAP_TYP` export).

@@ -1,7 +1,8 @@
 import { SELF, env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import { ensureSchema, token, post, TENANT_SLUG } from "./helpers.js";
-import { mintStatusCap } from "../src/pub/status-cap.js";
+import { sign } from "hono/jwt";
+import { mintStatusCap, verifyStatusCap, deriveStatusSecret, CAP_TYP } from "../src/pub/status-cap.js";
 
 // REQ-187/188 (WP-09 Task 3, D1 half B) — THE public, no-auth status read: GET /pub/status/:cap. This is
 // the FIRST public data read in the system, so the adversarial cases ARE the spec. Every case drives the
@@ -264,5 +265,31 @@ describe("PS-8: lifetime + headers", () => {
     expect(res.status).toBe(200);
     expect(res.headers.get("Referrer-Policy")).toBe("no-referrer");
     expect(res.headers.get("Cache-Control")).toBe("no-store");
+  });
+});
+
+// PS-9 (audit §91) — EACH LAYER PINNED ALONE.
+//
+// The cap has two independent defences against cross-token replay: a secret DERIVED from JWT_SECRET, and a
+// `typ` literal inside a `.strict()` payload. Measured by mutation, **each is sufficient on its own** —
+// removing key separation left all 11 route tests green, and so did removing `typ` + strictness. That is
+// genuine defence-in-depth, but it also means NEITHER layer is pinned by the route suite: a refactor could
+// delete one, see green, and silently reduce two layers to one, with the next change to the survivor opening
+// the hole. These two cases assert each layer at the function level, where the other cannot mask it.
+describe("PS-9: each cap defence is independently pinned (audit §91)", () => {
+  it("KEY SEPARATION: a token signed with the RAW JWT_SECRET is refused, even with a perfect cap payload", async () => {
+    // Correct typ, correct shape, correct claims — wrong key. Only the derivation can refuse this.
+    // CAP_TYP imported, never hardcoded: the first draft guessed "shuddl.status.v1", so this case passed
+    // because the TYPE was wrong rather than the key — a wrong-reason pass (§81) written one section after
+    // §81 documented it. With the real typ, only the derived-key check can refuse this token.
+    const forged = await sign({ typ: CAP_TYP, t: TENANT_SLUG, s: SHP_OK, exp: nowS() + 3600 }, JWT_SECRET, "HS256");
+    await expect(verifyStatusCap(forged, JWT_SECRET)).rejects.toThrow();
+  });
+
+  it("TYPE CONFINEMENT: a token on the CORRECT cap key but without `typ` is refused", async () => {
+    // Right key, right tenant/shipment/exp — no typ. Only the .strict() literal can refuse this.
+    const secret = await deriveStatusSecret(JWT_SECRET);
+    const untyped = await sign({ t: TENANT_SLUG, s: SHP_OK, exp: nowS() + 3600 }, secret, "HS256");
+    await expect(verifyStatusCap(untyped, JWT_SECRET)).rejects.toThrow();
   });
 });
