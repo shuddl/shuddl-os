@@ -8286,3 +8286,54 @@ the demos and §160 for the fixtures: **a hold's cost, stated alongside the hold
 
 **No finding, no new debt.** The mechanisms are correct and proved; the gate is correctly closed; the row now
 says what answering it might require.
+
+---
+
+## §166 — the CONFIRM-gated rows, read for blast radius
+
+§165 found a hold whose action column said *"publish a policy"* while one possible answer required an
+architecture change, and established the rule: **when a gated decision's answers differ wildly in cost,
+record both readings.** Fourteen rows in the register are CONFIRM-GATED. Read for that shape, most are
+honest — and one is not.
+
+**Most CONFIRM-gated rows state their cost by construction.** REQ-033 (escrowed instant settle), REQ-104
+(Direct platform-merchant posture) and REQ-096 (voice recording) are all on `CLAUDE.md`'s do-not-build list;
+nobody reading them mistakes approval for a small task. Their gating documents — REQ-139 (broker authority +
+insurance), REQ-143 (money-transmission review), REQ-137 (per-state recording consent) — are visibly
+prerequisites to *building a product surface*.
+
+### 166.1 REQ-141 reads as a memo and could be a rename
+
+*"Naming/trademark clearance (SHUDDL)"* — action column: **"Clearance memo."** The register row is more candid
+than the checklist: it says *"SHUDDL **working**"*, conceding the name is provisional.
+
+Measured, the other answer costs:
+
+| where | scale |
+|---|---|
+| tracked files containing the name | **538** — 420 code, 81 markdown, 18 `package.json`, 19 config |
+| total occurrences | **2,349** |
+| npm scope | **`@shuddl/*`** — every internal import resolves through it |
+| outside the repo | worker names (`shuddl-api-<env>`, `shuddl-agent-dlq-*`), the backups bucket (`shuddl-backups-{env}`), the `shuddl.tech` zone |
+
+A clearance **failure** is not a memo. It is a repo-wide rename, an npm scope migration, worker and bucket
+recreation, and a domain change — across a codebase whose imports all resolve through the scope being
+renamed.
+
+**And unlike every other hold in this audit, its cost grows monotonically.** Every commit adds occurrences.
+That is a sequencing argument the record did not make: among the CONFIRM-1 items this one is uniquely
+cheaper-if-done-first, and it is currently framed as a brand-launch task — i.e. late.
+
+Recorded as a rationale on the existing row, per §140's and §165's precedent. **No new row**: the hold exists
+and is correctly gated; what was missing was what answering it "no" would cost.
+
+### 166.2 The pattern across three sections
+
+| section | hold | reads as | could be |
+|---|---|---|---|
+| §140 | self-hosted tiles | a deploy line item | also a third-party data-exposure fix |
+| §165 | PII retention policy | a policy publication | an architecture change (subject erasure) |
+| §166 | trademark clearance | a memo | a 538-file rename + scope + infra + domain |
+
+> **A hold's action column describes the work if the answer is yes. Nobody writes down the work if the answer
+> is no** — and that is the number an owner needs to sequence by.
