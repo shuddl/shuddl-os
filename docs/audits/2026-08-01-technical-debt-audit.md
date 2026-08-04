@@ -7231,3 +7231,63 @@ cross-component claims.
 
 That price is now the loop's consistent finding: **mechanical sweeps produce candidates at scale; only reading
 produces verdicts.** Nine boundaries cost three reads and yielded one fix.
+
+---
+
+## §146 — a coverage-shape metric that produced two findings, both artifacts
+
+Nobody had asked whether test coverage is *proportionate to risk* across this build, so I measured it. The
+attempt failed in an instructive way, and the failure is the finding.
+
+**Metric 1 — tests per 100 source lines.** Range 2.8 to 23.4. It flagged the three PWA surfaces as thinnest:
+`apps/driver` 3.1, `apps/command` 3.7, `apps/portal` 4.7, against `packages/rater` 23.3 and
+`packages/contracts` 23.4.
+
+**Metric 1 was measuring the wrong denominator.** The PWAs are **6–8% decision lines** — the rest is JSX,
+props, types and constants, which tests do not cover in the sense the metric implies. A UI surface will always
+look thin when the denominator counts markup.
+
+**Metric 2 — tests per decision** (branches, loops, awaits, catches). It **reversed the ranking**:
+`workers/agents` fell to last at **0.25**, while the PWAs moved mid-pack (0.38–0.67). By this measure the
+money-and-agent workspace was the least covered in the repo.
+
+**Metric 2 is also an artifact.** `workers/agents` hosts 106 cases — but **438 cases in `workers/api`
+exercise its behaviour**, four times as many, because that is where the integration harness lives
+(`biller.test.ts` 23, `concierge.test.ts` 24, `isolation.test.ts` 60, `lens-adversarial.test.ts` 44, and
+twenty-six more files). §130 learned this the hard way: a mutation probe run against `workers/agents` returned
+a confident GREEN because the tests that would have caught it were in the other worker.
+
+> **Per-workspace test density cannot measure coverage in a repo where integration harnesses live in one
+> worker.** Both metrics produced a plausible, quotable "thinnest area" — and both were measuring where tests
+> are *filed*, not what they *reach*.
+
+### 146.1 The residual observation, and its better explanation
+
+Three of this loop's five findings (§131 booking backstop, §135 Concierge metering, §137 unsurfaced send
+failure) landed in `workers/agents`. It is tempting to connect that to metric 2's ranking. **That connection
+is unsupported** — its real coverage is substantial once cross-workspace tests are counted.
+
+The better explanation is structural: `workers/agents` hosts the most **cross-component couplings** in the
+build — queue triggers arriving from the sequencer, seven sweeps, two external providers, an LLM port, a
+metering seam. §135's heuristic searches exactly that surface (*what assumes this capability is absent?*), so
+finding three there reflects **where the search looked**, not where the tests are thin.
+
+Distinguishing those two explanations matters: one would prescribe "write more agent tests" and the other
+prescribes nothing, because the coverage is already there and the findings came from a different axis
+entirely.
+
+### 146.2 Three instrument corrections in one section
+
+| claim | why it was wrong |
+|---|---|
+| `tests/` has **0** cases | Playwright uses `test(`, my counter looked for `it(` — it has 14 |
+| the PWAs are thinnest-covered | the denominator counted JSX; they are 6–8% decision lines |
+| `workers/agents` is thinnest-covered | 438 of its tests live in `workers/api` |
+
+Each was a number I could have published. The pattern §127 named holds again — **an implausible or
+convenient result is an instrument error until proven otherwise** — and here the convenience was that each
+metric produced a tidy, actionable-looking headline.
+
+**No finding, no debt, no change.** Recorded so the next person who wonders about coverage shape knows this
+was measured, why the obvious metrics mislead here, and what would actually be required: per-module reasoning
+about what each test *reaches*, which is the same one-read-per-item price §134, §132 and §145 all arrived at.
