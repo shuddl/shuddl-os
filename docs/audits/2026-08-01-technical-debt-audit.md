@@ -9642,3 +9642,58 @@ day, because no instant maps there.
 The tell is mechanical — does the helper import the thing being asserted? Here `zonedTimeToEpoch` calls
 `localWall`, so eleven tests rode a converter they could not falsify. Constants computed against an
 external source of truth (the real tz database, here) are what make a transition test capable of failing.
+
+---
+
+## §187 — how far §186 spreads: 11 of 189, and only the original was an oracle
+
+§186 ended on a mechanical tell — *does the fixture helper call the thing being asserted?* — so it wanted
+running against all 280 test files rather than left as a moral.
+
+**The instrument took three passes, and the first two would have published nonsense.**
+
+| Pass | Rule | Result |
+|---|---|---|
+| 1 | any helper calling any production symbol | **113** — swamped by `applyMigrations`, `eventFixture`, setup |
+| 2 | production fn asserted directly AND used in a helper | **49** — but helper "body" was the next 22 lines, so it bled into neighbouring code |
+| 3 | same, with **brace-matched** helper bodies | **11 of 189** functions asserted directly |
+
+Pass 2 flagged `status-cap.test.ts`'s `expectedStatusSecret`, which I chased first precisely because it
+looked worst — a capability-secret derivation whose expectation is built by a helper. It is the
+**exemplar of the correct pattern**: it re-derives `hex(HMAC-SHA256(secret, DOMAIN))` from raw WebCrypto
+and never calls `deriveStatusSecret`. An independent oracle. The flag was pure window bleed, and
+`sign.test.ts` and `split.test.ts` dropped out for the same reason once braces were matched.
+
+### The 11, and the property that separates them
+
+Adjudicating them showed the tell in §186 was too coarse. Calling the function under test inside a helper
+is **normal**; what made `zonedTimeToEpoch` unfalsifiable was that it **inverted** `localWall` to
+manufacture the very input the assertion then fed back through `localWall`. Its own comment says so: *"the
+inverse of localWall."* A closed loop.
+
+The other ten do not close the loop:
+
+- **Wrappers** — `jurisdiction.test.ts`'s `deriveWith` calls `resolveStateE6` and the assertions compare
+  against *independently known USPS codes* for real coordinates. Geography is the oracle; the helper only
+  saves an argument list.
+- **Observers** — `projections.test.ts`'s `appendPassport` runs the projection to *populate* D1, then the
+  test asserts on the resulting **rows**. The projection is the action under test, not the source of the
+  expected value.
+- **Encoders** — `merkle.test.ts` uses `bytesToHex` in fixtures while comparing against known hex
+  constants.
+
+So the corrected rule is narrower and actually usable: **a fixture is unfalsifiable when it INVERTS the
+function under test, not when it merely calls it.** Round-trip, not reuse. The mechanical tell is a helper
+whose comment or name says *inverse / decode / unbuild / reverse* of something the file also asserts on.
+
+### Verdict
+
+**Clean negative.** §186's instance is an outlier, not the tip of a pattern — worth saying plainly,
+because a finding left unbounded reads as systemic. Of 189 production functions asserted on directly
+across the suite, exactly one had a fixture that could not falsify it, and it now has three cases that
+can.
+
+The section's real cost was the instrument: two of three passes produced numbers I would have had to
+retract. **113 → 49 → 11 is the shape of every sweep in this audit that turned out to be worth
+trusting** — and the pass that flagged the exemplary security test as the worst offender is the reason
+none of the intermediate numbers were written down anywhere but here.
