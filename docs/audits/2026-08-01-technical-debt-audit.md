@@ -9771,3 +9771,57 @@ sessions. The BLOCKED five have never moved because they are absent private inpu
 suite has grown 3,605 → 3,608 without a single regression. **The build is not drifting**, and the
 remaining risk is concentrated entirely in the two places no gate here can see: production data volume
 (§183/§185) and the record's agreement with intent (§178).
+
+---
+
+## §189 — a hold that understates the build: the nightly backup is not a stub
+
+§188 named the record-vs-intent axis as one of two places no gate can see. §179's 31-row shortlist is the
+work-list there, so I began adjudicating it the way §177 adjudicated the drift rows: **does the second
+deliverable a requirement names actually exist?**
+
+Four rows probed — REQ-049 (`named + reason + permanently visible`), REQ-115 (`FAILED display type +
+retry`), REQ-092 (`DKIM/SPF/DMARC + bounce/suppression`), REQ-117 (`**Nightly** ledger snapshots +
+restore drill`). All four have real code for the half their DoD does not grade. The one worth pulling was
+REQ-117, because its wiring is checkable: **no Worker cron schedules a snapshot.** The agents worker's
+`scheduled()` runs sla, collector, recon, credit-recon, watchtower, retention and anchors —
+`snapshot-ledger.ts` is reachable only through a `package.json` script.
+
+§178's shape exactly: infrastructure built, wiring absent, DoD grading the half that *is* built.
+
+**Except it wasn't.** Per §177's rule I checked the record before concluding, and the checklist already
+covers it — the snapshot is a **GitHub Actions** job, not a Worker cron, so there is nothing for
+`scheduled()` to call. Correct by design.
+
+### The finding is the opposite of the one I was chasing
+
+The checklist calls that workflow a **stub**, in two places, and it is not:
+
+- `.github/workflows/nightly.yml` — 72 lines, `name: nightly`, `schedule: [{ cron: "0 8 * * *" }]`, two
+  jobs (`orphan-audit`, which needs no credentials and always runs; `backup`).
+- It calls one implementation, `tools/deploy/backup.ts` — **26 KB, with 35 passing cases** in
+  `backup.test.ts` — which derives every database from every committed `[env.<env>]` scope, **refuses to
+  write a manifest over a partial export**, emits its own `##SHUDDL-GATE##` line, and **exits 2 =
+  BLOCKED, never green**, when credentials are absent.
+- Its own comment states the reasoning: *"A backup job that goes green without producing a backup is how
+  you discover, on the day you need it, that there is nothing to restore."*
+- Staging-only is **deliberate and documented**: `backup.ts` takes `--env`, so production is one flag —
+  but *scheduling* it is an operator decision (whose token, whose retention, whose pager), and until then
+  `preflight --env prod` keeps reporting no-backup for production, *which is the truth*.
+
+So what remains is one external credential and one operator decision. **Nothing needs writing** — and a
+reader working the checklist would have concluded the opposite, because the actionable column
+(line 126) said "workflow is a **stub**."
+
+This is §172's class — the record claiming **less** than reality — in the document that exists to tell an
+operator what is left to do. Both instances struck in place with the evidence. `PROJECT-STATE.md`'s copy
+was already struck; the `docs/plans/*` and `docs/wp/WP-01.md` hits are date-stamped historical records
+where "stub" was true when written, and are correctly left alone.
+
+### The rule
+
+**A stale hold is not symmetrical.** One that overstates readiness gets caught the moment someone tries
+to use the thing. One that *understates* it — "this is a stub" about 26 KB of tested, scheduled,
+fail-closed code — is invisible forever, because nobody goes looking for work that is already done. It
+survives precisely because it is pessimistic, and pessimism reads as safe. **Re-verify the holds that
+claim something is missing, not only the ones that claim something is ready.**
