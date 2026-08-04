@@ -5538,3 +5538,32 @@ demonstrated rather than asserted. Every remaining hold in §113's table needs a
 commit, fixtures to vendor from the engagement workspace, credentials for the EDI transport, an identity seam
 to specify, and grades to sign. None of them is a coding task, and none can be closed by another loop
 iteration without straying from the documented build.
+
+---
+
+## §116 — the same instrument failure, pointing the other way
+
+Verifying the build after §115's mutations, a combined root-level run reported **25 failed tests** against a
+tree `git` confirmed was byte-identical to `HEAD`. Re-run per workspace with each project's own config:
+
+```
+packages/rater 154 · packages/adapters 38 · packages/agents 217 · packages/contracts 285 · apps/command 97
+```
+
+All passing, and matching the full-suite figures in §113 exactly. `npx vitest run <path> <path> …` from the
+repo root applies the **root** config to every path — no jsdom for the command app, the wrong pool for the
+worker suites — so the failures were the harness's, not the code's.
+
+Every earlier instrument failure this session pointed one way: a broken probe reporting **falsely clean**
+(§101, §102, §111.2, §112.3, §114.2). This one points the other way — a broken probe reporting **falsely
+red**. The cause is identical: believing a tool's output without checking what the tool actually did.
+
+> The habit that catches both is the same one: **make the probe state what it examined.** A run that prints
+> its config, its file count, or its diff is one you can audit. A run that prints only pass/fail is one you
+> have to trust.
+
+Recorded because a false alarm is the more corrosive of the two in a loop like this: a false clean ends an
+investigation, but a false red starts a wrong one — and it looks exactly like diligence while it does.
+
+**Build state at `de58c80`:** working tree clean but for the other workstream's `REQ-289` row; all five static
+gates PASS; every package green under its own config.
