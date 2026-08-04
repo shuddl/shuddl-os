@@ -7506,3 +7506,62 @@ WPs closed, and traceability green in both directions, that is low-yield — so 
 here rather than implying coverage I do not have.** What is established: the checkbox DoDs are complete, the
 deferral sections exist and are populated, and the sampled forward references resolved. What is not
 established: that all 43 did.
+
+---
+
+## §151 — closing §150's stated gap: all 43 forward references, adjudicated
+
+§150 ended with an honest boundary: *"Established: the sampled forward references resolved. **Not
+established: that all 43 did.**"* A stated gap I can close with effort is exactly the kind this loop should
+close rather than leave standing.
+
+**Step 1 — a better matcher, not a longer read.** §150's probe took one token and required a substring hit.
+Replacing that with *any two distinct tokens, or one shared REQ id* — drawn from backticked identifiers,
+bolded phrases and content words — resolved **33 of 43**. The residual fell from 28 to **10**, which is a
+tractable read.
+
+**Step 2 — read the ten.**
+
+| forward reference | verdict |
+|---|---|
+| Board-DO fan-out → WP-03 | present in WP-03 **and** WP-10; 13 code files |
+| Agent queue triggers → WP-06+ | present; 40 code files, 3 register rows |
+| CMS cert-chain verification → WP-16 | present in WP-16; 8 code files |
+| Cash application (`payment.received`) → WP-11 | present in WP-11; 14 code files |
+| Per-link cap revocation (`jti`) → WP-13 | present in WP-13; 11 code files, 3 register rows |
+| Net-new self-serve book → WP-14 | present in WP-14; 27 code files |
+| REQ-132 magic-link email leg → WP-06 | **delivered, but by WP-05/WP-09** — 11 code files, 2 register rows |
+| Precise `deriveOperatingState` → WP-08 | **delivered, recorded in the checklist** — *"Coarse five-box stub REPLACED by exact integer point-in-polygon"*; 10 code files |
+| Rate-card scraping resistance → WP-12/GTM | **correctly deferred** — see below |
+
+**Zero dropped scope.** Two items landed in a different WP than the deferral predicted — a *prediction miss,
+not a loss*, and exactly what §150's vocabulary-matching failure looked like from the other side.
+
+### 151.1 The one genuine open deferral, and why it is sound
+
+*"Rate-card scraping resistance (banded sell / line suppression on the guest quote) → WP-12/GTM"* has **1
+code file and 0 register rows** — the thinnest of the 43. It is nonetheless correctly handled, for three
+reasons the line itself supplies and one this audit can confirm:
+
+- it is explicitly scoped as a **"business-confidentiality residual, not a leak"**
+- it names its destination as **GTM**, which `CLAUDE.md` gates behind M-H
+- the absence of a register row is *consistent* with it being unbuilt — `CLAUDE.md`'s rule is that no row
+  means no build, so an unregistered deferral is the correct state, not a gap
+
+And its load-bearing safety claim — *"margin internals are already excluded"* — is **independently confirmed
+by §123**: `split.computed` carries the interline/margin internals and sits inside REQ-180's never-widen
+`INTERNAL_FLOOR`, clamped to `internal` regardless of tenant policy or requested visibility. The residual is
+about *banding a visible sell price*, not about margin ever escaping.
+
+### 151.2 What closing this cost, and the rule
+
+Ten reads, after one matcher improvement cut the candidate set by 65%. **The lesson is not "read everything"
+— it is that a better matcher converts an unaffordable read into an affordable one.** §150 declined 43 reads
+as low-yield and was right to; the same conclusion two hours later would have been wrong, because the work
+became cheap once the instrument stopped requiring shared vocabulary.
+
+> **Before declining a verification as too expensive, spend one iteration improving the instrument.** The
+> residual is often small enough to read, and the honest gap disappears.
+
+§150's bounded statement is now discharged: **all 43 forward references are adjudicated, zero scope was
+dropped, and the single thin deferral is correctly unregistered and independently safe.**
