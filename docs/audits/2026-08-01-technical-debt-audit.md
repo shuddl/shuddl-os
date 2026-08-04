@@ -5567,3 +5567,65 @@ investigation, but a false red starts a wrong one — and it looks exactly like 
 
 **Build state at `de58c80`:** working tree clean but for the other workstream's `REQ-289` row; all five static
 gates PASS; every package green under its own config.
+
+---
+
+## §117 — the eight data-model invariants, mutation-proved
+
+`genesis/10` is source-of-truth rank 2, and its invariants I1–I8 are the schema-level laws beneath the
+budgets (§111/§114) and the engineering rules (§115). §114 proved I8. This proves the other seven — each by
+disabling the **mechanism**, not its description, and restoring byte-identically:
+
+| inv | law | mutation | verdict |
+|---|---|---|---|
+| **I1** | no money_line without event | the `REFERENCES events(id)` FK dropped from `money_lines` | **RED** — `check:invariants` *and* the ledger suite |
+| **I2** | no invoice without `pod.signed` | the gate's `throw GateError` made unreachable | **RED (3)** |
+| **I3** | no event edit/delete grants at DB level | a `DELETE FROM events` in a migration → **RED**; `DROP TRIGGER events_no_update` → **RED** | **RED, both paths** |
+| **I4** | custody events co-signed or flagged `unwitnessed` | the `!hasDevice && !unwitnessed` predicate forced false | **RED (2)** |
+| **I5** | every quote pins rate_config versions | `rate_config_ids` `.min(1)` relaxed and made optional | **RED (1)** |
+| **I6** | `events.visibility` respected by every view | `invoice.issued` added to the driver lens allowlist | **RED (2)** |
+| **I7** | correction pairs net zero in GL export | the reversal's `-o.amount_cents` un-negated | **RED (6)** |
+| **I8** | 22nd table = build failure | §114 | **RED** |
+
+I6's probe is the one to keep: widening a lens allowlist by a single kind — the exact shape of the fail-open
+visibility bug this loop's memory already records — is caught by two adversarial tests. I7's is the sharpest,
+because un-negating a reversal is a one-character change that would silently break every corrected invoice's
+GL reconciliation, and six tests catch it.
+
+### 117.1 Two probes returned GREEN, and both times my probe was the bug
+
+The first I4 attempt edited the `message:` string in the `ctx.addIssue` call. The first I5 attempt edited a
+`// I5: …` comment. Both returned GREEN, and both times GREEN was **correct** — neither mutation changed a
+single branch. A refinement that still fires with a different message is still a refinement.
+
+That is the third consecutive section where a GREEN was my instrument's fault (§114.1's off-by-one at the
+ceiling, §116's wrong vitest config, these two). The shape is specific enough to name:
+
+> **Mutating an annotation is not mutating a mechanism.** Comments, error messages, log lines and type-only
+> constructs are read by humans, not by branches. If a mutation changes only text a person would read, a green
+> suite is the correct answer — and it tells you nothing about the guard.
+
+The corollary is a probe-design rule: **mutate a condition, a sign, a bound, or a constraint** — something a
+runtime actually consults. Every RED in the table above came from exactly that; every GREEN came from failing
+to do it.
+
+### 117.2 The I1 probe searched the wrong file
+
+`0001_ledger_core.sql` does not define `money_lines` — `0002_domain.sql` does. The anchor missed, which
+reported honestly rather than falsely, only because the harness distinguishes ANCHOR MISS from GREEN. That
+distinction is the single most useful thing in these probes: without it, a missed anchor is indistinguishable
+from an unenforced law, which is precisely the §111.2 near-miss that nearly published "the design gate is
+hollow."
+
+### 117.3 Where this leaves the mechanical record
+
+Three documents state this build's mechanical laws, and all three are now demonstrated rather than asserted:
+
+| source | laws | status |
+|---|---|---|
+| `CLAUDE.md` hard budgets | 7 | **all mutation-proved** (§111, §114) |
+| `CLAUDE.md` engineering rules | 10 | **8 proved**; rule 6 externally blocked, rule 9 a process rule (§115) |
+| `genesis/10` invariants | 8 | **all mutation-proved** (§114, §117) |
+
+Twenty-three of twenty-five, with the two exceptions named and neither closable in-repo. Nothing in this
+section changed a line of product code — it changed what the record is entitled to claim.
