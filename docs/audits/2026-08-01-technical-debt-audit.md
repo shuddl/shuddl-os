@@ -8884,8 +8884,10 @@ both sides), then re-run the two failing gates:
   figure decays the moment anything is added).
 - **`check:coverage` → 100%**, all **288** register rows accounted, **0 unaccounted**. It also reports
   **8 status-drift rows** — a source citation exists while the register tag still reads
-  `*-DISCOVERED`/`vNEXT`. Advisory, non-blocking, and **not adjudicated here**; naming them so the next
-  pass does not rediscover them as new.
+  `*-DISCOVERED`/`vNEXT`. Advisory and non-blocking. ~~Not adjudicated here; naming them so the next
+  pass does not rediscover them as new.~~ **Corrected within the session (§177): all eight were already
+  adjudicated in `tools/traceability/coverage-manifest.json`, with dated per-row verdicts (§112 and
+  earlier). They needed re-verifying, not adjudicating — and this clause understated the record.**
 
 So the honest state of clause 2 at this commit: **22 of 24 gates green, 5 blocked on absent private
 inputs, and the 2 red gates are red for exactly one uncommitted row belonging to another workstream.**
@@ -8919,3 +8921,47 @@ the identity denylist secret · two External Highs · the `routes ±10%` disposi
 five proposed-scope findings (§123, §131, §133, §135/§136, §137) awaiting REQ rows · 8 advisory
 status-drift rows · ~48 unadjudicated skill-citation candidates (§175). **None is closable from inside
 the repository without an owner decision**, which is precisely the exit condition §4 clause 3 states.
+
+---
+
+## §177 — the eight drift rows re-derived blind, and the manifest was already right
+
+§176 listed the 8 status-drift rows as advisory and unadjudicated. Adjudicating them meant reading each
+register row, finding its source citations, and judging **implementation vs deferral marker** — the
+distinction `coverage.ts:171` warns about, because the message *used* to say "code has shipped … advance
+at register review", and following that would have marked broad V2 rows as built on the strength of a
+partial slice.
+
+Did that first, without opening the manifest. Then opened it. **All eight already carried dated,
+per-row verdicts** in `tools/traceability/coverage-manifest.json` — recorded in §112 and earlier. The
+independent re-derivation agreed with every one:
+
+| Row | Independent read | Recorded verdict |
+|---|---|---|
+| REQ-170 | primary claim built; code carries named RESIDUAL comments | **BUILT**, residual named, *"the row keeps its WP06-DISCOVERED tag for that residual"* |
+| REQ-184 | deferral markers only | deferral markers, correctly unbuilt |
+| REQ-249 | sole citation says *"is V2-E; this is the conservative V1 floor"* | PARTIALLY BUILT — V1 floor |
+| REQ-254 | revocation slice real + tested; enrollment/lockout not | PARTIALLY BUILT |
+| REQ-276 | not built | not built |
+| REQ-284 | preflight + restore-verify implement one slice | PARTIALLY BUILT |
+| REQ-285 | spec says *"first real assertion of REQ-285"* | PARTIALLY BUILT |
+| REQ-288 | browser-evidence citations serve REQ-158 primarily | not built, with a NOTE on why it is listed |
+
+**Zero of eight should advance. Zero rows changed.** A clean negative — the third of this loop (§118,
+§151/§152/§153, and now this) — and the only one that also **validates an instrument**: an independent
+re-derivation converging on all eight is evidence the manifest is trustworthy, which is worth more than
+the adjudication itself.
+
+Two corrections fall out, both of my own writing:
+
+1. **§176 said "not adjudicated here."** They were adjudicated, dated, and recorded. Struck in place.
+   Writing "unadjudicated" about a record that already holds the verdict is the same defect this audit
+   has found in nine documents — asserting a state without reading the artifact that owns it.
+2. **REQ-170 is more precisely recorded than I read it.** I called it "partially built"; the manifest
+   separates the *primary claim* (built, tested, three named test cases) from a *named residual* (the
+   placed-photo hash and redelivery fast path are not byte-verified) and explains that the tag persists
+   **for the residual**. That is the correct shape, and my coarser reading would have lost the reason.
+
+**The rule: before adjudicating, check whether the verdict is already recorded — and when the record
+turns out to be right, say so as loudly as a defect.** A loop that only reports what it changed will
+slowly imply the record is worse than it is. The instrument-validating negative is a finding.
