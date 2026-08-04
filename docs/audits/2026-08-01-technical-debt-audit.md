@@ -8015,3 +8015,58 @@ owner reading "four gates BLOCKED" could reasonably infer the latter. The record
 The check that keeps them honest is the one §159 used: **mutate the mechanism against synthetic data.** If it
 goes RED, the mechanism is proved and the fixture buys evidence. If it stays GREEN, the fixture is buying the
 first proof — and the hold is far more serious than a blocked gate suggests.
+
+---
+
+## §161 — the external adapters: proved against stubs, and one diagnostic-only gap
+
+§160 separated *mechanism* from *evidence* for the fixture-blocked gates. The same lens applies to the
+**external holds**: is each live adapter proved against a stub, or does the hold conceal an unproven
+mechanism?
+
+| hold | live adapter | in-repo proof |
+|---|---|---|
+| `RESEND_API_KEY` | `ResendSender` | 2 files / **53 cases** — *"the live adapter, exercised only against a stub"* |
+| `ANTHROPIC_API_KEY` | `ClaudeParser` | 2 files / **42 cases** — same posture, plus `NotConfiguredParser` rejecting loudly |
+| Stripe | webhook event schema | 1 file / **12 cases** |
+| `PROVISIONING_ENABLED` | `provisionTenant` | 3 files / **37 cases**, incl. *"REFUSES with PROVISIONING_DISABLED and writes NOTHING"* |
+| TSA RFC-3161 | `HttpTsaClient` | **0 tests name the symbol** — investigated below |
+
+**Every hold conceals a proved mechanism.** The pattern is consistent: a port interface, a live adapter
+exercised against a stub, and a not-configured adapter that refuses loudly rather than degrading silently.
+
+### 161.1 The TSA "zero tests" flag was a symbol-name artifact — mostly
+
+Searching for `HttpTsaClient` found nothing because tests inject the **`TsaClient` port** and the transport
+shell holds almost no logic. The logic lives in `assertGrantedReceipt`, and it is covered by **42 cases**
+across `der`, `cms` and `anchor` — with tests named for the adversary:
+
+| mutation | verdict |
+|---|---|
+| imprint check disabled — a **substituted receipt** | **RED — 1** (*"throws on an imprint mismatch (substituted receipt)"*) |
+| nonce check disabled — a **replayed receipt** | **RED — 1** (*"throws on a nonce mismatch (replayed receipt)"*) |
+| granted-status check removed | **GREEN** |
+
+The two that matter — substitution and replay of a timestamp receipt — are pinned precisely.
+
+### 161.2 The third GREEN is a real but diagnostic-only gap
+
+`parseTimeStampResp` returns `granted: false` for a TSA **rejection** (bad policy, unsupported algorithm,
+rate limit — all reachable), and **no test constructs one**; the suite asserts only the positive
+`granted === true`.
+
+With the check removed, a rejection still fails — it carries no timestamp token, so `imprintDigestHex` is
+absent and the *next* guard throws. **The outcome is unchanged; only the message degrades**, reporting
+`TSA_IMPRINT_MISMATCH` where the truth is *"the TSA refused us."* An on-call engineer would read a
+substitution attack into a rate limit.
+
+**Recorded, not tested — consistent with §145.** That section declined to pin the `divisor <= 0` guards for
+exactly this reason: where both paths fail loudly and only the diagnostic differs, a test pins a *message*
+rather than a *behaviour*, and §134/§140 both establish that assertions nobody will act on make a suite worse.
+§144's close-boundary gap **was** fixed because it changed a decision (a valid slot rejected); this changes
+none.
+
+The distinction, stated once so future judgement calls are consistent:
+
+> **Fix a coverage gap that permits a wrong outcome. Record a coverage gap that permits only a wrong message.**
+> Both are real; only the first is worth a permanent assertion.
