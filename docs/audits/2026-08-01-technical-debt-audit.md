@@ -4936,3 +4936,41 @@ section did not otherwise touch — the §49 discipline.
 **Verification.** Fast-path mutation proved RED on four tests; `concierge.ts` restored byte-identical; all four
 sweeps read for the claimed pattern (a first attempt used a glob that matched nothing and errored — §101's
 mistake, caught in the same turn and re-run explicitly).
+
+---
+
+## §103 — making the coupling visible, because a comment that names the wrong net is worse than none
+
+§102 found two things and fixed neither, deferring both as "recorded findings". One of them does not deserve
+deferral: a comment in `concierge.ts` named the **wrong sweep** as the safety net for a known gap, and the
+right one depends on an ordering in a third file that nothing cross-referenced.
+
+Deferring a *wording* correction is reasonable when the wording is merely imprecise. This one actively
+misdirects: an engineer reading "the [WP-11 reconciliation] sweep detects it and re-drives it" would go to
+`recon-sweep.ts`, find the Biller anti-join, see nothing about replies, and conclude either that the comment
+is stale or that the gap is unhandled. Both conclusions are wrong, and the second is the dangerous one — it
+invites someone to "fix" a gap that already has a net, or to remove the net's precondition believing nothing
+depends on it.
+
+**Both files now carry the coupling.**
+
+`concierge.ts`'s KNOWN GAP states the correction plainly — `recon-sweep.ts` is the Biller reconciliation and
+will never see this; the real net is `sla-sweep.ts`, which **surfaces** the stranded reply for a human rather
+than re-driving it — and then names the dependency: *that net only works because `setInboundSla` runs BEFORE
+the appends*, with the §97 test that pins it.
+
+`sla-sweep.ts` carries the reciprocal: it is the **only** backstop for that gap, and reordering the SLA write
+in `concierge.ts` disconnects it **without failing anything obvious**.
+
+### 103.1 Why the reciprocal half matters more than the first
+
+The forward reference helps whoever reads the gap. The reciprocal helps whoever is about to break it — someone
+editing `concierge.ts`'s ordering has no reason to open `sla-sweep.ts`, and until §97 no test would have
+stopped them. That is the same asymmetry §68 found in the acceptance manifest (the reverse direction is the
+one that catches coverage silently disappearing) and §84 found in refusal tests.
+
+A cross-reference is not documentation for its own sake here: it is the only thing standing between a
+plausible refactor and a silently unanswered customer email.
+
+**Verification.** `workers/agents` suite green; `workers/api/test/concierge.test.ts` 24/24; typecheck, lint,
+citations and tables PASS.

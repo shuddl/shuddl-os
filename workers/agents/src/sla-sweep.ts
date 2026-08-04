@@ -3,6 +3,14 @@
 // OWED a reply but was NOT auto-answered; this sweep, running per-tenant on the agents cron, finds the ones
 // now PAST their due with NO answering `message.sent` and RECORDS an overdue signal.
 //
+// THIS SWEEP IS ALSO THE ONLY BACKSTOP for the concierge redelivery KNOWN GAP (audit §102/§103): an
+// auto-reply that dies AFTER appending quote.requested but BEFORE message.sent is treated as
+// `already_handled` on redelivery and never completes — it is stranded, and this sweep surfacing it is the
+// one thing that stops it being silently unanswered. That only works because `setInboundSla` runs BEFORE
+// those appends, so a mid-flight death still leaves a due ts here to find. Reordering that in concierge.ts
+// disconnects this backstop without failing anything obvious; audit §97 pins it
+// (`workers/api/test/concierge.test.ts` — "the reply SLA is durable BEFORE the append").
+//
 // NO NEW EVENT KIND (the 35-catalog is frozen): the signal is an INTERNAL `message.received{channel:"note",
 // visibility:"internal"}` event appended THROUGH the sequencer DO on the shipment stream — the SAME internal-
 // note primitive Task 7 proved is redacted from the counterparty lens. Its id is DETERMINISTIC (derived from

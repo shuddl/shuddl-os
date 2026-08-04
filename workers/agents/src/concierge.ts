@@ -318,10 +318,23 @@ export async function handleMessageReceived(message: MessageReceivedTrigger, dep
   // REDELIVERY (QUEUED). A quote.requested exists but NO message.sent ⇒ this inbound was already DECIDED as
   // queued (a human owns it) — there is nothing to auto-send. Return already_handled (no re-parse/re-judge).
   // Both this and the fast path are PRIMARY-KEY lookups on deterministic ids — no json_extract table scan (I1).
-  // KNOWN GAP (WP-11 reconciliation sweep, same class as REQ-169's Biller commit→enqueue window): if a FRESH
+  // KNOWN GAP (same CLASS as REQ-169's Biller commit→enqueue window, but a DIFFERENT net): if a FRESH
   // auto-reply died AFTER appending quote.requested but BEFORE message.sent, this guard also returns
-  // already_handled, so that reply never completes. The sweep detects it structurally (quote.priced present,
-  // message.sent absent, no draft row ⇒ an unfinished auto-reply) and re-drives it; the send stays idempotent.
+  // already_handled, so that reply never completes.
+  //
+  // Corrected 2026-08-03 (audit §102/§103) — the previous wording said "the [WP-11 reconciliation] sweep
+  // detects it structurally … and re-drives it", which named the wrong sweep and overstated the action:
+  //   · `recon-sweep.ts` is the BILLER reconciliation (committed pod.signed with no invoice). It has no
+  //     concept of replies and will never see this.
+  //   · The real net is `sla-sweep.ts`: it finds inbounds PAST their sla_due_ts with no answering
+  //     message.sent and appends an internal overdue signal. It SURFACES the stranded reply for a human —
+  //     it does NOT re-drive the send.
+  //
+  // LOAD-BEARING COUPLING — do not reorder without reading this. That net only works because
+  // `setInboundSla` runs BEFORE the appends (see the three call sites below): a reply that dies mid-flight
+  // must already carry its due ts, or the SLA sweep cannot find it and this gap loses its only backstop.
+  // Pinned by workers/api/test/concierge.test.ts "the reply SLA is durable BEFORE the append" (audit §97),
+  // which stages exactly that crash. The two properties live in different files and only work together.
   if ((await loadEventById(db, quoteRequestedEventId, "quote.requested")) !== null) {
     return { status: "already_handled", detail: `quote.requested already recorded (queued) for message ${msg.event_id}` };
   }
