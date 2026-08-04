@@ -5241,3 +5241,63 @@ conclusion.
 
 **Verification.** `DEPLOYMENT.md` header/section consistency re-read; the replaced sentence carries no count;
 all 40 hyphenated-form candidates classified; tables and citations PASS.
+
+---
+
+## §111 — the pixel law, mutation-proved (REQ-158 / CLAUDE.md rule 7)
+
+Rule 7 is one of the ten non-negotiables, and it is the only one whose enforcement **changes over time**:
+design CI is *"advisory (report-only) until WP-10 exits, blocking thereafter (REQ-158)"*. All sixteen WPs are
+closed, so it must now block. Nothing in the record had ever checked that the flip happened, and nothing had
+ever checked the gate could fail.
+
+**The flip is real, on both halves.** `tools/design/design-ci.json` = `{"mode":"blocking"}`, and `design-audit`
+sits in the **non-skippable** list in `gatesFor()` — so a violation exits 1 (`audit.ts:296`) and the runner
+propagates it. `tools/release/ci-contract.test.ts:74` independently pins the CI job name against ever
+regressing to `design-advisory`.
+
+**The gate is substantive — twelve rules, each proved to fail alone.** Baseline clean (exit 0, 346 tracked
+files scanned). Injecting one violation at a time into `apps/command/src/App.tsx`, restoring byte-identically
+after each:
+
+| probe | verdict | REQ |
+|---|---|---|
+| `boxShadow` / `box-shadow` / `text-shadow` | RED | 147 |
+| `borderRadius: 12px` | RED | 147 |
+| linear- and radial-gradient | RED | 145 |
+| blue `#1e90ff` · gray `#888888` · 6th token `#ff00ff` | RED | 145 |
+| third font family | RED | 146 |
+| spring/overshoot cubic-bezier | RED | 148 |
+
+### 111.1 Three of the first eight passed for the WRONG REASON
+
+The shadow and gradient probes initially came back RED reporting *"color #000 outside the five tokens
+(REQ-145)"* — the **color** rule firing on the raw hex inside my declaration, not the shadow or gradient rule.
+Had I stopped at the exit code, I would have recorded "shadows are enforced" on evidence that showed only that
+hex literals are.
+
+Re-probed with **sanctioned `var(--token)` values only**, which the color rule cannot flag. All four then
+returned exactly **one** violation naming its own rule. That is §81's discipline (when guards share an
+outcome, assert the *reason*) applied to a mutation rather than a test, and §92's (redundant *mechanisms* need
+one pin each) — a green exit code is a shared outcome like any status code.
+
+### 111.2 The harness lied first, and it lied the same way as §101
+
+The first run reported **8/8 GREEN — NOT CAUGHT** and I nearly wrote *"the design gate is hollow."* It was the
+harness: `ls apps/command/src/*.css` matched nothing (all `apps/**` CSS is build output), zsh aborted, the
+target variable was empty, and **no mutation was ever written** — so the audit correctly passed a clean tree
+eight times.
+
+Third and fourth instance of §101's shape in this loop, and the second near-miss of §73's exact kind (that one
+nearly published *"the isolation suite is hollow — 63 tests passed"*). The rule earns a sharper edge:
+
+> **A mutation that produces no diff proves nothing.** Assert the file changed before believing the verdict —
+> a GREEN from an unmutated tree is indistinguishable from a hollow gate, and it is the more likely of the two.
+
+### 111.3 Two clean negatives measured in passing
+
+- **Untracked build output cannot reach the gate.** `scannedFiles()` enumerates via `git ls-files` *and*
+  filters `/dist/` — belt and braces. The `apps/*/dist/` CSS is `.gitignore`d at line 2.
+- **iCloud duplicates: zero tracked.** The standing hazard (`"name 2.ext"` copies corrupting file-count gates)
+  found 5 `.css` duplicates under `apps/*/dist/` — all untracked, all invisible to every gate. `git ls-files`
+  matching the ` N.ext` pattern returns **0**.
