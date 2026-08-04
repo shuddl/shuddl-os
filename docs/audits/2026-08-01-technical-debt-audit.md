@@ -9042,3 +9042,89 @@ asks for photos and is graded on rendering; the rendering is excellent and the p
 gate reported green — coverage, traceability, acceptance — because each was measuring something true.
 This is the same shape as §174 (an incidental catch) and §176 (a red gate hiding green suites): **the
 gates were not wrong, they were narrower than the sentence a reader takes away from them.**
+
+---
+
+## §179 — how a half-built row passes: the DoD graded a different thing than the requirement asked for
+
+§178 ended on a rule — *a DoD narrower than its requirement text will pass coverage while half the row is
+unbuilt* — which is a claim about the register as a whole, so it wanted measuring.
+
+### The instrument failed first, and its own output says why
+
+Attempt 1 scored each row by how much of the requirement's vocabulary survived into its DoD: **77 of 289**
+rows under 14%. Worthless. REQ-031's DoD is **`p95 <5s POD→email in pilot`** — a superb, falsifiable,
+outcome-level gate — and it scores **zero**, because a good DoD deliberately speaks in *operational*
+vocabulary the requirement does not use. Word overlap measures paraphrase, not coverage. Recording the
+failure rather than the 77, per §122/§150.
+
+Attempt 2 matched REQ-087's actual *shape*: a requirement joining deliverables with `+` whose DoD grades
+fewer things than the requirement names. **31 rows.** Better, still not a defect list — REQ-092's
+*"Deliverability >98% seed"* grades one number that genuinely subsumes DKIM/SPF/DMARC *and* bounce
+handling. **The 31 are a shortlist for owner review; they are not findings**, and no row is being changed
+on the strength of the shape alone.
+
+### The one adjudicated — REQ-039, and what it explains
+
+*"Every agent: confidence gate + human queue + cost tracking"* → DoD *"agent_runs rows complete."*
+
+The metering plumbing is complete and honest end to end. `agent_runs` carries `confidence`, `cost`,
+`latency_ms`, `outcome`; the projection records cost **exactly as reported** — `{cents:0}` an honest zero,
+`{}` an explicit *unknown*, never fabricated; the Watchtower averages **only reported metrics**
+(`watchtower.ts:333@avgCostCents` — `acc.costN > 0 ? … : null`, and the budget check skips null, so there
+is **no** false-zero fail-open here).
+
+But **only one agent emits `agent.acted` at all**: the rater, from two byte-identical paths
+(`workers/api/src/routes/rate.ts:248@agent.acted` and `workers/translator/src/inbound.ts:575@agent.acted`),
+reporting `cost_cents: 0` because it is a deterministic engine with no LLM call. Since `agent.acted` **is**
+the metered AI action — billing counts it (`workers/billing/src/metering.ts:3@agent.acted`) and the
+Watchtower budgets it — the meter never observes the agents that would cost anything.
+
+**That gap is not new: §135/§136 already found and corrected it** (the Concierge's *count* is metered by
+SparkMeter; its **cost-in-cents and latency-in-ms are not** — precisely the two quantities REQ-113's drift
+alarm averages). I re-derived it from the opposite direction and had to be told so by my own §177 rule:
+*check whether the verdict is already recorded before adjudicating.* One section later. It is recorded.
+
+What §179 adds is the **mechanism**, which no section had: *why nothing caught it.* The DoD is
+`agent_runs rows complete` — and the rater's rows **are** complete. A DoD phrased over the *shape of the
+rows that exist* cannot detect that eleven of twelve built agents write no rows at all. The row is graded
+on the table being well-formed; the requirement asked for **every agent**. Both statements are true
+simultaneously, which is exactly how this passes.
+
+### The rule
+
+**Write the DoD over the population, not the specimen.** `agent_runs rows complete` grades whatever rows
+happen to exist; `every built agent has ≥1 agent_runs row in a 7-day window` would have failed on day one
+and named the eleven. The same substitution fixes REQ-087: *"renders across clients"* grades the view that
+exists, where *"a delivered POD's email contains the signature and placed-freight images"* grades the
+delivery. **A DoD that quantifies over what shipped will always pass; a DoD that quantifies over what was
+promised is the only kind that can fail.**
+
+No REQ rows changed here — DoD text is register scope and belongs to its owner. The 31-row shortlist and
+this rule are the deliverable.
+
+### Coda — the citation gate caught a mis-scoped commit
+
+While writing this section the gate went red with **7 rotted citations**, none of them mine: dangling
+`worker/index.js`, `public/demo.js`, `public/main.js` references inside `docs/gtm/` drafts. Those files
+had been **untracked** all session — they belong to the concurrent demand-program workstream. They became
+tracked because §178's commit staged with `git add docs/`, which swept in **39 files** across
+`docs/gtm/`, `docs/research/` and `docs/plans/` that another workstream had deliberately left untracked.
+
+Nothing was pushed (206 commits ahead of `origin/main`), so the commit was rebuilt with only its five
+real files and the 39 returned to untracked, byte-unchanged on disk; `git status` now matches the
+session-start listing exactly. `check:tables` corroborates from the other side: **147 markdown files
+during the mistake, 109 after** — the same count it had all session.
+
+Two things worth keeping:
+
+1. **`git add <dir>` is unsafe in a shared working directory.** This repo hosts two workstreams in one
+   checkout; a directory-scoped add cannot distinguish "my new file" from "theirs, not ready." Stage
+   explicit paths. The same shape as §173's lesson about directory-scoped *sweeps*, now for *staging* —
+   in both cases the directory was the wrong unit and the blast radius was invisible until something
+   independent complained.
+2. **A gate caught a class of error it was not built for.** `check:citations` exists to stop citation
+   rot; here it detected an incorrect *commit scope*, because newly-tracked files entered its universe
+   and brought their own dangling references. That is the second time this session a gate has been more
+   useful than its name (§175: bounds-checking is narrower than it reads; here: wider). Neither was
+   predictable from the gate's description — **only from running it.**
