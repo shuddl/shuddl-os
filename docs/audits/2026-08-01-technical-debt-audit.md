@@ -5629,3 +5629,67 @@ Three documents state this build's mechanical laws, and all three are now demons
 
 Twenty-three of twenty-five, with the two exceptions named and neither closable in-repo. Nothing in this
 section changed a line of product code — it changed what the record is entitled to claim.
+
+---
+
+## §118 — the five acceptance demos, and a gate that misreported its own size
+
+`CLAUDE.md` names five acceptance demos as the definition of *"done enough to show."* They are the last
+declared law this audit had not examined.
+
+**The gate is real, not structural.** `test:acceptance` does not validate a manifest — it invokes each demo's
+spine files **in their own package's vitest config**, because the api/mcp pools are `vitest-pool-workers`,
+driver is node and map is jsdom, and they cannot share one root config. (That is §116's lesson, already
+encoded here before I rediscovered it the hard way.) A run at this commit:
+
+| package | spine files | tests |
+|---|---|---|
+| `@shuddl/api` | 4 (heartbeat, signup-to-quote e2e, airplane-soak, command-heartbeat) | 6 |
+| `@shuddl/driver` | 1 (stop-flow) | 7 |
+| `@shuddl/mcp` | 1 (quote-book) | 9 |
+| `@shuddl/map` | 1 (MapCanvas) | 14 |
+| **total** | **7** | **36** |
+
+**Its no-op defence is real too, and I checked rather than trusted it.** The runner carries the comment
+*"vitest exits non-zero on … 'no test files found' (a typo'd filter), so a silent no-op can never pass as
+green."* That is an observation stated as a law — §64's exact class, and load-bearing: if false, the five
+demos could pass while running nothing. Tested directly against a nonexistent filter:
+
+```
+No test files found, exiting with code 1
+filter: test/does-not-exist-xyz.test.ts
+```
+
+True, and true *for the stated reason*. The comment stands.
+
+### 118.1 The gate has been misreporting its own size
+
+`spineFileCount()` returns `files.length`. The runner printed it as:
+
+> `ACCEPTANCE SPINE: GREEN — all 7 spine tests pass.`
+
+Seven is the count of **files**; those files carry **36 test cases**. Every record that quoted this line
+inherited the wrong number — including this session's own working notes, which recorded "acceptance spine
+GREEN (7 tests)" straight from the output.
+
+Fixed to say `7 spine FILES`, with the reason inline. It is a one-word change and it matters for one reason:
+**this is a gate teaching the record a false fact.** Every other count defect this loop found was a human
+writing a number that later decayed (§66, §110, §113). This one is a machine emitting a wrong number
+*continuously*, which no amount of care in the prose can survive — the audit's whole answer to decay has been
+"point at the authority instead of restating it," and here the authority itself was wrong.
+
+Worth stating as a rule, because it is the failure mode that defeats the fix:
+
+> **When a document defers to a generated figure, the generator inherits the honesty obligation.** "Read it
+> from the run, not from here" (§110) only helps if the run says what it means.
+
+### 118.2 The filmed delta is the honest remainder
+
+Each demo declares a `filmed` delta — the part no in-repo test can reach. Two are explicit that the full
+causal chain is not browser-drivable here: demo 1's DO-queue + Resend latency, and demo 4's cross-worker
+booking. Those are not gaps in coverage; they are correctly-scoped statements that the *integration spine*
+proves the causation and a *filmed* run proves the wall-clock. That is the right shape, and it is already
+recorded in `docs/wp/acceptance-demos.md`.
+
+**Verification:** `test:acceptance` GREEN (7 files, 36 tests), `typecheck` PASS, `lint` PASS, the manifest
+drift suite 5/5.

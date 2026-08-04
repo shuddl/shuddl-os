@@ -58,7 +58,9 @@ function main(): void {
     console.error(`ACCEPTANCE SPINE: FAIL — ${failed.length} package(s) red: ${failed.join(", ")}`);
     process.exit(1);
   }
-  console.log(`ACCEPTANCE SPINE: GREEN — all ${spineFileCount()} spine tests pass. The FILMED half is the`);
+  // §118: spineFileCount() counts FILES, not test cases. Printing it as "tests" taught every record that
+  // quoted this line a wrong number (the 7 files carry 36 cases). Say what the number is.
+  console.log(`ACCEPTANCE SPINE: GREEN — all ${spineFileCount()} spine FILES pass. The FILMED half is the`);
   console.log("launch-gate checklist in docs/wp/acceptance-demos.md.");
 }
 
