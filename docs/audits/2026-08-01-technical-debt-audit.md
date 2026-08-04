@@ -9825,3 +9825,55 @@ to use the thing. One that *understates* it — "this is a stub" about 26 KB of 
 fail-closed code — is invisible forever, because nobody goes looking for work that is already done. It
 survives precisely because it is pessimistic, and pessimism reads as safe. **Re-verify the holds that
 claim something is missing, not only the ones that claim something is ready.**
+
+---
+
+## §190 — how many holds understate the build: 1 of 4 sampled, and the checklist is largely honest
+
+§189's rule — *re-verify the holds claiming something is missing, not only the ones claiming it is ready* —
+needs a base rate, or it reads as an indictment of the whole checklist.
+
+Enumerated every `GO-LIVE-CHECKLIST.md` row asserting **absence** (`stub`, `unwired`, `unbuilt`,
+`never run`, `unprovisioned`, `deferred`, `not implemented`, `no gate exists`): **67 rows, 10 already
+struck in place**, 57 live. Sampled four, chosen for checkability rather than convenience.
+
+| Row | Claim | Verdict |
+|---|---|---|
+| L126 / L305 | nightly backup workflow is a **stub** | **STALE** (§189) — 72 lines, scheduled, calling a 26 KB tool with 35 passing tests |
+| L272 | REQ-126 human escalation + SLA **unbuilt** | **accurate** |
+| L294 | append-only guards don't enumerate every UNIQUE surface | **accurate** |
+| L283 | UNKNOWN-while-native liveness **unmonitored** | **accurate** |
+
+**1 of 4.** The checklist is largely honest, and saying so is the point of the section — §189 alone would
+have left the impression that its holds are unreliable.
+
+### The two that took real checking
+
+**L294 is exactly right, and I verified it against the migration rather than the prose.**
+`events_guard_ins` fires on `(stream_id, seq)` OR `id`; it does **not** cover `hash` (also UNIQUE) or
+`ux_events_device(stream_id, device_id, device_seq)`, and `money_lines_guard_ins` omits
+`ux_ml_corrects(corrects_event_id, line_no)`. The row's own characterisation — latent, not exploitable
+today because a plain INSERT aborts — matches what the SQL does. Live hold, correctly stated.
+
+**L283 is the pattern worth copying.** The hold says a native module whose legacy mirror goes UNKNOWN is
+unmonitored — and `workers/agents/src/watchtower.ts:427@UNKNOWN` says the same thing *in its own source*:
+*"a native module whose mirror went UNKNOWN is unmonitored" gap — deliberately NOT an auto-fallback.*
+The record and the code state one fact in two places, so neither can rot alone. That is the shape §182's
+`clear()` note and §178's demo constraint were reaching for.
+
+### My own near-miss, which is §136 again
+
+I flagged **L272** ("REQ-126 human escalation + SLA unbuilt") as an obvious §189 repeat, because I had
+just watched the agents worker schedule `runSlaSweep` and had `workers/agents/src/sla-sweep.ts` open. They
+are different things: `sla-sweep.ts` is **REQ-095**, the inbound *message-reply* SLA; L272 is **REQ-126**,
+the Scale-tier *customer-support* SLA, correctly filed as a product/ops deliverable and graded Low.
+*"X exists"* is not *"the X in this row exists"* — the same error as §136's Concierge metering, where
+SparkMeter's count was mistaken for cost.
+
+### What this leaves
+
+The remaining **53 unverified absence-claims are owner work**, not because they are hard but because
+each verdict is a small independent measurement and the ones that matter are external anyway (credentials,
+fixtures, a rota). What this session contributes is the method and the base rate: **enumerate the absence
+claims, and re-verify the cheap ones first — a stale hold that understates the build costs an operator a
+day of rebuilding something that already ships, and nothing else in the system will ever contradict it.**
