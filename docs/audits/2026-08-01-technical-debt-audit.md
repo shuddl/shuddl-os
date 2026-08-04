@@ -4851,3 +4851,42 @@ way.
 
 **Verification.** All eight proposed rows grepped against `genesis/09` by id; `check:traceability` green;
 post-194 rows counted by WP.
+
+---
+
+## §101 — three mechanical integrity checks, and a grep that failed rather than found nothing
+
+Continuing §99/§100's deliberately mechanical footing. Three checks a script can settle, chosen because each
+would silently reduce what the build actually verifies.
+
+**1. Migration numbering — contiguous.** `db/tenant/migrations/` runs `0001`…`0008` and
+`db/control/migrations/` runs `0001`…`0003`, with no gaps and no duplicate prefixes. A gap would suggest a
+migration removed after others were numbered past it; a duplicate would mean one silently shadowing another
+depending on sort order. Neither exists.
+
+**2. No exclusive or disabled tests.** No `it.only`, `describe.only`, `test.only`, `.skip`, `xit` or
+`xdescribe` in any test file across `workers`, `packages`, `apps` and `tools`. This is the check worth running
+after a session with thirty mutations: a stray `.only` left behind would silently reduce a whole file to one
+case **while the suite still reports green**, which is the exact shape of defect this audit spent §84–§97
+hunting in the code.
+
+**3. Per-kind map consistency — type-enforced, not checkable by script.** `REDACTIONS` and `INTERNAL_NESTED`
+are `Partial<Record<EventKind, …>>`, so an invalid or renamed kind is a compile error rather than a runtime
+gap. `typecheck` already owns it; a bespoke script would duplicate the compiler.
+
+### 101.1 The ninth near-miss, and a new variant of it
+
+The `.only` check first ran with `grep --include=*.test.ts`, which **zsh rejected outright** — and I printed
+`(none above = no disabled or exclusive tests)` beneath a command that had *errored*, not searched.
+
+That is a new variant of the loop's most persistent mistake. The previous eight were empty results from
+searches that ran; this was an empty result from a search that **never ran at all**, dressed in the same
+reassuring echo. §72's rule needs the addition: *a null result is only evidence if the command succeeded* —
+check the exit status, not just the output.
+
+Re-run correctly, the answer was still clean, and the two apparent hits were a coincidental substring inside
+a minified bundle under `apps/portal/dist/` — a build artifact, not a test.
+
+**Verdict: three clean negatives**, and the ninth reminder that the shape of my errors has not changed all
+session: every one has been a claim about absence, and every one was caught by running something properly
+rather than reading more carefully.
