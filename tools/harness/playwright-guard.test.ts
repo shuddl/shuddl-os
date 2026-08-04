@@ -168,12 +168,21 @@ describe("every emitted result satisfies the promotion evidence contract", () =>
   });
 
   it("never returns exit 0 for a non-PASS under merge or release", () => {
+    // COUNT the non-PASS classifications and pin the count (audit §181). The assertion below is
+    // conditional on a non-PASS, so if classifyRun ever graded EVERY outcome as PASS this test would pass
+    // having checked nothing — and "the harness calls everything PASS" is precisely the failure this file
+    // exists to prevent. The vacuous form cannot distinguish a correct harness from a blind one.
+    let nonPass = 0;
     for (const mode of MODES) {
       for (const outcome of outcomes) {
         const { result, exitCode } = classifyRun("gate", mode, false, outcome);
-        if (result.status !== "PASS") expect(exitCode, `${mode}/${outcome.kind}`).not.toBe(0);
+        if (result.status !== "PASS") {
+          nonPass++;
+          expect(exitCode, `${mode}/${outcome.kind}`).not.toBe(0);
+        }
       }
     }
+    expect(nonPass, "classifyRun graded EVERY outcome as PASS — this assertion checked nothing").toBeGreaterThan(0);
   });
 });
 

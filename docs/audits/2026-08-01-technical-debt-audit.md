@@ -9201,3 +9201,117 @@ promise: *if* anything is here, it is well-formed. Leak guards, allowlists and r
 unconditional form, and the one-line difference is a size pin. 1 real defect in 10 candidates across 328
 loops is a low rate — the point is that the one it found guards a privacy boundary, and it had been
 green since the day it was written.
+
+---
+
+## §181 — the conditional assertion, and a gate-sentinel test that passes against a blinded harness
+
+§180 swept loops. The sibling shape is the **conditional assertion** — `if (cond) expect(...)` — which is
+the same conditional promise with a different syntax. Also swept, for completeness: **skipped tests** (one
+`test.skip`, and it is correct — `prod-surface.spec.ts` self-skips without `PROD_SURFACE_BASE`, and
+`run-gate.ts:88` reports it **BLOCKED**, not PASS, which is the fail-visible behaviour) and **un-awaited
+`.rejects`/`.resolves` assertions** (**zero**).
+
+**20 conditional assertions; 15 are the discriminated-union narrowing idiom** — an unconditional
+`expect()` on the line above carries the claim, and the `if` exists only so TypeScript can reach
+`.payload` / `.failure`. `restore-verify.test.ts` pins `expect(hashBreak.ok).toBe(false)` first;
+`merge.test.ts` pins `toHaveLength(1)` and the surviving id. Correct, and worth stating so the idiom is not
+churned by a future sweep.
+
+**Five had no unconditional assertion within five lines. One was already exemplary, three were real.**
+
+### The gate-sentinel test, which is the serious one
+
+`tools/harness/playwright-guard.test.ts` — *"never returns exit 0 for a non-PASS under merge or release."*
+
+```ts
+for (const outcome of outcomes) {
+  const { result, exitCode } = classifyRun("gate", mode, false, outcome);
+  if (result.status !== "PASS") expect(exitCode, `${mode}/${outcome.kind}`).not.toBe(0);
+}
+```
+
+If `classifyRun` ever graded **every** outcome as PASS, the test asserts nothing and passes. And "the
+harness calls everything PASS" is not a hypothetical failure — it is *the* failure this file exists to
+prevent, and the one `reconcile-gate-sentinels-with-exit-codes` was written about.
+
+Proven by blinding the harness (early-return PASS/exit 0 for every classification):
+
+| | blinded harness |
+|---|---|
+| old test | **GREEN** — 1 passed |
+| fixed test | **RED** — *"classifyRun graded EVERY outcome as PASS — this assertion checked nothing: expected 0 to be greater than 0"* |
+
+**A test that cannot distinguish a correct gate harness from a blind one.** Fix: count the non-PASS
+classifications and pin `nonPass > 0` with that message.
+
+### The other two
+
+- **`workers/translator/test/map-204.test.ts`** — two tests whose *only* assertion was
+  `if (append.kind === "quote.requested") expect(...weight_lb).toBeUndefined()`. This guards **no price on
+  air** (`CLAUDE.md` rule 4): an absurd or fractional AT8 weight must route to UNKNOWN, never a fabricated
+  rounding. Proven vacuous — with production rounding `1200.5 → 1200` and the guard unsatisfied, both went
+  **GREEN**; with the guard satisfied, both went **RED**. Fixed by pinning `append.kind` unconditionally.
+- **`workers/api/test/export.test.ts`** — keyset pagination pinned page 1 (`events.length === 1`) but never
+  page 2, so `if (p1.events[0] && p2.events[0])` skipped whenever page 2 came back **empty**. Adding the pin
+  turned the suite RED with `expected +0 to be 1` — **page 2 was empty, and had always been**: every call
+  goes through a private far-future window that held exactly ONE seeded event, so the "the keyset
+  advanced — no overlap, no gap" assertion had never executed once.
+
+  The export itself is correct (`a full page ⇒ more rows may follow; a short page is the end` — with
+  `limit=1` a cursor is handed back even at the end). The defect was the **fixture**. Fixed by extracting
+  `seedEvent` and seeding a second in-window event with **no** money_line, so the journal counts the file
+  pins stay deterministic. Now proven live: making the export ignore the cursor gives
+  `expected 's:exp-shipment-a:0' not to be 's:exp-shipment-a:0'`.
+
+  **Stated precisely, because the first draft of this paragraph overclaimed:** the old test was vacuous in
+  its GREEN state, not against every mutation. Ignoring the cursor would have made page 2 repeat page 1,
+  giving it something to catch. What it could never catch is the case that actually held — a correct
+  cursor with no further rows — which is exactly the state it shipped in.
+
+### Two of my own errors, both caught by checking the number rather than the colour
+
+1. **A RED for the wrong reason.** The first map-204 mutation removed `Number.isSafeInteger`, and the tests
+   went red — but on a **ZodError** from `EventInput.parse`, not the assertion. The test's headline claim
+   (*"not an opaque EventInput.parse throw"*) is verified unconditionally, because a throw fails a test
+   regardless of assertions; only the secondary claim rides the conditional. The mutation had to be
+   redesigned to fabricate **without** throwing before it proved anything (§117, again).
+2. **A malformed verification of my own fix.** To check the new pin, I falsified the *literal inside the
+   conditional* rather than the production kind — so the pin correctly passed (`kind` really was
+   `quote.requested`) and I briefly read that as the fix failing. The honest limit, stated: **the pin's
+   guarantee is structural, not mutation-demonstrated.** It is an unconditional assertion of the exact
+   predicate the narrowing tests, so it fails whenever that predicate is false; the crude kind-swap
+   mutation makes the payload invalid for the new kind and throws in Zod before the pin is reached, so no
+   cheap mutation isolates it. Recording that rather than implying a proof I did not produce.
+
+### The rule
+
+**A conditional assertion is only as strong as the thing that guarantees the condition.** After an
+unconditional pin it is a type-narrowing convenience and entirely fine — 15 of 20 here. Standing alone it
+is a test that reports on a world it also gets to define. The tell is mechanical and worth keeping: *is
+there an unconditional `expect()` above it in the same test?*
+
+### Coda — §178 shipped a regression, and the gate that caught it was one I never ran
+
+Running the full `test:tools` suite at the end of §181 turned up **4** failures where 3 were expected.
+The extra one was mine, from **§178**: `tools/acceptance/demos.test.ts` — *"the manifest names NO spine
+file this module does not declare."*
+
+§178 added a line to `docs/wp/acceptance-demos.md` citing the evidence-email view's test file. That gate
+scans the manifest for any `.test.tsx?` / `.spec.tsx?` path and requires each to be a **declared spine
+file**, because — in its own words — *"a spine file deleted from demos.ts would linger in the manifest,
+which reads as coverage that no longer runs, the failure direction that overstates."* My citation named a
+real, well-covered suite that is **not** part of the acceptance spine, and the gate was right to refuse
+it. Rephrased to keep the information without the path.
+
+The process error is the fifth of this session and identical every time: **I verified with the gates I
+was thinking about, not the suite that owns the file I edited.** §178 ran `check:citations` and
+`check:tables` — both green, both irrelevant to `tools/acceptance/demos.ts` and its manifest. §130, §148,
+§157 and §176 are the same mistake. The question that would have caught all five, asked before commit
+rather than after: *which suite owns the file I just changed, and did I run it?*
+
+Worth noting the gate's own shape, since §180/§181 were about exactly this: its assertion is
+`for (const file of named) expect(declared.has(file))` — vacuous if the manifest names no test files at
+all. Here that is covered, because the **forward** direction (every declared spine file must appear in
+the manifest) pins the set from the other side. Two conditional checks that constrain each other are not
+vacuous; one alone would be.

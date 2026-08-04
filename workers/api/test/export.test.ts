@@ -19,17 +19,22 @@ import { eventToRow } from "@shuddl/ledger/lens";
 // file's export contains EXACTLY the row seeded below — deterministic counts, no shared-D1 pollution.
 const PW_TS = 1_960_000_000_000;
 const A_ML_EVENT = crypto.randomUUID();
+const A_PAGE2_EVENT = crypto.randomUUID(); // audit §181 — the SECOND in-window event, so pagination has two pages
 const A_DOC_ID = `exp-doc-${crypto.randomUUID()}`;
 const A_ANCHOR_DAY = "2032-02-03";
 const A_ANCHOR_ROOT = "a".repeat(64);
 const exHash = (): string => crypto.randomUUID().replace(/-/g, "").padEnd(64, "0");
 
-async function seedMoneyLine(eventId: string, shipmentId: string, mlId: string, amount: number): Promise<void> {
+async function seedEvent(eventId: string, shipmentId: string): Promise<void> {
   const e = eventFixture("pod.signed", { id: eventId, stream_id: `s:${shipmentId}`, shipment_id: shipmentId, seq: 0, visibility: "internal", party_refs: [] });
   const row = eventToRow(e);
   row.hash = exHash();
   const cols = Object.keys(row);
   await env.TENANT_A_DB.prepare(`INSERT OR IGNORE INTO events (${cols.join(",")}) VALUES (${cols.map(() => "?").join(",")})`).bind(...cols.map((col) => row[col])).run();
+}
+
+async function seedMoneyLine(eventId: string, shipmentId: string, mlId: string, amount: number): Promise<void> {
+  await seedEvent(eventId, shipmentId);
   await env.TENANT_A_DB
     .prepare("INSERT OR IGNORE INTO money_lines (id, shipment_id, event_id, line_no, direction, kind, amount_cents, currency, party_id, division, gl_map, created_ts) VALUES (?,?,?,1,?,?,?,?,?,?,?,?)")
     .bind(mlId, shipmentId, eventId, "ar", "freight", amount, "USD", "party-shipper", "main", "4000-FREIGHT-AR", PW_TS)
@@ -40,6 +45,11 @@ beforeAll(async () => {
   await ensureSchema(env);
   // (1) a money_line in the private window (its FK event too) — the journal control.
   await seedMoneyLine(A_ML_EVENT, "exp-shipment-a", "exp-ml-a", 123_456); // → 1234.56
+  // (1b) audit §181 — a SECOND event in the private window, with NO money_line so the journal counts below
+  // stay deterministic. Until this existed the window held exactly ONE event, so the keyset-pagination test
+  // fetched an EMPTY page 2 and its "the keyset advanced" assertion — guarded by `if (p1.events[0] &&
+  // p2.events[0])` — never ran even once.
+  await seedEvent(A_PAGE2_EVENT, "exp-shipment-page2");
   // (2) a plain document ref (the bytes ride the WP-09 resolver; the export lists only the ref).
   await env.TENANT_A_DB
     .prepare("INSERT OR IGNORE INTO documents (id, shipment_id, party_id, kind, r2_key, hash, lifecycle_class, visibility) VALUES (?,?,?,?,?,?,?,?)")
@@ -158,6 +168,10 @@ describe("REQ-010: the archive bundles events + journal + documents + anchors, w
     const p2 = (await (await getExport(t, `&limit=1&cursor=${encodeURIComponent(cursor)}`)).json()) as Archive;
     // page 2's first event is strictly after page 1's (the keyset advanced) — no overlap, no gap.
     const k = (e: { stream_id: string; seq: number }): string => `${e.stream_id}:${e.seq}`;
+    // Pin page 2 before comparing (audit §181). p1.events[0] is guaranteed by the length check above, but
+    // p2 was not: a cursor that returned an EMPTY page made the keyset-advance assertion below skip
+    // silently, so broken pagination would read as green.
+    expect(p2.events.length).toBe(1);
     if (p1.events[0] && p2.events[0]) expect(k(p2.events[0])).not.toBe(k(p1.events[0]));
   });
 });

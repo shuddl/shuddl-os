@@ -96,6 +96,11 @@ describe("mapTenderToBooking — 204 → booking plan (REQ-201/196)", () => {
     const tender: TenderDoc = { ...baseTender, weightLb: Number.MAX_SAFE_INTEGER + 2 };
     const plan = await mapTenderToBooking(tender, ctx);
     const append = plan.appends[0]!;
+    // Pin the kind UNCONDITIONALLY before narrowing (audit §181). The line below is the ONLY assertion in
+    // this test, and it rides on the narrowing guard — so if appends[0] ever ceased to be quote.requested
+    // (an added or reordered append), this test would pass while the mapper FABRICATED a rounded weight.
+    // Proven: with the guard unsatisfied and production rounding 1200.5 -> 1200, this test went GREEN.
+    expect(append.kind).toBe("quote.requested");
     if (append.kind === "quote.requested") expect(append.payload.request.weight_lb).toBeUndefined();
   });
 
@@ -103,6 +108,11 @@ describe("mapTenderToBooking — 204 → booking plan (REQ-201/196)", () => {
     const tender: TenderDoc = { ...baseTender, weightLb: 1200.5 };
     const plan = await mapTenderToBooking(tender, ctx);
     const append = plan.appends[0]!;
+    // Pin the kind UNCONDITIONALLY before narrowing (audit §181). The line below is the ONLY assertion in
+    // this test, and it rides on the narrowing guard — so if appends[0] ever ceased to be quote.requested
+    // (an added or reordered append), this test would pass while the mapper FABRICATED a rounded weight.
+    // Proven: with the guard unsatisfied and production rounding 1200.5 -> 1200, this test went GREEN.
+    expect(append.kind).toBe("quote.requested");
     if (append.kind === "quote.requested") expect(append.payload.request.weight_lb).toBeUndefined();
   });
 
