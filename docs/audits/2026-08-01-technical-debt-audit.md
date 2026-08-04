@@ -6622,6 +6622,13 @@ with severity, owner, verification and expiry.
 
 ## §135 — the only agent with variable cost is the one that is not metered
 
+> **Corrected 2026-08-04 (§136): "not metered" is imprecise and this section overstates it.** The
+> Concierge's *convenience count* IS metered — by the per-tenant SparkMeter DO (REQ-122/125), which enforces
+> a monthly AI-action allotment. What SparkMeter records is a **count only**: it carries no cost and no
+> latency (verified — neither word appears in its source). So the accurate claim is narrower and still a
+> gap: **the Concierge's cost-in-cents and latency-in-ms are unmetered**, which are precisely the two
+> quantities REQ-113's drift alarm averages. Read the section below with that substitution.
+
 §134 said the register audit produces a candidate list mechanically and the verdict costs a read. Continuing
 those reads, `watchtower.ts` flagged itself in a comment: *"Honest: averages only REPORTED metrics."* That is
 a load-bearing admission — an alarm over unreported metrics cannot fire — so it is worth asking **who
@@ -6673,3 +6680,53 @@ this loop's remaining yield is almost entirely in that space:
 > absent — and what it will do on the day it arrives.
 
 Fourth finding recorded as proposed scope rather than built (§123, §131, §133, this).
+
+---
+
+## §136 — applying §135's heuristic to the second LLM surface, and correcting §135
+
+§135's rule — *when an external hold describes a capability arriving later, ask what already-shipped
+mechanism assumes it is absent* — points at a second target immediately: the same `ANTHROPIC_API_KEY` hold
+also gates the **Command copilot**. Two results, one of which corrects §135 itself.
+
+### 136.1 The Copilot's silence is correct by specification
+
+`routes/copilot.ts` emits no `agent.acted` either — but that is **mandated, not overlooked**. `REQ-038`
+specifies *"Copilot: answers cite ledger events; read-only"*, and the source states it plainly: *"It NEVER
+writes (no sequencer, no append, no domain-table INSERT)."* Emitting a metering event is an append.
+
+So REQ-113's mechanism — `agent_runs` projected from `agent.acted` — **structurally cannot cover a read-only
+agent.** That is a tension between two requirements, neither wrong: REQ-038 forbids the write that REQ-113's
+meter requires. The Copilot is also outside the SparkMeter path, whose own source says the cap is consulted
+*"ONLY at the agent-convenience chokepoint (spark-caps.ts → concierge.ts)"*.
+
+Recorded here rather than as a checklist row, because there is nothing to *do* without choosing between two
+requirements — and that choice is the owner's, not an implementation detail.
+
+### 136.2 §135 overstated, and is corrected in place
+
+Reaching for the Copilot surfaced a metering path §135 had missed: the **SparkMeter DO** (REQ-122/125), a
+per-tenant monthly AI-action allotment whose own header names *"the Concierge auto-quote"* as exactly what it
+meters. §135 said the Concierge is "not metered." That is wrong.
+
+What SparkMeter records is a **count** — verified directly: neither `cost` nor `latency` appears anywhere in
+its source, and its purpose is quota enforcement (*"credits throttle conveniences, not truth"*), a commercial
+control rather than an operational budget.
+
+So the accurate finding is narrower and survives: **the Concierge's cost-in-cents and latency-in-ms are
+unmetered** — precisely the two quantities REQ-113's drift alarm averages. Its *usage* is observed; its
+*cost* is not. §135 now carries that correction at its head, and the checklist row is narrowed to match.
+
+### 136.3 The failure mode, named
+
+§135's error was not a bad measurement. The control was sound, the greps were scoped, the absence was real:
+the Concierge genuinely emits no `agent.acted`. The mistake was in the **word chosen for the conclusion** —
+"unmetered" is a claim about *all* observation, and I had checked exactly one mechanism.
+
+> **When a probe establishes that mechanism X does not cover Y, the finding is "X does not cover Y" — not "Y
+> is uncovered."** The second is a claim about every mechanism, and nothing in the probe supports it.
+
+This is the same shape as §123 (a subset presented as a whole) and §124 (a claim scoped to what was measured,
+not what it was about), now in its third appearance — and the first where I made the error *while writing a
+section about that exact error*. The defence remains reading the conclusion back and asking which words the
+evidence actually earns.
