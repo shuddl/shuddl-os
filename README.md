@@ -9,9 +9,9 @@
 | `fixtures/` | Golden fixtures that gate merges — manifest inside; vendored at WP-01 |
 
 ## Status
-**WP-01 → WP-06 built and merged** (ledger core · design/map shell · Rater · Driver PWA + Gatekeeper · Biller). The signature-at-the-door heartbeat runs end-to-end: POD → penny-exact invoice + evidence email, proven in-repo; live email send is CONFIRM-gated (inert until secrets are set). Next: **WP-07 Concierge**. Full picture, and how to resume any parked (CONFIRM-gated) work: **`docs/ops/PROJECT-STATE.md`**.
+**WP-01 → WP-16 built and merged** — all sixteen work packages are closed (corrected 2026-08-04, audit §172: this line read "WP-01 → WP-06 … Next: WP-07 Concierge" and had been stale by ten work packages). The signature-at-the-door heartbeat runs end-to-end: POD → penny-exact invoice + evidence email, proven in-repo; live email send is CONFIRM-gated (inert until secrets are set). Full picture, and how to resume any parked (CONFIRM-gated) work: **`docs/ops/PROJECT-STATE.md`**.
 
-Nothing is deployed, armed, or sending — the product is a green, fully-tested codebase (`pnpm verify`), advanced one work-package at a time. External launch, tenant-0 phases, and live sending gate on F1-B/C + the M-H milestone (doc 14/15) — never on the build.
+Production is **provisioned but dark** — nothing is armed or sending (corrected 2026-08-04, audit §172: this line read "Nothing is deployed", which stopped being true on 2026-07-30 when prod was provisioned; preflight recorded PASS on 2026-07-31, see `docs/ops/PROJECT-STATE.md`). Every external capability remains unbound: `PROVISIONING_ENABLED` off, no Resend/Anthropic/Stripe secrets, so no signup, no live send, no LLM, no billing. The product is a green, fully-tested codebase (`pnpm verify`). External launch, tenant-0 phases, and live sending gate on F1-B/C + the M-H milestone (doc 14/15) — never on the build.
 
 ### Runtime contract (required before anything)
 The suite is verified under **Node 22.15.0 + pnpm 11.10.0 only** (pinned in `.node-version`, `engines`, and `packageManager`). Node 20 mis-resolves the `vitest-pool-workers`/chai chain and changes D1 append-only trigger behaviour, so a green run under Node 20 proves nothing. Activate the pinned runtime before running any gate:

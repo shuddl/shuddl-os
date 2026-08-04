@@ -8574,3 +8574,53 @@ That is §64's rule confirmed from the opposite direction: not "here is another 
 "here are nine laws that did not, in the same document, over the same period."
 
 **No finding.** The governing file is accurate at HEAD.
+
+---
+
+## §172 — the repo's public face was ten work packages stale
+
+§171 audited `CLAUDE.md` and found nine claims, nine confirmations — because every number in it is a
+**budget**, and budgets are laws. Its closing rule was that a summary document is cheap to audit *last*, when
+the measurements already exist. Applying that to the one summary document no sweep had reached — `README.md`
+sits outside `docs/ops/`, so §127's and §129's passes never touched it — found two stale claims in the file a
+reader sees first.
+
+| line | said | measured |
+|---|---|---|
+| 12 | *"**WP-01 → WP-06 built and merged** … Next: **WP-07 Concierge**"* | **all sixteen** WP docs exist and are closed |
+| 14 | *"**Nothing is deployed, armed, or sending**"* | production was **provisioned 2026-07-30**; preflight recorded PASS on 2026-07-31 (§109) |
+
+The first is stale by **ten work packages** — it presents a project a third complete. The second stopped being
+true five days before this audit began, and §109 had already reconciled two *other* documents against that
+same fact without anyone checking the README.
+
+### 172.1 Corrected, not superseded — and why the difference matters
+
+§109 established *supersede in place, never rewrite* for the **ops record**, and §128 showed why: that
+discipline converts a living document into a chronological one, which is what makes it immune to count decay.
+
+A README is **not** a chronological record. It is a living statement of what the project *is*, and a reader
+arriving at a strikethrough history learns nothing useful. So both lines were **corrected outright**, each
+carrying a dated note of what it previously said and why it changed — the treatment §110 gave `DEPLOYMENT.md`,
+which is a living document for the same reason.
+
+The third candidate was left alone: line 27's *"register 167 rows"* is prefixed **"History:"** and dated
+2026-07-09. The register holds 289 rows today, and that line is correct as written — a dated historical claim,
+not a current one. Exactly the distinction §127 drew between chronological and living text, appearing twice in
+one 33-line file.
+
+### 172.2 The pattern this completes
+
+Every document class in this repo has now been audited for stale state claims, and each yielded exactly one:
+
+| document class | defect found | section |
+|---|---|---|
+| ops documents | `DEPLOYMENT.md`'s "1,131-test suite" | §110 |
+| the audit itself | a redirect pointing at a superseded commit | §162 |
+| the skills corpus | a trigger naming built agents as unbuilt | §170 |
+| the governing file | rule 4 asserting pending fixtures as green | §60 |
+| **the README** | **ten work packages, and a deployment posture** | **§172** |
+
+> **Five document classes, five defects, all the same shape: a sentence describing state, written once and
+> never re-read.** None was a count in a table — every one was prose, and every one was in the part of its
+> document a maintainer had no reason to revisit.
