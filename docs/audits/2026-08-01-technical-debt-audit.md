@@ -6019,3 +6019,75 @@ was an instrument that had never been pointed at itself.
 
 The fourth is the one that hides longest, because a subset is never *wrong* — every row in §113's table was
 true. It was the sentence above the table that overstated, and no test can catch a sentence.
+
+---
+
+## §124 — auditing the authority §123 just pointed at
+
+§123 named `GO-LIVE-CHECKLIST.md` the authoritative owner-hold enumeration and scoped the phase gate to point
+at it. That transfers the honesty obligation (§118's rule): a document deferring to an authority is only as
+good as the authority. So the checklist itself now needs auditing, and two of its rows contradicted things
+this loop had already measured.
+
+### 124.1 A row that overstated live exposure
+
+The checklist carried:
+
+> **REQ-170 missing-evidence send-gate UNIMPLEMENTED** — *"A caller that emits a POD with a fabricated hash +
+> no R2 upload still triggers an evidence email framing itself as 'the record' over zero stored bytes."*
+
+**That exposure is closed.** the byte-precondition in `biller.ts` (`handlePodSigned`) requires an ACTIVE tenant-scoped POD document **and** a
+present R2 object for the recorded `signature_hash` before the invoice mints; a miss returns
+`held(evidence_missing)` — no invoice, no send, no terminal marker. Four cases pin it
+(`biller.test.ts:683`): missing document · missing R2 object · retention-tombstoned document · cross-tenant
+`r2_key`. The source says so itself at the REQ-170 note in `biller.ts` beside `renderEvidenceEmail`: *"the SIGNATURE hash IS byte-verified upstream."*
+
+The row's 2026-07-27 annotation was **right** that it must stay open — the placed-photo hash genuinely is not
+byte-checked, and the redelivery fast path re-drives without re-checking. But it stayed open under a *title
+and risk statement that had become false*. An owner reading that page would believe the evidence email can
+assert proof over zero bytes. It cannot.
+
+Narrowed in place to the real residual, with what ships stated and cited. The row remains `WP06-DISCOVERED`
+and open — only its claim changed, from the whole gate to the deliberately narrow part still missing.
+
+**This is §123's error pointing the other way.** §113 presented a subset as the whole and *understated* what
+remained; this row described a superseded whole and *overstated* it. Both are the same defect — a claim that
+outlived its measurement — and the overstating direction is the more expensive one, because it spends owner
+attention on work already done.
+
+### 124.2 §111 proved half of REQ-158 and read as though it proved all of it
+
+Chasing that row surfaced a checklist line naming `tools/harness/playwright-guard.ts` under **REQ-158** — the
+same requirement §111 declared proven. §111 verified `tools/design/audit.ts`: its mode file reads `blocking`,
+it sits in the non-skippable gate list, and twelve rules each fail alone. All true.
+
+But `CLAUDE.md` rule 7 is *"color/contrast/font/case/radius/shadow/motion audits **+ 5 blessed
+screenshots**"*, and the screenshot/perf half runs through the Playwright harness, which §111 never touched.
+§111's sentence — *"the flip is real, on both halves"* — meant mode-file and gate-list **of one mechanism**,
+and read as though it covered the requirement.
+
+Proved now, directly against the exported `classifyRun`:
+
+| outcome | `mode=local` | `mode=merge` |
+|---|---|---|
+| tooling absent | PENDING, exit 0 | **BLOCKED, exit 2** |
+| ran, 0 tests discovered | BLOCKED, exit 0 | **BLOCKED, exit 2** |
+| ran, every test skipped | BLOCKED, exit 0 | **BLOCKED, exit 2** |
+| ran, no machine-readable report | BLOCKED, exit 0 | **BLOCKED, exit 2** |
+| ran, a real failure | FAIL, exit 0 | **FAIL, exit 1** |
+| ran, genuinely green | PASS, exit 0 | PASS, exit 0 |
+
+**No hollow pass exists under merge.** The guard inspects *stats*, not Playwright's exit code — which is 0
+both for "42 passed" and for "0 tests ran", the precise trap that made the a11y gate hollow at T14/T15. A
+skip is not a pass, and an unprovable run is not a pass. REQ-158 is now proven across both its mechanisms.
+
+### 124.3 The rule this loop keeps re-deriving
+
+My probe's first attempt invented the stats shape (`passed/failed/skipped`) instead of Playwright's
+(`expected/unexpected/flaky/skipped`) and crashed. That is the *good* failure: it stopped rather than
+reporting a comfortable green against a fabricated input.
+
+> **A claim is scoped to what was measured, not to what it was about.** §111 measured a mode file and a gate
+> list; the requirement it named covers two mechanisms. §113 measured repository holds; the sentence above it
+> promised every hold. Neither statement was false — both were **narrower than they read**, and nothing in a
+> test suite can detect that.
