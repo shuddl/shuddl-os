@@ -5826,3 +5826,69 @@ different sets** — and asking which one was right.
 That is a distinct search from everything else in this loop. §111–§117 asked *can this fail?* and §119 asked
 *does it say what it means?* This asks a third thing: **does it look everywhere it claims to?** A gate can
 pass both earlier tests and still be trivially avoidable.
+
+---
+
+## §121 — validation expressed twice: 19 SQL CHECK enums against their runtime counterparts
+
+§120's heuristic — *when two mechanisms enforce one invariant, their disagreement is the finding* — has a
+larger surface than two gates. The biggest instance in this build is **validation written twice**: a SQL
+`CHECK (col IN (...))` and a Zod schema or literal set over the same column. If they disagree, one accepts
+what the other rejects: a value the code allows and the DB refuses becomes a 500 where a 400 belongs, and a
+value the DB allows but the code refuses is a path that can only be reached another way.
+
+Nineteen column-level enum constraints were extracted **per table** (a first pass that merged every `kind`
+column into one set was useless — the `kind` on `documents`, `money_lines` and `legs` are three different
+laws) and compared against every literal set in the tracked corpus.
+
+**Nine are identical to their runtime counterpart:**
+
+| column | runtime set |
+|---|---|
+| `users.role` | `Role` (contracts/roles.ts) |
+| `events.visibility`, `documents.visibility` | `Visibility` (contracts/events.ts) |
+| `parties.kind` | `PARTY_KINDS` (api/intake-core.ts) |
+| `shipments.mode` | `SHIPMENT_MODES` (api/intake-core.ts) |
+| `messages.channel` | `MessageChannel` (contracts/comms.ts) |
+| `facilities.kind` | `FacilityKind` (contracts/facilities.ts) |
+| `authority_map.module` | `MIRROR_MODULES` (adapters/legacy-mirror.ts) |
+| `authority_map.authority` | `AuthorityLevel` (contracts/authority.ts) |
+
+**The remaining ten have no runtime enumeration — and none of them needs one.** Each was traced from the
+CHECK to every non-test writer, then to the origin of the bound value:
+
+| column | writers | what actually reaches it |
+|---|---|---|
+| `documents.kind` | `routes/evidence.ts`, `anchor.ts` | `documentKindFor()` — a **total function returning `"POD" \| "photo"`** from the recording event's kind, plus a literal `"tsa_receipt"` |
+| `money_lines.kind`, `.direction` | `projection/money.ts` only | literals in the projection (`"correction_credit"`, `"ar"`, …) |
+| `anomalies.severity` | 6 writers incl. `routes/import.ts`, `translator/inbound.ts` | literal `"warn"` at both external-facing sites; `quarantine.ts` types the field as `severity: "warn"` |
+| `legs.kind` | `projection/status-cache.ts` | projected from validated ledger events |
+| `rate_config.kind` | `tariff-seed.ts` | seed-template literals |
+| `assets`, `integrations`, `pairings` | **zero non-test writers** | nothing reaches them yet |
+
+**No request-supplied value reaches any CHECK-constrained enum column.** The SQL constraints are a genuine
+backstop rather than the primary defence, which is the correct arrangement — and it is why the missing Zod
+mirrors are not a "Zod at every boundary" violation: these columns are not boundaries.
+
+Worth noting for the record: `documents.kind` declares **ten** values and exactly **three** are ever written.
+The other seven are schema headroom — and one of them, `ratecon`, is REQ-184's deferred generation flow,
+which §112 adjudicated as a correctly fail-closed deferral. The schema was built for the finished system; the
+code has reached part of it. That is not drift.
+
+### 121.1 An automated "best match" produced a false disagreement
+
+The comparison ranked candidate runtime sets by Jaccard overlap. For `events.source`
+(`native,legacy,edi,email`) it picked `NATIVE_VISIBLE_SOURCES` (`native,edi,email`) at **0.75**, and dutifully
+reported *"SQL-only: legacy"* — which reads exactly like drift.
+
+It is not. The two sets are semantically unrelated: one is the column's domain, the other is the subset
+visible on the native side **by design** — excluding `legacy` is the entire point of that constant. A
+similarity score paired them because they look alike, and looking alike is all a score can measure.
+
+> **An automated match produces candidates, not verdicts.** Every high-overlap pair still needs a human to
+> ask *are these the same law?* — the score cannot distinguish "the same set, drifted" from "a deliberate
+> subset of it."
+
+This is the same failure as §114.1's off-by-one at a `≤N` ceiling and §117.1's annotation edits: the
+instrument returned a technically-correct measurement of the wrong thing. Three sections running, the
+discipline that caught it was identical — **read the reason, never the verdict.**
