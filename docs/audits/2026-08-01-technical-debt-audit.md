@@ -7766,3 +7766,56 @@ ALL return this one envelope … no oracle, no 500 to probe."*
 
 **No finding.** The public surface's two REQ-187 properties — lens-scoped mint, uniform denial — are both
 mutation-proved, and the mint's scope cannot drift from read scope because it is the same code path.
+
+---
+
+## §156 — the drain-order fix, verified: the worst defect this loop ever found
+
+The most consequential defect in this project's history was found in an earlier iteration and is recorded in
+`queue.ts`'s own prose. It deserves an independent verification, because a fix nobody re-proves is a fix
+nobody knows still works.
+
+**The defect.** The offline capture store is keyed by event id, and an event id is a **random UUID** — so
+draining in store order shuffles the queue. The server's transition gates are **order-dependent** (consent
+before `stop.arrived`; count + photo + custody before `stop.departed`; arrival + POD + placed photo before
+`delivery.evidenced`). A shuffled drain therefore delivers a gated event **before its prerequisite**, which
+takes a `403 GATE_BLOCKED` and parks — and the park had no exit:
+
+> *a signed airplane-mode capture silently stranded on the device forever.*
+
+That is the worst possible failure for demo #3: the driver did everything right, on real freight, and the
+evidence never arrives.
+
+**The fix.** `pending()` sorts by `device_seq` — the per-device monotonic capture counter minted at capture
+time (REQ-016) — which is *"exactly the ordering the gates assume."* Items without one sort last with stable
+relative order, so nothing is dropped or arbitrarily reordered.
+
+**Mutation-proved.** Removing the sort (returning raw store order) against valid baselines:
+
+| suite | baseline | verdict |
+|---|---|---|
+| `packages/driver-core` | 39 | **RED — 1 failed** |
+| `apps/driver` | 54 | GREEN |
+| api airplane-soak | 2 | GREEN |
+
+**The catching test is named for the adversary, not the mechanism:**
+`"drain order + park recovery — a signed capture can never be silently stranded" → "drains in CAPTURE
+order…"`. One test, aimed precisely at the failure that occurred — the same shape §155 found on the public
+surface.
+
+### 156.1 Both GREENs are scope boundaries, verified by reading
+
+§136's rule forbids reading those two GREENs as gaps without checking what each suite reaches:
+
+- **`apps/driver`** calls `pending()` exactly once, at `session.ts:151`, as
+  `(await session.queue.pending()).length` — **a badge count**. The app never consumes the order, so its
+  tests correctly do not constrain it.
+- **airplane-soak** mints signed offline events directly into the sequencer to prove the *server-side*
+  loss-free/dup-free merge. It never exercises the client drain.
+
+Neither is a coverage hole; both are correct boundaries. Confirming that took two reads — the same
+one-read-per-GREEN price §145 established for boundary mutations and §152 for register rows.
+
+**No finding.** The project's worst recorded defect has a fix that is pinned, by a test named for the
+adversary, in the package that owns the behaviour — and the two suites that stay green when it breaks are
+demonstrably not the ones that should care.
