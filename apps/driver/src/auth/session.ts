@@ -48,7 +48,16 @@ export function createAuthSession(store: TokenStore | null = defaultStore()): Au
       try {
         store?.removeItem(STORAGE_KEY);
       } catch {
-        /* best-effort */
+        // SAFE TODAY, AND HERE IS WHAT ENDS THAT (audit §182). Swallowing means a storage that reads but
+        // refuses to write leaves the token behind while the caller believes the session was dropped —
+        // fail-OPEN, unlike getToken (returns null) and setToken (loses persistence, keeps nothing stale).
+        // It is harmless only because BOTH call sites are 401 handlers (App.tsx:95, sync/useSync.ts:75):
+        // the server has already rejected that token, so a surviving copy is stale, not usable.
+        //
+        // THE TRIGGER: the moment a VOLUNTARY logout exists — REQ-069's magic-link/PIN login screen is the
+        // named follow-up in this file's header — `clear()` starts being asked to drop a token the server
+        // still honours, on a device drivers share. Then this catch must verify the removal (read back,
+        // overwrite, and surface a failure) instead of assuming it.
       }
     },
   };

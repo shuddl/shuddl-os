@@ -9315,3 +9315,75 @@ Worth noting the gate's own shape, since §180/§181 were about exactly this: it
 all. Here that is covered, because the **forward** direction (every declared spine file must appear in
 the manifest) pins the set from the other side. Two conditional checks that constrain each other are not
 vacuous; one alone would be.
+
+---
+
+## §182 — the production counterpart: swallowed errors, and the one whose fallback is not conservative
+
+§180 and §181 swept tests. The same failure family exists in shipped code — an error handler whose
+**fallback value** is the permissive one ([[fail-closed-is-about-the-fallback-value]], and §157's `{}`
+policy default, which opened three gate knobs it claimed to floor).
+
+Swept all **160 production source files** (`workers|packages|apps/*/src`, excluding tests) for three
+shapes:
+
+| Shape | Count | Verdict |
+|---|---|---|
+| empty `catch {}` / `catch (e) {}` | **0** | — |
+| catch body that is only a comment | 5 | 4 deliberate + documented; 1 investigated below |
+| `.catch(() => null \| undefined)` | 21 | 17 are one correct idiom; 4 investigated |
+
+**Seventeen of the twenty-one are the same line:** `safeParse(await c.req.json().catch(() => null))` on
+every JSON route. A malformed body becomes `null`, `safeParse` fails, the route 400s. The fallback is the
+**closed** one, and `workers/api/src/routes/events.ts:188@LedgerEvent` even annotates why it never `LedgerEvent.parse`s raw input. Not
+defects — the idiom, applied consistently.
+
+The four non-route discards adjudicated:
+
+- **`workers/api/src/do/sequencer.ts:230@lock`** — `this.lock = run.catch(() => undefined)` on the DO mutex chain. Deliberate
+  and documented four lines above: it keeps one failed append from poisoning every subsequent one. The
+  failure still reaches its own caller; only the *chain link* is neutralised.
+- **`storage/durable-seq.ts:110`** — a discarded background refill, and the comment states the reasoning
+  exactly: *"A failed refill must NOT be swallowed into an advancing ceiling: keep the ceiling put (the
+  guard above then throws before crossing it)."* `nextSeq()` refuses to mint past the ceiling, citing
+  REQ-016. **The conservative fallback is the whole design** — precisely what the swallow-hunt is looking
+  for, done right.
+- **`tsa/der.ts:235`**, **`biller/sender.ts:238`**, **`routes/driver-manifest.ts:53`** — parse fall-throughs,
+  each with the reason inline. The manifest one is the best-phrased in the repo: *"malformed geo → no
+  coordinate (truthful: never fabricate a location)."*
+
+### The one that is not symmetric
+
+`apps/driver/src/auth/session.ts` guards three accessors, and they do **not** fail the same way:
+
+| | on a storage throw | direction |
+|---|---|---|
+| `getToken()` | returns `null` | **closed** — no session |
+| `setToken()` | loses persistence | safe — nothing stale is kept |
+| `clear()` | **swallows** | **open** — the token stays, and the caller believes it was dropped |
+
+`clear()` is the logout primitive. A storage that reads but refuses to write leaves a credential behind
+under a caller that has already moved on.
+
+**It is safe today, and the reason is the call graph, not the code.** Measured, not assumed: `clear()` has
+exactly **two** callers — `App.tsx:95` and `sync/useSync.ts:75` — and **both are 401 handlers**. A grep for
+a logout/sign-out affordance returns **nothing**; the product has no voluntary logout. On a 401 the server
+has already rejected that token, so a surviving copy is stale, not usable.
+
+So this is a **latent** hazard with a precise expiry trigger, which is the only kind worth recording
+([[record-holds-with-expiry-triggers]] — a hold without *"this stops being true when ___"* cannot signal
+that its verdict died). The trigger is already named in the file's own header: *"A full magic-link/PIN
+login screen is a follow-up (REQ-069)."* **The day that login ships, `clear()` is asked to drop a token the
+server still honours, on a device drivers share** — and the swallow becomes a real fail-open.
+
+**Recorded, not fixed:** an eight-line note at the catch stating what makes it safe and what ends that,
+plus a sub-row under the existing REQ-069 line in `GO-LIVE-CHECKLIST.md` graded *"Low today, Med the day a
+logout exists."* Building the verify-after-remove now would be defending against a caller that does not
+exist, and the note reaches the person who creates that caller — which the checklist row alone would not.
+
+### The rule
+
+**Catch blocks are not uniformly suspicious; asymmetric ones are.** Three accessors over the same store
+failing in three different directions is the signal — not the presence of a `catch`. 0 empty catches and
+17 correct `.catch(() => null)` in 160 files says this codebase already handles errors deliberately; the
+single finding is a handler whose *safety is supplied by its callers*, and callers change.
