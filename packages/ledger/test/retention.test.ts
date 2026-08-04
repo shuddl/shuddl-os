@@ -231,3 +231,39 @@ describe("REQ-116 — the storage-cost metric (a metric, NOT a money_line)", () 
     expect(estimateStorageCostCents(2048)).toBe(0);
   });
 });
+
+// Audit §95 — the ORDERING, which is the invariant the whole design rests on and which nothing asserted.
+//
+// `sweepTenantExpiredDocuments` deletes R2 bytes BEFORE tombstoning the row, and the source reasons about why:
+// a crash between the two leaves the row 'active' with bytes already gone, so the next tick re-selects and
+// completes it (self-healing), and the only torn state is the graceful miss the bytes proxy already 404s on.
+// Reverse the two statements and the end state is IDENTICAL — every existing case still passes — but the torn
+// state inverts to "row says EXPIRED, bytes still present", which the resolve path does not filter on
+// (`routes/documents.ts` selects r2_key without `retention_status`). The safety comes from the ORDER, not a
+// guard, so the order needs its own case.
+describe("retention sweep ordering — bytes first, tombstone second (audit §95)", () => {
+  it("a FAILING tombstone leaves the row ACTIVE with bytes already gone — never 'expired' with bytes present", async () => {
+    const key = await seedDoc({
+      db: A, tenant: "tenant-a", id: "ret-order-1", kind: "photo", shipment: "ret-shp-ord",
+      hash: "d".repeat(64), lifecycleClass: RETENTION_CLASS_DEFAULT, createdTs: NOW - 2 * YEAR_MS,
+    });
+    // Make ONLY the tombstone UPDATE fail, simulating a crash between the two steps.
+    const realPrepare = A.prepare.bind(A);
+    const patched = Object.create(A) as D1Database;
+    (patched as unknown as { prepare: typeof realPrepare }).prepare = ((sql: string) =>
+      /UPDATE documents SET retention_status/i.test(sql)
+        ? { bind: () => ({ run: async () => { throw new Error("simulated crash after byte delete"); } }) }
+        : realPrepare(sql)) as typeof realPrepare;
+
+    await sweepTenantExpiredDocuments(patched, R2, "tenant-a", NOW).catch(() => undefined);
+
+    // The ONLY acceptable torn state: bytes gone, row still ACTIVE (so the next tick finishes the job).
+    expect(await R2.head(key), "bytes are deleted FIRST").toBeNull();
+    expect(await retentionStatus(A, "ret-order-1"), "row stays ACTIVE so the sweep self-heals").toBe("active");
+
+    // And the next tick completes it against the real db — proving the self-healing claim, not just the order.
+    const res = await sweepTenantExpiredDocuments(A, R2, "tenant-a", NOW);
+    expect(res.deleted).toBe(1);
+    expect(await retentionStatus(A, "ret-order-1")).toBe("expired");
+  });
+});

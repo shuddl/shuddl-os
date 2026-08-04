@@ -4591,3 +4591,44 @@ bury the one that matters.
 
 **Verification.** `devices.test.ts` 9/9; the uniqueness mutation proved RED; all five sites individually
 mutated; `devices.ts` restored byte-identical.
+
+---
+
+## §95 — a state marker §89 missed, and a safety property that rested on statement order
+
+§89 concluded the inactive-marker surface was "three things". It was four. Scanning for the *other* repeated
+predicate fragment (`status = 'active'`) surfaced **`documents.retention_status`** — an `active`/`expired`
+marker with five call sites that §89's enumeration never reached. My own §79 error, repeated: an enumeration
+asserted rather than derived.
+
+### 95.1 The unfiltered reader is safe, but not for the reason a guard would give
+
+`routes/documents.ts` resolves a document id to its `r2_key` **without** filtering `retention_status`, so on
+its face an expired document could be served. It cannot — because `sweepTenantExpiredDocuments` **deletes the
+R2 bytes first and tombstones the row second.** An expired row's bytes never exist, so the resolve path takes
+the graceful 404 the source anticipates.
+
+**The safety is in the ordering, not in a guard.** Reverse those two statements and the torn state inverts
+from *"row active, bytes gone"* (harmless, self-healing) to *"row expired, bytes present"* — and the resolve
+path, which filters nothing, would serve them.
+
+### 95.2 Nothing asserted the order
+
+The existing case — *"an EXPIRED photo → bytes DELETED, row TOMBSTONED"* — asserts the **end state**, which is
+identical under either ordering. Eleven retention tests, all thorough (7-year POD class, `UNKNOWN` class
+failing safe, tenant-prefix scoping, idempotent re-sweep), and none could distinguish the two.
+
+A case now does: it makes **only** the tombstone `UPDATE` fail, simulating a crash between the steps, and
+asserts the sole acceptable torn state — bytes gone, row still `active` — then runs a second sweep against the
+real database to prove the self-healing the source claims. Mutation-proved: swapping the two statements turns
+**only** this case red; all eleven others stay green, which is exactly why it was needed.
+
+### 95.3 The pattern
+
+This is the third distinct thing this loop has found hiding behind an untested *implicit* property — after
+§91's mutually-masking defences and §93's copied-clause coverage. The common thread: **the code was correct,
+the reasoning was written down in a comment, and nothing executable held the reasoning to account.** A comment
+that says "ordering is crash-safe" is a claim; the test that swaps the lines is the proof.
+
+**Verification.** `packages/ledger/test/retention.test.ts` 12/12; the order-swap mutation proved RED on the
+new case alone; `retention.ts` restored byte-identical.
