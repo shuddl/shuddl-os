@@ -8434,3 +8434,55 @@ worse. An owner can now sequence this work from the document instead of from a c
 > The audit's remaining value is no longer in finding defects. It is in the record being **exactly as
 > trustworthy as its most careless sentence** — which is why the last twenty-seven sections were spent on
 > sentences.
+
+---
+
+## §169 — the skills corpus: process documentation that had already solved §64
+
+Sixteen skills live in `.claude/skills/` — process documentation encoding a lesson from a real defect each.
+They are the last artifact class this loop had not examined, and the most quietly dangerous: **a stale skill
+propagates its error into everything built after it.**
+
+**They are gated, but only structurally.** `check:citations` scans the whole tracked corpus (`git ls-files`),
+so skills are in scope and their `path:line` references resolve. §163's lesson applies exactly here though —
+*a pointer can resolve perfectly and still be wrong*, and no gate can check whether a skill's **claim** still
+holds.
+
+### 169.1 Twelve of sixteen already carry the answer
+
+Twelve skills open with a **grounding note**, and it states the distinction this audit spent §64 deriving:
+
+> *the examples and `path:line` citations in this skill are observations FROZEN as-of its writing … Several
+> RED examples have since been FIXED in live code — verify against HEAD before treating any cited defect as
+> current. **The LAW each skill states is current; the citations are its provenance, not its proof.***
+
+That is §64's laws-versus-observations rule, applied to a document class, **sixteen days before this audit
+independently re-derived it** — and it pre-empts §163's finding too, by declaring the citations frozen rather
+than letting a reader assume they are live.
+
+### 169.2 The four without a note do not need one
+
+| skill | why | verdict |
+|---|---|---|
+| `keep-ops-record-reconciled-with-deploys` | prose + dates, **zero** `path:line` citations | no frozen observation to scope |
+| `park-unroutable-work-never-destroy-it` | prose, zero citations | same |
+| `terminal-gallery-map-ui` | pure design law, zero citations, zero dates | same |
+| `reconcile-gate-sentinels-with-exit-codes` | **one** citation — `run-gate.ts:111@reconcileSentinel` | **verified accurate at HEAD** |
+
+That last one was the only real check available, and it holds: line 111 is exactly
+`export function reconcileSentinel(…)`, and the skill's stated rule — *"exit 1/null + PASS ⇒ FAIL; exit 2 +
+PASS ⇒ BLOCKED"* — matches the implementation verbatim. It also uses the `@symbol` anchor form, so
+`check:citations` validates it **content-anchored** rather than by line number alone.
+
+**No finding.** The corpus is sound, and the four exceptions are correct exceptions rather than omissions.
+
+### 169.3 What it means that the skills got there first
+
+This audit derived the laws-versus-observations rule in §64 after finding a `CLAUDE.md` rule asserting pending
+fixtures as green, and applied it thirteen more times (§110, §118, §126, §162 among them). The skills had
+encoded it already, in a single paragraph, at the top of twelve files.
+
+> **When an audit's hardest-won rule turns out to be already written down somewhere in the repo, that is
+> evidence the rule is real** — two independent derivations from different defects reaching the same
+> discipline. It is also a reminder to read the process documentation *before* the code: this section cost
+> twenty minutes and would have saved several earlier ones.
