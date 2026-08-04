@@ -7970,3 +7970,48 @@ it sufficient alone (yes), and is anything behind it (yes, a test).
 
 **No finding.** The journal balances by construction, an assertion guards the construction, and a
 penny-reconciliation test guards the assertion.
+
+---
+
+## §160 — what vendoring each blocked fixture actually buys
+
+§159 established a distinction the record had been blurring: **"the gate is blocked" is not "the behaviour is
+unproven."** Rule 6's penny reconciliation turned out to be proved in-repo on synthetic data, with the fixture
+adding real-data evidence rather than first evidence.
+
+That question deserves asking of all four fixture-blocked gates, because an owner deciding what to vendor
+first is choosing between very different purchases:
+
+| blocked gate | proved **in-repo today** | what the fixture **adds** |
+|---|---|---|
+| `check:rater-parity` | monotonic price sweep over a **7 × 72 = 504-cell grid**, every cell PRICED, against tariffs this repo controls (`sweep.test.ts`, 11 cases) + the floors ladder (`floors.test.ts`, 8) | the **audited engine's** 48 real cases and its 504-quote sweep on tenant-0's own tariffs |
+| `check:invoice-parity` | a **synthetic month reconciling to the penny**, Σdebit === Σcredit (§159); I7 netting to **exactly 0** across 20 shipments / 8 corrections; IIF serialisation with no float drift | a **500-case replay** against real invoices |
+| `check:concierge-parity` | the parser **port**: deterministic rule/keyword parsing with no network, an unbound LLM that *"REJECTS loudly, never a silent low-confidence parse"*, and the schema boundary (`parse.test.ts`, 34 cases) | **accuracy** against 50 real customer emails |
+| `check:fixtures` | — | the vendored **bytes** themselves; this gate is a manifest hash check with nothing to prove synthetically |
+
+**Three of the four buy real-data evidence for a mechanism already proved.** Only `check:fixtures` is
+foundational, and it is foundational precisely because it is what verifies the other three's inputs.
+
+### 160.1 Why this reframes the hold
+
+§126's table lists these as four blocked gates and §113 as a blocking condition — both correct, and both
+silent on *what the block costs*. Stated plainly:
+
+- **No money mechanism is unproven.** Rounding ties (§145), floor inclusivity (§144), executing-share
+  comparison (§115), correction netting (§117) and double-entry balance (§159) are all mutation-proved on
+  data this repo controls.
+- **What is unproven is behaviour against real freight.** A tenant's actual tariffs, actual invoices, actual
+  emails — the cases nobody synthesised because nobody imagined them.
+
+That is exactly the risk a fixture is for, and it is a *different* risk from "the code might be wrong." An
+owner reading "four gates BLOCKED" could reasonably infer the latter. The record now says which.
+
+### 160.2 The generalisable rule
+
+> **When reporting blocked verification, separate the mechanism from the evidence.** "We cannot run this gate"
+> and "we do not know whether this works" are different statements, and conflating them either overstates risk
+> (paralysing) or understates it (a synthetic proof mistaken for a real one).
+
+The check that keeps them honest is the one §159 used: **mutate the mechanism against synthetic data.** If it
+goes RED, the mechanism is proved and the fixture buys evidence. If it stays GREEN, the fixture is buying the
+first proof — and the hold is far more serious than a blocked gate suggests.
