@@ -4759,3 +4759,50 @@ discipline is not that it makes the work error-free — it visibly did not — b
 conclusion.**
 
 **The stopping line is unchanged and is reached again at `96a131a`.**
+
+---
+
+## §99 — the one unchecked DoD box in sixteen work packages, and the practice it preserved
+
+A deliberately mechanical lens, chosen because §98 recorded that my error rate rose with session length:
+**scan all sixteen WP documents for unchecked DoD boxes.** "All sixteen WPs are closed" is the build's headline
+claim; an unchecked box under a closed WP is a contradiction a script can find.
+
+**Exactly one, in WP-01:** *"Adversarial audit at WP-01 exit; findings → REQ rows/defects; no open Criticals at
+close."* Every other box in every other WP doc is ticked.
+
+### 99.1 It is not a gap in the work; it is a fossil of a practice that changed
+
+Compared against its siblings rather than assumed:
+
+- **WP-02** — box **checked**, with evidence: *"Adversarial audit at WP-02 exit (50-agent pattern) … no open
+  Criticals at close."*
+- **WP-03** — box **checked**: *"2 auditors: design-gate + map/lens. Findings: 4 Criticals + 6 Majors."*
+- **WP-04 … WP-16** — **no `WP-exit audit swarm` section at all.**
+
+So the per-WP swarm ran for WP-02 and WP-03, was never run under a WP-01 label, and was dropped as a *per-WP*
+ritual thereafter. What replaced it is real and documented: three whole-codebase adversarial audits
+(`2026-07-15` whole-codebase, `2026-07-22` launch gate, and this one at 99 sections). WP-01's own surface — the
+CI chain, traceability gates, isolation suite, fixture hash law — has been audited by them repeatedly, most
+recently at §63, §69, §73 and §83–§84.
+
+**The DoD item is satisfied. What was never true is its per-WP framing**, and `CLAUDE.md` rule 9 still says
+"at every WP exit."
+
+### 99.2 Why the box was resolved with a paragraph instead of a tick
+
+A bare `[x]` would have closed the contradiction and **hidden** the more interesting fact: that thirteen work
+packages closed without the section the first three carried, and nothing recorded the change. That is §64's
+class — a document asserting a practice the build stopped following — and the fix for it is never a checkmark.
+
+The box now carries its own history: which swarms ran, which did not, what superseded them, and where WP-01's
+surface has actually been audited since. A future reader asking "was rule 9 followed?" gets the real answer —
+*not per-WP after WP-03, and here is what happened instead* — rather than sixteen ticks implying sixteen
+swarms.
+
+**Left for the owner:** whether `CLAUDE.md` rule 9's "every WP exit" should be amended to describe the periodic
+whole-codebase practice, or whether per-WP swarms should resume. That is a change to a stated law, which needs
+a signature this loop does not have.
+
+**Verification.** Unchecked DoD boxes across all sixteen WP docs: **0**; WP-02/WP-03 sections read for
+comparison; the three superseding audits confirmed present in `docs/audits/`; citations and tables PASS.
