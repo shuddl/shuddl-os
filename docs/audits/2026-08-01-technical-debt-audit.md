@@ -7675,3 +7675,51 @@ cheaper than the next matcher revision and it tells you what the revision should
 *"unverified"* into *"verified"*, which is the only difference that matters at a phase gate. An audit that
 ends with three open "I didn't check that" clauses is a different artifact from one that ends with none, even
 when the checking changes nothing.
+
+---
+
+## §154 — the 12-view budget: enforced, and the registry actually wired
+
+§114 proved the **≤12 canonical views** budget fires (13 → RED, 12 → legal). It never asked the
+declared-versus-delivered question §122 asked of the agents: **are the 11 declared views actually reachable,
+or is the registry a list nothing consumes?**
+
+**All 11 have a renderer.** No dead registry entries. But the structure is not what a first look suggests, and
+the correction matters:
+
+- `CANONICAL_VIEWS` is a **budget-enforcement registry** — 11 slug strings, capped at 12 by
+  `assertViewBudget()` at import.
+- `Route` is a **closed five-name union** (`board` · `queue` · `kpi` · `parity` · `copilot`) resolved from the
+  URL. It contains **zero** view slugs.
+- `KPI_DRILL_VIEW` is the **bridge**: `Record<string, CanonicalView>` mapping each KPI metric to exactly one
+  detail view (`unbilled → v_unbilled`, `dso → v_aging`, `otd`/`dwell → v_scoreboards`, …).
+
+So the two mechanisms §120 would worry about — a hand-maintained slug list and a router that could grow
+independently — are joined at that bridge, and the join is **defended twice**:
+
+| layer | mutation | verdict |
+|---|---|---|
+| **type** — `Record<string, CanonicalView>` | a drill destination outside the registry | **RED** — `error TS2322: Type '"v_not_a_canonical_view"' is not assignable` |
+| **test** — *"every KPI metric drills to a real canonical view"* | the same violation, cast past the type | **RED — 1 failed** |
+
+The type stops the honest mistake; the test catches the cast-around. And `router.ts` closes the third door in
+its own words: *"An unknown/absent kind fails SAFE to the board — the router never conjures a non-canonical
+view."*
+
+### 154.1 My probe reported comment mentions as renderers
+
+The first sweep used `content.includes(slug)` and reported `router.ts` as the renderer for six views. It is
+not: `router.ts` contains **no view-slug literals at all** — the six hits were a two-line **comment**
+explaining which Route maps to which slug.
+
+That is §150's failure inverted. There, a matcher requiring shared vocabulary produced false **negatives**
+(work described in different words read as dropped). Here, a matcher accepting any textual occurrence produced
+false **positives** (a comment read as an implementation).
+
+> **A substring match cannot distinguish a mention from a use** — and both directions of that failure look
+> like a finished answer. The fix is the same in both: match against something structural (a literal in code,
+> a name in a known vocabulary), never against prose.
+
+**No finding.** The view budget is enforced, the registry is consumed, the bridge to the router is typed and
+tested, and the router fails safe. This closes the last declared-versus-delivered surface: agents (§122),
+event kinds (§123), surfaces (§54/§114), and now views.
