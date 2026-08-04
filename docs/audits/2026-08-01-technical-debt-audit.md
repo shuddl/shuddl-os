@@ -8186,3 +8186,51 @@ infrastructure ids. Only the surrounding words — *"account"*, *"KV (idempotenc
 
 **No finding.** The pointer corpus is sound, §162's was the only decayed one, and it was found by reading the
 sentence rather than by any sweep.
+
+---
+
+## §164 — forward-only migrations: what happens when a bad one ships
+
+§147 proved the forward-only lock fires — a migration already pinned cannot be edited. That guarantee has a
+consequence nobody in this loop had followed up: **there is no schema rollback by construction.** So what is
+the recovery when a bad migration ships?
+
+**The doctrine is documented and coherent:** *"`wrangler rollback` for code; forward-repair migrations for
+schema"* (`DEPLOYMENT.md`), with a **Rollback / forward-repair drill** as row 6 of the deploy-day runbook in
+`RELEASE-EVIDENCE.md`.
+
+That row is specified better than most holds in this build, and worth reading as a model:
+
+- **"No gate exists; the drill is performed and written up"** — it does not pretend a CI job can prove a
+  rollback. §148 spent a section on meta-guards; this correctly declines to invent one where the act is
+  inherently manual.
+- **Waits on:** *"a deployed environment with at least two versions, plus #5 — **never drill rollback without
+  a verified restore**."* A dependency ordering with its reason attached.
+- **Owner:** on-call.
+
+### 164.1 The schema half is not merely documented — it has been exercised
+
+Applying §160's lens (*mechanism proved, or only doctrine written?*): the forward-repair mechanism has a
+**worked example in this repository's own migration history.**
+
+Migration `0003` shipped incomplete BEFORE INSERT guards — enumerating only `(stream_id, seq)` and `id`, and
+omitting both the `hash` UNIQUE column and `ux_events_device`. That is exactly the class of defect the drill
+exists for: a schema mistake, already applied, that cannot be edited away.
+
+The repair was `0008_append_only_unique_guards.sql` — **a new file that adds the missing guards and never
+touches `0003`.** The forward-only lock held, the defect was closed, and the history stayed append-only.
+
+So the posture is: **doctrine documented, schema mechanism demonstrated on a real defect, drill awaiting a
+deployed environment with two versions.** That is materially stronger than "we have a rollback plan," which is
+what the row alone conveys.
+
+### 164.2 What is genuinely unproved
+
+The **code** half. `wrangler rollback` has never been run against a deployed environment here, because
+production was provisioned recently and the drill's own precondition — two versions plus a verified restore —
+has not been met. That is not a gap in the plan; it is the plan waiting on its prerequisite, and §138's
+activation map already carries the deployed-environment dependency.
+
+**No finding.** Recorded because "forward-only migrations" is the kind of design choice that reads as a risk
+until you find the recovery path, and the recovery path here is documented, correctly ungated, correctly
+sequenced, and — for the half that can be — already exercised in anger.
