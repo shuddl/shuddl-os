@@ -6478,3 +6478,49 @@ Worth recording because it is the **first time this loop has seen a gate catch a
 audit itself, in the same commit that introduced it.** Every other instrument finding here was archaeology.
 Content-anchored citations — the form §50 built and the ratchet freezes — are the only reason a comment
 insertion could not silently rot three references in a document nobody would have re-read.
+
+---
+
+## §132 — generalising §131: do other cross-component claims hold?
+
+§131 found a comment naming a recovery that does not exist. §124 found a checklist row describing a gate as
+unimplemented after it shipped. Both are the same shape — **a claim about another component, made in prose,
+that nothing verifies** — so the generalisation is worth a pass: how many such claims are there, and do they
+hold?
+
+**Test-pin claims: 62 references, zero broken.** Every `.test.ts` filename named from non-test source
+resolves to a real file. The single apparent miss (`e2e.test.ts`) was my own regex — `[\w-]+` cannot span the
+dot in `signup-to-quote.e2e.test.ts`, which exists and is one of the seven acceptance spine files (§118).
+
+**Sweep-coverage claims: seven sweeps, none overclaiming.** Each states its domain in its header and stays
+inside it — `recon-sweep` the Biller commit→enqueue window, `sla-sweep` the Concierge SLA, `credit-recon` the
+credit projection gap, `mirror-sweep` the 171-column legacy ingest, `collector` dunning, `watchtower` alarms,
+`retention` document lifecycle. Independently confirmed by event-kind extraction: `recon-sweep` names only
+`pod.signed`, `sla-sweep` only the message kinds, and **none names `quote.accepted` or `booking.created`**.
+
+That last line matters for §131's standing: the booking gap is a genuine **absence**, not a domain another
+sweep silently dropped. The only false claim was the sequencer's log line, and it is fixed.
+
+### 132.1 One half of the probe was not evidence, and is reported as such
+
+The sweep also tried to verify **quoted test-case names** in comments — the form *"pinned by `<test name>`"* —
+by checking each quoted string against every test body. It returned 67 candidates and ~all were false: error
+message strings, code fragments, and prose that happened to sit on a line containing "pin", "prove" or
+"assert". Examples it flagged: `"no tests were discovered — a suite that found nothing proves nothing"` (the
+Playwright guard's own detail string) and `", status, executed: false, assertions: 0, detail: "` (a fragment
+of a sentinel literal).
+
+A measurement that cannot separate its signal from its noise is not a weak result — it is **not a result**,
+and reporting it as "67 unverified claims" would have manufactured a finding. §123 made the same call about a
+producer/consumer split that could not distinguish its two categories. Recording the refusal, because the
+temptation to publish a large number is exactly what makes it worth naming.
+
+### 132.2 Yield, stated honestly
+
+Two sweeps, one real defect between them, and it was §131's — found by asking a *specific* question ("does
+this named sweep exist?") rather than a general one ("are comments accurate?"). The general version produced
+62 clean references and 67 pieces of noise.
+
+That is a usable rule for what remains of this audit: **cross-component claims are worth checking one at a
+time, by reading, when the claim is load-bearing.** Mechanised sweeps over prose find broken *filenames* and
+nothing else, because prose is where the interesting claims live and prose is what a regex cannot parse.
