@@ -6304,3 +6304,55 @@ outstanding piece of this thread.
 
 Stated plainly rather than left implied: that re-sweep has not been done, and §67's clean negative for the
 other five documents should be read as *"clean for space-separated counts"* until it is.
+
+---
+
+## §129 — the re-sweep §128 owed: all nine ops documents, hyphen-aware
+
+§67 swept the ops corpus for unscoped counts and reported a clean negative. §110 then found a stale count it
+had missed — *"the 1,131-test suite"* — because the pattern required a **space** between number and noun and
+that one is hyphenated. §128 stated plainly that §67's negative should therefore be read as *"clean for
+space-separated counts"* until re-run. This is that re-run, across all nine.
+
+| document | lines | unscoped candidates | verdict |
+|---|---|---|---|
+| `PROJECT-STATE.md` | 480 | 0 | clean |
+| `V2-EXECUTION-FRAMEWORK.md` | 580 | 0 | clean |
+| `dr-backups.md` | 217 | 0 | clean |
+| `secrets.md` | 56 | 0 | clean |
+| `slo.md` | 64 | 0 | clean |
+| `RELEASE-EVIDENCE.md` | 705 | 9 | all scoped — see below |
+| `GO-LIVE-CHECKLIST.md` | 736 | 6 | §128 — none a defect |
+| `DEPLOYMENT.md` | — | — | §110 — **one found, fixed** |
+| `LAUNCH-RUNBOOK.md` | — | — | §109 — one state contradiction, fixed |
+
+**Zero new defects.** §67's negative was narrow but not wrong: the single count its pattern could not see was
+the single count there was, and §110 caught it.
+
+`RELEASE-EVIDENCE.md`'s nine resolve to three familiar shapes — fixture **specifications** (`rater-48-tests`
+must hold exactly 48; the number is a contract), **quoted gate output** (*"invariants OK — 21/22 tables"*,
+verified accurate in §119), and **dated evidence records**: *"1,470 assertions across 116 files"* and
+*"16 gates PASS, 5 BLOCKED"* both belong to a captured run whose SHA (`3fc592b…`) and timestamp
+(`2026-07-28`) sit a few lines further down, in the artifact path.
+
+That last point is the instrument note. My scope detector searches **upward** for a date or SHA, because
+that is where headings live. An evidence log inverts it: the run is described first and stamped afterwards,
+in the artifact filename. Third refinement of this probe in three sections (±1 line → 40 lines up → also
+look down), and the same lesson each time — **a scope marker's position is a property of the document's
+genre, not a constant.**
+
+### 129.1 The thread is closed
+
+Four threads of record work converge here and all are now complete:
+
+- **counts** — nine ops documents + the 6,208-line audit, one defect found and fixed (§110)
+- **claims** — 25 repo-owned checklist rows, one defect found and fixed (§124/§125)
+- **state contradictions** — two ops documents disagreeing, reconciled (§109)
+- **the audit's own instruments** — five defects found and fixed (§110, §112, §118, §119, §123/§126)
+
+The record now says what it means across every document this repo owns, and the phase gate (§113, as scoped
+by §123 and rewritten to carry verification and expiry by §126) states what it covers. Nothing in this thread
+remains open.
+
+What remains is what §126's table already names: six holds, none repository-closable, each with a command that
+proves whether it is still live.
