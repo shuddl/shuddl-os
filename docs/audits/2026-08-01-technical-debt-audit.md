@@ -6617,3 +6617,59 @@ two places is precisely the duplication §110 and §126 spent sections undoing. 
 scope awaiting an owner's REQ row**: REQ-180's register alignment (§123), the missing booking backstop
 (§131), and the SLA cadence (§133). None is repository-closable without a row, and all three are recorded
 with severity, owner, verification and expiry.
+
+---
+
+## §135 — the only agent with variable cost is the one that is not metered
+
+§134 said the register audit produces a candidate list mechanically and the verdict costs a read. Continuing
+those reads, `watchtower.ts` flagged itself in a comment: *"Honest: averages only REPORTED metrics."* That is
+a load-bearing admission — an alarm over unreported metrics cannot fire — so it is worth asking **who
+reports**.
+
+**The metering chain.** `agent_runs` is projected from `agent.acted` only. The projection is scrupulous:
+`cost` is `{cents:N}` when reported, `{}` when not (*"unknown — NOT fabricated as 0"*), and `latency_ms` is
+the reported integer or NULL, *"absence, never invented"*. The Watchtower averages those rows against
+`DEFAULT_AGENT_BUDGET = { maxAvgLatencyMs: 5_000, maxAvgCostCents: 50 }`.
+
+**Who reports:**
+
+| agent | emits `agent.acted`? |
+|---|---|
+| Rater (`routes/rate.ts`) | ✅ `cost_cents: 0` (an honest deterministic zero) + real wall-clock `latency_ms` |
+| Translator (`translator/inbound.ts`) | ✅ same shape |
+| Migrator (`routes/import.ts`) | ✅ direct `agent_runs` insert, cost deliberately absent, real latency |
+| **Concierge** | ❌ **none** — verified with a control against two files that demonstrably do |
+
+**The Concierge is the only agent that calls an LLM**, and therefore the only one whose cost is *variable at
+all*. The three that report are deterministic and honestly report zero. So REQ-113's budget-drift alarm is
+wired to exactly the agents whose cost cannot drift, and blind to the one whose cost can.
+
+Nothing is *wrong* here — the projection's honesty means the metric reads UNKNOWN rather than a fabricated
+zero, so no false green is produced. The alarm simply has nothing to average.
+
+### 135.1 The gap is dormant, and its expiry trigger is the event that wakes it
+
+`ClaudeParser` is selected only when **both** `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL` are bound; anything
+less yields `NotConfiguredParser`, which rejects loudly. Both are external holds
+(`GO-LIVE-CHECKLIST.md:40`). **No LLM cost is incurred anywhere today**, so the gap is real but latent.
+
+That makes its expiry trigger unusually clean: *when `ANTHROPIC_API_KEY` binds*. The single event that turns
+the Concierge from deterministic to cost-bearing is the same event that makes an unmetered Concierge matter —
+so the hold is recorded at **R2** (staging), ahead of the grade at which the key is expected to bind.
+
+### 135.2 What found it
+
+Two facts were already known and separately recorded: the `ANTHROPIC_API_KEY` external hold, and REQ-113's
+drift alarm delivered in WP-11. Neither is a defect. The gap exists only in the **space between them**, and
+became visible only by asking which agents feed the alarm.
+
+That is §120's heuristic in a fourth costume — *two mechanisms, one law, and the delta between them is the
+finding* — now applied not to two gates but to **a known hold and a shipped feature**. Worth naming, because
+this loop's remaining yield is almost entirely in that space:
+
+> **A hold and a feature that never mention each other can still contradict.** When an external hold
+> describes a capability arriving later, ask what already-shipped mechanism assumes that capability is
+> absent — and what it will do on the day it arrives.
+
+Fourth finding recorded as proposed scope rather than built (§123, §131, §133, this).
