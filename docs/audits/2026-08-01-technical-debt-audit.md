@@ -5426,7 +5426,16 @@ last four findings were defects in *this audit's own instruments* (§110's sweep
 which is the clearest available signal that the code surface is quieter than the record surface.
 
 **The stopping point is here, and it is a phase gate, not a finish line.** Repository-closable debt is closed.
-What remains needs an owner, not another loop iteration:
+What remains needs an owner, not another loop iteration.
+
+> **Corrected 2026-08-03 (§123): the table below is the REPOSITORY-ADJACENT holds, not the whole set.** As
+> written it read as a complete enumeration of what stands between this build and production, and it is not.
+> `docs/ops/GO-LIVE-CHECKLIST.md` is the authoritative list, and it carries **47 further substantive owner
+> items** this table never mentions — API keys and secrets, the device signing root key, self-hosted tiles and
+> glyphs, a real RFC-3161 TSA endpoint, public status-page hosting, live OAuth secrets, and the entire legal
+> class (ToS/Privacy/DPA, photo/PII retention, eBOL validity per mode, trademark clearance). Read the
+> checklist, not this count — the same rule §110 applied to a stale test figure, now applied to my own phase
+> gate.
 
 | # | Hold | Owner action |
 |---|---|---|
@@ -5954,3 +5963,59 @@ Every one is the failure this loop keeps meeting: *the instrument measured somet
 question.* Sections §114.1, §116, §117.1 and §121.1 are the same error in four other costumes. The only
 defence that has ever worked is the one applied here — **when a measurement says something is missing, spend
 the next probe trying to find it a different way before writing it down.**
+
+---
+
+## §123 — the event taxonomy holds; my own phase gate did not
+
+Two questions this loop had not asked of `genesis/10`'s taxonomy, and one answer that turned back on the
+audit itself.
+
+**All 35 event kinds are live.** Every kind in the catalog has a non-test producer and at least one test
+case — zero dead entries. (A producer/consumer *split* was attempted and is not reported here: the heuristic
+classified any file containing `append`/`emit`/`kind:` as a producer, which made "no consumer" meaningless —
+`invoice.corrected` came back consumer-less while §117 had already proved the money projection nets it. A
+measurement that cannot distinguish its two categories is not evidence for either.)
+
+**Visibility is exhaustive by construction, not by discipline.** `KIND_VISIBILITY_DEFAULTS` is declared
+`Record<EventKind, Visibility>` with exactly 35 entries — none missing, none unknown. Mutation-proved: delete
+one entry and `tsc` refuses with *`Property '"call.transcribed"' is missing`*. A 36th kind cannot be added
+without a visibility decision. That is a stronger guarantee than a test, because it cannot be skipped.
+
+REQ-180's never-widen floor is likewise sound and better than its register row: the code clamps a **fail-closed
+superset of seven** where REQ-180 names six, deliberately adding `split.computed` because it carries
+interline/margin internals. The reasoning is recorded at the definition, and the proposed register alignment
+is tracked in `GO-LIVE-CHECKLIST.md:218`, `WP-11.md:28/66` and the WP-11 plan. Nothing lost.
+
+### 123.1 §113's hold table read as complete, and it was not
+
+Chasing where that REQ-180 alignment was tracked surfaced a defect in **this audit's own phase gate**. §113
+closed with a five-row table under the line *"what remains needs an owner, not another loop iteration."* Read
+plainly, that says five owner decisions stand between this build and production.
+
+`GO-LIVE-CHECKLIST.md` — the authoritative enumeration — carries **47 further substantive owner items** that
+table never mentions:
+
+| class | examples |
+|---|---|
+| secrets / keys | `RESEND_API_KEY`, `ANTHROPIC_API_KEY` (copilot *and* Concierge), device signing root key, live OAuth + MCP pairing secrets |
+| infrastructure | self-hosted Protomaps vectors + glyph PBFs on R2, public status-page hosting, a real RFC-3161 TSA endpoint |
+| legal / commercial | ToS · Privacy · DPA, photo/PII retention + consignee notice, eBOL and e-signature validity per mode, driver location-consent text, SHUDDL trademark clearance |
+| milestone | M-H heartbeat unlocks GTM; pricing re-based on tenant-0 telemetry |
+
+None of that is repository-closable, and none of it was wrong to leave out of a *repo* debt audit — the error
+was presenting the repo-adjacent subset as the whole. §113's table is now scoped in place and points at the
+checklist, applying the rule §110 established for a stale test count to my own phase gate: **where an
+authority exists, point at it rather than restating a subset of it.**
+
+### 123.2 The pattern, stated for the last time
+
+Five of the last six sections have found the defect inside the audit's own instruments — §110's sweep regex,
+§112's coverage manifest, §118's acceptance runner, §119's table checker, and now §113's hold table. Every one
+was an instrument that had never been pointed at itself.
+
+> A gate is audited when it can fail (§111/§114/§115/§117), says what it means (§118/§119), looks everywhere
+> it claims to (§120), and **does not present a subset as a whole** (§123).
+
+The fourth is the one that hides longest, because a subset is never *wrong* — every row in §113's table was
+true. It was the sentence above the table that overstated, and no test can catch a sentence.
