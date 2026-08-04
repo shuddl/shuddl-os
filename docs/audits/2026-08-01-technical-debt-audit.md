@@ -4378,3 +4378,47 @@ no siblings.
 
 **Verification.** Schema scanned for state-marker columns; all six `pairings` readers read and classified by
 their callers; gates PASS.
+
+---
+
+## §90 — the cap token: the best-defended first authority in the audit
+
+§89's rule says a state read matters most where it is the **first authority**. The cap token is the purest
+example left: for `/pub/status/:cap` and `/pub/documents/:cap` there is no session, no role, no tenant header —
+**the token is the entire authorization decision** for an anonymous caller.
+
+**Its construction is layered, and each layer was read:**
+
+- **Key separation.** The cap is signed with a secret *derived* from `JWT_SECRET`, not `JWT_SECRET` itself, so
+  a session token and a cap can never validate against each other's key.
+- **Type confinement.** The payload requires `typ: z.literal(CAP_TYP)` — a second, independent barrier to
+  cross-token replay even if the keys ever converged.
+- **Required expiry.** `exp: z.number()` is required by the schema, not merely usually present (§70's question,
+  asked and answered).
+- **`.strict()`.** No extra keys, so nothing can be smuggled into a signed payload.
+- **Scope in the MAC.** Tenant and shipment are signed claims, so tampering either breaks the signature before
+  any database read.
+
+**And the suite is the most adversarially-named in this audit** — seven cases, every one a scenario rather
+than a mechanism: a garbage cap; a valid cap for a **missing** shipment returning a 401 *identical in code and
+message* to a garbage one (**no existence oracle**); a tampered `s`; a flipped `t`; **a real session JWT used
+as `:cap`**; an expired cap; and two disclosure cases pinning the response key allowlist and coarse geo.
+
+That is §75's rule applied without being told: the tests are named for what an attacker would try.
+
+### 90.1 My mutation tested the wrong direction, and what it actually proved
+
+I replaced the derived secret with `JWT_SECRET` to see whether type-confinement alone would hold the line.
+It broke the **positive** controls instead — valid caps stopped verifying, because the test mints with the
+derived secret and verification now used the raw one. Four tests went red, none of them the replay case.
+
+So it proved something real but different: **the mint/verify key derivation is pinned**, and a change to it
+fails loudly rather than silently widening anything. Testing whether `typ` is independently load-bearing would
+need both mint and verify moved to the shared secret — a fair follow-up, and not one I should dress up as
+having done.
+
+Recorded because a mutation that answers a different question than the one asked is easy to write up as though
+it answered the intended one, and this audit has already caught itself doing exactly that (§73, §83).
+
+**Verdict: clean negative**, and the strongest surface examined. `pub-status.test.ts` 11/11; `status-cap.ts`
+restored byte-identical.
