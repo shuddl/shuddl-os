@@ -5047,3 +5047,44 @@ known.
 4. **The record agrees with the world — SATISFIED.**
 
 **The stopping line is unchanged and is reached again at `0a5b3c3`.**
+
+---
+
+## §106 — external-routing containment, already enforced by a lint added earlier in this same audit
+
+`gate-external-routing-server-side` states one rule: an external routing estimate is *"operational hint, never
+truth"* — it may inform a suggestion, but **it can never become the sold transit window.** That window is
+`resolveTransitDays` (REQ-059), a config lookup.
+
+**Enforced at three levels, only one of which is a test:**
+
+1. **By construction.** `packages/rater/src/transit.ts` is pure and deterministic — its header says
+   *"no LLM/I/O/Date/random"* — resolving both zips through the freight engine's own `matchZone` and reading
+   `days[originZone][destZone]`. There is no seam for an estimate to enter.
+2. **By lint.** A routing call means a network call, and `packages/rater` is **network-free by eslint** — the
+   `fetch` ban added in **§53** of this audit. The skill's core rule is therefore statically enforced by a
+   guard written for a different reason (REQ-024/004, keeping the rater deterministic). Two laws, one
+   mechanism; neither author knew about the other.
+3. **By test, for the half that can go wrong quietly.** The honest-window law says an unresolvable lane returns
+   UNKNOWN and *"must NEVER coerce UNKNOWN to a number"*. Three cases pin it — unlisted lane with no default,
+   dest zip resolving to no zone, origin zip resolving to no zone — and the consuming path honours it:
+   `compose.ts` returns `queued` on an UNKNOWN price rather than inventing one (REQ-004, "no price on air").
+
+**No routing adapter exists yet.** The `mapbox` hits in the tree are map rendering and type definitions; the
+Matrix/Isochrone/Optimization uses the skill anticipates are vNEXT. So most of this skill is forward-looking
+guidance, and the part that is live is closed.
+
+### 106.1 The observation worth keeping
+
+§53 added the rater's `fetch` ban to enforce REQ-004/REQ-024 — a deterministic engine must not depend on a
+network call, and an LLM must not price. It turns out to also enforce REQ-059's separate law that a routing
+estimate cannot become a sold window, because both reduce to *the rater cannot reach the network*.
+
+That is the opposite of the coupling problem §103/§104 spent two sections on. There, two properties depended on
+each other with nothing recording it. Here, one mechanism satisfies two independent laws — and that is
+**robust** rather than fragile, because the mechanism is a static lint that fails loudly and is itself
+mutation-proved (§53). Worth noting that the difference is not "coupling good or bad" but **whether the
+dependency is enforced or merely true.**
+
+**Verdict: clean negative.** Ninth skill mutation-tested or verified; the live half of the rule is enforced
+three ways.
