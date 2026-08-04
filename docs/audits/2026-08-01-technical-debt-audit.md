@@ -7060,3 +7060,60 @@ combined with a parser that never verified its own output was plausible — eigh
 should have stopped me before the first run, exactly as §127's implausible yield did.
 
 Discarded rather than reported, and the correct probe anchored on the bare identifier lines instead.
+
+---
+
+## §143 — every order-dependent chain, and whether its sequence is pinned
+
+§142 found that the MCP chokepoint pins its check **order**, not just its membership, and that the order is
+load-bearing (confirm before caps, or a failed booking eats the caller's own budget). That generalises: an
+ordered chain whose sequence is unpinned is a silent regression waiting to happen, and this build has several.
+
+**The api middleware stack** is the highest-stakes one — four registrations, and Hono runs them in
+registration order:
+
+```
+app.use("*",      reqId)
+app.use("*",      corsMiddleware())
+app.use("/v1/*",  auth)
+app.use("/v1/*",  idempotency)
+```
+
+Both security-meaningful permutations were mutated against valid baselines:
+
+| mutation | why it matters | verdict |
+|---|---|---|
+| swap `auth` ↔ `idempotency` | an unauthenticated request could consume or read an idempotency slot | **RED — 24 of 80** |
+| move `corsMiddleware` after `auth` | a preflight would hit auth and 401 instead of receiving CORS headers | **RED — 3 of 20** |
+
+`reqId`'s position was deliberately **not** probed: moving it changes which log lines carry a request id and
+nothing else. There is no behavioural property to pin, and a test asserting log decoration would be the kind
+of ceremony §134 warned against.
+
+### 143.1 The order-pinning ledger, assembled
+
+Ordered chains are scattered across the build and were proved at different times by different sections.
+Collected here because no document held them together, and because "is the sequence pinned?" is a question
+worth asking once per chain rather than never:
+
+| chain | order property | proved |
+|---|---|---|
+| MCP mutation chokepoint | confirm **before** caps (else a self-DoS on the pairing's budget) | §142 — swap RED (3) |
+| api middleware | auth **before** idempotency; cors **before** auth | §143 — both RED |
+| document retention | delete R2 bytes **before** tombstoning the row | §95 |
+| Concierge reply | `setInboundSla` **before** the appends (else the SLA sweep cannot find a stranded reply) | §97 |
+| Biller evidence | require stored POD bytes **before** minting the invoice | §112/§124 |
+| api route registration | specific routes **before** catch-alls (Hono matches in registration order, not by specificity) | §57 |
+
+Six chains, six pinned sequences, each proved by a mutation that transposes rather than removes. **Removing an
+element is the obvious probe; transposing two is the one that finds order bugs**, and four of these six would
+survive a membership-only test suite unchanged.
+
+### 143.2 What this closes
+
+No finding. The api middleware chain is sound, and the collected ledger shows every order-dependent sequence
+this audit has identified is pinned by at least one test that fails on transposition.
+
+Recorded because the *absence* of this table was itself a small risk: six independent orderings, proved in six
+different sections across two months, with nothing telling a future engineer that "the order matters here" is
+a property someone already checked — or which chains were never asked.
