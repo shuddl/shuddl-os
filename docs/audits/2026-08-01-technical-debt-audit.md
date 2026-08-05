@@ -14448,3 +14448,58 @@ visible in review; an *inline marker* is visible only to whoever reads that line
 because the inline form is the one reached for under deadline pressure, on the line that is failing, by
 someone who wants the build green. Make the count part of the gate's own output, and pin it — then the
 hatch stays available and its use becomes a decision someone has to defend.
+
+## §273 — the standard inline suppressions, swept: zero type escapes, zero hidden skips
+
+§272 closed a citation-gate escape hatch and named the shape: **an inline marker weakens a gate visibly only
+to whoever reads that line.** Every TypeScript repo ships the same standard set of those, and they had never
+been counted here.
+
+| Suppression | Count | What it would hide |
+|---|---|---|
+| `@ts-expect-error` | **0** | a type error, per line |
+| `@ts-ignore` | **0** | ditto, without even asserting the error exists |
+| `@ts-nocheck` | **0** | a whole file's types |
+| `istanbul ignore` / `v8 ignore` | **0** | coverage |
+| `.only(` | **0** | **every other test in the file** |
+| `it.skip` / `describe.skip` | **0** | a case, silently |
+| `eslint-disable` | 5 | a lint rule, per line |
+| `test.skip` | 3 | a case, conditionally |
+
+**Zero type suppressions across the whole tree** is the striking one — `CLAUDE.md`'s "TypeScript strict, no
+`any`" is usually the first rule a codebase quietly buys its way out of, one `@ts-expect-error` at a time.
+And zero `.only(` matters more than it looks: a single stray `.only` turns a green suite into one passing
+test, which is the loudest possible claim from the least possible evidence.
+
+### The eight that exist are all justified in place
+
+The five `eslint-disable`s are **the same disable, five times**: `no-empty-object-type` in each worker's
+`test/env.d.ts`, each carrying an inline `-- declaration merging: ProvidedEnv mirror…` justification. That is
+the eslint convention for documenting a disable, used uniformly, for a construct the rule genuinely cannot
+model.
+
+The three `test.skip`s split two ways, and both are sound:
+
+- **one is a negative-control fixture** — `playwright-guard.test.ts`'s *"negative control 3 — every test
+  skipped"*, which exists to prove the harness treats an all-skipped suite as a failure;
+- **two are conditional** — `test.skip(ZONE === undefined, "PROD_SURFACE_BASE is unset — this gate drives
+  deployed surfaces only")`, the correct behaviour for a probe against a deployed surface.
+
+### The conditional skip is covered, and that was measured
+
+A conditional skip is only safe if a *fully* skipped suite is visible. Verified rather than cited: the guard
+asserts, for every mode, that a run reporting `skipped: 4, expected: 0` is **`status: "BLOCKED"`,
+`executed: false`** — so the prod-surface suite skipping itself under merge cannot read as a pass. The
+32-test guard suite is green.
+
+That closes the loop §256 opened from the other end: `executed: true` in the gate envelope is what separates
+a real run from an absent one, and this is the test that makes it true.
+
+### The rule
+
+**Count the standard escapes before hunting for exotic ones.** Every ecosystem ships two or three
+one-line ways to retire a rule — `@ts-expect-error`, `eslint-disable`, `.only`, `ignore` pragmas — and they
+are the cheapest possible audit: a single grep per form, a count, and a look at each survivor. The result
+here is a **bound**, not a finding: eight inline suppressions repo-wide, all justified in place, none hiding
+a type error or a test. A codebase that has stayed at zero `@ts-expect-error` has been paying its type debt
+rather than deferring it, and that is worth knowing before spending effort anywhere else.
