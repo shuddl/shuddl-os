@@ -16489,3 +16489,61 @@ not list.** Listing is cheap; the claim reads as complete either way, which is e
 
 Six mutations across four packages, six correct outcomes, `git status` clean in every mutated path;
 `@shuddl/ledger` 616, `@shuddl/rater` 154, `@shuddl/mcp` 177, `@shuddl/adapters` 38 — all green after restore.
+
+---
+
+## §308 — The genesis Ten Laws, and the no-op mutation that read as a finding
+
+§305–§307 proved CLAUDE.md's *engineering rules*. CLAUDE.md points at a different and higher authority —
+*"The Ten Laws in `genesis/00` override any instinct you have"* — and this phase had never enumerated them.
+They are product laws (L1–L10), not build rules, and two carry direct runtime surface.
+
+### L7 — "Gate every transition"
+
+*"You cannot advance the physical workflow without capturing what the next party needs."* Mutation:
+`transition-gates.ts`, every `missing.push(…)` short-circuited, so the gate collects no missing evidence and
+every transition advances.
+
+**RED — 4 failing assertions**, naming `freight.counted`, `custody.transferred` and the "blocks with…"
+cases. Restored: 616 passed.
+
+### L3 — "Money is a projection of physics"
+
+*"An invoice is not a document a person creates; it is what the ledger emits the second the POD-signed event
+lands."* This is acceptance demo #1. Mutation: `projection/money.ts`, `invoice.issued` emits an empty line
+set instead of one AR row per invoice line.
+
+**RED — 6 failing assertions**, naming `invoice.issued` and "one positive AR row". Restored: 616 passed.
+
+### The false GREEN, which is the section's real content
+
+The first L3 attempt reported **GREEN** — *"physics emits no money, and 616 tests do not notice"*, which is
+a Critical-shaped finding about the flagship demo. **It was a non-mutation.** My substitution targeted
+`rows.push(`, a pattern that does not occur in that file; the perl matched nothing and the file was never
+changed. I verified `git diff` only *after restoring*, where a no-op and a perfect restore are indistinguishable.
+
+**A mutation that does not land produces a GREEN in exactly the shape of "this law is unenforced."** §305
+established that a green from the wrong *suite* proves nothing; this is worse, because there is no wrong
+suite to notice — the code, the tests and the result are all correct, and only the intervention is missing.
+
+**So the procedure gains a step, and it is not optional: assert the file actually changed before running the
+suite.** `git diff --numstat` after the edit, and abort if it is empty. The re-run with that check in place
+("mutation landed: 1+/1-") produced the RED that the first attempt could not.
+
+Counting honestly, this is the **third** false result this phase from an instrument rather than the build —
+§298's tally regex, §305's wrong suite, and now a no-op edit. Every one of them pointed at a defect that did
+not exist, and every one was caught by asking *what would have to be true for this result to be real?*
+
+### Standing at eight laws
+
+Six engineering rules (§305–§307) plus L7 and L3 here, each proven by breaking it and restoring
+byte-identical. The genesis laws not covered are the ones without a single runtime chokepoint to break —
+L1 (capture at the event), L2 (one ledger many lenses), L4 (price from measured physics), L5 (agents run the
+protocol), L6 (zero training), L8 (overlay before authority), L9 (the network compounds), L10 (exit-friendly).
+**That is a statement about what a mutation can address, not a claim that they are unenforced** — several are
+architectural properties the whole build expresses rather than rules a single line implements.
+
+### Verification
+
+Eight mutations total this phase across five packages; `git status` clean in every mutated path;
+`@shuddl/ledger` 616 green after each restore.
