@@ -13020,3 +13020,55 @@ valid tree — is worth as much as the negative ones proving it goes RED, becaus
 produced was a false positive, not a missed violation.
 
 `test:tools` 730/733 (the three unchanged `REQ-289` failures); typecheck, lint, invariants, citations all 0.
+
+## §246 — the do-not-build list, item by item, and the one prohibition nobody can apply
+
+§245 found a *hard budget* that was never CI-enforced. The neighbouring list in `CLAUDE.md` — **"Do not
+build (ever, without a register amendment signed by the owner)"** — deserved the same treatment, since a
+prohibition is only as good as someone's ability to tell it has been violated. All eleven:
+
+| Prohibition | How a violation would be caught |
+|---|---|
+| Native GL / period close (journal export only) | verifiably absent — no `closePeriod`/`period_close` anywhere; only `gl-map.ts` + `gl-accounts.ts`, i.e. the export mapping |
+| driver pay v1 | verifiably absent — no `driver_pay`/`driverPay` module |
+| report builder | the 12-view budget (`assertViewBudget()` + `registry.test.ts`) |
+| a fourth surface | **gated §245** (`checkSurfaceBudget`, both directions) |
+| **a fifth primitive** | **nothing — see below** |
+| seat-based pricing | verifiably absent — no `seats`/`per_seat` in billing |
+| gray text · blue anything · shadows · spring animations | `audit:design` + the 5-token palette pin (which is also "no blue"'s only escape-hatch closure) |
+| SMC3/class as engine foundation | `check:rater-purity` (`class_as_foundation`) |
+| prior-codebase merge (REQ-163) | `lint-guards.test.ts` — *"flags any prior-TMS import anywhere"* |
+| tenant/person/customer names (REQ-167) | `check:identity` (fails closed in CI; SKIPPED locally, its own row) |
+| CONFIRM-gated items while the CONFIRM is open | recorded per-REQ in the register |
+
+Ten of eleven are enforced by a gate or are verifiably unbuilt. The eleventh cannot be checked by anyone.
+
+### "A fifth primitive" has no fourth
+
+The prohibition presupposes a set of four primitives, and **that set is defined nowhere.** Every occurrence
+of the word across `genesis/` and the register was read — ten in total — and none enumerates it. The three
+in the register use it in mutually unrelated senses: *"network primitives (Passport/settle/mesh)"* (REQ-009),
+*"any export → primitives with confidence"* (REQ-035, the Migrator's output rows), and *"one accessible
+Proposal primitive"* (REQ-259, a React component). `packages/design/src/primitives.tsx` exports **eleven**
+components under that name, so the design vocabulary is plainly not the referent either.
+
+So the rule cannot be applied — not by a gate, and not by a reviewer, who would have to ask "which four?"
+and find no answer. It is the only item on the list in that position: unlike the CONFIRM-gated rows (blocked
+but legible) or `check:identity` (enforced but skipped locally), this one has never been actionable.
+
+**Not resolved here, deliberately.** Naming the four would be *defining scope*, which is the owner's act and
+exactly what the surrounding sentence reserves to a signed register amendment. Recorded with an owner and a
+trigger instead, in the same spirit as §231's undeclared auth lifetimes: *a test can enforce a decision; it
+cannot make one* — and neither can an audit.
+
+> **PROPOSED CLARIFICATION (unregistered):** define the four primitives in `genesis/11` and `CLAUDE.md`, or
+> strike the clause. Once named, the set is gateable exactly like §245's surface roster. **Owner:** register
+> owner. **Trigger:** when the four are named, or when anyone is asked to judge whether a change adds one.
+
+### The rule
+
+**A prohibition with an undefined subject is decoration.** It reads as rigour — it sits in a list of nine
+real, enforceable constraints and inherits their authority — while being unfalsifiable. The tell is cheap
+and general: for each rule in a governing document, ask *"what exactly would I run, read, or count to know
+it was violated?"* Ten answers came back immediately here; the eleventh could not be answered at all, and
+that asymmetry is the finding rather than any property of the code.
