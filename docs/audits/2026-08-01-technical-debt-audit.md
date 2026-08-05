@@ -12190,3 +12190,53 @@ missing coverage — `compose.ts` is one of the best-tested files in the build, 
 approvals, anomalies and party resolution. It was that every one of those cases fed it *valid* input, so
 the postcondition ran and passed silently in all thirty. **Feed a guard the thing it exists to reject, or
 you have tested everything except the guard.**
+
+---
+
+## §233 — 88 "unobserved" guards, and the distinction that makes most of them correct
+
+§232's rule — *a guard that has never been observed firing is indistinguishable from a comment* — swept
+cleanly: **168 distinctive guard messages in shipped source, 88 never mentioned in any test.**
+
+I did not report 88 as a finding, for two reasons. The proxy overcounts (my own §232 test matches
+`/penny-parity violated/` without the `composeInvoice:` prefix the sweep extracts, so it counts as a miss),
+and — more importantly — **the 88 divide into two kinds that deserve opposite treatment.**
+
+### The two kinds
+
+Probed one of each, both on money or byte-law paths:
+
+| Guard | Validates | Disabled → |
+|---|---|---|
+| `packages/ledger/src/gl/export.ts@double-entry` — *"double-entry violated — Σdebits !== Σcredits"* | **its own construction** | 614 + 7 tests **green** |
+| `packages/ledger/src/canonical.ts@isSafeInteger` — *"canonical law: integers only"* | **caller input** | **1 RED** — *"rejects floats, -0, and unsafe integers"* |
+
+The double-entry guard looked like §232's finding repeating on the GL path. Reading the loop above it
+settles otherwise: **every money_line pushes exactly one debit and one credit of the same
+`amount_cents`** — unconditionally, in the same iteration. `debits === credits` is true *by construction*.
+The guard cannot fire unless someone rewrites that loop, which makes it a **canary against a future
+refactor**, not an untested path. §144's case (b): the boundary is unreachable — record why, do not
+fabricate a test for it.
+
+The contrast is principled rather than accidental. `serializeJournalIIF` takes journal lines **as input
+from a caller**, so unbalanced input is genuinely reachable there — and that guard **is** tested
+(*"unbalanced input (Σdebit !== Σcredit) throws — never emits a lopsided journal"*). Same invariant, two
+call sites, tested exactly where it can be violated.
+
+### Why §232 was still a real finding and this is not
+
+`composeInvoice`'s penny-parity guard reads `acceptedQuote.sell` — **a recorded value from another
+subsystem** — and compares it to lines it received. That is input validation across a seam, reachable the
+moment the upstream refine drifts, and it was the *sole* enforcement. `exportJournal`'s is arithmetic on
+two numbers it just wrote itself.
+
+**The tell: does the guard's condition reference anything the function did not construct in the same
+scope?** If yes, it is reachable and belongs in a test. If no, it is a postcondition — correct to keep,
+pointless to test, and it will show up in every "untested guard" sweep forever.
+
+### The rule
+
+**Sweep for unobserved guards, then split them by what they read.** The 88 is not a backlog; it is a
+mixture, and the mixture is the finding. Reporting it as a number would have manufactured 88 items of work
+where roughly half are correctly-written postconditions that a test could only prove by mutating the code
+above them — which is what a mutation probe already does, once, at audit time.
