@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import {
   DEPLOYABLE_SCOPES,
   WORKER_CONFIGS,
@@ -43,8 +43,25 @@ describe("every deployable scope declares the same bindings as dev", () => {
 });
 
 describe("the deployable surface is complete", () => {
-  it("covers all five workers, so a new one cannot be added unchecked", () => {
-    expect(WORKER_CONFIGS).toHaveLength(5);
+  it("is DISCOVERED from the worker tree, so a new one cannot be added unchecked", () => {
+    // This assertion used to be `expect(WORKER_CONFIGS).toHaveLength(5)`, which could not do what the test
+    // name promised (audit §286). A hardcoded count is blind to the failure it names: add `workers/foo` with
+    // bindings and forget the roster, and the length is STILL 5 — green. It fires only when someone does the
+    // RIGHT thing and extends the roster. MEASURED: a sixth worker declaring CONTROL_DB at top level and
+    // NOTHING under [env.prod] — the exact defect the suite above exists to catch — left all 251 deploy
+    // tests passing, because nothing downstream ever looked at a config outside the hand-typed list.
+    //
+    // Discovery is two-sided on purpose: a new worker must be rostered, and a deleted one must be unrostered
+    // (a stale entry would fail the readFileSync below, but silently pass a `length` check). apps/ is
+    // deliberately absent — surfaces bind nothing and are covered by surface-contract.ts, which argues that
+    // exclusion; `workers/` is the deployable-worker tree, so membership there is the rule.
+    const discovered = readdirSync("workers", { withFileTypes: true })
+      .filter((e) => e.isDirectory())
+      .map((e) => `workers/${e.name}/wrangler.toml`)
+      .filter((p) => existsSync(p))
+      .sort();
+    expect(discovered.length, "no wrangler configs discovered — the glob is wrong, not the tree").toBeGreaterThan(0);
+    expect([...WORKER_CONFIGS].sort(), "WORKER_CONFIGS must equal the discovered worker tree").toEqual(discovered);
     for (const path of WORKER_CONFIGS) expect(() => config(path)).not.toThrow();
   });
 

@@ -187,7 +187,7 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 ## §4 — Phase gating and the stopping point
 
 > **CURRENT MEASUREMENT: §238, at `68cfb0d`; CONVERGENCE measured at §243.** The four clauses below are
-> measured in §238. §243 (extended by §251 → §270 → §282 → **§285**, now through §285) answers the separate question of whether another iteration is worth running:
+> measured in §238. §243 (extended by §251 → §270 → §282 → §285 → **§286**, now through §286) answers the separate question of whether another iteration is worth running:
 > defects-per-section across the eight sections after §238 ran 1,1,1,—,1,1,**0,0** while verified-clean
 > rose to 8 and 8, the last two being the most systematic sweeps of the set. Five named restart triggers
 > are listed there, each a grep or a diff — two of which are now GATES (§244) rather than greps. Across
@@ -15109,3 +15109,76 @@ the first one to hit something structural — not another copy of a known defect
 enforcement mechanism that no amount of sweeping the claims would have surfaced. **The half-worked vein is
 worth re-entering once more than feels warranted, because the tool you build on the second pass is what
 exposes the third finding.** Writing the rule is what made the replacement semantics matter.
+
+---
+
+## §286 — Where else does a scoped override delete an inherited value?
+
+§285's structural finding generalizes past ESLint: **any config with last-writer-wins over a named key makes
+a scoped override a DELETE of the inherited value.** That is a question about this repo, not about ESLint, so
+it got asked of every such surface here.
+
+### tsconfig — clean, 20 configs
+
+`typecheck` green proves the compiler was satisfied, never that it was asked the right question: a package
+config that extends the base and then weakens `strict` keeps the gate green while the law
+("TypeScript strict, no `any`") is gone. Rather than read 21 files, each config's **effective** options were
+resolved with `tsc --showConfig` and diffed against the base across ten strictness flags.
+
+**19 of 20 identical to the base.** The one that differs — `shuddl-site` — turns out **not to extend the base
+at all**, so it is not a deletion; it is the separate marketing-site workstream with `strict=true` but
+`noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noFallthroughCasesInSwitch` unset and `allowJs`
+on. Recorded as another workstream's, not this loop's to change.
+
+### wrangler named environments — clean, 13 cells
+
+The sharper instance: Cloudflare does **not** inherit bindings into `[env.X]`, so a named environment that
+omits them deploys with *nothing* — and this repo has hit that exact defect before (a `shuddl-api-prod`
+declaring a name and no bindings). Checked with wrangler's own resolver (`deploy --dry-run --env …`), which
+is a genuinely independent mechanism from the gate's TOML parser: **5 workers × {prod, staging} + 3 app
+workers × prod = 13 cells, zero dropped bindings.** Two mechanisms agreeing is worth as much as the count.
+
+The defect is also already gated, and gated in the right place: `wrangler-scope-parity.test.ts` compares
+binding NAMES across scopes and is in the MERGE profile, not the release preflight — its own header argues
+why ("by the time [the preflight] speaks, the config has been merged for weeks"). The three surfaces are
+deliberately excluded and the exclusion is argued in `surface-contract.ts`: they bind nothing, so forcing
+them into that list "would weaken a real test". Verified: all three declare zero D1/KV/R2/DO/queue bindings.
+
+### The finding: a roster that cannot notice what it is for
+
+The suite asserts its own completeness — `it("covers all five workers, so a new one cannot be added
+unchecked")` — and the assertion behind that name was `expect(WORKER_CONFIGS).toHaveLength(5)`.
+
+**A hardcoded count is blind to precisely the failure the name claims.** Add `workers/foo` with bindings and
+forget the roster: the length is still 5, and the gate is green. It can only fire when someone does the
+RIGHT thing and extends the list — the protection runs backwards.
+
+**Mutation-proved rather than argued:** a sixth worker declaring `CONTROL_DB` at top level and *nothing*
+under `[env.prod]` — the exact defect the parity suite exists to catch — left **all 251 deploy tests
+passing.** Nothing downstream ever looks at a config outside the hand-typed list.
+
+Fixed by **discovering** the roster from `workers/*/wrangler.toml` and requiring set equality, which is
+two-sided: a new worker must be rostered, and a deleted one must be unrostered. `apps/` stays out, for the
+reason `surface-contract.ts` already gives. RED with the sixth worker, GREEN clean, GREEN restored, plus a
+non-vacuity guard (`discovered.length > 0`) so a wrong cwd fails loudly instead of passing on an empty glob.
+
+### The probe that lied, and why it was caught
+
+The first binding sweep reported `prod:0` for **all five workers** — every binding dropped in production, a
+catastrophic finding. It was false, twice over: wrangler prints the binding table to **stderr** (`2>/dev/null`
+discarded the thing being parsed), and this shell is **zsh**, where an unquoted `$2` does *not* word-split,
+so `--env prod` arrived as one malformed argument.
+
+It was caught in one step for a boring reason: **a manual run of that same worker two minutes earlier had
+printed 11 bindings.** The contradiction was with my own prior measurement, not with intuition.
+
+That is the reusable part. A sweep's output is only as trustworthy as the harness, and a harness bug fails
+*toward* alarming results — every binding missing, every file uncovered, every citation broken — because
+producing nothing looks identical to finding nothing. **Keep one hand-run instance as a fixed point before
+scaling a probe, and treat any sweep that disagrees with it as broken until proven otherwise.** The rule from
+§256 (three wrong PASSes) has a mirror: wrong FAILs are cheaper to notice and easier to believe.
+
+### Verification
+
+`typecheck 0 · lint 0 · check:invariants 0 · check:citations 0`; `test:tools` 763 passed, 3 failed — the
+known REQ-289 register trio from the other workstream's uncommitted row, unchanged by this section.
