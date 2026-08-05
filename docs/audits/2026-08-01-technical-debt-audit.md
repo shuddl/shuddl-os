@@ -13831,3 +13831,50 @@ external act instead of three pending items.
 its least-finished member, so completed work inside it stays invisible — here, two deliverables sat "pending"
 for weeks behind an ops act neither depended on. When auditing a ledger, split on the conjunction first and
 ask each half separately; the answer is often that most of the row is done.
+
+## §261 — sweeping the ledger for §260's bundles, and the one that hid a finished deliverable
+
+§260 found a row bundling one ops act with two finished deliverables, and derived the rule: *a row with `+`
+in its title is several rows wearing one status.* Applying it to the whole checklist: **12 rows carry a
+conjunction in their title.**
+
+Most are correctly bundled. `RESEND_API_KEY + EVIDENCE_FROM`, `ANTHROPIC_API_KEY + COPILOT_MODEL`,
+`TEST_SEND_TOKEN + ALLOW_TEST_SEND`, `Verified sending domain + DKIM/SPF/DMARC` — each pairs items that are
+**external in the same way and useless apart**: one secret without the other delivers nothing, so a single
+status is honest. The filter that matters is not "does the title contain `+`" but **"does the bundle mix an
+EXTERNAL act with an ENGINEERING deliverable?"** — because only then can one half be finished while the
+status stays pending.
+
+Two rows mix kinds. One survives inspection:
+
+- **Row 63** — *"Per-shipment inbound address + inbound webhook (svix verify + R2 body-resolver)"*, marked
+  Deferred. The `svix` hits in the tree are the **outbound** webhook path (§236) and outbound email, not an
+  inbound connector; the inbound half genuinely needs provisioning first. **Correctly bundled.**
+
+### Row 56 hid a finished deliverable
+
+*"Self-hosted Protomaps vectors on R2 + offline SW cache"* → *"Host tiles on R2; swap `DEMO_TILE_URL`/style
+placeholders; **wire driver airplane-mode offline**."* The first two are one ops act and its one-line
+follow-up. The third is independent engineering, and it is **done**:
+
+- an IndexedDB queue (`apps/driver/src/storage/idb-queue-store.ts`) behind `durable-seq.ts` and
+  `sync/transport.ts`;
+- an app-shell service worker whose 6 tests include the SPA-fallback cache-poisoning cases (§253);
+- proved through the **real sequencer** by `airplane-soak.test.ts` — 55 signed offline events across two
+  devices, `device_seq` monotonic from 0, synced under a seeded shuffle **with duplicate re-sends**, merging
+  at **zero loss and zero dupes** with the chain verifying. It is also demo 3's spine (§241), and a prior
+  iteration hardened its drain order after finding signed captures could strand.
+
+None of that depends on where tiles are hosted. It sat under a "deferred" status because it shared a row
+with an ops act.
+
+### The refinement to §260's rule
+
+**Split on the conjunction, then sort the halves by KIND.** A bundle of like-kind items is good record
+hygiene — it keeps one owner and one action together. A bundle that mixes kinds is a status trap, because
+the engineering half can complete while the external half cannot, and the row can only show one state. The
+cheap test: *could one half be finished today without the other moving?* If yes, they are two rows.
+
+**And the yield is small by design.** Twelve bundles, ten correct, one already split in §260, one split
+here. Recording that ratio matters as much as the finding — the next auditor should expect this sweep to be
+mostly confirmation, not a vein.
