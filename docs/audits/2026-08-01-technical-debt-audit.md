@@ -12804,3 +12804,52 @@ filmed video — that is exactly the claim that needs a re-read schedule, becaus
   containment that log and continue — no client response exists to leak into.
 - **Control-plane migrations** (§240) and the **third-party basemap** / **`/pub/*` edge rate-limiting**,
   all already recorded or by design.
+
+## §242 — all eight schema invariants, and three that had never been mutation-proved
+
+`genesis/10 §05` heads its list *"INVARIANTS (CI-enforced, the schema's laws)"*. This audit has leaned hard
+on I3 and I8 and touched I2 and I6, but the eight had never been enumerated and checked as a set — and a
+header asserting "CI-enforced" is exactly the kind of prose §241 says decays unwatched.
+
+| | Law | Mechanism | Status |
+|---|---|---|---|
+| **I1** | no money_line without event | `event_id TEXT NOT NULL REFERENCES events(id)` (`0002_domain.sql:41`) + the projection rides the event's `db.batch()` | **MEASURED this section** |
+| I2 | no invoice without `pod.signed` (unless policy names an exception) | `gates/invoice-gate.ts` → `GATE_BLOCKED:{required_evidence}` | covered (server-side gate suite) |
+| I3 | no event edit/delete grants at DB level | BEFORE INSERT/UPDATE/DELETE triggers (0003 + 0008) + the `check:invariants` migration lint | covered; §239 put 0008 into the worker suites |
+| **I4** | every custody event co-signed or flagged `unwitnessed` | Zod superRefine on `custody.transferred` / `pod.signed` (`packages/contracts/src/events.ts:368@I4`) | **MEASURED this section** |
+| **I5** | every quote pins rate_config versions | `rate_config_ids` pins tariff + floors + fsc + accessorials, de-duplicated, always ≥1 (`packages/rater/src/price.ts:103`) | **MEASURED this section** |
+| I6 | `events.visibility` respected by every view | server-side lens filtering + `lens-adversarial.test.ts` with independent guards | covered (threat model row) |
+| I7 | correction pairs net zero in GL export | `ux_ml_corrects` UNIQUE + verbatim visibility inheritance for corrections (`visibility.ts:101`) | covered (`money-projection.test.ts` §REQ-012/I7) |
+| I8 | a 22nd table fails the build | `TABLE_BUDGET` in `check:invariants` — reports 21/22 | covered |
+
+The three unproved ones were mutated:
+
+- **I4** — neutering the refinement (`if (false && …)`) turns `packages/contracts` **2 failed / 283 passed**.
+- **I5** — two directions, because a partial pin is the likelier regression than none: pinning ONLY the
+  zone tariff → **2 failed**; pinning nothing → **5 failed**. Both RED, and the partial case matters more —
+  it is what a "simplification" would produce.
+- **I1** — the FK is only a law if the runtime honours it: SQLite ignores foreign keys unless
+  `PRAGMA foreign_keys` is on, which would make that `REFERENCES` clause decorative. Probed against real
+  D1: `PRAGMA foreign_keys = 1`, and an orphan `money_line` insert is refused with
+  `D1_ERROR: FOREIGN KEY constraint failed: SQLITE_CONSTRAINT`. **Enforced.**
+
+### The probe that took three tries to become trustworthy
+
+The I1 result is the one worth recording as method. The first probe reported `orphan_refused=true` — and was
+**wrong**: it named a `memo` column that does not exist, so the refusal was `no such table column`, nothing
+to do with foreign keys. The second, after fixing the columns, again reported `refused=true` — because it
+had lost its migration setup and the refusal was `no such table: money_lines`. Only the third, with schema
+and columns both right, produced `FOREIGN KEY constraint failed`.
+
+**Two of three runs returned the right verdict for the wrong reason.** A probe that asks "did this throw?"
+will happily accept any throw, and the two impostor errors were more plausible-looking than the real one.
+The fix is not more care — it is demanding that the failure message *name the mechanism under test*, which
+is the same discipline as §240's adjudication (21 of 22 "unresolved" citations were false once each was read
+rather than counted) and §236's webhook probe (a clean negative produced by a fake that was too fast).
+
+### The rule
+
+**"CI-enforced" in a doc is a claim to test, not a fact to cite.** All eight held here — which is the point:
+the sweep cost four mutations and converted a header everyone quotes into eight measured statements. And
+when the measurement is "did it throw?", the assertion must pin *which* throw, or a schema typo will
+counterfeit a passing law.
