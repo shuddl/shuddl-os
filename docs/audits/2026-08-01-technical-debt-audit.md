@@ -18103,3 +18103,52 @@ Filed as a Low row beside the other two, with its measurement, its adjudication,
 Eleven prohibitions enumerated and classified; the three named CONFIRM-GATED items traced to real register
 rows; the register's `CONFIRM-GATED` population counted (**14**); row filed and the checklist's amended-line
 updated to five. `check:citations 0 · check:invariants 0`. No code changed.
+
+---
+
+## §339 — The other rule block, and the number that is unverifiable for a good reason
+
+§338 swept `CLAUDE.md`'s do-not-build list. The **ten non-negotiable engineering rules** are the other rule
+block, and several state a checkable number. Both were verified.
+
+### Rule 7 — "+ 5 blessed screenshots"
+
+**Exactly five**: `command` · `driver` · `evidence-email` · `portal` · `status`, and the visual gate reported
+`5 passed` in §298's live run. *(My first count said six — it included the directory's `README.md`. Token
+count versus set, sixth instance this phase, and caught by listing the directory instead of counting it.)*
+
+### Rule 10 — "any legacy column (171-col export)"
+
+Anchored: `packages/adapters/src/legacy-mirror.ts` is *"THE CONTINUOUS 171-COL LEGACY-MIRROR"*. But the 171
+headers are **not in this repository**, and the file says exactly why:
+
+> *"GENERIC / no vendor identity (REQ-167): the 171 literal headers + record kinds are CONFIG (tenant-pack,
+> outside the repo). This core is config-driven; the repo ships only a synthetic neutral fixture/config."*
+
+**So the one number in the engineering rules that cannot be verified here is unverifiable by design** —
+verifying it would mean committing the vendor-identifying headers that REQ-167 forbids in any repo artifact,
+and the config-pack contract (`genesis/13`) puts them in the engagement workspace.
+
+That is the opposite of the §338 defect and worth stating as its own shape: **a number that cannot be checked
+against the repository is not automatically under-specified — it may be correctly external, and the test is
+whether the artifact says so.** `legacy-mirror.ts` says so in a numbered clause. `CLAUDE.md`'s CONFIRM-GATED
+parenthetical did not, which is why one is a filed row and this is a clean result.
+
+### Both rule blocks, swept
+
+| block | items | under-specified |
+|---|---|---|
+| do-not-build (§338) | 11 | 1 — *"a fifth primitive"* (§246, filed) |
+| non-negotiable engineering rules (§339) | 10 | **0** |
+| hard budgets (§336) | 7 | 1 — unlabelled ceilings (filed) |
+| CONFIRM-GATED parenthetical (§338) | 1 | 1 — illustrative-reads-as-exhaustive (filed) |
+
+**Twenty-nine governing statements, three under-specified, all three filed as Low legibility rows with expiry
+triggers.** No prohibition is unenforceable, no budget is unmet, and no rule's subject is missing — the three
+gaps are all *"what kind of claim is this?"*, never *"is the claim true?"*.
+
+### Verification
+
+Ten engineering rules read and their stated numbers checked: 5 blessed screenshots verified against disk and
+against the live visual run; the 171-col reference traced to its config-pack contract and REQ-167 rationale.
+No file changed.
