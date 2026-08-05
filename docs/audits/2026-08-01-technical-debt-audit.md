@@ -10233,3 +10233,58 @@ true*, and only the second can leave a title lying.
 that is what a column of titles is *for* — so a correction that stops at the body leaves the most-read
 part of the row asserting the thing you just disproved. It survives because everyone who checks the row
 reads the correction and never re-reads the title above it.
+
+---
+
+## §198 — the $222,084 permanent regression is real, and my hash "mismatch" was not
+
+`CLAUDE.md` rule 5 names a specific historical incident: *"Interline floors compare the executing share,
+never gross. The $222,084/35-lb anomaly regression is **permanent** (REQ-040)."* A named permanent
+regression is a strong claim and nothing this session had tested it.
+
+### The false alarm, recorded because it nearly became a finding
+
+The fixture `anomaly-222084-35lb` is `status: "vendored"` with a pinned `sha256`. `shasum -a 256` on the
+file returns a **completely different digest** — and for a moment that was going to be this section: the
+integrity hash on the permanent-regression fixture does not match its file.
+
+`check:fixtures` disagreed, reporting *"fixture registry verified"*. It **does** verify — `hashPath(e.path)`
+against the pin, failing on mismatch. So one of us was wrong, and it was me: `hashPath` is a **framed tree
+digest**, hashing `length:path` + `length:bytes` per entry so the stream is injective over file trees. A
+raw file digest can never equal it. The framing was itself an audit fix (§10), landed with a re-pin of
+every vendored hash.
+
+**A gate disagreeing with my hand-computation is evidence about my method, not its.** Two of this
+session's near-misses have that shape (§189's "no cron", this) — the system was right both times.
+
+### The regression itself, mutation-proven
+
+Applied the exact change rule 5 forbids — `executingShareCents` returning `grossSellCents` instead of the
+tenant's share:
+
+```
+× the GROSS attributed to the 35-lb leg flags; the tenant's SHARE does NOT
+× PROOF the share rule changed the outcome: gross flags, share is null on the identical weight
+```
+
+**10 tests fail across 2 files**, and the two above are the named case. The second is the one that
+matters: it is a **differential** assertion — gross flags, share does not, *on identical input* — so it
+proves the rule changes the verdict rather than merely that the code runs. That is precisely the property
+§181's vacuous guards lacked, written down by whoever built WP-04.
+
+The fixture is also `"generated in-repo — encoded from the QA case description; no engagement-workspace
+data (REQ-040/REQ-167)"`. So the permanent regression survives the private-fixture holds that block five
+other gates: it is one of the vendored ones, and it does not carry a real customer's numbers.
+
+### Verdict
+
+**Rule 5 holds, and holds load-bearingly.** No finding. Worth a section anyway, because "a hard law in
+`CLAUDE.md` is enforced by a test that can actually fail" is exactly the kind of claim this audit has
+found untrue elsewhere (§181's gate sentinel, §186's DST converter, §180's leak guard) — and the only way
+to know which is to run the mutation.
+
+### The rule
+
+**Test the laws you would be most embarrassed to find unenforced.** Rule 5 names a dollar figure and a
+weight, which is what a real incident looks like in a document — and a rule specific enough to name its
+own incident is one someone cared about, which is a reason to check it holds, not a reason to assume so.
