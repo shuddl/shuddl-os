@@ -11373,3 +11373,58 @@ where the type allows it and a behavioural-test problem where it does not; growt
 problem, because no type system objects to one more legal element. Four of the five allowlists here were
 built by someone who had already asked that question — the two gaps were both growth, and both invisible
 from the declaration.
+
+---
+
+## §218 — at-least-once delivery: the idempotency that holds, and where its tests live
+
+Cloudflare Queues deliver **at least once**, so every consumer must be idempotent or a redelivery
+double-bills, double-sends, or double-appends. `workers/agents/src/index.ts@queue` handles three trigger
+kinds and its comments claim the property outright — *"deterministic ids (no Date, no random — redelivery
+must reproduce them exactly)"*. Testable.
+
+Broke determinism at the root, in both agents that mint ids from a trigger — `sha256Hex(s)` →
+`sha256Hex(s + Math.random())`:
+
+| Mutation | agents suite | api suite |
+|---|---|---|
+| Biller id derivation | **106 pass — nothing** | **10 RED / 5 files** |
+| Concierge id derivation | — | **4 RED** in `concierge.test.ts` alone |
+
+The failures are named for the property:
+
+```
+× IDEMPOTENCY: the same message twice → ONE invoice
+× REDELIVERY FAST PATH: once the invoice is committed …
+× IDEMPOTENCY (auto-reply): the same message twice …
+× IDEMPOTENCY (queued): a held message …
+× interline pod.signed → split.computed …
+```
+
+**The guarantee holds**, and it is enforced where the money is: one invoice per POD however many times the
+queue delivers it, one auto-reply per inbound, one interline split.
+
+### The finding is where the tests live, not whether they exist
+
+**`workers/agents` — the package that *owns* both consumers — passes all 106 tests with a deliberately
+broken id derivation.** Every idempotency assertion lives in `workers/api`, because proving "the same
+message twice yields one invoice" needs the real sequencer and D1, which only the api worker's
+`vitest-pool-workers` environment provides.
+
+That is defensible engineering and a live trap for exactly the workflow this session has been running.
+A reader — or an agent — following §192's rule *"run the suite that owns the file I edited"* would edit
+`workers/agents/src/biller.ts`, run `workers/agents`, see **106/106 green**, and ship a broken
+at-least-once guarantee. The rule is right and its naive application fails here, because **ownership by
+directory and ownership by test are different things** whenever a property needs infrastructure the unit
+package cannot host.
+
+Not filed as a defect — moving those tests would make them worse. Recorded because the safe habit is
+narrower than the one §192 wrote down: **for a property that spans a seam, find the suite that exercises
+the seam, not the package that declares the code.** In this repo that is nearly always `workers/api`.
+
+### The rule
+
+**An idempotency test cannot live where the code lives if idempotency needs a database.** The consequence
+is a package whose green is systematically less informative than its size suggests — 106 tests that cannot
+see the single most important property of the file they cover. Worth knowing before trusting any
+agents-only run.
