@@ -11711,3 +11711,63 @@ pinned on its third instance.
 written; nothing about it degrades when a third copy is added elsewhere, and nothing about the third copy
 announces that a guard exists it should have joined. The sweep that finds this is not "are the parity
 tests passing" but **"how many copies are there, and does the count match what the guard asserts?"**
+
+---
+
+## §224 — the same gap, one guard over: the tenant roster had four copies and two watchers
+
+§223's rule — *how many copies are there, and does the count match what the guard asserts?* — applied to
+the next parity test. `workers/agents/test/tenants-parity.test.ts` guards the tenant roster, and states
+the stake exactly: *"the cron's tenant allowlist MUST match the API's, or a tenant silently stops being
+anchored"* (REQ-014/025).
+
+**Four copies of `tenants.ts`. The guard covered two.**
+
+| Copy | sha256 | lines | guarded |
+|---|---|---|---|
+| `workers/api/src/tenants.ts` | `3d798c33…` | 70 | ✅ |
+| `workers/agents/src/tenants.ts` | `f64f519b…` | 168 | ✅ |
+| **`workers/billing/src/tenants.ts`** | `6ae7db6c…` | 167 | **nothing** |
+| **`workers/translator/src/tenants.ts`** | `863a3db7…` | 146 | **nothing** |
+
+And as with §223, the obligation was already written down — in the uncovered file itself.
+`billing/src/tenants.ts` opens by naming the api's `TENANT_BINDINGS` **and**
+`workers/translator/src/tenants.ts` as *"the SAME customer tenants"*. A three-way claim with a two-way
+test.
+
+### What silence would have cost
+
+The consequence differs per copy, which is why both needed their own test rather than one shared one:
+
+- **billing** — a tenant present in the api and absent here is **never metered**. Unbilled, silently,
+  forever.
+- **translator** — a tenant absent here has its inbound 204s resolve to nothing: **EDI tenders vanish**.
+
+Neither surfaces as an error. Both are "a tenant that quietly does not exist" in exactly one subsystem.
+
+### Closed
+
+Two parity tests, same mechanism as the original (diff the slug literals in the raw sources, then confirm
+the runtime export agrees with its own file). Billing 56 → **57**, translator 98 → **99**.
+
+Mutation — adding `tenant-c` to the api roster alone:
+
+```
+billing      Tests  1 failed (1)
+translator   Tests  1 failed (1)
+agents       Tests  1 failed (1)   ← the original guard, still working
+```
+
+All three now fail together. Before this section, only the third would have.
+
+**Not a defect today** — all four rosters declare `tenant-a`/`tenant-b`. What was missing is the mechanism
+that keeps them equal as the roster grows, which is precisely when it will matter: onboarding tenant #1 is
+the moment three files must change together.
+
+### The rule
+
+**A parity guard is written when the second copy appears and is never revisited when the third does.**
+Both §223 and §224 found the same shape — a correct, well-reasoned test naming exactly the copies that
+existed the day it was written, and no mechanism anywhere that notices a new copy joining the set it
+should have joined. Two guards, four uncovered copies between them, both discovered by counting rather
+than by any test failing. **The count is the audit; the guards cannot perform it on themselves.**
