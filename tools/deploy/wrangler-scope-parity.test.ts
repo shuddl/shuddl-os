@@ -42,6 +42,45 @@ describe("every deployable scope declares the same bindings as dev", () => {
   }
 });
 
+// QUEUE CONSUMERS, CHECKED WHERE THE BINDINGS ARE (audit §290). `bindingSets()` compares d1/kv/r2/
+// durableObjects/queueProducers — every binding a worker READS — but not the consumers it SERVES. The DLQ
+// requirement does exist: `preflight.ts` raises `queue-without-dlq`. It just lives in the RELEASE profile,
+// which is the exact complaint this file opens with — "by the time it speaks, the config has been merged
+// for weeks." Whether a consumer declares a dead-letter queue needs no account, no ids and no network, only
+// the committed TOML, so it belongs at merge with everything else of that kind.
+//
+// WHAT A MISS COSTS: `max_retries = 5` then nothing. Without a DLQ, a message that exhausts its retries is
+// DROPPED — an agent trigger that never runs, with no queue depth to page on (`docs/ops/slo.md` pages on
+// "DLQ non-empty", which can only fire if the DLQ is wired). Wrangler does not inherit into named
+// environments, so prod can lose the DLQ while dev keeps it, and every gate stays green.
+describe("every queue consumer, in every scope, is dead-lettered", () => {
+  const withConsumers = WORKER_CONFIGS.filter((p) => targetFromWrangler(parseWranglerToml(config(p)), undefined).queueConsumers.length > 0);
+
+  it("at least one worker declares a consumer (non-vacuity)", () => {
+    // Without this, a parser change that returns [] for every scope empties the loop below and the whole
+    // describe passes by asserting nothing.
+    expect(withConsumers.length, "no worker declares a queue consumer — the parse is wrong, not the tree").toBeGreaterThan(0);
+  });
+
+  for (const path of withConsumers) {
+    const doc = parseWranglerToml(config(path));
+    const dev = targetFromWrangler(doc, undefined);
+    for (const scope of DEPLOYABLE_SCOPES) {
+      it(`${path} — [env.${scope}] consumers match dev, and each is dead-lettered in its own scope`, () => {
+        const target = targetFromWrangler(doc, scope);
+        expect(target.queueConsumers, `${path} [env.${scope}] consumer count differs from dev`).toHaveLength(dev.queueConsumers.length);
+        for (const c of target.queueConsumers) {
+          expect(c.deadLetterQueue, `${path} [env.${scope}] consumer ${c.queue} declares no dead_letter_queue — exhausted retries are DROPPED`).toBeTruthy();
+          // A consumer or DLQ pointing at another environment's queue is the cross-env leak this naming
+          // convention exists to prevent, and reads as correct until the wrong environment drains it.
+          expect(c.queue.endsWith(`-${scope}`), `${path} [env.${scope}] consumes ${c.queue}, which is not a ${scope} queue`).toBe(true);
+          expect(c.deadLetterQueue?.endsWith(`-${scope}`), `${path} [env.${scope}] dead-letters to ${c.deadLetterQueue}, which is not a ${scope} queue`).toBe(true);
+        }
+      });
+    }
+  }
+});
+
 describe("the deployable surface is complete", () => {
   it("is DISCOVERED from the worker tree, so a new one cannot be added unchecked", () => {
     // This assertion used to be `expect(WORKER_CONFIGS).toHaveLength(5)`, which could not do what the test

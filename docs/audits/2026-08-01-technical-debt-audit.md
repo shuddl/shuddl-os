@@ -187,7 +187,7 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 ## §4 — Phase gating and the stopping point
 
 > **CURRENT MEASUREMENT: §238, at `68cfb0d`; CONVERGENCE measured at §243.** The four clauses below are
-> measured in §238. §243 (extended by §251 → §270 → §282 → §285 → §286 → §287 → §288 → **§289**, now through §289) answers the separate question of whether another iteration is worth running:
+> measured in §238. §243 (extended by §251 → §270 → §282 → §285 → §286 → §287 → §288 → §289 → **§290**, now through §290) answers the separate question of whether another iteration is worth running:
 > defects-per-section across the eight sections after §238 ran 1,1,1,—,1,1,**0,0** while verified-clean
 > rose to 8 and 8, the last two being the most systematic sweeps of the set. Five named restart triggers
 > are listed there, each a grep or a diff — two of which are now GATES (§244) rather than greps. Across
@@ -15396,3 +15396,70 @@ Two sections running, the shape "X exists but nothing executes it" has produced 
 instances of it are worth naming even unclosed: an event kind never emitted, a queue consumer never bound,
 a REQ row with no implementation (that one IS gated, by `check:coverage` at 100%). The class is productive
 because absence is invisible to every mechanism except an explicit census.
+
+---
+
+## §290 — The census of two absences, and a release-profile check that belonged at merge
+
+§289 named the remaining silent-absence instances. Both were worth a census; one produced a gate.
+
+### Event kinds — 35/35 referenced
+
+An event kind declared and never emitted would be dead scope, and with all 16 WPs closed there is no "not
+built yet" excuse available. Taking the list from `EVENT_KINDS` itself rather than typing one (35 parsed,
+matching the pinned budget), every kind has at least one production reference outside `packages/contracts`
+and outside tests. **0 of 35 orphaned.** The bound is worth stating precisely, because "referenced" is a
+weaker claim than "emitted": a kind consumed by a projection but written by nothing would still pass this
+census. That distinction is recorded rather than closed — separating emit sites from consume sites needs
+the append chokepoint's call graph, not a grep.
+
+### Queues — wired, and deliberately unconsumed
+
+One producer (`AGENT_QUEUE` → `shuddl-agent-triggers-<env>`), consumed by the agents worker, `max_retries =
+5`, dead-lettering to `shuddl-agent-dlq-<env>` **in all three scopes**. Nothing consumes the DLQ — and that
+is the design, not a gap: `docs/ops/slo.md` **pages** on "DLQ non-empty" and `docs/ops/dr-backups.md` §DLQ
+carries the inspect-and-re-drive procedure (REQ-114). An unconsumed queue with an alert and a runbook is a
+parked-work queue; an unconsumed queue without them is a hole. The difference is entirely in the ops record.
+
+*(A false hit worth noting: my first consumer scan reported a DLQ consumer that does not exist — the pattern
+`/queue *=/` matches inside `dead_letter_queue =`. Third pattern-hygiene error of the session, and the same
+lesson: the substring you matched is not the field you meant.)*
+
+### The gate: a merge-checkable property enforced only at release
+
+`bindingSets()` compares d1 / kv / r2 / durableObjects / **queueProducers** — every binding a worker READS —
+but not the consumers it SERVES. The DLQ requirement is not missing: `preflight.ts` raises
+`queue-without-dlq`. It is in the **releaseInfra** profile (`merge` returns `[...plain, ...skippable]` and
+stops before it), which is verbatim the complaint `wrangler-scope-parity.test.ts` opens with — *"by the time
+[the preflight] speaks, the config has been merged for weeks."*
+
+Whether a consumer declares a dead-letter queue needs no account, no ids and no network — only the committed
+TOML. **The preflight's own header says it is pure for exactly that reason**, which is what makes the
+placement, not the check, the defect.
+
+**What a miss costs:** `max_retries = 5` and then nothing. A message that exhausts its retries is DROPPED —
+an agent trigger that never runs — and there is no queue depth to page on, because the SLO's alert fires on
+a DLQ that only exists if it was wired. Wrangler does not inherit into named environments, so prod can lose
+the DLQ while dev keeps it, with every gate green.
+
+Closed by extending the parity suite: every scope's consumer count matches dev, every consumer declares a
+dead-letter queue, and **both the consumed queue and its DLQ must belong to that scope** — a prod consumer
+pointing at a staging queue reads as correct until the wrong environment drains it.
+
+Mutation-proved, all three RED with the right message: prod loses its `dead_letter_queue` → "declares no
+dead_letter_queue"; prod dead-letters into the staging DLQ → "not a prod queue"; prod consumes the staging
+triggers queue → "not a prod queue". Plus a non-vacuity guard, since a parser change returning `[]` for
+every scope would empty the loop and pass by asserting nothing. `wrangler.toml` restored byte-identical.
+
+### Verification
+
+`typecheck 0 · lint 0 · check:invariants 0 · check:citations 0 · audit:design 0`; `test:tools` 30 files,
+780 tests, 777 passed — the 3 failures remain the known REQ-289 register trio from the other workstream.
+
+### Yield note
+
+The productive question this section actually ran on was not "is it checked?" but **"is it checked where it
+can still stop someone?"** A check in the wrong profile is indistinguishable from a correct one on any green
+run, and this repo had already written the argument down once, for bindings, without applying it to the
+consumers in the same file. **An argument recorded in a header is not an argument applied everywhere it
+holds** — the same completeness failure as §284, one layer up from code.
