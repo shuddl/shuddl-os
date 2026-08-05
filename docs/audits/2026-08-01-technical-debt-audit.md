@@ -14229,3 +14229,41 @@ membership claims — a defect rate of zero. Recording that is what stops the ne
 regex: the derivation-shaped comment is a *rare* shape in this repo, not a vein, and where it occurs the
 codebase has usually already reached for the stronger tool — a total `Record`, whose omissions are type
 errors rather than findings.
+
+## §269 — the inverse sweep: where a `Partial` map is used, what happens to a member never added?
+
+§268 closed on the observation that this codebase reaches for a total `Record<Union, V>` where one is
+possible — omission becomes a type error. The complementary question is the dangerous one: **where a
+`Partial` map is used deliberately, what protects the member nobody adds?**
+
+The highest-stakes instance is redaction, because omission there is fail-**open**: `REDACTIONS` and
+`INTERNAL_NESTED` are `Partial<Record<EventKind, …>>`, so a new counterparty-visible kind carrying `gl_map`,
+`division` or `driver_user_id` would simply not be stripped. `INTERNAL_NESTED`'s own comment even carries the
+instruction with no mechanism behind it — *"Keep append-only alongside `KIND_VISIBILITY_DEFAULTS`."*
+
+**It is already closed, and by a better test than the one I was about to propose.** `redact.test.ts` carries
+a *"GENERAL fail-closed guard: NO known-internal key survives the party lens for ANY counterparty-default
+kind"*, and every part of it anticipates the failure modes this audit keeps finding:
+
+- the kind list is **derived** — `Object.keys(KIND_VISIBILITY_DEFAULTS).filter(v === "counterparty")` — so a
+  new kind enters the loop automatically rather than being remembered;
+- `expect(skipped).toEqual([])` — a kind whose fixture cannot be built **fails**, with the comment
+  *"silence there would let 'ANY' quietly become 'most'"*;
+- `expect(counterpartyKinds.length).toBe(28)` — the count is pinned, so adding a counterparty-default kind
+  breaks this test and puts the redaction decision in front of whoever added it;
+- a **non-vacuity** assertion: a seeded internal field must actually survive into the stored payload, *"else
+  the guard is vacuous"*;
+- and a **coverage ratchet** on how many kinds naturally carry an internal key, with the note that counting
+  the rest as coverage *"would be the same overstatement audit §50 kept finding"*.
+
+**Proved rather than read:** flipping one kind's default from `internal` to `counterparty` turns the suite
+**1 failed / 19 passed**. The `Partial` maps are safe because something else forces the decision — which is
+the only thing that makes a `Partial` map safe.
+
+### The rule
+
+**A `Partial` map is a deferred decision; ask what makes the decision get made.** The answer is never the
+map. Here it is a derived-list test that pins its own population count — so the *addition* of a member to
+the union is what fails, not its later omission from the partial map. That ordering matters: a guard keyed
+to the partial map can only notice entries that exist, while a guard keyed to the **union** notices the ones
+that do not.
