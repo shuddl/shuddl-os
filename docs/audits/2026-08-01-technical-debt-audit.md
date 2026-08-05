@@ -187,7 +187,7 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 ## §4 — Phase gating and the stopping point
 
 > **CURRENT MEASUREMENT: §238, at `68cfb0d`; CONVERGENCE measured at §243.** The four clauses below are
-> measured in §238. §243 (extended through §250 by §251, and through §269 by **§270**) answers the separate question of whether another iteration is worth running:
+> measured in §238. §243 (extended by §251 → §270 → **§282**, now through §281) answers the separate question of whether another iteration is worth running:
 > defects-per-section across the eight sections after §238 ran 1,1,1,—,1,1,**0,0** while verified-clean
 > rose to 8 and 8, the last two being the most systematic sweeps of the set. Five named restart triggers
 > are listed there, each a grep or a diff — two of which are now GATES (§244) rather than greps. Across
@@ -14895,3 +14895,53 @@ its subject's shape. Recorded as a bound so the next auditor does not re-derive 
 parity test, first ask **"is the copy total or partial?"** — a total copy needs one byte-identity assertion
 and a partial one needs an enumerated element list, and the failure mode is a partial copy inheriting a total
 copy's single assertion.
+
+## §282 — convergence through §281, and what actually produces yield now
+
+§270 measured the eighteen sections after §251. Eleven more have landed. Same tally, same method:
+
+| § | Subject | Findings | Kind |
+|---|---|---|---|
+| 271 | gate scan coverage (every glob vs its tree) | 0 | — |
+| 272 | the citation escape hatch | 1 | **gate visibility** — a suppression that changed no output |
+| 273 | standard inline suppressions | 0 | bound: 0 type escapes, 0 `.only(` |
+| 274 | test vacuity | 0 | bound: 0 unconditional tests |
+| 275 | module reachability / coverage | 0 | bound: 280 files, 0 orphans (+1 observation row) |
+| 276 | the CI workflow | 0 | — |
+| 277 | the deploy placeholder check | **1** | **latent enforcement** — an all-zero KV id read as provisioned |
+| 278 | discriminator branches (all 10) | 0 | §277 was the one |
+| 279 | the declared clone pair | 0 | — |
+| 280 | the rate-config parity test | **1** | **latent enforcement** — the guard half was unpinned |
+| 281 | all 14 parity tests | 0 | §280 was the one |
+
+**Three findings in eleven sections, none user-reachable — but two are the §270 "latent enforcement" kind**,
+and one of those (§277) would have fired at the worst possible moment: a deploy gate passing an unprovisioned
+namespace *and* a provisioner refusing to replace it, discovered only when someone provisioned production.
+
+### The pattern in where yield comes from
+
+Look at where the three findings sit. Each arrived in the **first** section to ask a new question, and the
+two or three sections that swept the same shape afterwards returned zero:
+
+| Question shape | First asked | Yield | Swept in |
+|---|---|---|---|
+| what does an escape hatch look like from outside? | §272 | 1 | §273 (0) |
+| does one branch validate more than its sibling? | §277 | 1 | §278 (0), §279 (0) |
+| what does a parity test actually cover? | §280 | 1 | §281 (0) |
+
+**The audit's yield is now entirely a function of introducing new question shapes**, and each shape is
+exhausted within two or three sections. That is a more useful stopping signal than the raw count, because it
+says what a further iteration would have to do to be worth running: not sweep harder, but ask something
+structurally new — and the supply of structurally new questions about a codebase this thoroughly examined is
+visibly thin.
+
+### The stopping point, restated once more
+
+Unchanged: §238's four clauses, §243's five restart triggers (two now gates). What §271–§281 added is one
+deploy-gate fix, one parity extension, one escape-hatch counter, and **five measured bounds** — inline
+suppressions, test vacuity, module reachability, gate scan coverage, and parity-test coverage — each of which
+tells a future auditor not to re-run that sweep.
+
+**The remaining ledger is unchanged and none of it is repo-closable:** three owner decisions, nine private
+fixtures, two External Highs, rows needing a migration or API-contract change, one missing definition, and
+one Low observation (no line-coverage instrumentation, §275).
