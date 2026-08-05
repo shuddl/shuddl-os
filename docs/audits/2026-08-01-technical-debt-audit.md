@@ -14555,3 +14555,52 @@ forty sections asking "can this gate fail?" should at some point ask the same of
 it — once, mechanically, with the result recorded as a bound. And when the answer comes back as a list of
 suspiciously important tests, suspect the regex before the tests: word boundaries and nested parens broke
 this one twice, both times in favour of a false alarm.
+
+## §275 — what can and cannot be said about coverage here
+
+§274 established the tests can fail. The next question is whether they reach everything: **is any shipped
+module exercised by nothing at all?**
+
+**There is no code-coverage tooling.** No `coverage` configuration in any vitest config — so line and branch
+coverage are not measured anywhere, and "is this line exercised?" has no mechanical answer in this repo.
+That is an observation rather than a defect: nothing in `CLAUDE.md` or the register asks for it, and
+`check:coverage` is register↔test traceability (REQ-118/119), a different thing entirely. The repo's actual
+assurance strategy is targeted tests plus gates, and this audit has spent forty sections mutation-proving
+specific guards — which is a stronger signal per unit effort than a line-coverage percentage, and a weaker
+one for *breadth*.
+
+So breadth was measured the only way available — reachability — and the number moved twice as the definition
+tightened:
+
+| Definition | Count |
+|---|---|
+| source files whose basename never appears in the test corpus | **39** |
+| …excluding those with a sibling test file or a package-barrel re-export | **14** |
+| …excluding those imported by any other source file (transitive reach) | **0** |
+
+**280 source files, zero orphans.** Nothing in `packages/`, `workers/` or `apps/` is unreachable from both
+the test corpus and the rest of the source. The 14 that lack a *direct* test import — `gate-context.ts`,
+`platform-ledger.ts`, `useSync.ts`, the driver's presentational components — are each imported by one to six
+source files that tests do exercise.
+
+### The methodological point is the number moving
+
+39 → 14 → 0. Each step was a *correct* refinement of "untested", and the first two numbers were both
+publishable-looking findings. The first missed barrel imports (`@shuddl/design` → `primitives.tsx`, which has
+its own test file); the second missed transitive reach entirely.
+
+Had this stopped at step one it would have reported **39 untested modules including the design system's
+primitives** — confidently, with a script behind it. That is the same failure as §274's regex and §263's
+symbol pairing: **a proxy for a property is not the property, and every proxy in this audit has erred toward
+inventing work.**
+
+### The honest bound
+
+- **Can be said:** every shipped module is reachable from something that runs; no file is dead or orphaned.
+- **Cannot be said:** which *lines or branches* are executed. A module reached transitively may still have
+  untested paths inside it, and nothing here measures that.
+
+Recorded rather than fixed. Adding coverage instrumentation is new tooling scope, and its marginal value
+against this repo's mutation-proving discipline is a judgement for the owner — but the *gap in what can be
+claimed* belongs in the record, because "well tested" and "every line executed" are different assertions and
+only one of them is supportable from here.
