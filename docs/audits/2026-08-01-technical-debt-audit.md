@@ -10348,3 +10348,64 @@ times this session now.
 Rules 2, 4 and 5 are mutation-proven load-bearing. Rules 3 (server-side gates) and 8 (tenant isolation)
 were exercised earlier — §174 pinned anchor key partitioning, §194 corrected the gate-parity map. No
 finding in this section, which is the third consecutive law that held.
+
+---
+
+## §200 — rules 8 and 10 hold, and their defence depths differ by an order of magnitude
+
+Fourth and fifth hard laws by §198's method.
+
+### Rule 8 — a cross-tenant read anywhere is a build failure (REQ-025)
+
+The archetypal violation: made `resolveTenantDb` ignore the session claim and hand every caller
+tenant-a's database.
+
+**20 tests fail across 9 files.** Not just the dedicated suite — `isolation.test.ts` (4),
+`plg-isolation-matrix` (2), and then `signup` (5), `rate` (2), `evidence-upload`, `invoices`, `parity`,
+`signup-to-quote.e2e`. The named ones are exact: *"a valid tenant-b session never sees tenant-a"*,
+*"ISO-pub-1: the cap's tenant is the only tenant read"*, *"a tenant-a includeShadow firehose…"*.
+
+That is a law enforced **incidentally by the rest of the suite as well as deliberately** — nine files
+would have to be edited in concert to let a cross-tenant read through. `CLAUDE.md` rule 8 is the one that
+most deserves that, and it has it.
+
+### Rule 10 — no silent drops in migration
+
+Made an unmapped legacy column vanish instead of raising a `gapRow`. **One test fails**, and it is named:
+
+```
+× THE LAW — a rate sheet flags EVERY non-rate column + the unconsumed rows (no silent drop)
+```
+
+It holds. But the contrast is the finding: **the same class of law, one with a nine-file net and one with
+a single assertion.** Nothing is wrong with the single test — it targets the rule precisely and its name
+says so — yet its resilience is an order of magnitude lower, and the difference is invisible from either
+rule's wording. `CLAUDE.md` presents all ten as equally non-negotiable.
+
+Worth stating plainly rather than filing: *rule 10's enforcement is one test, and if it were deleted the
+rule would ship unenforced with nothing else noticing.* Rule 8 cannot be deleted that way. That asymmetry
+is not a defect — it is a fact an owner should know when deciding where the next test belongs.
+
+(The mutation also disabled only one of the migrator's two `gapRows.push` sites; the second, for
+low-confidence mappings routed to REVIEW, was not exercised. The single test caught the first, which is
+what was asked.)
+
+### Standing after five laws
+
+| Rule | Mutation | Caught by |
+|---|---|---|
+| 2 — events append-only | drop `events_guard_upd` | ledger suite **+** `check:invariants` (behaviour + existence) |
+| 4 — no price on air | neuter the UNKNOWN guard | 9 tests / 4 files, six weight edges |
+| 5 — interline executing share | return gross | 10 tests / 2 files, incl. a differential proof |
+| 8 — tenant isolation | resolve every session to tenant-a | **20 tests / 9 files** |
+| 10 — no silent drops | swallow an unmapped column | **1 test** |
+
+**Five laws, five held.** No finding across any of them — which is itself worth recording after a session
+that found §180's leak guard, §181's gate sentinel and §186's DST converter all unable to fail. The laws
+`CLAUDE.md` calls non-negotiable are, in fact, the best-defended things in the build.
+
+### The rule
+
+**A law's stated importance tells you nothing about its enforcement depth — measure both.** The gap
+between twenty tests and one is not visible in `CLAUDE.md`, in the REQ register, or in any gate's green.
+It appears only when you break the rule and count what objects.
