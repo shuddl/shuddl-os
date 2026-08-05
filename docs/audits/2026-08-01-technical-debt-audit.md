@@ -13342,3 +13342,62 @@ primitives"). Each carries an owner and a trigger that is a grep, a diff, or a d
 closure, which instrument suits which defect class, why a positive control matters. That is useful, and it
 is not the same thing as debt reduction. The honest reading of §243's table extended through §251 is that
 repository-closable debt work finished several sections ago, and the loop has been re-confirming it since.
+
+## §252 — the two gates never run this session, and a failure message that accused the wrong party
+
+§238's battery covered 15 deterministic gates. Two of the merge surface's remainder had never been executed
+in this audit at all: `audit:design` (CLAUDE.md rule 7, the squint-test CI — **advisory until WP-10 exits,
+blocking thereafter** per REQ-158) and `check:pr`.
+
+### `audit:design` — clean, and proved non-vacuous
+
+Exit 0, output `design audit: clean` — a bare verdict with no counts, which by this audit's own standard
+(§209: *a probe that lands on a boundary tests nothing*) certifies nothing until it is shown able to fail.
+Three violations planted in `packages/design/src/primitives.tsx`, one at a time:
+
+| Planted | Result |
+|---|---|
+| `boxShadow: "0 2px 4px rgba(0,0,0,.3)"` | **RED** |
+| `borderRadius: 12` (the budget is ≤4px) | **RED** |
+| `color: "#ff0000"` (a raw hex; the palette is 5 tokens) | **RED** |
+
+All three caught, baseline restored to exit 0. The pixel law is enforced, not decorative — which matters
+because it becomes blocking at WP-10 exit and nothing would have surfaced a vacuous gate before then.
+
+### `check:pr` — correct, and its message accused the developer
+
+`pnpm check:pr` with no arguments exits 1 with *"REQ-118: PR references no REQ-IDs. Every PR must cite at
+least one register row."* That reads as a live traceability violation. It is not: the gate takes the PR body
+from `$PR_BODY` or a file argument, and with neither it inspected an empty string. **Every local run of the
+gate battery hits this**, and the message is identical to the one a genuinely uncited PR gets.
+
+All five paths were measured before touching anything — a citing body → 0; an uncited body → 1; no input →
+1 with the *same* sentence; an unknown `REQ-999` → 1; `$PR_BODY` set → 0. So the gate works and fails
+closed; only the diagnosis was wrong.
+
+Fixed by splitting the message, **keeping exit 1 in both cases**. That was the load-bearing decision: an
+exit-0 "nothing to check" would mean that if CI ever lost `$PR_BODY`, an uncited PR would sail through. A
+missing input must never read as a pass — the fix is legibility, and buying it with a fail-open would be a
+bad trade. This is §247's distinction again (*"unverified" is two claims*), now in a gate's own output.
+
+### The distinction the test found for me
+
+Writing the test, I set `PR_BODY: ""` to simulate "no input" — and it **failed**. `??` treats a set-but-empty
+variable as *supplied*, so the empty string took the violation branch. The code was right and my test was
+wrong, and the disagreement is the interesting part: **an empty PR body IS an uncited PR**, so it must stay a
+violation; only an *unset* variable means "nothing was inspected". The test now pins all three states —
+unset, set-but-empty, and cited — and the empty case exists precisely because it is the one a reader would
+assume behaves like "no input".
+
+Three CLI-level tests were added rather than unit tests: the distinction lives in `main()`, which
+`checkPrText("")` cannot express, and each asserts the **exit code** alongside the message so the
+fail-closed property is pinned rather than assumed.
+
+### The rule
+
+**A gate's failure message is part of its contract.** These two are the pair: `audit:design` said "clean"
+without showing it could say anything else, and `check:pr` said "you did not cite a REQ" when it meant "you
+did not give me anything to read." One under-claims, the other mis-attributes — and the second is worse,
+because it spends the reader's trust: a battery that cries violation on every local run teaches its
+operators to skim the one line that must never be noise. That is the exact failure mode the checklist
+already records for `binding-drift`, arrived at from the other direction.
