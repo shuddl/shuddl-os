@@ -16320,3 +16320,57 @@ A rejected gate with a measured rejection and a re-measurement trigger is a dura
 proposal being re-litigated every phase. This is the second such record in this audit (§292 was the first),
 and both failed on the same boundary: **the difference between a current claim and a quoted historical one,
 or between a stamped sentence and a stamped line, is not visible to a pattern.**
+
+---
+
+## §305 — Mutation-proving the LAWS, now that the suites run
+
+Eight sections (§297–§304) went to records, routing and instruments. §297 unlocked something more valuable
+than any of them and it had not been used: **the worker and ledger suites run.** Every mutation this phase
+had targeted a gate or a checker — never the product's own invariants. So the two most consequential laws in
+`CLAUDE.md` were tested the only way a law can be: by breaking it.
+
+### Law 5 — "Interline floors compare the executing share, never gross" (REQ-040)
+
+`packages/rater/src/approval.ts:139` is the single source of the tenant's slice:
+`mulDivHalfUp(grossSellCents, tenantBps, BPS_TOTAL)`. Replaced with `grossSellCents` — precisely the defect
+the law forbids, and the one that produced the **$222,084 on 35 lb** anomaly.
+
+**RED — 13 failing assertions**, and the failure output names `222084` and `35-lb` directly. The permanent
+regression fixture is not decorative; it fires on the exact mutation it was written for. Restored: 154 passed.
+
+### Law 2 — events are append-only (I3/I7)
+
+The last line of defence is a D1 trigger, not application code. Removing
+`events_guard_upd` → **RED**; removing `events_guard_del` → **RED**. Both caught by
+`packages/ledger/test/schema-core.test.ts` ("UPDATE events is aborted by the guard trigger"), with
+`migrate.test.ts` attempting a payload tamper besides. Restored byte-identical: 34 files / 616 tests green.
+
+### The error inside the measurement, which is the section's real content
+
+The first append-only mutation ran against **`workers/api`** and came back **GREEN**, which reads as *"754
+tests and the append-only law is unproven."* That would have been a Critical-shaped finding, and it was
+wrong: `workers/api` never attempts a raw `UPDATE events`, because the guard is tested in
+**`packages/ledger`**, one package over.
+
+**A green from the wrong suite is not evidence about the law — it is evidence about the suite.** §287
+recorded the same rule for a RED ("a non-zero exit says something failed, never that your subject failed");
+this is its mirror, and the mirror is more dangerous, because a false RED gets investigated and a false
+GREEN gets *published*. The habit that caught it took one command: before believing a green, grep for a test
+that even attempts the thing you broke.
+
+**Generalised: a mutation is only meaningful against a suite that exercises the mutated path.** So the
+mutation procedure needs a step nobody writes down — *locate the test that would fail, then break the code* —
+which also tells you immediately when the honest answer is "nothing tests this."
+
+### What this establishes
+
+The two laws whose violation would be most expensive — money computed on the wrong base, and a mutable
+event ledger — are **enforced by tests that fail when the enforcement is removed**, verified this session
+against suites that were declared unrunnable eight sections ago. That is a materially stronger claim than
+"3,698 tests pass."
+
+### Verification
+
+Four mutations, four correct outcomes; every file restored byte-identical (`git status` clean across both
+mutated paths); `@shuddl/rater` 154 passed, `@shuddl/ledger` 34 files / 616 tests passed.
