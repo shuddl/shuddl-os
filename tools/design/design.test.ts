@@ -343,3 +343,49 @@ describe("H-4/REQ-207: the 5-color-token hard budget is enforced BY COUNT, not o
     expect(res.violations.some((v) => /color token/i.test(v))).toBe(false);
   });
 });
+
+// THE FONT BUDGET, which had no pin here while the color budget did (audit §287). CLAUDE.md budgets "5
+// color tokens · 2 font families"; only the first was counted, and auditRepo() deliberately exempts the
+// token SOURCE from font checks — so the one file where a third family may legitimately be authored was the
+// one file where nothing counted them. Measured before the fix: a 6th color token RED, a third font GREEN.
+describe("REQ-146: the 2-font-family budget is enforced in the token source", () => {
+  const tmp = (css: string): string => {
+    const p = join(tmpdir(), `tokens-font-${Date.now()}-${Math.random().toString(36).slice(2)}.css`);
+    writeFileSync(p, css);
+    return p;
+  };
+  const REAL = readFileSync("packages/design/tokens.css", "utf8");
+  const fontViolations = (css: string): string[] => auditTokens(tmp(css)).violations.filter((v) => v.includes("REQ-146"));
+
+  it("the real tokens.css declares exactly --display and --mono, and raises nothing", () => {
+    const res = auditTokens("packages/design/tokens.css");
+    expect(res.fontTokens).toEqual(["--display", "--mono"]);
+    expect(res.violations.filter((v) => v.includes("REQ-146"))).toEqual([]);
+  });
+
+  it("RED: a THIRD font token fails, generic fallback or not", () => {
+    expect(fontViolations(REAL.replace(":root {", ':root {\n  --script: "Papyrus", cursive;'))).not.toHaveLength(0);
+    // No generic family at all — the case a `sans-serif|monospace` regex would miss, which is why the
+    // detector classifies by VALUE (not-a-color) rather than by font syntax.
+    expect(fontViolations(REAL.replace(":root {", ':root {\n  --script: "Papyrus";'))).not.toHaveLength(0);
+  });
+
+  it("RED: ANY extra non-color token fails — the budget is the whole non-color vocabulary", () => {
+    expect(fontViolations(REAL.replace(":root {", ":root {\n  --space-4: 4px;"))).not.toHaveLength(0);
+  });
+
+  it("RED: renaming a font token fails (the two names are the budget, not the count alone)", () => {
+    expect(fontViolations(REAL.replace("--display:", "--headline:"))).not.toHaveLength(0);
+  });
+
+  it("RED: a sanctioned NAME carrying an unsanctioned STACK fails", () => {
+    const bad = REAL.replace(/--mono:[^;]+;/, '--mono: "Comic Sans MS", monospace;');
+    expect(fontViolations(bad).some((v) => v.includes("not one of the two sanctioned stacks"))).toBe(true);
+  });
+
+  it("NEGATIVE CONTROL: a further --signal alpha variant is NOT a font violation", () => {
+    // Proves the rule is not merely always-red, and does not over-reach onto legitimate color work: the
+    // three rgba alphas already in the file are instances of ONE sanctioned transparent, not new families.
+    expect(fontViolations(REAL.replace(":root {", ":root {\n  --signal-99: rgba(255, 74, 51, 0.99);"))).toEqual([]);
+  });
+});

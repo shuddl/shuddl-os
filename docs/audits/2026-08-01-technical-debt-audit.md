@@ -187,7 +187,7 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 ## §4 — Phase gating and the stopping point
 
 > **CURRENT MEASUREMENT: §238, at `68cfb0d`; CONVERGENCE measured at §243.** The four clauses below are
-> measured in §238. §243 (extended by §251 → §270 → §282 → §285 → **§286**, now through §286) answers the separate question of whether another iteration is worth running:
+> measured in §238. §243 (extended by §251 → §270 → §282 → §285 → §286 → **§287**, now through §287) answers the separate question of whether another iteration is worth running:
 > defects-per-section across the eight sections after §238 ran 1,1,1,—,1,1,**0,0** while verified-clean
 > rose to 8 and 8, the last two being the most systematic sweeps of the set. Five named restart triggers
 > are listed there, each a grep or a diff — two of which are now GATES (§244) rather than greps. Across
@@ -15182,3 +15182,82 @@ scaling a probe, and treat any sweep that disagrees with it as broken until prov
 
 `typecheck 0 · lint 0 · check:invariants 0 · check:citations 0`; `test:tools` 763 passed, 3 failed — the
 known REQ-289 register trio from the other workstream's uncommitted row, unchanged by this section.
+
+---
+
+## §287 — Every hard budget, mutation-tested for DETECTABILITY (one of seven was undefended)
+
+§286's lesson generalized: **a pin that exists is not a pin that detects.** §245 established that all seven
+CLAUDE.md hard budgets have an executable pin, and that was true. It is a different claim from *"adding one
+more fails a gate"*, and only the second is what a budget is for. So each was tested by planting the
+violation it forbids.
+
+| budget | mutation planted | result |
+|---|---|---|
+| ≤22 tables | 23rd / 24th table | **RED** — failure path unit-tested, incl. a bracket/quote evasion that once summed to 0 |
+| 3 surfaces | a 4th app directory | **RED** — `UNREGISTERED surface(s)` |
+| 12 canonical views | a 13th view in the registry | **RED** — 144 assertions |
+| 35 event kinds | a 36th kind | **RED** — 8 assertions |
+| 5 color tokens | a 6th token | **RED** — "the hard budget is exactly 5" |
+| 0 shadows / radius>4px | a `box-shadow` + `border-radius:12px` | **RED** — both named |
+| **2 font families** | **a 3rd font token** | **GREEN — UNDEFENDED** |
+
+### The gap, and why it was invisible
+
+`auditRepo()` deliberately skips the token SOURCE's color and font checks — and correctly: *"the token
+SOURCE is where the raw hexes and font stacks legitimately live; everything else must use var()/TOKENS."*
+Chrome checks still run there, which is why a shadow planted in that same file DID fire.
+
+`auditTokens()` then bounds what the exemption lets through — for colors: `colorTokens.length !== 5`, with a
+comment noting the budget is *"enforced BY THE GATE here, by COUNT"*. There was no font equivalent. So the
+**one file where a third family may legitimately be authored was the one file where nothing counted them**,
+and every other file was covered. The repo-wide rule and the exemption were each individually correct.
+
+**An exemption is only as safe as the bound on its subject** — the §272 escape-hatch shape, one level in:
+not an inline marker someone adds under pressure, but a whole file excused from a rule by design, where the
+excusing is right and the bounding was missing.
+
+Fixed by mirroring the color pin: the non-color vocabulary of the token source must be exactly
+`--display, --mono`, and their values must be sanctioned stacks — reusing `ALLOWED_FONT`/`normFont` so the
+two stacks live in one place rather than acquiring a third copy.
+
+### Two attribution errors, both caught by reading the message instead of the exit code
+
+1. **The table probe's RED was a different rule.** Planting a 22nd table went red — but on §239's
+   migration-parity gate ("test schema is a SUBSET of the shipped schema"), not the ceiling. Worse, a 22nd
+   table is *within* budget (21 used, one spare), so the ceiling's silence was correct. Crediting the budget
+   with another rule's red would have closed the question wrongly. Resolved by reading the clean-tree line —
+   `21/22 tables` — and finding the ceiling's real failure path already unit-tested at 23 and 24.
+2. **My first font "finding" was a misplaced probe.** A third family in the token source went undetected,
+   which looked like the gap — but the exemption there is documented and deliberate. The finding only became
+   real when the mutation moved to what the exemption's own bound should cover: a third **token**.
+
+Both are the same discipline. **A non-zero exit says something failed, never that the thing you are testing
+failed.**
+
+### And an inventory bug of my own, caught by the positive control
+
+The first detector classified any non-`#` token as a font token, and the clean tree immediately went red on
+`--signal-07/12/55`. Cause: I had enumerated the token vocabulary with `grep -oE "--[a-z-]+"`, whose
+character class **drops digits** — so three declarations never appeared in the list I designed against. The
+vocabulary is 11, not the 8 I measured.
+
+This is the truncated-read trap wearing different clothes: not a `head -20` cutting a list short, but a
+**character class silently filtering one**. Same rule, restated: *when a conclusion depends on the contents
+of a list, print the whole list — and make sure the pattern can match every member of it.* The §283 rule
+(clean tree GREEN before a mutation's RED means anything) is what caught it, in one run.
+
+### Verification
+
+Clean tree GREEN; five mutations RED (third token, a token with no generic family, any extra non-color
+token, a renamed font token, a sanctioned name carrying an unsanctioned stack); **negative control** — a
+further `--signal` alpha variant stays GREEN, so the rule is not merely always-red and does not over-reach
+onto legitimate color work. Six tests added, and **each rule neutered separately** to prove neither is dead:
+the name/count rule is exclusively load-bearing for the rename case, the value rule for the bad-stack case.
+`tools/design` 55 passed; `typecheck 0 · lint 0 · audit:design 0 · check:invariants 0 · check:citations 0`.
+
+### Yield note
+
+Unlike §284–§286 this was a NEW question shape rather than a sweep of a prior claim, and it found its defect
+on the **seventh of seven** items — the last one checked. Worth remembering when a matrix is running clean:
+the value of enumerating is that it does not let you stop at the sixth.

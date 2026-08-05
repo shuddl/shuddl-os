@@ -19,7 +19,27 @@ export function readTokens(path: string): Record<string, string> {
   return tokens;
 }
 
-export function auditTokens(path: string): { colorTokens: string[]; violations: string[] } {
+// Every custom property in the token source whose VALUE is not a color. Classified by value rather than by
+// font syntax on purpose: `--script: "Papyrus"` carries no generic family, so a regex keyed on
+// `sans-serif|monospace|…` would miss precisely the token a person would hand-add. Colors are excluded in
+// all the forms this file actually uses — hex AND the rgba() alpha variants of --signal.
+//
+// The first cut of this excluded only `#`, and the clean tree immediately went red on --signal-07/12/55.
+// The cause was my own inventory: I had enumerated the vocabulary with `--[a-z-]+`, whose character class
+// drops DIGITS, so three declarations never appeared in the list I designed against (audit §287).
+const COLOR_VALUE = /^(?:#|rgba?\(|hsla?\(|color\()/i;
+export function readNonColorTokens(path: string): Record<string, string> {
+  const css = readFileSync(path, "utf8");
+  const out: Record<string, string> = {};
+  for (const m of css.matchAll(/^\s*(--[\w-]+)\s*:\s*([^;]+);/gm)) {
+    const name = m[1] as string;
+    const value = (m[2] as string).trim();
+    if (!COLOR_VALUE.test(value)) out[name] = value;
+  }
+  return out;
+}
+
+export function auditTokens(path: string): { colorTokens: string[]; fontTokens: string[]; violations: string[] } {
   const tokens = readTokens(path);
   const violations: string[] = [];
   const colorTokens = Object.keys(tokens).filter((k) => k !== "--field-on-dark");
@@ -28,12 +48,33 @@ export function auditTokens(path: string): { colorTokens: string[]; violations: 
   if (colorTokens.length !== 5) {
     violations.push(`REQ-145/207: ${colorTokens.length} color token(s) defined — the hard budget is exactly 5 (${colorTokens.join(", ")})`);
   }
+  // THE SIBLING PIN THE COLOR BUDGET HAD AND THIS ONE DID NOT (audit §287). CLAUDE.md budgets "5 color
+  // tokens · 2 font families"; only the first was counted. MEASURED by mutation: a 6th color token in this
+  // file goes RED, a THIRD FONT TOKEN went GREEN. The repo-wide font audit cannot cover it either, because
+  // auditRepo() deliberately exempts the token SOURCE from color+font checks ("where the raw hexes and font
+  // stacks legitimately live") — so the ONE place a third family may legitimately be authored was the one
+  // place nothing counted them. An exemption is only as safe as the bound on its subject.
+  const nonColor = readNonColorTokens(path);
+  const fontTokens = Object.keys(nonColor).sort();
+  if (fontTokens.join(",") !== "--display,--mono") {
+    violations.push(
+      `REQ-146: non-color token(s) [${fontTokens.join(", ") || "none"}] — the only non-color tokens are the 2 font ` +
+        `families, --display and --mono. A third family is a register amendment, not a token.`,
+    );
+  }
+  // …and the VALUES must be sanctioned stacks. Reuses ALLOWED_FONT/normFont so the two stacks live in
+  // exactly one place — a second copy here is the defect this audit keeps finding elsewhere.
+  for (const [name, value] of Object.entries(nonColor)) {
+    if (!ALLOWED_FONT.has(normFont(value))) {
+      violations.push(`REQ-146: ${name} = ${JSON.stringify(value)} — not one of the two sanctioned stacks`);
+    }
+  }
   const deep = tokens["--signal-deep"];
   const field = tokens["--field"];
   if (deep && field && contrastRatio(deep, field) < 4.5) {
     violations.push(`A1/REQ-149: --signal-deep ${deep} on --field ${field} = ${contrastRatio(deep, field).toFixed(2)}:1 < 4.5:1`);
   }
-  return { colorTokens, violations };
+  return { colorTokens, fontTokens, violations };
 }
 
 // ── Color audit (REQ-145) — hex (any length), rgb()/rgba()/hsl()/hsla(), and CSS named colors.
