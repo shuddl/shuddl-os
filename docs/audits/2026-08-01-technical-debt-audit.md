@@ -2717,7 +2717,8 @@ concludes the row is stale or the gap is gone.
 `check:citations` cannot catch this: line 281 is *in bounds*, so the citation "resolves". This is exactly the
 rot the anchor ratchet exists to discourage — and `sequencer.ts` is one of its ten high-churn targets.
 Re-pointed to `workers/api/src/do/sequencer.ts:342@invoice_without_pod_classes`, **with an anchor**, so the
-next drift fails the gate instead of silently mis-aiming a reader. The ratchet correctly demanded the
+next drift fails the gate instead of silently mis-aiming a reader. (This section cited it unanchored on the first pass and the ratchet caught
+that too — the gate enforcing the very discipline the paragraph is about.) The ratchet correctly demanded the
 improvement be banked (2 → 1 unanchored for this pair); baseline now 130.
 
 **Two further citations looked identically rotted and were deliberately NOT touched.** Lines 370 and 373 cite
@@ -13514,3 +13515,42 @@ findings, since it added tests rather than a checklist entry. Two of this sessio
 duplicated work if the artefact had not carried its own provenance. The corollary for writing: a comment
 explaining *why a test file exists* is worth more than one explaining what it asserts, because the second is
 readable from the code and the first is the only thing that stops the question being re-asked.
+
+## §255 — the marker channel, re-swept at a wider scope
+
+Applying §254's rule before doing the work: §87 already ran a marker sweep (`TODO`, `FIXME`, "not yet",
+"follow-up") and a phrasing sweep ("unwired", "dormant", "deferred", "cannot yet", "does not enforce"). Both
+covered **`workers/*/src` and `packages/*/src`**. So this section extends the scope rather than repeating
+the sweep — `apps/`, `db/` and `tools/` had never been included.
+
+**Markers, whole repo: exactly one.** `workers/api/src/do/sequencer.ts:342@invoice_without_pod_classes` — the POD-gate `serviceClass`
+exemption, on the checklist since §55. §87 found two; the `revoked_ts` note closed in §86. Nothing new in
+the three added trees.
+
+That one is worth stating precisely, because "an unwired exemption on the invoice gate" sounds alarming and
+is the opposite: `assertPodSigned`'s 4th argument is deliberately omitted, so
+`policy.gates.invoice_without_pod_classes` is **inert** and the gate always enforces. A tenant configuring
+the exemption gets *no effect*, never an accidental bypass — fail-safe, graded Low. Its row is also a small
+monument to this session's recurring theme: the citation read `:281` until §55 caught it drifting 61 lines
+onto an unrelated stream guard, and it is now content-anchored so the next drift fails the gate instead of
+silently mis-aiming a reader.
+
+**Phrasing, in the three added trees: nothing new.** The narrow set (`unwired`/`not implemented`/`does not
+enforce`) returns a single hit — this audit's own §237 text in `demos.ts`, citing the known photos resolver.
+The broader set's 61 hits are dominated by legitimate uses, and the eight in the user-facing surfaces are
+all sound:
+
+- two are **REQ-167 identity guards** — an unset API origin falls back to a synthetic `.example` host (a
+  reserved TLD, so it can never resolve), rather than to anything nameable;
+- one is a guard *against* placeholders (`ParityDashboard`: *"never a fabricated 0/placeholder"*);
+- the rest are a UI input prop, command-bar prompt text, and a documented graceful degradation for browsers
+  without persistent storage.
+
+**No unimplemented path exists behind any of the three surfaces.**
+
+### The rule
+
+**Extending a sweep's scope beats re-running it, and the scope is the part worth recording.** §87's entry
+said what it searched for but its *trees* had to be read out of the prose to know what it had not covered.
+A sweep's value to the next session is bounded entirely by its stated scope — so record the corpus, not just
+the hit count, or the next auditor either redoes it or wrongly assumes it was exhaustive.
