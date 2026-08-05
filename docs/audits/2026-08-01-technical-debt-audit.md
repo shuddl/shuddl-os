@@ -10785,7 +10785,9 @@ kinds, §204's views, this) turned on exactly that.
   has none. So the compiler notices the entry vanishing, but nothing would notice the gate becoming a
   no-op while the entry remained.
 
-Those are different failure modes, and only the first is covered uniformly. Not filed as a defect —
+Those are different failure modes. ~~and only the first is covered uniformly~~ **CORRECTED by §208: the
+second is covered too — neutering `assertException` fails SEVEN tests, so `osd.captured`'s gate IS proven to
+block. This paragraph measured the allowlist mutation and generalised to the gate-body one.** Not filed —
 `osd.captured`'s gate is exercised through the OS&D flow elsewhere and the compile-time layer is the
 stronger of the two — but recorded, because "the allowlist is pinned" and "each gate is proven to block"
 are separate claims and only one of them is true for all nine.
@@ -10795,3 +10797,60 @@ are separate claims and only one of them is true for all nine.
 **Run the build, not just the tests, before concluding a thing is unguarded.** The strongest guarantee in
 a TypeScript codebase — exhaustiveness over a union — is invisible to every test runner, so the mechanism
 most likely to be protecting a constant is the one a test-only probe cannot see.
+
+---
+
+## §208 — the gates are proven to block, and §207's residual concern was wrong
+
+§207 closed with a caveat: `GATED_KINDS` is pinned uniformly at compile time, but *"nothing would notice a
+gate becoming a no-op while the entry remained."* That is the failure a type system cannot see, and it was
+asserted rather than measured. Measuring it.
+
+The mutation is the exact one the caveat describes — leave the allowlist intact and make the gate body
+`return` immediately:
+
+| Gate neutered | ledger | api | total |
+|---|---|---|---|
+| `assertException` (`exception.raised`, `osd.captured`) | 6 | 1 | **7** |
+| `assertDispatch` (`dispatch.assigned`) | 5 | 7 | **12** |
+| (§207) `delivery.evidenced` removed from the allowlist | — | 3 | 3 |
+
+**Both hold, and `osd.captured` — the kind §207 flagged as behaviourally uncovered — is protected by seven
+tests.** The caveat was wrong. What §207 actually measured was that removing `osd.captured` from the
+*allowlist* fails no test (it fails typecheck instead); it never tested whether its *gate* blocks. Those
+are different mutations and I conflated them in the write-up.
+
+The full family, by test-file references:
+
+```
+assertAppointment 31 · assertDelivery 23 · assertBookingCredit 18 · assertPickupDepart 16
+assertConsentBeforeGps 16 · assertException 12 · assertDispatch 12
+assertBookingRecipientContact 11 · assertInterline 10
+```
+
+**Nine gates, none below ten references.** Combined with §144's appointment close-boundary pin and §181's
+map-204 fix, REQ-030's substance — *gates are server-side and they block* — is the best-tested surface in
+this build, and the flattest: no gate is markedly thinner than its siblings, which is unusual and worth
+noting because uneven depth is what §200 found across the ten laws.
+
+### Correcting §207
+
+Its final paragraph is right about the mechanism (exhaustiveness is invisible to test runners) and wrong
+about the consequence (that some gate is behaviourally unguarded). The error is a familiar one in this
+session: **I measured one mutation and generalised to a second, adjacent one.** §204 did the same thing
+with four budgets and seven conclusions.
+
+The distinction worth keeping is that the two mutations test genuinely different properties, and both need
+running:
+
+- *remove the entry* → does anything notice the kind is no longer gated? (**typecheck**)
+- *neuter the body* → does anything notice the gate stopped blocking? (**tests**)
+
+A codebase can pass either while failing the other, and neither implies the other.
+
+### The rule
+
+**Do not let one mutation stand in for its neighbour.** "The allowlist is pinned" and "the gate blocks" are
+adjacent enough to read as one claim in a summary and are checked by entirely different mechanisms — the
+compiler for the first, the suite for the second. §207 got the mechanism right and the scope wrong in the
+same sentence.
