@@ -72,7 +72,15 @@ export const DEMOS: readonly Demo[] = [
     filmed:
       "the REAL driver, on a REAL device, completing a REAL gated stop with zero instruction (REQ-006/164) " +
       "— live camera frame, signature on glass, GPS inside the fence. The spine proves the gate order + the " +
-      "loss-free/dup-free offline merge; the browser layer proves the zero-instruction SHAPE + the gate BLOCK.",
+      "loss-free/dup-free offline merge; the browser layer proves the zero-instruction SHAPE + the gate BLOCK. " +
+      "PREREQUISITES (audit §196) — this is the demo most blocked by absent capability, and neither block is " +
+      "visible from this file otherwise. (1) THERE IS NO DRIVER LOGIN: REQ-069 is deferred and only a " +
+      "per-device P-256 key exists — no magic-link, no PIN, no lockout — so a real driver cannot authenticate " +
+      "at all today (GO-LIVE-CHECKLIST, Driver auth + lockout deferred). (2) A PICKUP CUSTODY HANDOFF CANNOT " +
+      "RECORD REAL PARTIES: the capture layer fails CLOSED with CAPTURE_INPUT_MISSING rather than fabricating " +
+      "them, and the manifest carries no real pair to supply — graded HIGH for any real driver run, and gated " +
+      "on REQ-069 as well. Film demo 3 only after REQ-069 lands: a staged login would make the film assert an " +
+      "identity the product cannot verify, which is the same fault as staging photos into demo 1.",
     browser: null, // deferred: the gated-stop SHAPE + gate-BLOCK browser spec (hardware-free, mocked camera/GPS/signature seams) is the documented next in-repo increment (manifest §Browser layer).
   },
   {

@@ -24,6 +24,11 @@
 - **Code path:** the pure per-stop gate machine + the real-sequencer offline merge (2 devices, 55 signed events, loss-free/dup-free).
 - **In-repo spine:** `apps/driver/src/flow/stop-flow.test.ts` (the gate order) + `workers/api/test/airplane-soak.test.ts` (the offline merge through the real DO).
 - **Filmed delta:** the **real driver, on a real device, zero-instruction** (REQ-006/164) — live camera frame, signature on glass, GPS inside the fence.
+- **⚠ PREREQUISITES — this demo cannot be filmed today (audit §196).** Two blocking gaps, neither visible from the demo definition:
+  1. **There is no driver login.** REQ-069 is deferred; only a per-device P-256 key exists — no magic-link, no PIN, no lockout (`docs/ops/GO-LIVE-CHECKLIST.md`, *Driver auth + lockout deferred*). **A real driver cannot authenticate at all.**
+  2. **A pickup custody handoff cannot record real parties.** The capture layer fails CLOSED with `CAPTURE_INPUT_MISSING` rather than fabricating them, and the driver manifest carries no real pair to supply — graded **High for any real driver run**, and itself gated on REQ-069.
+
+  Film demo 3 **only after REQ-069 lands**. Staging a login to get the shot would make the film assert an identity the product cannot verify — the same fault as staging photos into demo 1, and the reason the spine/filmed split exists.
 
 ### Demo 4 — a booking placed from Claude via MCP
 - **Code path:** OAuth grant → mint → dispatch → chokepoint → `quote_freight` + `book_shipment` (stops at accept-quote; the gated `booking.created` is the Booking agent's).

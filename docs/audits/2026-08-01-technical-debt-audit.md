@@ -10131,3 +10131,58 @@ line number pointing at nothing gets noticed; a line number pointing at an accur
 thing reads as correct from both ends. When a citation supports a code fence, anchor it to a symbol the
 fence itself contains — here `@shipment_id` — so the gate can tell the difference between the code and its
 description.
+
+---
+
+## §196 — demo 3 cannot be filmed, and its definition did not say so
+
+§178 found demo #1 promising photos the product does not send. That was one demo; the other four were
+never checked against the same question — **does the demo's stated claim match what can actually be
+filmed?**
+
+First, the spines are substantive. Measured, because "the spine is thin" would be the cheap accusation:
+
+| Demo | Spine | Assertions |
+|---|---|---|
+| 2 — stranger signs up + quotes | `signup-to-quote.e2e.test.ts` | 2 tests / 13 |
+| 3 — driver completes a gated stop | `stop-flow.test.ts` + `airplane-soak.test.ts` | 9 tests / 59 |
+| 4 — booking from Claude via MCP | `quote-book.test.ts` | 9 tests / 37 |
+| 5 — exception pulse dims the map | `command-heartbeat.test.ts` + `MapCanvas.test.tsx` | 15 tests / 74 |
+
+None is a placeholder. Demos 2, 4 and 5 also state their filmed gaps honestly — `PROVISIONING_ENABLED`
+off, OAuth secrets, the visual capture — all recorded elsewhere as external holds.
+
+### Demo 3 is different
+
+Its `filmed` text promises *"the REAL driver, on a REAL device, completing a REAL gated stop."* Two
+recorded facts make that impossible today, and **neither appears anywhere in the demo's own definition or
+in the filmed manifest**:
+
+1. **There is no driver login.** REQ-069 is deferred; only a per-device P-256 key exists — no
+   magic-link, no PIN, no lockout. A real driver cannot authenticate at all.
+2. **A pickup custody handoff cannot record real parties.** The capture layer fails **closed** with
+   `CAPTURE_INPUT_MISSING` rather than fabricating them, and the driver manifest carries no real pair to
+   supply. The checklist grades this **High for any real driver run** — and it is itself gated on REQ-069.
+
+Both are in `GO-LIVE-CHECKLIST.md`, as separate rows, neither cross-referencing the demo. So the record
+is complete and the *connection* is not: someone planning the tenant-0 shoot reads a demo definition that
+says "real driver, real device" and discovers at the yard that there is no way to log one in.
+
+This is §191's rule at the level of *facts rather than files* — each half is filed where its own reader
+looks, and nobody owns the join. §178 was the same shape (REQ-087 built, `photos: {}` shipped, the demo
+silent) and so was §189 (a workflow written, the checklist calling it a stub).
+
+### Fix
+
+`tools/acceptance/demos.ts` and `docs/wp/acceptance-demos.md` now carry both prerequisites on demo 3,
+with the instruction that matters: **film it only after REQ-069 lands.** Staging a login to get the shot
+would make the film assert an identity the product cannot verify — the same fault as staging photos into
+demo 1, and precisely what the spine/filmed split exists to prevent.
+
+### The rule
+
+**A demo is a claim about the product, so it decays like any other record.** Two of five now carry
+constraints they did not state a day ago, and in both cases every underlying fact was already written
+down correctly somewhere else. The failure was never a missing fact — it was that nothing joined
+*"REQ-069 is deferred"* to *"demo 3 needs a real driver to authenticate."* **Cross-references are the
+part of a record that no gate can check and no single reader ever notices is absent.**
