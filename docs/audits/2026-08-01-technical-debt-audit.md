@@ -13464,3 +13464,53 @@ and sync-service duplicates that git has been told to ignore — so either resol
 `check:citations` already does) or filter the same patterns the ignore file does. And when writing that
 ignore rule, enumerate the *generator's* whole output: this one was written against the single example
 someone had in front of them, and every later collision walked past it.
+
+## §254 — "can this gate fail?" asked of every gate, and the sweep that already existed
+
+§252 proved `audit:design` non-vacuous by planting three violations. The obvious next move was to ask the
+same of every other gate — a green that has never been shown able to go red certifies nothing, and a vacuous
+gate is this audit's most-repeated defect class.
+
+Two were mutated directly, both guarding hard laws:
+
+| Gate | Planted violation | Result |
+|---|---|---|
+| `check:chokepoint` (REQ-030) | an `INSERT INTO events` in a route, outside the sequencer | **RED** — names `positions.ts:28` and says *"bypassing the sequencer DO — and with it EVERY gate"* |
+| `check:rater-purity` (REQ-024) | `import Anthropic from "@anthropic-ai/sdk"` in `packages/rater/src` | **RED** — *"LLMs never write pricing truth"* |
+| `check:rater-purity` | a raw `await fetch(…)` in the same file | **GREEN** — see below |
+
+The `fetch` result looked like a hole and is not. **eslint owns it**: the same plant makes `pnpm lint` exit 1
+with *"Unexpected use of 'fetch'. REQ-004/REQ-024: the rater is a deterministic, network-free engine."* The
+two gates split deliberately — `check:rater-purity` covers import-shaped purity, eslint covers raw globals —
+the same division-of-labour §245 found between the compiler and a gate. Checking the neighbour before
+declaring a gap is what kept this out of the ledger.
+
+### The sweep was already done, in §17
+
+Before mutating the remaining gates, I looked for existing negative coverage — and found
+`tools/rater/parity-detection.test.ts`, whose header opens:
+
+> *"2026-08-02 audit §17 — **CAN THE PARITY GATES ACTUALLY FAIL?** A sweep of every gate script for
+> negative-test coverage found exactly three with none: the rater parity harness, the invoice replay
+> harness, and the concierge parse harness. Those are the SAME three that are BLOCKED/PENDING on engagement
+> fixtures that have never been vendored — so they have never executed against…"*
+
+A prior session asked this exact question of the whole gate surface, found the only three gaps, and closed
+them with **18 detection cases** — including the one that matters most for this class: *"an EMPTY case list
+is not a pass in disguise — total 0 means the gate asserted nothing."* That the three gaps were precisely
+the harnesses blocked on unvendored fixtures is the sharpest part: a gate that has never run is the one most
+likely to be unable to fail, and nobody would have noticed while its status read BLOCKED.
+
+**Verified still complete.** Every gate module is imported by at least one test, and every gate added during
+*this* session carries its own negative cases — `checkTestSchemaParity`, `checkDoMutexIntact`,
+`checkControlMigrationsExercised`, `checkSurfaceBudget`, `isCollisionDuplicate`, and `check:pr`'s no-input
+branch. §17's invariant is maintained, not merely historical.
+
+### The rule
+
+**Before sweeping, look for the sweep.** This one was recorded in the header comment of the test file it
+produced — invisible to a search for open rows, since it closed itself, and invisible to a search for
+findings, since it added tests rather than a checklist entry. Two of this session's sections would have been
+duplicated work if the artefact had not carried its own provenance. The corollary for writing: a comment
+explaining *why a test file exists* is worth more than one explaining what it asserts, because the second is
+readable from the code and the first is the only thing that stops the question being re-asked.
