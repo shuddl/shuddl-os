@@ -10288,3 +10288,63 @@ to know which is to run the mutation.
 **Test the laws you would be most embarrassed to find unenforced.** Rule 5 names a dollar figure and a
 weight, which is what a real incident looks like in a document — and a rule specific enough to name its
 own incident is one someone cared about, which is a reason to check it holds, not a reason to assume so.
+
+---
+
+## §199 — rules 2 and 4 mutation-tested: both hold, and one has real defence in depth
+
+§198 tested `CLAUDE.md` rule 5 and it held. Continuing through the hard laws by the same method — apply
+the change the rule forbids, and see what notices.
+
+### Rule 2 — events are append-only (I3/I7)
+
+The deepest law in the build. Removed `events_guard_upd` (the `BEFORE UPDATE ON events` trigger) from
+`0001_ledger_core.sql`:
+
+| Mechanism | Result |
+|---|---|
+| `packages/ledger` suite | **RED** — *"UPDATE events is aborted by the guard trigger"* (1 of 612) |
+| `check:invariants` | **RED** — *"FAIL I3 VIOLATION: missing guard trigger events_guard_upd (must be BEFORE UPDATE ON events)"*, exit 1 |
+
+**Two independent mechanisms, and they fail differently on purpose.** The ledger test proves the trigger
+*behaves* — an UPDATE actually aborts. The invariants gate proves the trigger *exists* in the migration,
+statically, without a database. Either alone would be a single point of failure for the law that makes the
+ledger a ledger; together, deleting the guard cannot reach a merge through any route.
+
+That is what §180's §51-style defence looks like when it is done right, and it was already here.
+
+### Rule 4 — no price on air
+
+Neutered the UNKNOWN guard in `packages/rater/src/engine.ts` so a missing or invalid weight falls through
+to a real sell. **9 tests fail across 4 files**, and the names enumerate the boundary better than the rule
+does:
+
+```
+× missing weight_lb ⇒ UNKNOWN/missing_physics
+× weight_lb = 0 (non-positive) ⇒ UNKNOWN/missing_physics
+× weight_lb < 0 (negative) ⇒ UNKNOWN/missing_physics
+× weight_lb = NaN ⇒ UNKNOWN/missing_physics (Number.isFinite guard)
+× weight_lb = Infinity ⇒ UNKNOWN/missing_physics (Number.isFinite guard)
+× weight_lb = 100.5 (fractional) ⇒ UNKNOWN/missing_physics (whole-pound gate; no crash, no fractional price)
+```
+
+Six distinct ways to not have a weight, each pinned separately. `CLAUDE.md` says "missing weight/dims";
+the suite says missing, zero, negative, NaN, Infinity, fractional — **the tests are more precise than the
+law they enforce**, which is the right direction for that gap to run.
+
+### An instrument error I nearly recorded
+
+Reading the invariants gate under mutation I ran `npm run check:invariants 2>&1 | tail -5; echo "EXIT=$?"`
+and got **EXIT=0** beside a printed `FAIL`. `$?` after a pipeline is the *last* command's status — `tail`'s
+— not the gate's. Re-run without the pipe: **exit 1**, correctly. Had I trusted the first reading, this
+section would have claimed the invariants gate prints FAIL and exits 0, which is a serious accusation
+against a gate and would have been entirely my shell.
+
+Same family as §198's hash: **when a gate's behaviour looks wrong, suspect the measurement first.** Three
+times this session now.
+
+### Standing
+
+Rules 2, 4 and 5 are mutation-proven load-bearing. Rules 3 (server-side gates) and 8 (tenant isolation)
+were exercised earlier — §174 pinned anchor key partitioning, §194 corrected the gate-parity map. No
+finding in this section, which is the third consecutive law that held.
