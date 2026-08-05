@@ -17829,3 +17829,52 @@ throughout all four — `check:citations` resolves references, and not one of th
 
 `RELEASE-EVIDENCE.md` read whole; suites table re-measured against live runs with prior figures preserved
 inline; document baseline added. `check:citations 0 · check:invariants 0`.
+
+---
+
+## §333 — Three false verdicts, failing in both directions
+
+§332 drew the line that made this section possible: **a stale count is maintenance debt; a stale verdict is a
+false statement.** Counts had been swept twice (§292, §328). Verdicts never had.
+
+Sweeping every `**PASS**`/`**GREEN**` claim in the ops record for one that sits in no dated section found a
+block of them in `RELEASE-EVIDENCE.md`'s per-gate table — undated, present-tense, and **three of them wrong**:
+
+| row | claimed | actual | direction |
+|---|---|---|---|
+| unit + tools suites | `BLOCKED — workerd` | **FAIL — 3 of 3,704** | understates |
+| acceptance spine | `BLOCKED — workerd` | **PASS** | understates |
+| coverage | **PASS** | **FAIL** | **overstates** |
+
+### The two directions are not equally dangerous, and both were present
+
+Two rows claimed `BLOCKED — workerd` — the bound §297 withdrew by measuring. **They had been false for eleven
+days**, describing an environment hold that did not exist, and their cost is a reader believing two gates
+cannot speak when they can. Same inherited-bound shape as §296's, in a different document, surviving the
+correction because nobody swept *sideways* from it: §297 fixed the audit's claim and never asked which other
+documents repeated it.
+
+The third is the one that matters. **`coverage` asserted PASS while the gate was red** — red for the reason
+this audit has cited a dozen times, `REQ-289`. A reader auditing the release contract to ask *"which gates
+are green?"* was told coverage was, and it has not been since the row landed.
+
+**An understating verdict wastes effort; an overstating one spends trust.** §319 made the same distinction
+for phase-gate triggers and called the understatement cheaper — that holds here too, and this table had both,
+which is why sweeping only for optimistic claims would have found one of three.
+
+### Why the count sweeps missed it
+
+§292 and §328 swept *numbers*. A verdict column contains no number — `**PASS**` matches no pattern for
+"3,243" or "281 files" — so two thorough sweeps passed directly over three false statements. **The verdict
+column is the highest-severity field in an evidence document and the only one neither sweep was shaped to
+see.**
+
+That is the §284 lesson in its most expensive form: *a tell tells you what to look for, not where.* Both
+earlier sweeps were derived from the defect in front of them (a stale count), and inherited that defect's
+shape.
+
+### Verification
+
+Every `**PASS**`/`**GREEN**` claim in `docs/ops/` classified by whether its section carries a date or SHA;
+the unstamped block adjudicated row by row against measured reality; three corrected with stamps and the
+reason each was wrong. `check:citations 0 · check:invariants 0`.

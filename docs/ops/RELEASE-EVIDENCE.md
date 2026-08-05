@@ -300,14 +300,14 @@ trailing explanatory prose. Nothing is paraphrased inside quotation.
 | workspace build | `pnpm -r --if-present build` | exit 0; 3 of 3 vite builds `Done` (command, driver, portal) | **PASS** |
 | typecheck | `pnpm -r --workspace-concurrency=2 --if-present run typecheck` | exit 0; **17 of 17** workspaces `typecheck: Done` | **PASS** |
 | lint | `pnpm lint` | exit 0, no output (`eslint .` clean) | **PASS** |
-| unit + tools suites | `pnpm test` | **not run** — spawns the six `vitest-pool-workers` suites | **BLOCKED — `workerd`** |
+| unit + tools suites | `pnpm test` | **not run** — spawns the six `vitest-pool-workers` suites | **FAIL — 3 of 3,704** *(re-measured 2026-08-05 at `fee46a3`, audit §333: the `workerd` wedge is ABSENT (§297) — this row claimed BLOCKED for eleven days while the suite ran fine. The 3 failures are the `REQ-289` register trio, not an environment hold)* |
 | invariants | `pnpm check:invariants` | `invariants OK — 21/22 tables, events append-only (11 migration files, lock: check)` | **PASS** |
 | rater purity | `pnpm check:rater-purity` | `rater-purity OK — no class-as-foundation, no LLM/agent imports in packages/rater/src (REQ-004/REQ-024)` | **PASS** |
 | authority coverage | `pnpm check:authority-coverage` | `authority-coverage OK — all 9 (module, file) consults across 5 modules (rating/invoicing/settlement/comms/dispatch), 8 distinct files, each call resolveAuthority(db,'<module>') …` | **PASS** |
 | traceability | `pnpm check:traceability` | `traceability: no orphans in either direction (active: WP-01 … WP-16)` | **PASS** |
-| coverage | `pnpm check:coverage` | `coverage: 100% — all 288 register rows accounted for (0 unaccounted).` + `8 status-drift row(s)` | **PASS** |
+| coverage | `pnpm check:coverage` | `coverage: 100% — all 288 register rows accounted for (0 unaccounted).` + `8 status-drift row(s)` | **FAIL** *(re-measured 2026-08-05 at `fee46a3`, audit §333 — `check:coverage` fails on the uncommitted `REQ-289` GTM row (§299). This row asserted PASS while the gate was red: the optimistic direction, and the one that matters)* |
 | seed | `pnpm check:seed` | `SEED-1 hash verified` | **PASS** |
-| acceptance spine | `pnpm test:acceptance` | **not run** — 4 of the 5 spine files live in `workers/api` / `workers/mcp` | **BLOCKED — `workerd`** |
+| acceptance spine | `pnpm test:acceptance` | **not run** — 4 of the 5 spine files live in `workers/api` / `workers/mcp` | **PASS** *(re-measured 2026-08-05 at `fee46a3`, audit §333 — verified green in the live `verify:merge` run of §298; the wedge claim was inherited, never re-checked)* |
 | design audit | `pnpm audit:design` | `design audit: clean` | **PASS** |
 | identity leak | `pnpm check:identity -- --mode merge` | `{"gate":"identity-leak","status":"BLOCKED","executed":false,"assertions":0,"detail":"no denylist (set IDENTITY_DENYLIST secret or .identity-denylist.local)"}` | **BLOCKED — denylist** |
 | fixtures | `pnpm check:fixtures -- --mode merge` | `fixtures: BLOCKED under --mode merge — 9 fixture(s) not vendored; a merge/release gate does not green on absent private fixtures.` | **BLOCKED — 9 fixtures** |
