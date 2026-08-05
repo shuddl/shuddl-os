@@ -11649,3 +11649,65 @@ be kept in agreement by a sentence — and the tell that this one needed pinning
 in the skill, and in the audit's own §51/§216 findings about duplicated logic. The assertion that closes it
 had to read one side and *compute* the other; anything that used the same function twice would have
 reproduced the trap it was meant to catch.
+
+---
+
+## §223 — the third copy of the pricing loader, and the parity test that covered two
+
+§222's rule — *a "keep in lockstep" comment is a test that was never written* — is sweepable. **64
+agreement claims** in shipped source (`byte-identical`, `must equal`, `mirrors the identical`, `one rule,
+both`). Most are structural (`rest.ts`: *"hand it to the SAME dispatch — this is where parity is
+structural"*) and need nothing. The dangerous ones duplicate logic across packages.
+
+The highest-stakes: **`workers/translator/src/rate-config.ts`**, whose header claims a 204-originated
+`quote.priced` is *"byte-identical to a CSR one (no misprice divergence)"*.
+
+There are **three** copies of the rating-config loader:
+
+| Copy | sha256 | lines | guarded |
+|---|---|---|---|
+| `workers/api/src/rate-config.ts` | `31157a05…` | 84 | ✅ by `rate-config-parity.test.ts` |
+| `workers/agents/src/rate-config.ts` | `31157a05…` | 84 | ✅ same test — byte-identical to the api |
+| **`workers/translator/src/rate-config.ts`** | `85374d42…` | 49 | **nothing** |
+
+The existing guard is exactly right about why it exists — *"if the two drift, one surface mis-prices while
+the other doesn't"* — and it asserts a **byte-identical file**, so it structurally cannot cover a third
+copy that is legitimately a *subset* (the translator needs `loadTenantRatingConfig`, not the api's
+`loadTransitMatrix`).
+
+But the part that decides **which config prices a load** is duplicated verbatim in all three:
+
+```sql
+SELECT payload FROM rate_config WHERE kind = ?1 AND effective_ts <= ?2
+ORDER BY effective_ts DESC, version DESC LIMIT 1
+```
+
+### Measured
+
+Dropping the `version DESC` tie-break from the translator's copy — an EDI quote then picks a different
+config row than the identical CSR quote whenever two rows share an `effective_ts`:
+
+```
+workers/translator   97 passed (98)   ← before this section: 97 passed (97), fully silent
+```
+
+### Closed
+
+`workers/translator/test/rate-config-parity.test.ts` pins the **SQL constant**, not the file — the one
+string that carries the whole rule (rows already in effect, newest first, ties to the highest row version,
+exactly one row). Plus a canary asserting that string still contains each clause, so the parity test
+cannot pass by both copies losing the rule together.
+
+Suite 96 → **98**. The drift now fails with the two SQL strings side by side.
+
+**Not a defect today** — all three agree. What was missing is the mechanism that keeps them agreeing, for
+the one copy the existing guard could not reach. No REQ row: an existing law (REQ-151, "no price on air"),
+pinned on its third instance.
+
+### The rule
+
+**A parity test names the copies it knows about — so it ages badly, silently, when a third appears.**
+`rate-config-parity` is a well-built guard that has been correct and complete for two files since it was
+written; nothing about it degrades when a third copy is added elsewhere, and nothing about the third copy
+announces that a guard exists it should have joined. The sweep that finds this is not "are the parity
+tests passing" but **"how many copies are there, and does the count match what the guard asserts?"**
