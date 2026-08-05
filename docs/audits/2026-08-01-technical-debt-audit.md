@@ -10689,3 +10689,51 @@ violated — the ten rules across §198–§201, the seven budgets across §203�
 same sentence of the same governing document, and the difference was invisible until something was
 planted. The cheapest possible fix — one `Object.keys().toHaveLength()` — was missing for the entire life
 of the build.
+
+---
+
+## §206 — the prohibition list, and what §205 actually closed
+
+`CLAUDE.md`'s third law-list is **"Do not build (ever)"** — and four of its entries are pixel rules that
+`audit:design` should catch: *"gray text, blue anything, shadows, spring animations."* §204 proved shadows.
+Planting the other three into a scanned file:
+
+```
+packages/design/motion.css: color #2E5AAC (→ #2E5AAC) outside the five tokens (REQ-145)
+packages/design/motion.css: color #8A8A8A (→ #8A8A8A) outside the five tokens (REQ-145)
+packages/design/motion.css: spring/overshoot cubic-bezier — motion eases, never bounces (REQ-148)
+```
+
+Exit 1. All four prohibitions enforced.
+
+### But notice *how* blue and gray are caught
+
+Not as "blue" or "gray" — as **"outside the five tokens."** The palette rule subsumes both specific
+prohibitions, which is stronger than naming colours: any off-palette colour fails, not just the two
+`CLAUDE.md` happens to list.
+
+That subsumption has a load-bearing precondition: **the palette must not be able to grow.** Tested it —
+blue added as a legitimate sixth token:
+
+| Gate | Result |
+|---|---|
+| `audit:design` (the colour gate) | **exit 0** — a token in `tokens.ts` is the exempt source, so blue is legal everywhere |
+| `packages/design` suite | **RED** — *"exactly 5 colour tokens"* |
+
+**`audit:design` alone cannot stop "blue anything."** It stops blue *outside* the palette while treating
+the palette as ground truth — so before §205, the way to ship blue was not to sneak it into a component
+but to add it to `TOKENS`, where every gate would then bless it. One line in the design source, and
+"no blue anything" would have been silently repealed.
+
+So §205's palette counter was not the tidy budget fix it looked like. It is the **only** thing standing
+between the prohibition and its escape hatch, and it did not exist until this session. The two rules are
+complete only together: nothing off-palette (`audit:design`), and the palette cannot change
+(`tokens.test.tsx`).
+
+### The rule
+
+**A prohibition enforced by an allowlist is only as strong as the allowlist's immutability.** "No blue"
+delegated to "nothing outside the five tokens", which delegated to a five that anyone could make six.
+Every link held except the last, and the last was invisible precisely because the first two were so
+solid — the audit fails loudly on blue in a component, which is exactly where you would look to check
+that the rule works.
