@@ -11428,3 +11428,46 @@ the seam, not the package that declares the code.** In this repo that is nearly 
 is a package whose green is systematically less informative than its size suggests — 106 tests that cannot
 see the single most important property of the file they cover. Worth knowing before trusting any
 agents-only run.
+
+---
+
+## §219 — bounding §218: the hollow-green trap is one package, not a class
+
+§218 found that `workers/agents` passes 106/106 with its at-least-once guarantee deliberately broken, and
+generalised to *"a worker package's green is systematically less informative than its test count
+suggests."* That sentence covers four workers and was measured on one. Bounding it.
+
+`workers/billing` carries the same kind of property — an idempotent money write, where a redelivered
+Stripe webhook must merge rather than double-write. Broke its upsert (`ON CONFLICT(id) DO UPDATE` →
+`DO NOTHING`):
+
+| Package | Its own suite |
+|---|---|
+| `workers/agents` (Biller / Concierge ids) | **106 pass — nothing** |
+| **`workers/billing`** (credits upsert) | **15 RED of 56**, incl. *"REQ-123 — idempotency: twice in = once out"* |
+
+**Opposite results, and the reason is structural.** `workers/billing` binds its own D1 and drives its own
+sweep end to end, so the seam it must prove is *inside* the package. `workers/agents`' consumers append
+through the **sequencer Durable Object**, which lives in `workers/api` — so the seam is across a worker
+boundary and cannot be exercised from the package that declares the handler.
+
+So the honest statement is narrower than §218's: **a package's green is uninformative exactly where its
+critical property crosses a worker boundary** — not because it is a worker package. `packages/rater` and
+`packages/ledger` catch their own mutations (§198–§200); `workers/billing` catches its own; `workers/mcp`
+catches its own (§215, §217). **`workers/agents` is the one package in this build whose most important
+property is untestable from inside it**, and it is untestable for a good reason.
+
+### Why this bounding matters more than the finding
+
+§218's sentence, left standing, would tell a future reader that four workers' suites are not to be
+trusted. Three of them are. The one that is not is identifiable by a structural test that takes seconds:
+**does this package own the infrastructure its guarantee runs on?** `workers/billing` binds `TENANT_*_DB`
+and a Stripe seam; `workers/agents` binds a queue and calls out to a DO it does not own.
+
+### The rule
+
+**Bound a generalisation by measuring its second instance, not by qualifying it in prose.** §218 wrote
+"systematically" from one data point; one more mutation, in the nearest comparable package, produced the
+opposite result and turned a vague warning about worker packages into a specific, checkable property of
+one. The cheap version of this — adding "may" or "often" — would have preserved the doubt everywhere and
+removed it nowhere.
