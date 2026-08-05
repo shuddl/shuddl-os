@@ -187,7 +187,7 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 ## §4 — Phase gating and the stopping point
 
 > **CURRENT MEASUREMENT: §238, at `68cfb0d`; CONVERGENCE measured at §243.** The four clauses below are
-> measured in §238. §243 (extended by §251 → §270 → §282 → §285 → §286 → §287 → §288 → §289 → §290 → §291 → §292 → §293 → §294 → **§295**, now through §295) answers the separate question of whether another iteration is worth running:
+> measured in §238, **RE-MEASURED IN §296 at `3d1386b` — see §296 for the current verdict, its stated bounds, and the seven phase-gating triggers that reopen it.** §243 (extended through §295) answers the separate question of whether another iteration is worth running:
 > defects-per-section across the eight sections after §238 ran 1,1,1,—,1,1,**0,0** while verified-clean
 > rose to 8 and 8, the last two being the most systematic sweeps of the set. Five named restart triggers
 > are listed there, each a grep or a diff — two of which are now GATES (§244) rather than greps. Across
@@ -15765,3 +15765,83 @@ Four sections after the rule was stated (§294), applying it strictly to its own
 three of which were the auditor's. That ratio is the honest summary of this whole phase: **the remaining
 defects in this repository are mostly in the instruments, not the build** — which is itself the strongest
 available signal about where the stopping point is.
+
+---
+
+## §296 — PHASE GATE RE-MEASURED at `3d1386b` (supersedes §238 at `68cfb0d`)
+
+The phase gate in §4 was last measured at §238. Sixty commits later, this re-measures it rather than
+extending a stale verdict — the discipline §291–§295 spent five sections establishing, applied to the
+audit's own headline.
+
+### The measurable surface — 12 of 12 green
+
+`typecheck` · `lint` · `check:runtime` · `check:invariants` · `check:citations` · `check:chokepoint` ·
+`check:authority-coverage` · `check:traceability` · `check:seed` · `check:tables` · `audit:design` ·
+`check:rater-purity` — **all exit 0.**
+
+`test:tools`: **30 files, 781 tests, 778 passing.** The 3 failures are the known `REQ-289` register trio
+(coverage classification + register contiguity), caused by another workstream's uncommitted row in
+`genesis/09-REQUIREMENTS-REGISTER.csv`. Not this loop's, and unchanged all phase.
+
+**Stated bounds — what this measurement does NOT cover.** The five `vitest-pool-workers` suites were not
+run: this machine has a documented, uninterruptible `workerd` wedge (a suite can block for days in `UE`,
+survives `kill -9`, clears only on reboot). Running them to refresh a number would risk the session for no
+new information. The four browser gates report `BLOCKED` without a browser, which is their designed posture
+under `--mode merge`, not a defect. **A green here is a green for the surface named, and nothing wider.**
+
+### What this phase actually changed — eight enforcement defects closed
+
+Each was mutation-proved RED before and GREEN after, with a negative control where one applies:
+
+1. **The determinism claim in eight unenforced files** (§284) — a per-FILE fix swept per-VALUE.
+2. **The layering half of the purity claims** (§285) — and the flat-config hazard where *adding* a lint
+   rule would have silently *deleted* the repo-wide REQ-163 organ-bank ban. 18 trees probed, 0 holes.
+3. **A roster completeness test that could not detect its own failure** (§286) — `toHaveLength(5)` replaced
+   by two-sided discovery; a sixth worker dropping a prod binding had left 251 tests green.
+4. **The "2 font families" budget, unpinned at the one site that may declare one** (§287) — found by
+   mutation-testing all seven hard budgets for *detectability*; it was the seventh of seven.
+5. **Test collection** (§288) — a file matched by no `include` is a silent absence, not a failing test.
+6. **Gate wiring** (§289) — a gate nobody invokes enforces nothing; 29 scripts swept, all reachable.
+7. **Dead-letter parity at merge instead of release** (§290) — a prod consumer without a DLQ drops agent
+   triggers with nothing to page on, and wrangler does not inherit into named environments.
+8. **Gate-profile sizes pinned** (§293) — because prose cannot hold a count, demonstrated when the new pin
+   immediately caught a wrong number I had just written into the record.
+
+Plus the record work: one measured fact reconciled across four documents (§292), the pin-vs-stamp rule
+(§294), and every build-owned count in `docs/ops/` now stamped, pinned, or a verbatim gate quote (§295).
+
+### Why this is a stopping point, in one measurement
+
+**Of the last four findings, three were defects in the audit's own instruments, not in the build** (§295:
+a stamp-detector encoding the auditor's convention rather than the corpus's). The phase before it closed
+eight real enforcement gaps; this one is closing regex bugs in the tooling that looks for enforcement gaps.
+
+That inversion is the signal. It is not "nothing is left" — the ledger below is explicit about what is —
+but the *yield per section from this line of questioning* has crossed below the cost of asking, and the
+honest move is to say so rather than manufacture a §297.
+
+### The ledger — unchanged, and none of it repo-closable
+
+Three owner decisions (duplicate-vs-strand for the cron claim protocol; two undeclared auth lifetimes; the
+undefined "fifth primitive") · nine private fixtures held in the engagement workspace · two External Highs ·
+rows needing a migration or an API-contract change · one Low observation · `REQ-289`'s disposition (another
+workstream's) · **one repo-visible staging placeholder** (`shuddl-mcp-staging.GRANTS`), which is external to
+provision and now carries a live expiry trigger.
+
+### PHASE GATING — what reopens this
+
+The gate is not "forever". Any of these makes the verdict above stale and requires a new measurement:
+
+1. **`REQ-289` is dispositioned** or the other workstream's register row lands — the 3 red tests resolve or
+   become this loop's.
+2. **Either live transport is wired** (the two demos that need one).
+3. **A new control-plane migration**, or any change to the tenant schema's table count.
+4. **A non-storage `await` enters either meter DO** — the mutex comment's stated trigger; it is now also a
+   roster gate, so it fails loudly.
+5. **Any demo's filmed sentence changes** — the acceptance record is written against exact wording.
+6. **`shuddl-mcp-staging.GRANTS` is provisioned**, or any staging resource id changes (§291's trigger).
+7. **The `workerd` wedge clears** — the five worker suites become measurable, and the bound above lifts.
+
+Two of these are now enforced by gates rather than memory (3 and 4); the rest remain human triggers, which
+is stated plainly because an unenforced trigger is a hope, not a control.
