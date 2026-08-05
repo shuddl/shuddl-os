@@ -16547,3 +16547,62 @@ architectural properties the whole build expresses rather than rules a single li
 
 Eight mutations total this phase across five packages; `git status` clean in every mutated path;
 `@shuddl/ledger` 616 green after each restore.
+
+---
+
+## §309 — L2 proven, L10 attempted, and the same category-claim error twice in three sections
+
+§308 closed with *"the genesis laws not covered are the ones without a single runtime chokepoint to break"* —
+and listed eight. **That is the identical shape §307 had just caught**: a category claim about a set, made
+one section after writing that such claims *"feel like a bound and function as an excuse to stop."*
+
+Enumerating rather than asserting, again:
+
+### L2 — "One ledger, many lenses" — HAS a chokepoint, and it is proven
+
+`packages/ledger/src/visibility.ts:122` is the whole law in one line:
+`if (INTERNAL_FLOOR.has(kind)) return "internal";` — margin, credit, consent and control events can never be
+widened past the tenant lens, whatever a caller asks for. Mutation: the floor removed (landing verified,
+`1+/1-`).
+
+**RED — 16 failing assertions**, naming *internal*, *lens*, *visibility*. Restored byte-identical: 616 passed.
+
+Sixteen is the largest RED of the phase, which fits: this is the one line standing between a shared ledger
+and a leak of margin to a counterparty.
+
+### L10 — "Exit-friendly, or it's a trap" — in scope, built, NOT proven this pass
+
+Not absent, as §308 implied. `REQ-010` — *"One-click full tenant export in open formats"* — is `F0-SPEC'D`,
+the route is `GET /v1/export` (`workers/api/src/index.ts:201`), it assembles events + GL journal + documents
++ Merkle anchor roots + a manifest, it is tenant-scoped for REQ-025, and it has a dedicated
+`workers/api/test/export.test.ts`.
+
+**Two mutation attempts failed to land**, and per §308's rule that is not evidence in either direction. It is
+recorded as attempted-not-proven rather than quietly dropped, because "I could not break it" and "it is safe"
+are different sentences and only one of them is true here.
+
+### The finding that outranks both laws
+
+**I made the same category-claim error twice in three sections, the second time immediately after documenting
+it.** §306 said "the rest are process rules" (two short). §308 said "the rest have no chokepoint" (at least
+one short, and the other unproven rather than unbreakable).
+
+A recorded rule did not fire — twice — which means the rule as written is not usable. The mechanical form
+that would have worked: **never write "the rest are X" without the list in the same sentence.** If the list
+is too long to write, the claim is too broad to make. That is checkable at the moment of writing, which is
+the only moment that matters, whereas "remember to enumerate" is advice that arrives after the sentence is
+already comfortable.
+
+This is the fourth instrument-level false result of the phase (§298 tally, §305 wrong suite, §308 no-op,
+now this) and the only one that is purely rhetorical — no regex, no suite, no diff. **A sentence can be an
+instrument, and it can be miscalibrated the same way.**
+
+### Standing at nine laws
+
+Six engineering rules (§305–§307), plus L7, L3 (§308) and L2 here — each broken, each RED, each restored
+byte-identical. L10 is in scope, built, tested, and **not** proven by this method.
+
+### Verification
+
+Mutation landing verified before every run (§308's mandatory step); `git status` clean in every mutated
+path; `@shuddl/ledger` 616 green after restore.
