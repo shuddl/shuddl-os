@@ -11880,3 +11880,53 @@ anyone is careless — every one of these five was written deliberately, with th
 a comment by someone who understood the risk exactly. The comment is where the reasoning goes when there
 is no obvious place to put the assertion, and it is worth treating a well-written lockstep comment as
 **evidence that a test is missing**, rather than as evidence that the author had it handled.
+
+---
+
+## §227 — bounding the 64: two kinds of "byte-identical", and only one needs a test
+
+§226 closed on treating a lockstep comment as evidence a test is missing. §223's sweep found **64** such
+claims and I have adjudicated five. Rather than work the remaining 59 one at a time, the useful question
+is whether they divide.
+
+They do, cleanly. Probed the money-critical one still open — `workers/translator/src/inbound.ts:535@byte-identical`, claiming the EDI
+`quote.priced` payload is *"byte-identical to rate.ts"*. Dropped `floors` from the EDI construction alone:
+
+```
+× (a) a valid 204 → one shipment …          "floors": Invalid input: expected object, received undefined
+```
+
+Caught — but **not by a parity test**. By Zod, at the append boundary: both paths construct the payload
+independently and both hand it to the **same `QuotePricedPayload` contract**, which requires `floors`. The
+shape cannot drift because neither side owns it.
+
+### The taxonomy
+
+| Kind | Agreement enforced by | Needs a test? |
+|---|---|---|
+| **Structural** | a shared mechanism both sides pass through — one Zod schema, one dispatch, one exported function | **No.** The comment describes a consequence of the design |
+| **Duplicated** | nothing — the same logic written twice, in two files | **Yes.** This is §222–§225's five |
+
+`rest.ts`'s *"hand it to the SAME dispatch — this is where parity is structural"* names the first kind
+outright. The pricing-config loader, the tenant roster, the party-id scheme and the position canonical
+bytes were all the second: **logic copied because a shared home was unavailable or forbidden** (the
+party-id comment even says so — *"the ideal de-dup would touch a shipped file, forbidden here"*).
+
+**The cheap test to tell them apart:** delete one side's implementation and ask whether the program still
+compiles or the type still fits. If a shared schema or signature objects, it is structural. If both sides
+would happily diverge, it is duplicated — and the comment is the only thing holding it.
+
+### Why this bounds the rest
+
+Every one of the five real gaps had the same tell: **the comment named another file by path.** *"Keep in
+lockstep with workers/api/src/routes/positions.ts"*, *"the SAME customer tenants"* naming two workers,
+*"byte-identical to a CSR one"*, *"mirrors `workers/api/src/intake-core.ts:64@intake`"*. A structural claim does not need to name a
+file, because the shared mechanism is the reference — `rest.ts` says *"the SAME dispatch"*, not a path.
+
+That is a mechanical filter over the remaining 59, and it costs a grep rather than 59 mutations.
+
+### The rule
+
+**A lockstep comment that names another file's path is a missing test; one that names a shared mechanism
+is documentation.** Both read identically and only the first can rot — which is why §223's sweep was worth
+running as a list and not worth working end to end.
