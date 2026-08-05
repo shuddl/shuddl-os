@@ -16755,6 +16755,9 @@ is large:
   eng.5 (`approval.ts:139`, and the file itself says it exists so the slice has *"ONE source of truth"*).
 - **Multi-site laws — the RED is representative, not exhaustive.** eng.8 tenant isolation has **42**
   tenant-scoping sites across the api and ledger; eng.3 has **36** gate-refusal sites. I broke one of each.
+  *(§320 CORRECTS the eng.8 half: those 42 are a grep artefact. Isolation is D1-per-tenant, so it is enforced
+  at ONE resolver — `workers/api/src/tenants.ts:16` `tenantDb()` — with 7 callers, and that chokepoint is now
+  mutation-proved too. eng.3's 36 stands unexamined.)*
   Fifteen assertions failed for isolation, which is strong evidence that *that* path is guarded — and no
   evidence about the other forty-one.
 
@@ -17155,3 +17158,55 @@ person who wrote it.
 Six mutations across five files (a control migration, a tenant migration, a meter DO await, a demo title,
 plus the two gate reads); every file restored byte-identical; `git status` clean; `check:invariants 0`,
 `test:acceptance` green.
+
+---
+
+## §320 — The "42 sites" were a grep artefact: isolation is a chokepoint
+
+§312 qualified §310's table by splitting the laws into single-site (the RED is the whole proof) and
+multi-site (the RED is a sample of one), and put tenant isolation firmly in the second bucket: *"eng.8 has
+**42** tenant-scoping sites; I broke one of each."* §313 then deferred that half to "the isolation suite",
+and §317 never checked it because it was not phrased as a deferral.
+
+**The 42 was wrong.** It came from `grep -c "tenantDb\|tenant_id = ?\|WHERE tenant"` — a count that includes
+comments, control-plane code, and every call site of the resolver rather than the resolution itself.
+
+SHUDDL is **D1-per-tenant**. Isolation is not enforced by a predicate repeated 42 times; it is enforced by
+**which database handle you are given**, in one function:
+
+```
+workers/api/src/tenants.ts:16   tenantDb(env, tenantSlug) → D1Database     — 7 callers
+workers/api/src/tenants.ts:51   resolveTenantDb(...)      — the claimed-tenant fallback
+```
+
+That function is also where the `_platform` guard lives, *"defense-in-depth ON TOP of the allowlist"* — a
+customer JWT carrying `tenant=_platform` dies there, before any handle is issued.
+
+### The chokepoint, mutation-proved
+
+Mutation: `const binding = TENANT_BINDINGS[tenantSlug]` → `TENANT_BINDINGS["tenant-a"]`, so **every tenant
+resolves to one database** — the total cross-tenant leak. Landing verified.
+
+**RED — 4 failing assertions**, naming *cross-tenant*, *isolation*, *tenant-b*. Restored byte-identical:
+754 passed.
+
+Combined with §306's mutation of `mintPrincipalJwt` (which decides *what tenant you are*), both halves of
+eng.8 are now proven: **what you claim to be, and what handle that claim gets you.**
+
+### The correction that matters more than the proof
+
+**A site count taken from a grep is an artefact until the architecture is checked.** Forty-two scattered
+predicates and one resolver with forty-two mentions produce the same number and imply opposite things about
+risk — the first is a place a defect can hide, the second is a place it cannot. §312's caution was right in
+form and wrong in fact, and it was wrong in the direction that *understates* the evidence.
+
+This is the §319 shape one more time: **a claim can be miscalibrated toward pessimism**, and pessimism reads
+as rigour, so nobody checks it. §312 sounded more careful than §310 and was less accurate.
+
+**eng.3's 36 gate-refusal sites remain unexamined** — stated plainly rather than assumed to be the same
+artefact, because that assumption is exactly the error this section is about.
+
+### Verification
+
+`git status` clean; `@shuddl/api` 754 passed after restore; §312's paragraph corrected in place so the
+superseded characterisation stays visible.
