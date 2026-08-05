@@ -61,6 +61,55 @@ export default tseslint.config(
     files: ["packages/rater/**/*.ts"],
     rules: {
       "no-restricted-globals": ["error", { name: "fetch", message: "REQ-004/REQ-024: the rater is a deterministic, network-free engine — no fetch. A price that depends on a network call is not reproducible." }],
+      // DETERMINISM, the other half of the same claim (audit §283). `check:rater-purity` bans LLM imports
+      // and the global above bans `fetch`; both are the I/O half. The rater's own header says "PURE and
+      // DETERMINISTIC (no LLM/I/O/Date/random)" and the gates say "no D1, no R2, no Date, no random" — but
+      // nothing enforced the clock/randomness half. Measured at zero hits when this landed, so this changes
+      // no code; it stops the NEXT edit. Syntax selectors rather than no-restricted-globals so a `Date` used
+      // as a TYPE stays legal.
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: 'NewExpression[callee.name="Date"]',
+          message: "REQ-004/REQ-024: an ambient clock is not deterministic — take the instant as a parameter (the callers already inject one).",
+        },
+        {
+          selector: 'MemberExpression[object.name="Date"][property.name="now"]',
+          message: "REQ-004/REQ-024: an ambient clock is not deterministic — take the instant as a parameter (the callers already inject one).",
+        },
+        {
+          selector: 'MemberExpression[object.name="Math"][property.name="random"]',
+          message: "REQ-004/REQ-024: randomness is not reproducible — derive ids deterministically (see the Biller id law).",
+        },
+      ],
+    },
+  },
+  {
+    // REQ-024 / the gate-purity claim (audit §283). transition-gates.ts states it outright: "pure
+    // deterministic decisions over (prior events, incoming event, context) — no D1, no R2, no Date, no
+    // random, no LLM". That is what makes the whole gate catalog unit-testable without a database, and it
+    // is the property the sequencer relies on when it loads `prior` and calls a gate. The impure inputs are
+    // supplied BY THE CALLER (the clock is passed in), so an ambient one here would silently reintroduce the
+    // dependency the design removed. Measured at zero hits when this landed: it changes no code, it stops
+    // the next edit. Scoped to the gates subtree — the wider ledger has legitimate clock use (anchoring,
+    // TSA) — and expressed as syntax selectors so `Date` in a TYPE position stays legal.
+    files: ["packages/ledger/src/gates/**/*.ts"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: 'NewExpression[callee.name="Date"]',
+          message: "REQ-024: gates are pure — the caller supplies the clock; an ambient one breaks the property that makes the catalog testable without a DB.",
+        },
+        {
+          selector: 'MemberExpression[object.name="Date"][property.name="now"]',
+          message: "REQ-024: gates are pure — the caller supplies the clock; an ambient one breaks the property that makes the catalog testable without a DB.",
+        },
+        {
+          selector: 'MemberExpression[object.name="Math"][property.name="random"]',
+          message: "REQ-024: gates are pure — a gate decision must be reproducible from its inputs alone.",
+        },
+      ],
     },
   },
 );

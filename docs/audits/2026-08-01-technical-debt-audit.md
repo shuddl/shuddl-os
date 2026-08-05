@@ -14945,3 +14945,52 @@ tells a future auditor not to re-run that sweep.
 **The remaining ledger is unchanged and none of it is repo-closable:** three owner decisions, nine private
 fixtures, two External Highs, rows needing a migration or API-contract change, one missing definition, and
 one Low observation (no line-coverage instrumentation, §275).
+
+## §283 — the other half of "pure": determinism was claimed everywhere and enforced nowhere
+
+§282 concluded that yield now comes only from asking something structurally new, so: **the purity claims in
+this repo have two halves, and only one was ever checked.**
+
+The I/O half is thoroughly enforced — `check:rater-purity` bans LLM/agent imports (§254 mutation-proved it),
+eslint bans the `fetch` global in both the ledger and the rater (§273 measured the ledger's exemption, the
+TSA client, as its single sanctioned egress). Every previous section on purity examined that half.
+
+The **determinism** half was claimed in the same sentences and enforced by nothing:
+
+- `packages/rater/src/price.ts` — *"PURE and DETERMINISTIC (no LLM/I/O/**Date/random**)"*
+- `packages/ledger/src/gates/transition-gates.ts` — *"pure deterministic decisions over (prior events,
+  incoming event, context) — no D1, no R2, **no Date, no random**, no LLM (REQ-024)"*
+
+**Measured first: zero hits.** No `new Date(`, `Date.now(`, `Math.random(` or `crypto.randomUUID(` in
+`packages/rater/src`, `packages/ledger/src/gates`, `canonical.ts` or `chain.ts`. The law holds today — it is
+simply nobody's job to keep holding it, which is §265's shape on a property that makes the whole gate catalog
+unit-testable without a database.
+
+Closed with `no-restricted-syntax` in the two existing purity overrides. **Syntax selectors rather than
+`no-restricted-globals`, deliberately**, so a `Date` in *type* position stays legal — verified:
+`function f(d: Date)` still lints clean, while `Date.now()`, `new Date()` and `Math.random()` each go RED in
+both scopes. Scoped to `packages/ledger/src/gates/**` rather than the package, because the wider ledger has
+legitimate clock use (`anchor.ts`, `watchtower-snapshot.ts`, `queries/metrics.ts`) — confirmed unaffected.
+
+Because the measurement was zero, this changes no code. **It stops the next edit**, which is the only thing
+it was ever able to do.
+
+### The instrument error, and why the mutation "passing" meant nothing
+
+My first config edit produced `},,` — a stray comma — and eslint exited **2** on the *clean* tree. I then
+planted `Date.now()` in a gate, saw a non-zero exit, and briefly had a "caught" result. It was the same
+config error: exit 2 is a *config* failure, exit 1 is a violation, and §209's rule (`a script that does not
+exist exits 1`) generalises to *any* non-zero that is not the one you are testing for.
+
+The tell was there and I nearly missed it: **the clean tree must be GREEN before a mutation's RED means
+anything.** Re-baselining after every config change is the cheap habit — the fixed run reports exactly
+`1` `no-restricted-syntax` violation and exit `1`.
+
+### The rule
+
+**When a comment claims two properties, check whether both are enforced — the enumerated one usually is, and
+the other usually is not.** "No I/O *and* deterministic", "append-only *and* co-signed", "authenticated *and*
+authorised": the half with an obvious mechanism (a banned import, a global) gets a lint; the half that needs
+a different mechanism gets a sentence. Splitting the claim into its conjuncts and asking for each *"what
+would fail if this stopped being true?"* is a two-minute check that found a live gap in a codebase where
+forty sections had already looked at purity.
