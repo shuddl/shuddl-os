@@ -15926,3 +15926,74 @@ build. This section is consistent with that and sharpens it: the defect was in *
 what it could see**, and correcting it did not find a single new problem in the product — it removed a
 false limitation from the claim. **When an audit's remaining findings are about its own reach, the useful
 next move is to test the reach, not to keep looking through it.**
+
+---
+
+## §298 — The merge gate, actually run: 24 gates, 17 PASS, 5 BLOCKED, 2 FAIL
+
+§297 lifted one inherited bound by measuring it. The same question applied to the one I left standing —
+*"the browser gates report `BLOCKED` without a browser"* — and it was inherited too. Chromium is installed
+(two versions plus headless shells). Run in their **blocking** posture:
+
+- `visual` — **PASS**, `executed: true`, 5 assertions
+- `a11y` — **PASS**, `executed: true`, 4 assertions
+- `e2e` — **PASS**, `executed: true`, 6 assertions
+
+Not skips. So the aggregate itself became runnable, and `pnpm verify:merge` — the gate CI runs — was
+executed end to end for the first time in this loop.
+
+### The verdict
+
+**24 gates: 17 PASS · 5 BLOCKED · 2 FAIL.** The total reconciles exactly with the profile size §293 pinned,
+now confirmed by a live run rather than by counting source lines.
+
+**PASS (17):** runtime · typecheck · lint · invariants · rater-purity · authority-coverage · traceability ·
+seed · table-shape · citations · append-chokepoint · acceptance · design-audit · perf · visual · a11y · e2e.
+
+**BLOCKED (5) — every one an external hold already in the ledger:** `identity-leak` (denylist is a CI
+secret) · `fixtures`, `rater-parity`, `invoice-parity`, `concierge-parse` (the private fixtures held in the
+engagement workspace). These are the designed posture for an input this repository does not contain, and
+`--mode merge` correctly refuses to call them green.
+
+**FAIL (2) — and both are one root cause:** `unit-tests` and `coverage` fail because of the **`REQ-289`
+register trio**, which comes from another workstream's uncommitted row in
+`genesis/09-REQUIREMENTS-REGISTER.csv`. `coverage` fails directly; `unit-tests` fails because `pnpm test`
+includes the same three register tests. **One uncommitted row, two red gates, zero product defects.**
+
+That is the honest production-readiness statement: *the merge gate is red, and everything red about it is
+either an absent private input or a register row belonging to another workstream.*
+
+### The character class, for the sixth time
+
+Tallying the result, my extraction printed `PASS 15` — because the pattern `[a-z-]+` dropped `a11y` and
+`e2e`. **The identical digit-excluding bug has now appeared six times in this session** (§287 token names,
+§289 gate scripts, §295's stamp regex, three tallies since), each time in a throwaway one-liner, each time
+producing a plausible number.
+
+It has earned a rule with no judgement in it: **never write `[a-z-]` for anything that names an identifier
+in this repo — use `[a-z0-9-]` or `[^ ]+`.** The reason it keeps recurring is that the output always looks
+like a complete list, and the count is always plausible; there is no feedback signal, only the discipline of
+the pattern you typed.
+
+### Phase gate — both inherited bounds now withdrawn
+
+§296 named two bounds. **Both were unmeasured inheritances, and both are gone:**
+
+1. ~~the worker suites cannot be run~~ — withdrawn in §297; the full suite is 281 files / 3,698 tests.
+2. ~~the browser gates cannot run~~ — withdrawn here; all three PASS with `executed: true`.
+
+What remains is not a bound but a **fact about inputs**: five gates BLOCKED on private fixtures and a CI
+secret, and two FAILing on another workstream's row. Nothing in that list is closable inside this repository,
+which is what "stopping point" has meant throughout.
+
+### Verification
+
+`verify:merge` run to completion, exit 1, verdict recorded above; browser gates re-run individually with
+structured sentinels captured. No code changed.
+
+### Yield note
+
+Two sections, two bounds, both withdrawn by measurement rather than by work. §297's rule — *when you write
+"cannot be measured", try* — has now paid twice in a row, and the pattern behind both is the same: **a
+limitation recorded once gets inherited as a fact, and inherited facts are the cheapest thing in any audit
+to check and the last thing anyone checks.**
