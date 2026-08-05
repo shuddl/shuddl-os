@@ -13615,3 +13615,60 @@ reached the running system (fresh process), confirm its magnitude exceeds the to
 subtle), and confirm the file you edited is the one the system reads (a mirror and a source look identical
 in a grep). A green from a probe that never reached the subject is the most expensive result in an audit —
 it retires a question that was never asked.
+
+## §257 — the palette lives in five places, and the one mechanism that ties them all
+
+§256 measured something uncomfortable: the blessed-screenshot gate is **blind to a subtle palette shift** —
+Playwright applies a per-pixel YIQ `threshold` (0.2) before `maxDiffPixelRatio`, so a small colour change
+counts *zero* differing pixels. That raises a real question for a design system CLAUDE.md calls "every
+pixel": if the visual gate cannot see a small drift, what can?
+
+The worry sharpens on inspection, because the five colours exist in **five** places:
+
+| Copy | Why it exists |
+|---|---|
+| `packages/design/tokens.css` | the CSS custom properties every surface renders from |
+| `packages/design/src/tokens.ts` (`CSS_VAR_LITERALS`) | a TS mirror for the evidence email — the one surface that cannot dereference `var()` |
+| `packages/map/src/style.ts` | **hard-coded hexes** — MapLibre style JSON cannot read CSS vars |
+| `packages/map/greige-style.json` | the basemap template, likewise literal |
+| `packages/map/test/style.test.ts` (`BLESSED`) | the test's own set of five |
+
+And `style.ts`'s header describes its colours **by token name** (*"land `--field`, water `--ink-dark` @6%,
+roads `--signal` @5–14%"*) while the code writes `#D5D1CC`, `#1A1A1A`, `#FF4A33` — the exact
+comment-claims-lockstep-without-a-test shape §223 catalogued, in the file where it would be least visible.
+
+### Measured: drift the source and the map is caught
+
+Shifting `#D5D1CC → #D6D2CD` in **both** design files (preserving their lockstep — the first attempt missed
+`--field-on-dark`, which tokens.css declares separately, and the lockstep test caught that immediately):
+
+| Gate | Result |
+|---|---|
+| `packages/design` | **PASS** 11/11 — lockstep and the 5/2 budgets all still hold |
+| `packages/map` | **PASS** 84/84 — its `BLESSED` set is its own constant |
+| `typecheck` | **PASS** |
+| **`audit:design`** | **FAIL** — *"packages/map/greige-style.json: color #D5D1CC outside the five tokens (REQ-145)"*, and the same for `style.ts` |
+
+**`audit:design` derives the five-token allowlist from the design source and checks every literal hex in the
+repo against it.** The mutation proves the derivation rather than assuming it: a gate with a hard-coded list
+could never have flagged `#D5D1CC` — the value it would itself contain. Because the allowlist is derived,
+any divergence between the design palette and *any* copy anywhere fails, which is strictly stronger than the
+pairwise parity test I was about to propose: it covers files nobody thought to enumerate.
+
+So the chain closes — `tokens.css` → `CSS_VAR_LITERALS` by the lockstep test, `tokens.css` → every literal
+hex in the repo by `audit:design`, and the map's own `BLESSED` by its suite. **No defect.**
+
+### What is genuinely worth knowing
+
+The visual gate's blindness to sub-threshold colour change is real and is *not* a gap, because it is not the
+mechanism guarding palette integrity — `audit:design` is, and it is exact rather than perceptual. Recording
+that pairing matters: the next auditor who measures the screenshot tolerance will have exactly this worry,
+and the answer is a different gate.
+
+### The rule
+
+**When a value is duplicated N times, look for a mechanism that derives the allowlist before proposing N−1
+parity tests.** Pairwise parity scales badly and covers only the copies someone enumerated — the fifth copy
+is the one that bites. A single check that reads the source of truth and validates *every* occurrence in the
+tree is both smaller and stronger. The tell that you have found one: mutating the source makes the gate
+complain about the **copies**, not about the source.
