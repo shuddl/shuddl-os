@@ -186,9 +186,9 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 
 ## §4 — Phase gating and the stopping point
 
-> **CURRENT MEASUREMENT: §202, at `015413d`.** This section states the four exit clauses and the grade
+> **CURRENT MEASUREMENT: §214, at `0d8dc91`.** This section states the four exit clauses and the grade
 > table; the *numbers* in it decay and are re-measured per session (§113 `99ae4ca` → §141 `78499e9` →
-> §168 `e27307f` → §176 `71edfbe` → §188 `7d0a17e` → **§202 `015413d`**). Read the clauses here and the posture there — and
+> §168 `e27307f` → §176 `71edfbe` → §188 `7d0a17e` → §202 `015413d` → **§214 `0d8dc91`**). Read the clauses here and the posture there — and
 > per §64/§110, read every count from a run, never from this page.
 
 Grades from `V2-EXECUTION-FRAMEWORK.md` §9. What this audit adds to each bar:
@@ -11137,3 +11137,57 @@ this session started.
 §211 fixed the glob and re-ran one sweep; it took two further sections to work through the rest, and the
 worst single finding of the four (a scan on the pricing path) was in the last one. The instinct to fix the
 bug and move on would have left it.
+
+---
+
+## §214 — the phase gate at `0d8dc91`, and a carry-forward that grew for the first time
+
+Seventh re-measurement of §4 (§113 → §141 → §168 → §176 → §188 → §202 → **§214 `0d8dc91`**), 11 commits on.
+
+| | §202 | §214 |
+|---|---|---|
+| merge surface | 24 gates | **24 gates** |
+| PASS / BLOCKED / FAIL | 17 / 5 / 2 | **17 / 5 / 2** |
+| blocking cause | `REQ-289` | **`REQ-289`, unchanged** |
+| full suite, row set aside | 3,608 tests | **3,610 tests**, exit 0 |
+
+The +2 are §205's palette-budget assertions — the only new tests, and the only new *enforcement*, this
+stretch.
+
+### The carry-forward grew, and that is the news
+
+Every previous re-measurement reported the proposed-scope inventory as *unchanged in substance*. This one
+does not, and none of the growth came from new code:
+
+| Finding | §202 | §214 |
+|---|---|---|
+| Unbounded list reads (§183) | 5 sites | **7** — `parity.ts` (full payloads, authority parity) and `watchtower.ts` |
+| Full-`SCAN` read paths (§185) | 6 tables | **7** — `rate_config`, and it is the hottest: a scan **plus a temp B-tree sort on every pricing call** |
+| N+1 loops (§184) | *"clean on this axis"* | **withdrawn** — 2 cron N+1s (`sla-sweep`, `sweep-214`) |
+| Budget enforcement (§203) | 2 of 7 unenforced | **closed** (§205) — 7 of 7, mutation-proven |
+
+**All four moves trace to one glob** (§211): `packages/*/src/**/*.ts` never matched files directly under
+`src/`, so four sweeps ran against 83 of 215 production files while reporting completeness. Two published
+conclusions were withdrawn and four findings surfaced that had been true since before this session began.
+
+### What is now established
+
+- **Every executable hard law** (rules 1, 2, 4, 5, 8, 10) and **every budget** (7 of 7) is mutation-proven
+  to fail when violated — §198–§205.
+- **Every pixel prohibition** holds, and §205 closed the escape hatch that would have silently repealed
+  "no blue anything" (§206).
+- **Nine transition gates** are proven to *block*, none below ten test references (§208).
+- **Zero empty catch blocks** across all 307 production files (§212).
+
+### The stopping point
+
+**Unchanged in structure, larger in content.** §4's four clauses hold; clause 2's distance to green is
+still one uncommitted register row owned by the concurrent GTM workstream — not an engineering task, and
+not one this loop may absorb.
+
+What changed is the honest size of clause 3's external/owner list. The volume-dependent findings are the
+material ones — **seven unbounded reads, seven scanning tables, two cron N+1s** — and they share a
+property worth stating plainly at a stopping point: *every one of them passes every gate in the merge
+surface today, and every one of them degrades monotonically with tenant age.* They are invisible to a
+fixture-based CI by construction, which is why they are recorded with `EXPLAIN QUERY PLAN` output and
+code-site notes rather than left to a future reader's judgement.
