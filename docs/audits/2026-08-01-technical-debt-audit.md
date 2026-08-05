@@ -17679,3 +17679,54 @@ stale. Here: **a route corrected repeatedly, each time correctly, until the rout
 
 §4 read whole; two contradictions found and fixed; `check:citations 0 · check:invariants 0` — both green
 before and after, which is the point.
+
+---
+
+## §330 — Two stamps for "now": the document baseline vs the measurement stamp
+
+§329 read the audit's entry point whole and found two contradictions. Its rule — *a routing document needs a
+periodic whole-read that no individual edit triggers* — applies to the other routing documents this phase
+edited, so `PROJECT-STATE.md` got the same treatment.
+
+It carried **two different SHAs for "now"**, three lines apart:
+
+- the header, from §302: *"803 commits at `430c7da`"* — actually 775 at the time, and 28 commits stale by now
+- the state table, from §328: *"re-measured at `1a89389`"*
+
+A reader cannot tell which is current, and the honest answer is **both are** — because they are not the same
+kind of claim.
+
+### The distinction the document never made
+
+- A **document baseline** answers *"how current is this page?"* It should track HEAD, and it goes stale by
+  doing nothing.
+- A **measurement stamp** answers *"when was this specific number true?"* It must NOT track HEAD — a
+  measurement is true of the commit it names, and re-stamping it without re-running would be a lie (§328
+  corrected exactly that: a stamp naming the wrong commit is worse than no stamp).
+
+So a stale-looking measurement stamp beside a current header is **correct**, and the two only read as a
+contradiction because nothing said they were different kinds. The header now says so in one sentence, and is
+rebaselined to `887b7f0` / 803 commits.
+
+### Why this matters more than the refresh
+
+The refresh is bookkeeping. **The distinction is what stops the next person "fixing" it wrongly** — seeing an
+old SHA beside a new one and updating the measurement stamp to match the header, which silently converts a
+true statement about a past commit into a false statement about the present. That failure is invisible: the
+document looks *more* consistent afterwards.
+
+**A record that mixes two kinds of timestamp must label them, or its own maintenance will corrupt it.** That
+is a sharper form of §294's pin-vs-stamp rule: there, the question was which mechanism a number needs; here,
+two mechanisms coexist legitimately and the defect is the absence of a label.
+
+### And the edit itself needed a second pass
+
+The first insertion produced *"…a measurement is true of the commit it names (audit §330) (was: 2026-08-02,
+534 commits…)"* — my clause colliding with the sentence's existing parenthetical. Caught by reading the
+render, per §327, and restructured. **Third consecutive section in which an edit to a routing document
+required reading the result rather than trusting the diff.**
+
+### Verification
+
+`PROJECT-STATE.md` header rebaselined and the two stamp kinds labelled; render re-read;
+`check:citations 0 · check:invariants 0`. No code changed.

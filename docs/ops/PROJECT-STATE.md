@@ -1,7 +1,7 @@
 # Project state & resume guide
 
-**As of 2026-08-05** · branch `main` · **775 commits at `430c7da`** (was: 2026-08-02, 534 commits at
-`3e1f31d` — the 241 between them are a further technical-debt audit phase; before that, 2026-07-31 at 435). Supersedes the 2026-07-27 baseline at `7c1a0b4` (itself re-baselined
+**As of 2026-08-05** · branch `main` · **803 commits at `887b7f0`** (was: 2026-08-02, 534 commits at
+`3e1f31d` — the 241 between them are a further technical-debt audit phase; before that, 2026-07-31 at 435). **This header is the DOCUMENT baseline; individual rows below carry their own `measured at <sha>` stamps, which may predate it and are not stale for doing so — a measurement is true of the commit it names (audit §330).** Supersedes the 2026-07-27 baseline at `7c1a0b4` (itself re-baselined
 from the 2026-07-14 note that stopped at WP-06). All sixteen WPs are closed, T14/T15 landed after them, and a
 2026-07-28 reboot cleared the `workerd` wedge.
 
