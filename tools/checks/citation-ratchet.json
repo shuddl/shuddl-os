@@ -1,9 +1,10 @@
 {
-  "note": "Adoption ratchet for content anchors (see tools/checks/citation-ratchet.ts). `targets` is a HAND-CURATED list of high-churn files: a bare `path:line` citation into one of these rots faster than anywhere else, because these are the files that move. `baseline` freezes today's count of UNANCHORED citations into them, keyed (citing file -> target). The gate fails when a count GROWS (write the new citation as `path:line@symbol`) and also when a count FALLS without being banked (run `pnpm check:citations --write-ratchet`), because a fall that is not banked lets the ratchet loosen back to the old ceiling. Nothing is retrofitted: the ~480 unanchored citations into NON-target files are untouched, deliberately — a bulk retrofit would produce anchors chosen in a hurry, and this gate cannot tell a strong anchor from a weak one. EDIT `targets` BY HAND ONLY; `--write-ratchet` regenerates `baseline` and never touches it. REJECTED as a target: `index.ts` — it resolves to 14 different files in this repo, so every bare `index.ts:N` citation is ambiguous, would be counted against all 14, and no failure message could name the file the author meant. A ratchet on an unidentifiable target is ceremony. `events.ts` and `watchtower.ts` resolve to 2 files each; both are listed, and an ambiguous citation counts against both (fail-closed, and a nudge to write the full path).",
+  "note": "Adoption ratchet for content anchors (see tools/checks/citation-ratchet.ts). `targets` is a HAND-CURATED list of high-churn files: a bare `path:line` citation into one of these rots faster than anywhere else, because these are the files that move. `baseline` freezes today's count of UNANCHORED citations into them, keyed (citing file -> target). The gate fails when a count GROWS (write the new citation as `path:line@symbol`) and also when a count FALLS without being banked (run `pnpm check:citations --write-ratchet`), because a fall that is not banked lets the ratchet loosen back to the old ceiling. Nothing is retrofitted: the ~480 unanchored citations into NON-target files are untouched, deliberately — a bulk retrofit would produce anchors chosen in a hurry, and this gate cannot tell a strong anchor from a weak one. EDIT `targets` BY HAND ONLY; `--write-ratchet` regenerates `baseline` and never touches it. REJECTED as a target: `index.ts` — it resolves to 14 different files in this repo, so every bare `index.ts:N` citation is ambiguous, would be counted against all 14, and no failure message could name the file the author meant. A ratchet on an unidentifiable target is ceremony. `events.ts` and `watchtower.ts` resolve to 2 files each; both are listed, and an ambiguous citation counts against both (fail-closed, and a nudge to write the full path). TARGETS RE-DERIVED 2026-08-05 (audit §264): the list names its own criterion (high-churn) and had never been re-measured against it. Added workers/agents/src/concierge.ts (11 commits in the last 200 — equal to watchtower.ts and routes/events.ts, both already targets — but carrying 17 unanchored citations, the largest unprotected population). workers/agents/src/index.ts was ALSO added on churn (23 commits) and then REVERTED: citation-ratchet.test.ts rejects any target whose basename is shared by >3 files, because the resolver matches by basename/suffix and a bare `index.ts:42` cannot be attributed to one file — the same 'index.ts rejection' a prior session already encoded in that test.",
   "targets": [
     "packages/contracts/src/events.ts",
     "packages/ledger/src/anchor.ts",
     "workers/agents/src/biller.ts",
+    "workers/agents/src/concierge.ts",
     "workers/agents/src/watchtower.ts",
     "workers/api/src/do/sequencer.ts",
     "workers/api/src/intake-core.ts",
@@ -29,10 +30,12 @@
       "workers/api/src/routes/events.ts": 2
     },
     ".claude/skills/make-agent-idempotent-and-adapter-ported/SKILL.md": {
-      "workers/agents/src/biller.ts": 3
+      "workers/agents/src/biller.ts": 3,
+      "workers/agents/src/concierge.ts": 12
     },
     ".claude/skills/make-agent-idempotent-and-adapter-ported/references/uuid-shaping.md": {
-      "workers/agents/src/biller.ts": 2
+      "workers/agents/src/biller.ts": 2,
+      "workers/agents/src/concierge.ts": 4
     },
     ".claude/skills/preserve-canonical-hash-byte-law/SKILL.md": {
       "packages/ledger/src/anchor.ts": 2
@@ -54,6 +57,9 @@
       "packages/contracts/src/events.ts": 1,
       "workers/api/src/do/sequencer.ts": 6,
       "workers/api/src/routes/events.ts": 1
+    },
+    "docs/audits/2026-08-01-technical-debt-audit.md": {
+      "workers/agents/src/concierge.ts": 1
     },
     "docs/ops/GO-LIVE-CHECKLIST.md": {
       "packages/ledger/src/anchor.ts": 1,
@@ -152,6 +158,9 @@
     },
     "workers/translator/src/core/build-214.ts": {
       "workers/agents/src/biller.ts": 1
+    },
+    "workers/translator/src/core/map-204.ts": {
+      "workers/agents/src/concierge.ts": 1
     }
   }
 }

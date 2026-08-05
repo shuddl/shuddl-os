@@ -13976,3 +13976,68 @@ same fix: an opt-in marker.
 sweep produces a population, not a defect list — and publishing the population as findings hands the next
 reader 170 units of work that are ~0 units of defect. Measure it, say what it bounds, and put the effort
 where the intent still exists: in the diff you just made.
+
+## §264 — auditing a gate's CONFIGURATION against the criterion it names
+
+§263 asserted the ratchet's targets are "the ones that will actually rot, because rot needs churn." That is
+a claim about a gate's *configuration*, and the config states its own criterion:
+*"`targets` is a **HAND-CURATED list of high-churn files**."* A list that names the criterion it was curated
+by can be re-derived against it — and had never been.
+
+Measured `churn × unanchored citations` over the last 200 commits:
+
+| File | churn | unanchored | in ratchet? |
+|---|---|---|---|
+| `workers/api/src/do/sequencer.ts` | 32 | 15 | **yes** |
+| **`workers/agents/src/concierge.ts`** | **11** | **17** | **NO** |
+| `packages/ledger/src/redact.ts` | 6 | 13 | no |
+| **`workers/agents/src/index.ts`** | **23** | **3** | **NO** |
+| `workers/agents/src/biller.ts` | 10 | 6 | yes |
+
+### The correction I had to make to my own reading
+
+Five of the ten targets carry **zero** unanchored citations, which looked like an inert list. It is the
+opposite: a zero baseline is the *strongest* setting the ratchet has — it means that file may never receive
+an unanchored citation at all, and the gate fails on the first one. Those five are maximal protection, not
+dead weight. The finding is not "half the list is useless."
+
+**The actual gap is one file applying the criterion inconsistently.** `concierge.ts` has **11 commits — the
+same churn as `watchtower.ts` and `routes/events.ts`, both already targets** — and carries the largest
+unprotected population of unanchored citations in the repo (17). Two files at identical churn are protected;
+this one, with 17 citations able to grow freely, was not. `workers/agents/src/index.ts` (23 commits)
+out-churns **seven of the ten** existing targets.
+
+### The second addition was wrong, and the suite already knew why
+
+`concierge.ts` was added and the baseline re-banked per the documented mechanism. `index.ts` was added too —
+and `test:tools` went from 3 failures to 4. The new one:
+*"no ratcheted target is an ambiguous basename shared by many files (**see: the index.ts rejection**)"*.
+
+A prior session had already adjudicated exactly this and encoded the verdict as a test: the citation
+resolver matches by **basename/suffix**, so a bare `index.ts:42` cannot be attributed to one of the fourteen
+`index.ts` files — ratcheting that target would count citations that belong to other files and fail on edits
+nobody made. The test rejects any target whose basename is shared by more than three paths.
+
+Reverted. **§254's rule firing on me again — "before sweeping, look for the sweep"** — except here the prior
+work was not a header comment but an *executable* rejection, which is why it cost four minutes instead of
+being missed entirely. The churn measurement was right and the conclusion was wrong, because churn is
+necessary and not sufficient: a target must also be **unambiguously citable**.
+
+Final: **111 unanchored citations into 10 targets → 129 into 11**, gate green, `test:tools` back to its three
+known `REQ-289` failures.
+
+**Proved rather than assumed:** appending one unanchored `concierge.ts` pointer to a live ops doc now fails
+the gate — *"GREW … concierge.ts: 0 → 1"* — where before this change it would have passed silently.
+
+**A target must satisfy TWO conditions, not one.** Churn says a file's citations will rot; an unambiguous
+path says the ratchet can attribute them. The config names only the first, which is how a measurement of
+only the first produced a wrong answer that a test had to catch.
+
+### The rule
+
+**When a gate's configuration names its own selection criterion, that criterion is auditable — and nothing
+re-runs it.** Hand-curated lists are chosen once, under the conditions of that day, and the code around them
+keeps moving; the list has no mechanism to notice. This is §239's "a guard names the copies that existed the
+day it was written", one level up: not the copies a guard checks, but **the set a gate was pointed at**. The
+cheap check is to recompute the stated criterion and diff it against the list — here it took one script and
+found the second-largest exposure in the repo sitting outside the fence.
