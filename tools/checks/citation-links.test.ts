@@ -3,6 +3,7 @@ import {
   buildRepoIndex,
   checkCitations,
   collectCitations,
+  suppressedLines,
   extractCitations,
   formatViolation,
   type RepoIndex,
@@ -317,5 +318,17 @@ describe("the real tree stays clean (this is the regression lock, not a sample)"
     const index = buildRepoIndex();
     const violations = checkCitations(collectCitations(), index);
     expect(violations.map(formatViolation)).toEqual([]);
+  });
+});
+
+// audit §272 — `citation-check: ignore` makes the scanner skip a line SILENTLY. It is the one way this gate
+// can be weakened without failing, so the corpus count is pinned: the first real suppression must be a
+// deliberate act that shows up here, not a comment nobody notices.
+describe("§272: the citation escape hatch is bounded", () => {
+  it("no tracked file outside the scanner's own tree suppresses a citation", () => {
+    expect(
+      suppressedLines(),
+      "a `citation-check: ignore` retires a citation with no gate failure — justify it here, or fix the citation",
+    ).toEqual([]);
   });
 });

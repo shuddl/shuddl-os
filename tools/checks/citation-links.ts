@@ -401,6 +401,40 @@ export function buildRepoIndex(cwd: string = process.cwd()): RepoIndex {
 }
 
 /** Every citation in every tracked markdown file and TypeScript comment. */
+/**
+ * Every line the `citation-check: ignore` escape suppresses, as `file:line` (audit §272).
+ *
+ * The marker makes `citationsInLine` return `[]` — silently, and the gate's success line never mentioned it,
+ * so a rotted citation could be retired by adding a comment and NOTHING would report the change. That is the
+ * one way this gate can be weakened without failing. Counting is the whole fix: the OK line now names the
+ * number, and a test pins it, so the first real suppression is a deliberate, visible act rather than a
+ * silent one. (Today: zero. The only occurrences in the tree are this scanner's own docs and its tests.)
+ */
+export function suppressedLines(cwd: string = process.cwd()): string[] {
+  const out: string[] = [];
+  for (const file of trackedFiles(cwd)) {
+    if (!/\.(md|ts|tsx|mts|cts)$/.test(file)) continue;
+    if (file.startsWith("tools/checks/")) continue; // the scanner's own source, docs and fixtures
+    let content: string;
+    try {
+      content = readFileSync(join(cwd, file), "utf8");
+    } catch {
+      continue;
+    }
+    content.split("\n").forEach((line, i) => {
+      if (!line.includes(IGNORE_MARKER)) return;
+      // A MENTION is not a USE. `citationsInLine` skips any line containing the marker, so prose *about* the
+      // escape hatch (this file's own docs, an audit section explaining it) is skipped too — but nothing was
+      // suppressed there. Count only lines where removing the marker would actually have yielded a citation,
+      // i.e. where the hatch is doing work. Found by this counter's own pin failing on the section that
+      // introduced it (audit §272).
+      const withoutMarker = line.split(IGNORE_MARKER).join("");
+      if (citationsInLine(file, i + 1, withoutMarker).length > 0) out.push(`${file}:${i + 1}`);
+    });
+  }
+  return out;
+}
+
 export function collectCitations(cwd: string = process.cwd()): Citation[] {
   const out: Citation[] = [];
   for (const file of trackedFiles(cwd)) {
@@ -425,10 +459,12 @@ function main(): void {
     console.error(`\n${violations.length} rotted citation(s) of ${citations.length} checked.`);
     process.exit(1);
   }
+  const suppressed = suppressedLines();
   const anchored = citations.filter((c) => c.symbol !== undefined).length;
   console.log(
     `citation-links OK — ${citations.length} path:line citations resolve to a real file and an in-bounds line; ` +
-      `${anchored} of them are content-anchored (the symbol still sits within ±${ANCHOR_TOLERANCE} lines of the cited span)`,
+      `${anchored} of them are content-anchored (the symbol still sits within ±${ANCHOR_TOLERANCE} lines of the cited span); ` +
+      `${suppressed.length} line(s) suppressed by \`citation-check: ignore\`${suppressed.length > 0 ? ` — ${suppressed.join(", ")}` : ""}`,
   );
 
   // The adoption ratchet runs only once the citations themselves are clean: a rotted citation is the

@@ -14381,3 +14381,70 @@ holding: when a finding depends on the contents of a list, print the whole list.
 Both sweeps clean. Recorded because the negative bounds something: gate scan coverage is not a source of
 latent enforcement gaps in this repo, and the one tree deliberately outside the globs is covered by an
 allowlist that is itself tested.
+
+## §272 — the one way a gate can be weakened without failing
+
+§271 found the chokepoint's allowlist is exported *"so the test can assert it stays deliberate rather than
+growing quietly."* That is the right shape, so: **which other gate exemptions are pinned that way?**
+
+Five exemption constructs exist across the gates. Four need nothing — `ALLOWED_FONT` and
+`ALLOWED_TRANSFORM` are *value* allowlists (the two blessed font stacks; `uppercase|none|inherit`), already
+covered by the design tests, and the chokepoint's two are the pinned pair §271 verified.
+
+The fifth is different in kind: **`IGNORE_MARKER = "citation-check: ignore"`**, an *inline* escape hatch.
+`citationsInLine` returns `[]` for any line containing it — and returns it **silently**. The gate's success
+line reported citations resolved and citations anchored, and never mentioned the ones it had skipped.
+
+That is the one way this gate can be weakened **without failing**: a rotted citation is retired by adding a
+comment, every gate stays green, and nothing in any output changes. Every other weakening — deleting an
+anchor, moving a target file, growing the unanchored population — trips something.
+
+### Counting is the whole fix
+
+`suppressedLines()` now enumerates them, the OK line names the count *and the locations*, and a test pins the
+corpus at **zero** — the only occurrences in the tree are this scanner's own docs and fixtures, which the
+function excludes by path.
+
+**Proved with the worst case rather than a benign one:** planting a pointer at a **line far past the end of
+`workers/agents/src/concierge.ts`** — the kind the gate *would* have failed on — with the ignore marker
+appended. (Written out rather than shown, because quoting it here re-creates it: this section's first draft
+included the literal form and `check:citations` refused the commit. The obvious remedy — appending the
+ignore marker to this very line — is the one the new pin forbids, which is the pin doing its job on its own
+author.) Before: green,
+invisible, the rotted citation retired. After: the OK line reads *"1 line(s) suppressed"* and **names the offending file and line**, and the pin
+test goes red with *"an ignore marker retires a citation with no gate failure — justify it here, or fix the
+citation."* (The location is described rather than quoted: a line carrying both the marker and a
+citation-shaped token IS a suppression by any mechanical reading, so quoting the gate's own output made this
+paragraph count as one — see below.)
+
+The escape hatch is kept, deliberately. §240 measured why a general path-only rule cannot exist, and prose
+sometimes legitimately names a line that must not resolve — §259's dated records are exactly that. What was
+missing was not the hatch but the **counter**: an escape used zero times and an escape used eleven times
+should not look identical from outside.
+
+### The counter's own first version was wrong, and its pin caught it
+
+The first `suppressedLines()` counted every line *containing* the marker. That is what the scanner does —
+`citationsInLine` uses `.includes()` — and it means **prose ABOUT the escape hatch is skipped by the gate
+too**. The section you are reading tripped its own pin on commit.
+
+A **mention is not a use**: a line explaining the marker suppresses nothing, because there was no citation on
+it to suppress. The counter now removes the marker and asks whether a citation *would* have been found —
+counting only lines where the hatch is doing work.
+
+Then it caught this section a second time, correctly: a paragraph quoting the gate's example output carried
+both the marker and a real `file:line` token, which by any mechanical reading **is** a suppression. Fixed in
+the prose, not the counter — describing the location instead of quoting it — because the counter's
+definition is right and weakening it to accommodate one paragraph would have reintroduced exactly the
+blindness it exists to remove.
+
+Two rounds of the same lesson from §263, in its most recursive form: **writing about a detector's input
+changes the detector's input.**
+
+### The rule
+
+**For every exemption a gate offers, ask what its use looks like from outside.** An allowlist in source is
+visible in review; an *inline marker* is visible only to whoever reads that line. The asymmetry matters
+because the inline form is the one reached for under deadline pressure, on the line that is failing, by
+someone who wants the build green. Make the count part of the gate's own output, and pin it — then the
+hatch stays available and its use becomes a decision someone has to defend.
