@@ -10077,3 +10077,57 @@ anchored — which is how six rotted citations in two live documents surfaced.
 survive a stale line number; a table row is nothing but the pointer. Every one of the four table rows here
 was wrong while the surrounding prose still read as true — and a table is exactly what someone reaches for
 under time pressure, which is the moment a wrong pointer costs the most.
+
+---
+
+## §195 — the same sweep across every skill table: 4 wrong of 22, and one fence quoting a comment
+
+§194's rule said a table row is nothing but its pointer. Ran that across **all 16 skills**: 22 unanchored
+citations inside table rows.
+
+**Most are right.** `canonical.ts:22` really is `if (v === null) return "null"`; `:42` really is
+`.filter(([, val]) => val !== undefined)`; `chain.ts:9` really is `export function hashView`; `sign.ts:7`
+really is `clientView`. The gate-parity skill's 4-for-4 was not the norm — worth stating, because §194
+alone implied every table in the repo was rotten.
+
+**Four were wrong, all in `preserve-canonical-hash-byte-law`** — the skill guarding the frozen byte law,
+where a wrong pointer sends a reader to "improve" the wrong function:
+
+| Row | Cited | Actually there | Now |
+|---|---|---|---|
+| SQL NULL read-back | `lens.ts:188-193` | **blank line** at 188 | `:191@undefined` (rule) + `:245@shipment_id` (impl) |
+| Position leaf | `anchor.ts`, line 80 | `lon_e6: number;` — a type field | `:88@canonicalPositionBytes` |
+| Position leaf | `positions.ts:24` | a perf/UX comment | (dropped — the anchor cite is the claim) |
+| Gate errors | `invoice-gate.ts:12` | a drift comment | `:16@GATE_BLOCKED_PREFIX` |
+
+### The one that is genuinely instructive
+
+The skill's **code fence** presents five lines of real implementation:
+
+```ts
+// packages/ledger/src/lens.ts:188-193 — present only when non-NULL
+if (r.shipment_id !== null) e.shipment_id = r.shipment_id;
+```
+
+Lines 188–193 are the **comment block explaining the rule**. The code it quotes lives at 245–249, inside
+`rowToEvent`. So the fence showed correct code under a citation pointing at the prose *about* that code —
+the two most similar-looking things in the file, twenty-odd lines apart.
+
+That is worse than a stale line number, because the fence is *self-consistent*: a reader who opens 188 and
+finds a paragraph saying exactly what the fence claims will conclude they are in the right place. Nothing
+contradicts them until they try to edit it. Both now anchored — `@undefined` for the rule, `@shipment_id`
+for the implementation, so the pair cannot drift apart again.
+
+### Result
+
+Anchored **97 → 101**, ratchet **112 → 110** and re-banked. Across §193–§195: high-churn exposure
+**129 → 110**, twenty-one citations verified-then-anchored, **ten rotted ones found** — six in live
+operator/skill documents, four in the byte-law skill.
+
+### The rule
+
+**Citing the explanation instead of the implementation is the failure mode that survives inspection.** A
+line number pointing at nothing gets noticed; a line number pointing at an accurate paragraph *about* the
+thing reads as correct from both ends. When a citation supports a code fence, anchor it to a symbol the
+fence itself contains — here `@shipment_id` — so the gate can tell the difference between the code and its
+description.

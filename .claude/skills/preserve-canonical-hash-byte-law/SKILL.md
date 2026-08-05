@@ -35,7 +35,9 @@ JCS (RFC 8785) restricted to **integer-only numbers**. Five rules, all load-bear
 This is the subtlety that breaks everything if you get it wrong. When an event is read back from D1, `rowToEvent` must map a SQL `NULL` column to an **absent key**, not a literal `null`:
 
 ```ts
-// packages/ledger/src/lens.ts:188-193 — present only when non-NULL
+// packages/ledger/src/lens.ts:245-249@shipment_id — present only when non-NULL
+// (this fence read `:188-193` until 2026-08-04, audit §195: that range is the COMMENT stating the rule,
+//  not the code implementing it — the guards live inside rowToEvent)
 if (r.shipment_id !== null) e.shipment_id = r.shipment_id;
 if (r.sig !== null)         e.sig = r.sig;
 if (r.device_id !== null)   e.device_id = r.device_id;
@@ -63,11 +65,11 @@ Transition gates are pure deterministic decisions over `(prior events, incoming 
 | Keys | sorted, no whitespace | `canonical.ts:41-44` |
 | `undefined` | OMITTED | `canonical.ts:42` |
 | `null` | EMITTED as `null` | `canonical.ts:22` |
-| SQL NULL read-back | → omitted key, never `null` | `lens.ts:188-193` |
-| Position leaf | byte-identical ingest ↔ anchor | `anchor.ts:80` / `positions.ts:24` |
+| SQL NULL read-back | → omitted key, never `null` | `packages/ledger/src/lens.ts:191@undefined` (rule) · `:245@shipment_id` (impl) |
+| Position leaf | byte-identical ingest ↔ anchor | `packages/ledger/src/anchor.ts:88@canonicalPositionBytes` |
 | hashView | envelope − `sig` − `hash` | `chain.ts:9` |
 | clientView | offline field set (no source/confidence/party_refs) | `sign.ts:7` |
-| Gate errors | `CODE:{json}` in Error.message | `invoice-gate.ts:12` |
+| Gate errors | `CODE:{json}` in Error.message | `packages/ledger/src/gates/invoice-gate.ts:16@GATE_BLOCKED_PREFIX` |
 | Gate purity | no D1/Date/random/LLM | `transition-gates.ts:4` |
 
 ## Common Mistakes

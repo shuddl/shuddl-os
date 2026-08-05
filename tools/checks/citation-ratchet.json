@@ -35,7 +35,7 @@
       "workers/agents/src/biller.ts": 2
     },
     ".claude/skills/preserve-canonical-hash-byte-law/SKILL.md": {
-      "packages/ledger/src/anchor.ts": 3
+      "packages/ledger/src/anchor.ts": 2
     },
     ".claude/skills/prove-tenant-isolation-read-paths/SKILL.md": {
       "packages/ledger/src/anchor.ts": 2
