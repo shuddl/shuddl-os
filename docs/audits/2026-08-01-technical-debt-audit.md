@@ -14745,8 +14745,10 @@ defect §277 found.
 ### The table's own citations demonstrated §249
 
 Written with bare basenames, this section's table tripped the ratchet on **two** targets at once —
-`packages/contracts/src/events.ts` *and* `workers/api/src/routes/events.ts` — because a bare `events.ts:499`
-resolves to both, and both are ratcheted. One ambiguous citation grew two populations.
+`packages/contracts/src/events.ts` *and* `workers/api/src/routes/events.ts` — because that basename, cited
+bare with a line number, resolves to both, and both are ratcheted. One ambiguous citation grew two
+populations. (Written out here rather than shown, for the reason six earlier sections had to: quoting the
+form re-creates it.)
 
 That is §249's bare-basename measurement (9 ambiguous basenames in the live ledger, `index.ts` resolving 14
 ways) reproduced accidentally, in a table whose subject is *reading two similar things carefully*. All four
