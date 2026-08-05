@@ -17443,3 +17443,59 @@ one uncorrected.
 Four resolvers enumerated by declaration site; three mutated, each landing-verified and restored
 byte-identical; the decisive re-run performed with the new test **removed**, to distinguish pre-existing
 coverage from coverage I had just added. `workers/agents` 113 passed; `git status` clean.
+
+---
+
+## §325 — The wrong-suite error has a mechanical fix, not a reminder
+
+§305 and §324 are the same defect twice: a mutation run against the wrong workspace, producing a GREEN that
+reads as *"this law is unenforced."* Both times the rule written afterwards was advice — *"locate the test
+that would fail"*, *"a test count is a free identity check"* — and §309 already recorded why that is not
+enough: **a rule that fails to fire twice is not usable as written.**
+
+### The root cause is one name collision, and it is the only one
+
+Every workspace name, grouped by stem:
+
+> **`@shuddl/agents`** → `packages/agents` (219 tests)
+> **`@shuddl/agents-worker`** → `workers/agents` (113 tests)
+
+**One collision in the whole repo.** Nothing else is confusable — and that is precisely why it keeps working:
+a hazard that fires once in seventeen workspaces never becomes a habit, and `--filter @shuddl/agents`
+**silently succeeds** on the wrong one. There is no error to notice, only a number that is wrong by 106.
+
+### The mechanical form
+
+`pnpm --filter` accepts a **path**, and a path cannot be ambiguous:
+
+```
+pnpm --filter ./workers/agents  test   →  113 passed
+pnpm --filter ./packages/agents test   →  219 passed
+```
+
+**So the rule is not "check the count" — it is "filter by path, never by name."** The name form requires
+knowing that two workspaces share a stem; the path form requires knowing nothing. That is the difference
+between a rule that needs to be remembered at the moment of greatest distraction (mid-mutation, watching for
+a RED) and one that cannot be got wrong.
+
+Recorded in the audit rather than enforced by a gate, deliberately: a lint banning name filters in shell
+commands would have to parse ad-hoc shell from prose and history, and this audit has now measured three times
+(§292/§304/§313) what happens when a pattern is asked to own a semantic property. **The mitigation is a
+habit with a mechanism, not a checker.**
+
+### Why this is worth a section when nothing was broken
+
+Both false findings this class produced were caught — §305 by reading the test that should have failed, §324
+by an implausible test count. **Neither was caught by the rule written after the first one.** The
+distinguishing feature of a mechanical fix is that it removes the opportunity rather than raising the odds
+of noticing, and until §324 the fix was of the second kind.
+
+The general form, and the reason it recurs in audits specifically: **mutation testing evaluates a GREEN as
+evidence, and every mistake in the harness produces a GREEN.** A wrong filter, an unlanded edit (§308), a
+pattern that matches nothing (§310) — all of them look identical to "the enforcement is missing", which is
+the finding an auditor is primed to expect. **The harness fails toward the conclusion the auditor wants.**
+
+### Verification
+
+Seventeen workspace names enumerated and grouped; one collision found; path filters verified to disambiguate
+(113 vs 219). No code changed.
