@@ -106,7 +106,9 @@ R2, zero Durable Objects, zero queues, zero vars. Deploying it would ship a work
 first request that dereferences any binding. The other four workers have no `[env.prod]` scope whatsoever.~~
 
 Run the preflight before any deploy; it is the authority ~~and it currently BLOCKS both environments~~
-*(2026-08-01: prod PASSes with `--state`; staging has not been re-run since its 2026-07-31 provisioning)*:
+*(2026-08-01: prod PASSes with `--state`. **Staging re-run 2026-08-05 at `2a8a107`:** `BLOCKED — 8
+unsatisfied`, down from 12 — the four provisioned D1 ids cleared; **1** repo-visible defect remains, the mcp
+`GRANTS` KV placeholder, and the other 7 are account-side facts a stateless run cannot see)*:
 
 ```bash
 pnpm preflight -- --env staging --state ./preflight-state.json

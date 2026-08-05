@@ -406,12 +406,19 @@ account runs. A staging environment **is** deployed and **does** send real evide
 (`PROJECT-STATE.md:19-27`, ~~`:172-179`~~ `:218-225` — repointed 2026-07-28; hold H9 below). The BLOCKED verdict is right; the sentence
 "there is no deployed environment" is the tool's, and it is about this checkout.
 
-`deploy-preflight` is the informative one: it **executed** 71 checks against staging and returned 12
-unsatisfied prerequisites — 5 × `placeholder-resource-id` (all-zero D1 UUIDs on `PLATFORM_TENANT_DB`,
-both `TENANT_POOL_*`, `shuddl-billing-staging.PLATFORM_TENANT_DB`, and a malformed mcp `GRANTS` KV id),
+`deploy-preflight` is the informative one. **As measured 2026-07-27 at `79ae54d`** it executed 71 checks
+against staging and returned 12 unsatisfied prerequisites — 5 × `placeholder-resource-id` (all-zero D1 UUIDs
+on `PLATFORM_TENANT_DB`, both `TENANT_POOL_*`, `shuddl-billing-staging.PLATFORM_TENANT_DB`, and a malformed
+mcp `GRANTS` KV id),
 4 × `missing-secret` (`JWT_SECRET`, `RESEND_API_KEY`, `STRIPE_WEBHOOK_SECRET`,
-`PLATFORM_INTERNAL_SECRET`), `no-origins`, `tsa-unconfigured`, `no-backup`. It also prints the
-qualifier that governs how to read all of it:
+`PLATFORM_INTERNAL_SECRET`), `no-origins`, `tsa-unconfigured`, `no-backup`.
+
+**Re-measured 2026-08-05 at `2a8a107`: 85 checks, `BLOCKED — 8 unsatisfied`, and 1 × `placeholder-resource-id`**
+(`shuddl-mcp-staging.GRANTS`). The four D1 ids named above were provisioned in `b961dfc`; the other seven
+prerequisites are unchanged because a stateless run cannot see any of them. Which is the point of the
+qualifier below — **7 of the 8 are the tool declining to guess, and exactly 1 is a defect this repo owns.**
+
+It also prints the qualifier that governs how to read all of it:
 
 ```text
 preflight: no --state supplied — account-side facts (secrets, origins, sender, TSA, backups) are UNPROVEN and therefore blocked.
@@ -505,7 +512,7 @@ re-executed at `79ae54d`, on this machine, in this checkout. Each line is a comm
 | e2e | `pnpm test:e2e -- --mode merge` | `{"gate":"e2e","status":"PASS","executed":true,"assertions":6,"detail":"6 passed"}` | **PASS (6)** |
 | visual | `pnpm test:visual -- --mode merge` | `{"gate":"visual","status":"PASS","executed":true,"assertions":5,"detail":"5 passed"}` | **PASS (5)** |
 | perf:map | `pnpm perf:map -- --mode merge` | `frames=401 p50=10.00ms p95=10.80ms`; `interaction p95=21.80ms over 12 pan/zoom samples`; `operating-window long tasks = 0, worst = 0.00ms` | **PASS (1)** |
-| preflight (staging) | `pnpm exec tsx tools/deploy/preflight.ts --env staging` | `preflight: BLOCKED — 12 unsatisfied prerequisites. This is not a green.` — 5 `placeholder-resource-id` / 4 `missing-secret` / 1 `no-origins` / 1 `tsa-unconfigured` / 1 `no-backup` | **BLOCKED — as recorded** |
+| preflight (staging) | `pnpm exec tsx tools/deploy/preflight.ts --env staging` | `preflight: BLOCKED — 8 unsatisfied prerequisites. This is not a green.` — 1 `placeholder-resource-id` / 4 `missing-secret` / 1 `no-origins` / 1 `tsa-unconfigured` / 1 `no-backup` *(re-measured 2026-08-05 at `2a8a107`; was 12/5 at `79ae54d` before `b961dfc` provisioned the four D1 ids)* | **BLOCKED — as recorded**, and 7 of the 8 are account-side facts a stateless run cannot see |
 | preflight (prod) | `pnpm exec tsx tools/deploy/preflight.ts --env prod` | `preflight: BLOCKED — 26 unsatisfied prerequisites. This is not a green.` — 19 / 4 / 1 / 1 / 1, same split | **BLOCKED — as recorded** |
 
 **Fifteen gates PASS and both preflights BLOCK at exactly the counts the ledgers claim.** No hold

@@ -274,11 +274,16 @@ Map board main-thread occupancy was measured 58.6% → 20.3% (CDP `Performance.g
   `mcp.shuddl.tech` and `billing.shuddl.tech` answer 200 (`RELEASE-EVIDENCE.md` § *Production preflight*),
   so the MCP surface exists in prod.** The *staging* scopes of billing/mcp/translator remain undeployed as
   written — the struck sentence was wrong only in reading a staging fact as the whole world.
-- `pnpm preflight -- --env staging` returns **BLOCKED — 12 unsatisfied prerequisites** (re-measured
+- `pnpm preflight -- --env staging` returns **BLOCKED — 8 unsatisfied prerequisites** (was 12 when measured
   2026-07-27 at `79ae54d`; **note 2026-08-01:** staging was then provisioned and routed on 2026-07-31
   (commit `b961dfc`) — the three staging D1 placeholder ids below became real; only the mcp `GRANTS` KV
-  placeholder remains, and the staging preflight has not been re-run since): 5 `placeholder-resource-id`,
-  4 `missing-secret`, 1 `no-origins`, 1 `tsa-unconfigured`, 1 `no-backup`. ~~(`PLATFORM_TENANT_DB`, `TENANT_POOL_01_DB`, `TENANT_POOL_02_DB`
+  placeholder remains. **Re-run 2026-08-05 at `2a8a107`** — the trigger this row carried, finally pulled:
+  **BLOCKED — 8 unsatisfied**, and the delta from 12 is exactly the four provisioned D1 ids): now
+  **1** `placeholder-resource-id`, 4 `missing-secret`, 1 `no-origins`, 1 `tsa-unconfigured`, 1 `no-backup`.
+  **7 of those 8 are account-side facts the run cannot see** without `--state`; exactly **1 is
+  repo-visible**. The drop was mutation-checked rather than believed — planting an all-zero staging D1 id
+  takes the count to 2 and restoring returns it to 1, so the detector did not go blind (audit §291).
+  **New trigger:** this dies when `shuddl-mcp-staging.GRANTS` is provisioned, or any staging id changes. ~~(`PLATFORM_TENANT_DB`, `TENANT_POOL_01_DB`, `TENANT_POOL_02_DB`
   are all-zero UUIDs; the mcp `GRANTS` KV id is not 32-hex)~~ **Corrected 2026-07-27 — that listed four
   of the five.** All five, verbatim from the gate: `shuddl-api-staging.PLATFORM_TENANT_DB`,
   `shuddl-api-staging.TENANT_POOL_01_DB`, `shuddl-api-staging.TENANT_POOL_02_DB` and

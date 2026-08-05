@@ -187,7 +187,7 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 ## §4 — Phase gating and the stopping point
 
 > **CURRENT MEASUREMENT: §238, at `68cfb0d`; CONVERGENCE measured at §243.** The four clauses below are
-> measured in §238. §243 (extended by §251 → §270 → §282 → §285 → §286 → §287 → §288 → §289 → §290 → **§291**, now through §291) answers the separate question of whether another iteration is worth running:
+> measured in §238. §243 (extended by §251 → §270 → §282 → §285 → §286 → §287 → §288 → §289 → §290 → §291 → **§292**, now through §292) answers the separate question of whether another iteration is worth running:
 > defects-per-section across the eight sections after §238 ran 1,1,1,—,1,1,**0,0** while verified-clean
 > rose to 8 and 8, the last two being the most systematic sweeps of the set. Five named restart triggers
 > are listed there, each a grep or a diff — two of which are now GATES (§244) rather than greps. Across
@@ -15529,3 +15529,77 @@ check:invariants 0 · check:citations 0 · audit:design 0`.
 A refuted hypothesis is a result: the release profile is now measured-correct rather than assumed-correct,
 and the rule that survives is sharper than the one that went in. **"Pure over committed files" is not the
 test — "final at merge time" is.**
+
+---
+
+## §292 — One measured fact, four documents, and a sweep that was itself per-file
+
+§291 re-ran a preflight whose row had asked for it, and corrected that row. This section is what happened
+when the same question was asked of the whole ops record.
+
+### The marker sweep found two. The value sweep found four.
+
+Searching for decay MARKERS — "has not been re-run since", "unverified since", "last measured" — returned
+two more copies of the same stale claim, in `DEPLOYMENT.md` and `PROJECT-STATE.md`. Both were corrected.
+
+Then, while scoping a possible gate, the sweep was re-run on the **measured value** (`placeholder-resource-id`)
+rather than the phrasing. It found **three more count claims in a fourth document**, `RELEASE-EVIDENCE.md`,
+which the marker sweep never touched because that file does not use those words.
+
+**A marker sweep is a per-FILE proxy wearing per-VALUE clothes.** §284's rule says correct per value, not per
+file — and searching for the *sentence that admits staleness* is still searching for a file's phrasing. Only
+the value is the value. The rule needs the sharper form: **sweep for the fact, not for the confession.**
+
+That it recurred here is the point worth keeping. §284 recorded the rule, §262 recorded it before that, and
+this session's own correction pass reproduced the defect one section after writing §291.
+
+### Not everything that matched was stale — three of six were history
+
+The count claims split cleanly once each was read in context, and only reading distinguished them:
+
+- `RELEASE-EVIDENCE.md` `| Was | Cleared by |` (19 ×) — an explicitly historical table. **Correct as-is.**
+  Rewriting it would destroy the record of what provisioning actually cleared.
+- Two undated **present-tense** claims ("it **executed** 71 checks … returned 12 unsatisfied") — stale, and
+  stale in the most durable way: nothing in the sentence says when it was true.
+
+**The fix for the second kind is not just the number — it is the stamp.** Both were rewritten as *"As
+measured 2026-07-27 at `79ae54d`"* plus a dated re-measurement, so the next reader inherits an observation
+with a date rather than a claim about now. An evidence document may hold any number of past numbers; what it
+may not hold is an undated one.
+
+### And the headline is the claim
+
+`PROJECT-STATE.md` opened with **"returns BLOCKED — 12 unsatisfied prerequisites"** and corrected itself in a
+trailing parenthetical. That is not a corrected record; it is a wrong headline with a footnote. **A reader
+takes the number in bold.** Rewritten to lead with 8 and carry 12 as history.
+
+### Final state of this fact
+
+Six occurrences across four documents: **three now current (1 placeholder / 8 unsatisfied, stamped
+2026-08-05 at `2a8a107`), two explicitly dated history, one a historical table.** Every current one also
+carries the split that matters — 7 of 8 are account-side facts a stateless run cannot see, exactly 1 is
+repo-visible.
+
+### The gate that was NOT built, and why
+
+A merge-time check comparing doc-claimed counts against a live computation is technically feasible: the
+placeholder count is derivable from committed configs by a pure function. It was rejected, and the rejection
+is worth recording so it is not re-litigated: **the corpus contains legitimate historical counts that are
+textually identical to stale ones.** `19 ×` in a "Was / Cleared by" table and `5 ×` in an undated
+present-tense sentence differ only by intent. That is precisely the semantic-false-positive wall this audit
+already measured on the citation gate, where filters made the rate *worse*.
+
+**Re-measurement trigger for that decision:** if the ops docs ever adopt an explicit marker for
+point-in-time claims (a `<!-- measured: SHA -->` comment, say), the intent becomes machine-readable and the
+gate becomes cheap. Until then the honest mechanism is the dated stamp, which at least makes staleness
+visible to a reader even though no gate can see it.
+
+### Verification
+
+Four documents corrected; no code changed. `check:citations 0 · check:invariants 0`.
+
+### Yield note
+
+Two sections on one fact produced a sharper rule than either alone: §291 gave *"is this fact final at
+merge?"*, §292 gives *"sweep for the fact, not for the confession."* Both came from the same row, and the
+second only surfaced because building a gate forced a census the correction pass had not needed.
