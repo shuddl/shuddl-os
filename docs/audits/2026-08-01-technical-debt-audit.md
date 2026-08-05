@@ -17967,3 +17967,50 @@ section is the answer they would otherwise re-derive.
 
 Five demos compared across `CLAUDE.md`, `genesis/00` and `tools/acceptance/demos.ts`; the single substantive
 difference traced to its reconciliation in the implementation; no defect. No file changed.
+
+---
+
+## §336 — Two ceilings and five exact counts, and only one says which it is
+
+§335 diffed the demos across three sources. The same treatment applied to the seven **hard budgets** — the
+most load-bearing numbers in `CLAUDE.md`, each implemented in a different module. §287 proved all seven are
+*detectable*; nobody had checked whether the **stated numbers match the implementations**.
+
+Five match exactly and are exact by construction: 3 surfaces · 35 event kinds · 5 colour tokens · 2 font
+families · 0 shadows. Two are ceilings:
+
+- **`≤22 tables (21 used; the spare requires a written deletion)`** — states the ceiling, the usage, and what
+  the spare costs. Verified: `check:invariants` reports `21/22`.
+- **`12 canonical views`** — states a number and nothing else. Measured: **`CANONICAL_VIEWS` declares 11**,
+  with `MAX_CANONICAL_VIEWS = 12` and a spare, exactly like the tables.
+
+**Both are ceilings; only one says so.** A reader auditing "12 canonical views" against a registry of 11 sees
+a discrepancy that does not exist — which is precisely what happened here, and cost two commands to resolve.
+
+### The colour-token count did the same thing
+
+My first pass counted **6** hex declarations in `tokens.css` against a stated budget of 5. Also not a defect:
+`--field-on-dark` is a dark-mode variant the budget deliberately excludes (the gate's own
+`filter(k => k !== "--field-on-dark")`, §287). **Six declarations, five budgeted** — a token count and an
+architectural set disagreeing again, the fourth instance this phase after §320/§321/§323.
+
+### What is actually worth recording
+
+Not a defect — an **ambiguity of kind**. `CLAUDE.md`'s budget line reads as seven homogeneous numbers when it
+is two ceilings and five exact counts, and the difference decides whether an implementation at 11 is
+compliant or broken. The tables entry solves this in eight words (*"21 used; the spare requires a written
+deletion"*); the views entry does not.
+
+This is §335's law-vs-tolerance shape one level up: **a number whose KIND is unstated invites a false
+finding, and the reader who resolves it correctly still pays for the ambiguity every time.** Left for the
+owner rather than edited here — the budget line is governing text, and adding "(11 used, one spare)" is a
+statement about scope that belongs to whoever owns the register.
+
+**Recorded with its resolution so the next reader does not re-derive it**, which is the same service §335
+provided for demo 1.
+
+### Verification
+
+Seven budgets compared against their implementations: five exact matches, two ceilings (one labelled, one
+not), zero defects. `CANONICAL_VIEWS` counted from the array rather than by grep after the first pattern
+returned 0 — fifth pattern artefact of the phase. No file changed.
