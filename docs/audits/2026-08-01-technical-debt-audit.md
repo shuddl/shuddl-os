@@ -10633,3 +10633,59 @@ row names a single fix. **Five of seven** was wrong in the reassuring direction:
 data points to seven, written in the same paragraph as four correct measurements — which is precisely what
 makes it dangerous, because everything around it was verified. The audit's own standard, from §174: an
 unmeasured claim rots like any other, and it does not become measured by sitting next to measurements.
+
+---
+
+## §205 — the palette budget now fails when exceeded
+
+§203/§204 found the one budget gap: `CLAUDE.md` declares *"5 color tokens · 2 font families"* as
+CI-enforced, and nothing counted them. Six of seven budgets have real enforcement; these two are one gap,
+closeable with one assertion.
+
+**Closed.** `packages/design/test/tokens.test.tsx` gains two cases asserting `Object.keys(TOKENS)` is 5
+and `Object.keys(FONTS)` is 2. Package suite 9 → **11**.
+
+Mutation-proved with the exact plant that defeated every gate in §203 — a 6th token *and* a 3rd family:
+
+```
+× exactly 5 colour tokens   expected [ 'probeSixth', 'field', …(4) ] to have a length of 5 but got 6
+× exactly 2 font families   expected [ 'probeThird', 'display', 'mono' ] to have a length of 2 but got 3
+```
+
+Restored: typecheck 0, lint 0, `audit:design` 0, suite 11/11.
+
+**Why this needed no REQ row.** The budget is already law — `CLAUDE.md` states the numbers and calls them
+CI-enforced. Nothing new is being decided; the gap was between a declared law and its enforcement, which
+is the §144 precedent (pin a live boundary) rather than new scope. Had I *changed* a budget, that would be
+a register amendment.
+
+**Deliberately `toBe`, not `toBeLessThanOrEqual`.** The numbers are the law — five and two, not "at most".
+A shrinking palette should also stop someone and make them re-read `CLAUDE.md`, because dropping a token
+is as much a design decision as adding one. The views budget uses `≤` correctly for the opposite reason:
+twelve is a ceiling on a list that is still being filled (11 today).
+
+The test comment records *why the gap survived*, which is the part worth keeping: the design audit enforces
+the adjacent, stronger everyday rule — no raw hex outside `tokens.ts`, everything reaching colour through
+`var(--token)`/`TOKENS` — so **the check you would look for exists, guarding something else.**
+
+### Standing: seven of seven
+
+| Budget | Enforced by |
+|---|---|
+| ≤22 tables | `I8 VIOLATION`, exit 1 (+ WARN at 22/22) |
+| 35 event kinds | typecheck exit 2 **+** an explicit count |
+| 12 canonical views | throws at module load **+** a ceiling test |
+| 0 shadows / radius>4px | `audit:design`, REQ-147 |
+| 3 surfaces | the `surfaces` deploy gate |
+| **5 colour tokens** | **`tokens.test.tsx` (this section)** |
+| **2 font families** | **`tokens.test.tsx` (this section)** |
+
+Every hard budget and every executable hard law in `CLAUDE.md` is now mutation-proven to fail when
+violated — the ten rules across §198–§201, the seven budgets across §203–§205.
+
+### The rule
+
+**A budget with no counter is a comment.** These two read exactly like the five that were enforced, in the
+same sentence of the same governing document, and the difference was invisible until something was
+planted. The cheapest possible fix — one `Object.keys().toHaveLength()` — was missing for the entire life
+of the build.
