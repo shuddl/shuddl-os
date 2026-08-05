@@ -12918,3 +12918,57 @@ close, and all of which are recorded with owners and expiry triggers.
 warned about that once already, and the last two sections are the evidence that the warning now binds:
 the correct output of an iteration can be zero rows, and recording the zero is what makes the next iteration
 cheap.
+
+## §244 — turning §243's restart triggers into gates, starting with the one CI admitted it could not see
+
+§243 listed five events that would restart this audit, each "a grep or a diff." A grep nobody runs is a
+hold with no mechanism. Two of the five were mechanically enforceable, so they now are.
+
+### 1. The DO mutex (restart trigger 5 → a gate)
+
+§235 ended with an admission: the meters' serialization mutex is **redundant today** (the input gate already
+serializes a storage-only critical section), becomes **load-bearing** the moment any non-storage await
+enters, and **its deletion is silent** — measured at `workers/agents` 110/110 and `workers/mcp` 177/177
+still green with the chain removed. All §235 could do was write *"do not simplify it away"* in a comment,
+which is precisely the un-executed prose §241 showed decays.
+
+`checkDoMutexIntact` now enforces all three limbs — the `private lock` field, the `this.lock.then(...)`
+chain, and the `this.lock = run.catch(...)` re-arm — for every rostered Durable Object. **Mutation-proved
+9/9 RED** (3 DOs × 3 limbs deleted one at a time).
+
+**Keyed on a roster, not on the guard's own text.** A filter matching `private lock` stops covering a file
+the instant someone deletes `private lock` — the exact deletion it exists to catch. §239 shipped that hole
+(its filter keyed on an array *name*, silently skipping two of four helpers while printing OK) and had to be
+re-keyed; the same mistake was not available twice. The roster is then checked **against** the discovered
+set, so a fourth DO cannot arrive uncovered — verified by adding a `RogueMeter` and watching it fail — and a
+test asserts roster ≡ shipped, because a roster never compared to reality is a wish rather than a pin.
+
+### 2. Control-plane migration coverage (restart trigger 2 → a gate)
+
+The tenant rule is *every helper applies every migration* (§239). Control migrations are different in kind:
+0002 and 0003 are **data seeds** (the platform tenant, the pool sentinels) that only the provisioning suites
+want, so the tenant rule would be wrong here. The real requirement is the weaker one §240 verified **by
+hand**: each is applied by at least one test file, importing the real shipped SQL rather than hand-copying
+its rows. That held — and nothing pinned it, so a fourth control migration could land unexercised and
+§240's verdict would expire silently. `checkControlMigrationsExercised` pins it; mutation-proved by adding
+`0004___probe.sql` and watching the gate name it.
+
+Both live in `check:invariants`, already blocking and already reading the migrations directory — no new gate
+to register, no new CI surface. `test:tools` 725/728 (the three unchanged `REQ-289` failures).
+
+### What is deliberately NOT gated
+
+Three of the five triggers stay manual, and the reason matters:
+
+- **"Either live transport is wired"** — a gate could detect `NotConfiguredTransport` being replaced, but it
+  cannot judge whether the accompanying claim protocol is *correct*. It would either block a legitimate
+  change or wave through a broken one; the decision is the owner's (§236) and a gate would only impersonate
+  having made it.
+- **"A demo's filmed sentence changes"** — the claim is about the physical world (a real driver, a
+  wall-clock latency). Nothing in the repo can verify it, which is exactly why §237 put the constraint in
+  the demo definition where a human writing the next sentence will read it.
+- **"`REQ-289` is dispositioned"** — another workstream's row; gating it from here would be straying.
+
+**The rule: gate the trigger you can observe, and leave the judgement where it belongs.** A hold whose
+expiry is mechanically checkable should never stay a sentence in a document — but a hold whose expiry is a
+*decision* must not be dressed up as a check, because a green gate then reads as "the decision was made."

@@ -487,9 +487,91 @@ export function checkTestSchemaParity(
   return violations;
 }
 
+// DO MUTEX INTEGRITY (audit §244, closing §235's open end). Every Durable Object in this repo serializes
+// its critical section by chaining onto the previous call's settlement. §235 MEASURED what happens when
+// that chain is deleted: `workers/agents` stays 110/110 green and `workers/mcp` stays 177/177 green,
+// because a storage-only critical section is already serialized by the DO input gate — so the chain is
+// defence for the day any non-storage await (a D1 read, a fetch, a queue send) enters the method, and with
+// the gate so opened the caps bypass completely (10 admitted against an allotment of 3). §235 had to end
+// with a comment asking future maintainers not to "simplify" it away, and the honest admission that CI
+// could not back that up. This is CI backing it up.
+//
+// Keyed on an explicit ROSTER, not on the guard's own text: a filter that keys on `private lock` stops
+// covering the file the moment someone deletes `private lock`, which is precisely the deletion it exists to
+// catch (§239 shipped that exact hole and had to be re-keyed). The roster is then checked AGAINST the
+// discovered set, so a fourth DO cannot appear uncovered.
+export const DO_MUTEX_ROSTER = ["ShipmentSequencer", "SparkMeter", "CapsMeter"] as const;
+
+export function checkDoMutexIntact(files: ReadonlyArray<{ path: string; source: string }>): string[] {
+  const violations: string[] = [];
+  const declared = new Set<string>();
+  for (const { path, source } of files) {
+    for (const m of source.matchAll(/export class (\w+) extends DurableObject/g)) declared.add(m[1]!);
+    for (const cls of DO_MUTEX_ROSTER) {
+      if (!new RegExp(`export class ${cls} extends DurableObject`).test(source)) continue;
+      // All three limbs, or the chain is broken: the field, the chain-on, and the poison-proof re-arm.
+      const hasField = /private lock: Promise<unknown> = Promise\.resolve\(\)/.test(source);
+      const hasChain = /const run = this\.lock\.then\(\(\) =>/.test(source);
+      const hasRearm = /this\.lock = run\.catch\(\(\) => undefined\)/.test(source);
+      if (!hasField || !hasChain || !hasRearm) {
+        const missing = [!hasField && "the `private lock` field", !hasChain && "the `this.lock.then(...)` chain", !hasRearm && "the `this.lock = run.catch(...)` re-arm"].filter(Boolean).join(", ");
+        violations.push(`${path}: ${cls} is missing ${missing} — the DO serialization mutex. Deleting it is SILENT in that worker's suite (§235 measured 110/110 and 177/177 still green) because the input gate already serializes a storage-only critical section; it becomes a cap bypass the moment any non-storage await enters. If you are deliberately removing it, remove this roster entry and say why.`);
+      }
+    }
+  }
+  // The roster must equal the discovered set — a NEW DurableObject cannot arrive uncovered.
+  for (const cls of declared) {
+    if (!(DO_MUTEX_ROSTER as readonly string[]).includes(cls)) {
+      violations.push(`a DurableObject "${cls}" is not in DO_MUTEX_ROSTER (tools/checks/invariants.ts) — every DO in this repo serializes its critical section; add it to the roster (and give it the mutex), or record why it needs none (audit §244).`);
+    }
+  }
+  return violations;
+}
+
+// CONTROL-PLANE MIGRATION COVERAGE (audit §244, closing §243's restart trigger 2). The tenant rule is
+// "every helper applies every migration" (checkTestSchemaParity). Control migrations are different in kind
+// — 0002 and 0003 are DATA seeds (the platform tenant, the pool sentinels) that only the suites exercising
+// provisioning want — so requiring every helper to apply them would be wrong. The real requirement is
+// weaker and is what §240 verified by hand: each one is applied by AT LEAST ONE test file, importing the
+// real shipped SQL rather than hand-copying its rows. That held when measured; nothing pinned it, so a
+// FOURTH control migration could land with no test applying it and §240's verdict would silently expire.
+export function checkControlMigrationsExercised(
+  controlMigrations: readonly string[],
+  testSources: ReadonlyArray<{ path: string; source: string }>,
+): string[] {
+  const violations: string[] = [];
+  for (const migration of controlMigrations) {
+    const name = migration.split("/").pop()!;
+    const exercised = testSources.some((t) => t.source.includes(`db/control/migrations/${name}`));
+    if (!exercised) {
+      violations.push(`control migration ${name} is applied by NO test file — it ships to production but nothing exercises the state it creates (audit §244). Import it in the suite that needs it, as signup.test.ts / provision.test.ts do for 0002 and 0003.`);
+    }
+  }
+  return violations;
+}
+
 function main(): void {
   const mode: LockMode = process.argv.includes("--write") ? "write" : "check";
   const migrations = globSync("db/**/migrations/*.sql");
+
+  // Every shipped control-plane migration is exercised by at least one test (see above).
+  const controlViolations = checkControlMigrationsExercised(
+    globSync("db/control/migrations/*.sql"),
+    globSync("workers/*/test/**/*.ts").map((p) => ({ path: p, source: readFileSync(p, "utf8") })),
+  );
+  if (controlViolations.length > 0) {
+    for (const v of controlViolations) console.error(`FAIL ${v}`);
+    process.exit(1);
+  }
+
+  // Every Durable Object still holds its serialization mutex (see checkDoMutexIntact).
+  const doViolations = checkDoMutexIntact(
+    globSync("workers/*/src/**/*.ts").map((p) => ({ path: p, source: readFileSync(p, "utf8") })),
+  );
+  if (doViolations.length > 0) {
+    for (const v of doViolations) console.error(`FAIL ${v}`);
+    process.exit(1);
+  }
 
   // The test schema must equal the shipped schema (see checkTestSchemaParity).
   const tenantMigrations = globSync("db/tenant/migrations/*.sql");

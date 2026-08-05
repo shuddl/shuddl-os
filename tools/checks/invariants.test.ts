@@ -6,9 +6,12 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { stripSqlComments } from "@shuddl/ledger/migrate";
 import {
+  checkControlMigrationsExercised,
+  checkDoMutexIntact,
   checkLock,
   checkMigrationSql,
   checkTestSchemaParity,
+  DO_MUTEX_ROSTER,
   findStraySql,
   isStraySql,
   PARTITION_TABLES,
@@ -695,5 +698,66 @@ describe("§239: worker test helpers apply every shipped tenant migration", () =
   it("a mention in prose is not an application — only an entry in the applied array counts", () => {
     const source = `import x from "../../../db/tenant/migrations/0001_a.sql?raw";\n// we should apply 0002_b.sql one day\n  { path: "0001_a.sql", sql: x },`;
     expect(checkTestSchemaParity(SHIPPED, [{ path: "h.ts", source }])).toHaveLength(1);
+  });
+});
+
+// audit §244 — the DO serialization mutex. §235 measured that deleting it is SILENT in the owning worker's
+// suite, so CI is the only thing that can make its removal loud.
+describe("§244: every Durable Object keeps its serialization mutex", () => {
+  const intact = (cls: string): string =>
+    `export class ${cls} extends DurableObject {\n` +
+    `  private lock: Promise<unknown> = Promise.resolve();\n` +
+    `  f(req: R): Promise<X> {\n` +
+    `    const run = this.lock.then(() => this.#f(req));\n` +
+    `    this.lock = run.catch(() => undefined);\n` +
+    `    return run;\n  }\n}`;
+
+  it("passes when every rostered DO has all three limbs", () => {
+    const files = DO_MUTEX_ROSTER.map((c) => ({ path: `${c}.ts`, source: intact(c) }));
+    expect(checkDoMutexIntact(files)).toEqual([]);
+  });
+
+  it.each([
+    ["field", /  private lock: Promise<unknown> = Promise\.resolve\(\);\n/],
+    ["chain", /    const run = this\.lock\.then\(\(\) => this\.#f\(req\)\);\n/],
+    ["re-arm", /    this\.lock = run\.catch\(\(\) => undefined\);\n/],
+  ])("FAILS when the %s limb is deleted — each limb alone is load-bearing", (_name, re) => {
+    const source = intact("SparkMeter").replace(re, "");
+    const v = checkDoMutexIntact([{ path: "spark.ts", source }]);
+    expect(v).toHaveLength(1);
+    expect(v[0]).toContain("SparkMeter");
+  });
+
+  it("FAILS on a DurableObject that is not on the roster — a new DO cannot arrive uncovered", () => {
+    const v = checkDoMutexIntact([{ path: "rogue.ts", source: "export class RogueMeter extends DurableObject {}" }]);
+    expect(v).toHaveLength(1);
+    expect(v[0]).toContain("DO_MUTEX_ROSTER");
+  });
+
+  it("the roster matches the DOs actually shipped — it is a pin, not a wish", () => {
+    const files = globSync("workers/*/src/**/*.ts", { cwd: REPO }).map((p) => ({
+      path: p,
+      source: readFileSync(join(REPO, p), "utf8"),
+    }));
+    const shipped = files.flatMap((f) => [...f.source.matchAll(/export class (\w+) extends DurableObject/g)].map((m) => m[1]!));
+    expect([...shipped].sort()).toEqual([...DO_MUTEX_ROSTER].sort());
+  });
+});
+
+// audit §244 — control migrations are DATA seeds only some suites want, so the rule is "at least one test
+// applies each", not the tenant rule of "every helper applies every one".
+describe("§244: every shipped control migration is exercised by at least one test", () => {
+  const M = ["db/control/migrations/0001_control.sql", "db/control/migrations/0009_new.sql"];
+
+  it("passes when each is imported somewhere", () => {
+    const tests = [{ path: "a.test.ts", source: 'import a from "../../../db/control/migrations/0001_control.sql?raw"; import b from "../../../db/control/migrations/0009_new.sql?raw";' }];
+    expect(checkControlMigrationsExercised(M, tests)).toEqual([]);
+  });
+
+  it("FAILS on a migration no test applies, and names it", () => {
+    const tests = [{ path: "a.test.ts", source: 'import a from "../../../db/control/migrations/0001_control.sql?raw";' }];
+    const v = checkControlMigrationsExercised(M, tests);
+    expect(v).toHaveLength(1);
+    expect(v[0]).toContain("0009_new.sql");
   });
 });
