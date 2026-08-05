@@ -16662,8 +16662,10 @@ demo–adjacent code, repeated until it looked corroborated.
 | **L7** — gate every transition | collect no missing evidence | 4 |
 | **L10** — exit-friendly | export omits the ledger | 2 |
 
-**Ten laws, ten REDs, every file restored byte-identical, every suite green afterwards.** Six engineering
-rules and four genesis laws — each one now enforced by a test that fails when the enforcement is removed,
+**Ten laws, ten REDs, every file restored byte-identical, every suite green afterwards.** *(Qualified in
+§312: each RED proves the enforcement AT THE SITE MUTATED. For five laws that is the whole implementation;
+for the multi-site ones — isolation has 42 tenant-scoping sites, gates 36 refusal sites — it is a sample of
+one. eng.10 was re-tested there and is 3 of 3.)* Six engineering rules and four genesis laws — each one now enforced by a test that fails when the enforcement is removed,
 rather than by a sentence asserting it is.
 
 ### Verification
@@ -16712,3 +16714,61 @@ when the content is finished.**
 
 Both entry points updated and checked; `check:citations 0` (every `§N` reference in both blocks resolves) ·
 `check:invariants 0`. No code changed.
+
+---
+
+## §312 — A mutation proves a SITE, not a law
+
+§310's table has one cell that should have been read harder: eng.10 produced **1** failing assertion where
+the others produced 3–16. I had noted in passing that my regex "neutered one of the two unmapped-gap sites",
+and moved on. **A weak RED is a signal, not a rounding error.**
+
+### The migrator, tested properly
+
+There are **three** gap-row emission sites, not two — `migrator.ts:340`, `:346`, `:410`. My §307 mutation hit
+only the first. Broken independently, with landing verified each time:
+
+| site | landed | result |
+|---|---|---|
+| 340 (unmapped header) | `1+/1-` | **RED** (1) |
+| 346 (unmapped, second form) | `1+/1-` | **RED** (1) |
+| 410 (the `gap` push) | `1+/1-` | **RED** (7) |
+
+**3 of 3 independently covered.** eng.10 is stronger than §310 recorded, and the "1" was an artefact of a
+partial mutation rather than thin coverage. Restored byte-identical: 38 passed.
+
+### The methodology correction, which applies to the whole table
+
+**A single mutation proves a single site.** If a law is implemented at N places, one RED tells you one place
+is covered and says *nothing* about the other N−1. §310's table did not distinguish these, and the difference
+is large:
+
+- **Single-site laws — the RED is the whole proof.** L2 (`visibility.ts:122`, one line), L3 (the
+  `invoice.issued` projection), L10 (the export's `events` field), eng.4 (the `missing_physics` return),
+  eng.5 (`approval.ts:139`, and the file itself says it exists so the slice has *"ONE source of truth"*).
+- **Multi-site laws — the RED is representative, not exhaustive.** eng.8 tenant isolation has **42**
+  tenant-scoping sites across the api and ledger; eng.3 has **36** gate-refusal sites. I broke one of each.
+  Fifteen assertions failed for isolation, which is strong evidence that *that* path is guarded — and no
+  evidence about the other forty-one.
+
+**So the honest form of §310's claim is: ten laws, ten REDs, each proving the enforcement at the site
+mutated.** For five of them that is the entire implementation. For the rest it is a sample, and the sample
+size is one.
+
+### Why this matters more than it sounds
+
+The multi-site laws are exactly the ones where a real defect hides: a single missing `tenant` predicate among
+42 is invisible to a suite that passes, and to a mutation aimed at one of the other 41. **The audit already
+knows this shape** — §239 found four worker helpers whose migration lists had each drifted, caught only by
+mutating *all four*, and recorded the rule: *plant a violation in every cell before believing it.* That rule
+was written about fixtures and applies verbatim here.
+
+Closing the 42 and the 36 by hand is not the answer; the answer is the gate that already exists for exactly
+this — the tenant-isolation suite runs on every merge (CLAUDE.md rule 8), and `check:authority-coverage`
+holds the gate surface. **What this section changes is the claim, not the code:** the table now says what it
+proves, and no longer implies exhaustiveness it never measured.
+
+### Verification
+
+Three mutations, landing verified individually, all RED; `git status` clean; `@shuddl/adapters` 38 passed.
+§310's table annotated in place rather than restated, so the weaker original claim stays visible.
