@@ -187,10 +187,12 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 ## §4 — Phase gating and the stopping point
 
 > **CURRENT MEASUREMENT: §238, at `68cfb0d`; CONVERGENCE measured at §243.** The four clauses below are
-> measured in §238. §243 answers the separate question of whether another iteration is worth running:
+> measured in §238. §243 (extended through §250 by **§251**) answers the separate question of whether another iteration is worth running:
 > defects-per-section across the eight sections after §238 ran 1,1,1,—,1,1,**0,0** while verified-clean
 > rose to 8 and 8, the last two being the most systematic sweeps of the set. Five named restart triggers
-> are listed there, each a grep or a diff. This section states the four exit clauses and the grade
+> are listed there, each a grep or a diff — two of which are now GATES (§244) rather than greps. Across
+> **§235–§251, seventeen sections, not one defect was found in shipped behaviour**; every finding was in an
+> un-executed artifact. This section states the four exit clauses and the grade
 > table; the *numbers* in it decay and are re-measured per session (§113 `99ae4ca` → §141 `78499e9` →
 > §168 `e27307f` → §176 `71edfbe` → §188 `7d0a17e` → §202 `015413d` → §214 `0d8dc91` → §226 `2dad327` → **§238 `68cfb0d`**). Read the clauses here and the posture there — and
 > per §64/§110, read every count from a run, never from this page.
@@ -13289,3 +13291,54 @@ were readable — a SQL clause, a `try`, a file's existence — and reading suff
 guard-cannot-fire defect, and for that class reading proves nothing at all: only a mutation distinguishes
 "the check is present" from "the check is enforced." Match the instrument to the *defect's* class, not to
 the convenience of the check.
+
+## §251 — convergence extended through §250, and a claim of my own put through the same instrument
+
+§243 measured the audit's yield across the eight sections after the last phase-gate measurement. Seven more
+have landed since, so the table is extended rather than left to decay — the same treatment §4's counts get.
+
+| § | Subject | New defects | Where |
+|---|---|---|---|
+| 244 | §243's restart triggers → gates | 0 | (two gates built from prior findings) |
+| 245 | the seven hard budgets | 1 | the surface budget was never CI-enforced — **prose** |
+| 246 | the eleven do-not-build prohibitions | 1 | "a fifth primitive" has no definition — **prose** |
+| 247 | genesis/13 + the identity lint | 0 | (contract clean; lint mechanism proved) |
+| 248 | open rows, re-verified | 1 | a cron count decayed in a live row + a source comment — **prose** |
+| 249 | open rows, finished | 0 | all four verdicts hold (one citation made explicit) |
+| 250 | **closed** rows, re-verified | 0 | five of five hold, one mutation-proved 4/4 |
+| 251 | this section | 0 | — |
+
+**Across §235–§251 — seventeen sections — not one defect was found in shipped behaviour.** Every finding was
+in an un-executed artifact: a comment stating a runtime rule backwards, a demo sentence outrunning the
+product, a budget claimed CI-enforced that wasn't, a prohibition with no subject, a count that decayed in
+eight places. The single code-level change (§239) was a *test fixture*; the gates added since (§244, §245)
+pin properties that were already true.
+
+### The last check: a claim of my own
+
+§237 wrote a constraint into demo 1's definition asserting the evidence-email view *"renders real `<img>`
+when given URLs and a documentary placeholder when not."* That is a claim about the build, added to the
+record by this audit — so it gets the same treatment as anyone else's, including §245's rule that a negative
+control is only half the proof.
+
+Both branches are tested (`packages/agents/test/evidence-email.test.tsx`): the **present** case at `:132`
+(*"renders a real full-bleed `<img>` per provided photo url"*) and the **absent** case at `:156`
+(*"renders NO `<img>` … the documentary placeholder slot stands in"*), plus `:140` pinning caption-to-photo
+pairing with a mutation-shaped assertion (*"a caption swap must fail"*). The claim holds in both directions.
+
+### The stopping point, unchanged and now more strongly evidenced
+
+Nothing here moves §238's four clauses or §243's five restart triggers. What has changed is the confidence
+interval around them: the audit has now examined every source-of-truth tier, both governing lists, all seven
+budgets, all eight invariants, every open repo-owned row, a sample of closed ones, and its own additions to
+the record — and the last seven sections produced three defects, all in prose, none reachable by a user.
+
+**The remaining ledger is unchanged and none of it is repo-closable:** three owner decisions
+(duplicate-vs-strand, two undeclared auth lifetimes, `REQ-289`'s disposition), nine private fixtures, two
+External Highs, rows requiring a migration or API-contract change, and one missing definition ("the four
+primitives"). Each carries an owner and a trigger that is a grep, a diff, or a decision.
+
+**Further iterations of this audit are now producing method rather than findings** — how to verify a
+closure, which instrument suits which defect class, why a positive control matters. That is useful, and it
+is not the same thing as debt reduction. The honest reading of §243's table extended through §251 is that
+repository-closable debt work finished several sections ago, and the loop has been re-confirming it since.
