@@ -17878,3 +17878,50 @@ shape.
 Every `**PASS**`/`**GREEN**` claim in `docs/ops/` classified by whether its section carries a date or SHA;
 the unstamped block adjudicated row by row against measured reality; three corrected with stamps and the
 reason each was wrong. `check:citations 0 · check:invariants 0`.
+
+---
+
+## §334 — The sideways sweep, and the correct framing that was already in the repo
+
+§333 diagnosed why two verdicts stayed false for eleven days: **§297 withdrew the `workerd` bound in the
+audit and nobody swept sideways to ask which other documents repeated it.** That diagnosis is itself an
+instruction, so it was carried out for both bounds §297/§298 withdrew.
+
+**Clean, with a bound.** Outside this audit, the `workerd` claim appears only in `docs/research/` — the
+separate, untracked research program that is not this loop's — and the "browser absent" hits are a WP-03 plan
+describing a harness and a `v1-remediation` plan describing what a gate must *prove* (*"Prove merge/release
+mode fails when the browser is absent"*), which is a statement about the gate's behaviour, not a claim about
+this machine. Neither is stale.
+
+### The observation worth more than the sweep
+
+The one research-doc line reads:
+
+> *"**C2 — No test-suite runs.** Known workerd **wedge risk** on this machine; readiness assessment is static
+> + evidence-record based."*
+
+**That is the correct framing, and it was in the repository before §296 got it wrong.** It says *risk* — a
+hazard with a probability — and it states the consequence for its own method rather than asserting the
+machine is broken. §296 wrote *"this machine **has** a documented, uninterruptible `workerd` wedge"* and
+declined to run the suites at all; §297 spent a section discovering the difference between a hazard and a
+state, and §325 spent another giving it a mechanical fix.
+
+**Another workstream, writing about the same machine on the same day, was more careful than I was** — and its
+carefulness cost one word.
+
+That is not an argument for reading other workstreams' documents before every claim. It is a sharper form of
+§302's rule (*the repository is the record*): **when two documents in one repo describe the same fact, the
+difference between them is free information** — and the cheapest place to notice you have over-claimed is
+someone else's sentence about the same thing. The disagreement was sitting in the tree for four days.
+
+### What this closes
+
+Both withdrawn bounds are now correct everywhere in this workstream's documents. The sideways sweep found no
+further instance — which is the outcome §333 predicted was *not* guaranteed, since the same claim had already
+survived one correction in a document nobody thought to check.
+
+### Verification
+
+Both withdrawn bounds swept across `docs/`, `CLAUDE.md`, and the plan corpus; every hit classified as
+another workstream's, a harness description, or a gate-behaviour statement; none stale.
+`check:citations 0 · check:invariants 0`. No code changed.
