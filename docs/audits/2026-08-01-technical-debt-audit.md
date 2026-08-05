@@ -14855,3 +14855,43 @@ parity test is itself a hand-maintained list of "the things that must match", an
 mode of one: it was written against the divergence someone was worried about that day, and the element added
 later has nobody watching it. The cheap check is to enumerate the shared file's load-bearing elements and
 diff that list against the assertions, which took one reading here and found a 1-of-2.
+
+## §281 — every parity test, checked against what it guards
+
+§280 found a parity test covering one of its subject's two load-bearing elements, and named the rule: **a
+parity test is itself a hand-maintained list — ask what it covers, not whether it exists.** There are
+**14** parity tests in the repo, so the sweep is exhaustive.
+
+They come in two forms, and the form is the finding: **the strength of a parity test should match the shape
+of the copy.**
+
+| Form | When it applies | Example |
+|---|---|---|
+| **Whole-file byte-identity** | the copy is *complete* — nothing can diverge | `workers/agents/test/rate-config-parity.test.ts`: one assertion, *"byte-identical to `workers/api/src/rate-config.ts`"* |
+| **Element-wise** | the copy is a *subset*, so byte-identity is impossible | the translator's rate-config (§280): the SQL **and** the all-four guard, each character-identical, each with a canary |
+
+That contrast explains what first looked like an inconsistency — one rate-config parity test with a single
+assertion beside another needing four. The agents copy is the whole file, so one assertion closes it
+completely; the translator's is *"the REQUIRED-config half"*, so every load-bearing element inside that half
+needs naming separately. **A single assertion is the strongest possible parity test when the copy is total,
+and the weakest when it is partial.**
+
+### Completeness: is every copy guarded?
+
+The tenant roster is copied three times — `workers/{agents,billing,translator}/src/tenants.ts` — and each
+has a parity test against `workers/api/src/tenants.ts`, the source. The other four api hits
+(`provision.ts`, `index.ts`, `do/sequencer.ts`, `pub/quote.ts`) are **consumers** of that source, not copies.
+`workers/mcp` declares no roster at all: it resolves tenants through control-plane pairings, so there is
+nothing to guard. **Three copies, three tests.**
+
+And one parity test already carries the roster-vs-discovered completeness assertion this audit has been
+adding elsewhere (§244/§245/§265): `wrangler-scope-parity.test.ts` asserts it *"covers all five workers, so
+a new one cannot be added unchecked"* — the copies cannot outgrow the guard.
+
+### The result
+
+**14 parity tests, one gap, closed in §280.** Every declared copy has a guard, and every guard's form matches
+its subject's shape. Recorded as a bound so the next auditor does not re-derive the taxonomy: when checking a
+parity test, first ask **"is the copy total or partial?"** — a total copy needs one byte-identity assertion
+and a partial one needs an enumerated element list, and the failure mode is a partial copy inheriting a total
+copy's single assertion.
