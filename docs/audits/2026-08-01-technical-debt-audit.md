@@ -14704,3 +14704,56 @@ other does not.** Here the D1 path had learned about all-zero placeholders (from
 comment) and the KV path had never been taught. Asymmetry inside a single function is invisible to every
 gate: both branches are exercised, both return sensible values, and the missing rule has no test to fail.
 The tell is a comment on one branch that has no counterpart on the other.
+
+## §278 — sweeping §277's tell: 10 discriminator branches, 1 defect (already fixed)
+
+§277's defect had a shape worth sweeping: **a function that branches on a kind, where one branch validates
+more than the other.** The whole corpus carries only **10 such branch sites** across 8 non-test files, so the
+sweep is exhaustive rather than sampled.
+
+| Site | Kinds | Verdict |
+|---|---|---|
+| `tools/deploy/preflight.ts:164@kind` | `d1` \| `kv` | **the §277 defect** — KV lacked D1's all-zero rejection. Fixed |
+| `tools/deploy/provision-prod.ts:155@kind` | `d1` \| `kv` \| **`r2`** | correctly asymmetric — see below |
+| `packages/contracts/src/events.ts:499@signed` | `pod.signed` \| `custody.transferred` | the I4 custody refinement, **mutation-proved in §242** (neutering it → 2 RED) |
+| `workers/api/src/routes/tariff.ts:59@asset` | `asset` \| `brokerage` | correctly asymmetric — the asymmetry IS the feature |
+
+### The two that are asymmetric on purpose
+
+**`r2` is a third kind that genuinely cannot carry the same check.** `placeholderReason`'s signature is
+`"d1" | "kv"`, and the provisioner skips R2 with a stated reason: *"no id to write"*. R2 buckets are
+identified by **name**, not by an issued id, so there is no canonical placeholder form — the all-zero test
+works for D1/KV precisely because Cloudflare issues ids in a known shape. Preflight still checks R2 **binding
+presence**, which is the part that generalises. Different by necessity, not by omission.
+
+**The tariff route's asymmetry is the law.** ASSET mode returns a scaffold and writes **no** `rate_config`, so
+`/v1/rate` stays `UNKNOWN no_tariff` — that is CLAUDE.md rule 4, "no price on air", implemented as a branch
+that deliberately does *less*. Brokerage mode materialises a rateable cold-start tariff. Both share one
+`TariffBody.safeParse` before the split, so the validation asymmetry is in the *effect*, not the input check.
+
+### The distinction the sweep sharpens
+
+Three of four asymmetries are correct, and they share a property the defective one lacked: **each states its
+reason at the branch.** *"no id to write"*, *"fabricate NOTHING"*, the I4 comment. The KV branch had no
+comment at all — the reasoning lived in a `wrangler.toml` note two directories away, describing the trap as
+hypothetical when it was live.
+
+**So the refined tell is not "the branches differ" — it is "the branches differ and one of them cannot say
+why."** Asymmetry with a stated reason is design; asymmetry with a reason parked in another file is the
+defect §277 found.
+
+### The table's own citations demonstrated §249
+
+Written with bare basenames, this section's table tripped the ratchet on **two** targets at once —
+`packages/contracts/src/events.ts` *and* `workers/api/src/routes/events.ts` — because a bare `events.ts:499`
+resolves to both, and both are ratcheted. One ambiguous citation grew two populations.
+
+That is §249's bare-basename measurement (9 ambiguous basenames in the live ledger, `index.ts` resolving 14
+ways) reproduced accidentally, in a table whose subject is *reading two similar things carefully*. All four
+are now full-path and anchored.
+
+### Yield
+
+10 sites, 1 defect, found the section before this one. Recording the ratio so the next auditor does not
+rebuild the sweep: this is a **narrow** shape in this repo, and the corpus is small enough that the honest
+move is to read all ten rather than pattern-match for suspicious ones.
