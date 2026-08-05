@@ -18574,3 +18574,48 @@ does.*
 
 `check:citations` **0** after de-linking both occurrences (verified before this sentence was written, not
 after); `check:invariants 0`. The red commit's content was correct — only its verification order was wrong.
+
+---
+
+## §348 — The commit path is unguarded by design, and the merge path is not
+
+§347's operator failure — a commit that proceeded while `check:citations` was red — raises the obvious
+question: **should the repository have blocked it?**
+
+Measured: **no hooks of any kind.** No `.husky`, no `core.hooksPath`, no `prepare` script, nothing in
+`.git/hooks` beyond the samples. That is not an omission to fix; it is the design this build already made:
+
+- `.github/workflows/ci.yml:50` runs **`pnpm verify:merge`**, whose merge profile carries `citations` among
+  its 24 gates (§298 ran it end to end and §333 corrected its per-gate verdicts).
+- **No `continue-on-error` anywhere in the workflow** — §276 verified that, and it still holds.
+
+**So the commit path is deliberately unguarded and the merge path is absolutely guarded.** A red local commit
+cannot reach `main` through the gate; it is contained by construction. §347's error was recoverable for that
+reason, and the containment is the repository's, not mine.
+
+### Why not add a hook anyway
+
+Three reasons, and the third is the one that decides it:
+
+1. `.git/hooks` is untracked — a hook there would guard **my** machine and no one else's, which is the shape
+   of a control that looks like enforcement and is not (§289's whole class).
+2. A tracked hook means husky, a dependency, and a `prepare` script — a real change to every contributor's
+   workflow.
+3. **That change is a decision about how this team works, not a defect I found.** `CLAUDE.md` says nothing
+   about hooks, and adding one would be defining process the way §336's budget label would define scope —
+   the owner's, not this loop's.
+
+### The mechanical fix that *is* mine
+
+§325's rule: a fix removes the opportunity; a reminder raises the odds of noticing. The opportunity here is a
+shell block where verification and action are adjacent but unconnected. **`gate && git commit`, never
+`gate; git commit`** — and write the "verified green" sentence *after* the run that verifies it, which is the
+second half of §347's failure and the reason it recurred within one section.
+
+Recorded in the operator notes rather than the repository, because that is where the defect actually lives.
+
+### Verification
+
+Hook configuration enumerated (none); `ci.yml:50`'s `verify:merge` confirmed as the blocking step;
+`continue-on-error` absent from the workflow; `citations` confirmed present in the merge profile.
+`check:citations 0 · check:invariants 0` — run before this line was written. No file changed.
