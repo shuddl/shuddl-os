@@ -14604,3 +14604,50 @@ Recorded rather than fixed. Adding coverage instrumentation is new tooling scope
 against this repo's mutation-proving discipline is a judgement for the owner — but the *gap in what can be
 claimed* belongs in the record, because "well tested" and "every line executed" are different assertions and
 only one of them is supportable from here.
+
+## §276 — do the gates run where it counts? The CI workflow, read whole
+
+Forty sections have verified gates fire *locally*. None had checked the thing that makes that matter: **does
+CI invoke them, or a subset?** §260 established that activating Actions is a deferred ops act — but the
+workflow file is what will run on the day it is switched on, and a misconfigured one would mean the gates
+never execute where they block.
+
+Read whole rather than skimmed, and it drives the complete surface:
+
+| Job | What it runs |
+|---|---|
+| `merge-gate` | `check:runtime` → `check:pr` (on PR) → build every workspace → `test:acceptance` → install Chromium → **`test:visual`/`test:a11y`/`test:e2e`/`perf:map` each `-- --mode merge`** → **`verify:merge`** → `pnpm audit --prod` → upload evidence *even when a gate fails* |
+| `design-gate` | `audit:design`, its step named *"REQ-158 — blocking since WP-10 exit"* |
+| `secrets` | gitleaks, **history-wide** (`fetch-depth: 0`) |
+
+`verify:merge` is `run-gate --profile merge` — the complete 24-gate surface (15 non-skippable + 9 skippable)
+§258 verified against `run-gate.ts`. So typecheck, lint, invariants, citations, chokepoint, traceability,
+coverage, seed, tables, surfaces and the parity gates all execute in CI; they are not local-only.
+
+Three details worth naming:
+
+- **The browser gates run `--mode merge` in CI**, which is exactly the inversion §256 measured: advisory in a
+  bare local run, and FAIL/BLOCKED where it counts. The step comment says so — *"an absent browser BLOCKS,
+  never skips."*
+- **The design job's own step name says "blocking since WP-10 exit"** — independent corroboration of §258's
+  finding, written by whoever flipped the mode file, in a place §258 never looked.
+- **Evidence is uploaded even when a gate fails**, so a red run still produces its artefact rather than
+  vanishing.
+
+### Supply chain and the secret scan
+
+All sixteen `uses:` across both workflows are **SHA-pinned** — zero tag-only references, so a moved tag
+cannot change what runs. gitleaks extends the default ruleset (`useDefault = true`) with a **narrow,
+justified** allowlist: two path globs (`genesis/`, `fixtures/` — spec docs and test data) and two literals,
+the test-secret string and an `alg:none` unsigned token that is the REQ-025 isolation suite's **forgery
+fixture, not a credential**. Each carries its reason in the file.
+
+### The fourth truncated read
+
+My first pass used `head -20` and concluded CI ran only acceptance plus the browser gates — that the fifteen
+non-skippable gates never executed in CI. That would have been a serious, wrong finding. `verify:merge` is at
+line 47, seven lines past the window.
+
+§271 named this exact failure and the rule that prevents it: **when a conclusion depends on the contents of a
+list, print the whole list.** Applying it here is why this section reports a clean CI instead of a phantom
+gap — the fourth time in this audit that a truncated view was one sentence away from a false accusation.
