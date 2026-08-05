@@ -12240,3 +12240,57 @@ pointless to test, and it will show up in every "untested guard" sweep forever.
 mixture, and the mixture is the finding. Reporting it as a number would have manufactured 88 items of work
 where roughly half are correctly-written postconditions that a test could only prove by mutating the code
 above them — which is what a mutation probe already does, once, at audit time.
+
+---
+
+## §234 — closing the guard sweep: 1 real gap in 6, and the proxy that produced 88
+
+§233 split the 88 "unobserved" guards by what they read and probed one of each kind. §204's rule says
+finish the sweep, so: three more, all clearly input-validating, all from the 88.
+
+| Guard | Neutered → |
+|---|---|
+| `gl-map.ts` — *"no GL account mapped for quote line kind"* | **1 RED** (agents) |
+| `geo/fence.ts` — *"radius_m must be a finite positive number"* | **RED** (ledger) |
+| `anchor.ts:346@ROOT_DRIFT` — recomputed root ≠ stored | **RED** (ledger) |
+
+All three caught. **The `88` is mostly an artefact of how the sweep asked the question:** it matched the
+guard's *message phrase* against test source, and these are all tested via `expect(...).toThrow()` with no
+message assertion — the ordinary way to test a throw.
+
+### The sample, complete
+
+Six guards probed across §232–§234:
+
+| Guard | Verdict |
+|---|---|
+| `composeInvoice` penny-parity | **genuinely untested → fixed (§232)** |
+| `exportJournal` double-entry | unreachable by construction (§233) — correctly untested |
+| `canonical.ts` integers-only | tested |
+| `gl-map.ts` account mapping | tested |
+| `fence.ts` radius validation | tested |
+| `anchor.ts` ROOT_DRIFT | tested |
+
+**One real gap in six**, and it was found in §232 by domain reasoning — *"which guard is the sole
+enforcement of a money law?"* — not by the sweep. The sweep's contribution was the taxonomy in §233, not
+the list.
+
+### What the sweep was actually worth
+
+Honestly: as a *finder*, little. Its 88 contained one defect, one correctly-unreachable postcondition, and
+a large majority of properly-tested guards whose tests simply do not quote the error string. As a
+*classifier*, a lot — §233's distinction between guards reading input and guards checking their own
+construction is reusable, and it is the reason `exportJournal`'s guard was recorded rather than
+"fixed" with a test that could only pass by mutating the code above it.
+
+**Recording that ratio matters more than the finding.** An audit that reports "88 untested guards" hands an
+owner 88 units of work, ~85 of which are already done. This session has produced several numbers of that
+shape — 77 DoD candidates (§179), 51 vacuous-loop candidates (§180), 64 lockstep claims (§223), 84 rule
+constants (§230) — and in every case the useful output was a filter that collapsed the number, not the
+number.
+
+### The rule
+
+**A sweep that cannot distinguish "untested" from "tested differently" is a classifier, not a detector.**
+Ask what the instrument would say about a case you already know is fine — here, any guard tested by a bare
+`toThrow()` — and if the answer is "flagged", the count is a starting population, never a backlog.
