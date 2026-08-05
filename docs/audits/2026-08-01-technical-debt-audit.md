@@ -12747,3 +12747,60 @@ new finding.** This one converted a soft "we decided not to" into a measured "we
 here is the specific thing that would have to change first" — which is what stops the same proposal being
 re-litigated every audit. The failure mode to avoid is the opposite: re-running the measurement, getting a
 worse number, and quietly not updating the row that predicted a better one.
+
+## §241 — the DoD's other half: the spine tests hold, and the asymmetry with §237 is the lesson
+
+§237 audited what the five demos CLAIM to film. This section audits what they claim to PROVE — the in-repo
+spine, which is the code-provable half of WP-16's DoD (`genesis/08:70`). Nothing had verified it; the
+manifest asserts "these test files prove the causal chain" and that assertion had never been read against
+the files.
+
+All seven, opened rather than counted:
+
+| Demo | Spine | What it actually asserts |
+|---|---|---|
+| 1 | `heartbeat.test.ts` | the full chain in ONE test: POD `201` → the queue message → Biller `issued_sent` → `invoice.issued` → the **deterministic** invoice id (recomputed three independent ways) → the money row whose `total_cents` equals the rate's `sell_cents` |
+| 2 | `signup-to-quote.e2e.test.ts` | both halves the manifest claims — the flags-ON priced write through the sequencer, AND the flag-OFF `404` proving the stranger never gets a session |
+| 3 | `stop-flow.test.ts` (7) | gate ORDER, per-step required evidence, the dims step omitted off-lane, and a forced-photo step that **cannot** be skipped (REQ-063) |
+| 3 | `airplane-soak.test.ts` (2) | 55 signed offline events across two devices, `device_seq` monotonic from 0; then a seeded-shuffle sync WITH duplicate re-sends merging at zero loss, zero dupes, chain verified |
+| 4 | `quote-book.test.ts` (9) | PRICED with a sell + quote event id, `refs.pairing` ownership provenance (REQ-107), and three party writes carrying DISTINCT idempotency keys |
+| 5 | `command-heartbeat.test.ts` | "one unbroken causal chain through every real command seam" |
+| 5 | `MapCanvas.test.tsx` | `setWorldDim(true)` on an exception fleet, `false` when healthy, and the LIFT — each with an **independent** guard (`.every(c => c[1] === true)`, `.some(... === true) === false`) so a later frame silently resetting it cannot pass |
+
+`pnpm test:acceptance` runs exactly these seven and exits **0** — 36 tests. The runner's list is generated
+from `demos.ts`, and `tools/acceptance/demos.test.ts` enforces bidirectional parity, so the manifest cannot
+name a file the spine does not declare, or vice versa.
+
+**Verdict: the spine is real.** No hollow assertion, no test whose title outruns its body, no file named in
+the manifest that the runner skips.
+
+### The asymmetry, which is the actual finding
+
+Two halves of one DoD, audited one section apart:
+
+- the **filmed** half — prose — was overclaimed in **three of five** (§237: photos, a signup surface, a
+  driver login);
+- the **spine** half — tests — is sound in **seven of seven**.
+
+Same document, same authors, same period. The difference is that one half is executed on every merge and
+the other is read by a human at most once a quarter. A sentence claiming "photos in the client's inbox"
+cost nothing to keep after the resolver was deferred; a test claiming the same thing would have gone red the
+same day.
+
+This is the single most repeated shape in this audit — §235's inverted DO comments, §236's "EXACTLY ONCE"
+headers, §239's fixture that resembled the shipped schema, §240's citation rot living inside prose about
+citation rot. **Prose decays silently and its decay is invisible to CI; anything executed cannot drift
+without announcing it.** The corollary for this repo's record: a claim worth making in a document is worth
+asking whether it can be moved into a test, and when it cannot be — a wall-clock latency, a real driver, a
+filmed video — that is exactly the claim that needs a re-read schedule, because nothing else will catch it.
+
+### Also clean this pass
+
+- **Unhandled-error leakage, all five workers.** `workers/api` maps any non-`ApiError` throw to a generic
+  `INTERNAL ERROR` envelope after logging server-side (REQ-156) — no message reaches the client. The other
+  four have no `onError`, which is correct rather than missing: REQ-156 is scoped to the `/v1` surface, the
+  mcp worker's OAuth paths carry their own RFC-specified error shapes, and an uncaught throw in Workers
+  returns a generic 500 without the exception text. The agents worker's three `catch` blocks are cron-path
+  containment that log and continue — no client response exists to leak into.
+- **Control-plane migrations** (§240) and the **third-party basemap** / **`/pub/*` edge rate-limiting**,
+  all already recorded or by design.
