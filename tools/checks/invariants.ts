@@ -550,9 +550,52 @@ export function checkControlMigrationsExercised(
   return violations;
 }
 
+// THE SURFACE BUDGET (audit §245). CLAUDE.md heads its budget list "Hard budgets (CI-enforced; exceeding =
+// the PR is wrong)" and names "3 surfaces"; it separately lists "a fourth surface" under Do-not-build-ever
+// without a register amendment. Six of the seven budgets had an executable pin — ≤22 tables
+// (checkMigrationSql), 12 canonical views (assertViewBudget + registry.test), 35 event kinds (two contract
+// tests), 5 colour tokens and 2 font families (design/test/tokens), 0 shadows/gradients/radius>4px
+// (audit:design). The surface count had none: `check:surfaces` governs wrangler DEPLOY targets, not how many
+// apps exist, so a fourth surface would pass every gate in the repo. Either the doc's "CI-enforced" was
+// wrong or the gate was missing; this is the gate.
+//
+// A surface = a directory under apps/ carrying a package.json (a deployable app), not any directory.
+// Roster-keyed and checked BOTH directions, per §244: a fourth app fails, and so does deleting one, because
+// either is a register-amendment decision rather than an edit.
+export const SURFACE_ROSTER = ["command", "driver", "portal"] as const;
+
+export function checkSurfaceBudget(discovered: readonly string[]): string[] {
+  const found = [...discovered].sort();
+  const expected = [...SURFACE_ROSTER].sort();
+  if (found.length === expected.length && found.every((s, i) => s === expected[i])) return [];
+  const extra = found.filter((s) => !(SURFACE_ROSTER as readonly string[]).includes(s));
+  const missing = expected.filter((s) => !found.includes(s));
+  const parts = [
+    extra.length > 0 ? `UNREGISTERED surface(s): ${extra.join(", ")} — CLAUDE.md forbids a fourth surface without a register amendment signed by the owner` : "",
+    missing.length > 0 ? `MISSING surface(s): ${missing.join(", ")} — removing one is also a register decision, not an edit` : "",
+  ].filter(Boolean);
+  return [`surface budget (3 surfaces, CLAUDE.md hard budgets): ${parts.join("; ")} (audit §245)`];
+}
+
 function main(): void {
   const mode: LockMode = process.argv.includes("--write") ? "write" : "check";
   const migrations = globSync("db/**/migrations/*.sql");
+
+  // Exactly the three registered surfaces ship (see checkSurfaceBudget). Guarded on `apps/` existing at
+  // all: the CLI's own end-to-end tests run it inside a temp fixture repo that has no apps/, and an
+  // unguarded check reads that as "all three surfaces missing" and exits 1 — which is precisely what the
+  // "positive control (was exit 1 under the bug)" test caught when this landed. A tree with no apps/ is not
+  // a SHUDDL checkout, not a violation; deleting apps/ wholesale is still caught by the roster-identity
+  // test, which resolves against the real repo root rather than the cwd.
+  if (existsSync("apps")) {
+    const surfaceViolations = checkSurfaceBudget(
+      globSync("apps/*/package.json").map((p) => p.split("/")[1]!),
+    );
+    if (surfaceViolations.length > 0) {
+      for (const v of surfaceViolations) console.error(`FAIL ${v}`);
+      process.exit(1);
+    }
+  }
 
   // Every shipped control-plane migration is exercised by at least one test (see above).
   const controlViolations = checkControlMigrationsExercised(

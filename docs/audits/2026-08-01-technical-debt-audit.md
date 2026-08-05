@@ -12972,3 +12972,51 @@ Three of the five triggers stay manual, and the reason matters:
 **The rule: gate the trigger you can observe, and leave the judgement where it belongs.** A hold whose
 expiry is mechanically checkable should never stay a sentence in a document — but a hold whose expiry is a
 *decision* must not be dressed up as a check, because a green gate then reads as "the decision was made."
+
+## §245 — the one hard budget that was never CI-enforced, and the regression my own gate shipped
+
+`CLAUDE.md` heads its budget list **"Hard budgets (CI-enforced; exceeding = the PR is wrong)"**. Following
+§244's method — find the claims a gate could carry and stop trusting the sentence — each of the seven was
+traced to its pin:
+
+| Budget | Executable pin |
+|---|---|
+| ≤22 tables | `checkMigrationSql` / `TABLE_BUDGET` — reports 21/22 |
+| 12 canonical views | `assertViewBudget()` throws at import + `registry.test.ts` (11 named, 1 headroom) |
+| 35 event kinds | pinned **twice** — `contracts/test/events.test.ts` and `booking.test.ts` |
+| 5 colour tokens · 2 font families | `packages/design/test/tokens.test.tsx` |
+| 0 shadows/gradients/radius>4px | `audit:design` (advisory until WP-10 exits, blocking after — REQ-158) |
+| **3 surfaces** | **none** |
+
+`check:surfaces` sounds like the missing pin and is not: it governs the wrangler **deploy contract** —
+which targets exist and how they resolve — not how many apps the repo contains. So a fourth surface would
+have passed every gate here, while `CLAUDE.md` lists "a fourth surface" under *Do not build (ever, without a
+register amendment signed by the owner)* and calls the budget CI-enforced. **Either the doc was wrong or the
+gate was missing.** The gate was missing.
+
+`checkSurfaceBudget` pins it, roster-keyed and checked **both** directions: a fourth app fails (*"UNREGISTERED
+surface(s): __probe — CLAUDE.md forbids a fourth surface without a register amendment"*), and so does a
+missing one, because removing a surface is equally a register decision rather than an edit. A unit test
+covers the case a count-based check would miss — **swapping** `portal` for `ops` keeps the count at three
+and must still fail, since the invariant is identity, not cardinality.
+
+### The regression it shipped, caught by a test written for exactly this
+
+The first version broke `check:invariants` — **2 failed / 129 passed**, both in the CLI's own end-to-end
+suite. `main()` globbed `apps/*/package.json` relative to the cwd, and those tests run the CLI inside a
+**temp fixture repo** that has no `apps/`. An empty result is not "zero surfaces"; it is "not a SHUDDL
+checkout" — but the check read it as all three missing and exited 1.
+
+The test that caught it is titled *"exits 0 with a real migration present (**positive control — was exit 1
+under the bug**)"*. A previous session added that after shipping this same class of defect, and it earned
+its keep a second time. Fixed by guarding on `existsSync("apps")`, with the guard's own limits stated at the
+call site: deleting `apps/` wholesale would skip the check, which is why the roster-identity test resolves
+against the real repo root rather than the cwd.
+
+**Both halves of that are the finding.** A new gate is new code, and new code regresses — so the discipline
+that applies to product changes applies to gates: after adding one, run the suite that owns the file, not
+just the gate you were thinking about. And a *positive control* — a test asserting the gate stays GREEN on a
+valid tree — is worth as much as the negative ones proving it goes RED, because every failure this section
+produced was a false positive, not a missed violation.
+
+`test:tools` 730/733 (the three unchanged `REQ-289` failures); typecheck, lint, invariants, citations all 0.

@@ -8,10 +8,12 @@ import { stripSqlComments } from "@shuddl/ledger/migrate";
 import {
   checkControlMigrationsExercised,
   checkDoMutexIntact,
+  checkSurfaceBudget,
   checkLock,
   checkMigrationSql,
   checkTestSchemaParity,
   DO_MUTEX_ROSTER,
+  SURFACE_ROSTER,
   findStraySql,
   isStraySql,
   PARTITION_TABLES,
@@ -759,5 +761,38 @@ describe("§244: every shipped control migration is exercised by at least one te
     const v = checkControlMigrationsExercised(M, tests);
     expect(v).toHaveLength(1);
     expect(v[0]).toContain("0009_new.sql");
+  });
+});
+
+// audit §245 — CLAUDE.md heads its budget list "Hard budgets (CI-enforced)". Six of seven had a pin; the
+// surface count did not, so a fourth surface would have passed every gate in the repo.
+describe("§245: exactly the three registered surfaces ship", () => {
+  it("passes on the registered three, in any order", () => {
+    expect(checkSurfaceBudget(["portal", "command", "driver"])).toEqual([]);
+  });
+
+  it("FAILS on a fourth surface and names it", () => {
+    const v = checkSurfaceBudget([...SURFACE_ROSTER, "ops"]);
+    expect(v).toHaveLength(1);
+    expect(v[0]).toContain("ops");
+    expect(v[0]).toContain("register amendment");
+  });
+
+  it("FAILS when a registered surface disappears — removal is a register decision too", () => {
+    const v = checkSurfaceBudget(["command", "driver"]);
+    expect(v).toHaveLength(1);
+    expect(v[0]).toContain("portal");
+  });
+
+  it("a swap that keeps the COUNT at three is still caught (count is not the invariant, identity is)", () => {
+    const v = checkSurfaceBudget(["command", "driver", "ops"]);
+    expect(v).toHaveLength(1);
+    expect(v[0]).toContain("ops");
+    expect(v[0]).toContain("portal");
+  });
+
+  it("the roster matches the surfaces actually shipped — a pin, not a wish", () => {
+    const shipped = globSync("apps/*/package.json", { cwd: REPO }).map((p) => p.split("/")[1]!);
+    expect([...shipped].sort()).toEqual([...SURFACE_ROSTER].sort());
   });
 });
