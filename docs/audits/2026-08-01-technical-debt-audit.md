@@ -11313,3 +11313,63 @@ silently claims coverage** (caught by nothing until now). Same shape, opposite e
 Per-entry tests answer "does this entry work?"; the identity test answers "is this the whole list?" — and
 only the second notices an entry arriving unaccompanied. The MCP chain has had that layer since it was
 written; the privacy registries have it now.
+
+---
+
+## §217 — the MCP verb surface is identity-pinned too, and that completes the pattern
+
+§216 applied §215's rule where it paid — the privacy registries — and noted it needed applying *per
+allowlist*, not uniformly. One more meets the criterion: the **MCP tool registry**. Its entries are the
+product's entire public verb surface, the compiler cannot object to a longer list, and the risk is
+**growth** — a tool registered is a tool a paired Claude can call.
+
+It is already pinned. `workers/mcp/test/isolation.test.ts:375@toEqual` asserts the exact set:
+
+```
+expect(names).toEqual(["approve", "book_shipment", "dispute", "get_document",
+                       "noop_mutation", "quote_freight", "track", …])
+```
+
+Registering a ninth verb by cloning an existing definition:
+
+```
+× the tool registry is the blessed set (no rogue tool outside the isolation matrix)
+    > exposes exactly the WP-13 tools + the two …
+```
+
+**1 failure of 177**, and the test's own name states the intent — *"the blessed set (no rogue tool outside
+the isolation matrix)"*. Not an incidental count: a deliberate guard against surface growth, in the file
+about isolation.
+
+### The pattern, complete
+
+Four allowlists measured across §206–§217, and the defence each carries is exactly matched to how it can
+fail:
+
+| Allowlist | Failure that matters | Defence |
+|---|---|---|
+| `TOKENS` / `FONTS` | growth (a 6th token repeals "no blue") | count assertion — **added §205** |
+| `GATED_KINDS` | loss (a kind stops being gated) | exhaustive `switch` → compile error |
+| `REDACTIONS` / `INTERNAL_NESTED` | loss **and** growth-without-a-test | per-entry tests + identity — **added §216** |
+| `DEFAULT_MUTATION_CHECKS` | composition (declared, never wired) | per-entry tests + chain identity |
+| **MCP tool registry** | **growth (a rogue verb)** | **exact-set assertion, already present** |
+
+Two of the five needed a layer added this session; three already had the right one. In every case the
+defence that matters is determined by the **direction** the list can move — and nothing in a list's
+declaration tells you which direction is dangerous. `TOKENS` and the tool registry are both "growth" risks
+and looked nothing alike; `GATED_KINDS` and `REDACTIONS` are both `EventKind`-keyed and have opposite
+exposures.
+
+### Verdict
+
+No finding. The MCP worker has now been probed twice (§215, §217) and both times the guard I went looking
+for was already there, named for what it defends. That is worth stating plainly at this depth of audit:
+**the surface with the most external exposure in this build is also its most deliberately defended.**
+
+### The rule
+
+**Ask which direction the list can move before asking whether it is tested.** Loss is a compiler problem
+where the type allows it and a behavioural-test problem where it does not; growth is *always* a test
+problem, because no type system objects to one more legal element. Four of the five allowlists here were
+built by someone who had already asked that question — the two gaps were both growth, and both invisible
+from the declaration.
