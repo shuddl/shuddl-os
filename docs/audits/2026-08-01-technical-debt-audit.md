@@ -10854,3 +10854,58 @@ A codebase can pass either while failing the other, and neither implies the othe
 adjacent enough to read as one claim in a summary and are checked by entirely different mechanisms — the
 compiler for the first, the suite for the second. §207 got the mechanism right and the scope wrong in the
 same sentence.
+
+---
+
+## §209 — five instrument errors, one shape, and the root fix
+
+§208 corrected §207; §204 corrected §203. Both corrections were the same error — measuring one thing and
+generalising to its neighbour — and both were caught only by a later section. That is a pattern, not a run
+of bad luck, and it is worth fixing at the root rather than finding a sixth instance.
+
+### The five, collected
+
+Every one was a moment where a working gate looked broken or absent, and every one was one sentence from a
+false finding against correct code:
+
+| # | What I saw | What was true |
+|---|---|---|
+| §199 | `check:invariants` printed `FAIL` and `EXIT=0` | `$?` after a pipeline is **`tail`'s** status; the gate exits 1 |
+| §203 | `check:design` exited 1 on my mutation | **the script does not exist** (`audit:design` does); `Missing script` also exits 1 |
+| §207 | 751 tests passed with a gated kind removed | **vitest does not typecheck**; `typecheck` exited 2 |
+| §198 | a fixture's pinned `sha256` did not match `shasum` | the verifier uses a **framed tree digest**; the pin was correct |
+| §204 | adding a view left the suite green | the probe landed **on** the ≤12 ceiling, not over it (11 + 1 = 12) |
+
+Three were caught by suspicion, one by a habit (**re-running the gate on the restored tree**, which is the
+only reason the non-existent script surfaced), and one by a later section.
+
+### The sibling error
+
+Twice in consecutive sections I measured one mutation and wrote a conclusion covering an adjacent one:
+
+- §203 probed **four** budgets and asserted a count over **seven** (corrected §204: six enforced, not five).
+- §207 probed *removing an entry from `GATED_KINDS`* and concluded about *the gate no longer blocking*
+  (corrected §208: seven tests catch exactly that).
+
+Both read as single claims in a summary and are checked by **different mechanisms** — the compiler for one,
+the suite for the other. That is what makes them easy to merge and dangerous to merge.
+
+### The root fix, written down
+
+Three cheap checks before writing "X is unenforced / broken / missing", and one question:
+
+1. **Re-run without a pipe** and read the real exit code.
+2. **Confirm the command exists** — a missing script exits non-zero and looks like a catch.
+3. **Run `typecheck` as well as the suite** — the strongest guarantee in this codebase (exhaustiveness over
+   a union) is invisible to every test runner.
+4. **Ask whether the mutation performed is the mutation the claim describes.**
+
+Recorded in memory as `when-a-gate-looks-wrong-suspect-the-measurement`, because it is a habit rather than
+a fact about this repo, and the audit's own history shows it does not survive being written down once.
+
+### The rule
+
+**The bias runs one way.** All five errors made a working system look broken; none made a broken system
+look fine. That is the safer direction to fail — a false alarm costs a re-run, a missed defect ships — but
+it is not free: five false findings published into an audit of this size would have sent someone to fix
+five things that were never wrong, and the record would have looked more thorough for it.
