@@ -1,14 +1,17 @@
 # Project state & resume guide
 
-**As of 2026-08-02** · branch `main` · 534 commits at `3e1f31d` (was: 2026-07-31, 435 commits — the 99 between
-them are the technical-debt audit loop). Supersedes the 2026-07-27 baseline at `7c1a0b4` (itself re-baselined
+**As of 2026-08-05** · branch `main` · **775 commits at `430c7da`** (was: 2026-08-02, 534 commits at
+`3e1f31d` — the 241 between them are a further technical-debt audit phase; before that, 2026-07-31 at 435). Supersedes the 2026-07-27 baseline at `7c1a0b4` (itself re-baselined
 from the 2026-07-14 note that stopped at WP-06). All sixteen WPs are closed, T14/T15 landed after them, and a
 2026-07-28 reboot cleared the `workerd` wedge.
 
 > **Read [`docs/audits/2026-08-01-technical-debt-audit.md`](../audits/2026-08-01-technical-debt-audit.md)
-> before trusting anything on this page.** It is the primary artifact of those 99 commits — 65 sections, its
-> own phase gate (§4, re-measured §65), and the corrections that this note's inline "superseded 2026-08-01"
-> markers came from. What it changed that a returning reader most needs to know: three gates were added
+> before trusting anything on this page.** It is the primary artifact of those commits — **292 sections
+> numbered through §301**, its own phase gate (**§4, whose CURRENT MEASUREMENT is §298: the merge gate RUN —
+> 24 gates, 17 PASS, 5 BLOCKED, 2 FAIL**), and the corrections that this note's inline "superseded" markers
+> came from. §299 specifies the single blocker behind both FAILs (the uncommitted `REQ-289` GTM row) and
+> §300 verifies every ledger item against its source. *(Routing corrected 2026-08-05 — this block said "65
+> sections, re-measured §65" and would have landed a returning reader 236 sections behind; audit §302.)* What it changed that a returning reader most needs to know: three gates were added
 > (`check:tables` §50, `check:chokepoint` §56, plus the auth/idempotency surface pins §57/§59);
 > **`CLAUDE.md` rule 4 was factually wrong** and is corrected (§60) along with its `genesis/11` template
 > (§61/§62); and §64 states the rule that produced most of these findings — *documents may state laws, not
@@ -77,7 +80,7 @@ will be wrong about what is safe to do next.
 
 | # | State | Today |
 |---|---|---|
-| 1 | Repository green | Yes, and measured — **re-measured 2026-08-02 at `3e1f31d`**: 17 workspaces / **2,877 tests** (`pnpm -r test`, exit 0) plus the root `tools/` suite / **703 tests**, so **3,580 total**. `pnpm verify:merge` executes end-to-end; five of its gates are **BLOCKED** on named private inputs, so the aggregate is **NOT PROMOTABLE**. *The previous figure ("18 test projects, 258 files / 3,243 tests") is left visible because it shows the decay: it was ~337 short of the tree it described. Note `pnpm test` is `test:tools && pnpm -r test` — the `&&` short-circuits, so a tools failure means the workspaces never ran at all (audit §52). Today three tools tests fail, on the GTM workstream's uncommitted `REQ-289` alone.* |
+| 1 | Repository green | Yes, and measured — **re-measured 2026-08-05 at `430c7da`**: 17 workspaces / **251 files / 2,917 tests** (`pnpm -r test`, exit 0, zero failure summaries) plus the root `tools/` suite / **30 files / 781 tests**, so **281 files / 3,698 tests, 3,695 passing**. `pnpm verify:merge` was RUN end to end (audit §298): **24 gates — 17 PASS, 5 BLOCKED, 2 FAIL**; the five BLOCKED are named private inputs and the two FAIL are `REQ-289` alone, so the aggregate is **NOT PROMOTABLE**. *(Was 2026-08-02 at `3e1f31d`: 2,877 + 703 = 3,580.)* *The previous figure ("18 test projects, 258 files / 3,243 tests") is left visible because it shows the decay: it was ~337 short of the tree it described. Note `pnpm test` is `test:tools && pnpm -r test` — the `&&` short-circuits, so a tools failure means the workspaces never ran at all (audit §52). Today three tools tests fail, on the GTM workstream's uncommitted `REQ-289` alone.* |
 | 2 | Staging certified | Partly — two of five workers deployed; the POD→invoice→email chain proven on live infra |
 | 3 | Pilot holds | Blocked — no tenant-0 config pack, no vendored fixtures, no counsel sign-off, no field runs |
 | 4 | Production holds | ~~**Declared, not provisioned, not deployable** — every `[env.prod]` id is an all-zero placeholder~~ **Superseded 2026-08-01 (audit D2): provisioned 2026-07-30, five workers + three surfaces deployed, preflight PASS 72 checks (2026-07-31).** The REAL prod holds now: no tenant onboarded · outbound email dark (`EVIDENCE_FROM` unbound, REQ-159) · five private-fixture gates BLOCKED · demo tile host (REQ-075) · nightly backup credentials unbound |

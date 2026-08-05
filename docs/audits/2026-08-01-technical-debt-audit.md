@@ -16168,3 +16168,55 @@ and nothing about doing it well signals the remaining half.
 
 `check:citations 0 · check:invariants 0` — both entry-point edits are inside a gated document, and the
 citation gate confirms every reference in the rewritten block resolves. No code changed.
+
+---
+
+## §302 — The repo already knew: memory lost to the record
+
+§301 fixed the audit's own entry point. The audit is not the entry point most readers use — `PROJECT-STATE.md`
+is, and it opens with *"Read the audit before trusting anything on this page."* Following that instruction
+landed a reader on:
+
+> *"…the primary artifact of those 99 commits — **65 sections**, its own phase gate (**§4, re-measured §65**)…"*
+
+The audit has **292 sections numbered through §301**, and §4's current measurement is **§298**. A returning
+reader — human or agent — would have arrived **236 sections behind**, at a phase gate three re-measurements
+stale, and been told that was the current verdict. Corrected, along with the header baseline (534 commits at
+`3e1f31d` → **775 at `430c7da`**) and the state table's *Repository green* row (3,580 tests → the measured
+**3,698, 3,695 passing**, with §298's 24-gate verdict).
+
+### The finding that matters more than the routing
+
+Two facts this loop spent sections establishing were **already written in this file**:
+
+1. **§296's worker-suite bound.** The header says, plainly: *"a 2026-07-28 reboot cleared the `workerd`
+   wedge."* §297 discovered that by probing. **The repository had recorded it eight days earlier.**
+2. **§299's blocker.** The state table already read: *"Today three tools tests fail, on the GTM workstream's
+   uncommitted `REQ-289` alone."* §299 re-derived that from `git diff` and two gate source lines.
+
+Neither section was wasted — §297 produced a measurement where the note produced a claim, and §299 turned a
+label into two file:line addresses. **But both would have been faster, and §296's wrong bound would never
+have been written, had the record been read before the memory was trusted.**
+
+**That is the rule, and it is the sharpest one this phase produced: when a durable note and the repository
+disagree, the repository is the record.** A memory is a compressed observation from a moment that has
+passed; a committed document is the project's own statement of what is true, and it is version-controlled,
+dated, and reviewable. I inherited "this machine has a wedge" from a note while the file I was about to
+correct said, in its second paragraph, that a reboot had cleared it.
+
+The failure mode is specific and worth naming: **memory is consulted at the start of a task and the record
+at the end of one.** By the time the record is opened, the plan built on the memory already exists — and
+plans are not reread, they are executed.
+
+### Verification
+
+`PROJECT-STATE.md` corrected in three places (header baseline, routing block, state-table row 1), each with
+the superseded figure preserved inline so the decay stays visible. `check:citations 0 · check:invariants 0`.
+No code changed.
+
+### Yield note
+
+§301 and §302 are the same defect at two scales — a correction made where a claim lives, while the paths
+leading to it keep pointing at the stale version. The audit's entry point was 3 sections stale; the ops
+entry point was **236**. **Routing decays faster than content, because content gets corrected by whoever
+notices and routing gets corrected by nobody.**
