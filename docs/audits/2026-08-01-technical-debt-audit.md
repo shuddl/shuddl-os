@@ -15843,7 +15843,9 @@ provision and now carries a live expiry trigger.
 
 The gate is not "forever". Any of these makes the verdict above stale and requires a new measurement:
 
-1. **`REQ-289` is dispositioned** or the other workstream's register row lands — the 3 red tests resolve or
+1. **`REQ-289` is dispositioned** or the other workstream's register row lands. *(§319: this is GATE-DETECTED,
+   not a human trigger — `check:coverage` is RED today and goes green exactly when the row is dispositioned
+   correctly. The trigger IS the gate.)* The 3 red tests resolve or
    become this loop's.
 2. **Either live transport is wired** (the two demos that need one).
 3. **A new control-plane migration**, or any change to the tenant schema's table count.
@@ -15857,7 +15859,9 @@ The gate is not "forever". Any of these makes the verdict above stale and requir
    **RESOLVED in §297 — by checking, not by waiting.** The wedge was absent; the suites run. This trigger is
    spent and leaves the list, which now has six live entries.
 
-Two of these are now enforced by gates rather than memory (3 and 4); the rest remain human triggers, which
+*(§319 audited all six by mutation: **1, 3 and 4 are gate-enforced** — 4 only as of §318, and 1 was
+understated here; **2, 5 and 6 are genuinely human**, with 5 verified by changing a demo's title and watching
+`test:acceptance` stay green.)* Two of these are now enforced by gates rather than memory (3 and 4); the rest remain human triggers, which
 is stated plainly because an unenforced trigger is a hope, not a control.
 
 ---
@@ -17106,3 +17110,48 @@ fires on that condition**, which is one mutation.
 `typecheck 0 · lint 0 · check:invariants 0 · check:citations 0`; `test:tools` 781 tests, 778 passing (the
 known `REQ-289` trio). Trigger 4's wording corrected in place. Six live triggers remain; **three are now
 gate-enforced.**
+
+---
+
+## §319 — Every phase-gate trigger, mutation-audited in both directions
+
+§318 caught trigger 4 claiming gate-enforcement it did not have. That is half a check: the claim was
+**overstated**. The symmetric question — *is any trigger understated, already caught by a gate while filed as
+human?* — is the one nobody asks, because an understatement costs nothing until someone waits for a human to
+notice something CI already knows.
+
+All six live triggers, each tested by mutation rather than read:
+
+| # | trigger | claimed | measured |
+|---|---|---|---|
+| 1 | `REQ-289` dispositioned | human | **GATE** — `check:coverage` is RED today and greens exactly on disposition. *Understated.* |
+| 2 | either live transport wired | human | human ✓ |
+| 3 | new control migration / tenant table-count change | gate | **GATE ✓ both halves** — planted a control migration → RED naming it; planted a tenant table → RED (`unclassified tenant table(s)`) |
+| 4 | non-storage `await` in a meter DO | gate | **was NOT** (§318 found `checkDoMutexIntact` guards the adjacent condition) — **enforced as of §318** |
+| 5 | a demo's filmed sentence changes | human | human ✓ — changed demo #1's title, `test:acceptance` stayed **GREEN** |
+| 6 | `shuddl-mcp-staging.GRANTS` provisioned | human | human ✓ (the preflight reports it, but nothing runs the preflight at merge — §291) |
+
+**Two of six were misfiled, in opposite directions.** Trigger 4 claimed a gate it did not have; trigger 1 has
+a gate nobody credited it with. Both are now stated correctly in place.
+
+### Why the understatement is worth as much as the overstatement
+
+An overstated trigger means **nobody watches** — the failure this audit expects. An understated one means
+**someone watches something CI already reports**, which is cheaper but has a subtler cost: it teaches the
+reader that the trigger list is a list of things machines cannot see. Trigger 1 sitting there as "human"
+alongside genuinely human items makes the whole list read as advisory. **A list is calibrated by its weakest
+entry, and a wrongly-humble entry miscalibrates it exactly as much as a wrongly-confident one.**
+
+### What the trigger list now is
+
+Three enforced (1, 3, 4), three human (2, 5, 6) — and the three human ones are human for **stated, verified
+reasons**: no gate can know a transport was wired, a demo's wording lives in prose the acceptance run does
+not read, and the staging placeholder is visible only to a release-profile preflight. **Every entry now
+carries evidence rather than an assertion**, which is the only form in which a trigger list survives the
+person who wrote it.
+
+### Verification
+
+Six mutations across five files (a control migration, a tenant migration, a meter DO await, a demo title,
+plus the two gate reads); every file restored byte-identical; `git status` clean; `check:invariants 0`,
+`test:acceptance` green.
