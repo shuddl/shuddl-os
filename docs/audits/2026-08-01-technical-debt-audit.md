@@ -187,7 +187,7 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 ## §4 — Phase gating and the stopping point
 
 > **CURRENT MEASUREMENT: §238, at `68cfb0d`; CONVERGENCE measured at §243.** The four clauses below are
-> measured in §238. §243 (extended by §251 → §270 → §282 → §285 → §286 → §287 → §288 → §289 → **§290**, now through §290) answers the separate question of whether another iteration is worth running:
+> measured in §238. §243 (extended by §251 → §270 → §282 → §285 → §286 → §287 → §288 → §289 → §290 → **§291**, now through §291) answers the separate question of whether another iteration is worth running:
 > defects-per-section across the eight sections after §238 ran 1,1,1,—,1,1,**0,0** while verified-clean
 > rose to 8 and 8, the last two being the most systematic sweeps of the set. Five named restart triggers
 > are listed there, each a grep or a diff — two of which are now GATES (§244) rather than greps. Across
@@ -15463,3 +15463,69 @@ can still stop someone?"** A check in the wrong profile is indistinguishable fro
 run, and this repo had already written the argument down once, for bindings, without applying it to the
 consumers in the same file. **An argument recorded in a header is not an argument applied everywhere it
 holds** — the same completeness failure as §284, one layer up from code.
+
+---
+
+## §291 — A hypothesis killed by one command, and the trigger that had already fired
+
+§290 produced a triage rule: **what inputs does this check actually need?** Committed files only ⇒ it belongs
+at merge. Applied to the whole release profile.
+
+### Four of five are correctly release-only, and say why
+
+`restore-verify` needs a real backup; `staging-smoke` and `surfaces` hit the network (the latter's comment
+states it "deliberately does NOT run under the merge profile"); `backup-manifest` is a declared external
+hold on nightly-workflow credentials. Each carries its own justification in the gate table — the argument is
+already written down, which is what §290 said to look for.
+
+That leaves **`deploy-preflight`**, whose header claims it is PURE — "no network, no wrangler, no account".
+Enumerating its 24 problem codes, roughly two-thirds are config-shape (binding presence, placeholder ids,
+origins, cross-script targets, test affordances in prod) and only a handful are true environment facts. The
+hypothesis wrote itself: the config-shape half is misplaced, exactly like the DLQ rule was.
+
+### The hypothesis was wrong, and one command showed it
+
+The committed staging config **legitimately contains a placeholder** — `shuddl-mcp-staging.GRANTS`. Its ids
+are filled in by `provision-prod`, so an unprovisioned repo is the NORMAL state, and a merge-time "no
+placeholders" rule would fail every PR until provisioning happened. **Release is the correct home**, and the
+purity of the checker was never the question — the question is whether the fact it reads is settled at merge
+time. A pure function over a config that is *expected to change after merge* still cannot gate a merge.
+
+That is the refinement §290's rule needed: *committed-files-only* is necessary but not sufficient. The real
+test is **"is the fact this check reads FINAL at merge?"** A binding's presence is; a resource id is not.
+
+### What the run actually found
+
+The row for this in `docs/ops/GO-LIVE-CHECKLIST.md` carried its own expiry trigger — *"and the staging
+preflight has not been re-run since"* — and nobody had re-run it. Running it (HEAD `2a8a107`):
+
+- **1 × `placeholder-resource-id`**, not the 5 the row still predicted: `shuddl-mcp-staging.GRANTS`.
+- Verdict `BLOCKED — 8 unsatisfied prerequisites`, not 12.
+- And the split that matters: **7 of the 8 are account-side facts the run explicitly cannot see** without a
+  `--state` file (4 × `missing-secret`, `no-origins`, `tsa-unconfigured`, `no-backup`), leaving **exactly 1
+  repo-visible defect.** Reporting "8 blockers" without that split overstates what this repo owns by 8×.
+
+### The discriminating check, before believing good news
+
+**A count that improves has two explanations**: the defects were fixed, or the detector went blind. 5 → 1 is
+the same shape as a suite that suddenly passes. So the D1 branch was mutation-proved rather than read:
+planting an all-zero staging D1 id takes the count to **2**; restoring takes it back to **1**, config
+byte-identical. Detection is symmetric across kinds (`/^0{8}-/` for D1, `/^0+$/` for KV — the asymmetry
+§277 closed), so the drop is real provisioning.
+
+Record updated with the measurement, the 7-vs-1 split, and a **new trigger**: the verdict dies when the KV
+is provisioned or any staging resource id changes. A hold whose trigger has fired and been re-measured is
+worth more than one that was never questioned — but only if the re-measurement is written back, which is the
+failure mode this row had.
+
+### Verification
+
+`docs/ops/GO-LIVE-CHECKLIST.md` corrected in two cells (expected evidence, status). No code changed;
+`workers/api/wrangler.toml` restored byte-identical after the mutation. `typecheck 0 · lint 0 ·
+check:invariants 0 · check:citations 0 · audit:design 0`.
+
+### Yield note
+
+A refuted hypothesis is a result: the release profile is now measured-correct rather than assumed-correct,
+and the rule that survives is sharper than the one that went in. **"Pure over committed files" is not the
+test — "final at merge time" is.**
