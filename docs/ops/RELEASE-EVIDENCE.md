@@ -576,6 +576,10 @@ That is why H2 is resolved and why the `FIXED †` in `GO-LIVE-CHECKLIST.md` is 
 
 ### The merge gate — and the first evidence record this branch has ever produced
 
+**Run at `3fc592b`** (the same record `GO-LIVE-CHECKLIST.md` attributes to that SHA — 16 PASS + 5 BLOCKED
+= the 21-gate profile of the time). The merge profile is **24** today; the size is pinned in
+`tools/checks/gate-wiring.test.ts`, so this block is a snapshot and not a current expectation (audit §295).
+
 ```text
 pnpm verify:merge   →   16 gates PASS, 5 BLOCKED
                         aggregate: BLOCKED, exit 2 — NOT PROMOTABLE

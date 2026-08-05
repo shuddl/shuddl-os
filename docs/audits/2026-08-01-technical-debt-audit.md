@@ -187,7 +187,7 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 ## §4 — Phase gating and the stopping point
 
 > **CURRENT MEASUREMENT: §238, at `68cfb0d`; CONVERGENCE measured at §243.** The four clauses below are
-> measured in §238. §243 (extended by §251 → §270 → §282 → §285 → §286 → §287 → §288 → §289 → §290 → §291 → §292 → §293 → **§294**, now through §294) answers the separate question of whether another iteration is worth running:
+> measured in §238. §243 (extended by §251 → §270 → §282 → §285 → §286 → §287 → §288 → §289 → §290 → §291 → §292 → §293 → §294 → **§295**, now through §295) answers the separate question of whether another iteration is worth running:
 > defects-per-section across the eight sections after §238 ran 1,1,1,—,1,1,**0,0** while verified-clean
 > rose to 8 and 8, the last two being the most systematic sweeps of the set. Five named restart triggers
 > are listed there, each a grep or a diff — two of which are now GATES (§244) rather than greps. Across
@@ -15715,3 +15715,53 @@ produced it: **pin what must be argued, stamp what may grow, and never leave a n
 correction here was to my own writing one section earlier — the same shape as §284 (a rule recorded and then
 not applied to the sentence being written). The habit that catches it is cheap: **when you write "already
 covered", go and look.**
+
+---
+
+## §295 — The sweep encoded my convention, not the corpus's
+
+§294 asserted that every repeated number is stamped or pinned, on the strength of a loose check: *does a
+stamp appear anywhere earlier in the file?* A stamp three sections above covers nothing. Redone strictly —
+**is there a stamp between this line and its own heading?** — four counts fell into the "neither" bucket the
+rule says must be empty.
+
+**Three of the four were my own pattern's false positives.** The regex required the literal word `HEAD`
+(`HEAD \`[0-9a-f]{7}\``), and this corpus stamps with a **bare backticked SHA**:
+
+- `GO-LIVE-CHECKLIST.md:659` — *"`3fc592b`, and the record it wrote says…"*
+- `GO-LIVE-CHECKLIST.md:583` — *"**Executed at `dc26ea8`:** … 3 files, 69 tests passed"*
+- `RELEASE-EVIDENCE.md:302` — not a stamp question at all: it quotes `check:invariants`' output verbatim
+  (`21/22 tables, … 11 migration files`), and that number is **PINNED**. My sweep looked only for stamps and
+  was structurally unable to see the other half of the rule it was testing.
+
+**The lesson is not "another regex bug" — it is a different failure from the character-class ones.** Those
+matched too little of a known vocabulary. This one searched for **the convention I would have written**
+rather than the convention the corpus actually uses. A sweep over prose is only as good as its model of how
+that prose talks, and the way to get that model is to read a sample first, not to write the pattern first.
+*When auditing a corpus for a convention, derive the convention FROM the corpus.*
+
+### The one real finding
+
+`RELEASE-EVIDENCE.md` showed a merge-gate result in an undated code block — `16 gates PASS, 5 BLOCKED`,
+which is the **21**-gate profile of its time against **24** today. Stamped rather than rewritten, and the
+stamp was available without inventing one: `GO-LIVE-CHECKLIST.md` attributes the identical numbers to
+`3fc592b`. The block now says so, and points at the pin that owns the current figure.
+
+**Cross-referencing beats re-running when two documents record the same observation** — one of them usually
+kept the provenance the other dropped.
+
+### Final state
+
+Every build-owned count in `docs/ops/` is now **stamped, pinned, or a verbatim quote of a gate's output**.
+The residual is one line of the third kind, verified verbatim-current against a live run.
+
+### Verification
+
+`check:citations 0 · check:invariants 0`. One documentation line changed; no code.
+
+### Yield note
+
+Four sections after the rule was stated (§294), applying it strictly to its own claim found four exceptions,
+three of which were the auditor's. That ratio is the honest summary of this whole phase: **the remaining
+defects in this repository are mostly in the instruments, not the build** — which is itself the strongest
+available signal about where the stopping point is.
