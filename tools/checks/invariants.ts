@@ -575,6 +575,39 @@ export function checkDoMutexIntact(files: ReadonlyArray<{ path: string; source: 
       }
     }
   }
+  // ── THE OTHER HALF: the await that makes the mutex load-bearing (audit §318) ──────────────────────────
+  //
+  // The check above catches the mutex being DELETED. The DOs' own comments name a different and more
+  // dangerous change: *"the chain is defence for a future non-storage await"* — the input gate closes across
+  // `ctx.storage` awaits, so today the mutex is redundant, and it becomes load-bearing the moment a D1 read,
+  // a fetch or a queue send enters the critical section. That was a phase-gate trigger carried as a HUMAN
+  // trigger ("a non-storage await enters either meter DO"), and §296 wrongly described it as gate-enforced.
+  // This enforces it.
+  //
+  // SCOPED TO THE TWO METERS deliberately. `ShipmentSequencer` is the append chokepoint and legitimately
+  // awaits D1 all over; a purity rule there would be pure noise. The meters are tiny and frozen — MEASURED
+  // at 4 awaits each, every one `this.ctx.storage.*` — which is what makes an exact rule non-noisy here and
+  // not there. Comments are stripped first: both files DESCRIBE the forbidden await in prose, so a naive
+  // scan flags the very sentence warning about it (the §272 mention-is-not-a-use trap).
+  const AWAIT_PURE_METERS = ["SparkMeter", "CapsMeter"] as const;
+  for (const { path, source } of files) {
+    for (const cls of AWAIT_PURE_METERS) {
+      if (!new RegExp(`export class ${cls} extends DurableObject`).test(source)) continue;
+      const code = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+      for (const m of code.matchAll(/await\s+([^\n;]+)/g)) {
+        const expr = (m[1] ?? "").trim();
+        if (/^this\.ctx\.storage\./.test(expr) || /^\(await\s+this\.ctx\.storage\./.test(`(await ${expr}`)) continue;
+        violations.push(
+          `${path}: ${cls} awaits something that is not \`this.ctx.storage.*\` — \`await ${expr.slice(0, 60)}\`. ` +
+            `A non-storage await REOPENS the DO input gate mid-critical-section: six concurrent books admit SIX ` +
+            `against a velocity cap of THREE (measured, workers/mcp hostile-prompt races). If this await is ` +
+            `intended, the mutex is now LOAD-BEARING — say so in the header, keep the chain, and add the ` +
+            `concurrency test before relaxing this rule.`,
+        );
+      }
+    }
+  }
+
   // The roster must equal the discovered set — a NEW DurableObject cannot arrive uncovered.
   for (const cls of declared) {
     if (!(DO_MUTEX_ROSTER as readonly string[]).includes(cls)) {

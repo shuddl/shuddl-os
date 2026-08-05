@@ -15847,7 +15847,9 @@ The gate is not "forever". Any of these makes the verdict above stale and requir
    become this loop's.
 2. **Either live transport is wired** (the two demos that need one).
 3. **A new control-plane migration**, or any change to the tenant schema's table count.
-4. **A non-storage `await` enters either meter DO** — the mutex comment's stated trigger; it is now also a
+4. **A non-storage `await` enters either meter DO** — the mutex comment's stated trigger. *(§318: this was
+   described as gate-enforced and was NOT — `checkDoMutexIntact` catches the mutex being DELETED, a different
+   condition. It is enforced as of §318.)* It is now also a
    roster gate, so it fails loudly.
 5. **Any demo's filmed sentence changes** — the acceptance record is written against exact wording.
 6. **`shuddl-mcp-staging.GRANTS` is provisioned**, or any staging resource id changes (§291's trigger).
@@ -17051,3 +17053,56 @@ could: the same technique, run one section earlier on a narrower vocabulary, pro
 
 Deferral vocabulary derived from the corpus rather than assumed; six hits enumerated and each target checked
 against the section that verified it. `check:citations 0 · check:invariants 0`. No code changed.
+
+---
+
+## §318 — A phase-gate trigger that was described as automated and was not
+
+§317 swept every deferral in `tools/`. The phase gate's own triggers are deferrals too — §296 wrote *"two of
+these are now enforced by gates rather than memory (3 and 4)"* — and that claim had never been checked.
+
+**Trigger 4 was wrong.** It reads *"a non-storage `await` enters either meter DO"*, and the gate credited
+with enforcing it, `checkDoMutexIntact`, tests three limbs of the mutex: the `private lock` field, the
+`this.lock.then(...)` chain, and the poison-proof re-arm. **That catches the mutex being DELETED — a
+different condition, and the less dangerous one.**
+
+The distinction is the DOs' own argument. The input gate already closes across `ctx.storage` awaits, so the
+mutex is redundant *today*; deleting it leaves `workers/mcp` 177/177 green. It becomes load-bearing the
+moment a D1 read, a fetch or a queue send enters the critical section — measured in the header: *"six
+concurrent books admit SIX against a velocity cap of THREE."* **The gate guarded the silent change; the
+trigger named the catastrophic one; and the audit recorded them as the same thing.**
+
+### Enforced, now
+
+Measured first: both meters have **exactly 4 awaits each, every one `this.ctx.storage.*`**. (The extra
+"awaits" a naive count finds are in the comments *describing* the forbidden await — the §272 trap, live.)
+
+So the rule can be exact rather than heuristic: in `SparkMeter` and `CapsMeter`, every `await` must be
+`this.ctx.storage.*`. Comments are stripped first, or the prose warning about the danger trips the gate that
+exists because of it.
+
+**Scoped to the two meters deliberately.** `ShipmentSequencer` is the append chokepoint and awaits D1
+throughout; the same rule there would be pure noise. **The rule is exact where the surface is small and
+frozen, and absent where it is not** — which is the opposite of the usual instinct to apply a rule uniformly
+and then add exceptions.
+
+Mutation-proved: a D1 read replacing a storage read inside `#checkAndReserve` → **RED**, naming the
+offending await and telling the author what to do if the await is intended (*keep the chain, say so in the
+header, add the concurrency test*). Negative controls: the sequencer's many non-storage awaits stay
+**GREEN**, and the two comment mentions do not self-trip. Restored byte-identical.
+
+### The pattern, third instance
+
+§313: a deferral pointed at a closed audit. §317: five deferrals pointed at real mechanisms. §318: a
+deferral pointed at a mechanism that exists and guards *the adjacent condition*.
+
+**That third form is the hardest to see, because everything about it is true except the coupling.** The gate
+is real, well-built, and mutation-proved; the trigger is real and correctly stated; only the sentence joining
+them is false. Neither reading the gate nor reading the trigger reveals it — **only asking whether this gate
+fires on that condition**, which is one mutation.
+
+### Verification
+
+`typecheck 0 · lint 0 · check:invariants 0 · check:citations 0`; `test:tools` 781 tests, 778 passing (the
+known `REQ-289` trio). Trigger 4's wording corrected in place. Six live triggers remain; **three are now
+gate-enforced.**
