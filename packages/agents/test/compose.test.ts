@@ -380,3 +380,39 @@ describe("glMap — the frozen, total kind → GL account map", () => {
     expect(() => glMap("toString")).toThrow(/toString/);
   });
 });
+
+// THE POSTCONDITION ITSELF (audit §232). compose.ts asserts `Σ lines === sell` and says why: "the Task-1
+// refine guarantees the recorded lines sum to sell, but a mapping bug here must fail loud, never
+// misprice." The happy path above proves the lines mirror a WELL-FORMED quote; nothing proved the guard
+// FIRES on a malformed one — disabling it left packages/agents 217/217 and workers/api 754/754 green.
+//
+// That matters because this guard is the SOLE enforcement of penny-parity. Downstream,
+// packages/ledger/src/projection/money.ts:125 computes the invoice's total_cents FROM THE LINES
+// (`p.lines.reduce(...)`), so a drifted line set does not disagree with anything — it silently produces an
+// invoice whose total differs from the accepted quote's sell, and every projection agrees with itself.
+//
+// REQ-003 is "money is a PROJECTION of recorded physics". This is the assertion that makes the projection
+// checkable rather than merely intended.
+describe("composeInvoice — the penny-parity postcondition FIRES (REQ-003/031)", () => {
+  it("lines that do not sum to the recorded sell THROW, naming both figures", () => {
+    const drifted = {
+      ...mkQuote(),
+      lines: [
+        { kind: "freight", code: "freight", amount_cents: 90_000 },
+        { kind: "fsc", code: "fsc", amount_cents: 12_000 },
+        { kind: "accessorial", code: "liftgate", amount_cents: 17_999 }, // one cent short of sell
+      ],
+    } as QuotePricedPayload;
+
+    expect(() => composeInvoice(baseInput(drifted))).toThrow(/penny-parity violated/);
+  });
+
+  it("the error names the computed total AND the recorded sell — a misprice must be diagnosable", () => {
+    const drifted = {
+      ...mkQuote(),
+      lines: [{ kind: "freight", code: "freight", amount_cents: 1 }],
+    } as QuotePricedPayload;
+
+    expect(() => composeInvoice(baseInput(drifted))).toThrow(/1¢.*120000|120000.*1¢/);
+  });
+});

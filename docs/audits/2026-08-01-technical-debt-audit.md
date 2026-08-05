@@ -12133,3 +12133,60 @@ convert an open question into a settled-looking answer at no cost to anyone who 
 lifetimes, two guarded and two not — and the two gaps are not carelessness in the tests, they are silence
 in the record. The fix belongs to whoever owns the security posture, and the audit's job here is to hand
 them a bounded list with the measurement attached, not to close it by inventing the answer.
+
+---
+
+## §232 — the money laws hold, and the one guard that was the sole enforcement of penny-parity
+
+Two core money laws probed by mutation.
+
+**Apportionment (`allocateCents`, REQ-003/112) — clean, including its subtlest path.** The source
+documents a specific past regression: apportioning a *signed* total makes BigInt truncation-toward-zero
+replace floor, so every share of a negative total rounds the wrong way. Reintroducing it:
+
+```
+× always sums exactly for NEGATIVE totals too (property)
+× negative literal cases: allocate over abs then negate
+```
+
+Two tests, named for exactly that. The documented regression is pinned.
+
+**Penny-parity (`composeInvoice`, REQ-003/031) — the guard existed, nothing proved it fires.**
+`compose.ts` asserts `Σ lines === sell` and explains itself: *"the Task-1 refine guarantees the recorded
+lines sum to sell, but a mapping bug here must fail loud, never misprice."* Disabling it:
+
+```
+packages/agents  217 passed (217)
+workers/api      754 passed (754)
+```
+
+The happy path was well covered — *"a normal 3-line quote issues lines that mirror the quote to the
+penny"* — but no test fed it a malformed quote, so nothing observed the guard.
+
+### Why that guard is load-bearing rather than belt-and-braces
+
+I checked whether anything downstream would catch a drifted line set, since a duplicate guard would make
+this the §145 class (only the diagnostic differs). It would not:
+`packages/ledger/src/projection/money.ts:125@reduce` computes the invoice's `total_cents` **from the
+lines** — so drifted lines do not disagree with anything. They produce an invoice whose total silently
+differs from the accepted quote's sell, with every projection self-consistent.
+
+**This one assertion is the entire enforcement of penny-parity**, and it could have been deleted in a
+refactor with two full suites staying green.
+
+### Closed
+
+Two cases in `packages/agents/test/compose.test.ts` — a one-cent-short line set must throw
+`/penny-parity violated/`, and the error must name **both** figures, because a misprice that fails without
+saying by how much is a worse outcome than one that fails loudly. Suite 217 → **219**; replaying the
+mutation now fails both.
+
+No REQ row: REQ-003 already states the law, and this asserts the guard that implements it.
+
+### The rule
+
+**A guard that has never been observed firing is indistinguishable from a comment.** The tell here was not
+missing coverage — `compose.ts` is one of the best-tested files in the build, 30 cases over holds,
+approvals, anomalies and party resolution. It was that every one of those cases fed it *valid* input, so
+the postcondition ran and passed silently in all thirty. **Feed a guard the thing it exists to reject, or
+you have tested everything except the guard.**
