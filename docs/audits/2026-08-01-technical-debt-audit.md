@@ -18152,3 +18152,51 @@ gaps are all *"what kind of claim is this?"*, never *"is the claim true?"*.
 Ten engineering rules read and their stated numbers checked: 5 blessed screenshots verified against disk and
 against the live visual run; the 171-col reference traced to its config-pack contract and REQ-167 rationale.
 No file changed.
+
+---
+
+## §340 — The schema authority's invariants, completed
+
+The source-of-truth order names `genesis/10` as authority #2, and it states eight invariants. §305–§323
+mutation-proved the ten *laws*; nobody had asked the same question of **I1–I8**.
+
+Cross-referencing what this phase already proved, five were covered incidentally: **I2** (no invoice without
+`pod.signed` — §307's invoice gate) · **I3** (no event edit/delete at DB level — §305's two triggers) ·
+**I4** (custody co-signed or flagged — §321's `receiver_ack`) · **I6** (visibility respected by every view —
+§309's internal floor) · **I8** (any 22nd table is a build failure — §287's budget).
+
+**Three had never been mutated. Two are now proved:**
+
+- **I5 — "every quote pins rate_config versions."** `price.ts:142` emits `versions: { rate_config_ids }`;
+  emptied to `[]`, so a quote ships pinning nothing. **RED — 5 failing assertions**, naming `I5`, `min 1` and
+  `rate_config_ids`. Restored: 154 passed.
+- **I1 — "no money_line without event."** `0002_domain.sql:41`:
+  `event_id TEXT NOT NULL REFERENCES events(id), -- I1: no line without event, ever`. The FK removed, so a
+  money line can exist with no event behind it — money without physics, the inversion L3 exists to prevent.
+  **RED**, naming `I1` and `event_id`. Restored byte-identical: 616 passed.
+
+**I7 — "correction pairs net zero in GL export"** is exercised by
+`money-projection.test.ts` (*"credit+original net to 0 (I7)"*) but was **not** mutated here, and is recorded
+as such rather than counted. §308's rule: an unlanded or unattempted mutation is not evidence.
+
+### What the two REDs are worth beyond the count
+
+I1's enforcement is a **foreign key**, not application code — the same category as I3's triggers. Both are
+the last line, below every gate and every test double, and both are the kind of clause a schema refactor
+deletes without noticing because nothing in the application layer references it. **Two of the eight
+invariants live in DDL, and DDL is the layer least covered by the instincts that guard code.**
+
+I5's is the opposite: a single field in a returned object, deletable by an autocomplete accident, and caught
+by five assertions because the *tests* name the invariant.
+
+### Standing
+
+| authority | statements | mutation-proved |
+|---|---|---|
+| `CLAUDE.md` — laws + engineering rules | 10 | **10** (§305–§323, 27 mutations) |
+| `genesis/10` — schema invariants I1–I8 | 8 | **7** — I7 exercised but not mutated |
+
+### Verification
+
+Both mutations landing-verified and restored byte-identical; `@shuddl/rater` 154, `@shuddl/ledger` 616 green
+after restore; path filters used throughout (§325). No file changed.
