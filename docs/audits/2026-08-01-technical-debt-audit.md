@@ -13926,3 +13926,53 @@ mine, found in under a minute — and none would have failed a single gate.
 themselves; the unanchored ones do not, and they are the majority. Treat "I added lines near the top of a
 frequently-cited file" as a trigger to sweep, in the same way this audit treats "a comment says two things
 must stay identical".
+
+## §263 — the bulk citation audit, attempted and abandoned with a number
+
+§262 found 4 of 9 unanchored citations wrong in files this session edited — a 44% rate that invites the
+obvious next step: audit *all* of them. The population is real and large. Measured across every tracked
+markdown file (excluding the concurrent workstream's trees, strikethrough masked):
+
+**651 unanchored citations resolve.** Of those, **308** sit on a line carrying a nearby backticked
+identifier that could serve as the anchor an author would have written. Checking each against a ±2 window:
+**138 contain that symbol, 170 do not.**
+
+**170 is not a defect count, and reporting it as one would have been the error.** Three were adjudicated by
+hand and all three are **false positives**:
+
+| Flagged | Verdict |
+|---|---|
+| `transition-gates.ts:194`, "expected `assertInterline`" | **correct** — the citing sentence reads *"`ctx.fence` is undefined (`:194`); `assertInterline` takes…"*. The citation belongs to `ctx.fence`, which sits at `:196`, inside the window. The sweep paired it with the *next clause's* symbol |
+| `workers/api/src/do/sequencer.ts:435@operating_state`, "expected `deriveOperatingState`" | **correct enough** — the line is a comment about `operating_state` sourcing; the imported identifier lives at `:40`, but the cited line is the topical referent |
+| `compose.ts:149`, "expected `UNKNOWN`" | same shape — a function boundary the prose is plausibly pointing at |
+
+### Why no mechanical sweep can do this, ever
+
+The failure is not tuning. A line of prose routinely carries **several citations and several backticked
+symbols**, and nothing in the text says which binds to which — that pairing exists only in the author's
+head. My sweep guessed, and guessed wrong three times out of three.
+
+**That is exactly what an `@symbol` anchor is: the author declaring the referent.** (This section cited that
+sequencer line unanchored on its first pass and the ratchet refused it; writing the refusal up then
+re-created it a second time, because naming a citation in prose IS a citation — de-linked here, as six
+earlier sections had to. The mechanism enforced the point of the paragraph twice in five minutes.) Rule 2 is not a
+checksum bolted onto rule 1 — it is the one channel through which intent is recorded at all, which is why it
+must be opt-in and why the ratchet exists to let the unanchored population fall rather than be audited into
+submission. §240 reached the same wall from the path-only direction (~95% false positives) and named the
+same fix: an opt-in marker.
+
+### What this leaves, stated as a bound
+
+- The unanchored population is **651**, of which the ratchet freezes 111 into the 10 high-churn targets —
+  those are the ones that will actually rot, because rot needs churn.
+- **No bulk audit of it is worth running.** Two independent attempts (§240, this one) both hit false-positive
+  rates that would bury a real finding.
+- The method that *does* work is §262's, and it works for one reason: **the person who moved the lines knows
+  what the citations meant.** Intent is available at edit time and nowhere else.
+
+### The rule
+
+**Prefer the audit only the author can do.** When a check depends on intent that was never written down, a
+sweep produces a population, not a defect list — and publishing the population as findings hands the next
+reader 170 units of work that are ~0 units of defect. Measure it, say what it bounds, and put the effort
+where the intent still exists: in the diff you just made.
