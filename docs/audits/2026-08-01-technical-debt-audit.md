@@ -187,11 +187,11 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 ## §4 — Phase gating and the stopping point
 
 > **CURRENT MEASUREMENT: §298 (the merge gate RUN, not inferred: 24 gates, 17 PASS, 5 BLOCKED, 2 FAIL) +
-> §310 (the TEN LAWS mutation-proven: ten laws, ten REDs, every file restored byte-identical).** Read those
+> §310 (the TEN LAWS mutation-proven — extended by §323 to **27 individual mutations, every one RED, zero residual**, every file restored byte-identical).** Read those
 > two first — together they are the production-readiness claim: the gates run, and the laws the gates exist
 > to protect fail when their enforcement is removed. §296 re-measured the gate surface at `3d1386b` but named two bounds that turned
-> out to be unmeasured inheritances — §297 withdrew the worker-suite bound (the full suite runs: 281 files /
-> 3,704 tests / 3,701 passing, re-measured after §324/§326) and §298 withdrew the browser-gate bound (visual/a11y/e2e all PASS with
+> out to be unmeasured inheritances — §297 withdrew the worker-suite bound (the full suite runs: **283 files /
+> 3,704 tests / 3,701 passing**, re-measured at §328 after §324/§326 each added a test file) and §298 withdrew the browser-gate bound (visual/a11y/e2e all PASS with
 > `executed: true`). §299 specifies the single blocker behind both FAILs — the uncommitted `REQ-289` GTM row,
 > down to the two source lines that reject it; §300 verifies every item of the standing ledger against its
 > source; and **§326 closed the last repository-owned item, so every remaining entry is blocked on an input
@@ -17634,3 +17634,48 @@ re-measuring, sweep for every copy of the number you just changed**, including t
 
 Full recursive suite re-run (exit 0); five figure copies and one stamp updated; `check:citations 0 ·
 check:invariants 0`.
+
+---
+
+## §329 — Reading the entry point whole, after thirty edits to it
+
+Every section since §296 has changed §4 — struck a bound, superseded a ledger line, corrected a trigger,
+updated a figure. Each edit was correct in isolation and each was verified in isolation. **Nobody had read
+the block as a paragraph since.**
+
+Two contradictions had accumulated, both invisible to every gate:
+
+1. **"the full suite runs: 281 files / 3,704 tests / 3,701 passing"** — internally inconsistent *within one
+   sentence*. §328's sweep replaced the test counts and missed the file count, because they sit on different
+   lines and my pattern matched only the second. **281 files cannot produce 3,704 tests, and nothing said so
+   for one section.**
+2. **"§310 … ten laws, ten REDs"** — true when written, superseded by §323's 27 individual mutations and zero
+   residual. The pointer *understated* the evidence it exists to route to.
+
+### Why gates cannot catch this and it is not their job
+
+`check:citations` verifies every `§N` resolves — all did. `check:tables` verifies markdown rows render — they
+do. **Neither can know that two numbers in adjacent clauses describe the same measurement.** That is not a
+gap to close: a gate that understood "281 files and 3,704 tests are the same claim" would have to model the
+prose's meaning, which is the wall this audit has now measured four times (§292/§304/§313/§326).
+
+**The mechanism that catches it is reading the artefact whole, and the trigger is "N edits since anyone
+did."** §328 fixed a figure; §327 fixed a duplication; both were caught by reading the *result of that edit*.
+Neither would have caught these, because the contradiction is between an edit and an edit made two sections
+earlier.
+
+### The rule, stated for the next long-lived document
+
+**In-place correction is locally verifiable and globally not.** Every edit here was checked against the
+section it changed; the defect lived in the relationship *between* sections. So a document that routes
+readers — an entry point, a phase gate, a resume guide — **needs a periodic whole-read that no individual
+edit triggers.** The cheap version costs one command and two minutes: print the block, read it as a reader
+would, ask whether any two numbers in it could disagree.
+
+This is §301/§302's lesson at a third scale. There: a claim corrected where it lives while the route stayed
+stale. Here: **a route corrected repeatedly, each time correctly, until the route contradicted itself.**
+
+### Verification
+
+§4 read whole; two contradictions found and fixed; `check:citations 0 · check:invariants 0` — both green
+before and after, which is the point.
