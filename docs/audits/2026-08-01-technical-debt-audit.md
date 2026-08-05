@@ -16840,3 +16840,74 @@ false positives out of four candidates. That is the §292/§304 wall for the thi
 
 Roster and emitter sets enumerated and diffed; all four exclusions adjudicated by reading the source.
 `check:authority-coverage` exits 0. No code changed.
+
+---
+
+## §314 — The roster class, swept; and three probe errors in one section
+
+§313 found one hand-maintained roster whose completeness has no recurring owner. That is a class, not an
+instance — §286 closed `WORKER_CONFIGS`, §313 recorded `AUTHORITATIVE_FILES`. So the enforcement layer's
+rosters were enumerated and each asked whether discovery guards it.
+
+Fourteen `const UPPER_CASE = [...]` declarations in `tools/`. Most are domain constants (`DIVISIONS`,
+`ACCESSORIAL_MENU`, `LIFECYCLES`, `STATUSES`) whose incompleteness is a bug, not a weakened gate. Four are
+**coverage** rosters — a short list that decides what a gate can see:
+
+- `DO_MUTEX_ROSTER`, `GUARDED_TABLES`, `MUTABLE_TABLES`, `SURFACE_ROSTER` (`invariants.ts`) — all
+  discovery-guarded, built that way in §244/§245/§265/§266.
+- `AUTHORITATIVE_FILES` — §313's hold.
+- `SCAN_GLOBS` (`append-chokepoint.ts`) — decides which trees are scanned for a direct `INSERT INTO events`.
+  **A tree missing from it is a place Law 2 cannot see.**
+- `CITABLE_EXTENSIONS` (`citation-links.ts`).
+
+### The chokepoint's coverage, planted rather than read
+
+My own memory's rule for exactly this: *plant a violation per tree × extension cell rather than reading the
+globs.* A direct-write probe was planted in **ten** source trees — every worker, four packages, a surface,
+and `tools/checks`.
+
+**10 of 10 caught**, including `tools/`, which my first reading of `SCAN_GLOBS` said was excluded — the
+`grep -A 6` had truncated the array. **Reading the globs would have produced a false gap; planting produced
+the truth.** Law 2's static half is fully covered.
+
+### Three probe errors, one section, all caught by disbelief
+
+The citation-gate probe reported **UNCHECKED** three times — a result meaning "the citation gate scans
+nothing", which is absurd on its face after forty sections of relying on it.
+
+1. First probe used `nope/does-not-exist.ts` — a **generic-looking path the gate deliberately ignores**
+   (§240 measured that exclusion; illustrations are the dominant false-positive source).
+2. Second used a realistic path and still failed.
+3. The actual cause: **`citation-links.ts` resolves against `git ls-files`** — its header says so outright,
+   *"a citation to an untracked file reads as…"* — and every probe file was untracked. The chokepoint scan
+   uses `globSync` over the filesystem, which is why the same technique worked there.
+
+`git add -f` the probe: **caught ✓**, immediately.
+
+**The reusable part is not "remember to stage the file".** It is that *two gates in the same directory
+disagree about what "the codebase" means* — one asks git, one asks the filesystem — and a probe that ignores
+the difference produces a confident, wrong answer about coverage. §288's memory names this exact shape: *the
+delta between two mechanisms' scopes is a defect even with nothing failing.* Here it was not a defect, but it
+was enough to invalidate three measurements.
+
+**And the thing that saved all three: the result was implausible.** "The citation gate checks nothing" cannot
+be true in a repo where that gate has failed builds this session. **Implausibility is a cheaper detector than
+any verification step** — it costs one sentence of doubt, and it fires before the finding is written down.
+
+### Where the class stands
+
+| roster | guards | discovery? |
+|---|---|---|
+| `DO_MUTEX_ROSTER`, `GUARDED_TABLES`, `MUTABLE_TABLES`, `SURFACE_ROSTER` | invariants | **yes** (§244/§245/§265/§266) |
+| `WORKER_CONFIGS` | deploy parity | **yes** (§286) |
+| `SCAN_GLOBS` | Law 2 static scan | no — but **verified 10/10 by planting** |
+| `CITABLE_EXTENSIONS` | citation scope | no — verified by planting (tracked `.ts` caught) |
+| `AUTHORITATIVE_FILES` | REQ-030 authority | no — **§313's recorded hold** |
+
+Seven coverage rosters: four discovery-guarded, two verified-by-planting today, one carrying a written hold
+with a trigger. No unknowns left in the class.
+
+### Verification
+
+Thirteen probe files planted and removed across eleven directories; `git status` residue **0**;
+`check:chokepoint` and `check:citations` both exit 0 on the clean tree.
