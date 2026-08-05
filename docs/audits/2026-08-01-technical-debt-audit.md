@@ -13183,3 +13183,60 @@ does this symbol occur now" but "what did the sentence mean to point at" — and
 whenever a symbol is declared in one place and used in another, which is most of the time. A repair that
 satisfies the gate without re-reading the prose is how a correct-looking citation becomes a wrong one, and
 it is the only class of citation rot a green `check:citations` will actively help you create.
+
+## §249 — re-verifying the last open rows, and the citation form §240 never measured
+
+Finishing §248's pass over the open repo-owned rows. Four remained unverified; their load-bearing claims
+were checked against source rather than re-read:
+
+| Row | Claim | Verdict |
+|---|---|---|
+| Evidence-email failure surfaces nowhere | Biller returns `issued_send_pending` on a non-retriable `SendError`; `NotConfiguredSender` throws a **retriable** one, so today every send fails retriably → DLQ | **accurate** — the code carries the quoted comment verbatim (`true, // retriable: binding a provider and redelivering succeeds`) |
+| The one agent with variable cost has no cost/latency metering | no cost/token/latency capture at the Concierge's LLM seam | **accurate** — still absent |
+| Pool-binding exclusivity: enumeration, not resolution | no UNIQUE index on `pool_binding` | **accurate** — still the pre-R4 carry-forward |
+| Lost booking trigger has no backstop | (§248) | verdict accurate; its cron count was stale and is fixed |
+
+All four hold. **No open row is stale in its verdict** — the two defects this pass and last were both in
+supporting detail (a count, a path), not in a judgement.
+
+### The mistake that produced the finding
+
+Verifying the evidence-email row, I ran `grep retriable workers/agents/src/sender.ts` and got **no such
+file** — and was one sentence from recording a rotted citation. The row does not say that. It says
+`` `sender.ts` ``, a bare basename; I invented the `workers/agents/src/` prefix by analogy with
+`` `biller.ts` `` in the *same sentence*, which does live there. The two files sit in **different packages**
+(`workers/agents/src/biller.ts` and `packages/agents/src/biller/sender.ts`), and read as siblings.
+
+The row was right and my probe was wrong — the fourth instance this session of measure-one-generalise-to-its
+-neighbour. But the ambiguity is real and has now demonstrably cost a careful reader minutes, so both
+citations were made explicit and **anchored** (`:77@issued_send_pending`, `:183@NotConfiguredSender`), which
+also moves them from unchecked prose into the citation gate's rule-1 coverage.
+
+### The form §240 never measured
+
+§240 measured path-only citations and required a `/` in the match — so **bare basenames were never
+scanned at all**, and a bare basename is *more* ambiguous, not less. Measured now across the two live
+ledgers:
+
+| Doc | Basenames resolving to >1 tracked file | Unresolved |
+|---|---|---|
+| `docs/ops/GO-LIVE-CHECKLIST.md` | **9** — `package.json` (18 candidates), `index.ts` (14), `board.ts` (3), `parity.test.ts` (3), `manifest.json`/`export.ts`/`events.ts`/`evidence.ts` (2 each) | 1 — `WP-01..16.md`, the range notation §240 already filters |
+| `docs/ops/PROJECT-STATE.md` | **0** | **0** |
+
+Most are benign in the same way §240's residual was: `package.json` and `index.ts` appear as generic
+mentions ("every `package.json`"), not as citations, and no filter distinguishes that. So the conclusion is
+§240's again — **not a gate** — with one thing §240 could not say: PROJECT-STATE achieves zero, so the
+explicit form is not an unreasonable standard, merely an unenforced one.
+
+**The narrow, cheap convention that follows:** a basename is fine in prose and not fine in an **evidence
+field**. The "Source read:" column exists precisely so a reader can go verify, and that is the one place
+where "which of the 14 `index.ts`?" costs someone real time. Applied here rather than declared as policy —
+the one row that misled a reader is now explicit.
+
+### The rule
+
+**A probe that returns "no such file" is a claim about the path you typed, not about the document.** Read
+the citation exactly as written before believing it is broken — the failure modes are symmetrical, and this
+session has now produced both: a citation that resolved while pointing at the wrong thing (§248) and a
+citation that looked broken while being right (here). Neither is visible to a gate; both are visible to
+reading the sentence.
