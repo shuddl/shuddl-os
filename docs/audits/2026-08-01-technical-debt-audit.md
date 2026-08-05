@@ -12038,3 +12038,53 @@ objecting?"* Here nothing joins them and nothing needs to, because one side is a
 behaviour and the other is a locked migration guarded by two meta-checks. §222's anchor leaf was the
 opposite: **two TypeScript functions, both trivially editable, joined by a sentence** — which is exactly
 the combination that produced 1,365 green tests over a real divergence.
+
+---
+
+## §230 — rule constants: the mechanism is tested, the policy value is not declared
+
+§229's question — *can either side move without something objecting?* — inverts into a class: **constants
+that ARE a rule, trivially editable.** §205 found the palette, §228 the stream-id regex. Swept for the
+rest: module-level SCREAMING_CASE holding a threshold, window, limit or pattern. **84 found; 64 never
+named in any test.**
+
+That 64 is a weak proxy and I did not report it as a finding — a constant can be behaviourally covered
+without ever being named. Probed the most security-relevant instead.
+
+**OAuth token TTL** — `TOKEN_TTL_SECONDS`, 1 hour → 1 year:
+
+```
+× an EXPIRED grant → 401 (a real token resolved under a clock …)
+× resolveTokenGrant enforces grant.exp (not just KV TTL) …
+```
+
+Caught, by two tests, neither of which names the constant. The proxy overcounts exactly as expected.
+
+**Public status-cap TTL** — `CAP_TTL_SECONDS`, 30 days → **10 years**:
+
+```
+workers/api   754 passed (754)
+```
+
+Silent. And this cap grants **unauthenticated** read of a shipment's status to whoever holds the URL.
+
+### The distinction that matters
+
+The expiry **mechanism** is properly tested — `status-cap.test.ts`: *"an expired cap fails
+verifyStatusCap"*. What is unpinned is the **policy**: how long a public link should live.
+
+So the obvious fix — a `toBe(30 days)` assertion, §205's move for the palette — is **wrong here**, and the
+difference is worth being precise about. `CLAUDE.md` declares "5 color tokens · 2 font families" as law,
+so pinning them enforces a decision someone made. Nothing declares the status-cap lifetime: **REQ-187
+governs lens-scoping**, and neither genesis nor ops states a duration. Pinning 30 days would freeze a
+number no one chose and hand a future reader a test that looks like policy and is not.
+
+Recorded in `GO-LIVE-CHECKLIST.md` as **Low–Med**, with the order of operations stated: *decide the policy
+and record it, then pin it.*
+
+### The rule
+
+**Test the mechanism; declare the policy; only then pin the value.** A security-relevant constant with a
+tested mechanism and an undeclared value is not a missing test — it is a **missing decision**, and adding
+the test first disguises it as settled. The tell is what §136 asked: *is this value written down anywhere
+outside the code?* For the palette, yes. For a 30-day public link, no — and that is the actual finding.
