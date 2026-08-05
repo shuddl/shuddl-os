@@ -17925,3 +17925,45 @@ survived one correction in a document nobody thought to check.
 Both withdrawn bounds swept across `docs/`, `CLAUDE.md`, and the plan corpus; every hit classified as
 another workstream's, a harness description, or a gate-behaviour statement; none stale.
 `check:citations 0 · check:invariants 0`. No code changed.
+
+---
+
+## §335 — Diffing a fact stated in three places: the demos agree
+
+§334's rule — *when two documents describe the same fact, the difference between them is free information* —
+applied to the fact with the most copies and no pin: **the five acceptance demos**, named in `CLAUDE.md`,
+governed by `genesis/00`, and implemented in `tools/acceptance/demos.ts`. §319 had already shown nothing
+gates their wording, so a divergence would be silent.
+
+Demos 2–5 match across all three sources (demo 5 differs only as *"dimming"* vs *"dims"*). **Demo 1 looked
+like a real divergence:**
+
+- `CLAUDE.md`'s demo list: *"invoice + photos in the client's inbox **<5s**"*
+- `demos.ts`' title: *"POD → invoice + evidence email (**same second**)"*
+
+Two different acceptance thresholds for the flagship demo would be a genuine spec defect. **It is not one.**
+
+`genesis/00` — the governing document — says **same second**. `CLAUDE.md`'s own opening line says the same
+("*money as a projection of physics (POD → invoice + evidence email, same second)*"). And `demos.ts` states
+the reconciliation outright at line 42: *"the **<5s wall-clock**: p95 POD→email latency on the real substrate
+(Cloudflare Queues delivery + real …)"*.
+
+**"Same second" is the design law; "<5s p95" is its measurable tolerance on real infrastructure.** The
+implementation carries both, in the right relationship, and `CLAUDE.md` quotes each in a different place —
+the law in its opening, the tolerance in its demo list.
+
+### What a clean diff is worth here
+
+Nothing was wrong, and the check could not have known that in advance: an unpinned fact with three copies, one
+of which visibly differs, is precisely where §334 predicts a defect. **Reading resolved it in two commands,
+and the resolution is better designed than a match would have been** — a bare match would have meant one
+threshold and no statement of how it is measured.
+
+**A law and its tolerance are not a contradiction, but they read as one at a glance**, which is why this
+belongs in the record: the next person to diff these files will see the same apparent mismatch, and this
+section is the answer they would otherwise re-derive.
+
+### Verification
+
+Five demos compared across `CLAUDE.md`, `genesis/00` and `tools/acceptance/demos.ts`; the single substantive
+difference traced to its reconciliation in the implementation; no defect. No file changed.
