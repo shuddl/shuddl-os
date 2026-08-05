@@ -10517,3 +10517,65 @@ What five sessions of re-measurement now support: **the build is not drifting, a
 strongest component.** The residual risk is concentrated where it has been since §188 — production data
 volume (§183/§185, invisible to every fixture-based gate) and the record's agreement with intent (§178,
 §196), which is the axis this session spent most of its effort on and the one with no gate at all.
+
+---
+
+## §203 — two of the seven "CI-enforced" budgets are not
+
+`CLAUDE.md` heads its budget list *"Hard budgets (CI-enforced; exceeding = the PR is wrong)"* — ≤22
+tables · 3 surfaces · 12 views · 35 event kinds · 5 colour tokens · 2 font families · 0 shadows. §198–§201
+tested the ten rules; the budgets make the same kind of claim and had never been broken on purpose.
+
+### Enforced
+
+| Budget | Probe | Caught by |
+|---|---|---|
+| ≤22 tables | a forward migration adding 2 tables | `FAIL I8 VIOLATION: 23 effective tables > budget 22`, exit 1 |
+| 35 event kinds | a 36th kind in the catalog | **typecheck exit 2** (exhaustive switches) **+** 4 contracts tests, incl. *"EVENT_KINDS.length is still exactly 35"* |
+
+The event-kind budget is the better-defended of the two — a compile-time guarantee *and* an explicit
+count, in different mechanisms.
+
+### Not enforced
+
+Planted a **6th colour token** and a **3rd font family** in `packages/design/src/tokens.ts@TOKENS`:
+
+```
+audit:design                    exit 0
+packages/design suite           9 passed
+tools/design/design.test.ts    49 passed
+```
+
+**Nothing counts the palette.** No `Object.keys(TOKENS)` assertion exists anywhere in the repo.
+
+What *is* enforced is a different and arguably more valuable rule: everything must reach colour through
+`var(--token)` / `TOKENS`, with raw hex forbidden outside `tokens.ts`. That stops **ad-hoc** colour
+everywhere in the codebase — it does not stop the palette itself from growing. The two are easy to
+conflate, and the budget line conflates them.
+
+**No defect today** — the palette is exactly 5 and 2. What is wrong is the *claim*: a reader of
+`CLAUDE.md` believes a 6th token would fail CI, and it would merge. Recorded as **Low** in
+`GO-LIVE-CHECKLIST.md`, with the fix stated both ways: add a palette-size assertion beside the existing
+token tests, **or** amend the budget line to say what is actually gated.
+
+### Two guards I did not know about, and one instrument error
+
+- **Migrations are forward-only and lock-checked.** The first table probe edited a committed migration and
+  got `FAIL … was EDITED after it was committed to the lock — migrations are forward-only`. Re-done as a
+  new migration file, the budget check then fired. Second time this session a probe was blocked by an
+  unadvertised guard (§201's register contiguity was the first).
+- **The table budget WARNs at the limit before it FAILs past it** — 21 → 22 produced
+  *"WARN I8: spare table slot spent (22/22). This requires a written deletion note in the register"*,
+  matching `CLAUDE.md`'s "21 used; the spare requires a written deletion."
+- **I ran `check:design`, which does not exist.** It exited 1 — *"Missing script"* — and I read that as
+  the design gate catching my mutation. It only surfaced because I re-checked the exit code **after
+  restoring** and found it still 1 on a clean tree. The real gate is `audit:design`, and it exits 0 either
+  way. Fourth instrument error this session, and the only one caught by a habit rather than a suspicion:
+  **always re-run the gate on the restored tree, not just the mutated one.**
+
+### The rule
+
+**"CI-enforced" is a claim about a gate that exists, so find the gate.** Five of seven budgets are
+genuinely enforced and two are not, and nothing distinguishes them in the document that asserts all seven.
+The adjacent rule being strong — no raw hex anywhere — is exactly what makes the gap invisible: the thing
+you would look for *is* there, guarding something else.
