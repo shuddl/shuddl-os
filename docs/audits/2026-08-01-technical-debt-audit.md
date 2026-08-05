@@ -186,9 +186,9 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 
 ## §4 — Phase gating and the stopping point
 
-> **CURRENT MEASUREMENT: §188, at `7d0a17e`.** This section states the four exit clauses and the grade
+> **CURRENT MEASUREMENT: §202, at `015413d`.** This section states the four exit clauses and the grade
 > table; the *numbers* in it decay and are re-measured per session (§113 `99ae4ca` → §141 `78499e9` →
-> §168 `e27307f` → §176 `71edfbe` → **§188 `7d0a17e`**). Read the clauses here and the posture there — and
+> §168 `e27307f` → §176 `71edfbe` → §188 `7d0a17e` → **§202 `015413d`**). Read the clauses here and the posture there — and
 > per §64/§110, read every count from a run, never from this page.
 
 Grades from `V2-EXECUTION-FRAMEWORK.md` §9. What this audit adds to each bar:
@@ -10461,3 +10461,59 @@ found §180's leak guard, §181's gate sentinel and §186's DST converter unable
 every day and read identically in the record — the asymmetry is invisible until you plant the second
 orphan. The register's contiguity rule was found the same way, by planting something malformed rather
 than merely absent.
+
+---
+
+## §202 — the phase gate at `015413d`, and what twenty-nine sections established
+
+Sixth re-measurement of §4 (§113 `99ae4ca` → §141 `78499e9` → §168 `e27307f` → §176 `71edfbe` →
+§188 `7d0a17e` → **§202 `015413d`**), 13 commits after the last.
+
+| | §188 | §202 |
+|---|---|---|
+| merge surface | 24 gates | **24 gates** |
+| PASS / BLOCKED / FAIL | 17 / 5 / 2 | **17 / 5 / 2** |
+| blocking cause | `REQ-289` | **`REQ-289`, unchanged** |
+| full suite, row set aside | 3,608 tests, exit 0 | **3,608 tests, exit 0** |
+
+Identical, including the test count — §189–§201 added no tests because none of it was new behaviour. The
+gate has not moved across **24 commits and three re-measurements**.
+
+### What this session actually established
+
+**Six hard laws broken on purpose and caught** (§198–§201): rules 1, 2, 4, 5, 8, 10. Rule 2 has genuine
+defence in depth (behaviour *and* existence); rule 8 is caught by 20 tests across 9 files; rule 10 by
+exactly one. The other four have no comparable executable path, and that is by design, not omission.
+
+**Four tests that could not fail, now able to** (§180, §181, §186): a leak guard whose every assertion sat
+behind an empty-fallback loop; a gate sentinel that passed against a harness grading everything PASS; a
+no-price-on-air guard riding a narrowing condition; a DST converter eleven sibling tests could not
+falsify. Plus a keyset-pagination fixture that had only ever had one page.
+
+**Ten rotted citations in live documents** (§193–§195), found by verifying before anchoring — including
+four in the gate-parity Quick Reference and a code fence citing the comment *about* its own code. Anchored
+citations 74 → 101; high-churn exposure 129 → 111.
+
+**Six record defects where the document understated or misstated the build** (§172, §174, §178, §189,
+§196, §197): a README ten work packages stale, a skill registry sending readers to write tests that
+existed, two acceptance demos promising what the product cannot do, a 26 KB tested workflow called a
+"stub", and a row whose title contradicted its own correction.
+
+### The carry-forward, unchanged in substance
+
+Nothing in §189–§201 produced a new repository-closable defect. The proposed-scope inventory stands as
+§188 recorded it — §178 (demo #1 photos), §183 (five unbounded reads), §185 (six full-`SCAN` paths), §182
+(latent `clear()` fail-open), §184 (retention scan), §179 (31-row DoD shortlist) — now with §183 and §185
+**filed at their code sites** (§191) and §133/§135/§137 likewise (§192), so an engineer meets them without
+reading the audit.
+
+### The stopping point
+
+**Unchanged, and now better evidenced.** §4's four clauses hold. Clause 2's distance to green is one
+uncommitted register row owned by the concurrent GTM workstream — not an engineering task, and not one
+this loop may absorb.
+
+What five sessions of re-measurement now support: **the build is not drifting, and its stated laws are its
+strongest component.** The residual risk is concentrated where it has been since §188 — production data
+volume (§183/§185, invisible to every fixture-based gate) and the record's agreement with intent (§178,
+§196), which is the axis this session spent most of its effort on and the one with no gate at all.
