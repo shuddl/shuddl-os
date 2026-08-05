@@ -187,7 +187,7 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 ## §4 — Phase gating and the stopping point
 
 > **CURRENT MEASUREMENT: §238, at `68cfb0d`; CONVERGENCE measured at §243.** The four clauses below are
-> measured in §238. §243 (extended by §251 → §270 → §282 → §285 → §286 → §287 → §288 → §289 → §290 → §291 → **§292**, now through §292) answers the separate question of whether another iteration is worth running:
+> measured in §238. §243 (extended by §251 → §270 → §282 → §285 → §286 → §287 → §288 → §289 → §290 → §291 → §292 → **§293**, now through §293) answers the separate question of whether another iteration is worth running:
 > defects-per-section across the eight sections after §238 ran 1,1,1,—,1,1,**0,0** while verified-clean
 > rose to 8 and 8, the last two being the most systematic sweeps of the set. Five named restart triggers
 > are listed there, each a grep or a diff — two of which are now GATES (§244) rather than greps. Across
@@ -15603,3 +15603,58 @@ Four documents corrected; no code changed. `check:citations 0 · check:invariant
 Two sections on one fact produced a sharper rule than either alone: §291 gave *"is this fact final at
 merge?"*, §292 gives *"sweep for the fact, not for the confession."* Both came from the same row, and the
 second only surfaced because building a gate forced a census the correction pass had not needed.
+
+---
+
+## §293 — The second fact that drifted, and the pin that caught me writing a third wrong number
+
+§292's rule — sweep for the fact, not the confession — applied to the next measured fact in the record: the
+**gate count**.
+
+### One owner correct, one copy stale, two dated snapshots
+
+Computed from `gatesFor()`: **merge = 24** (15 plain + 9 skippable), **release = 29** (+5 `releaseInfra`).
+Four documents quote a gate count:
+
+- `PROJECT-STATE.md` — **correct**, and it is the owner. It says *"do not trust a count written here… As of
+  2026-08-02 it is 24"*, then documents its own past decay: the loop added three plain gates and the old
+  "21 gates: twelve plain" rotted silently. It even states the law: **"a hand-maintained count of a list the
+  build owns will always rot."**
+- `RELEASE-EVIDENCE.md` — **stale**: *"Counts: 21 gates under `--profile merge` (12 plain + 9 skippable), 26
+  under release"*, undated and definitional. Corrected.
+- `LAUNCH-RUNBOOK.md` and a second `PROJECT-STATE` line — *"16 gates PASS, 5 BLOCKED"* — both sit inside
+  explicit stamps (`As of 2026-07-30 · HEAD 7f5b06a`, `Superseded 2026-07-28 at HEAD 3fc592b`). **Dated
+  history, correct as-is.** The §292 distinction earned its keep immediately: two of four matches needed no
+  change, and only reading told them apart.
+
+### The pin, and what it caught within a minute
+
+A count in prose cannot fail. So the numbers now live where they can: `gate-wiring.test.ts` pins merge=24,
+release=29, and asserts release is a strict **superset** of merge (a gate that runs at merge must not vanish
+at release). The failure message names the two documents to update — the §269 shape, where *growth* is what
+breaks and the doc update lands in front of the person who caused it.
+
+**The pin's first act was to fail on my own edit.** I had written "30 under release" into
+`RELEASE-EVIDENCE.md` moments earlier — a number I derived by counting `{ kind:` lines with `awk` instead of
+calling `gatesFor()`. The awk never reset its state flag, so entries *after* the array (inside `synthesize`)
+counted into `releaseInfra`. **While correcting a wrong number I introduced a different wrong number, into
+the same line, from the same class of error the whole section is about** — reasoning about an artifact
+instead of asking it.
+
+That is the argument for pinning in the build, made better than any prose could: the mechanism caught in
+seconds what a reader would have inherited as fact. Both corrected to 29.
+
+### Verification
+
+Mutations, both RED: adding a gate to the merge profile → "merge profile size changed", naming the docs; a
+gate present at merge and absent at release → also caught. `run-gate.ts` restored byte-identical.
+`typecheck 0 · lint 0 · check:invariants 0 · check:citations 0 · audit:design 0`; `test:tools` 30 files,
+781 tests, 778 passed — the 3 remain the known REQ-289 trio.
+
+### Yield note
+
+Two facts swept (§292 placeholders, §293 gate counts), same structure both times: **an owner that is right,
+copies that rot, and dated snapshots that must be left alone.** The generalizable output is not the numbers
+but the triage — *owner / stale copy / stamped history* — and the rule that only the first belongs in prose
+at all, provided the build pins it. Worth running once more on any other number the docs repeat; the
+candidates are test totals and table counts, both already owned by executable pins.
