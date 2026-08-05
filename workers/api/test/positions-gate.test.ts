@@ -1,6 +1,8 @@
 import { SELF, env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import { TENANT_SLUG, TEST_DEVICE_ID, ensureSchema, post, seedShipment, token } from "./helpers.js";
+import { canonicalPositionBytes } from "@shuddl/ledger/anchor";
+import { sha256Hex } from "@shuddl/ledger/canonical";
 
 // REQ-190 (2026-07-15 audit C-1) — SERVER-SIDE GATE PARITY for the raw-GPS bypass (REQ-030/166).
 //
@@ -178,5 +180,62 @@ describe("REQ-254: a REVOKED device loses write access, not just its place on a 
     const res = await postPosition(positionInput(SHP_ASSIGNED, TEST_DEVICE_ID, ts), await driverTok());
     expect(res.status).toBe(201);
     expect(await positionCount(SHP_ASSIGNED, TEST_DEVICE_ID, ts)).toBe(1);
+  });
+});
+
+// THE LOCKSTEP (audit §222). `/v1/positions` builds its integrity hash from an INLINE `canon` object
+// (routes/positions.ts) and the daily anchor builds its Merkle leaf from `canonicalPositionBytes`
+// (packages/ledger/src/anchor.ts) — two independent implementations of one canonical shape, in two
+// packages, joined only by a comment: "Keep in lockstep with workers/api/src/routes/positions.ts."
+//
+// Measured, before this test existed: adding a field to the ledger side alone left ALL 1,365 tests green
+// (614 ledger + 751 api). The anchor's own tests could not see it because they call
+// canonicalPositionBytes on BOTH sides of their assertion — build the tree with it, verify the proof with
+// it — so a mutation keeps them perfectly self-consistent while diverging from what was ingested (the
+// §186/§187 shape, here on the byte law itself).
+//
+// This asserts the join the comment asks for: the hash the ROUTE stored must equal the hash of the bytes
+// the ANCHOR would leaf. It is the only assertion in the repo that reads one side and computes the other.
+describe("REQ-014/016 — the ingest hash and the anchor leaf are byte-identical", () => {
+  it("the stored integrity hash equals sha256(canonicalPositionBytes(row))", async () => {
+    const ts = 1_700_000_900_000;
+    const input = {
+      shipment_id: SHP_ASSIGNED,
+      device_id: TEST_DEVICE_ID,
+      ts,
+      lat_e6: 37_421_000,
+      lon_e6: -122_084_000,
+      accuracy_m: 5,
+      speed_cms: 1_200,
+    };
+    expect((await postPosition(input, await driverTok())).status).toBe(201);
+
+    const row = await env.TENANT_A_DB.prepare(
+      "SELECT shipment_id, device_id, ts, lat_e6, lon_e6, accuracy_m, speed_cms, hash FROM positions WHERE shipment_id = ? AND device_id = ? AND ts = ?",
+    )
+      .bind(SHP_ASSIGNED, TEST_DEVICE_ID, ts)
+      .first<{
+        shipment_id: string;
+        device_id: string;
+        ts: number;
+        lat_e6: number;
+        lon_e6: number;
+        accuracy_m: number | null;
+        speed_cms: number | null;
+        hash: string;
+      }>();
+    expect(row).not.toBeNull();
+
+    // Compute the ANCHOR's side from the stored row and compare to what the ROUTE wrote.
+    const leaf = canonicalPositionBytes({
+      shipment_id: row!.shipment_id,
+      device_id: row!.device_id,
+      ts: row!.ts,
+      lat_e6: row!.lat_e6,
+      lon_e6: row!.lon_e6,
+      accuracy_m: row!.accuracy_m,
+      speed_cms: row!.speed_cms,
+    });
+    expect(await sha256Hex(leaf)).toBe(row!.hash);
   });
 });

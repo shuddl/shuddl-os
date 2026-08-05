@@ -11583,3 +11583,69 @@ No REQ row: no new behaviour, an existing law pinned where it is enforced.
 here" is usually true of the outcome and false of the input — and the input is what an editor of this file
 will change. Four cheap assertions closed a gap that three sections of analysis had described but not
 removed.
+
+---
+
+## §222 — the byte law's cross-package lockstep was prose only, and 1,365 tests could not see it break
+
+§221's rule — *when a guarantee is delegated, find the local precondition* — points at the highest-stakes
+delegation in the build. The `preserve-canonical-hash-byte-law` skill states it plainly:
+
+> `canonicalPositionBytes` IS the Merkle leaf for a position, and it MUST produce the same bytes the
+> `/v1/positions` ingest route hashed as the row's integrity anchor. … The comment at `anchor.ts` says
+> "Keep in lockstep" — obey it.
+
+**Two independent implementations of one canonical shape**, in two packages:
+
+| | builds |
+|---|---|
+| `workers/api/src/routes/positions.ts:67@canon` | an **inline** `canon` object → `sha256Hex(canonicalBytes(canon))` → stored as the row's `hash` |
+| `packages/ledger/src/anchor.ts:88@canonicalPositionBytes` | the same shape again → the daily anchor's **Merkle leaf** |
+
+Joined by a comment. Nothing else.
+
+### Measured: the drift is invisible
+
+Added a field to the ledger side alone — the exact "change one side" the skill warns about:
+
+```
+packages/ledger  614 passed (614)
+workers/api      751 passed (751)
+```
+
+**All 1,365 tests green** with the anchor leaf and the ingested hash silently diverged.
+
+And the reason the anchor's own tests cannot see it is §186's trap, on the byte law itself: `anchor.test.ts`
+calls `canonicalPositionBytes` on **both sides** of its assertion — building the tree with it and verifying
+the inclusion proof with it — so any mutation keeps the pair perfectly self-consistent while both drift
+away from what `/v1/positions` actually hashed. A suite can be internally coherent and collectively wrong.
+
+**What breaks in production:** a position is ingested and its `hash` stored; the daily anchor later leafs
+the same row differently. The Merkle tree is self-consistent, the inclusion proof verifies — against bytes
+that are not what was ingested. The anchor stops attesting the thing it claims to attest, and nothing
+fails loudly, because each side is internally correct.
+
+### Closed
+
+`workers/api/test/positions-gate.test.ts` gains the one assertion in the repo that **reads one side and
+computes the other**: POST a position, read the stored `hash`, and compare it to
+`sha256Hex(canonicalPositionBytes(row))`. Suite 751 → **752**.
+
+Replaying the drift:
+
+```
+× the ingest hash and the anchor leaf are byte-identical
+    expected 'c27e30194032f4c316c03c923a9deefb…' to be 'a3c761984b699f6917c29db30837d961…'
+```
+
+It lives in `workers/api` deliberately — that is the only place both halves exist at once (the route's
+shape is inline and unexported, so the *stored row* is the only observable form of it). No REQ row: an
+existing law, pinned.
+
+### The rule
+
+**A "keep in lockstep" comment is a test that was never written.** Two implementations of one shape cannot
+be kept in agreement by a sentence — and the tell that this one needed pinning was already in the source,
+in the skill, and in the audit's own §51/§216 findings about duplicated logic. The assertion that closes it
+had to read one side and *compute* the other; anything that used the same function twice would have
+reproduced the trap it was meant to catch.
