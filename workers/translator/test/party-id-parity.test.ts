@@ -44,3 +44,42 @@ describe("no-email party id parity (REQ-196, name axis) — map-204 ⇄ intake-c
     expect(plan.party.id).not.toBe(wrongPrefix);
   });
 });
+
+// THE SECOND COPY, IN THE SAME FILE (audit §225). map-204 inlines the intake scheme TWICE — once for the
+// bill-to broker (the cases above) and once for the NO-BILL-TO branch, where the shipper IS the
+// counterparty. Only the first was pinned: drifting the shipper-path derivation alone left all 99
+// translator tests green.
+//
+// The risk is the one this file's own header names, on the same axis: a shipper arriving by EDI and the
+// same shipper created by CSR intake would become TWO parties — split billing, and a credit hold on one
+// that the other never sees. A tender without a billTo is the ordinary case for a direct shipper, so this
+// is not the exotic branch.
+const noBillTo = (shipperName: string): TenderDoc => ({
+  partnerScac: "ACME",
+  purpose: "00",
+  refs: { SID: "PARITY-SID-NOBILLTO" },
+  stops: [
+    { role: "SH", name: shipperName, address: { zip: "97201" } },
+    { role: "CN", name: "DEST STORE", address: { zip: "98101" } },
+  ],
+});
+
+describe("no-email party id parity — the NO-BILL-TO branch (shipper as counterparty)", () => {
+  it("derives the shipper's id under the SAME intake scheme as the bill-to path", async () => {
+    const plan = await mapTenderToBooking(noBillTo("Origin Warehouse"), ctx);
+    const canonical = `party_${(await sha256Hex("intake:party:name:origin warehouse")).slice(0, 16)}`;
+    expect(plan.party.id).toBe(canonical);
+  });
+
+  it("normalizes the shipper name identically (trim + lowercase)", async () => {
+    const plan = await mapTenderToBooking(noBillTo("  ORIGIN Warehouse  "), ctx);
+    const canonical = `party_${(await sha256Hex("intake:party:name:origin warehouse")).slice(0, 16)}`;
+    expect(plan.party.id).toBe(canonical);
+  });
+
+  it("CONVERGENCE: the same name yields the same id whether it arrives as bill-to or as shipper", async () => {
+    const asBillTo = await mapTenderToBooking(tender("Convergent Co"), ctx);
+    const asShipper = await mapTenderToBooking(noBillTo("Convergent Co"), ctx);
+    expect(asShipper.party.id).toBe(asBillTo.party.id);
+  });
+});

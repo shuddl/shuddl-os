@@ -11771,3 +11771,54 @@ Both §223 and §224 found the same shape — a correct, well-reasoned test nami
 existed the day it was written, and no mechanism anywhere that notices a new copy joining the set it
 should have joined. Two guards, four uncovered copies between them, both discovered by counting rather
 than by any test failing. **The count is the audit; the guards cannot perform it on themselves.**
+
+---
+
+## §225 — the third guard, and the copy hiding inside the guarded file
+
+§224's rule — *the count is the audit* — applied to the remaining parity guards. First the bounding, which
+matters as much as the finding: enumerating every same-named source file across workers turned up
+`authority.ts`, `idempotency.ts`, `watchtower.ts` and `quote.ts` as candidates, and **none is a mirror** —
+an 8-line re-export shim beside a 221-line route, a 553-line sweep beside a 65-line route, a public quote
+route beside an MCP tool. Name collisions, not duplicated logic. §223 and §224 are bounded at two.
+
+`party-id-parity.test.ts` is the third guard, and it states its stake precisely: the EDI and CSR paths must
+derive an identical party id *"so they cannot silently drift into duplicate broker parties (the
+split-billing / credit-hold-evasion risk, on the name axis)."*
+
+**The scheme is inlined three times** — once in `workers/api/src/intake-core.ts:64@intake` (the authority)
+and **twice in `map-204.ts`**: the bill-to broker branch, and the **no-bill-to branch where the shipper is
+the counterparty**.
+
+The guard drives `mapTenderToBooking` with a tender that always carries a `billTo`, so it exercises one.
+
+### Measured
+
+Drifting the shipper-path derivation alone — `intake:party:name:` → `intake:party:NAME:` at the second
+site only:
+
+```
+workers/translator   99 passed (99)
+```
+
+**Fully silent**, and the consequence is the one the file's own header names, on the identical axis: a
+shipper arriving by EDI and the same shipper created by CSR intake become **two parties** — split billing,
+and a credit hold on one the other never sees. A tender without a `billTo` is the ordinary shape for a
+direct shipper, so this is not the exotic branch.
+
+### Closed
+
+Three cases added — the shipper derivation, its normalisation, and a **convergence** assertion that the
+same name yields the same id whether it arrives as bill-to or as shipper. That last one is the property the
+whole guard exists for and neither branch's tests stated. Suite 99 → **102**; replaying the drift now fails
+all three.
+
+**Not a defect today** — both branches agree. What was missing is the mechanism.
+
+### The rule
+
+**A copy can hide inside the file the guard already covers.** §223 and §224 found uncovered copies in other
+*packages*, which counting files reveals. This one is two derivations in one function, twenty lines apart,
+under a test that passes because its fixture only ever takes the first branch — invisible to any file-level
+count, and findable only by asking *which branches does the fixture actually reach?* The same question
+§180 asked of vacuous loops and §144 asked of an unpinned boundary, arriving here from a third direction.
