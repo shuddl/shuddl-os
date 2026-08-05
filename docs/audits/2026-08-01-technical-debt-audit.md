@@ -11471,3 +11471,56 @@ and a Stripe seam; `workers/agents` binds a queue and calls out to a DO it does 
 opposite result and turned a vague warning about worker packages into a specific, checkable property of
 one. The cheap version of this — adding "may" or "often" — would have preserved the doubt everywhere and
 removed it nowhere.
+
+---
+
+## §220 — the structural test applied to the last candidate, and why `workers/agents` is alone
+
+§219 replaced §218's vague warning with a checkable property: *does this package own the infrastructure
+its guarantee runs on?* One candidate remained — **`workers/translator`**, whose inbound 204 path appends
+`quote.priced → agent.acted → quote.accepted` **through the same cross-worker sequencer** that makes
+`workers/agents` untestable from inside.
+
+Same mutation, same guarantee (a redelivered EDI tender must not duplicate a load):
+
+| Package | Seam | Its own suite |
+|---|---|---|
+| `workers/agents` | appends via the api's sequencer DO | **106 pass — nothing** |
+| `workers/billing` | owns its D1 + Stripe seam | 15 RED of 56 |
+| **`workers/translator`** | **appends via the api's sequencer DO** | **5 RED of 96** |
+
+```
+× (b) a REDELIVERED 204 (same ISA) → still one shipment
+× (1a) a no-SID tender sent under TWO different ISA13 collapses …
+× (F-3) a redelivered accepted 204 sends the 990 once …
+```
+
+**The structural test predicted the wrong answer.** Translator crosses the same boundary as agents and
+catches its own mutation anyway — because its tests drive the *whole* inbound chain through a fake
+sequencer seam, asserting "one shipment" as an observable outcome rather than needing the real DO's
+dedupe.
+
+So the dividing line is not *"does the package own the infrastructure"* — it is **"does the package's
+suite reconstruct the seam."** Translator's does; agents' does not, because the Biller's idempotency is
+enforced *by* the sequencer (a deterministic id the DO dedupes on), so a fake seam that accepts anything
+proves nothing. Billing's is enforced by its own SQL, so its own D1 suffices.
+
+### Corrected, again
+
+| Claim | Fate |
+|---|---|
+| §218: "a worker package's green is less informative" | too broad — 3 of 4 workers catch their own |
+| §219: "…where the property crosses a worker boundary" | **also wrong** — translator crosses it and catches |
+| §220: **"…where the guarantee is enforced by the thing on the far side of the seam"** | holds for all four measured |
+
+`workers/agents` is alone because it is the only package whose critical property is *delegated* — the id
+is deterministic so that **something else** can dedupe it. Everywhere else the package enforces its own
+guarantee and can therefore test it.
+
+### The rule
+
+**A structural heuristic is a hypothesis, and the second instance is where it dies.** §219 correctly
+refused to hedge §218 in prose and measured instead — then stated its own rule from two data points and
+was wrong at the third. The property that survives is about *where enforcement lives*, not where code or
+infrastructure lives, and no amount of reasoning about module boundaries would have produced it: it took
+running the mutation in the one package that looked identical and behaved oppositely.
