@@ -17777,3 +17777,55 @@ before and after every one of these three findings — correctly, because none o
 
 Three routing documents read whole; three defects found and fixed; `check:citations 0 · check:invariants 0`
 throughout — the gates were never the mechanism here, which is the point.
+
+---
+
+## §332 — The evidence contract had no expiry of its own
+
+§331 called the routing sweep complete at three documents. It was not: **`RELEASE-EVIDENCE.md` was edited
+three times this phase** (§292's stamps, §293's gate counts, §295's merge-gate block) and never read whole.
+The omission is the §284 shape — *a tell tells you what to look for, not where* — and closing the sweep at
+"three" was a count I did not derive.
+
+Two findings, and the second is the one that matters.
+
+### It stated no currency claim at all
+
+No date, no SHA, nothing. **This is the document whose opening sentence promises "what makes that artifact
+stop being true."** It defines evidence expiry for every gate in the build and carried no expiry of its own.
+
+Given a document baseline at `7d0710c`, with §330's label so the per-row `measured at` stamps are not
+mistaken for staleness.
+
+### Its suites table was stale on every row — and one row was WRONG
+
+Undated, present-tense, and reading as current:
+
+| row | claimed | actual |
+|---|---|---|
+| ledger | 34 files / **598** tests / PASS | 34 / **616** / PASS |
+| api | **65** / **719** / PASS | **68** / **754** / PASS |
+| everything (`pnpm test`) | **258** / **3,243** / **PASS** | **283** / **3,704** / **3,701 PASS · 3 FAIL** |
+
+The first two are merely old. **The third is false**: it asserts a green aggregate while three tests fail —
+the `REQ-289` trio this audit has cited a dozen times. A reader consulting the evidence contract to ask *"is
+everything passing?"* got **PASS**, and the honest answer for eleven days has been *no, and here is exactly
+why.*
+
+**Old numbers are a maintenance debt; an old VERDICT is a false statement.** That distinction is worth
+holding: §292 and §328 corrected counts, which mislead about magnitude. This corrected a *verdict*, which
+misleads about kind — and a stale count in a verdict column disguises itself as the count, not the claim.
+
+### What the four documents together showed
+
+Every routing document in this repo carried a defect invisible to every gate, and each was a different form:
+adjacent numbers disagreeing (§329) · two unlabelled kinds of stamp (§330) · a header that stopped tracking
+its content (§331) · **a contract with no currency claim, and a verdict that had gone false** (§332).
+
+**The common cause remains one sentence: each was edited correctly and never read.** The gates were green
+throughout all four — `check:citations` resolves references, and not one of these was a broken reference.
+
+### Verification
+
+`RELEASE-EVIDENCE.md` read whole; suites table re-measured against live runs with prior figures preserved
+inline; document baseline added. `check:citations 0 · check:invariants 0`.

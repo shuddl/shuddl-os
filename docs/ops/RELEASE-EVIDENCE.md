@@ -1,5 +1,7 @@
 # Release evidence — the contract
 
+**Document baseline: 2026-08-05 at `7d0710c`.** Individual rows carry their own `measured at <sha>` stamps, which may predate this and are not stale for doing so — a measurement is true of the commit it names (audit §330). This file previously carried **no currency claim at all**, which is a poor look for the document that defines when evidence stops being true (audit §332).
+
 Every claim a release makes, the gate that proves it, the artifact that survives the claim, and what
 makes that artifact stop being true.
 
@@ -563,11 +565,15 @@ provisions nothing.
 
 ### The suites
 
+**Re-measured 2026-08-05 at `7d0710c` (audit §332).** This table was previously UNDATED and stale on every row,
+and its aggregate verdict said **PASS** when three tests fail — the one claim in this document that was not
+merely old but wrong. Prior figures preserved inline.
+
 | Suite | Command | Files | Tests | Verdict |
 |---|---|---:|---:|---|
-| ledger | `pnpm -F @shuddl/ledger test` | 34 | 598 | **PASS** |
-| api | `pnpm -F @shuddl/api test` | 65 | 719 | **PASS — three consecutive runs** |
-| everything (`test:tools` + every workspace project) | `pnpm test` | 258 | 3,243 | **PASS** |
+| ledger | `pnpm --filter ./packages/ledger test` | 34 | 616 | **PASS** *(was 598)* |
+| api | `pnpm --filter ./workers/api test` | 68 | 754 | **PASS** *(was 65 / 719)* |
+| everything (`test:tools` + every workspace project) | `pnpm test` | 283 | 3,704 | **3,701 PASS · 3 FAIL** — the `REQ-289` register trio from another workstream's uncommitted row (audit §299). *(was 258 / 3,243 / PASS)* |
 | acceptance spine (the five doc-00 demos, in-repo half) | `pnpm test:acceptance` | — | 7 | **GREEN — all 7 spine tests pass** |
 
 `workers/api` was run three consecutive times deliberately. The defect the Task-1 `anchors/run` containment
