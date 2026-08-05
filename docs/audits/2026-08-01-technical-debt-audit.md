@@ -187,7 +187,7 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 ## §4 — Phase gating and the stopping point
 
 > **CURRENT MEASUREMENT: §238, at `68cfb0d`; CONVERGENCE measured at §243.** The four clauses below are
-> measured in §238. §243 (extended by §251 → §270 → §282 → §285 → §286 → §287 → **§288**, now through §288) answers the separate question of whether another iteration is worth running:
+> measured in §238. §243 (extended by §251 → §270 → §282 → §285 → §286 → §287 → §288 → **§289**, now through §289) answers the separate question of whether another iteration is worth running:
 > defects-per-section across the eight sections after §238 ran 1,1,1,—,1,1,**0,0** while verified-clean
 > rose to 8 and 8, the last two being the most systematic sweeps of the set. Five named restart triggers
 > are listed there, each a grep or a diff — two of which are now GATES (§244) rather than greps. Across
@@ -15326,3 +15326,73 @@ The §287 rule was worth carrying forward: applied to two exemptions it produced
 (a shipped file with no linter and no compiler, held by a test that runs its actual bytes) and one **real
 gap** (collection). Both outcomes are useful — knowing an exemption is properly bounded is what lets the
 next audit stop asking about it, provided the bound was mutation-proved rather than read.
+
+---
+
+## §289 — A gate nobody runs, and the second time a character class hid a list
+
+§288's finding class was **silent absence**: something that exists and never executes. A test nobody
+collects is one instance; a **gate nobody runs** is the same shape one layer up. `pnpm check:foo` exists,
+passes by hand, gets cited in a runbook, and enforces nothing — and no gate can observe that, because the
+failure IS the absence of an invocation.
+
+### The sweep, and the two false alarms in it
+
+29 gate-shaped scripts, checked against what actually invokes them. Two looked orphaned and neither was:
+
+- **`test:a11y` / `test:e2e` appeared missing from `run-gate`** — they are on lines 74–75. My extraction
+  regex was `"[a-z:_-]+"`, whose character class **excludes digits**, so `"test:a11y"` never matched. This
+  is the *identical* bug as §287's `--[a-z-]+` hiding three token declarations, **two sections later, in the
+  same session, after writing the lesson down.**
+- **`check:surfaces` genuinely has 0 references in `run-gate` and 0 in CI** — and is still correctly wired:
+  `deploy:surfaces` = `build:surfaces && check:surfaces -- --built && wrangler deploy ×3`. I only saw that
+  after printing EVERY reference rather than the two I had searched.
+
+Both corrections came from the same rule, which has now earned itself in three consecutive sections: **when
+a conclusion depends on the contents of a list, print the whole list — and make sure the pattern can match
+every member of it.**
+
+The surface contract also turns out to be enforced on both halves, in the two different places it must be:
+`surface-contract.test.ts` runs `checkSurfaceConfig` against the **real committed configs** inside
+`test:tools` (merge), while the built-bundle half — the "API base failed to bake in" failure the file says
+it exists for — runs at DEPLOY, because it needs a build before it can speak.
+
+### What that means for the rule
+
+**"Not in run-gate" is not by itself a defect; "in nothing" is.** There are three legitimate homes for a
+gate, and they differ on purpose:
+
+1. **`run-gate` profiles** — where most belong.
+2. **The CI workflow directly** — for a gate whose INPUT exists only there (`check:pr` needs `$PR_BODY`;
+   run-gate has no PR body to hand it).
+3. **Another script's command chain** — for a gate that needs a BUILD before it can run.
+
+All 29 are reachable by exactly one of these. Clean negative, bound stated.
+
+### The gap: detectability
+
+A check script added tomorrow that nothing invokes would be a dead gate, silently — the §286 roster shape
+again. Closed with `tools/checks/gate-wiring.test.ts`: every `check:`/`audit:`/`test:` script must be
+invoked by run-gate, a workflow, or another script's chain, with the aggregate runners exempt because they
+are the things doing the invoking.
+
+The subtlety worth pinning: a script's own definition mentions its own name, so a naive substring search
+makes every script trivially "referenced" and the check **vacuous**. The corpus therefore excludes each
+script's own definition line, and a third test proves that exclusion works by construction rather than
+assuming it.
+
+Mutation-proved: an orphan `check:orphan` → **RED**, naming it; a gate wired only through a chain
+(`deploy:demo` → `check:wired`) → **GREEN** (negative control); `package.json` restored byte-identical.
+
+### Verification
+
+`typecheck 0 · lint 0 · check:invariants 0 · check:citations 0 · audit:design 0`; `test:tools` 30 files,
+777 tests, 774 passed — the 3 failures remain the known REQ-289 register trio from the other workstream's
+uncommitted row.
+
+### Yield note
+
+Two sections running, the shape "X exists but nothing executes it" has produced a real gate. The remaining
+instances of it are worth naming even unclosed: an event kind never emitted, a queue consumer never bound,
+a REQ row with no implementation (that one IS gated, by `check:coverage` at 100%). The class is productive
+because absence is invisible to every mechanism except an explicit census.
