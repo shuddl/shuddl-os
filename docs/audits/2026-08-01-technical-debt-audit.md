@@ -11075,3 +11075,65 @@ R2 cursor loops (the correct pagination idiom), and `tariff-seed.ts:70` (bounded
 the surface nearly doubling and §184's did not, and nothing about either sweep's output predicted which —
 both printed confidently, both looked complete. The only reason either headline could be checked at all is
 that §211 wrote down *which* files had been scanned rather than only what was found.
+
+---
+
+## §213 — the last sweep the glob broke, and the hottest scan in the build
+
+§211 found the glob bug and re-ran §183; §212 re-ran §182 and §184. **§185's index sweep used the same
+pattern** and was the remaining unclosed instance. Re-run over the full surface (substitution verified to
+have applied before trusting the output — §212's correction, applied once more).
+
+Two tables appear that were **entirely absent** from §185's table, because every query against them lives
+in a file directly under `src/`:
+
+| Table | Filtered on | §185 saw |
+|---|---|---|
+| **`rate_config`** | `kind` (3 uses), `effective_ts` (3) | *nothing — the table was invisible* |
+| `integrations` | `kind` (5 uses, was 1) | one use |
+
+Existing rows also grew: `legs.shipment_id` 5 → **8**, `documents.kind` 2 → **4**, `anomalies.rule` 2 → **3**.
+
+### `rate_config` is the hottest scan in the build
+
+The real query, from `workers/api/src/rate-config.ts:28@effective_ts` — and identically in the agents and
+translator workers:
+
+```sql
+SELECT payload FROM rate_config WHERE kind = ?1 AND effective_ts <= ?2 ORDER BY effective_ts DESC LIMIT 1
+```
+
+```
+QUERY PLAN
+|--SCAN rate_config
+`--USE TEMP B-TREE FOR ORDER BY
+```
+
+**A full scan plus a temp B-tree sort, on the lookup that runs for every pricing call**, from three
+workers. Every other §185 finding was a list endpoint or an operator queue — read occasionally, by a
+human. This one is on the path of the product's core verb.
+
+It is bounded today (a handful of config rows) and grows by design: `effective_ts` means configs are
+*versioned*, so every tariff change appends a row and is never deleted. The scan gets slower every time
+the tenant edits a rate. `rate_config(kind, effective_ts)` is now the first index in the checklist's
+proposed migration, because it is the only one on a hot write-adjacent path.
+
+### The blast radius, closed
+
+| Section | Sweep | Status |
+|---|---|---|
+| §182 | swallowed errors | re-run §212 — **headline survived** (0 empty catch / 307 files) |
+| §183 | unbounded reads | re-run §211 — **5 → 7 sites** |
+| §184 | N+1 | re-run §212 — **headline withdrawn**, 2 cron N+1s found |
+| §185 | index coverage | re-run here — **6 → 7 tables**, and the new one is the hottest |
+
+Four sections, one one-character-class mistake in a glob, and it cost **two withdrawn conclusions and
+four new findings** — none of them in code that changed. Everything found here has been true since before
+this session started.
+
+### The rule
+
+**When an instrument is wrong, re-run everything it produced — not just the section that caught it.**
+§211 fixed the glob and re-ran one sweep; it took two further sections to work through the rest, and the
+worst single finding of the four (a scan on the pricing path) was in the last one. The instinct to fix the
+bug and move on would have left it.
