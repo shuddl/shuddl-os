@@ -14759,3 +14759,52 @@ are now full-path and anchored.
 10 sites, 1 defect, found the section before this one. Recording the ratio so the next auditor does not
 rebuild the sweep: this is a **narrow** shape in this repo, and the corpus is small enough that the honest
 move is to read all ten rather than pattern-match for suspicious ones.
+
+## §279 — the declared clone pair, diffed: no unintended divergence
+
+§277's principle is broader than discriminator branches: **a rule learned on one path and never applied to
+its sibling.** The clearest sibling pair in this repo announces itself — `spark-meter.ts`'s header reads
+*"Cloned from `workers/mcp/src/caps-meter.ts` … adapted from the acting PAIRING to the TENANT, and from
+spend/velocity to a single AI-action allotment."* A declared clone with **declared** adaptations means any
+*other* divergence is unintended, which makes the diff a real test rather than a code-style comparison.
+
+Structurally they are the same object: the `lock` mutex chain, the `applied:<period>:<id>` idempotency
+replay returning the tally as-of the first reserve, the cap check **before** any write, the single atomic
+`storage.put({ tally, marker })`, and `peek`. The declared adaptations account for the rest — two caps
+(spend, velocity) against one allotment.
+
+**One structural difference survives the declared list:** SparkMeter clamps a malformed allotment to zero
+(`normalizeAllotment` — non-integer, negative or NaN ⇒ 0), and CapsMeter uses `capSpendCents` / `capVelocity`
+raw. That asymmetry matters more than it looks, because **`nextSpend > NaN` is `false`** — a NaN cap would
+pass *both* checks and admit an unbounded booking.
+
+### The justification is declared, and it checks out
+
+SparkMeter's header says why: *"the same discipline as CapsMeter's `parseCaps` returning null ⇒ refuse."*
+Verified rather than trusted, through three files:
+
+- `parseCaps` rejects a non-string, unparseable JSON, a non-object, and decisively
+  `!Number.isFinite(spend)`, `!Number.isInteger(velocity)`, or either negative — **so NaN cannot reach the
+  DO**;
+- `checkAndReserve` has **exactly one** call site (`caps.ts:213`), which sits downstream of `parseCaps`
+  (`:181`) and passes only the parsed values;
+- the meters therefore fail closed in both designs — CapsMeter at the **caller**, SparkMeter at the **DO**.
+
+By §278's refined tell this is design, not defect: the asymmetry states its reason, and the reason names the
+specific mechanism on the other side rather than gesturing at one.
+
+### The residual, named rather than fixed
+
+SparkMeter's placement is strictly stronger — defence at the DO survives a future caller that forgets to
+parse; CapsMeter's depends on its single caller staying disciplined. That is a real but **hypothetical**
+difference (one call site today, and the parse is the first thing it does), so it is recorded here rather
+than "fixed" by adding a clamp nothing can currently exercise — which would be an untestable guard, the
+§233 class this audit has been careful not to manufacture.
+
+### The rule
+
+**A comment claiming "cloned from X" is an invitation to diff, and the diff is cheap.** Everything the header
+declares as adapted is expected; everything else is either an undocumented improvement to one side or a
+missing rule on the other, and both are worth knowing. When the diff surfaces an asymmetry, the question is
+not "is this a bug?" but **"does the safer side's reasoning name a specific mechanism on the other side, and
+does that mechanism exist?"** Here it did, and it does.
