@@ -18014,3 +18014,39 @@ provided for demo 1.
 Seven budgets compared against their implementations: five exact matches, two ceilings (one labelled, one
 not), zero defects. `CANONICAL_VIEWS` counted from the array rather than by grep after the first pattern
 returned 0 — fifth pattern artefact of the phase. No file changed.
+
+---
+
+## §337 — Filing §336, and the row that was already its sibling
+
+§315 established the rule and §336 broke it: *"a finding that stops at an audit section is a story."* §336
+identified an owner-facing ambiguity in `CLAUDE.md`'s hard-budget line, explained why this loop should not
+edit governing text, and then left it in section §336 — where nobody looks for owner decisions.
+
+Filed into `GO-LIVE-CHECKLIST.md` § *Repository-owned failures & debt*, on the eight-field schema, **directly
+beside a row of the same class that has been open since §246**:
+
+> *"`CLAUDE.md`'s 'a fifth primitive' prohibition has an undefined subject … Low · Repo (the governing doc) ·
+> register owner · **OPEN — needs a definition, not a fix** (naming the four would be defining scope, which
+> is the owner's) · none (a legibility gap, not a defect)"*
+
+**Two rows, one shape:** governing text that is under-specified in a way no gate can see, where the fix is a
+sentence the owner owns and the cost is a reader's confusion rather than a broken build. §336's row says
+*"needs eight words, not a fix"*; §246's says *"needs a definition, not a fix."*
+
+That the sibling already existed is the useful part. **A finding filed next to its own precedent stops being
+an isolated observation and becomes a category** — and a category with two members is the point at which the
+owner can see whether it is worth a convention (here: *label every budget number as ceiling or count*) rather
+than two one-off edits.
+
+### The header, too
+
+The checklist's *Last amended* line — added in §331 precisely so the header tracks its content — said "three
+rows changed". It is now four, re-stamped at `93d0146`. **A currency claim added two sections ago went stale
+the first time the document changed**, which is exactly the decay it was added to make visible, and exactly
+why it works: the line's own wording forced the update.
+
+### Verification
+
+Row filed on the eight-field schema with measurement, adjudication and expiry trigger; header amended-line
+updated from three rows to four and re-stamped; `check:citations 0 · check:invariants 0`. No code changed.
