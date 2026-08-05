@@ -13735,3 +13735,49 @@ governance documents for *"until"*, *"after X exits"*, *"once Y lands"* — each
 file records the flip *at the point of the flip*. What failed is that two documents describing the mechanism
 were not written to be updated by it — the same asymmetry §241 measured, where the executed half defends
 itself and the prose half does not.
+
+## §259 — the same conditional in five places, and the two that must NOT be edited
+
+§258 corrected three copies of REQ-158's resolved conditional. §255's rule says the scope is the part that
+matters, so the sweep was widened from three hand-picked files to **all sixteen genesis docs**. It found two
+more — the conditional lived in **five** places:
+
+| Copy | Kind | Action |
+|---|---|---|
+| `CLAUDE.md:27` | live governance | corrected (§258) |
+| `genesis/11:42` | live spec, the text CLAUDE.md mirrors | corrected (§258) |
+| `docs/ops/GO-LIVE-CHECKLIST.md:253` | live ledger row | corrected (§258) |
+| **`genesis/14`** — PR-gates list | **live spec** (tier 4: "CI gates") | **corrected here** |
+| **`genesis/15`** — audit row SP-11 | **dated record** (2026-07-09) | **deliberately left alone** |
+
+`genesis/14` is the authoritative CI-gate spec and stated the flip as still pending, in the same list a
+reader consults to learn which gates block a PR. Corrected in doc 11's established format — law untouched,
+condition marked resolved, evidence attached, original struck rather than deleted.
+
+### The one that must not be touched
+
+`genesis/15` is a second-pass audit dated 2026-07-09, and its row reads *"SP-11 Design CI blocking too early
+… **CLOSED — REQ-158**: advisory until WP-10 exit, blocking after; both CLAUDE.md files amended."* That is
+**not** a stale claim about today. It is an accurate record of what SP-11 *resolved to* on that date, and
+the conditional is quoted as the content of the decision. Rewriting it would falsify the history the
+document exists to hold.
+
+This is §248's distinction, now applied to a whole document rather than a number: **a dated observation
+stays; a live claim is maintained.** The test is not the wording but the document's tense — doc 15 says
+*"what F0 was missing, what closed it"*; doc 14 says what the PR gates *are*. Identical sentences, opposite
+obligations.
+
+### Why five copies existed at all
+
+Not carelessness — each is load-bearing for a different reader. Doc 15 records the *decision*, doc 11 the
+*rule*, doc 14 the *gate list*, `CLAUDE.md` the *working instruction*, the checklist the *pre-launch state*.
+The mechanism that would collapse them does not exist and should not: they are deliberately abridged
+differently, so a parity gate over their prose would fire on every legitimate difference. **This family is
+maintained by hand, and now carries the audit trail to prove when it last was.**
+
+### The rule
+
+**Sweep to the corpus boundary, then sort the hits by tense before editing any of them.** The instinct on
+finding a fifth copy is to fix all five; one of these five would have been damaged by that. A grep cannot
+distinguish *"this is true now"* from *"this is what we decided then"* — only reading the containing
+document's purpose can, and getting it wrong destroys provenance in exchange for a tidier-looking present.
