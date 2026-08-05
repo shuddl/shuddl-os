@@ -14808,3 +14808,50 @@ declares as adapted is expected; everything else is either an undocumented impro
 missing rule on the other, and both are worth knowing. When the diff surfaces an asymmetry, the question is
 not "is this a bug?" but **"does the safer side's reasoning name a specific mechanism on the other side, and
 does that mechanism exist?"** Here it did, and it does.
+
+## §280 — the declared duplicate whose parity test pinned half of it
+
+§279 diffed a declared *clone* and found no unintended divergence. Sweeping the same tell across the repo
+surfaced a stronger case: `workers/translator/src/rate-config.ts` opens with *"a **FAITHFUL DUPLICATE** of the
+REQUIRED-config half of `workers/api/src/rate-config.ts`."*
+
+Diffed line by line, the claim is **true** — the two `loadTenantRatingConfig` bodies are byte-identical for
+the declared half: the same five `effectivePayload` calls, the same requirement, the same return shape. The
+api file additionally carries `loadTransitMatrix`, which is outside "the REQUIRED-config half" and therefore
+a declared scope difference, not drift.
+
+**The gap is in what pinned it.** That half has *two* load-bearing elements, and the parity test pinned one:
+
+| Element | Pinned before? |
+|---|---|
+| `EFFECTIVE_BY_KIND` — the selection SQL | **yes**, character-identical, plus a canary on the rule |
+| the guard requiring **all four** configs | **no** |
+
+The second is CLAUDE.md rule 4 — *no price on air* — on the EDI path: a missing required config must yield
+`null` so `inbound.ts`'s `if (config !== null)` skips pricing rather than quoting against a partial tariff.
+The **api pins the runtime behaviour twice** (*"a tenant with no rate_config → UNKNOWN no_tariff"*, *"NO price
+on air: the loader is null"*); the translator's copy had neither, so the guard could have been relaxed **on
+this side alone** with every gate green.
+
+That is §277's asymmetry one level up: not a rule missing from a sibling branch, but a rule missing from the
+*test that exists to keep two files identical* — a parity test that learned to pin one shared element and not
+the other.
+
+### Closed at the level the file works
+
+The parity test is pure source-text (both files imported `?raw`), so the fix matches its method: extract the
+`if (… === undefined …) return null;` guard from each and assert character-identity, plus a canary that the
+guard still names all four kinds — and, deliberately, that it does **not** name `cls`, because `class_adapter`
+is loaded but optional and requiring it would break cold-start tenants.
+
+**Mutation-proved in both directions:** relaxing the translator's guard to three configs → **1 failed**;
+tightening the api's to include `class_adapter` → **2 failed** (identity *and* the canary). Restored, the
+suite is 4/4 and `workers/translator` is 104 green.
+
+### The rule
+
+**When a file declares itself a duplicate, ask what the parity test covers — not whether one exists.** A
+parity test is itself a hand-maintained list of "the things that must match", and it inherits every failure
+mode of one: it was written against the divergence someone was worried about that day, and the element added
+later has nobody watching it. The cheap check is to enumerate the shared file's load-bearing elements and
+diff that list against the assertions, which took one reading here and found a 1-of-2.
