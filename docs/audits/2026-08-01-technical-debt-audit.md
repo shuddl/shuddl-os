@@ -11524,3 +11524,62 @@ refused to hedge §218 in prose and measured instead — then stated its own rul
 was wrong at the third. The property that survives is about *where enforcement lives*, not where code or
 infrastructure lives, and no amount of reasoning about module boundaries would have produced it: it took
 running the mutation in the one package that looked identical and behaved oppositely.
+
+---
+
+## §221 — closing the one hollow green: the delegated half cannot be tested here, the precondition can
+
+§218–§220 established that `workers/agents` is the single package in this build whose critical property is
+**delegated** — it mints a deterministic id so the sequencer DO, in another worker, can dedupe on it.
+Breaking that derivation fails **10 tests across 5 files in `workers/api`** and leaves this package at
+**106/106 green**. An engineer editing `biller.ts`, correctly running the suite that owns the file, would
+ship a broken at-least-once guarantee.
+
+§220 explained why the *outcome* cannot move here: proving "the same message twice → ONE invoice" needs
+the real DO. **But the outcome is not what broke.** The precondition did — and the precondition is a pure
+function, exported, and until now untested in-package:
+
+```ts
+export async function uuidFromSeed(seed: string): Promise<string>
+```
+
+It is the shared id law for both the Biller and the interline-split producer, so one file covers both.
+
+**Closed.** `workers/agents/test/id-determinism.test.ts` — four assertions, suite **106 → 110**:
+
+| Assertion | Catches |
+|---|---|
+| same seed → same uuid | the `Math.random()` mutation |
+| a redelivered POD re-derives the same invoice event id | the same, through the real call path |
+| **distinct seeds stay distinct** | determinism collapsing to a *constant* — the opposite failure, which "same seed → same uuid" alone would pass |
+| v4-variant shape | the id ceasing to satisfy `EventInput`'s `z.string().uuid()` |
+
+Replaying §218's exact mutation — the one that left this package fully green:
+
+```
+× the same seed yields the same uuid, every time
+× a redelivered POD re-derives the SAME invoice event id
+      Tests  2 failed | 108 passed (110)
+```
+
+**The trap is gone.** Editing `biller.ts` and running `workers/agents` now fails.
+
+### What this does and does not buy
+
+It does **not** move the guarantee — the outcome assertions stay in `workers/api`, correctly, and this
+package still cannot observe "one invoice". What it buys is that **the half that actually broke is now
+caught where the edit happens.** Every mutation of the id law this audit could construct is a mutation of
+determinism, and determinism is local.
+
+The third assertion is the one worth keeping: a derivation that returned a *constant* would satisfy
+"redelivery reproduces the id" perfectly and destroy every event id in the system. Pinning only the
+property you are worried about leaves its mirror image open — the §144/§181 shape, one more time.
+
+No REQ row: no new behaviour, an existing law pinned where it is enforced.
+
+### The rule
+
+**When a guarantee is delegated, find the local precondition it delegates FROM.** "This cannot be tested
+here" is usually true of the outcome and false of the input — and the input is what an editor of this file
+will change. Four cheap assertions closed a gap that three sections of analysis had described but not
+removed.
