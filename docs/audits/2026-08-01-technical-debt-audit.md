@@ -16263,3 +16263,60 @@ able to fail when it grows.
 `check:citations 0 · check:invariants 0` — the citation gate resolves every new `§N` reference added to
 `WP-01.md`. No code changed. Three documents corrected across §301–§303; the audit's routing surface is now
 swept per-value rather than per-file.
+
+---
+
+## §304 — Measuring whether the routing class can be gated, and finding my own miss inside the measurement
+
+§303 named the class — *a number about a growing artifact, written in prose, with nothing able to fail when
+it grows* — and §294's rule says such a number gets a **stamp**, not a pin. That raises a fair question:
+can the stamp be enforced? My own memory says the fix for semantic false positives is an **opt-in marker**,
+and a date *is* one, so unlike §292's rejected gate this class looked genuinely gateable.
+
+Measured before building, which is the only reason the next paragraph exists.
+
+### Four claims, and two of them were mine
+
+The sweep found four prose claims of this shape outside the audit itself. `WP-01.md`'s two carry dates —
+§303 stamped them. **`PROJECT-STATE.md`'s "292 sections" did not.** I had written that sentence one section
+earlier, *in the act of fixing exactly this defect*, and left the number unstamped.
+
+That is the third time this phase that the fix reproduced the defect: §293 wrote a wrong count while
+correcting a wrong count; §301/§302 corrected claims while leaving the routes to them stale; and here a
+section about unstamped numbers shipped an unstamped number. **The pattern is not carelessness — each fix
+was locally correct. It is that the act of fixing occupies exactly the attention the surrounding check
+needs.**
+
+### The gate: measured, and rejected on evidence
+
+After stamping it, the detector *still* flagged both `PROJECT-STATE` claims. Neither is a defect — the
+sentence wraps, so the date sits on the following line, and the historical quote's date sits on the line
+above it. **A line-based detector cannot see a sentence-level stamp in wrapped markdown**, and a
+sentence-based one means parsing prose.
+
+So the decision is **not to gate**, and the reason is a measurement rather than an argument: on a population
+of **four**, the detector produced **two false positives from line granularity alone** — a 50% rate before
+anyone writes a single subtle case. That is §240's citation-gate wall arriving from a new direction, and the
+same conclusion: filters cannot fix a boundary the format does not respect.
+
+**Re-measurement trigger for that decision:** if the ops docs ever adopt a machine-readable stamp
+(`<!-- measured: 2026-08-05 -->`), the marker stops depending on line layout and the gate becomes trivial.
+Until then the mechanism is the dated sentence, which a reader can see and a line-based grep cannot.
+
+### What actually protects this class
+
+Not a gate — a **habit with a trigger**: when you cite a long-lived record, either omit the count or date
+it. §303 established where these claims live (*"how did we get here" prose*, never specs or tests), which
+makes the sweep cheap enough to re-run at any phase boundary: one grep, then read each hit.
+
+### Verification
+
+`PROJECT-STATE.md:9` stamped; all four claims now carry a date at sentence level, verified by reading rather
+than by the line-based detector that raised them. `check:citations 0 · check:invariants 0`. No code changed.
+
+### Yield note
+
+A rejected gate with a measured rejection and a re-measurement trigger is a durable asset — it stops the
+proposal being re-litigated every phase. This is the second such record in this audit (§292 was the first),
+and both failed on the same boundary: **the difference between a current claim and a quoted historical one,
+or between a stamped sentence and a stamped line, is not visible to a pattern.**
