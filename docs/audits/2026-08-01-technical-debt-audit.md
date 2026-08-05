@@ -18399,7 +18399,7 @@ running code.**
 
 ### And the ratchet caught the section that wrote it
 
-§343 cited `sequencer.ts:315` unanchored, into a file on the citation ratchet's high-churn target list —
+§343 cited the sequencer's line 315 unanchored (bare basename, no `@symbol`), into a file on the citation ratchet's high-churn target list —
 which is "may fall, never grow" (§264). `check:citations` went **RED on my own paragraph**, and the fix is
 the one the rule prescribes: spend the anchor
 (`workers/api/src/do/sequencer.ts:315@device_seq`). **A gate this audit built in an earlier phase failed the
@@ -18517,3 +18517,49 @@ enforcement absent, no claim in the governing files untrue.
 The thirteen enumerated from `genesis/01` §2 rather than from a guessed name list (the first attempt used a
 guessed roster and found twelve — §295's trap, sixth instance); V1's six traced to their packages; the
 Rater's separate location checked against the stack line's LLM-boundary rule. No file changed.
+
+---
+
+## §347 — I committed with a red gate, and the gate that caught it caught me twice
+
+Two failures in one section, and the first is mine as an operator rather than an author.
+
+### I committed while a gate was failing
+
+The §346 follow-up ran `check:citations`, it printed **EXIT 1**, and the commit went through anyway — because
+the verification loop and the `git commit` sat in the same command block, and nothing made the second
+conditional on the first. **The gate did its job; the harness around it did not.**
+
+That is the exact shape this audit has documented in others' code all phase — §289's gate nobody invokes,
+§290's gate that speaks too late, §318's gate guarding the adjacent condition. **Here the gate ran, at the
+right time, on the right condition, and its verdict was simply not connected to the action it should have
+blocked.** Corrected in the next commit rather than left; the repository was never pushed in that state.
+
+### The failure it was reporting: the trap, again
+
+The ratchet had grown by one unanchored citation into `workers/api/src/do/sequencer.ts` — and the source was
+**§344's own prose describing §343's citation defect.** Writing *"§343 cited `sequencer.ts:315` unanchored"*
+**is** an unanchored citation. §344 fixed §343's and created its own in the sentence explaining it.
+
+My own record names this precisely: *a gated document cannot quote its own gate's failure output verbatim —
+naming a bad citation is indistinguishable from making one.* It has now happened eight times in this audit,
+and the eighth was in the paragraph congratulating the gate for catching the seventh.
+
+**The fix is always the same and never gets easier to remember**: describe the citation instead of writing it
+(*"the sequencer's line 315, bare basename, no `@symbol`"*).
+
+### What the pair says about self-referential records
+
+A document that audits itself has a failure mode ordinary documents do not: **its subject matter is written in
+the same language its gates parse.** Prose about a bad path contains a bad path; prose about a stale count
+contains a stale count (§304 measured that on the stamp detector); prose about a suppression marker contains
+a suppression marker (§272 measured that one).
+
+Three independent instances now. **The general defence is not vigilance — it is to write the offending form
+as a description rather than a specimen**, which costs four words and is the only version that survives being
+correct about itself.
+
+### Verification
+
+`check:citations` re-run to green after de-linking; the red commit's content is unchanged and correct — only
+its verification order was wrong. `check:invariants 0`.
