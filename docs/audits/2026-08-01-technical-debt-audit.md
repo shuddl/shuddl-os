@@ -187,7 +187,7 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 ## §4 — Phase gating and the stopping point
 
 > **CURRENT MEASUREMENT: §238, at `68cfb0d`; CONVERGENCE measured at §243.** The four clauses below are
-> measured in §238. §243 (extended by §251 → §270 → §282 → §285 → §286 → **§287**, now through §287) answers the separate question of whether another iteration is worth running:
+> measured in §238. §243 (extended by §251 → §270 → §282 → §285 → §286 → §287 → **§288**, now through §288) answers the separate question of whether another iteration is worth running:
 > defects-per-section across the eight sections after §238 ran 1,1,1,—,1,1,**0,0** while verified-clean
 > rose to 8 and 8, the last two being the most systematic sweeps of the set. Five named restart triggers
 > are listed there, each a grep or a diff — two of which are now GATES (§244) rather than greps. Across
@@ -15261,3 +15261,68 @@ the name/count rule is exclusively load-bearing for the rename case, the value r
 Unlike §284–§286 this was a NEW question shape rather than a sweep of a prior claim, and it found its defect
 on the **seventh of seven** items — the last one checked. Worth remembering when a matrix is running clean:
 the value of enumerating is that it does not let you stop at the sixth.
+
+---
+
+## §288 — Auditing what bounds the exempted thing
+
+§287 ended with a rule: **an exemption is only as safe as the bound on its subject.** That is sweepable —
+the enforcement layer's exemptions are enumerable, and each can be asked the same question.
+
+### ESLint's ignore list — 12 patterns, 6 executable files, all bounded
+
+An ignored path loses **every** rule at once, including the REQ-163 organ-bank ban and the REQ-024 LLM ban.
+§285 probed one file per source tree, which a directory-level ignore *inside* a tree would survive. So:
+which ignored paths contain tracked, executable code?
+
+- **`apps/driver/public/sw.js` — ships to phones.** Registered by `main.tsx`, served verbatim, and excluded
+  from ESLint *and* tsc. Its only bound is `apps/driver/src/sw.test.ts` — which is exemplary: it
+  **evaluates the exact shipped source** in a sandbox with stubbed service-worker globals rather than
+  re-implementing it, and says why ("a copy could drift from the shipped bytes, which is the whole risk
+  here"). Mutation-proved rather than trusted: renaming the extracted predicate goes **RED** on the
+  non-vacuity assertion (1 failure), and neutering it goes **RED** behaviourally (4). A file with no linter
+  and no compiler, held by a test that runs the real bytes, is the right shape for this exemption.
+- **`fixtures/merkle-vectors/ref6962.mjs`** — a one-shot RFC 6962 reference generator, run by hand. Its
+  *output* (`vectors.json`) is what CI consumes, against a test that independently re-derives the roots. The
+  bound is the second mechanism, not the generator's own hygiene.
+- **Four `.claude/skills/**/*.ts` reference files** — guidance, not product, and inside `check:citations`'
+  scope (which covers the tracked skills tree).
+- `shuddl-site/**`, `marketing-site/**` — the separate site workstreams, deliberately out.
+
+### Test discovery — where the real gap was
+
+`pnpm test` runs `test:tools` then `pnpm -r --if-present run test`. **`--if-present` is an exemption**: a
+workspace package with test files but no `test` script contributes zero tests, silently. Measured: **all 17
+packages holding test files declare one**, and the arithmetic reconciles — 251 package files + 28 tools
+files = **279 tracked**, with the tools run reporting exactly 28.
+
+But several configs collect NARROWLY: the three surfaces take `src/**/*.test.{ts,tsx}` only, and
+`packages/design` takes `test/**/*.test.tsx` — **`.tsx` only**. All 279 files match their owner's include
+**today**. Nothing would notice tomorrow's miss.
+
+**A test file matched by no `include` is not a failing test — it is a silent absence.** The suite stays
+green, the file reads as coverage in review, and "279 tests pass" becomes a lie of omission. Both halves of
+the runner are content to collect zero files.
+
+Closed with `tools/checks/test-collection.test.ts`, which derives rather than lists: a file's OWNER is the
+deepest ancestor directory that declares a vitest config or is a package with a `test` script; its includes
+come from that config, or vitest's defaults when it declares none. Every tracked test file must match one.
+
+Mutation-proved: a `.test.ts` added where the config collects only `.tsx` → **RED**; a test file one
+directory above `src/` in a surface → **RED**; a properly-placed `.test.tsx` → **GREEN** (negative control,
+so the rule is not merely always-red). Plus a non-vacuity guard — >5 runner roots and >100 test files — since
+a wrong cwd or a broken glob would otherwise make every assertion pass on an empty set, which is precisely
+the shape this gate exists to reject.
+
+### Verification
+
+`typecheck 0 · lint 0 · check:invariants 0 · check:citations 0 · audit:design 0`; `test:tools` 29 files,
+774 tests, 771 passed — the 3 failures are the known REQ-289 register trio from the other workstream's
+uncommitted row.
+
+### Yield note
+
+The §287 rule was worth carrying forward: applied to two exemptions it produced one **exemplary bound**
+(a shipped file with no linter and no compiler, held by a test that runs its actual bytes) and one **real
+gap** (collection). Both outcomes are useful — knowing an exemption is properly bounded is what lets the
+next audit stop asking about it, provided the bound was mutation-proved rather than read.
