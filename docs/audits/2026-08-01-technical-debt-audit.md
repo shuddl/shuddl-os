@@ -17499,3 +17499,55 @@ the finding an auditor is primed to expect. **The harness fails toward the concl
 
 Seventeen workspace names enumerated and grouped; one collision found; path filters verified to disambiguate
 (113 vs 219). No code changed.
+
+---
+
+## §326 — The hold closed: a tripwire is not a classifier
+
+§313 recorded the ledger's only repository-owned item — *REQ-030 authority-registry completeness has no
+recurring owner* — and rejected a gate for it, three times over (§292/§304/§313): **"authoritative" is
+semantic, and a kind-mention rule misclassifies 4 of 4 unregistered candidates.** That reasoning was sound
+and the conclusion was too broad. **It rejected classification and, without noticing, rejected counting too.**
+
+A count classifies nothing. It cannot be wrong about what a file MEANS — only about how many there are. So
+`tools/checks/authority-population.test.ts` pins the **population**: 12 files reference an authoritative kind;
+8 are registered, 4 are adjudicated exclusions, each carrying its stated reason in the test itself.
+
+A 13th file fails the merge with the decision attached:
+
+> *does it APPEND an authoritative kind against a TENANT database?*
+> **yes** → add it to `AUTHORITATIVE_FILES`, under every module it is authoritative for.
+> **no** → add it to `EXCLUDED_WITH_REASON` with the reason, so the next reader does not re-derive it.
+
+That is §265's shape — *membership required rather than remembered* — and §294's — *pin what must be argued*.
+Neither needed a semantic classifier; both needed a tripwire on the population and a human on the other side
+of it. **The hold moves from OPEN to TRIPWIRED, and its ownership from "unassigned" to the gate's.**
+
+### The third test, which caught its own author
+
+An exclusion whose reason rots is worse than no exclusion: it looks adjudicated. So the suite asserts each
+recorded reason is substantive. On the first clean run it **failed** — on my own entry, `webhooks.ts`, whose
+reason I had written as *"reader — same"*: thirteen characters deferring to the line above it.
+
+**The gate's first act was to refuse its author's laziest sentence.** Fixed to state what the file actually
+does (*matches kind strings to shape an outbound webhook payload; it appends nothing*). A rule that only ever
+constrains other people is not yet a rule.
+
+### And one more shell-quoting artefact
+
+The first clean run reported the population as **33**. Cause: the pattern was interpolated into the shell
+unquoted, so the double-quotes that anchor it to *quoted kind literals* were stripped, and it began matching
+the kinds wherever they appear in prose. **Fifth quoting/pattern error of the phase**, caught in seconds by
+the §283 rule that the clean tree must be green before anything else means anything.
+
+### What this closes
+
+The ledger's repository-owned section is now empty of open items. Everything remaining is blocked on an input
+this repository does not contain — nine private fixtures, two External Highs, three owner decisions, a
+staging placeholder, rows needing a migration, and one uncommitted GTM register row.
+
+### Verification
+
+Clean tree 3/3; a planted 13th file → **RED** naming the move (`was 12, now 13`) with the re-adjudication
+question; restored → GREEN. `typecheck 0 · lint 0 · check:invariants 0 · check:citations 0`; `test:tools`
+31 files / 784 tests, 781 passing (the known `REQ-289` trio). Ledger row updated OPEN → TRIPWIRED.
