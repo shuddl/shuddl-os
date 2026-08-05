@@ -14,9 +14,9 @@
   ],
   "baseline": {
     ".claude/skills/enforce-server-side-gate-parity/SKILL.md": {
-      "packages/contracts/src/events.ts": 4,
-      "workers/api/src/do/sequencer.ts": 9,
-      "workers/api/src/routes/events.ts": 4
+      "packages/contracts/src/events.ts": 1,
+      "workers/api/src/do/sequencer.ts": 5,
+      "workers/api/src/routes/events.ts": 1
     },
     ".claude/skills/enforce-server-side-gate-parity/reference-gate-parity-lint.md": {
       "packages/contracts/src/events.ts": 1,

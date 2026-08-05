@@ -10032,3 +10032,48 @@ convert a history into a maintenance burden.
 **Adopt the anchor on the citation you just verified, not on the one you are about to write.** The
 verification is the work; the anchor only makes it stick. Both defects here surfaced because adopting an
 anchor forces you to read the cited line — and rule 1, which had passed both for months, cannot.
+
+---
+
+## §194 — the gate-parity skill's quick reference pointed at four wrong lines
+
+§193 took the checklist's share of the ratchet. The larger live target was
+`enforce-server-side-gate-parity` — **29 unanchored citations**, in a skill teaching REQ-030, the law that
+*"any flow reachable by API must enforce the same gate."* §175 had already flagged three of its citations
+as suspect and I deferred them; this is that debt.
+
+Verified each against the sentence citing it. **Seven were wrong**, including every row of the
+Quick Reference table — the part a reader consults *while implementing a gate*:
+
+| The skill claimed | Cited line actually held | Corrected to |
+|---|---|---|
+| gates `stop.arrived` | a generic gate-block comment | `sequencer.ts:683@stop.arrived` |
+| 403s an unassigned driver | `if (events.length < effective) return null` — a **pagination check** | `routes/events.ts:263@assignmentOf` |
+| requires the device co-sign | `if (e instanceof Error …) throw new Error(e.message)` — an **error re-wrap** | `sequencer.ts:1215@deviceOwnedBy` |
+| server-emitted money kind refused | `const kinds: EventKind[] = []` — an empty declaration | `routes/events.ts:213@SERVER-EMITTED` |
+
+A reader following the device-co-sign row to check how ownership is enforced would have landed on an
+error-message re-wrap. The behaviours themselves are all correctly implemented and all still there — this
+is purely the map, but the map is what the skill *is*.
+
+### The ambiguous-basename finding underneath
+
+The ratchet attributed the skill's bare `events.ts` citation (line 167, written without its number here —
+the fifth time this session that naming an address has re-created it) to **the contracts package**, while the
+sentence is about the API route — `workers/api/src/routes/events.ts`. A bare basename with two owners in
+the repo, resolving to the wrong one. Writing the full path fixed both the citation and the ratchet
+accounting in one edit, which is the second time this session that an ambiguous basename has produced a
+misleading number (the first was §175's own table tripping the ratchet twice).
+
+### Result
+
+Anchored citations **86 → 93**; the ratchet fell **122 → 112** and was re-banked. Across §193 and §194 the
+high-churn exposure is down **129 → 112**, and every one of the seventeen closed was *read* before it was
+anchored — which is how six rotted citations in two live documents surfaced.
+
+### The rule
+
+**The Quick Reference is the part that rots hardest and matters most.** Prose carries enough context to
+survive a stale line number; a table row is nothing but the pointer. Every one of the four table rows here
+was wrong while the surrounding prose still read as true — and a table is exactly what someone reaches for
+under time pressure, which is the moment a wrong pointer costs the most.
