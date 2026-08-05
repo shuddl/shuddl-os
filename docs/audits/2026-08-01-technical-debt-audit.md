@@ -16067,3 +16067,59 @@ Three sections, three inherited facts, three checks: the worker suites *could* r
 "another workstream's row" and "two named lines whose vocabulary is three values short" are the same fact at
 completely different resolutions. **Confirming an inherited claim is not wasted work when the confirmation
 turns a label into an address.**
+
+---
+
+## §300 — The ledger itself, verified rather than recited
+
+Every iteration of this loop has closed with the same sentence: *"three owner decisions, nine private
+fixtures, two External Highs, rows needing a migration or API-contract change, one missing definition, one
+Low observation."* Recited perhaps fifteen times. **Never once checked this session** — which makes it the
+last and largest inherited claim in the audit, after §297, §298 and §299 each found one.
+
+Checked against source, item by item:
+
+| ledger claim | source | verdict |
+|---|---|---|
+| **nine private fixtures** | `fixtures/manifest.json` | **CONFIRMED — exactly 9 `pending`** (of 17 total: 9 pending, 7 vendored, 1 in-repo-test) |
+| **two External Highs** | `GO-LIVE-CHECKLIST.md` | **CONFIRMED — TSA endpoint and Backups**, both `NARROWED 2026-08-01` |
+| **three owner decisions** | `GO-LIVE-CHECKLIST.md` | **CONFIRMED** — duplicate-vs-strand (6 mentions), auth lifetimes (7), fifth primitive (5) |
+| **one staging placeholder** | preflight at `2a8a107` | **CONFIRMED** — `shuddl-mcp-staging.GRANTS`, §291 |
+| **`REQ-289`** | `git diff` + two gate source lines | **CONFIRMED and now specified** — §299 |
+
+**The ledger was accurate.** That is the result, and it is worth as much as a defect would have been: a
+summary repeated fifteen times without verification is exactly the shape of thing that is wrong, and this
+one was not.
+
+### The near-miss inside the check
+
+Counting the External Highs by scanning whole rows for keywords gave **six** High+External rows with three
+or four reading as open — a plain contradiction of the recited two, and for about a minute it looked like a
+record defect. It was not. Those rows carry their *history* inline (`~~BLOCKED~~ … CLEARED …`), so a keyword
+scan of the whole row sees every state the row has ever been in.
+
+Reading the **status column** instead resolved it immediately: 4 CLEARED, 2 NARROWED — and the two NARROWED
+are precisely the two External Highs.
+
+**A row that records its own history cannot be classified by scanning it — only by reading the field that
+holds its verdict.** Same family as §292's "not every match is stale", and the third time this session that
+the fix was *read the right field*, not *write a better pattern*.
+
+### What this closes
+
+With §300 every element of the standing ledger has an address: a file, a line, or a measured artifact. The
+loop's summary is no longer a memory being passed forward; it is a set of claims each of which was opened
+this session. **Nothing in it is closable inside this repository** — that has been true throughout and is now
+verified rather than asserted.
+
+### Verification
+
+`fixtures/manifest.json` parsed and tallied; `GO-LIVE-CHECKLIST.md` status column extracted per row; three
+owner decisions located by name. `check:citations 0 · check:invariants 0`. No file modified.
+
+### Yield note
+
+Four consecutive sections on inherited claims: two were false (§297, §298), one was true but useless until
+opened (§299), and one was true and complete (§300). **That distribution is the argument for checking them
+all** — a 50% error rate in claims nobody had questioned, and the two that survived only became actionable
+once they had addresses instead of labels.
