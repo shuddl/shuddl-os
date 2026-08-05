@@ -18297,3 +18297,60 @@ to state as an equation.
 
 Landing verified; `@shuddl/ledger` 616 green after restore; both backing fixtures confirmed vendored rather
 than pending before the run. No file changed.
+
+---
+
+## §343 — The fourth identity, and the largest RED of the phase
+
+§342 claimed that an invariant stated as an equation gets a test that cannot fail vacuously. Rule 6's fourth
+gate — **airplane-mode soak** — is the manifest's one `in-repo-test` entry, so its criterion was checkable,
+and it is stated as an identity rather than a description:
+
+> *"**50** signed offline events across 2 devices merge through the REAL sequencer with **zero loss / zero
+> dupes**."*
+
+(The test actually mints **55**; the manifest's 50 is the floor, not the count.)
+
+**Mutation:** `sequencer.ts:315` — the offline idempotency key is
+`(stream_id, device_id, device_seq)`. `device_seq` dropped, so every event from one device on one stream
+collapses onto the first row: a driver's fifty-five captures become one, and the rest return the wrong event
+as an idempotent replay. **Silent, total data loss on the offline path.**
+
+**RED — 47 failing assertions**, naming `55`, `ZERO loss`, `ZERO dupes`. **The largest RED of the phase**,
+against a one-clause deletion. Restored byte-identical: 754 passed.
+
+### Why 47
+
+Because the identity is asserted end to end and everything downstream of it inherits the check: the chain
+verifies, the counts reconcile, the per-device monotonicity holds, the merge order is irrelevant. A single
+key change violates all of them at once. **A description — "offline events sync reliably" — would have been
+satisfied by the mutation**, since one event per device does sync, reliably.
+
+This is also the path memory records as the loop's worst historical defect (*driver sync drain-order
+stranding signed captures*), which makes the 47 meaningful in a second way: **the assertions exist at that
+density because someone was burned there once.**
+
+### Four identities, four mutations, one pattern
+
+| identity | mutation | REDs |
+|---|---|---|
+| I7 — correction pairs net zero | drop one `-` | 6 |
+| eng.5 — interline compares the executing share | compare gross | 13 |
+| rule 6 — penny-exact allocation | floor instead of largest-remainder | 10 |
+| rule 6 — airplane soak: zero loss / zero dupes | drop `device_seq` from the dedupe key | **47** |
+
+Every mutation is one clause. Every one is plausible — a floor-divide, a dropped sign, a simplified key, a
+comparison against the obvious number. **None survives, and none of the tests that catch them needed a
+threshold, a tolerance, or a judgement call.**
+
+### The rule this phase ends on
+
+**State the invariant as an equation and the test writes itself; state it as a description and the test can
+be satisfied by anything.** Thirty sections of this audit were spent on gates that could not fail — and every
+one of them guarded a claim written as prose. The four here guard claims written as arithmetic, and not one
+needed a section.
+
+### Verification
+
+Landing verified; `@shuddl/api` 754 green after restore; path filter used (§325); the manifest's stated floor
+(50) reconciled against the test's actual mint (55). No file changed.
