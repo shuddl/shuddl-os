@@ -31,13 +31,13 @@ It requires literal `\s+` before the table and a single optional quote, with NO 
 - `INSERT OR REPLACE INTO"events"` — no whitespace, abutting quote.
 - `INSERT OR REPLACE INTO main.events` — schema-qualified.
 
-The migration matcher at `tools/checks/invariants.ts:63-66` catches BOTH, because it is built from shared fragments (`invariants.ts:22-31`): `DELIM = (?:\s+|(?=["'\`\[]))` allows a zero-width boundary before a quote, and `SCHEMA = (?:["'\`\[]?\w+["'\`\]]?\s*\.\s*)?` absorbs `main.`. Two divergent copies of one rule = one scanner blind to strings the other blocks.
+The migration matcher at `tools/checks/invariants.ts:60@replaceFamilyRe` catches BOTH, because it is built from shared fragments (`tools/checks/invariants.ts:44@QOPEN`): `DELIM = (?:\s+|(?=["'\`\[]))` allows a zero-width boundary before a quote, and `SCHEMA = (?:["'\`\[]?\w+["'\`\]]?\s*\.\s*)?` absorbs `main.`. Two divergent copies of one rule = one scanner blind to strings the other blocks.
 
 ## The pattern
 Build the target matcher once, consume it everywhere:
 
 ```ts
-// shared fragments already exist at invariants.ts:22-31 — REUSE, don't re-author.
+// shared fragments already exist at tools/checks/invariants.ts:44@QOPEN — REUSE, don't re-author.
 const GUARDED = "(events|positions|money_lines)";
 // One builder both surfaces call:
 export const replaceTarget = (verbs: string) =>

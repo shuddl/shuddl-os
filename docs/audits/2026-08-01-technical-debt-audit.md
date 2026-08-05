@@ -13878,3 +13878,51 @@ cheap test: *could one half be finished today without the other moving?* If yes,
 **And the yield is small by design.** Twelve bundles, ten correct, one already split in §260, one split
 here. Recording that ratio matters as much as the finding — the next auditor should expect this sweep to be
 mostly confirmation, not a vein.
+
+## §262 — my own edits broke four citations the gate is designed not to see
+
+§253 inserted ~20 lines near the **top** of `tools/checks/invariants.ts`, shifting everything below it. The
+citation gate caught two anchored references immediately and I re-pointed them. What it did not catch — by
+design — were the **unanchored** ones, and this section is about looking for those deliberately rather than
+waiting for a reader to trip on one.
+
+Enumerated every unanchored citation into a file this session edited: **9**. The `sla-sweep.ts` three sit
+*above* §248's edit and are unaffected. The rest:
+
+| Where | Cited | Claimed | Actually there now |
+|---|---|---|---|
+| `complete-append-only-insert-guards` | `invariants.ts:204` | `FORBIDDEN_REPLACE` | `        );` — a bare closing paren |
+| `share-lint-matchers…` | `invariants.ts:63-66` | "the migration matcher" | a JSDoc block |
+| `share-lint-matchers…` (×2) | `invariants.ts:22-31` | "shared fragments already exist here — REUSE" | **the globSync wrapper I added in §253** |
+| `RELEASE-EVIDENCE.md` | `invariants.ts:420-426` | "the fallback designed to return `{}`" | the REPLACE violation push |
+
+All four re-pointed **and anchored** (`:413@FORBIDDEN_REPLACE`, `:60@replaceFamilyRe`, `:44@QOPEN`,
+`:471@committedLock`), so the next shift fails the gate instead of silently mis-aiming a reader.
+
+### The one that was already wrong before this session
+
+`invariants.ts:204` is the value audit **§175 corrected on 2026-08-04** — in the *sibling* skill. The
+sibling's own text records it: *"Both citations in this file read `:204` until 2026-08-04."* §175 fixed the
+copies it was looking at and never swept for the same value elsewhere, so this one sat wrong for a day
+before I made it wronger. **A correction applied per-file rather than per-value is a correction that leaves
+siblings behind** — §239's "a guard names the copies that existed the day it was written", in the citation
+layer.
+
+### Why the gate is right to miss these, and what follows
+
+This is not a gate defect. §240 measured the alternative: validating bare paths produces ~95% false
+positives, and rule 2 (content anchors) is **opt-in** precisely because a repo cannot be forced to anchor
+every reference at once — hence the ratchet, which freezes the unanchored population and lets it fall.
+
+But it means an **unanchored citation is silently invalidated by any edit above it**, and the edit's author
+is the only person positioned to notice. So the obligation is procedural, not mechanical: **after editing a
+file, sweep for unanchored citations into it.** One `git diff --stat` tells you which files moved; a regex
+for `<basename>:<digits>` without `@` tells you who was pointing at them. Four wrong pointers, three of them
+mine, found in under a minute — and none would have failed a single gate.
+
+### The rule
+
+**Inserting lines at the top of a file is an edit to every citation below it.** The anchored ones announce
+themselves; the unanchored ones do not, and they are the majority. Treat "I added lines near the top of a
+frequently-cited file" as a trigger to sweep, in the same way this audit treats "a comment says two things
+must stay identical".
