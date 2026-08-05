@@ -10409,3 +10409,55 @@ that found §180's leak guard, §181's gate sentinel and §186's DST converter a
 **A law's stated importance tells you nothing about its enforcement depth — measure both.** The gap
 between twenty tests and one is not visible in `CLAUDE.md`, in the REQ register, or in any gate's green.
 It appears only when you break the rule and count what objects.
+
+---
+
+## §201 — rule 1 holds in both directions, and a third guard fired before the second one could
+
+`CLAUDE.md` rule 1: *"Every PR references REQ-IDs; traceability CI blocks orphans **(both directions)**."*
+"Both directions" is a specific, falsifiable claim — code citing a requirement that does not exist, and a
+requirement nothing implements — so both were planted.
+
+| Direction | Plant | Result |
+|---|---|---|
+| **A** — code → no row | `// REQ-999` in `workers/api/src/tenants.ts` | `FAIL built-but-unspec'd (annotations citing no register row): REQ-999` · **exit 1** |
+| **B** — row → no code | a register row nothing annotates | `FAIL spec'd-but-unbuilt (active-WP REQs with zero annotations): REQ-290` · **exit 1** |
+
+Both directions block, with distinct messages naming which direction failed. Rule 1 holds.
+
+### The guard I did not know was there
+
+Direction B's first attempt planted **REQ-998** — a deliberately out-of-range id — and never reached the
+orphan check:
+
+```
+Error: register row 291 has REQ-998; expected REQ-290 for strict append-only order
+```
+
+A third rule fired first: **the register's ids must be strictly contiguous and append-only.** Not in
+`CLAUDE.md`'s ten, not something I was testing for, and it makes the register's "append-only" property
+structural rather than conventional — you cannot reserve an id, cannot leave a gap, cannot insert
+retroactively between two rows. Re-planted at the correct next id (REQ-290), the orphan check then fired
+as designed.
+
+That is the good version of a surprise: **a probe blocked by a guard I did not know existed.** It cost one
+re-run and revealed that the register is defended by more than the two directions rule 1 advertises.
+
+### Standing after six laws
+
+**Rules 1, 2, 4, 5, 8 and 10 are all mutation-proven load-bearing — six tested, six held.** The remaining
+four are not mechanically testable the same way: rule 3 (server-side gates) was exercised structurally by
+§174 and §194, rule 6 (fixtures gate merges) is BLOCKED on the nine unvendored inputs by design, rule 7
+(design CI) is advisory-until-WP-10 by REQ-158, and rule 9 (the adversarial swarm at WP exit) is a process
+instruction with no artifact to mutate.
+
+So every hard law with an executable enforcement path has now been broken on purpose and caught. The
+laws are the strongest part of this build — a conclusion that only means anything because the same method
+found §180's leak guard, §181's gate sentinel and §186's DST converter unable to fail.
+
+### The rule
+
+**"Both directions" is a testable phrase, so test both.** A one-directional traceability gate would pass
+every day and read identically in the record — the asymmetry is invisible until you plant the second
+orphan. The register's contiguity rule was found the same way, by planting something malformed rather
+than merely absent.
