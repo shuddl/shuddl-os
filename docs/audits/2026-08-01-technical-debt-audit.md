@@ -16757,7 +16757,8 @@ is large:
   tenant-scoping sites across the api and ledger; eng.3 has **36** gate-refusal sites. I broke one of each.
   *(§320 CORRECTS the eng.8 half: those 42 are a grep artefact. Isolation is D1-per-tenant, so it is enforced
   at ONE resolver — `workers/api/src/tenants.ts:16` `tenantDb()` — with 7 callers, and that chokepoint is now
-  mutation-proved too. eng.3's 36 stands unexamined.)*
+  mutation-proved too. **eng.3's 36 examined in §321: also concentrated — 25 refusals in TWO files — with all
+  12 evidence kinds named in the corpus and the thinnest one mutation-proved.)*
   Fifteen assertions failed for isolation, which is strong evidence that *that* path is guarded — and no
   evidence about the other forty-one.
 
@@ -17210,3 +17211,59 @@ artefact, because that assumption is exactly the error this section is about.
 
 `git status` clean; `@shuddl/api` 754 passed after restore; §312's paragraph corrected in place so the
 superseded characterisation stays visible.
+
+---
+
+## §321 — eng.3's "36 sites", examined rather than assumed
+
+§320 corrected eng.8's site count and deliberately refused to extend the correction: *"eng.3's 36
+gate-refusal sites remain unexamined — stated plainly rather than assumed to be the same artefact, because
+that assumption is exactly the error this section is about."* Examining it.
+
+**Concentrated, like isolation — but not to one line.** The refusals live in two files:
+`gates/transition-gates.ts` (**21**) and `gates/invoice-gate.ts` (**4**) — 25 in one module, not 36 scattered
+across the tree. The extra 11 my earlier grep counted were the type, the imports, and matches outside the
+gate module.
+
+So eng.3 is a **module-level** chokepoint: broader than eng.8's single resolver, far narrower than the
+figure §312 recorded. Two artefacts, two different corrections — which is why §320 was right not to
+generalise from the first.
+
+### Per-decision coverage, without 21 mutations
+
+21 refusals are 21 distinct decisions, and §308's L7 mutation short-circuited **all of them at once** — that
+proves the mechanism, not each branch. The cheap discriminator is the evidence set the gate can demand:
+
+**12 `REQUIRED_EVIDENCE` kinds.** Only 4 are named in `transition-gates.test.ts` — which looks like a gap and
+is not (§305's rule: a gap in one suite is a fact about that suite). Corpus-wide, **every one of the 12 is
+named in at least two test files**: `pod_signed` in 53, `freight_photo` in 20, down to `receiver_ack` and
+`exception_photo` in 2 each.
+
+Then the decisive test, on the thinnest kind rather than a representative one: `receiver_ack`'s refusal
+(`transition-gates.ts:273` — the co-signature token check) removed.
+
+**RED — 3 failing assertions**, naming `receiver_ack`. Restored byte-identical: 616 passed.
+
+**Testing the thinnest point is worth more than testing a typical one.** If coverage were nominal — kinds
+mentioned in passing rather than asserted — the two-file kind is where that shows. It held.
+
+### The bound, stated exactly
+
+eng.3 is now: **25 refusals in 2 files · 12/12 evidence kinds named in the corpus · 2 refusals individually
+mutation-proved** (invoice-gate's `pod.signed` in §307, transition-gates' `receiver_ack` here) **plus the
+whole `missing.push` mechanism in §308.** The other 19 branches are covered by naming, not by individual
+mutation — which is a real bound, and a far tighter one than "a sample of one out of 36".
+
+### What the pair §320/§321 settles
+
+Both "multi-site" laws were mischaracterised by a grep, in the same direction, and correcting them **raised**
+the evidence: eng.8 from *sample-of-one-in-42* to *the chokepoint itself, proved twice*; eng.3 from
+*one-in-36* to *a two-file module with every demand-kind named and its thinnest branch proved*.
+
+**§312's caution was the right instinct applied to numbers it had not verified** — and the resulting
+understatement survived four sections because pessimism about one's own evidence never looks like an error.
+
+### Verification
+
+Two mutations landed and reverted; `git status` clean; `@shuddl/ledger` 616 passed after restore; §312's
+qualifier extended in place.
