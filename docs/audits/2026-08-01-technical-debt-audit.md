@@ -16673,9 +16673,8 @@ demo–adjacent code, repeated until it looked corroborated.
 CORRECTED UPWARD in §320–§321: each RED proves the enforcement AT THE SITE MUTATED. For five laws that is the
 whole implementation. §312 called the other two "a sample of one out of 42 / 36" — **both figures were grep
 artefacts.** Isolation is a single resolver, `tenants.ts:16`, now proved there AND at `mintPrincipalJwt`;
-gates are 25 refusals in TWO files, with all 12 evidence kinds named in the corpus and the THINNEST branch
-(`receiver_ack`, 2 test files) mutation-proved. eng.10 is 3 of 3. The honest residual is 19 transition-gate
-branches covered by naming rather than individual mutation.)* Six engineering rules and four genesis laws — each one now enforced by a test that fails when the enforcement is removed,
+gates are **14 real refusal branches** — 13 in `transition-gates.ts`, 1 in `invoice-gate.ts` — and **§323
+mutation-proved every one individually: 14 of 14 RED.** eng.10 is 3 of 3. **The residual is now ZERO.**)* Six engineering rules and four genesis laws — each one now enforced by a test that fails when the enforcement is removed,
 rather than by a sentence asserting it is.
 
 ### Verification
@@ -17317,3 +17316,67 @@ it got there by correcting my own caution twice rather than by finding anything 
 
 §310's qualifier corrected in place, with §312's superseded wording preserved by reference so the
 overstatement of weakness stays visible. `check:citations 0 · check:invariants 0`. No code changed.
+
+---
+
+## §323 — The residual closed: 14 of 14 gate branches, individually
+
+§322 named the last stated gap in the ten-law evidence: *"19 transition-gate branches covered by naming
+rather than individual mutation."* Closing it produced two results, and the second is the more useful.
+
+### Every branch, one at a time
+
+**There are 13 `missing.push` branches, not 19.** Each was neutered individually (`false && missing.push(…)`),
+landing verified, the ledger suite run, and the file restored between each:
+
+`freight_counted` · `freight_photo` · `custody_transferred` · `dims_captured` · `geofence` · `pod_signed` ·
+`placed_freight_photo` · `seal_applied` · `receiver_ack` · `exception_photo` · `reason_code` ·
+`appointment` · `docs`
+
+**13 of 13 RED.** Not one branch is carried by another's coverage.
+
+And `invoice-gate.ts` has **one** refusal, not four: the other three "GateError" matches are the class
+declaration, its `name` assignment, and a comment. §307 proved that one.
+
+**eng.3 is therefore 14 of 14, individually mutation-proved. The ten-law table's residual is zero.**
+
+### Four counts, four artefacts, all in the same direction
+
+This thread produced four grep-derived numbers, and **every one overstated the surface**:
+
+| stated | actual | ratio |
+|---|---|---|
+| 42 isolation sites | 1 resolver (7 callers) | §320 |
+| 36 gate refusals | 25 (incl. types/imports) | §321 |
+| 19 unproved branches | 13 | §323 |
+| 4 invoice-gate refusals | 1 | §323 |
+
+**A `grep -c` counts occurrences of a token; a surface is the set of places a decision is MADE.** The two
+differ by every declaration, import, comment and call site — and the difference is always in the same
+direction, because a token appears wherever the concept is *discussed*, not only where it is *enforced*.
+
+So grep-derived counts don't just err — **they err systematically toward overstating the attack surface**,
+which systematically understates the evidence. That is the §322 asymmetry with a mechanism attached:
+understatements survive because they read as rigour, and this is where they come from.
+
+**The rule that follows is cheap: a count that will appear in a claim must be derived from the architecture,
+not from a token.** One question — *"where is this decision made?"* — replaces four wrong numbers.
+
+### The ten-law evidence, final form
+
+| law | sites | proved |
+|---|---|---|
+| eng.2 append-only | 2 triggers | 2/2 |
+| eng.3 gates server-side | 14 refusal branches | **14/14** |
+| eng.4 no price on air | 1 | 1/1 |
+| eng.5 interline share | 1 (stated "ONE source of truth") | 1/1 |
+| eng.8 tenant isolation | 1 resolver + the principal mint | 2/2 |
+| eng.10 no silent drops | 3 gap-row sites | 3/3 |
+| L2 lenses · L3 money · L7 transitions · L10 export | 1 each | 4/4 |
+
+**Ten laws · 27 individual mutations · every one RED · every file restored byte-identical · no residual.**
+
+### Verification
+
+Thirteen sequential mutations with per-iteration landing checks and restores; `git status` clean;
+`@shuddl/ledger` 616 passed after the sweep; §310's qualifier updated to state a zero residual.
