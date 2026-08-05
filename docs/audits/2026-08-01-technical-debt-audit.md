@@ -8835,7 +8835,7 @@ roughly half the flagged set is likely rot and the rest is window tightness, and
 Five rotted citations across three skills, each re-pointed **and given a content anchor**, which is the
 only rule that catches this failure — `invoice-gate.ts:16@GATE_BLOCKED_PREFIX`,
 `transition-gates.ts:74@VALIDATION_FAILED`, `isolation.test.ts:29@WPs`,
-`invariants.ts:392@FORBIDDEN_REPLACE` (×2), plus `invariants.ts:29@SCHEMA`. Anchored citations went
+`invariants.ts:413@FORBIDDEN_REPLACE` (×2), plus `invariants.ts:50@SCHEMA`. Anchored citations went
 **28 → 34**; 987 citations resolve; the ratchet holds at its frozen 130.
 
 The remaining ~48 candidates are **not** swept in this pass, and saying so is the point (§175 is not a
@@ -13401,3 +13401,66 @@ did not give me anything to read." One under-claims, the other mis-attributes �
 because it spends the reader's trust: a battery that cries violation on every local run teaches its
 operators to skim the one line that must never be noise. That is the exact failure mode the checklist
 already records for `binding-drift`, arrived at from the other direction.
+
+## §253 — the iCloud duplicate that breaks a gate, and the ignore rule that only covered "2"
+
+Going after the browser gates, the file listing surfaced `tests/e2e/prod-surface.spec 2.ts` — a macOS/iCloud
+name-collision duplicate. Two real defects fell out of one stray file, and both were mine to fix.
+
+First the good news, verified rather than assumed: **nothing is tracked.** `git ls-files | grep ' [0-9]\.'`
+is empty, `.gitignore` has carried an explicit rule since WP-06, and the file is ignored. Two adjacent
+records were also checked and are clean — all five blessed screenshots exist (the T14/T15 "missing
+screenshots" finding has since been resolved, and no stale claim survives), and the README's "teal progress"
+is not a palette violation: `--progress: #00C4B4` **is** one of the five tokens, sanctioned for progress
+fills only, which is why `primitives.tsx` and `motion.tsx` both exclude it.
+
+### Defect 1 — the ignore rule stopped at "2"
+
+`.gitignore` had `* 2.*` and `*\ 2.*`. macOS mints ` 3`, ` 4`, … on every subsequent collision, so:
+
+| Name | Ignored? |
+|---|---|
+| `x 2.sql` | yes |
+| `x 3.sql` · `x 4.sql` · `x 10.sql` | **NO — committable** |
+
+A tracked `0008_… 3.sql` would be a duplicate migration inside the forward-only lock. Broadened to
+`* [0-9].*` / `* [0-9][0-9].*` (2–99), with the negative control checked: `x2.sql` — no space — is still
+tracked, so a legitimate name is untouched.
+
+### Defect 2 — the gates read the filesystem, so an IGNORED duplicate still reaches them
+
+`.gitignore` protects the commit. It does nothing for a gate that globs the disk. **Measured:** copying one
+migration to `0008_append_only_unique_guards 2.sql` turns `check:invariants` **RED**, reporting that four
+test helpers fail to apply a "shipped migration" that is not shipped at all — and the failure lands on
+§239's gate, which I wrote. Fail-closed, so not dangerous; but it is §252's fault exactly, one section
+later: **a gate accusing the developer of a defect they did not create**, here on any iCloud-synced
+checkout.
+
+Fixed by filtering at the **glob**, not per-caller: `globSync` is shadowed over the raw import so all 15
+glob sites in that file are covered and the raw one is unreachable by accident. Keying the guard where it
+cannot be omitted is §244's lesson, applied to my own code this time.
+
+Proved in both directions — duplicates at ` 2`, ` 3` and in the control directory leave the gate GREEN with
+the count still `11 migration files` (not 14), while **deleting a real migration from a helper is still
+caught**, so the filter did not over-reach. Ten predicate cases are pinned, including `x2.sql`, `v2.ts` and
+`WP-01..16.md` as non-duplicates, and a directory named `v 2/` that must not hide the files inside it.
+
+### The tax this section paid, and why it is worth paying
+
+Inserting ~20 lines at the top of `invariants.ts` shifted two anchors cited **five times** — three in a
+skill, two in this audit — and `check:citations` failed until each was re-pointed (`:392`→`:413`,
+`:29`→`:50`). The skill's own text records that the same pair last moved on 2026-08-04.
+
+That is the third time this session an edit broke an anchored citation and the gate caught it. It also
+sharpens §248's rule about frozen observations: **a dated count stays, but a citation must be maintained** —
+a count is a claim about a past measurement, while a citation is an *address*, and an address that no longer
+resolves has stopped being anything at all.
+
+### The rule
+
+**A `.gitignore` rule and a gate's glob are two different universes, and only one of them is version
+control.** Any check that enumerates "what ships" by reading the disk will see build output, editor backups,
+and sync-service duplicates that git has been told to ignore — so either resolve through `git ls-files` (as
+`check:citations` already does) or filter the same patterns the ignore file does. And when writing that
+ignore rule, enumerate the *generator's* whole output: this one was written against the single example
+someone had in front of them, and every later collision walked past it.

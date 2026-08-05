@@ -31,9 +31,14 @@ playwright-report/
 tests/visual/blessed/*-diff.png
 tests/visual/blessed/*-actual.png
 
-# macOS/iCloud name-collision duplicates (see WP-06 session note) — never commit these
-* 2.*
-*\ 2.*
+# macOS/iCloud name-collision duplicates (see WP-06 session note) — never commit these.
+# Broadened 2026-08-05 (audit §253): the rules covered ONLY " 2", but macOS mints " 3", " 4", … on every
+# subsequent collision, so `0008_x 3.sql` was committable — a tracked duplicate migration would corrupt the
+# forward-only lock and the schema itself. Character classes cover 2–99.
+* [0-9].*
+* [0-9][0-9].*
+*\ [0-9].*
+*\ [0-9][0-9].*
 
 # Operator-supplied preflight state (account-side facts). Named at the repo root by
 # docs/ops/LAUNCH-RUNBOOK.md Step 3 — it asserts what is bound in a live account and is never committed.

@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import { stripSqlComments } from "@shuddl/ledger/migrate";
 import {
   checkControlMigrationsExercised,
+  isCollisionDuplicate,
   checkDoMutexIntact,
   checkSurfaceBudget,
   checkLock,
@@ -794,5 +795,36 @@ describe("§245: exactly the three registered surfaces ship", () => {
   it("the roster matches the surfaces actually shipped — a pin, not a wish", () => {
     const shipped = globSync("apps/*/package.json", { cwd: REPO }).map((p) => p.split("/")[1]!);
     expect([...shipped].sort()).toEqual([...SURFACE_ROSTER].sort());
+  });
+});
+
+// audit §253 — macOS/iCloud mints "name 2.ext" on every name collision. They are gitignored, but every gate
+// in invariants.ts reads the FILESYSTEM, so an ignored duplicate still reached the scans and turned
+// check:invariants RED against a migration that is not shipped.
+describe("§253: iCloud collision duplicates are filtered from every filesystem scan", () => {
+  it.each([
+    "db/tenant/migrations/0008_x 2.sql",
+    "db/tenant/migrations/0008_x 3.sql",
+    "db/control/migrations/0003_y 10.sql",
+    "workers/api/src/index 2.ts",
+    "index 99.ts",
+  ])("treats %s as a duplicate", (p) => {
+    expect(isCollisionDuplicate(p)).toBe(true);
+  });
+
+  it.each([
+    "db/tenant/migrations/0008_append_only_unique_guards.sql",
+    "packages/rater/src/price.ts",
+    "apps/command/src/App.tsx",
+    "x2.sql",            // NO space — a legitimate name, must never be filtered
+    "v2.ts",             // ditto
+    "docs/wp/WP-01..16.md",
+  ])("does NOT treat %s as a duplicate", (p) => {
+    expect(isCollisionDuplicate(p)).toBe(false);
+  });
+
+  it("matches on the BASENAME, not the directory — a folder named 'v 2' must not hide its files", () => {
+    expect(isCollisionDuplicate("some/v 2/real.sql")).toBe(false);
+    expect(isCollisionDuplicate("some/v 2/real 2.sql")).toBe(true);
   });
 });

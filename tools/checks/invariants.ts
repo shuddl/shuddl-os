@@ -1,11 +1,32 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, globSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, globSync as globSyncRaw, readFileSync, writeFileSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { join } from "node:path";
 import { stripSqlComments } from "@shuddl/ledger/migrate";
 
 // I8 (doc 10): ≤22 tables — 21 named, the spare requires a written deletion (register note).
+// macOS/iCloud name-collision duplicates ("0008_x 2.sql", "index 3.ts") are gitignored, but EVERY gate in
+// this file reads the FILESYSTEM, not `git ls-files` — so an ignored duplicate still reaches the scans.
+// MEASURED (audit §253): copying one migration to "0008_append_only_unique_guards 2.sql" turns
+// `check:invariants` RED, reporting that four test helpers fail to apply a "shipped migration" that is not
+// shipped at all. Fail-closed, so not dangerous — but it is the cry-wolf mode on any iCloud-synced
+// checkout, and it accuses the developer of a defect they did not create (the §252 fault, again).
+//
+// Filtered at the GLOB rather than per-caller, deliberately: there are 15 glob sites here, and a predicate
+// each caller must remember to apply is one a future caller will forget (§244 — key the guard on something
+// that cannot be omitted). `globSync` is shadowed so the raw import is unreachable by accident.
+export function isCollisionDuplicate(path: string): boolean {
+  const base = path.split("/").pop() ?? path;
+  return / \d{1,2}\.[^.]+$/.test(base); // "name 2.ext" … "name 99.ext"; "name2.ext" is untouched
+}
+
+type GlobOpts = { cwd?: string; exclude?: (p: string) => boolean };
+function globSync(pattern: string, opts?: GlobOpts): string[] {
+  const raw = opts === undefined ? globSyncRaw(pattern) : globSyncRaw(pattern, opts);
+  return (raw as string[]).filter((p) => !isCollisionDuplicate(p));
+}
+
 export const TABLE_BUDGET = 22;
 const NAMED_TABLES = 21;
 
