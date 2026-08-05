@@ -18194,9 +18194,53 @@ by five assertions because the *tests* name the invariant.
 | authority | statements | mutation-proved |
 |---|---|---|
 | `CLAUDE.md` — laws + engineering rules | 10 | **10** (§305–§323, 27 mutations) |
-| `genesis/10` — schema invariants I1–I8 | 8 | **7** — I7 exercised but not mutated |
+| `genesis/10` — schema invariants I1–I8 | 8 | **8** — I7 closed in §341 |
 
 ### Verification
 
 Both mutations landing-verified and restored byte-identical; `@shuddl/rater` 154, `@shuddl/ledger` 616 green
 after restore; path filters used throughout (§325). No file changed.
+
+---
+
+## §341 — I7 closed: eight of eight
+
+§340 recorded I7 as *exercised but not mutated* rather than counting it — §308's rule that an unattempted
+mutation is not evidence. Closing it, per §310's pattern of finishing a named residual instead of leaving it.
+
+**I7 — "correction pairs net zero in GL export."** `projection/money.ts:152` builds the reversal:
+`amount_cents: -o.amount_cents`, one `correction_credit` per in-effect original. The negation removed — so a
+correction *adds* a second charge instead of reversing the first, and a corrected invoice bills twice.
+
+**RED — 6 failing assertions**, naming `I7`, `correction_credit`, and "net to 0". Restored byte-identical:
+616 passed.
+
+### The one-character defect
+
+The mutation is a single `-`. That is worth pausing on: **the difference between a credit and a duplicate
+charge is one character**, in a file with no LLM, no I/O and no branching around it — the kind of edit a
+refactor, a merge conflict resolution, or an autocomplete produces silently.
+
+Six assertions catch it, and they catch it because the tests assert the **identity** (*"reversed originals +
+credits sum to exactly zero"*) rather than the shape. A test asserting *"a correction produces credits"*
+would pass on the mutation; a test asserting *"they net to zero"* cannot. **I7 is stated as an identity in
+`genesis/10`, and it is tested as an identity — which is why one character cannot survive.**
+
+That is the sharpest instance of a pattern this phase has hit repeatedly from the other side: §287's font
+budget was green because nothing counted; §313's registry was complete because nothing classified. Here the
+invariant's *form* — an equation — dictated a test that cannot be satisfied approximately.
+
+### Both authorities, complete
+
+| authority | statements | mutation-proved |
+|---|---|---|
+| `CLAUDE.md` — ten laws + engineering rules | 10 | **10** |
+| `genesis/10` — schema invariants I1–I8 | 8 | **8** |
+
+**Eighteen governing invariants, thirty individual mutations, every one RED, every file restored
+byte-identical.** No residual in either table.
+
+### Verification
+
+Landing verified; `@shuddl/ledger` 616 green after restore; §340's standing table corrected to 8 of 8.
+No file changed.
