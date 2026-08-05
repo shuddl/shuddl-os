@@ -1,7 +1,7 @@
 # Blessed screenshot references — the five canonical screens (WP-03 DoD, audit #6)
 
 These are the reference PNGs the Playwright screenshot diff compares against
-(`tests/visual/screens.spec.ts`, driven by `../../playwright.config.ts`). One
+(`tests/visual/screens.spec.ts`, driven by the repo-root `playwright.config.ts`). One
 per canonical surface:
 
 | File | Screen | Route |

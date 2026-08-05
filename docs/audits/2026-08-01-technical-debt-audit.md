@@ -12683,3 +12683,67 @@ cannot observe violations of what it omits, so it stays green by construction an
 proof. Ask of any fixture: *is this the artefact we ship, or a hand-maintained list that resembles it?* If
 the second, the list needs a gate, and the gate needs a planted violation in every cell before it is
 believed.
+
+## §240 — re-running a rejected measurement, and the reason the answer inverted
+
+Three candidate findings this pass turned out to be already-recorded, and saying so is the point: the demo
+basemap's third-party tile host (§140, privacy dimension already added), edge rate-limiting on the four
+`/pub/*` routes (REQ-193 and REQ-125, deliberate Cloudflare-edge design with GO-LIVE rows), and the
+control-plane migrations — verified applied, per test file, importing the real shipped SQL, so §239's defect
+has **no control-plane twin**. Three checks, three clean negatives, zero rows added.
+
+What was left was the one open row carrying its own re-measurement trigger.
+
+### The row that asked to be re-measured
+
+*"The citation gate is blind to a PATH-ONLY citation"* — `CITATION_RE` requires `:(\d+)`, so a backticked
+path with no line number is never validated, and that form carried two of the five historical rot defects.
+Extending it was measured and **rejected on 2026-07-27**: 411 checked → 25 unresolved → ~19 false (~76%).
+The row named three prerequisite filters and set its expiry as *"when the three filters land, or when the
+411/25/~19 measurement is re-run on a changed corpus."* The corpus has since roughly doubled.
+
+So all three filters were implemented — elision (`...` segments), a gitignored-artifact allowlist, and a
+`docs/plans` exclusion — and run against the current tree using the gate's **own** `resolveCandidates`, so
+relative and partial paths resolve exactly as they would in production.
+
+**710 checked → 22 unresolved → 21 clearly false, 1 marginal.** A false-positive rate of ~95%, against
+July's ~76%. **The filters worked and the result got worse.**
+
+### Why, and it is not the corpus
+
+The filters removed exactly what they were designed for — 8 elisions, 1 range notation (`WP-01..16.md`),
+9 gitignored artifacts, 28 plan files. What remains is not mechanical noise but four *semantic* categories:
+
+| Residual | Example | Why no filter reaches it |
+|---|---|---|
+| Generic illustration | `path/file.ts`, `worker/index.js` | a real-looking path used as a placeholder |
+| Shorthand | `mcp/isolation.test.ts` → `workers/mcp/test/isolation.test.ts` | referent EXISTS; only the intermediate segment is elided |
+| Aspirational | `fixtures/tariff/*.json` in a README | describes a tenant config pack that ships elsewhere |
+| **Deliberate quotation of a bad path** | every `docs/ops/threat-model.md` hit | the prose exists to say *no such file exists* |
+
+The last one is decisive and self-referential: **a path-only gate would fire on the very rows that document
+path-only citation rot.** `GO-LIVE-CHECKLIST.md:310` reads *"there is no `docs/ops/threat-model.md`"* — a
+sentence whose correctness requires naming a path that must not resolve. The audit has hit this repeatedly
+from the other direction (naming a bad citation re-creates it, six times in gated docs, de-linked each
+time); here it appears as a permanent floor under the false-positive rate.
+
+### What changed in the record
+
+The row's recommendation inverts. It previously read as *"three filters are prerequisites"* — implying the
+work is filtering. Two measurements now agree that filtering is necessary but **not sufficient**, and that
+the corpus is not the variable. The blocker is the absence of an **opt-in marker** separating a citation
+from a mention; `path:line` is itself that marker today, which is precisely why rule 1 works. The expiry was
+rewritten accordingly: not *"re-run on a changed corpus"* (done, twice, converging) but *"when an opt-in
+marker exists."*
+
+One genuine defect fell out: `tests/visual/blessed/README.md` pointed at `../../playwright.config.ts`, which
+from `tests/visual/blessed/` resolves to `tests/playwright.config.ts` — a file that does not exist; the
+config is at the repo root. Fixed by naming it rather than counting `../` levels.
+
+### The rule
+
+**A rejected proposal with a re-measurement trigger is an asset, and re-running it can be worth more than a
+new finding.** This one converted a soft "we decided not to" into a measured "we decided not to, twice, and
+here is the specific thing that would have to change first" — which is what stops the same proposal being
+re-litigated every audit. The failure mode to avoid is the opposite: re-running the measurement, getting a
+worse number, and quietly not updating the row that predicted a better one.
