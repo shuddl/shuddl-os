@@ -16911,3 +16911,44 @@ with a trigger. No unknowns left in the class.
 
 Thirteen probe files planted and removed across eleven directories; `git status` residue **0**;
 `check:chokepoint` and `check:citations` both exit 0 on the clean tree.
+
+---
+
+## §315 — Filing the hold where holds live
+
+§313 produced a new ledger item; §314 confirmed it is the only one of its class. Neither filed it. **A hold
+recorded in one of 315 audit sections is not recorded** — `PROJECT-STATE.md` names
+`docs/ops/GO-LIVE-CHECKLIST.md` as where the technical-debt ledger lives, and that is where a reader looks.
+
+Filed into **`## Repository-owned failures & debt (NOT external holds)`**, on the eight-field schema that
+section uses, rather than into the *External holds* table above it. The distinction is load-bearing and was
+worth getting right: every other hold in this audit's ledger is blocked on an input this repository does not
+contain — a private fixture, a CI secret, an owner decision. **This one is blocked on nothing.** The registry
+is complete, the gate exits 0, and the defect is that *no recurring mechanism owns keeping it that way*.
+
+The row carries what §294 requires of a hold: the measurement (`12 files reference an authoritative kind,
+8 registered, 4 correctly excluded`), the SHA it was measured at, the four adjudications so the next reader
+does not redo them, and an **expiry trigger** — *any new file appending `quote.priced`, `invoice.issued`,
+`settlement.*` or `message.sent` against a tenant database.*
+
+It also records the **rejected gate and why**, so the proposal is not re-litigated: a kind-mention rule
+raises four false positives out of four candidates, because "authoritative" is semantic, not greppable
+(§292/§304/§313 — the same wall, now three times measured).
+
+### The pattern this closes
+
+Three sections in sequence did the three things a finding needs, and none of them alone was enough:
+
+1. **§313 found it** — by checking a deferral I had asserted.
+2. **§314 bounded it** — by sweeping the class, so it is one hold and not an unknown number.
+3. **§315 filed it** — where the ledger lives, on the ledger's own schema.
+
+**A finding that stops at (1) is a story; one that stops at (2) is an audit note.** Only (3) makes it
+survivable — and (3) is the step that feels redundant while writing it, because the fact is already written
+down twice. That is exactly the §302 failure mode from the other side: there, corrections lived where the
+claim lived and the routes stayed stale; here, a finding lived in the audit and the ledger stayed silent.
+
+### Verification
+
+Row inserted into the repository-owned table on its eight-field schema; `check:citations 0` (every path and
+`§N` reference in the row resolves) · `check:invariants 0`. No code changed.
