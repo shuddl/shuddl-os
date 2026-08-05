@@ -13672,3 +13672,48 @@ parity tests.** Pairwise parity scales badly and covers only the copies someone 
 is the one that bites. A single check that reads the source of truth and validates *every* occurrence in the
 tree is both smaller and stronger. The tell that you have found one: mutating the source makes the gate
 complain about the **copies**, not about the source.
+
+## §258 — a conditional law whose condition resolved, and the two records that never noticed
+
+`CLAUDE.md` rule 7 read: *"Advisory (report-only) until WP-10 exits, blocking thereafter (REQ-158)."* All
+sixteen WPs are closed, so the condition resolved — but a conditional is only useful while its condition is
+open, and nothing said which side of it the build now sits on. A reader in 2026-08 had to go and find out.
+
+**It flipped, and the flip is self-documented where it happens:**
+`tools/design/design-ci.json` is `{"mode":"blocking", "note":"REQ-158: flipped to blocking at WP-10 exit —
+pixel law now gates merges."}`, `tools/design/audit.ts:296` exits 1 in that mode, and `gatesFor("merge")`
+carries `design-audit` in the **non-skippable** group. Independently corroborated by this session's probes:
+§252 planted a shadow, an over-budget radius and a raw hex (three REDs); §257 drifted the palette and the
+gate named every copy. The pixel law blocks a merge.
+
+While confirming the gate surface, §4's clause-2 figures were checked against `run-gate.ts` for the first
+time since they were written: `plain` holds **15** gates and `skippable` **9**, of which `perf`, `visual`,
+`a11y`, `e2e` are the **4** browser gates — exactly the "24 = 15 + 9, of which 4" the clause states.
+
+### Two records that stayed on the pre-flip side
+
+- **`GO-LIVE-CHECKLIST.md:253`** still read *"Squint-test + frame-budget report-only (exit 0); blocking with
+  `--strict` after WP-10"*, graded Informational. Its own promise — *"Automated mode-flip, not manual"* —
+  had been kept, and the row was never updated to say so. It also named **one** mechanism
+  (`playwright-guard.ts`) for **two** gates that live in different files: the squint-test's mode is
+  `design-ci.json`; the harness governs perf and the browser gates. Both halves corrected, with the measured
+  evidence attached and the original text struck rather than deleted.
+- **`CLAUDE.md` rule 7** itself. Struck and replaced with the enforced state, keeping the original clause
+  visible because its *reason* still governs any future gate: **pixel law must not stall ledger work.**
+
+### Why this is worth a section for a Low-severity row
+
+Because of what it would have cost a reader. Someone reading rule 7 today concludes the design CI is
+advisory and that a pixel regression merges freely — the opposite of the truth — and would plausibly *add*
+enforcement that already exists, or discount a design failure as report-only noise. A stale conditional is
+worse than a stale fact: a fact reads as possibly-old, while a condition reads as *still pending*, which is
+an active claim about the present.
+
+### The rule
+
+**A rule written as a conditional acquires a maintenance obligation the day its condition resolves.** Grep
+governance documents for *"until"*, *"after X exits"*, *"once Y lands"* — each is a claim that something has
+**not** happened, and each needs re-reading when it has. The mechanism here did its part perfectly: the mode
+file records the flip *at the point of the flip*. What failed is that two documents describing the mechanism
+were not written to be updated by it — the same asymmetry §241 measured, where the executed half defends
+itself and the prose half does not.
