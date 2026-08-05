@@ -186,8 +186,13 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 
 ## §4 — Phase gating and the stopping point
 
-> **CURRENT MEASUREMENT: §238, at `68cfb0d`; CONVERGENCE measured at §243.** The four clauses below are
-> measured in §238, **RE-MEASURED IN §296 at `3d1386b` — see §296 for the current verdict, its stated bounds, and the seven phase-gating triggers that reopen it.** §243 (extended through §295) answers the separate question of whether another iteration is worth running:
+> **CURRENT MEASUREMENT: §298, at `03825ef` — the merge gate RUN, not inferred: 24 gates, 17 PASS, 5 BLOCKED,
+> 2 FAIL.** Read §298 first. §296 re-measured the gate surface at `3d1386b` but named two bounds that turned
+> out to be unmeasured inheritances — §297 withdrew the worker-suite bound (the full suite runs: 281 files /
+> 3,698 tests / 3,695 passing) and §298 withdrew the browser-gate bound (visual/a11y/e2e all PASS with
+> `executed: true`). §299 specifies the single blocker behind both FAILs — the uncommitted `REQ-289` GTM row,
+> down to the two source lines that reject it — and §300 verifies every item of the standing ledger against
+> its source. The clauses below were originally measured in §238 at `68cfb0d`; §243 (extended through §295) answers the separate question of whether another iteration is worth running:
 > defects-per-section across the eight sections after §238 ran 1,1,1,—,1,1,**0,0** while verified-clean
 > rose to 8 and 8, the last two being the most systematic sweeps of the set. Five named restart triggers
 > are listed there, each a grep or a diff — two of which are now GATES (§244) rather than greps. Across
@@ -15843,7 +15848,9 @@ The gate is not "forever". Any of these makes the verdict above stale and requir
    roster gate, so it fails loudly.
 5. **Any demo's filmed sentence changes** — the acceptance record is written against exact wording.
 6. **`shuddl-mcp-staging.GRANTS` is provisioned**, or any staging resource id changes (§291's trigger).
-7. **The `workerd` wedge clears** — the five worker suites become measurable, and the bound above lifts.
+7. ~~**The `workerd` wedge clears** — the five worker suites become measurable, and the bound above lifts.~~
+   **RESOLVED in §297 — by checking, not by waiting.** The wedge was absent; the suites run. This trigger is
+   spent and leaves the list, which now has six live entries.
 
 Two of these are now enforced by gates rather than memory (3 and 4); the rest remain human triggers, which
 is stated plainly because an unenforced trigger is a hope, not a control.
@@ -16123,3 +16130,41 @@ Four consecutive sections on inherited claims: two were false (§297, §298), on
 opened (§299), and one was true and complete (§300). **That distribution is the argument for checking them
 all** — a 50% error rate in claims nobody had questioned, and the two that survived only became actionable
 once they had addresses instead of labels.
+
+---
+
+## §301 — Correcting a claim is not correcting where readers land
+
+§297 struck §296's worker-suite bound *in place* and §298 struck the browser-gate bound. Both corrections
+were made honestly and in the right section. **And the audit's front door still sent every reader to §296.**
+
+`§4 — Phase gating and the stopping point` is the entry point: it opened with *"CURRENT MEASUREMENT: §238…
+RE-MEASURED IN §296 — see §296 for the current verdict, its stated bounds, and the seven phase-gating
+triggers."* Following it landed a reader on a verdict with two struck bounds, a superseded figure, and a
+trigger list containing one item that no longer exists.
+
+Nothing there was *false* — every sentence had been corrected where it lived. **The routing was wrong**,
+which is a different defect and invisible to every check that reads sections independently.
+
+Two fixes, both in place:
+
+- **§4 now names §298** — the merge gate *run*, not inferred: 24 gates, 17 PASS, 5 BLOCKED, 2 FAIL — and
+  summarises what §296/§297/§299/§300 each contribute, so the reader arrives at the measurement rather than
+  at its first draft.
+- **§296's trigger 7 is struck in its own list**, not merely in §297's prose. It had been "resolved" in a
+  later section while the list a reader would actually consult still enumerated seven live triggers. The
+  same per-VALUE-not-per-FILE failure as §284 and §292, occurring inside one document.
+
+**The generalisable form: a superseded verdict must be unreachable from the entry point, not just annotated
+where it lives.** Striking a sentence fixes the sentence; it does not fix the path that leads to it. In a
+15,000-line record the path is what most readers experience, which makes it the load-bearing artefact — the
+document-scale version of §292's *"the headline IS the claim."*
+
+Worth noting the shape of the miss: both corrections were written by the same author, minutes apart, each
+diligent about the section in front of it. **Correcting in place is locally complete and globally partial**,
+and nothing about doing it well signals the remaining half.
+
+### Verification
+
+`check:citations 0 · check:invariants 0` — both entry-point edits are inside a gated document, and the
+citation gate confirms every reference in the rewritten block resolves. No code changed.
