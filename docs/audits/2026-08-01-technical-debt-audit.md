@@ -14503,3 +14503,55 @@ are the cheapest possible audit: a single grep per form, a count, and a look at 
 here is a **bound**, not a finding: eight inline suppressions repo-wide, all justified in place, none hiding
 a type error or a test. A codebase that has stayed at zero `@ts-expect-error` has been paying its type debt
 rather than deferring it, and that is worth knowing before spending effort anywhere else.
+
+## §274 — are the tests real? The vacuity bound under every other green in this audit
+
+§273 bounded the *declared* suppressions. The complementary form needs no marker at all: **a test that passes
+unconditionally**. Every "N passed" in this audit — 754, 614, 177, 36 acceptance, the gate suites — rests on
+the assumption that those tests can fail, and that assumption had never been measured.
+
+Three sweeps over every `*.test.ts(x)` / `*.spec.ts` in the repo:
+
+| Form | Count |
+|---|---|
+| test bodies with **no assertion token of any recognised form** | **0** |
+| `expect(true).toBe(true)` · `expect(1).toBe(1)` · `expect(true).toBeTruthy` | **0** |
+| tests whose **only** assertion is existence (`toBeDefined`-class) | **2** |
+
+The two survivors are correct for the property each states, not weak:
+
+- *"every catalog kind is present in the defaults map"* — `for (const kind of EVENT_KINDS)
+  expect(KIND_VISIBILITY_DEFAULTS[kind]).toBeDefined()`. Presence **is** the property; it is also a runtime
+  backstop for something the type system already guarantees exhaustively.
+- *"a tenant lens redacts nothing"* — asserts `floors`, `versions`, `basis` all survive a tenant-scope
+  redaction. "Still there" is exactly the claim, and `toBeDefined` is the honest way to write it.
+
+### Two parser errors, and both mattered
+
+The first sweep reported **8** no-assertion tests, including the rater's distance-monotonicity property —
+CLAUDE.md rule 4's sweep. That would have been a serious finding. It was my regex: `\bassert\b` does not
+match `assertNonDecreasing`, because there is no word boundary before `N`. The test asserts perfectly well
+through a named helper.
+
+The third weak candidate was likewise mine: `expect\([^)]*\)` cannot span
+`expect(or?.label.toLowerCase())`, so a test carrying `.not.toBe("operating ratio")` and `.toContain("cost")`
+read as assertion-free.
+
+**Both errors ran in the same direction — inventing vacuity where there was none** — which is the direction
+that wastes an owner's time rather than hiding a defect. Worth naming because a "vacuous test" finding is
+unusually damaging to publish wrongly: it impugns work that is correct, and the impugned test is usually the
+one someone thought hardest about.
+
+### What the bound is worth
+
+Every other section's evidence is downstream of this. §252's *"the pixel law is enforced"*, §266's *"4/4
+RED"*, §269's *"1 failed / 19 passed"* — each is a claim about a suite that can fail. **Zero unconditional
+tests and zero tautological assertions across ~3,600 tests** is the measurement that lets those stand.
+
+### The rule
+
+**Bound your instrument's own credibility before trusting a long chain of greens.** An audit that has spent
+forty sections asking "can this gate fail?" should at some point ask the same of the test corpus underneath
+it — once, mechanically, with the result recorded as a bound. And when the answer comes back as a list of
+suspiciously important tests, suspect the regex before the tests: word boundaries and nested parens broke
+this one twice, both times in favour of a false alarm.
