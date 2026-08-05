@@ -18467,3 +18467,53 @@ missing and is not.** No enforcement is absent except the one filed for the owne
 
 Seven audit names traced to implementations, three located inside differently-named functions by reading the
 enclosing scope; cross-checked against §287's mutation evidence that all three fire. No file changed.
+
+---
+
+## §346 — The headline claim, traced: thirteen agents, six built, and both are true
+
+§344 and §345 traced the artifacts named in `CLAUDE.md`'s rules. Its **opening sentence** makes a countable
+claim nobody had traced: *"**13 agents** that run the protocol."*
+
+`genesis/01` §2 — *"The agent mesh (13 agents; each: trigger → action → confidence gate → human queue)"* —
+enumerates exactly thirteen: **Biller · Collector · Concierge · Copilot · Credit · Dispatcher · Gatekeeper ·
+Migrator · Rater · Scheduler · Settler · Translator · Watchtower.**
+
+`genesis/05` scopes V1 to **six of the thirteen**, and all six resolve:
+
+| agent | implementation |
+|---|---|
+| Concierge · Biller · Collector · Migrator · Copilot | `packages/agents/src/{concierge,biller,collector,migrator,copilot}` |
+| Rater | `packages/rater` |
+
+**Both statements are accurate, and they are about different things** — thirteen is the mesh the product is,
+six is what V1 builds. `CLAUDE.md` says the first under *"What you are building"*; `genesis/05` says the
+second under V1 scope.
+
+### The inference this forecloses
+
+`ls packages/agents/src` returns **five** directories. An auditor comparing that to "13 agents" concludes
+eight are missing; comparing it to "6 of the 13" still concludes one is. **Both inferences are wrong** — the
+Rater is its own package, because it is the one agent that is a pure priced-arithmetic engine rather than an
+LLM-bearing module, and `CLAUDE.md`'s own stack line requires exactly that separation (*"LLM calls only
+inside `packages/agents/*` — never in `packages/ledger`"*).
+
+So the directory layout encodes an architectural rule, and reading it as an inventory produces a false
+finding. **Third time in three sections that a name- or layout-based inference disagreed with reality**
+(§345's `auditShadow`, §344's routes fixture, this) — and the score across those three is one genuine gap
+against two false leads.
+
+### Where the tracing method has landed
+
+Six artifact-naming statements traced end to end across §336–§346: the hard budgets, the do-not-build list,
+the CONFIRM-GATED parenthetical, rule 6's fixture gates, rule 7's audits, and the agent mesh.
+
+**Roughly forty named artifacts. One genuinely missing** — rule 6's *routes ±10%*, filed for the owner.
+**Three legibility gaps**, filed. **Three false leads**, each dissolved by reading rather than grepping. No
+enforcement absent, no claim in the governing files untrue.
+
+### Verification
+
+The thirteen enumerated from `genesis/01` §2 rather than from a guessed name list (the first attempt used a
+guessed roster and found twelve — §295's trap, sixth instance); V1's six traced to their packages; the
+Rater's separate location checked against the stack line's LLM-boundary rule. No file changed.
