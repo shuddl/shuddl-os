@@ -13554,3 +13554,64 @@ all sound:
 said what it searched for but its *trees* had to be read out of the prose to know what it had not covered.
 A sweep's value to the next session is bounded entirely by its stated scope — so record the corpus, not just
 the hit count, or the next auditor either redoes it or wrongly assumes it was exhaustive.
+
+## §256 — the browser gates, finally run — and three wrong measurements before one right one
+
+The four browser gates were the last unexercised surface in this audit. Chromium turns out to be installed
+and `playwright.config.ts` starts all three dev servers itself, so they were simply never tried.
+
+**All three run and pass, matching the record exactly:**
+
+| Gate | Result | The checklist's claim |
+|---|---|---|
+| `test:visual` | 5 passed (21.8s) | "visual (5)" |
+| `test:a11y` | 4 passed (7.1s) | `{"gate":"a11y","status":"PASS","executed":true,"assertions":4}` |
+| `test:e2e` | 6 passed (5.3s) | "e2e (6)" |
+
+The a11y gate is also **no longer hollow** — the T14/T15 finding is closed. It runs real
+`@axe-core/playwright`, filters to serious/critical impacts, asserts `toEqual([])` with a diagnostic
+message, adds a keyboard-only operability test, and documents why it cedes colour-contrast to the design
+audit rather than having two tools fight over one rule.
+
+### Proving the screenshot diff can fail took four attempts
+
+A passing screenshot comparison certifies nothing until it is shown able to fail (§252). Perturbing the
+`--field` colour token and re-running produced **PASS** — three times, for three different wrong reasons:
+
+1. **Stale dev servers.** `reuseExistingServer: true` meant the earlier runs' vite processes were still up,
+   serving the old bundle. Killed them; ports confirmed free.
+2. **Below the per-pixel threshold.** `#D5D1CC → #E8E4DA` is a subtle shift, and Playwright's comparator
+   applies a per-pixel YIQ `threshold` (default 0.2) *before* `maxDiffPixelRatio: 0.02` — so zero pixels
+   counted as different. §209's boundary lesson: a probe that lands inside the tolerance tests nothing.
+3. **The wrong file.** Even `#FF0000` passed — because `packages/design/src/tokens.ts` is a **TS mirror**,
+   not the render source. Its own comment says so: the literals exist for *"the ONE surface that cannot
+   dereference `var()`: the sendable evidence email"*. The browser renders from `packages/design/tokens.css`.
+
+Perturbing **`tokens.css`** finally produced the truth: *"125005 pixels (ratio 0.10 of all image pixels) are
+different"*, `visual: FAIL — 2 failing of 5 executed`.
+
+### The local exit code is 0, and that is the design
+
+That failing run still exited **0**. Not a defect — the harness header states it: *"Locally the browser
+harnesses stay advisory… under `--mode merge|release` that advisory posture inverts."* Verified rather than
+trusted: the same regression under `--mode merge` exits **1** and emits
+`##SHUDDL-GATE## {"gate":"visual","status":"FAIL","executed":true,"assertions":5,"detail":"2 failing of 5
+executed"}`. Advisory locally, blocking at the merge surface, with `executed: true` distinguishing a real
+run from an absent one.
+
+### The lockstep held too
+
+Since the probe surfaced it: `CSS_VAR_LITERALS` must mirror `tokens.css`, and that comment **is** backed —
+diverging `tokens.ts` alone turns `packages/design` red on *"every custom property tokens.css defines has
+the identical literal in CSS_VAR_LITERALS"*. A lockstep comment that is actually tested, which this audit
+has found is the minority case (§223).
+
+### The rule
+
+**Three wrong PASSes in a row, each from a different layer of the stack — process state, comparator
+tolerance, and file identity.** None was visible in the output; all three printed the same green. The
+generalisable defence is to make the probe prove *itself* before trusting a negative: confirm the change
+reached the running system (fresh process), confirm its magnitude exceeds the tolerance (drastic, not
+subtle), and confirm the file you edited is the one the system reads (a mirror and a source look identical
+in a grep). A green from a probe that never reached the subject is the most expensive result in an audit —
+it retires a question that was never asked.
