@@ -14994,3 +14994,48 @@ authorised": the half with an obvious mechanism (a banned import, a global) gets
 a different mechanism gets a sentence. Splitting the claim into its conjuncts and asking for each *"what
 would fail if this stopped being true?"* is a two-minute check that found a live gap in a codebase where
 forty sections had already looked at purity.
+
+## §284 — the same claim in eight more files, and the per-file fix I had just been warned about
+
+§283 enforced the determinism half of the purity claims **where it found them** — the rater and the gates.
+Sweeping the *shape* rather than the two instances shows that was a per-FILE fix, which is exactly what §262
+recorded as the failure mode of a correction applied to the copies in front of you.
+
+Searching for enumerated prohibitions (`no X, no Y, no Z…`) across the source returns **eight more files
+making the identical claim**, in two packages §283 never touched:
+
+| File | Claim |
+|---|---|
+| `packages/agents/src/concierge/{compose,resolve}.ts` | *"no Date, no random, no direct…"* |
+| `packages/agents/src/concierge/quote-reply.tsx` | *"no Date, no random"* |
+| `packages/agents/src/biller/{compose.ts,evidence-email.tsx,sender.ts}` | *"no Date, no Math.random, no I/O"* |
+| `packages/agents/src/collector/dunning.tsx` | *"no Date, no random"* |
+| `packages/adapters/src/migrator.ts` | *"no Date, no crypto, no ledger"* |
+
+**Measured before enforcing: zero hits** across `packages/agents/src` and `packages/adapters/src`. And the
+design the ban protects is stated in `aging.ts`: *"the sweep supplies `nowMs`; nothing here reads a fresh
+Date."* Composition and rendering are pure functions of their inputs — which is precisely what makes an
+agent's output reproducible from a recorded event, the property the Biller's deterministic-id law depends on
+(§218: a redelivered message must recompose the *same* invoice).
+
+Extended to both packages, `.ts` and `.tsx`. **Mutation-proved across the matrix** — `Date.now()` in an
+agents `.ts`, `Math.random()` in an agents `.tsx`, `new Date()` in adapters: three REDs; a `Date` in type
+position stays legal. `packages/agents` 219 green, `packages/adapters` green, lint 0.
+
+### The point is not the lint
+
+It is that **§283 was written the day before and I still fixed only what the search had surfaced.** §262's
+rule — *correct per VALUE, not per FILE* — was recorded in this same audit, about this same kind of miss, and
+it did not fire until the shape was swept deliberately.
+
+That is worth stating plainly because it is the honest limit of a tell: **a tell tells you what to look for,
+not where to look.** The instinct after finding a claim is to enforce it there; the discipline is to grep the
+claim's *wording* and enforce it everywhere it is made. Two extra minutes here covered eight files and two
+packages that the original fix silently excluded.
+
+### Yield note
+
+§282 predicted a new question shape yields once and exhausts in two or three sections. This is the same shape
+as §283, one section later, and it yielded again — because the first application was incomplete rather than
+because the shape is deeper. **That is a different exhaustion curve: not "the vein is dry" but "the vein was
+half-worked", and the tell for it is that the second finding is the same defect in different files.**

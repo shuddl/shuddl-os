@@ -112,4 +112,32 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // The SAME determinism claim, in the two packages that also make it (audit §284). §283 enforced it where
+    // it first turned up — the rater and the gates — which is the per-FILE fix §262 warns about: eight files
+    // across these two packages carry the identical sentence ("no Date, no random"; migrator adds "no
+    // crypto"), and none was covered. `aging.ts` states the design the ban protects: "the sweep supplies
+    // `nowMs`; nothing here reads a fresh Date." Composition and rendering are pure functions of their
+    // inputs, which is what makes an agent's output reproducible from a recorded event — the property the
+    // Biller's deterministic-id law depends on. Measured at ZERO hits across both packages when this landed,
+    // so it changes no code. Syntax selectors so a `Date` TYPE stays legal.
+    files: ["packages/agents/**/*.ts", "packages/agents/**/*.tsx", "packages/adapters/**/*.ts"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: 'NewExpression[callee.name="Date"]',
+          message: "REQ-024: this layer is deterministic — the caller supplies the instant (see aging.ts: 'the sweep supplies nowMs').",
+        },
+        {
+          selector: 'MemberExpression[object.name="Date"][property.name="now"]',
+          message: "REQ-024: this layer is deterministic — the caller supplies the instant (see aging.ts: 'the sweep supplies nowMs').",
+        },
+        {
+          selector: 'MemberExpression[object.name="Math"][property.name="random"]',
+          message: "REQ-024: randomness is not reproducible — a redelivered message must recompose the SAME output (the Biller id law).",
+        },
+      ],
+    },
+  },
 );
