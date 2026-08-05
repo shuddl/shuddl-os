@@ -11017,3 +11017,61 @@ surprising. Had the sweep returned two plausible hits instead of zero, the glob 
 and three sections would still be 61% blind. **A sweep's file list is part of the sweep, and it is the
 part nobody checks**: every result printed cleanly, every count looked reasonable, and the missing 132
 files produced no error at any point.
+
+---
+
+## §212 — closing §211's unknowns: one headline survives, one is withdrawn
+
+§211 left §182 and §184 as **unknown rather than clean** — their negative space was drawn from 39% of the
+production surface. Re-running both over the full **307 files**.
+
+*(The first re-run attempt reported 160 files again. My glob patch had silently failed to apply — the
+replacement regex did not match, and the script ran unchanged. Verified the substitution landed before
+trusting the second run, which is §211's own rule applied one section later.)*
+
+### §182 — swallowed errors: the headline survives
+
+| | §182 (160 files) | §212 (307 files) |
+|---|---|---|
+| empty `catch {}` | 0 | **0** |
+| comment-only catch | 5 | 10 |
+| discarding `.catch()` | 21 | 29 |
+
+**Zero empty catch blocks across the entire production surface** — now a properly established claim rather
+than a 39% sample. Every newly visible handler is deliberate and says why in place:
+
+```
+workers/agents/src/biller.ts:569@unparseable   /* refs -> fall back to the shipment id */
+workers/agents/src/tenants.ts:140@routable      // a malformed policy row is not a routable tenant
+workers/agents/src/watchtower.ts:319@fabricate  /* unparseable cost -> unknown, skip */
+workers/agents/src/spark-meter.ts:83@lock       this.lock = run.catch(() => undefined)  // DO mutex chain
+```
+
+That last one is the one to keep: *never fabricate a cost* is exactly the honesty §179 found in the
+metering projection, enforced again at the read side.
+
+### §184 — N+1: the headline is withdrawn
+
+**3 hits → 7.** §184 concluded *"the codebase is clean on this axis; that is the result, not a preamble."*
+It was a result about 39% of the code. Two genuine N+1s were in the blind 61%, both on **cron paths**:
+
+- **`workers/agents/src/sla-sweep.ts:153@ANSWERED_SQL`** — loads every overdue inbound (its driving query
+  has no `LIMIT`) and then issues **one D1 query per row** to ask whether each was answered. This
+  compounds §133 exactly: a **daily** cron policing a **four-hour** SLA accumulates ~19 hours of overdue
+  rows per tick, and then N+1s over them.
+- **`workers/translator/src/sweep-214.ts:211@sentKey`** — an `r2.put` **per marker**, over a list that is
+  itself paginated (so the marker set is unbounded by construction).
+
+Workers cap subrequests per invocation, so these fail hard at volume rather than slowing down — the
+property that made §184 call this class worth sweeping in the first place. Recorded as **Med** in
+`GO-LIVE-CHECKLIST.md`.
+
+Cleared on inspection: `retention.ts` (§184's original, ordering deliberately crash-safe), the two `for(;;)`
+R2 cursor loops (the correct pagination idiom), and `tariff-seed.ts:70` (bounded by tariff parts, a seed).
+
+### The rule
+
+**A clean negative is a claim about a population, so it dies when the population changes.** §182's survived
+the surface nearly doubling and §184's did not, and nothing about either sweep's output predicted which —
+both printed confidently, both looked complete. The only reason either headline could be checked at all is
+that §211 wrote down *which* files had been scanned rather than only what was found.
