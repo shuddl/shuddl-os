@@ -10956,3 +10956,64 @@ signature rather than from anyone deciding the line mattered less.
 It is usually the right type and it silently changes what a mutation test is *for*: with an exhaustive
 union, tests confirm behaviour the compiler already guarantees exists; with a partial map, tests are the
 whole guarantee. Same-looking constant, entirely different risk if the suite thins.
+
+---
+
+## §211 — a glob that hid 132 of 215 production files, and the two sites it hid
+
+§210 ended by generalising: a rule map whose absent entry is legal is guarded by tests alone. Sweeping for
+the pattern returned **zero hits** — while `redact.ts:113` visibly contains `REDACTIONS[event.kind] ?? []`,
+the exact shape I was searching for.
+
+The instrument could not see its own known instance. The cause:
+
+```
+git ls-files 'packages/*/src/**/*.ts'   →  does NOT match packages/ledger/src/redact.ts
+```
+
+**Git's `**` requires an intermediate directory**, so every file sitting *directly* under `src/` was
+invisible. Measured:
+
+| | files |
+|---|---|
+| what my sweeps scanned | **83** |
+| what actually exists | **215** |
+| **never scanned** | **132 (61%)** |
+
+**§182 (swallowed errors), §183 (unbounded reads) and §184 (N+1) all used that glob.** Their conclusions
+were drawn from 39% of the production surface while claiming the whole of it — §182 says "swept all 160
+production source files" and even that count was wrong.
+
+### Re-running §183 correctly
+
+SELECTs seen went **63 → 119**. Two genuinely unbounded sites were hiding in the blind 132, and both sit in
+files that live directly under `src/`:
+
+- **`packages/ledger/src/parity.ts:254@backing_kinds`** — `SELECT source, stream_id, seq, kind, payload
+  FROM events WHERE kind IN (…) AND source IN ('native','legacy')`. Every native and legacy event of the
+  backing kinds, **with full payloads**, no `LIMIT`. This is the authority-parity comparison behind L8's
+  native/legacy flip — arguably a worse instance than anything §183 found, because it loads payloads
+  rather than ids.
+- **`workers/agents/src/watchtower.ts:216@anomaly`** — every anomalous `quote.priced` ever recorded, on
+  the daily cron.
+
+Adjudicated and cleared: `packages/ledger/src/anchor.ts:109@recorded_at` is bounded to one day by design, `interline-split.ts:166` to one
+shipment, `lens.ts` and `biller.ts` carry real `LIMIT`s further down than the matcher's window reached.
+`GO-LIVE-CHECKLIST.md` now reads **seven sites**, not five.
+
+### What this says about the other two sweeps
+
+§182's and §184's *findings* survive — a swallowed error and an N+1 are both defects-if-present, and the
+ones found are real. What does not survive is their **negative** space: "zero empty catch blocks in 160
+files" and "the codebase is clean on this axis" were claims about a surface I had not looked at. Those
+sections need re-running before their clean bills mean anything, and I am recording that rather than
+quietly re-running them here, because the honest state right now is *unknown*, not *clean*.
+
+### The rule
+
+**Make an instrument prove it can see a known instance before trusting a zero.** I had a positive control
+available for free — `redact.ts` contains the exact pattern — and only reached for it because the zero was
+surprising. Had the sweep returned two plausible hits instead of zero, the glob bug would still be there
+and three sections would still be 61% blind. **A sweep's file list is part of the sweep, and it is the
+part nobody checks**: every result printed cleanly, every count looked reasonable, and the missing 132
+files produced no error at any point.
