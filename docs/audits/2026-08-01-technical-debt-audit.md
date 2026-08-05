@@ -10575,7 +10575,61 @@ token tests, **or** amend the budget line to say what is actually gated.
 
 ### The rule
 
-**"CI-enforced" is a claim about a gate that exists, so find the gate.** Five of seven budgets are
-genuinely enforced and two are not, and nothing distinguishes them in the document that asserts all seven.
+**"CI-enforced" is a claim about a gate that exists, so find the gate.** ~~Five of seven budgets are
+genuinely enforced and two are not~~ **six of seven — corrected in §204, which probed the three this
+section asserted without testing**, and nothing distinguishes them in the document that asserts all seven.
 The adjacent rule being strong — no raw hex anywhere — is exactly what makes the gap invisible: the thing
 you would look for *is* there, guarding something else.
+
+---
+
+## §204 — finishing §203's sweep, and correcting its arithmetic
+
+§203 concluded *"Five of seven budgets are genuinely enforced and two are not."* **I had tested four.**
+Tables and event kinds (enforced), colour tokens and font families (not) — and then asserted a count
+covering three budgets I never probed. The finding was right; the arithmetic was invented. Correcting it
+by doing the rest.
+
+### The three untested budgets
+
+| Budget | Probe | Result |
+|---|---|---|
+| **0 shadows / radius ≤ 4px** | `box-shadow` + `border-radius: 12px` into a scanned file | **`box-shadow — no shadows (REQ-147)`** and **`borderRadius 12px > 4px (REQ-147)`**, exit 1 |
+| **12 canonical views** | a 13th entry in `CANONICAL_VIEWS` | **`Error: REQ-084: 13 canonical views exceeds the 12-view budget`** — thrown by `assertViewBudget` at import, so *nothing in the app can even load* |
+| **3 surfaces** | — | not probed; the surface count is a deploy-topology fact (`tools/deploy/surface-contract.ts`, the `surfaces` gate) rather than a countable constant, and §176's gate run already reports it PASS |
+
+The views budget is the strongest of all seven: `assertViewBudget` throws **at module load**, so a 13th
+view is not a failing test — it is a build that cannot start. There is also a
+`toBeLessThanOrEqual(MAX_CANONICAL_VIEWS)` test behind it.
+
+### §114's error, repeated exactly
+
+My first views probe added one entry and the suite stayed green. §114 records the identical mistake:
+*"adding 1 to an 11-element array = 12, exactly at a ≤12 ceiling, legal."* The array is **still 11**, so my
+probe produced 12 — at the ceiling, not over it. I read that green as "the budget is unenforced" and was
+one sentence from writing it down.
+
+**A probe that lands exactly on a boundary tests nothing**, and this is the second time this audit has hit
+that specific array. The fix was to count first — 11 entries, ceiling 12, so a real violation needs two.
+
+### Corrected standing: 6 enforced, 2 not, of 7 budgets
+
+| Budget | Enforced | By |
+|---|---|---|
+| ≤22 tables | yes | `I8 VIOLATION`, exit 1 (+ a WARN at 22/22) |
+| 35 event kinds | yes | typecheck exit 2 **+** an explicit count test |
+| 12 canonical views | yes | throws at import **+** a ceiling test |
+| 0 shadows / radius>4px | yes | `audit:design`, REQ-147, exit 1 |
+| 3 surfaces | yes | the `surfaces` deploy gate (PASS, not probed here) |
+| **5 colour tokens** | **no** | nothing counts the palette |
+| **2 font families** | **no** | nothing counts the palette |
+
+Both gaps are the same gap — one missing `Object.keys(TOKENS)` assertion — which is why §203's checklist
+row names a single fix. **Five of seven** was wrong in the reassuring direction: the truth is six.
+
+### The rule
+
+**Do not summarise a sweep you have not finished.** §203's count was a plausible interpolation from four
+data points to seven, written in the same paragraph as four correct measurements — which is precisely what
+makes it dangerous, because everything around it was verified. The audit's own standard, from §174: an
+unmeasured claim rots like any other, and it does not become measured by sitting next to measurements.
