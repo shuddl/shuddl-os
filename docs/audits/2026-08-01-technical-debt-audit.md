@@ -11191,3 +11191,71 @@ property worth stating plainly at a stopping point: *every one of them passes ev
 surface today, and every one of them degrades monotonically with tenant age.* They are invisible to a
 fixture-based CI by construction, which is why they are recorded with `EXPLAIN QUERY PLAN` output and
 code-site notes rather than left to a future reader's judgement.
+
+---
+
+## §215 — the MCP chokepoint: an allowlist that anticipated §206
+
+Demo #4's surface — the MCP worker — carries OAuth, per-pairing caps and the no-bypass chokepoint, and
+had not been probed this session. Its mutation-check chain is the same shape §206 warned about: a list
+the dispatcher treats as ground truth, where a missing entry silently disables a control.
+
+**This one was built with the failure mode in mind.** From `workers/mcp/src/gate.ts`:
+
+> THE CHAIN IS COMPOSED EXPLICITLY, NEVER BY IMPORT SIDE EFFECT. … We deliberately do NOT populate the
+> chain via a module-global `registerMutationCheck` at import time — that pattern **fails OPEN** (a
+> forgotten import, or a bundler treating a "side-effect-free" check module as dead code, silently leaves
+> caps+confirm unenforced while everything still compiles and passes).
+
+That is §206's rule, written down before §206 existed, about a specific bundler-shaped way an allowlist
+can lose an entry with nothing failing.
+
+### It holds, and the identity test is real
+
+Removing each check from `DEFAULT_MUTATION_CHECKS`:
+
+| Removed | mcp suite (177 tests) |
+|---|---|
+| `confirmCheck` — the human-CONFIRM-before-money gate | **10 RED** |
+| `capsCheck` — spend / velocity / lane caps per pairing | **17 RED** |
+
+`typecheck` exits **0** on both — an array with fewer elements is a legal program, so this is the
+`REDACTIONS` profile (§210), not the `GATED_KINDS` one: **tests are the whole guarantee.** They are
+sufficient. Among the failures is the one the comment promises:
+
+```
+× [FIX 1] the mutation-check chain is composed EXPLICITLY, never a mutable
+  import-side-effect global > the live default-dispatch chain …
+```
+
+An **identity test on the chain itself**, not on any check's behaviour — so a check that is declared but
+not composed fails loudly, which is exactly the gap the design note describes and the one no behavioural
+test would catch on its own.
+
+### Why this is the strongest allowlist in the build
+
+Compare the three now measured:
+
+| Allowlist | Compile-time | Behavioural | Identity |
+|---|---|---|---|
+| `GATED_KINDS` | yes — exhaustive switch | partial | — |
+| `REDACTIONS` | no (`Partial<Record>`) | yes — 2–6 per entry | — |
+| **`DEFAULT_MUTATION_CHECKS`** | no (array) | yes — 10–17 per entry | **yes — the chain equals the array** |
+
+It is the only one with a test asserting *the list is what it says it is*, independent of what the entries
+do. That is the missing layer everywhere else — and the reason it exists here is that someone wrote down
+the specific way the list could go wrong before it did.
+
+### Verdict
+
+No finding. Recorded because §206 concluded that a prohibition delegated to an allowlist needs the
+allowlist pinned, and this is the build's own worked example of that conclusion — arrived at
+independently, defended more thoroughly than the two allowlists I found gaps in, and carrying its
+reasoning in the source where the next editor will read it.
+
+### The rule
+
+**The best defence against an allowlist losing an entry is a test that asserts the list, not the
+entries.** Behavioural tests per entry are necessary and they cannot see a *composition* failure — an
+entry that exists, compiles, is tested in isolation, and is simply never wired in. One identity assertion
+covers the whole class.
