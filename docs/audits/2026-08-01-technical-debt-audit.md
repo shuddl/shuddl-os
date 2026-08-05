@@ -186,7 +186,11 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 
 ## §4 — Phase gating and the stopping point
 
-> **CURRENT MEASUREMENT: §238, at `68cfb0d`.** This section states the four exit clauses and the grade
+> **CURRENT MEASUREMENT: §238, at `68cfb0d`; CONVERGENCE measured at §243.** The four clauses below are
+> measured in §238. §243 answers the separate question of whether another iteration is worth running:
+> defects-per-section across the eight sections after §238 ran 1,1,1,—,1,1,**0,0** while verified-clean
+> rose to 8 and 8, the last two being the most systematic sweeps of the set. Five named restart triggers
+> are listed there, each a grep or a diff. This section states the four exit clauses and the grade
 > table; the *numbers* in it decay and are re-measured per session (§113 `99ae4ca` → §141 `78499e9` →
 > §168 `e27307f` → §176 `71edfbe` → §188 `7d0a17e` → §202 `015413d` → §214 `0d8dc91` → §226 `2dad327` → **§238 `68cfb0d`**). Read the clauses here and the posture there — and
 > per §64/§110, read every count from a run, never from this page.
@@ -12853,3 +12857,64 @@ rather than counted) and §236's webhook probe (a clean negative produced by a f
 the sweep cost four mutations and converted a header everyone quotes into eight measured statements. And
 when the measurement is "did it throw?", the assertion must pin *which* throw, or a schema typo will
 counterfeit a passing law.
+
+## §243 — convergence, measured: the stopping point defended with a trend rather than an assertion
+
+§238 declared a stopping point. A declaration is worth little on its own — the honest question is whether
+the audit is still finding things, and the answer should be a number, not a feeling. Eight sections landed
+after the last phase-gate measurement, so:
+
+| § | Subject | New defects | Verified clean |
+|---|---|---|---|
+| 235 | DO mutexes (all 3) | 1 (a runtime rule stated backwards in 4 copies) | no live concurrency defect |
+| 236 | cron re-entrancy (all 4) | 1 (2 sweeps double-fire) | billing + agents safe by construction |
+| 237 | acceptance demos, filmed half (all 5) | 1 (demo 2 has no signup surface) | demos 4 and 5 |
+| 238 | phase gate re-measured | — (1 structural: the DORMANT-HIGH state) | 15/15 gates, 17/17 workspaces |
+| 239 | test-schema parity (4 helpers) | 1 (**fixed + gated**) | api compatible with the shipped schema |
+| 240 | path-only citations re-measured | 1 (a broken README pointer) | 3 candidates already recorded |
+| 241 | acceptance demos, spine half (all 7) | **0** | 7/7 spines + error handling in 5 workers |
+| 242 | schema invariants (all 8) | **0** | 8/8, three newly mutation-proved |
+
+**Defects per section: 1, 1, 1, —, 1, 1, 0, 0. Clean negatives per section: 0, 2, 2, 2, 1, 3, 8, 8.**
+
+The trend is not subtle, and it is not fatigue: §241 and §242 were the two most systematic sweeps of the
+eight — every spine file opened, every invariant enumerated and three mutated — and they returned nothing.
+The last four sections produced one defect between them, and it was a relative path in a README.
+
+### What the remaining findings have in common
+
+Every defect found after §239 was in **prose, not code**: an inverted comment, an overclaimed demo sentence,
+a mis-depthed pointer. The one code-level fix (§239) was a *test* fixture, not product logic. Across eight
+sections, **no defect was found in shipped behaviour** — the closest was §236, and it is unreachable until
+someone wires a transport.
+
+That is the same asymmetry §241 measured directly, now visible in the audit's own yield: the executed parts
+of this repo defend themselves, and the audit's remaining value is concentrated in what CI never reads.
+
+### What would restart it
+
+Convergence is a statement about the *current* corpus, so it expires on specific events rather than on time:
+
+1. **Either live transport is wired** (§236) — the dormant-High activates and needs its claim protocol first.
+2. **A new migration lands** — §239's gate now pins the helpers, but a new *control*-plane migration has no
+   equivalent pin (verified §240 as currently correct, by per-file application).
+3. **Any demo's filmed sentence changes**, or a capability it names ships (§237) — the three blocked demos
+   are the record's most drift-prone surface, being pure prose about future events.
+4. **`REQ-289` is dispositioned** — the only red gate, and until then `check:coverage` masks whatever else
+   might fail there.
+5. **A non-storage await enters either meter DO** (§235) — the mutex stops being redundant that day.
+
+Each is a grep or a diff, not a judgement call — which is the standard [[record-holds-with-expiry-triggers]]
+sets, applied here to the audit itself rather than to one of its rows.
+
+### The stopping point, restated
+
+Unchanged from §238 in substance and now defended by measurement: **repository-closable debt work is
+complete at this SHA.** The remaining ledger is three owner decisions, nine private fixtures, two External
+Highs, and rows requiring a migration or API-contract change — none of which a further audit iteration can
+close, and all of which are recorded with owners and expiry triggers.
+
+**An audit that keeps running past this point does not find more defects; it manufactures them.** §134
+warned about that once already, and the last two sections are the evidence that the warning now binds:
+the correct output of an iteration can be zero rows, and recording the zero is what makes the next iteration
+cheap.
