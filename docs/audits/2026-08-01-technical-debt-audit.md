@@ -16374,3 +16374,64 @@ against suites that were declared unrunnable eight sections ago. That is a mater
 
 Four mutations, four correct outcomes; every file restored byte-identical (`git status` clean across both
 mutated paths); `@shuddl/rater` 154 passed, `@shuddl/ledger` 34 files / 616 tests passed.
+
+---
+
+## §306 — Four laws, mutation-proven, with the procedure §305 forced
+
+§305 proved two laws and, more usefully, produced a procedure: **locate the test that would fail, then break
+the code.** Applied to the two remaining laws whose violation would be most expensive.
+
+### Law 8 — tenant isolation (REQ-025): "a cross-tenant read anywhere is a build failure"
+
+Test located first: `workers/mcp/test/isolation.test.ts`, which asserts the MCP layer *"never hands the api
+anything but its own pairing's tenant"* — and carries its own **control** ("the SAME shipment IS visible to
+its OWNING tenant — the fake WOULD have leaked on a mint bug"), so a pass cannot come from the fixture being
+empty.
+
+Mutation: `principal.ts:151`, `tenant: pairing.tenant_id` → a hard-coded `"tenant-a"`. That is the exact
+shape of the leak REQ-025 forbids — a principal naming a tenant it was not paired to.
+
+**RED — 15 failing assertions**, naming *cross-tenant*, *isolation*, and the *EMPTY feed* case. Restored:
+177 passed.
+
+### Law 4 — "no price on air": missing weight/dims ⇒ UNKNOWN, no sell (REQ-004)
+
+Mutation: `engine.ts:39`, the `missing_physics` early return, deleted — so a shipment with no usable weight
+gets priced anyway.
+
+**RED — 9 failing assertions**, naming *no price on air*, *missing weight*, *missing_physics*. Restored:
+154 passed.
+
+### The four together
+
+| law | mutation | result |
+|---|---|---|
+| **2** — events append-only (I3/I7) | drop `events_guard_upd` / `_del` | RED ×2 |
+| **4** — no price on air (REQ-004) | delete the `missing_physics` return | RED (9) |
+| **5** — interline executing share (REQ-040) | compare gross instead of the slice | RED (13), naming `222084` / `35-lb` |
+| **8** — tenant isolation (REQ-025) | mint a fixed tenant | RED (15) |
+
+Every file restored byte-identical; every suite green afterwards.
+
+### What the procedure is actually worth
+
+§305's rule was written because a green from `workers/api` nearly published *"the append-only law is
+unproven."* Used deliberately here, finding the test first did more than prevent an error — **it changed what
+the mutation could mean.** Knowing `isolation.test.ts` carries a positive control before breaking anything
+means a RED cannot be dismissed as a fixture artefact, and a GREEN would have been unambiguous.
+
+**A mutation without a located test is a coin flip you get to interpret afterwards.** Locating first turns it
+into a prediction, which is the only form of evidence that can be wrong in advance.
+
+### The bound, stated plainly
+
+Four of `CLAUDE.md`'s laws are now proven by breaking them. **That is four, not ten.** The others are either
+enforced by lint and already mutation-proved this phase (REQ-024 LLM-free ledger, REQ-163 organ banks,
+the determinism and layering bans of §284/§285), or they are process rules with no runtime surface to break
+("every PR references REQ-IDs", "work WP by WP"). No claim is made here about laws not in the table.
+
+### Verification
+
+Four mutations across three packages, four correct outcomes, `git status` clean in every mutated path;
+`@shuddl/mcp` 177 passed, `@shuddl/rater` 154 passed, `@shuddl/ledger` 616 passed.
