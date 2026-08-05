@@ -186,9 +186,9 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 
 ## §4 — Phase gating and the stopping point
 
-> **CURRENT MEASUREMENT: §214, at `0d8dc91`.** This section states the four exit clauses and the grade
+> **CURRENT MEASUREMENT: §226, at `2dad327`.** This section states the four exit clauses and the grade
 > table; the *numbers* in it decay and are re-measured per session (§113 `99ae4ca` → §141 `78499e9` →
-> §168 `e27307f` → §176 `71edfbe` → §188 `7d0a17e` → §202 `015413d` → **§214 `0d8dc91`**). Read the clauses here and the posture there — and
+> §168 `e27307f` → §176 `71edfbe` → §188 `7d0a17e` → §202 `015413d` → §214 `0d8dc91` → **§226 `2dad327`**). Read the clauses here and the posture there — and
 > per §64/§110, read every count from a run, never from this page.
 
 Grades from `V2-EXECUTION-FRAMEWORK.md` §9. What this audit adds to each bar:
@@ -11822,3 +11822,61 @@ all three.
 under a test that passes because its fixture only ever takes the first branch — invisible to any file-level
 count, and findable only by asking *which branches does the fixture actually reach?* The same question
 §180 asked of vacuous loops and §144 asked of an unpinned boundary, arriving here from a third direction.
+
+---
+
+## §226 — the phase gate at `2dad327`: fourteen tests added, none of them new behaviour
+
+Eighth re-measurement of §4 (§113 → §141 → §168 → §176 → §188 → §202 → §214 → **§226 `2dad327`**),
+11 commits on.
+
+| | §214 | §226 |
+|---|---|---|
+| merge surface | 24 gates | **24 gates** |
+| PASS / BLOCKED / FAIL | 17 / 5 / 2 | **17 / 5 / 2** |
+| blocking cause | `REQ-289` | **`REQ-289`, unchanged** |
+| full suite, row set aside | 274 files, 3,610 tests | **278 files, 3,624 tests**, exit 0 |
+
+**+4 files, +14 tests, and not one line of production behaviour changed.** Every addition is a guard over
+something that was already true:
+
+| § | Added | Was silent before |
+|---|---|---|
+| 221 | `id-determinism.test.ts` (4) | breaking the id law left `workers/agents` **106/106 green** |
+| 222 | the byte-law lockstep (1) | drifting the anchor leaf left **all 1,365 tests green** |
+| 223 | the third rate-config copy (2) | dropping the version tie-break left **97/97 green** |
+| 224 | tenant-roster parity ×2 (2) | a tenant in the api alone was unmetered **and** invisible to EDI |
+| 225 | the shipper party-id branch (3) | drifting it left **99/99 green** |
+
+Five gaps, one shape: **a rule that two or more places must agree on, with agreement asserted in prose.**
+Every one was documented in the source — *"Keep in lockstep"*, *"the SAME customer tenants"*,
+*"byte-identical to a CSR one"*, *"redelivery must reproduce them exactly"* — and none was enforced.
+
+### The stopping point
+
+Unchanged in structure. §4's four clauses hold; clause 2's distance to green remains one uncommitted
+register row owned by the concurrent GTM workstream.
+
+What changed this stretch is the **kind** of debt being closed. §183/§185's volume findings are recorded
+for an owner because fixing them needs a migration or an API contract. These five needed neither: they are
+**laws the build already stated and did not check**, and every fix was a test. That is the cheapest debt
+in the inventory and the least visible — none of it would ever surface as a failure, only as a wrong
+answer in production long after the change that caused it.
+
+### What is now measured
+
+- Every executable hard law (rules 1, 2, 4, 5, 8, 10) — §198–§201.
+- Every budget, 7 of 7, one closed here — §203–§205.
+- Every pixel prohibition, with its escape hatch closed — §206.
+- Five allowlists, each defended in the direction it can fail — §206–§217.
+- Nine transition gates, all proven to block — §208.
+- At-least-once idempotency, across four workers — §218–§221.
+- **Five cross-place agreements that were prose only** — §222–§225.
+
+### The rule
+
+**"Two places must agree" is the most reliable defect generator in a mature codebase.** Not because
+anyone is careless — every one of these five was written deliberately, with the obligation spelled out in
+a comment by someone who understood the risk exactly. The comment is where the reasoning goes when there
+is no obvious place to put the assertion, and it is worth treating a well-written lockstep comment as
+**evidence that a test is missing**, rather than as evidence that the author had it handled.
