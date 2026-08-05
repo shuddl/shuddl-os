@@ -193,8 +193,9 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 > out to be unmeasured inheritances — §297 withdrew the worker-suite bound (the full suite runs: 281 files /
 > 3,698 tests / 3,695 passing) and §298 withdrew the browser-gate bound (visual/a11y/e2e all PASS with
 > `executed: true`). §299 specifies the single blocker behind both FAILs — the uncommitted `REQ-289` GTM row,
-> down to the two source lines that reject it — and §300 verifies every item of the standing ledger against
-> its source. The clauses below were originally measured in §238 at `68cfb0d`; §243 (extended through §295) answers the separate question of whether another iteration is worth running:
+> down to the two source lines that reject it; §300 verifies every item of the standing ledger against its
+> source; and **§326 closed the last repository-owned item, so every remaining entry is blocked on an input
+> this repository does not contain.** The clauses below were originally measured in §238 at `68cfb0d`; §243 (extended through §295) answers the separate question of whether another iteration is worth running:
 > defects-per-section across the eight sections after §238 ran 1,1,1,—,1,1,**0,0** while verified-clean
 > rose to 8 and 8, the last two being the most systematic sweeps of the set. Five named restart triggers
 > are listed there, each a grep or a diff — two of which are now GATES (§244) rather than greps. Across
@@ -16991,12 +16992,13 @@ presented as current).
 - one repo-visible staging placeholder, `shuddl-mcp-staging.GRANTS`, carrying a live trigger (§291)
 - `REQ-289` — one uncommitted GTM row, specified to two source lines in §299
 
-**Repository-owned, and new (§313–§315):**
+**Repository-owned — ~~one item (§313–§315)~~ NONE, as of §326:**
 
-- **REQ-030 authority-registry completeness has no recurring owner.** The registry is complete and the gate
-  exits 0; what is missing is a mechanism that notices when that stops being true. Filed in
-  `GO-LIVE-CHECKLIST.md` § *Repository-owned failures & debt* with its measurement, its four adjudications,
-  its expiry trigger, and the rejected-gate rationale.
+- ~~**REQ-030 authority-registry completeness has no recurring owner.**~~ **CLOSED §326.** The missing
+  mechanism now exists: `tools/checks/authority-population.test.ts` pins the population (12 kind-referencing
+  files, 8 registered + 4 adjudicated exclusions with stated reasons) and fails the merge on a 13th with the
+  re-adjudication question attached. Ledger row moved OPEN → TRIPWIRED.
+  **The repository-owned section of the ledger is now empty.**
 
 ### Why the distinction in the last line matters
 
@@ -17551,3 +17553,46 @@ staging placeholder, rows needing a migration, and one uncommitted GTM register 
 Clean tree 3/3; a planted 13th file → **RED** naming the move (`was 12, now 13`) with the re-adjudication
 question; restored → GREEN. `typecheck 0 · lint 0 · check:invariants 0 · check:citations 0`; `test:tools`
 31 files / 784 tests, 781 passing (the known `REQ-289` trio). Ledger row updated OPEN → TRIPWIRED.
+
+---
+
+## §327 — Routing a state change on the day it happened, and a failed edit that failed safely
+
+§326 emptied the ledger's repository-owned section. That is a state change, and §311 established the rule for
+one: **update the entry points before writing the next section.** Done here rather than discovered stale by a
+later sweep — the third time this phase the rule has been applied proactively rather than retroactively.
+
+- **§316's standing ledger** now reads *"Repository-owned — ~~one item~~ NONE, as of §326"*, with the closed
+  item struck rather than deleted so the hold that existed stays visible.
+- **§4's entry pointer** now states the consequence a reader most needs: **every remaining ledger entry is
+  blocked on an input this repository does not contain.**
+
+### The edit that failed, and why that was the good outcome
+
+The first attempt at those two edits used a single script with `assert` on both anchors. The second anchor
+did not match — I had reconstructed the §4 sentence from memory rather than reading it — and the script threw
+**before writing anything**. Neither edit landed.
+
+**That is the correct failure.** A partial application would have left §316 updated and §4 stale, which is
+precisely the split-brain §301/§302 spent two sections repairing: the claim corrected where it lives, the
+route to it untouched. **An all-or-nothing edit script converts a wrong anchor into a no-op instead of an
+inconsistency** — and the diagnostic (`git diff --stat` showing nothing dirty) confirmed it in one command.
+
+The rewrite deliberately dropped the assert in favour of counting applications (`2/2`), which is the right
+trade *once each anchor has been read from the file* rather than recalled.
+
+### And the duplication it produced anyway
+
+The corrected script then left a duplicated clause — *"…against its source; and §326 closed… §300 checks each
+against its source"* — because my replacement consumed the sentence's head but not its tail. Caught by
+**reading the rendered result**, not by any gate: `check:citations` passes on duplicated prose, as it should.
+
+**Three edits, three different failure modes, none of them the one the tooling watches for.** The gates
+verify that references resolve; nothing verifies that a sentence still reads. That is not a gap to close —
+it is the boundary of what a citation gate is for, and the reason a human reads the paragraph after editing
+it.
+
+### Verification
+
+Both entry points corrected and re-read; duplication removed; `check:citations 0 · check:invariants 0`.
+No code changed.
