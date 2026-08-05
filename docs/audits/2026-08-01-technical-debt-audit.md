@@ -18538,7 +18538,7 @@ blocked.** Corrected in the next commit rather than left; the repository was nev
 ### The failure it was reporting: the trap, again
 
 The ratchet had grown by one unanchored citation into `workers/api/src/do/sequencer.ts` — and the source was
-**§344's own prose describing §343's citation defect.** Writing *"§343 cited `sequencer.ts:315` unanchored"*
+**§344's own prose describing §343's citation defect.** Writing *"§343 cited the sequencer basename plus a bare line number unanchored"*
 **is** an unanchored citation. §344 fixed §343's and created its own in the sentence explaining it.
 
 My own record names this precisely: *a gated document cannot quote its own gate's failure output verbatim —
@@ -18559,7 +18559,18 @@ Three independent instances now. **The general defence is not vigilance — it i
 as a description rather than a specimen**, which costs four words and is the only version that survives being
 correct about itself.
 
+### Postscript: the ninth occurrence was in this section
+
+The paragraph above, as first written, quoted the offending citation as a specimen — and **§347 shipped red
+for the same reason §344 did.** `check:citations` caught it immediately after the commit; the quotation is now
+a description (*"the sequencer basename plus a bare line number"*) and the gate is green.
+
+**Eighth occurrence in §344, ninth in the section documenting the eighth, while stating the rule that prevents
+it.** That is not carelessness — it is the strongest available evidence for the section's own claim: when a
+document's subject is the form its gates parse, *knowing the rule does not protect you; only changing the form
+does.*
+
 ### Verification
 
-`check:citations` re-run to green after de-linking; the red commit's content is unchanged and correct — only
-its verification order was wrong. `check:invariants 0`.
+`check:citations` **0** after de-linking both occurrences (verified before this sentence was written, not
+after); `check:invariants 0`. The red commit's content was correct — only its verification order was wrong.
