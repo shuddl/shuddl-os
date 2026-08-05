@@ -18311,7 +18311,7 @@ and it is stated as an identity rather than a description:
 
 (The test actually mints **55**; the manifest's 50 is the floor, not the count.)
 
-**Mutation:** `sequencer.ts:315` — the offline idempotency key is
+**Mutation:** `workers/api/src/do/sequencer.ts:315@device_seq` — the offline idempotency key is
 `(stream_id, device_id, device_seq)`. `device_seq` dropped, so every event from one device on one stream
 collapses onto the first row: a driver's fifty-five captures become one, and the rest return the wrong event
 as an idempotent replay. **Silent, total data loss on the offline path.**
@@ -18354,3 +18354,59 @@ needed a section.
 
 Landing verified; `@shuddl/api` 754 green after restore; path filter used (§325); the manifest's stated floor
 (50) reconciled against the test's actual mint (55). No file changed.
+
+---
+
+## §344 — Rule 6 names four fixture gates; one has no artifact anywhere
+
+§342 and §343 proved two of the four gates `CLAUDE.md` rule 6 names. Tracing the other two to their artifacts
+found three of four resolve and **one does not**:
+
+| rule 6 clause | fixture | status |
+|---|---|---|
+| legacy-export replay **±2% aggregate** | `legacy-export-replay` | pending — `gates: WP-02/04/15 ±2% aggregate` |
+| **routes ±10%** | — | **nothing** |
+| QB export **to the penny** | `qb-journal-month` | vendored · proved §342 |
+| airplane-mode soak | `airplane-soak` | in-repo-test · proved §343 (47 REDs) |
+
+**For *routes ±10%*: no entry among the seventeen manifest fixtures, no tolerance implementation in `tools/`
+or `packages/`, and no register row for route or mileage accuracy.** The six route/mileage hits in the
+register are UI progress-fill (REQ-078), escrow review, GTM milestones, status links, host routing and the
+positions gate — none about comparing routes to a legacy baseline.
+
+Checked before claiming, since the obvious explanation would have dissolved it: the legacy-export replay
+carries route data, so ±10% could plausibly be part of that fixture's assertion. **Its own `gates` field says
+`±2% aggregate` and nothing else.**
+
+### Two readings, and the decision is the owner's
+
+Either **rule 6 over-enumerates** — the routes comparison is part of the replay and the clause should say so
+— or it is **unscoped work**, in which case `CLAUDE.md`'s own first rule applies: *if it isn't a REQ row, it
+doesn't get built; if you discover scope, ADD A ROW first.* Adding that row is defining scope, which is the
+register owner's, not this loop's.
+
+**Blocks nothing either way**: the merge aggregate already BLOCKS on `legacy-export-replay` being pending, so
+no release turns on the answer. Filed as a Low row with both readings, the evidence for each, and an expiry
+trigger.
+
+### The class this joins
+
+Fourth member of §338's category — *governing text under-specified in a way no gate can see* — and the first
+where the under-specification is a **missing referent** rather than an unstated kind: the fifth primitive has
+no enumeration, the budget line has unlabelled ceilings, the CONFIRM-GATED list reads as exhaustive, and now
+rule 6 names a gate with no artifact. **All four are one sentence away from correct, and none is a defect in
+running code.**
+
+### And the ratchet caught the section that wrote it
+
+§343 cited `sequencer.ts:315` unanchored, into a file on the citation ratchet's high-churn target list —
+which is "may fall, never grow" (§264). `check:citations` went **RED on my own paragraph**, and the fix is
+the one the rule prescribes: spend the anchor
+(`workers/api/src/do/sequencer.ts:315@device_seq`). **A gate this audit built in an earlier phase failed the
+audit's own prose two sections later**, which is the cheapest possible demonstration that it works.
+
+### Verification
+
+Four rule-6 clauses traced to artifacts; the manifest's seventeen entries enumerated; the register searched
+for route/mileage scope; row filed and the checklist's amended-line updated to six.
+`check:citations 0` (after anchoring) · `check:invariants 0`. No code changed.
