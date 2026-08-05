@@ -16772,3 +16772,71 @@ proves, and no longer implies exhaustiveness it never measured.
 
 Three mutations, landing verified individually, all RED; `git status` clean; `@shuddl/adapters` 38 passed.
 §310's table annotated in place rather than restated, so the weaker original claim stays visible.
+
+---
+
+## §313 — The registry that owns REQ-030's multi-site coverage has no owner
+
+§312 deferred the two multi-site laws — eng.8 (42 tenant-scoping sites) and eng.3 (36 gate-refusal sites) —
+to *"the isolation suite and `check:authority-coverage`."* Asserted, not checked. Checking it.
+
+### What the gate actually is, and what it says about itself
+
+`check:authority-coverage` is a **static source scan over a hand-listed roster**: each registered
+`(module, files)` pair must call `resolveAuthority(db, '<module>')`. Five modules, eight files. It is
+mutation-relevant and well-built — and its header states its own limit plainly:
+
+> *"Registration is **MANUAL**: a NEW authoritative function added to an already-registered file, or a NEW
+> emitter in a NEW file, **passes for free until a human adds it**."*
+>
+> *"The WP-15 Task-10 exit audit owns the SEMANTIC coverage (…and the registry is complete) that this fast
+> static lint deliberately does not."*
+
+**The deferral names a closed one-time audit.** All sixteen WPs are closed; WP-15 Task-10 has run. So the
+registry's completeness was owned once, by an event that has already happened, and is owned by nothing on a
+recurring basis. That is the §303 shape — *a frontier pointer that ages* — applied to a coverage guarantee
+rather than a section number.
+
+### Measured today: no live bypass, and the reason is the interesting part
+
+Twelve files reference an authoritative kind; eight are registered. The four that are not:
+
+- **`routes/kpis.ts`, `mcp/src/webhooks.ts`** — readers. They name kinds to filter on. *(§272: a mention is
+  not a use.)*
+- **`routes/events.ts`** — the generic append route. It emits *any* kind through the chokepoint; the
+  authoritative consult for gated kinds lives in the sequencer DO, which **is** registered under `dispatch`.
+- **`billing/src/credits.ts`** — appends `invoice.issued` and `payment.received`, which looks exactly like an
+  unregistered invoicing emitter. It is not: its header shows the money rides the **reserved `_platform`
+  revenue tenant** for a Stripe credit-pack sale, and it is explicitly *"DISTINCT from credit.checked
+  (customer creditworthiness) — different concept."* Platform SaaS revenue is not tenant freight authority.
+
+**Four candidates, four correct exclusions — and every one required reading the file to adjudicate.** That is
+precisely why the roster is manual: "authoritative" is a semantic property, not a greppable one. The lint's
+author chose correctly.
+
+### The finding, stated as what it is
+
+**Not a defect in the code — a defect in the ownership of a check.** The registry is complete today, and
+nothing will notice when it stops being. The next authoritative emitter added to a new file passes for free,
+by the gate's own admission, and the audit that was supposed to catch that has already closed.
+
+**Deliberately not fixed with a discovery gate.** A mechanical definition of "authoritative emitter" would
+have to separate an emitter from a reader from a generic chokepoint from platform-scoped money — the four
+distinctions above, each of which took a file read. A gate keyed on kind-mentions would have raised four
+false positives out of four candidates. That is the §292/§304 wall for the third time, and the same verdict:
+**when the property is semantic, a pattern cannot own it.**
+
+### Recorded as a hold, with the trigger that makes it actionable
+
+> **REQ-030 authority-registry completeness has no recurring owner.** `AUTHORITATIVE_FILES` (5 modules /
+> 8 files) is hand-maintained; the lint states that a new emitter "passes for free", and defers completeness
+> to the WP-15 Task-10 exit audit, which is closed. Verified complete at `501ea9d` — 12 kind-referencing
+> files, 8 registered, 4 correctly excluded (2 readers, 1 generic chokepoint, 1 platform-tenant money).
+> **Trigger:** any new file that appends `quote.priced`, `invoice.issued`, a `settlement.*` or `message.sent`
+> on a TENANT database. The cheapest owner is the next WP-exit or phase-boundary audit re-running the
+> twelve-vs-eight comparison above — one grep and four file reads.
+
+### Verification
+
+Roster and emitter sets enumerated and diffed; all four exclusions adjudicated by reading the source.
+`check:authority-coverage` exits 0. No code changed.
