@@ -10737,3 +10737,61 @@ delegated to "nothing outside the five tokens", which delegated to a five that a
 Every link held except the last, and the last was invisible precisely because the first two were so
 solid — the audit fails loudly on blue in a component, which is exactly where you would look to check
 that the rule works.
+
+---
+
+## §207 — a green suite is not a green build
+
+§206's rule — *a prohibition enforced by an allowlist is only as strong as the allowlist's immutability* —
+points at the other allowlists gates treat as ground truth. Two carry security or privacy weight:
+`GATED_KINDS` (which event kinds require a Gatekeeper transition gate) and `REDACTIONS` (which fields are
+stripped per lens). Removing an entry from either silently disables a control.
+
+Probed `GATED_KINDS` — nine kinds, and the two probes disagreed:
+
+| Removed | api suite (751 tests) |
+|---|---|
+| `delivery.evidenced` | **3 tests RED** across 2 files — the geofence gate and the POD heartbeat's two controls |
+| `osd.captured` | **all 751 PASS** |
+
+That looked like the finding: a security allowlist with an entry whose removal is invisible, and
+`check:invariants`, `check:chokepoint`, `check:authority-coverage` and `check:runtime` all exit 0 on it.
+
+### It was my instrument, for the fifth time
+
+`typecheck` exits **2**:
+
+```
+src/do/sequencer.ts(680,12): error TS2678:
+  Type '"osd.captured"' is not comparable to type '"booking.created" | "appointment.set" | …'
+```
+
+A `switch` over `GatedKind` makes every entry load-bearing at **compile time** — removing one leaves an
+uncomparable `case` and the build stops. The allowlist is pinned; **vitest simply does not typecheck**, so
+a full green suite says nothing about whether the code compiles.
+
+That is worth stating as its own rule, because it is not obvious and it invalidated a reading I was
+confident in: **a green test suite is not a green build.** 751 passing tests coexisted with a type error
+that would stop CI at the previous step. Every "nothing catches this" conclusion drawn from a test run
+alone is provisional until `typecheck` has run too — and three sections of this session (§203's event
+kinds, §204's views, this) turned on exactly that.
+
+### What the two probes together actually show
+
+`GATED_KINDS` has **two layers, unevenly distributed**:
+
+- **Compile-time, uniform** — every kind is protected by the exhaustive switch. This is the real guarantee.
+- **Behavioural, partial** — `delivery.evidenced` has tests that prove the gate *blocks*; `osd.captured`
+  has none. So the compiler notices the entry vanishing, but nothing would notice the gate becoming a
+  no-op while the entry remained.
+
+Those are different failure modes, and only the first is covered uniformly. Not filed as a defect —
+`osd.captured`'s gate is exercised through the OS&D flow elsewhere and the compile-time layer is the
+stronger of the two — but recorded, because "the allowlist is pinned" and "each gate is proven to block"
+are separate claims and only one of them is true for all nine.
+
+### The rule
+
+**Run the build, not just the tests, before concluding a thing is unguarded.** The strongest guarantee in
+a TypeScript codebase — exhaustiveness over a union — is invisible to every test runner, so the mechanism
+most likely to be protecting a constant is the one a test-only probe cannot see.
