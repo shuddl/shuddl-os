@@ -8836,7 +8836,7 @@ roughly half the flagged set is likely rot and the rest is window tightness, and
 Five rotted citations across three skills, each re-pointed **and given a content anchor**, which is the
 only rule that catches this failure — `invoice-gate.ts:16@GATE_BLOCKED_PREFIX`,
 `transition-gates.ts:74@VALIDATION_FAILED`, `isolation.test.ts:29@WPs`,
-`invariants.ts:442@FORBIDDEN_REPLACE` (×2), plus `invariants.ts:79@SCHEMA`. Anchored citations went
+`invariants.ts:446@FORBIDDEN_REPLACE` (×2), plus `invariants.ts:79@SCHEMA`. Anchored citations went
 **28 → 34**; 987 citations resolve; the ratchet holds at its frozen 130.
 
 The remaining ~48 candidates are **not** swept in this pass, and saying so is the point (§175 is not a
@@ -14091,3 +14091,52 @@ the silent ones accumulate. That asymmetry is the whole case for §264's ratchet
 gets made every time.** The difference matters most where the cost of forgetting is silent — here, a table
 that quietly accepts `INSERT OR REPLACE`. When a list is load-bearing in more than one place, the check is
 not "is the list right?" but "**what happens to something that never gets added to it?**"
+
+## §266 — "keyed in two places" was keyed in three, and the fourth table would have been half-guarded
+
+§265 forced the append-only classification for every tenant table, and named the reason: append-only
+enforcement is keyed to `GUARDED_TABLES` **in two places**, so a new table needs two edits nobody prompts.
+That fix makes an author *think*; it does not stop the keyings drifting from each other. So: collapse them.
+
+They were **not two literals. They were three:**
+
+| Site | What it drives | Before |
+|---|---|---|
+| `GUARDED_TABLES` | the guard-completeness check | `["events","positions","money_lines"]` |
+| `FORBIDDEN_REPLACE` | the source-level `INSERT OR REPLACE` ban | hard-coded `"events\|positions\|money_lines"` |
+| a local `GUARDED` | the source-level **`ON CONFLICT DO UPDATE`** ban — a *different* check | hard-coded, same string |
+
+Both re-typed literals now read `GUARDED_TABLES.join("|")`. Finding the third only happened because the
+first fix's test failed to compile and sent me back into the function — **had the signature matched on the
+first try, I would have shipped a half-derivation and recorded it as complete.**
+
+### Proved, not asserted
+
+Adding a fourth entry to `GUARDED_TABLES` and planting `INSERT OR REPLACE INTO settlements` in a route:
+
+- **with** the derivation → **FAIL**, *"REPLACE bypasses the BEFORE DELETE guard (D1 recursive_triggers=0)"*;
+- **with the old literal restored** → **GREEN**, the write slips through.
+
+That is the latent defect stated exactly: a fourth append-only table would have had guard-completeness
+checking, no REPLACE ban, and no ON-CONFLICT ban — while every gate reported clean.
+
+Pinned by an **identity test** rather than a snapshot: `it.each([...GUARDED_TABLES])` asserts each guarded
+table is caught by *both* bans, so re-typing either alternation as a subset fails on the missing table.
+Non-vacuity is pinned too — an *unguarded* table (`parties`) must **not** be caught, or the test would pass
+against a matcher that flags everything.
+
+### The tax, and what it now demonstrates
+
+Five anchored citations shifted again (`FORBIDDEN_REPLACE`, `committedLock` this round) and were re-pointed.
+Fifth time this session. The pattern is no longer worth narrating except as evidence for one claim:
+**every anchored citation into this file has been repaired four times; the unanchored ones into the same
+file have been repaired never, and are wrong now.** That is the ratchet's entire argument, observed rather
+than reasoned.
+
+### The rule
+
+**Count the keyings before declaring a list collapsed.** "This is duplicated in two places" is itself an
+unverified claim — the third copy sat inside a function whose name suggested it consumed the first two. The
+check is mechanical: grep the *literal value*, not the identifier, because a re-typed copy shares the value
+and nothing else. And when a fix is driven by a failing test, read the function the failure lands in; that
+is where the copy you did not know about lives.

@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import { stripSqlComments } from "@shuddl/ledger/migrate";
 import {
   checkControlMigrationsExercised,
+  GUARDED_TABLES,
   checkTableClassification,
   isCollisionDuplicate,
   checkDoMutexIntact,
@@ -854,5 +855,25 @@ describe("§265: every tenant table is classified append-only or mutable", () =>
 
   it("is order- and duplicate-insensitive (migrations may re-declare IF NOT EXISTS)", () => {
     expect(checkTableClassification(["legs", "events", "legs"])).toEqual([]);
+  });
+});
+
+// audit §266 — the REPLACE ban's table alternation is DERIVED from GUARDED_TABLES. They were two
+// independent literals naming the same three tables, so a fourth guarded table would have had
+// guard-completeness checking and NO source-level REPLACE ban. This is the identity test: every guarded
+// table must actually be caught, which fails the moment someone re-types the alternation as a subset.
+describe("§266: the REPLACE ban covers EVERY guarded table (derived, not re-typed)", () => {
+  it.each([...GUARDED_TABLES])("catches INSERT OR REPLACE INTO %s", (table) => {
+    const hits = scanSourceForForbiddenReplace([{ path: "p.ts", text: `INSERT OR REPLACE INTO ${table} (id) VALUES (1)` }]);
+    expect(hits.length, `${table} is in GUARDED_TABLES but the REPLACE ban does not cover it`).toBeGreaterThan(0);
+  });
+
+  it.each([...GUARDED_TABLES])("catches ON CONFLICT DO UPDATE against %s (the second, distinct ban)", (table) => {
+    const hits = scanSourceForForbiddenReplace([{ path: "p.ts", text: `INSERT INTO ${table} (id) VALUES (1) ON CONFLICT(id) DO UPDATE SET id = 2` }]);
+    expect(hits.length, `${table} is guarded but the ON CONFLICT ban does not cover it`).toBeGreaterThan(0);
+  });
+
+  it("is non-vacuous: an UNGUARDED table is NOT caught by this ban", () => {
+    expect(scanSourceForForbiddenReplace([{ path: "p.ts", text: "INSERT OR REPLACE INTO parties (id) VALUES (1)" }])).toEqual([]);
   });
 });

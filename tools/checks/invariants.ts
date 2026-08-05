@@ -35,7 +35,7 @@ const NAMED_TABLES = 21;
 export const PARTITION_TABLES: Record<string, string> = { positions: "events" };
 
 // Append-only tables that MUST carry RAISE(ABORT) guard triggers once created (I3, I1).
-const GUARDED_TABLES = ["events", "positions", "money_lines"] as const;
+export const GUARDED_TABLES = ["events", "positions", "money_lines"] as const;
 
 // EVERY tenant table is classified — append-only (guarded) or deliberately mutable (audit §265).
 // GUARDED_TABLES is hand-curated, and append-only enforcement is keyed to it in TWO places: the guard-
@@ -439,11 +439,17 @@ export function findStraySql(cwd: string = process.cwd()): string[] {
 // probe SQL to prove the guards fire. Built from the SHARED replaceFamilyRe (same DELIM/SCHEMA/Q the
 // migration scanner uses), so `INTO"events"` (abutting quote) and `INTO main.events` (schema-qualified)
 // can no longer split the two surfaces — a parity test (invariants.test.ts) proves it.
-const FORBIDDEN_REPLACE = (): RegExp => replaceFamilyRe("events|positions|money_lines");
+// DERIVED from GUARDED_TABLES, not re-typed (audit §266). These were two independent literals naming the
+// same three tables, which is the dual-keying §265 documented: adding a fourth append-only table to
+// GUARDED_TABLES left the REPLACE ban silently not covering it. The guard-completeness check and the
+// source-level REPLACE ban now read one list, so the two cannot drift.
+const FORBIDDEN_REPLACE = (): RegExp => replaceFamilyRe(GUARDED_TABLES.join("|"));
 
 export function scanSourceForForbiddenReplace(sources: ReadonlyArray<{ path: string; text: string }>): string[] {
   const violations: string[] = [];
-  const GUARDED = "events|positions|money_lines";
+  // Derived too (audit §266): this drives the ON CONFLICT DO UPDATE ban, a DIFFERENT check from the
+  // REPLACE ban above. Deriving only one of them would have left a fourth guarded table half-covered.
+  const GUARDED = GUARDED_TABLES.join("|");
   for (const { path, text } of sources) {
     for (const m of text.matchAll(FORBIDDEN_REPLACE())) {
       violations.push(
