@@ -11930,3 +11930,63 @@ That is a mechanical filter over the remaining 59, and it costs a grep rather th
 **A lockstep comment that names another file's path is a missing test; one that names a shared mechanism
 is documentation.** Both read identically and only the first can rot — which is why §223's sweep was worth
 running as a list and not worth working end to end.
+
+---
+
+## §228 — running §227's filter: 17 of 64, and the regex the DO promised to match
+
+§227 proposed a mechanical filter over the 64 agreement claims — **a claim that names another file's path
+is duplicated logic; one that names a shared mechanism is documentation.** Ran it: **17 of 64.**
+
+Of those seventeen, five are already closed or self-declare their guard (`anchor.ts` §222, the three
+`tenants.ts` mirrors §224, and `concierge.ts:192`, which names its own parity test in the comment). Most
+of the rest name a *discipline* or a *precedent* rather than logic — *"mirrors the portal's session
+singleton discipline"*, *"mirrors the BigInt precedent"*, *"mirrors the EvidenceSender port discipline"* —
+and two more are structural despite naming a path (`intake-core.ts` / `routes/import.ts`, where the
+comment itself says import **LOOPS these verbs** rather than reimplementing them).
+
+One named a concrete duplicated rule:
+
+> `workers/api/src/do/sequencer.ts:198@STREAM_ID_RE` — **MUST stay byte-identical to LedgerEvent's `stream_id` regex** (contracts/events.ts).
+> The DO checks it up front so a malformed streamId is a clean VALIDATION_FAILED, not a raw ZodError
+> leaked through the parse.
+
+```ts
+// workers/api/src/do/sequencer.ts
+const STREAM_ID_RE = /^(s:[\w-]+|q:[\w-]+|t:root)$/;
+// packages/contracts/src/events.ts
+stream_id: z.string().regex(/^(s:[\w-]+|q:[\w-]+|t:root)$/),
+```
+
+### Measured
+
+Widened the DO's copy to accept an `x:` prefix the contract rejects:
+
+```
+workers/api   752 passed (752)     typecheck 0
+```
+
+**Silent.** And drift hurts in both directions, which is why the fix asserts equality rather than a subset:
+more permissive and the DO waves through a stream the ledger then rejects — *the exact leaked ZodError the
+guard exists to prevent*; more restrictive and it refuses stream ids the contract calls valid, breaking
+real appends.
+
+### Closed
+
+`workers/api/test/stream-id-parity.test.ts` extracts both patterns from the raw sources (§223's mechanism —
+the contract's copy is inline in a Zod schema, so there is nothing to import) and asserts character
+equality, plus a canary that the pattern still admits `s:`/`q:`/`t:root` and rejects `x:` and a space.
+Suite 752 → **754**.
+
+Replaying the drift now fails with both patterns side by side.
+
+**A `ts-raw.d.ts` was needed** — `typecheck` caught the missing `*.ts?raw` module declaration and exited 2
+while all 754 tests passed. §207's rule, arriving as a working reminder rather than an argument: **a green
+suite is not a green build**, and the only reason I saw it is that the pre-commit habit runs both.
+
+### The rule
+
+**A filter is worth running end to end when it is cheap; the answer is usually "most of these are fine."**
+64 claims → 17 naming a path → 12 naming a discipline or a shared mechanism → **1 real gap.** The value of
+§227's taxonomy was not that it found the gap — it is that it let 47 claims be dismissed without a
+mutation each, and made the one that mattered obvious by elimination.
