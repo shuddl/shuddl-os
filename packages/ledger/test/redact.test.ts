@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { eventFixture, type EventKind, type JsonObject, type LedgerEvent } from "@shuddl/contracts";
-import { redactEvent, INTERNAL_NESTED } from "../src/redact.js";
+import { redactEvent, INTERNAL_NESTED, REDACTIONS } from "../src/redact.js";
 import { KIND_VISIBILITY_DEFAULTS } from "../src/visibility.js";
 
 // REQ-179 / I6 — NESTED counterparty redaction of invoice.issued / invoice.corrected. The portal is the
@@ -300,5 +300,33 @@ describe("redactEvent: envelope redaction — override and party-lens actor.user
     expect((party.actor as { party: string }).party).toBe("p-carrier-x");
     const driver = redactEvent({ scope: "driver" }, e);
     expect((driver.actor as { user?: string }).user).toBe("u-internal-driver-7");
+  });
+});
+
+// THE REGISTRY IDENTITY (audit §215/§216). Both maps are `Partial<Record<EventKind, …>>`, so the compiler
+// cannot help: an absent entry is a legal program, and §210 measured that tests are the WHOLE guarantee
+// here. The per-kind tests above prove each listed entry strips what it claims — they cannot see a kind
+// being ADDED without one, which is exactly the obligation INTERNAL_NESTED's own note states in prose:
+// "Adding a kind here means adding its per-kind test — the general guard will not catch what its fixture
+// does not carry." These two assertions turn that sentence into a failing test.
+//
+// The MCP chokepoint (workers/mcp/src/gate.ts DEFAULT_MUTATION_CHECKS) is the pattern being copied: it is
+// the only allowlist in the build with a test asserting the LIST rather than the entries, and §215 found
+// it the best-defended for exactly that reason. `toEqual` on a sorted key set, deliberately — the sets ARE
+// the law, so growing one should stop the author here and send them to write the per-kind case.
+describe("REQ-179/I6 — the redaction registries are exactly these kinds", () => {
+  it("REDACTIONS covers exactly the top-level-strip kinds", () => {
+    expect(Object.keys(REDACTIONS).sort()).toEqual(["exception.raised", "quote.priced"]);
+  });
+
+  it("INTERNAL_NESTED covers exactly the deep-strip kinds", () => {
+    expect(Object.keys(INTERNAL_NESTED).sort()).toEqual([
+      "booking.created",
+      "dispatch.assigned",
+      "invoice.corrected",
+      "invoice.issued",
+      "payment.received",
+      "settlement.executed",
+    ]);
   });
 });

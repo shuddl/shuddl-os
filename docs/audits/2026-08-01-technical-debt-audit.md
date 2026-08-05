@@ -11259,3 +11259,57 @@ reasoning in the source where the next editor will read it.
 entries.** Behavioural tests per entry are necessary and they cannot see a *composition* failure — an
 entry that exists, compiles, is tested in isolation, and is simply never wired in. One identity assertion
 covers the whole class.
+
+---
+
+## §216 — copying the MCP chokepoint's identity test to the privacy registries
+
+§215 found the build's strongest allowlist defence and named the missing layer everywhere else: **a test
+that asserts the list, not the entries.** `REDACTIONS` and `INTERNAL_NESTED` are where that gap matters
+most — §210 measured them as `Partial<Record>`, so the compiler cannot help and tests are the whole
+guarantee.
+
+The source already states the obligation, in prose, in `INTERNAL_NESTED`'s own note:
+
+> Adding a kind here means adding its per-kind test — the general guard will not catch what its fixture
+> does not carry.
+
+Nothing enforced it. **Now two assertions do** (`packages/ledger/test/redact.test.ts`, suite 612 → 614):
+the sorted key set of each registry, `toEqual` a frozen list.
+
+### The mutation no existing test could see
+
+Removal was already covered — §210 measured 2–6 tests per entry. **Addition was not.** Registering a
+seventh deep-strip kind with no per-kind test:
+
+```
+× REQ-179/I6 — the redaction registries are exactly these kinds
+    > INTERNAL_NESTED covers exactly the deep-strip kinds
+```
+
+**1 failure of 614.** Before this, that edit was silent: the map grew, `typecheck` passed, every
+behavioural test passed, and the new kind's redaction was never exercised by anything. The registry would
+have claimed coverage the suite did not have — and §51's note (quoted in the same file) says the general
+fail-closed guard *"only bites on a kind whose fixture payload actually CARRIES one of its five known-
+internal keys, which is 5 of the 28"*, so it would not have caught it either.
+
+`toEqual` on the sorted set, deliberately, for §205's reason: the sets **are** the law, so growing one
+should stop the author at this test and send them to write the per-kind case — which is precisely what
+the prose asked for and could not compel.
+
+### Why this is worth doing and the `GATED_KINDS` equivalent is not
+
+`GATED_KINDS` is a `readonly` tuple feeding an exhaustive `switch`: **removal is a compile error**, and
+addition is the safe direction (more kinds gated). Its risk profile is already covered — an identity test
+there would assert something the compiler guarantees.
+
+The redaction registries are the inverse. Removal leaks (caught behaviourally); **addition-without-a-test
+silently claims coverage** (caught by nothing until now). Same shape, opposite exposure — which is why
+§215's rule needed applying per allowlist rather than uniformly.
+
+### The rule
+
+**An identity test earns its place where the compiler cannot reach and the risk is growth, not loss.**
+Per-entry tests answer "does this entry work?"; the identity test answers "is this the whole list?" — and
+only the second notices an entry arriving unaccompanied. The MCP chain has had that layer since it was
+written; the privacy registries have it now.
