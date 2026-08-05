@@ -11990,3 +11990,51 @@ suite is not a green build**, and the only reason I saw it is that the pre-commi
 64 claims → 17 naming a path → 12 naming a discipline or a shared mechanism → **1 real gap.** The value of
 §227's taxonomy was not that it found the gap — it is that it let 47 claims be dismissed without a
 mutation each, and made the one that mattered obvious by elimination.
+
+---
+
+## §229 — the offline dedupe lockstep, and a clean negative held up by three unrelated guards
+
+§228 closed the lockstep sweep at one gap. The remaining high-stakes agreement is the one REQ-016 rests on
+and no comment-sweep phrasing catches, because it spans two *languages*:
+
+> `packages/driver-core/src/merge.ts:2` — the client's `(shipment_id, device_id, device_seq)` dedupe key
+> **MIRRORS EXACTLY** the unique index the sequencer enforces server-side.
+
+TypeScript on one side, `CREATE UNIQUE INDEX ux_events_device` on the other. No shared mechanism is
+possible — this is the §222 shape at its purest, on the loss-free/dup-free guarantee behind acceptance
+demo #3.
+
+**Both directions are already caught, by three different guards that were not built for this.**
+
+| Drift | Caught by |
+|---|---|
+| **client** — drop `shipment_id`, making the key global | `driver-core`: *"the SAME (device, seq) on DIFFERENT shipments keeps BOTH (per-stream key matches the server)"* |
+| **server** — drop `stream_id` from the index | `check:invariants`: *"I3 VIOLATION: append-only guard completeness — the UNIQUE target (device_id, device_seq) has no BEFORE INSERT guard predicate"* |
+| **server, made coherent** — index *and* guard predicate changed together | `check:invariants`: *"migration … was EDITED after it was committed to the lock — migrations are forward-only"* |
+
+The third row is the one worth having measured. §219's lesson was to test the second instance rather than
+hedge in prose, so I did not stop at "a coherent change might slip past the completeness check" — I made
+the change coherent. **The forward-only migration lock catches it**, because the divergence cannot be
+expressed without editing a committed file.
+
+### Why this is a clean negative rather than luck
+
+The client key is a TypeScript constant — trivially editable, and pinned by a behavioural test whose name
+states the server correspondence. The server index is SQL in a **locked, forward-only** migration — it
+cannot change in place at all, and a new migration that recreated the index differently would face the
+guard-completeness check on the way through.
+
+**The two sides have deliberately asymmetric change-costs**, and each is guarded in proportion. That is a
+better design than a direct lockstep assertion would be: a parity test comparing a TS tuple to a SQL index
+column list would be brittle string-matching across languages, and it would not have caught the coherent
+change either.
+
+### The rule
+
+**Not every lockstep needs a lockstep test — some are held by the cost of changing one side.** The
+question is not *"is there an assertion joining these?"* but *"can either side move without something
+objecting?"* Here nothing joins them and nothing needs to, because one side is a constant guarded by
+behaviour and the other is a locked migration guarded by two meta-checks. §222's anchor leaf was the
+opposite: **two TypeScript functions, both trivially editable, joined by a sentence** — which is exactly
+the combination that produced 1,365 green tests over a real divergence.
