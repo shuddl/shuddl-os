@@ -16669,10 +16669,13 @@ demo–adjacent code, repeated until it looked corroborated.
 | **L7** — gate every transition | collect no missing evidence | 4 |
 | **L10** — exit-friendly | export omits the ledger | 2 |
 
-**Ten laws, ten REDs, every file restored byte-identical, every suite green afterwards.** *(Qualified in
-§312: each RED proves the enforcement AT THE SITE MUTATED. For five laws that is the whole implementation;
-for the multi-site ones — isolation has 42 tenant-scoping sites, gates 36 refusal sites — it is a sample of
-one. eng.10 was re-tested there and is 3 of 3.)* Six engineering rules and four genesis laws — each one now enforced by a test that fails when the enforcement is removed,
+**Ten laws, ten REDs, every file restored byte-identical, every suite green afterwards.** *(Qualified in §312, then
+CORRECTED UPWARD in §320–§321: each RED proves the enforcement AT THE SITE MUTATED. For five laws that is the
+whole implementation. §312 called the other two "a sample of one out of 42 / 36" — **both figures were grep
+artefacts.** Isolation is a single resolver, `tenants.ts:16`, now proved there AND at `mintPrincipalJwt`;
+gates are 25 refusals in TWO files, with all 12 evidence kinds named in the corpus and the THINNEST branch
+(`receiver_ack`, 2 test files) mutation-proved. eng.10 is 3 of 3. The honest residual is 19 transition-gate
+branches covered by naming rather than individual mutation.)* Six engineering rules and four genesis laws — each one now enforced by a test that fails when the enforcement is removed,
 rather than by a sentence asserting it is.
 
 ### Verification
@@ -17267,3 +17270,50 @@ understatement survived four sections because pessimism about one's own evidence
 
 Two mutations landed and reverted; `git status` clean; `@shuddl/ledger` 616 passed after restore; §312's
 qualifier extended in place.
+
+---
+
+## §322 — Correcting a qualifier upward, and the asymmetry that let it stand
+
+§312 inserted a qualifier into §310's table — the right instinct, applied to two numbers it had not verified.
+§320 and §321 falsified both. **The qualifier sat unchanged in the place a reader actually lands** for two
+sections after the corrections that superseded it, which is §301's defect exactly, committed by me again and
+now fixed in place.
+
+The table's qualifier now reads what was measured: five single-site laws where the RED is the whole proof;
+isolation at one resolver, proved twice; gates at 25 refusals in two files with 12/12 kinds named and the
+thinnest branch proved; eng.10 at 3 of 3 — **and the honest residual, 19 transition-gate branches covered by
+naming rather than by individual mutation.**
+
+### The asymmetry worth naming
+
+A correction that *weakens* a claim gets scrutinised. A correction that *strengthens* one does not, and this
+audit produced three of the second kind in six sections (§320, §321, and this) — each one fixing an
+understatement that had survived precisely because **understatement reads as rigour.**
+
+The mechanics are plain once stated: an overstatement collides with the next person who checks. An
+understatement collides with nobody, ever — it makes the evidence look weaker than it is, and nothing in a
+build ever fails because its evidence was described too modestly. **So the only thing that catches it is
+someone re-deriving the number for an unrelated reason**, which is how both §320 and §321 happened.
+
+**Practical form:** when a qualifier cites a count you did not personally derive from the architecture — not
+from a grep — treat the count as unverified, and say so in the qualifier itself. *"A sample of one out of
+42"* and *"a sample of one out of a number I got from `grep -c`"* are the same sentence with completely
+different authority.
+
+### Where the ten-law evidence now stands
+
+| | claim | evidence |
+|---|---|---|
+| 5 laws | single implementation site | the RED **is** the proof |
+| eng.8 isolation | one resolver, 7 callers | proved at the resolver **and** at the principal mint |
+| eng.3 gates | 25 refusals, 2 files | 12/12 kinds named · 2 branches + the mechanism proved · **19 by naming** |
+| eng.10 migrator | 3 gap-row sites | **3 of 3** |
+
+**Ten laws, thirteen mutations, one stated residual.** That is the strongest form the claim has taken, and
+it got there by correcting my own caution twice rather than by finding anything new in the build.
+
+### Verification
+
+§310's qualifier corrected in place, with §312's superseded wording preserved by reference so the
+overstatement of weakness stays visible. `check:citations 0 · check:invariants 0`. No code changed.
