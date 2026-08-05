@@ -13072,3 +13072,60 @@ real, enforceable constraints and inherits their authority — while being unfal
 and general: for each rule in a governing document, ask *"what exactly would I run, read, or count to know
 it was violated?"* Ten answers came back immediately here; the eleventh could not be answered at all, and
 that asymmetry is the finding rather than any property of the code.
+
+## §247 — genesis/13's contract, and proving a security lint that had never been seen to fire
+
+The last un-audited source-of-truth tier: `genesis/13`, the tenant-onboarding interface. It defines a
+nine-file **config pack** that lives in the tenant's engagement workspace and *"never enters version control
+here."* The repo therefore owns only the contract's edges, and two of them are checkable.
+
+### The pack is an operational artifact, not a code input — and that is correct
+
+`CLAUDE.md` requires *"Zod at every boundary,"* and doc 13 calls the pack *"the contract,"* which together
+suggest a loader and a schema. There is none: no `ConfigPack` type, no reference anywhere in
+`packages/`, `workers/`, `apps/` or `tools/` to `identity.yaml`, `org-roles.yaml`, `approval-matrix.yaml`,
+`continuity.yaml`, `adapters.yaml` or `calendar.yaml`. (A first grep appeared to find five consumers; all
+five were the regex `tenant.pack` wildcard matching the phrase *"tenant-pack config, outside this repo"* in
+a comment — the measurement, not the system.)
+
+That absence is right rather than missing. Eight of the nine files are consumed by **people** during
+onboarding — a seat→role mapping becomes `users` rows, `rating-config/` becomes versioned `rate_config`
+rows through the normal REQ-027 path. "Zod at every boundary" governs data crossing into running code, and
+these never do. Building a loader for them would be inventing a code path doc 13 does not ask for.
+
+The **ninth** file is mechanized, and it holds: `fixtures-manifest.private` is referenced by the repo's
+`fixtures/manifest.json`, and `check:fixtures --mode merge` exits **2** with
+`status: BLOCKED, executed: false, assertions: 0` — it refuses to claim verification it has not performed,
+which is the fail-closed direction and one of the five named private-fixture holds.
+
+### The identity-leak lint: proved to fire, in both directions
+
+Doc 13's other repo-side obligation is the identity-leak lint (REQ-167). Its GO-LIVE row has read
+*"unverified in every local run"* for weeks — and that phrase is ambiguous between **no denylist supplied**
+and **no proof the gate works**. Nobody had ever observed it firing, here or anywhere in this audit, because
+every local run reports `Lint SKIPPED — no denylist available`.
+
+Measured with a temporary `.identity-denylist.local` (removed immediately; the untracked set returned to its
+7 session-start entries), using a harmless word certain to be present rather than any real name:
+
+| Probe | Result |
+|---|---|
+| a term **present** in the tree | **exit 1**, naming each offending file |
+| a term **absent** from the tree | **exit 0** — the negative control, so it is not merely always-red |
+
+It also **masks the matched term in its own output** (`g*****`), so a failure in a public CI log does not
+itself leak the name it just caught. That is a deliberate and easily-missed piece of design: the obvious
+implementation prints the match.
+
+**The residual narrows.** It is no longer "does REQ-167's enforcement work" but "does the CI secret contain
+the right terms" — which no repo-side test can ever establish, since the terms are the very identities the
+repo is forbidden to hold. The row was updated to say that.
+
+### The rule
+
+**"Unverified" is two different claims, and only one of them is anyone's to fix.** A gate that cannot run
+locally accumulates a status line that reads like doubt about the *mechanism* when it is really doubt about
+the *input*. Separating them cost two runs and moved a Med row's residual from "the enforcement is unproven"
+to "the secret's contents are unauditable from here" — the second being an honest permanent state rather
+than an open question. Where a gate's input is withheld by design, prove the gate with a **substitute** input
+and say so, or its status line will imply a defect that does not exist.
