@@ -10909,3 +10909,50 @@ a fact about this repo, and the audit's own history shows it does not survive be
 look fine. That is the safer direction to fail — a false alarm costs a re-run, a missed defect ships — but
 it is not free: five false findings published into an audit of this size would have sent someone to fix
 five things that were never wrong, and the record would have looked more thorough for it.
+
+---
+
+## §210 — finishing the allowlist sweep: REDACTIONS is test-pinned, with no compiler behind it
+
+§207 scoped two security allowlists — `GATED_KINDS` and `REDACTIONS` — and tested one. §204's lesson was
+*do not summarise a sweep you have not finished*; this finishes it.
+
+`REDACTIONS` is the privacy allowlist: which payload keys are stripped before an event reaches a
+counterparty or driver lens. Dropping an entry means those fields ship. Three mutations, one per entry
+across both mechanisms:
+
+| Entry removed | ledger | api | portal |
+|---|---|---|---|
+| `quote.priced` → `floors`/`basis`/`versions` (margin internals) | 4 | 2 | — |
+| `exception.raised` → `internal_note` | 2 | — | — |
+| `invoice.issued` deep-strip → `division`/`gl_map` (nested `lines[].gl_map`) | 4 | 1 | — |
+
+Every entry is pinned. The margin fields and the nested chart-of-accounts — the two that would actually
+embarrass a tenant in front of their customer — are the best covered.
+
+### The structural difference from `GATED_KINDS`
+
+**`typecheck` exits 0 on all three mutations.** `REDACTIONS` is a `Partial<Record<EventKind, …>>`, so every
+kind is optional *by design* — an absent entry is a legal program. `GATED_KINDS` is a `readonly` tuple
+feeding an exhaustive `switch`, so removing an entry is a compile error (§207).
+
+So the two allowlists §207 grouped together have **opposite defence profiles**:
+
+- `GATED_KINDS` — uniform compile-time protection, partial behavioural depth.
+- `REDACTIONS` — **no** compile-time protection possible, uniform behavioural depth (2–6 tests per entry).
+
+Neither is wrong. `Partial` is the correct type: most event kinds need no redaction, and forcing an
+exhaustive map would mean 35 entries of `[]` that nobody maintains. But it does mean the tests are the
+*only* thing holding this line, where the gates have two layers — and that is invisible from either
+declaration.
+
+**Not a defect.** Recorded because the natural assumption after §207 — "allowlists in this build are
+compiler-protected" — is false for the one carrying privacy, and the difference comes from a type
+signature rather than from anyone deciding the line mattered less.
+
+### The rule
+
+**`Partial<Record<…>>` opts a map out of exhaustiveness, and therefore out of the compiler's protection.**
+It is usually the right type and it silently changes what a mutation test is *for*: with an exhaustive
+union, tests confirm behaviour the compiler already guarantees exists; with a partial map, tests are the
+whole guarantee. Same-looking constant, entirely different risk if the suite thins.
