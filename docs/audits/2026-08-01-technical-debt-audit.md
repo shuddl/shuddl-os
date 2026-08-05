@@ -15784,11 +15784,13 @@ audit's own headline.
 (coverage classification + register contiguity), caused by another workstream's uncommitted row in
 `genesis/09-REQUIREMENTS-REGISTER.csv`. Not this loop's, and unchanged all phase.
 
-**Stated bounds — what this measurement does NOT cover.** The five `vitest-pool-workers` suites were not
-run: this machine has a documented, uninterruptible `workerd` wedge (a suite can block for days in `UE`,
-survives `kill -9`, clears only on reboot). Running them to refresh a number would risk the session for no
-new information. The four browser gates report `BLOCKED` without a browser, which is their designed posture
-under `--mode merge`, not a defect. **A green here is a green for the surface named, and nothing wider.**
+**Stated bounds — what this measurement does NOT cover.** ~~The five `vitest-pool-workers` suites were not
+run: this machine has a documented, uninterruptible `workerd` wedge…~~ **This bound was WRONG and is
+withdrawn — see §297.** It was inherited from a prior session's note and written here as a present machine
+condition without being re-checked; measured, there were zero uninterruptible processes and every worker
+suite runs in seconds. The corrected figure is **281 files / 3,698 tests / 3,695 passing**. The four browser
+gates do report `BLOCKED` without a browser, which is their designed posture under `--mode merge`, not a
+defect — that bound stands. **A green here is a green for the surface named, and nothing wider.**
 
 ### What this phase actually changed — eight enforcement defects closed
 
@@ -15845,3 +15847,82 @@ The gate is not "forever". Any of these makes the verdict above stale and requir
 
 Two of these are now enforced by gates rather than memory (3 and 4); the rest remain human triggers, which
 is stated plainly because an unenforced trigger is a hope, not a control.
+
+---
+
+## §297 — A hazard is not a state: the phase gate's biggest bound was wrong
+
+§296 declared the phase gate re-measured and named its bounds. The largest read:
+
+> *"The five `vitest-pool-workers` suites were not run: **this machine has** a documented, uninterruptible
+> `workerd` wedge… Running them to refresh a number would risk the session for no new information."*
+
+**That sentence was not measured.** It came from a note written in an earlier session, and it was carried
+into the current verdict as a **present machine condition**. In a section whose entire argument was that a
+stale verdict must be re-measured rather than extended, the headline bound was an unverified inheritance.
+
+### What measuring cost, and what it found
+
+Zero risk to check the premise: `ps` for uninterruptible processes. **Zero.** No `workerd`, no `vitest`,
+nothing in `U` state. That does not prove a fresh run is safe, so the probe was bounded — the **smallest**
+worker suite (`workers/billing`, 6 files), backgrounded so exposure was one process.
+
+It finished in **2.5 seconds**, 57 tests, exit 0.
+
+So the full recursive suite was run. **Every package, every worker, every surface:**
+
+| | files | tests |
+|---|---|---|
+| `workers/api` | 68 | 754 |
+| `packages/ledger` | 34 | 616 |
+| `packages/contracts` | 14 | 285 |
+| `packages/agents` | 10 | 219 |
+| `workers/mcp` | 12 | 177 |
+| `packages/rater` | 12 | 154 |
+| `workers/agents` | 18 | 110 |
+| `workers/translator` | 12 | 104 |
+| …11 more | | |
+| **package total** | **251** | **2,917** |
+
+**Zero failure summaries across all 17 packages. Exit 0.** With `test:tools`, the true figure is
+**281 files / 3,698 tests / 3,695 passing** — the only three failures anywhere are the `REQ-289` register
+trio from another workstream's uncommitted row.
+
+### The distinction that was actually wrong
+
+The memory said the wedge *can* happen — a hazard, observed once, with a recovery (reboot). §296 restated it
+as *"this machine **has** a … wedge"* — a condition. **A hazard is a probability; a state is a fact, and only
+one of them can be checked with a command.** The rewrite happened silently at the moment of inheriting,
+because a hazard is uncomfortable to plan around and a state is not.
+
+**The tell is grammatical, which makes it cheap to catch: a claim about the present tense that you did not
+observe in the present.** "This machine has", "the suite blocks", "the gate is skipped" — each is checkable
+in seconds, and each is the form an inherited hazard takes when it stops being labelled as one.
+
+This is the same failure as the stale rows in §291–§295, with the roles reversed: there I was correcting
+other people's undated claims; here I authored one, in the section about undated claims, one iteration after
+writing the rule. **The habit that catches it is the one already recorded — when you write "already
+covered", go and look — extended: when you write "cannot be measured", try.**
+
+### Consequences for the phase gate
+
+- §296's bound is **struck** and the verdict corrected in place.
+- **Trigger 7 ("the `workerd` wedge clears — the five worker suites become measurable") is RESOLVED**, not
+  by waiting but by checking. It leaves the trigger list.
+- The remaining bound — the four browser gates report `BLOCKED` without a browser — **stands**, and is a
+  designed posture rather than a defect.
+- The verdict is now materially stronger than §296 claimed: not "12 gates green over a partial surface" but
+  **12 gates green and 3,695 of 3,698 tests passing across every package, worker and surface in the repo.**
+
+### Verification
+
+Full recursive run, exit 0, 0 failure summaries in 17 packages; `ps` clean before and after (0
+uninterruptible). No code changed.
+
+### Yield note
+
+§296 argued the stopping point was reached because the last findings were in the instruments rather than the
+build. This section is consistent with that and sharpens it: the defect was in **the audit's own record of
+what it could see**, and correcting it did not find a single new problem in the product — it removed a
+false limitation from the claim. **When an audit's remaining findings are about its own reach, the useful
+next move is to test the reach, not to keep looking through it.**
