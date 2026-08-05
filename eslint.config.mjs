@@ -140,4 +140,76 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // THE LAYERING HALF of the same claims (audit §285). §284 enforced the "no Date/no random" conjunct and
+    // stopped there — but the sentences it swept are longer: migrator.ts says "no network, no D1, no ledger/
+    // rater import" and "no Date, no crypto, no ledger"; edi/mapping.ts and edi/types.ts say "PURE: no I/O,
+    // no ledger/rater". THREE files, TWO packages, and the ledger/rater/crypto conjuncts were unenforced.
+    //
+    // WHY IT IS A LAW, not a description: these modules are the pure header→field core, and the WORKER
+    // (workers/api/routes/import.ts) persists by LOOPING THE EXISTING INTAKE VERBS. A ledger import here would
+    // let the core reach persistence directly, around the verbs that carry the gates; a rater import would
+    // price inside a mapper. `crypto` is banned for the same reason the clock is: "ids/timestamps are the
+    // worker's job (this stays pure)" — a randomUUID in the mapper breaks the byte-identical-result promise
+    // the docstring makes. check:chokepoint already catches a direct `INSERT INTO events`; nothing caught the
+    // IMPORT, which is the layering violation that precedes it.
+    //
+    // MEASURED at zero hits across both packages INCLUDING their tests when this landed, so it bans no
+    // existing code — the one textual match was a comment stating the rule.
+    // FLAT-CONFIG HAZARD, stated because it nearly shipped: a later block REPLACES a rule, it does not merge
+    // into it. Naming `no-restricted-imports` here would have silently disabled the repo-wide REQ-163
+    // organ-bank ban inside these two packages, and naming `no-restricted-syntax` would have dropped §284's
+    // determinism bans for adapters. Both are therefore RE-STATED below as a superset — which is exactly why
+    // the ledger block above repeats the lumina/shuddl-2023 group instead of relying on the global one.
+    files: ["packages/adapters/**/*.ts", "packages/edi/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            { group: ["*lumina*", "*Lumina*", "*shuddl-2023*"], message: "REQ-163: prior codebases are organ banks — reference, never merge." },
+            {
+              group: ["@shuddl/ledger", "@shuddl/ledger/*", "@shuddl/rater", "@shuddl/rater/*"],
+              message:
+                "REQ-035/REQ-127: this is the PURE mapping core — it is ledger- and rater-free. The WORKER persists by looping the existing intake verbs; importing the ledger here routes around the gates those verbs carry.",
+            },
+            {
+              group: ["node:crypto", "crypto"],
+              message:
+                "REQ-035: ids/timestamps are the WORKER's job — the mapper promises the same (sheet, mapping) yields a byte-identical result, which a generated id breaks.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // Adapters ONLY, and the full superset. `crypto.randomUUID()` is the call form the import ban cannot see
+    // (workerd exposes `crypto` as a global — no import to restrict), so it needs a syntax selector. Scoped to
+    // adapters rather than both packages because edi claims PURITY ("no I/O, no ledger/rater") but never
+    // claims DETERMINISM — enforcing an unstated rule there would be scope this register does not carry.
+    // The three determinism selectors are repeated verbatim from §284's block for the replacement reason above.
+    files: ["packages/adapters/**/*.ts"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: 'NewExpression[callee.name="Date"]',
+          message: "REQ-024: this layer is deterministic — the caller supplies the instant (see aging.ts: 'the sweep supplies nowMs').",
+        },
+        {
+          selector: 'MemberExpression[object.name="Date"][property.name="now"]',
+          message: "REQ-024: this layer is deterministic — the caller supplies the instant (see aging.ts: 'the sweep supplies nowMs').",
+        },
+        {
+          selector: 'MemberExpression[object.name="Math"][property.name="random"]',
+          message: "REQ-024: randomness is not reproducible — a redelivered message must recompose the SAME output (the Biller id law).",
+        },
+        {
+          selector: 'MemberExpression[object.name="crypto"][property.name="randomUUID"]',
+          message: "REQ-035: ids are the WORKER's job — a generated id breaks the byte-identical-result promise this module makes.",
+        },
+      ],
+    },
+  },
 );

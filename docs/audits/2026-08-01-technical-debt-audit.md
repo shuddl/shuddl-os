@@ -187,7 +187,7 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 ## §4 — Phase gating and the stopping point
 
 > **CURRENT MEASUREMENT: §238, at `68cfb0d`; CONVERGENCE measured at §243.** The four clauses below are
-> measured in §238. §243 (extended by §251 → §270 → **§282**, now through §281) answers the separate question of whether another iteration is worth running:
+> measured in §238. §243 (extended by §251 → §270 → §282 → **§285**, now through §285) answers the separate question of whether another iteration is worth running:
 > defects-per-section across the eight sections after §238 ran 1,1,1,—,1,1,**0,0** while verified-clean
 > rose to 8 and 8, the last two being the most systematic sweeps of the set. Five named restart triggers
 > are listed there, each a grep or a diff — two of which are now GATES (§244) rather than greps. Across
@@ -15039,3 +15039,73 @@ packages that the original fix silently excluded.
 as §283, one section later, and it yielded again — because the first application was incomplete rather than
 because the shape is deeper. **That is a different exhaustion curve: not "the vein is dry" but "the vein was
 half-worked", and the tell for it is that the second finding is the same defect in different files.**
+
+---
+
+## §285 — The other half of the same sentences, and the gate that deletes a gate
+
+§284 swept the *wording* of the purity claims and enforced "no Date, no random" everywhere it was made. It
+still stopped early: **the sentences it swept are longer than the conjunct it enforced.** Read whole:
+
+- `packages/adapters/src/migrator.ts:4` — "I/O-FREE and ledger-free … no network, no D1, **no ledger/rater
+  import**"
+- `packages/adapters/src/migrator.ts:320` — "PURE + DETERMINISTIC: no I/O, no Date, **no crypto**, no ledger"
+- `packages/edi/src/mapping.ts:3` — "PURE (REQ-035): no I/O, **no ledger/rater**"
+- `packages/edi/src/types.ts:2` — the same claim, a third time
+
+So three files across two packages, and the **ledger / rater / crypto** conjuncts were unenforced while the
+clock conjunct now was. §284's own lesson, reapplied to §284: a tell tells you what to look for, not where to
+look — and *how much of the sentence* is part of "what".
+
+**Why these are laws and not descriptions.** The docstring says where the work goes instead: the WORKER
+(`workers/api/routes/import.ts`) persists by *looping the existing intake verbs*, and "ids/timestamps are the
+worker's job (this stays pure)". A ledger import in the mapping core would let it reach persistence directly,
+around the verbs that carry the gates; a rater import would price inside a mapper; a `randomUUID` would break
+the byte-identical-result promise the same docstring makes. `check:chokepoint` already catches a direct
+`INSERT INTO events` — nothing caught the **import**, which is the layering violation that precedes it.
+
+**Measured before enforcing** (the §283 discipline): zero ledger/rater/crypto imports across both packages,
+*including their tests*; the single textual match was a comment stating the rule. The clean tree lints green
+with the bans in place, so they forbid no existing code.
+
+### The finding that was not the one I set out to make
+
+Writing the block the obvious way — a later config object naming `no-restricted-imports` — nearly shipped a
+**silent deletion of an unrelated gate**. In ESLint flat config a later block *replaces* a rule's options; it
+does not merge into them. The new block would therefore have turned off the repo-wide **REQ-163 organ-bank
+import ban** inside `packages/adapters` and `packages/edi`, and turned off §284's determinism selectors for
+adapters — while every gate stayed green, because a *disabled* rule reports nothing.
+
+I did not take this on belief. **Discriminating probe:** with the re-stated REQ-163 group deleted, a planted
+`import … from "lumina-core"` in `packages/adapters` lints **exit 0**. With it restored, RED. The hazard is
+real, and it is the reason the ledger block above repeats the lumina patterns rather than relying on the
+global ones — a detail that reads as redundancy until you know what it is preventing.
+
+**The general shape, worth more than this instance: adding a gate can delete a gate, and the deletion is
+invisible to every gate.** A merged-in rule fails loudly when it conflicts; a replaced rule simply stops
+having an opinion. Any config system with last-writer-wins semantics over a *named* rule has this property —
+so the question to ask when scoping a new lint is not "does my rule work?" but **"what did my block replace?"**
+
+### Sweep, because the shape is repo-wide
+
+If one block could open that hole, others might already have. Rather than read the config (a grep proves
+presence, never absence), I **planted a REQ-163 violation in every source tree** — 18 of them, all
+`packages/*/src`, `workers/*/src`, `apps/*/src`, `tools` — and checked each for a green.
+
+**18 trees probed, 0 holes.** REQ-163 is enforced everywhere; the only hole was the one I was about to
+create, and it never landed. Clean negative, bound stated.
+
+### Verification
+
+Six mutations, all RED: ledger import (adapters), rater import (edi), `node:crypto` import, `crypto.randomUUID()`
+call, and the two **regressions the restructure exists for** — `Date.now()` still banned in adapters (§284
+survived the replace) and the organ-bank import still banned (REQ-163 survived). `typecheck 0 · lint 0 ·
+check:invariants 0 · check:citations 0`; `@shuddl/adapters` 38/38, `@shuddl/edi` 38/38.
+
+### Yield note
+
+§284 called its own curve "the vein was half-worked". This section is the *third* pass over the same vein and
+the first one to hit something structural — not another copy of a known defect, but a property of the
+enforcement mechanism that no amount of sweeping the claims would have surfaced. **The half-worked vein is
+worth re-entering once more than feels warranted, because the tool you build on the second pass is what
+exposes the third finding.** Writing the rule is what made the replacement semantics matter.
