@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import {
+  placeholderReason,
   checkDeployTarget,
   parseWranglerToml,
   resolveStatePath,
@@ -764,5 +765,31 @@ describe("served-vs-state origin reconciliation (2026-08-01 review)", () => {
     expect(blocks(ok)).not.toContain("origin-not-served");
     const skipped = healthyTarget({ environment: "prod", corsOrigins: ["https://command.shuddl.tech"] });
     expect(blocks(skipped)).not.toContain("origin-not-served");
+  });
+});
+
+// audit §277 — the KV branch was SHAPE-ONLY while the D1 branch rejected an all-zero UUID, so an all-zero
+// 32-hex KV id read as provisioned. Two-sided: preflight would let a deploy proceed onto a namespace that
+// does not exist, and the provisioner (which shares this law) would refuse to overwrite it as "real".
+describe("§277: an all-zero KV namespace id is a placeholder, not a provisioned id", () => {
+  it("rejects an all-zero 32-hex KV id in a deployed environment", () => {
+    expect(placeholderReason("kv", "0".repeat(32), "prod")).toBe("an all-zero placeholder KV namespace id");
+  });
+
+  it("still rejects a wrong-shaped KV id, with the shape reason", () => {
+    expect(placeholderReason("kv", "not-a-kv-id", "prod")).toBe("not a 32-hex KV namespace id");
+  });
+
+  it("NON-VACUOUS: a real KV id still passes", () => {
+    expect(placeholderReason("kv", "24c3937963654249a4ad4ac971ce74c1", "prod")).toBeNull();
+  });
+
+  it("matches the D1 branch's treatment of an all-zero id (the asymmetry that caused this)", () => {
+    expect(placeholderReason("d1", "00000000-0000-0000-0000-000000000000", "prod")).not.toBeNull();
+    expect(placeholderReason("kv", "0".repeat(32), "prod")).not.toBeNull();
+  });
+
+  it("dev is still exempt on both kinds — local aliases are the point of dev", () => {
+    expect(placeholderReason("kv", "0".repeat(32), "dev")).toBeNull();
   });
 });

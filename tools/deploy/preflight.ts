@@ -161,7 +161,18 @@ const KV_ID = /^[0-9a-f]{32}$/i;
 export function placeholderReason(kind: "d1" | "kv", id: string, environment: string): string | null {
   if (environment === "dev") return null; // local-* ids are the whole point of dev
   if (id.startsWith("local-")) return "a local dev alias";
-  if (kind === "kv") return KV_ID.test(id) ? null : "not a 32-hex KV namespace id";
+  if (kind === "kv") {
+    if (!KV_ID.test(id)) return "not a 32-hex KV namespace id";
+    // The D1 branch below rejects an all-zero UUID; KV had only the SHAPE check, so
+    // "00000000000000000000000000000000" read as PROVISIONED (audit §277). Two-sided consequence, because
+    // the provisioner shares this law: preflight would pass an unprovisioned namespace (deploy proceeds,
+    // the worker fails on first KV access), AND the provisioner would refuse to overwrite it as "a real id
+    // I must not clobber" — so the placeholder could never be replaced. `wrangler.toml`'s own comment
+    // named this trap ("an all-zero 32-hex string would PASS the placeholder check and read as
+    // provisioned — the same trap the billing UUID set") and it was still open.
+    if (/^0+$/.test(id)) return "an all-zero placeholder KV namespace id";
+    return null;
+  }
   if (!UUID.test(id)) return "not a UUID";
   if (/^0{8}-/.test(id)) return "an all-zero placeholder UUID";
   return null;

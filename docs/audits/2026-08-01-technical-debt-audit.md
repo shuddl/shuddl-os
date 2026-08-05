@@ -14651,3 +14651,56 @@ line 47, seven lines past the window.
 §271 named this exact failure and the rule that prevents it: **when a conclusion depends on the contents of a
 list, print the whole list.** Applying it here is why this section reports a clean CI instead of a phantom
 gap — the fourth time in this audit that a truncated view was one sentence away from a false accusation.
+
+## §277 — a deploy gate that read an unprovisioned KV namespace as provisioned
+
+§276 confirmed CI runs the gates. This section went one layer out: the **deploy configuration** those gates
+guard. An earlier session recorded a "zero-binding prod config"; measured now, all five workers carry real
+prod ids — 25 bindings, zero placeholders.
+
+The one flagged hit was a **comment**, not a value, and the comment named a live defect:
+
+> *"A KV id is only checked for shape, so an all-zero 32-hex string would PASS the placeholder check and read
+> as provisioned — the same trap the billing UUID set."*
+
+It was still true. `placeholderReason` in `tools/deploy/preflight.ts` treated the two resource kinds
+asymmetrically:
+
+```
+if (kind === "kv") return KV_ID.test(id) ? null : "not a 32-hex KV namespace id";   // shape only
+if (!UUID.test(id)) return "not a UUID";
+if (/^0{8}-/.test(id)) return "an all-zero placeholder UUID";                        // D1 only
+```
+
+`"0".repeat(32)` satisfies `KV_ID` and returns `null` — **provisioned**.
+
+### Why this is worse than one gate passing
+
+The function's own comment explains the second half, and it is the sharper one: it is **exported so the
+provisioner uses EXACTLY this law**, precisely so the two cannot disagree. So an all-zero KV id is read as
+real by **both** sides:
+
+- **preflight** lets the deploy proceed onto a namespace that does not exist — the worker fails on its first
+  KV access, at runtime, in production;
+- **the provisioner** refuses to overwrite it, because "a real id I must refuse to clobber" is exactly what
+  it looks like — so the placeholder can never be replaced by the tool built to replace it.
+
+A shared law is the right design, and it means a gap in the law is shared too.
+
+### The fix and its proof
+
+The KV branch now rejects an all-zero id, mirroring D1's. Five tests pin it: the all-zero rejection, the
+wrong-shape reason still distinct, a **non-vacuity** case (a real KV id still passes), an explicit
+symmetry assertion against the D1 branch (the asymmetry that caused this), and dev still exempt because
+`local-*` aliases are the point of dev.
+
+Reverting the fix turns those tests **2 failed / 66 passed**; restored, `preflight.test.ts` is 68 green and
+`check:surfaces` exits 0.
+
+### The rule
+
+**When a check handles two kinds, diff the branches — the defect is the case one branch handles and the
+other does not.** Here the D1 path had learned about all-zero placeholders (from a real incident, per the
+comment) and the KV path had never been taught. Asymmetry inside a single function is invisible to every
+gate: both branches are exercised, both return sensible values, and the missing rule has no test to fail.
+The tell is a comment on one branch that has no counterpart on the other.
