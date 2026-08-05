@@ -18050,3 +18050,56 @@ why it works: the line's own wording forced the update.
 
 Row filed on the eight-field schema with measurement, adjudication and expiry trigger; header amended-line
 updated from three rows to four and re-stamped; `check:citations 0 · check:invariants 0`. No code changed.
+
+---
+
+## §338 — Sweeping the category: eleven prohibitions, one real gap, and the list that reads as its own scope
+
+§337 turned two isolated findings into a category — *governing text under-specified in a way no gate can
+see* — and observed that a two-member category is where a convention becomes worth considering. So the
+category was swept: every prohibition in `CLAUDE.md`'s do-not-build list, asked whether its subject is
+enumerable.
+
+**Eleven prohibitions. Ten are sound**, and the pattern that makes them sound is worth naming: a rule that
+forbids *an Nth thing* is only checkable if the N−1 are named somewhere. *"A fourth surface"* works because
+the three are named (command, driver, portal); *"a fifth primitive"* does not, which is §246's open row.
+The rest name their subject directly (`seat-based pricing`, `SMC3/class as engine foundation`) or are
+lint-enforced (REQ-163, REQ-167, the design audit).
+
+### The one that measured wrong
+
+> *"anything whose REQ row says CONFIRM-GATED while the CONFIRM is open **(Direct merchant, voice recording,
+> escrow settle)**"*
+
+The three named are real — `REQ-104`, `REQ-096`, `REQ-033`. **The register carries fourteen `CONFIRM-GATED`
+rows**, including `REQ-138` (ToS/Privacy/DPA for PLG signup) and `REQ-130` (pricing re-based before public
+launch).
+
+**The rule is correct and general; the parenthetical is illustrative and nothing says so.** In ordinary prose
+a parenthetical list is understood as an example. In a *prohibition* it reads as the prohibition's scope —
+because the reader's question is "what am I forbidden to build?", and a three-item list answers it.
+
+Not a defect: the rule reaches all fourteen, and source-of-truth order already puts the register first, so a
+careful reader is safe. **The risk is the reader who takes the list and skips the register** — and that
+reader is the one a do-not-build list exists for.
+
+### Third member, and now the convention is arguable
+
+| # | governing text | what is unstated | § |
+|---|---|---|---|
+| 1 | *"a fifth primitive"* | the four | §246 |
+| 2 | the hard-budget line | which numbers are ceilings | §336 |
+| 3 | the CONFIRM-GATED parenthetical | that the list is illustrative | §338 |
+
+All three cost the same thing — **a reader's confidence, not a build** — and all three are fixed by a word or
+eight. §337 said a two-member category lets an owner see whether a convention beats one-off edits; **three
+members with an identical fix shape make that the obvious call**: *state whether a list is exhaustive or
+illustrative, and whether a number is a ceiling or a count.*
+
+Filed as a Low row beside the other two, with its measurement, its adjudication, and an expiry trigger.
+
+### Verification
+
+Eleven prohibitions enumerated and classified; the three named CONFIRM-GATED items traced to real register
+rows; the register's `CONFIRM-GATED` population counted (**14**); row filed and the checklist's amended-line
+updated to five. `check:citations 0 · check:invariants 0`. No code changed.
