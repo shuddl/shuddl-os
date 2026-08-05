@@ -15830,7 +15830,8 @@ That inversion is the signal. It is not "nothing is left" — the ledger below i
 but the *yield per section from this line of questioning* has crossed below the cost of asking, and the
 honest move is to say so rather than manufacture a §297.
 
-### The ledger — unchanged, and none of it repo-closable
+### The ledger — *(superseded by §315: one item was ADDED, and its ownership is repository-owned. See the
+### corrected statement at the end of §316.)* As measured at §296: unchanged, and none of it repo-closable
 
 Three owner decisions (duplicate-vs-strand for the cron claim protocol; two undeclared auth lifetimes; the
 undefined "fifth primitive") · nine private fixtures held in the engagement workspace · two External Highs ·
@@ -16952,3 +16953,52 @@ claim lived and the routes stayed stale; here, a finding lived in the audit and 
 
 Row inserted into the repository-owned table on its eight-field schema; `check:citations 0` (every path and
 `§N` reference in the row resolves) · `check:invariants 0`. No code changed.
+
+---
+
+## §316 — The ledger moved, so the ledger statement moves
+
+§296 wrote *"The ledger — unchanged, and none of it repo-closable."* Both halves were true when written and
+**§315 falsified both**: an item was added, and that item is repository-owned rather than blocked on an
+absent external input.
+
+§296's heading is superseded in place rather than rewritten, so the claim that aged stays visible — the
+§292 discipline (an evidence document may hold any number of past statements; it may not hold an undated one
+presented as current).
+
+### The corrected standing ledger, at `cb92898`
+
+**Blocked on an input this repository does not contain** — unchanged since §300 verified each against source:
+
+- three owner decisions (duplicate-vs-strand for the cron claim protocol · two undeclared auth lifetimes ·
+  the undefined "fifth primitive")
+- nine private fixtures, held in the engagement workspace *(verified: exactly 9 `pending` of 17)*
+- two External Highs — TSA endpoint, Backups *(both `NARROWED 2026-08-01`)*
+- rows needing a migration or an API-contract change
+- one Low observation
+- one repo-visible staging placeholder, `shuddl-mcp-staging.GRANTS`, carrying a live trigger (§291)
+- `REQ-289` — one uncommitted GTM row, specified to two source lines in §299
+
+**Repository-owned, and new (§313–§315):**
+
+- **REQ-030 authority-registry completeness has no recurring owner.** The registry is complete and the gate
+  exits 0; what is missing is a mechanism that notices when that stops being true. Filed in
+  `GO-LIVE-CHECKLIST.md` § *Repository-owned failures & debt* with its measurement, its four adjudications,
+  its expiry trigger, and the rejected-gate rationale.
+
+### Why the distinction in the last line matters
+
+"None of it repo-closable" was a comfortable sentence, and it is the reason the phase kept reaching for
+external explanations. §313 found the counterexample **only because a deferral I had written myself was
+checked** — *"the isolation suite and `check:authority-coverage` exist for that"* — and the check turned out
+to defer, in turn, to an audit that had already closed.
+
+**The chain was two deferrals deep, and each link read as an answer.** That is the durable shape: *X is
+covered by Y* is only as strong as *Y actually covers X*, and nothing in the wording of a deferral tells you
+which. Following one link cost a single file read; following it found the only repository-owned item in the
+ledger.
+
+### Verification
+
+`check:citations 0 · check:invariants 0`; the ledger statement now matches `GO-LIVE-CHECKLIST.md`, which is
+where a reader looks. No code changed.
