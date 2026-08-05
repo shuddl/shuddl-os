@@ -187,7 +187,7 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 ## §4 — Phase gating and the stopping point
 
 > **CURRENT MEASUREMENT: §298 (the merge gate RUN, not inferred: 24 gates, 17 PASS, 5 BLOCKED, 2 FAIL) +
-> §310 (the TEN LAWS mutation-proven — extended by §323 to **27 individual mutations, every one RED, zero residual**, every file restored byte-identical).** Read those
+> §310 (the governing invariants mutation-proven — extended by §323 and §340/§341 to **18 invariants across BOTH authorities: `CLAUDE.md`'s ten laws + `genesis/10`'s eight schema invariants I1–I8, 30 individual mutations, every one RED, zero residual**, every file restored byte-identical).** Read those
 > two first — together they are the production-readiness claim: the gates run, and the laws the gates exist
 > to protect fail when their enforcement is removed. §296 re-measured the gate surface at `3d1386b` but named two bounds that turned
 > out to be unmeasured inheritances — §297 withdrew the worker-suite bound (the full suite runs: **283 files /
