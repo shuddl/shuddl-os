@@ -10186,3 +10186,50 @@ constraints they did not state a day ago, and in both cases every underlying fac
 down correctly somewhere else. The failure was never a missing fact — it was that nothing joined
 *"REQ-069 is deferred"* to *"demo 3 needs a real driver to authenticate."* **Cross-references are the
 part of a record that no gate can check and no single reader ever notices is absent.**
+
+---
+
+## §197 — one row whose title contradicted its own correction
+
+§196 ended on cross-references being the part no gate checks. The testable version: **do the checklist's
+High-graded holds say what they block?**
+
+**They do.** My first pass flagged three as stating no consequence, and all three were my heuristic being
+too narrow — it looked for *blocks / until / gated on* and missed *"yields a **visible duplicate**
+shipment (dup preferred over silent merge, rule 10)"* and *"`NotConfigured*` fail-closed: every live
+204→401, no EDI transmitted."* Both are consequences, stated plainly. The deploy Highs (L330–335) all
+carry explicit BLOCK/prerequisite language. No finding on that axis.
+
+The instrument also inflated its own count: it read `~~**High**~~` — a *downgraded* grade — as live.
+Corrected, the checklist carries **17 live High mentions and 3 struck**.
+
+### The one real defect: a partially superseded row
+
+`**Identity-leak lint fails OPEN** with no denylist` — the title. Its body:
+
+> ~~The one genuine fail-open gate…~~ **Superseded 2026-07-27:** the gate now fails **CLOSED** in CI and
+> under `--mode merge/release`… The residual is narrower and real: **REQ-167 is unverified in every local
+> run and at every WP-exit run on this machine** · grade ~~**High**~~ → **Med**
+
+The body is exemplary — struck in place, dated, the residual restated precisely, the grade downgraded.
+**The title was never touched**, so the row asserted a live High fail-open gate in the column people scan
+and a closed-in-CI Med everywhere else. Retitled to what the row actually now says, with the correction
+noted in place.
+
+### How far that spreads
+
+Swept for the shape — a row whose body carries a correction its title does not: **39 rows.** Nearly all
+are false positives of a useful kind: the body corrects a *citation* (`"corrected 2026-07-27 from :29,
+which now lands on the seq-race row"`) while the title, being a work item rather than a claim, stays
+true. Re-pointing a path does not falsify "Real TSA (RFC-3161) endpoint."
+
+**Only a reversal needs to reach the title**, and only one row had one. That is the distinction worth
+keeping: a citation correction changes *where* to look; a supersession changes *whether the thing is
+true*, and only the second can leave a title lying.
+
+### The rule
+
+**Supersede the whole row, not the sentence you were reading.** A table is scanned by its first column —
+that is what a column of titles is *for* — so a correction that stops at the body leaves the most-read
+part of the row asserting the thing you just disproved. It survives because everyone who checks the row
+reads the correction and never re-reads the title above it.
