@@ -18410,3 +18410,60 @@ audit's own prose two sections later**, which is the cheapest possible demonstra
 Four rule-6 clauses traced to artifacts; the manifest's seventeen entries enumerated; the register searched
 for route/mileage scope; row filed and the checklist's amended-line updated to six.
 `check:citations 0` (after anchoring) · `check:invariants 0`. No code changed.
+
+---
+
+## §345 — Rule 7's seven audits all exist; two are not where their names suggest
+
+§344 traced rule 6's four fixture gates to artifacts and found one missing. The same tracing applied to rule
+7, which enumerates seven: *color / contrast / font / case / radius / shadow / motion audits + 5 blessed
+screenshots.*
+
+The screenshots were verified in §339 (exactly five, and the live visual gate reported `5 passed`). The seven
+audits map like this:
+
+| rule 7 names | implemented as |
+|---|---|
+| color | `auditColor` |
+| font | `auditFont` |
+| case | `auditCaseAndDividers` |
+| motion | `auditMotion` |
+| **contrast** | inside **`auditTokens`** — the `contrastRatio(deep, field) < 4.5` check |
+| **radius** | inside **`auditCaseAndDividers`** (`audit.ts:237`) |
+| **shadow** | inside **`auditCaseAndDividers`** (`audit.ts:253`) |
+
+**All seven exist. Three are folded into functions named after something else**, and one implemented audit
+(`auditGradient`) is not in rule 7's list at all — though the budget line names gradients, so it is
+enumerated, just not there.
+
+### Why this is worth recording rather than fixing
+
+A future auditor doing exactly what §344 did — grep `export function audit`, compare to rule 7 — gets
+**four of seven** and concludes three are missing. That inference is wrong, and it costs a real investigation
+to discover, because the evidence for it (`no auditShadow anywhere`) is exactly what an absent check looks
+like.
+
+**§287 had already proved all three fire**, by planting a `box-shadow`, an over-budget `border-radius` and a
+raw hex and watching the gate name each. So the mutation evidence and the name-based inference disagree — and
+**the mutation is right, which is the general rule: a function's name is a description, and this audit has
+spent forty sections learning that descriptions are the weakest artifact in the repository.**
+
+Not renamed. Splitting `auditCaseAndDividers` into three functions to satisfy a doc list would be churn in a
+mutation-proved file for a legibility gain, and the honest fix is this table.
+
+### Where the tracing method now stands
+
+Four artifact-naming statements traced end to end:
+
+- rule 6's four fixture gates → **three resolve, one has no artifact** (§344, filed)
+- rule 7's seven audits + 5 screenshots → **all present**, three under other names (§345)
+- the hard budgets' seven numbers → all match, two are unlabelled ceilings (§336, filed)
+- the do-not-build list's eleven prohibitions → ten enumerable, one undefined (§338/§246, filed)
+
+**Twenty-nine named artifacts, one genuinely missing, three legibility gaps, and one mapping that reads as
+missing and is not.** No enforcement is absent except the one filed for the owner.
+
+### Verification
+
+Seven audit names traced to implementations, three located inside differently-named functions by reading the
+enclosing scope; cross-checked against §287's mutation evidence that all three fire. No file changed.
