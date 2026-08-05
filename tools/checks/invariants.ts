@@ -37,6 +37,35 @@ export const PARTITION_TABLES: Record<string, string> = { positions: "events" };
 // Append-only tables that MUST carry RAISE(ABORT) guard triggers once created (I3, I1).
 const GUARDED_TABLES = ["events", "positions", "money_lines"] as const;
 
+// EVERY tenant table is classified — append-only (guarded) or deliberately mutable (audit §265).
+// GUARDED_TABLES is hand-curated, and append-only enforcement is keyed to it in TWO places: the guard-
+// completeness check below, and the REPLACE-ban matcher's table alternation. A new append-only table
+// therefore needs two edits nobody is prompted to make, and if it gets neither, an `INSERT OR REPLACE`
+// against it silently erases the chained row under D1's `recursive_triggers = 0` — the exact defect
+// migration 0008 closed for `money_lines`.
+//
+// So the classification is forced rather than remembered: every `CREATE TABLE` in db/tenant/migrations
+// must appear in GUARDED_TABLES or MUTABLE_TABLES. Adding a table without deciding fails the gate with the
+// question attached. MUTABLE_TABLES is a DECLARATION, not a dumping ground — each entry is a table whose
+// UPDATE/DELETE is a legal domain write (`legs` claims a dock slot, REQ-028/052; `anomalies` is an ops
+// table whose markers resolve; the rest are current-state rows the ledger projects INTO).
+const MUTABLE_TABLES = [
+  "agent_runs", "anomalies", "approvals", "assets", "authority_map", "documents", "facilities",
+  "integrations", "invoices", "legs", "messages", "parties", "passports", "rate_config", "shipments",
+] as const;
+
+export function checkTableClassification(createdTables: readonly string[]): string[] {
+  const known = new Set<string>([...GUARDED_TABLES, ...MUTABLE_TABLES]);
+  const unclassified = [...new Set(createdTables)].filter((t) => !known.has(t)).sort();
+  if (unclassified.length === 0) return [];
+  return [
+    `unclassified tenant table(s): ${unclassified.join(", ")} — is each APPEND-ONLY or MUTABLE? ` +
+      `Append-only ⇒ add to GUARDED_TABLES *and* the REPLACE-ban alternation, and ship BEFORE INSERT/UPDATE/DELETE guards ` +
+      `(without them an INSERT OR REPLACE silently erases rows under recursive_triggers=0 — see migration 0008). ` +
+      `Mutable ⇒ add to MUTABLE_TABLES with the domain write that justifies it (audit §265).`,
+  ];
+}
+
 // Identifier-delimiter fragments. SQLite lets an identifier be bare, or wrapped in a quote/backtick/
 // bracket, and lets a name abut a keyword with NO whitespace when it is delimited (`CREATE TABLE"x"`,
 // `CREATE TABLE[t]`). It also lets any table/trigger name carry a schema qualifier (`main.events`,
@@ -625,6 +654,19 @@ function main(): void {
   );
   if (controlViolations.length > 0) {
     for (const v of controlViolations) console.error(`FAIL ${v}`);
+    process.exit(1);
+  }
+
+  // Every tenant table is classified append-only or mutable (see checkTableClassification).
+  const created: string[] = [];
+  for (const f of globSync("db/tenant/migrations/*.sql")) {
+    for (const m of readFileSync(f, "utf8").matchAll(/CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+["'`\[]?([a-z_]+)/gi)) {
+      created.push(m[1]!.toLowerCase());
+    }
+  }
+  const classViolations = checkTableClassification(created);
+  if (classViolations.length > 0) {
+    for (const v of classViolations) console.error(`FAIL ${v}`);
     process.exit(1);
   }
 

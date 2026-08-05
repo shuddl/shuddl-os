@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import { stripSqlComments } from "@shuddl/ledger/migrate";
 import {
   checkControlMigrationsExercised,
+  checkTableClassification,
   isCollisionDuplicate,
   checkDoMutexIntact,
   checkSurfaceBudget,
@@ -826,5 +827,32 @@ describe("§253: iCloud collision duplicates are filtered from every filesystem 
   it("matches on the BASENAME, not the directory — a folder named 'v 2' must not hide its files", () => {
     expect(isCollisionDuplicate("some/v 2/real.sql")).toBe(false);
     expect(isCollisionDuplicate("some/v 2/real 2.sql")).toBe(true);
+  });
+});
+
+// audit §265 — append-only enforcement is keyed to a hand-curated GUARDED_TABLES in two places. A new table
+// gets neither unless someone remembers, so the classification is forced instead.
+describe("§265: every tenant table is classified append-only or mutable", () => {
+  it("passes on the tables the repo actually ships", () => {
+    const created = globSync("db/tenant/migrations/*.sql", { cwd: REPO })
+      .flatMap((f) => [...readFileSync(join(REPO, f), "utf8").matchAll(/CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+["'`\[]?([a-z_]+)/gi)].map((m) => m[1]!.toLowerCase()));
+    expect(created.length, "the sweep must actually find tables — a zero here would pass vacuously").toBeGreaterThan(10);
+    expect(checkTableClassification(created)).toEqual([]);
+  });
+
+  it("FAILS on a new table nobody classified, and asks the question", () => {
+    const v = checkTableClassification(["events", "settlements"]);
+    expect(v).toHaveLength(1);
+    expect(v[0]).toContain("settlements");
+    expect(v[0]).toContain("APPEND-ONLY or MUTABLE");
+    expect(v[0], "the message must name BOTH edits an append-only table needs").toContain("REPLACE-ban alternation");
+  });
+
+  it("a guarded table counts as classified (it is not 'missing' from the mutable list)", () => {
+    expect(checkTableClassification(["events", "positions", "money_lines"])).toEqual([]);
+  });
+
+  it("is order- and duplicate-insensitive (migrations may re-declare IF NOT EXISTS)", () => {
+    expect(checkTableClassification(["legs", "events", "legs"])).toEqual([]);
   });
 });

@@ -8836,7 +8836,7 @@ roughly half the flagged set is likely rot and the rest is window tightness, and
 Five rotted citations across three skills, each re-pointed **and given a content anchor**, which is the
 only rule that catches this failure — `invoice-gate.ts:16@GATE_BLOCKED_PREFIX`,
 `transition-gates.ts:74@VALIDATION_FAILED`, `isolation.test.ts:29@WPs`,
-`invariants.ts:413@FORBIDDEN_REPLACE` (×2), plus `invariants.ts:50@SCHEMA`. Anchored citations went
+`invariants.ts:442@FORBIDDEN_REPLACE` (×2), plus `invariants.ts:79@SCHEMA`. Anchored citations went
 **28 → 34**; 987 citations resolve; the ratchet holds at its frozen 130.
 
 The remaining ~48 candidates are **not** swept in this pass, and saying so is the point (§175 is not a
@@ -14041,3 +14041,53 @@ keeps moving; the list has no mechanism to notice. This is §239's "a guard name
 day it was written", one level up: not the copies a guard checks, but **the set a gate was pointed at**. The
 cheap check is to recompute the stated criterion and diff it against the list — here it took one script and
 found the second-largest exposure in the repo sitting outside the fence.
+
+## §265 — the append-only classification nobody is forced to make
+
+§264's rule — *audit the configuration against the criterion it names* — applied to the highest-stakes list
+in the repo: `GUARDED_TABLES`, the tables that must carry append-only RAISE(ABORT) triggers (I3/I1).
+
+The list is `["events", "positions", "money_lines"]`, hand-curated, with no test pinning it. Checked against
+the schema: **18 `CREATE TABLE`s across the tenant migrations, and exactly those three carry guards** — so
+the list is *correct today*. The others are deliberately mutable and the reasoning is sound: `legs` takes a
+plain UPDATE to claim a dock slot (REQ-028/052, documented twice in the lint), `anomalies` is an ops table
+whose markers resolve, and `agent_runs` / `authority_map` are idempotently re-projected current-state rows.
+
+**The gap is not the list — it is that nothing forces the question for a NEW table.** Append-only
+enforcement is keyed to `GUARDED_TABLES` in **two** places: the guard-completeness check, and the REPLACE-ban
+matcher's table alternation. A table added in migration 0009 gets neither unless its author remembers both,
+and with neither, an `INSERT OR REPLACE` against it silently erases the chained row under D1's
+`recursive_triggers = 0` — precisely the defect migration 0008 closed for `money_lines`.
+
+`checkTableClassification` now requires every `CREATE TABLE` in `db/tenant/migrations` to appear in
+`GUARDED_TABLES` **or** a new declared `MUTABLE_TABLES`. An unclassified table fails with the decision
+attached: *"is each APPEND-ONLY or MUTABLE? Append-only ⇒ add to GUARDED_TABLES **and** the REPLACE-ban
+alternation, and ship BEFORE INSERT/UPDATE/DELETE guards."*
+
+**Mutation-proved in both directions:** a probe migration creating `settlements` fails naming it; deleting
+`legs` from the declaration fails naming that. Four unit cases pin the function, including a non-vacuity
+guard (`expect(created.length).toBeGreaterThan(10)` — a zero-table sweep would otherwise pass vacuously) and
+duplicate-insensitivity, since `IF NOT EXISTS` lets a table be re-declared.
+
+`MUTABLE_TABLES` is written as a **declaration, not a dumping ground**: the comment requires each entry to
+name the domain write that justifies it. That is the difference between forcing a decision and collecting
+one more list nobody re-reads.
+
+### The tax, paid a fourth time
+
+Inserting ~28 lines near the top of `invariants.ts` shifted **five anchored citations** — `FORBIDDEN_REPLACE`,
+`replaceFamilyRe`, `QOPEN`, `SCHEMA`, `committedLock` — across two skills, this audit and
+`RELEASE-EVIDENCE.md`. All five failed the gate and were re-pointed. That is the fourth edit this session the
+anchor gate has caught, and the *second* time it has caught the same anchors: §262 fixed them at `:413/:60/:44`,
+and they are now `:442/:89/:73`.
+
+Which is the argument for anchors stated as arithmetic rather than principle: **the unanchored citations into
+the same file did not fail, and are equally wrong.** The ones that announce themselves get fixed every time;
+the silent ones accumulate. That asymmetry is the whole case for §264's ratchet.
+
+### The rule
+
+**A hand-curated list is a decision that was made once; a gate that requires membership is a decision that
+gets made every time.** The difference matters most where the cost of forgetting is silent — here, a table
+that quietly accepts `INSERT OR REPLACE`. When a list is load-bearing in more than one place, the check is
+not "is the list right?" but "**what happens to something that never gets added to it?**"
