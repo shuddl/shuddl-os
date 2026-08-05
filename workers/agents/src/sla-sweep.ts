@@ -128,9 +128,12 @@ function overdueBodyRef(inboundEventId: string): string {
  *
  * CADENCE HOLD (audit §133 — the sweep is correct, its SCHEDULE is not). `SLA_REPLY_WINDOW_MS` is FOUR
  * HOURS (concierge.ts), but the agents worker has ONE cron — `crons = ["0 1 * * *"]`, daily at 01:00 —
- * and all seven sweeps ride it. So an inbound arriving 02:00 is due at 06:00 and surfaces at 01:00 the
+ * and all EIGHT contained sweeps ride it (sla · collector · recon · credit-recon · watchtower · retention ·
+ * mirror · watchtower-snapshots — count re-measured 2026-08-05, audit §248; this comment read "seven" and
+ * predated watchtower-snapshots). So an inbound arriving 02:00 is due at 06:00 and surfaces at 01:00 the
  * NEXT day: ~19 hours late, a detector six times coarser than the thing it measures. Daily is defensible
- * for the other six (retention, mirror, dunning, reconciliation are day-scale); it is not for this one.
+ * for the others (retention, mirror, dunning, reconciliation and the weekly snapshot are day-scale or
+ * coarser); it is not for this one.
  * Idempotence above is exactly what makes the fix cheap — this is safe to run on a tighter tick — but
  * adding a second cron is a deploy-surface change, so it needs a REQ row first. See GO-LIVE-CHECKLIST.
  */

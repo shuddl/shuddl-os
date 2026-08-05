@@ -11059,7 +11059,7 @@ metering projection, enforced again at the read side.
 **3 hits → 7.** §184 concluded *"the codebase is clean on this axis; that is the result, not a preamble."*
 It was a result about 39% of the code. Two genuine N+1s were in the blind 61%, both on **cron paths**:
 
-- **`workers/agents/src/sla-sweep.ts:153@ANSWERED_SQL`** — loads every overdue inbound (its driving query
+- **`workers/agents/src/sla-sweep.ts:156@ANSWERED_SQL`** — loads every overdue inbound (its driving query
   has no `LIMIT`) and then issues **one D1 query per row** to ask whether each was answered. This
   compounds §133 exactly: a **daily** cron policing a **four-hour** SLA accumulates ~19 hours of overdue
   rows per tick, and then N+1s over them.
@@ -13129,3 +13129,57 @@ the *input*. Separating them cost two runs and moved a Med row's residual from "
 to "the secret's contents are unauditable from here" — the second being an honest permanent state rather
 than an open question. Where a gate's input is withheld by design, prove the gate with a **substitute** input
 and say so, or its status line will imply a defect that does not exist.
+
+## §248 — a count that decayed in eight places, and the anchor that caught me moving a citation
+
+Re-verifying the open repo-owned rows, per the rule that **only repo-owned rows can go stale**. The
+lost-booking-trigger row (Med–High, proposed scope) rests on an enumeration: *"None of the seven crons
+(sla · recon · credit-recon · collector · mirror · watchtower · retention) reconciles bookings."* A verdict
+of the form "none of the N" is only as strong as N.
+
+`grep -c 'contain("'` in `workers/agents/src/index.ts` returns **8**. The missing one is
+`watchtower-snapshots` — and its own source says why it is missable: *"this was the NINTH fan-out — outside
+index.ts and escaped both the conversion and the source pin."* A sweep that has already escaped one
+enumeration escaped this one too.
+
+**The verdict survives; the list did not.** Snapshots persist weekly evidence to R2 and touch no booking, and
+`handleQuoteAccepted` is reachable only from `queue()`, never from `scheduled()` — so a failed
+`AGENT_QUEUE.send()` still strands a `quote.accepted` with nothing to recover it. The row now says *eight*,
+names them, and records that it was re-measured against the complete set rather than a remembered one.
+
+### Where the same number had spread
+
+Eight further copies: six in this audit's older sections, one in live source, and — the tell — **one section
+already saying "eight"** (`:1678`, *"the anchor plus eight sweeps"*). One document asserting both.
+
+Only two of those are defects. The audit's sections are **dated observations** and were correct when
+written; §4's own header sets that convention, and rewriting them would destroy the provenance the
+convention exists to keep. The live ones are different:
+
+- `docs/ops/GO-LIVE-CHECKLIST.md` — a **current ledger row** whose verdict depends on the count. Corrected.
+- `workers/agents/src/sla-sweep.ts` — a **source comment** reading *"all seven sweeps ride it"*, which the
+  next reader takes as current fact. Corrected, with the count's measurement date attached so the next drift
+  is visible.
+
+### The citation I quietly broke while fixing it
+
+Adding three lines to that comment shifted `ANSWERED_SQL` down, and `check:citations` failed two anchored
+citations at `:153`. The fix looked mechanical, and my first attempt was **wrong in a way the gate could not
+see**: a script took the *first* `ANSWERED_SQL` — line 92, the string constant — and the gate went green,
+because 92 resolves, is in bounds, and the anchor matches.
+
+But the citing sentence reads *"issues **one D1 query per row** to ask whether each was answered"* — that is
+the call **inside the loop**, now line 156 (and `153 + 3` = 156 confirms the original referent). The gate
+certified the address and could never certify the claim; rule 2 checks that a symbol sits near the line, not
+that the line demonstrates what the prose says about it.
+
+Two anchored citations would have survived every gate while pointing at a `const` instead of the N+1 they
+exist to evidence. **The anchor caught the shift; only reading the sentence caught the substitution.**
+
+### The rule
+
+**Fixing a citation is a semantic act, not a mechanical one.** When a line moves, the question is not "where
+does this symbol occur now" but "what did the sentence mean to point at" — and the two answers differ
+whenever a symbol is declared in one place and used in another, which is most of the time. A repair that
+satisfies the gate without re-reading the prose is how a correct-looking citation becomes a wrong one, and
+it is the only class of citation rot a green `check:citations` will actively help you create.
