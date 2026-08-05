@@ -15997,3 +15997,73 @@ Two sections, two bounds, both withdrawn by measurement rather than by work. §2
 "cannot be measured", try* — has now paid twice in a row, and the pattern behind both is the same: **a
 limitation recorded once gets inherited as a fact, and inherited facts are the cheapest thing in any audit
 to check and the last thing anyone checks.**
+
+---
+
+## §299 — The one blocker on a green merge gate, specified at last
+
+§298 reduced the merge gate to a single root cause: `REQ-289`. This section is what happens when that phrase
+is finally *looked at* rather than repeated. It had been written roughly fifteen times across this loop as
+*"another workstream's uncommitted register row"* — a description inherited from an earlier session and
+never opened, which is precisely the failure §297 and §298 had just caught twice in a row.
+
+**The description was accurate.** `git diff` shows exactly one inserted line: a **GTM** row authorizing a
+"Pre-GTM Demand Lane" (audience-building, ICP research, waitlist, content, press, deposit-backed
+reservations before M-H), sourced to `docs/plans/2026-08-02-pre-gtm-demand-program-request.md` and carrying
+`Owner approval 2026-08-02` in its own evidence column. It belongs to the GTM workstream, not this loop.
+
+### Why two gates reject it — precisely
+
+The row is **structurally sound**: 8 fields, the same shape as `REQ-288`. It fails on *vocabulary*, not form.
+
+1. **`tools/traceability/traceability.test.ts:32-34`** pins `terminalId = REQ-288` and
+   `expect(rows).toHaveLength(288)`. The register now holds **289**. The contiguity test is doing its job —
+   an approved terminal ID is exactly the kind of fact that must not drift silently.
+2. **`tools/traceability/coverage.ts:61-63`** classifies by status, and knows `vNEXT`, `CONFIRM-GATED`,
+   `F0-DEPLOY-NOTE`, `F0-SPEC'D`, `F0.2-SPEC'D` and `*-DISCOVERED`. `REQ-289` carries status **`ACTIVE`** and
+   wp **`GTM-0`** — **three values the register has never contained before** (the area `GTM` too). No bucket
+   matches, so "classifies every row → zero unaccounted" fails, and with it "disposition is pure + total".
+
+**So the debt is one sentence:** the register gained a new *area*, a new *work package* and a new *status*,
+and the two gates that read the register were never taught them.
+
+### The remediation — and why this loop must not perform it
+
+Mechanically it is two small changes: advance the terminal-ID pin from 288 to 289, and give `disposition()`
+a bucket for `ACTIVE`/`GTM-0`. Both are deliberately **left undone**, for reasons that are the point of the
+register discipline rather than caution:
+
+- **The row is not committed.** Teaching the gates to accept `ACTIVE`/`GTM-0` now would make them pass a
+  vocabulary that exists in nobody's committed register — enforcement widened for scope that has not landed.
+  That is the same defect as §285's flat-config hazard, arrived at from the opposite direction: *loosening a
+  gate to match a working copy.*
+- **The bucket is a scope decision, not a mechanical one.** Does a GTM authorization row represent buildable
+  scope the coverage gate should demand code for, or a process authorization that is exempt like `vNEXT`?
+  A GTM lane authorizes activity *outside* the build, so "exempt" is the likely answer — but "likely" is not
+  how a register decision gets made, and CLAUDE.md is explicit that scope moves by amendment, not inference.
+- **It is another workstream's uncommitted work.** Committing or editing it here would merge their change
+  under this loop's name.
+
+### What the ledger row should now say
+
+Replacing the vague entry carried all session:
+
+> ~~`REQ-289`'s disposition (another workstream's)~~
+> **`REQ-289` blocks 2 of 24 merge gates.** The row is owner-approved (2026-08-02) but uncommitted, and
+> introduces area `GTM`, wp `GTM-0` and status `ACTIVE` — none known to the register's readers. Resolving it
+> needs, from whoever lands the row: (1) `traceability.test.ts` terminal-ID pin 288 → 289, and (2) a
+> `disposition()` bucket for `ACTIVE`/`GTM-0` — most plausibly an exempt one, by analogy with `vNEXT`, but
+> that is a register decision. **Until then the merge gate is red for this and nothing else.**
+
+### Verification
+
+`git diff` read directly; both failing assertions traced to their source lines; no file modified. The
+register's sha256 is unchanged by this section, as it has been all session.
+
+### Yield note
+
+Three sections, three inherited facts, three checks: the worker suites *could* run (§297), the browser gates
+*could* run (§298), and this one **was true** — but only after being opened was it *useful*, because
+"another workstream's row" and "two named lines whose vocabulary is three values short" are the same fact at
+completely different resolutions. **Confirming an inherited claim is not wasted work when the confirmation
+turns a label into an address.**
