@@ -291,13 +291,25 @@ export interface WebhookDeps {
 export type DeliveryOutcome = "delivered" | "already" | "skipped-no-secret" | "skipped-kind";
 
 /**
- * Deliver ONE terminal event to a subscription, EXACTLY ONCE. Fail-closed at every step:
+ * Deliver ONE terminal event to a subscription, exactly once PER SEQUENTIAL RE-RUN. Fail-closed at every step:
  *   · the event's kind is not in the subscription's allow-list → "skipped-kind" (nothing sent).
  *   · the signing secret does not resolve (NotConfiguredSecretResolver, or an unbound ref) → "skipped-no-secret"
  *     (NOTHING is POSTed — no unsigned/unauthenticated request ever leaves).
  *   · the per-event marker already exists → "already" (no re-delivery — idempotent).
  * Otherwise: sign the safe payload, POST it, and mark delivered ONLY on a successful send (a failed send leaves
  * no marker, so the next tick re-attempts — never a phantom "delivered").
+ *
+ * NOT EXACTLY-ONCE ACROSS OVERLAPPING CRON TICKS (audit §236). The marker is a presence CHECK, not a CLAIM,
+ * and Cloudflare gives `scheduled()` no mutual exclusion — a five-minute tick that outruns its own interval
+ * overlaps the next, both see the marker absent, and both POST. MEASURED at 2 deliveries by driving two
+ * sweeps concurrently. NOTE the probe result depends on the marker store's latency: with the in-memory test
+ * fake it reports a FALSE 1, because a `Map` resolves in a microtask; production is KV over the network, and
+ * making the fake await a macrotask reproduces the double-POST.
+ *
+ * This is the ORDINARY webhook contract (at-least-once; the payload carries an event id, so a consumer can
+ * dedupe) and it is dormant regardless — NotConfiguredWebhookTransport refuses to deliver by construction.
+ * Wiring a real transport is what activates it: either document at-least-once to subscribers, or claim
+ * before POSTing. Proposed, unregistered scope (audit §236).
  */
 export async function deliverWebhook(deps: WebhookDeps, sub: WebhookSubscription, event: TerminalEvent): Promise<DeliveryOutcome> {
   if (!isTerminalKind(event.kind) || !sub.events.includes(event.kind)) return "skipped-kind";

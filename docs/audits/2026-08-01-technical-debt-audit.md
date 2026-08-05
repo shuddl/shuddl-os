@@ -11059,7 +11059,7 @@ It was a result about 39% of the code. Two genuine N+1s were in the blind 61%, b
   has no `LIMIT`) and then issues **one D1 query per row** to ask whether each was answered. This
   compounds §133 exactly: a **daily** cron policing a **four-hour** SLA accumulates ~19 hours of overdue
   rows per tick, and then N+1s over them.
-- **`workers/translator/src/sweep-214.ts:211@sentKey`** — an `r2.put` **per marker**, over a list that is
+- **`workers/translator/src/sweep-214.ts:205@sentKey`** — an `r2.put` **per marker**, over a list that is
   itself paginated (so the marker set is unbounded by construction).
 
 Workers cap subrequests per invocation, so these fail hard at volume rather than slowing down — the
@@ -12387,3 +12387,88 @@ leaves CI green"* — is not a reason to delete; it is the single most important
 it is precisely what a future maintainer will discover and act on. Where a guard is defence for a code shape
 that does not exist yet, the comment must name the shape that activates it, or the guard will be removed by
 someone doing everything right. Related: [[a-gates-green-certifies-less-than-its-name]].
+
+## §236 — cron re-entrancy: two sweeps double-fire under overlapping ticks, both measured
+
+Cloudflare gives `scheduled()` **no mutual exclusion**. A tick that outruns its own interval overlaps the
+next one. Four cron handlers exist; all four were examined and the two that share a schedule tight enough to
+overlap were driven concurrently rather than reasoned about.
+
+| Worker | Cron | Write shape | Two overlapping ticks — MEASURED |
+|---|---|---|---|
+| `billing` | `0 * * * *` | `INSERT … ON CONFLICT(id) DO UPDATE` on a deterministic id | **safe by construction** — both ticks compute the same value; last write wins with it |
+| `agents` | `0 1 * * *` | anti-join + deterministic queue ids | safe — the sequencer dedupes the re-drive, and a >24h tick is implausible |
+| `translator` | `*/5 * * * *` | R2 marker: `head` → send → `put` | **2 transmits of the SAME 214**, counter 41 → **43** |
+| `mcp` | `*/5 * * * *` | KV marker: `has` → POST → `mark` | **2 deliveries of the same event** |
+
+Both defects are the identical shape — a **presence check that is not a claim**. `workers/translator/src/sweep-214.ts:3@transmit` stated the
+guarantee as *"EXACTLY ONCE"* (corrected in this section's commit) and
+`workers/mcp/src/webhooks.ts:299@mark` as *"mark delivered ONLY on a successful send"*. Both are
+accurate for **sequential** re-runs, which is exactly what each suite tests (*"a second run transmits
+NOTHING"*, *"a re-run re-delivers nothing"*). Neither is true across **concurrent** ticks, and no test drove
+one until this section.
+
+### The consequence is NOT symmetric
+
+At-least-once is the ordinary, acceptable contract for a webhook: the payload carries an event id and the
+consumer dedupes. The 214 path **destroys the receiver's ability to do that** — the dedupe check is
+deliberately made *before* control-number allocation
+(`workers/translator/src/sweep-214.ts:214@allocatePartnerControls`), so each concurrent attempt
+allocates a **fresh ISA13/GS06**. The partner's VAN therefore receives two interchanges with different
+control numbers and no way to recognise them as the same status message. The design decision that protects
+a *retry* from burning a number is the same one that makes a *race* undetectable downstream.
+
+### Why this is dormant today, and exactly when it wakes
+
+Neither is live: `NotConfiguredTransport.send214` transmits nothing, and `NotConfiguredWebhookTransport`
+refuses by construction. Both real transports are unwired — the live VAN/AS2 adapter is CONFIRM-gated and
+unbuilt. **So there is no duplicate in production today, and this is not a Critical.** It activates the day
+someone wires either transport — which is precisely the change during which nobody re-reads the sweep's
+concurrency properties, because the sweep is "finished and tested."
+
+`workers/translator/src/sweep-214.ts:218@VAN` already carries a *"NOTE for the future live VAN/AS2 adapter"* about a **different**
+dedupe hazard (a bare `dedupeKey` colliding cross-partner). The author was writing notes to exactly the
+right future reader and recorded the key-scoping hazard while the concurrency one went unstated.
+
+### Why this is recorded and not fixed
+
+The fix is a real design decision with a losing side either way, and it is the owner's:
+
+- **Claim-before-send** (a conditional create on the marker) closes the race but converts a crash between
+  claim and send into a **permanently stranded** 214 — the marker says "sent" and nothing ever transmits.
+  For freight status that silent omission is worse than a duplicate.
+- **A per-tenant sweep lease** (the repo's own DO mutex pattern) is structurally right and costs a DO
+  round-trip per tenant per tick, plus a lease-expiry policy nobody has specified.
+- **Accept at-least-once** and make it survivable — which for the 214 means allocating the control number
+  *before* the dedupe check, reversing a deliberate REQ-204 decision.
+
+Per the register rule (*"if you discover scope, ADD A ROW first"*), this is **proposed scope, not a repair**:
+the register is mid-edit by another workstream this session, so the row is proposed here rather than
+appended to the CSV.
+
+> **PROPOSED REQ (unregistered):** *Cron sweeps that transmit externally must claim before acting.* Covers
+> `run214Sweep` (REQ-200/203/204) and `runWebhookSweep` (REQ-105/107). DoD: a concurrent-tick test per sweep
+> asserting exactly one external send; the chosen claim protocol documented with its crash behaviour.
+> **Blocking on:** the duplicate-vs-strand decision. **Must land BEFORE** either live transport is wired.
+
+### The probe that lied first
+
+The webhook probe's FIRST run reported **1 delivery** — a clean negative — and the finding was one sentence
+from being written as "translator only." It was wrong: the injected marker store is an in-memory `Map` whose
+`has` resolves in a microtask, so tick A completed its check-and-mark before tick B ever ran. Production's
+marker store is **KV, over the network**. Wrapping the fake so each call awaits a real macrotask — the only
+change — turned the same probe to **2 deliveries**.
+
+This is [[a-silent-mutation-has-two-explanations]] firing on the instrument written to test it, within the
+same session: a green result meant "the harness cannot express the hazard," not "the hazard is absent." The
+translator probe did not lie only because miniflare's R2 `head`/`put` are genuinely async, so the interleave
+happened for free. **Two probes of one shape, and only the accident of which fake was realistic separated a
+true negative from a false one.**
+
+### The rule
+
+**"Idempotent" almost always means "idempotent on retry", and retry is sequential.** Every marker-based
+sweep in this repo proved its idempotency with a second sequential call, and both suites were right about
+what they asserted. The property that actually matters for a cron is re-entrancy, and no amount of
+sequential re-run testing reaches it. Ask of any check-then-act: *what happens if the second caller reads
+the marker before the first writes it* — and then drive it, because the answer is not visible in the code.

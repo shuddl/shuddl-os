@@ -1,7 +1,20 @@
 // WP-12 Task 7 · REQ-200 / REQ-025 — THE OUTBOUND 214 STATUS SWEEP. For every EDI-tendered shipment, project
 // its SHUDDL status arc into a byte-stable X12 214 (through the pure Task-6 core + @shuddl/edi build214) and
-// transmit it via the injected transport port, EXACTLY ONCE. Mirrors the Biller's discipline: deterministic
-// dedupe key, append/send-then-mark, per-item fault isolation, "already done" ⇒ skip.
+// transmit it via the injected transport port, exactly once PER SEQUENTIAL RE-RUN. Mirrors the Biller's
+// discipline: deterministic dedupe key, append/send-then-mark, per-item fault isolation, "already done" ⇒ skip.
+//
+// NOT EXACTLY-ONCE ACROSS OVERLAPPING CRON TICKS (audit §236 — this header claimed "EXACTLY ONCE" flatly
+// until then). The sent-marker below is a presence CHECK, not a CLAIM, and Cloudflare gives `scheduled()` no
+// mutual exclusion: a `*/5` tick that outruns five minutes overlaps the next one, both `head` the marker
+// while it is absent, and both transmit. MEASURED by driving two sweeps concurrently: 2 transmits of the
+// same 214, and the partner counter advanced 41 → 43 — so the two interchanges carry DIFFERENT ISA13/GS06
+// and the partner cannot dedupe them (see the allocation note below: the fresh number per attempt is what
+// protects a retry and what defeats a race).
+//
+// DORMANT ONLY BECAUSE NOTHING TRANSMITS: NotConfiguredTransport sends nothing, and the live VAN/AS2 adapter
+// is CONFIRM-gated + unbuilt. This activates the day that adapter is wired. A claim protocol must land FIRST
+// — it is proposed, unregistered scope (audit §236), and the open decision is duplicate-vs-strand: claiming
+// before the send closes the race but strands the 214 forever if the process dies between claim and send.
 //
 // PARTNER↔SHIPMENT LINKAGE — the R2 MARKER CONTRACT (defined HERE; Task 8's 204 handler WRITES the tender):
 //   · tender marker  R2 key  edi/<tenant>/tender/<shipmentId>
