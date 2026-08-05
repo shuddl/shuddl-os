@@ -457,9 +457,58 @@ function committedLock(lockPath: string): Record<string, string> {
   }
 }
 
+// TEST SCHEMA PARITY (audit §239) — every worker test helper must apply EVERY shipped tenant migration.
+// Each helper hand-maintains its own `TENANT_MIGRATIONS` array, so the list is duplicated once per worker
+// and drifts silently: measured at `bb9de63`, all four had fallen behind — `workers/api` omitted 0008 and
+// the other three omitted 0005, 0006 AND 0008. A suite running on a SUBSET of the shipped schema proves
+// nothing about the schema the code will actually meet; 0008 in particular installs the I3/I1 append-only
+// completeness triggers (duplicate `hash`, duplicate device slot), so the worker that owns the sequencer
+// was testing its append path with those guards absent. Nothing failed when they were added — the fix was
+// free — which is exactly why the drift was invisible. The migration LOCK pins the files; this pins that
+// the tests actually apply them.
+export function checkTestSchemaParity(
+  tenantMigrations: readonly string[],
+  helpers: ReadonlyArray<{ path: string; source: string }>,
+): string[] {
+  const violations: string[] = [];
+  const names = tenantMigrations.map((p) => p.split("/").pop()!).sort();
+  for (const { path, source } of helpers) {
+    // Checks ONE half: that the migration appears as an entry in the APPLIED array. The other half — that
+    // the imported SQL binding exists — belongs to the compiler and was measured, not assumed: deleting the
+    // `import uniqueGuards …` line while leaving its array entry gives `TS2304: Cannot find name
+    // 'uniqueGuards'` (typecheck exit 2; exit 0 once restored). A source-text check cannot add anything
+    // there, and pretending to would only make this gate's green certify more than it verifies — so the
+    // division is deliberate: the compiler owns the binding, this owns the list.
+    const missing = names.filter((n) => !new RegExp(`path:\\s*["']${n.replace(/\./g, "\\.")}["']`).test(source));
+    if (missing.length > 0) {
+      violations.push(`${path} does not apply shipped tenant migration(s): ${missing.join(", ")} — a test schema that is a SUBSET of the shipped schema cannot observe a violation of what it omits (audit §239).`);
+    }
+  }
+  return violations;
+}
+
 function main(): void {
   const mode: LockMode = process.argv.includes("--write") ? "write" : "check";
   const migrations = globSync("db/**/migrations/*.sql");
+
+  // The test schema must equal the shipped schema (see checkTestSchemaParity).
+  const tenantMigrations = globSync("db/tenant/migrations/*.sql");
+  const helperPaths = globSync("workers/*/test/helpers.ts");
+  const parityViolations = checkTestSchemaParity(
+    tenantMigrations,
+    helperPaths
+      .map((p) => ({ path: p, source: readFileSync(p, "utf8") }))
+      // In scope = any helper that stands up a tenant schema, detected by an import FROM the tenant
+      // migrations directory. Keyed on that rather than on the array's NAME: the first cut of this filter
+      // matched `TENANT_MIGRATIONS` and silently skipped `workers/agents` and `workers/translator`, which
+      // call theirs `MIGRATIONS` — the gate covered two of four helpers and still printed OK. It was caught
+      // only by mutating all four (audit §239); a single-instance probe would have blessed it.
+      .filter((h) => h.source.includes("db/tenant/migrations/")),
+  );
+  if (parityViolations.length > 0) {
+    for (const v of parityViolations) console.error(`FAIL ${v}`);
+    process.exit(1);
+  }
   const strays = findStraySql();
   if (strays.length > 0) {
     console.error(`FAIL stray SQL outside db/*/migrations (evades I3/I8 lint): ${strays.join(", ")}`);

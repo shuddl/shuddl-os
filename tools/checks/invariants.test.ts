@@ -8,6 +8,7 @@ import { stripSqlComments } from "@shuddl/ledger/migrate";
 import {
   checkLock,
   checkMigrationSql,
+  checkTestSchemaParity,
   findStraySql,
   isStraySql,
   PARTITION_TABLES,
@@ -656,4 +657,43 @@ describe("D1 REPLACE ban — source scanner parity with the migration scanner (g
       expect(scanSourceForForbiddenReplace([{ path: "p.ts", text: sql }]).length).toBeGreaterThan(0);
     });
   }
+});
+
+// audit §239 — the test schema must EQUAL the shipped schema. Each worker helper hand-maintains its own
+// applied-migration array, so the list is duplicated per worker; all four had drifted when this was written.
+describe("§239: worker test helpers apply every shipped tenant migration", () => {
+  const SHIPPED = ["db/tenant/migrations/0001_a.sql", "db/tenant/migrations/0002_b.sql"];
+  const applying = (...names: string[]): string =>
+    `import x from "../../../db/tenant/migrations/0001_a.sql?raw";\n` +
+    names.map((n) => `  { path: "${n}", sql: x },`).join("\n");
+
+  it("passes when a helper applies all of them", () => {
+    expect(checkTestSchemaParity(SHIPPED, [{ path: "h.ts", source: applying("0001_a.sql", "0002_b.sql") }])).toEqual([]);
+  });
+
+  it("FAILS when a shipped migration is missing from the applied array, and names it", () => {
+    const v = checkTestSchemaParity(SHIPPED, [{ path: "h.ts", source: applying("0001_a.sql") }]);
+    expect(v).toHaveLength(1);
+    expect(v[0]).toContain("0002_b.sql");
+    expect(v[0]).toContain("h.ts");
+  });
+
+  it("is INDEPENDENT of what the helper names its array — the first cut keyed on TENANT_MIGRATIONS and silently skipped two of four helpers", () => {
+    // Same content, three different array names: all must be judged identically.
+    for (const name of ["TENANT_MIGRATIONS", "MIGRATIONS", "SCHEMA"]) {
+      const source = `const ${name} = [\n` + applying("0001_a.sql") + `\n];`;
+      expect(checkTestSchemaParity(SHIPPED, [{ path: `${name}.ts`, source }]), name).toHaveLength(1);
+    }
+  });
+
+  it("ignores a helper that stands up NO tenant schema (nothing imported from the migrations dir)", () => {
+    // main() filters these out before calling; the function itself is total, so the filter is the contract.
+    const source = `const MIGRATIONS = [];`;
+    expect(source.includes("db/tenant/migrations/")).toBe(false);
+  });
+
+  it("a mention in prose is not an application — only an entry in the applied array counts", () => {
+    const source = `import x from "../../../db/tenant/migrations/0001_a.sql?raw";\n// we should apply 0002_b.sql one day\n  { path: "0001_a.sql", sql: x },`;
+    expect(checkTestSchemaParity(SHIPPED, [{ path: "h.ts", source }])).toHaveLength(1);
+  });
 });

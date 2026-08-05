@@ -12621,3 +12621,65 @@ What remains is genuinely not this loop's to close — three owner decisions (du
 undeclared auth lifetimes, `REQ-289`'s disposition), the private fixtures, and the volume/DoD rows that each
 need a migration or an API-contract change. **The next commit that should move this gate is the one wiring a
 live transport, and it must land the claim protocol with it.**
+
+## §239 — the worker suites were testing a schema the product does not ship
+
+Migrations were the last unexamined category. The files are locked forward-only and I3/I8-linted, and
+`packages/ledger/test/schema-core.test.ts` applies all eight and enumerates their uniqueness surfaces. What
+nothing checked is **which of them the worker suites actually apply.**
+
+Each worker test helper hand-maintains its own applied-migration array. Four copies, and at `bb9de63` all
+four had fallen behind the directory:
+
+| Helper | Applied | Missing |
+|---|---|---|
+| `workers/api/test/helpers.ts` | 0001–0007 | **0008** |
+| `workers/agents/test/helpers.ts` | 0001–0004, 0007 | **0005, 0006, 0008** |
+| `workers/translator/test/helpers.ts` | 0001–0004, 0007 | **0005, 0006, 0008** |
+| `workers/billing/test/helpers.ts` | 0001–0004, 0007 | **0005, 0006, 0008** |
+
+**0008 is the one that matters.** It installs the I3/I1 append-only *completeness* triggers: 0003's
+`events_guard_ins` enumerated only `(stream_id, seq)` and `id`, so 0008 adds the guard covering the `hash`
+UNIQUE column and the `ux_events_device` partial index, plus `money_lines`' corrects-uniqueness. Under D1's
+`PRAGMA recursive_triggers = 0` those are what stop an `INSERT OR REPLACE` from silently erasing a chained
+row — a history rewrite. `workers/api` owns the sequencer and is the only append chokepoint in the system,
+and its 754 tests ran with those triggers **absent**.
+
+### The direction of the risk
+
+Production is not exposed: it *has* the triggers and fails closed. The exposure is the reverse — **nothing
+proved the api worker's write paths are compatible with the schema they will meet.** A path that violated
+0008 would pass every test and surface as a runtime `D1_ERROR`. So the probe was to install 0008 and re-run,
+not to reason about it: **754/754 still pass.** Same for the other three with 0005/0006/0008 added — 110,
+102, 57, all green.
+
+The fix cost nothing, which is precisely why the drift survived: there was never a failing test to notice.
+
+### The gate, and the two ways my first cut of it was wrong
+
+The migration *lock* pins the files; nothing pinned that the tests apply them. Added
+`checkTestSchemaParity` to `check:invariants` — already a blocking gate that already reads the migrations
+directory, so no new gate registration and no new CI surface. Mutation-proved across the full grid: **12 of
+12 cells RED** (4 helpers × 0005/0006/0008 dropped one at a time).
+
+It took two corrections to get there, both of the exact class this audit keeps finding:
+
+1. **The gate covered two of four helpers and printed OK.** The in-scope filter keyed on the array being
+   named `TENANT_MIGRATIONS` — but `workers/agents` and `workers/translator` call theirs `MIGRATIONS`. A
+   single-instance probe would have blessed it; only mutating **all four** exposed it. Re-keyed on an import
+   from `db/tenant/migrations/`, which is the real predicate. This is [[two-mechanisms-disagreeing-is-the-finding]]'s
+   per-cell rule — the reason to plant a violation in every tree × extension cell rather than read the globs.
+2. **Its comment claimed more than it verified.** I wrote that a migration counts only when *"BOTH imported
+   and listed."* Dropping the import alone left the gate GREEN — the filename still appears in the array
+   entry. Measured what actually catches it: `TS2304: Cannot find name 'uniqueGuards'`, typecheck exit 2,
+   exit 0 restored. So the binding is the **compiler's** half and the list is this gate's, and the comment
+   now says that instead of overstating. [[a-gates-green-certifies-less-than-its-name]].
+
+### The rule
+
+**A test fixture that stands up a schema is a claim about production, and it decays like any other copy.**
+The dangerous form is not a fixture that is wrong — that fails loudly — but one that is a *subset*: it
+cannot observe violations of what it omits, so it stays green by construction and its silence reads as
+proof. Ask of any fixture: *is this the artefact we ship, or a hand-maintained list that resembles it?* If
+the second, the list needs a gate, and the gate needs a planted violation in every cell before it is
+believed.

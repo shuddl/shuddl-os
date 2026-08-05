@@ -8,14 +8,20 @@ import ledgerCore from "../../../db/tenant/migrations/0001_ledger_core.sql?raw";
 import domain from "../../../db/tenant/migrations/0002_domain.sql?raw";
 import insertGuards from "../../../db/tenant/migrations/0003_insert_guards.sql?raw";
 import partyRefsGuard from "../../../db/tenant/migrations/0004_party_refs_guard.sql?raw";
+import eventsOverride from "../../../db/tenant/migrations/0005_events_override.sql?raw";
+import booking from "../../../db/tenant/migrations/0006_booking.sql?raw";
 import documentsRetention from "../../../db/tenant/migrations/0007_documents_retention.sql?raw";
+import uniqueGuards from "../../../db/tenant/migrations/0008_append_only_unique_guards.sql?raw";
 
 const MIGRATIONS = [
   { path: "0001_ledger_core.sql", sql: ledgerCore },
   { path: "0002_domain.sql", sql: domain },
   { path: "0003_insert_guards.sql", sql: insertGuards },
   { path: "0004_party_refs_guard.sql", sql: partyRefsGuard },
+  { path: "0005_events_override.sql", sql: eventsOverride },
+  { path: "0006_booking.sql", sql: booking },
   { path: "0007_documents_retention.sql", sql: documentsRetention },
+  { path: "0008_append_only_unique_guards.sql", sql: uniqueGuards },
 ];
 
 async function tableExists(db: D1Database, name: string): Promise<boolean> {

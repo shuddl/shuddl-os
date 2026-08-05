@@ -11,6 +11,7 @@ import partyRefsGuard from "../../../db/tenant/migrations/0004_party_refs_guard.
 import eventsOverride from "../../../db/tenant/migrations/0005_events_override.sql?raw";
 import booking from "../../../db/tenant/migrations/0006_booking.sql?raw";
 import documentsRetention from "../../../db/tenant/migrations/0007_documents_retention.sql?raw";
+import uniqueGuards from "../../../db/tenant/migrations/0008_append_only_unique_guards.sql?raw";
 
 export async function token(claims: Record<string, unknown>, secret = "test-secret-do-not-use-in-prod"): Promise<string> {
   return sign({ exp: Math.floor(Date.now() / 1000) + 3600, ...claims }, secret);
@@ -44,6 +45,7 @@ const TENANT_MIGRATIONS = [
   { path: "0005_events_override.sql", sql: eventsOverride },
   { path: "0006_booking.sql", sql: booking },
   { path: "0007_documents_retention.sql", sql: documentsRetention },
+  { path: "0008_append_only_unique_guards.sql", sql: uniqueGuards },
 ];
 
 // Passport accrual (pod/exception/osd/custody) has an FK to parties(id): the party MUST exist before any
