@@ -187,7 +187,7 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 ## §4 — Phase gating and the stopping point
 
 > **CURRENT MEASUREMENT: §238, at `68cfb0d`; CONVERGENCE measured at §243.** The four clauses below are
-> measured in §238. §243 (extended by §251 → §270 → §282 → §285 → §286 → §287 → §288 → §289 → §290 → §291 → §292 → **§293**, now through §293) answers the separate question of whether another iteration is worth running:
+> measured in §238. §243 (extended by §251 → §270 → §282 → §285 → §286 → §287 → §288 → §289 → §290 → §291 → §292 → §293 → **§294**, now through §294) answers the separate question of whether another iteration is worth running:
 > defects-per-section across the eight sections after §238 ran 1,1,1,—,1,1,**0,0** while verified-clean
 > rose to 8 and 8, the last two being the most systematic sweeps of the set. Five named restart triggers
 > are listed there, each a grep or a diff — two of which are now GATES (§244) rather than greps. Across
@@ -15657,4 +15657,61 @@ Two facts swept (§292 placeholders, §293 gate counts), same structure both tim
 copies that rot, and dated snapshots that must be left alone.** The generalizable output is not the numbers
 but the triage — *owner / stale copy / stamped history* — and the rule that only the first belongs in prose
 at all, provided the build pins it. Worth running once more on any other number the docs repeat; the
-candidates are test totals and table counts, both already owned by executable pins.
+candidates are test totals and table counts. *(Corrected in §294: only the table count is pinned. The test
+total is not, and should not be — it is protected by a STAMP, which is a different mechanism.)*
+
+---
+
+## §294 — Pin or stamp: the two mechanisms, and the one I conflated
+
+§293's yield note closed by saying the remaining repeated numbers — test totals and table counts — were
+"both already owned by executable pins." **Half of that was wrong, and I asserted it rather than checking.**
+
+There is **no executable pin on the total test count**, and there should not be. The one place it is quoted
+(`LAUNCH-RUNBOOK.md`, "3,249 tests / 18 suites") is safe for a completely different reason: it carries
+`As of 2026-07-30 · HEAD 7f5b06a`. Calling that "pinned" would tell the next reader a gate protects a number
+nothing enforces.
+
+### The rule the whole §292–§294 arc was circling
+
+Every number a document repeats needs **one** of two mechanisms, and which one is decided by a single
+question: **does growth in this number require a decision?**
+
+- **PIN it (in the build)** when growth must be argued: budgets (22 tables, 35 event kinds, 3 surfaces,
+  5 colour tokens, 2 font families), gate-profile sizes, roster membership. Adding one *should* break
+  something and put the decision in front of its author. §269's shape.
+- **STAMP it (in the prose)** when growth is healthy and constant: test totals, run verdicts, drill results.
+  A pin here would fail on every legitimate test added — noise that teaches people to edit the number
+  without reading it, which is worse than no pin at all.
+- **Neither is not an option.** An unpinned, unstamped number is the §292/§293 defect exactly: it reads as
+  current, ages silently, and nothing can tell.
+
+### The payoff of a stamp, demonstrated rather than argued
+
+`dr-backups.md` records a restore drill: *"18 tables"* restored, stamped `HEAD 1e63d27`. Against
+`check:invariants` reporting `21/22 tables`, that reads like a **three-table hole in disaster recovery** —
+the worst kind of finding if true.
+
+Because the claim named its commit, it was checkable. Counting `CREATE TABLE` in the tenant migrations **at
+that exact commit**: 18. The drill restored **18 of 18 — complete.** And the numbers reconcile in full:
+**18 tenant + 4 control = 22 physical, 21 effective**, because doc 10 entry 9 has two physical partitions
+sharing one budget entry. Three numbers that look mutually contradictory are three correct scopes.
+
+**That is what a stamp buys, and it is more than honesty: it makes a past claim VERIFIABLE.** An undated
+"18 tables" could never have been checked — there would be no commit to count against, and the only
+available responses would be to trust it or re-run the drill. The stamp turned a scary-looking discrepancy
+into a five-second confirmation.
+
+### Verification
+
+`check:invariants` reconciled against the migrations directly (18 tenant / 4 control / 21 effective); the
+drill count re-derived from `git show` at its own stamped commit. §293's yield note corrected in place.
+No code changed.
+
+### Yield note
+
+The arc that began at §291 with one stale row ends with a rule that is *smaller* than the sections that
+produced it: **pin what must be argued, stamp what may grow, and never leave a number as neither.** Note the
+correction here was to my own writing one section earlier — the same shape as §284 (a rule recorded and then
+not applied to the sentence being written). The habit that catches it is cheap: **when you write "already
+covered", go and look.**
