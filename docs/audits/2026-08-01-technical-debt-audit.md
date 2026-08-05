@@ -16606,3 +16606,65 @@ byte-identical. L10 is in scope, built, tested, and **not** proven by this metho
 
 Mutation landing verified before every run (§308's mandatory step); `git status` clean in every mutated
 path; `@shuddl/ledger` 616 green after restore.
+
+---
+
+## §310 — L10 closed, and the three misses that preceded it
+
+§309 recorded L10 as **attempted-not-proven** rather than dropping it. Closing it here, because an honest
+loose end is still a loose end when it is closable.
+
+**L10 — "Exit-friendly, or it's a trap."** Mutation: `workers/api/src/routes/export.ts:138`, the archive's
+`events` replaced with `[]` — a "full tenant export" that silently leaves the ledger behind, which is
+precisely the trap the law names. Landing verified (`1+/1-`).
+
+**RED — 2 failing assertions**, naming `counts`, `events_next_cursor` and the export. Restored
+byte-identical: 754 passed.
+
+Two is a small RED for a large law, and worth reading rather than glossing: the export suite catches the
+empty ledger through the **manifest's own `counts.events`** disagreeing with the payload, and through the
+pagination cursor. That is a better test than an equality assertion on the array — it checks that the archive
+is *internally consistent*, so an export cannot claim to contain what it omits.
+
+### Three failed attempts, one cause
+
+Landing this mutation took four tries. Every failure was the same mistake in different clothes:
+
+1. `rows.push(` — a pattern that did not exist in the file (§308).
+2. `events:` at "the first line after 201" — a heuristic guess at a line number.
+3. line `137` — counted from a `sed -n '128,146p'` window instead of asked for.
+4. line `138` — **obtained with `grep -n`**, and it worked.
+
+**Three guesses, one question, and only the question landed.** The pattern is exact: each failure came from
+*deriving* a location (from a window offset, from a neighbouring line, from what a file probably contains)
+instead of *asking* for it. This is the same failure as §293's `awk`-derived gate count and §298's tally
+regex — [compare artifacts, don't reason about them] arriving for the third time this phase, now in the
+narrowest possible form: **a line number is an artifact, and counting one from a window is reasoning.**
+
+The cost was bounded only because §308's landing check existed. Without it, attempts 1–3 would have produced
+three GREENs reading *"the full-export law is unenforced"* — a Critical-shaped finding about acceptance
+demo–adjacent code, repeated until it looked corroborated.
+
+### Standing at ten laws
+
+| law | mutation | RED |
+|---|---|---|
+| eng. 2 — events append-only | drop the guard triggers | ×2 |
+| eng. 3 — gates are server-side | invoice gate stops refusing | 3 |
+| eng. 4 — no price on air | delete the physics return | 9 |
+| eng. 5 — interline executing share | compare gross | 13 |
+| eng. 8 — tenant isolation | mint a fixed tenant | 15 |
+| eng. 10 — no silent drops | unmapped column raises nothing | 1 |
+| **L2** — one ledger, many lenses | remove the internal floor | 16 |
+| **L3** — money projects physics | invoice emits no AR lines | 6 |
+| **L7** — gate every transition | collect no missing evidence | 4 |
+| **L10** — exit-friendly | export omits the ledger | 2 |
+
+**Ten laws, ten REDs, every file restored byte-identical, every suite green afterwards.** Six engineering
+rules and four genesis laws — each one now enforced by a test that fails when the enforcement is removed,
+rather than by a sentence asserting it is.
+
+### Verification
+
+`git status` clean across all ten mutated paths; `@shuddl/api` 754, `@shuddl/ledger` 616, `@shuddl/rater`
+154, `@shuddl/mcp` 177, `@shuddl/adapters` 38 — all green after restore.
