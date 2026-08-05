@@ -17380,3 +17380,66 @@ not from a token.** One question — *"where is this decision made?"* — replac
 
 Thirteen sequential mutations with per-iteration landing checks and restores; `git status` clean;
 `@shuddl/ledger` 616 passed after the sweep; §310's qualifier updated to state a zero residual.
+
+---
+
+## §324 — A false isolation finding, caught before it was filed
+
+Applying §323's rule (*a count in a claim must come from the architecture, not a token*) to the last such
+number I had published — §320's *"one resolver, 7 callers"* — found that number wrong, and the correction
+was real: `tenantDb` is declared in **four** files, one per worker (`api`, `agents`, `billing`,
+`translator`), each with its own `TENANT_BINDINGS` allowlist and platform guard. **§320 over-corrected** —
+it proved the api resolver and generalised from it, which is exactly the sample-of-one error §312 had warned
+about and §320 had "corrected" away.
+
+So the three unproved resolvers were mutated: force every slug to one fixed database — the total
+cross-tenant leak.
+
+- `billing` → **RED**
+- `translator` → **RED**
+- `agents` → **GREEN**
+
+A GREEN there means the worker that runs the protocol — Biller, Concierge, the sweeps — could resolve every
+tenant to one ledger and 110 tests would not notice. That is a Medium isolation finding, and it was three
+minutes from the ledger.
+
+### It was false
+
+`pnpm --filter @shuddl/agents` resolves to **`packages/agents`**, not `workers/agents` — the worker's package
+name is **`@shuddl/agents-worker`**. Every "agents" run in that sweep executed the wrong workspace: 219 tests
+instead of 110.
+
+Re-run correctly, the mutation is **RED**, caught by a pre-existing test:
+*"resolveTenantDb — static hot path, claimed fallback, fail-closed misses (REQ-025)"*. Coverage was never
+missing. **All four resolvers are covered; eng.8 is 4 of 4 plus the principal mint.**
+
+**This is the second time this exact error appeared** — §305's append-only mutation ran against `workers/api`
+when the guard was tested in `packages/ledger`, and produced the same shape of false finding. The rule was
+written *"a green from the wrong suite is evidence about the suite, not the law"*, and it did not prevent the
+repeat, because the failure is not forgetting the rule: **it is that `@shuddl/agents` and `@shuddl/agents-worker`
+both look like "the agents tests", and the filter silently succeeds on the wrong one.**
+
+**The tell was a number, not a doubt.** 219 tests where 110 were expected — visible in the output of the very
+first run, and only noticed two commands later. **A test count is a free identity check on the suite you just
+ran**, and checking it costs nothing; nothing else in that output would have revealed the substitution.
+
+### What was kept, and described honestly
+
+The test written while the finding looked real is kept — **not as a gap closure, because there was no gap**,
+but because it adds two properties the pre-existing test does not assert: that **every** declared slug maps to
+a **distinct** handle (completeness across the roster, with a non-vacuity guard), and that an unknown slug is
+**refused rather than defaulted** — the dangerous form, where a fallback hands the caller another tenant's
+ledger. `workers/agents` 110 → **113**, all green.
+
+### The pattern this closes, third time
+
+§320 corrected §312 upward. §324 corrects §320 downward. Both corrections were right; **the through-line is
+that every one of these numbers was produced by a grep and consumed as an architectural fact.** §323 stated
+the rule and this section is its first application — which immediately found the rule's own author had left
+one uncorrected.
+
+### Verification
+
+Four resolvers enumerated by declaration site; three mutated, each landing-verified and restored
+byte-identical; the decisive re-run performed with the new test **removed**, to distinguish pre-existing
+coverage from coverage I had just added. `workers/agents` 113 passed; `git status` clean.
