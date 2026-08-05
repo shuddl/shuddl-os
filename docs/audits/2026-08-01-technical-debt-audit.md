@@ -13709,6 +13709,24 @@ enforcement that already exists, or discount a design failure as report-only noi
 worse than a stale fact: a fact reads as possibly-old, while a condition reads as *still pending*, which is
 an active claim about the present.
 
+### The source doc carried it too
+
+Sweeping the governance docs for the same shape (`until X exits`, `after Y lands`, `once Z ships`) found the
+**origin**: `genesis/11-REPO-CLAUDE-MD.md:42` is the text `CLAUDE.md` rule 7 mirrors, and it carried the
+identical unresolved conditional. Correcting only the instance would have left the spec and its copy
+disagreeing — the failure this audit spent §239 and §257 on, in the governance layer.
+
+Corrected in the format that doc already establishes: `genesis/11:25` carries a
+*"FACTUAL CORRECTION 2026-08-02 (audit §60/§61) — the law is untouched; only the parenthetical was wrong"*.
+The new note follows it exactly — **the law untouched, its condition marked resolved**, evidence attached,
+original sentence preserved. There is no gate tying `CLAUDE.md` to `genesis/11`, so this pair is maintained
+by hand and will drift again; that is worth knowing rather than fixing, since a parity gate over prose that
+is deliberately abridged in one direction would fire constantly.
+
+Five other conditionals in `GO-LIVE-CHECKLIST.md` (`until this lands`, `after two close`, `until this
+closes`, `Until this lands`, `After the exit`) sit on rows whose conditions are genuinely still open — each
+is an External hold or an owner decision this audit has already re-verified (§248–§250).
+
 ### The rule
 
 **A rule written as a conditional acquires a maintenance obligation the day its condition resolves.** Grep

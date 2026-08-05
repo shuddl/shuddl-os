@@ -40,6 +40,17 @@ Cloudflare Workers + Hono · D1 per-tenant (control plane separate) · R2 eviden
 5. **Interline floors compare the executing share, never gross.** The $222,084/35-lb anomaly regression is permanent (REQ-040).
 6. **Fixtures gate merges**: legacy-export replay ±2% aggregate · routes ±10% · QB export reconciles to the penny · airplane-mode soak for driver flows (`fixtures/README.md`).
 7. **Design CI**: color/contrast/font/case/radius/shadow/motion audits + 5 blessed screenshots. `--signal-deep` is tuned by the contrast test, not by eye. **Advisory (report-only) until WP-10 exits, blocking thereafter (REQ-158).**
+   > **FACTUAL CORRECTION 2026-08-05 (audit §258) — the law is untouched; its CONDITION has resolved.**
+   > WP-10 has exited and the flip fired. `tools/design/design-ci.json` is `{"mode":"blocking",
+   > "note":"REQ-158: flipped to blocking at WP-10 exit — pixel law now gates merges."}`; `tools/design/
+   > audit.ts:296` exits 1 in that mode; and `gatesFor("merge")` carries `design-audit` in the
+   > **non-skippable** group, so a pixel violation fails a merge outright. Proved rather than read: §252
+   > planted a shadow, an over-budget radius and a raw hex (three REDs) and §257 drifted the palette, which
+   > the gate caught on every copy because its allowlist is *derived* from the tokens. The perf/browser
+   > gates are mode-aware, not report-only — advisory in a bare local run, FAIL/BLOCKED under
+   > `--mode merge|release` (§256). The sentence above is preserved because its REASON still governs any
+   > future gate: pixel law must not stall ledger work. A conditional acquires a maintenance obligation the
+   > day its condition resolves; this one went unread for the whole interval.
 8. **Tenant isolation suite** runs on every merge; a cross-tenant read anywhere is a build failure (REQ-025).
 9. **Adversarial audit swarm at every WP exit** (50-agent pattern; it found 42 real defects in a "finished" module). No open Criticals at close (REQ-119).
 10. **No silent drops in migration**: any legacy column (171-col export) that doesn't map raises a gap row — never disappears (Migrator rule).
