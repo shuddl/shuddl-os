@@ -7,8 +7,8 @@ from the 2026-07-14 note that stopped at WP-06). All sixteen WPs are closed, T14
 
 > **Read [`docs/audits/2026-08-01-technical-debt-audit.md`](../audits/2026-08-01-technical-debt-audit.md)
 > before trusting anything on this page.** It is the primary artifact of those commits — **292 sections
-> numbered through §301 as of 2026-08-05**, its own phase gate (**§4, whose CURRENT MEASUREMENT is §298: the merge gate RUN —
-> 24 gates, 17 PASS, 5 BLOCKED, 2 FAIL**), and the corrections that this note's inline "superseded" markers
+> numbered through §301 as of 2026-08-05**, its own phase gate (**§4, whose CURRENT MEASUREMENT is §298 + §310: the merge
+> gate RUN — 24 gates, 17 PASS, 5 BLOCKED, 2 FAIL — and the TEN LAWS mutation-proven, ten laws / ten REDs**), and the corrections that this note's inline "superseded" markers
 > came from. §299 specifies the single blocker behind both FAILs (the uncommitted `REQ-289` GTM row) and
 > §300 verifies every ledger item against its source. *(Routing corrected 2026-08-05 — this block said "65
 > sections, re-measured §65" and would have landed a returning reader 236 sections behind; audit §302.)* What it changed that a returning reader most needs to know: three gates were added

@@ -186,8 +186,10 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 
 ## §4 — Phase gating and the stopping point
 
-> **CURRENT MEASUREMENT: §298, at `03825ef` — the merge gate RUN, not inferred: 24 gates, 17 PASS, 5 BLOCKED,
-> 2 FAIL.** Read §298 first. §296 re-measured the gate surface at `3d1386b` but named two bounds that turned
+> **CURRENT MEASUREMENT: §298 (the merge gate RUN, not inferred: 24 gates, 17 PASS, 5 BLOCKED, 2 FAIL) +
+> §310 (the TEN LAWS mutation-proven: ten laws, ten REDs, every file restored byte-identical).** Read those
+> two first — together they are the production-readiness claim: the gates run, and the laws the gates exist
+> to protect fail when their enforcement is removed. §296 re-measured the gate surface at `3d1386b` but named two bounds that turned
 > out to be unmeasured inheritances — §297 withdrew the worker-suite bound (the full suite runs: 281 files /
 > 3,698 tests / 3,695 passing) and §298 withdrew the browser-gate bound (visual/a11y/e2e all PASS with
 > `executed: true`). §299 specifies the single blocker behind both FAILs — the uncommitted `REQ-289` GTM row,
@@ -16668,3 +16670,45 @@ rather than by a sentence asserting it is.
 
 `git status` clean across all ten mutated paths; `@shuddl/api` 754, `@shuddl/ledger` 616, `@shuddl/rater`
 154, `@shuddl/mcp` 177, `@shuddl/adapters` 38 — all green after restore.
+
+---
+
+## §311 — Routing the new verdict on the same day it landed
+
+§301 and §302 found entry points 3 and 236 sections stale, and produced the rule: **a superseded verdict must
+be unreachable from the entry point, not just annotated where it lives.** §310 created exactly the condition
+that rule describes — a materially stronger verdict than the one both entry points named.
+
+So the routing was updated **in the same phase as the finding**, rather than being discovered stale by a
+later sweep:
+
+- **Audit §4** now reads *"CURRENT MEASUREMENT: §298 + §310"* — the merge gate run, **and** the ten laws
+  mutation-proven — with the reason the pair belongs together stated inline: *the gates run, and the laws the
+  gates exist to protect fail when their enforcement is removed.*
+- **`PROJECT-STATE.md`**'s routing block carries the same pair.
+
+### Why the pairing is the claim, not either half
+
+"24 gates, 17 PASS" says the machinery executes. "Ten laws, ten REDs" says the machinery is pointed at
+something. **Neither is production-readiness alone** — a green suite that cannot fail proves nothing (the
+§287 font budget was green for exactly that reason), and a proven law with no gate running it protects
+nothing (the §290 DLQ rule was correct and spoke only at release).
+
+That is the whole argument of this phase compressed: **enforcement has two independent failure modes — the
+gate that never runs, and the gate that cannot fail — and a verdict has to speak to both.** §298 answers the
+first, §310 the second.
+
+### The cheap habit this makes explicit
+
+§302 diagnosed why routing rots: *"memory is consulted at the start of a task and the record at the end."*
+The corresponding habit is equally mechanical, and is what this section is: **when a section changes the
+headline verdict, update the entry points before writing the next section.** Not as a sweep, not at a phase
+boundary — immediately, while the fact that the verdict moved is still the thing you are holding.
+
+Routing decay is not caused by carelessness about routing. It is caused by **content work feeling finished
+when the content is finished.**
+
+### Verification
+
+Both entry points updated and checked; `check:citations 0` (every `§N` reference in both blocks resolves) ·
+`check:invariants 0`. No code changed.
