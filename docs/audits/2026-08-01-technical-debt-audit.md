@@ -16220,3 +16220,46 @@ No code changed.
 leading to it keep pointing at the stale version. The audit's entry point was 3 sections stale; the ops
 entry point was **236**. **Routing decays faster than content, because content gets corrected by whoever
 notices and routing gets corrected by nobody.**
+
+---
+
+## §303 — Routing, swept per-value: the third instance
+
+§301 fixed the audit's own entry point and §302 fixed the ops entry point. Two files is a per-FILE fix, and
+this audit has recorded the consequence of stopping there often enough to check. Swept every document that
+routes to this record and asked what currency each claims:
+
+| doc | claim | verdict |
+|---|---|---|
+| `ops/PROJECT-STATE.md` | "65 sections, re-measured §65" | fixed §302 (was 236 sections behind) |
+| `wp/WP-01.md` | "(99 sections)", newest pointer §83–§84 | **stale — fixed here** |
+| `ops/GO-LIVE-CHECKLIST.md` | many `§N` refs, no count claim | no currency claim to rot |
+| `plans/2026-07-23-v2-technical-debt-register.md` | §2/§3 internal refs | not routing to this audit |
+
+**`WP-01.md` is the interesting one.** It records that WP-01's surface — *the CI chain, the traceability
+gates, the isolation suite, the fixture hash law* — "has been audited repeatedly, most recently at §63, §69,
+§73 and §83–§84." Every one of those is true. What decayed is that **this phase audited that exact surface
+six more times** (§286 roster, §288 collection, §289 wiring, §290 DLQ parity, §293 profile sizes, §298 the
+merge gate run) and the WP record still points at §84 as the frontier.
+
+**A "most recently at §N" pointer is a stamp that ages without a date.** It reads as current, carries no
+year, and is wrong the moment anyone audits that surface again — which is guaranteed for a surface described
+as "audited repeatedly". The pointers are now extended and the section count dated.
+
+### Where routing claims live, which is the reusable part
+
+All three instances (§301, §302, §303) sat in **"how did we get here" prose** — a header, a resume guide, a
+DoD narrative — never in the specification or the tests. That is where they will always be, because it is
+the only prose that summarises another artifact's *state* rather than stating a rule.
+
+**So the sweep is cheap and repeatable: grep for references to a long-lived record, then ask each one what
+currency it claims.** Most cite a section and are fine. The rot is concentrated in the ones that count
+something ("99 sections") or claim a frontier ("most recently at §84") — both of which are the pin-vs-stamp
+problem from §294 in a third costume: a number about a growing artifact, written in prose, with nothing
+able to fail when it grows.
+
+### Verification
+
+`check:citations 0 · check:invariants 0` — the citation gate resolves every new `§N` reference added to
+`WP-01.md`. No code changed. Three documents corrected across §301–§303; the audit's routing surface is now
+swept per-value rather than per-file.
