@@ -12088,3 +12088,48 @@ and record it, then pin it.*
 tested mechanism and an undeclared value is not a missing test — it is a **missing decision**, and adding
 the test first disguises it as settled. The tell is what §136 asked: *is this value written down anywhere
 outside the code?* For the palette, yes. For a 30-day public link, no — and that is the actual finding.
+
+---
+
+## §231 — finishing §230's class: two of four auth lifetimes are undeclared and unpinned
+
+§230 probed two of the security-relevant TTLs and §204's lesson forbids summarising a sweep half-done.
+Completing the set — four lifetimes that govern how long a credential or capability stays valid:
+
+| Constant | Mutation | Result |
+|---|---|---|
+| `TOKEN_TTL_SECONDS` (OAuth access, 1h) | → 1 year | **caught** — 2 tests |
+| `PRINCIPAL_TTL_SECONDS` (MCP principal cache, 5min) | → ~3.5 days | **caught** — 1 test |
+| `CAP_TTL_SECONDS` (public status link, 30d) | → 10 years | **silent** — 754/754 |
+| **`SESSION_TTL_SECONDS`** (signup session, 8h) | **→ 1 year** | **silent** — 754/754 |
+
+The new one is the more serious of the pair. `CAP_TTL_SECONDS` governs a bearer URL for read-only shipment
+status; **`SESSION_TTL_SECONDS` is an authenticated session** minted by `/pub/signup` — the stranger-to-quote
+path of acceptance demo #2. Extending it 1,095× is a straightforward session-fixation window, and nothing
+in the suite notices.
+
+Both are **undeclared**, checked the same way: the register's session/expiry rows are REQ-197 (queue
+pagination), REQ-259 and REQ-286 (proposal lifecycles) — none is this; and no genesis or ops document
+states a session lifetime at all.
+
+So the verdict is §230's, unchanged, on a second instance: **not a missing test — a missing decision.**
+Two credential lifetimes with working expiry mechanisms and values nobody wrote down. The checklist row
+now names both.
+
+### Why I am still not pinning them
+
+It would take one line each and it would be wrong. §205 pinned the palette *because `CLAUDE.md` declares
+those numbers*; a `toBe(8 hours)` here would fabricate a policy and disguise the absence of one — the next
+reader would find a test asserting 8 hours and reasonably conclude someone chose 8 hours.
+
+The asymmetry is worth naming precisely, because it is the difference between the two halves of this
+audit: **a test can enforce a decision; it cannot make one.** Everything §205–§228 pinned was already
+decided and merely unchecked. These two are unchecked *because* they are undecided, and pinning would
+convert an open question into a settled-looking answer at no cost to anyone who never reads the commit.
+
+### The rule
+
+**When a sweep finds an unguarded value, ask who decided it before deciding how to guard it.** Four
+lifetimes, two guarded and two not — and the two gaps are not carelessness in the tests, they are silence
+in the record. The fix belongs to whoever owns the security posture, and the audit's job here is to hand
+them a bounded list with the measurement attached, not to close it by inventing the answer.
