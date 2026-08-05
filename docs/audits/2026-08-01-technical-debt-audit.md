@@ -12472,3 +12472,61 @@ sweep in this repo proved its idempotency with a second sequential call, and bot
 what they asserted. The property that actually matters for a cron is re-entrancy, and no amount of
 sequential re-run testing reaches it. Ask of any check-then-act: *what happens if the second caller reads
 the marker before the first writes it* — and then drive it, because the answer is not visible in the code.
+
+## §237 — the five acceptance demos, swept: three of five assert a capability the product lacks
+
+§178 found demo 1 promises photos the evidence email does not carry; §196 found demo 3 needs a driver login
+that does not exist. Two demos, two undisclosed blockers, found one at a time. The remaining three had never
+been checked, so: all five, in one pass.
+
+| Demo | Filmed claim | Verdict |
+|---|---|---|
+| 1 — POD → invoice **+ photos** | "invoice + photos in the client's inbox" | **BLOCKED** (§178) — the R2 signed-URL resolver is unwired; the email ships `photos: {}` |
+| 2 — a stranger signs up and quotes | "a real stranger, **unassisted, from landing** to first quote" | **BLOCKED (new)** — there is no signup surface at all |
+| 3 — a real driver completes a gated stop | "a REAL driver… zero instruction" | **BLOCKED** (§196) — no driver login (REQ-069 deferred); custody cannot record real parties |
+| 4 — a booking from Claude via MCP | "real Claude-via-MCP against the full DO-backed api" | **clean** — its prerequisites are named in the manifest itself (mcp worker deployed, OAuth secret stored) |
+| 5 — the exception pulse dims the map | "the greige world dropping to 35%" | **clean as a demo**; its one dependency (the third-party demo basemap, REQ-075) is already a recorded hold, with the viewport-exposure dimension added at §140 |
+
+### Demo 2: there is no signup surface
+
+`POST /pub/signup` is a raw JSON API and **nothing in the product calls it**. Verified by exhaustion rather
+than by a single grep: no `<form>`, no `type="email"` input and no submit handler exists anywhere in
+`apps/command`, `apps/driver`, `apps/portal` or any worker `src/`, and there is no landing page in this repo
+(the marketing site is a separate workstream, not a product surface). The three shipped surfaces are
+Command, Driver and Portal — none has a signup route.
+
+So the sentence *"a real stranger, unassisted, from landing to first quote"* describes something that cannot
+happen. The only way to sign up is to hand-issue HTTP requests. That is not a stranger and it is not
+unassisted; filming it would demonstrate an API, not a product.
+
+### The pattern in how all three hid
+
+None of the three was undocumented. Each absence was written down **in the vocabulary of testing rather than
+of capability**:
+
+- demo 1's photo gap lived in a GO-LIVE row about an unwired resolver;
+- demo 3's login gap lived in a deferred-REQ note;
+- demo 2's missing surface lives in a `browser: null` comment explaining why there is no browser spec —
+  *"no in-repo browser signup SURFACE exists (signup is a raw /pub/signup API)"*.
+
+Every one of those sentences is true and none of them says **"this demo cannot be filmed."** A reader
+looking for coverage gaps finds them; a reader planning the launch video does not, because the claim and its
+refutation live in different documents and different registers. The demo definition is where the two meet,
+which is why all three corrections were written there rather than into a new checklist.
+
+### What this does NOT change
+
+No code is wrong. `/pub/signup` correctly implements REQ-121 and is deliberately DARK behind
+`PROVISIONING_ENABLED`; a surface for it is unbuilt scope, not a defect, and building one now would be
+scope invention. The register governs whether a signup UI is wanted — this section records only that the
+demo sentence currently outruns the product, which is a **record** defect, and it is fixed by making the
+demo say what it can prove.
+
+### The rule
+
+**A demo script is a claim about capability, and it decays like any other record.** Three of five had
+drifted from what the build can do, in each case because the capability was removed or deferred elsewhere
+and the sentence was never re-read against it. The cheap check is to take each demo's filmed sentence one
+noun at a time — *photos*, *landing*, *driver login* — and ask which shipped surface produces it. That
+question found all three; reading the demo list as prose found none of them in the two prior sessions
+that read it.

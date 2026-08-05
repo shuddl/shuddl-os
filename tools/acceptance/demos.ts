@@ -58,7 +58,18 @@ export const DEMOS: readonly Demo[] = [
     spine: [{ pkg: "@shuddl/api", file: "test/signup-to-quote.e2e.test.ts" }],
     filmed:
       "the <10-minute wall-clock of a real stranger, unassisted, from landing to first quote. The spine " +
-      "proves the flags-ON priced write-path through the sequencer AND the flag-OFF DARK 404.",
+      "proves the flags-ON priced write-path through the sequencer AND the flag-OFF DARK 404. " +
+      "PREREQUISITE (audit §237): THERE IS NO SIGNUP SURFACE. `/pub/signup` is a raw JSON API and no " +
+      "product surface calls it — verified exhaustively: no <form>, no email input and no submit handler " +
+      "exists in apps/command, apps/driver, apps/portal or any worker, and there is no landing page in " +
+      "this repo. So 'a stranger, unassisted, from landing' cannot be filmed today: the only way to sign " +
+      "up is to hand-issue HTTP requests, which is neither unassisted nor a demonstration of a product. " +
+      "This is disclosed elsewhere ONLY as a browser-TEST gap (the `browser: null` note below), which is " +
+      "why it reads as a coverage limitation rather than the filming blocker it is. Film demo 2 only " +
+      "after a signup surface exists — or film it honestly as an API walkthrough and say so. Do not film " +
+      "an operator typing curl and narrate it as a stranger signing up, which is the same fault as " +
+      "staging photos into demo 1 or staging a login into demo 3. (The flag/legal prerequisites the " +
+      "manifest already names — PROVISIONING_ENABLED on, ToS/CONFIRM-2 in place — still stand.)",
     browser: null, // no in-repo browser signup SURFACE exists (signup is a raw /pub/signup API) — see manifest gap.
   },
   {
