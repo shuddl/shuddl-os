@@ -17002,3 +17002,52 @@ ledger.
 
 `check:citations 0 · check:invariants 0`; the ledger statement now matches `GO-LIVE-CHECKLIST.md`, which is
 where a reader looks. No code changed.
+
+---
+
+## §317 — The deferral class, swept clean
+
+§316 named the shape that produced this phase's only repository-owned finding: ***"X is covered by Y" is only
+as strong as "Y actually covers X", and nothing in the wording tells you which.*** §314 had swept for that
+using my phrasings and found two hits. §295's rule says derive the convention from the corpus instead — so
+the enforcement layer was asked what deferral language it actually uses.
+
+Six distinct deferrals across `tools/`, every one resolved:
+
+| deferral | target | verdict |
+|---|---|---|
+| *"covered by `surface-contract.ts`"* | the three surfaces' exclusion from `WORKER_CONFIGS` | **verified §286** — surfaces bind nothing; forcing them in would weaken a real test |
+| *"covered by universal [TLS]"* | single-label hostnames | verified in the surface contract's own tests |
+| *"enforced BY COUNT"* | the 5-colour-token budget | **verified §287** — mutation-proved, and its font sibling was the gap |
+| *"owned by `vitest.tools.config.ts`"* | which tools tests run | **verified §288** — 28 tracked = 28 collected |
+| *"enforced by NOTHING"* ×2 | `check:citations`, `check:tables` | **historical.** Both describe the pre-§50 state; `ci-contract.test.ts:35` now pins both into the merge surface *by gate name*, so removing either fails |
+| *"the WP-15 Task-10 exit audit owns…"* | authority-registry completeness | **§313's hold** — the one that did not resolve |
+
+**One deferral in six pointed at nothing live. Five pointed at mechanisms this phase had already verified,
+mostly without knowing they were the targets of a deferral.**
+
+### The pattern the repo already has, and why it does not fix §313
+
+`ci-contract.test.ts` is the exact answer to "this gate could quietly stop being enforced": it asserts the
+merge profile *contains* `citations` and `table-shape` by name, so a future edit that drops one fails loudly.
+That is the same instinct behind §289's gate-wiring test and §293's profile-size pin.
+
+**It does not transfer to §313's hold**, and the reason is worth stating so nobody tries: `ci-contract`
+pins that a gate *runs*. §313's gap is that a gate *sees* — whether `AUTHORITATIVE_FILES` still lists every
+authoritative emitter. **Wiring is structural and pinnable; completeness is semantic and, as measured three
+times now (§292/§304/§313), is not.** The hold stands with a human trigger because that is the honest
+mechanism, not because nobody thought of a test.
+
+### What a clean sweep is worth here
+
+This iteration produced no new finding. That is the result, and it is the one §296 predicted: the phase's
+remaining yield is in checking claims rather than discovering defects, and the checks are now coming back
+clean. Six deferrals, five already verified, one already filed.
+
+**A sweep that finds nothing is only informative if it could have found something** — this one demonstrably
+could: the same technique, run one section earlier on a narrower vocabulary, produced §313.
+
+### Verification
+
+Deferral vocabulary derived from the corpus rather than assumed; six hits enumerated and each target checked
+against the section that verified it. `check:citations 0 · check:invariants 0`. No code changed.
