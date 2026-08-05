@@ -12294,3 +12294,96 @@ number.
 **A sweep that cannot distinguish "untested" from "tested differently" is a classifier, not a detector.**
 Ask what the instrument would say about a case you already know is fine — here, any guard tested by a bare
 `toThrow()` — and if the answer is "flagged", the count is a starting population, never a backlog.
+
+## §235 — concurrency: three DO mutexes, one accurate comment, and two that state the rule backwards
+
+The one category this audit had barely examined. Every Durable Object in the repo (there are exactly three)
+guards its critical section with the same `lock`-chaining mutex. **Mutated all three**, rather than
+generalising from the first (§219/§220's rule, whose whole point is that the second instance is where a
+pattern is decided).
+
+| DO | critical section awaits | mutex deleted, alone | deleted + input gate opened |
+|---|---|---|---|
+| `ShipmentSequencer` (`workers/api`) | **D1** — a subrequest | **RED** — 1 failed / 753, by the very test its comment names | n/a |
+| `SparkMeter` (`workers/agents`) | `ctx.storage` only | **silent** — 110/110 green | **RED** — TEN admit against an allotment of THREE |
+| `CapsMeter` (`workers/mcp`) | `ctx.storage` only | **silent** — 177/177 green | **RED** — both `hostile-prompt.test.ts` races, on both cap dimensions |
+
+### The two-explanation fork, and the probe that decided it
+
+Deleting `SparkMeter`'s mutex changed nothing — while its suite contains a real concurrency test
+(*"a Promise.all race of allotment+K distinct reserves admits EXACTLY the allotment"*). Two readings, with
+opposite consequences:
+
+- **(a)** the DO **input gate** already serializes a storage-only critical section → the mutex is a second
+  line, and the test is sound;
+- **(b)** the harness never produces real concurrency → the test is vacuous and the cap is unguarded.
+
+These are indistinguishable by staring at either file. The discriminator: delete the mutex **and** insert a
+non-storage await (`await new Promise(r => setTimeout(r, 1))`) between the `get` and the `put`, which
+provably reopens the gate. Result: **10 of 10 reserves admitted against an allotment of 3** — the precise
+cap bypass, reproduced. So (a), decisively: the tests are genuinely concurrent, and the guarantee is
+currently upheld by the *runtime*, not by the line of code that claims it.
+
+### The defect: a runtime rule stated backwards, in two files
+
+Both meters carried the same claim (in `workers/mcp/src/caps-meter.ts` and
+`workers/agents/src/spark-meter.ts` — quoted as it read *before* this section's correction, so no line
+citation is given: the text no longer exists at those lines):
+
+> *"the DO input gate reopens between two `ctx.storage` awaits"*
+
+It does not. That is exactly the window the input gate **closes**. The gate reopens across a *non-storage*
+await. And the repo already contained the correct statement, in `workers/api/src/do/sequencer.ts:219@MEASURED`:
+
+> *"A Cloudflare DO input gate closes only during the DO's OWN `ctx.storage` operations (and
+> `blockConcurrencyWhile`); it does NOT close across a plain D1 subrequest await."*
+
+**Two comments about one runtime rule, asserting opposites** — [[two-mechanisms-disagreeing-is-the-finding]]
+in prose rather than in gates. The measurement says the sequencer is right, which is unsurprising: its
+comment records a mutation someone actually ran, and the meters' records an inference someone made.
+
+### Why an inverted comment on a correct mutex still matters
+
+The code is right in all three files; nothing is exploitable today. What the wrong comment destroys is the
+maintainer's ability to know **when the mutex starts mattering**:
+
+- Under the false rule, the mutex looks load-bearing *now* — so a reader who tests that belief (delete it,
+  run CI) gets **green**, and the natural conclusion is "dead code, the DO serializes anyway." CI cannot
+  contradict them. Both suites stay green; typecheck stays green.
+- Under the true rule, the mutex is what preserves the cap the instant **any** non-storage await enters
+  `#checkAndReserve` — a D1 policy read, a control-plane fetch, a queue send. All three are plausible next
+  edits to a metering DO, and any of them silently converts a redundant line into the only thing standing
+  between a Spark tenant and an uncapped bill.
+
+So both comments were rewritten to state the measured rule, the measured numbers, and the one sentence CI
+cannot say: **its removal is silent today and a cap bypass after any future I/O lands in the critical
+section — do not "simplify" it away.**
+
+### The copy that hid inside the file it was in
+
+The claim lived **twice in each meter** — once in the file header, once on the `private lock` declaration —
+and the first correction pass fixed the *header* in `caps-meter.ts` and the *class comment* in
+`spark-meter.ts`, leaving one live copy in each. Caught only by grepping `input gate` repo-wide afterwards
+instead of trusting the two edits.
+
+This is §223's documented trap firing again — *"a copy can hide INSIDE the guarded file"* — and it is the
+reason the fix step here ended with an exhaustive sweep rather than two `Edit`s. Repo-wide there were four
+copies of the inverted claim (2 per meter), one correct statement in `sequencer.ts`, one correct statement
+in `docs/security/threat-model.md:32`, and one in the WP-02 plan doc. **The wrong version outnumbered the
+right one 4:3, and every correct copy was in a file whose mutex had actually been mutation-tested.**
+
+### The live-defect check (clean negative)
+
+The class that *would* be exploitable is a DO critical section that **already** awaits something
+non-storage without a mutex. Enumerated: three DO classes total; the only one with a non-storage await
+(`ShipmentSequencer`, via D1) has the mutex, and its comment is the accurate one. Neither meter touches
+anything but `ctx.storage` — no `fetch`, no `.prepare(`, no `env.` reference, no `alarm()`, no
+`blockConcurrencyWhile`. **No live concurrency defect.**
+
+### The rule
+
+**A guard whose removal is silent needs a comment that says so.** The mutation result — *"deleting this
+leaves CI green"* — is not a reason to delete; it is the single most important fact about the line, because
+it is precisely what a future maintainer will discover and act on. Where a guard is defence for a code shape
+that does not exist yet, the comment must name the shape that activates it, or the guard will be removed by
+someone doing everything right. Related: [[a-gates-green-certifies-less-than-its-name]].

@@ -5,9 +5,20 @@
 // increment). On KV that race is a TOCTOU cap bypass — two concurrent book_shipment calls both read the SAME
 // tally, both pass, both write, and the pairing books past its cap. A single DO instance PER pairing serializes
 // its own state, and we further chain every reserve onto the previous one's settlement (the sequencer's proven
-// mutex pattern, MEASURED load-bearing there) so the read and the write are ATOMIC across concurrent RPC calls —
-// the DO input gate reopens between two `ctx.storage` awaits, so without the chain two interleaved reserves would
-// still read the same tail. One DO per `idFromName(pairingId)` ⇒ structural per-actor isolation; there is no
+// mutex pattern, MEASURED load-bearing there) so the read and the write are ATOMIC across concurrent RPC calls.
+//
+// WHY THE CHAIN IS HERE, stated correctly (audit §235 — the previous wording had the rule INVERTED, claiming
+// "the DO input gate reopens between two `ctx.storage` awaits"; it does not, and workers/api/src/do/sequencer.ts:219@MEASURED states the
+// true rule). The input gate closes across the DO's OWN `ctx.storage` awaits, so THIS critical section — whose
+// only awaits are `storage.get`/`storage.put` — is already serialized by the runtime, and deleting the chain
+// alone leaves `workers/mcp` 177/177 GREEN. The chain is what preserves the guarantee the moment ANY
+// non-storage await (a D1 read, a fetch, a queue send) enters `#checkAndReserve`: that reopens the gate, and
+// MEASURED with the gate so opened, six concurrent books admit SIX against a velocity cap of THREE — the two
+// `hostile-prompt.test.ts` races both go red on exactly that.
+//
+// So: this mutex is NOT dead code, and CI cannot tell you that. Its removal is silent today and catastrophic
+// after any future I/O lands in the critical section. Keep it; do not "simplify" it away.
+// One DO per `idFromName(pairingId)` ⇒ structural per-actor isolation; there is no
 // shared counter two pairings could collide on.
 //
 // The counter is keyed off the ACTING pairing id (the OAuth token subject, ctx.pairingId) by the caller (caps.ts).
@@ -56,9 +67,10 @@ interface Tally {
 
 export class CapsMeter extends DurableObject {
   // The mutex — chain every reserve onto the previous one's settlement so the read-check-write is atomic across
-  // concurrent RPC calls (the DO input gate reopens between the `get` and the `put`; without this chain two
-  // interleaved reserves read the same tally and both pass, a cap bypass). `.catch(() => undefined)` keeps one
-  // failed reserve from poisoning the chain — the returned promise still rejects (the caller fails closed).
+  // concurrent RPC calls. `.catch(() => undefined)` keeps one failed reserve from poisoning the chain — the
+  // returned promise still rejects (the caller fails closed). For the DO input gate's ACTUAL rule, the measured
+  // numbers, and why deleting this line is SILENT in CI yet a cap bypass after any future non-storage await
+  // lands in `#checkAndReserve`, see the file header above (audit §235). Do not "simplify" it away.
   private lock: Promise<unknown> = Promise.resolve();
 
   /**

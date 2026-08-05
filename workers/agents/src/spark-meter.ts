@@ -14,10 +14,11 @@
 // increment). On KV that race is a TOCTOU cap bypass — two concurrent conveniences both read the SAME tally,
 // both pass, both write, and the tenant runs one past its cap. A single DO instance PER tenant serializes its
 // own state, and we further chain every reserve onto the previous one's settlement (the sequencer's proven
-// mutex pattern, MEASURED load-bearing there) so the read and the write are ATOMIC across concurrent RPC calls —
-// the DO input gate reopens between two `ctx.storage` awaits, so without the chain two interleaved reserves
-// would still read the same tail. One DO per `idFromName(tenantId)` ⇒ structural per-tenant isolation; there is
-// no shared counter two tenants could collide on.
+// mutex pattern, MEASURED load-bearing there) so the read and the write are ATOMIC across concurrent RPC calls.
+// (On the DO input gate's ACTUAL rule — and why the chain is defence for a future non-storage await rather than
+// today's only barrier — see the mutex comment on `private lock` below; audit §235.) One DO per
+// `idFromName(tenantId)` ⇒ structural per-tenant isolation; there is no shared counter two tenants could
+// collide on.
 //
 // The counter is keyed off the SERVER-RESOLVED tenant (the queue trigger's `tenant`, from the allowlist) by the
 // caller (spark-caps.ts). It is NEVER keyed off a client field — a hostile inbound cannot dodge its tenant's cap.
@@ -66,9 +67,20 @@ function normalizeAllotment(raw: number): number {
 
 export class SparkMeter extends DurableObject {
   // The mutex — chain every reserve onto the previous one's settlement so the read-check-write is atomic across
-  // concurrent RPC calls (the DO input gate reopens between the `get` and the `put`; without this chain two
-  // interleaved reserves read the same tally and both pass, a cap bypass). `.catch(() => undefined)` keeps one
-  // failed reserve from poisoning the chain — the returned promise still rejects (the caller fails closed).
+  // concurrent RPC calls. `.catch(() => undefined)` keeps one failed reserve from poisoning the chain — the
+  // returned promise still rejects (the caller fails closed).
+  //
+  // WHY IT IS HERE, stated correctly (audit §235 — the previous wording had the rule INVERTED, claiming "the DO
+  // input gate reopens between the `get` and the `put`"; it does not, and workers/api/src/do/sequencer.ts:219@MEASURED states the true rule).
+  // The gate closes across the DO's OWN `ctx.storage` awaits, so this critical section — awaiting only
+  // `storage.get`/`storage.put` — is ALREADY serialized by the runtime: deleting this chain alone leaves
+  // `workers/agents` 110/110 GREEN, including the CONCURRENCY test below, which is genuinely concurrent and is
+  // upheld by the gate rather than by this line. The chain is what preserves the cap the moment ANY non-storage
+  // await (a D1 policy read, a fetch, a queue send) enters `#checkAndReserve` — that reopens the gate, and
+  // MEASURED with the gate so opened, TEN concurrent reserves all admit against an allotment of THREE.
+  //
+  // So: this mutex is NOT dead code, and CI cannot tell you that — its removal is silent today and a cap bypass
+  // after any future I/O lands in the critical section. Keep it; do not "simplify" it away.
   private lock: Promise<unknown> = Promise.resolve();
 
   /**
