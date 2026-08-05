@@ -14188,3 +14188,44 @@ Prose of the form "this is all the X that are Y" is the strongest possible signa
 done the derivation by hand and written down the rule. Running it is usually a three-line change that
 converts a maintenance obligation into an invariant, and the comparison costs nothing: compute both sides
 first, and if they differ, you have found a defect instead.
+
+## §268 — sweeping §267's tell to exhaustion: 67 candidates, zero new findings
+
+§267 derived one constant from the comment that defined it, and named the tell: *a comment explaining how a
+constant was computed is a derivation waiting to be executed.* That is sweepable, so it was swept — every
+`const` collection literal in `packages/`, `workers/`, `apps/` and `tools/` whose preceding comment carries a
+count or completeness claim. **67 candidates.**
+
+All adjudicated; **none is a new finding.** They fall into four groups, and the groups are the useful output:
+
+| Group | Example | Why it is not a defect |
+|---|---|---|
+| **Already derived or tested** | `CSS_VAR_LITERALS` — *"every custom property tokens.css defines"* | a lockstep test pins it (§256 measured it firing) |
+| **Compiler-enforced** | `KIND_VISIBILITY_DEFAULTS` (`Record<EventKind, V>`) | exhaustiveness is a type error, not a test |
+| **Settled in §267** | `INTERNAL_FLOOR` (now derived), `INHERITED_VISIBILITY_KINDS` (correctly a declaration) | — |
+| **Not membership claims at all** | `TAG` (DER tags), `COLUMNS` (QuickBooks IIF) | fixed by an external spec; a count in the comment describes the format, not a subset of something in-repo |
+
+### The one that looked live, and the instrument error under it
+
+`REQUIRED_EVIDENCE` declares itself *"the single enumerated vocabulary of evidence tokens the gates emit."*
+Extracting the declaration and diffing it against every `REQUIRED_EVIDENCE.x` reference showed **two
+referenced tokens missing from the declaration** — `appointment` and `docs`. That reads as exactly the drift
+this sweep is for.
+
+It was my `sed -n '45,60p'` window, not the code: the object runs past line 60 and declares **17** tokens
+including both. §209's rule — *a probe that lands on a boundary tests nothing* — in its literal form, a
+window boundary.
+
+And the direction that mattered was already closed by something stronger: **every `REQUIRED_EVIDENCE.x`
+reference is a property access, so an undeclared token is a type error.** `typecheck` passing is the proof
+that the vocabulary is complete on the emitting side, and no raw string bypasses it (the one grep hit is a
+JSDoc naming the event kind `pod.signed`, not an evidence token).
+
+### The rule
+
+**A tell that yields once is worth sweeping once, and the sweep's value is the ratio it publishes.** 67
+candidates, one already-derived, one compiler-enforced, two settled the section before, and the rest not
+membership claims — a defect rate of zero. Recording that is what stops the next auditor rebuilding this
+regex: the derivation-shaped comment is a *rare* shape in this repo, not a vein, and where it occurs the
+codebase has usually already reached for the stronger tool — a total `Record`, whose omissions are type
+errors rather than findings.
