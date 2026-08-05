@@ -187,7 +187,7 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 ## §4 — Phase gating and the stopping point
 
 > **CURRENT MEASUREMENT: §238, at `68cfb0d`; CONVERGENCE measured at §243.** The four clauses below are
-> measured in §238. §243 (extended through §250 by **§251**) answers the separate question of whether another iteration is worth running:
+> measured in §238. §243 (extended through §250 by §251, and through §269 by **§270**) answers the separate question of whether another iteration is worth running:
 > defects-per-section across the eight sections after §238 ran 1,1,1,—,1,1,**0,0** while verified-clean
 > rose to 8 and 8, the last two being the most systematic sweeps of the set. Five named restart triggers
 > are listed there, each a grep or a diff — two of which are now GATES (§244) rather than greps. Across
@@ -14267,3 +14267,62 @@ map. Here it is a derived-list test that pins its own population count — so th
 the union is what fails, not its later omission from the partial map. That ordering matters: a guard keyed
 to the partial map can only notice entries that exist, while a guard keyed to the **union** notices the ones
 that do not.
+
+## §270 — convergence extended through §269, and the change in what the audit is finding
+
+§251 extended §243's yield table and set the practice: the stopping point's evidence decays like every other
+count, so it is re-measured rather than cited. Eighteen sections have landed since. Tallied the same way:
+
+| § | Subject | Findings | Where |
+|---|---|---|---|
+| 252 | two never-run gates | 1 | a gate's failure message accused the developer — **gate contract** |
+| 253 | iCloud duplicates | 2 | ignore rule covered only " 2"; gates glob the disk — **repo config + gate** |
+| 254 | "can this gate fail?" | 0 | the sweep already existed (§17) |
+| 255 | marker channel, wider scope | 0 | one known marker, fail-safe |
+| 256 | the browser gates, run | 0 | 3 wrong measurements before one right one |
+| 257 | the palette's five copies | 0 | `audit:design` derives its allowlist |
+| 258 | REQ-158's resolved conditional | 1 | three records on the pre-flip side — **governance prose** |
+| 259 | the same conditional, corpus-wide | 1 | two more copies; one correctly preserved — **governance prose** |
+| 260 | genesis status claims | 1 | a row bundling an ops act with two finished deliverables — **ledger** |
+| 261 | ledger bundles, all 12 | 1 | one bundle hid delivered work — **ledger** |
+| 262 | citations my own edits broke | 1 | four stale pointers — **guidance layer** |
+| 263 | the bulk citation audit | 0 | abandoned with a number (651/308/170, all sampled false) |
+| 264 | the ratchet's configuration | 1 | second-largest exposure outside the fence — **gate config** |
+| 265 | unclassified tenant tables | 1 | **latent**: a new table ships unguarded |
+| 266 | "keyed in two places" | 1 | **latent**: keyed in three; a fourth table half-guarded |
+| 267 | a floor derived in prose | 1 | **latent**: re-typed; a new internal kind unclamped |
+| 268 | §267's tell, swept | 0 | 67 candidates, zero |
+| 269 | the `Partial`-map inverse | 0 | already closed, more thoroughly than proposed |
+
+**Twelve findings across eighteen sections — and not one in shipped behaviour.** Thirty-six sections now
+without a defect a user could reach.
+
+### What changed, and it is not the rate
+
+§243 concluded the yield had moved into un-executed prose. That held through §262. **§264–§267 are a
+different category**: three *latent* defects in the enforcement layer — a table that would ship unguarded, a
+list keyed in three places so a fourth entry is half-protected, a floor re-typed so a new internal kind goes
+unclamped. None is reachable today; each is reachable by an ordinary future change.
+
+That is a real distinction for a stopping point. Prose defects mislead a reader. **Latent enforcement
+defects mislead the next commit** — they are the ones that convert someone else's correct work into a
+production bug, and they are invisible to every gate precisely because the triggering entity does not exist
+yet.
+
+### Where the remaining yield actually is
+
+The pattern across §264–§267 is one shape: **a hand-maintained list that something else keys off.** Each was
+found by asking the same question, and each fix was to derive rather than to pin. §268 and §269 then swept
+that shape to exhaustion — 67 derivation-comment candidates and the `Partial`-map inverse, both zero. So the
+vein is worked out, and the audit's own trajectory says so: the last two sections found nothing, and the two
+before them found things only because they were the *first* to ask.
+
+### The stopping point, unchanged in substance
+
+Still §238's four clauses and §243's five restart triggers, two of which are now gates (§244). What §252–§269
+added is not new debt but **enforcement that did not exist**: five gates (surface budget, DO mutex,
+control-migration coverage, table classification, collision-duplicate filtering), two derivations replacing
+re-typed literals, and a ratchet target covering the largest unprotected citation population.
+
+**The remaining ledger is unchanged and none of it is repo-closable:** three owner decisions, nine private
+fixtures, two External Highs, rows needing a migration or API-contract change, and one missing definition.
