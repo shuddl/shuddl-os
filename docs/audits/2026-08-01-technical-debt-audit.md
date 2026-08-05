@@ -13240,3 +13240,52 @@ the citation exactly as written before believing it is broken — the failure mo
 session has now produced both: a citation that resolved while pointing at the wrong thing (§248) and a
 citation that looked broken while being right (here). Neither is visible to a gate; both are visible to
 reading the sentence.
+
+## §250 — auditing the CLOSED rows, because a closure is a claim too
+
+§248–§249 re-verified every **open** repo-owned row. Nobody had ever re-verified a **closed** one — and a
+regression behind a strikethrough is strictly less visible than a stale open row, because the reader's eye
+skips it and no gate re-reads it. This repo has also produced a false closure before (an earlier iteration's
+review caught one where a "last instance removed" claim was untrue of the billing worker), so the vein is
+not hypothetical.
+
+Five closures were re-checked against source, chosen for mechanical verifiability and stakes:
+
+| Closed row | Claim | Verdict |
+|---|---|---|
+| `recordAnchorFailure`'s `ON CONFLICT` does not reset `status='open'` | fixed | **holds** — `status = 'open'` is in the `DO UPDATE`, with a comment explaining why refreshing severity while leaving a row resolved would strand an operator |
+| `runDailyAnchor`'s two pre-loop queries are uncontained | fixed | **holds** — both sit inside a `try`, and `skipped` is deliberately held back "until the scan SUCCEEDS, so a fault cannot leave a half-filled result" |
+| The release-record binding is **self-satisfied** — mismatch checks can never fire | fixed | **holds, mutation-proved 4/4** |
+| The 2026-07-15 60-agent audit is not in the repository | fixed | **holds** — tracked, 30,863 bytes |
+| REQ-045 is a register DATA defect | fixed | **holds** — the row now reads `wp=WP-05, status=F0-SPEC'D`, and its "Built" citation resolves (`assertInterline`, plus the named test) |
+
+### The one worth mutating rather than reading
+
+*"The release-record binding is self-satisfied"* was a **gate-cannot-fail** defect — this session's most
+frequently recurring class (§181's blinded harness, §232's sole-enforcement guard, §235's silent mutex). A
+fix for that class is exactly the kind that can look right and do nothing, so it was mutated rather than
+read: each of the four comparisons in `contextMismatches` neutered in turn (`if (false && record.…)`).
+
+**Four of four RED**, one failing test each — `commit`, `environment`, `fixturesHash`, `deployment`. The
+checks fire, and each has its own covering assertion rather than one test standing in for all four (which
+would have shown up as a single failure across all four mutations).
+
+### What the sample says
+
+**Five of five closures hold.** That is a genuine clean negative and worth recording as one: the closure
+discipline in this checklist — quote the original text, name the commit, cite the code and the test — has
+produced claims that survive independent re-verification months later.
+
+It also refines where audit effort belongs. §243 found the yield concentrated in un-executed prose; this
+adds that **closed rows are not a productive vein in this repo**, because each closure was written with its
+evidence attached, and evidence attached at closure time is what makes re-verification cheap enough to
+bother with. Rows closed with a bare "FIXED" would have cost far more to check and would deserve suspicion;
+none of these were.
+
+### The rule
+
+**Re-verify closures with the same instrument that would have caught the original defect.** Three of these
+were readable — a SQL clause, a `try`, a file's existence — and reading sufficed. The fourth was a
+guard-cannot-fire defect, and for that class reading proves nothing at all: only a mutation distinguishes
+"the check is present" from "the check is enforced." Match the instrument to the *defect's* class, not to
+the convenience of the check.
