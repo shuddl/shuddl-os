@@ -13781,3 +13781,53 @@ maintained by hand, and now carries the audit trail to prove when it last was.**
 finding a fifth copy is to fix all five; one of these five would have been damaged by that. A grep cannot
 distinguish *"this is true now"* from *"this is what we decided then"* — only reading the containing
 document's purpose can, and getting it wrong destroys provenance in exchange for a tidier-looking present.
+
+## §260 — the genesis status-claim sweep, and a row that bundled one ops act with two finished deliverables
+
+§259 swept the genesis docs for *resolved conditionals*. The adjacent family — assertions that something is
+**not built** — had never been swept there. Counts across all sixteen: `not yet` **0**, `TBD` **0**,
+`unwired` **0**, `unbuilt` 1, `deferred` 2, `pending` 3. (`CONFIRM` returns 28, which confirms the pattern
+matches rather than the corpus being silent.)
+
+Genesis is written as specification, not status — which is why the shape barely appears. All six were
+checked; five were already verified earlier this session: driver pay unbuilt (§246), the 21/22 spare table
+slot (`check:invariants` reports it every run), and the fixtures `PENDING` note (§247 — `check:fixtures
+--mode merge` exits 2 with `executed: false`).
+
+### The sixth: a mechanism specified, and a different one built
+
+`genesis/08:41` specifies *"a nightly job diffs register ↔ tests ↔ code annotations and **files 'ORPHAN'
+issues automatically**"*. Half is built exactly: `.github/workflows/nightly.yml` runs on
+`cron: "0 8 * * *"` with a step named *"register ↔ code orphan diff (REQ-118)"* → `pnpm check:traceability`.
+
+The other half is not. Nothing in that workflow files an issue — there is no `gh issue create`, no
+notification step. What happens instead is that the step has **no `continue-on-error`**, so an orphan
+**fails the nightly build**.
+
+**Recorded, not "fixed", and the intent is met.** The section's own standard is that *"every miss is
+detectable, attributable, and convergent to zero"* — a failing nightly is louder than an auto-filed issue
+and harder to ignore, and the log names the orphan, so it is detectable and attributable. The spec names a
+*delivery mechanism*; the build chose a stronger one. Editing genesis to match would be rewriting scope,
+which is the owner's act, so this is a **noted divergence**, not a defect and not a change.
+
+### A row that bundled three things, two of them long since done
+
+Chasing whether that nightly can even run led to `GO-LIVE:135`: *"GitHub Actions activation (F1-A) + 5
+blessed Playwright screenshots + measured map perf … Deferred to first browser-capable CI run."* Three
+items, one status. Two are finished:
+
+- **Blessed screenshots** — all five committed, and `test:visual` passes 5/5 against them (§253, §256).
+- **Measured map perf** — `perf:map` exits 0 here with real numbers: **1000 entities, frames=401, p50
+  10.00ms, p95 11.30ms (~88fps) against an 18.18ms / 55fps budget**; cold-boot long tasks 1, worst 59.00ms
+  (reported, not budgeted).
+
+Only **activating the workflows** remains, and that is an ops act, not engineering. The row also said
+*"design CI self-skips in sandbox"* — no longer true; it is blocking (§258). Split so a reader sees one
+external act instead of three pending items.
+
+### The rule
+
+**A checklist row with `+` in its title is three rows wearing one status.** The bundle takes the status of
+its least-finished member, so completed work inside it stays invisible — here, two deliverables sat "pending"
+for weeks behind an ops act neither depended on. When auditing a ledger, split on the conjunction first and
+ask each half separately; the answer is often that most of the row is done.
