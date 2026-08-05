@@ -14326,3 +14326,58 @@ re-typed literals, and a ratchet target covering the largest unprotected citatio
 
 **The remaining ledger is unchanged and none of it is repo-closable:** three owner decisions, nine private
 fixtures, two External Highs, rows needing a migration or API-contract change, and one missing definition.
+
+## §271 — gate SCAN COVERAGE: does each lint actually reach the tree it claims?
+
+§270 called the hand-maintained-list vein worked out. A different latent-enforcement shape had never been
+swept: **a gate whose glob covers less of the tree than it appears to.** §211 found exactly that once — a
+pattern that scanned 83 of 215 files — and a lint that silently skips a directory enforces nothing there
+while reporting clean.
+
+Every glob pattern used by the gates was compared against `git ls-files` for the same tree:
+
+| Pattern | glob | tracked | gap |
+|---|---|---|---|
+| `packages/*/src/**/*.ts` | 116 | 116 | 0 |
+| `workers/*/src/**/*.ts` | 99 | 99 | 0 |
+| `workers/*/test/**/*.ts` | 135 | 135 | 0 |
+| `apps/*/src/**/*.tsx` | 56 | 56 | 0 |
+| `apps/*/src/**/*.ts` | 48 | 48 | 0 |
+| `packages/rater/src/**/*.ts` | 13 | 13 | 0 |
+| `packages/*/src/**/*.tsx` | 8 | 8 | 0 |
+
+**Zero gaps.** §211's defect was git's pathspec, where `**` requires an intermediate directory; Node's
+`globSync` matches zero or more, so the same pattern is correct here. Worth stating explicitly because the
+two look identical and behave differently — the earlier finding is not latent in these gates.
+
+### The tree the globs do NOT cover, and why that is right
+
+`tools/` is outside most lint globs, and it contains a genuine ledger write: `tools/seed/load.ts` builds
+`INSERT INTO events (…)` directly. Under REQ-030 every `events` write must traverse the sequencer
+chokepoint, so this is exactly the shape worth chasing.
+
+It is fully handled, in the strongest available form:
+
+- `append-chokepoint.ts`'s `SCAN_GLOBS` **does** include `tools/**/*.ts` — the tree is scanned;
+- the seed loader is an **explicit allowlist entry carrying its justification**: *"a developer tool that
+  populates a local/dev tenant. Not reachable by API…"*;
+- the allowlist is **exported so a test asserts its exact keys**, with the stated intent that it *"stays
+  deliberate rather than growing quietly"* — so a second bypass cannot be added silently;
+- and the gate's success line reports the count: *"the events table is written by N allowlisted module(s)
+  and nothing else."*
+
+An exemption that names itself, justifies itself, and is pinned against growth is not a hole.
+
+### The instrument note
+
+I misread `SCAN_GLOBS` **twice** before reading it — a `grep -A 6` truncated the array mid-list, and a
+character-class regex returned two fragments (`"/"`, `"/test/"`) that looked like malformed globs. Both
+readings suggested `tools/` was unscanned; both were artefacts of the window, not the file. That is the third
+truncated-grep near-miss this session (§268's `sed` window, §263's symbol pairing). **The rule that keeps
+holding: when a finding depends on the contents of a list, print the whole list.**
+
+### The result
+
+Both sweeps clean. Recorded because the negative bounds something: gate scan coverage is not a source of
+latent enforcement gaps in this repo, and the one tree deliberately outside the globs is covered by an
+allowlist that is itself tested.
