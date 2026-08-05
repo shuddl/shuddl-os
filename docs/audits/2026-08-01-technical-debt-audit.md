@@ -16435,3 +16435,57 @@ the determinism and layering bans of §284/§285), or they are process rules wit
 
 Four mutations across three packages, four correct outcomes, `git status` clean in every mutated path;
 `@shuddl/mcp` 177 passed, `@shuddl/rater` 154 passed, `@shuddl/ledger` 616 passed.
+
+---
+
+## §307 — Six of ten, and the claim from §306 that needed checking
+
+§306 closed with a bound: four laws proven, *"the rest are either lint-enforced … or process rules with no
+runtime surface to break."* That was my own claim, one section old, and this phase has caught three of those
+(§293, §294, §304). So it was enumerated rather than asserted — and **two of the "rest" had runtime surface
+after all.**
+
+### Rule 10 — "no silent drops in migration" (the Migrator rule)
+
+Any legacy column that maps to no known field must raise a `gapRow`; nothing may disappear. Mutation: delete
+the `gapRows.push({… reason: "unmapped" …})` site, so an unmapped column vanishes silently — the precise
+failure the rule names.
+
+**RED**, naming `gapRow`. Restored: 38 passed.
+
+### Rule 3 — "gates are server-side; any flow reachable by API enforces the same gate" (REQ-030)
+
+The most security-architectural rule in the file: a UI may reflect a gate, never own it. Mutation:
+`packages/ledger/src/gates/invoice-gate.ts:48`, `if (row === null) throw new GateError(["pod.signed"])`
+deleted — so an invoice with no signed POD passes the **server-side** check.
+
+**RED — 3 failing assertions**, naming `REQ-030`, `pod.signed` and the invoice gate. Restored: 616 passed.
+
+### The table, complete for every law with a runtime surface
+
+| rule | mutation | result |
+|---|---|---|
+| **2** — events append-only (I3/I7) | drop `events_guard_upd` / `_del` | RED ×2 |
+| **3** — gates are server-side (REQ-030) | invoice gate stops refusing | RED (3) |
+| **4** — no price on air (REQ-004) | delete the `missing_physics` return | RED (9) |
+| **5** — interline executing share (REQ-040) | compare gross, not the slice | RED (13) |
+| **8** — tenant isolation (REQ-025) | mint a fixed tenant | RED (15) |
+| **10** — no silent drops in migration | unmapped column raises nothing | RED |
+
+**Six of ten**, every file restored byte-identical. The remaining four — *every PR cites REQ-IDs*, *fixtures
+gate merges*, *design CI*, *adversarial audit at WP exit* — are gates or process, and three of the four were
+already mutation-proved this phase as gates (§287 design budgets, §289 wiring, §298 the merge run).
+
+### The correction worth more than the two laws
+
+§306's sentence was not wrong by accident. **"The rest are process rules" is the kind of claim that feels
+like a bound and functions as an excuse to stop** — it closes a table without enumerating what it excludes.
+Enumerating took one pass and moved the count from four to six.
+
+The tell is grammatical again, as in §297: **a category claim ("the rest are X") asserted about a set you did
+not list.** Listing is cheap; the claim reads as complete either way, which is exactly why it survives.
+
+### Verification
+
+Six mutations across four packages, six correct outcomes, `git status` clean in every mutated path;
+`@shuddl/ledger` 616, `@shuddl/rater` 154, `@shuddl/mcp` 177, `@shuddl/adapters` 38 — all green after restore.
