@@ -191,7 +191,7 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 > two first — together they are the production-readiness claim: the gates run, and the laws the gates exist
 > to protect fail when their enforcement is removed. §296 re-measured the gate surface at `3d1386b` but named two bounds that turned
 > out to be unmeasured inheritances — §297 withdrew the worker-suite bound (the full suite runs: 281 files /
-> 3,698 tests / 3,695 passing) and §298 withdrew the browser-gate bound (visual/a11y/e2e all PASS with
+> 3,704 tests / 3,701 passing, re-measured after §324/§326) and §298 withdrew the browser-gate bound (visual/a11y/e2e all PASS with
 > `executed: true`). §299 specifies the single blocker behind both FAILs — the uncommitted `REQ-289` GTM row,
 > down to the two source lines that reject it; §300 verifies every item of the standing ledger against its
 > source; and **§326 closed the last repository-owned item, so every remaining entry is blocked on an input
@@ -15796,7 +15796,7 @@ audit's own headline.
 run: this machine has a documented, uninterruptible `workerd` wedge…~~ **This bound was WRONG and is
 withdrawn — see §297.** It was inherited from a prior session's note and written here as a present machine
 condition without being re-checked; measured, there were zero uninterruptible processes and every worker
-suite runs in seconds. The corrected figure is **281 files / 3,698 tests / 3,695 passing**. The four browser
+suite runs in seconds. The corrected figure is **283 files / 3,704 tests / 3,701 passing** *(re-measured 2026-08-05 after §324/§326 added 2 files / 6 tests; was 281 / 3,698 / 3,695)*. The four browser
 gates do report `BLOCKED` without a browser, which is their designed posture under `--mode merge`, not a
 defect — that bound stands. **A green here is a green for the surface named, and nothing wider.**
 
@@ -17596,3 +17596,41 @@ it.
 
 Both entry points corrected and re-read; duplication removed; `check:citations 0 · check:invariants 0`.
 No code changed.
+
+---
+
+## §328 — Re-measuring the figure my own work invalidated
+
+§324 and §326 each added a test file. §297's published figure — *"281 files / 3,698 tests / 3,695 passing"* —
+predated both, and had been repeated in three documents since. **Two sections after writing the rule that a
+state change must be routed the day it happens, I had let a number I personally moved go stale.**
+
+Re-measured at `1a89389`: **252 package files / 2,920 tests, exit 0, zero failure summaries**, plus tools at
+**31 files / 784 tests**. Total **283 files / 3,704 tests / 3,701 passing** — the three failures remaining
+the known `REQ-289` trio.
+
+### The reconciliation is the check
+
+281 → 283 files (**+2**) and 3,698 → 3,704 tests (**+6**) is **exactly** what §324 (3 tests) and §326
+(3 tests) added. A re-measurement that lands on an unexplained number is a second finding; one whose delta
+equals the known additions confirms both the new figure and that nothing else moved underneath it.
+
+**That is worth doing deliberately: predict the delta before reading the total.** If it matches, the
+measurement is corroborated for free; if it does not, the gap is the finding. Reading the total first makes
+any number look plausible.
+
+### Five copies, and one wrong stamp
+
+The figure lived in **five places** across two documents — the §297 correction, §4's entry pointer, and three
+rows in `PROJECT-STATE.md`. All updated. And the state table's stamp still read *"re-measured at `430c7da`"*
+while the measurement had just been taken at `1a89389`: **a stamp naming the wrong commit is worse than no
+stamp**, because it invites exactly the verification §294 says a stamp exists to enable, and answers it
+falsely. Corrected to HEAD.
+
+**§292's rule was "sweep for the fact, not the confession"; this is its maintenance half — after
+re-measuring, sweep for every copy of the number you just changed**, including the stamp beside it.
+
+### Verification
+
+Full recursive suite re-run (exit 0); five figure copies and one stamp updated; `check:citations 0 ·
+check:invariants 0`.
