@@ -274,3 +274,25 @@ describe("party geo-privacy is structural: every geo-bearing kind, nested or top
     expect(g.accuracy_m).toBe(5);
   });
 });
+
+// audit §267 — INTERNAL_FLOOR is DERIVED from KIND_VISIBILITY_DEFAULTS rather than re-typed. This is the
+// identity test: the floor must be exactly the code-default-internal kinds, so re-typing it as a literal
+// (the previous shape) fails the moment the two diverge.
+describe("§267: the internal visibility FLOOR is exactly the code-default-internal kinds", () => {
+  const internalByDefault = (Object.entries(KIND_VISIBILITY_DEFAULTS) as ReadonlyArray<[EventKind, string]>)
+    .filter(([, v]) => v === "internal")
+    .map(([k]) => k)
+    .sort();
+
+  it("is non-vacuous: some kinds default to internal and some do not", () => {
+    expect(internalByDefault.length).toBeGreaterThan(0);
+    expect(internalByDefault.length).toBeLessThan(Object.keys(KIND_VISIBILITY_DEFAULTS).length);
+  });
+
+  it("clamps EVERY code-default-internal kind (a floor may be too strict, never too loose)", () => {
+    for (const k of internalByDefault) {
+      // requested `counterparty` — the widening a floor must refuse; policy undefined so only the floor acts.
+      expect(resolveVisibility(k as EventKind, undefined, "counterparty"), `${k} defaults to internal but was not clamped`).toBe("internal");
+    }
+  });
+});

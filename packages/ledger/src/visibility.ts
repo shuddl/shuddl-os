@@ -67,15 +67,17 @@ const RANK: Record<Visibility, number> = { internal: 0, counterparty: 1, public:
 // SUPERSET — all SEVEN code-default-internal kinds — is the safe choice: a floor can only ever be too strict,
 // never too loose. PROPOSED REGISTER ALIGNMENT (a comment, not a register edit — the CSV is append-only and
 // owner-signed): amend REQ-180's kind list to add `split.computed`, making the register's 6 match the code's 7.
-const INTERNAL_FLOOR: ReadonlySet<EventKind> = new Set<EventKind>([
-  "call.transcribed",
-  "credit.checked",
-  "approval.requested",
-  "approval.decided",
-  "agent.acted",
-  "authority.flipped",
-  "split.computed", // superset: NOT named by REQ-180, but code-default-internal + interline/margin-bearing
-]);
+const INTERNAL_FLOOR: ReadonlySet<EventKind> = new Set<EventKind>(
+  // DERIVED from KIND_VISIBILITY_DEFAULTS, not re-typed (audit §267). This set IS "every code-default-
+  // internal kind" — that is the definition above, and it was maintained by hand as seven literals that
+  // happened to match. Deriving it means a NEW kind whose default is `internal` is clamped the moment it
+  // is added, instead of on the day someone remembers this second list. The direction is the safe one the
+  // comment argues for: a floor can only ever be too strict, never too loose, so auto-inclusion cannot
+  // leak. (Verified identical at the time of the change: 7 of 35 kinds, same seven.)
+  (Object.entries(KIND_VISIBILITY_DEFAULTS) as ReadonlyArray<[EventKind, Visibility]>)
+    .filter(([, v]) => v === "internal")
+    .map(([k]) => k),
+);
 
 // Task 8 (REQ-015 / I7) — the INHERITED-VISIBILITY kinds: kinds whose visibility is NOT a default of their own
 // but is INHERITED from a specific parent event (today only invoice.corrected, which inherits the visibility of

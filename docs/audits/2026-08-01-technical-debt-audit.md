@@ -14140,3 +14140,51 @@ unverified claim — the third copy sat inside a function whose name suggested i
 check is mechanical: grep the *literal value*, not the identifier, because a re-typed copy shares the value
 and nothing else. And when a fix is driven by a failing test, read the function the failure lands in; that
 is where the copy you did not know about lives.
+
+## §267 — a visibility floor that was derived in prose and re-typed in code
+
+§266's rule — *grep the literal value, not the identifier* — pointed at the event taxonomy. The good news
+first, verified rather than assumed: there is **no SQL-side copy** of the 35 kinds (no `CHECK` constraint on
+`events.kind`), and the one map that must cover every kind, `KIND_VISIBILITY_DEFAULTS`, is typed
+`Record<EventKind, Visibility>` — **exhaustive and compiler-enforced**, so a new kind cannot be added without
+deciding its visibility. That is the strongest available shape and it is already in place.
+
+The two *subset* sets are where omission bites. `INTERNAL_FLOOR` carries its own definition in prose:
+
+> *"Clamping the FAIL-CLOSED SUPERSET — **all SEVEN code-default-internal kinds** — is the safe choice: a
+> floor can only ever be too strict, never too loose."*
+
+That sentence defines the set as a **derivation** of `KIND_VISIBILITY_DEFAULTS`. The code wrote it out as
+seven string literals. Computed both sides: **7 of 35, identical, exactly equal** — correct today, and
+maintained only by whoever remembers there is a second list.
+
+**Derived rather than pinned**, because §257's rule prefers a mechanism over a parity test, and the comment
+already stated the derivation: `INTERNAL_FLOOR` is now `Object.entries(KIND_VISIBILITY_DEFAULTS).filter(v ===
+"internal")`. A future kind defaulting to `internal` is clamped **the moment it is added**, not on the day
+someone remembers. The direction is the one the comment argues for — auto-inclusion can only tighten a
+floor, never loosen it.
+
+**Proved on both sides.** Flipping `pod.signed` to an `internal` default grows the derived floor to 8
+automatically; against the old hand-written literal it would have stayed at 7, leaving a code-default-internal
+kind **unclamped**. And re-typing the floor as a 6-of-7 subset now turns the suite **3 failed / 100 passed**,
+where before it was simply the definition.
+
+The identity test asserts every code-default-internal kind is actually clamped when `counterparty` is
+requested, plus a non-vacuity case (some kinds default internal, some do not — otherwise the loop could pass
+over an empty or total set).
+
+### The one that must NOT be derived
+
+`INHERITED_VISIBILITY_KINDS` (today: `invoice.corrected`) looks like the same shape and is not. Its members
+have **no default of their own** — resolution is exact-parent-or-nothing, and an unresolved parent returns a
+sentinel the sequencer must refuse. There is nothing in `KIND_VISIBILITY_DEFAULTS` to derive it *from*; it is
+a genuine declaration. Left alone deliberately, because §259's lesson applies to code as well as prose:
+**two lists that look alike can have opposite obligations.**
+
+### The rule
+
+**When a comment explains how a constant was computed, that comment is a derivation waiting to be executed.**
+Prose of the form "this is all the X that are Y" is the strongest possible signal — the author has already
+done the derivation by hand and written down the rule. Running it is usually a three-line change that
+converts a maintenance obligation into an invariant, and the comparison costs nothing: compute both sides
+first, and if they differ, you have found a defect instead.
