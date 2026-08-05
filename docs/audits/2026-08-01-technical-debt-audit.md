@@ -17730,3 +17730,50 @@ required reading the result rather than trusting the diff.**
 
 `PROJECT-STATE.md` header rebaselined and the two stamp kinds labelled; render re-read;
 `check:citations 0 · check:invariants 0`. No code changed.
+
+---
+
+## §331 — The routing sweep, completed: three documents, one defect, three forms
+
+§329 read the audit's own entry point whole and found two contradictions. §330 did the same for
+`PROJECT-STATE.md` and found two stamps for "now". This completes the set with `GO-LIVE-CHECKLIST.md` — the
+document `PROJECT-STATE` names as where the technical-debt ledger actually lives.
+
+**Its header's currency claims stopped at 2026-07-27**: *Last synthesized* 07-19, *Last re-audited* 07-27,
+*Closed out* 07-27, *Record-corrected* 07-27. Three of its rows changed on **2026-08-05** — §291 re-measured
+the staging placeholders, §315 added the REQ-030 hold, §326 moved that hold OPEN → TRIPWIRED. **A reader saw
+four July dates and no signal that the content had moved since.**
+
+Fixed by **adding** a claim rather than overwriting one: *"Last amended: 2026-08-05 at `4ca050e`"*, naming
+all three changes — because per §330, *amending rows* and *re-auditing the ledger* are different assertions,
+and collapsing them would have claimed a full sweep that did not happen.
+
+### The same defect, three forms
+
+| document | form | §  |
+|---|---|---|
+| the audit | numbers in adjacent clauses disagreeing after thirty in-place edits | §329 |
+| `PROJECT-STATE` | two *kinds* of stamp, unlabelled, reading as a contradiction | §330 |
+| `GO-LIVE-CHECKLIST` | a currency header that stopped tracking its own content | §331 |
+
+**One cause underneath all three: every edit was verified against the section it changed, and nothing was
+verified against the document.** The audit's contradiction lived between two edits two sections apart;
+PROJECT-STATE's lived between a header and a table; the checklist's lived between a header and rows edited
+three separate times.
+
+### The rule, in its final form
+
+**A document that routes readers needs three things a well-made edit does not provide:**
+
+1. a **whole-read** on a cadence no single edit triggers (§329),
+2. **labels** where two kinds of currency claim coexist — baseline vs measurement (§330),
+3. a **header that tracks its own content**, distinguishing amendment from re-audit (§331).
+
+None of these is checkable by a gate, and this audit has now measured four times why (§292/§304/§313/§326):
+they require knowing what a sentence *means*, not whether a reference *resolves*. `check:citations` was green
+before and after every one of these three findings — correctly, because none of them was a broken reference.
+
+### Verification
+
+Three routing documents read whole; three defects found and fixed; `check:citations 0 · check:invariants 0`
+throughout — the gates were never the mechanism here, which is the point.
