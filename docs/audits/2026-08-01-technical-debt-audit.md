@@ -18244,3 +18244,56 @@ byte-identical.** No residual in either table.
 
 Landing verified; `@shuddl/ledger` 616 green after restore; §340's standing table corrected to 8 of 8.
 No file changed.
+
+---
+
+## §342 — The other money identity, and why identities are cheap to defend
+
+§341 ended on a claim worth testing rather than admiring: **an invariant stated as an equation dictates a
+test that cannot be satisfied approximately.** The build states another money identity, in `CLAUDE.md` rule 6
+— *"QB export reconciles to the penny"* — so it was checked.
+
+Both fixtures behind it are **vendored, not pending** (`qb-journal-month`, `gl-netting`), so that gate runs
+in-repo today, and `derive-split.test.ts:84` asserts the identity directly: *"penny-exact end to end: the
+derived bps + allocateCents reconcile Σ ==="*.
+
+**Mutation:** `money/split.ts:31` replaces `largestRemainder(magnitude, weights, 10_000n)` with a plain
+floor-divide — the textbook way to apportion money, and the one that loses cents. Every share is still
+plausible; only the total is wrong, by at most a few pennies.
+
+**RED — 10 failing assertions**, naming *penny-exact*, *postcondition* and *reconcile*. Restored
+byte-identical: 616 passed.
+
+### Ten assertions for a rounding change
+
+The mutation is not a typo — **it is the obvious implementation.** Floor-dividing basis points is what most
+code does, it passes any test that checks a share is "about right", and it is wrong only in the sum. That is
+precisely the defect class an aggregate identity exists to catch, and the reason ten assertions fire on it
+while a per-share tolerance test would fire on none.
+
+**Three money identities are now mutation-proved this phase**, and the pattern across them is consistent:
+
+| identity | mutation | REDs |
+|---|---|---|
+| I7 — correction pairs net zero | drop one `-` | 6 |
+| interline floors compare the executing share (eng.5) | compare gross | 13 |
+| penny-exact allocation (rule 6's "to the penny") | floor instead of largest-remainder | 10 |
+
+**Each mutation is small, plausible, and would survive a shape test.** Each is caught many times over,
+because the invariant is an equation and the tests assert the equation.
+
+### The generalisable claim, now with evidence
+
+An invariant stated as *"X should be roughly Y"* permits a test that cannot fail; an invariant stated as
+*"ΣX = Y"* forbids one. **This audit spent thirty sections finding gates that could not fail — a font budget
+nothing counted (§287), a roster whose length pinned nothing (§286), a coverage claim keyed on a hardcoded
+number (§293) — and every one of them was a claim written as a description rather than an identity.**
+
+The money invariants were never in that list, and this is why: **their form left no room for a test that
+could not fail.** That is not a lucky property of money — it is available to any invariant someone is willing
+to state as an equation.
+
+### Verification
+
+Landing verified; `@shuddl/ledger` 616 green after restore; both backing fixtures confirmed vendored rather
+than pending before the run. No file changed.
