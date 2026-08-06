@@ -23320,3 +23320,72 @@ Four changed suites re-measured with the verdict line read whole; the +11 reconc
 file count cross-checked against `git ls-files | grep -c '\.test\.'` = **287**, confirming exactly one new
 file; both sibling records updated in the same commit (§369); staged by explicit path (§379).
 `typecheck 0 · check:tables 0 · check:citations 0`.
+
+---
+
+## §413 — both readers of the revocation rule are pinned, and the "identical predicate" is not identical
+
+§412 named the largest counted bound: **139 negative-property tests un-mutated**, with §397's priority order
+— *side-effect-absence claims first*. This spends budget on the highest-stakes of them: a **revoked device
+signing an append**, where a failure is not a wrong number but a credential that outlives its revocation.
+
+### Both readers hold
+
+REQ-254's rule is one predicate with two consumers, and the sequencer's own comment says so:
+
+> *"a REVOKED device's key must not verify a signature. Without the `revoked_ts IS NULL` clause, revoking a
+> stolen device removed it from the enrollment surface while this path kept accepting its signed appends:
+> the revocation was cosmetic on the two readers that matter. **Mirrors the identical predicate in
+> gate-context's `deviceOwnedBy` — one rule, both readers** (share-lint: if this shape grows a third reader,
+> factor it)."*
+
+Mutated independently:
+
+| reader | mutation | result |
+|---|---|---|
+| `sequencer.ts@#deviceKey` (the append path) | drop `revoked_ts IS NULL` | **RED** — *"a REVOKED device cannot sign an append — its key no longer resolves (REQ-254)"* |
+| `gate-context.ts@deviceOwnedBy` (the `/v1/positions` bypass) | same | **RED** — *"a revoked device is refused (403 DEVICE NOT REGISTERED), nothing inserted"* |
+
+Two readers, two independent pins, each naming its own path. That is what §375's replicated-guard finding
+looks like when it has been done right — and it was, before this audit reached it.
+
+### The small thing the sweep surfaced
+
+The two predicates are **not textually identical**, which is how the second mutation missed on its first
+attempt:
+
+```sql
+sequencer:     AND json_extract(je.value, '$.revoked_ts') IS NULL LIMIT 1
+gate-context:  AND json_extract(je.value,'$.revoked_ts') IS NULL LIMIT 1
+```
+
+One space. Semantically the same, and the comment's word for them — *"identical"* — is true of their meaning
+and false of their bytes.
+
+That matters for one specific reason, and it is the reason the comment itself anticipates: **the share-lint
+discipline this repository uses (§391's third mechanism, the parity test over a shared corpus) keys on
+text.** A future check written to prove "these two readers carry the same clause" by comparing the strings
+would report a divergence that does not exist — or, worse, be written to normalise whitespace and then miss
+a real one. The comment already prescribes the durable fix: *"if this shape grows a third reader, factor
+it."* Two readers with a one-space difference is the last moment where copying is still cheaper than
+extracting.
+
+Recorded rather than changed: reformatting one line to match the other would make the strings equal and
+**change nothing about the risk**, which is that they are two strings at all.
+
+### Where this leaves the bound
+
+**139 → 137.** Two of the highest-stakes side-effect-absence claims mutated, both pinned, both attributed by
+their own test name. No defect.
+
+The ratio across everything mutated this phase is worth stating plainly, because it is the argument for
+continuing rather than stopping: **the negatives outnumber the findings roughly four to one, and the
+findings have been real** — a certification gate nobody tested, a guard replicated three times, a config
+throw that DLQ'd a customer's email, a client field selecting a money floor. A sweep with that ratio is
+neither noise nor theatre; it is the price of the four.
+
+### Verification
+
+Both predicates located at their lines and read in full; each mutated independently and **attributed by its
+own failing test**, not by count; the second's anchor miss diagnosed as a whitespace difference rather than
+retried blindly; both files restored byte-identical. No code changed — nothing needed changing.
