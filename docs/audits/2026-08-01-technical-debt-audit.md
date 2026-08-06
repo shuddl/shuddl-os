@@ -25199,3 +25199,32 @@ here.**
 **Axis progress, with the command from §446 unchanged:** 3 of 60 examined — 1 gap fixed (§447's flip-reason
 provenance), 2 clean. The clean ones are clean in different ways: one by a schema refinement with adversarial
 tests, one by construction with the dormancy measured rather than assumed.
+
+## §449 — the public tenant-routing claim, and where this axis's attention actually went
+
+Fourth of the 60. `workers/api/src/pub/quote.ts:122` carries the highest-stakes provenance claim in the
+repo: *"TENANT from the CF-routed URL hostname (routing-authoritative), NEVER the client-forgeable Host
+header"* — tenant isolation (REQ-025, CLAUDE.md rule 8) on an **unauthenticated** surface, where a
+successful forgery prices a stranger against another tenant's config.
+
+**Exemplary coverage, and the reason it is exemplary is the control.** Three tests, in `isolation.test.ts`:
+a different URL host routes to tenant-b and produces a **numerically distinct price**; a spoofed `Host`
+header yields tenant-a's price unchanged; an unknown host 404s *before any DB handle* (no tenant-existence
+oracle). The first is what makes the second mean anything — without a proven price difference between the
+two tenants, `spoof.sell_cents === a.sell_cents` could pass on coincidence. That is the positive control
+§442 found this repo doing consistently, here on the claim that most needs it.
+
+**Verified, not assumed:** routing from `c.req.header("Host")` instead of `new URL(c.req.url).hostname`
+gives **1 failed / 63 passed**, and the one is the spoof test.
+
+**THE AXIS'S PROFILE, AT 4 OF 60.** One gap, three clean — and *where* they fall is the useful part. The
+three clean claims all sit on surfaces with an obvious adversary: an unauthenticated public endpoint, a
+legal-precondition gate, a cross-tenant boundary. The gap (§447, the flip `reason`) sits on an
+**authenticated admin route**, and its harm is not a breach — it is an audit-trail lie: a human decision to
+move money authority recorded as a machine-detected one. **Attention follows the threat model, and the
+threat model is written around data exfiltration.** A claim whose violation produces *wrong records* rather
+than *leaked records* gets less of it.
+
+That is a selector for the remaining 56, sharper than reading them in file order: **prefer the provenance
+claims whose failure mode is a false record over those whose failure mode is an open door.** The open doors
+are where the adversarial tests already are.
