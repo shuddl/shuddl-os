@@ -24972,3 +24972,37 @@ it pins the refusal and not the REASON. Narrow (its honest-case sibling makes a 
 filed rather than fixed. **§397's "side-effect-absence first" priority is now discharged**; the remaining
 negative-property tests are refusal assertions on pure functions, where the shape is correct by
 construction.
+
+## §443 — the last residue closed: a refusal pinned without its reason
+
+§441 and §442 each filed the same narrow residue rather than fixing it: the REQ-254 revoked-device test
+asserted `expect(err).not.toBeNull()` — a refusal, with no constraint on WHY. Carried twice is one time too
+many for something this cheap, so it is closed here.
+
+**Why it mattered despite being narrow.** `not.toBeNull()` accepts ANY error: a malformed input, a gate
+block, a harness fault. If the revoked path ever began failing for an unrelated cause, the revocation rule
+itself would be unenforced and the test would stay green — §383's true-verdict-wrong-reason class, sitting
+on a security property (a revoked device's key must not verify a signature; without the `revoked_ts IS NULL`
+clause, revoking a stolen device was cosmetic on the two readers that matter).
+
+**The assertion added pins the DEVICE-AUTH path** (`/UNAUTHORIZED|device signature/i`). It is attributable
+because of how the fixture is built: the revoked entry CLONES the active device's key material and differs
+only in `revoked_ts`, so a device-auth refusal there can only be the revocation.
+
+**Two mutations, and the second is the one that justifies the change.** Dropping `AND json_extract(je.value,
+'$.revoked_ts') IS NULL` from the key lookup — so a revoked key resolves again — gives **1 failed / 26
+passed**, proving the clause is load-bearing. Reclassifying the refusal itself
+(`rpcError("UNAUTHORIZED", {reason:"device signature"})` → `VALIDATION_FAILED`) gives **2 failed** — the
+case where an error still occurs, `not.toBeNull()` still passes, and only the reason assertion catches it.
+
+**An honest qualification the mutation surfaced.** M2's second failure is a SIBLING test that already
+asserted `UNAUTHORIZED` for a bad signature. So the error's classification was not unpinned repo-wide — but
+it was unpinned **for the revoked path specifically**, which is the path that can drift independently (a
+revoked device rejected by some earlier guard would leave the sibling green). The finding stands narrowed,
+and the mutation is what narrowed it: without M2 I would have recorded a larger claim than the evidence
+supports.
+
+Restored byte-identical; `workers/api` sequencer suite **27 passed**, `typecheck` and `lint` clean.
+
+**With this, every residue this phase filed is closed or explicitly owner-blocked.** §442's bound is
+discharged in full rather than in part.

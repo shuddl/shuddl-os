@@ -220,6 +220,15 @@ describe("device_id is bound to the signing key — no offline-slot squatting (R
     const input = await signedDeviceInput(streamId, { actor: { party: "party-carrier", user: "user-driver", device: revokedId }, device_id: revokedId });
     const err = await stubFor(streamId).append({ tenant: TENANT, streamId, input }).then(() => null, (e: Error) => e);
     expect(err, "a revoked device must NOT be able to append").not.toBeNull();
+    // PIN THE REASON, NOT ONLY THE REFUSAL (audit §443). `not.toBeNull()` accepts ANY error — a malformed
+    // input, a gate block, a harness fault — so on its own it keeps passing if this path ever starts failing
+    // for an unrelated cause, leaving the revocation rule itself unenforced and the test still green
+    // (§383's true-verdict-wrong-reason). The key material above is CLONED from the ACTIVE device and the
+    // only difference is `revoked_ts`, so a device-auth refusal here is attributable to revocation and
+    // nothing else.
+    expect(String(err), "the refusal must come from the DEVICE-AUTH path (REQ-254), not an unrelated error").toMatch(
+      /UNAUTHORIZED|device signature/i,
+    );
     expect(await eventsFor(streamId)).toHaveLength(0);
   });
 
