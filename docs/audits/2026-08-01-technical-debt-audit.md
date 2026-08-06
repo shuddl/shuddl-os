@@ -19063,3 +19063,71 @@ able to find by asking *"what would I have to construct on purpose?"*
 
 Seven refusal constructions enumerated from the caps suite; the REQ-105 composite key mutated and restored
 byte-identical (RED naming `velocity`); `@shuddl/mcp` 177 green. No file changed.
+
+---
+
+## §357 — The property that will fire in production, and does have its test
+
+§356's corollary was a sweep instruction: **a codebase's untested properties are disproportionately the ones
+that have never failed**, findable by asking *"what would I have to construct on purpose?"* The sharpest
+candidate left is **queue redelivery** — because unlike most exceptional paths, it is not hypothetical.
+Cloudflare Queues is at-least-once, so a duplicate delivery is not a failure mode; **it is the normal
+operation of the transport**, and a non-idempotent Biller means a customer invoiced twice.
+
+Two distinct properties live here, and only reading both distinguishes them:
+
+- **The dispatcher's** behaviour — `queue-dispatch.test.ts` proves a poison body is ACKed (*"redelivery cannot
+  fix a shape"*) and a thrown handler calls `retry()` per-message rather than failing the batch.
+- **The handler's** idempotency — that a redelivered trigger recomposes the *same* invoice rather than a
+  second one. That is not the dispatcher's concern at all, and `id-determinism.test.ts` exists precisely
+  because *"the outcome (the same message twice → ONE invoice) necessarily lives there."*
+
+### Mutation-proved at the root
+
+`workers/agents/src/biller.ts:87@sha256Hex` sits under a banner reading *"deterministic ids (no Date, no random — redelivery must reproduce them
+exactly)"*, and the mechanism is a SHA-256 of a domain-tagged seed, shaped into a v4-variant UUID so the
+sequencer's own id-dedupe does the rest.
+
+**Mutation: the digest replaced with `crypto.getRandomValues`** — ids that never repeat, so every redelivery
+mints a new invoice. **RED — 2 failing assertions**, naming `determinism`, `deterministic`, `redelivery`.
+Restored byte-identical: 113 passed.
+
+### Where the sweep has landed
+
+Four deliberate-construction properties tested this phase, and the split is now clear:
+
+| property | prior incident? | tested |
+|---|---|---|
+| offline merge — zero loss / zero dupes | **yes** (drain-order stranding) | 47 REDs |
+| REQ-105 target-bound idem key | **yes** (cap bypass) | RED |
+| redelivery → ONE invoice | **no** — but the transport guarantees it happens | RED |
+| unhandled-error envelope | no | **zero, until §354** |
+
+**Redelivery is the counter-example that completes §356's rule.** It has no incident behind it, yet it is
+covered — because *the platform's own contract* forces the construction. At-least-once is written on the tin,
+so someone had to decide what a second delivery does, and deciding it is what produced the test.
+
+**So the honest predictor is a disjunction: a property gets tested when a prior incident forces it, OR when
+the substrate's contract makes the exceptional path routine.** §354's leak had neither — no incident, and
+nothing in Workers' contract says "your handler will throw a non-`ApiError`" — which is why it was the one
+gap in four.
+
+### Postscript: the tenth trap, blocked before it shipped
+
+This section's first draft cited the biller's line 86 unanchored — a bare `path:line` into a ratcheted
+high-churn file — for the **tenth** time this audit. What is different is what happened next: **the commit
+was withheld.** §348 made the `git commit` conditional on the gates (`gate && commit`), so `check:citations`
+went RED, the chain short-circuited, and nothing entered history.
+
+§344's occurrence shipped and had to be fixed in a follow-up; §347's shipped twice. **This one cost thirty
+seconds and left no trace.** That is the whole difference between a rule that raises the odds of noticing
+and one that removes the opportunity (§325) — the trap recurred exactly as often, and stopped mattering.
+
+Anchored as `…:87@sha256Hex`, the symbol two lines below the banner the sentence was pointing at.
+
+### Verification
+
+Both redelivery properties located and distinguished; the deterministic-id root mutated and restored
+byte-identical (RED naming determinism/redelivery); `@shuddl/agents-worker` 113 green; path filter used.
+`typecheck 0 · check:tables 0 · check:citations 0` — the third only after anchoring, and the commit was
+gated on all three.
