@@ -190,14 +190,24 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 > §310 (the governing invariants mutation-proven — extended by §323, §340/§341 and §342/§343 to **18 invariants across BOTH authorities (`CLAUDE.md`'s ten laws + `genesis/10`'s I1–I8) in 30 mutations, PLUS two of rule 6's four fixture-gate identities (penny-exact allocation, zero-loss/zero-dupe offline merge) in 2 more — 32 mutations, every one RED, zero residual**, every file restored byte-identical. Rule 6's other two clauses are BLOCKED on private fixtures, and one of those — *routes ±10%* — has no artifact at all (§344, filed)).** Read those
 > two first — together they are the production-readiness claim: the gates run, and the laws the gates exist
 > to protect fail when their enforcement is removed. §296 re-measured the gate surface at `3d1386b` but named two bounds that turned
-> out to be unmeasured inheritances — §297 withdrew the worker-suite bound (the full suite runs: **284 files /
-> 3,713 cases / 3,710 passing**, re-measured suite-by-suite at §367 at `c51e0f7`, corrected at §368, and
-> reconciled at §369 against its two sibling records; the 3 failures are all the uncommitted `REQ-289` row,
-> proven by removing it) and §298 withdrew the browser-gate bound (visual/a11y/e2e all PASS with
+> out to be unmeasured inheritances — §297 withdrew the worker-suite bound (the full suite runs: **286 files /
+> 3,750 cases / 3,747 passing**, re-measured at `570ab5d`; the 3 failures are all the uncommitted `REQ-289`
+> row, proven by removing it. The +37/+2 since §367's `c51e0f7` baseline is accounted line by line and is
+> entirely this audit's own: 22 tools (§378), 5 api (§375/§377), 6 translator (§370/§379), 4 mcp (§380)) and §298 withdrew the browser-gate bound (visual/a11y/e2e all PASS with
 > `executed: true`). **§364–§367 close the trust-boundary sweep: nine boundaries checked by mutation, nine
 > load-bearing** — the last of them (`apps/driver/public/sw.js`) found two of three cache guards
 > unobserved, now four tests. Three enumerations of "the boundaries" grew under correction before it held,
-> which is the reason totals in this document ship beside their omissions. §299 specifies the single blocker behind both FAILs — the uncommitted `REQ-289` GTM row,
+> which is the reason totals in this document ship beside their omissions.
+>
+> **§370–§380 sweep what the RECORD claims rather than what the code does, and that is where the yield
+> moved.** Six defects, each found by testing a sentence: a certification gate promised in a docstring and
+> observed by nothing (§370); one guard replicated across three handlers and observed by none of 757 tests
+> (§375); a `verified-correct` reason that one grep of the schema disproves (§377); a hand-maintained table
+> list derived on one enforcement surface and re-typed on its sibling (§378); and a **High (latent)**
+> hold whose dormancy — measured at 2 transmits of one 214, partner counter 41→43 — was held by a sentence
+> and asserted by no test on either half (§379/§380, now tripwired). Of the ledger's verification claims
+> tested: **two held, two were wrong, one was right-but-unsupported.** The population of such claims is 16;
+> five are done. §299 specifies the single blocker behind both FAILs — the uncommitted `REQ-289` GTM row,
 > down to the two source lines that reject it; §300 verifies every item of the standing ledger against its
 > source; and **§326 closed the last repository-owned item, so every remaining entry is blocked on an input
 > this repository does not contain.** The clauses below were originally measured in §238 at `68cfb0d`; §243 (extended through §295) answers the separate question of whether another iteration is worth running:
@@ -20883,3 +20893,80 @@ zero (§360); tripwire mutation-proved by swapping a live event source, attribut
 restored byte-identical to the pre-mutation backup; source-file count re-measured with a depth-independent
 predicate and cross-checked against `git log --diff-filter=A` since the stamp's date. `typecheck 0 ·
 check:tables 0`; mcp suite 181 green with the four added. Staged by explicit path (§379).
+
+---
+
+## §381 — phase gate re-measured at `570ab5d`, and where the yield moved
+
+Fourteen sections since §366's rebaseline. §4 is the stopping-point entry and, by its own rule, its numbers
+decay. Re-measured rather than computed.
+
+### The measurement
+
+**286 test files · 3,750 cases · 3,747 passing · 3 failing.**
+
+The three failures are unchanged since §368 and are the uncommitted `REQ-289` register row — proven by
+removing it (`784 passed`) and re-adding it (3 fail), not inferred. That row is an owner disposition, not a
+defect in the build.
+
+The delta from §367's baseline is **+37 cases / +2 files**, and every one is this audit's own:
+
+| § | added | where |
+|---|---:|---|
+| §370 | 2 | certification strictness (`partners.test.ts`) |
+| §375 | 3 | device-principal guards (`devices.test.ts`) |
+| §377 | 2 | lens-translation guards (`invoices`, `documents`) |
+| §378 | 22 | migration-ban identity + cross-surface parity (`invariants.test.ts`) |
+| §379 | 4 | EDI transport dormancy (**new file**) |
+| §380 | 4 | webhook deps dormancy (**new file**) |
+
+Recorded in `RELEASE-EVIDENCE.md` beside the two prior measurements, so the three records reconcile to each
+other rather than drifting — §369's fix, now carrying its second delta.
+
+### Where the yield moved, and what that means for the stopping point
+
+§364–§367 swept **code**: nine trust boundaries by mutation, nine load-bearing, one real gap (the service
+worker's two unobserved cache guards).
+
+§370–§380 swept **the record** — testing sentences rather than functions — and found six:
+
+| § | the sentence | what was true |
+|---|---|---|
+| §370 | a docstring promising certification refuses a malformed config | correct code, **zero** tests; `resolveMapping({})` returns the full default |
+| §375 | hold 205's *"all 18 guards swept"* | swept **403 only**; one guard replicated across 3 handlers, observed by none of 757 |
+| §377 | *"unpinned for verified-correct reasons — defensive"* | **reachable**; `party_id` is `.optional()` and a sibling test already minted the token |
+| §378 | *"REPLACE lint-banned"* | banned on one of **two** enforcement surfaces; four hardcoded alternations on the other |
+| §379/§380 | *"DORMANT — transmits nothing… by construction"* | **true, and asserted by nobody** on either half |
+
+The pattern is consistent enough to state as a finding about the audit itself: **by §364 the code had been
+swept hard enough that the defects had migrated into the claims about it.** Every one of the six was
+already written down, in the right place, by someone who had done the work — and each was wrong or
+unsupported in a way no gate reads, because gates check code and these are sentences.
+
+That is the honest characterisation of the current phase: **not "the code is clean" but "the remaining
+defects are in what the record asserts, and they are found by re-deriving claims rather than by reading
+more code."**
+
+### Stopping point, stated
+
+The five exit clauses in §4 are unchanged. What this session moves:
+
+- **Closed:** the trust-boundary sweep (9/9); the fallback-value sweep (33/33 traced, one `true` explained);
+  the replicated-guard field for 403/404 (12 triples enumerated, 7+3 swept); both halves of the dormancy
+  hold, tripwired; §266's derivation completed on its second surface.
+- **Open and stated, not implied:** 11 of 16 ledger verification claims untested; five replicated-guard
+  triples unswept (the `400` clusters, deliberately — every branch there is *"bad input, nothing
+  happened"*); the webhook/EDI cron double-fire itself, which is an owner decision and now tripwired rather
+  than fixed.
+- **Unchanged and owner-blocked:** `REQ-289`'s disposition, nine private fixtures, two External Highs,
+  three owner decisions, one staging placeholder.
+
+**No open Criticals.** The one High touched this session (§379's cron double-fire) is latent by a mechanism
+that is now enforced rather than asserted — which is a smaller claim than "fixed", and is the true one.
+
+### Verification
+
+Four changed suites re-measured with the verdict line read whole (§368); the +37 reconciled per section and
+cross-checked against `git ls-files | grep -c '\.test\.'` = **286**, an outside count that does not come
+from vitest; both sibling records updated in the same commit so no copy is left stale (§369); staged by
+explicit path (§379). `typecheck 0 · check:tables 0 · check:citations 0`.

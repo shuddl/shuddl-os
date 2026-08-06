@@ -396,10 +396,19 @@ covered 51% of the tests that exist. That is why the disclosure sentence beside 
 | `docs/ops/PROJECT-STATE.md` "Unit tests" | 2026-07-28, `3fc592b` | 258 | 3,243 |
 | the tip-verdict `pnpm test` row below | 2026-08-05, `fee46a3` (§333) | 283 | 3,704 |
 | this table | 2026-08-05, `c51e0f7` (§367) | 284 | 3,713 |
+| re-measured after the §370–§380 sweep | 2026-08-05, `570ab5d` (§381) | 286 | 3,750 |
 
-The last delta is **+1 file / +9 cases, and all of it is this audit's own**: `error-envelope.test.ts`
-(+1 file, +3 cases, §354), two `transition-gates` cases (§359), four service-worker guard cases (§367).
-A delta that cannot be accounted for line by line is a measurement to redo, not a number to write down.
+Each delta is **entirely this audit's own**, and accounted line by line — a delta that cannot be is a
+measurement to redo, not a number to write down.
+
+- `fee46a3` → `c51e0f7`: **+1 file / +9 cases** — `error-envelope.test.ts` (+1 file, +3, §354), two
+  `transition-gates` cases (§359), four service-worker guard cases (§367).
+- `c51e0f7` → `570ab5d`: **+2 files / +37 cases** — 22 migration-ban identity + parity cases (§378), 3
+  device-principal guards (§375), 2 lens-translation guards (§377), 2 certification-strictness cases
+  (§370), and two NEW files, `transport-dormancy.test.ts` (+4, §379) and `webhook-dormancy.test.ts`
+  (+4, §380).
+
+The 3 failures are unchanged throughout: the uncommitted `REQ-289` row, and nothing else.
 
 Observation, not a defect: `pnpm test:tools` emits five `fatal: not a git repository` lines on stderr.
 They originate in `tools/checks/invariants.test.ts:33`, which spawns the invariants CLI inside
