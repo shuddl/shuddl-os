@@ -24,6 +24,7 @@
 //
 // The X12 parse (tokenize/parse204), the 204→plan mapping (mapTenderToBooking), the quarantine descriptor, and
 // the 990 serialize are the PURE @shuddl/edi + Task-6 cores; this file is composition + I/O wiring only. LLM-free.
+import { RATER_AGENT } from "@shuddl/ledger/queries/metrics";
 import { parseTenantPolicy, describeTenantPolicyRejection, isUnknownTenant } from "@shuddl/contracts";
 import { parse204, tokenize, build990 } from "@shuddl/edi";
 import type { TenderDoc } from "@shuddl/edi";
@@ -574,7 +575,10 @@ export async function handleInbound204(request: Request, deps: InboundDeps): Pro
           confidence: NATIVE_CONFIDENCE_BPS,
           kind: "agent.acted",
           payload: {
-            agent: "rater",
+            // DERIVED (audit §393): `queries/metrics.ts` binds RATER_AGENT to select this agent's runs for the
+            // p50-latency metric. This used to restate the literal, so changing the constant would have left the
+            // metric matching NOTHING — reported as "no data", indistinguishable from "the rater never ran".
+            agent: RATER_AGENT,
             action: "priced",
             basis: [{ kind: "event", id: pricedId }, ...quote.versions.rate_config_ids.map((id) => ({ kind: "config", id }))],
             confidence_bps: NATIVE_CONFIDENCE_BPS,

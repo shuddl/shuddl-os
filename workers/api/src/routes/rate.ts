@@ -1,3 +1,4 @@
+import { RATER_AGENT } from "@shuddl/ledger/queries/metrics";
 import type { Hono } from "hono";
 import { z } from "zod";
 import { priceShipment, assessApproval, resolveTransitDays } from "@shuddl/rater";
@@ -246,7 +247,10 @@ export function mountRateRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>): 
     // provenance) PLUS every rate_config version it priced against (rate_config_ids is non-empty, so ≥1 link
     // regardless). `priced.id` is the STABLE quote.priced id (the deterministic id even after a dedup replay).
     await append("agent.acted", {
-      agent: "rater",
+      // DERIVED (audit §393): `queries/metrics.ts` binds RATER_AGENT to select this agent's runs for the
+      // p50-latency metric. This used to restate the literal, so changing the constant would have left the
+      // metric matching NOTHING — reported as "no data", indistinguishable from "the rater never ran".
+      agent: RATER_AGENT,
       action: "priced",
       basis: [
         { kind: "event", id: priced.id },

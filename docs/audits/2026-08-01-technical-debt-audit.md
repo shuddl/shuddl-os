@@ -21853,3 +21853,95 @@ Both halves of the anti-join traced to their definitions; divergence measured be
 ledger 618 pass · api 1 fail) and attributed by failing-test name; the fix verified behaviour-neutral (api
 764, agents 113 green) and its structural effect proved by re-running the same divergence, which now moves
 both sides and fails 8. Constant restored byte-identical after each probe.
+
+---
+
+## §393 — §392's tell, mechanised: 37 shared constants, 10 restated, 1 real
+
+§392 ended on a mechanical tell — *count the things two sides must agree on, then count the shared
+definitions.* That is scriptable, so this section scripts it rather than reading 120 more comments.
+
+**The scan:** every `export const NAME = "literal"` in `packages/*/src` and `workers/*/src` (**37**), then
+every place that literal is written as a bare string in *code* (not comments) in a different file.
+**10 values matched.** Reading all ten, most are not findings — and saying why is the section's real
+content, because a scan that reports ten and means one is exactly the instrument this audit distrusts.
+
+### Seven false positives, in two honest categories
+
+- **Event kinds** (`"pod.signed"` ×33, `"invoice.issued"` ×26, `"message.received"` ×22). The
+  `UNBILLED_*_KIND` constants are **local aliases** for one query's purposes; the canonical definition is
+  the frozen 35-kind `EventKind` union in contracts. Writing `"pod.signed"` elsewhere uses the *kind*, and
+  is not a restatement of the alias. **My scan inverted the direction of ownership** — it assumed the
+  constant it found first was the definition.
+- **Test literals** (`"hazmat_enabled"`, `"platform"`, `"_platform"`, `"unclaimed"`, `"proof_to_cash"` —
+  all in `*.test.ts`). A test that imports the constant it is testing **cannot observe that constant
+  changing**; restating the literal is what makes the test load-bearing. Deriving these would be a
+  regression dressed as cleanup — the same trap §389's subsumption was, one layer up.
+
+Both categories are worth naming because both look exactly like §392's finding at a glance, and both would
+have produced a "fix" that made the codebase worse.
+
+### The one that was real
+
+| | |
+|---|---|
+| **reader** | `packages/ledger/src/queries/metrics.ts@RATER_AGENT` — bound as a query param to select the rater's runs for the p50-latency metric |
+| **writers** | `workers/api/src/routes/rate.ts` and `workers/translator/src/inbound.ts`, both `agent: "rater"` |
+
+`agent` is `z.string().min(1)` — an **open** vocabulary, so `RATER_AGENT` is the only named definition and
+nothing constrains the writers. Changing it would leave the metric matching **nothing**, reported as *"no
+data"* — **indistinguishable from "the rater never ran."** That is the worst shape a telemetry defect takes:
+the failure and the healthy-but-idle state produce the same output.
+
+Both writers now import it. Behaviour-neutral (api 764, translator 110 green), and the three sites are one
+definition.
+
+### Why this one is Low and still worth the edit
+
+It is telemetry, not money — §392's was an unbounded re-drive loop. The argument for fixing it anyway is
+the *shape*, not the stakes: a silent-metric failure is undetectable **by construction**, so it can never
+be found later by noticing something wrong. There is no incident that leads back to it. Either the
+coupling is structural or the defect is permanent-and-invisible.
+
+### The scan's own lesson
+
+> **A duplication scan finds duplication; it cannot tell you which copy is the definition.** Seven of ten
+> hits were the scan pointing at the wrong owner (a local alias mistaken for a source of truth) or at a
+> place where duplication is *correct* (a test asserting the value, not following it).
+
+The filter that separated them is one question per hit — **would deriving this make the second site follow
+the first, or stop watching it?** Tests watch; code follows. A scan cannot ask that, which is why its output
+is a worklist and never a finding.
+
+### Stated bound
+
+**119 parity claims remain unchecked**, and the constant-duplication axis is now **swept to completion**:
+37 exported string constants, 10 restated, 7 correctly, 1 fixed here, 2 (`"legacy-mirror"` inside
+`packages/adapters`) left as an intra-package restatement of an id owned by `workers/agents` — recorded
+rather than fixed, because the ownership direction there is genuinely unclear and inverting it wrongly is
+the §389 trap.
+
+### Postscript: my own repoint resolved and meant something else
+
+The commit was withheld on one rotted citation — a skill's *"fixed at rate.ts line 322, anchored on
+`portalPricedResponse`"*, shifted by my +5 lines. (Written without the `path:line@symbol` punctuation on
+purpose: quoting a stale anchor recreates it, and the gate cannot tell an example from an address — it
+failed this section a second time on exactly that, as it did in §376.) I repointed it mechanically with `grep -n … | head -1`, which found **line 301**,
+`check:citations` went green, and I nearly committed.
+
+`portalPricedResponse` appears **twice**: line 301 is the role branch that *calls* it, line 326 is the
+function itself. The original `322` was the definition (326 pre-shift, within the anchor's ±2). My repoint
+moved the reference to the call site — **a different claim, silently, with the gate satisfied.**
+
+Corrected to 326. This is precisely the hazard §374 argued the anchored-citation gate exists to prevent —
+*"a citation that still resolves, pointing at whatever slid into that line"* — arriving through the repair
+rather than through drift. **`head -1` picks an occurrence, not the referent**, and for a symbol used more
+than once those are different things. The tell was arithmetic and free: my edit **added** lines, so a
+citation below it cannot move to a **lower** number. 322 → 301 was impossible on its face.
+
+### Verification
+
+Scan run over 37 exported constants; all 10 hits read individually and classified before any edit; the one
+real case verified as an open vocabulary (`z.string().min(1)`, no enum to constrain writers); both writers
+changed and both suites re-run green; coupling confirmed by grep (three sites, one identifier).
+`typecheck 0`.
