@@ -23578,3 +23578,63 @@ Both table definitions read from `0001_ledger_core.sql` rather than from a model
 requiring a comparison/branch/filter/sort token on the same line and excluding comment lines; every
 non-zero count spot-checked for the kind of site it was; `confidence`'s zero cross-checked against §415's
 independent grep across three trees. No code changed.
+
+---
+
+## §417 — the same question at table scale: one write-only projection, one table with no code
+
+§416 asked *"what changes if it is wrong?"* of every column and found one inert field. The question scales:
+**a table written but never read is a projection nobody uses**, and CLAUDE.md's hard budget makes table count
+a governed resource — *"≤22 tables (21 used; the spare requires a written deletion)."*
+
+Counting read-sites (`FROM`/`JOIN`) against write-sites (`INTO`/`UPDATE`/`DELETE FROM`) across all 18 tenant
+tables produced a clean distribution — `events` 51/1, `shipments` 16/8, `legs` 11/2 — and **two outliers.**
+
+### `passports` — written on every append, read by nothing
+
+`projectPassport` is batched **into the sequencer's append transaction**, so every qualifying event pays an
+upsert. The only `SELECT … FROM passports` in the repository are **two tests**, which verify the projection
+is correct while nothing consumes it.
+
+That is a specific and slightly unusual shape: **not dead code — verified code, on the hot path, with no
+reader.** The tests are not the problem; they are the reason it still works. The cost is one statement per
+append, forever, for a value no surface displays and no gate consults.
+
+### `assets` — a table with no code at all
+
+Zero readers, zero writers, zero tests. The only references anywhere are its `CREATE TABLE` and its entry in
+`invariants.ts`'s `MUTABLE_TABLES` classification list — which is a *declaration that it is mutable*, not a
+use.
+
+So **one of the 21 used tables is unused, and the effective spare is 2, not 1.** That is directly relevant
+to a budget CLAUDE.md governs, and it is not a change to make unilaterally: dropping a table is a schema
+change under the append-only migration law and requires the written deletion the budget line specifies. Both
+filed.
+
+### My own §360 error, fifth occurrence
+
+While checking, I printed `(empty above = no reader in any tracked file)` beneath a grep **that had found
+two** — the two tests. The caption was written before the command ran, and the evidence contradicting it was
+directly above.
+
+Fifth time in this phase, second in my own narration rather than a committed artifact. The mechanical fix
+has been known since §358 and I still did not apply it: **compute the label or omit it.** Recording the
+count rather than the lesson this time, because the lesson has not been the problem — the habit has.
+
+### What the pair says about budgets
+
+> **A budget counts what exists, not what is used.** `21/22` is enforced by a gate that parses `CREATE
+> TABLE`; it cannot tell a table carrying the ledger from a table carrying nothing. The number is correct and
+> the thing it protects — schema sprawl — is measured one layer below where sprawl actually shows up.
+
+The same is true of the test count (§412's 18% vacuity), the parity comments (§391's 122 unenforced claims),
+and the guard rosters (§373). **Every count this audit has examined was accurate about its own units and
+approximate about the property someone reads it for.** That is not a defect in any of them; it is the reason
+the audit's method has been to trace rather than to count.
+
+### Verification
+
+18 tenant tables enumerated from `CREATE TABLE` across all migrations; read/write sites counted separately
+and the two outliers traced to every reference including tests and tools; `assets`'s word-collision with
+Workers Static Assets identified and excluded; both findings filed as rows with the budget consequence
+stated. No code changed — both are owner decisions.
