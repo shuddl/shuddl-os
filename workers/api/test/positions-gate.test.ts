@@ -270,4 +270,52 @@ describe("REQ-014/016 — the ingest hash and the anchor leaf are byte-identical
     });
     expect(await sha256Hex(leaf)).toBe(row!.hash);
   });
+
+  // THE ABSENT BRANCH (audit §429). The test above sends BOTH optional fields, so it only ever exercises
+  // the present path — and the two implementations do not agree on how "absent" is spelled. The route omits
+  // on `p.accuracy_m !== undefined` (a parsed request field, which the schema makes `number | undefined`
+  // because accuracy_m is `.optional()`, never `.nullable()`); the anchor omits on `row.accuracy_m !== null`
+  // (a D1 column, where the route's `?? null` landed). Those are consistent ONLY because of that schema
+  // property. Making accuracy_m nullable — an unremarkable change, since clients routinely send null — puts
+  // `accuracy_m: null` into the ingest's canonical bytes while the anchor still omits it, and every such
+  // position's Merkle leaf stops matching the hash that was stored. This pins the branch that would break.
+  it("a position with NO optional fields hashes identically on both sides (the omitted branch)", async () => {
+    const ts = 1_700_000_901_000;
+    expect(
+      (await postPosition(
+        { shipment_id: SHP_ASSIGNED, device_id: TEST_DEVICE_ID, ts, lat_e6: 37_421_001, lon_e6: -122_084_001 },
+        await driverTok(),
+      )).status,
+    ).toBe(201);
+
+    const row = await env.TENANT_A_DB.prepare(
+      "SELECT shipment_id, device_id, ts, lat_e6, lon_e6, accuracy_m, speed_cms, hash FROM positions WHERE shipment_id = ? AND device_id = ? AND ts = ?",
+    )
+      .bind(SHP_ASSIGNED, TEST_DEVICE_ID, ts)
+      .first<{
+        shipment_id: string;
+        device_id: string;
+        ts: number;
+        lat_e6: number;
+        lon_e6: number;
+        accuracy_m: number | null;
+        speed_cms: number | null;
+        hash: string;
+      }>();
+    expect(row).not.toBeNull();
+    // Non-vacuity: this row must actually BE the omitted case, or the test silently re-runs the one above.
+    expect(row!.accuracy_m).toBeNull();
+    expect(row!.speed_cms).toBeNull();
+
+    const leaf = canonicalPositionBytes({
+      shipment_id: row!.shipment_id,
+      device_id: row!.device_id,
+      ts: row!.ts,
+      lat_e6: row!.lat_e6,
+      lon_e6: row!.lon_e6,
+      accuracy_m: row!.accuracy_m,
+      speed_cms: row!.speed_cms,
+    });
+    expect(await sha256Hex(leaf)).toBe(row!.hash);
+  });
 });

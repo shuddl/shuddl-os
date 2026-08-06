@@ -24306,3 +24306,51 @@ mutation-proved themselves: neutering the comparison to `if (false)` turns **2 R
 **Bound carried forward.** The parity sweep's DB-schema axis is now closed (9 examined, 3 acted on, 6 are
 single-site claims with no second copy to drift against). The remaining axes of §391's population are
 untouched, and the count to quote is the predicate's, not a historical one.
+
+## §429 — the byte law's join was pinned on one branch of two
+
+§428 closed the parity population's DB-schema axis. The next axis by consequence is **hash/canonicalization
+parity** — 15 of the 170 claims, and the only ones where drift makes stored data unverifiable rather than
+merely inconvenient. (Both figures are this predicate's, with the grep output's own `path:line` prefix
+stripped — the first classification run reported 170 of 170 "cross-boundary", which is the tell that the
+filter was matching the prefix and not the comment.)
+
+The load-bearing one: `packages/ledger/src/anchor.ts:88@canonicalPositionBytes` — *"The canonical bytes of a position row —
+byte-identical to what the /v1/positions ingest hashed… Keep in lockstep with
+workers/api/src/routes/positions.ts."* Two implementations of one byte law, in two packages, joined by a
+comment. **This claim is already bound**, and well: `positions-gate.test.ts` reads the hash the ROUTE stored
+and recomputes it with the ANCHOR's function, and its header records that the drift was once measured
+invisible to all 1,365 tests because the anchor's own tests call `canonicalPositionBytes` on both sides of
+their assertion. That is the right test, and it is the only one in the repo that reads one side and computes
+the other.
+
+**It exercised one branch of two.** Its input sends `accuracy_m: 5, speed_cms: 1_200` — both optional fields
+PRESENT — and it was the only `it()` in its describe. The two implementations do not spell "absent" the same
+way: the route omits on `p.accuracy_m !== undefined` (a parsed request field, `number | undefined` because
+the contract says `.optional()`), the anchor omits on `row.accuracy_m !== null` (a D1 column, where the
+route's `?? null` landed). **Those agree only because of that schema property.** Making `accuracy_m`
+nullable — an unremarkable change, since clients routinely send explicit `null` — puts `accuracy_m: null`
+into the ingest's canonical bytes while the anchor still omits it, and every such position's Merkle leaf
+stops matching the hash stored beside it. The tamper-evidence mechanism would report a mismatch on
+untampered rows.
+
+**Fixed, and proved with the two-mutation pattern.** A second `it()` posts a position with no optional
+fields, asserts the stored row really IS the omitted case (`accuracy_m` and `speed_cms` both NULL — without
+that the test silently re-runs the first one), and compares the route's stored hash to the anchor's leaf.
+Then the drift was injected: `if (row.accuracy_m !== null) canon.accuracy_m = …` → `canon.accuracy_m =
+row.accuracy_m ?? 0`, i.e. the anchor including a field the ingest omitted. **1 failed, 9 passed** — and the
+one that failed is the new test. The pre-existing byte-identical assertion stayed green, which is the whole
+finding: *the mutation is invisible to the test that was there and visible only to the branch that was
+missing.* Restored byte-identical; `packages/ledger` anchor suite 19/19, `workers/api` positions-gate 10/10,
+`typecheck` and `lint` exit 0.
+
+**The general shape, worth carrying.** A parity claim can be bound by a real test and still be pinned on a
+subset of its own domain — §382 recorded this for value lists (*"a parity claim can be true of a subset of
+what it appears to cover"*); here it is true of a **branch**. When two implementations agree on the value
+but disagree on the *predicate* (`!== undefined` vs `!== null`), the case that separates them is exactly the
+one a single happy-path fixture omits. **Where two sides spell a condition differently, test the condition,
+not the value.**
+
+**Bound carried forward.** 14 of the 15 hash/canonicalization claims remain unexamined. The next by
+consequence is `workers/mcp/src/idempotency.ts:26` — a second recursive key-sorting canonicalizer that
+mirrors `packages/ledger/src/canonical.ts`, the frozen byte law, in another worker.
