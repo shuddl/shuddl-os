@@ -19571,3 +19571,72 @@ section does and what §364 should have.
 
 `sequencer.ts:310@verifyEventSig` mutated by line index and restored byte-identical; `@shuddl/api` 757 green;
 §364's claim qualified in place rather than rewritten, so the overreach stays visible.
+
+---
+
+## §366 — Two more boundaries, and the residual named honestly
+
+§365 listed five boundaries §364's total had omitted. Two are now closed, leaving three — named again rather
+than folded away, which is the discipline §365 exists to enforce.
+
+### The unauthenticated `/pub/*` surface — load-bearing
+
+A no-auth surface has no JWT to key the tenant off, so `pub/quote.ts:124` resolves it from the
+**CF-routed hostname** — *"never the Host header (locked design §1) … It is a STRUCTURAL claim"*. The
+distinction is the whole guard: `new URL(c.req.url).hostname` is what Cloudflare routed, while the `Host`
+header is whatever the client typed.
+
+**Mutation: the `Host` header preferred over the routed hostname** — a client naming any tenant it likes.
+**RED**, naming `Host header`, `hostname`, `spoof`. Restored byte-identical: 757 passed.
+
+### Inbound EDI from an external partner — load-bearing
+
+`workers/translator/src/inbound.ts:357@isUnknownTenant` — the discrimination that decides whether a
+failure is *this partner sent us something for a tenant we do not have* (quarantine, keep the bytes) or *a
+real error* (rethrow).
+
+**Mutation: the discrimination removed**, so every failure takes the quarantine path. **RED**, naming
+`quarantin[e]`. Restored byte-identical: 104 passed.
+
+**Nine boundaries checked, nine load-bearing guards.**
+
+### Still unswept, and stated as such
+
+- an MCP client's tool arguments → dispatch *(adjacent coverage exists: §356 found seven refusal
+  constructions including a smuggled `caps` argument through the full pipeline — but the boundary itself was
+  not mutated here)*
+- an uploaded file → R2 evidence
+- the driver PWA's own service worker → cache *(§288 established `sw.js` is excluded from lint AND tsc, held
+  only by a test that runs its real bytes)*
+
+That third one was not on §365's list either. **Four sections into correcting an enumeration, the
+enumeration is still growing** — which is the honest state of any "list the boundaries" exercise and the
+reason §365's rule is to publish omissions alongside totals rather than to claim completeness.
+
+### What nine load-bearing guards actually establishes
+
+Not that the system is safe — that **every boundary this audit has examined has a guard whose removal breaks
+a test**. The value is the *converse* being checkable: if a tenth boundary is found tomorrow, the question
+"does it have a load-bearing guard?" is now a two-command procedure with nine worked examples, rather than a
+judgement call.
+
+### Postscript: eleventh trap, second consecutive block
+
+This section's draft cited the translator's line 357 unanchored — the **eleventh** occurrence of a bare
+`path:line` into a ratcheted file. **Blocked before commit**, like §357's, by the `gate && commit` chain.
+
+Two consecutive sections have now hit it and neither reached history. §344's shipped and needed a follow-up;
+§347's shipped twice. **The recurrence rate has not changed at all** — what changed is that the cost fell
+from a corrective commit to thirty seconds, which is what §325 means by removing the opportunity rather than
+improving the odds.
+
+Worth stating plainly because it cuts against a natural reading of this audit: **the instrument errors were
+never eliminated.** Sixteen-odd of them across the phase, in every form — wrong suite, unlanded edit,
+type-invalid mutation, digit-excluding regex, unconditional caption, self-quoting citation. What improved is
+that each class acquired a detector that fires before the finding is published.
+
+### Verification
+
+Both mutations applied by verified line index and restored byte-identical; `@shuddl/api` 757 and
+`@shuddl/translator` 104 green after restore; three remaining boundaries named rather than summarised;
+`typecheck 0 · check:tables 0 · check:citations 0` after anchoring, with the commit gated on all three.
