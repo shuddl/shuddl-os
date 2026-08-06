@@ -25578,3 +25578,36 @@ mutation gives **1 failed / 18 passed**. Removing the domain separation instead 
 eventually be removed**; this one is no longer silent.
 
 `workers/api` **776 passed**; `typecheck`, `lint` clean.
+
+## §459 — the untested mirror, and the second copy I made while fixing it
+
+§458 found `doc-cap.ts` with zero test references. Its own header explains why that mattered more than the
+count suggested: *"Mirrors pub/status-cap.ts exactly."* **The sibling is thoroughly tested.**
+`mintStatusCap` / `verifyStatusCap` / `deriveStatusSecret` carry 10 / 21 / 6 test references across three
+files, and `status-cap.ts:19` exports `CAP_TYP` with the comment *"exported for tests that must forge a
+payload with the REAL typ"* — a module shaped BY its adversarial suite.
+
+**This is the share-lint prediction, observed rather than theorised:** *the copy that got less attention
+becomes the evasion vector.* `doc-cap` inherited the implementation — domain-separated secret, claims inside
+the MAC, uniform error — and inherited none of the tests. Same design, same guarantees, one of them proven.
+
+**Axis-by-axis, status-cap covers five:** raw-`JWT_SECRET` mint, a real session JWT, correct MAC with wrong
+`typ`, expiry, and payload tampering on BOTH claims (`s` and `t`, via a `tamperClaim` helper in
+`pub-status.test.ts`). After §458 plus this section, `doc-cap` matches all five.
+
+**AND §458 CREATED A SECOND COPY OF THE TAMPER LOGIC.** Closing a gap caused by a mirrored implementation
+losing its tests, I hand-rolled base64url payload editing that already existed twenty lines away in another
+test file — the very duplication the section was about. Consolidated: `tamperClaim` now lives in
+`test/helpers.ts`, `pub-status.test.ts` imports it instead of declaring it, and the doc-cap tamper test is
+one line, which is what made adding the tenant axis trivial rather than a second hand-roll.
+
+**One probe was invalid, and it is recorded as such rather than as a pass.** Attempting to prove the tenant
+claim is inside the MAC, I made `verifyDocDownloadCap` read `t` from the RAW payload instead of the parsed
+one — **19 passed**. That green means nothing: `tamperClaim` breaks the MAC, so `verify()` throws before the
+mutated line is reached. The mutation is unreachable behind the guard it was meant to test. The axis rests
+on the tamper assertions, whose bite was already established in §458 (removing domain separation → 2 failed,
+one of them the end-to-end route test). **A green from a probe that cannot reach its subject is not evidence
+of coverage; it is evidence of a badly chosen probe** — §389's "nothing reaches it", applied to my own
+instrument.
+
+`workers/api` **776 passed**; `typecheck`, `lint` clean.

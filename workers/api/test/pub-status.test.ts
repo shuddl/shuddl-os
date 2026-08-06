@@ -1,3 +1,4 @@
+import { tamperClaim } from "./helpers.js";
 import { SELF, env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import { ensureSchema, token, post, TENANT_SLUG } from "./helpers.js";
@@ -53,19 +54,7 @@ async function getStatus(cap: string): Promise<StatusRes> {
 
 const validCap = (t: string, s: string, expSeconds = nowS() + 3600): Promise<string> => mintStatusCap(JWT_SECRET, { t, s, expSeconds });
 
-// ---- JWT-payload tamper helpers (an attacker editing signed claims breaks the MAC) ----
-function b64url(obj: unknown): string {
-  return btoa(JSON.stringify(obj)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-function decodePayload(cap: string): Record<string, unknown> {
-  const seg = cap.split(".")[1] ?? "";
-  return JSON.parse(atob(seg.replace(/-/g, "+").replace(/_/g, "/"))) as Record<string, unknown>;
-}
-// Re-encode the payload with a patched claim but reattach the ORIGINAL signature -> MAC no longer matches.
-function tamperClaim(cap: string, patch: Record<string, unknown>): string {
-  const [h, , sig] = cap.split(".");
-  return `${h}.${b64url({ ...decodePayload(cap), ...patch })}.${sig}`;
-}
+// JWT-payload tamper helper: shared from ./helpers.js (audit §459) — it existed in two copies.
 
 const ALLOWED_KEYS = new Set(["state", "out_for_delivery", "position", "eta"]);
 

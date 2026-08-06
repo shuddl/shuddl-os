@@ -1,3 +1,4 @@
+import { tamperClaim } from "./helpers.js";
 import { DocCapError, deriveDocSecret, mintDocDownloadCap, verifyDocDownloadCap } from "../src/pub/doc-cap.js";
 import { sign } from "hono/jwt";
 import { env, SELF } from "cloudflare:test";
@@ -291,11 +292,10 @@ describe("verifyDocDownloadCap — a well-formed cap that must still be refused 
     // The real attack: a party holds a legitimate cap for its OWN document and rewrites the object key to
     // point at someone else's. The claim is that `k` lives INSIDE the MAC; this is what proves it.
     const cap = await mintDocDownloadCap(SECRET, { t: "tenant-a", k: "evidence/tenant-a/shp/mine", expSeconds: future() });
-    const [h, body, sig] = cap.split(".");
-    const claims = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(body!.replace(/-/g, "+").replace(/_/g, "/")), (ch) => ch.charCodeAt(0))));
-    claims.k = "evidence/tenant-b/shp/theirs";
-    const forgedBody = btoa(JSON.stringify(claims)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-    await expect(verifyDocDownloadCap(`${h}.${forgedBody}.${sig}`, SECRET)).rejects.toBeInstanceOf(DocCapError);
+    const forged = tamperClaim(cap, { k: "evidence/tenant-b/shp/theirs" });
+    await expect(verifyDocDownloadCap(forged, SECRET)).rejects.toBeInstanceOf(DocCapError);
+    // the tenant claim is inside the MAC on the same terms — pub-status pins both axes, so this one does too
+    await expect(verifyDocDownloadCap(tamperClaim(cap, { t: "tenant-b" }), SECRET)).rejects.toBeInstanceOf(DocCapError);
   });
 
   it("an EXPIRED cap is refused — the expiry is inside the MAC, not advisory", async () => {

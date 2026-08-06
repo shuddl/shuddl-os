@@ -416,3 +416,23 @@ export async function retryOnDoInvalidation<T>(fn: () => Promise<T>, attempts = 
     }
   }
 }
+
+// ---- JWT-payload tamper helper (shared, audit §459) ----
+// Re-encode a signed token's payload with a patched claim and REATTACH THE ORIGINAL SIGNATURE, so the MAC no
+// longer matches. This is the shape every bearer-capability suite needs: the attack on a cap is never a
+// malformed string, it is a valid-looking one whose claims have been edited.
+//
+// Shared because it existed TWICE. `pub-status.test.ts` had it; §458 hand-rolled a second copy for the
+// document cap while closing that cap's zero-coverage gap — creating, inside a section about a mirrored
+// implementation losing its tests, a second copy of the tamper logic itself.
+export function b64urlJson(obj: unknown): string {
+  return btoa(JSON.stringify(obj)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+export function decodeCapPayload(cap: string): Record<string, unknown> {
+  const seg = cap.split(".")[1] ?? "";
+  return JSON.parse(atob(seg.replace(/-/g, "+").replace(/_/g, "/"))) as Record<string, unknown>;
+}
+export function tamperClaim(cap: string, patch: Record<string, unknown>): string {
+  const [h, , sig] = cap.split(".");
+  return `${h}.${b64urlJson({ ...decodeCapPayload(cap), ...patch })}.${sig}`;
+}
