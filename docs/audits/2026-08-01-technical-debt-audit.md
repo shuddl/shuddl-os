@@ -23064,3 +23064,66 @@ Eleven sweeps enumerated by their loop signature across four workers; containmen
 of them in full and matched by shape at the other eight; the gap established by mutation (containment
 removed → 57 green) before any test was written; the test then mutation-proved in the same session and the
 source restored byte-identical. `typecheck 0`, billing 58 green. Bound filed with the count.
+
+---
+
+## §409 — the bound closed to 9 of 11, and what "mechanical" cost
+
+§408 pinned one of eleven sweep containments and filed the rest, calling the remaining work *"mechanical and
+identical."* That is a claim, so this section spends it and reports what it actually cost.
+
+### Eight closed in one file
+
+`workers/agents/test/sweep-containment.test.ts` — an `it.each` over the eight sweeps in
+`workers/agents/src/index.ts`, each poisoned with a tenant binding that throws on first touch, each asserting
+the sweep **resolves**. **121 green** (113 + 8). Mutation-proved: removing `runSlaSweep`'s containment fails
+exactly its row and nothing else.
+
+Two decisions worth stating, because both are places where "mechanical" would have gone wrong:
+
+- **The call is written per row, not inferred.** The eight signatures differ — `runAllTenants` takes a `Date`
+  factory, most take a number, `runCreditReconSweep` takes neither. A shared caller with a generic
+  `(env, now)` would have compiled and **silently skipped** whichever sweep's signature drifted later. Eight
+  explicit rows cannot.
+- **A non-vacuity assertion on every row.** Asserting only *"resolves"* would pass against a sweep that
+  iterated **nothing** — an empty roster, an early return, a poison that never took effect. Each row also
+  asserts the failing tenant was **named in a loud log**, which is the evidence that the guarded path was
+  actually entered. Without it these would be eight §396-shaped tests: green because nothing happened.
+
+That second point is not hypothetical here. The `it.each` shape makes eight tests from one body, so a single
+vacuous body would have produced **eight** false green rows — and the count going 113 → 121 would have read
+as progress.
+
+### The weaker assertion, kept deliberately
+
+§408 wanted *"later tenants are still swept"* and could not make it work against the harness quickly. This
+keeps the narrower **resolves-vs-rejects** discriminator, for the reason §408 gave: *shipping a test one
+cannot make correct is how a vacuous test gets written.* The mutation shows it fires, which is the entire
+requirement for a pin.
+
+It is worth being explicit that this is **weaker than the property the code guarantees**. The guards make the
+loop *continue*; these tests prove only that it *does not die*. A regression that caught the error and then
+`break`-ed would pass all nine. Recorded rather than glossed — a pin that covers most of a property is worth
+having, and worth labelling.
+
+### Bound updated, not closed
+
+**9 of 11.** Remaining: `agents/watchtower-snapshot.ts` and `translator/sweep-214.ts` — different files,
+different suites, same shape. Left as a counted bound rather than swept into a claim of completion.
+
+### What this says about "mechanical"
+
+> **Work that is mechanical in the code is rarely mechanical in the test.** The eight guards are
+> byte-identical; the eight tests are not, because each sweep is entered differently and each needs its own
+> proof that it was entered at all. The identical part was the *thing being tested*; the *testing* had eight
+> distinct ways to be vacuous.
+
+That is why §408's estimate was right about the effort and wrong about the risk — and why the it.each got a
+non-vacuity assertion per row rather than one at the end.
+
+### Verification
+
+Eight signatures read from their declarations rather than assumed; the suite run clean (121) before any
+mutation; containment removed from `runSlaSweep` by line manipulation, landed, **attributed to its own row**,
+and restored byte-identical; the bound row updated with the count and the two remaining files named.
+`typecheck 0`.
