@@ -25894,3 +25894,37 @@ repo has a pure core that is right about nothing.
 of this phase's filings were re-examined (§443's revocation residue, this one) and both dissolved on contact
 — the work was smaller than the reason implied. **A file-rather-than-fix decision deserves the same
 skepticism as a green test.**
+
+## §468 — a filed row closed by building the remedy it already named
+
+§467 ended on filing discipline: *a filed item's reason is a claim like any other*, and two of this phase's
+filings dissolved when re-read. Applying that to the rest, §425 (visual tolerance) and §426 (perf on a
+GPU-less runner) stay owner-blocked on data and infrastructure this audit cannot produce. **§427's does not
+— it prescribed its own remedy and then did not build it.**
+
+**The row.** `workers/translator/src/inbound.ts` prices an inbound 204 and calls `assessApproval(quote, {})`.
+An empty opts object takes the DIRECT branch, judging the quoted sell rather than an executing share —
+correct only because a 204 carries no negotiated sell and no interline legs. The rater's fail-loud fires on a
+PARTIAL interline signal and says nothing about passing NEITHER, which is silently legal. So the day the
+mapper learns to construct legs, that call keeps judging **GROSS** and violates CLAUDE.md Law 5 with nothing
+failing.
+
+**Why it could not be closed by reasoning, and why a tripwire is the right shape.** The premise is about code
+that does not exist yet. No assertion about today's behaviour can cover it; only a test that fails at the
+commit where the premise stops being true, in front of the person who made it stop — §379/§380's dormancy
+form, which this phase has now used three times.
+
+**Built and proved.** A structural walk over the plan asserts no `legs` / `tenantParty` / `split_bps` /
+`executor_party_id` key appears **at any depth**, with a non-vacuity floor on the key count and a narrower
+sibling assertion so a rename of the walk cannot silently cover for it. Adding `legs: [{ split_bps: 10000 }]`
+to the plan's return gives **1 failed**, and the message names the consequence rather than the symptom:
+*"inbound.ts calls assessApproval(quote, {}) — the DIRECT branch — so an interline tender would be judged on
+GROSS, never the executing share."* The GO-LIVE row is struck as TRIPWIRED rather than deleted.
+
+**One wasted probe, recorded because it was diagnosable.** The first mutation targeted `return {` and hit an
+EARLIER return in the same file, corrupting the plan's shape — three unrelated tests failed and my tripwire
+did not. **Three failures with the wrong names is not a red for your subject** (§- attribution rule), and the
+tell was that the failing tests were about bill-to emails and stop identities, nothing to do with legs.
+Retargeted by line index at the plan's actual return: exactly 1 failed, mine.
+
+`@shuddl/translator` map-204 suite **18 passed**; `typecheck`, `lint` clean.

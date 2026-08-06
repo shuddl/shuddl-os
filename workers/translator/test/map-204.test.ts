@@ -186,3 +186,51 @@ describe("mapTenderToBooking — 204 → booking plan (REQ-201/196)", () => {
     }
   });
 });
+
+// THE DIRECT-BRANCH TRIPWIRE (audit §468, closing the row §427 filed). `workers/translator/src/inbound.ts`
+// prices an inbound 204 and then calls `assessApproval(quote, {})`. An EMPTY opts object takes the DIRECT
+// branch, judging the quoted sell rather than an executing share — correct only because a 204 carries no
+// negotiated sell and no interline legs.
+//
+// The rater's fail-loud fires on a PARTIAL interline signal (legs without tenantParty, or the reverse) and
+// says nothing about passing NEITHER, which is silently legal. So the day this mapper learns to construct
+// legs, that call keeps judging GROSS and violates CLAUDE.md Law 5 with nothing failing — the one direction
+// §427 could not close by reasoning, because the premise is about code that does not exist yet.
+//
+// This is the §379/§380 dormancy shape: not a correctness proof, a tripwire that fails at the exact commit
+// where the premise stops being true, in front of the person who made it stop.
+describe("REQ-040/030: the 204 plan carries NO interline signal — the direct branch stays correct (§468)", () => {
+  const INTERLINE_KEYS = ["legs", "tenantParty", "split_bps", "splitBps", "executorPartyId", "executor_party_id"];
+
+  const keysAtAnyDepth = (node: unknown, out: Set<string> = new Set()): Set<string> => {
+    if (Array.isArray(node)) node.forEach((n) => keysAtAnyDepth(n, out));
+    else if (node !== null && typeof node === "object") {
+      for (const [k, v] of Object.entries(node)) {
+        out.add(k);
+        keysAtAnyDepth(v, out);
+      }
+    }
+    return out;
+  };
+
+  it("no interline-shaped key appears anywhere in the plan", async () => {
+    const plan = await mapTenderToBooking(baseTender, ctx);
+    const keys = keysAtAnyDepth(plan);
+    expect(keys.size, "non-vacuity: the walk must actually see the plan's keys").toBeGreaterThan(8);
+    for (const k of INTERLINE_KEYS) {
+      expect(
+        keys.has(k),
+        `the plan now carries \`${k}\`. inbound.ts calls assessApproval(quote, {}) — the DIRECT branch — so an ` +
+          `interline tender would be judged on GROSS, never the executing share (CLAUDE.md Law 5 / REQ-040). ` +
+          `Wire the interline opts before landing this, then update this tripwire (audit §468).`,
+      ).toBe(false);
+    }
+  });
+
+  it("the plan's shipment names its three party FKs and nothing leg-shaped", async () => {
+    // The narrower half, stated separately so a rename of the broad walk cannot silently cover for it.
+    const plan = await mapTenderToBooking(baseTender, ctx);
+    expect(Object.keys(plan.shipment)).toContain("billToPartyId");
+    expect(Object.keys(plan.shipment).some((k) => /leg|split|executor/i.test(k))).toBe(false);
+  });
+});
