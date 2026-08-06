@@ -260,6 +260,26 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 > gate's own tests mutation-proved. **The stopping point is unchanged in shape**: every bound this audit
 > states is discharged in the order it stated, and the counts quoted are the live predicate's, never a
 > historical tally carried forward (§427 and §428 each re-derived rather than inherited, and said so).
+>
+> **PHASE GATE, 2026-08-06 (§429–§436): the parity/registry sweep, and one transferable rule.** Eight
+> sections, five of them CODE changes rather than records. What they found is one defect wearing different
+> clothes: **an expectation computed by the thing it is supposed to check.** The byte law's join was pinned
+> on one branch of two (§429); a recursive claim was pinned at one level, on the DoD's MCP path (§430); a
+> `?? null` claiming to collapse two cases was tested on one (§431); two comments described duplication the
+> code had already replaced with sharing (§432); a self-named "parity LOCK" pinned one side and stayed
+> GREEN while the other moved (§433); the event-hash denylist was pinned against its own key list (§434);
+> and a redaction registry's enrollment discipline was enforced by prose (§435). §436 closes the arc on a
+> CLEAN one and names the three axes — completeness, content, behaviour — that separate the registries that
+> hold from the ones that did not.
+>
+> **The stopping point is unchanged in kind and stronger in evidence.** No open Criticals; every fix in this
+> phase was mutation-proved with its failure attributed by test NAME, and every one was restored
+> byte-identical and re-verified. Three findings were my own defects caught by the instrument rather than by
+> review: a tautological test written one section after recording the tautology (§434), a `head`-truncated
+> grep producing a false negative about a margin-leak control (§435, the third occurrence), and two
+> typecheck failures invisible to a green vitest run (§434, §435). **The gate ordering
+> `typecheck && lint && citations && commit` blocked three commits this phase and was right every time** —
+> which is the operational answer to a discipline that demonstrably does not survive on care alone.
 
 Grades from `V2-EXECUTION-FRAMEWORK.md` §9. What this audit adds to each bar:
 
@@ -24639,3 +24659,35 @@ not from a `head`-truncated failure list, in the same section that recorded why.
 `noUncheckedIndexedAccess`, 22/22 green in vitest, exit 2 in typecheck. Second consecutive section. A green
 suite is not a green tree, and the gate ordering (`typecheck && lint && citations && commit`) is what makes
 that harmless.
+
+## §436 — the visibility registry is the reference implementation, and it names the three axes
+
+§435 closed redaction's enrollment gap. The sibling registry is `KIND_VISIBILITY_DEFAULTS` — 35 kinds → the
+default a counterparty may see — and it is the highest-stakes map in the repo: a wrong pair leaks a whole
+kind to every party lens. **It is clean on all three axes, and the way it is clean is worth naming, because
+it is the template the other registries should be measured against.**
+
+1. **COMPLETENESS — enforced by the compiler, not a test.** The type is `Record<EventKind, Visibility>`, a
+   TOTAL record. A 36th kind (which requires a register amendment) is a **compile error** until enrolled.
+   That is strictly stronger than the runtime enrollment check §435 had to add for redaction, and it is the
+   arrangement to prefer wherever the key set is a closed union.
+
+2. **CONTENT — a hand-written golden in a DIFFERENT package.** `FROZEN_DEFAULTS` in
+   `workers/api/test/lens-adversarial.test.ts:583` is a literal 35-pair map, not derived from the registry,
+   and it lives across a package boundary from `packages/ledger`. That is §433's lesson satisfied twice
+   over: the expectation is not computed by the code under test, and a ledger-side edit cannot move both
+   sides. Its test name says what it is for — *"drift fails HERE, by name"*.
+
+3. **BEHAVIOUR — an adversarial sweep over the real map.** `lens-adversarial` drives every internal kind at
+   party lenses rather than trusting the table.
+
+**Measured, not assumed:** flipping one pair (`pod.signed` counterparty → internal) fails **6 tests / 38
+passed** — the golden plus five behavioural ones. Restored byte-identical.
+
+**The three axes are the generalisation this phase produces.** Every registry defect §428–§435 found was a
+missing one of these: `DOMAIN_VOCAB_COPIES` had no completeness check (§428, roster added); redaction had no
+enrollment (§435, behavioural quantifier added); `hashView`'s denylist had content pinned only through
+itself (§434, re-derived from the envelope); the party-id scheme had content unpinned once sharing replaced
+parity (§433, golden added). **Completeness, content, behaviour — and content must be anchored outside the
+code that produces it.** A registry with all three is done; one missing any of them has a hole whose shape
+is now predictable rather than requiring discovery.
