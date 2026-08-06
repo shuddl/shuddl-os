@@ -25406,3 +25406,41 @@ them. I would not have found that by reading; the pre-existing test failed and n
 `check:invariants` exits 0 clean / 1 with a live mirror / 0 restored. Invariants suite **186 passed**;
 `typecheck`, `lint` clean. Provenance axis: **8 of 60 — 3 gaps, 5 clean**, with 6 of the remaining 52
 discharged as one family by the dormancy proof.
+
+## §455 — "what counts as finished", declared three times
+
+§454's mechanised sweep left 25 zero-reference symbols. Classified: **8** are the dormant `*Authority`
+family (discharged), **6** are types with no runtime behaviour, **6** are function-locals whose behaviour is
+tested through their route — `derivedShipmentId` proved that shape: zero references to the local, and a
+dedicated REQ-186 section in `appointments.test.ts` covering both the OMITTED and CROSSED cases it exists
+for. **5** were module-level candidates, of which `FlipBody` is covered by §447 and `mountPositionRoutes`
+runs through the app.
+
+**That leaves `TERMINAL_STATES`, and its own comment understates the problem.** It reads *"Mirrors
+exceptions.ts TERMINAL_STATES so 'active' means the same thing across the reads."* There are **three**
+copies, not two — `routes/board.ts`, `routes/exceptions.ts`, and an **already-exported** one in
+`packages/ledger/src/queries/metrics.ts:34`. The comment names the peer it duplicates and misses the
+canonical source sitting one import away, on a path this repo already imports from in production
+(`workers/translator/src/inbound.ts:27@RATER_AGENT`).
+
+**What drift costs is specific:** "active" would mean different things in the customer map, the ops
+exception queue, and the KPI aggregates *at the same time* — a shipment live on the portal, closed in the
+queue, counted a third way in the metrics.
+
+**Consolidated rather than guarded** (§428's lesson: sharing beats parity). Both routes now import the
+exported constant; `board.ts` keeps an array view for its SQL placeholders. `workers/api` **770 passed**,
+`packages/ledger` **628**, typecheck and lint clean.
+
+**The two-mutation pattern was necessary here, and the first mutation alone would have misled.** Dropping
+`"settled"` from the shared source left all 25 board/exception tests **GREEN** — which reads as "nothing
+watches this" until the comment is taken seriously: *'settled' is listed forward-safe (a future settlement
+projection); only 'delivered' is produced today*. It is the §389 **unreachable** case, correctly documented.
+Dropping `"delivered"` — the state actually produced by `status-cache.ts` on `pod.signed` — turns **3 tests
+RED across both routes and both board lenses**, which simultaneously proves the consolidation is live and the
+semantics pinned.
+
+**A green on a forward-safe value is evidence of nothing at all**, and the only way to tell it from a
+coverage gap is a second probe on a value the system can actually produce.
+
+Provenance axis: **9 of 60 — 4 gaps, 5 clean.** The zero-reference sweep is discharged: of 25, one was a real
+finding, 24 were explained by category.

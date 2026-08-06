@@ -1,3 +1,4 @@
+import { TERMINAL_STATES } from "@shuddl/ledger/queries/metrics";
 import type { Hono } from "hono";
 import type { EventKind } from "@shuddl/contracts";
 import { lensFor, readEvents } from "@shuddl/ledger/lens";
@@ -31,7 +32,9 @@ const EXCEPTION_KINDS: readonly EventKind[] = ["exception.raised", "osd.captured
 // Terminal shipment states = the resolve signal. Only 'delivered' is produced today (pod.signed, status-cache
 // .ts:133-134); 'settled' is listed forward-safe (a future settlement projection) so the heuristic need not
 // change when it lands. Anything else — booked/dispatched/in_transit/exception/OFD/unknown/no-row — is LIVE → OPEN.
-const TERMINAL_STATES: ReadonlySet<string> = new Set(["delivered", "settled"]);
+// TERMINAL_STATES is IMPORTED, not re-declared (audit §455). It was one of three hand-maintained copies
+// of "what counts as finished" — here, routes/board.ts, and the exported one in @shuddl/ledger. Drift would
+// make "active" mean different things in the ops queue, the customer map and the KPIs at the same time.
 
 // The queue lists OPEN by default is NOT the contract here: `status=open` returns only the open ones; `status=all`
 // (or an ABSENT param) returns ALL with an `open` flag. An unknown value is a hard 400 (mirrors events.ts

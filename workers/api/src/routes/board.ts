@@ -1,3 +1,4 @@
+import { TERMINAL_STATES } from "@shuddl/ledger/queries/metrics";
 import type { Hono } from "hono";
 import { lensFor } from "@shuddl/ledger/lens";
 import { generalizePosition } from "@shuddl/ledger/redact";
@@ -36,7 +37,7 @@ import type { Env, Vars } from "../index.js";
 // TERMINAL_STATES so "active" means the same thing across the reads. Everything else (booked/dispatched/
 // in_transit/exception/OFD/unknown/no-state) is LIVE. 'settled' is listed forward-safe (a future settlement
 // projection); only 'delivered' is produced today (status-cache.ts pod.signed).
-const TERMINAL_STATES: readonly string[] = ["delivered", "settled"];
+const TERMINAL_STATE_LIST: readonly string[] = [...TERMINAL_STATES];
 
 // The map draws ≤1,000 marks at the 60fps budget (REQ-079); cap the board there. Freshest-positioned first, so
 // a very large fleet surfaces the most-recently-moving trucks — never an unbounded scan onto the canvas.
@@ -96,7 +97,7 @@ function dedupeToItems<R extends { shipment_id: string }>(rows: readonly R[], to
 // position (max ts per shipment); a shipment with no position is dropped by the JOIN, a terminal shipment by the
 // state filter. json_extract returns NULL for a stateless shipment — treated as LIVE. Ordered freshest-first.
 async function tenantBoard(db: D1Database): Promise<BoardItem[]> {
-  const placeholders = TERMINAL_STATES.map(() => "?").join(",");
+  const placeholders = TERMINAL_STATE_LIST.map(() => "?").join(",");
   const rows = await db
     .prepare(
       `SELECT s.id AS shipment_id,
@@ -113,7 +114,7 @@ async function tenantBoard(db: D1Database): Promise<BoardItem[]> {
         ORDER BY p.ts DESC
         LIMIT ?`,
     )
-    .bind(...TERMINAL_STATES, BOARD_LIMIT)
+    .bind(...TERMINAL_STATE_LIST, BOARD_LIMIT)
     .all<BoardRow & { pts: number }>();
   return dedupeToItems(rows.results, (r) => ({
     shipment_id: r.shipment_id,
@@ -128,7 +129,7 @@ async function tenantBoard(db: D1Database): Promise<BoardItem[]> {
 // so the scope is enforced in the database, not after the fact. `partyId` is the lens id from the verified
 // claim — never a request value — so isolation cannot be widened by anything a caller sends (REQ-025).
 async function partyBoard(db: D1Database, partyId: string): Promise<BoardItem[]> {
-  const placeholders = TERMINAL_STATES.map(() => "?").join(",");
+  const placeholders = TERMINAL_STATE_LIST.map(() => "?").join(",");
   const rows = await db
     .prepare(
       `SELECT s.id AS shipment_id,
@@ -147,7 +148,7 @@ async function partyBoard(db: D1Database, partyId: string): Promise<BoardItem[]>
         ORDER BY p.ts DESC
         LIMIT ?`,
     )
-    .bind(partyId, partyId, partyId, ...TERMINAL_STATES, BOARD_LIMIT)
+    .bind(partyId, partyId, partyId, ...TERMINAL_STATE_LIST, BOARD_LIMIT)
     .all<PartyBoardRow & { pts: number }>();
   return dedupeToItems(rows.results, (r) => {
     // REQ-074 — coarsen to ~city (nearest 0.1°, accuracy dropped) UNLESS out-for-delivery. Reuse the SAME
