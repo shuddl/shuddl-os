@@ -24586,3 +24586,56 @@ change you are defending against leaves the test green, the test is measuring th
 `sha256Hex(canonicalBytes(…))` to frozen literals for both an empty and a rich object, `merkle.test.ts`
 pins the empty root, and `partyIdForEmail` has its own. Those are clean and were confirmed by reading, not
 assumed. 9 of the hash/canonicalization claims remain.
+
+## §435 — the redaction registries are clean; a grep said otherwise and the mutation refuted it
+
+`hashView` (§434) is a denylist that must be complete. Redaction is the same shape with a privacy
+consequence: `REDACTIONS` (top-level payload paths) and `INTERNAL_NESTED` (keys stripped at any depth) are
+hand-maintained maps, and a kind whose internals are not listed ships them to a counterparty.
+
+**A WRONG CLAIM, CAUGHT BEFORE IT REACHED THE RECORD.** Reading `redact.test.ts`, the two `REDACTIONS`
+kinds appeared only inside a `Object.keys(REDACTIONS).sort()` assertion — the registry's shape, not its
+behaviour — and a grep for `internal_note` across every test file "returned nothing". I formed the
+hypothesis that `REDACTIONS`'s VALUES were unpinned: emptying `["floors","basis","versions"]` would leave a
+key-list assertion green while the tenant's MARGIN shipped to the customer.
+
+**The mutation refuted it: 4 tests failed.** The coverage is in `visibility.test.ts`, not `redact.test.ts` —
+per-kind strips for the party lens and the driver lens, plus an assertion naming *the two kinds AND their
+paths* — with `lens.test.ts` covering it end-to-end. The claim was false.
+
+**The grep was truncated, for the third time this phase.** The predicate returns **29 hits, 6 of them in
+`visibility.test.ts`**; `head -8` showed eight rater-package matches for an unrelated `floors` tariff kind,
+and I reported "`internal_note` has zero test hits". §371 recorded this defect, §425 spent six runs inside
+it, and here it produced a false negative about a **margin-leak control**. The rule has to be absolute:
+**never let a grep whose result would support a NEGATIVE claim pass through `head`.** Count first, read
+second. What saved this one was not care — it was that the mutation ran before the sentence was written.
+
+**What was genuinely open: enrollment.** The file's own header states the discipline — *"Adding a kind here
+means adding its per-kind test — the general guard will not [catch it]"* — because §51 measured that the
+general fail-closed sweep is trivially true for 23 of 28 kinds. That discipline held for all **8** current
+entries and was enforced by **prose**. A ninth entry that stripped nothing would fail nothing.
+
+Closed by quantifying over the registries themselves: each entry is seeded with exactly the keys it names
+and asserted stripped — top-level for `REDACTIONS`, buried inside an array element for `INTERNAL_NESTED` —
+with a **control key asserted to SURVIVE**, without which a `redactEvent` that deleted the entire payload
+would satisfy every "is it gone?" assertion in the file. **Non-vacuity by construction**, which is precisely
+what §51 warned the general guard lacks.
+
+**The events are BUILT, not fixtured.** `eventFixture` validates against each kind's strict payload schema,
+so a payload seeded with the registry's keys is rejected before redaction is reached — the first version
+died on `quote.priced`'s required `sell`. `redactEvent` does not validate; it walks. Constructing the
+envelope directly tests the registry→behaviour mapping and nothing else.
+
+**Mutation-proved behaviourally, which is the only direction these CAN be proved.** A test that quantifies
+over a registry cannot prove the registry's CONTENT — deleting an entry deletes the expectation with it
+(§434's tautology). That claim belongs to the per-kind tests and to `visibility.test.ts`'s exact-paths
+assertion, and it is already covered; these prove entries BEHAVE. So: making the top-level strip a no-op
+gives **1 failed / 21 passed**, exactly the new `REDACTIONS` test. Replacing the structural walk with a
+top-level `delete` gives **5 failed / 17 passed**, **1 of them mine** — attribution read from the totals,
+not from a `head`-truncated failure list, in the same section that recorded why. `packages/ledger`
+**625 passed**.
+
+**`tsc` caught what vitest could not, again** — `'out' is possibly 'undefined'` under
+`noUncheckedIndexedAccess`, 22/22 green in vitest, exit 2 in typecheck. Second consecutive section. A green
+suite is not a green tree, and the gate ordering (`typecheck && lint && citations && commit`) is what makes
+that harmless.

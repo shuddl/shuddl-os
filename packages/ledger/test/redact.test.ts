@@ -330,3 +330,62 @@ describe("REQ-179/I6 — the redaction registries are exactly these kinds", () =
     ]);
   });
 });
+
+// EVERY REGISTRY ENTRY ACTUALLY REDACTS (audit §435). Both registries are hand-maintained maps, and the
+// file's own header states the discipline that protects them: "Adding a kind here means adding its per-kind
+// test — the general guard will not [catch it]", because §51 measured that the general fail-closed sweep is
+// trivially true for 23 of 28 kinds (it only bites where a fixture happens to carry an internal key).
+//
+// That discipline was enforced by PROSE. It held — all 8 current entries have behavioural coverage (the two
+// REDACTIONS kinds in visibility.test.ts, the six INTERNAL_NESTED kinds above) — but a ninth entry added
+// without a test would strip nothing and fail nothing. These two quantify over the registries themselves,
+// so a new entry is covered the day it is added rather than the day someone remembers.
+//
+// NON-VACUITY IS BY CONSTRUCTION, which is the whole point (§51's warning): each payload is SEEDED with the
+// exact keys the registry names, so the assertion cannot pass by the fixture simply not carrying them. A
+// control key is seeded alongside and asserted to SURVIVE — without it, a redactEvent that deleted the whole
+// payload would satisfy every "is it gone?" assertion in this file.
+describe("REQ-015/179: every registry entry strips what it names (audit §435)", () => {
+  const SENTINEL = "REDACT-ME";
+  const CONTROL = "keep_me_visible";
+
+  // The events are BUILT, not fixtured. `eventFixture` validates against each kind's strict payload schema,
+  // so a payload seeded with exactly the registry's keys is rejected before redaction is ever reached (the
+  // first version of this test died on quote.priced's required `sell`). `redactEvent` does not validate — it
+  // walks the payload — so constructing the envelope directly tests the registry→behaviour mapping itself
+  // and nothing else. Schema conformance is another file's job.
+  const evt = (kind: EventKind, payload: Record<string, unknown>): LedgerEvent =>
+    ({ kind, visibility: "counterparty", payload } as unknown as LedgerEvent);
+
+  it("REDACTIONS: each named TOP-LEVEL path is removed for a party lens, and only those", () => {
+    const entries = Object.entries(REDACTIONS) as Array<[EventKind, readonly string[]]>;
+    expect(entries.length, "non-vacuity: the registry must not be empty").toBeGreaterThan(0);
+    for (const [kind, paths] of entries) {
+      expect(paths.length, `${kind} lists no paths — an entry that redacts nothing`).toBeGreaterThan(0);
+      const payload: Record<string, unknown> = { [CONTROL]: "visible" };
+      for (const p of paths) payload[p] = SENTINEL;
+      const red = redactEvent({ scope: "party" }, evt(kind, payload)).payload as Record<string, unknown>;
+      for (const p of paths) expect(red[p], `${kind}.${p} SURVIVED redaction for a party lens`).toBeUndefined();
+      expect(red[CONTROL], `${kind}: redaction removed an unlisted key — it strips more than it names`).toBe("visible");
+    }
+  });
+
+  it("INTERNAL_NESTED: each named key is removed AT DEPTH, through arrays and objects", () => {
+    const entries = Object.entries(INTERNAL_NESTED) as Array<[EventKind, readonly string[]]>;
+    expect(entries.length).toBeGreaterThan(0);
+    for (const [kind, keys] of entries) {
+      expect(keys.length, `${kind} lists no keys`).toBeGreaterThan(0);
+      // Buried inside an array element, two levels down — the depth `delete payload[path]` cannot reach and
+      // the structural walk must. An entry that only worked top-level would pass a shallower probe.
+      const deep: Record<string, unknown> = {};
+      for (const k of keys) deep[k] = SENTINEL;
+      const red = redactEvent(
+        { scope: "party" },
+        evt(kind, { [CONTROL]: "visible", rows: [{ nested: deep }] }),
+      ).payload as Record<string, unknown>;
+      const out = (red.rows as Array<{ nested: Record<string, unknown> }>)[0]!.nested;
+      for (const k of keys) expect(out[k], `${kind}: nested \`${k}\` SURVIVED at depth`).toBeUndefined();
+      expect(red[CONTROL], `${kind}: the structural walk removed an unlisted key`).toBe("visible");
+    }
+  });
+});
