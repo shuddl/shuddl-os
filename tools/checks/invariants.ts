@@ -568,6 +568,42 @@ export function checkTestSchemaParity(
 // Keyed on an explicit ROSTER checked against the discovered set — the §239/§244 lesson. Keying only on the
 // constant NAME would stop covering a file the moment someone renamed the constant, which is one of the
 // drifts this exists to catch; keying only on the roster would miss a fifth copy. Both directions fail.
+// SQL COLUMN-INTERPOLATION GUARD (audit §462). `scopeLike(col, scope, params)` BINDS the scope value as `?`
+// but SPLICES `col` straight into the SQL fragment, so a caller-supplied column name would be an injection.
+// Its header states the rule and adds "All 11 call sites pass a literal today, verified" — a premise held by
+// a past reading, in three separate comments (scopeLike itself and both `likeClause` wrappers), enforced by
+// nothing. Two callers bypass the wrappers entirely, so those comments are invisible to them.
+//
+// The rule mechanised: the first argument must be a double-quoted string LITERAL, or exactly `col` — the
+// forward inside a wrapper whose own callers this same check then covers. Anything else (a variable, a
+// template string, a concatenation) is a column name the guard cannot vouch for.
+export function checkSqlColumnLiterals(sources: ReadonlyArray<{ path: string; source: string }>): string[] {
+  const violations: string[] = [];
+  let calls = 0;
+  for (const { path, source } of sources) {
+    // LINE-WISE, skipping comments and declarations. The first version scanned the whole file text and
+    // flagged three false positives immediately: two prose mentions inside comments and the DEFINITION of
+    // `scopeLike` itself (`function scopeLike(col: string, …)`). A guard that fires on its own subject's
+    // declaration is noise the next reader learns to ignore, which is how a gate stops being read.
+    for (const line of source.split("\n")) {
+      const bare = line.trim();
+      if (bare.startsWith("//") || bare.startsWith("*") || bare.startsWith("/*")) continue;
+      if (/\bfunction\s+(scopeLike|likeClause)\b/.test(line)) continue;
+      const m = /\b(scopeLike|likeClause)\s*\(\s*([^,]+),/.exec(line);
+      if (!m) continue;
+      const fn = m[1] ?? "";
+      const arg = (m[2] ?? "").trim();
+      calls += 1;
+      if (/^"[^"]*"$/.test(arg) || arg === "col") continue;
+      violations.push(`${path}: ${fn}(${arg}, …) — the column is INTERPOLATED into SQL and must be a string literal (or the wrapper's own \`col\`). A caller-supplied column name is an injection (audit §462).`);
+    }
+  }
+  if (calls === 0) {
+    violations.push("no scopeLike/likeClause call sites found — this guard is keyed on the call shape, so a rename makes it certify nothing (audit §462).");
+  }
+  return violations;
+}
+
 // AUTHORITY-SEAM DORMANCY (audit §454). `authoritativeSource(authority, legacyValueAvailable)` returns
 // 'native' for ANY authority when the second argument is false, so the WP-15 overlay wiring is behaviour-
 // neutral today. TEN production call sites depend on that, and the six `*Authority` locals they bind have
@@ -885,6 +921,23 @@ function main(): void {
     process.exit(1);
   }
   if (mode === "write") writeFileSync(lockPath, JSON.stringify(lockResult.nextLock, null, 2) + "\n");
+
+  // SQL column-interpolation guard (audit §462).
+  {
+    // TWO-STAGE, exactly as §454. The first wiring filtered to files CONTAINING the call token, so renaming
+    // the helper produced ZERO files and skipped the block — defeating the rename tripwire the check itself
+    // implements. §454 had already taught this distinction and it was reintroduced one section later: an
+    // EMPTY GLOB means "not the product tree" (skip); a non-empty glob with no call sites means "renamed"
+    // (fire). The filter belongs inside the check, not in front of it.
+    const allSrc = globSync("{packages,workers}/*/src/**/*.ts");
+    if (allSrc.length > 0) {
+      const v = checkSqlColumnLiterals(allSrc.map((f) => ({ path: f, source: readFileSync(f, "utf8") })));
+      if (v.length > 0) {
+        for (const x of v) console.error(`FAIL ${x}`);
+        process.exit(1);
+      }
+    }
+  }
 
   // Authority-seam dormancy tripwire (audit §454) — fires when the overlay stops being behaviour-neutral.
   {

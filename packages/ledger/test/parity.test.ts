@@ -1,7 +1,7 @@
 import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import { LedgerEvent as LedgerEventSchema, type LedgerEvent } from "@shuddl/contracts";
-import { NATIVE_VISIBLE_SOURCES, nativeVisibleSourceSql } from "../src/queries/unbilled.js";
+import { NATIVE_VISIBLE_SOURCES, nativeVisibleSourceSql, scopeLike } from "../src/queries/unbilled.js";
 const TRACKED_SOURCES_FOR_TEST = ["native", "legacy"] as const;
 import { applyMigrations } from "../src/migrate.js";
 import {
@@ -321,5 +321,34 @@ describe("REQ-014/168: the source partition is total — native-visible ∪ lega
     const sql = nativeVisibleSourceSql("e.source");
     for (const s of NATIVE_VISIBLE_SOURCES) expect(sql, `${s} missing from the emitted predicate`).toContain(`'${s}'`);
     expect(sql).not.toContain("'legacy'");
+  });
+});
+
+// scopeLike — THE BOUND VALUE AND THE INTERPOLATED COLUMN (audit §462). Zero test references before this.
+// It builds ` AND <col> LIKE ?` and pushes `${scope}%` onto params: the VALUE is bound, the COLUMN is spliced
+// straight into SQL. Its header says so and adds "All 11 call sites pass a literal today, verified" — a
+// premise held by a past reading, which is why §462 also adds a gate.
+describe("scopeLike — value bound, wildcard suffixed, column interpolated (audit §462)", () => {
+  it("undefined scope adds NO clause and leaves params untouched — a whole-tenant read", () => {
+    const params: (string | number)[] = ["existing"];
+    expect(scopeLike("p.shipment_id", undefined, params)).toBe("");
+    expect(params).toEqual(["existing"]); // non-vacuity: the array is the one that would have been mutated
+  });
+
+  it("a defined scope binds the VALUE as `?` and never interpolates it", () => {
+    const params: (string | number)[] = [];
+    const sql = scopeLike("p.shipment_id", "shp-abc", params);
+    expect(sql).toBe(" AND p.shipment_id LIKE ?");
+    expect(sql).not.toContain("shp-abc"); // the scope must not appear in the SQL text at all
+    expect(params).toEqual(["shp-abc%"]);
+  });
+
+  it("the wildcard is a SUFFIX only — a prefix wildcard would widen every scoped aggregate", () => {
+    // `${scope}%` is "starts with". A `%${scope}%` would make a scope of "shp-a" also match "x-shp-a",
+    // silently widening every KPI, watchtower detail and recon re-drive that uses a scope.
+    const params: (string | number)[] = [];
+    scopeLike("shipment_id", "shp-a", params);
+    expect(params[0]).toBe("shp-a%");
+    expect(String(params[0]).startsWith("%")).toBe(false);
   });
 });

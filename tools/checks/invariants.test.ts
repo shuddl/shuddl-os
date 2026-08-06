@@ -8,6 +8,7 @@ import { stripSqlComments } from "@shuddl/ledger/migrate";
 import {
   DOMAIN_VOCAB_COPIES,
   checkAuthoritySeamDormant,
+  checkSqlColumnLiterals,
   checkConstraintValues,
   checkDomainVocabularyParity,
   checkControlMigrationsExercised,
@@ -1021,5 +1022,38 @@ describe("checkAuthoritySeamDormant — the overlay is inert until a mirror exis
     // and reports success for having found nothing to disagree with.
     const v = checkAuthoritySeamDormant([{ path: "a.ts", source: "const a = resolveOverlaySource(x, true);" }]);
     expect(v.some((x) => x.includes("certify nothing"))).toBe(true);
+  });
+});
+
+// SQL COLUMN-INTERPOLATION GUARD (audit §462). scopeLike BINDS its scope value but SPLICES the column into
+// SQL, so a caller-supplied column name is an injection. The rule was stated in three comments and enforced
+// by nothing.
+describe("checkSqlColumnLiterals — the interpolated column must be a literal (audit §462)", () => {
+  it("the shipped tree passes — every call site uses a literal or the wrapper's own `col`", () => {
+    const files = globSync(join(REPO, "{packages,workers}/*/src/**/*.ts")).map((f) => ({ path: f, source: readFileSync(f, "utf8") }));
+    expect(files.length).toBeGreaterThan(50);
+    expect(checkSqlColumnLiterals(files)).toEqual([]);
+  });
+
+  it("a VARIABLE column fires, naming the file", () => {
+    const v = checkSqlColumnLiterals([{ path: "k.ts", source: "const s = likeClause(userCol, opts.scope, params);" }]);
+    expect(v).toHaveLength(1);
+    expect(v[0]).toContain("k.ts");
+  });
+
+  it("the wrapper's own `col` forward is allowed — it is covered by its callers", () => {
+    expect(checkSqlColumnLiterals([{ path: "w.ts", source: "  return scopeLike(col, scope, params);" }])).toEqual([]);
+  });
+
+  it("comments and the DECLARATION are not call sites", () => {
+    // The first version flagged three false positives on the real tree: two prose mentions and
+    // `function scopeLike(col: string, …)` itself. A gate that fires on its own subject's declaration is
+    // noise, and noise is how a gate stops being read.
+    const src = ['// see scopeLike(@shuddl/ledger/queries/unbilled) for the rule', 'export function scopeLike(col: string, scope: string | undefined, params: string[]): string {', '  return scopeLike("p.shipment_id", scope, params);'].join("\n");
+    expect(checkSqlColumnLiterals([{ path: "d.ts", source: src }])).toEqual([]);
+  });
+
+  it("a RENAMED helper fires — the guard must not certify nothing", () => {
+    expect(checkSqlColumnLiterals([{ path: "r.ts", source: "const s = scopeMatch(col, scope, params);" }]).some((x) => x.includes("certify nothing"))).toBe(true);
   });
 });

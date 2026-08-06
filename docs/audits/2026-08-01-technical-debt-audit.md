@@ -25672,3 +25672,41 @@ not a corrected literal but an IMPORTED one: the test now builds its input from
 cannot. **The failure was luck — a wrong guess fails loudly, a right guess would have frozen a second copy.**
 
 `@shuddl/contracts` **291 passed**; `typecheck`, `lint` clean.
+
+## §462 — an injection rule stated three times and enforced nowhere, and the hole I reopened one section later
+
+Continuing §458's zero-reference sweep. `packages/ledger/src/queries/unbilled.ts@scopeLike` builds
+` AND <col> LIKE ?` and pushes `${scope}%` onto `params`: the VALUE is bound, **the COLUMN is spliced
+straight into SQL**. Its header says so, and adds *"All 11 call sites pass a literal today, verified."*
+
+**The rule is stated in three places and enforced in none** — `scopeLike` itself plus both `likeClause`
+wrappers. The header even explains why it is repeated: two callers (`watchtower.ts`, `recon-sweep.ts`) bypass
+the wrappers, so the wrappers' comments are invisible to them. Three copies of a rule is the shape §428 and
+§455 both found; here it guards an injection.
+
+**The count does not reproduce either** (§445's pattern): 7 direct `scopeLike` sites — 5 literals and 2
+wrapper forwards — plus 14 `likeClause` sites, all literals. Not 11. The rule holds everywhere today; the
+number describing it was a memory.
+
+**Semantics pinned and gate added.** Three tests cover `scopeLike`: an undefined scope adds no clause AND
+leaves `params` untouched; a defined scope binds the value and never appears in the SQL text; the wildcard is
+a **suffix only** — `%${scope}%` would silently widen every scoped KPI, watchtower detail and recon re-drive.
+`checkSqlColumnLiterals` (wired into `check:invariants`) requires each call's first argument to be a string
+literal or the wrapper's own `col`. Mutations: a variable column fires naming the file; a renamed helper
+fires *"certify nothing"*.
+
+**TWO DEFECTS IN MY OWN GUARD, BOTH CAUGHT BY RUNNING IT.**
+
+**(1) It fired three false positives on the real tree** — two prose mentions inside comments and
+`function scopeLike(col: string, …)`, its own declaration. Rewritten line-wise, skipping comment lines and
+declarations. *A gate that fires on its own subject's declaration is noise, and noise is how a gate stops
+being read.*
+
+**(2) I reintroduced §454's exact hole one section after learning it.** The wiring filtered the glob to files
+CONTAINING the call token — so renaming the helper produced zero files, skipped the block, and the rename
+tripwire the check implements could never fire. §454 had already separated *empty glob = not the product
+tree (skip)* from *files but no call sites = renamed (fire)*, and I collapsed them again. **Knowing a lesson
+is not the same as having the habit**; what caught it was running the second mutation rather than trusting
+the first green. The filter now lives inside the check, where it can tell the two cases apart.
+
+Invariants suite **191 passed**; `typecheck`, `lint` clean.
