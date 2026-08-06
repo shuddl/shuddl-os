@@ -25544,3 +25544,37 @@ three instances were found by reading and why no grep will find the fourth.
 **Four mechanical instruments this phase have over-reported and been corrected by reading** — and the one
 that consistently worked (zero test references, §437/§451/§454) works precisely because it asks a syntactic
 question with a syntactic answer, never a semantic one.
+
+## §458 — the bearer capability that is the whole gate, tested only against a garbage string
+
+§457 concluded that the zero-test-reference check is the one instrument that works, so this section ran it
+repo-wide: **686 exported functions/consts/classes, 147 with zero test references.** Most are Zod schemas
+and types. One cluster is not: `workers/api/src/pub/doc-cap.ts` — `deriveDocSecret`, `mintDocDownloadCap`,
+`verifyDocDownloadCap`, `DocCapError` — **zero references of any kind**, and `routes/documents.ts:114` states
+what it guards: */pub/documents/:cap is mounted OUTSIDE `/v1/*`, so the auth middleware never runs — "the cap
+IS the authorization, and verifyDocDownloadCap is the whole gate."*
+
+**The route was covered; the capability was not.** `documents.test.ts` exercises mint→verify end to end (a
+portal party gets a URL and *"the URL streams the exact bytes"*), and its fail-closed describe contained
+exactly one test: **a garbage cap → 404**. A garbage string dies at PARSE. **Nothing exercised a well-formed
+cap that must still be refused** — which is the only interesting case, because the attack on a bearer token
+is never a malformed string, it is a valid-looking one.
+
+**Five properties pinned, each a token that parses:** a tampered payload (a legitimate cap whose `k` is
+rewritten to another tenant's object — the actual attack, proving `k` lives inside the MAC), an expired cap,
+a cap minted under a different deployment's secret, a session JWT offered as a cap, and the round trip as
+positive control.
+
+**The two-mutation rule then caught a hole in MY OWN tests.** Deleting the `.strict()` payload parse left all
+18 GREEN — including *"a session token is not a doc cap"*. That test passes for the **domain-separation**
+reason, not the `typ` reason: a session JWT is signed with `JWT_SECRET` itself and dies at the MAC before
+`typ` is ever read. So the strict parse — the second layer — was still unpinned by the very test whose name
+suggested it. A sixth test now signs under the **derived** secret with `typ: "status-cap"`, and the same
+mutation gives **1 failed / 18 passed**. Removing the domain separation instead (verify under the raw
+`jwtSecret`) gives **2 failed**, one of them the end-to-end route test.
+
+**That layer is unreachable today** — nothing else signs under the doc secret — so it is defence in depth in
+§389's sense, pinned so it cannot later be removed as dead weight. **A guard whose removal is silent will
+eventually be removed**; this one is no longer silent.
+
+`workers/api` **775 passed**; `typecheck`, `lint` clean.

@@ -1,3 +1,5 @@
+import { DocCapError, deriveDocSecret, mintDocDownloadCap, verifyDocDownloadCap } from "../src/pub/doc-cap.js";
+import { sign } from "hono/jwt";
 import { env, SELF } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
@@ -265,5 +267,63 @@ describe("GET /pub/documents/:cap — public bytes proxy fail-closed", () => {
   it("a garbage cap → 404 (uniform, no oracle)", async () => {
     const res = await SELF.fetch("https://api.local/pub/documents/not-a-real-cap");
     expect(res.status).toBe(404);
+  });
+});
+
+// THE CAP IS THE WHOLE GATE (audit §458). `/pub/documents/:cap` is mounted OUTSIDE `/v1/*`, so the auth
+// middleware never runs — routes/documents.ts says so in as many words: "the cap IS the authorization, and
+// verifyDocDownloadCap is the whole gate." Before this describe, the ONLY negative test was a garbage
+// string, which fails at PARSE. Nothing exercised a well-formed cap that should still be refused, and
+// `doc-cap.ts` had zero test references of any kind.
+//
+// The four properties below are the ones a bearer capability actually rests on. Each is a token that PARSES
+// — the attack is never a malformed string, it is a valid-looking one.
+describe("verifyDocDownloadCap — a well-formed cap that must still be refused (REQ-085, audit §458)", () => {
+  const SECRET = "test-jwt-secret-for-doc-caps";
+  const future = (): number => Math.floor(Date.now() / 1000) + 600;
+
+  it("round-trips: a freshly minted cap yields back its tenant + key (the positive control)", async () => {
+    const cap = await mintDocDownloadCap(SECRET, { t: "tenant-a", k: "evidence/tenant-a/shp/abc", expSeconds: future() });
+    await expect(verifyDocDownloadCap(cap, SECRET)).resolves.toEqual({ t: "tenant-a", k: "evidence/tenant-a/shp/abc" });
+  });
+
+  it("a TAMPERED payload is refused — editing `k` to another document breaks the MAC", async () => {
+    // The real attack: a party holds a legitimate cap for its OWN document and rewrites the object key to
+    // point at someone else's. The claim is that `k` lives INSIDE the MAC; this is what proves it.
+    const cap = await mintDocDownloadCap(SECRET, { t: "tenant-a", k: "evidence/tenant-a/shp/mine", expSeconds: future() });
+    const [h, body, sig] = cap.split(".");
+    const claims = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(body!.replace(/-/g, "+").replace(/_/g, "/")), (ch) => ch.charCodeAt(0))));
+    claims.k = "evidence/tenant-b/shp/theirs";
+    const forgedBody = btoa(JSON.stringify(claims)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    await expect(verifyDocDownloadCap(`${h}.${forgedBody}.${sig}`, SECRET)).rejects.toBeInstanceOf(DocCapError);
+  });
+
+  it("an EXPIRED cap is refused — the expiry is inside the MAC, not advisory", async () => {
+    const cap = await mintDocDownloadCap(SECRET, { t: "tenant-a", k: "evidence/tenant-a/shp/abc", expSeconds: Math.floor(Date.now() / 1000) - 5 });
+    await expect(verifyDocDownloadCap(cap, SECRET)).rejects.toBeInstanceOf(DocCapError);
+  });
+
+  it("a cap minted under a DIFFERENT secret is refused — no cross-environment replay", async () => {
+    const cap = await mintDocDownloadCap("some-other-deployments-secret", { t: "tenant-a", k: "evidence/tenant-a/shp/abc", expSeconds: future() });
+    await expect(verifyDocDownloadCap(cap, SECRET)).rejects.toBeInstanceOf(DocCapError);
+  });
+
+  it("a SESSION token is not a doc cap — the domain separation is real, not documented", async () => {
+    // doc-cap.ts claims the cap secret is "cryptographically DISJOINT from JWT_SECRET (the session secret),
+    // so a session JWT can never verify as a doc cap". A session JWT is signed with JWT_SECRET ITSELF; the
+    // cap secret is HMAC(JWT_SECRET, DOMAIN). Nothing tested that the two cannot be interchanged.
+    const sessionish = await sign({ sub: "u-ops", tenant: "tenant-a", role: "ops", exp: future() }, SECRET, "HS256");
+    await expect(verifyDocDownloadCap(sessionish, SECRET)).rejects.toBeInstanceOf(DocCapError);
+  });
+
+  it("a token signed with the DERIVED secret but the wrong `typ` is refused — the strict parse is the second layer", async () => {
+    // THE TEST ABOVE DOES NOT COVER THIS, and the mutation is what showed it: deleting the `.strict()` parse
+    // entirely left all 18 tests GREEN, because a session JWT is signed with JWT_SECRET itself and dies at the
+    // MAC before `typ` is ever read. The strict parse only bites on a token that ALREADY has a valid MAC —
+    // i.e. anything else that ever signs under the doc secret. Nothing does today, so this is defence in
+    // depth (§389 "nothing reaches it"), and it is pinned here so it cannot be removed as dead weight.
+    const derived = await deriveDocSecret(SECRET);
+    const wrongTyp = await sign({ typ: "status-cap", t: "tenant-a", k: "evidence/tenant-a/shp/abc", exp: future() }, derived, "HS256");
+    await expect(verifyDocDownloadCap(wrongTyp, SECRET)).rejects.toBeInstanceOf(DocCapError);
   });
 });
