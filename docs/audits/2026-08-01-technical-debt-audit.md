@@ -20341,3 +20341,95 @@ of *why* there is nothing here is what stops the next audit from spending the sa
 next was written; the `fixtures/tariff` class checked against `fixtures/manifest.json`'s `status: pending`
 rather than assumed; the WP-12 plan's proposed path compared against `git ls-files` for what shipped. No
 code and no record changed in this section — nothing was found that needed changing.
+
+---
+
+## §375 — the sibling-guard sweep covered one status code
+
+Hold 205 is CLOSED: *"all 18 guards swept… 13 pinned; 4 unpinned for verified-correct reasons; and ONE
+real hole."* Good work, and it found a genuine defect (a `driver` could waive a server-side gate).
+
+It swept **403**. The §81 defect class it came from — *a security test passing for a sibling gate's
+reason* — is not about 403. It is about **any two guards on one path that answer the same status**, since
+the response is then the same object no matter which fired.
+
+Re-enumerating every route by status: **403 was 5 routes; the unswept remainder is 3 routes with multi-404
+clusters and 11 with multi-400 clusters.** The closed hold read as though the field were finished. It had
+finished a fifth of it.
+
+### `documents.ts` — the sharpest case, and clean
+
+Three 404s, identical code AND identical message (`NOT_FOUND` / `DOCUMENT NOT FOUND`) — deliberately, so a
+caller cannot distinguish *"no such document"* from *"not yours"* (the enumeration defence). **That design
+makes response-based testing structurally impossible**: nothing observable differs. Only mutation can tell
+the guards apart.
+
+Both authorization guards are **pinned**, and by tests that name the exact distinguishing condition:
+
+- `doc.visibility === "internal"` → *"a portal party requesting a URL for an INTERNAL doc → 404
+  (fail-closed, no existence oracle)"*
+- the lens-sees-the-shipment check → *"a portal party NOT on the shipment cannot get a URL even for a
+  counterparty doc → 404"*
+
+This is §82's authoring rule already satisfied: when a fixture trips more than one guard, the assertion
+names the one intended. Worth recording as the positive example the rule was written for.
+
+### `devices.ts` — the gap
+
+Not competing guards, but **the same guard replicated across three handlers** — enroll, list, revoke —
+each `404 UNKNOWN PRINCIPAL`, identical text. Mutating each independently:
+
+| handler | before | after |
+|---|---|---|
+| `POST /v1/devices` | **757 passed** | 1 failed |
+| `GET /v1/devices` | **757 passed** | 1 failed |
+| `POST /v1/devices/:id/revoke` | **757 passed** | 1 failed |
+
+**Three greens.** Not one of the three was observed by any of 757 tests.
+
+`loadUser` resolves the caller against `users JOIN tenants ON t.slug = ?`, so it returns null for a token
+whose `sub` has no row *in this tenant* — a deleted user, or a `sub` from another tenant on a token minted
+for this one. The absence of the guard is a **500, not a leak** (every handler dereferences `user` on the
+next line), which is why this is coverage of a correct guard rather than an open hole. But device
+enrollment is the driver-auth root, and a regression making `loadUser` return a default instead of null
+would have gone silent on all three routes at once.
+
+Three tests added; 760 green; each guard now RED for **its own** handler. The `list` case asserts 404
+rather than an empty 200 specifically — an empty 200 is indistinguishable from *"this driver has no
+devices"*, so a broken resolver would read as a normal quiet state. The `revoke` case asserts the
+**message**, because that handler has a second 404 (`DEVICE NOT FOUND FOR THIS DRIVER`) and the status
+alone cannot say which fired.
+
+### The generalisation this is the third instance of
+
+**Replication defeats coverage-by-inspection more reliably than complexity does.** One guard written three
+times, with one identical message, reads in review as *covered* — a test asserting `404 UNKNOWN PRINCIPAL`
+exists, so the reviewer's eye stops. It proves nothing about which handler produced it, and here none did.
+
+The same mechanism, three ways now:
+
+| § | what looked covered | what actually was |
+|---|---|---|
+| §367 | two bare guards beside a well-commented, six-times-tested one | the commented one |
+| §370 | a test named *"REJECTS a malformed mapping"* | `resolveMapping`'s guard, not `certifyPartner`'s |
+| **§375** | one message, three handlers | **none of the three** |
+
+In each case the *name* of the covering thing was broad enough to span the gap. That is not carelessness —
+it is what names do. **A name describes a category; a test observes one line.** The only instrument that
+reports on lines is deletion.
+
+### Stated bound
+
+The **400-status clusters remain unswept** — 11 routes, 2 to 7 guards each. Deliberately deferred, not
+overlooked: 400s are validation refusals where every branch is *"bad input, nothing happened"*, so a test
+passing for a sibling's reason misreports which validation fired but never mistakes a refusal for a pass.
+Recorded on hold 205 so the next reader inherits the remainder rather than the impression of a finished
+field — the failure this section was written about.
+
+### Verification
+
+Every mutation applied by verified line index (the three `devices.ts` guards are byte-identical, so a
+string replace would have hit all three at once — the §308 no-op hazard in a new shape); each mutation
+type-valid (status/message changed, never the condition, so `user`'s narrowing survives and a RED cannot
+be a compile error, §363); all restored byte-identical (`0` lines differ); clean 760 and each mutated run
+measured with the verdict line read whole. `check:tables 0`.

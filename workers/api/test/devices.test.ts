@@ -163,4 +163,46 @@ describe("POST /v1/devices — authenticated device enrollment (REQ-013/016/025)
     const res = await enroll(t, { public_jwk: { kty: "EC", crv: "P-256", x: "not-a-key" } });
     expect(res.status).toBe(400);
   });
+
+  // REQ-025/013 — AN AUTHENTICATED PRINCIPAL WITH NO CONTROL-PLANE ROW (audit §375).
+  //
+  // `loadUser` resolves the caller against `users JOIN tenants ON t.slug = ?`, so it returns null for a
+  // token whose `sub` has no row IN THIS TENANT — a deleted user, or a `sub` belonging to another tenant
+  // carried on a token minted for this one. All three device handlers guard that with an IDENTICAL
+  // `404 UNKNOWN PRINCIPAL`.
+  //
+  // WHY THESE EXIST. Changing that guard's status in EACH handler independently left all 757 api tests
+  // GREEN — three times. The guard is replicated per handler, and one identical message across three
+  // routes reads, in review, as "covered": a test asserting `404 UNKNOWN PRINCIPAL` proves nothing about
+  // WHICH handler produced it, and in fact none did. This is the §81 sibling-guard shape without even a
+  // sibling — the same guard, three times, observed zero times.
+  //
+  // The failure without them is a 500, not a leak: every handler dereferences `user` on the next line, so
+  // a missing guard crashes rather than proceeds. That is why this is coverage of a correct guard (Low),
+  // not an open hole — but device enrollment is the driver-auth root, and a regression that made
+  // `loadUser` return a default instead of null would be silent on all three routes at once.
+  const ghost = (): Promise<string> => token({ sub: "driver-with-no-control-row", tenant: TENANT_SLUG, role: "driver" });
+
+  it("ENROLL by a principal with no control-plane row → 404, never a 500 and never an enrollment", async () => {
+    const res = await enroll(await ghost(), { public_jwk: await genPublicJwk() });
+    expect(res.status).toBe(404);
+    expect(res.body?.device_id, "nothing may be enrolled for a principal that does not exist").toBeUndefined();
+  });
+
+  it("LIST by a principal with no control-plane row → 404, not an empty 200", async () => {
+    // An empty 200 would be the dangerous degradation: indistinguishable from "this driver has no
+    // devices", so a broken resolver would read as a normal, quiet state.
+    const res = await SELF.fetch("https://api.local/v1/devices", { headers: bearer(await ghost()) });
+    expect(res.status).toBe(404);
+  });
+
+  it("REVOKE by a principal with no control-plane row → 404 (the guard, not the device lookup)", async () => {
+    // This handler has TWO 404s — the principal guard here, and `DEVICE NOT FOUND FOR THIS DRIVER` below
+    // it. The device id is deliberately one that exists for nobody, so the status alone cannot say which
+    // fired; the MESSAGE is the discriminator, per the §82 authoring rule.
+    const res = await SELF.fetch("https://api.local/v1/devices/dev_nonexistent/revoke", { method: "POST", headers: mut(await ghost()) });
+    expect(res.status).toBe(404);
+    const body = (await res.json()) as { message?: string };
+    expect(body.message).toBe("UNKNOWN PRINCIPAL");
+  });
 });
