@@ -25860,3 +25860,37 @@ only probe that can distinguish an aggregate from a per-member check.
 `check:chokepoint` clean 0 / broken 1 / restored 0; `typecheck`, `lint` clean. `check:rater-purity` carries
 the same gap and is filed rather than fixed here — its scan is a single directory, so the same per-glob rule
 applies but the population is one, and a fix would be untestable in the way §465 warns about.
+
+## §467 — the input-vacuity class closed at one, and a filed item that should not have been filed
+
+§466 fixed `check:chokepoint` and FILED `check:rater-purity` with a reason: *"its scan is a single directory,
+so the same per-glob rule applies but the population is one, and a fix would be untestable."* **Both halves
+of that were wrong, and the check that showed it took one command.**
+
+**The class is bounded at one.** Scanning all 18 gate scripts: **8 read files by glob or readdir**, and
+exactly **1** carries no non-vacuity signal — `rater-purity`. The other seven already guard their input,
+`identity-leak` most honestly (it SKIPS loudly when no denylist exists rather than passing). So there was one
+item left, not a class.
+
+**And it was trivially testable.** `analyzeRaterPurity(files)` is already pure and parameterised;
+`collectRaterSourceFiles(cwd)` does the globbing separately. The gate was BUILT for this test. §466's
+"untestable" was asserted from the shape of the problem rather than from reading the file — the same error
+this phase has recorded in others' comments (§432's phantom duplicate, §447's `body.reason` grep) committed
+in my own record one section earlier.
+
+**Closed.** A zero-file scan now fails with the reason rather than printing OK: *"packages/rater/src/**/*.ts
+matched ZERO files — the scan is broken, not the code. A renamed package or a moved src/ silently disarms
+the REQ-024 LLM ban and the REQ-004 class ban."* Probed: exit 1 with the glob repointed, exit 0 restored.
+
+**The second test is the one worth keeping.** `analyzeRaterPurity([])` returns `[]` — the analysis is
+CORRECT on empty input, and that correctness is precisely what makes the vacuity invisible. **A pure function
+cannot distinguish "nothing to check" from "nothing wrong"**, which is why the guard belongs at the
+collection site and not inside the analyser. That generalises past this gate: every violation scan in the
+repo has a pure core that is right about nothing.
+
+`tools/checks` rater-purity suite **20 passed**; `typecheck`, `lint`, both gates clean.
+
+**Filing discipline, restated:** a filed item carries a REASON, and the reason is a claim like any other. Two
+of this phase's filings were re-examined (§443's revocation residue, this one) and both dissolved on contact
+— the work was smaller than the reason implied. **A file-rather-than-fix decision deserves the same
+skepticism as a green test.**

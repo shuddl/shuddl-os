@@ -137,7 +137,20 @@ export function collectRaterSourceFiles(cwd: string = process.cwd()): { path: st
 }
 
 function main(): void {
-  const violations = analyzeRaterPurity(collectRaterSourceFiles());
+  // NON-VACUITY (audit §467). This is a VIOLATION SCAN, and one that scans nothing reports clean — §466
+  // measured exactly that on the sibling append-chokepoint gate, which sat at exit 0 with its globs pointed
+  // at a missing directory. Here the population is a single glob over packages/rater/src, so the rule is the
+  // simplest form of §466's per-glob check: if it matches nothing, the REQ-024 LLM ban and the REQ-004
+  // class-as-foundation ban are being enforced over zero files and the gate would still print OK.
+  const files = collectRaterSourceFiles();
+  if (files.length === 0) {
+    console.error(
+      "FAIL rater-purity [scan] packages/rater/src/**/*.ts matched ZERO files — the scan is broken, not the code. " +
+        "A renamed package or a moved src/ silently disarms the REQ-024 LLM ban and the REQ-004 class ban (audit §467).",
+    );
+    process.exit(1);
+  }
+  const violations = analyzeRaterPurity(files);
   if (violations.length > 0) {
     for (const v of violations) console.error(`FAIL rater-purity [${v.rule}] ${v.file}: ${v.detail}`);
     process.exit(1);

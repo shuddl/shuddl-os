@@ -1,3 +1,6 @@
+import { fileURLToPath as _fu } from "node:url";
+import { dirname as _dn, join as _jn } from "node:path";
+const REPO_ROOT = _jn(_dn(_fu(import.meta.url)), "..", "..");
 import { describe, expect, it } from "vitest";
 import { analyzeRaterPurity, collectRaterSourceFiles } from "./rater-purity.js";
 
@@ -157,5 +160,24 @@ describe("the REAL packages/rater/src is pure", () => {
     const files = collectRaterSourceFiles();
     expect(files.length).toBeGreaterThan(0); // guard: prove we actually scanned the tree
     expect(analyzeRaterPurity(files)).toEqual([]);
+  });
+});
+
+// NON-VACUITY OF THE SCAN ITSELF (audit §467). §466 measured the sibling append-chokepoint gate sitting at
+// exit 0 with its globs pointed at a missing directory — a violation scan that scans nothing reports clean.
+// This gate had the same gap and was the LAST of the eighteen: seven other glob-reading gates already carried
+// a signal, so the class is bounded at one and closed here.
+describe("rater-purity — the scan must actually find the package (audit §467)", () => {
+  it("collectRaterSourceFiles finds the real rater sources", () => {
+    const files = collectRaterSourceFiles(REPO_ROOT);
+    expect(files.length, "the glob must match packages/rater/src — a broken scan disarms REQ-024 silently").toBeGreaterThan(5);
+    expect(files.every((f) => f.path.startsWith("packages/rater/src/"))).toBe(true);
+  });
+
+  it("an EMPTY file set analyses clean — which is exactly why the count must be checked separately", () => {
+    // The analysis is correct on empty input: no files, no violations. That correctness is what makes the
+    // vacuity invisible, and it is the reason the guard belongs at the COLLECTION site rather than inside
+    // analyzeRaterPurity — a pure function cannot tell "nothing to check" from "nothing wrong".
+    expect(analyzeRaterPurity([])).toEqual([]);
   });
 });
