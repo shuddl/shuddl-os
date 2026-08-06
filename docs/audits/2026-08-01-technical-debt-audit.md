@@ -19827,3 +19827,94 @@ outside all three, the same limit [[a-gates-green-certifies-less-than-its-name]]
 `test:tools` measured three ways (clean, mutated, register-restored) with the verdict line captured
 verbatim each time; `committedLock` mutation restored byte-identical; seventeen suites re-run and each
 verdict line read whole. `typecheck 0 · check:tables 0 · check:citations 0`, commit gated on all three.
+
+---
+
+## §369 — the correction already existed, in the document I did not open
+
+§368 corrected §367's false "zero failures". This section asks the obvious next question: **was that claim
+contradicted anywhere it should have been caught?** It was — twice in the same file, and once in a sibling
+document eight days earlier.
+
+### Three records of one number
+
+`pnpm test` is recorded in three places. Two were already right when §367 wrote a fourth that was wrong:
+
+| where | measured at | files | cases | verdict |
+|---|---|---:|---:|---|
+| `docs/ops/PROJECT-STATE.md` "Unit tests" | 2026-07-28, `3fc592b` | 258 | 3,243 | PASS |
+| `RELEASE-EVIDENCE` tip-verdict `pnpm test` row | 2026-08-05, `fee46a3` (§333) | 283 | 3,704 | **3,701 PASS · 3 FAIL** |
+| `RELEASE-EVIDENCE` Step-1 suites table | 2026-08-05, `c51e0f7` (§367) | 284 | 3,713 | *(said "zero failures")* |
+
+**§333 had already found the three failures, attributed them to `REQ-289`, and written them down.** §367
+then re-measured the same thing in the same file, eleven headings up, and asserted the opposite — with an
+instrument that could not see a failure (§368). Nothing connected the two: `check:tables` validates
+structure, not agreement between two tables that describe one run.
+
+### And the staleness was already recorded too
+
+§367's other claim was that the Step-1 table's `116 files / 1,470` was stale. True — and
+`PROJECT-STATE.md` had said so on **2026-07-28**, in its own words:
+
+> ~~**Twelve were measured on 2026-07-27; six could not run.** Measured: 1,470 tests across 116 files.~~
+> **Superseded 2026-07-28.**
+
+Struck through, dated, with the superseding measurement beside it. **The correction existed; it had simply
+never propagated to the sibling document.** §367 rediscovered a known fact and reported it as a finding.
+
+That is the same shape as the coverage row this section also fixes — `check:coverage` was corrected to
+**FAIL** at Step 1 by §333 and left asserting **PASS** in the tip-verdict table below it — but one level
+up: **corrected in one document, not in its sibling**, rather than in one table and not its twin.
+
+So the rule earned in §367 (*"a correction applied to the instances found rather than to the cause"*)
+under-stated its own scope. The full form:
+
+> **When you correct a recorded claim, search for the claim's TEXT across the repository before
+> committing — not for the defect you found.** The other copies are the point. And if a correction already
+> exists elsewhere, the defect was never "nobody knew": it was that two documents disagreed and nothing
+> read them together.
+
+### What was actually fixed here
+
+- **Tip-verdict `check:coverage` row → FAIL**, stamped, matching its twin. Measured: `classified: 288/289
+  (unaccounted: 1)`, exit 1.
+- **Tip-verdict `test:tools` row** stamped with the current 31 files / 784 cases / 3 failing.
+- **The three records of `pnpm test` now reconcile explicitly**, in a table that shows the deltas rather
+  than three numbers a reader must diff by hand.
+
+The last delta is fully accounted: `fee46a3` → `c51e0f7` is **+1 file / +9 cases, every one of them this
+audit's own** — `error-envelope.test.ts` (+1 file, +3, §354), two `transition-gates` cases (§359), four
+service-worker guard cases (§367). Verified by an outside mechanism rather than from memory: `git diff
+--diff-filter=A` names exactly one added test file, and the `it(` counts of the two modified files moved
+6→10 and 54→56. **A delta that cannot be accounted for line by line is a measurement to redo, not a number
+to write down.**
+
+### What was checked and was fine
+
+The remaining nine gates in the tip-verdict table were re-run and match their recorded output **verbatim**:
+`check:runtime`, `check:invariants` (11 migration files), `check:rater-purity`, `check:authority-coverage`
+(9 consults / 5 modules / 8 files), `check:seed`, `audit:design`, `check:traceability`, `lint`, and the
+`17 of 17` typecheck count. Two stale rows out of eleven, both of them the *verdict* column rather than the
+output column — verdicts are the part a reader trusts without re-running.
+
+`docs/wp/WP-02.md` records `invariants OK — … (5 migration files)` against today's 11, and is **not** a
+defect: it sits under *"Close-out gate evidence (the 6 DoD items)"*, which dates it to WP-02's exit. Same
+for the wedge-day narrative. History that says when it was taken is not stale — it is the only kind of
+record that can be trusted to age.
+
+### A detector that over-fires, kept anyway
+
+The sweep that found this compared every doc table row carrying a `pnpm …` command against every other row
+for the same command. It flagged **25 of 26** commands as "disagreeing" — nearly all false, because the
+8-column ledger's last column is a *void trigger*, not a verdict, and the comparison did not know that.
+
+Recorded rather than discarded: a detector with a 4% precision rate still surfaced two real defects in one
+run, because the population is small enough to read every hit by hand. **The failure mode to fear is the
+one that stays silent, not the one that is noisy** — and the fix for noise is to read the output, which is
+cheap at 26 rows and would not be at 26,000.
+
+### Verification
+
+Eleven gates re-run at `5e65d6e`, each output compared verbatim against the recorded string; the `+1 file /
++9 cases` delta reconciled against `git diff --diff-filter=A` and per-file `it(` counts.
+`typecheck 0 · check:tables 0 · check:citations 0`, commit gated on all three.

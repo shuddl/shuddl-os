@@ -389,6 +389,18 @@ The six formerly-absent suites — `packages/ledger`, `workers/api`, `workers/ag
 the gates, the queues and the API surface, and they are **1,826 of the 3,713 cases**. The wedge-day total
 covered 51% of the tests that exist. That is why the disclosure sentence beside it mattered.
 
+**Reconciled against the other two records of this same figure, so the three cannot drift apart silently:**
+
+| where | measured at | files | cases |
+|---|---|---:|---:|
+| `docs/ops/PROJECT-STATE.md` "Unit tests" | 2026-07-28, `3fc592b` | 258 | 3,243 |
+| the tip-verdict `pnpm test` row below | 2026-08-05, `fee46a3` (§333) | 283 | 3,704 |
+| this table | 2026-08-05, `c51e0f7` (§367) | 284 | 3,713 |
+
+The last delta is **+1 file / +9 cases, and all of it is this audit's own**: `error-envelope.test.ts`
+(+1 file, +3 cases, §354), two `transition-gates` cases (§359), four service-worker guard cases (§367).
+A delta that cannot be accounted for line by line is a measurement to redo, not a number to write down.
+
 Observation, not a defect: `pnpm test:tools` emits five `fatal: not a git repository` lines on stderr.
 They originate in `tools/checks/invariants.test.ts:33`, which spawns the invariants CLI inside
 non-git temp directories with stderr piped through to the parent; the checker's `committedLock()`
@@ -551,9 +563,9 @@ re-executed at `79ae54d`, on this machine, in this checkout. Each line is a comm
 | design audit | `pnpm audit:design` | `design audit: clean` | **PASS** |
 | lint | `pnpm lint` | exit 0, no output | **PASS** |
 | typecheck | `pnpm -r --workspace-concurrency=2 --if-present run typecheck` | exit 0; **17 of 17** workspaces `typecheck: Done` | **PASS** |
-| tools suite | `pnpm test:tools` | **18 files, 410 tests passed**, 0 failed, 0 skipped | **PASS** |
+| tools suite | `pnpm test:tools` | **18 files, 410 tests passed**, 0 failed, 0 skipped | **PASS** *(re-measured 2026-08-05 at `5e65d6e`, audit §369 — now **31 files, 784 cases, 3 failing**. The three are the uncommitted `REQ-289` row, same cause as the coverage row below; proven by restoring the register → `784 passed (784)`. The 18/410 figure is what ran at `79ae54d`)* |
 | traceability | `pnpm check:traceability` | `traceability: no orphans in either direction (active: WP-01 … WP-16)` | **PASS** |
-| coverage | `pnpm check:coverage` | `coverage: 100% — all 288 register rows accounted for (0 unaccounted).` + `8 status-drift row(s)` | **PASS** |
+| coverage | `pnpm check:coverage` | `coverage: 100% — all 288 register rows accounted for (0 unaccounted).` + `8 status-drift row(s)` | **FAIL** *(re-measured 2026-08-05 at `5e65d6e`, audit §369 — `classified: 288/289 (unaccounted: 1)`, **exit 1**, on the uncommitted `REQ-289` GTM row (§299). §333 corrected the IDENTICAL row in the Step-1 table and this copy was left asserting PASS — a correction applied to the instance rather than to the claim)* |
 | a11y | `pnpm test:a11y -- --mode merge` | `{"gate":"a11y","status":"PASS","executed":true,"assertions":4,"detail":"4 passed"}` | **PASS (4)** |
 | e2e | `pnpm test:e2e -- --mode merge` | `{"gate":"e2e","status":"PASS","executed":true,"assertions":6,"detail":"6 passed"}` | **PASS (6)** |
 | visual | `pnpm test:visual -- --mode merge` | `{"gate":"visual","status":"PASS","executed":true,"assertions":5,"detail":"5 passed"}` | **PASS (5)** |
