@@ -23127,3 +23127,71 @@ Eight signatures read from their declarations rather than assumed; the suite run
 mutation; containment removed from `runSlaSweep` by line manipulation, landed, **attributed to its own row**,
 and restored byte-identical; the bound row updated with the count and the two remaining files named.
 `typecheck 0`.
+
+---
+
+## §410 — the non-vacuity assertion earned its place inside one section
+
+§409 closed the sweep-containment bound to 9 of 11 and argued that a **per-row non-vacuity assertion** was
+worth the extra line, because an `it.each` turns one vacuous body into eight false greens. This section
+added the tenth row and the assertion caught a vacuous one immediately.
+
+### The tenth: `runWatchtowerSnapshots`
+
+Added to the same `it.each`. It **failed** — not on `resolves`, which passed, but on the non-vacuity check:
+*"the failing tenant must be named in a loud log."*
+
+The cause is the sweep's first line:
+
+```ts
+if (!isSnapshotDay(at)) return;   // WEEKLY gate — SNAPSHOT_DOW = Monday
+```
+
+`FIRE_MS` is a Wednesday. The sweep returned **before the loop**, visited no tenant, and therefore resolved
+without any failure to contain. Without the non-vacuity assertion that row would have been **green, forever,
+against a sweep whose containment it never entered** — a §396 vacuous test, produced not by carelessness but
+by a gate two files away that the row's author (me, an hour earlier) had no reason to know about.
+
+Fixed by driving it with a Monday. **122 green.**
+
+> **A test's setup can be invalidated by a guard that has nothing to do with what it tests.** The weekly gate
+> is correct, documented, and entirely unrelated to per-tenant containment — and it silently emptied the
+> test. The only thing that made that visible was an assertion about *whether the subject ran*, which is the
+> one assertion a passing test never seems to need.
+
+### The eleventh: attempted twice, reverted
+
+`translator/sweep-214.ts` resisted. The same harness — spread `env`, replace one binding — makes that
+worker's `allTenantSlugs` log *"translator: claimed-tenant enumeration failed"* and degrade to the static
+roster, so the poisoned binding's effect could not be isolated from the harness's own damage.
+
+**Reverted rather than shipped**, on §408's rule restated in §409: *shipping a test one cannot make correct
+is how a vacuous test gets written.* Two attempts, a diagnostic that named the interference, and a stop. The
+bound now records the blocker precisely — *needs a harness that replaces one binding without reconstructing
+`env`* — so the next attempt starts from the obstacle rather than from the idea.
+
+### Where the bound stands
+
+**10 of 11.** `billing/metering` (§408), the eight in `workers/agents/src/index.ts` and
+`watchtower-snapshot` (§409/§410). One remains, named, with its reason.
+
+### The pattern across §408–§410
+
+Three sections on one property, and the shape of the work inverted twice:
+
+| | expected | actual |
+|---|---|---|
+| §408 | find a gap by inspection | found it by **mutation**; inspection showed eleven correct guards |
+| §409 | mechanical replication | eight **distinct** invocations, each needing its own non-vacuity proof |
+| §410 | add the last two | one needed an unrelated gate satisfied; one could not be isolated at all |
+
+**The code was uniform; the tests were not, at every level.** That is the durable lesson from this trio, and
+it is why "just add the tests for the other ten" was a claim worth spending rather than asserting.
+
+### Verification
+
+The tenth row's failure diagnosed from its own assertion message and traced to `isSnapshotDay`/`SNAPSHOT_DOW`
+rather than guessed; the correct day computed from `getUTCDay` rather than assumed; the eleventh's
+interference identified by printing the captured error calls, then the whole attempt reverted with
+`git checkout` and both suites re-run to confirm the tree is clean (translator 111, agents 122).
+`typecheck 0`.

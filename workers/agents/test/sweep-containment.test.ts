@@ -10,6 +10,7 @@ import {
   runSlaSweep,
   runWatchtower,
 } from "../src/index.js";
+import { runWatchtowerSnapshots } from "../src/watchtower-snapshot.js";
 import type { AgentsEnv } from "../src/tenants.js";
 import { applyAll } from "./helpers.js";
 
@@ -33,6 +34,8 @@ import { applyAll } from "./helpers.js";
 // each of these fires, which is the whole requirement for a pin.
 
 const FIRE_MS = Date.parse("2026-07-15T01:00:00Z");
+/** A MONDAY — `runWatchtowerSnapshots` is gated on SNAPSHOT_DOW and returns immediately on any other day. */
+const SNAPSHOT_MS = Date.parse("2026-07-13T01:00:00Z");
 
 /** A tenant binding that throws the moment the sweep touches it — a D1 outage for exactly one tenant. */
 function poisonOneTenant(): AgentsEnv {
@@ -64,6 +67,15 @@ describe("REQ-278: every agents sweep contains a per-tenant failure (audit §409
     ["runWatchtower", (e) => runWatchtower(e, () => FIRE_MS)],
     ["runRetentionSweep", (e) => runRetentionSweep(e, () => FIRE_MS)],
     ["runMirrorSweep", (e) => runMirrorSweep(e, () => FIRE_MS)],
+    // Not in index.ts — its own module, same shape. Included here rather than in a second file because the
+    // property and the harness are identical; the bound §408 filed counts sweeps, not files.
+    //
+    // NOTE the DIFFERENT clock: this sweep opens with `if (!isSnapshotDay(at)) return` — a weekly gate
+    // (SNAPSHOT_DOW = Monday) that makes a daily cron weekly. Driving it with FIRE_MS (a Wednesday) returns
+    // BEFORE the loop, so nothing is swept and nothing is logged. The first version of this row did exactly
+    // that and the non-vacuity assertion below caught it: the sweep "resolved", and no tenant had failed
+    // because no tenant had been visited (audit §410). SNAPSHOT_MS is a Monday, so the loop actually runs.
+    ["runWatchtowerSnapshots", (e) => runWatchtowerSnapshots(e, () => SNAPSHOT_MS)],
   ];
 
   it.each(SWEEPS)("%s RESOLVES when one tenant's D1 throws — the tick survives", async (_name, run) => {
