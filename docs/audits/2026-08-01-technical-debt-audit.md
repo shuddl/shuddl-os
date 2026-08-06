@@ -20818,3 +20818,68 @@ Composition roots read for branching (none); test references counted by grep and
 as empty (§360); tripwire mutation-proved by binding a real transport, attributed by failing-test name, and
 restored **byte-identical to the pre-mutation backup**; translator suite 110 green with the four added.
 `check:tables 0`.
+
+---
+
+## §380 — the stated bound, closed; and a stamp that held
+
+§379 closed the EDI half of the dormancy hold and **stated the webhook half as an open bound** rather than
+implying the pair was symmetric. Closing it is this section's first half.
+
+### The mirror gap was exactly the mirror gap
+
+| | EDI (§379) | webhook (§380) |
+|---|---|---|
+| fail-closed classes | `NotConfiguredTransport` — **0** test refs | `NotConfigured{WebhookTransport,EventSource,SecretResolver}` — **3 / 3 / 7** refs |
+| composition root | `transportFor` — **0** refs | `webhookDepsFor` — **0** refs |
+
+The webhook side was *better* covered on behaviour and identically uncovered on **choice**. Three classes
+whose refusals are each proven, assembled by a function nothing observes — so swapping any of them for a
+live implementation broke nothing.
+
+Four tests, one per dep plus a non-vacuity control, each asserted **separately** so a partial wiring cannot
+pass by leaning on its neighbours. The event source gets the sharpest comment because it is the quietest:
+`recentTerminalEvents()` returns `[]`, so wiring it is the single change that turns a sweep visiting zero
+events into one visiting all of them — **it fails no assertion anywhere on being swapped, and emits nothing
+when it does.**
+
+Mutation-proved: a live event source turns 181 passing into **1 failure**, naming the tripwire. Restored
+byte-identical.
+
+### And a claim that held exactly
+
+Row 384 bounds what may be claimed about coverage: *"measured 2026-08-05 (audit §275) — **280 source files,
+ZERO orphans**."* Re-measured at this commit: **280**, with **zero** source files added since. The stamp is
+current to the file.
+
+Worth recording because §377 and §378 both found recorded claims that were wrong, and a sweep that only
+reports its hits is a biased instrument. **Two of the ledger's verification claims have now been tested and
+held (`tenants.ts`'s three-layer defence in §376, this), two were wrong (§377's "defensive", §378's
+"REPLACE lint-banned"), and one was right-but-unsupported (§379).** That distribution is the useful output,
+not any single verdict.
+
+### The near-miss, for the fourth time
+
+The first measurement said **134**, not 280 — a 52% miss that would have read as a large undocumented
+deletion. The predicate was `git ls-files 'packages/*/src/**/*.ts'`, which requires at least one directory
+under `src/` and therefore silently drops every file sitting directly in it (`packages/ledger/src/lens.ts`,
+and 145 others).
+
+Fourth instance of §372's rule, and the cheapest tell yet: **a number that disagrees with a recent stamp by
+half is a broken predicate before it is a finding.** The check cost one line —
+`grep -E "^(packages|workers|apps)/[^/]+/src/"` over the full file list, which cannot depend on directory
+depth at all.
+
+There is a pattern in which of my predicates fail: every one has been a **glob or regex that encodes a
+structural assumption** — a directory depth here, a `\s+` in §368's verdict parse, a `head -20` in §371, a
+missing strikethrough in §374. The fix each time was to move the work from the pattern to the filter: list
+everything, then exclude explicitly. **A pattern that selects is a hypothesis; a list you filter is an
+observation.**
+
+### Verification
+
+Composition root read for all five deps; test-reference counts by grep with the zero results reported as
+zero (§360); tripwire mutation-proved by swapping a live event source, attributed by failing-test name,
+restored byte-identical to the pre-mutation backup; source-file count re-measured with a depth-independent
+predicate and cross-checked against `git log --diff-filter=A` since the stamp's date. `typecheck 0 ·
+check:tables 0`; mcp suite 181 green with the four added. Staged by explicit path (§379).
