@@ -25747,3 +25747,37 @@ because it guarded a single call-shape rather than a set of copies.
 Invariants suite **193 passed**; `check:invariants`, `typecheck`, `lint` clean. A now-unused helper from the
 first attempt was removed rather than left with an underscore — lint caught it, which is the smallest example
 of the same principle.
+
+## §464 — §463's rule applied to a gate I did not write, and the edit that broke a second one
+
+§463 extracted a rule from three of my own gates: **a check keyed on "does X exist anywhere?" cannot notice
+X leaving one place.** Applying it to the PRE-EXISTING gates finds one more instance.
+
+**`checkDoMutexIntact` scoped its limb checks to the FILE.** For each roster class it tested three regexes —
+the `private lock` field, the `this.lock.then(...)` chain, the `run.catch(...)` re-arm — against the whole
+source. Two roster DOs in one file would therefore mask each other: the second could lose its mutex entirely
+while the first one's limbs satisfied the check. **Unreachable today** — `ShipmentSequencer`, `SparkMeter`
+and `CapsMeter` each live in their own file — but the roster's own header promises *"a fourth DO cannot
+appear uncovered"*, and a fourth added to an EXISTING file is precisely what the file-scoped form could not
+see. Now scoped to the class body, with a test that puts two roster DOs in one source and asserts only the
+mutex-less one is flagged.
+
+**THE EDIT BROKE A DIFFERENT GATE, AND THE CLEAN-TREE RUN CAUGHT IT.** My script removed the old
+class-presence guard with a global line filter — which also deleted it from the SECOND loop in the same
+function, §318's non-storage-await check. With no guard, every file was scanned for every roster class, and
+`check:invariants` reported *"SparkMeter awaits something that is not `this.ctx.storage.*`"* inside
+`workers/translator/src/inbound.ts`, a file containing no DO at all. **A filter written for one call site
+matched every occurrence in the function** — the §376 lesson, in an edit script rather than a mutation run.
+
+What made it cheap: the gate was run on a CLEAN tree immediately after the edit, before any probe. The
+failure was nonsense on its face (a class named in a file that does not contain it), which is the signature
+of a scoping bug rather than a real violation. **Running the gate against a known-good tree after changing
+the gate is the cheapest possible check, and it is the one I nearly skipped** because the change "was only a
+scoping refinement".
+
+Both restored and pinned: two tests, one for the masking case and one asserting a file that does not declare
+the class is never flagged for it. Invariants suite **195 passed**; `check:invariants`, `typecheck`, `lint`
+clean.
+
+**Four gates audited under §463's rule, two defects found** (§428's roster, this one), both latent rather
+than live, both in the same shape: **the guard measured a scope one level wider than the thing it guards.**

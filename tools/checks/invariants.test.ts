@@ -1083,3 +1083,29 @@ describe("checkDomainVocabularyParity — a SINGLE renamed copy is loud (audit �
     expect(v.some((x) => x.includes("no longer declares SHIPMENT_MODES"))).toBe(true);
   });
 });
+
+// DO-MUTEX SCOPE (audit §464). The three limb regexes ran over the whole FILE, so two roster DOs sharing one
+// file would mask each other. Unreachable today (each roster class has its own file) and pinned here because
+// the roster's header promises "a fourth DO cannot appear uncovered".
+describe("checkDoMutexIntact — the limbs are scoped to the CLASS, not the file (audit §464)", () => {
+  const MUTEX = [
+    "  private lock: Promise<unknown> = Promise.resolve();",
+    "  async m() { const run = this.lock.then(() => this.ctx.storage.get('x')); this.lock = run.catch(() => undefined); return run; }",
+  ].join("\n");
+
+  it("two roster DOs in ONE file: the second losing its mutex is NOT masked by the first", () => {
+    const source = [
+      "export class SparkMeter extends DurableObject {", MUTEX, "}",
+      "export class CapsMeter extends DurableObject {", "  async m() { return 1; }", "}",
+    ].join("\n");
+    const v = checkDoMutexIntact([{ path: "two.ts", source }]);
+    expect(v.some((x) => x.includes("CapsMeter") && x.includes("missing"))).toBe(true);
+    expect(v.some((x) => x.includes("SparkMeter") && x.includes("missing"))).toBe(false);
+  });
+
+  it("a file that does NOT declare the class is never flagged for it", () => {
+    // The guard a global filter removed mid-edit: without it, every file was scanned for every roster class
+    // and the await half reported SparkMeter violations inside workers/translator/src/inbound.ts.
+    expect(checkDoMutexIntact([{ path: "unrelated.ts", source: "export async function f() { await fetch('x'); }" }])).toEqual([]);
+  });
+});

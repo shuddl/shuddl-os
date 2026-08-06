@@ -736,11 +736,19 @@ export function checkDoMutexIntact(files: ReadonlyArray<{ path: string; source: 
   for (const { path, source } of files) {
     for (const m of source.matchAll(/export class (\w+) extends DurableObject/g)) declared.add(m[1]!);
     for (const cls of DO_MUTEX_ROSTER) {
-      if (!new RegExp(`export class ${cls} extends DurableObject`).test(source)) continue;
+        const decl = new RegExp(`export class ${cls} extends DurableObject`).exec(source);
+        if (decl === null) continue;
+        // SCOPED TO THE CLASS BODY (audit §464). These three regexes ran over the WHOLE FILE, so two roster
+        // DOs sharing one file would mask each other: the second could lose its mutex entirely while the
+        // first one's limbs satisfied the check. Unreachable today — all three roster classes live in their
+        // own files — but the roster's header promises "a fourth DO cannot appear uncovered", and a fourth
+        // added to an EXISTING file is exactly what the file-scoped form could not see.
+        const nextDecl = source.slice(decl.index + 1).search(/^export class \w+ extends DurableObject/m);
+        const body = nextDecl === -1 ? source.slice(decl.index) : source.slice(decl.index, decl.index + 1 + nextDecl);
       // All three limbs, or the chain is broken: the field, the chain-on, and the poison-proof re-arm.
-      const hasField = /private lock: Promise<unknown> = Promise\.resolve\(\)/.test(source);
-      const hasChain = /const run = this\.lock\.then\(\(\) =>/.test(source);
-      const hasRearm = /this\.lock = run\.catch\(\(\) => undefined\)/.test(source);
+      const hasField = /private lock: Promise<unknown> = Promise\.resolve\(\)/.test(body);
+      const hasChain = /const run = this\.lock\.then\(\(\) =>/.test(body);
+      const hasRearm = /this\.lock = run\.catch\(\(\) => undefined\)/.test(body);
       if (!hasField || !hasChain || !hasRearm) {
         const missing = [!hasField && "the `private lock` field", !hasChain && "the `this.lock.then(...)` chain", !hasRearm && "the `this.lock = run.catch(...)` re-arm"].filter(Boolean).join(", ");
         violations.push(`${path}: ${cls} is missing ${missing} — the DO serialization mutex. Deleting it is SILENT in that worker's suite (§235 measured 110/110 and 177/177 still green) because the input gate already serializes a storage-only critical section; it becomes a cap bypass the moment any non-storage await enters. If you are deliberately removing it, remove this roster entry and say why.`);
@@ -764,6 +772,10 @@ export function checkDoMutexIntact(files: ReadonlyArray<{ path: string; source: 
   const AWAIT_PURE_METERS = ["SparkMeter", "CapsMeter"] as const;
   for (const { path, source } of files) {
     for (const cls of AWAIT_PURE_METERS) {
+      // RESTORED (audit §464). This guard was collateral damage from a global filter in the same edit that
+      // scoped the mutex limbs above: removing it made every file scanned for every roster class, so the
+      // check reported SparkMeter awaits inside workers/translator/src/inbound.ts. A file that does not
+      // declare the class cannot violate its await rule.
       if (!new RegExp(`export class ${cls} extends DurableObject`).test(source)) continue;
       const code = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
       for (const m of code.matchAll(/await\s+([^\n;]+)/g)) {
