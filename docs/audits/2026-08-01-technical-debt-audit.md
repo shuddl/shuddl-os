@@ -18666,4 +18666,9 @@ eleven sections making trustworthy.
 ### Verification
 
 `check:tables` **0** after the move (was 4 over-wide rows); `check:citations 0`; both affected tables
-re-rendered and read. Final merge verdict re-run below.
+re-rendered and read.
+
+**Full `verify:merge` re-run after the fix: 17 PASS · 5 BLOCKED · 2 FAIL** — §298's verdict restored exactly.
+The two FAILs are `unit-tests` and `coverage`, both the `REQ-289` register trio; the five BLOCKED are the
+private-fixture holds and the CI denylist secret. **`table-shape` is PASS again**, which is the only thing
+this phase changed about that verdict.
