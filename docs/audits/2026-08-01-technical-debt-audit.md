@@ -25960,3 +25960,40 @@ struck as PINNED.
 **The classification is the reusable part.** 124 rows sound like 124 obligations; 12 are actionable here and
 39 are not this audit's to move. **A hold list without an ownership column reads as a backlog when most of it
 is a waiting list** — and the 12 are now enumerated, so the next pass starts from a set rather than a scan.
+
+## §470 — a hold re-verified and deliberately NOT fixed, with the reason stated
+
+Second of §469's twelve repo-owned rows. *"Unbounded list reads — no LIMIT and no cursor"* (§183, extended
+§211). Every cited query was re-read at HEAD:
+
+| Site | Bound |
+|---|---|
+| `routes/invoices.ts:56` tenant lens | `SELECT … FROM invoices ORDER BY id` — **no WHERE at all**, no LIMIT |
+| `routes/invoices.ts:45` party lens | `WHERE party_id = ?`, no LIMIT |
+| `routes/watchtower.ts:45@anomalies` | `${where}` — empty when `status=all` — no LIMIT |
+| `routes/dunning.ts:385` | `WHERE … LIKE 'msg:dunning:%'`, no LIMIT |
+| `routes/export.ts:120/126` | no LIMIT |
+| `packages/ledger/src/parity.ts:254` | `WHERE kind IN (…)`, **FULL PAYLOADS**, no LIMIT |
+| `workers/agents/src/watchtower.ts:216@quote` | `WHERE kind='quote.priced'`, no LIMIT |
+
+**All seven still unbounded. Nothing decayed, and the row's count was low** — it read "5 sites" while its own
+body already listed the two §211 additions. Corrected to 7 and re-dated.
+
+**NOT FIXED, and the reason belongs in the record rather than in a commit message.** The remedy is
+pagination, which is an API-SHAPE change: it alters what a caller receives. CLAUDE.md is explicit — *"If it
+isn't a REQ row, it doesn't get built; if you discover scope, ADD A ROW first"* — and this is not discovered
+scope, it is **known** debt whose remedy needs an owner decision the audit cannot make for them: **silently
+truncating a tenant's invoice list is a worse failure than the unbounded read it replaces**, and a loud cap
+(error above N rows) turns a working endpoint into a broken one at an arbitrary threshold. Which of those a
+customer should meet is a product call.
+
+**What re-verification is worth when it changes nothing.** The row now carries a dated measurement instead of
+an inherited one, so the next reader knows the claim was true *today* rather than true *once* — the
+distinction §445 drew for counts, applied to a hold. Three of this phase's re-examinations dissolved the
+filing (§443, §467, §468); this one confirms it, and confirming is the same discipline arriving at the
+opposite answer.
+
+**Remaining from §469's twelve:** two closed (§469, this one verified), and of the rest, most are
+deliberate deferrals with recorded reasoning (`B2A` convergence, below-floor interline holds), record-only
+items (kinds without emitters, `passports`), or need an owner (clean-close signal, `metadata.tenant`). The
+one with genuine in-repo headroom is **the two N+1 loops on cron paths** (§212).
