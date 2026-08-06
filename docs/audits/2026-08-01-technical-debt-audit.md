@@ -18834,3 +18834,60 @@ you sampled; the mount point proves the absolute.
 
 Mount point located and mutation-proved; `MUTATING` set read; `@shuddl/api` 754 green after restore; path
 filter used (§325). No file changed.
+
+---
+
+## §353 — The second absolute in §04, and the rejection that is not an ignore
+
+§352 established the question for any *"every / no exceptions"* claim: **find where the rule is applied and
+ask whether a new instance can avoid it.** `genesis/14` §04 contains one more, and it is the
+security-critical one:
+
+> *"Tenant resolution: subdomain (portal/status) or JWT claim (command/driver/API) — **never a
+> client-supplied tenant id**."*
+
+**Structural, at the same mount point:** `index.ts:96` — `app.use("/v1/*", auth)`, one line above the
+idempotency mount §352 proved. And the middleware's first act, before it even looks for a bearer token:
+
+```
+if (c.req.header("X-Tenant-Id") || c.req.query("tenant")) {
+  throw new ApiError("TENANT_MISMATCH", 403, "TENANT IS RESOLVED SERVER-SIDE, NEVER CLIENT-SUPPLIED");
+}
+```
+
+**Mutation:** the condition neutered to `if (false)` — a client may now name a tenant in a header or query.
+**RED — 26 failing assertions**, naming `TENANT_MISMATCH`, `X-Tenant-Id`, `client-supplied`. Restored
+byte-identical: 754 passed.
+
+### Reject, not ignore — and the comment says so
+
+The clause reads *"a client-supplied tenant id anywhere in the request is **rejected outright, not
+ignored**."* That distinction is the entire defence, and it is not obvious:
+
+- **Ignoring** a `?tenant=` parameter is safe *today* and silently unsafe the moment any handler, ever, reads
+  the query bag for a tenant hint. The parameter arrives, is discarded by convention, and nothing in the
+  request records that it was refused.
+- **Rejecting** it means the request dies at the boundary with a 403 — so a client probing for the seam gets
+  a definitive answer, and a future handler cannot be tricked by a parameter that never reaches it.
+
+**This is the fail-closed lesson my own notes record from a different direction** — catching the exception is
+not the guarantee; the fallback VALUE is. Here the fallback for "client mentioned a tenant" is not *undefined*
+or *the JWT's tenant*, it is **no request at all.**
+
+### Three layers, three mutations, one law
+
+REQ-025's isolation now has its full chain proved end to end, each layer independently:
+
+| layer | what it decides | § | REDs |
+|---|---|---|---|
+| **auth** | may a client even *name* a tenant? — no, 403 at the boundary | **§353** | 26 |
+| **principal** | which tenant is this caller? — the pairing's, never a claim | §306 | 15 |
+| **resolution** | which database does that tenant get? — its own, via one resolver | §320 | 4 |
+
+**Three chokepoints, three single-line mutations, forty-five failing assertions.** No layer relies on another
+being correct, which is what defence-in-depth means when it is real rather than asserted.
+
+### Verification
+
+Mount point located at `index.ts:96`; the rejection mutation-proved and restored; `@shuddl/api` 754 green;
+path filter used. No file changed.
