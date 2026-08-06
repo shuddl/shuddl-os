@@ -24147,3 +24147,41 @@ of the window, and I spent six runs inside that window building an increasingly 
 **Bound carried forward.** `perf` (1 assertion) is the last of §423's ten and remains unchecked by
 mutation. `visual` (5) and `a11y` (4) are now checked: both work, both have a scope/calibration finding,
 neither has a correctness defect.
+
+## §426 — the perf gate's two live budgets discriminate; the two it advertises do not run in CI
+
+The last of §423's ten. `perf:map` reports `assertions: 1` because it is one test; it carries six `expect`s,
+four of them live and two behind machine conditionals.
+
+**BOTH LIVE BUDGETS MUTATION-PROVEN.** `INTERACTION_P95_MS 500 → 0`: `1 failing of 1`, the failure naming
+`perf.spec.ts:140@board interaction p95`. `LONG_TASK_MS 100 → -1`: `1 failing of 1`, naming
+`perf.spec.ts:152@no main-thread task may exceed`. Restored byte-identical. Measured headroom on this
+machine: interaction p95 **20.5–21.1ms against 500ms**, worst operating-window long task **0.00ms against
+100ms**, frame p95 **11.70ms against 18.18ms**.
+
+**THE TWO CONDITIONALS ARE HONEST, AND BOTH ARE DOCUMENTED.** `if (softwareRasterizer)` logs
+*"long-task budget NOT ASSERTED"* rather than passing quietly, and `isReferenceMachine` gates the FPS
+assertion. Neither fabricates a green — the exact defect this file's header records being remediated
+(*"used to report a number and pass regardless (`expect.soft`)"*). `docs/ops/slo.md:36` records the
+long-task budget as enforced *"wherever a hardware rasterizer is present"*, and `docs/ops/secrets.md:48`
+records FPS as *"measured, not enforced"* without `PERF_REFERENCE_MACHINE=1`. Nothing in the repo sets
+that variable — four occurrences total, two of them the docs that say so. So the FPS budget is
+deliberately opt-in and correctly described.
+
+**WHAT IS NOT RECORDED IS WHICH SET CI GETS.** `.github/workflows/ci.yml:45-46` runs
+`pnpm perf:map -- --mode merge` on `ubuntu-latest`, under the step name *"strict performance — 1K-entity
+interaction + long-task budget"*. A GitHub-hosted `ubuntu-latest` runner has no GPU, so Chromium falls to
+a software rasterizer and the spec's own branch declines to assert — meaning the long-task budget named in
+the step title is precisely the one that cannot run there, and FPS is opt-out by default. **In CI the perf
+gate enforces one budget: interaction p95 ≤ 500ms**, against a locally measured ~21ms — a 24× margin.
+This is an inference from the runner type, not a measurement of GitHub's runner; it is corroborated by the
+project's own recorded observation of *"compositor rasterization in a GPU-less harness"*
+(`GO-LIVE-CHECKLIST` line 419) and by the spec's note of a *"~360-520ms compositor floor at first paint"*.
+
+Filed, not fixed: moving perf to a GPU-capable runner is an infrastructure decision, and renaming the step
+without it would only make the gate honest about enforcing less.
+
+**§423'S BOUND IS CLOSED.** All ten assertions across `visual` (5), `a11y` (4) and `perf` (1) are now
+mutation-checked. Three gates, three verdicts: every one works and discriminates; two carry a scope or
+calibration finding (a11y scans pre-auth screens §424; the visual tolerance is 185× measured drift §425);
+one enforces less in CI than its name claims. **No correctness defect was found in any of the three.**
