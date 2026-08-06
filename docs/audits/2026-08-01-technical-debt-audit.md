@@ -191,7 +191,7 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 > two first — together they are the production-readiness claim: the gates run, and the laws the gates exist
 > to protect fail when their enforcement is removed. §296 re-measured the gate surface at `3d1386b` but named two bounds that turned
 > out to be unmeasured inheritances — §297 withdrew the worker-suite bound (the full suite runs: **286 files /
-> 3,758 cases / 3,755 passing**, re-measured at `331813a`; the 3 failures are all the uncommitted `REQ-289`
+> 3,760 cases / 3,757 passing**, re-measured at `39cfa56` (+1 api §404, +1 translator §406); the 3 failures are all the uncommitted `REQ-289`
 > row, proven by removing it. Every delta since §367's `c51e0f7` baseline is accounted per section and is
 > entirely this audit's own — +37 to `570ab5d` (22 tools §378, 5 api §375/§377, 6 translator §370/§379,
 > 4 mcp §380), then **+8 more**: 2 api (§387), 3 rater (§389), 1 api (§395), 2 ledger (§396)) and §298 withdrew the browser-gate bound (visual/a11y/e2e all PASS with
@@ -22920,3 +22920,75 @@ Both call sites read at their lines; the handler's stated law quoted from its ow
 the branch that already existed rather than adding one; test mirrors the sibling case's shape and is
 **mutation-proved** (containment removed → 1 RED, named), source restored byte-identical.
 `typecheck 0`, translator 111 green.
+
+---
+
+## §407 — the input sweep completed: 4 consumers, 2 needed fixing, and the rule that predicts which
+
+§406 named the axis: **when consumers share an input, sweep by the input.** `loadTenantRatingConfig` — the
+loader for the tenant config pack, whose author is outside this repository (§403) — has **four production
+consumers**. Two are now fixed. This checks the other two and states what separates them.
+
+| consumer | transport | an unguarded throw becomes | verdict |
+|---|---|---|---|
+| Concierge (`workers/agents`) | queue, at-least-once | 5 retries → **DLQ**, the customer's quote email silently lost | **fixed** (§404) |
+| translator 204 (`workers/translator`) | HTTP, VAN-driven | **5xx** → the VAN retries an unfixable fault forever | **fixed** (§406) |
+| `/v1/rate` (`workers/api`) | HTTP, authed request/response | 500 via the §354 envelope — fixed message, no leak | **correct** |
+| `/pub/quote` (`workers/api`) | HTTP, guest request/response | 500 via the same envelope | **correct** |
+
+### What separates them is not the transport, it is who retries
+
+The two that needed fixing are the two where **something other than a human decides to try again.** A queue
+retries five times and then buries the message; a VAN retries on a schedule nobody watches. In both, the
+retry is automatic, the fault is deterministic, and the loop's end state is a lost artifact or a storm.
+
+On the two synchronous routes, the "retry" is a person clicking again. A 500 is **loud at exactly the
+moment it happens**, reaches someone who can escalate, and cannot amplify. It is the correct answer to *"this
+tenant's stored tariff is corrupt"* — and containing it would be worse, because mapping a malformed config
+to a graceful UNKNOWN would hide an operator fault behind an ordinary "we can't quote this lane."
+
+> **An unguarded throw is a design decision about who finds out.** Synchronous: the caller finds out
+> immediately, so loud is right. Asynchronous: a retry mechanism finds out, repeatedly, and no one else does
+> — so loud becomes silent, and the containment has to supply what the transport removed.
+
+That predicts the split exactly, and it is why the same input produced a defect in the two async consumers
+and correct behaviour in the two sync ones, with no author having got anything wrong twice.
+
+### The asymmetry that made all four look fine
+
+Every one of the four handles the **missing**-config case gracefully — REQ-151's *"no tariff, no sell"*
+returns `null` and each consumer has a branch for it. That branch is what a reader sees when they check
+"does this handle a bad tariff?", and it is *there*, in all four. **The malformed case is invisible at the
+call site**, because it is not a return value: it is an exception thrown two files away, inside a `.parse()`
+the caller never sees.
+
+Third instance of the phase's dominant shape: **a variant handled and its sibling not, where the handled one
+is the one that looks like the whole problem** (§392's half-join, §404's guard boundary, this).
+
+### Phase gate re-measured
+
+**286 files · 3,760 cases · 3,757 passing · 3 failing** at `39cfa56` — the three unchanged, still the
+uncommitted `REQ-289` row. **+2 since §399**: 1 api (§404's malformed-config Concierge test), 1 translator
+(§406's). Recorded in `RELEASE-EVIDENCE.md` alongside the three prior measurements.
+
+### Stopping point, updated
+
+**Closed since §399:** the stated-guarantee sweep extended to the append envelope field-by-field (§402) and
+the external money surface (§403); the REQ-guarded-boundary sweep (§405, 16 examined, 1 defect); the shared
+input `loadTenantRatingConfig` swept across all four consumers, two fixed and mutation-proved.
+
+**Open and counted, unchanged in shape:** 119 parity claims · 139 negative-property tests un-mutated · ~40
+of 50 stated guarantees unsplit · 10 of 16 ledger verification claims · the `400`-status clusters · 80 of 82
+provenance claims.
+
+**Filed this phase, owner-blocked:** `pod.actor.party` selecting the REQ-040 executing share (§400, Med) ·
+checkout `metadata.tenant` as the credit's only tenant binding (§403, Low today / Med on ship).
+
+**No open Criticals.**
+
+### Verification
+
+Both remaining consumers read at their call sites and their throw path traced to the §354 envelope; the
+sync/async distinction stated as a prediction and checked against all four; totals re-measured with the
+verdict line read whole and reconciled per section (+1, +1); both sibling records updated in the same
+commit. `typecheck 0 · check:tables 0 · check:citations 0`.

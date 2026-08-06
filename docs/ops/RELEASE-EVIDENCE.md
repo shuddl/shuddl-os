@@ -398,6 +398,7 @@ covered 51% of the tests that exist. That is why the disclosure sentence beside 
 | this table | 2026-08-05, `c51e0f7` (§367) | 284 | 3,713 |
 | re-measured after the §370–§380 sweep | 2026-08-05, `570ab5d` (§381) | 286 | 3,750 |
 | re-measured after the §385–§398 sweep | 2026-08-06, `331813a` (§399) | 286 | 3,758 |
+| re-measured after the §404–§406 fixes | 2026-08-06, `39cfa56` (§407) | 286 | 3,760 |
 
 Each delta is **entirely this audit's own**, and accounted line by line — a delta that cannot be is a
 measurement to redo, not a number to write down.
