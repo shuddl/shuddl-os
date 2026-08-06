@@ -20257,3 +20257,87 @@ fragile two over all nine.
 Nine seams enumerated from `SHIPMENT_SEQ` acquisitions (the structural chokepoint), not from a list of
 routes; five envelope-builders read for spread-versus-named-field at the literal; both coercions mutated
 and attributed by failing test name, restored byte-identical (`0` files differ). `check:tables 0`.
+
+---
+
+## §374 — a clean negative, and four predicates for one question
+
+§373 found a duplicated hold by eye. The obvious follow-up: **sweep all 200 ledger rows for others**, and
+for the sibling failure — a hold citing a path that no longer resolves.
+
+Grouping every row by the code paths it cites found 24 paths cited by more than one row. All but the
+§373 pair are legitimately distinct holds sharing a file (`caps.ts` carries provisioning, reserve-at-check
+over-count, and the lane-cap semantic; three different defects, one file). **No second duplicate.**
+
+Then the dangling-path question, which took four predicates to ask correctly.
+
+| predicate | hits | why it was wrong |
+|---|---:|---|
+| any backticked `*.ts` that does not resolve | **1,331** | counts prose shorthand — *"the `biller.ts` fast path"* is not an address |
+| …containing a `/` | **244** | `do/sequencer.ts`, `pub/status.ts` are *suffixes* of real paths, still shorthand |
+| …anchored at a known top-level dir | **40** | readable at last, but counts `~~struck-through~~` text |
+| …excluding struck spans | **38** | the honest number |
+
+**1,331 → 38.** Nothing changed in the repository between those two numbers; the question got sharper four
+times. Publishing the first would have been a fabricated crisis, and it would have *looked* like the most
+alarming finding of the entire audit.
+
+### The 38, classified — and none is a defect
+
+- **26 in `docs/plans/*`** — pre-implementation intent. The WP-12 plan proposed
+  `packages/agents/src/translator/build-214.ts`; what shipped is `packages/edi/src/build-214.ts` and
+  `workers/translator/src/core/build-214.ts`. A plan that named where code would go, and then it went
+  elsewhere, is a **dated proposal that was superseded by building the thing** — rewriting it would
+  falsify the record of what was planned.
+- **3 in `docs/wp/*`** — close-out evidence, dated to each WP's exit (§369's WP-02 case).
+- **5 in `tools/rater/README.md`** — `fixtures/tariff/*.json`, which `fixtures/manifest.json` records as
+  `zone-tariff-v1`, `status: "pending"`, `sha256: null`. **Intentionally absent**: one of the nine private
+  fixtures that never enter this repository. A citation to where a blocked input will land is correct.
+- **3 in `GO-LIVE-CHECKLIST.md`** — and every one is a **description of a past correction**. Row 389 is a
+  *closed* hold reading *"Two path citations in this file do not resolve — FIXED 2026-07-27"*. Row 396
+  explains that a shorthand *"sent a reader to a `workers/agents/src/sender.ts` that has never existed"*.
+  Row 395 uses `packages/agents/.../compose.ts` with an explicit `...` elision.
+
+**Zero live dangling citations in the standing records.**
+
+### The lesson the detector taught, which is the section
+
+**A well-maintained record defeats a naive detector, precisely because it preserves its corrections.**
+Every hit in the standing document was the *fix* being narrated. The tool could not distinguish *"this
+path is wrong"* from *"this path **was** wrong, and here is what it should be"* — and the second is the
+more valuable sentence, which is why the document keeps it.
+
+That generalises past this sweep: any repository that records why it changed will accumulate text that
+looks exactly like the defect it fixed. **A detector run over a corrected record measures the corrections.**
+The mechanical defences are cheap once named — strip `~~struck~~` spans, ignore `...` elisions, and treat
+a hit inside a row already marked FIXED/CLOSED as evidence the process worked.
+
+### And the gate stays as it is
+
+`check:citations` bounds-checks `path:line` references and does not scan bare paths at all — structurally,
+because there is no line to bounds-check. That is a real coverage gap, and I drafted a scoped gate for it:
+bare repo-anchored paths in the three *standing* documents must resolve, with plans and WP close-outs
+exempt as dated history.
+
+Not built. Three reasons, in order of weight:
+
+1. **It would be green on arrival.** The measurement above is zero. A gate that cannot fail today is a
+   gate whose failure mode is unproven — this audit's own repeated finding (§287, §367, §370).
+2. **The false-positive surface is the whole story above.** Four predicates, and the final one still needs
+   strikethrough-, elision-, and blocked-fixture-awareness. A gate is a predicate that has to be right
+   without a human reading its output.
+3. **The repository already solved this, and better.** Row 396's own remedy was to *anchor* the shorthand —
+   *"Now anchored, so the citation gate checks them."* **The fix for a path the gate cannot see is to give
+   it a line, not to build a second gate.** One enforcement mechanism whose scope is widened beats two
+   whose overlap nobody tracks — which is exactly the delta
+   [[two-mechanisms-disagreeing-is-the-finding]] warns about.
+
+A clean negative is worth a section. This one cost four predicates and returned no defect, and the record
+of *why* there is nothing here is what stops the next audit from spending the same four.
+
+### Verification
+
+24 shared-path groups read; the four predicates run in sequence with each population inspected before the
+next was written; the `fixtures/tariff` class checked against `fixtures/manifest.json`'s `status: pending`
+rather than assumed; the WP-12 plan's proposed path compared against `git ls-files` for what shipped. No
+code and no record changed in this section — nothing was found that needed changing.
