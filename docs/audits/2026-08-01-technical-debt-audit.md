@@ -24691,3 +24691,49 @@ itself (§434, re-derived from the envelope); the party-id scheme had content un
 parity (§433, golden added). **Completeness, content, behaviour — and content must be anchored outside the
 code that produces it.** A registry with all three is done; one missing any of them has a hole whose shape
 is now predictable rather than requiring discovery.
+
+## §437 — the registry sweep, scored on §436's axes; the triage predicate needed calibrating first
+
+§436 named three axes — completeness, content, behaviour — so this section applied them to **every** registry
+rather than continuing one at a time. `export const [A-Z_]+ = {` / `= [` across `packages/*/src` and
+`workers/*/src` returns **47**. Scoring them by test references gives **14 with no by-name reference**.
+
+**THAT PREDICATE OVER-REPORTS, and the probes proved it before the number was published.** "No by-name
+reference" is not "content unpinned" — content is often anchored *through a function*. Three of the 14 were
+probed by mutation and all three were CLEAN: `RETENTION_MS`'s POD hold (7 years → 7 days) and its default
+hold (1 year → 1 day) each fail **1 test / 624 passed**, and emptying `POD_RETAINED_KINDS` fails **1 / 624**
+— all caught by assertions that name concrete durations through `retentionMsFor`, never the constant. For a
+DELETE policy that is the outcome that matters, and it holds.
+
+**The fourth probe was a real gap.** `NATIVE_VISIBLE_SOURCES = ["native","edi","email"]`
+(`packages/ledger/src/queries/unbilled.ts:32`) decides what every money/ops aggregate can SEE — KPIs, the
+SLA sweep, the watchtower anomaly scan, the unbilled/billing reads, and the lens. Dropping `"edi"` left
+`packages/ledger` **625/625 green**, and the two api suites that consume it (`kpis`, `source-aware-ledger`)
+**exit 0** as well.
+
+It is not dead code: `workers/translator/src/core/map-204.ts:208@source` stamps `source: "edi"` on every
+EDI-tendered event. So the silent removal makes EDI freight invisible to every aggregate at once —
+uninvoiced, un-SLA'd, unwatched — and nothing anywhere fails. Reachable, money-affecting, unobserved.
+
+**Anchored on the CONTRACT, not restated as a literal.** A frozen `["native","edi","email"]` would pin
+today's membership and say nothing about the case that actually matters: a FIFTH source added to the enum
+defaults to invisible and nobody is told. The expectation is therefore derived from the contract's own
+`source` enum minus the `legacy` shadow — §433's rule (the anchor lives outside the code under test) with
+§434's correction (do not derive it from the subject's own key list).
+
+Getting that anchor required reading the schema rather than assuming it: `LedgerEvent` is a
+**ZodDiscriminatedUnion** over `kind`, so there is no top-level `source` field — each of the 35 per-kind
+schemas declares its own. The helper reads all 35 and requires them to AGREE, which is a second invariant
+worth holding: a kind accepting a source the others reject would be a hole in the same partition. Two wrong
+accessors (`.shape.source`, then `.options`) were found by running, not by reading docs.
+
+**Both directions mutation-proved: 2 failed / 16 passed each.** Dropping `"edi"` reddens it — the original
+gap. Adding a fifth source to the contract enum without enrolling it reddens it too — **the case a frozen
+literal could not have caught**, which is the whole argument for deriving the expectation. Restored
+byte-identical, both files. `packages/ledger` **628 passed**, `typecheck`, `lint` clean.
+
+**Bound carried forward, with its predicate stated.** 10 of the 14 no-by-name-reference registries remain
+unprobed, and the count is worth **less** than it looks: 3 of the 4 probed were clean, so the expected yield
+is roughly one real gap per four probes, and only mutation distinguishes them. The 33 registries that DO
+carry by-name references are not thereby safe either — §434 and §435 both found holes in registries with
+plenty of references. **The predicate that works is the mutation; everything before it is triage.**

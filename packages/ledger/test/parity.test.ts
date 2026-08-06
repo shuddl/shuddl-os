@@ -1,6 +1,8 @@
 import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
-import type { LedgerEvent } from "@shuddl/contracts";
+import { LedgerEvent as LedgerEventSchema, type LedgerEvent } from "@shuddl/contracts";
+import { NATIVE_VISIBLE_SOURCES, nativeVisibleSourceSql } from "../src/queries/unbilled.js";
+const TRACKED_SOURCES_FOR_TEST = ["native", "legacy"] as const;
 import { applyMigrations } from "../src/migrate.js";
 import {
   computeAllParity,
@@ -261,5 +263,63 @@ describe("PARITY_TOLERANCE_BPS + edges (REQ-023, CLAUDE.md rule 6)", () => {
     expect(p.legacy_value).toBe(0); // legacy is present (n=1) with value 0 — NOT UNKNOWN
     expect(p.within_gate).toBe(false);
     expect(p.status).toBe("DRIFT"); // both present but unbounded relative drift — fail-closed, not MATCH
+  });
+});
+
+// THE SOURCE PARTITION (audit §437). `NATIVE_VISIBLE_SOURCES` (queries/unbilled.ts) and this file's
+// `TRACKED_SOURCES` are complements over the contract's `source` enum, and the first one decides what every
+// money/ops aggregate can SEE: KPIs (workers/api/src/kpis/compute.ts), the SLA sweep, the watchtower anomaly
+// scan, the unbilled/billing reads, and the lens. It had no test that named it.
+//
+// MEASURED before this existed: dropping "edi" from the list left `packages/ledger` 625/625 GREEN, and the
+// two api suites that consume it (kpis, source-aware-ledger) exit 0 as well. The entry is not dead —
+// `workers/translator/src/core/map-204.ts:208@source` stamps `source: "edi"` on every EDI-tendered event — so a
+// silent removal makes EDI freight invisible to every aggregate at once: uninvoiced, un-SLA'd, unwatched.
+//
+// THE EXPECTATION IS DERIVED FROM THE CONTRACT, NOT RESTATED (§433/§434). A frozen literal would pin today's
+// membership but say nothing when a FIFTH source is added to the enum — the case that actually matters,
+// because a new source defaults to invisible and nobody is told. Anchoring on the enum minus the legacy
+// shadow makes adding a source a decision here rather than an omission.
+describe("REQ-014/168: the source partition is total — native-visible ∪ legacy = the contract enum (§437)", () => {
+  // LedgerEvent is a DISCRIMINATED UNION over `kind`, so there is no single top-level `source` field: each
+  // of the 35 per-kind schemas declares its own. Reading all 35 and requiring them to AGREE is both how the
+  // enum is obtained and an invariant worth holding on its own — a kind that accepted a source the others
+  // rejected would be a hole in exactly the partition this describe exists to pin.
+  const enumValues = (): readonly string[] => {
+    const { options } = (
+      LedgerEventSchema as unknown as {
+        def: { options: ReadonlyArray<{ shape: Record<string, { def?: { entries?: Record<string, string> } }> }> };
+      }
+    ).def;
+    const perKind = options.map((o) => Object.keys(o.shape["source"]?.def?.entries ?? {}).sort().join(","));
+    const distinct = [...new Set(perKind)];
+    if (perKind.length !== 35) throw new Error(`expected 35 kind schemas, saw ${perKind.length} — re-anchor this test`);
+    if (distinct.length !== 1) throw new Error(`the kinds DISAGREE on the source enum: ${distinct.join(" | ")}`);
+    return distinct[0]!.split(",");
+  };
+
+  it("NATIVE_VISIBLE_SOURCES is EXACTLY the contract's sources minus the legacy shadow", () => {
+    const all = enumValues();
+    expect(all.length, "non-vacuity: the enum must actually carry sources").toBeGreaterThan(2);
+    expect([...NATIVE_VISIBLE_SOURCES].sort()).toEqual(all.filter((s) => s !== "legacy").sort());
+  });
+
+  it("the two lists PARTITION the enum — nothing is in both, nothing is in neither", () => {
+    // The complement property stated directly. `native` is deliberately in BOTH lists (it is tracked for
+    // parity AND natively visible), so the partition is over VISIBILITY, not over the two arrays: every
+    // source is either native-visible or the legacy shadow, and `legacy` is the only member of the latter.
+    const all = enumValues();
+    const visible = new Set<string>(NATIVE_VISIBLE_SOURCES);
+    const shadow = all.filter((s) => !visible.has(s));
+    expect(shadow).toEqual(["legacy"]);
+    expect(TRACKED_SOURCES_FOR_TEST).toContain("legacy"); // the shadow is what parity tracks against native
+  });
+
+  it("the emitted SQL names every native-visible source", () => {
+    // The registry is consumed as interpolated SQL, so a member that never reaches the predicate is the
+    // same defect one layer down.
+    const sql = nativeVisibleSourceSql("e.source");
+    for (const s of NATIVE_VISIBLE_SOURCES) expect(sql, `${s} missing from the emitted predicate`).toContain(`'${s}'`);
+    expect(sql).not.toContain("'legacy'");
   });
 });
