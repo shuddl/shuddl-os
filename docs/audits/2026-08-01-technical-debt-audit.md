@@ -23389,3 +23389,59 @@ neither noise nor theatre; it is the price of the four.
 Both predicates located at their lines and read in full; each mutated independently and **attributed by its
 own failing test**, not by count; the second's anchor miss diagnosed as a whitespace difference rather than
 retried blindly; both files restored byte-identical. No code changed — nothing needed changing.
+
+---
+
+## §414 — three tests for the famous failure, one for its neighbour
+
+Two more from §412's bound, both in the MCP surface, both security properties, both pinned. The result is
+uninteresting; the **shape of the coverage** is not.
+
+| guard | mutation | tests that fired |
+|---|---|---|
+| `oauth.ts@grant.exp` — *"expired — fail-closed even if KV still holds it"* | delete the expiry check | **3** |
+| `webhooks.ts@https` — *"a cleartext `http://` delivery URL is refused"* | make the refine always pass | **1** |
+
+The three that caught the expiry removal sit at three different levels, in three different describes:
+
+- *"an EXPIRED grant → 401 (a real token resolved under a clock past its exp)"* — the full OAuth pipeline
+- *"an EXPIRED grant → 401 (fail-closed even though the KV record still exists)"* — the token model
+- *"a grant whose exp is in the past resolves to null even though the KV record is still present"* — the
+  resolver in isolation
+
+Token expiry is **the** canonical auth failure. Everyone who has shipped OAuth has been bitten by a KV/Redis
+TTL not matching a token's `exp`, and this codebase's tests say so three times, at three altitudes, each
+naming the KV-vs-exp distinction explicitly.
+
+Its neighbour — *signatures prove authenticity, never confidentiality*, so a webhook may not be delivered
+over cleartext — has **one**.
+
+### That is §394's heuristic, visible in the coverage itself
+
+§394 argued: *"the properties an audit most wants to find broken are the ones a competent team most reliably
+gets right — look one step to the side of the hard problem."* Here the two properties are **in the same
+subsystem, written by the same hand, and one has three times the coverage of the other.**
+
+Neither is under-tested in any absolute sense; both are pinned, which is what matters. But the ratio is a
+measurement of where attention goes, taken inside a single file:
+
+> **Coverage concentrates on the failure mode with a name.** `exp` vs TTL is a named, famous, war-storied
+> bug. "Sign it but don't encrypt it" is a *correct* observation about a different property, and it earns
+> one test — because it is a consequence someone reasoned to, not a scar someone carries.
+
+The phase's actual findings all sit on the low side of exactly this ratio: a certification gate with **zero**
+tests beside a well-tested mapping validator (§370); a guard replicated three times with **zero** beside a
+documented sibling with six (§367, §375); a config-load throw with **zero** beside a pricing throw with a
+named REQ and its own test (§404). **Every one was the quiet neighbour of a famous problem** — which is why
+the heuristic keeps producing, and why a 3:1 in-file ratio is worth writing down rather than admiring.
+
+### Bound
+
+**137 → 134** negative-property tests un-mutated. Both mutations landed, both restored byte-identical, both
+attributed by failing test name rather than count.
+
+### Verification
+
+Both guards located at their line and mutated in one pass (independent subjects, one suite run); the four
+failures read individually and matched to their guards; both files restored byte-identical and confirmed by
+`diff -q`. No code changed.
