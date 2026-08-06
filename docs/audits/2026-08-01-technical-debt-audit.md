@@ -19131,3 +19131,58 @@ Both redelivery properties located and distinguished; the deterministic-id root 
 byte-identical (RED naming determinism/redelivery); `@shuddl/agents-worker` 113 green; path filter used.
 `typecheck 0 · check:tables 0 · check:citations 0` — the third only after anchoring, and the commit was
 gated on all three.
+
+---
+
+## §358 — The "neither" filter, and a fail-open that cannot happen
+
+§357 produced a disjunction: a property gets tested when **a prior incident forces it**, or when **the
+substrate's contract makes the exceptional path routine**. That is a filter — the untested properties should
+be the ones where *neither* holds.
+
+Applied to the sharpest remaining candidate: the caps meter's **storage-fault path**. A Durable Object
+throwing on `ctx.storage` is not something Cloudflare's contract makes routine, and no incident in this
+repo's history points at it. By §357's rule it should be untested.
+
+**It is not.** `caps.test.ts:313` injects the fault directly —
+`get: () => ({ checkAndReserve: async () => { throw new Error("DO unavailable"); } })` — and the caller's
+catch is the property under test:
+
+```
+} catch {
+  throw new MutationBlocked("caps_meter_error", "usage meter unavailable; booking refused (fail-closed)");
+}
+```
+
+**Mutation: the catch made to fail OPEN** — a meter fault silently allowing the booking rather than refusing
+it, which is the REQ-105 header's stated nightmare (*"a crash must not fail OPEN"*). **RED**, naming
+`fail-closed`. Restored byte-identical: 177 passed.
+
+### So the filter is wrong, and usefully
+
+Three of §357's conditions were tested; this one has neither condition and is tested anyway. The reason is
+visible in the code: **the property is named in the source.** `caps-meter.ts`'s header argues the fail-closed
+direction explicitly, `caps.ts`'s catch says `(fail-closed)` in its message, and REQ-105's row states it.
+
+**A property that is written down gets tested; a property that is merely true does not.** §354's leak is the
+control: `handleError` returns a constant, and *nothing anywhere* said that constancy was the point — no
+header, no message string, no REQ row. The behaviour was correct and unnamed, and unnamed is what went
+untested.
+
+That is a better predictor than incident-or-contract, and a more actionable one, because **naming is free and
+happens at authoring time.** The three tested properties were each named at the moment they were written; the
+untested one was not.
+
+### And a near-miss of my own
+
+The command that found `caps.test.ts:313` printed *"(empty = the fail-closed storage path is unexercised)"*
+**unconditionally** — a label hardcoded beside a search that had, in fact, found the test. The output
+contradicted its own caption, and only reading both saved a false finding from being published.
+
+**Eleventh instance this phase of an instrument disagreeing with reality**, and the cheapest one yet to
+catch: the evidence and the conclusion were printed two lines apart.
+
+### Verification
+
+Fault injection located at `caps.test.ts:313`; the fail-closed catch mutated to fail open and restored
+byte-identical (RED naming `fail-closed`); `@shuddl/mcp` 177 green; path filter used. No file changed.
