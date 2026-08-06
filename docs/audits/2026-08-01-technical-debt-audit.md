@@ -20433,3 +20433,103 @@ string replace would have hit all three at once — the §308 no-op hazard in a 
 type-valid (status/message changed, never the condition, so `user`'s narrowing survives and a RED cannot
 be a compile error, §363); all restored byte-identical (`0` lines differ); clean 760 and each mutated run
 measured with the verdict line read whole. `check:tables 0`.
+
+---
+
+## §376 — the replicated-guard field, and a mutation that survived a timeout
+
+§375 found its gap by noticing a guard written three times. That is a *mechanical* property, so the field
+is enumerable: **12 `(code, status, message)` triples appear more than once** across `workers/api/src`.
+
+### Swept this section: 7 guards, 6 pinned, 1 correctly not
+
+| guard | sites | result |
+|---|---|---|
+| `403 SHIPMENT NOT IN YOUR SCOPE` | `portal-actions.ts:62`, `status-link.ts:43`, `rate.ts:138` | **RED 4 / 1 / 2** — all three pinned |
+| `403 UNKNOWN TENANT` | `workers/api/src/tenants.ts:22@isPlatformTenant` (platform) | **RED 1** |
+| | `workers/api/src/tenants.ts:24@binding` (allowlist miss) | **GREEN** |
+| | `workers/api/src/tenants.ts:52@isPlatformTenant` (platform) | **RED 3** |
+| | `workers/api/src/tenants.ts:59@misconfigured` (fallback) | **RED 2** |
+
+The cross-party scope guard is the one that matters most here — replicated across three files, and every
+copy independently observed. That is the shape §375's `devices.ts` was not.
+
+### The green, and why it is not a gap
+
+`tenants.ts:24` refuses a slug that is not in `TENANT_BINDINGS`. Four steps to explain its green, and the
+answer was better than the question:
+
+1. **One production caller.** `tenantDb` is called from exactly one place — `pub/quote.ts:135`, the
+   unauthenticated guest-quote path. (Everything else uses `resolveTenantDb`.)
+2. **That caller cannot reach it with a bad slug.** `pub/quote.ts` resolves the tenant from the CF-routed
+   hostname and **404s an unknown host before any handle is resolved** — *"no oracle, never touches D1."*
+   So the slug handed to `tenantDb` always came out of `HOST_TENANTS`.
+3. **The subset relation is the real invariant**, and it is named: `values(HOST_TENANTS) ⊆
+   keys(TENANT_BINDINGS)` (ISO-pub-5).
+4. **It is pinned twice** — a module-load assertion that fails LOUD at import rather than on a request, and
+   `isolation.test.ts`, *"guarded where both maps are the input — a new HOST_TENANTS row pointing at an
+   unbound tenant fails HERE."*
+
+So line 24 is the **third** layer of three, unreachable unless both outer layers fail simultaneously.
+Unpinned for a verified reason, in hold 205's own category.
+
+Worth stating because it is the counter-case to this audit's dominant finding: an unobserved guard is
+usually a coverage gap (§367, §370, §375), and **here it was a correctly-ordered defence whose outer layers
+carry the weight** — the §363 rule applied honestly in both directions. The way to tell them apart is not
+the comment; it is walking the caller. Four steps, ten minutes.
+
+### The operational finding: a timed-out mutation loop leaves the tree mutated
+
+The seven runs exceeded a 10-minute command limit and the loop was **killed between mutation 5 and its
+restore**. `git status` showed `workers/api/src/tenants.ts` modified, with **3 `UNKNOWN TENANT` guards
+where the file has 4** — a live security guard deleted, in the working tree, silently.
+
+Nothing shipped: the next action was a status check, and every commit in this audit is gated. But the
+gates would not have caught it — `typecheck`, `check:tables` and `check:citations` all pass on a file with
+one fewer guard, and the suite was not re-run before the next commit would have been staged. **`git add`
+is by path, and `workers/api` was in the path list of §375's commit.**
+
+The rule, and it is now permanent:
+
+> **After ANY interrupted mutation run — timeout, kill, error — verify the tree before doing anything
+> else.** `git status --porcelain` plus a count of the mutated construct, not a glance at the diff.
+
+The restore is `cp` in the same shell process that the timeout kills. **A cleanup step that lives inside
+the thing being interrupted is not a cleanup step** — it is the same class as §348's `gate; commit`, where
+the connection between two actions was assumed rather than made. The counted check
+(`grep -c 'UNKNOWN TENANT'` → expected 4) is what actually detected it; `git status` said "modified",
+which by itself is indistinguishable from a file I had just legitimately edited.
+
+### Stated bound
+
+Five triples remain unswept: `SESSION LENS UNRESOLVED` ×8 (hold 205 already records 3 of these as unpinned
+for verified reasons), `SHIPMENT ID TOO LONG` ×5, `ROLE NOT PERMITTED` ×2, `EVIDENCE BODY EXCEEDS 10 MiB`
+×2, `ANCHOR NOT FOUND` ×2, plus the two `cursor` validation pairs. Recorded on hold 205.
+
+### Postscript: the gate caught four of my own anchors
+
+This section's first commit attempt was **withheld — `check:citations` RED, 4 rotted citations of 1,194.**
+All four were mine, and all four were the same mistake: I cited the *guard's* line and anchored on the
+*function's* name — line 22 anchored on the symbol `tenantDb`, which is declared at :16, while the anchor
+rule is ±2 lines. (Written **without** the `path:line@symbol` punctuation on purpose: quoting the broken
+form reproduces it, and the gate cannot tell an example from an address — it failed this section a THIRD
+time on exactly that, which is §374's *"a detector over a corrected record measures the corrections"*
+arriving on schedule.) The bare `tenants.ts:` was also ambiguous across four workers' files — the gate said so, listing
+all four candidates and, for each, where the symbol actually is.
+
+Repointed to symbols that genuinely sit in each cited span: `:22@isPlatformTenant`, `:24@binding`,
+`:52@isPlatformTenant`, `:59@misconfigured` — the last after a second RED, because
+`resolveClaimedTenantDb` is at :56 and the span for :59 is 57–61. **Two rounds, both caught, neither
+shipped.**
+
+Worth recording beside §374's decision *not* to build a bare-path gate: this is the same gate, doing the
+thing that argument rested on. Its error message did the whole job — it named the four candidate files, the
+cited span, and the line the symbol is really on. **A gate that says "wrong" costs a search; a gate that
+says "wrong, and here is where the thing you meant lives" costs a `sed`.**
+
+### Verification
+
+Seven mutations by verified line index (the four `tenants.ts` guards are byte-identical — a string replace
+would have hit all four, the §308 hazard); each type-valid (status and message changed, never the
+condition); tree verified clean by construct-count after the timeout and again after the final two runs
+(`0 modified`). `check:tables 0`.
