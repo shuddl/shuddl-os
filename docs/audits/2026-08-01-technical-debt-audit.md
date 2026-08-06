@@ -20970,3 +20970,84 @@ Four changed suites re-measured with the verdict line read whole (§368); the +3
 cross-checked against `git ls-files | grep -c '\.test\.'` = **286**, an outside count that does not come
 from vitest; both sibling records updated in the same commit so no copy is left stale (§369); staged by
 explicit path (§379). `typecheck 0 · check:tables 0 · check:citations 0`.
+
+---
+
+## §382 — two ledger rows contradict each other, and both are right
+
+§381 left 11 of 16 verification claims untested. Two more here. Neither was wrong; the pair is worth a
+section anyway, because reconciling them produces a rule the ledger does not state anywhere.
+
+### Claim 1 — verified, and supported
+
+Hold 205: *"`board.ts` line 185 is unpinned and correctly so — `requireRole` excludes `driver`, so that
+defence-in-depth branch is unreachable through the route."*
+
+Three links, all checked:
+
+1. `app.get("/v1/board", requireRole("admin","ops","finance","read","portal"), …)` — `driver` absent.
+2. `requireRole` is a real allowlist gate, not a label: `if (!roles.includes(session.role)) throw 403`.
+3. `lensFor` returns `{ scope: "driver" }` for **exactly one** condition — `s.role === "driver"` — so the
+   branch below cannot be entered by any other role.
+
+And the outer layer is **observed**: `board.test.ts` mints a driver token against this route. The claim
+holds, and unlike §377's it rests on something a test would notice breaking. Third of the ledger's
+verification claims to survive.
+
+### Claim 2 — true verdict, wrong reason
+
+Row 288: *"unreachable on the daily **sequential** cron today."*
+
+The verdict is right. But *"sequential"* is not a property Cloudflare provides — and **this same ledger
+contains a row that proves it isn't**: *"Cron sweeps double-fire under overlapping ticks — Cloudflare gives
+`scheduled()` no mutual exclusion"*, with a measured double transmit (§379's hold).
+
+Two rows in one document, taking opposite positions on whether cron invocations can overlap. Both are
+correct, and the variable that reconciles them is named in neither:
+
+| row | cadence | overlaps? |
+|---|---|---|
+| cron double-fire (`mcp`, `translator`) | `*/5 * * * *` | **yes — measured** |
+| watchtower TOCTOU (`agents`) | `0 1 * * *` | no |
+
+**It is cadence, not scheduling order.** A `*/5` sweep needs only to run five minutes to overlap itself; a
+daily sweep needs to run 24 hours, which the Workers wall-clock limit precludes. Checked the rest of the
+path too: `runWatchtowerSweep`'s only caller is the scheduled handler, and `contain` **catches** per sweep
+rather than rethrowing, so a platform retry cannot begin while the first invocation is still running.
+
+Row 288's remedy line read *"Serialize per-tenant if the cron ever runs concurrently"* — phrased as a
+hypothetical, when it is the condition its sibling row **already observes** five rows away. Corrected to
+name the real trigger: **the agents cron cadence shortening below a sweep's worst-case duration.**
+
+### The finding
+
+> **When two rows of one ledger disagree, neither is necessarily wrong — but the variable that reconciles
+> them is missing from both.** Each row states its conclusion and a local reason; the reason that is
+> actually load-bearing only becomes visible when the rows are read against each other, which nothing in a
+> 200-row table prompts anyone to do.
+
+This is [[two-mechanisms-disagreeing-is-the-finding]] applied to prose rather than gates, and it inverts
+the usual reading: the disagreement was not a defect to resolve, it was **the only available evidence that
+both explanations were incomplete.** A ledger of independently-correct rows can still fail to contain the
+rule that governs them.
+
+The practical form, and it costs nothing: **when filing a hold whose reason is a platform behaviour, grep
+the ledger for that behaviour first.** Row 288 would have found row 381's measurement, and written
+"cadence" instead of "sequential" on the day it was filed.
+
+### Tally
+
+Five verification claims tested across §376–§382: **three held** (`tenants.ts`'s three-layer defence,
+row 384's 280-file stamp, `board.ts`'s role exclusion), **two were wrong** (§377's "defensive", §378's
+"REPLACE lint-banned"), **one was right-but-unsupported** (§379/§380's dormancy), and **one had a true
+verdict on an imprecise reason** (this row). Six of sixteen done; ten stated as remaining.
+
+Recording the ratio rather than only the hits, because §380's point stands: a sweep that reports only its
+findings cannot be told apart from one that manufactures them.
+
+### Verification
+
+Both claims walked link-by-link to a terminal fact — a middleware body, an enum-exhaustive `lensFor`, a
+`wrangler.toml` cron expression, and the containment wrapper's `catch` — rather than accepted from the
+row's own summary; the contradiction between rows 288 and 381 established by quoting both, not by
+paraphrase. One record change, no code. `check:tables 0`.
