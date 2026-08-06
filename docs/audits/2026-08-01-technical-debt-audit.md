@@ -23960,3 +23960,76 @@ Full merge profile executed at `5ad61d5`, artifact written to
 `artifacts/release/5ad61d5…/merge/gate-merge-2026-08-06T14-24-00-698Z.json`; every gate's verdict read from
 the run's own summary rather than inferred; both FAILs re-attributed **by removing the row and re-running**,
 not by citing §368; the register restored and confirmed modified-in-tree afterwards.
+
+---
+
+## §423 — the browser gates had never been mutation-checked, and they hold
+
+§422 closed the phase on a full `verify:merge` in which `e2e`, `visual`, `a11y` and `perf` all passed. Those
+four are the only gates this audit has never treated the way it treats everything else: **a green was taken
+as evidence.** §412 measured an 18% vacuity rate in tests written by someone deliberately watching for it —
+there is no reason browser tests are exempt.
+
+### The claim under test
+
+`tests/e2e/driver-offline-sync.spec.ts` asserts the highest-stakes property the driver surface has:
+
+> *"a capture taken offline outlives the page and flushes on reconnect"* — with the comment
+> *"The capture is durable the moment the gate is satisfied — not when the network returns."*
+
+That is acceptance demo #3 and CLAUDE.md's airplane-mode law, in one test.
+
+### Mutation
+
+Break durability exactly where it lives — `driver-core/src/queue.ts@enqueue` — by skipping the IDB write
+while offline:
+
+```ts
+if (typeof navigator !== "undefined" && !navigator.onLine) return;   // durability removed
+```
+
+**Result: `1 failed, 5 passed`**, and the gate's own machine-readable verdict flipped correctly:
+
+```
+##SHUDDL-GATE## {"gate":"e2e","status":"FAIL","executed":true,"assertions":6,"detail":"1 failing of 6 executed"}
+```
+
+Attributed: `driver-offline-sync.spec.ts:105 › a capture taken offline outlives the page`. **The exact test,
+and only that test.** Restored byte-identical.
+
+### Three things that result establishes
+
+1. **The e2e suite is not vacuous on its most important claim.** It really drives an offline toggle, really
+   reads the IDB queue, and really fails when the durability write is removed.
+2. **The gate's JSON is honest under failure.** `status:"FAIL", executed:true, assertions:6` — it did not
+   report BLOCKED, did not report zero assertions, and did not pass with a broken subject. §-earlier work
+   found gates whose green certified less than their name; this one's *red* certifies exactly what it says.
+3. **The test's design choice was load-bearing.** It holds every append at the network boundary behind a
+   `flushGate` promise *"so the assertion is deterministic rather than a timing bet."* A test that instead
+   raced the drain would have been flaky, and a flaky test that sometimes passes on a broken subject is a
+   vacuous test with extra steps.
+
+### Why this was worth ~40 minutes of wall clock
+
+Every other section of this phase could reach its subject in a unit run. These four gates cost a Chromium
+launch and three vite servers, which is exactly why they are the ones a long audit leaves alone — and
+therefore exactly where an unchecked assumption survives longest.
+
+> **The gates you do not mutation-check are the ones whose greens you have been quoting.** §422 quoted
+> `e2e (6)` as evidence that the offline flow works. That was a citation of a number, and until this section
+> nothing had established the number moves.
+
+One mutation, one red, one restore. The number moves.
+
+### Stated bound
+
+`visual (5)`, `a11y (4)` and `perf (1)` remain unchecked by mutation — 10 assertions across three gates.
+`visual` and `a11y` are the likelier of the three to be weak (a screenshot gate passes on any stable render;
+an axe scan passes on any page it can reach), and both are advisory-until-WP-10 per REQ-158. Recorded with
+that ordering so the next pass starts at the weakest.
+
+### Verification
+
+Mutation applied at the durability write rather than at a call site; e2e run three times (fail, attribution,
+detail) with the source restored and `diff -q`-confirmed after each; the gate's JSON verdict read from the
+run's own `##SHUDDL-GATE##` line rather than from the exit code.
