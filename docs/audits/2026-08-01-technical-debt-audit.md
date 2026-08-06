@@ -25228,3 +25228,39 @@ than *leaked records* gets less of it.
 That is a selector for the remaining 56, sharper than reading them in file order: **prefer the provenance
 claims whose failure mode is a false record over those whose failure mode is an open door.** The open doors
 are where the adversarial tests already are.
+
+## §450 — the selector's first test refutes it, and the better rule is underneath
+
+§449 proposed a selector from four data points: *prefer provenance claims whose failure mode is a FALSE
+RECORD over those whose failure mode is an OPEN DOOR*, on the reasoning that adversarial attention follows
+the exfiltration threat model. This section tested it on the strongest false-record claim available and
+**the prediction was wrong.**
+
+**The claim.** `workers/agents/src/biller.ts:316@pod.actor.party` — the tenant's executing party is *"the POD signer's party
+(`pod.actor.party`, device co-signed, I4 — the authoritative 'who is the tenant here')"*. Its failure mode is
+purely a false record: bill the wrong share, justified by an audit trail that names the wrong executor. No
+door opens. By §449's selector it should be thinly covered.
+
+**It is covered better than the open doors were.** `resolveInterline`'s comment names its own fail-open
+precisely — *a partner leg recorded under `linehaul`/`cartage`/`dray` but carrying a 9000-bps split would
+bill at full gross with the executing-share floor check skipped entirely (the $222K-class fail-open)* — and
+the suite carries that exact case, plus a guard against **over-correcting into always-hold**, which is the
+failure the fix itself could have introduced. Restoring the original buggy classification (`direct` unless a
+leg wears `kind === "interline"`) gives **1 failed / 22 passed**, and the failure is the test named
+*"INTERLINE BY DATA, NOT LABEL"*.
+
+**Why the selector failed, and the rule that actually fits all five.** That test's comment opens *"Before the
+fix, resolveInterline classified this DIRECT"* — it is a **regression test born from a real incident**. The
+§447 gap had no incident behind it: the flip-`reason` provenance was reasoned correctly, implemented
+correctly, and never violated, so nothing ever forced a test to exist.
+
+**Coverage follows INCIDENTS, not threat models.** The three §449 "open door" claims are well covered because
+cross-tenant leakage is a rehearsed failure with a suite built around it (the isolation file). This one is
+well covered because it actually broke once. §447's was uncovered because it never broke and never looked
+dangerous — the two conditions that together mean nobody writes the test.
+
+**The revised selector for the remaining 55:** prefer claims with **no incident history and no rehearsed
+threat model** — correct-by-construction assertions on internal paths, the ones that read as obviously true.
+That is a harder set to find than "false record" and a much better predictor, and it is consistent with every
+gap this phase found: §434's denylist, §435's enrollment, §437's source list, §438's `idx`, §439's cold-start
+defaults, §447's flip reason. **None of them had ever failed. All of them read as obviously fine.**
