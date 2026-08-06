@@ -50,4 +50,19 @@ describe("REQ-049: the override envelope field is omitted-when-absent (frozen-by
     expect(rowToEvent(row)).not.toHaveProperty("override");
     expect(await hashEvent(rowToEvent(row))).toBe(e!.hash);
   });
+
+  it("a PRE-0005 row — no override_json key AT ALL — rehydrates and reproduces its hash (audit §431)", async () => {
+    // The `?? null` in rowToEvent claims to collapse BOTH SQL NULL and "a row missing the column". Only the
+    // NULL half is exercised above, because every row `eventToRow` produces HAS the key. A row written
+    // before migration 0005 added the column — or any read that omits it — arrives with the key ABSENT,
+    // which is `undefined`, and `undefined !== null` passes the guard below it. Drop the `??` and
+    // JSON.parse(undefined) THROWS: such a row becomes unreadable rather than merely unverified, which is
+    // the worse failure for an append-only ledger whose whole promise is that old bytes stay legible.
+    const [e] = await buildChain([eventFixture("quote.requested")]);
+    const row = eventToRow(e!);
+    delete row.override_json;
+    expect(row).not.toHaveProperty("override_json"); // non-vacuity: this really is the absent case
+    expect(rowToEvent(row)).not.toHaveProperty("override");
+    expect(await hashEvent(rowToEvent(row))).toBe(e!.hash);
+  });
 });

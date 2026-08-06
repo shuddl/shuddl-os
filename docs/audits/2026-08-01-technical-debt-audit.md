@@ -24396,3 +24396,44 @@ and §430 is now twice-confirmed and worth stating as a rule: **when a claim qua
 both directions, byte-identical), the test that exists usually pins the first instance; the quantifier is
 the untested part.** That is a cheaper selector than reading claims one at a time, and it is what this axis
 should be swept with.
+
+## §431 — the quantifier selector, applied: two claims clean, one branch missing
+
+§430 proposed a cheaper way to sweep the remaining claims than reading them one at a time: **when a claim
+quantifies — *recursively*, *every*, *both*, *byte-identical* — the test that exists usually pins the first
+instance, and the quantifier is the untested part.** This section is its first deliberate application, to
+`packages/ledger/src/lens.ts` — `rowToEvent`/`eventToRow`, the NULL→undefined rule the frozen byte law rests
+on. Three quantified claims live there; the selector's value is as much in the two it clears as in the one
+it finds.
+
+**Clean (1): *"every one of the 35 kinds survives eventToRow → rowToEvent with an identical hash."*** Already
+a quantifier test, by name, at `packages/ledger/test/lens.test.ts:149`. Nothing to add.
+
+**Clean (2): *"Symmetric by construction, so `eventToRow(rowToEvent(row))` reproduces the stored row
+exactly."*** Bound twice against a real D1 — `lens.test.ts:117` and `:146` assert the rebuilt row
+deep-equals the original, and one of the two is deliberately a NULL-heavy event, which is the case that
+would break first. The quantifier is covered.
+
+**The gap (3): *"`?? null` collapses BOTH SQL NULL and a row missing the column."*** Only the NULL half was
+exercised, and structurally so: every row `eventToRow` produces HAS the key, so no existing test could
+present the other case. The absent-key case is a row written before migration 0005 added `override_json`
+(or any read that omits it). It arrives as `undefined`, and `undefined !== null` **passes** the guard below
+it — so dropping the `??` sends `JSON.parse(undefined)` down the throw path and the row becomes
+**unreadable**, not merely unverified. For an append-only ledger whose promise is that old bytes stay
+legible, that is the worse of the two failures.
+
+Pinned with a test that deletes the key, asserts non-vacuously that it really is absent, and requires both
+the omitted `override` and the reproduced hash. **Mutation-proved**: `r.override_json ?? null` →
+`r.override_json as string | null` gives **1 failed / 40 passed** — the new test, every pre-existing one
+green, the §429/§430 shape for the third time. Restored byte-identical; the full `packages/ledger` suite is
+**34 files / 621 passed**.
+
+**A mis-targeted insert, caught by a count rather than by reading.** The first attempt put the new `it()`
+INSIDE the preceding one: the file still reported **40 tests, not 41**, with the pre-existing test failing.
+An added test that does not raise the count has not been added — it has been swallowed. The count is the
+cheap check that catches it, and it is the same instrument §376 used after an interrupted mutation run.
+Reverted with `git checkout` and re-inserted after the block's closing brace.
+
+**Bound carried forward.** 12 of the 15 hash/canonicalization claims remain. The selector is now 3-for-3 at
+finding the untested half of a quantified claim, and — more usefully — it also produces clean negatives
+fast: two of the three claims here were cleared by reading one test name each.
