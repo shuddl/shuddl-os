@@ -23506,3 +23506,75 @@ apart.
 derived by differencing against `eventBaseShape`; `confidence`'s consumer set established by a grep across
 three trees whose every hit was read and classified; `override`'s reachability closed against §401's
 already-mutation-proved role gate. One record change, no code. `check:tables 0`.
+
+---
+
+## §416 — "what changes if it is wrong?" applied to every stored column
+
+§415 found one envelope field — `confidence` — validated, branded, hashed into the chain, and **read by no
+decision**. That is a question worth asking of every column the append-only tables carry, because a stored
+field that nothing acts on is a field an auditor (and a reviewer, and a future author) will over-weight.
+
+### The sweep
+
+For each column, count the sites where the value participates in a **decision** — a comparison, a branch, a
+filter, a sort — as opposed to being carried, stored, or logged.
+
+**`events`** (20 columns):
+
+| column | decision-sites |
+|---|---:|
+| `ts` | 13 |
+| `recorded_at` | 4 |
+| `sig` | 3 |
+| `captured_ts` | 2 |
+| `actor_user_id` | 1 |
+| **`confidence`** | **0** |
+
+**`positions`** (10 columns):
+
+| column | decision-sites |
+|---|---:|
+| `device_id` | 13 |
+| `accuracy_m` | 6 |
+| `speed_cms` | 3 |
+| `recorded_at` | 3 |
+
+**One inert column across both append-only tables**, and §415 had already found it.
+
+### The result is the finding
+
+I expected more. A frozen 35-kind envelope carried across four workers, two years of REQ rows, and a
+21-table budget is exactly where vestigial fields accumulate — a column added for a feature that changed
+shape, kept because the envelope is append-only and removing it is not free.
+
+There is one. `accuracy_m` and `speed_cms` — the two positions columns most likely to be decorative telemetry
+— are both genuinely consulted (the geofence ambiguity band reads `accuracy_m`; §-earlier work established
+its `min 0` rejection exists precisely because a negative would poison that band). `actor_user_id`, at one
+site, is the thinnest real consumer and it is real.
+
+> **The absence of dead fields in a frozen schema is a quality signal, and it is measurable in one pass.**
+> Not "the schema looks tight" — *nineteen of twenty events columns and ten of ten positions columns
+> participate in a decision somewhere.*
+
+### What the one inert field is worth doing about
+
+Nothing, and the reason is worth stating so it is not revisited: `confidence` cannot be removed (the
+envelope is frozen and hashed — dropping a field changes canonical bytes for every future event and breaks
+nothing but is unavailable under the append-only law), and carrying it costs an integer per row. The only
+action is the one §415 took: **record that it is inert**, so the next reader asking "what enforces this
+field?" gets the answer "nothing needs to" instead of hunting.
+
+### Method note
+
+The count is deliberately of *decision*-sites, not references. `confidence` has plenty of references — it is
+in the sequencer's column list, in every `INSERT`, in `rowToEvent`. **Counting references would have scored
+it as well-used.** The distinction between *carried* and *consulted* is the whole content of the question,
+and it is the same distinction §402 drew between a field's local appearance and its furthest consumer.
+
+### Verification
+
+Both table definitions read from `0001_ledger_core.sql` rather than from a model; decision-sites counted by
+requiring a comparison/branch/filter/sort token on the same line and excluding comment lines; every
+non-zero count spot-checked for the kind of site it was; `confidence`'s zero cross-checked against §415's
+independent grep across three trees. No code changed.
