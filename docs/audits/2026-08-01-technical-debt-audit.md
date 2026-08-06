@@ -19238,3 +19238,61 @@ and invisible from the test names.
 Ten unexplained fallbacks enumerated; the consent branch mutated and both suites confirmed green without it;
 two tests added, found non-load-bearing for the belt by re-running the same mutation, and reframed; ledger
 618 green; `typecheck 0`; the gate file restored byte-identical.
+
+---
+
+## §360 — Deleting each layer separately, on a guard the source calls defence-in-depth
+
+§359's procedure: **for a belt-and-braces guard, delete each layer separately** — a passing test proves an
+outcome, not a mechanism. `workers/api/src/tenants.ts` labels one explicitly, so it was the natural subject:
+
+> *"This guard is defense-in-depth ON TOP of the allowlist: `_platform` is not a `TENANT_BINDINGS` key (so the
+> lookup would FORBIDDEN it anyway), but rejecting it explicitly here keeps the guarantee true **even if the
+> allowlist were ever mis-edited to add it**."*
+
+Two layers, and the comment names the exact scenario the belt exists for. So both were deleted, separately.
+
+### Layer 1 — the belt alone
+
+`if (isPlatformTenant(tenantSlug)) throw` neutered: **GREEN**, 757 passing. **The belt is a spare** — the
+allowlist alone refuses `_platform`, exactly as the source claims. §359's shape, confirmed.
+
+### Layer 2 — the braces alone
+
+The scenario the comment names, constructed: `"_platform"` **added to `TENANT_BINDINGS`**. **RED — 3 failing
+assertions**, and their names are the result:
+
+- *"forward isolation: no customer path resolves the platform tenant (REQ-025) — the platform id is NOT a key
+  in `TENANT_BINDINGS`"*
+- *"the platform D1 is reachable ONLY via the internal `resolvePlatformTenantDb`"*
+- *"PLG matrix backbone — the tenant→store map is a closed, fail-closed allowlist"*
+
+**The mis-edit the belt exists to survive is itself caught by tests asserting the allowlist's composition.**
+
+### Three layers, and the honest picture
+
+| layer | deleting it | what that means |
+|---|---|---|
+| the belt (`isPlatformTenant`) | GREEN | a documented spare — redundant today |
+| the braces (allowlist lookup) | — | load-bearing, and its *shape* is pinned |
+| the shape tests | RED ×3 | the mis-edit scenario cannot land silently |
+
+**The belt can only matter if the allowlist is mis-edited AND three tests are deleted in the same change.**
+That is not redundancy for its own sake — it is the correct amount, and the only way to see it was to remove
+each layer and watch what noticed.
+
+§359 found a belt whose layer was unreachable and reframed the test honestly. Here the same procedure found a
+belt that is redundant *and* a scenario that is independently guarded — **the same measurement, opposite
+verdicts, and neither visible from the test names.**
+
+### Two instrument errors, both caught by reading
+
+The first braces mutation reported `landed:NO` — my `sed` targeted line 13 (`tenant-b`) while quoting
+line 12's text. §308's rule made the GREEN meaningless rather than misleading. And a hardcoded
+*"(empty above = no test asserts …)"* label printed beside a search that **had** found two such tests —
+the second time this phase (after §358) that a caption contradicted its own output.
+
+### Verification
+
+Both layers mutated independently and restored byte-identical; `@shuddl/api` 757 green after restore; every
+failure attributed by name before conclusion. No file changed.
