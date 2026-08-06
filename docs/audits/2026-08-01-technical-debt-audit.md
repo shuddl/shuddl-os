@@ -25639,3 +25639,36 @@ that the natural next assumption is *"there must be more like it."* There is not
 checked rather than carried. The same assumption was wrong in §452 (§451's fixture defect did not generalise)
 and right nowhere this phase: **every time a defect was extrapolated from one instance to a class, the class
 turned out to be smaller than the instinct suggested.**
+
+## §461 — the two classifiers that decide retry-or-quarantine, neither observed
+
+Continuing §458's repo-wide zero-reference sweep. `packages/contracts/src/errors.ts` exports three symbols
+with **zero test references of any kind** — `UNKNOWN_TENANT_PREFIX`, `isUnknownTenant`,
+`isTenantPolicyRefusal` — and they are not equal in consequence, which is the useful part.
+
+**`isUnknownTenant` is load-bearing for FREIGHT.** `workers/translator/src/inbound.ts` gates on it:
+`if (!isUnknownTenant(err)) throw err;`. A rethrow becomes a 5xx the VAN retries — the right answer for a
+transient fault. Only a DETERMINISTIC non-resolution is quarantined instead. So a **false positive** — a
+transient D1 fault read as unknown-tenant — quarantines a tender a retry would have delivered: **a lost
+freight tender**, which that module's header and CLAUDE.md #10 both name as the worse of the two failures.
+Its docstring states the contract exactly (*"True ONLY for a deterministic non-resolution. A transient D1
+fault is NOT this, and must stay retriable"*) and nothing held it.
+
+**`isTenantPolicyRefusal` is the milder sibling, and I checked rather than assumed.** Both branches of the
+agents consumer call `message.retry()` — the DLQ already bounds it — so a misclassification changes the
+DIAGNOSIS, not the delivery. I had expected retry-vs-drop and read the branch before writing it down.
+
+**Six tests, both mutation-proven.** Removing `isUnknownTenant`'s `instanceof Error` guard — so a thrown
+STRING decides quarantine on stringification luck — reddens the non-Error case. Reverting
+`isTenantPolicyRefusal` to §33a's bare-phrase match reddens the prose case, which is the whole point of §36:
+that catch also wraps the Concierge LLM path and Resend sends, whose messages embed **inbound email text**,
+so a shipper writing *"tenant policy malformed"* — or a model echoing it — would relabel a retriable failure
+as deterministic and skip its 429 backoff.
+
+**§433's rule applied to my own fixture, after it bit.** The first draft hard-coded `"tenant_policy_malformed"`
+as the reason string and failed — the real constant is `"tenant policy malformed"`, with spaces. The fix is
+not a corrected literal but an IMPORTED one: the test now builds its input from
+`TENANT_POLICY_MALFORMED_REASON`. A restated expectation drifts with the value it copies; an imported one
+cannot. **The failure was luck — a wrong guess fails loudly, a right guess would have frozen a second copy.**
+
+`@shuddl/contracts` **291 passed**; `typecheck`, `lint` clean.
