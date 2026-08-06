@@ -20708,3 +20708,113 @@ failing, the known `REQ-289` trio, unchanged); subset-mutation attributed by fai
 **byte-identical to the pre-mutation backup** — not to HEAD, since §378's own change is uncommitted, a
 distinction that would otherwise have read as a failed restore (§368). Nine added comment lines shifted
 five citations by +9; all repointed and `check:citations` re-run green.
+
+---
+
+## §379 — the sentence holding a High-severity defect latent
+
+§378 tested one verification claim in the ledger and found a real gap. Continuing through them, the next
+claim is load-bearing in a way the others are not.
+
+### The hold
+
+*"Cron sweeps double-fire under overlapping ticks"* — `scheduled()` gets no mutual exclusion from
+Cloudflare, and both `*/5` sweeps use a presence CHECK rather than a claim. **Measured**, not theorised:
+two concurrent `run214Sweep` calls transmitted the same 214 **twice**, partner counter 41 → **43**, so the
+two interchanges carry different ISA13/GS06 and *the partner cannot dedupe them*. `runWebhookSweep`
+delivered one event twice. Both suites test only sequential re-runs — *"a second run transmits NOTHING"* —
+which is why neither caught it.
+
+Rated **High (latent)**. The latency has exactly one cause, and the row states it:
+
+> **DORMANT** — `NotConfiguredTransport` transmits nothing and `NotConfiguredWebhookTransport` refuses by
+> construction.
+
+### The claim is true, and was asserted by nobody
+
+Both composition roots really are unconditional — `transportFor` is `void env; return new
+NotConfiguredTransport();`, with no branch on any secret, and the webhook sweep constructs its transport as
+a literal. *"By construction"* is accurate.
+
+But **`transportFor` had zero test references, and so did `NotConfiguredTransport`.** The webhook half
+pins its refusal (*"the production NotConfiguredWebhookTransport refuses to deliver (fail-closed by
+construction)"*). The EDI half pinned **neither the choice nor the behaviour**.
+
+So the single fact keeping a measured, High-severity, partner-visible double-send latent was **a sentence
+in a document** — and the code it describes is one line, in a function whose own header explains where to
+bind the live adapter.
+
+### What was added
+
+Not a fix for the concurrency defect — that is an owner decision (a claim, not a presence check) and
+correctly filed as an unregistered REQ. A **tripwire**, in §326's shape: it does not assert the sweep is
+safe, it asserts the sweep cannot reach the network, and it fails at the exact moment that stops being
+true.
+
+Four tests. The first carries the hold *in its failure message*, so the person binding AS2/SFTP/VAN reads
+the measured 41→43 result before their build goes green. The others pin what the dormancy actually
+requires:
+
+- `send214` **rejects** — a transport that resolved silently would let the sweep write its "sent" marker
+  while nothing left the building. That is the inverse defect and strictly worse, because the marker
+  suppresses every retry.
+- `send990` rejects too — and its rejection is *caught* by the inbound handler by design (a 990 ack is
+  best-effort), which makes it the half most likely to be quietly wired first, and the half whose failure
+  is invisible at runtime.
+- the rejection is **retriable** — `TransportError(msg, true)`. A non-retriable one would DLQ every
+  outbound 214 while the transport is merely absent, converting a deliberate dormancy into data loss.
+
+**Mutation-proved:** binding `RecordingTransport` in the composition root — simulating exactly the live
+flip — turns 110 passing into **3 failures, all naming the tripwire**. Restored byte-identical.
+
+### The class
+
+§377 said a recorded verdict deters re-checking. This is the sharper case: **the verdict was true, and
+still nothing held it.**
+
+> **A dormancy claim is a dependency, not an observation.** *"X is safe because Y is not wired"* makes the
+> severity of X a function of Y's state — so Y's state needs the same enforcement as any other invariant
+> the system depends on. Prose records it; only a test *holds* it.
+
+The tell is grammatical and worth keeping: **a hold justified by another component's state, rather than by
+its own code, needs a tripwire on that component.** Every "dormant because", "unreachable because",
+"not exploitable because" in a ledger is one of these. The ledger has sixteen such phrases; §378 found one
+whose *content* was wrong, and this one whose content was right and whose *support* was absent.
+
+### Stated bound
+
+The webhook composition root (`webhooks.ts:386@NotConfiguredWebhookTransport`) is still unpinned — its
+transport's refusal is tested, but nothing asserts the sweep is constructed with it. Recorded on the hold
+rather than fixed here: the same tripwire on the mcp side is a five-minute follow-up, and stating it beats
+implying the pair is symmetric now.
+
+### Postscript: `git add -A <dir>` committed three other workstreams
+
+§378's commit staged with `git add -A docs tools .claude` and swept in **45 files** that were deliberately
+untracked: `docs/gtm/` (20 — the GTM workstream), `docs/research/` (15 — a separate research program),
+`.claude/plugins/` (6), and 4 untracked plan docs. This repository intentionally hosts concurrent
+workstreams in one directory; their untracked state IS the scoping mechanism.
+
+Detected by `check:citations` going RED on `docs/gtm/A4-landing-page-v2.md` — a document this audit has
+never touched, failing on citations into a site worker that does not live in this repo. **The gate caught
+a scope violation it was not built for**: the citation checker's universe is `git ls-files`, so newly
+tracked files are newly in scope, and dangling citations were the symptom of the real defect.
+
+Reverted with `git rm -r --cached` (45 files back to untracked, contents untouched on disk). The code fix
+from §378 stands.
+
+**The rule: stage by explicit path, never `-A` over a directory that hosts more than your work.** `-A` is a
+statement about a *directory*, and every path in these commits should be a statement about *this change* —
+the same distinction §378 itself is about, arriving one commit later in a different medium. `git add
+docs/audits docs/ops tools/checks` costs three words and cannot sweep.
+
+Worth noting what did NOT catch it: the commit message, which I wrote, listed the change accurately and
+said nothing about 45 unrelated files, because I did not look at what was staged. **`git status` before
+`git commit`, not after.**
+
+### Verification
+
+Composition roots read for branching (none); test references counted by grep and the empty result reported
+as empty (§360); tripwire mutation-proved by binding a real transport, attributed by failing-test name, and
+restored **byte-identical to the pre-mutation backup**; translator suite 110 green with the four added.
+`check:tables 0`.
