@@ -9,6 +9,7 @@
 // EXACT required_evidence, passes on complete evidence, and honors a named+reasoned override.
 import { describe, expect, it } from "vitest";
 import { eventFixture, type LedgerEvent, type JsonValue } from "@shuddl/contracts";
+import { UNKNOWN_JURISDICTION } from "../src/geo/jurisdiction.js";
 import {
   assertPickupDepart,
   assertDelivery,
@@ -362,6 +363,33 @@ describe("REQ-166 assertConsentBeforeGps — a GPS stamp is blocked until consen
   it("a position.updated with NO prior consent blocks with ['consent']", () => {
     expect(blockedEvidence(() => assertConsentBeforeGps([], position(), { operating_state: "TX" })))
       .toEqual([REQUIRED_EVIDENCE.consent]);
+  });
+
+  // REQ-166 — THE BRACES, and an honest note about the belt (audit §359).
+  //
+  // `assertConsentBeforeGps` blocks an UNKNOWN jurisdiction two ways: the explicit branch the source calls
+  // "the belt" (`ctx.operating_state === UNKNOWN_JURISDICTION` → GateError), and the braces — `ConsentAck`
+  // REFUSES to parse a payload whose `operating_state` is "XX", so no consent for an unknown jurisdiction can
+  // exist to satisfy the gate in the first place.
+  //
+  // MEASURED: deleting the belt leaves both suites green (616 ledger, 757 api) — INCLUDING the test below,
+  // which was written to cover the belt and does not, because the braces block first. The belt is therefore
+  // unreachable by any test that does not first weaken `ConsentAck`, and testing it would mean asserting
+  // against a payload the schema forbids constructing.
+  //
+  // So this pair pins the OUTCOME (an unknown jurisdiction never yields a GPS stamp) and the braces that
+  // currently deliver it. **If `ConsentAck` is ever relaxed to accept "XX", the belt becomes the only guard
+  // and acquires no coverage by that change** — that is the trigger to write a belt-specific test.
+  it("an UNKNOWN jurisdiction never yields a GPS stamp — via the braces (ConsentAck refuses \"XX\")", () => {
+    const consented = consentDoc(UNKNOWN_JURISDICTION);
+    expect(blockedEvidence(() => assertConsentBeforeGps([consented], position(), { operating_state: UNKNOWN_JURISDICTION })))
+      .toEqual([REQUIRED_EVIDENCE.consent]);
+  });
+
+  it("the SAME consent shape in a known state does NOT block — so the block is the jurisdiction, not the consent", () => {
+    // Negative control. Without it, a gate that rejected every consent would pass the assertion above while
+    // blocking every legitimate GPS stamp in the country.
+    expect(() => assertConsentBeforeGps([consentDoc("TX")], position(), { operating_state: "TX" })).not.toThrow();
   });
 
   it("a stop.arrived with NO prior consent blocks with ['consent'] (geofence auto-arrive is a GPS stamp)", () => {

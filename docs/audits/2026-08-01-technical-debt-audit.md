@@ -19186,3 +19186,55 @@ catch: the evidence and the conclusion were printed two lines apart.
 
 Fault injection located at `caps.test.ts:313`; the fail-closed catch mutated to fail open and restored
 byte-identical (RED naming `fail-closed`); `@shuddl/mcp` 177 green; path filter used. No file changed.
+
+---
+
+## §359 — A test that asserted the right outcome for the wrong reason
+
+§358's predictor — *a property that is written down gets tested; one that is merely true does not* — sent me
+looking for load-bearing fallbacks with no explanation. The sweep found ten `catch`-with-fallback sites whose
+value carried no comment; nine were benign, and one led somewhere interesting.
+
+**`assertConsentBeforeGps` (REQ-166)** blocks a GPS stamp when the operating state is `UNKNOWN_JURISDICTION`
+— consent to location recording is jurisdiction-specific, and *"an unknown jurisdiction is never a legally
+consentable state."* The source calls this branch **"the belt"**, with the braces being that a `ConsentAck`
+can no longer carry `"XX"`.
+
+**Deleting the belt left both suites green** — 616 in `packages/ledger`, 757 in `workers/api`. So I wrote two
+tests for it.
+
+### The tests passed, and proved nothing about the belt
+
+With the belt deleted **the new tests still passed**, because `ConsentAck` *refuses to parse* a payload whose
+`operating_state` is `"XX"` — so the consent never satisfies the gate, and the block happens one layer
+earlier. **My test asserted the correct outcome via a mechanism I was not testing.**
+
+That is the §305 error in its subtlest form. There, a green came from the wrong *suite*; here it came from
+the wrong *layer of the same function* — and unlike a wrong suite, nothing about the output reveals it. The
+only signal was that the mutation I expected to break the test did not.
+
+**The belt is unreachable by any test that does not first weaken the schema.** Testing it would mean
+asserting against a payload `ConsentAck` forbids constructing, which is not a test of the system as it ships.
+
+### What was kept, described honestly
+
+The pair stays, **reframed to what it proves**: the outcome (an unknown jurisdiction never yields a GPS
+stamp) and the braces that currently deliver it — with the belt's unreachability stated in the test file, and
+a trigger: ***if `ConsentAck` is ever relaxed to accept `"XX"`, the belt becomes the only guard and acquires
+no coverage from that change.*** `packages/ledger` 616 → **618**, all green.
+
+### The rule this adds
+
+§312 said a mutation proves a *site*, not a law. §359 adds the converse: **a passing test proves an outcome,
+not a mechanism** — and when two mechanisms produce the same outcome, a test cannot tell you which one it is
+riding without a mutation that removes one of them.
+
+**So the honest procedure for defence-in-depth is: delete each layer separately.** A belt-and-braces guard
+where only one deletion goes red is a guard with one layer and a spare — which is fine, and worth knowing,
+and invisible from the test names.
+
+### Verification
+
+Ten unexplained fallbacks enumerated; the consent branch mutated and both suites confirmed green without it;
+two tests added, found non-load-bearing for the belt by re-running the same mutation, and reframed; ledger
+618 green; `typecheck 0`; the gate file restored byte-identical.
