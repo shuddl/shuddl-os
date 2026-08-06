@@ -493,6 +493,34 @@ describe("Concierge consumer — message.received → resolve/price/reply (REQ-0
     expect(sender.messages).toHaveLength(0);
   });
 
+  it("REQ-173 — a MALFORMED rate_config QUEUES (unknown_price) too; the load throw never reaches the queue (audit §404)", async () => {
+    // SIBLING OF THE TEST ABOVE, on the throw it did not cover. `loadTenantRatingConfig` calls `ZoneTariff.parse`
+    // on the stored payload, so a malformed row throws AT LOAD — and that call sat OUTSIDE the compose guard the
+    // test above pins. Un-caught it escapes into the queue's blanket `catch → retry()` → DLQ, and the customer's
+    // quote email is silently lost: the exact REQ-173 harm, on the one config path the guard did not reach.
+    //
+    // The MISSING-config case was always handled (the `ratingConfig === null` branch queues for a human). The
+    // MALFORMED case now takes the same branch — both mean "this tenant cannot be auto-priced right now" — and
+    // logs loudly, since an absent tariff is a cold-start state while a malformed one is an operator fault.
+    await env.TENANT_A_DB.prepare(
+      "INSERT OR REPLACE INTO rate_config (id, version, kind, payload, effective_ts, approved_by) VALUES (?,?,?,?,?,?)",
+    )
+      .bind("zt-malformed", 1, "zone_tariff", JSON.stringify({ kind: "zone_tariff", id: "zt-bad", version: "v1", zones: "not-an-object" }), 1, "test")
+      .run();
+
+    const msgId = await appendInbound(
+      quoteEmail("malformed-config@shipper.example.com", "Please quote from 97201 to 80012, 1000 lbs, 48x40x48, 2 pallets."),
+      "req173-malformed-config",
+    );
+
+    const sender = new RecordingSender();
+    const outcome = await handleMessageReceived({ kind: "message.received", tenant: TENANT, event_id: msgId }, depsWith(sender, new DeterministicParser()));
+
+    expect(outcome.status, JSON.stringify(outcome)).toBe("queued");
+    if (outcome.status !== "queued") throw new Error("unreachable");
+    expect(outcome.reason).toBe("unknown_price");
+  });
+
   it("UNRESOLVED (a status email, not a quote) → nothing resolved/quoted/sent", async () => {
     await seedRateConfig(env.TENANT_A_DB, TEST_RATE_CONFIG);
     // A genuine STATUS email — no quote/rate keyword anywhere (the subject too), so intent resolves to

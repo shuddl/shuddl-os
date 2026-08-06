@@ -398,7 +398,25 @@ export async function handleMessageReceived(message: MessageReceivedTrigger, dep
   const streamId = `s:${resolved.shipment_id}`;
 
   // PRICE → DECIDE (REQ-026/093/098). No tariff ⇒ can't auto-price: record the request + a draft, queue it.
-  const ratingConfig = await loadTenantRatingConfig(db, inbound.recorded_at);
+  // REQ-173 (audit §404) — a MALFORMED required config throws HERE, at `ZoneTariff.parse` inside the loader,
+  // and this call sits OUTSIDE the compose guard below. Un-caught it escapes into the queue's blanket
+  // `catch → retry()` → DLQ, and the customer's quote email is SILENTLY LOST — the exact harm the guard at
+  // "NEVER let a pricing throw escape" was written to prevent, on the one config path it did not cover.
+  // The MISSING-config case was already handled gracefully (the `null` branch below); the MALFORMED case
+  // was not, and both are "this tenant cannot be auto-priced right now".
+  //
+  // Treated identically: a throw becomes `null`, which takes the queued-for-a-human branch. Logged LOUDLY
+  // because — unlike an absent tariff — a malformed one is an operator fault nothing else will surface.
+  let ratingConfig: Awaited<ReturnType<typeof loadTenantRatingConfig>>;
+  try {
+    ratingConfig = await loadTenantRatingConfig(db, inbound.recorded_at);
+  } catch (err) {
+    console.error(
+      `concierge: rate_config for tenant ${msg.tenant} is MALFORMED (stored payload failed its schema) — queueing this inbound for a human rather than losing it to the DLQ. Fix the tenant's rate_config rows:`,
+      err,
+    );
+    ratingConfig = null;
+  }
   if (ratingConfig === null) {
     // Owed a reply, not auto-answered → SET the SLA FIRST (before the appends). If a crash lands between
     // the quote.requested append and here, the redelivery guard returns already_handled — so setting the

@@ -22715,3 +22715,83 @@ Webhook read for verification-before-dispatch ordering; the Zod shape read at bo
 of a session-creating call established by grep across `workers/` and `packages/` with the result read rather
 than captioned (§360); the requirement recorded at the consuming line **and** filed as a hold with an expiry
 trigger. `typecheck 0`, billing 57 green.
+
+---
+
+## §404 — REQ-173's guard covered the pricing throw and not the config-load throw
+
+§403's move — **trace a field to its origin** — pointed at values authored outside this repository. The
+tenant config pack (zone tariff, 560-zip map, rate groups) is one: `genesis/13` places it in the engagement
+workspace, and `zone-tariff-v1` is an unvendored private fixture. It feeds the rater, which decides money.
+
+### The boundary is where it should be
+
+`loadTenantRatingConfig` **parses every required config** — `ZoneTariff.parse(zt)`, `FloorsConfig.parse(fl)`,
+and so on — so a malformed pack cannot produce a wrong price. It produces a **throw**. And a missing config
+is separately handled: all four absent ⇒ `null` ⇒ REQ-151's *"no tariff, no sell."*
+
+No in-repo writer can produce a malformed row either: `tariff-seed.ts` builds from typed template params,
+and `routes/tariff.ts` writes a different, narrower shape. The malformed case arrives only from the pack.
+
+### Where the throw lands
+
+The Concierge has an explicit REQ-173 guard, and its comment states the harm precisely:
+
+> *"NEVER let a pricing throw escape (REQ-173) … Un-caught, that throw propagates out of the handler into
+> the queue's blanket `catch → retry()` → infinite redelivery → DLQ → **the customer quote is SILENTLY
+> LOST**."*
+
+That guard opens at line 428. `loadTenantRatingConfig` is called at line **401** — **outside it.**
+
+So: a malformed required config throws at load, escapes the handler, is blanket-retried five times, and
+DLQs the inbound. **The customer's quote email is silently lost** — the exact harm the guard twenty-seven
+lines below was written to prevent, on the one config path it did not cover.
+
+The asymmetry is the tell: the **missing**-config case queues gracefully for a human with a detail naming
+the tenant; the **malformed** case did not. Both mean *"this tenant cannot be auto-priced right now."*
+
+### Fixed, and the fix is observed
+
+The load is now contained, mapping a throw to `null` — the same queued-for-a-human branch — and **logging
+loudly**, because an absent tariff is a cold-start state while a malformed one is an operator fault nothing
+else surfaces. (That distinction is `rate-config.ts`'s own, applied to the non-required transit matrix; this
+extends it to the required set.)
+
+Test added as the sibling of the one that pins the pricing throw: a malformed `zone_tariff` row in effect ⇒
+`queued(unknown_price)`, never a throw. **Mutation-proved** — removing the containment fails exactly this
+test. 766 green.
+
+### Four instrument errors in one section, all caught
+
+Worth recording together, because they are the phase's whole method compressed:
+
+1. **The insert landed inside the sibling `it()`** — my `});` search matched an inner block. Vitest said so
+   explicitly (*"Calling the test function inside another test function is not allowed"*), and the failure
+   appeared on the **sibling**, not on my test. Fixed by matching the closing brace at the *exact indent*.
+2. **`RecordingSender` has no `.sent`** — a property I assumed. `typecheck` caught it before any run.
+3. **`version` is an INTEGER column** — bound a string, D1 refused with `SQLITE_CONSTRAINT`.
+4. **`effective_ts: 9_999_999_999_999`** — a far-future row is not *in effect* (`effective_ts <= ?2`), so
+   the loader picked the good seed and the test priced successfully. The failure message said
+   `issued_replied`, which is what a **vacuous setup** looks like from the outside: the test ran, the
+   subject did not.
+
+Each was found by reading the failure rather than the expectation. The fourth is the §396 shape again — a
+test that would have "passed" the moment I inverted its assertion, having exercised nothing.
+
+### The general form
+
+> **A containment boundary is drawn around the operation the author was thinking about, not around the
+> failure mode.** REQ-173 is a rule about *losing a customer's email*; the guard implements it as a rule
+> about *pricing throws*. Every input to the same handler that can throw is in scope for the rule and out of
+> scope for the guard.
+
+The cheap check, and it is mechanical: **for each `try` justified by a named requirement, list every `await`
+in the same function that can throw, and ask whether the requirement covers it.** Here that list had exactly
+one entry outside the block, and it was the one whose origin is a file this repository does not contain.
+
+### Verification
+
+Config write paths enumerated (`tariff-seed`, `routes/tariff`, the staging smoke) to establish the malformed
+case is pack-only; guard boundaries read by line number rather than by shape; fix mutation-proved by
+removing the containment (1 RED, named) and restored byte-identical; four setup errors each diagnosed from
+the failure text. `typecheck 0`, api 766 green, agents 113, packages/agents 219.
