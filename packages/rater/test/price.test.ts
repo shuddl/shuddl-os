@@ -155,6 +155,36 @@ describe("priceShipment — UNKNOWN passes straight through (no price on air)", 
     const r = priceShipment({ ...okRequest, weight_lb: 100.5 }, config);
     expect(r).toEqual({ status: "UNKNOWN", reason: "missing_physics" });
   });
+
+  // REQ-004 / CLAUDE.md Law 4 — THE PUBLIC CONTRACT OF THE PHYSICS GATE (audit §389).
+  //
+  // `priceFreight`'s gate is FOUR disjuncts: `typeof weight !== "number"`, `!Number.isFinite(weight)`,
+  // `weight <= 0`, `!Number.isInteger(weight)`. Dropping each in turn, only the last two went RED — the type
+  // and finiteness checks were observed by nothing.
+  //
+  // They are UNREACHABLE through all five production callers, which is why this is not a defect: the api route
+  // uses `z.number().int().positive()`, `RateRequestPayload` uses `SafeInt` (`.int()` + `Number.isSafeInteger`),
+  // and the Concierge's heuristic path — the one that builds a request from a regex rather than a schema —
+  // validates through `ParseResultSchema.parse` before returning.
+  //
+  // AND THE GREEN IS NOT A COVERAGE GAP — it is SUBSUMPTION, which these tests do not change and cannot.
+  // `Number.isInteger` returns false for EVERY non-number, for Infinity and for NaN, so
+  // `!Number.isInteger(weight)` already implies the other two disjuncts. There exists NO input that
+  // distinguishes them: deleting `typeof weight !== "number"` or `!Number.isFinite(weight)` leaves behaviour
+  // identical for all values, so no test — these or any other — can go red on it. The four-disjunct form is
+  // belt-and-braces; `!Number.isInteger(weight) || weight <= 0` is exactly equivalent.
+  //
+  // These assertions therefore pin the CONTRACT (what a non-number, an Infinity and a NaN must return) and not
+  // the implementation that delivers it, which is the right thing to pin at an exported boundary: a future
+  // rewrite of the gate may keep two disjuncts or four, and must keep these answers either way.
+  it.each([
+    ["a non-number weight (an unvalidated caller)", "200" as unknown as number],
+    ["Infinity — `z.number()` alone admits it; only `.int()`/SafeInt exclude it", Number.POSITIVE_INFINITY],
+    ["NaN", Number.NaN],
+  ])("%s ⇒ UNKNOWN/missing_physics — never a price, never a throw", (_label, weight) => {
+    const r = priceShipment({ ...okRequest, weight_lb: weight }, config);
+    expect(r).toEqual({ status: "UNKNOWN", reason: "missing_physics" });
+  });
 });
 
 describe("priceShipment — no accessorials requested still PRICES (freight + fsc)", () => {

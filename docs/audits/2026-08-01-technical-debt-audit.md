@@ -21506,3 +21506,96 @@ closed by reading `#parentInvoiceVisibility`'s SQL rather than the sequencer's c
 mutations landed (`git diff --numstat` non-empty), run against **both** owning suites, **attributed by
 failing-test name** rather than by count, and restored byte-identical. No code changed — nothing was found
 that needed changing.
+
+---
+
+## §389 — a green mutation that was neither a gap nor unreachable: it was subsumed
+
+§388 closed on its own directive — *spend audit effort where nothing has ever failed.* `packages/rater` is
+money-critical, carries CLAUDE.md's Law 4 (*"no price on air"*), and had not been touched this phase.
+
+### The gate, split
+
+`priceFreight`'s physics gate is **four disjuncts in one `if`**, which is §375's shape (a compound guard
+reads as one thing and is four):
+
+```ts
+if (typeof weight !== "number" || !Number.isFinite(weight) || weight <= 0 || !Number.isInteger(weight))
+```
+
+Dropping each in turn:
+
+| disjunct | result |
+|---|---|
+| `typeof weight !== "number"` | **154 passed** |
+| `!Number.isFinite(weight)` | **154 passed** |
+| `weight <= 0` | 3 failed |
+| `!Number.isInteger(weight)` | 2 failed |
+
+Two greens on the gate that enforces the law this repository states first.
+
+### Three explanations, and the third was right
+
+This audit has produced two categories for an unobserved guard, and I reached for both before finding the
+third:
+
+1. **A coverage gap** (§367, §370, §375) — the guard is load-bearing and nothing watches it. *Fix: add a
+   test.*
+2. **Unreachable** (§376's `tenants.ts`, §377's would-have-been) — an outer layer means the input never
+   arrives. *Fix: none; record why.*
+
+I spent the section on (2): traced all five production callers of `priceShipment`, confirmed the api route
+uses `z.number().int().positive()`, `RateRequestPayload` uses `SafeInt` (`.int()` plus
+`Number.isSafeInteger`), and — the one that looked dangerous — the Concierge's **heuristic** path, which
+builds a request from a regex rather than the LLM schema, validates through `ParseResultSchema.parse`
+before returning. All five validated. So: defence-in-depth on an exported function, and I wrote tests to
+pin it as the package's public contract.
+
+**The tests passed, and the mutations stayed green.** Which is the third category:
+
+3. **Subsumed.** `Number.isInteger` returns false for *every* non-number, for `Infinity`, and for `NaN`.
+   So `!Number.isInteger(weight)` **already implies** both green disjuncts. There is no input that
+   distinguishes them — `!Number.isInteger(weight) || weight <= 0` is exactly equivalent to the four-part
+   form. **No test can ever go red on their deletion**, because deletion changes no behaviour at all.
+
+Verified directly rather than argued: `Number.isInteger("200") === false`, `Number.isInteger(Infinity) ===
+false`, `Number.isInteger(NaN) === false`.
+
+### I published the overclaim and caught it in the same section
+
+The comment I wrote on those tests ended *"each assertion goes red if its disjunct is removed."* **False**,
+and falsified by the very next command — re-running the two mutations against the new tests, which stayed
+green. Corrected in place before the commit.
+
+That claim is the exact species this phase has been auditing in other people's work: §370's docstring, §377's
+`verified-correct`, §386's absolute law. **A sentence asserting that a test observes something, written by
+the person who just wrote the test, and not checked.** The only reason it did not ship is the habit of
+re-running the mutation *after* adding the test rather than before — which §367 established for a different
+reason (proving the fix) and which turns out to also be the check on the comment.
+
+### What the tests are actually for
+
+Kept, with the claim corrected. They pin the **contract** — a non-number, an `Infinity` and a `NaN` must
+each return `UNKNOWN/missing_physics`, never a price and never a throw — rather than the implementation
+that delivers it. At an exported boundary that is the right thing to pin: a future rewrite may use two
+disjuncts or four, and must keep these answers either way.
+
+### The rule this adds
+
+> **A green mutation has three explanations, not two: nothing watches it, nothing reaches it, or nothing
+> distinguishes it.** The third is invisible to both of the usual responses — adding a test cannot fix it
+> and calling it unreachable misdescribes it — and it is the only one where *the code itself* is the
+> redundancy.
+
+The tell is cheap and mechanical: **before concluding "unobserved", ask whether any input exists for which
+the deleted clause changes the result.** For a boolean disjunction that is a truth-table question answerable
+in a `node -e` one-liner, and it should come *before* tracing callers, because it costs a fraction as much
+and it invalidates the whole investigation when the answer is no.
+
+### Verification
+
+Four disjuncts mutated individually (§375's compound-guard discipline), each landed and restored
+byte-identical; five production callers traced to their validating schema; subsumption proved by evaluating
+`Number.isInteger` on each candidate input rather than by reasoning about it; the overclaiming comment
+falsified by re-running both mutations against the new tests and corrected before commit. Rater 157 green
+(154 + 3). `typecheck 0`.
