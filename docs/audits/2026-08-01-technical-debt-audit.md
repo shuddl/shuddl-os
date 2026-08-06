@@ -25611,3 +25611,31 @@ of coverage; it is evidence of a badly chosen probe** — §389's "nothing reach
 instrument.
 
 `workers/api` **776 passed**; `typecheck`, `lint` clean.
+
+## §460 — the mirror-asymmetry class has exactly one member, and it is closed
+
+§459 diagnosed `doc-cap` as an untested copy of a well-tested sibling. The obvious question is how many
+others there are, and it is answerable syntactically — §457's criterion for an instrument worth building.
+
+**The sweep.** Every comment claiming to mirror a NAMED `.ts` sibling, resolved to a real file, with both
+sides' unit-testable exports counted against every test file: **42 claims, 27 pairs where both sides export
+something a test could call by name.** Asymmetric pairs — claimant at zero references while the sibling has
+some — **zero**.
+
+**One refinement was needed, and it is the general shape of these instruments.** The first run flagged ten
+route files at `0 vs 0` or `0 vs 107`, which is noise: route modules export only `mountXRoutes`, and their
+tests drive them through `SELF.fetch` rather than by symbol. Excluding `mount*` exports drops the population
+from 42 to 27 and the false signal to nothing. **A syntactic instrument needs its SCOPE corrected; a semantic
+one needs a human read** (§457) — that is the difference between the checks that survived this phase and the
+four that did not.
+
+**So the class is bounded at one.** `doc-cap` was the only module in the repo claiming to mirror a sibling
+while carrying none of that sibling's tests, and §458–§459 closed it: five forgery axes, a shared
+`tamperClaim`, parity with `status-cap` on every axis it covers.
+
+**Worth stating because a negative result here is load-bearing.** The finding in §458 was serious enough — a
+bearer capability that IS the whole gate on an unauthenticated route, tested only against a garbage string —
+that the natural next assumption is *"there must be more like it."* There is not, and the assumption was
+checked rather than carried. The same assumption was wrong in §452 (§451's fixture defect did not generalise)
+and right nowhere this phase: **every time a defect was extrapolated from one instance to a class, the class
+turned out to be smaller than the instinct suggested.**
