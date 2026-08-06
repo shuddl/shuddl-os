@@ -21051,3 +21051,78 @@ Both claims walked link-by-link to a terminal fact — a middleware body, an enu
 `wrangler.toml` cron expression, and the containment wrapper's `catch` — rather than accepted from the
 row's own summary; the contradiction between rows 288 and 381 established by quoting both, not by
 paraphrase. One record change, no code. `check:tables 0`.
+
+---
+
+## §383 — a phantom: an open hold for a defect that was fixed and lint-enforced
+
+§378 tested half of row 297 (*"REPLACE lint-banned"*) and found a real gap on the migration surface. This
+section tests the row's **other** half — *"the `events`/`money_lines` BEFORE INSERT guards omit
+`hash`/`ux_events_device`/`ux_ml_corrects`"* — and finds the opposite kind of defect.
+
+### Both halves of the remedy had already shipped
+
+The row's remedy line reads: *"Ship the drafted complete guard… + a WHEN-completeness lint."* Both exist.
+
+**The guard.** `db/tenant/migrations/0008_append_only_unique_guards.sql` — a file whose *name* is this
+defect, whose header quotes the same omission verbatim (*"0003's events_guard_ins enumerated ONLY
+(stream_id, seq) and id; it OMITTED the `hash` UNIQUE column and the ux_events_device UNIQUE index"*), and
+whose two triggers enumerate **all three** surfaces the row names: `hash = NEW.hash`,
+`device_seq = NEW.device_seq`, `corrects_event_id = NEW.corrects_event_id`.
+
+**The lint.** `tools/checks/invariants.ts:229@checkGuardCompleteness` walks every UNIQUE target on every
+`GUARDED_TABLES` entry and requires a BEFORE INSERT predicate enumerating it — a *derived* completeness
+check, not a roster, so it covers surfaces added later.
+
+**And the lint is live**, mutation-proved: replacing `hash = NEW.hash` with `1 = 0` makes
+`check:invariants` fail with *"the UNIQUE target (hash) on events has no BEFORE INSERT guard predicate
+enumerating it."* Attribution mattered here — editing a migration also trips the forward-only hash lock, so
+a bare non-zero exit would have proven nothing. The guard-completeness violation is named explicitly.
+
+### The phantom, and why it is worse than a duplicate
+
+The row was filed **OPEN**, severity Low, asserting a live gap in the append-only guards — the invariant
+this whole system is built on.
+
+§373 found a *duplicate* hold: one defect, two rows. That double-counts real work and misleads a count.
+A **phantom** is worse in a specific way:
+
+> **A duplicate exaggerates how much is left. A phantom fabricates risk that does not exist — and it costs
+> the next reader a full investigation to establish that nothing is there.**
+
+It cost exactly that here: reading two migrations, a lint function, and a mutation run, to conclude the
+answer was *no action*. Multiply by a 200-row ledger and the tax is the ledger's credibility — a reader who
+finds one phantom must treat every other row as possibly phantom, which is the same failure mode §377
+described for `verified-correct`, arriving from the opposite direction.
+
+### Why it survived
+
+The fix landed as **migration 0008 and a lint**, in a commit about append-only guards. The hold lived in
+`GO-LIVE-CHECKLIST.md`, in a table of 200 rows, indexed by nothing. Neither artifact points at the other:
+the migration header names the *defect* but not the *row*; the row names the *drafted remedy path*
+(`.claude/skills/…/reference-0006_….sql`) but not the migration that superseded it.
+
+**A hold is closed by a commit that does not know the hold exists.** That is the structural gap, and it is
+the same one §369 found in prose (a correction that never propagated to its sibling document) and §378
+found in code (a fix that inherited the finding's scope, not the rule's). Three media, one mechanism:
+**the work and the record of the work are updated by different actions, and only one of them is enforced.**
+
+The cheap counter, consistent with what this repo already does elsewhere: **a remedy line should name a
+tripwire, not a plan.** Row 297's said *"ship the drafted guard + a lint"*; had it said *"closed when
+`checkGuardCompleteness` exists and fires"*, the closure would have been a grep rather than a section.
+
+### Tally
+
+Seven verification claims tested: **three held**, **two were wrong**, **one right-but-unsupported**, **one
+true-verdict-wrong-reason**, and now **one phantom** — an open row for closed work. Nine remain.
+
+The distribution keeps mattering more than any single verdict: **seven claims, five of which needed the
+record changed and none of which needed the code changed.** That is what §381 meant by the yield having
+moved.
+
+### Verification
+
+Migration 0008 read trigger-by-trigger against the three surfaces the row names; the lint read as a derived
+walk over `GUARDED_TABLES` rather than a roster; the lint mutation-proved with the failure **attributed by
+message** (guard-completeness, not the forward-only lock, which the same edit also trips); the migration
+restored byte-identical to its pre-mutation backup. One record change, no code. `check:tables 0`.
