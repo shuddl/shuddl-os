@@ -25045,3 +25045,42 @@ crypto-parity claims specifically — far above the registry sweep's 25% (§440)
 was an expectation derived from the thing it checked, or a quantifier tested at one instance. That
 concentration is the phase's most transferable result: **where two implementations must agree on BYTES, the
 test is most likely to be checking that they still agree with each other rather than with the law.**
+
+## §445 — a count without its exact command is not a measurement, it is a memory
+
+§444 found one standing number inflated by a substring match. The obvious follow-up is whether the
+document's other standing counts survive re-derivation. **One does not, and the reason generalises.**
+
+**§391's "122 parity claims" cannot be reproduced.** It recorded its terms (*MIRRORS*, *must match*, *kept
+in sync*, *identical to*) and its scope (`packages/*/src`, `workers/*/src`) — more than most sections — and
+that is still not enough. Today the same terms and scope give **168** case-insensitively, **37**
+case-sensitively, **136** for `mirrors` alone. None is 122, under any flag combination tried.
+
+**The likeliest explanation is decay, not error**: 122 was true at its commit, and the tree has moved —
+this phase alone added comments containing "mirrors" (§433's own correction says the derivation is *"now
+SHARED, not mirrored"*). That is the point. **A count is a measurement of a tree at a moment; carried
+forward as a live bound, it silently becomes a memory.** The document has been quoting "119 parity claims
+remain" through six sections as though it were current.
+
+**Re-baselined, with the command published verbatim so the next reader can re-derive rather than trust:**
+
+```
+grep -rniE '^\s*(//|\*).*\b(mirrors|must match|kept in sync|identical to)\b' \
+  packages/*/src workers/*/src --include='*.ts' | grep -c ''
+```
+
+**168 at `24520d7`** — and, with §444's word-bounded crypto filter applied to that set, **9** are true
+byte/hash claims, all of them now discharged (§444). The residual 159 are the non-crypto axes: DB-schema
+(closed, §428), and the rest untouched.
+
+**What separates the numbers that held from the one that did not.** §397's "139 negative-property tests"
+survived scrutiny because it recorded its predicate AND its corrections — including that RTL queries assert
+by throwing, which is why 147 became 139. §440's registry sweep survived because it published the table of
+what was probed and what each mutation did. §391 published a number and a term list. **The rule this makes
+explicit: state the command, not the criteria** — criteria are re-implementable in several ways that give
+different answers, and the difference is invisible until someone tries.
+
+**Applied to this document going forward:** any count offered as a live bound carries the command that
+produces it and the commit it was taken at, or it is written as a dated observation rather than a bound.
+That is the same distinction §118 drew between a law and an observation, applied to the audit's own
+arithmetic instead of to the code's.
