@@ -249,6 +249,17 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 > count and an ordering has been discharged in that order, with the negative result — no correctness defect —
 > recorded at the same weight as the findings. §425 also records a method defect of this audit's own: six runs
 > spent on a false 'the gate is blind' thread that was an artifact of reading a failure list through `head`.
+>
+> **LAW 5 AND THE PARITY BOUND'S DB AXIS (§427–§428, 2026-08-06).** CLAUDE.md's fifth rule is now
+> mutation-proven on **both** surfaces that judge floors — 5 named failures in the rater, 3 in the Biller,
+> including the anti-$222K shape on the money path — and the tenant's slice has ONE implementation, imported
+> by both, so the math cannot drift. The one duplicated guard has matching scopes on both copies: a clean
+> negative on the two-mechanisms check, recorded at the same weight as a delta. §428 then closed the parity
+> sweep's DB-schema axis with the phase's first CODE change: one domain vocabulary had four hand-maintained
+> copies and no enforcement, and now has a CI gate — measured at exit 1 on drift, exit 0 restored, with the
+> gate's own tests mutation-proved. **The stopping point is unchanged in shape**: every bound this audit
+> states is discharged in the order it stated, and the counts quoted are the live predicate's, never a
+> historical tally carried forward (§427 and §428 each re-derived rather than inherited, and said so).
 
 Grades from `V2-EXECUTION-FRAMEWORK.md` §9. What this audit adds to each bar:
 
