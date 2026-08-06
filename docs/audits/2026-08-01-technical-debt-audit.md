@@ -22508,3 +22508,73 @@ chain traced through four files to the floor comparison; four independent absenc
 the empty results reported as empty (§360) — the route, the sequencer, the gates, the client default; the
 fail-closed direction confirmed by reading the `!executors.includes` return. One record change, no code —
 the fix is an owner decision.
+
+---
+
+## §401 — the same file, three lines apart: one client field stamped, one not
+
+§400 ended on a selection criterion sharp enough to mechanise: **a clause that cites its own authority is
+the most dangerous kind, because the citation reads as the check.** Swept: **82 provenance claims** across
+`packages/*/src` and `workers/*/src` — comments asserting a field is trustworthy *because* it is
+`SERVER-DERIVED`, `co-signed`, `authoritative`, `cannot be forged`.
+
+The sharpest of them, because the field it defends **releases a gate**:
+
+> *"IDENTITY (REQ-049): `by` is the AUTHENTICATED author. The append route
+> (`workers/api/src/routes/events.ts`) **STAMPS `by = session.sub`** over any client-supplied value AND
+> **requires an elevated role** (ops/admin/finance) — so an override's accountability record **cannot be
+> forged by a driver/portal caller**."*
+
+Two clauses, both about a different file — §400's exact shape, on the same file §400 found silent.
+
+### Both clauses hold, and both are observed
+
+```ts
+const ELEVATED: ReadonlySet<Role> = new Set<Role>(["ops", "admin", "finance"]);
+if (!ELEVATED.has(session.role)) throw new ApiError("FORBIDDEN", 403, "OVERRIDE REQUIRES AN ELEVATED ROLE");
+const claimed = (input as { override: unknown }).override;
+const reason  = …;
+(input as { override: unknown }).override = { by: session.sub, reason };   // client `by` DISCARDED
+```
+
+The client's `by` is not validated, not compared — **discarded**. Only `reason` survives, and the comment
+says so (*"`reason` is the client's justification, kept verbatim"*).
+
+Mutating the stamp to honour the client's `by`: **RED, 3 of 765**, naming *"override stamped to the
+authenticated author"* twice, across two different gates. And a driver attaching an override is separately
+pinned at 403. **A clean pass on the phase's most dangerous claim shape.**
+
+### The contrast is the finding
+
+`events.ts` is the file §400 measured as having **zero references to `actor`**. It is also the file that,
+sixty lines away, explicitly stamps `override.by` from the session, discards the client's value, gates the
+whole branch on an elevated role, and carries a comment explaining why.
+
+**The same author, in the same handler, applied the principle to one client-supplied identity field and not
+to the other.** That is not ignorance of the rule — it is the rule applied to the field that *looked* like
+identity. `override.by` announces itself as an accountability record; `actor.party` reads as a descriptive
+attribute of the event, and only becomes an authorization input four files later, in
+`executingShare(gross, legs, tenantParty)`.
+
+> **A field's danger is set by its most distant consumer, not by its local appearance.** `override.by` is
+> read where it is written, so its risk was legible. `actor.party` is written at the route and *decides
+> money* in a queue consumer in another worker — and nothing between them is the place where anyone would
+> think to ask.
+
+This materially strengthens §400: the gap is not a missing principle but an **incomplete application of a
+principle this very file demonstrates**, which is why filing it is the right action and why the remedy has
+an obvious template — stamp it, as `override.by` is stamped, from whatever server-side fact the owner
+designates.
+
+### Tally for the provenance sweep
+
+**82 claims; two examined.** One held with three tests behind it (this); one was true-and-insufficient and
+is now a filed Med (§400). Both were found by the same question: *the comment says this field is
+trustworthy because X — is X a check, or a description?*
+
+### Verification
+
+82 provenance claims enumerated mechanically; the override clauses read at the enforcement lines rather
+than accepted from the comment; the stamp mutated by line index after an anchor miss, landed, and
+**attributed by two failing test names across two gates**, restored byte-identical; the driver-403 test
+located separately. No code changed — nothing needed changing.
