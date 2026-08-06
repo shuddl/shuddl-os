@@ -1,3 +1,4 @@
+import { decodeCapPayload } from "./helpers.js";
 import { SELF, env } from "cloudflare:test";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
@@ -587,6 +588,33 @@ describe("REQ-025 growth: POST /v1/shipments/:id/status-link bakes cap.t from th
     expect(claims.t).toBe(TENANT_SLUG); // baked from session.tenant, NOT from :id or any input
     expect(claims.t).toBe("tenant-a");
     expect(claims.s).toBe(ISO4_SHP); // the :id is the shipment (`s`) only — it can never become the tenant
+  });
+
+  // THE LIFETIME, NOT JUST THE MECHANISM (audit §469, closing a standing GO-LIVE hold). The expiry MECHANISM
+  // is covered — status-cap.test.ts has "an expired cap fails verifyStatusCap" — but the LIFETIME was an
+  // undeclared value nothing pinned: `CAP_TTL_SECONDS` had ZERO test references anywhere.
+  //
+  // This cap grants UNAUTHENTICATED read of a shipment's status to whoever holds the URL. Widening 30 days to
+  // 30 years is a one-character edit that no test, type or gate would notice. The constant is module-private,
+  // so the pin is on the OBSERVABLE — the `exp` an attacker actually holds — which is the stronger thing to
+  // assert anyway (§458: test what the bearer sees, not what the source says).
+  it("the minted cap expires in ~30 days, and can never be minted long-lived (REQ-187)", async () => {
+    const ops = await token({ sub: "iso4-ttl", tenant: TENANT_SLUG, role: "ops" });
+    const res = await SELF.fetch(`https://api.local/v1/shipments/${ISO4_SHP}/status-link`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${ops}`, "Idempotency-Key": crypto.randomUUID(), "content-type": "application/json" },
+      body: "{}",
+    });
+    expect(res.status).toBe(200);
+    const { cap } = (await res.json()) as { cap: string };
+    const exp = Number(decodeCapPayload(cap)["exp"]);
+    const days = (exp - Math.floor(Date.now() / 1000)) / 86_400;
+    expect(days, "the cap must carry an expiry at all").toBeGreaterThan(0);
+    expect(days).toBeGreaterThan(29.5);
+    expect(days).toBeLessThan(30.5);
+    // The DOMAIN bound, which keeps biting after someone updates the literal above (§439): an unauthenticated
+    // bearer URL that outlives a quarter is a standing grant, not a link.
+    expect(days, "an unauthenticated status URL must not outlive a quarter").toBeLessThan(90);
   });
 });
 

@@ -25928,3 +25928,35 @@ tell was that the failing tests were about bill-to emails and stop identities, n
 Retargeted by line index at the plan's actual return: exactly 1 failed, mine.
 
 `@shuddl/translator` map-204 suite **18 passed**; `typecheck`, `lint` clean.
+
+## §469 — a standing hold closed: two auth lifetimes nothing pinned
+
+§468 closed the last of this phase's own filings, so the discipline moves to the STANDING holds. Of 124
+checklist rows, 40 are struck, 39 are externally blocked (owner decisions, private fixtures, DNS, counsel),
+and **12 are repo-owned and code-cited** — the only ones that can decay, and therefore the only ones worth
+re-verifying (the record-holds rule).
+
+**Verified still true, and closed.** *"TWO auth lifetimes are undeclared values nothing pins"* (§230/§231):
+`CAP_TTL_SECONDS` (30 days) and `SESSION_TTL_SECONDS` (8h) each had **zero test references anywhere**. The
+expiry MECHANISM was covered — `status-cap.test.ts` asserts an expired cap fails verification — but the
+LIFETIME was not, and the two are different claims.
+
+**What the gap costs.** The status cap grants **unauthenticated** read of a shipment's status to whoever
+holds the URL. Widening 30 days to 30 years is a one-character edit no test, type or gate would notice. The
+session is an ADMIN token for a freshly provisioned workspace; lengthening it widens exactly the window a
+stolen token is useful for.
+
+**Pinned on the OBSERVABLE, not the constant.** Both values are module-private, and the better assertion was
+available anyway: decode the `exp` a bearer actually holds. That is §458's rule — test what the attacker
+sees, not what the source says — and it reuses `decodeCapPayload`, the helper §459 consolidated after I
+duplicated it. Each pin carries a frozen band (29.5–30.5 days, 7.5–8.5 hours) AND a **domain bound** that
+keeps biting after someone updates the literal: *an unauthenticated status URL must not outlive a quarter*,
+*an admin session must not outlive a working day* (§439's two-assertion shape).
+
+**Mutation-proven:** ×12 on the cap TTL and ×30 on the session each give **1 failed**. Restored
+byte-identical; `isolation` **65 passed**, `signup` **16**, `typecheck`, `lint` clean. The GO-LIVE row is
+struck as PINNED.
+
+**The classification is the reusable part.** 124 rows sound like 124 obligations; 12 are actionable here and
+39 are not this audit's to move. **A hold list without an ownership column reads as a backlog when most of it
+is a waiting list** — and the 12 are now enumerated, so the next pass starts from a set rather than a scan.

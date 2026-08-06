@@ -134,6 +134,14 @@ describe("flag ON — signup provisions a tenant + mints an admin session (REQ-1
     const claims = await verify(out.session, JWT_SECRET, "HS256");
     expect(claims.role).toBe("admin");
     expect(claims.tenant).toBe("signup-acme");
+    // THE LIFETIME (audit §469). `SESSION_TTL_SECONDS` (8h) had ZERO test references: the session's SHAPE was
+    // asserted, its duration was not. This is an ADMIN session for a freshly provisioned workspace, so a
+    // silent widening lengthens exactly the window a stolen token is useful for. Pinned on the observable and
+    // bounded by a domain rule that survives someone editing the literal.
+    const hours = (Number(claims.exp) - Math.floor(Date.now() / 1000)) / 3600;
+    expect(hours).toBeGreaterThan(7.5);
+    expect(hours).toBeLessThan(8.5);
+    expect(hours, "an admin session must not outlive a working day").toBeLessThan(24);
   });
 
   it("the minted admin session READS the new workspace end-to-end (resolveTenantDb resolves the claimed pool D1)", async () => {
