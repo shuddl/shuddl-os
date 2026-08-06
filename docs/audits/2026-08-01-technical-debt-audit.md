@@ -25367,3 +25367,42 @@ check (§437, §451) actually measures — which is why that cheap grep has out-
 heuristic this phase.
 
 Provenance axis: **7 of 60 — 2 gaps, 5 clean.**
+
+## §454 — a dormancy that ten branches rest on, enforced by a test named for it
+
+§453 concluded that the cheap zero-test-reference check beats every semantic heuristic, so this section
+mechanised it across the provenance axis: resolve each claim to the symbol it defends, count test
+references. **47 claims resolved, 25 with zero references** — and six of the 25 are the same thing, the
+WP-15 `*Authority` locals (`ratingAuthority`, `commsAuthority`, `invoicingAuthority`, `settlementAuthority`,
+`conciergeRatingAuthority`, `dispatchAuthority`).
+
+**They are untested because they cannot yet matter, and that is provable in one line.** All **ten**
+production call sites pass `legacyValueAvailable = false`, and `authoritativeSource` returns `"native"` for
+ANY authority when that argument is false. §448 verified one consult dormant by mutation; the shared
+function makes the whole family dormant by construction. Nothing to fix there.
+
+**THE PREMISE WAS ENFORCED BY A SENTENCE.** `authority-seam.test.ts` carries a test named *"TODAY every
+caller passes legacyValueAvailable=false ⇒ ALWAYS 'native'"* — and its body is
+`for (const a of ["native","legacy"]) expect(authoritativeSource(a, false)).toBe("native")`. That checks the
+FUNCTION's truth table. **It never looks at a caller.** The day WP-15 Task 4 lands a real mirror and one site
+passes `true`, that consult goes live, ten unobserved branches become behaviour-affecting, and nothing fails.
+A test whose NAME states the invariant and whose BODY tests something else is worse than no test: it answers
+the question when someone searches for it.
+
+**Closed with a tripwire, not a correctness claim** (§379/§380's shape). `checkAuthoritySeamDormant`, wired
+into `check:invariants`, fails when any call site stops passing `false` — it does not say that is wrong, it
+says *the dormancy this repo relies on has ended and the ten consults now need the tests they never needed.*
+
+**Two mutations, both RED with the right message:** wiring `true` at one site names that file; renaming the
+seam fires *"a rename makes it certify nothing"* — the §239/§428 hole closed at construction rather than
+after it bit.
+
+**A third failure found the real bug in my own wiring.** The first version collapsed "no call sites" into one
+violation, which fired spuriously on the CLI's own positive-control test — that test runs the binary from a
+temp dir holding only migrations, where the source glob is empty. **An empty glob means "not the product
+tree" (skip); a non-empty glob with no call sites means "renamed" (fire).** Two-stage discovery now separates
+them. I would not have found that by reading; the pre-existing test failed and named itself.
+
+`check:invariants` exits 0 clean / 1 with a live mirror / 0 restored. Invariants suite **186 passed**;
+`typecheck`, `lint` clean. Provenance axis: **8 of 60 — 3 gaps, 5 clean**, with 6 of the remaining 52
+discharged as one family by the dormancy proof.

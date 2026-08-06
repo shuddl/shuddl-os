@@ -568,6 +568,39 @@ export function checkTestSchemaParity(
 // Keyed on an explicit ROSTER checked against the discovered set — the §239/§244 lesson. Keying only on the
 // constant NAME would stop covering a file the moment someone renamed the constant, which is one of the
 // drifts this exists to catch; keying only on the roster would miss a fifth copy. Both directions fail.
+// AUTHORITY-SEAM DORMANCY (audit §454). `authoritativeSource(authority, legacyValueAvailable)` returns
+// 'native' for ANY authority when the second argument is false, so the WP-15 overlay wiring is behaviour-
+// neutral today. TEN production call sites depend on that, and the six `*Authority` locals they bind have
+// ZERO test references between them — they are unobserved precisely because they cannot yet matter.
+//
+// The premise is what makes that safe, and it was enforced by a sentence. `authority-seam.test.ts` has a
+// test NAMED "TODAY every caller passes legacyValueAvailable=false" whose body only checks the FUNCTION's
+// truth table — it never looks at a caller. So the day WP-15 Task 4 lands a real mirror and one site passes
+// `true`, that consult goes live, ten untested branches become behaviour-affecting, and nothing fails.
+//
+// This is a TRIPWIRE in the §379/§380 sense, not a correctness claim: it does not say passing `true` is
+// wrong. It says the dormancy this repo relies on has ended, and the ten consults now need the tests they
+// never needed before. Update the roster deliberately when that happens.
+export function checkAuthoritySeamDormant(
+  sources: ReadonlyArray<{ path: string; source: string }>,
+): string[] {
+  const violations: string[] = [];
+  let calls = 0;
+  for (const { path, source } of sources) {
+    for (const m of source.matchAll(/authoritativeSource\s*\(([^;]*?)\)\s*;/g)) {
+      const args = m[1] ?? "";
+      calls += 1;
+      if (!/,\s*false\s*$/.test(args.trim())) {
+        violations.push(`${path}: authoritativeSource(...) no longer passes legacyValueAvailable=false — the overlay seam is LIVE here. Ten consults were untested because the seam was inert (audit §454); they now need coverage before this ships.`);
+      }
+    }
+  }
+  if (calls === 0) {
+    violations.push("no authoritativeSource(...) call sites found — this tripwire is keyed on the call shape, so a rename makes it certify nothing (audit §454).");
+  }
+  return violations;
+}
+
 export const DOMAIN_VOCAB_COPIES = [
   "packages/adapters/src/migrator.ts",
   "workers/api/src/intake-core.ts",
@@ -852,6 +885,27 @@ function main(): void {
     process.exit(1);
   }
   if (mode === "write") writeFileSync(lockPath, JSON.stringify(lockResult.nextLock, null, 2) + "\n");
+
+  // Authority-seam dormancy tripwire (audit §454) — fires when the overlay stops being behaviour-neutral.
+  {
+    // Discovery is TWO-STAGE on purpose. An empty glob means we are not in the product tree at all (the CLI
+    // is exercised from temp dirs holding only migrations), which must SKIP — not fail. A non-empty glob with
+    // no call sites is the RENAME case, which must fire. Collapsing these fired spuriously on the CLI's own
+    // positive-control test, which is how the distinction was found.
+    const seamFiles = globSync("{packages,workers}/*/src/**/*.ts").filter((f) => !f.includes("/authority.ts"));
+    const seamViolations =
+      seamFiles.length === 0
+        ? []
+        : checkAuthoritySeamDormant(
+            seamFiles
+              .map((f) => ({ path: f, source: readFileSync(f, "utf8") }))
+              .filter((x) => x.source.includes("authoritativeSource(")),
+          );
+    if (seamViolations.length > 0) {
+      for (const v of seamViolations) console.error(`FAIL ${v}`);
+      process.exit(1);
+    }
+  }
 
   // Domain vocabulary parity (audit §428) — the DDL CHECK is the authority; every TS copy must equal it.
   const domainPath = migrations.find((f) => f.endsWith("0002_domain.sql"));

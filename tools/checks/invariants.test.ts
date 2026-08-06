@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import { stripSqlComments } from "@shuddl/ledger/migrate";
 import {
   DOMAIN_VOCAB_COPIES,
+  checkAuthoritySeamDormant,
   checkConstraintValues,
   checkDomainVocabularyParity,
   checkControlMigrationsExercised,
@@ -989,5 +990,36 @@ describe("checkDomainVocabularyParity — the DDL CHECK is the authority (audit 
 
   it("a missing CHECK fails — the authority disappearing is not a pass", () => {
     expect(checkDomainVocabularyParity("CREATE TABLE shipments (id TEXT);", real()).length).toBeGreaterThan(0);
+  });
+});
+
+// AUTHORITY-SEAM DORMANCY TRIPWIRE (audit §454). Ten production call sites pass legacyValueAvailable=false,
+// which makes authoritativeSource return 'native' for any authority — so the WP-15 overlay is behaviour-
+// neutral and the six `*Authority` locals it binds are untested precisely because they cannot yet matter.
+// The premise was enforced by a test NAMED for it whose body only checked the function's truth table.
+describe("checkAuthoritySeamDormant — the overlay is inert until a mirror exists (audit §454)", () => {
+  const live = (path: string) => ({ path, source: 'const a = authoritativeSource(await resolveAuthority(db, "rating"), true);' });
+  const dormant = (path: string) => ({ path, source: 'const a = authoritativeSource(await resolveAuthority(db, "rating"), false);' });
+
+  it("the shipped tree is dormant — every call site passes false", () => {
+    const files = globSync(join(REPO, "{packages,workers}/*/src/**/*.ts"))
+      .filter((f) => !f.includes("/authority.ts"))
+      .map((f) => ({ path: f, source: readFileSync(f, "utf8") }))
+      .filter((x) => x.source.includes("authoritativeSource("));
+    expect(files.length, "non-vacuity: the call sites must actually be found").toBeGreaterThan(5);
+    expect(checkAuthoritySeamDormant(files)).toEqual([]);
+  });
+
+  it("a single LIVE call site fires, naming the file — the day Task 4 lands", () => {
+    const v = checkAuthoritySeamDormant([dormant("a.ts"), live("workers/api/src/routes/rate.ts"), dormant("c.ts")]);
+    expect(v).toHaveLength(1);
+    expect(v[0]).toContain("workers/api/src/routes/rate.ts");
+  });
+
+  it("a RENAMED seam fires too — a tripwire keyed on a call shape must not certify nothing", () => {
+    // The §239/§428 lesson: a check keyed on a name silently stops covering anything when the name changes,
+    // and reports success for having found nothing to disagree with.
+    const v = checkAuthoritySeamDormant([{ path: "a.ts", source: "const a = resolveOverlaySource(x, true);" }]);
+    expect(v.some((x) => x.includes("certify nothing"))).toBe(true);
   });
 });
