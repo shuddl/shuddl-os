@@ -191,9 +191,10 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 > two first — together they are the production-readiness claim: the gates run, and the laws the gates exist
 > to protect fail when their enforcement is removed. §296 re-measured the gate surface at `3d1386b` but named two bounds that turned
 > out to be unmeasured inheritances — §297 withdrew the worker-suite bound (the full suite runs: **286 files /
-> 3,750 cases / 3,747 passing**, re-measured at `570ab5d`; the 3 failures are all the uncommitted `REQ-289`
-> row, proven by removing it. The +37/+2 since §367's `c51e0f7` baseline is accounted line by line and is
-> entirely this audit's own: 22 tools (§378), 5 api (§375/§377), 6 translator (§370/§379), 4 mcp (§380)) and §298 withdrew the browser-gate bound (visual/a11y/e2e all PASS with
+> 3,758 cases / 3,755 passing**, re-measured at `331813a`; the 3 failures are all the uncommitted `REQ-289`
+> row, proven by removing it. Every delta since §367's `c51e0f7` baseline is accounted per section and is
+> entirely this audit's own — +37 to `570ab5d` (22 tools §378, 5 api §375/§377, 6 translator §370/§379,
+> 4 mcp §380), then **+8 more**: 2 api (§387), 3 rater (§389), 1 api (§395), 2 ledger (§396)) and §298 withdrew the browser-gate bound (visual/a11y/e2e all PASS with
 > `executed: true`). **§364–§367 close the trust-boundary sweep: nine boundaries checked by mutation, nine
 > load-bearing** — the last of them (`apps/driver/public/sw.js`) found two of three cache guards
 > unobserved, now four tests. Three enumerations of "the boundaries" grew under correction before it held,
@@ -207,7 +208,23 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 > hold whose dormancy — measured at 2 transmits of one 214, partner counter 41→43 — was held by a sentence
 > and asserted by no test on either half (§379/§380, now tripwired). Of the ledger's verification claims
 > tested: **two held, two were wrong, one was right-but-unsupported.** The population of such claims is 16;
-> five are done. §299 specifies the single blocker behind both FAILs — the uncommitted `REQ-289` GTM row,
+> five are done.
+>
+> **§385–§398 turn the lens on STATED GUARANTEES rather than on the record's verdicts, and the yield changes
+> character again.** Fifty absolute guarantees sit directly above a function or mutating handler; splitting
+> one into clauses and naming the input that establishes each found: an unbound `amountCents` the handler's
+> own safety sentence depends on (§385), a binding law stated absolutely whose forbidden branch carries 23
+> tests (§386), a consent gate whose non-overridability had no runtime test while its declared mirror did
+> (§387), a subset relation between two money vocabularies enforced by nothing (§391), half a join derived
+> and half restated (§392), a silent-metric coupling (§393), a control-plane write whose only tenant
+> boundary was an untested join (§395), and an invoice guard whose real forbidden transition its own comment
+> never names (§396). **Four clean passes are recorded alongside them** — visibility (§388), the
+> at-least-once money path (§394), the idempotency chokepoint (§385), the ping-pong law (§398) — because a
+> sweep reporting only its hits cannot be told from one that manufactures them.
+>
+> **A green mutation now has three explanations, not two** (§389): nothing watches it, nothing reaches it,
+> or **nothing distinguishes it**. The third is invisible to both usual responses, and its dangerous form is
+> subsumption paired with a comment claiming the guarantee for the subsumed line (§398). §299 specifies the single blocker behind both FAILs — the uncommitted `REQ-289` GTM row,
 > down to the two source lines that reject it; §300 verifies every item of the standing ledger against its
 > source; and **§326 closed the last repository-owned item, so every remaining entry is blocked on an input
 > this repository does not contain.** The clauses below were originally measured in §238 at `68cfb0d`; §243 (extended through §295) answers the separate question of whether another iteration is worth running:
@@ -22320,3 +22337,79 @@ Sweep branch mutated by line index after an anchor miss, landed, restored byte-i
 check read two lines below it; the mapper's record shape read at the push site to confirm no `event` field;
 the mapper mutated independently and **attributed by failing-test name** across both owning packages; the
 comment corrected to name the enforcing layer. `typecheck 0`, agents 113 green.
+
+---
+
+## §399 — phase gate re-measured at `331813a`, and the stopping point stated
+
+Seventeen sections since §381. §4 is the stopping-point entry and its numbers decay by its own rule.
+
+### The measurement
+
+**286 test files · 3,758 cases · 3,755 passing · 3 failing.**
+
+The three are the uncommitted `REQ-289` register row, unchanged since §368 and proven by removing it. An
+owner disposition, not a build defect.
+
+**+8 cases and +0 files** since `570ab5d`, accounted per section: 2 (§387), 3 (§389), 1 (§395), 2 (§396).
+That every one landed in an existing suite is itself the signature of this phase — a guarantee-driven sweep
+adds assertions to files that already exist; a surface-driven one adds files.
+
+### What this phase was, in one line
+
+**§364–§367** swept code by trust boundary. **§370–§384** swept the record's verdicts. **§385–§398** swept
+**stated guarantees** — the sentences directly above functions that say what they promise.
+
+The last is the one worth naming as a technique, because it is cheap and it does not manufacture findings:
+
+> **Split a stated guarantee into clauses; name the input that establishes each; any clause whose input is
+> caller-supplied, or lives in another file, is either a defect or an undocumented trust assumption.**
+
+Eight findings and four clean passes came out of it. The clean passes are recorded with the same weight —
+visibility (§388), the at-least-once money path (§394), the idempotency chokepoint (§385), the ping-pong law
+(§398) — because §380's point holds: a sweep that reports only its hits cannot be distinguished from one
+that manufactures them.
+
+### The sharpest thing learned
+
+A green mutation has **three** explanations, not two (§389):
+
+| | meaning | response |
+|---|---|---|
+| nothing **watches** it | a coverage gap | add a test |
+| nothing **reaches** it | an outer layer holds | record why, with the trigger that revives it |
+| nothing **distinguishes** it | logically subsumed | neither — and check what the comment claims |
+
+The third was found twice (§389's `Number.isInteger`, §398's echo skip) and is invisible to both usual
+responses. Its dangerous form is **subsumption plus mis-attribution**: a redundant guard is harmless, but a
+comment claiming the guarantee for the subsumed line is a pointer to the wrong file, and it survives every
+gate, test and mutation *because the code is correct*.
+
+### Stopping point
+
+**Closed this phase:** the stated-guarantee sweep over the money path, the gates, the visibility resolver,
+the offline merge, the queue consumer, and the control plane; the constant-duplication axis swept to
+completion (37 constants, 1 real); both halves of the cron dormancy hold tripwired; §266's derivation
+completed on its second surface; a phantom hold closed and six mis-titled resolved rows struck.
+
+**Open and stated, not implied:**
+
+- **119 parity claims unchecked** (§391's bound; two examined, two acted on).
+- **139 negative-property tests un-mutated** (§397) — not filed as debt: the scan cannot show any is wrong,
+  and asserting a refusal is the correct shape for most. Priority order recorded: side-effect-absence first.
+- **~42 of 50 stated guarantees unsplit** — the technique above, applied to eight.
+- **10 of 16 ledger verification claims untested.**
+- The `400`-status guard clusters (11 routes), deliberately deferred.
+
+**Owner-blocked, unchanged:** `REQ-289`'s disposition, nine private fixtures, two External Highs, three
+owner decisions, one staging placeholder.
+
+**No open Criticals.** The one High touched (§379's cron double-fire) is latent by a mechanism now enforced
+rather than asserted — a smaller claim than "fixed", and the true one.
+
+### Verification
+
+Four changed suites re-measured with the verdict line read whole; the +8 reconciled per section and
+cross-checked against `git ls-files | grep -c '\.test\.'` = **286**, unchanged, confirming no new file; both
+sibling records updated in the same commit so no copy is left stale (§369); staged by explicit path (§379).
+`typecheck 0 · check:tables 0 · check:citations 0`.

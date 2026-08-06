@@ -397,6 +397,7 @@ covered 51% of the tests that exist. That is why the disclosure sentence beside 
 | the tip-verdict `pnpm test` row below | 2026-08-05, `fee46a3` (§333) | 283 | 3,704 |
 | this table | 2026-08-05, `c51e0f7` (§367) | 284 | 3,713 |
 | re-measured after the §370–§380 sweep | 2026-08-05, `570ab5d` (§381) | 286 | 3,750 |
+| re-measured after the §385–§398 sweep | 2026-08-06, `331813a` (§399) | 286 | 3,758 |
 
 Each delta is **entirely this audit's own**, and accounted line by line — a delta that cannot be is a
 measurement to redo, not a number to write down.
@@ -407,6 +408,11 @@ measurement to redo, not a number to write down.
   device-principal guards (§375), 2 lens-translation guards (§377), 2 certification-strictness cases
   (§370), and two NEW files, `transport-dormancy.test.ts` (+4, §379) and `webhook-dormancy.test.ts`
   (+4, §380).
+
+- `570ab5d` → `331813a`: **+8 cases / +0 files** — 2 consent-override cases (§387), 3 rater physics-contract
+  cases (§389), 1 cross-tenant claim case (§395), 2 invoice rollback/settle cases (§396). No new test file:
+  every one landed in a suite that already existed, which is what a guarantee-driven sweep looks like as
+  opposed to a surface-driven one.
 
 The 3 failures are unchanged throughout: the uncommitted `REQ-289` row, and nothing else.
 
