@@ -21945,3 +21945,79 @@ Scan run over 37 exported constants; all 10 hits read individually and classifie
 real case verified as an open vocabulary (`z.string().min(1)`, no enum to constrain writers); both writers
 changed and both suites re-run green; coupling confirmed by grep (three sites, one identifier).
 `typecheck 0`.
+
+---
+
+## §394 — the at-least-once money path, and a clean result on the property that matters most
+
+New ground: the Queues consumer. Cloudflare Queues are **at-least-once**, so every message the agents
+worker handles can arrive twice. On the `pod.signed` branch that means: *can a redelivered message issue a
+second invoice and send a second customer email?*
+
+This is the single most consequential at-least-once question in the system, and it had not been swept.
+
+### The design
+
+`invoiceEventIdFor(podEventId)` = `uuidFromSeed("biller:invoice-event:" + podEventId)` — **deterministic
+per POD event**, so a redelivery derives the *same* event id and the sequencer's duplicate-id guard (I1)
+refuses the second append.
+
+Above it sits an explicit **redelivery fast path**, and its reasoning is the part worth quoting:
+
+> *"if the deterministically-derived invoice event ALREADY exists on this stream, compose + every gate
+> already ran and PASSED when it committed; a redelivered message goes STRAIGHT to the send, from the
+> STORED payload. Re-judging here could flip to a hold under context drift (legs edited after issue, a
+> config change), which would orphan the evidence email forever while the invoice stands — redelivery may
+> complete or hold the SEND, never re-litigate the ISSUE."*
+
+That is a distinction most idempotency does not make: **the second delivery is not a no-op, it is a
+resumption.** The invoice is settled; only the send is retried. Making it a plain no-op would strand the
+customer email whenever the first delivery failed *after* the append.
+
+### It is observed, and by tests that name the failure
+
+Mutating the id to `crypto.randomUUID()` — the exact regression that turns redelivery into
+double-invoicing — goes **RED: 6 of 764 in `workers/api`, 1 of 113 in `workers/agents`**:
+
+- *"IDEMPOTENCY: the same message twice → ONE invoice event, ONE money projection, ONE email"*
+- *"SEND-FAILURE ISOLATION (retriable): handlePodSigned THROWS for redelivery, but the invoice STANDS"*
+- *"REDELIVERY FAST PATH: once the invoice is committed, later context drift can NEVER flip redelivery to
+  a hold — the email still goes out"*
+- *"UPLOAD THEN RE-DRIVE: … a duplicate re-drive stays at one invoice/one send"*
+
+Four assertions covering four distinct consequences of one property — the count, the isolation, the
+drift-immunity, and the re-drive interaction. Nothing to add.
+
+### And the queue handler around it
+
+The consumer's `catch` distinguishes a **deterministic refusal** (`isTenantPolicyRefusal`) from a transient
+one, and the comment explains why the *label* mattered even though the retry posture did not change:
+
+> *"Five identical lines reading 'retriable failure … will redeliver' tell an operator to wait for a
+> transient condition to clear, when nothing will clear until a control row is fixed — and they name no
+> fix. The message is not more retriable for being logged as such."*
+
+That is the §377 lesson (*record the step, not the verdict*) applied to an operator-facing log line, by
+someone who had it before this audit did.
+
+### Why a clean result here is worth recording
+
+§388 argued that a technique's value is only legible once it has been run somewhere it finds nothing, and
+§380 that a sweep reporting only its hits is a biased instrument. Both apply, but there is a third reason
+specific to this one:
+
+> **The properties an audit most wants to find broken are the ones a competent team most reliably gets
+> right.** Money-on-retry is the canonical distributed-systems trap; everyone who has been bitten knows to
+> derive the id. The defects this phase actually found were a certification gate nobody tested (§370), a
+> guard replicated three times (§375), a `verified` reason that was wrong (§377), and half a join that was
+> restated (§392) — **none of them famous, all of them adjacent to something famous that was done well.**
+
+That is worth stating as a search heuristic rather than an observation: **look one step to the side of the
+hard problem.** The invoice id is deterministic and thoroughly tested; the *hold marker* that bounds its
+re-drive loop shared one definition and restated the other. Same file, same author, same afternoon.
+
+### Verification
+
+Consumer read branch-by-branch for ack/retry placement; the id derivation traced to its seed; determinism
+mutation landed (`git diff --numstat`), run against **both** owning suites, **attributed by four failing
+test names**, restored byte-identical. No code changed — nothing needed changing.
