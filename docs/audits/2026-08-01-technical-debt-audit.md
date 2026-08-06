@@ -20008,3 +20008,83 @@ Mutation applied by anchored replace, `git diff --numstat` non-empty before each
 byte-identical (`0` diff lines) after both runs; `resolveMapping({})` probed in a scratch test that was
 deleted, not left behind. Clean 106 / mutated 1-failed measured with the verdict line read whole (§368).
 `typecheck 0 · check:tables 0 · check:citations 0`, commit gated on all three.
+
+---
+
+## §371 — the fallback sweep, completed and corrected
+
+### Correction first: §370 said 20 sites. There are 32.
+
+That "20" was read off a shell pipeline ending in `head -20`. The display was truncated at exactly the
+number I then reported as the population. **Fifth occurrence of the §368 family** — an instrument whose
+output is shaped identically whether it is complete or cut off — and the second I shipped.
+
+The distinguishing move is the same one that has worked every time: **make the tool report the count, not
+the rows.** A scan that prints `32 sites` before printing any of them cannot be truncated into agreement
+with itself. Corrected population: **32 literal-fallback sites across 153 catch blocks** in
+`workers/*/src`, `packages/ledger/src`, `packages/agents/src`.
+
+### Thirteen traced, nineteen not
+
+Traced (§370's five plus eight here). Every one leans the safe way:
+
+| site | fallback | what it means |
+|---|---|---|
+| `caps.ts@parseCaps` | `null` | ZERO capacity, never infinite (F2, argued in-code) |
+| `pub/status.ts@parseStatusCache` | `{}` | `state:"unknown"`, read by name — no field injection |
+| `biller.ts` recipient / geo | `undefined` | no email sent / no geo — a missed send, not a wrong one |
+| `partners.ts@parseConfigLenient` | `{}` | runtime-only leniency; certification uses the strict parse (§370) |
+| `transition-gates.ts` geofence | `false` | the fence is NOT cleared → `["geofence"]` block, never an opaque crash |
+| `sign.ts` verify | `false` | signature unverified → rejected |
+| `polygon-source.ts@loadPolygonSource` | `null` | hash mismatch AND unparseable bytes → fail closed |
+| `devices.ts@deriveDeviceId` (×2) | `null` | no id derivable → enrollment refused |
+| `sequencer.ts` delivery geo | `undefined` | no geo, never a default geo |
+| `webhooks.ts` originator | `null` | *"a malformed config is unusable — fail closed"* |
+
+**Nineteen were not traced to their callers** — `oauth.ts`, `booking.ts`, `mirror-sweep.ts`,
+`rate-config.ts` (×2), `watchtower.ts`, `dunning.ts`, `events.ts@safeJson`, `sweep-214.ts`,
+`driver-manifest.ts`, `parity.ts`, `principal.ts`, and the six LLM-output readers in
+`packages/agents/src/{concierge,copilot,migrator}`. Stated, not implied.
+
+### A claim that checked out
+
+`jurisdiction.ts` states that the embedded `SYNTHETIC_US_STATES` const is *"byte-bound to the hash-pinned
+fixture (jurisdiction.test.ts asserts the deep-equality AND the manifest sha256), so it cannot silently
+drift."* Both halves are really asserted — `sha256Hex(fixtureRaw) === active.sha256` and
+`JSON.parse(fixtureRaw)` deep-equals the const — and the licensed dataset is pinned as `status: blocked`,
+`sha256: null`. The claim is exactly as strong as it says.
+
+Worth recording *because* it passed. This audit has found enough prose-versus-behaviour gaps
+([[a-gates-green-certifies-less-than-its-name]], §370's docstring) that a verified claim is data too: it
+is what the pattern looks like when an author checked their own sentence.
+
+`loadPolygonSource` has **no production caller** — only tests. Not dead code: it is the vendor-time path
+for the licensed artifact, which is a BLOCKED external hold. The runtime uses the embedded const, which is
+the thing the byte-binding above pins. Consistent.
+
+### One observation, unreachable, with an expiry trigger
+
+`devices.ts@parseEntries` returns `[]` for an unparseable `device_keys`, and the two callers lean
+**opposite** ways from there:
+
+- **enroll** does read-modify-write — `entries.push(...)` then `UPDATE users SET device_keys = ?` — so a
+  corrupt blob is *overwritten*, taking every prior enrollment with it;
+- **revoke** finds nothing and throws `404 DEVICE NOT FOUND`, so an operator's revocation fails while the
+  device stays enrolled — fail-open on the security-relevant half.
+
+**Not reachable.** The column is `TEXT NOT NULL DEFAULT '[]'`, and both writers in the repository bind
+`JSON.stringify(entries)` of an array. No code path in this repository can produce the input.
+
+Filed as an observation rather than fixed, deliberately: hardening an unreachable state has no REQ row,
+and inventing one to justify speculative code is the failure the register exists to prevent. Per
+[[record-holds-with-expiry-triggers]], the trigger that revives this: **a third writer of
+`users.device_keys` appears** — an admin tool, a migration backfill, or an import. At that moment the two
+directions stop being academic, and the one to fix first is revoke, because it fails toward *"the operator
+believes the device is gone."*
+
+### Verification
+
+Population re-measured by a scan that prints its count before its rows (32 sites / 153 catch blocks);
+thirteen call sites read in full; the jurisdiction byte-binding read assertion-by-assertion rather than
+summarized; `device_keys` reachability established from the schema default plus an exhaustive writer grep,
+both quoted. No code changed in this section. `typecheck 0 · check:tables 0 · check:citations 0`.
