@@ -296,6 +296,30 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 > full run: **workspace 17 packages / 256 files / 2,980 tests, zero failures; tools 813** — combined **3,793
 > cases**, superseding the 3,771 at `c9fa799`, with the 3 red tools cases re-proved to be the separate GTM
 > workstream's uncommitted `REQ-289` row rather than inherited from this document.
+>
+> **PHASE GATE, 2026-08-06 (§444–§455): the audit's own instruments, then the provenance axis.** Eleven
+> sections. The first three changed NO code and were the most consequential: §444 found the crypto axis
+> sized by a substring filter (`sha` matching *shape*), §445 found §391's parity count unreproducible from
+> what it recorded, §446 demoted §386's "50 stated guarantees" to a dated observation because its method was
+> never written down. **Three of five standing bounds were memories wearing a number's clothes.** The rule
+> that came out — *state the COMMAND, not the criteria* — is why every count in §§447–455 ships with the
+> grep that produces it.
+>
+> The provenance axis then ran to **9 of 60 examined — 4 gaps, 5 clean** — plus a mechanised zero-reference
+> sweep whose 25 candidates resolved to 1 real finding and 24 explained by category. Gaps fixed: the flip
+> `reason` enum (§447), `serverScoped` scope-and-precision (§451), the authority-seam dormancy tripwire
+> (§454), and three declarations of "what counts as finished" (§455).
+>
+> **MEASURED AT `83b00a7`:** workspace **17 packages / 256 files / 2,984 tests, zero failures**; tools
+> **813 passed / 3 failed**, those three re-proved by `git stash` to be the separate GTM workstream's
+> uncommitted `REQ-289` row. **34 commits, 19 touching product code.**
+>
+> **What this phase learned that outlives it:** a selector was proposed, tested, and REFUTED in consecutive
+> sections (§449 → §450 → §453), ending at the honest form — *coverage follows whatever the surface's tests
+> were built around* — and the cheap zero-test-reference grep out-performed every semantic heuristic tried
+> against it. Meanwhile the direction of evidence inverted twice (§448 dormancy, §452 preservation, §455
+> forward-safe values): **a green mutation is a gap, a confirmation, or nothing at all, and only the
+> sentence being tested says which.**
 
 Grades from `V2-EXECUTION-FRAMEWORK.md` §9. What this audit adds to each bar:
 
