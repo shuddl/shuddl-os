@@ -21126,3 +21126,74 @@ Migration 0008 read trigger-by-trigger against the three surfaces the row names;
 walk over `GUARDED_TABLES` rather than a roster; the lint mutation-proved with the failure **attributed by
 message** (guard-completeness, not the forward-only lock, which the same edit also trips); the migration
 restored byte-identical to its pre-mutation backup. One record change, no code. `check:tables 0`.
+
+---
+
+## §384 — the ledger's scannable surface disagreed with its own verdicts
+
+§383 found a phantom — an open row for closed work — and asked the obvious follow-up: **how many others?**
+
+### First attempt: the wrong question, cheaply
+
+The heuristic was *"a hold whose remedy names an artifact that now exists."* Across ~200 rows it returned
+**one** hit, and that hit was not a phantom: row 300 already says `**FIXED 2026-08-02**` and
+`Low→resolved` in its own later columns.
+
+Which turned out to be the finding, one column over.
+
+### The real shape: title says open, verdict says resolved
+
+Eleven rows carry `FIXED` / `CLOSED` / `resolved` somewhere in their body while their **title** — the only
+cell a reader scans — reads as a live defect. Classifying them properly required reading each, because the
+detector over-fires in a specific way: in a long cell, `CLOSED` often refers to **a component** of the row,
+not the row. (Fifth predicate correction of this phase; the pattern holds — every one has been a rule that
+assumed structure the text does not guarantee.)
+
+- **3 are genuinely open** — `205` (the 403 sweep closed, the `400` clusters remain — §375/§376 added
+  scope), `89` (*"CONFIRM-gated, adapter unbuilt"*), `219` (`Low`, untouched).
+- **2 are provisioning rows, not defects** — `35` and `128` sit in the secrets / DR checklists, where
+  "corrected" describes a sub-item and the *input* is still required.
+- **6 are resolved by their own verdict column** and were still scanning as open: `189` (**High→resolved**),
+  `202` (`CLOSED 2026-08-03`), `294` (**High→resolved**), `295`, `296`, `300`.
+
+**Two of the six are titled High.** A reader scanning this document for open High-severity items — which is
+exactly what it is for, on the day it matters — finds two that were resolved days ago.
+
+Struck, using the convention the document already uses for rows `180`, `184`, `197`. No verdict changed;
+nothing was re-adjudicated. **Rows scanning as open: 195 → 189.**
+
+### Why this is the same defect as §383, not a tidier one
+
+A phantom hold and a mis-titled resolved hold produce the identical failure: **the reader's cheapest read
+of the record is wrong, and only an expensive read corrects it.** §383's cost was a full investigation to
+find nothing; this one's cost is an inflated open count, including inflated Highs.
+
+The underlying mechanism is the one this phase keeps meeting:
+
+> **A record has a scannable surface and a detailed body, and only the body gets updated when work lands.**
+> The person closing a defect edits the cell that holds the reasoning, because that is where the reasoning
+> goes. The title is not *wrong* at the moment of writing — it is simply never revisited, and it is the only
+> part anyone reads at volume.
+
+Same family as §369 (a correction that reached one document), §378 (a fix that reached one surface), §383
+(a fix that reached the code and not the row). Four instances, one cause: **an update lands where the
+author's attention is, and the record's index is never where that is.**
+
+### What would actually prevent it
+
+Not a gate — a title's mood is not mechanically checkable, and §374 already argued against building a
+detector whose false-positive surface is the analysis itself. The cheap structural counter is the one this
+row set demonstrates by accident: **the six rows that failed all carry their verdict in a `Severity→state`
+cell** (`High→resolved`), which IS mechanical. A row whose severity cell contains `→resolved` while its
+title lacks `~~` is a one-line check.
+
+Recorded rather than built, per §374's test: it would be green on arrival now that the six are struck, so
+its failure mode would be unproven. **It becomes worth building the first time a seventh appears** — which
+is a concrete trigger, not a plan.
+
+### Verification
+
+Eleven candidates read individually rather than batch-struck; each classified against its **verdict cell**,
+not its body text; the two provisioning-section rows excluded by section rather than by wording; open-row
+count re-measured after the edit (195 → 189) rather than assumed. One record change, no code.
+`check:tables 0`.
