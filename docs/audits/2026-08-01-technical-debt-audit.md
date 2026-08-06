@@ -22795,3 +22795,65 @@ Config write paths enumerated (`tariff-seed`, `routes/tariff`, the staging smoke
 case is pack-only; guard boundaries read by line number rather than by shape; fix mutation-proved by
 removing the containment (1 RED, named) and restored byte-identical; four setup errors each diagnosed from
 the failure text. `typecheck 0`, api 766 green, agents 113, packages/agents 219.
+
+---
+
+## §405 — the guard-boundary sweep: 1 in 16, and the 15 are the instructive part
+
+§404 ended with a mechanical check: **for each `try` justified by a named requirement, list every `await`
+in the same function that can throw, and ask whether the requirement covers it.** Run as a sweep.
+
+**16 REQ-justified guards have at least one `await` earlier in the same function.** One was the §404
+finding. The other fifteen are correct, and reading them shows *why* — which is the useful output, because
+the sweep's shape means most hits will always be negatives.
+
+### Three patterns, all correct
+
+**1. The earlier `await` SHOULD abort.** `provision.ts` guards a cold-start tariff seed, with four awaits
+before it — the claim itself:
+
+> *"NON-FATAL by design: the claim is already committed, so a seed hiccup must NOT half-roll it. Worst case
+> the tenant simply has no tariff yet — /v1/rate answers UNKNOWN no_tariff (no price on air, REQ-004) until
+> the admin runs the guided builder. We log LOUDLY rather than fabricate or crash."*
+
+The boundary is drawn around the **failure mode** — a half-rolled claim — exactly the discipline §404 found
+missing. The preceding awaits are the ones whose failure must abort, and they are outside deliberately.
+
+**2. The earlier `await` throws a TYPED error the framework already handles.** The REQ-025 cluster (9 of
+the 16) is `const db = await resolveTenantDb(env, tenant)` before a lens guard. A failure there is an
+`ApiError FORBIDDEN` → 403 — the correct answer, not a loss. Containing it would convert a clean refusal
+into something else.
+
+**3. The guard is around the throw SOURCES, and nothing else.** `sign.ts` wraps precisely `atob` and
+WebCrypto `verify` — the two calls that throw on hostile input — behind a charset pre-check, and notes
+`return await` so a rejected promise lands in the `catch` rather than escaping the block. `agents/index.ts`
+puts its per-tenant guard **inside** the loop with `resolveTenantDb` *within* it, so one tenant's failure is
+contained (*"re-run next tick — the sweep is idempotent"*) while the roster load outside correctly aborts
+everything.
+
+### What separates the one finding from the fifteen
+
+Every correct guard answers *"what must survive this failure?"* The Concierge's answered *"what operation
+might throw?"* — and the operation it named (pricing) was not the only one the requirement covered.
+
+> **The test is not whether an `await` sits outside a guard. It is whether the thing outside can produce the
+> outcome the requirement forbids.** REQ-004 forbids a fabricated price, and a failed seed cannot produce
+> one. REQ-025 forbids a cross-tenant read, and a resolver throw cannot produce one. REQ-173 forbids a
+> silently-lost customer email — and a config-load throw produced exactly that.
+
+That is why the sweep is worth running and why its yield is low: **it finds guards whose stated requirement
+is broader than their implementation**, and most authors, most of the time, write the narrower one and get
+lucky because nothing else in the function can cause the harm.
+
+### Tally
+
+16 REQ-justified guards examined, 1 defect (§404, fixed and mutation-proved), 15 correct — 3 read in full
+and characterised, 12 matched to those patterns by their guarded call. Recorded with the ratio, per §380:
+a sweep reporting only its hits cannot be told from one that manufactures them.
+
+### Verification
+
+Guards enumerated by locating each `try` whose preceding 8 lines cite a REQ id, then counting `await`s
+between the enclosing function's declaration and the `try`; three read in full at their line; the REQ-025
+cluster characterised by its common shape (`resolveTenantDb` → typed `ApiError`) rather than assumed. No
+code changed — §404 already carried the fix.
