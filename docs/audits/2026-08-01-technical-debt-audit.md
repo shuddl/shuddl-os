@@ -20185,3 +20185,75 @@ All 33 sites read; the three population counts reconciled to their named differi
 averaged or overwritten; `invoices.ts`'s parameter handling established by an exhaustive grep whose empty
 result is reported as empty (§360); the `caps` semantic checked against the test that pins it before any
 edit was made. One record change (the hold row), no code change. `check:tables 0`.
+
+---
+
+## §373 — one hold filed twice, and a roster that turned out to be a construction
+
+§372 ended on *"a hold is sized by its consumers."* Applying that to the standing ledger — 200 rows —
+immediately surfaced a cheaper defect: **two rows are the same hold.**
+
+### The duplicate
+
+| row | title | REQ | severity |
+|---|---|---|---|
+| 287 | DO trusts `parsed.source` (legacy lock is route-layer) | REQ-030 | Low |
+| 298 | DO trusts `parsed.source` (route-layer-only legacy lock) | REQ-213 | Low |
+
+Same file, same mechanism, same remedy (*"a one-line DO-side assertion"*), same *"not exploitable today"*,
+filed by two different audits under two different REQ framings. Consolidated: 287 carries both REQ
+references and the evidence below; 298 is struck as the duplicate.
+
+This is §369's shape a third time — **one claim, two records** — and the reason it matters is asymmetric:
+a duplicate hold makes the open-item count wrong *now*, and makes the record wrong *later*, because the
+person who fixes it will close one row and leave the other standing as an open defect that no longer
+exists.
+
+### The premise both rows rested on
+
+Both said the vector is closed *"because every route coerces"* — and both named the risk as **a future
+route that forgets to.** That is a roster claim (§352), and roster claims are exactly as fragile as those
+two rows said.
+
+Except it is not a roster. Enumerating structurally — every acquisition of a `SHIPMENT_SEQ` stub, which is
+the only way to reach the sequencer — gives **nine append seams**:
+
+- **seven** build the event envelope themselves: `portal-actions`, `rate`, `authority`, `approvals`,
+  `dunning`, plus the two cross-script bridges (`workers/agents`, `workers/translator`). Every one passes
+  client data as a **named `payload` field, never a spread**, so `source` is a *sibling key* of `payload`
+  in the envelope. A client cannot reach it — not because a route remembered to coerce, but because the
+  envelope's shape puts client data one level down. **`{ source: "native", …, payload }` and
+  `{ …payload, source: "native" }` look equally safe and are not**; the second would be a forgery vector,
+  and neither the hold nor the roster would have distinguished them. All five checked; all five safe.
+- **two** accept a whole client-supplied envelope and coerce it: `routes/events.ts@source`
+  (*"FORCE source:'native' on EVERY client post"*) and `routes/internal-platform.ts@source`
+  (*"the SECOND append seam that can pass"*).
+
+Deleting either coercion goes **RED**: 2 failed and 1 failed of 757, in
+`test/source-aware-ledger.test.ts` — *"a client POST of a GATED kind with source:'legacy' is COERCED to
+native → the native gate FIRES"* and *"a client POST that COMMITS lands source='native' (**the coercion is
+real, not just a gate side effect**)."* That second test name is this audit's own discipline, already in
+the codebase, written by whoever built the lock.
+
+### What changes
+
+The hold stays open and stays **Low** — the DO-level assertion is still the structural fix, and it is
+still worth doing. What changes is the **trigger**, which was the useful part of the row and was wrong:
+
+> not *"a future route added without forcing native"* — but *"a future route that accepts a **whole
+> client-supplied event envelope**."*
+
+Seven of nine seams cannot forge `source` no matter what their author forgets, because they never let the
+client near the envelope. The grep a future reviewer needs is not "does this route coerce" but "does this
+route hand a client-shaped object to `.append()`" — a rarer and far more findable shape.
+
+**A roster claim is worth re-deriving before trusting its fragility.** The instinct this audit has built —
+treat a hand-listed set as fragile (§352) — was right that the list needed checking and wrong about what
+the check would find. Two of nine were roster; seven were construction. Both rows had generalised the
+fragile two over all nine.
+
+### Verification
+
+Nine seams enumerated from `SHIPMENT_SEQ` acquisitions (the structural chokepoint), not from a list of
+routes; five envelope-builders read for spread-versus-named-field at the literal; both coercions mutated
+and attributed by failing test name, restored byte-identical (`0` files differ). `check:tables 0`.
