@@ -19009,3 +19009,57 @@ be rejected by the gate that reads it differently.
 
 `generalizePosition` mutated and restored byte-identical (12 REDs, all naming the redaction); the type error
 in §354's test corrected and `typecheck` returned to 0; `@shuddl/api` and `@shuddl/ledger` both green.
+
+---
+
+## §356 — The exceptional-path sweep, and a past bypass that has its regression test
+
+§355 sharpened the predictor: **a property is untested when exercising it requires deliberate construction**,
+not merely when its failure is silent. That is a sweep instruction, so it was run against the clearest
+remaining candidates — the fail-closed paths, where nothing arrives by accident.
+
+**The caps meter (REQ-105/106) is well covered on refusal.** `workers/mcp/test/caps.test.ts` constructs, one
+by one, every way a booking must be refused: over-spend, the N+1 of a velocity cap, an off-lane zone, a lane
+that cannot be determined, an unconfigured cap (*"an unconfigured cap is ZERO, not ∞"*), an unresolvable
+pairing, and a smuggled `pairing_id`/`caps` argument through the full dispatch pipeline. Each is a deliberate
+construction, and each exists.
+
+### The one that mattered: a bypass this repo already suffered
+
+`caps.ts:212` carries an unusually specific comment — a client-supplied `idempotency_key` *"derives a key
+that discards the arguments, so two DIFFERENT shipments could share one replay marker … while the meter
+counted one, clearing unlimited further bookings under a velocity cap of 1."* The fix is a composite:
+
+```
+const idemKey = `${ctx.idempotencyKey}:${shipmentId}:${quoteEventId}`;
+```
+
+**Mutation: the target-binding removed**, reverting to the bare client key — the exact bypass, reintroduced.
+**RED**, naming `velocity`. Restored byte-identical: 177 passed.
+
+**A fix for a real past defect has a regression test that fails when the fix is undone.** That is the
+strongest form this audit can verify, and it is rarer than it sounds: §354 found a security property with
+zero assertions, and the difference here is that **someone had already been burned**, which is the same
+reason §343's offline-merge identity carries 47 assertions.
+
+### The pattern across the phase's exceptional paths
+
+| property | exercised by | tested? |
+|---|---|---|
+| cap refusals — 7 distinct constructions | deliberate | **yes**, one test each |
+| REQ-105 target-bound idem key (a past bypass) | deliberate | **yes** — RED on reintroduction |
+| offline merge, zero loss / zero dupes (a past defect) | deliberate | **yes** — 47 REDs (§343) |
+| unhandled-error envelope | deliberate | **no** — zero assertions until §354 |
+
+**Three of four deliberate-construction properties were tested, and the one that was not is the only one
+nobody had been burned by.** §355 said the predictor is deliberate construction; this refines it once more:
+**deliberate construction is what makes a test *necessary*, and a prior incident is what makes it *happen*.**
+
+The uncomfortable corollary is that a codebase's untested properties are disproportionately the ones that
+have never failed — which is exactly the set an audit is least able to prioritise from evidence, and most
+able to find by asking *"what would I have to construct on purpose?"*
+
+### Verification
+
+Seven refusal constructions enumerated from the caps suite; the REQ-105 composite key mutated and restored
+byte-identical (RED naming `velocity`); `@shuddl/mcp` 177 green. No file changed.
