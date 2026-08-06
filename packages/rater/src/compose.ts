@@ -1,3 +1,4 @@
+import type { InvoiceLine } from "@shuddl/contracts";
 import type { FscConfig, AccessorialSchedule } from "@shuddl/contracts";
 import { mulDivHalfUp } from "./money.js";
 
@@ -11,6 +12,20 @@ import { mulDivHalfUp } from "./money.js";
 // The line vocabulary MIRRORS contracts' MoneyLine/InvoiceLine `kind` enum (freight | fsc | accessorial)
 // so the breakdown speaks the same language the money projection will later persist.
 export type PriceLineKind = "freight" | "fsc" | "accessorial";
+
+// COMPILE-TIME PROOF of that mirroring (audit §391). `l.kind` is copied VERBATIM from a PriceLine into an
+// event payload's lines in five call sites (`routes/rate.ts`, `concierge/compose.ts`, `biller/compose.ts`,
+// `translator/inbound.ts`, `projection/money.ts`), and until this line nothing checked the two vocabularies
+// against each other: widening `PriceLineKind` with a kind `InvoiceLine` does not accept typechecked CLEAN
+// across all 17 workspaces, and the divergence surfaced only when a real `quote.priced` failed schema parse
+// — at runtime, in production, on a money event.
+//
+// The relation is SUBSET, not equality: `cod_collect` and `credit_purchase` are money-line kinds the rater
+// never emits. `extends` is exactly that assertion, so this stays correct as the money vocabulary grows and
+// fails the moment the rater's grows past it.
+type _PriceLineKindIsAMoneyLineKind = PriceLineKind extends InvoiceLine["kind"] ? true : never;
+const _priceLineKindSubsetProof: _PriceLineKindIsAMoneyLineKind = true;
+void _priceLineKindSubsetProof;
 
 // readonly throughout: a breakdown feeds a co-signed event downstream (Task 5 floors, Task 10 /rate) and
 // must not be mutated after compose returns it.

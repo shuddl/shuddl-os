@@ -21678,3 +21678,85 @@ Five clauses split from the doc comment; the cross-component one traced through 
 → merge key → transport URL → route param) rather than accepted from the comment; the residual
 no-`shipment_id` case followed to its 422; the binding fact written into `merge.ts` with the condition that
 would invalidate it. `typecheck 0`; driver-core 39 green. No behaviour changed.
+
+---
+
+## §391 — 122 parity claims, and the first one checked was enforced by nothing
+
+§390's shape — a cross-component claim whose binding fact lives in neither component — is now the third
+instance, so it is worth sweeping rather than meeting again by accident.
+
+**122 comments** across `packages/*/src` and `workers/*/src` assert parity with another component
+(*"MIRRORS"*, *"must match"*, *"kept in sync"*, *"identical to"*). Too many to walk, so prioritised by
+failure mode: **parity between two hand-maintained value lists** is the drift-prone kind — the same shape
+§378 found between `GUARDED_TABLES` and a regex alternation — and among those, the money path first.
+
+### The claim
+
+`packages/rater/src/compose.ts`: *"The line vocabulary **MIRRORS** contracts' MoneyLine/InvoiceLine `kind`
+enum (freight | fsc | accessorial) so the breakdown speaks the same language the money projection will
+later persist."*
+
+```ts
+export type PriceLineKind = "freight" | "fsc" | "accessorial";
+// contracts: kind: z.enum(["freight", "fsc", "accessorial", "cod_collect", "credit_purchase"])
+```
+
+The relation is **subset**, not equality — `cod_collect` and `credit_purchase` are money-line kinds the
+rater never emits. The comment's parenthetical says exactly that, so the claim is accurate.
+
+### Nothing checked it
+
+`l.kind` is copied **verbatim** from a `PriceLine` into an event payload's lines at five call sites —
+`routes/rate.ts`, `concierge/compose.ts`, `biller/compose.ts`, `translator/inbound.ts`,
+`projection/money.ts`. So a drifted vocabulary reaches a `quote.priced` payload untranslated.
+
+Mutation: widen `PriceLineKind` with `"surcharge"`, a kind `InvoiceLine` does not accept.
+**`pnpm typecheck`: 0 errors, across all 17 workspaces.**
+
+So the divergence is invisible to the build. It would surface only when a real quote with such a line hits
+`InvoiceLine.parse` — **at runtime, in production, on a money event.** Loud, but at the worst possible
+moment, and the "MIRRORS" comment is the only thing that was holding it.
+
+### Fixed by construction, not by a test
+
+The rater already depends on `@shuddl/contracts` (it imports `FloorsConfig`, `Role`), so the assertion
+costs nothing:
+
+```ts
+type _PriceLineKindIsAMoneyLineKind = PriceLineKind extends InvoiceLine["kind"] ? true : never;
+const _priceLineKindSubsetProof: _PriceLineKindIsAMoneyLineKind = true;
+```
+
+`extends` **is** the subset relation, so it stays correct as the money vocabulary grows and fails the moment
+the rater's grows past it. Mutation-proved: re-adding `"surcharge"` now gives
+`error TS2322: Type 'true' is not assignable to type 'never'` at that line. 157 rater tests green,
+`typecheck 0` on a clean tree.
+
+Worth noting what was **not** built: a test asserting the two lists match. A test would run in CI, need
+maintenance, and re-state the vocabulary a third time. **The type system already knows both types; the only
+thing missing was a line telling it to compare them** — the same lesson as §378 (*derive, do not re-type*),
+one level up: not deriving a value, but asserting a relation.
+
+### The rule
+
+> **A "mirrors X" comment is a proof obligation with no prover attached.** It names a relation between two
+> definitions and is discharged by nothing — so the useful question is never *is the claim true today*
+> (it usually is, someone checked when they wrote it) but **what would notice if it stopped being true.**
+
+Three answers exist, in descending order of value: the type system (§391 — free, instant, no maintenance),
+a derivation so there is only one definition (§378), or a parity test over a shared corpus (the share-lint
+skill's pattern). The fourth answer — a comment — is the one 122 sites currently use.
+
+### Stated bound
+
+**121 parity claims remain unchecked.** This section checked one, chose it by risk, and fixed it in the
+cheapest of the three real mechanisms. The population is recorded here so the next pass starts from a
+number rather than from another accident.
+
+### Verification
+
+Parity claims enumerated mechanically (122); the money one traced to its five verbatim-copy call sites; the
+absence of enforcement proved by mutation (`typecheck` 0 errors on a deliberately-divergent vocabulary)
+before the fix, and the fix proved by the same mutation failing at the assertion's exact line; restored
+byte-identical against a post-fix backup. Rater 157 green, `typecheck 0`.
