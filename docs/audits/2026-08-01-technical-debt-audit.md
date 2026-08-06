@@ -18784,3 +18784,53 @@ registered scope.
 
 Eleven scaffold directories checked for existence; seven additional directories enumerated and each traced to
 a WP marker and REQ rows in its own sources. No file changed.
+
+---
+
+## §352 — "No exceptions" is a structural claim, and this one is structurally true
+
+`genesis/14` §04 is headed **"API CONVENTIONS (REQ-156 — every endpoint, no exceptions)"**. An absolute is the
+most checkable kind of claim, and its strongest clause is: *"**Idempotency-Key header required on all
+mutations** (generalizes REQ-106 beyond MCP); replays return the original result."*
+
+**"All mutations, no exceptions" can be true two ways**, and they are not equally trustworthy:
+
+- **per-route** — every handler remembers to check. One forgetful route and the absolute is false, invisibly.
+  This is §313's authority registry exactly: correct today, unowned tomorrow.
+- **at a chokepoint** — impossible to forget, because no route participates in the decision.
+
+Measured: `workers/api/src/index.ts:97` — **`app.use("/v1/*", idempotency)`**, applied to the whole
+namespace, with the middleware itself keying on
+`MUTATING = new Set(["POST", "PUT", "PATCH", "DELETE"])`. **The absolute is structural.** A new route cannot
+opt out of it, because it never opts in — the same property that makes the sequencer the append chokepoint
+and `tenantDb` the isolation chokepoint (§320).
+
+**Mutation-proved rather than read**: the `app.use` line commented out — every mutation route silently
+accepting unkeyed replays. **RED — 7 failing assertions**, naming `Idempotency`, `REQ-156`, `idempotent`.
+Restored byte-identical: 754 passed.
+
+### The pattern across three absolutes
+
+This phase has now tested three "every X" claims from the governing docs, and the answer each time turned on
+the same structural question:
+
+| claim | shape | verdict |
+|---|---|---|
+| *every authoritative file consults `resolveAuthority`* (REQ-030) | **hand-listed roster** | complete today, no recurring owner → **filed hold**, then tripwired (§313/§326) |
+| *a cross-tenant read anywhere is a build failure* (REQ-025) | **one resolver** + the principal mint | structural → proved twice (§306/§320) |
+| *Idempotency-Key on all mutations, no exceptions* (REQ-156) | **one `app.use`** | structural → proved here |
+
+**Two of three are chokepoints and needed no filing; the one that was a roster needed a gate.** That is the
+whole difference between an absolute you can trust and one you must maintain — and it is visible from the
+mount point in a single line of code, without reading a single handler.
+
+### The reusable question
+
+When a governing document says *"every"* or *"no exceptions"*, do not verify by sampling the instances.
+**Find where the rule is applied and ask whether a new instance can avoid it.** Sampling proves the instances
+you sampled; the mount point proves the absolute.
+
+### Verification
+
+Mount point located and mutation-proved; `MUTATING` set read; `@shuddl/api` 754 green after restore; path
+filter used (§325). No file changed.
