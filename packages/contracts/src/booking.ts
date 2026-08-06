@@ -40,6 +40,11 @@ export const BookingCreatedPayload = z
     // authority the Biller projects the invoice from (loadAcceptedBookingQuote) — never "the latest quote.priced
     // before the POD". The sequencer validates it before append (an on-stream reference must be a quote.priced a
     // quote.accepted names); the Biller fail-closes (HOLD) on any reference it cannot resolve to an accepted quote.
+    // SCOPE, stated because the law reads absolute and is not (audit §386): it binds streams that HAVE a
+    // booking.created. That event is a stream OPENER, not a POD prerequisite — no transition gate requires it —
+    // so an un-booked stream (legacy / quote-stage import) still reaches POD, and the Biller deliberately falls
+    // back to the latest pre-POD quote so it can still bill. That fallback is LIVE, not dead: 23 workers/api
+    // tests fail when it is removed, which makes it the branch most of the corpus exercises.
     quote_event_id: z.string().min(1),
     shipper_party_id: z.string().min(1),
     consignee_party_id: z.string().min(1),

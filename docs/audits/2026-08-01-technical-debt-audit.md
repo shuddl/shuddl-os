@@ -21275,3 +21275,91 @@ Chokepoint mount read at `index.ts:97@idempotency` rather than inferred from rou
 type-valid, landed (`git diff --numstat` non-empty), attributed by failing-test name, restored
 byte-identical, tree verified `0 modified` (§376); row 276's three claims each read at their line rather
 than accepted from the row. One record change, no code. `check:tables 0`.
+
+---
+
+## §386 — the money-binding law reads absolute, and the branch it forbids carries most of the tests
+
+§385 ended on a repeatable move: **take the comment that states what a function guarantees, split it into
+clauses, and name the input that establishes each.** Fifty such absolute guarantees sit directly above a
+function or mutating handler across `workers/*/src` and `packages/ledger/src`. This applies the move to the
+money path.
+
+### `loadAcceptedBookingQuote` — the clauses hold
+
+*"Returns the quote.priced event ONLY when (a) an event with that exact id on this stream is a quote.priced
+AND (b) a quote.accepted on this stream NAMES it… Any authority inconsistency… returns null, which the
+caller treats as a fail-closed hold."*
+
+- **(a)** established by `loadEvent(db, streamId, quoteEventId, "quote.priced")` — exact id, stream, kind.
+  Ledger-derived.
+- **(b)** established by a `SELECT … WHERE stream_id = ? AND kind = 'quote.accepted' AND
+  json_extract(payload,'$.quote_event_id') = ?`. Ledger-derived.
+- **cross-stream / cross-tenant** — both queries filter `stream_id`; the tenant is the D1 handle.
+- **"the caller treats null as a fail-closed hold"** — *not* established here. It is a claim about
+  **callers**, so it is only true if every caller honours it. There is exactly one, and it does:
+  `emitTerminalHoldMarker(… "no_quote")` then `status: "held"`, zero money, zero send. Verified by
+  enumeration, and the hold is pinned by 11 `no_quote` assertions across two suites.
+
+Nothing wrong. The clause-split's value here was locating the one clause whose proof lives in another
+function — which is where it then pointed.
+
+### The scope the law does not state
+
+`packages/contracts/src/booking.ts` states this as **"BINDING LAW: this is the SOLE authority the Biller
+projects the invoice from — never 'the latest quote.priced before the POD'."** Absolute phrasing.
+
+It is not absolute. The rule binds streams that **have** a `booking.created`. And `booking.created` is a
+stream **opener**, not a POD prerequisite — *"booking.created is the FIRST event of a fresh direct-booking
+stream, so NEITHER gate reads prior events"*, and **no transition gate requires it before `pod.signed`**.
+So an un-booked stream — a legacy or quote-stage import — reaches POD, and the Biller deliberately falls
+back to *the latest pre-POD quote*: precisely the thing the law says never happens.
+
+Both statements are locally correct. The scoping variable — *does this stream have a booking?* — appears
+in one and not the other. **Third instance of §382's shape** (§382: two ledger rows; §385: a hold and its
+handler; here: a contract and its consumer).
+
+The biller's own comment supplies the missing scope, and justifies the fallback with *"in production every
+real shipment is booked, so the exact-quote binding is what runs"* — **an assumption about production data,
+not an enforced invariant.** Nothing rejects an un-booked POD; the fallback is the design, not an accident.
+
+### The finding: the corpus takes the branch the law forbids
+
+Mutating the fallback to throw:
+
+| suite | result |
+|---|---|
+| `workers/agents` | 1 failed of 113 |
+| `workers/api` | **23 failed of 762** |
+
+**Twenty-four tests depend on the un-booked path.** The exact-quote binding — the "SOLE authority", the
+production golden path — is exercised by the 11 `no_quote` fail-close assertions; the branch the contract
+says never happens carries more than twice that.
+
+That is not a defect, and it is worth stating plainly because it is easy to misread as one: fixtures open
+streams at the cheapest point, and most tests do not need a booking to make their point. But it does mean:
+
+> **The confidence a suite gives is distributed by what fixtures find convenient, not by what production
+> does.** A law can be stated absolutely, implemented correctly, and still be the *less*-exercised branch —
+> and no coverage number distinguishes "this path is well tested" from "this path is what the fixtures
+> happened to build."
+
+Recorded on the law itself rather than in the audit alone: `booking.ts` now carries the scope, the reason
+the fallback exists, and the measurement (23 `workers/api` tests fail without it) — so the next reader
+learns the exception where they learn the rule, and learns that it is load-bearing rather than vestigial.
+
+### The near-miss
+
+The first mutation **did not land** — a whitespace mismatch in the anchor — and the suite reported
+`113 passed`. That green is meaningless and would have read as *"the fallback is dead code, remove it"*,
+which is the opposite of the truth by 24 tests. Caught by the `assert` in the mutation script, which is the
+§308 defence doing exactly its job: **the assertion fired, the numstat printed nothing, and no green was
+credited.**
+
+### Verification
+
+Fifty stated guarantees enumerated mechanically; the money-path one split clause-by-clause with each
+clause's establishing input named; the caller claim closed by enumeration (one caller) rather than by
+sampling; the "no gate requires booking before POD" claim read at the gate file rather than inferred;
+mutation landed only after an anchor correction, run against **both** owning suites (§305), restored
+byte-identical. `typecheck 0`, contracts 285 green.
