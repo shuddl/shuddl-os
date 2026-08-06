@@ -19744,3 +19744,86 @@ on all three.
 the exact shape of [[fail-closed-is-about-the-fallback-value]] — the fallback VALUE, not the catch — and a
 `{}` there would make any "every dependency matches the lock" comparison vacuously true. It may well be
 correct here; it has not been checked. **Next section's first item.**
+
+---
+
+## §368 — I published "zero failures" from a regex that could not see a failure
+
+§367's carry-forward was `committedLock`'s `{}`. Chasing it found something else first.
+
+### The carry-forward: not a defect
+
+`tools/checks/invariants.ts:506@committedLock` returns `{}` when `git show HEAD:<lock>` fails. `checkLock`
+uses that value as the **forward-only anchor** — the thing a locally-deleted or hand-edited lock line
+cannot reset. An empty anchor therefore re-opens the exact bypass `checkLock` exists to close, and the
+tests for it pass `committed` in as a parameter, so they prove the *guard* and say nothing about its
+*supply*. That is the §326 shape (a rule enforced over a population nobody pins), and it is why the line
+was filed.
+
+Mutation — `committedLock` returns `{}` unconditionally. **RED, 3 failed.** So the supply *is* observed,
+and the filed suspicion was wrong. Recorded as wrong rather than quietly dropped: the anchor resolves to
+11 entries in this tree, matching the lock's 11.
+
+### Except the attribution said otherwise
+
+The three failures were in `tools/traceability/coverage.test.ts` and a register-contiguity case. **Nothing
+to do with the migration anchor.** [[attribute-the-red-before-crediting-it]] exists for exactly this, and
+this time the unattributed red would have *closed* a real question with a false green — the mirror of the
+usual failure.
+
+Then the second-order question: were those three failing *before* the mutation? **Yes.** `test:tools` on a
+clean tree is `3 failed | 781 passed (784)`.
+
+### The line I had already committed said "zero failures, zero skips"
+
+§367 re-measured all eighteen suites with:
+
+```sh
+grep -oE "passed \([0-9]+\)" | grep -oE "[0-9]+"
+```
+
+Against `Tests  3 failed | 781 passed (784)` that yields **784**. The pattern reads the parenthesised
+TOTAL and steps straight over the `3 failed |` prefix — the count it returns is real, and the verdict it
+implies is invented. Every suite reported a number; one of them was not a passing number, and the output
+could not say so.
+
+**Corrected in `docs/ops/RELEASE-EVIDENCE.md`: 3,713 cases — 3,710 passing, 3 failing, zero skips.**
+
+Attribution, proven rather than inferred: restoring `genesis/09-REQUIREMENTS-REGISTER.csv` to HEAD takes
+`test:tools` to `784 passed (784)`; re-adding the row restores the three. All three are the single
+uncommitted `REQ-289` row (§299) — the same open item the gate table already reports as `check:coverage`
+**FAIL**. One cause, two instruments, no third problem hiding behind it.
+
+### What this class actually is
+
+This is the **fourth** distinct occurrence of the same mechanism, and the first where I shipped the
+conclusion:
+
+| § | the artifact | what it could not express |
+|---|---|---|
+| §308 | a mutation pattern matching nothing | that the edit never landed |
+| §324 | `--filter @shuddl/agents` | that it resolved to a different workspace |
+| §358/§360 | `echo "(empty = unexercised)"` | that the search had found results |
+| **§368** | `grep -oE "passed \(N\)"` | **that the run had failures** |
+
+Every one is a *reporting* instrument whose output shape is identical in the success and failure cases.
+That is the family: **not a wrong answer, an answer that cannot be wrong** — and it always resolves toward
+the reading the auditor already expects, because that is the reading they will not stop to check.
+
+The mechanical rule, matching the one §360 earned for captions: **capture the verdict verbatim, never a
+number extracted from it.** `grep -E "^ +Tests +[0-9]"` and print the whole line — `Tests  3 failed | 781
+passed (784)` reads its own verdict aloud and needs no interpretation layer to be trustworthy. The
+re-measurement in this section does exactly that, which is why the second run found what the first could
+not.
+
+Worth being plain about the cost: §367's numbers were *right* — 284 files, 3,713 cases, all eighteen
+totals correct. The defect was one clause of prose attached to correct data, and it survived three gates
+(`typecheck`, `check:tables`, `check:citations`) because **no gate reads a sentence for whether the run it
+describes actually passed.** The doc gates bound addresses, structure and citation targets; the claim is
+outside all three, the same limit [[a-gates-green-certifies-less-than-its-name]] names.
+
+### Verification
+
+`test:tools` measured three ways (clean, mutated, register-restored) with the verdict line captured
+verbatim each time; `committedLock` mutation restored byte-identical; seventeen suites re-run and each
+verdict line read whole. `typecheck 0 · check:tables 0 · check:citations 0`, commit gated on all three.

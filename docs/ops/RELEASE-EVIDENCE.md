@@ -345,13 +345,20 @@ Each suite was run directly by **path** filter — `pnpm --filter ./workers/agen
 `--filter @shuddl/agents`, which resolves to `packages/agents` instead (one name collision in seventeen
 workspaces, and it fails *silently* onto the wrong workspace — audit §324/§325).
 
-**284 test files, 3,713 test cases, zero failures, zero skips.** These are test **cases**, which is what
-vitest's `Tests` line counts — the earlier wording said "assertions", a strictly larger and stronger
-quantity that was never measured.
+**284 test files, 3,713 test cases: 3,710 passing, 3 failing, zero skips.** These are test **cases**,
+which is what vitest's `Tests` line counts — the earlier wording said "assertions", a strictly larger and
+stronger quantity that was never measured.
+
+**All three failures are the single uncommitted `REQ-289` register row (§299), and nothing else.** Two in
+`tools/traceability/coverage.test.ts` (register coverage, register disposition) and one register-contiguity
+case. **Proven, not inferred:** restoring the register to HEAD takes `test:tools` from `3 failed | 781
+passed` to `784 passed (784)`, and re-adding the row restores the three. This is the same open item
+`check:coverage` reports as **FAIL** in the gate table above — one cause, two instruments, no third
+problem hiding behind it.
 
 | Suite (by path) | Files | Tests |
 |---|---|---|
-| root tools (`pnpm test:tools`) | 31 | 784 |
+| root tools (`pnpm test:tools`) | 31 | 784 *(781 pass, 3 fail — REQ-289)* |
 | `apps/command` | 17 | 97 |
 | `apps/driver` | 10 | 58 |
 | `apps/portal` | 13 | 80 |
