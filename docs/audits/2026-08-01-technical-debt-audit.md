@@ -190,9 +190,14 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 > §310 (the governing invariants mutation-proven — extended by §323, §340/§341 and §342/§343 to **18 invariants across BOTH authorities (`CLAUDE.md`'s ten laws + `genesis/10`'s I1–I8) in 30 mutations, PLUS two of rule 6's four fixture-gate identities (penny-exact allocation, zero-loss/zero-dupe offline merge) in 2 more — 32 mutations, every one RED, zero residual**, every file restored byte-identical. Rule 6's other two clauses are BLOCKED on private fixtures, and one of those — *routes ±10%* — has no artifact at all (§344, filed)).** Read those
 > two first — together they are the production-readiness claim: the gates run, and the laws the gates exist
 > to protect fail when their enforcement is removed. §296 re-measured the gate surface at `3d1386b` but named two bounds that turned
-> out to be unmeasured inheritances — §297 withdrew the worker-suite bound (the full suite runs: **283 files /
-> 3,704 tests / 3,701 passing**, re-measured at §328 after §324/§326 each added a test file) and §298 withdrew the browser-gate bound (visual/a11y/e2e all PASS with
-> `executed: true`). §299 specifies the single blocker behind both FAILs — the uncommitted `REQ-289` GTM row,
+> out to be unmeasured inheritances — §297 withdrew the worker-suite bound (the full suite runs: **284 files /
+> 3,713 cases / 3,710 passing**, re-measured suite-by-suite at §367 at `c51e0f7`, corrected at §368, and
+> reconciled at §369 against its two sibling records; the 3 failures are all the uncommitted `REQ-289` row,
+> proven by removing it) and §298 withdrew the browser-gate bound (visual/a11y/e2e all PASS with
+> `executed: true`). **§364–§367 close the trust-boundary sweep: nine boundaries checked by mutation, nine
+> load-bearing** — the last of them (`apps/driver/public/sw.js`) found two of three cache guards
+> unobserved, now four tests. Three enumerations of "the boundaries" grew under correction before it held,
+> which is the reason totals in this document ship beside their omissions. §299 specifies the single blocker behind both FAILs — the uncommitted `REQ-289` GTM row,
 > down to the two source lines that reject it; §300 verifies every item of the standing ledger against its
 > source; and **§326 closed the last repository-owned item, so every remaining entry is blocked on an input
 > this repository does not contain.** The clauses below were originally measured in §238 at `68cfb0d`; §243 (extended through §295) answers the separate question of whether another iteration is worth running:
