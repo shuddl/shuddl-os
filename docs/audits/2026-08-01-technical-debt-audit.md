@@ -22180,3 +22180,78 @@ Four invoice writers enumerated; both unconditional ones traced to the upstream 
 three mutations run (SQL guard, matcher filter, and the guard again post-fix), each landed and restored
 byte-identical; the vacuity of my own first test found by re-running the mutation against it, and the
 corrected version mutation-proved (1 RED, named). `typecheck 0`, ledger 620 green.
+
+---
+
+## §397 — a scan for vacuous tests, and why it cannot have an answer
+
+§396 found a vacuous test I had just written. The obvious follow-up is whether the suite holds others, and
+the obvious instrument is a scan. This section runs it, reports what it can and cannot decide, and closes
+with the one thing that actually settles the question.
+
+### The scan, and its two corrections
+
+**First predicate:** a test whose assertions are all *negative* (`.not.`, `toEqual([])`, `toBeNull`,
+`toBe(false)`, `toHaveLength(0)`) with no positive assertion — the §396 shape, where the negative holds
+because nothing happened. **147 hits.**
+
+Reading the first ones showed the predicate was wrong. `apps/driver/src/components/GatedFlow.test.tsx`
+deep-link cases look like the shape exactly — *"enqueues NOTHING"*, `expect(enqueue).not.toHaveBeenCalled()`
+— and are **well built**: `fireEvent.click(await findByText("mock-stop-depart"))` proves the flow ran, and
+`await findByText(/UPSTREAM EVIDENCE MISSING/i)` is a **positive assertion that throws if absent**. RTL
+queries assert by throwing; my regex did not know that.
+
+**Second predicate**, counting `findBy`/`getBy`/`toHaveBeenCalledWith` as positive: **140.** And reading
+those: *"is false with no session"*, *"rejects an extra key — the answer is .strict()"*, *"resolves to null
+when the webhook row …"*, *"does NOT flag a write to a DIFFERENT table"*. **These are negative properties,
+correctly asserted.** A test of a refusal *should* assert a refusal.
+
+### The scan cannot decide, and the reason is structural
+
+> **Vacuity is not a property of the assertions. It is the relationship between the assertion and whether
+> the subject ran** — and that lives in the setup, in a helper's default parameter, in whether a mock was
+> reached. A regex over the assertion text is looking in the one place the answer is not.
+
+§396's own test is proof: its assertions were fine. `expect(after?.status).toBe("void")` is positive, not
+negative — it would not have appeared in either scan. What made it vacuous was `appendWithMoney`'s
+`deps = {}` default, three files away.
+
+So: **140 is a worklist, and publishing it as a finding would be §374's 1,331 again** — a large alarming
+number produced by a predicate that cannot answer the question asked. Recorded as such, not as debt.
+
+### What does settle it, one test at a time
+
+Mutation. A vacuous test cannot detect its subject's removal — that is the definition, and it is decidable
+per test for the cost of one run.
+
+Applied to the highest-stakes negative-only test in the list, the sequencer's stated law
+*"an internal note NEVER enqueues (the visibility IS the redaction signal)"*:
+
+Removing `|| e.visibility === "internal"` from the enqueue decision → **1 failed of 765**, named
+*"an INTERNAL message.received (SLA-overdue note) does NOT enqueue"*. **Not vacuous.**
+
+That is one test settled and 139 unsettled, and the arithmetic is the point: **the honest instrument costs
+a full suite run per test, and the cheap instrument cannot answer.** There is no sweep here — only a
+priority order, and this audit's is stakes-first.
+
+### The rule this leaves
+
+> **A vacuous test is invisible to every static check, including the one written specifically to find it.**
+> The only detector is the one that has been used all phase: break the thing the test names, and see whether
+> the test notices. What §396 added is *when* to spend it — **on any test written to assert that something
+> did not happen**, because that is the class where the correct result and the vacuous result are the same
+> string.
+
+### Stated bound
+
+139 negative-property tests remain un-mutated. Not filed as debt — the scan cannot show any of them is
+wrong, and asserting a refusal is the correct shape for most. Recorded as the priority list for anyone
+spending mutation budget: **side-effect-absence claims first** (`not.toHaveBeenCalled`, `toHaveLength(0)`
+on a queue), since those fail identically whether the guard held or the trigger never fired.
+
+### Verification
+
+Two predicates run and both corrected before publication (147 → 140, then abandoned as undecidable rather
+than reported); two GatedFlow cases read in full to establish the false-positive class; the sequencer
+mutation landed, attributed by failing-test name, and restored byte-identical. No code changed; no debt
+filed that the instrument could not support.
