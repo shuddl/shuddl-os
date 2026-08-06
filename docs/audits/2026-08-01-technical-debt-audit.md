@@ -18891,3 +18891,67 @@ being correct, which is what defence-in-depth means when it is real rather than 
 
 Mount point located at `index.ts:96`; the rejection mutation-proved and restored; `@shuddl/api` 754 green;
 path filter used. No file changed.
+
+---
+
+## §354 — §04's third absolute: the envelope holds, and its fallback had no test
+
+§352 and §353 proved two of `genesis/14` §04's absolutes structural. The third is the **error envelope** —
+*"`{code, message, req_id, event_ids?}` for every error leaving this worker"* — and it is mounted the same
+way: `index.ts:91`, **`app.onError(handleError)`**, which Hono routes every thrown error to. No route opts
+out because none opts in.
+
+`handleError` is two lines, and the second is the security property:
+
+```
+if (err instanceof ApiError) return envelope(c, err.code, err.status, err.message, err.gate);
+logEvent("error.unhandled", { message: err.message }, …);
+return envelope(c, "INTERNAL", 500, "INTERNAL ERROR");
+```
+
+**The real message goes to the log; the client gets a constant.** That is §353's fallback-VALUE lesson a
+third time: the guarantee is not that the error is caught, it is *what the caught path returns.*
+
+### The gap: correct code, zero observation
+
+**Mutating that constant to `err.message` — a client-visible leak — left all 754 api tests GREEN.** No test
+anywhere asserted the `INTERNAL` envelope; `grep` for it across every suite returned nothing.
+
+This is §287's shape (a font budget nothing counted) applied to a **security** property, and the leak is not
+hypothetical: unexpected throws in this worker are D1 errors, binding failures and JWT internals, which
+phrase themselves as *"D1_ERROR: no such table: events (binding TENANT_A_DB)"* — a sentence naming a
+tenant binding, handed to whoever made the request.
+
+### Closed
+
+`workers/api/test/error-envelope.test.ts`, three assertions:
+
+1. an unexpected throw returns **exactly** `INTERNAL ERROR`, with the response containing no fragment of the
+   original — asserted against a realistic D1 message, not a placeholder;
+2. the envelope still carries `req_id`, **which is why a constant message is safe rather than merely opaque**
+   — the correlator survives, and `logEvent` carries the real text under the same id;
+3. **negative control** — an `ApiError` keeps its own code and message, so a handler that flattened
+   *everything* to `INTERNAL ERROR` would pass (1) and (2) while destroying every gate refusal a client needs.
+
+Re-mutated with the test in place: **RED**, naming `D1_ERROR`, `TENANT_A_DB` and `INTERNAL ERROR`. Restored
+byte-identical; `@shuddl/api` **754 → 757**, all green.
+
+*(The first run failed on `Cannot find module '../src/errors.js'` — `ApiError` lives in
+`middleware/error.ts`, not a separate module. My assumption, corrected by the compiler in one run.)*
+
+### §04, complete
+
+| absolute | shape | proved |
+|---|---|---|
+| Idempotency-Key on all mutations | `app.use("/v1/*", idempotency)` | §352 — 7 REDs |
+| never a client-supplied tenant id | `app.use("/v1/*", auth)`, rejects at the boundary | §353 — 26 REDs |
+| the error envelope, every error | `app.onError(handleError)` | §354 — **test written**, then 1 RED |
+
+**Three absolutes, three chokepoints, and the only one that was untested is the one whose failure is
+silent** — an idempotency lapse duplicates work and a tenant leak trips isolation suites, but a leaked
+`err.message` returns 500 exactly as it should and merely says too much.
+
+### Verification
+
+Test added and mutation-proved both directions (GREEN before it existed, RED after); `@shuddl/api` 757 green;
+file restored byte-identical. `check:tables 0 · check:citations 0`.
