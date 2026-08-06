@@ -1,0 +1,223 @@
+<title>SHUDDL Mission Control</title>
+<style>
+  :root{
+    --ground:#E9E5DD; --panel:#F2EFE9; --ink:#1C1915; --muted:#847D70;
+    --line:#CFC9BD; --signal:#F44A21; --ok:#3E7A5E;
+    --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  @media (prefers-color-scheme: dark){:root{
+    --ground:#191713; --panel:#211E19; --ink:#E7E2D8; --muted:#8E8778;
+    --line:#38342C; --signal:#FF5A31; --ok:#5FA383;
+  }}
+  :root[data-theme="dark"]{
+    --ground:#191713; --panel:#211E19; --ink:#E7E2D8; --muted:#8E8778;
+    --line:#38342C; --signal:#FF5A31; --ok:#5FA383;
+  }
+  :root[data-theme="light"]{
+    --ground:#E9E5DD; --panel:#F2EFE9; --ink:#1C1915; --muted:#847D70;
+    --line:#CFC9BD; --signal:#F44A21; --ok:#3E7A5E;
+  }
+  html{background:var(--ground)}
+  body{font-family:var(--sans);color:var(--ink);margin:0;padding:28px 20px 64px;line-height:1.5}
+  .wrap{max-width:1060px;margin:0 auto;display:flex;flex-direction:column;gap:26px}
+  header{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--ink);padding-bottom:10px;flex-wrap:wrap;gap:6px}
+  h1{font:600 15px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;margin:0}
+  h1 .dot{color:var(--signal)}
+  .stamp{font:400 12px var(--mono);color:var(--muted)}
+  h2{font:600 12px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+  .nsm{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line)}
+  .nsm>div{background:var(--panel);padding:14px 16px}
+  .nsm .k{font:400 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .nsm .v{font:600 26px/1.2 var(--mono);font-variant-numeric:tabular-nums;margin-top:4px}
+  .nsm .v small{font-size:13px;font-weight:400;color:var(--muted)}
+  .nsm .v.sig{color:var(--signal)}
+  .pill{display:inline-block;font:600 10px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:4px 7px;border-radius:2px;border:1px solid}
+  .p-done{color:var(--ok);border-color:var(--ok)}
+  .p-owner{color:var(--signal);border-color:var(--signal)}
+  .p-run{color:var(--ink);border-color:var(--ink)}
+  .p-q{color:var(--muted);border-color:var(--line)}
+  .card{border:1px solid var(--signal);background:var(--panel)}
+  .card h2{color:var(--signal);padding:12px 16px 0}
+  .card.neutral{border-color:var(--ink)} .card.neutral h2{color:var(--ink)}
+  .card.good{border-color:var(--ok)} .card.good h2{color:var(--ok)}
+  .card ol{margin:6px 0 14px;padding:0 16px 0 38px}
+  .card li{padding:5px 0;border-bottom:1px dashed var(--line)}
+  .card li:last-child{border-bottom:0}
+  .card p{padding:2px 16px 12px;font-size:13.5px;margin:0}
+  .why{color:var(--muted);font-size:13px}
+  .tablewrap{overflow-x:auto;border:1px solid var(--line)}
+  table{border-collapse:collapse;width:100%;background:var(--panel);font-size:13.5px}
+  th{font:600 10.5px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:left;padding:9px 12px;border-bottom:1px solid var(--ink)}
+  td{padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  tr:last-child td{border-bottom:0}
+  td.id{font:600 12px var(--mono);white-space:nowrap}
+  td.num{font-variant-numeric:tabular-nums;text-align:right}
+  .log{font:400 12.5px/1.65 var(--mono);background:var(--panel);border:1px solid var(--line);padding:14px 16px;margin:0;overflow-x:auto}
+  .log b{color:var(--signal);font-weight:600}
+  code{font:400 12px var(--mono);background:var(--ground);padding:1px 4px;border-radius:2px}
+  footer{font:400 12px var(--mono);color:var(--muted);border-top:1px solid var(--line);padding-top:12px}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>SHUDDL <span class="dot">●</span> MISSION CONTROL — PRE-GTM DEMAND PROGRAM</h1>
+    <span class="stamp">tick 16 · 2026-08-03 · loop PAUSED — awaiting decisions</span>
+  </header>
+
+  <section>
+    <h2>North star — CARR (deposit-backed committed ARR)</h2>
+    <div class="nsm">
+      <div><div class="k">CARR now</div><div class="v sig">$0</div></div>
+      <div><div class="k">Day-30 target</div><div class="v">$1<small> first deposit</small></div></div>
+      <div><div class="k">Day-90 target</div><div class="v">$100K</div></div>
+      <div><div class="k">ICP accounts found</div><div class="v">23,623<small> free · re-derived ✓</small></div></div>
+      <div><div class="k">Founder calls / wk</div><div class="v">0 <small>/ 3</small></div></div>
+      <div><div class="k">Docs delivered</div><div class="v">19</div></div>
+    </div>
+  </section>
+
+  <section class="card neutral">
+    <h2>⏸ Loop paused — 19 docs done, 7 decisions left</h2>
+    <p>Everything buildable without a decision or an access grant now exists. A third content piece while two sit unread would be inventory dressed as progress — so the loop paused rather than slowed. <b>Resume any time by restarting <code>/loop</code>.</b></p>
+    <div class="tablewrap" style="margin:0 16px 14px"><table>
+      <tr><th>Blocker</th><th>Docs blocked</th><th>What it opens</th></tr>
+      <tr><td><b>Counsel — deposit terms + 4 legality Qs</b></td><td class="num"><b>13</b></td><td>The entire deposit path, and therefore CARR itself. Longest external lead time. <b>If one thing moves this week, this is it.</b></td></tr>
+      <tr><td>Cloudflare account split</td><td class="num">7</td><td>Waitlist backfill (warmest leads, never contacted), landing page, calculator, site-fix deploy</td></tr>
+      <tr><td>Apollo full scope</td><td class="num">5</td><td>Sending domains → mailboxes → 2-week warmup clock; enrichment for 23,623 accounts</td></tr>
+      <tr><td>Live-site claim decision</td><td class="num">3</td><td>Removes a false customer claim that contradicts the finished press kit</td></tr>
+      <tr><td>Press attestation + bio</td><td class="num">2</td><td>Releases 3 pitches that are otherwise done</td></tr>
+    </table></div>
+  </section>
+
+  <section class="card">
+    <h2>🚨 Live site contradicts the claims law — your call</h2>
+    <p>Verified verbatim in <code>marketing-site/public/index.html</code>. <b>shuddl.tech is publicly serving a customer claim that does not exist.</b> Still present as of tick 15.</p>
+    <ol>
+      <li><b>L147 — "a real carrier found ~$402K unbilled"</b> <span class="why">— there are zero tenants and zero carriers.</span></li>
+      <li><b>L147 — "in &lt;5 s", unlabeled</b> <span class="why">— staging-measured mechanism presented as product fact.</span></li>
+      <li><b>L203 — "Founding 50 · 80% off months 3–6"</b> <span class="why">— contradicts the approved offer: 8 slots, $2,500 refundable deposit, 24-mo price lock.</span></li>
+      <li><b>L206 — /api/founding-count</b> <span class="why">— counts waitlist signups toward 50 and renders it as a founding counter. Manufactured scarcity.</span></li>
+      <li><b>L216 — "Apply as a design partner"</b> <span class="why">— implies case-study rights; the program promises anonymity by default.</span></li>
+      <li><b>L89 "10–150 trucks" · L203 "under 15 seconds"</b> <span class="why">— contradict the ICP (10–100) and an unbacked capability.</span></li>
+    </ol>
+    <p><b>✅ Ready to apply:</b> <code>docs/gtm/LIVE-SITE-CORRECTIONS.md</code> — 7 exact find/replace pairs verified against the live file. Not applied: live copy is your voice, and the deploy sits behind the account split. <b>Urgency:</b> the press kit leads with "zero tenants" — a journalist who checks the site finds the contradiction, and that becomes the story.</p>
+  </section>
+
+  <section class="card">
+    <h2>⚠️ The program's own output is untracked</h2>
+    <p>All 19 GTM docs, the research suite, and the plugin are untracked in git. A routine <code>git clean -fd</code> deletes every one of them. The standing rule is "never commit unless the owner asks," so I haven't — <b>say the word and I'll commit them to a branch</b> (docs only, no product code, no push).<br><br>
+    This board's own source was lost to a session restart at tick 15 and has been rebuilt <i>inside the repo</i> at <code>docs/gtm/mission-control-board.html</code> so it can't happen again. The claude.ai MCP connectors are also disconnected this session — the Notion mirror can't refresh and Apollo scope can't be probed until they're re-authorized.</p>
+  </section>
+
+  <section class="card good">
+    <h2>✅ The headline number, independently re-derived</h2>
+    <p>After catching an agent's wrong commit SHA, I stopped quoting <b>23,623</b> on trust and re-ran the funnel myself against the live federal API.</p>
+    <div class="tablewrap" style="margin:0 16px 10px"><table>
+      <tr><th>Funnel step</th><th>Agent</th><th>Re-derived</th><th>Delta</th></tr>
+      <tr><td>Active, 10–100 power units</td><td class="num">104,047</td><td class="num"><b>104,063</b></td><td>+16 · 2 days of daily updates</td></tr>
+      <tr><td>+ interstate, for-hire, US</td><td class="num">35,956</td><td class="num"><b>35,965</b></td><td>+9 · same drift</td></tr>
+      <tr><td>Email coverage</td><td class="num">98.3%</td><td class="num"><b>98.28%</b></td><td>matches</td></tr>
+    </table></div>
+    <p><b>The lexicographic trap is real and material:</b> querying power units as text returns <b>14,308</b> where the correct numeric cast returns <b>104,063</b> — a <b>7× undercount</b> that yields a plausible list instead of an error. Caveat recorded honestly: the cargo-class steps weren't re-run, so 23,623 is verified by construction rather than end-to-end.</p>
+  </section>
+
+  <section class="card good">
+    <h2>✅ Correction to my own record</h2>
+    <p>The readiness audit reported HEAD as <code>d6eec18</code>, 30 commits ahead of origin. Re-measured today: <b><code>d6eec18</code> is an ancestor of HEAD, not HEAD</b> — actual HEAD is <code>82e04c7</code>, and the tree is <b>92 commits ahead, not 30</b>. I repeated both figures to you; both were wrong. The substantive finding stands and is larger than reported. Corrected in the readiness docs. No product work was lost — the reflog shows no reset and there are no stashes.</p>
+  </section>
+
+  <section class="card neutral">
+    <h2>Handoff → product session</h2>
+    <ol>
+      <li><b>A seeded tenant renders an empty board</b> <span class="why">— board.ts inner-joins positions; the seed loader writes none. Fails silently: no error, just an empty map.</span></li>
+      <li><b>Command board never polls</b> <span class="why">— an exception raised while it's open needs a manual reload; the portal polls every 20s.</span></li>
+      <li><b>Two hardcoded strings leak real-world facts on screen</b> <span class="why">— a fixed date/place header, and lat/lon rendered as the stop address.</span></li>
+    </ol>
+    <p class="why" style="padding-bottom:12px">Found by this lane while planning demo films read-only. Not fixed here — product code belongs to the coding session. Detail: <code>docs/gtm/FINDINGS-for-product-session.md</code></p>
+  </section>
+
+  <section>
+    <h2>Workstream board</h2>
+    <div class="tablewrap"><table>
+      <tr><th>ID</th><th>Item</th><th>State</th><th>Blocked on</th></tr>
+      <tr><td class="id">F-1</td><td>ICP one-pager (gates all marketing)</td><td><span class="pill p-done">done</span></td><td>—</td></tr>
+      <tr><td class="id">F-2</td><td>Demand-Lane register row REQ-289</td><td><span class="pill p-done">done</span></td><td>—</td></tr>
+      <tr><td class="id">F-3</td><td>Counsel deposit terms</td><td><span class="pill p-owner">owner</span></td><td>counsel engagement</td></tr>
+      <tr><td class="id">F-4a</td><td>Product sender (send.shuddl.tech)</td><td><span class="pill p-done">verified</span></td><td>—</td></tr>
+      <tr><td class="id">F-4b</td><td>Outbound domain + mailboxes + warmup</td><td><span class="pill p-owner">owner</span></td><td>Apollo full scope</td></tr>
+      <tr><td class="id">F-4c</td><td>shuddl.tech account split</td><td><span class="pill p-owner">owner</span></td><td>CF account access</td></tr>
+      <tr><td class="id">F-5</td><td>CRM substrate — 9 stages, CARR counts only cleared deposits</td><td><span class="pill p-done">live</span></td><td>wiring blocked on owner items</td></tr>
+      <tr><td class="id">F-5b</td><td>CRM wiring specs — found waitlist signups never contacted</td><td><span class="pill p-done">spec</span></td><td>CF account split</td></tr>
+      <tr><td class="id">A-1</td><td>Sentence + pitch + messaging hierarchy + naming rule</td><td><span class="pill p-done">draft v1</span></td><td>owner read</td></tr>
+      <tr><td class="id">A-2</td><td>Demo shot list — 9 beats/84s + 8 beats/78s, every shot traced to evidence</td><td><span class="pill p-done">done</span></td><td>10 prerequisites</td></tr>
+      <tr><td class="id">A-3</td><td>ROI calculator — 4 inputs double as the ICP gate; 3 vendor-sourced constants dropped</td><td><span class="pill p-done">spec v1</span></td><td>CF account split</td></tr>
+      <tr><td class="id">A-4</td><td>Landing v2 — 6 unbacked claims retired; deposit markup absent, not hidden</td><td><span class="pill p-done">spec v1</span></td><td>live-site fixes + F-3</td></tr>
+      <tr><td class="id">C-1</td><td>Deposit flow — idempotent so a webhook retry can't double-count CARR</td><td><span class="pill p-done">spec v1</span></td><td>hard gate: F-3</td></tr>
+      <tr><td class="id">C-3</td><td>Founding Carrier Program — 8 slots · $2,500 refundable · 24-mo lock</td><td><span class="pill p-done">spec v1</span></td><td>counsel + owner read</td></tr>
+      <tr><td class="id">C-3b</td><td>Founder-call script + rubric — disqualify-on-the-call rules</td><td><span class="pill p-done">v1</span></td><td>ready for first call</td></tr>
+      <tr><td class="id">D-1</td><td>ICP list <b>solved at $0</b> — 23,623 accounts from free federal data, 793 with broker authority</td><td><span class="pill p-done">done</span></td><td>contacts need Apollo</td></tr>
+      <tr><td class="id">D-2</td><td>3 outbound sequences — incl. one for the 793 hybrids; CAN-SPAM built into the copy</td><td><span class="pill p-done">draft v1</span></td><td>⏸ warmup + counsel + approval</td></tr>
+      <tr><td class="id">D-3</td><td>2 content pieces — detention; fraud-as-evidence-problem</td><td><span class="pill p-done">drafted</span></td><td>owner read</td></tr>
+      <tr><td class="id">P-1</td><td>Press kit + 3 pitches — 198/196/198 words, leads with what is NOT built</td><td><span class="pill p-done">done</span></td><td>owner attestation + bio</td></tr>
+      <tr><td class="id">M-3</td><td>mission-control plugin — /mc:status · /mc:next · /mc:done</td><td><span class="pill p-done">built</span></td><td>owner install</td></tr>
+      <tr><td class="id">L-1</td><td>Autonomous loop</td><td><span class="pill p-q">paused</span></td><td>awaiting decisions</td></tr>
+    </table></div>
+  </section>
+
+  <section>
+    <h2>Heartbeat</h2>
+    <pre class="log">t1  · program fired · REQ-289 appended · ICP written+approved · send.shuddl.tech verified · <b>Apollo token expired</b> · board scaffolded
+t2  · messaging v1 · Founding Carrier spec v1 · waitlist KV read → <b>auth error: account split confirmed</b> · visual board shipped
+t3  · CRM substrate live (9 stages, CARR formula) · 3 agents dispatched with falsifier + exclusive path each
+t4  · plugin built + verified · <b>cross-session contract verified: 11 product files modified by the coding session, 0 touched here</b> · identity risk caught: 10 prospect names anonymized
+t5  · ROI calculator spec · press kit delivered · <b>3 unsourceable claims quarantined for owner attestation instead of asserted</b>
+t6  · <b>23,623 ICP accounts from free federal data</b> (793 w/ broker authority) vs the rejected $180 vendor list · CAN-SPAM has <b>no</b> B2B exemption (ftc.gov, not blogs)
+t7  · <b>my own tick-4 "CLEAN" was wrong</b> — pattern sweep found 5 more names · Apollo partially re-authed · deposit-flow spec
+t8  · demo shot list · <b>read-only planning surfaced 3 verified product defects</b> (seeded tenant → empty board, silent failure) · handed off
+t9  · content piece 2 (14/14 figures source-matched, 4 deleted) · <b>the agent caught an over-broad rule in my own brief</b>
+t10 · 3 sequences drafted — one for the <b>793 dual-authority hybrids</b> · compliance written as candor, not boilerplate
+t11 · landing spec, 6 unbacked claims retired · <b>the audit found the LIVE SITE claiming a customer that does not exist</b>
+t12 · corrections written as <b>7 exact find/replace pairs</b> (not applied) · calculator's vendor-blog constants replaced by the visitor's own inputs
+t13 · founder-call script + rubric · wiring specs surfaced <b>waitlist signups nobody has ever contacted</b>
+t14 · no owner item moved · remaining work assessed as inventory · fan-out measured · <b>loop paused itself</b>
+t15 · session restarted, nothing moved · <b>corrected my own audit's git claims</b> (HEAD SHA wrong; 92 ahead, not 30) · board source rebuilt into the repo after the scratchpad was wiped
+t16 · <b>re-derived 23,623 myself against the live federal API</b> — holds within daily drift; 7× lexicographic trap confirmed real · plugin parser + all 133 doc links verified intact</pre>
+  </section>
+
+  <section>
+    <h2>Kaizen — 28 entries, most recent first</h2>
+    <pre class="log">28 · <b>verifying a claim by reproducing it teaches you its failure modes</b> — re-running the funnel confirmed the number <i>and</i> made me hit the silent failure myself (a double-encoded wildcard returned a confident 0, not an error)
+27 · <b>work that exists only as untracked files is not safe</b> — the no-commit rule protected the repo while quietly endangering the program's own output
+26 · <b>a cited SHA is a checkable fact, so check it</b> — an agent named an ancestor as HEAD and understated the count by 62; re-derive identifiers before they reach the owner
+25 · measuring <b>fan-out per blocker</b> turned seven equal asks into one named critical path
+24 · <b>knowing when to stop is part of the loop</b> — the failure mode isn't idleness, it's manufacturing plausible work
+23 · specifying a pipeline found an <b>unworked asset already in it</b>
+22 · <b>the call script's first instruction is not to sell</b> — disqualify out loud; a respected no becomes a referral
+21 · when the fix is outward-facing, the deliverable is <b>a diff plus a decision</b>, not an edit
+20 · <b>a weak citation is a claim you can't defend — so drop the claim</b>
+19 · <b>a capability that exists in the plan is not a capability that exists</b>
+18 · <b>we audited everything except what was already public</b>
+17 · the strongest asset came from a <b>segment, not a message</b>
+16 · <b>compliance reads better as candor than boilerplate</b>
+15 · <b>a rule that is too strict is also a defect</b>
+14 · <b>planning a demo is an audit in disguise</b>
+13 · <b>partial auth is not auth</b> — probe the endpoint the next action needs
+12 · <b>a sweep for known-bad strings cannot find unknown-bad ones</b>
+11 · fix the procedure, not the instance
+10 · marketing blogs on a legal question = go to the primary regulator
+ 9 · <b>the free authoritative source beat the paid one outright</b>
+ 8 · press materials <b>lead with what is NOT built</b>
+ 7 · <b>a brief can smuggle in an unverifiable claim</b> — the falsifier must be able to catch me too
+ 6 · an agent's best output was a <b>negative</b> ($0 spent, "don't buy")
+ 5 · third-party data pulls import identity risk
+ 4 · <b>git status is a standing per-tick check</b> — prove the contract, never assume it
+ 3 · never dispatch an agent without (objective, falsifier, exclusive path)
+ 2 · attribute every blocked read to its root owner-lane item
+ 1 · verify external-tool auth at the START of a tick that depends on it</pre>
+  </section>
+
+  <footer>
+    Source of truth: <code>docs/gtm/00-mission-control.md</code> · This board: <code>docs/gtm/mission-control-board.html</code> · Program: <code>docs/plans/2026-08-02-pre-gtm-demand-program-request.md</code> · Research: <code>docs/research/2026-08-01-coordination-layer/</code>
+  </footer>
+</div>

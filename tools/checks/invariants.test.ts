@@ -877,3 +877,57 @@ describe("§266: the REPLACE ban covers EVERY guarded table (derived, not re-typ
     expect(scanSourceForForbiddenReplace([{ path: "p.ts", text: "INSERT OR REPLACE INTO parties (id) VALUES (1)" }])).toEqual([]);
   });
 });
+
+// audit §378 — the MIGRATION surface's mirror of §266's identity test.
+//
+// §266 derived the SOURCE scanner's alternation from GUARDED_TABLES and wrote the identity test above.
+// The migration-SQL scanner kept FOUR hardcoded `(events|positions|money_lines)` literals — the
+// mutation-verb ban, the ALTER ban, the upsert ban and the trigger-body scan — so §266's fix covered one
+// of two surfaces, and the file's own header still described the hazard it had half-closed: *"a new
+// append-only table therefore needs two edits nobody is prompted to make."*
+//
+// With the alternation derived there, this is the identity test that keeps it derived: adding a table to
+// GUARDED_TABLES now extends every migration-side ban, and re-typing any of the four as a subset fails
+// HERE, per table and per ban.
+describe("§378: the MIGRATION scanner's bans cover EVERY guarded table (derived, not re-typed)", () => {
+  it.each([...GUARDED_TABLES])("flags REPLACE INTO %s in a migration", (table) => {
+    const r = checkMigrationSql([`REPLACE INTO ${table} (id) VALUES ('x');`]);
+    expect(r.violations.join(" "), `${table} is guarded but the migration REPLACE ban misses it`).toContain("I3");
+  });
+
+  it.each([...GUARDED_TABLES])("flags a non-ADD-COLUMN ALTER on %s (the second, distinct ban)", (table) => {
+    const r = checkMigrationSql([`ALTER TABLE ${table} RENAME TO ${table}_old;`]);
+    expect(r.violations.length, `${table} is guarded but the migration ALTER ban misses it`).toBeGreaterThan(0);
+  });
+
+  it.each([...GUARDED_TABLES])("flags an upsert against %s (the third, distinct ban)", (table) => {
+    const r = checkMigrationSql([`INSERT INTO ${table} (id) VALUES ('x') ON CONFLICT(id) DO UPDATE SET id='y';`]);
+    expect(r.violations.length, `${table} is guarded but the migration upsert ban misses it`).toBeGreaterThan(0);
+  });
+
+  // Parity, per the share-lint discipline: ONE evasion corpus, BOTH surfaces. A delimiter or schema form
+  // that one scanner blocks must never slip past the other — the exact split the skill's RED describes,
+  // here generalised from `legs` (which already had this) to the guarded tables themselves.
+  const shapes = (t: string): string[] => [
+    `INSERT OR REPLACE INTO"${t}" (id) VALUES ('x')`,
+    `REPLACE INTO main.${t} (id) VALUES ('x')`,
+    `REPLACE INTO [${t}] (id) VALUES ('x')`,
+    "REPLACE INTO `" + t + "` (id) VALUES ('x')",
+  ];
+  for (const table of GUARDED_TABLES) {
+    for (const sql of shapes(table)) {
+      it(`both surfaces flag: ${sql.slice(0, 46)}…`, () => {
+        expect(checkMigrationSql([sql]).violations.length, "migration surface missed it").toBeGreaterThan(0);
+        expect(scanSourceForForbiddenReplace([{ path: "p.ts", text: sql }]).length, "source surface missed it").toBeGreaterThan(0);
+      });
+    }
+  }
+
+  it("is non-vacuous: an UNGUARDED table is caught by NEITHER surface", () => {
+    // `parties` is in MUTABLE_TABLES — a REPLACE against it is a legal domain write. Without this, a
+    // matcher that flagged everything would satisfy every assertion above.
+    const sql = "REPLACE INTO parties (id) VALUES ('x');";
+    expect(checkMigrationSql([sql]).violations.filter((v) => v.includes("I3"))).toEqual([]);
+    expect(scanSourceForForbiddenReplace([{ path: "p.ts", text: sql }])).toEqual([]);
+  });
+});

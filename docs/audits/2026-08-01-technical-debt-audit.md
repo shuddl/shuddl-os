@@ -8849,7 +8849,7 @@ roughly half the flagged set is likely rot and the rest is window tightness, and
 Five rotted citations across three skills, each re-pointed **and given a content anchor**, which is the
 only rule that catches this failure — `invoice-gate.ts:16@GATE_BLOCKED_PREFIX`,
 `transition-gates.ts:74@VALIDATION_FAILED`, `isolation.test.ts:29@WPs`,
-`invariants.ts:446@FORBIDDEN_REPLACE` (×2), plus `invariants.ts:79@SCHEMA`. Anchored citations went
+`invariants.ts:455@FORBIDDEN_REPLACE` (×2), plus `invariants.ts:88@SCHEMA`. Anchored citations went
 **28 → 34**; 987 citations resolve; the ratchet holds at its frozen 130.
 
 The remaining ~48 candidates are **not** swept in this pass, and saying so is the point (§175 is not a
@@ -19745,7 +19745,7 @@ on all three.
 
 ### Carry-forward
 
-`tools/checks/invariants.ts:506@committedLock` returns `{}` when there is no committed lockfile. That is
+`tools/checks/invariants.ts:515@committedLock` returns `{}` when there is no committed lockfile. That is
 the exact shape of [[fail-closed-is-about-the-fallback-value]] — the fallback VALUE, not the catch — and a
 `{}` there would make any "every dependency matches the lock" comparison vacuously true. It may well be
 correct here; it has not been checked. **Next section's first item.**
@@ -19758,7 +19758,7 @@ correct here; it has not been checked. **Next section's first item.**
 
 ### The carry-forward: not a defect
 
-`tools/checks/invariants.ts:506@committedLock` returns `{}` when `git show HEAD:<lock>` fails. `checkLock`
+`tools/checks/invariants.ts:515@committedLock` returns `{}` when `git show HEAD:<lock>` fails. `checkLock`
 uses that value as the **forward-only anchor** — the thing a locally-deleted or hand-edited lock line
 cannot reset. An empty anchor therefore re-opens the exact bypass `checkLock` exists to close, and the
 tests for it pass `committed` in as a parameter, so they prove the *guard* and say nothing about its
@@ -20626,3 +20626,85 @@ Three mutations by verified line index, each type-valid (status/message only), t
 batch by construct count (`8/8` guards, `0 modified`) per §376's rule; the reachability claim established
 from the Zod schema and an empty middleware grep reported as empty (§360), and cross-checked against an
 existing test that already mints the token in question. `check:tables 0`.
+
+---
+
+## §378 — the same fix, applied to one of two surfaces
+
+§377 ended on *"verified is a claim about a process."* The standing ledger carries 16 such phrases —
+*unreachable*, *not exploitable today*, *by construction*, *verified-correct*. This section tests one.
+
+Row 297: *"a future REPLACE evasion or new UNIQUE could silently rewrite a chained row. **NOT exploitable
+today (plain INSERT aborts; REPLACE lint-banned)**."*
+
+`REPLACE lint-banned` is a claim about a gate, so it is checkable.
+
+### What the claim missed
+
+Two scanners enforce the REPLACE ban over different inputs — TS source and migration SQL. The repository
+already knows this is a hazard; there is a skill about it, and `tools/checks/invariants.ts` says so at the
+top of the file:
+
+> GUARDED_TABLES *"is hand-curated, and append-only enforcement is keyed to it in TWO places… A new
+> append-only table therefore needs two edits nobody is prompted to make."*
+
+**Audit §266 fixed the source surface.** `FORBIDDEN_REPLACE` is derived — *"DERIVED from GUARDED_TABLES,
+not re-typed"* — with an identity test asserting every guarded table is caught, and a non-vacuity control.
+Exemplary.
+
+**The migration surface was left hardcoded, in four places:**
+
+| matcher | bans |
+|---|---|
+| mutation-verb | `UPDATE` / `DELETE FROM` / `DROP TABLE` / `REPLACE INTO` |
+| ALTER | every `ALTER TABLE` except a nullable `ADD COLUMN` |
+| upsert | `INSERT … ON CONFLICT … DO UPDATE` |
+| trigger-body | `CREATE TRIGGER … ON <table>` |
+
+Each restated `(events|positions|money_lines)` as a literal. So a fourth append-only table would be
+**forced** into `GUARDED_TABLES` by `checkTableClassification` — the mechanism that exists precisely so the
+decision cannot be skipped — and then covered by **none of the four migration bans**. The gate that makes
+the classification unforgettable is the same gate that makes the omission invisible: it collects the
+declaration and never spends it.
+
+All four are now derived from `GUARDED_TABLES`. One list, not five.
+
+### The tests, and what they are for
+
+§266 wrote an identity test for the surface it fixed. This adds the mirror for the other, plus the parity
+corpus the share-lint discipline prescribes — **22 tests**: every guarded table × each of the three
+migration bans, then one evasion corpus (abutting quote, schema-qualified, bracket, backtick) fed to
+**both** surfaces, and a non-vacuity control proving a MUTABLE table (`parties`) is caught by neither.
+
+**Mutation-proved rather than assumed:** re-typing the alternation as a subset (`"events|positions"`) turns
+803 passing into **15 failures, every one naming `money_lines`** — per table and per ban. The derivation
+cannot be quietly undone.
+
+That parity corpus already existed for `legs` (REQ-028/052), written to this exact discipline. It had never
+been generalised to the guarded tables themselves — **the pattern was applied to the special case and not
+to the general one.**
+
+### The shape
+
+This is §369 and §373's *one claim, two records* — but in code, and more instructive for it:
+
+> **A fix is applied to the instance that was found. The sibling surface is not "missed" — it is never
+> asked about**, because the finding arrived attached to one file, and the fix inherits the finding's
+> scope rather than the rule's.
+
+§266's commit was correct, tested, and documented. Nothing about it was careless. The gap is that *"derive
+the alternation"* is a statement about a **rule with two enforcement surfaces**, while the work was a
+statement about **one function**. The two are only the same sentence if someone asks "where else?" — and
+the file's own header asked, in writing, and was read as background rather than as a task.
+
+**When a fix removes a hand-maintained list, grep for the other copies of that list before committing.**
+It is the same move §369 earned for prose (*search for the claim's text, not the defect you found*), and
+it costs one grep.
+
+### Verification
+
+Alternation derived in 4 matchers; `check:invariants` re-run green; 806 tests with the 22 new ones (3
+failing, the known `REQ-289` trio, unchanged); subset-mutation attributed by failing-test name and restored
+**byte-identical to the pre-mutation backup** — not to HEAD, since §378's own change is uncommitted, a
+distinction that would otherwise have read as a failed restore (§368). Nine added comment lines shifted
+five citations by +9; all repointed and `check:citations` re-run green.

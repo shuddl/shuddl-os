@@ -37,6 +37,15 @@ export const PARTITION_TABLES: Record<string, string> = { positions: "events" };
 // Append-only tables that MUST carry RAISE(ABORT) guard triggers once created (I3, I1).
 export const GUARDED_TABLES = ["events", "positions", "money_lines"] as const;
 
+// The regex alternation for the guarded tables, DERIVED from GUARDED_TABLES rather than restated (audit
+// §378). Four separate matchers below key append-only enforcement to this same set — the mutation-verb ban,
+// the ALTER ban, the upsert (`ON CONFLICT DO UPDATE`) ban, and the trigger-body scan. Each used to hardcode
+// `(${GUARDED_ALT})`, so adding a fourth append-only table forced ONE edit
+// (`checkTableClassification` fails until it is classified) while silently leaving it UNCOVERED by all four
+// — the exact "two edits nobody is prompted to make" hazard this file's own header describes. Deriving it
+// makes the second edit structurally impossible to forget: there is now one list, not five.
+const GUARDED_ALT = GUARDED_TABLES.join("|");
+
 // EVERY tenant table is classified — append-only (guarded) or deliberately mutable (audit §265).
 // GUARDED_TABLES is hand-curated, and append-only enforcement is keyed to it in TWO places: the guard-
 // completeness check below, and the REPLACE-ban matcher's table alternation. A new append-only table
@@ -266,7 +275,7 @@ export function checkMigrationSql(sqlFiles: string[]): InvariantResult {
   // guards unless recursive_triggers is on), so they are forbidden verbs too. ALTER TABLE is
   // handled SEPARATELY below — a NULLABLE `ADD COLUMN` is the one sanctioned exception.
   const mutate = new RegExp(
-    `\\b(UPDATE|DELETE\\s+FROM|DROP\\s+TABLE|INSERT\\s+OR\\s+REPLACE\\s+INTO|REPLACE\\s+INTO)${DELIM}${SCHEMA}${Q}(events|positions|money_lines)\\b`,
+    `\\b(UPDATE|DELETE\\s+FROM|DROP\\s+TABLE|INSERT\\s+OR\\s+REPLACE\\s+INTO|REPLACE\\s+INTO)${DELIM}${SCHEMA}${Q}(${GUARDED_ALT})\\b`,
     "gi",
   );
   for (const m of clean.matchAll(mutate)) {
@@ -281,7 +290,7 @@ export function checkMigrationSql(sqlFiles: string[]): InvariantResult {
   // column (which WOULD write into existing rows), and any other ALTER. `${QCLOSE}` after the `\b`
   // consumes a closing quote/bracket so the captured TAIL is exactly what follows the table name.
   const alterGuarded = new RegExp(
-    `\\bALTER\\s+TABLE${DELIM}${SCHEMA}${Q}(events|positions|money_lines)\\b${QCLOSE}([^;]*)`,
+    `\\bALTER\\s+TABLE${DELIM}${SCHEMA}${Q}(${GUARDED_ALT})\\b${QCLOSE}([^;]*)`,
     "gi",
   );
   // STRICT tables allow only TEXT/INTEGER/INT/REAL/BLOB/ANY; a bare nullable column is
@@ -304,7 +313,7 @@ export function checkMigrationSql(sqlFiles: string[]): InvariantResult {
   // a single statement ([^;]*?) so a later legitimate upsert on a non-guarded table (e.g. invoices)
   // can never be spliced onto an earlier INSERT INTO events.
   const upsert = new RegExp(
-    `\\bINSERT\\s+(?:OR\\s+(?:ROLLBACK|ABORT|FAIL|IGNORE|REPLACE)\\s+)?INTO${DELIM}${SCHEMA}${Q}(events|positions|money_lines)\\b[^;]*?\\bON\\s+CONFLICT\\b[^;]*?\\bDO\\s+UPDATE\\b`,
+    `\\bINSERT\\s+(?:OR\\s+(?:ROLLBACK|ABORT|FAIL|IGNORE|REPLACE)\\s+)?INTO${DELIM}${SCHEMA}${Q}(${GUARDED_ALT})\\b[^;]*?\\bON\\s+CONFLICT\\b[^;]*?\\bDO\\s+UPDATE\\b`,
     "gi",
   );
   for (const m of clean.matchAll(upsert)) {
@@ -328,7 +337,7 @@ export function checkMigrationSql(sqlFiles: string[]): InvariantResult {
     }
   }
   // Triggers on guarded tables: the body must be exactly one RAISE(ABORT) statement.
-  const triggerBody = new RegExp(`CREATE\\s+TRIGGER\\s+${SCHEMA}${Q}[\\w"'\`\\]]+[\\s\\S]*?\\bON\\s+${SCHEMA}${Q}(events|positions|money_lines)\\b[\\s\\S]*?\\bBEGIN\\b([\\s\\S]*?)\\bEND\\s*;`, "gi");
+  const triggerBody = new RegExp(`CREATE\\s+TRIGGER\\s+${SCHEMA}${Q}[\\w"'\`\\]]+[\\s\\S]*?\\bON\\s+${SCHEMA}${Q}(${GUARDED_ALT})\\b[\\s\\S]*?\\bBEGIN\\b([\\s\\S]*?)\\bEND\\s*;`, "gi");
   for (const m of clean.matchAll(triggerBody)) {
     const body = (m[2] ?? "").trim();
     if (!/^SELECT\s+RAISE\s*\(\s*ABORT\b[^;]*;$/i.test(body)) {

@@ -1,0 +1,17 @@
+{
+  "name": "shuddl-mission-control",
+  "version": "0.1.0",
+  "description": "Read/steer the SHUDDL Pre-GTM Demand Program board (docs/gtm/00-mission-control.md) from the command line: /mc:status, /mc:next, /mc:done.",
+  "author": {
+    "name": "SHUDDL demand-loop"
+  },
+  "license": "UNLICENSED",
+  "keywords": [
+    "shuddl",
+    "gtm",
+    "mission-control",
+    "demand-program",
+    "workstream-board"
+  ],
+  "commands": "./commands"
+}

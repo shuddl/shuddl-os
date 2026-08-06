@@ -21,7 +21,7 @@ When the same rule is enforced in two places, hand-tuned copies drift. The copy 
 - NOT for a rule enforced in exactly one place with no second surface — there is nothing to keep in parity.
 
 ## The RED this closes (real defect)
-`tools/checks/invariants.ts:446@FORBIDDEN_REPLACE` — `FORBIDDEN_REPLACE` (the TS-source scanner) is a hand-written copy:
+`tools/checks/invariants.ts:455@FORBIDDEN_REPLACE` — `FORBIDDEN_REPLACE` (the TS-source scanner) is a hand-written copy:
 
 ```
 /\b(INSERT\s+OR\s+REPLACE\s+INTO|REPLACE\s+INTO)\s+["'`[]?(events|positions|money_lines)\b/gi
@@ -31,13 +31,13 @@ It requires literal `\s+` before the table and a single optional quote, with NO 
 - `INSERT OR REPLACE INTO"events"` — no whitespace, abutting quote.
 - `INSERT OR REPLACE INTO main.events` — schema-qualified.
 
-The migration matcher at `tools/checks/invariants.ts:89@replaceFamilyRe` catches BOTH, because it is built from shared fragments (`tools/checks/invariants.ts:73@QOPEN`): `DELIM = (?:\s+|(?=["'\`\[]))` allows a zero-width boundary before a quote, and `SCHEMA = (?:["'\`\[]?\w+["'\`\]]?\s*\.\s*)?` absorbs `main.`. Two divergent copies of one rule = one scanner blind to strings the other blocks.
+The migration matcher at `tools/checks/invariants.ts:98@replaceFamilyRe` catches BOTH, because it is built from shared fragments (`tools/checks/invariants.ts:82@QOPEN`): `DELIM = (?:\s+|(?=["'\`\[]))` allows a zero-width boundary before a quote, and `SCHEMA = (?:["'\`\[]?\w+["'\`\]]?\s*\.\s*)?` absorbs `main.`. Two divergent copies of one rule = one scanner blind to strings the other blocks.
 
 ## The pattern
 Build the target matcher once, consume it everywhere:
 
 ```ts
-// shared fragments already exist at tools/checks/invariants.ts:73@QOPEN — REUSE, don't re-author.
+// shared fragments already exist at tools/checks/invariants.ts:82@QOPEN — REUSE, don't re-author.
 const GUARDED = "(events|positions|money_lines)";
 // One builder both surfaces call:
 export const replaceTarget = (verbs: string) =>
@@ -73,7 +73,7 @@ If one scanner passes a probe the other blocks, the test fails — divergence ca
 | Backtick | `` `events` `` | same |
 
 ## Common Mistakes
-- **Copying the pattern instead of the fragment.** The `tools/checks/invariants.ts:446@FORBIDDEN_REPLACE` copy dropped `SCHEMA` and downgraded `DELIM` to `\s+`. Extract `replaceTarget()`; both surfaces import it. (Both citations in this file read `:204` until 2026-08-04 — audit §175 — and `:392`/`:29` until 2026-08-05, audit §253, when a 20-line insert at the top of that file shifted them again; the shared fragments themselves are at `tools/checks/invariants.ts:79@SCHEMA`.)
+- **Copying the pattern instead of the fragment.** The `tools/checks/invariants.ts:455@FORBIDDEN_REPLACE` copy dropped `SCHEMA` and downgraded `DELIM` to `\s+`. Extract `replaceTarget()`; both surfaces import it. (Both citations in this file read `:204` until 2026-08-04 — audit §175 — and `:392`/`:29` until 2026-08-05, audit §253, when a 20-line insert at the top of that file shifted them again; the shared fragments themselves are at `tools/checks/invariants.ts:88@SCHEMA`.)
 - **Testing each scanner with its own tailored strings.** That is how the blind spot survived — the source test at `invariants.test.ts:247-259` only fed whitespace-then-bare forms, never an evasion shape. Feed BOTH scanners the SAME corpus.
 - **Forgetting the schema-qualified and abutting-delimiter forms.** These are the classic SQLite bypasses; put one of each in the corpus.
 - **Adding a new check that re-authors the rule.** Review rule: any new check on a guarded identifier must call the shared builder, never write a fresh regex.

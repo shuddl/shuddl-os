@@ -404,7 +404,7 @@ A delta that cannot be accounted for line by line is a measurement to redo, not 
 Observation, not a defect: `pnpm test:tools` emits five `fatal: not a git repository` lines on stderr.
 They originate in `tools/checks/invariants.test.ts:33`, which spawns the invariants CLI inside
 non-git temp directories with stderr piped through to the parent; the checker's `committedLock()`
-fallback (`tools/checks/invariants.ts:506@committedLock`) is designed to return `{}` in exactly that case. All
+fallback (`tools/checks/invariants.ts:515@committedLock`) is designed to return `{}` in exactly that case. All
 784 tools cases pass (410 on the wedge day). Cosmetic noise; recorded here so the next reader does not
 re-diagnose it.
 
