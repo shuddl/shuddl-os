@@ -49,6 +49,13 @@ const SCAN_GLOBS = [
   "tools/**/*.tsx",
 ];
 
+// The globs that match NOTHING today and are kept deliberately (audit §466). Both are FORWARD-SAFE: workers
+// and tools are server-side/tooling trees with no TSX, and the patterns exist so a .tsx appearing there is
+// scanned from its first commit rather than from whenever someone notices. Listing them is what lets the
+// per-glob non-vacuity rule below be strict about every OTHER pattern — the §455 distinction between "empty
+// because nothing produces it yet" and "empty because the pattern broke".
+const EXPECTED_EMPTY_GLOBS = new Set(["workers/*/src/**/*.tsx", "tools/**/*.tsx"]);
+
 // `INSERT [OR ...] INTO [schema.]["]events["]` — the SHARED matcher from invariants.ts, not a copy.
 //
 // This was a hand-written regex until audit §71, and it required `INTO\s+` — so `INSERT INTO"events"`
@@ -101,8 +108,11 @@ export function stripComments(src: string): string {
 export function findChokepointViolations(cwd: string = process.cwd()): ChokepointViolation[] {
   const violations: ChokepointViolation[] = [];
   const seen = new Set<string>();
+  const perGlob = new Map<string, number>();
   for (const glob of SCAN_GLOBS) {
+    perGlob.set(glob, 0);
     for (const abs of globSync(glob, { cwd })) {
+      perGlob.set(glob, (perGlob.get(glob) ?? 0) + 1);
       const rel = abs.replace(/\\/g, "/");
       if (seen.has(rel)) continue;
       seen.add(rel);
@@ -121,6 +131,27 @@ export function findChokepointViolations(cwd: string = process.cwd()): Chokepoin
       });
     }
   }
+
+  // NON-VACUITY, PER GLOB (audit §466). A violation scan that scans NOTHING reports clean: pointing the
+  // globs at a missing directory left this gate at exit 0 while it enforced REQ-024/030 over zero files.
+  //
+  // THE FIRST FIX WAS AN AGGREGATE COUNT, and it did not work — §465's own shape-4 error, committed while
+  // closing shape-4 errors. `SCAN_GLOBS` has EIGHT entries; breaking the six product ones still left
+  // `tools/**/*.ts` matching 72 files, over a floor of 50, and the gate stayed green with the entire
+  // product tree unscanned. A total says nothing about which member contributed it.
+  //
+  // Per-glob is shape 2: every entry must match something, so ONE broken pattern is loud regardless of what
+  // the others find.
+  for (const [glob, n] of perGlob) {
+    if (n === 0 && !EXPECTED_EMPTY_GLOBS.has(glob)) {
+      violations.push({
+        file: glob,
+        line: 0,
+        detail: `this scan glob matched ZERO files — a violation scan that scans nothing reports clean, so a renamed directory or a typo'd pattern silently disarms the append chokepoint (audit §466).`,
+      });
+    }
+  }
+
   return violations;
 }
 

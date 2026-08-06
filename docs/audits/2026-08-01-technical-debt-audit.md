@@ -25825,3 +25825,38 @@ question when adding a gate is not "does this catch the bug I am thinking of" bu
 when there are two of them."**
 
 Invariants suite **195 passed**; `check:invariants`, `typecheck`, `lint` clean.
+
+## §466 — a violation scan that scans nothing, and my fix repeating the error it was fixing
+
+§465 named four gate shapes and called the **violation scan** free of completeness risk. That was wrong in a
+specific way this section measures: a violation scan has no completeness risk about its RULE, but it has one
+about its INPUT. **A scan that scans nothing reports clean.**
+
+**Measured on `check:chokepoint`** — the gate keeping every `events` write inside the sequencer DO
+(REQ-030/I3). Pointing its scan globs at a missing directory left it at **exit 0**, enforcing the rule over
+zero files. A directory rename, a build-layout change or a typo'd pattern would silently disarm it. Neither
+it nor `check:rater-purity` carried any non-vacuity signal; `check:identity-leak` does (it SKIPS loudly when
+no denylist exists, which is the honest form).
+
+**MY FIRST FIX WAS AN AGGREGATE COUNT — §465's shape 4, written while closing shape-4 errors.** A floor of
+"at least 50 files scanned" looked reasonable and did nothing: `SCAN_GLOBS` has EIGHT entries, and breaking
+the six product ones still left `tools/**/*.ts` matching 72, comfortably over the floor. **The gate stayed
+green with the entire product tree unscanned.** A total says nothing about which member contributed it —
+which is the same sentence as §463's, arrived at from the opposite direction.
+
+**Per-glob is shape 2, and it needed one more distinction to be usable.** Requiring every pattern to match
+something failed on the clean tree: `workers/*/src/**/*.tsx` and `tools/**/*.tsx` legitimately match zero —
+those trees have no TSX, and the patterns exist so a `.tsx` appearing there is scanned from its first commit.
+That is §455's distinction exactly: **empty because nothing produces it yet, versus empty because the pattern
+broke.** Declaring `EXPECTED_EMPTY_GLOBS` lets the rule be strict about every other pattern. Re-probed:
+breaking the product globs now flags **5**, clean tree **0**.
+
+**The recursion is the finding.** §463 → §464 → §465 chased "the guard measured a wider scope than the thing
+it guards" through four gates; §466 shows the same error one level up, in the guard's INPUT rather than its
+subject, and then in my own remedy for it. **Knowing the taxonomy did not prevent writing shape 4 again ten
+minutes after naming it** — what caught it was a probe designed to break only PART of the input, which is the
+only probe that can distinguish an aggregate from a per-member check.
+
+`check:chokepoint` clean 0 / broken 1 / restored 0; `typecheck`, `lint` clean. `check:rater-purity` carries
+the same gap and is filed rather than fixed here — its scan is a single directory, so the same per-glob rule
+applies but the population is one, and a fix would be untestable in the way §465 warns about.
