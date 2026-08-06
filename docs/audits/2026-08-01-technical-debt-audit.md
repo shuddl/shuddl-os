@@ -25303,3 +25303,32 @@ a control asserting a DIFFERENCE, and a mutation whose failures were attributed 
 
 `@shuddl/map` **87 passed** (mis-stated as 95 in the first commit of this section and corrected immediately — §445 applies to my own arithmetic first); `typecheck`, `lint` clean. Provenance axis: **6 of 60 — 2 gaps, 4 clean**, and
 both gaps fit §450's profile exactly.
+
+## §452 — §451's defect does not generalize, and the scan that looked for it inverts too
+
+§451 found two vacuous tests **of my own** caused by a fixture the transformation could not move. The
+obvious worry is that the same fixture habit weakened tests already in the repo — REQ-074 geo privacy is
+enforced server-side (`coarsenGeoInPlace`, rounding `lat_e6`/`lon_e6` to the 100,000 grid ≈ 0.1°) and the
+client hook is only its mirror. **It does not. The pre-existing tests are correctly built.**
+
+**The instrument, and its limit.** §451 generalises to a checkable predicate: *an assertion whose expected
+value equals its input cannot detect a transformation.* Across the six files touching generalization, **11
+coordinate assertions** were examined and **3** echo their input. All three are **correct**:
+`"returns exact coordinates once out-for-delivery"` and `"driver lens keeps exact position"` — claims that
+the value is UNCHANGED, where echoing the input is the only right assertion.
+
+So the predicate's hit rate here is **0 real / 3 flagged**, and for the same structural reason §448 recorded
+about dormancy: **the meaning of the evidence inverts with what the sentence claims.** A copied expectation
+is vacuity when the test says *transformed* and correctness when it says *preserved*. A scan cannot tell
+those apart, because the difference lives in the prose, not the code.
+
+**The eight that assert a transformation are all discriminating**: the canonical server-side case uses
+`37_421_777 → 37_400_000`, an input genuinely off the grid with an expected value that differs from it. That
+is the shape my `-97.7 / 30.3` fixture lacked.
+
+**Blast radius bounded: §451's defect was confined to the tests written in §451.** Recorded because a
+finding about one's own work is worth exactly as much as one about the code only if its scope is measured
+rather than assumed — and the cheap assumption here ("I made this mistake, the repo probably does too") was
+wrong.
+
+Provenance axis unchanged at **6 of 60 — 2 gaps, 4 clean**.
