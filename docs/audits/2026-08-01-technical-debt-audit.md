@@ -21197,3 +21197,81 @@ Eleven candidates read individually rather than batch-struck; each classified ag
 not its body text; the two provisioning-section rows excluded by section rather than by wording; open-row
 count re-measured after the edit (195 → 189) rather than assumed. One record change, no code.
 `check:tables 0`.
+
+---
+
+## §385 — the idempotency chokepoint holds; a Low hold understated itself by one binding
+
+Back to code after §383/§384's record work. Queues are at-least-once and retries are a client's default, so
+idempotency is what stands between the protocol and double-application. It had not been swept this phase.
+
+### The chokepoint is structural, and its two hardest properties are pinned
+
+`app.use("/v1/*", idempotency)` — **structural, not a roster** (§352). The three surfaces that deliberately
+skip it are each documented at their mount: `/pub/*` (no session), `/internal/*` (no customer JWT reaches
+it), and the provisioning route.
+
+Two mutations, both on the properties whose failure would be silent and expensive:
+
+| mutation | result | pinned by |
+|---|---|---|
+| drop `tenant` from the key tuple | **RED, 1** | *"keys are tenant-scoped — tenant-b with the same key executes fresh"* |
+| cache non-2xx as well (`< 600`) | **RED, 3** | *"does NOT cache a 4xx — a corrected same-key retry RE-RUNS the handler and succeeds"*, *"a repeated 4xx keeps re-running (the failure is never memoized)"*, and *"a same-key evidence upload that 422s (hash_not_recorded) RE-RUNS on retry"* |
+
+The second is the one worth dwelling on. The code's own comment explains it as *"the Driver-PWA
+offline-replay evidence-loss path"* — caching a 4xx would memoize a precondition failure, so a corrected
+retry with the same key returns the stale failure and `next()` never runs, **silently losing the write the
+retry existed to make.** That is a subtle enough failure that finding it already tested, by three tests, one
+of which names the exact evidence path, is the strongest positive result of this phase.
+
+Recorded as such. §380 noted that a sweep reporting only its hits is a biased instrument; this is a sweep of
+a money-critical chokepoint that found nothing, and that is the finding.
+
+### Row 276, re-verified — and it understates itself
+
+§383 established that a hold can be stale in the closed direction. This one is stale in the other: **both
+its claims still hold, and there is a third it does not name.**
+
+1. *"`#resolveDb` memo returns before the platform re-check"* — still true.
+   `if (this.dbHandle) return this.dbHandle;` is the first line of the method, ahead of
+   `if (platform) { if (!isPlatformTenant(tenant)) throw … }`.
+2. *"`credit-settle` doesn't bind `payload.invoice_id === invoiceId`"* — still true. The handler proves a
+   `payment.received` event *exists* by `paymentEventId`, then updates the invoice by `invoiceId`, and
+   never relates the two.
+3. **Unnamed:** `amountCents` is **caller-supplied** and never compared against the payment event either.
+   The coverage test is `total_cents <= ?` bound to that number — so *"the invoice total is covered"*, which
+   the handler's own header states as its safety property, **is asserted by the caller, not derived from
+   the ledger.**
+
+Severity is unchanged and correct — `internalGate` guards the route, it is internal/DARK, and no customer
+path reaches it. What changed is the remedy line, which now names **three** bindings instead of two.
+
+### The asymmetry worth naming
+
+§383's phantom and this understatement are the two directions one record can drift, and they are not
+equally visible:
+
+> **A hold that has been fixed announces itself the moment anyone checks it. A hold that is accurate but
+> incomplete looks exactly like a correct hold — forever.** Re-reading a closed-in-reality row ends in
+> relief; re-reading an accurate row ends in agreement, and agreement is where an audit stops.
+
+The only thing that surfaced the third binding was reading the handler **against its own stated safety
+property** — *"it NEVER invents a paid state… the invoice total is covered"* — and asking which input
+proves each clause. Two clauses were proved by the ledger; one was proved by the request body.
+
+That is a repeatable move, and cheaper than it sounds: **take the comment that states what a function
+guarantees, split it into clauses, and name the input that establishes each.** Any clause whose input is
+caller-supplied is either a defect or a documented trust assumption, and the difference is whether anyone
+wrote it down.
+
+### Tally
+
+Eight verification claims tested: three held, two wrong, one right-but-unsupported, one
+true-verdict-wrong-reason, one phantom, and now **one accurate-but-incomplete**. Eight remain.
+
+### Verification
+
+Chokepoint mount read at `index.ts:97@idempotency` rather than inferred from route comments; both mutations
+type-valid, landed (`git diff --numstat` non-empty), attributed by failing-test name, restored
+byte-identical, tree verified `0 modified` (§376); row 276's three claims each read at their line rather
+than accepted from the row. One record change, no code. `check:tables 0`.
