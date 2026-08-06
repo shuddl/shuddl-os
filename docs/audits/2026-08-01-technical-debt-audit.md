@@ -237,6 +237,18 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 > table; the *numbers* in it decay and are re-measured per session (§113 `99ae4ca` → §141 `78499e9` →
 > §168 `e27307f` → §176 `71edfbe` → §188 `7d0a17e` → §202 `015413d` → §214 `0d8dc91` → §226 `2dad327` → **§238 `68cfb0d`**). Read the clauses here and the posture there — and
 > per §64/§110, read every count from a run, never from this page.
+>
+> **THE BROWSER-GATE BOUND IS CLOSED (§424–§426, 2026-08-06).** §423 counted ten assertions across the three
+> gates it had never mutation-checked — `visual` (5), `a11y` (4), `perf` (1) — and ordered them weakest-first.
+> All ten are now checked, by mutations attributed to a named failing test, never to a count. **Every one of
+> the three gates works and discriminates; none has a correctness defect.** Two carry a scope or calibration
+> finding, both filed and neither fixed here because both remedies need a datum or a decision this audit does
+> not own: the a11y gate scans pre-auth screens (§424), and the visual tolerance allows 25,920 differing pixels
+> against a measured ambient drift of 140 (§425). `perf` enforces one of the three budgets its CI step names,
+> because `ubuntu-latest` has no GPU (§426). **This is a clean phase boundary**: a bound that was stated with a
+> count and an ordering has been discharged in that order, with the negative result — no correctness defect —
+> recorded at the same weight as the findings. §425 also records a method defect of this audit's own: six runs
+> spent on a false 'the gate is blind' thread that was an artifact of reading a failure list through `head`.
 
 Grades from `V2-EXECUTION-FRAMEWORK.md` §9. What this audit adds to each bar:
 
