@@ -25468,3 +25468,42 @@ coverage gap is a second probe on a value the system can actually produce.
 
 Provenance axis: **9 of 60 — 4 gaps, 5 clean.** The zero-reference sweep is discharged: of 25, one was a real
 finding, 24 were explained by category.
+
+## §456 — the last deferred bound, tested instead of inherited
+
+The `400`-status guard clusters have been carried as *"deliberately deferred"* since §381, on the premise
+that *"every branch there is 'bad input, nothing happened'"*. §446's rule applies to a deferral as much as
+to a count: it is a repo-owned claim, so it decays, and the reasoning that justified it is exactly what needs
+re-measuring. **The premise is sound. One test that guards it was not.**
+
+**The measurement.** 52 `VALIDATION_FAILED, 400` throw sites across 21 route files. Scanning each for a WRITE
+earlier in the same handler flags **2**; the other 50 are validate-before-write and cannot leave residue.
+Both flagged sites read clean:
+
+- `routes/positions.ts:97` — the INSERT is *attempted* and the D1 trigger `RAISE(ABORT)`s it on a same-PK
+  conflict with different data. "Nothing happened" holds via the **trigger**, not via ordering, and the
+  comment says so: *"The row is NOT rewritten — integrity holds, which is the guard's whole job."*
+- `routes/intake.ts:94` — `materializeShipment` checks the party FKs and returns **before** its INSERT.
+  Nothing happened, via **ordering**.
+
+**Ordering is the fragile kind, and nothing was watching it.** Moving the FK check to after the INSERT left
+all **23** intake/import tests GREEN, while every FK-invalid request would strand a shipment row and the 400
+would be a lie.
+
+**The test that should have caught it already existed, and its name already said so.** *"a shipment
+referencing a party that does not exist is a clean 400 (no orphan shipment)"* — body:
+`expect(r.status).toBe(400);` and nothing else. **The parenthetical was never asserted.** This is §454's
+shape for the third time this phase (there: *"TODAY every caller passes legacyValueAvailable=false"* checking
+only the function's truth table), and it is the most corrosive test defect found in this whole audit: a name
+that answers the question for anyone who greps for it, over a body that checks something weaker.
+
+Closed by asserting the second half — a shipment count taken before and after. The same reordering now gives
+**1 failed / 11 passed**, naming that test. Restored byte-identical; `typecheck`, `lint` clean.
+
+**The bound is now discharged rather than deferred**: 52 sites enumerated, 50 structurally incapable of
+residue, 2 read, 1 gap found and closed. §381's deferral was correctly reasoned and — for one of the two
+cases it waved through — correctly reasoned about code that no test held in place.
+
+**A rule worth extracting, given three instances:** when a test's name contains a parenthetical or a second
+clause (*"…(no orphan shipment)"*, *"…⇒ ALWAYS 'native'"*, *"…keeping the last-good stamp"*), check that the
+body asserts BOTH halves. The name is written from intent; the body is written from what was convenient.

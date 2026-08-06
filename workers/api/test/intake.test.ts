@@ -95,6 +95,11 @@ async function quotePricedIdOf(shipmentId: string): Promise<string> {
 async function partyRow(id: string): Promise<{ id: string; kind: string; names: string; contacts: string } | null> {
   return env.TENANT_A_DB.prepare("SELECT id, kind, names, contacts FROM parties WHERE id = ?").bind(id).first();
 }
+async function shipmentCount(): Promise<number> {
+  const r = await env.TENANT_A_DB.prepare("SELECT COUNT(*) AS c FROM shipments").first<{ c: number }>();
+  return r?.c ?? -1;
+}
+
 async function shipmentRow(id: string): Promise<{ id: string; shipper_party_id: string; consignee_party_id: string; bill_to_party_id: string; status_cache: string } | null> {
   return env.TENANT_A_DB
     .prepare("SELECT id, shipper_party_id, consignee_party_id, bill_to_party_id, status_cache FROM shipments WHERE id = ?")
@@ -230,8 +235,16 @@ describe("POST /v1/shipments — quote-stage row with party FKs (REQ-195/025)", 
 
   it("a shipment referencing a party that does not exist is a clean 400 (no orphan shipment)", async () => {
     const p = await threeParties("orphan", await opsTok());
+      const before = await shipmentCount();
     const r = await createShipment({ shipper_party_id: p.shipper, consignee_party_id: p.consignee, bill_to_party_id: "ix-nonexistent-party" }, await opsTok());
     expect(r.status).toBe(400);
+      // THE NAME'S SECOND HALF, NOW ASSERTED (audit §456). This test read "(no orphan shipment)" while its
+      // body checked only the status — the §454 shape, where a test answers the question when someone
+      // searches for it. The premise it guards is the one the whole `400`-cluster deferral rests on: a 400
+      // means NOTHING HAPPENED. Here that holds only because `materializeShipment` checks the party FKs
+      // BEFORE its INSERT; moving the check after it leaves all 23 intake/import tests GREEN while every
+      // FK-invalid request strands a shipment row. Ordering is exactly what a refactor changes.
+      expect(await shipmentCount(), "a 400 must leave NO shipment row behind").toBe(before);
   });
 
   it("a non-strict / malformed body is a clean 400", async () => {
