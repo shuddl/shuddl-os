@@ -181,7 +181,19 @@ export async function emitCreditPurchase(
     throw new Error(`CREDIT_SALE_NO_PAYMENT_INTENT: checkout session ${session.id} carries no payment_intent — a one-time credit pack always does; refusing an unlinkable sale (fix the Stripe product mode)`);
   }
   const correlationId = session.payment_intent;
-  const tenant = session.metadata.tenant;
+    // THE TENANT BINDING IS SET OUTSIDE THIS REPOSITORY (audit §403). The Zod shape above requires
+    // `metadata.tenant` to be a non-empty string, and Stripe's signature covers it — so it cannot be
+    // forged in transit. Neither fact establishes that the value names the RIGHT tenant: it is whatever
+    // was written at Checkout Session creation, and **no code in this repository creates one** (grep:
+    // the only `checkout.session` references are consumers). The creating surface is a go-live item
+    // (PROVISIONING_ENABLED / Stripe keys, GO-LIVE-CHECKLIST).
+    //
+    // REQUIREMENT FOR WHOEVER BUILDS IT: `metadata.tenant` MUST be stamped from a server-known slug —
+    // the authenticated session's tenant, as `routes/events.ts` stamps `override.by` from `session.sub`
+    // — and MUST NEVER come from a client parameter (a pricing-page query string, a form field). If it
+    // does, a buyer credits any tenant they can name, and every check downstream still passes: the
+    // signature verifies, the Zod parse succeeds, and the credit lands on the wrong account.
+    const tenant = session.metadata.tenant;
   const tsMs = event.created * 1000;
   const period = periodOf(tsMs);
   const invoiceId = await creditInvoiceIdFor(correlationId);

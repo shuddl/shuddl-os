@@ -22647,3 +22647,71 @@ order inverted by line manipulation after an anchor miss, landed, attributed to 
 restored byte-identical; `EventInput.strict()` loosened and both owning suites re-run; the subsumption
 established by reading `LedgerEvent`'s own `.strict()` backstop rather than inferred from the greens. No
 code changed — nothing needed changing beyond what §400 already filed.
+
+---
+
+## §403 — the field is validated, the surface that gives it meaning does not exist
+
+§402 enumerated the append envelope field-by-field. The same pass applied to the other money-bearing input
+surface — and the only **external** one: the Stripe webhook.
+
+### What holds
+
+- **Verification precedes every state change.** The raw body is read once (*"the signature is over the exact
+  bytes; never re-serialize before verifying"*), verified, and only then dispatched. A failure is a 400 with
+  nothing written.
+- **A missing `payment_intent` refuses loudly**, with the reasoning written out: falling back to the session
+  id would mint *"a phantom stream stuck 'issued' forever, invisible to any sweep."* That is precisely the
+  clause-splitting discipline applied by the original author.
+- **`metadata.tenant` is Zod-required** — `z.object({ tenant: z.string().min(1) }).loose()` — so an absent or
+  empty value fails the parse.
+
+### What does not
+
+`const tenant = session.metadata.tenant;` is the **only** thing binding a credit sale to a customer account.
+Two facts establish its *shape*; neither establishes its *value*:
+
+- Stripe's signature proves the metadata was not altered **in transit**. It says nothing about what was
+  written at Checkout Session creation.
+- Zod proves the string is non-empty. It does not prove it names a tenant, still less the buyer's own.
+
+And the value's origin is not in this repository. **No code here creates a Checkout Session** — the only
+`checkout.session` references are consumers (webhook, credits, the billing types). The creating surface is a
+go-live item (`PROVISIONING_ENABLED`, Stripe keys), unbuilt.
+
+### So the finding is a requirement, not a defect
+
+Nothing is wrong today: with no creation surface, there is no wrong value to write. What exists is a
+**binding that will be established by code nobody has written, at a place with nothing recording the
+constraint.**
+
+Recorded at the consuming line, and filed. The requirement, stated in the terms this codebase already
+demonstrates:
+
+> `metadata.tenant` **must be stamped from a server-known slug** — the authenticated session's tenant,
+> exactly as `routes/events.ts` stamps `override.by` from `session.sub` (§401) — and **never** from a client
+> parameter. If it comes from a pricing-page query string or a form field, a buyer credits any tenant they
+> can name, **and every downstream check still passes**: the signature verifies, the Zod parse succeeds, and
+> the credit lands on the wrong account.
+
+**Low today, Med the day the surface ships.** Filed with that phrasing deliberately — a severity that
+changes on a future commit is the kind [[record-holds-with-expiry-triggers]] exists for, and its trigger is
+unusually crisp: *the first Checkout Session created by this repository.*
+
+### The pattern this completes
+
+§400 found a client field whose furthest consumer decides money, unstamped. §401 found the same file
+stamping its neighbour correctly. §402 enumerated the whole envelope and found seven of eight handled. This
+found the case one step further out: **a field whose stamping code is not late, or missing, but unwritten.**
+
+> **Tracing a field to its furthest consumer has a symmetric move: trace it to its ORIGIN.** `actor.party`
+> was written by a client and read by a money gate. `metadata.tenant` is read by a money gate and written by
+> nothing yet — which is the strictly more dangerous shape, because there is no code to review, no test to
+> add, and no mutation that can fail.
+
+### Verification
+
+Webhook read for verification-before-dispatch ordering; the Zod shape read at both parse sites; the absence
+of a session-creating call established by grep across `workers/` and `packages/` with the result read rather
+than captioned (§360); the requirement recorded at the consuming line **and** filed as a hold with an expiry
+trigger. `typecheck 0`, billing 57 green.
