@@ -1,6 +1,7 @@
 import { env } from "cloudflare:test";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { transportFor } from "../src/index.js";
+import { run214Sweep } from "../src/sweep-214.js";
 import { NotConfiguredTransport, TransportError } from "../src/transport.js";
 import type { TranslatorEnv } from "../src/tenants.js";
 
@@ -56,5 +57,54 @@ describe("REQ-203: the EDI transport is NOT CONFIGURED in any environment (dorma
     // the transport is merely absent, turning a deliberate dormancy into data loss.
     const err = new TransportError("x", true);
     expect(err.retriable).toBe(true);
+  });
+});
+
+// REQ-025/278 — THE 214 SWEEP CONTAINS A PER-TENANT FAILURE (audit §411).
+//
+// The eleventh and last of the per-tenant sweeps §408 counted. Same shape as the other ten: a try/catch
+// INSIDE `for (const slug of await allTenantSlugs(env))`, `resolveTenantDb` within the guard, the roster load
+// outside it. Without it the first tenant whose D1 throws aborts the loop and every tenant after it in slug
+// order never has its 214s swept — silently, the only signal being an absent log line.
+//
+// THE HARNESS IS THE POINT (§410). The other ten tests poison a binding with `{ ...env, TENANT_A_DB: … }`.
+// In THIS worker that spread breaks `allTenantSlugs`, which logs "claimed-tenant enumeration failed" and
+// degrades to the static roster — so the harness damages the very thing under test and the poison's effect
+// cannot be isolated. §410 attempted it twice and reverted rather than ship a test it could not make correct.
+//
+// A Proxy replaces ONE key and delegates everything else to the real `env`, including whatever the spread was
+// dropping. That is the harness §410 said was needed, and it is strictly better than the spread everywhere:
+// it cannot silently omit a binding, because it never enumerates them.
+function poisonBinding(base: TranslatorEnv, key: keyof TranslatorEnv, dead: unknown): TranslatorEnv {
+  return new Proxy(base, {
+    get: (target, prop, receiver) => (prop === key ? dead : Reflect.get(target, prop, receiver)),
+  }) as TranslatorEnv;
+}
+
+describe("REQ-278: run214Sweep contains a per-tenant failure — the tick survives", () => {
+  it("a tenant whose D1 throws is logged and SKIPPED, and the sweep RESOLVES", async () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "log").mockImplementation(() => {});
+
+    // POISON WHAT THE SWEEP TOUCHES FIRST (§411). `sweepTenant214` opens with `listTenderMarkers(r2, tenant)`
+    // — an R2 list, not a D1 query — so a dead D1 handle is never reached when a tenant has no markers, and
+    // the test passes having exercised nothing. That is the same vacuity §410 caught on the weekly gate,
+    // arriving through a different door: the subject ran, but not far enough to touch the poison.
+    const e = env as unknown as TranslatorEnv;
+    const deadR2 = { list: () => { throw new Error("R2_DOWN"); } };
+    await expect(
+      run214Sweep(poisonBinding(e, "EVIDENCE", deadR2), transportFor(e), () => 1_720_000_000_000),
+      "an uncontained per-tenant failure would reject here",
+    ).resolves.toBeUndefined();
+
+    // Non-vacuity — the assertion that caught a silently-skipped sweep in §410. A sweep that returned early,
+    // or whose roster came back empty because the harness broke enumeration, would also "resolve".
+    expect(errors.mock.calls.some((c) => String(c[0]).includes("tenant-a")), "the failing tenant must be named in a loud log").toBe(true);
+    // NOTE (§411): this suite has no control-plane tables, so `allTenantSlugs` ALWAYS logs "claimed-tenant
+    // enumeration failed" and degrades to the static roster — its documented fallback. That message is
+    // ambient here, not harness damage. §410 read it as the blocker and was wrong: the real obstacle was
+    // poisoning D1 when this sweep reaches R2 first. Recorded so the next reader does not re-chase it.
+
+    vi.restoreAllMocks();
   });
 });

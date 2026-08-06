@@ -23195,3 +23195,65 @@ rather than guessed; the correct day computed from `getUTCDay` rather than assum
 interference identified by printing the captured error calls, then the whole attempt reverted with
 `git checkout` and both suites re-run to confirm the tree is clean (translator 111, agents 122).
 `typecheck 0`.
+
+---
+
+## §411 — the bound closed at 11 of 11, and §410's blocker was a misdiagnosis
+
+§410 stopped at 10 of 11 and recorded the obstacle: *"needs a harness that replaces one binding without
+reconstructing `env`."* That was a precise, actionable statement — and it was **wrong**.
+
+### The harness fix was real but not the blocker
+
+A `Proxy` does replace one key and delegate the rest, and it is strictly better than `{ ...env, … }` because
+it cannot silently omit a binding: it never enumerates them. Applied, it made no difference to the failure.
+
+The failure's actual message was the one §410 quoted and misread. `allTenantSlugs` logs *"claimed-tenant
+enumeration failed"* on **every** run in that suite, because the translator's test env has no control-plane
+tables, so the claimed-tenant read always degrades to the static roster — **its documented, correct
+fallback.** That line is ambient. §410 saw it in the captured errors, saw no tenant failure beside it, and
+concluded the harness had broken enumeration. The enumeration was fine.
+
+### The real obstacle: poisoning something the sweep never reaches
+
+`sweepTenant214` opens with `listTenderMarkers(r2, tenant)` — **an R2 list, not a D1 query.** With no markers
+for a tenant, the loop body never runs and the D1 handle is never touched. A dead `TENANT_A_DB` therefore
+produced no throw, no containment, and a test that resolved having exercised nothing.
+
+Poisoning `EVIDENCE` instead — the binding the sweep reaches first — makes `listTenderMarkers` throw inside
+the per-tenant guard, which logs the slug and continues. **112 green**, and mutation-proved: removing the
+containment fails exactly this test.
+
+### That is §410's vacuity, through a different door
+
+§410's tenth row was empty because a **weekly gate** returned before the loop. §411's eleventh was empty
+because the **poison sat past the first await**. Both resolved; both proved nothing; both were caught only by
+the non-vacuity assertion — *was the failing tenant named?* — and by nothing else.
+
+> **A poison must be placed on the first thing the subject touches, not on the thing the subject is about.**
+> This sweep is *about* per-tenant D1 work; it *begins* with an R2 list. Every intervening step is a chance
+> for the setup to stop short, and the test cannot tell the difference between "contained" and "never got
+> there."
+
+### And the record was wrong for one section
+
+§410's stated blocker sent the next reader at the harness. It cost one Proxy to find out — cheap, because
+the bound named something falsifiable. **A wrong reason recorded precisely is still worth more than a vague
+one**, since it can be disproved in a single attempt; a bound reading *"this was hard"* cannot.
+
+Corrected in the test file itself, where the ambient log line is now explained so nobody re-chases it.
+
+### The hold is closed
+
+**11 of 11.** `billing/metering` · eight in `workers/agents/src/index.ts` · `watchtower-snapshot` ·
+`translator/sweep-214`. Each poisons one binding, asserts the sweep **resolves**, and asserts the failing
+tenant was **named** — the assertion that caught two vacuous rows out of eleven, an 18% vacuity rate in tests
+written by someone deliberately watching for it.
+
+### Verification
+
+Proxy harness applied and shown not to change the outcome (isolating the real cause); the ambient enumeration
+log traced to the absent control-plane tables rather than to the harness; the poison relocated to the
+binding named in the sweep's first statement; mutation-proved by removing `sweep-214`'s containment (1 RED,
+named) and restored byte-identical; hold row struck with all eleven sites listed. `typecheck 0`,
+translator 112 green.
