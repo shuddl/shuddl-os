@@ -20088,3 +20088,100 @@ Population re-measured by a scan that prints its count before its rows (32 sites
 thirteen call sites read in full; the jurisdiction byte-binding read assertion-by-assertion rather than
 summarized; `device_keys` reachability established from the schema default plus an exhaustive writer grep,
 both quoted. No code changed in this section. `typecheck 0 · check:tables 0 · check:citations 0`.
+
+---
+
+## §372 — the bound closed, and the one fallback that says `true`
+
+§370 and §371 traced 13 of the fallback sites and named the rest as untraced. **All are now traced.**
+
+### The population is 33, and the count depends on the predicate
+
+Three scans, three answers: **32**, **31**, **33**. None was wrong.
+
+| predicate | count | what it uniquely admitted / excluded |
+|---|---|---|
+| a `return <literal>` within 3 lines of the `catch` | 32 | admitted `driver-manifest.ts@parseGeo` |
+| a `return <literal>` inside the catch's own body | 31 | excluded it — `parseGeo`'s catch holds only a comment; the `return null` is *after* the try/catch |
+| a `return <literal>` within 5 lines | 33 | surfaced `tools/document.ts@invoiceOnShipment`, missed by both |
+
+This is the §368/§371 family in its most instructive form: **not a truncated view, but three honest
+measurements of three subtly different sets.** A population count carries no meaning without the predicate
+that defines it, and "the fallback sites" is not a predicate — it is a phrase that felt like one.
+
+The operative form: **state the predicate beside the count, and when two counts disagree, find the
+specific member that separates them.** Both deltas here were one named site, located in under a minute,
+and the second of them turned out to be the only interesting site in the whole sweep.
+
+### Thirty-two lean safe
+
+`gateBlock` → `[]` (a block with no named evidence is still a block) · `mirror-sweep`, `sweep-214` → `null`
+(skip, never a default config) · `watchtower` → `""` (no last id, never a fabricated one) · the six
+LLM-output readers → `undefined` (*"a malformed response → fail-safe"*) · `scopeStillAllowed` → `false` ·
+`parseScopeList` → `[]` (*"an empty allowlist grants nothing — fail-closed, never fail-open"*) ·
+`parsePayload` → `null` (*"the caller SKIPS it, never fabricates a 0"*) · `resolveDunningRecipient` →
+`undefined` · plus the thirteen of §370–§371.
+
+**Observability, measured:** 2 of 33 log; 31 are silent. And silence is *correct* wherever it was traced —
+the refusal carries a coded reason the caller receives (`MutationBlocked("caps_unconfigured", …)`,
+`ApiError`), or the degradation is ordinary operation (an absent optional field). The two that log are the
+`rate-config` transit-matrix loaders, and their comment says exactly why: display-only, non-required,
+*"must NEVER throw, or it would 500 an otherwise-priceable /rate quote"* — a degradation that changes what
+a customer sees is the one worth a line in the log.
+
+### The near-miss worth recording
+
+`parseCaps` returns `null` for **both** a missing caps row and a malformed one, and the caller reports both
+as `caps_unconfigured` — *"no spend/velocity cap configured"*, which is misleading if a corrupt row exists.
+I drafted a two-line fix to distinguish them at the call site.
+
+Then checked: the malformed case is **deliberate**, established by the earlier F2 exit audit, and pinned by
+a test that seeds a `BADLANES` pairing and asserts `caps_unconfigured` precisely. *Unusable = unconfigured*
+is a decided semantic, not an oversight. The change would have been a regression against a prior audit's
+finding, dressed as a diagnostics improvement.
+
+**A collapsed distinction is not evidence of carelessness.** It is as often a decision — and the way to
+tell is that a decision leaves a test behind.
+
+### The one that says `true`
+
+`workers/mcp/src/tools/document.ts:92@invoiceOnShipment` is the only site in 33 whose fallback **includes**
+rather than excludes: an invoice whose `shipment_ids` is unparseable is *kept*, with the comment *"shape
+unknown — keep the lens-authorized invoice (precision, not scope)."*
+
+The comment's risk classification is right, and its premise survives checking: the D1 handle is claim-keyed
+(REQ-025), the party lens binds `party_id` from the claim, and a tenant-lens caller is already entitled to
+every in-tenant invoice. **No authorization consequence.**
+
+But verifying the premise turned up something the premise did not cover. The tool requests:
+
+```
+GET /v1/invoices?shipment_id=<id>
+```
+
+and **`workers/api/src/routes/invoices.ts` reads no query parameters at all** — grep for `c.req.query` /
+`searchParams` in that file returns nothing. The tenant-lens branch is `SELECT … FROM invoices ORDER BY id`
+with no `WHERE`. The narrowing to one shipment is *entirely* client-side, which the tool's own comment does
+say — so this is not a misunderstanding in the tool. It is a **dead query parameter** that reads, to the
+next author, like server-side narrowing they may be tempted to trust.
+
+### What that makes it: an amplifier on a hold already filed
+
+`invoices.ts:56@INVOICE_COLS_TENANT` is already the headline of the standing *"Unbounded list reads — 5
+sites"* hold (§183) — *"every invoice, NO `WHERE` at all… the worst on the highest-volume object."* What
+the hold recorded was a **portal list view**. It did not record that the MCP `document` tool pulls the same
+unbounded result **to answer a single-shipment question**, on every `get_document(invoices: true)` call.
+
+Filed against the existing hold rather than as a new one — the fix is unchanged (keyset-paginate; a bare
+`LIMIT` is forbidden here because it truncates silently), but the *frequency* and the *trigger* were
+understated by a consumer nobody had walked to.
+
+**A hold is sized by its consumers, and consumers are found by tracing, not by reading the line again.**
+This one had been read carefully enough to quote in two audits and still had a caller nobody followed.
+
+### Verification
+
+All 33 sites read; the three population counts reconciled to their named differing members rather than
+averaged or overwritten; `invoices.ts`'s parameter handling established by an exhaustive grep whose empty
+result is reported as empty (§360); the `caps` semantic checked against the test that pins it before any
+edit was made. One record change (the hold row), no code change. `check:tables 0`.
