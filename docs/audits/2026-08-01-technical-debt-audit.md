@@ -24033,3 +24033,71 @@ that ordering so the next pass starts at the weakest.
 Mutation applied at the durability write rather than at a call site; e2e run three times (fail, attribution,
 detail) with the source restored and `diff -q`-confirmed after each; the gate's JSON verdict read from the
 run's own `##SHUDDL-GATE##` line rather than from the exit code.
+
+---
+
+## §424 — the a11y gate works, and scans the three screens nobody uses
+
+§423 closed with a bound and an ordering: *"`visual` and `a11y` are the likelier of the three to be weak (a
+screenshot gate passes on any stable render; an axe scan passes on any page it can reach)."* Taking `a11y`
+first, as stated.
+
+### Two mutations, and the first one was mine to misread
+
+**Mutation A** — inject a critical `image-alt` violation (an `<img>` with no `alt`) into the portal's
+`<main>` render. **Gate: PASS, 4 of 4.**
+
+That looks exactly like the finding §423 predicted. It is not, and §411's rule caught it: *a poison must be
+placed on the first thing the subject touches.* `App.tsx` branches at line 49 — unauthenticated renders
+`<ReAuthPrompt />`, not `<Board>` — and the a11y audit is a bare `page.goto(url)` with **no session**. My
+violation was in a tree the scan never reaches. The PASS was correct.
+
+**Mutation B** — same violation, injected into `ReAuthPrompt`, the tree that actually renders. **Gate: FAIL,
+`1 failing of 4`**, naming the portal test, with the JSON flipping to `status:"FAIL", executed:true`.
+
+**So the gate works.** Its scope is the finding.
+
+### What the gate claims and what it covers
+
+> *"THE BUDGET: zero serious and zero critical axe findings on **every core flow**."*
+
+`audit(page, url)` visits three URLs with no authentication. For the portal that is a re-auth prompt; for
+command and driver, their pre-auth views. **The board a customer reads, the day sheet a driver works, the
+queues an operator lives in — none are scanned.**
+
+The file itself shows the gap is not a capability problem: the *sibling* test in the same file drives the
+real driver day sheet (*"reachable and operable by keyboard alone"*), and the e2e suite next door has a
+working `signIn` helper. The tooling to authenticate is present and used ten lines away.
+
+Filed Low–Med, advisory until WP-10 per REQ-158, with the remedy stated both ways: authenticate before
+auditing, **or** narrow the budget sentence to what is actually scanned. Either resolves it; leaving a
+sentence that says *"every core flow"* over a scan of three landing screens does not.
+
+### The two-mutation pattern is the transferable part
+
+A single green proves nothing about a gate whose weakness is *reach*. It took **two** mutations to separate
+the hypotheses:
+
+| | injected where | gate | means |
+|---|---|---|---|
+| A | a tree the scan cannot reach | PASS | either the gate is blind **or** the poison is unreachable |
+| B | the tree it does reach | **FAIL** | the gate is not blind — so A was unreachable, and *that* is the scope finding |
+
+**B is what converts A from an ambiguous green into a measured boundary.** Without it, A supports "the a11y
+gate is hollow" — a wrong and much louder claim than the true one.
+
+That is §389's three-explanation discipline applied to a gate rather than a guard, and it is the third time
+this phase that the *second* probe changed the verdict (§398's echo skip, §411's R2-first sweep, this).
+
+### Bound
+
+`visual` (5) and `perf` (1) remain unchecked — 6 assertions. `visual` is next by §423's ordering, and it has
+the same shape of risk: a screenshot gate that photographs a pre-auth screen certifies the pixels nobody
+disputes.
+
+### Verification
+
+Both mutations landed (`git diff --numstat`) and restored byte-identical; the render branch read at
+`App.tsx:49` rather than inferred from the PASS; the second mutation's failure attributed to the portal test
+by name and to the gate's own `##SHUDDL-GATE##` JSON; the sibling keyboard test and the e2e `signIn` helper
+located to establish the remedy is available in-repo.
