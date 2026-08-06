@@ -9241,7 +9241,7 @@ the set. It is an assertion that cannot fail in either branch — the shape
 [[mutation-prove-the-pin-not-just-the-fix]] exists to catch.
 
 **Severity is Low, and saying so matters:** the real guard is server-side — `DriverManifest.parse` is
-strict and throws rather than leaks (`workers/api/src/routes/driver-manifest.ts:126@DriverManifest`).
+strict and throws rather than leaks (`workers/api/src/routes/driver-manifest.ts:132@DriverManifest`).
 Nothing leaked. What was wrong was the *proof*, and a test named for a leak that cannot detect one is
 worse than no test, because it is counted.
 
@@ -9985,7 +9985,7 @@ without its line number: naming the stale address is indistinguishable from maki
 rejected this sentence too — the third time this session, after §175's two):
 
 ```
-FAIL … driver-manifest.ts:126@DriverManifest — anchor "DriverManifest" not found in lines 120-124
+FAIL … driver-manifest.ts:132@DriverManifest — anchor "DriverManifest" not found in lines 120-124
 FAIL … invoices.ts:56@INVOICE_COLS_TENANT   — anchor not found
 FAIL … export.ts:120@DOC_EXPORT_COLS        — anchor not found
 ```
@@ -24437,3 +24437,51 @@ Reverted with `git checkout` and re-inserted after the block's closing brace.
 **Bound carried forward.** 12 of the 15 hash/canonicalization claims remain. The selector is now 3-for-3 at
 finding the untested half of a quantified claim, and — more usefully — it also produces clean negatives
 fast: two of the three claims here were cleared by reading one test name each.
+
+## §432 — a parity comment can be wrong in the SAFE direction, and that is still a defect
+
+The two auth-adjacent claims §431 named. One is clean; the other two comments describe an architecture the
+code has already improved past, which is a category this audit has not recorded before.
+
+**CLEAN — `workers/api/src/routes/signup.ts:56`**, *"mirrors middleware/auth.ts (HS256 over JWT_SECRET) and
+the SessionClaims shape."* Bound as strongly as it can be: `signup.test.ts` does not merely decode the
+minted token, it drives it through the real app at `/v1/_probe` — real middleware, real
+`verify(…, "HS256")`, real `SessionClaims.safeParse` — asserts it resolves to the tenant's OWN pool D1, and
+checks isolation in **both** directions (the signed-up admin never reads tenant-a; a tenant-a session never
+reads the new pool). Shape proved by acceptance, not by inspection. Nothing to add.
+
+**THE DEFECT IS THE OPPOSITE OF DRIFT.** `gate-context.ts:15` claimed `assignmentOf` was *"byte-identical
+to the query the events route uses for its driver write-scope (workers/api/src/routes/events.ts)."*
+`routes/events.ts` contains no such query — it **imports and calls `assignmentOf`**, and so does
+`routes/positions.ts`. There is ONE write-scope implementation with two callers, which is strictly stronger
+than two byte-identical copies. The comment describes a duplication that does not exist.
+
+That is not harmless. A maintainer reading it goes looking for the second copy to keep in sync, and the
+plausible resolutions are all bad: conclude the sync is broken, or "restore" the duplicate the comment
+warns about — recreating, in a REQ-030 authorization predicate, exactly the drift surface the sharing
+removed. **A parity claim that overstates duplication is an invitation to add it.**
+
+**The manifest's claim was imprecise in the other way.** `driver-manifest.ts:12` called its read scope
+*"byte-identical to the events/positions driver write-scope."* It is not: the write path is a separate
+SELECT plus a JS `row.d === driverSub`; the read path is inline SQL (`json_extract(…) = ?`) inside the
+manifest join. Two genuinely different implementations of one predicate — a real parity surface, just not
+the one claimed. They are equivalent where it counts: **both fail closed** on an unassigned or NULL
+`assigned_driver` (SQL `= ?` against NULL yields NULL and drops the row; the JS `===` is false).
+
+**Both comments corrected to say what is true**, and the replacement sentence — *"the equivalence is pinned
+by test, not by this sentence"* — was **proved before it was written**. Widening the manifest scope
+(`… = ?` → `(… = ? OR 1=1)`, which keeps the bind arity so the failure is the scope and not a SQL error)
+turns **4 tests RED**, every one naming the driver read path: own-stops-only, cross-driver, no-assignment,
+and the geo-withholding case. Restored byte-identical; `typecheck` and `lint` exit 0.
+
+**The new category, worth carrying.** Prior sections found claims that were *unenforced* (§428) or *pinned
+on one branch of two* (§429–§431). This is a third kind: **a claim that was true when written and became
+false because the code got better.** It cannot be found by testing the claim — the test passes, the
+behaviour is correct, and the only thing wrong is the map. It is found by reading the comment against the
+callers, which is cheap, and it matters most exactly where this one sits: on an authorization predicate,
+where the comment's suggested remedy is to duplicate it.
+
+**Bound carried forward.** 10 of the 15 hash/canonicalization claims remain (§429–§432 have taken five).
+The quantifier selector is 3-for-3 on quantified claims and now has a companion check for cross-boundary
+ones: **read the claim against the callers before testing it — sharing may already have replaced the parity
+it describes.**

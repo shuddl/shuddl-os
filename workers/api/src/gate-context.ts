@@ -12,8 +12,11 @@ import { deriveOperatingState } from "@shuddl/ledger/geo/jurisdiction";
 
 /**
  * REQ-030 — a driver may write to a shipment ONLY if the status-cache projection has assigned it to
- * them. The client-supplied shipment_id is UNTRUSTED until this passes. Byte-identical to the query the
- * events route uses for its driver write-scope (workers/api/src/routes/events.ts); ops/admin are
+ * them. The client-supplied shipment_id is UNTRUSTED until this passes. THIS IS THE WRITE SCOPE — the one
+ * implementation, CALLED by both write paths (routes/events.ts and routes/positions.ts), not duplicated
+ * into either. (This comment previously claimed to be "byte-identical to the query the events route uses",
+ * describing a second copy that does not exist; audit §432 corrected it. Sharing is the stronger
+ * arrangement, and the wording invited someone to restore the duplication it warned about.) ops/admin are
  * unrestricted, so the caller checks `role === "driver"` before calling this. `assigned_driver` is
  * compared to the AUTHENTICATED principal (session.sub → users.id), never a client field.
  */

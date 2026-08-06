@@ -9,9 +9,15 @@ import type { Env, Vars } from "../index.js";
 //
 // TENANT + DRIVER FROM AUTH ONLY (REQ-025/156): tenant comes from the JWT claim (resolveTenantDb —
 // a header/query tenant is rejected at auth) and the driver is `session.sub`, compared to the
-// status-cache projection's `assigned_driver` (byte-identical to the events/positions driver write-scope
-// in ../gate-context.js). A cross-driver / cross-tenant probe therefore returns NO stops — the manifest
-// is scoped by the verified principal, never by anything in the request.
+// status-cache projection's `assigned_driver`. This is the READ scope, and it is a SECOND implementation
+// of the same predicate the write paths enforce via `assignmentOf` (../gate-context.js): inline SQL inside
+// the manifest join here, a separate SELECT plus a JS `===` there. NOT byte-identical — the earlier
+// wording said so and was wrong (audit §432) — but semantically equivalent, and equivalent in the
+// direction that matters: BOTH fail closed on an unassigned or NULL `assigned_driver` (SQL `= ?` yields
+// NULL and drops the row; `row.d === driverSub` is false). The equivalence is pinned by test, not by this
+// sentence — driver-manifest.test.ts covers cross-driver isolation in BOTH directions plus the
+// no-assignment case. A cross-driver / cross-tenant probe therefore returns NO stops — the manifest is
+// scoped by the verified principal, never by anything in the request.
 //
 // POD-BEFORE-NEXT-ADDRESS (server-side, current V1 policy): stops are ordered; a stop is `revealed` only
 // once EVERY earlier stop's terminal evidence is committed to the ledger. A withheld future stop is
