@@ -25577,4 +25577,4 @@ mutation gives **1 failed / 18 passed**. Removing the domain separation instead 
 §389's sense, pinned so it cannot later be removed as dead weight. **A guard whose removal is silent will
 eventually be removed**; this one is no longer silent.
 
-`workers/api` **775 passed**; `typecheck`, `lint` clean.
+`workers/api` **776 passed**; `typecheck`, `lint` clean.
