@@ -280,6 +280,14 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 > typecheck failures invisible to a green vitest run (§434, §435). **The gate ordering
 > `typecheck && lint && citations && commit` blocked three commits this phase and was right every time** —
 > which is the operational answer to a discipline that demonstrably does not survive on care alone.
+>
+> **REGISTRY SWEEP CLOSED (§437–§440, 2026-08-06).** All 47 exported registries scored on §436's axes; the
+> 14 with no by-name test reference discharged by mutation — **12 probed, 3 real gaps, all fixed and
+> mutation-proved; 2 excluded with a stated reason (LLM prose, where mutation has no meaning).** The gaps
+> were EDI freight invisible to every money/ops aggregate, a CLAUDE.md rule-10 silent drop reachable by a
+> one-line addition, and every newly provisioned tenant seeded to sell at COST. **This is a stopping point
+> with a closed enumeration behind it**: not "no more found" but "the population was enumerated, scored,
+> and each member either probed or excluded on the record".
 
 Grades from `V2-EXECUTION-FRAMEWORK.md` §9. What this audit adds to each bar:
 
@@ -24810,3 +24818,61 @@ reached the record.
 no-by-name-reference registries remain. Running total: **3 real gaps in 6 probes** — `NATIVE_VISIBLE_SOURCES`
 (§437), `CANONICAL_FIELDS`/`idx` (§438), and this. Half the probes find something, and all three findings
 were money- or compliance-affecting rather than cosmetic, which is the argument for finishing the sweep.
+
+## §440 — the registry sweep, closed: 12 probed, 3 real gaps, all fixed
+
+§437 opened a sweep of all **47** exported registries, scored on §436's three axes, and triaged **14** with
+no by-name test reference. That triage is now discharged by mutation — the only predicate §437 concluded
+actually works.
+
+**PROBED (12), each by mutating the registry and running its owning suites:**
+
+| Registry | Mutation | Result |
+|---|---|---|
+| `RETENTION_MS` (pod-7yr) | 7 years → 7 days | **clean** — 1 failed |
+| `RETENTION_MS` (default) | 1 year → 1 day | **clean** — 1 failed |
+| `POD_RETAINED_KINDS` | emptied | **clean** — 1 failed |
+| `NATIVE_VISIBLE_SOURCES` | drop `edi` | **GAP** — 625/625 green (§437, fixed) |
+| `CANONICAL_FIELDS` / `idx` | add a 14th field | **GAP** — typecheck 0, 38/38 green (§438, fixed) |
+| `DEFAULT_BROKERAGE_PARAMS` | margin 18% → 0 | **GAP** — `check:seed` 0, signup 16/16 (§439, fixed) |
+| `DEFAULT_AGENT_BUDGET` | budget ×1000 | **clean** — 4 failed (api, not agents) |
+| `FONTS` | add a 3rd family | **clean** — *"exactly 2 font families"* |
+| `TERMINAL_WEBHOOK_KINDS` | drop `invoice.issued` | **clean** — 1 failed |
+| `MIRROR_MODULES` | drop `settlement` | **clean** — 2 suites reject at load |
+| `DUNNING_TONES` | swap a subject tag | **clean** — 1 failed |
+| `TAG` (DER) | corrupt a tag byte | **clean** — 10 failed |
+
+**NOT PROBED (2), with the reason stated rather than counted as clean:** `MIGRATOR_SYSTEM_PROMPT` and
+`COPILOT_SYSTEM_PROMPT` are LLM prose. Mutation has no meaning there — there is no byte that is *wrong* —
+so this instrument cannot judge them and does not pretend to. `PARTY_KINDS` needs no probe: §428's gate now
+pins it against the DDL `CHECK`.
+
+**Final yield: 3 real gaps in 12 probes (25%), and all three were money- or compliance-affecting** — EDI
+freight invisible to every aggregate, a silent drop that CLAUDE.md rule 10 forbids by name, and every new
+tenant seeded to sell at cost. Not one was cosmetic. §437's initial estimate (one in four) was right in rate
+and wrong in severity: the gaps clustered in the registries that *decide money*, because those are the ones
+whose values look like configuration and get read as inert.
+
+**Three observations worth more than the count.**
+
+**(1) Coverage does not live where the registry does.** `DEFAULT_AGENT_BUDGET` is defined in
+`workers/agents` and pinned only by `workers/api`'s watchtower suite — the agents package's own 219 tests
+pass with the budget raised 1000×. A per-package run proves less than it looks; the probe has to include
+the consumers.
+
+**(2) Enforcement is not always an assertion.** `MIRROR_MODULES` is held by fixture configs failing Zod
+validation at suite load, and `CANONICAL_FIELDS` is now held by the compiler. Both are stronger than a test
+and neither prints a sentence a maintainer can read — the `MIRROR_MODULES` signal is a raw `ZodError`. That
+is a legibility cost, not a defect, and worth knowing before someone debugs it.
+
+**(3) The gate named for a budget is not always the one enforcing it.** A third font family passes
+`audit:design` ("design audit: clean") and fails the design package's unit test. The CLAUDE.md budget holds
+— both run in CI — but the *name* points at the wrong gate, which is the §425/§426 shape again.
+
+**Three mis-applied mutations in this section alone, each caught by its own numbers**, none reaching the
+record: a `replace(…, 1)` that hit the colour tokens instead of `FONTS` (attributed to *"exactly 5 colour
+tokens"*, a test with no business failing); a regex that did not match `DUNNING_TONES`' object form, leaving
+**219/219 green with no mutation applied**; and an adapters run reporting exit 1 with **19 tests where 38
+had run before** — a suite that failed to LOAD, not an assertion that fired. **A green after a failed edit,
+and a red with a shrunken test count, are both statements about the edit rather than the code.** `git diff
+--numstat` and the test TOTAL, every time.
