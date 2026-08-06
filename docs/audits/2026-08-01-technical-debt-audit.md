@@ -23445,3 +23445,64 @@ attributed by failing test name rather than count.
 Both guards located at their line and mutated in one pass (independent subjects, one suite run); the four
 failures read individually and matched to their guards; both files restored byte-identical and confirmed by
 `diff -q`. No code changed.
+
+---
+
+## §415 — the quiet neighbour of signature verification, and a field nothing reads
+
+§414's heuristic, applied deliberately: **signature verification is the famous problem here** — device
+co-signing, I4, `verifyEventSig`, a charset pre-check, three tests on hostile input (§405). Its quiet
+neighbour is not *whether* the signature verifies but **what it binds**, and this repository already has a
+hold on exactly that: *"Device signature does not bind `source`/`party_refs`."*
+
+### The hold names two. There are four.
+
+`clientView` — the frozen byte-view the signature covers — binds ten fields: `id, shipment_id, kind,
+payload, evidence, actor, ts, device_id, device_seq, captured_ts`.
+
+The envelope carries four more that it does **not**: `source`, `party_refs`, `confidence`, `override`.
+
+That is §385's *accurate-but-incomplete* shape, and the obvious move is to widen the hold. The right move is
+to check whether the omission matters — because a hold widened without checking is just a longer hold.
+
+### The two unnamed are immaterial, and now the record says why
+
+- **`confidence`** is written into the events column list and **read by no decision anywhere.** Grepped
+  across `packages/ledger/src`, `workers/*/src` and `db/`: every other hit is a different field —
+  `confidence_bps` inside agent-run payloads, `low_confidence` as a mapper reason. The envelope's own
+  `confidence` is stored and never consulted. **An unbound field nothing reads cannot be tampered into a
+  consequence.**
+- **`override`** requires an elevated role at the route — `ops/admin/finance` — and a device-signed append
+  is a driver's. §401 proved that gate fires (a driver attaching an override is 403). A field a device
+  cannot legitimately carry does not need the signature's protection.
+
+And **`source`** is forced to `native` on every client post (§373), so its unbound status is moot regardless.
+
+**That leaves `party_refs`** — the one materially-unbound field, feeding the party lens's
+`EXISTS (SELECT … json_each(party_refs) …)`. §402 established the exposure is self-scoped: a client sets it
+only on events it authors.
+
+So the hold is **right about which fields matter and silent about why the others do not** — which is the
+condition that makes the next reader redo this. Recorded on the row.
+
+### The observation worth keeping separately
+
+**`confidence` is validated, stored on every event, hashed into the chain, and read by nothing.** It is not
+a defect — the 35-kind envelope is frozen, so the field cannot be removed, and carrying an unused column is
+free. But it is worth knowing, because it is exactly the kind of field that looks load-bearing to a reader:
+it has a branded type (`Bps`), a validation rule, and a column.
+
+> **A field's presence in an envelope says nothing about whether anything acts on it.** The audit-relevant
+> question is never "is this field validated?" but "**what changes if it is wrong?**" — and for
+> `confidence`, today, nothing does.
+
+That is the same question §402 asked of `actor.party` and got the opposite answer: written by a client, read
+by a money gate. Two fields, one envelope, one question, opposite verdicts — and only the tracing tells them
+apart.
+
+### Verification
+
+`clientView`'s bound set read from its destructure rather than its signature; the four unbound fields
+derived by differencing against `eventBaseShape`; `confidence`'s consumer set established by a grep across
+three trees whose every hit was read and classified; `override`'s reachability closed against §401's
+already-mutation-proved role gate. One record change, no code. `check:tables 0`.
