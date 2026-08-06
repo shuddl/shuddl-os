@@ -29,3 +29,23 @@ async function sha256Hex(s: string): Promise<string> {
 export async function partyIdForEmail(email: string): Promise<string> {
   return `party_${(await sha256Hex(`shuddl:party:email:${normalizePartyEmail(email)}`)).slice(0, 16)}`;
 }
+
+/**
+ * The NAME-keyed party id both surfaces derive when the party carries no email: `party_<first 16 hex of
+ * sha-256('intake:party:name:' + trim(lower(name)))>`.
+ *
+ * THE `intake:` PREFIX IS LEGACY AND DELIBERATE. It does not match `partyIdForEmail`'s `shuddl:` namespace
+ * because this scheme predates the extraction and is already persisted in `parties.id`; re-namespacing it
+ * would orphan every name-keyed party ever created and split each one in two. Byte-exactness is the point,
+ * not symmetry — do not "tidy" this prefix.
+ *
+ * Extracted (audit §433) per the note BOTH call sites carried. It had been inlined three times — once in
+ * `workers/api/src/intake-core.ts` and twice in `workers/translator/src/core/map-204.ts` — under a comment
+ * reading "MUST byte-match … pinned by test/party-id-parity.test.ts". That lock pinned only the translator
+ * copy against a formula the test itself recomputed, so changing intake-core's scheme left it GREEN (6/6,
+ * measured) while the two surfaces drifted into DUPLICATE broker parties: the split-billing and
+ * credit-hold-evasion risk on the name axis (REQ-196). One function, three callers, no lock required.
+ */
+export async function partyIdForName(name: string): Promise<string> {
+  return `party_${(await sha256Hex(`intake:party:name:${name.trim().toLowerCase()}`)).slice(0, 16)}`;
+}

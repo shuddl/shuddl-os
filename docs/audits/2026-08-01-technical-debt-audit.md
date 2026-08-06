@@ -11857,7 +11857,7 @@ route beside an MCP tool. Name collisions, not duplicated logic. §223 and §224
 derive an identical party id *"so they cannot silently drift into duplicate broker parties (the
 split-billing / credit-hold-evasion risk, on the name axis)."*
 
-**The scheme is inlined three times** — once in `workers/api/src/intake-core.ts:64@intake` (the authority)
+**The scheme is inlined three times** — once in `packages/contracts/src/party.ts:49@partyIdForName` (the authority)
 and **twice in `map-204.ts`**: the bill-to broker branch, and the **no-bill-to branch where the shipper is
 the counterparty**.
 
@@ -11991,7 +11991,7 @@ would happily diverge, it is duplicated — and the comment is the only thing ho
 
 Every one of the five real gaps had the same tell: **the comment named another file by path.** *"Keep in
 lockstep with workers/api/src/routes/positions.ts"*, *"the SAME customer tenants"* naming two workers,
-*"byte-identical to a CSR one"*, *"mirrors `workers/api/src/intake-core.ts:64@intake`"*. A structural claim does not need to name a
+*"byte-identical to a CSR one"*, *"mirrors `packages/contracts/src/party.ts:49@partyIdForName`"*. A structural claim does not need to name a
 file, because the shared mechanism is the reference — `rest.ts` says *"the SAME dispatch"*, not a path.
 
 That is a mechanical filter over the remaining 59, and it costs a grep rather than 59 mutations.
@@ -24485,3 +24485,54 @@ where the comment's suggested remedy is to duplicate it.
 The quantifier selector is 3-for-3 on quantified claims and now has a companion check for cross-boundary
 ones: **read the claim against the callers before testing it — sharing may already have replaced the parity
 it describes.**
+
+## §433 — a "parity LOCK" that locked one side, and the trap in fixing it
+
+`workers/translator/src/inbound.ts:227@persistParty` claims to mirror `intake.ts`'s party write — while
+`workers/api/src/intake-core.ts` opens by calling itself *"THE ONE implementation of net-new party/shipment
+materialization … no reimplement, no drift."* Two records, one subject, and they cannot both be right.
+
+**Both were, partly.** Party IDENTITY is genuinely shared on the email axis: the translator imports
+`partyIdForEmail` from `@shuddl/contracts`, so a mixed-case EDI `Bob@Acme.com` and a CSR-entered
+`bob@acme.com` collapse to one party. The `INSERT OR IGNORE` differs (the translator writes role-tagged
+`addresses` the CSR path has no concept of), which is legitimate divergence, not drift.
+
+**The name axis was the gap.** With no email on file, the id is
+`party_<first16 sha256("intake:party:name:" + trim(lower(name)))>` — and that scheme was INLINED three
+times: once in `intake-core.ts`, twice in `map-204.ts`. A test named *"the ZERO-TOUCH parity LOCK"* existed
+to hold them together, and its header names the exact risk: *"duplicate broker parties (the split-billing /
+credit-hold-evasion risk)."*
+
+**It locked one side.** The lock imports `mapTenderToBooking` (the translator) but never `intake-core`, and
+recomputes the formula in the test file. **Measured: changing `intake-core`'s domain prefix left it 6/6
+GREEN** while the two surfaces derived different ids for the same firm. The lock could not fail for the
+reason it was written. Its header explains why it was built that way — extracting a shared helper *"would
+touch a shipped file, forbidden here"* under WP-12 — and prescribes the remedy: *"a future non-WP-12
+refactor should extract partyIdForName into @shuddl/contracts and repoint both surfaces."* **WP-12 is
+closed**, so that is what this section did. One function, three callers, no lock required — §428's lesson
+(sharing beats parity) applied where the code itself had already asked for it.
+
+**THE FIX HAD THE SAME TRAP INSIDE IT.** Once both surfaces call `partyIdForName`, a test comparing
+map-204's output to `partyIdForName(...)` proves only that map-204 USES the shared function: change the
+function and both sides move together, still agreeing, still green. Sharing removed the drift between two
+surfaces and would have hidden a drift of the scheme ITSELF — the one-sided lock's failure mode wearing a
+new hat, introduced by its own remedy.
+
+These ids are **persisted in `parties.id`**. Re-namespacing or re-normalizing does not migrate them: every
+existing name-keyed party becomes unreachable and the next tender mints a second row for the same firm —
+the duplicate-broker outcome by a different route. So the scheme is pinned to **frozen literals**, computed
+once outside the code under test: `party_94d5d053eef3c59f`, `party_57536bbb80656810`. **They matched on the
+first run, which is the proof the extraction changed no bytes and orphaned no party.**
+
+**Two mutations, failing DIFFERENT tests — the division is the design.** Changing the shared scheme
+(`intake:` → `edi:`) turns the two golden assertions plus the prefix negative-control RED and leaves the
+comparison tests green. Re-inlining the scheme in map-204 turns three comparison tests RED and leaves the
+goldens green. **Neither mutation is caught by the other's tests**, which is exactly why both halves exist:
+comparisons stop re-inlining, goldens stop scheme drift. Restored byte-identical. `@shuddl/contracts` 285,
+`@shuddl/translator` 114, `api/intake` 12, `typecheck`, `lint` — all pass.
+
+**The lesson, and it is the sharpest one this phase.** *When you replace a parity check with sharing, the
+test that verified the parity silently becomes a test that the sharing happened.* Those are different
+claims, and the second is much weaker. The invariant that survives the refactor — here, the bytes — needs
+an anchor OUTSIDE the code under test, or the refactor quietly deletes the assertion while leaving the test
+green. A golden value is that anchor.

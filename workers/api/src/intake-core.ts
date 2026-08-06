@@ -1,4 +1,4 @@
-import { normalizePartyEmail, partyIdForEmail } from "@shuddl/contracts";
+import { normalizePartyEmail, partyIdForEmail, partyIdForName } from "@shuddl/contracts";
 
 // WP-10 Task 6 (REQ-150/195/025/030) + WP-14 Task 5 (REQ-127) — THE ONE implementation of net-new party/shipment
 // materialization. Extracted from routes/intake.ts so BOTH the CSR intake verbs (POST /v1/parties + /v1/shipments)
@@ -61,7 +61,7 @@ export async function findOrCreateParty(db: D1Database, input: FindOrCreateParty
   const id =
     contactEmail !== undefined && contactEmail !== ""
       ? await partyIdForEmail(contactEmail)
-      : `party_${(await sha256Hex(`intake:party:name:${normName}`)).slice(0, 16)}`;
+      : await partyIdForName(input.name);
   const names = JSON.stringify({ legal: input.name });
   const contacts = JSON.stringify(contactEmail !== undefined && contactEmail !== "" ? [{ kind: "primary", email: contactEmail }] : []);
   const externalRefs = JSON.stringify(input.externalRefs ?? {});

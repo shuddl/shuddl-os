@@ -11,7 +11,7 @@
 // EDI-created and a CSR-created name-only party still converge. IDEMPOTENCE: the shipment id + the whole plan
 // (incl. the append's event id) are deterministic in the tender + ctx, so a redelivered 204 reproduces the
 // SAME ids and the worker's INSERT OR IGNORE / id-dedup is a no-op (the make-agent-idempotent doctrine).
-import { partyIdForEmail, normalizePartyEmail, EventInput } from "@shuddl/contracts";
+import { partyIdForEmail, partyIdForName, normalizePartyEmail, EventInput } from "@shuddl/contracts";
 import type { TenderDoc, EdiAddress } from "@shuddl/edi";
 
 // The parties.kind CHECK set (db/tenant/migrations/0002_domain.sql) — a 204 bill-to is the tendering
@@ -136,20 +136,23 @@ export async function mapTenderToBooking(tender: TenderDoc, ctx: MapTenderCtx): 
       // the id already converges on the normalized form, and this keeps the stored value consistent with it.
       party = { id: await partyIdForEmail(rawEmail), kind: "broker", name: billTo.name, email: normalizePartyEmail(rawEmail) };
     } else {
-      // MUST byte-match `workers/api/src/intake-core.ts:64@intake:party:name:` (REQ-196); pinned by test/party-id-parity.test.ts.
-      // (Citation repointed 2026-07-27: the scheme moved into the shared `findOrCreateParty` matcher, and
-      // the old pointer into `routes/intake.ts` had rotted past that file's end.)
-      // A future non-WP-12 refactor should extract partyIdForName into @shuddl/contracts and repoint both surfaces.
+        // The name-keyed derivation is now SHARED, not mirrored: `packages/contracts/src/party.ts:49@partyIdForName`
+        // (REQ-196), called here and by workers/api/src/intake-core.ts. The refactor this comment used to ask
+        // for has been done (audit §433) — the scheme was inlined in three places under a "parity LOCK" that
+        // pinned only this side, so changing intake-core's prefix left it green while the two surfaces derived
+        // different ids for one firm. Do not re-inline it; test/party-id-parity.test.ts fails in two distinct
+        // ways if you do (comparison tests) or if the scheme's BYTES change (frozen goldens).
       const normName = billTo.name.trim().toLowerCase();
-      party = { id: `party_${(await sha256Hex(`intake:party:name:${normName}`)).slice(0, 16)}`, kind: "broker", name: billTo.name };
+      party = { id: await partyIdForName(normName), kind: "broker", name: billTo.name };
     }
   } else {
     // No bill-to on the tender: the shipper IS the counterparty (Concierge: requester = shipper). shipperStop
     // is defined here (we returned above unless originZip came from it). Name-keyed derivation — see the
-    // byte-match note above (`intake-core.ts:64@intake:party:name:`, pinned by test/party-id-parity.test.ts).
+      // shared-derivation note above (`packages/contracts/src/party.ts:49@partyIdForName`, pinned by
+      // test/party-id-parity.test.ts).
     const shName = (shipperStop as NonNullable<typeof shipperStop>).name;
     const normName = shName.trim().toLowerCase();
-    party = { id: `party_${(await sha256Hex(`intake:party:name:${normName}`)).slice(0, 16)}`, kind: "shipper", name: shName };
+    party = { id: await partyIdForName(normName), kind: "shipper", name: shName };
   }
 
   // ── The shipment id ──────────────────────────────────────────────────────────────────────────────────────
