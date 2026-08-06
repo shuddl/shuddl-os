@@ -136,6 +136,38 @@ describe("POST /v1/positions — server-side gate parity (REQ-190)", () => {
     expect(await positionCount(SHP_NOCONSENT, TEST_DEVICE_ID, ts)).toBe(0);
   });
 
+  it("an `override` key on a position post is REFUSED OUTRIGHT (400) — it cannot even be expressed (audit §387)", async () => {
+    // MIRRORS `booking-gate.test.ts`'s "a credit override does NOT rescue a no-contact recipient", which the
+    // recipient gate has and this one did not. Both gates are declared NON-OVERRIDABLE the same way — neither
+    // takes a `GateCtx`, so an override "cannot even be handed to it — a compile-time guarantee".
+    //
+    // WHAT THIS ACTUALLY FOUND. The first version of this test asserted 403 GATE_BLOCKED(consent), reasoning that
+    // an override would be ignored. It got **400**: the request body is `.strict()`, so an unknown `override` key
+    // is refused at PARSE time, before any gate runs. That is a stronger guarantee than being ignored — on this
+    // surface an override is not overridden, it is inexpressible — and it is the property worth pinning, because
+    // loosening the schema (`.passthrough()`, or adding an `override` field "for symmetry with events") would
+    // silently make it expressible again and this test would go red.
+    //
+    // Consent is where that matters most: `evidence_recipient` failing open ships a booking nobody can be
+    // emailed; consent failing open records a driver's location with no recorded permission — the CONFIRM-gated
+    // counsel item (GO-LIVE-CHECKLIST, driver location-consent), not an evidence gap.
+    const ts = 1_720_000_100_009;
+    const withOverride = { ...positionInput(SHP_NOCONSENT, TEST_DEVICE_ID, ts), override: { by: "ops-lead", reason: "customer escalation" } };
+    const res = await postPosition(withOverride, await driverTok());
+    expect(res.status, "an override key must be refused by the strict body parse, not merely ignored").toBe(400);
+    expect(await positionCount(SHP_NOCONSENT, TEST_DEVICE_ID, ts), "a refused ping must insert NOTHING").toBe(0);
+  });
+
+  it("and WITHOUT the override key the consent gate is what blocks — the 400 above is not masking a pass", async () => {
+    // Non-vacuity control. Without it the test above would pass even if the consent gate had been deleted: a 400
+    // proves the parse refused the request, never that the gate behind it still works.
+    const ts = 1_720_000_100_010;
+    const res = await postPosition(positionInput(SHP_NOCONSENT, TEST_DEVICE_ID, ts), await driverTok());
+    expect(res.status).toBe(403);
+    expect(res.body?.gate?.required_evidence).toContain("consent");
+    expect(await positionCount(SHP_NOCONSENT, TEST_DEVICE_ID, ts)).toBe(0);
+  });
+
   it("assigned driver + registered device + a consent document present → 201, the row lands", async () => {
     const ts = 1_720_000_100_004;
     const res = await postPosition(positionInput(SHP_ASSIGNED, TEST_DEVICE_ID, ts), await driverTok());

@@ -21363,3 +21363,84 @@ clause's establishing input named; the caller claim closed by enumeration (one c
 sampling; the "no gate requires booking before POD" claim read at the gate file rather than inferred;
 mutation landed only after an anchor correction, run against **both** owning suites (§305), restored
 byte-identical. `typecheck 0`, contracts 285 green.
+
+---
+
+## §387 — a "compile-time guarantee", and the test that found a stronger fact than it was written for
+
+Continuing §386's sweep of the 50 stated guarantees, to a claim in a different register: a **type-level**
+one, which no test suite can evaluate.
+
+`transition-gates.ts` says of the booking evidence-recipient gate: *"NON-OVERRIDABLE by design… The gate
+therefore takes no GateCtx (an override cannot even be handed to it — a compile-time guarantee, mirroring
+`assertConsentBeforeGps`)."*
+
+### Splitting it
+
+*"An override cannot release this gate"* has **two** inputs, and only one is the type system:
+
+1. **The signature** — `assertBookingRecipientContact(incoming, recipientContacts)`. No `GateCtx`, so no
+   override can be *passed in*. True by construction; `assertConsentBeforeGps` likewise takes only
+   `{ operating_state: string }`.
+2. **The caller not skipping the gate when an override is present.** The signature says nothing about this.
+   A future `if (!override) assertGate(…)` compiles clean and releases the gate entirely.
+
+Input 2 is **caller discipline, not type discipline** — and it is where the two "mirrored" gates diverged:
+
+| gate | signature | caller-discipline test |
+|---|---|---|
+| `assertBookingRecipientContact` | no `GateCtx` ✓ | ✓ *"a credit override does NOT rescue a no-contact recipient — still 403, ZERO append"* |
+| `assertConsentBeforeGps` | no `GateCtx` ✓ | **none** |
+
+Both call sites are unconditional today (`sequencer.ts` line 691 and the `/v1/positions` bypass), so the
+claim holds. But the gate whose failure is a **legal** one — a driver's location recorded with no recorded
+permission, the CONFIRM-gated counsel item — was the one without the test.
+
+### The test found something better than it asserted
+
+First version asserted `403 GATE_BLOCKED(consent)`, reasoning an override would simply be ignored.
+It got **400**.
+
+`PositionInput` is `.strict()`. An unknown `override` key is refused at **parse time, before any gate
+runs**. On this surface an override is not overridden — **it is inexpressible.**
+
+That is the stronger property and the one worth pinning, because it has a specific way of decaying:
+loosening the schema, or adding an `override` field "for symmetry with the events route", makes it
+expressible again silently. Mutating `.strict()` → `.passthrough()` turns 764 green into **1 failure**,
+naming this test.
+
+Two tests kept: the refusal, and a **non-vacuity control** asserting that without the key the consent gate
+is what blocks. Without the second, the first would pass with the consent gate deleted — *a 400 proves the
+parse refused the request, never that the gate behind it still works.*
+
+### Two instrument errors, both caught before publication
+
+- **The anchor missed twice** (§386's whitespace class, again), and both times the suite reported the
+  unchanged count. `762 passed` read as "the test is added and green"; it meant "no test was added." The
+  `assert` in the mutation script is the only reason that was visible.
+- **I inferred `.strict()` from the 400 and mutated the wrong file.** `positions.ts` has no `.strict()` —
+  the schema lives in `packages/contracts/src/position.ts`. The assertion fired, the mutation did not land,
+  and the run reported `764 passed`: a green that, uncaught, would have read as *"the strict-parse pin is
+  not observed"* and sent me looking for a defect in a test I had just written correctly.
+
+Both are the same shape as §380's: **an instrument whose output is identical whether it did its job or
+nothing at all.** Third and fourth occurrences this phase; both cost a minute because the guard was already
+in the script.
+
+### The rule
+
+> **A compile-time guarantee is a claim about one caller — the type checker. Every other caller is a
+> runtime question.** "Cannot even be handed an override" is true and narrow: it forecloses passing the
+> override *in*, not skipping the call. The two are easy to conflate precisely because the strong-sounding
+> half is the one that is provable.
+
+Where the gate protects a legal precondition rather than an evidence requirement, the runtime half deserves
+its own test even when the type half is airtight — which is what the recipient gate already had, and its
+mirror did not.
+
+### Verification
+
+Both gate signatures read; both call sites read for a surrounding override check (neither has one);
+`PositionInput`'s `.strict()` located in the contracts package after the first mutation missed; the pin
+mutation-proved (`.strict()` → `.passthrough()` → 1 RED naming this test) and restored byte-identical; the
+non-vacuity control added because a 400 cannot certify the gate behind it. `typecheck 0`; api 764 green.
