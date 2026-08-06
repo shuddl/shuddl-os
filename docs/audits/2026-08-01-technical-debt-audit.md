@@ -190,8 +190,9 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 > §310 (the governing invariants mutation-proven — extended by §323, §340/§341 and §342/§343 to **18 invariants across BOTH authorities (`CLAUDE.md`'s ten laws + `genesis/10`'s I1–I8) in 30 mutations, PLUS two of rule 6's four fixture-gate identities (penny-exact allocation, zero-loss/zero-dupe offline merge) in 2 more — 32 mutations, every one RED, zero residual**, every file restored byte-identical. Rule 6's other two clauses are BLOCKED on private fixtures, and one of those — *routes ±10%* — has no artifact at all (§344, filed)).** Read those
 > two first — together they are the production-readiness claim: the gates run, and the laws the gates exist
 > to protect fail when their enforcement is removed. §296 re-measured the gate surface at `3d1386b` but named two bounds that turned
-> out to be unmeasured inheritances — §297 withdrew the worker-suite bound (the full suite runs: **286 files /
-> 3,760 cases / 3,757 passing**, re-measured at `39cfa56` (+1 api §404, +1 translator §406); the 3 failures are all the uncommitted `REQ-289`
+> out to be unmeasured inheritances — §297 withdrew the worker-suite bound (the full suite runs: **287 files /
+> 3,771 cases / 3,768 passing**, re-measured at `c9fa799` (+11 since `39cfa56`: 1 billing §408, 8 agents §409,
+> 1 agents §410, 1 translator §411 — the sweep-containment hold, closed 11 of 11); the 3 failures are all the uncommitted `REQ-289`
 > row, proven by removing it. Every delta since §367's `c51e0f7` baseline is accounted per section and is
 > entirely this audit's own — +37 to `570ab5d` (22 tools §378, 5 api §375/§377, 6 translator §370/§379,
 > 4 mcp §380), then **+8 more**: 2 api (§387), 3 rater (§389), 1 api (§395), 2 ledger (§396)) and §298 withdrew the browser-gate bound (visual/a11y/e2e all PASS with
@@ -23257,3 +23258,65 @@ log traced to the absent control-plane tables rather than to the harness; the po
 binding named in the sweep's first statement; mutation-proved by removing `sweep-214`'s containment (1 RED,
 named) and restored byte-identical; hold row struck with all eleven sites listed. `typecheck 0`,
 translator 112 green.
+
+---
+
+## §412 — phase gate at `c9fa799`, and what an 18% vacuity rate does to a test count
+
+The stopping point, re-measured after the sweep-containment hold closed.
+
+### The measurement
+
+**287 test files · 3,771 cases · 3,768 passing · 3 failing.**
+
+The three are the uncommitted `REQ-289` register row, unchanged since §368 and proven by removing it.
+**+11 cases / +1 file** since §407, accounted per section: 1 billing (§408), 8 agents (§409), 1 agents
+(§410), 1 translator (§411).
+
+### The calibration this phase forces on that number
+
+§411 closed with a figure worth carrying forward: **of the eleven containment tests written across
+§408–§411, two were vacuous when first written** — a weekly `isSnapshotDay` gate that returned before the
+loop, and a poison placed on a binding the sweep reaches only after an R2 call. Both **resolved**. Both
+proved nothing. Both were caught solely by a per-row assertion that the subject had actually been reached.
+
+**18%**, in tests written by someone deliberately watching for exactly that failure, in a single sitting,
+against code they had just read.
+
+That number is the honest annotation on every test count in this document, including the one above:
+
+> **A test count is an upper bound on coverage, and this phase measured how loose that bound can be.** Not
+> "some tests are weak" — *two in eleven asserted nothing at all while displaying green.* Nothing in the
+> count, the file diff, or a code review distinguishes them; only an assertion about whether the subject ran,
+> or a mutation, does.
+
+It also revises §397's conclusion in a useful direction. §397 argued that a scan for vacuous tests cannot
+work, because vacuity lives in the setup rather than the assertions — true, and it left mutation as the only
+detector. §408–§411 add a second, cheaper one: **a per-test assertion that the subject was entered**, written
+at the same time as the test. It does not find old vacuous tests, but it stops new ones, and it cost one line
+per row.
+
+### Stopping point
+
+**Closed since §407:** the shared-input sweep across all four `loadTenantRatingConfig` consumers (§404, §406
+fixed; §407 verified the other two correct); the guard-boundary sweep (§405, 16 examined, 1 defect); the
+per-tenant sweep-containment hold, **11 of 11**, two vacuous rows caught in the writing (§408–§411).
+
+**Open and counted, unchanged in shape:** 119 parity claims · 139 negative-property tests un-mutated · ~40
+of 50 stated guarantees unsplit · 10 of 16 ledger verification claims · the `400`-status guard clusters · 80
+of 82 provenance claims.
+
+**Filed and owner-blocked:** `pod.actor.party` selecting the REQ-040 executing share (§400, Med) · checkout
+`metadata.tenant` as a credit's only tenant binding (§403, Low today / Med on ship).
+
+**Owner-blocked, unchanged:** `REQ-289`'s disposition · nine private fixtures · two External Highs · three
+owner decisions · one staging placeholder.
+
+**No open Criticals.**
+
+### Verification
+
+Four changed suites re-measured with the verdict line read whole; the +11 reconciled per section and the
+file count cross-checked against `git ls-files | grep -c '\.test\.'` = **287**, confirming exactly one new
+file; both sibling records updated in the same commit (§369); staged by explicit path (§379).
+`typecheck 0 · check:tables 0 · check:citations 0`.
