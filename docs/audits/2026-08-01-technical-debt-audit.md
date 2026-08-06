@@ -18723,3 +18723,64 @@ Nothing above is closable inside this repository.
 
 `verify:merge` verdict compared row-by-row against `RELEASE-EVIDENCE.md`'s per-gate table; seven non-PASS
 gates matched on both name and status; the test-count figure cross-checked against §328. No file changed.
+
+---
+
+## §351 — The fourth authority, and a spec that labels its own scope
+
+Four of the five source-of-truth authorities were swept this phase — `genesis/09` via `check:coverage`,
+`genesis/10`'s I1–I8 (§340/§341), `genesis/07` via the design audits (§287/§345), and `CLAUDE.md` throughout.
+**`genesis/14`, the build execution spec, was not**, beyond §291's preflight work.
+
+Its §01 makes the strongest checkable claim in any of them: **"MONOREPO LAYOUT (WP-01 scaffold, exact)"**,
+followed by eleven named directories.
+
+**All eleven exist.** And seven directories exist beyond them: `workers/{billing,mcp,translator}` and
+`packages/{agents,driver-core,edi,map}`.
+
+### The parenthetical is doing the work
+
+An eleven-item layout labelled *"exact"* against a tree with eighteen directories looks like a defect for
+about a second. It is not, because the label reads **"(WP-01 scaffold, exact)"** — *exact* is scoped to the
+initial scaffold, not the final tree.
+
+**That is precisely the labelling §336 found missing from `CLAUDE.md`'s budget line.** Same author, same week,
+same class of claim — and here the four-word parenthetical makes the difference between a spec that ages
+correctly and one that invites a false finding. §336's row asks the owner for eight words; this is what those
+eight words buy.
+
+### The seven are all scoped
+
+Every directory beyond the scaffold traces to a work package and registered REQ rows:
+
+| directory | WP | REQ anchors |
+|---|---|---|
+| `workers/billing` | WP-14 | 003 · 025 · 057 |
+| `workers/mcp` | WP-13 | 004 · 025 · 030 |
+| `workers/translator` | WP-09 | 005 · 025 · 030 |
+| `packages/agents` | WP-06 | 003 · 004 · 020 |
+| `packages/driver-core` | WP-05 | 013 · 016 · 017 |
+| `packages/map` | WP-02 | 073 · 074 · 075 |
+| `packages/edi` | — | 034 · 035 · 200 |
+
+`packages/edi` carries no `WP-` marker in its sources but three REQ rows, which satisfies the rule that
+matters — *if it isn't a REQ row, it doesn't get built* — and is consistent with EDI landing across WP-15's
+adapters work rather than owning a WP of its own.
+
+**No unscoped directory exists.** The tree grew by seven since the scaffold, and every one of those seven is
+registered scope.
+
+### Five authorities, swept
+
+| authority | swept in | result |
+|---|---|---|
+| `genesis/09` register | `check:coverage` (RED on `REQ-289` only) | 100% classified but for one uncommitted row |
+| `genesis/10` taxonomy | §340/§341 | **8/8 invariants mutation-proved** |
+| `genesis/07` design | §287/§345 | 7 audits + 5 screenshots, all present |
+| `genesis/14` build spec | **§351** | 11/11 scaffold dirs, 7 scoped additions, label correct |
+| `CLAUDE.md` | §336–§346 | ~40 artifacts, 1 missing (filed), 3 legibility gaps (filed) |
+
+### Verification
+
+Eleven scaffold directories checked for existence; seven additional directories enumerated and each traced to
+a WP marker and REQ rows in its own sources. No file changed.
