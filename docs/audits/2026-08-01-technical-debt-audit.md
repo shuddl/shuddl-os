@@ -22413,3 +22413,98 @@ Four changed suites re-measured with the verdict line read whole; the +8 reconci
 cross-checked against `git ls-files | grep -c '\.test\.'` = **286**, unchanged, confirming no new file; both
 sibling records updated in the same commit so no copy is left stale (§369); staged by explicit path (§379).
 `typecheck 0 · check:tables 0 · check:citations 0`.
+
+---
+
+## §400 — the clause whose input was client-supplied, on the rule this repo calls permanent
+
+§399 left ~42 stated guarantees unsplit. This splits the one carrying CLAUDE.md's rule 5 — *"Interline
+floors compare the executing share, never gross. The $222,084/35-lb anomaly regression is permanent"* — and
+the technique found what it is for.
+
+### The guarantee, in four clauses
+
+`resolveInterline`'s header is unusually careful, and three of its four clauses are established locally:
+
+| clause | input |
+|---|---|
+| *"DIRECT is the ONLY leg shape with NO revenue split anywhere AND a single executor party"* | `if (!hasSplit && executors.length <= 1)` — both required |
+| *"Anything else is interline-shaped"* | structural: everything else falls through |
+| *"every leg needs a clean integer split summing to 10000"* | two `unresolved` returns |
+| *"the tenant's OWN executing party — the POD signer's party (`pod.actor.party`, **device co-signed, I4** — the authoritative 'who is the tenant here') — must actually execute a recorded leg"* | **`tenantParty`, a parameter** |
+
+The fourth is the one the split exists to find, and its stated provenance is a **claim about the caller**.
+
+### Both callers pass what the comment says. That is not the problem.
+
+`biller.ts` and `interline-split.ts` both pass `pod.actor.party` — accurate. The question the clause invites
+is the next one: **what makes that field trustworthy?** The comment answers *"device co-signed, I4"*.
+
+A device signature proves **the device signed these bytes**. It does not prove the *party named inside them*
+is the signer's own.
+
+### The chain, traced
+
+```
+pod.actor.party                         ← client-supplied
+  → resolveInterline(rows, pod.actor.party)  → tenantParty
+  → composeInvoice({ legs, tenantParty })
+  → executingShare(gross, legs, tenantParty) → picks `leg.executor === tenantParty`
+  → the REQ-040 floor comparison
+```
+
+And nothing validates it:
+
+- **`workers/api/src/routes/events.ts` contains zero references to `actor`** — the generic client-post route
+  forces `source: "native"` (§373) and constrains nothing else.
+- The sequencer checks `actor.device === device_id` and that the **signature verifies**. Not `actor.party`.
+- **No gate reads `actor.party`** — grepped across `packages/ledger/src/gates` and `gate-context.ts`, empty.
+- The driver client takes `actor_party` as an optional parameter, *defaulting* to the device's registered
+  party (`packages/driver-core/src/capture.ts:95@deviceCtx` — `params.actor_party ?? deviceCtx.party`) — so
+  the honest client sends the right value, and the field remains client-controlled.
+
+**The device→party binding the client defaults to is the answer sitting in plain sight**, and it is why the
+remedy is a decision rather than a patch: that binding lives in the control plane, the biller reads a tenant
+D1, and making the sequencer consult it at append time is a different change from making the biller consult
+it at invoice time. The first constrains every append; the second constrains one consumer.
+
+### One direction is fail-closed; the other is not
+
+Naming a party that executes **no** leg is safe: `!executors.includes(tenantParty)` → `unresolved` → hold.
+That is the case the comment's *"any ambiguity is UNRESOLVED"* covers, and it works.
+
+Naming **the partner's** party is the gap. `executingShare` then selects the partner's leg — 8000 bps where
+the tenant's is 2000 — so a move whose true executing share sits below the floor clears it and
+auto-invoices. **That is the fail-open direction of the regression this repository calls permanent.**
+
+### Filed, not fixed
+
+**Med.** It needs an authenticated tenant driver with a registered device and knowledge of a partner party
+id; it bypasses a named guard rather than moving money directly.
+
+Not fixed unilaterally, for the §379 reason: the remedy is a **design decision about which server-side fact
+establishes the tenant's executing party.** The biller is a queue consumer with no session, so
+`session.party_id` is not available there. The candidates are real but not equivalent — the device→party
+binding already in the control plane (which the client itself defaults to), or a tenant-party column
+consulted at append time — and choosing changes what a valid append must carry. That is an owner call.
+
+### What the technique earned here
+
+Twelve guarantees split so far. This is the first where the suspect clause named its own provenance —
+*"device co-signed, I4, the authoritative 'who is the tenant here'"* — and the provenance was **true and
+insufficient**. The signature is real; I4 is real; neither establishes the claim the sentence makes.
+
+> **A clause that cites its own authority is the most dangerous kind, because the citation reads as the
+> check.** Splitting forces the question the prose has already answered: *"the POD signer's party"* invites
+> agreement; *"which input establishes that this party is the tenant's?"* does not.
+
+Every other finding this phase came from a clause that was silent about its input. This one came from a
+clause that named it, convincingly, and was wrong about what the naming proved.
+
+### Verification
+
+Four clauses split from the header; both callers read to confirm they pass what the comment claims; the
+chain traced through four files to the floor comparison; four independent absences established by grep with
+the empty results reported as empty (§360) — the route, the sequencer, the gates, the client default; the
+fail-closed direction confirmed by reading the `!executors.includes` return. One record change, no code —
+the fix is an owner decision.
