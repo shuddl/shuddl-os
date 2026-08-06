@@ -23892,3 +23892,71 @@ answer depends on an intent no artifact states.
 at its declaration and classified; the outbound consumption of `partnerMapping` traced to `sweep-214.ts:199`
 and the inbound absence confirmed by grepping `inbound.ts` for any mapping reference (none); `map-204`'s
 hardcoded qualifier list read at its line. One record row, no code — the question is the deliverable.
+
+---
+
+## §422 — the phase closed against a full gate run, not a per-suite one
+
+Every measurement in §407–§421 was per-suite. The honest close for a phase is the gate the repository
+actually merges on, run whole.
+
+### `pnpm verify:merge` at `5ad61d5`
+
+**24 gates · 17 PASS · 2 FAIL · 5 BLOCKED.**
+
+**PASS (17):** runtime · typecheck · lint · invariants · rater-purity · append-chokepoint ·
+authority-coverage · traceability · seed · citations · table-shape · acceptance · design-audit ·
+**perf (1)** · **visual (5)** · **a11y (4)** · **e2e (6)**.
+
+The last four matter most here, because nothing in this phase exercised them: the browser gates ran in a
+real Chromium and passed at full expected counts — including
+*"a capture taken offline outlives the page and flushes on reconnect"* and *"a party_id smuggled into the
+URL never reaches the API"*, the two end-to-end proofs of the surfaces this audit has been reading
+statically for sixty sections.
+
+**BLOCKED (5):** identity-leak (no denylist) and the four private-fixture gates. Unchanged, and the
+fail-closed contract working — they wait on named inputs that never enter this repository.
+
+**FAIL (2):** `unit-tests` and `coverage`.
+
+### Both failures are one uncommitted row, proven not assumed
+
+Restoring `genesis/09-REQUIREMENTS-REGISTER.csv` to HEAD — removing the uncommitted `REQ-289` GTM row
+(§299) — and re-running:
+
+| gate | with the row | without it |
+|---|---|---|
+| `test:tools` | 3 failed / 803 passed | **806 passed (806)** |
+| `check:coverage` | exit 1 | **exit 0** |
+
+**Zero failures from anything this phase touched.** That is the check worth doing before claiming a known
+cause: §368 established the attribution six weeks of sections ago, and everything since has changed code in
+five workers. An inherited attribution is exactly the class §297 withdrew.
+
+### What the phase leaves
+
+**Closed since §399:** the stated-guarantee sweep extended through the money path, the append envelope
+field-by-field, and the external money surface · the guard-boundary sweep (16 examined, 1 defect) · the
+shared-input sweep across all four config consumers (2 fixed) · the per-tenant containment hold, **11 of
+11** · all four counted budgets traced rather than counted · the zero-caller sweep (14 examined).
+
+**Filed, owner-blocked:** `pod.actor.party` → REQ-040 executing share (Med) · checkout `metadata.tenant`
+(Low now / Med on ship) · `passports` write-only · `assets` unused · two taxonomy-only event kinds ·
+inbound/outbound `refQualifiers` asymmetry.
+
+**Open and counted:** 119 parity claims · 134 negative-property tests un-mutated · ~40 of 50 guarantees
+unsplit · 10 of 16 verification claims · 79 provenance claims · the `400`-status clusters.
+
+**No open Criticals.** The aggregate gate is FAIL for exactly one reason, and that reason is a register row
+awaiting an owner's disposition — not a defect in the build.
+
+> **A phase should close on the artifact the project closes on.** Sixty sections of per-suite measurement
+> are a map; one `verify:merge` is the territory. They agreed — which is the result, and it is only a result
+> because both were run.
+
+### Verification
+
+Full merge profile executed at `5ad61d5`, artifact written to
+`artifacts/release/5ad61d5…/merge/gate-merge-2026-08-06T14-24-00-698Z.json`; every gate's verdict read from
+the run's own summary rather than inferred; both FAILs re-attributed **by removing the row and re-running**,
+not by citing §368; the register restored and confirmed modified-in-tree afterwards.

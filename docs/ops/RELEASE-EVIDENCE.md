@@ -400,6 +400,7 @@ covered 51% of the tests that exist. That is why the disclosure sentence beside 
 | re-measured after the §385–§398 sweep | 2026-08-06, `331813a` (§399) | 286 | 3,758 |
 | re-measured after the §404–§406 fixes | 2026-08-06, `39cfa56` (§407) | 286 | 3,760 |
 | re-measured after the §408–§411 containment hold | 2026-08-06, `c9fa799` (§412) | 287 | 3,771 |
+| **full `verify:merge` RUN** — 24 gates, 17 PASS / 2 FAIL / 5 BLOCKED | 2026-08-06, `5ad61d5` (§422) | 287 | 3,771 |
 
 Each delta is **entirely this audit's own**, and accounted line by line — a delta that cannot be is a
 measurement to redo, not a number to write down.
