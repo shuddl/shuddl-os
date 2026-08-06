@@ -22578,3 +22578,72 @@ trustworthy because X — is X a check, or a description?*
 than accepted from the comment; the stamp mutated by line index after an anchor miss, landed, and
 **attributed by two failing test names across two gates**, restored byte-identical; the driver-403 test
 located separately. No code changed — nothing needed changing.
+
+---
+
+## §402 — the chain's protection is not where the ordering is, and both are right
+
+§401's rule as a selection criterion: **a field's danger is set by its most distant consumer.** Applied to
+the append envelope, field by field, since that is where every client-supplied value enters the ledger.
+
+### Where each client-suppliable field ends up
+
+| field | most distant consumer | status |
+|---|---|---|
+| `source` | the legacy/native authority split | **forced** `native` (§373) |
+| `requested_visibility` | the read lens | **narrow-only**, resolved server-side (§388) |
+| `override.by` | gate release + accountability | **stamped** from the session (§401) |
+| `actor.device` | the device-signature check | validated `=== device_id` |
+| `actor.party` | **`executingShare` → the REQ-040 floor** | **unstamped — §400, filed Med** |
+| `party_refs` | the party lens's `EXISTS (SELECT … json_each(party_refs) …)` | client-set, but only on events the client authors — disclosure is self-scoped |
+| `shipment_id` | the stream binding | overridden by `derivedShipmentId` |
+| `seq` / `prev_hash` / `recorded_at` / `visibility` / `hash` / `stream_id` | **the hash chain itself** | see below |
+
+### The last row has three layers, and the one I expected to be load-bearing is not
+
+The DO assembles `LedgerEvent.parse({ ...clientFields, stream_id, shipment_id, seq, prev_hash,
+recorded_at, visibility })` — **server fields after the spread**, which is exactly the key-order §373 found
+mattering elsewhere (`{ source, ...payload }` would be a forgery vector; `{ ...payload, source }` is not).
+
+Inverting that order — moving `...clientFields` last — fails **1 test of 765**, and it is about
+`shipment_id`: *"a CROSSED shipment_id (naming another shipment) is corrected to the stream — victim
+untouched, NOT a 500."*
+
+That looked like a gap on the hash chain. It is not. **`EventInput` does not contain `seq`, `prev_hash`,
+`recorded_at`, `visibility`, `hash` or `stream_id` at all** — the input shape omits them and is `.strict()`,
+and its own comment says so: *"The sequencer DO owns seq / prev_hash / recorded_at / visibility / hash /
+stream_id — a client [cannot send them]."* So under the real schema the ordering has exactly **one**
+load-bearing case, `shipment_id`, and exactly one test covers it.
+
+### And the outer layer is unobservable, correctly
+
+Loosening `EventInput` from `.strict()` to `.passthrough()`: **contracts 285 green, api 765 green.**
+§389's third category once more — subsumed, and by two different mechanisms covering two different cases:
+
+- a **known** field slipped through by `passthrough` (`seq: 999`) is beaten by the **key order** — the
+  server's value is written after the spread;
+- an **unknown** key is beaten by `LedgerEvent.parse`, which is `.strict()` over the storage shape and, in
+  the DO's own words, *"a backstop against any stray key entering the hash-view."*
+
+Three layers; the outermost is belt, and no test can observe its removal because the inner two are
+complete. That is the correct arrangement, not a coverage gap — and it is the second time this phase
+(§388's visibility resolver was the first) that a heavily-defended core turned out to be defended **in
+depth, with the outer layer unobservable by construction**.
+
+### What the field-by-field pass is worth
+
+Eight client-suppliable fields, traced to their most distant consumer. **Seven are stamped, forced,
+narrowed, overridden, or structurally excluded.** One is not, and it is the one §400 filed.
+
+> **The value of enumerating by field rather than by file is that `actor.party`'s neighbours are all
+> handled.** Read at the route, it sits among `source` (forced), `requested_visibility` (narrowed) and
+> `override.by` (stamped) — a field in good company looks handled. Read at its *consumer*, it is the only
+> input to a money gate that nothing establishes.
+
+### Verification
+
+Eight fields enumerated from `eventInputBaseShape` and each traced to its furthest consumer; the spread
+order inverted by line manipulation after an anchor miss, landed, attributed to its single failing test,
+restored byte-identical; `EventInput.strict()` loosened and both owning suites re-run; the subsumption
+established by reading `LedgerEvent`'s own `.strict()` backstop rather than inferred from the greens. No
+code changed — nothing needed changing beyond what §400 already filed.
