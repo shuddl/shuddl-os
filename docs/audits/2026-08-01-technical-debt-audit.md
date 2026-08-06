@@ -25301,5 +25301,5 @@ Both are the same error in different clothes: **a fixture chosen so that the bra
 the outcome.** Non-vacuity guards do not help — the subject genuinely ran both times. What separated them was
 a control asserting a DIFFERENCE, and a mutation whose failures were attributed by name.
 
-`@shuddl/map` **95 passed**; `typecheck`, `lint` clean. Provenance axis: **6 of 60 — 2 gaps, 4 clean**, and
+`@shuddl/map` **87 passed** (mis-stated as 95 in the first commit of this section and corrected immediately — §445 applies to my own arithmetic first); `typecheck`, `lint` clean. Provenance axis: **6 of 60 — 2 gaps, 4 clean**, and
 both gaps fit §450's profile exactly.
