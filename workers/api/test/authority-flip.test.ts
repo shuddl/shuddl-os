@@ -188,6 +188,31 @@ describe("POST /v1/authority/:module/flip — the Gatekeeper flip guard (REQ-023
     expect(await resolveAuthority(env.TENANT_A_DB, "settlement")).toBe("legacy"); // still legacy — money authority unearned
   });
 
+    // THE PROVENANCE CLAIM, TESTED (audit §447). routes/authority.ts states: "The event's `reason` enum is NOT
+    // taken from the body — it is SERVER-DERIVED from the direction … so a client can never mislabel why
+    // authority moved. The optional `reason` string is an operator note; when present it rides the forward
+    // flip's gate_snapshot." Neither half was covered: no test posted a client `reason`, and `operator_reason`
+    // had ZERO references in any test file.
+    //
+    // The string smuggled here is "drift" ON PURPOSE — that is the enum the WATCHTOWER writes when it
+    // auto-falls-back on a measured parity failure. Honouring a client's "drift" would disguise a human
+    // decision to move MONEY authority as a machine-detected one, in the only audit record a promote writes.
+    it("a client-supplied `reason` NEVER becomes the event enum — it is kept as an operator note (REQ-008)", async () => {
+      const admin = await token({ sub: "flip-admin-note", tenant: TENANT_SLUG, role: "admin" });
+      await setLegacy("rating", admin);
+      await forceParityGreen(env.TENANT_A_DB, "rating", "quote.priced", ratingPayload, RATING_UNIT);
+
+      const r = await flip("rating", { to: "native", reason: "drift" }, admin);
+
+      expect(r.status).toBe(201);
+      // the ENUM is the server's, derived from the direction — never the smuggled string
+      expect(payloadOf(r).reason, "a client must not be able to relabel WHY authority moved").toBe("promote");
+      // and the note is not discarded: it is preserved, clearly separated from the enum
+      const snap = payloadOf(r).gate_snapshot as Record<string, unknown>;
+      expect(snap.operator_reason, "the operator justification must survive as a NOTE").toBe("drift");
+    });
+
+
   it("BACKWARD flip (native→legacy) is ALWAYS allowed — even with parity RED → 201 authority.flipped{to:legacy,reason:manual} + map legacy", async () => {
     const admin = await token({ sub: "flip-admin-fallback", tenant: TENANT_SLUG, role: "admin" });
     // ensure rating is native (green + forward flip if not already), then BREAK parity so it is red.

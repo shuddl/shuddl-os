@@ -25129,3 +25129,39 @@ reporting progress against a denominator nobody could recompute.
 | registries | **47**, 14 triaged, 12 probed (§440) — per-item table published |
 | stated guarantees | **demoted to a dated observation** — no recorded method (§446) |
 | `400`-status guard clusters | 11 routes, deliberately deferred, unchanged |
+
+## §447 — the provenance axis, opened at the claim that moves money authority
+
+§446 re-baselined the provenance bound to **60** with a published command. §400's criterion picks the entry
+point: *a clause that cites its own authority is the most dangerous kind, because the citation reads as the
+check* — and the sharpest is the one whose field RELEASES a gate. That is `authority.flipped`: it decides,
+per module, whether SHUDDL's NATIVE computation or the incumbent's LEGACY mirror is authoritative for money.
+
+**The claim** (`workers/api/src/routes/authority.ts:35-38`): *"The event's `reason` enum is NOT taken from
+the body — it is SERVER-DERIVED from the direction (forward ⇒ 'promote', backward ⇒ 'manual') so a client can
+never mislabel why authority moved. The optional `reason` string is an operator note; when present it rides
+the forward flip's gate_snapshot."*
+
+**Correctly implemented, and neither half was tested.** The body schema DOES accept `reason`, which reads
+alarming until the destructuring is found: `const { to, reason: operatorReason } = parsed.data` — a rename my
+first grep (`body.reason|\.reason`) missed entirely. The enum is hardcoded at both branches; the note is
+copied into `gate_snapshot.operator_reason` on the forward flip only. But no test posted a client `reason`,
+and **`operator_reason` had ZERO references in any test file** — so the forgery guard and the feature were
+both unobserved.
+
+**Why "drift" is the string the test smuggles.** It is the enum the WATCHTOWER writes when it auto-falls-back
+on a MEASURED parity failure (§440's sweep touched the same registry). A client whose `reason` reached the
+enum could stamp a human decision to move money authority as a machine-detected one — in the only audit
+surface a promote writes. The forgery is not "an invalid value slips through"; it is "a valid value tells the
+wrong story", which no schema can catch.
+
+**Two mutations, 1 failed / 13 passed each, and both name the new test.** Honouring the client's string as
+the enum reddens it; silently dropping the operator note reddens it. **No other test in the file caught
+either** — the existing forward/backward cases assert the derived enum on requests that carry no `reason`,
+so they prove derivation-from-direction and say nothing about precedence over a supplied one. That is the
+§430 shape once more: the happy path pinned, the quantifier — *never* client-supplied — untested.
+
+Restored byte-identical; `authority-flip` **14 passed**, `typecheck` and `lint` clean.
+
+**Bound carried forward, with its command.** 59 of the 60 provenance claims remain; the axis's shape now has
+one measured data point, and it matched the phase's dominant failure mode rather than introducing a new one.
