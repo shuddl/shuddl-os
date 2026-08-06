@@ -6,6 +6,9 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { stripSqlComments } from "@shuddl/ledger/migrate";
 import {
+  DOMAIN_VOCAB_COPIES,
+  checkConstraintValues,
+  checkDomainVocabularyParity,
   checkControlMigrationsExercised,
   GUARDED_TABLES,
   checkTableClassification,
@@ -929,5 +932,62 @@ describe("§378: the MIGRATION scanner's bans cover EVERY guarded table (derived
     const sql = "REPLACE INTO parties (id) VALUES ('x');";
     expect(checkMigrationSql([sql]).violations.filter((v) => v.includes("I3"))).toEqual([]);
     expect(scanSourceForForbiddenReplace([{ path: "p.ts", text: sql }])).toEqual([]);
+  });
+});
+
+// DOMAIN VOCABULARY PARITY (audit §428). The gate exists because four hand-maintained copies of one
+// vocabulary (the DDL CHECK plus three TypeScript declarations) agreed by luck and were enforced by
+// nothing — neither constant appeared in any test file. These pin the four ways it must fail; without
+// them the gate could be narrowed to certify nothing and stay green, which is the defect it replaces.
+describe("checkDomainVocabularyParity — the DDL CHECK is the authority (audit §428)", () => {
+  const SQL = readFileSync(join(REPO, "db/tenant/migrations/0002_domain.sql"), "utf8");
+  const real = (): Array<{ path: string; source: string }> =>
+    DOMAIN_VOCAB_COPIES.map((f) => ({ path: f, source: readFileSync(join(REPO, f), "utf8") }));
+
+  it("the shipped tree is clean — every copy equals its CHECK", () => {
+    expect(checkDomainVocabularyParity(SQL, real())).toEqual([]);
+  });
+
+  it("reads the CHECK off the RIGHT table — `kind` exists on parties AND legs with different sets", () => {
+    // The reason the implementation splits on CREATE TABLE instead of one flat regex. A flat match would
+    // answer for whichever table appears first, silently judging parties against the legs vocabulary.
+    expect(checkConstraintValues(SQL, "parties", "kind")).toEqual([
+      "shipper", "consignee", "carrier", "broker", "cartage", "factor", "insurer",
+    ]);
+    expect(checkConstraintValues(SQL, "legs", "kind")).toEqual([
+      "pickup", "linehaul", "interline", "cartage", "delivery", "dray",
+    ]);
+  });
+
+  it("a NARROWED copy fails — it silently refuses a value the database accepts", () => {
+    const drifted = real().map((s) =>
+      s.path.endsWith("intake-core.ts") ? { ...s, source: s.source.replace('"dray", "transload"', '"dray"') } : s,
+    );
+    const v = checkDomainVocabularyParity(SQL, drifted);
+    expect(v.some((x) => x.includes("intake-core.ts") && x.includes("SHIPMENT_MODES"))).toBe(true);
+  });
+
+  it("a WIDENED authority fails every stale copy — the 500-at-INSERT direction", () => {
+    const widened = SQL.replace("'dray','transload')", "'dray','transload','rail')");
+    expect(checkDomainVocabularyParity(widened, real()).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("a copy with CORRECT values but no roster entry still fails — enrollment is the point", () => {
+    const extra = [
+      ...real(),
+      { path: "workers/portal/src/newcopy.ts", source: 'const SHIPMENT_MODES = ["LTL", "TL", "brokered", "cartage", "dray", "transload"] as const;' },
+    ];
+    expect(checkDomainVocabularyParity(SQL, extra).some((x) => x.includes("not in DOMAIN_VOCAB_COPIES"))).toBe(true);
+  });
+
+  it("a RENAMED constant fails loudly instead of certifying nothing", () => {
+    // The §239 hole in its original form: a check keyed on a name stops covering the file the moment the
+    // name changes, and reports success for having found no copies to disagree with.
+    const renamed = real().map((s) => ({ ...s, source: s.source.replace(/SHIPMENT_MODES/g, "MODES_V2") }));
+    expect(checkDomainVocabularyParity(SQL, renamed).some((x) => x.includes("re-key"))).toBe(true);
+  });
+
+  it("a missing CHECK fails — the authority disappearing is not a pass", () => {
+    expect(checkDomainVocabularyParity("CREATE TABLE shipments (id TEXT);", real()).length).toBeGreaterThan(0);
   });
 });

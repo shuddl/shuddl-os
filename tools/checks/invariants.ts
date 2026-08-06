@@ -552,6 +552,79 @@ export function checkTestSchemaParity(
   return violations;
 }
 
+// DOMAIN VOCABULARY PARITY (audit §428) — the shipment modes and party kinds are declared FOUR times: the
+// `CHECK (… IN (…))` in db/tenant/migrations/0002_domain.sql (the authority — it is what the row must
+// satisfy to exist) and three hand-maintained TypeScript copies. Three of them SAY they are byte-identical
+// to the CHECK; the fourth (workers/mcp) says nothing and was found only by grepping the constant name.
+// All four agreed when measured, and NOTHING enforced that: neither constant appears in any test file, so
+// adding a seventh mode to the DDL and forgetting a copy is a silent, green change.
+//
+// What drift costs is not uniform, and the gate does not pretend it is. The API route re-validates
+// server-side (REQ-030), so a stale MCP copy cannot store a bad value — it makes the MCP tool REFUSE a
+// mode the API would accept, a divergence in reach, not in integrity. A stale copy that is too WIDE is the
+// worse direction: the Zod enum admits a value the CHECK then rejects at INSERT, turning a validation error
+// into a 500 at the database.
+//
+// Keyed on an explicit ROSTER checked against the discovered set — the §239/§244 lesson. Keying only on the
+// constant NAME would stop covering a file the moment someone renamed the constant, which is one of the
+// drifts this exists to catch; keying only on the roster would miss a fifth copy. Both directions fail.
+export const DOMAIN_VOCAB_COPIES = [
+  "packages/adapters/src/migrator.ts",
+  "workers/api/src/intake-core.ts",
+  "workers/mcp/src/tools/quote.ts",
+] as const;
+
+/** The authoritative value list of a `CHECK (<column> IN (…))` on one table, or null if absent. */
+export function checkConstraintValues(sql: string, table: string, column: string): string[] | null {
+  // Split on CREATE TABLE so a same-named column on a DIFFERENT table cannot answer for this one — the
+  // reason this is not one flat regex: `kind` carries a CHECK on BOTH `parties` and `legs`, with different
+  // value sets, and a flat match returns whichever appears first.
+  const blocks = sql.split(/CREATE\s+TABLE\s+/i).slice(1);
+  const block = blocks.find((b) => new RegExp(`^(IF\\s+NOT\\s+EXISTS\\s+)?["'\`\\[]?${table}\\b`, "i").test(b));
+  if (block === undefined) return null;
+  const m = new RegExp(`\\b${column}\\b[^,]*?CHECK\\s*\\(\\s*${column}\\s+IN\\s*\\(([^)]*)\\)`, "i").exec(block);
+  if (m === null) return null;
+  return [...(m[1] ?? "").matchAll(/'([^']*)'/g)].map((x) => x[1] ?? "");
+}
+
+export function checkDomainVocabularyParity(
+  domainSql: string,
+  sources: ReadonlyArray<{ path: string; source: string }>,
+): string[] {
+  const violations: string[] = [];
+  const AUTHORITY: ReadonlyArray<readonly [string, string, string]> = [
+    ["SHIPMENT_MODES", "shipments", "mode"],
+    ["PARTY_KINDS", "parties", "kind"],
+  ];
+
+  for (const [constant, table, column] of AUTHORITY) {
+    const expected = checkConstraintValues(domainSql, table, column);
+    if (expected === null || expected.length === 0) {
+      violations.push(`REQ-150/195: no CHECK (${column} IN (…)) found on ${table} in the domain migration — the authority for ${constant} is gone, so parity cannot be judged (audit §428).`);
+      continue;
+    }
+    let found = 0;
+    for (const { path, source } of sources) {
+      // `new Set([...])` and a bare `[...] as const` are both in use; accept either shape.
+      const decl = new RegExp(`\\b${constant}\\b[^=\\n]*=\\s*(?:new\\s+Set\\s*\\(\\s*)?\\[([^\\]]*)\\]`).exec(source);
+      if (decl === null) continue;
+      found += 1;
+      const actual = [...(decl[1] ?? "").matchAll(/"([^"]*)"/g)].map((x) => x[1] ?? "");
+      if (actual.join("\u0000") !== expected.join("\u0000")) {
+        violations.push(`${path}: ${constant} = [${actual.join(", ")}] but ${table}.${column} CHECK = [${expected.join(", ")}] — the comment claims byte-identical; a copy that is WIDER 500s at INSERT, one that is NARROWER silently refuses a legal value (audit §428).`);
+      }
+      if (!DOMAIN_VOCAB_COPIES.includes(path as (typeof DOMAIN_VOCAB_COPIES)[number])) {
+        violations.push(`${path}: declares ${constant} but is not in DOMAIN_VOCAB_COPIES — a new copy of a governed vocabulary must be enrolled, not discovered later (audit §428).`);
+      }
+    }
+    if (found === 0) {
+      violations.push(`no source declares ${constant} — the roster is keyed on the constant NAME, so a rename makes this gate certify nothing; re-key it or update the roster (audit §428).`);
+    }
+  }
+  return violations;
+}
+
+
 // DO MUTEX INTEGRITY (audit §244, closing §235's open end). Every Durable Object in this repo serializes
 // its critical section by chaining onto the previous call's settlement. §235 MEASURED what happens when
 // that chain is deleted: `workers/agents` stays 110/110 green and `workers/mcp` stays 177/177 green,
@@ -779,6 +852,19 @@ function main(): void {
     process.exit(1);
   }
   if (mode === "write") writeFileSync(lockPath, JSON.stringify(lockResult.nextLock, null, 2) + "\n");
+
+  // Domain vocabulary parity (audit §428) — the DDL CHECK is the authority; every TS copy must equal it.
+  const domainPath = migrations.find((f) => f.endsWith("0002_domain.sql"));
+  if (domainPath !== undefined) {
+    const vocabViolations = checkDomainVocabularyParity(
+      readFileSync(domainPath, "utf8"),
+      DOMAIN_VOCAB_COPIES.filter((f) => existsSync(f)).map((f) => ({ path: f, source: readFileSync(f, "utf8") })),
+    );
+    if (vocabViolations.length > 0) {
+      for (const v of vocabViolations) console.error(`FAIL ${v}`);
+      process.exit(1);
+    }
+  }
 
   console.log(`invariants OK — ${result.tableCount}/${TABLE_BUDGET} tables, events append-only (${migrations.length} migration files, lock: ${mode})`);
 }

@@ -24248,3 +24248,50 @@ the rater's fail-loud fires on a PARTIAL signal, never on NEITHER. Filed below, 
 a grep for its two distinctive message strings across every test file returned nothing. It is tested three
 ways; the tests assert on `/tenantParty/` and `/legs/`, not on the sentences. *A grep proves presence, never
 absence* — the second predicate is what turned a false gap into a measured parity.
+
+## §428 — one vocabulary, four hand-maintained copies, enforced by nothing — now a gate
+
+§391's parity bound, continued by its own selection rule: *"parity between two hand-maintained value lists
+is the drift-prone kind, and among those, the money path first."* Re-running §391's predicate returns **170**
+comments where it recorded 122 — a different spelling of the same idea, so this pass leans on neither number
+and works from the subset that carries consequence: **9 parity comments naming a DB schema artifact.**
+
+**Three of those claim byte-identity with a `CHECK`, and there are FOUR copies.** The shipment modes and
+party kinds are declared in `db/tenant/migrations/0002_domain.sql` (the authority — it is what a row must
+satisfy to exist) and in three TypeScript files. Three carry the comment; the fourth,
+`workers/mcp/src/tools/quote.ts:20-21`, re-declares **both** lists privately to feed the MCP booking tool's
+`z.enum()` and claims nothing at all. It was found by grepping the constant name, not by reading comments —
+the documented copies are not the whole population, which is the general lesson here.
+
+**All four agreed when measured, and nothing enforced that.** Neither `SHIPMENT_MODES` nor `PARTY_KINDS`
+appears in any test file. Adding a seventh mode to the DDL and forgetting a copy was a silent, green change.
+
+**The two drift directions cost different things**, and the gate says so rather than flattening them. A copy
+that is too NARROW makes its surface refuse a value the database accepts — for MCP that is a booking the
+tool rejects and the API would have taken. A copy that is too WIDE is worse: the Zod enum admits a value the
+`CHECK` then rejects at INSERT, converting a clean 400 into a 500 at the database. REQ-030 is **not**
+violated by the MCP copy — that tool composes over the same API verbs, so the server re-validates and no bad
+value can be stored. The divergence is in reach, not integrity, which is why this is Low and not a hole.
+
+**The remedy is enforcement, not deduplication.** Collapsing the copies would make `workers/mcp` import from
+`workers/api`, a coupling worse than the drift. `checkDomainVocabularyParity` (tools/checks/invariants.ts,
+wired into `check:invariants`) parses the `CHECK` off the named table and requires every enrolled copy to
+equal it. **Measured, not assumed: exit 1 on drift, exit 0 restored.**
+
+It splits on `CREATE TABLE` rather than matching one flat regex, because `kind` carries a `CHECK` on **both**
+`parties` and `legs` with *different* value sets — a flat match answers for whichever appears first and would
+silently judge parties against the legs vocabulary. There is a test for exactly that.
+
+**Keyed on a roster checked against the discovered set — the §239/§244 lesson, applied before it bit.**
+Four mutations, each RED and attributed: a narrowed TS copy (1 violation naming the file and the delta); a
+widened DDL (3, every stale copy); **a fourth copy whose values are CORRECT but which is not enrolled** (1 —
+enrollment is the point, not agreement); and the constant renamed everywhere (1 — the gate refuses to
+certify nothing rather than reporting success for having found no copies to disagree with, which is the
+§239 hole in its original form). 7 tests added; the suite runs **183 passed**. The tests were then
+mutation-proved themselves: neutering the comparison to `if (false)` turns **2 RED**, both named.
+
+`typecheck`, `lint`, `check:invariants`, `check:traceability`, `check:citations` all exit 0.
+
+**Bound carried forward.** The parity sweep's DB-schema axis is now closed (9 examined, 3 acted on, 6 are
+single-site claims with no second copy to drift against). The remaining axes of §391's population are
+untouched, and the count to quote is the predicate's, not a historical one.
