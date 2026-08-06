@@ -19401,3 +19401,63 @@ place to look first.
 
 Fence mutated and restored byte-identical (RED naming the sentinel); two prior attempts discarded as invalid
 under §308 and excluded from the table; `packages/agents` green after restore.
+
+---
+
+## §363 — The sweep completed: eight guards, six load-bearing, and a hypothesis that survived
+
+§362 left four of the eight self-labelled defence-in-depth guards unswept and named them. Finishing the
+class.
+
+### `party_refs` (×2) — load-bearing, against my expectation
+
+`useFleet.ts:65` filters the fleet feed to shipments whose `party_refs` include the viewer's party id —
+described as *"defence-in-depth against client-side data mixing"*, with the server's lens projection as the
+primary. I expected a spare, since the server already scopes.
+
+**Mutation: the filter removed. RED — 3 failing assertions.** Load-bearing.
+
+### The SCAC charset guard — load-bearing, at 18 assertions
+
+*"A SCAC crosses VERBATIM into X12 envelopes … a value bearing an X12 delimiter — `*`, `~`, `>`, or a
+newline — could inject a segment/element or corrupt outbound byte-stability."*
+
+**Mutation: the charset widened to accept every delimiter the guard excludes** (kept as a regex so the type
+is unchanged). **RED — 18 failing assertions**, naming `SCAC`, `charset`, `delimiter`. The single largest
+response of the sweep, for a guard whose comment is four lines long.
+
+### And a third invalid mutation, caught the same way
+
+The first SCAC attempt replaced the regex with `.min(1)` — a different Zod method, so the file stopped
+typechecking and the run went "RED" with **`failing: 0`**. That is now the **third** occurrence of the same
+tell this phase (§362 twice, here once): **a RED with zero failing assertions is a compile error, not a
+finding.** The assertion count is the discriminator, and it costs nothing to read.
+
+The fix was to keep the mutation *type-identical* — widen the character class, don't swap the validator —
+which is the general form: **a mutation should change what the code MEANS, never what it IS.**
+
+### The class, complete
+
+| guard | deleting it | verdict |
+|---|---|---|
+| consent belt (§359) | GREEN | unreachable — `ConsentAck` blocks first |
+| platform belt (§360) | GREEN | spare — allowlist blocks first, itself shape-tested |
+| retention prefix (§361) | RED 2 | **load-bearing** |
+| prompt fence (§362) | RED 1 | **load-bearing** |
+| `party_refs` client filter | RED 3 | **load-bearing** |
+| SCAC charset | RED 18 | **load-bearing** |
+
+**Eight guards, six load-bearing, two spares.** §362's hypothesis — *the load-bearing ones touch input from
+outside their own component* — **survives the full sweep**: a corrupted database row, a stranger's email, a
+server feed arriving at a client, a tenant-config SCAC crossing into someone else's X12 parser. Both spares
+sit behind a schema or an allowlist that refuses first.
+
+**"Defence-in-depth" turned out to be the wrong description for three quarters of them.** They are not second
+layers; they are first layers at a trust boundary, and the phrase in the comment records the author's
+intention to be careful rather than the guard's position in a stack. Only deletion tells you which you have.
+
+### Verification
+
+All eight guards enumerated from the corpus and each mutated individually; every file restored
+byte-identical; three invalid mutations discarded under §308 rather than counted; `packages/edi`,
+`packages/map`, `packages/agents`, `packages/ledger`, `workers/api` all green after restore.
