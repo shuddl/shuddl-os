@@ -23709,3 +23709,65 @@ system.**
 first scope proved wrong; each of the seven traced individually to the ledger, the WP docs and genesis;
 `quote.sent`'s supersession confirmed against WP-07's own description of the `messages` projection. One
 record row, no code — a kind cannot be touched without a register amendment.
+
+---
+
+## §419 — the caveat that makes a safety claim true, written everywhere except where it applies
+
+Continuing §401's provenance sweep — the axis with the highest hit rate so far (2 examined, 1 real Med at
+§400). This claim appears in **two** files in near-identical words, which is also §392's shape:
+
+> *"`scope` is applied ONLY as a BOUND `LIKE ?` param — never interpolated — and only over server-derived id
+> columns (never client input on this read)."*
+
+### The claim is true, and the mechanism is shared
+
+Both files delegate to one builder, `queries/unbilled.ts@scopeLike`, so there are not two copies of the
+rule — there is one implementation with two descriptions. And it is right:
+
+```ts
+params.push(`${scope}%`);        // the template appends % to the VALUE
+return ` AND ${col} LIKE ?`;     // the scope is a bound placeholder
+```
+
+The template literal that looks alarming is building a **parameter value**, not SQL. `scope` cannot inject.
+
+### But `col` is spliced straight into the SQL
+
+`${col}` is interpolated. A caller-supplied column name would be an injection, and the comment quoted above
+— the one that says *"never interpolated"* — is silent about it, because it is a sentence about `scope`.
+
+Both **wrapper** functions do state the rule: *"`col` is a HARDCODED literal at every call site (never user
+input)."* Verified across all **11 call sites**: every column is a string literal
+(`"shipment_id"`, `"p.shipment_id"`, `"i.id"`, `"object_id"`, `"e.shipment_id"`). **No defect.**
+
+### The finding is where the caveat lives
+
+The rule is documented on the two wrappers. It is **not** documented on the function that performs the
+interpolation — and **two callers bypass the wrappers entirely**: `workers/agents/src/watchtower.ts` (four
+sites) and `recon-sweep.ts` import `scopeLike` directly.
+
+So a reader arriving at the shared builder — which is what a new caller imports — finds a function that
+splices its first argument into SQL, with no note saying that argument must be a literal. The safety
+depends on a comment in a file they have no reason to open.
+
+Written at the interpolation site. §398's lesson exactly, in the inverse direction: there, a comment claimed
+a guarantee its line did not deliver; here, a line delivers a guarantee no comment states **at that line**.
+
+> **A caveat belongs where the hazard is, not where the hazard is currently avoided.** The wrappers are the
+> two places the rule is *already* being followed — the least useful place to write it. The builder is where
+> the next person can break it.
+
+### The pattern this axis keeps producing
+
+Three provenance claims examined now: §400 (`pod.actor.party` — *true and insufficient*, a filed Med), §401
+(`override.by` — *true and enforced*, three tests), and this (*true, and its enabling condition documented
+somewhere else*). None was false. **All three were about where the guarantee's support actually sits**, and
+in two of three it was not where the sentence implied.
+
+### Verification
+
+`scopeLike` read line by line to separate the bound value from the interpolated column; all 11 call sites
+enumerated and each column argument confirmed a literal; the two direct (wrapper-bypassing) callers
+identified by grep; the caveat added at the interpolation site rather than duplicated onto a third wrapper.
+`typecheck 0`, ledger 620 green, `check:citations 0`.

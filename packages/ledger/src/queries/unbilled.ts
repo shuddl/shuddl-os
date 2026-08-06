@@ -122,6 +122,17 @@ export function unbilledRedriveSql(select: string, scopeClause = "", ageClause =
  * undefined — the production whole-tenant read. Extracted here so the KPI compute and the Watchtower apply the
  * identical scoping rule (no drift), and so the parity test can scope both onto the same rows of the shared D1.
  */
+// THE `col` ARGUMENT IS INTERPOLATED INTO SQL — it MUST be a hardcoded literal (audit §419).
+//
+// `scope` is safe by construction: it is pushed onto `params` and referenced as a bound `?`, and the template
+// literal below only appends the `%` wildcard to the VALUE. `col` is not — it is spliced straight into the
+// returned fragment, so a caller-supplied column name would be an injection.
+//
+// Both wrapper functions (`kpis/compute.ts@likeClause`, `queries/metrics.ts@likeClause`) already state this
+// rule. It is repeated HERE because two callers — `workers/agents/src/watchtower.ts` (4 sites) and
+// `recon-sweep.ts` — bypass those wrappers and call this function directly, so the wrappers' comments are
+// invisible to them. All 11 call sites pass a literal today, verified; the rule is written where the
+// interpolation happens so the twelfth caller reads it without having to find a wrapper first.
 export function scopeLike(col: string, scope: string | undefined, params: (string | number)[]): string {
   if (scope === undefined) return "";
   params.push(`${scope}%`);
