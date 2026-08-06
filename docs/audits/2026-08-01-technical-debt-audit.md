@@ -20533,3 +20533,96 @@ Seven mutations by verified line index (the four `tenants.ts` guards are byte-id
 would have hit all four, the §308 hazard); each type-valid (status and message changed, never the
 condition); tree verified clean by construct-count after the timeout and again after the final two runs
 (`0 modified`). `check:tables 0`.
+
+---
+
+## §377 — "unpinned for a verified reason" was unpinned for a wrong reason
+
+§376 left five replicated triples unswept. The largest, `SESSION LENS UNRESOLVED` ×8, is also the one hold
+205 had already adjudicated: *"4 unpinned for verified-correct reasons… 3 defensive `LENS_UNRESOLVED`→403
+translations."*
+
+§376 closed on the rule that an unobserved guard can be a correctly-ordered defence rather than a gap, and
+that **the way to tell is walking the caller.** So: walk it.
+
+### The shape
+
+One rule, eight implementations. Three files define a **byte-identical local `toLensError` helper**
+(normalised-hash equal — `invoices`, `documents`, `board`); five more inline the same `startsWith` test in
+a catch block. No shared owner: a new lens-error kind means editing eight sites, and nothing would notice
+seven.
+
+Mutating the three helper copies:
+
+| site | result |
+|---|---|
+| `routes/board.ts:78@LENS_UNRESOLVED` | **RED** — pinned |
+| `routes/invoices.ts:28@LENS_UNRESOLVED` | **GREEN** |
+| `routes/documents.ts:30@LENS_UNRESOLVED` | **GREEN** |
+
+Two greens, consistent with the hold's count. The question is whether the hold's *reason* is right.
+
+### It is not. The path is live.
+
+`lensFor` throws on exactly one condition — `role === "portal"` **and** no `party_id`. Whether that is
+reachable is a schema question, and the schema answers it:
+
+```ts
+party_id: z.string().optional(),
+```
+
+Optional. And `workers/api/src/middleware/auth.ts` contains **no** `party_id` requirement for the portal
+role — grepped, empty. So a portal token without a `party_id` is schema-valid, mintable, and reaches these
+routes. **"Defensive" describes an unreachable branch; this one is reachable.**
+
+The proof was already in the repository: `board.test.ts` mints
+`token({ sub: "u-noparty", tenant, role: "portal" })` — exactly that token — and asserts 403. That test is
+why `board.ts` went RED. **One route had a test for the live path, and the other two copies of the same
+rule were classified as defending against something impossible.**
+
+Without the translation the plain `Error("LENS_UNRESOLVED: …")` reaches `app.onError` and becomes a
+**500 INTERNAL ERROR** (§354's envelope). Both outcomes refuse, so this is Low — but a 500 asserts *"this
+server is broken"* where the truth is *"this token is incomplete"*, and **a reachable client error that
+manufactures 500s makes real 500s harder to see.**
+
+Two tests added; 762 green; both guards now RED.
+
+### Why the misclassification is the finding, not the two missing tests
+
+The tests are five minutes. What cost something is that the record said **verified**.
+
+§84 swept 18 guards, found a real hole, and wrote down four unpinned-for-reason. That is exactly the
+discipline this audit asks for — and three of the four reasons were a category error made once and
+inherited by everything downstream. §376 relied on the same category (*"unpinned for a verified reason, in
+hold 205's own category"*) one section ago, and was right there — `tenants.ts` line 24 really is
+unreachable, because four layers were checked.
+
+The difference between the two is the checking, not the conclusion:
+
+| | `tenants.ts` line 24 (§376) | `LENS_UNRESOLVED` ×3 (§84) |
+|---|---|---|
+| claim | unreachable | defensive |
+| basis | caller walked, guard above it read, invariant found, invariant's own pin located | plausible from the code's shape |
+| verdict | **holds** | **wrong — one grep of the schema** |
+
+> **"Verified" is a claim about a process, and it decays exactly like a measurement.** A reason recorded
+> without the steps that produced it cannot be re-checked, only re-believed — and a record that says
+> `verified-correct` actively deters the next reader from spending the grep.
+
+The cheap fix is to record the *step*, not the verdict: not *"defensive"* but *"unreachable because
+`party_id` is required at X"* — a sentence that would have been false on the day it was written, and
+visibly so.
+
+### Stated bound
+
+Five inline copies remain unswept — `portal-actions`, `status-link`, `copilot`, `events`, `rate` — plus
+`SHIPMENT ID TOO LONG` ×5, `ROLE NOT PERMITTED` ×2, `EVIDENCE BODY EXCEEDS 10 MiB` ×2, `ANCHOR NOT FOUND`
+×2, and the two `cursor` pairs. The duplication itself is now recorded on hold 205 as debt with a trigger:
+**a new lens-error kind means editing eight sites.**
+
+### Verification
+
+Three mutations by verified line index, each type-valid (status/message only), tree checked after every
+batch by construct count (`8/8` guards, `0 modified`) per §376's rule; the reachability claim established
+from the Zod schema and an empty middleware grep reported as empty (§360), and cross-checked against an
+existing test that already mints the token in question. `check:tables 0`.

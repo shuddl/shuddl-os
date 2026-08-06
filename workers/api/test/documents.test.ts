@@ -245,6 +245,20 @@ describe("GET /v1/documents/:id/url — lens-gated signed download URL", () => {
     const res = await docUrl("no-such-doc", await opsTok());
     expect(res.status).toBe(404);
   });
+
+  it("a portal session WITHOUT a party_id is 403, not 500 — the lens translation is REACHABLE (audit §377)", async () => {
+    // Sibling of the invoices case. `party_id` is optional in SessionClaims and unenforced by the auth
+    // middleware, so a portal token without it is valid and `lensFor` throws `LENS_UNRESOLVED` here for
+    // real. `toLensError` is what makes that a 403 instead of a 500; mutating it left 760 tests green.
+    //
+    // Asserted on the DOCUMENT-URL route specifically because this file's other 403s and 404s come from
+    // the lens GATES (internal visibility, shipment scope) — a status alone would not say which fired, so
+    // the message is the discriminator, per §82's authoring rule.
+    const t = await token({ sub: "docs-noparty", tenant: TENANT, role: "portal" });
+    const res = await docUrl(intDocId, t);
+    expect(res.status).toBe(403);
+    expect(JSON.stringify(res.json)).toContain("SESSION LENS UNRESOLVED");
+  });
 });
 
 describe("GET /pub/documents/:cap — public bytes proxy fail-closed", () => {

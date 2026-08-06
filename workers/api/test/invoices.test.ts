@@ -153,4 +153,22 @@ describe("GET /v1/invoices — tenant isolation (REQ-025)", () => {
     expect(ids.has(INV_A1)).toBe(false);
     expect(ids.has(INV_B1)).toBe(false);
   });
+
+  it("a portal session WITHOUT a party_id is 403, not 500 — the lens translation is REACHABLE (audit §377)", async () => {
+    // `party_id` is `z.string().optional()` in SessionClaims and nothing in the auth middleware requires it
+    // for `role: "portal"`, so this token is schema-valid and this path is LIVE — not a defensive
+    // translation of an impossible error, which is how the standing ledger had it classified.
+    //
+    // `lensFor` throws a PLAIN `Error("LENS_UNRESOLVED: …")`; `toLensError` turns it into this 403. Without
+    // that translation the plain Error reaches `app.onError` and becomes a 500 INTERNAL ERROR — a refusal
+    // either way, but a 500 says "this server is broken" where the truth is "this token is incomplete",
+    // and real 500s are harder to see when a reachable client error manufactures them.
+    //
+    // Mutating the 403 here left all 760 tests green; `board.ts` has the identical guard and IS pinned, by
+    // a test one file over. Three copies of one rule, one observed.
+    const t = await token({ sub: "inv-noparty", tenant: TENANT_SLUG, role: "portal" });
+    const res = await listInvoices(t);
+    expect(res.status).toBe(403);
+    expect(res.body).toContain("SESSION LENS UNRESOLVED");
+  });
 });
