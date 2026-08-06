@@ -9019,7 +9019,7 @@ through the gate.
 It does **not** assert photos in the email. Neither does anything else, because:
 
 ```
-workers/agents/src/biller.ts:584@photos
+workers/agents/src/biller.ts:588@photos
   photos: {}, // close-out note: the R2-signed-URL resolver for signature/placed photos is not wired yet
 ```
 
@@ -9035,7 +9035,7 @@ placeholder path. **Nothing resolves the URLs.**
 |---|---|
 | `CLAUDE.md` demo #1 | invoice **+ photos** in the client's inbox |
 | REQ-087 (WP-06, `F0-SPEC'D`, no manifest disposition → accounted **built**) | *"Delivery notification email: DELIVERED display type + sig/pallet photos"* |
-| `workers/agents/src/biller.ts:584@photos` | `photos: {}` — resolver unwired |
+| `workers/agents/src/biller.ts:588@photos` | `photos: {}` — resolver unwired |
 
 Per [[two-mechanisms-disagreeing-is-the-finding]], the disagreement *is* the finding. REQ-087's DoD is
 *"Design-system email renders across clients"* — which the view tests satisfy — so the row passes
@@ -9060,7 +9060,7 @@ one rotted citation, not a rotted table.
 Wiring the resolver is new behaviour and would need an owner's REQ row, so it is **not** done here.
 What is done is making the constraint visible where it is acted on:
 
-- **`GO-LIVE-CHECKLIST.md`** — citation corrected to `biller.ts:584@photos` **with an anchor**, and the
+- **`GO-LIVE-CHECKLIST.md`** — citation corrected to `biller.ts:588@photos` **with an anchor**, and the
   row now names what it had omitted: that this is also the "+ photos" half of demo #1 and of REQ-087's
   DoD, and that **demo #1 cannot be filmed showing photos until it lands.** The ratchet FELL 130 → 129
   on the anchor and was banked so it cannot loosen back.
@@ -10036,7 +10036,7 @@ is *right*, so the exercise finds rot rather than cementing it.
 
 | Row | Cited | Actually there | Correct |
 |---|---|---|---|
-| `referralBase` config-drift on evidence fast-path | `biller.ts`, line 456 | *"Interline: the executing share is judged, never gross (REQ-040)"* — an unrelated floor check | `biller.ts:585@referralBase`, where the hazard is stated verbatim |
+| `referralBase` config-drift on evidence fast-path | `biller.ts`, line 456 | *"Interline: the executing share is judged, never gross (REQ-040)"* — an unrelated floor check | `biller.ts:589@referralBase`, where the hazard is stated verbatim |
 | 990 ack best-effort / no-ops when transport unwired | `inbound.ts`, line 505 | the `/v1/rate` + accept-quote payload note | `inbound.ts:83@NotConfigured`, the port declaration |
 
 Neither would ever have been caught by rule 1: both lines exist, both are in bounds, both sit in files
@@ -11071,7 +11071,7 @@ trusting the second run, which is §211's own rule applied one section later.)*
 than a 39% sample. Every newly visible handler is deliberate and says why in place:
 
 ```
-workers/agents/src/biller.ts:569@unparseable   /* refs -> fall back to the shipment id */
+workers/agents/src/biller.ts:574@unparseable   /* refs -> fall back to the shipment id */
 workers/agents/src/tenants.ts:140@routable      // a malformed policy row is not a routable tenant
 workers/agents/src/watchtower.ts:319@fabricate  /* unparseable cost -> unknown, skip */
 workers/agents/src/spark-meter.ts:83@lock       this.lock = run.catch(() => undefined)  // DO mutex chain
@@ -21760,3 +21760,96 @@ Parity claims enumerated mechanically (122); the money one traced to its five ve
 absence of enforcement proved by mutation (`typecheck` 0 errors on a deliberately-divergent vocabulary)
 before the fix, and the fix proved by the same mutation failing at the assertion's exact line; restored
 byte-identical against a post-fix backup. Rater 157 green, `typecheck 0`.
+
+---
+
+## §392 — half of a join was derived and half was restated
+
+Continuing §391's stated bound (121 parity claims unchecked), by the same selection rule: two
+hand-maintained values, high-stakes path.
+
+`packages/ledger/src/queries/unbilled.ts` builds the reconciliation re-drive anti-join and says of itself:
+*"the Biller EMITS the marker with `terminalHoldBodyRef` and the recon query EXCLUDES on
+`TERMINAL_HOLD_BODY_REF_PREFIX` — **ONE definition, shared by both**, so the emit and the exclusion can
+never [drift]."*
+
+**True, and only for half the join.** The anti-join matches on two things:
+
+| half | query side | emit side |
+|---|---|---|
+| `body_ref` prefix | `TERMINAL_HOLD_BODY_REF_PREFIX` | **imported** `terminalHoldBodyRef(...)` ✓ |
+| event `kind` | `UNBILLED_HOLD_MARKER_KIND` | **hardcoded** `kind: "message.received"` |
+
+The claim is accurate as written — it is scoped to the body_ref. The kind was simply never brought under
+it, which is §378's shape again (*a fix applied to the instance, not the rule*) at the granularity of a
+single SQL predicate.
+
+### What the divergence would have cost
+
+Diverging the constant: **typecheck 0**, `packages/ledger` **618 passed** — its own package does not observe
+its own constant — and `workers/api` **1 failed**, that one test being exactly right:
+
+> *"BOUNDING (held): a permanently-held POD is re-enqueued at most ONCE — the Biller writes the hold marker,
+> then the recon anti-join EXCLUDES it (no re-enqueue on the 2nd sweep)"*
+
+So the parity **was** enforced, by §391's third and weakest mechanism: a single end-to-end test, in a
+different workspace from either definition. Had it drifted, the anti-join would stop matching the Biller's
+own markers and the reconciliation sweep would re-drive permanently-held PODs **forever** — the Biller
+re-refusing each time, writing another marker each time. Not a money error; an unbounded churn loop and the
+word "terminal" quietly meaning nothing.
+
+### Upgraded from observed to impossible
+
+The Biller now imports `UNBILLED_HOLD_MARKER_KIND` and uses it. One definition for both halves, matching
+what the file already said about the other half.
+
+The proof is in how the failure mode changed:
+
+| | before | after |
+|---|---|---|
+| change the constant | **1 failed** — a silent join mismatch, caught incidentally | **8 failed** — the marker's kind genuinely changes everywhere |
+| can the two halves disagree? | yes | **no** |
+
+Eight loud failures about a real behaviour change is the correct response to editing a shared constant. One
+quiet failure about a join that no longer matches is what a duplicated one produces.
+
+### The rule
+
+> **A parity claim can be true of a subset of what it appears to cover.** *"ONE definition, shared by both"*
+> was written about a prefix and read — by me, and presumably by whoever maintained it — as covering the
+> join. The tell is mechanical and worth using on the remaining 120: **count the things the two sides must
+> agree on, then count the shared definitions.** Two versus one is the finding.
+
+§391 ranked the three real enforcement mechanisms — type system, derivation, parity test. This is the first
+case where a claim used **two of them at once for different clauses**, which is exactly why reading the
+comment could not settle it.
+
+### Stated bound
+
+**120 parity claims remain unchecked.** Two examined, two acted on: one gained a compile-time proof (§391),
+one gained a shared definition (this).
+
+### Postscript: a 4-line comment rotted 9 citations in 5 files
+
+Committing this was withheld once: inserting four comment lines at `biller.ts` line 146 shifted everything
+below it by +4, and **nine `path:line@symbol` citations across five files** — the audit, GO-LIVE-CHECKLIST,
+`acceptance-demos.md`, and a source comment in `routes/dunning.ts` — pointed into the gap.
+
+All nine were **structurally correct and semantically stale**: the symbol still existed, four lines lower.
+Repointed by locating each symbol's real line and rewriting every reference, mechanically.
+
+This is the second time this phase (§378 shifted five by +9). It is the visible cost of anchored citations,
+and it is the right trade: the alternative is §374's world, where a moved symbol leaves a citation that
+still *resolves* — pointing at whatever code slid into that line number — and nothing complains. **A gate
+that makes a cheap edit expensive is only worth it if the thing it prevents is expensive; here the thing
+prevented is a citation that silently means something else.**
+
+Worth noting the failure mode the gate does NOT have: it named all nine, gave the cited span, and for each
+said where the symbol actually is. The fix was one script.
+
+### Verification
+
+Both halves of the anti-join traced to their definitions; divergence measured before the fix (typecheck 0 ·
+ledger 618 pass · api 1 fail) and attributed by failing-test name; the fix verified behaviour-neutral (api
+764, agents 113 green) and its structural effect proved by re-running the same divergence, which now moves
+both sides and fails 8. Constant restored byte-identical after each probe.

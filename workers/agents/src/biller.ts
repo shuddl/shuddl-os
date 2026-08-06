@@ -29,7 +29,7 @@ import type { GeoStamp, InvoiceIssuedPayload, LedgerEvent, QuotePricedPayload } 
 import { rowToEvent } from "@shuddl/ledger/lens";
 import { authoritativeSource, resolveAuthority } from "@shuddl/ledger/authority";
 import { plausibleEmail } from "@shuddl/ledger/contacts";
-import { terminalHoldBodyRef } from "@shuddl/ledger/queries/unbilled";
+import { terminalHoldBodyRef, UNBILLED_HOLD_MARKER_KIND } from "@shuddl/ledger/queries/unbilled";
 import { composeInvoice, renderEvidenceEmail, SendError } from "@shuddl/agents";
 import type { EvidenceEmailData, EvidenceMessage, EvidenceSender } from "@shuddl/agents";
 import type { Leg } from "@shuddl/rater";
@@ -143,7 +143,11 @@ async function emitTerminalHoldMarker(
       source: "native",
       confidence: 10_000,
       requested_visibility: "internal", // narrows message.received's counterparty default → internal ops note
-      kind: "message.received",
+      // DERIVED, not re-typed (audit §392): the recon anti-join excludes on `UNBILLED_HOLD_MARKER_KIND`
+      // and this line used to restate the same string. Both halves of that join now read ONE definition —
+      // the body_ref already did (`terminalHoldBodyRef`), the kind did not. Divergence is now impossible
+      // rather than merely observed: it was caught by exactly ONE end-to-end test, in another workspace.
+      kind: UNBILLED_HOLD_MARKER_KIND,
       payload: { channel: "note", from_ref: "agent:biller", body_ref: terminalHoldBodyRef(msg.shipment_id, reason) },
     },
   });
