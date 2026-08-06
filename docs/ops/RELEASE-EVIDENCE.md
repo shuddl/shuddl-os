@@ -285,6 +285,16 @@ Everything that routes through `workerd` is therefore BLOCKED, not failed, and n
 `workers/translator`, `pnpm test`, `pnpm test:acceptance`, `pnpm verify:dev`, `pnpm verify:merge`,
 `pnpm verify:release`.
 
+> **SUPERSEDED for the six suites above — 2026-08-05 at `c51e0f7` (audit §367).** The wedge was
+> machine-local and transient; a reboot cleared it, and audit §297/§298 withdrew the BLOCKED claim after
+> running them. All six run green today, and their counts are in the re-measured table below. **Everything
+> from here to the end of Step 1 is the record of what happened DURING the wedge, correctly dated —
+> read it as history, not as the current state.** `test:acceptance` was likewise re-measured green (§333).
+
+Two things this section got right and are worth keeping: the six absent suites were **named**, and the
+sentence *"a green above says nothing about any of them"* was written next to the total. A disclosed
+exclusion goes stale visibly. The failure mode it avoided is a total that reads as complete.
+
 ### Step 1 — the local repository gate
 
 `pnpm verify:dev` could not be run end-to-end: it spawns `pnpm test` fourth, which needs `workerd`. Its
@@ -324,37 +334,60 @@ nine engagement-workspace fixtures listed by `check:fixtures` (`rater-48-tests`,
 `legacy-import-formats`, `legacy-export-replay`, `synthetic-blitz-3100`). The fix is to supply the
 input, never to relax the gate.
 
-#### The twelve suites that did run
+#### The eighteen suites — re-measured 2026-08-05 at `c51e0f7`
 
-`pnpm test` is BLOCKED as a whole, so each runnable suite was run directly. **1,470 assertions across
-116 files, zero failures, zero skips.**
+**Measurement stamp: `c51e0f7`, 2026-08-05, audit §367. This stamp does NOT track HEAD** — it names the
+commit the counts were taken at, so a later reader can tell drift from currency (the §330 rule). On the
+wedge day this table held twelve rows totalling 116 files / 1,470, and said so honestly; ten of those
+twelve had since drifted and six suites were absent.
 
-| Suite | Files | Tests |
+Each suite was run directly by **path** filter — `pnpm --filter ./workers/agents`, never
+`--filter @shuddl/agents`, which resolves to `packages/agents` instead (one name collision in seventeen
+workspaces, and it fails *silently* onto the wrong workspace — audit §324/§325).
+
+**284 test files, 3,713 test cases, zero failures, zero skips.** These are test **cases**, which is what
+vitest's `Tests` line counts — the earlier wording said "assertions", a strictly larger and stronger
+quantity that was never measured.
+
+| Suite (by path) | Files | Tests |
 |---|---|---|
-| root tools (`pnpm test:tools`) | 18 | 410 |
-| `@shuddl/command` | 17 | 95 |
-| `@shuddl/driver` | 8 | 41 |
-| `@shuddl/portal` | 13 | 80 |
-| `@shuddl/adapters` | 3 | 38 |
-| `@shuddl/agents` | 10 | 217 |
-| `@shuddl/contracts` | 14 | 273 |
-| `@shuddl/design` | 2 | 9 |
-| `@shuddl/driver-core` | 4 | 37 |
-| `@shuddl/edi` | 5 | 33 |
-| `@shuddl/map` | 10 | 83 |
-| `@shuddl/rater` | 12 | 154 |
-| **total** | **116** | **1,470** |
+| root tools (`pnpm test:tools`) | 31 | 784 |
+| `apps/command` | 17 | 97 |
+| `apps/driver` | 10 | 58 |
+| `apps/portal` | 13 | 80 |
+| `packages/adapters` | 3 | 38 |
+| `packages/agents` | 10 | 219 |
+| `packages/contracts` | 14 | 285 |
+| `packages/design` | 2 | 11 |
+| `packages/driver-core` | 4 | 39 |
+| `packages/edi` | 6 | 38 |
+| `packages/ledger` | 34 | 618 |
+| `packages/map` | 10 | 84 |
+| `packages/rater` | 12 | 154 |
+| `workers/api` | 69 | 757 |
+| `workers/mcp` | 12 | 177 |
+| `workers/agents` | 19 | 113 |
+| `workers/billing` | 6 | 57 |
+| `workers/translator` | 12 | 104 |
+| **total** | **284** | **3,713** |
 
-**This total is not `pnpm test`.** The six absent suites — `packages/ledger`, `workers/api`,
-`workers/agents`, `workers/billing`, `workers/mcp`, `workers/translator` — are exactly the ones that
-exercise the ledger, the sequencer DO, the gates, the queues and the API surface. A green above says
-nothing about any of them.
+**The file total is corroborated, not just summed.** `git ls-files | grep -cE '\.test\.(ts|tsx)$'`
+reports **284** tracked test files, and the eighteen suites collect **284**. Two independent mechanisms
+agreeing to the unit means no test file is collected twice and none is collected by nobody — the
+condition `tools/checks/test-collection.test.ts` enforces, here confirmed against an outside count rather
+than against itself.
+
+The six formerly-absent suites — `packages/ledger`, `workers/api`, `workers/agents`, `workers/billing`,
+`workers/mcp`, `workers/translator` — are exactly the ones that exercise the ledger, the sequencer DO,
+the gates, the queues and the API surface, and they are **1,826 of the 3,713 cases**. The wedge-day total
+covered 51% of the tests that exist. That is why the disclosure sentence beside it mattered.
 
 Observation, not a defect: `pnpm test:tools` emits five `fatal: not a git repository` lines on stderr.
 They originate in `tools/checks/invariants.test.ts:33`, which spawns the invariants CLI inside
 non-git temp directories with stderr piped through to the parent; the checker's `committedLock()`
 fallback (`tools/checks/invariants.ts:506@committedLock`) is designed to return `{}` in exactly that case. All
-410 assertions pass. Cosmetic noise; recorded here so the next reader does not re-diagnose it.
+784 tools cases pass (410 on the wedge day). Cosmetic noise; recorded here so the next reader does not
+re-diagnose it.
 
 ### Step 2 — the browser gates
 

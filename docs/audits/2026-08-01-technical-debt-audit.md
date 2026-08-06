@@ -19640,3 +19640,107 @@ that each class acquired a detector that fires before the finding is published.
 Both mutations applied by verified line index and restored byte-identical; `@shuddl/api` 757 and
 `@shuddl/translator` 104 green after restore; three remaining boundaries named rather than summarised;
 `typecheck 0 · check:tables 0 · check:citations 0` after anchoring, with the commit gated on all three.
+
+---
+
+## §367 — the last three boundaries, and what the enumeration cost
+
+§366 named three boundaries still unswept. All three are now swept, and the third produced the section's
+only real finding.
+
+### MCP tool args → dispatch: a structural chokepoint, observed
+
+`workers/mcp/src/tools/registry.ts@dispatch` validates `arguments` against each tool's Zod schema before
+anything downstream runs — no principal minted, no api round-trip, no mutation chokepoint. It is a
+**chokepoint, not a roster** (§352): every tool reaches it, because the dispatcher owns the call.
+
+Mutation — replace `tool.inputSchema.safeParse(rawArgs)` with `z.unknown().safeParse(rawArgs)`, which
+always succeeds, so validation happens and decides nothing. Type-valid (`parsed.data: unknown` is what the
+handler signature already takes), which matters: §363's two invalid mutations both produced a RED with
+`failing: 0`, a compile error wearing a red shirt.
+
+**RED, 2 failed of 177.** Attributed: *"Zod-invalid arguments are rejected before anything downstream runs
+→ a bad argument type → a JSON-RPC error, and the chokepoint (hence any handler/api call) never runs"*,
+`expected undefined to be -32602`. The rule that fired is the rule under test.
+
+### An uploaded file → R2: byte-verify, observed
+
+`workers/api/src/routes/evidence.ts@postEvidence` verifies `sha256(received bytes) === photo_hash` before
+anything is written, and derives the R2 key from `session.tenant` — never from the request. The body read
+is capped at 10 MiB by a streaming reader that holds regardless of a lying `Content-Length`.
+
+Mutation — `if (actual !== photo_hash)` → `if (actual !== actual)`, a comparison that is always false and
+compiles clean. **RED, 1 failed of 757**, naming `hash_mismatch`. Restored; 757 green.
+
+### The driver service worker → cache: THE FINDING
+
+Three guards run before any `cache.put`:
+
+```js
+if (req.method !== "GET") return;                        // no comment
+if (url.origin !== self.location.origin) return;         // no comment
+if (isApiPath(url.pathname)) return;                     // three lines of comment, six tests
+```
+
+Deleting each in turn, against the shipped bytes:
+
+| guard | before §367 | after §367 |
+|---|---|---|
+| `req.method !== "GET"` | **54 passed** — unobserved | **1 failed** |
+| `url.origin !== …origin` | **54 passed** — unobserved | **1 failed** |
+| `isApiPath(url.pathname)` | 3 failed | 3 failed |
+
+**Two of the three guards could be deleted with the suite green.** Not because they are redundant — delete
+the origin guard and a cross-origin response, which is *opaque* (status 0, unreadable body), gets
+cache-firsted and then served from cache indefinitely, indistinguishable to the caller from a real hit.
+Delete the method guard and the driver's signed capture POSTs get intercepted on a path where `cache.put`
+rejects by spec. Both matter; nothing watched either.
+
+The gradient is legible in the file itself: **the guard with three lines of comment had six tests; the two
+bare lines had none.** Attention followed the documented one — which is the §287 shape (a budget nothing
+counted) with its cause visible. Documentation is where an author's attention already went; it is
+therefore the worst available predictor of where attention is *missing*.
+
+Four tests added, in isolating pairs. The obvious case for each guard does **not** isolate it — a POST to
+`/v1/events` and a cross-origin `/v1/driver/manifest` are both declined by `isApiPath` regardless — so
+each pair carries one realistic case and one that only its own guard can decline (a POST to an asset path,
+a foreign asset path). Verified in both directions: 58 green clean, and 1 failed per deleted guard.
+
+### While there: the evidence table under the twelve-suite heading
+
+Re-measuring `apps/driver` (54 → 58) meant checking the stamp in `docs/ops/RELEASE-EVIDENCE.md`, which
+said `@shuddl/driver` — 8 files, 41 tests. Reality was 10 / 54 **before** this section touched anything.
+Re-measuring all twelve found ten of twelve drifted. Re-measuring the *population* found six suites
+absent — `packages/ledger` (618 cases), the four workers, `workers/api` (757).
+
+**The document disclosed this.** It named all six and said *"a green above says nothing about any of
+them."* That is the §-rule working: a disclosed exclusion goes stale **visibly**. What had gone stale was
+the *premise* — the six were absent because `workerd` was wedged, and §297/§298 withdrew that claim after
+running them. §333 corrected two rows of the gate table that carried the same premise; **this section sat
+one heading below and was not revisited.** A correction was applied to the instances found rather than to
+the cause, and the largest survivor was the evidence base itself, not a verdict.
+
+Now: 18 suites, 284 files, **3,713 test cases**, re-measured at `c51e0f7` with a stamp that does not track
+HEAD. The wedge-day total covered 51% of the tests that exist.
+
+Two corroborations worth keeping:
+
+- **The file count agrees with an outside mechanism.** `git ls-files | grep -cE '\.test\.(ts|tsx)$'` = 284;
+  the eighteen suites collect 284. Nothing double-counted, nothing orphaned — the property
+  `test-collection.test.ts` enforces, here checked against a count that does not come from vitest.
+- **"1,470 assertions" counted test cases.** The prose named a strictly larger quantity than the column it
+  summed. Corrected to cases. An overstatement in the unit is invisible to every gate, because both
+  readings are integers and only one of them was ever measured.
+
+### Verification
+
+Five mutations, all landed (`git diff --numstat` non-empty before each run), all restored byte-identical.
+Suites run by **path** filter throughout. `typecheck 0 · check:tables 0 · check:citations 0`, commit gated
+on all three.
+
+### Carry-forward
+
+`tools/checks/invariants.ts:506@committedLock` returns `{}` when there is no committed lockfile. That is
+the exact shape of [[fail-closed-is-about-the-fallback-value]] — the fallback VALUE, not the catch — and a
+`{}` there would make any "every dependency matches the lock" comparison vacuously true. It may well be
+correct here; it has not been checked. **Next section's first item.**

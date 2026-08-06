@@ -44,6 +44,11 @@ function swRequest(path: string, mode = "cors", method = "GET"): SwRequest {
   return { method, url: `${ORIGIN}${path}`, mode };
 }
 
+/** A request to a DIFFERENT origin — the shape the API base really has (src/api/base.ts). */
+function foreignRequest(url: string, mode = "cors"): SwRequest {
+  return { method: "GET", url, mode };
+}
+
 /** Evaluate the SHIPPED sw.js with stubbed `self` / `caches` / `fetch`, and expose its decision surface. */
 function loadServiceWorker(seedCache: Record<string, string> = {}): SwHarness {
   const source = readFileSync(SW_PATH, "utf8");
@@ -175,6 +180,67 @@ describe("driver service worker — API responses are NEVER cached (REQ-061)", (
     expect(handled).toBe(true);
     expect(sw.networkCalls).toEqual([`${ORIGIN}/assets/index-a1b2c3.js`]);
     expect(sw.cachePuts).toEqual([`${ORIGIN}/assets/index-a1b2c3.js`]);
+  });
+
+  // THE TWO GUARDS THAT RUN BEFORE isApiPath (audit §367). `if (req.method !== "GET") return;` and
+  // `if (url.origin !== self.location.origin) return;` sit above the API check and carry no comment between
+  // them. Deleting EITHER left all 54 tests green — every case above is a same-origin GET, so the whole suite
+  // could only ever observe the third guard. The two below close that: each fails when its own line is removed.
+  //
+  // This is the §287 shape (correct code nothing counted) with the attention gradient visible in the file:
+  // the guard with three lines of comment had six tests; the two bare lines had none.
+
+  it("declines a NON-GET request outright — a capture POST is never intercepted or cached", async () => {
+    // The driver's signed captures are POSTs. `cache.put` with a non-GET request REJECTS per the Cache API
+    // spec, so an intercepted POST would take the cache-first branch and fire a floating rejected promise on
+    // the exact path that must work in airplane mode. The worker's answer is to not handle it at all.
+    const sw = loadServiceWorker();
+
+    const { handled } = sw.dispatchFetch(swRequest("/v1/events", "cors", "POST"));
+    await flush();
+
+    expect(handled).toBe(false);
+    expect(sw.cachePuts).toEqual([]);
+    expect(sw.networkCalls).toEqual([]); // untouched: the page's own fetch reaches the network
+  });
+
+  it("declines a non-GET even on a CACHEABLE-looking path (the method decides, not the path)", async () => {
+    // Without this the previous test could pass on the API-path guard alone — `/v1/events` is API-shaped, so
+    // it would return at `isApiPath` regardless of method. This POST targets an asset path that the suite
+    // above proves IS cached when it is a GET, which isolates the method guard as the only thing declining it.
+    const sw = loadServiceWorker();
+
+    const { handled } = sw.dispatchFetch(swRequest("/assets/index-a1b2c3.js", "cors", "POST"));
+    await flush();
+
+    expect(handled).toBe(false);
+    expect(sw.cachePuts).toEqual([]);
+  });
+
+  it("declines a CROSS-ORIGIN request — an opaque response never enters the cache", async () => {
+    // The API base is non-same-origin by construction, and a cross-origin response is opaque (status 0, body
+    // unreadable). Cache-firsting one would store an unreadable object and then serve it from cache forever —
+    // undetectably, because an opaque hit and a real one look identical to the caller.
+    const sw = loadServiceWorker();
+
+    const { handled } = sw.dispatchFetch(foreignRequest("https://api.shuddl.example/v1/driver/manifest"));
+    await flush();
+
+    expect(handled).toBe(false);
+    expect(sw.cachePuts).toEqual([]);
+    expect(sw.networkCalls).toEqual([]);
+  });
+
+  it("declines a cross-origin ASSET too — the origin decides, not the path shape", async () => {
+    // Same isolation as the method pair: an API-shaped foreign path would return at `isApiPath` anyway. A
+    // foreign path that is asset-shaped can only be declined by the origin guard.
+    const sw = loadServiceWorker();
+
+    const { handled } = sw.dispatchFetch(foreignRequest("https://cdn.example.test/assets/index-a1b2c3.js"));
+    await flush();
+
+    expect(handled).toBe(false);
+    expect(sw.cachePuts).toEqual([]);
   });
 
   it("still network-firsts + caches a real navigation (the offline app shell)", async () => {
