@@ -9127,7 +9127,7 @@ The metering plumbing is complete and honest end to end. `agent_runs` carries `c
 is **no** false-zero fail-open here).
 
 But **only one agent emits `agent.acted` at all**: the rater, from two byte-identical paths
-(`workers/api/src/routes/rate.ts:248@agent.acted` and `workers/translator/src/inbound.ts:575@agent.acted`),
+(`workers/api/src/routes/rate.ts:248@agent.acted` and `workers/translator/src/inbound.ts:581@agent.acted`),
 reporting `cost_cents: 0` because it is a deterministic engine with no LLM call. Since `agent.acted` **is**
 the metered AI action — billing counts it (`workers/billing/src/metering.ts:3@agent.acted`) and the
 Watchtower budgets it — the meter never observes the agents that would cost anything.
@@ -11936,7 +11936,7 @@ is no obvious place to put the assertion, and it is worth treating a well-writte
 claims and I have adjudicated five. Rather than work the remaining 59 one at a time, the useful question
 is whether they divide.
 
-They do, cleanly. Probed the money-critical one still open — `workers/translator/src/inbound.ts:535@byte-identical`, claiming the EDI
+They do, cleanly. Probed the money-critical one still open — `workers/translator/src/inbound.ts:556@byte-identical`, claiming the EDI
 `quote.priced` payload is *"byte-identical to rate.ts"*. Dropped `floors` from the EDI construction alone:
 
 ```
@@ -22857,3 +22857,66 @@ Guards enumerated by locating each `try` whose preceding 8 lines cite a REQ id, 
 between the enclosing function's declaration and the `try`; three read in full at their line; the REQ-025
 cluster characterised by its common shape (`resolveTenantDb` → typed `ApiError`) rather than assumed. No
 code changed — §404 already carried the fix.
+
+---
+
+## §406 — the same root, the opposite symptom, in the sibling worker
+
+§405 generalised §404's check: **enumerate the paths that can produce the outcome a requirement forbids.**
+§404 fixed one REQ-173 path — the Concierge. The translator prices from the *same* config, so it is the
+next path by construction.
+
+### Unguarded in both places, and the file states the law it breaks
+
+`workers/translator/src/inbound.ts` loads the rating config and prices, neither call contained. A malformed
+required config therefore throws out of the 204 handler.
+
+What that becomes here is different, and worse in a specific way. This handler has an explicit,
+hard-won law, written into its tenant-resolution guard across three prior audit passes:
+
+> *"a deterministic condition never returns 5xx"* — with a transient fault **deliberately rethrown** so the
+> VAN *does* retry, because *"a transient blip on a perfectly HEALTHY claimed tenant produced a PERMANENT
+> refusal (a VAN does not retry a 422) plus a tender preserved only under an R2 prefix nothing enumerates.
+> A lost freight tender from a network hiccup: the exact 'worse of the two failures' this guard was added to
+> avoid."*
+
+A malformed tariff row is **deterministic**. Nothing about retrying fixes it. Yet it produced a 5xx —
+telling the VAN to retry, forever, on the one class of fault the file's own law says must never do that.
+
+### The fix is the branch that already exists
+
+Contained, mapped to `null` — which the handler already handles correctly: *the tender rests at
+quote.requested (no price on air)* and the 204 is still accepted. **Nothing is lost either way** here,
+because the tender is durably appended before pricing; what changes is that the VAN gets a clean 200
+instead of an unfixable retry loop.
+
+Test added mirroring the dims-less case (*"rests at quote.requested"*), asserting **200** and
+`kinds === ["quote.requested"]`. Mutation-proved: removing the containment fails exactly this test.
+111 green.
+
+### Why this pairing is worth naming
+
+Same root — an unguarded `loadTenantRatingConfig` — and **opposite symptoms**:
+
+| | Concierge (§404) | translator (§406) |
+|---|---|---|
+| transport | queue, at-least-once | HTTP, VAN-driven |
+| a throw becomes | 5 retries → **DLQ** | **5xx** → VAN retries |
+| harm | the customer's quote email is **silently lost** | an **unfixable retry storm** on a deterministic fault |
+| what the file already said | *"NEVER let a pricing throw escape … SILENTLY LOST"* | *"a deterministic condition never returns 5xx"* |
+
+Both files had written the correct law. Both applied it to the throw they were thinking about. **Neither
+extended it to the config load — the one input whose author is outside this repository** (§403), and
+therefore the one nobody was picturing when they drew the boundary.
+
+> **When two consumers share an input, they share its failure modes but not its symptoms** — and the
+> symptom is what a reader searches for. Anyone grepping for "lost tender" would never find the Concierge's
+> DLQ; anyone grepping for "retry storm" would never find the translator's. **The shared thing is the
+> input, so that is the axis to sweep.**
+
+### Verification
+
+Both call sites read at their lines; the handler's stated law quoted from its own guard; the fix routed to
+the branch that already existed rather than adding one; test mirrors the sibling case's shape and is
+**mutation-proved** (containment removed → 1 RED, named), source restored byte-identical.
+`typecheck 0`, translator 111 green.

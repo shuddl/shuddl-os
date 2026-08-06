@@ -505,7 +505,27 @@ export async function handleInbound204(request: Request, deps: InboundDeps): Pro
   // 2b. PRICE + append quote.priced → agent.acted → (approval.requested) → quote.accepted, MIRRORING the CSR
   //     /v1/rate + accept-quote payloads EXACTLY so a 204 booking is byte-identical to a CSR one. No tariff or an
   //     UNKNOWN price ⇒ the tender rests at quote.requested (no price on air) and no quote.accepted is appended.
-  const config = await loadTenantRatingConfig(db, receivedTs);
+  // REQ-173/151 (audit §406) — a MALFORMED required config throws inside the loader (`ZoneTariff.parse`),
+  // and this call was unguarded. That throw escapes to a 5xx, and a 5xx tells the VAN to RETRY — on a
+  // DETERMINISTIC fault no retry can fix, forever. It contradicts the law this handler states above:
+  // "a deterministic condition never returns 5xx", with a transient one deliberately rethrown so the
+  // VAN does retry. A bad tariff row is squarely the first kind.
+  //
+  // Treated as NO CONFIG, which is already the correct outcome and needs no new branch: the tender rests
+  // at quote.requested (no price on air) and the 204 is still accepted, so NOTHING is lost — the tender
+  // is already durably appended by this point. Logged loudly: an absent tariff is a cold-start state, a
+  // malformed one is an operator fault nothing else surfaces. Mirrors the Concierge fix (§404), whose
+  // symptom was the opposite — a DLQ'd quote email rather than a retry storm — from the same root.
+  let config: Awaited<ReturnType<typeof loadTenantRatingConfig>>;
+  try {
+    config = await loadTenantRatingConfig(db, receivedTs);
+  } catch (err) {
+    console.error(
+      `translator 204: rate_config for tenant ${tenantSlug} is MALFORMED (stored payload failed its schema) — the tender rests at quote.requested rather than 5xx-ing the VAN into a retry storm. Fix the rate_config rows:`,
+      err,
+    );
+    config = null;
+  }
   let accepted = false;
   if (config !== null) {
     // Price the SAME request that was recorded as quote.requested — a SINGLE parse path: parse-204 populated the

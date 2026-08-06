@@ -425,6 +425,30 @@ describe("REQ-201/202 — inbound 204 → gated chain, NO booking.created", () =
     expect(seq.kinds).not.toContain("booking.created");
   });
 
+  it("a MALFORMED rate_config rests the tender at quote.requested — 200, never a 5xx retry storm (audit §406)", async () => {
+    // The handler's own law, stated at its tenant-resolution guard: "a deterministic condition never returns
+    // 5xx", with a TRANSIENT fault deliberately rethrown so the VAN does retry. A malformed tariff row is
+    // deterministic — no retry can fix it — yet `loadTenantRatingConfig` threw straight through to a 5xx,
+    // telling the VAN to retry forever.
+    //
+    // Contained now, treated as NO CONFIG: the same outcome as the dims-less case above. The tender is already
+    // durably appended by that point, so nothing is lost either way; what changes is that the VAN gets a clean
+    // 200 instead of an unfixable retry loop. Mirror of §404's Concierge fix, whose symptom from the same root
+    // was the opposite — a DLQ'd customer email rather than a retry storm.
+    await env.TENANT_A_DB.prepare(
+      "INSERT OR REPLACE INTO rate_config (id, version, kind, payload, effective_ts, approved_by) VALUES (?,?,?,?,?,?)",
+    )
+      .bind("zt-malformed-204", 1, "zone_tariff", JSON.stringify({ kind: "zone_tariff", id: "zt-bad", version: "v1", zones: "not-an-object" }), 1, "test")
+      .run();
+
+    const seq = new RecordingSeq();
+    const res = await handleInbound204(await signedRequest(mkTender({})), makeDeps(seq, new RecordingTransport(), goodSecrets()));
+
+    expect(res.status, "a deterministic config fault must not 5xx the VAN").toBe(200);
+    expect(seq.kinds).toEqual(["quote.requested"]);
+    expect(seq.kinds).not.toContain("quote.priced");
+  });
+
   it("an unknown/inactive partner id → 401 (fail-closed), nothing written", async () => {
     const seq = new RecordingSeq();
     const res = await handleInbound204(await signedRequest(tender204(), { partner: "partner-nope" }), makeDeps(seq, new RecordingTransport(), goodSecrets()));
