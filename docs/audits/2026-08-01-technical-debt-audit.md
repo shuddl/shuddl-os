@@ -23827,3 +23827,68 @@ Four clauses split from the comment; the three structural checks read at their l
 caller set established by grep across both source trees with every hit classified; the offline-verification
 premise confirmed in `anchor.ts` (raw `.tsr` written to R2 before the manifest and the row) rather than
 inferred from the hold's wording. Two record changes, no behaviour change. `typecheck 0`, ledger 620 green.
+
+---
+
+## §421 — fourteen zero-caller exports, and the one where the answer is a question
+
+§420 left a decision rule for code nothing calls: **where does the data go?** If the artifact under
+verification is durably stored and re-checkable, no ingest-time caller is an *architecture*; if it is
+transient, it is a *hole*. Run as a sweep.
+
+**14 exported functions** in `packages/*/src` are referenced at most twice across every source tree
+(`packages/`, `workers/`, `apps/`, `tools`) — i.e. their own declaration plus at most one re-export.
+
+### Twelve resolve immediately, by the same rule
+
+- **Offline verification tools.** `verifyInclusion` (Merkle proof checking, 12 test references across three
+  files including `workers/api/test/anchors.test.ts`) is `verifyTsaSignature`'s exact counterpart: the root
+  is anchored, the proofs are derivable, and checking is a third-party audit-time act. **Architecture.**
+- **Vendor-time paths for blocked artifacts.** `loadPolygonSource`, `validateArtifact`, `buildPolygonSource`
+  — §376 established these serve the licensed boundary set, a BLOCKED external hold. **Architecture.**
+- **Pure helpers consumed within their own module** (`generalizedTime`, `anchorReceiptKey`,
+  `canonicalPositionBytes`, `backoffDelay`, `classifyStatus`, `agingBucketFor`, and the two retention
+  estimators) — exported for testability, used internally.
+
+### The fourteenth is a real question
+
+`packages/edi/src/mapping.ts@applyMapping` renames a parsed tender's ref keys via the partner's
+`refQualifiers` — *"unknown keys pass through unchanged — never dropped, Migrator rule."* Five test
+assertions. **Zero production callers.**
+
+Applying §420's rule surfaces an asymmetry rather than an answer:
+
+| direction | partner mapping |
+|---|---|
+| **outbound** (214) | resolved and passed to the build — `sweep-214.ts:199` — so `statusDialect` shapes what we send |
+| **inbound** (204) | `inbound.ts` never references a mapping; `map-204` keys on **hardcoded X12 qualifiers** (`SID`/`BM`/`PRO`) and namespaces refs by the raw qualifier |
+
+So a certified partner's dialect governs what we **send** and is ignored in what we **receive** — and the
+function that would close that is built, tested, and unwired.
+
+**Both readings are defensible.** If `refQualifiers` is an inbound decoding map (which its shape suggests —
+`BM→bol`, `SID→shipmentId`, X12 qualifier to our field name), the inbound path is missing a normalisation
+and two partners with different qualifiers will store the same concept under different keys. If it is
+outbound-only vocabulary, `applyMapping` is speculative and should say so.
+
+**Nothing in the repository records which.** Filed as that question, not as a defect — the live EDI
+transport is CONFIRM-gated and unbuilt, so it is latent either way, and it becomes real the day a *second*
+partner with a different dialect is certified.
+
+### What the sweep is worth
+
+Thirteen of fourteen were answered by §420's rule in the time it took to read their headers. The
+fourteenth needed a data-flow trace and still ends in a question — which is the correct output, because the
+answer depends on an intent no artifact states.
+
+> **A zero-caller sweep does not find dead code; it finds places where the intent was never written down.**
+> Twelve had their intent legible from the data flow. One (`verifyTsaSignature`, §420) had it legible only
+> after tracing where the bytes go. This one has two intents that produce identical code today and diverge
+> at the second partner.
+
+### Verification
+
+14 candidates produced by counting whole-word references across four trees and keeping those ≤2; each read
+at its declaration and classified; the outbound consumption of `partnerMapping` traced to `sweep-214.ts:199`
+and the inbound absence confirmed by grepping `inbound.ts` for any mapping reference (none); `map-204`'s
+hardcoded qualifier list read at its line. One record row, no code — the question is the deliverable.
