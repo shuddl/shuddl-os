@@ -25084,3 +25084,48 @@ different answers, and the difference is invisible until someone tries.
 produces it and the commit it was taken at, or it is written as a dated observation rather than a bound.
 That is the same distinction §118 drew between a law and an observation, applied to the audit's own
 arithmetic instead of to the code's.
+
+## §446 — the standing bounds audited for reproducibility; two re-baselined, one demoted
+
+§445 set the rule: **state the command, not the criteria.** Applied to the document's three remaining
+standing bounds, it separates them cleanly — and only one survives as written.
+
+**§401's "82 provenance claims" — does not reproduce.** Its recorded terms (`SERVER-DERIVED`, `co-signed`,
+`authoritative`, `cannot be forged`), word-bounded over its recorded scope, give **60** at `8b5db62`. A
+plausible superset adding the synonyms this codebase actually uses — `server-sourced` (13), `never client`
+(13), `server-computed` (2), `server-stamped` (2) — gives **89**. **82 sits between them**, which is the
+signature of a term list published shorter than the one used. Re-baselined to the exactly-specified reading,
+because that is the auditable one:
+
+```
+grep -rniE '^\s*(//|\*).*\b(server-derived|co-signed|cosigned|authoritative|cannot be forged)\b' \
+  packages/*/src workers/*/src --include='*.ts' | grep -c ''      # → 60 at 8b5db62
+```
+
+**§386's "50 stated guarantees" — DEMOTED, not re-baselined.** It records only *"enumerated mechanically"*.
+No terms, no scope, no command. There is nothing to re-run and nothing to correct against, so it cannot be a
+bound; it is now a **dated observation**: *fifty guarantees were enumerated on 2026-08-05 by a method not
+recorded, eight were split.* A successor wanting the bound must re-enumerate and publish the command — which
+is cheaper than it sounds and is the only way the "42 remaining" becomes meaningful again.
+
+**The distinction this makes concrete.** A bound is a claim about *what is left*, and it obligates whoever
+carries it to be able to re-derive the denominator. §397 (139) and §440 (47 registries) can: they published
+predicate, corrections, and a per-item table. §391 (122), §401 (82) and §386 (50) cannot. **Three of five
+standing bounds in this document were memories wearing a number's clothes**, and none of them was wrong when
+written — they decayed, or were recorded more briefly than they were run.
+
+**No code changed in §444–§446, and that is the right outcome.** The defect was in the audit's own
+instruments, and the cost of leaving it was concrete: this phase spent six sections quoting "119 parity
+claims remain" as a live figure while the reproducible count at HEAD was 168, and would have gone on
+reporting progress against a denominator nobody could recompute.
+
+**Standing bounds, restated with their status:**
+
+| Bound | Status |
+|---|---|
+| parity claims | **168** at `24520d7`, command published (§445) |
+| provenance claims | **60** at `8b5db62`, command published (§446) |
+| negative-property tests | **139** (§397) — predicate + corrections recorded; side-effect subset discharged (§442) |
+| registries | **47**, 14 triaged, 12 probed (§440) — per-item table published |
+| stated guarantees | **demoted to a dated observation** — no recorded method (§446) |
+| `400`-status guard clusters | 11 routes, deliberately deferred, unchanged |
