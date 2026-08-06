@@ -18619,3 +18619,51 @@ Recorded in the operator notes rather than the repository, because that is where
 Hook configuration enumerated (none); `ci.yml:50`'s `verify:merge` confirmed as the blocking step;
 `continue-on-error` absent from the workflow; `citations` confirmed present in the merge profile.
 `check:citations 0 · check:invariants 0` — run before this line was written. No file changed.
+
+---
+
+## §349 — The final merge run found a regression I introduced, in the filing itself
+
+The last full `verify:merge` was §298, roughly fifty commits ago. Running it again as a close-out found the
+phase's own regression:
+
+**`table-shape` FAIL — 4 over-wide rows.** It was **PASS** at §298.
+
+The four rows are **mine**: §315's REQ-030 hold, §337's budget-kinds row, §338's CONFIRM-GATED row, §344's
+routes row. Each insertion script targeted *"the first `|---` after line 369"* — and as rows accumulated the
+document shifted, so later ones landed in a **3-column** table (*"Was failing | Gate | Now"*) instead of the
+8-column repository-owned ledger.
+
+**They rendered with five of eight cells dropped.** Severity, ownership, evidence, owner, status, blocks-grade
+and expiry trigger — every field that makes a filed row actionable — were invisible to a reader. §315 argued
+that *"a hold recorded in one of 315 audit sections is not recorded"*; these were worse, because they looked
+filed.
+
+All four moved into the 8-column table; `check:tables` green; both tables verified by rendering their first
+cells.
+
+### The lesson is about what I verified, not what I wrote
+
+For fifty commits my verification line was **`check:citations 0 · check:invariants 0`** — two gates out of
+twenty-four, chosen because they were the two my edits usually touched. **`check:tables` was never in that
+subset, and it is the one gate whose entire purpose is catching what I was doing.**
+
+This audit has a name for that: §284's *"a tell tells you what to look for, not where"*, and §333's discovery
+that two thorough count-sweeps passed over three false verdicts because verdict columns contain no numbers.
+**Here the subset was chosen from the shape of my edits, and it inherited that shape's blind spot.**
+
+The general form, and it is the sharpest operator lesson of the phase: **a verification subset assembled from
+"what I usually change" cannot see a defect in "how I usually change it."** The four rows were not a content
+error — the content was right — they were a *mechanical* error in the insertion, and only the gate aimed at
+mechanics could see it.
+
+### Why the full run is the close-out artifact
+
+`verify:merge` is the only thing that runs all twenty-four. Fifty commits of green subsets did not detect a
+regression that one full run surfaced immediately, and the regression was in the record this phase spent
+eleven sections making trustworthy.
+
+### Verification
+
+`check:tables` **0** after the move (was 4 over-wide rows); `check:citations 0`; both affected tables
+re-rendered and read. Final merge verdict re-run below.
