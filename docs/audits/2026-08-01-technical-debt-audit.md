@@ -21444,3 +21444,65 @@ Both gate signatures read; both call sites read for a surrounding override check
 `PositionInput`'s `.strict()` located in the contracts package after the first mutation missed; the pin
 mutation-proved (`.strict()` → `.passthrough()` → 1 RED naming this test) and restored byte-identical; the
 non-vacuity control added because a 400 cannot certify the gate behind it. `typecheck 0`; api 764 green.
+
+---
+
+## §388 — the visibility resolver: four clauses, four inputs, all of them held
+
+Third application of §385's clause-split, to the guarantee with the worst history in this repository.
+`resolveVisibility` decides who can see an event, and [[fail-closed-is-about-the-fallback-value]] was
+earned when a `{}` default *"stamp[ed] widened visibility onto immutable events."* If any stated guarantee
+in this codebase deserved a re-derivation, it is this one.
+
+### The clauses, and the input establishing each
+
+| clause (stated) | input that establishes it |
+|---|---|
+| *"`requested` is advisory and may only NARROW"* | `if (requested && RANK[requested] < RANK[v]) v = requested` — assigns only when strictly narrower |
+| *"an inherited kind returns `UNRESOLVED_VISIBILITY` (fail closed) — **NEVER the per-kind default**"* | `return correctedEventVisibility ?? UNRESOLVED_VISIBILITY`, placed **before** the policy/default lookup — the ordering is the guarantee |
+| *"REQ-180 NEVER-WIDEN FLOOR: an inherently-internal kind is clamped no matter what a policy or requested_visibility resolved above"* | `if (INTERNAL_FLOOR.has(kind)) return "internal"`, placed **after** the narrow step so nothing can run past it |
+| *"the sequencer resolves [the parent] by exact stream + kind"* | **not local** — a claim about the caller |
+
+The fourth is the one the split exists to find. Verified by reading it: the DO's
+`#parentInvoiceVisibility` is `SELECT visibility FROM events WHERE stream_id = ? AND id = ? AND kind IN
+('invoice.issued','invoice.corrected')`. Stream, exact id, **and** kind — with tenant bounded by the
+handle, since the DO is tenant-pinned. The claim is precise and true.
+
+### Both dangerous branches are observed
+
+Not merely correct — watched. Two mutations, each turning the guarantee into exactly the thing its comment
+forbids:
+
+| mutation | result | attributed to |
+|---|---|---|
+| inherited kind falls back to `KIND_VISIBILITY_DEFAULTS[kind]` | **ledger 1 RED · api 4 RED** | *"Task 8 — invoice.corrected with NO resolvable parent visibility returns UNRESOLVED (fail closed — never the default)"* |
+| delete the `INTERNAL_FLOOR` clamp | **ledger 16 RED** | *"a tenant policy widening `call.transcribed` to counterparty still resolves internal"*, and the same for `credit.checked` and `approval.requested` |
+
+Sixteen tests on the never-widen floor, each naming a specific kind a policy must not be able to surface.
+That is what a rule looks like when its previous failure was expensive.
+
+### Why this section exists even though nothing was found
+
+Three sections of clause-splitting have now produced: **one gap** (§385, an unbound `amountCents`), **one
+scope error** (§386, a law stated absolutely), **one missing runtime test** (§387, consent's
+non-overridability), and **one clean pass** (this).
+
+That ratio is the point. §380 noted that a sweep reporting only its hits cannot be distinguished from one
+that manufactures them; the corollary is that **a technique's value is only legible once it has been run
+somewhere it finds nothing.** Clause-splitting is cheap — four lines of comment, four greps — and it does
+not *generate* findings, which is exactly why the three it did produce are worth believing.
+
+And the negative result carries information of its own: **the guarantee with the known prior failure is the
+best-defended one in the file.** The `{}` incident is visible in the code as ordering (`??
+UNRESOLVED_VISIBILITY` placed before the default lookup, the floor placed after the narrow step) and in the
+suite as sixteen named-kind assertions. A repository that has been hurt somewhere tends to over-build
+exactly there — which is a reason to spend audit effort on the places that have *never* failed, not the
+places that have.
+
+### Verification
+
+Four clauses split from the doc comment and each traced to the line that establishes it; the caller clause
+closed by reading `#parentInvoiceVisibility`'s SQL rather than the sequencer's comment about it; both
+mutations landed (`git diff --numstat` non-empty), run against **both** owning suites, **attributed by
+failing-test name** rather than by count, and restored byte-identical. No code changed — nothing was found
+that needed changing.
