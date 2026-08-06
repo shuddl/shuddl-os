@@ -371,6 +371,94 @@ describe("REQ-012 / I7 — applyMoneyProjection through real D1 (append batch + 
     const mapped = mapMoneyProjectionError(caught);
     expect(mapped?.code).toBe("VALIDATION_FAILED");
   });
+
+  it("and the ABORTED batch leaves the read-model untouched — the rollback, not just the error (audit §396)", async () => {
+    // WHY THIS IS SEPARATE FROM THE ERROR ASSERTION ABOVE. `INVOICE_VOID_SQL` is UNCONDITIONAL
+    // (`UPDATE invoices SET status=?, total_cents=? WHERE id=?`, no `AND status=...`), and its own comment
+    // justifies that: "redelivery is already blocked upstream by the ux_ml_corrects UNIQUE on the reversing
+    // money_lines (a second void of the same event aborts the whole batch), so this UPDATE never re-runs
+    // standalone."
+    //
+    // So an UNGUARDED money write is safe because of a UNIQUE index on a DIFFERENT table plus the sequencer's
+    // single `db.batch()`. The test above proves the UNIQUE fires. It does not prove the ROLLBACK — and the
+    // rollback is the half that matters: if the batch were split, or D1's batch stopped being atomic, the
+    // invoice row would flip to void/0 while the reversing money_lines never landed. The read model would then
+    // say "voided, AR 0" over money_lines that still net positive — a divergence with no event to explain it,
+    // on the one money table the append-only guards deliberately exclude.
+    const issue = mkEvent("invoice.issued", {
+      stream_id: "s:shp-rb", shipment_id: "shp-rb", seq: 0,
+      payload: { invoice_id: "inv-rb", party_id: "party-bill", division: "north", lines: ISSUE_LINES },
+    });
+    await appendWithMoney(DB, issue);
+    const orig = await loadInEffectLines(issue.id);
+
+    const c1 = mkEvent("invoice.corrected", {
+      stream_id: "s:shp-rb", shipment_id: "shp-rb", seq: 1,
+      payload: { invoice_id: "inv-rb", corrects_event_id: issue.id, reason: "first", reissue_lines: ISSUE_LINES },
+    });
+    await appendWithMoney(DB, c1, { originalLines: orig });
+
+    const snap = async (): Promise<{ inv: unknown; lines: number }> => ({
+      inv: await DB.prepare("SELECT status, total_cents, issued_event_id FROM invoices WHERE id = ?").bind("inv-rb").first(),
+      lines: (await DB.prepare("SELECT COUNT(*) AS n FROM money_lines WHERE shipment_id = ?").bind("shp-rb").first<{ n: number }>())?.n ?? -1,
+    });
+    const before = await snap();
+
+    // A VOID (empty reissue_lines) that corrects the SAME event again: the reversing lines collide on
+    // ux_ml_corrects, so the batch must abort with NOTHING applied — including the unconditional void UPDATE.
+    const c2 = mkEvent("invoice.corrected", {
+      stream_id: "s:shp-rb", shipment_id: "shp-rb", seq: 2,
+      payload: { invoice_id: "inv-rb", corrects_event_id: issue.id, reason: "second", reissue_lines: [] },
+    });
+    await expect(appendWithMoney(DB, c2, { originalLines: orig })).rejects.toThrow();
+
+    const after = await snap();
+    expect(after.inv, "the invoices row must be unchanged after the aborted batch").toEqual(before.inv);
+    expect(after.lines, "no money_line may survive an aborted batch").toBe(before.lines);
+  });
+
+  it("a payment.received can NEVER resurrect a VOIDED invoice — the settle guard, mutation-proved (audit §396)", async () => {
+    // `INVOICE_SETTLE_SQL` carries `AND status='issued'`, justified as making "a re-projected payment (or a
+    // second payment) a harmless no-op". That reason understates it, and the understatement is why nothing
+    // tested it: a second payment against a PAID invoice writes 'paid' over 'paid' — removing the guard
+    // changes nothing observable, so a test built on the stated reason cannot fail.
+    //
+    // The transition the guard actually forbids is VOID → PAID. A payment.received that arrives after a void
+    // (the customer paid before the credit was raised; the event projects afterwards) would otherwise flip a
+    // voided invoice to 'paid' — AR reporting a settled invoice that was cancelled, with no event saying so.
+    // Removing `AND status='issued'` left all 618 ledger tests green.
+    const issue = mkEvent("invoice.issued", {
+      stream_id: "s:shp-vp", shipment_id: "shp-vp", seq: 0,
+      payload: { invoice_id: "inv-vp", party_id: "party-bill", division: "north", lines: ISSUE_LINES },
+    });
+    await appendWithMoney(DB, issue);
+    const orig = await loadInEffectLines(issue.id);
+
+    // VOID it: an invoice.corrected with empty reissue_lines flips the row to void/0.
+    const voided = mkEvent("invoice.corrected", {
+      stream_id: "s:shp-vp", shipment_id: "shp-vp", seq: 1,
+      payload: { invoice_id: "inv-vp", corrects_event_id: issue.id, reason: "cancelled", reissue_lines: [] },
+    });
+    await appendWithMoney(DB, voided, { originalLines: orig });
+    const afterVoid = await DB.prepare("SELECT status FROM invoices WHERE id = ?").bind("inv-vp").first<{ status: string }>();
+    expect(afterVoid?.status, "precondition: the invoice is voided").toBe("void");
+
+    // Now a payment lands against it — and `settleInvoice` is supplied EXPLICITLY, naming the voided row.
+    //
+    // NON-VACUITY, and the reason this line exists: `appendWithMoney` defaults its deps to `{}`, so calling it
+    // without `settleInvoice` means the projection has nothing to settle and issues NO update at all. The first
+    // version of this test did exactly that and passed with the guard REMOVED — it was asserting that nothing
+    // happens when nothing is attempted. Supplying the dep simulates precisely the dangerous case: a matcher
+    // that handed the projection a voided invoice. `AND status='issued'` is then the only thing standing.
+    const paid = mkEvent("payment.received", {
+      stream_id: "s:shp-vp", shipment_id: "shp-vp", seq: 2,
+      payload: { invoice_id: "inv-vp", party_id: "party-bill", amount_cents: 1, method: "ach", reference: "late-payment" },
+    });
+    await appendWithMoney(DB, paid, { settleInvoice: { id: "inv-vp", total_cents: 0 } });
+
+    const after = await DB.prepare("SELECT status FROM invoices WHERE id = ?").bind("inv-vp").first<{ status: string }>();
+    expect(after?.status, "a voided invoice must stay voided — a late payment cannot settle what was cancelled").toBe("void");
+  });
 });
 
 describe("Exit audit (REQ-119) Minor: an allocateCents throw maps to VALIDATION_FAILED, not INTERNAL", () => {

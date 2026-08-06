@@ -22099,3 +22099,84 @@ sides.
 found only 4); each unscoped one classified by reading its caller rather than its SQL; the gap triaged
 against §389's three explanations before being called one; test added and **mutation-proved** — join
 removed → exactly this test fails; source restored byte-identical. `typecheck 0`, api 765 green.
+
+---
+
+## §396 — the money table the append-only guards deliberately exclude
+
+§395's rule again: **where an invariant is enforced physically, find where the same invariant must be
+enforced logically.** Append-only is enforced by D1 triggers on exactly three tables — `events`,
+`positions`, `money_lines`. `invoices` is deliberately **mutable**: it is a read-model the ledger projects
+into. So every constraint on an invoice's life is *logical*, expressed in SQL that nothing physically
+backs.
+
+Four writers. Two carry a transition guard, two are unconditional.
+
+### The unconditional void, and the claim under it
+
+`INVOICE_VOID_SQL` has no `AND status=…`, and says why:
+
+> *"redelivery is already blocked upstream by the `ux_ml_corrects` UNIQUE on the reversing money_lines (a
+> second void of the same event aborts the whole batch), so this UPDATE never re-runs standalone."*
+
+An **unguarded money write, safe because of a UNIQUE index on a different table plus one `db.batch()`.**
+A test proves the UNIQUE fires (*"double-correcting the same event violates ux_ml_corrects → mapped to
+VALIDATION_FAILED"*). It asserts the **error** and stops there.
+
+The rollback is the load-bearing half: if the batch were split, or D1's batch stopped being atomic, the
+invoice row would flip to void/0 while the reversing money_lines never landed — the read model saying
+*"voided, AR 0"* over money_lines that still net positive, **a divergence with no event to explain it.**
+Test added: after the aborted batch, the invoices row and the money_lines count are both byte-identical to
+before.
+
+### The settle guard: understated by its own comment, and vacuously "tested" by mine
+
+`INVOICE_SETTLE_SQL` carries `AND status='issued'`, justified as making *"a re-projected payment a harmless
+no-op."* **That reason cannot motivate a test**: writing `'paid'` over `'paid'` changes nothing, so removing
+the guard is unobservable *for the case the comment names*.
+
+The transition it actually forbids is **VOID → PAID** — a payment that arrives after a void (the customer
+paid before the credit was raised) resurrecting a cancelled invoice as settled AR.
+
+Then three mutations, in the order I ran them, because the order is the lesson:
+
+1. **Remove the SQL guard** → ledger 619 green. Suspicious.
+2. **Write a void-then-pay test** → passes. Re-run mutation 1 → **still green.** So the test proves nothing.
+3. **Find why.** `#matchOpenInvoice` in the sequencer filters `status = 'issued'` too — and removing *that*
+   also leaves 765 green. The two guards are **mutually subsumed** (§389): neither is individually
+   observable, and the pair is what holds.
+
+But the deeper problem was mine. **`appendWithMoney` defaults its deps to `{}`**, so my test called it
+without `settleInvoice` — the projection had nothing to settle and issued no UPDATE at all. **It passed
+because nothing was attempted.** A vacuous test that reads, in a diff, exactly like a real one.
+
+Fixed by supplying `settleInvoice` explicitly, which simulates the dangerous case precisely: *a matcher that
+handed the projection a voided invoice.* Now `AND status='issued'` is the only thing standing, and removing
+it fails exactly this test.
+
+### What this cost, and what caught it
+
+Nothing shipped. What caught it was running the mutation **after** writing the test rather than before —
+the same habit §389 credited, now for the third time. The failure it prevents is specific and nasty:
+
+> **A vacuous test is worse than no test.** No test leaves a known gap. A vacuous one closes the gap in the
+> record — it appears in the count, it names the property, and it will be cited as coverage — while
+> observing nothing. It is the §383 phantom in test form.
+
+The tell is mechanical and I now state it as a rule: **when a test's subject is reached through injected
+dependencies, assert that the dependency was actually used.** A defaulted `{}` is the same fail-quiet shape
+as every `{}` this audit has met.
+
+### Stated bound
+
+`INVOICE_UPDATE_SQL` (the reissue) remains unconditional and its safety rests on the same upstream UNIQUE.
+The rollback test above covers the void path's abort; the reissue path's is the same mechanism and is
+**not** separately asserted. Recorded rather than duplicated, since one rollback test already pins the
+batch's atomicity.
+
+### Verification
+
+Four invoice writers enumerated; both unconditional ones traced to the upstream constraint they rely on;
+three mutations run (SQL guard, matcher filter, and the guard again post-fix), each landed and restored
+byte-identical; the vacuity of my own first test found by re-running the mutation against it, and the
+corrected version mutation-proved (1 RED, named). `typecheck 0`, ledger 620 green.
