@@ -18672,3 +18672,54 @@ re-rendered and read.
 The two FAILs are `unit-tests` and `coverage`, both the `REQ-289` register trio; the five BLOCKED are the
 private-fixture holds and the CI denylist secret. **`table-shape` is PASS again**, which is the only thing
 this phase changed about that verdict.
+
+---
+
+## §350 — Record ⇄ measurement, reconciled
+
+§333 corrected three false verdicts in `RELEASE-EVIDENCE.md`'s per-gate table, using a run that was already
+fifty commits old. §349 produced a fresh one. **Diffing the record against it is the last thing this phase
+owed**, because a corrected verdict is only correct until the next measurement, and §333's whole finding was
+that nobody had checked.
+
+**They agree exactly.** Seven non-PASS gates measured, seven recorded, same seven:
+
+| | measured | recorded |
+|---|---|---|
+| FAIL | `unit-tests`, `coverage` | *unit + tools suites*, *coverage* |
+| BLOCKED | `identity-leak`, `fixtures`, `rater-parity`, `invoice-parity`, `concierge-parse` | the same five |
+
+The record's *"FAIL — 3 of 3,704"* also matches §328's re-measured total, and `acceptance` and `table-shape`
+are PASS in both — the two rows this phase changed, in opposite directions and for different reasons (§333
+corrected a stale `BLOCKED`; §349 fixed a live regression).
+
+### Why this closes rather than continues
+
+§333 found a verdict that had been false for eleven days because a correction was made once and never
+re-checked. **This section is the re-check** — and the useful result is that the correction held, which is
+the only evidence that turns "we fixed the record" into "the record is right."
+
+**A corrected claim and a verified claim differ by exactly one measurement**, and this audit has spent its
+last twenty sections learning that the gap between them is where everything hides: inherited bounds (§297),
+deferrals to closed audits (§313), triggers credited to the wrong gate (§318), counts derived from greps
+(§320–§323), and a verdict column no count-sweep could see (§333).
+
+### The phase, stated as a measurement
+
+At `b1a359f`, verified by a full `verify:merge` and a full recursive suite:
+
+- **24 gates — 17 PASS · 5 BLOCKED · 2 FAIL.** Every BLOCKED is an absent private input; both FAILs are one
+  uncommitted GTM register row.
+- **3,704 tests, 3,701 passing**, across every package, worker and surface.
+- **18 governing invariants mutation-proved in 30 mutations** (both authorities), plus 2 of rule 6's four
+  fixture-gate identities. Zero residual.
+- **~40 named artifacts traced** across six governing statements: one missing (filed), three legibility gaps
+  (filed), three false leads dissolved by reading.
+- **The record reconciled against the measurement it describes.**
+
+Nothing above is closable inside this repository.
+
+### Verification
+
+`verify:merge` verdict compared row-by-row against `RELEASE-EVIDENCE.md`'s per-gate table; seven non-PASS
+gates matched on both name and status; the test-count figure cross-checked against §328. No file changed.
