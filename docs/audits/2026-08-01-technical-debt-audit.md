@@ -24876,3 +24876,47 @@ tokens"*, a test with no business failing); a regex that did not match `DUNNING_
 had run before** — a suite that failed to LOAD, not an assertion that fired. **A green after a failed edit,
 and a red with a shrunken test count, are both statements about the edit rather than the code.** `git diff
 --numstat` and the test TOTAL, every time.
+
+## §441 — the phase re-measured against a full run, and two notification traps
+
+§440 closed the registry sweep. This phase changed code in five packages (`contracts`, `adapters`, `ledger`,
+`api`, `mcp`) plus tests in three more, so the closing act is a measured green rather than an asserted one.
+
+**MEASURED, 2026-08-06.** Workspace suite: **17 packages / 256 files / 2,980 tests, zero failures**
+(`workers/api` 769, `packages/ledger` 628, `packages/contracts` 285, `packages/agents` 219,
+`workers/mcp` 183, `packages/rater` 157, `workers/translator` 114 …). Tools suite: **813 tests**. Combined
+**3,793 cases**, which is the number §4 should quote from now on — it supersedes the 3,771 recorded at
+`c9fa799` and the delta is this phase's own additions, accounted per section (§429 +1, §430 +2, §431 +1,
+§434 +2, §435 +2, §437 +3, §439 +2, and §428's 7 in tools).
+
+**THE 3 FAILURES ARE NOT THIS PHASE'S, AND WERE VERIFIED RATHER THAN INHERITED.** `pnpm test` exits 1 on
+three `tools/traceability` tests — the register coverage and contiguity gates. §4 already attributes them to
+the uncommitted `REQ-289` row carried by a separate GTM workstream, but that is a repo-owned claim and
+therefore the kind that decays, so it was re-proved here: `git stash` the CSV → **813/813 pass** → restore.
+The attribution holds today, not merely on the record.
+
+**A consequence worth knowing:** the root script is `pnpm run test:tools && pnpm -r --if-present run test`.
+Because the tools suite fails on that uncommitted row, **the `&&` prevents the workspace suite from running
+at all** — `pnpm test` reported "31 files / 813 tests" and never touched the other 256 files. Anyone reading
+that summary would think they had run everything. The workspace run had to be invoked directly.
+
+**TWO NOTIFICATION TRAPS, ONE OF WHICH I FELL INTO.** Both background runs were launched as
+`cmd > file 2>&1; echo "EXIT: $?" >> file`. The harness reports **the compound command's** exit — which is
+the `echo`'s, always **0**. The first run's notification said "exit code 0" and I repeated it; the file said
+`FULL SUITE EXIT: 1` with three tests failing. **A completion notification describes the shell, not the
+suite.** The second time I checked the file first, and it genuinely was 0. The fix is structural: put the
+real exit INSIDE the file and read it from there — never quote the notification.
+
+**And the absence-assertion scan over-reported, exactly as §437's triage did.** Of 480 `it()` blocks
+containing an absence assertion, 67 lacked any positive assertion; narrowing to side-effecting blocks (a
+pure function's absence assertion cannot be vacuous — the call IS the exercise) left **10**. Reading the
+sharpest of those — *"a REVOKED device cannot sign an append"* — showed the classifier was wrong: its
+`expect(err).not.toBeNull()` is a positive control that my ABSENCE pattern had swallowed via `toBeNull()`.
+The test is sound, with the neighbouring *"the honest case IS stored"* as its harness control.
+
+**One real residue, small and stated:** that assertion accepts ANY error, so it pins the refusal but not the
+REASON — §383's true-verdict-wrong-reason class. If the revoked path ever began rejecting for an unrelated
+cause (a signature mismatch, a malformed input), the revocation rule itself would be unpinned and the test
+would stay green. Filed, not fixed: the sibling honest-case test makes a systematic harness failure loud,
+so the exposure is narrow, and the remaining 9 candidates deserve the same read-before-acting treatment
+rather than a batch edit.
