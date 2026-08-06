@@ -25781,3 +25781,47 @@ clean.
 
 **Four gates audited under §463's rule, two defects found** (§428's roster, this one), both latent rather
 than live, both in the same shape: **the guard measured a scope one level wider than the thing it guards.**
+
+## §465 — the gate self-audit, closed, and the four shapes a gate can have
+
+§462 caught me reintroducing §454's hole; §463 found the same blind spot in §428's roster; §464 found a
+third variant in a gate I did not write. That is enough repetition to finish the sweep properly and name the
+thing. **All eleven checks in `tools/checks/invariants.ts` are now audited under §463's rule.**
+
+| Gate | Shape | Verdict |
+|---|---|---|
+| `checkMigrationSql` | violation scan | no completeness risk |
+| `findForbiddenReplaceSources` | violation scan | no completeness risk |
+| `checkLock` | digest comparison | exact |
+| `checkTableClassification` | per-table expectation | correct |
+| `checkTestSchemaParity` | per-helper × per-migration | correct |
+| `checkControlMigrationsExercised` | per-migration expectation | correct |
+| `checkSurfaceBudget` | **set equality, both directions** | strongest |
+| `checkAuthoritySeamDormant` | per-call-site + rename tripwire | correct (§454) |
+| `checkDomainVocabularyParity` | existence test → **per-file map** | **FIXED (§463)** |
+| `checkDoMutexIntact` | file-scoped limbs → **class-scoped** | **FIXED (§464)** |
+| `checkSqlColumnLiterals` | wiring filtered before the check | **FIXED (§462)** |
+
+**Three defects, all latent, all the same error at different altitudes:** the guard measured a scope one
+level wider than the thing it guards. None was reachable by today's code; each would have gone silent the
+first time the guarded set grew a member.
+
+**THE FOUR SHAPES, which is the transferable part.** A gate is one of:
+
+1. **Violation scan** — *"does any file do the forbidden thing?"* Completeness is not a question; the risk is
+   an evasion the pattern misses (the share-lint skill's territory).
+2. **Per-place expectation** — *"each of these N must satisfy P."* Correct by construction, and the only
+   shape that survives the guarded set growing.
+3. **Set equality** — *"the discovered set IS the roster."* Strongest: catches additions AND removals, which
+   is why `checkSurfaceBudget` needs no tripwire.
+4. **Existence test** — *"does X appear somewhere?"* **The defective shape.** It answers a question nobody
+   asked: the interesting failure is never "X vanished from the universe", it is "X left THIS place while
+   the others kept the gate green."
+
+**A gate written in shape 4 for a guarded set of size 1 is indistinguishable from shape 2 — and stays
+correct only until the set grows.** That is exactly how all three defects arose: `DOMAIN_VOCAB_COPIES` began
+with one copy, the DO roster began with one class, and the SQL guard began with one call site. **The right
+question when adding a gate is not "does this catch the bug I am thinking of" but "what does this check
+when there are two of them."**
+
+Invariants suite **195 passed**; `check:invariants`, `typecheck`, `lint` clean.
