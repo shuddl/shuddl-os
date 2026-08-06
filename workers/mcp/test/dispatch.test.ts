@@ -338,6 +338,31 @@ describe("[FIX 3] idempotency keys off the SEMANTIC operation (arguments), never
     expect(a).toBe(b);
   });
 
+  it("NESTED arguments in a different key order derive the SAME key — the claim is recursive (audit §430)", async () => {
+    // MEASURED: removing the recursion from `sortKeys` — sorting only the top level — left all 25 tests in
+    // this file GREEN, and this is the only file that references deriveIdempotencyKey. The flat case above
+    // cannot see it, because both its keys are top-level. What a regression costs: a genuine retry of a
+    // MUTATING tool (book_shipment) whose arguments nest a stop or party object derives a DIFFERENT key, the
+    // api does not recognise it as a replay, and the booking DOUBLE-APPLIES — the one failure mode REQ-106
+    // exists to prevent, on the DoD's own MCP path.
+    const a = await deriveIdempotencyKey(PAIRING, "book", { stop: { city: "PDX", seq: 1 }, ref: "r1" });
+    const b = await deriveIdempotencyKey(PAIRING, "book", { ref: "r1", stop: { seq: 1, city: "PDX" } });
+    expect(a).toBe(b);
+  });
+
+  it("nested ARRAY order is preserved, never sorted — [a,b] and [b,a] are different operations", async () => {
+    // The mirror, and the reason `sortKeys` maps arrays instead of sorting them. Stop sequence is MEANING,
+    // not key noise: a "helpful" array sort would collapse two genuinely different bookings into one key and
+    // silently drop the second. Pinned so the recursion above cannot be "improved" into that.
+    // PRIMITIVE elements deliberately. The first version of this test used [{id:"a"},{id:"b"}] and a
+    // `.map(sortKeys).sort()` mutation left it GREEN: a comparator-less Array.sort stringifies every object
+    // to "[object Object]", so it reorders nothing and the test could not see the very change it named.
+    // Strings are what a naive sort actually reorders, which is what makes this assertion discriminating.
+    const a = await deriveIdempotencyKey(PAIRING, "book", { stops: ["b", "a"] });
+    const b = await deriveIdempotencyKey(PAIRING, "book", { stops: ["a", "b"] });
+    expect(a).not.toBe(b);
+  });
+
   it("two calls with DIFFERENT arguments derive DIFFERENT keys — no false replay", async () => {
     const a = await deriveIdempotencyKey(PAIRING, "book", { shipment: "s1" });
     const b = await deriveIdempotencyKey(PAIRING, "book", { shipment: "s2" });

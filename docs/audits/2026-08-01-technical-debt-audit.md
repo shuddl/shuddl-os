@@ -24354,3 +24354,45 @@ not the value.**
 **Bound carried forward.** 14 of the 15 hash/canonicalization claims remain unexamined. The next by
 consequence is `workers/mcp/src/idempotency.ts:26` — a second recursive key-sorting canonicalizer that
 mirrors `packages/ledger/src/canonical.ts`, the frozen byte law, in another worker.
+
+## §430 — a recursive claim pinned at one level, on the DoD's own MCP path
+
+§429's bound named `workers/mcp/src/idempotency.ts:26` as the next hash-parity claim by consequence. **It is
+not a parity defect, and saying so is the first half of the result.** The comment claims the ledger's
+discipline *"in spirit; a self-contained copy — mcp keeps its own hash, F6"* — an explicitly scoped claim,
+not an assertion of byte-identity, and the two hashes serve different purposes (the ledger's canonical bytes
+are a verifiable event hash; this is a locally-derived idempotency token). There is nothing here to drift
+into a defect, and manufacturing one would have been the easy wrong answer.
+
+**The checkable claim is the one it makes about itself:** *"object keys sorted RECURSIVELY so {a,b} and
+{b,a} canonicalize identically."*
+
+**It was pinned at one level.** The existing test compares `{shipment, pallets}` against
+`{pallets, shipment}` — both keys top-level. Measured: **removing the recursion entirely** (`out[k] =
+sortKeys(src[k])` → `out[k] = src[k]`) left the suite at **25 passed, exit 0**, and
+`grep -rl deriveIdempotencyKey --include='*.test.ts'` returns **exactly one file**, which was run whole. So
+the recursive half of the claim was observed by nothing.
+
+What that costs is not abstract. `deriveIdempotencyKey` is what makes a retried MCP tool call dedupe. A
+mutating call whose arguments nest a stop or party object — which is the ordinary shape of `book_shipment` —
+would derive a DIFFERENT key on a genuine retry, the api would not recognise the replay, and **the booking
+would double-apply**. That is precisely the failure REQ-106 exists to prevent, on acceptance demo #4's path.
+
+**Two tests added, both mutation-proven, one failure each attributed by name.** Nested key-order: removing
+the recursion gives **1 failed / 26 passed** — the new test, with the flat one still green, the §429 shape
+exactly. Array order: `value.map(sortKeys)` → `.map(sortKeys).sort()` gives **1 failed / 26 passed**.
+
+**The array test was VACUOUS on its first writing, and the mutation is what caught it.** It originally used
+`[{id:"a"},{id:"b"}]`, and the `.sort()` mutation left it GREEN — a comparator-less `Array.prototype.sort`
+stringifies every object to `"[object Object]"`, so it reorders nothing and the assertion could not see the
+change it was named for. Rewritten with string elements, which is what a naive sort actually reorders, it
+goes RED. **A test that names a mutation is not the same as a test that can see it** — this is the 18%
+vacuity rate showing up in work written while deliberately watching for it, and only the probe found it.
+Array order is a real invariant here, not a detail: stop sequence is meaning, so a "helpful" sort would
+collapse two genuinely different bookings into one key and silently drop the second.
+
+**Bound carried forward.** 13 of the 15 hash/canonicalization parity claims remain. The pattern across §429
+and §430 is now twice-confirmed and worth stating as a rule: **when a claim quantifies (recursively, every,
+both directions, byte-identical), the test that exists usually pins the first instance; the quantifier is
+the untested part.** That is a cheaper selector than reading claims one at a time, and it is what this axis
+should be swept with.
