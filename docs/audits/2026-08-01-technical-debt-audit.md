@@ -19296,3 +19296,53 @@ the second time this phase (after §358) that a caption contradicted its own out
 
 Both layers mutated independently and restored byte-identical; `@shuddl/api` 757 green after restore; every
 failure attributed by name before conclusion. No file changed.
+
+---
+
+## §361 — The self-labelled guards, swept; and the one that is not a spare
+
+§359 produced the procedure and §360 applied it to one guard. Both were single instances, so the class was
+swept the way §295 prescribes — by asking the corpus what it calls these things rather than guessing.
+
+**Eight guards label themselves defence-in-depth**, across `packages/edi` (SCAC charset), `packages/ledger`
+(the consent belt, retention prefix), `packages/agents` (prompt/data separation), and `packages/map`
+(party_refs filter, twice). The highest-consequence untested one:
+
+> `documents/retention.ts:65` — *"Whether an R2 key lives inside THIS tenant's evidence namespace — the
+> defense-in-depth guard that makes a delete tenant-safe **even if a row somehow carried a foreign/corrupted
+> key** (fail-closed: not ours ⇒ skip)."*
+
+**A retention sweep is a deletion path**, and its failure mode is not a leak but the loss of *another
+tenant's evidence* — the one thing an append-only ledger cannot correct by appending.
+
+### It is load-bearing
+
+Mutation: `isTenantEvidenceKey` returns `true` unconditionally, so any key a row carries is treated as this
+tenant's and becomes deletable. **RED — 2 failing assertions**, naming `foreign` and `skip`. Restored
+byte-identical: 616 passed.
+
+**This is the first self-labelled defence-in-depth guard in the sweep that is NOT a spare.** §360's platform
+belt was redundant (the allowlist blocked first); §359's consent belt was unreachable (the schema blocked
+first). This one has nothing in front of it — the row's `r2_key` is whatever the database says, and the guard
+is the only thing between a corrupted row and a cross-tenant delete.
+
+### What the three results together say
+
+| guard | layer in front | deleting it |
+|---|---|---|
+| consent belt (§359) | `ConsentAck` refuses `"XX"` | GREEN — unreachable |
+| platform belt (§360) | the allowlist, itself shape-tested | GREEN — spare |
+| retention prefix (§361) | **nothing** | **RED — load-bearing** |
+
+**"Defence-in-depth" in a comment describes an intention, not a position.** Two of the three turned out to be
+second layers; the third is the *first* layer wearing the same label. Only deletion distinguishes them, and
+the distinction matters: a spare can be removed by a refactor with no signal, while this one cannot.
+
+That is the practical value of §359's procedure — not finding defects, but **learning which guards are
+actually holding the weight**, which is invisible from the source's own vocabulary.
+
+### Verification
+
+Eight self-labelled guards enumerated from the corpus; the retention guard mutated and restored
+byte-identical (RED naming `foreign`/`skip`); `@shuddl/ledger` 616 green. Operator rule recorded: never print
+an interpretive caption a search cannot have justified — compute it or omit it (§358/§360's repeat).
