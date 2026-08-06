@@ -24197,3 +24197,54 @@ without it would only make the gate honest about enforcing less.
 mutation-checked. Three gates, three verdicts: every one works and discriminates; two carry a scope or
 calibration finding (a11y scans pre-auth screens §424; the visual tolerance is 185× measured drift §425);
 one enforces less in CI than its name claims. **No correctness defect was found in any of the three.**
+
+## §427 — CLAUDE.md Law 5 is enforced on both surfaces, and the slice math cannot drift
+
+The next carried-forward bound was *"10 of 16 ledger verification claims untested."* That 16 is a curated
+running tally, not an enumerated set, so this pass re-derived a population with a stated predicate rather
+than reconstructing the old one: **comment lines in `packages/ledger/src` asserting a checkable guarantee**
+(`is verified|enforced|guaranteed`, `cannot`, `can never`, `impossible`, `must never`, `refuses`, `rejects`,
+minus lint/JSDoc noise) returns **78 lines across 38 files**, densest in `gates/transition-gates.ts` (16).
+Two instruments, two counts, both stated — the 78 is not a correction of the 16.
+
+**NO ZERO-COVERAGE GATEKEEPER SYMBOL.** All 11 exports of `transition-gates.ts` appear in at least one test
+file (`assertAppointment`, `assertBookingCredit`, `assertBookingRecipientContact`, `assertDispatch`,
+`assertInterline`, `assertPickupDepart` at 1; the rest 2–5). So the §389 "nothing watches it" case does not
+apply here, and depth — not presence — is the remaining question.
+
+**TWO SAMPLED CLAIMS, BOTH GENUINELY BOUND.** *"the DB's `ux_legs_slot` UNIQUE INDEX is the atomic arbiter
+that makes a simultaneous double-book impossible EVEN IF this gate were deleted"* — the index exists as a
+partial UNIQUE on `(facility_id, appt_slot_key, appt_service_date)`, the sequencer maps its constraint
+violation, a two-surface lint bans REPLACE/upsert on `legs` (which would delete *through* the index), and
+dedicated tests cover the simultaneous case. *"`hasDeliverableContact` is the SAME predicate the Biller's
+`resolveRecipient` applies to the SAME party"* — the Biller imports `plausibleEmail` from the shared module
+and its fallback loop finds any entry the gate's `some()` would, and `booking-gate.test.ts:292` binds the
+implication directly in **both** directions (gate-pass ⇒ resolvable; gate-block ⇒ unresolvable).
+
+**LAW 5 MUTATION-PROVEN ON BOTH SURFACES.** CLAUDE.md's fifth rule — *"Interline floors compare the
+executing share, never gross"* — has two floor-judging surfaces, and both were broken deliberately:
+
+- `packages/rater/src/approval.ts` line 199, `evaluated = share.shareCents → quotedSell`: **5 failing**,
+  including *"PROOF the executing-share rule changed the outcome: gross alone would have been `none`"*.
+- `packages/agents/src/biller/compose.ts` line 144, `evaluateApproval(share.shareCents → acceptedQuote.sell)`:
+  **3 failing**, including *"gross clears the floors but the executing share is below floor ⇒ HOLD"* — the
+  anti-$222K shape itself, on the money path.
+
+Both restored byte-identical. **The slice math cannot drift**: the Biller does not re-implement
+`executingShare`, it imports it, so there is one source of truth for the tenant's share and two callers of
+it. What IS duplicated is the partial-interline fail-loud guard — and its scopes match exactly: three cases
+each (legs-without-tenantParty, tenantParty-without-legs, empty-legs-with-tenantParty), tested on both
+copies. That is the *two mechanisms disagreeing* check returning a clean negative, which is worth the same
+weight as a delta.
+
+**The four production callers enumerated, not generalized.** `packages/agents/src/concierge/compose.ts:102` and
+`workers/translator/src/inbound.ts:615@assessApproval` are direct moves by construction; `workers/api/src/routes/rate.ts:272` is the interline
+path; `packages/agents/src/biller/compose.ts` composes the same two rater primitives for its different hold semantics. Only one
+rests on a sentence: the translator passes `assessApproval(quote, {})` on the strength of *"a 204 carries no
+negotiated sell / interline legs"*. True today — the translator constructs no legs — and unpinned, because
+the rater's fail-loud fires on a PARTIAL signal, never on NEITHER. Filed below, latent.
+
+**One correction of my own, caught before publishing.** The Biller's fail-loud guard first appeared untested:
+a grep for its two distinctive message strings across every test file returned nothing. It is tested three
+ways; the tests assert on `/tenantParty/` and `/legs/`, not on the sentences. *A grep proves presence, never
+absence* — the second predicate is what turned a false gap into a measured parity.
