@@ -25507,3 +25507,40 @@ cases it waved through — correctly reasoned about code that no test held in pl
 **A rule worth extracting, given three instances:** when a test's name contains a parenthetical or a second
 clause (*"…(no orphan shipment)"*, *"…⇒ ALWAYS 'native'"*, *"…keeping the last-good stamp"*), check that the
 body asserts BOTH halves. The name is written from intent; the body is written from what was convenient.
+
+## §457 — the name/body rule is real and does not mechanise; the fourth time that has been true
+
+§456 extracted a rule from three confirmed instances: **when a test's name carries a second clause, check the
+body asserts both halves.** Three for three is worth a sweep, so this section built one — and it fails, in a
+way now familiar enough to state as a limit rather than a surprise.
+
+**The instrument.** 1,359 test names carry a second clause making a claim (a parenthetical or an em-dash
+tail, minus citations). Flagging those whose body mentions no word from that clause returns **621 — a 46%
+flag rate**, which is prima facie too high to be real, and reading confirms it:
+
+- *"rejects non-integer / negative / zero-divisor inputs **(fails loudly, never misprices)**"* — five
+  `toThrow()` assertions. "Fails loudly" IS the assertion; "never misprices" is its consequence.
+- *"same inputs → identical result **(pure, no Date/random/I/O)**"* — `expect(a).toEqual(b)` on repeated
+  calls IS the purity evidence. **"No Date" cannot be asserted positively at all.**
+
+**Why it cannot work, stated precisely.** The predicate cannot distinguish a clause that RESTATES the
+assertion's meaning from one that ADDS a separate observable. And the clauses most likely to be genuine
+claims are about ABSENCE — *no orphan row*, *never client-supplied* — which by definition contribute no
+keyword the body could contain. **The scan is blindest exactly where the rule is sharpest.** That is the
+§442/§452 inversion for the fourth time this phase (registries §437, absence assertions §442, preservation
+§452, and now this).
+
+**The rule survives; only the automation dies.** What separates the three real instances from the 621 is
+that each named a **concrete observable the body never touched**: a table row (*"no orphan shipment"* — the
+`shipments` count), a call-site set (*"every caller passes legacyValueAvailable=false"* — the callers), a
+retained value (*"keeping the last-good freshness stamp"* — the prior `as_of`). The false positives name a
+CONSEQUENCE (*never misprices*) or a NEGATIVE PROPERTY (*no Date*), neither of which is a second assertion.
+
+**Recorded as a reading heuristic, not a gate:** *does the clause name a noun you could go and count?* If
+yes, the body must count it. If it names a consequence or an absence-of-mechanism, the single assertion is
+the whole test and the clause is prose. That distinction lives in the sentence's meaning, which is why the
+three instances were found by reading and why no grep will find the fourth.
+
+**Four mechanical instruments this phase have over-reported and been corrected by reading** — and the one
+that consistently worked (zero test references, §437/§451/§454) works precisely because it asks a syntactic
+question with a syntactic answer, never a semantic one.
