@@ -412,7 +412,14 @@ export function mapSpreadsheet(sheet: ParsedSheet, mapping: unknown = {}): MapRe
 
   // The WINNING applied column per field (effective === "apply"); -1 when the field was never applied.
   const appliedCol = (field: CanonicalField): number => plans.findIndex((p, c) => effective[c] === "apply" && p.field === field);
-  const idx = {
+  // TOTAL BY TYPE (audit §438). `idx` is the second hand-maintained copy of CANONICAL_FIELDS: the mapper
+  // decides a column is `apply`, and ONLY a field present here is ever read out of a row. Before this
+  // annotation, adding a 14th canonical field without an entry compiled clean and passed all 38 adapters
+  // tests — the column would be reported APPLIED while its value was never read. That is a silent drop,
+  // which CLAUDE.md rule 10 / REQ-035 forbid by name: a value that does not map must raise a gap row, never
+  // disappear. `Record<CanonicalField, number>` makes the omission a COMPILE error instead — the same
+  // enforcement KIND_VISIBILITY_DEFAULTS gets from being a total record (§436).
+  const idx: Record<CanonicalField, number> = {
     shipper_name: appliedCol("shipper_name"),
     consignee_name: appliedCol("consignee_name"),
     bill_to_name: appliedCol("bill_to_name"),

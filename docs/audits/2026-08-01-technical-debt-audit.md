@@ -24737,3 +24737,38 @@ unprobed, and the count is worth **less** than it looks: 3 of the 4 probed were 
 is roughly one real gap per four probes, and only mutation distinguishes them. The 33 registries that DO
 carry by-name references are not thereby safe either — §434 and §435 both found holes in registries with
 plenty of references. **The predicate that works is the mutation; everything before it is triage.**
+
+## §438 — a second copy of a registry, one CLAUDE.md rule away from a silent drop
+
+Continuing §437's sweep into `packages/adapters`. `CANONICAL_FIELDS` (13 entries) is the set of target fields
+a legacy header can map to. The interesting mutation is not removing one — that degrades LOUDLY into gap
+rows, which is the designed fail-safe — but **adding one**.
+
+**The second copy.** `migrator.ts:415@idx` hand-enumerates all 13 fields as `appliedCol("…")` lookups, and
+**only a field present there is ever read out of a row**. So `CANONICAL_FIELDS` and `idx` are two
+hand-maintained lists that must agree, exactly §428's shape, sitting on the rule CLAUDE.md states most
+plainly: *"No silent drops in migration: any legacy column that doesn't map raises a gap row — never
+disappears."*
+
+**Measured: a 14th canonical field with no `idx` entry compiled clean and passed all 38 adapters tests.**
+The mapper would classify that column as APPLIED — not unmapped, so **no gap row is raised** — while its
+value is never read. The column reports success and its data vanishes. That is the precise failure rule 10
+exists to prevent, and it was reachable by an ordinary one-line addition.
+
+**Fixed with the strongest available enforcement, not a test.** `idx: Record<CanonicalField, number>` makes
+the omission a **compile error**: `TS2741: Property 'pallet_count' is missing`. That is §436's first axis —
+the arrangement `KIND_VISIBILITY_DEFAULTS` already has and the reason it needs no completeness test at all.
+Where the key set is a closed union, prefer totality to a runtime check: it cannot be forgotten, cannot be
+skipped, and reports the missing name. Restored and re-verified: **typecheck 0 clean / exit 2 with the 14th
+field / 0 restored**, adapters **38 passed**, lint clean.
+
+**A method note worth keeping.** The first three attempts to apply this edit failed on the anchor, because I
+copied the indentation out of my own `sed 's/^/  /'`-prefixed display — the real line is two-space indented,
+the display showed four. One of those failed edits was followed by a typecheck that printed **0** and could
+easily have been read as *"the fix does not work"*, when in fact **no fix had been applied**. A green result
+after a failed edit is not evidence about the fix; it is evidence the edit did not land. `git diff
+--numstat` before believing any post-edit measurement — the §376 rule, which exists for exactly this.
+
+**Bound carried forward.** 9 of the 14 no-by-name-reference registries remain unprobed. The running yield is
+**2 real gaps in 5 probes** (`NATIVE_VISIBLE_SOURCES` §437, `CANONICAL_FIELDS`/`idx` here), which is a
+higher rate than §437 estimated and argues for continuing the sweep rather than sampling it.
