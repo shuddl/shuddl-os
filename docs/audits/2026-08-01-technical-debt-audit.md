@@ -22021,3 +22021,81 @@ re-drive loop shared one definition and restated the other. Same file, same auth
 Consumer read branch-by-branch for ack/retry placement; the id derivation traced to its seed; determinism
 mutation landed (`git diff --numstat`), run against **both** owning suites, **attributed by four failing
 test names**, restored byte-identical. No code changed — nothing needed changing.
+
+---
+
+## §395 — one step to the side of tenant isolation: the database that isn't partitioned
+
+§394's heuristic, applied deliberately. Tenant isolation is this repository's most-defended property —
+D1-per-tenant, physical separation, a 60-case isolation suite, and CLAUDE.md rule 8 making *"a cross-tenant
+read anywhere"* a build failure. So: **one step to the side.** Every tenant's rows are in a separate
+database — except in the **control plane**, the one database shared across tenants, where a `WHERE` clause
+is the only boundary.
+
+### The sweep
+
+18 queries touch a control-plane table (`users`, `tenants`, `pairings`, `usage_credits`). **Four carry no
+tenant predicate.** Three are correct:
+
+- `provision.ts@users` email check — deliberately **global**: one account per email across all tenants.
+- `caps.ts@pairings` and its siblings — a pairing id **is** the scope; it arrives from the authenticated
+  grant, so the row it names is the caller's own.
+
+The fourth is the finding, and it is two writes:
+
+```ts
+UPDATE users SET device_keys = ? WHERE id = ?     // enroll (devices.ts) and revoke
+```
+
+**No tenant predicate on either.** They are safe only because a *preceding* read established the row:
+
+```ts
+SELECT … FROM users u JOIN tenants t ON t.id = u.tenant_id WHERE t.slug = ? AND u.id = ?
+```
+
+Both halves from the JWT. That join is the entire boundary between a mismatched claim and a cross-tenant
+write onto the **driver-auth root**.
+
+### Nothing observed it
+
+Dropping `t.slug = ?` and matching on `u.id` alone: **764 passed, 764.**
+
+Checked against §389's three explanations before calling it a gap:
+
+- **Subsumed?** No — the two `UPDATE`s carry no tenant predicate of their own, so nothing else re-checks it.
+- **Unreachable?** Only if JWT minting guarantees `(tenant, sub)` are consistent — which is exactly the
+  assumption REQ-025 exists to not make. The repo's own posture is that *the claim is the boundary*.
+- **A gap.** Every device test pairs a tenant with one of **its own** subs, including the one named
+  *"TENANT ISOLATION"* — which proves tenant-b cannot **see** tenant-a's device, a real but different
+  property. **A consistent pair cannot observe the join.**
+
+That is the specific shape worth keeping: a suite can contain a test named for the exact property, exercise
+the exact route, and still never construct the input that distinguishes the guard.
+
+### The test
+
+A tenant-a token carrying tenant-b's `sub` → **404 on enroll and on list**, plus the assertion the 404 does
+not make: **tenant-b's `device_keys` row is untouched**. 765 green; removing the join now fails exactly this
+test.
+
+The write-side assertion matters because the status alone would pass against a handler that 404'd *after*
+writing — and §371 established that enroll is a read-modify-write whose failure mode is silently
+overwriting the row it read.
+
+### The general form
+
+> **Where a system enforces an invariant physically, find the place it must enforce the same invariant
+> logically — that is where the tests will be thinnest**, because the physical mechanism trained everyone,
+> including the test author, to stop thinking about it.
+
+Here: 21 tenant tables are physically separated and no query against them *can* cross tenants; four
+control-plane tables are not, and of the 18 queries against them, the only unguarded pair sits under the
+one route whose isolation test uses matched claims. The defence and the gap are the same fact seen from two
+sides.
+
+### Verification
+
+18 control-plane queries enumerated after correcting the first predicate (which missed aliased handles and
+found only 4); each unscoped one classified by reading its caller rather than its SQL; the gap triaged
+against §389's three explanations before being called one; test added and **mutation-proved** — join
+removed → exactly this test fails; source restored byte-identical. `typecheck 0`, api 765 green.

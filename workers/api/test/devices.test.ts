@@ -140,6 +140,34 @@ describe("POST /v1/devices — authenticated device enrollment (REQ-013/016/025)
     expect((await listDevices(tb)).ids).toContain(bEnroll.body?.device_id);
   });
 
+  it("REQ-025: a token whose TENANT and SUB disagree cannot reach the other tenant's user row (audit §395)", async () => {
+    // THE CLAIM IS THE BOUNDARY. `loadUser` resolves the caller as
+    // `users u JOIN tenants t ON t.id = u.tenant_id WHERE t.slug = ? AND u.id = ?` — BOTH halves from the JWT.
+    // Every test above pairs a tenant with one of ITS OWN subs, so none of them observes the join: dropping
+    // `t.slug = ?` and matching on `u.id` alone left all 764 api tests GREEN.
+    //
+    // WHAT THE GUARD ACTUALLY STOPS. A tenant-a token carrying a tenant-b `sub` would load tenant-b's user row,
+    // and both device writes are `UPDATE users SET device_keys = ? WHERE id = ?` — no tenant predicate of their
+    // own. So the join is the ONLY thing standing between a mismatched claim and a cross-tenant WRITE onto the
+    // driver-auth root. CLAUDE.md rule 8 calls a cross-tenant read anywhere a build failure; this is the read
+    // that precedes the write, on the one database that is NOT physically partitioned.
+    const mismatched = await token({ sub: DRIVER_B, tenant: TENANT_SLUG, role: "driver" });
+
+    const enrolled = await enroll(mismatched, { public_jwk: await genPublicJwk() });
+    expect(enrolled.status, "a mismatched claim must not resolve a principal").toBe(404);
+    expect(enrolled.body?.device_id).toBeUndefined();
+
+    const listed = await SELF.fetch("https://api.local/v1/devices", { headers: bearer(mismatched) });
+    expect(listed.status).toBe(404);
+
+    // And nothing was written to tenant-b's row — the assertion the 404 alone does not make.
+    const row = await env.CONTROL_DB.prepare("SELECT device_keys FROM users WHERE id = ?").bind(DRIVER_B).first<{ device_keys: string }>();
+    const keys = JSON.parse(row?.device_keys ?? "[]") as unknown[];
+    const bOwn = await listDevices(await token({ sub: DRIVER_B, tenant: "tenant-b", role: "driver" }));
+    expect(keys.length, "tenant-b's device list must be untouched by a tenant-a-claimed token").toBe(bOwn.ids.length);
+  });
+
+
   it("REVOCATION: a revoked device drops off the active list; re-enrolling reactivates it", async () => {
     const t = await token({ sub: DRIVER_A, tenant: TENANT_SLUG, role: "driver" });
     const jwk = await genPublicJwk();
