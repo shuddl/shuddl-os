@@ -18955,3 +18955,57 @@ silent** — an idempotency lapse duplicates work and a tenant leak trips isolat
 
 Test added and mutation-proved both directions (GREEN before it existed, RED after); `@shuddl/api` 757 green;
 file restored byte-identical. `check:tables 0 · check:citations 0`.
+
+---
+
+## §355 — Silent failure is not the predictor; the EXCEPTIONAL path is
+
+§354 closed an untested security property and offered a rule: *the untested absolute was the one whose
+failure is silent.* Tested against the next silent-failure property, the rule turned out to be almost right
+and usefully wrong.
+
+**The public status page's geo redaction** — `generalizePosition`, which rounds a driver's position to ~11 km
+and drops `accuracy_m` before it reaches an unauthenticated page — is silent in exactly the same way: exact
+coordinates render identically to blurred ones, and nothing crashes.
+
+**It is thoroughly tested.** Neutering it to return the payload unchanged: **RED, 12 failing assertions**,
+naming `11 km`, `accuracy_m`, `generalize`. The surrounding suite also carries explicit non-exposure
+assertions — `pub-status.test.ts` checks the public body against a list of forbidden strings
+(`credit.checked`, `approval.requested`, `party_id`).
+
+### The sharper rule
+
+Both properties are silent. One had twelve assertions, the other had zero. The difference is **which path they
+live on**:
+
+- **`generalizePosition` is on the happy path.** Every status render calls it, so every test that renders a
+  status page exercises it, and asserting on it is natural because the output is right there.
+- **`handleError`'s fallback is on the exceptional path.** Nothing reaches it unless something has already
+  gone wrong, and no test goes wrong by accident. **Reaching it at all requires deciding to.**
+
+**So the predictor is not silence — it is whether exercising the property requires deliberate construction.**
+A silent property on a path everything traverses gets tested incidentally; a silent property behind a failure
+nobody triggers gets tested only on purpose, and "on purpose" is exactly what a suite written to prove
+features work does not do.
+
+That reframes §354's finding: the leak was not missed because it was subtle, but because **no test had a
+reason to throw a non-`ApiError`.**
+
+### And my own test carried a type error the suite could not see
+
+The mutation run reported the ledger tests RED *and* `typecheck` failing — the second unexplained by the
+first, since `redact.ts` was byte-identical after restore. The cause was **§354's new test file**: vitest
+transpiles with esbuild and does not type-check, so a mis-typed helper passed 757 tests while
+`tsc` rejected it.
+
+**A test suite passing is not evidence that its own files typecheck** — the two gates read the same files with
+different questions, and this repo runs them separately for exactly that reason. Fixed
+(`get` narrowed to `Promise<Response>`); `typecheck 0`, api suite green.
+
+That is the §288 lesson pointed at my own contribution: a file can be collected, executed, green, and still
+be rejected by the gate that reads it differently.
+
+### Verification
+
+`generalizePosition` mutated and restored byte-identical (12 REDs, all naming the redaction); the type error
+in §354's test corrected and `typecheck` returned to 0; `@shuddl/api` and `@shuddl/ledger` both green.

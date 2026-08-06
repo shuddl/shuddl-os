@@ -24,7 +24,7 @@ const ctx = (): { app: Hono; get: (p: string) => Promise<Response> } => {
   const app = new Hono();
   app.use("*", reqId);
   app.onError(handleError);
-  return { app, get: (p: string) => app.request(p) };
+  return { app, get: async (p: string): Promise<Response> => app.request(p) };
 };
 
 describe("REQ-156: every error leaving the worker is the envelope", () => {
