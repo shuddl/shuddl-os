@@ -138,3 +138,40 @@ describe("POST /v1/tariff — the guided brokerage builder + cold-start round-tr
     expect(res.status).toBe(400);
   });
 });
+
+// THE COLD-START DEFAULTS ARE A MONEY CONSTANT (audit §439). `DEFAULT_BROKERAGE_PARAMS` seeds rate_config
+// for EVERY newly provisioned tenant (provision.ts:230), the guided builder's unspecified fields, and the
+// Migrator import path. No test named it.
+//
+// MEASURED before this existed: setting `marginBps: 1800 → 0` left `check:seed` at exit 0 ("SEED-1 hash
+// verified") AND signup.test.ts 16/16 green — and signup PROVISIONS a tenant, so the zero-margin seed
+// actually ran. Every new tenant would have quoted and booked at COST, silently, until someone noticed the
+// money. The asymmetry that hid it: the route bounds CLIENT-supplied overrides with `.positive()`, but the
+// DEFAULT is not client input and passes through no schema at all.
+//
+// Two assertions, deliberately. The frozen values catch an accidental edit; the DOMAIN assertions state WHY
+// each is what it is, so they still bite after someone updates the literals — the failure mode a bare golden
+// has (§433: the anchor must outlive the edit that moves it).
+describe("REQ-151/035: the cold-start brokerage defaults are commercially sane (audit §439)", () => {
+  it("the seeded defaults are the frozen, deliberate values", async () => {
+    const { DEFAULT_BROKERAGE_PARAMS } = await import("../src/tariff-seed.js");
+    expect(DEFAULT_BROKERAGE_PARAMS.marketRateCentsPerCwt).toBe(3500);
+    expect(DEFAULT_BROKERAGE_PARAMS.marginBps).toBe(1800);
+    expect(DEFAULT_BROKERAGE_PARAMS.minChargeCents).toBe(12_000);
+    expect(DEFAULT_BROKERAGE_PARAMS.fscPctBps).toBe(2400);
+    expect(DEFAULT_BROKERAGE_PARAMS.accessorials).toEqual({ liftgate: 3500, residential: 2500, detention: 6500, notify: 1200 });
+  });
+
+  it("every default is in the domain the tariff route enforces for client overrides", async () => {
+    const { DEFAULT_BROKERAGE_PARAMS: d } = await import("../src/tariff-seed.js");
+    // A tenant seeded at or below zero margin sells at or under cost from its first quote — the silent money
+    // defect. The route already rejects a client sending these; the default must clear the same bar.
+    expect(d.marginBps, "a cold-start tenant would sell at COST").toBeGreaterThan(0);
+    expect(d.marketRateCentsPerCwt, "no linehaul rate ⇒ nothing to mark up").toBeGreaterThan(0);
+    expect(d.minChargeCents, "no small-shipment floor ⇒ a 1-lb move prices at ~0").toBeGreaterThan(0);
+    expect(d.fscPctBps, "a negative fuel surcharge REFUNDS fuel").toBeGreaterThanOrEqual(0);
+    const acc = Object.entries(d.accessorials as Record<string, number>);
+    expect(acc.length, "non-vacuity: the accessorial menu must not be empty").toBeGreaterThan(0);
+    for (const [name, cents] of acc) expect(cents, `accessorial ${name} is free`).toBeGreaterThan(0);
+  });
+});

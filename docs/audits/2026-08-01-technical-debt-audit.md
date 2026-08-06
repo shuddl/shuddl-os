@@ -24772,3 +24772,41 @@ after a failed edit is not evidence about the fix; it is evidence the edit did n
 **Bound carried forward.** 9 of the 14 no-by-name-reference registries remain unprobed. The running yield is
 **2 real gaps in 5 probes** (`NATIVE_VISIBLE_SOURCES` §437, `CANONICAL_FIELDS`/`idx` here), which is a
 higher rate than §437 estimated and argues for continuing the sweep rather than sampling it.
+
+## §439 — the cold-start money constants, seeded on every tenant, named by no test
+
+Sixth probe of §437's sweep. `DEFAULT_BROKERAGE_PARAMS` (`workers/api/src/tariff-seed.ts:20`) is the
+pricing configuration seeded into `rate_config` for **every newly provisioned tenant**
+(`provision.ts:230`), for the guided builder's unspecified fields, and for the Migrator import path. It had
+no test that named it.
+
+**Measured: `marginBps: 1800 → 0` left `check:seed` at exit 0 — printing "SEED-1 hash verified" — and
+`signup.test.ts` at 16/16.** signup PROVISIONS a tenant, so the zero-margin seed genuinely ran and nothing
+observed it. Every new tenant would have quoted and booked **at cost** from its first quote, silently, until
+someone noticed the money was missing.
+
+**The asymmetry that hid it is worth naming.** `routes/tariff.ts` bounds CLIENT-supplied overrides with
+`z.number().int().positive()`. The default is not client input, so it passes through no schema at all — the
+validated path and the unvalidated path produce the same `rate_config`. **A constant that bypasses the
+validation its own route applies is exactly where a domain check is missing**, and that generalises beyond
+this file.
+
+**Two assertions, and the second is the durable one.** The frozen values catch an accidental edit; the
+DOMAIN assertions state why each value is what it is — margin > 0 (*"a cold-start tenant would sell at
+COST"*), min charge > 0 (*"a 1-lb move prices at ~0"*), fsc ≥ 0 (*"a negative fuel surcharge REFUNDS
+fuel"*), every accessorial > 0 (*"accessorial X is free"*). A bare golden stops biting the moment someone
+updates the literals to match a bad edit; the domain assertions survive that (§433's rule — the anchor must
+outlive the edit that moves it). Both mutations — zeroed margin, and a free `detention` accessorial — turn
+**both** tests RED, so the domain half is independently load-bearing rather than decorative.
+
+**Two of my own recurring defects showed up again in this section, both caught immediately.** A caption
+reading *"(empty above = no tariff/seed/provision test file by those names)"* printed directly beneath an
+`ls` that had listed **`provision.test.ts` and `tariff.test.ts`** — the §390 pre-written-caption defect,
+which is now the fourth occurrence and is entirely mechanical: **a caption asserting absence must be written
+after reading the output, or not written.** And §438's anchor failures repeated in miniature. Neither
+reached the record.
+
+**Bound carried forward, and the yield is now measured rather than estimated.** 8 of the 14
+no-by-name-reference registries remain. Running total: **3 real gaps in 6 probes** — `NATIVE_VISIBLE_SOURCES`
+(§437), `CANONICAL_FIELDS`/`idx` (§438), and this. Half the probes find something, and all three findings
+were money- or compliance-affecting rather than cosmetic, which is the argument for finishing the sweep.
