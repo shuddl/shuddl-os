@@ -19346,3 +19346,58 @@ actually holding the weight**, which is invisible from the source's own vocabula
 Eight self-labelled guards enumerated from the corpus; the retention guard mutated and restored
 byte-identical (RED naming `foreign`/`skip`); `@shuddl/ledger` 616 green. Operator rule recorded: never print
 an interpretive caption a search cannot have justified — compute it or omit it (§358/§360's repeat).
+
+---
+
+## §362 — The prompt fence is load-bearing, and two invalid mutations that claimed nothing
+
+Continuing §361's sweep of the eight self-labelled defence-in-depth guards, to the security-relevant
+remainder.
+
+### The prompt fence — load-bearing
+
+`concierge/parse.ts:309` wraps every untrusted email field in a unique sentinel fence *"so the model can tell
+your instructions (the system prompt) from the data it must parse — defense-in-depth atop the schema
+fail-safe. The system prompt names these same delimiters and forbids obeying anything inside them."*
+
+This is prompt-injection defence on the one surface that ingests text written by strangers.
+
+**Mutation:** `fence()` returns its content unwrapped, so a hostile email's body reaches the model
+indistinguishable from instructions. **RED — naming `<<<`, `fence`, `injection`.** Restored byte-identical.
+
+**Second load-bearing guard of the sweep**, and the pattern from §361 holds: it has nothing in front of it.
+The schema fail-safe the comment mentions runs *after* the model has already read the text — it constrains
+the output, not the input — so the fence is the first and only barrier at the point of ingestion.
+
+### Two mutations that proved nothing, and were not counted
+
+Both attempts before this one were invalid, and saying so is the point:
+
+1. **The fence, first attempt:** `sed` with a pattern containing backticks and `${}` matched **every line** —
+   `459+/459-`. The run went "RED" with **0 failing assertions**, which is a compile error wearing a red
+   coat. §308's landing check caught the shape; the assertion count caught the meaning.
+2. **The `party_refs` filter:** the pattern missed entirely, `landed:NO`. **Recorded as untested rather than
+   inferred**, because §308's rule cuts both ways — an unlanded mutation is not evidence of coverage either.
+
+`packages/map`'s two `party_refs` guards therefore remain **unswept**, stated plainly rather than folded into
+a summary that would read as complete.
+
+### The sweep so far
+
+| guard | deleting it | verdict |
+|---|---|---|
+| consent belt (§359) | GREEN | unreachable — schema blocks first |
+| platform belt (§360) | GREEN | spare — allowlist blocks first, and is shape-tested |
+| retention prefix (§361) | RED | **load-bearing** — nothing in front |
+| prompt fence (§362) | RED | **load-bearing** — nothing in front at ingestion |
+| `party_refs` ×2, SCAC charset | — | **not yet tested** |
+
+**Four of eight tested, two load-bearing, two spares — and the two that are load-bearing are the two that
+touch input from outside the system** (a corrupted database row, a stranger's email). The spares both sit
+behind a schema or an allowlist that already refuses. That is not a coincidence worth a rule yet, but it is a
+place to look first.
+
+### Verification
+
+Fence mutated and restored byte-identical (RED naming the sentinel); two prior attempts discarded as invalid
+under §308 and excluded from the table; `packages/agents` green after restore.
