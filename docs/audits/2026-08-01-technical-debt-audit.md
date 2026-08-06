@@ -22255,3 +22255,68 @@ Two predicates run and both corrected before publication (147 → 140, then aban
 than reported); two GatedFlow cases read in full to establish the false-positive class; the sequencer
 mutation landed, attributed by failing-test name, and restored byte-identical. No code changed; no debt
 filed that the instrument could not support.
+
+---
+
+## §398 — the guarantee was real, the line claiming it was not
+
+§397 left a priority order: **spend mutation budget on side-effect-absence claims first**, since those fail
+identically whether the guard held or the trigger never fired. This spends it on the highest-stakes one in
+the list — the legacy mirror's **ping-pong** guard, where a failure is not a wrong value but an **infinite
+loop**: a SHUDDL fact echoed back by the incumbent, re-appended as legacy, re-exported, echoed again.
+
+The test: *"an embedded-SHUDDL-id row is never appended as legacy (no ping-pong)"*, asserting two absences.
+
+### The mutation
+
+Removing the `continue` from the sweep's echo branch — the line whose own comment reads *"LAW 3(b): a
+SHUDDL fact echoed back — skip, never re-append as legacy (no ping-pong)"* — left **113 of 113 green**.
+
+Three explanations, checked in §389's order:
+
+1. **Vacuous?** The obvious read, and the one §397 predicted. Wrong.
+2. **Unreachable?** No.
+3. **Subsumed.** Two lines below sits `if (draft === undefined) continue`, and the mapper
+   (`packages/adapters/src/legacy-mirror.ts:291@echo`) pushes an echoed row as
+   `{ rowIndex, naturalKey, cursor, echo: true }` — **with no `event` field at all**. So an echoed record is
+   dropped by the undefined-draft check whether or not the echo branch exists. The two guards cannot be
+   distinguished by any input.
+
+### The guarantee is enforced, one layer up, and observed
+
+Mutating the **mapper** instead — classifying an echoed row as `echo: false` — goes **RED: 4 of 38 in
+`packages/adapters`, 1 of 113 in `workers/agents`**, the latter named *"rated → quote.priced, invoice →
+invoice.issued, settle/dispatch/appt too; **echo skipped**; malformed quarantined"*.
+
+So: the law holds, it is enforced by the mapper, and five tests across two packages observe it. **The test
+§397's heuristic flagged was never the problem.**
+
+### What was wrong was a sentence
+
+The file's **header** attributes the law correctly: *"A row carrying an embedded SHUDDL event id (echoed
+back by the incumbent) is **skipped by the mapper** — never re-appended as legacy."* The **inline comment**
+on the sweep's branch claims it for itself: *"LAW 3(b): … skip, never re-append as legacy."*
+
+The branch owns the `echoed` **counter** in the sweep summary. It does not own the guarantee. Corrected in
+place, naming the mapper, the subsuming check, and the measurement.
+
+### Why this is worth a section
+
+Because the mis-attribution is what makes the subsumption dangerous. A future author deleting that branch —
+to fold the counter elsewhere, say — reads a comment saying it prevents ping-pong, and reasonably leaves it.
+A future author *keeping* it believes the sweep is defended when the defence is a package away. **Either way
+the comment sends them to the wrong file if the mapper ever changes.**
+
+> **Subsumption plus mis-attribution is the pairing to watch.** Subsumption alone is harmless — a redundant
+> guard costs nothing. A comment claiming a guarantee the line does not deliver is a **pointer to the wrong
+> place**, and it survives every gate, every test, and every mutation, because the code is correct.
+
+Third occurrence of §389's third category, and the first where the redundancy was worth documenting rather
+than removing: the branch still earns its place for the counter.
+
+### Verification
+
+Sweep branch mutated by line index after an anchor miss, landed, restored byte-identical; the subsuming
+check read two lines below it; the mapper's record shape read at the push site to confirm no `event` field;
+the mapper mutated independently and **attributed by failing-test name** across both owning packages; the
+comment corrected to name the enforcing layer. `typecheck 0`, agents 113 green.

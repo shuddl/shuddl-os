@@ -224,7 +224,12 @@ export async function sweepTenantLegacyMirror(deps: MirrorSweepDeps): Promise<Mi
 
   for (const rec of fresh) {
     if (rec.echo) {
-      echoed += 1; // LAW 3(b): a SHUDDL fact echoed back — skip, never re-append as legacy (no ping-pong)
+      // Count the echo and exit early. NOTE (audit §398): this line does NOT enforce LAW 3(b) — the mapper
+      // does. `packages/adapters/src/legacy-mirror.ts:291@echo` pushes an echoed row with NO `event` field, so
+      // `if (draft === undefined) continue` below catches it whether or not this branch exists. Removing this
+      // `continue` changes no append behaviour and no test (measured). What this branch owns is the `echoed`
+      // COUNTER in the summary; the ping-pong guarantee is the mapper's, exactly as the file header says.
+      echoed += 1;
       continue;
     }
     if (rec.quarantine !== undefined) {
