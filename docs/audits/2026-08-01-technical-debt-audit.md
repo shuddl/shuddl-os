@@ -25006,3 +25006,42 @@ Restored byte-identical; `workers/api` sequencer suite **27 passed**, `typecheck
 
 **With this, every residue this phase filed is closed or explicitly owner-blocked.** §442's bound is
 discharged in full rather than in part.
+
+## §444 — the hash/canonicalization axis closed, and the predicate that inflated it
+
+The last bound from §429's ordering. Two results: the axis is discharged, and the number that defined it was
+wrong in a way worth recording.
+
+**THE PREDICATE WAS SUBSTRING-MATCHING.** §429 sized this axis at "15 of the 170" using
+`hash|sign|hmac|sha|canonical|digest` with no word boundaries. Re-run with boundaries it is **9 of 169**.
+The inflation was literal: `sha` matched *"the original ageOpenAr **sha**pe"*, and `sign` matched *"the
+server sentinel that CO-**SIGN**S"*. Neither is a crypto claim — one is a list-shape compatibility note, the
+other an actor-identity parity — and both were carried through five sections' bounds as though they were.
+**A filter without `\b` counts words that merely contain the letters**, which is the same class of defect as
+a `head`-truncated list: the instrument reports something adjacent to what was asked.
+
+**DISPOSITION OF ALL OF THEM, each accounted rather than counted:**
+
+- **Fixed gaps (5):** `anchor.ts` pinned on one branch of two (§429) · `mcp/idempotency` recursive claim
+  pinned at one level (§430) · `lens.ts`'s `?? null` tested on one of two cases (§431) · the party-id
+  "parity LOCK" that locked one side (§433) · `hashView`'s denylist pinned against its own key list (§434).
+- **Clean, verified rather than assumed (6):** `biller/compose` partial-interline guard, scopes matching on
+  both copies (§427) · `driver-manifest` ⇄ `assignmentOf`, 4 tests RED on widening the read scope (§432) ·
+  `signup` ⇄ `middleware/auth`, driven end-to-end through the real middleware (§432) · `canonical.ts`,
+  anchored by frozen sha256 goldens for an empty and a rich object (§434) · `contracts/events.ts`'s offline
+  dedupe binding, pinned on BOTH schemas by `events.test.ts:156` · `transition-gates`' `HASH64`,
+  byte-identical to the contract's `Hash64` with a bounded consequence behind an already-validating boundary.
+- **Clean, closed here:** `api/index.ts`'s *"SHA-256 must match … or NOTHING is stored"*. The absence half is
+  real, not decorative: inserting an `EVIDENCE.put` at the real key BEFORE the byte-verify — so the 422 still
+  returns and only the storage claim changes — gives **1 failed / 17 passed**, exactly the REQ-168 DoD test.
+  Its positive control is genuine (`sha256(forgedBytes) !== recordedHash` asserted before the upload) and its
+  absence checks name the exact key the honest path writes.
+- **Not crypto claims (2):** `aging.ts`'s shape note and `watchtower.ts`'s sentinel identity, both admitted by
+  the substring flaw above and neither belonging to this axis.
+- **Covered elsewhere (2):** both translator entries are the dormancy tripwires §379/§380 already pinned.
+
+**So the axis is closed: 9 true claims, 5 gaps found and fixed, 4 clean.** A 56% defect rate on the
+crypto-parity claims specifically — far above the registry sweep's 25% (§440) — and every one of the five
+was an expectation derived from the thing it checked, or a quantifier tested at one instance. That
+concentration is the phase's most transferable result: **where two implementations must agree on BYTES, the
+test is most likely to be checking that they still agree with each other rather than with the law.**
