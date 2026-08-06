@@ -106,3 +106,54 @@ describe("useFleet — setState mirrors status for the chip (REQ-076)", () => {
     expect(f?.properties.chip).toContain("EXCEPTION");
   });
 });
+
+// SERVER-SCOPED PARTY LENS (audit §451). `apps/portal/src/App.tsx:74` sets `serverScoped: true` — the
+// CUSTOMER-facing surface runs this branch in production — and it had ZERO test references anywhere.
+//
+// The branch exists because GET /v1/board already applied the REQ-074 precise/coarse projection server-side,
+// so re-coarsening here would blur an out-for-delivery shipment's exact position the server INTENTIONALLY
+// sent. That is the stated purpose. The load-bearing half is the sentence after it: "The party_refs filter
+// still runs (defence-in-depth against client-side data mixing)" — trusting the server for GENERALIZATION
+// must not become trusting it for SCOPE. A future "the server already scoped it" simplification would leak
+// another party's shipments into a customer's map with nothing failing.
+describe("useFleet — serverScoped party lens (REQ-074, audit §451)", () => {
+  // OFF-GRID COORDINATES ARE LOAD-BEARING. `coarsen` is Math.round(n*10)/10, and the shared `item()`
+  // fixture sits at -97.7 / 30.3 — already ON that grid, so generalization is a NO-OP for it. Built that
+  // way, "the precise position survives" passes even if the client coarsens everything. The first draft of
+  // this describe did exactly that; the paired control below is what caught it (§442's shape, on my own test).
+  const LNG = -97.74321;
+  const LAT = 30.36789;
+  const at = (id: string, refs: string[], extra: Partial<FleetItem> = {}): FleetItem =>
+    item(id, refs, { lng: LNG, lat: LAT, ...extra });
+  const ofd = (id: string, refs: string[]): FleetItem => at(id, refs, { out_for_delivery: true });
+
+  it("serverScoped does NOT re-generalize — the server's precision survives on a PRE-OFD item", () => {
+    // PRE-OFD deliberately. `generalizePosition` returns an out-for-delivery feature UNCHANGED regardless of
+    // the serverScoped flag, so an OFD fixture cannot isolate this branch — the first draft used one and
+    // stayed GREEN when clientGeneralize was forced true. A pre-OFD item is the only shape where
+    // `serverScoped` is the SOLE reason the precise position survives.
+    const source = [at("a1", ["party-A"], { out_for_delivery: false })];
+    const plain = renderHook(() => useFleet({ scope: "party", partyId: "party-A", serverScoped: true }, source));
+    const coords = plain.result.current.collection.features[0]!.geometry.coordinates;
+    expect(coords[0]).toBeCloseTo(LNG, 5); // the OFF-GRID original, not coarsen(LNG) = -97.7
+    expect(coords[1]).toBeCloseTo(LAT, 5);
+  });
+
+  it("WITHOUT serverScoped the client DOES generalize the same item — the control that gives the above meaning", () => {
+    // Without this, the assertion above passes for a build that never generalizes at all, and the whole
+    // REQ-074 client mirror could be dead without a single test noticing (§442's paired-control shape).
+    const source = [at("a1", ["party-A"], { out_for_delivery: false })];
+    const client = renderHook(() => useFleet({ scope: "party", partyId: "party-A" }, source));
+    const server = renderHook(() => useFleet({ scope: "party", partyId: "party-A", serverScoped: true }, source));
+    const c = client.result.current.collection.features[0]!.geometry.coordinates;
+    const s = server.result.current.collection.features[0]!.geometry.coordinates;
+    expect(c, "a non-serverScoped party lens must coarsen a pre-OFD position").not.toEqual(s);
+  });
+
+  it("serverScoped STILL applies the party_refs filter — trusting the server for coarsening is not trusting it for SCOPE", () => {
+    const source = [ofd("a1", ["party-A"]), ofd("b1", ["party-B"]), ofd("c1", ["party-C"])];
+    const { result } = renderHook(() => useFleet({ scope: "party", partyId: "party-A", serverScoped: true }, source));
+    const ids = result.current.collection.features.map((f) => f.properties.id);
+    expect(ids, "another party's shipment must never reach a customer's map").toEqual(["a1"]);
+  });
+});

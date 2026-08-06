@@ -25264,3 +25264,42 @@ threat model** — correct-by-construction assertions on internal paths, the one
 That is a harder set to find than "false record" and a much better predictor, and it is consistent with every
 gap this phase found: §434's denylist, §435's enrollment, §437's source list, §438's `idx`, §439's cold-start
 defaults, §447's flip reason. **None of them had ever failed. All of them read as obviously fine.**
+
+## §451 — the revised selector's first hit, and two vacuous tests of my own
+
+§450's rule: prefer claims with **no incident history and no rehearsed threat model**. Applied to the
+provenance axis it points at `packages/map/src/useFleet.ts` — a client-side hook, no adversary in the room,
+no incident behind it. It produced a gap on the first try.
+
+**THE CLAIM.** The party lens generalizes positions to ~city until out-for-delivery (REQ-074) — *except*
+`serverScoped`, where `GET /v1/board` already applied the projection server-side and re-coarsening would blur
+an OFD position the server intentionally sent. The sentence after it is the load-bearing one: *"The
+party_refs filter still runs (defence-in-depth against client-side data mixing)."*
+
+**Zero test references to `serverScoped` anywhere** — and it is not dead: `apps/portal/src/App.tsx:74` sets
+it for the party lens, so the CUSTOMER-facing surface runs this branch in production. Trusting the server for
+GENERALIZATION must not become trusting it for SCOPE, and nothing held that line.
+
+**Three tests added, both halves mutation-proven at 1–2 failed / 9–10 passed:** forcing `clientGeneralize`
+true (serverScoped stops being honoured) reddens the precision pair; replacing `scopeToLens` with `source`
+when serverScoped — the plausible *"the server already scoped it"* simplification — reddens the scope test,
+which is the one that would otherwise put another party's shipments on a customer's map.
+
+**TWO OF MY OWN TESTS WERE VACUOUS, AND EACH WAS CAUGHT BY THE NEXT LAYER OF DISCIPLINE RATHER THAN BY
+READING.**
+
+1. **The fixture sat on the coarsening grid.** `coarsen` is `Math.round(n*10)/10` and the shared `item()`
+   helper is at `-97.7 / 30.3` — already ON that grid, so generalization is a NO-OP for anything built with
+   it. "The precise position survives" passed while proving nothing. **The paired control caught it**: it
+   asserts the two lenses DIFFER, which they cannot when neither moves. Fixtures moved off-grid.
+2. **The first test used an OFD item.** `generalizePosition` returns an out-for-delivery feature UNCHANGED
+   regardless of the flag, so an OFD fixture cannot isolate `serverScoped` at all — the test stayed GREEN
+   under M1 while the control failed alone. **The mutation caught it**, and only because the failure count
+   was read per-test rather than as "something went red". Re-based on a pre-OFD item, M1 now reddens both.
+
+Both are the same error in different clothes: **a fixture chosen so that the branch under test cannot change
+the outcome.** Non-vacuity guards do not help — the subject genuinely ran both times. What separated them was
+a control asserting a DIFFERENCE, and a mutation whose failures were attributed by name.
+
+`@shuddl/map` **95 passed**; `typecheck`, `lint` clean. Provenance axis: **6 of 60 — 2 gaps, 4 clean**, and
+both gaps fit §450's profile exactly.
