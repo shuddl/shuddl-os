@@ -22992,3 +22992,75 @@ Both remaining consumers read at their call sites and their throw path traced to
 sync/async distinction stated as a prediction and checked against all four; totals re-measured with the
 verdict line read whole and reconciled per section (+1, +1); both sibling records updated in the same
 commit. `typecheck 0 · check:tables 0 · check:citations 0`.
+
+---
+
+## §408 — eleven identical containments, and the property they exist for was asserted nowhere
+
+§407 ended on: **asynchronous is where loud becomes silent.** The cron sweeps are the remaining async
+surface, and there the question sharpens into a multi-tenant one — *if one tenant's data throws, do the
+others still get swept?*
+
+### The code is uniformly right
+
+**Eleven** per-tenant sweeps across four workers — eight in `workers/agents/src/index.ts`, plus
+`watchtower-snapshot`, `translator/sweep-214`, and `billing/metering`. Every one has the identical shape:
+
+```ts
+for (const slug of await allTenantSlugs(env)) {
+  try {
+    const summary = await sweepTenantX(await resolveTenantDb(env, slug), …);
+    console.log(`…: tenant ${slug} → ${JSON.stringify(summary)}`);
+  } catch (err) {
+    console.error(`…: tenant ${slug} failed (re-run next tick — the sweep is idempotent):`, err);
+  }
+}
+```
+
+`resolveTenantDb` is **inside** the guard, so a tenant-resolution failure is contained too; the roster load
+is **outside**, so an inability to enumerate correctly aborts everything (§405's pattern 1). Eleven
+independent sites, one shape, one comment. Someone established this and applied it uniformly.
+
+### And nothing observed it
+
+Removing the containment from `billing/metering.ts`: **57 of 57 green.**
+
+Not subsumed — the throw would escape `runMeteringSweep` and reject the cron tick. Not unreachable —
+`sweepTenantMetering` does D1 work that can fail. **A gap**, on a property whose failure is silent by
+construction: the first tenant in slug order whose data throws aborts the loop, and every tenant after it
+is *never metered*, with nothing but an absent log line to say so.
+
+One test added, mirroring the file's existing `D1_DOWN` idiom: poison one tenant's binding, assert
+`runMeteringSweep` **resolves** and names the failure loudly. Mutation-proved — removing the containment
+fails exactly this test. 58 green.
+
+**1 of 11.** The other ten are filed as a bound, not silently left: the work is mechanical and identical.
+
+### The shape worth naming
+
+> **Uniformity is not evidence of coverage — it is evidence of a pattern, and patterns get copied without
+> their tests.** Eleven sites, one author's discipline, zero assertions. The very consistency that makes the
+> code trustworthy on inspection is what made it invisible to testing: nothing looks like an omission when
+> everything matches.
+
+That is the counterpart to §375's finding. There, **replication** hid a gap because one guard written three
+times reads as covered. Here, **replication across files** hid a gap because eleven correct copies read as a
+convention — and a convention feels like infrastructure rather than something that needs pinning.
+
+### A note on what I did not ship
+
+The first version of this test asserted the stronger property — *"later tenants are still swept"* — and
+failed for a harness reason I could not resolve quickly (the poisoned binding, the log spy, and slug order
+interacting). Rather than ship a test I could not make correct, I narrowed it to the assertion that
+actually discriminates: **an uncontained loop rejects; a contained one resolves.** That is weaker than
+"tenant-b was swept" and it is *sufficient* — the mutation proves it fires.
+
+Recorded because §396's lesson cuts both ways: a vacuous test is worse than no test, and a **broken** test
+under time pressure is how a vacuous one gets written.
+
+### Verification
+
+Eleven sweeps enumerated by their loop signature across four workers; containment placement read at three
+of them in full and matched by shape at the other eight; the gap established by mutation (containment
+removed → 57 green) before any test was written; the test then mutation-proved in the same session and the
+source restored byte-identical. `typecheck 0`, billing 58 green. Bound filed with the count.

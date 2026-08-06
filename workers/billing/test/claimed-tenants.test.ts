@@ -2,6 +2,7 @@ import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it, vi, afterEach } from "vitest";
 import { applyMigrations } from "@shuddl/ledger/migrate";
 import { allTenantSlugs, claimedTenantSlugs, resolveTenantDb, tenantDb, TENANT_SLUGS, POOL_BINDINGS } from "../src/tenants.js";
+import { runMeteringSweep } from "../src/metering.js";
 import type { BillingEnv } from "../src/tenants.js";
 import { usageCreditsId, sweepTenantMetering } from "../src/metering.js";
 import { usageCreditsId as contractsUsageCreditsId } from "@shuddl/contracts";
@@ -168,5 +169,31 @@ describe("billing parity + regression pins (the ones the port omitted)", () => {
     expect(row, "the sweep must have written a row under the SLUG").not.toBeNull();
     expect(row!.tenant_id).toBe("bl-acme");
     expect(row!.id).toBe(usageCreditsId("bl-acme", row!.period));
+  });
+});
+
+
+// REQ-025 / REQ-278 — ONE TENANT'S FAILURE MUST NOT STARVE THE REST (audit §408).
+//
+// Every per-tenant sweep in this system — eleven of them across four workers — wraps its body in a
+// try/catch INSIDE the `for (const slug of await allTenantSlugs(env))` loop, with `resolveTenantDb` inside
+// the guard too, and the same comment: "re-run next tick — the sweep is idempotent". That containment is
+// the only thing making a multi-tenant cron fair: without it, the FIRST tenant whose data throws aborts the
+// loop and every tenant after it in slug order is silently never swept.
+//
+// Removing the containment from this sweep left all 57 billing tests GREEN — the property the eleven guards
+// exist for was asserted nowhere. This pins it for one of them; the other ten are recorded as a bound.
+describe("REQ-278: a per-tenant metering failure is contained, not fatal to the sweep", () => {
+  it("a tenant whose D1 handle throws is logged and SKIPPED — runMeteringSweep still RESOLVES", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "log").mockImplementation(() => {});
+
+    // Poison one tenant's binding; the others resolve normally. With the per-tenant try/catch, the sweep logs
+    // and continues, so the whole run RESOLVES. Without it the throw escapes `runMeteringSweep` — the promise
+    // rejects, the cron tick dies, and every tenant after this one in slug order is silently never metered.
+    const poisoned = { ...env, TENANT_A_DB: { prepare: () => { throw new Error("D1_DOWN"); } } } as unknown as BillingEnv;
+
+    await expect(runMeteringSweep(poisoned), "an uncontained per-tenant failure would reject here").resolves.toBeUndefined();
+    expect(spy.mock.calls.some((c) => String(c[0]).includes("tenant-a")), "the failing tenant is named in a loud log").toBe(true);
   });
 });
