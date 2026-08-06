@@ -21599,3 +21599,82 @@ byte-identical; five production callers traced to their validating schema; subsu
 `Number.isInteger` on each candidate input rather than by reasoning about it; the overclaiming comment
 falsified by re-running both mutations against the new tests and corrected before commit. Rater 157 green
 (154 + 3). `typecheck 0`.
+
+---
+
+## §390 — a four-file invariant that holds, and the fact binding it lived in none of them
+
+Continuing §388's directive into `packages/driver-core` — the offline sync path, where a defect costs a
+**signed capture**, the one artifact this system cannot reconstruct.
+
+First, the retroactive check §389 earned: were any of this phase's four "coverage gap" findings actually
+subsumption? **No** — §367, §370, §375 and §377 were each verified RED *after* the test was added, and a
+subsumed clause cannot produce a RED at all. The habit of re-running the mutation post-fix answers the
+question for free.
+
+### The claim
+
+`mergeByDeviceSeq` states: *"Dedups by `(shipment_id, device_id, device_seq)` — FIRST-WINS, NEVER
+OVERWRITE. This **MIRRORS EXACTLY** the unique index the sequencer enforces server-side."*
+
+Split, most clauses are local — the `seen` set, the per-stream key, the all-kept rule for server-origin
+events, the deterministic total order. One is not: **"mirrors exactly the server-side index"** is a claim
+about a component in a different package.
+
+### Where it nearly broke
+
+The server's index is `(stream_id, device_id, device_seq)`, and the comment says
+`stream_id = 's:' || shipment_id`. But the route does **not** read `shipment_id` from the body:
+
+```ts
+const shipmentId = c.req.param("id");   // the URL path
+const streamId = `s:${shipmentId}`;
+```
+
+So the server keys on **the route**, the client keys on **the body field** — and `shipment_id` is
+`z.string().optional()`, with the only refine being `device_id ⟹ device_seq`. A device capture with no
+`shipment_id` is schema-valid, and two of them sharing `(device_id, device_seq)` collapse to one in the
+merge: exactly the *"wrongly drop the second… losing a signed capture"* failure the comment says the
+per-stream key prevents.
+
+### Why it holds anyway
+
+The driver's transport **builds the URL from the same field the merge keys on**:
+
+```ts
+const shipmentId = event.shipment_id;
+if (!shipmentId) return { status: 422 };   // a driver capture with no shipment can't route
+await doFetch(`${opts.baseUrl}/v1/shipments/${encodeURIComponent(shipmentId)}/events`, …)
+```
+
+One field, used identically at capture (`flow/captures.ts` sets it from `ctx.shipmentId`), at merge, and at
+route. And the residual case is closed rather than lucky: two captures lacking `shipment_id` *do* collapse
+— and the survivor is then refused **422** as unroutable, so the collapse loses only an event that could
+never have been sent.
+
+**Four files, one invariant, and the fact that binds them is in none of them.** `merge.ts` says it mirrors
+the server; the server derives from the path; the transport is the only thing making those the same value;
+nothing said so. Third instance of §382's shape and the highest-stakes one — the earlier two were a ledger
+row and a contract, this is the offline capture path.
+
+Recorded where it is load-bearing, in `merge.ts`, **with its own decay condition**: *if a future transport
+ever routes by anything else — a manifest stop id, a path passed alongside the event — this dedupe stops
+mirroring the server silently, and the failure is a dropped signed capture, not an error.*
+
+### My own §360 error, live
+
+Mid-investigation I printed `(empty above = no driver code sets shipment_id)` beneath a grep **that had
+found nine matches** — including the two lines that answer the question. The caption was written before the
+command ran; the evidence contradicting it was two lines above.
+
+This is the fourth occurrence of that exact family in this phase and the first in this loop's own narration
+rather than in a committed artifact. The mechanical fix is unchanged and was not applied here:
+**compute the label or omit it** — `[ -z "$out" ] && echo "none"`. A caption written in advance is a
+prediction, and printing it beside a result disguises it as an observation.
+
+### Verification
+
+Five clauses split from the doc comment; the cross-component one traced through four files (contract schema
+→ merge key → transport URL → route param) rather than accepted from the comment; the residual
+no-`shipment_id` case followed to its 422; the binding fact written into `merge.ts` with the condition that
+would invalidate it. `typecheck 0`; driver-core 39 green. No behaviour changed.

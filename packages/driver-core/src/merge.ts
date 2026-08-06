@@ -10,6 +10,15 @@
 // a global (device_id, device_seq) key here would wrongly drop the second, diverging from the server and
 // losing a signed capture. Keying on the stream keeps client and server dedup decisions identical.
 //
+// WHY THAT MIRRORING ACTUALLY HOLDS, stated here because it is a fact about a DIFFERENT file (audit §390):
+// the server does NOT read `shipment_id` from the body — it derives the stream from the URL path
+// (`workers/api/src/routes/events.ts@streamId` builds `s:${c.req.param("id")}`). So client and server would
+// key on two different values, except that the driver's transport BUILDS THAT URL FROM THE SAME FIELD this
+// merge keys on (`apps/driver/src/sync/transport.ts@sendEvent`), and refuses with 422 when it is absent.
+// One field, used identically at capture, merge, and route. If a future transport ever routes by anything
+// else — a manifest stop id, a path passed alongside the event — this dedupe stops mirroring the server
+// silently, and the failure is a DROPPED SIGNED CAPTURE, not an error.
+//
 // Server-origin events (no `device_id`) have no offline key and are ALL kept. Output is a deterministic
 // total order (captured_ts → device_id → device_seq → id), independent of input order — the SAME set of
 // events always merges to the SAME sequence, however the syncs interleaved.
