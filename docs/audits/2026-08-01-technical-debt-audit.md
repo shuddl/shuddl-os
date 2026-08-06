@@ -25165,3 +25165,37 @@ Restored byte-identical; `authority-flip` **14 passed**, `typecheck` and `lint` 
 
 **Bound carried forward, with its command.** 59 of the 60 provenance claims remain; the axis's shape now has
 one measured data point, and it matched the phase's dominant failure mode rather than introducing a new one.
+
+## §448 — two more provenance claims, and a case where GREEN is the proof
+
+Continuing §447's axis into the sequencer, the densest cluster (7 of the 60) and the place every gate runs.
+
+**CLAIM (clean): the consent gate's state is server-decided.** *"The client supplies geo, the server decides
+the state, so the state is not a client-supplied CLAIM"* — on REQ-166, a gate that takes **no override**
+because consent is a legal precondition rather than a waivable evidence requirement. The forgery vector is
+not the derived state (hardcoded from `deriveOperatingState(incoming.payload.geo)`) but the ACK: a client
+chooses which jurisdiction it claims to have consented for. The contract closes it at parse —
+`operating_state` must be two uppercase letters **excluding `"XX"`**, the sentinel `deriveOperatingState`
+returns for any coordinate outside the ~45 known boxes, because a `ConsentAck{operating_state:"XX"}` would
+otherwise match every out-of-box stamp: *one acknowledgment covering half the country*. **Thoroughly
+pinned** — 14 test references, with the parse-time rejection AND the gate blocking an `"XX"`-derived stamp
+tested separately, plus a recorded note on what breaks first if the schema is ever relaxed. Nothing to add.
+
+**CLAIM (verified): the WP-15 authority consult is dormant.** The `appointment.set` branch consults the
+authority read-seam for the DISPATCH module and asserts five things at once: the consult *"NEVER touches the
+gate decision, the returned service_date, the event hash, the append, or the seq ordering."* Forcing it —
+`authoritativeSource(await resolveAuthority(db, "dispatch"), false)` → `authoritativeSource("legacy", true)`
+— leaves `appointments` + `booking` at **24 passed**. The consult runs (that file exercises `appointment.set`
+directly), returns the opposite answer, and nothing downstream moves.
+
+**THE DIRECTION OF EVIDENCE INVERTS HERE, and it is worth stating.** Every other probe this phase treated a
+GREEN mutation as a gap — the change landed and nothing noticed. For a claim of the form *"this never affects
+anything"*, green is the **confirmation**: if flipping the input had reddened a test, the branch would be
+live and the comment false. §389's three explanations for a green still apply, but their meaning flips —
+"nothing distinguishes it" is precisely what a dormancy claim asserts. **What the mutation must show depends
+on what the sentence promises, and reading a green as automatically bad would have produced a false finding
+here.**
+
+**Axis progress, with the command from §446 unchanged:** 3 of 60 examined — 1 gap fixed (§447's flip-reason
+provenance), 2 clean. The clean ones are clean in different ways: one by a schema refinement with adversarial
+tests, one by construction with the dormancy measured rather than assumed.
