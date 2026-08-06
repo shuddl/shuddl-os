@@ -23771,3 +23771,59 @@ in two of three it was not where the sentence implied.
 enumerated and each column argument confirmed a literal; the two direct (wrapper-bypassing) callers
 identified by grep; the caveat added at the interpolation site rather than duplicated onto a third wrapper.
 `typecheck 0`, ledger 620 green, `check:citations 0`.
+
+---
+
+## §420 — "forged/substituted" was true of one of those two words
+
+The guarantee-split axis, applied to the evidentiary spine: `tsa/client.ts@assertGrantedReceipt`, whose
+comment read *"Throws on mismatch so a forged/substituted receipt can never be persisted as an anchor."*
+
+### Three clauses hold; the fourth word does not
+
+The function checks granted status, echoed imprint, and echoed nonce — all local, all correct. Those
+prevent **substitution**: a receipt for a different imprint, or a replay of an earlier one, cannot be stored
+against this anchor.
+
+They do not prevent **forgery**. Nothing here verifies the TSA's CMS signature, so a response that parses as
+granted and echoes our imprint and nonce is accepted on structure alone.
+
+### And the verifier that would prevent it has zero callers
+
+`verifyTsaSignature` (`tsa/cms.ts`) does the real crypto — SignerInfo over signedAttrs, `messageDigest`
+binding TSTInfo, chain to a configured trust anchor. Grepped across `packages/` and `workers/`: **its only
+references are its own definition and two comments pointing at it.** No production caller.
+
+The obvious reading is §417's `passports` shape — built, tested, unconsumed — and the obvious action is to
+wire it. **Both would be wrong**, and the reason is in `anchor.ts`: the raw `.tsr` bytes are written to R2
+**first**, before the manifest and before the documents row. The receipt is verifiable **offline, forever,
+by anyone with the trust anchors — including a third party who does not trust us.**
+
+Moving the crypto to ingest would make anchoring depend on trust-anchor config being present at *write*
+time, which is precisely the coupling the offline design avoids. **Ingest is structural; evidence is
+cryptographic; the bytes carry the proof.** Zero callers is the design working.
+
+### What was actually wrong
+
+Two sentences, both now corrected:
+
+- The ingest comment claimed forgery protection it does not provide, in a file describing *"the evidentiary
+  spine."* Restated to say which of the two attacks it stops, why the other is checked elsewhere, and why
+  that split is deliberate.
+- Hold 221 reads *"LANDED (WP-16)"* with *"Remaining (deploy, not code)."* True — and next to a landed
+  function that nothing calls, **"LANDED" reads as "running."** Clarified on the row.
+
+> **A verifier with no callers is either a gap or an architecture, and the difference is never visible from
+> the call graph.** Only the data-flow answers it: if the artifact under verification is durably stored and
+> re-checkable, absence of an ingest-time call is a *choice*; if the artifact is transient, it is a hole.
+> The `.tsr` is in R2 forever, so this one is a choice — and §417's `passports` write is the opposite, since
+> nothing anywhere ever reads what it stores.
+
+Same measurement, opposite verdicts, decided by one question about where the data goes.
+
+### Verification
+
+Four clauses split from the comment; the three structural checks read at their lines; `verifyTsaSignature`'s
+caller set established by grep across both source trees with every hit classified; the offline-verification
+premise confirmed in `anchor.ts` (raw `.tsr` written to R2 before the manifest and the row) rather than
+inferred from the hold's wording. Two record changes, no behaviour change. `typecheck 0`, ledger 620 green.

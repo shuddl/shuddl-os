@@ -41,8 +41,23 @@ function nonceHex(n: bigint): string {
   return hex === "" ? "00" : hex;
 }
 
-// Reject anything that isn't a granted receipt echoing OUR imprint and nonce. Throws on mismatch so a
-// forged/substituted receipt can never be persisted as an anchor.
+// Reject anything that isn't a granted receipt echoing OUR imprint and nonce. Throws on mismatch.
+//
+// WHAT THIS DOES AND DOES NOT PREVENT (audit §420). It prevents SUBSTITUTION: a receipt for a different
+// imprint, or a replay of an earlier one, cannot be stored against this anchor — the echoed imprint and the
+// per-request nonce are both checked. It does NOT prevent FORGERY: nothing here verifies the TSA's CMS
+// signature, so a response that parses as granted and echoes our imprint+nonce is accepted structurally.
+//
+// That is DELIBERATE, not a gap: `verifyTsaSignature` (./cms.ts) does the crypto — SignerInfo over
+// signedAttrs, messageDigest binding TSTInfo, chain to a configured trust anchor — and it has NO ingest-time
+// caller BY DESIGN. `anchor.ts` writes the raw `.tsr` bytes to R2 before anything else, so the receipt is
+// verifiable OFFLINE, FOREVER, by anyone with the trust anchors — including a third party who does not trust
+// us. Moving the crypto check to ingest would make anchoring depend on trust-anchor config being present at
+// write time, which is exactly the coupling the offline design avoids.
+//
+// So the honest summary is: ingest is structural, evidence is cryptographic, and the bytes are what carry
+// the proof. The earlier wording here said a "forged/substituted" receipt could never be persisted, which
+// was true of one of those two words.
 export function assertGrantedReceipt(respBytes: Uint8Array, imprint: Uint8Array, nonce: bigint): void {
   const parsed = parseTimeStampResp(respBytes);
   if (!parsed.granted) throw new Error(`TSA_NOT_GRANTED: status=${parsed.status}`);
