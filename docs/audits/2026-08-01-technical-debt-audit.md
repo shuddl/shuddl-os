@@ -19493,7 +19493,7 @@ SERVER is not configured"*), everything else → reject as *"forged or replayed"
 **Mutation: `verify` replaced with a bare `JSON.parse`** — the body trusted, the signature ignored. **RED —
 4 failing assertions**, naming `signature` and `unsigned`. Restored byte-identical: 57 passed.
 
-**Six of six trust boundaries carry a load-bearing guard.**
+**Six trust boundaries checked, six load-bearing guards.** *(§365 corrects the framing: "six of six" was a count of what I had enumerated, not of what exists — see §365 for the boundaries that list omitted.)*
 
 ### The 503-vs-4xx distinction is the interesting part
 
@@ -19519,3 +19519,55 @@ numbers were read. §308's rule and §363's rule together cover the whole space.
 
 Six trust boundaries enumerated and each traced to a guard; the webhook signature mutated by line index and
 restored byte-identical (RED naming `signature`/`unsigned`); `@shuddl/billing` 57 green.
+
+---
+
+## §365 — "Six of six" counted my own list, and the list was short
+
+§364 closed with *"six of six trust boundaries carry a load-bearing guard."* **That is a count of what I had
+enumerated, not of what exists** — §307's error exactly, and it is the third time this phase a category claim
+has been asserted about a set I compiled myself (§306's "the rest are process rules", §308's "no chokepoint
+to break", now this).
+
+Boundaries the list omitted, each a place data crosses from outside a trust domain:
+
+- **a driver's device → the sequencer** (a signed offline capture)
+- **an EDI partner's X12 → the translator**
+- **an MCP client's tool arguments → dispatch**
+- **an uploaded file → R2 evidence**
+- **the unauthenticated `/pub/*` surface**
+
+### The device signature — load-bearing
+
+The strongest of them, because it is what makes co-signature (I4) mean anything: an event claiming a device
+must actually be signed by that device's registered key, or a driver's captures can be forged by anyone who
+can reach the API.
+
+`sequencer.ts:310@verifyEventSig` — *"if (!jwk || !(await verifyEventSig(parsed, jwk))) throw
+rpcError('UNAUTHORIZED', { reason: 'device signature' })"*.
+
+**Mutation: the check neutered.** **RED**, naming `UNAUTHORIZED`, `device signature`, `forged`. Restored
+byte-identical: 757 passed.
+
+**Seven boundaries checked, seven load-bearing guards** — and four still unswept, named above rather than
+absorbed into a total.
+
+### Why this keeps happening, stated once
+
+Three times now: *"the rest are process rules"* (§306, two short), *"the ones without a chokepoint"* (§308,
+at least one short), *"six of six"* (§364, four short). Each time the enumeration was mine, each time the
+claim read as complete, and each time the correction came from someone — me, one section later — asking what
+the list omitted rather than whether its members were right.
+
+**The tell is grammatical and I now have three instances of it: a total ("six of six", "all", "the rest")
+attached to a set the speaker assembled.** A count of a set someone else defined — the eight self-labelled
+guards, the seven hard budgets, the thirteen agents — is a measurement. A count of a set I assembled is a
+description of my own attention.
+
+**The cheap discipline is to write the omissions in the same sentence as the total**, which is what this
+section does and what §364 should have.
+
+### Verification
+
+`sequencer.ts:310@verifyEventSig` mutated by line index and restored byte-identical; `@shuddl/api` 757 green;
+§364's claim qualified in place rather than rewritten, so the overreach stays visible.
