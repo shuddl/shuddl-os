@@ -24101,3 +24101,49 @@ Both mutations landed (`git diff --numstat`) and restored byte-identical; the re
 `App.tsx:49` rather than inferred from the PASS; the second mutation's failure attributed to the portal test
 by name and to the gate's own `##SHUDDL-GATE##` JSON; the sibling keyboard test and the e2e `signIn` helper
 located to establish the remedy is available in-repo.
+
+## §425 — the visual gate holds, and the number it is tuned to is 185× the drift it absorbs
+
+§423 ordered the three unchecked browser gates weakest-first and put `visual` after `a11y` on the same
+reasoning: *a screenshot gate passes on any stable render*. §424 found the a11y gate scanning pre-auth
+screens. `visual` does not have that defect — `screens.spec.ts` seeds `DRIVER_TOKEN_KEY` /
+`PORTAL_TOKEN_KEY` and waits on authenticated content (`heading: "Day sheet"`, `heading: "DELIVERED"`),
+which is the remedy §424 filed for a11y, already implemented in the sibling spec.
+
+**THE GATE IS SOUND — three mutations, attributed by screen name.** A solid `#ff0000` background on the
+day-sheet container: `3 failing of 5`. A `22px → 44px` row-padding doubling at `maxDiffPixelRatio: 0`:
+`3 failing of 5`, the failures named `command.png`, `portal.png` and `driver.png`. `expect.soft` at
+`screens.spec.ts:308` does fail the run; `snapshotPathTemplate` resolves onto the tracked refs; and the
+blessed pngs were byte-unchanged after every run (`git status` clean, mtimes still Jul 28) — the gate is
+not silently re-blessing. The captured mutant render was read as an image and confirmed visually
+different (rows taller, `LOCKED STOP` from y≈330 to y≈396) before any claim about it was made.
+
+**THE MEASURED BOUND.** On a CLEAN tree at `maxDiffPixelRatio: 0`, two screens do not reproduce their
+blessed refs: `command.png` differs by **140 pixels**, `portal.png` by **44**. Reproducible — identical
+counts across four runs. `driver.png`, `status.png`, `evidence-email.png` differ by **0**. So the
+tolerance is load-bearing for two of five screens and is not merely a cross-machine hedge.
+
+Its size, though, is set against nothing measured. 2% of 1440×900 is **25,920 pixels** — 185× the largest
+ambient drift observed. Any regression under that threshold passes silently on any screen. The config
+comment (`playwright.config.ts:48-56`) records that the 2% was sized for a live basemap owning ~3.6% of
+the frame; the spec now ABORTS that basemap, and the comment says so — *"it is no longer absorbing a
+third party's cartography"* — while keeping the number chosen for it. The justification was retired and
+the value was not. Filed rather than tightened: the ambient drift is measured on ONE machine, and the
+cross-machine AA figure the tolerance is now claimed to be for has never been measured. Tightening it
+without that datum trades a silent blind spot for CI flakes on hardware this audit cannot see.
+
+**THE METHOD DEFECT IS MINE, AND IT IS §371 AGAIN.** For six runs I pursued "the driver capture is inert"
+— three mutations to `DaySheet.tsx` that appeared to change nothing, a service-worker theory, a stale-bundle
+theory, a dev-server check that proved Vite served the mutated module. Every one of those runs read the
+failure list through `head -7` or `head -8`. Two failures plus their pixel lines fill eight lines exactly,
+so the THIRD failure — `driver.png`, the one under test — was cut off the display in every single run. The
+gate had been catching the mutation from the first probe. §371 recorded this exact defect (*"20 sites came
+off a `head -20`-truncated display"*) and the fix it recorded — make the tool print its count before its
+rows — is what finally ended it: grepping the `##SHUDDL-GATE##` verdict instead of counting listed rows.
+A truncated list cannot support a negative claim, and "the gate did not catch it" is a negative claim.
+This is the same shape as *a grep proves presence, never absence*: `head` turns any absence into an artifact
+of the window, and I spent six runs inside that window building an increasingly elaborate theory for it.
+
+**Bound carried forward.** `perf` (1 assertion) is the last of §423's ten and remains unchecked by
+mutation. `visual` (5) and `a11y` (4) are now checked: both work, both have a scope/calibration finding,
+neither has a correctness defect.
