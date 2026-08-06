@@ -19461,3 +19461,61 @@ intention to be careful rather than the guard's position in a stack. Only deleti
 All eight guards enumerated from the corpus and each mutated individually; every file restored
 byte-identical; three invalid mutations discarded under §308 rather than counted; `packages/edi`,
 `packages/map`, `packages/agents`, `packages/ledger`, `workers/api` all green after restore.
+
+---
+
+## §364 — The inverse sweep: from boundaries to guards
+
+§363 found that six of eight self-labelled guards are **first layers at a trust boundary**, not second layers
+in a stack. That inverts into a better question than the one the sweep started with: **enumerate the trust
+boundaries and ask which have a guard**, rather than enumerating guards and asking what they do.
+
+Five boundaries were already verified this phase:
+
+| boundary | guard | § |
+|---|---|---|
+| HTTP request → API | auth (tenant rejection) + idempotency, both `app.use("/v1/*")` | §352/§353 |
+| a stranger's email → Concierge | the sentinel fence | §362 |
+| server feed → browser | the `party_refs` filter | §363 |
+| a database row → an R2 delete | the tenant-prefix check | §361 |
+| tenant config → someone else's X12 parser | the SCAC charset | §363 |
+
+**The classic one missing from that list is money arriving from outside**: the Stripe webhook, where an
+unverified signature means anyone who can reach the URL can forge a payment event.
+
+### It is guarded, and the guard is load-bearing
+
+`workers/billing/src/webhook.ts:30` — `event = await billing.verify(rawBody, signature)` — with the raw body
+read **once** because *"the signature is over the exact bytes; never re-serialize before verifying"*, and two
+distinct failure paths: `BillingNotConfiguredError` → **503 DARK** (*"the request may be legitimate; the
+SERVER is not configured"*), everything else → reject as *"forged or replayed"*.
+
+**Mutation: `verify` replaced with a bare `JSON.parse`** — the body trusted, the signature ignored. **RED —
+4 failing assertions**, naming `signature` and `unsigned`. Restored byte-identical: 57 passed.
+
+**Six of six trust boundaries carry a load-bearing guard.**
+
+### The 503-vs-4xx distinction is the interesting part
+
+An unconfigured billing worker returns **503**, not 401 or 400. That is not pedantry: a 4xx tells Stripe *the
+request was bad* and it stops retrying; a 503 tells Stripe *try again*, which is correct when the request was
+fine and the server was not ready. **The status code is the difference between losing a payment event and
+deferring it**, and the comment says so — *"Loud, never silent."*
+
+That is the same shape as §353's *reject, not ignore*: the guard's value is not that it refuses, but in
+**what its refusal tells the caller to do next.**
+
+### Two invalid mutations, and the pattern is now fully characterised
+
+The first webhook attempt used an anchor whose indentation I had reconstructed rather than read — `landed:NO`.
+Fixed by mutating **by line index** after asking `grep -n` for the number.
+
+Across this sweep, four mutations were invalid: two from a mis-guessed anchor (`landed:NO`), two from a
+type-invalid replacement (`RED` with `failing: 0`). **Both classes are detectable without judgement** — the
+first from the diff stat, the second from the assertion count — and neither was ever ambiguous once the
+numbers were read. §308's rule and §363's rule together cover the whole space.
+
+### Verification
+
+Six trust boundaries enumerated and each traced to a guard; the webhook signature mutated by line index and
+restored byte-identical (RED naming `signature`/`unsigned`); `@shuddl/billing` 57 green.
