@@ -944,7 +944,7 @@ describe("§378: the MIGRATION scanner's bans cover EVERY guarded table (derived
 describe("checkDomainVocabularyParity — the DDL CHECK is the authority (audit §428)", () => {
   const SQL = readFileSync(join(REPO, "db/tenant/migrations/0002_domain.sql"), "utf8");
   const real = (): Array<{ path: string; source: string }> =>
-    DOMAIN_VOCAB_COPIES.map((f) => ({ path: f, source: readFileSync(join(REPO, f), "utf8") }));
+    Object.keys(DOMAIN_VOCAB_COPIES).map((f) => ({ path: f, source: readFileSync(join(REPO, f), "utf8") }));
 
   it("the shipped tree is clean — every copy equals its CHECK", () => {
     expect(checkDomainVocabularyParity(SQL, real())).toEqual([]);
@@ -1055,5 +1055,31 @@ describe("checkSqlColumnLiterals — the interpolated column must be a literal (
 
   it("a RENAMED helper fires — the guard must not certify nothing", () => {
     expect(checkSqlColumnLiterals([{ path: "r.ts", source: "const s = scopeMatch(col, scope, params);" }]).some((x) => x.includes("certify nothing"))).toBe(true);
+  });
+});
+
+// PER-FILE ROSTER COMPLETENESS (audit §463). Found by auditing my OWN gates after §462 reintroduced a hole
+// §454 had already closed. The global "no source declares X" check only fires when a constant vanishes from
+// EVERY copy; a single-copy rename left two behind and the gate stayed green while that file stopped being
+// checked against the DDL.
+describe("checkDomainVocabularyParity — a SINGLE renamed copy is loud (audit §463)", () => {
+  const SQL2 = readFileSync(join(REPO, "db/tenant/migrations/0002_domain.sql"), "utf8");
+
+  it("a roster file that no longer declares a constant it OWNS fires, naming both", () => {
+    const sources = Object.entries(DOMAIN_VOCAB_COPIES).map(([f, owns]) => ({
+      path: f,
+      // every file keeps what it owns EXCEPT intake-core, which "renames" SHIPMENT_MODES while keeping PARTY_KINDS
+      source: owns.filter((c) => !(f.endsWith("intake-core.ts") && c === "SHIPMENT_MODES")).map((c) => `export const ${c} = [] as const;`).join("\n"),
+    }));
+    const v = checkDomainVocabularyParity(SQL2, sources);
+    expect(v.some((x) => x.includes("intake-core.ts") && x.includes("no longer declares SHIPMENT_MODES"))).toBe(true);
+  });
+
+  it("the other copies keeping the constant does NOT mask it — the exact case that was silent", () => {
+    const v = checkDomainVocabularyParity(SQL2, [
+      { path: "packages/adapters/src/migrator.ts", source: "export const SHIPMENT_MODES = [] as const;" },
+      { path: "workers/api/src/intake-core.ts", source: "export const PARTY_KINDS = [] as const;" },
+    ]);
+    expect(v.some((x) => x.includes("no longer declares SHIPMENT_MODES"))).toBe(true);
   });
 });

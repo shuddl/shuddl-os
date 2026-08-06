@@ -25710,3 +25710,40 @@ is not the same as having the habit**; what caught it was running the second mut
 the first green. The filter now lives inside the check, where it can tell the two cases apart.
 
 Invariants suite **191 passed**; `typecheck`, `lint` clean.
+
+## §463 — auditing my own gates, after making the same mistake twice
+
+§462 ended by recording that I had reintroduced §454's wiring hole one section after learning it. The honest
+follow-up is not to note the irony but to check whether the OTHER gates I added this phase share it. **One
+does, and it is worse than §462's — because it was silent rather than skipped.**
+
+**The probe.** `check:invariants` has three added gates: §428's domain-vocabulary parity, §454's authority
+dormancy, §462's SQL column literals. Renaming `SHIPMENT_MODES` in ONE enrolled copy (`intake-core.ts`) and
+running the gate gives **exit 0**.
+
+**Why §428's completeness check could not see it.** It asks whether ANY source declares the constant. With
+three enrolled copies, renaming one leaves two, `found` stays above zero, and the gate reports clean — while
+that file has silently dropped out of the DDL comparison. The check was written to catch a constant vanishing
+EVERYWHERE, which is the loud case; the quiet case is one copy leaving.
+
+**The roster now names what each file owns.** `DOMAIN_VOCAB_COPIES` was a path list; it is now
+`path → constants expected there`, so a copy that stops declaring what the roster says it owns fires by name.
+That is §436's **content** axis applied to the roster itself: a list of paths can only be non-empty, a map of
+expectations can be COMPLETE. Re-probed: the same single-copy rename now gives **exit 1** naming both the file
+and the constant. Two tests pin it, including the exact masking case (one copy keeps the constant, another
+loses it).
+
+**Three sections, one shape.** §454 built a tripwire and separated *empty glob* from *renamed*. §462
+collapsed them again and was caught by the second mutation. §463 finds §428 had a third variant of the same
+blind spot — **a completeness check that measures the wrong scope**. In every case the guard worked for the
+failure its author imagined and not for the neighbouring one, and in every case the difference was found by
+running a probe rather than by re-reading the code.
+
+**The generalisable form: a gate keyed on "does X exist anywhere?" cannot notice X leaving one place.** If
+the thing being guarded exists in N places, the guard needs N expectations, not one existence test. Both
+§428's original and §454's rename-detector were the one-existence-test shape; only the latter was correct,
+because it guarded a single call-shape rather than a set of copies.
+
+Invariants suite **193 passed**; `check:invariants`, `typecheck`, `lint` clean. A now-unused helper from the
+first attempt was removed rather than left with an underscore — lint caught it, which is the smallest example
+of the same principle.

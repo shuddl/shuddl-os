@@ -637,11 +637,17 @@ export function checkAuthoritySeamDormant(
   return violations;
 }
 
-export const DOMAIN_VOCAB_COPIES = [
-  "packages/adapters/src/migrator.ts",
-  "workers/api/src/intake-core.ts",
-  "workers/mcp/src/tools/quote.ts",
-] as const;
+export const DOMAIN_VOCAB_COPIES: Readonly<Record<string, readonly string[]>> = {
+  // WHICH constants each copy is expected to declare (audit §463). A bare path list could only detect a
+  // constant vanishing from EVERY copy: with three files declaring `SHIPMENT_MODES`, renaming it in ONE left
+  // two behind, the global count stayed > 0, and that file silently stopped being checked against the DDL
+  // while the gate reported clean. Measured at exit 0 before this change. Naming the expectation per file
+  // makes a single-copy rename loud, which is the only way the roster can be complete rather than merely
+  // non-empty (§436's "content" axis, applied to the roster itself).
+  "packages/adapters/src/migrator.ts": ["SHIPMENT_MODES"],
+  "workers/api/src/intake-core.ts": ["SHIPMENT_MODES", "PARTY_KINDS"],
+  "workers/mcp/src/tools/quote.ts": ["SHIPMENT_MODES", "PARTY_KINDS"],
+};
 
 /** The authoritative value list of a `CHECK (<column> IN (…))` on one table, or null if absent. */
 export function checkConstraintValues(sql: string, table: string, column: string): string[] | null {
@@ -682,12 +688,27 @@ export function checkDomainVocabularyParity(
       if (actual.join("\u0000") !== expected.join("\u0000")) {
         violations.push(`${path}: ${constant} = [${actual.join(", ")}] but ${table}.${column} CHECK = [${expected.join(", ")}] — the comment claims byte-identical; a copy that is WIDER 500s at INSERT, one that is NARROWER silently refuses a legal value (audit §428).`);
       }
-      if (!DOMAIN_VOCAB_COPIES.includes(path as (typeof DOMAIN_VOCAB_COPIES)[number])) {
+      if (DOMAIN_VOCAB_COPIES[path] === undefined) {
         violations.push(`${path}: declares ${constant} but is not in DOMAIN_VOCAB_COPIES — a new copy of a governed vocabulary must be enrolled, not discovered later (audit §428).`);
       }
     }
     if (found === 0) {
       violations.push(`no source declares ${constant} — the roster is keyed on the constant NAME, so a rename makes this gate certify nothing; re-key it or update the roster (audit §428).`);
+    }
+  }
+
+  // PER-FILE COMPLETENESS (audit §463). The global `found === 0` above only catches the constant vanishing
+  // EVERYWHERE. With three enrolled copies, renaming ONE leaves two declaring it, `found` stays > 0, and that
+  // file silently stops being checked against the DDL while the gate reports clean — MEASURED: renaming
+  // `SHIPMENT_MODES` in intake-core.ts left `check:invariants` at exit 0. A roster entry declaring NO governed
+  // vocabulary is either a lost copy or a stale enrollment, and both must be loud.
+  for (const { path, source } of sources) {
+    for (const expected of DOMAIN_VOCAB_COPIES[path] ?? []) {
+      if (!new RegExp(`\\b${expected}\\b[^=\\n]*=`).test(source)) {
+        violations.push(
+          `${path}: no longer declares ${expected}, which DOMAIN_VOCAB_COPIES says it owns — a renamed or removed copy stops being checked against the DDL while the OTHER copies keep the gate green (audit §463).`,
+        );
+      }
     }
   }
   return violations;
@@ -965,7 +986,7 @@ function main(): void {
   if (domainPath !== undefined) {
     const vocabViolations = checkDomainVocabularyParity(
       readFileSync(domainPath, "utf8"),
-      DOMAIN_VOCAB_COPIES.filter((f) => existsSync(f)).map((f) => ({ path: f, source: readFileSync(f, "utf8") })),
+      Object.keys(DOMAIN_VOCAB_COPIES).filter((f) => existsSync(f)).map((f) => ({ path: f, source: readFileSync(f, "utf8") })),
     );
     if (vocabViolations.length > 0) {
       for (const v of vocabViolations) console.error(`FAIL ${v}`);
