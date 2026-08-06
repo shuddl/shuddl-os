@@ -19923,3 +19923,88 @@ cheap at 26 rows and would not be at 26,000.
 Eleven gates re-run at `5e65d6e`, each output compared verbatim against the recorded string; the `+1 file /
 +9 cases` delta reconciled against `git diff --diff-filter=A` and per-file `it(` counts.
 `typecheck 0 · check:tables 0 · check:citations 0`, commit gated on all three.
+
+---
+
+## §370 — the fallback-VALUE sweep: one gate promised in a docstring and observed by nothing
+
+[[fail-closed-is-about-the-fallback-value]] was earned when a `{}` default opened three of four gate knobs
+it claimed to floor. That defect is closed; the *class* had never been swept. This section sweeps it.
+
+**Population:** `catch { return <literal> }` across `workers/*/src`, `packages/ledger/src`,
+`packages/agents/src` — **20 sites** (153 catch blocks total). The question for each is not whether the
+throw is handled but **which way the returned value leans**: a fallback that means "no permission" is a
+floor; the identical syntax meaning "no limit" is a hole.
+
+Five sites were traced to their callers — every one where an OPEN reading was plausible. **Fifteen were
+not**, and that bound is stated rather than implied: the remaining sites return `null`/`[]`/`undefined`
+into paths that were not read here.
+
+### Four that are right, two of them already argued in-code
+
+- **`workers/mcp/src/caps.ts@parseCaps`** — exemplary. `null` explicitly means **ZERO capacity, never
+  infinite**, and a present-but-non-array `lanes` fails closed *"never silently unrestricted"*, with the
+  prior exit audit's finding (F2) cited at the line. Nothing to add.
+- **`workers/api/src/pub/status.ts@parseStatusCache`** — `{}` yields `state: "unknown"`,
+  `out_for_delivery: false`, and the fields are read **by name only, never a spread**, so a corrupt cache
+  cannot inject a field into the public envelope.
+- **`workers/agents/src/biller.ts@resolveRecipient`** — `undefined` means *no billing contact*, so no
+  invoice email is sent. The failure is a missed send, not a send to the wrong party.
+- **`biller.ts`'s delivery-geo read** — `undefined` means no geo, not a default geo.
+
+### The one that was wrong: certification's strictness was unobserved
+
+`workers/translator/src/partners.ts` deliberately keeps **two** parsers, and the asymmetry is the design:
+
+| path | parser | why |
+|---|---|---|
+| `partnerMapping` (runtime 214 sweep) | `parseConfigLenient` → `{}` → `DEFAULT_004010` | *"the 214 sweep must NEVER fault a whole shipment on a bad stored mapping"* |
+| `certifyPartner` (the gate) | strict `JSON.parse`, throws `CERTIFY_MALFORMED_CONFIG` | *"a certification must never pass a mapping the sweep cannot serialize against"* |
+
+Mutation — point `certifyPartner` at the lenient parser. **GREEN, 104 of 104.**
+
+Before crediting that green, the mutation's actual effect had to be established rather than assumed
+([[attribute-the-red-before-crediting-it]] applies to greens too). Probed directly: **`resolveMapping({})`
+does not throw — it returns the complete `004010` default.** So under the mutation a partner whose stored
+config is *unparseable byte soup* is parsed to `{}`, validated against the default, and written
+`cert_status = 'certified'` with a replay fixture ref. The gate's whole promise, silently void.
+
+The suite had five certification tests, including one named *"REJECTS a malformed mapping"* — `{bogus:
+true}`, which is **valid JSON** that `resolveMapping`'s `strict()` rejects. **Two different guards, two
+different error types, and the test name reads as though it covered both.** The one it covers is
+`resolveMapping`'s; the one it does not is `certifyPartner`'s own pre-parse, which is the earlier and
+stricter of the two.
+
+Two tests added:
+
+- an unparseable config is refused, asserting the **error type** (`PartnerControlError`) and the code
+  (`CERTIFY_MALFORMED_CONFIG`) — the type is load-bearing, because a lenient-parser regression substitutes
+  a different error or, as measured, none at all;
+- a **negative control** on the other half: `partnerMapping("{not json at all")` still returns `004010`.
+  Without it, someone "fixing" strictness by making both paths strict would pass the first test while
+  faulting every 214 for a partner with one bad stored mapping — the exact failure the lenient parser
+  exists to prevent. **An asymmetry needs both halves pinned or the next author will symmetrize it.**
+
+106 green clean; 1 failed under the mutation, and the failing test is the one written for it.
+
+### What the class actually looks like
+
+The lesson is not "fallbacks are dangerous" — nineteen of twenty here are correct, several with the
+reasoning written at the line. It is narrower and more useful:
+
+> **A guard promised in a docstring and implemented correctly is still unguarded.** `certifyPartner`'s
+> contract was stated in prose, in the right place, in accurate detail — and prose does not fail. What made
+> it survive review is that a *neighbouring* test carried a name broad enough to sound like it covered the
+> case (§318's adjacent-deferral shape, here inside one `describe`).
+
+Same finding-shape as §367's service worker, arrived at from the opposite direction: there, the *undocumented*
+guards were the untested ones; here, the documented guard was untested because its neighbour's **name**
+implied coverage. Neither the presence nor the absence of a comment predicts observation. **Only deletion
+does.**
+
+### Verification
+
+Mutation applied by anchored replace, `git diff --numstat` non-empty before each run, restored
+byte-identical (`0` diff lines) after both runs; `resolveMapping({})` probed in a scratch test that was
+deleted, not left behind. Clean 106 / mutated 1-failed measured with the verdict line read whole (§368).
+`typecheck 0 · check:tables 0 · check:citations 0`, commit gated on all three.

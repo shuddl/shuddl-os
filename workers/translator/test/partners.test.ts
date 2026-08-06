@@ -68,6 +68,34 @@ describe("REQ-203 — certifyPartner", () => {
     expect((await readCert(id)).cert_status, "a rejected certification leaves the partner uncertified").not.toBe("certified");
   });
 
+  it("REFUSES a config that is not valid JSON — the strict parse, not the lenient one (audit §370)", async () => {
+    // TWO DIFFERENT GUARDS, and the suite only had the first. A malformed MAPPING (`{bogus:true}` above) is
+    // valid JSON that `resolveMapping`'s strict() rejects. A malformed CONFIG is not JSON at all, and is
+    // refused earlier by `certifyPartner`'s own `JSON.parse` → `CERTIFY_MALFORMED_CONFIG`.
+    //
+    // WHY THIS MATTERS. `partners.ts` deliberately keeps two parsers: `parseConfigLenient` (runtime — a bad
+    // stored mapping must never fault a whole 214 sweep, so it degrades to `{}` and thence DEFAULT_004010)
+    // and the strict `JSON.parse` here (certification — "a certification must never pass a mapping the sweep
+    // cannot serialize against"). Swapping this call site to the lenient parser left all 104 translator tests
+    // GREEN: `parseConfigLenient` returns `{}`, `resolveMapping({})` RETURNS THE FULL DEFAULT rather than
+    // throwing, and a partner whose stored config is unparseable byte soup gets `cert_status='certified'`.
+    // The separation was correct and unobserved; this observes it.
+    const id = "partner-cert-nonjson";
+    await seedEdiPartner(env.TENANT_A_DB, id, null, "{not json at all");
+    // The TYPE is load-bearing: it distinguishes the strict pre-parse from resolveMapping's ZodError, which
+    // is what a lenient-parser regression would silently substitute (or, as measured, remove entirely).
+    await expect(certifyPartner(env.TENANT_A_DB, id, FIXTURE)).rejects.toBeInstanceOf(PartnerControlError);
+    await expect(certifyPartner(env.TENANT_A_DB, id, FIXTURE)).rejects.toThrow(/CERTIFY_MALFORMED_CONFIG/);
+    expect((await readCert(id)).cert_status, "an unparseable config must leave the partner uncertified").not.toBe("certified");
+  });
+
+  it("the RUNTIME path stays lenient on the same config — the sweep must not fault (the other half)", () => {
+    // Negative control. Without it, someone "fixing" the certification strictness by making BOTH paths strict
+    // would pass the test above while faulting every 214 for a partner with one bad stored mapping — the
+    // failure `partnerMapping`'s docstring exists to prevent. Both halves of the asymmetry are now pinned.
+    expect(partnerMapping("{not json at all").version).toBe("004010");
+  });
+
   it("throws PartnerControlError on an unknown partner id (no integrations row)", async () => {
     await expect(certifyPartner(env.TENANT_A_DB, "partner-ghost", FIXTURE)).rejects.toBeInstanceOf(PartnerControlError);
   });
