@@ -24536,3 +24536,53 @@ test that verified the parity silently becomes a test that the sharing happened.
 claims, and the second is much weaker. The invariant that survives the refactor — here, the bytes — needs
 an anchor OUTSIDE the code under test, or the refactor quietly deletes the assertion while leaving the test
 green. A golden value is that anchor.
+
+## §434 — I wrote §433's trap into my own test, one section after recording it
+
+§433 ended with a rule: *when you replace a parity check with sharing, the test silently becomes a test that
+the sharing happened.* The general form is **an expectation derived from the thing under test**. This
+section applied that selector to the event hash, found a real gap — and then reproduced the exact trap in
+the fix, which is the more useful half of the result.
+
+**The claim.** `packages/ledger/src/chain.ts:8@hashView` is a DENYLIST, not an allowlist: it copies the whole
+envelope and deletes `sig` and `hash`. Its comment says *"Everything else — prev_hash, seq, id, ts,
+recorded_at — is covered, so tampering anywhere breaks the next link. Frozen forever alongside the canonical
+byte law."* A quantifier over the envelope.
+
+**Pinned at one field.** `chain.test.ts`'s only tampering assertion mutates `payload`. The seq and prev_hash
+cases in the sibling test are caught STRUCTURALLY by `verifyChain` (`seq_gap`, `bad_genesis`), not by the
+hash — so they say nothing about hash coverage. Nothing exercised `ts`, `recorded_at`, or `id`.
+
+**What an uncovered field costs.** Drop `recorded_at` from the view and the SERVER CLOCK on a stored event
+can be rewritten without breaking the chain: every downstream verification stays green while the timestamp
+that aging, SLA and dunning are computed from is free to move. The tamper-evidence hole lands precisely on
+the field money is derived from.
+
+**THE FIRST FIX WAS TAUTOLOGICAL.** It iterated `Object.keys(hashView(e))` — *the very list the mutation
+shrinks*. Deleting `recorded_at` from the view removed it from the expectation too, so the mutation ran
+**GREEN (5/5)**. The test asked *"is every field in the view covered by the hash?"*, which cannot fail,
+instead of *"is every field of the ENVELOPE covered?"*. The mutation is the only reason this was caught; by
+inspection it reads correctly, and it had a non-vacuity guard, a length floor and two negative assertions —
+none of which help when the expectation and the subject are the same object.
+
+Re-derived from the envelope (`Object.keys(e).filter(k => k !== "sig" && k !== "hash")`) plus a direct
+denylist-equality assertion, the same mutation goes **RED, 1 failed / 4 passed**, naming the completeness
+test. The companion — `sig` must stay OUTSIDE the hash, since the signature is produced OVER the hash and a
+covered `sig` would be circular and unsignable — goes RED on removing its `delete`. Both restored
+byte-identical. `packages/ledger` **34 files / 623 passed**.
+
+**Typecheck caught what vitest could not.** The first version cast to `as typeof e`, which is
+`LedgerEvent | undefined` from the destructuring — 5/5 green under vitest, **exit 2 under `tsc`**. Vitest
+does not typecheck; that is the entire reason the gate is separate, and it is worth remembering that a green
+suite is not a green tree.
+
+**The rule, restated with its own counter-example attached.** *An expectation must not be computed by the
+code under test — including indirectly, through a list, a shape, or a helper that code owns.* §433 stated
+it about a shared function; §434 shows it applies to a **key set** just as completely, and that knowing the
+rule is not protection against writing it. The check that works is not review, it is the mutation: **if the
+change you are defending against leaves the test green, the test is measuring the code, not the claim.**
+
+**Bound carried forward.** Goldens already anchor the layers below this one — `canonical.test.ts` pins
+`sha256Hex(canonicalBytes(…))` to frozen literals for both an empty and a rich object, `merkle.test.ts`
+pins the empty root, and `partyIdForEmail` has its own. Those are clean and were confirmed by reading, not
+assumed. 9 of the hash/canonicalization claims remain.

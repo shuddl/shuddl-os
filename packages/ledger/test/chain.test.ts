@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { GENESIS_HASH, hashEvent, verifyChain, buildChain } from "../src/chain.js";
-import { eventFixture, EVENT_KINDS } from "@shuddl/contracts";
+import { GENESIS_HASH, hashEvent, hashView, verifyChain, buildChain } from "../src/chain.js";
+import { eventFixture, EVENT_KINDS, type LedgerEvent } from "@shuddl/contracts";
 
 describe("REQ-002 DoD: chain verifies after 10K events", () => {
   it("10,000 events verify (single-pass, no quadratic blowup); one tampered byte breaks at the right seq", async () => {
@@ -33,5 +33,46 @@ describe("REQ-002 DoD: chain verifies after 10K events", () => {
     const [e] = await buildChain([eventFixture("quote.requested")]);
     expect(e!.prev_hash).toBe(GENESIS_HASH);
     expect(await hashEvent(e!)).toBe(e!.hash);
+  });
+
+  // THE DENYLIST'S COMPLETENESS (audit §434). `hashView` does not allowlist fields — it copies the whole
+  // envelope and DELETES `sig` and `hash`. Its comment claims "everything else — prev_hash, seq, id, ts,
+  // recorded_at — is covered, so tampering anywhere breaks the next link", but the only tampering test above
+  // mutates `payload`, and the seq/prev_hash cases are caught STRUCTURALLY by verifyChain (seq_gap,
+  // bad_genesis), not by the hash. So the quantifier was pinned for one field out of the envelope.
+  //
+  // What an uncovered field costs, concretely: drop `recorded_at` from the view and the SERVER CLOCK on a
+  // stored event can be rewritten without breaking the chain — the tamper-evidence hole lands on the exact
+  // timestamp money (aging, SLA, dunning) is computed from, and every downstream verification stays green.
+  // This iterates the view rather than naming fields, so a field ADDED to the envelope is covered the day it
+  // appears instead of the day someone remembers to extend a list.
+  it("EVERY field in the hash view is inside the hash — the denylist is complete", async () => {
+    const [e] = await buildChain([eventFixture("stop.arrived")]);
+    const base = await hashEvent(e!);
+    // THE KEY LIST COMES FROM THE ENVELOPE, NOT FROM `hashView` (audit §434). The first version of this
+    // test iterated `Object.keys(hashView(e))` — the very list the mutation shrinks — so deleting
+    // `recorded_at` from the view removed it from the expectation too and the test stayed GREEN. It asked
+    // "is every field in the view covered?", which is tautological, instead of "is every field of the
+    // ENVELOPE covered?". Same trap as §433, in the section that recorded §433.
+    const EXCLUDED = ["sig", "hash"];
+    const keys = Object.keys(e!).filter((k) => !EXCLUDED.includes(k));
+    expect(keys.length, "non-vacuity: the fixture must actually carry an envelope").toBeGreaterThan(6);
+    // The denylist EXACTLY: everything the envelope has, minus sig and hash. Catches a field silently
+    // dropped from the view even before the tamper loop below reaches it.
+    expect(Object.keys(hashView(e!)).sort()).toEqual([...keys].sort());
+    for (const k of keys) {
+      const v = (e! as Record<string, unknown>)[k];
+      const tampered = { ...e!, [k]: typeof v === "number" ? v + 1 : `${String(v)}-tampered` };
+      expect(await hashEvent(tampered as LedgerEvent), `\`${k}\` is NOT covered by the event hash — tampering it leaves the chain valid`).not.toBe(base);
+    }
+  });
+
+  it("`sig` is OUTSIDE the hash — an event's identity does not depend on its signature", async () => {
+    // The other half of the denylist, and it must stay true in this direction: the signature is produced
+    // OVER the hash, so a sig inside the hash would be circular and unsignable. A test that only proved
+    // "tampering changes the hash" would happily accept sig being covered.
+    const [e] = await buildChain([eventFixture("quote.requested")]);
+    const base = await hashEvent(e!);
+    expect(await hashEvent({ ...e!, sig: "ab".repeat(32) } as LedgerEvent)).toBe(base);
   });
 });
