@@ -25332,3 +25332,38 @@ rather than assumed — and the cheap assumption here ("I made this mistake, the
 wrong.
 
 Provenance axis unchanged at **6 of 60 — 2 gaps, 4 clean**.
+
+## §453 — the freshness stamp, clean end to end, and what that says about §450's selector
+
+Seventh of the 60, chosen by §450's rule (no incident, no rehearsed threat model): `routes/board.ts`'s
+*"server-derived freshness stamp the polling portal renders honestly."* Its failure mode is a customer
+believing their shipment view is current when it is not — a false record with no adversary and no breach.
+
+**Clean on both sides of the wire, and the two halves are different claims.**
+
+*Server:* `as_of: Date.now()` — server-derived by construction, with no client path to it at all. Notably
+only the PARTY board carries it; the tenant board returns `{ board }` alone, because only the portal polls.
+
+*Client:* `apps/portal/src/api/board.ts:25` parses `{ board, as_of }` with `.strict()` and a required
+`z.number()`, so a stamp-less response fails at the boundary rather than rendering blank. `boardStatusText`
+then draws five honest states — loading · unavailable · **stale (last-good stamp retained)** · no active
+freight · live — and its comment states the law: *"It never claims freshness the server did not vouch for."*
+
+**Verified, not assumed:** deleting the stale branch, so a degraded board renders as `LIVE`, gives
+**1 failed / 8 passed** — the test *"a failed REFRESH after a good load marks the board STALE, keeping the
+last-good freshness stamp."*
+
+**A qualification on §450's selector, which is now 1-for-2.** It predicted a gap here — internal path, no
+incident, correct-by-construction — and there is none. The reason is visible in the test's name: the portal
+has a **degradation suite**, because "what does the customer see when the poll fails" is a rehearsed
+question on that surface even though *provenance* is not. §450 said coverage follows incidents; this refines
+it: **coverage follows whatever the surface's tests were BUILT AROUND**, and a claim inherits protection
+from an unrelated concern that happens to exercise the same branch. The `serverScoped` gap (§451) survived
+precisely because no portal concern touched it — the flag changes nothing a degradation test would notice.
+
+**So the selector's real form is narrower:** prefer claims on a branch that **no existing suite has a reason
+to visit**, not merely claims without incidents. That is harder to eyeball and is what the zero-test-reference
+check (§437, §451) actually measures — which is why that cheap grep has out-performed every semantic
+heuristic this phase.
+
+Provenance axis: **7 of 60 — 2 gaps, 5 clean.**
