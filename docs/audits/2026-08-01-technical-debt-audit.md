@@ -288,6 +288,14 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 > one-line addition, and every newly provisioned tenant seeded to sell at COST. **This is a stopping point
 > with a closed enumeration behind it**: not "no more found" but "the population was enumerated, scored,
 > and each member either probed or excluded on the record".
+>
+> **§397'S NEGATIVE-PROPERTY PRIORITY DISCHARGED (§441–§442).** Its stated order was "side-effect-absence
+> first"; that subset is now enumerated (480 → 67 → 10) and every member read. **All 10 clean**, each
+> keeping its positive control outside the block — in a sibling test, a `beforeAll`, or a different FILE.
+> One narrow residue filed (a refusal pinned without its reason). The phase also re-measured green against a
+> full run: **workspace 17 packages / 256 files / 2,980 tests, zero failures; tools 813** — combined **3,793
+> cases**, superseding the 3,771 at `c9fa799`, with the 3 red tools cases re-proved to be the separate GTM
+> workstream's uncommitted `REQ-289` row rather than inherited from this document.
 
 Grades from `V2-EXECUTION-FRAMEWORK.md` §9. What this audit adds to each bar:
 
@@ -24920,3 +24928,47 @@ cause (a signature mismatch, a malformed input), the revocation rule itself woul
 would stay green. Filed, not fixed: the sibling honest-case test makes a systematic harness failure loud,
 so the exposure is narrow, and the remaining 9 candidates deserve the same read-before-acting treatment
 rather than a batch edit.
+
+## §442 — the side-effect-absence class, audited and clean; no textual scope can judge it
+
+§397 filed **139 negative-property tests un-mutated** and recorded a priority: *"side-effect-absence
+first."* That is the vacuity shape this phase kept meeting — *"nothing was written"* passes when nothing was
+**attempted**. §441 narrowed the population; this discharges it.
+
+**The funnel, with each predicate stated.** 480 `it()` blocks contain an absence assertion
+(`toHaveLength(0)`, `toBe(0)`, `toBeUndefined()`, `toBeNull()`, `not.toHaveProperty`). 67 carry no positive
+assertion **inside the block**. Restricting to blocks that actually cause a side effect — a pure function's
+absence assertion CANNOT be vacuous, because the call IS the exercise — leaves **10**. All 10 were then read.
+
+**All 10 are clean, and every one of them keeps its control OUTSIDE the block.** That is the finding:
+
+- **A sibling test in the same file.** `cors.test.ts` asserts an ALLOWED origin gets `ACAO` at three
+  separate points, so deleting CORS entirely fails those, not the denied-origin absence.
+  `messages-projection.test.ts` lands a row for `message.received` and `message.sent` before asserting a
+  non-message kind lands none.
+- **A `beforeAll` plus a sibling.** `platform-tenant-isolation.test.ts` inserts `PLATFORM_MARKER` into the
+  platform D1 and asserts it reads back, so an empty or unmigrated handle — the way *"`sqlite_master` has no
+  `tenants` table"* could pass while proving nothing — fails first.
+- **A different FILE entirely.** `provision.test.ts` proves `loadTenantRatingConfig` returns null with
+  `rate_config` emptied; `transit.test.ts:64` proves it returns a config when one exists. Neither file
+  contains both halves, and only the pair distinguishes a working loader from one that always returns null.
+
+**The scan misclassified its own sharpest candidate.** *"A REVOKED device cannot sign an append"* was
+flagged because `expect(err).not.toBeNull()` matched the ABSENCE pattern via `toBeNull()` — when it is
+precisely the positive control, asserting an error DID occur (§441).
+
+**So no textual scope can judge this class.** Block scope misses siblings; file scope misses cross-file
+pairs; and a `not.` prefix inverts the meaning of the token being matched. This is the third instrument this
+phase to over-report and be corrected by reading (§437's 14 registries, §441's 67 blocks, and this) — the
+same conclusion each time: **triage narrows where to look; only reading or mutation decides.**
+
+**The class is in good shape, and that is worth recording at the weight of a finding.** The repo's practice
+is consistent — an absence assertion is paired with a positive that would fail first if the subject stopped
+running. That is exactly the discipline §51 asked for on redaction and §435 had to add for its registries,
+already being followed by hand here.
+
+**Residue, unchanged from §441 and still the only one:** the revoked-device assertion accepts ANY error, so
+it pins the refusal and not the REASON. Narrow (its honest-case sibling makes a harness failure loud) and
+filed rather than fixed. **§397's "side-effect-absence first" priority is now discharged**; the remaining
+negative-property tests are refusal assertions on pure functions, where the shape is correct by
+construction.
