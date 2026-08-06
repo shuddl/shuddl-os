@@ -23638,3 +23638,74 @@ the audit's method has been to trace rather than to count.
 and the two outliers traced to every reference including tests and tools; `assets`'s word-collision with
 Workers Static Assets identified and excluded; both findings filed as rows with the budget consequence
 stated. No code changed — both are owner decisions.
+
+---
+
+## §418 — the last governed count: 28 of 35 kinds are emitted, and two exist only in the spec
+
+§417 closed on *"a budget counts what exists, not what is used."* The 35-event-kind catalog is the last of
+CLAUDE.md's hard budgets not traced that way, and it is the one with the strongest freeze: *"35 event kinds
+(additions = register amendment)."*
+
+### The predicate took two attempts, and the first was badly wrong
+
+The first pass searched `packages/*/src workers/*/src` for a literal `kind: "…"` and reported **19 of 35
+never emitted** — including `stop.arrived` and `pod.signed`, the driver's core captures and the two most
+exercised kinds in the entire system.
+
+Implausible on its face, which is the only reason it was checked rather than published. The glob omitted
+`apps/`, and `apps/driver/src/flow/captures.ts` is exactly where the driver's kinds are emitted. Corrected
+scope: **7 of 35.**
+
+Fifth predicate correction of this phase, and the cheapest tell yet: **a sweep that indicts the system's
+most-used component is measuring itself.** §374's 1,331, §371's truncated 20, §380's 134, §389's subsumption
+— each was caught by a number that did not match something already known.
+
+### The seven, classified by what the record says
+
+| kind | trace |
+|---|---|
+| `call.transcribed` | standing hold (voice capture is CONFIRM-gated) |
+| `credit.checked` | standing hold (credit decision engine unbuilt) |
+| `dispatch.assigned` | WP-08/09 + V2 framework — has a **gate** (`assertDispatch`, REQ-043) but no emitter; hold 181 covers the unbuilt ratecon flow |
+| `pickup.scheduled` | WP-08 + genesis/03 |
+| `quote.sent` | WP-07 — superseded in practice: `messages` projects `message.*`/`quote.sent`, and the Concierge emits `message.sent` |
+| **`quote.expired`** | **genesis/10 only** |
+| **`seal.applied`** | **genesis/10 only** |
+
+Five of seven are explained by a hold, a WP, or a supersession. **Two appear nowhere but the taxonomy that
+declares them.**
+
+### Not a defect, and worth recording anyway
+
+The catalog is frozen deliberately: a kind cannot be added without a register amendment, so **declaring
+ahead of building is the intended pattern**, and a reserved kind costs nothing at runtime. `seal.applied`
+and `quote.expired` are plainly future physical/demand events.
+
+What is missing is the distinction itself. **Nothing in the record says which of the 35 are live and which
+are reserved** — so "35 kinds" reads as 35 implemented behaviours to anyone who has not traced it, and the
+budget's own gate cannot tell the difference (it counts declarations, exactly as the table gate counts
+`CREATE TABLE`). Filed as a legibility row.
+
+### Where this leaves the budgets
+
+All four of CLAUDE.md's counted budgets have now been traced rather than counted:
+
+| budget | counted | in use |
+|---|---|---|
+| ≤22 tables | 21 used | **20** — `assets` has no code (§417) |
+| 35 event kinds | 35 declared | **28 emitted** |
+| events columns | 20 | **19 consulted** — `confidence` is inert (§415/§416) |
+| 5 colour tokens · 2 fonts | pinned by CI | unchanged (§287) |
+
+Every one is accurate as declared and smaller in use, by a margin nothing in the repository states. That is
+the §417 sentence with three more data points, and it is the strongest single argument this audit has for
+its own method: **the gates are correct, and correctness about a declaration is not knowledge about a
+system.**
+
+### Verification
+
+35 kinds enumerated from `evInput(…)` in the contracts union; emission searched across four trees after the
+first scope proved wrong; each of the seven traced individually to the ledger, the WP docs and genesis;
+`quote.sent`'s supersession confirmed against WP-07's own description of the `messages` projection. One
+record row, no code — a kind cannot be touched without a register amendment.
