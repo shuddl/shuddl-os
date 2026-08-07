@@ -28230,3 +28230,39 @@ probe printed *"(empty ⇒ no run_install)"* under output that was **not empty**
 lines. The conclusion happened to be right, reached by a line that did not support it. This is the pattern
 this record keeps re-learning: **write the caption after reading the output**, not with the command. It is
 the cheapest error in the session and the most frequent.
+
+## §523 — the one CI hardening gap, and why it is recorded rather than applied
+
+§522 verified every action is SHA-pinned. The adjacent control is **what the token can do**, and here there
+is a real gap: **neither workflow declares a `permissions:` block**, so `GITHUB_TOKEN` inherits the
+repository default — which may be read-write, and is a setting outside this repo.
+
+**The exposure is bounded, and by design rather than luck:**
+
+- `ci.yml` triggers on **`pull_request`**, not `pull_request_target`. That distinction is the whole fork
+  attack surface: `pull_request_target` runs untrusted PR code with a privileged token, and it is absent.
+  Fork PRs get a read-only token regardless of the repo default.
+- `nightly.yml` is `schedule` + `workflow_dispatch` — no fork path at all.
+- Every action is SHA-pinned, and **both workflow headers say so explicitly** (*"Every action is pinned to
+  an immutable commit SHA with its release tag in the trailing comment"*), so the pinning §522 measured is a
+  stated control, not an accident. SHA-pinning bounds *which code runs*; `permissions:` would bound *what it
+  can do*. The first is present; the second is inherited.
+
+**Not applied here, deliberately, and the reason is the same one this audit keeps giving.** A
+`permissions:` block is a change I cannot verify: there is no CI run available from this session, and a
+too-narrow block fails at the step that needs the scope — `gitleaks` reading history, `upload-artifact`
+writing the evidence bundle — **on the next push, not in any local check**. Every gate in this repo runs
+locally; this one cannot. Shipping an unverifiable edit to the file that runs every other verification is
+the wrong trade, and §495 is the precedent: a change to CI that looked right and could only be proved by
+running it.
+
+> **PROPOSED (unregistered):** add `permissions: { contents: read }` at workflow level to both files, then
+> widen per-job only where a step demands it. **Verification:** one push to a branch — the block is correct
+> iff the merge-gate job still reaches `verify:merge` and the nightly `backup` job still uploads. **Owner:**
+> whoever holds CI; it is a two-line change with a one-run proof.
+
+**Why this is a genuine finding and not a nit.** Least privilege on CI tokens is the control that bounds the
+blast radius of everything else — and this build has spent five phases making its blast radii explicit. The
+gap is small, the exposure today is bounded by two deliberate choices, and the fix is cheap. It is recorded
+with its verification command precisely so it does not become another thing that is true because nobody
+looked.
