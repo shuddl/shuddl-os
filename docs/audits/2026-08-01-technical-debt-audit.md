@@ -209,6 +209,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 14 | §561–§562 | **§563** | WHAT THE GATES MEASURE — all seven CLAUDE.md hard budgets mutation-proved; 3,600 test blocks swept for vacuity (clean); the authority fail-closed law was testing a hand-copy of its own module set |
 | 15 | §564 | **§565** | THE FAILURE PATHS — 194 catch sites classified by FALLBACK VALUE; all fail closed but one, whose §182 hold was documented and unenforced (now enforced); §182's prescribed remedy proved unreachable |
 | 16 | §566–§567 | **§568** | THE STACK RULES — async correctness was unlinted (the non-type-checked preset); enabling it broke five lint-guard tests by invalidating their PROOF, not their rule; the `source:'native'` gate carve-out rested on a hand-kept enumeration |
+| 17 | — | **§569** | THE CHAIN END-TO-END — ci.yml → verify:merge → gatesFor("merge"), each link verified; the full merge gate RE-RUN at this commit: 19 PASS · 2 FAIL · 5 BLOCKED, every failure owner-blocked |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -30267,3 +30268,78 @@ missing is completeness: the risk is route #8, and §567 now derives the list fr
   constraint. Every anchor must be a real file; a test now asserts that.
 - The type-aware block's globs widen to include `test/` → tests legitimately float promises in fixtures, and
   the rule would start failing on deliberate code.
+
+---
+
+## §569 — PHASE GATE: the gate chain end-to-end, and the merge gate re-run at this commit
+
+### Why this phase exists
+
+Five phases hardened gates — floors (§554/§558), rooting (§559), budgets (§561), failure paths (§564), stack
+rules (§566/§567). All of that is worth nothing if CI does not run them. This phase followed the chain from
+the workflow file to the gate list, then **ran the whole thing**.
+
+### The chain, verified link by link
+
+```
+.github/workflows/ci.yml  →  pnpm verify:merge  →  gatesFor("merge")  →  26 gates
+```
+
+The design is better than per-gate CI wiring: **profile membership IS the wiring**, so a gate added to the
+profile runs in CI on the same commit, with nothing to keep in sync. `ci-contract.test.ts` pins the workflow
+actually invoking `verify:merge`, and `gate-wiring.test.ts` pins the profile at exactly 26 with release as a
+strict superset.
+
+Two clean negatives came out of following it:
+
+- **`check:traceability` is not nightly-only.** It is in the merge profile; `nightly.yml` re-runs it on a
+  schedule. An orphan REQ fails the merge, not the next morning's cron.
+- **`check:pr` is in neither profile, and that is correct.** It needs PR context (it reads the PR body for
+  REQ-IDs), so it is wired as its own step at `ci.yml:32` rather than through the runner. A gate script absent
+  from `gatesFor` is not automatically an unwired gate — the second place had to be read to know.
+
+### BLOCKED is not a pass
+
+The exit contract is explicit: `0 PASS · 1 an executed assertion failed · 2 a prerequisite is BLOCKED/PENDING
+· 3 malformed/stale`. A blocked gate produces **exit 2**, so CI fails on it. And a stated invariant in the
+runner — *"a sentinel may DEGRADE an exit-0 run but may never UPGRADE a failing one"* — closes the direction
+that would matter most.
+
+### The run
+
+```
+26 gates: 19 PASS · 2 FAIL · 5 BLOCKED        aggregate: FAIL (exit 1)
+```
+
+| Status | Gates |
+|---|---|
+| **FAIL (2)** | `unit-tests`, `coverage` — both the single uncommitted `REQ-289` GTM register row |
+| **BLOCKED (5)** | `identity-leak` (no `IDENTITY_DENYLIST` secret) · `fixtures`, `rater-parity`, `invoice-parity`, `concierge-parse` (engagement fixtures not vendored) |
+| **PASS (19)** | everything else — including every gate this session touched: `design-audit`, `section-refs`, `append-chokepoint`, `bundle-ratchet`, `invariants`, `seed`, `citations`, `table-shape`, `lint`, `typecheck` |
+
+**The browser gates all PASS** — `perf`, `visual`, `a11y`, `e2e` (1, 5, 4 and 6 assertions). §550 verified
+those by reading; this is the first run in these phases that executed them.
+
+Every failure is owner-blocked and unchanged since §544. **Nothing in the repo-owned ledger is failing.**
+
+### Exit state (measured, not carried forward)
+
+- `verify:merge` at `dddc2e0` — **19 PASS · 2 FAIL · 5 BLOCKED**, exit 1, evidence artifact written under
+  `artifacts/release/dddc2e0…/merge/`.
+- `tools/` — 881 tests, 878 green, 3 red (the same `REQ-289` row seen from the unit side).
+- Twenty-four mutations across five phases: 18 RED as predicted, 5 silent and each explained, 1 needing
+  `git add -N` to be visible.
+
+### The stopping point
+
+The repo-owned work is done. What remains is **five inputs the owner holds and no amount of auditing can
+produce**:
+
+1. `REQ-289` — the GTM register row, uncommitted (2 FAILs).
+2. Nine private fixtures from the engagement workspace (4 BLOCKED gates).
+3. The `IDENTITY_DENYLIST` secret (1 BLOCKED gate).
+4. Sender-domain verification + Cloudflare OIDC.
+5. The FILMED half of the five acceptance demos.
+
+Every one is in §521's owner table, and none has moved. A phase that cannot change any of them has reached
+its boundary: **the next honest action is the owner's, not the auditor's.**
