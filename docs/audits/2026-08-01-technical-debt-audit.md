@@ -29086,3 +29086,31 @@ inputs are the unvendored engagement fixtures. Each BLOCKS rather than passes �
 **This closes the loop §543 opened.** A per-gate sweep told me twelve gates were green while the profile
 said `typecheck` was blocked; the profile is what an owner's CI runs, and it is the only reading that
 carries. The state above is the one measured by that command, on this tree, after the fix.
+
+## §545 — could a type error hide in a test anywhere else?
+
+§543's defect was a type error in a test file that vitest happily ran and `typecheck` caught. The general
+question that leaves open: **is every test file in every workspace inside its package's typecheck scope?**
+A package whose `tsconfig.json` includes only `src` while its tests live in `test/` would let type errors
+accumulate invisibly — the suite green, the compiler never asked.
+
+**Measured across all 17 workspaces that contain tests: zero gaps.** Every `*.test.ts`/`*.test.tsx` file
+falls inside its package's `include`. Two patterns do it — `["src","test"]` where tests are a sibling
+directory (`workers/api`, `packages/ledger`), and `["src"]` where they are colocated (`apps/driver`, whose
+`stop-flow.test.ts` and `App.test.tsx` live under `src/flow` and `src/`).
+
+**The one flagged workspace was my matcher, not the tree.** `packages/map` lists
+`"perf/fleet-1k.test.ts"` as an **exact file** in its include array; my check only understood
+directory-prefix entries, so it read an explicitly-included file as excluded. **Fourteenth over-reporting
+classifier of this session**, and the same shape as all the others: a pattern that encoded one of the forms
+the real thing takes.
+
+**So §543's defect class is globally catchable.** It was caught because `typecheck` spans the tools tree; it
+would be caught in any of the seventeen, because none of them hides its tests from the compiler. That is
+worth stating as a measurement rather than an assumption — the alternative reading of §543 is *"a type error
+slipped through"*, and the accurate one is *"a type error was caught by the gate I did not run."*
+
+**The tool that made the check honest was `stripComments` (§493) — again.** A tsconfig is JSONC; the first
+attempt used a naive `//`-strip and died on a block comment. The quote-aware stripper written to stop a lint
+flagging its own documentation is now the third instrument in this session for reading a file the way its
+parser does (§528 for projections, §529 for concatenated SQL, here for JSONC).
