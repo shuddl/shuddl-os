@@ -28047,3 +28047,28 @@ have supported a confident wrong answer.
 **Recorded because the lesson has now failed three times to prevent itself** — and the only difference here
 is that it was caught before publishing rather than after. That is the improvement worth keeping; the probe
 is not going to stop being tempting, so the habit has to be the follow-up read, not the avoidance.
+
+## §518 — the 35 event kinds, re-measured: every one is projected, and the emitter gaps are the ones already classified
+
+§517's rule sent this one to the record before the report, which is the whole point of writing it down.
+
+**Measured at HEAD:** the taxonomy holds **35** kinds (the frozen v1 catalog), and **every one is named by a
+projection handler** — zero kinds land in the ledger with nothing to fold them into a read model. That is
+the property worth checking on a frozen catalog, and it holds.
+
+**Four kinds appear nowhere in shipped source outside the projections and the taxonomy** — `quote.sent`,
+`quote.expired`, `pickup.scheduled`, `call.transcribed`. That is a SUBSET of a set this audit already
+classified: *"The seven, classified by what the record says"*, which traced each to a standing hold
+(`call.transcribed` — voice capture is CONFIRM-gated), a work package, or a supersession, and concluded
+correctly that **declaring ahead of building is the intended pattern** for a catalog no one may extend
+without a register amendment. A reserved kind costs nothing at runtime.
+
+**Re-verified rather than re-found**, which is the §505 discipline: the earlier classification is still
+accurate, and the difference between its seven and my four is a boundary choice (whether a kind named only
+in a projection counts as "named elsewhere"), not a change in the tree.
+
+**Worth one line about method.** The sweep produced a list that looked like a finding — four declared-but-
+unemitted event kinds in the ledger's core taxonomy. Checking the record first cost one grep and turned a
+would-be duplicate report into a dated confirmation. **The audit's own record is the first place to look for
+a finding, not the last** — at 517 sections, the likeliest explanation for something surprising is that it
+is already written down.
