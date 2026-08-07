@@ -33,11 +33,12 @@ needs, each of which points at the ledger entry that owns the truth rather than 
 | question | section |
 |---|---|
 | **What blocks release, and how do I check each?** | **§113** (the stopping point) as scoped by **§123**, with the hold table rewritten in **§126** to carry a verification command and an expiry trigger per row |
-| **What is the current measured state?** | **§4**, re-measured continuously — nine times to date, the latest in **§141** |
+| **What is the current measured state?** | **§4** — whose own head block names the current measurement. No count or section is repeated here: §162 corrected this row once by replacing a decaying SHA with a decaying COUNT plus a section pointer ("nine times to date, the latest in §141"), and by §506 both had decayed again. The pointer that does not rot is the one to the section that maintains itself (§507) |
 | **What breaks the moment I flip a flag or bind a secret?** | **§138** — the activation map |
 | **What becomes filmable when I clear a hold?** | **§149** — the demo-unblock join |
 | **What does vendoring each blocked fixture buy?** | **§160** — mechanism proved vs evidence added |
 | **What needs an owner-signed REQ row?** | the five proposed-scope findings: **§123** (REQ-180 alignment), **§131** (booking backstop), **§133** (SLA cadence), **§135/§136** (Concierge cost metering), **§137** (unsurfaced send failure) |
+| **What has been audited, and what is the exit state?** | the three phase gates: **§496** (the gate surface — 11 defects), **§501** (the standing bounds — discharged), **§504** (SQL guards, error handling, tenant isolation — zero). Each carries its exit numbers and its reopen triggers |
 | **Is the record itself trustworthy?** | **§125** (every repo-owned checklist row re-verified), **§127**/**§129** (counts swept across all documents) |
 
 Everything else is the working record: what was probed, what it showed, and where the instruments lied.
@@ -27589,3 +27590,35 @@ the exit code, is what made the result trustworthy.
 and zero failing tests, which is neither a pass nor a test failure. Reading further showed four **suites**
 failing at import with the budget's own message. Had the failure instead been a non-exhaustive `switch` over
 `CanonicalView`, the exit code would have looked identical while proving something entirely different.
+
+## §507 — the entry table had decayed, and its previous correction had inherited the defect
+
+§505 re-verified this session's NUMBERS. It did not check the **routing**, and the routing is what an owner
+actually uses: this document is ~500 sections and everyone enters through the START HERE table.
+
+**One row was stale and it was the most important one.** *"What is the current measured state?"* pointed at
+*"§4, re-measured continuously — nine times to date, the latest in §141."* §141 is *"the phase gate,
+re-measured at `78499e9`"* — superseded by §298, and then by §496, §501 and §504. An owner following that
+row landed on a measurement several phases old while §4's own head named the current one.
+
+**The correction inherited the defect's shape, which is the finding.** §162 already fixed this exact
+sentence: it had named a SHA (`fb212fd`) *"which had been superseded nine times and is not among the
+recorded re-measurements at all"*, and the rule §162 drew was **name the SECTION rather than a commit**. The
+replacement named a section — **and a count** — and both decayed within the same document. Naming a section
+is not more durable than naming a commit if the section named is *the latest one*, because "the latest" is a
+fact about the future.
+
+**The pointer that does not rot is the one to the section that maintains itself.** §4 carries its own
+current-measurement block and has been updated at every phase close. So the row now points at §4 and says
+nothing else — no count, no "latest in §N". A pointer with a payload decays at the rate of the payload; a
+pointer with no payload decays only if its target dies.
+
+**A row was also missing.** Three phase gates exist (§496, §501, §504) and the table had no question they
+answer. *"What has been audited, and what is the exit state?"* is the first thing an owner asks and the
+table sent them to seven other places. Added, naming all three with their yields (11 defects → discharged
+bounds → zero).
+
+**Why this belongs in a technical-debt audit at all.** A record nobody can navigate is indistinguishable
+from a record that says nothing, and every finding in five hundred sections is worth exactly as much as an
+owner's ability to reach it. This is the same class as §484's gate that certified an unread record — the
+artifact was fine, the path to it was broken.
