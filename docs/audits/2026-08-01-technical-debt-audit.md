@@ -187,6 +187,11 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 
 ## §4 — Phase gating and the stopping point
 
+> **PHASE 8 CLOSED — §538 is the phase gate for §535–§537: genesis/10's I1–I8.** With §534's ten, BOTH
+> authorities in the source-of-truth order are now fully accounted — **18 members, none at "presumably
+> fine"**: 12 mutation-controlled, 1 structural, 3 gate-measured, 1 BLOCKED on absent fixtures, 1 process.
+> `typecheck` returned 0 for every one of those mutations — five defect classes, five clean typechecks.
+>
 > **PHASE 7 CLOSED — §534 is the phase gate for §528–§533: THE LAWS.** Five of CLAUDE.md's ten rules now
 > carry a mutation proving the artifact can fail (2, 3, 4, 5, 10); three are gate-measured; one is BLOCKED
 > on fixtures that do not ship; one is process. **No rule is left at "presumably fine".** The phase also
@@ -28830,3 +28835,50 @@ custody is exactly the fraud the co-signature exists to prevent, and the gate na
 on absent fixtures, one process), **both authorities named in the source-of-truth order now have every
 member either mutation-controlled, structurally guaranteed, or explicitly accounted as blocked.** No law in
 this build is at "presumably fine".
+
+## §538 — PHASE GATE: both authorities, fully accounted
+
+**Scope (§535–§537).** §534 closed CLAUDE.md's ten rules. This phase did the same for the **other**
+authority the source-of-truth order names — `genesis/10`'s **I1–I8**, the schema invariants.
+
+### The two law sets, complete
+
+| authority | members | accounting |
+|---|---|---|
+| **CLAUDE.md** ten rules | 10 | **5 mutation-controlled** (2, 3, 4, 5, 10) · 3 gate-measured (1, 7, 8) · 1 BLOCKED on unvendored fixtures (6) · 1 process (9) |
+| **genesis/10** I1–I8 | 8 | **7 mutation-controlled** (I1–I4, I6–I8) · 1 structural (I5, `.min(1)` at the boundary) |
+
+**Eighteen members. Not one is at "presumably fine."** Every one is either proved to fail when its
+enforcement is removed, guaranteed by a schema that cannot express the violation, or named as blocked on an
+input that does not ship.
+
+### What controlling them actually surfaced
+
+Nothing in this phase was a code defect — the laws all hold. What it surfaced is what the laws *mean*, which
+a summary loses every time:
+
+- **I1 is not "there is a foreign key"** — it is that D1 *enforces* one. SQLite ships `PRAGMA foreign_keys`
+  OFF, `check:invariants` proves only that the clause is written, and nothing had ever proved the engine
+  acts on it (§535). Now pinned, because it is a platform behaviour that can change with no commit here.
+- **I4 is not "a signature exists"** — it is the **receiver's**, not the sender's device. A handoff
+  self-attested by the party giving up custody is the fraud the co-signature prevents (§537).
+- **I7 is not "the numbers cancel"** — it is that they cancel *in every view*, which is why a correction
+  inherits the original's visibility verbatim and why I7 is entangled with I6 (§537).
+- **Rule 5 is not the $222,084** — it is *which number the comparison uses*: gross flags, the executing
+  share does not (§532).
+
+### `typecheck` returned 0 for every one of these mutations
+
+A security default (§515), a silent data drop (§533), a cross-party leak (§536), a sign flip on a GL
+correction and a dropped custody co-signature (§537) — **five defect classes, five clean typechecks.** The
+compiler is indifferent to every law in this build. That is not a gap in the toolchain; it is the precise
+reason a law needs a mutation rather than a reviewer.
+
+### Exit state
+
+**12 non-register gates PASS** · `typecheck` · `lint` · **3,016 workspace tests, zero failures** ·
+**acceptance GREEN** · every mutated file verified byte-identical. Unchanged blocker: the uncommitted
+`REQ-289` GTM row, and five gates BLOCKED on fixtures that live in the engagement workspace.
+
+**The phase's one sentence.** Eighteen laws, and the work was never proving them true — it was proving that
+something in the repository would notice if they stopped being true.
