@@ -208,6 +208,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 13 | §558–§559 | **§560** | THE GATES' OWN CORPUS — the money-parity harness certified itself over zero cases (HIGH); 10 of 20 gates reached a different verdict from a subdirectory, all tracing to one `cwd = process.cwd()` idiom |
 | 14 | §561–§562 | **§563** | WHAT THE GATES MEASURE — all seven CLAUDE.md hard budgets mutation-proved; 3,600 test blocks swept for vacuity (clean); the authority fail-closed law was testing a hand-copy of its own module set |
 | 15 | §564 | **§565** | THE FAILURE PATHS — 194 catch sites classified by FALLBACK VALUE; all fail closed but one, whose §182 hold was documented and unenforced (now enforced); §182's prescribed remedy proved unreachable |
+| 16 | §566–§567 | **§568** | THE STACK RULES — async correctness was unlinted (the non-type-checked preset); enabling it broke five lint-guard tests by invalidating their PROOF, not their rule; the `source:'native'` gate carve-out rested on a hand-kept enumeration |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -30198,3 +30199,71 @@ Two limits, stated rather than left to be discovered:
    `source-aware-ledger.test.ts` remains where per-path behaviour is proven.
 2. **It scans tracked files.** A brand-new untracked route is invisible locally until `git add`; in CI, where
    the tree is fully tracked, it is not. M23 needed `git add -N` for exactly this reason.
+
+---
+
+## §568 — PHASE GATE: the two stack rules CLAUDE.md states but never enforced
+
+### What this phase did
+
+§565 closed the failure paths. This phase took CLAUDE.md's **stack rules** — the ones stated as decided and
+never re-examined — and asked which are actually enforced.
+
+| § | Rule | Verdict |
+|---|---|---|
+| **§566** | *"TypeScript strict, no `any`"* — and the async correctness it does **not** mention | **Gap, fixed.** The config extends the NON-type-checked preset, so `no-floating-promises` could never run. 215 files measured clean first; the rules are now on |
+| **§567** | *"Zod at every boundary"* | **Holds.** 20 body reads, 18 on one idiom, 3 protocol-appropriate exceptions each read and each correct |
+| **§567** | the security claim behind the third exception | **Unguarded enumeration, fixed.** A hand-kept list of the routes that lock `source:'native'` |
+
+### The floating-promise gap is the phase's substantive finding
+
+A floating promise in a Worker is the silent-failure class at its purest — the isolate returns its response
+and is torn down, and the work simply never happens. No error, no log, no retry, nothing to grep for. The base
+preset cannot catch it because the three rules need type information.
+
+**Measured before enabling: 215 files, zero violations.** So this locks in a clean state rather than repairing
+one, which is precisely the case that needs a test — nothing is failing today, so nothing else would notice
+the rule being dropped. M22 (the rule set to `"off"`) reddens exactly the two flag-tests and leaves the
+negative one green, which is the whole content of distinguishing *"clean because the code is clean"* from
+*"clean because nothing is watching."*
+
+### Adding a gate deleted a gate — in a form the rule of thumb missed
+
+Enabling it turned **five tests red** in `lint-guards.test.ts`. Those tests lint synthetic code under a
+made-up path, and typescript-eslint's project service cannot type a file that is not on disk, so they received
+`Parsing error: … was not found by the project service` **instead of** the rule violations — and every
+`expect(...).toBe(true)` silently inverted.
+
+[[adding-a-gate-can-delete-a-gate]] describes a new block *replacing a named rule's options*. **Nothing was
+replaced here.** The new block named only new rules, and the REQ-024 ledger ban still fires on real files
+(M21). What broke was the **harness that proves the ban is wired** — the ban survived, its proof did not. Had
+I trusted the CLI mutation alone, five lint-guard tests would have been silently disabled with every gate
+reporting green. The entry now covers two shapes: a rule's options replaced, and a rule's *proof* invalidated
+by a parser constraint.
+
+### The enumeration behind the gate carve-out
+
+The DO exempts `source:'legacy'` from the native physical-precondition gates, so a client that could
+self-declare it would bypass invoice→POD, appointment and dispatch and forge a mirror record. `events.ts`
+coerces, and its comment enumerates the five routes that hardcode `'native'`. The enumeration was **correct** —
+all seven append sites establish it — and the coercion is proven for the general write route. What was
+missing is completeness: the risk is route #8, and §567 now derives the list from the tree.
+
+### Exit state (measured at this commit)
+
+- `tools/` — **881 tests, 878 green, 3 red**, all three the uncommitted `REQ-289` register row. Owner-blocked,
+  unchanged since §544.
+- **14 gates green**: runtime · tables · citations · section-refs · chokepoint · rater-purity · invariants ·
+  design · surfaces · seed · bundles · invoice-parity · typecheck · lint.
+- `pnpm lint` now costs **12s** (was ~5s) — the price of type-aware rules, scoped to `src` only.
+- Twenty-four mutations across five phases (M1–M24): **eighteen RED as predicted, five silent and each
+  explained, one (M23) requiring `git add -N` to be visible at all.**
+
+### Reopen triggers
+
+- A route file appends and pins `'native'` on one path but not a second → §567 is file-level and will not see
+  it; `source-aware-ledger.test.ts` is where that belongs.
+- `lint-guards.test.ts` gains a case under a **new** made-up path → it will hit the same project-service
+  constraint. Every anchor must be a real file; a test now asserts that.
+- The type-aware block's globs widen to include `test/` → tests legitimately float promises in fixtures, and
+  the rule would start failing on deliberate code.
