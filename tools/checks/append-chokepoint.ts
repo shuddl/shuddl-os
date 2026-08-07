@@ -1,6 +1,7 @@
 import { globSync, readFileSync } from "node:fs";
 import { insertIntoRe } from "./invariants.js";
 import { EXPECTED_EMPTY_GLOBS, SOURCE_SCAN_GLOBS, isTestPath, stripComments } from "./source-corpus.js";
+import { repoRoot } from "./repo-root.js";
 
 // §493 — re-exported: this module owned `stripComments` and its tests import it from here.
 export { stripComments };
@@ -69,7 +70,7 @@ export interface ChokepointViolation {
 }
 
 
-export function findChokepointViolations(cwd: string = process.cwd()): ChokepointViolation[] {
+export function findChokepointViolations(cwd: string = repoRoot()): ChokepointViolation[] {
   const violations: ChokepointViolation[] = [];
   const seen = new Set<string>();
   const perGlob = new Map<string, number>();
@@ -125,7 +126,20 @@ export const ALLOWED_EVENT_WRITERS = ALLOWED;
 if (import.meta.url === `file://${process.argv[1]}`) {
   const violations = findChokepointViolations();
   if (violations.length > 0) {
-    console.error(`append-chokepoint — ${violations.length} module(s) write events outside the sequencer DO:\n`);
+    // Two DIFFERENT failures share this list: a module that writes outside the DO, and a scan glob that
+    // matched nothing (the per-glob floor). Reporting both under one header sent a reader hunting for six
+    // ledger-law violations that did not exist — the floor firing off-root looked like a finding (§559).
+    const scanFailures = violations.filter((v) => v.line === 0).length;
+    const lawViolations = violations.length - scanFailures;
+    if (lawViolations > 0) {
+      console.error(`append-chokepoint — ${lawViolations} module(s) write events outside the sequencer DO:\n`);
+    }
+    if (scanFailures > 0) {
+      console.error(
+        `append-chokepoint — ${scanFailures} scan glob(s) matched ZERO files. This is the SCAN failing, not` +
+          ` the code: nothing below is a ledger-law violation. Run from the repo root, or fix the glob.\n`,
+      );
+    }
     for (const v of violations) console.error(`  ${v.file}:${v.line} — ${v.detail}`);
     console.error(
       `\nREQ-030: gates are server-side and every append must traverse the chokepoint. Route the write through` +

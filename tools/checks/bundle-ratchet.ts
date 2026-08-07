@@ -1,5 +1,6 @@
 import { globSync, readFileSync, statSync } from "node:fs";
 import { gzipSync } from "node:zlib";
+import { repoRoot } from "./repo-root.js";
 
 // BUNDLE RATCHET (REQ-079, audit §481) — the shipped JS may not grow silently.
 //
@@ -32,7 +33,7 @@ export interface BundleReading {
   ceiling: number;
 }
 
-export function readBundles(cwd: string = process.cwd()): BundleReading[] {
+export function readBundles(cwd: string = repoRoot()): BundleReading[] {
   const out: BundleReading[] = [];
   for (const [app, baseline] of Object.entries(BASELINE_GZIP)) {
     const files = globSync(`apps/${app}/dist/assets/*.js`, { cwd });

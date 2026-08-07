@@ -418,7 +418,9 @@ type Manifest = { fixtures: ManifestEntry[] };
 // AND the on-disk bytes hash to that pin. Present-but-unvendored/unpinned/mismatched ⇒ REAL discrepancy.
 export function verifyReplayPins(
   rows: readonly { id: string; status: string; path: string; sha256: string | null }[],
-  hashFn: (p: string) => string = hashPath,
+  // Root-aware by default so the pin check is identical from any cwd; the digest still frames the
+  // repo-relative path, so pinned sha256s are unaffected (§559).
+  hashFn: (p: string) => string = (p) => hashPath(p, repoRoot()),
   existsFn: (p: string) => boolean = existsSync,
 ): string[] {
   const problems: string[] = [];

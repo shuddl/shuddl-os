@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseWranglerToml, targetFromWrangler, type WranglerDoc } from "./preflight.js";
 import { EVIDENCE_EXIT } from "../release/evidence.js";
+import { repoRoot } from "../checks/repo-root.js";
 
 // THE SURFACE DEPLOY CONTRACT.
 //
@@ -26,9 +27,9 @@ import { EVIDENCE_EXIT } from "../release/evidence.js";
 //     installed PWA. Argued and unchecked is how it gets deleted.
 
 export const SURFACES = [
-  { app: "command", config: "apps/command/wrangler.toml", worker: "shuddl-command-prod", hosts: ["command.shuddl.tech"] },
-  { app: "portal", config: "apps/portal/wrangler.toml", worker: "shuddl-portal-prod", hosts: ["portal.shuddl.tech", "track.shuddl.tech"] },
-  { app: "driver", config: "apps/driver/wrangler.toml", worker: "shuddl-driver-prod", hosts: ["driver.shuddl.tech"] },
+  { app: "command", config: `${repoRoot()}/apps/command/wrangler.toml`, worker: "shuddl-command-prod", hosts: ["command.shuddl.tech"] },
+  { app: "portal", config: `${repoRoot()}/apps/portal/wrangler.toml`, worker: "shuddl-portal-prod", hosts: ["portal.shuddl.tech", "track.shuddl.tech"] },
+  { app: "driver", config: `${repoRoot()}/apps/driver/wrangler.toml`, worker: "shuddl-driver-prod", hosts: ["driver.shuddl.tech"] },
 ] as const;
 
 export const PROD_API_BASE = "https://api.shuddl.tech";

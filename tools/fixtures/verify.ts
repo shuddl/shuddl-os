@@ -4,6 +4,7 @@ import { join } from "node:path";
 // V1 remediation Task 3 (REQ-288): pending private fixtures are advisory locally but a non-promotable
 // BLOCKED under merge/release. run-gate consumes the structured GateResult, never this file's prose.
 import { parseMode, unavailableStatus, formatGateResult, type GateMode, type GateResult } from "../release/evidence.js";
+import { repoRoot } from "../checks/repo-root.js";
 
 // REQ-112: fixture registry versioned in repo; CI references fixtures by hash.
 // Pending rows print loudly on every run — no silent drops.
@@ -20,41 +21,49 @@ type Manifest = { fixtures: Entry[] };
  * Changing this changes EVERY digest, which is why the audit deferred it until it could land together
  * with a re-pin of all vendored sha256s in one commit (the manifest note records the re-pin).
  */
-export function hashPath(p: string): string {
+export function hashPath(p: string, root?: string): string {
   const h = createHash("sha256");
   const frame = (bytes: Buffer | string): void => {
     const buf = typeof bytes === "string" ? Buffer.from(bytes, "utf8") : bytes;
     h.update(`${buf.length}:`); // length prefix — the delimiter that makes the stream injective
     h.update(buf);
   };
-  const walk = (f: string): void => {
-    if (statSync(f).isDirectory()) {
-      for (const child of readdirSync(f).sort()) walk(join(f, child));
+  // The PATH is framed as well as the bytes, so a rename is a digest change (that is the point). It must
+  // therefore stay exactly as the caller wrote it — repo-relative for manifest rows — while the I/O resolves
+  // against `root`. Framing the resolved path instead would make every pinned sha256 depend on where the
+  // repo is checked out, which is how a first pass at §559 turned six vendored fixtures into hash mismatches.
+  const walk = (rel: string): void => {
+    const abs = root === undefined ? rel : join(root, rel);
+    if (statSync(abs).isDirectory()) {
+      for (const child of readdirSync(abs).sort()) walk(join(rel, child));
     } else {
-      frame(f);
-      frame(readFileSync(f));
+      frame(rel);
+      frame(readFileSync(abs));
     }
   };
   walk(p);
   return h.digest("hex");
 }
 
-export function verifyManifest(manifest: Manifest): { ok: boolean; failures: string[]; pending: string[] } {
+export function verifyManifest(manifest: Manifest, root: string = repoRoot()): { ok: boolean; failures: string[]; pending: string[] } {
   const failures: string[] = [];
   const pending: string[] = [];
   for (const e of manifest.fixtures) {
+    // e.path is repo-relative BY DESIGN (it is what the manifest and every message should show);
+    // resolve it for the filesystem so the gate does not depend on the caller's cwd (§559).
+    const abs = `${root}/${e.path}`;
     if (e.status === "in-repo-test") {
       // A git-tracked, CI-executed test (not byte-frozen data): presence-checked, never hash-pinned.
       // It legitimately churns (every edit would trip a hash pin and erode the tripwire for the real
       // frozen-data fixtures), so we guard only that it still EXISTS — deleting it turns CI red.
-      if (!existsSync(e.path)) failures.push(`${e.id}: in-repo-test missing at ${e.path}`);
+      if (!existsSync(abs)) failures.push(`${e.id}: in-repo-test missing at ${e.path}`);
       continue;
     }
     if (e.status !== "vendored") {
       pending.push(e.id);
       continue;
     }
-    if (!existsSync(e.path)) {
+    if (!existsSync(abs)) {
       failures.push(`${e.id}: vendored but file missing at ${e.path}`);
       continue;
     }
@@ -62,7 +71,7 @@ export function verifyManifest(manifest: Manifest): { ok: boolean; failures: str
       failures.push(`${e.id}: vendored without a pinned sha256`);
       continue;
     }
-    const actual = hashPath(e.path);
+    const actual = hashPath(e.path, root);
     if (actual !== e.sha256) {
       failures.push(`${e.id}: hash mismatch (pinned ${e.sha256.slice(0, 12)}… actual ${actual.slice(0, 12)}…) — fixture changes require a register note`);
     }
@@ -85,7 +94,7 @@ export function fixtureGateResult(mode: GateMode, r: { ok: boolean; failures: st
 
 function main(): void {
   const mode = parseMode(process.argv.slice(2));
-  const manifest = JSON.parse(readFileSync("fixtures/manifest.json", "utf8")) as Manifest;
+  const manifest = JSON.parse(readFileSync(`${repoRoot()}/fixtures/manifest.json`, "utf8")) as Manifest;
   const r = verifyManifest(manifest);
   if (r.pending.length > 0) {
     console.warn(`PENDING FIXTURES (${r.pending.length}) — not yet vendored; sources are engagement-workspace manifest refs; legacy-export path is [CONFIRM]:`);

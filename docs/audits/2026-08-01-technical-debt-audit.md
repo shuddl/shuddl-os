@@ -29592,3 +29592,83 @@ That makes **nine** scripts corrected for CWD-dependence this session. The patte
 whose gates are always invoked from the root through `pnpm` has no natural pressure to root its paths, so the
 bug accumulates silently and surfaces the first time someone runs a gate from a package directory — or, worse,
 never surfaces and merely writes its report to the wrong place, as `design-audit` did.
+
+---
+
+## §559 — Sixteen instances of one convention defect, and the mechanism that ends it
+
+§554 and §558 each fixed CWD-dependent gates by hand. §489's lesson is that fixing instances without the
+mechanism is how you arrive at instance #5 — so instead of fixing the next one, I measured all of them:
+**every `check:*`/`audit:*` script, run from the repo root and from `tools/checks/`, exit codes compared.**
+
+**Ten of twenty diverged.** Among them `check:invariants` (I1–I8 and the ≤22-table budget), `check:chokepoint`
+(the I3 append chokepoint) and `check:fixtures`.
+
+### Three failure modes, only one of which is safe
+
+1. **ENOENT crash** — `surface-contract`, `fixtures/verify`, `seed/verify`. Loud, but protection by accident:
+   §489's point is that one graceful default for a missing config converts a crash into a clean.
+2. **A floor firing** — `invariants`, `rater-purity`, `bundle-ratchet`. Correct, fail-closed, and what §487's
+   floors were built to do. These were *not* defects; they were the system working.
+3. **A pass over nothing** — the one that matters. `design-audit` printed `clean` (§554) and `invoice-parity`
+   printed `penny for penny (harness live)` (§558), both exit 0, both having read zero files.
+
+### The actual mechanism was one idiom
+
+Five scanner entry points shared a single signature:
+
+```ts
+export function findStraySql(cwd: string = process.cwd()): string[]
+export function collectRaterSourceFiles(cwd: string = process.cwd())
+export function findChokepointViolations(cwd: string = process.cwd())
+export function readBundles(cwd: string = process.cwd())
+export function findForbiddenReplaceSources(cwd: string = process.cwd())
+```
+
+Not sixteen unrelated slips — one convention, applied consistently, wrong in the same way every time. As
+`repo-root.ts` already says: *`cwd` is an argument about LOCATION, never about SCOPE.* Defaulting to
+`repoRoot()` fixes the class at the idiom.
+
+### Two things the fix got wrong first
+
+**The digest trap.** `hashPath` frames the file **path** as well as its bytes, deliberately, so a rename is a
+digest change. Resolving manifest paths to absolute before hashing turned six vendored fixtures into hash
+mismatches — a fabricated "fixture changed, requires a register note" on the anomaly-222084-35lb pin among
+them. The fix has to read from the absolute path while **framing the relative one**, so a pinned sha256 never
+depends on where the repo is checked out.
+
+**`check:invariants` must stay CWD-relative.** Both root-anchoring attempts — defaulting its scan to
+`repoRoot()`, then `process.chdir()` in `main()` — turned its three end-to-end CLI tests red. Its own harness
+spawns the CLI inside temp repos (`withTempRepo`) to construct a corpus and prove the §487 floor fires; the
+CWD-relativity is load-bearing *for the test that proves the gate cannot be vacuous*. It is therefore the one
+documented exception, asserted to fail **closed** off-root rather than waived.
+
+### The mechanism, and the limit I measured rather than claimed
+
+`tools/checks/cwd-parity.test.ts` derives the gate list from `package.json` (so a new `check:*` is covered the
+day it is added — the §541 shape) and asserts every gate reaches the same verdict from a subdirectory, or
+fails closed.
+
+Its first comment claimed this "excludes" the pass-over-nothing case. **M14 proved otherwise:** un-rooting
+`design-audit`'s corpus *and* removing its floor makes it print `clean` at exit 0 from both directories — exit
+codes agree, the gate read nothing, and this file passes. The comment now says what is true:
+
+- **the floors** (§487/§554/§558) prove the corpus was real — one per gate;
+- **this file** proves the corpus does not change with the caller.
+
+Neither covers the other. That pair is what makes a gate's green mean something, and it is the second time in
+two phases that writing the *mechanism* into a comment is what exposed the claim as wrong (§555 was the first).
+
+| Mutation | Predicted | Result |
+|---|---|---|
+| **M13** re-introduce design-audit's config-read CWD bug | parity RED naming the gate | `audit:design: root=0 subdir=1` |
+| **M14** vacuous off-root, exit 0 both ends | (claimed) caught | **passes** — the limit, now documented |
+
+### Also fixed
+
+`append-chokepoint` reported its per-glob floor under the header *"N module(s) write events outside the
+sequencer DO"* — so a floor firing off-root read as six ledger-law violations. I misread it that way myself
+for a minute, which is the evidence that the wording was wrong. Scan failures and law violations now print as
+what they are.
+
+**19 of 20 gates now agree from any directory; the twentieth fails closed and says why.**

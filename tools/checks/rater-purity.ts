@@ -1,5 +1,6 @@
 import { globSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { repoRoot } from "./repo-root.js";
 
 // REQ-004 + REQ-024 (mirrored for the rater). Two static purity rules over packages/rater/src:
 //   • class_as_foundation — the adapter subtree (packages/rater/src/adapters/**) is the SOLE class-aware
@@ -132,7 +133,7 @@ export function analyzeRaterPurity(files: readonly { path: string; content: stri
 
 // Read all TypeScript sources under packages/rater/src (paths are cwd-relative, matching the CLI output
 // and the analyzer's core/exempt path checks). Shared by the CLI and the "real src is pure" test.
-export function collectRaterSourceFiles(cwd: string = process.cwd()): { path: string; content: string }[] {
+export function collectRaterSourceFiles(cwd: string = repoRoot()): { path: string; content: string }[] {
   return globSync("packages/rater/src/**/*.ts", { cwd }).map((p) => ({ path: posix(p), content: readFileSync(join(cwd, p), "utf8") }));
 }
 

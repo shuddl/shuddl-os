@@ -234,7 +234,9 @@ type Manifest = { fixtures: ManifestEntry[] };
 // and hash-matched). hashFn/existsFn are injected for unit tests; the CLI wires in the fs-backed defaults.
 export function verifyParityPins(
   rows: readonly { id: string; status: string; path: string; sha256: string | null }[],
-  hashFn: (p: string) => string = hashPath,
+  // Root-aware by default so the pin check is identical from any cwd; the digest still frames the
+  // repo-relative path, so pinned sha256s are unaffected (§559).
+  hashFn: (p: string) => string = (p) => hashPath(p, repoRoot()),
   existsFn: (p: string) => boolean = existsSync,
 ): string[] {
   const problems: string[] = [];
