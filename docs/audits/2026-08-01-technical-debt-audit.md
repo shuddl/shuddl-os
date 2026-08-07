@@ -241,6 +241,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 46 | §597 | **§598** | THE ENVELOPE CHOKEPOINT — a hand-built error response opts out of req_id, the stable code AND the disclosure guard at once. Rule is about error STATUS, not the constructor (byte streaming is legitimate), and scoped to api alone |
 | 47 | — | **§599** | THE HONEST-INSTRUMENT LAW — a count of nothing is 0, an average of nothing is UNKNOWN, and both are tested. But DSO's ZERO-DENOMINATOR guard had no input: BigInt division by zero THROWS, so one $0 invoice was a 500, not a wrong number |
 | 48 | §599 | **§600** | ZERO-DENOMINATORS DON'T GENERALIZE — the only other variable divisor is structurally safe (module-private, both call sites guarded). Two probes lied: a text sweep for `/` (522 noise hits) and a grep that missed the test under different wording |
+| 49 | — | **§601** | THE GL DOUBLE-ENTRY ASSERTION — both firing conditions are closed by other layers (construction; `NOT NULL CHECK != 0`), so it is a TRIPWIRE. M82-b breaks construction and it fires. No test added, and why is the finding |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -32583,3 +32584,66 @@ That is the shape worth guarding. An all-zero weight set apportioning to zeros i
   weight set, so it needs the reachable-input test that §599 wrote.
 - `apportion` is given a "lenient" mode → that is M81 made permanent, and the two tests above are what stand
   in front of it.
+
+---
+
+## §601 — PHASE GATE: the GL export's double-entry assertion, and when "no test" is the right answer
+
+### The surface
+
+CLAUDE.md permits **journal export only** — no native GL, no period close. That makes the export the seam
+where SHUDDL's ledger meets a customer's books, and it carries accounting's one absolute law: **every entry
+balances.** An unbalanced export does not fail loudly; it corrupts a general ledger silently.
+
+### Two mechanisms, one law
+
+`exportJournal` states both in its header: *"balanced BY CONSTRUCTION — and we assert Σdebits === Σcredits
+before returning."* That is §576's masking shape, so it was taken apart rather than read.
+
+**Construction.** Each `money_line` pushes exactly two rows — one all-debit, one all-credit, both for
+`amount_cents`. Σdebits ≡ Σcredits follows arithmetically. The assertion cannot fire on balance.
+
+**Non-numeric amounts.** A `NaN`/`undefined` amount would make both sums `NaN`, and `NaN !== NaN` is **true**
+— verified directly, so the assertion *would* catch a corrupt row. But the schema forecloses it:
+`amount_cents INTEGER NOT NULL CHECK (amount_cents != 0)`. **Not reachable from data.**
+
+### So the assertion is a tripwire, and it is live
+
+Both of its firing conditions are unreachable **today**. That makes it dead code only if nothing can ever
+change the construction — and the construction is exactly what a future change touches.
+
+| Mutation | Predicted | Result |
+|---|---|---|
+| **M82** an unpaired line, conditional on `kind === "settle_fee"` | RED | **silent** — the fixture holds no such row. Not a counterexample. |
+| **M82-b** an unpaired line on **every** money_line | RED | **2 failed** — `double-entry violated — Σdebits 306138 !== Σcredits 306030` |
+
+### Why no test was added
+
+The existing case *"(b) the journal balances: sum(debits) === sum(credits)"* asserts a property that
+construction already guarantees — it cannot fail on today's code, and M82-b shows it fails the moment
+construction breaks. **That is precisely what it is for.** A test that fed an unbalanced journal directly
+would have to bypass the builder, and would then be testing an input the function cannot receive.
+
+This is §589's conclusion reached by a different route, and worth stating as a rule rather than a one-off:
+**when both of a guard's firing conditions are closed by other layers, the guard is a tripwire for future
+change, and the honest coverage is a mutation on the layer that could open one — not a test asserting the
+unreachable.** Writing that test produces a green that certifies nothing, which is the exact failure this
+record has spent thirty-five phases finding in other people's work.
+
+### Exit state
+
+- `packages/ledger` — 5 green in the GL fixture suite; `gl/export.ts` restored byte-identical.
+- No source modified this phase.
+- Eighty-three mutations across thirty-six phases: **72 RED as predicted, 10 silent (nine
+  non-counterexamples, one a real gap since closed), 1 that never applied** — 9 real gaps closed, 1 gate added
+  from a self-named trigger, 1 design pinned, 2 claims corrected.
+
+### Reopen triggers
+
+- A money_line kind starts posting **three** legs (a fee split across two accounts, a tax line) → construction
+  stops guaranteeing balance arithmetically, the assertion becomes load-bearing rather than a tripwire, and it
+  then needs a test with that kind in the fixture — the exact input M82 lacked.
+- `amount_cents` loses its `NOT NULL` or its `CHECK` → the `NaN` path opens, and the assertion becomes the
+  only thing between a corrupt row and a customer's books.
+- The export gains a filter that drops rows **after** the pairs are built → dropping one leg of a pair
+  unbalances the journal, and this assertion is what would catch it.
