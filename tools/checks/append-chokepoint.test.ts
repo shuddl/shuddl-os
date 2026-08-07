@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { ALLOWED_EVENT_WRITERS, findChokepointViolations, stripComments } from "./append-chokepoint.js";
 import { insertIntoRe } from "./invariants.js";
+import { execSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { repoRoot } from "./repo-root.js";
 
 // REQ-030 / I3 (audit §56). Every gate in the system is applied on the way to ONE `INSERT INTO events` in the
 // sequencer DO. That was true only because no second writer happened to exist — the DB triggers fire on
@@ -78,5 +81,56 @@ describe("REQ-030: every delimiter/schema form of an event write is caught (shar
     const re = insertIntoRe("events");
     re.lastIndex = 0;
     expect(re.test('INSERT INTO events_archive (id) VALUES (?)')).toBe(false);
+  });
+});
+
+// REQ-021/022/030 §567 — EVERY ROUTE THAT APPENDS MUST ESTABLISH source:'native'.
+//
+// The DO exempts `source:'legacy'` from the native physical-precondition gates (invoice→POD, appointment,
+// dispatch), because a legacy row is a SHADOW MIRROR of something the incumbent already did. That carve-out
+// is safe only while a client cannot self-declare it: a forged `source:'legacy'` would bypass those gates
+// entirely and forge a "the incumbent already did this" record.
+//
+// `events.ts` states the property and enumerates the routes holding it up — *"rate.ts / portal-actions /
+// dunning / approvals / authority all already hardcode 'native'"*. That enumeration was correct when measured
+// (all seven append sites establish it), and `source-aware-ledger.test.ts` proves the coercion works for the
+// general write route. **Nothing proved the list was complete**, and a hand-kept list of security-critical
+// call sites is the §562 shape — the risk is route #8, not the seven that exist.
+//
+// SCOPE, stated plainly: this is FILE-level. It proves a route file that appends knows about the rule, not
+// that every path inside it obeys. That is deliberate — the failure this catches is a NEW route written
+// without the coercion, which is the one the enumeration cannot survive. A second append added to an
+// already-compliant file is out of its reach, and `source-aware-ledger.test.ts` is where that lives.
+describe("REQ-021/030 §567: no append route can omit the native-source lock", () => {
+  const ROUTES_DIR = "workers/api/src/routes";
+  const APPEND = /\b(?:stub|seq)\.append\s*\(/;
+  const NATIVE = /source:\s*"native"|source\s*=\s*"native"/;
+
+  function routeFilesThatAppend(): string[] {
+    const root = repoRoot();
+    const files = execSync(`git ls-files "${ROUTES_DIR}/*.ts"`, { cwd: root, encoding: "utf8" })
+      .trim()
+      .split("\n")
+      .filter((f) => f && !f.includes(".test."));
+    return files.filter((f) => APPEND.test(stripComments(readFileSync(`${root}/${f}`, "utf8"))));
+  }
+
+  it("finds the append routes at all (non-vacuity)", () => {
+    // A renamed directory or a changed append idiom would yield an empty list and pass over it — the class
+    // this repo met in four gates (§487/§554/§558).
+    expect(routeFilesThatAppend().length, "no appending route files found — the scan is broken, not the tree").toBeGreaterThan(4);
+  });
+
+  it("every appending route establishes source:'native' — hardcoded or coerced", () => {
+    const root = repoRoot();
+    const offenders = routeFilesThatAppend().filter((f) => !NATIVE.test(stripComments(readFileSync(`${root}/${f}`, "utf8"))));
+    expect(
+      offenders,
+      "route(s) that append to the sequencer without pinning source:'native'. A client-supplied " +
+        "`source:'legacy'` is EXEMPT from the DO's physical-precondition gates (invoice→POD, appointment, " +
+        "dispatch), so a route that forwards a client body verbatim forges a mirror record and bypasses them. " +
+        "Hardcode `source: \"native\"` in the event, or coerce it on the input before the append:\n  " +
+        offenders.join("\n  "),
+    ).toEqual([]);
   });
 });

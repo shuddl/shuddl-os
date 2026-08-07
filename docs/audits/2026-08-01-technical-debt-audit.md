@@ -30146,3 +30146,55 @@ The `grep -c` that was supposed to confirm M22's edit landed returned **0** whil
 file — the two REDs prove it. The behavioural evidence was decisive, but the verification step itself was
 broken, which is [[a-false-clean-invites-no-follow-up]] pointed at my own instrument: had the edit *not*
 landed, that same `0` would have looked identical and the mutation would have been credited to nothing.
+
+---
+
+## §567 — "Zod at every boundary" holds; the security claim behind it was an unguarded enumeration
+
+CLAUDE.md's stack rule says **Zod at every boundary**. Twenty request-body reads exist across the workers, and
+eighteen use one idiom: `Schema.safeParse(await c.req.json().catch(() => null))`. The three that do not were
+each read, and each is correct:
+
+- `workers/mcp/src/tools/registry.ts` — a bare `await request.json()` inside a try/catch that returns a
+  JSON-RPC `PARSE_ERROR`, with the envelope validated by `asJsonRpcRequest` **after** the caller is
+  authenticated. Protocol-appropriate, not a gap.
+- `workers/mcp/src/oauth.ts` — `.catch(() => null)`, type-guarded, coerced to a string map (OAuth bodies
+  arrive as form or JSON).
+- `workers/api/src/routes/events.ts` — deliberately typed `unknown`, with the comment *"NEVER `LedgerEvent.parse`
+  a request body"*. Validation is deferred to the DO's `EventInput.parse`, which is the real trust boundary.
+
+The rule holds. But reading the third one surfaced the finding.
+
+### The claim, and what was not guarding it
+
+`events.ts` coerces `source` to `'native'` on every client post, and explains why in unusually direct terms:
+the DO **exempts `source:'legacy'` from the native physical-precondition gates** (invoice→POD, appointment,
+dispatch), because a legacy row is a shadow mirror of something the incumbent already did. A client that could
+self-declare `source:'legacy'` would **bypass those gates entirely** and forge a "the incumbent already did
+this" record.
+
+The comment then names the routes holding that property up: *"rate.ts / portal-actions / dunning / approvals /
+authority all already hardcode 'native'."* Measured: **all seven append sites establish it** — five hardcode,
+`events.ts` and `internal-platform.ts` coerce. The enumeration is correct.
+
+`source-aware-ledger.test.ts` proves the coercion works for the general write route — *"a client POST of a
+GATED kind with `source:'legacy'` is COERCED to native → the gate fires."* What nothing proved was that **the
+list is complete**. A hand-kept enumeration of security-critical call sites is [[a-lockstep-comment-is-a-missing-test]]'s
+shape, and the risk is not the seven that exist — it is route #8.
+
+### The guard, and its stated scope
+
+§567 derives the appending routes from the tree and requires each to establish a native source.
+
+| Mutation | Predicted | Result |
+|---|---|---|
+| **M23** a new route appending a client body verbatim | RED naming it | `workers/api/src/routes/probe-route.ts` |
+| **M24** flip an existing route's literal to `"legacy"` | RED naming it | `workers/api/src/routes/approvals.ts` |
+
+Two limits, stated rather than left to be discovered:
+
+1. **It is FILE-level.** It proves an appending route file knows about the rule, not that every path inside it
+   obeys. That is the right trade for the failure it targets — a *new* route written without the lock — and
+   `source-aware-ledger.test.ts` remains where per-path behaviour is proven.
+2. **It scans tracked files.** A brand-new untracked route is invisible locally until `git add`; in CI, where
+   the tree is fully tracked, it is not. M23 needed `git add -N` for exactly this reason.
