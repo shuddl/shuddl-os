@@ -26149,3 +26149,36 @@ the flow-level test is impossible by construction — reach for the unit, or the
 A green end-to-end suite is not evidence about a branch the suite cannot enter.
 
 `workers/api` biller suite **24 passed**; `typecheck`, `lint` clean.
+
+## §476 — a green mutation on a money path that is not a gap, and the chain that proves it
+
+§475 closed one of `biller.ts`'s three zero-reference loaders. This checks the second, and the answer is a
+CLEAN NEGATIVE reached through three steps — worth recording precisely because the first step looks alarming.
+
+**Step 1 — an unpinned choice on the money path.** `loadBookingQuoteRef` selects a booking's quote with
+`ORDER BY seq LIMIT 1` — ascending, so the FIRST `booking.created` wins. Flipping it to `DESC` leaves all
+**24** biller tests green. On its face: a silent change to *which quote a shipment bills against*.
+
+**Step 2 — is a second booking reachable?** No. `sequencer.ts:832@REQ-191` enforces REQ-191: *"booking.created is
+IDEMPOTENT PER STREAM: at most ONE per shipment"*, rejected server-side before the append, explicitly so the
+append-only ledger never gains a duplicate and `status_cache` never regresses.
+
+**Step 3 — is THAT guard pinned?** Yes. `booking.test.ts:198` — *"IDEMPOTENT: the same quote.accepted twice
+→ ONE booking.created; the second returns `already_booked`"*.
+
+**So the ordering is determinism over a single row, and its direction cannot matter.** The green is correct.
+The existing Task-7 test covers the adjacent and reachable trap — *"not a later QUOTE"*, where quote B is
+priced after the booking — which is the case that CAN happen.
+
+**Why this is worth a section rather than a shrug.** Every instinct built over the last forty sections says a
+green mutation on a money path is a gap, and this phase has acted on that instinct correctly a dozen times.
+Here it would have produced a test for an ordering that cannot be exercised, guarding an invariant already
+guarded one layer up — noise that a future reader would have to re-derive to dismiss. **The difference
+between §475 and §476 is one question: is the scenario reachable, and if not, is the thing making it
+unreachable itself pinned?** §475's answer was "unreachable, and the guard was NOT pinned" → unit test.
+§476's is "unreachable, and the guard IS pinned" → nothing to do.
+
+**The third loader, `loadEvent`, is transitively covered**: it is the inner call of
+`loadAcceptedBookingQuote`, whose null-and-resolve pair (§475) exercises both its miss and its hit.
+
+`workers/api` biller suite **24 passed**, unchanged — this section adds no test, which is the finding.
