@@ -201,6 +201,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 6 | §522–§526 | **§527** | the INSTRUMENTS — every zero-result claim controlled, enumerated, mutated or dispatch-read |
 | 7 | §528–§533 | **§534** | CLAUDE.md's TEN RULES — five mutation-controlled, none left at "presumably fine" |
 | 8 | §535–§537 | **§538** | genesis/10's I1–I8 — eight of eight; both authorities now fully accounted |
+| 9 | §539–§541 | **§542** | the RECORD'S NAVIGABILITY — three self-inflicted entry defects; the index is now derived-checked against the headings |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -28990,3 +28991,36 @@ cannot catch a pointer that is stale in *meaning* — a row describing a section
 conclusion changed. §505's habit (re-measure the claims at HEAD) remains the only instrument for that, and
 it is a habit, not a gate. **Three of this session's record defects were of the gateable kind; the rest were
 caught by reading, and there is no version of this record where that stops being true.**
+
+## §542 — PHASE GATE: the record's own navigability, and the guard that now holds it
+
+**Scope (§539–§541).** Eight phases audited the build and its instruments. This one audited **the way in** —
+and found three defects, all of which every gate in the repository was green throughout.
+
+| # | defect | closed by |
+|---|---|---|
+| 1 | §4's head grew to **58 quoted lines across ten stacked blocks** — the "current measured state" arrow landed on ten paragraphs of history | §539 — a nine-row phase index; the prose kept below as the record |
+| 2 | The START HERE row said *"the three phase gates"* when **eight** had closed | §540 — repointed at §4, no enumeration |
+| 3 | Nothing could catch either: **a stale pointer resolves** | §541 — the index is now derived-checked against the headings, both directions, mutation-proved |
+
+**All three were self-inflicted, and each by the section that had just diagnosed the pattern.** §507 replaced
+a decaying SHA with a decaying count-and-section. §539 maintained the self-maintaining section by
+*prepending* — the one operation that degrades an entry point monotonically. §540 wrote an enumeration one
+row below the rule against enumerations. **The lesson does not fail because it is wrong; it fails because
+applying it correctly in one place feels like having applied it.**
+
+**What §541 gates, and what it cannot.** It closes the mechanical subset — an enumeration of a set the
+document derives — and it is why this very section could not be committed without its index row. It cannot
+catch a pointer stale in *meaning*: a row that describes a conclusion after the conclusion changed. §505's
+habit of re-measuring claims at HEAD is the only instrument for that, and it is a habit.
+
+**Why a documentation phase belongs in a technical-debt audit.** §510 found a source file that was correct
+and unreviewable; this phase found a record that was correct and unreachable. In both cases the artifact was
+sound, the access was broken, and **no gate objected because no gate measures whether a human can find
+anything** — until §541, for one shape of it.
+
+### Exit state
+
+**12 non-register gates PASS** · `typecheck` · `lint` · **385 `tools/checks` tests** · 3,016 workspace
+tests, zero failures · acceptance GREEN. Unchanged blocker: the uncommitted `REQ-289` GTM row, and five
+gates BLOCKED on fixtures that live in the engagement workspace.
