@@ -186,7 +186,24 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 
 ## §4 — Phase gating and the stopping point
 
-> **CURRENT MEASUREMENT: §298 (the merge gate RUN, not inferred: 24 gates, 17 PASS, 5 BLOCKED, 2 FAIL) +
+> **RE-MEASURED 2026-08-06 (§483–§486) — the GATE SURFACE ITSELF, which no prior measurement had audited.**
+> Every prior re-measurement asked *do the gates pass?* This one asked *can they fail?* — and found one that
+> could not. `check:tables`, run from any directory but the repo root, printed **"OK (0 markdown files,
+> every table row matches its header)" and exited 0**: the gate guarding the record against over-wide rows
+> that silently delete residual-risk statements would certify the record having opened no files (§484,
+> fixed at the cause + the symptom, 9 tests, 2 mutations RED). The other three unpinned gates were probed at
+> their failure mode and are **sound for three separately verified reasons** (§486). The merge profile is now
+> **25 gates** (`bundle-ratchet` joined `plain`, §483) — §298's RUN legitimately measured 24 and is not
+> restated, per the rule that a dated observation keeps what it observed.
+>
+> **Suite at this measurement:** 17 workspaces, **3,004 workspace cases, zero failures**; `tools/` 842 of
+> 845, the **only 3 failures being the uncommitted `REQ-289` GTM row, proven by removing it** (27/27 green
+> without it) — unchanged in cause from §297, and not this repo's to close. **What was NOT run here:** the
+> full 25-gate `verify:merge`. The gates run this session were `check:tables`, `check:citations`,
+> `check:bundles`, `typecheck`, `lint` and the suites — so **§298 remains the current full-gate RUN**, and
+> this block narrows rather than replaces it.
+>
+> **PRIOR MEASUREMENT: §298 (the merge gate RUN, not inferred: 24 gates, 17 PASS, 5 BLOCKED, 2 FAIL) +
 > §310 (the governing invariants mutation-proven — extended by §323, §340/§341 and §342/§343 to **18 invariants across BOTH authorities (`CLAUDE.md`'s ten laws + `genesis/10`'s I1–I8) in 30 mutations, PLUS two of rule 6's four fixture-gate identities (penny-exact allocation, zero-loss/zero-dupe offline merge) in 2 more — 32 mutations, every one RED, zero residual**, every file restored byte-identical. Rule 6's other two clauses are BLOCKED on private fixtures, and one of those — *routes ±10%* — has no artifact at all (§344, filed)).** Read those
 > two first — together they are the production-readiness claim: the gates run, and the laws the gates exist
 > to protect fail when their enforcement is removed. §296 re-measured the gate surface at `3d1386b` but named two bounds that turned
