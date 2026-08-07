@@ -205,6 +205,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 10 | §543–§545 | **§546** | the EXIT STATE — I shipped a type error and reported green twice; `verify:merge` is the only verdict that is an exit state |
 | 11 | §547–§549 | **§550** | the BROWSER GATES — four small counts read rather than counted; each guards the vacuity it is prone to, none was asleep |
 | 12 | §554–§556 | **§557** | the LAST THREE GATES — `design-audit` certified the pixel law over ZERO files (HIGH); `runtime` fails closed but not for the stated reason; `lint` covers 679/685, and the shipped exclusion's `install` path was untested |
+| 13 | §558–§559 | **§560** | THE GATES' OWN CORPUS — the money-parity harness certified itself over zero cases (HIGH); 10 of 20 gates reached a different verdict from a subdirectory, all tracing to one `cwd = process.cwd()` idiom |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -29672,3 +29673,70 @@ for a minute, which is the evidence that the wording was wrong. Scan failures an
 what they are.
 
 **19 of 20 gates now agree from any directory; the twentieth fails closed and says why.**
+
+---
+
+## §560 — PHASE GATE: the gates now certify a real corpus, and the same one from anywhere
+
+### What this phase did
+
+§557 closed with a rule — *any gate that iterates a file list gets its floor in the same commit as the loop.*
+This phase tested that rule instead of trusting it, and the sweep found more than the rule anticipated.
+
+| § | Finding | Severity |
+|---|---|---|
+| **§558** | `invoice-parity` printed `penny for penny (harness live)` over ZERO cases, exit 0. Its own sibling `parse-parity` already guarded against exactly this | **HIGH, fixed** |
+| **§559** | 10 of 20 gates reached a different verdict from a subdirectory, including `check:invariants` (I1–I8) and `check:chokepoint` (I3) | **HIGH, fixed** |
+| §559 | `append-chokepoint` reported floor failures under a header announcing ledger-law violations | LOW, fixed |
+
+### The two ways a green lies, and why both mechanisms are needed
+
+A gate's green is a claim about a corpus. It can be false in two independent ways, and this phase ended with
+one mechanism for each:
+
+- **The corpus was empty** → the **floors** (§487, §554, §558). One per gate, because only the gate knows what
+  "enough input" means.
+- **The corpus depended on the caller** → **`cwd-parity.test.ts`** (§559), derived from `package.json` so a
+  new `check:*` is covered the day it lands.
+
+**Neither covers the other, and I proved that rather than assuming it.** M14: un-root a corpus scan *and*
+remove its floor, and the gate prints `clean` at exit 0 from both directories — parity holds, nothing was
+read. The comment in the file now says so.
+
+### The method result
+
+Twice in two phases, writing the *mechanism* into a comment is what exposed a wrong belief — §555's
+"incidental" NaN closure (actually over-determined by a two-sided range) and §559's parity claim above. A
+vaguer comment would have been true in both cases, unfalsifiable, and would have left a wrong model behind.
+**A comment that states a mechanism can be falsified by the code; one that states an outcome cannot.**
+
+Two traps met while fixing at the idiom, both worth expecting next time:
+
+- **The fix broke a load-bearing dependency on the old behaviour.** `check:invariants` must stay CWD-relative:
+  its end-to-end tests spawn the CLI inside temp repos to prove its own empty-corpus floor fires. Both
+  anchoring attempts turned those three tests red. It is now the single documented exception, asserted to
+  fail **closed** rather than waived.
+- **A "cleanup" changed a persisted value.** `hashPath` frames the file path as well as its bytes, so
+  resolving manifest paths to absolute fabricated six "fixture changed, requires a register note" failures —
+  including on the `anomaly-222084-35lb` pin, the REQ-040 regression fixture.
+
+### Exit state (measured at this commit)
+
+- **875 tests** in `tools/` — 872 green, **3 red**, all three the single uncommitted `REQ-289` GTM register
+  row (`expected [ { req_id: 'REQ-289' } ] to deeply equal []`). Owner-blocked, in §521's table, unchanged.
+- **15 gates run green**; `check:fixtures --mode merge` exits **2**, the documented private-fixture hold.
+- `typecheck` · `lint` green.
+- **19 of 20 gates agree from any directory**; the twentieth fails closed and says why.
+- Fourteen mutations this phase and the last (M1–M14): **twelve RED as predicted, two silent and explained**
+  (M5, M14) — both silences became documentation corrections rather than being written off.
+
+### Reopen triggers
+
+- A new `check:*`/`audit:*` script appears → `cwd-parity` covers it automatically; if it needs an exception,
+  the exception must be *asserted fail-closed*, never removed from the list.
+- `hashPath` gains a caller that passes an absolute path expecting a stable digest → the framing rule (§559)
+  is the thing to re-read, not the pin.
+- `check:invariants` stops spawning its CLI in temp repos → its exception is no longer load-bearing and it
+  should be rooted like the rest.
+- Another harness grows a "liveness proof" set → it needs §558's pair of floors: one on the DATA, one on what
+  the run actually MEASURED.
