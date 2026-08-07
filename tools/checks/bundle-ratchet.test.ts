@@ -24,15 +24,32 @@ function readingsAt(f: (baseline: number) => number): BundleReading[] {
 const ceilingOf = (baseline: number) => Math.round(baseline * HEADROOM);
 
 describe("REQ-079: the shipped JS may not grow silently", () => {
-  it("the real build is within its ceilings — or is not built, which is also a failure", () => {
-    // The live assertion. In CI the build step precedes `verify:merge` (ci.yml), so readings exist; run
-    // locally without `pnpm -r build` this reports the non-vacuity violations instead, by design.
-    const readings = readBundles();
-    if (readings.length === 0) {
-      expect(checkBundleRatchet(readings), "an unbuilt tree must FAIL, never pass quietly").not.toEqual([]);
-      return;
+  // NO LIVE CEILING ASSERTION HERE, deliberately (audit §488).
+  //
+  // The first version of this test asserted `checkBundleRatchet(readBundles())` is empty — the real tree,
+  // within its ceilings. It went RED mid-session reporting the driver bundle at 153,129 B against a 95,598 B
+  // baseline: a 60% regression, in a session that touched no app source. A clean `vite build` immediately
+  // returned 94 kB. Something in the test run had left a NON-PRODUCTION artifact in `apps/driver/dist`, and
+  // the ratchet — which reads whatever is in `dist/` — measured it.
+  //
+  // **A test that asserts over an artifact it did not produce is not a test, it is a race.** The gate owns
+  // that assertion, in the one pipeline position where the artifact's provenance is guaranteed: `ci.yml`
+  // builds at step 34 and runs `verify:merge` at step 50, so what `check:bundles` measures there is exactly
+  // what that build emitted. Duplicating it here bought no coverage and imported a dependency on whatever
+  // last wrote to `dist/`.
+  //
+  // What IS pinned here is the gate's LOGIC, over inputs the test constructs — which is the half that can
+  // regress silently. The two are complementary: the logic cannot drift without these failing, and the
+  // artifact cannot grow without the gate failing where it actually runs.
+  it("readBundles reports well-formed readings for whatever is built, without judging them", () => {
+    // Structural only: every reading carries the baseline and ceiling the verdict is computed from, so a
+    // reading can never be judged against a ceiling that did not come from its own declared baseline.
+    for (const r of readBundles()) {
+      expect(BASELINE_GZIP[r.app], `${r.app} is a declared app`).toBeDefined();
+      expect(r.baseline).toBe(BASELINE_GZIP[r.app]);
+      expect(r.ceiling).toBe(Math.round(r.baseline * HEADROOM));
+      expect(r.gzip, "a gzip length is a positive integer").toBeGreaterThan(0);
     }
-    expect(checkBundleRatchet(readings)).toEqual([]);
   });
 
   // THE BOUNDARY, PINNED AT BOTH SIDES. A single "+20% fails" case cannot distinguish `>` from `>=` from a

@@ -368,8 +368,21 @@ export function formatViolation(v: CitationViolation): string {
   return `${v.citingFile}:${v.citingLine} → ${v.citedPath}:${v.citedSpec}${anchor} — ${v.reason}`;
 }
 
-function trackedFiles(cwd: string): string[] {
-  return execSync("git ls-files", { cwd, encoding: "utf8" }).split("\n").filter(Boolean);
+/**
+ * The repo root as seen from `cwd` (audit §487).
+ *
+ * `git ls-files` is CWD-RELATIVE, so every entry point below took a `cwd` that silently doubled as a
+ * SCOPE. Run from `tools/checks/`, this gate printed `citation-links OK — 0 path:line citations resolve to
+ * a real file` — a clean bill over an empty scan, in the gate that exists to keep the record's addresses
+ * honest. Resolving the root here means `cwd` names where to look FROM and can never mean how much to look
+ * AT — the same correction §484 applied to `check:tables`, whose first version fixed only its `main()`.
+ */
+function repoRoot(cwd: string): string {
+  return execSync("git rev-parse --show-toplevel", { cwd, encoding: "utf8" }).trim();
+}
+
+function trackedFiles(root: string): string[] {
+  return execSync("git ls-files", { cwd: root, encoding: "utf8" }).split("\n").filter(Boolean);
 }
 
 /** A file's lines, 1-indexed by position, with the trailing empty element of a final newline dropped. */
@@ -381,7 +394,10 @@ function splitLines(content: string): string[] {
 
 /** The real repo as a RepoIndex: tracked paths, file contents read (and cached) on demand. */
 export function buildRepoIndex(cwd: string = process.cwd()): RepoIndex {
-  const paths = trackedFiles(cwd);
+  // Listing and reading must share ONE resolved root: rooting the list while reading against `cwd` would
+  // resolve every path wrongly the moment this ran from anywhere but the top.
+  const root = repoRoot(cwd);
+  const paths = trackedFiles(root);
   const cache = new Map<string, readonly string[] | null>();
   return {
     paths,
@@ -390,7 +406,7 @@ export function buildRepoIndex(cwd: string = process.cwd()): RepoIndex {
       if (hit !== undefined) return hit;
       let value: readonly string[] | null = null;
       try {
-        value = splitLines(readFileSync(join(cwd, path), "utf8"));
+        value = splitLines(readFileSync(join(root, path), "utf8"));
       } catch {
         value = null;
       }
@@ -411,13 +427,14 @@ export function buildRepoIndex(cwd: string = process.cwd()): RepoIndex {
  * silent one. (Today: zero. The only occurrences in the tree are this scanner's own docs and its tests.)
  */
 export function suppressedLines(cwd: string = process.cwd()): string[] {
+  const root = repoRoot(cwd); // §487 — one resolved root for both listing and reading
   const out: string[] = [];
-  for (const file of trackedFiles(cwd)) {
+  for (const file of trackedFiles(root)) {
     if (!/\.(md|ts|tsx|mts|cts)$/.test(file)) continue;
     if (file.startsWith("tools/checks/")) continue; // the scanner's own source, docs and fixtures
     let content: string;
     try {
-      content = readFileSync(join(cwd, file), "utf8");
+      content = readFileSync(join(root, file), "utf8");
     } catch {
       continue;
     }
@@ -436,12 +453,13 @@ export function suppressedLines(cwd: string = process.cwd()): string[] {
 }
 
 export function collectCitations(cwd: string = process.cwd()): Citation[] {
+  const root = repoRoot(cwd); // §487 — one resolved root for both listing and reading
   const out: Citation[] = [];
-  for (const file of trackedFiles(cwd)) {
+  for (const file of trackedFiles(root)) {
     if (!/\.(md|ts|tsx|mts|cts)$/.test(file)) continue;
     let content: string;
     try {
-      content = readFileSync(join(cwd, file), "utf8");
+      content = readFileSync(join(root, file), "utf8");
     } catch {
       continue;
     }
@@ -453,6 +471,24 @@ export function collectCitations(cwd: string = process.cwd()): Citation[] {
 function main(): void {
   const citations = collectCitations();
   const index = buildRepoIndex();
+
+  // NON-VACUITY (audit §487). This gate's inputs are `git ls-files` scans, which were CWD-relative — run
+  // from `tools/checks/` it reported `citation-links OK — 0 path:line citations resolve to a real file`,
+  // a clean bill over an empty corpus, in the gate whose whole job is keeping the record's addresses
+  // honest. (It then happened to exit 1, but from an unhandled ENOENT on the ratchet config, not from a
+  // verdict — a crash that made the vacuous OK above it look survivable.) The rooting in `trackedFiles`
+  // removes the cause; this floor catches any other way the corpus could empty out, and is stated in terms
+  // of the RESOLUTION UNIVERSE as well as the citations, because a repo with zero tracked files and a repo
+  // with zero citations are different failures.
+  if (index.paths.length === 0 || citations.length === 0) {
+    console.error(
+      `FAIL citation-links — scanned ${index.paths.length} tracked file(s) and found ${citations.length} ` +
+        `citation(s). A gate that reads nothing reports clean (audit §487). Expected \`git ls-files\` to ` +
+        `list the tree from ${process.cwd()}; run this from the repo root.`,
+    );
+    process.exit(1);
+  }
+
   const violations = checkCitations(citations, index);
   if (violations.length > 0) {
     for (const v of violations) console.error(`FAIL citation-links ${formatViolation(v)}`);
@@ -469,10 +505,14 @@ function main(): void {
 
   // The adoption ratchet runs only once the citations themselves are clean: a rotted citation is the
   // more basic fault, and reporting an adoption count on top of it would bury the defect.
-  const config = loadRatchetConfig();
+  // The ratchet config is read at a REPO-RELATIVE path, so it needs the same root the scans now use.
+  // Off-root this threw an unhandled ENOENT — a crash, not a verdict, which is why the vacuous
+  // `OK — 0 citations` above it looked survivable (audit §487).
+  const root = repoRoot(process.cwd());
+  const config = loadRatchetConfig(root);
   const live = countUnanchored(citations, config.targets, (cited, citing) => resolveCandidates(cited, citing, index.paths));
   if (process.argv.includes("--write-ratchet")) {
-    writeRatchetBaseline(live, process.cwd());
+    writeRatchetBaseline(live, root);
     const total = Object.values(live).reduce((sum, per) => sum + Object.values(per).reduce((a, b) => a + b, 0), 0);
     console.log(`citation-ratchet: baseline rewritten — ${total} unanchored citation(s) into ${config.targets.length} ratcheted target(s). Commit ${RATCHET_CONFIG_PATH}.`);
     return;

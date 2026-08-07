@@ -26614,3 +26614,104 @@ test here" but "**what does the missing test permit?**" — and for three of the
 *nothing*, obtainable in minutes by probing the gate's failure mode directly. Writing three test files to
 close the bound would have added maintenance, produced no information, and left the one real defect looking
 like a quarter of a routine chore instead of what it was.
+
+## §487 — the same defect in the gate that guards the constitution, found by running every gate from the wrong directory
+
+§484's generalisation was *every gate has an input, and a gate that cannot fail for lack of input is
+indistinguishable from a gate that passes*, with a searchable tell: **a gate that reports the size of its
+input.** Four gates print such a count. Two were already known good (`staging-smoke`'s BLOCKED disposition,
+`check:tables` as just fixed). The other two are `check:invariants` and `check:citations`.
+
+A cheaper and far more general probe than reading them: **run every gate from a subdirectory.** Nothing in
+the repo requires a gate to be CWD-independent, and `git ls-files` / relative globs are not.
+
+**`check:invariants` — the most severe finding of this phase.** From `tools/checks/`:
+
+```
+invariants OK — 0/22 tables, events append-only (0 migration files, lock: check)   → exit 0
+```
+
+That gate enforces **CLAUDE.md rule 2** (append-only, *"no UPDATE/DELETE paths on `events`, ever, including
+migrations"*), the **≤22-table budget**, the guard-trigger requirements and I1–I8. It certified all of them
+against an empty set — and reported the table budget **satisfied because zero is under twenty-two**. The
+enabling design is deliberate and documented: every check SKIPS when its input is absent, so the CLI can run
+inside the temp fixture repos its own end-to-end tests build. That skip is correct per-check; what was never
+asserted is the CONJUNCTION — *everything skipped* is not a pass, it is a broken invocation.
+
+**The floor is at the END of `main()`, and the placement is the whole design.** `invariants.test.ts` runs
+the CLI on a temp repo holding one stray `.sql` and NO migrations, asserting exit 1 *containing "stray"*. A
+floor at the glob would pre-empt that message and break a real regression test. Reaching the last line means
+nothing else objected — the only point at which "I found no migrations" is unambiguously a broken input
+rather than a caught violation. Verified at all three points: repo root still `21/22 tables, 11 migration
+files`; from `tools/checks/` now exit 1; all 195 existing tests still pass, both CLI end-to-end tests
+included. Pinned by a 196th test that spawns the CLI on an empty migration directory, mutation-proved
+(`if (false)` on the floor reddens that test **and only** that test).
+
+**`check:citations` — vacuous, and its own crash was hiding it.** From the same directory it printed
+`citation-links OK — 0 path:line citations resolve to a real file and an in-bounds line`. A clean bill over
+an empty corpus, in the gate that keeps the record's addresses honest — the gate that had caught four rotted
+citations of my own earlier the same session. It *did* exit 1, but from an **unhandled ENOENT** on the
+ratchet config resolved against the same wrong directory: **a crash, not a verdict.** That is what made the
+vacuous OK survivable — the exit code was right for the wrong reason, and a green exit was one fixed path
+away. Fixed at the cause (`repoRoot()` resolved inside `trackedFiles`, so `cwd` names where to look FROM and
+never how much to look AT — §484's correction, applied first-time here), at the reads (listing and reading
+share ONE root, or rooting the list alone converts vacuity into mass false-positives), at the ratchet config
+path, and with a floor stated over **both** the resolution universe and the citation count, because a repo
+with zero tracked files and a repo with zero citations are different failures. Three tests pin the rooting;
+collapsing `repoRoot` to `return cwd` reddens all three.
+
+**Two clean negatives, recorded with equal weight.** `check:rater-purity` already fails loudly —
+`FAIL rater-purity [scan] packages/rater/src/**/*.ts matched ZERO files` — so this exact guard was known and
+written once before; it simply never propagated. `check:identity` exits 0 off-root, but for an unrelated and
+announced reason (*"no denylist available … Lint SKIPPED"*), which is §467's documented posture and not
+CWD-dependent.
+
+**A harness bug, caught by uniformity.** The first sweep returned `exit=127` for all nine gates. That is
+`timeout` not existing on macOS, not nine findings — and the tell was that the results were *identical*.
+A probe that fails the same way everywhere is reporting on itself.
+
+**The generalisation, one level up from §484's.** These three gates (`tables`, `invariants`, `citations`)
+were written by different hands at different times and share no code, yet all three had the same defect,
+and a fourth (`rater-purity`) already had the fix. **The defect is not in any of them — it is in the
+convention.** "Resolve inputs relative to the process's current directory" is the default everywhere in
+Node, and it silently makes every scan a function of where you stand. A gate must resolve its own universe;
+`cwd` is an argument about location, never about scope.
+
+## §488 — my own gate measured an artifact nobody had proved was the build
+
+While running the §487 chain, `bundle-ratchet.test.ts` went RED:
+
+```
+FAIL apps/driver: gzipped bundle 153129 B exceeds the ratchet ceiling 100378 B (baseline 95598 B + 5%)
+```
+
+A 60% regression in the driver bundle, in a session that touched **no app source**. A clean
+`pnpm --filter @shuddl/driver build` immediately produced **94 kB**, inside the ceiling. The artifact's
+mtime was an hour later than the other two surfaces' — something in the workspace test run had written a
+**non-production bundle** into `apps/driver/dist`, and the ratchet had measured it.
+
+**The ratchet reads whatever is in `dist/` and has no way to know what produced it.** In this direction it
+cried wolf. In the other, more dangerous direction, a smaller non-production artifact overwriting `dist/`
+would let a genuine production regression pass — the gate would be reporting on a file that was never
+shipped. §481 wrote *"gzip is what a driver on a bad connection actually waits for"*, which is true only of
+the artifact that actually gets deployed.
+
+**The fix is placement, not detection.** The gate keeps the ceiling assertion, because there is exactly one
+pipeline position where the artifact's provenance is guaranteed: `ci.yml` builds at step 34 and runs
+`verify:merge` at step 50, so what `check:bundles` measures there **is** what that build emitted. What was
+removed is the *unit test's* copy of that assertion — it duplicated the gate, bought no coverage, and
+imported a dependency on whatever last wrote to `dist/`. In its place is a structural pin: every reading
+carries the baseline and ceiling its verdict is computed from, so a reading can never be judged against a
+ceiling belonging to a different app.
+
+**The rule, and it generalises past this gate:** *a test that asserts over an artifact it did not produce is
+not a test, it is a race.* It passes or fails on the state of a directory no one in the test owns. The unit
+test pins the LOGIC over inputs it constructs; the gate pins the ARTIFACT where the artifact is known. The
+two are complementary — logic cannot drift without the tests failing, and the bundle cannot grow without the
+gate failing where it really runs — and collapsing them into one assertion is what produced a phantom
+Critical.
+
+**Worth noting how it was caught: by the failure being implausible.** A 60% bundle regression with no source
+change is not a finding, it is a question — and the same instinct that made §487's uniform `exit=127` a
+harness bug rather than nine defects. **An alarming result that no change explains is a claim about the
+instrument.**

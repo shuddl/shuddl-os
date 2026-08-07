@@ -1006,6 +1006,31 @@ function main(): void {
     }
   }
 
+  // NON-VACUITY (audit §487). Every glob in this function is CWD-relative, and every individual check
+  // SKIPS when its input is absent — deliberately, so the CLI can run inside the temp fixture repos its own
+  // end-to-end tests build (see the `existsSync("apps")` guard above). The consequence was never asserted:
+  // run from any directory but the repo root, this gate printed
+  //
+  //     invariants OK — 0/22 tables, events append-only (0 migration files, lock: check)   → exit 0
+  //
+  // certifying CLAUDE.md rule 2 (append-only, "including migrations"), the ≤22-table budget and I1–I8
+  // having read NOTHING — and declaring the table budget satisfied by counting zero tables. This is §484's
+  // check:tables defect in the gate that guards the repo's constitutional laws.
+  //
+  // The floor is HERE, at the end, and not at the glob: every existing failure path must keep its own
+  // message. In particular `invariants.test.ts` runs the CLI on a temp repo holding one stray .sql and NO
+  // migrations, asserting exit 1 *containing "stray"* — a floor placed early would pre-empt that message
+  // and break a real regression test. Reaching this line means nothing else objected, which is the only
+  // point at which "I found no migrations" is unambiguously a broken input rather than a caught violation.
+  if (migrations.length === 0) {
+    console.error(
+      "FAIL invariants — scanned 0 migration files. A gate that reads nothing reports clean: append-only " +
+        "(I3/I7), the table budget and I1–I8 would all be certified against an empty set (audit §487). " +
+        `Expected \`db/**/migrations/*.sql\` to match under ${process.cwd()} — run this from the repo root.`,
+    );
+    process.exit(1);
+  }
+
   console.log(`invariants OK — ${result.tableCount}/${TABLE_BUDGET} tables, events append-only (${migrations.length} migration files, lock: ${mode})`);
 }
 

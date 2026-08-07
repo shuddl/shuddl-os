@@ -610,6 +610,28 @@ describe("M1 regression: the actual check:invariants CLI exit code (end-to-end)"
       expect(r.code).toBe(0);
     });
   }, 30000);
+  // AUDIT §487 — the gate could certify the constitutional laws having read nothing.
+  //
+  // Every glob in `main()` is CWD-relative and every check SKIPS on absent input (deliberately, so this
+  // very harness can run it inside a temp repo). Run from `tools/checks/` it printed
+  // `invariants OK — 0/22 tables, events append-only (0 migration files, lock: check)` and exited 0 —
+  // append-only (I3/I7), the ≤22-table budget and I1–I8 all certified against an empty set, with the budget
+  // reported as satisfied because zero is under twenty-two.
+  //
+  // The floor sits at the END of main() so every other failure path keeps its own message — the stray test
+  // below depends on exactly that, which is why this is not asserted at the glob.
+  it("exits 1 when it scanned NO migrations — a gate that reads nothing must not report clean", () => {
+    withTempRepo((dir) => {
+      // A tree with the migration directory but nothing in it, and nothing else to object to. Under the
+      // defect this exited 0 with "invariants OK".
+      mkdirSync(join(dir, "db", "tenant", "migrations"), { recursive: true });
+      const r = runCli(dir);
+      expect(r.code, "an empty scan is a broken input, not a clean bill").toBe(1);
+      expect(r.out).toContain("scanned 0 migration files");
+      expect(r.out, "and it must say where it looked (§445 — state the command)").toContain("db/**/migrations/*.sql");
+    });
+  }, 30000);
+
   it("exits 1 and names the stray when a non-migration .sql sits under db/", () => {
     withTempRepo((dir) => {
       mkdirSync(join(dir, "db", "tenant"), { recursive: true });

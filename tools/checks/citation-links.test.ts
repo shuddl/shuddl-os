@@ -332,3 +332,39 @@ describe("§272: the citation escape hatch is bounded", () => {
     ).toEqual([]);
   });
 });
+
+// AUDIT §487 — this gate reported a clean bill over an EMPTY corpus.
+//
+// `git ls-files` is CWD-relative, and every entry point here took a `cwd` that silently doubled as a
+// SCOPE. Run from `tools/checks/` the gate printed `citation-links OK — 0 path:line citations resolve to a
+// real file and an in-bounds line` — in the gate whose entire job is keeping the record's addresses honest,
+// and which had caught four rotted citations that same session. It then exited 1, but from an unhandled
+// ENOENT on the ratchet config resolved against the same wrong directory: a CRASH, not a verdict, which is
+// what made the vacuous OK above it survivable.
+//
+// These pin the CAUSE — the corpus does not depend on where you stand. The `main()` floor is the backstop
+// for any other way the corpus could empty out; this is the property that makes the backstop unnecessary.
+describe("REQ-118 §487: the citation corpus does not depend on the caller's directory", () => {
+  const REPO = new URL("../..", import.meta.url).pathname.replace(/\/$/, "");
+
+  it("collectCitations finds the same corpus from a subdirectory as from the root", () => {
+    const fromRoot = collectCitations(REPO);
+    const fromSubdir = collectCitations(`${REPO}/tools/checks`);
+    expect(fromSubdir.length, "cwd must not narrow the scan — this is the §487 defect").toBe(fromRoot.length);
+    expect(fromRoot.length, "and the corpus is non-empty, or the assertion above is vacuous").toBeGreaterThan(500);
+  });
+
+  it("buildRepoIndex resolves the same universe, and can still READ what it lists", () => {
+    // Listing and reading must share ONE root: rooting the list while reading against `cwd` would resolve
+    // every path wrongly off-root, turning the vacuity defect into a mass false-positive instead.
+    const idx = buildRepoIndex(`${REPO}/tools/checks`);
+    expect(idx.paths.length).toBe(buildRepoIndex(REPO).paths.length);
+    expect(idx.lines("package.json"), "a listed path must be readable through the same root").not.toBeNull();
+  });
+
+  it("suppressedLines is rooted too — the escape hatch cannot be hidden by cwd", () => {
+    // If this scan narrowed, a suppressed line would silently drop out of the count the OK line reports,
+    // which is the one number proving the `citation-check: ignore` hatch is unused.
+    expect(suppressedLines(`${REPO}/tools/checks`)).toEqual(suppressedLines(REPO));
+  });
+});
