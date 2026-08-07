@@ -90,6 +90,20 @@ function coverageRow(req_id: string, status: string, wp: string): ReqRow {
 describe("REQ-118/119: check:coverage — 100% register-coverage gate", () => {
   it("1) classifies every row of the real register → 100%, zero unaccounted", () => {
     const rows = parseRegister();
+
+    // NON-VACUITY (audit §490). Measured, not supposed: replacing this line with `const rows = []` left
+    // THIS test GREEN — "100% of the real register classified, zero unaccounted" certified over an empty
+    // corpus. `expect(res.total).toBe(rows.length)` below cannot catch it, because both sides go to 0
+    // together; `unaccounted` and `perBucket` are empty for the same reason. The only thing that failed
+    // under that mutation was a DIFFERENT test, which is protection by coincidence — it can be rewritten
+    // by someone who has never read this one.
+    //
+    // This is the §484 lesson arriving in the test corpus rather than the gate corpus: the headline
+    // coverage number is exactly the kind of claim that is worth nothing if its subject can be empty.
+    // The floor is deliberately far below the live count (289) and far above zero: it is a tripwire for a
+    // broken read, not a row-count assertion that has to be maintained.
+    expect(rows.length, "the register parsed to almost nothing — this is a broken read, not 100% coverage").toBeGreaterThan(200);
+
     const res = computeCoverage({
       rows,
       annotations: scanSourceAnnotations(),

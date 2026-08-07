@@ -191,6 +191,22 @@ function main(): void {
   }
   if (failed) process.exit(1);
 
+  // NON-VACUITY (audit §490). With an empty register this printed "coverage: 100% — all 0 register rows
+  // accounted for (0 unaccounted)" and exited 0 — a sentence that states its own defect. Every check above
+  // is a scan for BAD rows, so zero rows means zero findings means a clean bill; §489's rooting removed the
+  // cwd path to an empty parse, and this closes the rest (a present-but-unreadable register).
+  //
+  // Placed after every failure branch, per §487: reaching here means nothing else objected, which is the
+  // only point at which "the register is empty" is unambiguously a broken read rather than a caught defect.
+  if (res.total < 200) {
+    console.error(
+      `\nFAIL coverage — the register parsed to ${res.total} row(s). A scan for bad rows finds none in an ` +
+        `empty corpus, so this would have reported 100% (audit §490). Expected genesis/09-REQUIREMENTS-REGISTER.csv ` +
+        `to parse; run \`pnpm check:coverage\` from a complete checkout.`,
+    );
+    process.exit(1);
+  }
+
   console.log(`\ncoverage: 100% — all ${res.total} register rows accounted for (0 unaccounted).`);
 }
 if (process.argv[1]?.endsWith("coverage.ts")) main();

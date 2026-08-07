@@ -26775,3 +26775,42 @@ arrived with the secret** — i.e. exactly when the gate began to matter. Rooted
 the defect (`tables`, `invariants`, `citations`), three had incidental protection (`coverage`,
 `traceability`, `authority-coverage`). Nobody wrote a bad gate; the convention let each author solve it, or
 not, alone. **The unit of repair for a convention defect is the convention.**
+
+## §490 — the same vacuity in the TEST corpus, on the headline coverage number
+
+§489 closed the convention defect across the gates. The obvious next question is whether the **tests** carry
+it — a test asserting "no violations" over a discovered corpus passes when the corpus is empty, and this
+audit has caught four such by accident already (§430, §434, §451, §466).
+
+**The sweep found one real instance, and the instrument was worse than the corpus.** A classifier over every
+`*.test.ts` — "a `toEqual([])`/`toHaveLength(0)` whose subject is discovered from the world, inside an
+`it()` that never asserts a size" — reported 43, then 17 after correcting a regex that omitted
+`toBeGreaterThanOrEqual`. Reading the flagged ones showed nearly all were false: negative controls over
+*constructed* inputs, and blocks whose guard my brace-depth scanner never saw because **the files are full
+of regex literals containing `{` and `}`**. `test-collection.test.ts` — the meta-gate ensuring no test file
+is uncollected — turned out to carry a dedicated non-vacuity `it()` that already names the cwd failure mode
+this phase spent §484–§489 rediscovering. **The eighth over-reporting classifier, and the first whose false
+positives came from my parser rather than my predicate.**
+
+**The one real finding is the register-coverage test, and it is the headline number.**
+`coverage.test.ts` — *"1) classifies every row of the real register → 100%, zero unaccounted"* — reads
+`const rows = parseRegister()` with no floor. Replacing that with `const rows = []` left the test **GREEN**:
+100% coverage of the real register, certified over an empty corpus. `expect(res.total).toBe(rows.length)`
+cannot catch it — both sides go to 0 together — and `unaccounted`/`perBucket` are empty for the same reason.
+The only thing that failed under the mutation was a *different* test, i.e. **protection by coincidence**,
+rewritable by anyone who has never read this one.
+
+**The gate had it too, and its success message states the defect out loud.** With an empty register,
+`check:coverage` prints `coverage: 100% — all 0 register rows accounted for (0 unaccounted)` and exits 0.
+Every check in it is a scan for BAD rows, so zero rows means zero findings means a clean bill. §489's
+rooting had already removed the cwd path to an empty parse; both floors close the rest.
+
+Both fixed, both mutation-proved (an empty register now reddens the test that previously stayed green), both
+floored at 200 against a live count of 289 — **a tripwire for a broken read, not a row count anyone has to
+maintain**, which is the difference between a guard and a future false alarm.
+
+**The lesson is about where a claim's weight sits.** "100% of the register is accounted for" is one of this
+build's load-bearing sentences; the audit quotes it, the phase gate rests on it. It was asserted by a test
+whose subject could be empty, and by a gate that would have printed the number `0` inside the word "all".
+**A percentage computed over a discovered set is a claim about the set as much as the ratio** — and the
+denominator is the half nobody checks.
