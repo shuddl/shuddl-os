@@ -214,6 +214,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 19 | — | **§571** | REQ-025 BY MECHANISM — the read-path registry is an instruction (10 rows vs 29 files); all 35 `resolveTenantDb` sites enumerated by ARGUMENT and every one authenticated; an allowlist now guards call site #36, and a stale-looking ❌ on `POST /v1/rate` was still real |
 | 20 | — | **§572** | THE GUARD'S OWN COVERAGE — §571's glob read 39% of the source (83 of 215 files); `resolveTenantDb` has 49 call sites not 35; verdict survives, scope did not. Floors must bound INPUT, not output |
 | 21 | — | **§573** | THE CORPUS GAP, SWEPT — git pathspec and node globSync disagree on `**/` (48 vs 99 files for one pattern); the I3 gates run globSync and were never affected; §572's defect is one instance, now bounded by measurement |
+| 22 | — | **§574** | CONCURRENCY + RETRY — the sequencer mutex re-proved at HEAD (M33: exactly 1 test red, `events_guard_ins` fires); idempotency is wildcard-mounted; the 4 routes outside it each carry their own protection, signup's being a UNIQUE index |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -30652,3 +30653,80 @@ their record claims.
   file lists across the port; a passing test proves nothing here, because the shrunken corpus still passes.
 - A new append seam appears outside `workers/api/src/routes/` → confirm it hardcodes its source; §567's guard
   will not see it, deliberately.
+
+---
+
+## §574 — PHASE GATE: the ledger's concurrency and retry surfaces, re-proved at HEAD
+
+### Why this surface
+
+Every phase so far audited *what* the system enforces. This one audited the two things that only break under
+**load and failure**: concurrent writes to the single ledger writer, and duplicate requests. Neither shows up
+in a functional test, and both are guaranteed to happen in production.
+
+### 1. The sequencer mutex — the claim was historical, now it is current
+
+`workers/api/src/do/sequencer.ts` carries a mutex with an unusually specific comment: a Cloudflare DO input
+gate closes during the DO's **own** `ctx.storage` operations, but **not** across a plain D1 subrequest await.
+This sequencer reads its tail and writes its batch via D1, so without serialization concurrent appends read
+the same tail and assign the same `seq`. The comment says *"Verified by deleting this mutex and running the
+100-concurrent fresh-stub test."*
+
+That was true when written. [[record-holds-with-expiry-triggers]] says a claim like that needs re-measuring,
+so **M33** deleted the mutex at HEAD:
+
+```
+× assigns dense, gapless seqs under 100 concurrent appends via fresh stubs (production shape)
+  D1_ERROR: I3: append-only: SQLITE_CONSTRAINT
+  Tests  1 failed | 26 passed (27)
+```
+
+**Exactly one test red**, the right one, with the exact documented failure. The claim is current, and the
+failure mode confirms the second half of it too: the collision surfaces on `events_guard_ins`, so the
+**BEFORE INSERT** trigger is doing the work (D1 runs with `recursive_triggers=0`, which is why an INSERT guard
+is required and not only UPDATE/DELETE ones).
+
+### 2. Idempotency is mounted structurally, not per-route
+
+`app.use("/v1/*", idempotency)` — a wildcard, so a new `/v1` route inherits it on the day it is added, with
+nothing to remember. That is the same property that makes §569's CI wiring sound: **membership is the
+enforcement.**
+
+### 3. The four mutating routes outside that mount — each checked, none unprotected
+
+`/pub/*` and `/internal/*` sit outside `/v1/*`, and the code says so at both mount points. Being documented is
+not being safe, so each was checked:
+
+| Route | Protection | Verified |
+|---|---|---|
+| `POST /pub/signup` | dark behind `PROVISIONING_ENABLED` (off by default, absent from every wrangler.toml); one **atomic D1 batch**; `slug TEXT NOT NULL UNIQUE` **and** `email TEXT NOT NULL UNIQUE` in `0001_control.sql` | concurrent duplicate claims are impossible **by schema**, not by check-then-write |
+| `POST /pub/quote` | prices and returns; **appends nothing** — *"guaranteed BY CONSTRUCTION: this module imports NO sequencer/DO/append surface"* | a retry has nothing to duplicate |
+| `POST /internal/platform/credit-append` | a redelivery **re-derives the same event id** and the sequencer dedups | idempotent, once-out |
+| `POST /internal/platform/credit-settle` | a no-op once paid (§500 added its refusal tests) | idempotent |
+
+The signup answer is the strongest kind: a UNIQUE index makes the race unrepresentable, rather than a
+read-then-write that is correct only until two requests interleave.
+
+### Method note
+
+The `/pub/quote` check printed a caption — *"(empty ⇒ the POST prices without writing)"* — under output that
+was **not** empty: the grep had matched comment lines containing the words `INSERT` and `append`. The
+conclusion held (the comments state zero-append by construction, and the module imports no append surface),
+but the caption asserted something the output contradicted. That is the pre-written-caption error this record
+has now logged repeatedly, and the fix is the same each time: **write the caption after reading the output.**
+
+### Exit state
+
+- No source modified. M33 reverted byte-identical (`diff -q` clean).
+- `tools/` — 885 tests, 882 green, 3 red (the `REQ-289` row).
+- Thirty-three mutations across nine phases: **27 RED as predicted, 5 silent and each explained, 1 needing
+  `git add -N`.**
+
+### Reopen triggers
+
+- The sequencer's D1 reads move to `ctx.storage`, or `blockConcurrencyWhile` is introduced → the mutex may
+  become redundant, and M33 is the probe that settles it. **Do not remove it on reasoning.**
+- `PROVISIONING_ENABLED` flips at R4 → signup leaves DARK. Its safety then rests entirely on the atomic batch
+  plus the two UNIQUE indexes; neither may be relaxed without an idempotency key on the route.
+- A new mutating route is mounted outside `/v1/*` → it inherits **nothing**. Each of the four above carries
+  its own answer, and a fifth needs one before it ships.
