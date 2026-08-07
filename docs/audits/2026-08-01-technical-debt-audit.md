@@ -187,6 +187,13 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 
 ## §4 — Phase gating and the stopping point
 
+> **PHASE 5 CLOSED — §516 is the phase gate for §513–§516: the PRODUCTION POSTURE and the do-not-build
+> list.** Three of five open prod holds measured rather than trusted (the edge rate limit is unreachable,
+> not unprotected; both PLG dark flags fail closed under mutation — and `typecheck` returns 0 for a
+> security-default inversion). The eleven do-not-build items swept: seven have zero source files, three
+> are gated, one ("a fifth primitive") is unenforceable by construction and correctly held as an owner
+> decision.
+>
 > **PHASE 4 CLOSED — §512 is the phase gate for §505–§511: the RECORD and the ARTIFACTS.** A TypeScript
 > gate file was BINARY to git (4 NUL bytes, every diff unreadable); 22 `§N` pointers led to sections never
 > written; the owner-facing entry table routed to a stale phase gate. Also: six headline claims re-measured
@@ -27954,3 +27961,58 @@ here to measure.
 
 **"Not provisioned" is the safest sentence in the record only when the absence is the control.** For these
 two it is, and that is now a measurement instead of a design intention.
+
+## §516 — PHASE GATE: the production posture, and the list that says what NOT to build
+
+**Scope (§513–§516).** Every earlier phase asked whether what exists is correct. This one asked the two
+questions an owner actually has before shipping: **is the build safe in the state it is in**, and **is it
+still the build the register describes?**
+
+### The "Do not build" list, swept
+
+CLAUDE.md forbids eleven things without a signed register amendment. Each was checked against shipped
+source rather than assumed:
+
+- **Seven named features — zero source files each**: driver pay v1, seat-based pricing, report builder,
+  native GL/period close, escrow settle, voice recording, direct merchant. The last three are the
+  CONFIRM-gated rows, and the CONFIRMs are open.
+- **A fourth surface** — gated by `checkSurfaceBudget` (§506).
+- **Design prohibitions** (gray text, blue, shadows, spring animation) — the design audit, blocking since
+  WP-10 exit.
+- **REQ-163** (no prior-codebase merge) and **REQ-167** (no tenant/person/vendor name) — both gated;
+  §514 found REQ-167 additionally keeping the public quote surface dark, which is not what it was written
+  for.
+- **A fifth primitive** — already recorded, and re-verified rather than re-derived: the prohibition
+  presupposes a set of four that **is defined nowhere**, and `primitives.tsx` still exports **eleven**
+  components under that name. Correctly held open as an owner decision, because naming the four would be
+  *defining scope* — the act the surrounding sentence reserves to a register amendment. **An audit can
+  enforce a decision; it cannot make one.**
+
+### The posture, measured rather than trusted
+
+| hold | question | answer |
+|---|---|---|
+| edge rate limits (REQ-193/125) | exposed today? | **no** — `/pub/quote` is host-gated to three synthetic hostnames; every real host 404s before a DB handle (§514) |
+| `PROVISIONING_ENABLED` off | enforced? | **yes** — inverting the default reddens 4 tests in 3 files (§515) |
+| `PLATFORM_INTERNAL_SECRET` unbound ⇒ 503 | enforced? | **yes** — failing open reddens 2 (§515) |
+| sender domain · Cloudflare OIDC | — | external provisioning, named owners, no in-repo surface to measure |
+| build reproducibility | pinned? | **yes** — `--frozen-lockfile` in all four CI installs; the 111 caret ranges are irrelevant (§513) |
+
+### Exit state
+
+**12 non-register gates PASS** · `typecheck` PASS · `lint` PASS · **3,014 workspace tests, zero failures** ·
+**785 api tests**. Unchanged single blocker: the uncommitted `REQ-289` GTM register row.
+
+### Reopen triggers
+
+1. A real hostname enters `HOST_TENANTS` → the edge rate-limit hold stops being deferred and becomes live
+   exposure (§514).
+2. A fail-closed default is edited → **`typecheck` will not object**; re-run the §515 mutations.
+3. A CONFIRM closes → the corresponding do-not-build row becomes buildable, and only then.
+4. The four primitives are named in `genesis/11` → the clause becomes gateable exactly like the surface
+   roster; until then it is unenforceable by construction.
+
+**The phase's one sentence.** Three of the five prod holds turned out to be safe *for reasons the code
+does not state* — a host allowlist kept synthetic by an identity rule, a default that only a test
+distinguishes, an absent secret that something enforces — and none of those reasons would survive a reviewer
+reading the endpoint alone.
