@@ -29740,3 +29740,61 @@ Two traps met while fixing at the idiom, both worth expecting next time:
   should be rooted like the rest.
 - Another harness grows a "liveness proof" set → it needs §558's pair of floors: one on the DATA, one on what
   the run actually MEASURED.
+
+---
+
+## §561 — CLAUDE.md's "CI-enforced" hard budgets, each one measured
+
+The gates now certify a real corpus (§554–§560). The next question is what they certify *about* — and
+CLAUDE.md makes one claim strong enough to test directly: **"Hard budgets (CI-enforced; exceeding = the PR is
+wrong)."** Seven budgets, each checked by mutation rather than by finding the constant.
+
+| Budget | Enforcement | Proof |
+|---|---|---|
+| **≤22 tables** | `checkMigrationSql` I8 rule | boundary measured: 21 → 0 violations, **22 → 0**, **23 → 1**. `≤` is exact |
+| **12 canonical views** | `assertViewBudget()` at **module scope** | 13 views → `Error: REQ-084: 13 canonical views exceeds the 12-view budget`, thrown at import — the test file will not even load |
+| **35 event kinds** | `events.test.ts` + `booking.test.ts` | `expect(EVENT_KINDS.length).toBe(35)`, pinned twice independently |
+| **3 surfaces** | `surface-contract.test.ts` | `toHaveLength(3)` **and** `.map(s => s.app).sort()` equals the three names — a count plus an identity |
+| **5 color tokens** | `design-audit` | §252 planted a raw hex; §554 gave it a corpus floor + rooting |
+| **2 font families** | `design-audit` | same instrument, same proofs |
+| **0 shadows / gradients / radius>4px** | `design-audit` | §252 planted a shadow and an over-budget radius |
+
+**All seven hold.** The design trio needed §554's floor to be worth anything — before it, the instrument could
+have reported clean over zero files — which is why this section comes after that phase and not before it.
+
+### The probe that landed on the boundary
+
+The first view-budget mutation added **one** view and every test stayed green. That is not enforcement
+failing; it is [[keep-a-fixed-point-before-scaling-a-probe]]'s trap, and §531's fourth explanation: *the probe
+was not a counterexample.* The registry holds **11** views against a budget of 12, so a 12th is legal. Adding
+two produced the throw immediately.
+
+Both numeric budgets carry exactly one spare — tables 21/22, views 11/12 — so **a one-item probe lands ON the
+boundary in both cases**. Anyone testing these budgets in future needs to add two, and the reason is
+structural rather than accidental: the spare exists so a genuine addition has somewhere to go.
+
+### Two attributions before crediting a RED
+
+The table budget took three attempts to isolate, because two *other* rules fire first on a new table:
+
+1. adding two tables → `unclassified tenant table(s)` — every tenant table must be declared append-only or
+   mutable before anything else is judged;
+2. classifying them → `workers/*/test/helpers.ts does not apply shipped tenant migration(s)` — four test
+   schemas must stay supersets of the shipped one.
+
+Both are real gates doing real work, and both produced exit 1 that had **nothing to do with the budget**.
+[[attribute-the-red-before-crediting-it]]: a non-zero exit says something failed, never that your subject
+failed. The budget was only provable by calling `checkMigrationSql` directly with synthetic SQL — the rule in
+isolation, away from the rules that shadow it.
+
+### A clean negative on the suite itself
+
+Separately, the whole test corpus was swept for the §554 class: **3,600 `it()`/`test()` blocks, zero that
+execute no assertion.** Eighteen candidates all resolved to probe artifacts — testing-library's `getBy*`
+queries (which throw), a custom `assertNonDecreasing` helper (which throws on a missing value, with a comment
+saying why), and paren-matching failures on async arrows and regex literals.
+
+Of note, `packages/rater/test/sweep.test.ts` — the file CLAUDE.md rule 4 names as the in-repo stand-in for the
+audited 504-quote sweep — is built exactly right: its property tests assert inside loops, and a **companion
+block** pins `expect(cells).toHaveLength(504)`. A collapsed grid turns that block red, so the vacuous-loop
+shape is present but harmless. The shape alone was never the defect; the shape without a floor is.
