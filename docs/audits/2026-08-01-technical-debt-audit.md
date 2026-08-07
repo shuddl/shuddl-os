@@ -28778,3 +28778,55 @@ by INDEX and verified the plant from the file before running anything.
 
 **Six of eight**, alongside CLAUDE.md's five-of-ten (§534). The two remaining are named rather than assumed
 green — which is the same standard §534 set for rule 6 and rule 9.
+
+## §537 — I4 and I7 controlled: genesis/10's eight invariants are complete
+
+The last two of genesis/10's I1–I8, both mutated against the owner **and** the consumer (§530).
+
+**I7 — *"correction pairs net zero in GL export"*.** The mechanism is one sign:
+`amount_cents: -o.amount_cents` on the `correction_credit` line, one per in-effect original. Dropping the
+negation so a correction ADDS instead of reverses:
+
+| suite | REDs |
+|---|---|
+| `@shuddl/ledger` | **6** |
+| `@shuddl/api` | **1** |
+
+The reddened names are the DoD itself — *"I7 DoD — 20 shipments, 8 corrections (4 round-trip pairs): the
+netting fixture"*, with sub-cases *"(a) every corrected event: reversal…"* and *"(c) the grand AR total
+equals the…"*. A fixture that nets across twenty shipments is a stronger statement of I7 than any single
+reversal, because the invariant is about the AGGREGATE the GL export sees.
+
+**I7 has a second half that is easy to miss**, and the code says so: a correction inherits the original's
+visibility **verbatim**, because a correction surfacing in a lens the original never appeared in would show
+a phantom charge and break netting *within that lens*. I7 is not "the numbers cancel" — it is "the numbers
+cancel in every view", which is why it is entangled with I6 (§536).
+
+**I4 — *"every custody event co-signed or explicitly flagged `unwitnessed`"*.** The word `unwitnessed`
+appears **nowhere in shipped source** — a zero that §524 says to distrust, and §517 says to resolve by
+finding the dispatch. `custody.transferred` dispatches to `assertInterline`, which requires a
+`seal.applied` on the prior stream and a non-empty **receiver** cosignature. Dropping the cosig requirement:
+**3 ledger REDs + 1 api RED**, all under *"REQ-045 assertInterline — interline handoff needs a seal + the
+RECEIVER's cosig (not the sender's device)"*.
+
+**That test title carries the part of I4 a summary would lose.** The requirement is not "a signature
+exists" — it is the *receiver's*, not the sender's device. A handoff self-attested by the party giving up
+custody is exactly the fraud the co-signature exists to prevent, and the gate name says which side must sign.
+
+### genesis/10, complete
+
+| invariant | status |
+|---|---|
+| I1 no money_line without event | **controlled** §535 — D1 *enforces* the FK |
+| I2 no invoice without pod.signed | **controlled** §492 |
+| I3 no event edit/delete at DB level | **controlled** §487 + guard triggers |
+| I4 custody co-signed or flagged | **controlled** §537 |
+| I5 quotes pin rate_config versions | **structural** — `.min(1)` at the boundary |
+| I6 visibility respected by every view | **controlled** §536 — 13 observers |
+| I7 correction pairs net zero | **controlled** §537 |
+| I8 any 22nd table = build failure | **controlled** §506 |
+
+**Eight of eight.** With CLAUDE.md's ten (§534: five mutation-controlled, three gate-measured, one blocked
+on absent fixtures, one process), **both authorities named in the source-of-truth order now have every
+member either mutation-controlled, structurally guaranteed, or explicitly accounted as blocked.** No law in
+this build is at "presumably fine".
