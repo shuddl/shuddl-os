@@ -60,6 +60,9 @@ export function gatesFor(profile: Profile): GateSpec[] {
     // and three residual-risk statements from the threat model. A record gate nobody runs is not a gate.
     { kind: "cmd", gate: "citations", script: "check:citations" },
     { kind: "cmd", gate: "table-shape", script: "check:tables" },
+    // §509 — the §N half of record-address integrity. `citations` bounds-checks `path:line`; nothing
+    // checked `§N`, and §508 found 22 pointers into sections that were never written.
+    { kind: "cmd", gate: "section-refs", script: "check:section-refs" },
     // Bundle ratchet (audit §483). Added HERE rather than as a bare CI step — §482 wired it straight into
     // ci.yml, which ran it but left it outside the gate envelope every other check reports through. It
     // still follows the build: CI builds before verify:merge. Depends on apps/*/dist existing.

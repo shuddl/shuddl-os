@@ -8735,7 +8735,7 @@ than letting a reader assume they are live.
 | `keep-ops-record-reconciled-with-deploys` | prose + dates, **zero** `path:line` citations | no frozen observation to scope |
 | `park-unroutable-work-never-destroy-it` | prose, zero citations | same |
 | `terminal-gallery-map-ui` | pure design law, zero citations, zero dates | same |
-| `reconcile-gate-sentinels-with-exit-codes` | **one** citation — `run-gate.ts:115@reconcileSentinel` | **verified accurate at HEAD** |
+| `reconcile-gate-sentinels-with-exit-codes` | **one** citation — `run-gate.ts:118@reconcileSentinel` | **verified accurate at HEAD** |
 
 That last one was the only real check available, and it holds: line 111 is exactly
 `export function reconcileSentinel(…)`, and the skill's stated rule — *"exit 1/null + PASS ⇒ FAIL; exit 2 +
@@ -27678,3 +27678,40 @@ and **a wrong pointer is worse than an absent one** — an absent one announces 
 ability to reach them (§507). A `path:line` citation that rots fails a gate on every merge; a `§N` reference
 that points at nothing has failed silently for as long as it has existed, across 5,183 opportunities. The
 asymmetry is not that one class is more important — it is that **one class is watched**.
+
+## §509 — the mechanism behind §508, because fixing instances is how §489 reached instance #5
+
+§508 ended on the asymmetry: a `path:line` citation that rots fails a gate on every merge; a `§N` reference
+that points at nothing fails nowhere. It then fixed the three instances and stopped — **which is exactly the
+error §489 diagnosed**, where one convention defect reached five instances because each was repaired alone.
+
+**`check:section-refs` is the mechanism.** It resolves every `§N` in the tracked markdown against the
+sections actually defined, and is wired into `run-gate.ts`'s merge profile — the second of §483's three
+edits, in the same commit as the first, deliberately.
+
+**Two false-positive classes are pinned as BEHAVIOUR, not fixed and forgotten.** The first §508 sweep
+reported **202** broken references and 199 were the classifier:
+
+- **The genesis namespace.** `§01`–`§08` belong to `genesis/00 §01`, a different numbering that CLAUDE.md
+  and BUILD-PROMPT.md use correctly. The zero-padding is the discriminator.
+- **Heading level.** Fifteen audit sections are `###`. A collector keyed on `^## §N` reads every reference
+  to one as dangling.
+
+Both have their own test, because **a gate that cries wolf over `genesis/00 §01` is disabled within a
+week** — the failure mode this record has watched kill gates before. Mutation-proved: removing the
+zero-padding exclusion reddens *"IGNORES the zero-padded genesis namespace"*; narrowing the heading regex to
+`^##` reddens *"collects sections at ANY heading level"* **and** the real-corpus assertion.
+
+**A landing stub satisfies the gate, on purpose.** §508's remedy for §38 and §58 was a heading saying no
+section was written there. That is deliberately enough: the requirement is that a pointer lands on an
+explanation, not that every number carries findings. Pinned, so a future reader does not "improve" the gate
+into rejecting the fix it was built to accept.
+
+**The tripwire fired again, as designed.** Adding a gate changed the merge profile 25 → 26 and release
+30 → 31, and `gate-wiring.test.ts` failed on the first run, naming the two documents that quote those
+counts. That is the third time this phase a count-pinning test has put the doc update in front of the person
+who caused it — §483's `bundle-ratchet`, and now this. **A count in prose cannot fail; a count in a test
+fails the moment the list changes.**
+
+**State: 5,197 references across 109 markdown files, 507 sections, zero dangling** — and now it stays that
+way by a gate rather than by my having looked once.
