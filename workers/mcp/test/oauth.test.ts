@@ -444,3 +444,74 @@ describe("tenant/role are pairing-derived, never client-influenced", () => {
     expect((payload as { role: string }).role).toBe("ops"); // NOT admin / finance
   });
 });
+
+// REQ-106/118 §596 — AN AUTHORIZATION CODE IS SINGLE-USE, AND SPENDING IT IS UNCONDITIONAL.
+//
+// §595 closed session expiry on the api surface and named this one as a SEPARATE implementation its tests
+// said nothing about. Measured across the 18 cases above: grant (token) expiry is covered three times,
+// including the exact fail-closed-past-KV property. Two adjacent properties were covered by nothing.
+//
+// CODE EXPIRY has a real backstop — the code is written with `expirationTtl: CODE_TTL_SECONDS`, so KV evicts
+// it on the same 60s clock the explicit `record.exp` check uses. Removing the check leaves the eviction, so a
+// mutation there can be silent and CORRECTLY so — §589's shape, where two mechanisms agree on every reachable
+// input and neither is load-bearing alone.
+//
+// SINGLE-USE HAS NO BACKSTOP. `oauth.ts` reads the code and DELETES it before validating anything, so a code
+// is spent whether or not the exchange succeeds. That ordering is the security property: validate-then-delete
+// would let a wrong `code_verifier` be retried against the same code, turning a 60-second window into a PKCE
+// brute-force oracle. Nothing tested either half.
+describe("REQ-106 §596: the authorization code is spent on first use", () => {
+  it("a code cannot be exchanged TWICE — the second attempt is refused, no second token", async () => {
+    const d = deps(goodSecrets());
+    await register(d, PAIRING);
+    const verifier = "verifier-0123456789-abcdefghijklmnopqrstuvwxyz-ABCDEFG";
+    const challenge = await challengeFor(verifier);
+    const code = codeFromRedirect(await authorize(d, authParams(challenge)));
+
+    const exchange = (): Promise<Response> =>
+      token(d, {
+        grant_type: "authorization_code",
+        code,
+        redirect_uri: REDIRECT_URI,
+        client_id: PAIRING,
+        code_verifier: verifier,
+        client_secret: CLIENT_SECRET,
+      });
+
+    expect((await exchange()).status, "the first exchange must succeed").toBe(200);
+    const second = await exchange();
+    expect(second.status, "a replayed authorization code minted a second token").not.toBe(200);
+  });
+
+  it("a FAILED exchange still spends the code — a wrong verifier cannot be retried against it", async () => {
+    // The ordering that matters: read-then-DELETE-then-validate. Validate-then-delete would leave the code
+    // alive after a rejected attempt, giving an attacker a 60-second window to brute-force the PKCE verifier
+    // against a code they hold.
+    const d = deps(goodSecrets());
+    await register(d, PAIRING);
+    const verifier = "verifier-0123456789-abcdefghijklmnopqrstuvwxyz-ABCDEFG";
+    const challenge = await challengeFor(verifier);
+    const code = codeFromRedirect(await authorize(d, authParams(challenge)));
+
+    const wrong = await token(d, {
+      grant_type: "authorization_code",
+      code,
+      redirect_uri: REDIRECT_URI,
+      client_id: PAIRING,
+      code_verifier: "verifier-WRONG-0000000000-abcdefghijklmnopqrstuvwxyz",
+      client_secret: CLIENT_SECRET,
+    });
+    expect(wrong.status, "a mismatched verifier must be refused").not.toBe(200);
+
+    // …and now the CORRECT verifier must also fail, because the code was consumed by the failed attempt.
+    const retry = await token(d, {
+      grant_type: "authorization_code",
+      code,
+      redirect_uri: REDIRECT_URI,
+      client_id: PAIRING,
+      code_verifier: verifier,
+      client_secret: CLIENT_SECRET,
+    });
+    expect(retry.status, "the code survived a failed exchange — it is retryable, and PKCE becomes guessable").not.toBe(200);
+  });
+});

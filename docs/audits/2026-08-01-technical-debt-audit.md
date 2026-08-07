@@ -236,6 +236,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 41 | §592 | **§593** | THE LEVERS OUTSIDE THE LOCKFILE — `allowBuilds` grants install-time code execution and `overrides` replaces versions tree-wide; deletion is self-enforcing, GROWTH was not. M69: a denial is not the absence of a permission |
 | 42 | §592–§593 | **§594** | THE SUPPLY-CHAIN LINE CLOSED — actions SHA-pinned, `pnpm audit --prod` blocking, gitleaks history-wide, all re-proved live (M71/M72). Every remaining question is an architecture change, not an unchecked property |
 | 43 | — | **§595** | SESSION EXPIRY — four auth tests covered every way a token is INVALID, none covered one that is merely OLD. Enforcement rests on one library call in a blanket catch; M73 (decode instead of verify) reddens it. `exp` is schema-REQUIRED, so no token is immortal |
+| 44 | §595 | **§596** | THE AUTHORIZATION CODE — token expiry was covered 3×, single-use by nothing. The delete precedes ALL validation, so a failed exchange spends the code; M75 was silent (delete still preceded PKCE), M75-b caught it |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -32256,3 +32257,60 @@ a middleware that rejects everything, which is §576's masking risk in miniature
 - The MCP surface has its **own** expiry enforcement (`oauth.ts` checks `grant.exp` against an injected clock,
   fail-closed even when KV still holds the record). It is a **separate** implementation, and these tests say
   nothing about it.
+
+---
+
+## §596 — PHASE GATE: the authorization code, and a probe that had to be sharpened twice
+
+### Closing §595's named gap
+
+§595 ended by naming the MCP surface as a **separate** expiry implementation its tests said nothing about.
+Measured across `oauth.test.ts`'s 18 cases: grant (token) expiry is covered **three times**, including the
+exact fail-closed-past-KV property. Two adjacent properties were covered by nothing.
+
+### One of the two needs no test, and saying so is the point
+
+**Code expiry has a real backstop.** The code is written with `expirationTtl: CODE_TTL_SECONDS`, so KV evicts
+it on the same 60-second clock the explicit `record.exp` check uses. Removing the check leaves the eviction —
+§589's shape exactly, where two mechanisms agree on every reachable input and a mutation to either is
+correctly silent. **No test added**, because there is no input that would distinguish the versions.
+
+**Single-use has no backstop.** KV TTL does not help: within the window, a code is either spent or replayable.
+
+### The property, and the ordering that is the property
+
+`oauth.ts` reads the code and **deletes it before validating anything** — line 280's comment states it:
+*"Consume the single-use code up front (delete regardless of what follows, so a code never survives a failed
+token exchange)."*
+
+That ordering **is** the security property. Validate-then-delete would leave a rejected code alive, turning a
+60-second window into a **PKCE brute-force oracle** against a code the attacker already holds.
+
+### The probe had to be sharpened twice
+
+| Mutation | Predicted | Result |
+|---|---|---|
+| **M74** delete the consume entirely | RED | **2 failed** — both new cases |
+| **M75** move the delete past the **expiry** check | RED | **silent** — the delete still preceded PKCE, so a failed exchange still spent the code. **Not a counterexample.** |
+| **M75-b** move it past **PKCE** — *"consume only on success"* | RED | **1 failed** — *"a FAILED exchange still spends the code"* |
+
+M75 is worth recording rather than quietly replacing. The refactor I first reached for **looked** like it
+broke the property and did not, because the property depends on the delete preceding *the last* validation,
+not *a* validation. Getting from M75 to M75-b required reading the exact order of five checks — and M75-b is
+also the more realistic mistake, since *"only consume the code on success"* sounds like an improvement.
+
+### Exit state
+
+- `workers/mcp/test/oauth.test.ts` — 20 green (+2); full mcp suite green; `oauth.ts` restored byte-identical.
+- Seventy-five mutations across thirty-one phases: **66 RED as predicted, 8 silent (seven non-counterexamples,
+  one a real gap since closed), 1 that never applied** — **8 real gaps closed**, 1 design pinned, 2 claims
+  corrected.
+
+### Reopen triggers
+
+- `CODE_TTL_SECONDS` and the KV `expirationTtl` stop being written from the **same** constant → code expiry
+  loses its backstop, and the test this phase deliberately did not write becomes necessary.
+- A refresh-token grant is added → single-use applies to refresh tokens too (rotation + reuse detection), and
+  neither case above covers that grant type.
+- The delete moves for a defensible reason (e.g. a retryable transport fault mid-exchange) → that is a real
+  design decision, and M75-b is the probe that proves whichever ordering is chosen.
