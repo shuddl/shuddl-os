@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   findAcceptableQuoteId,
   isPendingApproval,
+  transitLine,
   unknownReasonMessage,
   type EventRow,
   type PricedQuoteResponse,
@@ -58,5 +59,31 @@ describe("findAcceptableQuoteId (accept binds to exactly the shown quote)", () =
 
   it("returns null when there is no quote.priced at all", () => {
     expect(findAcceptableQuoteId([{ id: "x", kind: "agent.acted", payload: {} }], 1)).toBeNull();
+  });
+});
+
+// REQ-059 §499 — the transit line must never fabricate a number.
+//
+// This was byte-identical in `QuotePanel.tsx` and `GuestQuote.tsx`, and asserted by neither: the portal's
+// tests exercised the components, not the rule, so a drift in one copy would have changed what one customer
+// surface promised while the other stayed green. One copy now lives here; these pin the clause that makes
+// it load-bearing rather than cosmetic.
+describe("REQ-059: the honest transit line", () => {
+  const q = (transit: PricedQuoteResponse["transit"]) => ({ transit }) as PricedQuoteResponse;
+
+  it("prints NO DIGIT for any status other than known — the whole point of the rule", () => {
+    // Every non-"known" status, not just the one the UI happens to produce today: a new status added to the
+    // contract must not silently start rendering a number.
+    for (const status of ["unknown", "unavailable", "pending", "error"] as const) {
+      const out = transitLine(q({ status } as PricedQuoteResponse["transit"]));
+      expect(out, `status=${status} must print no number`).not.toMatch(/\d/);
+      expect(out).toBe("TRANSIT UNAVAILABLE");
+    }
+  });
+
+  it("renders a known count, singular and plural, and same-day as words", () => {
+    expect(transitLine(q({ status: "known", business_days: 0 }))).toBe("TRANSIT · SAME BUSINESS DAY");
+    expect(transitLine(q({ status: "known", business_days: 1 }))).toBe("TRANSIT · 1 BUSINESS DAY");
+    expect(transitLine(q({ status: "known", business_days: 2 }))).toBe("TRANSIT · 2 BUSINESS DAYS");
   });
 });

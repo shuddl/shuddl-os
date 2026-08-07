@@ -5,6 +5,7 @@ import { formatCents } from "../lib/money.js";
 import {
   findAcceptableQuoteId,
   isPendingApproval,
+  transitLine,
   unknownReasonMessage,
   type EventsResponse,
   type PricedQuoteResponse,
@@ -43,13 +44,6 @@ function parseWeight(raw: string): number | undefined {
   if (trimmed === "") return undefined;
   const n = Number(trimmed);
   return Number.isInteger(n) && n > 0 ? n : undefined;
-}
-
-function transitLine(q: PricedQuoteResponse): string {
-  if (q.transit.status !== "known") return "TRANSIT UNAVAILABLE"; // NEVER a fabricated number
-  const d = q.transit.business_days;
-  if (d === 0) return "TRANSIT · SAME BUSINESS DAY";
-  return `TRANSIT · ${d} BUSINESS DAY${d === 1 ? "" : "S"}`;
 }
 
 export function QuotePanel({ shipmentId, onAuthError }: QuotePanelProps): React.JSX.Element {

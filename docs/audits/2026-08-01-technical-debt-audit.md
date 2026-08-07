@@ -27217,3 +27217,56 @@ legitimately use buys nothing.
 **Eleventh over-reporting classifier of the phase.** The route-mount sweep flagged `mountImportRoutes` as
 imported-but-never-called; it is called at `index.ts:245`. Reading took ten seconds, and the alternative was
 publishing a phantom unreachable API surface.
+
+## §499 — sweeping the duplication bound: 38 shapes, one consolidation, one recorded
+
+§493 and §498 both found the same shape — one rule, two hand-maintained copies, nothing comparing them — so
+it was swept for at scale rather than stumbled on again. Every non-trivial logic line (≥45 chars, containing
+a comparison/predicate/arrow) in shipped `packages/`, `workers/` and `apps/` source, normalised and grouped:
+**38 lines appear verbatim in two or more modules.**
+
+Most are idiom, not rule: `instanceof ApiError && e.isAuthError` in 13 Command views, the
+`typeof v === "string" ? v : undefined` narrowing in four ledger projections, `res.status === 429 ||
+res.status >= 500` retry tests in four agents. Duplicated *phrasing* of a language pattern is not duplicated
+*policy*, and consolidating it would buy indirection and no safety. Three groups were worth reading.
+
+**Quote-line projection — guarded by a schema, so the copies cannot drift meaningfully.**
+`quote.lines.map((l) => ({ kind, code, amount_cents }))` appears four times across `concierge/compose.ts`,
+`pub/quote.ts` and `routes/rate.ts` (twice) — the money shape, on the path where a customer's quote becomes
+a stored event becomes an invoice. Verified rather than assumed: `packages/contracts/src/events.ts:115`
+refines `p.lines.reduce((sum, l) => sum + l.amount_cents, 0) === p.sell`, and each line's `amount_cents` is
+`Cents.refine((c) => c >= 1)`. A projection that dropped or altered a line **fails validation at the
+boundary**. §491's subsumption, in the money path: the schema is the authority and the duplication is
+inert.
+
+**Hand-rolled UUID derivation — five copies, and the same reasoning applies.** The digest→hex→variant
+sequence appears in five API routes. Every one feeds a Zod-validated id field, and the values are derived
+deterministically from inputs the contract pins.
+
+**The transit line — three copies, no schema, and a REQ-059 honesty rule inside.**
+`transitLine(q)` was **byte-identical** in `apps/command/src/intake/intake.ts`,
+`apps/portal/src/components/QuotePanel.tsx` and `apps/portal/src/pages/GuestQuote.tsx`. Nothing validates
+display copy, so nothing here plays the role the schema plays above. The load-bearing clause is the first
+line: `status !== "known"` ⇒ `"TRANSIT UNAVAILABLE"`, no digits — **REQ-059's rule against fabricating a
+delivery promise.** A drift in one copy would change what one customer surface promises while the other
+surface's tests stayed green, which is the §493 failure mode aimed at a customer rather than at a gate.
+
+**The two portal copies are now one**, living beside `unknownReasonMessage` in `apps/portal/src/lib/quote.ts`
+— the module both files already import. Pinned by two tests, and the honesty clause is asserted over EVERY
+non-`known` status rather than the one the UI happens to produce today, so a new status added to the contract
+cannot silently start rendering a number. Mutation-proved: making it return `"TRANSIT · 3 BUSINESS DAYS"`
+for an unknown transit reddens *"prints NO DIGIT for any status other than known"*.
+
+**The third copy is RECORDED, not moved.** It lives in a different app; `apps/command` and `apps/portal`
+share only `@shuddl/contracts` (schemas) and `@shuddl/design` (tokens/primitives/motion), and a
+quote-display formatter belongs cleanly in neither. Inventing a shared module across app boundaries is
+structure the register did not ask for (CLAUDE.md: *if it isn't a REQ row, it doesn't get built*), and the
+copies are six lines with an explicit REQ citation above each. **Reopen trigger:** if `transitLine` changes
+in either app, change both — or file the row that authorises a shared home. Recording the bound is the
+honest option; silently restructuring two surfaces to satisfy a tidiness preference is not.
+
+**A mutation that never landed nearly counted as evidence.** The first attempt at the honesty mutation was a
+`perl -0pi -e` whose `${...}` interpolation was a Perl syntax error; the suite then ran against *unmutated*
+code and returned 0, which reads exactly like "the test does not catch this." Re-run in Python, it reddens.
+**A green mutation is only evidence if the mutation applied** — the assertion that it landed has to come
+before the run, not after it.

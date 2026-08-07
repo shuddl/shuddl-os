@@ -75,6 +75,24 @@ export function isPendingApproval(q: PricedQuoteResponse): boolean {
 
 /** The HONEST message for an UNKNOWN reason — states what is missing (weight/dims) or why the lane can't be
  * priced. NEVER a number, NEVER a fabricated transit. Unknown reasons fall back to a generic honest line. */
+/**
+ * The HONEST transit line (REQ-059): a whole business-day count ONLY when the transit is KNOWN; anything
+ * else prints NO number at all.
+ *
+ * ONE copy (audit §499). This was byte-identical in `QuotePanel.tsx` and `GuestQuote.tsx` — two renderings
+ * of the same customer promise, in one app, with nothing comparing them. The load-bearing clause is the
+ * first: a drift that printed a digit when `status !== "known"` would fabricate a delivery date on that
+ * surface only, which is exactly what REQ-059 forbids, and the other surface's tests would stay green.
+ * (A third copy lives in `apps/command/src/intake/intake.ts` — a different app, so it cannot import this;
+ * see §499 for why that one is recorded rather than moved.)
+ */
+export function transitLine(q: PricedQuoteResponse): string {
+  if (q.transit.status !== "known") return "TRANSIT UNAVAILABLE"; // NEVER a fabricated number
+  const d = q.transit.business_days;
+  if (d === 0) return "TRANSIT · SAME BUSINESS DAY";
+  return `TRANSIT · ${d} BUSINESS DAY${d === 1 ? "" : "S"}`;
+}
+
 export function unknownReasonMessage(reason: string): string {
   switch (reason) {
     case "missing_physics":

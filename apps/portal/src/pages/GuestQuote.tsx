@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button, Display, Divider, Input, Mono, TextLink } from "@shuddl/design";
 import { ApiError, post } from "../lib/api.js";
 import { formatCents } from "../lib/money.js";
-import { unknownReasonMessage, type PricedQuoteResponse, type QuoteResponse } from "../lib/quote.js";
+import { transitLine, unknownReasonMessage, type PricedQuoteResponse, type QuoteResponse } from "../lib/quote.js";
 
 // PUBLIC GUEST QUOTE (REQ-051) — the "<60s guest quote" surface. A stranger prices freight with NO account
 // and ZERO ledger residue: it posts to POST /pub/quote (no session, no bearer) and renders the result
@@ -14,14 +14,6 @@ import { unknownReasonMessage, type PricedQuoteResponse, type QuoteResponse } fr
 //   · transit prints "N business days" ONLY when transit.status === "known"; "unavailable" prints NO number;
 //   · UNKNOWN shows NO price and NO fabricated transit — just the honest reason;
 //   · margin internals never ride the wire (the server redacts them; we read only sell + margin-free lines).
-
-// The honest transit line — a whole business-day count when KNOWN, else NO number (REQ-059).
-function transitLine(q: PricedQuoteResponse): string {
-  if (q.transit.status !== "known") return "TRANSIT UNAVAILABLE";
-  const d = q.transit.business_days;
-  if (d === 0) return "TRANSIT · SAME BUSINESS DAY";
-  return `TRANSIT · ${d} BUSINESS DAY${d === 1 ? "" : "S"}`;
-}
 
 // An empty / non-numeric weight is ABSENT (the engine then returns UNKNOWN missing_physics), never a fake 0.
 function parseWeight(raw: string): number | undefined {
