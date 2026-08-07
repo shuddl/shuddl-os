@@ -26182,3 +26182,44 @@ unreachable itself pinned?** §475's answer was "unreachable, and the guard was 
 `loadAcceptedBookingQuote`, whose null-and-resolve pair (§475) exercises both its miss and its hit.
 
 `workers/api` biller suite **24 passed**, unchanged — this section adds no test, which is the finding.
+
+## §477 — the zero-reference sweep, closed with its measured yield
+
+`classifyQuestion` (the copilot's router) has **zero by-name test references** and is **fully covered**.
+Forcing it to return `unknown` for every question fails **3** tests; breaking only the exception branch fails
+**1**. All three outcomes — `shipment_status`, `open_exceptions`, `unknown` — are exercised through
+`DeterministicCopilot`. §437's lesson for the third time in this sweep: **zero by-name references is a
+pointer, never a verdict.**
+
+**The population, recounted at HEAD:** **137** zero-reference exports, down from §458's 147 — the ten
+closed by tests added in §458–§476. Categorised: **24 Zod schemas** (their shape is enforced by the compiler
+and by every parse site), **50 consts/classes/types**, **63 functions**. Most of the 63 are internal helpers
+covered transitively — `der.ts`'s `tlv`/`concat`/`readTlv` never appear by name and §440's `TAG` mutation
+failed **10** tests through them.
+
+**The instrument's measured yield across this phase: 4 real gaps in 7 probed clusters.**
+
+| Cluster | Verdict |
+|---|---|
+| `pub/doc-cap.ts` (§458) | **GAP** — a bearer capability tested only against a garbage string |
+| `contracts/errors.ts` (§461) | **GAP** — the retry-vs-quarantine classifiers, one costing a lost tender |
+| `queries/unbilled.ts@scopeLike` (§462) | **GAP** — an injection rule stated thrice, enforced nowhere |
+| `biller.ts@loadAcceptedBookingQuote` (§475) | **GAP** — a money guard removable in silence |
+| `biller.ts@loadBookingQuoteRef` (§476) | clean — unreachable, and the guard making it so is pinned |
+| `copilot/answer.ts@classifyQuestion` (§477) | clean — all three branches exercised |
+| `documents/retention.ts`, `der.ts` (§440) | clean — pinned through their consumers |
+
+**57% hit rate, and every gap was security- or money-adjacent** — a bearer token, a lost freight tender, a
+SQL injection rule, an unaccepted quote. That is the strongest argument for the instrument and also its
+honest limit: **it finds things worth finding, and it is wrong slightly more often than it is right.** Every
+verdict above required a mutation or a read; not one was decided by the count itself.
+
+**Bound carried forward, with its command:**
+
+```
+grep -rl 'export ' --include='*.ts' packages/*/src workers/*/src   # symbols
+grep -rl '' --include='*.test.ts' --include='*.test.tsx' packages workers apps tools   # corpus
+```
+
+**137 at `0f30afb`**, of which the 63 functions are the probe-worthy remainder. The seven clusters taken were
+chosen by consequence, not by order; what remains is the tail where a gap costs least.
