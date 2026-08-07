@@ -726,7 +726,10 @@ describe("the real repository configuration", () => {
   it("resolves PLATFORM_TENANT_DB to ONE database in every deployable scope", () => {
     // The drift was invisible until someone diffed two files by hand. Pinned as an equality over the
     // parsed configs so a future edit to either side re-opens it here, not in staging.
-    for (const scope of ["staging"] as const) {
+    // BOTH deployable scopes (§583). This iterated ["staging"] alone while its name said "every deployable
+    // scope" — so a prod-only divergence in PLATFORM_TENANT_DB, which decides which database the billing
+    // worker meters against and the api writes to, was checked nowhere. They agree today; nothing enforced it.
+    for (const scope of ["staging", "prod"] as const) {
       const api = targetFromWrangler(parseWranglerToml(readFileSync("workers/api/wrangler.toml", "utf8")), scope);
       const billing = targetFromWrangler(parseWranglerToml(readFileSync("workers/billing/wrangler.toml", "utf8")), scope);
       const platform = (t: typeof api): string => {

@@ -223,6 +223,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 28 | — | **§580** | SWEEPING FOR §579'S SHAPE — 5 loop-breaks in the whole codebase, all correct; but the retention sweep's partial-failure behaviour was an UNWRITTEN design choice (fail-fast vs fail-soft), now pinned by test rather than changed |
 | 29 | — | **§581** | THE SWEEP FAILURE MODEL — 18 entry points, TWO levels; §580 asked only the inner one. Across tenants it is uniformly fail-soft in all 3 workers (M50–M52 all RED), which is what makes the mixed inner designs safe |
 | 30 | — | **§582** | COMPLETENESS FOR THE CONTAINMENT LISTS — §581's "every sweep" claim came from a test's NAME; its mechanism is a hand-kept array. Orchestrators now DERIVED from `allTenantSlugs` reachability (9+1+1), M53 catches an untested new sweep |
+| 31 | — | **§583** | SWEEPING FOR THE RECURRING ERROR — 1,163 universal claims narrowed to 19 literal-driven, 2 real: §562's fix had an unswept sibling, and "every deployable scope" meant staging only, leaving PROD's PLATFORM_TENANT_DB parity ungated |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -31359,3 +31360,81 @@ fragility the agents file rejected for good reason.
   assertion itself remains the hand-kept part.
 - A fourth worker gains a tenant loop → the non-vacuity test names exactly three today and will fail, which is
   the intended prompt to add its containment test.
+
+---
+
+## §583 — PHASE GATE: sweeping for the error this record keeps making
+
+### The class
+
+§582 named it: **a test whose title claims universality while its mechanism is a hand-kept list.** I had just
+committed that error myself, one phase after writing the section that warns about it. An error that survives
+knowing about it is a candidate for a mechanical sweep rather than more vigilance.
+
+Measured: **3,630 test cases, 1,163 (32%) make a universal claim** in their name. Far too many to read, so the
+probe narrowed to the actual defect shape — a universal claim whose body iterates a **literal array defined in
+the test file**, as opposed to an imported/derived set:
+
+**19 of 1,163.** Readable, and triaged by one question: *does an authoritative definition of that set exist
+elsewhere?*
+
+- Most do **not** — `entities.test.ts`'s leaf statuses, `parse-204.test.ts`'s SCAC-bearing schemas. **The
+  literal IS the definition**, and a derived version would have nothing to derive from. Legitimate.
+- Two did.
+
+### Finding 1 — §562's fix had a sibling it never swept
+
+`packages/contracts/test/authority.test.ts` claims *"every module"* and hand-lists the five `AuthorityModule`
+members — **the same enum §562 derived in the ledger's sibling test**, twenty-one phases ago. I fixed one
+instance and did not look for others, which is [[n-instances-usually-share-one-idiom]] committed by someone
+who had written that note down.
+
+Derived from `AuthorityModule.options`. This is a **name-vs-mechanism** fix, not a live bug — the payload
+schema uses the enum directly, so a sixth module would parse either way. What changes is that the case now
+*exercises* it: with the enum at six members, the derived loop runs **6** iterations and the hand-kept one
+runs **5**, never touching the new module while its name says "every".
+
+### Finding 2 — "every deployable scope" meant one of two
+
+`tools/deploy/preflight.test.ts` asserts api and billing resolve `PLATFORM_TENANT_DB` to **one** database — the
+binding that decides which database the billing worker meters against and the api writes to. Its name says
+*"in every deployable scope."* It iterated:
+
+```ts
+for (const scope of ["staging"] as const) {
+```
+
+**Two deployable scopes exist — `staging` and `prod`.** Prod was checked nowhere.
+
+Measured before assuming: they **agree** today (`a79a005f-…` in both wranglers), so there is no live
+divergence. The defect is that the agreement rested on care rather than on a gate — and this repo has been
+bitten by a prod-scope config defect before.
+
+| Mutation | Predicted | Result |
+|---|---|---|
+| **M54** diverge billing's **prod** `PLATFORM_TENANT_DB` | RED | `× resolves PLATFORM_TENANT_DB to ONE database in every deployable scope` |
+
+The staging-only version would not have caught it — that is the whole content of the finding.
+
+### What the sweep is worth
+
+The probe's yield was **19 candidates from 3,630 cases, 2 real**. A 10% hit rate on a mechanically-narrowed
+set is a good trade against reading 1,163 names by hand, and the 17 non-findings are the useful part of the
+answer: **a hand-kept literal is only a defect when something authoritative exists to derive from.** Without
+that test the sweep would have produced 19 "findings" and 17 pointless changes.
+
+### Exit state
+
+- `packages/contracts` 10 green · `tools/deploy/preflight.test.ts` 68 green · `tools/` 887, 884 green.
+- `typecheck` · `lint` green; `authority.ts` and `billing/wrangler.toml` reverted byte-identical.
+- Fifty-four mutations across eighteen phases: **47 RED as predicted, 6 silent-and-explained, 3 real gaps
+  closed, 1 design pinned, 2 claims corrected.**
+
+### Reopen triggers
+
+- A **third** deployable scope appears in any wrangler.toml → `preflight.test.ts`'s list is now
+  `["staging", "prod"]` and is still hand-kept; it should be derived from the parsed `[env.*]` blocks the day
+  a third exists.
+- A new `it("every …")` lands with a literal array → the sweep in this section is a script, not a gate. It was
+  run once; nothing runs it on merge, and that is a deliberate limit — the 17 legitimate literals would make a
+  gate here 89% false-positive, which §575's rule says is how a gate gets disabled.

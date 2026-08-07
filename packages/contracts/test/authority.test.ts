@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AuthorityFlippedPayload, LedgerEvent, EventInput, eventFixture } from "../src/index.js";
+import { AuthorityFlippedPayload, AuthorityModule, LedgerEvent, EventInput, eventFixture } from "../src/index.js";
 
 // ─── WP-15 Task 1 (REQ-008/023, Ten Laws L8) — authority.flipped carries a TYPED, self-describing payload:
 // the module, the authority BEFORE (`from`) and AFTER (`to`) the flip, and WHY (reason). gate_snapshot and
@@ -32,7 +32,10 @@ describe("REQ-008/023: AuthorityFlippedPayload is a typed, self-describing flip 
   });
 
   it("accepts a manual flip on every module + both authority levels", () => {
-    for (const module of ["rating", "invoicing", "dispatch", "settlement", "comms"] as const) {
+    // DERIVED from the enum, never re-listed (§583). §562 made this exact change in the LEDGER's sibling
+    // test and did not sweep for others — a sixth AuthorityModule would silently fall outside a case whose
+    // name says "every module".
+    for (const module of AuthorityModule.options) {
       expect(AuthorityFlippedPayload.parse({ module, from: "native", to: "legacy", reason: "manual" }).module).toBe(module);
     }
   });
