@@ -28527,3 +28527,36 @@ the anchor string appears twice in that file (a `SELECT` presence-check at line 
 package suite proves a pure function's contract; only the consumer's suite proves the behaviour anyone
 depends on. Both §529 and §530 exist because a mutation was pointed at the directory the file sits in
 rather than the code path that calls it.
+
+## §531 — CLAUDE.md rule 4's named artifact, controlled: the 504-cell sweep catches a real violation
+
+Rule 4 names one in-repo artifact by path — `packages/rater/test/sweep.test.ts`, *"a representative property
+test over 7 zones × 72 weights = 504 priced cells, proving the same weight- and distance-monotonicity
+against tariffs this repo controls"* — and says **keep that green**. It is green (11 tests). §527's rule
+says a green is a claim about the instrument until something proves the instrument can fail.
+
+**The first control was not a violation, and the green was correct.** Subtracting 1¢ above 5,000 lb left the
+sweep passing. The grid runs `50 + i × 280` to **19,930 lb**, so the mutation was reachable — it simply was
+not a counterexample: a constant offset above a threshold shifts the curve without making it *decrease*, and
+each 280 lb step adds far more than a cent. **A mutation that does not violate the property under test
+proves nothing about the test**, and reading it as "the sweep is vacuous" would have been the session's
+worst false finding.
+
+**The second control violates the property, and the sweep catches it.** Subtracting `weight_lb / 2` makes
+heavier freight price lower, and three assertions redden — *"is weight-monotonic: for each dest_zip,
+sell_cents is non-decreasing across ascending weight"*, plus the deficit-weight cliff and the composed
+**sell** (not just freight). The property is enforced at three levels, and the composed-sell one matters
+most: floors, fuel surcharge and accessorials ride on freight, so a monotonic freight with a non-monotonic
+sell would still be a mispriced quote.
+
+**What this closes.** Rule 4 is the one CLAUDE.md rule whose in-repo half is a single named test file, and
+the rule's own text is careful about what it does NOT claim: the audited engine's real 504-quote sweep and
+the 48 engine tests **do not ship** — `fixtures/manifest.json` marks them `pending`, `sha256: null`, and
+`check:fixtures` BLOCKS on them (one of the five private-fixture holds §521 tables). The in-repo test is the
+*stand-in*, and it now has a control proving it can fail.
+
+**Two mutations, and the first one's green was the more instructive.** This session has repeatedly found
+instruments that were not measuring; this is the inverse — an instrument that was measuring, probed with
+something that was not a violation. **A green mutation has a fourth explanation beyond §389's three: the
+probe was not a counterexample.** Distinguishing it costs one read of the property being asserted, and
+skipping that read produces a "finding" against a test that is doing its job.
