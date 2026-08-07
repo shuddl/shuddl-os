@@ -27426,3 +27426,40 @@ true, alarming, and wrong about two of them.
 **The lens is now exhausted for SQL.** Non-SQL refusals (`if (…) throw`) are a much larger surface and are
 covered by other instruments — the §492 gate-dispatch table measured exactly that property for the nine
 server-side gates.
+
+## §503 — every swallowed error in shipped source, and the signature that actually matters
+
+The classic production failure is not a thrown error; it is a caught one. Swept shipped `workers/`,
+`packages/` and `apps/` source: **27 inline `.catch(() => …)` swallows and 61 catch blocks that neither log
+nor rethrow.** Two filters were needed before that meant anything.
+
+**"Has no comment" over-reported badly** — 67 server-side catches lack a nearby comment, and most are the
+same safe idiom: `Body.safeParse(await c.req.json().catch(() => null))`, where a parse failure becomes a
+validation refusal one line later. **Twelfth mechanical classifier of these phases to over-report.**
+
+**The signature that discriminates is: does the catch RETURN A VALUE, or refuse?** A catch that throws has
+converted an error into a refusal — that is correct handling regardless of comments. A catch that returns a
+default has made a decision about what the system believes when it does not know, and *that* is where
+fail-open lives. **Fifteen** such catches exist in server source. Every one was read:
+
+- **`middleware/auth.ts`, `pub/doc-cap.ts`, `pub/status-cap.ts`** — the three security paths catch a
+  `verify()` failure and immediately `throw` an auth/capability error. Catch → convert → refuse.
+- **`sequencer.ts` mutex** — `.catch(() => undefined)` sits on the LOCK CHAIN, not on the result: the
+  returned promise still rejects through the RPC normalisation below it. The comment records the mutex was
+  *measured* load-bearing (deleting it reddens a 100-concurrent test with `SQLITE_CONSTRAINT` on
+  `events_guard_ins`). A swallow on a chain is not a swallow of a result.
+- **`driver/storage/durable-seq.ts`** — a failed background refill deliberately leaves the ceiling put, so
+  the guard above throws rather than minting an unreserved seq. Fail-closed by construction.
+- **`geo/polygon-source.ts` → `null`** — documented FAIL-CLOSED: a null source derives to `"XX"`, which is
+  not a USPS code, so no `ConsentAck.operating_state` can match it and the consent gate blocks.
+- **`pub/status.ts` → `{}`** — the shape this audit has been burned by, and here it is safe: it is a DISPLAY
+  projection of `status_cache`, so `{}` renders nothing. The standing lesson is that fail-closed is about
+  the fallback VALUE; the corollary is that the same value is safe or unsafe depending on whether it feeds a
+  RENDERER or a POLICY. `{}` as a policy default opened three gate knobs; `{}` as display data shows an
+  empty card.
+
+**Zero defects.** This is the third consecutive axis to come back clean (§497 five probes, §502 four SQL
+guards, §503 error handling), which is itself the finding: after §496 and §501 closed the instruments and
+the bounds, the surfaces they pointed at are not carrying the debt. The build documents its swallows —
+several carry the measurement that proved the guard load-bearing — and the ones that do not are the idiom,
+not the decisions.
