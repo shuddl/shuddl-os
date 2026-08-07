@@ -26973,3 +26973,48 @@ mechanisms enforce one law, **the delta between their SCOPES is a defect even wh
 Both gates were green, on every commit, for as long as the gap existed. Nothing was broken — something was
 simply never looked at, and the only way to find that is to compare the two lists or plant a violation in
 each cell. Reading either gate alone tells you nothing, because each one is individually correct.
+
+## §494 — the rest of the parity axis, measured: three clean negatives
+
+§493's hole was found by comparing two mechanisms' scopes. Applied to the other pairs in the build, the
+answer is three times "no gap" — recorded with the same weight as the finding, because a verified negative
+is the only thing that distinguishes a checked pair from an unexamined one.
+
+**1. The documented REPLACE evasion is fixed, and structurally cannot recur.**
+`.claude/skills/share-lint-matchers-with-parity-tests` records that the TS-source scanner was a hand-written
+copy which `INSERT OR REPLACE INTO"events"` (abutting quote) and `INSERT OR REPLACE INTO main.events`
+(schema-qualified) walked straight past, while the migration matcher caught both. That skill carries a
+grounding note — its examples are observations FROZEN at 2026-07-15/16 — so it was verified against HEAD
+rather than believed: **five forms × two scanners, all ten CAUGHT.** And the reason is structural, not
+coincidental: `FORBIDDEN_REPLACE` is `replaceFamilyRe(GUARDED_TABLES.join("|"))`, built from the same
+`DELIM`/`SCHEMA`/`Q` fragments the migration matcher uses. They agree today *and cannot diverge* — which is
+a stronger claim than the behavioural test alone supports, and is the one worth recording.
+
+**2. Three mechanisms guard `GUARDED_TABLES` and all three agree, including the subtle one.** The DB
+triggers, the migration lint and the TS lint cover the same three tables; the lint requires
+`guard_upd`/`guard_del`/**`guard_ins`** for each, and the migrations carry all three (events 1/1/3,
+positions 1/1/1, money_lines 1/1/2 — the extra INSERT guards cover additional UNIQUE keys). The BEFORE
+INSERT requirement is the one that matters and the one most easily omitted: **D1 runs
+`recursive_triggers=0`, so `INSERT OR REPLACE`'s implicit DELETE never fires the BEFORE DELETE guard.** The
+lint knows this, states it, and enforces a completeness rule over the UNIQUE keys each `guard_ins` WHEN
+clause enumerates.
+
+**3. C-1 cannot silently return.** The 2026-07-15 audit's Critical was that the positions bypass shipped the
+fast path and dropped every check the sequencer enforced. It was fixed by sharing one authority
+(`gate-context.ts`). Whether that fix is *pinned* is a different question, and it was answered by mutation —
+each of the three checks neutered in turn, against the full 782-case api suite:
+
+| check on the positions bypass | tests that go RED when it is removed |
+|---|---|
+| `assertPositionConsent` (REQ-166) | **2** |
+| `deviceOwnedBy` (REQ-011/016/166) | **2** |
+| `assignmentOf` (REQ-030) | **1** |
+
+All three reddened tests live in one `describe`: *"POST /v1/positions — server-side gate parity (REQ-190)"*.
+Each mutation compiled cleanly first — **removing a server-side gate is never a type error**, which is
+exactly why the measurement is the only evidence that counts.
+
+**What separates §493 from these three.** In every clean case the two mechanisms were either built from a
+shared fragment or observed by a test that fails when they diverge. §493's pair had neither: two
+hand-maintained glob lists, and no test comparing them. **The predictor of a parity defect is not the
+subject matter — it is whether anything would notice.**
