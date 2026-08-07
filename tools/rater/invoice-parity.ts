@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { repoRoot } from "../checks/repo-root.js";
 // `z` and the config/payload schemas come from @shuddl/contracts — the repo's single zod boundary
 // (tools never take a direct zod dependency; see the re-export note in contracts/index).
 import {
@@ -396,8 +397,8 @@ export const SMOKE_CASES: InvoiceReplayCase[] = [
 //     (one JSON per rate_config kind; see tools/rater/README.md).
 
 const EXPECTED_REPLAY_CASES = 500; // the WP-06 DoD pins the set's size: a short/over/empty set never greens
-const REPLAY_DIR = "fixtures/invoice-replay";
-const CONFIG_DIR = "fixtures/tariff";
+const REPLAY_DIR = `${repoRoot()}/fixtures/invoice-replay`;
+const CONFIG_DIR = `${repoRoot()}/fixtures/tariff`;
 const CONFIG_FILES = {
   zone_tariff: "zone_tariff.json",
   floors: "floors.json",
@@ -498,7 +499,38 @@ function main(): void {
   // ── 1. SMOKE — always runs; the harness's liveness proof. A failure here is the composition path
   //       itself drifting (rater → recorded payload → composeInvoice) and blocks regardless of the
   //       pending 500-set. Its green line is worded as SMOKE — it is never the DoD claim.
+  // The smoke set is this harness's liveness proof, so it must not be hollowable. `parse-parity.ts` guards
+  // its own the same way and this file did not: an emptied SMOKE_CASES produced zero mismatches and printed
+  // `0/0 in-repo synthetic cases ... harness live` at exit 0 (audit §558). Counting is not enough — the
+  // composition the header promises is what matters, and the interline HOLD is the Law-5 control (REQ-040:
+  // floors judge the executing SHARE, never gross). Deleting it would leave a green harness with no coverage
+  // of the $222,084/35-lb regression at all.
+  const issues = SMOKE_CASES.filter((c) => c.expect.outcome === "issue").length;
+  const belowFloorHolds = SMOKE_CASES.filter(
+    (c) => c.expect.outcome === "hold" && c.expect.hold_reason === "below_floor",
+  ).length;
+  const interlineSplits = SMOKE_CASES.filter((c) => (c.legs ?? []).length > 1).length;
+  if (SMOKE_CASES.length < 5 || issues === 0 || belowFloorHolds === 0 || interlineSplits === 0) {
+    console.error(
+      `INVOICE PARITY SMOKE HOLLOW — the in-repo set must stay live: ${SMOKE_CASES.length} case(s) (need >=5),` +
+        ` ${issues} issue, ${belowFloorHolds} below_floor hold (the REQ-040 executing-share control),` +
+        ` ${interlineSplits} interline split. A harness that measures nothing reports penny-perfect parity.`,
+    );
+    process.exit(1);
+  }
+
   const smoke = runInvoiceParity(SMOKE_CASES, SMOKE_CONFIG);
+  // The guard above bounds the DATA; this bounds the RUN. They are different failure modes, and the first
+  // draft of this fix only had the first: emptying the runner's argument (`runInvoiceParity([], ...)`) left
+  // the case array untouched and still printed `0/0 ... harness live` at exit 0. A liveness proof has to
+  // assert what it MEASURED, not what it was given.
+  if (smoke.total !== SMOKE_CASES.length) {
+    console.error(
+      `INVOICE PARITY SMOKE HOLLOW — ran ${smoke.total} case(s) but the in-repo set defines ${SMOKE_CASES.length}.` +
+        ` The harness reported on a set it was not given; its green certifies nothing.`,
+    );
+    process.exit(1);
+  }
   if (smoke.mismatches.length > 0) {
     printMismatches(smoke.mismatches);
     console.error(
@@ -511,7 +543,7 @@ function main(): void {
   );
 
   // ── 2. THE 500-REPLAY GATE — engagement-workspace fixtures, pending until vendored + hash-pinned.
-  const manifest = JSON.parse(readFileSync("fixtures/manifest.json", "utf8")) as Manifest;
+  const manifest = JSON.parse(readFileSync(`${repoRoot()}/fixtures/manifest.json`, "utf8")) as Manifest;
   const rows = manifest.fixtures.filter((e) => (REPLAY_FIXTURE_IDS as readonly string[]).includes(e.id));
   const casesPresent = hasJsonFiles(REPLAY_DIR);
   const configOk = configPresent(CONFIG_DIR);

@@ -29526,3 +29526,69 @@ mechanism can be falsified by the code; one that states an outcome cannot.**
 - `installedPnpm()`'s catch stops returning a string literal → §555's third test says so by name.
 - The `apps/*/public/**` eslint ignore grows a second code file → it inherits sw.js's situation without
   sw.js's compensating test.
+
+---
+
+## §558 — Applying §557's rule as a sweep: the money-parity harness could certify itself over zero cases (HIGH, fixed)
+
+§557 ended with a standing rule — *any gate that iterates a file list gets its floor in the same commit as the
+loop.* A rule stated at the end of a phase is worth exactly as much as the sweep that tests it, so: **15
+scanners** under `tools/`, every one classified, and every candidate read rather than grepped.
+
+The mechanical classifier flagged three with no floor. **Two were false positives, found by reading:**
+
+- `append-chokepoint.ts` has a **per-glob** floor — stricter than a total count, since it fails if any single
+  scan glob matches zero files. My pattern did not match its idiom, which is [[grep-proves-presence-never-absence]]
+  in its ordinary form: the classifier under-reported and only reading corrected it.
+- `seed/load.cli.ts` is a developer CLI in no gate profile. Loading zero rows is visible to whoever ran it and
+  claims nothing at merge time. Out of scope, not a defect.
+
+### The real one
+
+`tools/rater/invoice-parity.ts` — REQ-031, the gate that proves **money is a projection of physics**, invoice
+composition reconciling to the rater penny for penny. Its header describes a "VENDORED-IN-REPO SMOKE SET …
+so the harness itself is proven LIVE today." Emptying that set:
+
+```
+invoice parity smoke — 0/0 in-repo synthetic cases: invoice === rater, penny for penny (harness live; …)
+exit 0
+```
+
+The line asserts liveness **in the same sentence** in which it measured nothing. This is §554's class with an
+aggravating factor: the other four vacuous gates printed a neutral `clean`; this one printed a claim.
+
+**Its own sibling had the fix.** `concierge/parse-parity.ts` guards its smoke set with a semantic assertion —
+≥1 auto_reply and ≥1 below_floor — commented *"so a future edit can never hollow the smoke into an all-green
+no-op."* Same architecture, same author, same "liveness proof" language, and the guard present in one file and
+absent in the other. [[two-mechanisms-disagreeing-is-the-finding]]: the delta between two implementations of
+one pattern is a defect even when nothing is failing.
+
+The guard added here is semantic for the same reason, and it enforces the header's own promise (*"including a
+min-charge case and an interline split"*) — ≥5 cases, ≥1 issue, ≥1 interline split, and **≥1 `below_floor`
+hold**. That last one is the CLAUDE.md Law 5 control: floors judge the executing **share**, never gross
+(REQ-040). Delete that single case and the harness stays green with zero coverage of the $222,084/35-lb
+regression the law exists to prevent.
+
+### The first fix was incomplete, and the mutation said so
+
+| Mutation | Predicted | Result |
+|---|---|---|
+| **M10** empty the smoke set (pre-fix) | prints green | **`0/0 … harness live`, exit 0** — the defect |
+| **M11** `runInvoiceParity([], …)` | HOLLOW | **silent** — the guard bounded the DATA, not the RUN |
+| **M12** reclassify the `below_floor` hold, count intact | HOLLOW on the Law-5 control | exactly that: `5 case(s), 4 issue, 0 below_floor hold` |
+| **M11′** after the run-side floor | HOLLOW | `ran 0 case(s) but the in-repo set defines 5` |
+
+M11 is the useful failure. My guard checked `SMOKE_CASES.length`, so emptying the runner's *argument* left the
+array untouched and the gate still green. **A liveness proof must assert what it MEASURED, not what it was
+given** — the input and the run are separate failure modes, and the fix needed both floors.
+
+### Also fixed: all three parity gates were CWD-dependent
+
+`rater/parity.ts`, `concierge/parse-parity.ts` and `invoice-parity.ts` each exited 1 from a subdirectory, on
+ten repo-relative literals between them (`fixtures/manifest.json`, the fixture dirs, the tariff dir). Same
+class as §554, same fix — all three now produce identical verdicts from any directory.
+
+That makes **nine** scripts corrected for CWD-dependence this session. The pattern is worth naming: a repo
+whose gates are always invoked from the root through `pnpm` has no natural pressure to root its paths, so the
+bug accumulates silently and surfaces the first time someone runs a gate from a package directory — or, worse,
+never surfaces and merely writes its report to the wrong place, as `design-audit` did.

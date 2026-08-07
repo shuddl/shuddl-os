@@ -3,6 +3,7 @@
 import "./react-global.js";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { repoRoot } from "../checks/repo-root.js";
 // `z` and the rate_config schemas come from @shuddl/contracts — the repo's single zod boundary (tools
 // never take a direct zod dependency; see the re-export note in contracts/index).
 import {
@@ -417,8 +418,8 @@ const SMOKE_CASES: EvalUnit[] = [
 
 const EXPECTED_REAL_CASES = 50;
 const MIN_PARSED_BPS = 9000; // ≥90% parsed — the WP-07 DoD floor on the DeterministicParser's accuracy
-const CONCIERGE_DIR = "fixtures/concierge/parse-50";
-const CONFIG_DIR = "fixtures/tariff";
+const CONCIERGE_DIR = `${repoRoot()}/fixtures/concierge/parse-50`;
+const CONFIG_DIR = `${repoRoot()}/fixtures/tariff`;
 const CONFIG_FILES = {
   zone_tariff: "zone_tariff.json",
   floors: "floors.json",
@@ -608,7 +609,7 @@ async function main(): Promise<void> {
   );
 
   // ── 2. THE 50-REAL-EMAIL GATE — engagement-workspace fixtures, pending until vendored + hash-pinned.
-  const manifest = JSON.parse(readFileSync("fixtures/manifest.json", "utf8")) as Manifest;
+  const manifest = JSON.parse(readFileSync(`${repoRoot()}/fixtures/manifest.json`, "utf8")) as Manifest;
   const rows = manifest.fixtures.filter((e) => (CONCIERGE_FIXTURE_IDS as readonly string[]).includes(e.id));
   const casesPresent = hasJsonFiles(CONCIERGE_DIR);
   const configOk = configPresent(CONFIG_DIR);

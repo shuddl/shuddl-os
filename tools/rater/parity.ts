@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { repoRoot } from "../checks/repo-root.js";
 // `z` and the rate_config schemas both come from @shuddl/contracts — the repo's single zod boundary. tools/
 // and non-contracts packages never take a direct zod dependency (see the re-export note in contracts/index).
 import {
@@ -205,10 +206,10 @@ export function runParity(
 const EXPECTED_48_TESTS_CASES = 48;
 const EXPECTED_504_SWEEP_CASES = 504;
 const CASE_DIRS = [
-  { id: "rater-48-tests", dir: "fixtures/rater/48-tests", expected: EXPECTED_48_TESTS_CASES },
-  { id: "rater-504-sweep", dir: "fixtures/rater/504-sweep", expected: EXPECTED_504_SWEEP_CASES },
+  { id: "rater-48-tests", dir: `${repoRoot()}/fixtures/rater/48-tests`, expected: EXPECTED_48_TESTS_CASES },
+  { id: "rater-504-sweep", dir: `${repoRoot()}/fixtures/rater/504-sweep`, expected: EXPECTED_504_SWEEP_CASES },
 ] as const;
-const CONFIG_DIR = "fixtures/tariff";
+const CONFIG_DIR = `${repoRoot()}/fixtures/tariff`;
 const CONFIG_FILES = {
   zone_tariff: "zone_tariff.json",
   floors: "floors.json",
@@ -309,7 +310,7 @@ function loadCases(dir: string): ParityCase[] {
 }
 
 function main(): void {
-  const manifest = JSON.parse(readFileSync("fixtures/manifest.json", "utf8")) as Manifest;
+  const manifest = JSON.parse(readFileSync(`${repoRoot()}/fixtures/manifest.json`, "utf8")) as Manifest;
   const rows = manifest.fixtures.filter((e) => PARITY_FIXTURE_IDS.includes(e.id));
   const present = inputsPresent();
   const mode = parseMode(process.argv.slice(2));
