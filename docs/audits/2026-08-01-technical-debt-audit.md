@@ -216,6 +216,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 21 | — | **§573** | THE CORPUS GAP, SWEPT — git pathspec and node globSync disagree on `**/` (48 vs 99 files for one pattern); the I3 gates run globSync and were never affected; §572's defect is one instance, now bounded by measurement |
 | 22 | — | **§574** | CONCURRENCY + RETRY — the sequencer mutex re-proved at HEAD (M33: exactly 1 test red, `events_guard_ins` fires); idempotency is wildcard-mounted; the 4 routes outside it each carry their own protection, signup's being a UNIQUE index |
 | 23 | — | **§575** | THE OBSERVABILITY BOUNDARY — 104 log sites carry no secret and the sweep logs are aggregates, but the provider's error text reached two log sinks VERBATIM; scrubbed at the boundary it enters, both paths independently proved |
+| 24 | — | **§576** | THE HASH CHAIN — byte law and NULL→undefined re-proved at HEAD; the `prev_hash` LINK check was enforcing nothing a test could see, because the hash check masked it in every existing case. A forged chain (re-link + re-hash) now pins it |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -30816,3 +30817,79 @@ ordering — **read the output, then write the sentence.**
   against **aggregate** result types, and stops holding the moment one carries a party, shipment or contact.
 - Phone numbers are not scrubbed. Only address shapes are, and an SMS provider's errors would echo numbers —
   the trigger above is when that matters.
+
+---
+
+## §576 — PHASE GATE: the hash chain's link check was load-bearing and unwatched
+
+### The surface
+
+§574 re-proved the sequencer's concurrency at HEAD rather than trusting a comment. This phase did the same
+for the other half of the ledger's foundation: **the hash chain**, which is what makes an append-only ledger
+*verifiable* rather than merely *append-only*. Three layers, each mutated.
+
+### Two layers hold, freshly proved
+
+**The canonical byte law.** `canonical.ts` declares itself frozen — *"These rules are frozen forever; changing
+any of them breaks every hash chain. Do not 'improve' this file."* It is pinned by **known-answer vectors**
+(literal SHA-256 digests), not round-trips — the distinction that matters, since a round-trip test passes
+through any *consistent* change to the law. **M36** inverted the key sort order: **4 tests red**, including
+the known-answer vector.
+
+**The NULL→undefined rule.** D1 returns SQL NULL for absent optional columns, and `rowToEvent` must map that
+to an **omitted key**, never to `null` — the canonicalizer omits `undefined` but *emits* `null`, so a
+NULL→null mapping injects `"shipment_id":null` and every stored event stops verifying against its own hash.
+**M37** made one column unconditional: **4 tests red**, led by the case named *"SQL NULL → omitted key
+(undefined), never null (hash-critical)."*
+
+### The finding: `prev_hash` was enforcing nothing that a test could see
+
+**M38 disabled the link check outright — all five chain tests stayed green.** §531's fourth explanation, and
+the reason is worth stating precisely, because two separate cases *look* like they cover it:
+
+- The 10,000-event **"tampered byte"** case mutates a **payload**. That changes the event's own hash, so the
+  **hash** check fires first and the link check never gets a say.
+- The **genesis** case sets `prev_hash: "1"*64` on seq 0 — but `prev_hash` is **inside the hash view**, so the
+  recomputed hash no longer matches the stored one and, again, the hash check fires. The assertion is only
+  `.ok === false`, which cannot tell the two reasons apart.
+
+Every existing case that touches a link **also breaks a hash**, so the hash check covered for the link check
+everywhere. The one case only the link check can catch is a **forged chain**: a wrong predecessor whose hash
+was *correctly recomputed for it*. That is precisely what an attacker with write access builds — re-link,
+then re-hash — and it is the whole reason a hash chain is a **chain** rather than a bag of individually valid
+records.
+
+### Closed
+
+Two tests now construct exactly that: re-link an event to `GENESIS_HASH`, re-hash it so it is internally
+consistent (asserted, so the test cannot silently become a hash-check test), and require
+`reason === "prev_hash_mismatch"`. A second pins `bad_genesis` on a self-consistent first event. **Pinning
+the reason** is the part that matters — asserting only `ok:false` is exactly what let the hash check stand in.
+
+| Mutation | Before §576 | After |
+|---|---|---|
+| **M38** disable the `prev_hash` link check | **silent** — 5 passed | **2 failed**, exactly the new cases |
+
+### The pattern worth carrying
+
+Three checks ran in sequence and the **strictest one masked the others**. A mutation to any earlier check was
+invisible because a later check happened to fail on the same input. This is [[a-silent-mutation-has-two-explanations]]
+in a new shape: not *nothing watches* and not *nothing reaches*, but **another guard reaching first**. The
+probe that separates them is an input crafted to pass every check but the one under test — and constructing
+it requires understanding what each check uniquely owns.
+
+### Exit state
+
+- `packages/ledger` — **633 tests, 34 files, all green** (+2).
+- `typecheck` green; no source modified (M36–M38 all reverted byte-identical).
+- Thirty-eight mutations across eleven phases: **31 RED as predicted, 6 silent — five explained as
+  non-counterexamples, and one (M38) a real gap now closed.**
+
+### Reopen triggers
+
+- `verifyChain` gains a fourth check, or the three are reordered → the masking analysis above is specific to
+  seq → link → hash. Re-run M36/M37/M38 individually; a green mutation means the new order masks something.
+- `prev_hash` is ever moved OUT of the hash view → the genesis case stops being covered-for by the hash check,
+  and §576's second test becomes the only thing pinning `bad_genesis`.
+- A new failure `reason` is added to `ChainFailure` → it needs a test asserting the reason, not just `ok:false`;
+  that assertion is what this phase found missing.

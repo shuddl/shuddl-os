@@ -76,3 +76,53 @@ describe("REQ-002 DoD: chain verifies after 10K events", () => {
     expect(await hashEvent({ ...e!, sig: "ab".repeat(32) } as LedgerEvent)).toBe(base);
   });
 });
+
+// REQ-002/011 §576 — THE prev_hash LINK CHECK IS LOAD-BEARING, AND NOTHING WAS WATCHING IT.
+//
+// `verifyChain` runs three checks in order: seq continuity, the prev_hash link, then hash recomputation.
+// Disabling the LINK check (audit §576, M38) left all five tests in this file green — so it was unwatched.
+//
+// Why the existing cases could not see it, and neither could a careless reading:
+//   • the 10K "tampered byte" case mutates a PAYLOAD, which changes that event's own hash — the HASH check
+//     catches it, and the link check never gets a say;
+//   • the genesis case sets `prev_hash: "1"*64` on seq 0, but `prev_hash` is INSIDE the hash view, so the
+//     recomputed hash no longer matches the stored one — again the hash check fires, and the assertion is
+//     only `.ok === false`, which cannot tell the two reasons apart.
+//
+// The case ONLY the link check can catch is a FORGED chain: a wrong predecessor whose hash was correctly
+// recomputed for it. That is exactly what an attacker with write access constructs — re-link, then re-hash —
+// and it is the whole reason a hash chain is a CHAIN rather than a bag of individually-valid records.
+describe("REQ-002 §576: a forged chain — wrong link, correctly recomputed hash", () => {
+  it("rejects an event whose prev_hash is wrong but whose OWN hash is valid for that wrong link", async () => {
+    const [a, b] = await buildChain([
+      eventFixture("quote.requested", { seq: 0 }),
+      eventFixture("quote.priced", { seq: 1 }),
+    ]);
+    if (a === undefined || b === undefined) throw new Error("expected a two-event chain");
+    await expect(verifyChain([a, b])).resolves.toMatchObject({ ok: true });
+
+    // The forgery: re-link b to GENESIS instead of a, then RE-HASH so the event is internally consistent.
+    // Every individual record now verifies; only the link between them is a lie.
+    const relinked = { ...b, prev_hash: GENESIS_HASH } as LedgerEvent;
+    const forged = { ...relinked, hash: await hashEvent(relinked) } as LedgerEvent;
+    expect(await hashEvent(forged), "the forged event must be self-consistent, or this tests the hash check").toBe(forged.hash);
+
+    const res = await verifyChain([a, forged]);
+    expect(res.ok, "a forged chain verified — the prev_hash link check is not enforcing").toBe(false);
+    // The REASON matters: asserting only `ok:false` is what let the genesis case be covered for by the hash
+    // check. Pinning the reason is what makes this test about the LINK.
+    expect(!res.ok && res.failure.reason).toBe("prev_hash_mismatch");
+    expect(!res.ok && res.failure.seq).toBe(1);
+  });
+
+  it("names bad_genesis (not hash_mismatch) when the FIRST event's link is wrong and self-consistent", async () => {
+    const [a] = await buildChain([eventFixture("quote.requested", { seq: 0 })]);
+    if (a === undefined) throw new Error("expected one event");
+    const relinked = { ...a, prev_hash: "1".repeat(64) } as LedgerEvent;
+    const forged = { ...relinked, hash: await hashEvent(relinked) } as LedgerEvent;
+
+    const res = await verifyChain([forged]);
+    expect(res.ok).toBe(false);
+    expect(!res.ok && res.failure.reason, "a self-consistent bad genesis must be named as such").toBe("bad_genesis");
+  });
+});
