@@ -320,6 +320,26 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 > against it. Meanwhile the direction of evidence inverted twice (§448 dormancy, §452 preservation, §455
 > forward-safe values): **a green mutation is a gap, a confirmation, or nothing at all, and only the
 > sentence being tested says which.**
+>
+> **PHASE GATE, 2026-08-06 (§456–§474): the gates themselves, then the standing holds.** Nineteen commits,
+> 22 touching product or tooling code. Two arcs. **(1) The gate self-audit** — §463's rule (*a check keyed
+> on "does X exist anywhere?" cannot notice X leaving one place*) applied to all eleven checks in
+> `invariants.ts` and then to all 18 gate scripts: **five defects, every one latent, every one the same
+> shape** — the guard measured a scope one level wider than the thing it guards. §465 names the four gate
+> shapes; §466 shows the same error in a guard's INPUT and then in my own remedy for it, ten minutes after
+> naming it. **(2) The standing holds** — 124 checklist rows classified (40 struck, 39 external), then five
+> closed: two auth lifetimes pinned, two cron N+1s batched, and QB-to-the-penny VERIFIED at `6285a8c` after
+> its blocker (*workerd is wedged*) turned out to have expired.
+>
+> **MEASURED AT `cb7d273`:** workspace **257 files / 3,003 tests, zero failures**; tools **824 passed / 3
+> failed**, those three still the separate GTM workstream's uncommitted `REQ-289` row.
+>
+> **What this stretch establishes:** a hold carries a claim AND a reason, and **they decay independently**.
+> §470's claim was re-verified and held; §473's was never re-tested because its REASON read like a fact
+> about the world rather than a dated observation. Three filings were re-examined and dissolved (§443,
+> §467, §468); one was re-verified and confirmed (§470). **A file-rather-than-fix decision deserves the same
+> scepticism as a green test** — and five mechanical classifiers over-reported here, each corrected by
+> reading, which is this phase's most repeated finding about its own instruments.
 
 Grades from `V2-EXECUTION-FRAMEWORK.md` §9. What this audit adds to each bar:
 
