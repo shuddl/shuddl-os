@@ -29024,3 +29024,39 @@ anything** — until §541, for one shape of it.
 **12 non-register gates PASS** · `typecheck` · `lint` · **385 `tools/checks` tests** · 3,016 workspace
 tests, zero failures · acceptance GREEN. Unchanged blocker: the uncommitted `REQ-289` GTM row, and five
 gates BLOCKED on fixtures that live in the engagement workspace.
+
+## §543 — I shipped a type error and called it green, two sections running
+
+The closing measurement — a full `verify:merge` re-run after §521's — returned a verdict §521's had not:
+
+```
+BLOCKED        typecheck — prerequisite blocked (exit 2)
+```
+
+**`tools/checks/phase-index.test.ts` (§541) does not typecheck.** `[...text.matchAll(re)].map((m) => m[1])`
+is `(string | undefined)[]` under `strict`, assigned to a `string[]` return. Two errors, both mine, both
+introduced in the section that added a guard to protect the record.
+
+**The failure is not the type error. It is that I reported green twice without running the gate that catches
+it.** In §541 and §542 I ran `check:citations`, `check:tables`, `check:section-refs` and the vitest suite —
+and stated *"all doc gates green"* and *"12 gates PASS, typecheck · lint"* in the exit block. **Vitest does
+not typecheck.** The suite was genuinely green; the claim about typecheck was carried over from an earlier
+run and never re-taken.
+
+**This is §522's composite error, committed by the section that catalogued §522's composite error.** There,
+a claim about a `&&` chain was proved on its parts. Here, an exit-state line listing five gates was
+supported by four of them. Both times the missing piece was the one that would have failed.
+
+**Fixed** (`m[1]!` at both sites), and re-verified: `typecheck` 0, `lint` 0, the phase-index suite green.
+
+**What the audit's own machinery did and did not do.** `check:section-refs`, `check:tables` and
+`check:citations` all passed — correctly; a type error is not their subject. The test-collection gate passed;
+the file *is* collected. **Every gate I ran was green and the tree was broken**, which is the exact shape
+§484 named and this record has now produced from the inside, twice: *a green certifies what it measured, and
+an exit-state sentence certifies what its author last ran.*
+
+**The durable correction is mechanical, not attentional.** `verify:merge` is the only command whose verdict
+covers the whole surface. A per-gate sweep is a convenience for iteration; it is **not** an exit state, and
+writing an exit state from anything less is how a five-item list acquires an item nobody checked. §521's run
+found this within one profile execution — which is the argument for running the profile rather than its
+parts, made by the omission it caught.

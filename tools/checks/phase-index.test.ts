@@ -20,14 +20,14 @@ import { repoRoot } from "./repo-root.js";
 
 /** Phase-gate sections, derived from the record's own headings — never a hand-kept list. */
 function phaseGateSections(text: string): string[] {
-  return [...text.matchAll(/^#+ §(\d+) — PHASE GATE\b/gm)].map((m) => m[1]);
+  return [...text.matchAll(/^#+ §(\d+) — PHASE GATE\b/gm)].map((m) => m[1]!);
 }
 
 /** The section numbers the §4 index table points at (its bolded gate column). */
 function indexedGates(text: string): string[] {
   const start = text.indexOf("## §4 — Phase gating and the stopping point");
   const table = text.slice(start, text.indexOf("\n## ", start + 10));
-  return [...table.matchAll(/^\|[^|]*\|[^|]*\|\s*\*\*§(\d+)\*\*/gm)].map((m) => m[1]);
+  return [...table.matchAll(/^\|[^|]*\|[^|]*\|\s*\*\*§(\d+)\*\*/gm)].map((m) => m[1]!);
 }
 
 describe("REQ-118 §541: the §4 phase index lists every phase gate", () => {
