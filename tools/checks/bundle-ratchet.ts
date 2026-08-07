@@ -15,9 +15,11 @@ import { gzipSync } from "node:zlib";
 //
 // GZIP is the ratcheted figure. Raw size moves with minifier releases and comment volume; gzip is what a
 // driver on a bad connection actually waits for, and it is the number the airplane-mode soak cares about.
-const HEADROOM = 1.05; // 5% — absorbs minifier/dependency patch noise without hiding a real regression
+// Exported so the test pins them by VALUE rather than restating them (audit §483): a test that re-declares
+// the baseline it is checking passes against its own copy, and both drift together silently.
+export const HEADROOM = 1.05; // 5% — absorbs minifier/dependency patch noise without hiding a real regression
 
-const BASELINE_GZIP: Readonly<Record<string, number>> = {
+export const BASELINE_GZIP: Readonly<Record<string, number>> = {
   command: 389_087,
   driver: 95_598,
   portal: 384_213,

@@ -140,8 +140,12 @@ the record row and whatever captures the console.
 | Each deployed browser surface loads a bundle that runs, reaches the prod API, and states its no-session state honestly | `pnpm test:surfaces` (release profile gate `surfaces`, added 2026-08-01; `--mode release` is baked into the script) | R/F | Sentinel with real Playwright counters | Record row `surfaces` | Bound to the DEPLOYED bundles: any surface redeploy voids it. Needs `PROD_SURFACE_BASE` naming the zone; absent ⇒ BLOCKED (never a green skip). Hits the public internet — deliberately NOT in the merge profile |
 | Every tenant and control D1 is exported with a SHA-256 manifest, retained for the policy window | `.github/workflows/nightly.yml` `backup` job (scheduled 08:00 UTC) | F | `*.sql` exports + `manifest.json` (`version`, `environment`, `commit`, `takenAt`, `retentionDays`, per-file `sha256`, and a manifest `digest`) | `artifacts/backup/` in the run; uploaded as `d1-backup-<run_id>`, `retention-days: 30` | A manifest proves the databases **at `takenAt`** and nothing after — it ages out daily. The upload is deleted at 30 days. `run-gate --profile release` cannot produce one: it is a declared external hold (`run-gate.ts:84`), BLOCKED unless `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` are bound |
 
-Counts: **24** gates under `--profile merge` (**15** plain + 9 skippable), **29** under `--profile release`
-(+5 `releaseInfra`) — re-derived from `tools/release/run-gate.ts` on 2026-08-05. *This line said "21 (12
+Counts: **25** gates under `--profile merge` (**16** plain + 9 skippable), **30** under `--profile release`
+(+5 `releaseInfra`) — re-derived from `tools/release/run-gate.ts` on 2026-08-06. *(24/15/29 until 2026-08-06,
+audit §483, when the `bundle-ratchet` gate joined `plain` — which both profiles include. This time the count
+did NOT rot: `gate-wiring.test.ts` ("profile sizes match the docs that quote them") failed on the first run
+after the gate was added and named this line in its message. That is the difference between a number a
+document asserts and a number something checks.)* *This line said "21 (12
 plain), 26" and had decayed the same way `PROJECT-STATE.md` records for its own copy: three plain gates were
 added and every hand-written count of them rotted. **`PROJECT-STATE.md` §"do not trust a count written here"
 owns this number; treat any other copy, including this one, as a snapshot.***

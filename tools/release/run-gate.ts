@@ -60,6 +60,10 @@ export function gatesFor(profile: Profile): GateSpec[] {
     // and three residual-risk statements from the threat model. A record gate nobody runs is not a gate.
     { kind: "cmd", gate: "citations", script: "check:citations" },
     { kind: "cmd", gate: "table-shape", script: "check:tables" },
+    // Bundle ratchet (audit §483). Added HERE rather than as a bare CI step — §482 wired it straight into
+    // ci.yml, which ran it but left it outside the gate envelope every other check reports through. It
+    // still follows the build: CI builds before verify:merge. Depends on apps/*/dist existing.
+    { kind: "cmd", gate: "bundle-ratchet", script: "check:bundles" },
     { kind: "cmd", gate: "acceptance", script: "test:acceptance" },
     { kind: "cmd", gate: "design-audit", script: "audit:design" },
   ];

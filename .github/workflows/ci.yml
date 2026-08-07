@@ -32,10 +32,6 @@ jobs:
         run: pnpm check:pr
       - name: build every workspace (apps + workers + packages)
         run: pnpm -r --if-present build
-      # Runs AFTER the build on purpose — it reads apps/*/dist. Placed before the acceptance step so a
-      # silent bundle regression is reported next to the build that produced it (audit §481).
-      - name: bundle ratchet (shipped JS may not grow unnoticed)
-        run: pnpm check:bundles
       - name: acceptance
         run: pnpm test:acceptance
       - name: install Playwright browser + OS deps (strict browser gates run for real in CI)

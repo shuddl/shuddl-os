@@ -8640,7 +8640,7 @@ than letting a reader assume they are live.
 | `keep-ops-record-reconciled-with-deploys` | prose + dates, **zero** `path:line` citations | no frozen observation to scope |
 | `park-unroutable-work-never-destroy-it` | prose, zero citations | same |
 | `terminal-gallery-map-ui` | pure design law, zero citations, zero dates | same |
-| `reconcile-gate-sentinels-with-exit-codes` | **one** citation — `run-gate.ts:111@reconcileSentinel` | **verified accurate at HEAD** |
+| `reconcile-gate-sentinels-with-exit-codes` | **one** citation — `run-gate.ts:115@reconcileSentinel` | **verified accurate at HEAD** |
 
 That last one was the only real check available, and it holds: line 111 is exactly
 `export function reconcileSentinel(…)`, and the skill's stated rule — *"exit 1/null + PASS ⇒ FAIL; exit 2 +
@@ -26394,3 +26394,72 @@ at the correct indent, no tabs. The gate re-run on the built tree still reports
 it correct; the second makes it run. §481 did the first and stopped, and the only reason that was caught is
 that the very next question after "does it work?" is "what invokes it?" — a question this phase learned to
 ask from §454, where the answer for the authority tripwire was, correctly, `check:invariants`.
+
+## §483 — the same question asked of every other gate, and the answer was about mine
+
+§482 ended on *"adding a check is two edits."* The obvious next move is to ask it of the whole set: **is every
+gate script actually invoked by something?** Sweeping `package.json` and `.github/workflows/` for each
+`check:*` script flagged four as invoked by neither `verify:dev` nor any workflow — `check:chokepoint`,
+`check:citations`, `check:tables`, `check:surfaces`.
+
+**Three of the four were false positives, and the fourth was a different gate entirely.** `check:surfaces` is
+invoked by `deploy:surfaces`. The other three are invoked through `verify:merge` → `run-gate.ts --profile
+merge`, whose `plain` list names `append-chokepoint` (`:51`), `citations` (`:61`) and `table-shape` (`:62`).
+The sweep missed them because **the invocation is a script name inside a TypeScript gate-runner, not a line in
+package.json or YAML** — a channel the grep did not model. Line 57 of that very file records audit §50
+finding this same class, which is the tell: the sweep re-found a solved problem because it searched where
+gates are *usually* wired rather than where this repo wires them. **The sixth over-reporting mechanical
+classifier this phase**, and like the other five it was corrected by opening the file.
+
+**The real finding was in my own work.** §482 wired `check:bundles` as a bare step in `ci.yml`. It ran — but
+outside the `##SHUDDL-GATE##` envelope every other gate reports through, so it appeared in no evidence
+record, no `verify:merge` run, and none of the counts. Moved into `run-gate.ts`'s `plain` list and the bare
+CI step removed (`grep -c check:bundles ci.yml` → 0). The premise in the moved gate's comment — *"CI builds
+before verify:merge"* — was **verified, not assumed**: `ci.yml` builds at step 34 and calls `verify:merge` at
+step 50. So §482's lesson was right and still landed in the wrong place: *a gate must be invoked* is only
+half; **it must be invoked where the system collects its verdicts.**
+
+**Then a tripwire I did not know about fired.** `gate-wiring.test.ts` asserts *"profile sizes match the docs
+that quote them"* — and failed on the first run after the move, naming the two documents to update. 24 → 25
+merge, 29 → 30 release (`bundle-ratchet` joined `plain`, which both profiles include; the suite's
+strict-superset assertion therefore still holds). This is the §269 shape working exactly as designed, and
+the contrast is the point: the same count in `RELEASE-EVIDENCE.md` had previously rotted through three
+additions with nobody noticing, and its own margin says so. **A number a document asserts decays; a number
+something checks cannot.**
+
+**The two quoted counts got different edits, deliberately.** `RELEASE-EVIDENCE.md`'s *"Counts:"* is a live
+structural claim about the current profile → restated to 25/16/30. `PROJECT-STATE.md`'s is a **dated RUN
+record** (§298: "24 gates, 17 PASS, 5 BLOCKED, 2 FAIL") → **not** restated, because that run genuinely
+measured 24; it gained a marker that the profile is now 25. Rewriting a dated observation to match today's
+code does not correct the record, it falsifies what was observed. §473 separated a hold's *claim* from its
+*reason*; this separates a *measurement* from a *structural fact* — the first is true of a moment forever,
+the second is only true until someone edits the code.
+
+**The third edit, which §482's rule did not name.** `bundle-ratchet.ts` was **the only tool in
+`tools/checks/` with no `.test.ts`** — found by listing the directory, not by reasoning about it. Its
+behaviour had been characterised once by a throwaway probe at a terminal, which proves the gate worked that
+afternoon and nothing about tomorrow. `bundle-ratchet.test.ts` (9 tests) now pins: the boundary **at both
+sides** (`gzip > ceiling`, so at the ceiling is legal and ceiling+1 is not — a single "+20% fails" case
+cannot tell `>` from `>=`); that shrinking is **allowed**, which is what makes it a ratchet and not a band;
+per-app non-vacuity **by name**, with an explicit guard that the app set has more than one member, since a
+per-place check over a set of size 1 is indistinguishable from the defective existence shape (§465); and
+`HEADROOM` by value, because widening the tolerance is how a ratchet is defeated without touching a baseline.
+`BASELINE_GZIP`/`HEADROOM` are exported so the test reads them rather than restating them — a test that
+re-declares the constant it checks passes against its own copy and drifts silently with it.
+
+**Mutation-proved, both predicted by name before running.** `>` → `>=` reddened *"AT the ceiling — legal"*;
+neutering the non-vacuity loop to `if (false)` reddened *"a MISSING app is a violation, per app, and names
+the fix"*. Both restored byte-identical (`diff -q`).
+
+**Two of my own errors on the way, both of the kind this phase keeps re-learning.** The first probe
+constructed readings as `{app: "apps/command", gzip}` when the real shape is `{app: "command", baseline,
+ceiling, gzip}` — so **every** row reported "no built bundle found" and all five cases looked identical.
+A broken probe fails toward a uniform, uninformative answer, and I nearly read that uniformity as a finding.
+The second: the first vacuity mutation ran `node .../node_modules/.bin/tsx`, which is a **shell script**;
+its exit 1 was `basedir=$(dirname ...)` failing, not my gate rejecting an empty tree. **A non-zero exit says
+something failed, never that your subject failed** — the RED had to be re-earned through the real entry point
+before it meant anything.
+
+**The corrected rule: adding a check is THREE edits.** One makes it correct, one makes it *run*, one makes it
+*pinned* — and they fail in that order of visibility. An unwritten check is obvious; an uninvoked check is
+invisible until someone asks; an **unpinned** check is invisible forever, because it goes on printing OK.
