@@ -89,4 +89,28 @@ describe("REQ-118 §510: no tracked text file is binary to git", () => {
     const offenders = text.filter((f) => readFileSync(`${root}/${f}`).includes(0));
     expect(offenders, `NUL byte(s) make these files BINARY to git — every diff renders as "Bin X -> Y":\n  ${offenders.join("\n  ")}`).toEqual([]);
   });
+
+  // TROJAN SOURCE (CVE-2021-42574) — the same family as the NUL, one step more serious.
+  //
+  // Bidirectional overrides and isolates (U+202A–U+202E, U+2066–U+2069) reorder how source RENDERS without
+  // changing what the compiler reads, so a reviewer and the toolchain can see different programs. §510's NUL
+  // made a file unreviewable by accident; this makes one deliberately misleading, and it is a published
+  // supply-chain attack rather than a hypothetical.
+  //
+  // MEASURED CLEAN when this landed (0 of 878 files), so this locks in a good state rather than fixing a
+  // defect — the cheap half of §486's rule: not worth a test when a guarantee is structural, worth one when
+  // the guarantee is "nobody has done it yet".
+  it("no bidirectional Unicode control characters (Trojan Source)", () => {
+    const root = repoRoot();
+    const files = execSync("git ls-files", { cwd: root, encoding: "utf8" }).trim().split("\n").filter(Boolean);
+    const TEXT = /\.(ts|tsx|js|mjs|cjs|json|md|sql|yml|yaml|css|html|csv|txt|sh)$/;
+    const text = files.filter((f) => TEXT.test(f));
+    expect(text.length, "the scan is broken, not the tree").toBeGreaterThan(100);
+    const BIDI = /[\u202A-\u202E\u2066-\u2069]/;
+    const offenders = text.filter((f) => BIDI.test(readFileSync(`${root}/${f}`, "utf8")));
+    expect(
+      offenders,
+      `bidi control character(s) — source that RENDERS differently than it compiles (CVE-2021-42574):\n  ${offenders.join("\n  ")}`,
+    ).toEqual([]);
+  });
 });

@@ -27752,3 +27752,37 @@ per-file filter, spawning `git rev-parse` 878 times. That is a red with the righ
 it reads as *"the NUL check found something"* and means *"the NUL check is slow."* Hoisting one call took it
 from **8,116 ms to 85 ms**. §502 said only reading separates identical-looking REDs; here only reading
 separated a red from a timeout wearing its name.
+
+## §511 — the rest of the family §510 belongs to, including the one that is an attack
+
+§510's defect was a byte-level property that compiled, linted and tested green while making the file
+**render differently than it is**. That is a family, and it is worth sweeping as one rather than waiting for
+the next member to surface in a commit summary. Four properties across 878 tracked text files:
+
+| property | count | verdict |
+|---|---|---|
+| **bidi control characters** (U+202A–202E, U+2066–2069) | **0** | clean — now GUARDED |
+| UTF-8 BOM | 1 | **deliberate**, and asserted |
+| CRLF line endings | 0 | clean |
+| missing trailing newline | 2 | cosmetic; left alone |
+
+**The bidi row is the serious one.** Bidirectional overrides reorder how source RENDERS without changing
+what the compiler reads, so a reviewer and the toolchain see different programs — **Trojan Source,
+CVE-2021-42574**, a published supply-chain technique rather than a hypothetical. §510's NUL made a file
+unreviewable by accident; this makes one deliberately misleading. Zero today, so the guard **locks in a good
+state rather than fixing a defect** — which is the cheap half of §486's rule: a test is not worth writing
+when a guarantee is structural, and it is worth writing when the guarantee is *"nobody has done it yet."*
+Mutation-proved by planting a file containing U+202E: the guard names it and fails.
+
+**The BOM is the section's real lesson, and it is a clean negative that could easily have been "fixed" into
+a defect.** `fixtures/migrator/tl-dispatch.csv` opens with `EF BB BF`, which makes its first CSV header parse
+as `﻿Bill To`. Rule 10 says a legacy column that does not map raises a gap row — so a BOM corrupting the
+first of 171 columns is exactly the shape worth alarm. It is **deliberate**: `migrator.ts` strips BOMs at two
+documented points, and `migrator.test.ts:24` asserts `sheet.headers[0] === "Bill To"` with the comment *"BOM
+stripped — not `﻿Bill To`"*. **The fixture carries the messy real-world input the parser exists to
+survive, rather than a sanitised version that would prove nothing.** Stripping that BOM — the obvious
+"hygiene fix" — would have silently deleted the only test of the BOM path.
+
+**Which is why the guard covers NUL and bidi and NOT the BOM.** Three properties in one family, and one of
+them is load-bearing evidence. A sweep that treats a family uniformly gets the third one wrong; the
+difference is not detectable from the byte pattern, only from asking what reads the file.
