@@ -26522,7 +26522,9 @@ delimiters — the false-positive shape that would have made the gate unusable a
 (`tools/deploy/staging-smoke.ts`) — each `main()`-only, each therefore unpinnable without the same
 export-and-test treatment. `acceptance` is the sharpest of the three: it runs the five demos that define
 "done enough to show", so a vacuity defect there would make all five pass by proving nothing. Reproduce the
-list with the import-ownership sweep, not the basename one.
+list with the import-ownership sweep, not the basename one. — **CLOSED by §486 the same day: all three are
+sound, for three different and separately verified reasons. This bound is superseded; do not re-open it from
+this paragraph.**
 
 **The generalisation.** §481's lesson was *a ratchet that reads nothing reports clean*. §484 says that was
 never about ratchets: **every gate has an input, and a gate that cannot fail for lack of input is
@@ -26555,3 +26557,43 @@ from outside the primary checkout.
 register row (CLAUDE.md: *if it isn't a REQ row, it doesn't get built*), and CI's `verify:merge` is the
 guard that actually protects `main`. The durable fix is procedural and costs one command: **read the output
 of `git add`, and verify the commit rather than the tree** — `git show --stat` after, not `pnpm` before.
+
+## §486 — the other three unpinned gates, closed by evidence rather than by writing tests
+
+§484 left a bound: `seed`, `acceptance`, `staging-smoke` — `main()`-only, unimportable, unpinned. The
+obvious next move is to export-and-test all three. **That would have been the wrong work**, and the reason
+matters more than the result: "has no test" is not the defect. The defect §484 actually found was
+**input vacuity** — a gate that cannot fail for lack of input. A test is one way to establish that a gate
+can fail; a direct probe of the gate's own failure mode is another, and for these three it is decisive.
+
+**`acceptance` — the sharpest, and it is sound.** Its non-vacuity rests entirely on a *comment* asserting a
+property of a third-party tool: *"vitest exits non-zero on a genuine failure AND on 'no test files found'
+(a typo'd filter), so a silent no-op can never pass as green."* This audit's whole subject is claims like
+that turning out false, and it is load-bearing here — a typo in any of the 7 spine filters would otherwise
+run nothing across the five demos that define *done enough to show*. **Both halves verified.** No
+`vitest.config` in the repo sets `passWithNoTests` (0 of them), and a bogus filter in a spine package
+returns, verbatim: `No test files found, exiting with code 1`. The comment is true, and now it has been
+measured rather than believed.
+
+**`staging-smoke` — the strongest shape in the repo.** An absent prerequisite is `BLOCKED` (exit 2) carrying
+`executed: false, assertions: 0`, explicitly *"never a silent pass and never a failed assertion"*. It cannot
+report clean on no input because "no input" is a third disposition that neither passes nor fails. This is
+what §484's lesson looks like when it has already been applied.
+
+**`seed` — 17 lines, and vacuity-proof by construction.** It compares a freshly generated dataset hash to a
+pinned SHA. A missing `seed.hash` throws; an empty one mismatches; an empty dataset hashes to something that
+is not the pin. **You cannot accidentally match a SHA** — the comparison's own shape is the guarantee. The
+substance it orchestrates (`generateSeed`/`seedHash`) is already owned by `tools/seed/seed.test.ts`; the
+unimported file is a 3-line comparison, not the logic.
+
+**So the §484 bound closes 1-of-4, not 4-of-4-pending.** `table-shape` was the real defect and is fixed;
+the other three are sound for three *different* reasons — an empirically verified tool property, an
+explicit third disposition, and a comparison against a pinned constant. Recorded with the same weight as the
+defect, per this audit's standing rule that a verified negative is a result.
+
+**The generalisation, which corrects a habit rather than a file:** *the absence of a test is a
+prompt, not a finding.* §484's sweep produced four names; the useful question was never "why is there no
+test here" but "**what does the missing test permit?**" — and for three of the four the answer was
+*nothing*, obtainable in minutes by probing the gate's failure mode directly. Writing three test files to
+close the bound would have added maintenance, produced no information, and left the one real defect looking
+like a quarter of a routine chore instead of what it was.
