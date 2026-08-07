@@ -27389,3 +27389,40 @@ did. Eleven mechanical classifiers over-reported across the two phases and were 
 **The phase's one sentence:** a bound is discharged by measuring it, not by carrying it — and the two
 defects both had the same shape as §493's, *one rule with nothing comparing its copies*, which is now the
 first thing to check rather than the last.
+
+## §502 — every SQL guard in the build, asked the §500 question
+
+§500's defect had a precise shape: **the happy path was covered and the refusal was not** — a condition in a
+`WHERE` clause that no test ever made fail. That is a searchable class. Every `UPDATE`/`DELETE` in shipped
+`workers/` and `packages/` source whose `WHERE` carries a condition *beyond* the identity lookup — i.e. a
+business guard rather than a row address — is **four statements**, and each was mutated so its guard is
+always satisfied, then run against its owning suite.
+
+| guard | mutation result | verdict |
+|---|---|---|
+| `invoices … WHERE id=? AND status='issued'` (money projection) | **RED=1** | observed |
+| `invoices … AND status='issued' AND total_cents <= ?` (credit-settle) | RED=0 → **now RED** | §500's defect, fixed |
+| `documents … WHERE id=? AND retention_status='active'` | RED=0 | **unreachable** |
+| `anomalies … WHERE rule=? AND object_id=? AND status='open'` | RED=0 | **indistinguishable** |
+
+**Two RED=0 results, two different explanations, and neither is a defect** — which is the whole reason
+§389's three explanations exist. The retention tombstone's guard is unreachable: `CANDIDATES_SQL` already
+selects `WHERE retention_status = 'active'`, so no already-expired row is ever handed to the UPDATE. It is
+deliberate belt-and-suspenders and the file says so. Its one live relevance is two overlapping sweep ticks,
+which is not a new finding — that is the standing **High (latent)** cron double-fire hold, already recorded.
+
+The anomaly resolve guard is indistinguishable: `anomalies.status` carries **no CHECK constraint** (`status
+TEXT NOT NULL DEFAULT 'open'`), and the only two values the code writes are `open` and `resolved`, so
+re-resolving a resolved anomaly is state-neutral with or without the guard. The clause is forward-looking
+defence for a status domain that does not exist yet — worth keeping, not worth a test that would have to
+construct a value nothing produces (§486).
+
+**The distinction that makes this sweep worth its cost.** All three RED=0 statements looked identical from
+the outside: a money-adjacent guard, mutated, suite green. One was a real hole a $1 payment could walk
+through; one was pre-filtered upstream; one had no observable subject. **Only reading the surrounding query
+and the schema separates them**, and publishing the count — "three unwatched SQL guards" — would have been
+true, alarming, and wrong about two of them.
+
+**The lens is now exhausted for SQL.** Non-SQL refusals (`if (…) throw`) are a much larger surface and are
+covered by other instruments — the §492 gate-dispatch table measured exactly that property for the nine
+server-side gates.
