@@ -213,6 +213,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 18 | — | **§570** | THE LLM→LEDGER TRUST BOUNDARY — three surfaces attacked rather than read; the prompt-injectable `confidence` cannot gate auto-send (proved in BOTH directions), copilot cite-or-abstain, migrator strictly additive + rule 10 |
 | 19 | — | **§571** | REQ-025 BY MECHANISM — the read-path registry is an instruction (10 rows vs 29 files); all 35 `resolveTenantDb` sites enumerated by ARGUMENT and every one authenticated; an allowlist now guards call site #36, and a stale-looking ❌ on `POST /v1/rate` was still real |
 | 20 | — | **§572** | THE GUARD'S OWN COVERAGE — §571's glob read 39% of the source (83 of 215 files); `resolveTenantDb` has 49 call sites not 35; verdict survives, scope did not. Floors must bound INPUT, not output |
+| 21 | — | **§573** | THE CORPUS GAP, SWEPT — git pathspec and node globSync disagree on `**/` (48 vs 99 files for one pattern); the I3 gates run globSync and were never affected; §572's defect is one instance, now bounded by measurement |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -30576,3 +30577,78 @@ A guard's floor must bound its **input**, not its output. §554 established that
 §571 shipped a guard that violated it three phases later, and only writing the *next* guard exposed it.
 **The instrument that measures coverage needs its own coverage measured** — and the only probe that finds this
 is one that widens the corpus and compares counts, never one that reads the glob and reasons about it.
+
+---
+
+## §573 — PHASE GATE: the corpus-gap swept across every scanner, and the engines disagree
+
+### Why this phase
+
+§572 found the level-skipping glob in a guard I had shipped one phase earlier. §559's rule is that at instance
+#2 you stop fixing and start counting — so instead of assuming it was isolated, every scanner in the repo was
+measured for **both** defects: a glob that skips a directory level, and a floor that bounds output instead of
+input.
+
+### The measurement that reframed it
+
+Fourteen call sites use the `*/src/**/*.ts` shape. The critical question is **which engine runs it**, and the
+two disagree — measured with the identical pattern:
+
+| Engine | `workers/*/src/**/*.ts` | Sees `workers/api/src/tenants.ts`? |
+|---|---|---|
+| **git pathspec** (`git ls-files`) | **48 files** | **no** — `**/` requires a directory |
+| **node `globSync`** | **99 files** | **yes** — `**` matches zero directories |
+
+So §572's defect is **engine-specific to `git ls-files`**, and the sweep's main result is a clean negative:
+`source-corpus.ts`'s `SOURCE_SCAN_GLOBS` — shared by **both I3 source gates** (`append-chokepoint` and
+`invariants`' forbidden-REPLACE scanner) — runs on `globSync` and reads the whole tree. The ledger-law gates
+were never affected.
+
+A second surprise in the same syntax, in the opposite direction: git's default pathspec lets `*` cross `/`,
+so §564's `apps/driver/src/*.ts` **does** reach `apps/driver/src/sync/useSync.ts` — which is why that guard
+found both `session.clear()` call sites. Two counter-intuitive behaviours, opposite in effect, in one glob
+language.
+
+I had written the general claim (*"git pathspec and most glob engines"*) into the memory this session
+produced. The sweep proved it wrong for the engine this repo uses most, and the note is corrected: **never
+port a glob between `git ls-files` and a library and assume the corpus survived — run both and diff the file
+lists.**
+
+### The remaining scoped scanner, checked rather than assumed
+
+§567's native-source guard scans `workers/api/src/routes/*.ts` only, and there are **16 append sites outside
+it** — in `workers/agents` and `workers/translator`. That is not a gap: those are precisely the internal seams
+`events.ts` names as the legitimate producers of `legacy`/`edi`/`email`, and the guard's job is to lock the
+**client-reachable** set.
+
+The forgery question one layer out was then checked too, since the translator ingests **externally originated**
+EDI. Every seam **hardcodes** its source — `source: "edi"` in `core/map-204.ts`, `source: "legacy" as const`
+in `mirror-sweep.ts`, `source: "native"` for the derived events in `inbound.ts`. **No seam reads its source
+from message content**, so an attacker who can send an EDI document still cannot choose which gate-exemption
+their record claims.
+
+### Result
+
+| Scanner | Engine | Verdict |
+|---|---|---|
+| `source-corpus.ts` (both I3 gates) | `globSync` | **clean** — full tree |
+| `invariants.ts` migration/source scans | `globSync` | **clean** |
+| §564 driver `session.clear()` guard | git pathspec, `*` crosses `/` | **clean** |
+| §567 native-source guard | git pathspec, `routes/` only | **correct by design** — the seams are the carve-out, and each hardcodes its source |
+| §571 tenant guard | git pathspec, `**/` | **was defective — fixed in §572** |
+
+**One defect, one instance, now bounded by a measurement rather than an assumption.**
+
+### Exit state
+
+- `tools/` — 885 tests, 882 green, 3 red (the `REQ-289` row).
+- No source changed this phase; the only edit is the corrected memory note and this record.
+- Thirty-two mutations across eight phases: 26 RED as predicted, 5 silent and each explained, 1 needing
+  `git add -N`.
+
+### Reopen triggers
+
+- A scanner is ported from `globSync` to `git ls-files` (or back) → **the corpus changes silently**. Diff the
+  file lists across the port; a passing test proves nothing here, because the shrunken corpus still passes.
+- A new append seam appears outside `workers/api/src/routes/` → confirm it hardcodes its source; §567's guard
+  will not see it, deliberately.
