@@ -51,7 +51,8 @@
     "verify:dev": "pnpm check:runtime && pnpm typecheck && pnpm lint && pnpm test && pnpm check:invariants && pnpm check:rater-purity && pnpm check:authority-coverage && pnpm check:traceability && pnpm check:coverage && pnpm check:identity && pnpm check:fixtures && pnpm check:rater-parity && pnpm check:invoice-parity && pnpm check:concierge-parity && pnpm check:seed && pnpm audit:design",
     "verify:merge": "tsx tools/release/run-gate.ts --profile merge",
     "verify:release": "tsx tools/release/run-gate.ts --profile release",
-    "verify": "pnpm verify:dev"
+    "verify": "pnpm verify:dev",
+    "check:bundles": "tsx tools/checks/bundle-ratchet.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.12.1",

@@ -26330,3 +26330,39 @@ it. The filmed half is an owner deliverable that the spine deliberately declines
 that cannot be filmed yet is recorded per-demo in the manifest rather than quietly counted as passing.
 
 `test:acceptance` exit 0; `demos.test.ts` **5 passed**.
+
+## §481 — the build passes and nobody reads its warning
+
+§480 verified the acceptance spine. This checks the one CI step no enumeration touched: **the build**. Tests
+passing is not building passing — different tsconfig, different resolution, different bundler.
+
+**`pnpm -r build` exits 0, zero error lines.** But it prints, on TWO of the three surfaces:
+*"(!) Some chunks are larger than 500 kB after minification."* **Nothing in this repo reads that.** A grep
+for `chunkSizeWarningLimit`, a bundle budget, or any size ceiling returns nothing at all.
+
+**Measured:**
+
+| Surface | raw | gzip | map dep |
+|---|---|---|---|
+| `apps/command` | 1,408,636 B | 389,087 B | `@shuddl/map` |
+| `apps/portal` | 1,392,699 B | 384,213 B | `@shuddl/map` |
+| `apps/driver` | 316,336 B | 95,598 B | — |
+
+**The split is not accidental**: the two large surfaces depend on `@shuddl/map` (MapLibre GL) and the driver
+does not. That is the documented stack, not bloat — which is exactly why a budget would be the wrong
+instrument and a **ratchet** is the right one.
+
+**`check:bundles` freezes today's number without blessing it.** It does not claim 1.4 MB is acceptable — that
+is a product call, and §470's rule is that product calls belong to the owner. It claims only that the number
+must not grow unnoticed: a frozen gzip baseline that may FALL freely and may not RISE past +5% without
+someone editing the file and saying why. Same discipline as the citation ratchet already in this repo.
+
+**Gzip is the ratcheted figure, deliberately.** Raw size moves with minifier releases and comment volume;
+gzip is what a driver on a bad connection actually waits for — the number the airplane-mode soak cares about.
+
+**Both directions proved, including the vacuity one §466 taught.** Lowering a baseline to simulate growth →
+**exit 1** naming the app, the excess and the remedy. Removing `apps/portal/dist` entirely → **exit 1**,
+*"no built bundle found … A ratchet that reads nothing reports clean"* — because a size gate that runs before
+the build is precisely the shape §466 found in `check:chokepoint`, and it was not going to be repeated here.
+
+`check:bundles` clean at **command 382 kB · driver 94 kB · portal 377 kB**; `typecheck`, `lint` clean.
