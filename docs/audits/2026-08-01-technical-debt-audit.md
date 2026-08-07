@@ -225,6 +225,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 30 | — | **§582** | COMPLETENESS FOR THE CONTAINMENT LISTS — §581's "every sweep" claim came from a test's NAME; its mechanism is a hand-kept array. Orchestrators now DERIVED from `allTenantSlugs` reachability (9+1+1), M53 catches an untested new sweep |
 | 31 | — | **§583** | SWEEPING FOR THE RECURRING ERROR — 1,163 universal claims narrowed to 19 literal-driven, 2 real: §562's fix had an unswept sibling, and "every deployable scope" meant staging only, leaving PROD's PLATFORM_TENANT_DB parity ungated |
 | 32 | — | **§584** | SCOPES DERIVED, NOT LISTED — a hand-kept two is a hand-kept one a scope later; the set now comes from the `[env.*]` blocks both workers declare, with an EQUALITY floor so a rename fails loud (M56) instead of silently narrowing |
+| 33 | — | **§585** | CROSS-WORKER BINDING PARITY — 9 bindings shared (CONTROL_DB by all 5), 8 ungated. Split into LOGICAL parity (all scopes) and PHYSICAL (staging+prod), because dev's per-worker miniflare ids are correct; 21+12 pairs, 0 divergent |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -31500,3 +31501,72 @@ ever changes shape.
   quiet-shrink failure M56 exists to prevent, and the assertion should stay an equality.
 - `parseWranglerToml` changes how it nests `env` → the derivation reads `doc.root["env"]` directly, and the
   floor is what turns that into a failure rather than an empty set.
+
+---
+
+## §585 — PHASE GATE: one gated binding became nine, and the dev scope is the reason it needed two rules
+
+### The trigger, and what it opened onto
+
+§584 closed with: *"a worker other than api/billing gains a `PLATFORM_TENANT_DB` binding → the derivation
+intersects exactly those two wranglers."* Chasing that found a larger question. **Nine bindings are shared by
+two or more workers** — `CONTROL_DB` by all five — and eight of them were gated by nothing at all.
+
+Two workers binding one logical resource to different targets is a **split-brain**: the biller meters against
+a control plane the api never provisioned into, and **neither side errors**. Nothing reads wrong; the two
+sides simply stop being the same system.
+
+### The measurement that shaped the rule
+
+The naive check — compare every shared binding's target — reports **six divergences**, all in the `dev` scope:
+
+```
+dev  CONTROL_DB   agents=local-agents-control   api=local-control   billing=local-billing-control  …
+```
+
+Those are **correct**. In dev the `database_id` names a per-worker miniflare file while the
+`database_name` is identical across all five (`shuddl-control-dev`) — each worker runs its own local
+instance. A single combined rule would have produced six false positives and been disabled, which is §575's
+warning about a gate nobody trusts.
+
+So the invariant splits in two, along the line the configs already draw:
+
+| Parity | Scopes | Why |
+|---|---|---|
+| **LOGICAL** — `database_name` / `bucket_name` | **every** scope, dev included | the resource's identity; a disagreement is a naming defect wherever it appears |
+| **PHYSICAL** — `database_id` | staging + prod only | in dev the id is a local filename by design |
+
+**Measured: 21 logical pairs, 12 physical pairs, zero divergent.** A clean state locked in, not a defect
+fixed — and the case that most needs a test, since nothing is failing today and nothing else would notice it
+starting to.
+
+| Mutation | Predicted | Result |
+|---|---|---|
+| **M57** diverge agents' **prod** `CONTROL_DB` | RED, naming binding + workers | `prod CONTROL_DB: agents=deadbeef-…, api=e91b8e7c-…, …` |
+| **M58** typo a **dev** `database_name` | RED — logical parity covers dev | RED |
+
+M58 is the half that would have been lost to a single combined rule: the dev scope is excluded from physical
+parity and **must not be** excluded from logical parity.
+
+### Not a replacement
+
+This does **not** supersede §583/§584's `PLATFORM_TENANT_DB` case. That one asserts the binding **exists** in
+both workers — it throws when absent — and a parity-over-shared-bindings rule structurally cannot: a binding
+declared by neither worker is trivially "in parity". Two mechanisms, two different invariants, stated so the
+next reader does not delete one as duplication.
+
+### Exit state
+
+- `tools/deploy/binding-parity.test.ts` — 3 tests green; `preflight.test.ts` 68 green.
+- `typecheck` · `lint` green; both mutated wranglers restored byte-identical.
+- Fifty-eight mutations across twenty phases: **51 RED as predicted, 6 silent-and-explained, 3 real gaps
+  closed, 1 design pinned, 2 claims corrected.**
+
+### Reopen triggers
+
+- A binding type appears that carries neither `database_name`, `bucket_name` nor `database_id` (a KV
+  namespace, a Hyperdrive config) → it is invisible to both rules; the extractor lists the fields it knows.
+- A worker legitimately needs a **different** database for a shared binding name → that is a rename, not an
+  exception. Adding an allowlist here re-opens exactly the split-brain this closes.
+- The dev scope stops using per-worker miniflare ids → the physical rule could then cover dev too, and the
+  two-rule split becomes unnecessary complexity worth collapsing.
