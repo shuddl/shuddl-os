@@ -187,6 +187,11 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 
 ## §4 — Phase gating and the stopping point
 
+> **PHASE 6 CLOSED — §527 is the phase gate for §522–§526: THE INSTRUMENTS.** Every zero-result claim in
+> this session is now enumerated, controlled, mutated or dispatch-read — tabled in §527 with its basis.
+> One probe of seven was found BLIND (§525) and is named rather than quietly fixed. Three distinct forms
+> of "an instrument that was not measuring" appeared within five sections.
+>
 > **STOPPING POINT — §521: the full `verify:merge` profile RUN at 26 gates — 19 PASS, 5 BLOCKED, 2 FAIL.**
 > Both FAILs are the single uncommitted `REQ-289` GTM row, proven by removing it (coverage exits 0,
 > traceability 27/27). All five BLOCKED are absent private fixtures. **Repo-scoped work is done**; §521
@@ -28360,3 +28365,56 @@ the syntax, §525's pattern that could not match the identifier, and now a contr
 All three produced a clean-looking result from an instrument that was not measuring. **A zero is a claim
 about the instrument before it is a claim about the tree**, and the only cheap defence is to make the
 instrument fail loudly in the same breath it reports success.
+
+## §527 — PHASE GATE: the instruments, controlled
+
+**Scope (§522–§526).** Five phases measured the build. This one measured **the instruments that produced
+those measurements** — prompted by §521 asserting a composite it had proved only in parts, and by three
+successive sections finding a probe that was not measuring what it reported.
+
+### Every zero-result claim in this session, and what it rests on
+
+A "0" is worthless without knowing how it was reached. Each is either **enumerated** (the set is small
+enough that every member was read) or **controlled** (a known-positive was planted and the probe found it).
+
+| claim | § | basis |
+|---|---|---|
+| 0 NUL bytes in 878 tracked text files | §510 | **controlled** — planted file, guard names it |
+| 0 bidi / Trojan Source | §511 | **controlled** — planted U+202E |
+| 0 of 7 forbidden features present | §516 | **controlled** (§525) — **1 of 7 probes was BLIND**; re-asked, still 0 |
+| 0 report-only CI gates | §524 | **controlled** (§526) — planted `continue-on-error` |
+| 0 unpinned CI actions | §522 | **enumerated** — all 5 `uses:` listed and read |
+| 0 workflows with `permissions:` | §523 | **enumerated** — both files read whole |
+| 0 install steps without `--frozen-lockfile` | §513/§522 | **enumerated** — all 4 listed |
+| 0 fail-open catches in server source | §503 | **enumerated** — all 15 value-returning catches read |
+| 0 unwatched SQL guards | §502 | **mutated** — all 4 guards neutered individually |
+| 0 unobserved gated kinds | §492 | **mutated** — all 9 kinds un-gated individually |
+| 0 dangling `§N` refs in 5,197 | §508/§509 | **gated** — a test asserts the positive case |
+| 0 unreachable canonical views · 0 missing agents | §517/§519 | **dispatch-read** — the chooser was opened, not the string counted |
+
+**Nothing on that list rests on an uncontrolled grep.** Where one did, it is named: §516's seat row was
+carried by luck until §525 planted a control, and the record says so rather than quietly improving.
+
+### The three failure forms, all found within five sections of each other
+
+1. **A pattern that cannot match the syntax** — `if: *(always…)` vs GitHub's `if: ${{ always() }}` (§524).
+2. **A pattern that cannot match the identifier** — `seat_count|perSeat` vs `seatCount` (§525).
+3. **A control that was never applied** — the anchor missed, the `assert` fired, and the shell ran the probe
+   anyway and printed the pre-written label (§526).
+
+All three produce a clean result from an instrument that is not measuring, and **only the third leaves a
+trace** (a non-zero exit somewhere in the pipeline). The other two look exactly like success.
+
+### What this changes going forward
+
+- **A zero gets a control in the same command that reports it.** One temporary file; the alternative is a
+  claim supported only by nothing contradicting it.
+- **An abort must bind the whole sequence** (`python3 … || exit 1`), and a plant must be **re-verified from
+  the file** before the probe runs.
+- **Prefer the broad token and read every hit** over a narrow pattern encoding an assumed spelling — *the
+  narrower the pattern, the more confidently it lies.*
+- **Captions after output, never with the command.** This one error recurred more than any other and is the
+  cheapest to prevent.
+
+**Exit state unchanged and re-verified:** 12 non-register gates PASS · `typecheck` · `lint` · both workflows
+byte-identical after the controls · the single blocker is still the uncommitted `REQ-289` GTM row.
