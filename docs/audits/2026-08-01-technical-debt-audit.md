@@ -203,6 +203,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 8 | §535–§537 | **§538** | genesis/10's I1–I8 — eight of eight; both authorities now fully accounted |
 | 9 | §539–§541 | **§542** | the RECORD'S NAVIGABILITY — three self-inflicted entry defects; the index is now derived-checked against the headings |
 | 10 | §543–§545 | **§546** | the EXIT STATE — I shipped a type error and reported green twice; `verify:merge` is the only verdict that is an exit state |
+| 11 | §547–§549 | **§550** | the BROWSER GATES — four small counts read rather than counted; each guards the vacuity it is prone to, none was asleep |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -29256,3 +29257,39 @@ spec has no happy-path test at all — it is three ways of asserting a leak does
 measures five things and enforces three, naming the machine profile that would bind the rest (§548); `e2e`
 is six refusals. **The four small counts in §544's profile are four short lists of specific claims** — and
 across §547–§549 not one of them turned out to be a gate that had stopped looking.
+
+## §550 — PHASE GATE: the browser gates, read rather than counted
+
+**Scope (§547–§549).** §544's profile reports four browser gates with small counts — `a11y` 4, `visual` 5,
+`e2e` 6, `perf` 1. **A small count on a gate that drives a real browser is the least legible signal on the
+board**, because the artifact a hollow browser gate produces — a clean axe report, a stable screenshot, a
+passing test — is indistinguishable from the artifact a working one produces. This record also carries a
+standing note that an earlier session *"surfaced a hollow a11y gate"*, so the question was live.
+
+| gate | what it turned out to be |
+|---|---|
+| `a11y` | axe with `serious`+`critical` blocking, and an explicit **paint guard** whose comment names the failure it prevents: *"an unmounted `<div id="root">` has no findings and would be a vacuous pass"*. `color-contrast` disabled on purpose — the design CI owns that threshold |
+| `visual` | per-screen render proof **stricter than a mount signal**: waits for `canvas` and named headings, then asserts the ABSENCE of `NETWORK REQUEST FAILED` / `STATUS UNAVAILABLE`. A blank page fails before a pixel is compared |
+| `perf` | one test, **five** assertions — two of them non-vacuity (*"the rAF sample must actually collect frames"*, *"interaction sampling must have run"*). Measured 401 frames, p95 11.70ms against an 18.18ms budget, on a real GPU |
+| `e2e` | **six refusals**, no happy path in the isolation spec at all: *"never puts a party scope on the wire"*, *"a `party_id` smuggled into the URL never reaches the API"*, *"leaves no stale sheet behind"* |
+
+**Not one was a gate that had stopped looking.** Every small count is a short list of specific claims —
+§492's distinction between how many tests *observe* a property and how strong the property is.
+
+**The finding that is not a defect but is worth an owner's attention:** `perf` prints
+*"enforcing FPS here = false"*. It measures the frame budget everywhere and **enforces it only on a named
+reference profile** (Apple M-series · macOS 15+ · Chromium with GPU · 1440×900 · AC power), because an fps
+number from a throttled or differently-sized machine is a false failure waiting to happen. Cold boot is
+likewise measured and deliberately unbudgeted. **A gate that states the shape of its own authority is rarer
+than one that passes** — and this is the standing *perf on a GPU-capable runner* hold in §521's table,
+visible in the gate's own output rather than only in the record.
+
+**Method note.** These were verified by **reading, not mutation**, and deliberately: planting an
+accessibility violation proves the axe engine works, which was never in question. The question was whether
+the page was there when the engine ran — answered by the guard, not by a probe. §531's fourth explanation
+in advance: *a probe that is not a counterexample proves nothing about the instrument.*
+
+### Exit state
+
+Unchanged from §544's profile run, re-verified against the doc gates, `typecheck` and `lint` at every commit
+since: **19 PASS · 5 BLOCKED · 2 FAIL** — both FAILs the uncommitted `REQ-289` GTM register row.
