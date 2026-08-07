@@ -28072,3 +28072,34 @@ unemitted event kinds in the ledger's core taxonomy. Checking the record first c
 would-be duplicate report into a dated confirmation. **The audit's own record is the first place to look for
 a finding, not the last** — at 517 sections, the likeliest explanation for something surprising is that it
 is already written down.
+
+## §519 — the agent roster: six of thirteen, which is what the documented build says
+
+CLAUDE.md's headline is *"**13 agents** that run the protocol"*, and `packages/agents/src` contains five
+directories. That gap looks like eight missing agents.
+
+**It is not a gap — it is the wrong document.** `genesis/05-V1-BUILD-ZERO-CUTOVER.md` scopes V1 explicitly:
+*"**6 of the 13 agents**: Concierge, Rater, Scheduler, Gatekeeper, Biller, Migrator."* Thirteen is the
+protocol; six is the build. The register and the cutover doc agree, and CLAUDE.md's line describes the
+product, not the V1 surface — which is exactly the source-of-truth order that file states (scope resolves at
+`genesis/09`, then `10`, then the build docs).
+
+**All six exist. Two are roles, not directories** — the fourth instance this session of a name-probe
+returning zero for something plainly present:
+
+| agent | where it actually lives |
+|---|---|
+| Concierge · Biller · Migrator | `packages/agents/src/{concierge,biller,migrator}` |
+| Rater | its own package (`packages/rater`) — *"the engine already exists and is field-deployed"* |
+| **Gatekeeper** | `packages/ledger/src/gates/transition-gates.ts` — *"the Gatekeeper transition-gate catalog"*. CLAUDE.md names the role in its own rule 3 (*"Gates are server-side (Gatekeeper)"*), and §492 measured all nine of its gated kinds |
+| **Scheduler** | the booking→appointment path, with its own acceptance demo: *"SCHEDULER HEARTBEAT — quote → gated booking → appointment → double-book impossible"* |
+
+`collector` and `copilot` are additionally present and are not among the V1 six.
+
+**The method note, because this is now a pattern with four instances** (§513's PNGs, §517's `v_board` and
+its `driver.png` predecessor, and this). Every one had the same shape: a name-keyed probe returned zero for
+something reachable through a mechanism that leaves no matching token — here, a ROLE implemented across
+modules under a different name. The improvement worth recording is timing: §513 published the check and
+reasoned afterward; §517 caught it before publishing; this one predicted the result before running the
+probe. **The rule has moved from a lesson to an expectation**, which is the only version that prevents
+anything.
