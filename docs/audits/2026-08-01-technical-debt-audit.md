@@ -28488,3 +28488,42 @@ lesson). The re-measurement used the wrong suite (a standing note). And the test
 comment asserting *"left all 631 ledger tests AND this file green"* — **false for this file**, written
 before the mutation was run against it, and corrected before commit. The last one is the §524 caption error
 in its most expensive form: a false claim compiled into the repository as documentation.
+
+## §530 — re-running §502 with the corrected method, because §529's error was systematic
+
+§529 found that a mutation had been measured against the **owning package** rather than the **consuming
+worker**, and nearly produced a false "unobserved". That error is not local to one guard: §502 mutated
+three `packages/ledger` guards and read only the 631-test ledger suite. Every one of them is consumed
+elsewhere — so all three RED counts were taken from a suite that does not exercise them end to end.
+
+**Importers found by module path, not basename** (a basename sweep returns `sla-sweep`, `tenants`,
+`concierge` for "money", because those files discuss money — §444 again):
+
+| guard | imported by |
+|---|---|
+| `documents/retention` | `workers/agents/src/index.ts` · `workers/api/src/routes/evidence.ts` |
+| `projection/money` | `workers/api/src/do/sequencer.ts` |
+| `reconcile/credit` | `workers/agents/src/credit-recon-sweep.ts` · `workers/api/src/do/sequencer.ts` |
+
+**Re-measured against the consumers. Both RED=0 verdicts hold:**
+
+| guard | ledger (§502) | agents | api | §502's explanation |
+|---|---|---|---|---|
+| retention `AND retention_status='active'` | 0 | **0** | **0** | unreachable — `CANDIDATES_SQL` pre-filters to active rows. **Confirmed** |
+| anomaly `AND status='open'` | 0 | **0** | **0** | indistinguishable — `anomalies.status` has no CHECK and only `open`/`resolved` are written. **Confirmed** |
+
+**§502's conclusions survive; §502's evidence did not.** The two explanations were reached by reading the
+surrounding query and the schema — which is why they were right despite the measurement being taken in the
+wrong place. **Reading is what saved that section, not the mutation**, and the mutation is what everyone
+would have cited.
+
+**§526's structural fix earned itself here.** The anomaly control failed to plant on the first attempt —
+the anchor string appears twice in that file (a `SELECT` presence-check at line 41 and the `UPDATE` at line
+70), a fact §502 itself recorded and I had forgotten. The probe aborted, restored the file, and said
+`CONTROL NOT PLANTED` instead of reporting a green. Three sections ago that same shape printed a confident
+"← BLIND" for an unmutated file.
+
+**The standing rule, now with a second instance behind it:** *run the suite that owns the CONSUMER.* A
+package suite proves a pure function's contract; only the consumer's suite proves the behaviour anyone
+depends on. Both §529 and §530 exist because a mutation was pointed at the directory the file sits in
+rather than the code path that calls it.
