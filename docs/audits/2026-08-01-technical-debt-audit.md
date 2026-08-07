@@ -224,6 +224,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 29 | — | **§581** | THE SWEEP FAILURE MODEL — 18 entry points, TWO levels; §580 asked only the inner one. Across tenants it is uniformly fail-soft in all 3 workers (M50–M52 all RED), which is what makes the mixed inner designs safe |
 | 30 | — | **§582** | COMPLETENESS FOR THE CONTAINMENT LISTS — §581's "every sweep" claim came from a test's NAME; its mechanism is a hand-kept array. Orchestrators now DERIVED from `allTenantSlugs` reachability (9+1+1), M53 catches an untested new sweep |
 | 31 | — | **§583** | SWEEPING FOR THE RECURRING ERROR — 1,163 universal claims narrowed to 19 literal-driven, 2 real: §562's fix had an unswept sibling, and "every deployable scope" meant staging only, leaving PROD's PLATFORM_TENANT_DB parity ungated |
+| 32 | — | **§584** | SCOPES DERIVED, NOT LISTED — a hand-kept two is a hand-kept one a scope later; the set now comes from the `[env.*]` blocks both workers declare, with an EQUALITY floor so a rename fails loud (M56) instead of silently narrowing |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -31438,3 +31439,64 @@ that test the sweep would have produced 19 "findings" and 17 pointless changes.
 - A new `it("every …")` lands with a literal array → the sweep in this section is a script, not a gate. It was
   run once; nothing runs it on merge, and that is a deliberate limit — the 17 legitimate literals would make a
   gate here 89% false-positive, which §575's rule says is how a gate gets disabled.
+
+---
+
+## §584 — PHASE GATE: closing §583's own trigger, and sweeping the rest of the scope checks
+
+### The trigger, closed
+
+§583 fixed `preflight.test.ts` from `["staging"]` to `["staging", "prod"]` and wrote its own reopen trigger:
+*"a third deployable scope appears → the list is still hand-kept; it should be derived."*
+
+**A hand-kept two is the same defect as a hand-kept one, one scope later.** The set now comes from the
+configs — the `[env.*]` blocks **both** workers declare — so a third scope is covered the day it exists.
+
+| Mutation | Predicted | Result |
+|---|---|---|
+| **M55** diverge billing's **prod** `PLATFORM_TENANT_DB` | RED | RED — the derived set reaches prod |
+| **M56** rename api's `[env.prod]` → `[env.production]` | RED, **loudly** | RED — the floor fires |
+
+M56 is the one that matters. Without the floor, renaming a scope would make the derived set *narrower* and
+every remaining scope would still pass — a scan collapse dressed as a green, which is precisely §572's
+lesson. The assertion is an **equality** on the derived names, not a `length > 0`, so the set cannot quietly
+shrink.
+
+### The rest of the scope-iterating checks
+
+Having found one, the others were measured rather than assumed:
+
+| Check | Scopes | Verdict |
+|---|---|---|
+| `backup.test.ts` | `["prod", "staging"]` | both — clean |
+| `preflight.test.ts` | derived | fixed here |
+| `provision-prod.test.ts` | `[undefined, "staging"]` — **excludes prod** | **correct, and deliberately so** |
+
+The third looked like §583's defect and is its opposite. That test is *"patching touches only `[env.prod]`"* —
+it asserts dev and staging stay **byte-identical** after a prod patch, so excluding prod is the entire point.
+A sweep that reported it as a finding would have been wrong, and only reading the test's purpose separates
+the two cases. **The literal shape is identical; the intent is inverted.**
+
+### What this closes
+
+Prod configuration is the one surface that cannot be validated by running the system — a staging-green build
+says nothing about it. Across the three checks that reason about scopes, prod is now covered wherever it
+should be and deliberately excluded where it should not be, with the derivation failing loud if the scope set
+ever changes shape.
+
+### Exit state
+
+- `tools/deploy/preflight.test.ts` — 68 green; `workers/api/wrangler.toml` and `workers/billing/wrangler.toml`
+  both restored (verified by `git diff --quiet` and `diff -q`).
+- `typecheck` green.
+- Fifty-six mutations across nineteen phases: **49 RED as predicted, 6 silent-and-explained, 3 real gaps
+  closed, 1 design pinned, 2 claims corrected.**
+
+### Reopen triggers
+
+- A worker other than api/billing gains a `PLATFORM_TENANT_DB` binding → the derivation intersects **exactly
+  those two** wranglers; a third participant is invisible to it.
+- The scope-name equality (`["prod", "staging"]`) is loosened to a count or a `>` comparison → that is the
+  quiet-shrink failure M56 exists to prevent, and the assertion should stay an equality.
+- `parseWranglerToml` changes how it nests `env` → the derivation reads `doc.root["env"]` directly, and the
+  floor is what turns that into a failure rather than an empty set.

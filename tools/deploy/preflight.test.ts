@@ -726,12 +726,23 @@ describe("the real repository configuration", () => {
   it("resolves PLATFORM_TENANT_DB to ONE database in every deployable scope", () => {
     // The drift was invisible until someone diffed two files by hand. Pinned as an equality over the
     // parsed configs so a future edit to either side re-opens it here, not in staging.
-    // BOTH deployable scopes (§583). This iterated ["staging"] alone while its name said "every deployable
-    // scope" — so a prod-only divergence in PLATFORM_TENANT_DB, which decides which database the billing
-    // worker meters against and the api writes to, was checked nowhere. They agree today; nothing enforced it.
-    for (const scope of ["staging", "prod"] as const) {
-      const api = targetFromWrangler(parseWranglerToml(readFileSync("workers/api/wrangler.toml", "utf8")), scope);
-      const billing = targetFromWrangler(parseWranglerToml(readFileSync("workers/billing/wrangler.toml", "utf8")), scope);
+    // DERIVED scopes (§584). §583 fixed this from ["staging"] to ["staging", "prod"] — a hand-kept list that
+    // said "every deployable scope" and meant one of two, leaving a prod-only divergence in
+    // PLATFORM_TENANT_DB (which decides the database billing meters against and api writes to) checked
+    // nowhere. A hand-kept TWO is the same defect as a hand-kept one, one scope later, so the set now comes
+    // from the configs: the `[env.*]` blocks BOTH workers declare.
+    const apiDoc = parseWranglerToml(readFileSync("workers/api/wrangler.toml", "utf8"));
+    const billingDoc = parseWranglerToml(readFileSync("workers/billing/wrangler.toml", "utf8"));
+    const envNames = (d: typeof apiDoc): string[] => Object.keys((d.root["env"] ?? {}) as Record<string, unknown>);
+    const scopes = envNames(apiDoc).filter((e) => envNames(billingDoc).includes(e));
+
+    // Non-vacuity: a parser change or a renamed table would yield an empty set and pass over it — the class
+    // this repo met in five gates (§487/§554/§572). Two scopes exist today; a third must RAISE this floor.
+    expect(scopes.sort(), "the scope derivation is stale, not the configs").toEqual(["prod", "staging"]);
+
+    for (const scope of scopes) {
+      const api = targetFromWrangler(apiDoc, scope);
+      const billing = targetFromWrangler(billingDoc, scope);
       const platform = (t: typeof api): string => {
         const d = t.d1.find((x) => x.binding === "PLATFORM_TENANT_DB");
         if (!d) throw new Error(`${t.worker} declares no PLATFORM_TENANT_DB in ${scope}`);
