@@ -27551,3 +27551,41 @@ number. **The check is not "did I get output" but "did the thing I asked about a
 **What this section is for.** The three phase gates now carry re-verified numbers, and the audit's own
 convention — *state the COMMAND, not the criteria* (§445) — means each row above names how to re-run it. An
 owner reading §496 today is reading a claim measured today, not one inherited from twenty sections ago.
+
+## §506 — the seven hard budgets, checked for an enforcer rather than taken on the header's word
+
+CLAUDE.md states seven budgets as **"CI-enforced (exceeding = the PR is wrong)"**. That is a claim about
+enforcement, and §482's whole lesson is that stated enforcement and running enforcement are different
+things. Each was traced to a mechanism:
+
+| budget | enforcer | status |
+|---|---|---|
+| ≤22 tables | `invariants.ts` `TABLE_BUDGET` | gate (mutation-proved §487) |
+| 3 surfaces | `invariants.ts` `checkSurfaceBudget` | gate |
+| 35 event kinds | `EVENT_KINDS.length === 35` in **three** contracts tests | pinned |
+| **12 canonical views** | `assertViewBudget()` — throws at MODULE IMPORT | **mutation-proved today** |
+| 5 color tokens · 2 font families · 0 shadows/gradients/radius>4px | `tools/design/audit.ts` | blocking since WP-10 exit (§258) |
+
+**All seven have an enforcer.** The view budget was the one whose mechanism was least obvious — it is not a
+gate script but a `throw` at import, so it fails whatever suite loads the registry. Verified: pushing
+`CANONICAL_VIEWS` to 13 fails **four suites** with `REQ-084: 13 canonical views exceeds the 12-view budget`.
+Enforcement at import is stronger than a dedicated check, because nothing has to remember to call it.
+
+**The registry sits at 11 of 12 — one slot spare**, which is what made the first probe wrong and is the
+finding worth keeping from this section.
+
+**Asserting the edit landed is not the same as asserting the edit is SUFFICIENT.** §500 ended on *assert the
+edit landed, then read the exit code*. I did exactly that here and still got a false clean: the first
+mutation duplicated one entry, I asserted the **comment** was present, the suite passed — and I nearly
+recorded "the 12-view budget is unenforced." The edit HAD landed. It took the array from 11 to 12, and the
+guard is `length > MAX`, so **12 > 12 is false**. The probe came to rest exactly on the boundary it was
+meant to cross.
+
+The corrected form: for a THRESHOLD guard, assert the **measured quantity crossed the threshold**, not that
+the edit exists. The second attempt printed `entries now: 13` before running anything — and that line, not
+the exit code, is what made the result trustworthy.
+
+**And the RED still had to be attributed.** The re-run exited 1 with *"Tests 78 passed"* — a non-zero exit
+and zero failing tests, which is neither a pass nor a test failure. Reading further showed four **suites**
+failing at import with the budget's own message. Had the failure instead been a non-exhaustive `switch` over
+`CanonicalView`, the exit code would have looked identical while proving something entirely different.
