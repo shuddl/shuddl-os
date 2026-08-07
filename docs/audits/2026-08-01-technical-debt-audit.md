@@ -27882,3 +27882,39 @@ too.* An unexplained artifact invites exactly the cleanup that destroys it.
 this section existed failed `check:section-refs` on the next run — a forward reference to a section not yet
 written. That is the defect class §508 measured (22 pointers into nothing), and the first thing the new gate
 found was me creating one.
+
+## §514 — the unauthenticated surface, and a hold that is correctly deferred rather than missed
+
+The remaining "production ready" question no code sweep had asked: **the no-auth endpoints have no rate
+limiting.** `/pub/quote` reaches the rater; `/pub/signup` provisions a tenant. Zero rate-limit machinery
+exists anywhere in `workers/api/src` — one grep hit, and it is a KPI "bucket".
+
+**That absence is correct, and the record says why before I did.** REQ-193 specifies the control as a
+**Cloudflare EDGE rate-limit rule (per-IP) plus optional Turnstile**, and states outright that *"in-Worker
+rate limiting is deliberately NOT the control layer (it would burn Worker invocations on attack traffic)."*
+REQ-125 carries the per-IP/workspace velocity + LLM cost ceilings. **Finding no code was the expected
+result**, and a sweep that concluded "unprotected" from the empty grep would have contradicted a register
+row that anticipated the exact reasoning.
+
+**The gap is real and tracked in three places** — `PROJECT-STATE.md` ("Per-IP edge rate limits on `/pub/*`
+and `/pub/signup` are not provisioned"), plus two GO-LIVE-CHECKLIST rows. It is an infrastructure hold with
+a named owner, not repo debt.
+
+**What was worth verifying is the EXPOSURE, not the hold.** "Not provisioned" and "exposed today" are
+different claims, and only one of them is urgent:
+
+- `/pub/signup` is dark behind `PROVISIONING_ENABLED` (off by default) — it 404s.
+- `/pub/quote` is **not** flag-gated, which looked like the live half. It is **host-gated**: an unknown host
+  404s at line 126, *before any DB handle is resolved*. And `HOST_TENANTS` contains exactly three entries —
+  `api.local` (the vitest `SELF.fetch` host), `tenant-a.example`, `tenant-b.example` — all **synthetic
+  placeholders**, kept synthetic by REQ-167 (no real tenant domain in the repo).
+
+So no production hostname resolves, every real request 404s before touching D1, and **the unrated surface is
+unreachable rather than unprotected.** The edge rule is required *before public GA*, which is precisely when
+a real hostname enters that map. The hold is correctly deferred, and REQ-167's identity rule turns out to
+double as the thing keeping the surface dark.
+
+**The general shape.** Three of this session's clean negatives (§503's `{}`, §511's BOM, this) share it: the
+alarming reading and the correct reading produce identical evidence, and only the *mechanism* separates
+them. Here the distinguishing fact was not in the endpoint at all — it was in a three-entry constant twenty
+lines above it.
