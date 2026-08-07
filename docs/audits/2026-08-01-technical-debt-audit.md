@@ -233,6 +233,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 38 | — | **§590** | THE DEPLOY-DAY MIGRATION — dev and CI only ever meet an EMPTY database, so a `NOT NULL` ADD COLUMN would pass both and fail on deploy. SQLite's refusal verified empirically; a STATIC rule covers migrations not yet written |
 | 39 | — | **§591** | THE FIVE ACCEPTANCE DEMOS — the gate EXECUTES (7 spine files, 4 packages, 3 pools), cannot pass on a missing file (verified: exit 1), and the mapping is guarded bidirectionally. M66 reddens 3. A clean negative at every level |
 | 40 | — | **§592** | THE SUPPLY CHAIN — 120 caret ranges make the LOCKFILE the guarantee and `--frozen-lockfile` the enforcement; all 4 sites carry it and NOTHING asserted it. One word, no error if removed, green build over an unreviewed tree |
+| 41 | §592 | **§593** | THE LEVERS OUTSIDE THE LOCKFILE — `allowBuilds` grants install-time code execution and `overrides` replaces versions tree-wide; deletion is self-enforcing, GROWTH was not. M69: a denial is not the absence of a permission |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -32063,3 +32064,68 @@ nothing to freeze.
 - `pnpm` gains a config-file equivalent (`frozen-lockfile=true` in `.npmrc`) → the flag could legitimately
   disappear from the YAML while the property holds, and this guard would then be wrong rather than merely
   narrow.
+
+---
+
+## §593 — PHASE GATE: the two levers the lockfile records but does not constrain
+
+### Continuing §592
+
+§592 established the chain: 120 caret ranges → the lockfile is the guarantee → `--frozen-lockfile` is its
+enforcement, now asserted. Two levers sit **outside** that chain, because the lockfile faithfully records them
+rather than constraining them. Both live in `pnpm-workspace.yaml`:
+
+| Lever | What it grants | Current state |
+|---|---|---|
+| `allowBuilds` | **arbitrary code execution at install time**, on CI and every developer machine — pnpm blocks dependency install scripts by default | `esbuild: true`, `workerd: true`, `sharp: false` |
+| `overrides` | replaces a transitive dependency's version **tree-wide** | `chai: "5.3.3"` |
+
+The posture is already correct: default-deny, two native-binary builds permitted, one package explicitly
+denied, and the override carries a comment explaining exactly why (chai@6's `use` export does not resolve
+under workerd).
+
+### Deletion is self-enforcing; growth was not
+
+Remove `allowBuilds` and pnpm blocks esbuild and workerd — the install fails loudly. That direction needs no
+guard.
+
+**Adding a line does not fail anything.** A package granted install-script execution runs arbitrary code the
+next time anyone installs, and the only signal is a two-word diff in a YAML file that reviewers scan past.
+Nothing in `tools/` read `pnpm-workspace.yaml` at all.
+
+This is §571's argument in a second place: an allowlist is the right structure, and **its growth is the review
+moment worth manufacturing**. The test does not prevent an addition — it turns one into a failing assertion
+whose message says what is being granted.
+
+| Mutation | Predicted | Result |
+|---|---|---|
+| **M68** grant a package install-script execution | RED | RED — 1 failed |
+| **M69** remove the explicit `sharp: false` **denial** | RED | RED — **2 failed** |
+| **M70** add a second tree-wide version override | RED | RED — 1 failed |
+
+M69 is the one worth keeping. A denial is not the absence of a permission: deleting `sharp: false` does not
+restore "denied", it reverts to *whatever pnpm's default becomes*. The line records a **decision**, and the
+test treats losing it as a change rather than a cleanup.
+
+### A note on the parse
+
+Flat regex rather than a YAML library, deliberately: adding a parser dependency to read four lines would
+widen the very dependency surface this file exists to watch. The non-vacuity test is what makes that choice
+safe — a restructured file fails there rather than silently matching nothing.
+
+### Exit state
+
+- `tools/checks/supply-chain.test.ts` — 3 tests green; `pnpm-workspace.yaml` restored byte-identical.
+- `typecheck` · `lint` green.
+- Seventy mutations across twenty-eight phases: **62 RED as predicted, 7 silent (six non-counterexamples, one
+  a real gap since closed), 1 that never applied** — **6 real gaps closed**, 1 design pinned, 2 claims
+  corrected.
+
+### Reopen triggers
+
+- A genuine native dependency is added → the fix is to extend the expected set **with a comment naming what
+  it builds and why a prebuilt binary will not do**, not to loosen the assertion to a count.
+- pnpm renames `allowBuilds` (it was `onlyBuiltDependencies` before v10) → the non-vacuity test fails, which
+  is the intended prompt; the guard must be re-pointed rather than deleted.
+- An override is added for a **security** patch → that is legitimate and should still fail here first, so the
+  reason lands in the file next to the pin, where the chai comment already sets the precedent.
