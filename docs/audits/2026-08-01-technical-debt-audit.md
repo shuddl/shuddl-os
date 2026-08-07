@@ -30078,3 +30078,71 @@ fourth explanation is now the most frequently used entry in this record.
   their own pair against `api`.
 - Any new catch returns a value that GRANTS something (authority, entitlement, visibility, money) → the
   §564 sweep is the shape to re-run, and the fallback value is the thing to read.
+
+---
+
+## §566 — Async correctness was unlinted, and enabling it broke a different gate's harness
+
+CLAUDE.md's stack rule says *"TypeScript strict, no `any`"*, and that is enforced. What is not stated — and
+was not enforced — is **async correctness**. `eslint.config.mjs` extends `tseslint.configs.recommended`, the
+**non-type-checked** preset, so `no-floating-promises`, `no-misused-promises` and `await-thenable` were all
+absent. They cannot run without type information.
+
+This matters more in a Worker than almost anywhere else: a floating promise means the isolate returns its
+response and is torn down with the work never having happened. **No error, no log, no retry, and nothing to
+grep for** — the silent-failure class in its purest form.
+
+### Measured before enabling
+
+A one-off type-aware pass over `workers/*/src` and `packages/*/src`: **215 files, zero violations** of all
+three rules (the only findings were 17 `no-unnecessary-type-assertion`, an unrelated preset rule). So this
+locks in a clean state rather than fixing a defect — §486's cheap half, and precisely the case that needs a
+test, because nothing is failing today and nothing else would notice the rule being dropped.
+
+Cost: `pnpm lint` goes from ~5s to **12s**. Scoped to `src` only — tests legitimately float promises in
+fixtures.
+
+### Enabling it broke five tests in a different gate
+
+`tools/checks/lint-guards.test.ts` verifies the REQ-024 ledger ban, the REQ-163 organ-bank ban and the
+`no-explicit-any` rule by linting **synthetic code under a made-up path** (`packages/ledger/src/violation.ts`).
+typescript-eslint's project service cannot type a file that is not on disk, so those paths now returned:
+
+```
+Parsing error: …/packages/ledger/src/violation.ts was not found by the project service
+```
+
+**instead of** the rule violations — and every `expect(...).toBe(true)` silently inverted. Five of seven tests
+went red.
+
+This is [[adding-a-gate-can-delete-a-gate]] in a form the memory did not cover. That entry describes a new
+block *replacing a named rule's options*. Here nothing was replaced — the new block named only new rules, and
+the REQ-024 ban still fires on real files (verified by mutation, M21). What broke was the **harness** that
+proves the ban is wired. The ban survived; its proof did not.
+
+Had I trusted the CLI mutation alone, I would have shipped a change that silently disabled five lint-guard
+tests while every gate reported green.
+
+`allowDefaultProject` was tried first and made it worse — repo lint began failing too. The fix is that each
+lint anchor is now a **real file in the directory whose rules are under test** (`packages/ledger/src/anchor.ts`
+for the ledger block, and so on). The linted code stays synthetic; only the path must be real. A new test
+asserts every anchor exists, so a rename fails *there* rather than as an inverted assertion three tests later.
+
+### Proofs
+
+| Mutation | Predicted | Result |
+|---|---|---|
+| **M20** floating promise in `workers/api/src` | lint fails | `error Promises must be awaited…`, exit 1 |
+| **M21** LLM import in `packages/ledger/src` | REQ-024 still fires | fires — the new block does not clobber it |
+| **M22** the rule set to `"off"` | the two flag-tests RED, the negative one green | exactly that: 2 failed, 9 passed |
+
+M22 is the one that matters: with zero violations in the tree, a rule that is silently turned off looks
+identical to a rule that is working. The three tests distinguish those two states, which is the whole content
+of [[a-silent-mutation-has-two-explanations]].
+
+### A false clean in my own verification
+
+The `grep -c` that was supposed to confirm M22's edit landed returned **0** while the edit was plainly in the
+file — the two REDs prove it. The behavioural evidence was decisive, but the verification step itself was
+broken, which is [[a-false-clean-invites-no-follow-up]] pointed at my own instrument: had the edit *not*
+landed, that same `0` would have looked identical and the mutation would have been credited to nothing.

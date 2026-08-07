@@ -212,4 +212,26 @@ export default tseslint.config(
       ],
     },
   },
+  // REQ-118 §566 — ASYNC CORRECTNESS, type-aware. A floating promise in a Worker is the silent-failure
+  // class in its purest form: the isolate returns the response and is torn down, so the work simply never
+  // happens — no error, no log, no retry. `tseslint.configs.recommended` (line 11) cannot catch it, because
+  // these three rules need TYPE information and the base preset is the non-type-checked one.
+  //
+  // MEASURED BEFORE ENABLING: 215 files across workers/*/src and packages/*/src produced **zero** violations
+  // of all three rules. This locks in a clean state rather than fixing a defect — §486's cheap half — and the
+  // pass costs ~5s per tree.
+  //
+  // Scoped to src only (tests legitimately float promises in fixtures) and naming ONLY these three rules: a
+  // flat-config block REPLACES a same-named rule's options rather than merging them, so redefining
+  // `no-restricted-imports` here would silently drop REQ-024's ledger ban. A test asserts that ban still
+  // fires with this block in place.
+  {
+    files: ["workers/*/src/**/*.ts", "packages/*/src/**/*.ts"],
+    languageOptions: { parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname } },
+    rules: {
+      "@typescript-eslint/no-floating-promises": "error",
+      "@typescript-eslint/no-misused-promises": "error",
+      "@typescript-eslint/await-thenable": "error",
+    },
+  },
 );
