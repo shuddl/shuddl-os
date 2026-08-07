@@ -28959,3 +28959,34 @@ because applying it correctly in one place feels like having applied it.**
 exist, and none of these were that. **A stale pointer resolves.** Every one of §496, §501, §504 is a real
 heading, so every gate in this repository was satisfied by a row that misinformed its reader — which is the
 §484 shape once more, and the reason this class keeps needing a human read rather than another check.
+
+## §541 — gating the one mechanical subset of "a stale pointer resolves"
+
+§540 named the gap and correctly said most of it is ungateable: `check:section-refs` catches a pointer to a
+section that does not exist, and every stale pointer in §507/§539/§540 pointed at a real heading. **A stale
+pointer resolves**, so no existing gate could have objected.
+
+**One subset is mechanical, though: an enumeration of a set the document itself derives.** Phase gates are
+headings; the §4 index is a table. Two lists, one truth — §493's shape, where the delta between two copies
+is the defect even while nothing is failing.
+
+`tools/checks/phase-index.test.ts` derives the gates from the **headings** and asserts the index names each,
+in **both directions** (§465): every `PHASE GATE` section appears as an index row, and every index row names
+a real `PHASE GATE` section. Three tests, including the non-vacuity pair — without it, a renamed heading or
+a moved table makes the assertion pass on two empty sets.
+
+**Mutation-proved by deleting the phase-8 row**: *"every phase gate appears in the index"* reddens and names
+the missing section. So a ninth phase gate now fails the suite until its row exists, which puts the index
+update in front of the person who caused it (§269) instead of leaving it for whoever next notices the count
+is wrong — which, three times running, was nobody until I looked.
+
+**Wired by existing infrastructure, deliberately.** `tools/**/*.test.ts` is already in the merge profile via
+`test`, so this costs no new gate script, no `run-gate` entry, and no round of count-pinning doc updates —
+the same choice §510 made and for the same reason. **The lightest correct wiring is the one that already
+exists.**
+
+**What this does NOT close, stated plainly.** It gates one shape: an enumeration of a derivable set. It
+cannot catch a pointer that is stale in *meaning* — a row describing a section's conclusion after that
+conclusion changed. §505's habit (re-measure the claims at HEAD) remains the only instrument for that, and
+it is a habit, not a gate. **Three of this session's record defects were of the gateable kind; the rest were
+caught by reading, and there is no version of this record where that stops being true.**
