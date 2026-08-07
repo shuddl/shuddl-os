@@ -243,6 +243,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 48 | §599 | **§600** | ZERO-DENOMINATORS DON'T GENERALIZE — the only other variable divisor is structurally safe (module-private, both call sites guarded). Two probes lied: a text sweep for `/` (522 noise hits) and a grep that missed the test under different wording |
 | 49 | — | **§601** | THE GL DOUBLE-ENTRY ASSERTION — both firing conditions are closed by other layers (construction; `NOT NULL CHECK != 0`), so it is a TRIPWIRE. M82-b breaks construction and it fires. No test added, and why is the finding |
 | 50 | §599–§601 | **§602** | THE DIVISION FILTER (SQL, pre-pairing — safe + covered) and the MERGE GATE RE-MEASURED: 19/2/5, IDENTICAL to §569 across 17 phases, 9 closed defects and 83 mutations — because every remaining failure is an owner-held input |
+| 51 | — | **§603** | THE REQ-289 BLOCKER MEASURED — restated 17 times, never re-checked. Not "uncommitted": an approved-terminal constant AND a classifier with no GTM disposition. Landing set PROVED by rehearsal: 4 items, atomic, owner-signed |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -32716,3 +32717,76 @@ to *the triggers already written down*.
 4. Sender-domain verification + Cloudflare OIDC.
 5. The **filmed** half of the five acceptance demos — §591 confirmed the automated half green and honestly
    labelled.
+
+---
+
+## §603 — PHASE GATE: the REQ-289 blocker, measured instead of repeated
+
+### Why this phase
+
+Every exit state since §544 has said *"2 FAIL — the uncommitted `REQ-289` GTM register row"*, and §602 said it
+again. **A blocker restated seventeen times without being re-measured is exactly the shape this record
+distrusts everywhere else.** So it was taken apart.
+
+### The description was imprecise, and one part of it was wrong
+
+The row is **not** malformed and **not** merely uncommitted-in-a-way-that-breaks-parsing. It is well-formed —
+8 fields, correct alignment, zero CSV misalignment anywhere in the file — with `source` pointing at a real
+plan document and `spec` reading **"Owner approval 2026-08-02"**.
+
+The two failures have **two distinct causes**, neither of which is "uncommitted":
+
+1. **`traceability`** — the register is asserted contiguous through an *approved terminal ID* hard-coded as
+   `REQ-288`. A 289th row exceeds it.
+2. **`coverage`** — the classifier's eight dispositions cover no GTM lane. `status: "ACTIVE"` is unique to
+   this row in a vocabulary of six, and `wp: "GTM-0"` names no build WP.
+
+I also claimed the terminal was scattered across **three** places. Reading corrected it: the third
+(`citation-links.test.ts:93`, `"coverage must stay 288/288"`) is a **fixture string** in a list of things the
+citation parser must *ignore* — sample prose, not a constant. There are two, on adjacent lines of one test.
+
+### The complete landing set, proved by applying it
+
+Rather than assert what landing REQ-289 needs, the edits were applied as a reversible probe and the residue
+measured at each step:
+
+| Step | Effect |
+|---|---|
+| terminal `288 → 289` | `traceability` passes |
+| a 9th disposition `gtm-lane` (`status: ACTIVE` + `wp: GTM-*`), deferred | `coverage` classifies 289/289 |
+| **a recorded home** in `GO-LIVE-CHECKLIST` or the coverage-manifest | still required — *"deferred disposition (gtm-lane) with no recorded home"* |
+| committing the register row | the owner's scope signature |
+
+**Four items, not one.** The first two are tooling; the third is content; the fourth is scope.
+
+### Why none of it was landed
+
+Applying the tooling half **without** the register commit breaks the gate in the opposite direction — the
+checks would then demand 289 rows while the committed register holds 288, failing for everyone until the row
+arrives. The four items are atomic, and the atom is owner-signed.
+
+That is the same judgment as §564 (record the hold, do not ship the auth change) and §580 (pin the design, do
+not pick it): **where the correct action requires an authority I do not have, the deliverable is a precise,
+verified procedure — not a partial application of it.**
+
+### What changed
+
+Nothing in the code. What changed is that *"owner-blocked"* stopped being a label and became a **checklist
+whose completeness was measured**: apply items 1–2, and the tool tells you item 3 by name. The owner can land
+REQ-289 in one commit without discovering the set by trial.
+
+### Exit state
+
+- `tools/traceability/` — restored byte-identical, `git diff --quiet` clean, back to the baseline 3 failures.
+- `verify:merge` unchanged: **19 PASS · 2 FAIL · 5 BLOCKED**.
+- No mutations this phase (the probe was a landing rehearsal, not a mutation — it was expected to turn tests
+  GREEN, and did).
+
+### Reopen triggers
+
+- REQ-289 lands → all four items must be in that commit; items 1–2 alone break the build, item 4 alone
+  reproduces today's two failures.
+- A **second** GTM-lane row arrives before the classifier is extended → it fails identically, and the
+  `gtm-lane` disposition proved above is the fix.
+- The terminal ID moves for any other row → the same two adjacent lines; there is no third site, despite what
+  a grep for `288` suggests.
