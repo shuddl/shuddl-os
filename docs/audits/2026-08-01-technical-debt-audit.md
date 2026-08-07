@@ -207,6 +207,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 12 | §554–§556 | **§557** | the LAST THREE GATES — `design-audit` certified the pixel law over ZERO files (HIGH); `runtime` fails closed but not for the stated reason; `lint` covers 679/685, and the shipped exclusion's `install` path was untested |
 | 13 | §558–§559 | **§560** | THE GATES' OWN CORPUS — the money-parity harness certified itself over zero cases (HIGH); 10 of 20 gates reached a different verdict from a subdirectory, all tracing to one `cwd = process.cwd()` idiom |
 | 14 | §561–§562 | **§563** | WHAT THE GATES MEASURE — all seven CLAUDE.md hard budgets mutation-proved; 3,600 test blocks swept for vacuity (clean); the authority fail-closed law was testing a hand-copy of its own module set |
+| 15 | §564 | **§565** | THE FAILURE PATHS — 194 catch sites classified by FALLBACK VALUE; all fail closed but one, whose §182 hold was documented and unenforced (now enforced); §182's prescribed remedy proved unreachable |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -30000,3 +30001,80 @@ told to drop, whatever storage does. It carries its own caveat (a freshly constr
 the surviving bytes again), which is why it is recorded here rather than shipped: **§182's hold is intact and
 now mechanically enforced**, and changing auth behaviour on audit initiative is not this loop's call. The
 trigger is sharpened, not fired.
+
+---
+
+## §565 — PHASE GATE: the failure paths, swept by fallback value
+
+### What this phase did
+
+§563 closed the instruments and the budgets. This phase read the **product code's failure paths** — every
+catch in `workers/`, `packages/` and `apps/`, classified by the value it returns rather than by whether it
+handles the error, because that is where the guarantee lives.
+
+**194 catch sites: 54 rethrow, 78 return a fallback, 62 swallow.** Twelve are completely empty, and all twelve
+were read.
+
+| Site | Fallback | Verdict |
+|---|---|---|
+| `entitlements.ts:41` | `{}` | fail-closed — sole consumer requires `=== true`; the sibling SKU gate reads only `plan`, so a spoofed policy cannot lift it |
+| `workers/agents/src/index.ts:411` | `json(200, …)` | a diagnostic probe behind five gates — flag-inert, bearer **fail-closed to 500-misconfigured**, constant-time compare, operator-only recipient, bounded `probe_id` |
+| three `tenants.ts` copies | skip the row | correct, and the claim *"the resolver would refuse it the same way"* **verified**: `resolveTenantDb` catches and throws the same `FORBIDDEN` as a static miss |
+| `driver-manifest.ts`, `watchtower.ts` | `null` / skip | the honesty law in code — *"never fabricate a location"*, *"never fabricate a cost"* |
+| `biller.ts`, `inbound.ts`, `sender.ts`, `der.ts` | deterministic fallbacks | benign; no authority or money is granted by any of them |
+| **`auth/session.ts:50`** | **empty** | **fail-OPEN, documented at §182 — the finding** |
+
+The tenant mirrors deserve their own note as a clean negative: four copies of `tenants.ts` exist deliberately,
+and **three parity tests** (one per mirror, each comparing raw source against `workers/api`) cover every pair,
+each with its own `apiSlugs.size > 0` floor. Complete coverage, floors included.
+
+### The finding, and why it was left as a hold
+
+§182 had already recorded `clear()`'s fail-open and accepted it because both call sites are 401 handlers. That
+premise **still holds exactly** — but nothing enforced it. §564 makes a third call site fail a test whose
+message is §182's own trigger.
+
+The behaviour itself was **not** changed. §182's hold is intact, now mechanically enforced, and its trigger
+has not fired. Shipping an auth-behaviour change on audit initiative would be scope this loop does not own —
+particularly since the working remedy (an in-memory tombstone) carries a caveat worth a deliberate decision: a
+freshly constructed `AuthSession` would read the surviving bytes again.
+
+What did change is the **quality of the trigger**. §182 prescribed *"read back, overwrite, and surface a
+failure."* M19′ proved the overwrite is unreachable: a store that refuses `removeItem` refuses `setItem` too,
+so the prescribed remedy throws straight back into the catch it was meant to fix. Only *surface a failure* is
+achievable in place. That is a defect in a remedy, found by trying to perform it.
+
+### The method result
+
+**Three of five mutations this phase were not counterexamples** — the highest ratio of any phase, and each
+taught something:
+
+- **M18**: the mutation's own comment (*"nowhere near a 401"*) contained the token the guard searched for.
+  **Annotating a mutation defeated the check being tested.** A guard on a code property must not be
+  satisfiable by prose.
+- Stripping comments then exposed that the guard's **token list came from the comments too**: the literal
+  `401` never appears in these paths, which use `res.kind === "unauthenticated"` and `authBlocked`. The first
+  version would have passed a call site that merely mentioned 401 and failed the two real ones.
+- **M19 / M19′**: verification placed where the throw had already jumped past it, then a remedy the failure
+  mode makes impossible.
+
+Every one was caught by predicting the failing test by name first and disbelieving a silent green — §531's
+fourth explanation is now the most frequently used entry in this record.
+
+### Exit state (measured at this commit)
+
+- `apps/driver` — **68 tests, 11 files, all green** (+6 this phase).
+- `packages/ledger` — 631 green · `tools/` — 875 tests, 872 green, **3 red**, all three the uncommitted
+  `REQ-289` register row. Owner-blocked, unchanged since §544.
+- `typecheck` · `lint` · all doc gates green.
+- Nineteen mutations across four phases (M1–M19″): **fourteen RED as predicted, five silent and each
+  explained** — none written off.
+
+### Reopen triggers
+
+- A voluntary logout / login screen lands (REQ-069) → §564's guard fails, and the fix is **not** §182's
+  overwrite. `clear()` must report whether it succeeded, or the session must tombstone in memory.
+- A fifth `tenants.ts` mirror appears → it needs its own parity test; the three existing ones each cover only
+  their own pair against `api`.
+- Any new catch returns a value that GRANTS something (authority, entitlement, visibility, money) → the
+  §564 sweep is the shape to re-run, and the fallback value is the thing to read.
