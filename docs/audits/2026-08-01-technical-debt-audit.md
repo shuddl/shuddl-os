@@ -340,6 +340,23 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 > §467, §468); one was re-verified and confirmed (§470). **A file-rather-than-fix decision deserves the same
 > scepticism as a green test** — and five mechanical classifiers over-reported here, each corrected by
 > reading, which is this phase's most repeated finding about its own instruments.
+>
+> **PHASE GATE, 2026-08-06 (§475–§479): the biller cluster, then the gate surface itself.** §475 pinned a
+> money guard that was removable in silence — and found the end-to-end test IMPOSSIBLE to write, because the
+> booking gate refuses to build the scenario; the unit is the only instrument when a guard is unreachable
+> BECAUSE an earlier gate does the work. §476 is the counterpart and adds no test: a green mutation on the
+> money path that is correct, because the scenario is unreachable AND the guard making it so is itself
+> pinned. §477 closed the zero-reference sweep with its measured yield — **4 real gaps in 7 probed clusters,
+> every gap security- or money-adjacent**, and 137 zero-reference exports remaining, categorised.
+>
+> §478 ran **all 18 gates**: 16 green, `check:coverage` blocked by the GTM workstream's uncommitted
+> `REQ-289` row (proven by stash), `check:pr` correctly refusing to certify with no `PR_BODY` (proven in
+> both directions). §479 closed the second input channel: **no gate in this repo can now report clean
+> without having inspected something**, and `check:identity` fails CLOSED under `CI=true` — REQ-167 is
+> enforced on every CI run.
+>
+> **The distinction this stretch adds:** a green mutation is a gap only if the scenario is reachable, and
+> the reachability guard is itself pinned. §475 and §476 differ on exactly that question and nothing else.
 
 Grades from `V2-EXECUTION-FRAMEWORK.md` §9. What this audit adds to each bar:
 
@@ -26256,3 +26273,31 @@ SKIPPED"*). Two of eighteen gates got this right before the audit noticed it was
 **So the production-readiness statement is precise rather than round:** 16 of 18 gates green; 1 blocked by
 another workstream's uncommitted row, proven by stash; 1 correctly refusing to run without its input, proven
 in both directions. **No gate on this tree passes vacuously and none fails for a reason inside this repo.**
+
+## §479 — the other input channel, and a skip that is honest because it is conditional
+
+§466/§467 closed input-vacuity for gates that read files by GLOB — a scan that scans nothing reports clean.
+§478 surfaced a second channel it never touched: gates that take an ENV VAR or an ARGUMENT. Swept: of 18
+gates, exactly **two** take external input. The other sixteen's `process.argv` hits are all the
+`process.argv[1]?.endsWith(…)` main-guard idiom, not a parameter.
+
+**Both are correct, and one is the best-designed gate in the repo.** `check:pr` was verified in §478.
+`check:identity` (REQ-167, the identity-leak lint) has **three modes**, all measured here:
+
+| Invocation | Exit | Behaviour |
+|---|---|---|
+| bare | **0** | *"no denylist available … Lint SKIPPED — wire the secret before external contribution"* |
+| `REQUIRE_DENYLIST=1` | **1** | *"FAIL … the identity-leak gate fails CLOSED in CI / at a WP-exit"* |
+| `CI=true` | **1** | fails closed |
+
+**A skip is only honest if some mode makes it mandatory.** A gate that skips everywhere is a gate that never
+runs; a gate that fails everywhere is one people disable. This one skips exactly where the input legitimately
+does not exist (a local tree with no secret) and fails closed exactly where it must (CI, WP-exit) — and it
+says which, in the message, at the moment it decides. **`CI=true` failing is the production-readiness fact
+worth stating plainly: REQ-167 is enforced on every CI run**, so the local SKIP is not a hole in the gate, it
+is the gate knowing where it is.
+
+**Both input channels are now closed.** Glob input: 8 gates read files, 1 lacked a floor (§467, fixed).
+External input: 2 gates take it, both refuse to certify nothing, verified in every mode. **No gate in this
+repo can now report clean without having inspected something** — which is the property §466 discovered was
+missing and is the only one that makes the other seventeen verdicts mean anything.
