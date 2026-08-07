@@ -27715,3 +27715,40 @@ fails the moment the list changes.**
 
 **State: 5,197 references across 109 markdown files, 507 sections, zero dangling** — and now it stays that
 way by a gate rather than by my having looked once.
+
+## §510 — a gate this repo relies on was the one file nobody could review
+
+Committing §509 printed one line that did not belong:
+
+```
+tools/checks/gate-wiring.test.ts | Bin 6065 -> 6159 bytes
+```
+
+**A TypeScript file was BINARY to git.** It carried four NUL bytes, each sitting exactly where a space
+belongs inside a template literal — `` `${name}\0${cmd}` `` — and `git show HEAD~1` confirms they predate
+this session entirely. I inherited them and my commit carried them forward.
+
+**Nothing caught it, and nothing could.** The file compiled, linted, and its five tests passed: a NUL inside
+a template literal is a legal JavaScript character, so every gate this build owns was satisfied. The damage
+is not to execution — it is to **review**. Git renders a binary file's every change as `Bin X -> Y bytes`
+with no diff, so each change to that file was unreadable in every PR and every `git show`.
+
+**The file is `gate-wiring.test.ts`** — the test that pins profile sizes and asserts no gate script goes
+uninvoked. It has fired three times this phase (§483, §509) to force doc updates, and it is the one file in
+the repository whose own changes could not be inspected. **A guard nobody can read is a guard on trust.**
+
+Repaired (4 NULs → spaces; `file` now reports UTF-8, suite green). Swept the rest: **878 tracked text files,
+exactly one offender.**
+
+**Guarded with a test, deliberately not a new gate script.** `tools/**/*.test.ts` already runs in the merge
+profile via `test`, so this costs no new script, no profile entry, and no third round of count-pinning doc
+updates (§483, §509 — the tripwire fired for both). **The lightest correct wiring is the one that already
+exists.** Mutation-proved by planting a NUL file: the guard names it and fails.
+
+**Two of my own errors on the way, and the second is the better lesson.** First, I assumed I had introduced
+the corruption; `git show HEAD~1` said otherwise, and blaming the wrong commit would have sent the fix at
+the wrong file. Second, the guard's first run **timed out at 5,000 ms** — it called `repoRoot()` inside the
+per-file filter, spawning `git rev-parse` 878 times. That is a red with the right name and the wrong cause:
+it reads as *"the NUL check found something"* and means *"the NUL check is slow."* Hoisting one call took it
+from **8,116 ms to 85 ms**. §502 said only reading separates identical-looking REDs; here only reading
+separated a red from a timeout wearing its name.
