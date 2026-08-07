@@ -186,9 +186,20 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 
 ## §4 — Phase gating and the stopping point
 
-> **RE-MEASURED 2026-08-06 (§483–§486) — the GATE SURFACE ITSELF, which no prior measurement had audited.**
-> Every prior re-measurement asked *do the gates pass?* This one asked *can they fail?* — and found one that
-> could not. `check:tables`, run from any directory but the repo root, printed **"OK (0 markdown files,
+> **RE-MEASURED 2026-08-06 (§483–§489) — the GATE SURFACE ITSELF, which no prior measurement had audited.**
+> **Final tally: seven gates carried one convention defect.** Every prior re-measurement asked *do the gates
+> pass?*; this phase asked *can they fail?* Four could not, or not fully: `check:tables` and
+> `check:invariants` reported OK having read ZERO files — the latter certifying CLAUDE.md rule 2
+> (append-only), the ≤22-table budget and I1–I8 against an empty set, with the budget "satisfied" because
+> zero is under twenty-two; `check:citations` reported OK over an empty corpus, saved only by an unhandled
+> ENOENT that was a crash rather than a verdict; and `identity-leak` scanned only the caller's subtree, so
+> REQ-167's *"any repo artifact"* had a scope that depended on where the process started. Two gates already
+> had the guard (`rater-purity`, `chokepoint`) and three were protected only incidentally. All fixed, one
+> shared `repoRoot()` helper (§489), each pinned and mutation-proved. **The defect was in the convention,
+> not in any gate** — `process.cwd()` is the Node default everywhere and silently makes a scan's scope a
+> function of where you stand.
+>
+> **The detail, as first written when only one instance was known.** `check:tables`, run from any directory but the repo root, printed **"OK (0 markdown files,
 > every table row matches its header)" and exited 0**: the gate guarding the record against over-wide rows
 > that silently delete residual-risk statements would certify the record having opened no files (§484,
 > fixed at the cause + the symptom, 9 tests, 2 mutations RED). The other three unpinned gates were probed at
