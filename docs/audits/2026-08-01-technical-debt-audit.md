@@ -204,6 +204,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 9 | §539–§541 | **§542** | the RECORD'S NAVIGABILITY — three self-inflicted entry defects; the index is now derived-checked against the headings |
 | 10 | §543–§545 | **§546** | the EXIT STATE — I shipped a type error and reported green twice; `verify:merge` is the only verdict that is an exit state |
 | 11 | §547–§549 | **§550** | the BROWSER GATES — four small counts read rather than counted; each guards the vacuity it is prone to, none was asleep |
+| 12 | §554–§556 | **§557** | the LAST THREE GATES — `design-audit` certified the pixel law over ZERO files (HIGH); `runtime` fails closed but not for the stated reason; `lint` covers 679/685, and the shipped exclusion's `install` path was untested |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -29466,3 +29467,62 @@ All merge-profile gates have now been examined for what their green certifies:
 `check:identity`, `check:section-refs`, `check:runtime`, `design-audit`, `lint`, `test`, and the browser/perf
 gates (§550, by reading — planting an accessibility violation proves the axe engine works, which was never
 the question).
+
+---
+
+## §557 — PHASE GATE: every merge-profile gate has now been asked what its green certifies
+
+### What this phase did
+
+Three gates entered it unexamined — `design-audit`, `runtime`, `lint`. All three are now measured, and the
+phase produced one HIGH, one clean negative with a fix behind it, and one corrected belief.
+
+| § | Gate | Verdict |
+|---|---|---|
+| **§554** | `design-audit` | **HIGH, fixed** — printed `design audit: clean`, exit 0, over a corpus of zero files; five CWD-relative paths including the report *write* |
+| **§555** | `check:runtime` | Fail-closed on all eight degenerate inputs. The stated *mechanism* was wrong and the mutation caught it |
+| **§556** | `lint` | 679/685 tracked files; the one shipped exclusion is documented and covered — but its `install` path was not, and `addAll` is atomic |
+
+### Why §554 is the one that mattered
+
+`design-audit` is **blocking** (CLAUDE.md rule 7) and is the sole enforcer of the pixel budgets — 5 color
+tokens, 2 font families, 0 shadows/gradients/radius>4px. §252 had proved its *detector* works by planting
+violations. That is a different question from whether it ever reads a file, and only the second one was open.
+
+It brings the count to **four gates that could certify an empty input** — `check:tables`, `check:citations`,
+`check:invariants` (§487), `design-audit` (§554). That is not an authorship coincidence: **a per-file
+scanner's failure mode is silence**, and silence is indistinguishable from success unless someone writes down
+what "enough input" means. The standing rule: any gate that iterates a file list gets its floor in the same
+commit as the loop.
+
+### The method note
+
+§555 is the phase's most useful process result, and it is a correction of my own work. The tests shipped with
+a stated mechanism for why the Node half fails closed. **M5 applied exactly the refactor that mechanism said
+would break it, and all 12 tests stayed green** — the guarantee is over-determined by the two-sided range, not
+incidental to NaN semantics. §531's fourth explanation: *the probe was not a counterexample.*
+
+A vaguer comment ("fails closed on bad input") would have been true and would have left a wrong model in the
+record permanently, because there would have been nothing to test it against. **A comment that states a
+mechanism can be falsified by the code; one that states an outcome cannot.**
+
+### Exit state (measured at this commit)
+
+- **92 tests** across the five suites this phase touched — all green.
+- `typecheck` · `lint` · `audit:design` · `check:runtime` · `check:tables` · `check:invariants` ·
+  `check:section-refs` · `check:citations` — all exit 0.
+- Merge profile unchanged from §544/§554: **19 PASS · 5 BLOCKED · 2 FAIL** — the 5 BLOCKED on absent private
+  fixtures, both FAILs the uncommitted `REQ-289` GTM register row. Neither is repo-owned; both are in §521's
+  owner table.
+- Nine mutations run this phase (M1–M9), **eight RED as predicted, one silent and explained**. Three were
+  chosen to discriminate (M4, M7, M8) and each reddened exactly its subject, so the properties are
+  independently watched rather than jointly.
+
+### Reopen triggers
+
+- A new gate that iterates a file list ships **without** a floor → §554's class is back.
+- `sw.js`'s `SHELL` gains an entry that is not a `public/**` file or the Vite entry → §556's parse needs its
+  resolution rule widened, not its assertion loosened.
+- `installedPnpm()`'s catch stops returning a string literal → §555's third test says so by name.
+- The `apps/*/public/**` eslint ignore grows a second code file → it inherits sw.js's situation without
+  sw.js's compensating test.
