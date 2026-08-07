@@ -29149,3 +29149,45 @@ against `check:citations`, `check:tables`, `check:section-refs`, `typecheck` and
 **19 PASS · 5 BLOCKED · 2 FAIL** — both FAILs the uncommitted `REQ-289` GTM register row, proven by removing
 it (`unit-tests` exits 0 with zero failing tests, `coverage` exits 0); all five BLOCKED are the absent
 private fixtures and the unset `IDENTITY_DENYLIST` secret, each blocking rather than passing.
+
+## §547 — the browser gates, checked for the vacuity they are most prone to
+
+§544's profile reports `a11y` PASS with **4** assertions, `visual` PASS with **5**, `e2e` **6**, `perf` **1**.
+Small counts on gates that run a real browser, and this record carries a standing note that an earlier
+session *"surfaced a hollow a11y gate"* — so the question is whether the numbers are small because the
+claims are narrow, or because the gate is not looking.
+
+**The vacuity a browser gate is uniquely prone to: a page that never painted.** An unmounted
+`<div id="root">` has zero accessibility violations and produces a screenshot that is stably blank. Both
+gates would report green having measured nothing, and the count would look exactly the same.
+
+**`a11y` guards it explicitly, and the comment names the failure it prevents:**
+
+```ts
+// Every surface must have actually PAINTED before we sample: an unmounted <div id="root"> has no
+// findings and would be a vacuous pass. Rendered text is the mount signal — `waitForSelector` is the
+// wrong instrument here because these surfaces size themselves from a full-height flex chain, so the
+// root legitimately reports as not-visible for a moment.
+await page.waitForFunction(() => (document.body.innerText ?? "").trim().length > 0, …)
+```
+
+It also **disables `color-contrast`** deliberately — the design CI's contrast test owns that threshold, and
+two tools asserting one rule with different thresholds would fight. The fourth assertion is a WCAG 2.1.1
+keyboard-operability test on the driver day sheet, anchored on `getByText("Day sheet")` being visible before
+it does anything.
+
+**`visual` guards it per screen, and more strictly than a mount signal.** It waits for a `canvas`, for named
+headings (`PARTY_ID`, `"Day sheet"`, `"DELIVERED"`), and asserts the ABSENCE of the failure states a blank
+or broken render would show — `expect(getByText("NETWORK REQUEST FAILED")).toHaveCount(0)`,
+`expect(getByText("STATUS UNAVAILABLE")).toHaveCount(0)`, and `board-status` matching
+`/LIVE MAP · LIVE · AS OF /`. **A blank page fails those before any pixel is compared.**
+
+**So the counts are small because the claims are few and specific, not because the gates are asleep.** That
+is the distinction §492 drew for the gate table — a count measures observers, not strength — and the
+browser gates are the place where a hollow green is hardest to notice, because the artifact it produces (a
+clean report, a stable screenshot) looks identical to a correct one.
+
+**Verified by reading rather than by mutation**, deliberately: these gates need a browser, the harness
+BLOCKS rather than skips when one is absent, and a planted violation would prove the axe engine works —
+which was never the question. **The question was whether the page was there when it ran**, and that is
+answered by the guard, not by a probe.
