@@ -237,6 +237,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 42 | §592–§593 | **§594** | THE SUPPLY-CHAIN LINE CLOSED — actions SHA-pinned, `pnpm audit --prod` blocking, gitleaks history-wide, all re-proved live (M71/M72). Every remaining question is an architecture change, not an unchecked property |
 | 43 | — | **§595** | SESSION EXPIRY — four auth tests covered every way a token is INVALID, none covered one that is merely OLD. Enforcement rests on one library call in a blanket catch; M73 (decode instead of verify) reddens it. `exp` is schema-REQUIRED, so no token is immortal |
 | 44 | §595 | **§596** | THE AUTHORIZATION CODE — token expiry was covered 3×, single-use by nothing. The delete precedes ALL validation, so a failed exchange spends the code; M75 was silent (delete still preceded PKCE), M75-b caught it |
+| 45 | — | **§597** | THE ERROR BOUNDARY TO CALLERS — no API path builds a raw error, no ApiError carries exception text, the handler returns a FIXED message for anything unexpected. Tested with both complements; M76 reddens. A clean negative |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -32314,3 +32315,70 @@ also the more realistic mistake, since *"only consume the code on success"* soun
   neither case above covers that grant type.
 - The delete moves for a defensible reason (e.g. a retryable transport fault mid-exchange) → that is a real
   design decision, and M75-b is the probe that proves whichever ordering is chosen.
+
+---
+
+## §597 — PHASE GATE: the error boundary to callers, and a clean negative worth the trip
+
+### The surface
+
+§575 audited what reaches **logs**. This phase audited the other one-way surface: what reaches **callers**. An
+error body is the cheapest information-disclosure vector in any system — a stack trace, a SQL fragment, or an
+internal identifier costs an attacker nothing to collect.
+
+### Every layer holds
+
+**The envelope is universal where it should be.** `ErrorEnvelope` is `{ code, message, req_id }` plus two
+optional fields, and no API path builds a raw error response. The seven raw `new Response("…")` sites are all
+on **non-API** surfaces, each correctly so:
+
+- the Stripe webhook (Stripe expects plain text, not our envelope);
+- the flag-gated `/test-send` probe's 404s (§564's no-oracle posture);
+- unrouted 404s in billing and translator.
+
+**No client error carries exception text.** Not one `ApiError` is constructed from a caught exception's
+message anywhere in `workers/*/src`.
+
+**The global handler is fail-closed on disclosure.** An `ApiError` returns its own developer-authored message;
+**anything else** logs server-side and returns a fixed `"INTERNAL ERROR"`. A D1 fault's SQL reaches the log —
+the surface §575 already audited and scrubbed — and never the caller.
+
+### And it is tested, in the shape that matters
+
+Three cases, and the second and third are what make the first mean something:
+
+| Case | What it prevents |
+|---|---|
+| an unexpected throw returns a **fixed** message | the leak itself |
+| the envelope still carries **`req_id`** | "fixed message" being achieved by returning nothing useful — the error stays diagnosable from the log |
+| an `ApiError` keeps its **own** code and message | the guard being satisfied by a blanket `INTERNAL` for everything, which is §576's masking risk and §595's third case again |
+
+**M76** applied the realistic wrong refactor — `envelope(c, "INTERNAL", 500, err.message)`, the one someone
+writes *"for better debugging"* — and the disclosure case reddened.
+
+### This phase found nothing, and that is the finding
+
+Like §591, the honest output is that the previous author already did the work — including the two complement
+cases that a less careful suite would omit, leaving a guard that passes while being useless or over-broad.
+
+Recording a clean negative has a cost and a value. The cost is a section with no fix in it. The value is that
+**"has anyone checked the error bodies?" now has a dated, mutation-backed answer** instead of an assumption,
+and the next person does not spend the afternoon I just spent.
+
+### Exit state
+
+- `workers/api/test/error-envelope.test.ts` — 3 green; `middleware/error.ts` restored byte-identical.
+- No source modified this phase.
+- Seventy-six mutations across thirty-two phases: **67 RED as predicted, 8 silent (seven non-counterexamples,
+  one a real gap since closed), 1 that never applied** — 8 real gaps closed, 1 design pinned, 2 claims
+  corrected.
+
+### Reopen triggers
+
+- A route builds its own `Response` for an error instead of throwing `ApiError` → it leaves the envelope and
+  the handler entirely, and nothing above would see it. The seven current raw sites are all non-API; an
+  eighth inside `/v1` is the finding.
+- `ErrorEnvelope` gains a field that carries server state (a stack, a query, a row id) → the fixed-message
+  guarantee moves to that field, and these three cases say nothing about it.
+- A gate error starts embedding evidence detail in `message` rather than the typed `gate.required_evidence`
+  → same shape, different field.
