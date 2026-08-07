@@ -5,6 +5,7 @@ import {
   NotConfiguredSender,
   RecordingSender,
   ResendSender,
+  scrubAddresses,
   SendError,
   wrapFragment,
 } from "../src/index.js";
@@ -425,5 +426,60 @@ describe("wrapFragment — the sender's half of the render contract (doctype + c
     expect(wrapFragment("<p>proof</p>")).toBe(
       '<!doctype html><html><head><meta charset="utf-8"></head><body><p>proof</p></body></html>',
     );
+  });
+});
+
+// REQ-092/157 §575 — THIRD-PARTY ERROR TEXT IS SCRUBBED BEFORE IT REACHES A LOG SINK.
+//
+// `resendError` returns the provider's own `message` verbatim, and that string reaches TWO log sinks: the
+// biller's `console.error(\`biller: ${detail}\`)` and the `JSON.stringify(outcome)` line the queue consumer
+// writes. A provider's validation error commonly echoes the offending value, so an invalid recipient would
+// put a customer's address into operational logs permanently.
+//
+// The defect is not provider-specific and must not be reasoned about per-provider — it is that UNFILTERED
+// third-party text reaches a log sink. Scrubbing at the boundary where it ENTERS is the only place that
+// covers every consumer downstream, including ones added later that nobody re-audits.
+//
+// LATENT, not live: the sender is CONFIRM-gated (no key bound ⇒ NotConfiguredSender, which never touches the
+// network). These tests pin the behaviour before the flip, which is the only time it is cheap.
+describe("REQ-118 §575: provider error text cannot carry an address into the logs", () => {
+  it("replaces an address anywhere in the string, keeping everything diagnostic", () => {
+    const scrubbed = scrubAddresses("Invalid `to` field. The email address ops@example-carrier.com is not valid");
+    expect(scrubbed).not.toContain("ops@example-carrier.com");
+    expect(scrubbed).toContain("[address redacted]");
+    // The operator still gets the whole diagnosis — only the address itself is replaced.
+    expect(scrubbed).toContain("Invalid `to` field");
+    expect(scrubbed).toContain("is not valid");
+  });
+
+  it("replaces EVERY address, not just the first (a bounced-batch error lists several)", () => {
+    const out = scrubAddresses("failed: a.one@x.co, b.two@y.example.org, c+tag@z.co.uk");
+    expect(out).toBe("failed: [address redacted], [address redacted], [address redacted]");
+  });
+
+  it("leaves text without an address untouched (no false positives on ordinary diagnostics)", () => {
+    for (const s of ["rate_limit_exceeded", "domain not verified: shuddl.tech", "500 Internal Server Error", "@handle"]) {
+      expect(scrubAddresses(s), s).toBe(s);
+    }
+  });
+
+  it("is applied to the parsed provider message (the path a JSON error takes)", async () => {
+    // Through the PUBLIC surface with a stubbed fetch — the same idiom the rest of this file uses, so the
+    // real resendError path runs rather than a re-implementation of it.
+    const { sender } = mkResend(422, { name: "validation_error", message: "to: dispatch@acme-freight.test is invalid" });
+    await expect(sender.send(EMAIL)).rejects.toThrow(SendError);
+    await sender.send(EMAIL).catch((e: unknown) => {
+      const msg = e instanceof Error ? e.message : String(e);
+      expect(msg).not.toContain("dispatch@acme-freight.test");
+      expect(msg).toContain("[address redacted]");
+    });
+  });
+
+  it("is applied to a NON-JSON error body too (the fallback path)", async () => {
+    const { sender } = mkResend(502, "<html>gateway error for billing@acme-freight.test</html>");
+    await sender.send(EMAIL).catch((e: unknown) => {
+      const msg = e instanceof Error ? e.message : String(e);
+      expect(msg).not.toContain("billing@acme-freight.test");
+    });
   });
 });

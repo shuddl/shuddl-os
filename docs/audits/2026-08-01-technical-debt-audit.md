@@ -215,6 +215,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 20 | — | **§572** | THE GUARD'S OWN COVERAGE — §571's glob read 39% of the source (83 of 215 files); `resolveTenantDb` has 49 call sites not 35; verdict survives, scope did not. Floors must bound INPUT, not output |
 | 21 | — | **§573** | THE CORPUS GAP, SWEPT — git pathspec and node globSync disagree on `**/` (48 vs 99 files for one pattern); the I3 gates run globSync and were never affected; §572's defect is one instance, now bounded by measurement |
 | 22 | — | **§574** | CONCURRENCY + RETRY — the sequencer mutex re-proved at HEAD (M33: exactly 1 test red, `events_guard_ins` fires); idempotency is wildcard-mounted; the 4 routes outside it each carry their own protection, signup's being a UNIQUE index |
+| 23 | — | **§575** | THE OBSERVABILITY BOUNDARY — 104 log sites carry no secret and the sweep logs are aggregates, but the provider's error text reached two log sinks VERBATIM; scrubbed at the boundary it enters, both paths independently proved |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -30730,3 +30731,88 @@ has now logged repeatedly, and the fix is the same each time: **write the captio
   plus the two UNIQUE indexes; neither may be relaxed without an idempotency key on the route.
 - A new mutating route is mounted outside `/v1/*` → it inherits **nothing**. Each of the four above carries
   its own answer, and a fifth needs one before it ships.
+
+---
+
+## §575 — PHASE GATE: the observability boundary, and a latent PII path into the logs
+
+### The surface
+
+Every prior phase audited what the system *enforces*. This one audited what it *emits* — the two sinks
+nothing else in the record had examined: **log lines** and **error response bodies**. Both are one-way. A
+secret or a customer address written to a log sink cannot be unsaid.
+
+### What is clean
+
+- **104 `console.*` sites** across `workers/` and `packages/` (zero in `apps/`), and **not one** interpolates
+  a secret-shaped binding — no `SECRET`, `TOKEN`, `KEY`, `apiKey`, `Authorization` reaches a log.
+- The **sweep logs** (`JSON.stringify(result)` × 8) carry aggregate shapes only. `WatchtowerResult` is counts,
+  statuses and severities — `{ count, status, severity }` per rule, plus per-agent budget figures. No
+  shipment, party or contact data.
+- The **error bodies** echoing `err.message` are all inside the flag-gated `/test-send` probe (§564 measured
+  its five gates), whose audience is an operator holding a bearer token, not the public.
+
+### The finding: unfiltered third-party text into a log sink
+
+`packages/agents/src/biller/sender.ts:resendError` returns the **provider's own `message` verbatim**. That
+string reaches **two** sinks:
+
+```
+biller.ts    const detail = `evidence email permanently failed for invoice event ${id}: ${err.message}`
+biller.ts    console.error(`biller: ${detail}`)
+index.ts     console.log(`biller: pod ${trigger.event_id} → ${JSON.stringify(outcome)}`)
+```
+
+A provider's validation error commonly **echoes the offending value**, so an invalid recipient puts a
+customer's address into operational logs permanently.
+
+The framing that matters: **this is not provider-specific and must not be reasoned about per-provider.** I
+cannot test what Resend returns, and it does not matter — the defect is that unfiltered third-party text
+reaches a log sink. Scrubbing at the boundary where it **enters** is the only place that covers every consumer
+downstream, including ones added later that nobody re-audits.
+
+**LATENT, not live.** The sender is CONFIRM-gated: with no key bound the composition root selects
+`NotConfiguredSender`, which never touches the network. Pinning the behaviour before that flip is the only
+time it is cheap.
+
+### The fix and its proof
+
+`scrubAddresses` replaces address-shaped substrings at all **four** return paths (the parsed `message`, and
+both branches of each truncating ternary). The operator keeps everything diagnostic — the provider error name,
+the surrounding text, the status — and loses only the address.
+
+| Mutation | Predicted | Result |
+|---|---|---|
+| **M34** unscrub the JSON-message path | that test RED | 1 failed, 40 passed |
+| **M35** unscrub the non-JSON fallback | that test RED | 1 failed, 40 passed |
+
+Each path is independently watched — neither test covers for the other, which is the property a single
+combined test would have hidden.
+
+Five tests: every-address (not just the first), diagnostic text preserved, **no false positives** on ordinary
+errors (`rate_limit_exceeded`, `domain not verified: shuddl.tech`, `@handle`), and both real paths driven
+through the public surface with the file's existing stubbed-fetch idiom rather than a re-implementation.
+
+### Method note — the same error, one phase after logging it
+
+§574 recorded the pre-written-caption error and prescribed the fix. **I made it again this phase**, printing
+*"(no output above ⇒ no PII-shaped field in those result types)"* under output that listed three fields. The
+conclusion survived (those lines construct an email message, not a logged result), but the caption asserted
+the opposite of what was on screen. Recording a lesson does not install it; the only thing that works is
+ordering — **read the output, then write the sentence.**
+
+### Exit state
+
+- `packages/agents` — **41 tests green** (+5).
+- `typecheck` · `lint` green.
+- Thirty-five mutations across ten phases: **29 RED as predicted, 5 silent and each explained, 1 needing
+  `git add -N`.**
+
+### Reopen triggers
+
+- A second provider adapter lands (SMS is REQ-097, deferred) → it needs the same scrub at ITS boundary;
+  `scrubAddresses` is exported for exactly that.
+- A log line gains a payload field rather than a count → the sweep-log clean negative above was measured
+  against **aggregate** result types, and stops holding the moment one carries a party, shipment or contact.
+- Phone numbers are not scrubbed. Only address shapes are, and an SMS provider's errors would echo numbers —
+  the trigger above is when that matters.

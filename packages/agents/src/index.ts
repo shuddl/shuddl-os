@@ -16,6 +16,7 @@ export {
   NotConfiguredSender,
   ResendSender,
   wrapFragment,
+  scrubAddresses,
 } from "./biller/sender.js";
 export type { EvidenceMessage, SendReceipt, EvidenceSender, ResendConfig } from "./biller/sender.js";
 // WP-07 Concierge — the parse port (REQ-024/026/098): freeform inbound email → a structured ParseResult.

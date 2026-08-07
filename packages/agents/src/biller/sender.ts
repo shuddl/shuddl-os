@@ -224,6 +224,25 @@ const MAX_ERROR_DETAIL_CHARS = 500;
 // Pull Resend's error out of a non-2xx body ({statusCode, name, message}): `name` is the MACHINE
 // code the 409 routing pivots on; `detail` is the human message, falling back to the raw text —
 // TRUNCATED — so a non-JSON error page still surfaces without flooding logs.
+/**
+ * Scrub address-shaped substrings out of THIRD-PARTY error text (§575).
+ *
+ * `resendError` returns the provider's own `message` verbatim, and that string reaches two log sinks: the
+ * biller's `console.error` and the `JSON.stringify(outcome)` line the queue consumer writes. A provider's
+ * validation error commonly echoes the offending value — so an invalid recipient puts a customer's address
+ * into operational logs, permanently, with no way to unsay it.
+ *
+ * This is not provider-specific and must not be reasoned about per-provider: the defect is that UNFILTERED
+ * third-party text reaches a log sink. Scrubbing at the boundary where it enters is the only place that
+ * covers every consumer downstream — including ones added later that nobody re-audits.
+ *
+ * The operator keeps everything diagnostic (status, provider error name, the rest of the message); only the
+ * address itself is replaced.
+ */
+export function scrubAddresses(text: string): string {
+  return text.replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+/g, "[address redacted]");
+}
+
 async function resendError(res: Response): Promise<{ name: string | undefined; detail: string }> {
   const raw = await res.text();
   try {
@@ -232,13 +251,13 @@ async function resendError(res: Response): Promise<{ name: string | undefined; d
       const body = parsed as Record<string, unknown>;
       const name = typeof body["name"] === "string" && body["name"].length > 0 ? body["name"] : undefined;
       const message = body["message"];
-      if (typeof message === "string" && message.length > 0) return { name, detail: message };
-      return { name, detail: raw.length > MAX_ERROR_DETAIL_CHARS ? `${raw.slice(0, MAX_ERROR_DETAIL_CHARS)} … [truncated]` : raw };
+      if (typeof message === "string" && message.length > 0) return { name, detail: scrubAddresses(message) };
+      return { name, detail: raw.length > MAX_ERROR_DETAIL_CHARS ? `${scrubAddresses(raw.slice(0, MAX_ERROR_DETAIL_CHARS))} … [truncated]` : scrubAddresses(raw) };
     }
   } catch {
     // not JSON — the truncated raw text below is the best detail available
   }
-  return { name: undefined, detail: raw.length > MAX_ERROR_DETAIL_CHARS ? `${raw.slice(0, MAX_ERROR_DETAIL_CHARS)} … [truncated]` : raw };
+  return { name: undefined, detail: raw.length > MAX_ERROR_DETAIL_CHARS ? `${scrubAddresses(raw.slice(0, MAX_ERROR_DETAIL_CHARS))} … [truncated]` : scrubAddresses(raw) };
 }
 
 /**
