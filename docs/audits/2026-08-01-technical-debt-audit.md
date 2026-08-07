@@ -27178,3 +27178,42 @@ report a gap that reading disproved**, and the second where my own summary was r
 over adjacent surfaces had found eleven more, the phase boundary would have been arbitrary. It found none —
 across side effects, self-satisfying gates, deploy-config parity, timezone, and the record itself. That is
 the evidence that §496 was a real boundary and not a pause.
+
+## §498 — the zero-reference bound discharges to nothing, and the sweep finds one drift shape on the way
+
+The standing bound from §-the-export-sweep was **137 zero-reference exports at `0f30afb`, 63 of them
+functions — "the probe-worthy tail."** Re-derived at HEAD, it is gone: of every `export function` in
+`packages/*/src` and `workers/*/src` (83 files), **three** had no external reference, and **all three are
+called inside their own file** — `isPlatformCreditInvoiceIssued` gates a real branch at `sequencer.ts:362`,
+`assembleTenantExport` is called at `export.ts:188` in a route mounted by `index.ts`, `buildPolygonSource`
+at `polygon-source.ts:141`. **Zero dead exports.** The bound is discharged, not deferred.
+
+**The `apps/` half had never been swept** (the bound covered packages + workers), so it was added: 47 files,
+**zero** unreferenced, two referenced only by tests — and those two are the finding.
+
+**`canAdvance` and `advance` were one rule kept in two copies.** `apps/driver/src/components/GatedFlow.tsx`
+— the driver's gated-stop screen — imports `advance`, `addEvidence`, `progress`, `stateAtStep`,
+`serverRequiredEvidence`, and **not `canAdvance`**. Each computed `step.requires.every((r) => …includes(r))`
+from its own copy. **The UI is safe today**: `advance` enforces the gate itself (a step with unmet evidence
+is a no-op, REQ-063's untypassable photo), so `canAdvance` is a query helper, not the enforcement. But *the
+tests ask `canAdvance` and the driver runs `advance`* — so a change to either copy would leave the suite
+asserting one rule while the PWA obeyed the other, **and both would stay green**. §493's shape, in the flow
+behind acceptance demo 3.
+
+Extracted to one `evidenceSatisfied`, and pinned by a parity test that walks every step of both flows at
+every one-element subset of its required evidence — the boundary where two implementations diverge is
+"some but not all captured", which is exactly what a `.every`→`.some` slip produces.
+
+**The parity test was very nearly vacuous, and I caught that by asking rather than by running it.** Once the
+two share a predicate they *cannot* disagree, so a test comparing them proves nothing about today — it is a
+REGRESSION guard for the day someone re-inlines a copy. Its non-vacuity therefore has to be demonstrated
+against that future, not the present: re-inlining `canAdvance` with a drifted `.some` reddens it. Without
+that mutation it would have been §434's error again — a test iterating the very list the mutation shrinks.
+
+**`isComplete` is a thin alias** (`currentStep(...).terminal`) that the UI does not need because it reads
+`step.terminal` directly. Left alone: not a duplicated predicate, and deleting an exported helper the tests
+legitimately use buys nothing.
+
+**Eleventh over-reporting classifier of the phase.** The route-mount sweep flagged `mountImportRoutes` as
+imported-but-never-called; it is called at `index.ts:245`. Reading took ten seconds, and the alternative was
+publishing a phantom unreachable API surface.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { REQUIRED_EVIDENCE as R } from "@shuddl/ledger/gates/transition-gates";
+import { REQUIRED_EVIDENCE as R, type RequiredEvidence } from "@shuddl/ledger/gates/transition-gates";
 import {
   advance,
   buildFlow,
@@ -133,5 +133,46 @@ describe("stop-flow — the gated per-stop machine (REQ-062/063)", () => {
       last = progress(flow, s);
     }
     expect(last).toBe(1);
+  });
+});
+
+// AUDIT §498 — `canAdvance` and `advance` are ONE rule, and nothing compared them.
+//
+// `canAdvance` is what the tests ask; `advance` is what the driver's screen actually runs —
+// `GatedFlow.tsx` imports `advance` and NOT `canAdvance`. Each computed `step.requires.every(...)` from its
+// own copy, so a change to either would leave the tests asserting one rule and the PWA obeying the other,
+// with both green. They now share `evidenceSatisfied`; this is the test that makes the sharing load-bearing
+// rather than incidental.
+describe("REQ-063 §498: the query and the transition cannot disagree", () => {
+  const KINDS = ["pickup", "delivery"] as const;
+
+  it("canAdvance is TRUE exactly when advance actually moves the step", () => {
+    for (const kind of KINDS) {
+      const flow = buildFlow(kind);
+      // Walk every step, and at each one try every subset-of-one of its required evidence plus the full
+      // set — the boundary where the two implementations could differ is "some but not all captured".
+      for (let i = 0; i < flow.steps.length; i++) {
+        const step = flow.steps[i]!;
+        const subsets: RequiredEvidence[][] = [[], [...step.requires], ...step.requires.map((r) => [r])];
+        for (const captured of subsets) {
+          const state = { kind, stepIndex: i, captured } as ReturnType<typeof initialState>;
+          const moved = advance(flow, state).stepIndex !== state.stepIndex;
+          const atEnd = i >= flow.steps.length - 1;
+          expect(
+            canAdvance(flow, state),
+            `${kind} step ${i} (${step.id}) with [${captured.join(",")}]: canAdvance disagrees with advance`,
+          ).toBe(moved || (atEnd && step.requires.every((r) => captured.includes(r))));
+        }
+      }
+    }
+  });
+
+  it("a step with unmet evidence is a NO-OP — the untypassable-photo rule (REQ-063)", () => {
+    const flow = buildFlow("delivery");
+    const forced = flow.steps.findIndex((s) => s.requires.length > 0);
+    expect(forced, "the delivery flow must have at least one evidence-gated step").toBeGreaterThanOrEqual(0);
+    const state = { kind: "delivery", stepIndex: forced, captured: [] } as ReturnType<typeof initialState>;
+    expect(advance(flow, state).stepIndex, "advance must not skip a gated step").toBe(forced);
+    expect(canAdvance(flow, state)).toBe(false);
   });
 });

@@ -226,12 +226,28 @@ export function addEvidence(state: FlowState, tokens: readonly RequiredEvidence[
 }
 
 /**
+ * THE step-gate predicate, declared once (audit §498).
+ *
+ * `canAdvance` (what the tests ask) and `advance` (what the UI actually runs) each computed
+ * `step.requires.every(...)` from their own copy. They agreed, and nothing compared them: `GatedFlow.tsx`
+ * imports `advance` and NOT `canAdvance`, so a change to either copy would leave the tests asserting one
+ * rule while the driver's screen obeyed the other — and both would stay green. Two hand-maintained copies
+ * of one rule is the §493 shape, here in the flow behind acceptance demo 3 ("a real driver completes a
+ * gated stop with zero instruction").
+ *
+ * This is the CLIENT mirror only. The server gate is the authority (CLAUDE.md rule 3 — UIs merely reflect
+ * them); this exists so the driver is never offered a button whose event the server would refuse.
+ */
+function evidenceSatisfied(step: FlowStep, captured: readonly RequiredEvidence[]): boolean {
+  return step.requires.every((r) => captured.includes(r));
+}
+
+/**
  * True when the current step's required evidence is all captured — i.e. the ADVANCE button may fire.
  * A forced-photo step is false until its photo token is present, which is what makes it UNTYPASSABLE.
  */
 export function canAdvance(flow: StopFlow, state: FlowState): boolean {
-  const step = currentStep(flow, state);
-  return step.requires.every((r) => state.captured.includes(r));
+  return evidenceSatisfied(currentStep(flow, state), state.captured);
 }
 
 /** Whether the flow has reached (and is sitting on) its terminal gated transition. */
@@ -249,7 +265,7 @@ export function advance(flow: StopFlow, state: FlowState, captured: readonly Req
   const merged = mergeEvidence(state.captured, captured);
   const step = flow.steps[state.stepIndex];
   if (!step) return { ...state, captured: merged };
-  const satisfied = step.requires.every((r) => merged.includes(r));
+  const satisfied = evidenceSatisfied(step, merged);
   const atEnd = state.stepIndex >= flow.steps.length - 1;
   const nextIndex = satisfied && !atEnd ? state.stepIndex + 1 : state.stepIndex;
   return { kind: state.kind, stepIndex: nextIndex, captured: merged };
