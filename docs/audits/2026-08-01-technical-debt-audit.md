@@ -187,6 +187,12 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 
 ## §4 — Phase gating and the stopping point
 
+> **PHASE 7 CLOSED — §534 is the phase gate for §528–§533: THE LAWS.** Five of CLAUDE.md's ten rules now
+> carry a mutation proving the artifact can fail (2, 3, 4, 5, 10); three are gate-measured; one is BLOCKED
+> on fixtures that do not ship; one is process. **No rule is left at "presumably fine".** The phase also
+> found a fifth guarded SQL statement §502's sweep had missed (concatenated SQL) and corrected two of its
+> own measurements — wrong suite, and a positive claim measured against comments.
+>
 > **PHASE 6 CLOSED — §527 is the phase gate for §522–§526: THE INSTRUMENTS.** Every zero-result claim in
 > this session is now enumerated, controlled, mutated or dispatch-read — tabled in §527 with its basis.
 > One probe of seven was found BLIND (§525) and is named rather than quietly fixed. Three distinct forms
@@ -28645,3 +28651,46 @@ name the rule in their title.
 **Five of ten now have a mutation proving the artifact can fail**, three more are gate-measured, one is
 blocked on inputs that do not ship, and one is a process rule. That is the complete accounting, and it is
 the form in which "the laws hold" stops being a sentence and becomes a measurement.
+
+## §534 — PHASE GATE: the laws, and the instruments that verify them
+
+**Scope (§528–§533).** §527 controlled this session's zero-results. This phase turned the same scrutiny on
+**positive** claims and on **CLAUDE.md's ten rules** — the only claims in the build that are stated as laws
+rather than measured as properties.
+
+### What was found
+
+| # | finding | severity | closed by |
+|---|---|---|---|
+| 1 | **§502's sweep missed a fifth guarded statement** — `APPT_CLAIM_SQL` is built by string concatenation, so no single quoted string held both `UPDATE` and `WHERE`. Its `AND kind=?` is load-bearing on every appointment: two skeleton legs exist, so without it a PICKUP appointment overwrites the DELIVERY leg | Medium | §529 — a sixth observer that names the property |
+| 2 | §518's "all 35 kinds are projected" was measured against text **including comments** | Low (claim held) | §528 — re-measured in code, then as `case` labels: 35/35 |
+| 3 | §502's three ledger mutations were run against the **owning package**, not the consumers | Low (verdicts held) | §530 — re-run against `agents` and `api` |
+
+### The ten rules, accounted
+
+Five now carry a mutation proving the artifact can fail — rule 2 (§487), rule 3 (§492), rule 4 (§531),
+rule 5 (§532), rule 10 (§533). Three are gate-measured (1, 7, 8). Rule 6 is BLOCKED on fixtures that do not
+ship. Rule 9 is process. **Every one is either controlled, measured, blocked, or named as not-a-code-rule** —
+there is no rule left whose status is "presumably fine".
+
+### Three method corrections, each with a second instance behind it
+
+- **Run the suite that owns the CONSUMER** (§529, §530). A package suite proves a pure function's contract;
+  only the consumer's suite proves the behaviour anyone depends on. Both instances nearly produced a false
+  "unobserved".
+- **A green mutation has a FOURTH explanation** (§531): beyond §389's *nothing watches / nothing reaches /
+  nothing distinguishes*, there is **the probe was not a counterexample**. Subtracting a constant from a
+  monotone curve does not break monotonicity, and reading that as a vacuous test would have accused a
+  working instrument.
+- **A false claim can be compiled into the repo as documentation** (§529). The test written to fix a finding
+  carried a comment asserting a mutation result that was false for its own file — written before the
+  mutation was run against it, caught before commit.
+
+### Exit state
+
+**12 non-register gates PASS** · `typecheck` · `lint` · **3,015 workspace tests, zero failures** ·
+**acceptance GREEN** · every mutated file verified byte-identical. The single blocker is unchanged since
+§496: the uncommitted `REQ-289` GTM register row, and the five gates BLOCKED on unvendored private fixtures.
+
+**The phase's one sentence.** A law stated in a header and a law with a mutation behind it read identically
+in a repository — and the difference only appears the day someone edits the code the law was about.
