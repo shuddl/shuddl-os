@@ -244,6 +244,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 49 | — | **§601** | THE GL DOUBLE-ENTRY ASSERTION — both firing conditions are closed by other layers (construction; `NOT NULL CHECK != 0`), so it is a TRIPWIRE. M82-b breaks construction and it fires. No test added, and why is the finding |
 | 50 | §599–§601 | **§602** | THE DIVISION FILTER (SQL, pre-pairing — safe + covered) and the MERGE GATE RE-MEASURED: 19/2/5, IDENTICAL to §569 across 17 phases, 9 closed defects and 83 mutations — because every remaining failure is an owner-held input |
 | 51 | — | **§603** | THE REQ-289 BLOCKER MEASURED — restated 17 times, never re-checked. Not "uncommitted": an approved-terminal constant AND a classifier with no GTM disposition. Landing set PROVED by rehearsal: 4 items, atomic, owner-signed |
+| 52 | §603 | **§604** | THE 5 BLOCKED GATES EXERCISED — 9 pending fixtures verified (no tooling half); the identity lint had only ever been seen SKIPPING, so it was run: it catches, names the file, and MASKS the term. Third `git ls-files` probe needing `git add -N` |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -32790,3 +32791,71 @@ REQ-289 in one commit without discovering the set by trial.
   `gtm-lane` disposition proved above is the fix.
 - The terminal ID moves for any other row → the same two adjacent lines; there is no third site, despite what
   a grep for `288` suggests.
+
+---
+
+## §604 — PHASE GATE: the five BLOCKED gates, exercised instead of accepted
+
+### Applying §603's lesson to the rest
+
+§603 re-measured a blocker restated seventeen times and found the description partly wrong. The **five
+BLOCKED gates** have had exactly the same treatment all session — *"nine private fixtures"* and *"the
+`IDENTITY_DENYLIST` secret"* — asserted every phase, never checked.
+
+### The fixtures: count correct, no tooling half
+
+`fixtures/manifest.json` holds 17 rows: **9 `pending`**, 7 `vendored`, 1 `in-repo-test`. The count is right,
+and unlike REQ-289 there is **no tooling component** — each pending row names its exact source
+(`manifest.private M-01`, `M-02…M-05`, …) and the gates name the paths they want
+(`fixtures/rater/*`, `fixtures/tariff`, `fixtures/invoice-replay`, `fixtures/concierge/parse-50`). Nothing is
+waiting on code. Vendoring the data is the whole of it.
+
+### The identity gate: BLOCKED, and never once exercised
+
+This one was different. `check:identity` accepts the denylist from a secret **or** from
+`.identity-denylist.local` (gitignored, and the skip is local-dev only — the gate fails **closed** in CI).
+That means it *can* be exercised locally, and in a session that has spent thirty-seven phases asking whether
+gates can fail, **this one had only ever been observed skipping.**
+
+Supplying a denylist of two synthetic terms:
+
+| Probe | Result |
+|---|---|
+| clean tree, denylist present | `identity-leak lint: clean (2 terms checked)`, exit 0 |
+| a denylisted term planted in a tracked file | `FAIL REQ-167 identity leak in docs/…: z*********************`, exit 1 |
+| term removed, denylist still present | back to clean |
+
+**The gate works**, and it does something better than pass or fail: it **masks the matched term** in its own
+output. A gate that printed the denylisted name would leak the identity into every CI log that ran it — the
+REQ-167 violation committed by the REQ-167 enforcer. Someone thought about that.
+
+### The probe that lied first
+
+The initial plant reported **clean**. Not a finding — the lint scans `git ls-files`, and a newly created file
+is untracked, so it was never in the corpus. `git add -N` and the same term failed instantly.
+
+That is the **third** time this session a `git ls-files`-based scan needed staging to see a probe (§567's
+M23, §572's derivation, here). It is now a standing rule rather than a recurring surprise: **when probing a
+gate that scans `git ls-files`, stage the probe file or the clean result is meaningless.**
+
+### What this changes
+
+Nothing in the code, and the exit state is unchanged. What changed is the standing of one line in every
+future exit report: `identity-leak` is no longer *"BLOCKED, unverified"* but **"BLOCKED on an owner-held
+secret, with the enforcement proven functional the moment it lands."** The other four are blocked on data
+whose absence is fully described by the gates themselves.
+
+### Exit state
+
+- No source modified; `.identity-denylist.local` and the probe file removed, `git status` clean apart from
+  the pre-existing register row.
+- `verify:merge` unchanged: **19 PASS · 2 FAIL · 5 BLOCKED**.
+
+### Reopen triggers
+
+- `IDENTITY_DENYLIST` lands → the gate flips from BLOCKED to PASS/FAIL with no code change; the three probes
+  above are the rehearsal for that day.
+- A denylist term appears in an **untracked** file → outside `git ls-files`, so outside this gate entirely.
+  That is correct for a repo-artifact rule (REQ-167 governs what is committed), and worth knowing rather than
+  discovering.
+- The gate's output stops masking the matched term → it becomes the leak it exists to prevent.
