@@ -27184,7 +27184,7 @@ the evidence that §496 was a real boundary and not a pause.
 The standing bound from §-the-export-sweep was **137 zero-reference exports at `0f30afb`, 63 of them
 functions — "the probe-worthy tail."** Re-derived at HEAD, it is gone: of every `export function` in
 `packages/*/src` and `workers/*/src` (83 files), **three** had no external reference, and **all three are
-called inside their own file** — `isPlatformCreditInvoiceIssued` gates a real branch at `sequencer.ts:362`,
+called inside their own file** — `isPlatformCreditInvoiceIssued` gates a real branch at `sequencer.ts:362@isPlatformCreditInvoiceIssued`,
 `assembleTenantExport` is called at `export.ts:188` in a route mounted by `index.ts`, `buildPolygonSource`
 at `polygon-source.ts:141`. **Zero dead exports.** The bound is discharged, not deferred.
 
