@@ -239,6 +239,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 44 | §595 | **§596** | THE AUTHORIZATION CODE — token expiry was covered 3×, single-use by nothing. The delete precedes ALL validation, so a failed exchange spends the code; M75 was silent (delete still preceded PKCE), M75-b caught it |
 | 45 | — | **§597** | THE ERROR BOUNDARY TO CALLERS — no API path builds a raw error, no ApiError carries exception text, the handler returns a FIXED message for anything unexpected. Tested with both complements; M76 reddens. A clean negative |
 | 46 | §597 | **§598** | THE ENVELOPE CHOKEPOINT — a hand-built error response opts out of req_id, the stable code AND the disclosure guard at once. Rule is about error STATUS, not the constructor (byte streaming is legitimate), and scoped to api alone |
+| 47 | — | **§599** | THE HONEST-INSTRUMENT LAW — a count of nothing is 0, an average of nothing is UNKNOWN, and both are tested. But DSO's ZERO-DENOMINATOR guard had no input: BigInt division by zero THROWS, so one $0 invoice was a 500, not a wrong number |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -32443,3 +32444,71 @@ failure rather than a silent widening. That is the same choice §571 made for th
   the helper's file, not the caller's, and its own status handling becomes the thing to check.
 - `handleError` gains a branch that does not envelope → the boundary moves from the routes to the handler, and
   these rules watch the routes only.
+
+---
+
+## §599 — PHASE GATE: the honest-instrument law, and the guard whose input nobody built
+
+### The law
+
+CLAUDE.md forbids a fabricated number, and the type system carries it: `KpiValue = number | "UNKNOWN"`. The
+distinction is not cosmetic. **A count of nothing is genuinely 0; an average of nothing is not.** A DSO of 0
+reads as *"we collect instantly"* — the most flattering possible lie about a freight book.
+
+### The law is enforced, and tested in both directions
+
+`metrics.ts` gets this right everywhere it was checked, and the tests name the distinction rather than
+assuming it:
+
+- *"HONESTY: no shipment has both a POD and an invoice → **UNKNOWN**"*
+- *"HONESTY: no rater run reported a latency in scope → **UNKNOWN**"*
+- *"HONESTY: no exceptions in scope → **0** (the healthy count, never fabricated)"*
+
+`computeUnbilled`'s `?? 0` is correct for exactly that reason, and its comment says so: *"that 0 is the REAL
+anti-join result (the alarm itself), NOT a fabricated placeholder."*
+
+**M79** made `meanOrUnknown` return `0` for an empty list and **three** tests reddened.
+
+### The finding: two guards, one input
+
+`computeDsoDays` has **two** honest-UNKNOWN guards. The first — no open invoices — is well covered. The
+second is `totalCents === 0n`, and **M80 replaced it and all 28 cases stayed green**: no test in the suite
+issues an invoice for zero cents.
+
+That guard is **load-bearing, not defensive**. DSO is a dollar-*weighted* mean, so `totalCents` is the
+denominator — and BigInt division by zero **throws** (`RangeError: Division by zero`) rather than yielding
+`Infinity` the way float division would. Verified directly rather than assumed. Without the guard, **one
+zero-dollar issued invoice turns every KPI read for that tenant into a 500** — not a wrong number, an outage.
+
+Zero-dollar invoices are reachable: a fully-credited invoice, an accessorial-only bill that nets out, a
+correction that cancels its parent.
+
+| Mutation | Predicted | Result |
+|---|---|---|
+| **M79** empty average returns `0` | RED | 3 failed |
+| **M80** zero-denominator guard returns `0` | RED | **silent** — nobody builds the input |
+| **M80-b** guard removed entirely, after the new tests | RED | 1 failed — **`Division by zero`** |
+
+### The complement matters as much as the case
+
+Two tests, not one. The second seeds a zero-dollar invoice **alongside a real one** and asserts the mean is
+the real invoice's own age — so the guard cannot be satisfied by swallowing any book that happens to contain
+a `$0` line. Without it, "return UNKNOWN when totalCents is 0" could be widened to "return UNKNOWN whenever a
+zero appears" and stay green, which is §595's and §597's third-case pattern for the third time.
+
+### Exit state
+
+- `workers/api/test/metrics.test.ts` — 12 green (+2); `metrics.ts` restored byte-identical.
+- Eighty mutations across thirty-four phases: **70 RED as predicted, 9 silent (eight non-counterexamples, one
+  a real gap since closed), 1 that never applied** — **9 real gaps closed**, 1 gate added from a self-named
+  trigger, 1 design pinned, 2 claims corrected.
+
+### Reopen triggers
+
+- Another dollar-weighted metric is added (DPO, weighted margin) → it inherits the same zero-denominator
+  shape, and inheriting a guard is not inheriting its test.
+- `total_cents` gains a NOT NULL CHECK forbidding 0 → the guard becomes genuinely unreachable and could be
+  reduced to an assertion; until then it is live.
+- A metric moves from BigInt to float arithmetic → the failure mode silently changes from a throw to
+  `Infinity`/`NaN`, which no test above would catch, because they assert on `"UNKNOWN"` rather than on the
+  absence of a crash.

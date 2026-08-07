@@ -221,3 +221,42 @@ describe("REQ-160 — shared-compute parity: the KPI route re-exports the shared
     expect(await computeCostRatioBps(env.TENANT_A_DB, { scope })).toBe(9000);
   });
 });
+
+// REQ-036/118 §599 — A ZERO-DOLLAR INVOICE IS UNKNOWN, NOT A CRASH AND NOT A ZERO.
+//
+// `computeDsoDays` carries TWO honest-UNKNOWN guards. The first — no open invoices — is covered above and
+// well. The second is `totalCents === 0n`, and it was covered by nothing: **no test in this suite issues an
+// invoice for zero cents.**
+//
+// It is load-bearing, not defensive. DSO is a dollar-WEIGHTED mean, so `totalCents` is the denominator, and
+// BigInt division by zero **throws** (`RangeError: Division by zero`) rather than yielding Infinity the way
+// float division would. Without the guard, one zero-dollar issued invoice turns every KPI read for that
+// tenant into a 500 — not a wrong number, an outage.
+//
+// Zero-dollar invoices are reachable: a fully-credited invoice, an accessorial-only bill that nets out, or a
+// correction that cancels its parent. Found by mutation (§599, M80): replacing the guard's return left all 28
+// cases green, because none of them constructs the input.
+describe("REQ-036 §599: DSO over zero dollars", () => {
+  it("an issued invoice totalling ZERO cents → UNKNOWN (never a crash, never 0 days)", async () => {
+    const scope = "dso-zero-";
+    const e = await seedEvent("invoice.issued", `${scope}s1`, 0, { ts: NOW - 30 * DAY_MS });
+    await seedInvoice(`${scope}inv0`, e, 0, "issued");
+
+    // The weighted mean of a zero-dollar book has no value. It must not be 0 — that would read as "we collect
+    // instantly" — and it must not throw, which is what the unguarded BigInt division does.
+    const dso = await computeDsoDays(env.TENANT_A_DB, { now: NOW, scope });
+    expect(dso, "a zero-dollar book reported a real DSO").toBe("UNKNOWN");
+  });
+
+  it("a zero-dollar invoice alongside a REAL one does not distort the mean", async () => {
+    // The complement: the guard must not swallow a book that has genuine dollars in it. A $0 line contributes
+    // nothing to either the weight or the total, so the answer is the real invoice's own age.
+    const scope = "dso-mixed-";
+    const eZero = await seedEvent("invoice.issued", `${scope}s0`, 0, { ts: NOW - 90 * DAY_MS });
+    await seedInvoice(`${scope}inv0`, eZero, 0, "issued");
+    const eReal = await seedEvent("invoice.issued", `${scope}s1`, 0, { ts: NOW - 10 * DAY_MS });
+    await seedInvoice(`${scope}inv1`, eReal, 50_000, "issued");
+
+    expect(await computeDsoDays(env.TENANT_A_DB, { now: NOW, scope })).toBe(10);
+  });
+});
