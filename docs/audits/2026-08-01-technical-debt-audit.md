@@ -210,6 +210,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 15 | §564 | **§565** | THE FAILURE PATHS — 194 catch sites classified by FALLBACK VALUE; all fail closed but one, whose §182 hold was documented and unenforced (now enforced); §182's prescribed remedy proved unreachable |
 | 16 | §566–§567 | **§568** | THE STACK RULES — async correctness was unlinted (the non-type-checked preset); enabling it broke five lint-guard tests by invalidating their PROOF, not their rule; the `source:'native'` gate carve-out rested on a hand-kept enumeration |
 | 17 | — | **§569** | THE CHAIN END-TO-END — ci.yml → verify:merge → gatesFor("merge"), each link verified; the full merge gate RE-RUN at this commit: 19 PASS · 2 FAIL · 5 BLOCKED, every failure owner-blocked |
+| 18 | — | **§570** | THE LLM→LEDGER TRUST BOUNDARY — three surfaces attacked rather than read; the prompt-injectable `confidence` cannot gate auto-send (proved in BOTH directions), copilot cite-or-abstain, migrator strictly additive + rule 10 |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -30343,3 +30344,81 @@ produce**:
 
 Every one is in §521's owner table, and none has moved. A phase that cannot change any of them has reached
 its boundary: **the next honest action is the owner's, not the auditor's.**
+
+---
+
+## §570 — PHASE GATE: the LLM→ledger trust boundary, attacked rather than read
+
+### Why this surface
+
+Every prior phase audited deterministic code. The one surface where **attacker-controlled text meets
+structured writes** had not been examined: an inbound email is untrusted input, an LLM turns it into a
+structured parse, and a quote can be auto-sent from the result. CLAUDE.md constrains *where* LLM calls may
+live (`packages/agents/*` only, REQ-024, statically linted) and says nothing about what happens to their
+**output**. Three surfaces exist — concierge parse, copilot, migrator — and all three were attacked, not read.
+
+### 1. Concierge parse — the injection path is mechanically closed
+
+`ClaudeParser` funnels three distinct failure modes to `FAILSAFE_RESULT` (`intent: unknown, confidence: 0`):
+a malformed envelope, non-JSON text, and a schema mismatch. The load-bearing comment names the real risk
+directly: the model's self-reported `confidence` *"is prompt-injectable (the email is untrusted) and must
+NEVER gate auto-send."*
+
+That is a **stated independence**, and the shape this record has now found unguarded four times (§562, §567).
+So it was tested by planting the attack in both directions:
+
+| Mutation | Predicted | Result |
+|---|---|---|
+| **M25** `if (parse.confidence >= 9_000) return auto_reply` before the gates | RED | **3 tests RED** |
+| **M26** `if (parse.confidence < 5_000) return queued` before the gates | RED | **1 test RED** |
+
+Both caught. The independence is not merely documented — a shortcut in either direction fails the suite. The
+decision reads four gates and none of them is model-derived: price known (REQ-004), floor-clean (REQ-040), an
+**independent deterministic re-extraction** that must corroborate the model's request, and a resolver-derived
+confidence. A model that lies in either direction changes nothing.
+
+### 2. Copilot — cite-or-abstain, exhaustively
+
+The honesty law in code: *"a citation to an event not in the retrieved set FAIL-SAFES to an ABSTENTION."*
+Seventeen tests cover it, including the four that matter — a citation to an event **not** in the retrieved
+set → abstain; **zero** citations → abstain; **garbage** (non-JSON) output → abstain, never a throw; and the
+model self-reporting `abstained: true` honoured (the safe direction). A 5xx throws a *retriable* error rather
+than fabricating an answer, and with zero events to ground on the model is **not called at all**.
+
+### 3. Migrator — the LLM may only improve on the deterministic baseline
+
+`buildOverrides` accepts a guess **only** where the deterministic pass could not confidently place the header
+*and* the guess clears the floor. It never downgrades a confident deterministic mapping, so the worst an LLM
+can do is fail to help.
+
+And CLAUDE.md rule 10 — *no silent drops in migration* — is enforced by a test named for it. **M27** made a
+subset of gap rows conditional (`if (cls.confidence > 0)`), and the suite went red on
+*"THE LAW — continuous no-silent-drop: every unmapped column is a gap row."*
+
+### The result
+
+**Three surfaces, three clean negatives, all proved by attack rather than by reading.** This is the first
+phase where the code was already right everywhere it was checked — and it is also the phase where that
+conclusion is worth the most, because the surface is the one an adversary reaches first.
+
+Worth recording explicitly: the concierge's defense is *architectural*, not a filter. It does not try to
+detect a malicious email. It re-derives the request deterministically and requires the two to agree, so a
+prompt injection has to defeat a parser it cannot talk to. That is the design that makes M25/M26 boring
+failures rather than close calls.
+
+### Exit state
+
+Unchanged from §569 — no source was modified this phase; all four mutations (M25–M27 plus the restore checks)
+were reverted byte-identical.
+
+- `verify:merge` at `dddc2e0`: **19 PASS · 2 FAIL · 5 BLOCKED**, exit 1.
+- Twenty-seven mutations across six phases: **21 RED as predicted, 5 silent and each explained, 1 needing
+  `git add -N`.**
+
+### Reopen triggers
+
+- `composeConcierge` gains a fifth gate that reads anything model-derived → M25/M26 are the probes to re-run.
+- A new LLM adapter lands in `packages/agents/*` → it needs the same three-way failsafe (envelope, JSON,
+  schema) and its output must reach a validator before any ledger write.
+- `buildOverrides`' floor is lowered, or the "never downgrade a confident mapping" clause is relaxed → the
+  LLM stops being strictly additive and rule 10's gap rows become the only remaining guard.
