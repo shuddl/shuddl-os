@@ -26528,3 +26528,30 @@ list with the import-ownership sweep, not the basename one.
 never about ratchets: **every gate has an input, and a gate that cannot fail for lack of input is
 indistinguishable from a gate that passes.** The tell is a gate that reports the size of its input — that
 number is there because someone sensed it mattered, and printing it instead of asserting it is the defect.
+
+## §485 — the gate chain was green and the commit was broken, at the same instant
+
+§484's fix was committed as `a7ed164`. That commit contained **one file: the 66-line deletion of the gate's
+implementation.** `check:tables` was broken at it — `package.json` pointed at a `.mjs` that no longer
+existed, and the `.ts` replacement was not in the commit.
+
+The gate chain had just run green. Both facts were true simultaneously, because **`git add` had failed and
+I did not read its output.** The `add` named a path already staged as a deletion by `git rm`; a pathspec
+miss aborts the *entire* `add`, so nothing new was staged, and the `&&`-chained gates then measured the
+**working tree** — which was complete and correct — while `commit` took the **index**, which was not.
+
+This is the exact inverse of the standing note *"when a gate looks wrong, suspect the measurement."* Here
+the gate looked **right**, and the measurement was still of the wrong artifact. `gate && commit` protects
+against a *failing* gate; it does nothing about a gate pointed at content the commit will not include.
+**A green gate certifies the tree it read, and a commit is not that tree unless the index agrees.**
+
+Caught by asking a question that had never previously been worth asking — *what is actually in the commit?*
+— and answered by `git show --stat`, then confirmed by checking HEAD out into a detached worktree and
+running the gate there, where it failed. Amended to the full five files; the same worktree check then
+reported `OK (109 markdown files)`, which also incidentally proves §484's rooting fix survives being run
+from outside the primary checkout.
+
+**No hook was added.** `.git/hooks` has zero active hooks and adding pre-commit infrastructure is not a
+register row (CLAUDE.md: *if it isn't a REQ row, it doesn't get built*), and CI's `verify:merge` is the
+guard that actually protects `main`. The durable fix is procedural and costs one command: **read the output
+of `git add`, and verify the commit rather than the tree** — `git show --stat` after, not `pnpm` before.
