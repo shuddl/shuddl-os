@@ -28329,3 +28329,34 @@ in the record, which is the reason to write down which one it was.
 more confidently it lies.* Prefer the broad token and read every hit. Where a sweep must be narrow, plant
 the positive control in the same command that reports the zero — the cost is one temporary file, and the
 alternative is a claim whose only support is that nothing contradicted it.
+
+## §526 — controlling the rest of the zeros, and a control that reported BLIND without ever being planted
+
+§525 applied §524's rule to §516 and found a blind probe. The rule's remaining debt is this session's other
+uncontrolled zeros, and the largest sits inside **§524 itself** — the section that *stated* the rule while
+reporting `continue-on-error: 0` with no control of its own.
+
+**Positive-controlled: the probe is SENSITIVE.** With `continue-on-error: true` planted on a real CI step,
+the sweep finds it (1). So §524's claim — no report-only gate in either workflow — is now earned rather than
+assumed.
+
+**The glob was checked by enumeration rather than by trusting the pattern.** Every sweep this session
+matched `.github/workflows/*.yml`, which is silently blind to `.yaml`. Listing the directory: two files,
+both `.yml`, no `.yaml`. The claim survives — but it survived a pattern that would not have told me if it
+had not.
+
+**And the first attempt at that control reported BLIND without ever planting anything.** The anchor string
+did not match (indentation), the Python `assert` fired correctly, the file was never modified — and the
+shell **continued past the failed block**, ran the probe against unmutated content, got 0, and printed my
+pre-written label *"← BLIND"*. Every individual piece behaved correctly; the sequence still produced a
+confident false statement.
+
+**The fix is structural, not attentional:** the abort has to be wired to the whole sequence
+(`python3 … || exit 1`), and the plant must be **re-verified from the file** before the probe runs —
+`grep -c` returning exactly 1, checked, or abort. The second attempt did both and reported SENSITIVE.
+
+**This is the third distinct form of the same error in three sections** — §524's regex that could not match
+the syntax, §525's pattern that could not match the identifier, and now a control that was never applied.
+All three produced a clean-looking result from an instrument that was not measuring. **A zero is a claim
+about the instrument before it is a claim about the tree**, and the only cheap defence is to make the
+instrument fail loudly in the same breath it reports success.
