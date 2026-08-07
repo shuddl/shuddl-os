@@ -26223,3 +26223,36 @@ grep -rl '' --include='*.test.ts' --include='*.test.tsx' packages workers apps t
 
 **137 at `0f30afb`**, of which the 63 functions are the probe-worthy remainder. The seven clusters taken were
 chosen by consequence, not by order; what remains is the tail where a gap costs least.
+
+## §478 — the whole gate surface run, and two failures that are both correct behaviour
+
+The phase's enumerations are discharged, so this runs the thing none of them did: **every gate script, all
+18, at `3fe7ca1`.** Sixteen exit 0. The two that do not are each correct, and proving that is the section.
+
+| Gate | Exit | |
+|---|---|---|
+| runtime · invariants · rater-purity · chokepoint · authority-coverage | 0 | |
+| traceability · identity · citations · tables · surfaces · fixtures | 0 | |
+| rater-parity · invoice-parity · concierge-parity · seed · design | 0 | |
+| **coverage** | **1** | the separate GTM workstream's uncommitted `REQ-289` row |
+| **check:pr** | **1** | no `PR_BODY` supplied — the gate refusing to certify nothing |
+
+**`check:coverage` — attributed, not assumed.** `git stash` the register CSV → **exit 0, "coverage: 100% —
+all 288 register rows accounted for"** → restore. The same instrument §441 used on the tools suite, applied
+to a gate.
+
+**`check:pr` is the interesting one, and it is EXEMPLARY.** Run bare it exits 1 with *"no PR body supplied,
+so nothing was inspected — **this is NOT a finding about your work**. Pass one to check it."* CI supplies
+`PR_BODY` from the pull-request title and body (`ci.yml:29-32`), so the gate always has input where it
+matters. Verified both directions: with a real PR body → **exit 0, "PR cites valid REQ-IDs"**; with a body
+naming no REQ → **exit 1, "Every PR must cite at least one register row."**
+
+**That message is the discipline this phase spent §466 and §467 adding elsewhere, already present here.** A
+violation scan with no input has three options: pass (vacuous, the §466 defect), fail as though the code were
+broken (a false accusation), or **fail while saying the failure is about the invocation and not the work**.
+Only the third is honest, and it is the form `check:identity` uses too (*"no denylist available … Lint
+SKIPPED"*). Two of eighteen gates got this right before the audit noticed it was a category.
+
+**So the production-readiness statement is precise rather than round:** 16 of 18 gates green; 1 blocked by
+another workstream's uncommitted row, proven by stash; 1 correctly refusing to run without its input, proven
+in both directions. **No gate on this tree passes vacuously and none fails for a reason inside this repo.**
