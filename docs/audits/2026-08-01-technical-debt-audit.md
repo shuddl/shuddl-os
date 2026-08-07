@@ -235,6 +235,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 40 | — | **§592** | THE SUPPLY CHAIN — 120 caret ranges make the LOCKFILE the guarantee and `--frozen-lockfile` the enforcement; all 4 sites carry it and NOTHING asserted it. One word, no error if removed, green build over an unreviewed tree |
 | 41 | §592 | **§593** | THE LEVERS OUTSIDE THE LOCKFILE — `allowBuilds` grants install-time code execution and `overrides` replaces versions tree-wide; deletion is self-enforcing, GROWTH was not. M69: a denial is not the absence of a permission |
 | 42 | §592–§593 | **§594** | THE SUPPLY-CHAIN LINE CLOSED — actions SHA-pinned, `pnpm audit --prod` blocking, gitleaks history-wide, all re-proved live (M71/M72). Every remaining question is an architecture change, not an unchecked property |
+| 43 | — | **§595** | SESSION EXPIRY — four auth tests covered every way a token is INVALID, none covered one that is merely OLD. Enforcement rests on one library call in a blanket catch; M73 (decode instead of verify) reddens it. `exp` is schema-REQUIRED, so no token is immortal |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -32193,3 +32194,65 @@ Unchanged since §569, and none of it producible from inside the repo:
 4. Sender-domain verification + Cloudflare OIDC.
 5. The **filmed** half of the five acceptance demos — §591 confirmed the automated half is green and honestly
    labelled.
+
+---
+
+## §595 — PHASE GATE: the failure mode that arrives on its own
+
+### The surface
+
+§564 audited the driver's token **store** — where a session is kept. This phase asked the adjacent question
+nobody had: does a session **end**?
+
+`auth.test.ts` had four cases: a missing token, a wrong secret, bad claims, a valid token. That is every way a
+token can be **invalid**. None covered a token that was perfectly valid and is now **old** — the only failure
+mode that arrives *on its own*, with no attacker and no code change.
+
+### Measured, not assumed
+
+Expiry is enforced by `hono/jwt`'s `verify`, inside `middleware/auth.ts`'s try/catch. That is a claim about a
+library, so it was measured:
+
+```
+expired (exp = now-60)   → REJECTED (JwtTokenExpired)
+valid   (exp = now+600)  → ACCEPTED
+```
+
+The behaviour is correct. It also rests **entirely** on one library call wrapped in a `catch` that maps every
+throw to a single 401 — so swapping `verify` for a hand-rolled decode (a plausible refactor: drop a
+dependency, add custom claim handling) stops enforcing expiry silently, and **every already-issued token
+becomes permanent**.
+
+| Mutation | Predicted | Result |
+|---|---|---|
+| **M73** replace `verify` with a payload decode, no `exp` check | RED | **2 failed** — the pre-existing *wrong secret* case and the new *EXPIRED* case, each by name |
+
+### The stronger of the two properties
+
+`SessionClaims` makes `exp` **required**, so a token minted without one is refused by the schema rather than
+treated as never-expiring. **There is no such thing as an immortal session token**, and that guarantee is
+independent of the verifier — the "no exp at all" case stayed **green** under M73, because the schema catches
+it whatever the decoder does. Two mechanisms, two different failure modes, and the mutation separated them
+cleanly.
+
+The third case asserts a *future* exp is still accepted — without it, "reject expired" could be satisfied by
+a middleware that rejects everything, which is §576's masking risk in miniature.
+
+### Exit state
+
+- `workers/api/test/auth.test.ts` — 10 green (+3); full api suite green; `middleware/auth.ts` restored
+  byte-identical.
+- Seventy-three mutations across thirty phases: **65 RED as predicted, 7 silent (six non-counterexamples, one
+  a real gap since closed), 1 that never applied** — **7 real gaps closed**, 1 design pinned, 2 claims
+  corrected.
+
+### Reopen triggers
+
+- A refresh-token or session-renewal path is added → expiry becomes a *lifecycle* rather than a single check,
+  and these three cases cover none of the renewal semantics (reuse detection, rotation, revocation on
+  logout).
+- `SessionClaims.exp` is made optional → the immortal-token guarantee evaporates, and the second case above is
+  the only thing standing in front of it.
+- The MCP surface has its **own** expiry enforcement (`oauth.ts` checks `grant.exp` against an injected clock,
+  fail-closed even when KV still holds the record). It is a **separate** implementation, and these tests say
+  nothing about it.
