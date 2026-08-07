@@ -240,6 +240,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 45 | — | **§597** | THE ERROR BOUNDARY TO CALLERS — no API path builds a raw error, no ApiError carries exception text, the handler returns a FIXED message for anything unexpected. Tested with both complements; M76 reddens. A clean negative |
 | 46 | §597 | **§598** | THE ENVELOPE CHOKEPOINT — a hand-built error response opts out of req_id, the stable code AND the disclosure guard at once. Rule is about error STATUS, not the constructor (byte streaming is legitimate), and scoped to api alone |
 | 47 | — | **§599** | THE HONEST-INSTRUMENT LAW — a count of nothing is 0, an average of nothing is UNKNOWN, and both are tested. But DSO's ZERO-DENOMINATOR guard had no input: BigInt division by zero THROWS, so one $0 invoice was a 500, not a wrong number |
+| 48 | §599 | **§600** | ZERO-DENOMINATORS DON'T GENERALIZE — the only other variable divisor is structurally safe (module-private, both call sites guarded). Two probes lied: a text sweep for `/` (522 noise hits) and a grep that missed the test under different wording |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -32512,3 +32513,73 @@ zero appears" and stay green, which is §595's and §597's third-case pattern fo
 - A metric moves from BigInt to float arithmetic → the failure mode silently changes from a throw to
   `Infinity`/`NaN`, which no test above would catch, because they assert on `"UNKNOWN"` rather than on the
   absence of a crash.
+
+---
+
+## §600 — PHASE GATE: §599 was a specific finding, not a class — and two probes that lied
+
+### The question
+
+§599 found a zero-denominator guard whose input nobody had built. §559's rule says at instance #2 stop fixing
+and start counting, so this phase asked whether the shape recurs: **are there other divisions by a variable
+divisor with no guard, or with a guard nothing tests?**
+
+### The instrument was wrong three times
+
+A text sweep for `/ identifier` returned **71 hits, then 522**, and both were almost entirely noise — block
+comments (`* - default: 1 year`), import paths (`@shuddl/contracts`), template literals (`${tenant}/`) and
+regex flags (`/g`). Stripping `//` does not strip `/* */`, and stripping both still leaves every import.
+
+That is worth recording rather than quietly fixing: **a text probe is the wrong instrument for an arithmetic
+question**, because `/` is the most overloaded character in the language. The right move after the second
+failed refinement was to abandon the sweep and read the bounded set of files that actually compute money —
+which is what found the answer in one step.
+
+### The answer: structurally safe
+
+`money/split.ts` holds the only other variable-divisor division, and it **cannot** divide by zero:
+
+- `largestRemainder` is **module-private**, with exactly two call sites;
+- one passes the literal `10_000n`;
+- the other is `apportion`, which throws on `divisor === 0n` **before** calling it.
+
+So §599's finding does not generalize. It was specific to `computeDsoDays`, where the guard sat between a
+reachable input and a `RangeError`.
+
+### And the guard here is tested — under wording my grep did not predict
+
+I searched for `all-zero|zero weight|apportion.*zero|at least one weight` and found nothing, then read the
+file: the case exists as *"rejects malformed inputs (integer-only, non-negative, **a positive weight
+required**)"*, with `expect(() => apportion(100, [0, 0])).toThrow()` inside it.
+
+[[a-false-clean-invites-no-follow-up]] for the second time this session. **The narrower the pattern, the more
+confidently it lies** — and the correction is the same both times: read the file the grep pointed near.
+
+### The mutation that matters is not the one I expected
+
+Removing the guard would only degrade a clear domain error into a `RangeError` — both throw, both fail closed.
+The real risk is the **tempting** refactor: make it *not* throw.
+
+| Mutation | Predicted | Result |
+|---|---|---|
+| **M81** all-zero weights return zeros instead of throwing | RED | **2 failed** |
+
+That is the shape worth guarding. An all-zero weight set apportioning to zeros is not an error — it is
+**money silently vanishing** from an interline split, reconciling perfectly against a total of nothing.
+
+### Exit state
+
+- `packages/ledger` — 17 green across the split suites; `split.ts` restored byte-identical.
+- No source modified this phase.
+- Eighty-one mutations across thirty-five phases: **71 RED as predicted, 9 silent (eight non-counterexamples,
+  one a real gap since closed), 1 that never applied** — 9 real gaps closed, 1 gate added from a self-named
+  trigger, 1 design pinned, 2 claims corrected.
+
+### Reopen triggers
+
+- `largestRemainder` is **exported** → its two guarded call sites stop being the whole story, and the
+  divisor guarantee moves to every new caller.
+- A dollar-weighted metric is added → §599's shape, not this one; the denominator is data rather than a
+  weight set, so it needs the reachable-input test that §599 wrote.
+- `apportion` is given a "lenient" mode → that is M81 made permanent, and the two tests above are what stand
+  in front of it.
