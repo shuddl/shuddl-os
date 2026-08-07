@@ -28164,7 +28164,14 @@ pnpm verify:merge   →   exit 1
 | **FAIL** | 2 | `unit-tests` · `coverage` |
 
 **Both FAILs are one uncommitted row, proven by removing it.** With `genesis/09`'s uncommitted `REQ-289`
-GTM line stashed, `check:coverage` exits 0 and the traceability suite goes 27/27. Restored after. This is
+GTM line stashed, `check:coverage` exits 0 and the traceability suite goes 27/27. Restored after.
+
+> **STRENGTHENED minutes later, because the first proof was of the parts and the gate is a composite.**
+> `unit-tests` is `pnpm run test:tools && pnpm -r --if-present run test` — a `&&` chain, so a failure in the
+> first half means the second half **never runs**, and "both halves are green when measured separately" is
+> not the same claim as "the gate is green". Re-run whole with the row stashed: **`UNIT EXIT: 0`, zero
+> failing test lines.** That is the airtight form, and the weaker one would have survived a reader who did
+> not notice the short-circuit. This is
 the same single cause §297/§299 identified, still the only thing standing between this profile and green,
 and **it is an owner decision in a separate workstream** — a GTM register row, not repo debt.
 
