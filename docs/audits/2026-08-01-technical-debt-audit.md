@@ -228,6 +228,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 33 | — | **§585** | CROSS-WORKER BINDING PARITY — 9 bindings shared (CONTROL_DB by all 5), 8 ungated. Split into LOGICAL parity (all scopes) and PHYSICAL (staging+prod), because dev's per-worker miniflare ids are correct; 21+12 pairs, 0 divergent |
 | 34 | — | **§586** | §585'S BLIND SPOT — 3 of 5 binding types (queues, services, KV: 18 decls) were invisible; 6 shared pairs ungated. Corpus 21→27, so the FLOOR had to move with it or the narrowing would pass |
 | 35 | §583–§586 | **§587** | BOTH ENDS OF EVERY QUEUE — a one-sided rename means agent triggers land where nothing reads and NOTHING errors; M60 names both symptoms. **The config-parity line is complete** — no remaining trigger names a real gap |
+| 36 | — | **§588** | THE TIME SURFACE — zero local-time methods; UTC day math by construction; the one local-aware module is IANA-derived and DST-tested at BOTH transitions (M61 reddens 3). Gate-level fold recorded as a limit, not built |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -31700,3 +31701,79 @@ hypothetical rather than a measurement.
   wrong, and the rule needs an explicit externally-owned list rather than an exemption bolted onto it.
 - A queue gains a **dead-letter** queue (`dead_letter_queue = …`) → that is a third role this rule does not
   model, and a DLQ with no consumer is a real, and very quiet, defect.
+
+---
+
+## §588 — PHASE GATE: the time surface, and a place where the expensive input was already built
+
+### A new line, opened deliberately
+
+§587 closed the config-parity thread and said so. This phase opened an unexamined one: **time**. In freight it
+is not incidental — an appointment is "Tuesday 2pm **at the facility**", detention runs on a clock, and
+evidence retention is measured in years. A timezone or DST error means a truck arrives an hour late or
+evidence is purged early, and neither shows up as an exception.
+
+### The measurement
+
+**Zero** local-time method calls in product code — no `getHours`, `setHours`, `getDay`, `getDate`,
+`getMonth`, `getFullYear`, `getTimezoneOffset` anywhere in `workers/`, `packages/` or `apps/`. A grep proves
+presence rather than absence, so the positive design was confirmed instead of resting on an empty result:
+
+- **UTC-explicit day math** — `DAY_MS = 86_400_000` and `toISOString().slice(0, 10)` day keys. Fixed-width
+  days over a UTC accounting day: no DST sensitivity by construction, which is correct for anchors, retention
+  and metering periods.
+- **One place local genuinely matters** — `appointment-window.ts` derives the facility's wall clock with
+  `Intl.DateTimeFormat` over an IANA zone, `hourCycle: "h23"` so midnight is `00` and never `24`, and `dow`
+  rebuilt as a UTC date to dodge the local-`Date` trap. Server-derived, so **a caller cannot smuggle a second
+  timezone**.
+
+### The expensive input was already constructed here
+
+§579's pattern is that a guard whose discriminating input is awkward ends up unwatched. **Not here.** The
+appointment tests cover both transitions and both pathologies:
+
+| Case | What it pins |
+|---|---|
+| winter vs summer, same UTC hour | there is no fixed offset |
+| **SPRING FORWARD** 2026-03-08 | `07:30Z → 03:30 EDT, not 02:30` — the hour that does not exist |
+| **FALL BACK** 2026-11-01 | two instants share one local wall clock **and** one service date |
+
+**M61** replaced the facility timezone with `"UTC"` — the classic "works on my server" bug — and three tests
+went red, each named for the property it defends. The derivation is correct, tested, and live.
+
+And it is **used**: `do/sequencer.ts` imports `localWall`/`localServiceDate` and calls them at three sites, so
+the gate compares local minute-of-day against the facility's capacity template rather than a UTC hour
+([[find-the-dispatch-not-the-string]] — the wiring was checked, not assumed).
+
+### The limit, and why it is recorded rather than closed
+
+All three DST tests are **module-level**. No *gate* test crosses a transition. The case that would matter is
+the fall-back fold: two appointments at 01:30 local on Nov 1 (one PDT, one PST) must collide as **one** slot,
+because a dock cannot hold two trucks and the ambiguous hour is genuinely one slot.
+
+That behaviour follows from two facts this suite already proves separately:
+
+1. the claim key is `(facility_id, slot_key, serviceDate, shipmentId)`, with `serviceDate` derived from
+   `localWall(window_start_ts, tz)`;
+2. both fold instants yield `serviceDate === "2026-11-01"`.
+
+A gate-level fold test would verify the **join of two proven facts**, and would cost a new facility fixture
+with a Sunday early-morning slot. Recorded as a limit rather than built — the same call as §578's attribution
+weakness. Where the parts are proven and the composition is a lookup, more fixture is not more assurance.
+
+### Exit state
+
+- `workers/api/test/appointments.test.ts` — 15 tests green; `appointment-window.ts` restored byte-identical.
+- No source modified this phase.
+- Sixty-one mutations across twenty-three phases: **54 RED as predicted, 6 silent-and-explained, 1 that never
+  applied, 3 real gaps closed, 1 design pinned, 2 claims corrected.**
+
+### Reopen triggers
+
+- Any product code gains a local-time method (`getHours`, `getDay`, …) → the zero-count measured here is the
+  baseline, and one such call is a DST defect until proven otherwise.
+- A second facility-local computation appears (detention windows, curfew hours) → it needs the same
+  `Intl`-over-IANA derivation, and its **own** DST cases; `appointment-window.ts`'s tests do not generalize to
+  a new caller.
+- The slot-claim key stops including `serviceDate` → the fold-collision property above evaporates, and the
+  gate-level test I chose not to build becomes necessary.
