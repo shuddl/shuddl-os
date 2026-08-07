@@ -27519,3 +27519,35 @@ are not carrying debt, each verified by mutation rather than by reading. The yie
 signal: §496 closed 11 defects in the instruments, §501 closed 3 while discharging two bounds, and §502–§504
 closed 0 across three axes. **That is what a stopping point looks like from the inside** — not an absence of
 questions, but questions that keep coming back answered.
+
+## §505 — re-verifying this session's OWN claims, because a record is only as good as its last measurement
+
+Three phase gates (§496, §501, §504) assert numbers an owner would act on, and several were measured many
+commits before the phase closed — §496's counts predate §498–§504 entirely. **A claim written down is a
+measurement with a date, not a standing fact** (§473), and this document's own standing rule is that only
+repo-owned rows can go stale, which makes them the ones worth re-running. So every headline claim was
+re-measured at HEAD rather than carried:
+
+| claim | section | re-measured at HEAD |
+|---|---|---|
+| 11 non-register gates PASS | §504 | **11/11** ✓ |
+| merge profile 25 gates / release 30 | §483, §496 | ✓ — and pinned, so `gate-wiring.test.ts` green IS the verification |
+| zero local-time `Date` methods in shipped src | §497 | **0** ✓ |
+| all 28 API route mounts invoked | §498 | **28 mounts, 0 uninvoked** ✓ |
+| 3,014 workspace tests, zero failures | §501, §504 | **3,014 passing, 0 failing** ✓ |
+| every gated kind observed; `exception.raised` RED=1 | §492 | re-mutated: **RED=1**, same named test ✓ |
+
+**Six for six.** The one worth re-running by mutation rather than by grep was §492's, because it is the only
+claim whose evidence was *destroyed by its own method* — the mutation was reverted, so nothing in the tree
+records that it ever went red. A table of RED counts is a fossil of an experiment; re-running one row is
+what distinguishes it from a number someone typed.
+
+**Two of my three verification commands failed before one worked**, in the now-familiar way: a `tsx -e`
+that could not resolve `run-gate.js`, and a `node -e` whose escaped regex became `\\(` and threw
+*"Unterminated group"*. Neither produced a wrong answer — both produced a loud error, which is the safe
+failure. The unsafe version is the one §499 and §500 hit: a probe that fails **quietly** and returns a
+number. **The check is not "did I get output" but "did the thing I asked about actually run".**
+
+**What this section is for.** The three phase gates now carry re-verified numbers, and the audit's own
+convention — *state the COMMAND, not the criteria* (§445) — means each row above names how to re-run it. An
+owner reading §496 today is reading a claim measured today, not one inherited from twenty sections ago.
