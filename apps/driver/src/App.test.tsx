@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { execFileSync } from "node:child_process";
-import { readFileSync, readdirSync } from "node:fs";
+import { mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
@@ -97,8 +98,26 @@ describe("production bundle contains no demo / DAY_SHEET fixture (REQ-030)", () 
   it("the built client bundle has none of the fictional fixture consignees, nor DAY_SHEET", () => {
     const appDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
     // Build the real production client and scan the emitted assets — the true bundle guarantee.
-    execFileSync("pnpm", ["build"], { cwd: appDir, stdio: "pipe" });
-    const assetsDir = join(appDir, "dist", "assets");
+    //
+    // AUDIT §495 — TWO corrections, both measured:
+    //
+    // 1. `NODE_ENV=production`, forced. Vitest sets NODE_ENV=test, and this `pnpm build` inherited it, so
+    //    the bundle scanned here was React's DEVELOPMENT build: 528,573 B against 316,336 B for the real
+    //    thing. The comment above said "the real production client" and it was not one — the claim was
+    //    false for as long as the test has existed.
+    //
+    // 2. An ISOLATED outDir. This wrote its artifact into `apps/driver/dist` — the DEPLOYABLE directory.
+    //    So `pnpm --filter @shuddl/driver deploy` run any time after `pnpm test` shipped a development
+    //    React build (+212 kB, dev-only warning paths) to the PWA that runs on real drivers' phones on bad
+    //    connections. It also made `check:bundles` report a phantom 60% regression (§488), which is the
+    //    symptom that led here. A test must not leave anything in the directory a deploy reads.
+    const outDir = mkdtempSync(join(tmpdir(), "driver-bundle-scan-"));
+    execFileSync("pnpm", ["exec", "vite", "build", "--outDir", outDir, "--emptyOutDir"], {
+      cwd: appDir,
+      stdio: "pipe",
+      env: { ...process.env, NODE_ENV: "production" },
+    });
+    const assetsDir = join(outDir, "assets");
     const bundle = readdirSync(assetsDir)
       .filter((f) => f.endsWith(".js"))
       .map((f) => readFileSync(join(assetsDir, f), "utf8"))
@@ -106,5 +125,15 @@ describe("production bundle contains no demo / DAY_SHEET fixture (REQ-030)", () 
     for (const fixture of ["Rivergate Dry Goods", "Eastbank Grocery DC", "Cascade Hardware Co", "Trillium Outfitters", "DAY_SHEET"]) {
       expect(bundle.includes(fixture)).toBe(false);
     }
+    // Non-vacuity: a build that emitted nothing would satisfy every `includes(...) === false` above.
+    expect(bundle.length, "the scan must have read a real bundle, not an empty string").toBeGreaterThan(100_000);
+
+    // …and it must be the PRODUCTION bundle, which is the half the fixture assertions cannot see: a
+    // development build contains strictly MORE strings, so every `includes(...) === false` above passes
+    // against it too. Removing the NODE_ENV forcing above reddens NOTHING without this line — measured.
+    // React's dev-only warning text is the discriminator (empirically: 0 occurrences in a production
+    // build, 1 in a development build of this same app).
+    expect(bundle, "this is React's DEVELOPMENT build — NODE_ENV leaked from vitest (§495)").not.toContain("Each child in a list");
+    rmSync(outDir, { recursive: true, force: true });
   }, 120_000);
 });

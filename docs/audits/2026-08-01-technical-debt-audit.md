@@ -27018,3 +27018,41 @@ exactly why the measurement is the only evidence that counts.
 shared fragment or observed by a test that fails when they diverge. §493's pair had neither: two
 hand-maintained glob lists, and no test comparing them. **The predictor of a parity defect is not the
 subject matter — it is whether anything would notice.**
+
+## §495 — the phantom bundle regression was a real deploy defect
+
+§488 recorded that `bundle-ratchet` fired at 153,129 B against a 95,598 B baseline with no source change,
+found a non-production artifact in `apps/driver/dist`, moved the ceiling assertion out of the unit test, and
+said *"something in the test run had left it there."* **It never identified what.** Closing the phase gate
+meant re-running the suites, which reproduced it exactly — so the diagnosis was finished.
+
+**`apps/driver/src/App.test.tsx` runs `execFileSync("pnpm", ["build"])` to prove no demo fixtures reach the
+shipped client (REQ-030).** That test is legitimate and valuable. Two things about *how* it built were not:
+
+1. **It inherited `NODE_ENV=test` from vitest.** Measured: `NODE_ENV` unset → 316,336 B; `=production` →
+   316,336 B; **`=test` → 528,573 B**. React's development build, +212 kB. The line above the call said
+   *"Build the real production client and scan the emitted assets — the true bundle guarantee."* **It was
+   never the production client**, for as long as the test has existed.
+2. **It built into `apps/driver/dist` — the DEPLOYABLE directory.** `apps/driver/package.json` has
+   `"deploy": "wrangler deploy --env prod"`, which uploads what is in `dist`. So **`pnpm test` followed by
+   `pnpm deploy` shipped React's development build to the driver PWA** — the surface that runs on real
+   drivers' phones, on bad connections, and whose airplane-mode soak is an acceptance demo. That is the
+   defect; the ratchet's "phantom" alarm was the symptom, and calling it phantom in §488 was generous to it.
+
+**Fixed:** `NODE_ENV: "production"` forced explicitly, and the build redirected to an `mkdtempSync` outDir
+with `--emptyOutDir`, so the test never writes into the directory a deploy reads. Verified: `dist` is
+byte-stable at 316,336 B across a full driver test run (it was being replaced with the 528,573 B artifact),
+`check:bundles` reports `driver 94kB`, and all 58 driver tests pass.
+
+**My fix was unobserved, and I caught that only by mutating it.** Removing the `NODE_ENV` forcing reddened
+NOTHING — because a development bundle contains strictly MORE strings, so every `includes(fixture) === false`
+assertion passes against it too. The test could not tell which bundle it had scanned, which is precisely how
+the original defect survived. Pinned with a discriminator chosen by measurement rather than guess: React's
+dev-only warning text (`"Each child in a list"` — 0 occurrences in a production build of this app, 1 in a
+development build). With it, removing the forcing reddens the test. **This is §483's three edits — correct,
+invoked, pinned — arriving on my own work, one section after §492 measured the same property for gates.**
+
+**The general form:** *a test that builds must not build where a deploy reads.* The blast radius of a test's
+side effect is not the test suite — it is every command that later reads the same path. And a test that
+constructs its own subject should assert WHICH subject it constructed; "the bundle contains no X" is a claim
+about a bundle nobody identified.
