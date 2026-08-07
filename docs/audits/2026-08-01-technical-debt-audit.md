@@ -242,6 +242,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 47 | — | **§599** | THE HONEST-INSTRUMENT LAW — a count of nothing is 0, an average of nothing is UNKNOWN, and both are tested. But DSO's ZERO-DENOMINATOR guard had no input: BigInt division by zero THROWS, so one $0 invoice was a 500, not a wrong number |
 | 48 | §599 | **§600** | ZERO-DENOMINATORS DON'T GENERALIZE — the only other variable divisor is structurally safe (module-private, both call sites guarded). Two probes lied: a text sweep for `/` (522 noise hits) and a grep that missed the test under different wording |
 | 49 | — | **§601** | THE GL DOUBLE-ENTRY ASSERTION — both firing conditions are closed by other layers (construction; `NOT NULL CHECK != 0`), so it is a TRIPWIRE. M82-b breaks construction and it fires. No test added, and why is the finding |
+| 50 | §599–§601 | **§602** | THE DIVISION FILTER (SQL, pre-pairing — safe + covered) and the MERGE GATE RE-MEASURED: 19/2/5, IDENTICAL to §569 across 17 phases, 9 closed defects and 83 mutations — because every remaining failure is an owner-held input |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -32647,3 +32648,71 @@ record has spent thirty-five phases finding in other people's work.
   only thing between a corrupt row and a customer's books.
 - The export gains a filter that drops rows **after** the pairs are built → dropping one leg of a pair
   unbalances the journal, and this assertion is what would catch it.
+
+---
+
+## §602 — PHASE GATE: the division filter, and the merge gate re-measured after seventeen phases
+
+### This phase
+
+§601's third reopen trigger was answerable rather than hypothetical: *"the export gains a filter that drops
+rows AFTER the pairs are built."* It already has one — the REQ-057 division filter.
+
+**It is applied in SQL, before pairing.** A filtered export selects a subset of `money_lines` and pairs each
+one completely, so every division's slice balances by the same construction argument as the whole, and the
+double-entry assertion runs on each filtered call.
+
+Test (d) covers it more thoroughly than the trigger anticipated: it iterates **every** division, asserts no
+foreign division leaks in, and asserts the partitions **reconstitute the whole** — `partitionedDebits ===
+fullDebits` and `partitionedRows === full.length`, so no row is dropped and none double-counted. Since
+`exportJournal` throws on imbalance, an unbalanced slice would fail that test transitively.
+
+Per §601's rule: **nothing to add.** Second consecutive phase where the honest answer is "safe by
+construction, and already covered."
+
+### The measurement that matters more
+
+`verify:merge` re-run at this commit, against §569's:
+
+| | §569 | §602 |
+|---|---|---|
+| PASS | 19 | **19** |
+| FAIL | 2 | **2** — `unit-tests`, `coverage` |
+| BLOCKED | 5 | **5** |
+
+**Identical.** Seventeen phases have passed since §569. In them: **nine real defects closed** (§576's
+`prev_hash`, §579's stranding, §590's deploy-day migration, §592's frozen lockfile, §593's install-time
+allowlist, §595's session expiry, §596's code single-use, §599's zero-denominator, plus §598's envelope
+chokepoint), **four new gates added**, and **eighty-three mutations run**.
+
+The verdict did not move, and that is the correct outcome rather than a disappointing one: **every remaining
+failure is an input this repo cannot produce.** The two FAILs are one uncommitted register row; the five
+BLOCKED are absent private fixtures and one secret.
+
+### Where the audit actually stands
+
+Two consecutive phases now resolve to *"already safe, already covered"*, and §589/§601 twice concluded that
+the honest coverage was **no test at all**. That is the same signal §587 and §594 named when closing their
+lines, arriving now at the level of the whole audit rather than one thread.
+
+It does not mean nothing is left — §601's first trigger (a three-leg money_line) and §599's (another
+dollar-weighted metric) are real, and both fire the moment the code changes. It means the **remaining
+findings are downstream of changes nobody has made yet**, and the productive posture shifts from *searching*
+to *the triggers already written down*.
+
+### Exit state
+
+- `verify:merge` — **19 PASS · 2 FAIL · 5 BLOCKED**, exit 1, evidence artifact written.
+- No source modified this phase.
+- Eighty-three mutations across thirty-seven phases: **72 RED as predicted, 10 silent (nine
+  non-counterexamples, one a real gap since closed), 1 that never applied** — 9 real gaps closed, 1 gate added
+  from a self-named trigger, 1 design pinned, 2 claims corrected.
+
+### The five owner-held inputs, unchanged since §569
+
+1. `REQ-289` — the GTM register row, uncommitted (both FAILs, and the 3 unit reds).
+2. Nine private fixtures from the engagement workspace (4 BLOCKED gates).
+3. The `IDENTITY_DENYLIST` secret (1 BLOCKED gate).
+4. Sender-domain verification + Cloudflare OIDC.
+5. The **filmed** half of the five acceptance demos — §591 confirmed the automated half green and honestly
+   labelled.
