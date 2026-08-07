@@ -28016,3 +28016,34 @@ source rather than assumed:
 does not state* — a host allowlist kept synthetic by an identity rule, a default that only a test
 distinguishes, an absent secret that something enforces — and none of those reasons would survive a reviewer
 reading the endpoint alone.
+
+## §517 — every canonical view is reachable, and the probe that keeps being wrong about it
+
+**The substance first: all 11 canonical views are reachable.** The registry holds 11 of a 12 budget (one
+slot spare, §506). Ten are referenced by name outside the registry; `v_board` is reached as the router's
+DEFAULT route — `{ name: "board" }`, with the comment stating *"the map board is the DEFAULT (the map IS the
+home, REQ-073/080)"*. No view is registered-but-unroutable, which is the question worth asking of a hard
+budget: a view in the registry and nowhere else would be dead scope counted as delivered.
+
+**The probe said `v_board` was UNREFERENCED, and that is the third time this session the same probe has
+been wrong in the same way.**
+
+1. `driver.png` — an earlier pass spent **six runs** on a false "inert" thread (standing note).
+2. The nine committed PNGs in `tools/live/out/` (§513) — filenames come from `process.argv`, so they appear
+   nowhere in the tree by construction.
+3. `v_board` here — the router dispatches on route NAMES (`board`, `queue`, `kpi`), not on the `v_*`
+   canonical-view vocabulary, which lives in genesis/10 and is mapped in a comment.
+
+**The pattern is specific and worth naming: in this codebase, counting identifier references is a poor proxy
+for reachability, because the three commonest reference mechanisms are invisible to it** — a command-line
+argument, a default branch, and a documented mapping. All three are legitimate designs; none leaves a string
+literal where a grep looks.
+
+**The corrected rule: for reachability, find the DISPATCH, not the string.** Ask what chooses, then read it.
+For `v_board` that was `router.ts`'s `Route` union and its default; for the PNGs it was `process.argv` and a
+README; for `driver.png` it was the same. Each took one file-read after the grep, and each grep alone would
+have supported a confident wrong answer.
+
+**Recorded because the lesson has now failed three times to prevent itself** — and the only difference here
+is that it was caught before publishing rather than after. That is the improvement worth keeping; the probe
+is not going to stop being tempting, so the habit has to be the follow-up read, not the avoidance.
