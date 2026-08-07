@@ -217,6 +217,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 22 | — | **§574** | CONCURRENCY + RETRY — the sequencer mutex re-proved at HEAD (M33: exactly 1 test red, `events_guard_ins` fires); idempotency is wildcard-mounted; the 4 routes outside it each carry their own protection, signup's being a UNIQUE index |
 | 23 | — | **§575** | THE OBSERVABILITY BOUNDARY — 104 log sites carry no secret and the sweep logs are aggregates, but the provider's error text reached two log sinks VERBATIM; scrubbed at the boundary it enters, both paths independently proved |
 | 24 | — | **§576** | THE HASH CHAIN — byte law and NULL→undefined re-proved at HEAD; the `prev_hash` LINK check was enforcing nothing a test could see, because the hash check masked it in every existing case. A forged chain (re-link + re-hash) now pins it |
+| 25 | — | **§577** | MASKING DOESN'T GENERALIZE — the sequencer's 11 guards: 10 reasons unnamed by any test, but 5 of 5 mutated are WATCHED. Masking needs ordered checks over a SHARED dimension; a wrong-suite "silent" verdict caught before it was recorded |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -30893,3 +30894,84 @@ it requires understanding what each check uniquely owns.
   and §576's second test becomes the only thing pinning `bad_genesis`.
 - A new failure `reason` is added to `ChainFailure` → it needs a test asserting the reason, not just `ok:false`;
   that assertion is what this phase found missing.
+
+---
+
+## §577 — PHASE GATE: guard masking does not generalize, and why
+
+### The question §576 raised
+
+§576 found a check enforcing nothing a test could see, because a *later* check fired first on every input any
+test supplied. That is a defect class, and §559's rule says to stop fixing and start counting. The sequencer's
+`#append` runs **~11 guards in sequence** on every write — identity, pin, schema, stream, signature, party
+existence, correction parent — so it is the obvious place for the same shape to hide.
+
+### The cheap probe, and what it was worth
+
+§576's lesson gives a heuristic: **a test that asserts the specific refusal `reason` is what makes it about
+that guard.** Measured: the sequencer declares **16 distinct reasons**, and **10 are named by no test at all.**
+
+That looked alarming. It is not — and the difference between "looks alarming" and "is a defect" is five
+mutations:
+
+| Mutation | Guard | Result |
+|---|---|---|
+| **M39** | `sequencer identity mismatch` (REQ-025's own re-derivation) | RED — *"a forged tenant in the RPC is rejected by id-equality"* |
+| **M40** | `device_id must equal actor.device` (the co-signature binding) | RED |
+| **M41** | `authority.flipped may only append on t:root` (WP-15 flip guard) | RED ×2 |
+| **M42** | `credit_party_not_found` | RED — *"a NATIVE credit.checked for an unmaterialized party FAILS CLOSED at the write boundary"* |
+| **M43** | `invoice_correction_unresolved_parent` | RED ×4 — *"an unresolved correction parent FAILS CLOSED, zero effects"* |
+
+**Five of five watched.** The unnamed-reason heuristic produced **zero** real gaps here. It measures coverage
+*quality* — whether a test can say which guard fired — not whether the guard is enforcing.
+
+### Why §576's masking did not generalize — the rule that predicts it
+
+The distinction is **whether the checks share an input dimension.**
+
+- `verifyChain`'s three checks all interrogate **one dimension**: the integrity of the same chain. Any input
+  that breaks the link also breaks a hash, because `prev_hash` lives *inside* the hash view. One bad input
+  trips several checks, so the strictest masks the rest.
+- The sequencer's guards interrogate **independent dimensions** — a forged tenant id says nothing about a
+  device signature, which says nothing about a correction's parent. Each needs its own crafted input to trip,
+  so each necessarily has its own test.
+
+**Masking is a property of ordered checks over a shared dimension, not of ordered checks.** That is the
+predictive form, and it says where to look next: any place several rules read the *same* field.
+
+### A wrong-suite verdict, caught before it was written down
+
+M42 and M43 first ran against three hand-picked test files and were **silent**. I nearly recorded two
+unwatched money guards. Re-running against the **full** 789-test api suite caught both, by tests named for
+exactly those behaviours — [[run-the-suite-that-owns-the-file]], in its inverse form: **attribute the GREEN
+before crediting it.** A silent mutation over a chosen subset says the subset was wrong at least as often as
+it says the guard is unwatched.
+
+### Recorded, not fixed: an inert policy knob
+
+`sequencer.ts` carries a `TODO(REQ-030)`: the `policy.gates.invoice_without_pod_classes` exemption is
+**UNWIRED**. The invoice payload carries no service class, so `assertPodSigned`'s exemption argument is
+omitted and the gate **always enforces**.
+
+That is the safe direction — *"a tenant configuring the exemption gets no effect, never an accidental
+bypass"* — and the code states that wiring it needs its own test and a register note first. Not a defect;
+correctly deferred, with one operator-facing consequence worth naming: **a tenant who sets that knob gets
+silence, not a warning.** No register row claims the exemption, so nothing is owed.
+
+### Exit state
+
+- `workers/api` — **789 tests, 69 files, all green** at HEAD (baseline confirmed after restore).
+- `packages/ledger` — 633 green · `tools/` — 885 tests, 882 green (the `REQ-289` row).
+- No source modified; M39–M43 all reverted byte-identical.
+- Forty-three mutations across twelve phases: **36 RED as predicted, 6 silent-and-explained, 1 real gap
+  (§576) closed.**
+
+### Reopen triggers
+
+- Several rules start reading the **same field** → that is the masking shape. Mutate each individually; a
+  green mutation means an adjacent rule is covering for it.
+- A guard's refusal `reason` is asserted by a test → that test becomes the one that can attribute a failure.
+  The ten unnamed reasons are a **coverage-quality** backlog, not a correctness one, and should be treated as
+  such rather than as findings.
+- `shipments.service` is threaded into the invoice write path → the POD exemption becomes wireable, and it
+  needs its own test *before* it ships, per the TODO.
