@@ -19,7 +19,7 @@ at WP exit (REQ-119); CLAUDE.md rule #8 makes REQ-025 a per-merge gate.
 | 7 | `GET /v1/anchors/:day/proof` | R2+D1 | `anchorReceiptKey` (anchor.ts:58), `tenantDb` (anchors.ts:53) | JWT claim | ❌ ADD | ❌ ADD |
 | 8 | `POST /v1/anchors/run` | R2+D1 | `runDailyAnchor({ tenant: session.tenant })` (anchors.ts:72) | JWT claim | ❌ ADD | n/a |
 | 9 | evidence upload/serve | R2+D1 | `evidenceKey` → `evidence/${tenant}/${shipmentId}/${hash}` (evidence.ts:60); `session.tenant` at the `.put` call | JWT claim | ❌ ADD | ❌ ADD |
-| 10 | `POST /v1/rate` | D1 | `loadTenantRatingConfig(tenantDb(c.env, session.tenant), now)` (rate.ts:127) | JWT claim | ❌ ADD | n/a (D1 handle) |
+| 10 | `POST /v1/rate` | D1 | `loadTenantRatingConfig(tenantDb(c.env, session.tenant), now)` (rate.ts:127) | JWT claim | ✅ isolation.test.ts (X-Tenant-Id + ?tenant=, audit §571) | n/a (D1 handle) |
 
 Update this table in the SAME PR that adds a read path. New WP agents (Scheduler,
 Dispatcher, …) each add rows — WP-08 booking routes go here before they merge.

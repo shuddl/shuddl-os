@@ -192,6 +192,32 @@ describe("REQ-025 growth: the ledger routes reject the same cross-tenant attacks
     expect(res.status).toBe(403);
   });
 
+  // REQ-025 §571 — `POST /v1/rate` was row 10 of the read-path registry carrying an unclosed `❌ ADD`, and
+  // measured at HEAD the suite mentioned `/rate` ZERO times. It prices off `loadTenantRatingConfig(tenantDb(…))`,
+  // so a cross-tenant handle here would price one tenant's freight on ANOTHER tenant's tariff — a money defect
+  // as well as a leak. §571's guard proves the call site derives from `session.tenant`; these prove the ROUTE.
+  it("X-Tenant-Id header on POST /v1/rate is rejected at auth (REQ-025 registry row 10)", async () => {
+    const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "ops" });
+    const res = await SELF.fetch("https://api.local/v1/rate", {
+      method: "POST",
+      headers: { ...bearer(t), "X-Tenant-Id": "tenant-b", "content-type": "application/json" },
+      body: JSON.stringify({ origin_zip: "97201", dest_zip: "80012", weight_lb: 1000 }),
+    });
+    expect(res.status).toBe(403);
+  });
+
+  it("?tenant= on POST /v1/rate is rejected at auth (the query-param shape of the same attack)", async () => {
+    const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "ops" });
+    const res = await SELF.fetch("https://api.local/v1/rate?tenant=tenant-b", {
+      method: "POST",
+      headers: { ...bearer(t), "content-type": "application/json" },
+      body: JSON.stringify({ origin_zip: "97201", dest_zip: "80012", weight_lb: 1000 }),
+    });
+    // The param is not a tenant selector anywhere in the stack; it must be inert, never a selector.
+    expect([200, 400, 403].includes(res.status), `unexpected ${res.status}`).toBe(true);
+    expect(res.status).not.toBe(500);
+  });
+
   it("X-Tenant-Id header on POST /v1/positions is rejected at auth", async () => {
     const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "driver" });
     const res = await SELF.fetch("https://api.local/v1/positions", {

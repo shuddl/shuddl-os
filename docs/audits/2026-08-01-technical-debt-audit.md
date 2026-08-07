@@ -211,6 +211,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 16 | §566–§567 | **§568** | THE STACK RULES — async correctness was unlinted (the non-type-checked preset); enabling it broke five lint-guard tests by invalidating their PROOF, not their rule; the `source:'native'` gate carve-out rested on a hand-kept enumeration |
 | 17 | — | **§569** | THE CHAIN END-TO-END — ci.yml → verify:merge → gatesFor("merge"), each link verified; the full merge gate RE-RUN at this commit: 19 PASS · 2 FAIL · 5 BLOCKED, every failure owner-blocked |
 | 18 | — | **§570** | THE LLM→LEDGER TRUST BOUNDARY — three surfaces attacked rather than read; the prompt-injectable `confidence` cannot gate auto-send (proved in BOTH directions), copilot cite-or-abstain, migrator strictly additive + rule 10 |
+| 19 | — | **§571** | REQ-025 BY MECHANISM — the read-path registry is an instruction (10 rows vs 29 files); all 35 `resolveTenantDb` sites enumerated by ARGUMENT and every one authenticated; an allowlist now guards call site #36, and a stale-looking ❌ on `POST /v1/rate` was still real |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -30422,3 +30423,77 @@ were reverted byte-identical.
   schema) and its output must reach a validator before any ledger write.
 - `buildOverrides`' floor is lowered, or the "never downgrade a confident mapping" clause is relaxed → the
   LLM stops being strictly additive and rule 10's gap rows become the only remaining guard.
+
+---
+
+## §571 — PHASE GATE: REQ-025 enforced by mechanism, not by a registry anyone must remember to update
+
+### The law and how it was being kept
+
+CLAUDE.md rule 8: *"Tenant isolation suite runs on every merge; a cross-tenant read anywhere is a build
+failure (REQ-025)."* The suites are real and large — five files, 1,223 lines in `workers/api/test/isolation.test.ts`
+alone — and a skill carries `read-path-registry.md`, whose own instruction is *"keep in sync with the code"* and
+*"Update this table in the SAME PR that adds a read path."*
+
+**That is an instruction, not a mechanism**, and the measurement shows what instructions are worth: the
+registry enumerates ~10 read paths; **29 files call `resolveTenantDb`.**
+
+### The frame was wrong, and that is the useful part
+
+The gap looks alarming and is not. Per-route enumeration is the wrong lens, because every tenant-scoped read
+funnels through **one function**, and the only thing that decides isolation is **where its tenant argument
+comes from**. So all 35 call sites were enumerated by argument:
+
+| Tenant argument | Sites | Why it is authenticated |
+|---|---|---|
+| `session.tenant` | 32 | the JWT claim, verified by the auth middleware |
+| `tenant` | 1 | `do/sequencer.ts` — the DO's own identity, re-derived and pin-checked before the call |
+| `claims.t` | 1 | `pub/status.ts` — MAC-verified by `verifyStatusCap`, fail-closed to a uniform 401 |
+| `c.get("session"` | 1 | the same session off the Hono context |
+
+**Every one derives from an authenticated identity.** A clean negative — reached by finding the *dispatch*
+rather than reading the registry ([[find-the-dispatch-not-the-string]]).
+
+What was missing is **call site #36**. `resolveTenantDb(c.env, c.req.param("tenant"))` is a direct
+cross-tenant read, and nothing would have caught it: the registry is a document, and no test asserted the
+shape of that argument.
+
+### The guard is an allowlist, deliberately
+
+A denylist of bad shapes (`c.req.`, `param(`, `query(`) is a guess about how the next mistake will be spelled,
+and §525's rule is that the narrower the pattern, the more confidently it lies. An allowlist fails on **any**
+new form — including ones nobody predicted — and the fix is to add the form with a note on what verifies it,
+which is exactly the review moment worth creating.
+
+| Mutation | Predicted | Result |
+|---|---|---|
+| **M28** `resolveTenantDb(c.env, c.req.param("tenant"))` | RED | RED — the actual attack |
+| **M29** `session.tenantId` (a plausible-*looking* authenticated form) | RED | RED — the allowlist is strict, not fuzzy |
+
+### A stale ❌ that was still real
+
+The registry carries four `❌ ADD` markers. It is a **frozen** skill document whose own grounding note says to
+verify against HEAD before treating any cited defect as current — so they were checked rather than believed.
+Row 10 (`POST /v1/rate`) was still open: the suite mentioned `/rate` **zero times**.
+
+That route prices off `loadTenantRatingConfig(tenantDb(…))`, so a cross-tenant handle there would price one
+tenant's freight on **another tenant's tariff** — a money defect as well as a leak. Two cases now cover it
+(the `X-Tenant-Id` header and the `?tenant=` query shapes), and **M30** — disabling the client-tenant refusal
+in `middleware/auth.ts` — reddens 24 tests including the new `/v1/rate` case by name. Registry row 10 updated
+to ✅.
+
+### Exit state
+
+- `workers/api/test/isolation.test.ts` — **67 tests, all green** (+2).
+- `tools/checks/append-chokepoint.test.ts` — **17 tests, all green** (+2).
+- `typecheck` · `lint` · `citations` · `identity` green.
+- Thirty mutations across seven phases: **24 RED as predicted, 5 silent and each explained, 1 needing `git add -N`.**
+
+### Reopen triggers
+
+- A new authenticated tenant source appears → add it to `ALLOWED_TENANT_ARGS` **with the note on what verifies
+  it**; an entry without that note is the failure mode this guard exists to prevent.
+- `resolveTenantDb` gains an overload or a wrapper → the regex finds the direct call only, and the wrapper
+  becomes the new chokepoint to guard.
+- Registry rows 6, 7 and 8 still carry `❌`. Row 10 was real; the other three were **not** re-verified here and
+  should be measured against HEAD before being trusted or dismissed.
