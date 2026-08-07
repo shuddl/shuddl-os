@@ -29228,3 +29228,31 @@ GPU-capable runner*, §521's table).
 `e2e` is the driver-offline and portal-isolation spine, and `perf` measures five things and enforces three
 where it stands. **None of the four small counts is a gate asleep**; each is a short list of specific claims,
 which is what §492 said a count measures.
+
+## §549 — the fourth browser gate: what `e2e` actually claims
+
+`e2e` reports **6** in §544's run. Six tests across two specs, and their names are the claims — which is the
+property §529 argued for and §536 found in the visibility suite:
+
+**`driver-offline-sync.spec.ts`** — the airplane-mode half of acceptance demo 3:
+- *"renders the authenticated day sheet from server data, **never a fixture**"* — and it proves the negative
+  as well as the positive: `"2 STOPS"` and `"Locked stop"` visible, `"Sign in"` at `toHaveCount(0)`.
+- *"a 401 clears the session and leaves **no stale sheet behind**"* — the inverse pair: `"Sign in"` visible,
+  `"Day sheet"` at zero. **A cleared session that leaves the previous driver's stops on screen is the defect,
+  and only the `toHaveCount(0)` half catches it.**
+- *"a capture taken offline **outlives the page** and flushes on reconnect"* — the durability claim the
+  airplane-mode soak exists for.
+
+**`portal-isolation.spec.ts`** — REQ-025 at the browser boundary, and all three are *refusal* claims:
+- *"never puts a party scope on the wire — the server resolves it from the bearer alone"*
+- *"a `party_id` smuggled into the URL never reaches the API"*
+- *"a 403 renders a refusal, never another party's rows and never a stale sheet"*
+
+**Every one of the six is stated as what must NOT happen**, which is the §500 lesson in the surface tests: a
+suite that only proves the happy path is the one that ships a fail-open. Here the counterparty-isolation
+spec has no happy-path test at all — it is three ways of asserting a leak does not occur.
+
+**All four browser gates are now read.** `a11y` and `visual` guard the never-painted page (§547); `perf`
+measures five things and enforces three, naming the machine profile that would bind the rest (§548); `e2e`
+is six refusals. **The four small counts in §544's profile are four short lists of specific claims** — and
+across §547–§549 not one of them turned out to be a gate that had stopped looking.
