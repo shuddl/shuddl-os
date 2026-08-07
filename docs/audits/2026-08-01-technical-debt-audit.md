@@ -227,6 +227,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 32 | — | **§584** | SCOPES DERIVED, NOT LISTED — a hand-kept two is a hand-kept one a scope later; the set now comes from the `[env.*]` blocks both workers declare, with an EQUALITY floor so a rename fails loud (M56) instead of silently narrowing |
 | 33 | — | **§585** | CROSS-WORKER BINDING PARITY — 9 bindings shared (CONTROL_DB by all 5), 8 ungated. Split into LOGICAL parity (all scopes) and PHYSICAL (staging+prod), because dev's per-worker miniflare ids are correct; 21+12 pairs, 0 divergent |
 | 34 | — | **§586** | §585'S BLIND SPOT — 3 of 5 binding types (queues, services, KV: 18 decls) were invisible; 6 shared pairs ungated. Corpus 21→27, so the FLOOR had to move with it or the narrowing would pass |
+| 35 | §583–§586 | **§587** | BOTH ENDS OF EVERY QUEUE — a one-sided rename means agent triggers land where nothing reads and NOTHING errors; M60 names both symptoms. **The config-parity line is complete** — no remaining trigger names a real gap |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -31637,3 +31638,65 @@ the verdict, which is the only version of the discipline that has actually held.
   narrowing. **The floor is the general defence; the field list is not.**
 - A queue gains a **consumer** in a second worker → consumers carry no `binding`, so they are correctly
   outside this rule, and their pairing with a producer is not checked by anything here.
+
+---
+
+## §587 — PHASE GATE: both ends of every queue, and the end of the config-parity line
+
+### The trigger
+
+§586 closed by naming what it could not see: *"consumers carry no `binding`, so they are correctly outside
+this rule, and their pairing with a producer is not checked by anything here."*
+
+That gap has the worst failure signature in the system. `api` enqueues an agent trigger; the message lands in
+a queue no worker reads; the **Biller and Concierge never run**. Nothing errors, no gate fails, no log line
+appears — the freight simply stops being acted on. A one-sided rename in a wrangler is all it takes.
+
+### Measured, then gated
+
+All three scopes pair correctly today — every produced queue is consumed and every consumed queue is
+produced. Both directions are defects **because this repo owns both ends**:
+
+- produced with no consumer → messages accumulate and expire unread;
+- consumed with no producer → a worker subscribed to a queue nothing feeds, which is usually the residue of a
+  rename that touched one side.
+
+| Mutation | Predicted | Result |
+|---|---|---|
+| **M60** rename the **prod consumer**, leave the producer | RED, naming both sides | `prod: "shuddl-agent-triggers-prod" is PRODUCED but no worker consumes it` **and** `prod: "…-prod-renamed" is CONSUMED but no worker produces it` |
+
+Naming both halves is deliberate: a one-sided rename produces two complementary symptoms, and an engineer
+reading only *"nobody consumes X"* would look for a missing worker rather than a typo three lines away.
+
+### This line of inquiry is complete
+
+Six phases (§583–§587) walked one thread, each closing the trigger the last one wrote. The configuration
+surface is now systematically covered:
+
+| Question | Where |
+|---|---|
+| Do the checks cover every deployable scope? | §583, §584 — derived from `[env.*]`, equality-floored |
+| Do shared bindings agree across workers? | §585 — logical (all scopes) + physical (staging/prod) |
+| Are all binding **types** covered? | §586 — all five; floors raised with the corpus |
+| Does every queue have **both ends**? | §587 |
+
+**There is no remaining reopen trigger in this line that names a real gap.** The two §587 leaves — a sixth
+binding type, and an externally-owned queue — are both *"if the architecture changes"*, not *"this is
+unchecked today"*. That is the honest place to stop pulling this thread, and it is worth saying explicitly:
+the value of trigger-chasing decays, and the signal that it has decayed is when the next trigger describes a
+hypothetical rather than a measurement.
+
+### Exit state
+
+- `tools/deploy/binding-parity.test.ts` — **5 tests green**; `tools/` 892 tests, 889 green (the 3
+  `REQ-289` reds).
+- `typecheck` · `lint` green; `workers/agents/wrangler.toml` restored byte-identical.
+- Sixty mutations across twenty-two phases: **53 RED as predicted, 6 silent-and-explained, 1 that never
+  applied, 3 real gaps closed, 1 design pinned, 2 claims corrected.**
+
+### Reopen triggers
+
+- A queue is produced or consumed by something **outside this repo** → both directions of this rule become
+  wrong, and the rule needs an explicit externally-owned list rather than an exemption bolted onto it.
+- A queue gains a **dead-letter** queue (`dead_letter_queue = …`) → that is a third role this rule does not
+  model, and a DLQ with no consumer is a real, and very quiet, defect.

@@ -89,6 +89,62 @@ function divergences(field: "name" | "id", scopes?: ReadonlySet<string>): string
     .map(([key, ws]) => `${key}: ${[...ws].map(([w, v]) => `${w}=${v}`).join(", ")}`);
 }
 
+/** Queue names by role, per scope — consumers carry no `binding`, so the parity rules above cannot see them. */
+function queuesByRole(role: "producers" | "consumers"): Map<string, Set<string>> {
+  const root = repoRoot();
+  const out = new Map<string, Set<string>>();
+  const files = execSync('git ls-files "workers/*/wrangler.toml"', { cwd: root, encoding: "utf8" })
+    .trim()
+    .split("\n")
+    .filter(Boolean);
+  for (const f of files) {
+    let scope = "dev";
+    for (const block of readFileSync(`${root}/${f}`, "utf8").split(/\n(?=\[)/)) {
+      const env = /^\[+env\.(\w+)/.exec(block);
+      if (env) scope = env[1]!;
+      const head = /^\[+([\w.]+)\]+/.exec(block);
+      const q = /^\s*queue\s*=\s*"([^"]*)"/m.exec(block);
+      if (!head || !q) continue;
+      if (!head[1]!.endsWith(role)) continue;
+      if (!out.has(scope)) out.set(scope, new Set());
+      out.get(scope)!.add(q[1]!);
+    }
+  }
+  return out;
+}
+
+// REQ-026/154 §587 — EVERY QUEUE HAS BOTH ENDS, IN EVERY SCOPE.
+//
+// §586's own reopen trigger: consumers carry no `binding`, so the parity rules above are structurally blind
+// to them, and a producer/consumer name mismatch is checked by nothing. That failure is silent in the worst
+// way — `api` enqueues an agent trigger, the message lands in a queue no worker reads, and the Biller and
+// Concierge simply never run. Nothing errors; the freight just stops being acted on.
+//
+// Both directions are defects here, because this repo owns both ends of every queue:
+//   • produced with no consumer → messages accumulate and expire unread;
+//   • consumed with no producer → a worker subscribed to a queue nothing feeds (dead config, and usually the
+//     residue of a rename that only touched one side).
+describe("REQ-026 §587: producer and consumer queue names pair up", () => {
+  const produced = queuesByRole("producers");
+  const consumed = queuesByRole("consumers");
+
+  it("finds queues in every scope (non-vacuity)", () => {
+    expect([...produced.keys()].sort(), "the producer scan is stale, not the configs").toEqual(["dev", "prod", "staging"]);
+    expect([...consumed.keys()].sort(), "the consumer scan is stale, not the configs").toEqual(["dev", "prod", "staging"]);
+  });
+
+  it("every produced queue is consumed, and every consumed queue is produced, within its scope", () => {
+    const bad: string[] = [];
+    for (const scope of new Set([...produced.keys(), ...consumed.keys()])) {
+      const p = produced.get(scope) ?? new Set();
+      const c = consumed.get(scope) ?? new Set();
+      for (const q of p) if (!c.has(q)) bad.push(`${scope}: "${q}" is PRODUCED but no worker consumes it`);
+      for (const q of c) if (!p.has(q)) bad.push(`${scope}: "${q}" is CONSUMED but no worker produces it`);
+    }
+    expect(bad, `a queue with only one end — messages go nowhere and nothing errors:\n  ${bad.join("\n  ")}`).toEqual([]);
+  });
+});
+
 describe("REQ-154 §585: cross-worker binding parity", () => {
   it("finds shared bindings at all (non-vacuity)", () => {
     // A renamed table or a parser change would compare nothing and pass — the class this repo met in five
