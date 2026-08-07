@@ -1,5 +1,9 @@
 import { globSync, readFileSync } from "node:fs";
 import { insertIntoRe } from "./invariants.js";
+import { EXPECTED_EMPTY_GLOBS, SOURCE_SCAN_GLOBS, isTestPath, stripComments } from "./source-corpus.js";
+
+// §493 — re-exported: this module owned `stripComments` and its tests import it from here.
+export { stripComments };
 
 // REQ-030 / I3 — THE APPEND CHOKEPOINT (audit §56).
 //
@@ -38,23 +42,15 @@ const ALLOWED = new Map<string, string>([
 // Audit §120: the .tsx half was missing. A React component is an ordinary place to put a helper, and a
 // direct events INSERT bypasses the sequencer DO and with it EVERY gate — the file extension must not decide
 // whether that is caught. Probed: before this line existed, a violation in ANY .tsx file was invisible.
-const SCAN_GLOBS = [
-  "workers/*/src/**/*.ts",
-  "workers/*/src/**/*.tsx",
-  "packages/*/src/**/*.ts",
-  "packages/*/src/**/*.tsx",
-  "apps/*/src/**/*.ts",
-  "apps/*/src/**/*.tsx",
-  "tools/**/*.ts",
-  "tools/**/*.tsx",
-];
+// §493 — the glob set is SHARED with invariants.ts (see source-corpus.ts); two hand-maintained copies
+// drifted and opened a hole in tools/.
+const SCAN_GLOBS = SOURCE_SCAN_GLOBS;
 
 // The globs that match NOTHING today and are kept deliberately (audit §466). Both are FORWARD-SAFE: workers
 // and tools are server-side/tooling trees with no TSX, and the patterns exist so a .tsx appearing there is
 // scanned from its first commit rather than from whenever someone notices. Listing them is what lets the
 // per-glob non-vacuity rule below be strict about every OTHER pattern — the §455 distinction between "empty
 // because nothing produces it yet" and "empty because the pattern broke".
-const EXPECTED_EMPTY_GLOBS = new Set(["workers/*/src/**/*.tsx", "tools/**/*.tsx"]);
 
 // `INSERT [OR ...] INTO [schema.]["]events["]` — the SHARED matcher from invariants.ts, not a copy.
 //
@@ -72,38 +68,6 @@ export interface ChokepointViolation {
   detail: string;
 }
 
-// Blank out comment BODIES, preserving newlines so reported line numbers stay true. Without this the check
-// flags its own header and `invariants.ts`'s explanation of the same rule — a lint that cannot describe
-// itself is a lint nobody can document. Quote/template state is tracked so a `//` inside a string literal
-// (a URL, a SQL fragment) is not mistaken for a comment.
-export function stripComments(src: string): string {
-  let out = "";
-  let state: "code" | "line" | "block" | "'" | '"' | "`" = "code";
-  for (let i = 0; i < src.length; i++) {
-    const c = src[i] as string;
-    const next = src[i + 1];
-    if (state === "code") {
-      if (c === "/" && next === "/") { state = "line"; out += "  "; i++; continue; }
-      if (c === "/" && next === "*") { state = "block"; out += "  "; i++; continue; }
-      if (c === "'" || c === '"' || c === "`") state = c;
-      out += c;
-      continue;
-    }
-    if (state === "line") {
-      if (c === "\n") { state = "code"; out += c; } else out += " ";
-      continue;
-    }
-    if (state === "block") {
-      if (c === "*" && next === "/") { state = "code"; out += "  "; i++; } else out += c === "\n" ? c : " ";
-      continue;
-    }
-    // inside a string/template: a backslash escapes the next character, so a quote cannot close early
-    if (c === "\\") { out += c + (next ?? ""); i++; continue; }
-    if (c === state) state = "code";
-    out += c;
-  }
-  return out;
-}
 
 export function findChokepointViolations(cwd: string = process.cwd()): ChokepointViolation[] {
   const violations: ChokepointViolation[] = [];
@@ -116,7 +80,7 @@ export function findChokepointViolations(cwd: string = process.cwd()): Chokepoin
       const rel = abs.replace(/\\/g, "/");
       if (seen.has(rel)) continue;
       seen.add(rel);
-      if (rel.includes("/test/") || rel.endsWith(".test.ts") || rel.endsWith(".test.tsx")) continue;
+      if (isTestPath(rel)) continue; // §493 — shared with the REPLACE scanner (source-corpus.ts)
       if (ALLOWED.has(rel)) continue;
       const lines = stripComments(readFileSync(`${cwd}/${rel}`, "utf8")).split("\n");
       lines.forEach((text, i) => {

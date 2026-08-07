@@ -26919,3 +26919,49 @@ measuring nothing new.
 case, which is a two-edit change with a different blast radius per kind (shared case labels, block-bodied
 cases) and cannot be scripted safely. Neutering the PREDICATE is one line, identical for every kind, and
 isolates exactly the property under test: *is this gate ever asked?*
+
+## §493 — two gates guarding one law disagreed about where it applies, and the gap was writable
+
+§492 measured whether each gated KIND is observed. The same question asked of the two gates that guard I3
+over TypeScript source — `append-chokepoint` (WHO may write `events`) and `invariants`'
+`findForbiddenReplaceSources` (HOW anyone may write it) — turns on a different axis: **do they agree about
+which files the law applies to?**
+
+They did not. `check:chokepoint` scanned **8** globs; the REPLACE scanner scanned **6**, omitting
+`tools/**`. §120 had already caught this exact delta once, in the other direction — the REPLACE scanner was
+missing `apps/` and was widened to match chokepoint. Nobody checked the reverse.
+
+**The delta was writable, and the allowlist is what hid it.** Measured by planting, not by reading globs:
+`INSERT OR REPLACE INTO events` in `tools/seed/load.ts` — one of the two files chokepoint ALLOWLISTS as a
+legitimate events writer — passed `check:invariants` (tools/ outside its corpus), `check:chokepoint` (the
+file is an allowed writer) and `lint`. **Nothing in the build caught a REPLACE on the events table**, the
+single most protected object in the system (CLAUDE.md rule 2, I3/I7). The allowlist answers *who may write*;
+it was being read as an exemption from *how*, purely because the second gate never looked there. A probe
+planted in a NON-allowlisted tools file was caught — by the wrong rule, which is what made the hole look
+covered.
+
+**Fixed at the convention, per §489.** `tools/checks/source-corpus.ts` now declares the corpus once and both
+gates import it. It cannot live in either gate: `append-chokepoint` already imports `insertIntoRe` FROM
+`invariants`, so a shared list in either direction is a cycle — which is plausibly why there were two copies.
+
+**Widening it broke the gate twice, and both breaks were the fix's own preconditions arriving late.**
+First, the scanner flagged `append-chokepoint.test.ts` — the sibling gate's fixtures, which contain the
+forbidden SQL on purpose. Chokepoint had always excluded test paths; the predicate lived inline in that one
+file, so the REPLACE scanner inherited the trees WITHOUT the exclusion. Second, with that fixed, it flagged
+**this fix's own new module**, whose documentation quotes the banned statement while explaining the defect.
+Chokepoint had `stripComments` for exactly this, and its header already named the victim: *"the check flags
+its own header and `invariants.ts`'s explanation of the same rule — a lint that cannot describe itself is a
+lint nobody can document."* One gate had learned it; its sibling never did. **All three corpus decisions —
+globs, test exclusion, comment stripping — now live in one module, because all three are the same decision.**
+
+**Verified four ways, then pinned (8 tests) and mutation-proved.** The planted REPLACE in the allowlisted
+writer is now caught; the same SQL in a comment is ignored; the real tree is clean under both gates; 854
+tools tests pass. Deleting the `tools/` glob reddens the set-equality and cell tests; neutering the
+test-path predicate reddens the exclusion test AND the real-tree assertion — the non-vacuity check earning
+its place, since without the exclusion the sibling gate flags its own evidence.
+
+**The general form, and it is the sharpest version of a lesson this phase keeps paying for:** when two
+mechanisms enforce one law, **the delta between their SCOPES is a defect even when nothing is failing.**
+Both gates were green, on every commit, for as long as the gap existed. Nothing was broken — something was
+simply never looked at, and the only way to find that is to compare the two lists or plant a violation in
+each cell. Reading either gate alone tells you nothing, because each one is individually correct.

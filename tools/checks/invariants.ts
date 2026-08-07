@@ -4,6 +4,7 @@ import { existsSync, globSync as globSyncRaw, readFileSync, writeFileSync } from
 import { execSync } from "node:child_process";
 import { join } from "node:path";
 import { stripSqlComments } from "@shuddl/ledger/migrate";
+import { SOURCE_SCAN_GLOBS, isTestPath, stripComments } from "./source-corpus.js";
 
 // I8 (doc 10): ≤22 tables — 21 named, the spare requires a written deletion (register note).
 // macOS/iCloud name-collision duplicates ("0008_x 2.sql", "index 3.ts") are gitignored, but EVERY gate in
@@ -497,15 +498,12 @@ export function findForbiddenReplaceSources(cwd: string = process.cwd()): string
   // check:chokepoint already scanned apps/ for the same class of violation; the two gates guard I3 together
   // and disagreed about where it could live. An INSERT OR REPLACE on an append-only table is forbidden
   // wherever it is written, so the glob set now matches the corpus rather than a subset of it.
-  const files = [
-    ...globSync("packages/*/src/**/*.ts", { cwd }),
-    ...globSync("packages/*/src/**/*.tsx", { cwd }),
-    ...globSync("workers/*/src/**/*.ts", { cwd }),
-    ...globSync("workers/*/src/**/*.tsx", { cwd }),
-    ...globSync("apps/*/src/**/*.ts", { cwd }),
-    ...globSync("apps/*/src/**/*.tsx", { cwd }),
-  ];
-  const texts = files.map((p) => ({ path: p, text: readFileSync(join(cwd, p), "utf8") }));
+  // §493 — the SHARED corpus (source-corpus.ts) and the SHARED test-path exclusion. Widening this to
+  // `tools/**` without the exclusion made the scanner flag its own sibling gate's fixtures.
+  const files = SOURCE_SCAN_GLOBS.flatMap((g) => globSync(g, { cwd })).filter((p) => !isTestPath(p.replace(/\\/g, "/")));
+  // §493 — comments stripped, as `append-chokepoint` has always done: a rule that cannot be described in
+  // prose without tripping itself is a rule nobody can document. Line numbers are preserved by the stripper.
+  const texts = files.map((p) => ({ path: p, text: stripComments(readFileSync(join(cwd, p), "utf8")) }));
   return [...scanSourceForForbiddenReplace(texts), ...scanSourceForLegsReplace(texts)];
 }
 
