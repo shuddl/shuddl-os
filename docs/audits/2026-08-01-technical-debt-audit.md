@@ -229,6 +229,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 34 | — | **§586** | §585'S BLIND SPOT — 3 of 5 binding types (queues, services, KV: 18 decls) were invisible; 6 shared pairs ungated. Corpus 21→27, so the FLOOR had to move with it or the narrowing would pass |
 | 35 | §583–§586 | **§587** | BOTH ENDS OF EVERY QUEUE — a one-sided rename means agent triggers land where nothing reads and NOTHING errors; M60 names both symptoms. **The config-parity line is complete** — no remaining trigger names a real gap |
 | 36 | — | **§588** | THE TIME SURFACE — zero local-time methods; UTC day math by construction; the one local-aware module is IANA-derived and DST-tested at BOTH transitions (M61 reddens 3). Gate-level fold recorded as a limit, not built |
+| 37 | — | **§589** | MONEY ARITHMETIC — mulDivHalfUp is BigInt and fail-closed at both ends (M62 reddens); every money path routes through it. M63 was SILENT and CORRECTLY so: 197 boundary cases prove no input separates cross-multiply from float division |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -31777,3 +31778,77 @@ weakness. Where the parts are proven and the composition is a lookup, more fixtu
   a new caller.
 - The slot-claim key stops including `serviceDate` → the fold-collision property above evaporates, and the
   gate-level test I chose not to build becomes necessary.
+
+---
+
+## §589 — PHASE GATE: the money arithmetic, and a silent mutation that was correct to be silent
+
+### The surface
+
+CLAUDE.md's canonical law admits **integer-only numbers**, and REQ-040's interline-floor regression is
+permanent. Both rest on money arithmetic being exact. Floats in a cents path do not fail loudly — they
+produce an invoice that is off by one, once, and reconcile forever after.
+
+### The chokepoint holds
+
+`mulDivHalfUp` is fail-closed at **both** ends:
+
+- rejects non-integer or negative inputs outright;
+- forms the product in **BigInt**, because `a × b` may exceed 2^53 and a JS-number product would silently
+  lose precision;
+- **throws** rather than returning a result above `MAX_SAFE_INTEGER` — refusing to hand back a number it
+  cannot represent, instead of rounding one.
+
+Every money computation routes through it. Sweeping for `*`/`/` on `_cents` or `_bps` outside it returned
+**only comments** describing the formulas. The `Math.round` sites are all diagnostics — a per-lb display
+ratio, geo coarsening, a Merkle tree index, a drift-bps metric, a distance, an average.
+
+**M62** formed the product as a JS number first and two tests went red, including the 2^53 guard.
+
+### The silent mutation that should have stayed silent
+
+**M63** replaced the anomaly detector's exact cross-multiply (`sell_cents > cap × weight_lb`) with float
+division (`sell_cents / weight_lb > cap`). **All 157 tests stayed green.** §531's four explanations apply,
+and the honest answer required measuring rather than assuming a coverage gap:
+
+For the cross-multiply to be exact at all, `cap × weight_lb` must be a safe integer. Probing the **extreme
+edge of exactly that region** — for each of eight weights, the maximum cap keeping the product safe, and
+sells at ±2 around the threshold — gives **197 boundary cases, zero disagreements**.
+
+**Where the cross-multiply is exact, the float quotient agrees with it.** The two formulations are
+behaviourally identical across every input the function can legitimately receive.
+
+So M63's silence is **correct**, not a gap. There is no test to add, because there is no input that would
+distinguish the versions. The cross-multiply is a clarity and defence-in-depth choice — the code says so
+directly (*"Per-lb DECISION without division (avoid float where the flag is actually decided)"*) — and its
+value is that it cannot go wrong, not that it currently behaves differently.
+
+This is the phase's most useful result. §579 established that a silent mutation often means an untested
+guard; **it can also mean two implementations of one decision that no reachable input separates.** Treating
+every silent mutation as a missing test would have produced a fixture here proving nothing, and the only way
+to tell the cases apart is to go looking for the counterexample and fail to find one — deliberately, over the
+region where it would have to live.
+
+### What is genuinely informational, and stays that way
+
+`anomaly.ts` computes the reported `per_lb_cents` with exact `roundHalfUp` when both inputs are integers and
+falls back to `Math.round` otherwise. That value is in the anomaly's `detail` and payload — **never the
+decision**, which the cross-multiply already made. An integer after rounding, so the canonical law holds.
+
+### Exit state
+
+- `packages/rater` — **157 tests green**; `money.ts` and `anomaly.ts` both restored byte-identical.
+- No source modified this phase.
+- Sixty-three mutations across twenty-four phases: **55 RED as predicted, 7 silent — six explained as
+  non-counterexamples and one (§576) a real gap since closed** — 3 real gaps closed overall, 1 design pinned,
+  2 claims corrected.
+
+### Reopen triggers
+
+- A money path appears that does not call `mulDivHalfUp` → the sweep above returned only comments; a live hit
+  is the finding.
+- `Cents` widens beyond ~10^12, or a cap/weight pair can push `cap × weight_lb` past 2^53 → the 197-case
+  probe's premise breaks, the two formulations diverge, and the cross-multiply starts being load-bearing
+  rather than defensive. **That is when M63 becomes a real test to write.**
+- `roundHalfUp`'s integer guard is relaxed → the `Math.round` fallback would start deciding rather than
+  reporting.
