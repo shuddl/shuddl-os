@@ -206,6 +206,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 11 | §547–§549 | **§550** | the BROWSER GATES — four small counts read rather than counted; each guards the vacuity it is prone to, none was asleep |
 | 12 | §554–§556 | **§557** | the LAST THREE GATES — `design-audit` certified the pixel law over ZERO files (HIGH); `runtime` fails closed but not for the stated reason; `lint` covers 679/685, and the shipped exclusion's `install` path was untested |
 | 13 | §558–§559 | **§560** | THE GATES' OWN CORPUS — the money-parity harness certified itself over zero cases (HIGH); 10 of 20 gates reached a different verdict from a subdirectory, all tracing to one `cwd = process.cwd()` idiom |
+| 14 | §561–§562 | **§563** | WHAT THE GATES MEASURE — all seven CLAUDE.md hard budgets mutation-proved; 3,600 test blocks swept for vacuity (clean); the authority fail-closed law was testing a hand-copy of its own module set |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -29864,3 +29865,64 @@ Running this suite took three attempts, all of them measurement errors rather th
    `Runner @cloudflare/vitest-pool-workers is not supported`.
 
 The correct invocation is `pnpm exec vitest run <file>` from **inside** the owning package.
+
+---
+
+## §563 — PHASE GATE: from the instruments to what they measure
+
+### What this phase did
+
+§560 closed the instruments: the gates certify a real corpus, and the same one from any directory. This phase
+turned to what they certify *about* — CLAUDE.md's budgets and the suite's own assertions.
+
+| § | Subject | Verdict |
+|---|---|---|
+| **§561** | The seven "CI-enforced" hard budgets | **All seven hold**, each measured by mutation rather than located by grep |
+| **§561** | 3,600 `it()`/`test()` blocks swept for zero-assertion bodies | **Clean** — all 18 candidates were probe artifacts |
+| **§562** | The authority fail-closed law tested against a hand-copy of its module set | **Fixed** — derived from `AuthorityModule.options`, proved by discriminating mutation |
+
+### The two clean negatives are the phase's main result
+
+Most of this phase found nothing wrong, and that is worth recording precisely because §554 and §558 found the
+opposite in the same shape. `merkle.test.ts` fails closed on an emptied fixture (a real hex compared against
+`undefined`). `sweep.test.ts` — CLAUDE.md rule 4's stand-in for the audited 504-quote sweep — asserts inside
+loops but pins `toHaveLength(504)` in a companion block. Both projection suites iterate `EVENT_KINDS` and
+hand-list only their *exclusions*, so a 36th kind would be covered automatically.
+
+**The vacuous-loop shape is not the defect; the shape without a floor is.** Three of four instances had the
+floor. Reporting the shape as a finding would have been four false positives and one real one.
+
+### What the one real finding teaches
+
+`authority-seam.test.ts` re-listed the five `AuthorityModule` members by hand to assert the law that keeps the
+incumbent's authority from masquerading as SHUDDL's. Nothing was failing — the two lists agree today. The
+defect is temporal: a sixth module joins the law's **scope** without joining its **test**.
+
+The proof is the part worth keeping. "Deriving the list has value" is a claim, so it was measured: the same
+fail-open sixth module produced **1 failed** against the derived loop and **12 passed** against the hand-kept
+one. That is the difference between arguing for a change and demonstrating it.
+
+And the accompanying clean negative sharpens §543: adding the module **did** fail `typecheck`, because
+`parity.ts` holds `Record<AuthorityModule, …>` maps that must be exhaustive. Satisfying those two records made
+`typecheck` green while the fail-open module remained. **Exhaustiveness over data structures is not
+exhaustiveness over laws** — the type system enforced that every module has a tolerance, and had nothing to
+say about whether it fails closed.
+
+### Exit state (measured at this commit)
+
+- `tools/` — **875 tests, 872 green, 3 red**, all three the single uncommitted `REQ-289` GTM register row.
+  Owner-blocked, unchanged since §544.
+- `packages/ledger` — **631 tests, 34 files, all green** (the package this phase modified).
+- `typecheck` · `lint` green. All doc gates green.
+- Seventeen mutations across the three phases (M1–M17): **fourteen RED as predicted, three silent and each
+  explained** — M5 (over-determined range), M14 (parity ≠ vacuity), M16 (probe landed on the boundary, since
+  both numeric budgets carry exactly one spare).
+
+### Reopen triggers
+
+- A sixth `AuthorityModule` is added → `parity.ts` will demand a tolerance and a spec; the fail-closed test now
+  covers it automatically. If either record is ever loosened to `Partial<Record<…>>`, that protection is gone.
+- A test starts iterating a collection derived from a **fixture** (not a literal or an enum) → it needs
+  `sweep.test.ts`'s companion floor, because pending fixtures are exactly what is absent in this repo.
+- Either numeric budget's spare is spent (tables 22/22, views 12/12) → a one-item probe becomes a valid
+  counterexample again, and §561's "add two" note stops applying.
