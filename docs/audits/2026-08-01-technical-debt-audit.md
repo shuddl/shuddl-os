@@ -231,6 +231,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 36 | — | **§588** | THE TIME SURFACE — zero local-time methods; UTC day math by construction; the one local-aware module is IANA-derived and DST-tested at BOTH transitions (M61 reddens 3). Gate-level fold recorded as a limit, not built |
 | 37 | — | **§589** | MONEY ARITHMETIC — mulDivHalfUp is BigInt and fail-closed at both ends (M62 reddens); every money path routes through it. M63 was SILENT and CORRECTLY so: 197 boundary cases prove no input separates cross-multiply from float division |
 | 38 | — | **§590** | THE DEPLOY-DAY MIGRATION — dev and CI only ever meet an EMPTY database, so a `NOT NULL` ADD COLUMN would pass both and fail on deploy. SQLite's refusal verified empirically; a STATIC rule covers migrations not yet written |
+| 39 | — | **§591** | THE FIVE ACCEPTANCE DEMOS — the gate EXECUTES (7 spine files, 4 packages, 3 pools), cannot pass on a missing file (verified: exit 1), and the mapping is guarded bidirectionally. M66 reddens 3. A clean negative at every level |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -31918,3 +31919,86 @@ completeness check preferable to rewriting three containment tests.
   correct: a dropped column is unreplayable, and this ledger's whole posture is replay.
 - A migration starts writing data beyond `INSERT OR IGNORE` seeds → neither rule covers DML correctness, only
   its destructiveness.
+
+---
+
+## §591 — PHASE GATE: the five acceptance demos, audited as a promise rather than as code
+
+### A different lens
+
+Thirty-eight phases asked *is this code correct*. This one asks the question CLAUDE.md actually poses:
+**does the system do the five things that define "done enough to show"?** That is a promise, and a promise
+can be kept by a gate that reports on itself.
+
+### The gate is real, not theatre
+
+`test:acceptance` is in the merge profile and it **executes**:
+
+```ts
+spawnSync("pnpm", ["--filter", pkg, "exec", "vitest", "run", ...files]) → res.status === 0
+```
+
+Run at HEAD: **7 spine files, all green**, across four packages with three different vitest pools
+(`vitest-pool-workers` for api/mcp, node for driver, jsdom for map) — which is why it shells out per package
+rather than sharing one config.
+
+My first reading saw only the demo banner and concluded it might print without running. That was a filtered
+grep, not the gate: the vitest output was in the log all along. **Suspect the measurement before the
+subject** — the same correction this record has had to make five times.
+
+### Non-vacuity, verified rather than quoted
+
+`run.ts` claims *"vitest exits non-zero on a genuine failure AND on 'no test files found' (a typo'd filter),
+so a silent no-op can never pass as green."* That is exactly the §554 class, and exactly the kind of claim
+worth measuring:
+
+```
+vitest run test/__does_not_exist__.test.ts  →  exit 1
+"No test files found, exiting with code 1"
+```
+
+**A renamed or deleted spine file fails the gate.** The comment's claim holds at HEAD.
+
+### The mapping is guarded bidirectionally — already
+
+The spine is a hand-kept mapping from demo to test files, which is §582's shape. It is also **already
+covered**, more thoroughly than I was about to propose:
+
+- every spine file in `demos.ts` is named in the manifest doc, **and** the manifest names no file the module
+  does not declare — both directions, which is the pairing §578 noted most enumerations lack;
+- every demo is represented by number and title;
+- **all five doc-00 demos are declared, each with at least one spine test and a stated filmed delta**;
+- `spineFileCount()` matches the distinct files actually declared.
+
+**M66** stripped demo 4's spine to `[]` and **three** tests went red, including the five-demo completeness
+case. The guards are live.
+
+### What this phase did not find
+
+Nothing. The acceptance surface is a clean negative at every level checked: the gate executes, it cannot pass
+on a missing file, the mapping cannot drift from the manifest in either direction, and no demo can lose its
+spine silently.
+
+Worth stating because it is unusual in this record: **the honest output of an audit is sometimes that the
+previous author already did the work.** §590 found a real deploy-day gap two phases ago; this one found a
+surface where every question I brought already had an answer with a test behind it.
+
+The one limit is inherent and honestly labelled by the runner itself — *"all 7 spine FILES pass. The FILMED
+half is the launch-gate checklist"*. A spine file that still passes while no longer asserting its demo would
+go unnoticed, and no mechanism can close that; it is what the filmed half exists for, and it remains
+owner-blocked (§569).
+
+### Exit state
+
+- `tools/acceptance/demos.test.ts` — 5 green; `test:acceptance` — 7 spine files green, exit 0.
+- `demos.ts` restored byte-identical.
+- Sixty-six mutations across twenty-six phases: **58 RED as predicted, 7 silent (six non-counterexamples, one
+  a real gap since closed), 1 that never applied** — 4 real gaps closed, 1 design pinned, 2 claims corrected.
+
+### Reopen triggers
+
+- A sixth demo is added to doc 00 → the five-demo assertion is an **equality on the count**, so it fails
+  loudly rather than covering four of six.
+- A spine file is split into two → `spineFileCount()`'s parity assertion fires, which is the prompt to update
+  the manifest in the same commit.
+- The filmed half is recorded → §569's owner table is where that lands, not here.
