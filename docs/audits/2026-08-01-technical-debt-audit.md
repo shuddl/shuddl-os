@@ -38,7 +38,7 @@ needs, each of which points at the ledger entry that owns the truth rather than 
 | **What becomes filmable when I clear a hold?** | **§149** — the demo-unblock join |
 | **What does vendoring each blocked fixture buy?** | **§160** — mechanism proved vs evidence added |
 | **What needs an owner-signed REQ row?** | the five proposed-scope findings: **§123** (REQ-180 alignment), **§131** (booking backstop), **§133** (SLA cadence), **§135/§136** (Concierge cost metering), **§137** (unsurfaced send failure) |
-| **What has been audited, and what is the exit state?** | the three phase gates: **§496** (the gate surface — 11 defects), **§501** (the standing bounds — discharged), **§504** (SQL guards, error handling, tenant isolation — zero). Each carries its exit numbers and its reopen triggers |
+| **What has been audited, and what is the exit state?** | **§4** — its head is the phase index: one row per closed phase, with the gate section that carries that phase's exit numbers and reopen triggers. Named here as a section, not a list: this row said "the three phase gates: §496, §501, §504" and was stale five gates later (§540) — the exact decay §507 diagnosed one row above, reintroduced by the section that diagnosed it |
 | **Is the record itself trustworthy?** | **§125** (every repo-owned checklist row re-verified), **§127**/**§129** (counts swept across all documents) |
 
 Everything else is the working record: what was probed, what it showed, and where the instruments lied.
@@ -28930,3 +28930,32 @@ the build stayed green throughout, because no gate measures whether a human can 
 section that maintains itself." I then maintained that section by *prepending*, which is the one operation
 that degrades an entry point monotonically. The corrected form is what the table does — **the newest phase
 is a row, not a new paragraph** — so the tenth phase costs a reader one line instead of six.
+
+## §540 — the same decay, in the row that fixed the decay
+
+§539 found §4's head grown to ten stacked blocks. The document's *actual* entry — the START HERE table —
+had the matching failure, and it is a sharper instance because the row was written by the section that
+diagnosed the pattern.
+
+**§507's row said: *"the three phase gates: §496, §501, §504."*** Eight have closed. A reader arriving today
+was told the audit consists of three phases and pointed at the first three, with §512, §516, §521, §527,
+§534 and §538 invisible from the entry point.
+
+**§507 drew the rule in the row directly above it:** *"a pointer with a payload decays at the rate of the
+payload; a pointer with no payload decays only if its target dies."* It applied that rule to the
+current-state row — which now reads simply **§4** — and then, one row later, wrote a pointer **with** a
+payload: three enumerated gate numbers, correct for exactly as long as no fourth phase closed.
+
+**Repointed at §4**, whose head is now the phase index (§539) and which is maintained at every phase close.
+No enumeration in the entry table; the count lives in one place that is updated by the act of closing a
+phase.
+
+**Three instances of one shape, in the sections about that shape.** §507 replaced a decaying SHA with a
+decaying count-and-section. §539 maintained the self-maintaining section by prepending. §540 is a list
+written one row below the rule against lists. **The lesson does not fail because it is wrong — it fails
+because applying it correctly in one place feels like having applied it.**
+
+**What actually holds:** `check:section-refs` (§509) would have caught a pointer to a section that does not
+exist, and none of these were that. **A stale pointer resolves.** Every one of §496, §501, §504 is a real
+heading, so every gate in this repository was satisfied by a row that misinformed its reader — which is the
+§484 shape once more, and the reason this class keeps needing a human read rather than another check.
