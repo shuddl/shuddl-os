@@ -186,6 +186,13 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 
 ## §4 — Phase gating and the stopping point
 
+> **PHASE 2 CLOSED — §501 is the phase gate for §497–§500: the STANDING BOUNDS, discharged rather than
+> carried.** Zero-reference exports (137 → 0 real) and duplicated logic (38 shapes triaged) are closed; the
+> idempotency scope is swept (23 mutating routes, all 5 outside `/v1/*` accounted for). Two real defects,
+> both §493's shape — one rule with nothing comparing its copies — plus a **money guard nothing watched**
+> (`credit-settle`'s `total_cents <= ?`: neutering it left all 782 api tests green). Exit: 3,014 workspace
+> tests, zero failures.
+>
 > **PHASE CLOSED 2026-08-06 — §496 is the phase gate for §483–§495 (the GATE SURFACE ITSELF, which no prior
 > measurement had audited). Read §496 first: 11 defects closed (3 High, incl. a WRITABLE `INSERT OR REPLACE
 > INTO events` in `tools/` and a test shipping React's DEV bundle into the deployable `dist`), 6 properties
@@ -27316,3 +27323,69 @@ callers. The clause exists precisely because someone anticipated a caller that d
 green and not a red, and would have been misread as either. §499 recorded the same trap one section ago
 (a `perl` interpolation error) and it recurred immediately in a different form. **The check is the same
 every time: assert the edit landed, then read the exit code — never the reverse.**
+
+## §501 — PHASE GATE: the standing bounds, discharged
+
+**Scope of this phase (§497–§500).** §496 closed the *instruments*. This phase turned the same questions on
+the **standing bounds** this audit had been carrying and on the product code they pointed at. Two bounds are
+now discharged rather than deferred, and the sweeps found **two real defects**.
+
+### What was found and closed
+
+| # | defect | severity | closed by |
+|---|---|---|---|
+| 1 | **`credit-settle`'s payment-coverage guard was watched by nothing** — neutering `total_cents <= ?` left all 782 api tests green; a $1 payment could settle a $750 credit invoice | **Medium (latent, money)** | §500 — 3 tests, 2 mutation-proved |
+| 2 | `transitLine` byte-identical in 3 surfaces with REQ-059's no-fabricated-number rule inside and asserted by none | Low | §499 — 2 portal copies consolidated + pinned over every non-`known` status |
+| 3 | `canAdvance`/`advance` — one step-gate rule in two copies, the UI running one and the tests asking the other | Low | §498 — shared predicate + parity test |
+
+### Bounds discharged
+
+- **Zero-reference exports: 137 at `0f30afb` → 0 real.** Of every exported function in `packages/`+`workers/`
+  (83 files) three had no external reference and **all three are called inside their own file**. The `apps/`
+  half had never been swept; added (47 files), zero unreferenced. All 28 API route mounts are invoked.
+- **Duplicated logic: 38 shapes across shipped source, triaged.** Most are idiom, not policy. The money-path
+  copies (quote-line projection ×4, UUID derivation ×5) are **inert by subsumption** — verified at
+  `contracts/src/events.ts:115@reduce`, which refines `Σ amount_cents === sell`, so a drifted projection
+  fails validation at the boundary. One real shape remained (#2 above).
+- **Idempotency scope: 23 mutating routes, all 5 outside `/v1/*` accounted for** — the DO's internal `pin`,
+  `/pub/quote` (appends nothing), `/pub/signup` (slug UNIQUE ⇒ 409 on replay, tested), and the two money
+  routes, one pinned and one now pinned.
+
+### Verified clean, with the command that showed it
+
+- **Test side effects**: 50 artifacts + every tracked file fingerprinted around a full suite run — zero
+  tracked files changed, one gitignored artifact on no deploy path (§497).
+- **Self-satisfying gates**: three have a `--write` mode; zero CI or `run-gate` invocations pass one (§497).
+- **Prod binding parity**: `wrangler-scope-parity.test.ts` — set equality roster vs discovered tree, plus a
+  non-vacuity floor (§497).
+- **Timezone**: 1,007 date-sensitive tests identical at UTC+14, and **zero local-time `Date` methods in
+  shipped source** — epoch/UTC by construction, not by luck (§497).
+
+### Exit state, measured at this commit
+
+- **3,014 workspace tests, zero failures** · `tools/` 854 passing · 11 non-register gates PASS ·
+  `typecheck` PASS · `lint` PASS.
+- The one failing gate (`check:coverage`) and the only 3 failing tests still share one cause: the
+  uncommitted `REQ-289` GTM register row — an owner decision in a separate workstream, not repo debt.
+
+### Reopen triggers
+
+1. **A mutating route is added outside `/v1/*`** → the idempotency middleware cannot reach it; state which
+   mechanism does (§500).
+2. **`transitLine` changes in either app** → change both, or file the row authorising a shared home (§499).
+3. **A money route gains a WHERE-clause guard** → assert the REFUSAL, not just the happy path. §500's defect
+   was a fully-tested route whose guard clause no test exercised.
+4. **A duplicated logic line stops being covered by a schema refine** → the §499 triage rests on subsumption;
+   if the refine moves, the copies stop being inert.
+
+### What this phase deliberately did NOT do
+
+The third `transitLine` copy was **recorded, not moved**: it lives in a different app, the two share only
+`@shuddl/contracts` (schemas) and `@shuddl/design` (tokens/primitives), and inventing a cross-app module is
+structure the register did not ask for. No redundant tests were added where a guarantee is structural —
+`credit-settle`'s idempotency is a compare-and-set in its WHERE clause and needs none; only its *refusals*
+did. Eleven mechanical classifiers over-reported across the two phases and were corrected by reading.
+
+**The phase's one sentence:** a bound is discharged by measuring it, not by carrying it — and the two
+defects both had the same shape as §493's, *one rule with nothing comparing its copies*, which is now the
+first thing to check rather than the last.
