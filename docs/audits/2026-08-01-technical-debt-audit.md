@@ -27980,7 +27980,9 @@ source rather than assumed:
 
 - **Seven named features — zero source files each**: driver pay v1, seat-based pricing, report builder,
   native GL/period close, escrow settle, voice recording, direct merchant. The last three are the
-  CONFIRM-gated rows, and the CONFIRMs are open.
+  CONFIRM-gated rows, and the CONFIRMs are open. *(§525 positive-controlled this sweep and found one of the
+  seven probes BLIND — the seat-pricing pattern could not match `seatCount`. Re-asked with a sound probe:
+  still zero. The conclusion held; the evidence for it did not, until §525.)*
 - **A fourth surface** — gated by `checkSurfaceBudget` (§506).
 - **Design prohibitions** (gray text, blue, shadows, spring animation) — the design audit, blocking since
   WP-10 exit.
@@ -28300,3 +28302,30 @@ and saw `if: ${{ always() }}` on the line above. **The habit that saved it was r
 "cleared" by grep**, which is the §517 rule arriving from the opposite direction: there, a name-probe said
 absent and the thing was present; here, a pattern-probe said absent and the pattern was present. **Both are
 the same error — trusting a query's silence — and only the second kind is invisible.**
+
+## §525 — applying §524's rule to §516, and finding one of seven probes blind
+
+§524 ended on a rule: **when a probe returns ZERO, that is the result needing a positive control.** §516's
+do-not-build sweep is this session's largest zero-result claim — seven forbidden features, zero source files
+each — and it had none. So it got one: a file naming all seven, planted, swept, removed.
+
+**Six of seven probes fired. One did not.** The seat-pricing pattern —
+`seat_count|perSeat|seats\b|seat-based` — did not match the planted `seatCount`. It encodes snake_case and
+one camelCase spelling and misses the most natural identifier a developer would actually write. **§516's
+seat row was produced by a probe that could not have found the thing it reported absent.**
+
+**Re-asked with a probe that assumes nothing: `seat`, case-insensitive, across all shipped source — 0
+hits.** The claim holds. And the prohibition is registered rather than merely stated in CLAUDE.md: **REQ-124
+— *"Pro/Scale tiers + usage; no seat pricing anywhere"*, DoD "Pricing page audit"** — so it carries its own
+verification independent of this sweep.
+
+**The conclusion was right and the evidence was not, which is precisely the failure §524 describes.** An
+over-reporting probe hands you hits and reading corrects them; an under-reporting one hands you a clean
+result and nothing ever revisits it. Six of these seven happened to be sound. The seventh was carried by
+luck for as long as nobody planted a control — and "carried by luck" is indistinguishable from "verified"
+in the record, which is the reason to write down which one it was.
+
+**The general form, now stated twice in two sections because it earned it:** *the narrower the pattern, the
+more confidently it lies.* Prefer the broad token and read every hit. Where a sweep must be narrow, plant
+the positive control in the same command that reports the zero — the cost is one temporary file, and the
+alternative is a claim whose only support is that nothing contradicted it.
