@@ -230,6 +230,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 35 | §583–§586 | **§587** | BOTH ENDS OF EVERY QUEUE — a one-sided rename means agent triggers land where nothing reads and NOTHING errors; M60 names both symptoms. **The config-parity line is complete** — no remaining trigger names a real gap |
 | 36 | — | **§588** | THE TIME SURFACE — zero local-time methods; UTC day math by construction; the one local-aware module is IANA-derived and DST-tested at BOTH transitions (M61 reddens 3). Gate-level fold recorded as a limit, not built |
 | 37 | — | **§589** | MONEY ARITHMETIC — mulDivHalfUp is BigInt and fail-closed at both ends (M62 reddens); every money path routes through it. M63 was SILENT and CORRECTLY so: 197 boundary cases prove no input separates cross-multiply from float division |
+| 38 | — | **§590** | THE DEPLOY-DAY MIGRATION — dev and CI only ever meet an EMPTY database, so a `NOT NULL` ADD COLUMN would pass both and fail on deploy. SQLite's refusal verified empirically; a STATIC rule covers migrations not yet written |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -31852,3 +31853,68 @@ decision**, which the cross-multiply already made. An integer after rounding, so
   rather than defensive. **That is when M63 becomes a real test to write.**
 - `roundHalfUp`'s integer guard is relaxed → the `Math.round` fallback would start deciding rather than
   reporting.
+
+---
+
+## §590 — PHASE GATE: the migration that would fail on deploy day
+
+### The surface
+
+Every prior phase audited code that runs continuously. Migrations run **once**, against **one** database that
+has data — and every environment that could have caught a problem first meets an empty one. That asymmetry is
+the whole risk.
+
+### The rule, verified rather than asserted
+
+SQLite refuses `ALTER TABLE t ADD COLUMN c NOT NULL` on a non-empty table: there is no value to write into
+the existing rows. That is a claim, so it was **measured** rather than quoted:
+
+```
+NOT NULL, no DEFAULT, table HAS rows : REFUSED — Cannot add a NOT NULL column with default value NULL
+NOT NULL WITH DEFAULT                : ACCEPTED
+nullable                             : ACCEPTED
+```
+
+### The gap
+
+The current set is **clean** — eight `ADD COLUMN` statements: six nullable, two `NOT NULL DEFAULT …`. No
+`DROP`, no `DELETE`, no bare `UPDATE` anywhere (the one `UPDATE`-looking hit was a column named `updated_at`),
+so rule 2's additive posture holds across all eleven migrations.
+
+**Nothing was checking any of it.** `applyAll` runs the set once against a fresh D1 guarded by
+`if (!(await tableExists(db, "events")))`, and `migrate.test.ts` covers the SQL **splitter** — comments,
+string literals, statement counting — not the schema. A migration adding `NOT NULL` without a default would
+be **green in dev, green in CI, and fail on deploy**.
+
+This is §579's shape at its most expensive: the discriminating input is not one extra item but an entire
+populated database, so nothing built it.
+
+### Why a static rule rather than a seeded replay
+
+A test that seeds rows and re-applies the set proves the **eight migrations that exist today**. The static
+rule proves the property for **every migration ever added** — including the one written after nobody
+remembers this note. That is the trade, made deliberately, and it is the same reasoning that made §582's
+completeness check preferable to rewriting three containment tests.
+
+| Mutation | Predicted | Result |
+|---|---|---|
+| **M64** `ADD facility_id TEXT NOT NULL` (no default) | RED, naming file:line | `0006_booking.sql:9 ALTER TABLE legs ADD facility_id TEXT NOT NULL;` |
+| **M65** a `DROP INDEX` in a migration | RED | RED — the additive rule |
+
+### Exit state
+
+- `tools/checks/migration-safety.test.ts` — 3 tests green over 11 migrations and 8 `ADD COLUMN`s.
+- `typecheck` · `lint` green; migrations restored via `git checkout` and verified `git diff --quiet`.
+- Sixty-five mutations across twenty-five phases: **57 RED as predicted, 7 silent (six explained as
+  non-counterexamples, one a real gap since closed), 1 that never applied** — 4 real gaps closed, 1 design
+  pinned, 2 claims corrected.
+
+### Reopen triggers
+
+- A migration needs a genuinely non-null column on a populated table → the answer is **two migrations**
+  (nullable + backfill, then a constraint), never an exemption here. An allowlist re-opens exactly the
+  deploy-day failure this closes.
+- D1 gains `ALTER TABLE … DROP COLUMN` support and someone reaches for it → the additive rule fires, which is
+  correct: a dropped column is unreplayable, and this ledger's whole posture is replay.
+- A migration starts writing data beyond `INSERT OR IGNORE` seeds → neither rule covers DML correctness, only
+  its destructiveness.
