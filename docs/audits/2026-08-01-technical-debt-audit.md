@@ -28418,3 +28418,34 @@ trace** (a non-zero exit somewhere in the pipeline). The other two look exactly 
 
 **Exit state unchanged and re-verified:** 12 non-register gates PASS · `typecheck` · `lint` · both workflows
 byte-identical after the controls · the single blocker is still the uncommitted `REQ-289` GTM row.
+
+## §528 — the same scrutiny on a POSITIVE claim: all 35 kinds are dispatched, not merely mentioned
+
+§527 controlled this session's zero-results. A positive result can be just as unearned, and §518's was:
+*"every one of the 35 event kinds is named by a projection handler"* — measured by whether the quoted kind
+appears anywhere in the projection files' **text**. Text includes comments, and these files are heavily
+commented. A kind discussed in prose and handled nowhere would have counted as handled. **That is §444's
+substring failure with a different mask.**
+
+Re-measured twice, each time narrowing what counts:
+
+| measurement | result |
+|---|---|
+| named anywhere in projection text (§518, includes comments) | 35 / 35 |
+| named in projection **code**, comments stripped | **35 / 35** |
+| appearing as an executable **`case "kind":`** label | **35 / 35** |
+
+**All thirty-five are dispatched on, not mentioned.** Zero rely on a comparison, a lookup set, or any weaker
+form — every one is a `case` label in a projection switch, which is the strongest shape available and the
+one a `never`-exhaustiveness check can bind.
+
+**The comment-stripping used the shared `stripComments` from §493**, which exists because that gate's own
+documentation kept tripping its scanner. A helper written to stop a lint flagging prose turns out to be the
+right instrument for asking whether prose is all a claim rests on — the same distinction, from the other
+side.
+
+**Why re-measure a claim that was true?** Because §518's evidence did not support it, and the two are
+different facts about the record. §525 found a probe blind on a claim that also happened to be true, and the
+rule drawn there applies identically here: **"carried by luck" and "verified" read the same in a document,
+so the only way the distinction survives is to write down which one it was.** Three of this session's
+claims have now been re-derived under a stricter instrument; all three held, and all three needed it.
