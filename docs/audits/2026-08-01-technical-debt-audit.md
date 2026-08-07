@@ -222,6 +222,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 27 | — | **§579** | THE OFFLINE SYNC — a prior iteration's anti-stranding fix had ZERO tests; `continue`→`break` left 39+68 tests green. Invisible online, strands evidence in airplane mode. Two tests, M48 now RED |
 | 28 | — | **§580** | SWEEPING FOR §579'S SHAPE — 5 loop-breaks in the whole codebase, all correct; but the retention sweep's partial-failure behaviour was an UNWRITTEN design choice (fail-fast vs fail-soft), now pinned by test rather than changed |
 | 29 | — | **§581** | THE SWEEP FAILURE MODEL — 18 entry points, TWO levels; §580 asked only the inner one. Across tenants it is uniformly fail-soft in all 3 workers (M50–M52 all RED), which is what makes the mixed inner designs safe |
+| 30 | — | **§582** | COMPLETENESS FOR THE CONTAINMENT LISTS — §581's "every sweep" claim came from a test's NAME; its mechanism is a hand-kept array. Orchestrators now DERIVED from `allTenantSlugs` reachability (9+1+1), M53 catches an untested new sweep |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -31248,8 +31249,10 @@ Existence is not coverage (§579's whole lesson), so each was mutated:
 | **M51** rethrow from `runMeteringSweep`'s catch | billing | RED |
 | **M52** rethrow from `run214Sweep`'s catch | translator | RED |
 
-A **prior audit (§409) already found and closed this class** for the agents worker, with a test that asserts
-it for *every* sweep there — and it still holds at HEAD. Billing and translator carry their own equivalents
+A **prior audit (§409) already found and closed this class** for the agents worker, and it still holds at
+HEAD. *(Corrected at §582: I wrote here that its test "asserts it for every sweep there" — that came from the
+test's NAME. Its mechanism is a hand-kept `SWEEPS` array, deliberately so, and nothing checked the array was
+complete. §582 adds that check.)* Billing and translator carry their own equivalents
 (`claimed-tenants.test.ts`, `transport-dormancy.test.ts`). Three workers, three independent containment
 tests, all live.
 
@@ -31289,3 +31292,70 @@ proved.
 - An orchestrator's catch starts rethrowing conditionally (e.g. only for auth faults) → that is a real design
   change; the three mutations above are the probes that settle whether it is intended.
 - A sweep is moved between workers → it leaves its containment test behind.
+
+---
+
+## §582 — PHASE GATE: a completeness check for the containment lists, and a claim of mine that came from a name
+
+### The correction first
+
+§581 wrote that the agents containment test *"asserts this for every sweep in that worker."* **That came from
+the test's name** — `"REQ-278: every agents sweep contains a per-tenant failure"`. Its mechanism is a
+hand-kept `SWEEPS` array of nine entries.
+
+This is §576's lesson (*a green certifies less than its name*) committed by the person who wrote §576. The
+claim is corrected in place. Worth stating plainly: reading a test's title and reporting it as the test's
+guarantee is the single most repeated error in this record, and it survives knowing about it.
+
+### The hand-kept list is right; its completeness was unchecked
+
+The per-row callers should stay hand-written, and the file already says why: `now` is a `Date` for
+`runAllTenants`, a number elsewhere, and absent on `runCreditReconSweep`, so **an `it.each` over one shared
+caller would silently skip a sweep whose signature drifted.** That is a real trade, correctly made.
+
+It also carries a genuine non-vacuity assertion — the failing tenant must be **named in the error log** —
+which previously caught `runWatchtowerSnapshots` being driven with a Wednesday clock past a Monday-only gate,
+so the sweep "resolved" having visited nobody (§410).
+
+What nothing checked is that the array **names every orchestrator that exists**.
+
+### The check
+
+A function is a tenant-iterating orchestrator **iff its body reaches `allTenantSlugs`** — derived from the
+code, not listed. Measured: **9 in agents, 1 in billing, 1 in translator**, and every one is currently named
+by its own worker's tests. The guard requires that to stay true.
+
+| Mutation | Predicted | Result |
+|---|---|---|
+| **M53** add a new tenant-iterating sweep with no test anywhere | RED, naming it | `billing: runShadowMeteringSweep` |
+
+### The limit, stated so a green is not over-read
+
+This proves a sweep is **mentioned** by its worker's tests — not that the mention is a containment assertion.
+It catches the realistic failure (a new orchestrator shipping with no test at all) and deliberately does not
+try to judge test *quality*, because §577 measured what a name-based heuristic is worth there: ten sequencer
+refusal reasons were named by no test, and **five of five mutated turned out to be watched anyway.** A
+heuristic that cannot distinguish those cases must not be sold as if it can.
+
+That is also why this is a completeness check rather than a rewrite of the three containment tests into one
+derived harness: the derived version would have to call each sweep, which is exactly the shared-caller
+fragility the agents file rejected for good reason.
+
+### Exit state
+
+- `tools/checks/sweep-containment-coverage.test.ts` — 2 tests green.
+- `typecheck` · `lint` · `citations` · `section-refs` green (`section-refs` caught the forward reference to
+  this section while it was still unwritten — the gate working).
+- Fifty-three mutations across seventeen phases: **46 RED as predicted, 6 silent-and-explained, 2 real gaps
+  closed, 1 design pinned, 1 claim corrected.**
+
+### Reopen triggers
+
+- `allTenantSlugs` is renamed or a worker gets a second roster helper → the derivation goes stale and the
+  non-vacuity test (three workers, >8 orchestrators) is what fails, deliberately, rather than the sweep silently
+  dropping out of scope.
+- A sweep is mentioned in its worker's tests **only** in an import or a type position → this guard passes and
+  the containment case still does not exist. The mention criterion is deliberately weak; the containment
+  assertion itself remains the hand-kept part.
+- A fourth worker gains a tenant loop → the non-vacuity test names exactly three today and will fail, which is
+  the intended prompt to add its containment test.
