@@ -26868,3 +26868,45 @@ tests exist to catch.
 **The correction is the point.** "The gate can be deleted and nothing fails" is not a finding; it is an
 observation with three explanations, and the reassuring one is indistinguishable from the alarming one until
 you name the mechanism that would still refuse. I published the alarming reading to myself first.
+
+## §492 — every server-side gate, mutation-measured: which tests actually observe the gate being consulted
+
+§491 measured three of the nine `GATED_KINDS` and found one pinned by a single test. That is not a result
+until all nine are measured, so all nine were — a uniform one-line mutation making `isGatedKind` return
+false for exactly one kind (leaving the switch intact, so typecheck stays clean and the ONLY change is that
+the gate is never consulted), then the full 782-case api suite, restored byte-identical between runs.
+
+| gated kind | REQ | tests that go RED when the gate is not consulted |
+|---|---|---|
+| `booking.created` | 042/191 | **16** |
+| `appointment.set` | 028/052 | **12** |
+| `dispatch.assigned` | 030/L8 | **7** |
+| `stop.arrived` | 166 | **4** |
+| `delivery.evidenced` | 046 | **3** |
+| `stop.departed` | 044 | **1** |
+| `custody.transferred` | 045 | **1** |
+| `exception.raised` | 050 | **1** |
+| `osd.captured` | 050 | **0** — subsumed by a `.strict()` schema (§491) |
+
+**Read the counts correctly, which is the whole point of writing them down.** This measures how many tests
+observe the gate being CONSULTED — not how well the gate is tested. Un-gating a kind breaks its *block*-
+direction tests and leaves its *release*-direction tests green, because an ungated append still appends. So
+**RED=1 is the expected floor for a correctly-tested gate, not evidence of a thin one**; a count of 0 is the
+only value that means "nothing observes this", and the single 0 has a documented mechanism behind it.
+
+**The result: every server-side gate in the build is observed by at least one test, and the one exception is
+explained rather than excused.** That is the property REQ-030 needs and it now has a measurement rather than
+an assumption.
+
+**The fragility that remains is named, not fixed.** `stop.departed`, `custody.transferred` and
+`exception.raised` each rest on ONE observing test. Deleting or weakening that single test silently un-gates
+a REQ-044/045/050 evidence requirement, and nothing else would notice. **Reopen trigger:** if any of those
+three tests is edited, re-run this table — the command is a one-line `isGatedKind` mutation plus
+`pnpm --filter @shuddl/api exec vitest run`. Not padded with second tests here, per §486: the absence of a
+second test is a prompt, not a finding, and three redundant assertions would add maintenance while
+measuring nothing new.
+
+**Method note.** The uniform mutation matters. §491's first attempt deleted the Set entry AND the switch
+case, which is a two-edit change with a different blast radius per kind (shared case labels, block-bodied
+cases) and cannot be scripted safely. Neutering the PREDICATE is one line, identical for every kind, and
+isolates exactly the property under test: *is this gate ever asked?*
