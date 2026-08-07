@@ -396,7 +396,7 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 > forward-safe values): **a green mutation is a gap, a confirmation, or nothing at all, and only the
 > sentence being tested says which.**
 >
-> **PHASE GATE, 2026-08-06 (§456–§474): the gates themselves, then the standing holds.** Nineteen commits,
+> **PHASE GATE, 2026-08-06 (§456–§473): the gates themselves, then the standing holds.** Nineteen commits,
 > 22 touching product or tooling code. Two arcs. **(1) The gate self-audit** — §463's rule (*a check keyed
 > on "does X exist anywhere?" cannot notice X leaving one place*) applied to all eleven checks in
 > `invariants.ts` and then to all 18 gate scripts: **five defects, every one latent, every one the same
@@ -2136,6 +2136,17 @@ can move an object out of its own tenant's prefix (REQ-025). Mutation-proved —
 **Verification.** translator 96 (incl. the new isolation case), contracts 285, agents 106, api 730,
 billing 56; typecheck 0, lint 0.
 
+### §38 — (number unused; kept as a landing point, audit §508)
+
+**No section was ever written under this number.** It is referenced 11 times — e.g. *"§38's headline counted
+16 workspaces and 2,648…"* and *"RE-MEASURED AT `fb212fd` (2026-08-02, §38)"* — so a reader following those
+pointers previously landed nowhere at all. The surrounding numbers are §37 (the last review finding) and
+§39 (the re-derived-state lens); neither carries the re-measurement those references attribute here.
+
+The number is NOT reassigned and the references are NOT rewritten: the intended target cannot be recovered
+without guessing, and a wrong pointer is worse than an absent one. This heading exists so the pointers land
+on an explanation instead of on silence. See §508 for the sweep that found it.
+
 ### §39 — the re-derived-state lens, swept properly (a clean negative)
 
 §33 named a pattern behind three separate defects — **a value read twice in one flow, where code in between
@@ -3121,6 +3132,15 @@ written (§50 fused a row while adding one; this incremented a wrong count while
 the failure was doing the arithmetic in prose instead of asking the system.**
 
 ---
+
+## §58 — (number unused; kept as a landing point, audit §508)
+
+**No section was ever written under this number.** It is referenced 11 times, including a table row that
+attributes content to it (*"Incremented a gate count that had never reconciled"*). Its neighbours are §57
+(the `/v1` prefix does not imply authentication) and §59 (idempotency keys via four mechanisms).
+
+Same treatment as §38: not reassigned, references not rewritten, heading added so the pointers resolve to a
+statement rather than to nothing. See §508.
 
 ## §59 — "idempotency keys on all mutations" is true, via four mechanisms, only one of which is the middleware
 
@@ -27622,3 +27642,39 @@ bounds → zero).
 from a record that says nothing, and every finding in five hundred sections is worth exactly as much as an
 owner's ability to reach it. This is the same class as §484's gate that certified an unread record — the
 artifact was fine, the path to it was broken.
+
+## §508 — 5,183 section references, and the three that pointed at nothing
+
+§507 found a decayed pointer in the entry table by accident. The systematic version: **`check:citations`
+verifies `path:line` references and nothing verifies `§N` ones** — and this record runs on §N. There are
+**5,183** of them across the tracked markdown.
+
+**The first measurement said 202 broken. It was wrong twice, and the corrections are the method.**
+The classifier collected defined sections with `^## §(\d+)` and compared every `§N` against it.
+(1) Fifteen sections are `###`, not `##`, so every reference to one read as broken. (2) `§01`–`§08` are the
+**genesis doc** namespace (`genesis/00 §01`), a different numbering entirely, and CLAUDE.md and
+BUILD-PROMPT.md legitimately use it. **Thirteenth over-reporting classifier of this session**, and both bugs
+inflated the count rather than hiding a defect — which is the safe direction, and still useless until fixed.
+
+**Corrected: 3 distinct undefined numbers, 23 sites.**
+
+- **§38** (11 sites) and **§58** (11 sites) — referenced as sections *with content*: *"§38's headline counted
+  16 workspaces and 2,648…"*, and a table row attributing *"Incremented a gate count that had never
+  reconciled"* to §58. Their neighbours (§37/§39, §57/§59) carry none of that. **The numbers were skipped
+  when the document was written**, and eleven pointers each landed on nothing.
+- **Section 474** (1 site) — a RANGE endpoint, written as the upper bound of a phase span rather than a
+  pointer to content. §473 is the real last section of that phase; corrected. *(Written out in words here
+  on purpose: a record that describes a hole must not emit the token for it, or the description becomes
+  the last remaining instance of what it describes — which is exactly what the first draft of this bullet
+  did.)*
+
+**Fixed by making the holes land, not by renumbering.** Two stub headings now occupy §38 and §58, each
+stating that no section was written there, quoting what the references attribute to it, and naming its
+neighbours. The references are **not** rewritten and the numbers are **not** reassigned: the intended target
+cannot be recovered without guessing, renumbering would break every other pointer in a 500-section document,
+and **a wrong pointer is worse than an absent one** — an absent one announces itself.
+
+**Why an unreachable pointer is debt and not typo.** This document's findings are only worth an owner's
+ability to reach them (§507). A `path:line` citation that rots fails a gate on every merge; a `§N` reference
+that points at nothing has failed silently for as long as it has existed, across 5,183 opportunities. The
+asymmetry is not that one class is more important — it is that **one class is watched**.
