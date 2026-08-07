@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -251,5 +251,50 @@ describe("driver service worker — API responses are NEVER cached (REQ-061)", (
 
     expect(handled).toBe(true);
     expect(sw.cachePuts).toEqual([`${ORIGIN}/`]);
+  });
+});
+
+// REQ-061/118 §556 — EVERY PRECACHED SHELL PATH RESOLVES TO A REAL BUILD INPUT.
+//
+// `install` runs `caches.open(CACHE).then((cache) => cache.addAll(SHELL))`, and **`addAll` is atomic**: if
+// any one entry 404s, the whole promise rejects, `waitUntil` fails, and the worker never activates with a
+// populated cache. The failure is SILENT in the only way that matters — registration succeeds, the app works
+// perfectly online, and the driver discovers it at the dock with no signal. That is acceptance demo #3 and
+// the airplane-mode soak, defeated by a renamed icon.
+//
+// SHELL is a hand-kept list of paths that the BUILD emits. Two lists, one truth — the shape where the delta
+// is the defect even with nothing failing, and where the fix must read one side and COMPUTE the other rather
+// than restate it. So this parses SHELL from the shipped source and resolves each entry against the actual
+// build inputs: `public/**` is copied verbatim to the dist root, and `/` + `/index.html` are the Vite entry.
+//
+// The suite above proves the FETCH decision. This is the install path the header comment flags as the gap.
+describe("REQ-061 §556: the precache SHELL matches what the build emits", () => {
+  /** SHELL, read from the shipped worker — never a copy maintained here. */
+  function shippedShell(): string[] {
+    const source = readFileSync(SW_PATH, "utf8");
+    const literal = /const SHELL = \[([^\]]*)\]/.exec(source)?.[1];
+    if (literal === undefined) throw new Error("SHELL literal not found in sw.js — the parse is stale, not the list");
+    return [...literal.matchAll(/"([^"]+)"/g)].map((m) => m[1]!);
+  }
+
+  const APP_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+
+  it("parses a non-empty SHELL from the shipped source (non-vacuity)", () => {
+    // Without this, a renamed constant makes the assertion below iterate an empty list and pass (§487/§554).
+    expect(shippedShell().length, "SHELL parsed to nothing — fix the parse, not the assertion").toBeGreaterThan(2);
+  });
+
+  it("every SHELL entry resolves to a file the build actually emits", () => {
+    const missing = shippedShell().filter((path) => {
+      // The Vite entry: "/" is served by index.html, which lives at the app root, not in public/.
+      if (path === "/" || path === "/index.html") return !existsSync(join(APP_ROOT, "index.html"));
+      // Everything else must be a verbatim public/ asset, copied to the dist root at build time.
+      return !existsSync(join(APP_ROOT, "public", path.replace(/^\//, "")));
+    });
+    expect(
+      missing,
+      `precached path(s) that no build input satisfies — cache.addAll is ATOMIC, so install rejects and the ` +
+        `PWA silently never caches its shell:\n  ${missing.join("\n  ")}`,
+    ).toEqual([]);
   });
 });

@@ -29411,3 +29411,58 @@ that states a mechanism can be tested against the code; one that states an outco
 noting for [[attribute-the-red-before-crediting-it]] — it produced two REDs, neither of them the subject.
 
 `lint` is now the only merge-profile gate not examined this way.
+
+---
+
+## §556 — `lint`: coverage is honest, and the gap it leaves has a silent failure behind it
+
+`eslint .` lints **679 of 685** tracked `.ts/.tsx/.mjs/.js` files. The six exclusions, enumerated rather than
+summarised: four `.claude/skills/**` reference snippets (illustrative, deliberately not compiled),
+`fixtures/merkle-vectors/ref6962.mjs` (under the `fixtures/**` ignore), and **`apps/driver/public/sw.js`**.
+
+The service worker is the one that deserved a look: it is registered at `apps/driver/src/main.tsx:26`, it is
+shipped code, and `apps/*/public/**` excludes it from eslint while `tsc --listFiles` confirms it is in **no**
+TypeScript program either. Two gates, both blind to the file that decides whether the driver PWA works with
+no signal.
+
+That turned out to be **deliberate and already documented** — sw.js's own header states the exclusion, gives
+the reason (hand-rolled, served verbatim, service-worker globals), and names its compensating control. The
+control is real and strong: `apps/driver/src/sw.test.ts` evaluates *the shipped source* in a sandbox and
+asserts nine cache-admission behaviours — API-path poisoning, non-GET, cross-origin, offline shell. A clean
+negative on the coverage question.
+
+### The gap the header itself flags
+
+The same comment ends: *"(A headless register-and-go-offline smoke test is still the follow-up for the install
+path.)"* Every one of those nine tests drives `fetch`. **Nothing drove `install`** — and `install` is:
+
+```js
+caches.open(CACHE).then((cache) => cache.addAll(SHELL))
+```
+
+`addAll` is **atomic**. One 404 in `SHELL` rejects the whole promise, `waitUntil` fails, and the worker never
+activates with a populated cache. The failure mode is the worst available: registration succeeds, the app is
+perfect online, and the driver finds out at a dock with no signal. Acceptance demo #3 and the airplane-mode
+soak, defeated by a renamed icon.
+
+`SHELL` is a hand-kept list of paths the build emits — [[a-lockstep-comment-is-a-missing-test]], where the fix
+must read one side and **compute** the other. §556 parses `SHELL` from the shipped worker and resolves each
+entry against real build inputs (`public/**` copied verbatim; `/` and `/index.html` the Vite entry). All four
+resolve today; the point is that nothing would have said so tomorrow.
+
+| Mutation | Predicted | Result |
+|---|---|---|
+| **M8** add `/logo-192.png` to SHELL | resolution test RED | **exactly that test RED** — 1 failed, 11 passed |
+| **M9** rename `SHELL` → `PRECACHE_SHELL` | non-vacuity test RED | both RED — the stale parse is caught, not skipped |
+
+M9 is the pairing that matters: a source-parsing test's real risk is that the parse goes stale and iterates an
+empty list forever, which is §554's vacuity class wearing a different hat. The non-vacuity test is what makes
+the resolution test's green mean something.
+
+### Gate examination: complete
+
+All merge-profile gates have now been examined for what their green certifies:
+`check:tables`, `check:citations`, `check:invariants`, `check:fixtures`, `check:traceability`, `check:events`,
+`check:identity`, `check:section-refs`, `check:runtime`, `design-audit`, `lint`, `test`, and the browser/perf
+gates (§550, by reading — planting an accessibility violation proves the axe engine works, which was never
+the question).
