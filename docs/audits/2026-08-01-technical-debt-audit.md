@@ -26715,3 +26715,45 @@ Critical.
 change is not a finding, it is a question — and the same instinct that made §487's uniform `exit=127` a
 harness bug rather than nine defects. **An alarming result that no change explains is a claim about the
 instrument.**
+
+## §489 — fixing the convention instead of the fourth gate
+
+§487 ended by naming the real subject: *the defect is not in any of them — it is in the convention.* Then it
+fixed two gates by **writing `repoRoot` twice**. Two copies of one rule, committed in the section that
+diagnosed rules failing to propagate, and precisely what
+`.claude/skills/share-lint-matchers-with-parity-tests` exists to prevent.
+
+**`tools/checks/repo-root.ts` is now the single answer**, and the two copies import it. It throws when `cwd`
+is not inside a work tree — deliberately, and it is the fail-closed choice: a permissive fallback to
+`process.cwd()` would recreate the exact vacuity the module exists to remove, invisibly. *(Fail-closed is
+about the fallback VALUE, not about catching the error.)*
+
+**Then the remaining four gates, which the §487 sweep had scored as "exit 1 — fine".** Attributing those
+exits the way §487's own lesson demands showed only ONE was a verdict: `check:chokepoint` fails loudly with
+*"workers/\*/src/\*\*/\*.ts:0 — this scan glob matched ZERO files"* — the guard, already written, for the
+third time in this repo. The other three (`check:coverage`, `check:traceability`, `check:authority-coverage`)
+died on **unhandled ENOENT**. They fail, so they are not vacuous today; but that safety is *incidental*, and
+the ordinary refactor that would destroy it — wrapping a missing config in a graceful default — is one a
+careful engineer makes on purpose. **A guarantee held by accident is a guarantee that will be removed.**
+
+**Rooting them surfaced a live instance of exactly that.** `coverage.ts` already had
+`if (!existsSync(MANIFEST_PATH)) return {}` and an `existsSync` skip on the checklist — silent degradation,
+the `{}`-fallback shape. Both turn out to fail CLOSED on inspection (fewer recorded homes ⇒ more unaccounted
+rows ⇒ louder failure), so they are left alone and recorded rather than churned. The crash came from the one
+read with no guard at all.
+
+**`cwd` is a location, never a scope — expressed in the signatures.** `scanSourceAnnotations` and
+`collectAuthoritativeFiles` keep their `cwd` parameter, because the tests pass a fixture repo where it
+legitimately *is* the root; only the DEFAULT moved to `repoRoot()`. Changing the joins instead would have
+broken those tests and taught the wrong rule.
+
+**Verified at both ends, which is the only check that means anything here.** All three now return the SAME
+verdict from `tools/checks/` as from the root — `coverage` exit 1 *"unaccounted: 1"* (the uncommitted
+`REQ-289` row, identical either way), `traceability` exit 0, `authority-coverage` exit 0 *"all 9 (module,
+file) consults accounted"*. Suite: **846 passing, up from 842** (the four tests added this phase), with the
+same 3 failures as at session start, re-isolated to the `REQ-289` row by removing it (27/27 green).
+
+**Six gates, one rule, three different states.** Two had the guard (`rater-purity`, `chokepoint`), three had
+the defect (`tables`, `invariants`, `citations`), three had incidental protection (`coverage`,
+`traceability`, `authority-coverage`). Nobody wrote a bad gate; the convention let each author solve it, or
+not, alone. **The unit of repair for a convention defect is the convention.**

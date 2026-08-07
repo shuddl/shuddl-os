@@ -32,11 +32,7 @@
 
 import { readFileSync } from "node:fs";
 import { execSync } from "node:child_process";
-
-/** Repo root as seen from `cwd`, so the scan covers the whole tree no matter where the gate is invoked from. */
-export function repoRoot(cwd: string = process.cwd()): string {
-  return execSync("git rev-parse --show-toplevel", { encoding: "utf8", cwd }).trim();
-}
+import { repoRoot } from "../checks/repo-root.js";
 
 /**
  * Every tracked markdown file in the REPO, not in the caller's directory.
@@ -47,6 +43,8 @@ export function repoRoot(cwd: string = process.cwd()): string {
  * exactly that, one section after §483 recorded the same wiring-hole shape. A parameter that can narrow a
  * scan will eventually narrow one.
  */
+export { repoRoot };
+
 export function listMarkdownFiles(cwd: string = process.cwd()): string[] {
   const root = repoRoot(cwd);
   return execSync("git ls-files '*.md'", { encoding: "utf8", cwd: root }).trim().split("\n").filter(Boolean);

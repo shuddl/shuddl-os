@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseRegister } from "./register.js";
+import { repoRoot } from "../checks/repo-root.js";
 
 // REQ-118: orphan detector, both directions — spec'd-but-unbuilt and built-but-unspec'd.
 function isDeferredStatus(status: string): boolean {
@@ -24,7 +25,10 @@ export function findOrphans(input: { activeWps: string[]; sourceAnnotations: Set
   };
 }
 
-export function scanSourceAnnotations(cwd = process.cwd()): Set<string> {
+// §489 — the DEFAULT is the repo root, not process.cwd(). `cwd` is still a parameter because the tests
+// pass a fixture repo, and there it legitimately IS the root; what it must never mean is "however much
+// of the tree the caller happens to be standing in" (see tools/checks/repo-root.ts).
+export function scanSourceAnnotations(cwd = repoRoot()): Set<string> {
   // git grep across everything except governance prose: genesis docs cite every REQ,
   // plans discuss future-WP REQs, and CLAUDE.md/README/BUILD-PROMPT restate the law.
   // .claude/skills/** are governance/guidance too — a skill CITES REQs to teach, it does not
@@ -98,7 +102,7 @@ function main(): void {
   const activeWps =
     wpFlag > -1 && process.argv[wpFlag + 1]
       ? [process.argv[wpFlag + 1] as string]
-      : (JSON.parse(readFileSync("tools/traceability/active-wps.json", "utf8")) as { active: string[] }).active;
+      : (JSON.parse(readFileSync(`${repoRoot()}/tools/traceability/active-wps.json`, "utf8")) as { active: string[] }).active;
   const orphans = findOrphans({ activeWps, sourceAnnotations: scanSourceAnnotations() });
   if (orphans.builtButUnspecd.length > 0) {
     console.error(`FAIL built-but-unspec'd (annotations citing no register row): ${orphans.builtButUnspecd.join(", ")}`);

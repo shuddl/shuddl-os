@@ -1,6 +1,7 @@
 import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { repoRoot } from "./repo-root.js";
 import {
   RATCHET_CONFIG_PATH,
   checkRatchet,
@@ -366,19 +367,6 @@ export function checkCitations(citations: readonly Citation[], index: RepoIndex)
 export function formatViolation(v: CitationViolation): string {
   const anchor = v.citedSymbol === undefined ? "" : `@${v.citedSymbol}`;
   return `${v.citingFile}:${v.citingLine} → ${v.citedPath}:${v.citedSpec}${anchor} — ${v.reason}`;
-}
-
-/**
- * The repo root as seen from `cwd` (audit §487).
- *
- * `git ls-files` is CWD-RELATIVE, so every entry point below took a `cwd` that silently doubled as a
- * SCOPE. Run from `tools/checks/`, this gate printed `citation-links OK — 0 path:line citations resolve to
- * a real file` — a clean bill over an empty scan, in the gate that exists to keep the record's addresses
- * honest. Resolving the root here means `cwd` names where to look FROM and can never mean how much to look
- * AT — the same correction §484 applied to `check:tables`, whose first version fixed only its `main()`.
- */
-function repoRoot(cwd: string): string {
-  return execSync("git rev-parse --show-toplevel", { cwd, encoding: "utf8" }).trim();
 }
 
 function trackedFiles(root: string): string[] {

@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { repoRoot } from "../checks/repo-root.js";
 
 const REGISTER_HEADER = "req_id,domain,requirement,source,spec,wp,dod_test,status";
 
@@ -13,7 +14,10 @@ export type ReqRow = {
   status: string;
 };
 
-export function parseRegister(path = "genesis/09-REQUIREMENTS-REGISTER.csv"): ReqRow[] {
+// §489 — the default is REPO-ANCHORED, not cwd-relative. As a bare relative path this threw an
+// unhandled ENOENT whenever a gate ran from anywhere but the root, which read as "the gate failed"
+// while being a statement about the caller's directory (see tools/checks/repo-root.ts).
+export function parseRegister(path = `${repoRoot()}/genesis/09-REQUIREMENTS-REGISTER.csv`): ReqRow[] {
   const content = readFileSync(path, "utf8");
   if (content.trim().length === 0) throw new Error(`register ${path} is empty`);
 

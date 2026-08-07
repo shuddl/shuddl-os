@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { repoRoot } from "./repo-root.js";
 
 // WP-15 Task 2 (REQ-030 / Ten Laws L8) — the ANTI-SILENT-BYPASS coverage lint. A compute path that emits /
 // prices / invoices / settles WITHOUT consulting the authority read-seam is a SILENT authority bypass — the
@@ -91,7 +92,8 @@ export function analyzeAuthorityCoverage(files: readonly { module: CoverageModul
 // Read every registered (module, file) pair (paths cwd-relative, matching the analyzer + CLI output). A file
 // registered under two modules is read once per registration (concierge.ts under rating AND comms). Shared by
 // the CLI and the "real wired files consult" test.
-export function collectAuthoritativeFiles(cwd: string = process.cwd()): { module: CoverageModule; file: string; content: string }[] {
+// §489 — repo-anchored default; see tools/checks/repo-root.ts for why cwd is a location, not a scope.
+export function collectAuthoritativeFiles(cwd: string = repoRoot()): { module: CoverageModule; file: string; content: string }[] {
   const out: { module: CoverageModule; file: string; content: string }[] = [];
   for (const { module, files } of AUTHORITATIVE_FILES) {
     for (const file of files) out.push({ module, file, content: readFileSync(join(cwd, file), "utf8") });

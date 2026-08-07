@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { parseRegister, type ReqRow } from "./register.js";
 import { scanSourceAnnotations } from "./orphans.js";
+import { repoRoot } from "../checks/repo-root.js";
 
 // REQ-118/119: the machine-checked 100%-register-coverage gate. WP-16's DoD is
 // "register coverage 100%" (genesis/08:70). `check:traceability` only gates rows whose
@@ -121,20 +122,22 @@ export function computeCoverage(input: {
 // A deferred row's "recorded home" is a REQ-\d{3} citation in the human coverage ledger
 // (docs/ops/GO-LIVE-CHECKLIST.md) OR an entry in the coverage-manifest (for any deferral not yet
 // threaded into the checklist). Same REQ-\d{3} matcher the annotation scan uses.
-const CHECKLIST_PATH = "docs/ops/GO-LIVE-CHECKLIST.md";
-const MANIFEST_PATH = "tools/traceability/coverage-manifest.json";
+// §489 — repo-ANCHORED, not cwd-relative: an unhandled ENOENT off-root was this gate's only
+// protection against scanning nothing, and that safety was incidental (see tools/checks/repo-root.ts).
+const CHECKLIST_PATH = () => `${repoRoot()}/docs/ops/GO-LIVE-CHECKLIST.md`;
+const MANIFEST_PATH = () => `${repoRoot()}/tools/traceability/coverage-manifest.json`;
 
 type CoverageManifest = { dispositions?: Record<string, string> };
 
 function readManifest(): CoverageManifest {
-  if (!existsSync(MANIFEST_PATH)) return {};
-  return JSON.parse(readFileSync(MANIFEST_PATH, "utf8")) as CoverageManifest;
+  if (!existsSync(MANIFEST_PATH())) return {};
+  return JSON.parse(readFileSync(MANIFEST_PATH(), "utf8")) as CoverageManifest;
 }
 
 export function scanRecordedHomes(): Set<string> {
   const out = new Set<string>();
-  if (existsSync(CHECKLIST_PATH)) {
-    for (const m of readFileSync(CHECKLIST_PATH, "utf8").matchAll(/REQ-\d{3}/g)) out.add(m[0]);
+  if (existsSync(CHECKLIST_PATH())) {
+    for (const m of readFileSync(CHECKLIST_PATH(), "utf8").matchAll(/REQ-\d{3}/g)) out.add(m[0]);
   }
   for (const id of Object.keys(readManifest().dispositions ?? {})) out.add(id);
   return out;
@@ -153,7 +156,7 @@ export function formatReport(res: CoverageResult): string {
 function main(): void {
   const rows = parseRegister();
   const known = new Set(rows.map((r) => r.req_id));
-  const activeWps = (JSON.parse(readFileSync("tools/traceability/active-wps.json", "utf8")) as { active: string[] }).active;
+  const activeWps = (JSON.parse(readFileSync(`${repoRoot()}/tools/traceability/active-wps.json`, "utf8")) as { active: string[] }).active;
 
   // Integrity: a coverage-manifest entry citing a non-existent register row is stale scope —
   // fail loudly (parallels the orphan detector's built-but-unspec'd direction).
