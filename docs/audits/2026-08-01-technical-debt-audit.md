@@ -218,6 +218,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 23 | — | **§575** | THE OBSERVABILITY BOUNDARY — 104 log sites carry no secret and the sweep logs are aggregates, but the provider's error text reached two log sinks VERBATIM; scrubbed at the boundary it enters, both paths independently proved |
 | 24 | — | **§576** | THE HASH CHAIN — byte law and NULL→undefined re-proved at HEAD; the `prev_hash` LINK check was enforcing nothing a test could see, because the hash check masked it in every existing case. A forged chain (re-link + re-hash) now pins it |
 | 25 | — | **§577** | MASKING DOESN'T GENERALIZE — the sequencer's 11 guards: 10 reasons unnamed by any test, but 5 of 5 mutated are WATCHED. Masking needs ordered checks over a SHARED dimension; a wrong-suite "silent" verdict caught before it was recorded |
+| 26 | — | **§578** | §577'S RULE AS A SEARCH — the fields with the most readers (`visibility` ×3, `source` ×2) all independently watched; 4 mutations, 4 caught, 0 gaps. One attribution weakness recorded rather than churned |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -30975,3 +30976,81 @@ silence, not a warning.** No register row claims the exemption, so nothing is ow
   such rather than as findings.
 - `shipments.service` is threaded into the invoice write path → the POD exemption becomes wireable, and it
   needs its own test *before* it ships, per the TODO.
+
+---
+
+## §578 — PHASE GATE: applying §577's rule to the fields with the most readers
+
+### The rule under test
+
+§577 ended with a predictive claim: **masking is a property of ordered checks over a shared input dimension**,
+so the place to look is *any field several rules read*. This phase used that as a search strategy rather than
+a conclusion, and went to the two fields with the most independent readers.
+
+### `visibility` — three readers, all independently watched
+
+I6 says a counterparty never sees an internal event. Three separate mechanisms enforce it:
+
+| Reader | Mutation | Result |
+|---|---|---|
+| party lens SQL — `visibility <> 'internal' AND EXISTS(party_refs …)` | **M44** drop the visibility clause | **4 RED**, incl. *"party lens sees only non-internal events referencing the party"* + a SQL golden |
+| driver lens SQL — `visibility <> 'internal' AND kind IN (…)` | **M45** drop the visibility clause | **2 RED** |
+| the DO's enqueue predicate — an internal note never fans a trigger | **M46** drop the visibility check | **1 RED** — *"an INTERNAL message.received (SLA-overdue…)"* |
+
+Each has the masking shape — a second clause in the same predicate that would exclude most inputs anyway —
+and each is nonetheless caught, which means the suite contains the **discriminating** input in all three
+cases: an internal event that *does* reference the party, and an internal event whose kind *is* a driver kind.
+That is the counterexample §576 found missing for `prev_hash`, present here three times over.
+
+### `source` — the legacy gate carve-out is watched, with weaker attribution
+
+`incoming.source === "legacy" → return {}` exempts mirror events from the physical-precondition gates, and it
+sits immediately above `!isGatedKind(incoming.kind) → return {}`. Both return the same value, so only a
+**legacy event of a GATED kind** distinguishes them — the exact structure of §576's finding.
+
+**M47** removed the exemption: the suite went red. But the detection is worth describing precisely, because it
+is not what it first appears:
+
+- `source-aware-ledger.test.ts` failed in its shared `beforeAll` and **skipped all 11 tests** — including
+  test (1), *"the 3 GATED legacy kinds APPEND via the real DO — gate carve-out works"*, which is the test
+  written for exactly this behaviour and which never ran;
+- the named failure came from `isolation.test.ts` — *"a legacy mirror event lands ONLY in the swept tenant's
+  D1"* — which trips on the exemption **incidentally** while being about tenant isolation.
+
+So: **detection strong, attribution weak.** A `beforeAll` that seeds gated legacy events is itself a live
+assertion that the carve-out works — it simply reports as *"setup threw"* rather than as the sentence someone
+wrote for it.
+
+### The judgment, stated rather than acted on
+
+I did not restructure that file. A `beforeAll` failure skipping 11 tests is a loud, unambiguous red that no
+engineer would miss, and the shared-seed shape is deliberate — the eleven cases interrogate one expensive
+corpus. Splitting it to improve the failure *label* is churn against a real cost, for a signal that is already
+unmissable. Recorded as a property of the suite, not converted into a change nobody asked for.
+
+### Result
+
+**Four mutations, four caught, zero gaps** — the rule §577 proposed sent this phase to the highest-risk
+fields, and they were covered. That is the outcome a predictive rule should produce most of the time; its
+value is that the search was *targeted* rather than exhaustive.
+
+The rule now has one instance where it found a defect (§576, `prev_hash`) and one where it found none (§578,
+`visibility` and `source`). Both confirm its shape: the defect appeared where the shared dimension made the
+discriminating input **hard to construct**, and did not appear where the suite already contained it.
+
+### Exit state
+
+- No source modified; M44–M47 all reverted byte-identical (`diff -q` clean against known-good copies that
+  produced 789/633 passing).
+- `workers/api` 789 green · `packages/ledger` 633 green · `tools/` 885, 882 green (the `REQ-289` row).
+- Forty-seven mutations across thirteen phases: **40 RED as predicted, 6 silent-and-explained, 1 real gap
+  (§576) closed.**
+
+### Reopen triggers
+
+- A fourth reader of `visibility` appears (a new lens, a new projection) → it needs its own discriminating
+  input; the three above do not cover a fourth.
+- `source-aware-ledger.test.ts`'s `beforeAll` is narrowed so it no longer seeds gated legacy kinds → the
+  carve-out loses its strongest (if oddly-labelled) detector, and test (1) becomes the only one.
+- A rule is added between the two `return {}` branches of the gate exemption → re-run M47; the new rule may
+  mask either.
