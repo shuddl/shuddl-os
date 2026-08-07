@@ -212,6 +212,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 17 | — | **§569** | THE CHAIN END-TO-END — ci.yml → verify:merge → gatesFor("merge"), each link verified; the full merge gate RE-RUN at this commit: 19 PASS · 2 FAIL · 5 BLOCKED, every failure owner-blocked |
 | 18 | — | **§570** | THE LLM→LEDGER TRUST BOUNDARY — three surfaces attacked rather than read; the prompt-injectable `confidence` cannot gate auto-send (proved in BOTH directions), copilot cite-or-abstain, migrator strictly additive + rule 10 |
 | 19 | — | **§571** | REQ-025 BY MECHANISM — the read-path registry is an instruction (10 rows vs 29 files); all 35 `resolveTenantDb` sites enumerated by ARGUMENT and every one authenticated; an allowlist now guards call site #36, and a stale-looking ❌ on `POST /v1/rate` was still real |
+| 20 | — | **§572** | THE GUARD'S OWN COVERAGE — §571's glob read 39% of the source (83 of 215 files); `resolveTenantDb` has 49 call sites not 35; verdict survives, scope did not. Floors must bound INPUT, not output |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -30497,3 +30498,81 @@ to ✅.
   becomes the new chokepoint to guard.
 - Registry rows 6, 7 and 8 still carry `❌`. Row 10 was real; the other three were **not** re-verified here and
   should be measured against HEAD before being trusted or dismissed.
+
+---
+
+## §572 — PHASE GATE: §571's guard read 39% of the source, and its floor could not tell
+
+### The correction
+
+§571 closed with a stated limit: *"`resolveTenantDb` gains an overload or a wrapper → the regex finds the
+direct call only."* Following the registry's three unverified `❌` rows reached that limit within one phase —
+`GET /v1/anchors/:day` calls `readAnchorManifest(c.env.EVIDENCE, session.tenant, day)` and never touches
+`resolveTenantDb`, so §571's guard could not see it.
+
+Building the wider guard surfaced something worse than the stated limit. The glob it shipped —
+`workers/*/src/**/*.ts` — **requires at least one subdirectory**, so it silently skipped every file sitting
+directly under `src/`:
+
+```
+narrow glob (shipped in §571):  83 files
+wide glob   (both levels)    : 215 files
+MISSED                       : 132 files  (61% of the source)
+```
+
+**The verdict survives; the scope did not.** Re-run over the whole tree, `resolveTenantDb` has **49** call
+sites, not 35 — and the 14 unseen ones carried two argument forms §571 never examined:
+
+| Argument | Sites | What authenticates it |
+|---|---|---|
+| `slug` | 12 | cron sweeps iterating the **static tenant roster** — no request is involved |
+| `trigger.tenant` | 1 | a queue payload: `AgentTrigger.safeParse` → the fail-closed resolver → and only a worker holding the queue binding can enqueue |
+| (the other 36) | 36 | `session.tenant`, `claims.t`, `c.get("session"`, the DO's re-derived `tenant` |
+
+All 49 are authenticated — by **three distinct mechanisms**, where §571 reported one. That is the honest
+correction: I checked 71% of the call sites and wrote a conclusion about all of them.
+
+### Why the floor did not catch it
+
+§571's guard floored **hits** (`> 20`) and found 35. A hit-count floor cannot distinguish *"few violations"*
+from *"few files"* — it is the §554 vacuity class one level up, and the guard I wrote to prevent that class
+had it. The fix is a **corpus floor**: assert the number of files scanned, not the number of things found.
+
+**M32** proves it: restoring §571's exact glob now fires *"the source glob collapsed — a scan gap reports
+clean"*, along with two other floors. The defect that shipped is now the defect that fails.
+
+### The guard, consolidated
+
+One mechanism owns REQ-025's argument invariant — `tools/checks/tenant-scope.test.ts` — because two guards
+enforcing one rule with different scopes is itself the finding. It covers nine storage entry points, and the
+**tenant's position is read from each declaration** rather than hand-mapped: a hand-kept index goes wrong
+*silently* (it lands on an argument that happens to be allowlisted), while a moved declaration fails loudly.
+
+| Mutation | Predicted | Result |
+|---|---|---|
+| **M31** request-derived tenant in a file the old glob **could not see** | RED, named | `workers/agents/src/index.ts:67 → resolveTenantDb` |
+| **M32** restore §571's glob | the corpus floor fires | 3 floors RED, including the corpus one |
+
+### Registry rows 6, 7, 8 — resolved
+
+All three anchor routes derive from `session.tenant` (`readAnchorManifest(…, session.tenant, day)`,
+`resolveTenantDb(c.env, session.tenant)`, `runDailyAnchor({ tenant: session.tenant })`), and the R2 key
+builders already carry a partitioning test — *"REQ-025 — anchor R2 keys are tenant-partitioned"*, itself
+mutation-proved at §174. The `❌` markers meant *no route case exists*, which is a different claim from *the
+code is wrong*; the code was never wrong. §572's guard now covers the argument for all three, and the
+key-builder test covers the prefix.
+
+### Exit state
+
+- `tools/checks/tenant-scope.test.ts` — 4 tests green · `append-chokepoint.test.ts` — 15 green (the §571 block
+  removed, pointer left) · `isolation.test.ts` — 67 green.
+- `typecheck` · `lint` green.
+- Thirty-two mutations across eight phases: **26 RED as predicted, 5 silent and each explained, 1 needing
+  `git add -N`.**
+
+### The lesson worth carrying
+
+A guard's floor must bound its **input**, not its output. §554 established that for gates reading files;
+§571 shipped a guard that violated it three phases later, and only writing the *next* guard exposed it.
+**The instrument that measures coverage needs its own coverage measured** — and the only probe that finds this
+is one that widens the corpus and compares counts, never one that reads the glob and reasons about it.

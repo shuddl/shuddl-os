@@ -135,66 +135,6 @@ describe("REQ-021/030 §567: no append route can omit the native-source lock", (
   });
 });
 
-// REQ-025 §571 — THE TENANT HANDLE COMES FROM AN AUTHENTICATED SOURCE, NEVER FROM REQUEST INPUT.
-//
-// CLAUDE.md rule 8: a cross-tenant read anywhere is a build failure. The isolation suites are large (five
-// files, 1,200+ lines in `workers/api/test/isolation.test.ts` alone) and the skill carries a hand-kept
-// `read-path-registry.md` whose own instruction is *"keep in sync with the code"* — an instruction, not a
-// mechanism. Measured: the registry lists ~10 read paths; **29 files call `resolveTenantDb`.**
-//
-// That gap is not the defect it looks like. Per-route enumeration is the wrong frame, because every
-// tenant-scoped read funnels through ONE function and the only thing that matters is **where its tenant
-// argument comes from**. All 35 call sites were enumerated and every one derives from an authenticated
-// source: `session.tenant` (32), the DO's re-derived+validated `tenant`, `claims.t` (MAC-verified by
-// `verifyStatusCap` before use, fail-closed to the same 401), and one `c.get("session")`.
-//
-// What was missing is call site #36. A route written as `resolveTenantDb(c.env, c.req.param("tenant"))` is a
-// direct cross-tenant read, and nothing would have caught it — the registry is a document, and no test
-// asserts the shape of this argument.
-//
-// ALLOWLIST rather than denylist, deliberately: a denylist of bad shapes (`c.req.`, `param(`, `query(`) is a
-// guess about how the next mistake will be spelled, and §525's rule is that the narrower the pattern the more
-// confidently it lies. An allowlist fails on ANY new form, including ones nobody predicted, and the fix is to
-// add the form here — which is exactly the review moment this exists to create.
-describe("REQ-025 §571: every tenant-DB handle is derived from an authenticated identity", () => {
-  const ALLOWED_TENANT_ARGS = new Set([
-    "session.tenant", // the JWT claim, verified by the auth middleware — 32 of 35 sites
-    "tenant", // do/sequencer.ts: the DO's own identity, re-derived and pin-checked BEFORE this call
-    "claims.t", // pub/status.ts: MAC-verified by verifyStatusCap, fail-closed to a uniform 401
-    'c.get("session"', // the same session, read off the Hono context
-  ]);
-
-  function tenantArgs(): { file: string; arg: string }[] {
-    const root = repoRoot();
-    const files = execSync('git ls-files "workers/*/src/**/*.ts"', { cwd: root, encoding: "utf8" })
-      .trim()
-      .split("\n")
-      .filter((f) => f && !f.includes(".test."));
-    const out: { file: string; arg: string }[] = [];
-    for (const f of files) {
-      const text = stripComments(readFileSync(`${root}/${f}`, "utf8"));
-      for (const m of text.matchAll(/resolveTenantDb\s*\(([^)]*)\)/gs)) {
-        const args = m[1]!.split(",").map((s) => s.trim()).filter(Boolean);
-        const last = args[args.length - 1];
-        if (last !== undefined) out.push({ file: f, arg: last });
-      }
-    }
-    return out;
-  }
-
-  it("finds the call sites at all (non-vacuity)", () => {
-    expect(tenantArgs().length, "no resolveTenantDb call sites found — the scan is broken, not the tree").toBeGreaterThan(20);
-  });
-
-  it("no call site derives its tenant from request input", () => {
-    const stray = tenantArgs().filter((s) => !ALLOWED_TENANT_ARGS.has(s.arg));
-    expect(
-      stray,
-      "resolveTenantDb called with a tenant that is not a known authenticated source. If this is a NEW " +
-        "authenticated form, add it to ALLOWED_TENANT_ARGS with a note on what verifies it. If it comes from " +
-        "the request (a param, query, header or body field), it is a cross-tenant read: CLAUDE.md rule 8 makes " +
-        "that a build failure (REQ-025).\n  " +
-        stray.map((s) => `${s.file} → ${s.arg}`).join("\n  "),
-    ).toEqual([]);
-  });
-});
+// §571's narrower tenant guard MOVED to tools/checks/tenant-scope.test.ts (§572): it watched one function
+// through a glob that read 39% of the source. One mechanism owns REQ-025's argument invariant now — two
+// enforcing one rule is itself the finding when their scopes differ.
