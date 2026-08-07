@@ -186,6 +186,12 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 
 ## §4 — Phase gating and the stopping point
 
+> **PHASE 3 CLOSED — §504 is the phase gate for §502–§504: three axes swept, ZERO defects.** SQL guards (all
+> 4 business guards mutated), error handling (the 15 server catches that return a default rather than
+> refuse), and TENANT ISOLATION at its resolution seam — including the unauthenticated `/pub/quote`, whose
+> "hostname, never the forgeable Host header" boundary is now mutation-proved. The yield curve is the
+> signal: §496 closed 11, §501 closed 3, §502–§504 closed 0.
+>
 > **PHASE 2 CLOSED — §501 is the phase gate for §497–§500: the STANDING BOUNDS, discharged rather than
 > carried.** Zero-reference exports (137 → 0 real) and duplicated logic (38 shapes triaged) are closed; the
 > idempotency scope is swept (23 mutating routes, all 5 outside `/v1/*` accounted for). Two real defects,
@@ -27463,3 +27469,53 @@ guards, §503 error handling), which is itself the finding: after §496 and §50
 the bounds, the surfaces they pointed at are not carrying the debt. The build documents its swallows —
 several carry the measurement that proved the guard load-bearing — and the ones that do not are the idiom,
 not the decisions.
+
+## §504 — PHASE GATE: tenant isolation verified at its resolution seam, and the post-bound sweeps close clean
+
+**The last hard law not audited this session.** CLAUDE.md: *"Tenant isolation suite runs on every merge; a
+cross-tenant read anywhere is a build failure (REQ-025)."* D1 is per-tenant, so isolation is **structural**:
+a cross-tenant read does not require a missing `WHERE tenant_id` — it requires resolving the WRONG DATABASE.
+That makes the audit target the resolution seam, not the query surface.
+
+**The seam is two functions and it is fail-closed by allowlist.** `tenantDb(env, slug)` refuses
+`_platform` FIRST (403 before any binding or control read), then refuses any slug absent from the static
+`TENANT_BINDINGS` (403), and only then returns a binding. A forged slug cannot resolve a database; it
+returns `FORBIDDEN`.
+
+**Every call site was enumerated rather than sampled.** In `workers/api` there are exactly TWO
+`tenantDb(...)` calls: `routes/kpis.ts` (the JWT claim) and `pub/quote.ts`. 69 routes take
+`session.tenant`. In `workers/agents` every resolution comes from `allTenantSlugs(env)` — the server-side
+roster — with the single queue-trigger path carrying its own REQ-025 allowlist check.
+
+**`pub/quote.ts` is the exposed one, and its guarantee is real.** It is UNAUTHENTICATED — there is no JWT to
+key a tenant off — so it resolves from `new URL(c.req.url).hostname` through a static `HOST_TENANTS`
+allowlist, explicitly *not* the client-forgeable `Host` header. That distinction is the whole boundary, and
+it is pinned: making the route prefer `c.req.header("Host")` reddens exactly
+*"ISO-pub-2: tenant from new URL(url).hostname … a spoofed Host header is IGNORED"*. **A guest cannot price
+against another tenant's rates**, and that is now measured rather than read.
+
+### Phase 3 (§502–§504): three axes swept, zero defects
+
+| axis | scope | result |
+|---|---|---|
+| SQL guards (§502) | all 4 `WHERE` clauses carrying a business guard | 1 observed · 1 was §500's defect · 2 clean, for two DIFFERENT reasons |
+| Error handling (§503) | 27 inline swallows + 61 silent catches → the 15 that return a default | 0 defects; all 15 read |
+| Tenant isolation (§504) | the resolution seam, every call site | 0 defects; the exposed one mutation-proved |
+
+**Exit state:** 11 non-register gates PASS · `typecheck` PASS · `lint` PASS · 3,014 workspace tests, zero
+failures · `tools/` 854 passing. The one failing gate (`check:coverage`) and the only 3 failing tests remain
+the uncommitted `REQ-289` GTM register row — an owner decision in a separate workstream, not repo debt.
+
+**Reopen triggers.** (1) A new `tenantDb`/`resolveTenantDb` call site → state where its slug comes from; the
+only two legitimate sources are the session claim and the routing-authoritative hostname. (2) A new
+unauthenticated route that reads tenant data → it has no session, so it must resolve from routing and must
+carry an ISO-pub-style spoof test. (3) A new `WHERE` guard on a mutation → assert the REFUSAL (§500).
+(4) A new catch that RETURNS a value → say what the system believes when it does not know, and whether that
+value feeds a renderer or a policy (§503).
+
+**What three consecutive clean axes mean, stated carefully.** They do not mean the build is defect-free;
+they mean the *specific* classes swept — guard observation, fail-open error handling, tenant resolution —
+are not carrying debt, each verified by mutation rather than by reading. The yield curve is the honest
+signal: §496 closed 11 defects in the instruments, §501 closed 3 while discharging two bounds, and §502–§504
+closed 0 across three axes. **That is what a stopping point looks like from the inside** — not an absence of
+questions, but questions that keep coming back answered.
