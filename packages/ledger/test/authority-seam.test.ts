@@ -2,7 +2,7 @@ import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import { applyMigrations } from "../src/migrate.js";
 import { authoritativeSource, resolveAuthority } from "../src/authority.js";
-import type { AuthorityModule } from "../src/authority.js";
+import { AuthorityModule } from "@shuddl/contracts";
 import ledgerCore from "../../../db/tenant/migrations/0001_ledger_core.sql?raw";
 import domain from "../../../db/tenant/migrations/0002_domain.sql?raw";
 
@@ -78,7 +78,10 @@ describe("resolveAuthority — against the REAL authority_map schema (SQL + tabl
   });
 
   it("every never-seeded module fail-closes to 'legacy' (the UNSEEDED-map default — TODAY's behavior)", async () => {
-    for (const m of ["rating", "invoicing", "dispatch", "settlement", "comms"] as AuthorityModule[]) {
+    // DERIVED from the enum, never re-listed here (§562). A hand-kept copy of this set means a sixth
+    // AuthorityModule silently stops being covered by the fail-closed law on the day it is added — the
+    // §541 shape, where an enumeration of a set the project already defines is the thing that rots.
+    for (const m of AuthorityModule.options) {
       expect(await resolveAuthority(DB, m)).toBe("legacy");
     }
   });

@@ -29798,3 +29798,69 @@ Of note, `packages/rater/test/sweep.test.ts` — the file CLAUDE.md rule 4 names
 audited 504-quote sweep — is built exactly right: its property tests assert inside loops, and a **companion
 block** pins `expect(cells).toHaveLength(504)`. A collapsed grid turns that block red, so the vacuous-loop
 shape is present but harmless. The shape alone was never the defect; the shape without a floor is.
+
+---
+
+## §562 — A fail-closed law tested against a hand-copy of the set it protects
+
+The loop-vacuity sweep (§561) surfaced 69 blocks whose assertions all sit inside a loop. Most iterate literal
+arrays, which cannot collapse, and the two highest-stakes candidates turned out to be built correctly:
+
+- `merkle.test.ts` loops `for (let n = 0; n <= 7; n++)` — a literal bound — and an emptied fixture would
+  compare a real hex against `undefined` and go red. Fail-closed.
+- `sweep.test.ts` (CLAUDE.md rule 4's in-repo stand-in) asserts inside loops, but a companion block pins
+  `toHaveLength(504)`, so a collapsed grid turns that block red.
+
+One was not.
+
+### The finding
+
+`packages/ledger/test/authority-seam.test.ts` asserts the **authority fail-closed law** — every module that
+has never been seeded resolves to `legacy`, so the incumbent's authority can never masquerade as SHUDDL's:
+
+```ts
+for (const m of ["rating", "invoicing", "dispatch", "settlement", "comms"] as AuthorityModule[]) {
+  expect(await resolveAuthority(DB, m)).toBe("legacy");
+}
+```
+
+`AuthorityModule` is a **Zod enum** — `AuthorityModule.options` exists at runtime and is the authority for
+this set. The test re-listed its five members by hand. Today the two lists agree, so nothing is failing; the
+defect is that a **sixth module joins the law's scope without joining its test**, silently, on the day it is
+added. That is [[a-lockstep-comment-is-a-missing-test]]'s shape and §541's fix: derive the list, never
+restate it.
+
+### Proved by discriminating mutation, not by argument
+
+The claim "deriving this list has value" is exactly the kind of assertion [[state-the-mechanism-not-the-outcome]]
+says to test rather than assume. So: add a sixth module that **fails open** (`return "native"` before the
+lookup), and run the same defect past both versions of the test.
+
+| Version of the loop | Result |
+|---|---|
+| **derived** (`AuthorityModule.options`) | **1 failed** — the fail-open module caught |
+| **hand-kept** (the five literals) | **12 passed** — the identical defect, unseen |
+
+### What typecheck did and did not catch
+
+Adding the sixth module failed `typecheck` immediately, with two errors — `parity.ts` holds
+`Record<AuthorityModule, …>` maps that must be exhaustive. That is a real protection and worth recording as a
+clean negative: **you cannot add an authority module without confronting the parity tolerances and the module
+spec.**
+
+But it is exhaustiveness over *data structures*, not over *laws*. Satisfying both records made `typecheck`
+green again while the fail-open module remained — and only the derived test noticed. This is the §543
+observation in a new instance: `typecheck` returns 0 for a security default that has been inverted.
+
+### Method note
+
+Running this suite took three attempts, all of them measurement errors rather than findings
+([[run-the-suite-that-owns-the-file]] and [[when-a-gate-looks-wrong-suspect-the-measurement]]):
+
+1. the root vitest project cannot load `cloudflare:test` — the file belongs to the workers pool;
+2. `timeout 900 …` — **`timeout` does not exist on macOS**, and the `(exit: 0)` I printed came from the
+   trailing `echo`, not the suite;
+3. invoking the root `vitest` binary inside the package produced
+   `Runner @cloudflare/vitest-pool-workers is not supported`.
+
+The correct invocation is `pnpm exec vitest run <file>` from **inside** the owning package.
