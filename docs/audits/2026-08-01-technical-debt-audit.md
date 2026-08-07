@@ -26823,3 +26823,48 @@ build's load-bearing sentences; the audit quotes it, the phase gate rests on it.
 whose subject could be empty, and by a gate that would have printed the number `0` inside the word "all".
 **A percentage computed over a discovered set is a claim about the set as much as the ratio** — and the
 denominator is the half nobody checks.
+
+## §491 — the gate dispatch, and the finding that dissolved on inspection
+
+The vacuity lens moves from tooling to the thing that matters: **the server-side gate dispatch** (CLAUDE.md
+rule 3, REQ-030). `sequencer.ts` narrows an incoming event with `isGatedKind`, switches on the nine
+`GATED_KINDS`, and closes with `default: return assertNever(incoming.kind)` under a stated law — *"if
+GATED_KINDS gains a kind without a switch case, the call stops COMPILING."*
+
+**The law holds, in both directions, and my first probe was the thing that was wrong.** Adding a tenth kind
+`"probe.ungated"` compiled cleanly — which looks like the law failing, and is not: `isGatedKind` narrows
+against the INTERSECTION of `GATED_KINDS` with the real event-kind union, so a string that is not an event
+kind never enters the type and is inert. Re-run with a real ungated kind, `position.updated`:
+`error TS2345: Argument of type '"position.updated"' is not assignable to parameter of type 'never'`.
+Removal is caught too — deleting `"stop.arrived"` from the Set leaves its `case` orphaned and
+`TS2678: Type '"stop.arrived"' is not comparable`. **Set and switch cannot desync in either direction.**
+*(A green mutation has three explanations, and "my input never reached the subject" is the one that looks
+most like a refutation.)*
+
+**What the compiler does NOT pin is the roster's CONTENT** — removing a kind from *both* the Set and the
+switch compiles. Deleting `stop.arrived` that way is caught by four behavioural tests in `consent.test.ts`;
+deleting `osd.captured` left **779 of 779 api tests green.**
+
+**That looked like an un-gated REQ-050, and it is not.** The answer was in `packages/contracts`, under a
+comment that already names it an ASYMMETRY: `OsdCapturedPayload` is `.strict()` with `photo_hash: Hash64`
+and a `reason_code` enum, both REQUIRED, while `exception.raised` deliberately keeps a loose `JsonObject`.
+So Zod refuses a malformed `osd.captured` at the boundary — **400 VALIDATION_FAILED, before the gate runs
+at all** — which the first version of my own test discovered by asserting 403 and getting 400. The gate arm
+is redundant defence-in-depth for that kind, not the live protection. **§389's third explanation — nothing
+DISTINGUISHES the mutation — not the first, nothing watches it.** The two produce identical evidence (a
+deletion nothing catches) and opposite conclusions, and only reading the schema separates them.
+
+**The sibling is the load-bearing one, and its pin is exactly one test.** Un-gating `exception.raised` —
+whose loose payload means the gate IS the enforcement — reddens precisely *"exception.raised with no
+photo/reason → GATE_BLOCKED ['exception_photo','reason_code'], no append"*, and nothing else, out of 782.
+A single point of protection on a live evidence gate is thin, but it is real and it is the right one.
+
+**Three tests added, pinning the requirement at the mechanism that actually holds it** — refusal on missing
+both, refusal on photo-without-reason, and release once both are present. Deliberately written to accept
+`400 OR 403`: what must never happen is a 2xx or an append, and hard-coding today's status would make the
+test fail the day someone loosens the schema — the edit that would REALLY un-gate OS&D, and the one these
+tests exist to catch.
+
+**The correction is the point.** "The gate can be deleted and nothing fails" is not a finding; it is an
+observation with three explanations, and the reassuring one is indistinguishable from the alarming one until
+you name the mechanism that would still refuse. I published the alarming reading to myself first.

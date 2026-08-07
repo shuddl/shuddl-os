@@ -342,3 +342,50 @@ describe("happy-path stop chains and verifies (REQ-007/030)", () => {
     expect((await verifyChain(events)).ok).toBe(true);
   });
 });
+
+// ─── REQ-050 — the OS&D evidence requirement, and WHICH mechanism actually enforces it ──────────────
+//
+// AUDIT §491. `exception.raised` and `osd.captured` share one switch arm in the sequencer
+// (`case "exception.raised": case "osd.captured": assertException(...)`). Deleting `osd.captured` from
+// `GATED_KINDS` and dropping its case label leaves **779 of 779 api tests green** — which looks exactly
+// like an unpinned server-side gate, and is not one.
+//
+// The reason is in `packages/contracts/src/events.ts`, in a comment that already calls it an ASYMMETRY:
+// `OsdCapturedPayload` is `.strict()` with `photo_hash: Hash64` and a `reason_code` enum, both REQUIRED,
+// while `exception.raised` keeps a loose JsonObject payload. So for osd.captured, Zod rejects a missing
+// photo/reason at the boundary (400 VALIDATION_FAILED) and `assertException` never runs; its gate arm is
+// redundant defence-in-depth, not the live protection. §389's third explanation for a silent mutation —
+// nothing DISTINGUISHES it — rather than the first, nothing watches it.
+//
+// These pin the requirement at the mechanism that actually holds it, so the protection cannot be removed
+// by loosening the SCHEMA either, which is the edit that would really un-gate OS&D.
+describe("REQ-050: an OS&D capture without photo + reason is REFUSED, and never appends", () => {
+  it("missing both → refused with no append (the schema is the live enforcement here)", async () => {
+    const shp = "gate-osd-wired";
+    await seedShipment(shp);
+    const before = await countEvents(shp);
+    const r = await post(shp, input(shp, "osd.captured", { payload: {} }), await opsTok());
+    // 400 today (Zod, strict payload); 403 if the schema were ever loosened and the gate became the live
+    // check. Either is a REFUSAL — what must never happen is a 2xx or an append.
+    expect([400, 403], `osd.captured with no evidence must be refused, got ${r.status}`).toContain(r.status);
+    expect(await countEvents(shp), "a refusal NEVER appends").toBe(before);
+  });
+
+  it("a photo with no reason_code is refused too — both fields, not either", async () => {
+    const shp = "gate-osd-partial";
+    await seedShipment(shp);
+    const before = await countEvents(shp);
+    const r = await post(shp, input(shp, "osd.captured", { payload: { photo_hash: HEX64 } }), await opsTok());
+    expect([400, 403]).toContain(r.status);
+    expect(await countEvents(shp)).toBe(before);
+  });
+
+  it("appends once photo + reason_code are present — the requirement releases, it does not just refuse", async () => {
+    const shp = "gate-osd-ok";
+    await seedShipment(shp);
+    const before = await countEvents(shp);
+    const r = await post(shp, input(shp, "osd.captured", { payload: { photo_hash: HEX64, reason_code: "damage" } }), await opsTok());
+    expect(r.status, `expected an append, got ${r.status} ${JSON.stringify(r.json)}`).toBe(201);
+    expect(await countEvents(shp)).toBe(before + 1);
+  });
+});
