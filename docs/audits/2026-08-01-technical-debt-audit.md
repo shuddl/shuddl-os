@@ -186,7 +186,15 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 
 ## §4 — Phase gating and the stopping point
 
-> **RE-MEASURED 2026-08-06 (§483–§492) — the GATE SURFACE ITSELF, which no prior measurement had audited.**
+> **RE-MEASURED 2026-08-06 (§483–§493) — the GATE SURFACE ITSELF, which no prior measurement had audited.**
+> **§493 found the one WRITABLE hole of the phase.** The two gates guarding I3 over TypeScript source
+> disagreed about scope — chokepoint scanned 8 globs, the REPLACE scanner 6, omitting `tools/**` — so
+> `INSERT OR REPLACE INTO events` planted in `tools/seed/load.ts`, an ALLOWLISTED events writer, passed
+> `check:invariants`, `check:chokepoint` and `lint`. Nothing in the build caught a REPLACE on the events
+> table (CLAUDE.md rule 2, I3/I7). Closed by declaring the corpus once (`source-corpus.ts`, imported by
+> both), pinned by 8 parity tests, mutation-proved. **Both gates were green on every commit for as long as
+> the gap existed** — when two mechanisms enforce one law, the delta between their scopes is a defect even
+> when nothing is failing.
 > **§491–§492 carried it into the SERVER-SIDE gate dispatch (REQ-030), the part that matters most.** The
 > `GATED_KINDS`/switch exhaustiveness law was verified in both directions (adding a real ungated kind is
 > `TS2345`, removing one orphans its case with `TS2678` — they cannot desync), and **all nine gates were
