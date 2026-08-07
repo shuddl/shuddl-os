@@ -26463,3 +26463,68 @@ before it meant anything.
 **The corrected rule: adding a check is THREE edits.** One makes it correct, one makes it *run*, one makes it
 *pinned* — and they fail in that order of visibility. An unwritten check is obvious; an uninvoked check is
 invisible until someone asks; an **unpinned** check is invisible forever, because it goes on printing OK.
+
+## §484 — the gate that guards the record certified a record it had not read
+
+§483 ended on *adding a check is three edits: correct, invoked, pinned.* Applied to the whole gate surface,
+the third edit is the one to sweep for. Resolving each of the 29 `run-gate.ts` gates to its implementation
+and asking **which test imports it** left four with no owner: `seed`, `table-shape`, `acceptance`,
+`staging-smoke`.
+
+**The first pass of that sweep was wrong and I nearly published it.** It matched on the implementation's
+*basename appearing anywhere in a test file* — and the basenames are `run`, `verify`, `audit`, `coverage`.
+`tools/acceptance/run.ts` "matched" every test containing the word *run*; `design.test.ts` scored as the
+owner of the acceptance runner on the strength of the word *runtime*. Re-run against the real ownership
+relation — an actual `from "…/name.js"` import — the picture changed for six gates. **A match on a common
+word is not evidence**, and this is the same class as the §444 substring error where `sha` matched *shape*.
+
+**All four survivors are genuine, and they share one cause: each exports NOTHING.** They are `main()`-only
+scripts, so no test *can* import them; the absence of a test is not an oversight anyone made but a property
+of how the files were written. That reframes the finding — the question is not "why is there no test" but
+"what did the missing test permit?"
+
+**For `check:tables`, it permitted the gate to pass having read nothing.** Measured, not reasoned: run from
+`tools/checks/`, it printed
+
+```
+check:tables — OK (0 markdown files, every table row matches its header)   → exit 0
+```
+
+`git ls-files '*.md'` is **CWD-relative**. The gate whose entire purpose is stopping the record from
+overstating safety — §50 added it after over-wide rows silently deleted three residual-risk statements and a
+whole mitigation row from the rendered threat model — would itself certify the record having opened no
+files. It even *printed* the count `0` while checking it against nothing: **the number was displayed, not
+asserted.** This is precisely the input-vacuity defect §481 closed in the bundle ratchet, and it had been
+shipping since §50. It is latent in CI only because `run-gate` happens to run from the repo root — an
+ambient condition, exactly the kind §473 says decays silently.
+
+**Fixed at the cause and at the symptom, because the symptom fix alone is weaker.** The scan is rooted at
+`git rev-parse --show-toplevel`, so CWD cannot narrow it; and an empty file list is now a hard failure that
+names the command that should have produced input (§445). Converted `.mjs` → `.ts` with real exports,
+matching the eight other tools in `tools/checks/`, so it is testable at all.
+
+**My first fix was applied at one call site, and my own test caught it.** I rooted the scan inside `main()`
+and left `listMarkdownFiles(cwd)` passing `cwd` straight to git — so every *other* caller could still
+reproduce the defect. The rooting test failed on exactly that. **This is §454's wiring hole, one section
+after §483 recorded §454's wiring hole**, which is worth stating plainly: knowing a failure shape does not
+stop you producing it. The corrected version resolves the root *inside* the function, so `cwd` names where
+to look FROM and can never mean how much to look AT. **A parameter that can narrow a scan eventually will.**
+
+**Pinned (9 tests) and mutation-proved.** Restoring the CWD-narrowing reddens *"the scan is rooted at the
+repo, not the caller's directory"*; relaxing the floor to `files >= 0` reddens *"an empty scan is a FAILURE"*.
+Both restored byte-identical. The pins deliberately target the CAUSE (the file list does not depend on where
+you stand) rather than the symptom (the count is above zero), plus the parser properties §50 paid for: the
+fused 8-cells-on-4-columns row, under-wide rows left alone, and pipes inside `` `code` `` not counting as
+delimiters — the false-positive shape that would have made the gate unusable and gotten it disabled.
+
+**Three of the four remain open, and are recorded as a bound, not as work quietly dropped:** `seed`
+(`tools/seed/verify.ts`), `acceptance` (`tools/acceptance/run.ts`), `staging-smoke`
+(`tools/deploy/staging-smoke.ts`) — each `main()`-only, each therefore unpinnable without the same
+export-and-test treatment. `acceptance` is the sharpest of the three: it runs the five demos that define
+"done enough to show", so a vacuity defect there would make all five pass by proving nothing. Reproduce the
+list with the import-ownership sweep, not the basename one.
+
+**The generalisation.** §481's lesson was *a ratchet that reads nothing reports clean*. §484 says that was
+never about ratchets: **every gate has an input, and a gate that cannot fail for lack of input is
+indistinguishable from a gate that passes.** The tell is a gate that reports the size of its input — that
+number is there because someone sensed it mattered, and printing it instead of asserting it is the defect.

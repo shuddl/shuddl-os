@@ -26,7 +26,7 @@
     "check:pr": "tsx tools/traceability/check-pr.ts",
     "check:identity": "tsx tools/checks/identity-leak.ts",
     "check:citations": "tsx tools/checks/citation-links.ts",
-    "check:tables": "node tools/docs/check-table-shape.mjs",
+    "check:tables": "tsx tools/docs/check-table-shape.ts",
     "check:surfaces": "tsx tools/deploy/surface-contract.ts",
     "check:fixtures": "tsx tools/fixtures/verify.ts",
     "check:rater-parity": "tsx tools/rater/parity.ts",
