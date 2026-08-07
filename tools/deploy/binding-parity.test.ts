@@ -48,8 +48,15 @@ function declarations(): Decl[] {
       if (env) scope = env[1]!;
       const binding = /binding\s*=\s*"([^"]+)"/.exec(block);
       if (!binding) continue;
-      const name = /database_name\s*=\s*"([^"]*)"/.exec(block) ?? /bucket_name\s*=\s*"([^"]*)"/.exec(block);
-      const id = /database_id\s*=\s*"([^"]*)"/.exec(block);
+      // All five binding types this repo uses (§586). §585 read only D1 + R2 and said so in its own reopen
+      // trigger; queues and services were 6 shared pairs it could not see. A queue or a service name IS the
+      // logical identity (there is no separate id), so both join the LOGICAL rule; a KV `id` is physical.
+      const name =
+        /database_name\s*=\s*"([^"]*)"/.exec(block) ??
+        /bucket_name\s*=\s*"([^"]*)"/.exec(block) ??
+        /^\s*queue\s*=\s*"([^"]*)"/m.exec(block) ??
+        /^\s*service\s*=\s*"([^"]*)"/m.exec(block);
+      const id = /database_id\s*=\s*"([^"]*)"/.exec(block) ?? /^\s*id\s*=\s*"([^"]*)"/m.exec(block);
       out.push({
         worker,
         scope,
@@ -86,8 +93,11 @@ describe("REQ-154 §585: cross-worker binding parity", () => {
   it("finds shared bindings at all (non-vacuity)", () => {
     // A renamed table or a parser change would compare nothing and pass — the class this repo met in five
     // gates (§487/§554/§572/§584).
-    expect(grouped("name").size, "no shared bindings found — the scan is broken, not the configs").toBeGreaterThan(15);
-    expect(grouped("id", new Set(["staging", "prod"])).size, "no shared deployable ids found").toBeGreaterThan(8);
+    // RAISED with the corpus (§586): 21 → 27 logical pairs once queues and services joined. A floor left at
+    // the old number would pass with those two types silently dropped back out, which is the scan-collapse
+    // shape §572 found in a guard written to prevent it.
+    expect(grouped("name").size, "no shared bindings found — the scan is broken, not the configs").toBeGreaterThan(24);
+    expect(grouped("id", new Set(["staging", "prod"])).size, "no shared deployable ids found").toBeGreaterThan(10);
   });
 
   it("the LOGICAL resource name agrees in every scope, dev included", () => {

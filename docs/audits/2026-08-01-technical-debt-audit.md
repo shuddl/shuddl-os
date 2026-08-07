@@ -226,6 +226,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 31 | — | **§583** | SWEEPING FOR THE RECURRING ERROR — 1,163 universal claims narrowed to 19 literal-driven, 2 real: §562's fix had an unswept sibling, and "every deployable scope" meant staging only, leaving PROD's PLATFORM_TENANT_DB parity ungated |
 | 32 | — | **§584** | SCOPES DERIVED, NOT LISTED — a hand-kept two is a hand-kept one a scope later; the set now comes from the `[env.*]` blocks both workers declare, with an EQUALITY floor so a rename fails loud (M56) instead of silently narrowing |
 | 33 | — | **§585** | CROSS-WORKER BINDING PARITY — 9 bindings shared (CONTROL_DB by all 5), 8 ungated. Split into LOGICAL parity (all scopes) and PHYSICAL (staging+prod), because dev's per-worker miniflare ids are correct; 21+12 pairs, 0 divergent |
+| 34 | — | **§586** | §585'S BLIND SPOT — 3 of 5 binding types (queues, services, KV: 18 decls) were invisible; 6 shared pairs ungated. Corpus 21→27, so the FLOOR had to move with it or the narrowing would pass |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -31570,3 +31571,69 @@ next reader does not delete one as duplication.
   exception. Adding an allowlist here re-opens exactly the split-brain this closes.
 - The dev scope stops using per-worker miniflare ids → the physical rule could then cover dev too, and the
   two-rule split becomes unnecessary complexity worth collapsing.
+
+---
+
+## §586 — PHASE GATE: closing §585's own blind spot, and a floor that had to move with it
+
+### The trigger
+
+§585 stated its limit in its reopen triggers: *"a binding type that carries neither `database_name`,
+`bucket_name` nor `database_id` is invisible to both rules; the extractor lists the fields it knows."*
+Measured, that limit had teeth. Five binding types exist in this repo:
+
+| Section | Declarations | Target field | Covered by §585? |
+|---|---|---|---|
+| `d1_databases` | 69 | `database_name` / `database_id` | yes |
+| `r2_buckets` | 9 | `bucket_name` | yes |
+| `producers` | 6 | `queue` | **no** |
+| `kv_namespaces` | 6 | `id` | **no** |
+| `services` | 6 | `service` | **no** |
+
+**Eighteen declarations across three types were invisible**, including two genuinely shared bindings —
+`AGENT_QUEUE` (agents ↔ api) and `API` (billing ↔ mcp), each in all three scopes. Six shared pairs, all
+agreeing today, none gated.
+
+A queue name is the resource's identity with no separate id, so queues and services join the **logical** rule
+(every scope); a KV `id` is physical and joins that one.
+
+### The floor had to move with the corpus
+
+Widening the extractor took the logical set from **21 to 27** shared pairs. §585's floor was `> 15`, which the
+widened corpus clears trivially — **and which the narrowed corpus also cleared**. A floor left at the old
+number would pass with queues and services silently dropped back out: the scan-collapse shape §572 found
+inside a guard written to prevent it, one phase after writing it.
+
+Floors raised to `> 24` and `> 10`. **A floor is only a floor relative to the corpus it was set against.**
+
+| Mutation | Predicted | Result |
+|---|---|---|
+| **M59** diverge agents' **prod** `AGENT_QUEUE` producer | RED, naming it | `prod AGENT_QUEUE: agents=shuddl-agent-triggers-prod-v2, api=shuddl-agent-triggers-prod` |
+
+### A mutation that did not apply, and a caption that claimed it had
+
+M59's first attempt anchored on `queue = "shuddl-agent-trigger"`; the real value is
+`shuddl-agent-triggers-dev`. The `python3 … || exit 1` guard aborted correctly and the file was untouched —
+but the shell continued to the pre-written line *"M59 — agents' AGENT_QUEUE producer diverged"* above a run
+of the **clean** tree reporting `3 passed`. Read quickly, that is a silent mutation. It was neither: nothing
+was mutated.
+
+This is the same error §575 logged and §574 prescribed the fix for, and it has now appeared often enough to
+state as a rule rather than a lesson: **a mutation is not applied until something read it back out of the
+file.** Every mutation in this phase's final form prints its landed edit (`edit landed: 244:queue = …`) before
+the verdict, which is the only version of the discipline that has actually held.
+
+### Exit state
+
+- `tools/deploy/binding-parity.test.ts` — 3 tests green over **27 logical + 12 physical** shared pairs.
+- `typecheck` green; `workers/agents/wrangler.toml` restored byte-identical.
+- Fifty-nine mutations across twenty-one phases: **52 RED as predicted, 6 silent-and-explained, 1 that never
+  applied, 3 real gaps closed, 1 design pinned, 2 claims corrected.**
+
+### Reopen triggers
+
+- A sixth binding type appears (Hyperdrive, Vectorize, a Durable Object namespace) → the extractor still
+  lists the fields it knows, and the floors are what turn its absence into a failure rather than a silent
+  narrowing. **The floor is the general defence; the field list is not.**
+- A queue gains a **consumer** in a second worker → consumers carry no `binding`, so they are correctly
+  outside this rule, and their pairing with a producer is not checked by anything here.
