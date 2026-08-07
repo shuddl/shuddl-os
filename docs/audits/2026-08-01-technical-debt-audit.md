@@ -238,6 +238,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 43 | — | **§595** | SESSION EXPIRY — four auth tests covered every way a token is INVALID, none covered one that is merely OLD. Enforcement rests on one library call in a blanket catch; M73 (decode instead of verify) reddens it. `exp` is schema-REQUIRED, so no token is immortal |
 | 44 | §595 | **§596** | THE AUTHORIZATION CODE — token expiry was covered 3×, single-use by nothing. The delete precedes ALL validation, so a failed exchange spends the code; M75 was silent (delete still preceded PKCE), M75-b caught it |
 | 45 | — | **§597** | THE ERROR BOUNDARY TO CALLERS — no API path builds a raw error, no ApiError carries exception text, the handler returns a FIXED message for anything unexpected. Tested with both complements; M76 reddens. A clean negative |
+| 46 | §597 | **§598** | THE ENVELOPE CHOKEPOINT — a hand-built error response opts out of req_id, the stable code AND the disclosure guard at once. Rule is about error STATUS, not the constructor (byte streaming is legitimate), and scoped to api alone |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -32382,3 +32383,63 @@ and the next person does not spend the afternoon I just spent.
   guarantee moves to that field, and these three cases say nothing about it.
 - A gate error starts embedding evidence detail in `message` rather than the typed `gate.required_evidence`
   → same shape, different field.
+
+---
+
+## §598 — PHASE GATE: closing §597's trigger, and a rule kept deliberately narrow
+
+### The trigger, closed
+
+§597 measured the error boundary clean and named its own gap: *"a route that builds its own Response for an
+error leaves the envelope and the handler entirely, and nothing above would see it."*
+
+That is the §567 shape — a chokepoint holding because everyone has used it, with nothing making the next
+person. A hand-built error response is not an exotic mistake: it is the **shortest path** when a route wants a
+status the helper does not obviously offer, and it silently opts out of three things at once —
+
+- `req_id`, so the failure stops being traceable to a log line;
+- the stable `code` clients switch on;
+- the fixed-message disclosure guard §597 pinned.
+
+### Narrow on purpose
+
+`new Response` is **legitimate for a success body** — `documents.ts` streams R2 bytes with one, and forcing
+that through an envelope would be wrong. The rule is therefore about **error status**, not about the
+constructor.
+
+Measured: exactly **one** `new Response` in all of `workers/api/src`, on the byte-streaming path, with no
+status literal.
+
+Scoped to `workers/api` alone, also on purpose. The other workers legitimately answer outside the envelope —
+the Stripe webhook must reply in Stripe's shape, the flag-gated `/test-send` probe returns bare 404s as its
+no-oracle posture (§564), and unrouted requests get a plain 404. Widening this rule to them would produce
+**four false positives and one disabled gate**, which is §575's warning about a gate nobody trusts.
+
+### Two rules, because one has two failure modes
+
+| Mutation | Predicted | Result |
+|---|---|---|
+| **M77** a hand-built `403` inside `routes/kpis.ts` | RED, naming file:line:status | **2 failed** — `kpis.ts:47 status=403` |
+| **M78** give the byte-stream site an error status | RED | 1 failed |
+
+The second rule pins the legitimate site **by identity**, not by count: a second byte-streaming route lands
+there as a deliberate decision rather than drifting in, because `toEqual` on the file list makes a new site a
+failure rather than a silent widening. That is the same choice §571 made for the tenant-source allowlist and
+§593 for `allowBuilds` — **an allowlist's growth is the review moment worth manufacturing.**
+
+### Exit state
+
+- `tools/checks/error-envelope-coverage.test.ts` — 3 green; both mutated routes restored (`git diff --quiet`).
+- `typecheck` · `lint` green.
+- Seventy-eight mutations across thirty-three phases: **69 RED as predicted, 8 silent (seven
+  non-counterexamples, one a real gap since closed), 1 that never applied** — 8 real gaps closed, **1 gate
+  added from a self-named trigger**, 1 design pinned, 2 claims corrected.
+
+### Reopen triggers
+
+- A second success-path `new Response` is genuinely needed → extend the pinned file list **with the reason**;
+  loosening it to a count re-opens the drift this closes.
+- A route helper starts constructing `Response` internally (a `stream()` or `file()` wrapper) → the rule sees
+  the helper's file, not the caller's, and its own status handling becomes the thing to check.
+- `handleError` gains a branch that does not envelope → the boundary moves from the routes to the handler, and
+  these rules watch the routes only.
