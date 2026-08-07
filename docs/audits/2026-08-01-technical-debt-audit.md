@@ -28267,3 +28267,36 @@ blast radius of everything else — and this build has spent five phases making 
 gap is small, the exposure today is bounded by two deliberate choices, and the fix is cheap. It is recorded
 with its verification command precisely so it does not become another thing that is true because nobody
 looked.
+
+## §524 — the CI supply-chain family, finished: no report-only gate, and a false clean I caught in my own sweep
+
+Continuing §523's family with the question this record has asked of gates four times (§482, §484, §509):
+**does the scanner block, or merely report?**
+
+**No gate in either workflow is report-only.** `continue-on-error` appears **zero** times — every step's
+failure fails its job. The secret scan is its own blocking job (`secrets`), SHA-pinned, with
+`fetch-depth: 0` so it reads the whole history rather than the tip. Three independent jobs in `ci.yml`
+(`merge-gate`, `design-gate`, `secrets`), each failing on its own.
+
+**Exactly two conditional steps exist, and both conditions are correct:**
+
+- `if: ${{ always() }}` on **upload merge evidence** — the evidence bundle must upload *precisely when a
+  gate failed*, which is the only time anyone needs it. `always()` on an ARTIFACT UPLOAD is the opposite of
+  `continue-on-error` on a GATE: one preserves the proof of a failure, the other erases it. Scoped to
+  `artifacts/release/**` with `if-no-files-found: ignore` — not a broad glob.
+- `if: github.event_name == 'pull_request'` on **`check:pr`** — the REQ-ID traceability gate, whose input is
+  `$PR_BODY`. On a `push` there is no PR body, so the condition is what makes the gate honest rather than
+  vacuous. `gate-wiring.test.ts` already records this as one of the three legitimate invocation routes.
+
+**And the sweep that produced this section was wrong first.** My regex for report-only patterns was
+`if: *(always|success\(\)|!cancelled)` — which does not match `if: ${{ always() }}`, the wrapped form GitHub
+actually uses. It reported **0 conditional steps** when there are two. **That is a false CLEAN — the
+dangerous direction**, and unlike this session's other classifier errors (which over-reported and were
+corrected by reading) this one would have been corrected by nothing, because a clean sweep invites no
+follow-up.
+
+It was caught only because I opened the evidence-upload step for an unrelated reason — what it captures —
+and saw `if: ${{ always() }}` on the line above. **The habit that saved it was reading a file I had already
+"cleared" by grep**, which is the §517 rule arriving from the opposite direction: there, a name-probe said
+absent and the thing was present; here, a pattern-probe said absent and the pattern was present. **Both are
+the same error — trusting a query's silence — and only the second kind is invisible.**
