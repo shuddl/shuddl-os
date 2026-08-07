@@ -28728,3 +28728,53 @@ you had in mind rather than the one the system actually evaluated.**
 
 The permanent test names every column deliberately, so the only thing that *can* reject the row is the
 foreign key, and the comment records why.
+
+## §536 — I6 controlled: the party lens leaks nothing, and 13 tests say so
+
+I6 is genesis/10's cross-party law: *"`events.visibility` respected by every view (tested adversarially)"*.
+It is the invariant whose failure mode is a data leak between counterparties rather than a wrong number, and
+it was the last high-stakes one left uncontrolled this session.
+
+**The mechanism is one SQL fragment per lens.** `lensWhere` returns `1=1` for the tenant's own scope, and
+for `party` and `driver` prefixes every query with `visibility <> 'internal'`. The driver clause carries its
+own note — *"visibility<>'internal' FIRST — I6 binds every view, including the driver's day sheet: an
+ops-only event on the driver's own shipment must never surface here."*
+
+**Controlled by neutering the party lens's filter** (`<> 'internal'` → `<> 'nope'`, so every internal event
+becomes visible to a counterparty):
+
+| suite | REDs |
+|---|---|
+| `@shuddl/ledger` (owner) | **6** |
+| `@shuddl/api` (consumer, per §530) | **7** |
+
+Thirteen observers, and their names are the law rather than the mechanism: *"portal P1 sees zero internal
+kinds — no `approval.*`, `agent.acted`, `split.computed`, `credit.checked`, `call.transcribed`"*, *"P1 reads
+`quote.priced` with margins stripped — `floors`/`basis`/`versions` absent"*, and an internal-note case. **A
+counterparty seeing our margin floors is the specific harm, and a test named for it is what makes the
+clause unremovable in review.**
+
+**`typecheck` returned 0.** Three sections in a row now — §515 (a security default), §533 (a silent data
+drop), and here (a cross-party leak) — where the compiler is indifferent to the defect. That is not a
+weakness of TypeScript; it is the reason this record keeps insisting the mutation is the instrument.
+
+**And the control took two attempts, for the fifth time on the same trap.** The first anchor was copied from
+a `sed 's/^/  /'`-prefixed display and carried two extra spaces, so it matched nothing. **§526's structural
+fix held**: the `assert` fired, `|| exit 1` aborted the sequence, and `git status` confirmed the file was
+untouched — no probe ran, no result was printed, nothing was credited. The second attempt addressed the line
+by INDEX and verified the plant from the file before running anything.
+
+### genesis/10's I1–I8 at this stopping point
+
+| invariant | status |
+|---|---|
+| I1 no money_line without event | **controlled** §535 — and D1 *enforces* the FK, not merely declares it |
+| I2 no invoice without pod.signed | **controlled** §492 (POD gate) |
+| I3 no event edit/delete at DB level | **controlled** §487 + guard triggers |
+| I5 quotes pin rate_config versions | **structural** — `.min(1)` at the boundary |
+| I6 visibility respected by every view | **controlled** §536 — 13 observers |
+| I8 any 22nd table = build failure | **controlled** §506 |
+| I4 custody co-signed or flagged · I7 correction pairs net zero | not controlled this session |
+
+**Six of eight**, alongside CLAUDE.md's five-of-ten (§534). The two remaining are named rather than assumed
+green — which is the same standard §534 set for rule 6 and rule 9.
