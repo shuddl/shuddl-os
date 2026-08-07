@@ -413,3 +413,60 @@ describe("REQ-028/052 — localWall is DST-correct, not fixed-offset", () => {
     expect(localServiceDate(Date.parse("2026-11-01T06:30:00Z"), NY)).toBe("2026-11-01");
   });
 });
+
+// REQ-028/052 §529 — AN APPOINTMENT CLAIMS ONE LEG, NOT THE SHIPMENT.
+//
+// `APPT_CLAIM_SQL` is `UPDATE legs SET facility_id=?, appt_slot_key=?, appt_service_date=?,
+// appt_window_start_ts=?, appt_window_end_ts=? WHERE shipment_id=? AND kind=?`. The `AND kind=?` is what
+// scopes the write to the ONE leg the appointment is for.
+//
+// It is load-bearing on every appointment in production: `status-cache.ts` materialises **two** skeleton
+// legs (pickup + delivery) on a shipment's first event, so without that clause, setting the PICKUP
+// appointment silently overwrites the DELIVERY leg's facility, slot key, service date and window.
+//
+// MEASURED (audit §529), and the first measurement was of the WRONG SUITE. Dropping `AND kind=?` leaves
+// all 631 `packages/ledger` tests green — the projection lives there but is CALLED from the sequencer, so
+// its behaviour is only exercised here. Run against this file, the same mutation reddens SIX tests.
+//
+// Five of those six catch it INCIDENTALLY: (A)/(B)/(C) via the partial UNIQUE index `ux_legs_slot` — a
+// clobbered delivery leg collides on the slot — and (F) via the shipment_id pin. They detect the guard's
+// absence; none of them is ABOUT it. This one names the property directly, which is why it is worth adding
+// to a clause that already had five observers: a test whose failure message says
+// "the DELIVERY leg must not be claimed by a PICKUP appointment" tells the next reader what broke.
+describe("REQ-028 §529: an appointment.set claims only its own leg kind", () => {
+  it("setting the PICKUP appointment leaves the DELIVERY leg untouched", async () => {
+    const fac = "fac-legscope";
+    await seedFac(fac);
+    const shp = "appt-leg-scope";
+    await seedShipment(shp);
+    await seedLeg(shp, 0, "pickup", null);
+    await seedLeg(shp, 1, "delivery", null); // the second skeleton leg production always has
+
+    const before = await env.TENANT_A_DB.prepare(
+      "SELECT facility_id, appt_slot_key, appt_service_date FROM legs WHERE shipment_id=? AND kind='delivery'",
+    )
+      .bind(shp)
+      .first<{ facility_id: string | null; appt_slot_key: string | null; appt_service_date: string | null }>();
+    expect(before, "precondition: the delivery leg exists").not.toBeNull();
+    expect(before?.facility_id, "precondition: it is unclaimed").toBeNull();
+
+    const stream = `s:${shp}`;
+    await stubFor(stream).append({ tenant: TENANT, streamId: stream, input: apptInput(shp, fac) });
+
+    const pickup = await env.TENANT_A_DB.prepare(
+      "SELECT facility_id FROM legs WHERE shipment_id=? AND kind='pickup'",
+    )
+      .bind(shp)
+      .first<{ facility_id: string | null }>();
+    expect(pickup?.facility_id, "the pickup leg IS claimed — the projection ran").toBe(fac);
+
+    const after = await env.TENANT_A_DB.prepare(
+      "SELECT facility_id, appt_slot_key, appt_service_date FROM legs WHERE shipment_id=? AND kind='delivery'",
+    )
+      .bind(shp)
+      .first<{ facility_id: string | null; appt_slot_key: string | null; appt_service_date: string | null }>();
+    expect(after?.facility_id, "the DELIVERY leg must not be claimed by a PICKUP appointment").toBeNull();
+    expect(after?.appt_slot_key).toBeNull();
+    expect(after?.appt_service_date).toBeNull();
+  });
+});

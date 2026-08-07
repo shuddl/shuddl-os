@@ -28449,3 +28449,42 @@ different facts about the record. §525 found a probe blind on a claim that also
 rule drawn there applies identically here: **"carried by luck" and "verified" read the same in a document,
 so the only way the distinction survives is to write down which one it was.** Three of this session's
 claims have now been re-derived under a stricter instrument; all three held, and all three needed it.
+
+## §529 — §502's sweep missed a fifth guard, and my first measurement of it was of the wrong suite
+
+§525's rule — *the narrower the pattern, the more confidently it lies* — turned on §502's claim that the
+build contains **four** `UPDATE`/`DELETE` statements carrying a business guard. That sweep matched a single
+double-quoted string containing both the verb and the `WHERE`. Re-run against **code with comments
+stripped, any quoting, across line breaks**: **five.**
+
+**The missed one is built by concatenation**, which is why no single quoted string contained both tokens:
+
+```ts
+const APPT_CLAIM_SQL =
+  "UPDATE legs SET facility_id=?, appt_slot_key=?, appt_service_date=?, appt_window_start_ts=?, appt_window_end_ts=? " +
+  "WHERE shipment_id=? AND kind=?";
+```
+
+The `AND kind=?` is load-bearing on **every appointment in production**: `status-cache.ts` materialises
+**two** skeleton legs (pickup + delivery) on a shipment's first event, so without it, setting the PICKUP
+appointment overwrites the DELIVERY leg's facility, slot key, service date and window.
+
+**Then I measured it against the wrong suite and nearly published "unobserved".** Dropping the clause left
+all **631 `packages/ledger` tests green** — and I had the finding half-written. The projection *lives* in
+`packages/ledger`; it is *called* from `workers/api/src/do/sequencer.ts`, so nothing in its own package
+exercises it end to end. Run against `workers/api`, the same mutation reddens **six** tests. **Ownership
+follows the consumer, not the directory** — a standing note in this record, violated on the section that
+exists because a pattern was too narrow.
+
+**The guard is well observed, and the observation is incidental.** Five of the six catch it as a side
+effect: (A)/(B)/(C) through the partial UNIQUE index `ux_legs_slot` — a clobbered delivery leg collides on
+the slot — and (F) through the shipment_id pin. **They detect the guard's absence; none of them is about
+it.** The sixth is new here and names the property directly, so its failure message says *"the DELIVERY leg
+must not be claimed by a PICKUP appointment"* rather than *"two streams racing the same slot"*. That is the
+§465 distinction, and it is the whole reason to add a sixth observer to a clause that already had five.
+
+**Three corrections inside one section, which is the record working.** The sweep was too narrow (§525's
+lesson). The re-measurement used the wrong suite (a standing note). And the test I wrote to fix it carried a
+comment asserting *"left all 631 ledger tests AND this file green"* — **false for this file**, written
+before the mutation was run against it, and corrected before commit. The last one is the §524 caption error
+in its most expensive form: a false claim compiled into the repository as documentation.
