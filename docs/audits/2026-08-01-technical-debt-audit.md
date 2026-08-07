@@ -29926,3 +29926,77 @@ say about whether it fails closed.
   `sweep.test.ts`'s companion floor, because pending fixtures are exactly what is absent in this repo.
 - Either numeric budget's spare is spent (tables 22/22, views 12/12) → a one-item probe becomes a valid
   counterexample again, and §561's "add two" note stops applying.
+
+---
+
+## §564 — The catch-fallback sweep: 194 sites, and the one hold that was documented but unenforced
+
+§563 finished the instruments and the budgets. This phase turned to the product code's **failure paths**,
+using the rule [[fail-closed-is-about-the-fallback-value]] states: the guarantee is never in the catch, it is
+in what the catch RETURNS. Every catch in `workers/`, `packages/` and `apps/` was extracted with its fallback
+value — **194 sites**: 54 rethrow, 78 return a fallback, 62 swallow.
+
+### The fallback values, ranked
+
+The three `{}` returns — the exact shape of the earlier `{}` policy defect — were each read, and each is
+genuinely fail-closed:
+
+- `entitlements.ts:41` — `{}` grants nothing, and its sole consumer requires `=== true`. Its sibling gate
+  `proofToCashEnabled` reads **only** `row.plan`, with a comment stating why: *"the SKU is a plan-flag, never
+  grantable via a policy field, so a spoofed policy can never lift it."*
+- `status.ts:38` and `partners.ts:49` — parse-to-empty for a status cache and a partner config; nothing is
+  granted by either.
+
+The one that looked worst — `json(200, { ok: false, configured: false, error: err.message })` in the agents
+worker — is a **diagnostic send probe**, and reading its gates turned it into the phase's best clean negative:
+`ALLOW_TEST_SEND !== "1"` makes the route 404 for everything; the bearer check **fails closed to 500
+misconfigured rather than open** when no token is set; the comparison is constant-time; the recipient is
+operator-controlled and a body supplying `to`/`recipient` is refused outright; `probe_id` is CRLF- and
+length-bounded so a bad client input is a 400 rather than an opaque 500. Five gates, each pinned by its own
+test.
+
+### The finding: a hold with no enforcement
+
+`apps/driver/src/auth/session.ts` has three empty catches. Audit **§182** already recorded that `clear()` is
+**fail-OPEN** — a storage that reads but refuses to write leaves the token behind while the caller believes
+the session was dropped — and accepted it for one stated reason: *both call sites are 401 handlers*, so the
+survivor is stale rather than usable.
+
+That premise was re-verified here and **still holds exactly** — `App.tsx:95` and `sync/useSync.ts:75`, nothing
+else. But **nothing enforced it.** A hold whose safety rests on "there are exactly two call sites, both on a
+rejection path" is a lockstep claim between a comment and the code, and §564 now computes it: a third call
+site fails a test whose message is §182's own trigger.
+
+### Three probes that were not counterexamples
+
+This section cost five mutations to get two working guards, and every failure was the same shape — §531's
+fourth explanation.
+
+| Mutation | Intent | Outcome |
+|---|---|---|
+| **M18** | a third `clear()` call site | **silent** — my annotation *"nowhere near a 401"* contained `401`, the token the guard searched for |
+| **M18a/b** | the same site, bare and prose-annotated | **both RED** after the guard stripped comments |
+| **M19** | verification placed after `removeItem` | **silent** — `removeItem` throws first, so the added line never runs |
+| **M19′** | read-back + overwrite inside the catch | **silent** — see below |
+| **M19″** | an in-memory tombstone | **RED**, as intended |
+
+**M18 is the one to remember: annotating a mutation defeated the check being tested.** A guard on a CODE
+property must not be satisfiable by prose, or the next person writes `// not a 401 path` and merges. Stripping
+comments then exposed a second error — the guard's token list was drawn from the comments, not the code. The
+literal `401` never appears in these paths: the transport maps it to a typed discriminant
+(`res.kind === "unauthenticated"`) and the sync pass exposes `authBlocked`. The guard now matches the code's
+vocabulary and rejects the prose version of the same call site.
+
+### §182's prescribed remedy does not work
+
+M19′ is a finding, not just a failed probe. §182 says that when the trigger fires, *"this catch must verify the
+removal — read back, overwrite, and surface a failure."* **The overwrite is unreachable in the failure mode it
+was written for**: a store that refuses `removeItem` refuses `setItem` too, so the read-back succeeds and the
+overwrite throws straight back into a catch. Of the three prescribed steps only *surface a failure* is
+achievable in place.
+
+What does work is M19″ — an in-memory tombstone, so the session object refuses to hand back a token it was
+told to drop, whatever storage does. It carries its own caveat (a freshly constructed `AuthSession` would read
+the surviving bytes again), which is why it is recorded here rather than shipped: **§182's hold is intact and
+now mechanically enforced**, and changing auth behaviour on audit initiative is not this loop's call. The
+trigger is sharpened, not fired.
