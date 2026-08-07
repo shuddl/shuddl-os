@@ -186,6 +186,13 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 
 ## §4 — Phase gating and the stopping point
 
+> **PHASE CLOSED 2026-08-06 — §496 is the phase gate for §483–§495 (the GATE SURFACE ITSELF, which no prior
+> measurement had audited). Read §496 first: 11 defects closed (3 High, incl. a WRITABLE `INSERT OR REPLACE
+> INTO events` in `tools/` and a test shipping React's DEV bundle into the deployable `dist`), 6 properties
+> verified clean by mutation, 5 reopen triggers, and an exit state of 12/13 gates PASS with 3,007 workspace
+> tests green.** The one failing gate and the only 3 failing tests share one cause: the uncommitted
+> `REQ-289` GTM row, which is an owner decision, not repo debt.
+>
 > **RE-MEASURED 2026-08-06 (§483–§493) — the GATE SURFACE ITSELF, which no prior measurement had audited.**
 > **§493 found the one WRITABLE hole of the phase.** The two gates guarding I3 over TypeScript source
 > disagreed about scope — chokepoint scanned 8 globs, the REPLACE scanner 6, omitting `tools/**` — so
@@ -27056,3 +27063,69 @@ invoked, pinned — arriving on my own work, one section after §492 measured th
 side effect is not the test suite — it is every command that later reads the same path. And a test that
 constructs its own subject should assert WHICH subject it constructed; "the bundle contains no X" is a claim
 about a bundle nobody identified.
+
+## §496 — PHASE GATE: the gate surface itself, closed
+
+**Scope of this phase (§483–§495): the instruments, not the code they measure.** Every prior phase asked
+*do the gates pass?* This one asked **can they fail?** — and of the mechanisms that certify this build,
+eleven could not, or could not for the reason they claimed.
+
+### What was found and closed
+
+| # | defect | severity | closed by |
+|---|---|---|---|
+| 1 | `check:invariants` reported `OK — 0/22 tables, 0 migration files` from any non-root cwd, certifying CLAUDE.md rule 2, the table budget and I1–I8 against an empty set | **High** | §487 — floor + rooting, 196th test, mutation-proved |
+| 2 | **`INSERT OR REPLACE INTO events` was writable in `tools/`** — two I3 gates disagreed about scope; an allowlisted writer passed all three checks | **High** | §493 — shared corpus module, 8 parity tests |
+| 3 | A test built React's **development** bundle into `apps/driver/dist`, the directory `deploy` uploads | **High** | §495 — forced `NODE_ENV`, isolated outDir, measured discriminator |
+| 4 | `check:tables` reported `OK (0 markdown files)` — the record's own guard, certifying nothing | Medium | §484 — rooted at toplevel + floor, 9 tests |
+| 5 | `check:citations` reported `OK — 0 citations`, saved only by an unhandled ENOENT | Medium | §487 — rooting + floor, 3 tests |
+| 6 | `identity-leak` scanned only the caller's subtree — REQ-167's *"any repo artifact"* was cwd-dependent | Medium | §489 |
+| 7 | "100% register coverage, zero unaccounted" passed over an **empty register**, in both test and gate | Medium | §490 — floors at 200/289, mutation-proved |
+| 8 | `bundle-ratchet` wired as a bare CI step, outside the envelope every other gate reports through | Low | §483 |
+| 9 | Three gates protected only incidentally, by unhandled ENOENT | Low | §489 — rooted, so the safety is by design |
+| 10 | `bundle-ratchet` shipped with no test — the only tool in `tools/checks/` without one | Low | §483 — 9 tests, 2 mutations |
+| 11 | The unit test duplicated the gate's ceiling assertion over an artifact no test produced | Low | §488 |
+
+### What was verified clean, and is worth as much
+
+- **All nine server-side gated kinds** mutation-measured against the full 782-case api suite: every one is
+  observed by at least one test (§492). The single zero has a documented mechanism (§491).
+- **C-1 cannot silently return**: all three positions-bypass checks reddened when neutered (§494).
+- **The REPLACE evasion** documented in the parity skill is fixed *and structurally cannot recur* — the two
+  matchers are built from one shared builder (§494).
+- **Three mechanisms guard `GUARDED_TABLES` and agree**, including the BEFORE INSERT guard D1 requires (§494).
+- **The test corpus does not carry the gate corpus's defect** — one real instance, the rest already guarded,
+  two files carrying the strongest shapes (§490).
+- The exhaustiveness law on `GATED_KINDS` holds in **both** directions (§491).
+
+### Exit state, measured at this commit
+
+- **12 of 13 gates PASS** · `typecheck` PASS · `lint` PASS.
+- **3,007 workspace tests, zero failures**; `tools/` **854 passing**.
+- The **one** failing gate (`check:coverage`) and the **only 3** failing tests share a single cause: the
+  uncommitted `REQ-289` GTM register row, re-isolated by removing it (27/27 green, gate exit 0). It belongs
+  to a separate workstream and is an owner decision, not repo debt.
+
+### Reopen triggers
+
+1. **A new gate is added** → it must be invoked via `run-gate.ts` (not a bare CI step), floored against
+   empty input, and pinned. Three edits, and they fail in that order of visibility (§483).
+2. **A gate is run from a subdirectory and reports OK** → the §487 class has returned; `repoRoot()` exists so
+   there is one correct answer.
+3. **A second enforcement surface is added for an existing law** → compare its scope to the first, or plant a
+   violation per cell. Both gates being green proves nothing (§493).
+4. **Any of the three single-observer gates' tests is edited** (`stop.departed`, `custody.transferred`,
+   `exception.raised`) → re-run the §492 table.
+5. **A test invokes a build** → it must not write where a deploy reads (§495).
+
+### What this phase deliberately did NOT do
+
+No redundant tests were added to the three single-observer gates (§486: the absence of a test is a prompt,
+not a finding). No pre-commit hook was added (§485: not a register row; CI's `verify:merge` is the guard).
+The `REQ-289` row was not touched. **Nine mechanical classifiers over-reported and were corrected by
+reading**; two of my own "findings" dissolved on inspection (§491's subsumption, §494's fixed evasion) and
+are recorded as negatives rather than quietly dropped.
+
+**The phase's one sentence:** every gate has an input, and *a gate that cannot fail for lack of input is
+indistinguishable from a gate that passes* — which stayed true of eleven instruments in a build whose gates
+were green on every commit throughout.
