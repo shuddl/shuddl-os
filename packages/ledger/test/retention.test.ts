@@ -267,3 +267,56 @@ describe("retention sweep ordering — bytes first, tombstone second (audit §95
     expect(await retentionStatus(A, "ret-order-1")).toBe("expired");
   });
 });
+
+// REQ-015/025 §580 — ONE FAILING ROW ABORTS THE PASS. Pinned as CURRENT behaviour, not endorsed as correct.
+//
+// §579 found a guard whose discriminating input was a multi-item queue, untested because every case used one
+// item. Sweeping the codebase for that shape reached this loop: `sweepTenantExpiredDocuments` iterates rows
+// and does `await r2.delete(...)` with NO per-row try — so a row that fails deterministically strands every
+// row behind it, on every tick, forever.
+//
+// The §95 ordering test above covers ONE document and `.catch()`es the throw, which is why the multi-row
+// consequence was invisible: with a single row there is nothing behind it to strand.
+//
+// TWO DEFENSIBLE DESIGNS, and this test does not pick one:
+//   • FAIL-FAST (today): the sweep throws, the scheduled run errors, and an operator sees it. A systemic R2
+//     fault surfaces immediately instead of being counted and swallowed.
+//   • FAIL-SOFT: per-row try/catch with a `skipped_error` counter, as `mirror-sweep.ts` does ("LAW: retain,
+//     never drop"). Later rows make progress; the failure becomes a number someone must notice.
+//
+// The direction is safe either way — evidence is RETAINED too long, never deleted wrongly — so this is not a
+// defect to fix on audit initiative. It is a design choice that was never written down, and pinning it means
+// a future change to fail-soft is DELIBERATE rather than accidental.
+describe("REQ-015 §580: a failing row and the rows behind it", () => {
+  it("a deterministic failure on the FIRST expired row leaves the SECOND unprocessed (fail-fast, by design)", async () => {
+    const keyA = await seedDoc({
+      db: A, tenant: "tenant-a", id: "ret-strand-1", kind: "photo", shipment: "ret-shp-strand",
+      hash: "e".repeat(64), lifecycleClass: RETENTION_CLASS_DEFAULT, createdTs: NOW - 2 * YEAR_MS,
+    });
+    const keyB = await seedDoc({
+      db: A, tenant: "tenant-a", id: "ret-strand-2", kind: "photo", shipment: "ret-shp-strand",
+      hash: "f".repeat(64), lifecycleClass: RETENTION_CLASS_DEFAULT, createdTs: NOW - 2 * YEAR_MS,
+    });
+
+    // Fail the FIRST delete only. Everything else is real.
+    const realDelete = R2.delete.bind(R2);
+    const patched = Object.create(R2) as R2Bucket;
+    (patched as unknown as { delete: typeof realDelete }).delete = (async (k: string) => {
+      if (k === keyA) throw new Error("simulated persistent R2 fault");
+      return realDelete(k as never);
+    }) as typeof realDelete;
+
+    await expect(
+      sweepTenantExpiredDocuments(A, patched, "tenant-a", NOW),
+      "the sweep propagates the fault rather than counting it",
+    ).rejects.toThrow(/simulated persistent R2 fault/);
+
+    // THE POINT: the second row never got its turn. Both are still active, and B's bytes are still present.
+    expect(await retentionStatus(A, "ret-strand-2"), "row behind the fault is untouched").toBe("active");
+    expect(await R2.head(keyB), "and its bytes are still stored").not.toBeNull();
+
+    // Once the fault clears, the next tick drains BOTH — the stall is a stall, never a loss.
+    const res = await sweepTenantExpiredDocuments(A, R2, "tenant-a", NOW);
+    expect(res.deleted).toBe(2);
+  });
+});

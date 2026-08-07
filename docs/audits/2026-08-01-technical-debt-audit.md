@@ -220,6 +220,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 25 | — | **§577** | MASKING DOESN'T GENERALIZE — the sequencer's 11 guards: 10 reasons unnamed by any test, but 5 of 5 mutated are WATCHED. Masking needs ordered checks over a SHARED dimension; a wrong-suite "silent" verdict caught before it was recorded |
 | 26 | — | **§578** | §577'S RULE AS A SEARCH — the fields with the most readers (`visibility` ×3, `source` ×2) all independently watched; 4 mutations, 4 caught, 0 gaps. One attribution weakness recorded rather than churned |
 | 27 | — | **§579** | THE OFFLINE SYNC — a prior iteration's anti-stranding fix had ZERO tests; `continue`→`break` left 39+68 tests green. Invisible online, strands evidence in airplane mode. Two tests, M48 now RED |
+| 28 | — | **§580** | SWEEPING FOR §579'S SHAPE — 5 loop-breaks in the whole codebase, all correct; but the retention sweep's partial-failure behaviour was an UNWRITTEN design choice (fail-fast vs fail-soft), now pinned by test rather than changed |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -31127,7 +31128,88 @@ unwatched.**
 
 - The drain loop gains an early `return`/`break` for any new state → re-run M48; the two tests above cover the
   backoff branch specifically, not every future short-circuit.
-- `OPERATOR_REPROBE_MS` parking is refactored → the park path has its own test (*"a parked item RE-PROBES
-  after its window"*), but the **interaction** — a parked item followed by a ready one — is still unbuilt.
+- `OPERATOR_REPROBE_MS` parking is refactored → **corrected at §580**: an operator-parked item always gets a
+  future `nextAttemptAt`, so it takes the **same** skip branch as a backing-off one and the two tests above
+  cover its stranding too. The trigger as first written ("the interaction is unbuilt") was over-cautious. What
+  a refactor WOULD break is the `parked` COUNT across a multi-item pass, which is a reporting property, not a
+  stranding one.
 - Any new queue state that sets `nextAttemptAt` → it inherits this branch, and inheriting a guard is not
   inheriting its test.
+
+---
+
+## §580 — PHASE GATE: sweeping the codebase for §579's shape, and one undocumented design choice
+
+### The search
+
+§579's defect was **a guard whose discriminating input is expensive to construct** — one item *behind*
+another. §559's rule says at instance #2 stop fixing and start counting, so this phase mechanized the
+closest proxy: **loops with an early exit**, since that is where "one bad item aborts the rest" lives.
+
+The first count was wrong and worth recording. Grepping `break;` returned five files, but most hits were
+`switch`-case breaks — a different construct entirely. Separating them by their nearest enclosing construct
+gives the real number:
+
+**Five bare `break;` statements inside loops in the entire product codebase.**
+
+| Site | Verdict |
+|---|---|
+| `sync.ts` | §579's per-item advance chain — correct (stop at the first wait/block/sync **for that item**) |
+| `envelope.ts` | find the 16th EDI separator, then stop — **find-first** |
+| `der.ts` | first INTEGER after genTime is the nonce — **find-first** |
+| `map-204.ts` | first matching stable-ref qualifier wins — **find-first** |
+| `migrate.ts` | character-level SQL string scanner — **parser**, not an item loop |
+
+Zero remaining instances of the shape. The two big sweeps — `mirror-sweep` and `retention` — use `continue`
+throughout, with `mirror-sweep` stating the reason directly: *"LAW: retain, never drop."*
+
+### What the sharper form of the question found
+
+The mechanized proxy was the cheap version. The real generalization is **partial failure**: does a sweep
+survive one bad item? `sweepTenantExpiredDocuments` iterates rows and calls `await r2.delete(...)` with **no
+per-row try**, so a row failing deterministically strands every row behind it, on every tick, forever.
+
+The §95 ordering test covers **one** document and `.catch()`es the throw — which is exactly why the multi-row
+consequence was invisible. With a single row there is nothing behind it to strand. **§579's shape, at a
+second site, found by looking for it.**
+
+### Why this is pinned and not fixed
+
+Two designs are defensible and the code never said which it chose:
+
+- **fail-fast** (today): the sweep throws, the scheduled run errors, an operator sees it. A systemic R2 fault
+  surfaces immediately instead of being counted and swallowed.
+- **fail-soft**: per-row `try`/`catch` with a `skipped_error` counter, as `mirror-sweep.ts` does. Later rows
+  progress; the failure becomes a number someone must notice.
+
+The direction is safe either way — evidence is **retained too long, never deleted wrongly** — so this is not
+a defect to fix on audit initiative. It is an unwritten design choice, and the test pins it so a future move
+to fail-soft is **deliberate rather than accidental**. **M49** switched the sweep to fail-soft and the new
+test goes red, which is the proof that the pin holds a design rather than describing one.
+
+The test also asserts the recovery: once the fault clears, the next tick drains **both** rows. **The stall is
+a stall, never a loss** — the property that makes fail-fast tolerable.
+
+### A correction to my own §579
+
+§579's reopen triggers claimed the parked-item interaction was "still unbuilt". Reading the loop shows an
+operator-parked item always receives a future `nextAttemptAt` and therefore takes the **same** skip branch as
+a backing-off one — so §579's two tests already cover its stranding. The trigger was over-cautious and is
+corrected in place. What a refactor would actually break is the `parked` **count** across a multi-item pass,
+which is a reporting property, not a stranding one.
+
+### Exit state
+
+- `packages/ledger` — **13 retention tests green** (+1); full package 634 green.
+- `typecheck` green; `retention.ts` reverted byte-identical.
+- Forty-nine mutations across fifteen phases: **42 RED as predicted, 6 silent-and-explained, 2 real gaps
+  (§576, §579) closed, 1 design choice pinned (§580).**
+
+### Reopen triggers
+
+- Any sweep gains a per-row `try`/`catch` → that is the fail-soft move; it needs a `skipped_error` counter in
+  the result **and** a log line, or the failure becomes invisible, which is the thing fail-fast was buying.
+- A new sweep is written → it inherits neither design by default. `mirror-sweep` (soft) and `retention` (fast)
+  now disagree deliberately; a third should state which it is.
+- `r2.delete` becomes batched → the per-row failure boundary moves, and this test's construction (fail one
+  key) stops being the discriminating input.
