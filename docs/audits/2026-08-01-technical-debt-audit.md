@@ -28196,6 +28196,7 @@ is pinned and mutation-proved; every clean negative is recorded with the command
 | Sender-domain verification + warmup · Cloudflare OIDC | provisioning, named owners |
 | Per-IP edge rate limits (REQ-193/125) | infrastructure — and **not exposed today** (§514) |
 | The FILMED half of the five demos | owner; the code half is green (§520) |
+| CI `permissions:` block — least privilege on `GITHUB_TOKEN` (§523) | CI owner; two-line change, one-run proof, exposure bounded today |
 | "A fifth primitive" — the set of four is defined nowhere | register amendment (§516) |
 
 **The honest summary.** Everything this repository can assert about itself, it now asserts with a measurement
