@@ -221,6 +221,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 26 | — | **§578** | §577'S RULE AS A SEARCH — the fields with the most readers (`visibility` ×3, `source` ×2) all independently watched; 4 mutations, 4 caught, 0 gaps. One attribution weakness recorded rather than churned |
 | 27 | — | **§579** | THE OFFLINE SYNC — a prior iteration's anti-stranding fix had ZERO tests; `continue`→`break` left 39+68 tests green. Invisible online, strands evidence in airplane mode. Two tests, M48 now RED |
 | 28 | — | **§580** | SWEEPING FOR §579'S SHAPE — 5 loop-breaks in the whole codebase, all correct; but the retention sweep's partial-failure behaviour was an UNWRITTEN design choice (fail-fast vs fail-soft), now pinned by test rather than changed |
+| 29 | — | **§581** | THE SWEEP FAILURE MODEL — 18 entry points, TWO levels; §580 asked only the inner one. Across tenants it is uniformly fail-soft in all 3 workers (M50–M52 all RED), which is what makes the mixed inner designs safe |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -31213,3 +31214,78 @@ which is a reporting property, not a stranding one.
   now disagree deliberately; a third should state which it is.
 - `r2.delete` becomes batched → the per-row failure boundary moves, and this test's construction (fail one
   key) stops being the discriminating input.
+
+---
+
+## §581 — PHASE GATE: the sweep failure model, both levels, all three workers
+
+### Closing the trigger §580 set
+
+§580 ended with: *"mirror-sweep (soft) and retention (fast) now disagree deliberately; a third should state
+which it is."* There are not three sweeps — there are **eighteen** entry points across four workers. This
+phase enumerated them and found the question has **two levels**, which is why the single-level framing in
+§580 was incomplete.
+
+| Level | Question | Consequence of a failure |
+|---|---|---|
+| **Orchestrator** (`runXSweep`) | does one bad **tenant** block the others? | cross-tenant — nobody else gets swept |
+| **Per-tenant** (`sweepTenantX`) | does one bad **row** block the rest? | intra-tenant — bounded to one workspace |
+
+**The orchestrator level is the one that matters**, and §580 did not ask it.
+
+### Every orchestrator isolates per tenant — proved, not read
+
+All eight tenant-iterating orchestrators wrap each tenant in `try`/`catch` and log-and-continue:
+`runSlaSweep`, `runReconSweep`, `runCreditReconSweep`, `runCollectorSweep`, `runRetentionSweep`,
+`runMirrorSweep` (agents), `runMeteringSweep` (billing), `run214Sweep` (translator). The MCP webhook sweep
+isolates per **event**, the same shape one level down.
+
+Existence is not coverage (§579's whole lesson), so each was mutated:
+
+| Mutation | Worker | Result |
+|---|---|---|
+| **M50** rethrow from `runRetentionSweep`'s catch | agents | RED — *"REQ-278: every agents sweep contains a per-tenant failure (audit §409) → runRetentionSweep RESOLVES when one tenant throws"* |
+| **M51** rethrow from `runMeteringSweep`'s catch | billing | RED |
+| **M52** rethrow from `run214Sweep`'s catch | translator | RED |
+
+A **prior audit (§409) already found and closed this class** for the agents worker, with a test that asserts
+it for *every* sweep there — and it still holds at HEAD. Billing and translator carry their own equivalents
+(`claimed-tenants.test.ts`, `transport-dormancy.test.ts`). Three workers, three independent containment
+tests, all live.
+
+### The complete failure model
+
+Putting §580 and §581 together, the system's answer is coherent and now written down:
+
+- **Across tenants: always fail-soft.** One tenant's fault is logged and the loop continues. Universal,
+  tested in all three workers.
+- **Within a tenant: deliberately mixed.** `mirror-sweep` is fail-soft (*"LAW: retain, never drop"*);
+  `retention` is fail-fast, so a systemic R2 fault surfaces rather than being counted and swallowed — and
+  §580 pinned that choice so a future change is deliberate.
+
+That mix is defensible precisely **because** the outer level is uniformly soft: a fail-fast inner sweep can
+only ever stall **one** tenant's rows for **one** tick, and the orchestrator's catch guarantees every other
+tenant still runs. The two levels were designed against each other, and neither is safe to change without
+the other in view.
+
+### Result
+
+**Three mutations, three caught, zero gaps.** The trigger §580 raised is closed — not by writing a third
+design, but by finding that the level which actually governs blast radius was already uniform and already
+proved.
+
+### Exit state
+
+- `workers/agents` 122 green · `workers/billing` 58 green · `workers/translator` 116 green — all restored
+  byte-identical after M50–M52.
+- Fifty-two mutations across sixteen phases: **45 RED as predicted, 6 silent-and-explained, 2 real gaps
+  closed, 1 design pinned.**
+
+### Reopen triggers
+
+- A new `runXSweep` is added → it needs the per-tenant `try`/`catch` **and** a containment test in its
+  worker's suite. The agents test asserts this for *every* sweep in that worker; billing and translator test
+  theirs individually, so a second sweep in either inherits nothing.
+- An orchestrator's catch starts rethrowing conditionally (e.g. only for auth faults) → that is a real design
+  change; the three mutations above are the probes that settle whether it is intended.
+- A sweep is moved between workers → it leaves its containment test behind.
