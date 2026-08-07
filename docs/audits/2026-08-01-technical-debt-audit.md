@@ -27233,7 +27233,7 @@ res.status >= 500` retry tests in four agents. Duplicated *phrasing* of a langua
 **Quote-line projection — guarded by a schema, so the copies cannot drift meaningfully.**
 `quote.lines.map((l) => ({ kind, code, amount_cents }))` appears four times across `concierge/compose.ts`,
 `pub/quote.ts` and `routes/rate.ts` (twice) — the money shape, on the path where a customer's quote becomes
-a stored event becomes an invoice. Verified rather than assumed: `packages/contracts/src/events.ts:115`
+a stored event becomes an invoice. Verified rather than assumed: `packages/contracts/src/events.ts:115@reduce`
 refines `p.lines.reduce((sum, l) => sum + l.amount_cents, 0) === p.sell`, and each line's `amount_cents` is
 `Cents.refine((c) => c >= 1)`. A projection that dropped or altered a line **fails validation at the
 boundary**. §491's subsumption, in the money path: the schema is the authority and the duplication is
@@ -27264,6 +27264,13 @@ structure the register did not ask for (CLAUDE.md: *if it isn't a REQ row, it do
 copies are six lines with an explicit REQ citation above each. **Reopen trigger:** if `transitLine` changes
 in either app, change both — or file the row that authorises a shared home. Recording the bound is the
 honest option; silently restructuring two surfaces to satisfy a tidiness preference is not.
+
+**The citation ratchet caught me making the same mistake twice in two sections.** §498 ended by anchoring a
+citation into `sequencer.ts` after the ratchet refused an unanchored one; §499 then wrote an unanchored
+citation into `contracts/src/events.ts` — also a ratcheted target — and the gate refused it again. The
+lesson had been *written down* and not turned into a habit. The habit is: **before citing a high-churn file,
+anchor it** (`path:line@symbol`), which is also the form that survives the line moving. The ratcheted
+targets are enumerated in `tools/checks/citation-ratchet.json`; there is no need to guess.
 
 **A mutation that never landed nearly counted as evidence.** The first attempt at the honesty mutation was a
 `perl -0pi -e` whose `${...}` interpolation was a Perl syntax error; the suite then ran against *unmutated*
