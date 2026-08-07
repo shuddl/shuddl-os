@@ -26366,3 +26366,31 @@ gzip is what a driver on a bad connection actually waits for — the number the 
 the build is precisely the shape §466 found in `check:chokepoint`, and it was not going to be repeated here.
 
 `check:bundles` clean at **command 382 kB · driver 94 kB · portal 377 kB**; `typecheck`, `lint` clean.
+
+## §482 — the gate added in §481 was not invoked by anything
+
+§481 built `check:bundles` and proved it fires in both directions. It was wired into **nothing** — not
+`verify:dev`, not CI. **A gate nobody runs is a comment with an exit code**, and this audit has spent §454,
+§462 and §466 on guards that were subtly not doing their job; shipping one that was entirely not doing its
+job would have been the same defect in its purest form.
+
+**Wired into CI immediately after the build**, because it reads `apps/*/dist` and there is exactly one place
+in the pipeline where those exist. Placed BEFORE the acceptance step so a silent bundle regression is
+reported next to the build that produced it, rather than after a longer job that would bury it.
+
+**Deliberately NOT added to `verify:dev`.** That script does not build, so the gate would fail there with
+*"no built bundle found"* on every local run — a gate that cries wolf in the dev loop is a gate people learn
+to skip, and §467 already recorded that `check:identity` gets this right by SKIPPING where its input
+legitimately does not exist. The alternative — prepending a full workspace build to `verify:dev` — trades a
+fast inner loop for a check that CI already performs. **A gate belongs where its input exists, not where its
+subject matters.**
+
+**Validated structurally, not by eye.** A YAML edit is exactly the change that looks right and breaks a
+pipeline nobody runs locally: 15 steps parsed, every `- name:` confirmed to carry a `run:` or `uses:` sibling
+at the correct indent, no tabs. The gate re-run on the built tree still reports
+**command 382 kB · driver 94 kB · portal 377 kB**.
+
+**The general form, and it is the phase's shortest lesson:** *adding a check is two edits.* The first makes
+it correct; the second makes it run. §481 did the first and stopped, and the only reason that was caught is
+that the very next question after "does it work?" is "what invokes it?" — a question this phase learned to
+ask from §454, where the answer for the authority tripwire was, correctly, `check:invariants`.
