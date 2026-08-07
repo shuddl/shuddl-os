@@ -186,7 +186,7 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 
 ## §4 — Phase gating and the stopping point
 
-> **RE-MEASURED 2026-08-06 (§483–§489) — the GATE SURFACE ITSELF, which no prior measurement had audited.**
+> **RE-MEASURED 2026-08-06 (§483–§490) — the GATE SURFACE ITSELF, which no prior measurement had audited.**
 > **Final tally: seven gates carried one convention defect.** Every prior re-measurement asked *do the gates
 > pass?*; this phase asked *can they fail?* Four could not, or not fully: `check:tables` and
 > `check:invariants` reported OK having read ZERO files — the latter certifying CLAUDE.md rule 2
@@ -198,6 +198,15 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 > shared `repoRoot()` helper (§489), each pinned and mutation-proved. **The defect was in the convention,
 > not in any gate** — `process.cwd()` is the Node default everywhere and silently makes a scan's scope a
 > function of where you stand.
+>
+> **§490 carried the same lens into the TEST corpus, and found it on the headline number.** *"1) classifies
+> every row of the real register → 100%, zero unaccounted"* stayed GREEN when its register was replaced with
+> an empty array, and `check:coverage` would print `coverage: 100% — all 0 register rows accounted for` and
+> exit 0. Both floored at 200 against a live 289 and mutation-proved. The rest of the test corpus came back
+> CLEAN — `test-collection.test.ts` already carried a dedicated non-vacuity `it()` naming the cwd failure
+> mode, and `authority-coverage` is pinned by exact count and set-equality in a test titled *"a shrink is a
+> red flag"*. **A percentage computed over a discovered set is a claim about the set as much as the ratio,
+> and the denominator is the half nobody checks.**
 >
 > **The detail, as first written when only one instance was known.** `check:tables`, run from any directory but the repo root, printed **"OK (0 markdown files,
 > every table row matches its header)" and exited 0**: the gate guarding the record against over-wide rows
