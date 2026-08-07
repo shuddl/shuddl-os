@@ -2,6 +2,7 @@ import { execSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { contrastRatio } from "./contrast.js";
 import { bannedMotion } from "./motion.js";
+import { repoRoot } from "../checks/repo-root.js";
 
 // Squint-test CI, operationalized (doc 07 §06): color / contrast / radius / shadow /
 // gradient / font / motion audits. Screenshot diffing (audit #6) lands at WP-03 with real
@@ -300,7 +301,7 @@ export function scannedFiles(): string[] {
     "apps/**/*.css", "apps/**/*.tsx", "apps/**/*.ts", "apps/**/*.jsx", "apps/**/*.mjs", "apps/**/*.html", "apps/**/*-style.json",
     "packages/**/*.css", "packages/**/*.tsx", "packages/**/*.ts", "packages/**/*.jsx", "packages/**/*.mjs", "packages/**/*.html", "packages/**/*-style.json",
   ];
-  return execSync(`git ls-files ${patterns.map((p) => `"${p}"`).join(" ")}`, { encoding: "utf8" })
+  return execSync(`git ls-files ${patterns.map((p) => `"${p}"`).join(" ")}`, { cwd: repoRoot(), encoding: "utf8" })
     .split("\n")
     .filter(Boolean)
     .filter((f) => !f.includes("node_modules/") && !f.includes("/dist/"));
@@ -309,10 +310,11 @@ export function scannedFiles(): string[] {
 // Repo-wide audits per doc 07 §06 (REQ-145/146/147/148).
 export function auditRepo(): string[] {
   const violations: string[] = [];
+  const root = repoRoot();
   const files = scannedFiles();
-  const allowedHex = new Set(Object.values(readTokens("packages/design/tokens.css")));
+  const allowedHex = new Set(Object.values(readTokens(`${repoRoot()}/packages/design/tokens.css`)));
   for (const f of files) {
-    const text = readFileSync(f, "utf8");
+    const text = readFileSync(`${root}/${f}`, "utf8");
     // The token SOURCE is where the raw hexes and font stacks legitimately live; everything
     // else must use var()/TOKENS. Skip only its color+font checks — chrome checks still apply.
     if (!isTokenSource(f)) {
@@ -327,10 +329,22 @@ export function auditRepo(): string[] {
 }
 
 function main(): void {
-  const { mode } = JSON.parse(readFileSync("tools/design/design-ci.json", "utf8")) as Mode;
-  const tokenResult = auditTokens("packages/design/tokens.css");
+  const root = repoRoot();
+  const { mode } = JSON.parse(readFileSync(`${root}/tools/design/design-ci.json`, "utf8")) as Mode;
+  const tokenResult = auditTokens(`${root}/packages/design/tokens.css`);
+
+  // NON-VACUITY (§487/§490/§554): every check below is a per-file scan, so an empty corpus produces zero
+  // violations and prints "clean". This gate is BLOCKING (CLAUDE.md rule 7) and the pixel budgets — 5 colors,
+  // 2 fonts, 0 shadows — have no other enforcer, so "clean" must never be reachable by reading nothing.
+  const corpus = scannedFiles();
+  if (corpus.length < 50) {
+    console.error(`FAIL design audit — scanned ${corpus.length} file(s) under ${root}; the surfaces are hundreds.`);
+    console.error("A per-file audit that reads nothing reports clean. Fix the scan, do not lower this floor.");
+    process.exit(1);
+  }
+
   const violations = [...tokenResult.violations, ...auditRepo()];
-  writeFileSync("tools/design/report.json", JSON.stringify({ mode, violations }, null, 2));
+  writeFileSync(`${root}/tools/design/report.json`, JSON.stringify({ mode, violations }, null, 2));
   if (violations.length > 0) {
     console.error(`design audit: ${violations.length} violation(s) [mode=${mode}]`);
     for (const v of violations) console.error(`  ${v}`);

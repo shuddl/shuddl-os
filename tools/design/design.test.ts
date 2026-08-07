@@ -1,7 +1,9 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { execFileSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
+import { repoRoot } from "../checks/repo-root.js";
 import { contrastRatio } from "./contrast.js";
 import {
   auditTokens,
@@ -15,7 +17,7 @@ import {
   scannedFiles,
 } from "./audit.js";
 
-const ALLOWED_HEX = new Set(Object.values(readTokens("packages/design/tokens.css")));
+const ALLOWED_HEX = new Set(Object.values(readTokens(`${repoRoot()}/packages/design/tokens.css`)));
 
 describe("contrast math (WCAG 2.x)", () => {
   it("black on white = 21:1", () => expect(contrastRatio("#000000", "#FFFFFF")).toBeCloseTo(21, 0));
@@ -387,5 +389,38 @@ describe("REQ-146: the 2-font-family budget is enforced in the token source", ()
     // Proves the rule is not merely always-red, and does not over-reach onto legitimate color work: the
     // three rgba alphas already in the file are instances of ONE sanctioned transparent, not new families.
     expect(fontViolations(REAL.replace(":root {", ":root {\n  --signal-99: rgba(255, 74, 51, 0.99);"))).toEqual([]);
+  });
+});
+
+// REQ-118/145–148 §554 — THE DESIGN AUDIT CANNOT CERTIFY AN EMPTY CORPUS.
+//
+// Every check in `auditRepo()` is a per-file scan, so zero files produces zero violations and prints
+// "design audit: clean". That matters more here than in the three gates §487 caught with the same shape:
+// this gate is BLOCKING (CLAUDE.md rule 7) and it is the ONLY enforcer of the pixel budgets — 5 color
+// tokens, 2 font families, 0 shadows/gradients/radius>4px. MEASURED, not reasoned: neutralising the globs
+// with the floor removed printed `design audit: clean` and exited 0 over a corpus of zero files.
+//
+// It was also CWD-dependent in five places (the corpus scan, the token read, the config read, the per-file
+// reads, and the report WRITE). Off-root it happened to crash on the config read — protection by accident,
+// which §489 rejects: a graceful default for a missing config would have converted the crash into a clean.
+describe("REQ-118 §554: the design audit reads a real corpus, from any directory", () => {
+  it("the live corpus is hundreds of files, not a handful", () => {
+    const files = scannedFiles();
+    expect(files.length, "the design corpus collapsed — fix the scan, do not lower the floor").toBeGreaterThan(50);
+    // Both surfaces must be present: a glob that silently drops one half still clears a bare count.
+    expect(files.some((f) => f.startsWith("apps/")), "no apps/ files scanned").toBe(true);
+    expect(files.some((f) => f.startsWith("packages/")), "no packages/ files scanned").toBe(true);
+  });
+
+  it("runs identically from a subdirectory (every path root-anchored)", () => {
+    const root = repoRoot();
+    // The gate runs from the repo root in CI, so a cwd bug is invisible there and shows up the first time
+    // someone runs it from a package. Spawning it is the only check that covers ALL five paths at once.
+    const out = execFileSync(
+      "node",
+      ["--import", "tsx", `${root}/tools/design/audit.ts`],
+      { cwd: `${root}/tools/checks`, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+    );
+    expect(out, "off-root run must produce the same verdict as the root run").toContain("design audit: clean");
   });
 });

@@ -29293,3 +29293,69 @@ in advance: *a probe that is not a counterexample proves nothing about the instr
 
 Unchanged from §544's profile run, re-verified against the doc gates, `typecheck` and `lint` at every commit
 since: **19 PASS · 5 BLOCKED · 2 FAIL** — both FAILs the uncommitted `REQ-289` GTM register row.
+
+---
+
+## §554 — `design-audit`: the blocking pixel gate could certify an empty corpus (HIGH, fixed)
+
+`design-audit` was the last substantive unexamined gate in the merge profile, and the most consequential one
+to leave unmeasured: CLAUDE.md rule 7 makes it **blocking**, and it is the **only** enforcer of the pixel
+budgets — 5 color tokens, 2 font families, 0 shadows/gradients/radius>4px. §506 confirmed the gate *exists*.
+Nothing had asked whether it can fail.
+
+§252 already proved its **detector** works, by planting a shadow, an over-budget radius and a raw hex. That
+answers "does it recognise a violation." It does not answer "does it ever look at a file" — the §484/§487
+class, which this session found in three other gates and which §527 states as: *a green is a claim about the
+instrument until something proves the instrument can fail.*
+
+### What was measured
+
+Every check in `auditRepo()` is a per-file scan, so an empty corpus yields zero violations and prints
+`design audit: clean`. **Measured, not reasoned** — with the corpus globs neutralised and no floor present:
+
+```
+design audit: clean          exit 0        # over a corpus of ZERO files
+```
+
+The gate that owns the pixel law would have certified it having read nothing.
+
+Compounding it, **five paths were CWD-relative**: the corpus scan (`git ls-files` with no `cwd`), the token
+read, the config read, the per-file reads, and the report **write** — which off-root would have deposited
+`tools/design/report.json` wherever it was invoked. Run from `tools/checks/`, the gate crashed with `ENOENT`
+on the config read. That crash is protection **by accident**, the state §489 rejects: a graceful default for
+a missing config — an ordinary, well-intentioned edit — converts a crash into a clean.
+
+The second path was found only because the first fix did not silence the failure. `auditTokens` at line 333
+had its own literal, and the report write a third; patching the one the traceback named would have left two.
+That is [[enumerate-callers-dont-generalize-the-fix]] in its cheapest form: **grep the literal shape, not the
+symbol** — `"(packages|apps|tools)/` found all three in one pass.
+
+### The fix, and the proof it holds
+
+All five paths root through `repoRoot()`; a floor rejects a corpus under 50 files (live: **343**). Both
+guards are pinned in `tools/design/design.test.ts` and both were mutation-proved, one of them chosen to
+discriminate:
+
+| Mutation | Predicted | Result |
+|---|---|---|
+| **M1** globs neutralised, floor present | gate FAILs | `FAIL design audit — scanned 0 file(s)`, exit **1** |
+| **M2** globs neutralised, floor removed | `clean`, exit 0 | **`design audit: clean`, exit 0** — the defect, demonstrated |
+| **M3** globs neutralised | corpus test RED | `× the live corpus is hundreds of files` |
+| **M4** config read un-rooted | **only** the rooting test RED | `× runs identically from a subdirectory` — 1 failed, 56 passed |
+
+M4 is the one that matters. A mutation that reddens everything proves only that the suite noticed *something*
+([[attribute-the-red-before-crediting-it]]); one that reddens **exactly** the test written for it proves the
+test's subject is the thing it names. The corpus floor and the rooting property are independently watched.
+
+The corpus test also asserts both `apps/` and `packages/` are represented, because a glob that silently drops
+one surface still clears a bare count — the same reason §493's floor names its trees rather than summing them.
+
+### What this closes
+
+Four gates this session could report clean over an empty input: `check:tables`, `check:citations`,
+`check:invariants` (§487), and now `design-audit`. All four now floor their corpus. The pattern is not a
+coincidence of authorship — **a per-file scanner's failure mode is silence**, and silence is indistinguishable
+from success unless someone writes down what "enough input" means. Any future gate that iterates a file list
+needs the floor in the same commit as the loop.
+
+`runtime` and `lint` remain the only merge-profile gates not yet examined this way.
