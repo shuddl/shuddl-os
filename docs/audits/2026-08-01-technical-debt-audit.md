@@ -26753,6 +26753,13 @@ verdict from `tools/checks/` as from the root — `coverage` exit 1 *"unaccounte
 file) consults accounted"*. Suite: **846 passing, up from 842** (the four tests added this phase), with the
 same 3 failures as at session start, re-isolated to the `REQ-289` row by removing it (27/27 green).
 
+**A seventh, found by asking which files still call `git` directly.** `identity-leak.ts` ran a bare
+`git ls-files` with no `cwd` — so REQ-167's *"no tenant/person/customer/incumbent-vendor name in **any** repo
+artifact"* had a definition of "any" that depended on where the process started. It is masked today for a
+reason worth stating: the denylist is a secret, the lint SKIPS without it, and **the scope defect would have
+arrived with the secret** — i.e. exactly when the gate began to matter. Rooted. `invariants.ts`'s remaining
+`git ls-files` takes an explicit `cwd` from its caller and is not of this class.
+
 **Six gates, one rule, three different states.** Two had the guard (`rater-purity`, `chokepoint`), three had
 the defect (`tables`, `invariants`, `citations`), three had incidental protection (`coverage`,
 `traceability`, `authority-coverage`). Nobody wrote a bad gate; the convention let each author solve it, or

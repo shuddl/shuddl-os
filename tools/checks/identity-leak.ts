@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from "node:fs";
 // locally, non-promotable (BLOCKED) under merge/release; an actual leak is a FAIL. run-gate consumes the
 // structured GateResult, never this file's prose.
 import { parseMode, unavailableStatus, formatGateResult, type GateMode, type GateResult } from "../release/evidence.js";
+import { repoRoot } from "./repo-root.js";
 
 // REQ-167 (doc 13 §02): identity-leak lint. The denylist (tenant names, person names,
 // incumbent-vendor names, customer names) is maintained CLIENT-SIDE:
@@ -106,7 +107,11 @@ function loadDenylist(): string[] | null {
 }
 
 function trackedFiles(): Map<string, string> {
-  const out = execSync("git ls-files", { encoding: "utf8" }).split("\n").filter(Boolean);
+  // §489 — REPO-ROOTED. REQ-167 forbids an identity in ANY repo artifact, and with a bare
+  // `git ls-files` the word "any" silently meant "any under the caller's directory". Masked today
+  // only because the denylist is a secret and the lint SKIPS without it — the scope defect would
+  // have arrived with the secret, i.e. exactly when the gate started mattering.
+  const out = execSync("git ls-files", { cwd: repoRoot(), encoding: "utf8" }).split("\n").filter(Boolean);
   const map = new Map<string, string>();
   for (const f of out) {
     try {
