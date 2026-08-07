@@ -234,6 +234,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 39 | — | **§591** | THE FIVE ACCEPTANCE DEMOS — the gate EXECUTES (7 spine files, 4 packages, 3 pools), cannot pass on a missing file (verified: exit 1), and the mapping is guarded bidirectionally. M66 reddens 3. A clean negative at every level |
 | 40 | — | **§592** | THE SUPPLY CHAIN — 120 caret ranges make the LOCKFILE the guarantee and `--frozen-lockfile` the enforcement; all 4 sites carry it and NOTHING asserted it. One word, no error if removed, green build over an unreviewed tree |
 | 41 | §592 | **§593** | THE LEVERS OUTSIDE THE LOCKFILE — `allowBuilds` grants install-time code execution and `overrides` replaces versions tree-wide; deletion is self-enforcing, GROWTH was not. M69: a denial is not the absence of a permission |
+| 42 | §592–§593 | **§594** | THE SUPPLY-CHAIN LINE CLOSED — actions SHA-pinned, `pnpm audit --prod` blocking, gitleaks history-wide, all re-proved live (M71/M72). Every remaining question is an architecture change, not an unchecked property |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -32129,3 +32130,66 @@ safe — a restructured file fails there rather than silently matching nothing.
   is the intended prompt; the guard must be re-pointed rather than deleted.
 - An override is added for a **security** patch → that is legitimate and should still fail here first, so the
   reason lands in the file next to the pin, where the chai comment already sets the precedent.
+
+---
+
+## §594 — PHASE GATE: the supply-chain line, completed and closed
+
+### What was left
+
+§592 and §593 closed two real gaps. This phase asked what remained in the line, and measured rather than
+assumed — the answer is that most of it was already guarded, and the two claims worth doubting held.
+
+| Property | State | Guarded? |
+|---|---|---|
+| Lockfile frozen at every CI install | 4/4 sites | **§592** (was unguarded) |
+| `allowBuilds` — install-time code execution | default-deny, 2 permitted, 1 denied | **§593** (was unguarded) |
+| `overrides` — tree-wide version replacement | 1 documented pin | **§593** (was unguarded) |
+| GitHub Actions pinned to 40-hex SHAs | 5/5, both workflows | already asserted |
+| Production dependency audit | `pnpm audit --prod`, **blocking** | already asserted |
+| Secret scanning | history-wide gitleaks | already asserted |
+
+### The two claims re-proved
+
+`ci-contract.test.ts`'s header claims it *"fails if any action is pinned to a mutable tag"*. That is a claim
+about a guard, which is exactly the kind this record has learned to distrust — so both were mutated at HEAD:
+
+| Mutation | Predicted | Result |
+|---|---|---|
+| **M71** unpin `actions/checkout` to `@v4` | RED | **2 failed** — ci.yml and the shared pinning case |
+| **M72** replace `pnpm audit --prod` with `echo skip` | RED | 1 failed |
+
+Also verified by reading rather than inferred: the audit step carries **no** `continue-on-error` and no
+`|| true`, so it blocks. The one `if: ${{ always() }}` in that job is the evidence-upload step — deliberate,
+and the same construct §524 had to correct a regex for.
+
+### The line is closed
+
+Five phases (§590 tangentially, §592, §593, §594) walked the dependency and deploy surface. **Every remaining
+question resolved to "already guarded, and the guard is live."** The reopen triggers left in §592 and §593 are
+*"if a third workflow appears"*, *"if pnpm renames the key"*, *"if a native dependency is genuinely needed"* —
+architecture changes, not unchecked properties.
+
+That is §587's stopping signal, reached a second time and worth naming as a pattern rather than a one-off:
+**a line of inquiry is finished when its next question describes a hypothetical.** The alternative — inventing
+a phase from a trigger that names nothing — produces sections without findings, which is worse than stopping,
+because it makes the record's density a lie about the code's state.
+
+### Exit state
+
+- `tools/release/ci-contract.test.ts` — 28 green; `ci.yml` restored byte-identical.
+- `tools/` — 901 tests, 898 green (the 3 `REQ-289` reds).
+- Seventy-two mutations across twenty-nine phases: **64 RED as predicted, 7 silent (six non-counterexamples,
+  one a real gap since closed), 1 that never applied** — 6 real gaps closed, 1 design pinned, 2 claims
+  corrected.
+
+### What remains, repo-wide
+
+Unchanged since §569, and none of it producible from inside the repo:
+
+1. `REQ-289` — the GTM register row, uncommitted (the 2 merge-gate FAILs and the 3 unit reds).
+2. Nine private fixtures from the engagement workspace (4 BLOCKED gates).
+3. The `IDENTITY_DENYLIST` secret (1 BLOCKED gate).
+4. Sender-domain verification + Cloudflare OIDC.
+5. The **filmed** half of the five acceptance demos — §591 confirmed the automated half is green and honestly
+   labelled.
