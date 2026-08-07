@@ -8,6 +8,56 @@ import { gatesFor } from "./run-gate.js";
 
 const CI = readFileSync(".github/workflows/ci.yml", "utf8");
 
+// REQ-118 §592 — EVERY CI INSTALL IS FROZEN TO THE LOCKFILE.
+//
+// The workspace declares 120 caret ranges. Ranges are fine — the LOCKFILE is what makes a build
+// reproducible, and `--frozen-lockfile` is what makes CI honour it. Without the flag, `pnpm install`
+// re-resolves those ranges at CI time, so the suite exercises a dependency set that is not the one the
+// lockfile describes and not necessarily the one that ships. A malicious or merely broken minor release
+// enters with **no code change, no PR, and a green build**.
+//
+// Both workflows use the flag at all four install sites today and NOTHING asserted it. It is one word in a
+// YAML file, deleted by an editor or a merge conflict without anyone noticing, and its absence produces no
+// error — only a differently-resolved tree.
+//
+// Scanned across EVERY workflow rather than just ci.yml: nightly installs too, and it runs the traceability
+// audit and the backup job against whatever it resolved.
+describe("REQ-118 §592: dependency resolution is frozen in CI", () => {
+  const WORKFLOWS = ["ci.yml", "nightly.yml"] as const;
+
+  function installLines(): { file: string; line: number; text: string }[] {
+    const out: { file: string; line: number; text: string }[] = [];
+    for (const f of WORKFLOWS) {
+      readFileSync(`.github/workflows/${f}`, "utf8")
+        .split("\n")
+        .forEach((text, i) => {
+          if (/\bpnpm\s+install\b/.test(text)) out.push({ file: f, line: i + 1, text: text.trim() });
+        });
+    }
+    return out;
+  }
+
+  it("finds the install steps at all (non-vacuity)", () => {
+    // A renamed workflow or a changed install idiom would scan nothing and pass — the class this repo met in
+    // seven gates (§487/§554/§572/§584/§586/§590).
+    expect(installLines().length, "no `pnpm install` found in any workflow — the scan is stale, not CI").toBeGreaterThan(3);
+  });
+
+  it("every `pnpm install` passes --frozen-lockfile", () => {
+    const bare = installLines().filter((l) => !l.text.includes("--frozen-lockfile"));
+    expect(
+      bare,
+      "a CI install that re-resolves version ranges instead of honouring the lockfile. The suite would then " +
+        "test a dependency tree nobody reviewed, and a bad minor release would arrive with no code change " +
+        "and a green build:\n  " + bare.map((l) => `${l.file}:${l.line}  ${l.text}`).join("\n  "),
+    ).toEqual([]);
+  });
+
+  it("the lockfile itself is committed — `--frozen-lockfile` is meaningless without it", () => {
+    expect(() => readFileSync("pnpm-lock.yaml", "utf8"), "pnpm-lock.yaml is missing from the repo").not.toThrow();
+  });
+});
+
 describe("CI runtime + workspace surface", () => {
   it("takes its Node from the pinned .node-version and runs the runtime preflight", () => {
     expect(CI).toMatch(/node-version-file:\s*\.node-version/);

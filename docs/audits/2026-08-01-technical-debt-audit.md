@@ -232,6 +232,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 37 | — | **§589** | MONEY ARITHMETIC — mulDivHalfUp is BigInt and fail-closed at both ends (M62 reddens); every money path routes through it. M63 was SILENT and CORRECTLY so: 197 boundary cases prove no input separates cross-multiply from float division |
 | 38 | — | **§590** | THE DEPLOY-DAY MIGRATION — dev and CI only ever meet an EMPTY database, so a `NOT NULL` ADD COLUMN would pass both and fail on deploy. SQLite's refusal verified empirically; a STATIC rule covers migrations not yet written |
 | 39 | — | **§591** | THE FIVE ACCEPTANCE DEMOS — the gate EXECUTES (7 spine files, 4 packages, 3 pools), cannot pass on a missing file (verified: exit 1), and the mapping is guarded bidirectionally. M66 reddens 3. A clean negative at every level |
+| 40 | — | **§592** | THE SUPPLY CHAIN — 120 caret ranges make the LOCKFILE the guarantee and `--frozen-lockfile` the enforcement; all 4 sites carry it and NOTHING asserted it. One word, no error if removed, green build over an unreviewed tree |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -32002,3 +32003,63 @@ owner-blocked (§569).
 - A spine file is split into two → `spineFileCount()`'s parity assertion fires, which is the prompt to update
   the manifest in the same commit.
 - The filmed half is recorded → §569's owner table is where that lands, not here.
+
+---
+
+## §592 — PHASE GATE: the supply chain, and a guarantee that was one word wide
+
+### The surface
+
+§555 pinned the **runtime** — Node 22.15, pnpm 11.10, both mutation-proved. Nothing had asked the adjacent
+question: what pins the **dependencies**?
+
+Measured across 18 `package.json` files: **120 caret ranges**, 41 workspace links, 2 exact. That is normal and
+fine — ranges are not the guarantee. **The lockfile is**, and `--frozen-lockfile` is what makes CI honour it.
+
+### The gap
+
+All four install sites across both workflows carry the flag today, and `pnpm-lock.yaml` is committed. So the
+build is reproducible.
+
+**Nothing asserted it.** No test in the repo mentions `--frozen-lockfile` (the sixteen files matching
+"frozen" are the frozen *byte law* and frozen *fixtures* — a near-miss worth naming, since a careless grep
+would have called this covered).
+
+Without the flag, `pnpm install` re-resolves 120 ranges at CI time. The suite then exercises a dependency tree
+**nobody reviewed**, and a malicious or merely broken minor release arrives with **no code change, no PR, and
+a green build**. The failure produces no error — only a differently-resolved tree.
+
+It is **one word in a YAML file**, removable by an editor, a merge conflict, or a copy-paste, with nothing
+downstream to notice.
+
+| Mutation | Predicted | Result |
+|---|---|---|
+| **M67** drop `--frozen-lockfile` from one of ci.yml's two installs | RED, naming file:line | `ci.yml:23  - run: pnpm install` |
+
+### Scope chosen deliberately
+
+The guard scans **both** workflows, not just `ci.yml`. `nightly.yml` installs twice and then runs the
+traceability audit and the **backup job** — a backup taken against an unreviewed dependency tree is a worse
+artifact than a failed one, because it looks fine.
+
+It also asserts the lockfile is committed, since `--frozen-lockfile` against a missing lockfile is a flag with
+nothing to freeze.
+
+### Exit state
+
+- `tools/release/ci-contract.test.ts` — **28 tests green** (+3); `ci.yml` restored byte-identical.
+- `typecheck` · `lint` green.
+- Sixty-seven mutations across twenty-seven phases: **59 RED as predicted, 7 silent (six non-counterexamples,
+  one a real gap since closed), 1 that never applied** — **5 real gaps closed**, 1 design pinned, 2 claims
+  corrected.
+
+### Reopen triggers
+
+- A third workflow is added → `WORKFLOWS` is hand-kept **and** the non-vacuity floor counts installs, so a new
+  workflow's installs are invisible until it is listed. Deriving from `git ls-files .github/workflows/*.yml`
+  is the fix the day a third exists; with two, the floor is the cheaper guard.
+- An install moves into a composite action or a reusable workflow → the scan reads the two workflow files
+  only, and the step would leave its scope entirely.
+- `pnpm` gains a config-file equivalent (`frozen-lockfile=true` in `.npmrc`) → the flag could legitimately
+  disappear from the YAML while the property holds, and this guard would then be wrong rather than merely
+  narrow.
