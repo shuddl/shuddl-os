@@ -27,3 +27,23 @@ $1,480.00), no photo urls (the documentary placeholder slots are the stable cano
 form). `tsconfig.render.json` exists because tsx applies `jsx: react-jsx` per-file via
 the tsconfig's include — it must span the @shuddl/agents + @shuddl/design .tsx sources.
 Output: `tools/live/out/evidence-email.png` (committed).
+
+## What is committed in `out/`, and what it is NOT (audit §513)
+
+Thirteen PNGs are committed here. **None is a gate input** — the design CI's baseline is the five blessed
+screenshots in `tests/visual/blessed/` (`command`, `driver`, `evidence-email`, `portal`, `status`), a
+different directory with a different purpose. Nothing globs `out/`, and no code names a file in it: these
+scripts take their output path from `process.argv`, so every filename here was typed on a command line.
+
+That is why an "is it referenced?" grep reports zero for most of them and means nothing. Recorded so the
+next reader does not re-run that search: an audit pass spent six runs on exactly this false trail once
+already.
+
+| file(s) | what it is |
+|---|---|
+| `evidence-email.png`, `portal.png`, `driver.png`, `driver-signature.png` | cited from `docs/` — the live evidence behind written claims |
+| `command-app-{demotiles,mapbox,openfreemap}.png` | the tile-source comparison that caught the blank-basemap bug this README opens with — `demotiles` lacks the greige style's source-layers |
+| `command-real.png`, `driver-{arrive,count,daysheet,depart,photo}.png` | per-screen renders from the same investigations |
+
+They are kept, not pruned: they are the record of a real defect being caught by real pixels, which is the
+whole argument for this harness. **If you delete one, delete the claim it supports too.**

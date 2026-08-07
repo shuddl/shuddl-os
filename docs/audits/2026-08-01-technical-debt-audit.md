@@ -27845,3 +27845,40 @@ uncommitted `REQ-289` GTM register row — an owner decision in a separate works
 **The phase's one sentence.** Every defect here passed every test in the build — because a suite measures
 what code *does*, and none of these were about behaviour: they were about whether a reader could see what
 was in front of them.
+
+## §513 — thirteen committed PNGs, and the false trail my own notes had already recorded
+
+Continuing §512's class — properties invisible to a test suite — two were swept and one produced a
+methodological finding rather than a defect.
+
+**Build reproducibility: structurally sound.** 111 caret ranges and 5 tilde ranges sit in the workspace
+`package.json`s, which looks like drift waiting to happen and is not: all four CI install steps use
+`pnpm install --frozen-lockfile`, so the lockfile governs the actual tree and a package.json/lockfile
+disagreement fails the install rather than resolving silently. Floating ranges are irrelevant when the
+lockfile is frozen — the pinning that matters is the one CI enforces, not the one the manifest expresses.
+
+**Tracked build outputs: none, but 13 committed PNGs under `tools/live/out/`.** Nine are referenced by no
+code, no README and no doc. That reads exactly like stale binary cruft.
+
+**It is not, and I had already proved that once.** The render scripts take their output path from
+`process.argv`, so every filename in that directory was typed on a command line and appears nowhere in the
+tree by construction. An "is it referenced?" grep measures the wrong relation entirely. **My own standing
+note records an earlier pass spending six runs on this precise false trail** ("driver.png is inert"), which
+is the second time this session a recorded lesson failed to prevent its own repetition (§509's citation
+anchoring was the first). A lesson in prose is not a habit.
+
+**The distinction that resolves it.** The design CI's baseline is the **five** blessed screenshots in
+`tests/visual/blessed/` — a different directory, gated, and exactly the five CLAUDE.md names.
+`tools/live/out/` is ad-hoc render evidence, gated by nothing, and the `command-app-{demotiles,mapbox,
+openfreemap}` trio is the tile-source comparison that caught the blank-basemap bug the harness README opens
+with. **Deleting those would delete the evidence for a caught shipped defect** — the §511 BOM mistake, in
+binary form.
+
+**Kept and indexed, not pruned.** `tools/live/README.md` now carries a table of what is committed and why,
+states that none of it is a gate input, and says plainly: *if you delete one, delete the claim it supports
+too.* An unexplained artifact invites exactly the cleanup that destroys it.
+
+**The gate built in §509 caught its author, immediately.** Writing *"(audit §513)"* into that README before
+this section existed failed `check:section-refs` on the next run — a forward reference to a section not yet
+written. That is the defect class §508 measured (22 pointers into nothing), and the first thing the new gate
+found was me creating one.
