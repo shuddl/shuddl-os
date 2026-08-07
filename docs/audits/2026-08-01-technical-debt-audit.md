@@ -187,6 +187,12 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 
 ## §4 — Phase gating and the stopping point
 
+> **PHASE 4 CLOSED — §512 is the phase gate for §505–§511: the RECORD and the ARTIFACTS.** A TypeScript
+> gate file was BINARY to git (4 NUL bytes, every diff unreadable); 22 `§N` pointers led to sections never
+> written; the owner-facing entry table routed to a stale phase gate. Also: six headline claims re-measured
+> at HEAD, all seven hard budgets confirmed to have a live enforcer, and Trojan Source measured at 0/878 and
+> guarded. Every defect here passed every test in the build.
+>
 > **PHASE 3 CLOSED — §504 is the phase gate for §502–§504: three axes swept, ZERO defects.** SQL guards (all
 > 4 business guards mutated), error handling (the 15 server catches that return a default rather than
 > refuse), and TENANT ISOLATION at its resolution seam — including the unauthenticated `/pub/quote`, whose
@@ -27786,3 +27792,56 @@ survive, rather than a sanitised version that would prove nothing.** Stripping t
 **Which is why the guard covers NUL and bidi and NOT the BOM.** Three properties in one family, and one of
 them is load-bearing evidence. A sweep that treats a family uniformly gets the third one wrong; the
 difference is not detectable from the byte pattern, only from asking what reads the file.
+
+## §512 — PHASE GATE: the record and the artifacts, which no earlier phase had audited
+
+**Scope (§505–§511).** The first three phases audited *behaviour* — gates, bounds, guards, isolation. This
+one audited the **record itself and the bytes it is written in**: the claims this document makes, the
+pointers a reader follows, and the files those pointers land in. Nothing in §483–§504 could have found any
+of it, because every finding here is invisible to a passing test suite.
+
+### What was found and closed
+
+| # | defect | severity | closed by |
+|---|---|---|---|
+| 1 | **A TypeScript gate file was BINARY to git** — 4 NUL bytes in `gate-wiring.test.ts`, so every change to it rendered as `Bin X -> Y` with no diff, in every PR | Medium | §510 — repaired, swept (1 of 878), guarded |
+| 2 | **22 `§N` pointers into sections that were never written** — §38 and §58 referenced 11 times each *as sections with content* | Medium | §508 landing stubs · §509 gate |
+| 3 | The owner-facing entry table routed *"current measured state"* to a phase gate several phases stale | Low | §507 — repointed at the self-maintaining section |
+
+### What was verified clean, and how
+
+- **Six headline claims re-measured at HEAD** (§505), including one re-run *by mutation* because its
+  evidence had been destroyed by its own method — a reverted mutation leaves no trace that it ever went red.
+- **All seven CLAUDE.md hard budgets have a live enforcer** (§506); the 12-view budget is a `throw` at module
+  import, mutation-proved at 13.
+- **Trojan Source: 0 of 878 files** (§511) — clean, and now guarded, since the guarantee was *"nobody has
+  done it yet"* rather than anything structural.
+- **A UTF-8 BOM that is deliberate**, not debt: the migrator fixture carries it so the BOM-stripping path has
+  a test. Stripping it as "hygiene" would have deleted the only evidence for that path.
+
+### Guards added this phase — each correct, invoked, AND pinned (§483's three edits)
+
+`check:section-refs` (merge profile) · NUL-byte guard · Trojan-Source guard (both in
+`tools/checks/section-refs.test.ts`, collected by the tools runner, verified against the test-collection
+gate). The two byte-level guards live in a TEST rather than a new gate script on purpose: `tools/**/*.test.ts`
+is already in the merge profile, so they cost no new script, no profile entry, and no further round of
+count-pinning doc updates.
+
+### Exit state
+
+**12 non-register gates PASS** · `typecheck` PASS · `lint` PASS · **3,014 workspace tests, zero failures** ·
+`tools/` **862 passing**. The one failing gate (`check:coverage`) and the only 3 failing tests remain the
+uncommitted `REQ-289` GTM register row — an owner decision in a separate workstream, unchanged since §496.
+
+### Reopen triggers
+
+1. A commit summary shows `Bin X -> Y` for a source file → §510's class; the guard now catches it first.
+2. A new document defines its own `§N` headings → it owns that namespace; `check:section-refs` resolves
+   against the document first, then the canonical record.
+3. A section number is skipped → add a landing stub (§508), never a renumber: a wrong pointer is worse than
+   an absent one.
+4. A fixture looks "malformed" → ask what reads it before repairing it (§511's BOM).
+
+**The phase's one sentence.** Every defect here passed every test in the build — because a suite measures
+what code *does*, and none of these were about behaviour: they were about whether a reader could see what
+was in front of them.
