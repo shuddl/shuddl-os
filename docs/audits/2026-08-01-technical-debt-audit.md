@@ -28103,3 +28103,40 @@ modules under a different name. The improvement worth recording is timing: §513
 reasoned afterward; §517 caught it before publishing; this one predicted the result before running the
 probe. **The rule has moved from a lesson to an expectation**, which is the only version that prevents
 anything.
+
+## §520 — the five acceptance demos, RUN: the code-provable half is green at `fc8fe54`
+
+The five demos in CLAUDE.md are the build's own definition of *done enough to show*. This audit has verified
+them piecemeal — §480 at the product level, §486 that the runner cannot pass vacuously, §492 that the gates
+they cross are observed — but had not **run the gate** this phase. A claim is a measurement with a date
+(§505), so:
+
+```
+pnpm test:acceptance   →   exit 0
+ACCEPTANCE SPINE: GREEN — all 7 spine FILES pass
+```
+
+| # | demo | spine |
+|---|---|---|
+| 1 | POD → invoice + evidence email (same second) | `api/test/heartbeat.test.ts` |
+| 2 | a stranger signs up and quotes (<10 min) | `api/test/signup-to-quote.e2e.test.ts` |
+| 3 | a real driver completes a gated stop with zero instruction | `driver/src/flow/stop-flow.test.ts` · `api/test/airplane-soak.test.ts` |
+| 4 | a booking placed from Claude via MCP | `mcp/test/quote-book.test.ts` |
+| 5 | the exception pulse dims the map while everything else stays quiet | `api/test/command-heartbeat.test.ts` · `map/test/MapCanvas.test.tsx` |
+
+Four packages, four different vitest pools (`vitest-pool-workers` for api/mcp, node for driver, jsdom for
+map) — which is why the runner invokes each in its own config rather than one root run.
+
+**What this proves, exactly.** The causal chain behind each demo executes end to end against real D1, the
+real sequencer DO, and the real gates. **And it is not a vacuous green**: §486 measured that a typo'd spine
+filter exits non-zero (`No test files found, exiting with code 1`) and that no `vitest.config` in the repo
+sets `passWithNoTests` — so "7 files pass" cannot silently become "0 files ran".
+
+**What it does not prove, and the runner says so itself.** The FILMED half — the <5s wall clock, the real
+driver, the real Claude booking, the visual map-dim — is the launch-gate checklist in
+`docs/wp/acceptance-demos.md`, and it is owner work. A green spine means *the demo cannot fail for a code
+reason*; it does not mean anyone has watched it happen.
+
+**Why this belongs at the end of a technical-debt audit.** Five phases have measured gates, bounds, guards,
+isolation, the record, and the posture. This is the only measurement that speaks in the build's own
+acceptance language rather than the audit's — and it is the one an owner reads first.
