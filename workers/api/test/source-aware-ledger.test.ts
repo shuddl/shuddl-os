@@ -344,3 +344,36 @@ describe("WP-15 Task 4b — the forgeability lock at the events route (REQ-030/0
     expect(await streamCount("lgp-forge-inv")).toBe(0);
   });
 });
+
+// I1 (genesis/10) — NO MONEY_LINE WITHOUT AN EVENT, AND D1 ACTUALLY ENFORCES IT (audit §535).
+//
+// `money_lines.event_id TEXT NOT NULL REFERENCES events(id)` carries the comment *"I1: no line without
+// event, ever"*. A `REFERENCES` clause is a DECLARATION; whether it is a CONSTRAINT depends on the engine —
+// SQLite ships `PRAGMA foreign_keys` OFF by default, and a decorative FK on the money table would let an
+// orphan line exist with nothing pointing at the fact that produced it.
+//
+// `check:invariants` proves the clause is WRITTEN. Nothing proved D1 ENFORCES it. Measured (§535): an
+// otherwise-valid insert naming a non-existent event is rejected with
+// `D1_ERROR: FOREIGN KEY constraint failed: SQLITE_CONSTRAINT`.
+//
+// This pins a PLATFORM behaviour rather than our own code — which is exactly the kind that changes without
+// a commit in this repo, and the kind a green suite would never notice losing.
+describe("I1 (genesis/10): D1 enforces the money_lines → events foreign key", () => {
+  it("an otherwise-valid money_line naming a non-existent event is REJECTED by the database", async () => {
+    await ensureSchema(env);
+    // Every column present and valid EXCEPT event_id — so the only thing that can reject this row is the
+    // foreign key. The first version of this probe omitted party_id and was rejected by a NOT NULL, which
+    // is a real refusal for the wrong reason and proves nothing about I1 (audit §535).
+    const insert = env.TENANT_A_DB.prepare(
+      "INSERT INTO money_lines (id, shipment_id, event_id, line_no, direction, kind, amount_cents, currency, party_id, division, gl_map, basis, created_ts) " +
+        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+    ).bind("ml-i1-orphan", "shp-i1", "evt-that-does-not-exist", 1, "ar", "freight", 100, "USD", "party-i1", "div", "{}", "{}", 1);
+
+    await expect(insert.run(), "a money_line with no backing event must not be insertable").rejects.toThrow(/FOREIGN KEY constraint failed/);
+
+    const count = await env.TENANT_A_DB.prepare("SELECT COUNT(*) AS n FROM money_lines WHERE id = ?")
+      .bind("ml-i1-orphan")
+      .first<{ n: number }>();
+    expect(count?.n, "and nothing was written").toBe(0);
+  });
+});

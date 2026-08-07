@@ -28694,3 +28694,37 @@ there is no rule left whose status is "presumably fine".
 
 **The phase's one sentence.** A law stated in a header and a law with a mutation behind it read identically
 in a repository — and the difference only appears the day someone edits the code the law was about.
+
+## §535 — genesis/10's I1, and the difference between a declared constraint and an enforced one
+
+CLAUDE.md's ten rules are accounted (§534). The other authority in the source-of-truth order is
+**genesis/10's I1–I8**. Three were already controlled this session — I3 by §487's floor and the guard
+triggers, I8 by §506's table budget, I2 by §492's POD gate. This looks at the rest, and I1 produced a
+finding about *evidence* rather than about code.
+
+**I5 is structural and needs nothing.** *"Every quote pins rate_config versions"* is
+`rate_config_ids: z.array(z.string()).min(1)` in the priced-quote payload — a boundary refinement, so a
+priced quote with no pinned versions cannot be validated into existence.
+
+**I1 is a foreign key, and a foreign key is a DECLARATION until the engine makes it a CONSTRAINT.**
+`money_lines.event_id TEXT NOT NULL REFERENCES events(id)` carries the comment *"I1: no line without event,
+ever"*. **SQLite ships `PRAGMA foreign_keys` OFF by default.** `check:invariants` proves the clause is
+*written*; nothing proved D1 *enforces* it, and a decorative FK on the money table would permit an orphan
+line — a money row with nothing pointing at the fact that produced it, which is the one thing I1 exists to
+forbid.
+
+**Measured: D1 enforces it.** An otherwise-valid insert naming a non-existent event is rejected with
+`D1_ERROR: FOREIGN KEY constraint failed: SQLITE_CONSTRAINT`, and the row count stays 0. Pinned as a
+permanent test, because this is a **platform** behaviour — the kind that can change without a commit in this
+repository, and the kind a green suite would never notice losing.
+
+**Three probe iterations, and the second is the instructive one.** The first used the wrong schema helper
+(`applyAll`, which belongs to the agents harness). The second omitted `party_id` and was rejected by
+`NOT NULL constraint failed: money_lines.party_id` — **a real refusal, for the wrong reason.** Had I stopped
+there I would have recorded "the FK is enforced" on evidence that never reached the FK. It is §531's fourth
+explanation inverted: there, a green came from a probe that was not a counterexample; here, a RED came from
+a probe that tripped a different constraint. **Both are the same error — crediting an outcome to the subject
+you had in mind rather than the one the system actually evaluated.**
+
+The permanent test names every column deliberately, so the only thing that *can* reject the row is the
+foreign key, and the comment records why.
