@@ -29060,3 +29060,29 @@ covers the whole surface. A per-gate sweep is a convenience for iteration; it is
 writing an exit state from anything less is how a five-item list acquires an item nobody checked. §521's run
 found this within one profile execution — which is the argument for running the profile rather than its
 parts, made by the omission it caught.
+
+## §544 — the exit state, re-taken on the fixed tree
+
+§543 ended on a rule it had just violated: **`verify:merge` is the only command whose verdict is an exit
+state.** Its own measurement was taken against the broken tree, so the rule required re-taking it.
+
+```
+pnpm verify:merge   →   exit 1
+19 PASS · 5 BLOCKED · 2 FAIL
+```
+
+Identical to §521's, with `typecheck` back to **PASS** and the two gates added this session —
+`section-refs` and `bundle-ratchet` — both PASS inside the profile.
+
+**Both FAILs re-attributed on the CURRENT tree, not carried forward.** With the uncommitted `REQ-289` row
+stashed: the composite `unit-tests` gate exits **0 with zero failing test lines**, and `check:coverage`
+exits **0**. §543's whole lesson was that a claim survives its evidence, so the attribution was re-measured
+rather than quoted from four sections ago.
+
+**Five BLOCKED, unchanged and correct:** `identity-leak` (no denylist secret) and the four gates whose
+inputs are the unvendored engagement fixtures. Each BLOCKS rather than passes — the fail-closed contract
+§521 records, and the reason a BLOCKED count is a healthier number than a green one would be.
+
+**This closes the loop §543 opened.** A per-gate sweep told me twelve gates were green while the profile
+said `typecheck` was blocked; the profile is what an owner's CI runs, and it is the only reading that
+carries. The state above is the one measured by that command, on this tree, after the fix.
