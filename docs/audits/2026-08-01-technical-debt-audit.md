@@ -187,6 +187,11 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 
 ## §4 — Phase gating and the stopping point
 
+> **STOPPING POINT — §521: the full `verify:merge` profile RUN at 26 gates — 19 PASS, 5 BLOCKED, 2 FAIL.**
+> Both FAILs are the single uncommitted `REQ-289` GTM row, proven by removing it (coverage exits 0,
+> traceability 27/27). All five BLOCKED are absent private fixtures. **Repo-scoped work is done**; §521
+> tables what remains and who owns it — none of it closable from here.
+>
 > **PHASE 5 CLOSED — §516 is the phase gate for §513–§516: the PRODUCTION POSTURE and the do-not-build
 > list.** Three of five open prod holds measured rather than trusted (the edge rate limit is unreachable,
 > not unprotected; both PLG dark flags fail closed under mutation — and `typecheck` returns 0 for a
@@ -28140,3 +28145,52 @@ reason*; it does not mean anyone has watched it happen.
 **Why this belongs at the end of a technical-debt audit.** Five phases have measured gates, bounds, guards,
 isolation, the record, and the posture. This is the only measurement that speaks in the build's own
 acceptance language rather than the audit's — and it is the one an owner reads first.
+
+## §521 — PHASE GATE: the full merge surface RUN, and the stopping point
+
+§298 was the last complete `verify:merge` RUN, at **24** gates. Two have been added since (§483's
+`bundle-ratchet`, §509's `section-refs`), and every measurement since has been per-gate. **A profile is not
+the sum of its gates run separately** — the runner's own envelope, ordering and sentinel reconciliation are
+part of what it proves — so the profile was run whole.
+
+```
+pnpm verify:merge   →   exit 1
+```
+
+| disposition | count | which |
+|---|---|---|
+| **PASS** | **19** | runtime · typecheck · lint · invariants · rater-purity · append-chokepoint · authority-coverage · traceability · seed · citations · table-shape · **section-refs** · **bundle-ratchet** · acceptance · design-audit · perf · visual · a11y · e2e |
+| **BLOCKED** | 5 | identity-leak (no denylist secret) · fixtures · rater-parity · invoice-parity · concierge-parse — all the absent private fixtures, unchanged since §298 |
+| **FAIL** | 2 | `unit-tests` · `coverage` |
+
+**Both FAILs are one uncommitted row, proven by removing it.** With `genesis/09`'s uncommitted `REQ-289`
+GTM line stashed, `check:coverage` exits 0 and the traceability suite goes 27/27. Restored after. This is
+the same single cause §297/§299 identified, still the only thing standing between this profile and green,
+and **it is an owner decision in a separate workstream** — a GTM register row, not repo debt.
+
+**Both gates added this phase PASS inside the profile**, which is the wiring half of §483's three edits
+verified in the place that actually matters: not "the script exits 0" but "the runner ran it and recorded
+its sentinel".
+
+### The stopping point
+
+**Repo-scoped work is done.** Five phases (§496, §501, §504, §512, §516) closed 14 defects — three of them
+High: a REPLACE on the events table writable in `tools/`, an invariants gate certifying the constitution
+against an empty set, and a test shipping React's development bundle into the deployable `dist`. Every fix
+is pinned and mutation-proved; every clean negative is recorded with the command that showed it.
+
+**What remains is not repo debt, and none of it can be closed from here:**
+
+| hold | owner |
+|---|---|
+| `REQ-289` GTM register row (the 2 FAILs above) | register — a signed scope decision |
+| Nine private fixtures (the 5 BLOCKED) | engagement workspace |
+| `IDENTITY_DENYLIST` secret | provisioning |
+| Sender-domain verification + warmup · Cloudflare OIDC | provisioning, named owners |
+| Per-IP edge rate limits (REQ-193/125) | infrastructure — and **not exposed today** (§514) |
+| The FILMED half of the five demos | owner; the code half is green (§520) |
+| "A fifth primitive" — the set of four is defined nowhere | register amendment (§516) |
+
+**The honest summary.** Everything this repository can assert about itself, it now asserts with a measurement
+and a date. What it cannot assert is anything that needs a secret, a fixture, a hostname, or a person — and
+the record says so in each case rather than leaving the reader to infer it.
