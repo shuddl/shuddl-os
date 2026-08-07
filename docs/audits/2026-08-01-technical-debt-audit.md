@@ -29191,3 +29191,40 @@ clean report, a stable screenshot) looks identical to a correct one.
 BLOCKS rather than skips when one is absent, and a planted violation would prove the axe engine works —
 which was never the question. **The question was whether the page was there when it ran**, and that is
 answered by the guard, not by a probe.
+
+## §548 — the thinnest gate in the profile reports "1 passed" and enforces five assertions
+
+`perf` shows **1** in §544's run — the smallest count on the board, and the shape most likely to be a
+budget too loose to fail. It is one Playwright test containing **five** `expect`s, two of which exist purely
+to stop the other three being vacuous:
+
+| assertion | role |
+|---|---|
+| `frames.length > 30` — *"the rAF sample must actually collect frames"* | **non-vacuity** |
+| `interactions.length > 0` — *"interaction sampling must have run"* | **non-vacuity** |
+| `ip95 ≤ INTERACTION_P95_MS` | the interaction budget — **enforced** |
+| `worst ≤ LONG_TASK_MS` | long-task budget — **conditional** |
+| `fp95 ≤ FRAME_BUDGET_MS` (18.18ms = 55fps) | frame budget — **conditional** |
+
+**What the run actually measured here**, from its own log: `renderer = ANGLE (Apple M1 Max)
+(software=false)` — a real GPU, not a software rasterizer — and `1000 entities — frames=401 p50=10.00ms
+p95=11.70ms (~85fps at p95; budget 18.18ms / 55fps)`. Comfortably inside, on real numbers, with 401 frames
+sampled rather than an empty array.
+
+**And it says plainly what it is NOT enforcing:** `reference machine = Apple M-series · macOS 15+ ·
+Chromium with GPU · 1440×900 · AC power; enforcing FPS here = false`. The frame budget is *measured
+everywhere and enforced only on the reference profile*, because an fps number from a throttled or
+differently-sized machine is a false failure waiting to happen. **Cold boot is likewise measured and
+explicitly not budgeted** — 1 long task, worst 63.00ms — with the reason recorded: the harness serves a
+production build, so first-paint cost belongs to the boot window, not the operating window the budget is
+about.
+
+**That is a gate telling you the shape of its own authority**, which is rarer than a gate that passes. It
+enforces what is meaningful where it runs, reports what is not, and names the machine profile that would
+make the rest binding — which is exactly the standing hold this record already carries (*perf on a
+GPU-capable runner*, §521's table).
+
+**The browser gates are now all four accounted** — `a11y` and `visual` guard the never-painted page (§547),
+`e2e` is the driver-offline and portal-isolation spine, and `perf` measures five things and enforces three
+where it stands. **None of the four small counts is a gate asleep**; each is a short list of specific claims,
+which is what §492 said a count measures.
