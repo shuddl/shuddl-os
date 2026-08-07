@@ -26066,3 +26066,35 @@ refactor a refactor.**
 
 `@shuddl/translator` **116 passed**; `typecheck`, `lint` clean. The GO-LIVE row moves from HALF FIXED to
 FIXED.
+
+## §473 — a hold whose BLOCKER expired, and the classifier that over-counted
+
+§469 classified the checklist and called twelve rows repo-owned. Reading their own blocker columns corrects
+that: three are externally blocked despite citing repo files (`cursorColumn` is a **tenant-pack
+precondition**, EDI activation is *"outside repo"*, clean-close is *"Blocked-by-construction"*), one waits on
+an unbuilt surface, four are Low record-only or by-design. **A mechanical classifier over-counted again** —
+the fifth instrument this phase to do so, corrected the same way each time: by reading.
+
+**One row was not blocked at all any more.** *"QB export reconciles to the penny"* (CLAUDE.md rule 6) read
+**"NOT RUN at this SHA — unverified"**, and its stated reason was that all four suites are
+`vitest-pool-workers` and **`workerd` is wedged**. That was true when written. It is not true now — this
+phase has run pool-workers suites repeatedly (`packages/ledger` 628, `workers/api` 778). **The blocker
+expired and the row did not notice**, which is exactly what the record-holds discipline predicts: a hold
+without an expiry trigger cannot signal that its own verdict died.
+
+**Run at `6285a8c`:** ledger trio (`qb-journal.fixture`, `gl-netting.fixture`, `iif`) **3 files / 22 tests**,
+`workers/api/test/export-journal` **15** — all pass. The assertions the rule names executed by title:
+*"(b) the AR side reconciles: Σ debits to 1200-AR === Σ AR revenue+clearing credits, to the penny"*,
+*"(c) the AP side reconciles … to the penny"*, and *"the IIF transaction balances to the penny
+(Σ amounts === 0)"*. Struck as VERIFIED with the SHA, per §445 — a verdict is worth nothing without the
+commit it was taken at.
+
+**The generalisable form:** a hold carries a claim AND a reason, and they decay independently. §470's claim
+was re-verified and held. This one's claim was never re-tested because its REASON looked permanent —
+"`workerd` is wedged" reads like an environment fact rather than a dated observation. **The reasons that
+decay silently are the ones phrased as conditions of the world rather than of the moment.**
+
+Remaining from §469's twelve, honestly dispositioned: **3 closed by work** (§469 auth lifetimes, §471/§472
+the two N+1s), **1 re-verified and owner-blocked** (§470 unbounded reads), **1 closed by running it** (this),
+**3 externally blocked**, **4 Low record-only or by-design**. Nothing in that list is now both actionable and
+untouched.
