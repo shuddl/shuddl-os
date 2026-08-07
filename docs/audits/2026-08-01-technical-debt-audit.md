@@ -29359,3 +29359,55 @@ from success unless someone writes down what "enough input" means. Any future ga
 needs the floor in the same commit as the loop.
 
 `runtime` and `lint` remain the only merge-profile gates not yet examined this way.
+
+---
+
+## §555 — `check:runtime`: fail-closed, and a wrong premise caught by its own mutation
+
+`check:runtime` is not a corpus scanner, so §554's vacuity class does not apply. The question that does is
+the one [[fail-closed-is-about-the-fallback-value]] names: `installedPnpm()` catches a failed `pnpm --version`
+and returns the literal `"unavailable"`. **The fallback VALUE is the guarantee, not the catch** — this session
+already found a `{}` default that opened three gate knobs it claimed to floor.
+
+Eight degenerate pairs measured, all rejected:
+
+```
+node="unavailable"  → FAIL    node="v22.15.0" pnpm="unavailable" → FAIL
+node=""             → FAIL    node="v22.15.0" pnpm=""            → FAIL
+node="vNaN.x.y"     → FAIL    node="v99.0.0"                     → FAIL
+```
+
+### The premise that was wrong
+
+The tests were written with a stated mechanism: the Node half fails closed only *incidentally*, because
+`parseSemver("unparseable")` yields `[NaN, 0, 0]` (`?? 0` does not catch `NaN`) and `compare` returns 1 for a
+NaN pair, tripping the exclusive upper bound — so hardening `compare` to treat NaN as 0 should flip it to PASS.
+
+**M5 applied exactly that hardening. All 12 tests stayed green.** The prediction was wrong, so §531's four
+explanations apply, and the answer is the fourth: *the probe was not a counterexample.* With NaN→0 the version
+becomes `[0, 0, 0]`, which falls below the **minimum** — the lower bound catches what the upper one no longer
+does. M6 then dropped the lower bound instead: still green, because NaN reverts to tripping the upper.
+
+The Node half is **over-determined**. The check is a two-sided range, and unparseable input lands outside it
+whichever way the NaN falls. That is a stronger guarantee than the comment claimed — and it means the Node
+test cannot be the thing that catches a regression, because no single-bound mutation reddens it. It records a
+true fact it can never be the one to prove. Kept as documentation of a measured property, labelled as such.
+
+| Mutation | Predicted | Result |
+|---|---|---|
+| **M5** `compare` treats NaN as 0 | Node test RED | **green** — lower bound catches `[0,0,0]` |
+| **M6** drop the lower bound | Node test RED | green for §555; 2 OTHER tests RED |
+| **M7** skip pnpm check when `"unavailable"` | pnpm tests RED | **exactly the 2 pnpm tests RED** |
+
+M7 is the pin that earns its line count. The pnpm half is a string equality, and the realistic refactor is the
+tolerant one — *"don't fail the build just because we couldn't detect pnpm"* — which is precisely the shape
+that has bitten this repo before. Adding that exemption reddens both pnpm tests and nothing else.
+
+### The general point
+
+Writing the mechanism down in the comment is what exposed the error: a vaguer note ("fails closed on bad
+input") would have been true, unfalsifiable, and would have left a wrong model in the record. **A comment
+that states a mechanism can be tested against the code; one that states an outcome cannot.** M6 is also worth
+noting for [[attribute-the-red-before-crediting-it]] — it produced two REDs, neither of them the subject.
+
+`lint` is now the only merge-profile gate not examined this way.

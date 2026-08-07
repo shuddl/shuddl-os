@@ -63,3 +63,54 @@ describe("the .node-version / engines / packageManager declarations describe ONE
     expect(pkg.packageManager).toBe(RUNTIME_CONTRACT.pnpm.packageManager);
   });
 });
+
+// REQ-118 §555 — UNPARSEABLE VERSIONS FAIL CLOSED.
+//
+// `installedPnpm()` catches a failed `pnpm --version` and returns the literal string `"unavailable"`. That
+// fallback VALUE is where the guarantee lives, not the catch: this session already found a `{}` default that
+// opened three gate knobs it claimed to floor. A missing or broken pnpm is the realistic case — a fresh
+// machine, a corepack that has not shimmed yet, a PATH without it.
+//
+// Both halves fail closed today, and MEASUREMENT changed what this comment says about why.
+//
+// The first draft claimed the Node half was incidental — that `parseSemver("unavailable")` yields
+// `[NaN, 0, 0]` (`?? 0` does not catch NaN) and survives only because `compare` returns 1 for a NaN pair,
+// tripping the exclusive upper bound; and that hardening `compare` to treat NaN as 0 would flip it to PASS.
+// **That was wrong.** Applying exactly that hardening left all 12 tests green: `[0, 0, 0]` then falls below
+// the MINIMUM and the lower bound catches it instead. Dropping the lower bound outright also left these
+// tests green, because NaN goes back to tripping the upper one.
+//
+// So the Node half is over-determined: the check is a two-sided RANGE, and unparseable input lands outside
+// it whichever way the NaN falls. No single-bound mutation reddens the Node test below — it records a true
+// fact it cannot be the one to catch. Kept, cheaply, as documentation of a measured property.
+//
+// The pnpm half is the one that needed pinning. It is a string equality, and the realistic refactor is the
+// tolerant one: "do not fail the build just because we could not detect pnpm." Adding that exemption
+// (`!== "unavailable" && ...`) reddens both pnpm tests below and nothing else — the discrimination that
+// makes a pin worth its line count.
+describe("REQ-118 §555: an unparseable version is a violation, never a pass", () => {
+  const UNPARSEABLE = ["unavailable", "", "not-a-version", "NaN.NaN.NaN"];
+
+  it("rejects every unparseable Node string", () => {
+    for (const node of UNPARSEABLE) {
+      const r = checkRuntime({ node, pnpm: RUNTIME_CONTRACT.pnpm.version });
+      expect(r.ok, `Node ${JSON.stringify(node)} was accepted — an unverifiable runtime certified itself`).toBe(false);
+    }
+  });
+
+  it("rejects every unparseable pnpm string, including installedPnpm()'s own fallback", () => {
+    for (const pnpm of UNPARSEABLE) {
+      const r = checkRuntime({ node: "v22.15.0", pnpm });
+      expect(r.ok, `pnpm ${JSON.stringify(pnpm)} was accepted`).toBe(false);
+    }
+  });
+
+  it("the exact fallback literal is covered by name", () => {
+    // Bound to the string `installedPnpm()` actually returns: if that literal changes, this test should be
+    // the thing that notices, rather than the class-based loop above passing on a value nobody produces.
+    const src = readFileSync(new URL("./runtime-contract.ts", import.meta.url), "utf8");
+    const fallback = /catch\s*\{\s*return\s+"([^"]+)"/.exec(src)?.[1];
+    expect(fallback, "installedPnpm()'s catch no longer returns a string literal — re-verify this test").toBeTruthy();
+    expect(checkRuntime({ node: "v22.15.0", pnpm: fallback! }).ok).toBe(false);
+  });
+});
