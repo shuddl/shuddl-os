@@ -28201,3 +28201,32 @@ is pinned and mutation-proved; every clean negative is recorded with the command
 **The honest summary.** Everything this repository can assert about itself, it now asserts with a measurement
 and a date. What it cannot assert is anything that needs a secret, a fixture, a hostname, or a person — and
 the record says so in each case rather than leaving the reader to infer it.
+
+## §522 — turning §521's own error on the rest of this session's claims
+
+§521 asserted a composite (`unit-tests` is green but for one row) having proved only its parts, and the
+`&&` short-circuit meant the two were different claims. That shape is worth turning on the session's other
+composite assertions rather than assuming §521 was the only one.
+
+**§513's reproducibility claim was the same shape, and it holds.** It said *"all four CI install steps use
+`--frozen-lockfile`"* — proved by counting occurrences of the FLAG, which cannot see an install step that
+lacks it. Re-measured as a composite: **4 `pnpm install` invocations across both workflows, 4 with the
+flag.** And the evasions checked rather than assumed:
+
+- **`pnpm/action-setup` can install dependencies itself** via `run_install`, which would bypass the frozen
+  flag entirely. **`run_install` appears 0 times** in any workflow; the four `with:` blocks carry only
+  `node-version-file` and `cache`. Dependencies come exclusively from the four frozen installs.
+- No short-form `pnpm i` anywhere.
+
+**A supply-chain property this audit had never checked, verified while here: every third-party action is
+SHA-pinned.** All five distinct actions — `actions/checkout`, `actions/setup-node`,
+`actions/upload-artifact`, `gitleaks/gitleaks-action`, `pnpm/action-setup` — are referenced by 40-hex commit
+SHA with the version in a trailing comment. **Zero use a tag or branch.** A tag is mutable: `@v4` re-points
+whenever the publisher moves it, so a tag-pinned action is an unreviewed third party with write access to
+every CI run. That exposure does not exist here.
+
+**And the caption error recurred, in the same section that is about verifying claims.** The `run_install`
+probe printed *"(empty ⇒ no run_install)"* under output that was **not empty** — it had matched the `with:`
+lines. The conclusion happened to be right, reached by a line that did not support it. This is the pattern
+this record keeps re-learning: **write the caption after reading the output**, not with the command. It is
+the cheapest error in the session and the most frequent.
