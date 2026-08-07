@@ -292,3 +292,78 @@ describe("the INTERNAL platform route — DARK without the secret, authorized wi
     expect(line!.kind).toBe("credit_purchase");
   });
 });
+
+// REQ-031/123 §500 — the credit-settle route states THREE guarantees in its own comments and, until now,
+// asserted none of them.
+//
+// `POST /internal/platform/credit-settle` is the re-runnable AR catch-up: it flips a credit invoice
+// issued→paid ONLY when a covering `payment.received` is already committed. Its whole safety is one WHERE
+// clause — `WHERE id = ? AND status = 'issued' AND total_cents <= ?`.
+//
+// MEASURED (audit §500): neutering the coverage half of that clause so it is always satisfied left ALL 782
+// api tests GREEN. A $1 payment could mark a $750 invoice paid and nothing in the build would notice. The
+// happy path was covered; the guard was not — which is the difference between testing that a money route
+// works and testing that it refuses.
+describe("REQ-031 §500: credit-settle refuses what it must, and repeats harmlessly", () => {
+  function appendReq(streamId: string, input: Record<string, unknown>): Request {
+    return new Request("https://api.local/internal/platform/credit-append", {
+      method: "POST",
+      headers: { "content-type": "application/json", "X-Platform-Internal": PLATFORM_INTERNAL_SECRET },
+      body: JSON.stringify({ streamId, input }),
+    });
+  }
+  function settleReq(body: Record<string, unknown>): Request {
+    return new Request("https://api.local/internal/platform/credit-settle", {
+      method: "POST",
+      headers: { "content-type": "application/json", "X-Platform-Internal": PLATFORM_INTERNAL_SECRET },
+      body: JSON.stringify(body),
+    });
+  }
+  const statusOf = async (invoiceId: string) =>
+    (await platform().prepare("SELECT status FROM invoices WHERE id = ?").bind(invoiceId).first<{ status: string }>())?.status;
+
+  /** An issued credit invoice for `cents`, with a committed covering payment event. Returns both ids. */
+  async function issuedWithPayment(cents: number): Promise<{ invoiceId: string; payId: string }> {
+    const { invoiceId, shipmentId, streamId } = creditIds();
+    await app.fetch(appendReq(streamId, creditInvoiceInput({ invoiceId, shipmentId, party: "tenant-a", cents })), secretEnv);
+    const payRes = await app.fetch(
+      appendReq(streamId, creditPaymentInput({ invoiceId, shipmentId, party: "tenant-a", cents })),
+      secretEnv,
+    );
+    return { invoiceId, payId: ((await payRes.json()) as { id: string }).id };
+  }
+
+  it("an UNDER-COVERING payment does NOT settle — the clause a mutation proved nothing watched", async () => {
+    const { invoiceId, payId } = await issuedWithPayment(750_00);
+    // The invoice is settled in-batch by the covering payment append, so re-issue a fresh unpaid one to
+    // isolate the ROUTE's own guard rather than the projection's.
+    const { invoiceId: freshId, shipmentId, streamId } = creditIds();
+    await app.fetch(appendReq(streamId, creditInvoiceInput({ invoiceId: freshId, shipmentId, party: "tenant-b", cents: 750_00 })), secretEnv);
+    expect(await statusOf(freshId), "precondition: the fresh invoice is unpaid").toBe("issued");
+
+    const res = await app.fetch(settleReq({ invoiceId: freshId, paymentEventId: payId, amountCents: 1_00 }), secretEnv);
+    expect(res.status).toBe(200);
+    expect((await res.json()) as { settled: boolean }).toMatchObject({ settled: false });
+    expect(await statusOf(freshId), "$1 must never settle a $750 invoice").toBe("issued");
+    expect(await statusOf(invoiceId), "and the covering invoice is untouched by this call").toBe("paid");
+  });
+
+  it("no backing payment.received ⇒ settled:false and NOTHING is written (fail-closed)", async () => {
+    const { invoiceId, shipmentId, streamId } = creditIds();
+    await app.fetch(appendReq(streamId, creditInvoiceInput({ invoiceId, shipmentId, party: "tenant-a", cents: 200_00 })), secretEnv);
+    const res = await app.fetch(settleReq({ invoiceId, paymentEventId: "evt-does-not-exist", amountCents: 200_00 }), secretEnv);
+    expect(res.status).toBe(200);
+    expect((await res.json()) as { settled: boolean }).toMatchObject({ settled: false });
+    expect(await statusOf(invoiceId)).toBe("issued");
+  });
+
+  it("a SECOND settle is a no-op — the route's 'idempotent (a no-op once paid)' claim", async () => {
+    const { invoiceId, payId } = await issuedWithPayment(400_00);
+    expect(await statusOf(invoiceId)).toBe("paid");
+    const again = await app.fetch(settleReq({ invoiceId, paymentEventId: payId, amountCents: 400_00 }), secretEnv);
+    expect(again.status).toBe(200);
+    // `settled:false` because the compare-and-set found no row in 'issued' — the repeat changed nothing.
+    expect((await again.json()) as { settled: boolean }).toMatchObject({ settled: false });
+    expect(await statusOf(invoiceId)).toBe("paid");
+  });
+});

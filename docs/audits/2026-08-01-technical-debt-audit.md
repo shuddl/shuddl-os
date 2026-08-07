@@ -27277,3 +27277,42 @@ targets are enumerated in `tools/checks/citation-ratchet.json`; there is no need
 code and returned 0, which reads exactly like "the test does not catch this." Re-run in Python, it reddens.
 **A green mutation is only evidence if the mutation applied** — the assertion that it landed has to come
 before the run, not after it.
+
+## §500 — a money guard nothing watched, found by asking which mutations escape the idempotency middleware
+
+`middleware/idempotency.ts` enforces REQ-156 — *Idempotency-Key required on all mutations* — and is applied
+at `app.use("/v1/*", idempotency)`. That is a SCOPE, and §493's lesson is that a scope is where a hole
+lives. Enumerating every `.post/.put/.patch/.delete` registration in the API: **23 mutating routes, 5 of
+them outside `/v1/*`** — the sequencer DO's internal `pin`, `/pub/quote`, `/pub/signup` (both
+unauthenticated, so the tenant-scoped middleware structurally cannot apply), and **two money routes**:
+`/internal/platform/credit-append` and `/internal/platform/credit-settle`.
+
+**Both money routes are idempotent, and one of them is idempotent by construction — the strongest form.**
+`credit-append` re-derives the same event id on redelivery and the sequencer dedups, which IS pinned
+(*"idempotent: re-appending the SAME credit invoice event (same id) does not double-project"*).
+`credit-settle` is a compare-and-set: `UPDATE invoices SET status = 'paid' WHERE id = ? AND status =
+'issued' AND total_cents <= ?`. A second call matches no row and changes nothing. No test was needed for
+that, because the guarantee is in the WHERE clause rather than in a check-then-act.
+
+**But the same WHERE clause carries a money guard, and THAT was watched by nothing.** `total_cents <= ?` is
+what stops an under-covering payment from marking an invoice paid. Measured: neutering it so it is always
+satisfied left **all 782 api tests GREEN**. A $1 payment could settle a $750 credit invoice and the build
+would not notice. The happy path was covered; **the refusal was not** — which is the difference between
+testing that a money route works and testing that it refuses.
+
+The route states three guarantees in its own comments — *"only when a covering payment.received is already
+committed"*, *"idempotent (a no-op once paid)"*, and the implicit fail-closed on a missing payment event —
+and asserted none. Three tests added, one per clause, and two mutation-proved: neutering the coverage guard
+reddens *"an UNDER-COVERING payment does NOT settle"*; neutering the missing-payment early return reddens
+*"no backing payment.received ⇒ settled:false"*. 785 api tests pass.
+
+**Why this is the shape worth chasing.** The route is secret-gated, internal, and called by one worker that
+presumably passes the right amount — so the defect is latent, and it is exactly the kind a reviewer waves
+past. But *latent because the only caller behaves* is not a guarantee; it is a description of today's
+callers. The clause exists precisely because someone anticipated a caller that does not.
+
+**Two mutations of mine failed to land before one did.** The first attempt appended `// MUTATION` inside the
+`.prepare(...)` argument list and broke compilation — `typecheck: 2`, suite "no tests" — which is not a
+green and not a red, and would have been misread as either. §499 recorded the same trap one section ago
+(a `perl` interpolation error) and it recurred immediately in a different form. **The check is the same
+every time: assert the edit landed, then read the exit code — never the reverse.**
