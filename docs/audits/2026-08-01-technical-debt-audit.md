@@ -11186,7 +11186,7 @@ metering projection, enforced again at the read side.
 **3 hits → 7.** §184 concluded *"the codebase is clean on this axis; that is the result, not a preamble."*
 It was a result about 39% of the code. Two genuine N+1s were in the blind 61%, both on **cron paths**:
 
-- **`workers/agents/src/sla-sweep.ts:156@ANSWERED_SQL`** — loads every overdue inbound (its driving query
+- **`workers/agents/src/sla-sweep.ts:101@answeredBatchSql`** — loads every overdue inbound (its driving query
   has no `LIMIT`) and then issues **one D1 query per row** to ask whether each was answered. This
   compounds §133 exactly: a **daily** cron policing a **four-hour** SLA accumulates ~19 hours of overdue
   rows per tick, and then N+1s over them.
@@ -25997,3 +25997,38 @@ opposite answer.
 deliberate deferrals with recorded reasoning (`B2A` convergence, below-floor interline holds), record-only
 items (kinds without emitters, `passports`), or need an owner (clean-close signal, `metadata.tenant`). The
 one with genuine in-repo headroom is **the two N+1 loops on cron paths** (§212).
+
+## §471 — the N+1 on the SLA cron, batched, and a mutation whose green was the right answer
+
+Third of §469's twelve, and the one §470 named as having genuine in-repo headroom. `sla-sweep` loaded every
+overdue inbound and then issued **one D1 query per row** to ask whether it had been answered. Workers cap
+subrequests per invocation, so it fails HARD at volume rather than degrading — and it compounds §133: a
+DAILY cron policing a FOUR-HOUR SLA accumulates ~19 hours of overdue rows per tick before N+1-ing over them.
+
+**Refactored to one query per 40-pair chunk.** 500 overdue rows now cost 13 queries instead of 500. The
+correlation is on the PAIR: `?1`/`?2` became `IN (…)` lists and the result is re-formed in memory as
+`stream_id\0in_reply_to`, so a reply answering inbound X on stream A can never clear inbound X on stream B.
+
+**The refactor was safe because the behaviour was already pinned — elsewhere.** The package's own
+`sla-sweep-cron.test.ts` has two tests and covers only the cron wrapper; its header points at
+`workers/api/test/sla-sweep.test.ts`, which carries **eight** behavioural cases including the exact
+pair-matching one (*"STILL flags when only an UNRELATED message.sent (different in_reply_to) is on the shared
+stream"*). §437's lesson again: **coverage does not live where the code does**, and checking that before
+touching a cron path on the money/SLA surface is what made this a refactor rather than a gamble.
+
+**A MUTATION CAME BACK GREEN AND THE GREEN WAS CORRECT.** Batching made the hold-check's stream correlation
+explicit (`h.stream_id = s.stream_id`) where it had been implied by a repeated `?1`, so I probed it — and
+dropping it left all tests passing. Not a coverage gap: the same sub-query also matches
+`body_ref = 'concierge-send-hold/' || s.id`, and `events.id` is `TEXT NOT NULL UNIQUE`, so the body_ref
+already scopes the hold to exactly one `message.sent` regardless of stream. **The correlation is SUBSUMED,
+not load-bearing** — §389's third explanation, and the one that is hardest to tell from a real gap without
+reading the schema. I read it rather than assuming either way.
+
+The cross-stream test added while chasing that is kept: it pins the isolation end-to-end and would catch a
+future change to the body_ref scheme that removed the subsumption. Two wrong turns in writing it (a deps
+field that does not exist, an `issued_replied` status I guessed as `replied`, and an `sla_noted_ts` column
+that is not in the projection) were all caught by the runner naming them.
+
+`workers/api` **778 passed**, `packages/agents` **219**, `typecheck`, `lint` clean. The GO-LIVE row is
+updated to **HALF FIXED** — `sweep-214`'s per-marker `r2.put` is untouched and stays open, because an R2
+write cannot be batched the way a D1 read can and the fix there is a different shape.

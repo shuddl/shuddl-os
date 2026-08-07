@@ -221,6 +221,42 @@ describe("SLA overdue sweep — flags an unanswered overdue inbound (REQ-095)", 
     expect(await overdueNotes(shipmentId)).toHaveLength(2);
   });
 
+    // CROSS-STREAM HOLD ISOLATION (audit §471). The ANSWERED check excludes a `message.sent` that carries a
+    // hold note — and that exclusion must correlate the note to the SAME stream. Batching the check (one query
+    // per chunk of pairs instead of one per row) makes the correlation explicit where it used to be implied by
+    // a repeated `?1`, so this pins the property the rewrite could have lost.
+    //
+    // MEASURED: dropping `h.stream_id = s.stream_id` from the hold sub-query left all eight tests in this file
+    // GREEN, because every one of them uses a single stream. A hold on ANY stream would then suppress an
+    // answer on EVERY other — every answered inbound in the tenant would re-flag as overdue the moment one
+    // reply anywhere was held.
+    it("a HELD reply on ANOTHER stream does not resurrect an inbound that WAS answered (§471)", async () => {
+      await seedRateConfig(env.TENANT_A_DB, TEST_RATE_CONFIG);
+
+      // Stream 1: an inbound that IS answered by a delivered reply.
+      const okId = await appendInbound("xstream-ok@shipper.example.com", "Please quote from 97201 to 80012, 1000 lbs, 48x40x48, 2 pallets.", "xstreamok");
+      const okOut = await handleMessageReceived({ kind: "message.received", tenant: TENANT, event_id: okId }, depsWith(new RecordingSender(), new DeterministicParser()));
+      expect(okOut.status, JSON.stringify(okOut)).toBe("issued_replied");
+
+      // Stream 2: a DIFFERENT inbound whose reply is permanently HELD (the hold note lands on ITS stream).
+      const heldId = await appendInbound("xstream-held@shipper.example.com", "Please quote from 97201 to 80012, 1000 lbs, 48x40x48, 2 pallets.", "xstreamheld");
+      expect(
+        (await handleMessageReceived({ kind: "message.received", tenant: TENANT, event_id: heldId }, depsWith(new PermanentFailSender(), new DeterministicParser()))).status,
+      ).toBe("issued_send_pending");
+
+      // Sweep past both due times. The ANSWERED one must stay answered — the foreign hold is not its hold.
+      if (okOut.status !== "issued_replied") throw new Error("unreachable");
+      const okShipment = okOut.shipment_id;
+      const notesBefore = (await overdueNotes(okShipment)).length;
+      const rec = await env.TENANT_A_DB.prepare("SELECT recorded_at FROM events WHERE id = ?").bind(okId).first<{ recorded_at: number }>();
+      await sweepTenantOverdueInbound(env.TENANT_A_DB, seqStub, TENANT, rec!.recorded_at + SLA_REPLY_WINDOW_MS + 1);
+      expect(
+        (await overdueNotes(okShipment)).length,
+        "a HELD reply on another stream must not put an overdue note on an ANSWERED inbound's shipment",
+      ).toBe(notesBefore);
+    });
+
+
   it("REQ-174 PARTIAL-APPEND BACKSTOP — a dead auto-reply (quote.requested committed, message.sent append threw) IS flagged overdue", async () => {
     // The auto-reply appends quote.requested → quote.priced → message.sent as three DO calls. Simulate a
     // transient DO fault on the message.sent append: the handler throws (its auto-reply appends are OUTSIDE

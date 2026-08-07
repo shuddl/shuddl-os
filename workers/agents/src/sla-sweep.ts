@@ -89,15 +89,35 @@ const OVERDUE_SQL =
 // `concierge-send-hold/<message.sent id>`, concierge.ts). So the "answered" signal is a message.sent that
 // answers THIS inbound AND carries NO such hold note. A SUCCESSFUL send (no hold note) STILL clears the SLA —
 // the REQ-174 backstop — because its message.sent has no correlated hold; only a HELD one is excluded here.
-const ANSWERED_SQL =
-  "SELECT 1 AS present FROM events s WHERE s.stream_id = ?1 AND s.kind = 'message.sent'" +
-  nativeVisibleSourceSql("s.source") +
-  " AND json_extract(s.payload, '$.in_reply_to') = ?2 " +
-  "AND NOT EXISTS (" +
-  "  SELECT 1 FROM events h WHERE h.stream_id = ?1 AND h.kind = 'message.received'" +
-  nativeVisibleSourceSql("h.source") +
-  "    AND json_extract(h.payload, '$.body_ref') = 'concierge-send-hold/' || s.id" +
-  ") LIMIT 1";
+// BATCHED (audit §471). The per-row form below issued ONE D1 query per overdue inbound — an N+1 on a cron
+// path, and Workers cap subrequests per invocation, so it fails HARD at volume rather than slowing down. It
+// compounds §133: a DAILY cron policing a FOUR-HOUR SLA accumulates ~19h of overdue rows per tick.
+//
+// The correlation is on the PAIR. `?1`/`?2` became `IN (…)` lists, and the NOT EXISTS hold-check — which used
+// `?1` for its own stream — now correlates to `s.stream_id`, or a hold on ANY listed stream would suppress an
+// answer on a DIFFERENT one. The pair is re-formed in memory from the returned columns, so a `message.sent`
+// answering inbound X on stream A can never clear inbound X on stream B (the case
+// `workers/api/test/sla-sweep.test.ts` pins as "STILL flags when only an UNRELATED message.sent…").
+const answeredBatchSql = (n: number): string => {
+  const holes = Array.from({ length: n }, () => "?").join(",");
+  return (
+    `SELECT s.stream_id AS stream_id, json_extract(s.payload, '$.in_reply_to') AS in_reply_to ` +
+    `FROM events s WHERE s.stream_id IN (${holes}) AND s.kind = 'message.sent'` +
+    nativeVisibleSourceSql("s.source") +
+    ` AND json_extract(s.payload, '$.in_reply_to') IN (${holes}) ` +
+    `AND NOT EXISTS (` +
+    `  SELECT 1 FROM events h WHERE h.stream_id = s.stream_id AND h.kind = 'message.received'` +
+    nativeVisibleSourceSql("h.source") +
+    `    AND json_extract(h.payload, '$.body_ref') = 'concierge-send-hold/' || s.id` +
+    `)`
+  );
+};
+
+/** Composite key — a stream/inbound PAIR, never either half alone. */
+const pairKey = (streamId: string, inboundId: string): string => `${streamId}\u0000${inboundId}`;
+
+// (The former per-row `ANSWERED_SQL` stood here. The REQ-100/174/176 reasoning above is unchanged and now
+//  governs `answeredBatchSql`, which asks the same question for a whole chunk of PAIRS at once — audit §471.)
 
 async function sha256Hex(s: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
@@ -147,14 +167,29 @@ export async function sweepTenantOverdueInbound(
   let appended = 0;
   let answeredSkipped = 0;
 
+  // ONE query per CHUNK, not per row (audit §471). 40 pairs = 80 bind params, comfortably inside SQLite's
+  // 999-parameter ceiling with room for the source literals; a tick with 500 overdue rows now issues 13
+  // queries instead of 500. The ANSWERED semantics are unchanged — see answeredBatchSql.
+  const CHUNK = 40;
+  const answeredPairs = new Set<string>();
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    const slice = rows.slice(i, i + CHUNK);
+    const streams = slice.map((r) => r.stream_id);
+    const inbounds = slice.map((r) => r.msg_id.slice("msg:".length));
+    const found = await db
+      .prepare(answeredBatchSql(slice.length))
+      .bind(...streams, ...inbounds)
+      .all<{ stream_id: string; in_reply_to: string }>();
+    for (const f of found.results) answeredPairs.add(pairKey(f.stream_id, f.in_reply_to));
+  }
+
   for (const row of rows) {
     const inboundEventId = row.msg_id.slice("msg:".length);
 
     // ANSWERED? The ledger is the truth (REQ-100): a real reply is a `message.sent` EVENT that answers THIS
     // inbound (in_reply_to) — NOT the drafted-but-unsent draft row the consumer records (recordDraft appends
-    // no event) and NOT an unrelated outbound on the shared stream. So check the events, scoped to this inbound.
-    const answered = await db.prepare(ANSWERED_SQL).bind(row.stream_id, inboundEventId).first<{ present: number }>();
-    if (answered !== null) {
+    // no event) and NOT an unrelated outbound on the shared stream. Resolved from the batched PAIR set above.
+    if (answeredPairs.has(pairKey(row.stream_id, inboundEventId))) {
       answeredSkipped += 1;
       continue;
     }
