@@ -219,6 +219,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 24 | — | **§576** | THE HASH CHAIN — byte law and NULL→undefined re-proved at HEAD; the `prev_hash` LINK check was enforcing nothing a test could see, because the hash check masked it in every existing case. A forged chain (re-link + re-hash) now pins it |
 | 25 | — | **§577** | MASKING DOESN'T GENERALIZE — the sequencer's 11 guards: 10 reasons unnamed by any test, but 5 of 5 mutated are WATCHED. Masking needs ordered checks over a SHARED dimension; a wrong-suite "silent" verdict caught before it was recorded |
 | 26 | — | **§578** | §577'S RULE AS A SEARCH — the fields with the most readers (`visibility` ×3, `source` ×2) all independently watched; 4 mutations, 4 caught, 0 gaps. One attribution weakness recorded rather than churned |
+| 27 | — | **§579** | THE OFFLINE SYNC — a prior iteration's anti-stranding fix had ZERO tests; `continue`→`break` left 39+68 tests green. Invisible online, strands evidence in airplane mode. Two tests, M48 now RED |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -31054,3 +31055,79 @@ discriminating input **hard to construct**, and did not appear where the suite a
   carve-out loses its strongest (if oddly-labelled) detector, and test (1) becomes the only one.
 - A rule is added between the two `return {}` branches of the gate exemption → re-run M47; the new rule may
   mask either.
+
+---
+
+## §579 — PHASE GATE: a prior iteration's fix had no test, in the one place nobody is watching
+
+### Why here
+
+§574 re-proved the sequencer mutex at HEAD rather than trusting its comment; §576 did the same for the hash
+chain and found a gap. This phase applied that to the **driver offline sync** — acceptance demo #3, gated by
+the airplane-mode soak, and the site of a defect a prior audit iteration found and fixed: *signed captures
+stranded behind one backed-off item.*
+
+### The finding: the fix is real, and nothing was testing it
+
+`syncOnce` skips an item still inside its backoff window with **`continue`**, not `break` — so one 429'd
+capture does not hold up every later one. That is the fix. **M48 turned it back into a `break` and both
+suites stayed green:**
+
+```
+packages/driver-core   39 passed
+apps/driver            68 passed
+```
+
+The existing cases cannot see it, and the reason is §576's shape again — **no test builds the discriminating
+input**:
+
+- the **429 backoff** case has exactly **one** item, so there is nothing behind it to strand;
+- the **drain-order** case has three items but **all are ready**, so the backoff branch never executes.
+
+The combination neither builds is *a backing-off item followed by a ready one*. Only that distinguishes
+`continue` from `break`.
+
+### Why this one matters more than its size
+
+The defect is **invisible online** — nothing backs off when the network is healthy, so every functional test
+and every manual check passes. It appears only when a capture is retrying **and** more captures are queued
+behind it, which is precisely airplane mode on a driver's phone: the one environment with no operator
+watching and no telemetry arriving. A prior iteration paid to find it once. Without a test, the next
+refactor of that loop reintroduces it for free.
+
+### Closed
+
+Two tests, and the second is the one that makes the first honest: it asserts the transport was called
+**exactly once** — so "the ready item drained" cannot be satisfied by a pass that also (wrongly) attempted the
+stalled one.
+
+| Mutation | Before §579 | After |
+|---|---|---|
+| **M48** `continue` → `break` on backoff | **silent** — 39 + 68 green | **2 RED** |
+
+### The pattern, now three times
+
+§576 (`prev_hash`), §577's rule, and now §579 are the same defect at three sites: **a guard whose
+discriminating input is more expensive to construct than the guard is to write.** One item is easy; one item
+*behind another* is not. A valid chain is easy; a *forged* chain is not. In every case the suite stopped at
+the cheap input, and the guard survived on inspection alone.
+
+That is the sharpest form of the lesson this record keeps re-deriving: **a test suite drifts toward the inputs
+that are easy to build, and guards whose counterexample is awkward are exactly the ones that end up
+unwatched.**
+
+### Exit state
+
+- `packages/driver-core` — **41 tests green** (+2) · `apps/driver` — 68 green.
+- `typecheck` green; `sync.ts` reverted byte-identical.
+- Forty-eight mutations across fourteen phases: **41 RED as predicted, 6 silent-and-explained, and **2 real
+  gaps** (§576, §579) found and closed.
+
+### Reopen triggers
+
+- The drain loop gains an early `return`/`break` for any new state → re-run M48; the two tests above cover the
+  backoff branch specifically, not every future short-circuit.
+- `OPERATOR_REPROBE_MS` parking is refactored → the park path has its own test (*"a parked item RE-PROBES
+  after its window"*), but the **interaction** — a parked item followed by a ready one — is still unbuilt.
+- Any new queue state that sets `nextAttemptAt` → it inherits this branch, and inheriting a guard is not
+  inheriting its test.

@@ -302,3 +302,51 @@ describe("drain order + park recovery — a signed capture can never be silently
     expect(store.m.has(id)).toBe(false); // drained — the ledger holds the fact
   });
 });
+
+// REQ-016/069 §579 — A BACKING-OFF ITEM MUST NOT STRAND THE ITEMS BEHIND IT.
+//
+// `syncOnce` skips an item whose `nextAttemptAt` is still in the future with `continue`, NOT `break` — so a
+// single 429'd capture does not hold up every later one. A prior audit iteration found exactly that defect
+// (signed captures stranded behind one backed-off item) and fixed it. **Nothing was testing the fix.**
+//
+// Measured at §579: turning that `continue` back into a `break` left `packages/driver-core` (39 tests) AND
+// `apps/driver` (68 tests) fully green. The existing cases could not see it —
+//   • the 429 backoff case has ONE item, so there is nothing behind it to strand;
+//   • the drain-order case has three items but all are READY, so the backoff branch never runs.
+// The discriminating input is the combination neither builds: **a backing-off item followed by a ready one.**
+//
+// This is the failure mode that matters most for acceptance demo #3. It is invisible online (nothing backs
+// off), and it strands evidence on a driver's phone in airplane mode — the one place nobody is watching.
+describe("REQ-016 §579: one backed-off item does not block the queue behind it", () => {
+  it("a ready item still drains while an earlier item is backing off", async () => {
+    const store = new MemStore();
+    const q = new OfflineQueue(store);
+    const stalled = await enqueue(q); // captured first ⇒ drains first
+    const ready = await enqueue(q);
+
+    // Put the FIRST item into a live backoff window; the second is untouched and ready.
+    const item = store.m.get(stalled)!;
+    await q.persist({ ...item, sync: { phase: "event_pending", attempts: 1, nextAttemptAt: 10_000 } });
+
+    const sendEvent = recorder([200]);
+    const pass = await syncOnce(ports({ queue: q, sendEvent, now: () => 0 }));
+
+    expect(pass.synced, "the ready item was stranded behind a backing-off one").toContain(ready);
+    expect(pass.synced, "the backing-off item must NOT have been attempted this pass").not.toContain(stalled);
+    // And the pass still reports when to come back for the stalled one.
+    expect(pass.nextWake).toBe(10_000);
+  });
+
+  it("the transport is called for the ready item ONLY — the skip is a skip, not a silent send", async () => {
+    const store = new MemStore();
+    const q = new OfflineQueue(store);
+    const stalled = await enqueue(q);
+    await enqueue(q);
+    const item = store.m.get(stalled)!;
+    await q.persist({ ...item, sync: { phase: "event_pending", attempts: 1, nextAttemptAt: 10_000 } });
+
+    const sendEvent = recorder([200]);
+    await syncOnce(ports({ queue: q, sendEvent, now: () => 0 }));
+    expect(sendEvent.calls, "exactly one send: the ready item").toHaveLength(1);
+  });
+});
