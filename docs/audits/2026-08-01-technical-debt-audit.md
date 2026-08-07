@@ -26118,3 +26118,34 @@ Remaining from §469's twelve, honestly dispositioned: **3 closed by work** (§4
 the two N+1s), **1 re-verified and owner-blocked** (§470 unbounded reads), **1 closed by running it** (this),
 **3 externally blocked**, **4 Low record-only or by-design**. Nothing in that list is now both actionable and
 untouched.
+
+## §475 — a money guard removable in silence, and a scenario the gate would not let me build
+
+Continuing §458's repo-wide zero-reference sweep into its highest-consequence untouched cluster:
+`workers/agents/src/biller.ts` — `loadEvent`, `loadBookingQuoteRef`, `loadAcceptedBookingQuote`, **all three
+at zero test references**.
+
+**The guard.** `loadAcceptedBookingQuote` returns the priced quote ONLY when a `quote.accepted` names it, so
+a priced-but-never-accepted quote can never be invoiced. **Measured: replacing it with `return quote` left
+all 23 biller tests GREEN.** Billing a customer for a quote they never accepted is the failure it exists to
+prevent, and it was deletable without a signal.
+
+**THE END-TO-END TEST CANNOT BE WRITTEN, and finding that out was the useful part.** The first attempt drove
+the real flow — seed a priced quote, book against it, sign a POD — and died at the SEED:
+`VALIDATION_FAILED:{"reason":"booking_quote_not_accepted"}`. The server-side booking gate (REQ-030) refuses
+to append a booking naming an unaccepted quote at all. **That refusal is simultaneously why the biller's
+check is defence in depth and why it was invisible**: no reachable flow exercises it, so no flow-level test
+could ever have covered it.
+
+**So the unit is the only instrument.** The test now calls `loadAcceptedBookingQuote` directly: a quote with
+no acceptance returns null, and — the non-vacuity half — the SAME call resolves once the acceptance is
+seeded, so the null is the guard firing rather than the quote being unfindable. Mutation: **1 failed / 23
+passed**, naming it.
+
+**The pattern, third instance this phase.** §458's `typ` layer and §472's narrow re-check were both
+unreachable-today guards pinned so they cannot be removed as dead weight. This is the same shape on the money
+path, and it sharpens the rule: **when a guard is unreachable BECAUSE an earlier gate is doing the work,
+the flow-level test is impossible by construction — reach for the unit, or the guard stays unpinned forever.**
+A green end-to-end suite is not evidence about a branch the suite cannot enter.
+
+`workers/api` biller suite **24 passed**; `typecheck`, `lint` clean.

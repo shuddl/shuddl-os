@@ -5,7 +5,7 @@ import type { EventKind, LedgerEvent } from "@shuddl/contracts";
 import { capture, type CaptureParams, type DeviceContext, type EvidenceField } from "@shuddl/driver-core";
 import { RecordingSender, SendError, formatCents } from "@shuddl/agents";
 import type { EvidenceMessage, EvidenceSender, SendReceipt } from "@shuddl/agents";
-import { handlePodSigned, PodSignedMessage, deliveryStopGeo } from "../../agents/src/biller.js";
+import { handlePodSigned, PodSignedMessage, deliveryStopGeo, loadAcceptedBookingQuote } from "../../agents/src/biller.js";
 import type { BillerDeps, SeqStubLike } from "../../agents/src/biller.js";
 import type { Env } from "../src/index.js";
 import {
@@ -625,6 +625,37 @@ describe("Task 7 — the invoice projects the exact accepted booking quote, not 
     // misread as interline by resolveInterline (2 distinct executors). The seeded delivery leg keeps its geo.
     await env.TENANT_A_DB.prepare("UPDATE legs SET executor_party_id = 'party-carrier' WHERE shipment_id = ?").bind(shipmentId).run();
   }
+
+    // THE BILLER'S SECOND LINE OF DEFENCE (audit §475). `loadAcceptedBookingQuote` returns the priced quote
+    // ONLY when a `quote.accepted` names it — so a priced-but-never-accepted quote can never be invoiced.
+    //
+    // MEASURED before this test: replacing that guard with `return quote` left all 23 biller tests GREEN, and
+    // `loadAcceptedBookingQuote` had ZERO test references anywhere. The booking GATE already rejects an
+    // unaccepted quote at booking time (`booking-gate.test.ts:344`), which is why this is unreachable today —
+    // and exactly why it was removable without a signal. Billing a customer for a quote they never accepted
+    // is the failure it exists to prevent; §458's rule applies (pin the guard so it cannot be deleted as
+    // dead weight).
+    it("loadAcceptedBookingQuote refuses a priced-but-UNACCEPTED quote, and returns it once accepted (REQ-031)", async () => {
+      // TESTED AS A UNIT, because the end-to-end scenario CANNOT BE BUILT: driving it through `seedBooking`
+      // throws `VALIDATION_FAILED:{"reason":"booking_quote_not_accepted"}` — the server-side booking gate
+      // (REQ-030) refuses to append a booking naming an unaccepted quote in the first place. That refusal is
+      // exactly why the biller's check is defence in depth, and why it was removable in silence: no reachable
+      // flow exercises it. The unit is the only instrument that can.
+      const shp = "t7-biller-unaccepted";
+      const quoteId = await seedQuotePricedSell(shp, 100_000); // priced, NOT accepted
+      expect(
+        await loadAcceptedBookingQuote(env.TENANT_A_DB, `s:${shp}`, quoteId),
+        "a quote with no quote.accepted naming it must not be billable",
+      ).toBeNull();
+
+      // Non-vacuity: the SAME call resolves once the acceptance exists, so the null above is the guard
+      // firing rather than the quote being unfindable.
+      await seedAccepted(shp, quoteId);
+      const resolved = await loadAcceptedBookingQuote(env.TENANT_A_DB, `s:${shp}`, quoteId);
+      expect(resolved, "an accepted quote MUST resolve — else the null above proves nothing").not.toBeNull();
+      expect(resolved?.id).toBe(quoteId);
+    });
+
 
   it("AUTHORITY CHAIN: quote A priced → accepted → booking refs A → quote B priced later → POD → the invoice equals A (never the later B)", async () => {
     const shp = "biller-t7-authority";
