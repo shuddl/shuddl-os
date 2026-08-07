@@ -27129,3 +27129,52 @@ are recorded as negatives rather than quietly dropped.
 **The phase's one sentence:** every gate has an input, and *a gate that cannot fail for lack of input is
 indistinguishable from a gate that passes* — which stayed true of eleven instruments in a build whose gates
 were green on every commit throughout.
+
+## §497 — the first pass since §496 that found nothing, and why that is the result
+
+§495 generalised to *what ambient condition does this depend on that nobody checks?* (`NODE_ENV` was one;
+§487's was `cwd`). Five probes on that question and on §495's side-effect lens. **All five came back clean**,
+each measured rather than assumed — recorded because an unexamined axis and a verified one are
+indistinguishable in a record that only lists defects.
+
+**1. What else do the tests write that another command later reads?** §495's defect was a test building into
+the deploy directory. Fingerprinted every tracked file plus `apps/*/dist`, `workers/*/dist`, `db/`,
+`artifacts/` and `tools/seed/` (50 artifacts), ran the full workspace suite AND `tools/`, re-fingerprinted:
+**zero tracked files changed**, and exactly **one** artifact — `workers/mcp/dist/api/README.md`. Benign and
+explained: that directory is produced by mcp's own `pretest` (`wrangler deploy --dry-run --outdir`) as the
+auxiliary Worker the vitest pool needs, it is **gitignored**, and the mcp worker deploys from
+`main = "src/index.ts"`, so no deploy path reads it. §495 was the only real instance.
+
+**2. Can a gate be made to pass by running it?** Three gates have a write mode that rewrites the thing they
+check (`--write` on the migration lock, `--write-ratchet` on citations). **Zero** invocations pass such a
+flag from `ci.yml` or `run-gate.ts`; both are reachable only by an explicit human command (`pnpm db:lock`,
+`pnpm check:citations --write-ratchet`). A self-satisfying gate would be the purest form of the defect this
+phase has been closing, and it does not exist here.
+
+**3. Does the prod config declare what the code binds?** Already covered, by a test that anticipated every
+lesson of this phase: `wrangler-scope-parity.test.ts` asserts **set equality** between the hand-typed
+`WORKER_CONFIGS` roster and the discovered `workers/` tree, carries a non-vacuity floor (*"no wrangler
+configs discovered — the glob is wrong, not the tree"*), and its comment records that a hardcoded
+`toHaveLength(5)` was removed **because it was blind to the failure its own name promised** (§286), with the
+measurement that proved it: a sixth worker declaring `CONTROL_DB` at top level and nothing under
+`[env.prod]` left all 251 deploy tests green.
+
+**4. Timezone — the ambient dependency `NODE_ENV` and `cwd` are instances of.** A build full of appointment
+windows, SLA sweeps and retention math is the natural home for local-time bugs, and CI runs UTC while
+development does not. Re-ran the three most date-sensitive suites at **UTC+14** (`TZ=Pacific/Kiritimati`):
+ledger 631, agents 219, rater 157 — **1,007 tests, identical results**. Then converted the behavioural
+negative into a structural one, because "the tests pass" and "the code is TZ-independent" are different
+claims: **zero local-time `Date` methods in shipped source** (`getHours`/`getDate`/`getDay`/`toLocaleDate…`).
+The only two `toLocaleString` calls are `Number` money formatting, pinned to `"en-US"`. Time is handled
+exclusively as epoch millis / UTC, **by construction rather than by luck**.
+
+**5. Did this phase's fixes leave the ledger stale?** All eleven §496 defects were closed in-session, which
+this document records with proof rather than filing as checklist rows; nothing from the phase is open, so
+nothing needed filing. The rows I went looking for *are* present under different wording ("tolerance",
+"GPU", "cross-machine"), which my first label-grep missed — **the tenth mechanical probe this phase to
+report a gap that reading disproved**, and the second where my own summary was right and my query was wrong.
+
+**Why a null result is worth a section.** §496 closed eleven defects in the instruments; if the next pass
+over adjacent surfaces had found eleven more, the phase boundary would have been arbitrary. It found none —
+across side effects, self-satisfying gates, deploy-config parity, timezone, and the record itself. That is
+the evidence that §496 was a real boundary and not a pause.
