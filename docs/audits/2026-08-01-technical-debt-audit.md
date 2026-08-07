@@ -187,6 +187,29 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 
 ## §4 — Phase gating and the stopping point
 
+**START HERE. Eight phases have closed; each has one gate section carrying its own exit numbers and reopen
+triggers.** This table is the index — read the row you need, not the ten paragraphs below it.
+
+| phase | sections | gate | what it closed |
+|---|---|---|---|
+| 1 | §483–§495 | **§496** | the GATE SURFACE — 11 defects, 3 High (a REPLACE writable in `tools/`, the invariants gate certifying an empty set, a test shipping React's dev bundle to `dist`) |
+| 2 | §497–§500 | **§501** | the STANDING BOUNDS — zero-reference exports and duplicated logic discharged; a money guard nothing watched |
+| 3 | §502–§504 | **§504** | SQL guards · error handling · tenant isolation — zero defects, each verified by mutation |
+| 4 | §505–§511 | **§512** | the RECORD and the ARTIFACTS — a TypeScript file binary to git, 22 dangling `§N` pointers, a stale entry table |
+| 5 | §513–§516 | **§516** | the PRODUCTION POSTURE and the do-not-build list — 3 of 5 prod holds measured, not trusted |
+| — | §521 | **§521** | **THE STOPPING POINT** — the full `verify:merge` RUN: 19 PASS · 5 BLOCKED · 2 FAIL, both FAILs one uncommitted row |
+| 6 | §522–§526 | **§527** | the INSTRUMENTS — every zero-result claim controlled, enumerated, mutated or dispatch-read |
+| 7 | §528–§533 | **§534** | CLAUDE.md's TEN RULES — five mutation-controlled, none left at "presumably fine" |
+| 8 | §535–§537 | **§538** | genesis/10's I1–I8 — eight of eight; both authorities now fully accounted |
+
+**Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
+failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
+FAILs, proven by removing it) plus five gates BLOCKED on private fixtures that live in the engagement
+workspace. §521 tables every remaining hold with its owner.
+
+*(The blocks below are each phase's note as written at the time, kept rather than collapsed — they are the
+record of what was found when. The table above is the way in; §507 is why it exists.)*
+
 > **PHASE 8 CLOSED — §538 is the phase gate for §535–§537: genesis/10's I1–I8.** With §534's ten, BOTH
 > authorities in the source-of-truth order are now fully accounted — **18 members, none at "presumably
 > fine"**: 12 mutation-controlled, 1 structural, 3 gate-measured, 1 BLOCKED on absent fixtures, 1 process.
@@ -28882,3 +28905,28 @@ reason a law needs a mutation rather than a reviewer.
 
 **The phase's one sentence.** Eighteen laws, and the work was never proving them true — it was proving that
 something in the repository would notice if they stopped being true.
+
+## §539 — the entry I broke while fixing entries
+
+§507 fixed the START HERE table and drew the rule: *a record nobody can navigate is indistinguishable from
+one that says nothing.* Since then I closed eight phases and **prepended a routing paragraph to §4 for each
+one**. §4's head reached **58 quoted lines across ten stacked blocks** — so a reader following the entry
+table's *"What is the current measured state?"* arrow landed on ten paragraphs of history before any state.
+
+**Each block was correct. The stack was the defect**, and it grew one commit at a time, each addition
+locally reasonable and none of them looking at the whole.
+
+**Replaced with a nine-row index** — phase, sections, gate, what it closed — plus the current measured state
+in four lines. The prose blocks are **kept, not collapsed**: they are what each phase found *at the time*,
+and this document's supersede-in-place convention exists precisely so a stale-looking note is marked rather
+than deleted. The table is the way in; the blocks remain the record.
+
+**Why this is the same defect as §510's, not a tidying job.** There, a source file was fine and its diff was
+unreadable. Here, eight phase gates are individually accurate and the path to them was ten paragraphs deep.
+**In both cases the artifact was correct and the access to it was broken** — and in both cases every gate in
+the build stayed green throughout, because no gate measures whether a human can find anything.
+
+**The pattern worth naming: a fix applied N times becomes its own problem.** §507's remedy was "point at the
+section that maintains itself." I then maintained that section by *prepending*, which is the one operation
+that degrades an entry point monotonically. The corrected form is what the table does — **the newest phase
+is a row, not a new paragraph** — so the tenth phase costs a reader one line instead of six.
