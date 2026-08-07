@@ -202,6 +202,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 7 | §528–§533 | **§534** | CLAUDE.md's TEN RULES — five mutation-controlled, none left at "presumably fine" |
 | 8 | §535–§537 | **§538** | genesis/10's I1–I8 — eight of eight; both authorities now fully accounted |
 | 9 | §539–§541 | **§542** | the RECORD'S NAVIGABILITY — three self-inflicted entry defects; the index is now derived-checked against the headings |
+| 10 | §543–§545 | **§546** | the EXIT STATE — I shipped a type error and reported green twice; `verify:merge` is the only verdict that is an exit state |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -29114,3 +29115,37 @@ slipped through"*, and the accurate one is *"a type error was caught by the gate
 attempt used a naive `//`-strip and died on a block comment. The quote-aware stripper written to stop a lint
 flagging its own documentation is now the third instrument in this session for reading a file the way its
 parser does (§528 for projections, §529 for concatenated SQL, here for JSONC).
+
+## §546 — PHASE GATE: the exit state, and what a green certifies
+
+**Scope (§543–§545).** Nine phases audited the build, its instruments and its record. This one was forced by
+a defect of my own: **I shipped a type error and reported green over it, twice.**
+
+| # | finding | closed by |
+|---|---|---|
+| 1 | `phase-index.test.ts` (§541) did not typecheck — and §541 and §542 both stated an exit state including `typecheck · lint` while running neither | §543 — fixed, and the process error named |
+| 2 | The exit state on record had been measured against the broken tree | §544 — re-run: **19 PASS · 5 BLOCKED · 2 FAIL**, both FAILs re-attributed on the current tree |
+| 3 | Could the same class hide in another workspace? | §545 — all **17** workspaces with tests have every test file inside its typecheck scope |
+
+**The defect was not the type error.** It was substituting a per-gate sweep for a profile run and then
+writing the profile's sentence. Every gate I ran was green; the tree was broken; both statements were true
+at once. **§484 named that shape — a green certifies what it measured — and this is the record producing it
+from the inside, about itself.**
+
+**The correction is mechanical, and it is the phase's one rule:** `verify:merge` is the only command whose
+verdict is an exit state. A per-gate sweep is a convenience for iteration. **Writing "N gates PASS" from
+anything else is how a list acquires an item nobody checked**, and the item it acquires is, reliably, the one
+that would have failed.
+
+**What §545 settles about §543.** The careless reading is *"a type error slipped through."* The measured one
+is *"a type error was caught by the gate I did not run"* — and no workspace hides its tests from the
+compiler, so that remains true anywhere it could recur.
+
+### Exit state
+
+From §544's profile run on the fixed tree, unchanged by the documentation-only commits since (each verified
+against `check:citations`, `check:tables`, `check:section-refs`, `typecheck` and `lint`):
+
+**19 PASS · 5 BLOCKED · 2 FAIL** — both FAILs the uncommitted `REQ-289` GTM register row, proven by removing
+it (`unit-tests` exits 0 with zero failing tests, `coverage` exits 0); all five BLOCKED are the absent
+private fixtures and the unset `IDENTITY_DENYLIST` secret, each blocking rather than passing.
