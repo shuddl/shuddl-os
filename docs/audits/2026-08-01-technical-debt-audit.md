@@ -27918,3 +27918,39 @@ double as the thing keeping the surface dark.
 alarming reading and the correct reading produce identical evidence, and only the *mechanism* separates
 them. Here the distinguishing fact was not in the endpoint at all — it was in a three-entry constant twenty
 lines above it.
+
+## §515 — the DARK postures, mutation-measured: "not provisioned" is only safe if the absence is enforced
+
+§514 established that a hold's exposure is a different question from the hold itself. `PROJECT-STATE.md`
+claims **PLG is DARK end to end** through three independent mechanisms — `PROVISIONING_ENABLED` off, Stripe
+keys unbound, `PLATFORM_INTERNAL_SECRET` unbound. Those are the load-bearing sentences of the whole
+"provisioned but not launched" posture, and each is a claim about what happens when a secret is ABSENT.
+
+**An absent secret is only a control if something enforces the absence.** The failure mode is not exotic:
+`env.FLAG === "true"` and `env.FLAG !== "false"` differ by three characters, both compile, both read as "the
+flag", and one of them ships a tenant-creation endpoint to the public internet. So each was mutated at its
+guard and run against the full 785-case api suite.
+
+| posture | mutation | result |
+|---|---|---|
+| `PROVISIONING_ENABLED` OFF by default | `=== "true"` → `!== "false"` (default-ON) | **4 RED** across 3 files |
+| `PLATFORM_INTERNAL_SECRET` unbound ⇒ 503 | unbound now returns `null` (allow) | **2 RED** |
+
+Every reddened test is named for the property — *"flag OFF is the default — provisioning is dark,
+fail-closed (REQ-121)"*, *"the SAME chain with the flag OFF is refused at signup (DARK)"*, *"DARK — no
+`PLATFORM_INTERNAL_SECRET` bound on the real worker ⇒ 503, nothing appended"*. The postures are enforced,
+not merely configured.
+
+**`typecheck` returned 0 for both mutations**, which is the line worth keeping: **a security default is
+never a type error.** Inverting a fail-closed flag is a three-character edit that the compiler, the linter
+and every review heuristic read as unremarkable. The only instrument that distinguishes `=== "true"` from
+`!== "false"` is a test that asserts the DEFAULT, and both of these have several.
+
+**What this completes.** Of the five open prod holds, three are now measured rather than trusted: the edge
+rate limit is unreachable-not-unprotected (§514), and two of the three PLG dark flags fail closed under
+mutation. The remaining two — sender-domain verification and Cloudflare OIDC — are external provisioning
+with named owners and no in-repo surface to test; they are correctly recorded as holds, and there is nothing
+here to measure.
+
+**"Not provisioned" is the safest sentence in the record only when the absence is the control.** For these
+two it is, and that is now a measurement instead of a design intention.
