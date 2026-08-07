@@ -28597,3 +28597,51 @@ number the comparison uses.**
 rule 2 (append-only, §487), rule 3 (server-side gates, §492's nine kinds), rule 4 (no price on air, §531),
 and rule 5 here. Rules 6 and 9 are BLOCKED or process; rules 1, 7, 8 and 10 are gate-enforced and were
 measured in earlier phases.
+
+## §533 — rule 10 controlled: an unmapped legacy column cannot vanish
+
+CLAUDE.md's tenth rule is the Migrator's data-integrity law: *"No silent drops in migration: any legacy
+column (171-col export) that doesn't map raises a gap row — never disappears."* It is the rule that decides
+whether a tenant's history survives cutover, and it is the last of the ten with an in-repo artifact this
+session had not controlled.
+
+**The mechanism** is `migrator.ts`'s three-way `ColumnDecision` — `apply` above the confidence floor,
+`review` below it, `unmapped` when the synonym table has no hit — with every non-`apply` column pushed onto
+`gapRows`, *"the no-silent-drop ledger"*. A weak guess is routed to review **and its values retained**, so a
+low-confidence match never silently rewrites a field either.
+
+**Controlled by making unmapped columns vanish** — `if (false)` on the `gapRows.push` for `reason:
+"unmapped"`:
+
+| suite | REDs |
+|---|---|
+| `@shuddl/adapters` (owner) | **1** |
+| `@shuddl/api` (consumer, per §530) | **1** |
+
+The reddened test is named for the law itself: *"THE LAW — a rate sheet flags EVERY non-rate column + the
+unconsumed rows (no silent drop)"*, alongside `legacy-mirror.test.ts`'s *"THE LAW — continuous
+no-silent-drop: every unmapped column is a gap row"*. **`typecheck` returned 0** — a silent data drop is
+never a type error, which is the same observation §515 made about security defaults and is why the mutation
+is the only instrument that speaks here.
+
+**One observer per suite is thin, and it is the right thinness.** §492 established that a count measures how
+many tests *observe* a property, not how well it is tested; a law with one test that is explicitly ABOUT the
+law is stronger than five that catch it incidentally (§529's five slot-index side effects). Both of these
+name the rule in their title.
+
+### CLAUDE.md's ten rules — controlled status at this stopping point
+
+| rule | artifact | status |
+|---|---|---|
+| 2 · events append-only | `invariants.ts` floor + guard triggers | **controlled** §487 |
+| 3 · gates server-side | 9 gated kinds | **controlled** §492 |
+| 4 · no price on air | the 504-cell sweep | **controlled** §531 |
+| 5 · interline floors on the share | the $222,084 regression | **controlled** §532 |
+| 10 · no silent drops | the gap-row ledger | **controlled** §533 |
+| 1 · PR REQ-IDs · 7 · design CI · 8 · tenant isolation | gates | measured in earlier phases (§521 run, §258, §504) |
+| 6 · fixtures gate merges | private fixtures | **BLOCKED** — five gates, unvendored |
+| 9 · adversarial audit at WP exit | process | not a code artifact |
+
+**Five of ten now have a mutation proving the artifact can fail**, three more are gate-measured, one is
+blocked on inputs that do not ship, and one is a process rule. That is the complete accounting, and it is
+the form in which "the laws hold" stops being a sentence and becomes a measurement.
