@@ -117,6 +117,29 @@ async function listTenderMarkers(r2: R2Bucket, tenant: string): Promise<{ key: s
   return out;
 }
 
+// SENT-MARKER PRE-LIST (audit §472). The loop below checked idempotency with ONE `r2.head` per marker — the
+// same N+1 shape §471 fixed on the SLA sweep, and it dominates the COMMON case: a re-run where everything has
+// already gone out does N heads and zero puts. One prefix list (up to 1000 keys per page) replaces them.
+//
+// THE HEAD IS NOT REMOVED, and that is deliberate. A pure pre-list would WIDEN the window in which a
+// concurrent sweep's marker is missed — and `scheduled()` gets no mutual exclusion from Cloudflare, which is
+// exactly the standing "cron sweeps double-fire" hold (High, latent only because NotConfiguredTransport
+// transmits nothing). Trading a live subrequest-cap failure for a worse latent double-SEND is not an
+// improvement. So the list skips the already-sent BULK, and the survivors still take a fresh `head`
+// immediately before allocating a control number: the narrow window stays exactly where a send can happen.
+async function listSentMarkerKeys(r2: R2Bucket, tenant: string): Promise<Set<string>> {
+  const prefix = sent214Key(tenant, "");
+  const keys = new Set<string>();
+  let cursor: string | undefined;
+  for (;;) {
+    const page = await r2.list(cursor !== undefined ? { prefix, cursor } : { prefix });
+    for (const obj of page.objects) keys.add(obj.key);
+    if (!page.truncated) break;
+    cursor = page.cursor;
+  }
+  return keys;
+}
+
 async function readTenderMarker(r2: R2Bucket, key: string): Promise<TenderMarker | null> {
   const obj = await r2.get(key);
   if (obj === null) return null;
@@ -146,6 +169,7 @@ export async function sweepTenant214(
     tenant, scanned: 0, transmitted: 0, alreadySent: 0, uncertified: 0, noPartner: 0, noStatus: 0, malformed: 0, failed: 0,
   };
   const markers = await listTenderMarkers(r2, tenant);
+  const sentKeys = await listSentMarkerKeys(r2, tenant); // audit §472 — one list replaces N heads
   for (const { key, shipmentId } of markers) {
     summary.scanned += 1;
     try {
@@ -203,6 +227,13 @@ export async function sweepTenant214(
       // Idempotency: the sent-marker's PRESENCE means this exact newest-status 214 already went out. Checked
       // BEFORE allocation so a re-run does NOT burn a control number for an already-transmitted shipment.
       const sentKey = sent214Key(tenant, dedupeKey);
+      // Bulk skip from the ONE prefix list (audit §472) — no subrequest per already-sent marker.
+      if (sentKeys.has(sentKey)) {
+        summary.alreadySent += 1;
+        continue;
+      }
+      // SURVIVORS ONLY take a fresh head — the narrow re-check that keeps the double-send window exactly as
+      // tight as before the pre-list, on the only path where a send can actually happen.
       if ((await r2.head(sentKey)) !== null) {
         summary.alreadySent += 1;
         continue;

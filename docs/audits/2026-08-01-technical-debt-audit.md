@@ -11190,7 +11190,7 @@ It was a result about 39% of the code. Two genuine N+1s were in the blind 61%, b
   has no `LIMIT`) and then issues **one D1 query per row** to ask whether each was answered. This
   compounds §133 exactly: a **daily** cron policing a **four-hour** SLA accumulates ~19 hours of overdue
   rows per tick, and then N+1s over them.
-- **`workers/translator/src/sweep-214.ts:205@sentKey`** — an `r2.put` **per marker**, over a list that is
+- **`workers/translator/src/sweep-214.ts:229@sentKey`** — an `r2.put` **per marker**, over a list that is
   itself paginated (so the marker set is unbounded by construction).
 
 Workers cap subrequests per invocation, so these fail hard at volume rather than slowing down — the
@@ -12544,7 +12544,7 @@ one until this section.
 At-least-once is the ordinary, acceptable contract for a webhook: the payload carries an event id and the
 consumer dedupes. The 214 path **destroys the receiver's ability to do that** — the dedupe check is
 deliberately made *before* control-number allocation
-(`workers/translator/src/sweep-214.ts:214@allocatePartnerControls`), so each concurrent attempt
+(`workers/translator/src/sweep-214.ts:245@allocatePartnerControls`), so each concurrent attempt
 allocates a **fresh ISA13/GS06**. The partner's VAN therefore receives two interchanges with different
 control numbers and no way to recognise them as the same status message. The design decision that protects
 a *retry* from burning a number is the same one that makes a *race* undetectable downstream.
@@ -12557,7 +12557,7 @@ unbuilt. **So there is no duplicate in production today, and this is not a Criti
 someone wires either transport — which is precisely the change during which nobody re-reads the sweep's
 concurrency properties, because the sweep is "finished and tested."
 
-`workers/translator/src/sweep-214.ts:218@VAN` already carries a *"NOTE for the future live VAN/AS2 adapter"* about a **different**
+`workers/translator/src/sweep-214.ts:249@VAN` already carries a *"NOTE for the future live VAN/AS2 adapter"* about a **different**
 dedupe hazard (a bare `dedupeKey` colliding cross-partner). The author was writing notes to exactly the
 right future reader and recorded the key-scoping hazard while the concurrency one went unstated.
 
@@ -26032,3 +26032,37 @@ that is not in the projection) were all caught by the runner naming them.
 `workers/api` **778 passed**, `packages/agents` **219**, `typecheck`, `lint` clean. The GO-LIVE row is
 updated to **HALF FIXED** — `sweep-214`'s per-marker `r2.put` is untouched and stays open, because an R2
 write cannot be batched the way a D1 read can and the fix there is a different shape.
+
+## §472 — the second N+1, and a filed reason that was half wrong
+
+§471 fixed the SLA sweep and filed `sweep-214` with a reason: *"an R2 write cannot be batched the way a D1
+read can."* §467's rule says a filed reason is a claim, so it was read rather than inherited — and it is
+**half right**. The per-marker cost is TWO subrequests: an `r2.head(sentKey)` idempotency probe **and** the
+put. The put is genuinely per-transmission and bounded by real work. **The head is the same N+1 shape, and it
+dominates the common case** — a re-run where everything has already gone out does N heads and zero puts.
+
+**One prefix list replaces N heads.** `sent214Key` shares `edi/{tenant}/214/`, and the module already had the
+paginated cursor idiom in `listTenderMarkers`.
+
+**THE HEAD IS NOT REMOVED, AND THAT IS THE POINT.** A pure pre-list would WIDEN the window in which a
+concurrent sweep's marker is missed — and `scheduled()` gets no mutual exclusion from Cloudflare, which is
+precisely the standing *"cron sweeps double-fire"* hold (High, latent only because `NotConfiguredTransport`
+transmits nothing, §379). **Trading a live subrequest-cap failure for a worse latent double-SEND is not an
+optimisation.** So the list skips the already-sent BULK and the survivors still take a fresh head before a
+control number is allocated: the narrow window stays exactly where a send can happen.
+
+**Three mutations, and the informative one is the pair.** Disabling BOTH checks gives **1 failed** — the test
+*"a second run transmits NOTHING and burns no number"*. Disabling the bulk skip alone stays green (the
+re-check catches it); disabling the re-check alone stays green (the list catches it). **Neither half is
+individually load-bearing in a single-threaded test, and that is correct** — the re-check exists for
+concurrency no test simulates, exactly like the `typ` layer in §458. Redundancy that only shows under
+conditions the suite cannot create still has to be pinned by the pair.
+
+**I SKIPPED THE STEP I GOT RIGHT ONE SECTION EARLIER.** §471 checked the behavioural coverage BEFORE touching
+the cron path and found it in a different package. Here I refactored idempotency logic on a SEND path first
+and asked afterwards. It happened to be covered — `sweep-214.test.ts:99` pins the second-run skip — but that
+was luck, not method. **The order matters more than the outcome: knowing the tests exist is what makes a
+refactor a refactor.**
+
+`@shuddl/translator` **116 passed**; `typecheck`, `lint` clean. The GO-LIVE row moves from HALF FIXED to
+FIXED.
