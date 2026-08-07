@@ -26301,3 +26301,32 @@ is the gate knowing where it is.
 External input: 2 gates take it, both refuse to certify nothing, verified in every mode. **No gate in this
 repo can now report clean without having inspected something** — which is the property §466 discovered was
 missing and is the only one that makes the other seventeen verdicts mean anything.
+
+## §480 — the acceptance spine, verified at the product level rather than the gate level
+
+Every enumeration this phase discharged measured the REPO's health. This measures the PRODUCT's: CLAUDE.md
+names five acceptance demos that define *"done enough to show"*, and CI runs them as `test:acceptance`.
+
+**GREEN at `4d3d01a`: all 7 spine files pass**, across the five demos. The runner's own banner states the
+split honestly — *"ACCEPTANCE SPINE: GREEN … The FILMED half is the launch-gate checklist"*.
+
+**The two-tier design is the right one and is worth recording as such.** `tools/acceptance/demos.ts` declares
+per demo (1) the in-repo SPINE — the causal-chain proof, code-provable — and (2) the FILMED delta, *"the
+wall-clock / real-hardware / real-Claude / visual half the spine deliberately **refuses to fabricate**"*. A
+suite that claimed to prove demo 3 ("a real driver completes a gated stop with zero instruction") would be
+lying; one that proves the gate chain and says the rest needs a camera is not.
+
+**The runner↔manifest parity is enforced BIDIRECTIONALLY** — §465's strongest shape, present here already.
+`demos.test.ts` asserts every spine file is named in the manifest **and** *"the manifest names NO spine file
+this module does not declare"*, plus that all five doc-00 demos are declared each with ≥1 spine test AND a
+stated filmed delta. Mutation-proved: adding a spine entry without touching the manifest gives **1 failed**,
+naming the forward direction. Its header records that a prior pass found *"half of that was true"* — the
+module was imported by the runner but nothing held the manifest — which is the §428/§455 shape caught and
+closed before this audit reached it.
+
+**So the production-readiness statement has two halves, and only one is this audit's to make.** The
+code-provable half is green and its coverage is pinned in both directions against the document that describes
+it. The filmed half is an owner deliverable that the spine deliberately declines to simulate — and a demo
+that cannot be filmed yet is recorded per-demo in the manifest rather than quietly counted as passing.
+
+`test:acceptance` exit 0; `demos.test.ts` **5 passed**.
