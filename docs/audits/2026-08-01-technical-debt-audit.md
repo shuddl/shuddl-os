@@ -28560,3 +28560,40 @@ instruments that were not measuring; this is the inverse — an instrument that 
 something that was not a violation. **A green mutation has a fourth explanation beyond §389's three: the
 probe was not a counterexample.** Distinguishing it costs one read of the property being asserted, and
 skipping that read produces a "finding" against a test that is doing its job.
+
+## §532 — rule 5's permanent regression, controlled at both levels
+
+CLAUDE.md rule 5 names a specific case and calls it permanent: *"Interline floors compare the executing
+share, never gross. The $222,084/35-lb anomaly regression is permanent (REQ-040)."* Like rule 4's sweep
+(§531), it is a named artifact, and a green is a claim about the instrument until proved otherwise.
+
+**Present, green, and fixture-backed.** `packages/rater/test/anomaly.test.ts` loads
+`fixtures/anomaly/the-222084-case.json` — encoded in-repo from the QA case description, with the fixture's
+own header noting **no engagement-workspace data and no real names (REQ-167)**, which is how a permanent
+regression survives the identity rule that keeps tenant data out of the repo. 40 tests green across the
+anomaly and approval suites.
+
+**Controlled by raising the ceiling 1000×** (`DEFAULT_MAX_CENTS_PER_LB` 200,000 → 200,000,000), so a
+$222,084 quote on 35 lb no longer trips the per-pound safety net:
+
+| suite | REDs |
+|---|---|
+| `@shuddl/rater` (owner) | **6** |
+| `@shuddl/api` (consumer, per §530) | **11** |
+
+**Both levels, deliberately** — §530's rule made the consumer run non-optional, and it changes the picture:
+the detector is observed 6 times where it lives and 11 more times where it is used. A regression that only
+the owning package watched would be one refactor away from being enforced nowhere the product runs.
+
+**The reddened names carry rule 5's actual distinction**, not just the number: *"the 35-lb $222,084 quote
+flags over_per_lb — forever"*, *"the fixture's own stated expectation matches (the encoded QA case)"*, and —
+the one that is the rule rather than the anecdote — ***"the GROSS attributed to the 35-lb leg flags; the
+tenant's SHARE does NOT."*** That third test is the whole of rule 5: the anomaly is real against gross and
+absent against the executing share, so a detector comparing the wrong one would either miss the $222,084
+case or flag every legitimate interline. **The permanent regression is not the dollar figure; it is which
+number the comparison uses.**
+
+**Four of CLAUDE.md's ten rules now have their in-repo artifact controlled by mutation this session** —
+rule 2 (append-only, §487), rule 3 (server-side gates, §492's nine kinds), rule 4 (no price on air, §531),
+and rule 5 here. Rules 6 and 9 are BLOCKED or process; rules 1, 7, 8 and 10 are gate-enforced and were
+measured in earlier phases.
