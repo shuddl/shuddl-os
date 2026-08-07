@@ -186,7 +186,16 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 
 ## §4 — Phase gating and the stopping point
 
-> **RE-MEASURED 2026-08-06 (§483–§490) — the GATE SURFACE ITSELF, which no prior measurement had audited.**
+> **RE-MEASURED 2026-08-06 (§483–§492) — the GATE SURFACE ITSELF, which no prior measurement had audited.**
+> **§491–§492 carried it into the SERVER-SIDE gate dispatch (REQ-030), the part that matters most.** The
+> `GATED_KINDS`/switch exhaustiveness law was verified in both directions (adding a real ungated kind is
+> `TS2345`, removing one orphans its case with `TS2678` — they cannot desync), and **all nine gates were
+> mutation-measured against the full 782-case api suite**: every one is observed by at least one test, the
+> single zero (`osd.captured`) explained by a `.strict()` schema that refuses at the boundary before the
+> gate runs. Three gates rest on exactly one observing test and are named with a reopen trigger. **One
+> finding dissolved on inspection and is recorded as such** — "779/779 pass with the gate deleted" looked
+> like an unenforced REQ-050 and was subsumption, which produces identical evidence and the opposite
+> conclusion.
 > **Final tally: seven gates carried one convention defect.** Every prior re-measurement asked *do the gates
 > pass?*; this phase asked *can they fail?* Four could not, or not fully: `check:tables` and
 > `check:invariants` reported OK having read ZERO files — the latter certifying CLAUDE.md rule 2
