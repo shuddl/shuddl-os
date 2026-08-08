@@ -54,7 +54,7 @@ self.addEventListener("fetch", (event) => {
       fetch(req)
         .then((res) => {
           const copy = res.clone();
-          caches.open(CACHE).then((cache) => cache.put(req, copy));
+          event.waitUntil(caches.open(CACHE).then((cache) => cache.put(req, copy)));
           return res;
         })
         .catch(() => caches.match(req).then((hit) => hit || caches.match("/index.html"))),
@@ -69,7 +69,7 @@ self.addEventListener("fetch", (event) => {
       return fetch(req).then((res) => {
         if (res.ok && res.type === "basic") {
           const copy = res.clone();
-          caches.open(CACHE).then((cache) => cache.put(req, copy));
+          event.waitUntil(caches.open(CACHE).then((cache) => cache.put(req, copy)));
         }
         return res;
       });

@@ -356,6 +356,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 161 | §713 | **§714** | **Tested my own claim and it was false on 1 of 19.** §713 asserted *"every guarantee was individually mutation-proved"*; enumerating the session diff (3 added, 16 modified) found **`tools/design/audit.ts` never proved** — §698 widened the corpus to `apps/**/*.js` and verified only that the gate stayed **exit 0**, which shows the change is harmless, not that it does anything. **M233** plants a raw hex in a `.js` and it fires. Why it slipped: an assertion invites *"can it fail?"*; a **corpus widening reads as config**, and *"the gate still passes"* answers the wrong question |
 | 162 | §714 | **§715** | **All nine corpus widenings now probed — two were not.** §714's rule applied as a sweep: seven of nine had a probe in the region they added; **both misses were §698's** (`apps/**/*.js` → M233, `apps/*/src/**/*.ts` → **M234**, planted here and firing). Not a coincidence: §698 framed itself as *closing a class by measurement, not by building a gate*, so its two glob edits were incidental to the story and never read as new guarantees. **A phase that thinks of itself as measuring will not instinctively verify what it builds** — the narrative decides which reflex fires |
 | 163 | §715 | **§716** | **DEFECT in my own exclusion — the mirror question, asked eleven phases late.** §705 ignored `*.test.*` wholesale for the promise rules, justified by **9 `no-misused-promises`** violations (`waitFor(async…)`). That evidence said nothing about **`no-floating-promises`**, which went off with it. Measured: `work().then(n => expect(n).toBe(999))` in a test → **eslint 0 violations, test 1 passed** — §713's own worst case, *a test WITH assertions that cannot fail*. Split so tests keep floating-promises and lose only misused; M235 fires, the idiom still allowed. **An exclusion inherits the scope of the file, not of its evidence** |
+| 164 | §716 | **§717** | **DEFECT — the driver's offline cache write could be dropped (REQ-061).** `eslint.config.mjs:10` ignores `apps/*/public/**`, where the hand-rolled service worker lives. Both `caches.open(CACHE).then(c => c.put(req, copy))` calls were **unretained** — a SW may be killed once it has responded, so the write that populates the cache can vanish. `SHELL` precaches only 4 entries; **the hashed bundles are cached on first fetch**, i.e. by the dropped write — so an offline open serves `/index.html` whose `<script>` misses. Fixed with `event.waitUntil`; e2e 6/6. Three phases hardened the promise rule *around* the one tree it cannot see |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -40180,3 +40181,67 @@ catches that?*
   will fire, which is correct; the exemption is scoped to `*.test.*` by path, not by idiom.
 - Another blanket `ignores` is added → ask §715's question in the same phase. This one sat for eleven phases
   because the exclusion looked like the finding's conclusion rather than a change of its own.
+
+## §717 — PHASE GATE: the driver's offline cache write could be dropped
+
+**Subject.** §716 fixed a floating promise hidden by an exclusion. §715's mirror question sends the same
+inspection at the **global** ignore list — and `eslint.config.mjs:10` excludes `apps/*/public/**` from
+linting entirely. That is where the driver PWA's hand-rolled service worker lives.
+
+### The defect
+
+`sw.js` retains its lifecycle work correctly — `event.waitUntil` on `install` and `activate`,
+`event.respondWith` on `fetch`. But **both cache writes were unretained**:
+
+```js
+caches.open(CACHE).then((cache) => cache.put(req, copy));   // lines 57 and 72
+```
+
+A service worker may be terminated as soon as it has responded. Work not held by `event.waitUntil()` is not
+guaranteed to finish, so **the write that populates the cache can be dropped after the response is served.**
+
+### Why it matters here specifically
+
+`SHELL` precaches **four** entries: `/`, `/index.html`, `/manifest.webmanifest`, `/icon.svg`. The **hashed
+JS/CSS bundles are not precached** — the comment says so (*"cache-first (hashed names never go stale),
+populate the cache on first fetch"*). Populating the cache on first fetch **is** the dropped write.
+
+So the failure is: the driver opens offline, `/index.html` loads from precache, and its
+`<script src="/assets/index-<hash>.js">` **misses**. The shell renders nothing. REQ-061's entire premise is
+that the driver works with no network, and the mechanism that makes it true is the one that could silently
+not happen.
+
+### Where the discipline stopped
+
+§705 put `no-floating-promises` on `apps/*/src/**`. §716 extended it to test files after finding an exclusion
+wider than its evidence. **Neither reached `apps/*/public/**`, which the config ignores globally** — so the
+one floating promise in this repo with a real user-facing consequence sat in the only tree the rule cannot
+see, while three phases hardened the rule around it.
+
+The global ignore is not wrong: `public/` is static assets, and `sw.js` is the exception that is *shipped
+code* living there. **A directory-shaped exclusion cannot see that distinction**, which is §673's lesson
+(path-keyed rules) meeting §716's (exclusions outrun their evidence).
+
+### Closed
+
+Both writes are now `event.waitUntil(caches.open(CACHE).then((cache) => cache.put(req, copy)))`. Syntax
+checked with `node --check`; `lint` 0; the **e2e gate passes at 6/6 in merge mode**, including
+`driver-offline-sync.spec.ts`.
+
+**Honest about the proof:** the e2e suite green means the fix broke nothing. It does **not** demonstrate the
+dropped write, because reproducing it requires terminating a service worker mid-flight — which is what the
+**airplane-mode soak** fixture exists for, and that fixture is one of the five owner-held holds
+(`fixtures/manifest.json`, `status: pending`). The correctness argument here rests on the platform contract
+(`waitUntil` is how a SW retains work), not on a test that can run today.
+
+### Exit state
+
+`sw.js` 2 lines changed; lint 0; typecheck 0; `test:tools` **980**; e2e 6/6.
+**26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, exit 2** at `e194d87`.
+
+**Reopen triggers**
+- `apps/*/public/**` gains another executable file → still unlinted, and this section is the argument for
+  looking at it by hand. Narrowing the global ignore to exclude `sw.js` is possible but would lint a
+  no-build-step file against a config that assumes bundling — measured cost, not yet paid.
+- The airplane-mode soak fixture is vendored → **this fix becomes testable**, and it is the first thing that
+  soak should be pointed at.
