@@ -157,3 +157,56 @@ describe("LegacyMirrorConfigSchema — a bad config is a hard reject at the boun
     expect(() => LegacyMirrorConfigSchema.parse(rest)).toThrow();
   });
 });
+
+// ─── REQ-118 §676 — TWO OF THE FOUR QUARANTINE REASONS COULD DROP A ROW IN SILENCE. ───────────────────
+//
+// §310 proved CLAUDE.md's tenth engineering rule with ONE mutation ("an unmapped column raises nothing").
+// That is a CLASS-level proof, and §466's rule is that a class result says nothing about its members. This
+// mirror names four ways a row can fail to map — `unknown_type | missing_field | bad_value | bad_cursor` —
+// and states the law on MirrorRecord itself: "one per data row … exactly one, never a drop."
+//
+// Measured member by member, by DELETING each quarantine call so the row is skipped in silence:
+//
+//   unknown_type   → 1 test here + 3 in workers/agents fire
+//   missing_field  → fires
+//   bad_cursor     → packages/adapters 38/38 AND workers/agents 122/122 GREEN
+//   bad_value      → 38/38 green — and disabling BOTH integer guards is still 38/38, so it is a real gap
+//                    rather than one guard covering the other. Checked, because the pair looked like
+//                    defense-in-depth and §531's fourth explanation would have made it a non-finding.
+//
+// The consequence is invisible by construction: a legacy row whose watermark cannot be parsed simply never
+// arrives — no event, no gap row, no quarantine, no counter. The incumbent's record is gone and the sweep
+// reports clean. `bad_value` is worse in kind: with both guards gone a non-integer amount becomes `NaN` and
+// is APPLIED, so a mirrored invoice carries a corrupt total instead of being held.
+//
+// Asserted on the RECORD COUNT, which is where the law actually lives. A silent `continue` produces zero of
+// everything — indistinguishable from an empty feed — so counting rows is the only assertion that can tell
+// "held" from "gone".
+describe("THE LAW — no-silent-drop, member by member: every quarantine reason is reachable and observed", () => {
+  const HEADER = "rec_id,rec_type,feed_seq,shuddl_ref,ship_ref,amount_cents,driver_ref,facility_ref,slot_ref,win_start_ms,win_end_ms,misc_note,legacy_status";
+  const sheet = (...rows: string[]): string => [HEADER, ...rows].join("\n");
+
+  it("a row whose cursor cannot be parsed is QUARANTINED, never skipped (bad_cursor)", () => {
+    const r = mapLegacyExport(parseSheet(sheet("R-9001,RATE,not-a-number,,SH-9001,120000,,,,,,,")), CONFIG);
+    expect(r.records, "one data row must yield exactly one record — a skipped row IS the silent drop").toHaveLength(1);
+    expect(r.records[0]?.quarantine?.reason).toBe("bad_cursor");
+    expect(r.records[0]?.event, "a row that cannot be watermarked must not also append").toBeUndefined();
+    expect(r.records[0]?.cursor, "an unparseable cursor stays null so the watermark cannot advance past it").toBeNull();
+  });
+
+  it("a required integer field that is not an integer is QUARANTINED, never applied as NaN (bad_value)", () => {
+    const r = mapLegacyExport(parseSheet(sheet("R-9002,RATE,9,,SH-9002,twelve-fifty,,,,,,,")), CONFIG);
+    expect(r.records).toHaveLength(1);
+    expect(r.records[0]?.quarantine?.reason).toBe("bad_value");
+    // The half that makes this worse than a drop: asserted on the ABSENCE OF AN EVENT, not merely on the
+    // presence of a quarantine, because the failure mode is a corrupt value being applied.
+    expect(r.records[0]?.event, "a row with a bad required value must not price at all").toBeUndefined();
+  });
+
+  it("the honest row still maps (non-vacuity — the rejections above must mean the BAD cell)", () => {
+    const r = mapLegacyExport(parseSheet(sheet("R-9003,RATE,11,,SH-9003,120000,,,,,,,")), CONFIG);
+    expect(r.records).toHaveLength(1);
+    expect(r.records[0]?.quarantine).toBeUndefined();
+    expect(r.records[0]?.event?.kind).toBe("quote.priced");
+  });
+});

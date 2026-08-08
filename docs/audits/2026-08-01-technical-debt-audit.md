@@ -315,6 +315,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 120 | §672 | **§673** | **DEFECT — §650's rule reached four callers and the fifth was the visual gate.** 36 filesystem enumerators → 17 can see untracked copies (`git ls-files` cannot) → 13 unfiltered. Rather than fix 13, each was MEASURED by planting a real collision copy: **1 of 13 breaks.** `visual-corpus` asserts SET EQUALITY between a glob and a registry, so an extra file is a divergence by construction — `command 2.png` failed two tests, reporting a canonical screen as untested. Written at §608, before §650's rule existed. Filter shared not re-authored; proved precise (a genuine extra still fails) and non-silent via a temp-dir fixture |
 | 121 | §673 | **§674** | **The measurement stopped a harmful fix.** 50 source scanners, 5 strip comments. `rater-purity` is immune (parses imports); the **design audit is not** — a comment reading "the old brand colour was #ff0000" takes the BLOCKING gate to exit 1, while `auditColor`'s two sibling checks were deliberately hardened. The obvious repair (reuse `stripComments`) was measured first: it is a TS stripper, and CSS `url(https://…)` puts it in line-comment state, **blanking a real `color: #ff0000` after it**. Pinned the boundary; left the design judgment to `genesis/07`. Also: `check:design` doesn't exist — pnpm exits 1 silently, faking a red baseline |
 | 122 | §674 | **§675** | **STOPPING POINT — the uneven-discipline vein is worked out.** Non-vacuity floors: 36 scanning gate files, **0 gaps** (all four no-signal candidates survive reading; the regex false-negatived two). Trilogy total: 2 defects + 1 prevented from 100+ candidates, and §674's best output was a fix NOT made — §296's spent-line signal. Gate **re-measured at `b97687b`, not restated: 26 gates, 21 PASS · 0 FAIL · 5 BLOCKED.** §663–§675 = 12 phases, 17 commits, 6 defects closed; contracts 291→304, ledger 634→661, tools 949→958 |
+| 123 | §675 | **§676** | **DEFECT ×2 — a law proved once had four members, two unguarded.** §310 proved the ten laws with ONE mutation each; §466 says that says nothing about members. eng.3: nine gated transitions, **9/9 fire** (§310 understated it). eng.10: the mirror's four quarantine reasons — deleting each call so the row is skipped in silence — **`bad_cursor` and `bad_value` left adapters 38/38 AND agents 122/122 green.** A silent `continue` produces zero of everything, identical to an empty feed; `bad_value` is worse, applying `NaN` as a mirrored invoice total. `bad_value` nearly dismissed as defense-in-depth — disabling BOTH guards proved it real |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -37588,3 +37589,81 @@ that live outside this repository, and the working tree's only diff is another w
   status**, and five of these twenty-six have never had one.
 - *Structural:* a new migration's constraints start unmeasured, and nothing reports which layer carries a
   guarantee when two are declared (§669's middle row).
+
+## §676 — PHASE GATE: the ten laws were proved once each, and one law had four members
+
+**Subject.** §675 closed the uneven-discipline vein, so this opens a different one. §310 mutation-proved
+CLAUDE.md's ten engineering laws — **one mutation each**. That is a class-level proof, and §466's rule is
+that a class result says nothing about its members. Which laws have members?
+
+### eng.3 (gates are server-side) — nine members, nine clean
+
+`#enforceTransitionGate` switches on nine kinds. §310 proved the law with a single invoice-gate mutation,
+which is not even in this switch. Each case label was renamed to `"<kind>__ungated"` — leaving the file valid
+and the kind ungated — and every one fires:
+
+```
+stop.departed 6 · delivery.evidenced 9 · custody.transferred 7 · osd.captured 2 · exception.raised 6
+stop.arrived 41 · appointment.set 13 · booking.created 39 · dispatch.assigned 9
+```
+
+Nine members, nine defended. §310 understated its own result.
+
+### eng.10 (no silent drops) — four members, two of them unguarded
+
+The migrator's third gap reason `duplicate_field` — which §310 never touched — fires 3 tests. But the
+**continuous mirror** names four ways a row can fail to map, and states the law on `MirrorRecord` itself:
+*"one per data row … exactly one, never a drop."* Each quarantine call was **deleted**, so the row is skipped
+in silence:
+
+| reason | result |
+|---|---|
+| `unknown_type` | 1 test here + 3 in `workers/agents` fire |
+| `missing_field` | fires |
+| **`bad_cursor`** | `packages/adapters` **38/38** and `workers/agents` **122/122** green |
+| **`bad_value`** | **38/38** green |
+
+**`bad_value` was very nearly recorded as a non-finding.** Two integer guards sit next to each other, and
+disabling the first leaves `NaN`, which the second would catch — §531's fourth explanation, and the reason
+this pair *looks* like defense in depth. Disabling **both** is still 38/38, so it is a genuine gap. The check
+cost one extra run and was the difference between a defect and a false alarm.
+
+### Why these two matter more than their size suggests
+
+A silent `continue` produces **zero of everything** — no event, no gap row, no quarantine, no counter — which
+is byte-for-byte what an empty feed looks like. The incumbent's row is gone and the sweep reports clean. There
+is no signal to notice and nothing to correct, which is precisely the shape rule 10 exists to forbid.
+
+`bad_value` is worse in kind. With both guards gone, a non-integer amount becomes `NaN` and is **applied** —
+so a mirrored invoice carries a corrupt total rather than being held. A drop loses a record; this one keeps it
+and lies about it.
+
+### Closed
+
+Three assertions in the file that owns the mirror, **keyed on the record count**, because that is where the
+law lives: one data row must yield exactly one record, and a skipped row *is* the silent drop. The third is a
+non-vacuity guard — an honest row still maps — so the two rejections cannot pass for the wrong reason. The
+`bad_value` case additionally asserts **no event was produced**, since the failure mode there is a corrupt
+value being applied rather than a record vanishing.
+
+**M193b** deletes the `bad_cursor` quarantine and its test fires; **M196b** disables both integer guards and
+its test fires. Both restored byte-identical.
+
+### A repeat mistake
+
+`eval "cd packages/adapters && …"` ran the `cd` in the current shell and the following restore resolved
+against the wrong directory — **the identical bug §669 recorded**, repeated four phases later. Recovered via
+`git status` and the `/tmp` snapshot. Writing a lesson down is not the same as having the habit; the durable
+fix is that every suite invocation in this audit now runs in an explicit subshell.
+
+### Exit state
+
+`packages/adapters` 38 → **41**; typecheck 0; `legacy-mirror.ts` restored byte-identical.
+**26 gates — 21 PASS · 0 FAIL · 5 BLOCKED** (§675, measured at `b97687b`; this phase adds tests only).
+
+**Reopen triggers**
+- A fifth `MirrorQuarantineReason` is added → it starts unmeasured. The four are now each named by a test,
+  but nothing counts them against the union type, so a new member is invisible until someone sweeps again.
+- The remaining laws with plural members are unmeasured: **eng.4** (no price on air) has several physics
+  preconditions, and **eng.7/L7** (gate every transition) overlaps eng.3 but covers evidence collection.
+- `#enforceTransitionGate` gains a tenth case → the sweep above was by hand and its result is a snapshot.
