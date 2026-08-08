@@ -343,6 +343,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 148 | §700 | **§701** | **§700's "largest open item" resolved by ONE question.** Is the first argument an already-scoped handle? **10 of 16 are DOWNSTREAM** of `resolveTenantDb` (which is guarded) — never candidates. The other **6 have entry-point shape** and were added, immediately firing on three translator call sites passing `tenantSlug`. Traced before judging: it is `pairing.slug` behind an **HMAC check failing closed to 401**, so sanctioned with that path. A/B: silent at 12, fires at 18. **Repeated §673's `git checkout` mistake a third time** — the fix is an ordering, not a rule: commit before probing |
 | 149 | §701 | **§702** | **Floor built; the discriminator was wrong about `Env`.** Encoding *"first arg is a scoped handle"* first classified `Env`/`AgentsEnv` as one — hiding **six listed functions including `resolveTenantDb`, the archetype of the whole roster**. `Env` is ambient bindings, so `(env, tenant)` IS an entry point; the correction surfaced `sparkGateFor` (safe, 4/4). **Completeness floor now sits beside the staleness one** — M225 adds `readTenantThing(tenant, db)` and it fires. Blind spot stated: `export function` only, which is why the roster stays hand-written — **derive to floor, enumerate to define** |
 | 150 | §702 | **§703** | **Re-derived §684's "7 gate-enforced triggers" claim, 19 phases on — 7/7 ENFORCED, no decay.** Two of my mutations were wrong first: §666 read **DECAYED** because I dropped `.strict()` from `evInput` (the ENVELOPE, §665's subject) rather than a payload schema; §683 read exit 0 because I *raised* the budget constant instead of violating it — which surfaced the better question and the answer that **§611's `claude-md-budgets` pins the constant**, so the trigger has two layers. The value is not "seven still hold" but that the sentence now has a measurement dated today |
+| 151 | §703 | **§704** | **Back to the BUILD: swallowed errors — 57 candidates, 2 relevant, 0 defects.** Raw sweep over-reports (a `return undefined` after a failed parse is a typed absence, not a swallow). The discriminator this repo learned at cost — *fail-closed is about the fallback VALUE* — cut 57 → 2. Both cleared **by reading the consumer**: `gateBlock()`'s `return []` looks like "nothing required" but runs only AFTER the gate blocked, and its caller maps an empty list to `unknown`, *"still held for ops"*. Reading the catch alone would have produced a wrong finding |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -39413,3 +39414,67 @@ No code change. `test:tools` **974**; all seven subjects restored byte-identical
 - A trigger is added to the stopping point → it joins this table, and the table is the thing to re-run.
   Nothing enumerates the triggers automatically; that is a hand-maintained list of **intent** (§699), so it
   stays one.
+
+## §704 — PHASE GATE: swallowed errors — 57 candidates, 2 relevant, 0 defects
+
+**Subject.** §699–§703 were about the audit's own instruments, which is §296's spent-line signal. This
+deliberately returns to the **build**: a sweep for catch blocks that swallow an error, which is a genuine
+production concern and one this audit had not run.
+
+### The raw sweep over-reports, as expected
+
+**57** catch blocks in `workers/*/src` and `packages/*/src` neither throw, log, nor record an outcome. Almost
+all are deliberate and say so:
+
+```
+return null;  // unparseable bytes → fail closed
+outcome = "failed";  // the verdict is decided FIRST
+body = undefined;    // best-effort diagnostics
+```
+
+A catch that returns `undefined` after a failed JSON parse is not a swallowed error; it is a **typed absence
+the caller handles**. Counting them as findings is §699's mistake — a derivation with no subject-relevance
+filter.
+
+### The discriminator that made it tractable
+
+This repo already learned the right one, at a cost: *fail-closed is about the fallback **value**, not about
+catching the exception* — a `{}` default once opened three of four gate knobs it claimed to floor. So the
+question is not *"is the error swallowed?"* but **"does the fallback value make a downstream guard pass?"**
+
+Filtering to catches in security-relevant context (policy, gate, visibility, auth, tenant, secret, cap, role,
+verify, sign) **with a permissive fallback** (`{}`, `[]`, `true`) cut 57 to **2**.
+
+### Both cleared by reading the consumer
+
+| site | fallback | verdict |
+|---|---|---|
+| `booking.ts:93` `gateBlock()` | `return []` for `required_evidence` | **safe** |
+| `devices.ts:80` | `return []` for a device list | **safe** — no devices means nothing authorized |
+
+`gateBlock` looked like the dangerous one: an empty required-evidence list reads as *"nothing required."* But
+it runs **only after the gate has already blocked** (the message must start with `GATE_BLOCKED_PREFIX`), and
+the consumer settles it:
+
+```ts
+const blocked = gateBlock(err);
+if (blocked === null) throw err;      // a NON-gate error re-throws for redelivery
+```
+
+An empty list maps to a reason of `unknown` — *"still held for ops, never silently mislabeled."* The booking
+stays held; only the diagnostic label degrades. **Fail-closed, with the consequence documented at the
+consumer rather than at the catch** — which is why reading the catch alone would have produced a wrong
+finding.
+
+### Exit state
+
+No code change; nothing to fix. `test:tools` **974**; **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, exit 2** at
+`04c6fe1`.
+
+**Reopen triggers**
+- A catch is added whose fallback is `{}`, `[]` or `true` in gate/policy/visibility/auth code → the sweep in
+  this section finds it, and the question to ask is the consumer's, not the catch's. **Not gated**: the
+  filter is judgement-heavy (§699), and a gate over 57 candidates with a 96% false-positive rate would be
+  ignored within a week.
+- The `gateBlock` consumer stops mapping an empty list to `unknown` → the fallback becomes load-bearing and
+  this verdict expires. Nothing links them, which is this section's honest limit.
