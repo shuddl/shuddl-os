@@ -65,6 +65,19 @@ const MUTABLE_TABLES = [
 ] as const;
 
 export function checkTableClassification(createdTables: readonly string[]): string[] {
+  // §732 — AN EMPTY CORPUS IS NOT A CLEAN ONE. This returned [] for `[]`, so if the tenant-migrations glob
+  // ever stopped matching, NO table would be checked for append-only classification and the gate would report
+  // OK — the I3/I7 law verified over nothing. The union floor in main() (`db/**/migrations/*.sql`) does not
+  // cover this: control migrations alone keep the union non-empty. Its sibling `checkSurfaceBudget` was
+  // already hardened this way (§245, it names the three surfaces it expects); this one and
+  // `checkControlMigrationsExercised` never were.
+  if (createdTables.length === 0) {
+    return [
+      "table classification ran over ZERO created tables — the tenant-migrations corpus is empty, so the " +
+        "append-only/mutable classification (I3/I7) was verified against nothing. Fix the glob or the tree; " +
+        "an empty scan must never read as a clean one.",
+    ];
+  }
   const known = new Set<string>([...GUARDED_TABLES, ...MUTABLE_TABLES]);
   const unclassified = [...new Set(createdTables)].filter((t) => !known.has(t)).sort();
   if (unclassified.length === 0) return [];
@@ -812,6 +825,16 @@ export function checkControlMigrationsExercised(
   testSources: ReadonlyArray<{ path: string; source: string }>,
 ): string[] {
   const violations: string[] = [];
+  // §732 — same floor, same reason. With an empty migration list the loop body never runs and this returns
+  // [], so a broken `db/control/migrations/*.sql` glob silently stops asserting that every shipped control
+  // migration is exercised by a test. (An empty `testSources` with migrations present already fails loudly —
+  // every migration reports unexercised — so only this side needs the floor.)
+  if (controlMigrations.length === 0) {
+    return [
+      "control-migration coverage ran over ZERO migrations — the corpus is empty, so \"every shipped control " +
+        "migration is exercised by a test\" (audit §244) was verified against nothing.",
+    ];
+  }
   for (const migration of controlMigrations) {
     const name = migration.split("/").pop()!;
     const exercised = testSources.some((t) => t.source.includes(`db/control/migrations/${name}`));
@@ -859,7 +882,23 @@ function main(): void {
   // "positive control (was exit 1 under the bug)" test caught when this landed. A tree with no apps/ is not
   // a SHUDDL checkout, not a violation; deleting apps/ wholesale is still caught by the roster-identity
   // test, which resolves against the real repo root rather than the cwd.
-  if (existsSync("apps")) {
+  // §732 — ONE "is this a real checkout" SIGNAL, USED BY ALL THREE SUB-CHECKS.
+  //
+  // The three checks below each read their OWN corpus, and each is vacuous over an empty one. Two of them
+  // (`checkControlMigrationsExercised`, `checkTableClassification`) returned [] for [] until §732; the third
+  // (`checkSurfaceBudget`) was hardened in §245 because it names the surfaces it expects. Their floors now
+  // live in the pure functions where they are unit-testable — but a floor needs a scope, and the scope is
+  // "a real SHUDDL checkout". The CLI's own end-to-end tests run inside a temp fixture repo holding a single
+  // tenant migration and nothing else; there, an absent control-migration corpus is the fixture's shape, not
+  // a violation. `existsSync("apps")` is the signal this file already used for exactly that distinction, so
+  // it governs all three rather than one.
+  //
+  // The rename hole this closes: guarding on `existsSync("db/control")` would have been the obvious move and
+  // is wrong — renaming that directory in a real repo would then SKIP the check instead of failing it, which
+  // is the same silent-pass shape the floors exist to prevent. The union floor below cannot cover it either,
+  // because control migrations alone keep `db/**/migrations/*.sql` non-empty.
+  const isCheckout = existsSync("apps");
+  if (isCheckout) {
     const surfaceViolations = checkSurfaceBudget(
       globSync("apps/*/package.json").map((p) => p.split("/")[1]!),
     );
@@ -867,16 +906,16 @@ function main(): void {
       for (const v of surfaceViolations) console.error(`FAIL ${v}`);
       process.exit(1);
     }
-  }
 
-  // Every shipped control-plane migration is exercised by at least one test (see above).
-  const controlViolations = checkControlMigrationsExercised(
-    globSync("db/control/migrations/*.sql"),
-    globSync("workers/*/test/**/*.ts").map((p) => ({ path: p, source: readFileSync(p, "utf8") })),
-  );
-  if (controlViolations.length > 0) {
-    for (const v of controlViolations) console.error(`FAIL ${v}`);
-    process.exit(1);
+    // Every shipped control-plane migration is exercised by at least one test (see above).
+    const controlViolations = checkControlMigrationsExercised(
+      globSync("db/control/migrations/*.sql"),
+      globSync("workers/*/test/**/*.ts").map((p) => ({ path: p, source: readFileSync(p, "utf8") })),
+    );
+    if (controlViolations.length > 0) {
+      for (const v of controlViolations) console.error(`FAIL ${v}`);
+      process.exit(1);
+    }
   }
 
   // Every tenant table is classified append-only or mutable (see checkTableClassification).
@@ -886,7 +925,7 @@ function main(): void {
       created.push(m[1]!.toLowerCase());
     }
   }
-  const classViolations = checkTableClassification(created);
+  const classViolations = isCheckout ? checkTableClassification(created) : [];
   if (classViolations.length > 0) {
     for (const v of classViolations) console.error(`FAIL ${v}`);
     process.exit(1);

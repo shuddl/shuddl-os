@@ -371,6 +371,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 176 | §728 | **§729** | **THE THIRD RUNNER — two orphan sets TypeScript never checked, hiding two real bugs.** (A) `tools/live/render-email.ts` was `exclude`d from the tools config while its own `tsconfig.render.json` is a tsx-RUNTIME config **no script runs** → a planted type error left `pnpm typecheck` at **exit 0**; including it surfaced a real defect (a non-`Error` throw logged `PAGEERROR: undefined`, losing the diagnostic in the tool that produces COMMITTED evidence). (B) **nine** package-level `vite/vitest.config.ts` unchecked — `design` and `map` already included theirs, nine siblings never did. B surfaced **two** defects in `path-sequencer` (all five worker pools): `shard()`'s required 3-arg signature vs vitest 4's 1-arg → `count` undefined → `slice(NaN,NaN)` → **every shard green having run nothing**; and a v4 TYPE contract on v3 runners, the residue §28 recorded as harmless. **No new gate, deliberately** — the honest check doubles `test:tools`; the mechanism is removed instead (no tsconfig `exclude` names a source file) |
 | 177 | §729 | **§730** | **THE FOURTH RUNNER — the one SHIPPED file with zero static analysis.** ESLint's own API: 711 tracked lintable files, **6 ignored** — four `.claude/skills` snippets (documented), one merkle vector, and `apps/driver/public/sw.js`, the driver's offline shell (REQ-061). Not linted (`apps/*/public/**` was the only ignores entry with **no stated reason**) and not typechecked (`.js`, §729). §717 fixed a REAL defect in this exact file and left it as unanalysable as it found it. **Removing the ignore alone would have been a FALSE fix** — measured: three planted violations, **zero findings**, because only the TS-targeted config is spread. Corpus + rules landed together; 4/4 probes now red incl. `cahces.open` → `no-undef`. Gate asks ESLint, 2 mutations; the second (narrow the `files` glob) leaves *not-ignored* GREEN while all rules red — the false-assurance path. **Limit stated: floating promises need type-aware lint, unavailable for `.js` — §717's own class is NOT closed** |
 | 178 | §730 | **§731** | **DEFECT: the identity-leak gate emits `PASS, executed:true, assertions:0` over a scan that read NOTHING.** `trackedFiles()` listed from `repoRoot()` but read with `readFileSync(f)` — resolved against `process.cwd()` — under a bare `catch`. From `tools/checks/`: all 952 reads throw, all swallowed, gate says PASS. From root, same denylist: FAIL / 952 files / 569 leaks. **This is §489's defect in the half it did not touch** (it fixed the LISTING and left the READ three lines below), and §489's own note — *the scope defect would arrive with the secret, i.e. exactly when the gate started mattering* — applied verbatim. **BLOCKED is what hid it**: a gate that never runs emits no counts, so `assertions: 0` never appeared anywhere to look wrong. Fixed 3 ways: root-joined reads · unreadable files are a gap not a skip (rule 10) · a zero-file floor in **both** dispositions, FAIL not BLOCKED. `filesScanned` made REQUIRED so the compiler enumerated all 5 callers |
+| 179 | §731 | **§732** | **§731's trigger executed (19 entry points, root vs subdir): 18/19 identical, the 1 differing FAILS CLOSED — clean negative.** The yield was the next question: `invariants` has a floor, but it covers the **UNION** (`db/**/migrations/*.sql`), not the three sub-corpora consumed separately — and the union stays non-empty when only one subtree breaks. `checkSurfaceBudget([])` → violation (hardened §245); `checkControlMigrationsExercised([],[])` and **`checkTableClassification([])` → `[]`, VACUOUS**. The second asserts every tenant table is append-only-or-mutable — **I3/I7**. Floors added to the pure functions + one `isCheckout` scope. **The obvious guard (`existsSync("db/control")`) is exactly wrong** — a rename would SKIP not FAIL. Fixture shape learned by breaking 3 CLI e2e tests. Both floors mutation-proved in the real repo |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -9325,7 +9326,7 @@ roughly half the flagged set is likely rot and the rest is window tightness, and
 Five rotted citations across three skills, each re-pointed **and given a content anchor**, which is the
 only rule that catches this failure — `invoice-gate.ts:16@GATE_BLOCKED_PREFIX`,
 `transition-gates.ts:74@VALIDATION_FAILED`, `isolation.test.ts:29@WPs`,
-`invariants.ts:455@FORBIDDEN_REPLACE` (×2), plus `invariants.ts:88@SCHEMA`. Anchored citations went
+`invariants.ts:470@FORBIDDEN_REPLACE` (×2), plus `invariants.ts:102@SCHEMA`. Anchored citations went
 **28 → 34**; 987 citations resolve; the ratchet holds at its frozen 130.
 
 The remaining ~48 candidates are **not** swept in this pass, and saying so is the point (§175 is not a
@@ -20221,7 +20222,7 @@ on all three.
 
 ### Carry-forward
 
-`tools/checks/invariants.ts:515@committedLock` returns `{}` when there is no committed lockfile. That is
+`tools/checks/invariants.ts:527@committedLock` returns `{}` when there is no committed lockfile. That is
 the exact shape of [[fail-closed-is-about-the-fallback-value]] — the fallback VALUE, not the catch — and a
 `{}` there would make any "every dependency matches the lock" comparison vacuously true. It may well be
 correct here; it has not been checked. **Next section's first item.**
@@ -20234,7 +20235,7 @@ correct here; it has not been checked. **Next section's first item.**
 
 ### The carry-forward: not a defect
 
-`tools/checks/invariants.ts:515@committedLock` returns `{}` when `git show HEAD:<lock>` fails. `checkLock`
+`tools/checks/invariants.ts:527@committedLock` returns `{}` when `git show HEAD:<lock>` fails. `checkLock`
 uses that value as the **forward-only anchor** — the thing a locally-deleted or hand-edited lock line
 cannot reset. An empty anchor therefore re-opens the exact bypass `checkLock` exists to close, and the
 tests for it pass `committed` in as a parameter, so they prove the *guard* and say nothing about its
@@ -21536,7 +21537,7 @@ defect, whose header quotes the same omission verbatim (*"0003's events_guard_in
 whose two triggers enumerate **all three** surfaces the row names: `hash = NEW.hash`,
 `device_seq = NEW.device_seq`, `corrects_event_id = NEW.corrects_event_id`.
 
-**The lint.** `tools/checks/invariants.ts:229@checkGuardCompleteness` walks every UNIQUE target on every
+**The lint.** `tools/checks/invariants.ts:243@checkGuardCompleteness` walks every UNIQUE target on every
 `GUARDED_TABLES` entry and requires a BEFORE INSERT predicate enumerating it — a *derived* completeness
 check, not a roster, so it covers surfaces added later.
 
@@ -35350,7 +35351,7 @@ demands it. Sixteen skills exist. This sweeps the rest.
 
 | Skill | Cited | Verdict at HEAD |
 |---|---|---|
-| `share-lint-matchers-with-parity-tests` | `invariants.ts:455@FORBIDDEN_REPLACE` — a hand-written matcher | **FIXED** (§638): calls `replaceFamilyRe`; all four evasions blocked on both scanners |
+| `share-lint-matchers-with-parity-tests` | `invariants.ts:470@FORBIDDEN_REPLACE` — a hand-written matcher | **FIXED** (§638): calls `replaceFamilyRe`; all four evasions blocked on both scanners |
 | `enforce-server-side-gate-parity` | `positions.ts:15-60` — a REQ-166 CRITICAL bypass, no consent/assignment/device check | **FIXED**: `positions.ts:7` imports `assignmentOf`, `deviceOwnedBy`, `assertPositionConsent` from a shared `gate-context.js`, all three enforced before the INSERT |
 | `reconcile-gate-sentinels-with-exit-codes` | `run-gate.ts:118@reconcileSentinel` — a **fix**, not a defect | resolves exactly; `reconcileSentinel` is at 118 |
 
@@ -41386,3 +41387,118 @@ currently demonstrate its own repair through the merge board. The demonstration 
   the signature.
 - A tracked file becomes genuinely unreadable → the new FAIL fires. That is intended; fix the file or remove
   it from the index rather than restoring the swallow.
+
+## §732 — PHASE GATE: executing §731's trigger, and the floor that covered the union but not the parts
+
+§731 closed with a trigger naming its own generalisation: *"any other gate that reads files with a path from
+one root and a `cwd` from another has the same defect."* This phase executes it, and then follows where the
+result actually pointed.
+
+### The sweep — a clean negative, measured behaviourally
+
+Not a grep. Every `check:*` entry point was run twice — `cwd = repo root` and `cwd = apps/driver/src` — with
+identical arguments and an identical denylist, and the outputs compared after normalising node's PID noise:
+
+**19 entry points · 18 byte-identical across working directories.**
+
+The one that differs is `invariants`, and it differs by **failing closed**: `exit 1`, *"FAIL invariants —
+scanned 0 migration files. A gate that reads nothing reports clean."* That is the correct answer to a broken
+corpus, not a defect. `identity-leak` now reports `same`, which is §731's fix confirmed by the sweep rather
+than by its own tests.
+
+**A first pass flagged four differences.** Three were the node PID inside an `ExperimentalWarning` line —
+`(node:2306)` vs `(node:2314)`. Fifth over-reporting detector of the session; the fix was to normalise the
+instrument, and the lesson is unchanged: **a detector's output is a candidate list until something is
+planted.**
+
+### Where the real finding was
+
+The sweep answered its question and, in answering it, showed something better: `invariants` has a floor. So
+the next question is not *"does it have one"* but **"does its floor cover every corpus it reads?"**
+
+It reads four. The floor at `main()` covers the **union** — `db/**/migrations/*.sql`. Three sub-checks then
+consume their own corpora, and the union stays non-empty if only one subtree breaks. Tested directly:
+
+| sub-check | on an empty corpus | |
+|---|---|---|
+| `checkSurfaceBudget([])` | **1 violation** | hardened in §245 — it *names* the three surfaces it expects |
+| `checkControlMigrationsExercised([], [])` | `[]` | **vacuous** |
+| `checkTableClassification([])` | `[]` | **vacuous** |
+
+Three siblings, one hardened, two not — the adjacency shape again, and the odd ones out are not the minor
+ones. `checkTableClassification` is what asserts **every tenant table is classified append-only or mutable**:
+that is I3/I7, the constitutional law of this repo. If the tenant-migrations glob ever stopped matching, no
+table would be classified, and `invariants` would print `OK`.
+
+The union floor cannot save either one: control migrations alone keep `db/**/migrations/*.sql` non-empty
+while `db/tenant/migrations/*.sql` returns nothing, and vice versa.
+
+### The fix, and the guard that would have been wrong
+
+Floors went into the **pure functions**, where they are unit-testable, rather than into `main()` where the
+union floor lives and cannot be exercised.
+
+But a floor needs a scope, and the obvious scope is a trap. Guarding on `existsSync("db/control")` reads as
+the careful thing to do and is **exactly wrong**: renaming that directory in a real repo would then *skip* the
+check instead of failing it — the same silent-pass shape the floor exists to prevent. The correct signal was
+already in this file for precisely this distinction: `existsSync("apps")`, documented there as *"a tree with
+no apps/ is not a SHUDDL checkout, not a violation."* One `isCheckout` const now governs all three sub-checks
+instead of one.
+
+**I learned the fixture's shape by breaking it.** The first attempt put the floors in the pure functions with
+no scope, and three CLI end-to-end tests went red — the temp fixture repo holds a single tenant migration and
+nothing else, so an absent control-migration corpus is the fixture's shape rather than a violation. The floor
+also fired *before* the union floor, changing the message a test asserts on. That failure is what identified
+the scope; guessing at the guard first would have produced the `db/control` version above.
+
+### Measured
+
+Both floors mutation-proved **in the real repo**, by pointing each glob at a non-matching path:
+
+| mutation | result |
+|---|---|
+| `db/control/migrations/*.sql` → nowhere | `exit 1` — *"control-migration coverage ran over ZERO migrations"* |
+| `db/tenant/migrations/*.sql` → nowhere | `exit 1` — *"table classification ran over ZERO created tables"* |
+
+Restored byte-identical; `check:invariants` back to `OK — 21/22 tables, events append-only (11 migration
+files)`. Four new tests: one per floor, one proving neither fires on a real corpus (without it, returning a
+violation unconditionally would satisfy both), and one pinning `checkSurfaceBudget([])`'s **existing**
+hardening so the asymmetry cannot silently return.
+
+### Exit state
+
+`test:tools` **1014** (+4); lint 0; typecheck 0; `invariants` suite **202 passed**. `verify:merge` verdict
+unchanged: `21 PASS · 0 FAIL · 5 BLOCKED` at HEAD's register.
+
+### The line-shift the fix itself caused
+
+Committing this reddened `check:citations`: **8 rotted citations of 1347**, every one pointing into
+`tools/checks/invariants.ts`. The ~25 inserted comment lines shifted `FORBIDDEN_REPLACE`, `SCHEMA`,
+`committedLock` and `checkGuardCompleteness` past their cited line numbers, across the audit itself,
+`GO-LIVE-CHECKLIST.md`, `RELEASE-EVIDENCE.md` and two skills.
+
+**This is a documented recurrence, not a surprise** — `share-lint-matchers-with-parity-tests` records its own
+citations reading `:204` until §175 and `:392`/`:29` until §253, *"when a 20-line insert at the top of that
+file shifted them again."* Third time for the same file.
+
+Two things went wrong in the repair and both are the same error:
+
+1. My first pass grepped only `tools/checks/invariants.ts:` and missed the **bare `invariants.ts:N@X` form**
+   used in the audit doc — so it fixed two files of five and the gate stayed red.
+2. My line numbers came from `grep -n "\bANCHOR\b" | head -1`, which finds the first **mention** — often a
+   comment — not the **declaration**. Re-derived with
+   `grep -nE "^\s*(export\s+)?(const|function|let)\s+ANCHOR\b"`, which is the thing the gate actually
+   checks (it validates a ±2 line window around the declaration).
+
+Both are the shape this audit keeps re-learning: **derive the address from the artifact, not from the first
+thing that looks like it.** Fixed at the true declaration lines; `check:citations` back to
+`OK — 1347 citations resolve` and the ratchet at its frozen baseline of 141.
+
+**Reopen triggers**
+- A fourth corpus is added to `invariants` → it needs its own floor. The union floor covers none of the parts,
+  and that is now the documented reason rather than a thing to rediscover.
+- The CLI fixture repo grows an `apps/` directory → `isCheckout` starts returning true there and the three
+  sub-checks will run against fixture data. Either give the fixture the corpora or change the signal, but do
+  not weaken the floors.
+- A sub-check is guarded on the existence of *its own* directory → that is the rename hole this phase
+  rejected. The scope signal must be independent of the thing being checked.

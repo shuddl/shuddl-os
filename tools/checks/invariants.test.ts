@@ -1172,3 +1172,39 @@ describe("REQ-002 §615: the nullable ADD COLUMN permit is stated where it is en
     ).toBe(true);
   });
 });
+
+// §732 — THE TWO SUB-CHECKS THAT PASSED OVER AN EMPTY CORPUS.
+//
+// main() floors the UNION (`db/**/migrations/*.sql`, "scanned 0 migration files"). It does not floor the two
+// sub-corpora consumed separately, and the union stays non-empty if only one subtree breaks. Measured before
+// the fix: `checkControlMigrationsExercised([], [])` and `checkTableClassification([])` both returned `[]`.
+//
+// Their sibling `checkSurfaceBudget([])` was already correct — it names the three surfaces it expects, so an
+// empty discovery is a violation (§245). Three siblings, one hardened, two not: the adjacency shape, and the
+// odd ones out guard I3/I7 and §244 respectively.
+describe("REQ-118 §732: a sub-check over an empty corpus is a violation, not a pass", () => {
+  it("checkTableClassification([]) — the I3/I7 classification must not verify nothing", () => {
+    const v = checkTableClassification([]);
+    expect(v.length, "an empty tenant-migrations corpus returned no violation — the append-only law would be checked against nothing").toBe(1);
+    expect(v[0]).toMatch(/ZERO created tables/);
+  });
+
+  it("checkControlMigrationsExercised([], []) — §244's coverage must not verify nothing", () => {
+    const v = checkControlMigrationsExercised([], []);
+    expect(v.length, "an empty control-migrations corpus returned no violation").toBe(1);
+    expect(v[0]).toMatch(/ZERO migrations/);
+  });
+
+  it("the floors do NOT fire on a real corpus (they must not be a permanent red)", () => {
+    // Without this, returning a violation unconditionally would satisfy both assertions above.
+    expect(checkTableClassification(["events", "positions", "money_lines"])).toEqual([]);
+    const M = ["db/control/migrations/0001_control.sql"];
+    const tests = [{ path: "a.test.ts", source: 'import a from "../../../db/control/migrations/0001_control.sql?raw";' }];
+    expect(checkControlMigrationsExercised(M, tests)).toEqual([]);
+  });
+
+  it("checkSurfaceBudget([]) was already hardened — pinned so the asymmetry cannot silently return", () => {
+    expect(checkSurfaceBudget([]).length).toBe(1);
+  });
+});
+
