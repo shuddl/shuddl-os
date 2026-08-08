@@ -351,6 +351,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 156 | §708 | **§709** | **DEFECT — 208 test files were ONE edit from leaving the largest gate.** §708 declined to gate a combination as *"two edits in opposite directions"*; **eleven packages already ship their own `vitest.config.ts`**, so it is one. Deleting `packages/map`'s `test` script left test-collection, gate-wiring AND ci-contract all green — `--if-present` skips in silence, and an own-config package keeps runner-root status so its files stay "collected" while never running. `workers/api` alone is 69 files. Floor added; M228b fires on both probes. **"Recorded rather than gated" is an effort claim, and effort claims are measurable** — one `git ls-files` falsified it |
 | 157 | §709 | **§710** | **Audited this audit's own deferrals.** §709's rule — *"recorded rather than gated" is an effort claim, and effort claims are measurable* — applied to all **11** deferral statements (7 substantive) in §663–§709. **Six sound, one not**, and the unsound one (§708) is the only whose premise was never measured. §682's untested *"register scope"* claim **verified against the register**: REQ-024 constrains *where* LLM calls live, REQ-125 is a cost ceiling, **no row names a provider** — so gating it would invent scope. Deferrals come in three kinds — effort, scope, structural — and **only the effort kind produced a defect** |
 | 158 | §710 | **§711** | **One character silences a file and the gate stays green.** 313 test files, **zero** `.only`/`.skip`/`.todo`/`.fails` — and **no ESLint plugin and no gate** keeping it that way (§671's shape). Measured: one `it.only` in `events.test.ts` took contracts from **304 passed → 267 passed / 37 skipped, suite exit 0**. Every assertion this audit proved can fail lives in a file one `.only` would silence, and a skipped test is not a failing test. Strict gate added, comment-stripped (§674) with a corpus floor; M229 fires on both markers |
+| 159 | §711 | **§712** | **Widened the corpus, found a real skip, and the skip was RIGHT.** §711 missed **6 `.spec.ts`** playwright suites; widening fired immediately on `prod-surface.spec.ts:30` — which is playwright's **conditional** `test.skip(cond, reason)`, a documented field gate whose release mode BLOCKS an all-skipped run (REQ-288). **§699's lesson self-inflicted one phase after stating it.** Discriminator: a disabled test is `it.skip("name", fn)` — a **string literal**; a conditional skip passes an expression. Both layers measured: e2e goes `PASS 6` → `BLOCKED` with `.only` planted; the static gate is the cheaper, earlier one |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -39891,3 +39892,62 @@ in both cases is the finding restated.
 - Vitest gains another focus mechanism (`describe.runIf`, `test.concurrent.only`) → the marker list is
   hand-written, which is correct per §699 (membership here is a property of *vitest's API*, not of this
   repo's code) but it will not know about a new one.
+
+## §712 — PHASE GATE: widening the corpus found a real skip, and the skip was correct
+
+**Subject.** §711's own trigger: *"`.only` in a suffix the corpus misses (`*.spec.ts`) — the corpus here is
+`git ls-files "*.test.ts" "*.test.tsx"`."* §671's rule for the eighth time this stretch: attempt it.
+
+### Six files were outside, and widening fired immediately
+
+`git ls-files` by suffix: **286 `.test.ts` · 28 `.test.tsx` · 6 `.spec.ts`.** The six are the playwright
+suites — the four browser gates plus the perf spec — and §711 could not see them.
+
+Widening the corpus made the gate **fail on the existing tree**, before anything was planted:
+
+```
+tests/e2e/prod-surface.spec.ts:30
+```
+
+### The skip was correct, and my pattern was not
+
+```ts
+test.skip(ZONE === undefined, "PROD_SURFACE_BASE is unset — this gate drives deployed surfaces only");
+```
+
+That is playwright's **conditional** form, and a documented field gate: the suite drives a *deployed* surface,
+so it stands down when no zone is named. Its own header explains the safety — under `--mode release` an
+all-skipped run is **BLOCKED**, never a green exit 0 (REQ-288).
+
+My regex could not tell `test.skip(condition, reason)` from `it.skip("name", fn)`. **§699's lesson, self-
+inflicted one phase after stating it**: a pattern with no subject-relevance rediscovers a deliberate design
+as a defect.
+
+**The discriminator is the first argument.** A disabled test is `it.skip("name", fn)` — a *string literal*,
+because that is a test's name. A conditional skip passes an *expression*. Requiring a quote separates them,
+and it is not a heuristic: the two forms differ in the API, not in style.
+
+### Both layers, measured
+
+The browser suites were never unprotected — they are covered at **run** time:
+
+```
+e2e baseline              PASS — 6 passed          exit 0
+with test.only planted    BLOCKED — no tests were discovered   exit 2
+```
+
+`playwright-guard` refuses a run that discovers nothing. §711's gate is the **cheaper, earlier** layer:
+static, inside `test:tools`, and it does not need a browser to say so. **M232** plants `.only` in a
+`.spec.ts` and `.skip` in a `.test.ts` — both fire — while the legitimate conditional skip stays green.
+
+### Exit state
+
+`no-focused-tests` corpus 314 → **320 files**, 5/5; `test:tools` **980**; lint 0; typecheck 0; both probes
+restored byte-identical. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, exit 2** at `e194d87`.
+
+**Reopen triggers**
+- A conditional `test.skip(cond, reason)` is used to disable a test permanently by passing `true` → the
+  discriminator cannot see intent, only form. `test.skip(true, …)` would pass this gate, and the honest
+  answer is that a permanently-true condition is a code-review question, not a regex one.
+- Vitest or playwright adds another focus mechanism → the marker list is hand-written, which is right per
+  §699 (membership is a property of *their* API, not this repo's code) and it will not know about a new one.

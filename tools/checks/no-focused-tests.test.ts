@@ -26,10 +26,23 @@ import { stripComments } from "./source-corpus.js";
 // this repo carries one (§636/§666/§672/§694).
 
 const MARKERS = ["only", "skip", "todo", "fails"] as const;
-const FOCUSED = /\b(?:it|test|describe)\.(only|skip|todo|fails)\b/g;
+// §712 — the marker form ONLY. Playwright's `test.skip(condition, reason)` is a CONDITIONAL skip and a
+// legitimate API: `tests/e2e/prod-surface.spec.ts` uses it as a field gate ("PROD_SURFACE_BASE is unset —
+// this gate drives deployed surfaces only"), and release mode BLOCKS an all-skipped run rather than
+// greening it (REQ-288). A first cut flagged it, which is §699's lesson — a pattern without
+// subject-relevance rediscovers a deliberate design as a defect.
+//
+// The discriminator is the FIRST ARGUMENT: a disabled test is `it.skip("name", fn)` — a string literal,
+// because that is a test's name. A conditional skip passes an EXPRESSION. So require a quote.
+const FOCUSED = /\b(?:it|test|describe)\.(only|skip|todo|fails)\s*\(\s*["'`]/g;
 
 function testFiles(root: string): string[] {
-  return execSync('git ls-files "*.test.ts" "*.test.tsx"', { cwd: root, encoding: "utf8" })
+  // §712 — `*.spec.ts` too. Six playwright suites use that suffix (the four browser gates plus the perf
+  // spec), and §711's corpus missed them — its own recorded trigger. They are ALSO protected at run time:
+  // `playwright-guard` refuses a run that discovers nothing, and a planted `test.only` takes the e2e gate
+  // from `PASS — 6 passed` to `BLOCKED — no tests were discovered` (measured). This is the cheaper, earlier
+  // layer: static, in `test:tools`, and it does not need a browser to say so.
+  return execSync('git ls-files "*.test.ts" "*.test.tsx" "*.spec.ts"', { cwd: root, encoding: "utf8" })
     .split("\n")
     .filter(Boolean);
 }
