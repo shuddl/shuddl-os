@@ -98,7 +98,7 @@ function declaredModelKeys(root: string): string[] {
   // `src/**/*.ts` requires at least one subdirectory, so it MISSES `workers/agents/src/index.ts` — where
   // ANTHROPIC_MODEL lives. Measured: the narrow glob found 2 of 3 keys. The non-vacuity floor below caught
   // it, which is the whole argument for §610's rule that a selector needs its own floor.
-  const files = execSync('git ls-files "workers/**/*.ts" "packages/**/*.ts"', {
+  const files = execSync('git ls-files "workers/**/*.ts" "packages/**/*.ts" "workers/**/*.tsx" "packages/**/*.tsx"', {
     cwd: root,
     encoding: "utf8",
   })

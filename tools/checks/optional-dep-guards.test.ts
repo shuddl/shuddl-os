@@ -65,7 +65,7 @@ interface Guard {
 
 function rejectingGuards(root: string): Guard[] {
   const out: Guard[] = [];
-  for (const f of scanCorpus(["workers/*/src/*.ts", "packages/*/src/*.ts"], root, { excludeTests: true })) {
+  for (const f of scanCorpus(["workers/*/src/*.ts", "packages/*/src/*.ts", "workers/*/src/*.tsx", "packages/*/src/*.tsx"], root, { excludeTests: true, mayBeEmpty: new Set(["workers/*/src/*.tsx"]) })) {
     const src = readFileSync(`${root}/${f}`, "utf8");
     for (const m of src.matchAll(GUARD)) {
       if (!REJECT.test(blockAfter(src, m.index))) continue;
@@ -82,7 +82,7 @@ describe("REQ-170 §636: no unsanctioned guarantee is gated on its own wiring", 
     // scanCorpus throws on an empty glob, so a renamed tree fails loudly rather than reporting clean — the
     // §625 helper doing the job it was built for.
     expect(
-      scanCorpus(["workers/*/src/*.ts", "packages/*/src/*.ts"], root, { excludeTests: true }).length,
+      scanCorpus(["workers/*/src/*.ts", "packages/*/src/*.ts", "workers/*/src/*.tsx", "packages/*/src/*.tsx"], root, { excludeTests: true, mayBeEmpty: new Set(["workers/*/src/*.tsx"]) }).length,
       "no source files scanned — the scan is broken, not the tree",
     ).toBeGreaterThan(150);
   });

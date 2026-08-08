@@ -336,6 +336,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 141 | §693 | **§694** | **One glob closed a limit TWO gates shared.** §691 and §693 both pinned workflow paths literally; widening to *every* workflow makes the rule "every gate-shaped script any workflow runs is on the merge path". Measured first: **one exception in the whole tree** — `check:pr`, which reads `$PR_BODY` and therefore *cannot* be in the merge profile — sanctioned with a reason and a staleness check. M217 (a third workflow with a unique gate) fires; M218 (stale sanction) fires. Closes a four-phase run where each phase attempted the previous one's recorded limit — **two closed, one closed as "do not close", one by generalisation** |
 | 142 | §694 | **§695** | **Four copies of the glob that decides whether ANY wiring assertion can see CI.** §694's residual named one; there were **four** hand-written `*.yml` globs in one file — the invocation corpus, §691's pin, §694's assertion and its staleness check. A `.yaml` workflow (GitHub accepts both) was invisible to all four at once, including the two written in the last three phases to close wiring holes. **Proved by A/B**: identical probe, SILENT pre-fix, FIRES post-fix. Third phase running where the limit was the CORPUS, not the rule — *a scanner's reach is a separate assertion from its logic* |
 | 143 | §695 | **§696** | **DEFECT — the REQ-025 scanner could not see a React component.** 65 globs, 16 extensions: **27 glob `.ts`, only 7 glob `.tsx`.** Five scanners cover `packages/*` (which ships `.tsx`) with `.ts`-only globs; the one that matters is `tenant-scope`, enforcing a **build-failure law**. §120's argument verbatim, one gate over — *the file extension must not decide whether that is caught*. Latent, not live; closed before it is live. A/B: probe SILENT pre-fix, FIRES post-fix. **My first fix broke the gate** — a malformed array element shrank the corpus 180→142 and the §572 floor caught it, a failure I nearly read as "`.tsx` surfaced violations" |
+| 144 | §696 | **§697** | **DEFECT ×2 — both demonstrable, one mine again.** §696 left two scanners as *"a judgement, not a proof"*; probed instead, **both were blind**: a rejecting optional-dep guard in a `.tsx` (3/3 pass) and a `SUMMARIZER_MODEL` binding in a `.tsx` (9/9 pass). The second is **my §681 gate, whose completeness floor exists precisely to catch a new `*_MODEL` arriving unenrolled**. Third time a gate I wrote had the blind spot it was built to close — **the author of a gate is the worst-placed person to judge its corpus.** Per-glob-shape measurement cut a coarse 4 to a true 2 |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -38994,3 +38995,66 @@ removed and `git status` clean. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, e
 - A new package ships `.tsx` → every `.ts`-only scanner over `packages/*` inherits this hole silently.
   Nothing counts scanner extensions against the extensions a tree contains, which is the general form and is
   not closed.
+
+## §697 — PHASE GATE: two more scanners blind to a component, one of them mine again
+
+**Subject.** §696's residual, recorded one phase ago: *"nothing counts scanner extensions against the
+extensions a tree contains — the general form, not closed."* §671's rule for the sixth consecutive phase.
+
+### Measuring it precisely mattered
+
+A first pass grouped globs by top-level tree and reported **4** scanners at risk. That was too coarse:
+`event-payload-strictness` globs `packages/contracts/src/*.ts`, and contracts holds no `.tsx` at all.
+Re-measured **per glob shape** — *would this exact pattern with `.tsx` match real files?* — the population is
+**2**:
+
+| scanner | glob shape | `.tsx` files unseen |
+|---|---|---|
+| `optional-dep-guards.test.ts` (§636) | `packages/*/src/*.ts` | 8 |
+| `llm-agent-metering-trigger.test.ts` (§681, mine) | `packages/**/*.ts` | 14 |
+
+The coarse cut would have sent me to fix two scanners that were already correct.
+
+### Both gaps are demonstrable, not theoretical
+
+§696 left these two as *"a judgement, not a proof"* — that their subjects probably could not live in a
+component. **Probed instead of argued**, and both were missed:
+
+```
+a rejecting optional-dep guard in a .tsx   -> optional-dep-guards   3 passed (3)   BLIND
+a SUMMARIZER_MODEL binding in a .tsx       -> llm-agent-metering    9 passed (9)   BLIND
+```
+
+**The second is my own gate**, built in §681 with a completeness floor whose entire purpose is to catch a new
+`*_MODEL` binding arriving unenrolled — and a `.tsx` one walks past it.
+
+### Third time a gate I wrote had the blind spot it was built to close
+
+§680 (the metering gate watched one model key when the key is per-agent), §681 (the roster was a list where
+the code defines a set), and now §697. The pattern is consistent enough to state: **the author of a gate is
+the worst-placed person to judge its corpus**, because the corpus is exactly what they were not thinking
+about while writing the rule. Only a probe from outside settles it — and in all three cases the probe took
+under a minute while the judgement would have been wrong.
+
+### Closed
+
+`.tsx` added to both. `scanCorpus` **throws** on a glob matching nothing (§625), and `workers/` holds no
+components, so `workers/*/src/*.tsx` is declared `mayBeEmpty` — the forward-safe idiom §466 established, so a
+component appearing under `workers/` is scanned from its first commit rather than from whenever someone
+notices. `git ls-files` tolerates a non-matching pathspec, so the second gate needed no such declaration.
+
+**M221b / M222b** re-run the identical probes: both now fire.
+
+### Exit state
+
+`test:tools` **973**; typecheck 0; both probes removed and `git status` clean apart from the two intended
+edits. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, exit 2** at `04c6fe1`.
+
+**Reopen triggers**
+- The general form is **still not closed**: nothing counts a scanner's extensions against its tree's. This
+  phase closed the two live instances by hand, and a seventh scanner added tomorrow inherits the same hole.
+  Building that meta-gate is possible — the measurement above is its algorithm — but it would be a gate whose
+  subject is other gates, and its own corpus would need the same treatment. **That regress is the reason to
+  stop here and say so** rather than add a fourth layer nobody audits.
+- A `.jsx`, `.mjs` or `.cjs` file appears under a scanned tree → same class, different extension. The
+  measurement in this section takes the extension as a parameter and would find it.
