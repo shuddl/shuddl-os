@@ -360,6 +360,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 165 | §717 | **§718** | **Ignored-tree class closed at one instance.** Swept all **12** global ignore patterns for tracked executables: nine hold none; `apps/*/public/**` held `sw.js` (**§717's defect**); `fixtures/**` holds `ref6962.mjs` and `.claude/**` four skill references. `ref6962.mjs` looked like a finding — an unlinted generator feeding the vectors the **anchor implementation is verified against** — but its header states the design: *a DIFFERENT algorithm from merkle.ts*, re-derived a third way by hand, **"three independent derivations agreeing is the anti-circularity guard"**, `status: vendored` with a pinned sha256. Shipped code vs test instrument — **only reading separates them** |
 | 166 | §718 | **§719** | **STOPPING POINT — re-derived at `aa4487f` after three gate-scope changes: 21 PASS · 0 FAIL · 5 BLOCKED, exit 2.** §706–§718 = 13 phases, **4 defects**, each reached by applying the previous phase's lesson to a region it had not covered — §704's pivot → §705 (PWAs unlinted) → §709 (208 test files) → §716 (my own exclusion) → **§717 (the driver's offline cache write, REQ-061)**. Four self-corrections, **every one found by measuring a claim this audit made about itself**. Session: 56 phases · 61 commits · 17 defect rows |
 | 167 | §719 | **§720** | **REQ-061's offline chain walked link by link — sound, with one unguarded edge named.** Registration (feature-detected, post-`load`, degrades safely) · precache · manifest · fetch strategy all verified; §717's `waitUntil` fix was the only repair needed. **Link 2 is the sharp one:** `cache.addAll(SHELL)` is **atomic**, so one 404 in a four-element list fails the install entirely and surfaces as *"offline doesn't work"* — and it resolves today only because Vite emits `/index.html`, a build dependency the worker never states. Residual: registration failure is silent **by design**; making it observable is new behaviour and belongs to demo (3) |
+| 168 | §720 | **§721** | **The precache list must now name files that exist.** §720's sharpest edge closed: `cache.addAll` is **atomic**, so one typo in a four-element list does not lose an asset — it **removes the precache entirely**, reaching a driver as *"the app doesn't open offline"*, which points anywhere except a mistyped string. Gate resolves each `SHELL` entry to a producer by Vite's two rules, **plus an assumption assertion** that `addAll`/`waitUntil` still exist so the file self-obsoletes. M236 (orphan path) and M237 (per-entry adds) each fire the right one |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -40417,3 +40418,56 @@ No code change; the chain is sound at every link and §717's fix remains the onl
   the list against the build output. That is the sharpest unguarded edge in this chain.
 - The Vite config stops emitting `/index.html` at the root → link 2 breaks with no signal in the worker.
 - Registration telemetry is added → the residual above closes, and it should be a REQ row first.
+
+## §721 — PHASE GATE: the precache list now has to name files that exist
+
+**Subject.** §720 walked REQ-061's offline chain and named one unguarded edge: *"`SHELL` gains an entry →
+`addAll`'s atomicity makes a typo cost the entire precache, and nothing verifies the list against the build
+output."* §671's rule: attempt it.
+
+### Why this edge is worse than it looks
+
+```js
+event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)) …)
+```
+
+`addAll` rejects if **any** entry 404s, and a rejected `waitUntil` fails the install. So a typo in a
+four-element list does not lose one asset — **it removes the precache entirely.** And the symptom reaches a
+driver as *"the app doesn't open offline"*, which points at the network, the device, or the shell code —
+anywhere except a mistyped string.
+
+### Closed
+
+`tools/checks/driver-shell-precache.test.ts` parses `SHELL` from the worker and resolves each entry to a
+producer in the repo, by the two rules Vite actually uses: `public/` is copied verbatim, and `/` +
+`/index.html` come from the app-root `index.html`.
+
+Three assertions, and the second is the one that keeps it honest: **the gate checks that `addAll` and
+`waitUntil` are still there.** If precaching ever becomes per-entry, the atomicity argument this file rests on
+is gone and the file should be deleted rather than left green — the shape §634 established and §679/§666 both
+carry.
+
+**M236** adds `/offline.png` (a typo-shaped entry with no producer) — the resolver fires.
+**M237** rewrites the install as `Promise.all(SHELL.map((u) => cache.add(u)))` — the *assumption* assertion
+fires, because per-entry adds are no longer atomic and this gate would be guarding a hazard that had moved.
+
+### What it does and does not prove
+
+**Source-level, and the distinction is stated in the file.** It proves every precached path has a producer in
+this repo. It does **not** prove the built bundle served it — `/index.html` resolves here because Vite emits
+it, and this gate reads the Vite root rather than `dist/`.
+
+Proving the served artifact is what the **airplane-mode soak** is for, and that fixture is owner-held. §717's
+`waitUntil` fix and this list are the two things that soak should be pointed at first.
+
+### Exit state
+
+`test:tools` 980 → **984**; lint 0; typecheck 0; `sw.js` restored byte-identical after two mutations.
+**26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, exit 2** at `aa4487f` (§719).
+
+**Reopen triggers**
+- The Vite config changes where `index.html` is emitted from → `producerFor()` encodes the current
+  convention, and it would report an orphan rather than silently accepting a path that no longer resolves.
+  That is the safe direction.
+- A second surface gains a service worker → this gate is driver-specific by path. §718 recorded that
+  `apps/*/public/**` holds exactly one executable today; a second one inherits this whole section.
