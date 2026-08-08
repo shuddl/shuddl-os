@@ -361,6 +361,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 166 | §718 | **§719** | **STOPPING POINT — re-derived at `aa4487f` after three gate-scope changes: 21 PASS · 0 FAIL · 5 BLOCKED, exit 2.** §706–§718 = 13 phases, **4 defects**, each reached by applying the previous phase's lesson to a region it had not covered — §704's pivot → §705 (PWAs unlinted) → §709 (208 test files) → §716 (my own exclusion) → **§717 (the driver's offline cache write, REQ-061)**. Four self-corrections, **every one found by measuring a claim this audit made about itself**. Session: 56 phases · 61 commits · 17 defect rows |
 | 167 | §719 | **§720** | **REQ-061's offline chain walked link by link — sound, with one unguarded edge named.** Registration (feature-detected, post-`load`, degrades safely) · precache · manifest · fetch strategy all verified; §717's `waitUntil` fix was the only repair needed. **Link 2 is the sharp one:** `cache.addAll(SHELL)` is **atomic**, so one 404 in a four-element list fails the install entirely and surfaces as *"offline doesn't work"* — and it resolves today only because Vite emits `/index.html`, a build dependency the worker never states. Residual: registration failure is silent **by design**; making it observable is new behaviour and belongs to demo (3) |
 | 168 | §720 | **§721** | **The precache list must now name files that exist.** §720's sharpest edge closed: `cache.addAll` is **atomic**, so one typo in a four-element list does not lose an asset — it **removes the precache entirely**, reaching a driver as *"the app doesn't open offline"*, which points anywhere except a mistyped string. Gate resolves each `SHELL` entry to a producer by Vite's two rules, **plus an assumption assertion** that `addAll`/`waitUntil` still exist so the file self-obsoletes. M236 (orphan path) and M237 (per-entry adds) each fire the right one |
+| 169 | §721 | **§722** | **Same shape on the command surface — already guarded, and the guard detects.** `greige-style.json` is a template whose `{PROVIDER_*}` refs are substituted by `.split().join()` — **a silent no-op if the constant and the JSON drift**, shipping a style MapLibre cannot resolve (*"the demotiles-schema class of bug"*, blank basemap). `entities.test.ts:45` asserts `not.toContain("PROVIDER_")` — **on the PREFIX, not either full placeholder**, so it survives a rename, which is the drift that defeats a literal match. M238 fires two tests. Same hazard class as §721, opposite authoring instinct |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -40471,3 +40472,58 @@ Proving the served artifact is what the **airplane-mode soak** is for, and that 
   That is the safe direction.
 - A second surface gains a service worker → this gate is driver-specific by path. §718 recorded that
   `apps/*/public/**` holds exactly one executable today; a second one inherits this whole section.
+
+## §722 — PHASE GATE: the same shape on the command surface, already guarded
+
+**Subject.** §721 closed an edge on the driver: **a resource list that must resolve, with nothing checking
+it.** The command surface has the same shape — `greige-style.json` is a *template*, and the map is blank if
+its references do not resolve. So the question was asked there.
+
+### The shape
+
+```json
+"glyphs": "{PROVIDER_GLYPHS_URL}/{fontstack}/{range}.pbf"
+"sources": { "v": { "type": "vector", "url": "{PROVIDER_VECTOR_TILE_URL}" } }
+```
+
+`greigeStyle(tileUrl, glyphsUrl)` substitutes them with `.split(PLACEHOLDER).join(url)` — and a
+`split`/`join` on a string that is not present is a **silent no-op**. If the constant in `style.ts` and the
+literal in the JSON ever drift, the style ships containing `{PROVIDER_VECTOR_TILE_URL}` and MapLibre requests
+a URL that does not exist. `style.ts`'s own comment names the failure: *"MUST be right or the basemap renders
+blank (the demotiles-schema class of bug)"*.
+
+**This is §721's edge exactly**: a substitution that must happen, performed by an operation that cannot report
+not happening.
+
+### Already guarded, and the guard detects
+
+```ts
+expect(JSON.stringify(s)).not.toContain("PROVIDER_");   // packages/map/test/entities.test.ts:45
+```
+
+Asserted on the **prefix**, not on either full placeholder — so it survives a rename of either one, which is
+the drift that would defeat a literal match. **M238** renames `TILE_PLACEHOLDER` so the substitution no-ops,
+and **two** tests fire: *"injects the provider endpoints and stays token-clean"* and *"injects the tile +
+glyph URLs and leaves no provider placeholders"*.
+
+### Why this is worth a section despite finding nothing
+
+§721 and §722 are the same question asked of two surfaces, and they came back differently: the driver's
+precache list was unguarded, the command surface's template was guarded — **by an assertion written on the
+prefix rather than the value**, which is the detail that makes it survive the mutation that matters.
+
+That asymmetry is the useful part. The driver's `SHELL` is a list of *paths*, and a path is easy to write and
+easy to typo; the map's placeholders are a *substitution contract*, and whoever wrote that test saw that the
+contract could fail silently. **Same hazard class, different authoring instinct** — and only asking both
+showed which one had been thought through.
+
+### Exit state
+
+No code change; nothing to fix. `packages/map` 89/89; `test:tools` **984**; lint 0; typecheck 0;
+`style.ts` restored byte-identical. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, exit 2** at `aa4487f`.
+
+**Reopen triggers**
+- A third provider path is added (a sprite URL, a terrain source) → the `PROVIDER_` prefix assertion covers
+  it **automatically**, which is why the prefix form is the right one and worth preserving on edit.
+- The Mapbox path (`greigeStyleMapbox`) gains its own placeholder → it takes only `glyphsUrl` today and
+  hardcodes `mapbox://mapbox.mapbox-streets-v8`, so there is nothing to substitute and nothing to check.
