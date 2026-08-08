@@ -353,6 +353,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 158 | §710 | **§711** | **One character silences a file and the gate stays green.** 313 test files, **zero** `.only`/`.skip`/`.todo`/`.fails` — and **no ESLint plugin and no gate** keeping it that way (§671's shape). Measured: one `it.only` in `events.test.ts` took contracts from **304 passed → 267 passed / 37 skipped, suite exit 0**. Every assertion this audit proved can fail lives in a file one `.only` would silence, and a skipped test is not a failing test. Strict gate added, comment-stripped (§674) with a corpus floor; M229 fires on both markers |
 | 159 | §711 | **§712** | **Widened the corpus, found a real skip, and the skip was RIGHT.** §711 missed **6 `.spec.ts`** playwright suites; widening fired immediately on `prod-surface.spec.ts:30` — which is playwright's **conditional** `test.skip(cond, reason)`, a documented field gate whose release mode BLOCKS an all-skipped run (REQ-288). **§699's lesson self-inflicted one phase after stating it.** Discriminator: a disabled test is `it.skip("name", fn)` — a **string literal**; a conditional skip passes an expression. Both layers measured: e2e goes `PASS 6` → `BLOCKED` with `.only` planted; the static gate is the cheaper, earlier one |
 | 160 | §712 | **§713** | **Zero assertion-free tests — and the detector was wrong THREE ways.** 3,304 callbacks parsed, **0** without an assertion. Getting there: **79** flagged (brace-matched into the test NAME — *"an empty `{}` payload"*, `` `${kind}…` ``), then **7** (missed Testing Library's throwing `getByText`, which IS the assertion), then **1** (matcher died on a regex literal `\{([^}]*)\}`). Every wrong pass named real files at real lines and read as thorough. **A naive brace matcher over TypeScript fails toward MORE findings** — the dangerous direction. Not gated; premise measured (§710) |
+| 161 | §713 | **§714** | **Tested my own claim and it was false on 1 of 19.** §713 asserted *"every guarantee was individually mutation-proved"*; enumerating the session diff (3 added, 16 modified) found **`tools/design/audit.ts` never proved** — §698 widened the corpus to `apps/**/*.js` and verified only that the gate stayed **exit 0**, which shows the change is harmless, not that it does anything. **M233** plants a raw hex in a `.js` and it fires. Why it slipped: an assertion invites *"can it fail?"*; a **corpus widening reads as config**, and *"the gate still passes"* answers the wrong question |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -40003,3 +40004,63 @@ No code change; nothing to fix. `test:tools` **980**; lint 0; typecheck 0.
 - The suite adopts a new assertion idiom (a custom matcher, a throwing helper) → the vocabulary above is
   hand-written and would flag it. Per §699 that is correct — *"is this an assertion?"* is a judgement about
   intent, not a fact the code declares.
+
+## §714 — PHASE GATE: testing my own claim found the one change I never proved
+
+**Subject.** §713 closed on a broad claim: *"every guarantee this audit cares about was individually
+mutation-proved."* §702's rule is that an entry never interrogated is not a measurement, and §710's is that
+claims like this are measurable. **So it was measured**, against the actual diff rather than against memory.
+
+### The inventory
+
+`git diff --name-status` over this session: **3 files added, 16 modified.** Each was checked for a recorded
+mutation:
+
+| change | mutation | |
+|---|---|---|
+| `event-payload-strictness` · `llm-agent-metering` · `no-focused-tests` (new) | M175/176 · M197–M203 · M229/M232 | ✓ |
+| `events.test.ts` · `schema-domain` · `legacy-mirror` · `parity-detection` | M171c/M172c · M180–M188 · M193b/M196b · M206/M207 | ✓ |
+| `tenant-scope` · `test-collection` · `gate-wiring` · `optional-dep-guards` · `visual-corpus` · `append-chokepoint` | M220/M223/M225 · M228b · M212b/M215/M217/M219 · M221b · M190 · M189 | ✓ |
+| `eslint.config.mjs` | M226 | ✓ |
+| `package.json` · `citation-ratchet.json` · `invoice-parity.ts` | — | not guarantees: a message string, a baseline, a comment |
+| **`tools/design/audit.ts`** | **none** | **← the claim was false here** |
+
+### The one that was never proved
+
+§698 added `apps/**/*.js` to the design corpus, and verified **only** that `audit:design` stayed exit 0 —
+that the one previously-unseen file (`sw.js`, 78 lines of caching logic) contained nothing to catch.
+
+**That proves the change is harmless. It does not prove the change does anything.** An addition that widens a
+corpus needs a probe *inside* the widened region, and §698 never planted one. The section even reasoned
+carefully about *whether* to widen — and then did not check that widening worked.
+
+**M233**, planted now:
+
+```
+apps/driver/public/probe-style.js: color #ff00aa (→ #FF00AA) outside the five tokens (REQ-145)
+design audit: 1 violation(s) [mode=blocking]     exit 1
+```
+
+It works. The claim is now true rather than assumed — but it was **false when §713 made it**, and only
+enumerating the diff found that.
+
+### Why this one slipped
+
+Every other change this session was an **assertion** — and writing an assertion invites the question *"can it
+fail?"*, because that is the thing an assertion is for. §698's change was a **corpus widening**, which reads
+as configuration. Nothing about editing a glob list prompts a mutation, and the verification that felt
+natural (*"did the gate stay green?"*) answers the wrong question.
+
+**A widened corpus is a new guarantee wearing the shape of a config edit.** It needs a probe in the new
+region, and the probe is not the same one that proved the gate works elsewhere.
+
+### Exit state
+
+No code change; the probe was removed and `audit:design` returns exit 0. `test:tools` **980**; lint 0;
+typecheck 0. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, exit 2** at `e194d87`.
+
+**Reopen triggers**
+- A gate's corpus is widened → plant a probe **in the new region**. "The gate still passes" is not evidence
+  about the addition; it is evidence about the rest.
+- A claim of the form *"every X was Y"* is written → enumerate X from the tree, not from memory. This one was
+  wrong on 1 of 19, and the exception was invisible from the inside.
