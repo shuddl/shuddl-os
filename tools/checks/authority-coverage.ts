@@ -123,9 +123,16 @@ function main(): void {
     process.exit(1);
   }
   const distinctFiles = new Set(scanned.map((s) => s.file)).size;
+  // §610 — the module list is DERIVED, never restated. It used to be the literal prose
+  // "(rating/invoicing/settlement/comms/dispatch)" beside a computed count, so deleting the settlement
+  // registration printed "across 4 modules (rating/invoicing/settlement/comms/dispatch)" — a count and a list
+  // that contradict each other, with the list affirmatively naming a module that was no longer checked. The
+  // shrink itself is caught by authority-coverage.test.ts ("a shrink is a red flag"), so the merge was never
+  // open; what was wrong is that this gate's own GREEN output told a reader settlement was covered.
+  const moduleNames = AUTHORITATIVE_FILES.map((m) => m.module).join("/");
   console.log(
     `authority-coverage OK — all ${scanned.length} (module, file) consults across ${AUTHORITATIVE_FILES.length} modules ` +
-      `(rating/invoicing/settlement/comms/dispatch), ${distinctFiles} distinct files, each call resolveAuthority(db,'<module>') ` +
+      `(${moduleNames}), ${distinctFiles} distinct files, each call resolveAuthority(db,'<module>') ` +
       `(REQ-030/L8). concierge.ts consults BOTH rating (it prices) and comms; dispatch's consult is the sequencer DO ` +
       `gate, scoped to appointment.set/dispatch.assigned only.`,
   );

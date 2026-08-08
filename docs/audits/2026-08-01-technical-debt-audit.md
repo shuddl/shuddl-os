@@ -250,6 +250,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 55 | §606 | **§607** | **DEFECT — the ACCEPTANCE gate certified a demo whose test file did not exist.** vitest is silent on a filter matching nothing whenever a SIBLING filter in the same package matches, and @shuddl/api carries 4 of the 7 spine files. Both pre-existing parity tests are record-to-record and passed. Fixed + tested. 4 more gates proven failable; 19/19 now observed failing |
 | 56 | §607 | **§608** | **DEFECT — the VISUAL gate PASSED with a canonical screen deleted from the registry** (`assertions: 4`, exit 0, under --mode merge). §607s divergence in the other direction: a blessed ref that exists while the registry no longer names it. The shared browser guard cannot floor it. Fixed with bidirectional parity + identity pin. Also: I broke the PHASE GATE heading convention twice by running the doc gates and not the suite that OWNS the file |
 | 57 | §608 | **§609** | **DEFECT — e2e PASSED at 3 of 6, losing the TENANT-ISOLATION browser proof (REQ-025, rule 8) to an ordinary rename.** Third instance of one class; the zero-floor protects only single-source suites, which was an accident of composition, not a decision. Fixed with a per-gate corpus RATCHET (may rise, may not fall) + a derived test so a new browser gate cannot ship without a floor |
+| 58 | §609 | **§610** | THE CLASS SWEPT BY RULE, not by enumeration: **a gate needs a corpus floor when a SELECTOR sits between the artifacts and the run.** unit-tests was flagged by the rule and proved already guarded (§288, 3 probes). Testing the rule against authority-coverage found its GREEN line naming a module it had stopped checking — a computed count beside a hardcoded list. Record defect, not coverage; list now derived |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -33287,3 +33288,89 @@ a11y 4/4 — `test:tools` back to exactly the 3 REQ-289 failures, typecheck 0.
   collapse but stops catching small shrinkage. Re-measure the four numbers when any suite grows materially.
 - A fifth browser gate appears → `gate-wiring` fails until it has a floor, which is the intended forcing
   function, not an obstacle.
+
+---
+
+## §610 — PHASE GATE: the rule that predicts which gates can shrink, and the green line that lied
+
+**Subject.** Three phases, three defects, one class: a verdict resting on a corpus that can get smaller
+unnoticed. Rather than keep probing gates one at a time, this phase asked what **distinguishes** the three that
+broke from the many that did not — and then tested the answer.
+
+### The rule
+
+> **A gate needs a corpus floor when a SELECTOR sits between the artifacts and the run.**
+
+A selector is anything that decides *which* of the existing artifacts participate: a `testMatch` regex, a
+registry array, a spine list, a vitest `include`. Artifacts stay on disk while the selector quietly stops
+choosing them — that is the whole pathology, and it is why all three defects were reachable by an ordinary
+rename or a one-line deletion.
+
+A gate whose corpus is `git ls-files '<glob>'` has **no selector to drift**: a tracked file is always matched.
+Its corpus can only shrink by the files genuinely going away, and then having less to scan is correct rather
+than false.
+
+| Gate | Selector between artifacts and run | Needs a floor? | State |
+|---|---|---|---|
+| `acceptance` | the spine registry | yes | **§607 DEFECT — fixed** |
+| `visual` | the `SCREENS` array | yes | **§608 DEFECT — fixed** |
+| `e2e` / browser gates | `testMatch` | yes | **§609 DEFECT — fixed** |
+| `unit-tests` | each package's vitest `include` | yes | **already guarded** — §288 |
+| `authority-coverage` | `AUTHORITATIVE_FILES` | yes | guarded by its test; **its output was wrong** |
+| `citations` / `section-refs` / `table-shape` | none — `git ls-files` | no | zero-floor is adequate |
+
+### The unit-tests corpus is genuinely protected — three probes
+
+The biggest corpus in the repo (914 tools tests plus every package) runs through
+`pnpm -r --if-present run test`, and `--if-present` is exactly the shape of a selector that silently chooses
+nothing.
+
+- **M94** — a package with its `test` script removed: `pnpm --if-present run test` exits **0**, silently. The
+  mechanism is real.
+- **M95** — a package keeping its vitest config but losing its `test` script: `test-collection.test.ts`
+  **caught it**.
+- **M96** — a *new* package with a test file, no config and no script (the realistic case): caught, with
+  `packages/…/thing.test.ts — owned by <root>, matched by none of its include patterns`.
+
+Also checked: `passWithNoTests` appears nowhere in the workspace, so no package can go green on an empty run.
+§288's guard was written for "a test file matched by no include" and covers the whole class. **Clean negative,
+and the strongest one this session** — the prediction said this gate needed a floor, and it turned out to
+already have one.
+
+### THE FINDING — a green summary that named a module it had stopped checking
+
+Testing the rule against `authority-coverage`: **M97** deleted the `settlement` row from
+`AUTHORITATIVE_FILES` — the module that owns interline settlement (REQ-040).
+
+The **test** caught it (`registers all 5 overlay modules … — a shrink is a red flag`), so the merge was never
+open. But the **gate** printed:
+
+```
+authority-coverage OK — all 8 (module, file) consults across 4 modules
+  (rating/invoicing/settlement/comms/dispatch), 7 distinct files
+```
+
+**Four modules, five names — including the one just deleted.** The counts were computed; the list beside them
+was literal prose. A reader of CI output would have been told, affirmatively and in a green line, that
+settlement's authority was consulted when nothing checked it.
+
+Not a coverage defect — the merge gate was closed the whole time. A **record** defect, and the same shape this
+audit has met repeatedly: a hand-maintained restatement sitting next to a computed value, where the fix is to
+read one side and **compute** the other. The list is now derived from the registry; with `settlement` removed
+the gate prints `4 modules (rating/invoicing/comms/dispatch)` and names nothing it did not check.
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged. typecheck 0, eslint clean, the affected suites green.
+
+The corpus-shrinkage class is now **swept to exhaustion** — not by probing every gate, but by deriving the
+property that separates the vulnerable from the safe and testing it against the one gate the rule flagged that
+had not yet been examined.
+
+**Reopen triggers**
+- A doc gate gains a selector — a directory filter, an exclude list, anything narrower than
+  `git ls-files '<glob>'` → it moves into the top half of the table and needs a floor.
+- Any gate's summary line restates a value it also computes → the §610 defect, verbatim. The test is whether
+  deleting a registry row leaves the sentence still naming it.
+- `--if-present` is removed from the root `test` script → §288's guard stops being the only thing standing
+  between a new package and silent untestedness, which is a strengthening, not a regression.
