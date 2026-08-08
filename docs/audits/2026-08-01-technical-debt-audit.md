@@ -339,6 +339,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 144 | §696 | **§697** | **DEFECT ×2 — both demonstrable, one mine again.** §696 left two scanners as *"a judgement, not a proof"*; probed instead, **both were blind**: a rejecting optional-dep guard in a `.tsx` (3/3 pass) and a `SUMMARIZER_MODEL` binding in a `.tsx` (9/9 pass). The second is **my §681 gate, whose completeness floor exists precisely to catch a new `*_MODEL` arriving unenrolled**. Third time a gate I wrote had the blind spot it was built to close — **the author of a gate is the worst-placed person to judge its corpus.** Per-glob-shape measurement cut a coarse 4 to a true 2 |
 | 145 | §697 | **§698** | **Class CLOSED by running the algorithm once instead of building a gate.** Parameterised §697's measurement over every sibling pair: **4 gaps, two of them mine from §696** — I added `apps/*.tsx` to `tenant-scope` and left **49 `.ts` modules** unseen in a tree I had just started covering, an asymmetry introduced *while closing a gap*. Design corpus: `.js` was the odd sibling of `.jsx`/`.mjs` already listed — completing an intent, not widening scope (measured first: `sw.js` has zero styling tokens). **Re-swept: 0 remaining.** A one-shot measurement can CLOSE a class a permanent gate would only MANAGE |
 | 146 | §698 | **§699** | **A trigger of my own, STRUCK by testing it.** §698 flagged its hand-written sibling table as §681's roster weakness. Deriving it instead produced **17 candidates vs 4** — the top one being `package.json`/`tsconfig.json` against a header that says *"only `*-style.json`, **not every `.json`**"*. **A derivation ignoring subject-relevance rediscovers every deliberate exclusion as a defect.** §681's lesson does not transfer: `*_MODEL` membership is a property of the CODE; extension-relevance is a property of INTENT. **Derive when membership is a fact; enumerate when it is a judgement.** Second phase concluding the change should not be made |
+| 147 | §699 | **§700** | **DEFECT — REQ-025's roster is enumerated and incomplete.** §699's rule pointed at my own gates: `GUARDED_FNS` lists 9 tenant-scoped entry points, and *"takes a tenant and reaches storage"* is a **fact about the code**, so the list CAN be wrong. It has a staleness check and **no completeness check** — one direction, on a build-failure law. Derived the other way: **19 unlisted**, three structurally identical to listed ones. A/B with `snapshotKey` from `req.slugFromQuery`: SILENT at 9, FIRES at 12. **Added three, not nineteen** — derivation over-reports (§699), so *derive to FIND candidates, judge to ADMIT them.* 16 await disposition |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -39180,3 +39181,60 @@ at `04c6fe1`.
   in it, then adds it to the sibling table. That is the correct process, not a fallback.
 - Another hand-maintained list is proposed for derivation → ask first whether its membership is a property
   of the code or of intent. §681, §682 and §698's *first* sweep were the former; this was the latter.
+
+## §700 — PHASE GATE: §699's rule turned on my own gates, and REQ-025's roster was incomplete
+
+**Subject.** §699 produced a discriminator: *derive when membership is a property of the code; enumerate when
+it is a property of intent.* That is a lens to point at every enumerated list this audit has shipped. **Is any
+of them the wrong kind?**
+
+### `GUARDED_FNS` is the wrong kind, and it was wrong
+
+`tenant-scope` enforces REQ-025 by iterating a hand-written roster of nine tenant-scoped storage entry
+points. *"Takes a tenant and reaches storage"* is a **fact about the code** — so by §699's rule this list can
+be **wrong**, and only a floor would say so.
+
+It has a staleness check (`missing = GUARDED_FNS.filter(fn => !positions.has(fn))` — every listed function
+must still exist) and **no completeness check**. One direction, on a build-failure law.
+
+Derived the other direction — exported functions taking a `tenant` **and** touching storage — and found
+**19** the roster does not name. Three are structurally identical to functions it does:
+
+| unlisted | listed sibling | both are |
+|---|---|---|
+| `snapshotKey` | `anchorManifestKey`, `evidenceKey` | an R2 key built from a tenant |
+| `watchtowerAlarmId` | — | a deterministic id folded from a tenant |
+| `driftFallbackEventId` | — | same |
+
+**Proved by A/B** with `snapshotKey` fed from `req.slugFromQuery`:
+
+```
+roster of 9   4 passed (4)     SILENT
+roster of 12  1 failed | 3     FIRES
+```
+
+### Added three, not nineteen — which is §699 applied, not ignored
+
+Adding the trio was safe and verified so: 4/4 before and after, meaning every existing call site already
+passes an authenticated identity. The other **16 remain undispositioned on purpose.** A derivation
+over-reports — that is §699's whole finding — and *"is this a tenant-scoped storage entry point in the sense
+REQ-025 means?"* is a judgement per function. Bulk-adding would repeat the mistake §699 just documented, one
+phase later.
+
+**The synthesis of §681 and §699: derive to FIND candidates, judge to ADMIT them.** Derivation is the search;
+it is not the verdict.
+
+### Exit state
+
+`GUARDED_FNS` 9 → **12**; `tenant-scope` 4/4; `test:tools` **973**; typecheck 0; probe removed and
+`git status` clean. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, exit 2** at `04c6fe1`.
+
+**Reopen triggers**
+- **16 derived candidates await disposition** — `sweepTenantExpiredDocuments`, `computeWatchtowerSnapshot`,
+  `persistWatchtowerSnapshot`, `loadActivePodDocument`, `sweepTenantUnbilledRedrive`,
+  `sweepTenantOverdueInbound`, `resolveSparkPlan`, `sparkGateFor`, `isPlatformCreditInvoiceIssued` and
+  others. Each needs one question answered: *can its tenant argument ever come from request input?* Most are
+  sweeps iterating a server-side roster, which is why `AUTHENTICATED` already contains a bare `tenant` — but
+  "most" is not an answer, and this is the largest open item this audit has produced.
+- A new function takes a tenant and touches storage → still invisible. The completeness floor is **not
+  built**, because it would fail on those 16 today. Dispositioning them is what unblocks it.

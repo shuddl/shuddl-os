@@ -31,6 +31,14 @@ const GUARDED_FNS = [
   "isTenantEvidenceKey",
   "computeTenantStorageBytes",
   "deviceOwnedBy", // control-plane device ownership
+  // §700 — the key-derivation siblings. `snapshotKey` builds an R2 key from a tenant exactly as
+  // `anchorManifestKey` and `evidenceKey` do; the roster listed two of the three families and stopped.
+  // Derived by asking which exported functions take a `tenant` AND touch storage — 19 matched, and these
+  // three are the ones whose shape is identical to something already guarded. Adding them was safe: every
+  // existing call site already passes an authenticated identity (4/4 before and after).
+  "snapshotKey", // R2: watchtower/<tenant>/<day>.json
+  "watchtowerAlarmId", // deterministic alarm id folded from the tenant
+  "driftFallbackEventId",
 ] as const;
 
 /** Argument expressions known to carry an authenticated identity, each with what verifies it. */
