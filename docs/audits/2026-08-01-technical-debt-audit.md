@@ -366,6 +366,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 171 | §723 | **§724** | **CORRECTION — §723's claim was false, measured.** It said the portal e2e structurally guards route parity. `playwright.config.ts` starts **three surface servers and no API**, and the suite passes **6/6** — so it already passes with no API at all. **Every assertion is a NEGATIVE** (`not.toMatch`, `not.toContain`, `toHaveCount(0)`, plus a status element visible in *both* loaded and refused states): **an empty page satisfies all six.** The suite is a correct ISOLATION test; §723 borrowed that guarantee to cover LIVENESS. **An all-negative suite cannot distinguish "correct" from "nothing happened"** — §609's floor at full count |
 | 172 | §724 | **§725** | **Asked the vacuous-pass question of all four browser gates — three already answer it.** `visual` is inherently positive; **a11y** blocks on `body.innerText.length > 0` with a comment naming *"an unmounted `<div id=root>` … would be a vacuous pass"*; **perf** blocks on `waitForSelector("canvas")`. Only `portal-isolation` has nothing (§724). Sibling e2e specs are not the same shape either — `driver-offline-sync` is **10 positive / 2 negative**. **One suite of seven, not a systemic gap** — and the hazard reached four authors, three solved it, each with a different instrument |
 | 173 | §725 | **§726** | **Gated §725's own reopen trigger: the two pure-negative browser gates keep their render precondition.** a11y asserts `toEqual([])` and perf asserts a long-task budget — **an unmounted page has zero of each**, so both PASS on a blank screen *with their assertion count unchanged*. What saves them is one line apiece, which reads as boilerplate. Now floored in `test:tools`, pinning each suite's OWN instrument (the two differ deliberately: painted-text is wrong for the map, `waitForSelector` is wrong for the flex-chain surfaces) plus the assumption that `visual` stays positive. **3/3 mutation-proved, each RED attributed to the named row** |
+| 174 | §726 | **§727** | **DEFECT (confirmed by planted artifact): an always-failing browser spec merges GREEN.** The e2e project selects by an explicit two-file allowlist, not by directory — so a spec dropped in `tests/e2e/` is **not run**, and no report shows its absence. Planted `expect(1).toBe(2)`: `--list` unchanged at *6 tests in 2 files*, `test:tools` **identical at 3 failed / 985 passed**. Aimed straight at the acceptance spine — two demos name a new browser spec as the next increment, and `Demo.browser` is **read by nothing**. Closed by asking playwright itself (`--list --reporter=json`) rather than re-deriving `testMatch`. **4 assertions, all mutation-proved.** The exit code was useless here (baseline already red); the COUNT was the instrument |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -40827,3 +40828,97 @@ instead of recalling its shape.
 - A third pure-negative browser suite appears → it needs a row in `PRECONDITIONS`, and the completeness of
   that list is **intent**, not a property of the code (§699), so no derivation will find it.
 - `visual` stops comparing against a reference image → the assumption assertion reds, and it joins the table.
+
+## §727 — PHASE GATE: a browser spec that never runs, and the gate that reports 6 passed either way
+
+§726 asked what a gate does on an empty page. This phase asks the adjacent question — **what does a gate do
+with a test that was never collected?** — and the answer is a confirmed defect.
+
+### The defect
+
+`playwright.config.ts` selects the e2e suite by an explicit allowlist, not by directory:
+
+```ts
+{ name: "e2e", testDir: "./tests/e2e", testMatch: /(driver-offline-sync|portal-isolation)\.spec\.ts$/ }
+```
+
+That is a **reasonable** design — it is exactly what lets the `a11y` project and the `e2e` project share one
+directory and still mean different things (the config's own V1-remediation note explains the split). The
+defect is not the allowlist. It is that **nothing notices a file no project claims.**
+
+Measured by planting `tests/e2e/zz-orphan.spec.ts` containing `expect(1).toBe(2)`:
+
+| observation | result |
+|---|---|
+| `playwright test --list --project=e2e` | `Total: 6 tests in 2 files` — **unchanged** |
+| `test:tools` | `3 failed / 985 passed (988)` — **identical to baseline** |
+
+An always-failing browser test merges green. Not "fails and is ignored" — **never runs, and its absence
+appears in no report.**
+
+### Why the exit code proved nothing, and the count did
+
+`test:tools` was **already red** on §726's unrelated uncommitted `REQ-289` register row. So `exit 1` with the
+orphan planted was indistinguishable from `exit 1` without it. Only the **failure counts** — identical, to the
+test — showed that nothing had reacted. This is §"attribute the RED before crediting it" running in the
+opposite direction from usual: not crediting a red to the wrong subject, but nearly crediting a *pre-existing*
+red as evidence of detection. **A red baseline destroys the exit code as an instrument; the count survives.**
+
+### Why this is aimed at the acceptance spine specifically
+
+`tools/acceptance/demos.ts` carries a `browser` field — *"a browser-drivable acceptance spec IF one is
+tractable in-repo, else null"*. It is declared once, set to `null` five times, and **read by nothing**: not
+`run.ts`, not `demos.test.ts`, not the manifest. Demos 3 and 5 each name a browser spec as *"the documented
+next in-repo increment"*. So the intended future is: write the spec, drop it in `tests/e2e/`, set
+`browser: "…"`, watch the e2e gate report PASS — and **every one of those steps succeeds while the spec never
+executes.** The record would then claim browser coverage for two of the five demos that define "done enough
+to show".
+
+### What was built
+
+`tools/checks/spec-collection.test.ts`, four assertions. It **asks playwright rather than re-implementing it**
+— `--list --reporter=json` is the authoritative answer to "what would run", and re-deriving `testDir` ×
+`testMatch` in a local regex is precisely the second-copy-of-a-rule shape this repo already has a skill about.
+
+| assertion | mutation | verdict |
+|---|---|---|
+| every tracked spec is collected by some config | plant a staged orphan spec | **RED**, naming the file |
+| each config collects ≥1 spec | point the map config's `testDir` at `./src` | **RED**, ×2 |
+| no two specs share a basename | (precondition; basename is the only common key across configs) | floor |
+| `Demo.browser`, if set, names a real spec | set demo 5's `browser` to a non-existent path | **RED** |
+
+Both file mutations restored byte-identical. The basename floor exists because the map and prod configs report
+**bare basenames** while the root config reports repo-relative paths; if two specs ever collide, the
+comparison would start *lying* rather than failing, so the collision is asserted separately and its failure
+names the cause rather than an innocent spec.
+
+`collectedBasenames()` throws rather than returning `[]` when playwright cannot enumerate. Returning empty
+would still red — but with the wrong diagnosis (*"your specs are orphaned"* instead of *"this gate is
+blind"*), which is §"when a gate looks wrong, suspect the measurement" written into the failure text.
+
+### The probe that lied, and the fixed point that caught it
+
+The first orphan mutation reported **6 passed — no red.** That was the probe, not the gate: the corpus is
+`git ls-files`, which lists **tracked** files only, and I had written the file without staging it. In a real
+PR the spec is committed and therefore tracked. `git add -N` made `ls-files` see it and the gate went red
+immediately, naming `tests/e2e/zz-orphan.spec.ts`.
+
+This is the second harness flaw this session to fail toward a **reassuring** result (§"keep a fixed point
+before scaling a probe" — the first was §726's empty-file probe, where a non-matching filter meant only one
+file was collected and I measured the easy case instead of the sibling-masking case). Both were caught by
+checking a count that had to hold — `ls-files` returning 1, `Test Files 2` — before reading the verdict.
+**A probe that returns "no defect" is exactly as suspect as one that returns "defect", and gets checked less.**
+
+### Exit state
+
+`test:tools` **995** (+7); lint 0; typecheck 0. `verify:merge` unchanged in verdict — still `21 PASS · 0 FAIL ·
+5 BLOCKED` at HEAD's register, still 2 FAIL under the working tree's uncommitted `REQ-289` row (§726).
+
+**Reopen triggers**
+- A fourth playwright config appears → derived automatically; no edit needed. But if a config is ever added
+  that legitimately collects nothing (a scaffold), the per-config floor reds and needs an exemption **with its
+  reason**, like every other allowlist here.
+- Two specs come to share a basename → the precondition assertion reds first, by design. Fix by resolving
+  full paths per config root, not by deleting the floor.
+- `Demo.browser` starts being READ by `run.ts` → the dormant assertion becomes live and this note should say
+  so; a field that is finally load-bearing no longer needs a gate proving it is not decoration.
