@@ -23,6 +23,28 @@ describe("REQ-030: the events table has exactly one application writer", () => {
     ]);
     for (const reason of ALLOWED_EVENT_WRITERS.values()) expect(reason.length).toBeGreaterThan(40);
   });
+
+  it("every allowlisted path still exists AND still writes events (§672 — no exemption outlives its subject)", () => {
+    // ALLOWED's only effect is `continue`: the file is never scanned. So an entry is a bypass attached to a
+    // PATH, not to a reason. If the module is deleted or stops writing events, the entry survives — and
+    // whatever is created at that path next inherits a bypass of the append chokepoint it never earned,
+    // silently, because the gate's job is to not look there.
+    //
+    // The gate itself now raises this (mutation-proved: moving tools/seed/load.ts takes it to exit 1). This
+    // asserts the same property directly, so the rule is pinned in test:tools as well as on the CLI path.
+    const root = repoRoot();
+    const tracked = new Set(execSync("git ls-files", { cwd: root, encoding: "utf8" }).split("\n"));
+    for (const [rel] of ALLOWED_EVENT_WRITERS) {
+      expect(tracked.has(rel), `ALLOWED exempts ${rel}, which is not a tracked file — delete the entry`).toBe(true);
+      const body = stripComments(readFileSync(`${root}/${rel}`, "utf8"));
+      const eventInsert = insertIntoRe("events"); // the SHARED matcher the gate uses, not a re-authored copy
+      expect(
+        eventInsert.test(body),
+        `ALLOWED exempts ${rel} from the append chokepoint, but it no longer writes the events table. The ` +
+          "exemption is now attached to a path rather than to a reason — delete the entry",
+      ).toBe(true);
+    }
+  });
 });
 
 // The stripper is where a FALSE NEGATIVE would hide: over-strip and a real bypass inside a template literal

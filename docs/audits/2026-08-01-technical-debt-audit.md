@@ -311,6 +311,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 116 | §668 | **§669** | **Clean negative + a REFUTED claim of mine.** Corrected §668's own "26 UNIQUE" (a regex counting `0008`'s header prose) to **8**. Five fire when neutered; the three silent ones are all redundant with live BEFORE INSERT triggers (`0008` for hash/device, **`0003`** for `(event_id, line_no)`). My draft asserted `(event_id,line_no)` had no trigger twin — **false**, written after reading `0008` and never opening `0003`. The behavioural test PASSING under the mutation is what refuted it. Both layers pinned; the 3-row mutation table shows neither test is vacuous |
 | 117 | §669 | **§670** | **DDL class CLOSED at member level, 46 constraints across four classes.** TRIGGER: **12/12 fire** — but the twelfth read as silent under a run I had scoped for speed, and is owned by `lens.test.ts` (a performance workaround is a change to the measurement). FK: three declared on adjacent lines, two tested — **`legs.shipment_id` undefended across 1,456 tests**, an orphan leg holding an appointment slot and a split share against a shipment that does not exist. Closed; M187b fires exactly 1. Five of six runs in one batch were workerd crashes caught by a validation guard, not findings |
 | 118 | §670 | **§671** | **Closed a limit the record carried TWICE.** §668 shipped `DOMAIN_CHECKS` hand-maintained and wrote down that an unenrolled CHECK fails nothing; §670 repeated the sentence. A limit recorded twice without an attempt is being managed, not closed — and the record reads identically either way. Closable with material already in the file (§610: a selector needs its own floor): the test already imports the migration raw, so count declared CHECKs vs enrolled. M188 adds an unenrolled CHECK and it fires |
+| 119 | §671 | **§672** | **Rosters clean; the gap was in a SANCTION.** 44 lists; the auto-classifier returned "derived: 0 of 44" — a broken probe, discarded. The useful split is rosters (need completeness) vs sanctions (need staleness) vs probe corpora (neither). All three rosters checked have floors. But `ALLOWED` in **append-chokepoint.ts** — the allowlist for the append chokepoint itself — had no staleness check, while its §636/§666 siblings do; this gate is OLDER than both. It keys on the exact PATH and only does `continue`, so a deleted module leaves a bypass any future file at that path inherits. M189: gate → exit 1 |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -37282,3 +37283,66 @@ allowed-value pin from §668 is only worth anything if it cannot be bypassed by 
   count.** `SANCTIONED_OPEN` in the payload-strictness gate has a staleness check but no completeness floor —
   though there the list is *derived* from `evInput` calls, so the corpus cannot outrun it. That asymmetry is
   the thing to look for: derived lists are safe, enumerated ones need a count.
+
+## §672 — PHASE GATE: the roster sweep came back clean, and the one gap was in an exemption, not a roster
+
+**Subject.** §671's trigger: *"any hand-maintained list in `tools/checks/` that describes a corpus it does not
+count — derived lists are safe, enumerated ones need a count."*
+
+### The sweep, and a classifier that had to be thrown away
+
+44 constant lists across the gate code. A first pass tried to sort them derived-vs-enumerated automatically
+and returned **"derived: 0 of 44"** — which is the shape of a broken probe, not a finding, and it was: the
+classifier only inspected the first `;`-delimited segment of a multi-line literal. Discarded rather than
+patched, because the categories were wrong anyway.
+
+The useful split is by **what the list is for**:
+
+- **Rosters** — naming members of a set that exists independently in the tree. These need a completeness floor.
+- **Sanctions** — exemptions. These need a *staleness* check, not completeness: the risk is an entry
+  outliving its subject, not a subject missing from the entry.
+- **Probe corpora and config** (`EVASIONS`, `BUDGETS`, `MODES`) — describe nothing external. Neither applies.
+
+### Rosters: clean, three for three
+
+`DO_MUTEX_ROSTER` raises *"a DurableObject X is not in DO_MUTEX_ROSTER"*. `GUARDED_TABLES` is floored by
+`checkTableClassification`, which requires every table to be in it or in `MUTABLE_TABLES`. `SCREENS` is both
+*derived* (parsed from the spec) and bidirectionally checked (§608). A crude regex reported "NONE FOUND" for
+two of those three — the sweep's own instrument was wrong twice before the sweep produced anything.
+
+### The gap was in a sanction, and it was found by the sibling heuristic
+
+`ALLOWED` in `append-chokepoint.ts` — the allowlist for **the append chokepoint itself** (REQ-030/I3) — had
+no staleness check. Its siblings do: §636's `SANCTIONED` and §666's `SANCTIONED_OPEN` each assert nothing
+remains after its subject is gone. This gate is **older than both**, so the pattern was invented after it and
+never applied backwards. That is the third instance of §668's shape: *the pattern exists next door and stops
+one line short.*
+
+**Why it matters here specifically.** `ALLOWED` keys on the **exact path** and its only effect is `continue`
+— the file is never scanned. So an entry is a bypass attached to a *path*, not to a *reason*. Delete
+`tools/seed/load.ts` and the entry survives; create anything at that path later and it inherits a bypass of
+the append chokepoint it never earned — silently, because this gate's whole job is to not look there.
+
+Both current entries are live (checked: both tracked, both still writing `events`). **This is the guard, not
+a fix for a stale row** — which is the honest framing, and the reason to build it now rather than after.
+
+### Closed in both places
+
+The gate raises a violation, and `append-chokepoint.test.ts` asserts the same property so it is pinned in
+`test:tools` as well as on the CLI path. The test builds its matcher with the **shared** `insertIntoRe`
+builder rather than a copy — the `share-lint-matchers-with-parity-tests` rule, in the one file that skill was
+written about.
+
+**M189** moves `tools/seed/load.ts`: the gate goes to **exit 1** naming the orphaned exemption. **M189b**
+repeats it against the test, which fires. Both restored, `git status` clean.
+
+### Exit state
+
+`test:tools` 955 → **956**; typecheck 0; chokepoint gate exit 0. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED**
+(§667 at `13b6642`).
+
+**Reopen triggers**
+- A third entry is added to `ALLOWED` → it is a new module writing `events` outside the DO, which is a
+  design decision, not a maintenance one. The staleness guard does not make that cheaper.
+- Another exemption list is added anywhere in `tools/` → the question to ask it is not "is it complete?" but
+  "what happens when its subject disappears?" Rosters and sanctions fail in opposite directions.

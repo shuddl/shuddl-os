@@ -126,6 +126,35 @@ export function findChokepointViolations(cwd: string = repoRoot()): ChokepointVi
     }
   }
 
+  // §672 — AN EXEMPTION THAT OUTLIVES ITS SUBJECT. `ALLOWED` keys on the EXACT path and its only effect is
+  // `continue` — the file is never scanned. So an entry naming a module that has been deleted, or that no
+  // longer writes events, is a standing exemption attached to a path rather than to a reason. Create a new
+  // file at that path later and it inherits a bypass of THE append chokepoint (REQ-030/I3) that it never
+  // earned, silently, because the gate's whole job is to not look there.
+  //
+  // Both current entries are live; this is the guard, not a fix for a stale row. The sibling gates written
+  // in §636 and §666 each carry this check and this one — older than both — did not, which is the same
+  // "pattern applied to some siblings and not others" shape §668 and §670 found in the schema.
+  for (const [rel, why] of ALLOWED) {
+    if (!seen.has(rel)) {
+      violations.push({
+        file: rel,
+        line: 0,
+        detail: `ALLOWED exempts this path from the append chokepoint, but the scan never reached it — the file was deleted, moved, or no longer matches SCAN_GLOBS. Delete the entry: a path-keyed exemption with no subject is inherited by whatever is created at that path next. (Recorded reason: ${why})`,
+      });
+      continue;
+    }
+    const body = stripComments(readFileSync(`${cwd}/${rel}`, "utf8"));
+    EVENT_INSERT.lastIndex = 0;
+    if (!EVENT_INSERT.test(body)) {
+      violations.push({
+        file: rel,
+        line: 0,
+        detail: `ALLOWED exempts this path from the append chokepoint, but it no longer writes the events table. The exemption is now attached to a path rather than to a reason — delete the entry. (Recorded reason: ${why})`,
+      });
+    }
+  }
+
   return violations;
 }
 
