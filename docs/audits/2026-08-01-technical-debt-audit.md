@@ -282,6 +282,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 87 | §639 | **§640** | **DEFECT — acceptance demo 5 was HALF-guarded.** "The exception pulse dimming the map while everything else stays quiet" makes two claims; only the dim was pinned. Making the exception dim WITH the world — so it vanishes into the crowd and the demo loses its point — left packages/map at 87/87 GREEN, because the assertion checked the expression CONTAINS "0.35" and both arms were then 0.35. Fixed by asserting the arms DIFFER |
 | 88 | §640 | **§641** | **The same half-guard one expression over.** §640 pinned the world-dim; the AT-REST match had it too — an exception mark set to render identically to a healthy one left packages/map 88/88 GREEN. The existing test compares the three leaf layers TO EACH OTHER, and the mutation moves all three through their shared builder: **comparing siblings cannot see a change that moves every sibling.** M148/M149 now red |
 | 89 | §641 | **§642** | Swept §641's mechanism ("comparing siblings cannot see a change that moves every sibling"): two instances repo-wide. One was §641's defect; the other, in BILLING, is correct — its siblings are the same call made twice and equality IS the requirement (a redelivered webhook must re-derive one id), paired with a count so it cannot pass vacuously. M150 (non-deterministic id) reddens 2 tests. The distinction: is equality the requirement, or a proxy for it |
+| 90 | §642 | **§643** | Checked the build's sharpest CONTRAST requirement for §640's shape — CLAUDE.md rule 7's "--signal-deep is tuned by the contrast test, not by eye". It asserts the RATIO, correctly. Proved with the real historical decision: reverting to doc 07's by-eye #A93018 (4.43:1) reddens THREE surfaces. Its suite opens with black/white=21:1 and identical=1:1 — the POSITIVE CONTROLS my own probes lacked in §625/§635/§638 |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -35484,3 +35485,65 @@ changed this phase.
   values directly instead.
 - The map's three leaf layers stop sharing `restPaint()` → §641's note applies, and the byte-identical test
   regains the power it currently lacks.
+
+---
+
+## §643 — PHASE GATE: the contrast law, and the fixed point my own probes kept lacking
+
+**Subject.** §640–§642 chained on one shape: **the requirement is a contrast; the test checks presence.** The
+sharpest contrast requirement in the build is CLAUDE.md rule 7's — *"`--signal-deep` is tuned by the contrast
+test, not by eye"* — so it was checked for the same defect.
+
+### It asserts the relation, not a presence
+
+```ts
+expect(contrastRatio(deep, field)).toBeGreaterThanOrEqual(4.5);
+```
+
+A ratio between two tokens read from the shipped CSS. Not a substring, not a sibling comparison — the thing the
+requirement is actually about.
+
+### Proved against the real historical decision
+
+This is not a synthetic mutation. `tokens.css` records the amendment in its own comment: *"doc 07's #A93018
+measured 4.43:1 — darkened until small mono body passes WCAG AA (4.58:1 on --field)"*. **M151** put the rejected
+by-eye value back:
+
+- *small-text red passes AA on greige* — the contrast assertion
+- *auditRepo() returns zero violations against the shipped tokens/primitives/screens* — the design audit
+- *runs identically from a subdirectory (every path root-anchored)* — the CWD-parity guard (§559's class)
+
+**Three independent surfaces**, on a one-token change. CLAUDE.md rule 7's claim is verified in the strongest
+available form: the value that was chosen *by eye* fails the gate that replaced eyes.
+
+### The observation worth keeping
+
+The contrast suite opens with two assertions that are not about SHUDDL at all:
+
+```ts
+it("black on white = 21:1", …)
+it("identical colors = 1:1", …)
+```
+
+Those are **positive controls** — fixed points that must hold before any repo-specific number means anything.
+If `contrastRatio` were broken, they fail first and loudly, and no amount of token-tuning would be trusted.
+
+That is precisely the discipline my own probes lacked three times this session: §625 derived a union instead of
+measuring it, §635 read zero results from an unsupported regex flag as "the idiom does not exist", §638 read a
+narrow grep as absence. Each would have been caught in one step by a fixed point — *"does this probe return
+something I already know to be true?"*
+
+The design tests have it mechanized. My exploration did not, and could not, because there was no harness to put
+it in. **Recording that asymmetry is more useful than another resolution to be careful**: where a fixed point
+can be a test, it stops the class; where it can only be a habit, it does not.
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged. `tools/design` 57/57, `audit:design` clean, M151 restored
+byte-identical, no code changed.
+
+**Reopen triggers**
+- The AA threshold is relaxed below 4.5 → the amendment's whole reason expires, and the comment in `tokens.css`
+  recording *why* #A93018 was rejected becomes the only trace of the decision.
+- `--signal-deep` gains a second background (used on something other than `--field`) → the assertion pairs it
+  with one token, and a second pairing is unguarded until named.
