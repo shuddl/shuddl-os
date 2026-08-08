@@ -7,7 +7,7 @@ export default tseslint.config(
   // .claude/skills/** are governance/guidance docs (like CLAUDE.md), not build source. Their SKILL.md
   // reference snippets ship illustrative .ts/.sql that intentionally won't typecheck standalone — the
   // build linter must not gate on them.
-  { ignores: ["**/dist/**", "**/node_modules/**", "**/.wrangler/**", "genesis/**", "fixtures/**", "docs/**", "seed/**", "apps/*/public/**", "shuddl-site/**", "marketing-site/**", ".agents/**", ".claude/**"] },
+  { ignores: ["**/dist/**", "**/node_modules/**", "**/.wrangler/**", "genesis/**", "fixtures/**", "docs/**", "seed/**", "shuddl-site/**", "marketing-site/**", ".agents/**", ".claude/**"] },
   ...tseslint.configs.recommended,
   {
     rules: {
@@ -298,5 +298,54 @@ export default tseslint.config(
   {
     files: ["**/*.test.ts", "**/*.test.tsx"],
     rules: { "@typescript-eslint/no-misused-promises": "off" },
+  },
+  // §730 — THE DRIVER'S SERVICE WORKER IS SHIPPED CODE THAT HAD ZERO STATIC ANALYSIS.
+  //
+  // `apps/*/public/**` sat in the global ignores above, and unlike its neighbours in that list it carried no
+  // stated reason. `public/` normally holds assets — but this one holds `sw.js`, the offline shell (REQ-061),
+  // which is neither linted (ignored here) nor typechecked (it is `.js`, and no tsconfig include reaches it).
+  // §717 found and fixed a real defect in this exact file — an unretained `caches.put()` that silently dropped
+  // the offline cache write — and fixed the bug without making the file analysable.
+  //
+  // REMOVING THE IGNORE IS NOT ENOUGH, AND THAT IS THE POINT. Only `tseslint.configs.recommended` is spread
+  // above, and it targets TypeScript. MEASURED with the ignore removed and no block: `const __probeUnused = 1`,
+  // a reassigned `var`, and `1 == "1"` ALL produced **zero findings**. A green lint over this file would have
+  // certified nothing — §726's vacuous-pass shape, reached by widening a corpus instead of by writing a test.
+  // So the corpus widening and the rules land together.
+  //
+  // The globals are DERIVED from what the file references (self, caches, clients, fetch, skipWaiting,
+  // addEventListener, Promise, URL) plus the two response types a fetch handler cannot avoid. Listing them
+  // explicitly rather than pulling `globals` is not a preference — the package is transitive and not
+  // resolvable under pnpm's strict layout (checked, not assumed).
+  //
+  // LIMIT, STATED: §717's defect class — a floating promise — needs TYPE-AWARE linting, which is unavailable
+  // for plain `.js`. This gate cannot catch that one. What it does catch is the failure mode a service worker
+  // is most exposed to: a typo'd global (`cahces.open`) is a ReferenceError inside an event handler, which
+  // surfaces to a driver as "the app doesn't open offline" and to CI as nothing at all.
+  {
+    files: ["apps/*/public/**/*.js"],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: "script",
+      globals: {
+        self: "readonly",
+        caches: "readonly",
+        clients: "readonly",
+        fetch: "readonly",
+        skipWaiting: "readonly",
+        addEventListener: "readonly",
+        Promise: "readonly",
+        URL: "readonly",
+        Response: "readonly",
+        Request: "readonly",
+        console: "readonly",
+      },
+    },
+    rules: {
+      "no-undef": "error",
+      "no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
+      eqeqeq: "error",
+      "no-var": "error",
+    },
   },
 );

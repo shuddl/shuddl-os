@@ -369,6 +369,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 174 | §726 | **§727** | **DEFECT (confirmed by planted artifact): an always-failing browser spec merges GREEN.** The e2e project selects by an explicit two-file allowlist, not by directory — so a spec dropped in `tests/e2e/` is **not run**, and no report shows its absence. Planted `expect(1).toBe(2)`: `--list` unchanged at *6 tests in 2 files*, `test:tools` **identical at 3 failed / 985 passed**. Aimed straight at the acceptance spine — two demos name a new browser spec as the next increment, and `Demo.browser` is **read by nothing**. Closed by asking playwright itself (`--list --reporter=json`) rather than re-deriving `testMatch`. **4 assertions, all mutation-proved.** The exit code was useless here (baseline already red); the COUNT was the instrument |
 | 175 | §727 | **§728** | **DEFECT (live, confirmed by planting): `packages/design` silently dropped every `.test.ts`.** Its vitest `include` read `test/**/*.test.tsx` — `.tsx` only — so a planted `expect(1).toBe(2)` left `vitest run` at *Test Files 2 passed (2)*. §727's hole one layer down, and the layer §709 stops one line short of (package boundary gated, file boundary not). Widened + **probed inside the addition** (§714): the same file now reds. Gate scoped to the **five** configs that narrow the default; six inherit it and cannot orphan. **A naive comment-stripper corrupted the first measurement** — the `/**` `/` inside `src/**/*.test.ts` IS a block-comment token — reporting map as unnarrowed when it declares three patterns. 3 mutations incl. a fail-closed `exclude` throw |
 | 176 | §728 | **§729** | **THE THIRD RUNNER — two orphan sets TypeScript never checked, hiding two real bugs.** (A) `tools/live/render-email.ts` was `exclude`d from the tools config while its own `tsconfig.render.json` is a tsx-RUNTIME config **no script runs** → a planted type error left `pnpm typecheck` at **exit 0**; including it surfaced a real defect (a non-`Error` throw logged `PAGEERROR: undefined`, losing the diagnostic in the tool that produces COMMITTED evidence). (B) **nine** package-level `vite/vitest.config.ts` unchecked — `design` and `map` already included theirs, nine siblings never did. B surfaced **two** defects in `path-sequencer` (all five worker pools): `shard()`'s required 3-arg signature vs vitest 4's 1-arg → `count` undefined → `slice(NaN,NaN)` → **every shard green having run nothing**; and a v4 TYPE contract on v3 runners, the residue §28 recorded as harmless. **No new gate, deliberately** — the honest check doubles `test:tools`; the mechanism is removed instead (no tsconfig `exclude` names a source file) |
+| 177 | §729 | **§730** | **THE FOURTH RUNNER — the one SHIPPED file with zero static analysis.** ESLint's own API: 711 tracked lintable files, **6 ignored** — four `.claude/skills` snippets (documented), one merkle vector, and `apps/driver/public/sw.js`, the driver's offline shell (REQ-061). Not linted (`apps/*/public/**` was the only ignores entry with **no stated reason**) and not typechecked (`.js`, §729). §717 fixed a REAL defect in this exact file and left it as unanalysable as it found it. **Removing the ignore alone would have been a FALSE fix** — measured: three planted violations, **zero findings**, because only the TS-targeted config is spread. Corpus + rules landed together; 4/4 probes now red incl. `cahces.open` → `no-undef`. Gate asks ESLint, 2 mutations; the second (narrow the `files` glob) leaves *not-ignored* GREEN while all rules red — the false-assurance path. **Limit stated: floating promises need type-aware lint, unavailable for `.js` — §717's own class is NOT closed** |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -41167,3 +41168,116 @@ passed (the nine `include` additions did not disturb any build).
 - The workers move off vitest 3.2.x, or the root moves off 4.x → B1/B2 were both version-skew defects.
   Re-check `shard()`'s arity against the runner that will actually call it; the fail-loud throw is what makes
   a wrong answer visible instead of green.
+
+## §730 — PHASE GATE: the fourth runner — the one shipped file with no static analysis at all
+
+§727 playwright, §728 vitest, §729 TypeScript. The fourth collection surface is **ESLint**, and CLAUDE.md's
+"no `any`" lives there, so a file outside the lint corpus is another rule that quietly stops applying.
+
+### The corpus is nearly complete — measured, not assumed
+
+Planted `export const __probeAny: any = 1` in six files spanning every suspect region (a driver source file, a
+`tools/` module, `render-email.ts`, two package-level vitest configs, an e2e spec). **All six reported
+`lint exit 1`.** ESLint's reach is not the problem §729's was.
+
+Then the authoritative question, asked of ESLint's own API rather than of its globs:
+
+```js
+const eslint = new ESLint();
+for (const f of trackedLintableFiles) if (await eslint.isPathIgnored(f)) ignored.push(f);
+```
+
+**711 tracked lintable files, 6 ignored.** Four are `.claude/skills/**` reference snippets — governance docs
+whose illustrative code is *documented* as not standalone-compilable, and the ignore block says so. One is
+`fixtures/merkle-vectors/ref6962.mjs`, a reference vector. The sixth is different in kind.
+
+### `apps/driver/public/sw.js`
+
+The driver's offline shell (REQ-061). It was:
+
+- **not linted** — `apps/*/public/**` sat in the global ignores, the only entry in that list carrying **no
+  stated reason** while its neighbours each carry one; and
+- **not typechecked** — it is `.js`, and §729 established that no tsconfig `include` reaches it.
+
+Zero static analysis, on code that ships to a driver's phone. And this is not a theoretical exposure: **§717
+found a real defect in this exact file** — an unretained `caches.put()` that silently dropped the offline
+cache write — fixed the bug, and left the file exactly as unanalysable as it found it. The next one would have
+been just as invisible.
+
+### Removing the ignore would have been a false fix
+
+This is the part worth keeping. With the ignore removed and no rules block, three planted violations —
+
+```
+const __probeUnused = 1;          → 0 findings
+var __probeVar = 1; __probeVar = 2;   → 0 findings
+if (1 == "1") { … }               → 0 findings
+```
+
+— produced **nothing**, because only `tseslint.configs.recommended` is spread and it targets TypeScript. The
+file would have joined the lint corpus, `pnpm lint` would have stayed green, and the green would have
+certified **nothing**. That is §726's vacuous-pass shape reached by *widening a corpus* rather than by writing
+a test — precisely what §714 says a config edit can disguise. So the corpus widening and the rules landed
+together, and the gate below pins both.
+
+Globals are **derived from what the file references** (`self`, `caches`, `clients`, `fetch`, `skipWaiting`,
+`addEventListener`, `Promise`, `URL`) plus the two response types a fetch handler cannot avoid. Listing them
+explicitly rather than importing `globals` is not taste — the package is transitive and not resolvable under
+pnpm's strict layout (checked, not assumed).
+
+### After
+
+| planted in sw.js | before | after |
+|---|---|---|
+| `const probeUnusedNoUnderscore = 1;` | 0 | **error** |
+| `var __probeVar = 1; __probeVar = 2;` | 0 | **error** (`no-var`) |
+| `if (1 == "1")` | 0 | **error** (`eqeqeq`) |
+| `cahces.open("typo")` | 0 | **error** (`no-undef`) |
+
+The last one is why this matters most. A typo'd global in a service worker is a `ReferenceError` inside an
+event handler: it reaches a driver as *"the app doesn't open offline"* and reaches CI as **nothing at all**.
+
+**And it deleted nothing.** `adding-a-gate-can-delete-a-gate` says a new flat-config block can silently
+replace a repo-wide rule's options, and a disabled rule reports nothing. Checked directly: `no-explicit-any`
+still fires in `apps/driver/src/session.ts` and in `tools/checks/repo-root.ts` after the change.
+
+### One more attribution catch
+
+The first `no-unused-vars` probe reported **0** and looked like a gap in the new rules. It was my probe: the
+name `__probeUnused` starts with an underscore, and the block's own `varsIgnorePattern: "^_"` ignores it *by
+design*. Renaming to `probeUnusedNoUnderscore` produced the error immediately. Fifth attribution catch of the
+session, and the pattern holds — **a zero is a claim about the measurement at least as often as about the
+subject.**
+
+### The gate
+
+`tools/checks/service-worker-lint.test.ts`, 6 assertions, asking ESLint (`isPathIgnored`,
+`calculateConfigForFile`) rather than reading `eslint.config.mjs` — the §727 principle again.
+
+| mutation | `is NOT ignored` | rule assertions |
+|---|---|---|
+| re-add `apps/*/public/**` to global ignores | **RED** | **RED** ×4 |
+| narrow the block's `files` glob to a non-matching path | green | **RED** ×4 |
+
+The second mutation is the one that justifies splitting the gate in two. The file stays in the corpus, lint
+stays green, and the rules simply stop reaching it — the false-assurance path, invisible to any check that
+only asks "is it ignored?"
+
+**LIMIT, STATED:** §717's own defect class — a floating promise — requires **type-aware** linting, which is
+unavailable for plain `.js`. This phase does not close that, and no amount of rule-adding here will. The
+honest options are to convert the service worker to TypeScript with a build step, or to keep relying on
+§721's precache gate plus the airplane-mode soak fixture (owner-held). Recorded, not papered over.
+
+### Exit state
+
+`test:tools` **1007** (+6); lint 0; typecheck 0. `verify:merge` verdict unchanged from §726/§729: `21 PASS ·
+0 FAIL · 5 BLOCKED` at HEAD's register, 2 FAIL under the working tree's uncommitted `REQ-289` row.
+
+**Reopen triggers**
+- `apps/*/public/**` returns to the global ignores, or the `files` glob narrows → both are mutation-proved to
+  red. Do not "fix" either by deleting the assertion.
+- A second app gains a `public/**/*.js` → the block's glob already covers it, but the globals list is derived
+  from *this* worker's references; a new file using `indexedDB` or `postMessage` will red on `no-undef` and
+  the fix is to extend the list, not to relax the rule.
+- The service worker becomes TypeScript → the type-aware limit above dissolves, and this whole block should be
+  deleted in favour of the normal `apps/*/src` rules rather than left as a second, weaker copy.
