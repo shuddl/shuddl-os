@@ -333,6 +333,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 138 | §690 | **§691** | **DEFECT — the entire 26-gate surface hung on one unasserted line.** `gate-wiring`'s invocation corpus proves each gate is invoked *somewhere*, and "somewhere" **includes `run-gate.ts` itself** — so every gate stays "invoked" even if CI never runs the aggregate. **M212** replaced `run: pnpm verify:merge` with an echo and `test:tools` reported the same 3 known failures: **nothing noticed.** Forty phases of hardened gates ran in CI only because of an unchecked line (§634's shape at the outermost layer). Closed with a floored assertion; M212b fires. Literal pin, with its one false positive (a `verify:release` superset) recorded at the site |
 | 139 | §691 | **§692** | **Attempted the last wiring hole and concluded it should NOT be closed.** `verify:release` has no CI home because `staging-smoke` BLOCKS on an unset `SMOKE_API_BASE` — wiring it into nightly would go red every night for a reason nobody can fix from this checkout, and **a gate that must fail is worse than one that is absent**. Owner-held, one hold not two. Separately **M214** showed nightly's `check:traceability` deletion is undetected — but it is **redundant with the same gate on the merge path**, so it costs cadence, not coverage. Same mutation result as §691, an order of magnitude apart in consequence |
 | 140 | §692 | **§693** | **Linked the two wiring severities; left one limit open ON PURPOSE.** §691 and §692 gave identical mutation results with an order of magnitude between consequences, separated only by a fact neither asserted — `check:traceability` is also a merge gate. Generalised and enforced: **every gate-shaped script nightly runs must be on the merge path** (`backup` excluded as an operation, not a verdict). M215 fires. **M216 (nightly reduced to zero gates) deliberately does NOT** — its subject is unique coverage, not cadence, and pinning a cadence would encode a preference as a law. Third phase running where the next step is not the repo's to take |
+| 141 | §693 | **§694** | **One glob closed a limit TWO gates shared.** §691 and §693 both pinned workflow paths literally; widening to *every* workflow makes the rule "every gate-shaped script any workflow runs is on the merge path". Measured first: **one exception in the whole tree** — `check:pr`, which reads `$PR_BODY` and therefore *cannot* be in the merge profile — sanctioned with a reason and a staleness check. M217 (a third workflow with a unique gate) fires; M218 (stale sanction) fires. Closes a four-phase run where each phase attempted the previous one's recorded limit — **two closed, one closed as "do not close", one by generalisation** |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -38809,3 +38810,57 @@ the cadence). That convergence is itself the signal.
   §691's pin has the same shape, and both are literal by choice (§691's caveat explains why).
 - Someone decides the nightly cadence is load-bearing → then *"nightly runs ≥1 gate"* becomes assertable,
   because there is finally a stated reason for it. Until then it would pin a preference as a law.
+
+## §694 — PHASE GATE: the literal-path limit both previous gates shared
+
+**Subject.** §693 recorded a limit its own assertion shared with §691's: *"a third workflow appears → this
+assertion names `nightly.yml` by path; a new file inherits nothing. §691's pin has the same shape."* Two
+gates, one limit, written down in the same breath — §671's rule says attempt it.
+
+### One glob closes both
+
+The rule was already right; only its **corpus** was pinned by hand. Widening from *"the nightly workflow"* to
+*"every workflow"* makes it: **every gate-shaped script any workflow runs must be on the merge path.**
+Measured across the tree first, so the widening could not be a guess:
+
+| workflow | gate-shaped invocations | on the merge path? |
+|---|---|---|
+| `ci.yml` | `audit:design`, `check:runtime`, `perf:map`, `test:a11y`, `test:acceptance`, `test:e2e`, `test:visual`, `verify:merge` | all yes |
+| `ci.yml` | **`check:pr`** | **no** |
+| `nightly.yml` | `check:traceability` | yes |
+
+**One exception in the whole tree**, and it is a real one: `check:pr` reads `$PR_BODY`, an input that exists
+only in a pull-request context, so `run-gate` *cannot* invoke it and the merge profile *cannot* contain it.
+It goes in `SANCTIONED_CI_ONLY` with that reason and a staleness check, matching every other allowlist here
+(§636/§666/§672).
+
+**M217** adds a third workflow running a unique gate — the exact scenario both prior sections named — and the
+assertion fires. **M218** points the sanction at a script no workflow runs and the staleness check fires.
+
+### The pattern this closes out
+
+Four consecutive phases, each attempting the limit the phase before it wrote down:
+
+| phase | limit attempted | outcome |
+|---|---|---|
+| §691 | CI's `verify:merge` step unasserted | **closed** — 26 gates hung on one unchecked line |
+| §692 | `verify:release` unwired | **should not be closed** — would pin a permanent red |
+| §693 | nightly's severity unlinked from merge | **closed** — cadence vs coverage, asserted |
+| §694 | both assertions pinned literal paths | **closed** — one glob, one sanctioned exception |
+
+Two closed, one closed as *"do not close"*, one closed by generalisation. **The discipline is not that every
+limit gets fixed — it is that every limit gets tried**, and §692's outcome is as much a result as the others.
+
+### Exit state
+
+`test:tools` 972 → **973**; typecheck 0; the probe workflow removed and `git status` clean.
+**26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, aggregate BLOCKED, exit 2** at `04c6fe1`.
+
+**Reopen triggers**
+- A workflow is added outside `.github/workflows/*.yml` (a `.yaml` extension, a reusable workflow in another
+  repo) → the glob misses it. `*.yaml` is two characters away and this repo already tracks two of them; the
+  corpus floor counts workflows, so it would not notice their absence from *this* pattern.
+- `SANCTIONED_CI_ONLY` grows → each entry is a gate the merge profile cannot contain, which is a claim about
+  an **input**, not a convenience. `check:pr`'s `$PR_BODY` is the only one that has met that bar.
+- The cadence limit from §693 stays open by choice: nothing asserts a nightly *runs*, because that pins a
+  schedule rather than a guarantee.

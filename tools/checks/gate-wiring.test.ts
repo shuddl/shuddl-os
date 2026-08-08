@@ -154,31 +154,61 @@ describe("REQ-118 §656: the test script still chains the tools suite", () => {
     ).toBe(true);
   });
 
-  it("§693: every gate the nightly workflow runs is ALSO on the merge path (cadence, never sole coverage)", () => {
-    // §692 measured that neutering nightly's `check:traceability` step is undetected — and then found the
-    // severity bounded, because that script is ALSO a merge gate, so its loss costs the nightly CADENCE
-    // (drift between merges) and not the COVERAGE. §691's step, by contrast, was the sole path for 26 gates.
+  /**
+   * Gate-shaped scripts a workflow may run WITHOUT being on the merge path, each with the reason its input
+   * cannot exist there. §694 — an exemption, so it carries a reason and a staleness check like every other
+   * allowlist in this repo (§636/§666/§672).
+   */
+  const SANCTIONED_CI_ONLY: ReadonlyMap<string, string> = new Map([
+    [
+      "check:pr",
+      "REQ-118 — reads $PR_BODY for the PR's REQ-IDs. That input exists only in a pull-request context, so " +
+        "run-gate cannot invoke it and the merge profile cannot contain it.",
+    ],
+  ]);
+
+  /** Gate-shaped pnpm invocations in a workflow, excluding the `verify:*` aggregates themselves. */
+  function workflowGates(yml: string): string[] {
+    return [...yml.matchAll(/run:\s*pnpm (?:-s )?(?:exec )?([a-z0-9:_-]+)/g)]
+      .map((m) => m[1]!)
+      .filter((n) => /^(check|audit|test|perf|smoke):/.test(n));
+  }
+
+  it("§693/§694: every gate ANY workflow runs is on the merge path or sanctioned (cadence, never sole coverage)", () => {
+    // §692 measured that neutering nightly's `check:traceability` step is undetected — then found the
+    // severity bounded, because that script is ALSO a merge gate, so its loss costs the nightly CADENCE and
+    // not the COVERAGE. §691's step, by contrast, was the sole path for 26 gates. Same mutation result, an
+    // order of magnitude apart, separated only by a fact neither file asserted. This is that fact, asserted.
     //
-    // Same mutation result, an order of magnitude apart in consequence, and only that redundancy separated
-    // them. NOTHING LINKED THE TWO — which was §692's recorded limit. This is the link: a nightly job may add
-    // cadence over gates the merge path already runs, and the day one adds UNIQUE coverage it needs §691's
-    // treatment on its own terms rather than inheriting a bound it no longer has.
-    const nightly = ".github/workflows/nightly.yml";
-    expect(existsSync(nightly), "the nightly workflow is gone — this assertion has no subject").toBe(true);
-    const invocations = [...readFileSync(nightly, "utf8").matchAll(/run:\s*pnpm (?:-s )?(?:exec )?([a-z0-9:_-]+)/g)].map((m) => m[1]!);
-    expect(invocations.length, "no pnpm invocations parsed from nightly — the scan broke, the workflow did not").toBeGreaterThan(1);
-    // Scoped to gate-shaped scripts: `backup` is an OPERATION the nightly owns outright (it writes an
-    // artifact, it is not a verdict), and requiring it on the merge path would be a category error.
-    const gateish = invocations.filter((n) => /^(check|audit|test):/.test(n));
+    // §694 widens it from `nightly.yml` to EVERY workflow. The first cut named one file by path, which is
+    // the same literal-pin limit §691 carries: a third workflow would inherit nothing. Globbing closes both.
+    const workflows = globSync(".github/workflows/*.yml");
+    expect(workflows.length, "no workflows found — this assertion cannot see CI, so its silence means nothing").toBeGreaterThan(1);
     const mergeScripts = new Set([...readFileSync("tools/release/run-gate.ts", "utf8").matchAll(/script: "([^"]+)"/g)].map((m) => m[1]!));
-    const soleCoverage = gateish.filter((n) => !mergeScripts.has(n));
+    expect(mergeScripts.size, "no gate scripts parsed from run-gate.ts — the scan broke").toBeGreaterThan(20);
+
+    const soleCoverage: string[] = [];
+    for (const wf of workflows) {
+      for (const g of workflowGates(readFileSync(wf, "utf8"))) {
+        if (mergeScripts.has(g) || SANCTIONED_CI_ONLY.has(g)) continue;
+        soleCoverage.push(`${wf}: ${g}`);
+      }
+    }
     expect(
       soleCoverage,
-      "the nightly workflow runs a gate the merge profile does NOT, so nightly is its only path and its " +
-        "deletion would be silent — the shape §691 closed for verify:merge. Either add it to the merge " +
-        "profile, or give it its own wiring assertion the way §691 did:\n  " +
+      "a workflow runs a gate the merge profile does NOT, so that workflow is its only path and its deletion " +
+        "would be silent — the shape §691 closed for verify:merge. Either add it to the merge profile, give " +
+        "it its own wiring assertion, or add it to SANCTIONED_CI_ONLY naming the input that cannot exist " +
+        "outside CI:\n  " +
         soleCoverage.join("\n  "),
     ).toEqual([]);
+  });
+
+  it("§694: nothing sits in SANCTIONED_CI_ONLY that no workflow runs", () => {
+    // §"record holds with expiry triggers" — an exemption outliving its subject is a standing excuse.
+    const live = new Set(globSync(".github/workflows/*.yml").flatMap((wf) => workflowGates(readFileSync(wf, "utf8"))));
+    const stale = [...SANCTIONED_CI_ONLY.keys()].filter((k) => !live.has(k));
+    expect(stale, `SANCTIONED_CI_ONLY excuses a script no workflow runs — delete the entry:\n  ${stale.join("\n  ")}`).toEqual([]);
   });
 
   it("runs test:tools", () => {
