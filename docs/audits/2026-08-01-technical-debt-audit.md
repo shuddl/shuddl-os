@@ -352,6 +352,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 157 | §709 | **§710** | **Audited this audit's own deferrals.** §709's rule — *"recorded rather than gated" is an effort claim, and effort claims are measurable* — applied to all **11** deferral statements (7 substantive) in §663–§709. **Six sound, one not**, and the unsound one (§708) is the only whose premise was never measured. §682's untested *"register scope"* claim **verified against the register**: REQ-024 constrains *where* LLM calls live, REQ-125 is a cost ceiling, **no row names a provider** — so gating it would invent scope. Deferrals come in three kinds — effort, scope, structural — and **only the effort kind produced a defect** |
 | 158 | §710 | **§711** | **One character silences a file and the gate stays green.** 313 test files, **zero** `.only`/`.skip`/`.todo`/`.fails` — and **no ESLint plugin and no gate** keeping it that way (§671's shape). Measured: one `it.only` in `events.test.ts` took contracts from **304 passed → 267 passed / 37 skipped, suite exit 0**. Every assertion this audit proved can fail lives in a file one `.only` would silence, and a skipped test is not a failing test. Strict gate added, comment-stripped (§674) with a corpus floor; M229 fires on both markers |
 | 159 | §711 | **§712** | **Widened the corpus, found a real skip, and the skip was RIGHT.** §711 missed **6 `.spec.ts`** playwright suites; widening fired immediately on `prod-surface.spec.ts:30` — which is playwright's **conditional** `test.skip(cond, reason)`, a documented field gate whose release mode BLOCKS an all-skipped run (REQ-288). **§699's lesson self-inflicted one phase after stating it.** Discriminator: a disabled test is `it.skip("name", fn)` — a **string literal**; a conditional skip passes an expression. Both layers measured: e2e goes `PASS 6` → `BLOCKED` with `.only` planted; the static gate is the cheaper, earlier one |
+| 160 | §712 | **§713** | **Zero assertion-free tests — and the detector was wrong THREE ways.** 3,304 callbacks parsed, **0** without an assertion. Getting there: **79** flagged (brace-matched into the test NAME — *"an empty `{}` payload"*, `` `${kind}…` ``), then **7** (missed Testing Library's throwing `getByText`, which IS the assertion), then **1** (matcher died on a regex literal `\{([^}]*)\}`). Every wrong pass named real files at real lines and read as thorough. **A naive brace matcher over TypeScript fails toward MORE findings** — the dangerous direction. Not gated; premise measured (§710) |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -39951,3 +39952,54 @@ restored byte-identical. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, exit 2**
   answer is that a permanently-true condition is a code-review question, not a regex one.
 - Vitest or playwright adds another focus mechanism → the marker list is hand-written, which is right per
   §699 (membership is a property of *their* API, not this repo's code) and it will not know about a new one.
+
+## §713 — PHASE GATE: no test is assertion-free, and the detector was wrong three ways
+
+**Subject.** The vacuity class this audit applies to gates, turned on the **test suite itself**: a test with
+no assertion cannot fail. 3,773 `it()` blocks, and nothing anywhere floors their assertion count — vitest has
+no equivalent of the `MIN_ASSERTIONS` §609 added for playwright.
+
+### The answer is zero. Getting there took three corrections
+
+| pass | flagged | why it was wrong |
+|---|---|---|
+| 1 | **79** | brace-matched from the first `{` after `it(` — which lands **inside the test name**: *"REJECTS an empty `{}` payload"*, `` `${kind} arrive…` ``, `{intent:'unknown'}` |
+| 2 | **7** | anchored on the callback `=> {`, but counted only `expect`/`assert` — missing **Testing Library's throwing queries**: `getByText("SYNCING")` *is* the assertion, it raises when absent |
+| 3 | **1** | `preflight.test.ts:508` has two `expect`s; the matcher terminated early on a **regex literal containing braces**: `/spawnSync\("pnpm",\s*args,\s*\{([^}]*)\}/` |
+| final | **0** | — |
+
+**3,304 callbacks parsed, zero without an assertion.** The suite is clean.
+
+### Each wrong pass produced a plausible finding list
+
+79 assertion-free tests would have been a serious result, and the list named real files at real line numbers.
+Nothing about it looked like a parser bug. The only thing that separated it from a finding was opening three
+of them — which took a minute and cost nothing, and which §712 had just spent a phase relearning.
+
+**A naive brace matcher over TypeScript is wrong in at least three ways**, and every one of them fails toward
+*more* findings, not fewer. That direction is what makes it dangerous: an over-reporting detector reads as
+thorough.
+
+### Deliberately not gated, with the premise measured
+
+§710's rule: a deferral is an effort claim and effort claims are measurable. Here it is measured — the false-
+positive rate went **79 → 7 → 1 → 0** across three refinements, and the *final* refinement still broke on an
+ordinary regex literal. A gate whose parser mis-reads normal code will invent new violations as the code
+changes, which is §704's reasoning: a check that cries wolf is ignored inside a week.
+
+Soundness here needs a real TypeScript parse, not a regex. **The measurement is recorded and re-runnable**
+(§698's pattern) rather than shipped as a gate that would degrade.
+
+### Exit state
+
+No code change; nothing to fix. `test:tools` **980**; lint 0; typecheck 0.
+**26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, exit 2** at `e194d87`.
+
+**Reopen triggers**
+- A test is added with no assertion → **not caught**. That is the honest state, and the mitigation is that
+  every guarantee this audit cares about was individually mutation-proved, which is a stronger check than an
+  assertion count: a test with assertions that cannot fail is worse than one with none, and only mutation
+  finds it.
+- The suite adopts a new assertion idiom (a custom matcher, a throwing helper) → the vocabulary above is
+  hand-written and would flag it. Per §699 that is correct — *"is this an assertion?"* is a judgement about
+  intent, not a fact the code declares.
