@@ -163,6 +163,32 @@ describe("entityLayers — the pulse split partitions the fleet (REQ-079)", () =
     expect(new Set(paints).size, "a mark's look must not depend on which layer draws it").toBe(1);
   });
 
+  // REQ-077 §641 — THE SAME HALF-GUARD, ONE EXPRESSION OVER. §640 pinned the world-DIM's two arms; this is
+  // the AT-REST paint, a `match` whose own comment states the intent: "Exception + at-risk stay fully lit;
+  // everything else 0.9."
+  //
+  // MEASURED (§641): setting the exception arm to 0.9 — so an exception mark renders identically to a healthy
+  // one, at rest, with no dim involved — left packages/map at 88/88 GREEN. The byte-identical-paint test above
+  // compares the three leaf layers to EACH OTHER, so a change applied to all three keeps them equal and stays
+  // silent. Comparing siblings cannot see a change that moves every sibling.
+  it("at rest, exception and at-risk stay fully lit while the rest fade — the arms must differ", () => {
+    const l = layer("rest-exception");
+    if (l.type !== "circle") throw new Error("rest-exception must be a circle layer");
+    const expr = (l.paint as { "circle-opacity": unknown[] })["circle-opacity"];
+    expect(Array.isArray(expr) && expr[0] === "match", "expected a match expression").toBe(true);
+    const arms = new Map<string, unknown>();
+    for (let i = 2; i < expr.length - 1; i += 2) arms.set(String(expr[i]), expr[i + 1]);
+    const fallback = expr[expr.length - 1];
+    expect(arms.get("exception"), "an exception mark must stay fully lit").toBe(1);
+    expect(arms.get("at-risk"), "an at-risk mark must stay fully lit").toBe(1);
+    expect(fallback, "everything else fades").toBe(0.9);
+    expect(
+      arms.get("exception") === fallback,
+      "exception and the fallback render identically — an exception is indistinguishable from a healthy mark " +
+        "at rest, which is acceptance demo 5's subject before any dim is applied",
+    ).toBe(false);
+  });
+
   it("filters on the STATIC status mirror only — a filter can never read feature-state", () => {
     for (const l of entityLayers()) {
       const filter = "filter" in l ? l.filter : undefined;

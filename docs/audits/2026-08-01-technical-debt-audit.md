@@ -280,6 +280,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 85 | §637 | **§638** | Verified a SKILL's frozen citation against HEAD, as its own grounding note demands: the hand-written `FORBIDDEN_REPLACE` defect is FIXED (4 evasions blocked on both scanners) and its law holds. Then found a "missing parity test" that **already existed three times over**, as a strict superset — my grep searched the wrong words. Addition deleted; ninth measurement error. M145 kept the value: it proves the EXISTING test catches the verbatim historical defect |
 | 86 | §638 | **§639** | Swept all 16 skills' frozen citations. Every falsifiable one checks out — and `enforce-server-side-gate-parity`'s REQ-166 CRITICAL bypass is not just fixed but fixed THE WAY THE SKILL PRESCRIBED (one shared gate-context both paths call). Found an inversion: the 4 skills lacking the "frozen, verify against HEAD" note were exactly the 4 citing NO path:line — the ones with no mechanical staleness signal. All 16 now carry it |
 | 87 | §639 | **§640** | **DEFECT — acceptance demo 5 was HALF-guarded.** "The exception pulse dimming the map while everything else stays quiet" makes two claims; only the dim was pinned. Making the exception dim WITH the world — so it vanishes into the crowd and the demo loses its point — left packages/map at 87/87 GREEN, because the assertion checked the expression CONTAINS "0.35" and both arms were then 0.35. Fixed by asserting the arms DIFFER |
+| 88 | §640 | **§641** | **The same half-guard one expression over.** §640 pinned the world-dim; the AT-REST match had it too — an exception mark set to render identically to a healthy one left packages/map 88/88 GREEN. The existing test compares the three leaf layers TO EACH OTHER, and the mutation moves all three through their shared builder: **comparing siblings cannot see a change that moves every sibling.** M148/M149 now red |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -35361,3 +35362,65 @@ eslint clean.
   element, so a middle arm would slip between them unchecked.
 - The pulse layers gain their own opacity expression → this covers `REST_LAYERS`' `circle-opacity` only. The
   pulse is a separate layer per target (`entities.ts` "THE SPLIT"), and nothing here asserts its arms.
+
+---
+
+## §641 — PHASE GATE: the same half-guard, one expression over
+
+**Subject.** §640's reopen trigger pointed inside its own file: the assertion added there covers the world-dim
+expression only, and the pulse/at-rest layers carry their own. §623's rule — a known class deserves a sweep of
+its file, not a point fix.
+
+### The second instance
+
+`entities.ts` states the at-rest intent in its own comment: *"Exception + at-risk stay fully lit; everything
+else 0.9."* That is a `match` with two lit arms and a faded fallback — structurally identical to the expression
+§640 found half-guarded.
+
+**M148** set the exception arm to `0.9`, so an exception mark renders **identically to a healthy one at rest**,
+with no dim involved at all:
+
+```
+Tests  88 passed (88)
+```
+
+Silent, exactly as §640's was.
+
+### Why the existing test could not see it
+
+There *is* a test over these layers: *"gives the three leaf layers byte-identical paint apart from the pulsed
+stroke width."* It compares `rest-healthy`, `rest-at-risk` and `rest-exception` **to each other** and asserts
+the set has size 1.
+
+M148 changes the shared `restPaint()` builder, so all three layers move together and stay equal. **Comparing
+siblings cannot see a change that moves every sibling.** The test is correct and valuable — a mark's look must
+not depend on which layer draws it — and it is structurally incapable of catching this.
+
+That is the sharper form of §640's lesson. There the assertion checked a substring; here it checks a *relation
+between the wrong things*. Both pass while the requirement fails.
+
+| | Mutation | Before | After |
+|---|---|---|---|
+| M148 | at-rest exception fades to the fallback | 88/88 green | **RED** |
+| M149 | at-risk fades instead | — | **RED** |
+
+### The eighth anchor miss, with a twist
+
+M148's first attempt failed on indentation — and this time I **had** dumped the line with spacing made visible,
+then wrote the anchor from a *different* rendering two commands earlier. §640 recorded "dump the line before
+writing the anchor"; the dump happened and was then not used.
+
+The rule is narrower than I had it: **dump the line, then copy from THAT output** — not from any other view of
+the same line. Eight instances, and the `|| exit 1` wiring has made every one cost a single command.
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged. `packages/map` 89/89 (87 → 88 → 89 across §640 and §641);
+typecheck 0; eslint clean.
+
+**Reopen triggers**
+- A fourth status joins the `match` → the assertion reads named arms and the fallback, so a new arm is
+  unguarded until named. That is deliberate: a loop over all arms could not say which ones are *supposed* to
+  be lit.
+- The three leaf layers stop sharing `restPaint()` → the byte-identical test becomes the load-bearing one
+  again, and it can then see what it currently cannot.
