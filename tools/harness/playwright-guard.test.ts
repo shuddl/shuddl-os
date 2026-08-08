@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { classifyRun, parseArgs, parseStats, type RunOutcome } from "./playwright-guard.js";
+import { readFileSync } from "node:fs";
+import { repoRoot } from "../checks/repo-root.js";
+import { classifyRun, MIN_ASSERTIONS, parseArgs, parseStats, type RunOutcome } from "./playwright-guard.js";
 import { gateResultProblem, EVIDENCE_EXIT, type GateMode } from "../release/evidence.js";
 
 // V1 remediation Task 14 (REQ-288/REQ-158/REQ-285) — THE NEGATIVE CONTROLS.
@@ -124,8 +126,12 @@ describe("a genuine green", () => {
     expect(result.assertions).toBe(6);
   });
 
+  // §609: the label here is deliberately one with NO corpus floor. This case is about SKIP semantics — real
+  // tests ran, so a skip alongside them is not a failure — and it used "e2e" only incidentally. Under the
+  // floor added in §609, 2 executed against e2e's floor of 6 now FAILS, which is correct and is pinned by
+  // "a partial skip below the floor FAILS" below. Keeping "e2e" here would have conflated two rules.
   it("still PASSES when some tests skipped, provided real ones executed", () => {
-    const { result } = classifyRun("e2e", "merge", false, runOutcome(0, { expected: 2, unexpected: 0, flaky: 0, skipped: 3 }));
+    const { result } = classifyRun("floorless-sample", "merge", false, runOutcome(0, { expected: 2, unexpected: 0, flaky: 0, skipped: 3 }));
     expect(result.status).toBe("PASS");
     expect(result.assertions).toBe(2);
   });
@@ -252,5 +258,66 @@ describe("stampFieldProvenance — the surfaces record row names the zone it dro
     expect(stampFieldProvenance({ ...pass, gate: "a11y" }, "shuddl.tech").detail).toBe("5 passed");
     expect(stampFieldProvenance({ ...pass }, undefined).detail).toBe("5 passed");
     expect(stampFieldProvenance({ ...pass }, "").detail).toBe("5 passed");
+  });
+});
+
+// REQ-118 §609 — THE CORPUS RATCHET.
+//
+// §607 (acceptance) and §608 (visual) were the same class in two directions: a gate whose corpus can shrink
+// without the gate noticing. §609 found the third instance here, and this one had the widest blast radius —
+// renaming `portal-isolation.spec.ts` out of the e2e project's testMatch produced `e2e: PASS — 3 passed` at
+// exit 0 under --mode merge, retiring the browser-level proof of tenant isolation (REQ-025, CLAUDE.md rule 8)
+// with nothing to show for it.
+//
+// The two pre-existing guards floor the suite at ZERO. That protects a suite with exactly one source of
+// tests and no other — every multi-file or multi-case suite was open.
+describe("REQ-118 §609: a suite that shrank does not pass", () => {
+  const stats = (expected: number): RunOutcome =>
+    runOutcome(0, { expected, unexpected: 0, flaky: 0, skipped: 0 });
+
+  it("e2e at its floor passes", () => {
+    const { result, exitCode } = classifyRun("e2e", "merge", false, stats(MIN_ASSERTIONS["e2e"]!));
+    expect(result.status).toBe("PASS");
+    expect(exitCode).toBe(0);
+  });
+
+  it("e2e one test below its floor FAILS, even with nothing red", () => {
+    // The exact measured defect: 3 of 6 ran because a spec file left testMatch. Zero failures, and the old
+    // ladder returned PASS.
+    const { result, exitCode } = classifyRun("e2e", "merge", false, stats(MIN_ASSERTIONS["e2e"]! - 1));
+    expect(result.status, "a shrunken suite must not report PASS").toBe("FAIL");
+    expect(result.detail).toMatch(/below this suite's floor/);
+    expect(exitCode).not.toBe(0);
+  });
+
+  it("a partial skip below the floor FAILS — a skip is not a pass, at any scale", () => {
+    // The pre-existing ladder only caught ALL-skipped. Half a suite skipped reduces coverage exactly as a
+    // renamed spec file does, and REQ-025's browser proof could be among the skipped half.
+    const { result, exitCode } = classifyRun("e2e", "merge", false, runOutcome(0, { expected: 2, unexpected: 0, flaky: 0, skipped: 4 }));
+    expect(result.status, "2 of 6 executed is not a pass merely because the other 4 were skipped").toBe("FAIL");
+    expect(exitCode).not.toBe(0);
+  });
+
+  it("a suite ABOVE its floor passes — the ratchet may rise freely", () => {
+    // Adding tests must never require editing this file; only shrinkage is the reviewed event.
+    const { result } = classifyRun("visual", "merge", false, stats(MIN_ASSERTIONS["visual"]! + 7));
+    expect(result.status).toBe("PASS");
+  });
+
+  it("every guard label used by a package script carries a floor", () => {
+    // Derived from package.json rather than restated (§582): a NEW browser gate added without a floor is
+    // exactly the omission this catches, and a hand-kept list here would not.
+    const scripts = JSON.parse(readFileSync(`${repoRoot()}/package.json`, "utf8")).scripts as Record<string, string>;
+    const labels = Object.values(scripts)
+      .filter((s) => s.includes("playwright-guard.ts"))
+      .map((s) => /playwright-guard\.ts\s+(\S+)/.exec(s)?.[1])
+      .filter((l): l is string => l !== undefined);
+    expect(labels.length, "no playwright-guard scripts found — the scan is stale, not the config").toBeGreaterThanOrEqual(4);
+    // `surfaces` is release-only and returns BLOCKED before any count exists (see MIN_ASSERTIONS' comment).
+    const missing = labels.filter((l) => l !== "surfaces" && MIN_ASSERTIONS[l] === undefined);
+    expect(
+      missing,
+      `browser gate(s) with no corpus floor — the suite could shrink to one test and still report PASS:\n  ${missing.join(", ")}`,
+    ).toEqual([]);
   });
 });

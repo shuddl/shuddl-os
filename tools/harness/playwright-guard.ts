@@ -29,6 +29,22 @@ export type RunOutcome =
 
 const COUNTERS = ["expected", "unexpected", "flaky", "skipped"] as const;
 
+/**
+ * REQ-118 §609 — the per-gate corpus floor. MEASURED when this landed, each by running the gate on a clean
+ * tree under `--mode merge`: visual 5, a11y 4, e2e 6, perf 1.
+ *
+ * MAY RISE FREELY, MAY NOT FALL without an edit here saying which proof was retired. `surfaces` is absent on
+ * purpose — it is release-only, hits the public internet, and returns BLOCKED before any count exists; a floor
+ * it can never reach would be noise. `gate-wiring.test.ts` asserts every OTHER guard label carries one, so a
+ * new browser gate cannot be added without deciding its floor.
+ */
+export const MIN_ASSERTIONS: Readonly<Record<string, number>> = {
+  visual: 5,
+  a11y: 4,
+  e2e: 6,
+  perf: 1,
+};
+
 // Parse Playwright's json report. Returns null for anything that is not a report carrying all four
 // numeric counters — a crashed reporter, a prose error, an empty file. Null is "unprovable", and the
 // classifier treats it as such; it must never collapse to a zeroed (and therefore green-looking) record.
@@ -91,6 +107,31 @@ export function classifyRun(label: string, mode: GateMode, strict: boolean, outc
   if (total === 0) return blocked("no tests were discovered — a suite that found nothing proves nothing", false);
   if (executedCount === 0) return blocked(`every test was skipped (${stats.skipped} skipped) — a skip is not a pass`, false);
   if (stats.unexpected > 0) return failed(`${stats.unexpected} failing of ${executedCount} executed`, true, executedCount);
+
+  // §609 — THE CORPUS RATCHET. The two guards above floor the suite at ZERO: they catch "nothing ran" and
+  // "everything skipped", and nothing else. A suite that SHRANK still passes, and that is not hypothetical —
+  // renaming `portal-isolation.spec.ts` out of the e2e project's testMatch produced `e2e: PASS — 3 passed`
+  // at exit 0 under --mode merge, silently retiring the browser-level proof of tenant isolation (REQ-025,
+  // CLAUDE.md rule 8) while the gate reported green.
+  //
+  // A zero-floor only protects a suite that has exactly ONE source of tests, where losing it discovers
+  // nothing. Every multi-file (or multi-case) suite is unprotected — e2e has two spec files, visual five
+  // screens in one parameterized spec.
+  //
+  // A FLOOR, not an exact count, and for the same reason bundle-ratchet uses one: the number MAY RISE freely
+  // as tests are added, and MAY NOT FALL without someone editing this file and saying why. An exact count
+  // would make every new test a two-file change and would be routinely bumped without thought.
+  const floor = MIN_ASSERTIONS[label];
+  if (floor !== undefined && executedCount < floor) {
+    return failed(
+      `only ${executedCount} test(s) ran, below this suite's floor of ${floor}. The suite SHRANK — a spec file ` +
+        `renamed out of its project's testMatch, a case deleted, or a describe block dropped. Nothing failed, ` +
+        `which is exactly why this needs saying: the coverage left silently. Restore it, or lower the floor in ` +
+        `tools/harness/playwright-guard.ts and say which proof was retired and why.`,
+      true,
+      executedCount,
+    );
+  }
 
   return {
     result: {

@@ -249,6 +249,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 54 | §605 | **§606** | GATES SEEN ONLY PASSING HAVE NEVER BEEN SEEN FAILING — 5 given planted violations (seed/table-shape/section-refs/rater-purity/append-chokepoint), all 5 caught with file:line + fix. A non-counterexample probe found the real question: raw-fetch LLM bypass, already closed by an ESLint capability ban whose message names it |
 | 55 | §606 | **§607** | **DEFECT — the ACCEPTANCE gate certified a demo whose test file did not exist.** vitest is silent on a filter matching nothing whenever a SIBLING filter in the same package matches, and @shuddl/api carries 4 of the 7 spine files. Both pre-existing parity tests are record-to-record and passed. Fixed + tested. 4 more gates proven failable; 19/19 now observed failing |
 | 56 | §607 | **§608** | **DEFECT — the VISUAL gate PASSED with a canonical screen deleted from the registry** (`assertions: 4`, exit 0, under --mode merge). §607s divergence in the other direction: a blessed ref that exists while the registry no longer names it. The shared browser guard cannot floor it. Fixed with bidirectional parity + identity pin. Also: I broke the PHASE GATE heading convention twice by running the doc gates and not the suite that OWNS the file |
+| 57 | §608 | **§609** | **DEFECT — e2e PASSED at 3 of 6, losing the TENANT-ISOLATION browser proof (REQ-025, rule 8) to an ordinary rename.** Third instance of one class; the zero-floor protects only single-source suites, which was an accident of composition, not a decision. Fixed with a per-gate corpus RATCHET (may rise, may not fall) + a derived test so a new browser gate cannot ship without a floor |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -33201,3 +33202,88 @@ and eslint clean.
 - `playwright-guard.ts` gains a per-label expected-count → the parity test becomes the second mechanism, and the
   delta between their scopes is the thing to check, not either one alone.
 - `AUTHORITATIVE_FILES` moves to a derived scan → the existence check becomes unreachable and should go with it.
+
+---
+
+## §609 — PHASE GATE: the third instance of one class, and the one that mattered most
+
+**Subject.** §607 and §608 were the same defect in two directions — a gate whose corpus can shrink without the
+gate noticing. §608's fix was deliberately visual-specific, and it named its own limit: *the shared browser
+guard cannot floor what it does not know.* That leaves three siblings — `a11y`, `e2e`, `perf` — running through
+the same guard. §"enumerate callers, do not generalize the fix": one mechanism, four call sites.
+
+### THE FINDING — e2e PASSED with half its corpus gone, including the tenant-isolation proof
+
+`playwright.config.ts` gives the e2e project `testMatch: /(driver-offline-sync|portal-isolation)\.spec\.ts$/` —
+a regex naming two files. **M93** renamed one out of its reach:
+
+```
+e2e: PASS — 3 passed.
+##SHUDDL-GATE## {"gate":"e2e","status":"PASS","executed":true,"assertions":3}
+```
+
+Exit **0**, under `--mode merge`, at half the measured baseline of 6. The file that vanished was
+`portal-isolation.spec.ts` — **the browser-level proof of tenant isolation**, CLAUDE.md rule 8 and REQ-025: *"a
+cross-tenant read anywhere is a build failure."* It stopped running, nothing failed, and the gate reported green.
+
+Of the three instances of this class, this is the one with the widest blast radius, and it was reachable by an
+ordinary rename.
+
+### Why the zero-floor protects some suites and not others
+
+The guard's ladder refuses `total === 0` and `executedCount === 0`. That is a floor **at zero**, and it happens
+to protect a suite whose tests come from exactly ONE source: lose it and nothing is discovered. Every
+multi-source suite was open, and the difference was never a decision — it is an accident of composition:
+
+| Gate | Sources | Zero-floor protects it? |
+|---|---|---|
+| `a11y` | one spec file | yes, incidentally — deleting it discovers nothing |
+| `e2e` | **two** spec files | **no** — §609, PASS at 3 of 6 |
+| `visual` | one spec, **five** parameterized entries | **no** — §608, PASS at 4 of 5 |
+| `perf` | one spec | yes, incidentally |
+
+### The fix — a corpus ratchet, not a count
+
+`MIN_ASSERTIONS` in `playwright-guard.ts`: `visual 5 · a11y 4 · e2e 6 · perf 1`, each **measured** by running
+the gate clean under `--mode merge`. A FLOOR rather than an exact count, for the reason `bundle-ratchet` uses
+one — it **may rise freely** as tests are added and **may not fall** without an edit saying which proof was
+retired. An exact count would make every new test a two-file change and would be bumped without thought.
+
+This does not contradict §608's reasoning. §608 declined to teach the shared guard that visual owes five
+*named* screens — screen **identity** belongs to the suite, and that test stays. A numeric floor is the same
+shape as `BASELINE_GZIP`: config the runner can own. The two catch different things, and both are needed — the
+parity test catches one screen **swapped** for another at a constant count of five, which no floor can see.
+
+`surfaces` is deliberately floorless: release-only, hits the public internet, returns BLOCKED before any count
+exists. `gate-wiring`'s new derived test reads the labels **out of package.json** and asserts every other one
+carries a floor, so a new browser gate cannot be added without deciding it.
+
+**Proved end to end**, not just in fixtures: with M93 re-planted, the gate that returned `PASS — 3 passed` at
+exit 0 now returns `FAIL — only 3 test(s) ran, below this suite's floor of 6` at exit 1.
+
+### A tightening I made on purpose, and a green suite that was lying
+
+Adding the floor turned one pre-existing test red: `still PASSES when some tests skipped, provided real ones
+executed`, which used `"e2e"` as an arbitrary label with 2 executed and 3 skipped. Under the floor that now
+FAILS — and **it should**. The old ladder caught only ALL-skipped; half a suite skipped reduces coverage exactly
+as a renamed file does, and REQ-025's proof could be among the skipped half. The label was incidental to that
+test's real subject (skip semantics), so it now uses a floorless one, and the tightening is pinned by its own
+case: *a partial skip below the floor FAILS — a skip is not a pass, at any scale.*
+
+Then the new tests passed **37/37 while being type-invalid** — the fixtures passed an `output` field
+`RunOutcome` does not have. `tsx` strips types, so vitest never saw it; `typecheck` exited 2. **A green suite is
+not a typechecked one**, and this is the second time in two phases that running one gate and not its neighbour
+hid a real error (§608: the doc gates instead of the suite that owns the file).
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged. Clean-tree browser gates verified at their floors — visual 5/5,
+a11y 4/4 — `test:tools` back to exactly the 3 REQ-289 failures, typecheck 0.
+
+**Reopen triggers**
+- A browser suite legitimately loses a test → the floor fails by design; lower it **and** say which proof was
+  retired. A silent decrement is the event this exists to make loud.
+- `MIN_ASSERTIONS` drifts far below reality (tests added without raising it) → the ratchet still catches total
+  collapse but stops catching small shrinkage. Re-measure the four numbers when any suite grows materially.
+- A fifth browser gate appears → `gate-wiring` fails until it has a floor, which is the intended forcing
+  function, not an obstacle.
