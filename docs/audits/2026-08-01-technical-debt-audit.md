@@ -357,6 +357,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 162 | §714 | **§715** | **All nine corpus widenings now probed — two were not.** §714's rule applied as a sweep: seven of nine had a probe in the region they added; **both misses were §698's** (`apps/**/*.js` → M233, `apps/*/src/**/*.ts` → **M234**, planted here and firing). Not a coincidence: §698 framed itself as *closing a class by measurement, not by building a gate*, so its two glob edits were incidental to the story and never read as new guarantees. **A phase that thinks of itself as measuring will not instinctively verify what it builds** — the narrative decides which reflex fires |
 | 163 | §715 | **§716** | **DEFECT in my own exclusion — the mirror question, asked eleven phases late.** §705 ignored `*.test.*` wholesale for the promise rules, justified by **9 `no-misused-promises`** violations (`waitFor(async…)`). That evidence said nothing about **`no-floating-promises`**, which went off with it. Measured: `work().then(n => expect(n).toBe(999))` in a test → **eslint 0 violations, test 1 passed** — §713's own worst case, *a test WITH assertions that cannot fail*. Split so tests keep floating-promises and lose only misused; M235 fires, the idiom still allowed. **An exclusion inherits the scope of the file, not of its evidence** |
 | 164 | §716 | **§717** | **DEFECT — the driver's offline cache write could be dropped (REQ-061).** `eslint.config.mjs:10` ignores `apps/*/public/**`, where the hand-rolled service worker lives. Both `caches.open(CACHE).then(c => c.put(req, copy))` calls were **unretained** — a SW may be killed once it has responded, so the write that populates the cache can vanish. `SHELL` precaches only 4 entries; **the hashed bundles are cached on first fetch**, i.e. by the dropped write — so an offline open serves `/index.html` whose `<script>` misses. Fixed with `event.waitUntil`; e2e 6/6. Three phases hardened the promise rule *around* the one tree it cannot see |
+| 165 | §717 | **§718** | **Ignored-tree class closed at one instance.** Swept all **12** global ignore patterns for tracked executables: nine hold none; `apps/*/public/**` held `sw.js` (**§717's defect**); `fixtures/**` holds `ref6962.mjs` and `.claude/**` four skill references. `ref6962.mjs` looked like a finding — an unlinted generator feeding the vectors the **anchor implementation is verified against** — but its header states the design: *a DIFFERENT algorithm from merkle.ts*, re-derived a third way by hand, **"three independent derivations agreeing is the anti-circularity guard"**, `status: vendored` with a pinned sha256. Shipped code vs test instrument — **only reading separates them** |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -40245,3 +40246,61 @@ dropped write, because reproducing it requires terminating a service worker mid-
   no-build-step file against a config that assumes bundling — measured cost, not yet paid.
 - The airplane-mode soak fixture is vendored → **this fix becomes testable**, and it is the first thing that
   soak should be pointed at.
+
+## §718 — PHASE GATE: the ignored-tree class, closed at one instance
+
+**Subject.** §717's general shape: **a globally-ignored tree can contain shipped code**, and the rule that
+would have caught its defect could not see it. That is sweepable — the ignore list is twelve patterns, and
+"does any of them hold tracked executable code?" is a measurement.
+
+### Three trees, one defect
+
+| ignored pattern | tracked `.ts/.js/.mjs/.tsx` | verdict |
+|---|---|---|
+| `**/dist/**` · `**/node_modules/**` · `**/.wrangler/**` · `genesis/**` · `docs/**` · `seed/**` · `shuddl-site/**` · `marketing-site/**` · `.agents/**` | **0** | build output and prose — correctly ignored |
+| **`apps/*/public/**`** | 1 — `sw.js` | **§717's defect**, fixed |
+| `fixtures/**` | 1 — `merkle-vectors/ref6962.mjs` | test-vector generator — **sound**, see below |
+| `.claude/**` | 4 — skill reference files | frozen documentation, carry grounding notes |
+
+**One instance of the class, and it was the one already found.** The sweep confirms §717 was not the first of
+several.
+
+### The one that looked like a finding and is not
+
+`fixtures/merkle-vectors/ref6962.mjs` is executable, unlinted, and feeds `vectors.json`, which
+`packages/ledger/test/merkle.test.ts` checks the live anchor implementation against (REQ-014). A bug there
+would corrupt the reference the anchor is verified by — the circularity every fixture-driven test risks.
+
+**Its header answers that before it is asked:**
+
+> *"This computes the Merkle Tree Hash by the RECURSIVE largest-power-of-two split — a DIFFERENT algorithm
+> from `packages/ledger/src/merkle.ts` (which folds level-by-level with odd-node promotion). Both must
+> produce the same roots; `merkle.test.ts` re-derives them a third way by explicit hand-composition. **Three
+> independent derivations agreeing is the anti-circularity guard.**"*
+
+Two independent algorithms plus a hand derivation, and the directory is **`status: vendored`** with a pinned
+`sha256` in `fixtures/manifest.json` — so a silent regeneration is a hash mismatch, not a quiet new truth.
+The suite passes 7/7.
+
+**Being unlinted is not the risk here**: a lint rule would check style in a file whose correctness is
+established by *disagreement between three derivations*, which is a stronger check than any linter provides.
+
+### The distinction this closes
+
+§717's defect and §718's non-defect sit in ignored trees for opposite reasons. `sw.js` is **shipped code**
+that happens to live under `public/`; `ref6962.mjs` is **a test instrument** that happens to be executable.
+The ignore list cannot tell them apart, and neither can a sweep for "executable files" — **only reading what
+the file is for** separates them, which is §672's rule (*a static signal proposes; reading disposes*) on its
+fifth application this session.
+
+### Exit state
+
+No code change; nothing to fix. `test:tools` **980**; lint 0; typecheck 0; merkle 7/7.
+**26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, exit 2** at `e194d87`.
+
+**Reopen triggers**
+- A new file lands under an ignored tree → the sweep in this section is one command. The question is not
+  *"is it linted?"* but *"is it shipped?"*, and only the second one matters.
+- `marketing-site/**` or `shuddl-site/**` gains tracked code → both are ignored and both are **deployable
+  surfaces** of a different workstream. They hold zero tracked executables today; the day they do not, they
+  inherit `sw.js`'s exact shape.
