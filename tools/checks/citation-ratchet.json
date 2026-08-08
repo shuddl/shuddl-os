@@ -62,7 +62,8 @@
       "packages/contracts/src/events.ts": 2,
       "workers/agents/src/concierge.ts": 1,
       "workers/api/src/do/sequencer.ts": 3,
-      "workers/api/src/routes/events.ts": 1
+      "workers/api/src/routes/events.ts": 1,
+      "workers/translator/src/inbound.ts": 3
     },
     "docs/ops/GO-LIVE-CHECKLIST.md": {
       "packages/ledger/src/anchor.ts": 1,

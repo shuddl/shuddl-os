@@ -340,6 +340,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 145 | §697 | **§698** | **Class CLOSED by running the algorithm once instead of building a gate.** Parameterised §697's measurement over every sibling pair: **4 gaps, two of them mine from §696** — I added `apps/*.tsx` to `tenant-scope` and left **49 `.ts` modules** unseen in a tree I had just started covering, an asymmetry introduced *while closing a gap*. Design corpus: `.js` was the odd sibling of `.jsx`/`.mjs` already listed — completing an intent, not widening scope (measured first: `sw.js` has zero styling tokens). **Re-swept: 0 remaining.** A one-shot measurement can CLOSE a class a permanent gate would only MANAGE |
 | 146 | §698 | **§699** | **A trigger of my own, STRUCK by testing it.** §698 flagged its hand-written sibling table as §681's roster weakness. Deriving it instead produced **17 candidates vs 4** — the top one being `package.json`/`tsconfig.json` against a header that says *"only `*-style.json`, **not every `.json`**"*. **A derivation ignoring subject-relevance rediscovers every deliberate exclusion as a defect.** §681's lesson does not transfer: `*_MODEL` membership is a property of the CODE; extension-relevance is a property of INTENT. **Derive when membership is a fact; enumerate when it is a judgement.** Second phase concluding the change should not be made |
 | 147 | §699 | **§700** | **DEFECT — REQ-025's roster is enumerated and incomplete.** §699's rule pointed at my own gates: `GUARDED_FNS` lists 9 tenant-scoped entry points, and *"takes a tenant and reaches storage"* is a **fact about the code**, so the list CAN be wrong. It has a staleness check and **no completeness check** — one direction, on a build-failure law. Derived the other way: **19 unlisted**, three structurally identical to listed ones. A/B with `snapshotKey` from `req.slugFromQuery`: SILENT at 9, FIRES at 12. **Added three, not nineteen** — derivation over-reports (§699), so *derive to FIND candidates, judge to ADMIT them.* 16 await disposition |
+| 148 | §700 | **§701** | **§700's "largest open item" resolved by ONE question.** Is the first argument an already-scoped handle? **10 of 16 are DOWNSTREAM** of `resolveTenantDb` (which is guarded) — never candidates. The other **6 have entry-point shape** and were added, immediately firing on three translator call sites passing `tenantSlug`. Traced before judging: it is `pairing.slug` behind an **HMAC check failing closed to 401**, so sanctioned with that path. A/B: silent at 12, fires at 18. **Repeated §673's `git checkout` mistake a third time** — the fix is an ordering, not a rule: commit before probing |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -39238,3 +39239,64 @@ it is not the verdict.
   "most" is not an answer, and this is the largest open item this audit has produced.
 - A new function takes a tenant and touches storage → still invisible. The completeness floor is **not
   built**, because it would fail on those 16 today. Dispositioning them is what unblocks it.
+
+## §701 — PHASE GATE: the "largest open item" resolved by one discriminator
+
+**Subject.** §700 derived 19 tenant-taking storage functions absent from `GUARDED_FNS`, added three, and left
+**16 undispositioned** — calling them *"the largest open item this audit has produced."* That framing was
+wrong, and one question resolves it.
+
+### The discriminator: is the FIRST argument an already-scoped handle?
+
+| shape | count | why |
+|---|---|---|
+| `(db: D1Database, …, tenant, …)` · `(r2: R2Bucket, …)` · `(env: AgentsEnv, …)` | **10** | **DOWNSTREAM.** The handle was scoped upstream by `resolveTenantDb`, which **is** guarded. Listing them asserts nothing — the tenant argument is a label on data already fetched from the right database |
+| `(tenant: string, …)` | **6** | **ENTRY-POINT SHAPE** — identical to `evidenceKey`, `snapshotKey`, `anchorManifestKey` |
+
+Ten of the sixteen were never candidates. §699's warning, one phase later: **a derivation over-reports, and
+the judgement it skips is exactly the one that matters.** §700 was right to refuse the bulk add and wrong to
+call the remainder an open item without asking the question.
+
+### Adding the six surfaced three real call sites
+
+`tenderPrefix`, `tenderKey`, `sent214Key`, `quarantineKey`, `unresolvableKey`, `isPlatformCreditInvoiceIssued`
+— and the gate immediately fired on the translator's inbound EDI path:
+
+```
+inbound.ts:204 → quarantineKey(… tenantSlug …)
+inbound.ts:387 → unresolvableKey(… tenantSlug …)
+inbound.ts:492 → tenderKey(… tenantSlug …)
+```
+
+**Traced before judging.** `tenantSlug` is `pairing.slug` from a control-plane `pairings`⋈`tenants` lookup
+gated by an **HMAC signature check**, failing closed to *401, nothing written* on missing headers, an unknown
+or inactive pairing, an unresolvable secret, or a signature mismatch. It is not request input: the partner
+header *selects* a pairing, and the signature *proves* the caller holds that pairing's secret before the slug
+is used. Sanctioned in `AUTHENTICATED` with that path written down.
+
+**A/B on `tenderKey` fed from `req.slugFromBody`:** silent at a roster of 12, fires at 18.
+
+### Exit state
+
+`GUARDED_FNS` 12 → **18**; `AUTHENTICATED` gains `tenantSlug`; `tenant-scope` 4/4; `test:tools` **973**;
+typecheck 0. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, exit 2** at `04c6fe1`.
+
+**§700's "largest open item" is closed** — 10 correctly excluded with a stated reason, 6 admitted, 3 call
+sites verified authenticated.
+
+### The mistake I repeated
+
+`git checkout -- tools/checks/tenant-scope.test.ts`, used to restore the pre-add version for the A/B, **threw
+away the uncommitted §701 work** — the identical mistake §673 recorded and §676 repeated. Detected by
+grepping for the markers rather than by anything failing.
+
+Three times now. The fix that finally holds is not a rule but an ordering: **commit the work before probing
+it.** A probe needs a clean tree, and the only safe way to have one is to have nothing uncommitted worth
+losing. That is what this phase did on re-application.
+
+**Reopen triggers**
+- A new tenant-taking function is added → **still no completeness floor**. It is now buildable, because the
+  10 downstream cases have a stated discriminator (first argument is a handle) that a scan can apply. That is
+  the honest next step and it is smaller than §700 implied.
+- `AUTHENTICATED` grows → each entry is a claim that a name carries a verified identity. `tenantSlug`'s
+  verification is HMAC + fail-closed 401; anything weaker does not belong beside it.
