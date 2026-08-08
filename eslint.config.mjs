@@ -277,12 +277,26 @@ export default tseslint.config(
   // the existing block would have imported 9 such violations; production surface code has ZERO.
   {
     files: ["apps/*/src/**/*.ts", "apps/*/src/**/*.tsx"],
-    ignores: ["**/*.test.ts", "**/*.test.tsx"],
     languageOptions: { parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname } },
     rules: {
       "@typescript-eslint/no-floating-promises": "error",
       "@typescript-eslint/no-misused-promises": "error",
       "@typescript-eslint/await-thenable": "error",
     },
+  },
+  // §716 — TEST FILES KEEP `no-floating-promises` AND LOSE ONLY `no-misused-promises`.
+  //
+  // §705 excluded `*.test.tsx` wholesale because extending the rules surfaced 9 errors — every one
+  // `no-misused-promises` from `waitFor(async () => …)`, which is the rule by the letter and idiomatic by
+  // intent. Blanket-ignoring the file was the wrong shape: it also dropped `no-floating-promises`, and
+  // §715's mirror question (prove the EXCLUDED thing is caught by something, or should not be) was never
+  // asked of it.
+  //
+  // MEASURED: `work().then((n) => { expect(n).toBe(999); });` in a test — eslint reports NOTHING and the
+  // test PASSES, because the assertion lives in a promise nobody awaited. That is §713's own worst case,
+  // stated there and unguarded here: "a test WITH assertions that cannot fail is worse than one with none".
+  {
+    files: ["**/*.test.ts", "**/*.test.tsx"],
+    rules: { "@typescript-eslint/no-misused-promises": "off" },
   },
 );
