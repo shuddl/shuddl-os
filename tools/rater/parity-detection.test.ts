@@ -172,6 +172,54 @@ describe("runInvoiceParity DETECTS divergence — the WP-06 penny-exact replay g
     expect(r.passed).toBe(0);
     expect(r.mismatches.map((m) => m.field)).toContain("hold_reason");
   });
+
+  // §687 — THE STRUCTURAL PENNY-PARITY COMPARATOR. §686 closed the two EXPECTATION comparators. Sweeping
+  // every guard in this harness by deletion then showed the structural ones (Σ invoice lines vs the quote's
+  // own sell, line counts, kinds, GL accounts) are silent too — but for a DIFFERENT reason, and the
+  // difference matters:
+  //
+  //   the smoke set is a PASSING corpus, so deleting a CORRECT comparator cannot change a passing result.
+  //
+  // Deletion-silence there is not evidence of a gap; it is evidence that nothing perturbs that dimension.
+  // §686's two fired because they had a perturbed case to fail on. These have none, because there is no
+  // expectation to perturb — the comparison is invoice-vs-quote, both derived from the engine.
+  //
+  // The injectable `priceFn` is the way in (the "engine exploded" test above uses it). A quote that claims a
+  // sell while carrying NO lines makes Σ lines = 0 ≠ sell, which is REQ-031's heart: an invoice must be a
+  // penny-exact projection of the quote it came from.
+  it("§687: an invoice whose lines do not sum to the quote's sell is reported (penny-parity, REQ-031/003)", () => {
+    const issued = SMOKE_CASES.find((c) => c.expect.outcome === "issue");
+    expect(issued, "the smoke set no longer contains an issue case — this pin has no subject").toBeDefined();
+    // The sell MUST match the case's own expectation, or the EXPECTATION comparator catches it first and
+    // this test passes for a reason §686 already covers. Measured: the first draft used an arbitrary sell,
+    // and deleting the structural guard left it green — a test that proved nothing about its subject.
+    const expectedSell = (issued!.expect as { sell_cents?: number }).sell_cents;
+    expect(expectedSell, "the issue case carries no pinned sell — this pin cannot isolate the structural comparison").toBeDefined();
+    // ONE line, so the invoice composes and the line-count matches — but it sums to one cent LESS than the
+    // quote's own sell.
+    //
+    // WHAT THIS PINS, STATED HONESTLY: the PROPERTY (an invoice must sum to its quote), not any single
+    // comparator. Three drafts tried to isolate one and none succeeded — `lines: []` was caught by the
+    // EXCEPTION comparator when composeInvoice rejected it, an arbitrary sell was caught by the EXPECTATION
+    // comparator, and with `total !== quote.sell_cents` deleted the case is STILL detected, because a second
+    // guard (`glTotal !== quote.sell_cents`) checks the same identity from the GL side.
+    //
+    // That redundancy is why isolation failed, and it is §677's answer rather than a gap: two guards, one
+    // property, and the property survives losing either. So this test is a property pin — it fails if the
+    // harness stops detecting a non-summing invoice AT ALL, which is the guarantee REQ-031/003 actually
+    // needs. It deliberately does NOT claim to prove any individual comparator, because it does not.
+    const offByOne = (): QuoteResult =>
+      ({
+        status: "PRICED",
+        sell_cents: expectedSell!,
+        floors: { contribution: 1, full: 2, target: 3 },
+        lines: [{ kind: "freight", code: "freight", amount_cents: expectedSell! - 1 }],
+        versions: {},
+      }) as unknown as QuoteResult;
+    const r = runInvoiceParity([issued!], SMOKE_CONFIG, offByOne as never);
+    expect(r.passed, "an invoice whose lines do not sum to its own quote must not replay as parity").toBe(0);
+    expect(r.mismatches.length).toBeGreaterThan(0);
+  });
 });
 
 // ── The third untested gate: the concierge parse harness (REQ-026/093/100) ────────────────────────────

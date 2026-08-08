@@ -326,6 +326,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 131 | §683 | **§684** | **STOPPING POINT — every named set in CLAUDE.md is swept.** The five acceptance demos close it: M205 removes one and both the count and the manifest parity fire. Full inventory: 18 invariants · 53 law members · 46 DDL constraints · 7 budgets · 28 payload schemas · 13 agents · 12 views · 5 demos · 26 gates. **21 PASS · 0 FAIL · 5 BLOCKED at `0b6f817`.** Ledger VERIFIED not recited: 9/17 fixtures pending, register 289 rows with 1 uncommitted insertion. §296's spent-line signal has arrived twice — three clean negatives, and the one productive vein found four defects **all in a gate I had just written**. Three residual limits, each reached by trying |
 | 132 | §684 | **§685** | **The never-run gates CAN fail — verified by mutation.** §684's last uncomfortable line was that 5 of 26 gates have never executed. Three are the parity harnesses; §17 gave all three negative-test coverage (18 tests in ONE file, despite its `tools/rater/` location — my "no co-located test" signal was a file-location artifact). Mutation-proved each comparator: **all DETECTED**. The near-miss is the lesson — a crude first-`!==` anchor reported the rater harness SILENT, but that occurrence is a Zod refine on FIXTURE SHAPE, unreachable without the absent fixture. **A mutation is only evidence about the line it actually changed** |
 | 133 | §685 | **§686** | **DEFECT ×2 — the inversion detected, the deletion did not.** Attempting §685's recorded limit: the field-name proxy said `outcome`/`hold_reason` were uncovered; **inverting** both fired, dissolving that. But inversion is the WRONG mutation — it reddens on the false-positive side. Replacing each guard with `false` (a comparator that stops reporting) left the suite **GREEN** for both, while the same mutation on the rater's two fires. That is §17's *"field silently skipped"* — the case that CERTIFIES a divergent replay, in a BLOCKED harness that has never run. **Rule: inversion asks "does it run?", deletion asks "does anything depend on its verdict?"** |
+| 134 | §686 | **§687** | **Three drafts of one test, each passing for the wrong reason — the correction IS the output.** Sweeping all 22 invoice guards by deletion reported 19 SILENT, which is **not** a gap: the smoke set is a PASSING corpus, so deleting a correct comparator cannot change a passing result. **Deletion only measures against an input that FAILS.** Then three drafts targeting the structural penny-parity comparison were each caught by the wrong guard (expectation → exception → a redundant GL-side sibling). Shipped as a PROPERTY pin with the claim corrected, explicitly disclaiming what it does not prove |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -38370,3 +38371,71 @@ direction. The ones that inverted a comparison tested the other one.
   (field names) was proved not to measure coverage, so the floor §685 asked for **cannot be built from
   names** — it needs one deletion-mutation per comparator, which is a CI cost decision, not a code one.
 - The smoke sets change shape → both new tests guard on finding their subject and fail loudly if it is gone.
+
+## §687 — PHASE GATE: three drafts of one test, each passing for the wrong reason
+
+**Subject.** §686 established that inversion and deletion are different mutations, and closed the two
+**expectation** comparators it exposed. This applies the same deletion sweep to the rest of the invoice
+harness, and the result is mostly a correction to how the previous section's method should be read.
+
+### First, a refinement that changes the earlier verdict's meaning
+
+Sweeping all 22 guards in `invoice-parity.ts` by deletion reported **19 SILENT**. That looks like a
+catastrophe and is not one:
+
+> **The smoke set is a PASSING corpus, so deleting a CORRECT comparator cannot change a passing result.**
+
+Deletion-silence against a corpus that already passes is not evidence of a gap — it is evidence that
+*nothing perturbs that dimension*. §686's two fired precisely because they had a **perturbed case** to fail
+on. Of the 19, most are CLI and manifest guards (`mode !== "local"`, `row.status !== "vendored"`,
+`cases.length !== EXPECTED_REPLAY_CASES`) that cannot run without the absent fixture at all.
+
+**The deletion test needs a failing input to be meaningful.** §686's table is sound because those mutations
+ran against perturbed cases; a bare sweep over a green corpus is not the same measurement.
+
+### Then three drafts, each green for a reason that was not its subject
+
+The remaining real target is the **structural** penny-parity comparison — Σ invoice lines vs the quote's own
+sell, REQ-031/003's heart, which has no expectation to perturb because both sides derive from the engine.
+The injectable `priceFn` is the way in. Three attempts:
+
+| draft | injected | why it passed | verdict |
+|---|---|---|---|
+| 1 | `pricedAs(123_45)` — arbitrary sell, no lines | the **expectation** comparator caught it (§686's ground) | wrong subject |
+| 2 | sell matching the case, no lines | `composeInvoice` rejected the empty invoice → the **exception** comparator caught it | wrong subject |
+| 3 | sell matching, ONE line, one cent short | deleting `total !== quote.sell_cents` left it **green** | still not isolated |
+
+Draft 3's silence is the interesting one, and it is §677's answer rather than a gap: a **second guard**
+(`glTotal !== quote.sell_cents`) checks the same identity from the GL side. Two guards, one property — the
+property survives losing either.
+
+### What shipped, and the claim it actually supports
+
+The test stays, with its comment rewritten to say what it proves: **a property pin**, not a comparator pin.
+It fails if the harness stops detecting a non-summing invoice *at all* — which is the guarantee REQ-031/003
+needs — and it explicitly disclaims proving any individual comparator, because it does not.
+
+**That correction is the phase's real output.** A test whose stated subject is not what it measures is the
+exact defect this audit exists to find, and shipping one with a confident comment would have been worse than
+shipping nothing. It took three drafts and four mutations to notice, each draft green and plausible.
+
+### The rule, sharpened twice in two phases
+
+- §686: **inversion asks "does it run?", deletion asks "does anything depend on its verdict?"**
+- §687: **deletion only asks that against an input that FAILS.** Against a passing corpus it asks nothing,
+  and answers SILENT to every correct guard in the file.
+
+Together: to prove a gate can say no, delete the guard **and** feed it something it should refuse.
+
+### Exit state
+
+`tools/rater/parity-detection.test.ts` 20 → **21**; `test:tools` 969 → **970**; typecheck 0;
+`invoice-parity.ts` restored byte-identical after four mutations. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED**
+(§683 at `0b6f817`).
+
+**Reopen triggers**
+- The `glTotal` guard is removed → `total !== quote.sell_cents` becomes the sole holder of the sell identity,
+  and the §687 pin becomes a single-comparator pin without anyone editing it. Its comment says so.
+- A structural dimension gains a perturbation test → that dimension's deletion result becomes meaningful.
+  Until then, **only `outcome`, `hold_reason`, `sell_cents`, `exception` and the sell identity are proved**;
+  line kinds, line numbers and GL account mapping are asserted only by the passing smoke set.
