@@ -303,6 +303,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 108 | §660 | **§661** | Matrix closed at **6 of 6**. session→status was already tested, so the real gap was a CAP presented as a session Bearer token — **the only pair that crosses the auth boundary**, turning an anonymous capability into an authenticated session. M168 (shared secret alone) leaves them green; M169 (+ the claims guard) fires them: layer 1 is not what stops it, the CLAIMS SCHEMA is |
 | 109 | §661 | **§662** | **DEFECT — a stated invariant with a stated consequence, defended by nothing.** `sub: z.string().min(1)` exists because an empty co-sign is "an unattributable audit record"; dropping `.min(1)` left contracts at 291/291 AND api at 798/798. The existing test omits the field, and **Zod rejects an ABSENT required string before `.min(1)` is consulted** — a presence test can never reach a value constraint. Absent and empty are different inputs |
 | 110 | §662 | **§663** | **DEFECT — the same class, on the one primary key a CLIENT supplies.** Swept §662's trigger across all 73 required-field refinements in `packages/contracts`; the survivor was `eventInputBaseShape.id: z.string().uuid()`, which the sequencer uses verbatim as the dedupe key (`SELECT * FROM events WHERE id = ?`). Dropping `.uuid()` left **1,724 tests green** across all three owning suites. Unpinned, `id: "1"` parses and the second caller to pick it is returned SOMEONE ELSE'S event as their own success — **on an append-only ledger the un-written event has no correction path** |
+| 111 | §663 | **§664** | **Clean negative that CLOSES the class.** §663 narrowed by a proxy (*does the schema explain itself?*); §652 says sweep by behaviour instead. Re-swept by the real property — *a client chooses an identifier and the server looks it up* — and found **zero** additional instances: the device reserve slot is a DDL UNIQUE plus REQ-016's signing-key binding, and every agent idempotency key is server-derived, hence immune. Opposite outcome to §650→§651, from running the same check |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -36762,3 +36763,45 @@ the prose was redundant. **A record of a citation is a citation** — refer to t
   phase's consequence argument is what changes, and the test's comment names the query it rests on.
 - Any of the other 71 refinements gains a comment explaining its consequence → that is the signal §662 and
   this phase both selected on, and it means someone decided the constraint is load-bearing.
+
+## §664 — PHASE GATE: the proxy and the behaviour agreed, and the class is closed
+
+**Subject.** §663 narrowed 73 refinements to 5 by asking *"does the schema carry a comment explaining the
+constraint?"* — a proxy for *someone thought hard about this*. §652's rule is that a sweep by proxy misses the
+class, so the narrowing itself needed checking before §663's result could be called complete.
+
+### Re-swept by the behaviour
+
+The property that actually made §663 real is not the comment. It is: **a client chooses an identifier, and
+the server uses its value as a lookup key.** Enumerated every such site:
+
+| client-chosen key | what the server does with it | verdict |
+|---|---|---|
+| `EventInput.id` | `SELECT * FROM events WHERE id = ?` — the append-vs-replay decision | **pinned in §663** |
+| `(device_id, device_seq)` | the offline-reserve dedupe slot | already closed — a DDL UNIQUE proved by `schema-core.test.ts`'s *"rejects a duplicate (stream_id, device_id, device_seq)"*, plus REQ-016 binding the slot to the signing key so an unsigned or foreign-signed event cannot squat it (three tests in `events.test.ts`) |
+| agent idempotency keys | dedupe under queue redelivery | **immune** — every one is server-derived (`evidence-email/${invoiceEventId}`, `concierge-reply/${messageSentEventId}`). A client never supplies the string |
+
+**Zero additional instances.** The comment-proxy and the behaviour selected the same defect.
+
+### Why the negative is worth recording
+
+This is the opposite outcome to §650 → §651, where re-sweeping by behaviour found six more callers and one
+of them was worse than the original. Both results come from running the same check; only one of them was
+going to be interesting, and which one is not knowable in advance. **A sweep that confirms its own narrowing
+is a result, not a wasted pass** — recorded so the next loop does not re-run it from the top, and so the
+disagreement case (§651) is not mistaken for the only reason to re-sweep.
+
+The discriminator also did what §650's did: it **predicted the immune cases before any probe**. Server-derived
+keys cannot carry this defect because there is no client value to constrain — the same way content-keyed and
+size-keyed scanners were immune to the iCloud-duplicate fault.
+
+### Exit state
+
+No code change. **21 PASS · 0 FAIL · 5 BLOCKED at HEAD**; `test:tools` **951/951** with the register at HEAD.
+
+**Reopen triggers**
+- A route begins accepting a client-supplied identifier that the server looks up — a caller-chosen booking
+  reference, an external system's id used as a natural key, a client-named idempotency key on any endpoint.
+  That is a new row in the table above, and the question to ask it is what the *format* constraint is worth,
+  not whether the field parses.
+- An agent idempotency key stops being server-derived → the immunity in row 3 is exactly that derivation.
