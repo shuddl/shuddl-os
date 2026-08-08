@@ -253,6 +253,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 58 | §609 | **§610** | THE CLASS SWEPT BY RULE, not by enumeration: **a gate needs a corpus floor when a SELECTOR sits between the artifacts and the run.** unit-tests was flagged by the rule and proved already guarded (§288, 3 probes). Testing the rule against authority-coverage found its GREEN line naming a module it had stopped checking — a computed count beside a hardcoded list. Record defect, not coverage; list now derived |
 | 59 | §610 | **§611** | THE RESTATEMENT SWEEP §610 ASKED FOR. Gate summaries are clean — all derived, authority-coverage was the only exception. **The real find is one level up: CLAUDE.md states SIX hard budgets as law and nothing read the file as data.** All six agree today; now gate-checked against TABLE_BUDGET/SURFACE_ROSTER/MAX_CANONICAL_VIEWS/EVENT_KINDS/TOKENS/FONTS, mutation-proved both directions + the vacuity floor |
 | 60 | §611 | **§612** | **DEFECT — the last clause of CLAUDE.md's "Do not build (ever)" enforced NOTHING.** CONFIRM-GATED sat as a peer of vNEXT in the drift rule, so building one of the three named features and annotating it correctly left drift at 9→9 and traceability at exit 0. Fixed with a verdict-required rule (not a blanket fail — all 3 real citations are boundary markers), proved at CLI and analyzer |
+| 61 | §612 | **§613** | genesis/14 §04 "every endpoint, no exceptions" traced. The convention holds BY CONSTRUCTION — two `app.use("/v1/*", …)` lines give every mutation auth + idempotency free — and 5 of 24 mutations sit outside /v1, all deliberate and separately guarded (clean negative). The debt: nothing made the SIXTH a decision, and deleting either line would strip both from every route silently. Pinned + 3 mutations |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -33545,3 +33546,82 @@ clean.
   honest limit: this gate makes the FIRST citation a decision, not every subsequent edit to that file.
 - `scanSourceAnnotations` widens to a corpus that includes the manifest itself → every recorded verdict would
   cite its own row and the rule would self-satisfy.
+
+---
+
+## §613 — PHASE GATE: genesis/14's API conventions, and the two lines everything rests on
+
+**Subject.** §611 and §612 audited CLAUDE.md — its six numeric budgets, then its eleven prose prohibitions.
+The method transfers to the next document in the source-of-truth order. **genesis/14 §04** is titled *"API
+CONVENTIONS (REQ-156 — every endpoint, no exceptions)"*, which is a universal claim about live code and
+therefore the kind that either has a gate or is folklore.
+
+### Its clauses, traced
+
+| Clause | Enforced by |
+|---|---|
+| Error envelope `{code, message, req_id, event_ids?}` | `error-envelope-coverage.test.ts` (§598) |
+| Tenant resolution never client-supplied | `tenant-scope.test.ts` (§572) |
+| Gatekeeper checks in the API layer, not the frontend | CLAUDE.md rule 3, mutation-proved earlier |
+| **Base `/v1`** | two `app.use` lines — **and nothing watching them** |
+| **Idempotency-Key on all mutations** | the same two lines |
+
+### The convention holds by construction — which is exactly why it needed a gate
+
+`workers/api/src/index.ts` carries `app.use("/v1/*", auth)` and `app.use("/v1/*", idempotency)`. Every mutation
+mounted under `/v1` gets both for free. That is the **right** design: no route can forget what it never had to
+remember.
+
+It also means the whole of REQ-156 rests on two lines, with one escape hatch — **a mutation mounted somewhere
+else**, which silently gets no idempotency (a retried POST double-appends) and no session auth.
+
+**Measured: 24 mutating handlers, 19 under `/v1`, 5 outside.** All five turned out deliberate, documented, and
+separately guarded:
+
+- `/pub/quote`, `/pub/signup` — a **stranger has no token**, which is the entire point of the PLG path (demo 2:
+  *"a stranger signs up and quotes in <10 min"*). They cannot sit behind `/v1` auth.
+- `/internal/platform/credit-append`, `credit-settle` — deliberately outside the customer-JWT surface so a
+  customer token can **never** reach a `_platform` append, behind a fail-closed shared secret
+  (`PLATFORM_INTERNAL_SECRET`: 503 unbound, 403 mismatch, and no oracle between them).
+- `PUT pin` — not an app route at all: the sequencer DO's own fetch handler, unreachable from the router.
+
+A clean negative on the substance. The debt was that **nothing made the sixth one a decision**.
+
+### The fix, and the assertion that matters most
+
+`tools/checks/api-conventions.test.ts` pins the escape set **by identity** (§598's reasoning: a count lets one
+exception be swapped for another, and the value here is that each was argued for individually), and — more
+importantly — asserts the two `app.use` lines still exist.
+
+That second assertion is the §531 case in its purest form: **deleting either line strips auth or idempotency
+from every `/v1` mutation at once, and no route-level test would notice**, because each route would simply stop
+being wrapped rather than start failing. A guard whose removal is silent will eventually be removed.
+
+**All three assertions mutation-proved**, because a gate that cannot fail is decoration:
+
+| | Mutation | Result |
+|---|---|---|
+| M103 | the global idempotency mount deleted | RED — *"the two lines the whole convention rests on"* |
+| M104 | a new mutation mounted at `/admin/wipe` | RED — *"every mutation is under /v1"* |
+| M105 | the handler idiom changed so the scan matches nothing | RED — **the non-vacuity floor**, not a false pass |
+
+Each fired on exactly the assertion it should, and only that one.
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged. `test:tools` at 920 passed with exactly the 3 REQ-289 failures;
+typecheck 0; eslint clean.
+
+Three governing documents have now been audited the same way — CLAUDE.md's budgets, CLAUDE.md's prohibitions,
+genesis/14's API conventions. The pattern that keeps paying: **a document's universal claim ("every endpoint,
+no exceptions") is either mechanised or it is folklore, and the way to tell is to try to violate it.**
+
+**Reopen triggers**
+- A sixth non-`/v1` mutation is genuinely needed → the gate fails by design; add it to `SANCTIONED_NON_V1`
+  **with the reason and what guards it instead**. An entry without both is the failure mode this gate exists to
+  prevent, and no test can catch a lazy comment.
+- Hono's mounting idiom changes (a router object, a decorator) → the `.post("literal")` scan silently stops
+  seeing routes. M105 proves the floor catches total collapse; a PARTIAL idiom migration would not trip it,
+  which is §609's selector problem in this gate's own scan.
+- `auth` or `idempotency` is moved to per-router mounting → the two-line assertion becomes false while the
+  convention may still hold. Re-derive it rather than deleting it.
