@@ -4,5 +4,5 @@
   // reuse seam (callApi); the MCP tool surface + OAuth land in later tasks. hono/jwt is pulled in tests only
   // (to mint an HS256 session JWT the api's auth middleware verifies), so no jsx setting is needed here.
   "compilerOptions": { "types": ["@cloudflare/workers-types", "@cloudflare/vitest-pool-workers"] },
-  "include": ["src", "test"]
+  "include": ["src", "test", "vitest.config.ts"]
 }

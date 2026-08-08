@@ -1,4 +1,10 @@
-import type { TestSpecification } from "vitest/node";
+// §729 — NO VITEST TYPE IMPORT. `import type { TestSpecification } from "vitest/node"` resolved to the
+// ROOT's vitest 4 while the five workers that consume this class run 3.2.x, and the two majors'
+// TestSpecification differ (v4 adds testNamePattern / testIds / testTagsFilter). §28 removed the RUNTIME
+// coupling and recorded that "the only import left is a TYPE, which is erased at runtime" — true of
+// runtime, but the declared CONTRACT still did not match the runner that calls it. Invisible until these
+// vitest configs were typechecked for the first time (§729). Generic methods are assignable to both
+// majors' sequencer interfaces, and the sort key is read structurally anyway, so no vitest type is needed.
 
 /**
  * Order test FILES by path, deterministically, for every vitest project in this repo.
@@ -32,7 +38,7 @@ export class PathSequencer {
    * Stable, history-independent order. Sorting by the full module id (not the basename) keeps directories
    * grouped, which is the property that makes a failure reproducible rather than merely alphabetical.
    */
-  async sort(files: TestSpecification[]): Promise<TestSpecification[]> {
+  async sort<T>(files: T[]): Promise<T[]> {
     const key = (f: unknown): string =>
       typeof f === "string" ? f : (((f as { moduleId?: string }).moduleId ?? String((f as unknown[])?.[1] ?? f)) as string);
     return [...files].sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));
@@ -44,7 +50,24 @@ export class PathSequencer {
    * times, which is exactly the kind of quietly-wrong harness this module exists to prevent. Shards the
    * PATH-SORTED list so a given file lands in the same shard on every run.
    */
-  async shard(files: TestSpecification[], index: number, count: number): Promise<TestSpecification[]> {
+  async shard<T>(files: T[], index?: number, count?: number): Promise<T[]> {
+    // §729 — THE PARAMS ARE OPTIONAL BECAUSE TWO VITEST MAJORS ARE IN PLAY, and this file is the seam.
+    // The note above records that the root pins ^4.1.10 while all five workers pin 3.2.x. v3 calls
+    // `shard(files, index, count)`; v4 changed the interface to `shard(files)` and carries the shard spec on
+    // the runner config. A REQUIRED 3-arg signature is not assignable to v4's 1-arg one, which is the type
+    // error that surfaced the moment these configs were first typechecked at all (§729).
+    //
+    // Optional params satisfy both. What must NOT happen is the silent path: with `count` undefined,
+    // `Math.ceil(n / undefined)` is NaN and `slice(NaN, NaN)` returns [] — a sharded run would report every
+    // shard GREEN having executed NOTHING. That is a worse version of the exact failure the comment above
+    // says this method exists to prevent, so absent params throw.
+    if (typeof index !== "number" || typeof count !== "number") {
+      throw new Error(
+        "PathSequencer.shard was called without an index/count (vitest v4 passes the shard spec on the runner " +
+          "config instead of as arguments). Read it from the config before sharding — returning an empty or a " +
+          "full list here would make every shard pass while running nothing, or run the whole suite N times.",
+      );
+    }
     const sorted = await this.sort(files);
     const per = Math.ceil(sorted.length / count);
     return sorted.slice((index - 1) * per, index * per);

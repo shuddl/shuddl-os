@@ -3,5 +3,5 @@
   // Cron-only worker — no UI (no .tsx), so no jsx setting. The metering sweep is D1-only; its ports (the
   // tenant D1s + the control D1) are supplied by the worker entry, mirroring workers/translator.
   "compilerOptions": { "types": ["@cloudflare/workers-types", "@cloudflare/vitest-pool-workers"] },
-  "include": ["src", "test"]
+  "include": ["src", "test", "vitest.config.ts"]
 }

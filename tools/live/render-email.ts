@@ -65,7 +65,11 @@ const errs: string[] = [];
 page.on("console", (m) => {
   if (m.type() === "error") errs.push(m.text());
 });
-page.on("pageerror", (e) => errs.push(`PAGEERROR: ${e.message}`));
+// §729 — `e` is typed `unknown` here (puppeteer-core does not narrow this event), so `e.message` was a
+// type error hidden by this file being excluded from every typecheck. It was also a real defect: a
+// non-Error throw would have logged "PAGEERROR: undefined" and lost the diagnostic — in the one tool
+// whose output is COMMITTED evidence under the render-honesty rule.
+page.on("pageerror", (e: unknown) => errs.push(`PAGEERROR: ${e instanceof Error ? e.message : String(e)}`));
 await page.goto(pathToFileURL(htmlPath).href, { waitUntil: "networkidle0", timeout: 30_000 });
 await page.screenshot({ path: outPath as `${string}.png`, fullPage: true });
 await browser.close();

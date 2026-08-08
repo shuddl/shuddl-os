@@ -368,6 +368,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 173 | §725 | **§726** | **Gated §725's own reopen trigger: the two pure-negative browser gates keep their render precondition.** a11y asserts `toEqual([])` and perf asserts a long-task budget — **an unmounted page has zero of each**, so both PASS on a blank screen *with their assertion count unchanged*. What saves them is one line apiece, which reads as boilerplate. Now floored in `test:tools`, pinning each suite's OWN instrument (the two differ deliberately: painted-text is wrong for the map, `waitForSelector` is wrong for the flex-chain surfaces) plus the assumption that `visual` stays positive. **3/3 mutation-proved, each RED attributed to the named row** |
 | 174 | §726 | **§727** | **DEFECT (confirmed by planted artifact): an always-failing browser spec merges GREEN.** The e2e project selects by an explicit two-file allowlist, not by directory — so a spec dropped in `tests/e2e/` is **not run**, and no report shows its absence. Planted `expect(1).toBe(2)`: `--list` unchanged at *6 tests in 2 files*, `test:tools` **identical at 3 failed / 985 passed**. Aimed straight at the acceptance spine — two demos name a new browser spec as the next increment, and `Demo.browser` is **read by nothing**. Closed by asking playwright itself (`--list --reporter=json`) rather than re-deriving `testMatch`. **4 assertions, all mutation-proved.** The exit code was useless here (baseline already red); the COUNT was the instrument |
 | 175 | §727 | **§728** | **DEFECT (live, confirmed by planting): `packages/design` silently dropped every `.test.ts`.** Its vitest `include` read `test/**/*.test.tsx` — `.tsx` only — so a planted `expect(1).toBe(2)` left `vitest run` at *Test Files 2 passed (2)*. §727's hole one layer down, and the layer §709 stops one line short of (package boundary gated, file boundary not). Widened + **probed inside the addition** (§714): the same file now reds. Gate scoped to the **five** configs that narrow the default; six inherit it and cannot orphan. **A naive comment-stripper corrupted the first measurement** — the `/**` `/` inside `src/**/*.test.ts` IS a block-comment token — reporting map as unnarrowed when it declares three patterns. 3 mutations incl. a fail-closed `exclude` throw |
+| 176 | §728 | **§729** | **THE THIRD RUNNER — two orphan sets TypeScript never checked, hiding two real bugs.** (A) `tools/live/render-email.ts` was `exclude`d from the tools config while its own `tsconfig.render.json` is a tsx-RUNTIME config **no script runs** → a planted type error left `pnpm typecheck` at **exit 0**; including it surfaced a real defect (a non-`Error` throw logged `PAGEERROR: undefined`, losing the diagnostic in the tool that produces COMMITTED evidence). (B) **nine** package-level `vite/vitest.config.ts` unchecked — `design` and `map` already included theirs, nine siblings never did. B surfaced **two** defects in `path-sequencer` (all five worker pools): `shard()`'s required 3-arg signature vs vitest 4's 1-arg → `count` undefined → `slice(NaN,NaN)` → **every shard green having run nothing**; and a v4 TYPE contract on v3 runners, the residue §28 recorded as harmless. **No new gate, deliberately** — the honest check doubles `test:tools`; the mechanism is removed instead (no tsconfig `exclude` names a source file) |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -41025,3 +41026,144 @@ BLOCKED` at HEAD's register; 2 FAIL under the working tree's uncommitted `REQ-28
   globber may diverge, and the divergence would be *lenient*. Re-verify against a planted orphan at that time.
 - `packages/design` gains a `.test.ts` → nothing to do; that is the case this phase opened. Its presence is
   the proof the widening was needed.
+
+## §729 — PHASE GATE: the third runner — files TypeScript never checked, and the two bugs they hid
+
+§727 found a browser spec playwright never collects. §728 found a test file vitest never collects. The third
+runner with a collection surface is **TypeScript itself**, and "TypeScript strict, no `any`" is a CLAUDE.md
+stack rule — so a source file outside every project is a rule that stops applying, silently.
+
+Two orphan sets existed. Both were proven by planting `const __probe: number = "not a number"` and reading
+`pnpm typecheck`'s exit code — never by reading a config.
+
+### Orphan A — one file typechecked by nothing at all
+
+`tools/live/render-email.ts` was named in `tsconfig.tools.json`'s `exclude`, on the stated grounds that it
+*"has its own config (tools/live/tsconfig.render.json)"*. But `tsconfig.render.json` is a **tsx-runtime**
+config — its `include` spans `../../packages/**/*` so the automatic JSX runtime applies to imported `.tsx`
+sources — and it appears **only in a README line and a code comment**. No script runs it. No CI step runs it.
+
+```
+planted a blatant type error in render-email.ts  →  pnpm typecheck: exit 0
+```
+
+Both stated reasons had gone stale: `tsconfig.tools.json` **already sets** `jsx: "react-jsx"`, and including
+the file produced no DOM-lib error. There was also precedent in the very same `exclude` block — the two
+playwright configs *"USED to be excluded here"* and had been brought back in.
+
+Including it surfaced **exactly one** error, and it was a real defect:
+
+```ts
+page.on("pageerror", (e) => errs.push(`PAGEERROR: ${e.message}`));   //  'e' is of type 'unknown'
+```
+
+A non-`Error` throw would log `PAGEERROR: undefined` and lose the diagnostic — in the one tool whose output is
+**committed evidence** under the render-honesty rule. Fixed to `e instanceof Error ? e.message : String(e)`.
+The exclusion is gone; the `exclude` block is now build artifacts only (`node_modules`, `dist`), with no
+source file in it.
+
+Probed **inside** the addition (§714), not at its edges: the same planted error now takes `pnpm typecheck`
+from exit 0 to **exit 2**.
+
+### Orphan B — nine package-level config files, and the adjacency that names them
+
+`apps/*/tsconfig.json` includes `["src"]`; the workers include `["src", "test"]`. A package's own
+`vite.config.ts` / `vitest.config.ts` is in neither, and the root's `tsconfig.tools.json` includes
+`*.config.ts` **at the repo root only**. Measured by planting:
+
+| file | typecheck |
+|---|---|
+| `apps/driver/vitest.config.ts` | **exit 0** — unchecked |
+| `workers/api/vitest.config.ts` | **exit 0** — unchecked |
+| `apps/command/vite.config.ts` | **exit 0** — unchecked |
+| `playwright.config.ts` | exit 2 — checked (control) |
+
+**Two packages already did this right**: `packages/design` and `packages/map` both list `vitest.config.ts` in
+their `include`. Nine siblings did not. That is `check-what-a-discipline-stops-one-line-short-of` exactly — the
+pattern existed, was applied where someone was already working, and never went backward.
+
+This matters here for a reason the repo has already paid for once. The `exclude` block's own comment records
+that `playwright.config.ts` wrote `use: { reducedMotion: "reduce" }` — **not a Playwright option in 1.61** —
+so it was *"dropped silently and the motion axis was INERT for the whole life of the blessed refs."* Typing a
+config file is what catches an option that does not exist. Nine config files had that protection missing.
+
+### The two bugs Orphan B was hiding
+
+Adding the nine produced exactly one error, in `workers/billing/vitest.config.ts` — and chasing it found two
+distinct defects in `tools/testing/path-sequencer.ts`, the module that decides file order for **all five**
+worker pools.
+
+**B1 — a sharded run could report green having executed nothing.** `shard()` declared three **required**
+parameters. Vitest v4's interface is `shard(files)`, carrying the shard spec on the runner config. A required
+3-arg signature is not assignable to a 1-arg one — that was the type error. The runtime consequence is worse
+than the type error suggests: with `count` undefined, `Math.ceil(n / undefined)` is `NaN`, and
+`slice(NaN, NaN)` returns `[]`. **Every shard would pass, having run zero files** — a sharper version of the
+exact hazard this method's own comment says it exists to prevent (*"a sequencer that silently returned every
+file to every shard would make a sharded run pass while re-running the whole suite N times"*). Fixed:
+parameters optional, and absent parameters **throw** rather than silently shard nothing.
+
+**B2 — the type contract was written against the wrong vitest major.** With the arity fixed, a second error
+appeared: `TestSpecification` from vitest **3.2.7** (what the workers resolve) is missing `testNamePattern`,
+`testIds` and `testTagsFilter` relative to vitest **4** (what the root resolves, and what
+`import type { TestSpecification } from "vitest/node"` was picking up).
+
+This is the residue of §28. That phase removed a **runtime** coupling — `class PathSequencer extends
+BaseSequencer` handed a v4 base class to a v3 runner — and recorded that *"the only import left is a TYPE,
+which is erased at runtime."* True of runtime. But the declared **contract** still did not match the runner
+that calls it, and nothing could see that while these configs went unchecked. Fixed by removing the vitest
+type import entirely and making `sort`/`shard` generic: a generic method is assignable to both majors'
+sequencer interfaces, and the sort key was already read structurally, so no vitest type was ever needed.
+§28's intent is now actually complete.
+
+### Measurement faults, again
+
+Two more, both in the same family as §728's:
+
+1. **The comment-stripper broke a second time.** `packages/map/tsconfig.json` "failed to parse" — because it
+   carries a **`"//"` KEY** (the JSONC convention for a config note), and `//[^\n]*` strips from that key to
+   end of line, destroying the JSON. I reported map as unparseable and nearly as unnarrowed; it in fact
+   declares five include entries, `vitest.config.ts` among them. **Twice now a naive comment strip has eaten
+   real data in this repo** — once a glob, once a key.
+2. **The prefix classifier over-reported.** It produced 18 orphan candidates. `playwright.config.ts` was on
+   that list and is demonstrably typechecked (planted → exit 2), because the classifier cannot evaluate the
+   root's `*.config.ts` pattern. Fourth over-reporting detector of the session (§699, §712, §713, §723 were
+   the others). **The verdicts came from planting, in every single case.**
+
+### No new gate, and why that is the right call
+
+§727 and §728 each ended in a gate. This one does not, deliberately. An authoritative check — `tsc -p <cfg>
+--listFiles` per project — costs ~3s × 16 configs and would roughly **double** `test:tools` to defend a
+boundary that changes when a tsconfig changes, which is rare and reviewable. The cheap alternatives are worse
+than nothing: a prefix classifier is the thing that just produced 18 candidates and one proven false positive,
+and shipping it as a gate would institutionalise that error rate.
+
+What replaces it is structural, not a check: **`exclude` now contains no source file in any tsconfig**, so the
+mechanism that hid Orphan A no longer exists anywhere, and the nine includes are now uniform with the two
+packages that were already correct. Recorded as a bounded limitation rather than a hope — the reopen trigger
+below names the condition that would make it wrong again.
+
+### Exit state
+
+`test:tools` **1001** (unchanged — this phase added no tests, it widened what the compiler sees); lint 0;
+typecheck 0.
+
+Full `verify:merge` run, because this phase edited a module **all five worker pools import**:
+
+```
+26 gates — 19 PASS · 2 FAIL · 5 BLOCKED   (exit 1, working tree)
+```
+
+**Identical to §726's baseline, defect-for-defect.** The two FAILs are the same three register-shape tests
+failing on the same uncommitted `REQ-289` row; at HEAD's register the verdict is `21 PASS · 0 FAIL · 5
+BLOCKED`. Nothing new broke, and two gates specifically vouch for this phase's blast radius: `unit-tests`
+ran every worker pool green (the `path-sequencer` change is exercised by all five), and `bundle-ratchet`
+passed (the nine `include` additions did not disturb any build).
+
+**Reopen triggers**
+- Any tsconfig adds a **source file** to `exclude` → that is the Orphan-A mechanism returning. It is now the
+  only such entry in the repo if it appears; require the file be covered by a config some script actually runs.
+- A new package is scaffolded → its `vite.config.ts` / `vitest.config.ts` must go in its tsconfig `include`,
+  as `packages/design` and `packages/map` have always done and the other nine now do.
+- The workers move off vitest 3.2.x, or the root moves off 4.x → B1/B2 were both version-skew defects.
+  Re-check `shard()`'s arity against the runner that will actually call it; the fail-loud throw is what makes
+  a wrong answer visible instead of green.

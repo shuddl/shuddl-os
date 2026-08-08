@@ -22,10 +22,11 @@
   "include": ["tools/**/*.ts", "tests/**/*.ts", "*.config.ts"],
   "exclude": [
     "**/node_modules/**",
-    "**/dist/**",
-    // Has its own config (tools/live/tsconfig.render.json) because it pulls .tsx sources in and needs the
-    // automatic JSX runtime + DOM lib. It is a one-off local render tool, not part of any gate.
-    "tools/live/render-email.ts"
+    "**/dist/**"
+    // §729 — render-email.ts was excluded here and its own tsconfig.render.json is a TSX-RUNTIME config
+    // that no script runs, so this file was typechecked by NOTHING: `const x: number = "s"` planted in it
+    // left `pnpm typecheck` at exit 0. The stated reasons had gone stale — this config already sets
+    // `jsx: react-jsx`, and no DOM-lib error appears. Including it surfaced exactly one real error.
     // playwright.config.ts / playwright.prod.config.ts USED to be excluded here, because both wrote
     // `use: { reducedMotion: "reduce" }` and that does not typecheck: Playwright 1.61 has no such test
     // option (`_combinedContextOptions` is assembled from an enumerated fixture list that does not
