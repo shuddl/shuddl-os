@@ -263,6 +263,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 68 | §619 | **§620** | Closed the gap §619 named in its own trigger: REQ-017 is an ORDERING claim (hash computed BEFORE bytes leave the device) and the four tests only prove PRESENCE. driver-core states "No DOM, no network, no timers here" and nothing enforced it; now banned, zero hits, changes no code. M120 proved the ledger and rater bans SURVIVED the addition — last-writer-wins is how adding a gate deletes one. Fifth anchor miss, one phase after writing the lesson |
 | 69 | §620 | **§621** | genesis/13's repo-side contract holds (identity lint, fixtures README separation, pointer-not-path). **But REQ-167's lint is a DENYLIST and can only catch a name someone thought to add** — 39 absolute home paths across 5 tracked docs leaked the operator account name, and were a portability defect in the same edit. Rewritten to $HOME/$REPO + a denylist-independent gate; the only REQ-167 enforcement that runs while the secret is BLOCKED |
 | 70 | §621 | **§622** | **DEFECT — the CI contract's "history-wide gitleaks scan (full fetch depth)" asserted two INDEPENDENT existence checks over the whole file**, and `fetch-depth: 0` appears in two jobs — so stripping it from the secrets job left 28/28 green with gitleaks scanning only the tip commit. Job-scoped now. My first fix reproduced the defect one level down (matched the step LABEL, not the action); caught only by mutating past the first RED |
+| 71 | §622 | **§623** | Swept §622's shape across every test file: 4 candidates, 1 false positive, 2 fine, 1 latent (fixed). **The finding is the comment on the first one** — the 2026-08-01 audit found this exact class in THIS FILE, fixed the instance that surfaced, and left the gitleaks assertion eleven lines away broken for six more days. A known class deserves a sweep of its file, not a point fix |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -34288,3 +34289,63 @@ typecheck 0; eslint clean.
   ("the history-wide scan is gone entirely"), which is the correct read of a renamed job.
 - gitleaks is replaced by another scanner → the action-reference assertion fails by design. Swap the pattern
   and keep the job scoping; the shape of the mistake is what generalises, not the vendor.
+
+---
+
+## §623 — PHASE GATE: the class was known, and the file was never swept
+
+**Subject.** §622's defect has a detectable shape — several independent `toMatch` calls against a whole-file
+string inside one `it()`, where the test's name claims a conjunction. That is mechanizable, so the class got
+swept rather than left to the next accident.
+
+**Four candidates, all in `ci-contract.test.ts`.** Reading them is what the sweep is for; the shape is
+suspicious, never automatically wrong:
+
+| Test | Verdict |
+|---|---|
+| `runs strict visual, accessibility, e2e, performance in merge mode` | **fine** — already asserted PER-STEP |
+| `the design job is named for its real force` | **false positive** — one positive check plus a `not.toMatch`, and a negative assertion is global by nature and correctly so |
+| `takes its Node from the pinned .node-version and runs the runtime preflight` | **fine** — two independent CI facts, neither scoped to a job |
+| `uploads the evidence artifact even when a gate fails` | **latent** — fixed here |
+
+### The finding is not the fourth instance. It is the comment on the first.
+
+The browser-gate test carries this, dated six days before §622:
+
+> *"EVERY strict browser gate is invoked in a non-local mode so an absent browser BLOCKS rather than skips.
+> **Asserted per-step (2026-08-01 audit): a single `/--mode merge/` match let three of the four steps silently
+> lose their flag** and fall back to local mode, where an all-skipped run exits 0."*
+
+So the class was **found, understood, and written down** — and the fix was applied to the instance that
+surfaced. The gitleaks assertion, **eleven lines away in the same `describe` block**, kept the broken shape and
+stayed broken until §622 measured it.
+
+That is §"enumerate callers, don't generalize the fix" running backwards. That memory warns that one mechanism
+*change* reaches several callers needing different answers. This is the mirror: one mechanism *defect* reached
+several assertions, and only the one that surfaced got repaired. **A known class deserves a sweep of its file,
+not a point fix** — and the cost of not sweeping was six days of a secret scanner that could silently go
+shallow.
+
+### The latent one, fixed
+
+`uploads the evidence artifact even when a gate fails` asserted `/upload-artifact/` and `/always()/`
+independently. Today `ci.yml` holds exactly **one** of each, adjacent — so it could not yet be masked. **Latent,
+not active**, and worth saying so plainly rather than inflating it.
+
+It becomes maskable the instant a second `always()` appears anywhere. **M125** created exactly that state —
+guard moved off the upload step, an `always()` added to another job — and the assertion now goes red where the
+old pair would have passed. The guard matters for the run whose evidence matters most: without it the artifact
+is skipped **precisely when a gate fails**.
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged. `test:tools` at 932 passed with exactly the 3 REQ-289 failures;
+typecheck 0; eslint clean.
+
+**Reopen triggers**
+- A new `it()` in this file asserts 2+ matches on `CI` → re-run the sweep; it is nine lines of Python and the
+  false-positive rate was 1 in 4, which is a readable set rather than a filter problem.
+- The evidence upload gains a second step → the `i - 3 … i + 4` window finds the FIRST `upload-artifact` only.
+  That is sufficient for one step and wrong for two, and nothing detects the transition.
+- The same shape appears in a file with no whole-file constant (a per-test `readFileSync`) → the sweep's
+  detector keys on module-scope `const X = readFileSync(`, and would miss it entirely.

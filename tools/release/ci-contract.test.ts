@@ -262,8 +262,24 @@ describe("CI supply-chain + secret surface", () => {
   });
 
   it("uploads the evidence artifact even when a gate fails", () => {
-    expect(CI).toMatch(/upload-artifact/);
-    expect(CI).toMatch(/if:\s*(\$\{\{\s*)?always\(\)/);
+    // §623 — the guard must be ON the upload step, not merely somewhere in the file. Today there is exactly
+    // ONE `upload-artifact` and ONE `always()`, adjacent, so the old file-wide pair could not yet be masked —
+    // this was LATENT, not active. It becomes maskable the moment a second `always()` appears anywhere, and
+    // that is the §622 defect exactly: a conjunction asserted as two independent existence checks.
+    //
+    // Recorded because the 2026-08-01 audit already met this class in THIS FILE (see the per-step --mode
+    // assertion above) and fixed only the instance that surfaced. The neighbouring gitleaks assertion kept
+    // the broken shape for six more days. A known class deserves a sweep of its file, not a point fix.
+    const lines = CI.split("\n");
+    const i = lines.findIndex((l) => l.includes("upload-artifact"));
+    expect(i, "ci.yml must upload the evidence artifact").toBeGreaterThanOrEqual(0);
+    // The `if:` belongs to the same step, so it sits within the step's block — the few lines around `uses:`.
+    const step = lines.slice(Math.max(0, i - 3), i + 4).join("\n");
+    expect(
+      step,
+      "the evidence upload is not guarded by always() ON ITS OWN STEP. Without it the artifact is skipped " +
+        "exactly when a gate fails — the run whose evidence matters most",
+    ).toMatch(/if:\s*(\$\{\{\s*)?always\(\)/);
   });
 });
 
