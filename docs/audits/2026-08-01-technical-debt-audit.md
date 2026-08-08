@@ -310,6 +310,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 115 | §667 | **§668** | **DEFECT — 16 DDL CHECKs enforced by the database and nothing else.** Neutered (`CHECK (1=1 OR `) they were silent across ledger 634 · api 798 · agents 122 · billing 58 · translator 116 · rater 157 · mcp 185 = **1,670 tests**. The same file ALREADY tests a control-plane CHECK — the pattern was written once and never extended one migration over. Three (money_lines `direction`/`kind`/`amount_cents`) have NO Zod counterpart, so D1 is the only guard, and REQ-040/I7 are written in terms of that `kind` list. Closed with existence+VALUES (`toEqual` catches a widened enum, which no behavioural test can) and real inserts. M180: 0 → 20 fail; M181 (one value added): exactly 1 |
 | 116 | §668 | **§669** | **Clean negative + a REFUTED claim of mine.** Corrected §668's own "26 UNIQUE" (a regex counting `0008`'s header prose) to **8**. Five fire when neutered; the three silent ones are all redundant with live BEFORE INSERT triggers (`0008` for hash/device, **`0003`** for `(event_id, line_no)`). My draft asserted `(event_id,line_no)` had no trigger twin — **false**, written after reading `0008` and never opening `0003`. The behavioural test PASSING under the mutation is what refuted it. Both layers pinned; the 3-row mutation table shows neither test is vacuous |
 | 117 | §669 | **§670** | **DDL class CLOSED at member level, 46 constraints across four classes.** TRIGGER: **12/12 fire** — but the twelfth read as silent under a run I had scoped for speed, and is owned by `lens.test.ts` (a performance workaround is a change to the measurement). FK: three declared on adjacent lines, two tested — **`legs.shipment_id` undefended across 1,456 tests**, an orphan leg holding an appointment slot and a split share against a shipment that does not exist. Closed; M187b fires exactly 1. Five of six runs in one batch were workerd crashes caught by a validation guard, not findings |
+| 118 | §670 | **§671** | **Closed a limit the record carried TWICE.** §668 shipped `DOMAIN_CHECKS` hand-maintained and wrote down that an unenrolled CHECK fails nothing; §670 repeated the sentence. A limit recorded twice without an attempt is being managed, not closed — and the record reads identically either way. Closable with material already in the file (§610: a selector needs its own floor): the test already imports the migration raw, so count declared CHECKs vs enrolled. M188 adds an unenrolled CHECK and it fires |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -37243,3 +37244,41 @@ pre-sweep snapshot after every mutation. **26 gates — 21 PASS · 0 FAIL · 5 B
   carrying a given guarantee when two are declared.
 - The `vitest-pool-workers` instability worsens → the validation guard above turns invalid runs into visible
   `INVALID RUN` cells rather than silent green, but a sweep that cannot complete is still a sweep with a hole.
+
+## §671 — PHASE GATE: closing a limit this audit had written down twice rather than fixed
+
+**Subject.** §668 shipped `DOMAIN_CHECKS` as a hand-maintained list and recorded the consequence honestly:
+*"A new CHECK is added to `0002_domain.sql` and not to `DOMAIN_CHECKS` → **nothing fails**, and that is this
+section's honest limit."* §670 carried the same sentence forward unchanged.
+
+**A limit recorded twice without an attempt is a limit being managed rather than closed.** The distinction
+matters because the record reads identically either way — the reader cannot tell "we tried and this is the
+floor" from "we wrote it down and moved on."
+
+### It was closable with the material already in the file
+
+This is §610's shape exactly: a **selector** sits between the artifacts and the run, so the selector needs
+its own floor. The test already imports `0002_domain.sql` as raw text — the migrations are applied from it —
+so the schema can be counted directly and compared with what the list claims to cover:
+
+```
+declared in the migration   vs   DOMAIN_CHECKS.length + 1     (+1: amount_cents != 0, an expression, not an IN-list)
+```
+
+A new CHECK now fails this assertion until it is enrolled with its allowed values, which is the point: the
+allowed-value pin from §668 is only worth anything if it cannot be bypassed by adding a constraint next to it.
+
+**M188** adds an unenrolled `CHECK (tz2 IN ('utc','local'))` to the migration; exactly that assertion fires.
+
+### Exit state
+
+`packages/ledger` 660 → **661**; typecheck 0; `test:tools` 955; migration restored byte-identical.
+**26 gates — 21 PASS · 0 FAIL · 5 BLOCKED** (§667 at `13b6642`).
+
+**Reopen triggers**
+- The exemption count (`+1`) grows → each increment is an expression-form CHECK exempt from the
+  allowed-values pin, and two or three of those quietly reintroduce the hole this closed.
+- The same shape elsewhere: **any hand-maintained list in `tools/checks/` that describes a corpus it does not
+  count.** `SANCTIONED_OPEN` in the payload-strictness gate has a staleness check but no completeness floor —
+  though there the list is *derived* from `evInput` calls, so the corpus cannot outrun it. That asymmetry is
+  the thing to look for: derived lists are safe, enumerated ones need a count.

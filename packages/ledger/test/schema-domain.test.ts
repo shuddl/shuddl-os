@@ -252,6 +252,22 @@ describe("REQ-118 §668 — every tenant-domain CHECK still exists, with exactly
   it("money_lines.amount_cents still refuses zero", async () => {
     expect(await tableSql("money_lines")).toContain("CHECK (amount_cents != 0)");
   });
+
+  it("DOMAIN_CHECKS enumerates EVERY check in the migration — a new one cannot arrive unenrolled", () => {
+    // §668 shipped this list hand-maintained and recorded that as a standing limit: a CHECK added to
+    // 0002_domain.sql would be invisible to the assertions above until somebody remembered to add a row.
+    // That is §610's shape — a SELECTOR sits between the artifacts and the run, so the selector needs its
+    // own floor. Counted against the migration SOURCE (already imported here for the migrations), so the
+    // list cannot silently fall behind the schema it claims to describe.
+    const declared = [...domain.matchAll(/\bCHECK\s*\(/gi)].length;
+    // +1 for money_lines.amount_cents, which is an expression rather than an IN-list and is asserted above.
+    expect(
+      DOMAIN_CHECKS.length + 1,
+      `0002_domain.sql declares ${declared} CHECK constraints and DOMAIN_CHECKS covers ${DOMAIN_CHECKS.length + 1}. ` +
+        "A new CHECK was added without enrolling it — add a row (table, column, values) so its allowed set is " +
+        "pinned, or extend this count's exemption if it is an expression check like amount_cents != 0",
+    ).toBe(declared);
+  });
 });
 
 describe("REQ-118 §668 — the money and authority CHECKs actually bite on a real insert", () => {
