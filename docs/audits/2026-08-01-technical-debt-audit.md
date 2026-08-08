@@ -266,6 +266,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 71 | §622 | **§623** | Swept §622's shape across every test file: 4 candidates, 1 false positive, 2 fine, 1 latent (fixed). **The finding is the comment on the first one** — the 2026-08-01 audit found this exact class in THIS FILE, fixed the instance that surfaced, and left the gitleaks assertion eleven lines away broken for six more days. A known class deserves a sweep of its file, not a point fix |
 | 72 | §623 | **§625** | **A FINDING THAT WAS WRONG.** Swept the non-vacuity class (25/28 scanners have a floor); §466 sharpened it to "who has several globs behind ONE total" — 3 gates did. Claimed 38 of 87 files maskable and a mutation "confirmed" it. **The union was 49, not 87: git pathspec `*` crosses `/`, so the nested glob added ZERO.** Derived by addition instead of measured; breaking a redundant glob looks exactly like masking. Kept the real half — scanCorpus throws on an empty glob |
 | 73 | §625 | **§626** | Reviewed the helper §625 shipped WHILE retracting — the moment a defect lands. It ran `git ls-files` twice per glob; collapsed to one, and M128 re-proved the empty-glob guard survived the simplification (a refactor that quietly deletes a check is worse than the duplication). §625's reusable half — a redundant guard mutates green, indistinguishably from a blind one — saved to memory |
+| 74 | §626 | **§627** | Closed §626's trigger in the next phase: the helper enforcing non-vacuity had no tests of its own. Kept `mayBeEmpty` rather than deleting it — append-chokepoint's EXPECTED_EMPTY_GLOBS proves the concept necessary, so it was unexercised, not speculative. Six cases; M129/M130 prove the ORDERING §625 only commented (emptiness judged before the test filter) and that the exemption is exact-match, not prefix |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -34478,3 +34479,55 @@ typecheck 0; eslint clean.
   construct ends up unwatched). Its first real caller should bring one.
 - A caller needs the unfiltered list → `excludeTests` is a boolean today; a second filter would want a
   predicate, and bolting on a second boolean is how that argument list rots.
+
+---
+
+## §627 — PHASE GATE: the helper that enforces non-vacuity had none of its own
+
+**Subject.** §626's reopen trigger, closed in the next phase rather than left to decay: *"`mayBeEmpty` has no
+test … which is the §579 shape."*
+
+Two ways to close it, and the choice matters. **Delete the option** (no caller uses it — speculative
+generality) or **test it**. The deciding fact is that `append-chokepoint.ts` already carries
+`EXPECTED_EMPTY_GLOBS` for precisely this need, so the concept is **proven necessary in this repo**. It was not
+speculative; it was unexercised. And §579's excuse — a discriminating input too expensive to construct — did
+not apply either: the fixture is four files in a temp git repo.
+
+### Six cases, and the one that earns the fixture
+
+The third test is the reason this phase exists. `scanCorpus` judges emptiness on the **raw** `git ls-files`
+result, *before* `excludeTests` filters — because a glob matching only test files **has matched**, and throwing
+`EmptyGlobError` there would send the reader hunting a renamed directory that is perfectly fine.
+
+That ordering was a **comment §625 wrote and nothing checked**. Swapping the two lines is silent.
+
+| | Mutation | Result |
+|---|---|---|
+| M129 | emptiness judged AFTER the filter | RED — *"a glob matching ONLY test files is not empty"* |
+| M130 | `mayBeEmpty` made a prefix match instead of exact | RED — *"excuses a named glob, and only that one"* |
+
+Each fired on exactly its own test, and only it.
+
+M130 is worth its line: an exemption that fuzzy-matched would excuse globs nobody reviewed, which is the
+failure mode every allowlist in this repo is written to avoid. `new Set(["does-not-exist/"])` must **not**
+excuse `does-not-exist/*.ts`, and now cannot.
+
+### One assertion pins the mistake that started this
+
+The union test asserts all three files from two overlapping globs — `src/*.ts` and `src/nested/*.ts` both match
+`src/a.ts`, because git pathspec `*` crosses `/`. That is the exact fact §625 got wrong by **deriving** the
+union through addition instead of measuring it, and it is now a failing test rather than a lesson in a
+document.
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged. `test:tools` at **938 passed** with exactly the 3 REQ-289
+failures; typecheck 0; eslint clean.
+
+**Reopen triggers**
+- A caller passes `mayBeEmpty` in production code → the option stops being tested-only, and the *reason* for
+  each exempted glob needs recording where the caller is, not here.
+- `scanCorpus` grows a second filter → `excludeTests` is a boolean, and a second one would want a predicate.
+  Bolting on another boolean is how that signature rots.
+- The temp-repo fixture starts being shared with another suite → it is deliberately local; a shared fixture
+  that several suites mutate is how the ordering assertion above becomes flaky.
