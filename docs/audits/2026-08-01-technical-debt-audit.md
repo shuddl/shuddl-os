@@ -342,6 +342,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 147 | §699 | **§700** | **DEFECT — REQ-025's roster is enumerated and incomplete.** §699's rule pointed at my own gates: `GUARDED_FNS` lists 9 tenant-scoped entry points, and *"takes a tenant and reaches storage"* is a **fact about the code**, so the list CAN be wrong. It has a staleness check and **no completeness check** — one direction, on a build-failure law. Derived the other way: **19 unlisted**, three structurally identical to listed ones. A/B with `snapshotKey` from `req.slugFromQuery`: SILENT at 9, FIRES at 12. **Added three, not nineteen** — derivation over-reports (§699), so *derive to FIND candidates, judge to ADMIT them.* 16 await disposition |
 | 148 | §700 | **§701** | **§700's "largest open item" resolved by ONE question.** Is the first argument an already-scoped handle? **10 of 16 are DOWNSTREAM** of `resolveTenantDb` (which is guarded) — never candidates. The other **6 have entry-point shape** and were added, immediately firing on three translator call sites passing `tenantSlug`. Traced before judging: it is `pairing.slug` behind an **HMAC check failing closed to 401**, so sanctioned with that path. A/B: silent at 12, fires at 18. **Repeated §673's `git checkout` mistake a third time** — the fix is an ordering, not a rule: commit before probing |
 | 149 | §701 | **§702** | **Floor built; the discriminator was wrong about `Env`.** Encoding *"first arg is a scoped handle"* first classified `Env`/`AgentsEnv` as one — hiding **six listed functions including `resolveTenantDb`, the archetype of the whole roster**. `Env` is ambient bindings, so `(env, tenant)` IS an entry point; the correction surfaced `sparkGateFor` (safe, 4/4). **Completeness floor now sits beside the staleness one** — M225 adds `readTenantThing(tenant, db)` and it fires. Blind spot stated: `export function` only, which is why the roster stays hand-written — **derive to floor, enumerate to define** |
+| 150 | §702 | **§703** | **Re-derived §684's "7 gate-enforced triggers" claim, 19 phases on — 7/7 ENFORCED, no decay.** Two of my mutations were wrong first: §666 read **DECAYED** because I dropped `.strict()` from `evInput` (the ENVELOPE, §665's subject) rather than a payload schema; §683 read exit 0 because I *raised* the budget constant instead of violating it — which surfaced the better question and the answer that **§611's `claude-md-budgets` pins the constant**, so the trigger has two layers. The value is not "seven still hold" but that the sentence now has a measurement dated today |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -39358,3 +39359,57 @@ never been interrogated is not a measurement.**
 - The scoped-handle set (`D1Database`, `R2Bucket`, `DurableObjectState`, `Queue`) gains a member → a new
   handle type would read as an entry point and the floor would demand it be guarded. That is the safe
   direction to fail.
+
+## §703 — PHASE GATE: re-deriving the "7 gate-enforced triggers" claim, 19 phases after it was made
+
+**Subject.** §684's stopping point asserts **seven reopen triggers are gate-enforced**, and that claim has
+been carried unre-derived through nineteen phases. §646's rule — *never quote a figure without naming the
+tree it was measured in and whether it was measured or derived* — applies to a claim about enforcement
+exactly as it applies to a gate count. §702's rule sharpens it: **an entry that has never been interrogated
+is not a measurement.**
+
+### All seven re-verified by mutation
+
+| trigger | mutation | verdict |
+|---|---|---|
+| §666 payload strictness | drop `.strict()` from `InvoiceIssuedPayload` | **ENFORCED** |
+| §671 unenrolled CHECK | add an unregistered CHECK to `0002_domain.sql` | **ENFORCED** |
+| §672 stale chokepoint exemption | point `ALLOWED` at a path that does not exist | **ENFORCED** |
+| §673 unregistered blessed image | add `unregistered-probe.png` | **ENFORCED** (2 tests) |
+| §674 `stripComments` behaviour | make the stripper CSS-tolerant | **ENFORCED** |
+| §681 LLM model binding | bind `ANTHROPIC_MODEL` in a wrangler scope | **ENFORCED** |
+| §683 canonical-view budget | raise `MAX_CANONICAL_VIEWS` 12 → 99 | **ENFORCED** — by a *different* gate |
+
+**Seven for seven.** No decay in nineteen phases.
+
+### Two of my mutations were wrong before any of them was right
+
+**§666 first read DECAYED.** I dropped `.strict()` from `evInput` — the **envelope** builder, which is §665's
+subject. §666's gate watches *payload schemas*. Re-run against `InvoiceIssuedPayload`, it fires. §685's rule
+again: **a mutation is only evidence about the line it actually changed**, and "DECAYED" on a build-failure-
+adjacent gate is exactly the alarming shape that invites publication.
+
+**§683 first read exit 0.** I raised the budget constant rather than violating it — so `assertViewBudget()`
+correctly did not fire. But that exposed the better question: *what pins the constant?* §611's
+`claude-md-budgets` gate does, and it fires on 12 → 99. The trigger is enforced by **two layers**, one for a
+13th view and one for a moved goalpost, and my first mutation happened to test neither.
+
+### What this says about the stopping point
+
+§684's claim survives re-derivation intact — which is the outcome that makes the *re-derivation* worth
+recording, not the claim. The value is not "seven still hold"; it is that **the sentence "seven triggers are
+gate-enforced" now has a measurement behind it dated today** rather than one inherited from nineteen phases
+ago, when §646 and §689 have both shown what carried figures do.
+
+### Exit state
+
+No code change. `test:tools` **974**; all seven subjects restored byte-identical; `git status` clean.
+**26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, exit 2** at `04c6fe1`.
+
+**Reopen triggers**
+- This verification is itself now a carried claim. It is dated, its mutations are named above, and re-running
+  it costs seven commands — which is the standard §646 asks for and the same standard this section applied to
+  §684.
+- A trigger is added to the stopping point → it joins this table, and the table is the thing to re-run.
+  Nothing enumerates the triggers automatically; that is a hand-maintained list of **intent** (§699), so it
+  stays one.
