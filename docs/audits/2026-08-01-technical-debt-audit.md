@@ -295,6 +295,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 100 | §652 | **§653** | The THIRD mechanism-swept class, re-run by behaviour — and this one was already covered. Five shapes including the inverted `if (!deps.x) return`: one hit, a false positive of my own alternation (a Zod safeParse result, fail-closed). **The control that matters**: re-sweeping found real gaps twice (§642 at 2 of 6, §650 missing readdirSync) and correctly found nothing here, which is what shows the first two were about the code and not the method |
 | 101 | §653 | **§654** | Checked §646's correction against the nine ops docs. Every gate tally there is SHA-pinned (`Verdict at 3fc592b, 2026-07-28`), and most "state claims" are conditionals in contract tables — which cannot go stale the way a status line can. **The finding: PROJECT-STATE.md states §646's and §647's rules verbatim at audit §330**, before this session re-derived both from a wrong number. The record with the discipline never went wrong; the memory without it did. Re-baselined in its own convention |
 | 102 | §654 | **§655** | Asked §614's question of THIS SESSION'S OUTPUT: are the ten gate files added here on the merge path? Traced `unit-tests` → `test` → `test:tools` → `tools/**`, then MEASURED it — M156 plants §608's violation and exits test:tools 1, short-circuiting the merge gate's own `&&`; all ten collect (10 files / 30 tests). Tenth measurement error en route, and a recorded one: zsh does not word-split unquoted params |
+| 103 | §655 | **§656** | Closed §655's trigger: the `unit-tests` gate runs `test`, and `test` is `test:tools && …`. Two properties hang off it. **Attribution: dropping test:tools was ALREADY caught** by the orphan-script test (M157, 2 red incl. a pre-existing one); the new coverage is M158 — `&&` → `;` leaves the script present, running and green while 44 tools files are ignored. The gate that runs and cannot fail, one keystroke from this session's own output |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -36283,3 +36284,55 @@ one proven to fail it. No code changed this phase.
   running. `test-collection.test.ts` (§288) is what catches that, and it is the reason the check exists.
 - `test:tools` is moved out of the `test` script's `&&` chain → every gate in this session detaches from the
   merge path at once, and nothing else asserts the chain.
+
+---
+
+## §656 — PHASE GATE: the `&&` this session's output hangs from
+
+**Subject.** §655's second reopen trigger, closed in the next phase: *"`test:tools` is moved out of the `test`
+script's `&&` chain → every gate in this session detaches from the merge path at once, and nothing else asserts
+the chain."*
+
+The `unit-tests` merge gate runs `test`, and `test` is:
+
+```
+pnpm run test:tools && pnpm -r --if-present run test
+```
+
+Two distinct properties hang off that one line — **presence** and **polarity** — and they fail differently.
+
+### Attribution first: one was already guarded
+
+| | Mutation | Result |
+|---|---|---|
+| M157 | `test:tools` **dropped** from the chain | 2 red — mine **and a pre-existing test** |
+| M158 | `&&` replaced with `;` | **1 red — mine only** |
+
+M157 was already caught by *"every check:/audit:/test: script is invoked by run-gate, CI, or another script"* —
+dropping `test:tools` orphans it, and that test notices. Crediting my assertion for M157 would have overstated
+what this phase added, which is §629's lesson applied to my own new gate.
+
+**The genuinely new coverage is M158.** Replace `&&` with `;` and the script still *contains* `test:tools`,
+still *runs* it, and still passes the orphan check — while a failing tools suite stops failing the gate,
+because `;` returns only the last command's exit code. Forty-four tools test files would run and be ignored.
+
+That is the difference between **running a check and enforcing one**, and it is invisible to every other
+assertion in the repo.
+
+### Why the polarity is the interesting half
+
+A dropped script is a deletion — loud, reviewable, and already watched. A changed operator is a **one-character
+edit that preserves every surface property**: the script name is present, the command executes, the suite
+reports, CI stays green. §622 found the identical shape in the CI contract (`fetch-depth: 0` satisfied by a
+different job) and §609 in the browser floors. **The gate that runs and cannot fail is this audit's most
+recurring defect**, and here it was one keystroke away from the line carrying its own output.
+
+### Exit state
+
+**21 PASS · 0 FAIL · 5 BLOCKED at HEAD** (§647). `gate-wiring` 6/6; typecheck 0; eslint clean.
+
+**Reopen triggers**
+- The `test` script gains a third command → the regex asserts `test:tools &&`, so `test:tools && X ; Y` passes
+  while `Y`'s failure is swallowed. The assertion covers the first link of the chain, not every link.
+- `unit-tests` stops invoking `test` → both assertions here become vacuous truths about a script nobody runs,
+  and `gatesFor("merge")` is where that would show.

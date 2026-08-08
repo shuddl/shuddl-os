@@ -104,3 +104,42 @@ describe("REQ-118/119: no gate script is defined and never run", () => {
     expect(lines.some((l) => l.includes(synthetic))).toBe(false);
   });
 });
+
+// REQ-118 §656 — THE `unit-tests` GATE MUST STILL REACH THE TOOLS SUITE.
+//
+// §655 measured that this session's ten gate files are on the merge path, and named the single point of
+// failure it rests on: `unit-tests` runs the `test` script, and `test` is
+//
+//     pnpm run test:tools && pnpm -r --if-present run test
+//
+// The `&&` is load-bearing twice over. Drop `test:tools` from that chain and **every** gate under `tools/`
+// detaches from the merge gate at once — 44 test files today, including all ten added this session — while
+// `verify:merge` still reports `unit-tests PASS`, because the second half alone exits 0. Replace `&&` with
+// `;` or `||` and a failing tools suite stops failing the gate.
+//
+// Nothing asserted either property. `test-collection.test.ts` describes the chain in a COMMENT (§288) and
+// `RUNNERS` above contains the string "test" as a gate NAME, which is a different claim entirely.
+//
+// This is §634's shape — a guarantee resting on one line in one file — applied to the line that carries this
+// audit's own output.
+describe("REQ-118 §656: the test script still chains the tools suite", () => {
+  const test = PKG.scripts["test"] ?? "";
+
+  it("runs test:tools", () => {
+    expect(
+      test,
+      "the `test` script no longer runs `test:tools`. Every gate under tools/ — 44 files — detaches from the " +
+        "`unit-tests` merge gate silently, because the remaining half exits 0 on its own",
+    ).toContain("test:tools");
+  });
+
+  it("chains it with && so a tools failure fails the gate", () => {
+    // `;` would run both and return only the last exit code; `||` would run the second ONLY on failure. Either
+    // keeps the script present while destroying what it is for.
+    expect(
+      /test:tools\s*&&/.test(test),
+      `the tools suite is no longer chained with && (script: "${test}"). A failing tools gate would then not ` +
+        "fail `unit-tests`, which is the difference between running a check and enforcing one",
+    ).toBe(true);
+  });
+});
