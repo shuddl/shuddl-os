@@ -132,6 +132,46 @@ describe("runInvoiceParity DETECTS divergence — the WP-06 penny-exact replay g
     expect(r.mismatches[0]).toMatchObject({ field: "exception" });
     expect(String(r.mismatches[0]?.actual)).toContain("engine exploded");
   });
+
+  // §686 — TWO COMPARATORS COULD BE DELETED IN SILENCE. §685 proved this harness DETECTS by inverting each
+  // comparator, and both `outcome` and `hold_reason` fired. That was the wrong mutation: inverting a
+  // comparison makes MATCHING cases report a spurious mismatch, so the test goes red for the false-positive
+  // reason while saying nothing about the direction that matters.
+  //
+  // The dangerous direction is a comparator that stops reporting — a "field silently skipped", which §17's
+  // header names as the failure worse than a wrong block, because the gate then CERTIFIES a divergent
+  // replay. Measured by replacing each guard with `false`:
+  //
+  //     outcome     -> never reports  => detection suite GREEN
+  //     hold_reason -> never reports  => detection suite GREEN
+  //
+  // while the same mutation on the rater's `status` and `sell_cents` comparators fires. Five of seven
+  // divergence dimensions were covered in the direction that matters; these are the other two.
+  //
+  // Perturbing the EXPECTATION rather than the engine, matching the penny-exact test above: the harness must
+  // report the field whose expectation moved, and only that field.
+  it("§686: expecting an ISSUE where the engine HOLDS is reported on `outcome`", () => {
+    const held = SMOKE_CASES.find((c) => c.expect.outcome === "hold");
+    expect(held, "the smoke set no longer contains a hold case — this pin has no subject").toBeDefined();
+    // `hold_reason` is dropped because the schema refuses it on a non-hold expectation; the case must stay
+    // parseable so that what fails is the COMPARISON, not the fixture.
+    const flipped = { ...held!, expect: { outcome: "issue" as const } } as InvoiceReplayCase;
+    const r = runInvoiceParity([flipped], SMOKE_CONFIG);
+    expect(r.passed).toBe(0);
+    expect(r.mismatches.map((m) => m.field)).toContain("outcome");
+  });
+
+  it("§686: expecting the WRONG hold_reason is reported on `hold_reason`, not swallowed by the matching outcome", () => {
+    const held = SMOKE_CASES.find((c) => c.expect.outcome === "hold" && c.expect.hold_reason !== undefined);
+    expect(held, "the smoke set no longer contains a hold case WITH a reason — this pin has no subject").toBeDefined();
+    // `outcome` still matches, so a harness that only compared the outcome would pass this. That is exactly
+    // the skip this test exists to catch.
+    const other = held!.expect.hold_reason === "below_floor" ? ("anomaly" as const) : ("below_floor" as const);
+    const wrong = { ...held!, expect: { outcome: "hold" as const, hold_reason: other } } as InvoiceReplayCase;
+    const r = runInvoiceParity([wrong], SMOKE_CONFIG);
+    expect(r.passed).toBe(0);
+    expect(r.mismatches.map((m) => m.field)).toContain("hold_reason");
+  });
 });
 
 // ── The third untested gate: the concierge parse harness (REQ-026/093/100) ────────────────────────────

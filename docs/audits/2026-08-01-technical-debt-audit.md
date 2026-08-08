@@ -325,6 +325,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 130 | §682 | **§683** | **Clean negative; the member-sweep program closes.** The 12-view budget produced FOUR structural signals and none survived reading: `DunningQueue` is a documented panel (*"rides UNDER the money surface"*), a view is a logical destination not a component (`KpiDrill` serves five entries), `KPI_DRILL_VIEW` maps INTO the roster, and `Route` is a coarser abstraction (5 URL shapes / 11 views) not a duplicate list. Budget enforced **at import** — M204 makes the suite unable to COLLECT. Program total: DDL 17 gaps · laws 2 · agents 4 · views 0. Gate re-measured at `0b6f817`: 21 PASS · 0 FAIL · 5 BLOCKED |
 | 131 | §683 | **§684** | **STOPPING POINT — every named set in CLAUDE.md is swept.** The five acceptance demos close it: M205 removes one and both the count and the manifest parity fire. Full inventory: 18 invariants · 53 law members · 46 DDL constraints · 7 budgets · 28 payload schemas · 13 agents · 12 views · 5 demos · 26 gates. **21 PASS · 0 FAIL · 5 BLOCKED at `0b6f817`.** Ledger VERIFIED not recited: 9/17 fixtures pending, register 289 rows with 1 uncommitted insertion. §296's spent-line signal has arrived twice — three clean negatives, and the one productive vein found four defects **all in a gate I had just written**. Three residual limits, each reached by trying |
 | 132 | §684 | **§685** | **The never-run gates CAN fail — verified by mutation.** §684's last uncomfortable line was that 5 of 26 gates have never executed. Three are the parity harnesses; §17 gave all three negative-test coverage (18 tests in ONE file, despite its `tools/rater/` location — my "no co-located test" signal was a file-location artifact). Mutation-proved each comparator: **all DETECTED**. The near-miss is the lesson — a crude first-`!==` anchor reported the rater harness SILENT, but that occurrence is a Zod refine on FIXTURE SHAPE, unreachable without the absent fixture. **A mutation is only evidence about the line it actually changed** |
+| 133 | §685 | **§686** | **DEFECT ×2 — the inversion detected, the deletion did not.** Attempting §685's recorded limit: the field-name proxy said `outcome`/`hold_reason` were uncovered; **inverting** both fired, dissolving that. But inversion is the WRONG mutation — it reddens on the false-positive side. Replacing each guard with `false` (a comparator that stops reporting) left the suite **GREEN** for both, while the same mutation on the rater's two fires. That is §17's *"field silently skipped"* — the case that CERTIFIES a divergent replay, in a BLOCKED harness that has never run. **Rule: inversion asks "does it run?", deletion asks "does anything depend on its verdict?"** |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -38299,3 +38300,73 @@ stronger: the instruments produce candidates at a rate the build no longer match
   contract* (shape, hash pin, tolerance constants) is not, and cannot be until there is one to parse.
 - A parity harness gains a comparison dimension → `parity-detection.test.ts` covers the ones that exist;
   nothing counts its cases against the comparators, which is §671's floor pattern unapplied here.
+
+## §686 — PHASE GATE: the inversion detected, the deletion did not — and only one of those matters
+
+**Subject.** §685's closing trigger: *"nothing counts `parity-detection.test.ts`'s cases against the
+comparators — §671's floor pattern unapplied here."* §671's rule is to attempt a recorded limit rather than
+restate it. Attempting it found a defect, and the route to it is the substance of this section.
+
+### A false gap, then a real one
+
+The derivation is *"every divergence dimension a harness can report."* Measured: the three harnesses emit
+**7** distinct `field:` values; `parity-detection.test.ts` names **5**. `outcome` and `hold_reason` looked
+uncovered.
+
+**That proxy was wrong.** Inverting both comparators fired the suite immediately — the detection tests
+exercise comparator *paths*, not field names, so naming is not the measure. A sixth structural signal
+dissolving on measurement.
+
+**But the inversion is the wrong mutation**, and that is the finding. Inverting a comparison makes *matching*
+cases report a spurious mismatch, so the suite goes red for the **false-positive** reason while saying
+nothing about the direction that matters. Replacing each guard with `false` — a comparator that simply stops
+reporting:
+
+| mutation | inversion | **never reports** |
+|---|---|---|
+| rater `status` | DETECTED | **DETECTED** |
+| rater `sell_cents` | DETECTED | **DETECTED** |
+| invoice `outcome` | DETECTED | **SILENT** |
+| invoice `hold_reason` | DETECTED | **SILENT** |
+
+**Five of seven dimensions were covered in the direction that matters; two were not** — and both live in the
+invoice replay harness, which is BLOCKED and has never run.
+
+### Why the silent direction is the dangerous one
+
+§17's own header names it: *"if a comparison is inverted, a tolerance is backwards, or **a field is silently
+skipped**, the gate either blocks a correct release or — far worse — **certifies a wrong one**."* An
+inverted comparator blocks a correct release: loud, annoying, safe. A **skipped** comparator certifies a
+divergent replay as penny-exact parity. On the day the owner vendors `invoice-500-replay`, a dropped
+`outcome` comparison would have passed a set where the engine *holds* an invoice the legacy system *issued*.
+
+### Closed
+
+Two assertions in the detection suite, perturbing the **expectation** rather than the engine (matching the
+penny-exact test beside them). The `hold_reason` case deliberately keeps `outcome` matching, so a harness
+that compared only the outcome would pass it — which is exactly the skip being caught. Each carries a
+"this pin has no subject" guard so the smoke set shrinking cannot silently disarm them.
+
+**M206/M207** replace each guard with `false` — the mutations that were silent an hour ago — and the
+matching test fires.
+
+### The transferable rule
+
+**An inversion and a deletion are different mutations, and a guard can survive one while failing the other.**
+Inversion tests *"does this comparison run?"*; deletion tests *"does anything depend on its verdict?"* Only
+the second answers "can this gate fail to say no?" — which is the only question a never-run gate is asked.
+
+Every mutation in this audit's earlier phases should be read with that distinction in mind: the ones that
+neutered a guard (`CHECK (1=1 OR`, `void new GateError`, dropping a quarantine call) tested the right
+direction. The ones that inverted a comparison tested the other one.
+
+### Exit state
+
+`test:tools` 967 → **969**; typecheck 0; `invoice-parity.ts` restored byte-identical.
+**26 gates — 21 PASS · 0 FAIL · 5 BLOCKED** (§683 at `0b6f817`).
+
+**Reopen triggers**
+- A new `field:` dimension in any parity harness → still hand-tracked. The proxy that would count them
+  (field names) was proved not to measure coverage, so the floor §685 asked for **cannot be built from
+  names** — it needs one deletion-mutation per comparator, which is a CI cost decision, not a code one.
+- The smoke sets change shape → both new tests guard on finding their subject and fail loudly if it is gone.
