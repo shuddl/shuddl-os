@@ -264,6 +264,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 69 | §620 | **§621** | genesis/13's repo-side contract holds (identity lint, fixtures README separation, pointer-not-path). **But REQ-167's lint is a DENYLIST and can only catch a name someone thought to add** — 39 absolute home paths across 5 tracked docs leaked the operator account name, and were a portability defect in the same edit. Rewritten to $HOME/$REPO + a denylist-independent gate; the only REQ-167 enforcement that runs while the secret is BLOCKED |
 | 70 | §621 | **§622** | **DEFECT — the CI contract's "history-wide gitleaks scan (full fetch depth)" asserted two INDEPENDENT existence checks over the whole file**, and `fetch-depth: 0` appears in two jobs — so stripping it from the secrets job left 28/28 green with gitleaks scanning only the tip commit. Job-scoped now. My first fix reproduced the defect one level down (matched the step LABEL, not the action); caught only by mutating past the first RED |
 | 71 | §622 | **§623** | Swept §622's shape across every test file: 4 candidates, 1 false positive, 2 fine, 1 latent (fixed). **The finding is the comment on the first one** — the 2026-08-01 audit found this exact class in THIS FILE, fixed the instance that surfaced, and left the gitleaks assertion eleven lines away broken for six more days. A known class deserves a sweep of its file, not a point fix |
+| 72 | §623 | **§625** | **A FINDING THAT WAS WRONG.** Swept the non-vacuity class (25/28 scanners have a floor); §466 sharpened it to "who has several globs behind ONE total" — 3 gates did. Claimed 38 of 87 files maskable and a mutation "confirmed" it. **The union was 49, not 87: git pathspec `*` crosses `/`, so the nested glob added ZERO.** Derived by addition instead of measured; breaking a redundant glob looks exactly like masking. Kept the real half — scanCorpus throws on an empty glob |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -34349,3 +34350,83 @@ typecheck 0; eslint clean.
   That is sufficient for one step and wrong for two, and nothing detects the transition.
 - The same shape appears in a file with no whole-file constant (a per-test `readFileSync`) → the sweep's
   detector keys on module-scope `const X = readFileSync(`, and would miss it entirely.
+
+---
+
+## §625 — PHASE GATE: a finding that was wrong, and the measurement that said so
+
+**Subject.** §623 ended on the lesson that a known class deserves a sweep of its file. The most-cited class in
+this audit is the non-vacuity floor, so it got swept: **28 tools files scan a corpus; 25 carry a floor-shaped
+assertion.** The three without were read, and all three were fine — `run.ts`'s floor lives in its test (§607),
+`check-table-shape.ts` has a zero-floor §610 already recorded, and `append-chokepoint.ts` has something
+stronger.
+
+That third file reframed the sweep. Its comment records audit §466:
+
+> *"THE FIRST FIX WAS AN AGGREGATE COUNT, and it did not work … `SCAN_GLOBS` has EIGHT entries; breaking the
+> six product ones still left `tools/**/*.ts` matching 72 files, over a floor of 50, and the gate stayed green
+> with the entire product tree unscanned. **A total says nothing about which member contributed it.**"*
+
+So the sharper question was not *who lacks a floor* but **who uses several globs behind one total** — and three
+gates did, two of them mine (§598, §613).
+
+### The finding, and why it was wrong
+
+Each used `"workers/api/src/*.ts"` alongside `"workers/api/src/**/*.ts"` behind a single floor of 30. Flat glob:
+49 files. Nested glob: 38. **I computed the corpus as 87 and concluded that breaking the nested glob would
+leave 49 — comfortably over the floor — with 38 files silently unscanned.**
+
+M126 appeared to confirm it: the nested glob broken, **3/3 green**.
+
+Then the union was measured instead of derived:
+
+```
+union of both globs: 49        flat glob alone: 49
+files the nested glob adds that the flat one misses: 0
+```
+
+**In git pathspec, `*` crosses `/`.** `workers/api/src/*.ts` already matches `workers/api/src/routes/rate.ts`.
+The nested glob was decorative in all three gates, the corpus was never 87, and M126 stayed green because
+**nothing was in fact unscanned**.
+
+### The error is worth more than the finding would have been
+
+Two things made a false premise survive a mutation:
+
+1. **The union was derived by addition, not measured** — §"compare artifacts, don't reason about them", and the
+   arithmetic looked authoritative because both numbers were real.
+2. **Breaking a redundant glob produces exactly the green a masked gate produces.** The mutation could not
+   distinguish the two hypotheses, so it confirmed whichever one I brought to it. §531's four explanations
+   again: *the probe was not a counterexample* — this time because the subject was fine, not because the probe
+   was weak.
+
+The tell was available and unused: this repo's own memory records that git's `*` crosses `/` (48 vs 99 files,
+measured in a previous session, for this exact pathspec question).
+
+### What survives, which is smaller and real
+
+- The redundant `**` glob is gone from `api-conventions` and `error-envelope-coverage`. Corpus **unchanged at
+  49** — verified, not assumed.
+- Both now build their corpus through `scanCorpus()`, which **throws when a glob matches nothing**. That is a
+  genuine improvement over the old separate `toBeGreaterThan(30)`: **M127** broke the one remaining glob and
+  both gates went red, where a count-based floor only fires if the collapse happens to cross a threshold.
+- §466's per-glob rule is documented in the helper for the next gate whose globs are genuinely disjoint —
+  `append-chokepoint`'s eight are.
+
+**Not done:** `sweep-containment-coverage.test.ts` keeps its redundant glob. The narrowing edit put a `//`
+comment inside an expression and broke the file (`no tests`, typecheck 2); it was restored from git rather than
+patched twice. The glob is redundant-but-harmless, and a second malformed edit for a cosmetic gain is the wrong
+trade.
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged. `test:tools` at 932 passed with exactly the 3 REQ-289 failures;
+typecheck 0; eslint clean.
+
+**Reopen triggers**
+- A gate is written with genuinely disjoint globs (different roots, not nested paths) → `scanCorpus` gives it
+  per-glob enforcement free; the aggregate-floor mistake is only available to code that does not use it.
+- `sweep-containment-coverage.test.ts` is edited for any other reason → drop its redundant glob then, when the
+  file is already open and the change is not standalone.
+- Someone re-derives a corpus size by adding two glob counts → the same false finding, and the same mutation
+  will confirm it. Measure the union.

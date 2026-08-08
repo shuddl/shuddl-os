@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { repoRoot } from "./repo-root.js";
+import { scanCorpus } from "./scan-corpus.js";
 
 // REQ-118 §598 — NO TENANT-FACING ERROR LEAVES THE API OUTSIDE THE ENVELOPE.
 //
@@ -32,10 +32,9 @@ interface RawResponse {
 }
 
 function apiSourceFiles(root: string): string[] {
-  return execSync('git ls-files "workers/api/src/*.ts" "workers/api/src/**/*.ts"', { cwd: root, encoding: "utf8" })
-    .trim()
-    .split("\n")
-    .filter((f) => f && !f.includes(".test."));
+  // §624 — ONE glob (the `**` sibling was redundant: git's `*` crosses `/`). scanCorpus fails on an
+  // empty match, so the corpus cannot silently collapse.
+  return scanCorpus(["workers/api/src/*.ts"], root, { excludeTests: true });
 }
 
 /** Every `new Response(...)` in the api worker, with the status literal it carries (if any). */

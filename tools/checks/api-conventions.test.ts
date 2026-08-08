@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { repoRoot } from "./repo-root.js";
+import { scanCorpus } from "./scan-corpus.js";
 
 // REQ-156 §613 — genesis/14 §04: "API CONVENTIONS (every endpoint, no exceptions)".
 //
@@ -30,10 +30,10 @@ interface Handler {
 }
 
 function apiSources(root: string): string[] {
-  return execSync('git ls-files "workers/api/src/*.ts" "workers/api/src/**/*.ts"', { cwd: root, encoding: "utf8" })
-    .trim()
-    .split("\n")
-    .filter((f) => f && !f.includes(".test."));
+  // §624 — ONE glob: git pathspec `*` crosses `/`, so this already reaches routes/, middleware/, do/ and
+  // pub/. The `**` variant that used to sit beside it added zero files (measured). scanCorpus fails if it
+  // matches nothing, which is the non-vacuity floor the separate count used to approximate.
+  return scanCorpus(["workers/api/src/*.ts"], root, { excludeTests: true });
 }
 
 /** Every `.post|put|patch|delete("<literal>"` in the api worker. */
