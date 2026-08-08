@@ -248,3 +248,58 @@ describe("REQ-118 §663: a client-supplied event id must be a UUID (the idempote
     expect(() => EventInput.parse({ ...base, id: "zzzzzzzz-zzzz-4zzz-8zzz-zzzzzzzzzzzz" })).toThrow();
   });
 });
+
+// ─── REQ-118 §665 — "THE CLIENT-SUPPLIABLE SUBSET" IS A CLOSED SET, AND NOTHING PROVED IT WAS CLOSED. ──
+// §663 pinned the one field a client legitimately supplies. This pins the complement: the fields it may NOT.
+//
+// `evInput()` builds every kind with `.strict()`, and the header above EventInput states the guarantee —
+// "the sequencer DO owns seq / prev_hash / recorded_at / visibility / hash / stream_id — a client may NOT
+// supply any of them (that is the difference between the input shape and the storage shape)". M172 dropped
+// that `.strict()` and contracts 296 + ledger 634 + api 798 = 1,728 tests stayed GREEN.
+//
+// The consequence is NOT that a client forges the chain — two further layers stop that, and saying otherwise
+// would overstate it. The DO spreads `...clientFields` FIRST and writes seq/prev_hash/recorded_at/visibility/
+// stream_id after, so server values win; `hash` is computed later still and never appears in that literal.
+//
+// The consequence is the one this DO already has a REQ for. Without `.strict()` here, an unknown key rides
+// into the assembled storage shape and dies at `LedgerEvent.parse` — which is `.strict()` too, but is NOT
+// inside a try/catch. A raw ZodError then escapes the DO instead of the `CODE:json` contract every caller
+// splits on, leaking Zod's issues array across the RPC hop. That is exactly the failure REQ-133 fixed for a
+// malformed stream id, which the sequencer rejects EARLY for this reason and calls the later parse "the
+// now-unreachable backstop". Unreachable is a property of this schema, so this schema is where it is pinned.
+//
+// Enumerated rather than spot-checked: the guarantee is about a SET, so the test names all six.
+describe("REQ-118 §665: EventInput is closed — a client cannot supply a DO-owned field", () => {
+  const good = {
+    id: "00000000-0000-4000-8000-00000000ab02",
+    ts: 1_720_000_000_000,
+    actor: { party: "party-carrier" },
+    party_refs: [] as string[],
+    evidence: [] as never[],
+    source: "native" as const,
+    confidence: 10_000,
+    kind: "freight.counted" as const,
+    payload: { pieces: 3 },
+  };
+
+  // The exact list the EventInput header claims the DO owns. If a field is added to or removed from that
+  // sentence, this array is what has to move with it.
+  const DO_OWNED = ["seq", "prev_hash", "recorded_at", "visibility", "hash", "stream_id"] as const;
+
+  it("accepts the fixture with no extra key (non-vacuity — rejections below must mean the KEY)", () => {
+    expect(EventInput.parse(good).id).toBe(good.id);
+  });
+
+  it.each(DO_OWNED)("rejects a client-supplied %s", (field) => {
+    // Values chosen to be individually VALID for the storage shape, so what is rejected is the field's
+    // presence on the input, never a malformed value that would fail for an unrelated reason.
+    const value = { seq: 1, prev_hash: "0".repeat(64), recorded_at: 1_720_000_000_500, visibility: "internal", hash: "0".repeat(64), stream_id: "s:shp-1" }[field];
+    expect(() => EventInput.parse({ ...good, [field]: value })).toThrow();
+  });
+
+  it("rejects an arbitrary unknown key — the leak is about strictness, not this field list", () => {
+    // The list above documents the law; THIS is the assertion that actually pins `.strict()`, because a
+    // future field the DO comes to own would not be in DO_OWNED yet.
+    expect(() => EventInput.parse({ ...good, note: "hello" })).toThrow();
+  });
+});

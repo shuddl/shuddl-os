@@ -304,6 +304,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 109 | §661 | **§662** | **DEFECT — a stated invariant with a stated consequence, defended by nothing.** `sub: z.string().min(1)` exists because an empty co-sign is "an unattributable audit record"; dropping `.min(1)` left contracts at 291/291 AND api at 798/798. The existing test omits the field, and **Zod rejects an ABSENT required string before `.min(1)` is consulted** — a presence test can never reach a value constraint. Absent and empty are different inputs |
 | 110 | §662 | **§663** | **DEFECT — the same class, on the one primary key a CLIENT supplies.** Swept §662's trigger across all 73 required-field refinements in `packages/contracts`; the survivor was `eventInputBaseShape.id: z.string().uuid()`, which the sequencer uses verbatim as the dedupe key (`SELECT * FROM events WHERE id = ?`). Dropping `.uuid()` left **1,724 tests green** across all three owning suites. Unpinned, `id: "1"` parses and the second caller to pick it is returned SOMEONE ELSE'S event as their own success — **on an append-only ledger the un-written event has no correction path** |
 | 111 | §663 | **§664** | **Clean negative that CLOSES the class.** §663 narrowed by a proxy (*does the schema explain itself?*); §652 says sweep by behaviour instead. Re-swept by the real property — *a client chooses an identifier and the server looks it up* — and found **zero** additional instances: the device reserve slot is a DDL UNIQUE plus REQ-016's signing-key binding, and every agent idempotency key is server-derived, hence immune. Opposite outcome to §650→§651, from running the same check |
+| 112 | §664 | **§665** | **DEFECT — a REQ resting on a sentence.** `EventInput`'s header asserts a CLOSED set (the DO owns seq/prev_hash/recorded_at/visibility/hash/stream_id) and forbids `LedgerEvent.parse` on a request body. `.strict()` is what makes it true; dropping it left **1,728 tests green**. Not chain forgery — the DO's spread order and late hash stop that — but an unknown key then dies at the storage parse, which is **not in a try/catch**, so a raw ZodError escapes instead of `CODE:json`. That is REQ-133's exact failure, whose fix calls that parse "the now-unreachable backstop" |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -36805,3 +36806,69 @@ No code change. **21 PASS · 0 FAIL · 5 BLOCKED at HEAD**; `test:tools` **951/9
   That is a new row in the table above, and the question to ask it is what the *format* constraint is worth,
   not whether the field parses.
 - An agent idempotency key stops being server-derived → the immunity in row 3 is exactly that derivation.
+
+## §665 — PHASE GATE: the complement of §663, and a comment that was the only thing holding a REQ
+
+**Subject.** §663 pinned the one field a client legitimately supplies. Directly above it, `EventInput`'s
+header states a prohibition in prose — *"NEVER call `LedgerEvent.parse` on a request body"* — and asserts a
+closed set: the DO owns `seq` / `prev_hash` / `recorded_at` / `visibility` / `hash` / `stream_id`, and *"a
+client may NOT supply any of them."* §634's rule is that a comment is not a gate. Asked what enforces it.
+
+### The law is honored, and undefended
+
+Every `LedgerEvent.parse` call site in `src` obeys the prohibition: the lens parses a stored row, the
+sequencer parses its own **assembled** storage shape, and the fixture helper builds test data. The events
+route carries the prohibition inline and hands the DO raw JSON. Nothing checks any of that.
+
+The layer that makes the closed set *true* is `.strict()` on `evInput()`. **M172** dropped it:
+
+```
+packages/contracts —  296 passed (296)
+packages/ledger    —  634 passed (634)
+workers/api        —  798 passed (798)
+                     ─────────────────
+                     1,728 tests, all green
+```
+
+### What the consequence is — and what it is not
+
+**It is not chain forgery,** and claiming that would overstate it. Two further layers stop that, and both
+were checked rather than assumed: the DO spreads `...clientFields` **first** and writes
+`seq`/`prev_hash`/`recorded_at`/`visibility`/`stream_id` *after*, so server values win on key collision; and
+`hash` is computed after that parse and never appears in the literal at all.
+
+**It is the failure this DO already has a REQ for.** Without `.strict()` at the input, an unknown key rides
+into the assembled storage shape and dies at `LedgerEvent.parse` — which is `.strict()` too, but **is not
+inside a try/catch** (verified, not inferred). A raw ZodError then escapes the DO instead of the `CODE:json`
+contract every caller splits on, leaking Zod's issues array across the RPC hop.
+
+That is exactly what **REQ-133** fixed for a malformed stream id — the sequencer rejects the format early and
+its comment calls the later parse *"the now-unreachable backstop."* **Unreachable is a property of this
+schema.** So the schema is where it gets pinned; otherwise REQ-133's guarantee rests on a sentence.
+
+This is the §531 question answered honestly: the mutation was silent because two layers are genuinely
+redundant *for forgery*, and not redundant at all for the error contract.
+
+### Closed
+
+Eight assertions in the file that owns `EventInput`. The guarantee is about a **set**, so the six DO-owned
+fields are enumerated rather than spot-checked, each given a value that is individually *valid* for the
+storage shape — so what the test rejects is the field's **presence on the input**, never a malformed value
+failing for an unrelated reason. A seventh rejects an arbitrary unknown key: that is the assertion actually
+pinning `.strict()`, because a field the DO comes to own later would not be in the enumerated list yet.
+
+**M172c** re-drops `.strict()`: all seven rejections fire, the non-vacuity guard stays green.
+
+### Exit state
+
+**21 PASS · 0 FAIL · 5 BLOCKED at HEAD**; `packages/contracts` 296 → **304**; typecheck 0; mutation restored
+byte-identical.
+
+**Reopen triggers**
+- A field moves from DO-owned to client-suppliable, or the reverse → the enumerated list is a copy of one
+  sentence in the `EventInput` header, and the two must move together.
+- The sequencer's storage-shape parse gains a try/catch → the consequence argument above changes shape (the
+  leak closes, the strictness still matters for the clean `VALIDATION_FAILED`), and this section should say so
+  rather than be silently outlived.
+- Any other `.strict()` in the contracts package is relaxed to share a base object → M167 in §660 showed that
+  is the realistic DRY refactor that dissolves a strictness guarantee without looking like it touches one.
