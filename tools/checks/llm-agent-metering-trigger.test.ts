@@ -38,6 +38,8 @@ interface LlmAgent {
   readonly modelKey: string;
   /** True when the file reports a real cost. Comment-stripped source is passed in. */
   readonly reportsCost: (src: string) => boolean;
+  /** The module that actually calls the provider — the BEHAVIOUR, independent of the naming convention. */
+  readonly adapter: string;
   /** What to do about it, named in the failure. */
   readonly remedy: string;
 }
@@ -45,6 +47,7 @@ interface LlmAgent {
 const LLM_AGENTS: readonly LlmAgent[] = [
   {
     name: "Concierge",
+    adapter: "packages/agents/src/concierge/parse.ts",
     file: "workers/agents/src/concierge.ts",
     modelKey: "ANTHROPIC_MODEL",
     reportsCost: (src) => src.includes("agent.acted"),
@@ -52,6 +55,7 @@ const LLM_AGENTS: readonly LlmAgent[] = [
   },
   {
     name: "Copilot",
+    adapter: "packages/agents/src/copilot/answer.ts",
     file: "workers/api/src/routes/copilot.ts",
     modelKey: "COPILOT_MODEL",
     reportsCost: (src) => src.includes("agent.acted"),
@@ -59,6 +63,7 @@ const LLM_AGENTS: readonly LlmAgent[] = [
   },
   {
     name: "Migrator",
+    adapter: "packages/agents/src/migrator/guess.ts",
     file: "workers/api/src/routes/import.ts",
     modelKey: "MIGRATOR_MODEL",
     // Already writes agent_runs directly; the hole is the cost column, bound as a literal empty object.
@@ -133,6 +138,29 @@ describe("REQ-118 §679/§680/§681: every LLM-calling agent's metering trigger 
         "its cost reporting and the predicate that detects it:\n  " +
         declared.join("\n  "),
     ).toEqual(LLM_AGENTS.map((a) => a.modelKey).sort());
+  });
+
+  it("LLM_AGENTS covers every module that actually CALLS a provider (§682 — behaviour, not naming)", () => {
+    // §681 closed the roster against the *_MODEL naming convention and recorded the residual boundary
+    // honestly: an adapter selected by a feature flag or a config-pack field would escape a name-keyed
+    // derivation. §652's rule — sweep by what the code DOES, not by what it is called — and §671's, that a
+    // limit recorded rather than attempted is being managed. This is the attempt.
+    //
+    // The behaviour is "makes a request to an LLM provider". Measured: three modules do, and they map 1:1
+    // onto the three agents the name-keyed derivation found. Proxy and behaviour agree (§664's shape) — but
+    // they agree TODAY, and only this assertion keeps them agreeing.
+    const callers = execSync('git grep -l "api.anthropic.com" -- workers packages', { cwd: root, encoding: "utf8" })
+      .split("\n")
+      .filter((f) => f && !f.includes(".test.") && !f.includes("/test/"))
+      .sort();
+    expect(callers.length, "no provider call sites found — the scan broke, the code did not").toBeGreaterThanOrEqual(3);
+    expect(
+      callers,
+      "a module calls an LLM provider without an LLM_AGENTS row. Its cost is variable and unobserved, and a " +
+        "name-keyed derivation cannot see it — that is exactly the boundary §681 recorded. Add the agent, or " +
+        "if this module is reached THROUGH an existing agent, point that agent's `adapter` at it:\n  " +
+        callers.join("\n  "),
+    ).toEqual(LLM_AGENTS.map((a) => a.adapter).sort());
   });
 
   it.each(LLM_AGENTS)("if $name's model binding appears, $name must report a real cost", ({ name, file, modelKey, reportsCost, remedy }) => {

@@ -321,6 +321,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 126 | §678 | **§679** | **A hope turned into a control.** Swept the register's 13 agents (REQ-026…038) against REQ-039's "every agent" law. The sweep **re-derived §135/§179 independently** — ~5 of 13 emit `agent.acted` — which is evidence the record is COMPLETE, not new work. §135's "Concierge emits none" **re-verified against an apparent contradiction**: both references are comments explaining the absence. The gap is owner-held (DoD is register scope), but its expiry trigger (`ANTHROPIC_API_KEY` binds) was HUMAN — now gate-enforced. M197 binds the key → fires; M198 makes the Concierge emit → the self-obsolescence assertion fires |
 | 127 | §679 | **§680** | **DEFECT in the gate §679 shipped, plus a false carried claim I repeated.** The go-live checklist names `COPILOT_MODEL` — and `routes/copilot.ts` selects a **live ClaudeCopilot**, so §135's "the Concierge is the only agent that calls an LLM" is FALSE and §679 repeated it unverified. REQ-038 is a second LLM agent emitting no `agent.acted`. §679's gate watched `ANTHROPIC_MODEL` only; the model key is **per-agent**, so switching on the Copilot alone would have been silent. Generalised over an `LLM_AGENTS` roster; M199 (`COPILOT_MODEL`) fires what §679 could not see. Both claims struck, not deleted |
 | 128 | §680 | **§681** | **The roster was wrong a THIRD time, so it stopped being a roster.** §680 recorded a hand-maintained-list limit; §671 says a limit recorded twice is managed, not closed — so it was closed. Deriving the population (*every `*_MODEL` the source reads*) found **`MIGRATOR_MODEL`**, a third LLM agent that already existed: §680's "a third adapter appears" trigger described the PRESENT. The Migrator reports via a **direct `agent_runs` insert** binding `cost` as `"{}"`, so the uniform "emits `agent.acted`" check was false-negative by construction — each agent now carries its own predicate. **The non-vacuity floor caught my own glob bug on its first run** (`src/**/*.ts` misses direct children: 2 of 3 keys) |
+| 129 | §681 | **§682** | **Third consecutive phase closing the previous phase's recorded limit.** §681 keyed its derivation on the `*_MODEL` NAME and recorded the escape honestly. Swept by BEHAVIOUR instead (*makes a request to an LLM provider*): exactly **3 modules**, mapping 1:1 onto the 3 agents — proxy and behaviour agree (§664's shape), but only today. Added a second completeness floor over the adapter set, so the gate is floored on the naming convention AND the behaviour. **M203** adds a caller with **no `*_MODEL` at all** — §681's exact escape — and it fires. Residual boundary is now register scope, not a sweep |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -38015,3 +38016,65 @@ must equal it.
   and has not escaped.
 - The Migrator's `agent_runs` insert is refactored → its predicate greps for a literal `"{}"` in a `.bind(…)`
   and is the most brittle of the three by some margin.
+
+## §682 — PHASE GATE: closing the boundary the previous phase had just written down
+
+**Subject.** §681 closed the LLM-agent roster against the `*_MODEL` naming convention and recorded the
+residual honestly: *"an adapter selected by a feature flag or a config-pack field rather than a `*_MODEL`
+name would escape it. The derivation is only as good as the naming convention it keys on."*
+
+That is a **derivation keyed on a mechanism**, and §652's rule is to sweep by what the code *does*. §671's is
+that a limit recorded rather than attempted is being managed. Two phases in a row have now closed a limit the
+phase before them wrote down; this is the third.
+
+### The behaviour sweep — proxy and behaviour agree
+
+The behaviour is *"makes a request to an LLM provider"*. Measured across `workers` and `packages`, excluding
+tests, exactly three modules do:
+
+| adapter | agent | reached via |
+|---|---|---|
+| `packages/agents/src/concierge/parse.ts` | Concierge | `ANTHROPIC_MODEL` |
+| `packages/agents/src/copilot/answer.ts` | Copilot | `COPILOT_MODEL` |
+| `packages/agents/src/migrator/guess.ts` | Migrator | `MIGRATOR_MODEL` |
+
+**Three adapters, three model keys, three agents — a clean 1:1.** The name-keyed derivation was complete, and
+this is the §664 shape again: the proxy and the behaviour selected the same set.
+
+But they agree *today*. §681's boundary was real; the finding is that it is not currently violated, which is
+a different statement from it being safe.
+
+### Closed
+
+`LlmAgent` gained an `adapter` field — the module that actually calls the provider — and a second
+completeness floor asserts the set of provider-calling modules **equals** the set of declared adapters. The
+gate is now floored on **both** the naming convention (§681) and the behaviour (§682), so an adapter can be
+added under either shape and still be caught.
+
+**M203** adds a fourth caller — `packages/agents/src/scheduler/suggest.ts`, hitting
+`api.anthropic.com` with **no `*_MODEL` binding at all**, exactly the escape §681 described — and the
+behaviour floor fires. Removed afterwards; tree clean.
+
+### What this thread has cost and produced
+
+Four phases on one gate: §679 built it for one agent, §680 found a second and struck a false claim it had
+repeated, §681 derived a third and made the roster underivable-by-hand, §682 floored the derivation itself.
+**The roster was wrong in three consecutive phases and is now wrong-proof in two independent ways.**
+
+The transferable part is not the gate. It is that **each phase's honest limit was the next phase's work** —
+and that a limit is only honest if someone then tries it. Written down three times, closed three times.
+
+### Exit state
+
+`test:tools` 966 → **967**; typecheck 0; the probe file removed and `git status` clean.
+**26 gates — 21 PASS · 0 FAIL · 5 BLOCKED** (§675 at `b97687b`).
+
+**Reopen triggers**
+- A provider that is not Anthropic (OpenAI, a local model, a gateway) → **the behaviour floor greps one host
+  literal**. That is this section's own boundary, and unlike its predecessors it is not closable by another
+  sweep: it needs a decision about which providers this repo may call, which is register scope (REQ-024
+  constrains *where* LLM calls may live, not *whose*).
+- An adapter reached only through a config-pack field → still invisible to both floors, since the call site
+  would live in the engagement workspace rather than here.
+- Either floor's scan returns fewer than 3 → both carry a non-vacuity assertion; §681's caught a real glob
+  bug on its first run.
