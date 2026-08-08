@@ -2,6 +2,9 @@ import { SELF } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import { ErrorEnvelope } from "@shuddl/contracts";
 import { token } from "./helpers.js";
+import { env } from "cloudflare:test";
+import { mintDocDownloadCap } from "../src/pub/doc-cap.js";
+import { mintStatusCap } from "../src/pub/status-cap.js";
 
 describe("REQ-132/133: authn", () => {
   it("rejects missing token", async () => {
@@ -19,6 +22,31 @@ describe("REQ-132/133: authn", () => {
     const res = await SELF.fetch("https://api.local/v1/whoami", { headers: { Authorization: `Bearer ${t}` } });
     expect(res.status).toBe(401);
   });
+  // REQ-085/132 §661 — THE REVERSE PAIRS: a CAP presented as a session Bearer token.
+  //
+  // §660 closed cap ↔ cap and noted the remaining four ordered pairs rested on "an argument, not an
+  // assertion". Two of them are the reverse direction of pairs already tested: session → doc and
+  // session → status are asserted (documents.test.ts, status-cap.test.ts), but nothing ever presented a cap
+  // AS a session. The argument is that a cap is MAC'd under a derived secret and dies at hono/jwt's
+  // verification — true, and it is one layer of two. The second is that SessionClaims requires `sub` and
+  // `role`, which no cap carries, so even a shared-secret bug would not mint a session from a cap.
+  //
+  // Asserted here rather than argued, because these are the two pairs where a failure would turn an
+  // UNAUTHENTICATED cap into an AUTHENTICATED session — the only direction in the matrix that escalates
+  // across the auth boundary rather than within it.
+  it("a DOC CAP is not a session token — an unauthenticated cap never mints a session", async () => {
+    const cap = await mintDocDownloadCap(env.JWT_SECRET, { t: "tenant-a", k: "evidence/tenant-a/shp/x", expSeconds: Math.floor(Date.now() / 1000) + 600 });
+    const res = await SELF.fetch("https://api.local/v1/whoami", { headers: { Authorization: `Bearer ${cap}` } });
+    expect(res.status).toBe(401);
+    expect(ErrorEnvelope.parse(await res.json()).code).toBe("UNAUTHORIZED");
+  });
+
+  it("a STATUS CAP is not a session token either — the refusal covers both cap types", async () => {
+    const cap = await mintStatusCap(env.JWT_SECRET, { t: "tenant-a", s: "shp-1", expSeconds: Math.floor(Date.now() / 1000) + 600 });
+    const res = await SELF.fetch("https://api.local/v1/whoami", { headers: { Authorization: `Bearer ${cap}` } });
+    expect(res.status).toBe(401);
+  });
+
   it("returns the session for a valid token", async () => {
     const t = await token({ sub: "u1", tenant: "tenant-a", role: "ops" });
     const res = await SELF.fetch("https://api.local/v1/whoami", { headers: { Authorization: `Bearer ${t}` } });

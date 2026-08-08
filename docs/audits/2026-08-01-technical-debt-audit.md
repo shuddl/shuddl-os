@@ -300,6 +300,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 105 | §657 | **§658** | The AUTH BOUNDARY, never mutated in 53 phases. M159 makes every device signature verify — 3 red (tampering, key substitution, and a malformed sig yielding FALSE rather than throwing). M160 accepts malformed session claims — 2 red, including "a session cannot be minted immortal". **Verifying who signed a token is a different question from whether the token says anything valid**, and the second is where an integration bug lives |
 | 106 | §658 | **§659** | Mutated the CAPABILITY TOKEN — the only thing between an anonymous request and a customer's documents. Breaking domain separation left **794/794 green**, which reads as a serious gap on an unauthenticated surface. It is not: the separation is defended THREE ways (derived secret, `typ` literal, `.strict()`), and breaking two still fails the attack. §601's rule — a silent mutation on one layer is evidence of DEPTH, not absence |
 | 107 | §659 | **§660** | Filled §659's trigger: three token types make SIX ordered cross-type pairs and only ONE was tested. The untested pair that matters is **cap ↔ cap** — a status cap verifying as a doc cap is privilege escalation between two ANONYMOUS surfaces. Both directions now pinned. Proving they can fail took FIVE mutations: four layers defend it, the fourth being a required-field shape, and M167 (shared domain + relaxed strict) is the realistic DRY refactor that fires them |
+| 108 | §660 | **§661** | Matrix closed at **6 of 6**. session→status was already tested, so the real gap was a CAP presented as a session Bearer token — **the only pair that crosses the auth boundary**, turning an anonymous capability into an authenticated session. M168 (shared secret alone) leaves them green; M169 (+ the claims guard) fires them: layer 1 is not what stops it, the CLAIMS SCHEMA is |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -36561,3 +36562,55 @@ byte-identical; typecheck 0; eslint clean.
   than a test — but it is an argument, not an assertion.
 - A fourth token type is added → six pairs become twelve, and nothing generates the matrix. This phase filled
   two by hand.
+
+---
+
+## §661 — PHASE GATE: the matrix closed, and the only pair that escalates
+
+**Subject.** §660 closed cap ↔ cap and left its own trigger honest: the remaining pairs rest on *"an argument,
+not an assertion."* This closes them, and one turns out to be categorically different from the rest.
+
+### What was already there
+
+**session → status** *is* tested — `status-cap.test.ts:45`, *"a real session JWT (signed via token() with
+JWT_SECRET) fails verifyStatusCap"*. The asymmetry I went looking for did not exist; that suite also pins the
+raw-secret and wrong-`typ` layers independently.
+
+So of six ordered pairs, four were covered and **two were not**: a **cap presented as a session Bearer token**,
+in both cap flavours.
+
+### That pair is the only one that crosses the auth boundary
+
+Every other pair moves *within* a privilege level — a session token failing as a cap, or one anonymous cap
+failing as another. These two are the only direction where a failure turns an **unauthenticated capability**
+into an **authenticated session**: `/pub/*` caps are handed to anyone with a link.
+
+Two layers stand there, and only one is the obvious one:
+
+1. the cap is MAC'd under a **derived** secret, so `hono/jwt` refuses it;
+2. `SessionClaims` requires `sub` and `role`, which **no cap carries**.
+
+### Which layer the new tests are load-bearing against
+
+| | Mutation | New tests |
+|---|---|---|
+| M168 | doc caps signed with the **session secret** — layer 1 gone | green |
+| **M169** | **+ the claims guard neutered — both gone** | **RED** |
+
+Layer 1 alone is not what stops it. With a shared secret the cap is MAC-valid, and what refuses it is the claims
+schema — the same distinction §658 drew: **verifying who signed a token is a different question from whether
+the token says anything valid**, and here the second question is the one carrying the auth boundary.
+
+M169 also reddens *"a session cannot be minted immortal"*, because a cap's `exp` is a cap expiry, not a session
+one — a shared-secret world would have let a doc-cap lifetime govern a session's.
+
+### Exit state
+
+**21 PASS · 0 FAIL · 5 BLOCKED at HEAD** (§647). `auth.test.ts` 10 → **12**; the cross-type matrix is **6 of 6**;
+typecheck 0; eslint clean; every mutation restored byte-identical.
+
+**Reopen triggers**
+- A fourth token type is added → twelve ordered pairs, and this matrix was filled by hand across §660 and
+  §661. Nothing generates it, and the two that matter would again be the ones crossing the auth boundary.
+- `SessionClaims` gains an optional `sub`/`role` for a service principal → layer 2 weakens for every pair at
+  once, and M168 shows layer 1 does not hold alone.
