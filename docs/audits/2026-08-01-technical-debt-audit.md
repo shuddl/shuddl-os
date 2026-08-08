@@ -269,6 +269,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 74 | §626 | **§627** | Closed §626's trigger in the next phase: the helper enforcing non-vacuity had no tests of its own. Kept `mayBeEmpty` rather than deleting it — append-chokepoint's EXPECTED_EMPTY_GLOBS proves the concept necessary, so it was unexercised, not speculative. Six cases; M129/M130 prove the ORDERING §625 only commented (emptiness judged before the test filter) and that the exemption is exact-match, not prefix |
 | 75 | §627 | **§628** | genesis/08's SIXTEEN DoD clauses audited for whether their PROOFS still run (§614's shape, applied to the roadmap). Clean split: proven-and-running, or blocked on the five owner-held inputs already measured. **No new debt — the first whole document to yield neither defect nor correction.** WP-01's check:pr proven in 3 directions and stricter than its clause. Two DoD proofs were unguarded until §608/§614 |
 | 76 | §628 | **§629** | §628 said "the split is clean" having exercised only 4 of the 16 DoD clauses — the rest were proven BY CATEGORISATION, the very shape §628 existed to expose. All four unchecked ones do have named proofs, and two were mutated: WP-08's double-book (M131 — the atomicity is a PARTIAL UNIQUE INDEX, not the UPDATE; three distinct guarantees red) and WP-12's rule-10 gap row (M132, two red). Conclusion survived; the evidence had not been gathered |
+| 77 | §629 | **§630** | Closed §629's two triggers, which closed DIFFERENTLY. One was a FALSE PREMISE — sqlite proves NULLs are distinct in a UNIQUE index, so skeleton legs never collide with or without the partial predicate; my trigger asserted a mechanism without probing it (second such refutation this session, after §625). The other was real: M133 (penny-parity, 2 red) and M134 (allotment cap, 5 red incl. both fail-closed defaults and the DO-mutex race). Every code-provable DoD clause is now mutation-proved |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -34671,3 +34672,71 @@ like a measurement, and only one of them fails when the subject breaks.
   nothing asserts the predicate itself.
 - WP-11 and WP-14 remain **unmutated** — named proofs found, not exercised. That is a smaller version of this
   phase's own finding, recorded rather than quietly carried.
+
+---
+
+## §630 — PHASE GATE: closing §629's two triggers, one of which was wrong
+
+**Subject.** §629 left two reopen triggers. Both are closed here — and they closed differently, which is the
+point of the phase.
+
+### Trigger 1 was a claim, and measurement refuted it
+
+§629 wrote: *"The partial UNIQUE index is widened to include skeleton legs → the three tests still pass while
+two un-appointed legs begin colliding."*
+
+The index is
+`CREATE UNIQUE INDEX ux_legs_slot ON legs (facility_id, appt_slot_key, appt_service_date) WHERE appt_slot_key IS NOT NULL`.
+Measured in sqlite rather than reasoned about:
+
+| Index | Two skeleton legs (NULL slot) | Two real claims on one slot |
+|---|---|---|
+| **with** the predicate | 2 rows, no collision | `UNIQUE constraint failed` |
+| **without** the predicate | **2 rows, no collision** | — |
+
+**SQLite treats NULLs as distinct in a UNIQUE index**, so skeleton legs never collide with or without the
+predicate. The predicate makes the index *partial* — smaller, and a statement of intent — but it is **not** the
+thing protecting un-appointed legs, which is what §629 asserted.
+
+Second time this session a trigger or finding of mine has been refuted by measuring instead of reasoning
+(§625 was the first). The pattern is identical: a mechanism that *sounds* load-bearing, asserted without a probe.
+
+### Trigger 2 was a gap, and both clauses held
+
+WP-11 and WP-14 had **named proofs found but never exercised** — §629's own finding, one level down.
+
+**M133 — WP-11**, the penny-parity postcondition neutered (`if (total !== acceptedQuote.sell)` → `if (false)`):
+
+- *lines that do not sum to the recorded sell THROW, naming both figures*
+- *the error names the computed total AND the recorded sell — a misprice must be diagnosable*
+
+The second is the better test: it pins not just that the check fires but that its message lets a human find the
+mispricing.
+
+**M134 — WP-14**, the monthly allotment cap stops refusing. **Five** red, and their names are the coverage:
+
+- *NO-CAPS-DEFAULT = ZERO: an allotment of 0 refuses the FIRST convenience (a floor, never infinite)*
+- *a MALFORMED allotment (negative / non-integer) clamps to ZERO — fail-closed, never infinite*
+- *distinct actions each count; the N+1 is refused (the tally never advances past the allotment)*
+- *a NEW period starts fresh (the tally is per UTC month)*
+- *CONCURRENCY (the DO mutex): a Promise.all race of allotment+K distinct reserves admits EXACTLY the allotment*
+
+Both fail-closed defaults and the concurrency race depend on the one comparison. That is the §619 pattern
+again — a count of REDs that reflects how many distinct guarantees rest on a line, not redundancy.
+
+### What the two triggers together say
+
+One was a **verification gap** (real, closed by two mutations) and one was a **false premise** (closed by
+deleting it). A reopen trigger is a hypothesis, not a finding, and this phase is the argument for writing them
+down: both got tested, and only one survived.
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged. All mutations restored byte-identical, suites green
+(30/30 agents-compose, 122/122 agents).
+
+**Reopen triggers**
+- The `ux_legs_slot` predicate is removed → now known to be behaviourally inert for skeleton legs, but it keeps
+  the index off every un-appointed row. That is a performance property, and no gate measures index size.
+- WP-05/07/10/13/15's field and filmed clauses remain the only DoD work outstanding, and remain owner-held.
+  Every code-provable clause in genesis/08 §03 has now been mutation-proved.
