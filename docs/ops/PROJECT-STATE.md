@@ -1,7 +1,11 @@
 # Project state & resume guide
 
-**As of 2026-08-05** · branch `main` · **803 commits at `887b7f0`** (was: 2026-08-02, 534 commits at
-`3e1f31d` — the 241 between them are a further technical-debt audit phase; before that, 2026-07-31 at 435). **This header is the DOCUMENT baseline; individual rows below carry their own `measured at <sha>` stamps, which may predate it and are not stale for doing so — a measurement is true of the commit it names (audit §330).** Supersedes the 2026-07-27 baseline at `7c1a0b4` (itself re-baselined
+**As of 2026-08-08** · branch `main` · **1,143 commits at `d8f1dd7`** — a further technical-debt audit phase
+(§605–§653), whose stopping point is audit **§648**. The merge gate at HEAD, **measured end to end** with a
+clean tree (§647): **21 PASS · 0 FAIL · 5 BLOCKED**, aggregate BLOCKED, evidence artifact written. The five
+BLOCKED are the owner-held inputs (denylist secret + four private-fixture gates); there are **no failing
+gates and no failing tests** at HEAD. *(Was: 2026-08-05, 803 commits at `887b7f0`; before that 2026-08-02, 534 commits at
+`3e1f31d`; before that, 2026-07-31 at 435.) **This header is the DOCUMENT baseline; individual rows below carry their own `measured at <sha>` stamps, which may predate it and are not stale for doing so — a measurement is true of the commit it names (audit §330).** Supersedes the 2026-07-27 baseline at `7c1a0b4` (itself re-baselined
 from the 2026-07-14 note that stopped at WP-06). All sixteen WPs are closed, T14/T15 landed after them, and a
 2026-07-28 reboot cleared the `workerd` wedge.
 

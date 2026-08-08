@@ -293,6 +293,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 98 | §650 | **§651** | **DEFECT — the seed loader would APPLY a duplicate migration.** §650 swept `globSync` and missed `readdirSync`; six more callers, and load.cli.ts reads every .sql and applies it, so an iCloud duplicate runs the same CREATE TABLE twice (measured: 9 files, not 8). §650 cried wolf; this CORRUPTS. Fixed. surface-contract is content-keyed and immune, as the rule predicted. Four fixture readers are path-keyed but BLOCKED — recorded, not changed |
 | 99 | §651 | **§652** | Re-ran §642's sweep by BEHAVIOUR as §651 prescribed: it had been reporting **2 of 6**. Five `JSON.stringify(a)).toBe(JSON.stringify(b))` determinism assertions it never saw — all correct (same call twice, equality IS the requirement). The vacuity hole is real (`stringify(undefined)` compares equal) and closed by siblings in every case: 47 and 41 other assertions on the same values |
 | 100 | §652 | **§653** | The THIRD mechanism-swept class, re-run by behaviour — and this one was already covered. Five shapes including the inverted `if (!deps.x) return`: one hit, a false positive of my own alternation (a Zod safeParse result, fail-closed). **The control that matters**: re-sweeping found real gaps twice (§642 at 2 of 6, §650 missing readdirSync) and correctly found nothing here, which is what shows the first two were about the code and not the method |
+| 101 | §653 | **§654** | Checked §646's correction against the nine ops docs. Every gate tally there is SHA-pinned (`Verdict at 3fc592b, 2026-07-28`), and most "state claims" are conditionals in contract tables — which cannot go stale the way a status line can. **The finding: PROJECT-STATE.md states §646's and §647's rules verbatim at audit §330**, before this session re-derived both from a wrong number. The record with the discipline never went wrong; the memory without it did. Re-baselined in its own convention |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -36167,3 +36168,64 @@ assertion named (§636), and enforced against reintroduction in five spellings (
 - A guarantee is skipped by a shape not in the five above (a `Proxy`, a strategy-object lookup, a feature
   flag read from D1) → outside every spelling and every polarity. The gate at `optional-dep-guards.test.ts`
   is a regex over source, and that is its floor.
+
+---
+
+## §654 — PHASE GATE: the ops record had §646's discipline before I re-derived it
+
+**Subject.** §649 corrected the session memory, which carried the gate tally §646 disproved. The same
+correction had not been checked against `docs/ops/` — nine operator-facing documents, and the one a resuming
+session reads first.
+
+### The tallies are there, and every one is anchored
+
+`GO-LIVE-CHECKLIST.md` states *"16 gates PASS, 5 BLOCKED"* in three places — against 21 PASS measured at HEAD.
+Stale? **No.** The table's own column header reads `| What was unrunnable at dc26ea8 | Verdict at 3fc592b, 2026-07-28 |`,
+and the other two occurrences are inside an explicit *"superseded 2026-07-28"* note naming the SHA. A
+SHA-pinned verdict is a record, not a claim.
+
+### The classifier was noise, and the reason is instructive
+
+A sweep for "state claims without a nearby date or SHA" reported ~100 across the nine docs. Reading them:
+
+- the anchor is often a **table header** or a **section heading**, outside a ±2-line window;
+- most hits are **conditionals, not assertions** — `secrets.md` is a contract table (`Name | Consumer | Purpose | Absent ⇒`), and *"`CLOUDFLARE_API_TOKEN` … BLOCKED (2) — no backup is taken"* describes what happens **when** a secret is absent. §605 verified exactly that by running it.
+
+**A contract table cannot go stale the way a status line can**, because it describes behaviour rather than a
+moment. That is why the ops docs survive re-measurement, and it is a design property worth naming rather than
+an accident.
+
+### The finding is that they got there first
+
+`PROJECT-STATE.md`'s header states, verbatim:
+
+> *"individual rows below carry their own `measured at <sha>` stamps, which may predate it and are not stale
+> for doing so — **a measurement is true of the commit it names** (audit §330)."*
+
+and, over its gate table:
+
+> *"Each verdict below is a command that was **executed**, not an [inference]."*
+
+Those are §646's rule (**name the tree state**) and §647's (**say whether it was measured or derived**),
+written down at audit §330 — **before this session re-derived both from a wrong number carried for
+forty-one phases.**
+
+The record that had the discipline never went wrong. The one that lacked it — the session memory — is exactly
+where the stale tally lived. That is the whole argument for the convention, made by the two artifacts rather
+than by me.
+
+### What changed
+
+`PROJECT-STATE.md` re-baselined **in its own convention**: a new dated line at `d8f1dd7` carrying §647's
+measured verdict and pointing at §648's stopping point, with the prior baselines kept in the chain behind it.
+Nothing else in `docs/ops/` needed touching.
+
+### Exit state
+
+**21 PASS · 0 FAIL · 5 BLOCKED at HEAD** (§647, measured). Working tree: the owner's REQ-289 row.
+
+**Reopen triggers**
+- A status line is added to an ops doc without a SHA → it becomes the one artifact that can go stale, and the
+  nine here currently cannot.
+- `PROJECT-STATE.md`'s baseline falls behind again → by its own rule that is not staleness, but it is the
+  document a resuming session reads first, so the baseline is worth advancing whenever a phase closes.
