@@ -39,11 +39,28 @@ const GUARDED_FNS = [
   "snapshotKey", // R2: watchtower/<tenant>/<day>.json
   "watchtowerAlarmId", // deterministic alarm id folded from the tenant
   "driftFallbackEventId",
+  // §701 — the remaining entry-point-shaped functions, dispositioned rather than carried. §700 derived 19
+  // candidates and called them "the largest open item". The discriminator is whether the FIRST argument is
+  // an already-scoped handle: ten take `db: D1Database` / `r2: R2Bucket` / `env` and are DOWNSTREAM of
+  // `resolveTenantDb`, which is itself guarded — the scoping already happened, so listing them would assert
+  // nothing. These six take `tenant` first, which is the shape of every function already here.
+  "tenderPrefix", // R2: tender/<tenant>/…
+  "tenderKey",
+  "sent214Key",
+  "quarantineKey",
+  "unresolvableKey",
+  "isPlatformCreditInvoiceIssued",
 ] as const;
 
 /** Argument expressions known to carry an authenticated identity, each with what verifies it. */
 const AUTHENTICATED = new Set([
   "session.tenant", // JWT claim, verified by the auth middleware
+  // §701 — the translator's inbound EDI path. `tenantSlug` is `pairing.slug` from a control-plane
+  // pairings⋈tenants lookup gated by an HMAC signature check, failing CLOSED (401, nothing written) on
+  // missing headers, an unknown or inactive pairing, an unresolvable secret, or a signature mismatch
+  // (inbound.ts). It is not request input: the partner header selects a pairing, and the signature proves
+  // the caller holds that pairing's secret before the slug is used for anything.
+  "tenantSlug",
   "tenant", // a parameter of an already-tenant-scoped function (the DO's re-derived identity; the
   // retention sweep's roster iteration — neither is request-derived)
   "claims.t", // MAC-verified by verifyStatusCap, fail-closed to a uniform 401
