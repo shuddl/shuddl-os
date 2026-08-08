@@ -257,9 +257,9 @@ async function main(): Promise<void> {
   const tenantPath = join(TMP, "smoke-seed-tenant.sql");
   writeFileSync(controlPath, controlSql);
   writeFileSync(tenantPath, tenantSql);
-  console.log("seeding control DB (tenant t-a + driver u-driver + device-1)...");
+  console.log(`seeding control DB (tenant ${CONTROL_TENANT_ID} + driver ${DRIVER_USER} + ${TEST_DEVICE_ID})...`);
   d1File(CONTROL_DB, controlPath);
-  console.log("seeding tenant-a DB (5 parties + rate_config + shipment + delivery leg)...");
+  console.log(`seeding ${TENANT_SLUG} DB (${parties.length} parties + rate_config + shipment + delivery leg)...`);
   d1File(TENANT_DB, tenantPath);
 
   // ── 2. MINT tokens. /v1/rate is server-gated to elevated roles (REQ-030), so pricing rides an ops

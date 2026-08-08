@@ -251,6 +251,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 56 | §607 | **§608** | **DEFECT — the VISUAL gate PASSED with a canonical screen deleted from the registry** (`assertions: 4`, exit 0, under --mode merge). §607s divergence in the other direction: a blessed ref that exists while the registry no longer names it. The shared browser guard cannot floor it. Fixed with bidirectional parity + identity pin. Also: I broke the PHASE GATE heading convention twice by running the doc gates and not the suite that OWNS the file |
 | 57 | §608 | **§609** | **DEFECT — e2e PASSED at 3 of 6, losing the TENANT-ISOLATION browser proof (REQ-025, rule 8) to an ordinary rename.** Third instance of one class; the zero-floor protects only single-source suites, which was an accident of composition, not a decision. Fixed with a per-gate corpus RATCHET (may rise, may not fall) + a derived test so a new browser gate cannot ship without a floor |
 | 58 | §609 | **§610** | THE CLASS SWEPT BY RULE, not by enumeration: **a gate needs a corpus floor when a SELECTOR sits between the artifacts and the run.** unit-tests was flagged by the rule and proved already guarded (§288, 3 probes). Testing the rule against authority-coverage found its GREEN line naming a module it had stopped checking — a computed count beside a hardcoded list. Record defect, not coverage; list now derived |
+| 59 | §610 | **§611** | THE RESTATEMENT SWEEP §610 ASKED FOR. Gate summaries are clean — all derived, authority-coverage was the only exception. **The real find is one level up: CLAUDE.md states SIX hard budgets as law and nothing read the file as data.** All six agree today; now gate-checked against TABLE_BUDGET/SURFACE_ROSTER/MAX_CANONICAL_VIEWS/EVENT_KINDS/TOKENS/FONTS, mutation-proved both directions + the vacuity floor |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -33374,3 +33375,84 @@ had not yet been examined.
   deleting a registry row leaves the sentence still naming it.
 - `--if-present` is removed from the root `test` script → §288's guard stops being the only thing standing
   between a new package and silent untestedness, which is a strengthening, not a regression.
+
+---
+
+## §611 — PHASE GATE: the sweep §610 asked for, and the six numbers nothing was checking
+
+**Subject.** §610's own reopen trigger: *"any gate's summary line restates a value it also computes → the §610
+defect, verbatim."* That defect was found by accident while testing an unrelated rule; this phase ran the sweep
+deliberately.
+
+### The gate summaries are clean
+
+Every merge-gate verdict line was read. All are **derived**:
+
+| Gate | The value in its green line |
+|---|---|
+| `append-chokepoint` | `${ALLOWED.size} allowlisted module(s)` |
+| `invariants` | `${result.tableCount}/${TABLE_BUDGET}` |
+| `traceability` | `active: ${activeWps.join(", ")}` |
+| `section-refs` · `citations` · `bundle-ratchet` | counts and summaries, all interpolated |
+| `acceptance` | `${spineFileCount()}` — and §607 made that count truthful |
+
+`authority-coverage` was the **only** exception in the whole tooling tree, and §610 fixed it. A clean negative,
+and a real one: the convention is already right everywhere it matters.
+
+Two lockstep restatements did turn up in `staging-smoke`'s progress output — `"seeding control DB (tenant t-a +
+driver u-driver + device-1)"` and `"5 parties"` — each restating constants and an array length declared a few
+lines above. Both were **accurate today** (verified: `CONTROL_TENANT_ID = "t-a"`, `DRIVER_USER = "u-driver"`,
+`TEST_DEVICE_ID = "device-1"`, and the `parties` array has exactly five entries). Progress logs in a
+release-only script, not verdicts — so: low severity, one-line fix, both now derived. Recorded rather than
+skipped because "correct today" is precisely the state that rots.
+
+### THE FINDING — CLAUDE.md states six budgets as law, and nothing read them
+
+The largest restatement in the repo is not a gate's output. **CLAUDE.md line 15:**
+
+> ≤22 tables (21 used) · 3 surfaces · 12 canonical views · 35 event kinds · 5 color tokens · 2 font families
+
+Each is enforced somewhere — `TABLE_BUDGET`, `SURFACE_ROSTER`, `MAX_CANONICAL_VIEWS`, `EVENT_KINDS`, `TOKENS`,
+`FONTS`. And **nothing read CLAUDE.md as data**: every reference to it across the repo is a comment or an error
+message quoting it.
+
+So a budget amendment — which CLAUDE.md itself says requires a register amendment — moves the constant and
+leaves the document stating the old number. In the file whose own header reads *"These instructions OVERRIDE
+any default behavior"*, which every session reads first. **A stale law is worse than an absent one, because it
+is followed.**
+
+**Measured: all six agree today.** This locks a clean state rather than repairing a defect — and that is the
+case §486 argues most needs a test, because nothing is failing and nothing else would notice it starting to.
+
+`tools/checks/claude-md-budgets.test.ts` parses the six from CLAUDE.md and each from its enforcing source, as a
+**static scan** (importing `MAX_CANONICAL_VIEWS` from a React app and `TOKENS` from a CSS-adjacent module into a
+node-environment tools test, for two integers, is the wrong trade).
+
+**Mutation-proved in three ways** — a rule this cheap to write is exactly the kind that ships unable to fail:
+
+| | Mutation | Result |
+|---|---|---|
+| M98 | `TABLE_BUDGET` → 23, CLAUDE.md still 22 | RED — source side |
+| M99 | CLAUDE.md → "36 event kinds", contract still 35 | RED — document side |
+| M100 | `TOKENS` renamed so the scan cannot read it | RED — **the non-vacuity floor**, not a false pass |
+
+### What it deliberately does not cover
+
+The `(21 used)` parenthetical. That is a runtime figure derived from the migration set across two databases,
+which `check:invariants` recomputes and prints on every run and fails on if it exceeds the budget. Re-deriving
+it here by parsing `CREATE TABLE` would be a second, weaker implementation of a check that already exists —
+the two-mechanisms trap, where the copy becomes the thing that rots.
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged. `test:tools` at 913 passed with exactly the 3 REQ-289 failures;
+typecheck 0; eslint clean.
+
+**Reopen triggers**
+- A budget is legitimately amended → this test fails by design. That is the forcing function: amend the
+  register row, then the constant, then the line — in that order, per CLAUDE.md's own rule.
+- A seventh budget joins line 15 → it is unguarded until added to `BUDGETS`. The non-vacuity test cannot see an
+  omission it was never told about, which is the honest limit of a hand-kept list here (the alternative —
+  parsing every `·`-separated clause — would break on the prose ones like "0 shadows/gradients/radius>4px").
+- `check:invariants` stops printing the live table count → the documented reason for excluding `(21 used)`
+  expires with it.
