@@ -272,6 +272,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 77 | §629 | **§630** | Closed §629's two triggers, which closed DIFFERENTLY. One was a FALSE PREMISE — sqlite proves NULLs are distinct in a UNIQUE index, so skeleton legs never collide with or without the partial predicate; my trigger asserted a mechanism without probing it (second such refutation this session, after §625). The other was real: M133 (penny-parity, 2 red) and M134 (allotment cap, 5 red incl. both fail-closed defaults and the DO-mutex race). Every code-provable DoD clause is now mutation-proved |
 | 78 | §630 | **§631** | Counted the audit's own reopen triggers: **72 across 25 phase gates, zero dischargeable.** Two were already stale five phases on (§626's mayBeEmpty test, §629's unmutated WP-11/WP-14) — the expiry-trigger problem INSIDE the record. Convention added (strike + `DISCHARGED §N`); section-refs validates the pointer for free (M136), a new assertion catches a bare one (M135). Staleness itself stays unmechanisable, and that limit is stated |
 | 79 | §631 | **§632** | "Which product code is untested?" — the import-name proxy said 23 logic files, and it is UNUSABLE: barrels, worker roots and DO stubs never name the file. M137 killed it on the largest entry (366 lines, "never imported", 3 tests red). Real coverage needs a tool that is unregistered scope — REQ-211 defines coverage as 100% REGISTER coverage, so that row is the owner's to write. This audit measures by MUTATION: 137 this session |
+| 80 | §632 | **§633** | Asked the production question — does it FAIL SAFELY? §619 proved the evidence hash is written at capture; this examines what §619 left open: the bytes never arriving. No sweep reconciles it — the guarantee sits EARLIER, as a Biller precondition that fails closed to held(evidence_missing) with no terminal marker, so the anti-join keeps re-driving it. M138: 4 red, covering a torn D1/R2 write and a tombstoned document |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -34873,3 +34874,63 @@ instead, which is the stronger claim where the two disagree.
   schema constraint no line-counter attributes.
 - The import-name proxy is used again by anyone → it is refuted here; the file list it produces is not a
   finding, and this section is the citation.
+
+---
+
+## §633 — PHASE GATE: does it fail safely? the invoice that could outrun its evidence
+
+**Subject.** Twenty-eight phases have asked whether guarantees **hold**. A production auditor asks the next
+question: **does it fail safely?** The sharpest case in this system is the one §619 half-opened.
+
+REQ-017's design is that the event carries the evidence **hash** at capture and the **bytes** upload later,
+when signal allows. §619 mutation-proved the hash half. That leaves the failure mode the design implies and
+§619 did not examine: **what if the bytes never arrive?**
+
+An invoice citing a POD hash with no bytes behind it is the exact inversion of CLAUDE.md's *"money as a
+projection of physics"* — money that outran the physics.
+
+### It fails safely, and the mechanism is a precondition rather than a sweep
+
+Six sweeps exist (SLA, unbilled redrive, credit gaps, overdue invoices, legacy mirror, retention) and **none of
+them is an evidence reconciler**. The guarantee is placed earlier, in `biller.ts`:
+
+> *"Before minting the invoice, require the POD's recorded `signature_hash` to have an ACTIVE, tenant-scoped
+> POD document (D1) **AND** a present R2 object (head). A miss FAILS CLOSED: `held(evidence_missing)` — NO
+> invoice, NO send, and NO terminal marker."*
+
+The hold is **temporary by construction**, which is the part worth admiring: the byte upload re-drives the
+Biller, and REQ-169's recon sweep re-drives it meanwhile, *because* an evidence-held POD has no invoice and no
+marker — so it stays in the anti-join until the bytes land. The absence of a terminal marker is what keeps the
+work findable. A hold that wrote a marker would be a leak.
+
+### M138 — four distinct absences, four reds
+
+Neutering the precondition (`if (document === null || object === null)` → `if (false)`) reddened four tests,
+and their names are the failure taxonomy:
+
+- *MISSING DOCUMENT: a POD whose signature bytes were never uploaded → held(evidence_missing), NO invoice/money/send*
+- *MISSING R2 OBJECT: the document row exists but the R2 bytes are gone (torn) → held(evidence_missing)*
+- *TOMBSTONED DOCUMENT: a retention-'expired' document is not proof of present bytes → held(evidence_missing)*
+- *UPLOAD THEN RE-DRIVE: once the bytes are stored, a re-drive issues the invoice + ONE email; a duplicate re-drive stays at one invoice/one send*
+
+Three of those are ways evidence can be absent that a naive "does the row exist?" check would miss — a **torn**
+write where D1 has the row and R2 lost the object, and a **tombstoned** document whose retention expired. The
+fourth pins that the temporary hold actually resolves, exactly once, which is the half that makes the other
+three safe rather than merely strict.
+
+### The sixth anchor miss
+
+M138 failed to apply first time — `AssertionError: anchor 0` — from reading indentation off prefixed output
+again. Sixth instance; the `|| exit 1` wiring made it cost one command, as it has every time. §620 recorded
+that the mechanism transfers where the memory does not, and this is the fourth data point since.
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged. M138 restored byte-identical, `workers/api` biller suite 24/24.
+
+**Reopen triggers**
+- A sweep is added that closes evidence-held PODs → it would write the terminal marker the current design
+  deliberately withholds, and the anti-join that makes them re-drivable would stop finding them.
+- `deps.evidence` becomes optional in production wiring → the precondition is explicitly gated on it being
+  present, so an unwired bucket silently skips the whole check. The comment says production always wires it;
+  nothing asserts that.
