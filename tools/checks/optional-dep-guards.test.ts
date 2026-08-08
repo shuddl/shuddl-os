@@ -21,7 +21,13 @@ import { scanCorpus } from "./scan-corpus.js";
 // merely assembles headers or config is untouched by this rule, which is why it fires on ONE site today and
 // not on the nine other `!== undefined` branches §635 catalogued.
 
-const GUARD = /if\s*\(\s*(?:deps|env|opts|config|this\.\w+)\.(\w+)\s*!==\s*undefined\s*\)\s*\{/g;
+// §637 — ALL FIVE SPELLINGS of "this dep is present", not just the one §634 happened to use. A gate
+// evadable by writing `!= null` is not a gate. Measured when this widened: zero additional hits, because
+// the REJECT conjunction below is what supplies the precision — the two truthiness guards §635 catalogued
+// assemble config and have no rejection in their bodies, so they stay invisible to this rule.
+const DEP = String.raw`(?:deps|env|opts|config|this\.\w+)\.(\w+)`;
+const PRESENT = String.raw`(?:\s*!==\s*undefined|\s*!=\s*null|\s*!==\s*null|)`;
+const GUARD = new RegExp(String.raw`if\s*\(\s*${DEP}${PRESENT}\s*\)\s*\{`, "g");
 const REJECT = /(throw new |status:\s*"held"|return\s*\{\s*ok:\s*false|reject\()/;
 
 /**

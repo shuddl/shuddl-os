@@ -276,6 +276,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 81 | §633 | **§634** | Closed §633's trigger: the evidence precondition is gated on `deps.evidence !== undefined`, so an UNWIRED bucket skips it entirely — invoices for PODs with no bytes, silently, because skipping is the documented behaviour. A comment was the only thing asserting production wires it. Three assertions (deps line, binding in every scope, and the GATING ITSELF so the file self-obsoletes), M139/M140/M141 each red on its own |
 | 82 | §634 | **§635** | Swept §634's class three ways across all src: 10 candidate sites, and every one but §634's is plumbing or config assembly — it was the LONE instance. The reason is structural: the repo has a `NotConfigured*` idiom used TEN times that rejects LOUDLY, and the single place using a bare `!== undefined` branch was the single place that could skip silently. Eighth measurement error — git -E does not honour `\w`, and zero adapters read as a finding |
 | 83 | §635 | **§636** | Closed §635's trigger by enforcing the idiom: a gate on **optional-dep guards whose body can REJECT** — structural, no semantics, because §618 proved the semantic version fails (51 hits, 3 read, 3 false). One hit repo-wide (§634's), zero false positives against the nine other `!== undefined` branches. The sanction names its COMPENSATING assertion, and M143 proves the exemption cannot outlive its subject |
+| 84 | §636 | **§637** | Closed §636's trigger: the gate enforced ONE spelling of a pattern with five. No live gap (0 rejecting guards under the other four) — widened anyway, because this gate exists to prevent a REINTRODUCTION and one firing on `!== undefined` but not `!= null` raises the cost by a keystroke. Cost nothing: still 1 hit, 3/3 green, because the precision was always the REJECT conjunction, not the presence test. M144 ×3 |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -35111,3 +35112,56 @@ wiring, the class swept, and the idiom that made it a lone exception now enforce
   left in an otherwise mechanical rule.
 - A guard is written with `!= null` or `?? ` instead of `!== undefined` → outside the pattern entirely. The
   sweep in §635 covered three spellings; this gate enforces one.
+
+---
+
+## §637 — PHASE GATE: a gate evadable by changing an operator is not a gate
+
+**Subject.** §636's second reopen trigger, closed in the next phase: *"a guard written with `!= null` or `??`
+instead of `!== undefined` → outside the pattern entirely. The sweep in §635 covered three spellings; this gate
+enforces one."*
+
+### Measure first: is the gap live?
+
+All five ways to write "this dep is present" were swept for **rejecting** guards:
+
+| Spelling | Rejecting guards today |
+|---|---|
+| `!== undefined` | 1 — §634's, sanctioned |
+| `!= null` | 0 |
+| `!== null` | 0 |
+| truthiness `if (deps.x)` | 0 |
+| `&&` chain | 0 |
+
+**No live gap.** §635's discipline says do not add what is not justified — so the question is whether widening
+is justified by anything other than symmetry.
+
+It is, and by a different argument than "more coverage is better": this gate exists to prevent a **reintroduction**.
+A rule that fires on `!== undefined` and not on `!= null` does not raise the cost of reintroducing §634's defect
+— it raises the cost by one keystroke. **A gate evadable by changing an operator is not a gate**, and that is
+true whether or not anyone has yet changed the operator.
+
+### Widening cost nothing, because the precision is elsewhere
+
+Still **3/3 green** and still one hit after covering all five spellings. The reason is that the discriminating
+half of this rule was never the presence test — it is the **REJECT conjunction**. The two truthiness guards
+§635 catalogued assemble config (`if (env.ANTHROPIC_API_KEY) cfg.apiKey = …`) and have no rejection in their
+bodies, so they remain invisible under the widest spelling.
+
+That is worth stating plainly because it inverts the usual trade: widening a pattern normally costs false
+positives, and here it cost none — because the filter doing the work was never the part being widened.
+
+**M144, three times** — the same probe rewritten with `!= null`, `!== null`, and bare truthiness. Each is caught
+now; each would have passed the narrow gate.
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged. `test:tools` at 946 passed with exactly the 3 REQ-289 failures;
+typecheck 0; eslint clean.
+
+**Reopen triggers**
+- A guard is written as `if (deps.x != undefined)` (loose, against `undefined`) or with the presence test
+  hoisted into a variable → both outside the pattern. The list of spellings is finite and this covers five; a
+  hoisted check is not a spelling but a restructure, and no regex reaches it.
+- The `REJECT` alternation stays the single judgement call in the rule, carried forward from §636 — widening
+  the presence half did not touch it.
