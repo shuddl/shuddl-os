@@ -329,6 +329,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 134 | §686 | **§687** | **Three drafts of one test, each passing for the wrong reason — the correction IS the output.** Sweeping all 22 invoice guards by deletion reported 19 SILENT, which is **not** a gap: the smoke set is a PASSING corpus, so deleting a correct comparator cannot change a passing result. **Deletion only measures against an input that FAILS.** Then three drafts targeting the structural penny-parity comparison were each caught by the wrong guard (expectation → exception → a redundant GL-side sibling). Shipped as a PROPERTY pin with the claim corrected, explicitly disclaiming what it does not prove |
 | 135 | §687 | **§688** | **Not untested — UNTESTABLE, which is a better fact.** §687's residual (line kinds, line numbers, GL accounts "asserted only by the passing smoke set") traced to the composer: `kind: line.kind` verbatim, `line_no: i + 1` over the same index, `gl_map` a lookup into the same frozen `GL_MAP` the harness imports. All three compare a value to itself — **no perturbation can make them fail.** Kept as defence against a future composer that MAPS rather than mirrors, now marked at the site. Completes a four-way taxonomy of silent mutations: unreachable line · passing corpus · sibling guard · **construction-forbidden** |
 | 136 | §688 | **§689** | **A FALSE GREEN in my own measurement — the first of the session.** Sweeping §688's tautology class closed it (discriminator: *fixture-expected = two independent origins; derived-vs-derived cannot diverge* — predicts exactly which harness had them; all 7 gates I shipped are derived-vs-declared). Then the harness reported `verify:merge EXIT: 0` against §683's exit 2 — because **a `$(…)` substitution inside the same `echo` clobbers `$?`** (proved: bare→2, substitution-first→0, `rc=$?`→2). The gate actually says *NOT PROMOTABLE*. Six earlier measurement bugs produced false REDS; **a false red gets investigated, a false green gets accepted** |
+| 137 | §689 | **§690** | **CI clean; a comparison wrong BY CONSTRUCTION; one unverified release gate bounded.** No `$?` reads or failure-masking anywhere in CI (corpus verified). A "23 of 30 gates missing from ci.yml" result was nonsense — `ci.yml:50` runs `verify:merge` and the 23 are its MEMBERS (§688's tautology shape, one level up). The real finding: `gatesFor` gives release four extra gates that **never run in CI**, and `staging-smoke` alone has no test. Its fail-closed half MEASURED — exit 2, *"not a pass"* — the assertion half bounded as a named hold |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -38579,3 +38580,66 @@ No code change. `test:tools` 970; typecheck 0. Working tree carries only the oth
   class. `rc=$?` on its own line is the only safe form, and every measurement in this section now uses it.
 - A comparison is added between two values derived from one source → the tautology discriminator above
   applies, and nothing enforces it; it is a review question, not a gate.
+
+## §690 — PHASE GATE: the release profile, and a comparison that was wrong by construction
+
+**Subject.** §689's false green was a `$?` clobbered in *my* shell. The obvious follow-up is whether the same
+class exists in the **build's own** tooling, where it would be permanent.
+
+### CI is clean, and my first comparison was meaningless
+
+No `$?` reads in any tracked `.sh`/`.yml`/`Makefile` (corpus verified present: 2 workflows, 0 shell scripts),
+and no `continue-on-error`, `|| true`, `set +e` or `if: always()` anywhere in CI. Nothing masks a failure.
+
+Then a comparison of *"gate scripts declared in `run-gate.ts`"* against *"pnpm scripts invoked by `ci.yml`"*
+reported **23 of 30 missing** — which is nonsense, and the kind of nonsense that reads as a finding.
+`ci.yml:50` runs **`pnpm verify:merge`**, described in its own step name as *"the complete non-skippable
+surface (REQ-288)"*. The 23 are that aggregate's **members**; a member is not expected to also be a direct
+step. **The two lists were never comparable** — the same error shape as §688's tautology, one level up:
+comparing two things whose relationship the construction already fixes.
+
+Seventh structural signal to dissolve on reading in this stretch.
+
+### What the comparison should have asked, and did find
+
+`gatesFor()` branches once: `if (profile === "merge") return [...plain, ...skippable]`. **Release adds
+`releaseInfra` — four gates that never run in CI under any workflow**:
+
+| release-only gate | script | own test? |
+|---|---|---|
+| `deploy-preflight` | `preflight` | yes |
+| `restore-verify` | `restore:verify` | yes |
+| `surfaces` | `test:surfaces` | yes (surface-contract) |
+| **`staging-smoke`** | `smoke:staging` | **none** |
+
+### staging-smoke: the half that matters is verified, the half that cannot be is bounded
+
+§685's question — *can a never-run gate fail to say no?* — split cleanly here, and **the fail-closed half was
+measured rather than assumed**:
+
+```
+smoke:staging -> exit 2
+  staging-smoke: BLOCKED — SMOKE_API_BASE is not set — there is no deployed environment to smoke
+  staging-smoke: nothing was exercised; this is a named external hold, not a pass.
+```
+
+It refuses to report a pass on an absent environment, and says so in those words. **That is the half that
+protects against a false green today**, and it works.
+
+The other half — that a *failed assertion against a live staging environment* exits non-zero — cannot be
+exercised without the environment. `assert()` pushes to `failures[]` and the script exits
+`ASSERTIONS_FAILED`, which is the right shape; nothing proves the wiring. That is a bounded hold of the same
+kind as the five BLOCKED merge gates, and it is now named rather than implicit.
+
+### Exit state
+
+No code change. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, aggregate BLOCKED, exit 2** at `04c6fe1`
+(§689, corrected). `test:tools` 970; typecheck 0.
+
+**Reopen triggers**
+- **`SMOKE_API_BASE` binds** → `staging-smoke` runs for the first time, and its assertion path becomes both
+  live and testable. It is the only release-only gate with no unit test, so it is the one to write first.
+- A gate is added to `releaseInfra` → it inherits "never runs in CI", and the question to ask it is this
+  section's: which half of its behaviour can be measured today?
+- CI stops invoking `verify:merge` directly → the 26-gate surface silently becomes whatever the individual
+  steps happen to cover. Nothing asserts that step exists.
