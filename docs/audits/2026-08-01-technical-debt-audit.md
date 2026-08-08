@@ -297,6 +297,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 102 | §654 | **§655** | Asked §614's question of THIS SESSION'S OUTPUT: are the ten gate files added here on the merge path? Traced `unit-tests` → `test` → `test:tools` → `tools/**`, then MEASURED it — M156 plants §608's violation and exits test:tools 1, short-circuiting the merge gate's own `&&`; all ten collect (10 files / 30 tests). Tenth measurement error en route, and a recorded one: zsh does not word-split unquoted params |
 | 103 | §655 | **§656** | Closed §655's trigger: the `unit-tests` gate runs `test`, and `test` is `test:tools && …`. Two properties hang off it. **Attribution: dropping test:tools was ALREADY caught** by the orphan-script test (M157, 2 red incl. a pre-existing one); the new coverage is M158 — `&&` → `;` leaves the script present, running and green while 44 tools files are ignored. The gate that runs and cannot fail, one keystroke from this session's own output |
 | 104 | §656 | **§657** | Swept §656's "gate that runs and cannot fail" through its five MECHANICAL forms: zero instances. No `\|\| true`, no `continue-on-error`, no pipes in run steps, and all three spawnSync sites read status — `orphans.ts` making the subtle 0-vs-1-vs-other call that separates "git grep found nothing" from "git failed". **The finding: every instance this session was SEMANTIC** (§609 a floor at zero, §622 a split conjunction, §656 an operator), never a sloppy invocation |
+| 105 | §657 | **§658** | The AUTH BOUNDARY, never mutated in 53 phases. M159 makes every device signature verify — 3 red (tampering, key substitution, and a malformed sig yielding FALSE rather than throwing). M160 accepts malformed session claims — 2 red, including "a session cannot be minted immortal". **Verifying who signed a token is a different question from whether the token says anything valid**, and the second is where an integration bug lives |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -36392,3 +36393,57 @@ command is run** — and that distinction is what tells the next reader where to
   propagation stops being visible to these five checks, and the mechanical half of the class reopens.
 - A `spawnSync` site is added → the discrimination `orphans.ts` makes (0 vs 1 vs other) is per-command and
   cannot be generalised; `git grep`'s 1 means "clean", most other tools' means "failed".
+
+---
+
+## §658 — PHASE GATE: the auth boundary, untouched all session
+
+**Subject.** Fifty-three phases had swept gates, documents, assertions and sweeps. **The authentication
+boundary was never mutated.** §595 added session-expiry tests before this session; nothing here had asked
+whether the verification itself is defended.
+
+Two paths, and only one is ours to test:
+
+- **session tokens** — `verify(bearer, JWT_SECRET, "HS256")` from `hono/jwt`. Library code; mutating it tests
+  someone else's repo. What *is* ours is the **integration**.
+- **device signatures** — `crypto.subtle.verify` in `packages/ledger/src/sign.ts`. Entirely ours, and the thing
+  that makes a driver's offline capture trustworthy (REQ-011/016/017).
+
+### M159 — every device signature verifies
+
+Making `verifyEventSig` return `true` unconditionally is the forgery that matters: a captured event signed by
+nobody would be accepted into the ledger. **Three tests red**, each a distinct attack:
+
+- *any change to a signed field breaks verification* — tampering
+- *a wrong public key fails verification* — key substitution
+- *a wrong-length but valid-base64url signature → false (WebCrypto verify would throw)* — malformed input
+
+The third is the one worth noting: it pins that a bad signature yields **false rather than an exception**, so a
+forged capture is *rejected* rather than crashing the append path into whatever the caller's catch does.
+
+### M160 — malformed session claims accepted
+
+The integration's own guard is `if (!claims.success) throw ApiError("UNAUTHORIZED", …)` after a Zod parse.
+Neutering it means a **validly-signed token with no role and no tenant** would establish a session. **Two red**:
+
+- *rejects claims that fail the schema (unknown role)*
+- *rejects a token carrying NO `exp` at all — a session cannot be minted immortal*
+
+A signature check alone would have passed both: the token is genuine, its *contents* are not. **Verifying who
+signed a token is a different question from whether the token says anything valid**, and the second is where an
+integration bug lives.
+
+### Exit state
+
+**21 PASS · 0 FAIL · 5 BLOCKED at HEAD** (§647). `packages/ledger` 634/634, `workers/api` auth 20/20; both
+mutations restored byte-identical; no code changed.
+
+**The ninth anchor miss** happened here, and this time I skipped the dump step §641 had already narrowed to
+*"dump the line, then copy from THAT output"*. The `|| exit 1` wiring caught it at zero cost, as it has all
+nine times.
+
+**Reopen triggers**
+- `hono/jwt` is replaced or its `verify` is wrapped → the library boundary moves, and M160 covers only the
+  claims guard on our side of it.
+- A second signature scheme joins P-256 (an RSA device, a server-side attestation) → the three tests above are
+  written against ECDSA and would pass while the new scheme is unverified.
