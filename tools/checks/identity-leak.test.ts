@@ -35,27 +35,27 @@ describe("REQ-167: identity-leak lint", () => {
 // resolveIdentityLeakOutcome is the pure decision the CLI wraps — tested here without touching process.exit.
 describe("REQ-167: absent-denylist disposition fails CLOSED in CI (the last fail-open gate)", () => {
   it("CI + no denylist → code 1, level 'fail' (was exit 0 — this was the fail-open)", () => {
-    const o = resolveIdentityLeakOutcome({ terms: null, ci: true, requireDenylist: false, leaks: [] });
+    const o = resolveIdentityLeakOutcome({ terms: null, ci: true, requireDenylist: false, leaks: [], filesScanned: 0 });
     expect(o.code).toBe(1);
     expect(o.level).toBe("fail");
     expect(o.message).toMatch(/REQ-167/);
   });
 
   it("REQUIRE_DENYLIST + no denylist (even outside CI) → code 1, level 'fail'", () => {
-    const o = resolveIdentityLeakOutcome({ terms: null, ci: false, requireDenylist: true, leaks: [] });
+    const o = resolveIdentityLeakOutcome({ terms: null, ci: false, requireDenylist: true, leaks: [], filesScanned: 0 });
     expect(o.code).toBe(1);
     expect(o.level).toBe("fail");
   });
 
   it("local dev (no CI, no REQUIRE_DENYLIST) + no denylist → code 0, level 'warn' (preserved)", () => {
-    const o = resolveIdentityLeakOutcome({ terms: null, ci: false, requireDenylist: false, leaks: [] });
+    const o = resolveIdentityLeakOutcome({ terms: null, ci: false, requireDenylist: false, leaks: [], filesScanned: 0 });
     expect(o.code).toBe(0);
     expect(o.level).toBe("warn");
     expect(o.message).toMatch(/REQ-167/);
   });
 
   it("clean scan: denylist present + no leaks → code 0, level 'ok' (green even in CI)", () => {
-    const o = resolveIdentityLeakOutcome({ terms: ["ZEBRA-CARRIER-TESTNAME"], ci: true, requireDenylist: true, leaks: [] });
+    const o = resolveIdentityLeakOutcome({ terms: ["ZEBRA-CARRIER-TESTNAME"], ci: true, requireDenylist: true, leaks: [], filesScanned: 952 });
     expect(o.code).toBe(0);
     expect(o.level).toBe("ok");
   });
@@ -70,7 +70,7 @@ describe("REQ-167: absent-denylist disposition fails CLOSED in CI (the last fail
       ]),
     );
     expect(leaks.length).toBe(1);
-    const o = resolveIdentityLeakOutcome({ terms: ["ZEBRA-CARRIER-TESTNAME"], ci: false, requireDenylist: false, leaks });
+    const o = resolveIdentityLeakOutcome({ terms: ["ZEBRA-CARRIER-TESTNAME"], ci: false, requireDenylist: false, leaks, filesScanned: 952 });
     expect(o.code).toBe(1);
     expect(o.level).toBe("fail");
     // the masked term never leaks back through the disposition message either
@@ -108,5 +108,29 @@ describe("REQ-288: identityGateResult — absent denylist BLOCKS a merge/release
     expect(g.status).toBe("PASS");
     expect(g.executed).toBe(true);
     expect(g.assertions).toBe(42);
+  });
+});
+
+// §731 — THE NON-VACUITY FLOOR. A denylist present + zero files scanned is a BROKEN gate, not a clean repo.
+// Measured before the fix: run from `tools/checks/` the CLI emitted `PASS, executed: true, assertions: 0`,
+// because `git ls-files` was repo-rooted (§489) while `readFileSync` still resolved against process.cwd()
+// and a bare catch swallowed all 952 failures.
+describe("REQ-167 §731: a scan that read nothing is never a pass", () => {
+  it("GateResult: denylist present, zero files → FAIL (not PASS, and not BLOCKED)", () => {
+    const g = identityGateResult({ terms: ["ZEBRA-CARRIER-TESTNAME"], mode: "merge", leaks: [], filesScanned: 0 });
+    expect(g.status).toBe("FAIL");
+    // BLOCKED would be wrong: that status means a missing prerequisite, and the denylist is present here.
+    expect(g.detail).toMatch(/ZERO files/i);
+  });
+
+  it("legacy disposition: denylist present, zero files → exit code 1", () => {
+    const o = resolveIdentityLeakOutcome({ terms: ["ZEBRA-CARRIER-TESTNAME"], ci: false, requireDenylist: false, leaks: [], filesScanned: 0 });
+    expect(o.code).toBe(1);
+    expect(o.level).toBe("fail");
+  });
+
+  it("both dispositions still pass a real scan (the floor must not fire on the normal path)", () => {
+    expect(identityGateResult({ terms: ["ZEBRA-CARRIER-TESTNAME"], mode: "merge", leaks: [], filesScanned: 952 }).status).toBe("PASS");
+    expect(resolveIdentityLeakOutcome({ terms: ["ZEBRA-CARRIER-TESTNAME"], ci: true, requireDenylist: true, leaks: [], filesScanned: 952 }).code).toBe(0);
   });
 });

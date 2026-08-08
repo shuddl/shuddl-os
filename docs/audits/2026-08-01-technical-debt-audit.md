@@ -370,6 +370,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 175 | §727 | **§728** | **DEFECT (live, confirmed by planting): `packages/design` silently dropped every `.test.ts`.** Its vitest `include` read `test/**/*.test.tsx` — `.tsx` only — so a planted `expect(1).toBe(2)` left `vitest run` at *Test Files 2 passed (2)*. §727's hole one layer down, and the layer §709 stops one line short of (package boundary gated, file boundary not). Widened + **probed inside the addition** (§714): the same file now reds. Gate scoped to the **five** configs that narrow the default; six inherit it and cannot orphan. **A naive comment-stripper corrupted the first measurement** — the `/**` `/` inside `src/**/*.test.ts` IS a block-comment token — reporting map as unnarrowed when it declares three patterns. 3 mutations incl. a fail-closed `exclude` throw |
 | 176 | §728 | **§729** | **THE THIRD RUNNER — two orphan sets TypeScript never checked, hiding two real bugs.** (A) `tools/live/render-email.ts` was `exclude`d from the tools config while its own `tsconfig.render.json` is a tsx-RUNTIME config **no script runs** → a planted type error left `pnpm typecheck` at **exit 0**; including it surfaced a real defect (a non-`Error` throw logged `PAGEERROR: undefined`, losing the diagnostic in the tool that produces COMMITTED evidence). (B) **nine** package-level `vite/vitest.config.ts` unchecked — `design` and `map` already included theirs, nine siblings never did. B surfaced **two** defects in `path-sequencer` (all five worker pools): `shard()`'s required 3-arg signature vs vitest 4's 1-arg → `count` undefined → `slice(NaN,NaN)` → **every shard green having run nothing**; and a v4 TYPE contract on v3 runners, the residue §28 recorded as harmless. **No new gate, deliberately** — the honest check doubles `test:tools`; the mechanism is removed instead (no tsconfig `exclude` names a source file) |
 | 177 | §729 | **§730** | **THE FOURTH RUNNER — the one SHIPPED file with zero static analysis.** ESLint's own API: 711 tracked lintable files, **6 ignored** — four `.claude/skills` snippets (documented), one merkle vector, and `apps/driver/public/sw.js`, the driver's offline shell (REQ-061). Not linted (`apps/*/public/**` was the only ignores entry with **no stated reason**) and not typechecked (`.js`, §729). §717 fixed a REAL defect in this exact file and left it as unanalysable as it found it. **Removing the ignore alone would have been a FALSE fix** — measured: three planted violations, **zero findings**, because only the TS-targeted config is spread. Corpus + rules landed together; 4/4 probes now red incl. `cahces.open` → `no-undef`. Gate asks ESLint, 2 mutations; the second (narrow the `files` glob) leaves *not-ignored* GREEN while all rules red — the false-assurance path. **Limit stated: floating promises need type-aware lint, unavailable for `.js` — §717's own class is NOT closed** |
+| 178 | §730 | **§731** | **DEFECT: the identity-leak gate emits `PASS, executed:true, assertions:0` over a scan that read NOTHING.** `trackedFiles()` listed from `repoRoot()` but read with `readFileSync(f)` — resolved against `process.cwd()` — under a bare `catch`. From `tools/checks/`: all 952 reads throw, all swallowed, gate says PASS. From root, same denylist: FAIL / 952 files / 569 leaks. **This is §489's defect in the half it did not touch** (it fixed the LISTING and left the READ three lines below), and §489's own note — *the scope defect would arrive with the secret, i.e. exactly when the gate started mattering* — applied verbatim. **BLOCKED is what hid it**: a gate that never runs emits no counts, so `assertions: 0` never appeared anywhere to look wrong. Fixed 3 ways: root-joined reads · unreadable files are a gap not a skip (rule 10) · a zero-file floor in **both** dispositions, FAIL not BLOCKED. `filesScanned` made REQUIRED so the compiler enumerated all 5 callers |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -41281,3 +41282,107 @@ honest options are to convert the service worker to TypeScript with a build step
   the fix is to extend the list, not to relax the rule.
 - The service worker becomes TypeScript → the type-aware limit above dissolves, and this whole block should be
   deleted in favour of the normal `apps/*/src` rules rather than left as a second, weaker copy.
+
+## §731 — PHASE GATE: the gate that reports PASS over an empty scan, and why nobody could see it
+
+The §727–§730 lineage covered the four external runners. The fifth surface is the repo's **own** scanners, and
+the one worth opening first is the one that never reports: `identity-leak` is **BLOCKED** on an absent secret,
+so its corpus has never been examined by anything — including this audit, for 730 phases.
+
+It guards a rule CLAUDE.md states without qualification: *"no tenant/person/customer/incumbent-vendor name in
+**any** repo artifact"* (REQ-167).
+
+### The defect
+
+`trackedFiles()` listed the corpus from the repo root and then read it from **`process.cwd()`**:
+
+```ts
+const out = execSync("git ls-files", { cwd: repoRoot(), … });   // repo-relative paths
+for (const f of out) {
+  try { map.set(f, readFileSync(f, "utf8")); }                  // resolved against process.cwd()
+  catch { /* binary or unreadable — skip */ }                   // swallows every failure
+}
+```
+
+Run from anywhere but the root, every read throws, the bare `catch` swallows all 952 of them, and the gate
+emits:
+
+```
+status: PASS · executed: true · assertions: 0 · "0 files scanned against 1 denylist term(s)"
+```
+
+**A positive verdict, explicitly marked executed, over a scan that read nothing.** Measured against the same
+denylist that produces `FAIL, 952 files, 569 leaks` from the root.
+
+### This is §489's defect, reincarnated in the half it did not touch
+
+§489 fixed exactly this scope bug one layer up — a bare `git ls-files` meant *"any artifact under the caller's
+directory"* — and recorded, correctly, that it was *"masked today only because the denylist is a secret and
+the lint SKIPS without it — the scope defect would have arrived with the secret, i.e. exactly when the gate
+started mattering."*
+
+Every word of that applies to the read path, which §489 left alone. The fix repaired the **listing** and the
+**reading** kept the same bug, in the same function, three lines below. That is
+`check-what-a-discipline-stops-one-line-short-of` at its shortest range yet — not an adjacent file, not a
+sibling package: the next statement.
+
+**And BLOCKED is what hid it.** A gate that never runs produces no counts, so `assertions: 0` never appeared
+in any log to look wrong. The status that means *"we could not check this"* also means *"nobody audits this,"*
+which is why a blocked gate deserves more scrutiny than a green one, not less.
+
+### Three fixes, because the defect had three parts
+
+**1 — Read from the root.** `readFileSync(join(root, f), "utf8")`. This is the actual repair: the scan is now
+correct from any working directory, verified from three (`/`, `tools/checks`, `apps/driver/src`) all producing
+identical `FAIL · 952 · 569 leaks`.
+
+**2 — A tracked artifact that cannot be read is a gap, never a skip.** The old comment justified the swallow
+as *"binary or unreadable — vendored fixture bytes are hash-pinned"*. But `readFileSync(_, "utf8")` **does not
+throw on binary** — it decodes lossily — so the catch never fired for that reason at all. A throw here means a
+tracked file genuinely could not be inspected, and dropping it silently is the shape rule 10 forbids for
+migrations (*"any legacy column that doesn't map raises a gap row — never disappears"*). Now collected and
+reported as a FAIL. Measured today: **0 of 952**, so the change is dormant and safe.
+
+**3 — A non-vacuity floor, in BOTH dispositions.** Denylist present + zero files scanned is a **FAIL**, and
+deliberately not BLOCKED: BLOCKED means a missing prerequisite, and the denylist is present — this is a
+malfunction, and reporting the two identically is how a broken gate hides among legitimately-held ones.
+
+The floor went into `identityGateResult` **and** `resolveIdentityLeakOutcome`. Both are reachable — the legacy
+one whenever no `--mode` is passed — and a floor in only one leaves the other able to green an empty scan.
+That is §705's rule (*a subset that passes is not the gate*) applied to two branches of one file.
+
+### `filesScanned` is required, not optional
+
+Adding it as optional-with-a-default would have compiled instantly and left every existing caller unexamined —
+and the default would have been *"assume the scan was fine"*, which is the fail-OPEN shape
+`fail-closed-is-about-the-fallback-value` was written about. Made **required** instead: the compiler then
+enumerated all five call sites, each was given a real number, and three new tests pin the floor from both
+directions (fires on zero, does not fire on 952).
+
+### Measured
+
+| invocation | before | after |
+|---|---|---|
+| cwd = repo root | FAIL · 952 files · 569 leaks | FAIL · 952 · 569 |
+| cwd = `tools/checks` | **PASS · 0 files** | FAIL · 952 · 569 |
+| cwd = `apps/driver/src` | (same PASS · 0) | FAIL · 952 · 569 |
+| clean denylist, repo root | PASS · 952 | **PASS · 952** |
+
+The last row is the one that keeps the fix honest: the PASS path is still reachable and still carries a real
+assertion count. A repair that turned every run into a FAIL would satisfy every other row on this table.
+
+### Exit state
+
+`test:tools` **1010** (+3); lint 0; typecheck 0. `verify:merge` unchanged in verdict — `identity-leak` remains
+**BLOCKED** (the denylist is owner-held), which is exactly the point: this phase repaired a gate that cannot
+currently demonstrate its own repair through the merge board. The demonstration is the table above.
+
+**Reopen triggers**
+- The `IDENTITY_DENYLIST` secret lands → this gate goes live for the first time. Read the `assertions` count on
+  its first PASS: it must be the tracked-file count (952 today), and a PASS with a materially smaller number
+  means the corpus shrank, not that the repo got cleaner.
+- Any other gate reads files with a path from one root and a `cwd` from another → same defect, same shape.
+  `repoRoot()` exists precisely for this; a bare relative `readFileSync` next to a rooted `git ls-files` is
+  the signature.
+- A tracked file becomes genuinely unreadable → the new FAIL fires. That is intended; fix the file or remove
+  it from the index rather than restoring the swallow.

@@ -1,5 +1,6 @@
 import { execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 // V1 remediation Task 3 (REQ-288): an ABSENT denylist is a missing prerequisite — advisory (PENDING)
 // locally, non-promotable (BLOCKED) under merge/release; an actual leak is a FAIL. run-gate consumes the
 // structured GateResult, never this file's prose.
@@ -47,8 +48,11 @@ export function resolveIdentityLeakOutcome(input: {
   ci: boolean;
   requireDenylist: boolean;
   leaks: Leak[];
+  /** §731 — REQUIRED, not optional. An optional field defaulting to "fine" is the fail-OPEN shape this
+   * repo has already been burned by; the caller must state how many files it actually read. */
+  filesScanned: number;
 }): IdentityLeakOutcome {
-  const { terms, ci, requireDenylist, leaks } = input;
+  const { terms, ci, requireDenylist, leaks, filesScanned } = input;
   if (!terms) {
     if (ci || requireDenylist) {
       return {
@@ -67,6 +71,18 @@ export function resolveIdentityLeakOutcome(input: {
         "REQ-167: no denylist available (set IDENTITY_DENYLIST secret or .identity-denylist.local). " +
         "Lint SKIPPED — wire the secret before external contributions. " +
         "NOTE: this gate fails CLOSED in CI (or when REQUIRE_DENYLIST is set); the skip is local-dev only.",
+    };
+  }
+  // §731 — the same non-vacuity floor as the GateResult path. Both dispositions are reachable (the legacy
+  // one whenever no `--mode` is passed), so a floor in only one of them leaves the other able to green an
+  // empty scan — §705's rule that a subset which passes is not the gate.
+  if (filesScanned === 0) {
+    return {
+      code: 1,
+      level: "fail",
+      message:
+        `FAIL REQ-167: denylist present (${terms.length} term(s)) but ZERO files were scanned. The corpus ` +
+        "query or the file reads failed — this is a broken gate reporting on nothing, not a clean repo.",
     };
   }
   if (leaks.length > 0) {
@@ -88,6 +104,20 @@ export function identityGateResult(input: { terms: string[] | null; mode: GateMo
     const { status } = unavailableStatus(mode);
     return { gate: "identity-leak", status, executed: false, assertions: 0, detail: "no denylist (set IDENTITY_DENYLIST secret or .identity-denylist.local)" };
   }
+  // §731 — A SCAN THAT READ NOTHING IS NOT A CLEAN SCAN. With a denylist present, zero files means the
+  // corpus query or the reads broke, and `leaks.length === 0` below would otherwise emit
+  // `PASS, executed: true, assertions: 0` — the exact output measured when this ran from a subdirectory.
+  // FAIL, not BLOCKED: BLOCKED means a missing prerequisite, and the denylist is present. This is a
+  // malfunction, and the two must not be reported the same way.
+  if (filesScanned === 0) {
+    return {
+      gate: "identity-leak",
+      status: "FAIL",
+      executed: true,
+      assertions: 0,
+      detail: `denylist present (${terms.length} term(s)) but ZERO files were scanned — the corpus query or the file reads failed. This is a broken gate reporting on nothing, not a clean repo`,
+    };
+  }
   if (leaks.length > 0) {
     return { gate: "identity-leak", status: "FAIL", executed: true, assertions: filesScanned, detail: `${leaks.length} identity leak(s): ${leaks.map((l) => `${l.file}:${l.masked}`).join(", ")}` };
   }
@@ -106,28 +136,52 @@ function loadDenylist(): string[] | null {
   return null;
 }
 
-function trackedFiles(): Map<string, string> {
+function trackedFiles(): { files: Map<string, string>; unreadable: string[] } {
   // §489 — REPO-ROOTED. REQ-167 forbids an identity in ANY repo artifact, and with a bare
   // `git ls-files` the word "any" silently meant "any under the caller's directory". Masked today
   // only because the denylist is a secret and the lint SKIPS without it — the scope defect would
   // have arrived with the secret, i.e. exactly when the gate started mattering.
-  const out = execSync("git ls-files", { cwd: repoRoot(), encoding: "utf8" }).split("\n").filter(Boolean);
+  //
+  // §731 — AND REPO-ROOTED ON THE READ TOO. §489 fixed the LISTING and left the READ resolving `f` against
+  // `process.cwd()`. MEASURED from `tools/checks/`: every read threw, the bare catch swallowed all 952 of
+  // them, and the gate emitted `status: PASS, executed: true, assertions: 0` — a positive verdict over an
+  // empty scan, in the gate that enforces "no identity in ANY repo artifact". §489's own note said the scope
+  // defect "would have arrived with the secret, i.e. exactly when the gate started mattering"; that was true
+  // of the half it fixed and equally true of this half.
+  const root = repoRoot();
+  const out = execSync("git ls-files", { cwd: root, encoding: "utf8" }).split("\n").filter(Boolean);
   const map = new Map<string, string>();
+  const unreadable: string[] = [];
   for (const f of out) {
     try {
-      map.set(f, readFileSync(f, "utf8"));
-    } catch {
-      /* binary or unreadable — vendored fixture bytes are hash-pinned, skip */
+      map.set(f, readFileSync(join(root, f), "utf8"));
+    } catch (err) {
+      // NOT a silent skip. `readFileSync(_, "utf8")` does NOT throw on binary — it decodes lossily — so a
+      // throw here means a tracked artifact genuinely could not be inspected, and dropping it quietly is the
+      // shape rule 10 forbids for migrations ("any legacy column that doesn't map raises a gap row — never
+      // disappears"). Measured today: 0 of 952. The caller turns a non-empty list into a FAIL.
+      unreadable.push(`${f} (${(err as NodeJS.ErrnoException).code ?? "unreadable"})`);
     }
   }
-  return map;
+  return { files: map, unreadable };
 }
 
 function main(): void {
   const terms = loadDenylist();
   const argv = process.argv.slice(2);
-  const files = terms ? trackedFiles() : new Map<string, string>();
+  const scan = terms ? trackedFiles() : { files: new Map<string, string>(), unreadable: [] as string[] };
+  const files = scan.files;
   const leaks = terms ? scanForIdentityLeaks(terms, files) : [];
+  // §731 — a tracked artifact the lint could not read is a gap, never a skip (rule 10). Reported before
+  // any disposition, because "we could not inspect N files" invalidates both a PASS and a clean FAIL.
+  if (scan.unreadable.length > 0) {
+    console.error(
+      `FAIL REQ-167: ${scan.unreadable.length} tracked file(s) could not be read, so the identity lint cannot ` +
+        `certify this repo. A UTF-8 read does not throw on binary, so these are genuinely inaccessible:\n  ` +
+        scan.unreadable.join("\n  "),
+    );
+    process.exit(1);
+  }
 
   // NEW (REQ-288): explicit --mode local|merge|release path emits a structured GateResult so run-gate
   // records BLOCKED (not a masquerading green) for an absent denylist. Callers that pass no --mode keep
@@ -143,7 +197,7 @@ function main(): void {
 
   const ci = envFlag(process.env["CI"]);
   const requireDenylist = envFlag(process.env["REQUIRE_DENYLIST"]);
-  const outcome = resolveIdentityLeakOutcome({ terms, ci, requireDenylist, leaks });
+  const outcome = resolveIdentityLeakOutcome({ terms, ci, requireDenylist, leaks, filesScanned: files.size });
   const sink = outcome.level === "ok" ? console.log : outcome.level === "warn" ? console.warn : console.error;
   sink(outcome.message);
   process.exit(outcome.code);
