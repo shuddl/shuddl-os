@@ -258,6 +258,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 63 | §614 | **§615** | **A SOURCE-OF-TRUTH DOC DESCRIBED A REPO THAT WOULD FAIL ITS OWN CI.** genesis/14 §07 said any migration touching `events` beyond CREATE/INDEX fails CI; the lint permits a NULLABLE ADD COLUMN (owner-approved WP-05, faithful to genesis/10's actual I3 text) and a migration has SHIPPED under it since WP-05. Amended + lockstep-gated; the mutations show the LINT side was already pinned and the DOC side was not |
 | 64 | §615 | **§616** | genesis/14 §01 calls itself the **exact** layout and named 11 of 18 modules — 7 unlisted, 0 phantom. All seven are REGISTERED scope (3–22 REQ rows apiece, traceability clean), so a RECORD defect not a scope one; a reader taking "exact" literally would question `packages/agents`, the only sanctioned home for LLM calls. Amended + both-direction gate. My first parse reported 0/18 — a harness bug failing toward alarm |
 | 65 | §616 | **§617** | genesis/14 §02's naming schemes all CONFORM (36/36 — and conformance is a different property from binding-parity's agreement). But `shuddl-tiles` is named in the spec and declared NOWHERE: shipped Command renders against a third-party public host, the code calls the self-hosted bucket "a deploy line item", and REQ-075 counts as built-annotated because an annotation exists — one that says in words the thing is not built |
+| 66 | §617 | **§618** | THE GENERALIZATION THAT FAILED. A semantic scan for deferral language near citations gave 51/171 hits; the 3 most explicit were read and ALL were false positives — and it could not have found REQ-075 at all, because the admission lives in a file citing that row ZERO times. The signal was STRUCTURAL: a resource named in the environment contract and declared in no config. Gated; M115 proves it finds §617 unaided |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -33926,3 +33927,78 @@ the owner. The measurement is recorded so the decision is a decision rather than
   as this one. Nothing systematically detects that; it needs a reader, which is the honest limit here.
 - `DEMO_TILE_URL` moves out of `apps/command` → the shipped-surface half of this finding expires, leaving only
   the unprovisioned bucket.
+
+---
+
+## §618 — PHASE GATE: the generalization that failed, and the one that worked
+
+**Subject.** §617's reopen trigger: *"another row satisfied by an annotation that reads 'deploy line item' —
+nothing systematically detects that."* This phase tried to build that detector, failed, and learned why — which
+turned out to be the useful part.
+
+### The semantic heuristic, and its two failures
+
+The obvious generalization: for every register row classified `built-annotated`, scan the source context around
+its citations for deferral language — *deploy line item, not built, deferred, stub, placeholder, vNEXT*.
+
+**51 hits from 171 rows.** A 30% rate on a defect class discovered once is not a detector; it is noise wearing a
+detector's clothes. The three most explicit (`NOT built`) were read in full, and **all three were false
+positives** — in each, the deferral referred to something other than the cited row:
+
+| Row | What the comment actually says |
+|---|---|
+| REQ-048 | *"approval.requested **satisfies** REQ-048/REQ-030"* — the unbuilt thing is a read-model projection owned by WP-10 |
+| REQ-154 | the citation is the secrets rule; the unbuilt thing is the live EDI transport adapter |
+| REQ-203 | the cert flow **is** built — a `cert_status` column, a withhold gate in the translator inbound path, dedicated tests. Unbuilt: the adapter again |
+
+That is §"semantic false positives need a marker" exactly: filters fix mechanical noise, never semantic.
+
+**The second failure is the decisive one.** The heuristic could not have found REQ-075 at all. The admission —
+*"self-hosted Protomaps vectors … are a deploy line item"* — lives in `packages/map/src/demo.ts`, a file
+containing **zero citations of REQ-075**. A citation-context scan cannot see a confession written where the row
+is not cited. It flagged REQ-075 only incidentally, through an unrelated `placeholder` in a different file.
+
+So the detector built to generalize a finding would have missed the finding.
+
+### What actually carried the signal
+
+Not semantics. **Structure**: a resource named in the environment contract that appears in no config. No
+English to interpret, no false positives available — a name is either declared or it is not.
+
+`tools/checks/named-resources.test.ts` compares every literal `shuddl-*` name in genesis/14 §02 against every
+name any committed `wrangler.toml` declares, with a `PENDING` map for the genuinely-unprovisioned carrying what
+each waits on. Templates (`{env}`, `{slug}`) are excluded deliberately — those are patterns, and §617 already
+measured conformance to them (36/36).
+
+| | Mutation | Result |
+|---|---|---|
+| M115 | the `PENDING` entry removed | RED — **the gate finds §617's orphan unaided** |
+| M116 | `PENDING` excuses a resource that IS declared | RED — the stale-hold check |
+| M117 | the §02 parse broken | RED — the non-vacuity floor |
+
+M115 is the one that matters: it proves this file would have produced §617's finding without a human following
+a thread through the map package.
+
+The third test exists because of §"record holds with expiry triggers" — a hold that cannot notice its own reason
+expiring becomes a permanent exemption. Binding the bucket must **delete** the entry, not keep excusing it.
+
+### The honest limit
+
+This gate does not generalize §617; it catches §617's *specific shape* reliably. Nothing mechanical reads
+"this is a deploy line item" and knows which row it indicts. Recording that boundary is more useful than a
+51-hit scan that dresses noise as coverage — and the register's own status vocabulary already has the right
+answer (`F0-DEPLOY-NOTE`), which is why §617 left that decision with the owner rather than inventing a detector
+to make it automatically.
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged. `test:tools` at 930 passed with exactly the 3 REQ-289 failures;
+typecheck 0; eslint clean.
+
+**Reopen triggers**
+- §02 gains a resource whose name is a template rather than a literal → it is excluded by design and unguarded;
+  the conformance measurement in §617 covers patterns, and nothing joins the two.
+- A resource is named in a genesis doc **other than** §02 → out of scope here. §02 was chosen because it is the
+  environment contract; widening to every doc would re-introduce the false-positive problem this phase rejected.
+- `PENDING` grows past one or two entries → it has stopped being a hold list and become a second, quieter
+  backlog.
