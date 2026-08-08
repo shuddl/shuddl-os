@@ -12,13 +12,22 @@ shuddl/
   apps/portal/       # portal + public status pages (SSR-lite ok)
   workers/api/       # Hono: /v1 REST + /mcp + inbound email + webhooks
   workers/agents/    # queue consumers (one module per agent)
+  workers/billing/   # Stripe webhooks + metering (added post-WP-01; see the note below)
+  workers/mcp/       # the MCP surface, split out of workers/api (demo 4: a booking placed from Claude)
+  workers/translator/# EDI/partner ingest + outbound mapping
   packages/ledger/   # event append, hash chain, lenses, money-lines — NO LLM imports (REQ-024, lint-enforced)
   packages/rater/    # ported rating engine (manifest.private M-01) + config loaders (48 tests + 504-sweep travel with it)
   packages/contracts/# Zod schemas shared FE/BE — the single type boundary
   packages/design/   # tokens, components, map style (doc 07)
   packages/adapters/ # legacy ingest/project (171-col, Rate Profile CSV, EDI), QuickBooks journal
+  packages/agents/   # the 13 agents — the ONLY place LLM calls may live (CLAUDE.md, REQ-024)
+  packages/driver-core/ # offline queue + sync engine shared by the driver PWA
+  packages/edi/      # X12 parse/emit primitives used by workers/translator
+  packages/map/      # MapLibre canvas + Protomaps style, consumed by apps/command
   fixtures/          # vendored per fixtures/README.md, hash-pinned
 ```
+**Amended 2026-08-07 (audit §616).** The seven entries added above already existed and are REGISTERED SCOPE — each cites between 3 and 22 register rows and `check:traceability` reports no orphans in either direction — but this block, which calls itself *exact*, named 11 of the 18 modules in the tree. Nothing stated was missing; the layout had drifted by GROWTH only. A reader taking "exact" literally would have questioned seven legitimate modules, `packages/agents` among them — the one place CLAUDE.md permits an LLM call. `tools/checks/monorepo-layout.test.ts` now compares this block against `git ls-files` in both directions, so the next module either appears here or fails the merge.
+
 Package manager: pnpm workspaces. TypeScript strict everywhere; `any` is a lint error.
 
 ## (02) ENVIRONMENTS & NAMING

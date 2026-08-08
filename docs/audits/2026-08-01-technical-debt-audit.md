@@ -256,6 +256,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 61 | §612 | **§613** | genesis/14 §04 "every endpoint, no exceptions" traced. The convention holds BY CONSTRUCTION — two `app.use("/v1/*", …)` lines give every mutation auth + idempotency free — and 5 of 24 mutations sit outside /v1, all deliberate and separately guarded (clean negative). The debt: nothing made the SIXTH a decision, and deleting either line would strip both from every route silently. Pinned + 3 mutations |
 | 62 | §613 | **§614** | **DEFECT — deleting a cross-tenant isolation proof was SILENT.** genesis/14 §07 lists "isolation suite" as a PR gate and CLAUDE.md rule 8 calls a cross-tenant read a build failure, but no gate is named `isolation` and nobody had written down which six files ARE the suite; a staged deletion of 8 PLG isolation cases left test:tools at its exact baseline. Roster + 149-case floor, both routes mutation-proved |
 | 63 | §614 | **§615** | **A SOURCE-OF-TRUTH DOC DESCRIBED A REPO THAT WOULD FAIL ITS OWN CI.** genesis/14 §07 said any migration touching `events` beyond CREATE/INDEX fails CI; the lint permits a NULLABLE ADD COLUMN (owner-approved WP-05, faithful to genesis/10's actual I3 text) and a migration has SHIPPED under it since WP-05. Amended + lockstep-gated; the mutations show the LINT side was already pinned and the DOC side was not |
+| 64 | §615 | **§616** | genesis/14 §01 calls itself the **exact** layout and named 11 of 18 modules — 7 unlisted, 0 phantom. All seven are REGISTERED scope (3–22 REQ rows apiece, traceability clean), so a RECORD defect not a scope one; a reader taking "exact" literally would question `packages/agents`, the only sanctioned home for LLM calls. Amended + both-direction gate. My first parse reported 0/18 — a harness bug failing toward alarm |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -33776,3 +33777,76 @@ eslint clean; `check:invariants` green with the shipped ALTER migration in place
   regex cannot see an omission it was never told about; the honest limit of this shape.
 - genesis/10's I3 text changes → the whole argument above re-derives from it, since it is what makes the
   carve-out faithful rather than a weakening.
+
+---
+
+## §616 — PHASE GATE: the layout that calls itself "exact" named 11 of 18 modules
+
+**Subject.** genesis/14 §01 is titled *"MONOREPO LAYOUT (WP-01 scaffold, **exact**)"*. That word is a
+falsifiable claim about the tree, and §611's method — a document's stated value against the computed one —
+applies to structure as readily as to numbers.
+
+### The probe lied first, in the alarming direction
+
+The first comparison reported **0 documented modules and 18 undocumented**, which reads as a catastrophic
+finding. It was a wrong indentation assumption in my own parse. §"keep a fixed point before scaling a probe":
+harness bugs fail *toward* alarming results, because producing nothing looks exactly like finding nothing.
+
+Re-parsed: **11 documented, 18 actual, 7 unlisted, 0 phantom.**
+
+### What the drift was, and what it was not
+
+| | |
+|---|---|
+| in the tree, unlisted | `packages/agents`, `packages/driver-core`, `packages/edi`, `packages/map`, `workers/billing`, `workers/mcp`, `workers/translator` |
+| in the doc, missing from the tree | none |
+
+The drift was **growth only** — and every one of the seven is **registered scope**: each cites between 3 and 22
+register rows, and `check:traceability` reports no orphans in either direction. Only `packages/agents` appears
+in any governing document by path, and that is CLAUDE.md naming it as the one place an LLM call may live.
+
+So this was a **record defect, not a scope defect** — a distinction worth stating precisely, because the two
+have opposite remedies. Nothing here was built without a row. What happened is that the document describing the
+repo stopped describing it, and a reader taking *"exact"* literally would have questioned seven legitimate
+modules — including the only sanctioned home for LLM calls.
+
+### The fix
+
+§01 now lists all eighteen, each with what it is, plus a dated amendment recording that the seven pre-existed
+and why the block was wrong. And `tools/checks/monorepo-layout.test.ts` compares the block against
+`git ls-files` in **both** directions, because each is a different failure:
+
+- *undocumented* — the document silently stops describing the repo (what this phase found);
+- *phantom* — the document names a module that is gone, sending a reader hunting for deleted code.
+
+| | Mutation | Result |
+|---|---|---|
+| M112 | a real module dropped from the block | RED — undocumented direction |
+| M113 | the block names a module that does not exist | RED — phantom direction |
+| M114 | the heading reworded so the block cannot be found | RED — **the parse floor**, not a false pass |
+
+M114 matters most: it is the failure my own probe committed, now a test rather than a lesson.
+
+### The gate caught my own edit, for the second phase running
+
+`test:tools` came back at 4 rather than 3, on `section-refs`: the §01 amendment cites "audit §616" before §616
+existed. §615 hit the identical thing. Twice is a pattern, not an accident — **amending a genesis doc before
+writing the audit section it cites always opens that window**. The section is written first from here.
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged. `test:tools` back to exactly the 3 REQ-289 failures; typecheck 0;
+eslint clean.
+
+Five governing documents or sections have now been audited by the same method — CLAUDE.md's budgets, CLAUDE.md's
+prohibitions, genesis/14 §04, §07's gate chain, §07's migration law, and §01's layout. The finding rate has not
+dropped: every one carried at least one claim that had drifted from the mechanism, and in four of the six the
+**document** was the stale side.
+
+**Reopen triggers**
+- A new module is added → the gate fails until §01 records it, which is the forcing function, not an obstacle.
+- A module is renamed → both directions fire at once (phantom + undocumented), which is the correct and
+  loudest signal.
+- §01 gains sub-package nesting (`packages/foo/bar`) → the parse takes only the first two path segments and
+  would collapse them silently. The floor catches total collapse, not a partial one — §609's selector problem,
+  in this gate's own scan.
