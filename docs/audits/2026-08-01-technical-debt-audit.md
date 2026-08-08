@@ -317,6 +317,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 122 | §674 | **§675** | **STOPPING POINT — the uneven-discipline vein is worked out.** Non-vacuity floors: 36 scanning gate files, **0 gaps** (all four no-signal candidates survive reading; the regex false-negatived two). Trilogy total: 2 defects + 1 prevented from 100+ candidates, and §674's best output was a fix NOT made — §296's spent-line signal. Gate **re-measured at `b97687b`, not restated: 26 gates, 21 PASS · 0 FAIL · 5 BLOCKED.** §663–§675 = 12 phases, 17 commits, 6 defects closed; contracts 291→304, ledger 634→661, tools 949→958 |
 | 123 | §675 | **§676** | **DEFECT ×2 — a law proved once had four members, two unguarded.** §310 proved the ten laws with ONE mutation each; §466 says that says nothing about members. eng.3: nine gated transitions, **9/9 fire** (§310 understated it). eng.10: the mirror's four quarantine reasons — deleting each call so the row is skipped in silence — **`bad_cursor` and `bad_value` left adapters 38/38 AND agents 122/122 green.** A silent `continue` produces zero of everything, identical to an empty feed; `bad_value` is worse, applying `NaN` as a mirrored invoice total. `bad_value` nearly dismissed as defense-in-depth — disabling BOTH guards proved it real |
 | 124 | §676 | **§677** | **Clean negative + the discriminator stated.** eng.4 has **seven** preconditions where §310 proved one. Five fire; `typeof` and `!isFinite` fire **nothing** — and are **redundant, not gaps**: removing both keeps 157/157 because `!Number.isInteger` rejects non-numbers/NaN/Infinity alone, and removing that third fails 9. Opposite answer to §676's `bad_value` from an identical-looking green. **Rule: disable the siblings together and ask what happened to the BEHAVIOUR, not to the tests.** Harness bug: `IFS='\|'` split patterns containing `\|\|`, reporting 57 tests where the package has 157 |
+| 125 | §677 | **§678** | **Law-member sweep COMPLETE — 53 members, 2 defects.** L7's 21 refusals in `transition-gates.ts`: **21/21 fire** (`void new …` neuter). Full surface: eng.2 12/12 · eng.3 9/9 · eng.4 5 fire + 2 redundant · eng.10 **2 defects** · L7 21/21. §310's ten one-mutation proofs were sound; only eng.10 hid members. **The instrument was the finding:** four consecutive attempts produced readable-but-wrong output (shell `\|\|` split · per-file line vs summary · stdout-only when vitest writes stderr · interleaved sequential runs). Fixed by reading the EXIT CODE + asserting a fixed point. When the question is binary, use the binary signal |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -37735,3 +37736,61 @@ byte-identical. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED** (§675 at `b9768
 - **L7 (gate every transition) is the last law with plural members still proved only at class level** — its
   evidence-collection half overlaps eng.3's nine gates, which are clean, but the overlap has not been
   measured.
+
+## §678 — PHASE GATE: the law-member sweep is complete, and the instrument was the lesson
+
+**Subject.** §677's trigger named **L7 (gate every transition)** as the last law proved only at class level.
+§310 covered it with one mutation (4 tests). `transition-gates.ts` contains **21 distinct refusals**.
+
+### L7 — 21 members, 21 defended
+
+Each `throw new GateError(…)` / `GateValidationError(…)` was turned into `void new …(…)` — valid syntax, a
+no-op, and it works for multi-line throws. Every one of the 21 takes `packages/ledger` from exit 0 to exit 1:
+`unknown_facility`, `slot_not_in_capacity`, `window_mismatch`, `outside_hours`, `rule_violation`,
+`leg_not_materialized`, `bad_reschedule_ref`, `slot_taken`, `hold`, and twelve unlabelled sites.
+
+### The complete multi-member law surface
+
+| law | members | result |
+|---|---|---|
+| eng.2 append-only | 12 triggers | **12/12** (§670) |
+| eng.3 gates server-side | 9 gated transitions | **9/9** (§676) |
+| eng.4 no price on air | 7 preconditions | 5 fire, **2 provably redundant** (§677) |
+| eng.10 no silent drops | 3 gap reasons + 4 quarantine reasons | **2 defects** — `bad_cursor`, `bad_value` (§676) |
+| L7 gate every transition | 21 refusals | **21/21** (this section) |
+
+**53 members measured; two defects, both in eng.10.** §310's ten one-mutation proofs were sound, and only
+one of the five plural laws had members hiding behind its class-level green.
+
+### The instrument was the finding
+
+Four consecutive attempts at this sweep produced *readable, wrong* output before one produced an answer:
+
+1. `IFS='|' read` split patterns that themselves contain `||` (§677) — reported 57 tests in a 157-test package.
+2. A summary regex matched a **per-file** line instead of the run summary — reported `69` (the file count) as
+   the test count.
+3. Capturing only `stdout` when vitest writes the summary to `stderr` — reported `NO SUMMARY`.
+4. Sequential runs interleaving output so the regex found a stale line — reported `no tests` for eleven
+   consecutive sites that were all, in fact, running and failing correctly.
+
+Every one of those looked like a result. **The question was binary — "does removing this refusal fail the
+suite?" — and it was being answered by parsing rich prose.** The fix was to read the **exit code**, plus a
+**fixed point**: assert the unmutated tree exits 0 before trusting any mutated run. That turned 21 ambiguous
+readings into 21 unambiguous ones in a single pass.
+
+**Rule: when the question is binary, use the binary signal.** A parser over human-facing output is a
+measurement instrument, and this audit has now had four of its five most misleading results come from one.
+
+### Exit state
+
+No code change — L7 had nothing to fix. `packages/ledger` 661/661; `transition-gates.ts` restored
+byte-identical. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED** (§675 at `b97687b`).
+
+**Reopen triggers**
+- A 22nd refusal is added to `transition-gates.ts` → it starts unmeasured. The sweep above was by hand and
+  its result is a snapshot; nothing counts refusals against a roster.
+- A gate moves out of `transition-gates.ts` → the file is the corpus this sweep defined, and a refusal living
+  elsewhere was never in scope.
+- **The multi-member law surface is now closed.** The remaining laws (eng.5 interline, eng.8 tenant
+  isolation, L2, L3, L10) are single-mechanism — one comparison, one key derivation — where class and member
+  coincide, so §310's proofs are already member-level.
