@@ -359,6 +359,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 164 | §716 | **§717** | **DEFECT — the driver's offline cache write could be dropped (REQ-061).** `eslint.config.mjs:10` ignores `apps/*/public/**`, where the hand-rolled service worker lives. Both `caches.open(CACHE).then(c => c.put(req, copy))` calls were **unretained** — a SW may be killed once it has responded, so the write that populates the cache can vanish. `SHELL` precaches only 4 entries; **the hashed bundles are cached on first fetch**, i.e. by the dropped write — so an offline open serves `/index.html` whose `<script>` misses. Fixed with `event.waitUntil`; e2e 6/6. Three phases hardened the promise rule *around* the one tree it cannot see |
 | 165 | §717 | **§718** | **Ignored-tree class closed at one instance.** Swept all **12** global ignore patterns for tracked executables: nine hold none; `apps/*/public/**` held `sw.js` (**§717's defect**); `fixtures/**` holds `ref6962.mjs` and `.claude/**` four skill references. `ref6962.mjs` looked like a finding — an unlinted generator feeding the vectors the **anchor implementation is verified against** — but its header states the design: *a DIFFERENT algorithm from merkle.ts*, re-derived a third way by hand, **"three independent derivations agreeing is the anti-circularity guard"**, `status: vendored` with a pinned sha256. Shipped code vs test instrument — **only reading separates them** |
 | 166 | §718 | **§719** | **STOPPING POINT — re-derived at `aa4487f` after three gate-scope changes: 21 PASS · 0 FAIL · 5 BLOCKED, exit 2.** §706–§718 = 13 phases, **4 defects**, each reached by applying the previous phase's lesson to a region it had not covered — §704's pivot → §705 (PWAs unlinted) → §709 (208 test files) → §716 (my own exclusion) → **§717 (the driver's offline cache write, REQ-061)**. Four self-corrections, **every one found by measuring a claim this audit made about itself**. Session: 56 phases · 61 commits · 17 defect rows |
+| 167 | §719 | **§720** | **REQ-061's offline chain walked link by link — sound, with one unguarded edge named.** Registration (feature-detected, post-`load`, degrades safely) · precache · manifest · fetch strategy all verified; §717's `waitUntil` fix was the only repair needed. **Link 2 is the sharp one:** `cache.addAll(SHELL)` is **atomic**, so one 404 in a four-element list fails the install entirely and surfaces as *"offline doesn't work"* — and it resolves today only because Vite emits `/index.html`, a build dependency the worker never states. Residual: registration failure is silent **by design**; making it observable is new behaviour and belongs to demo (3) |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -40369,3 +40370,50 @@ typecheck 0; e2e 6/6; merkle 7/7. Session totals: **56 phases · 61 commits · 1
 - *Owner:* `REQ-289` · REQ-039's DoD · the design gate's comment scope · which LLM providers are permitted.
 - *Process:* verify with `verify:merge`. This section is the third time that rule has been exercised and the
   second time it was the reason a full run happened at all.
+
+## §720 — PHASE GATE: the driver's offline chain, verified link by link
+
+**Subject.** §717 fixed one link in REQ-061's mechanism and, in doing so, showed that the whole chain lives in
+a tree no gate inspects. A fix to one link is worth little if another is broken, so the chain was walked end
+to end.
+
+### Every link
+
+| link | check | result |
+|---|---|---|
+| **1. registration** | does anything call `register("/sw.js")`? | `main.tsx:24-29` — feature-detected, deferred to `load` so it never blocks first paint, `.catch()` degrading to online-only |
+| **2. install precache** | `cache.addAll(SHELL)` rejects **atomically** if any path 404s — one bad entry means **no precache at all** | all four resolve: `/` and `/index.html` from the Vite root, `/manifest.webmanifest` and `/icon.svg` tracked in `public/` |
+| **3. manifest** | valid, and does its icon exist? | `start_url: "/"`, `display: standalone`, `icons: [/icon.svg]` — present |
+| **4. asset caching** | is the write retained? | **§717's defect** — `caches.put` unheld by `waitUntil`, fixed |
+| **5. fetch strategy** | navigations network-first with a shell fallback; assets cache-first | `respondWith` on both paths; API paths deliberately excluded |
+
+**Link 2 is the one worth naming.** `addAll` is atomic: a single missing entry in a four-element list fails
+the install, and the failure surfaces as *"offline doesn't work"* rather than *"a file is missing"*. It
+resolves today only because `/index.html` is emitted by Vite from the app root — a dependency on the build
+that nothing in the service worker states and no gate checks.
+
+### The residual, and why it is not mine to close
+
+Registration failure is **silent by design** — the `.catch()` carries the comment *"offline install is
+best-effort; the app still runs online"*. In development that is right: an unsupported context should not
+crash the app.
+
+In production it means a driver can lose offline capability with **nothing reporting it**, and REQ-061's whole
+premise is that the driver works with no network. §704's discriminator says the fallback is safe (it degrades
+rather than opening a guard), so this is not a fail-open defect — it is an **observability** gap.
+
+Closing it means adding telemetry, which is new behaviour rather than hardening, and acceptance demo **(3)**
+— *"a real driver completes a gated stop with zero instruction"* — is the filmed, owner-held check that
+covers exactly this. **Recorded for the owner, not built.**
+
+### Exit state
+
+No code change; the chain is sound at every link and §717's fix remains the only repair it needed.
+`test:tools` **980**; lint 0; typecheck 0; e2e 6/6.
+**26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, exit 2** at `aa4487f` (§719).
+
+**Reopen triggers**
+- `SHELL` gains an entry → `addAll`'s atomicity makes a typo cost the entire precache, and nothing verifies
+  the list against the build output. That is the sharpest unguarded edge in this chain.
+- The Vite config stops emitting `/index.html` at the root → link 2 breaks with no signal in the worker.
+- Registration telemetry is added → the residual above closes, and it should be a REQ row first.
