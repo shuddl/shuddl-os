@@ -268,6 +268,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 73 | §625 | **§626** | Reviewed the helper §625 shipped WHILE retracting — the moment a defect lands. It ran `git ls-files` twice per glob; collapsed to one, and M128 re-proved the empty-glob guard survived the simplification (a refactor that quietly deletes a check is worse than the duplication). §625's reusable half — a redundant guard mutates green, indistinguishably from a blind one — saved to memory |
 | 74 | §626 | **§627** | Closed §626's trigger in the next phase: the helper enforcing non-vacuity had no tests of its own. Kept `mayBeEmpty` rather than deleting it — append-chokepoint's EXPECTED_EMPTY_GLOBS proves the concept necessary, so it was unexercised, not speculative. Six cases; M129/M130 prove the ORDERING §625 only commented (emptiness judged before the test filter) and that the exemption is exact-match, not prefix |
 | 75 | §627 | **§628** | genesis/08's SIXTEEN DoD clauses audited for whether their PROOFS still run (§614's shape, applied to the roadmap). Clean split: proven-and-running, or blocked on the five owner-held inputs already measured. **No new debt — the first whole document to yield neither defect nor correction.** WP-01's check:pr proven in 3 directions and stricter than its clause. Two DoD proofs were unguarded until §608/§614 |
+| 76 | §628 | **§629** | §628 said "the split is clean" having exercised only 4 of the 16 DoD clauses — the rest were proven BY CATEGORISATION, the very shape §628 existed to expose. All four unchecked ones do have named proofs, and two were mutated: WP-08's double-book (M131 — the atomicity is a PARTIAL UNIQUE INDEX, not the UPDATE; three distinct guarantees red) and WP-12's rule-10 gap row (M132, two red). Conclusion survived; the evidence had not been gathered |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -34602,3 +34603,71 @@ nothing in this repo can change them.
   be re-run rather than assumed to still describe the remainder.
 - `check:pr` stops being CI-only → it is inherently so (there is no PR body locally), and a local invocation
   that manufactures one would be testing the manufacture.
+
+---
+
+## §629 — PHASE GATE: the four DoD clauses §628 listed but never checked
+
+**Subject.** §628 concluded *"the split is clean"* across genesis/08's sixteen DoD clauses. Re-reading it,
+only **four** were actually exercised — WP-01, WP-02, WP-03, WP-09. WP-08, WP-11, WP-12 and WP-14 were
+categorised as proven **on the strength of the categorisation**, which is the shape §628 itself was written to
+expose: a claim held true because nobody checked it.
+
+### All four have proofs, named for their clause
+
+Searching test **names** rather than file contents (a word match is not a proof):
+
+| Clause | Proof |
+|---|---|
+| WP-08 "double-book impossible" | `(A) double-book is atomically impossible under simultaneous claims (REQ-028/052)` |
+| WP-11 "reconciles to the penny" | `composeInvoice — the penny-parity postcondition FIRES (REQ-003/031)` |
+| WP-12 "malformed docs quarantine" | `THE LAW — quarantine, never drop: a malformed / unknown row is retained, never thrown` |
+| WP-14 "metering matches event counts" | `billing enumeration — the metering sweep's fan-out (REQ-122/123)`, `SparkMeter DO — checkAndReserve` |
+
+So §628's conclusion survives. But presence is not holding, so two were mutated.
+
+### WP-08 — held, and by a mechanism worth naming
+
+The appointment claim is a plain `UPDATE legs SET … WHERE shipment_id=? AND kind=?`. Nothing in that statement
+prevents a double-book. The atomicity comes from a **partial UNIQUE index** —
+`ux_legs_slot … WHERE appt_slot_key IS NOT NULL` — so two legs cannot hold one slot, and a skeleton leg with
+`appt_*` NULL is excluded from the constraint entirely.
+
+**M131** made the claim write `appt_slot_key=NULL`, so the index can never collide. **Three** tests went red,
+each a distinct guarantee:
+
+- *(A) double-book is atomically impossible under simultaneous claims* — the DoD clause itself;
+- *(B) the capacity gate refuses over the API path (REQ-030), never half-writes*;
+- *(C) reschedule is a new event that atomically moves the claim (I3/I7)*.
+
+Three is the right number rather than redundancy, for §619's reason: each depends on the slot key for a
+different property — mutual exclusion, gate refusal without a partial write, and atomic transfer.
+
+### WP-12 — rule 10, held
+
+CLAUDE.md rule 10: *"any legacy column that doesn't map raises a gap row — never disappears."* **M132** deleted
+the single `gapRows.push(gap)`, which is exactly a silent drop. Two tests red:
+
+- *misc_note + legacy_status map to no canonical field → 2 unmapped gap rows with samples*
+- *a below-floor field mapping is a low_confidence gap and is NOT silently applied*
+
+The second is the subtler clause: a **low-confidence** mapping is not a missing column, and treating it as
+"mapped" would be a silent drop wearing a confidence score.
+
+### What this phase is really about
+
+§628 was right and under-evidenced. The correction is not that its conclusion was wrong — it survived both
+mutations — but that **"proven" was doing work the phase had not done**. A categorisation table reads exactly
+like a measurement, and only one of them fails when the subject breaks.
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged. Both mutations restored byte-identical, their suites green
+(15/15 appointments, 38/38 adapters).
+
+**Reopen triggers**
+- The partial UNIQUE index is widened to include skeleton legs → the three tests above still pass while two
+  un-appointed legs begin colliding; the index's `WHERE appt_slot_key IS NOT NULL` is the load-bearing half and
+  nothing asserts the predicate itself.
+- WP-11 and WP-14 remain **unmutated** — named proofs found, not exercised. That is a smaller version of this
+  phase's own finding, recorded rather than quietly carried.
