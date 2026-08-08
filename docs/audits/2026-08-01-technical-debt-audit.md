@@ -281,6 +281,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 86 | §638 | **§639** | Swept all 16 skills' frozen citations. Every falsifiable one checks out — and `enforce-server-side-gate-parity`'s REQ-166 CRITICAL bypass is not just fixed but fixed THE WAY THE SKILL PRESCRIBED (one shared gate-context both paths call). Found an inversion: the 4 skills lacking the "frozen, verify against HEAD" note were exactly the 4 citing NO path:line — the ones with no mechanical staleness signal. All 16 now carry it |
 | 87 | §639 | **§640** | **DEFECT — acceptance demo 5 was HALF-guarded.** "The exception pulse dimming the map while everything else stays quiet" makes two claims; only the dim was pinned. Making the exception dim WITH the world — so it vanishes into the crowd and the demo loses its point — left packages/map at 87/87 GREEN, because the assertion checked the expression CONTAINS "0.35" and both arms were then 0.35. Fixed by asserting the arms DIFFER |
 | 88 | §640 | **§641** | **The same half-guard one expression over.** §640 pinned the world-dim; the AT-REST match had it too — an exception mark set to render identically to a healthy one left packages/map 88/88 GREEN. The existing test compares the three leaf layers TO EACH OTHER, and the mutation moves all three through their shared builder: **comparing siblings cannot see a change that moves every sibling.** M148/M149 now red |
+| 89 | §641 | **§642** | Swept §641's mechanism ("comparing siblings cannot see a change that moves every sibling"): two instances repo-wide. One was §641's defect; the other, in BILLING, is correct — its siblings are the same call made twice and equality IS the requirement (a redelivered webhook must re-derive one id), paired with a count so it cannot pass vacuously. M150 (non-deterministic id) reddens 2 tests. The distinction: is equality the requirement, or a proxy for it |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -35424,3 +35425,62 @@ typecheck 0; eslint clean.
   be lit.
 - The three leaf layers stop sharing `restPaint()` → the byte-identical test becomes the load-bearing one
   again, and it can then see what it currently cannot.
+
+---
+
+## §642 — PHASE GATE: sweeping the sibling-equality shape, and the one that was right
+
+**Subject.** §641 named a mechanism precisely enough to sweep for: *"comparing siblings cannot see a change that
+moves every sibling."* Its instance was `expect(new Set(paints).size).toBe(1)` over three map layers built by a
+shared function. That shape is mechanical, so the repo was searched for it.
+
+**Two instances.** One is §641's, now fixed. The other is in billing — and it is **correct**, for reasons worth
+separating.
+
+### Why the billing one is not the same shape
+
+```ts
+const invoiceAppendIds = led.appendCalls.filter(c => c.input.kind === "invoice.issued").map(c => c.input.id);
+expect(invoiceAppendIds.length).toBe(2);          // called twice (redelivery)
+expect(new Set(invoiceAppendIds).size).toBe(1);   // with ONE deterministic id
+```
+
+The "siblings" here are **the same call made twice**, not several artifacts from one builder — and the property
+under test genuinely *is* their equality: a redelivered Stripe webhook must re-derive the identical event id, so
+the sequencer dedups it and the tenant is billed once.
+
+It also cannot pass vacuously: the paired `length).toBe(2)` proves the redelivery actually happened. §641's
+version had no such pairing, because equality was standing in for a property that was never about equality.
+
+**The distinction is whether equality is the requirement or a proxy for it.** In billing it is the requirement.
+In the map it was a proxy for "a mark's look does not depend on its layer" — true, necessary, and silent about
+whether the look is *right*.
+
+### Verified rather than argued
+
+**M150** made the invoice event id non-deterministic (`uuidFromSeed(seed + Math.random())`) — the defect the
+assertion exists to catch, and a real double-billing:
+
+- *REQ-123 — idempotency: twice in = once out … a re-emitted sale commits NOTHING more*
+- *REQ-123/083 … (ii) exact-redelivery of both, in either order → exactly one credit line + one paid invoice*
+
+Two red, the second across webhook orderings. The assertion is load-bearing.
+
+### The sweep's shape
+
+Two hits, one defect, one clean — and the clean one was clean for a reason that took reading to establish, not
+a filter. That is the §618 boundary again: the mechanical scan narrows to a readable set, and the judgement
+stays human. A rule that auto-flagged every `new Set(…).size).toBe(1)` would have produced one false positive
+out of two, which is the ratio that gets a lint disabled.
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged. `workers/billing` 12/12; M150 restored byte-identical; no code
+changed this phase.
+
+**Reopen triggers**
+- A sibling-equality assertion appears without a paired count → it can pass on an empty or single-element set,
+  which is the vacuity half. Only one of the two here carries the pairing, and §641's replacement asserts
+  values directly instead.
+- The map's three leaf layers stop sharing `restPaint()` → §641's note applies, and the byte-identical test
+  regains the power it currently lacks.
