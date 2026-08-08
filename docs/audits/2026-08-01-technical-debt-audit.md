@@ -305,6 +305,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 110 | §662 | **§663** | **DEFECT — the same class, on the one primary key a CLIENT supplies.** Swept §662's trigger across all 73 required-field refinements in `packages/contracts`; the survivor was `eventInputBaseShape.id: z.string().uuid()`, which the sequencer uses verbatim as the dedupe key (`SELECT * FROM events WHERE id = ?`). Dropping `.uuid()` left **1,724 tests green** across all three owning suites. Unpinned, `id: "1"` parses and the second caller to pick it is returned SOMEONE ELSE'S event as their own success — **on an append-only ledger the un-written event has no correction path** |
 | 111 | §663 | **§664** | **Clean negative that CLOSES the class.** §663 narrowed by a proxy (*does the schema explain itself?*); §652 says sweep by behaviour instead. Re-swept by the real property — *a client chooses an identifier and the server looks it up* — and found **zero** additional instances: the device reserve slot is a DDL UNIQUE plus REQ-016's signing-key binding, and every agent idempotency key is server-derived, hence immune. Opposite outcome to §650→§651, from running the same check |
 | 112 | §664 | **§665** | **DEFECT — a REQ resting on a sentence.** `EventInput`'s header asserts a CLOSED set (the DO owns seq/prev_hash/recorded_at/visibility/hash/stream_id) and forbids `LedgerEvent.parse` on a request body. `.strict()` is what makes it true; dropping it left **1,728 tests green**. Not chain forgery — the DO's spread order and late hash stop that — but an unknown key then dies at the storage parse, which is **not in a try/catch**, so a raw ZodError escapes instead of `CODE:json`. That is REQ-133's exact failure, whose fix calls that parse "the now-unreachable backstop" |
+| 113 | §665 | **§666** | **DEFECT — 14 `.strict()` calls defended by nothing, and the hazard was the opposite of the guess.** Dropping all 73 at once failed 36 tests (reads covered); per-file (§466) showed `anchors`/`money`/`driver-manifest` silent across ALL six suites. **Measured:** loose Zod **strips** unknown keys, so a payload losing `.strict()` silently DISCARDS a mis-keyed field into an immutable hashed event — the inversion of engineering rule 10. Closed with a structural gate over the 35→28 `evInput` schemas, derived from source not from a `*Payload` name proxy (§652) |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -36872,3 +36873,84 @@ byte-identical.
   rather than be silently outlived.
 - Any other `.strict()` in the contracts package is relaxed to share a base object → M167 in §660 showed that
   is the realistic DRY refactor that dissolves a strictness guarantee without looking like it touches one.
+
+## §666 — PHASE GATE: correct code, no enforcement — and Zod strips rather than passes through
+
+**Subject.** §665's third trigger named a currently-checkable shape: *other `.strict()` schemas whose
+strictness is load-bearing*. Swept the class the way §298 mutation-tested the seven budgets — for
+**detectability**, not for correctness.
+
+### The sweep, narrowed by §466 rather than stopped by the aggregate
+
+`packages/contracts/src` has **73** `.strict()` calls. Dropping **all 73 at once** failed 36 tests, which
+reads like a well-covered class — and would have been the wrong place to stop. **An aggregate floor is
+satisfied by one member** (§466), so the same mutation was run **per file**:
+
+| file | `.strict()` | detected by contracts' own suite |
+|---|---|---|
+| `events.ts` | 26 | 9 tests |
+| `rating.ts` | 11 | 8 |
+| `booking.ts` · `comms.ts` | 6 · 5 | 5 · 5 |
+| `facilities.ts` · `copilot.ts` · `authority.ts` | 5 · 3 · 1 | 4 · 2 · 1 |
+| **`anchors.ts`** | **6** | **none** |
+| **`money.ts`** | **5** | **none** |
+| **`driver-manifest.ts`** | **3** | **none** |
+| `position.ts` | 2 | none here — **one** test in `workers/api` (ownership follows the consumer) |
+
+The three silent files were then re-run against **every** suite that could own them — ledger, driver-core,
+api, agents, billing. All green. **Fourteen `.strict()` calls defended by nothing, anywhere.**
+
+### What the consequence actually is — measured, not assumed
+
+The instinct is *"a loose schema lets a client smuggle extra data into the ledger."* **Measured, and it is
+the opposite:** a Zod object without `.strict()` **strips** unknown keys rather than passing them through.
+
+```
+z.object({a}).strict().parse({a:1,b:2})  ->  THREW
+z.object({a}).parse({a:1,b:2})           ->  {"a":1}
+```
+
+So a payload schema that loses its `.strict()` does not start accepting richer events. It starts **silently
+discarding** what it does not recognise. A mis-keyed field on `invoice.issued` is dropped, and the event is
+hashed and appended without it — permanently, because corrections are new events (I3/I7) and **nothing
+signalled there was anything to correct**.
+
+That is the precise inversion of this repo's tenth engineering rule — *"any legacy column that doesn't map
+raises a gap row, never disappears"* — landing on the surface where it matters most, since a stored event is
+co-signed and immutable. Had the guess gone unmeasured, this section would have argued the wrong hazard and
+built a gate pointed at it.
+
+### Closed with a gate, not fourteen pins
+
+All 28 payload schemas are `.strict()` **today**. The defect is the absence of enforcement, so the fix is
+structural (§636's pattern): individual pins would freeze today's schemas and say nothing about the next one
+added. `tools/checks/event-payload-strictness.test.ts` asserts every event payload schema is a closed set.
+
+**The list is derived from the source, not from a naming convention.** A first cut matched
+`export const *Payload`, which is a proxy for *"is an event payload"* — §652's error, caught before shipping
+this time rather than after. The authoritative list is the second argument of every `evInput(kind, schema)`
+call: **35 kinds → 28 distinct schemas**, which is what actually decides what a client may put in a stored
+event. `JsonObject` is sanctioned with its reason (`quote.expired` has no typed payload, so strictness is a
+category error, not an exception).
+
+Four assertions: the kind count is pinned to the CLAUDE.md budget of **35** rather than a loose floor, so a
+broken parse cannot read as clean; every schema must **resolve to a readable declaration**, or a renamed
+export would drop out of the check silently (§610 — the selector needs its own floor); the strictness itself;
+and a staleness check on the sanction.
+
+**Mutation-proved on the subject, never the test.** M175 drops `.strict()` from `InvoiceIssuedPayload` — one
+of the fourteen — and the strictness assertion fires. M176 deletes one `evInput` line and the non-vacuity
+assertion fires. Both restored byte-identical.
+
+### Exit state
+
+`test:tools` **951 → 955** with the register at HEAD, which is also the proof the gate is *collected* on the
+merge path (§656 chained `test:tools` into it with `&&`). Typecheck 0. **21 PASS · 0 FAIL · 5 BLOCKED.**
+
+**Reopen triggers**
+- A 36th event kind, or a kind removed → the non-vacuity assertion is pinned to 35 deliberately and will
+  fail. That is a register amendment, and it should stop a merge until someone says so.
+- A payload schema is declared outside `packages/contracts/src` (a re-export, a shared package) → the
+  resolution assertion fires rather than skipping it.
+- `SANCTIONED_OPEN` grows past `JsonObject` → each entry is a schema whose fields no longer have to be
+  declared, which is the thing this gate exists to prevent.
