@@ -277,6 +277,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 82 | §634 | **§635** | Swept §634's class three ways across all src: 10 candidate sites, and every one but §634's is plumbing or config assembly — it was the LONE instance. The reason is structural: the repo has a `NotConfigured*` idiom used TEN times that rejects LOUDLY, and the single place using a bare `!== undefined` branch was the single place that could skip silently. Eighth measurement error — git -E does not honour `\w`, and zero adapters read as a finding |
 | 83 | §635 | **§636** | Closed §635's trigger by enforcing the idiom: a gate on **optional-dep guards whose body can REJECT** — structural, no semantics, because §618 proved the semantic version fails (51 hits, 3 read, 3 false). One hit repo-wide (§634's), zero false positives against the nine other `!== undefined` branches. The sanction names its COMPENSATING assertion, and M143 proves the exemption cannot outlive its subject |
 | 84 | §636 | **§637** | Closed §636's trigger: the gate enforced ONE spelling of a pattern with five. No live gap (0 rejecting guards under the other four) — widened anyway, because this gate exists to prevent a REINTRODUCTION and one firing on `!== undefined` but not `!= null` raises the cost by a keystroke. Cost nothing: still 1 hit, 3/3 green, because the precision was always the REJECT conjunction, not the presence test. M144 ×3 |
+| 85 | §637 | **§638** | Verified a SKILL's frozen citation against HEAD, as its own grounding note demands: the hand-written `FORBIDDEN_REPLACE` defect is FIXED (4 evasions blocked on both scanners) and its law holds. Then found a "missing parity test" that **already existed three times over**, as a strict superset — my grep searched the wrong words. Addition deleted; ninth measurement error. M145 kept the value: it proves the EXISTING test catches the verbatim historical defect |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -35165,3 +35166,76 @@ typecheck 0; eslint clean.
   hoisted check is not a spelling but a restructure, and no regex reaches it.
 - The `REJECT` alternation stays the single judgement call in the rule, carried forward from §636 — widening
   the presence half did not touch it.
+
+---
+
+## §638 — PHASE GATE: verifying a skill's frozen citation, and a gap that was not there
+
+**Subject.** §637 ended on *"a gate evadable by changing an operator is not a gate."* This repo has a skill
+documenting exactly that failure, with a named instance — and a grounding note instructing the reader not to
+trust its own citations:
+
+> *"the examples and `path:line` citations in this skill are observations FROZEN as-of its writing
+> (2026-07-15/16). Several RED examples have since been FIXED in live code — **verify against HEAD** before
+> treating any cited defect as current."*
+
+So it was verified against HEAD.
+
+### The cited defect is fixed, and the fix works
+
+`FORBIDDEN_REPLACE` was a **hand-written copy** of the migration matcher — literal `\s+` before the table, no
+schema fragment — so two forms evaded the SOURCE scanner while the MIGRATION scanner blocked them. At HEAD it
+reads `replaceFamilyRe(GUARDED_TABLES.join("|"))`: the shared builder, so both surfaces get `DELIM`, `SCHEMA`
+and `Q` from one place.
+
+Verified by running the four documented evasions through **both** scanners rather than reading the refactor:
+
+```
+BLOCKED migration | BLOCKED source  ← INSERT OR REPLACE INTO"events" VALUES(1)
+BLOCKED migration | BLOCKED source  ← INSERT OR REPLACE INTO main.events VALUES(1)
+BLOCKED migration | BLOCKED source  ← REPLACE INTO [positions] VALUES(1)
+BLOCKED migration | BLOCKED source  ← REPLACE INTO `money_lines` VALUES(1)
+```
+
+The skill's **law** also holds: zero hand-written regexes on `events|positions|money_lines` outside the shared
+fragments.
+
+### The gap I found was not there — ninth measurement error
+
+The skill prescribes a parity test: *one probe corpus, asserted against every scanner*. Grepping
+`invariants.test.ts` for `EVASION|abutting|schema-qualified` returned the source-scanner tests feeding only
+whitespace-then-bare forms — so it looked like the fix had landed without its enforcement, the §636 shape.
+
+One was written. Then **M145** — reverting `FORBIDDEN_REPLACE` to the hand-written copy — reddened tests named
+`both surfaces flag: …`, **which is not my naming**.
+
+Three parity tests already existed. The one for guarded tables is a **strict superset** of what I wrote: the
+same four evasions *plus* two `ON CONFLICT DO UPDATE` upsert forms. My grep missed them because they name their
+corpus `EVASIONS` in a `describe` worded differently from the terms I searched.
+
+The addition was deleted. A third copy of an existing parity test is not coverage, it is noise.
+
+### What M145 was still worth
+
+The mutation is the phase's real product. It proves the **existing** parity test catches the **actual historical
+defect** — not a synthetic stand-in, but the exact hand-written regex the skill documents, reintroduced verbatim.
+Five tests red on the specific forms that diverged. That is a stronger statement about that test than anything
+reading it could establish, and it is now recorded.
+
+### The error, plainly
+
+Third finding of mine refuted this session (§625's glob arithmetic, §630's index predicate, this). All three
+share a shape: **a narrow probe returned nothing and I read it as absence.** §"a grep proves presence, never
+absence" is in the session memory, was cited earlier this session, and did not prevent the ninth instance —
+which is the same lesson §620 drew about mechanisms transferring where memories do not.
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged. `invariants.test.ts` back to 198 tests — its HEAD state; no code
+changed anywhere.
+
+**Reopen triggers**
+- A fourth scanner on the guarded tables appears → the three parity describes each pair TWO surfaces; a third
+  surface joins none of them automatically.
+- The skill's other frozen citations are treated as current without a HEAD check → its own note forbids that,
+  and this phase is the worked example of why: one cited defect, verified, already fixed.
