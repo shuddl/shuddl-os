@@ -271,6 +271,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 76 | §628 | **§629** | §628 said "the split is clean" having exercised only 4 of the 16 DoD clauses — the rest were proven BY CATEGORISATION, the very shape §628 existed to expose. All four unchecked ones do have named proofs, and two were mutated: WP-08's double-book (M131 — the atomicity is a PARTIAL UNIQUE INDEX, not the UPDATE; three distinct guarantees red) and WP-12's rule-10 gap row (M132, two red). Conclusion survived; the evidence had not been gathered |
 | 77 | §629 | **§630** | Closed §629's two triggers, which closed DIFFERENTLY. One was a FALSE PREMISE — sqlite proves NULLs are distinct in a UNIQUE index, so skeleton legs never collide with or without the partial predicate; my trigger asserted a mechanism without probing it (second such refutation this session, after §625). The other was real: M133 (penny-parity, 2 red) and M134 (allotment cap, 5 red incl. both fail-closed defaults and the DO-mutex race). Every code-provable DoD clause is now mutation-proved |
 | 78 | §630 | **§631** | Counted the audit's own reopen triggers: **72 across 25 phase gates, zero dischargeable.** Two were already stale five phases on (§626's mayBeEmpty test, §629's unmutated WP-11/WP-14) — the expiry-trigger problem INSIDE the record. Convention added (strike + `DISCHARGED §N`); section-refs validates the pointer for free (M136), a new assertion catches a bare one (M135). Staleness itself stays unmechanisable, and that limit is stated |
+| 79 | §631 | **§632** | "Which product code is untested?" — the import-name proxy said 23 logic files, and it is UNUSABLE: barrels, worker roots and DO stubs never name the file. M137 killed it on the largest entry (366 lines, "never imported", 3 tests red). Real coverage needs a tool that is unregistered scope — REQ-211 defines coverage as 100% REGISTER coverage, so that row is the owner's to write. This audit measures by MUTATION: 137 this session |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -34808,3 +34809,67 @@ from an empty list — which is the same failure this audit has now found in nin
 - The discharge convention is renamed → the non-vacuity assertion fires rather than silently scanning nothing.
 - Trigger count keeps climbing past ~100 → the list stops being readable in one pass, and the honest answer
   then is a per-phase index rather than a longer list.
+
+---
+
+## §632 — PHASE GATE: "which product code is untested?" — and why this audit cannot answer it with a percentage
+
+**Subject.** Twenty-seven phases have audited gates, documents and DoD clauses. The loop's other half —
+*harden any and all completed features or implementations* — asks a different question: **which product code is
+untested?**
+
+### The proxy, and why it is unusable
+
+A first pass matched every source module against every test file's import specifiers: **272 source files, 59
+never named**. Narrowed to pure logic (dropping `apps/**/*.tsx`, which the browser gates cover rather than unit
+tests): **212 files, 23 never named**.
+
+That number is worthless, and the reason is structural. A monorepo reaches its modules through **barrel
+exports** (`@shuddl/agents`), **worker composition roots**, and **Durable Object stubs** — none of which name
+the file. Three entries on that list of 23 were already known-covered from earlier phases: `spark-meter.ts`
+(§630's M134 reddened five tests **through the DO**), `sender.ts` (§605's seventeen rehearsal cases), and
+`sweep.ts` (CLAUDE.md names its property test).
+
+**M137** settled it on the largest entry. `copilot/answer.ts` — 366 lines, "never imported by a test" — had
+`classifyQuestion` forced to return `unsupported`, and **three** tests went red:
+
+- *a shipment-status question → answer citing the FRESHEST real event of that shipment*
+- *scopes the read to the named shipment (the port is asked ONLY for that shipment)*
+- *'which shipments have open exceptions?' → cites the exception events, lists their shipments*
+
+Second time this session a measurement method of mine has been refuted by testing it (§625's glob arithmetic
+was the first). Same shape: a proxy that produced a plausible number, believed until probed.
+
+### Real coverage is out of bounds, and the register says so
+
+`@vitest/coverage-v8` is not installed. Adding it would answer the question properly — and it is **unregistered
+scope**.
+
+`REQ-211` defines what "coverage" means here: *"Launch-gate CI hardening: **check:coverage (100% register)**"*.
+WP-16's DoD clause *"coverage report 100%"* is that register coverage — 289 rows, every one built-and-annotated
+or recorded-deferred — not line coverage of product code. CLAUDE.md rule 1 is unambiguous about the remedy:
+**if you discover scope, ADD A ROW first.** That row is the owner's to write, so this phase does not write it.
+
+### What this audit measures instead
+
+**Mutation.** One hundred and thirty-seven planted defects this session, each asking a sharper question than a
+percentage does: *does anything fail when this specific guarantee stops holding?* Line coverage says a
+statement executed; a mutation says a **property is defended**. §629's WP-08 is the case in point — the
+`UPDATE` that claims a slot is executed by every appointment test, and would show as covered, while the thing
+that actually prevents a double-book is a partial UNIQUE index the statement never mentions.
+
+That is the honest answer to "which product code is untested": **this audit cannot say, by percentage, without
+scope it has not been granted** — and it has spent twenty-seven phases proving specific guarantees held
+instead, which is the stronger claim where the two disagree.
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged. M137 restored byte-identical, `packages/agents` copilot suite
+17/17.
+
+**Reopen triggers**
+- The owner adds a code-coverage REQ row → install the tool, and expect it to disagree with the mutation
+  record in both directions: covered-but-undefended lines, and defended properties whose enforcement is a
+  schema constraint no line-counter attributes.
+- The import-name proxy is used again by anyone → it is refuted here; the file list it produces is not a
+  finding, and this section is the citation.
