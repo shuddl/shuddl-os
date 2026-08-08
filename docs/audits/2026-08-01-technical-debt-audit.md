@@ -323,6 +323,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 128 | §680 | **§681** | **The roster was wrong a THIRD time, so it stopped being a roster.** §680 recorded a hand-maintained-list limit; §671 says a limit recorded twice is managed, not closed — so it was closed. Deriving the population (*every `*_MODEL` the source reads*) found **`MIGRATOR_MODEL`**, a third LLM agent that already existed: §680's "a third adapter appears" trigger described the PRESENT. The Migrator reports via a **direct `agent_runs` insert** binding `cost` as `"{}"`, so the uniform "emits `agent.acted`" check was false-negative by construction — each agent now carries its own predicate. **The non-vacuity floor caught my own glob bug on its first run** (`src/**/*.ts` misses direct children: 2 of 3 keys) |
 | 129 | §681 | **§682** | **Third consecutive phase closing the previous phase's recorded limit.** §681 keyed its derivation on the `*_MODEL` NAME and recorded the escape honestly. Swept by BEHAVIOUR instead (*makes a request to an LLM provider*): exactly **3 modules**, mapping 1:1 onto the 3 agents — proxy and behaviour agree (§664's shape), but only today. Added a second completeness floor over the adapter set, so the gate is floored on the naming convention AND the behaviour. **M203** adds a caller with **no `*_MODEL` at all** — §681's exact escape — and it fires. Residual boundary is now register scope, not a sweep |
 | 130 | §682 | **§683** | **Clean negative; the member-sweep program closes.** The 12-view budget produced FOUR structural signals and none survived reading: `DunningQueue` is a documented panel (*"rides UNDER the money surface"*), a view is a logical destination not a component (`KpiDrill` serves five entries), `KPI_DRILL_VIEW` maps INTO the roster, and `Route` is a coarser abstraction (5 URL shapes / 11 views) not a duplicate list. Budget enforced **at import** — M204 makes the suite unable to COLLECT. Program total: DDL 17 gaps · laws 2 · agents 4 · views 0. Gate re-measured at `0b6f817`: 21 PASS · 0 FAIL · 5 BLOCKED |
+| 131 | §683 | **§684** | **STOPPING POINT — every named set in CLAUDE.md is swept.** The five acceptance demos close it: M205 removes one and both the count and the manifest parity fire. Full inventory: 18 invariants · 53 law members · 46 DDL constraints · 7 budgets · 28 payload schemas · 13 agents · 12 views · 5 demos · 26 gates. **21 PASS · 0 FAIL · 5 BLOCKED at `0b6f817`.** Ledger VERIFIED not recited: 9/17 fixtures pending, register 289 rows with 1 uncommitted insertion. §296's spent-line signal has arrived twice — three clean negatives, and the one productive vein found four defects **all in a gate I had just written**. Three residual limits, each reached by trying |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -38149,3 +38150,86 @@ engagement-workspace fixture gates that `genesis/13` places outside this repo.
   deliberately does not provide (a logical destination is a design decision, not a file).
 - The `Route` union and `CANONICAL_VIEWS` stop being different abstraction levels — if `Route` ever becomes
   1:1 with views, they become two copies of one list and the drift shape applies.
+
+## §684 — PHASE GATE: STOPPING POINT — every named set in CLAUDE.md is swept
+
+**Subject.** §683 closed the member-sweep program. One named set remained: **the five acceptance demos**,
+which CLAUDE.md calls *"done enough to show"*. This closes it and states the stopping point.
+
+### The five demos are enumerated and enforced
+
+`tools/acceptance/demos.test.ts` asserts bidirectional manifest parity and that **all five doc-00 demos are
+declared, each with at least one spine test and a stated filmed delta**. **M205** removes one demo from
+`DEMOS`:
+
+```
+expected [ 1, 2, 3, 4 ] to deeply equal [ 1, 2, 3, 4, 5 ]
+docs/wp/acceptance-demos.md names test/command-heartbeat.test.ts, which demos.ts does not declare
+```
+
+Both halves fire — the count and the manifest parity. The demos' automated spine is gated; their **filmed**
+half is owner-held and always was.
+
+### Every named set in CLAUDE.md, and where it was measured
+
+| set | size | outcome |
+|---|---|---|
+| Ten engineering laws + I1–I8 | 18 invariants, 30 mutations | proved §305–§341 |
+| …at **member** level | 53 members across 5 plural laws | **2 defects** (§676–§678) |
+| DDL constraints | 46 (CHECK/UNIQUE/FK/TRIGGER) | **17 gaps** (§668–§671) |
+| Seven hard budgets | 7 | detectability proved §298; 12-view re-verified §683 |
+| 35 event kinds | 28 payload schemas | **14 undefended `.strict()`** (§666) |
+| 13 agents | 3 LLM adapters + REQ-039 | **4 defects** (§679–§682) |
+| 12 canonical views | 11 + budget | clean (§683) |
+| 5 acceptance demos | 5 | clean (this section) |
+| 26 merge gates | 26 | 21 PASS · 0 FAIL · 5 BLOCKED |
+
+### Measured state at `0b6f817`
+
+`verify:merge`, register stashed for a clean tree: **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED**, aggregate
+BLOCKED, exit 2. Re-derived in §683, eight commits after §675, not carried.
+
+### The ledger — verified, not recited (§300's discipline)
+
+- **9 of 17 private fixtures `pending`** — counted from `fixtures/manifest.json`, not from memory. They gate
+  four of the five BLOCKED gates.
+- **`IDENTITY_DENYLIST`** — the fifth BLOCKED gate; enforcement proven functional (§604), the secret is an
+  owner input.
+- **`REQ-289`** — the register is **289 rows in the working tree with exactly one uncommitted insertion**.
+  Three gates fail under that tree and pass at HEAD. A scope decision, not a defect (§299, §646).
+- **The filmed half of the five demos** — owner-held, unchanged.
+- **REQ-039's DoD** — owner-held: DoD text is register scope (§179). Its *expiry trigger* is now
+  gate-enforced (§679–§682), which was the closable part.
+
+### Why this is a stopping point rather than a pause
+
+§296's signal is that a line is spent when findings move from the build to the instruments. It has now
+arrived twice, and the second time is stronger than the first:
+
+- **Three consecutive clean negatives** on member sweeps (§677 eng.4, §678 L7, §683 views).
+- The only productive vein between them — §679–§682 — found **four defects, all in a gate I had just
+  written**, none in the build.
+- §683's four structural signals all dissolved on reading. The instruments now generate candidates faster
+  than the build generates defects.
+
+**The repo-owned surface carries no open defect this audit can close.** Everything remaining needs an input
+that lives outside this checkout by design (`genesis/13`), or a decision that belongs to the register owner.
+
+### The three limits that are NOT closable by another sweep
+
+Recorded plainly, because each was reached by trying rather than by declaring:
+
+1. **A view rendered without a `CANONICAL_VIEWS` entry** (§683) — needs a computable definition of "view";
+   a logical destination is a design decision, not a file.
+2. **An LLM provider that is not Anthropic** (§682) — the behaviour floor greps one host literal. Which
+   providers this repo may call is register scope; REQ-024 constrains *where* LLM calls live, not *whose*.
+3. **A new migration's constraints start unmeasured** (§670) — `DOMAIN_CHECKS` has a completeness floor
+   (§671), but a new migration file is outside its corpus.
+
+**Reopen triggers — the honest division**
+- *Gate-enforced (7):* payload strictness (§666) · unenrolled CHECK (§671) · stale chokepoint exemption
+  (§672) · unregistered blessed image (§673) · `stripComments` behaviour (§674) · LLM model binding, both
+  name- and behaviour-derived (§681/§682) · canonical-view budget, at import (§683).
+- *Human:* the five BLOCKED inputs arriving. **A gate's first real run is where it earns its status**, and
+  five of twenty-six have never had one.
+- *Owner:* `REQ-289`'s disposition, REQ-039's DoD text, and the three limits above.
