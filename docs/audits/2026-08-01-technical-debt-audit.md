@@ -364,6 +364,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 169 | §721 | **§722** | **Same shape on the command surface — already guarded, and the guard detects.** `greige-style.json` is a template whose `{PROVIDER_*}` refs are substituted by `.split().join()` — **a silent no-op if the constant and the JSON drift**, shipping a style MapLibre cannot resolve (*"the demotiles-schema class of bug"*, blank basemap). `entities.test.ts:45` asserts `not.toContain("PROVIDER_")` — **on the PREFIX, not either full placeholder**, so it survives a rename, which is the drift that defeats a literal match. M238 fires two tests. Same hazard class as §721, opposite authoring instinct |
 | 170 | §722 | **§723** | **Portal: the contract is a route parity a regex cannot check.** Nine production paths; five reported UNRESOLVED and **none were** — `/v1/bookings` exists only in `api.test.ts` as a dummy, and the rest are **concatenation bases** (`/v1/shipments/${id}` vs the server's `:id`). Reconciling those is a routing-table comparison, not a string search — the **fourth** over-reporting detector this session. What guards it is `portal-isolation.spec.ts`, structurally: a 404 breaks the page the assertions read. **Three surfaces, three mechanisms, only the driver's was missing — the question transferred, the answer did not** |
 | 171 | §723 | **§724** | **CORRECTION — §723's claim was false, measured.** It said the portal e2e structurally guards route parity. `playwright.config.ts` starts **three surface servers and no API**, and the suite passes **6/6** — so it already passes with no API at all. **Every assertion is a NEGATIVE** (`not.toMatch`, `not.toContain`, `toHaveCount(0)`, plus a status element visible in *both* loaded and refused states): **an empty page satisfies all six.** The suite is a correct ISOLATION test; §723 borrowed that guarantee to cover LIVENESS. **An all-negative suite cannot distinguish "correct" from "nothing happened"** — §609's floor at full count |
+| 172 | §724 | **§725** | **Asked the vacuous-pass question of all four browser gates — three already answer it.** `visual` is inherently positive; **a11y** blocks on `body.innerText.length > 0` with a comment naming *"an unmounted `<div id=root>` … would be a vacuous pass"*; **perf** blocks on `waitForSelector("canvas")`. Only `portal-isolation` has nothing (§724). Sibling e2e specs are not the same shape either — `driver-offline-sync` is **10 positive / 2 negative**. **One suite of seven, not a systemic gap** — and the hazard reached four authors, three solved it, each with a different instrument |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -40656,3 +40657,63 @@ exit 2** at `aa4487f`.
   only, and this section is what it means.
 - Another suite is read as covering an adjacent guarantee → ask what its assertions would do on an empty
   page. Six negatives and a visible-in-both-states element is the shape to recognise.
+
+## §725 — PHASE GATE: the vacuous-pass question, asked of all four browser gates
+
+**Subject.** §724's trigger: *"another suite is read as covering an adjacent guarantee → ask what its
+assertions would do on an empty page."* Four browser gates run in the merge profile. The question was asked of
+each.
+
+### Three of four already answer it, and each answers differently
+
+| gate | assertions | what stops a vacuous pass |
+|---|---|---|
+| **visual** | screenshot vs a blessed reference | **inherently positive** — a blank page is not the reference |
+| **a11y** | `expect(blocking).toEqual([])` — pure negative | `waitForFunction(() => document.body.innerText.trim().length > 0)`, 30 s |
+| **perf** | long-task budget — pure negative | `waitForSelector("canvas")`, 30 s |
+| **e2e** `portal-isolation` | 5 negative, 4 "positive" | **nothing** — §724 |
+
+The a11y suite does not merely have the guard; **its comment states the exact hazard**:
+
+> *"Every surface must have actually PAINTED before we sample: an unmounted `<div id="root">` has no findings
+> and would be a **vacuous pass**. Rendered text is the mount signal — `waitForSelector` is the wrong
+> instrument here because these surfaces size themselves from a full-height flex chain."*
+
+That is the finding §724 reached by measurement, written down in advance by whoever wrote the suite — and
+solved with a *different* instrument than perf chose, because the surfaces differ.
+
+### And the sibling e2e specs are not the same shape
+
+| spec | positive | negative |
+|---|---|---|
+| `driver-offline-sync` | **10** | 2 |
+| `prod-surface` | 8 | 8 |
+| `screens` | 3 | 3 |
+| **`portal-isolation`** | **4** (its only visibility check renders in the **refused** state too) | 5 |
+
+`portal-isolation` is the one suite in the set whose passing state is indistinguishable from an empty page.
+**Not a systemic gap — one suite of seven.**
+
+### What that changes about §724
+
+§724 was right that the portal suite cannot detect a broken route, and right that its 6/6 means less than it
+looks. It is now also clear that **this is not how this repo writes browser tests** — three sibling suites
+guard the precondition, two of them explicitly. The portal suite is an *isolation* test whose author scoped
+it to isolation; the gap is that nothing else covers liveness for that surface, not that the suite is
+careless.
+
+**The pattern across §721–§725, now four instances:** the same hazard reaches four authors and three solve
+it. Only asking all four finds the one that did not — and the one that did not is never predictable from the
+others, because each solved it with an instrument specific to its own surface.
+
+### Exit state
+
+No code change; nothing to fix beyond §724's already-recorded gap. `test:tools` **984**; lint 0; typecheck 0;
+e2e 6/6. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, exit 2** at `aa4487f`.
+
+**Reopen triggers**
+- A new browser suite is added → ask what it does on an empty page **before** it lands. Three of the four
+  existing answers are one line (`waitForFunction`, `waitForSelector`, a screenshot); the cost is not the
+  reason a suite lacks one.
+- The a11y or perf precondition is weakened (a shorter timeout, a looser selector) → those two suites become
+  §724's shape, and their negatives are the whole gate.
