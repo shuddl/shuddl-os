@@ -259,6 +259,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 64 | §615 | **§616** | genesis/14 §01 calls itself the **exact** layout and named 11 of 18 modules — 7 unlisted, 0 phantom. All seven are REGISTERED scope (3–22 REQ rows apiece, traceability clean), so a RECORD defect not a scope one; a reader taking "exact" literally would question `packages/agents`, the only sanctioned home for LLM calls. Amended + both-direction gate. My first parse reported 0/18 — a harness bug failing toward alarm |
 | 65 | §616 | **§617** | genesis/14 §02's naming schemes all CONFORM (36/36 — and conformance is a different property from binding-parity's agreement). But `shuddl-tiles` is named in the spec and declared NOWHERE: shipped Command renders against a third-party public host, the code calls the self-hosted bucket "a deploy line item", and REQ-075 counts as built-annotated because an annotation exists — one that says in words the thing is not built |
 | 66 | §617 | **§618** | THE GENERALIZATION THAT FAILED. A semantic scan for deferral language near citations gave 51/171 hits; the 3 most explicit were read and ALL were false positives — and it could not have found REQ-075 at all, because the admission lives in a file citing that row ZERO times. The signal was STRUCTURAL: a resource named in the environment contract and declared in no config. Gated; M115 proves it finds §617 unaided |
+| 67 | §618 | **§619** | THE FIRST GOVERNING SECTION THAT MEASURED CLEAN. genesis/14 §06's five pipeline claims all hold: the sanctioned `position.updated` bypass still joins the daily Merkle root (M118, one test named for it), the evidence hash is written at capture (M119, four tests), and the "every fixture run" I7 proof runs IN-REPO rather than behind the 5 BLOCKED private fixtures. Two anchor misses, both from reading indentation off prefixed output |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -34002,3 +34003,74 @@ typecheck 0; eslint clean.
   environment contract; widening to every doc would re-introduce the false-positive problem this phase rejected.
 - `PENDING` grows past one or two entries → it has stopped being a hold list and become a second, quieter
   backlog.
+
+---
+
+## §619 — PHASE GATE: the first governing section that measured clean
+
+**Subject.** genesis/14 §06, *"EVENT PIPELINE MECHANICS (doc 02, made executable)"* — five mechanical claims,
+each falsifiable. Six sections had been audited this way and **every one carried a drift**, four of them with
+the document as the stale side. This one did not, and that is worth recording with the same rigour a defect
+would get: a clean negative is only as good as the mutation behind it.
+
+| §06 claim | Verdict |
+|---|---|
+| one DO per shipment assigns `seq`, verifies `prev_hash` + signature, appends, fans out | covered by the sequencer suite |
+| **`position.updated` bypasses the shipment DO but joins the daily Merkle root** | **M118 — guarded** |
+| **evidence: client hashes first, the event carries the hash** (REQ-017) | **M119 — guarded** |
+| daily Merkle job batches roots → RFC 3161 TSA (REQ-014) | anchor + `tsa/` suites |
+| corrections are reversal events; the GL export proves I7 on every fixture run | **runs in-repo** — 5 cases |
+
+### The bypass that keeps its guarantee
+
+§06 states that `position.updated` **bypasses** the shipment DO. That is a sanctioned bypass —
+`append-chokepoint` allowlists exactly two writers — and §609 taught that a bypass is where guarantees leak. A
+path that skips the sequencer could as easily skip the anchoring, leaving positions unprovable.
+
+It does not. `anchor.ts` reads positions in three places, including a `UNION ALL` across events and positions
+for the day boundary. **M118** deleted the line that pushes position leaves into the root, and exactly one test
+went red — one named for the property: *"positions participate: a day with ONLY positions produces a stable
+root (positions hash in like everything else)"*.
+
+### The offline guarantee
+
+REQ-017's shape is that the event carries the evidence hash **before** the bytes exist anywhere else — which
+is what makes a signature survive a driver with no signal. **M119** removed the single line writing the hash
+into the payload; **four** tests went red, including *"writes the 64-hex SHA-256 of the bytes into
+payload[field] and defers the ORIGINAL bytes"* and *"a captured pod.signed event VERIFIES via verifyEventSig"*.
+
+Four is the right number here rather than a sign of redundancy: the hash is load-bearing for the deferred
+upload, the device signature, and the routing of a placed-photo hash into `delivery.evidenced`. Removing it
+breaks each independently.
+
+### The clause that could have been blocked and is not
+
+*"the GL export proves I7 on every fixture run"* reads like a dependency on the five BLOCKED private-fixture
+gates. It is not: `gl-netting.fixture.test.ts` is generated in-repo by `tools/fixtures/gen-gl-netting.ts` and
+runs today — 5 cases, 20 shipments, 8 corrections in 4 round-trip pairs, netting to zero through the real
+projection path. I7 is proven on every run, not only when the private fixtures land.
+
+### Two anchor misses, both mine, both from the same cause
+
+M118 and M119 each failed to apply on the first attempt (`AssertionError: anchor 0`), and both times because
+I read the indentation off my own `sed | sed 's/^/  /'` output, which adds two spaces. The `|| exit 1` wiring
+meant each cost nothing — the file was untouched and the caption never printed. The reliable method, used
+twice to recover, is a visible-space dump of the single line.
+
+That is the same class §615 recorded. It has now happened four times this session, and the lesson has sharpened:
+**never take an anchor from prefixed output.** Read the line with spacing made visible, or copy it from an
+unprefixed `grep -n`.
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged. No source changed; both mutations restored byte-identical and
+their suites green (19/19 ledger anchor, 41/41 driver-core).
+
+**Reopen triggers**
+- The positions leg gains a second writer → the single test guarding root participation is written against the
+  one path; a second would need its own.
+- `sha256Hex` moves out of `capture.ts` into the transport → the hash would be taken after the queue rather
+  than at capture, and M119's four tests may still pass while REQ-017's *ordering* claim quietly stops holding.
+  The tests assert the hash is PRESENT, not that it was computed before the bytes left the device.
+- The GL netting fixture is replaced by a vendored one → the clause becomes genuinely blocked, and this
+  section's verdict expires with it.
