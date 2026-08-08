@@ -337,6 +337,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 142 | §694 | **§695** | **Four copies of the glob that decides whether ANY wiring assertion can see CI.** §694's residual named one; there were **four** hand-written `*.yml` globs in one file — the invocation corpus, §691's pin, §694's assertion and its staleness check. A `.yaml` workflow (GitHub accepts both) was invisible to all four at once, including the two written in the last three phases to close wiring holes. **Proved by A/B**: identical probe, SILENT pre-fix, FIRES post-fix. Third phase running where the limit was the CORPUS, not the rule — *a scanner's reach is a separate assertion from its logic* |
 | 143 | §695 | **§696** | **DEFECT — the REQ-025 scanner could not see a React component.** 65 globs, 16 extensions: **27 glob `.ts`, only 7 glob `.tsx`.** Five scanners cover `packages/*` (which ships `.tsx`) with `.ts`-only globs; the one that matters is `tenant-scope`, enforcing a **build-failure law**. §120's argument verbatim, one gate over — *the file extension must not decide whether that is caught*. Latent, not live; closed before it is live. A/B: probe SILENT pre-fix, FIRES post-fix. **My first fix broke the gate** — a malformed array element shrank the corpus 180→142 and the §572 floor caught it, a failure I nearly read as "`.tsx` surfaced violations" |
 | 144 | §696 | **§697** | **DEFECT ×2 — both demonstrable, one mine again.** §696 left two scanners as *"a judgement, not a proof"*; probed instead, **both were blind**: a rejecting optional-dep guard in a `.tsx` (3/3 pass) and a `SUMMARIZER_MODEL` binding in a `.tsx` (9/9 pass). The second is **my §681 gate, whose completeness floor exists precisely to catch a new `*_MODEL` arriving unenrolled**. Third time a gate I wrote had the blind spot it was built to close — **the author of a gate is the worst-placed person to judge its corpus.** Per-glob-shape measurement cut a coarse 4 to a true 2 |
+| 145 | §697 | **§698** | **Class CLOSED by running the algorithm once instead of building a gate.** Parameterised §697's measurement over every sibling pair: **4 gaps, two of them mine from §696** — I added `apps/*.tsx` to `tenant-scope` and left **49 `.ts` modules** unseen in a tree I had just started covering, an asymmetry introduced *while closing a gap*. Design corpus: `.js` was the odd sibling of `.jsx`/`.mjs` already listed — completing an intent, not widening scope (measured first: `sw.js` has zero styling tokens). **Re-swept: 0 remaining.** A one-shot measurement can CLOSE a class a permanent gate would only MANAGE |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -39058,3 +39059,62 @@ edits. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, exit 2** at `04c6fe1`.
   stop here and say so** rather than add a fourth layer nobody audits.
 - A `.jsx`, `.mjs` or `.cjs` file appears under a scanned tree → same class, different extension. The
   measurement in this section takes the extension as a parameter and would find it.
+
+## §698 — PHASE GATE: the extension class closed by running the algorithm once, not by building a gate
+
+**Subject.** §697 declined to build a meta-gate over scanner corpora, on the grounds that *"its own corpus
+would need the same treatment, and that regress is the reason to stop."* Its trigger named the cheaper move:
+the measurement **takes the extension as a parameter**. So it was run once, over every sibling pair.
+
+### Four gaps, two of them mine from one phase earlier
+
+| scanner | glob | unseen |
+|---|---|---|
+| `tenant-scope.test.ts` | `apps/*/src/**/*.tsx` | **`.ts` — 49 files** |
+| `tenant-scope.test.ts` | `apps/*/src/*.tsx` | **`.ts` — 49 files** |
+| `design/audit.ts` | `apps/**/*.jsx` | `.js` — 1 file |
+| `design/audit.ts` | `apps/**/*.mjs` | `.js` — 1 file |
+
+**§696 added the surfaces' components to `tenant-scope` and stopped there** — covering `apps/*.tsx` while
+leaving 49 `.ts` modules in a tree it had just started scanning. An asymmetry *introduced while closing a
+gap*, and invisible to the `.tsx`-shaped sweep that produced it because that sweep only asked one question.
+
+### The design corpus: completing an intent, not widening a scope
+
+`apps/**/*.jsx` and `apps/**/*.mjs` were already listed; `.js` was the odd sibling out. That is an oversight
+in a list, not a scope decision — which matters, because §674 explicitly declined to change this **blocking**
+gate's *rule* on my own judgement. The corpus question is different in kind, and it was measured before
+acting: the single unseen file is `apps/driver/public/sw.js`, 78 lines of offline caching logic with **zero**
+styling tokens, and `audit:design` exits 0 both before and after.
+
+### Re-swept: zero remaining
+
+```
+remaining sibling-extension gaps: 0
+```
+
+Across `.ts`/`.tsx`, `.js`/`.jsx`/`.mjs`, `.yml`/`.yaml`, `.md`/`.mdx`, `.css`/`.scss` — every scanner glob
+in `tools/` now covers the siblings that would match real files.
+
+### The distinction worth keeping
+
+§697 argued against a permanent meta-gate because it would need auditing itself. That argument was right and
+also incomplete: **a one-shot measurement can CLOSE a class that a permanent gate would only MANAGE.** The
+algorithm ran in seconds, found four gaps including two I had just created, and left a re-runnable command
+behind in this section rather than a fourth layer of machinery.
+
+The trade is explicit: nothing now *prevents* a new scanner from arriving extension-blind. But the class is
+empty today, the measurement is written down, and re-running it costs one command — which is a better
+position than a meta-gate whose own corpus nobody checks.
+
+### Exit state
+
+`tenant-scope` 4/4 with `apps/*` `.ts` + `.tsx`; `audit:design` exit 0 with `.js`; `test:tools` **973**;
+typecheck 0. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, exit 2** at `04c6fe1`.
+
+**Reopen triggers**
+- A new scanner is added → re-run the sweep in this section. It is a measurement, not a gate, and that is a
+  deliberate choice with a named cost.
+- A new *extension* enters the tree (`.mts`, `.cts`, `.scss`) → the sibling table in the sweep is
+  hand-written and would not know about it. That is the same hand-maintained-roster shape §681 fixed by
+  derivation, and here it is accepted because the sweep is run under supervision rather than in CI.

@@ -73,6 +73,10 @@ function sourceFiles(root: string): string[] {
     '"packages/*/src/**/*.tsx"',
     '"apps/*/src/*.tsx"',
     '"apps/*/src/**/*.tsx"',
+    // §698 — and the .ts half of apps/. §696 added the surfaces' COMPONENTS and stopped there, leaving 49
+    // .ts modules in a tree it had just started covering — an asymmetry introduced while closing a gap.
+    '"apps/*/src/*.ts"',
+    '"apps/*/src/**/*.ts"',
   ].join(" ");
   return execSync(`git ls-files ${globs}`, { cwd: root, encoding: "utf8" })
     .trim()

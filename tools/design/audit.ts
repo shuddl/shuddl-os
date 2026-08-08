@@ -298,7 +298,7 @@ function isTokenSource(f: string): boolean {
 // manifests can't false-positive.
 export function scannedFiles(): string[] {
   const patterns = [
-    "apps/**/*.css", "apps/**/*.tsx", "apps/**/*.ts", "apps/**/*.jsx", "apps/**/*.mjs", "apps/**/*.html", "apps/**/*-style.json",
+    "apps/**/*.css", "apps/**/*.tsx", "apps/**/*.ts", "apps/**/*.jsx", "apps/**/*.mjs", "apps/**/*.js", "apps/**/*.html", "apps/**/*-style.json",
     "packages/**/*.css", "packages/**/*.tsx", "packages/**/*.ts", "packages/**/*.jsx", "packages/**/*.mjs", "packages/**/*.html", "packages/**/*-style.json",
   ];
   return execSync(`git ls-files ${patterns.map((p) => `"${p}"`).join(" ")}`, { cwd: repoRoot(), encoding: "utf8" })
