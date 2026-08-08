@@ -13,7 +13,7 @@
 ## Execution rules
 
 - Work only in `.worktrees/codex-v1-remediation-v2-framework`.
-- Use Node through `PATH=/Users/spencerpro/.nvm/versions/node/v22.15.0/bin:$PATH`.
+- Use Node through `PATH=$HOME/.nvm/versions/node/v22.15.0/bin:$PATH`.
 - Follow red → green → refactor for every behaviour change.
 - Run `pnpm -r --workspace-concurrency=2 --if-present run typecheck` rather than bare `pnpm typecheck` — the unbounded recursive runner hangs on a loaded machine.
 - Never bless a screenshot you have not looked at.

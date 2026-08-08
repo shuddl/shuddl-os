@@ -12,8 +12,8 @@
 
 ## Execution rules
 
-- Work on `main` in `/Users/spencerpro/Desktop/shuddl-os`. Begin EVERY bash call with `cd /Users/spencerpro/Desktop/shuddl-os || exit 1` — the Bash tool's cwd silently reverts between calls.
-- Prefix every command with `PATH=/Users/spencerpro/.nvm/versions/node/v22.15.0/bin:$PATH`.
+- Work on `main` in `$REPO`. Begin EVERY bash call with `cd $REPO || exit 1` — the Bash tool's cwd silently reverts between calls.
+- Prefix every command with `PATH=$HOME/.nvm/versions/node/v22.15.0/bin:$PATH`.
 - **Never `export PATH=` with a partial path** — it clobbers the system path and `curl` disappears. Prefix, don't export.
 - Cloudflare: account `89618cedec5696ac1ab82362e5500f16` (the PRODUCT account — it holds `shuddl.tech` and the `shuddl-*` resources). The operator supplies `CLOUDFLARE_API_TOKEN`; **never commit it**.
 - Machine load spikes hard. `Test Files no tests` + `Failed to start forks worker` is load — check `uptime`, wait, re-run. Never report a load artifact as a failure.

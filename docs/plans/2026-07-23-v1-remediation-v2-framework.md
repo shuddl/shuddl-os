@@ -13,7 +13,7 @@
 ## Execution rules
 
 - Work only in `.worktrees/codex-v1-remediation-v2-framework`.
-- Use Node through `PATH=/Users/spencerpro/.nvm/versions/node/v22.15.0/bin:$PATH`.
+- Use Node through `PATH=$HOME/.nvm/versions/node/v22.15.0/bin:$PATH`.
 - Follow red → green → refactor for every behavior change.
 - Never edit a pinned migration; add a forward-only migration and update the migration lock.
 - Never count a skip, pending fixture, advisory result, or missing external resource as PASS.

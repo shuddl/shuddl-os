@@ -71,7 +71,7 @@ Neither changes any shipped logic, schema, test, or behavior. If the owner wants
 
 **Step 3: Verify traceability accepts the new rows**
 
-Run: `export PATH="/Users/spencerpro/.nvm/versions/node/v22.15.0/bin:$PATH" && pnpm check:traceability`
+Run: `export PATH="$HOME/.nvm/versions/node/v22.15.0/bin:$PATH" && pnpm check:traceability`
 Expected: PASS (no orphans; the new REQ rows are registered even though code lands later — traceability is bidirectional but a registered-not-yet-built REQ is allowed for the active WP; if it flags, that confirms the row parsed).
 
 **Step 4: Commit** (rows in their own commit, beneath the build)
@@ -115,7 +115,7 @@ describe("REQ-204: X12 envelope tokenizer", () => {
 ```
 
 **Step 2: Run — expect FAIL** (`Cannot find module '../src/envelope'`):
-`export PATH="/Users/spencerpro/.nvm/versions/node/v22.15.0/bin:$PATH" && pnpm --filter @shuddl/edi test`
+`export PATH="$HOME/.nvm/versions/node/v22.15.0/bin:$PATH" && pnpm --filter @shuddl/edi test`
 
 **Step 3: Implement** `package.json` (mirror `packages/adapters/package.json` + an exports map so the worker/agent can import subpaths):
 ```json
@@ -265,7 +265,7 @@ The 214 sweep: for each tenant DB, find partner-tendered shipments with fresh st
 
 **Step 1: zero-touch guard** — prove no shipped source file changed:
 ```bash
-export PATH="/Users/spencerpro/.nvm/versions/node/v22.15.0/bin:$PATH"
+export PATH="$HOME/.nvm/versions/node/v22.15.0/bin:$PATH"
 git diff --stat main...wp-12-edi -- ':!docs' ':!fixtures/edi' ':!packages/edi' ':!packages/agents/src/translator' ':!workers/translator' ':!genesis/09-REQUIREMENTS-REGISTER.csv' ':!active-wps.json'
 ```
 Expected: **empty** (only new dirs + the two governance appends changed). If anything else appears, a condition C1–C6 was violated — stop and fix.

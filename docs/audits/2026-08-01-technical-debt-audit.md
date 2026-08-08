@@ -261,6 +261,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 66 | §617 | **§618** | THE GENERALIZATION THAT FAILED. A semantic scan for deferral language near citations gave 51/171 hits; the 3 most explicit were read and ALL were false positives — and it could not have found REQ-075 at all, because the admission lives in a file citing that row ZERO times. The signal was STRUCTURAL: a resource named in the environment contract and declared in no config. Gated; M115 proves it finds §617 unaided |
 | 67 | §618 | **§619** | THE FIRST GOVERNING SECTION THAT MEASURED CLEAN. genesis/14 §06's five pipeline claims all hold: the sanctioned `position.updated` bypass still joins the daily Merkle root (M118, one test named for it), the evidence hash is written at capture (M119, four tests), and the "every fixture run" I7 proof runs IN-REPO rather than behind the 5 BLOCKED private fixtures. Two anchor misses, both from reading indentation off prefixed output |
 | 68 | §619 | **§620** | Closed the gap §619 named in its own trigger: REQ-017 is an ORDERING claim (hash computed BEFORE bytes leave the device) and the four tests only prove PRESENCE. driver-core states "No DOM, no network, no timers here" and nothing enforced it; now banned, zero hits, changes no code. M120 proved the ledger and rater bans SURVIVED the addition — last-writer-wins is how adding a gate deletes one. Fifth anchor miss, one phase after writing the lesson |
+| 69 | §620 | **§621** | genesis/13's repo-side contract holds (identity lint, fixtures README separation, pointer-not-path). **But REQ-167's lint is a DENYLIST and can only catch a name someone thought to add** — 39 absolute home paths across 5 tracked docs leaked the operator account name, and were a portability defect in the same edit. Rewritten to $HOME/$REPO + a denylist-independent gate; the only REQ-167 enforcement that runs while the secret is BLOCKED |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -34147,3 +34148,68 @@ typecheck 0. No source changed — one config block added.
   ordering guarantee needs a different mechanism entirely.
 - A fourth package gains a `no-restricted-globals` block → re-run M120 across all four. The globs not colliding
   today is not a property that survives an edit, and nothing checks it.
+
+---
+
+## §621 — PHASE GATE: REQ-167's lint cannot catch a name nobody thought to add
+
+**Subject.** genesis/13 — the tenant-onboarding overlay and config-pack contract, ranked fifth in the
+source-of-truth order and never audited. Its §02 defines a nine-file pack that lives **outside** this repo, so
+the repo's obligations under it are narrow and all checkable.
+
+### The repo-side contract holds
+
+| genesis/13 §02 says | Measured |
+|---|---|
+| "CI includes an **identity-leak lint**" | verified functional in §604 — it catches, names the file, and masks the term |
+| "the repo's `fixtures/README.md` refers here and **never embeds tenant paths**" | line 13 states the separation law citing REQ-167; line 26 points at doc 13 §04; no absolute paths |
+| "referenced by **pointer**, never copied" | the 9 pending fixtures cite symbolic IDs (`manifest.private M-01`), not paths |
+
+One clarification worth recording, because it looked like a gap: §02 says *"The Migrator consumes the pack at
+Phase 0"*, and only 2 of the 9 pack files appear anywhere in code. That is **not** a missing loader —
+`migrator.ts` is the light **self-serve** migrator (REQ-127/REQ-035: *"a stranger drag-drops their messy
+spreadsheet"*), a different thing from the Phase-0 engagement activity genesis/13 describes. The pack is
+consumed operationally, by design, and the pack never enters version control here.
+
+### THE FINDING — a person identifier in five tracked documents
+
+`check:identity` enforces REQ-167 with a **denylist**: a list of names, maintained client-side, held by the
+owner. That is the right design for tenant and vendor names, which are unguessable from inside the repo. It has
+one structural blind spot — **it can only catch a name someone thought to add.**
+
+An absolute home path needs no list. Measured: **39 occurrences across 5 files** in `docs/plans/`, every one
+embedding the same operator account name, in operational instructions of the form *"prefix every command with
+`PATH=/Users/…`"*.
+
+They were simultaneously a **portability defect** — none of those commands run on another machine — and that
+coincidence is the tell: the leak and the bug were the same edit. All 39 are now `$HOME` or `$REPO`, which is
+what they should always have been.
+
+### Why a second gate rather than a bigger denylist
+
+`check:identity` knows **which names matter** and cannot see a name it was never given. This rule knows nothing
+about names and **cannot miss the shape**. Neither subsumes the other, and the denylist half remains BLOCKED on
+an owner-held secret — so until that secret lands, this is the only REQ-167 enforcement that runs at all.
+
+| | Mutation | Result |
+|---|---|---|
+| M121 | the exact leaked shape restored in a tracked doc | RED — caught with `file:line` |
+| M122 | the corpus filter drops every file | RED — **the non-vacuity floor** |
+
+The rule excludes exactly one file — its own source, which must contain the pattern it bans, in the regex and
+in the comment explaining it. That is the fourth time this session prose has tripped its own gate (§606's
+dangling section number, §612's CONFIRM-GATED row, §618's citation ratchet), and the fix is the same each time:
+exclude the one file that must contain it, **by identity, never by pattern**.
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged. `test:tools` at 932 passed with exactly the 3 REQ-289 failures;
+typecheck 0; eslint clean; the doc gates green after rewriting five files.
+
+**Reopen triggers**
+- The `IDENTITY_DENYLIST` secret lands → the two rules overlap for the first time. Check what each catches that
+  the other does not before assuming either is now redundant.
+- A leak arrives in a binary artifact → excluded by extension, deliberately, and unguarded. A path inside a PNG
+  is not something a reader or a grep surfaces, which is the argument for the exclusion and also its limit.
+- Windows paths appear in earnest (`C:\Users\…`) → the pattern covers them but nothing has ever produced one
+  here, so that branch is untested by anything but its own regex.
