@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { repoRoot } from "./repo-root.js";
 
@@ -96,7 +96,21 @@ export function analyzeAuthorityCoverage(files: readonly { module: CoverageModul
 export function collectAuthoritativeFiles(cwd: string = repoRoot()): { module: CoverageModule; file: string; content: string }[] {
   const out: { module: CoverageModule; file: string; content: string }[] = [];
   for (const { module, files } of AUTHORITATIVE_FILES) {
-    for (const file of files) out.push({ module, file, content: readFileSync(join(cwd, file), "utf8") });
+    for (const file of files) {
+      const path = join(cwd, file);
+      // §608 — a REGISTERED file that no longer exists already failed closed, but as a raw ENOENT stack
+      // trace from node:fs. The registry/filesystem divergence is a real event (a rename, a move), and the
+      // reader needs to know which module lost its authoritative file, not which line of fs.js threw.
+      // §607 found the same divergence in the acceptance runner, where it did NOT fail closed.
+      if (!existsSync(path)) {
+        throw new Error(
+          `authority-coverage: the ${module} module registers ${file}, which does not exist. Either the file ` +
+            `moved (update AUTHORITATIVE_FILES) or the authoritative path for ${module} was deleted, which ` +
+            `means nothing consults its authority any more (REQ-030/L8).`,
+        );
+      }
+      out.push({ module, file, content: readFileSync(path, "utf8") });
+    }
   }
   return out;
 }

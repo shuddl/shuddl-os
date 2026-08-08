@@ -248,6 +248,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 53 | §604 | **§605** | THE LAST UNMEASURED BLOCKER SPLIT IN TWO — sender-domain + CF credentials was one label over two unlike things. The send path is rehearsed on BOTH sides of the CONFIRM flip (17 cases, key non-leakage mutation-proven); the credential path fails BLOCKED/executed:false/zero-files, verified by running it. All 5 owner-held inputs now measured |
 | 54 | §605 | **§606** | GATES SEEN ONLY PASSING HAVE NEVER BEEN SEEN FAILING — 5 given planted violations (seed/table-shape/section-refs/rater-purity/append-chokepoint), all 5 caught with file:line + fix. A non-counterexample probe found the real question: raw-fetch LLM bypass, already closed by an ESLint capability ban whose message names it |
 | 55 | §606 | **§607** | **DEFECT — the ACCEPTANCE gate certified a demo whose test file did not exist.** vitest is silent on a filter matching nothing whenever a SIBLING filter in the same package matches, and @shuddl/api carries 4 of the 7 spine files. Both pre-existing parity tests are record-to-record and passed. Fixed + tested. 4 more gates proven failable; 19/19 now observed failing |
+| 56 | §607 | **§608** | **DEFECT — the VISUAL gate PASSED with a canonical screen deleted from the registry** (`assertions: 4`, exit 0, under --mode merge). §607s divergence in the other direction: a blessed ref that exists while the registry no longer names it. The shared browser guard cannot floor it. Fixed with bidirectional parity + identity pin. Also: I broke the PHASE GATE heading convention twice by running the doc gates and not the suite that OWNS the file |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -32865,7 +32866,7 @@ whose absence is fully described by the gates themselves.
 
 ---
 
-## §605 — PHASE 53: THE LAST UNMEASURED BLOCKER (sender domain + Cloudflare credentials)
+## §605 — PHASE GATE: the last unmeasured blocker — sender domain + Cloudflare credentials
 
 **Subject.** Owner-held item **#4** — "sender-domain verification + Cloudflare OIDC". Of the five owner-held
 inputs, this is the only one never examined. §603 measured REQ-289 and found it was not what its label said;
@@ -32950,7 +32951,7 @@ restored byte-identical); the only working-tree entry remains the pre-existing R
 
 ---
 
-## §606 — PHASE 54: WHICH PASSING GATES HAVE EVER BEEN SEEN FAILING
+## §606 — PHASE GATE: which passing gates have ever been seen failing
 
 **Subject.** §604's discovery generalized. The identity lint was found to have *only ever been observed
 skipping* — so it had never been observed **working**. The same question turns on the other 19: a gate that has
@@ -33032,7 +33033,7 @@ them.
 
 ---
 
-## §607 — PHASE 55: THE ACCEPTANCE GATE CERTIFIED A DEMO WHOSE TEST FILE DID NOT EXIST
+## §607 — PHASE GATE: the acceptance gate certified a demo whose test file did not exist
 
 **Subject.** Finishing §606's map — the merge gates that had still never been observed failing. Four more were
 given planted violations, and the fifth produced the phase's finding.
@@ -33120,3 +33121,83 @@ does not move any count. Nineteen of nineteen passing gates have now been observ
   config filter) → the summary line resumes overstating, and existence is no longer sufficient.
 - The manifest-parity tests are made filesystem-aware → the new check becomes the second mechanism, and
   §"two mechanisms disagreeing is the finding" applies to the delta between their scopes.
+
+---
+
+## §608 — PHASE GATE: the same divergence in the other direction, and a convention I broke twice
+
+**Subject.** §607's defect was a *registry naming a file that does not exist*. That is one direction of a
+class — **registry ↔ filesystem divergence** — so the other direction was swept: *a file that exists while the
+registry no longer names it.* Every path registry in the tooling was probed.
+
+### THE FINDING — the visual gate PASSED with one canonical screen deleted from the registry
+
+`tests/visual/screens.spec.ts` parameterizes one test over a `SCREENS` array. **M92** removed one entry and ran
+the gate in its blocking mode:
+
+```
+visual: PASS — 4 passed.
+##SHUDDL-GATE## {"gate":"visual","status":"PASS","executed":true,"assertions":4}
+```
+
+Exit **0**, under `--mode merge`. CLAUDE.md's design CI names *"5 blessed screenshots"* and WP-03's DoD reads
+*"5 canonical screens match blessed refs"*. One canonical screen stopped being verified, `blessed/status.png`
+stayed committed and unread, and the gate called it a pass.
+
+**Why `playwright-guard.ts` is not where this belongs.** Its disposition ladder already refuses the vacuous
+cases — `total === 0` is BLOCKED (*"a suite that found nothing proves nothing"*) and `executedCount === 0` is
+BLOCKED (*"a skip is not a pass"*). But that guard is **shared by visual, a11y, e2e and perf**, so it has no
+business knowing that *visual* owes exactly five screens. Its floor is necessarily at zero. §572's rule — a
+scanner's floor must bound the **corpus it read** — has to be satisfied where the expected corpus is known.
+
+**Fix:** `tools/checks/visual-corpus.test.ts` — bidirectional parity between the `SCREENS` registry and
+`tests/visual/blessed/*.png`, plus the five names pinned by **identity** (a count alone would let one screen be
+swapped for another). A static scan rather than an import, because `screens.spec.ts` calls `test()` at module
+scope and importing it into vitest would register playwright tests inside a vitest run.
+
+**Mutation-proved wired into the gate**, not merely written: with M92 re-planted, `pnpm test:tools` went from
+3 failures to 6. Two are the new tests. The sixth was **collateral I had to attribute before crediting**:
+`every citation … resolves and is in bounds` went red because deleting lines from `screens.spec.ts` shifted the
+line numbers under existing citations. Correct behaviour, gone on restore.
+
+### A near-miss: the visual gate looked broken and was not
+
+**M91** removed a blessed *reference image*. The bare run printed `visual: FAIL — 1 failing of 5 executed` and
+exited **0** — a gate announcing failure while telling its runner everything is fine. Before recording that,
+CLAUDE.md rule 7 was checked: the browser gates are *mode-aware — advisory in a bare local run, FAIL/BLOCKED
+under `--mode merge|release`*. Re-run with the mode: exit 1 and
+`{"gate":"visual","status":"FAIL","executed":true,"assertions":5}`. **Documented behaviour, working exactly as
+written.** A false finding avoided by measuring the claim instead of the symptom.
+
+### Two clean negatives in the same class
+
+- **`authority-coverage`** registers 8 files by path. Deleting one **fails closed** — but as a raw ENOENT stack
+  trace from `node:fs`. The safety property held; the diagnostic did not. Hardened to name the module that lost
+  its authoritative file. Not a defect: it never passed.
+- **`citation-links`** skips citations it cannot read anywhere (`read.length === 0 → continue`). A citation to a
+  file that does **not exist** was planted and the gate failed correctly:
+  `FAIL … — no such file in the repo (dangling path)`. The skip is reached only for files that exist but are
+  unreadable — binary/vendored bytes — exactly as its comment claims.
+
+### The convention I broke twice, and did not notice
+
+`phase-index.test.ts` requires phase-gate headings to read `## §N — PHASE GATE`. §605 and §606 were written as
+`## §605 — PHASE 53:` and committed **with that test failing**, because after each I ran `check:citations`,
+`check:tables` and `check:section-refs` — the doc gates — and not `test:tools`, **the suite that owns the file**.
+Three headings restored; `phase-index` green.
+
+This is the exact error already recorded as a standing rule: *ownership follows the consumer, not the file
+extension.* A markdown file's phase-gate headings are owned by a TypeScript test. Knowing the rule did not
+prevent the fourth instance of it — the doc gates were run precisely *because* the change was to a document.
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged. `test:tools` is back to exactly the 3 REQ-289 failures; typecheck
+and eslint clean.
+
+**Reopen triggers**
+- A sixth canonical screen is blessed → the identity pin fails by design; add the name and say which DoD clause
+  it serves.
+- `playwright-guard.ts` gains a per-label expected-count → the parity test becomes the second mechanism, and the
+  delta between their scopes is the thing to check, not either one alone.
+- `AUTHORITATIVE_FILES` moves to a derived scan → the existence check becomes unreachable and should go with it.
