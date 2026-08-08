@@ -1,4 +1,4 @@
-import { globSync, readFileSync } from "node:fs";
+import { existsSync, globSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { gatesFor } from "../release/run-gate.js";
 
@@ -152,6 +152,33 @@ describe("REQ-118 §656: the test script still chains the tools suite", () => {
         "it CI still passes on whatever individual steps remain, and the 26-gate surface silently becomes " +
         "advisory",
     ).toBe(true);
+  });
+
+  it("§693: every gate the nightly workflow runs is ALSO on the merge path (cadence, never sole coverage)", () => {
+    // §692 measured that neutering nightly's `check:traceability` step is undetected — and then found the
+    // severity bounded, because that script is ALSO a merge gate, so its loss costs the nightly CADENCE
+    // (drift between merges) and not the COVERAGE. §691's step, by contrast, was the sole path for 26 gates.
+    //
+    // Same mutation result, an order of magnitude apart in consequence, and only that redundancy separated
+    // them. NOTHING LINKED THE TWO — which was §692's recorded limit. This is the link: a nightly job may add
+    // cadence over gates the merge path already runs, and the day one adds UNIQUE coverage it needs §691's
+    // treatment on its own terms rather than inheriting a bound it no longer has.
+    const nightly = ".github/workflows/nightly.yml";
+    expect(existsSync(nightly), "the nightly workflow is gone — this assertion has no subject").toBe(true);
+    const invocations = [...readFileSync(nightly, "utf8").matchAll(/run:\s*pnpm (?:-s )?(?:exec )?([a-z0-9:_-]+)/g)].map((m) => m[1]!);
+    expect(invocations.length, "no pnpm invocations parsed from nightly — the scan broke, the workflow did not").toBeGreaterThan(1);
+    // Scoped to gate-shaped scripts: `backup` is an OPERATION the nightly owns outright (it writes an
+    // artifact, it is not a verdict), and requiring it on the merge path would be a category error.
+    const gateish = invocations.filter((n) => /^(check|audit|test):/.test(n));
+    const mergeScripts = new Set([...readFileSync("tools/release/run-gate.ts", "utf8").matchAll(/script: "([^"]+)"/g)].map((m) => m[1]!));
+    const soleCoverage = gateish.filter((n) => !mergeScripts.has(n));
+    expect(
+      soleCoverage,
+      "the nightly workflow runs a gate the merge profile does NOT, so nightly is its only path and its " +
+        "deletion would be silent — the shape §691 closed for verify:merge. Either add it to the merge " +
+        "profile, or give it its own wiring assertion the way §691 did:\n  " +
+        soleCoverage.join("\n  "),
+    ).toEqual([]);
   });
 
   it("runs test:tools", () => {

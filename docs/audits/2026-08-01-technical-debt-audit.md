@@ -332,6 +332,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 137 | §689 | **§690** | **CI clean; a comparison wrong BY CONSTRUCTION; one unverified release gate bounded.** No `$?` reads or failure-masking anywhere in CI (corpus verified). A "23 of 30 gates missing from ci.yml" result was nonsense — `ci.yml:50` runs `verify:merge` and the 23 are its MEMBERS (§688's tautology shape, one level up). The real finding: `gatesFor` gives release four extra gates that **never run in CI**, and `staging-smoke` alone has no test. Its fail-closed half MEASURED — exit 2, *"not a pass"* — the assertion half bounded as a named hold |
 | 138 | §690 | **§691** | **DEFECT — the entire 26-gate surface hung on one unasserted line.** `gate-wiring`'s invocation corpus proves each gate is invoked *somewhere*, and "somewhere" **includes `run-gate.ts` itself** — so every gate stays "invoked" even if CI never runs the aggregate. **M212** replaced `run: pnpm verify:merge` with an echo and `test:tools` reported the same 3 known failures: **nothing noticed.** Forty phases of hardened gates ran in CI only because of an unchecked line (§634's shape at the outermost layer). Closed with a floored assertion; M212b fires. Literal pin, with its one false positive (a `verify:release` superset) recorded at the site |
 | 139 | §691 | **§692** | **Attempted the last wiring hole and concluded it should NOT be closed.** `verify:release` has no CI home because `staging-smoke` BLOCKS on an unset `SMOKE_API_BASE` — wiring it into nightly would go red every night for a reason nobody can fix from this checkout, and **a gate that must fail is worse than one that is absent**. Owner-held, one hold not two. Separately **M214** showed nightly's `check:traceability` deletion is undetected — but it is **redundant with the same gate on the merge path**, so it costs cadence, not coverage. Same mutation result as §691, an order of magnitude apart in consequence |
+| 140 | §692 | **§693** | **Linked the two wiring severities; left one limit open ON PURPOSE.** §691 and §692 gave identical mutation results with an order of magnitude between consequences, separated only by a fact neither asserted — `check:traceability` is also a merge gate. Generalised and enforced: **every gate-shaped script nightly runs must be on the merge path** (`backup` excluded as an operation, not a verdict). M215 fires. **M216 (nightly reduced to zero gates) deliberately does NOT** — its subject is unique coverage, not cadence, and pinning a cadence would encode a preference as a law. Third phase running where the next step is not the repo's to take |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -38758,3 +38759,53 @@ aggregate BLOCKED, exit 2** at `04c6fe1`.
   §691's severity. Nothing links the two, which is the honest limit of this section.
 - A nightly job is added that is NOT duplicated on the merge path → it needs §691's treatment on its own
   terms, and this table is where to check.
+
+## §693 — PHASE GATE: linking the two wiring severities, and one limit left open on purpose
+
+**Subject.** §692's recorded limit: *"if `check:traceability` is ever removed from the merge profile,
+nightly's copy becomes the sole path and inherits §691's severity. Nothing links the two."* §671's rule
+applies for the fourth consecutive phase — attempt it.
+
+### The link, stated as a rule the code can check
+
+§691 and §692 produced identical mutation results — a neutered CI step, undetected — with an order of
+magnitude between their consequences. The only thing separating them was a fact neither file asserted:
+`check:traceability` is **also** a merge gate, so nightly adds *cadence*, not *coverage*.
+
+That generalises: **a nightly job may repeat gates the merge path already runs; the day it adds a unique one,
+it needs §691's treatment on its own terms.** One assertion in `gate-wiring.test.ts` now enforces exactly
+that — every gate-shaped script nightly invokes must appear in `run-gate.ts`.
+
+Scoped deliberately to `check:`/`audit:`/`test:` names: `backup` is an **operation** the nightly owns
+outright — it writes an artifact rather than returning a verdict — and demanding it on the merge path would
+be a category error.
+
+**M215** adds a nightly-only gate and it fires.
+
+### The limit I did NOT close, and why
+
+**M216** reduced nightly to zero gate steps. The assertion **passes** — and that is correct, not a hole. Its
+subject is *unique coverage*, and §692 established that losing nightly's traceability step costs cadence
+only, which is a bounded loss the merge gate already covers.
+
+But it means **nothing protects the cadence itself.** A nightly that silently stops running its gate would
+satisfy every assertion in this repo. Closing that would require asserting *"nightly must run at least one
+gate"*, which pins a schedule rather than a guarantee — and this audit has no basis for saying which cadence
+is right. That is an operator decision, the same class as §692's *"which account's token, whose pager."*
+
+Recorded as open, deliberately, with the reason. **Three phases running, the honest answer has been that the
+next step is not the repo's to take** (§690 staging-smoke's assertion path, §692 the release profile, §693
+the cadence). That convergence is itself the signal.
+
+### Exit state
+
+`test:tools` 971 → **972**; typecheck 0; `nightly.yml` restored byte-identical after two mutations.
+**26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, aggregate BLOCKED, exit 2** at `04c6fe1`.
+
+**Reopen triggers**
+- A nightly-only gate is added → **now enforced** (M215). It must either join the merge profile or get its
+  own wiring assertion.
+- A third workflow appears → this assertion names `nightly.yml` by path; a new file inherits nothing.
+  §691's pin has the same shape, and both are literal by choice (§691's caveat explains why).
+- Someone decides the nightly cadence is load-bearing → then *"nightly runs ≥1 gate"* becomes assertable,
+  because there is finally a stated reason for it. Until then it would pin a preference as a law.
