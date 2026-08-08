@@ -320,6 +320,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 125 | §677 | **§678** | **Law-member sweep COMPLETE — 53 members, 2 defects.** L7's 21 refusals in `transition-gates.ts`: **21/21 fire** (`void new …` neuter). Full surface: eng.2 12/12 · eng.3 9/9 · eng.4 5 fire + 2 redundant · eng.10 **2 defects** · L7 21/21. §310's ten one-mutation proofs were sound; only eng.10 hid members. **The instrument was the finding:** four consecutive attempts produced readable-but-wrong output (shell `\|\|` split · per-file line vs summary · stdout-only when vitest writes stderr · interleaved sequential runs). Fixed by reading the EXIT CODE + asserting a fixed point. When the question is binary, use the binary signal |
 | 126 | §678 | **§679** | **A hope turned into a control.** Swept the register's 13 agents (REQ-026…038) against REQ-039's "every agent" law. The sweep **re-derived §135/§179 independently** — ~5 of 13 emit `agent.acted` — which is evidence the record is COMPLETE, not new work. §135's "Concierge emits none" **re-verified against an apparent contradiction**: both references are comments explaining the absence. The gap is owner-held (DoD is register scope), but its expiry trigger (`ANTHROPIC_API_KEY` binds) was HUMAN — now gate-enforced. M197 binds the key → fires; M198 makes the Concierge emit → the self-obsolescence assertion fires |
 | 127 | §679 | **§680** | **DEFECT in the gate §679 shipped, plus a false carried claim I repeated.** The go-live checklist names `COPILOT_MODEL` — and `routes/copilot.ts` selects a **live ClaudeCopilot**, so §135's "the Concierge is the only agent that calls an LLM" is FALSE and §679 repeated it unverified. REQ-038 is a second LLM agent emitting no `agent.acted`. §679's gate watched `ANTHROPIC_MODEL` only; the model key is **per-agent**, so switching on the Copilot alone would have been silent. Generalised over an `LLM_AGENTS` roster; M199 (`COPILOT_MODEL`) fires what §679 could not see. Both claims struck, not deleted |
+| 128 | §680 | **§681** | **The roster was wrong a THIRD time, so it stopped being a roster.** §680 recorded a hand-maintained-list limit; §671 says a limit recorded twice is managed, not closed — so it was closed. Deriving the population (*every `*_MODEL` the source reads*) found **`MIGRATOR_MODEL`**, a third LLM agent that already existed: §680's "a third adapter appears" trigger described the PRESENT. The Migrator reports via a **direct `agent_runs` insert** binding `cost` as `"{}"`, so the uniform "emits `agent.acted`" check was false-negative by construction — each agent now carries its own predicate. **The non-vacuity floor caught my own glob bug on its first run** (`src/**/*.ts` misses direct children: 2 of 3 keys) |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -37941,3 +37942,76 @@ hardening caught a genuine dangling reference in the same session it was written
 - Either agent starts emitting `agent.acted` → its self-obsolescence assertion fires and asks to be removed.
 - The checklist's Anthropic rows change shape → they are the roster's source, and this gate does not read
   them; it reads the wrangler configs, which is where a binding becomes real.
+
+## §681 — PHASE GATE: the roster was wrong a third time, so it stopped being a roster
+
+**Subject.** §680 closed with an honest limit: *"`LLM_AGENTS` is hand-maintained and nothing counts it
+against the bindings the checklist names. §671's completeness-floor pattern applies and is not yet applied
+here."* §671's own lesson is that **a limit recorded twice without an attempt is being managed, not closed** —
+so this phase attempts it rather than restating it.
+
+### Deriving the population found a third agent that already existed
+
+The floor needs a derivation, and the derivation is *"every `*_MODEL` binding the source reads."* Measured:
+
+```
+ANTHROPIC_MODEL   workers/agents/src/index.ts     Concierge   (§679)
+COPILOT_MODEL     workers/api/src/routes/copilot  Copilot     (§680)
+MIGRATOR_MODEL    workers/api/src/routes/import   Migrator    ← already there
+```
+
+**REQ-035 (Migrator) is a third LLM-capable agent**, and it has been one all along. §680's reopen trigger —
+*"a third LLM adapter appears"* — did not describe a future event. It described the present, and would have
+gone on describing it for as long as the list stayed a list.
+
+**The roster was wrong twice in two phases.** §679 listed one; §680 found a second by reading an ops doc;
+§681 found a third by deriving the set instead of enumerating it. That is the argument against hand-written
+rosters made three times in three phases, on the same roster.
+
+### The mechanism differs per agent, which a uniform assertion would have missed
+
+The Migrator does **not** emit `agent.acted`. It writes `agent_runs` **directly** (`routes/import.ts`), and
+binds `cost` as the literal `"{}"` — an honest unknown, deliberately, because *"token cost is not metered
+here; never a fabricated 0."*
+
+So the check §679 and §680 both used — *does this file mention `agent.acted`?* — is **false-negative by
+construction** against the Migrator: it would report a missing emit that is correctly absent, while the
+actual hole (a `cost` column that stays `{}` when tokens start costing money) went unexamined.
+
+Each agent now carries its **own predicate** and its **own remedy**, because the law is *"an LLM agent's cost
+must be observable"*, not *"an agent emits a particular event"*.
+
+### The floor caught my own scan bug on its first run
+
+The completeness assertion failed immediately — not on the roster, but on the **scan**: `git ls-files
+"workers/*/src/**/*.ts"` finds 2 of the 3 keys, because `src/**/*.ts` requires at least one subdirectory and
+`workers/agents/src/index.ts` is a direct child of `src/`. Widened to `workers/**/*.ts`, all three appear.
+
+**The non-vacuity floor caught the selector it was written to protect, on its first execution** — §610's rule
+demonstrating itself. Had the floor been omitted, the equality check would have compared two derived keys
+against a three-entry roster and been read as *"the roster is over-broad"*: the exact opposite conclusion.
+
+### Closed
+
+Eight assertions: a config-scan floor, the **completeness floor**, one conditional per agent, one
+self-obsolescence check per agent. **M201** binds `MIGRATOR_MODEL` and the Migrator's conditional fires — a
+binding neither §679 nor §680 could see. **M202** adds a fourth `*_MODEL` to source without enrolling it and
+the completeness floor fires. Both restored.
+
+`LLM_AGENTS` is still written by hand, but it can no longer be **wrong**: the set is derived, and the list
+must equal it.
+
+### Exit state
+
+`test:tools` 963 → **966**; typecheck 0; both mutated files restored. **26 gates — 21 PASS · 0 FAIL ·
+5 BLOCKED** (§675 at `b97687b`).
+
+**Reopen triggers**
+- A `*_MODEL` binding is added → the completeness floor fires. This trigger is now **enforced**, which is the
+  difference between this section and §680's version of it.
+- An LLM adapter is selected by something other than a `*_MODEL` name (a feature flag, a config-pack field,
+  a hardcoded model) → the derivation misses it, and that is this gate's real boundary. The derivation is
+  only as good as the naming convention it keys on — §652's rule, which this phase used to fix the roster
+  and has not escaped.
+- The Migrator's `agent_runs` insert is refactored → its predicate greps for a literal `"{}"` in a `.bind(…)`
+  and is the most brittle of the three by some margin.
