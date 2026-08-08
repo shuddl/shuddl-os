@@ -274,6 +274,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 79 | §631 | **§632** | "Which product code is untested?" — the import-name proxy said 23 logic files, and it is UNUSABLE: barrels, worker roots and DO stubs never name the file. M137 killed it on the largest entry (366 lines, "never imported", 3 tests red). Real coverage needs a tool that is unregistered scope — REQ-211 defines coverage as 100% REGISTER coverage, so that row is the owner's to write. This audit measures by MUTATION: 137 this session |
 | 80 | §632 | **§633** | Asked the production question — does it FAIL SAFELY? §619 proved the evidence hash is written at capture; this examines what §619 left open: the bytes never arriving. No sweep reconciles it — the guarantee sits EARLIER, as a Biller precondition that fails closed to held(evidence_missing) with no terminal marker, so the anti-join keeps re-driving it. M138: 4 red, covering a torn D1/R2 write and a tombstoned document |
 | 81 | §633 | **§634** | Closed §633's trigger: the evidence precondition is gated on `deps.evidence !== undefined`, so an UNWIRED bucket skips it entirely — invoices for PODs with no bytes, silently, because skipping is the documented behaviour. A comment was the only thing asserting production wires it. Three assertions (deps line, binding in every scope, and the GATING ITSELF so the file self-obsoletes), M139/M140/M141 each red on its own |
+| 82 | §634 | **§635** | Swept §634's class three ways across all src: 10 candidate sites, and every one but §634's is plumbing or config assembly — it was the LONE instance. The reason is structural: the repo has a `NotConfigured*` idiom used TEN times that rejects LOUDLY, and the single place using a bare `!== undefined` branch was the single place that could skip silently. Eighth measurement error — git -E does not honour `\w`, and zero adapters read as a finding |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -34998,3 +34999,59 @@ clean.
   is written against this call site and would pass over the new one while the old line lingers.
 - A fourth deployable scope is added → the binding assertion floors at 3, so scope four is unguarded until the
   floor rises. It is a floor rather than an exact count for §609's reason, and that is the cost of the choice.
+
+---
+
+## §635 — PHASE GATE: sweeping §634's class, and the idiom that made it a lone exception
+
+**Subject.** §634 found a guarantee gated on optional wiring: `if (deps.evidence !== undefined)` skips the
+whole byte precondition when the bucket is absent. §623's rule — a known class deserves a sweep, not a point
+fix — so it was swept three ways across every source file in `packages/` and `workers/`.
+
+| Variant | Sites | Verdict |
+|---|---|---|
+| `if (X.field !== undefined)` guarding a block | 8 | 7 are optional-parameter plumbing (headers, request bodies, a column set) and one RPC-envelope branch. The eighth was §634's. |
+| optional-chained call on a dep (`deps.x?.check()`) — a silent no-op | **0** | the shape does not occur |
+| truthiness guard on a dep/env field | 2 | both config assembly (`if (env.ANTHROPIC_API_KEY) cfg.apiKey = …`) |
+
+**§634's was the only instance.** A clean negative — and the interesting part is *why*.
+
+### The idiom is the defense
+
+This repo has a named pattern for "not wired", and it is used **ten times**:
+
+`NotConfiguredSender` · `NotConfiguredParser` · `NotConfiguredCopilot` · `NotConfiguredTransport` ·
+`NotConfiguredBilling` · `NotConfiguredEventSource` · `NotConfiguredFeedReader` · `NotConfiguredMigrator` ·
+`NotConfiguredSecretResolver` · `NotConfiguredWebhookTransport`
+
+Each is an adapter that **rejects loudly** rather than a branch that skips quietly. §605 measured the sender's:
+*"correct bearer, NO RESEND_API_KEY → actionable not-configured message, and NOTHING is sent."* §618 measured
+the EDI transport's: *"with or without creds, no environment can transmit real EDI yet."* The copilot's carries
+the reasoning explicitly — *"rejects loudly … a fabricated answer"* is the thing being prevented.
+
+So the structural finding: **where the repo used its idiom, unconfigured fails loud by construction. The single
+place that used a bare `!== undefined` branch instead was the single place that could skip silently.** Ten
+applications, one deviation, one defect — and the defect was in the deviation.
+
+That is a better argument for the idiom than any style rule, and it is why this sweep is worth recording as a
+clean negative rather than skipped as "nothing found".
+
+### The eighth measurement error
+
+The first two attempts to enumerate those adapters returned **zero results**, which read as "the idiom does not
+exist" — moments after §634 had cited `NotConfiguredSender` by name. The cause: `\w` is a GNU extension that
+git's `-E` does not honour. `[A-Za-z]` found all ten.
+
+Eighth measurement failure this session, and the same species as §616's parse (0 documented modules) and
+§625's glob arithmetic: **a broken measurement returns the shape of an interesting finding.** Zero adapters
+would have been a story; it was a regex flag.
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged. No code changed — this phase is a sweep and a negative result.
+
+**Reopen triggers**
+- A new integration is wired with a bare `!== undefined` branch instead of a `NotConfigured*` adapter → the
+  §634 defect, reintroduced. Nothing lints for this; the sweep above is nine lines of Python and re-runnable.
+- A `NotConfigured*` adapter is written that no-ops instead of rejecting → the idiom's name would then be
+  guaranteeing something it no longer does, which is worse than no idiom.
