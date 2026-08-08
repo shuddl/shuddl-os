@@ -274,6 +274,15 @@ function compareCase(
       if (inv.line_no !== i + 1) {
         mismatches.push({ name: c.name, field: `lines[${i}].line_no`, expected: i + 1, actual: inv.line_no });
       }
+      // §688 — THE NEXT THREE COMPARISONS CANNOT FIRE TODAY, and that is worth saying out loud rather than
+      // leaving for the next person to discover by writing tests that pass for the wrong reason (§687 took
+      // three drafts). `composeInvoice` copies `kind: line.kind` VERBATIM and writes `line_no: i + 1`, and
+      // its `gl_map` is `glMap(kind)`, which is a lookup into the same frozen `GL_MAP` this harness reads.
+      // So `inv.kind`, `inv.line_no` and `inv.gl_map` are the compared values BY CONSTRUCTION.
+      //
+      // They are kept deliberately: they are defence against a future composer that maps rather than mirrors,
+      // and on that day they become live and testable. Until then no perturbation can make them fail, so
+      // their deletion-silence (§687) is a property of the construction, NOT missing coverage.
       const expectedAccount = Object.hasOwn(GL_MAP, q.kind) ? GL_MAP[q.kind as keyof typeof GL_MAP] : undefined;
       if (inv.gl_map !== expectedAccount) {
         mismatches.push({ name: c.name, field: `lines[${i}].gl_map`, expected: expectedAccount, actual: inv.gl_map });

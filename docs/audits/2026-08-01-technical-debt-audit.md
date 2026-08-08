@@ -327,6 +327,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 132 | §684 | **§685** | **The never-run gates CAN fail — verified by mutation.** §684's last uncomfortable line was that 5 of 26 gates have never executed. Three are the parity harnesses; §17 gave all three negative-test coverage (18 tests in ONE file, despite its `tools/rater/` location — my "no co-located test" signal was a file-location artifact). Mutation-proved each comparator: **all DETECTED**. The near-miss is the lesson — a crude first-`!==` anchor reported the rater harness SILENT, but that occurrence is a Zod refine on FIXTURE SHAPE, unreachable without the absent fixture. **A mutation is only evidence about the line it actually changed** |
 | 133 | §685 | **§686** | **DEFECT ×2 — the inversion detected, the deletion did not.** Attempting §685's recorded limit: the field-name proxy said `outcome`/`hold_reason` were uncovered; **inverting** both fired, dissolving that. But inversion is the WRONG mutation — it reddens on the false-positive side. Replacing each guard with `false` (a comparator that stops reporting) left the suite **GREEN** for both, while the same mutation on the rater's two fires. That is §17's *"field silently skipped"* — the case that CERTIFIES a divergent replay, in a BLOCKED harness that has never run. **Rule: inversion asks "does it run?", deletion asks "does anything depend on its verdict?"** |
 | 134 | §686 | **§687** | **Three drafts of one test, each passing for the wrong reason — the correction IS the output.** Sweeping all 22 invoice guards by deletion reported 19 SILENT, which is **not** a gap: the smoke set is a PASSING corpus, so deleting a correct comparator cannot change a passing result. **Deletion only measures against an input that FAILS.** Then three drafts targeting the structural penny-parity comparison were each caught by the wrong guard (expectation → exception → a redundant GL-side sibling). Shipped as a PROPERTY pin with the claim corrected, explicitly disclaiming what it does not prove |
+| 135 | §687 | **§688** | **Not untested — UNTESTABLE, which is a better fact.** §687's residual (line kinds, line numbers, GL accounts "asserted only by the passing smoke set") traced to the composer: `kind: line.kind` verbatim, `line_no: i + 1` over the same index, `gl_map` a lookup into the same frozen `GL_MAP` the harness imports. All three compare a value to itself — **no perturbation can make them fail.** Kept as defence against a future composer that MAPS rather than mirrors, now marked at the site. Completes a four-way taxonomy of silent mutations: unreachable line · passing corpus · sibling guard · **construction-forbidden** |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -38439,3 +38440,61 @@ Together: to prove a gate can say no, delete the guard **and** feed it something
 - A structural dimension gains a perturbation test → that dimension's deletion result becomes meaningful.
   Until then, **only `outcome`, `hold_reason`, `sell_cents`, `exception` and the sell identity are proved**;
   line kinds, line numbers and GL account mapping are asserted only by the passing smoke set.
+
+## §688 — PHASE GATE: three "unproven" comparisons that cannot fail by construction
+
+**Subject.** §687 closed with an honest residual: *"line kinds, line numbers and GL account mapping are
+asserted only by the passing smoke set."* §671's rule is to attempt a recorded limit. Attempted — and the
+answer is that they are not untested, they are **untestable**, which is a different fact and a better one.
+
+### Traced to the construction
+
+| harness check | composer | verdict |
+|---|---|---|
+| `inv.kind !== q.kind` | `compose.ts:166` — `kind: line.kind`, copied **verbatim** | tautology |
+| `inv.line_no !== i + 1` | `compose.ts:165` — `line_no: i + 1`, same index | tautology |
+| `inv.gl_map !== expectedAccount` | composer uses `glMap(kind)`; `glMap` is a lookup into `GL_MAP`, which is the same frozen map this harness imports | tautology |
+
+All three compare a value to itself along a path the construction fixes. **No perturbation can make them
+fail**, so their deletion-silence in §687 is a property of the code's shape, not missing coverage.
+
+The near-miss worth naming: `compose.ts` carries a **compile-time subset proof** for `PriceLineKind`, and it
+would have been easy to read that as settling the question. It does not — it proves the *vocabularies* nest,
+not that the composer mirrors at runtime. The runtime mirroring is line 166, and only reading it decides this.
+
+### Kept, not deleted — and marked
+
+They are defence against a future composer that **maps** rather than mirrors; on that day they become live
+and testable. Deleting them would remove a guard for a change nobody has made yet, which is not this audit's
+call to make.
+
+What was missing is that nothing said so. A comment now names all three at the site, states why they cannot
+fire, and names the event that would make them live. **§687 spent three drafts and four mutations discovering
+this; the next reader spends none.**
+
+### The pattern this completes
+
+Across §685–§688, four different explanations for a silent mutation, each needing a different response:
+
+| explanation | example | response |
+|---|---|---|
+| the mutation hit an unreachable line | §685's Zod refine on absent-fixture shape | re-target the mutation |
+| the corpus has nothing that should fail | §687's 19 guards over a passing smoke set | perturb the input |
+| a sibling guard covers the property | §687's `glTotal` vs `total` | disable both (§677) |
+| **the construction forbids the divergence** | **this section** | **document, do not test** |
+
+Only the *first two* mean the measurement was wrong. The third and fourth mean the code is fine and the
+finding is a record defect — which is what both of these turned out to be.
+
+### Exit state
+
+Comment-only change to `invoice-parity.ts`; no logic touched. `parity-detection.test.ts` 21/21; typecheck 0;
+`test:tools` **970**. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED** (§683 at `0b6f817`).
+
+**Reopen triggers**
+- `composeInvoice` stops copying `kind` verbatim, stops numbering `i + 1`, or derives `gl_map` from anything
+  other than `GL_MAP` → all three comparisons become live, and the comment at the site says so. **This is the
+  one trigger in the audit that fires by making a currently-dead check meaningful**, rather than by breaking
+  something.
+- A structural dimension is added that is NOT construction-fixed → it needs a perturbation test, and §687's
+  method (inject a `priceFn`, match every other dimension) is the recipe.
