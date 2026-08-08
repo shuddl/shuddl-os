@@ -199,3 +199,52 @@ describe("position.updated accuracy_m is non-negative", () => {
     expect(() => LedgerEvent.parse({ ...f, payload: { ...(f.payload as object), accuracy_m: -1 } })).toThrow();
   });
 });
+
+// ─── REQ-118 §663 — THE CLIENT-SUPPLIED ID IS THE IDEMPOTENCY KEY, AND ITS FORMAT WAS UNPINNED. ───────
+// §662's shape, one layer deeper. `eventInputBaseShape.id` is `z.string().uuid()` on all 35 kinds, and
+// `id` is the ONE primary-key field a client supplies (the DO owns seq/prev_hash/hash/stream_id — see
+// events.ts:384). The sequencer then uses that value verbatim as the dedupe key:
+//
+//     SELECT * FROM events WHERE id = ?   (sequencer.ts:295 — "replay by event id returns the original")
+//
+// So the id is not decoration: it decides whether an append is a NEW event or a replay of an old one.
+// `.uuid()` is what keeps that namespace unguessable and collision-free. Dropped it (M171) and contracts
+// 292 + ledger 634 + api 798 = 1,724 tests stayed GREEN — nothing anywhere presented a malformed id.
+//
+// Unpinned, `id: "1"` parses. The second caller to pick "1" does not append: the DO finds the row and
+// returns SOMEONE ELSE'S event as their own success. On an append-only ledger that is the one failure
+// mode with no correction path — the event was never written, so there is nothing to correct (I3/I7).
+//
+// Tested at the CONTRACTS boundary, not the DO, because that is where the constraint lives and where a
+// refactor would drop it. Presence tests cannot reach here: Zod rejects an absent required string on the
+// type check, before any refinement is consulted (§662).
+describe("REQ-118 §663: a client-supplied event id must be a UUID (the idempotency key)", () => {
+  const base = {
+    id: "00000000-0000-4000-8000-00000000ab01",
+    ts: 1_720_000_000_000,
+    actor: { party: "party-carrier" },
+    party_refs: [] as string[],
+    evidence: [] as never[],
+    source: "native" as const,
+    confidence: 10_000,
+    kind: "freight.counted" as const,
+    payload: { pieces: 3 },
+  };
+
+  it("accepts a well-formed uuid (non-vacuity — the fixture must be otherwise valid)", () => {
+    expect(EventInput.parse(base).id).toBe(base.id);
+  });
+
+  it("rejects a guessable short id — the collision that silently returns another event", () => {
+    expect(() => EventInput.parse({ ...base, id: "1" })).toThrow();
+  });
+
+  it("rejects an EMPTY id", () => {
+    expect(() => EventInput.parse({ ...base, id: "" })).toThrow();
+  });
+
+  it("rejects a uuid-SHAPED string that is not one — the format is checked, not the length", () => {
+    // 36 chars with the right dash positions, so a `.length(36)` or a loose regex would pass it.
+    expect(() => EventInput.parse({ ...base, id: "zzzzzzzz-zzzz-4zzz-8zzz-zzzzzzzzzzzz" })).toThrow();
+  });
+});

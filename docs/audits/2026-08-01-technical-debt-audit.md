@@ -302,6 +302,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 107 | §659 | **§660** | Filled §659's trigger: three token types make SIX ordered cross-type pairs and only ONE was tested. The untested pair that matters is **cap ↔ cap** — a status cap verifying as a doc cap is privilege escalation between two ANONYMOUS surfaces. Both directions now pinned. Proving they can fail took FIVE mutations: four layers defend it, the fourth being a required-field shape, and M167 (shared domain + relaxed strict) is the realistic DRY refactor that fires them |
 | 108 | §660 | **§661** | Matrix closed at **6 of 6**. session→status was already tested, so the real gap was a CAP presented as a session Bearer token — **the only pair that crosses the auth boundary**, turning an anonymous capability into an authenticated session. M168 (shared secret alone) leaves them green; M169 (+ the claims guard) fires them: layer 1 is not what stops it, the CLAIMS SCHEMA is |
 | 109 | §661 | **§662** | **DEFECT — a stated invariant with a stated consequence, defended by nothing.** `sub: z.string().min(1)` exists because an empty co-sign is "an unattributable audit record"; dropping `.min(1)` left contracts at 291/291 AND api at 798/798. The existing test omits the field, and **Zod rejects an ABSENT required string before `.min(1)` is consulted** — a presence test can never reach a value constraint. Absent and empty are different inputs |
+| 110 | §662 | **§663** | **DEFECT — the same class, on the one primary key a CLIENT supplies.** Swept §662's trigger across all 73 required-field refinements in `packages/contracts`; the survivor was `eventInputBaseShape.id: z.string().uuid()`, which the sequencer uses verbatim as the dedupe key (`SELECT * FROM events WHERE id = ?`). Dropping `.uuid()` left **1,724 tests green** across all three owning suites. Unpinned, `id: "1"` parses and the second caller to pick it is returned SOMEONE ELSE'S event as their own success — **on an append-only ledger the un-written event has no correction path** |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -36666,3 +36667,98 @@ restored byte-identical.
   presence test will not reach it, and this phase found the one on the field that ends up in an audit record.
 - `Role` gains a permissive member (a wildcard, a service principal) → §661's layer 2 weakens, and M168
   already showed layer 1 does not hold alone.
+
+## §663 — PHASE GATE: the same class, on the one primary key a client supplies
+
+**Subject.** §662's first reopen trigger was the only one naming a *currently checkable* shape rather than a
+future change: *"another value refinement on a required field — a presence test will not reach it."* Swept it.
+
+### The sweep, and why it narrowed twice
+
+`packages/contracts/src` carries **73** value-refinements on required fields. That is far too many to pin
+individually, and most `.min(1)` on an id is hygiene — pinning all 73 would be volume, not assurance.
+
+§662's defect was distinguishable: **the schema carried a comment explaining why the constraint exists**, and
+named the consequence. Filtering to refinements with a multi-line explanatory comment above them gave **5**,
+one of which was §662's own `sub`. Reading the other four, the survivor was not the one with the loudest
+comment — it was the one where the *field* is client-supplied:
+
+```
+packages/contracts/src/events.ts:391   eventInputBaseShape.id = z.string().uuid()
+```
+
+### Why this one is sharper than §662's
+
+`EventInput` is defined as *"the client-suppliable subset"* — the DO owns `seq` / `prev_hash` / `hash` /
+`stream_id` precisely so a client cannot forge them (`events.ts:384`). **`id` is the one primary-key field
+that survives that stripping**, and the sequencer uses the client's value verbatim as the dedupe key:
+
+```
+workers/api/src/do/sequencer.ts:295
+  SELECT * FROM events WHERE id = ?   // "replay by event id returns the original row (no second append)"
+```
+
+So the id is not decoration — it decides whether an append is a NEW event or a REPLAY of an existing one.
+
+**M171** dropped `.uuid()` from both occurrences and ran every suite that owns the append path:
+
+```
+packages/contracts —  292 passed (292)
+packages/ledger    —  634 passed (634)
+workers/api        —  798 passed (798)
+                     ─────────────────
+                     1,724 tests, all green
+```
+
+Nothing anywhere presents a malformed event id. The two greps that looked like counterexamples were a
+`requested_event_id` inside an approvals payload and an over-length `shipment_id` — neither is an event id.
+
+**The failure it admits.** Unpinned, `id: "1"` parses. The second caller to choose `"1"` does not append:
+the DO finds the existing row and returns **someone else's event to them as their own success**. On an
+append-only ledger that is the one failure mode with no correction path — corrections are new events (I3/I7),
+but here the event was never written, so there is nothing to correct and nothing to detect.
+
+### Two findings retracted by measurement
+
+Both looked live and neither was:
+
+- **`stream_id`'s `.regex()` is duplicated in `sequencer.ts:200`** — two hand-written copies of one rule is
+  exactly the RED this repo's own `share-lint-matchers-with-parity-tests` skill exists for. Already closed:
+  `workers/api/test/stream-id-parity.test.ts:24` asserts the two are **character-identical** (audit §228).
+- **The schema regex is the live guard** — it is the *backstop*. `sequencer.ts:254` validates the format
+  before any work, and its comment says the schema parse below "stays as the now-unreachable backstop."
+
+### Closed
+
+Four assertions in `packages/contracts/test/events.test.ts`, the file that owns `EventInput`. Tested at the
+contracts boundary rather than the DO because that is where the constraint lives and where a refactor drops
+it. One is a non-vacuity guard (the fixture must be otherwise valid); one rejects a uuid-*shaped* string with
+correct length and dash positions, so a `.length(36)` or a loose regex could not satisfy this test.
+
+**M171c** re-drops `.uuid()`: the three rejection tests fire, the non-vacuity guard stays green.
+
+### Exit state
+
+**21 PASS · 0 FAIL · 5 BLOCKED at HEAD** (§647, unchanged — this phase adds tests only).
+`packages/contracts` 292 → **296**; typecheck 0; mutation restored byte-identical.
+
+`test:tools` **951 passed (951), measured with the register at HEAD** — up from §647's 949 because §656
+(`0dc22b6`) added exactly two `it()` blocks to `gate-wiring.test.ts`, confirmed by counting them in that
+commit rather than inferring the delta (§646: name the tree state, and say whether it was measured or
+derived). With the working tree's uncommitted `REQ-289` GTM row present the same command reports **3 failed**
+— the coverage pair plus the terminal-ID pin, all three the row and none of them this phase's. Attributed by
+restoring the register to HEAD and re-running, not by reading the failure names (§"attribute the RED").
+
+The citation ratchet needed its baseline rewritten (`pnpm check:citations --write-ratchet`), because the
+sequencer and schema references above are unanchored `path:line` form. Writing this paragraph then grew the
+ratchet a *second* time — restating those same references in prose counts as new citations, and a bare
+`events.ts:NNN` is ambiguous besides (two tracked files carry that basename). The gate was right both times;
+the prose was redundant. **A record of a citation is a citation** — refer to the section, not the line.
+
+**Reopen triggers**
+- A new field is added to `eventInputBaseShape` → it is client-suppliable by construction. Ask what the DO
+  does with the value, not whether it parses.
+- The sequencer's idempotency key stops being `id` (a composite key, a client-scoped namespace) → this
+  phase's consequence argument is what changes, and the test's comment names the query it rests on.
+- Any of the other 71 refinements gains a comment explaining its consequence → that is the signal §662 and
+  this phase both selected on, and it means someone decided the constraint is load-bearing.
