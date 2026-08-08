@@ -363,6 +363,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 168 | §720 | **§721** | **The precache list must now name files that exist.** §720's sharpest edge closed: `cache.addAll` is **atomic**, so one typo in a four-element list does not lose an asset — it **removes the precache entirely**, reaching a driver as *"the app doesn't open offline"*, which points anywhere except a mistyped string. Gate resolves each `SHELL` entry to a producer by Vite's two rules, **plus an assumption assertion** that `addAll`/`waitUntil` still exist so the file self-obsoletes. M236 (orphan path) and M237 (per-entry adds) each fire the right one |
 | 169 | §721 | **§722** | **Same shape on the command surface — already guarded, and the guard detects.** `greige-style.json` is a template whose `{PROVIDER_*}` refs are substituted by `.split().join()` — **a silent no-op if the constant and the JSON drift**, shipping a style MapLibre cannot resolve (*"the demotiles-schema class of bug"*, blank basemap). `entities.test.ts:45` asserts `not.toContain("PROVIDER_")` — **on the PREFIX, not either full placeholder**, so it survives a rename, which is the drift that defeats a literal match. M238 fires two tests. Same hazard class as §721, opposite authoring instinct |
 | 170 | §722 | **§723** | **Portal: the contract is a route parity a regex cannot check.** Nine production paths; five reported UNRESOLVED and **none were** — `/v1/bookings` exists only in `api.test.ts` as a dummy, and the rest are **concatenation bases** (`/v1/shipments/${id}` vs the server's `:id`). Reconciling those is a routing-table comparison, not a string search — the **fourth** over-reporting detector this session. What guards it is `portal-isolation.spec.ts`, structurally: a 404 breaks the page the assertions read. **Three surfaces, three mechanisms, only the driver's was missing — the question transferred, the answer did not** |
+| 171 | §723 | **§724** | **CORRECTION — §723's claim was false, measured.** It said the portal e2e structurally guards route parity. `playwright.config.ts` starts **three surface servers and no API**, and the suite passes **6/6** — so it already passes with no API at all. **Every assertion is a NEGATIVE** (`not.toMatch`, `not.toContain`, `toHaveCount(0)`, plus a status element visible in *both* loaded and refused states): **an empty page satisfies all six.** The suite is a correct ISOLATION test; §723 borrowed that guarantee to cover LIVENESS. **An all-negative suite cannot distinguish "correct" from "nothing happened"** — §609's floor at full count |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -40589,3 +40590,69 @@ e2e 6/6. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, exit 2** at `aa4487f`.
 - `portal-isolation.spec.ts` stops driving the real worker (mocked fetch, stubbed API) → the structural guard
   above evaporates silently, and the tests keep passing. **That is the failure mode worth watching**, and it
   is a review question rather than a gateable one.
+
+## §724 — PHASE GATE: correcting §723 — an all-negative suite passes on an empty page
+
+**Subject.** §723 concluded that the portal's route parity is *"guarded by the e2e suite, structurally — a
+404 from a mistyped path fails those tests by making the page not render what they assert on."* §714's rule
+is that a claim this audit makes about itself is measurable. **Measured, and it is false.**
+
+### The measurement
+
+`playwright.config.ts` starts **three** `webServer` entries — `command`, `portal`, `driver`. **There is no
+API worker.** And the e2e suite passes **6/6**. So the portal suite already passes with no API running at
+all, which settles it: it cannot distinguish a mistyped route from a working one.
+
+Every assertion in `portal-isolation.spec.ts` is a **negative**:
+
+```ts
+expect(url).not.toMatch(/[?&]party_id=/);     // no scope on the wire
+expect(url).not.toMatch(/[?&]tenant=/);
+expect(url).not.toContain(PARTY_B);
+await expect(status).toBeVisible();            // present in the loaded AND refused states
+await expect(page.getByText(PARTY_B)).toHaveCount(0);
+expect(await page.content()).not.toContain(`SHP-${PARTY_B}`);
+```
+
+**An empty page satisfies all six.** No leaked scope, no foreign party id, and a status element that renders
+a refusal just as readily as a board.
+
+### The suite is right; my reading of it was not
+
+`portal-isolation.spec.ts` is an **isolation** test and it is correctly written for that: it proves the client
+never puts a party scope on the wire and never renders another party's rows — REQ-025 territory, and it does
+that job. What it does **not** prove is **liveness**: that the portal successfully reaches the API at all.
+
+§723 borrowed the first guarantee to cover the second. That is the error, and it is the same shape §685
+caught in the parity harnesses — *a test existing is not a test detecting* — arriving one level up: **a suite
+existing for one purpose is not a suite covering an adjacent one.**
+
+### The transferable rule
+
+**A suite of all-negative assertions cannot distinguish "correct" from "nothing happened."** §609 added
+`MIN_ASSERTIONS` floors so a browser gate could not pass at zero *executed*; this is the same hazard at full
+count — six assertions ran, all six passed, and the page could have been blank. **The floor that matters here
+is not how many assertions ran but whether any of them is positive.**
+
+### What is actually true about the portal's route parity
+
+**Unguarded.** Not statically (§723 measured why a regex cannot do it: `${id}` vs `:id`, prefix
+concatenation, test fixtures) and not by the e2e (this section). A mistyped path renders a refusal, and a
+refusal is what the suite expects to tolerate.
+
+Closing it needs **one positive assertion** — that the board renders a known seeded row — which needs an API
+in the harness: `wrangler dev` plus a seeded D1, in a `webServer` entry that does not exist today. That is
+infrastructure, and its absence is why the gap exists rather than an oversight in the spec.
+
+### Exit state
+
+No code change. `test:tools` **984**; lint 0; typecheck 0; e2e 6/6 — **and that 6/6 now means less than it
+did before this section**, which is the point of measuring it. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED,
+exit 2** at `aa4487f`.
+
+**Reopen triggers**
+- An API `webServer` entry is added → the portal suite gains the ability to assert **positively**, and the
+  first assertion to write is a seeded row rendering. Until then the suite's green is an isolation claim
+  only, and this section is what it means.
+- Another suite is read as covering an adjacent guarantee → ask what its assertions would do on an empty
+  page. Six negatives and a visible-in-both-states element is the shape to recognise.
