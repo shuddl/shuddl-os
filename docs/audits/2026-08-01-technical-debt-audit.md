@@ -348,6 +348,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 153 | §705 | **§706** | **STOPPING POINT — full gate re-derived at `e194d87`: 26 gates, 21 PASS · 0 FAIL · 5 BLOCKED, exit 2.** `lint` among the PASS, so §705's fix is confirmed **by the gate that owns it** rather than the subset that missed it for ten phases; `rc` captured before any substitution (§689's trap avoided by construction). §663–§706 = **43 phases, 45 commits, 13 DEFECT rows**, and the locus moved build → instruments → build. Three self-corrections: a false green (§689), a struck trigger (§699), lint red for ten phases (§705). **A subset that passes is not the gate** |
 | 154 | §706 | **§707** | **The dev loop existed; its exit 0 said more than it meant.** `pnpm verify` chains 16 checks **including lint** and runs clean end-to-end (the 5 fixture-blocked gates report PENDING without halting the `&&`) — so §705's ten-phase lint red was avoidable with a command already there. But `verify` exits **0** with five gates pending and prints **zero** promotion warnings, while `verify:merge` says *"NOT PROMOTABLE… This is NOT a green."* §689's false-green shape, **structural rather than a shell slip**. Closed: the dev loop now states which question its green answers |
 | 155 | §707 | **§708** | **Two load-bearing claims verified, both true.** CLAUDE.md rule 4's *"exits 2 on `--mode merge`"* holds for **all five** blocked gates (bare 0 / merge 2) — which is also why `pnpm verify` legitimately sees 0. And the `--if-present` hazard in `unit-tests` (17 packages, 313 test files, a lost `test` script silently skipped) **is covered**: M227 deletes `packages/rater`'s script and `test-collection` names all 157 files, because the package stops being a **runner root** and falls through to `<root>`. **A floor can guard something its name does not mention** — I would have been wrong to assume it |
+| 156 | §708 | **§709** | **DEFECT — 208 test files were ONE edit from leaving the largest gate.** §708 declined to gate a combination as *"two edits in opposite directions"*; **eleven packages already ship their own `vitest.config.ts`**, so it is one. Deleting `packages/map`'s `test` script left test-collection, gate-wiring AND ci-contract all green — `--if-present` skips in silence, and an own-config package keeps runner-root status so its files stay "collected" while never running. `workers/api` alone is 69 files. Floor added; M228b fires on both probes. **"Recorded rather than gated" is an effort claim, and effort claims are measurable** — one `git ls-files` falsified it |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -39701,3 +39702,69 @@ No code change; nothing to fix. `packages/rater/package.json` restored byte-iden
   rather than gated.
 - CLAUDE.md's rule-4 wording changes → the five-gate table above is the measurement behind it, and it is
   dated today rather than inherited.
+
+## §709 — PHASE GATE: 208 test files were one edit from leaving the largest gate
+
+**Subject.** §708 recorded a combination it declined to gate: *"a package that gains a vitest config AND
+loses its `test` script … needs two edits in opposite directions."* §671's rule is to test a recorded limit
+rather than reason about it. Tested — and **the judgement was wrong in the way that mattered.**
+
+### It is one edit, not two
+
+Eleven packages **already ship their own `vitest.config.ts`**. For every one of them, the second edit is
+already made. Deleting `packages/map`'s `test` script — a single change — left all three candidate gates
+green:
+
+```
+test-collection   2 passed (2)      SILENT
+gate-wiring       9 passed (9)      SILENT
+ci-contract      28 passed (28)     SILENT
+```
+
+`pnpm test` is `test:tools && pnpm -r --if-present run test`. **`--if-present` skips a package with no
+`test` script in silence** — no error, no count, nothing to notice. §708's M227 fired only because
+`packages/rater` is a runner root *by being a workspace package*, so losing the script dropped its files to
+`<root>` where the includes miss. A package with its **own** config keeps runner-root status, keeps matching
+its includes, and stays "collected" while never being run.
+
+### The blast radius
+
+| package | test files |
+|---|---|
+| `workers/api` | **69** |
+| `packages/ledger` | **34** |
+| `workers/agents` · `apps/command` · `apps/portal` · `workers/mcp` · `workers/translator` | 20 · 17 · 13 · 13 · 13 |
+| `apps/driver` · `packages/map` · `workers/billing` · `packages/design` | 11 · 10 · 6 · 2 |
+
+**208 test files across 11 packages, each one edit from silently leaving the `unit-tests` gate** — the
+largest gate in the merge profile, and the one whose green everything else is read against.
+
+### Closed
+
+A floor in `test-collection.test.ts`, whose subject is already *"no test file is silently uncollected"*: any
+workspace package holding test files must declare a `test` script. **M228b** deletes the script from
+`packages/map` **and** from `workers/api` — both fire.
+
+Scoped to packages that **have** test files, deliberately: a package with none needs no script, and
+`--if-present` skipping it is correct rather than a gap.
+
+### What §708 got wrong, and why it is worth saying
+
+§708 wrote *"that needs two edits in opposite directions, which is why it is recorded rather than gated."*
+The first half was false — eleven packages had the config already — and the second half **followed from the
+first**. A wrong premise about cost produced a decision not to act, and the decision looked reasonable
+because the premise was never checked.
+
+**"Recorded rather than gated" is a judgement about effort, and effort claims are measurable.** This one took
+one `git ls-files` to falsify.
+
+### Exit state
+
+`test-collection` 2 → **3** assertions; `test:tools` 974 → **975**; lint 0; typecheck 0; both probe manifests
+restored byte-identical. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, exit 2** at `e194d87`.
+
+**Reopen triggers**
+- A package holds test files in a location `**/*.test.{ts,tsx}` does not match → invisible to the floor.
+  That is the same corpus-reach limit §695 named, and the sibling-extension sweep (§698) is the tool.
+- `pnpm test` stops using `--if-present` → the floor guards a hazard that no longer exists and should be
+  deleted rather than left as a passing check nobody can explain.
