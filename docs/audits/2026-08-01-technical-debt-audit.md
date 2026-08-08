@@ -319,6 +319,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 124 | §676 | **§677** | **Clean negative + the discriminator stated.** eng.4 has **seven** preconditions where §310 proved one. Five fire; `typeof` and `!isFinite` fire **nothing** — and are **redundant, not gaps**: removing both keeps 157/157 because `!Number.isInteger` rejects non-numbers/NaN/Infinity alone, and removing that third fails 9. Opposite answer to §676's `bad_value` from an identical-looking green. **Rule: disable the siblings together and ask what happened to the BEHAVIOUR, not to the tests.** Harness bug: `IFS='\|'` split patterns containing `\|\|`, reporting 57 tests where the package has 157 |
 | 125 | §677 | **§678** | **Law-member sweep COMPLETE — 53 members, 2 defects.** L7's 21 refusals in `transition-gates.ts`: **21/21 fire** (`void new …` neuter). Full surface: eng.2 12/12 · eng.3 9/9 · eng.4 5 fire + 2 redundant · eng.10 **2 defects** · L7 21/21. §310's ten one-mutation proofs were sound; only eng.10 hid members. **The instrument was the finding:** four consecutive attempts produced readable-but-wrong output (shell `\|\|` split · per-file line vs summary · stdout-only when vitest writes stderr · interleaved sequential runs). Fixed by reading the EXIT CODE + asserting a fixed point. When the question is binary, use the binary signal |
 | 126 | §678 | **§679** | **A hope turned into a control.** Swept the register's 13 agents (REQ-026…038) against REQ-039's "every agent" law. The sweep **re-derived §135/§179 independently** — ~5 of 13 emit `agent.acted` — which is evidence the record is COMPLETE, not new work. §135's "Concierge emits none" **re-verified against an apparent contradiction**: both references are comments explaining the absence. The gap is owner-held (DoD is register scope), but its expiry trigger (`ANTHROPIC_API_KEY` binds) was HUMAN — now gate-enforced. M197 binds the key → fires; M198 makes the Concierge emit → the self-obsolescence assertion fires |
+| 127 | §679 | **§680** | **DEFECT in the gate §679 shipped, plus a false carried claim I repeated.** The go-live checklist names `COPILOT_MODEL` — and `routes/copilot.ts` selects a **live ClaudeCopilot**, so §135's "the Concierge is the only agent that calls an LLM" is FALSE and §679 repeated it unverified. REQ-038 is a second LLM agent emitting no `agent.acted`. §679's gate watched `ANTHROPIC_MODEL` only; the model key is **per-agent**, so switching on the Copilot alone would have been silent. Generalised over an `LLM_AGENTS` roster; M199 (`COPILOT_MODEL`) fires what §679 could not see. Both claims struck, not deleted |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -7116,7 +7117,13 @@ the reported integer or NULL, *"absence, never invented"*. The Watchtower averag
 | Migrator (`routes/import.ts`) | ✅ direct `agent_runs` insert, cost deliberately absent, real latency |
 | **Concierge** | ❌ **none** — verified with a control against two files that demonstrably do |
 
-**The Concierge is the only agent that calls an LLM**, and therefore the only one whose cost is *variable at
+**~~The Concierge is the only agent that calls an LLM~~** — **STRUCK 2026-08-08 by §680**: `routes/copilot.ts`
+selects a live `ClaudeCopilot` (raw fetch to the Anthropic API) when `ANTHROPIC_API_KEY` + `COPILOT_MODEL` are
+both bound, so REQ-038 is a **second** LLM-calling agent and it emits no `agent.acted` either. The reasoning
+below is unchanged in kind — it simply has two members instead of one. The original wording is struck rather
+than deleted because §679 repeated it unverified, and that is the fact worth keeping.
+
+The Concierge was, at the time of writing, the only agent that calls an LLM, and therefore the only one whose cost is *variable at
 all*. The three that report are deterministic and honestly report zero. So REQ-113's budget-drift alarm is
 wired to exactly the agents whose cost cannot drift, and blind to the one whose cost can.
 
@@ -37870,3 +37877,67 @@ the Concierge emit and the obsolescence assertion fires. Both restored.
   nothing pins that count against the roster.
 - The Watchtower's budget alarm moves off `agent_runs` → the gap's *shape* changes and this gate guards the
   wrong thing; its failure message names that alternative explicitly.
+
+## §680 — PHASE GATE: the gate I shipped last phase had the blind spot it was built to close
+
+**Subject.** §679 converted §135's dormant metering gap from a human trigger into a control. Continuing the
+same sweep — *which recorded holds still have human triggers?* — the operator list in
+`docs/ops/GO-LIVE-CHECKLIST.md` names the Anthropic bindings row by row, and one row does not match the
+model this audit has been carrying:
+
+> `ANTHROPIC_API_KEY` + **`COPILOT_MODEL`** (Command copilot) · REQ-038/024 · `routes/copilot.ts`
+
+### The carried claim was false, and I repeated it
+
+§135 states **"The Concierge is the only agent that calls an LLM"**, and §679 — written one phase ago —
+repeated it in the gate's own header without checking. Measured:
+
+- `routes/copilot.ts` selects a **live `ClaudeCopilot`** (a raw fetch to the Anthropic Messages API) when
+  `ANTHROPIC_API_KEY` **and** `COPILOT_MODEL` are both bound; otherwise a `DeterministicCopilot` floor.
+- **REQ-038 (Copilot) is one of the register's 13 agents**, and it emits **no `agent.acted`** — 0 references
+  in the route and 0 in `packages/agents/src/copilot/answer.ts`.
+
+So §135's metering gap has **two** members, not one. The finding's *kind* is unchanged; its *extent* was
+wrong, and has been wrong in the record for as long as the copilot has existed.
+
+### The consequence lands on my own work
+
+§679's gate watched `ANTHROPIC_API_KEY` and **`ANTHROPIC_MODEL`**. The model key is **per-agent** — the API
+key is shared, the model name is not. So a deployment that switched on **only the Copilot** would bind
+`COPILOT_MODEL`, and the gate written specifically to catch this gap would have said nothing about the agent
+that had just started spending money.
+
+That is §673's heuristic — *check what a discipline stops one line short of* — landing on the phase that
+invented it, one phase later. **A gate is a member of the population it audits.**
+
+### Closed
+
+Renamed to `llm-agent-metering-trigger.test.ts` (the old name asserted a scope it no longer had) and
+parameterised over an `LLM_AGENTS` roster carrying each agent's **own** model key. Five assertions: one
+non-vacuity floor on the config scan, one conditional per agent, and one self-obsolescence check per agent.
+
+**M199** binds `COPILOT_MODEL` in `workers/api/wrangler.toml` — the binding §679 could not see — and the
+Copilot's conditional fires. **M200** binds `ANTHROPIC_MODEL` and the Concierge's fires. Both restored.
+
+Both stale claims are **struck, not deleted**: §135's sentence carries a forward pointer, and the gate's
+header keeps `~~the only agent that calls an LLM~~` with the correction beside it. §679 repeating it
+unverified is the fact worth preserving — a deleted error teaches nothing about how it survived.
+
+### The gate that caught the amendment
+
+Writing the §135 strike referenced §680 before this section existed, and `section-refs` failed on the
+forward reference. Worth recording as a positive: the citation machinery this audit has spent phases
+hardening caught a genuine dangling reference in the same session it was written, without being asked.
+
+### Exit state
+
+`test:tools` 961 → **963**; typecheck 0; both wrangler configs restored. **26 gates — 21 PASS · 0 FAIL ·
+5 BLOCKED** (§675 at `b97687b`).
+
+**Reopen triggers**
+- A **third** LLM adapter appears (a new agent, or an existing one gaining a model binding) → `LLM_AGENTS` is
+  hand-maintained and nothing counts it against the bindings the checklist names. §671's completeness-floor
+  pattern applies and is not yet applied here — recorded as this section's honest limit.
+- Either agent starts emitting `agent.acted` → its self-obsolescence assertion fires and asks to be removed.
+- The checklist's Anthropic rows change shape → they are the roster's source, and this gate does not read
+  them; it reads the wrangler configs, which is where a binding becomes real.
