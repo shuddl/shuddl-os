@@ -345,6 +345,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 150 | §702 | **§703** | **Re-derived §684's "7 gate-enforced triggers" claim, 19 phases on — 7/7 ENFORCED, no decay.** Two of my mutations were wrong first: §666 read **DECAYED** because I dropped `.strict()` from `evInput` (the ENVELOPE, §665's subject) rather than a payload schema; §683 read exit 0 because I *raised* the budget constant instead of violating it — which surfaced the better question and the answer that **§611's `claude-md-budgets` pins the constant**, so the trigger has two layers. The value is not "seven still hold" but that the sentence now has a measurement dated today |
 | 151 | §703 | **§704** | **Back to the BUILD: swallowed errors — 57 candidates, 2 relevant, 0 defects.** Raw sweep over-reports (a `return undefined` after a failed parse is a typed absence, not a swallow). The discriminator this repo learned at cost — *fail-closed is about the fallback VALUE* — cut 57 → 2. Both cleared **by reading the consumer**: `gateBlock()`'s `return []` looks like "nothing required" but runs only AFTER the gate blocked, and its caller maps an empty list to `unknown`, *"still held for ops"*. Reading the catch alone would have produced a wrong finding |
 | 152 | §704 | **§705** | **DEFECT — the three PWAs were outside the type-aware promise rules**, and `apps/` appears in **no block** in `eslint.config.mjs`. Probed rather than reasoned: an identical floating call is caught in `packages/map/src` (1 hit) and **not** in `apps/command/src` (0). Worst in the driver, whose premise is offline durability — a dropped sync promise is work that never happens, which no airplane-mode soak can catch if the write was never awaited. New block (tests ignored: all 9 violations are `waitFor(async …)`; production has zero). **Also: lint had been RED since §694** — mine — because phases verified with `test:tools`+`typecheck`, which are a SUBSET of the merge gate |
+| 153 | §705 | **§706** | **STOPPING POINT — full gate re-derived at `e194d87`: 26 gates, 21 PASS · 0 FAIL · 5 BLOCKED, exit 2.** `lint` among the PASS, so §705's fix is confirmed **by the gate that owns it** rather than the subset that missed it for ten phases; `rc` captured before any substitution (§689's trap avoided by construction). §663–§706 = **43 phases, 45 commits, 13 DEFECT rows**, and the locus moved build → instruments → build. Three self-corrections: a false green (§689), a struck trigger (§699), lint red for ten phases (§705). **A subset that passes is not the gate** |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -39539,3 +39540,60 @@ the next re-derivation should be a full `verify:merge`).
   **`lint`**, and only a full `verify:merge` is the gate.
 - A fourth surface is added under `apps/` → the new block globs `apps/*/src/**`, so it is covered from its
   first commit. That is deliberate, and the opposite of the hand-listed shape §681 had to fix.
+
+## §706 — PHASE GATE: STOPPING POINT — the full gate re-derived through the gate that owns the failure
+
+**Subject.** §705 ended by naming its own correction: *"this phase changes lint scope, so the next
+re-derivation should be a full `verify:merge`."* Not the cheap loop. This is that run.
+
+### Measured at `e194d87`, clean tree
+
+```
+verify:merge → 26 gates: 21 PASS · 0 FAIL · 5 BLOCKED    aggregate BLOCKED (exit 2)
+```
+
+**`lint` is among the 21 PASS**, which is the point: §705's fix is confirmed by the gate that owns it, not by
+the subset that missed it for ten phases. The exit status was captured into `rc` **before** any command
+substitution — §689's trap, avoided by construction rather than by memory.
+
+The five BLOCKED are unchanged and not repo-closable: `identity-leak` (the `IDENTITY_DENYLIST` secret) and
+four engagement-workspace fixture gates that `genesis/13` places outside this repo.
+
+### §663–§706 in one line each
+
+**43 phases · 45 commits · 13 rows flagged DEFECT.** The shape of what was found changed twice:
+
+| stretch | where the defects were |
+|---|---|
+| §663–§678 | **the build** — schema guarantees, DDL constraints, law members (17 DDL gaps, 2 law members, 14 payload schemas) |
+| §679–§703 | **the audit's own instruments** — four defects in a gate I had just written, a false green in my shell, a comparison wrong by construction |
+| §704–§705 | **the build again** — a clean negative, then the surfaces outside the type-aware promise rules |
+
+That middle stretch is §296's spent-line signal, and §704 was the deliberate pivot out of it. §705 justified
+the pivot: **a real defect in the build, found within two phases of leaving the instruments alone.**
+
+### The three corrections this stretch made to its own record
+
+1. **§689** — a false green (`$?` clobbered by a substitution). A false red gets investigated; a false green
+   gets accepted. Caught only because a prior run existed to contradict it.
+2. **§699** — struck §698's trigger. *"Hand-maintained" is not a defect on its own*; derivation is right only
+   when membership is a property of the code.
+3. **§705** — lint red for ten phases, unnoticed because `test:tools` + `typecheck` were treated as the gate.
+   **A subset that passes is not the gate.**
+
+Each was a claim this audit had made about itself, and each was found by measurement rather than by review.
+
+### Stopping point
+
+**The repo-owned surface carries no open defect this audit can close.** Everything remaining needs an input
+that lives outside this checkout by design (`genesis/13`) or a decision that belongs to the register owner.
+
+**Reopen triggers — the honest division**
+- *Gate-enforced (8):* the seven re-derived in §703, plus §705's type-aware promise rules over `apps/`.
+- *Human:* the five BLOCKED inputs arriving. **A gate's first real run is where it earns its status**, and
+  §685/§690 proved four of the five can at least *fail* — `staging-smoke`'s assertion path remains the one
+  half that cannot be exercised without its environment.
+- *Owner:* `REQ-289`'s disposition · REQ-039's DoD text · the design gate's comment scope (§674) · which LLM
+  providers this repo may call (§682).
+- *Process:* verify with **`verify:merge`**, not with `test:tools`. §705 is the cost of the shortcut, and it
+  is the only trigger here that is about how the work is done rather than what it found.
