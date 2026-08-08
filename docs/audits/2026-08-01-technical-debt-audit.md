@@ -346,6 +346,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 151 | §703 | **§704** | **Back to the BUILD: swallowed errors — 57 candidates, 2 relevant, 0 defects.** Raw sweep over-reports (a `return undefined` after a failed parse is a typed absence, not a swallow). The discriminator this repo learned at cost — *fail-closed is about the fallback VALUE* — cut 57 → 2. Both cleared **by reading the consumer**: `gateBlock()`'s `return []` looks like "nothing required" but runs only AFTER the gate blocked, and its caller maps an empty list to `unknown`, *"still held for ops"*. Reading the catch alone would have produced a wrong finding |
 | 152 | §704 | **§705** | **DEFECT — the three PWAs were outside the type-aware promise rules**, and `apps/` appears in **no block** in `eslint.config.mjs`. Probed rather than reasoned: an identical floating call is caught in `packages/map/src` (1 hit) and **not** in `apps/command/src` (0). Worst in the driver, whose premise is offline durability — a dropped sync promise is work that never happens, which no airplane-mode soak can catch if the write was never awaited. New block (tests ignored: all 9 violations are `waitFor(async …)`; production has zero). **Also: lint had been RED since §694** — mine — because phases verified with `test:tools`+`typecheck`, which are a SUBSET of the merge gate |
 | 153 | §705 | **§706** | **STOPPING POINT — full gate re-derived at `e194d87`: 26 gates, 21 PASS · 0 FAIL · 5 BLOCKED, exit 2.** `lint` among the PASS, so §705's fix is confirmed **by the gate that owns it** rather than the subset that missed it for ten phases; `rc` captured before any substitution (§689's trap avoided by construction). §663–§706 = **43 phases, 45 commits, 13 DEFECT rows**, and the locus moved build → instruments → build. Three self-corrections: a false green (§689), a struck trigger (§699), lint red for ten phases (§705). **A subset that passes is not the gate** |
+| 154 | §706 | **§707** | **The dev loop existed; its exit 0 said more than it meant.** `pnpm verify` chains 16 checks **including lint** and runs clean end-to-end (the 5 fixture-blocked gates report PENDING without halting the `&&`) — so §705's ten-phase lint red was avoidable with a command already there. But `verify` exits **0** with five gates pending and prints **zero** promotion warnings, while `verify:merge` says *"NOT PROMOTABLE… This is NOT a green."* §689's false-green shape, **structural rather than a shell slip**. Closed: the dev loop now states which question its green answers |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -39597,3 +39598,52 @@ that lives outside this checkout by design (`genesis/13`) or a decision that bel
   providers this repo may call (§682).
 - *Process:* verify with **`verify:merge`**, not with `test:tools`. §705 is the cost of the shortcut, and it
   is the only trigger here that is about how the work is done rather than what it found.
+
+## §707 — PHASE GATE: the dev loop existed, and its exit 0 said more than it meant
+
+**Subject.** §706 left a *process* trigger: *verify with `verify:merge`, not `test:tools`.* §319's rule is
+that an unenforced trigger is a hope — so the question is whether the repo can carry any of it.
+
+### The tool existed; I used a narrower one
+
+`pnpm verify` → `verify:dev` chains **sixteen** checks: `check:runtime`, `typecheck`, **`lint`**, `test`,
+invariants, purity, authority, traceability, coverage, identity, fixtures, three parity harnesses, seed,
+design. Run end to end at HEAD it **exits 0** and completes — the five gates blocked on absent private
+fixtures report `PENDING` and do **not** halt the `&&` chain, which was the obvious worry and is not the case.
+
+**§705's ten-phase lint red was avoidable with a command that was already there.** That is the honest
+finding: not a missing tool, a narrower one chosen for speed.
+
+### But its exit 0 says more than it means
+
+| | exit | says |
+|---|---|---|
+| `pnpm verify` (dev) | **0** | *nothing* about promotability — **0** warning lines |
+| `pnpm verify:merge` | **2** | *"NOT PROMOTABLE — a prerequisite is BLOCKED … This is NOT a green."* |
+
+A developer running `pnpm verify`, seeing **exit 0** with five gates quietly `PENDING`, can reasonably read
+it as *"everything is green."* That is §689's false-green shape again — but **structural rather than a shell
+slip**, and therefore permanent and shared.
+
+The two commands are both correct for their purpose: `verify` asks *is my work sound?*, `verify:merge` asks
+*can this ship?* Confusing them costs in both directions, and this audit has now paid once each way — §705
+by verifying with a subset, and this section by finding that the larger loop's success is quieter than its
+own limitations.
+
+### Closed
+
+`verify:dev` now ends by stating what its exit 0 does and does not mean, and names `verify:merge` as the
+authority. No gate changed; no verdict changed. The only thing that changed is that a **green now says which
+question it answered.**
+
+### Exit state
+
+`lint` 0; `typecheck` 0; `test:tools` **974**; `pnpm verify` exit 0 with its scope now stated.
+**26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, exit 2** at `e194d87` (§706).
+
+**Reopen triggers**
+- A sixth gate becomes BLOCKED → the dev loop still exits 0 and the new line still tells the truth, because
+  it names the *category* rather than a count. That was deliberate: a count would rot (§646).
+- `verify:dev` gains a check that exits non-zero when BLOCKED → the `&&` chain halts and the closing line
+  never prints, so a *failure* is loud and a *pending* is explained. That asymmetry is correct and worth
+  preserving if the chain is ever reordered.
