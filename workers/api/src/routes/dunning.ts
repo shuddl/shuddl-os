@@ -41,7 +41,7 @@ import type { Env, Vars } from "../index.js";
 //     the FAST PATH — re-send from committed bytes under the same idempotency key (no second event, no double
 //     email). It rides a party/invoice-scoped `q:` stream with NO shipment_id (the projected row mirrors the
 //     draft: shipment_id NULL — the widened, party-scoped send, sender.ts BASE_FIELDS).
-//   · HONEST HOLD (the biller.ts:395-468 pattern): a recipient with no billing email HOLDS with NOTHING
+//   · HONEST HOLD (the pattern at workers/agents/src/biller.ts:608@resolveRecipient ): a recipient with no billing email HOLDS with NOTHING
 //     appended (a message.sent with no to_ref would falsely claim a send); a permanent SendError HOLDS with the
 //     event standing (surfaced honestly as `held`, never a false `sent`); a retriable SendError THROWS (a 5xx
 //     the idempotency middleware does not cache, so a retry re-sends via the fast path — never a DLQ loop).

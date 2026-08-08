@@ -68,8 +68,7 @@
     "docs/ops/GO-LIVE-CHECKLIST.md": {
       "packages/ledger/src/anchor.ts": 1,
       "workers/agents/src/biller.ts": 1,
-      "workers/api/src/do/sequencer.ts": 1,
-      "workers/translator/src/inbound.ts": 1
+      "workers/api/src/do/sequencer.ts": 1
     },
     "docs/plans/2026-07-12-wp06-biller.md": {
       "packages/contracts/src/events.ts": 1,
@@ -138,16 +137,7 @@
       "workers/api/src/do/sequencer.ts": 1,
       "workers/api/src/routes/events.ts": 1
     },
-    "packages/ledger/src/documents/retention.ts": {
-      "packages/ledger/src/anchor.ts": 1
-    },
-    "packages/ledger/src/projection/agent-runs.ts": {
-      "packages/contracts/src/events.ts": 1
-    },
     "workers/api/src/pub/doc-cap.ts": {
-      "workers/agents/src/biller.ts": 1
-    },
-    "workers/api/src/routes/dunning.ts": {
       "workers/agents/src/biller.ts": 1
     },
     "workers/api/src/routes/exceptions.ts": {
@@ -158,18 +148,9 @@
       "packages/contracts/src/events.ts": 1,
       "workers/api/src/routes/events.ts": 1
     },
-    "workers/api/test/isolation.test.ts": {
-      "workers/api/src/do/sequencer.ts": 1
-    },
     "workers/api/test/source-aware-ledger.test.ts": {
       "packages/contracts/src/events.ts": 2,
       "workers/api/src/routes/events.ts": 2
-    },
-    "workers/translator/src/core/build-214.ts": {
-      "workers/agents/src/biller.ts": 1
-    },
-    "workers/translator/src/core/map-204.ts": {
-      "workers/agents/src/concierge.ts": 1
     }
   }
 }

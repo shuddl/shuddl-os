@@ -208,7 +208,8 @@ export async function mapTenderToBooking(tender: TenderDoc, ctx: MapTenderCtx): 
     source: "edi",
     // Envelope confidence is CAPTURE confidence (how sure we are the event was recorded correctly), NOT a trust
     // score of the counterparty's data — a structured, machine-parsed 204 is captured at least as reliably as
-    // the Concierge's LLM-parsed inbound email, which appends quote.requested at 10_000 (concierge.ts:651). Held
+    // the Concierge's LLM-parsed inbound email, which appends quote.requested at confidence 10_000
+    // ( workers/agents/src/concierge.ts:751@quote.requested ). Held
     // at 10_000 to match that quote.requested precedent (lowering it here would be unexplained drift).
     confidence: 10_000,
     kind: "quote.requested",

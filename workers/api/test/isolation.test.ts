@@ -1064,7 +1064,7 @@ describe("REQ-025 growth: POST /v1/authority/:module/flip resolves tenant server
 // sweep appends source:'legacy' SHADOW events THROUGH the ShipmentSequencer DO. mirror-sweep.test.ts proves the sweep
 // only ever CALLS append with the swept tenant (a stubbed seq); this proves the REAL DO honors it — a legacy event
 // appended on tenant-a's stream lands in tenant-a's physical D1 ONLY, never tenant-b's. The DO structurally pins
-// (tenant|stream) → its OWN id (do/sequencer.ts:240-243), so a tenant-a append can never re-key onto tenant-b's D1.
+// (tenant|stream) → its OWN id (workers/api/src/do/sequencer.ts:246@idFromName ), so a tenant-a append can never re-key onto tenant-b's D1.
 // Non-tautological: tenant-a really receives the shadow (the write executed), tenant-b never does.
 describe("REQ-025 growth: a legacy mirror event appended via the DO lands ONLY in the swept tenant's D1", () => {
   type SeqStub = DurableObjectStub & {

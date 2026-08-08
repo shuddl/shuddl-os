@@ -374,6 +374,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 179 | §731 | **§732** | **§731's trigger executed (19 entry points, root vs subdir): 18/19 identical, the 1 differing FAILS CLOSED — clean negative.** The yield was the next question: `invariants` has a floor, but it covers the **UNION** (`db/**/migrations/*.sql`), not the three sub-corpora consumed separately — and the union stays non-empty when only one subtree breaks. `checkSurfaceBudget([])` → violation (hardened §245); `checkControlMigrationsExercised([],[])` and **`checkTableClassification([])` → `[]`, VACUOUS**. The second asserts every tenant table is append-only-or-mutable — **I3/I7**. Floors added to the pure functions + one `isCheckout` scope. **The obvious guard (`existsSync("db/control")`) is exactly wrong** — a rename would SKIP not FAIL. Fixture shape learned by breaking 3 CLI e2e tests. Both floors mutation-proved in the real repo |
 | 180 | §732 | **§733** | **A thrice-recurring rot made mechanical — and the fail-closed tool that first refused 15 of 15.** Anchored citations rot on every line shift (§175, §253, §732 — same file), and the hand repair failed **twice in one sitting**. Built `pnpm fix:citations`: re-derives an anchored citation's line, refuses anything ambiguous, exits non-zero on a partial repair. **Version one was safe and USELESS** — it required a unique anchor hit and repaired **0 of 15** on the real rot, because (a) it passed the raw path to `index.lines()` while the gate resolves bare filenames via `resolveCandidates`, and (b) multiple hits are the NORMAL case (declaration + uses). Fixed by using the gate's own resolver and preferring the **declaration** — not a looser threshold. After: **15 of 15 repaired, 0 left.** Also: a probe whose pad landed BELOW every anchor reported `rotted: 0` (reads as "no bug"), and a comment containing a literal citation example was parsed as a citation |
 | 181 | §733 | **§734** | **The "+ photos" half of acceptance demo #1: the checklist's remedy was wrong in BOTH directions.** More built than stated — `mintDocDownloadCap` + `/pub/documents/:cap` exist, and `doc-cap.ts` names the Biller as their intended second caller; the view renders real `<img>` with a caption-swap trap. Far more blocked than stated — the agents worker binds **neither `JWT_SECRET` nor an `API` service**, so the Biller has no secret to mint with and no route to ask. Both remedies are **decisions** (session-secret blast radius / new surface) plus a **TTL** call for a bearer-forwardable URL living in an inbox. **Not implemented — the owner's call.** Two record defects fixed: `doc-cap.ts` cited `biller.ts:409@loadBookingQuoteRef` as the `photos: {}` gap (it is `loadBookingQuoteRef`; unanchored ⇒ bounds-checked only ⇒ green forever), now anchored `:588@photos`; and the checklist misquoted REQ-087's **DoD** — "sig/pallet photos" is the TITLE, the DoD is met |
+| 182 | §734 | **§735** | **Counted §734's defect class: 49 of 95 unanchored citations into high-churn targets have drifted; 7 of 7 hand-verified point at UNRELATED code** (one at a **blank line**). Method: `git blame` the citing line → sum the target's line delta above the cited line since that commit. **The taxonomy is the finding** — 38 sit in records frozen BY DESIGN (skills' own grounding note: *"provenance, not proof"*; plans; dated audits), and **frozen-ness turned out to be a property of the ROW, not the FILE** (2 more sit inside struck-through *"original text preserved"* rows, where re-pointing would CORRUPT the record). 9 genuinely live; **7 repaired by adopting anchors**, ratchet 141 → 134, anchored 201 → 210; 2 named for a human. **The ratchet structurally cannot find this** — a count of unanchored citations says nothing about whether any is wrong |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -41700,3 +41701,118 @@ this phase — one comment, one checklist row, one citation anchored.
   already says so, and this phase does not change that.
 - Another citation into a high-churn file is written unanchored → it will rot silently the same way. The
   ratchet counts these deliberately; adopting an anchor is how the count falls.
+
+## §735 — PHASE GATE: how many citations point at the wrong code? Measured, not guessed
+
+§734 found ONE citation that pointed at unrelated code for its whole life, green the entire time because an
+**unanchored** citation is only BOUNDS-checked — a real line of a real file, so the address was valid while
+the assertion was false. That is a defect *class*, and a class deserves a count.
+
+### The method
+
+Not a grep, and not reading prose. For every unanchored citation into a ratcheted high-churn target:
+
+1. `git blame` the **citing** line → the commit that wrote the citation;
+2. `git diff <that commit>..HEAD -- <target>`, summing the line delta of every hunk starting **above** the
+   cited line.
+
+A non-zero delta means the target's content moved out from under the address. It is a candidate signal, not a
+verdict — the verdicts came from opening the files.
+
+### The count
+
+```
+1353 citations · 1150 unanchored · 95 unanchored into the 11 ratcheted targets
+49 of those 95 have had lines inserted above them since the citation was written
+```
+
+Concentrated where you would expect: `do/sequencer.ts` (24), `biller.ts` (10), `inbound.ts` (5).
+
+**Seven hand-verified, seven confirmed wrong.** Not "off by two" — pointing at unrelated code:
+
+| citation claims | what is actually there |
+|---|---|
+| `sequencer.ts` device-ownership `#deviceKey` | a comment about `quote.accepted / message.received` |
+| `sequencer.ts` "derive state server-side" | **a blank line** |
+| `biller.ts` "the HONEST HOLD pattern" | `invoiceEventId: existing.id,` |
+| `biller.ts` the `evidence-email/<id>` dedupe precedent | `acceptedQuote,` |
+| `concierge.ts` "appends quote.requested at 10_000" | a reply-recipient guard |
+| `anchor.ts` "a documents row exists IFF its R2 bytes exist" | `const manifest: AnchorManifest = {` |
+| `events.ts` `cost_cents / latency_ms` | (off by one — the mildest of the seven) |
+
+### The taxonomy is the finding, not the 49
+
+A drifted citation is only a defect if the record is supposed to be current. **38 of the 49 are in records
+that are frozen by design**, and they say so themselves — the skills carry an explicit grounding note:
+*"the `path:line` citations in this skill are observations FROZEN as-of its writing … The LAW each skill
+states is current; the citations are its provenance, not its proof."* `docs/plans/*` and dated audit files are
+the same shape: historical artifacts, not live documentation.
+
+Then a refinement I did not expect and nearly got wrong: **frozen-ness is a property of the ROW, not the
+FILE.** `GO-LIVE-CHECKLIST.md` is as live as a document gets, yet two of its drifted citations sit inside
+struck-through rows reading *"**FIXED 2026-07-27** — original text preserved: …"*. Those citations are inside
+a **preserved quotation of the original defect report**. Re-pointing them would corrupt the record they exist
+to preserve.
+
+```
+49 drifted
+├─ 38  frozen by design at FILE level   (skills · plans · dated audits)
+├─  2  frozen by design at ROW level    (struck-through "original text preserved")
+└─  9  genuinely live and genuinely wrong
+```
+
+This is `record-holds-with-expiry-triggers` — *only repo-owned live rows can go stale, so they are the only
+ones worth re-verifying* — arriving with a sharper edge than that memory states it: the unit is finer than a
+file.
+
+### Fixed
+
+**Seven of the nine repaired by adopting anchors**, which converts each from bounds-checked to
+content-checked so it can never rot silently again:
+
+| file | now |
+|---|---|
+| `workers/api/src/routes/dunning.ts` | `biller.ts:608@resolveRecipient` |
+| `workers/translator/src/core/build-214.ts` | `biller.ts:625@idempotency_key` |
+| `packages/ledger/src/documents/retention.ts` | `anchor.ts:213@documents` |
+| `packages/ledger/src/projection/agent-runs.ts` | `events.ts:152@cost_cents` |
+| `workers/api/test/isolation.test.ts` | `sequencer.ts:246@idFromName` |
+| `workers/translator/src/core/map-204.ts` | `concierge.ts:751@quote.requested` |
+| `docs/ops/GO-LIVE-CHECKLIST.md` (EDI row) | `inbound.ts:50-59@NotConfigured` |
+
+The ratchet moved **141 → 134** and content-anchored citations **201 → 210**. The ratchet's own rule ("it may
+fall, never grow") is what makes adoption the sanctioned repair rather than a re-pointing exercise.
+
+**Two live ones left, identified rather than swept up** — and describing them is deliberately awkward, for a
+reason worth recording. They are: the **REQ-170 residual row** of `GO-LIVE-CHECKLIST.md`, whose *second*
+citation into the Biller is unanchored while its first is already anchored (`@REQ-170`) — a partial adoption;
+and the **V1-remediation paragraph** of `docs/security/pen-test-basics.md`, whose citation into the sequencer
+has drifted by two. Both need a judgement about what the prose means before an anchor can be chosen, and
+guessing is the §732 failure mode.
+
+**Why they are described rather than spelled: writing them out failed.** Naming both in the natural
+`path:line` form *created two new unanchored citations into ratcheted targets*, and the ratchet reported
+`GREW` within seconds. An audit that reports a bad address cannot spell it — the same rule §733 and §734 each
+arrived at independently (describe the broken form, never quote it), now with a third mechanism enforcing it.
+
+### Why the ratchet never surfaced this
+
+The ratchet counts unanchored citations per (citing file → target) and forbids growth. It is a good instrument
+for its purpose and structurally cannot find this: **a count of unanchored citations says nothing about
+whether any of them is wrong.** A citation that rots from correct to incorrect changes no count at all. That is
+`a-gates-green-certifies-less-than-its-name` at the level of a whole gate — the ratchet certifies *adoption
+pressure*, never *accuracy*, and reading its green as "citations are healthy" is the error this phase closes.
+
+### Exit state
+
+`check:citations` OK — 1353 resolving, **210** content-anchored; ratchet at its new frozen **134**.
+`test:tools` **1023** (baseline 3 register failures only); lint 0; typecheck 0; `check:section-refs`,
+`check:tables` OK.
+
+**Reopen triggers**
+- A new unanchored citation into a ratcheted target → it will rot at roughly the rate measured here (49/95
+  drifted, 7/7 sampled wrong). Adopt an anchor at the time of writing; the cost is one `@symbol`.
+- A struck-through row's citation is "repaired" → that is corruption of a preserved record, not a fix. Check
+  whether the row is history before touching its addresses.
+- The two named live citations above are closed → the live drifted set reaches zero, and this measurement
+  should be re-run rather than assumed to stay there.

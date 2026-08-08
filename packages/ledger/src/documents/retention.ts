@@ -3,7 +3,7 @@
 // sibling of anchor.ts (WebCrypto-free, LLM-free — REQ-024; injected D1/R2 only). NO new table, NO new event
 // kind: retention rides two forward-only `documents` columns (0007) and the metric rides the R2 object list.
 //
-// THE INVARIANT (evidence.ts:182-202 / anchor.ts:187-197): a documents row exists IFF its R2 bytes exist. The
+// THE INVARIANT (evidence.ts:182-202 / packages/ledger/src/anchor.ts:213@documents ): a documents row exists IFF its R2 bytes exist. The
 // sweep preserves it by TOMBSTONING, never orphaning: it DELETEs the bytes and marks the row
 // `retention_status='expired'` (an AUDIT record that the doc existed and was retention-deleted). An 'active'
 // row still means "bytes present"; an 'expired' row means "bytes intentionally retention-deleted" — the row is
