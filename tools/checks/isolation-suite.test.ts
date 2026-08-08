@@ -16,7 +16,7 @@ import { repoRoot } from "./repo-root.js";
 // MEASURED (§614) — `plg-isolation-matrix.test.ts`, EIGHT cases proving cross-tenant reads fail across the
 // PLG surface, deleted and the deletion STAGED as a real PR would have it:
 //
-//     test:tools → 3 failed | 920 passed   (the REQ-289 baseline, unchanged)
+//     test:tools → 3 failed | 920 passed   (the pre-existing register baseline, unchanged)
 //
 // Silent. Two other members happened to be caught, and only incidentally: deleting them broke
 // `check:citations` because some document cites those paths — protection that exists for the cited files and

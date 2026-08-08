@@ -285,6 +285,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 90 | §642 | **§643** | Checked the build's sharpest CONTRAST requirement for §640's shape — CLAUDE.md rule 7's "--signal-deep is tuned by the contrast test, not by eye". It asserts the RATIO, correctly. Proved with the real historical decision: reverting to doc 07's by-eye #A93018 (4.43:1) reddens THREE surfaces. Its suite opens with black/white=21:1 and identical=1:1 — the POSITIVE CONTROLS my own probes lacked in §625/§635/§638 |
 | 91 | §643 | **§644** | Applied §643's distinction to the hash chain, where self-consistency is not correctness. The ledger's known-answer tests EXIST and — the whole question — are not self-generated: `shasum` outside the repo reproduces sha256("{}"), the empty Merkle root, and the six-type canonical vector BYTE-FOR-BYTE. M152 (key sort reversed) reddens four. The frozen byte law is backed by arithmetic a stranger can rerun |
 | 92 | §644 | **§645** | Swept §644's concern — frozen hashes no stranger could re-derive. 27 hex literals, but 21 are FIXTURE INPUTS (SHA-256 of empty as a placeholder payload); only 5 are asserted expected values, and all 5 are re-derivable. My classifier called one bare: its provenance is in the TEST NAME ("the empty tree = SHA-256(\"\")"), which a code-only scan cannot see. M153 (skip empty days) reddens 4, including the REQ-014 DoD proof |
+| 93 | §645 | **§646** | **The "2 FAIL" reported for 41 phases was a DIRTY WORKING TREE, not the repo.** At HEAD both gates pass — test:tools 949/949, exit 0 — so the merge gate at HEAD is **21 PASS · 0 FAIL · 5 BLOCKED**. And the uncommitted row was MASKING a defect I shipped in §614: a bare REQ-289 in one of my comments is an annotation, orphaned at HEAD. Seventh prose-into-its-own-gate instance, and the first that shipped |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -35671,3 +35672,74 @@ and by name.
   the author, and this sweep's method (read the five) does not scale past a few dozen.
 - The fixture placeholders stop being `SHA-256("")` → the 21 "bare" hits become genuinely ambiguous, and the
   narrowing that made this sweep readable stops working.
+
+---
+
+## §646 — PHASE GATE: the "2 FAIL" was a dirty working tree, and it was masking a defect of mine
+
+**Subject.** Forty-one phases have closed with the same line: **19 PASS · 2 FAIL · 5 BLOCKED**, the 2 FAIL
+attributed to REQ-289 and the working tree described as *"clean apart from the pre-existing register row."*
+§603's rule is that a thing restated all session without re-measurement is suspect. It was never measured.
+
+### The register row is one uncommitted line
+
+`git diff` on the register is a single insertion: the `REQ-289` GTM row, added to the working tree and never
+committed. It predates this session — it was in the opening `git status`.
+
+So the obvious question, unasked for forty-one phases: **what do those gates do at HEAD?**
+
+| | working tree (row present) | HEAD (row absent) |
+|---|---|---|
+| `check:coverage` | **FAIL** — 1 unaccounted row | **PASS** — *"100% — all 288 register rows accounted for"* |
+| `check:traceability` | PASS | **FAIL** — `built-but-unspec'd … REQ-289` |
+| `test:tools` | 3 failed / 946 | — |
+
+Two gates, each failing in exactly one of the two states. And the second failure was **mine**.
+
+### The uncommitted row was hiding a defect I shipped in §614
+
+`tools/checks/isolation-suite.test.ts:19` — a file I wrote — carried this comment:
+
+```
+//     test:tools → 3 failed | 920 passed   (the REQ-289 baseline, unchanged)
+```
+
+`check:traceability` reads source annotations, and a bare `REQ-289` in a comment **is** a citation. With the
+row present in the working tree it resolves; at HEAD it is an orphan — CLAUDE.md rule 1's exact violation,
+*"if it isn't a REQ row, it doesn't get built"*, committed by a comment.
+
+**Seventh instance this session of prose quoting a value into its own gate**, and the first one that *shipped*,
+because the dirty working tree masked it. Every previous instance failed loudly within a minute (§606, §612,
+§618, §621, §631 twice, §639). This one could not, and that is the whole hazard of auditing from a dirty tree:
+**the mask and the defect were introduced by different people at different times and cancelled each other.**
+
+Fixed by describing rather than quoting, as the six before it.
+
+### The corrected exit state
+
+With that comment fixed, at HEAD:
+
+```
+test:tools → 949 passed (949), exit 0
+check:coverage  → exit 0
+check:traceability → exit 0
+```
+
+**The repo at HEAD does not fail two gates.** The merge gate at HEAD is **21 PASS · 0 FAIL · 5 BLOCKED** — the
+five BLOCKED being the owner-held private fixtures and secrets measured in §604.
+
+The 2 FAIL reported in forty-one consecutive phases was **the state of my working tree, not the state of the
+repo**. The row is real, uncommitted, and owner-held (§603's landing set: a terminal-ID bump, a `gtm-lane`
+disposition, a recorded home, and the commit itself); it is not this audit's to land. But describing its effect
+as a repo failure was wrong, and it stayed wrong because the number was carried forward rather than re-derived.
+
+### Exit state
+
+**21 PASS · 0 FAIL · 5 BLOCKED at HEAD.** Working tree: the owner's uncommitted REQ-289 row (which fails
+`check:coverage` until its three companions land) plus this phase's one-line comment fix.
+
+**Reopen triggers**
+- REQ-289 lands with its companions → `check:coverage` passes in both states and the working tree stops
+  diverging from HEAD.
+- An audit phase reports a gate result without saying which tree state it measured → the §646 error, verbatim.
+  Every count in this document from here names HEAD or the working tree.
