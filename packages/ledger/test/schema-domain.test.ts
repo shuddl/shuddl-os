@@ -289,3 +289,53 @@ describe("REQ-118 §668 — the money and authority CHECKs actually bite on a re
     await expect(TDB.prepare("INSERT INTO authority_map (module, authority) VALUES ('rating','neither')").run()).rejects.toThrow();
   });
 });
+
+// ─── REQ-118 §669 — THE UNIQUE CLASS IS FULLY BACKED, AND THE MUTATION CAUGHT MY OWN WRONG CLAIM. ─────
+//
+// §668's trigger sent the sweep at the UNIQUE class. Eight constraints, measured one at a time. Five fire a
+// test when neutered (control `tenants.slug` and `users.email`, `events.id` at 73, `ux_ml_corrects` at 2,
+// `ux_legs_slot` at 1 in workers/api). Three were silent — and ALL THREE turn out to be redundant with a
+// live BEFORE INSERT trigger that raises loudly on the same duplicate:
+//
+//   0008 events_guard_ins_unique     ... hash = NEW.hash OR (device_id IS NOT NULL AND stream_id = ...)
+//   0003 money_lines_guard_ins       ... id = NEW.id OR (event_id = NEW.event_id AND line_no = NEW.line_no)
+//
+// §531's fourth explanation, three times over. The UNIQUE indexes are the backstop; the triggers are the
+// live guard, which is the arrangement 0008's own header describes (REPLACE\'s implicit DELETE skips the
+// BEFORE DELETE guard, so the INSERT guards enumerate every unique key).
+//
+// WORTH RECORDING HOW THIS WAS NEARLY GOT WRONG. The first draft of this block asserted that
+// `(event_id, line_no)` had NO trigger twin and that the UNIQUE constraint was "the only thing stopping a
+// doubled invoice line" — because 0008\'s money_lines guard enumerates only `corrects_event_id`, and that
+// was the only file read. 0003 was never opened. The claim was false, and what caught it was the
+// BEHAVIOURAL test below CONTINUING TO PASS while the constraint was neutered: the assertion disagreed with
+// the prose above it, and the assertion was right. A grep over one migration proved nothing about the other.
+//
+// Both assertions are kept, with their attribution corrected. The duplicate really is refused — by the
+// trigger — and the constraint really is declared. Neither had a test before this.
+describe("REQ-118 §669 — a money_line cannot be inserted twice for the same (event_id, line_no)", () => {
+  it("the UNIQUE constraint is still declared on the table", async () => {
+    // A backstop, not the live guard. Kept because a schema refactor that drops it should have to say so:
+    // it is the layer that survives if 0003\'s trigger is ever narrowed, and nothing else watches it.
+    expect(await tableSql("money_lines")).toContain("UNIQUE (event_id, line_no)");
+  });
+
+  it("rejects a second line at the same (event_id, line_no) — a doubled invoice line", async () => {
+    // Enforced by money_lines_guard_ins (0003), with the UNIQUE constraint behind it. A duplicate here is
+    // the same invoice line counted twice: the total moves, AR moves with it, and money stops being a
+    // projection of physics (L3) while every hash in the chain stays valid, because nothing about the event
+    // stream is wrong. The read model is where it goes bad.
+    await insertBaseEvent("evt-dup-line");
+    const line = (id: string): Promise<D1Result> =>
+      TDB.prepare(
+        `INSERT INTO money_lines (id, shipment_id, event_id, line_no, direction, kind, amount_cents, party_id, division, gl_map, created_ts)
+         VALUES (?, 'S1', 'evt-dup-line', 0, 'ar', 'freight', 12345, 'p:acme', 'main', '{}', 1000)`,
+      )
+        .bind(id)
+        .run();
+    // DISTINCT primary keys, deliberately: reusing the same `id` would collide on the PK and this would pass
+    // without either layer existing, proving nothing about (event_id, line_no).
+    await expect(line("ml-dup-a")).resolves.toBeTruthy();
+    await expect(line("ml-dup-b")).rejects.toThrow();
+  });
+});

@@ -308,6 +308,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 113 | §665 | **§666** | **DEFECT — 14 `.strict()` calls defended by nothing, and the hazard was the opposite of the guess.** Dropping all 73 at once failed 36 tests (reads covered); per-file (§466) showed `anchors`/`money`/`driver-manifest` silent across ALL six suites. **Measured:** loose Zod **strips** unknown keys, so a payload losing `.strict()` silently DISCARDS a mis-keyed field into an immutable hashed event — the inversion of engineering rule 10. Closed with a structural gate over the 35→28 `evInput` schemas, derived from source not from a `*Payload` name proxy (§652) |
 | 114 | §666 | **§667** | **Clean negative + a re-derivation.** 19 request-body schemas: 16 strict, `AnchorDay` a string (category error), `EchoBody` authenticated WP-01 test vehicle — no defect. Then re-ran the figure §663–§666 had each restated from §647: **26 gates, 21 PASS · 0 FAIL · 5 BLOCKED at `13b6642`, clean tree**. Carried figure was RIGHT, now re-derived — §646's point is that from outside, an unre-measured correct number is indistinguishable from a wrong one. `$?`-after-a-pipe misread the exit as 0 on the first attempt |
 | 115 | §667 | **§668** | **DEFECT — 16 DDL CHECKs enforced by the database and nothing else.** Neutered (`CHECK (1=1 OR `) they were silent across ledger 634 · api 798 · agents 122 · billing 58 · translator 116 · rater 157 · mcp 185 = **1,670 tests**. The same file ALREADY tests a control-plane CHECK — the pattern was written once and never extended one migration over. Three (money_lines `direction`/`kind`/`amount_cents`) have NO Zod counterpart, so D1 is the only guard, and REQ-040/I7 are written in terms of that `kind` list. Closed with existence+VALUES (`toEqual` catches a widened enum, which no behavioural test can) and real inserts. M180: 0 → 20 fail; M181 (one value added): exactly 1 |
+| 116 | §668 | **§669** | **Clean negative + a REFUTED claim of mine.** Corrected §668's own "26 UNIQUE" (a regex counting `0008`'s header prose) to **8**. Five fire when neutered; the three silent ones are all redundant with live BEFORE INSERT triggers (`0008` for hash/device, **`0003`** for `(event_id, line_no)`). My draft asserted `(event_id,line_no)` had no trigger twin — **false**, written after reading `0008` and never opening `0003`. The behavioural test PASSING under the mutation is what refuted it. Both layers pinned; the 3-row mutation table shows neither test is vacuous |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -37095,3 +37096,79 @@ behavioural half.
 - The remaining classes are unmeasured: **26 UNIQUE and 13 TRIGGER constraints** got the class-level pass
   only. The triggers are I3's home and are covered by name elsewhere; the UNIQUE set is not, and it is the
   obvious next member-level sweep.
+
+## §669 — PHASE GATE: the UNIQUE class is fully backed, and a mutation refuted my own claim
+
+**Subject.** §668's closing trigger named the unmeasured remainder: the UNIQUE constraints, which had only
+the class-level pass.
+
+### First, a correction to §668's own trigger
+
+That section said **"26 UNIQUE"**. That number came from a regex counting the word `UNIQUE` in tracked SQL —
+and most of the matches in `0008_append_only_unique_guards.sql` are **its own header comments** explaining
+which unique keys the guards enumerate. The real population is **8 constraints**. §646's rule caught inside a
+single phase this time: a count is worthless without knowing whether it was measured or derived, and this one
+was derived from a pattern that could not tell code from prose.
+
+### The sweep — eight constraints, one at a time
+
+Five fire a test when neutered: control `tenants.slug` and `users.email`; `events.id` (**73 tests** — it is
+§663's idempotency key, and the ledger leans on it hard); `ux_ml_corrects` (2); `ux_legs_slot` (1, in
+`workers/api` — *"double-book impossible"*, so ownership again followed the consumer).
+
+Three were silent. **All three are genuinely redundant**, and this was established by reading the triggers:
+
+```
+0008 events_guard_ins_unique   WHEN ... hash = NEW.hash OR (device_id IS NOT NULL AND stream_id = ...)
+0003 money_lines_guard_ins     WHEN ... id = NEW.id OR (event_id = NEW.event_id AND line_no = NEW.line_no)
+```
+
+§531's fourth explanation three times over. The UNIQUE indexes are the backstop; the BEFORE INSERT triggers
+are the live guard — which is exactly the arrangement `0008`'s header describes, since REPLACE's implicit
+DELETE skips the BEFORE DELETE guard and the INSERT guards therefore enumerate every unique key.
+
+### The part worth keeping: the mutation refuted me
+
+The first draft of this phase's test asserted that `(event_id, line_no)` had **no** trigger twin and that the
+UNIQUE constraint was *"the only thing stopping a doubled invoice line."* That is false. It was written after
+reading `0008`, whose money_lines guard enumerates only `corrects_event_id` — and `0003`, which enumerates
+`(event_id, line_no)` explicitly, was never opened.
+
+**What caught it was the behavioural test continuing to PASS while the constraint was neutered.** The
+assertion disagreed with the prose directly above it, and the assertion was right. A grep over one migration
+proved nothing about the other — §"a grep proves presence, never absence", now with a case where the empty
+result came from reading one file of a pair.
+
+Had the mutation been skipped, this audit would have shipped a confident, wrong sentence about where the
+money guard lives — the most damaging kind of record defect, because it reads as provenance.
+
+### Closed anyway, with attribution corrected
+
+Neither layer had a test before this. Both are kept, and the mutation table is the documentation:
+
+| mutation | schema assertion | behavioural assertion |
+|---|---|---|
+| UNIQUE neutered only | **FAIL** | pass — the trigger holds |
+| trigger clause removed only | pass | pass — the UNIQUE holds |
+| both removed | **FAIL** | **FAIL** |
+
+That middle row is the whole value of defense in depth stated as a measurement, and the outer rows prove
+neither assertion is vacuous. The behavioural test uses **distinct primary keys** deliberately: reusing one
+`id` would collide on the PK and pass with both layers absent.
+
+### Exit state
+
+`packages/ledger` 656 → **658**; `test:tools` 955; typecheck 0; `db/` restored byte-identical and verified
+against a pre-sweep snapshot, not just against git.
+
+A harness bug is worth recording too: `eval "cd packages/ledger && …"` runs the `cd` **in the current shell**,
+so later relative paths resolved into the package and two restores silently did not happen. Caught by
+`git status`, fixed by running the suite in a subshell. §"keep a fixed point before scaling a probe" — the
+snapshot comparison is what made the recovery provable rather than hopeful.
+
+**Reopen triggers**
+- A BEFORE INSERT guard is narrowed (a key dropped from its `WHEN`) → the middle row of that table flips, and
+  the UNIQUE backstop becomes load-bearing. Nothing currently tells you which layer is carrying a guarantee.
+- The remaining unmeasured class is **13 TRIGGER constraints**. I3's are proved by name in §310; the rest
+  have had the class-level pass only, and this phase is the second in a row where the class-level result was
+  the least interesting thing in it.
