@@ -7,6 +7,10 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
-    include: ["test/**/*.test.tsx"],
+    // §728 — `.test.ts` too. This read `test/**/*.test.tsx` only, so a plain-TypeScript test in this
+    // package was silently NOT COLLECTED: a planted file asserting `expect(1).toBe(2)` left
+    // `vitest run` at "Test Files 2 passed (2)". Every sibling package that narrows the default
+    // admits both extensions; this one did not, and nothing said so.
+    include: ["test/**/*.test.{ts,tsx}"],
   },
 });

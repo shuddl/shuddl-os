@@ -367,6 +367,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 172 | §724 | **§725** | **Asked the vacuous-pass question of all four browser gates — three already answer it.** `visual` is inherently positive; **a11y** blocks on `body.innerText.length > 0` with a comment naming *"an unmounted `<div id=root>` … would be a vacuous pass"*; **perf** blocks on `waitForSelector("canvas")`. Only `portal-isolation` has nothing (§724). Sibling e2e specs are not the same shape either — `driver-offline-sync` is **10 positive / 2 negative**. **One suite of seven, not a systemic gap** — and the hazard reached four authors, three solved it, each with a different instrument |
 | 173 | §725 | **§726** | **Gated §725's own reopen trigger: the two pure-negative browser gates keep their render precondition.** a11y asserts `toEqual([])` and perf asserts a long-task budget — **an unmounted page has zero of each**, so both PASS on a blank screen *with their assertion count unchanged*. What saves them is one line apiece, which reads as boilerplate. Now floored in `test:tools`, pinning each suite's OWN instrument (the two differ deliberately: painted-text is wrong for the map, `waitForSelector` is wrong for the flex-chain surfaces) plus the assumption that `visual` stays positive. **3/3 mutation-proved, each RED attributed to the named row** |
 | 174 | §726 | **§727** | **DEFECT (confirmed by planted artifact): an always-failing browser spec merges GREEN.** The e2e project selects by an explicit two-file allowlist, not by directory — so a spec dropped in `tests/e2e/` is **not run**, and no report shows its absence. Planted `expect(1).toBe(2)`: `--list` unchanged at *6 tests in 2 files*, `test:tools` **identical at 3 failed / 985 passed**. Aimed straight at the acceptance spine — two demos name a new browser spec as the next increment, and `Demo.browser` is **read by nothing**. Closed by asking playwright itself (`--list --reporter=json`) rather than re-deriving `testMatch`. **4 assertions, all mutation-proved.** The exit code was useless here (baseline already red); the COUNT was the instrument |
+| 175 | §727 | **§728** | **DEFECT (live, confirmed by planting): `packages/design` silently dropped every `.test.ts`.** Its vitest `include` read `test/**/*.test.tsx` — `.tsx` only — so a planted `expect(1).toBe(2)` left `vitest run` at *Test Files 2 passed (2)*. §727's hole one layer down, and the layer §709 stops one line short of (package boundary gated, file boundary not). Widened + **probed inside the addition** (§714): the same file now reds. Gate scoped to the **five** configs that narrow the default; six inherit it and cannot orphan. **A naive comment-stripper corrupted the first measurement** — the `/**` `/` inside `src/**/*.test.ts` IS a block-comment token — reporting map as unnarrowed when it declares three patterns. 3 mutations incl. a fail-closed `exclude` throw |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -40922,3 +40923,105 @@ checking a count that had to hold — `ls-files` returning 1, `Test Files 2` —
   full paths per config root, not by deleting the floor.
 - `Demo.browser` starts being READ by `run.ts` → the dormant assertion becomes live and this note should say
   so; a field that is finally load-bearing no longer needs a gate proving it is not decoration.
+
+## §728 — PHASE GATE: §727's defect one layer down, and the comment-stripper that hid it
+
+§727 found that a browser spec outside playwright's `testMatch` merges green. The obvious sibling question is
+whether vitest has the same hole. It does, and it was live.
+
+### The defect, confirmed by planting
+
+`packages/design/vitest.config.ts` declared `include: ["test/**/*.test.tsx"]` — **`.tsx` only.** A
+plain-TypeScript test in that package was not "failing" and not "skipped". It was never collected:
+
+```
+planted packages/design/test/zz-probe.test.ts  →  expect(1).toBe(2)
+vitest run                                     →  "Test Files 2 passed (2)"
+```
+
+Every sibling package that narrows the default admits **both** extensions. This one did not, and nothing said
+so. `packages/design` is a React primitives library, so `.tsx` covers what is there today — which is exactly
+why it survived: the omission is invisible until the first pure-TS util test, and that test would have merged
+green while asserting nothing.
+
+### The adjacency
+
+§709 gated the layer directly above this: *every workspace package holding test files declares a `test`
+script*. This is the layer it stops one line short of — the package runs, the script runs, and one file inside
+it does not. That is the shape in `check-what-a-discipline-stops-one-line-short-of`: the discipline existed,
+it was applied at the **package** boundary, and the **file** boundary never got it.
+
+### Scope is exactly the packages that narrow
+
+Six of eleven configs declare no `include` and inherit vitest's default, which cannot orphan a `*.test.ts(x)`
+anywhere in the package. Only five can lose a file, and the scope of the gate is precisely those five:
+
+| package | include | what it drops |
+|---|---|---|
+| apps/command · apps/driver · apps/portal | `src/**/*.test.{ts,tsx}` | anything outside `src/` |
+| packages/map | `test/**`, `perf/**/*.test.ts` | anything in `src/`; a `perf/**/*.test.tsx` |
+| packages/design | *(was)* `test/**/*.test.tsx` | **every `.test.ts`** ← fixed this phase |
+
+### The measurement that lied, and how
+
+The first extraction reported `apps/command → ['src*.test.{ts,tsx}']` and — far worse — **`packages/map →
+DEFAULT`**, when map declares three include patterns. Cause: I stripped comments before parsing, and
+
+```
+/\*.*?\*/   matches   /**/   inside   src/**/*.test.ts
+```
+
+**The glob's own `/**​/` is a valid block-comment token.** The stripper ate it. Had I trusted that output, the
+gate would have shipped with `packages/map` classified as unable-to-orphan — a hole in the exact package whose
+`perf/**/*.test.ts` pattern is the second-narrowest in the repo.
+
+This is the third measurement fault this session and the first that was *destructive* rather than merely
+incomplete (§726's filter matched nothing; §727's `ls-files` ignored an unstaged file). All three were caught
+the same way — by looking at a number that had to hold before reading the verdict. Here the tell was
+`src*.test.{ts,tsx}`, a pattern that is not valid glob and could not have come from the file.
+
+### What was fixed and what was built
+
+**Fix:** `packages/design`'s include widened to `test/**/*.test.{ts,tsx}`, matching its siblings.
+
+§714 says a widened corpus is a new guarantee wearing the shape of a config edit, and must be probed *inside*
+the addition rather than at its edges. Done:
+
+| | planted `.test.ts` asserting `1 === 2` |
+|---|---|
+| before | `Test Files 2 passed (2)` — invisible |
+| after | `Test Files 1 failed \| 2 passed (3)` — collected, and red |
+
+**Gate:** `tools/checks/test-file-collection.test.ts`, 6 assertions. It reads includes from **raw source**
+(never comment-stripped, for the reason above) and compares each narrowing package's tracked test files
+against what its patterns actually glob.
+
+| mutation | verdict |
+|---|---|
+| orphan planted outside `src/**` in `apps/driver` | **RED**, naming the file |
+| design narrowed back + a `.test.ts` planted | **RED** — proves the widening is what closed it |
+| a custom `exclude` added | **THROWS, exit 1** — fail-closed |
+
+The `exclude` path matters: a custom `exclude` is a **second narrowing axis** this gate does not model, and a
+file matching `include` but hit by `exclude` would look collected. None exists in the repo today, so the gate
+refuses to run rather than silently under-report — fail-closed is about the fallback *value*, not about
+catching the condition.
+
+**Limit, stated rather than discovered later:** matching uses node's `globSync`, not vitest's own globber
+(tinyglobby/picomatch is transitive and not resolvable under pnpm's strict layout — checked, not assumed). For
+patterns this simple the semantics coincide, and two things keep that honest: the per-package assertion reds
+if this matcher ever disagrees with reality about a file that *does* run, and the gate is mutation-proved to
+say NO. What it cannot rule out is a matcher **more lenient** than vitest on a pattern not in use here.
+
+### Exit state
+
+`test:tools` **1001** (+6); lint 0; typecheck 0. `verify:merge` verdict unchanged: `21 PASS · 0 FAIL · 5
+BLOCKED` at HEAD's register; 2 FAIL under the working tree's uncommitted `REQ-289` row (§726).
+
+**Reopen triggers**
+- Any config adds a custom `exclude` → the gate throws by design. Model exclude before landing it; do not
+  delete the guard.
+- A config uses a glob feature beyond `**`, `*` and `{a,b}` (extglob, negation) → node's globSync and vitest's
+  globber may diverge, and the divergence would be *lenient*. Re-verify against a planted orphan at that time.
+- `packages/design` gains a `.test.ts` → nothing to do; that is the case this phase opened. Its presence is
+  the proof the widening was needed.
