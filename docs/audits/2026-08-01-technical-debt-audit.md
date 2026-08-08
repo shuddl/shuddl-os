@@ -347,6 +347,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 152 | §704 | **§705** | **DEFECT — the three PWAs were outside the type-aware promise rules**, and `apps/` appears in **no block** in `eslint.config.mjs`. Probed rather than reasoned: an identical floating call is caught in `packages/map/src` (1 hit) and **not** in `apps/command/src` (0). Worst in the driver, whose premise is offline durability — a dropped sync promise is work that never happens, which no airplane-mode soak can catch if the write was never awaited. New block (tests ignored: all 9 violations are `waitFor(async …)`; production has zero). **Also: lint had been RED since §694** — mine — because phases verified with `test:tools`+`typecheck`, which are a SUBSET of the merge gate |
 | 153 | §705 | **§706** | **STOPPING POINT — full gate re-derived at `e194d87`: 26 gates, 21 PASS · 0 FAIL · 5 BLOCKED, exit 2.** `lint` among the PASS, so §705's fix is confirmed **by the gate that owns it** rather than the subset that missed it for ten phases; `rc` captured before any substitution (§689's trap avoided by construction). §663–§706 = **43 phases, 45 commits, 13 DEFECT rows**, and the locus moved build → instruments → build. Three self-corrections: a false green (§689), a struck trigger (§699), lint red for ten phases (§705). **A subset that passes is not the gate** |
 | 154 | §706 | **§707** | **The dev loop existed; its exit 0 said more than it meant.** `pnpm verify` chains 16 checks **including lint** and runs clean end-to-end (the 5 fixture-blocked gates report PENDING without halting the `&&`) — so §705's ten-phase lint red was avoidable with a command already there. But `verify` exits **0** with five gates pending and prints **zero** promotion warnings, while `verify:merge` says *"NOT PROMOTABLE… This is NOT a green."* §689's false-green shape, **structural rather than a shell slip**. Closed: the dev loop now states which question its green answers |
+| 155 | §707 | **§708** | **Two load-bearing claims verified, both true.** CLAUDE.md rule 4's *"exits 2 on `--mode merge`"* holds for **all five** blocked gates (bare 0 / merge 2) — which is also why `pnpm verify` legitimately sees 0. And the `--if-present` hazard in `unit-tests` (17 packages, 313 test files, a lost `test` script silently skipped) **is covered**: M227 deletes `packages/rater`'s script and `test-collection` names all 157 files, because the package stops being a **runner root** and falls through to `<root>`. **A floor can guard something its name does not mention** — I would have been wrong to assume it |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -39647,3 +39648,56 @@ question it answered.**
 - `verify:dev` gains a check that exits non-zero when BLOCKED → the `&&` chain halts and the closing line
   never prints, so a *failure* is loud and a *pending* is explained. That asymmetry is correct and worth
   preserving if the chain is ever reordered.
+
+## §708 — PHASE GATE: two load-bearing claims verified, both true
+
+**Subject.** §707 closed a false-green hazard in the dev loop. The same question turned on the merge gate's
+own machinery: **are the claims it rests on actually true?** Two were testable and neither had been tested
+this session.
+
+### 1. CLAUDE.md rule 4's mode-aware exit — verified
+
+The governing file states `check:fixtures` *"reports PENDING … and **exits 2 on `--mode merge`**"*. That is a
+claim about behaviour, and it generalises to all five blocked gates:
+
+| gate | bare | `--mode merge` |
+|---|---|---|
+| `check:fixtures` · `check:identity` · `check:rater-parity` · `check:invoice-parity` · `check:concierge-parity` | **0** | **2** |
+
+Five for five. The design is exactly as documented: a bare run says *"nothing to check here"* and exits 0, so
+a dev loop is not blocked by an absent private fixture; a merge run says *"this is a hold"* and exits 2. That
+is also why `pnpm verify` legitimately sees 0 — the distinction §707 made explicit.
+
+### 2. The `--if-present` hazard in the largest gate — covered
+
+`unit-tests` runs `pnpm run test:tools && pnpm -r --if-present run test`. **`--if-present` means a package
+that lost its `test` script is silently skipped** — 17 packages, 313 test files, and no obvious floor: exactly
+§610's shape on the biggest gate in the profile.
+
+**M227** deleted `packages/rater`'s `test` script — 157 tests. `test-collection.test.ts` fires:
+
+```
+packages/rater/test/anomaly.test.ts — owned by <root>, matched by none of its include patterns
+```
+
+**The mechanism is indirect and sound.** That gate determines each test file's *runner* as the deepest
+ancestor that either declares a vitest config **or is a workspace package**. Remove the script and the
+package stops being a runner root, so its files fall through to `<root>`, whose includes do not match them —
+and every one is named.
+
+I would have been wrong to assume this. The gate's own header names `--if-present` explicitly, so the author
+had seen the hazard; what is not obvious is that the *coverage* assertion catches it as a side effect of how
+ownership is derived. **A floor can guard something its name does not mention.**
+
+### Exit state
+
+No code change; nothing to fix. `packages/rater/package.json` restored byte-identical.
+`test:tools` **974**; lint 0; typecheck 0. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, exit 2** at `e194d87`.
+
+**Reopen triggers**
+- A package gains a vitest config but loses its `test` script → it stays a runner root, its includes still
+  match, and `--if-present` still skips it. **That combination is not covered**, and it is the one shape this
+  section could not rule out. It requires two edits in opposite directions, which is why it is recorded
+  rather than gated.
+- CLAUDE.md's rule-4 wording changes → the five-gate table above is the measurement behind it, and it is
+  dated today rather than inherited.
