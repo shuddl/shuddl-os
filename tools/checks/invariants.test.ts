@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { repoRoot } from "./repo-root.js";
 import { globSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -1129,5 +1130,45 @@ describe("checkDoMutexIntact — the limbs are scoped to the CLASS, not the file
     // The guard a global filter removed mid-edit: without it, every file was scanned for every roster class
     // and the await half reported SparkMeter violations inside workers/translator/src/inbound.ts.
     expect(checkDoMutexIntact([{ path: "unrelated.ts", source: "export async function f() { await fetch('x'); }" }])).toEqual([]);
+  });
+});
+
+// REQ-002/118 §615 — genesis/14 §07's MIGRATION SENTENCE AND THIS LINT MUST MOVE TOGETHER.
+//
+// genesis/14 §07 read: "any migration touching `events` beyond CREATE/INDEX fails CI (I3)". The lint permits
+// ONE further form — a NULLABLE `ALTER TABLE events ADD COLUMN` (owner-approved, WP-05) — on the reasoning
+// that genesis/10's I3 is "no event edit/delete grants exist at DB level" and a nullable ADD COLUMN is SQLite
+// metadata-only: it never rewrites or deletes an existing row, so it is neither an UPDATE nor a DELETE.
+//
+// The document was therefore describing a repo that would fail its own CI: `0005_events_override.sql` has
+// shipped under that permit since WP-05, and `check:invariants` is green. §615 amended the sentence.
+//
+// This is the lockstep pair the drift created. A doc sentence and a code permit that must agree cannot be
+// left to agree by memory — the fix must read one and exercise the other, which is what these two assertions
+// do. Tightening the lint without amending the doc, or reverting the doc without loosening the lint, fails
+// here rather than in six months when someone deletes a shipped migration to satisfy a stale sentence.
+describe("REQ-002 §615: the nullable ADD COLUMN permit is stated where it is enforced", () => {
+  it("the lint permits a NULLABLE add-column on events, and nothing else", () => {
+    expect(checkMigrationSql(["ALTER TABLE events ADD COLUMN note TEXT;"]).ok, "the sanctioned form must pass").toBe(true);
+    // The three forms that WOULD write into or destroy existing rows stay violations.
+    for (const sql of [
+      "ALTER TABLE events ADD COLUMN note TEXT NOT NULL DEFAULT 'x';",
+      "ALTER TABLE events DROP COLUMN note;",
+      "ALTER TABLE events RENAME TO events_old;",
+    ]) {
+      expect(checkMigrationSql([sql]).ok, `must stay a violation: ${sql}`).toBe(false);
+    }
+  });
+
+  it("genesis/14 §07 states the permit rather than contradicting it", () => {
+    const spec = readFileSync(`${repoRoot()}/genesis/14-BUILD-EXECUTION-SPEC.md`, "utf8");
+    // Narrow on purpose: this asserts the AMENDMENT is present, not that any particular prose survives. A
+    // reworded amendment that still names the permit passes; a revert to the unqualified sentence does not.
+    expect(
+      /NULLABLE\s+`?ALTER TABLE events ADD COLUMN`?/i.test(spec),
+      "genesis/14 §07 no longer states the nullable ADD COLUMN permit, but the lint still allows it (asserted " +
+        "above) and db/tenant/migrations/0005_events_override.sql ships under it. The document would send a " +
+        "reader to delete a shipped migration to satisfy a rule CI does not enforce. Amend both or neither",
+    ).toBe(true);
   });
 });

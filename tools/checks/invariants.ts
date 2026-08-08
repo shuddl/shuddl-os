@@ -280,7 +280,8 @@ export function checkMigrationSql(sqlFiles: string[]): InvariantResult {
     "gi",
   );
   for (const m of clean.matchAll(mutate)) {
-    violations.push(`I3 VIOLATION: migrations may only CREATE/INDEX ${m[2]} — found "${m[1]}". Corrections are new events.`);
+    violations.push(`I3 VIOLATION: migrations may only CREATE/INDEX ${m[2]} (plus a NULLABLE ADD COLUMN — see the ALTER rule ` +
+        `below) — found "${m[1]}". Corrections are new events.`);
   }
   // ALTER TABLE on a guarded table: the ONE sanctioned form is a NULLABLE `ADD COLUMN`
   // (owner-approved, WP-05). RATIONALE: append-only (CLAUDE.md Law 2) bans UPDATE/DELETE of

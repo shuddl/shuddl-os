@@ -255,6 +255,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 60 | §611 | **§612** | **DEFECT — the last clause of CLAUDE.md's "Do not build (ever)" enforced NOTHING.** CONFIRM-GATED sat as a peer of vNEXT in the drift rule, so building one of the three named features and annotating it correctly left drift at 9→9 and traceability at exit 0. Fixed with a verdict-required rule (not a blanket fail — all 3 real citations are boundary markers), proved at CLI and analyzer |
 | 61 | §612 | **§613** | genesis/14 §04 "every endpoint, no exceptions" traced. The convention holds BY CONSTRUCTION — two `app.use("/v1/*", …)` lines give every mutation auth + idempotency free — and 5 of 24 mutations sit outside /v1, all deliberate and separately guarded (clean negative). The debt: nothing made the SIXTH a decision, and deleting either line would strip both from every route silently. Pinned + 3 mutations |
 | 62 | §613 | **§614** | **DEFECT — deleting a cross-tenant isolation proof was SILENT.** genesis/14 §07 lists "isolation suite" as a PR gate and CLAUDE.md rule 8 calls a cross-tenant read a build failure, but no gate is named `isolation` and nobody had written down which six files ARE the suite; a staged deletion of 8 PLG isolation cases left test:tools at its exact baseline. Roster + 149-case floor, both routes mutation-proved |
+| 63 | §614 | **§615** | **A SOURCE-OF-TRUTH DOC DESCRIBED A REPO THAT WOULD FAIL ITS OWN CI.** genesis/14 §07 said any migration touching `events` beyond CREATE/INDEX fails CI; the lint permits a NULLABLE ADD COLUMN (owner-approved WP-05, faithful to genesis/10's actual I3 text) and a migration has SHIPPED under it since WP-05. Amended + lockstep-gated; the mutations show the LINT side was already pinned and the DOC side was not |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -33702,3 +33703,76 @@ typecheck 0; eslint clean.
   edit.
 - The `it(`/`test(` idiom changes → the floor reads 0 and fails loudly rather than passing, and the non-vacuity
   test states it as a stale SCAN so nobody hunts for tests that were never deleted.
+
+---
+
+## §615 — PHASE GATE: a source-of-truth document describing a repo that would fail its own CI
+
+**Subject.** genesis/14 §07's last line states a migration law: *"Migrations forward-only; any migration
+touching `events` beyond CREATE/INDEX fails CI (I3)."* §614 had just shown that section's gate chain naming a
+gate that does not exist, so its other testable claim got the same treatment.
+
+### The probe that proved nothing, and the one that did
+
+A migration doing `ALTER TABLE events ADD COLUMN` was planted. `check:invariants` **failed** — and reading the
+message, it failed for an unrelated reason: *"applied by NO test file — it ships to production but nothing
+exercises the state it creates"*. A different rule entirely. Crediting that RED would have recorded a false
+clean negative; the claim was still untested.
+
+Testing the analyzer directly settled it. `invariants.ts` permits exactly one ALTER form on a guarded table —
+a **nullable** `ADD COLUMN` — with its reasoning written out and marked owner-approved (WP-05):
+
+> *append-only bans UPDATE/DELETE of existing event DATA; a nullable `ADD COLUMN` is SQLite metadata-only — it
+> never rewrites or deletes an existing row (old rows read the new column as NULL) — and is neither an UPDATE
+> nor a DELETE. Permitting ONLY it therefore ALIGNS the lint with Law 2 rather than weakening it.*
+
+### Which one is wrong
+
+The source-of-truth order decides: **genesis/10 outranks genesis/14**, and I3's own text there is *"no event
+edit/delete grants exist at DB level"* — about edit and delete, saying nothing about ALTER. The code's carve-out
+is faithful to it; genesis/14's *"beyond CREATE/INDEX"* is an over-tight restatement.
+
+And it is not academic. **`db/tenant/migrations/0005_events_override.sql` has shipped under that permit since
+WP-05**, the permit is covered by tests, and `check:invariants` is green. So a source-of-truth document was
+describing a repo that would fail its own CI — and a reader following it literally would delete a shipped
+migration to satisfy a rule CI does not enforce.
+
+The sentence is **struck rather than deleted**, per this document's own convention (it did the same for the
+design-CI timing), because its intent still governs: the events table is not editable, and only a form that
+provably edits nothing was carved out.
+
+### The lockstep, and which half was actually unguarded
+
+A doc sentence and a code permit that must agree cannot be left to agree by memory. Two assertions now bind
+them — and the mutations show the asymmetry that mattered:
+
+| | Mutation | Result |
+|---|---|---|
+| M110 | the doc reverted to the unqualified sentence, lint unchanged | RED — **only the new doc test** |
+| M111 | the lint tightened to reject every ALTER, doc unchanged | RED — **pre-existing tests** |
+
+So the **lint side was already pinned**; the **doc side had nothing**. That asymmetry is the whole finding:
+code drifting from the document was caught, and the document drifting from the code was not — in the direction
+that matters more, because the document is what a session reads as law before writing any code.
+
+One smaller instance of the same class, fixed alongside: the lint's own violation message read *"migrations may
+only CREATE/INDEX"* — the same over-tight phrasing, printed by the code that permits the exception.
+
+### The gate caught my own edit
+
+`test:tools` came back at 4 failures rather than the 3-failure baseline, on `section-refs`: the genesis/14
+amendment cites "audit §615", and §615 did not exist yet. Correct behaviour, on prose written minutes earlier —
+the same unplanned proof §606 recorded, from the same gate.
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged. `test:tools` back to exactly the 3 REQ-289 failures; typecheck 0;
+eslint clean; `check:invariants` green with the shipped ALTER migration in place.
+
+**Reopen triggers**
+- The owner narrows the permit (no ALTER at all) → M111's direction; the lint tightens, the doc test fails, and
+  `0005_events_override.sql` must be reckoned with rather than quietly orphaned.
+- A second carve-out is approved → the doc test only asserts the FIRST permit is named. A hand-written
+  regex cannot see an omission it was never told about; the honest limit of this shape.
+- genesis/10's I3 text changes → the whole argument above re-derives from it, since it is what makes the
+  carve-out faithful rather than a weakening.
