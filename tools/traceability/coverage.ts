@@ -47,6 +47,8 @@ const DEFERRED: ReadonlySet<Disposition> = new Set<Disposition>([
 
 // A "*-DISCOVERED" status is an audit-discovered-but-BUILT requirement (WP06/07/08-DISCOVERED …).
 const DISCOVERED_RE = /^WP\d{2}-DISCOVERED$/;
+// §612 — matches the status of the 14 rows CLAUDE.md forbids building while their CONFIRM is open.
+const CONFIRM_GATED_RE = /CONFIRM-GATED/i;
 
 function isBuildableStatus(status: string): boolean {
   return status === "F0-SPEC'D" || status === "F0.2-SPEC'D" || DISCOVERED_RE.test(status);
@@ -83,17 +85,39 @@ export type CoverageResult = {
   perBucket: Record<Disposition, string[]>;
   unaccounted: { req_id: string; reason: string }[];
   drift: string[]; // vNEXT/*-DISCOVERED rows whose code HAS shipped (annotation exists) — advise advancing the tag
+  /**
+   * §612 — CONFIRM-GATED rows carrying a source citation with NO reviewed verdict.
+   *
+   * CLAUDE.md's "Do not build (ever, without a register amendment signed by the owner)" list ends with
+   * "anything whose REQ row says CONFIRM-GATED while the CONFIRM is open (Direct merchant, voice recording,
+   * escrow settle)". CONFIRM-GATED sat as a peer of vNEXT in the drift rule above — which only tests
+   * `vNEXT || *-DISCOVERED` — so building one and annotating it correctly produced NO signal from any gate.
+   * MEASURED (§612): planting an annotation citing the Direct-merchant row — one of the three that clause
+   * names — left the drift count at 9 → 9 and `check:traceability` at exit 0. (The REQ-ID is described here
+   * rather than written: this scanner reads its own source, so quoting the token would cite the row.)
+   *
+   * It is not the same event as drift. For vNEXT a citation means "maybe advance the tag"; for CONFIRM-GATED
+   * it means code exists against scope an owner or counsel has not released, and the ONLY safe default is to
+   * make someone say which it is. A blanket failure would be wrong — all three citations that exist today are
+   * careful BOUNDARY MARKERS ("the flag MECHANISM, not final packaging or pricing") — so the rule is the
+   * repo's established disposition shape: a reviewed verdict clears it, and a NEW citation fails until one
+   * is written.
+   */
+  confirmCited: string[];
 };
 
 export function computeCoverage(input: {
   rows: readonly ReqRow[];
   annotations: ReadonlySet<string>;
   recordedHomes: ReadonlySet<string>;
+  /** REQ-IDs whose CONFIRM-GATED citation carries a written verdict (coverage-manifest `confirm_citations`). */
+  confirmReviewed: ReadonlySet<string>;
   activeWps: readonly string[];
 }): CoverageResult {
   const perBucket = Object.fromEntries(DISPOSITIONS.map((d) => [d, [] as string[]])) as Record<Disposition, string[]>;
   const unaccounted: { req_id: string; reason: string }[] = [];
   const drift: string[] = [];
+  const confirmCited: string[] = [];
 
   for (const row of input.rows) {
     const d = disposition(row, input.activeWps);
@@ -114,9 +138,12 @@ export function computeCoverage(input: {
 
     const status = row.status.trim();
     if ((status === "vNEXT" || DISCOVERED_RE.test(status)) && annotated) drift.push(row.req_id);
+    if (CONFIRM_GATED_RE.test(status) && annotated && !input.confirmReviewed.has(row.req_id)) {
+      confirmCited.push(row.req_id);
+    }
   }
 
-  return { total: input.rows.length, perBucket, unaccounted, drift };
+  return { total: input.rows.length, perBucket, unaccounted, drift, confirmCited };
 }
 
 // A deferred row's "recorded home" is a REQ-\d{3} citation in the human coverage ledger
@@ -127,11 +154,23 @@ export function computeCoverage(input: {
 const CHECKLIST_PATH = () => `${repoRoot()}/docs/ops/GO-LIVE-CHECKLIST.md`;
 const MANIFEST_PATH = () => `${repoRoot()}/tools/traceability/coverage-manifest.json`;
 
-type CoverageManifest = { dispositions?: Record<string, string> };
+type CoverageManifest = { dispositions?: Record<string, string>; confirm_citations?: Record<string, string> };
 
 function readManifest(): CoverageManifest {
   if (!existsSync(MANIFEST_PATH())) return {};
   return JSON.parse(readFileSync(MANIFEST_PATH(), "utf8")) as CoverageManifest;
+}
+
+/**
+ * §612 — REQ-IDs whose CONFIRM-GATED source citation has a WRITTEN verdict.
+ *
+ * Deliberately a SEPARATE manifest key from `dispositions`. A disposition proves the row is documented as
+ * deferred; this proves someone looked at the CODE and judged it a boundary marker rather than an
+ * implementation. Folding them together would let a row that merely has a recorded home clear a check about
+ * what its citation does — two different claims, and only one of them is about the code.
+ */
+export function scanConfirmReviewed(): Set<string> {
+  return new Set(Object.keys(readManifest().confirm_citations ?? {}));
 }
 
 export function scanRecordedHomes(): Set<string> {
@@ -166,6 +205,7 @@ function main(): void {
     rows,
     annotations: scanSourceAnnotations(),
     recordedHomes: scanRecordedHomes(),
+    confirmReviewed: scanConfirmReviewed(),
     activeWps,
   });
 
@@ -182,6 +222,18 @@ function main(): void {
   let failed = false;
   if (staleManifest.length > 0) {
     console.error(`\nFAIL coverage-manifest cites unregistered REQ-IDs: ${staleManifest.join(", ")}`);
+    failed = true;
+  }
+  if (res.confirmCited.length > 0) {
+    console.error(
+      `\nFAIL ${res.confirmCited.length} CONFIRM-GATED row(s) carry a source citation with no reviewed verdict: ` +
+        `${res.confirmCited.join(", ")}\n` +
+        `  CLAUDE.md forbids building anything whose REQ row says CONFIRM-GATED while the CONFIRM is open. A\n` +
+        `  citation is not proof it WAS built — the ones that exist today are boundary markers ("the flag\n` +
+        `  MECHANISM, not final packaging or pricing"). Read the citation, then record the verdict under\n` +
+        `  \`confirm_citations\` in tools/traceability/coverage-manifest.json. If it IS an implementation,\n` +
+        `  that needs an owner-signed register amendment, not a manifest entry.`,
+    );
     failed = true;
   }
   if (res.unaccounted.length > 0) {

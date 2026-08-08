@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { parseRegister, type ReqRow } from "./register.js";
 import { scanSourceAnnotations } from "./orphans.js";
-import { computeCoverage, disposition, DISPOSITIONS, formatReport, scanRecordedHomes } from "./coverage.js";
+import { computeCoverage, disposition, DISPOSITIONS, formatReport, scanRecordedHomes, scanConfirmReviewed} from "./coverage.js";
 
 // The 15 build WPs (WP-16 is the launch gate itself, handled by its own disposition).
 const ACTIVE = [
@@ -107,6 +107,7 @@ describe("REQ-118/119: check:coverage — 100% register-coverage gate", () => {
     const res = computeCoverage({
       rows,
       annotations: scanSourceAnnotations(),
+      confirmReviewed: new Set<string>(),
       recordedHomes: scanRecordedHomes(),
       activeWps: ACTIVE,
     });
@@ -129,7 +130,8 @@ describe("REQ-118/119: check:coverage — 100% register-coverage gate", () => {
     writeFileSync(p, csv);
     const rows = parseRegister(p);
 
-    const res = computeCoverage({ rows, annotations: new Set(), recordedHomes: new Set(), activeWps: ACTIVE });
+    const res = computeCoverage({ rows, annotations: new Set(), confirmReviewed: new Set<string>(),
+ recordedHomes: new Set(), activeWps: ACTIVE });
     const ids = res.unaccounted.map((u) => u.req_id);
     expect(ids).toContain(fake("901"));
     expect(ids).toContain(fake("902"));
@@ -144,6 +146,7 @@ describe("REQ-118/119: check:coverage — 100% register-coverage gate", () => {
     const res2 = computeCoverage({
       rows,
       annotations: new Set([fake("902")]),
+      confirmReviewed: new Set<string>(),
       recordedHomes: new Set([fake("903")]),
       activeWps: ACTIVE,
     });
@@ -178,6 +181,7 @@ describe("REQ-118/119: check:coverage — 100% register-coverage gate", () => {
     const res = computeCoverage({
       rows,
       annotations: scanSourceAnnotations(),
+      confirmReviewed: new Set<string>(),
       recordedHomes: scanRecordedHomes(),
       activeWps: ACTIVE,
     });
@@ -210,6 +214,7 @@ describe("REQ-118/119: check:coverage — 100% register-coverage gate", () => {
     const res = computeCoverage({
       rows: parseRegister(p),
       annotations: new Set([drifted, driftedVnext, built]),
+      confirmReviewed: new Set<string>(),
       recordedHomes: new Set([driftedVnext]),
       activeWps: ACTIVE,
     });
@@ -227,6 +232,7 @@ describe("REQ-118/119: check:coverage — 100% register-coverage gate", () => {
     const real = computeCoverage({
       rows: parseRegister(),
       annotations: scanSourceAnnotations(),
+      confirmReviewed: new Set<string>(),
       recordedHomes: scanRecordedHomes(),
       activeWps: ACTIVE,
     });
@@ -280,6 +286,7 @@ describe("implementation annotation integrity", () => {
     const res = computeCoverage({
       rows,
       annotations: fixtureAnnotations,
+      confirmReviewed: new Set<string>(),
       recordedHomes: new Set([
         annotationIds.manifest,
         annotationIds.goLiveChecklist,
@@ -305,5 +312,84 @@ describe("implementation annotation integrity", () => {
     expect(res.drift).not.toContain(annotationIds.releaseEvidence);
     expect(res.drift).toContain(annotationIds.implementationDoc);
     expect(res.drift).toContain(annotationIds.deferredSource);
+  });
+});
+
+// REQ-118 §612 — CLAUDE.md's LAST "do not build" CLAUSE HAD NO ENFORCEMENT.
+//
+// "anything whose REQ row says CONFIRM-GATED while the CONFIRM is open (Direct merchant, voice recording,
+// escrow settle)". CONFIRM-GATED sat as a peer of vNEXT in the drift rule, which tests only
+// `vNEXT || *-DISCOVERED` — so building one and annotating it correctly moved nothing: drift stayed 9 → 9
+// and check:traceability exited 0. MEASURED, not reasoned.
+//
+// The rule is NOT "a citation means it was built" — all three citations that existed when this landed are
+// careful boundary markers. It is "someone must say which it is, in writing", which is the disposition shape
+// this file already uses everywhere else.
+describe("REQ-118 §612: a CONFIRM-GATED row with an unreviewed citation fails", () => {
+  const confirmRow = (id: string) => ({
+    req_id: id,
+    domain: "d",
+    requirement: "r",
+    source: "s",
+    spec: "sp",
+    wp: "vNEXT",
+    dod_test: "t",
+    status: "CONFIRM-GATED",
+  });
+
+  it("flags a CONFIRM-GATED row whose code is annotated with no recorded verdict", () => {
+    const id = fake("104");
+    const res = computeCoverage({
+      rows: [confirmRow(id)],
+      annotations: new Set([id]),
+      confirmReviewed: new Set<string>(),
+      recordedHomes: new Set([id]),
+      activeWps: ACTIVE,
+    });
+    // A recorded HOME does not clear it: that proves the row is documented as deferred, which is a different
+    // claim from "someone read the code and judged the citation a marker".
+    expect(res.confirmCited, "a built CONFIRM-GATED row must not pass on its deferral paperwork alone").toEqual([id]);
+  });
+
+  it("a recorded verdict clears it", () => {
+    const id = fake("104");
+    const res = computeCoverage({
+      rows: [confirmRow(id)],
+      annotations: new Set([id]),
+      confirmReviewed: new Set([id]),
+      recordedHomes: new Set([id]),
+      activeWps: ACTIVE,
+    });
+    expect(res.confirmCited).toEqual([]);
+  });
+
+  it("an UNCITED CONFIRM-GATED row is not flagged — the rule is about code, not about the row existing", () => {
+    const id = fake("104");
+    const res = computeCoverage({
+      rows: [confirmRow(id)],
+      annotations: new Set<string>(),
+      confirmReviewed: new Set<string>(),
+      recordedHomes: new Set([id]),
+      activeWps: ACTIVE,
+    });
+    expect(res.confirmCited).toEqual([]);
+  });
+
+  it("the real register's CONFIRM-GATED citations are all reviewed", () => {
+    // Derived from the live register + manifest, so a NEW citation to any of the 14 gated rows fails here
+    // rather than only in the CLI.
+    const res = computeCoverage({
+      rows: parseRegister(),
+      annotations: scanSourceAnnotations(),
+      confirmReviewed: scanConfirmReviewed(),
+      recordedHomes: scanRecordedHomes(),
+      activeWps: ACTIVE,
+    });
+    expect(
+      res.confirmCited,
+      "a CONFIRM-GATED row gained a source citation with no verdict under `confirm_citations`. Read the " +
+        "citation: if it is a boundary marker, record why; if it is an implementation, CLAUDE.md requires an " +
+        "owner-signed register amendment first",
+    ).toEqual([]);
   });
 });

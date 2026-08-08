@@ -252,6 +252,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 57 | §608 | **§609** | **DEFECT — e2e PASSED at 3 of 6, losing the TENANT-ISOLATION browser proof (REQ-025, rule 8) to an ordinary rename.** Third instance of one class; the zero-floor protects only single-source suites, which was an accident of composition, not a decision. Fixed with a per-gate corpus RATCHET (may rise, may not fall) + a derived test so a new browser gate cannot ship without a floor |
 | 58 | §609 | **§610** | THE CLASS SWEPT BY RULE, not by enumeration: **a gate needs a corpus floor when a SELECTOR sits between the artifacts and the run.** unit-tests was flagged by the rule and proved already guarded (§288, 3 probes). Testing the rule against authority-coverage found its GREEN line naming a module it had stopped checking — a computed count beside a hardcoded list. Record defect, not coverage; list now derived |
 | 59 | §610 | **§611** | THE RESTATEMENT SWEEP §610 ASKED FOR. Gate summaries are clean — all derived, authority-coverage was the only exception. **The real find is one level up: CLAUDE.md states SIX hard budgets as law and nothing read the file as data.** All six agree today; now gate-checked against TABLE_BUDGET/SURFACE_ROSTER/MAX_CANONICAL_VIEWS/EVENT_KINDS/TOKENS/FONTS, mutation-proved both directions + the vacuity floor |
+| 60 | §611 | **§612** | **DEFECT — the last clause of CLAUDE.md's "Do not build (ever)" enforced NOTHING.** CONFIRM-GATED sat as a peer of vNEXT in the drift rule, so building one of the three named features and annotating it correctly left drift at 9→9 and traceability at exit 0. Fixed with a verdict-required rule (not a blanket fail — all 3 real citations are boundary markers), proved at CLI and analyzer |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -33456,3 +33457,91 @@ typecheck 0; eslint clean.
   parsing every `·`-separated clause — would break on the prose ones like "0 shadows/gradients/radius>4px").
 - `check:invariants` stops printing the live table count → the documented reason for excluding `(21 used)`
   expires with it.
+
+---
+
+## §612 — PHASE GATE: the last clause of "Do not build (ever)" had no enforcement
+
+**Subject.** §611 checked CLAUDE.md's six **numbers**. The same document states eleven **prohibitions** in
+prose — "Do not build (ever, without a register amendment signed by the owner)". A stated law that nothing
+checks is followed only while someone remembers it, so each was traced to its enforcing mechanism.
+
+### Most of the list is genuinely enforced
+
+| Prohibition | Enforced by | Verified |
+|---|---|---|
+| a fourth surface | `SURFACE_ROSTER` + `checkSurfaceBudget` | §611 |
+| SMC3/class as engine foundation | `rater-purity` (`no class-as-foundation`) | §606 |
+| any tenant/person/vendor name | `check:identity` | §604 |
+| gray text, blue anything, shadows, spring animations | design + motion audits, blocking | rule 7 |
+| code merge from prior codebases (REQ-163) | an ESLint rule, with `lint-guards.test.ts` pinning the REQ-163 message | this phase |
+| native GL · driver pay v1 · report builder · seat-based pricing | no REQ row ⇒ `traceability` orphan-fails the annotation | §607 |
+
+### THE FINDING — the CONFIRM-GATED clause enforced nothing
+
+The list ends with *"anything whose REQ row says CONFIRM-GATED while the CONFIRM is open (Direct merchant,
+voice recording, escrow settle)"*. **14 register rows** carry that status.
+
+`coverage.ts` treated CONFIRM-GATED as a peer of `vNEXT`: the drift rule tests
+`status === "vNEXT" || DISCOVERED_RE.test(status)`, and CONFIRM-GATED is neither. Its only obligation was the
+DEFERRED bucket's — *have a recorded home* — which is a claim about **paperwork**, not about code.
+
+**Measured, not reasoned.** An annotation citing the Direct-merchant row was planted in `packages/ledger`:
+
+| | before | after |
+|---|---|---|
+| `coverage` drift rows | 9 | **9** |
+| `check:traceability` | exit 0 | **exit 0** |
+
+Building one of the three things CLAUDE.md names by name, and annotating it *correctly*, produced **no signal
+from any gate**.
+
+### Why the fix is not a blanket failure
+
+Three CONFIRM-GATED rows are cited in source today, and reading them shows every one is a careful **boundary
+marker** written by someone who understood the CONFIRM:
+
+- **REQ-130** — *"[HYPOTHESIS] flag mechanism, not final packaging/price"*. The CONFIRM is a re-based price: a
+  number, not code.
+- **REQ-140** — *"these are the ENFORCEMENT durations, tunable when that text lands"*. The CONFIRM is the
+  policy text. Building the knob before the policy sets its value is the correct order.
+- **REQ-142** — *"the e-signature CAPTURE mechanism is built here … the legal VALIDITY notes per mode are a
+  COUNSEL deliverable, not code"*.
+
+A rule that failed on any citation would have failed on all three and been switched off within a week — §575's
+warning. So the rule is the repo's established disposition shape: **a written verdict clears it, a new citation
+fails until one exists.** `confirm_citations` is deliberately a *separate* manifest key from `dispositions`,
+because "documented as deferred" and "someone read the code and judged the citation" are different claims and
+only one is about the code.
+
+**Proved at both layers** — CLI and analyzer, since a rule enforced in only one place is enforced by whichever
+someone runs:
+
+| | Mutation | Result |
+|---|---|---|
+| M101b | Direct-merchant row built + annotated | `FAIL 1 CONFIRM-GATED row(s) … REQ-104` |
+| M102 | voice-recording row built + annotated | the live-register test RED |
+| — | verdicts recorded for the three real ones | clears, leaving only REQ-289 |
+
+### My own comment tripped the new gate
+
+The first run reported **four**, not three. The extra was the Direct-merchant row — cited by the §612 doc
+comment I had just written to explain the probe. The scanner reads its own source, so quoting the token
+*created the citation*.
+
+Third instance this session of prose quoting a known-bad value (§606's dangling section number, §608's
+suppression-free gate, now this). The comment now describes the row instead of naming it, and says why.
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged — the new check is inside an already-failing gate, so it moves no
+count until REQ-289 lands. `test:tools` at 917 passed with exactly the 3 REQ-289 failures; typecheck 0; eslint
+clean.
+
+**Reopen triggers**
+- A CONFIRM is signed and its row leaves CONFIRM-GATED → the verdict under `confirm_citations` becomes stale
+  and should be deleted with the status change, not left as a permanent exemption.
+- A citation recorded as a boundary marker later becomes an implementation → nothing re-reads the verdict. The
+  honest limit: this gate makes the FIRST citation a decision, not every subsequent edit to that file.
+- `scanSourceAnnotations` widens to a corpus that includes the manifest itself → every recorded verdict would
+  cite its own row and the rule would self-satisfy.
