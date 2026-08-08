@@ -362,6 +362,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 167 | §719 | **§720** | **REQ-061's offline chain walked link by link — sound, with one unguarded edge named.** Registration (feature-detected, post-`load`, degrades safely) · precache · manifest · fetch strategy all verified; §717's `waitUntil` fix was the only repair needed. **Link 2 is the sharp one:** `cache.addAll(SHELL)` is **atomic**, so one 404 in a four-element list fails the install entirely and surfaces as *"offline doesn't work"* — and it resolves today only because Vite emits `/index.html`, a build dependency the worker never states. Residual: registration failure is silent **by design**; making it observable is new behaviour and belongs to demo (3) |
 | 168 | §720 | **§721** | **The precache list must now name files that exist.** §720's sharpest edge closed: `cache.addAll` is **atomic**, so one typo in a four-element list does not lose an asset — it **removes the precache entirely**, reaching a driver as *"the app doesn't open offline"*, which points anywhere except a mistyped string. Gate resolves each `SHELL` entry to a producer by Vite's two rules, **plus an assumption assertion** that `addAll`/`waitUntil` still exist so the file self-obsoletes. M236 (orphan path) and M237 (per-entry adds) each fire the right one |
 | 169 | §721 | **§722** | **Same shape on the command surface — already guarded, and the guard detects.** `greige-style.json` is a template whose `{PROVIDER_*}` refs are substituted by `.split().join()` — **a silent no-op if the constant and the JSON drift**, shipping a style MapLibre cannot resolve (*"the demotiles-schema class of bug"*, blank basemap). `entities.test.ts:45` asserts `not.toContain("PROVIDER_")` — **on the PREFIX, not either full placeholder**, so it survives a rename, which is the drift that defeats a literal match. M238 fires two tests. Same hazard class as §721, opposite authoring instinct |
+| 170 | §722 | **§723** | **Portal: the contract is a route parity a regex cannot check.** Nine production paths; five reported UNRESOLVED and **none were** — `/v1/bookings` exists only in `api.test.ts` as a dummy, and the rest are **concatenation bases** (`/v1/shipments/${id}` vs the server's `:id`). Reconciling those is a routing-table comparison, not a string search — the **fourth** over-reporting detector this session. What guards it is `portal-isolation.spec.ts`, structurally: a 404 breaks the page the assertions read. **Three surfaces, three mechanisms, only the driver's was missing — the question transferred, the answer did not** |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -40527,3 +40528,64 @@ No code change; nothing to fix. `packages/map` 89/89; `test:tools` **984**; lint
   it **automatically**, which is why the prefix form is the right one and worth preserving on edit.
 - The Mapbox path (`greigeStyleMapbox`) gains its own placeholder → it takes only `glyphsUrl` today and
   hardcodes `mapbox://mapbox.mapbox-streets-v8`, so there is nothing to substitute and nothing to check.
+
+## §723 — PHASE GATE: the portal's contract is a route parity a regex cannot check
+
+**Subject.** §722 closed the same question on two surfaces; **portal** was the third. Its must-resolve
+contract is not a file list but a **client/server route parity**: a path the client builds must match a route
+the worker mounts, or it 404s at runtime with nothing in the repo objecting.
+
+### The measurement, and what it kept getting wrong
+
+Nine production API paths in `apps/portal/src`. Five reported **UNRESOLVED** — and none of them were:
+
+| reported | what it is |
+|---|---|
+| `/v1/bookings` | appears **only in `api.test.ts`**, as an arbitrary path exercising the `post()` helper — not a production call at all |
+| `/v1/shipments/` · `/v1/documents/` · `/pub/status/` · `/pub/` · `/v1/` | **concatenation bases** — the client builds `/v1/shipments/${id}` and the server mounts `/v1/shipments/:id` |
+
+**A route-parity check has to reconcile `${id}` with `:id`, prefix concatenation with full literals, and test
+fixtures with production calls.** That is a routing-table comparison, not a string search — and every naive
+version of it over-reports, which is the fourth time this session (§699, §712, §713, here) that a detector
+produced a plausible list of nothing.
+
+### What actually guards it, and why that is the right layer
+
+`tests/e2e/portal-isolation.spec.ts` drives the real portal against a real worker and asserts on the
+**observed requests**:
+
+```ts
+for (const url of requests) expect(url).not.toMatch(/[?&]party_id=/);
+for (const url of requests) expect(url).not.toContain(PARTY_B);
+```
+
+A 404 from a mistyped path fails those tests by making the page not render what they assert on. **An
+integration test catches a broken route as a side effect of asserting behaviour** — and it does so without
+needing to model dynamic segments, because it exercises the real router.
+
+That is the honest answer to *"is the portal's contract guarded?"*: **yes, at the layer where the question is
+cheap to ask, and not at the layer where it would be expensive and wrong.**
+
+### The three surfaces, asked the same question
+
+| surface | must-resolve contract | guarded by |
+|---|---|---|
+| **driver** | `SHELL` precache list (atomic `addAll`) | **nothing — §721 built it** |
+| **command** | `{PROVIDER_*}` style substitution | a prefix assertion, `entities.test.ts:45` (§722) |
+| **portal** | client/server route parity | the e2e suite, structurally (this section) |
+
+Three surfaces, three different mechanisms, and only one was missing. **The question transferred; the answer
+did not** — which is the argument for asking it three times rather than generalising from the first.
+
+### Exit state
+
+No code change; nothing to fix and nothing cheaply buildable. `test:tools` **984**; lint 0; typecheck 0;
+e2e 6/6. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, exit 2** at `aa4487f`.
+
+**Reopen triggers**
+- A portal path is added that the e2e suite does not traverse → it is unguarded, and nothing reports the
+  gap because the e2e asserts on behaviour rather than on coverage. That is the honest residual, and closing
+  it means a route-table comparison, not a regex.
+- `portal-isolation.spec.ts` stops driving the real worker (mocked fetch, stubbed API) → the structural guard
+  above evaporates silently, and the tests keep passing. **That is the failure mode worth watching**, and it
+  is a review question rather than a gateable one.
