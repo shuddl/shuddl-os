@@ -245,6 +245,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 50 | §599–§601 | **§602** | THE DIVISION FILTER (SQL, pre-pairing — safe + covered) and the MERGE GATE RE-MEASURED: 19/2/5, IDENTICAL to §569 across 17 phases, 9 closed defects and 83 mutations — because every remaining failure is an owner-held input |
 | 51 | — | **§603** | THE REQ-289 BLOCKER MEASURED — restated 17 times, never re-checked. Not "uncommitted": an approved-terminal constant AND a classifier with no GTM disposition. Landing set PROVED by rehearsal: 4 items, atomic, owner-signed |
 | 52 | §603 | **§604** | THE 5 BLOCKED GATES EXERCISED — 9 pending fixtures verified (no tooling half); the identity lint had only ever been seen SKIPPING, so it was run: it catches, names the file, and MASKS the term. Third `git ls-files` probe needing `git add -N` |
+| 53 | §604 | **§605** | THE LAST UNMEASURED BLOCKER SPLIT IN TWO — sender-domain + CF credentials was one label over two unlike things. The send path is rehearsed on BOTH sides of the CONFIRM flip (17 cases, key non-leakage mutation-proven); the credential path fails BLOCKED/executed:false/zero-files, verified by running it. All 5 owner-held inputs now measured |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -32859,3 +32860,88 @@ whose absence is fully described by the gates themselves.
   That is correct for a repo-artifact rule (REQ-167 governs what is committed), and worth knowing rather than
   discovering.
 - The gate's output stops masking the matched term → it becomes the leak it exists to prevent.
+
+---
+
+## §605 — PHASE 53: THE LAST UNMEASURED BLOCKER (sender domain + Cloudflare credentials)
+
+**Subject.** Owner-held item **#4** — "sender-domain verification + Cloudflare OIDC". Of the five owner-held
+inputs, this is the only one never examined. §603 measured REQ-289 and found it was not what its label said;
+§604 exercised the five BLOCKED gates and found the identity lint had only ever been seen *skipping*. The same
+question, applied to the one item left: **is #4 actually one blocker, and is any of it mine?**
+
+It is **two** things, and only one of them is blocked.
+
+### The sending half is fully rehearsed — the CONFIRM-gated flip has 17 tests
+
+`workers/agents/test/test-send.test.ts` covers both sides of the flip that has not happened yet:
+
+- **unconfigured** (today's state) — `correct bearer, NO RESEND_API_KEY → actionable not-configured message, and
+  NOTHING is sent`;
+- **configured** (the post-flip state) — `correct bearer + key bound → 200 with the Resend receipt`.
+
+Plus the properties that make the flip safe to perform: the probe route is a 404 unless flag-gated (4 cases), it
+fails **closed** on a missing or empty token, an attacker-supplied `to` **or** `recipient` in the body is refused
+without sending, `probe_id` varies the idempotency key, and a CRLF in it is a clean 400 rather than a header
+injection.
+
+**M84 — the api key interpolated into the terminal 4xx error.** Predicted RED by name before running:
+
+```
+× gate 5 … > a Resend 403 surfaces the error with retriable:false and NEVER leaks the api key
+  Tests 1 failed | 16 passed (17)
+```
+
+Exactly the predicted test, and only it. The non-leakage guard is real, not incidental — restored byte-identical,
+17/17 green again.
+
+Worth noting what the 403 branch already says: `(hint: the `from` address must belong to a VERIFIED sending
+domain — Resend 403s on mismatch, REQ-092)`. **The code already names this blocker to whoever hits it.** The
+operator who flips the key and gets a 403 is told what is missing, in the error, without reading this audit.
+
+### The credentials half fails BLOCKED, and that was verified by running it
+
+`nightly.yml`'s backup job carries a comment claiming `tools/deploy/backup.ts` *"emits its own `##SHUDDL-GATE##`
+line, and exits 2 (BLOCKED, never a green) when the credentials are absent."* That is a claim about behaviour
+nobody had run. Run with both variables unset:
+
+```
+backup: BLOCKED — Cloudflare credentials absent (CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID).
+backup: no export was taken. This is a named external hold (docs/ops/dr-backups.md), not a pass.
+##SHUDDL-GATE## {"gate":"backup-manifest","status":"BLOCKED","executed":false,"assertions":0,…}
+exit code: 2 · files written to the out dir: 0
+```
+
+Three things right at once: it is **BLOCKED not FAIL and not PASS** (an absent credential is not a defect and not
+a success), `executed:false` refuses to claim assertions it never ran, and **zero files** — no manifest over a
+partial export. It derives and prints the six databases from the committed configs *before* discovering it cannot
+reach them, so the operator sees the scope of what did not happen.
+
+### Two measurement errors of my own, both caught
+
+- **The first mutation never applied.** Its anchor string did not exist; the `|| exit 1` wiring aborted the
+  sequence and `git diff --quiet` confirmed the file untouched. §586's lesson — a mutation captioned as if it had
+  applied — cost a wrong verdict then; the wiring is why it cost nothing here.
+- **`${PIPESTATUS[0]}` after a pipe printed `?`.** The `$?`-after-a-pipe class, third occurrence. Re-measured
+  with the command redirected instead of piped: exit 2.
+
+### Exit state — UNCHANGED
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, identical to §569 across nineteen phases. No source changed (the mutation was
+restored byte-identical); the only working-tree entry remains the pre-existing REQ-289 register row.
+
+**What changed is the description of blocker #4.** It was one label covering two unlike things. It is now:
+
+> *The sending path is code-complete and rehearsed on both sides of the flip, with key non-leakage
+> mutation-proven; what is missing is DNS and provider state (a verified domain, DKIM, warmup) plus a Cloudflare
+> token. Both absences fail BLOCKED — loudly, with nothing written and nothing claimed.*
+
+**All five owner-held inputs have now been measured rather than restated** (§603 → #1, §604 → #2 and #3, §605 →
+#4; #5 is a filming session with no code component). Nothing in the repo is waiting on a decision I can make.
+
+**Reopen triggers**
+- A provider is bound in any environment → the 17 rehearsal cases become live-path tests; re-run them against the
+  real key **once**, then revert to the stub.
+- `backup.ts` gains a credential path that can partially succeed → `executed:false` stops being the honest answer
+  and the BLOCKED/FAIL boundary needs re-deriving.
+- The 403 hint stops naming REQ-092 → the operator-facing half of this documentation is gone.
