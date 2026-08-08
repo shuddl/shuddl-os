@@ -306,6 +306,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 111 | §663 | **§664** | **Clean negative that CLOSES the class.** §663 narrowed by a proxy (*does the schema explain itself?*); §652 says sweep by behaviour instead. Re-swept by the real property — *a client chooses an identifier and the server looks it up* — and found **zero** additional instances: the device reserve slot is a DDL UNIQUE plus REQ-016's signing-key binding, and every agent idempotency key is server-derived, hence immune. Opposite outcome to §650→§651, from running the same check |
 | 112 | §664 | **§665** | **DEFECT — a REQ resting on a sentence.** `EventInput`'s header asserts a CLOSED set (the DO owns seq/prev_hash/recorded_at/visibility/hash/stream_id) and forbids `LedgerEvent.parse` on a request body. `.strict()` is what makes it true; dropping it left **1,728 tests green**. Not chain forgery — the DO's spread order and late hash stop that — but an unknown key then dies at the storage parse, which is **not in a try/catch**, so a raw ZodError escapes instead of `CODE:json`. That is REQ-133's exact failure, whose fix calls that parse "the now-unreachable backstop" |
 | 113 | §665 | **§666** | **DEFECT — 14 `.strict()` calls defended by nothing, and the hazard was the opposite of the guess.** Dropping all 73 at once failed 36 tests (reads covered); per-file (§466) showed `anchors`/`money`/`driver-manifest` silent across ALL six suites. **Measured:** loose Zod **strips** unknown keys, so a payload losing `.strict()` silently DISCARDS a mis-keyed field into an immutable hashed event — the inversion of engineering rule 10. Closed with a structural gate over the 35→28 `evInput` schemas, derived from source not from a `*Payload` name proxy (§652) |
+| 114 | §666 | **§667** | **Clean negative + a re-derivation.** 19 request-body schemas: 16 strict, `AnchorDay` a string (category error), `EchoBody` authenticated WP-01 test vehicle — no defect. Then re-ran the figure §663–§666 had each restated from §647: **26 gates, 21 PASS · 0 FAIL · 5 BLOCKED at `13b6642`, clean tree**. Carried figure was RIGHT, now re-derived — §646's point is that from outside, an unre-measured correct number is indistinguishable from a wrong one. `$?`-after-a-pipe misread the exit as 0 on the first attempt |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -36954,3 +36955,63 @@ merge path (§656 chained `test:tools` into it with `&&`). Typecheck 0. **21 PAS
   resolution assertion fires rather than skipping it.
 - `SANCTIONED_OPEN` grows past `JsonObject` → each entry is a schema whose fields no longer have to be
   declared, which is the thing this gate exists to prevent.
+
+## §667 — PHASE GATE: the client-input boundary is clean, and the number I kept quoting was re-derived
+
+**Subject.** §666 closed the payload half of the input surface. Two things remained: the **request-body**
+half, and a figure this run had been repeating without re-deriving.
+
+### The request-body boundary — clean negative
+
+Enumerated every schema parsed from a client request body across all workers: **19**. Of those, **16 are
+`.strict()`**. The two that are not survive reading:
+
+- **`AnchorDay`** is `z.string().regex(/^\d{4}-\d{2}-\d{2}$/)` — a *string* schema. Strictness is a category
+  error on it, exactly as with `JsonObject` in §666. A static "is it strict?" check flags it; opening the
+  file dismisses it in one line. **A structural check proposes; reading disposes.**
+- **`EchoBody`** on `/v1/_echo` is `z.object({ n: z.number() })`. The route sits below
+  `app.use("/v1/*", auth)`, so it is authenticated, and it exists as the WP-01 test vehicle the idempotency
+  middleware suite drives. It echoes the caller's own number and req_id. Loose, and inconsequentially so.
+
+No defect. Recorded because §664's lesson applies again: a sweep that confirms its surface is a result, and
+the next pass should not re-derive this list from scratch.
+
+### The number, re-derived
+
+§663 through §666 each closed with *"21 PASS · 0 FAIL · 5 BLOCKED at HEAD."* That figure was **measured once,
+in §647, and then carried through four consecutive sections** — which is the precise shape §646 caught when a
+"2 FAIL" survived forty-one phases as a property of a working tree rather than of the repo.
+
+So it was re-run, at `13b6642`, with the register stashed to give a genuinely clean tree:
+
+```
+verify:merge → 26 gates: 21 PASS · 0 FAIL · 5 BLOCKED    aggregate BLOCKED (exit 2)
+```
+
+**The carried figure was right.** It is now *re-derived* rather than *restated*, and the distinction is the
+whole of §646's lesson — a correct number quoted without re-measurement is indistinguishable, from the
+outside, from a wrong one.
+
+Two details worth keeping. `traceability` and `coverage` both **PASS** here, which independently confirms the
+three failures seen under the working tree are the uncommitted `REQ-289` GTM row and nothing else. And the
+exit status had to be captured without a pipe — `pnpm … | tail` reports `tail`'s status, and the first run
+of this measurement read `EXIT: 0` against a gate that had actually exited 2 (§"when a gate looks wrong,
+suspect the measurement", the `$?`-after-a-pipe trap, now hit twice in this audit).
+
+### The five BLOCKED, unchanged and not repo-closable
+
+`identity-leak` (needs the `IDENTITY_DENYLIST` secret) · `fixtures`, `rater-parity`, `invoice-parity`,
+`concierge-parse` (four sets of engagement-workspace fixtures, never vendored here by design, `genesis/13`).
+
+### Exit state
+
+**26 gates — 21 PASS · 0 FAIL · 5 BLOCKED at `13b6642`, measured with a clean tree.** `test:tools` 955 with
+the register at HEAD. The repo-owned surface carries no open defect this audit can close.
+
+**Reopen triggers**
+- Any of the five BLOCKED inputs arrives → that gate runs for the first time, and a gate's first real run is
+  where it earns its status.
+- The `REQ-289` row is committed or withdrawn → three gates change state together, and the pair that fails
+  under a dirty tree is the pair to watch.
+- This figure is quoted in a later section without re-running `verify:merge` → that is the §646 shape
+  re-forming, and the fix is one command.
