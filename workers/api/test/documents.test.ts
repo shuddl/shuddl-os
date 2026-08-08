@@ -1,5 +1,6 @@
 import { tamperClaim } from "./helpers.js";
 import { DocCapError, deriveDocSecret, mintDocDownloadCap, verifyDocDownloadCap } from "../src/pub/doc-cap.js";
+import { StatusCapError, mintStatusCap, verifyStatusCap } from "../src/pub/status-cap.js";
 import { sign } from "hono/jwt";
 import { env, SELF } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -314,6 +315,29 @@ describe("verifyDocDownloadCap — a well-formed cap that must still be refused 
     // cap secret is HMAC(JWT_SECRET, DOMAIN). Nothing tested that the two cannot be interchanged.
     const sessionish = await sign({ sub: "u-ops", tenant: "tenant-a", role: "ops", exp: future() }, SECRET, "HS256");
     await expect(verifyDocDownloadCap(sessionish, SECRET)).rejects.toBeInstanceOf(DocCapError);
+  });
+
+  // REQ-085 §660 — THE CAP-TO-CAP PAIR, which the session-to-cap test above does not reach.
+  //
+  // §659 mutated the doc cap's domain separation and found it defended three ways. Its reopen trigger asked
+  // the completeness question: three token types make SIX ordered cross-type pairs, and only ONE
+  // (session → doc) was tested. The pair that matters most is cap ↔ cap, because BOTH are unauthenticated —
+  // §613 established that /pub/* deliberately escapes session auth. A status cap (view a shipment's status)
+  // verifying as a doc cap (download its evidence bytes) is a privilege escalation between two anonymous
+  // surfaces, with no session involved on either side.
+  //
+  // Separation exists by construction — the domains differ (`shuddl-status-cap-v1` vs
+  // `shuddl-doc-download-v1`), so the derived secrets and the `typ` literals both differ. Nothing asserted it.
+  it("a STATUS cap is not a doc cap — the two unauthenticated surfaces do not interchange", async () => {
+    const statusCap = await mintStatusCap(SECRET, { t: "tenant-a", s: "shp-1", expSeconds: future() });
+    await expect(verifyDocDownloadCap(statusCap, SECRET)).rejects.toBeInstanceOf(DocCapError);
+  });
+
+  it("a DOC cap is not a status cap — the refusal is symmetric, not one-directional", async () => {
+    // Asserted separately because the two derivations are independent code paths: a shared-secret bug on one
+    // side would not necessarily appear on the other, and a one-directional test would find only half of it.
+    const docCap = await mintDocDownloadCap(SECRET, { t: "tenant-a", k: "evidence/tenant-a/shp/abc", expSeconds: future() });
+    await expect(verifyStatusCap(docCap, SECRET)).rejects.toBeInstanceOf(StatusCapError);
   });
 
   it("a token signed with the DERIVED secret but the wrong `typ` is refused — the strict parse is the second layer", async () => {

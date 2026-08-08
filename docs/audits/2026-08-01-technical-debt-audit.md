@@ -299,6 +299,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 104 | §656 | **§657** | Swept §656's "gate that runs and cannot fail" through its five MECHANICAL forms: zero instances. No `\|\| true`, no `continue-on-error`, no pipes in run steps, and all three spawnSync sites read status — `orphans.ts` making the subtle 0-vs-1-vs-other call that separates "git grep found nothing" from "git failed". **The finding: every instance this session was SEMANTIC** (§609 a floor at zero, §622 a split conjunction, §656 an operator), never a sloppy invocation |
 | 105 | §657 | **§658** | The AUTH BOUNDARY, never mutated in 53 phases. M159 makes every device signature verify — 3 red (tampering, key substitution, and a malformed sig yielding FALSE rather than throwing). M160 accepts malformed session claims — 2 red, including "a session cannot be minted immortal". **Verifying who signed a token is a different question from whether the token says anything valid**, and the second is where an integration bug lives |
 | 106 | §658 | **§659** | Mutated the CAPABILITY TOKEN — the only thing between an anonymous request and a customer's documents. Breaking domain separation left **794/794 green**, which reads as a serious gap on an unauthenticated surface. It is not: the separation is defended THREE ways (derived secret, `typ` literal, `.strict()`), and breaking two still fails the attack. §601's rule — a silent mutation on one layer is evidence of DEPTH, not absence |
+| 107 | §659 | **§660** | Filled §659's trigger: three token types make SIX ordered cross-type pairs and only ONE was tested. The untested pair that matters is **cap ↔ cap** — a status cap verifying as a doc cap is privilege escalation between two ANONYMOUS surfaces. Both directions now pinned. Proving they can fail took FIVE mutations: four layers defend it, the fourth being a required-field shape, and M167 (shared domain + relaxed strict) is the realistic DRY refactor that fires them |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -36507,3 +36508,56 @@ no code changed.
   new type needs its own row against each existing one, and nothing generates that matrix.
 - `.strict()` is relaxed to allow forward-compatible claims → layer 3 disappears, and M162's exact
   two-layer break would then succeed. That is the single edit that turns this clean negative into a defect.
+
+---
+
+## §660 — PHASE GATE: the cross-type matrix was one of six
+
+**Subject.** §659's reopen trigger asked the completeness question it had left open: three token types make
+**six ordered cross-type pairs**, and only **one** was tested — *"a SESSION token is not a doc cap."*
+
+The pair that matters most is **cap ↔ cap**. §613 established that `/pub/*` deliberately escapes session auth,
+so a status cap (view a shipment's status) verifying as a doc cap (download its evidence bytes) is a
+**privilege escalation between two anonymous surfaces**, with no session involved on either side. Nothing
+asserted it in either direction.
+
+Separation exists by construction — the domains differ (`shuddl-status-cap-v1` vs `shuddl-doc-download-v1`),
+so the derived secrets and the `typ` literals both differ. Two tests now pin it, **both directions**, because
+the two derivations are independent code paths and a one-directional test finds half of a shared-secret bug.
+
+### Establishing they can fail took five mutations
+
+| | Mutation | New tests |
+|---|---|---|
+| M163 | the two caps share a DOMAIN | green |
+| M164 | + the `typ` literals collide | green |
+| M165 | + `typ` loosened and `.strict()` → `.passthrough()` | green |
+| M166 | the realistic "DRY" refactor: shared domain, loose `typ`, optional `k` | green |
+| **M167** | **+ `.strict()` relaxed as well — the full merge** | **RED** |
+
+Four layers defend this pair, and the fourth is the one nobody would name: `k` is **required** in the doc-cap
+schema and a status cap carries `s`, so even a passthrough parse with a shared secret and a shared `typ`
+refuses on a missing field.
+
+### Why this is not decoration
+
+§606's rule is that a test which cannot fail is decoration, and four of five mutations left these green. M167
+is the answer: **shared domain + relaxed strict parse** is a two-line change, and it is exactly what a "DRY
+these two nearly-identical cap modules" refactor produces. The tests fire there.
+
+The honest characterisation is narrower than "they guard domain separation": they guard **the property**, and
+the layer they are load-bearing against is `.strict()` plus the required-field shape — not the domain, which
+three other layers already cover. Writing that down is the difference between a test whose failure a reader
+can interpret and one they cannot.
+
+### Exit state
+
+**21 PASS · 0 FAIL · 5 BLOCKED at HEAD** (§647). `documents.test.ts` 19 → **21**; every mutation restored
+byte-identical; typecheck 0; eslint clean.
+
+**Reopen triggers**
+- The remaining four ordered pairs (doc→session, status→session, session→status, and their symmetric
+  readings) are still untested. Session-bearing pairs die at the `hono/jwt` MAC, which is a stronger argument
+  than a test — but it is an argument, not an assertion.
+- A fourth token type is added → six pairs become twelve, and nothing generates the matrix. This phase filled
+  two by hand.
