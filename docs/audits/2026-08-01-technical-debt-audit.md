@@ -301,6 +301,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 106 | §658 | **§659** | Mutated the CAPABILITY TOKEN — the only thing between an anonymous request and a customer's documents. Breaking domain separation left **794/794 green**, which reads as a serious gap on an unauthenticated surface. It is not: the separation is defended THREE ways (derived secret, `typ` literal, `.strict()`), and breaking two still fails the attack. §601's rule — a silent mutation on one layer is evidence of DEPTH, not absence |
 | 107 | §659 | **§660** | Filled §659's trigger: three token types make SIX ordered cross-type pairs and only ONE was tested. The untested pair that matters is **cap ↔ cap** — a status cap verifying as a doc cap is privilege escalation between two ANONYMOUS surfaces. Both directions now pinned. Proving they can fail took FIVE mutations: four layers defend it, the fourth being a required-field shape, and M167 (shared domain + relaxed strict) is the realistic DRY refactor that fires them |
 | 108 | §660 | **§661** | Matrix closed at **6 of 6**. session→status was already tested, so the real gap was a CAP presented as a session Bearer token — **the only pair that crosses the auth boundary**, turning an anonymous capability into an authenticated session. M168 (shared secret alone) leaves them green; M169 (+ the claims guard) fires them: layer 1 is not what stops it, the CLAIMS SCHEMA is |
+| 109 | §661 | **§662** | **DEFECT — a stated invariant with a stated consequence, defended by nothing.** `sub: z.string().min(1)` exists because an empty co-sign is "an unattributable audit record"; dropping `.min(1)` left contracts at 291/291 AND api at 798/798. The existing test omits the field, and **Zod rejects an ABSENT required string before `.min(1)` is consulted** — a presence test can never reach a value constraint. Absent and empty are different inputs |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -36614,3 +36615,54 @@ typecheck 0; eslint clean; every mutation restored byte-identical.
   §661. Nothing generates it, and the two that matter would again be the ones crossing the auth boundary.
 - `SessionClaims` gains an optional `sub`/`role` for a service principal → layer 2 weakens for every pair at
   once, and M168 shows layer 1 does not hold alone.
+
+---
+
+## §662 — PHASE GATE: absent and empty are different inputs
+
+**Subject.** §661 ended on a structural observation: **M168 proved the secret layer does not hold alone**, so
+`SessionClaims` carries the auth boundary by itself. Its trigger asked what pins the schema's own strictness.
+
+### The guard nobody was watching
+
+`session.ts` writes `sub: z.string().min(1)` and says why in the line above it:
+
+> *"it is recorded permanently as the co-sign actor on server-emitted control events (WP-15
+> `authority.flipped` `actor.user`) — an empty co-sign would be an **unattributable audit record**."*
+
+**M170** dropped the `.min(1)`:
+
+```
+packages/contracts — 291 passed (291)
+workers/api        — 798 passed (798)
+```
+
+Silent in both. A stated invariant, with a stated consequence, defended by nothing.
+
+### Why the existing test did not reach it
+
+`contracts.test.ts` does test the schema — *"requires sub, tenant, role, exp"* — with
+`SessionClaims.parse({ sub: "u1", tenant: "tenant-a" })`. That omits `role` and `exp`, so it proves those are
+**required**. It passes a perfectly good `sub`.
+
+**Zod rejects an ABSENT required string on the type check, before `.min(1)` is ever consulted.** So a test that
+omits a field can never exercise a constraint on that field's *value*. **Absent and empty are different inputs
+to a required string**, and only one of them had a test.
+
+That is a sharper form of §640's lesson — there an assertion checked a substring instead of a relation; here a
+test checks a field's *presence* and reads as though it checked its *validity*.
+
+### Closed
+
+One assertion, in the file that owns `SessionClaims`. **M170c** re-drops the `.min(1)` and it fires.
+
+### Exit state
+
+**21 PASS · 0 FAIL · 5 BLOCKED at HEAD** (§647). `packages/contracts` 291 → **292**; typecheck 0; mutation
+restored byte-identical.
+
+**Reopen triggers**
+- Another `.min(1)` / `.email()` / `.regex()` refinement is added to a required field → the same shape. A
+  presence test will not reach it, and this phase found the one on the field that ends up in an audit record.
+- `Role` gains a permissive member (a wildcard, a service principal) → §661's layer 2 weakens, and M168
+  already showed layer 1 does not hold alone.

@@ -32,4 +32,18 @@ describe("session claims", () => {
     const ok = SessionClaims.parse({ sub: "u1", tenant: "tenant-a", role: "ops", exp: 2000000000 });
     expect(ok.tenant).toBe("tenant-a");
   });
+
+  // REQ-132 §662 — an EMPTY `sub` is not a `sub`.
+  //
+  // The schema writes `sub: z.string().min(1)` and the comment beside it says why: the value "is recorded
+  // permanently as the co-sign actor on server-emitted control events (WP-15 authority.flipped actor.user) —
+  // an empty co-sign would be an unattributable audit record."
+  //
+  // MEASURED (§662): dropping `.min(1)` left packages/contracts at 291/291 AND workers/api at 798/798. The
+  // test above passes an ABSENT sub, which Zod rejects on the type check before `.min(1)` is ever consulted,
+  // so it never reached the constraint. Absent and empty are different inputs to a required string, and only
+  // one of them was tested.
+  it("rejects an EMPTY sub — an unattributable co-sign is not a session", () => {
+    expect(() => SessionClaims.parse({ sub: "", tenant: "tenant-a", role: "ops", exp: 2000000000 })).toThrow();
+  });
 });
