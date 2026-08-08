@@ -51,16 +51,15 @@ export class EmptyGlobError extends Error {
 export function scanCorpus(globs: readonly string[], cwd: string, opts: CorpusOptions = {}): string[] {
   const seen = new Set<string>();
   for (const glob of globs) {
-    const out = execSync(`git ls-files ${JSON.stringify(glob)}`, { cwd, encoding: "utf8" })
-      .trim()
-      .split("\n")
-      .filter((f) => f !== "")
-      .filter((f) => !(opts.excludeTests === true && f.includes(".test.")));
-    // Emptiness is judged BEFORE the test filter would hide it — a glob matching only test files has still
-    // matched, and reporting it empty would send the reader after the wrong defect.
-    const matchedAnything = execSync(`git ls-files ${JSON.stringify(glob)}`, { cwd, encoding: "utf8" }).trim() !== "";
-    if (!matchedAnything && opts.mayBeEmpty?.has(glob) !== true) throw new EmptyGlobError(glob);
-    for (const f of out) seen.add(f);
+    const raw = execSync(`git ls-files ${JSON.stringify(glob)}`, { cwd, encoding: "utf8" }).trim();
+    // Emptiness is judged on the RAW result, before the test filter could hide it: a glob matching only test
+    // files has still matched, and calling that empty would send the reader after the wrong defect.
+    if (raw === "" && opts.mayBeEmpty?.has(glob) !== true) throw new EmptyGlobError(glob);
+    for (const f of raw.split("\n")) {
+      if (f === "") continue;
+      if (opts.excludeTests === true && f.includes(".test.")) continue;
+      seen.add(f);
+    }
   }
   return [...seen].sort();
 }

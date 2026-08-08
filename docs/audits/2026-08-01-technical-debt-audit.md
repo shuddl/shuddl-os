@@ -265,6 +265,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 70 | §621 | **§622** | **DEFECT — the CI contract's "history-wide gitleaks scan (full fetch depth)" asserted two INDEPENDENT existence checks over the whole file**, and `fetch-depth: 0` appears in two jobs — so stripping it from the secrets job left 28/28 green with gitleaks scanning only the tip commit. Job-scoped now. My first fix reproduced the defect one level down (matched the step LABEL, not the action); caught only by mutating past the first RED |
 | 71 | §622 | **§623** | Swept §622's shape across every test file: 4 candidates, 1 false positive, 2 fine, 1 latent (fixed). **The finding is the comment on the first one** — the 2026-08-01 audit found this exact class in THIS FILE, fixed the instance that surfaced, and left the gitleaks assertion eleven lines away broken for six more days. A known class deserves a sweep of its file, not a point fix |
 | 72 | §623 | **§625** | **A FINDING THAT WAS WRONG.** Swept the non-vacuity class (25/28 scanners have a floor); §466 sharpened it to "who has several globs behind ONE total" — 3 gates did. Claimed 38 of 87 files maskable and a mutation "confirmed" it. **The union was 49, not 87: git pathspec `*` crosses `/`, so the nested glob added ZERO.** Derived by addition instead of measured; breaking a redundant glob looks exactly like masking. Kept the real half — scanCorpus throws on an empty glob |
+| 73 | §625 | **§626** | Reviewed the helper §625 shipped WHILE retracting — the moment a defect lands. It ran `git ls-files` twice per glob; collapsed to one, and M128 re-proved the empty-glob guard survived the simplification (a refactor that quietly deletes a check is worse than the duplication). §625's reusable half — a redundant guard mutates green, indistinguishably from a blind one — saved to memory |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -34430,3 +34431,50 @@ typecheck 0; eslint clean.
   file is already open and the change is not standalone.
 - Someone re-derives a corpus size by adding two glob counts → the same false finding, and the same mutation
   will confirm it. Measure the union.
+
+---
+
+## §626 — PHASE GATE: reviewing the helper §625 shipped in the same breath as the correction
+
+**Subject.** §625 corrected a false finding and, in doing so, introduced `scan-corpus.ts` — written quickly,
+while the attention was on the retraction. §"self-review with the reviewer's questions" says that is exactly
+when a defect lands, so the helper got read before anything else.
+
+### What the review found
+
+`scanCorpus()` ran `git ls-files` **twice per glob**: once for the filtered list, once purely to judge
+emptiness before the test filter could hide it. The second call was correct in intent — a glob matching only
+test files has still matched, and calling that empty sends the reader after the wrong defect — and unnecessary
+in fact, since one raw result answers both questions.
+
+Collapsed to a single call: judge emptiness on the raw output, then filter into the set. **1 `execSync` site
+where there were 2**, same semantics.
+
+### The check that mattered more than the simplification
+
+A refactor that quietly removes a guard is worse than the duplication it removes. **M128** pointed the gate at
+a glob matching nothing, against the new single-call implementation: **both assertions red**, with the
+`EmptyGlobError` message intact. The guard survived the simplification — verified, not assumed, because
+"I only moved the condition" is precisely the belief that ships a deleted check.
+
+### The lesson §625 produced, recorded outside this file
+
+The retraction's reusable half is that **breaking a redundant guard produces exactly the green a blind guard
+produces**. A mutation cannot separate *"the subject is fine"* from *"the gate cannot see"*, so it ratifies
+whichever hypothesis arrives with it. The discriminating probe is on the other side: break the part believed to
+be load-bearing — if that also stays green, the gate is blind; if it goes red, the first was merely redundant.
+
+That is a third explanation for a silent mutation, alongside the four §531 already lists, and it now sits in
+the session memory rather than only here, because the next occurrence will be in a different file.
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged. `test:tools` at 932 passed with exactly the 3 REQ-289 failures;
+typecheck 0; eslint clean.
+
+**Reopen triggers**
+- `scanCorpus` gains a caller passing `mayBeEmpty` → that option has no test. It exists for genuinely-optional
+  globs and nothing exercises it, which is the §579 shape (a guard whose discriminating input is expensive to
+  construct ends up unwatched). Its first real caller should bring one.
+- A caller needs the unfiltered list → `excludeTests` is a boolean today; a second filter would want a
+  predicate, and bolting on a second boolean is how that argument list rots.
