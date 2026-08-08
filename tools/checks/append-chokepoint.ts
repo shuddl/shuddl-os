@@ -1,5 +1,5 @@
 import { globSync, readFileSync } from "node:fs";
-import { insertIntoRe } from "./invariants.js";
+import { insertIntoRe, isCollisionDuplicate } from "./invariants.js";
 import { EXPECTED_EMPTY_GLOBS, SOURCE_SCAN_GLOBS, isTestPath, stripComments } from "./source-corpus.js";
 import { repoRoot } from "./repo-root.js";
 
@@ -77,6 +77,15 @@ export function findChokepointViolations(cwd: string = repoRoot()): ChokepointVi
   for (const glob of SCAN_GLOBS) {
     perGlob.set(glob, 0);
     for (const abs of globSync(glob, { cwd })) {
+      // §650 — macOS/iCloud name-collision duplicates ("sequencer 2.ts") are gitignored, but this scan
+      // reads the FILESYSTEM, so an ignored copy still reaches it — and because ALLOWED keys on the exact
+      // path, a duplicate of an allowlisted writer reads as an UNALLOWLISTED one. MEASURED (§650): copying
+      // workers/api/src/do/sequencer.ts to "sequencer 2.ts" turns this gate RED with "writes the events
+      // table directly, bypassing the sequencer DO" — the gravest accusation it makes, against a developer
+      // who did nothing. invariants.ts fixed the identical fault at §253; the predicate is REUSED from
+      // there rather than re-authored, per the shared-matcher rule (a second copy is a second thing to
+      // drift).
+      if (isCollisionDuplicate(abs)) continue;
       perGlob.set(glob, (perGlob.get(glob) ?? 0) + 1);
       const rel = abs.replace(/\\/g, "/");
       if (seen.has(rel)) continue;

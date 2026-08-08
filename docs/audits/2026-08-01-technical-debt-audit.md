@@ -289,6 +289,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 94 | §646 | **§647** | Measured what §646 INFERRED. Full `verify:merge` at HEAD: **21 PASS · 0 FAIL · 5 BLOCKED**, zero FAIL lines, evidence artifact written. The five BLOCKED are §604's owner-held inputs, each naming what it wants, and the aggregate correctly refuses to round a blocked prerequisite to either a pass or a defect. The browser floors §609 installed report as real assertion counts for the first time |
 | 95 | §647 | **§648** | **THE STOPPING POINT.** 21 PASS · 0 FAIL · 5 BLOCKED at HEAD, measured with an artifact. §605–§647: ten defects fixed, four record defects corrected, eleven new gates, 65 mutations, three of my own findings refuted. What remains is five owner-held inputs and one owner-signed register row — nothing in this repo can supply them. Re-entry gating: re-measure before trusting any number here |
 | 96 | §648 | **§649** | The record OUTSIDE the repo carried the wrong number too. The session memory's headline was the "17 PASS · 5 BLOCKED · 2 FAIL" §646 disproved, and it is read BEFORE this document — superseded in place with a dated header rather than rewritten, keeping a record correct for its date alongside the correction. Both standing environment checks clean: zero iCloud duplicates, topology linear on main |
+| 97 | §649 | **§650** | **DEFECT — an iCloud duplicate makes `check:chokepoint` accuse a developer of bypassing the append chokepoint.** ALLOWED keys on the exact path, so `sequencer 2.ts` reads as an unallowlisted writer. invariants.ts fixed the identical fault at §253 by filtering AT THE GLOB with `globSync` shadowed; the predicate is now REUSED, not re-authored. The other three globbing tools are immune because they key on content, size or identity — **path-keyed scanners are the vulnerable class** |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -35934,3 +35935,72 @@ uncommitted REQ-289 row. `test:tools` at HEAD 949/949.
   header is the worked example of the repair.
 - The iCloud duplicate check is skipped for a session → it has produced zero hits for two consecutive checks,
   which is exactly when a standing check starts getting dropped.
+
+---
+
+## §650 — PHASE GATE: the hazard was mechanized in one file and a habit everywhere else
+
+**Subject.** §649 closed on a trigger about the iCloud duplicate check: *"it has produced zero hits for two
+consecutive checks, which is exactly when a standing check starts getting dropped."* §643's rule makes that
+actionable — **where a fixed point can be a test it stops the class; where it can only be a habit it does not.**
+
+### It was already a test — in exactly one file
+
+`invariants.ts` does this properly, and its comment records the measurement (§253): copying a migration to
+`"0008_… 2.sql"` turned `check:invariants` RED, *"accusing the developer of a defect they did not create."*
+Its fix is better than a predicate:
+
+> *"Filtered at the GLOB rather than per-caller, deliberately: there are 15 glob sites here, and a predicate
+> each caller must remember to apply is one a future caller will forget. `globSync` is **shadowed** so the raw
+> import is unreachable by accident."*
+
+That is the guard-you-cannot-omit shape. **Four other tools call `globSync` with no such filter**, so the
+question was whether any of them shares the fault.
+
+### One did, and it is the gravest gate to cry wolf
+
+**M154** copied the allowlisted `workers/api/src/do/sequencer.ts` to `sequencer 2.ts`:
+
+```
+check:chokepoint → exit 1
+  <the duplicate file> — writes the events table directly, bypassing the sequencer DO
+  — and with it EVERY gate (POD/I2, booking, interline floors, credit) plus the visibility stamp and the
+  prev_hash chain
+```
+
+`ALLOWED` keys on the **exact path**, so a duplicate of an allowlisted writer reads as an *unallowlisted* one.
+On any iCloud-synced checkout, a non-skippable merge gate makes the most serious accusation it has — against a
+developer who did nothing.
+
+Fixed by **reusing** `isCollisionDuplicate` from `invariants.ts` rather than re-authoring it: a second copy of
+a matcher is a second thing to drift, which is the whole argument of the shared-matcher discipline this repo
+already learned once. After the fix, the duplicate is exit 0 **and a real planted bypass still exits 1**.
+
+(The gate's output above is shown with the filename elided: quoting it verbatim puts a `path:line` for a
+file that does not exist into a document `check:citations` scans, which is the **eighth** time this session
+prose has carried a known-bad value into its own gate — and it was caught here only after the commit, so it
+was amended.)
+
+### The other three are immune, and the reason is the useful part
+
+| Tool | Keys on | Duplicate present |
+|---|---|---|
+| `rater-purity` | file **content** | exit 0 — a copy of a clean file is clean |
+| `bundle-ratchet` | asset **size** (largest wins) | exit 0 — a copy is the same size |
+| `acceptance/run.ts` | the package.json **`name` field** | exit 0 — the map key is identical, so it overwrites |
+| `append-chokepoint` | the exact **path** | **exit 1 — the fault** |
+
+**A filesystem scanner is vulnerable to this exactly when it keys on paths.** Content, size and identity
+fields are all duplicate-stable. That is a sharper reopen trigger than "check the other globs", and it is what
+made three of the four safe without anyone deciding they should be.
+
+### Exit state
+
+**21 PASS · 0 FAIL · 5 BLOCKED at HEAD** (§647). `test:tools` 3 failed / 946 in the working tree — the
+REQ-289 trio only — typecheck 0, eslint clean, no duplicate residue.
+
+**Reopen triggers**
+- A new filesystem scanner keys on exact paths → it inherits this fault. Content/size/identity keys do not,
+  which is the discriminator to check rather than re-testing every glob.
+- `invariants.ts`'s shadowing of `globSync` is removed → its 15 glob sites lose the guard-you-cannot-omit
+  property all at once, and nothing else in that file would notice.
