@@ -376,6 +376,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 181 | §733 | **§734** | **The "+ photos" half of acceptance demo #1: the checklist's remedy was wrong in BOTH directions.** More built than stated — `mintDocDownloadCap` + `/pub/documents/:cap` exist, and `doc-cap.ts` names the Biller as their intended second caller; the view renders real `<img>` with a caption-swap trap. Far more blocked than stated — the agents worker binds **neither `JWT_SECRET` nor an `API` service**, so the Biller has no secret to mint with and no route to ask. Both remedies are **decisions** (session-secret blast radius / new surface) plus a **TTL** call for a bearer-forwardable URL living in an inbox. **Not implemented — the owner's call.** Two record defects fixed: `doc-cap.ts` cited `biller.ts:409@loadBookingQuoteRef` as the `photos: {}` gap (it is `loadBookingQuoteRef`; unanchored ⇒ bounds-checked only ⇒ green forever), now anchored `:588@photos`; and the checklist misquoted REQ-087's **DoD** — "sig/pallet photos" is the TITLE, the DoD is met |
 | 182 | §734 | **§735** | **Counted §734's defect class: 49 of 95 unanchored citations into high-churn targets have drifted; 7 of 7 hand-verified point at UNRELATED code** (one at a **blank line**). Method: `git blame` the citing line → sum the target's line delta above the cited line since that commit. **The taxonomy is the finding** — 38 sit in records frozen BY DESIGN (skills' own grounding note: *"provenance, not proof"*; plans; dated audits), and **frozen-ness turned out to be a property of the ROW, not the FILE** (2 more sit inside struck-through *"original text preserved"* rows, where re-pointing would CORRUPT the record). 9 genuinely live; **7 repaired by adopting anchors**, ratchet 141 → 134, anchored 201 → 210; 2 named for a human. **The ratchet structurally cannot find this** — a count of unanchored citations says nothing about whether any is wrong |
 | 183 | §735 | **§736** | **Live drifted citations: 11 → 0, re-measured rather than assumed** (§735's own trigger). Closed the two that needed judgement: the REQ-170 evidence-gate range (now anchored `@loadActivePodDocument`) — subtle because that row mixes a LIVE assertion with a PRESERVED historical narrative in one cell, and re-pointing the wrong half would have edited a quotation — and the pen-test sequencer range (now `@UNRESOLVED_VISIBILITY`). Ratchet **141 → 132**, content-anchored **201 → 219**. The detector still reports **2**, and that is CORRECT: both are row-level frozen struck-through rows. **A permanent floor, not a backlog** — the classifier works by FILE, frozen-ness is a property of the ROW, and §272 rightly bounds the ignore-marker to the scanner's own tree. **Detector deliberately NOT shipped as a gate**: cost, a known-false red every run (§730), and it measures a proxy — 49 candidates became verdicts only by hand |
+| 184 | §736 | **§737** | **STOPPING POINT — eleven phases (§726–§736) re-derived against the full merge gate, not inferred.** `verify:merge` = **19 PASS · 2 FAIL · 5 BLOCKED**, *identical to the §726/§729 baselines defect-for-defect*, after edits to six pieces of gate code incl. a module all five worker pools import. Both FAILs re-attributed by probe to the uncommitted `REQ-289` row — **at HEAD: 21 PASS · 0 FAIL · 5 BLOCKED**, unchanged since §719. `test:tools` 984 → **1023**. **Seven of the eleven were LIVE DEFECTS**, one subject throughout: *a gate reporting success over something it never examined*. Every remaining reopen trigger is forward-looking (§587/§594's finish signal). Repo-owned open set: **empty**; six items remain, all owner-held |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -41893,3 +41894,106 @@ content-checked *permanently*. 219 citations are now content-anchored, up from 2
 - Someone "fixes" a struck-through row's citation → that is corruption of preserved history. The row's
   strikethrough and its *"original text preserved"* wording are the signal to leave it alone.
 - The ratchet baseline rises → adoption reversed. It is allowed to fall and nothing else.
+
+## §737 — PHASE GATE: STOPPING POINT — eleven phases re-derived against the merge gate
+
+The loop's standing instruction is *"identify a stopping point and document it with phase gating."* §726–§736
+is a complete arc with a single subject, every claim in it is measured, and the merge surface is unchanged by
+all eleven. This phase states that, having re-derived it rather than inferred it (§705: a subset that passes
+is not the gate).
+
+### The measured state
+
+`verify:merge`, full run at HEAD, after eleven phases that edited gate code in six places
+(`identity-leak.ts`, `invariants.ts`, `citation-links.ts`, `eslint.config.mjs`, nine `tsconfig.json`s, and
+`path-sequencer.ts` — a module all five worker pools import):
+
+```
+26 gates — 19 PASS · 2 FAIL · 5 BLOCKED   (exit 1, working tree)
+```
+
+**Identical to the §726 and §729 baselines, defect for defect.** The two FAILs are re-attributed rather than
+assumed: restore HEAD's register → `check:coverage` **exit 0**; restore the working tree's → **exit 1**.
+Byte-identical restore verified.
+
+| register | verdict |
+|---|---|
+| **at HEAD** | **21 PASS · 0 FAIL · 5 BLOCKED** — unchanged since §719 |
+| working tree | 19 PASS · 2 FAIL · 5 BLOCKED — the uncommitted `REQ-289` GTM row, not this loop's |
+
+`test:tools` **1023** (from 984 at session start, +39); lint 0; typecheck 0; browser gates `perf 1 · visual 5 ·
+a11y 4 · e2e 6`; `bundle-ratchet`, `acceptance`, `design-audit`, `invariants`, `citations` all PASS.
+
+### What the eleven phases were
+
+One subject, followed until it stopped yielding: **a gate that reports success over something it never
+examined.**
+
+| | phase | finding |
+|---|---|---|
+| 1 | §726 | two pure-negative browser gates pass on a blank page; one line each saves them, now floored |
+| 2 | §727 | **an always-failing browser spec merges green** — playwright's e2e project is a two-file allowlist |
+| 3 | §728 | **`packages/design` silently dropped every `.test.ts`** — vitest `include` was `.tsx` only |
+| 4 | §729 | **two file sets TypeScript never checked**, hiding a `PAGEERROR: undefined` and two sequencer defects |
+| 5 | §730 | **the driver service worker shipped with zero static analysis** — and un-ignoring it alone would have certified nothing |
+| 6 | §731 | **the identity-leak gate emitted `PASS, executed:true, assertions:0`** over a scan that read nothing |
+| 7 | §732 | **the I3/I7 append-only classification passed over an empty corpus** — the floor covered the union, not the parts |
+| 8 | §733 | a thrice-recurring citation rot made mechanical; **v1 of the tool refused 15 of 15** |
+| 9 | §734 | the "+ photos" remedy was wrong in both directions; a citation pointed at unrelated code for its whole life |
+| 10 | §735 | **49 of 95** unanchored citations drifted; 7/7 verified wrong; the taxonomy was the finding |
+| 11 | §736 | live drifted set **11 → 0**, re-measured; the residual 2 are correct by design |
+
+Seven were **live defects**, not hardening: §727, §728, §729 (×3), §730, §731, §732, §734.
+
+### The two rules this arc actually taught
+
+**A green certifies only what it examined.** Every one of the seven found a gate whose PASS was true and
+worthless — the corpus was empty, the file uncollected, the rule unreachable. `assertions: 0` next to
+`status: PASS` is the shape, and it appeared in four different tools.
+
+**Widening a corpus is a new guarantee, and it must be probed from inside.** §730 is the sharpest case:
+un-ignoring `sw.js` would have added a file to the lint corpus, kept `pnpm lint` green, and certified
+**nothing**, because no rule reached a plain `.js`. Corpus and rules had to land together. §728 and §729 are
+the same shape with the same resolution.
+
+### Why this is a stopping point and not an exhaustion
+
+Every remaining reopen trigger in §726–§736 is **forward-looking** — "a new browser suite is added", "a fourth
+playwright config appears", "a config adds a custom `exclude`", "a re-run reports more than 2". §587/§594
+established that as the signal a line is finished: the triggers no longer describe work, they describe events.
+
+The vacuous-corpus question has now been asked of every collection surface in the repo — four external runners
+(playwright, vitest, TypeScript, ESLint) and, via §732's behavioural sweep, all 19 `check:*` entry points, 18
+of which proved cwd-identical and the 19th fail-closed.
+
+### What remains, and who owns it
+
+Nothing repo-owned. The full open set:
+
+1. **`IDENTITY_DENYLIST` secret** — owner-held. §731 repaired that gate's silent-pass defect; it still cannot
+   demonstrate the repair through the merge board until the secret lands. **Read the `assertions` count on its
+   first PASS**: it must be the tracked-file count.
+2. **Nine private fixtures** — 5 BLOCKED gates, sourced from the engagement workspace.
+3. **`REQ-289`'s disposition** — one uncommitted GTM row from a concurrent workstream sharing this working
+   copy. It is the sole cause of both FAILs and is not this loop's to decide.
+4. **The "+ photos" half of demo #1** (§734) — three decisions, not a wiring task: which secret the agents
+   worker may hold, whether a mint route is added, and the TTL for a bearer-forwardable URL living in an inbox.
+5. **The filmed half of the five acceptance demos** — and demo #1 must show placeholder slots until (4) lands,
+   demo #2 needs a signup surface, demo #3 needs REQ-069.
+6. **§724's portal liveness gap** — needs an API `webServer` entry (`wrangler dev` + seeded D1) so a positive
+   assertion can exist. Infrastructure, and its absence is why the gap exists.
+
+### One piece of untidiness, stated rather than hidden
+
+`aeb24d5 wip(checks): §726 browser-gate precondition floor` survives in history as a separate commit; its
+content was superseded by `f64a798`. Squashing it needs an interactive rebase across eleven commits of work,
+which is unavailable in this environment, and a botched rebase costs far more than an untidy subject line. Left
+deliberately.
+
+**Reopen triggers**
+- `verify:merge` at HEAD's register stops reading `21 PASS · 0 FAIL · 5 BLOCKED` → something regressed; that
+  number has held since §719 across nineteen phases.
+- Any owner-held item above lands → the gate it unblocks needs its first run READ, not just observed green.
+  §731's assertions-count warning is the model.
+- A new collection surface is introduced (a new runner, a new scanner, a new config with `include`/`ignores`)
+  → ask it the vacuous-corpus question **before** it lands. Eleven phases say it will fail that question.
