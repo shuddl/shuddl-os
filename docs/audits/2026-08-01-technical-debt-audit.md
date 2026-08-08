@@ -287,6 +287,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 92 | §644 | **§645** | Swept §644's concern — frozen hashes no stranger could re-derive. 27 hex literals, but 21 are FIXTURE INPUTS (SHA-256 of empty as a placeholder payload); only 5 are asserted expected values, and all 5 are re-derivable. My classifier called one bare: its provenance is in the TEST NAME ("the empty tree = SHA-256(\"\")"), which a code-only scan cannot see. M153 (skip empty days) reddens 4, including the REQ-014 DoD proof |
 | 93 | §645 | **§646** | **The "2 FAIL" reported for 41 phases was a DIRTY WORKING TREE, not the repo.** At HEAD both gates pass — test:tools 949/949, exit 0 — so the merge gate at HEAD is **21 PASS · 0 FAIL · 5 BLOCKED**. And the uncommitted row was MASKING a defect I shipped in §614: a bare REQ-289 in one of my comments is an annotation, orphaned at HEAD. Seventh prose-into-its-own-gate instance, and the first that shipped |
 | 94 | §646 | **§647** | Measured what §646 INFERRED. Full `verify:merge` at HEAD: **21 PASS · 0 FAIL · 5 BLOCKED**, zero FAIL lines, evidence artifact written. The five BLOCKED are §604's owner-held inputs, each naming what it wants, and the aggregate correctly refuses to round a blocked prerequisite to either a pass or a defect. The browser floors §609 installed report as real assertion counts for the first time |
+| 95 | §647 | **§648** | **THE STOPPING POINT.** 21 PASS · 0 FAIL · 5 BLOCKED at HEAD, measured with an artifact. §605–§647: ten defects fixed, four record defects corrected, eleven new gates, 65 mutations, three of my own findings refuted. What remains is five owner-held inputs and one owner-signed register row — nothing in this repo can supply them. Re-entry gating: re-measure before trusting any number here |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -35799,3 +35800,84 @@ it was measured or derived.** Both of my last two headline numbers were derived 
   re-run rather than assumed to still describe the remainder.
 - `verify:merge` is reported again without an artifact path → the artifact is what makes the number auditable
   after the fact, and quoting a tally without it is back to derivation.
+
+---
+
+## §648 — PHASE GATE: the stopping point
+
+**Subject.** §647 measured the state end-to-end. This records the stopping point the loop asked for, with the
+gating that governs re-entry. Every figure below was measured in the phase cited, not carried.
+
+### The measured state
+
+```
+verify:merge at HEAD → 21 PASS · 0 FAIL · 5 BLOCKED   (§647, exit 2, artifact under artifacts/release/183f78b…)
+test:tools   at HEAD → 949 passed (949), exit 0        (§646)
+```
+
+**Zero failing gates. Zero failing tests.** The five BLOCKED are prerequisites, not defects, and the harness
+refuses to round them: *"NOT PROMOTABLE — a prerequisite is BLOCKED … This is NOT a green."*
+
+### What this session did — §605 to §647, 42 commits
+
+**Ten defects found and fixed**, each mutation-proved before and after:
+
+| | Defect |
+|---|---|
+| §607 | the acceptance gate reported GREEN with a spine file that did not exist |
+| §608 | the visual gate PASSED at 4 of 5 canonical screens |
+| §609 | e2e PASSED at 3 of 6, losing the tenant-isolation browser proof (REQ-025) |
+| §612 | CLAUDE.md's last "do not build" clause (CONFIRM-GATED) enforced nothing |
+| §614 | deleting a cross-tenant isolation proof was silent |
+| §621 | a person identifier in five tracked documents (REQ-167) |
+| §622 | the CI secret-scan pin could not see gitleaks go shallow |
+| §634 | the evidence precondition skipped itself when unwired |
+| §640 | acceptance demo 5 was half-guarded |
+| §641 | the same, one expression over |
+
+**Four record defects corrected** — §610 (a green line naming a module it had stopped checking), §615 (a
+source-of-truth doc describing a repo that would fail its own CI), §616 (the "exact" layout naming 11 of 18
+modules), §617 (a resource named in the spec, provisioned nowhere).
+
+**Eleven new gate files**, each with a non-vacuity floor and each mutation-proved able to fail. **65 mutations**
+in the M84–M153 range.
+
+**Three findings of mine refuted by measurement** — §625 (glob arithmetic), §630 (an index predicate), §638 (a
+parity test that already existed three times over) — and **§646, the largest**: a count reported in forty-one
+consecutive phases was my working tree, not the repo, and it was masking an orphan REQ citation I had shipped.
+
+### What remains, and who owns it
+
+Five inputs, all measured rather than asserted (§603–§605), none of them this repo's to supply:
+
+1. **`IDENTITY_DENYLIST` secret** — enforcement proven functional in §604; the gate catches, names the file, and masks the term.
+2. **Nine private fixtures** — five BLOCKED gates name the exact paths they want.
+3. **REQ-289's landing set** — four atomic items (§603): a terminal-ID bump, a `gtm-lane` disposition, a recorded home, and the commit. The row sits uncommitted in the working tree today.
+4. **Sender domain + Cloudflare credentials** — the send path is rehearsed on both sides of the CONFIRM flip (§605); what is missing is DNS and provider state.
+5. **The filmed half** of the five acceptance demos — every code-provable clause is mutation-proved (§628–§630).
+
+### Re-entry gating
+
+A session resuming here should, in order:
+
+1. **Re-measure before trusting any number in this document.** §646 is the worked example of why: a figure restated without re-derivation was wrong for forty-one phases. Name the tree state and say whether the number was measured or derived (§647).
+2. **Check the reopen triggers, not the prose.** 72+ are recorded across §605–§647; two were already stale five phases after being written (§631), and the discharge convention (`DISCHARGED §N`, validated by `check:section-refs`) exists for retiring them.
+3. **Run `verify:merge` at HEAD with a clean tree** before concluding anything about state. Auditing from a dirty tree is how §646's defect shipped.
+
+### The stopping point, stated plainly
+
+**The repo-owned surface is done.** Every gate passes at HEAD; every gate has been proven able to fail; every
+code-provable DoD clause and governing-document claim has been mutation-tested; the hash chain's known-answer
+tests are reproducible with `shasum` by a stranger (§644).
+
+What stands between this and a fully green merge is **one owner-signed register row and five owner-held
+inputs** — and nothing in this repository can supply any of them. Further audit phases would be searching a
+surface that has now returned clean negatives for six consecutive threads (§643–§647).
+
+**Reopen triggers**
+- Any of the five owner-held inputs lands → re-run §604's measurement of the remainder rather than assuming
+  this list still describes it.
+- A new WP, surface, package or gate appears → §616's layout parity, §609's corpus ratchets and §636's
+  optional-dep rule each fail closed until it is registered, which is the intended forcing function.
+- This section is quoted as current without a re-run → the §646 error, and the first thing this stopping point
+  warns against.
