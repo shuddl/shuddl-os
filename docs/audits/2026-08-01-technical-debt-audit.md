@@ -257,6 +257,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 62 | §613 | **§614** | **DEFECT — deleting a cross-tenant isolation proof was SILENT.** genesis/14 §07 lists "isolation suite" as a PR gate and CLAUDE.md rule 8 calls a cross-tenant read a build failure, but no gate is named `isolation` and nobody had written down which six files ARE the suite; a staged deletion of 8 PLG isolation cases left test:tools at its exact baseline. Roster + 149-case floor, both routes mutation-proved |
 | 63 | §614 | **§615** | **A SOURCE-OF-TRUTH DOC DESCRIBED A REPO THAT WOULD FAIL ITS OWN CI.** genesis/14 §07 said any migration touching `events` beyond CREATE/INDEX fails CI; the lint permits a NULLABLE ADD COLUMN (owner-approved WP-05, faithful to genesis/10's actual I3 text) and a migration has SHIPPED under it since WP-05. Amended + lockstep-gated; the mutations show the LINT side was already pinned and the DOC side was not |
 | 64 | §615 | **§616** | genesis/14 §01 calls itself the **exact** layout and named 11 of 18 modules — 7 unlisted, 0 phantom. All seven are REGISTERED scope (3–22 REQ rows apiece, traceability clean), so a RECORD defect not a scope one; a reader taking "exact" literally would question `packages/agents`, the only sanctioned home for LLM calls. Amended + both-direction gate. My first parse reported 0/18 — a harness bug failing toward alarm |
+| 65 | §616 | **§617** | genesis/14 §02's naming schemes all CONFORM (36/36 — and conformance is a different property from binding-parity's agreement). But `shuddl-tiles` is named in the spec and declared NOWHERE: shipped Command renders against a third-party public host, the code calls the self-hosted bucket "a deploy line item", and REQ-075 counts as built-annotated because an annotation exists — one that says in words the thing is not built |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -33850,3 +33851,78 @@ dropped: every one carried at least one claim that had drifted from the mechanis
 - §01 gains sub-package nesting (`packages/foo/bar`) → the parse takes only the first two path segments and
   would collapse them silently. The floor catches total collapse, not a partial one — §609's selector problem,
   in this gate's own scan.
+
+---
+
+## §617 — PHASE GATE: a resource named in the spec, provisioned nowhere, behind a row counted as built
+
+**Subject.** genesis/14 §02 states four naming schemes and a secrets rule. All are falsifiable against the
+committed wrangler configs, so all were checked.
+
+### The conventions hold — a genuine clean negative
+
+| §02 says | Measured |
+|---|---|
+| workers `shuddl-{svc}-{env}` | 15/15 conform (api, agents, billing, mcp, translator × 3 envs) |
+| control D1 `shuddl-control-{env}` | 3/3 |
+| tenant D1 `shuddl-t-{slug}-{env}` | 15/15 (platform, pool-01, pool-02, tenant-a, tenant-b × 3) |
+| R2 `shuddl-evidence-{env}` | 3/3 |
+| **secrets never in `wrangler.toml`** | no secret-shaped assignment in any config |
+
+Worth naming what this adds over §585/§586: `binding-parity` checks that two workers **agree** on a name. Two
+workers agreeing on a name that violates the scheme would pass it. Conformance and agreement are different
+properties, and §02's is the one nothing had measured.
+
+### THE FINDING — `shuddl-tiles` is named in the spec and exists nowhere
+
+§02's R2 line ends `· shuddl-tiles (shared, public-read via Worker)`. That string appears in **exactly one file
+in the repo: genesis/14 itself.** No wrangler.toml declares it.
+
+Following the map's tile source explains why, and the code is honest about it:
+
+> *"the greige STYLE and entity grammar are built now against a public demo source; self-hosted Protomaps
+> vectors + JetBrains-Mono glyph PBFs on R2 are **a deploy line item**. Swap these for the tenant's tile host
+> at deploy."* — `packages/map/src/demo.ts:116`
+
+`DEMO_TILE_URL` is `https://tiles.openfreemap.org/planet`, a third-party public host, and it is what the
+**shipped** Command surface renders with (`apps/command/src/App.tsx:226`), not merely a demo file.
+
+### Why the register does not show it
+
+`REQ-075 — "Self-hosted vector tiles; greige custom style; offline cache"`, `wp=WP-03`,
+`status=F0-SPEC'D`, DoD *"No 3rd-party branding; airplane map loads"*.
+
+`F0-SPEC'D` is a **buildable** status, and WP-03 is closed, so `disposition()` classifies the row
+`built-annotated`. Coverage then asks only one thing of it: **does source cite REQ-075?** It does — in the very
+files whose comments say the host is a deploy line item.
+
+This is §610's lesson pointing the other way. There, drift rows were flagged and the verdict was *"a citation
+only proves a CITATION exists"* — several turned out to be deferral markers rather than implementations. Here
+the same fact clears a row instead of flagging it: **an annotation satisfies "built-annotated" while saying, in
+words, that the thing is not built.** The gate cannot read English, and nothing else was looking.
+
+Precision about the claim: the tiles come from a third-party host, and whether attribution *renders* is what the
+DoD's "no 3rd-party branding" clause actually turns on — that is a rendering question this phase did not
+measure, and the blessed `command.png` is where it would show. The gap recorded here is the provisioning one,
+which holds regardless.
+
+### What was done, and what was deliberately not
+
+A disposition is recorded against REQ-075 in `coverage-manifest.json` — the repo's established mechanism for
+exactly this (audit §112 recorded nine such verdicts), and the same shape §612 added for CONFIRM-GATED rows.
+
+**The register row was not touched.** Whether `F0-SPEC'D` should become `F0-DEPLOY-NOTE` — the status this repo
+already has for "built except for a deploy step" — is a register amendment, and CLAUDE.md reserves those for
+the owner. The measurement is recorded so the decision is a decision rather than a discovery.
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged. No source changed.
+
+**Reopen triggers**
+- `shuddl-tiles` is provisioned and the URLs swapped → the disposition becomes stale and should be deleted with
+  the change, not left as a permanent exemption.
+- Another `F0-SPEC'D` row is satisfied by an annotation that reads "deferred/deploy line item" → the same shape
+  as this one. Nothing systematically detects that; it needs a reader, which is the honest limit here.
+- `DEMO_TILE_URL` moves out of `apps/command` → the shipped-surface half of this finding expires, leaving only
+  the unprovisioned bucket.
