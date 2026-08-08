@@ -270,6 +270,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 75 | §627 | **§628** | genesis/08's SIXTEEN DoD clauses audited for whether their PROOFS still run (§614's shape, applied to the roadmap). Clean split: proven-and-running, or blocked on the five owner-held inputs already measured. **No new debt — the first whole document to yield neither defect nor correction.** WP-01's check:pr proven in 3 directions and stricter than its clause. Two DoD proofs were unguarded until §608/§614 |
 | 76 | §628 | **§629** | §628 said "the split is clean" having exercised only 4 of the 16 DoD clauses — the rest were proven BY CATEGORISATION, the very shape §628 existed to expose. All four unchecked ones do have named proofs, and two were mutated: WP-08's double-book (M131 — the atomicity is a PARTIAL UNIQUE INDEX, not the UPDATE; three distinct guarantees red) and WP-12's rule-10 gap row (M132, two red). Conclusion survived; the evidence had not been gathered |
 | 77 | §629 | **§630** | Closed §629's two triggers, which closed DIFFERENTLY. One was a FALSE PREMISE — sqlite proves NULLs are distinct in a UNIQUE index, so skeleton legs never collide with or without the partial predicate; my trigger asserted a mechanism without probing it (second such refutation this session, after §625). The other was real: M133 (penny-parity, 2 red) and M134 (allotment cap, 5 red incl. both fail-closed defaults and the DO-mutex race). Every code-provable DoD clause is now mutation-proved |
+| 78 | §630 | **§631** | Counted the audit's own reopen triggers: **72 across 25 phase gates, zero dischargeable.** Two were already stale five phases on (§626's mayBeEmpty test, §629's unmutated WP-11/WP-14) — the expiry-trigger problem INSIDE the record. Convention added (strike + `DISCHARGED §N`); section-refs validates the pointer for free (M136), a new assertion catches a bare one (M135). Staleness itself stays unmechanisable, and that limit is stated |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -34477,7 +34478,7 @@ the session memory rather than only here, because the next occurrence will be in
 typecheck 0; eslint clean.
 
 **Reopen triggers**
-- `scanCorpus` gains a caller passing `mayBeEmpty` → that option has no test. It exists for genuinely-optional
+- ~~`scanCorpus` gains a caller passing `mayBeEmpty` → that option has no test.~~ **DISCHARGED §627** (six cases, and M130 proves the exemption is exact-match, not prefix). The remainder still stands: It exists for genuinely-optional
   globs and nothing exercises it, which is the §579 shape (a guard whose discriminating input is expensive to
   construct ends up unwatched). Its first real caller should bring one.
 - A caller needs the unfiltered list → `excludeTests` is a boolean today; a second filter would want a
@@ -34670,7 +34671,7 @@ like a measurement, and only one of them fails when the subject breaks.
 - The partial UNIQUE index is widened to include skeleton legs → the three tests above still pass while two
   un-appointed legs begin colliding; the index's `WHERE appt_slot_key IS NOT NULL` is the load-bearing half and
   nothing asserts the predicate itself.
-- WP-11 and WP-14 remain **unmutated** — named proofs found, not exercised. That is a smaller version of this
+- ~~WP-11 and WP-14 remain **unmutated** — named proofs found, not exercised.~~ **DISCHARGED §630** (M133: 2 red; M134: 5 red). The observation it made still stands: That is a smaller version of this
   phase's own finding, recorded rather than quietly carried.
 
 ---
@@ -34740,3 +34741,70 @@ down: both got tested, and only one survived.
   the index off every un-appointed row. That is a performance property, and no gate measures index size.
 - WP-05/07/10/13/15's field and filmed clauses remain the only DoD work outstanding, and remain owner-held.
   Every code-provable clause in genesis/08 §03 has now been mutation-proved.
+
+---
+
+## §631 — PHASE GATE: seventy-two open triggers and no way to close one
+
+**Subject.** §630 ended on *"a reopen trigger is a hypothesis, not a finding."* If that is right, the audit has
+been accumulating hypotheses — so they were counted.
+
+**72 reopen triggers across 25 phase gates**, and **zero** marked discharged. There was no convention for
+retiring one.
+
+### Two were already stale, five phases after being written
+
+| Trigger | Written | Satisfied by | Still read as open |
+|---|---|---|---|
+| *"`mayBeEmpty` … has no test"* | §626 | §627 — six cases, M130 proving exact-match | yes |
+| *"WP-11 and WP-14 remain **unmutated**"* | §629 | §630 — M133 (2 red), M134 (5 red) | yes |
+
+That is the §"record holds with expiry triggers" problem **inside the record**: a hold that cannot signal its
+own verdict dying. At 72 and climbing, a reader cannot tell which are live — and the two that went stale did so
+in the space of a single phase each.
+
+### The convention, and what validates it for free
+
+A discharged trigger is struck through and marked **`DISCHARGED §N`**, naming the phase that earned it.
+
+Most of that is already enforced: `check:section-refs` proves every `§N` in every markdown file resolves to a
+real section, so **a discharge cannot point at a phase that does not exist** — verified by planting
+a discharge pointing at a five-digit phase number that does not exist, which the existing gate flagged at the right line without any new code.
+
+The one mechanical gap that leaves is a discharge with **no** pointer, which nothing would have caught. That is
+now asserted in `phase-index.test.ts` — the file that already owns audit-document structure, so ownership
+follows the consumer rather than the file extension.
+
+| | Mutation | Caught by |
+|---|---|---|
+| M135 | a bolded discharge marker carrying no §N pointer | the new assertion |
+
+Both mutation rows describe their planted value rather than quoting it. Quoting either one puts the literal
+in the file the gate scans — which is exactly what happened on the first run of this section, twice: the
+dangling phase number tripped `check:section-refs`, and the bare marker tripped the assertion added *in this
+phase*. Sixth and seventh instances this session of prose quoting a known-bad value into its own gate
+(§606, §612, §618, §621, and both halves of this one). The fix is always the same and never a filter:
+describe the shape, or exclude the one file that must contain it by identity.
+| M136 | a discharge citing a non-existent phase number | `check:section-refs`, unmodified |
+
+### The limit, stated rather than implied
+
+**Staleness itself is not mechanisable.** Nothing can detect that a *live* trigger has quietly become true —
+§626's and §629's were found by reading, not by a scan, and a future one will be too. This convention does not
+make triggers self-retiring; it makes a retirement **traceable to the phase that earned it**, so the reader can
+trust the ones still standing.
+
+That distinction is the whole value. A trigger list nobody prunes decays into noise, and noise is indistinguishable
+from an empty list — which is the same failure this audit has now found in nine gates under a different name.
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged. `phase-index` 5/5; the doc gates green; two triggers discharged,
+70 standing.
+
+**Reopen triggers**
+- A trigger goes stale and nobody notices → unchanged by this phase, and unfixable mechanically. The mitigation
+  is that discharges are now cheap to write, so the next reader has less reason to leave one standing.
+- The discharge convention is renamed → the non-vacuity assertion fires rather than silently scanning nothing.
+- Trigger count keeps climbing past ~100 → the list stops being readable in one pass, and the honest answer
+  then is a per-phase index rather than a longer list.

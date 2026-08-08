@@ -61,3 +61,39 @@ describe("REQ-118 §541: the §4 phase index lists every phase gate", () => {
     expect(stray, `index row(s) naming a section that is not a PHASE GATE:\n  ${stray.join(", ")}`).toEqual([]);
   });
 });
+
+// REQ-118 §631 — A DISCHARGED REOPEN TRIGGER MUST NAME THE PHASE THAT DISCHARGED IT.
+//
+// The audit accumulates reopen triggers — 72 across 25 phase gates when this landed — and had NO way to
+// retire one. Two were already stale five phases after they were written: §626's "`mayBeEmpty` has no test"
+// (§627 gave it six) and §629's "WP-11 and WP-14 remain unmutated" (§630 mutated both). A trigger that has
+// been satisfied but still reads as open is the §"record holds with expiry triggers" problem inside the
+// record itself: a reader cannot tell which of 72 are live.
+//
+// The convention is a strike-through plus **DISCHARGED §N**. Most of it validates for free — `check:section-refs`
+// already proves every §N resolves to a real section, so a discharge cannot point at a phase that does not
+// exist. The one gap it leaves is a discharge with NO pointer, which is what this asserts.
+//
+// STALENESS ITSELF IS NOT MECHANISABLE. Nothing here can tell that a live trigger has quietly become true;
+// that needs a reader. This gate only ensures that when someone DOES retire one, the retirement is traceable
+// to the phase that earned it.
+describe("REQ-118 §631: every discharged trigger cites the phase that discharged it", () => {
+  it("no bare DISCHARGED marker without a §N", () => {
+    const text = readFileSync(`${repoRoot()}/docs/audits/2026-08-01-technical-debt-audit.md`, "utf8");
+    const bare = [...text.matchAll(/\*\*DISCHARGED(?!\s+§\d)([^*]{0,40})\*\*/g)].map((m) => m[0]);
+    expect(
+      bare,
+      "a reopen trigger was marked DISCHARGED without naming the phase that discharged it. The pointer is what " +
+        "makes the retirement auditable — and `check:section-refs` then proves that phase exists",
+    ).toEqual([]);
+  });
+
+  it("finds the discharges it is meant to check (non-vacuity)", () => {
+    // If the convention is renamed this scans nothing and passes — the class this repo met in seventeen gates.
+    const text = readFileSync(`${repoRoot()}/docs/audits/2026-08-01-technical-debt-audit.md`, "utf8");
+    expect(
+      (text.match(/\*\*DISCHARGED §\d+\*\*/g) ?? []).length,
+      "no discharged triggers found — the convention was renamed, or the scan is stale",
+    ).toBeGreaterThan(0);
+  });
+});
