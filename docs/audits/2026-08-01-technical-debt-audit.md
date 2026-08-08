@@ -291,6 +291,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 96 | §648 | **§649** | The record OUTSIDE the repo carried the wrong number too. The session memory's headline was the "17 PASS · 5 BLOCKED · 2 FAIL" §646 disproved, and it is read BEFORE this document — superseded in place with a dated header rather than rewritten, keeping a record correct for its date alongside the correction. Both standing environment checks clean: zero iCloud duplicates, topology linear on main |
 | 97 | §649 | **§650** | **DEFECT — an iCloud duplicate makes `check:chokepoint` accuse a developer of bypassing the append chokepoint.** ALLOWED keys on the exact path, so `sequencer 2.ts` reads as an unallowlisted writer. invariants.ts fixed the identical fault at §253 by filtering AT THE GLOB with `globSync` shadowed; the predicate is now REUSED, not re-authored. The other three globbing tools are immune because they key on content, size or identity — **path-keyed scanners are the vulnerable class** |
 | 98 | §650 | **§651** | **DEFECT — the seed loader would APPLY a duplicate migration.** §650 swept `globSync` and missed `readdirSync`; six more callers, and load.cli.ts reads every .sql and applies it, so an iCloud duplicate runs the same CREATE TABLE twice (measured: 9 files, not 8). §650 cried wolf; this CORRUPTS. Fixed. surface-contract is content-keyed and immune, as the rule predicted. Four fixture readers are path-keyed but BLOCKED — recorded, not changed |
+| 99 | §651 | **§652** | Re-ran §642's sweep by BEHAVIOUR as §651 prescribed: it had been reporting **2 of 6**. Five `JSON.stringify(a)).toBe(JSON.stringify(b))` determinism assertions it never saw — all correct (same call twice, equality IS the requirement). The vacuity hole is real (`stringify(undefined)` compares equal) and closed by siblings in every case: 47 and 41 other assertions on the same values |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -36065,3 +36066,57 @@ trio — typecheck 0, eslint clean, no duplicate residue.
   `isCollisionDuplicate` then, when there is an input to verify it against.
 - A sweep enumerates by mechanism rather than behaviour → §650 checked `globSync` and missed `readdirSync` for
   a full phase. The question is "what reads the filesystem", never "what calls this function".
+
+---
+
+## §652 — PHASE GATE: re-running §642's sweep the way §651 said to
+
+**Subject.** §651's transferable half: *"a sweep that enumerates by mechanism misses the same class under a
+different call."* The obvious test of that lesson is to re-run an earlier sweep of mine that did exactly that.
+
+§642 swept sibling-equality assertions by the **mechanism** `new Set(x).size).toBe(1)` and found **2**. The
+**behaviour** is *"asserts several values are identical"*.
+
+### Sweeping by behaviour found three times as many
+
+| Mechanism | Hits |
+|---|---|
+| `new Set(…).size).toBe(1)` | 1 |
+| **`JSON.stringify(a)).toBe(JSON.stringify(b))`** | **5** |
+| `.every(x => x === first)` · `toEqual` over two mapped lists · `uniq.length === 1` | 0 |
+
+**§642 had been reporting 2 of 6.** Its conclusions about the two it saw were right; its coverage was not what
+it implied, and nothing in that phase would have revealed it.
+
+### All five are the correct shape
+
+Every one compares **the same call made twice** — `composeConcierge(baseInput())`, `copilot.answer(q)`,
+`fleet1k()` — where equality *is* the requirement (determinism: no `Date.now`, no `Math.random`, no I/O). That
+is §642's discriminator applied: equality as the requirement, not as a proxy for one.
+
+### The vacuity hole they all avoid, and how
+
+`JSON.stringify(undefined) === JSON.stringify(undefined)` is **true**. So a determinism assertion of this shape
+is **vacuous on its own** — a function returning nothing, twice, passes it.
+
+None of the five is on its own:
+
+- `fleet-1k` sits beside `expect(fleet1k()).toHaveLength(1000)` and a CONUS-bounds check;
+- `composeConcierge`'s file carries **47** other assertions across 29 call sites;
+- `copilot.answer`'s carries **41** across 16.
+
+If any returned `undefined`, dozens of assertions fail before the determinism one is reached. The hole is real
+and closed by siblings in every case — which is exactly the pairing §642 credited the billing assertion for
+(`length).toBe(2)` beside the set-size check).
+
+### Exit state
+
+**21 PASS · 0 FAIL · 5 BLOCKED at HEAD** (§647). No code changed — this phase is a corrected sweep and a clean
+negative. The lesson is recorded in session memory, since the next occurrence will be in a different class.
+
+**Reopen triggers**
+- A determinism assertion of this shape is written in a file where nothing else asserts the value → it is
+  vacuous, and the five here are safe by context rather than by construction. A paired non-emptiness assertion
+  is what makes it safe on its own.
+- Another sweep in this document is quoted as coverage → §642 and §650 both under-reported their class by
+  enumerating mechanisms. The hit count is not the coverage.
