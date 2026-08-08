@@ -283,6 +283,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 88 | §640 | **§641** | **The same half-guard one expression over.** §640 pinned the world-dim; the AT-REST match had it too — an exception mark set to render identically to a healthy one left packages/map 88/88 GREEN. The existing test compares the three leaf layers TO EACH OTHER, and the mutation moves all three through their shared builder: **comparing siblings cannot see a change that moves every sibling.** M148/M149 now red |
 | 89 | §641 | **§642** | Swept §641's mechanism ("comparing siblings cannot see a change that moves every sibling"): two instances repo-wide. One was §641's defect; the other, in BILLING, is correct — its siblings are the same call made twice and equality IS the requirement (a redelivered webhook must re-derive one id), paired with a count so it cannot pass vacuously. M150 (non-deterministic id) reddens 2 tests. The distinction: is equality the requirement, or a proxy for it |
 | 90 | §642 | **§643** | Checked the build's sharpest CONTRAST requirement for §640's shape — CLAUDE.md rule 7's "--signal-deep is tuned by the contrast test, not by eye". It asserts the RATIO, correctly. Proved with the real historical decision: reverting to doc 07's by-eye #A93018 (4.43:1) reddens THREE surfaces. Its suite opens with black/white=21:1 and identical=1:1 — the POSITIVE CONTROLS my own probes lacked in §625/§635/§638 |
+| 91 | §643 | **§644** | Applied §643's distinction to the hash chain, where self-consistency is not correctness. The ledger's known-answer tests EXIST and — the whole question — are not self-generated: `shasum` outside the repo reproduces sha256("{}"), the empty Merkle root, and the six-type canonical vector BYTE-FOR-BYTE. M152 (key sort reversed) reddens four. The frozen byte law is backed by arithmetic a stranger can rerun |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -35547,3 +35548,63 @@ byte-identical, no code changed.
   recording *why* #A93018 was rejected becomes the only trace of the decision.
 - `--signal-deep` gains a second background (used on something other than `--field`) → the assertion pairs it
   with one token, and a second pairing is unguarded until named.
+
+---
+
+## §644 — PHASE GATE: the known-answer tests are answerable from outside the repo
+
+**Subject.** §643 drew a distinction worth acting on: a non-vacuity floor proves the **scan** ran; a positive
+control proves the **computation** is right. The place that gap matters most is the hash chain, because
+**self-consistency is not correctness** — a broken digest that every test compares hash-to-hash passes forever.
+
+So: does the ledger have known-answer tests, and are their answers **externally verifiable**?
+
+### They exist, and they are not self-generated
+
+That second clause is the whole question. A KAT whose expected value was produced *by the implementation it
+tests* proves only that the implementation is deterministic. Each was recomputed with `shasum`, outside the
+repo, outside Node:
+
+| Vector | Independent `shasum` | Repo asserts |
+|---|---|---|
+| `sha256("{}")` | `44136fa355b3678a…caaff8a` | `canonical.test.ts` — **match** |
+| `sha256("")` = empty Merkle root | `e3b0c44298fc1c14…852b855` | `merkle.test.ts` — **match** |
+
+The third is the real one. `canonical.test.ts` freezes a hash for an object spanning **all six** `JsonValue`
+types, and asserts the canonical STRING alongside it — so a failure says which half moved. The canonical string
+was lifted from that assertion, written to `shasum` as raw bytes, and:
+
+```
+independent : dfd46fde61659ca55c63ee78d12c7607789d6dd850a652949af376446dfd3590
+repo froze  : dfd46fde61659ca55c63ee78d12c7607789d6dd850a652949af376446dfd3590
+```
+
+**Byte-for-byte.** The serialization → UTF-8 → digest chain is pinned to a value anyone can reproduce with a
+command-line tool, which is the strongest form this can take. `canonical.ts`'s own header — *"These rules are
+frozen forever; changing any of them breaks every hash chain. Do not 'improve' this file."* — is backed by
+arithmetic, not just by the warning.
+
+### And the KAT is load-bearing
+
+**M152** reversed the key sort — the single most obvious "improvement" someone might make to that file. Four
+tests red, including the known-answer vector and the three that pin sorting, nesting and bare booleans
+independently.
+
+### What this closes
+
+§643 observed that where a fixed point can be a test it stops a class, and where it can only be a habit it does
+not. The ledger's foundation has it **mechanized and externally anchored** — the best case available. Three
+phases of finding assertions that checked the wrong thing (§640 a substring, §641 siblings, §642 the distinction
+between them) end at the one place where the assertion is checkable by a stranger with `shasum`.
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged. `packages/ledger` canonical 13/13; M152 restored byte-identical; no
+code changed.
+
+**Reopen triggers**
+- A KAT is added whose expected value is pasted from a failing run → the exact failure this phase tested for,
+  and nothing distinguishes a copied-from-implementation constant from an externally-verified one by looking at
+  it. The canonical vector's paired STRING assertion is what makes it re-verifiable; a bare hash would not be.
+- `canonicalize` gains a type (bigint, Date) → the six-type vector stops spanning the union it claims to, and
+  the KAT's value silently narrows in meaning while still passing.
