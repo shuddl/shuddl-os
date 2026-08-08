@@ -331,6 +331,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 136 | §688 | **§689** | **A FALSE GREEN in my own measurement — the first of the session.** Sweeping §688's tautology class closed it (discriminator: *fixture-expected = two independent origins; derived-vs-derived cannot diverge* — predicts exactly which harness had them; all 7 gates I shipped are derived-vs-declared). Then the harness reported `verify:merge EXIT: 0` against §683's exit 2 — because **a `$(…)` substitution inside the same `echo` clobbers `$?`** (proved: bare→2, substitution-first→0, `rc=$?`→2). The gate actually says *NOT PROMOTABLE*. Six earlier measurement bugs produced false REDS; **a false red gets investigated, a false green gets accepted** |
 | 137 | §689 | **§690** | **CI clean; a comparison wrong BY CONSTRUCTION; one unverified release gate bounded.** No `$?` reads or failure-masking anywhere in CI (corpus verified). A "23 of 30 gates missing from ci.yml" result was nonsense — `ci.yml:50` runs `verify:merge` and the 23 are its MEMBERS (§688's tautology shape, one level up). The real finding: `gatesFor` gives release four extra gates that **never run in CI**, and `staging-smoke` alone has no test. Its fail-closed half MEASURED — exit 2, *"not a pass"* — the assertion half bounded as a named hold |
 | 138 | §690 | **§691** | **DEFECT — the entire 26-gate surface hung on one unasserted line.** `gate-wiring`'s invocation corpus proves each gate is invoked *somewhere*, and "somewhere" **includes `run-gate.ts` itself** — so every gate stays "invoked" even if CI never runs the aggregate. **M212** replaced `run: pnpm verify:merge` with an echo and `test:tools` reported the same 3 known failures: **nothing noticed.** Forty phases of hardened gates ran in CI only because of an unchecked line (§634's shape at the outermost layer). Closed with a floored assertion; M212b fires. Literal pin, with its one false positive (a `verify:release` superset) recorded at the site |
+| 139 | §691 | **§692** | **Attempted the last wiring hole and concluded it should NOT be closed.** `verify:release` has no CI home because `staging-smoke` BLOCKS on an unset `SMOKE_API_BASE` — wiring it into nightly would go red every night for a reason nobody can fix from this checkout, and **a gate that must fail is worse than one that is absent**. Owner-held, one hold not two. Separately **M214** showed nightly's `check:traceability` deletion is undetected — but it is **redundant with the same gate on the merge path**, so it costs cadence, not coverage. Same mutation result as §691, an order of magnitude apart in consequence |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -38699,3 +38700,61 @@ The measured state has been correct throughout. What was missing is that nothing
 - `verify:merge` is renamed → the pin is on the literal script name and fails loudly, which is correct.
 - The `nightly` workflow gains `verify:release` → nothing asserts it, and §690's four release-only gates stay
   outside CI. That remains open and is the larger of the two wiring holes.
+
+## §692 — PHASE GATE: the CI wiring picture, complete — and where it stops being repo-closable
+
+**Subject.** §691 closed the merge half and left the release half open: *"nothing asserts the nightly workflow
+runs `verify:release`."* §671's rule is to attempt it. Attempted — and the attempt is the finding, because
+the answer is that it **should not** be asserted.
+
+### Why `verify:release` has no CI home, and that is correct
+
+`nightly.yml` carries Cloudflare credentials and `RELEASE_ENVIRONMENT: staging`, with a deliberate note:
+
+> *"SCHEDULING that is an operator decision (which account's token, which retention, whose pager when it goes
+> red), not a default this file may take on their behalf."*
+
+Adding `verify:release` there would run `staging-smoke`, which **BLOCKS on an unset `SMOKE_API_BASE`** (§690,
+measured: exit 2). The job would be red every night, permanently, for a reason nobody can fix from this
+checkout. **A gate that must fail is worse than a gate that is absent**, because the first teaches people to
+ignore a red.
+
+The release profile is blocked on the same deployment that blocks four of its own gates. That is one hold,
+not two, and it is owner-held — the same class as the five BLOCKED merge gates. Forcing a wiring assertion
+here would have manufactured a permanent failure to satisfy a symmetry that does not exist.
+
+### The second wiring hole, measured and correctly bounded
+
+**M214** neutered nightly's own `check:traceability` step; `test:tools` reported the same 3 known register
+failures — not detected, exactly as §691's mutation was not.
+
+**But the severity is different, and checking that mattered.** `check:traceability` is *also* a merge gate
+(`run-gate.ts:53`, and it PASSed in the last merge run). So nightly's job is **redundant with a gate that
+runs on every merge** — deleting it costs the nightly *cadence*, which catches drift between merges, not the
+*coverage*.
+
+§691's step was the sole path for twenty-six gates. This one duplicates a gate that runs anyway. Same
+mutation result, an order of magnitude apart in consequence — and only §531's redundancy question separates
+them.
+
+### The complete wiring picture
+
+| surface | wired by | asserted? |
+|---|---|---|
+| 26 merge gates | `ci.yml` → `verify:merge` | **yes, §691** (M212b fires) |
+| traceability cadence | `nightly.yml` → `check:traceability` | no — redundant with the merge gate, bounded |
+| 4 release-only gates | nothing | **owner-held**: blocked on the deployment that blocks their inputs |
+
+### Exit state
+
+No code change — the attempt concluded that the change should not be made. `test:tools` **971**; typecheck 0;
+both workflows restored byte-identical after two mutations. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED,
+aggregate BLOCKED, exit 2** at `04c6fe1`.
+
+**Reopen triggers**
+- **A staging environment is deployed** (`SMOKE_API_BASE` binds) → `verify:release` becomes runnable, and
+  *then* a wiring assertion for it is worth having. Until that day it would only pin a red.
+- `check:traceability` is removed from the merge profile → nightly's copy becomes the sole path and inherits
+  §691's severity. Nothing links the two, which is the honest limit of this section.
+- A nightly job is added that is NOT duplicated on the merge path → it needs §691's treatment on its own
+  terms, and this table is where to check.
