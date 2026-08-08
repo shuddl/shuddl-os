@@ -339,3 +339,40 @@ describe("REQ-118 §669 — a money_line cannot be inserted twice for the same (
     await expect(line("ml-dup-b")).rejects.toThrow();
   });
 });
+
+// ─── REQ-118 §670 — legs.shipment_id WAS THE ONE FOREIGN KEY OF THREE WITH NO TEST. ────────────────────
+//
+// §669's trigger sent the sweep at the last DDL class. All 12 triggers fire when dropped (the six UPDATE/
+// DELETE guards, the three 0003 INSERT guards, 0004's party_refs guard — owned by `lens.test.ts`, not by
+// this file — and both 0008 unique-key guards). That left the three foreign keys, and they split two-one:
+//
+//   money_lines.event_id -> events(id)     I1, tested above and mutation-proved in §340
+//   party_credit.party_id -> parties(id)   1 test fires when dropped
+//   legs.shipment_id -> shipments(id)      ledger 658 + api 798 = 1,456 tests, ALL GREEN
+//
+// The same shape as §668's CHECK finding: siblings declared on adjacent lines of one migration, two watched
+// and one not, with nothing about the third making it less load-bearing.
+//
+// A leg is a movement segment — the unit dispatch assigns, appointments book (ux_legs_slot) and interline
+// splits divide. An orphan leg is a leg the shipment lens cannot reach: it holds an appointment slot and a
+// split share against a shipment that does not exist, and no read path joins it back to anything.
+describe("REQ-118 §670 — a leg cannot exist without its shipment", () => {
+  const leg = (id: string, shipmentId: string): Promise<D1Result> =>
+    TDB.prepare(
+      `INSERT INTO legs (id, shipment_id, seq, kind, executor_party_id) VALUES (?, ?, 0, 'linehaul', 'p:carrier')`,
+    )
+      .bind(id, shipmentId)
+      .run();
+
+  it("accepts a leg on a real shipment (non-vacuity — the rejection below must mean the FK)", async () => {
+    await TDB.prepare(
+      `INSERT INTO shipments (id, shipper_party_id, consignee_party_id, bill_to_party_id, created_ts)
+       VALUES ('S-leg-fk', 'p:a', 'p:b', 'p:c', 1000)`,
+    ).run();
+    await expect(leg("leg-ok", "S-leg-fk")).resolves.toBeTruthy();
+  });
+
+  it("rejects a leg whose shipment does not exist — an orphan holding a slot and a split share", async () => {
+    await expect(leg("leg-orphan", "S-does-not-exist")).rejects.toThrow();
+  });
+});

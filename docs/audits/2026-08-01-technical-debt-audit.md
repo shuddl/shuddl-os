@@ -309,6 +309,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 114 | §666 | **§667** | **Clean negative + a re-derivation.** 19 request-body schemas: 16 strict, `AnchorDay` a string (category error), `EchoBody` authenticated WP-01 test vehicle — no defect. Then re-ran the figure §663–§666 had each restated from §647: **26 gates, 21 PASS · 0 FAIL · 5 BLOCKED at `13b6642`, clean tree**. Carried figure was RIGHT, now re-derived — §646's point is that from outside, an unre-measured correct number is indistinguishable from a wrong one. `$?`-after-a-pipe misread the exit as 0 on the first attempt |
 | 115 | §667 | **§668** | **DEFECT — 16 DDL CHECKs enforced by the database and nothing else.** Neutered (`CHECK (1=1 OR `) they were silent across ledger 634 · api 798 · agents 122 · billing 58 · translator 116 · rater 157 · mcp 185 = **1,670 tests**. The same file ALREADY tests a control-plane CHECK — the pattern was written once and never extended one migration over. Three (money_lines `direction`/`kind`/`amount_cents`) have NO Zod counterpart, so D1 is the only guard, and REQ-040/I7 are written in terms of that `kind` list. Closed with existence+VALUES (`toEqual` catches a widened enum, which no behavioural test can) and real inserts. M180: 0 → 20 fail; M181 (one value added): exactly 1 |
 | 116 | §668 | **§669** | **Clean negative + a REFUTED claim of mine.** Corrected §668's own "26 UNIQUE" (a regex counting `0008`'s header prose) to **8**. Five fire when neutered; the three silent ones are all redundant with live BEFORE INSERT triggers (`0008` for hash/device, **`0003`** for `(event_id, line_no)`). My draft asserted `(event_id,line_no)` had no trigger twin — **false**, written after reading `0008` and never opening `0003`. The behavioural test PASSING under the mutation is what refuted it. Both layers pinned; the 3-row mutation table shows neither test is vacuous |
+| 117 | §669 | **§670** | **DDL class CLOSED at member level, 46 constraints across four classes.** TRIGGER: **12/12 fire** — but the twelfth read as silent under a run I had scoped for speed, and is owned by `lens.test.ts` (a performance workaround is a change to the measurement). FK: three declared on adjacent lines, two tested — **`legs.shipment_id` undefended across 1,456 tests**, an orphan leg holding an appointment slot and a split share against a shipment that does not exist. Closed; M187b fires exactly 1. Five of six runs in one batch were workerd crashes caught by a validation guard, not findings |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -37172,3 +37173,73 @@ snapshot comparison is what made the recovery provable rather than hopeful.
 - The remaining unmeasured class is **13 TRIGGER constraints**. I3's are proved by name in §310; the rest
   have had the class-level pass only, and this phase is the second in a row where the class-level result was
   the least interesting thing in it.
+
+## §670 — PHASE GATE: the DDL class swept to completion, four ways
+
+**Subject.** §669's trigger named the last unmeasured class. This closes the sweep begun in §668, so the
+whole DDL surface — the layer this audit's record calls *"the last line below every gate and test double"* —
+has now been measured member by member rather than in aggregate.
+
+### The complete picture
+
+| class | population | measured verdict |
+|---|---|---|
+| **CHECK** | 23 | **16 undefended** across 1,670 tests → closed in §668 |
+| **UNIQUE** | 8 (not 26 — §669 corrected a regex that counted header prose) | 5 fire; **3 silent but genuinely redundant** with live BEFORE INSERT triggers |
+| **TRIGGER** | 12 | **12 of 12 fire.** No gap |
+| **FK** | 3 | **1 undefended** → closed here |
+
+### The triggers are clean, and one of them taught the scoping lesson again
+
+All six UPDATE/DELETE guards fire, all three `0003` INSERT guards fire, both `0008` unique-key guards fire.
+The twelfth — `events_party_refs_guard_ins` (I6, REQ-015) — read as **silent** against a scoped run of
+`schema-core` + `schema-domain`, and is in fact owned by **`lens.test.ts`**, whose case names the migration
+outright: *"0004 guard: a scalar (non-array) party_refs is rejected at write time."*
+
+That is §"run the suite that owns the file" for the third time in this audit, and the first where the scoping
+was **mine, adopted deliberately** — the full ledger suite had become unreliable under repeated
+`vitest-pool-workers` runs, so the sweep was narrowed for speed and the narrowing silently changed the
+answer. A performance workaround is a change to the measurement.
+
+### The one real gap: three foreign keys, two watched
+
+```
+money_lines.event_id  -> events(id)      I1 — tested, and mutation-proved in §340
+party_credit.party_id -> parties(id)     1 test fires when dropped
+legs.shipment_id      -> shipments(id)   ledger 658 + api 798 = 1,456 tests, ALL GREEN
+```
+
+Declared on adjacent lines of one migration, and nothing about the third makes it less load-bearing — the
+same shape §668 found between the control-plane and tenant CHECKs. A leg is the unit dispatch assigns,
+appointments book (`ux_legs_slot`) and interline splits divide. An orphan leg holds a slot and a split share
+against a shipment that does not exist, and no read path joins it back to anything.
+
+Closed with two assertions, the first inserting a real parent shipment so the second cannot pass for the
+wrong reason. **M187b** re-drops the FK and exactly one fires.
+
+### On the measurement itself
+
+Five of six runs in one batch were **workerd `fallback-service` failures**, not results. They were caught
+because each run is now validated for that signature before its number is read — without it, five
+"undefended" verdicts would have been recorded. A crashed run and a clean run look identical in a summary
+line, and the crashed one is the alarming-looking answer (§"keep a fixed point before scaling a probe").
+
+Also: `set -- $spec` does not word-split in zsh, so the first attempt at this sweep silently did nothing at
+all — visible only because every cell printed `ANCHOR MISS`. That failure mode is the safe one.
+
+### Exit state
+
+`packages/ledger` 658 → **660**; `test:tools` 955; typecheck 0; `db/` verified byte-identical against a
+pre-sweep snapshot after every mutation. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED** (§667 at `13b6642`;
+§668–§670 add tests only).
+
+**The DDL class is now closed at member level.** 46 constraints, four classes, 17 gaps found and closed.
+
+**Reopen triggers**
+- A new migration adds a CHECK, UNIQUE, FK or TRIGGER → it starts life unmeasured. The `DOMAIN_CHECKS` list
+  in this file is hand-maintained, so a new CHECK is invisible to it until someone adds a row; that is the
+  standing limit §668 recorded and it has not changed.
+- A guard is narrowed rather than deleted → §669's middle row. Nothing currently reports which layer is
+  carrying a given guarantee when two are declared.
+- The `vitest-pool-workers` instability worsens → the validation guard above turns invalid runs into visible
+  `INVALID RUN` cells rather than silent green, but a sweep that cannot complete is still a sweep with a hole.
