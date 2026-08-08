@@ -355,6 +355,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 160 | §712 | **§713** | **Zero assertion-free tests — and the detector was wrong THREE ways.** 3,304 callbacks parsed, **0** without an assertion. Getting there: **79** flagged (brace-matched into the test NAME — *"an empty `{}` payload"*, `` `${kind}…` ``), then **7** (missed Testing Library's throwing `getByText`, which IS the assertion), then **1** (matcher died on a regex literal `\{([^}]*)\}`). Every wrong pass named real files at real lines and read as thorough. **A naive brace matcher over TypeScript fails toward MORE findings** — the dangerous direction. Not gated; premise measured (§710) |
 | 161 | §713 | **§714** | **Tested my own claim and it was false on 1 of 19.** §713 asserted *"every guarantee was individually mutation-proved"*; enumerating the session diff (3 added, 16 modified) found **`tools/design/audit.ts` never proved** — §698 widened the corpus to `apps/**/*.js` and verified only that the gate stayed **exit 0**, which shows the change is harmless, not that it does anything. **M233** plants a raw hex in a `.js` and it fires. Why it slipped: an assertion invites *"can it fail?"*; a **corpus widening reads as config**, and *"the gate still passes"* answers the wrong question |
 | 162 | §714 | **§715** | **All nine corpus widenings now probed — two were not.** §714's rule applied as a sweep: seven of nine had a probe in the region they added; **both misses were §698's** (`apps/**/*.js` → M233, `apps/*/src/**/*.ts` → **M234**, planted here and firing). Not a coincidence: §698 framed itself as *closing a class by measurement, not by building a gate*, so its two glob edits were incidental to the story and never read as new guarantees. **A phase that thinks of itself as measuring will not instinctively verify what it builds** — the narrative decides which reflex fires |
+| 163 | §715 | **§716** | **DEFECT in my own exclusion — the mirror question, asked eleven phases late.** §705 ignored `*.test.*` wholesale for the promise rules, justified by **9 `no-misused-promises`** violations (`waitFor(async…)`). That evidence said nothing about **`no-floating-promises`**, which went off with it. Measured: `work().then(n => expect(n).toBe(999))` in a test → **eslint 0 violations, test 1 passed** — §713's own worst case, *a test WITH assertions that cannot fail*. Split so tests keep floating-promises and lose only misused; M235 fires, the idiom still allowed. **An exclusion inherits the scope of the file, not of its evidence** |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -40116,3 +40117,66 @@ No code change; both probes removed, `git status` clean. `test:tools` **980**; l
 - A corpus is narrowed (a filter added, an exclusion) → the mirror question: prove the excluded thing is
   still caught by something, or that it should not be. §673 did this (the collision filter must not blind the
   gate); nothing enforces that it always happens.
+
+## §716 — PHASE GATE: the mirror question, asked of my own exclusion
+
+**Subject.** §715 closed with the mirror of §714's rule: *"a corpus is NARROWED (a filter, an exclusion) →
+prove the excluded thing is still caught by something, or that it should not be."* §671's rule says attempt
+it, and the newest exclusion in the repo is **mine, from §705**.
+
+### The exclusion, and the question never asked of it
+
+§705 added the type-aware promise rules to `apps/` with `ignores: ["**/*.test.ts", "**/*.test.tsx"]`. The
+justification was measured — extending the block surfaced **9** errors, every one `no-misused-promises` from
+`waitFor(async () => …)`, which is the rule by the letter and idiomatic by intent.
+
+**But the exclusion was wholesale and the evidence was narrow.** Nine `no-misused-promises` violations
+justified turning off *that* rule; they said nothing about `no-floating-promises`, which went off with it.
+
+### What the exclusion was hiding
+
+```ts
+it("floating promise in a test — the assertion never runs", () => {
+  work().then((n) => { expect(n).toBe(999); });   // never awaited
+});
+```
+
+```
+eslint             0 violations
+the test itself    1 passed
+```
+
+**The assertion is false and the test is green**, because it lives in a promise nobody awaited. That is
+§713's own worst case, named there and unguarded here: *"a test WITH assertions that cannot fail is worse
+than one with none."* §713 said only mutation finds it — and for this particular shape, a type-aware lint
+rule finds it too, for free, and was switched off by an exclusion justified on other grounds.
+
+### Closed by splitting the exclusion to match its evidence
+
+Test files now keep **`no-floating-promises`** and lose only **`no-misused-promises`** — the rule the nine
+violations actually concerned. Measured before shipping: **zero** existing floating-promise violations across
+every test file in the repo, so the narrower exclusion costs nothing today.
+
+**M235**: the probe above now reports 1 violation, and `apps/portal/src/App.test.tsx`'s `waitFor(async …)`
+still reports 0. Both halves, one edit.
+
+### The shape worth keeping
+
+**An exclusion inherits the scope of the thing it was written on, not the scope of its evidence.** §705
+measured nine violations of one rule and switched off three. That is not carelessness — it is what "ignore
+this file" *means* in a flat config, and the evidence never came back to contest it because a disabled rule
+reports nothing (§"adding a gate can delete a gate", now from the other direction).
+
+The corrective is §715's question, asked at the moment of exclusion: *what else did this turn off, and who
+catches that?*
+
+### Exit state
+
+`eslint.config.mjs` gains one narrow block; lint 0; typecheck 0; `test:tools` **980**; probe removed.
+**26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, exit 2** at `e194d87`.
+
+**Reopen triggers**
+- A `waitFor(async …)` pattern appears in **non-test** code → `no-misused-promises` is still on there and
+  will fire, which is correct; the exemption is scoped to `*.test.*` by path, not by idiom.
+- Another blanket `ignores` is added → ask §715's question in the same phase. This one sat for eleven phases
+  because the exclusion looked like the finding's conclusion rather than a change of its own.
