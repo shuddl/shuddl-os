@@ -290,6 +290,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 95 | §647 | **§648** | **THE STOPPING POINT.** 21 PASS · 0 FAIL · 5 BLOCKED at HEAD, measured with an artifact. §605–§647: ten defects fixed, four record defects corrected, eleven new gates, 65 mutations, three of my own findings refuted. What remains is five owner-held inputs and one owner-signed register row — nothing in this repo can supply them. Re-entry gating: re-measure before trusting any number here |
 | 96 | §648 | **§649** | The record OUTSIDE the repo carried the wrong number too. The session memory's headline was the "17 PASS · 5 BLOCKED · 2 FAIL" §646 disproved, and it is read BEFORE this document — superseded in place with a dated header rather than rewritten, keeping a record correct for its date alongside the correction. Both standing environment checks clean: zero iCloud duplicates, topology linear on main |
 | 97 | §649 | **§650** | **DEFECT — an iCloud duplicate makes `check:chokepoint` accuse a developer of bypassing the append chokepoint.** ALLOWED keys on the exact path, so `sequencer 2.ts` reads as an unallowlisted writer. invariants.ts fixed the identical fault at §253 by filtering AT THE GLOB with `globSync` shadowed; the predicate is now REUSED, not re-authored. The other three globbing tools are immune because they key on content, size or identity — **path-keyed scanners are the vulnerable class** |
+| 98 | §650 | **§651** | **DEFECT — the seed loader would APPLY a duplicate migration.** §650 swept `globSync` and missed `readdirSync`; six more callers, and load.cli.ts reads every .sql and applies it, so an iCloud duplicate runs the same CREATE TABLE twice (measured: 9 files, not 8). §650 cried wolf; this CORRUPTS. Fixed. surface-contract is content-keyed and immune, as the rule predicted. Four fixture readers are path-keyed but BLOCKED — recorded, not changed |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -36004,3 +36005,63 @@ REQ-289 trio only — typecheck 0, eslint clean, no duplicate residue.
   which is the discriminator to check rather than re-testing every glob.
 - `invariants.ts`'s shadowing of `globSync` is removed → its 15 glob sites lose the guard-you-cannot-omit
   property all at once, and nothing else in that file would notice.
+
+---
+
+## §651 — PHASE GATE: the sweep §650 did not finish, and the one that corrupts
+
+**Subject.** §650 checked the four `globSync` callers and produced a rule: **a filesystem scanner is vulnerable
+to iCloud duplicates exactly when it keys on paths.** It did not check the other way to enumerate a directory.
+
+Adding `readdirSync` to the sweep found **six more callers**, none previously examined.
+
+### One is live, path-keyed, and worse than cry-wolf
+
+`tools/seed/load.cli.ts`:
+
+```ts
+return readdirSync(dir).filter((f) => f.endsWith(".sql")).sort()
+  .map((f) => ({ path: f, sql: readFileSync(join(dir, f), "utf8") }));
+```
+
+Every `.sql` in `db/tenant/migrations`, sorted, **applied**. A duplicate sorts immediately after its original
+(`" 2"` follows `""`), so `pnpm seed` on an iCloud-synced checkout applies the same migration **twice**.
+
+**Measured:** with one planted, the selection returned **9 files instead of 8**.
+
+§650's fault was cry-wolf — a gate accusing an innocent developer. **This one corrupts**: the same
+`CREATE TABLE` run twice against the local dev/CI database. Same root cause, materially worse consequence, and
+it survived because the earlier sweep enumerated by *mechanism* (`globSync`) rather than by *behaviour*
+(reads the filesystem).
+
+Fixed with the same reused predicate. After: 8 files, `check:seed` verified, typecheck 0.
+
+### The rule held on the one that could have refuted it
+
+`tools/deploy/surface-contract.ts` also calls `readdirSync` — and is **immune**, because it keys on
+**content**: `files.some((f) => readFileSync(…).includes(expected))`. A duplicate has identical content, so
+`.some()` is unchanged. §650's discriminator predicted that without a probe, and the probe agreed.
+
+### Four are latent, and deliberately unchanged
+
+`fixtures/verify.ts`, `rater/parity.ts`, `rater/invoice-parity.ts`, `concierge/parse-parity.ts` all
+`readdirSync` and then `.sort()`/`.some()` over **filenames**, with **zero** `readFileSync(join(…))` sites —
+path-keyed, therefore in the vulnerable class.
+
+All four are BLOCKED gates whose fixture directories do not exist (§647). The one-line filter is provably
+inert when no duplicates are present, and it is also **untestable here** — there is no input to run it against.
+§627's lesson is that an untested option is a gap; adding four of them to gates nobody can exercise trades a
+latent hazard for four unverified changes that would surface only when the fixtures land.
+
+**Recorded, not changed** — the same call §617 made for an unprovisionable resource.
+
+### Exit state
+
+**21 PASS · 0 FAIL · 5 BLOCKED at HEAD** (§647). `test:tools` 3 failed / 946 in the working tree — the REQ-289
+trio — typecheck 0, eslint clean, no duplicate residue.
+
+**Reopen triggers**
+- **The engagement fixtures land** → those four gates become live and path-keyed on the same day. Apply
+  `isCollisionDuplicate` then, when there is an input to verify it against.
+- A sweep enumerates by mechanism rather than behaviour → §650 checked `globSync` and missed `readdirSync` for
+  a full phase. The question is "what reads the filesystem", never "what calls this function".

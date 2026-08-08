@@ -1,5 +1,6 @@
 import { createRequire } from "node:module";
 import { readdirSync, readFileSync } from "node:fs";
+import { isCollisionDuplicate } from "../checks/invariants.js";
 import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
 import { generateSeed } from "./generate.js";
@@ -21,6 +22,11 @@ const repoRoot = resolve(here, "../..");
 function loadTenantMigrations(): MigrationFile[] {
   const dir = join(repoRoot, "db/tenant/migrations");
   return readdirSync(dir)
+    // §651 — a macOS/iCloud name-collision duplicate ("0001_ledger_core 2.sql") is gitignored, but this
+    // reads the FILESYSTEM and would APPLY it as a second migration: the same CREATE TABLE twice, on the
+    // local dev/CI database. That is worse than §650's cry-wolf — it corrupts rather than accuses.
+    // MEASURED (§651): with one planted, this selection returned 9 files instead of 8.
+    .filter((f) => !isCollisionDuplicate(f))
     .filter((f) => f.endsWith(".sql"))
     .sort()
     .map((f) => ({ path: f, sql: readFileSync(join(dir, f), "utf8") }));
