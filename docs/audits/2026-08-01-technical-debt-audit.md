@@ -338,6 +338,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 143 | §695 | **§696** | **DEFECT — the REQ-025 scanner could not see a React component.** 65 globs, 16 extensions: **27 glob `.ts`, only 7 glob `.tsx`.** Five scanners cover `packages/*` (which ships `.tsx`) with `.ts`-only globs; the one that matters is `tenant-scope`, enforcing a **build-failure law**. §120's argument verbatim, one gate over — *the file extension must not decide whether that is caught*. Latent, not live; closed before it is live. A/B: probe SILENT pre-fix, FIRES post-fix. **My first fix broke the gate** — a malformed array element shrank the corpus 180→142 and the §572 floor caught it, a failure I nearly read as "`.tsx` surfaced violations" |
 | 144 | §696 | **§697** | **DEFECT ×2 — both demonstrable, one mine again.** §696 left two scanners as *"a judgement, not a proof"*; probed instead, **both were blind**: a rejecting optional-dep guard in a `.tsx` (3/3 pass) and a `SUMMARIZER_MODEL` binding in a `.tsx` (9/9 pass). The second is **my §681 gate, whose completeness floor exists precisely to catch a new `*_MODEL` arriving unenrolled**. Third time a gate I wrote had the blind spot it was built to close — **the author of a gate is the worst-placed person to judge its corpus.** Per-glob-shape measurement cut a coarse 4 to a true 2 |
 | 145 | §697 | **§698** | **Class CLOSED by running the algorithm once instead of building a gate.** Parameterised §697's measurement over every sibling pair: **4 gaps, two of them mine from §696** — I added `apps/*.tsx` to `tenant-scope` and left **49 `.ts` modules** unseen in a tree I had just started covering, an asymmetry introduced *while closing a gap*. Design corpus: `.js` was the odd sibling of `.jsx`/`.mjs` already listed — completing an intent, not widening scope (measured first: `sw.js` has zero styling tokens). **Re-swept: 0 remaining.** A one-shot measurement can CLOSE a class a permanent gate would only MANAGE |
+| 146 | §698 | **§699** | **A trigger of my own, STRUCK by testing it.** §698 flagged its hand-written sibling table as §681's roster weakness. Deriving it instead produced **17 candidates vs 4** — the top one being `package.json`/`tsconfig.json` against a header that says *"only `*-style.json`, **not every `.json`**"*. **A derivation ignoring subject-relevance rediscovers every deliberate exclusion as a defect.** §681's lesson does not transfer: `*_MODEL` membership is a property of the CODE; extension-relevance is a property of INTENT. **Derive when membership is a fact; enumerate when it is a judgement.** Second phase concluding the change should not be made |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -39118,3 +39119,64 @@ typecheck 0. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, exit 2** at `04c6fe1
 - A new *extension* enters the tree (`.mts`, `.cts`, `.scss`) → the sibling table in the sweep is
   hand-written and would not know about it. That is the same hand-maintained-roster shape §681 fixed by
   derivation, and here it is accepted because the sweep is run under supervision rather than in CI.
+
+## §699 — PHASE GATE: derivation is not always better than a list, and §698's trigger was wrong
+
+**Subject.** §698 closed the extension class and recorded a trigger against its own method: *"the sibling
+table in the sweep is hand-written and would not know about a new extension. That is the same
+hand-maintained-roster shape §681 fixed by derivation."* §671's rule says attempt it. Attempted — and the
+trigger does not survive.
+
+### The derived version is worse, by a lot
+
+Replacing the hand-written sibling table with a derivation — *every extension the same glob shape would
+actually match* — produced **17 candidates** where the table produced 4. A sample:
+
+| scanner | "gap" | what it actually is |
+|---|---|---|
+| `design/audit.ts` | `apps/**/*` + `.json` (6) | **`package.json`, `tsconfig.json`** — excluded on purpose |
+| `design/audit.ts` | `+ .svg`, `.toml`, `.webmanifest`, `.snap` | not styling surfaces |
+| `llm-agent-metering` | `+ .json`, `.css`, `.snap` | a model binding does not live in a snapshot |
+| `invariants.ts` | `workers/*/test/**` + `.edi` | EDI fixtures, not source |
+
+The top finding contradicts a decision the target documents in its own header:
+
+> *"Only `*-style.json` is added, **not every `.json`**, so package/tsconfig manifests can't false-positive."*
+
+**A derivation that ignores subject-relevance rediscovers every deliberate exclusion as a defect.**
+
+### Why §681's lesson does not transfer here
+
+§681 replaced a hand-written roster with a derivation and was right to: the set — *every `*_MODEL` binding
+the source reads* — is **objectively defined by the code**. Membership is a fact.
+
+Extension-relevance is not a fact. *"Could this scanner's subject appear in a `.snap`?"* is a **judgement**
+about what kind of thing a file is, and the code does not encode it anywhere. The hand-written sibling table
+was not a maintenance shortcut; it was the judgement, written down.
+
+**The rule: derive when membership is a property of the code; enumerate when it is a property of intent.**
+A derived list is strictly better in the first case and strictly noisier in the second — and this audit has
+now been on both sides of it in consecutive phases.
+
+### §698's trigger, struck
+
+> ~~*"A new extension enters the tree (`.mts`, `.cts`, `.scss`) → the sibling table is hand-written and would
+> not know about it. That is the same hand-maintained-roster shape §681 fixed by derivation."*~~
+
+**STRUCK by §699.** The first sentence is true and unremarkable — a new extension needs a human to decide
+whether it carries any scanner's subject. The second is wrong: this is not §681's shape, and deriving it
+produces a 4× false-positive rate against documented decisions. Struck rather than deleted, because the
+mistake is instructive: **"hand-maintained" is not a defect on its own.** It is a defect only when the thing
+being maintained is already written down somewhere else.
+
+### Exit state
+
+No code change — the attempt concluded the change should not be made, for the second time in this audit
+(§692 was the first). `test:tools` **973**; typecheck 0. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, exit 2**
+at `04c6fe1`.
+
+**Reopen triggers**
+- A new extension appears under a scanned tree → **a human decides** whether any scanner's subject can live
+  in it, then adds it to the sibling table. That is the correct process, not a fallback.
+- Another hand-maintained list is proposed for derivation → ask first whether its membership is a property
+  of the code or of intent. §681, §682 and §698's *first* sweep were the former; this was the latter.
