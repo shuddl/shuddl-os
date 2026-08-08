@@ -341,6 +341,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 146 | §698 | **§699** | **A trigger of my own, STRUCK by testing it.** §698 flagged its hand-written sibling table as §681's roster weakness. Deriving it instead produced **17 candidates vs 4** — the top one being `package.json`/`tsconfig.json` against a header that says *"only `*-style.json`, **not every `.json`**"*. **A derivation ignoring subject-relevance rediscovers every deliberate exclusion as a defect.** §681's lesson does not transfer: `*_MODEL` membership is a property of the CODE; extension-relevance is a property of INTENT. **Derive when membership is a fact; enumerate when it is a judgement.** Second phase concluding the change should not be made |
 | 147 | §699 | **§700** | **DEFECT — REQ-025's roster is enumerated and incomplete.** §699's rule pointed at my own gates: `GUARDED_FNS` lists 9 tenant-scoped entry points, and *"takes a tenant and reaches storage"* is a **fact about the code**, so the list CAN be wrong. It has a staleness check and **no completeness check** — one direction, on a build-failure law. Derived the other way: **19 unlisted**, three structurally identical to listed ones. A/B with `snapshotKey` from `req.slugFromQuery`: SILENT at 9, FIRES at 12. **Added three, not nineteen** — derivation over-reports (§699), so *derive to FIND candidates, judge to ADMIT them.* 16 await disposition |
 | 148 | §700 | **§701** | **§700's "largest open item" resolved by ONE question.** Is the first argument an already-scoped handle? **10 of 16 are DOWNSTREAM** of `resolveTenantDb` (which is guarded) — never candidates. The other **6 have entry-point shape** and were added, immediately firing on three translator call sites passing `tenantSlug`. Traced before judging: it is `pairing.slug` behind an **HMAC check failing closed to 401**, so sanctioned with that path. A/B: silent at 12, fires at 18. **Repeated §673's `git checkout` mistake a third time** — the fix is an ordering, not a rule: commit before probing |
+| 149 | §701 | **§702** | **Floor built; the discriminator was wrong about `Env`.** Encoding *"first arg is a scoped handle"* first classified `Env`/`AgentsEnv` as one — hiding **six listed functions including `resolveTenantDb`, the archetype of the whole roster**. `Env` is ambient bindings, so `(env, tenant)` IS an entry point; the correction surfaced `sparkGateFor` (safe, 4/4). **Completeness floor now sits beside the staleness one** — M225 adds `readTenantThing(tenant, db)` and it fires. Blind spot stated: `export function` only, which is why the roster stays hand-written — **derive to floor, enumerate to define** |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -39300,3 +39301,60 @@ losing. That is what this phase did on re-application.
   the honest next step and it is smaller than §700 implied.
 - `AUTHENTICATED` grows → each entry is a claim that a name carries a verified identity. `tenantSlug`'s
   verification is HMAC + fail-closed 401; anything weaker does not belong beside it.
+
+## §702 — PHASE GATE: the completeness floor, and a discriminator that was wrong about `Env`
+
+**Subject.** §701 closed its section saying the floor was *"now buildable, because the 10 downstream cases
+have a stated discriminator a scan can apply."* §671's rule: build it.
+
+### Building it corrected the discriminator
+
+Encoding *"first argument is an already-scoped handle"* required deciding what counts. The first pass
+included `Env`/`AgentsEnv` and produced **six listed functions the derivation could not see** — among them
+`resolveTenantDb`, which is the archetype of the entire roster.
+
+**`Env` is not a scoped handle.** It is the ambient bindings, so `(env, tenant)` is an *entry point* — the
+tenant is still the scoping input. Removing it from the handle set fixed the archetype and surfaced one
+genuine addition: **`sparkGateFor`**, safe to add (4/4 before and after).
+
+A discriminator is a claim, and this one was wrong in a way that only showed up when it was made to face the
+function it was modelled on.
+
+### The floor
+
+`GUARDED_FNS` now has a **completeness** assertion beside its staleness one — the direction §700 found
+missing on a build-failure law. **M225** adds `readTenantThing(tenant, db)` and it fires:
+`expected [ 'readTenantThing' ] to deeply equal []`.
+
+### The blind spot, stated at the site
+
+The derivation sees `export function` declarations only. A tenant entry point written as
+`export const f = (tenant: string, …) => …` is invisible to it — and **five currently listed functions are
+invisible for exactly that reason**. They are in the roster because a human put them there.
+
+That is why the roster stays hand-written and this is a **floor under it, not a generator**. It cannot say
+*"these are all the entry points"*; it can only say *"here is one you did not name."* The distinction is
+§699's, applied deliberately rather than discovered: **derive to floor, enumerate to define.**
+
+### What §700's "largest open item" actually was
+
+| §700 said | §701/§702 found |
+|---|---|
+| 19 candidates, 16 undispositioned | 10 downstream (never candidates) · 6 admitted · 1 more from a corrected discriminator |
+| *"the largest open item this audit has produced"* | two phases, one question, and a floor that did not exist |
+
+The item was real; its size was a property of not having asked the question yet. **A backlog entry that has
+never been interrogated is not a measurement.**
+
+### Exit state
+
+`GUARDED_FNS` 18 → **19**; `tenant-scope` 4 → **5** assertions; `test:tools` 973 → **974**; typecheck 0.
+**26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, exit 2** at `04c6fe1`.
+
+**Reopen triggers**
+- A tenant entry point declared as an arrow-function export → invisible to the floor. Closing it means
+  parsing declarations properly rather than by regex, which is a real cost against a shape this repo does not
+  currently use for these functions.
+- The scoped-handle set (`D1Database`, `R2Bucket`, `DurableObjectState`, `Queue`) gains a member → a new
+  handle type would read as an entry point and the floor would demand it be guarded. That is the safe
+  direction to fail.
