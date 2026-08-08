@@ -275,6 +275,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 80 | §632 | **§633** | Asked the production question — does it FAIL SAFELY? §619 proved the evidence hash is written at capture; this examines what §619 left open: the bytes never arriving. No sweep reconciles it — the guarantee sits EARLIER, as a Biller precondition that fails closed to held(evidence_missing) with no terminal marker, so the anti-join keeps re-driving it. M138: 4 red, covering a torn D1/R2 write and a tombstoned document |
 | 81 | §633 | **§634** | Closed §633's trigger: the evidence precondition is gated on `deps.evidence !== undefined`, so an UNWIRED bucket skips it entirely — invoices for PODs with no bytes, silently, because skipping is the documented behaviour. A comment was the only thing asserting production wires it. Three assertions (deps line, binding in every scope, and the GATING ITSELF so the file self-obsoletes), M139/M140/M141 each red on its own |
 | 82 | §634 | **§635** | Swept §634's class three ways across all src: 10 candidate sites, and every one but §634's is plumbing or config assembly — it was the LONE instance. The reason is structural: the repo has a `NotConfigured*` idiom used TEN times that rejects LOUDLY, and the single place using a bare `!== undefined` branch was the single place that could skip silently. Eighth measurement error — git -E does not honour `\w`, and zero adapters read as a finding |
+| 83 | §635 | **§636** | Closed §635's trigger by enforcing the idiom: a gate on **optional-dep guards whose body can REJECT** — structural, no semantics, because §618 proved the semantic version fails (51 hits, 3 read, 3 false). One hit repo-wide (§634's), zero false positives against the nine other `!== undefined` branches. The sanction names its COMPENSATING assertion, and M143 proves the exemption cannot outlive its subject |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -35055,3 +35056,58 @@ would have been a story; it was a regex flag.
   §634 defect, reintroduced. Nothing lints for this; the sweep above is nine lines of Python and re-runnable.
 - A `NotConfigured*` adapter is written that no-ops instead of rejecting → the idiom's name would then be
   guaranteeing something it no longer does, which is worse than no idiom.
+
+---
+
+## §636 — PHASE GATE: enforcing the idiom §635 showed was doing the work
+
+**Subject.** §635's reopen trigger: *"a new integration is wired with a bare `!== undefined` branch instead of a
+`NotConfigured*` adapter → the §634 defect, reintroduced. Nothing lints for this."* Closed here.
+
+### The signal is structural, and that is why it works
+
+§618 established that the semantic version of this fails — a scan for deferral *language* returned 51 hits from
+171 rows, three read in full and all three false positives. So the rule here has no semantics in it at all:
+
+> **an optional-dependency guard whose body can REJECT**
+
+That conjunction is precisely what makes absence dangerous. The rejection is the thing that cannot happen when
+the dep is missing — so a guard that merely assembles headers, a request body or a config field is untouched.
+Measured across every source file in `packages/` and `workers/`: **one hit**, §634's, and **zero** false
+positives, against the nine other `!== undefined` branches §635 catalogued.
+
+A detector with a 1-in-1 precision on a class discovered twice is worth having; §618's, at 51 hits and a 100%
+false-positive rate on the three read, was not. Same author, same week — the difference is entirely whether the
+signal contains a judgement.
+
+### The sanction carries what compensates for it
+
+`workers/agents/src/biller.ts:evidence` stays, because §634 established the gating is *correct* — a unit test
+not exercising the byte gate legitimately omits the dep. Its entry names what makes that safe:
+`evidence-wiring.test.ts` asserts both the composition-root line and the R2 binding in every scope.
+
+An exemption that just said "allowed" would be an excuse. One that names its compensating assertion is a
+**pointer a reader can follow and a future phase can falsify**.
+
+| | Mutation | Result |
+|---|---|---|
+| M142 | a new integration gating a `throw` on an optional dep | RED — the guard test |
+| M143 | `SANCTIONED` excusing a guard that no longer exists | RED — the stale-exemption test |
+
+M143 is §"record holds with expiry triggers" applied to the allowlist itself: an exemption outliving its
+subject is a standing excuse for a shape nobody is still writing.
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged. `test:tools` at 946 passed with exactly the 3 REQ-289 failures;
+typecheck 0; eslint clean.
+
+This closes the §633 → §634 → §635 → §636 chain: a failure mode examined, its guard found gated on its own
+wiring, the class swept, and the idiom that made it a lone exception now enforced.
+
+**Reopen triggers**
+- The rejection vocabulary grows (a new hold shape, a different error constructor) → `REJECT` is a fixed
+  alternation and would not see it, so the guard would read as harmless plumbing. It is the one judgement call
+  left in an otherwise mechanical rule.
+- A guard is written with `!= null` or `?? ` instead of `!== undefined` → outside the pattern entirely. The
+  sweep in §635 covered three spellings; this gate enforces one.
