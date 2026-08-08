@@ -322,6 +322,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 127 | §679 | **§680** | **DEFECT in the gate §679 shipped, plus a false carried claim I repeated.** The go-live checklist names `COPILOT_MODEL` — and `routes/copilot.ts` selects a **live ClaudeCopilot**, so §135's "the Concierge is the only agent that calls an LLM" is FALSE and §679 repeated it unverified. REQ-038 is a second LLM agent emitting no `agent.acted`. §679's gate watched `ANTHROPIC_MODEL` only; the model key is **per-agent**, so switching on the Copilot alone would have been silent. Generalised over an `LLM_AGENTS` roster; M199 (`COPILOT_MODEL`) fires what §679 could not see. Both claims struck, not deleted |
 | 128 | §680 | **§681** | **The roster was wrong a THIRD time, so it stopped being a roster.** §680 recorded a hand-maintained-list limit; §671 says a limit recorded twice is managed, not closed — so it was closed. Deriving the population (*every `*_MODEL` the source reads*) found **`MIGRATOR_MODEL`**, a third LLM agent that already existed: §680's "a third adapter appears" trigger described the PRESENT. The Migrator reports via a **direct `agent_runs` insert** binding `cost` as `"{}"`, so the uniform "emits `agent.acted`" check was false-negative by construction — each agent now carries its own predicate. **The non-vacuity floor caught my own glob bug on its first run** (`src/**/*.ts` misses direct children: 2 of 3 keys) |
 | 129 | §681 | **§682** | **Third consecutive phase closing the previous phase's recorded limit.** §681 keyed its derivation on the `*_MODEL` NAME and recorded the escape honestly. Swept by BEHAVIOUR instead (*makes a request to an LLM provider*): exactly **3 modules**, mapping 1:1 onto the 3 agents — proxy and behaviour agree (§664's shape), but only today. Added a second completeness floor over the adapter set, so the gate is floored on the naming convention AND the behaviour. **M203** adds a caller with **no `*_MODEL` at all** — §681's exact escape — and it fires. Residual boundary is now register scope, not a sweep |
+| 130 | §682 | **§683** | **Clean negative; the member-sweep program closes.** The 12-view budget produced FOUR structural signals and none survived reading: `DunningQueue` is a documented panel (*"rides UNDER the money surface"*), a view is a logical destination not a component (`KpiDrill` serves five entries), `KPI_DRILL_VIEW` maps INTO the roster, and `Route` is a coarser abstraction (5 URL shapes / 11 views) not a duplicate list. Budget enforced **at import** — M204 makes the suite unable to COLLECT. Program total: DDL 17 gaps · laws 2 · agents 4 · views 0. Gate re-measured at `0b6f817`: 21 PASS · 0 FAIL · 5 BLOCKED |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -38078,3 +38079,73 @@ and that a limit is only honest if someone then tries it. Written down three tim
   would live in the engagement workspace rather than here.
 - Either floor's scan returns fewer than 3 → both carry a non-vacuity assertion; §681's caught a real glob
   bug on its first run.
+
+## §683 — PHASE GATE: the last member set is clean, and the member-sweep program closes
+
+**Subject.** §678 named two member sets never swept: the 13 agents (done in §679–§682, four defects and a
+gate rebuilt three times) and **the 12 canonical views**. This is the second.
+
+### Four structural signals, all resolved by reading
+
+The views registry looked like §681's shape — a hand-written roster of a set the code defines — and produced
+four candidate findings in sequence. None survived:
+
+| signal | resolution |
+|---|---|
+| `DunningQueue` exists on disk but is **not** in `CANONICAL_VIEWS` | Deliberate, and documented **at the render site**: *"the Collector dunning drafts ride UNDER the money surface (not a 13th view)."* |
+| The registry lists **11**, and that comment implies 12 exist | A view is a *logical destination*, not a component — `KpiDrill` alone serves five registry entries. The counts are not comparable |
+| `KPI_DRILL_VIEW` looked like a twelfth | It is a `Record<string, CanonicalView>` — a mapping **into** the roster, and the suite already asserts its values are a subset |
+| The router's `Route` type is its **own union**, not `CanonicalView` — two lists of one thing | Different abstraction levels: 5 URL shapes covering 11 logical views. Not duplicate lists, so not the drift shape |
+
+**A static signal proposes; reading disposes** — §672's rule, four times in one section. Every one of these
+would have been a plausible finding written up from the structure alone.
+
+### The budget is enforced, and detectable
+
+`assertViewBudget()` runs **at import**, not merely in a test. **M204** adds two entries, taking the registry
+to 13:
+
+```
+Error: REQ-084: 13 canonical views exceeds the 12-view budget
+  ❯ assertViewBudget src/views/registry.ts:38
+```
+
+The suite does not fail — it **cannot collect**, because nothing importing the registry can load. That is a
+stronger enforcement than an assertion, and worth naming: the failure arrives before any test chooses to look.
+
+Attribution checked rather than assumed (§678): the run reported `no tests`, which is the signature of a
+collection error and not of a clean pass; the thrown message names REQ-084 and the line.
+
+### The member-sweep program, closed
+
+| set | members | outcome |
+|---|---|---|
+| DDL constraints | 46 (CHECK/UNIQUE/FK/TRIGGER) | **17 gaps** — §668–§671 |
+| The ten laws | 53 across five plural laws | **2 defects** — §676–§678 |
+| The 13 agents | 3 LLM adapters + REQ-039's roster | **4 defects, gate rebuilt 3×** — §679–§682 |
+| The 12 views | 11 registry entries + the budget | **clean** — this section |
+
+**Three consecutive clean negatives on member sweeps** (eng.4 at §677, L7 at §678, views here), with the
+agent thread as the only productive vein in between — and that thread's defects were all in *my own gate*,
+not the build. That is §296's spent-line signal, arriving for the second time in this audit.
+
+### Exit state — re-measured, not restated
+
+`verify:merge` re-run at **`0b6f817`** with the register stashed, eight commits after §675's measurement:
+
+```
+26 gates: 21 PASS · 0 FAIL · 5 BLOCKED    aggregate BLOCKED (exit 2)
+```
+
+Unchanged, and derived fresh. The five BLOCKED remain the `IDENTITY_DENYLIST` secret and four
+engagement-workspace fixture gates that `genesis/13` places outside this repo.
+
+**Reopen triggers**
+- A twelfth canonical view is added → `assertViewBudget()` throws at import; a thirteenth is impossible to
+  merge. Already enforced, verified here rather than assumed.
+- A view is rendered without a `CANONICAL_VIEWS` entry → **still undetectable**, and this section's honest
+  limit. `DunningQueue` is the sanctioned instance; a second one would need the same comment discipline and
+  nothing enforces that. Closing it needs a definition of "view" the code can compute, which the registry
+  deliberately does not provide (a logical destination is a design decision, not a file).
+- The `Route` union and `CANONICAL_VIEWS` stop being different abstraction levels — if `Route` ever becomes
+  1:1 with views, they become two copies of one list and the drift shape applies.
