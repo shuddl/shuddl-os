@@ -294,6 +294,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 99 | §651 | **§652** | Re-ran §642's sweep by BEHAVIOUR as §651 prescribed: it had been reporting **2 of 6**. Five `JSON.stringify(a)).toBe(JSON.stringify(b))` determinism assertions it never saw — all correct (same call twice, equality IS the requirement). The vacuity hole is real (`stringify(undefined)` compares equal) and closed by siblings in every case: 47 and 41 other assertions on the same values |
 | 100 | §652 | **§653** | The THIRD mechanism-swept class, re-run by behaviour — and this one was already covered. Five shapes including the inverted `if (!deps.x) return`: one hit, a false positive of my own alternation (a Zod safeParse result, fail-closed). **The control that matters**: re-sweeping found real gaps twice (§642 at 2 of 6, §650 missing readdirSync) and correctly found nothing here, which is what shows the first two were about the code and not the method |
 | 101 | §653 | **§654** | Checked §646's correction against the nine ops docs. Every gate tally there is SHA-pinned (`Verdict at 3fc592b, 2026-07-28`), and most "state claims" are conditionals in contract tables — which cannot go stale the way a status line can. **The finding: PROJECT-STATE.md states §646's and §647's rules verbatim at audit §330**, before this session re-derived both from a wrong number. The record with the discipline never went wrong; the memory without it did. Re-baselined in its own convention |
+| 102 | §654 | **§655** | Asked §614's question of THIS SESSION'S OUTPUT: are the ten gate files added here on the merge path? Traced `unit-tests` → `test` → `test:tools` → `tools/**`, then MEASURED it — M156 plants §608's violation and exits test:tools 1, short-circuiting the merge gate's own `&&`; all ten collect (10 files / 30 tests). Tenth measurement error en route, and a recorded one: zsh does not word-split unquoted params |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -36229,3 +36230,56 @@ Nothing else in `docs/ops/` needed touching.
   nine here currently cannot.
 - `PROJECT-STATE.md`'s baseline falls behind again → by its own rule that is not staleness, but it is the
   document a resuming session reads first, so the baseline is worth advancing whenever a phase closes.
+
+---
+
+## §655 — PHASE GATE: are this session's own gates on the merge path?
+
+**Subject.** §614 asked whether the isolation suite's members were named anywhere. §655 asks the same question
+of **this session's output**: ten gate files were added, all as tests. `verify:merge` reports 21 gates, and
+`unit-tests` is one of them — a test file only counts if that gate actually reaches it.
+
+### The chain, traced then measured
+
+`unit-tests` → script `test` → `pnpm run test:tools && pnpm -r --if-present run test` → `vitest --config
+vitest.tools.config.ts` → `include: ["tools/**/*.test.ts"]`.
+
+All ten new files sit under `tools/`, so the chain covers them — **but that is a reasoning chain, and §647's
+whole point is that a derived answer is not a measured one.**
+
+**M156** planted §608's violation (a canonical screen dropped from `SCREENS`):
+
+```
+test:tools exit: 1     ← the first half of the unit-tests gate's `&&`
+  × parses the SCREENS registry and finds the blessed refs (non-vacuity)
+  × every blessed reference is named by SCREENS, and every SCREENS entry has a reference
+```
+
+A failure in a gate added this session **short-circuits the `&&` in the merge gate's own command**. And run as
+a set, all ten collect and pass: **10 files / 30 tests**.
+
+So this session's work is on the merge path, measured rather than argued.
+
+### The tenth measurement error, and it was a recorded one
+
+The first attempt reported `No test files found, exiting with code 1` — which reads exactly like *"none of
+your ten gates are collected"*, the alarming answer. It was **shell quoting**: `$files` passed as one
+concatenated filter, because **zsh does not word-split unquoted parameters**.
+
+That pitfall is recorded in this session's own memory, from an earlier phase where it produced a false *"every
+prod binding dropped"*. It still cost a cycle here. §620's observation holds and has now been demonstrated
+four times: **the mechanism transfers, the memory does not** — the `|| exit 1` wiring and the gates catch
+these every time; the note about zsh did not.
+
+The tell was the same as always: **a broken measurement returns the shape of an interesting finding.**
+
+### Exit state
+
+**21 PASS · 0 FAIL · 5 BLOCKED at HEAD** (§647). Ten new gate files, all collected by the `unit-tests` gate,
+one proven to fail it. No code changed this phase.
+
+**Reopen triggers**
+- A gate file is added outside `tools/**` → the `include` will not reach it, and it will pass CI by never
+  running. `test-collection.test.ts` (§288) is what catches that, and it is the reason the check exists.
+- `test:tools` is moved out of the `test` script's `&&` chain → every gate in this session detaches from the
+  merge path at once, and nothing else asserts the chain.
