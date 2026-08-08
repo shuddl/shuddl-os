@@ -64,6 +64,15 @@ function sourceFiles(root: string): string[] {
     '"workers/*/src/**/*.ts"',
     '"packages/*/src/*.ts"',
     '"packages/*/src/**/*.ts"',
+    // §696 — the .tsx half, exactly as §120 added it to the append chokepoint: "a React component is an
+    // ordinary place to put a helper, and the file extension must not decide whether that is caught."
+    // packages/agents, design and map all ship .tsx today, and none calls a guarded function yet — so this
+    // closes a LATENT hole. REQ-025 is a build-failure law, which is the argument for closing it before it
+    // is live rather than after.
+    '"packages/*/src/*.tsx"',
+    '"packages/*/src/**/*.tsx"',
+    '"apps/*/src/*.tsx"',
+    '"apps/*/src/**/*.tsx"',
   ].join(" ");
   return execSync(`git ls-files ${globs}`, { cwd: root, encoding: "utf8" })
     .trim()

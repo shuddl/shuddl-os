@@ -335,6 +335,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 140 | §692 | **§693** | **Linked the two wiring severities; left one limit open ON PURPOSE.** §691 and §692 gave identical mutation results with an order of magnitude between consequences, separated only by a fact neither asserted — `check:traceability` is also a merge gate. Generalised and enforced: **every gate-shaped script nightly runs must be on the merge path** (`backup` excluded as an operation, not a verdict). M215 fires. **M216 (nightly reduced to zero gates) deliberately does NOT** — its subject is unique coverage, not cadence, and pinning a cadence would encode a preference as a law. Third phase running where the next step is not the repo's to take |
 | 141 | §693 | **§694** | **One glob closed a limit TWO gates shared.** §691 and §693 both pinned workflow paths literally; widening to *every* workflow makes the rule "every gate-shaped script any workflow runs is on the merge path". Measured first: **one exception in the whole tree** — `check:pr`, which reads `$PR_BODY` and therefore *cannot* be in the merge profile — sanctioned with a reason and a staleness check. M217 (a third workflow with a unique gate) fires; M218 (stale sanction) fires. Closes a four-phase run where each phase attempted the previous one's recorded limit — **two closed, one closed as "do not close", one by generalisation** |
 | 142 | §694 | **§695** | **Four copies of the glob that decides whether ANY wiring assertion can see CI.** §694's residual named one; there were **four** hand-written `*.yml` globs in one file — the invocation corpus, §691's pin, §694's assertion and its staleness check. A `.yaml` workflow (GitHub accepts both) was invisible to all four at once, including the two written in the last three phases to close wiring holes. **Proved by A/B**: identical probe, SILENT pre-fix, FIRES post-fix. Third phase running where the limit was the CORPUS, not the rule — *a scanner's reach is a separate assertion from its logic* |
+| 143 | §695 | **§696** | **DEFECT — the REQ-025 scanner could not see a React component.** 65 globs, 16 extensions: **27 glob `.ts`, only 7 glob `.tsx`.** Five scanners cover `packages/*` (which ships `.tsx`) with `.ts`-only globs; the one that matters is `tenant-scope`, enforcing a **build-failure law**. §120's argument verbatim, one gate over — *the file extension must not decide whether that is caught*. Latent, not live; closed before it is live. A/B: probe SILENT pre-fix, FIRES post-fix. **My first fix broke the gate** — a malformed array element shrank the corpus 180→142 and the §572 floor caught it, a failure I nearly read as "`.tsx` surfaced violations" |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -38930,3 +38931,66 @@ them checks it is *complete*, and completeness is not derivable from inside the 
   That is a genuinely different limit from the two just closed, and it is owner-held.
 - Another glob over the same directory is added → the helper exists now, so the review question is whether
   the new call site uses it. Nothing enforces that; it is one more copy away from the same fault.
+
+## §696 — PHASE GATE: the tenant-isolation scanner could not see a React component
+
+**Subject.** §695's lesson — *a scanner's reach is a separate assertion from its logic* — applied to every
+scanner corpus in the repo rather than to the one that produced it.
+
+### The sweep
+
+65 distinct globs across 16 extensions. **27 glob `.ts`; only 7 glob `.tsx`.** Seventeen scanners cover `.ts`
+and never `.tsx` — but most are correctly scoped, because `workers/`, `packages/contracts` and
+`packages/rater` contain no components at all. The discriminator is whether the **scanned tree actually holds
+`.tsx`**: `apps/command`, `apps/driver`, `apps/portal`, `packages/agents`, `packages/design`, `packages/map`
+all do.
+
+Five scanners cover `packages/*` with `.ts`-only globs. The one that matters is **`tenant-scope`**, which
+enforces **REQ-025** — where a cross-tenant read is a *build failure*.
+
+### §120's argument, unchanged, one gate over
+
+That section closed the identical hole in the append chokepoint and stated why:
+
+> *"A React component is an ordinary place to put a helper, and a direct events INSERT bypasses the sequencer
+> DO and with it EVERY gate — **the file extension must not decide whether that is caught**."*
+
+No `.tsx` calls a guarded function today, so this is a **latent** hole, not a live one. REQ-025 being a
+build-failure law is precisely the argument for closing it before it is live rather than after.
+
+**Proved by A/B**, the §695 method — one probe component feeding `evidenceKey` from `props.slugFromUrl`:
+
+```
+pre-fix    4 passed (4)      SILENT
+post-fix   1 failed | 3      FIRES — "no call site sources its tenant from request input"
+```
+
+### The fix broke the gate first, for a reason that was not its subject
+
+The first attempt string-concatenated inside a JS array element, producing one entry reading
+`"packages/*/src/*.ts", "packages/*/src/*.tsx"`. After `.join(" ")` git received a pathspec with an embedded
+comma and matched nothing — **the corpus shrank from >180 files to 142** and the gate's own floor caught it:
+
+```
+the source glob collapsed — a scan gap reports clean: expected 142 to be greater than 180
+```
+
+Two things worth keeping. **The corpus floor did its job on a change I made**, which is the same assertion
+§572 added after a scan gap went unnoticed for a release. And I nearly read that failure as *"adding `.tsx`
+surfaced violations"* — a plausible, wrong story. §687's shape again: a change failing for a reason that is
+not its subject, this time in a **fix** rather than a test. Isolating deep-glob-only (passed) from
+shallow-glob-only (failed) is what separated them.
+
+### Exit state
+
+`tenant-scope` 4/4 with `.tsx` for `packages/*` and `apps/*`; `test:tools` **973**; typecheck 0; probe
+removed and `git status` clean. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, exit 2** at `04c6fe1`.
+
+**Reopen triggers**
+- The other four `packages/*` scanners stay `.ts`-only: `optional-dep-guards` and
+  `llm-agent-metering-trigger` (mine) cover trees that DO hold `.tsx`. Neither subject plausibly lives in a
+  component today — an optional-dep guard that rejects, and a `*_MODEL` env read — but that is a judgement,
+  not a proof, and it is the honest limit of this section.
+- A new package ships `.tsx` → every `.ts`-only scanner over `packages/*` inherits this hole silently.
+  Nothing counts scanner extensions against the extensions a tree contains, which is the general form and is
+  not closed.
