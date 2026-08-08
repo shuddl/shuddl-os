@@ -365,6 +365,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 170 | §722 | **§723** | **Portal: the contract is a route parity a regex cannot check.** Nine production paths; five reported UNRESOLVED and **none were** — `/v1/bookings` exists only in `api.test.ts` as a dummy, and the rest are **concatenation bases** (`/v1/shipments/${id}` vs the server's `:id`). Reconciling those is a routing-table comparison, not a string search — the **fourth** over-reporting detector this session. What guards it is `portal-isolation.spec.ts`, structurally: a 404 breaks the page the assertions read. **Three surfaces, three mechanisms, only the driver's was missing — the question transferred, the answer did not** |
 | 171 | §723 | **§724** | **CORRECTION — §723's claim was false, measured.** It said the portal e2e structurally guards route parity. `playwright.config.ts` starts **three surface servers and no API**, and the suite passes **6/6** — so it already passes with no API at all. **Every assertion is a NEGATIVE** (`not.toMatch`, `not.toContain`, `toHaveCount(0)`, plus a status element visible in *both* loaded and refused states): **an empty page satisfies all six.** The suite is a correct ISOLATION test; §723 borrowed that guarantee to cover LIVENESS. **An all-negative suite cannot distinguish "correct" from "nothing happened"** — §609's floor at full count |
 | 172 | §724 | **§725** | **Asked the vacuous-pass question of all four browser gates — three already answer it.** `visual` is inherently positive; **a11y** blocks on `body.innerText.length > 0` with a comment naming *"an unmounted `<div id=root>` … would be a vacuous pass"*; **perf** blocks on `waitForSelector("canvas")`. Only `portal-isolation` has nothing (§724). Sibling e2e specs are not the same shape either — `driver-offline-sync` is **10 positive / 2 negative**. **One suite of seven, not a systemic gap** — and the hazard reached four authors, three solved it, each with a different instrument |
+| 173 | §725 | **§726** | **Gated §725's own reopen trigger: the two pure-negative browser gates keep their render precondition.** a11y asserts `toEqual([])` and perf asserts a long-task budget — **an unmounted page has zero of each**, so both PASS on a blank screen *with their assertion count unchanged*. What saves them is one line apiece, which reads as boilerplate. Now floored in `test:tools`, pinning each suite's OWN instrument (the two differ deliberately: painted-text is wrong for the map, `waitForSelector` is wrong for the flex-chain surfaces) plus the assumption that `visual` stays positive. **3/3 mutation-proved, each RED attributed to the named row** |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -40717,3 +40718,112 @@ e2e 6/6. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, exit 2** at `aa4487f`.
   reason a suite lacks one.
 - The a11y or perf precondition is weakened (a shorter timeout, a looser selector) → those two suites become
   §724's shape, and their negatives are the whole gate.
+
+## §726 — PHASE GATE: gating §725's reopen trigger — a precondition that reads as boilerplate
+
+§725 asked what each browser gate does on an empty page and closed with two reopen triggers. The second one —
+*"the a11y or perf precondition is weakened → those two suites become §724's shape"* — is the kind of trigger
+§319 already ruled on: **an unenforced trigger is a hope.** This phase enforces it.
+
+### Why these two lines are load-bearing and do not look it
+
+Both suites assert nothing but absence:
+
+```
+a11y   expect(blocking).toEqual([])          an unmounted page has ZERO violations
+perf   long-task total under a budget        an unmounted page has ZERO long tasks
+```
+
+Neither assertion can tell a clean surface from a surface that never mounted. The only thing that separates
+them is a single wait, and the a11y suite's own comment says so outright — *"an unmounted `<div id='root'>`
+has no findings and would be a **vacuous pass**. Rendered text is the mount signal."* That comment is the
+strongest evidence available that the line is deliberate, and by §"a lockstep comment is a missing test", a
+comment explaining why a line must not be removed is precisely the shape that needs a test.
+
+The failure mode is not deletion by malice. It is a timeout tuning, a refactor that hoists the navigation, or
+a merge that keeps the assertions and drops the wait — and **the gate keeps reporting PASS at full assertion
+count**, which is the one signal §609's floor cannot catch.
+
+### The instruments differ on purpose, so the gate pins each suite's own
+
+The obvious implementation — assert both suites call the same helper — would be wrong, and wrong in the
+direction that produces a false red on a correct refactor:
+
+| suite | instrument | why the other one fails here |
+|---|---|---|
+| a11y | `waitForFunction` on painted text | the surfaces size from a full-height flex chain, so the root is briefly not-visible and `waitForSelector` races |
+| perf | `waitForSelector("canvas")` | the map paints a canvas **before** any text, so painted-text would never fire |
+
+So `PRECONDITIONS` carries a per-suite pattern *and* the sentence explaining why that instrument is the right
+one there — the failure message hands the next author the reason, not just the diff.
+
+A third assertion pins the **assumption the file rests on**: `visual` is excluded because its assertion is
+*positive* (a screenshot comparison), not because it was overlooked. If it ever stops comparing against a
+reference it joins the table. This is §721's pattern — a gate that states what would make it obsolete.
+
+### Measured
+
+Three mutations, each restored byte-identical (`diff -q` clean), each RED **attributed to the named row**
+rather than to a non-zero exit:
+
+| mutation | exit | failing test |
+|---|---|---|
+| cut a11y's `waitForFunction` | 1 | `a11y still waits for the page to render before sampling` |
+| cut perf's `waitForSelector` | 1 | `perf still waits for the page to render before sampling` |
+| cut `toHaveScreenshot` | 1 | `§725's third suite is safe by construction` |
+
+The third mutation is why attribution matters: a `grep` for the word *visual* in the failure counted **zero**,
+because the test is named after its argument rather than its subject. Exit 1 alone would have credited the
+wrong row — §"attribute the RED before crediting it", now the second time this session that a correct RED
+would have been credited to the wrong subject.
+
+### Exit state
+
+`test:tools` **988** (+4); lint 0; typecheck 0.
+
+**Full `verify:merge` re-derived this phase** rather than inferred from `test:tools` — §705's rule, and it was
+**due**: §719's run predates seven commits (§720–§726). Result under the working tree:
+
+```
+26 gates — 19 PASS · 2 FAIL · 5 BLOCKED   (exit 1)
+  FAIL  unit-tests   3 failed | 985 passed (988)
+  FAIL  coverage     1 unaccounted register row(s)
+```
+
+**Both FAILs are one uncommitted row, and that is measured rather than assumed.** The three failing tests are
+all register-shape tests, and the working tree carries the *other* workstream's `M genesis/09` adding
+`REQ-289` (GTM Pre-GTM Demand Lane). Probe: restore HEAD's register → `check:coverage` **exit 0**; restore the
+working-tree register → **exit 1**. Byte-identical restore verified. So:
+
+| register | verdict |
+|---|---|
+| at HEAD | **21 PASS · 0 FAIL · 5 BLOCKED, exit 2** — unchanged from §719 |
+| working tree | 19 PASS · 2 FAIL · 5 BLOCKED, exit 1 |
+
+The 4 tests §726 adds are inside the **985 that passed**. This phase moved the count, not the verdict.
+
+`REQ-289`'s disposition is **not this loop's to decide** — it is another workstream's uncommitted scope row,
+and `genesis/12` holds GTM until M-H.
+
+**This red is NEW, and that matters more than the red itself.** §719 measured **0 FAIL** seven commits ago and
+§725 measured `test:tools` **984 green**, both with an already-dirty `genesis/09` in the tree. So the `REQ-289`
+row landed *between* §725 and §726 — the concurrent GTM workstream edits the same working copy this loop
+measures. Two consequences, stated rather than discovered later:
+
+1. **`test:tools` is now red for a reason no commit here caused** (`3 failed | 985 passed`), so the working
+   agreement's *"leave the build green"* cannot be satisfied from inside this loop. The green is at HEAD's
+   register; the red is in an uncommitted file this loop must not edit.
+2. **A shared working copy makes every measurement a race.** This phase's own `verify:merge` was started
+   before the audit edit that followed it — harmless here, but the general case is not. Any future run whose
+   verdict matters should be taken against a known tree state, not against whatever the tree holds at the
+   moment the command fires.
+
+I nearly wrote *"the fourth consecutive phase where the only repo-level red is an input this loop does not
+own."* §719's recorded `0 FAIL` falsifies it. That sentence would have converted a **new** signal into a
+familiar one — §"compare artifacts, don't reason about them", caught by checking the prior phase's number
+instead of recalling its shape.
+
+**Reopen triggers**
+- A third pure-negative browser suite appears → it needs a row in `PRECONDITIONS`, and the completeness of
+  that list is **intent**, not a property of the code (§699), so no derivation will find it.
+- `visual` stops comparing against a reference image → the assumption assertion reds, and it joins the table.
