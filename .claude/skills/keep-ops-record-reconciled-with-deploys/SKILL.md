@@ -3,6 +3,12 @@ name: keep-ops-record-reconciled-with-deploys
 description: Use immediately after any world-changing operator action (provisioning, deploy, secret binding, backup, DNS/routing change) and when reviewing ANY tracked markdown for currency — docs/ops/*, but also README.md and any root-level file, which is where the most-read and least-swept claims live (audit §173). Symptoms — a "read first" section asserting a state the evidence record contradicts, a hold row still BLOCKED while a reconciliation table in the same file says PROVISIONED, "not deployed / nothing is deployed / nothing is live / not provisioned / no backup exists / prod pending" older than the latest deploy commit, wrangler comments calling real ids placeholders.
 ---
 
+> **Grounding note (added 2026-08-07, audit §639):** this skill's examples describe observations FROZEN
+> as-of its writing. Unlike its siblings it cites no `path:line`, so nothing mechanical can tell you when
+> its claims go stale — which makes this warning MORE load-bearing here, not less. The LAW it states is
+> current; the examples are provenance, not proof. Verify against HEAD before treating any described
+> defect as live.
+
 # Keep The Ops Record Reconciled With Deploys
 
 ## Overview

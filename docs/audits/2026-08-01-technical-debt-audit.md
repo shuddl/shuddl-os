@@ -278,6 +278,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 83 | §635 | **§636** | Closed §635's trigger by enforcing the idiom: a gate on **optional-dep guards whose body can REJECT** — structural, no semantics, because §618 proved the semantic version fails (51 hits, 3 read, 3 false). One hit repo-wide (§634's), zero false positives against the nine other `!== undefined` branches. The sanction names its COMPENSATING assertion, and M143 proves the exemption cannot outlive its subject |
 | 84 | §636 | **§637** | Closed §636's trigger: the gate enforced ONE spelling of a pattern with five. No live gap (0 rejecting guards under the other four) — widened anyway, because this gate exists to prevent a REINTRODUCTION and one firing on `!== undefined` but not `!= null` raises the cost by a keystroke. Cost nothing: still 1 hit, 3/3 green, because the precision was always the REJECT conjunction, not the presence test. M144 ×3 |
 | 85 | §637 | **§638** | Verified a SKILL's frozen citation against HEAD, as its own grounding note demands: the hand-written `FORBIDDEN_REPLACE` defect is FIXED (4 evasions blocked on both scanners) and its law holds. Then found a "missing parity test" that **already existed three times over**, as a strict superset — my grep searched the wrong words. Addition deleted; ninth measurement error. M145 kept the value: it proves the EXISTING test catches the verbatim historical defect |
+| 86 | §638 | **§639** | Swept all 16 skills' frozen citations. Every falsifiable one checks out — and `enforce-server-side-gate-parity`'s REQ-166 CRITICAL bypass is not just fixed but fixed THE WAY THE SKILL PRESCRIBED (one shared gate-context both paths call). Found an inversion: the 4 skills lacking the "frozen, verify against HEAD" note were exactly the 4 citing NO path:line — the ones with no mechanical staleness signal. All 16 now carry it |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -35239,3 +35240,59 @@ changed anywhere.
   surface joins none of them automatically.
 - The skill's other frozen citations are treated as current without a HEAD check → its own note forbids that,
   and this phase is the worked example of why: one cited defect, verified, already fixed.
+
+---
+
+## §639 — PHASE GATE: the skills' frozen citations, verified — and an inverted warning
+
+**Subject.** §638 verified one skill's frozen citation against HEAD, because that skill's own grounding note
+demands it. Sixteen skills exist. This sweeps the rest.
+
+### Every falsifiable citation checks out
+
+| Skill | Cited | Verdict at HEAD |
+|---|---|---|
+| `share-lint-matchers-with-parity-tests` | `invariants.ts:455@FORBIDDEN_REPLACE` — a hand-written matcher | **FIXED** (§638): calls `replaceFamilyRe`; all four evasions blocked on both scanners |
+| `enforce-server-side-gate-parity` | `positions.ts:15-60` — a REQ-166 CRITICAL bypass, no consent/assignment/device check | **FIXED**: `positions.ts:7` imports `assignmentOf`, `deviceOwnedBy`, `assertPositionConsent` from a shared `gate-context.js`, all three enforced before the INSERT |
+| `reconcile-gate-sentinels-with-exit-codes` | `run-gate.ts:118@reconcileSentinel` — a **fix**, not a defect | resolves exactly; `reconcileSentinel` is at 118 |
+
+The middle row is the notable one. That skill did not merely describe a defect that later got fixed — it
+prescribed *"one shared predicate, invoked by BOTH paths"*, and the fix at HEAD is exactly that: a
+`gate-context.js` both the route and the DO call. **The skill was written to close a defect, and the defect
+closed the way it said.** Five REQ-166 CRITICAL bypasses' worth of value, verifiable in one grep.
+
+Three skills cite a RED in prose with **no** address. Nothing mechanical can verify those, and nothing found
+them stale either.
+
+### The inversion
+
+Twelve of sixteen carried the grounding note. The **four without it** were precisely the four citing **no
+`path:line` at all**.
+
+That is backwards. A skill with a precise citation is the one a reader can check in ten seconds — and
+`check:citations` already bounds-checks its address on every merge. A skill whose claims live in prose has
+**no** mechanical staleness signal, so the "these observations are frozen, verify against HEAD" warning is
+*more* load-bearing there, not less.
+
+All sixteen now carry a grounding note. The four new ones say why their own case is the harder one.
+
+### The ordering mistake, third time
+
+`check:section-refs` failed immediately after: the new notes cite "audit §639", written before §639 existed.
+§615 and §616 hit the identical thing, and §616 recorded the fix — *"the section is written first from here."*
+It was not.
+
+Three instances of one avoidable ordering, against a gate that catches it every time and costs one command.
+The honest read is §620's: **the mechanism transfers, the intention does not.** The gate is why this is an
+anecdote rather than a dangling pointer shipped in sixteen skills.
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged. Doc gates green; no code changed — four documentation notes and a
+verification sweep.
+
+**Reopen triggers**
+- A skill gains a `path:line` citation → `check:citations` starts bounds-checking it, and the grounding note's
+  job narrows to the assertion rather than the address.
+- A cited defect is found still LIVE at HEAD → that is a genuine finding and the skill's citation becomes a
+  work item rather than provenance. None was, this sweep.

@@ -3,6 +3,12 @@ name: park-unroutable-work-never-destroy-it
 description: Use when a queue consumer decides ack vs retry, when handling an "unknown tenant/stream/kind" branch, when a worker keeps a static roster (tenant map, binding allowlist) that a sibling service exceeds, or when writing a recovery sweep/cron that enumerates tenants. Symptoms — message.ack() in a catch branch, "ack as poison", a DLQ declared in config while a consumer destroys instead of retrying, a sweep iterating a static slug list.
 ---
 
+> **Grounding note (added 2026-08-07, audit §639):** this skill's examples describe observations FROZEN
+> as-of its writing. Unlike its siblings it cites no `path:line`, so nothing mechanical can tell you when
+> its claims go stale — which makes this warning MORE load-bearing here, not less. The LAW it states is
+> current; the examples are provenance, not proof. Verify against HEAD before treating any described
+> defect as live.
+
 # Park Unroutable Work, Never Destroy It
 
 ## Overview

@@ -3,6 +3,12 @@ name: reconcile-gate-sentinels-with-exit-codes
 description: Use when a gate harness parses a structured sentinel (##SHUDDL-GATE##) out of child output, when a wrapper gate relays nested children's stdout, when adding a field/browser gate to package.json, or when a gate can run in a non-blocking "local" mode. Symptoms — a PASS recorded for a command that exited non-zero, an all-skipped suite exiting 0, a runbook command missing its --mode flag.
 ---
 
+> **Grounding note (added 2026-08-07, audit §639):** this skill's examples describe observations FROZEN
+> as-of its writing. Unlike its siblings it cites no `path:line`, so nothing mechanical can tell you when
+> its claims go stale — which makes this warning MORE load-bearing here, not less. The LAW it states is
+> current; the examples are provenance, not proof. Verify against HEAD before treating any described
+> defect as live.
+
 # Reconcile Gate Sentinels With Exit Codes
 
 ## Overview

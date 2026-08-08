@@ -3,6 +3,12 @@ name: terminal-gallery-map-ui
 description: Use when building the SHUDDL map surface — the operational infinite-canvas map that is the shared system of reference across Command, the Driver PWA, and the Client Portal, rendering ~1,000 live moving shipments at once with healthy / at-risk / exception state, or a marketing/promo page in the same greige-and-one-red "Terminal Gallery" aesthetic. Covers Mapbox GL JS / MapLibre GL JS at operational scale and the design law that keeps it cohesive.
 ---
 
+> **Grounding note (added 2026-08-07, audit §639):** this skill's examples describe observations FROZEN
+> as-of its writing. Unlike its siblings it cites no `path:line`, so nothing mechanical can tell you when
+> its claims go stale — which makes this warning MORE load-bearing here, not less. The LAW it states is
+> current; the examples are provenance, not proof. Verify against HEAD before treating any described
+> defect as live.
+
 # Terminal Gallery Map UI
 
 ## What this actually is (read this first)
