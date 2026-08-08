@@ -298,6 +298,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 103 | §655 | **§656** | Closed §655's trigger: the `unit-tests` gate runs `test`, and `test` is `test:tools && …`. Two properties hang off it. **Attribution: dropping test:tools was ALREADY caught** by the orphan-script test (M157, 2 red incl. a pre-existing one); the new coverage is M158 — `&&` → `;` leaves the script present, running and green while 44 tools files are ignored. The gate that runs and cannot fail, one keystroke from this session's own output |
 | 104 | §656 | **§657** | Swept §656's "gate that runs and cannot fail" through its five MECHANICAL forms: zero instances. No `\|\| true`, no `continue-on-error`, no pipes in run steps, and all three spawnSync sites read status — `orphans.ts` making the subtle 0-vs-1-vs-other call that separates "git grep found nothing" from "git failed". **The finding: every instance this session was SEMANTIC** (§609 a floor at zero, §622 a split conjunction, §656 an operator), never a sloppy invocation |
 | 105 | §657 | **§658** | The AUTH BOUNDARY, never mutated in 53 phases. M159 makes every device signature verify — 3 red (tampering, key substitution, and a malformed sig yielding FALSE rather than throwing). M160 accepts malformed session claims — 2 red, including "a session cannot be minted immortal". **Verifying who signed a token is a different question from whether the token says anything valid**, and the second is where an integration bug lives |
+| 106 | §658 | **§659** | Mutated the CAPABILITY TOKEN — the only thing between an anonymous request and a customer's documents. Breaking domain separation left **794/794 green**, which reads as a serious gap on an unauthenticated surface. It is not: the separation is defended THREE ways (derived secret, `typ` literal, `.strict()`), and breaking two still fails the attack. §601's rule — a silent mutation on one layer is evidence of DEPTH, not absence |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -36447,3 +36448,62 @@ nine times.
   claims guard on our side of it.
 - A second signature scheme joins P-256 (an RSA device, a server-side attestation) → the three tests above are
   written against ECDSA and would pass while the new scheme is unverified.
+
+---
+
+## §659 — PHASE GATE: a green mutation that was defense in depth, not a gap
+
+**Subject.** §658 asked which security-critical paths this session had never mutated. The sharpest remaining
+one is the **capability token**: §613 established that `/pub/*` deliberately escapes session auth, so a signed
+cap is the only thing between an anonymous request and a customer's documents.
+
+`doc-cap.ts` states the property in its own comment: *"a session token must never verify as a doc cap, and a
+doc cap never as a session token or status cap."*
+
+### The mutation that looked like a finding
+
+**M161** broke domain separation — `deriveDocSecret` returning the raw `jwtSecret`, so a doc cap is signed with
+the **session** secret. The classic cross-type confusion.
+
+```
+workers/api — 794 passed (794)
+```
+
+**Silent across the entire api suite.** On an unauthenticated surface, that reads as a serious coverage gap.
+
+### It was not a gap. It was the second and third layers holding.
+
+`documents.test.ts` *does* test this — line 311: *"a SESSION token is not a doc cap — the domain separation is
+real, not documented"*. It stayed green because the separation is defended **three** independent ways:
+
+1. **a distinct derived secret** — `HMAC(jwtSecret, DOMAIN)`;
+2. **a `typ` literal pin** — `typ: z.literal(CAP_TYP)`;
+3. **`.strict()`** — *"a MAC-valid token carrying ANY extra claim is rejected"*.
+
+**M162** broke layers 1 **and** 2 together. Result: one test red — *"a token signed with the DERIVED secret but
+the wrong `typ` is refused — the strict parse is the second layer"* — and the session-token test **still
+passed**, because a session token carries `sub`/`role`/`tenant`, and layer 3 refuses any extra claim.
+
+Two layers removed and the attack still fails. That is defense in depth doing exactly what it is for.
+
+### The lesson, which this audit already had
+
+§531's fourth explanation — *the probe was not a counterexample* — and §601's sharper form: **when a guard's
+firing conditions are closed by other layers, a silent mutation on one layer is evidence of depth, not of
+absence.** The honest reading of a green M161 is *"something else caught it"*, and the next step is to find
+what, not to write a test.
+
+Three mutations were needed to establish that. One would have produced a false finding on the most
+security-sensitive surface in the build — and the false finding would have been *"the unauthenticated document
+path is untested"*, which is exactly the kind of claim that gets acted on.
+
+### Exit state
+
+**21 PASS · 0 FAIL · 5 BLOCKED at HEAD** (§647). `workers/api` 794/794; all mutations restored byte-identical;
+no code changed.
+
+**Reopen triggers**
+- A fourth token type is added → the three layers are pairwise-tested for session-vs-doc and status-vs-doc; a
+  new type needs its own row against each existing one, and nothing generates that matrix.
+- `.strict()` is relaxed to allow forward-compatible claims → layer 3 disappears, and M162's exact
+  two-layer break would then succeed. That is the single edit that turns this clean negative into a defect.
