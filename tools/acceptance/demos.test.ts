@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { DEMOS, spineByPackage, spineFileCount } from "./demos.js";
+import { missingSpineFiles } from "./run.js";
+import { repoRoot } from "../checks/repo-root.js";
 
 // REQ-119 (audit §68) — the acceptance manifest and this module must name the SAME spine.
 //
@@ -58,5 +60,32 @@ describe("REQ-119: the acceptance manifest cannot drift from the demo spine", ()
     const distinct = new Set(DEMOS.flatMap((d) => d.spine.map((s) => `${s.pkg}::${s.file}`)));
     expect(spineFileCount()).toBe(distinct.size);
     expect([...spineByPackage().keys()].sort()).toEqual(["@shuddl/api", "@shuddl/driver", "@shuddl/map", "@shuddl/mcp"]);
+  });
+});
+
+// REQ-119 §607 — the spine registry must name files that EXIST.
+//
+// §606 probed the acceptance gate by pointing demo 1's spine at a non-existent file. It reported
+// `ACCEPTANCE SPINE: GREEN — all 7 spine FILES pass` at exit 0. The runner's comment had claimed immunity
+// ("vitest exits non-zero on 'no test files found'"), which holds only when NO filter in the package
+// matches: `@shuddl/api` carries four of the seven, so three siblings kept the exit at 0 while demo 1's
+// proof silently stopped running.
+//
+// `missingSpineFiles()` in run.ts now fails the gate. This test is the cheaper signal — a renamed spine
+// file is caught by `pnpm test` rather than only by the acceptance gate, and it is the test that fails if
+// someone deletes the runtime check (§531: a guard whose removal is silent will eventually be removed).
+describe("REQ-119 §607: every registered spine file exists", () => {
+  it("resolves all 7 spine files to real paths on disk", () => {
+    expect(
+      missingSpineFiles(repoRoot()),
+      "a spine file named in demos.ts does not exist. The demo it proves is UNTESTED and the acceptance " +
+        "gate cannot see it — a vitest filter matching nothing is silent when a sibling filter matches",
+    ).toEqual([]);
+  });
+
+  it("counts what the registry declares (non-vacuity)", () => {
+    // If spineByPackage() ever returned nothing, missingSpineFiles() would return [] and the test above
+    // would pass over an empty spine — the exact vacuity class this section exists to close.
+    expect(spineFileCount(), "the spine registry is empty — the scan is broken, not the tree").toBe(7);
   });
 });

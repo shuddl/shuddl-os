@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, globSync, readFileSync } from "node:fs";
+import { dirname } from "node:path";
 import { DEMOS, spineByPackage, spineFileCount } from "./demos.js";
 
 // `pnpm test:acceptance` — runs EXACTLY the five doc-00 acceptance SPINE tests (REQ-119 DoD), as the
@@ -35,8 +36,47 @@ function ensureMcpApiBundle(): void {
   }
 }
 
-/** Run one package's spine files through its own vitest config. vitest exits non-zero on a genuine
- * failure AND on "no test files found" (a typo'd filter), so a silent no-op can never pass as green. */
+/** Workspace package name → its directory, from the three globs in pnpm-workspace.yaml. */
+function packageDirs(cwd: string = process.cwd()): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const p of globSync("{apps,workers,packages}/*/package.json", { cwd })) {
+    const name = (JSON.parse(readFileSync(`${cwd}/${p}`, "utf8")) as { name?: string }).name;
+    if (name !== undefined) out.set(name, dirname(p));
+  }
+  return out;
+}
+
+/**
+ * REQ-119 §607 — EVERY REGISTERED SPINE FILE MUST EXIST ON DISK.
+ *
+ * The comment this replaced claimed vitest's own exit code made the runner immune to a typo'd filter:
+ * *"vitest exits non-zero on a genuine failure AND on 'no test files found', so a silent no-op can never
+ * pass as green."* **That is true only when NO filter in the package matches anything.** `@shuddl/api`
+ * carries FOUR of the seven spine files, so one renamed or deleted file drops out silently while the other
+ * three hold the package's exit at 0 — and the summary line then prints `spineFileCount()`, which counts the
+ * REGISTRY rather than what ran, so the gate reports "all 7 spine FILES pass" having run six.
+ *
+ * Measured: pointing demo 1's spine at a non-existent file left `pnpm test:acceptance` GREEN at exit 0.
+ * That is the §572 shape — a check whose floor bounds the hits it found instead of the corpus it read — in
+ * the one gate whose entire job is the five doc-00 demos that define "done enough to show".
+ */
+export function missingSpineFiles(cwd: string = process.cwd()): string[] {
+  const dirs = packageDirs(cwd);
+  const missing: string[] = [];
+  for (const [pkg, files] of spineByPackage()) {
+    const dir = dirs.get(pkg);
+    if (dir === undefined) {
+      missing.push(`${pkg}: no workspace package declares this name — the spine names a package that does not exist`);
+      continue;
+    }
+    for (const f of files) if (!existsSync(`${cwd}/${dir}/${f}`)) missing.push(`${pkg} → ${dir}/${f}`);
+  }
+  return missing;
+}
+
+/** Run one package's spine files through its own vitest config. A genuine failure exits non-zero; a filter
+ * matching nothing does NOT, whenever a sibling filter in the same package still matches — which is why
+ * `missingSpineFiles()` runs first. */
 function runPackage(pkg: string, files: readonly string[]): boolean {
   console.log(`\n▶ ${pkg} — ${files.join(", ")}`);
   const res = spawnSync("pnpm", ["--filter", pkg, "exec", "vitest", "run", ...files], { stdio: "inherit" });
@@ -46,6 +86,19 @@ function runPackage(pkg: string, files: readonly string[]): boolean {
 function main(): void {
   banner();
   const byPkg = spineByPackage();
+
+  // BEFORE any vitest run: a spine file that does not exist would otherwise be masked by its siblings.
+  const missing = missingSpineFiles();
+  if (missing.length > 0) {
+    console.error(
+      `\nACCEPTANCE SPINE: FAIL — ${missing.length} registered spine file(s) do not exist. The demo they ` +
+        `prove is UNTESTED, and vitest cannot report it: a filter matching nothing is silent whenever a ` +
+        `sibling filter in the same package matches. Restore the file, or update tools/acceptance/demos.ts ` +
+        `and say which demo lost its proof:\n  ${missing.join("\n  ")}`,
+    );
+    process.exit(1);
+  }
+
   if (byPkg.has("@shuddl/mcp")) ensureMcpApiBundle();
 
   const failed: string[] = [];
@@ -64,4 +117,6 @@ function main(): void {
   console.log("launch-gate checklist in docs/wp/acceptance-demos.md.");
 }
 
-main();
+// Entry-point guard (the convention at tools/checks/bundle-ratchet.ts:85 and four siblings). Without it,
+// `import { missingSpineFiles }` from the test would EXECUTE the runner and recursively spawn vitest.
+if (process.argv[1]?.endsWith("run.ts")) main();

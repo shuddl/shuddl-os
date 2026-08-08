@@ -247,6 +247,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 52 | §603 | **§604** | THE 5 BLOCKED GATES EXERCISED — 9 pending fixtures verified (no tooling half); the identity lint had only ever been seen SKIPPING, so it was run: it catches, names the file, and MASKS the term. Third `git ls-files` probe needing `git add -N` |
 | 53 | §604 | **§605** | THE LAST UNMEASURED BLOCKER SPLIT IN TWO — sender-domain + CF credentials was one label over two unlike things. The send path is rehearsed on BOTH sides of the CONFIRM flip (17 cases, key non-leakage mutation-proven); the credential path fails BLOCKED/executed:false/zero-files, verified by running it. All 5 owner-held inputs now measured |
 | 54 | §605 | **§606** | GATES SEEN ONLY PASSING HAVE NEVER BEEN SEEN FAILING — 5 given planted violations (seed/table-shape/section-refs/rater-purity/append-chokepoint), all 5 caught with file:line + fix. A non-counterexample probe found the real question: raw-fetch LLM bypass, already closed by an ESLint capability ban whose message names it |
+| 55 | §606 | **§607** | **DEFECT — the ACCEPTANCE gate certified a demo whose test file did not exist.** vitest is silent on a filter matching nothing whenever a SIBLING filter in the same package matches, and @shuddl/api carries 4 of the 7 spine files. Both pre-existing parity tests are record-to-record and passed. Fixed + tested. 4 more gates proven failable; 19/19 now observed failing |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -33028,3 +33029,94 @@ them.
   options rather than merging them, and a disabled rule reports nothing.)
 - `seed.hash` is regenerated in a commit that does not say why → the gate passed by design and the drift is
   unreviewed; the message asks for the PR note, but nothing enforces it.
+
+---
+
+## §607 — PHASE 55: THE ACCEPTANCE GATE CERTIFIED A DEMO WHOSE TEST FILE DID NOT EXIST
+
+**Subject.** Finishing §606's map — the merge gates that had still never been observed failing. Four more were
+given planted violations, and the fifth produced the phase's finding.
+
+### Four more proven failable
+
+| Gate | Violation planted | Result |
+|---|---|---|
+| `traceability` | a source file citing `REQ-991`, no register row | `FAIL built-but-unspec'd (annotations citing no register row): REQ-991` |
+| `authority-coverage` | **M86** — the biller consults the `rating` authority instead of `invoicing` | `FAIL … does not call resolveAuthority(db, 'invoicing') … or it is a SILENT authority bypass` |
+| `bundle-ratchet` | **M87b** — baseline lowered so the real bundle exceeds the ceiling | `FAIL apps/command: gzipped bundle 390909 B exceeds the ratchet ceiling 105000 B` |
+| `coverage` | none needed — **it is failing right now**, on REQ-289, with the precise row and reason |
+
+`authority-coverage` deserves its note: the mutation changed the module *string* rather than deleting the call,
+because the comment claims the check is MODULE-AWARE. It is — wiring the wrong module's authority fails exactly
+as wiring none would.
+
+**A non-counterexample first (M87).** The initial bundle probe *raised* the baseline to 100 MB and the gate said
+OK. Correct: `if (r.gzip > r.ceiling)` is **one-sided by design** — it is a ratchet, not a budget, and raising the
+baseline is the sanctioned manual act (*"may FALL freely and may not RISE without someone editing this file and
+saying why"*). Second occurrence in two phases of §531's fourth explanation.
+
+**A clean negative on `coverage`'s other output.** It reports 9 status-drift rows without failing on them — code
+cites a REQ whose register tag still reads DISCOVERED/vNEXT. All nine carry dated, reasoned verdicts in
+`coverage-manifest.json` (several recorded by audit §112), each stating whether the citations are implementations
+or deferral markers. Triaged, not debt.
+
+### THE FINDING — `acceptance` reported GREEN with a spine file that does not exist
+
+**M88.** Point demo 1's spine at a non-existent file. `pnpm test:acceptance` exits **0**:
+
+```
+ACCEPTANCE SPINE: GREEN — all 7 spine FILES pass.
+```
+
+The runner's own comment asserted immunity:
+
+> *"vitest exits non-zero on a genuine failure AND on 'no test files found' (a typo'd filter), so a silent no-op
+> can never pass as green."*
+
+**That holds only when NO filter in the package matches.** `@shuddl/api` carries **four of the seven** spine
+files, so one dead filter drops out while three siblings hold the package's exit at 0. The summary then prints
+`spineFileCount()` — the **registry** count, not what ran — so it claims seven files passed having run six.
+
+This is §572's shape (a floor bounding the hits found rather than the corpus read) in the one gate whose entire
+job is the five doc-00 demos that define "done enough to show".
+
+### Attributing the RED before crediting the fix
+
+Re-planting the rename turned **three** tests red — and two were **pre-existing**: `every spine file in demos.ts
+is named in the manifest` and `the manifest names NO spine file this module does not declare`. Crediting the fix
+for those would have been wrong, and would have overstated the hole: a *rename* was already caught by the
+`unit-tests` gate.
+
+So the decisive probe was **M89 — delete the actual test file, leaving `demos.ts` and the manifest both naming
+it.** Exactly **one** test went red: the new one.
+
+Both parity tests compare **record to record**; neither touches the filesystem. Two mechanisms agreeing with each
+other, and both wrong about reality. That is the uncovered scenario, and before this phase nothing in the repo
+could see it.
+
+### The fix
+
+`missingSpineFiles()` in `tools/acceptance/run.ts`, run **before any vitest invocation**, resolving each
+registered spine file against its workspace package directory. Plus a test in `demos.test.ts` — the cheaper
+signal, and the thing that fails if someone deletes the runtime check (§531: a guard whose removal is silent will
+eventually be removed). With existence guaranteed, the summary line's "all 7 spine FILES pass" becomes true
+rather than merely printed.
+
+One implementation note: `run.ts` called `main()` at top level, so importing it from the test would have
+**recursively spawned vitest**. It now carries the entry-point guard used by five sibling tools.
+
+Verified: gate exits 1 naming `@shuddl/api → workers/api/test/heartbeat-MISSING.test.ts`; the test is red;
+clean tree restores both to green; `typecheck` and `eslint` clean.
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged — the fix repairs a gate that was reporting a false green, which
+does not move any count. Nineteen of nineteen passing gates have now been observed failing.
+
+**Reopen triggers**
+- A spine entry is added for a package that carries only ONE spine file → for that package the old assumption
+  holds and the existence check is redundant; it stays because package composition is not a stable property.
+- `spineFileCount()` stops equalling the number of files actually executed for any other reason (a `.skip`, a
+  config filter) → the summary line resumes overstating, and existence is no longer sufficient.
+- The manifest-parity tests are made filesystem-aware → the new check becomes the second mechanism, and
+  §"two mechanisms disagreeing is the finding" applies to the delta between their scopes.
