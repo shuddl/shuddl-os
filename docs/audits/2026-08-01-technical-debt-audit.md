@@ -267,6 +267,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 72 | §623 | **§625** | **A FINDING THAT WAS WRONG.** Swept the non-vacuity class (25/28 scanners have a floor); §466 sharpened it to "who has several globs behind ONE total" — 3 gates did. Claimed 38 of 87 files maskable and a mutation "confirmed" it. **The union was 49, not 87: git pathspec `*` crosses `/`, so the nested glob added ZERO.** Derived by addition instead of measured; breaking a redundant glob looks exactly like masking. Kept the real half — scanCorpus throws on an empty glob |
 | 73 | §625 | **§626** | Reviewed the helper §625 shipped WHILE retracting — the moment a defect lands. It ran `git ls-files` twice per glob; collapsed to one, and M128 re-proved the empty-glob guard survived the simplification (a refactor that quietly deletes a check is worse than the duplication). §625's reusable half — a redundant guard mutates green, indistinguishably from a blind one — saved to memory |
 | 74 | §626 | **§627** | Closed §626's trigger in the next phase: the helper enforcing non-vacuity had no tests of its own. Kept `mayBeEmpty` rather than deleting it — append-chokepoint's EXPECTED_EMPTY_GLOBS proves the concept necessary, so it was unexercised, not speculative. Six cases; M129/M130 prove the ORDERING §625 only commented (emptiness judged before the test filter) and that the exemption is exact-match, not prefix |
+| 75 | §627 | **§628** | genesis/08's SIXTEEN DoD clauses audited for whether their PROOFS still run (§614's shape, applied to the roadmap). Clean split: proven-and-running, or blocked on the five owner-held inputs already measured. **No new debt — the first whole document to yield neither defect nor correction.** WP-01's check:pr proven in 3 directions and stricter than its clause. Two DoD proofs were unguarded until §608/§614 |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -34531,3 +34532,73 @@ failures; typecheck 0; eslint clean.
   Bolting on another boolean is how that signature rots.
 - The temp-repo fixture starts being shared with another suite → it is deliberately local; a shared fixture
   that several suites mutate is how the ordering assertion above becomes flaky.
+
+---
+
+## §628 — PHASE GATE: genesis/08's sixteen DoD clauses, and where the loop actually stands
+
+**Subject.** genesis/08 §03 is the roadmap: sixteen work packages, each with a **Definition of Done**. All
+sixteen are closed. The question this phase asks is not whether they closed — it is whether **their proofs
+still run**, which is §614's shape applied to the roadmap rather than to one suite.
+
+### The split is clean
+
+| Clause | State |
+|---|---|
+| WP-01 "a dummy PR without REQ-ID fails" | **proven, 3 directions** (below) |
+| WP-01 "cross-tenant read attempt fails the suite" | proven — and only **gated this session** (§614) |
+| WP-02 "chain verifies after 10K events" | proven — `10,000 events verify (single-pass, no quadratic blowup); one tampered byte breaks at the right seq` |
+| WP-02 "correction semantics net to zero in GL export" | proven, runs in-repo (§619) |
+| WP-02 "35 event kinds round-trip" | gate-checked against CLAUDE.md (§611) |
+| WP-03 "5 canonical screens match blessed refs" | proven — and only **gated this session** (§608) |
+| WP-09 "portal shows only lens-scoped data under adversarial tests" | in §614's isolation roster |
+| WP-05/07/10/13/15 field + filmed clauses | the **fifth owner-held input**, measured §605 |
+| WP-04/06 fixture clauses (48 tests, 504-sweep, 500-fixture replay) | the **nine private fixtures**, measured §604 |
+
+**No new debt.** Every DoD clause is either proven and running, or blocked on an input already measured and
+recorded. That is the first time this session a whole document has produced neither a defect nor a correction.
+
+### WP-01's clause is stronger than it claims
+
+`check:pr` was exercised in three directions rather than read:
+
+| PR body | Result |
+|---|---|
+| no REQ-ID at all | `FAIL REQ-118: PR references no REQ-IDs. Every PR must cite at least one register row.` |
+| a valid REQ-ID | `traceability: PR cites valid REQ-IDs` |
+| `REQ-999`, unregistered | `FAIL REQ-118: unknown REQ-IDs (not in register): REQ-999. New scope = ADD A ROW FIRST.` |
+
+The third case is not in the DoD. It enforces CLAUDE.md's *"if you discover scope, ADD A ROW first"* directly —
+the check is stricter than the clause that commissioned it. And with no body supplied it fails **closed**,
+saying so plainly: *"no PR body supplied, so nothing was inspected — this is NOT a finding about your work."*
+A check that cannot inspect must not report clean, and this one says which of the two it is.
+
+### The retrospective worth recording
+
+Two DoD clauses — WP-01's cross-tenant suite and WP-03's five blessed screens — were **true but unguarded**
+until this session. §614 found that deleting an isolation proof was silent; §608 found the visual gate passing
+at four screens of five. Both clauses were satisfied the whole time; **nothing would have said so had they
+stopped being satisfied.**
+
+That is the difference between a DoD that was *met* and a DoD that is *held*, and it is the single most useful
+thing this document audit produced.
+
+### Where the loop stands
+
+Twenty-four phases (§605–§628). The document audit is **exhausted for mechanically-checkable content**:
+CLAUDE.md (budgets, prohibitions, stack rules, the ten laws), genesis/14 (§§01, 02, 04, 06, 07), genesis/13,
+genesis/10's I3, and now genesis/08 §03. What remains — genesis/12's GTM unlocks (gated at M-H, not yet
+applicable) and genesis/00–03's intent — is prose without falsifiable claims, where an audit would produce
+opinion rather than measurement.
+
+The repo-owned surface is clean. The exit state has been **19 PASS · 2 FAIL · 5 BLOCKED** for twenty-four
+phases, and the 2 FAIL plus 5 BLOCKED are the five owner-held inputs measured in §603–§605 — unchanged because
+nothing in this repo can change them.
+
+**Reopen triggers**
+- A WP is reopened or a seventeenth added → its DoD joins the table above, and the question to ask is the one
+  this phase asked: not "did it close" but "does the proof still run".
+- A field/filmed clause is satisfied → the fifth owner-held input shrinks, and §605's measurement of it should
+  be re-run rather than assumed to still describe the remainder.
+- `check:pr` stops being CI-only → it is inherently so (there is no PR body locally), and a local invocation
+  that manufactures one would be testing the manufacture.
