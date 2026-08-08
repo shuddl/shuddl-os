@@ -254,6 +254,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 59 | §610 | **§611** | THE RESTATEMENT SWEEP §610 ASKED FOR. Gate summaries are clean — all derived, authority-coverage was the only exception. **The real find is one level up: CLAUDE.md states SIX hard budgets as law and nothing read the file as data.** All six agree today; now gate-checked against TABLE_BUDGET/SURFACE_ROSTER/MAX_CANONICAL_VIEWS/EVENT_KINDS/TOKENS/FONTS, mutation-proved both directions + the vacuity floor |
 | 60 | §611 | **§612** | **DEFECT — the last clause of CLAUDE.md's "Do not build (ever)" enforced NOTHING.** CONFIRM-GATED sat as a peer of vNEXT in the drift rule, so building one of the three named features and annotating it correctly left drift at 9→9 and traceability at exit 0. Fixed with a verdict-required rule (not a blanket fail — all 3 real citations are boundary markers), proved at CLI and analyzer |
 | 61 | §612 | **§613** | genesis/14 §04 "every endpoint, no exceptions" traced. The convention holds BY CONSTRUCTION — two `app.use("/v1/*", …)` lines give every mutation auth + idempotency free — and 5 of 24 mutations sit outside /v1, all deliberate and separately guarded (clean negative). The debt: nothing made the SIXTH a decision, and deleting either line would strip both from every route silently. Pinned + 3 mutations |
+| 62 | §613 | **§614** | **DEFECT — deleting a cross-tenant isolation proof was SILENT.** genesis/14 §07 lists "isolation suite" as a PR gate and CLAUDE.md rule 8 calls a cross-tenant read a build failure, but no gate is named `isolation` and nobody had written down which six files ARE the suite; a staged deletion of 8 PLG isolation cases left test:tools at its exact baseline. Roster + 149-case floor, both routes mutation-proved |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -33625,3 +33626,79 @@ no exceptions") is either mechanised or it is folklore, and the way to tell is t
   which is §609's selector problem in this gate's own scan.
 - `auth` or `idempotency` is moved to per-router mounting → the two-line assertion becomes false while the
   convention may still hold. Re-derive it rather than deleting it.
+
+---
+
+## §614 — PHASE GATE: the isolation suite ran on every merge, and nobody had written down what it was
+
+**Subject.** genesis/14 §07 enumerates the PR gates as an ordered chain: *"typecheck strict → lint → unit +
+fixtures → traceability → **isolation suite**"*. CLAUDE.md rule 8 states the same thing with the sharpest
+consequence in the document: *"Tenant isolation suite runs on every merge; a cross-tenant read anywhere is a
+build failure (REQ-025)."*
+
+**There is no gate named `isolation` in `gatesFor("merge")`.** Six test files carry the proof, they run inside
+`unit-tests`, and nothing anywhere stated that those six files ARE the suite.
+
+### THE FINDING — deleting an isolation proof was silent
+
+`plg-isolation-matrix.test.ts` — **8 cases** proving cross-tenant reads are refused across the PLG surface —
+deleted, with the deletion **staged**, as a real PR would carry it:
+
+```
+test:tools → 3 failed | 920 passed        (the REQ-289 baseline, unchanged)
+```
+
+Nothing moved. The suite runs inside `unit-tests`, so removing a member does not fail anything: there is simply
+less to run.
+
+### The probe that lied, and the file that told the truth
+
+My first attempt used `mv` and produced **five** failures — which looked like protection. It was not. Two
+file-scanning gates (`zero NUL bytes`, `Trojan Source`) fired because a **tracked file was missing from the
+worktree**, which any such scanner would do for any deleted file. An unstaged `mv` is not how a PR deletes.
+
+Staged, the count fell to four — and the fourth was `check:citations`, because some document happens to cite
+that path. So the protection was: *files that are cited are protected; files that are not, are not.* Choosing
+the one member cited by **zero** files gave the clean result above. Third occurrence this session of the
+same discipline paying: attribute the RED before crediting it.
+
+### The fix is a roster, not a runner
+
+A named `isolation` gate was considered and **rejected**. Re-running these files under a second runner would
+duplicate what `unit-tests` already does across three different vitest pools (api and mcp are
+vitest-pool-workers, translator is node) — the two-mechanisms trap, where the copy becomes the thing that rots.
+**The execution was never missing. The roster was.**
+
+`tools/checks/isolation-suite.test.ts` pins the six by identity and floors the aggregate at **149 cases**
+(64 + 44 + 9 + 8 + 15 + 9), measured. A floor, not an exact count, for the reason `bundle-ratchet` and §609's
+browser ratchet use one — it may rise freely and may not fall without an edit naming the retired proof.
+
+The roster alone would not have been enough: it cannot see cases deleted from *inside* a member, which is the
+same shrinkage by a quieter route.
+
+| | Mutation | Result |
+|---|---|---|
+| M107b | the staged deletion that was silent before | RED — roster + floor |
+| M108 | three cases deleted from inside a member, file intact | RED — **floor only**, exactly as designed |
+
+Membership uses `git ls-files` rather than `existsSync`, deliberately: a PR deletes by staging, and the
+worktree-only probe is what produced the false "protection" above. And `caseCount` reads a missing file as
+**zero** rather than throwing, so the roster test owns that diagnosis in the language of the defect — §608's
+repair to `authority-coverage`, applied before it could bite.
+
+One self-inflicted instance of §610 caught on review: the floor's failure message told the reader to lower
+`MIN_ASSERTIONS`, a constant this file does not have (it is `MIN_CASES`). A message naming something that does
+not exist is the restatement defect in miniature.
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged. `test:tools` at 923 passed with exactly the 3 REQ-289 failures;
+typecheck 0; eslint clean.
+
+**Reopen triggers**
+- A seventh isolation proof is written → it is unguarded until added to `SUITE`. A hand-kept roster cannot see
+  an omission it was never told about; the floor rising is the signal that one may be missing.
+- An isolation file is genuinely retired → both tests fail by design. Say which proof went and why, in the same
+  edit.
+- The `it(`/`test(` idiom changes → the floor reads 0 and fails loudly rather than passing, and the non-vacuity
+  test states it as a stale SCAN so nobody hunts for tests that were never deleted.
