@@ -50,6 +50,10 @@ const GUARDED_FNS = [
   "quarantineKey",
   "unresolvableKey",
   "isPlatformCreditInvoiceIssued",
+  // §702 — surfaced when the derivation stopped treating `env: AgentsEnv` as an already-scoped handle. It
+  // is not one: Env is the ambient bindings, so (env, tenant) IS an entry point — the same shape as
+  // resolveTenantDb, which sits at the top of this list.
+  "sparkGateFor",
 ] as const;
 
 /** Argument expressions known to carry an authenticated identity, each with what verifies it. */
@@ -187,6 +191,45 @@ describe("REQ-025 §572: every tenant-scoped storage entry point is fed an authe
 
   it("finds call sites at all (non-vacuity)", () => {
     expect(callSites(root, positions).length, "no guarded call sites found — the scan is broken, not the tree").toBeGreaterThan(40);
+  });
+
+  it("§702: GUARDED_FNS names every derivable tenant entry point (completeness, not just staleness)", () => {
+    // §700 derived 19 candidates and could not decide them; §701 found the discriminator — is the FIRST
+    // argument an already-SCOPED handle? A `db: D1Database` or `r2: R2Bucket` was scoped upstream by
+    // resolveTenantDb (itself guarded), so the tenant argument is a label on data already fetched from the
+    // right place. `env: AgentsEnv` is NOT such a handle: it is the ambient bindings, so `(env, tenant)` is
+    // an entry point — that correction is what surfaced `sparkGateFor`.
+    //
+    // The assertion above this one is STALENESS (every listed function still exists). This is COMPLETENESS
+    // (every derivable entry point is listed) — the direction §700 found missing on a build-failure law.
+    //
+    // BLIND SPOT, stated because it is real: this sees `export function` declarations only. A tenant entry
+    // point written as `export const f = (tenant: string, …) => …` is invisible here, and five currently
+    // listed functions are invisible for exactly that reason — they are in the roster because a human put
+    // them there, which is why the roster stays hand-written and this is a FLOOR under it, not a generator.
+    const SCOPED_HANDLE = /:\s*(D1Database|R2Bucket|DurableObjectState|Queue)\b/;
+    const DECL = /export\s+(?:async\s+)?function\s+(\w+)\s*\(([^)]*)\)/gs;
+    const derived = new Set<string>();
+    for (const f of sourceFiles(repoRoot())) {
+      const src = readFileSync(`${repoRoot()}/${f}`, "utf8");
+      for (const m of src.matchAll(DECL)) {
+        const [, name, args] = m;
+        if (!/\btenant(Slug)?\s*[:,)]/.test(args!)) continue;
+        const body = src.slice(m.index! + m[0].length, m.index! + m[0].length + 1400);
+        if (!/\.(prepare|get|put|list|delete)\(|DB\b|R2|bucket/.test(body)) continue;
+        if (SCOPED_HANDLE.test(args!.split(",")[0]!)) continue;
+        derived.add(name!);
+      }
+    }
+    expect(derived.size, "no tenant entry points derived — the scan broke, the code did not").toBeGreaterThan(8);
+    const unguarded = [...derived].filter((n) => !(GUARDED_FNS as readonly string[]).includes(n)).sort();
+    expect(
+      unguarded,
+      "a function takes a tenant as its scoping input and reaches storage, but GUARDED_FNS does not name it " +
+        "— so no call site of it is checked for an authenticated identity (REQ-025). Add it, or if its first " +
+        "argument is an already-scoped handle the discriminator above should have excluded it:\n  " +
+        unguarded.join("\n  "),
+    ).toEqual([]);
   });
 
   it("no call site sources its tenant from request input", () => {
