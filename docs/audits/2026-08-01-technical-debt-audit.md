@@ -350,6 +350,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 155 | §707 | **§708** | **Two load-bearing claims verified, both true.** CLAUDE.md rule 4's *"exits 2 on `--mode merge`"* holds for **all five** blocked gates (bare 0 / merge 2) — which is also why `pnpm verify` legitimately sees 0. And the `--if-present` hazard in `unit-tests` (17 packages, 313 test files, a lost `test` script silently skipped) **is covered**: M227 deletes `packages/rater`'s script and `test-collection` names all 157 files, because the package stops being a **runner root** and falls through to `<root>`. **A floor can guard something its name does not mention** — I would have been wrong to assume it |
 | 156 | §708 | **§709** | **DEFECT — 208 test files were ONE edit from leaving the largest gate.** §708 declined to gate a combination as *"two edits in opposite directions"*; **eleven packages already ship their own `vitest.config.ts`**, so it is one. Deleting `packages/map`'s `test` script left test-collection, gate-wiring AND ci-contract all green — `--if-present` skips in silence, and an own-config package keeps runner-root status so its files stay "collected" while never running. `workers/api` alone is 69 files. Floor added; M228b fires on both probes. **"Recorded rather than gated" is an effort claim, and effort claims are measurable** — one `git ls-files` falsified it |
 | 157 | §709 | **§710** | **Audited this audit's own deferrals.** §709's rule — *"recorded rather than gated" is an effort claim, and effort claims are measurable* — applied to all **11** deferral statements (7 substantive) in §663–§709. **Six sound, one not**, and the unsound one (§708) is the only whose premise was never measured. §682's untested *"register scope"* claim **verified against the register**: REQ-024 constrains *where* LLM calls live, REQ-125 is a cost ceiling, **no row names a provider** — so gating it would invent scope. Deferrals come in three kinds — effort, scope, structural — and **only the effort kind produced a defect** |
+| 158 | §710 | **§711** | **One character silences a file and the gate stays green.** 313 test files, **zero** `.only`/`.skip`/`.todo`/`.fails` — and **no ESLint plugin and no gate** keeping it that way (§671's shape). Measured: one `it.only` in `events.test.ts` took contracts from **304 passed → 267 passed / 37 skipped, suite exit 0**. Every assertion this audit proved can fail lives in a file one `.only` would silence, and a skipped test is not a failing test. Strict gate added, comment-stripped (§674) with a corpus floor; M229 fires on both markers |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -39833,3 +39834,60 @@ No code change; the sweep found one already-fixed defect (§709) and six sound d
   the same phase, because §708 shows the decision and the premise are written in one breath and only the
   decision gets read afterwards.
 - A REQ row names an LLM provider → §682's deferral expires and the behaviour floor becomes gatable.
+
+## §711 — PHASE GATE: one character silences a file, and the gate stays green
+
+**Subject.** §705 and §709 both came from build-adjacent work, so this continues there. A hazard this audit
+had never swept: **focused and skipped tests.**
+
+### Clean today, defended by nothing
+
+**313 tracked test files · zero** `.only`, `.skip`, `.todo`, `.fails`. And nothing keeps it that way — no
+vitest/jest ESLint plugin is configured and no gate asserts it (both checked). §671's shape exactly: a state
+nobody is defending.
+
+### The hazard, measured rather than described
+
+Planting a single `it.only` in `packages/contracts/test/events.test.ts`:
+
+```
+baseline                     304 passed (304)
+one `it.only` planted        267 passed | 37 skipped (304)     suite exit: 0
+```
+
+**Thirty-seven assertions stopped running and the suite still exited 0.** `pnpm test` would report green,
+`verify:merge` would count `unit-tests` as PASS, and the only evidence is a "skipped" count nobody reads.
+`it.skip` is the same shape with a different mechanism — also exit 0.
+
+That matters more here than in most repos. This audit has spent dozens of phases proving individual
+assertions *can* fail — the append-only triggers, the tenant-isolation roster, the penny-parity comparator.
+**Every one of them lives in a file that a single `.only` elsewhere in it would silence**, and a skipped test
+is not a failing test.
+
+### Closed
+
+`tools/checks/no-focused-tests.test.ts`: comment-stripped (this audit and the gate both *discuss* `.only` in
+prose — §674's cry-wolf shape, avoided at the point of writing), with a corpus floor so a renamed suffix
+cannot make it pass over zero files.
+
+**Strict, with no allowlist**, deliberately: a focused test is a debugging aid that should not survive a
+commit, and a skipped one is a decision belonging in the register or in a deletion — not in a marker that
+reads as coverage. If a genuine need appears it can be exempted **with its reason**, the way every other
+allowlist here carries one.
+
+**M229** plants `.only` and then `.skip` in a real suite; the gate fires on each, and the suite's own exit 0
+in both cases is the finding restated.
+
+### Exit state
+
+`test:tools` 975 → **980** (5 new assertions); lint 0; typecheck 0; the probe file restored byte-identical.
+**26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, exit 2** at `e194d87`.
+
+**Reopen triggers**
+- A test is genuinely skipped for a reason → the gate fails, which is correct: the reason belongs in the
+  register or the test belongs deleted. Adding an exemption is a two-line change and must name the reason.
+- `.only` appears in a file suffix the corpus misses (`*.spec.ts`, `*.browser.ts`) → §698's
+  sibling-extension sweep is the tool, and the corpus here is `git ls-files "*.test.ts" "*.test.tsx"`.
+- Vitest gains another focus mechanism (`describe.runIf`, `test.concurrent.only`) → the marker list is
+  hand-written, which is correct per §699 (membership here is a property of *vitest's API*, not of this
+  repo's code) but it will not know about a new one.
