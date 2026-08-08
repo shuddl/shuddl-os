@@ -314,6 +314,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 119 | §671 | **§672** | **Rosters clean; the gap was in a SANCTION.** 44 lists; the auto-classifier returned "derived: 0 of 44" — a broken probe, discarded. The useful split is rosters (need completeness) vs sanctions (need staleness) vs probe corpora (neither). All three rosters checked have floors. But `ALLOWED` in **append-chokepoint.ts** — the allowlist for the append chokepoint itself — had no staleness check, while its §636/§666 siblings do; this gate is OLDER than both. It keys on the exact PATH and only does `continue`, so a deleted module leaves a bypass any future file at that path inherits. M189: gate → exit 1 |
 | 120 | §672 | **§673** | **DEFECT — §650's rule reached four callers and the fifth was the visual gate.** 36 filesystem enumerators → 17 can see untracked copies (`git ls-files` cannot) → 13 unfiltered. Rather than fix 13, each was MEASURED by planting a real collision copy: **1 of 13 breaks.** `visual-corpus` asserts SET EQUALITY between a glob and a registry, so an extra file is a divergence by construction — `command 2.png` failed two tests, reporting a canonical screen as untested. Written at §608, before §650's rule existed. Filter shared not re-authored; proved precise (a genuine extra still fails) and non-silent via a temp-dir fixture |
 | 121 | §673 | **§674** | **The measurement stopped a harmful fix.** 50 source scanners, 5 strip comments. `rater-purity` is immune (parses imports); the **design audit is not** — a comment reading "the old brand colour was #ff0000" takes the BLOCKING gate to exit 1, while `auditColor`'s two sibling checks were deliberately hardened. The obvious repair (reuse `stripComments`) was measured first: it is a TS stripper, and CSS `url(https://…)` puts it in line-comment state, **blanking a real `color: #ff0000` after it**. Pinned the boundary; left the design judgment to `genesis/07`. Also: `check:design` doesn't exist — pnpm exits 1 silently, faking a red baseline |
+| 122 | §674 | **§675** | **STOPPING POINT — the uneven-discipline vein is worked out.** Non-vacuity floors: 36 scanning gate files, **0 gaps** (all four no-signal candidates survive reading; the regex false-negatived two). Trilogy total: 2 defects + 1 prevented from 100+ candidates, and §674's best output was a fix NOT made — §296's spent-line signal. Gate **re-measured at `b97687b`, not restated: 26 gates, 21 PASS · 0 FAIL · 5 BLOCKED.** §663–§675 = 12 phases, 17 commits, 6 defects closed; contracts 291→304, ledger 634→661, tools 949→958 |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -37496,3 +37497,94 @@ second time in this audit that a non-existent script name produced a fake red.
   decision and wants a line in `genesis/07`, not just a code change.
 - A hex-in-a-comment lands in `apps/**` or `packages/**` → the latent cry-wolf becomes a live merge block,
   and this section is the argument already assembled for whoever hits it.
+
+## §675 — PHASE GATE: the uneven-discipline vein is worked out, and the gate re-measured at `b97687b`
+
+**Subject.** §673 named three disciplines applied unevenly across this repo's gates. All three are now swept,
+and the third is a clean negative — which is what closes the vein rather than merely pausing it.
+
+### Non-vacuity floors — clean
+
+36 gate files scan the filesystem. Four showed no floor signal; all four survive reading:
+
+- `acceptance/run.ts` — §607's `missingSpineFiles()` **is** the floor.
+- `deploy/surface-contract.test.ts` — `expect(SURFACES).toHaveLength(3)`, pinned to the three-surface budget.
+- `seed/load.cli.ts` — a **dev wrapper**, not the merge gate, and its own header says so. The merge `seed`
+  gate is `tools/seed/verify.ts`: eighteen lines comparing a computed hash to a pinned one, which cannot be
+  vacuous because a specific value must match.
+- `rater/invoice-parity.ts` — one of the five BLOCKED gates; unmeasurable until its fixtures are vendored,
+  and recorded as such rather than counted either way.
+
+**My regex produced a false negative on two of four.** That is the third time in three phases that the
+sweep's own instrument was wrong before the sweep produced anything — §672's roster classifier, §673's
+"NONE FOUND" column, and this. The pattern is consistent enough to state as a rule: **a cheap classifier over
+gate code is a way to generate candidates, never a way to reach a verdict.** Every verdict in these three
+phases came from opening the file or planting an artifact.
+
+### The trilogy, and what it cost per finding
+
+| discipline | population | vulnerable | outcome |
+|---|---|---|---|
+| iCloud collision filter | 17 can see untracked copies, 13 unfiltered | **1** | §673 — the visual gate reported a canonical screen as untested |
+| comment stripping | 50 scanners, 45 don't strip | **1 latent** | §674 — design audit flags a hex in prose; **the obvious fix was measured and would have blinded a blocking gate** |
+| non-vacuity floors | 36 scanning gate files | **0** | this section |
+
+Two defects and one prevented defect from three sweeps of 100+ candidates. The yield is falling, and the
+*shape* of the last finding is the signal §296 named: §674's most valuable output was **a fix not made**.
+
+### The gate, re-measured — not restated
+
+§663–§666 each quoted §647's figure without re-deriving it, and §667 corrected that. Re-run here at
+`b97687b`, seventeen commits later, register stashed for a genuinely clean tree:
+
+```
+verify:merge → 26 gates: 21 PASS · 0 FAIL · 5 BLOCKED    aggregate BLOCKED (exit 2)
+```
+
+The five BLOCKED are unchanged and not repo-closable: `identity-leak` (the `IDENTITY_DENYLIST` secret) and
+four engagement-workspace fixture gates (`fixtures`, `rater-parity`, `invoice-parity`, `concierge-parse`),
+which `genesis/13` places outside this repo by design.
+
+### What §663–§675 added
+
+Twelve phases, seventeen commits. Six defects closed, each mutation-proved and each restored byte-identical:
+
+1. **§663** — `EventInput.id` is client-supplied and is the sequencer's dedupe key; `.uuid()` was undefended
+   across 1,724 tests. Unpinned, the second caller to choose `"1"` is handed someone else's event.
+2. **§665** — `EventInput.strict()` undefended across 1,728 tests. Not chain forgery (two layers hold) but
+   REQ-133's exact failure: a raw ZodError escaping the DO instead of its `CODE:json` contract.
+3. **§666** — 14 `.strict()` calls on payload schemas defended by nothing. **The hazard was the opposite of
+   the guess:** loose Zod *strips*, so a mis-keyed field is silently discarded into an immutable hashed event.
+4. **§668** — 16 tenant-domain CHECK constraints silent across 1,670 tests, three of them (`money_lines`
+   `direction`/`kind`/`amount_cents`) with no application-layer counterpart at all.
+5. **§670** — `legs.shipment_id` was the one foreign key of three with no test.
+6. **§673** — the visual gate mistook an iCloud collision copy for a screen that stopped being tested.
+
+Plus **§672**'s standing exemption on the append chokepoint, **§671**'s closure of a limit the record had
+carried twice, and **§674**'s pinned boundary.
+
+Test counts moved: `packages/contracts` 291 → **304**, `packages/ledger` 634 → **661**, `test:tools` 949 →
+**958**.
+
+### The heuristic this stretch produced, stated plainly
+
+**Find where a discipline is already applied, and check what it stops one line short of.** Four of the six
+defects had exactly that shape — a test file covering the control-plane CHECK while sixteen tenant ones sat
+in the same `beforeAll`; two foreign keys of three; two sanction lists of three; a filter applied to four
+scanners and not the fifth. In every case the odd one out was not less load-bearing. It was just never
+extended to.
+
+### Stopping point
+
+**The repo-owned surface carries no open defect this audit can close.** The five BLOCKED gates need inputs
+that live outside this repository, and the working tree's only diff is another workstream's uncommitted
+`REQ-289` GTM row — which fails three gates and is a scope decision, not a defect (§299, §646).
+
+**Reopen triggers — the honest division**
+- *Gate-enforced:* a new payload schema without `.strict()` (§666); a CHECK added to `0002_domain.sql`
+  without enrolment (§671); an `ALLOWED` exemption outliving its module (§672); a blessed image the registry
+  does not name (§673); `stripComments` behaviour changing (§674).
+- *Human:* any of the five BLOCKED inputs arriving — **a gate's first real run is where it earns its
+  status**, and five of these twenty-six have never had one.
+- *Structural:* a new migration's constraints start unmeasured, and nothing reports which layer carries a
+  guarantee when two are declared (§669's middle row).
