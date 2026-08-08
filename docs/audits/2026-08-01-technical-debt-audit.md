@@ -260,6 +260,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 65 | §616 | **§617** | genesis/14 §02's naming schemes all CONFORM (36/36 — and conformance is a different property from binding-parity's agreement). But `shuddl-tiles` is named in the spec and declared NOWHERE: shipped Command renders against a third-party public host, the code calls the self-hosted bucket "a deploy line item", and REQ-075 counts as built-annotated because an annotation exists — one that says in words the thing is not built |
 | 66 | §617 | **§618** | THE GENERALIZATION THAT FAILED. A semantic scan for deferral language near citations gave 51/171 hits; the 3 most explicit were read and ALL were false positives — and it could not have found REQ-075 at all, because the admission lives in a file citing that row ZERO times. The signal was STRUCTURAL: a resource named in the environment contract and declared in no config. Gated; M115 proves it finds §617 unaided |
 | 67 | §618 | **§619** | THE FIRST GOVERNING SECTION THAT MEASURED CLEAN. genesis/14 §06's five pipeline claims all hold: the sanctioned `position.updated` bypass still joins the daily Merkle root (M118, one test named for it), the evidence hash is written at capture (M119, four tests), and the "every fixture run" I7 proof runs IN-REPO rather than behind the 5 BLOCKED private fixtures. Two anchor misses, both from reading indentation off prefixed output |
+| 68 | §619 | **§620** | Closed the gap §619 named in its own trigger: REQ-017 is an ORDERING claim (hash computed BEFORE bytes leave the device) and the four tests only prove PRESENCE. driver-core states "No DOM, no network, no timers here" and nothing enforced it; now banned, zero hits, changes no code. M120 proved the ledger and rater bans SURVIVED the addition — last-writer-wins is how adding a gate deletes one. Fifth anchor miss, one phase after writing the lesson |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -34074,3 +34075,75 @@ their suites green (19/19 ledger anchor, 41/41 driver-core).
   The tests assert the hash is PRESENT, not that it was computed before the bytes left the device.
 - The GL netting fixture is replaced by a vendored one → the clause becomes genuinely blocked, and this
   section's verdict expires with it.
+
+---
+
+## §620 — PHASE GATE: closing the gap §619 named in its own reopen trigger
+
+**Subject.** §619 mutation-proved that the evidence hash is written at capture (M119 — four tests red when the
+line was removed) and then wrote down what those tests do **not** prove:
+
+> *"The tests assert the hash is PRESENT, not that it was computed before the bytes left the device."*
+
+REQ-017's guarantee is an **ordering** claim, and ordering is what makes a device signature trustworthy on a
+driver with no signal. A future edit that uploaded bytes and hashed the response would keep all four tests
+green while inverting the guarantee.
+
+### The property was already true, stated, and unenforced
+
+`packages/driver-core/src/sync.ts` line 4 states the design in one line:
+
+> *"No DOM, no network, no timers here."*
+
+Measured: **zero** `fetch`/`XMLHttpRequest`/`WebSocket`, **zero** `setTimeout`/`setInterval`/`Date.now`, and
+**zero** `document`/`window` across the package — in `src` *and* `test`. The queue, the clock, the jitter
+source and both transports are injected; the package composes them.
+
+So the invariant held by construction, was written down, and nothing made the next person keep it — §531's
+shape, and precisely the argument that already justified the `packages/ledger` and `packages/rater` fetch bans
+(§606). driver-core simply never got one.
+
+The eslint block added here bans all three families with messages naming the reason, not the rule. **It changes
+no code** — it stops the next edit, which is the only thing a zero-hit lint can do.
+
+### Verifying that adding a gate did not delete one
+
+§"adding a gate can delete a gate": ESLint flat config is last-writer-wins, and a new block naming
+`no-restricted-globals` can silently **replace** another block's options rather than merge with them — and a
+disabled rule reports nothing, so the loss is invisible.
+
+That risk was measured rather than reasoned about. **M120** planted `fetch` in all three packages at once
+(plus a `setTimeout` in driver-core):
+
+| Package | Result |
+|---|---|
+| `packages/driver-core` | `Unexpected use of 'fetch'` **and** `'setTimeout'` — the new rule fires |
+| `packages/ledger` | `REQ-024: the ledger's only sanctioned network egress is the RFC 3161 TSA client` — **survived** |
+| `packages/rater` | `REQ-004/REQ-024: the rater is a deterministic, network-free engine` — **survived** |
+
+Four errors, one run, no collision. The globs differ, which is *why* it is safe — but reading the globs is what
+that memory says never to trust.
+
+### The fifth anchor miss, one phase after writing the lesson
+
+§619 closed with: *"never take an anchor from prefixed output."* The very next edit failed with
+`AssertionError: anchor 0`, for the same reason — I read the rater block's indentation off a
+`sed | sed 's/^/  /'` rendering that adds two spaces.
+
+Recorded plainly because the pattern is the point: **writing the lesson down did not transfer it.** What
+transferred was the `|| exit 1` wiring, which made the fifth instance cost one command instead of a wrong
+edit — the mechanism worked where the memory did not. The reliable method (a visible-space dump of the exact
+line) recovered it immediately, as it did twice in §619.
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged. `pnpm lint` exits 0 with zero errors, driver-core 41/41,
+typecheck 0. No source changed — one config block added.
+
+**Reopen triggers**
+- driver-core legitimately needs a timer (a real backoff rather than an injected clock) → the rule fails by
+  design; inject it instead, or narrow the block to `src` and say why the test half was exempted.
+- The transports move INTO driver-core → the network ban becomes wrong rather than protective, and the
+  ordering guarantee needs a different mechanism entirely.
+- A fourth package gains a `no-restricted-globals` block → re-run M120 across all four. The globs not colliding
+  today is not a property that survives an edit, and nothing checks it.

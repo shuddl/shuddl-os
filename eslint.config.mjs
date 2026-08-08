@@ -54,6 +54,35 @@ export default tseslint.config(
     rules: { "no-restricted-globals": "off" },
   },
   {
+    // REQ-016/REQ-017 §620 — packages/driver-core IS THE OFFLINE PACKAGE, AND SAYS SO.
+    //
+    // `sync.ts` states the design in one line: "No DOM, no network, no timers here." The queue, the clock,
+    // the jitter source and BOTH transports are injected; the package composes them. Measured at zero hits
+    // across src AND test when this landed, so this changes no code — it stops the next edit, which is the
+    // whole reason the ledger and rater blocks below exist.
+    //
+    // WHY THE NETWORK HALF MATTERS MOST: REQ-017's guarantee is that the evidence hash is computed AT
+    // CAPTURE, before the bytes leave the device — that is what lets a device signature survive a driver
+    // with no signal. §619 mutation-proved the hash is PRESENT (four tests went red when it was removed) and
+    // then named the gap this closes: those tests assert presence, not ORDERING. A future edit that uploaded
+    // bytes and hashed the response would keep all four green while inverting the guarantee. A package with
+    // no `fetch` cannot invert it.
+    //
+    // The timer/DOM half is the determinism claim: an injected clock and jitter source are what make the
+    // backoff tests (§579) reproducible rather than flaky.
+    files: ["packages/driver-core/**/*.ts"],
+    rules: {
+      "no-restricted-globals": [
+        "error",
+        { name: "fetch", message: "REQ-016/REQ-017: driver-core is the OFFLINE package — the transports are injected. A network call here can invert the hash-at-capture ordering that makes evidence trustworthy on a device with no signal." },
+        { name: "setTimeout", message: "REQ-016: the clock and jitter source are injected — a real timer makes the backoff tests flaky and the offline queue untestable." },
+        { name: "setInterval", message: "REQ-016: the clock and jitter source are injected — a real timer makes the backoff tests flaky and the offline queue untestable." },
+        { name: "document", message: "driver-core is DOM-free; the PWA composes it (apps/driver owns the DOM)." },
+        { name: "window", message: "driver-core is DOM-free; the PWA composes it (apps/driver owns the DOM)." },
+      ],
+    },
+  },
+  {
     // REQ-004 + REQ-024 mirrored for the rater, which is network-free outright (no `fetch` token anywhere in
     // its src). `check:rater-purity` bans LLM/agent IMPORTS here; this closes the same raw-HTTP route that
     // the ledger ban above closes. The rater is a deterministic engine — a price that depends on a network
