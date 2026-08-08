@@ -279,6 +279,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 84 | §636 | **§637** | Closed §636's trigger: the gate enforced ONE spelling of a pattern with five. No live gap (0 rejecting guards under the other four) — widened anyway, because this gate exists to prevent a REINTRODUCTION and one firing on `!== undefined` but not `!= null` raises the cost by a keystroke. Cost nothing: still 1 hit, 3/3 green, because the precision was always the REJECT conjunction, not the presence test. M144 ×3 |
 | 85 | §637 | **§638** | Verified a SKILL's frozen citation against HEAD, as its own grounding note demands: the hand-written `FORBIDDEN_REPLACE` defect is FIXED (4 evasions blocked on both scanners) and its law holds. Then found a "missing parity test" that **already existed three times over**, as a strict superset — my grep searched the wrong words. Addition deleted; ninth measurement error. M145 kept the value: it proves the EXISTING test catches the verbatim historical defect |
 | 86 | §638 | **§639** | Swept all 16 skills' frozen citations. Every falsifiable one checks out — and `enforce-server-side-gate-parity`'s REQ-166 CRITICAL bypass is not just fixed but fixed THE WAY THE SKILL PRESCRIBED (one shared gate-context both paths call). Found an inversion: the 4 skills lacking the "frozen, verify against HEAD" note were exactly the 4 citing NO path:line — the ones with no mechanical staleness signal. All 16 now carry it |
+| 87 | §639 | **§640** | **DEFECT — acceptance demo 5 was HALF-guarded.** "The exception pulse dimming the map while everything else stays quiet" makes two claims; only the dim was pinned. Making the exception dim WITH the world — so it vanishes into the crowd and the demo loses its point — left packages/map at 87/87 GREEN, because the assertion checked the expression CONTAINS "0.35" and both arms were then 0.35. Fixed by asserting the arms DIFFER |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -35296,3 +35297,67 @@ verification sweep.
   job narrows to the assertion rather than the address.
 - A cited defect is found still LIVE at HEAD → that is a genuine finding and the skill's citation becomes a
   work item rather than provenance. None was, this sweep.
+
+---
+
+## §640 — PHASE GATE: acceptance demo 5 was half-guarded
+
+**Subject.** CLAUDE.md's fifth acceptance demo: *"the exception pulse dimming the map **while everything else
+stays quiet**."* §607 fixed the acceptance gate's vacuity and §619 confirmed the spine runs — neither asked
+whether the demo's own behaviour is defended.
+
+That sentence makes **two** claims, and only one was guarded.
+
+### The half that was covered
+
+**M146** — `const dim = on ? 0.35 : 1` → `const dim = 1`, so the world never dims. One test red:
+*dims everything else to 0.35 when on*. Correct, and expected.
+
+### The half that was not
+
+**M147** — the exception's own arm changed from `1` to `dim`, so an exception fades **with** the crowd:
+
+```
+Tests  87 passed (87)
+```
+
+Silent. A uniform dim is not this demo; it is the *absence* of it — the pulse still fires, the world still
+darkens, and the one thing an operator is meant to see disappears into it.
+
+The reason the existing assertion missed it is exact and worth stating: it asserts the dimmed expression
+**contains `"0.35"`**. With both arms set to `dim`, both are `0.35`, so the string still matches. The test was
+reading one value out of a two-branch expression whose *whole meaning* is that the branches differ.
+
+### The fix reads one side and computes the other
+
+The new assertion pins the structure rather than a substring: the exception arm must be `1`, the fallback must
+be `0.35`, and — stated separately because it is the actual claim — **they must not be equal**.
+
+| | Mutation | Before | After |
+|---|---|---|---|
+| M147 | the exception arm dims too | 87/87 green | **RED** |
+| M146 | the world never dims | 1 red | **2 red** — both halves |
+
+M146 going from one red to two is the tell that the new test is not a duplicate: it fails for a *different
+reason* than the old one, on the same mutation.
+
+### Why this one matters more than its size
+
+Every other gap this session was in tooling, documents or a gate. This is **product behaviour, named in
+CLAUDE.md as one of five demos that define "done enough to show"** — and it was defended on the axis that
+happens to be easy to assert (a number appears) rather than the axis the sentence is about (a contrast exists).
+
+The acceptance spine stayed GREEN throughout, correctly: the spine proves the demo's files run, not that each
+demo's defining property is pinned. §619 said the filmed half is the manifest's job; this is the reminder that
+the *code-provable* half can also be partially unclaimed.
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged. `packages/map` 88/88 (was 87), acceptance spine GREEN, typecheck 0,
+eslint clean.
+
+**Reopen triggers**
+- A third opacity arm is added (at-risk dimming differently, say) → the assertion reads `expr[2]` and the last
+  element, so a middle arm would slip between them unchecked.
+- The pulse layers gain their own opacity expression → this covers `REST_LAYERS`' `circle-opacity` only. The
+  pulse is a separate layer per target (`entities.ts` "THE SPLIT"), and nothing here asserts its arms.

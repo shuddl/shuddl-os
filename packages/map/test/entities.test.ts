@@ -233,6 +233,38 @@ describe("setWorldDim — dim the world by contrast, exempt the exception (REQ-0
     for (const id of REST_LAYERS) expect(JSON.stringify(get(id, "circle-opacity"))).toContain("0.35");
   });
 
+  // REQ-077 §640 — DEMO 5's DEFINING HALF: the exception stays LIT while the world dims.
+  //
+  // CLAUDE.md's fifth acceptance demo is "the exception pulse dimming the map WHILE EVERYTHING ELSE STAYS
+  // QUIET". Two claims live in that sentence, and only one was guarded. The test above asserts the dimmed
+  // expression CONTAINS "0.35" — which stays true if the exception branch dims too, because then BOTH
+  // branches are 0.35 and the string still matches.
+  //
+  // MEASURED (§640): setting the exception branch to `dim` — so an exception fades into the crowd and the
+  // demo loses its entire point — left the map suite at 87/87 GREEN. A uniform dim is not this demo; it is
+  // the absence of it.
+  //
+  // The fix asserts the branches DIFFER, which is the property the sentence actually states. Reading one
+  // side and computing the other: the exception arm must be full opacity, the fallback must be the dim
+  // factor, and they must not be equal.
+  it("when dimmed, the EXCEPTION arm stays lit while the fallback dims — the two must differ", () => {
+    const { map, get } = recorder();
+    setWorldDim(map, true);
+    for (const id of REST_LAYERS) {
+      const expr = get(id, "circle-opacity") as unknown[];
+      expect(Array.isArray(expr) && expr[0] === "case", `${id}: expected a case expression`).toBe(true);
+      const exceptionArm = expr[2];
+      const fallback = expr[expr.length - 1];
+      expect(exceptionArm, `${id}: the exception arm must stay fully lit`).toBe(1);
+      expect(fallback, `${id}: everything else must dim`).toBe(0.35);
+      expect(
+        exceptionArm === fallback,
+        `${id}: exception and fallback opacity are EQUAL — the world dims uniformly and the exception no ` +
+          "longer stands out, which is the whole of acceptance demo 5",
+      ).toBe(false);
+    }
+  });
+
   it("restores full opacity when off (dim factor 1, exception unchanged)", () => {
     const { map, get } = recorder();
     setWorldDim(map, false);
