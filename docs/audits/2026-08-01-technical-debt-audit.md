@@ -324,6 +324,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 129 | §681 | **§682** | **Third consecutive phase closing the previous phase's recorded limit.** §681 keyed its derivation on the `*_MODEL` NAME and recorded the escape honestly. Swept by BEHAVIOUR instead (*makes a request to an LLM provider*): exactly **3 modules**, mapping 1:1 onto the 3 agents — proxy and behaviour agree (§664's shape), but only today. Added a second completeness floor over the adapter set, so the gate is floored on the naming convention AND the behaviour. **M203** adds a caller with **no `*_MODEL` at all** — §681's exact escape — and it fires. Residual boundary is now register scope, not a sweep |
 | 130 | §682 | **§683** | **Clean negative; the member-sweep program closes.** The 12-view budget produced FOUR structural signals and none survived reading: `DunningQueue` is a documented panel (*"rides UNDER the money surface"*), a view is a logical destination not a component (`KpiDrill` serves five entries), `KPI_DRILL_VIEW` maps INTO the roster, and `Route` is a coarser abstraction (5 URL shapes / 11 views) not a duplicate list. Budget enforced **at import** — M204 makes the suite unable to COLLECT. Program total: DDL 17 gaps · laws 2 · agents 4 · views 0. Gate re-measured at `0b6f817`: 21 PASS · 0 FAIL · 5 BLOCKED |
 | 131 | §683 | **§684** | **STOPPING POINT — every named set in CLAUDE.md is swept.** The five acceptance demos close it: M205 removes one and both the count and the manifest parity fire. Full inventory: 18 invariants · 53 law members · 46 DDL constraints · 7 budgets · 28 payload schemas · 13 agents · 12 views · 5 demos · 26 gates. **21 PASS · 0 FAIL · 5 BLOCKED at `0b6f817`.** Ledger VERIFIED not recited: 9/17 fixtures pending, register 289 rows with 1 uncommitted insertion. §296's spent-line signal has arrived twice — three clean negatives, and the one productive vein found four defects **all in a gate I had just written**. Three residual limits, each reached by trying |
+| 132 | §684 | **§685** | **The never-run gates CAN fail — verified by mutation.** §684's last uncomfortable line was that 5 of 26 gates have never executed. Three are the parity harnesses; §17 gave all three negative-test coverage (18 tests in ONE file, despite its `tools/rater/` location — my "no co-located test" signal was a file-location artifact). Mutation-proved each comparator: **all DETECTED**. The near-miss is the lesson — a crude first-`!==` anchor reported the rater harness SILENT, but that occurrence is a Zod refine on FIXTURE SHAPE, unreachable without the absent fixture. **A mutation is only evidence about the line it actually changed** |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -38233,3 +38234,68 @@ Recorded plainly, because each was reached by trying rather than by declaring:
 - *Human:* the five BLOCKED inputs arriving. **A gate's first real run is where it earns its status**, and
   five of twenty-six have never had one.
 - *Owner:* `REQ-289`'s disposition, REQ-039's DoD text, and the three limits above.
+
+## §685 — PHASE GATE: the never-run gates can fail, verified by mutation rather than by trust
+
+**Subject.** §684's stopping point rests on one uncomfortable line: *"a gate's first real run is where it
+earns its status, and five of twenty-six have never had one."* Three of those five are the parity harnesses,
+BLOCKED on engagement fixtures that have never been vendored. A gate that has never executed could have an
+inverted comparison, a backwards tolerance or a skipped field, and **on the day the owner vendors the
+fixtures it would either block a correct release or certify a wrong one** — with nothing today to say which.
+
+### Already addressed, and re-verified rather than re-found
+
+`tools/rater/parity-detection.test.ts` exists for exactly this, written at the 2026-08-02 audit §17 after a
+sweep found *"exactly three gate scripts with no negative-test coverage: the rater parity harness, the
+invoice replay harness, and the concierge parse harness."* All three are covered — **18 tests in one file**,
+despite its location under `tools/rater/`.
+
+My initial signal was that `invoice-parity.ts` and `parse-parity.ts` had no co-located test. That is a
+**file-location artifact**: ownership follows the consumer, and one test file owns three tools (§"run the
+suite that owns the file", now the third time it has produced a false signal in this audit).
+
+### But "a test exists" is not "the test detects"
+
+That is the whole premise of this audit, so the detection tests were themselves mutation-tested — each
+harness's comparator inverted, with a fixed point asserted first:
+
+| comparator | verdict |
+|---|---|
+| `runInvoiceParity` | **DETECTED** |
+| concierge parse harness | **DETECTED** |
+| `runParity` — `actual.status !== c.expect.status` | **DETECTED** |
+| `runParity` — `actual.sell_cents !== c.expect.sell_cents` | **DETECTED** |
+
+**The three BLOCKED parity gates can say no.** Their comparison logic is proven, so the day the fixtures
+arrive they will be measuring rather than guessing.
+
+### The near-miss, and why it matters more than the result
+
+The first pass mutated *the first `!==` in each file* and reported the rater harness **SILENT** — a finding
+shaped exactly like a real one. Attributed before crediting (§678): that occurrence is a Zod `.refine()`
+validating **fixture shape**, whose own comment explains it exists *"so a hollow expect can never silently
+sail through the comparison as a match"* — and which cannot be exercised without the very fixture that is
+absent. The mutation targeted something unreachable by construction and its silence meant nothing.
+
+**A mutation is only evidence about the line it actually changed.** A crude anchor produces a real-looking
+green, and this one would have published "the rater parity gate is unproven" about a gate that is proven.
+
+### Exit state
+
+No code change — the verification found nothing to fix. All source files restored byte-identical against
+`/tmp` snapshots. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED** (§683 at `0b6f817`).
+
+### This closes §684's last uncomfortable line
+
+Of the five gates that have never run: three now have mutation-proved comparison logic, and the other two
+(`identity-leak`, `fixtures`) were proved differently — §604 demonstrated identity-leak's enforcement is
+functional, and `check:fixtures` is a manifest/hash comparison whose PENDING verdict is itself the assertion.
+
+**Fifth structural signal to dissolve on reading in three phases.** The stopping point holds, and is now
+stronger: the instruments produce candidates at a rate the build no longer matches.
+
+**Reopen triggers**
+- Any fixture is vendored → its gate runs for the first time. The comparator is proved; the *fixture
+  contract* (shape, hash pin, tolerance constants) is not, and cannot be until there is one to parse.
+- A parity harness gains a comparison dimension → `parity-detection.test.ts` covers the ones that exist;
+  nothing counts its cases against the comparators, which is §671's floor pattern unapplied here.
