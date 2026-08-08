@@ -292,6 +292,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 97 | §649 | **§650** | **DEFECT — an iCloud duplicate makes `check:chokepoint` accuse a developer of bypassing the append chokepoint.** ALLOWED keys on the exact path, so `sequencer 2.ts` reads as an unallowlisted writer. invariants.ts fixed the identical fault at §253 by filtering AT THE GLOB with `globSync` shadowed; the predicate is now REUSED, not re-authored. The other three globbing tools are immune because they key on content, size or identity — **path-keyed scanners are the vulnerable class** |
 | 98 | §650 | **§651** | **DEFECT — the seed loader would APPLY a duplicate migration.** §650 swept `globSync` and missed `readdirSync`; six more callers, and load.cli.ts reads every .sql and applies it, so an iCloud duplicate runs the same CREATE TABLE twice (measured: 9 files, not 8). §650 cried wolf; this CORRUPTS. Fixed. surface-contract is content-keyed and immune, as the rule predicted. Four fixture readers are path-keyed but BLOCKED — recorded, not changed |
 | 99 | §651 | **§652** | Re-ran §642's sweep by BEHAVIOUR as §651 prescribed: it had been reporting **2 of 6**. Five `JSON.stringify(a)).toBe(JSON.stringify(b))` determinism assertions it never saw — all correct (same call twice, equality IS the requirement). The vacuity hole is real (`stringify(undefined)` compares equal) and closed by siblings in every case: 47 and 41 other assertions on the same values |
+| 100 | §652 | **§653** | The THIRD mechanism-swept class, re-run by behaviour — and this one was already covered. Five shapes including the inverted `if (!deps.x) return`: one hit, a false positive of my own alternation (a Zod safeParse result, fail-closed). **The control that matters**: re-sweeping found real gaps twice (§642 at 2 of 6, §650 missing readdirSync) and correctly found nothing here, which is what shows the first two were about the code and not the method |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -36120,3 +36121,49 @@ negative. The lesson is recorded in session memory, since the next occurrence wi
   is what makes it safe on its own.
 - Another sweep in this document is quoted as coverage → §642 and §650 both under-reported their class by
   enumerating mechanisms. The hit count is not the coverage.
+
+---
+
+## §653 — PHASE GATE: the third mechanism-swept class, and this one was already covered
+
+**Subject.** §652 showed §642 had been reporting **2 of 6**. §651 showed §650 had missed a whole call. The
+third sweep of mine that enumerated mechanisms is §637's optional-dependency guard, which widened to five
+spellings of *"is present"* — still a mechanism list. The **behaviour** is *"a guarantee that does not run when
+a dependency is absent"*, and there are more ways to write it than the polarity §637 covered.
+
+### Five behaviour-level shapes, including the inverted one
+
+| Shape | Hits |
+|---|---|
+| early return on absent — `if (!deps.x) return` | 1 |
+| `if (deps.x === undefined) return` | 0 |
+| nullish default to a no-op — `deps.x ?? (() => {})` | 0 |
+| ternary skip — `deps.x ? enforce() : undefined` | 0 |
+| swallowed `try { deps.x… } catch {}` | 0 |
+
+The single hit is a **false positive of my own alternation**: `workers/mcp/src/webhooks.ts:112` reads
+`if (!config.success) return null`, where `config` is a **Zod `safeParse` result**, not an injected dependency
+— and the surrounding code is explicitly fail-closed (*"a malformed config is unusable — fail closed"*), which
+is the opposite of the defect being hunted.
+
+### The result worth recording
+
+**§637's widening had already covered the class.** Two of my three mechanism-swept classes were
+under-reporting (§642 at 2 of 6, §650 missing `readdirSync` entirely); this third was not.
+
+That matters because it is the control. A method that always finds something is not measuring — it is
+confirming whatever it is pointed at. Re-sweeping by behaviour found real gaps twice and **correctly found
+nothing the third time**, which is the evidence that the first two findings were about the code rather than
+about the method.
+
+The optional-dep class genuinely has **one instance repo-wide** — §634's, sanctioned with its compensating
+assertion named (§636), and enforced against reintroduction in five spellings (§637).
+
+### Exit state
+
+**21 PASS · 0 FAIL · 5 BLOCKED at HEAD** (§647). No code changed.
+
+**Reopen triggers**
+- A guarantee is skipped by a shape not in the five above (a `Proxy`, a strategy-object lookup, a feature
+  flag read from D1) → outside every spelling and every polarity. The gate at `optional-dep-guards.test.ts`
+  is a regex over source, and that is its floor.
