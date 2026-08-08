@@ -358,6 +358,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 163 | §715 | **§716** | **DEFECT in my own exclusion — the mirror question, asked eleven phases late.** §705 ignored `*.test.*` wholesale for the promise rules, justified by **9 `no-misused-promises`** violations (`waitFor(async…)`). That evidence said nothing about **`no-floating-promises`**, which went off with it. Measured: `work().then(n => expect(n).toBe(999))` in a test → **eslint 0 violations, test 1 passed** — §713's own worst case, *a test WITH assertions that cannot fail*. Split so tests keep floating-promises and lose only misused; M235 fires, the idiom still allowed. **An exclusion inherits the scope of the file, not of its evidence** |
 | 164 | §716 | **§717** | **DEFECT — the driver's offline cache write could be dropped (REQ-061).** `eslint.config.mjs:10` ignores `apps/*/public/**`, where the hand-rolled service worker lives. Both `caches.open(CACHE).then(c => c.put(req, copy))` calls were **unretained** — a SW may be killed once it has responded, so the write that populates the cache can vanish. `SHELL` precaches only 4 entries; **the hashed bundles are cached on first fetch**, i.e. by the dropped write — so an offline open serves `/index.html` whose `<script>` misses. Fixed with `event.waitUntil`; e2e 6/6. Three phases hardened the promise rule *around* the one tree it cannot see |
 | 165 | §717 | **§718** | **Ignored-tree class closed at one instance.** Swept all **12** global ignore patterns for tracked executables: nine hold none; `apps/*/public/**` held `sw.js` (**§717's defect**); `fixtures/**` holds `ref6962.mjs` and `.claude/**` four skill references. `ref6962.mjs` looked like a finding — an unlinted generator feeding the vectors the **anchor implementation is verified against** — but its header states the design: *a DIFFERENT algorithm from merkle.ts*, re-derived a third way by hand, **"three independent derivations agreeing is the anti-circularity guard"**, `status: vendored` with a pinned sha256. Shipped code vs test instrument — **only reading separates them** |
+| 166 | §718 | **§719** | **STOPPING POINT — re-derived at `aa4487f` after three gate-scope changes: 21 PASS · 0 FAIL · 5 BLOCKED, exit 2.** §706–§718 = 13 phases, **4 defects**, each reached by applying the previous phase's lesson to a region it had not covered — §704's pivot → §705 (PWAs unlinted) → §709 (208 test files) → §716 (my own exclusion) → **§717 (the driver's offline cache write, REQ-061)**. Four self-corrections, **every one found by measuring a claim this audit made about itself**. Session: 56 phases · 61 commits · 17 defect rows |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -40304,3 +40305,67 @@ No code change; nothing to fix. `test:tools` **980**; lint 0; typecheck 0; merkl
 - `marketing-site/**` or `shuddl-site/**` gains tracked code → both are ignored and both are **deployable
   surfaces** of a different workstream. They hold zero tracked executables today; the day they do not, they
   inherit `sw.js`'s exact shape.
+
+## §719 — PHASE GATE: STOPPING POINT — re-derived at `aa4487f` after three gate-scope changes
+
+**Subject.** §706 established the process rule that closed §705: **verify with `verify:merge`, not with a
+subset.** Since that measurement the eslint scope changed twice (§705, §716) and shipped code changed once
+(§717's `sw.js`). Three changes to what the gates *see* is exactly the condition that rule was written for.
+
+### Measured at `aa4487f`, clean tree
+
+```
+verify:merge → 26 gates: 21 PASS · 0 FAIL · 5 BLOCKED    aggregate BLOCKED (exit 2)
+```
+
+`rc` captured before any command substitution (§689). The five BLOCKED are unchanged and not repo-closable.
+
+### §706–§718: what a lesson-chaining stretch produced
+
+**13 phases, 4 defects** — and every one came from applying the *previous* phase's lesson to a region it had
+not covered:
+
+| § | defect | reached by |
+|---|---|---|
+| **§705** | the three PWAs outside the type-aware promise rules | §704's pivot back to the build |
+| **§709** | 208 test files one edit from leaving `unit-tests` | testing §708's own deferral |
+| **§716** | a test's floating promise made its assertion unreachable | §715's mirror question, asked of my own exclusion |
+| **§717** | the driver's offline cache write could be dropped (REQ-061) | §716's rule aimed at the *global* ignore list |
+
+The chain is the finding. §705 hardened a rule; §716 found the rule's exclusion was wider than its evidence;
+§717 found the one tree the rule still could not see — and that tree held the only floating promise in the
+repo with a **user-facing** consequence.
+
+### Four corrections this stretch made to its own record
+
+1. **§713** — a detector wrong three ways (79 → 7 → 1 → 0), each wrong pass naming real files.
+2. **§714** — §713's claim *"every guarantee was mutation-proved"* was **false on 1 of 19**.
+3. **§715** — 2 of 9 corpus widenings had never been probed, **both from one phase** that framed itself as
+   measuring rather than building.
+4. **§716** — my own §705 exclusion turned off three rules on evidence about one.
+
+**Every one was found by measuring a claim this audit had made about itself.** None came from review.
+
+### The rules this stretch added
+
+- **A subset that passes is not the gate** (§705).
+- ***"Recorded rather than gated" is an effort claim, and effort claims are measurable*** (§709/§710).
+- **A widened corpus is a new guarantee wearing the shape of a config edit** (§714) — and *the surrounding
+  narrative decides which reflex fires* (§715).
+- **An exclusion inherits the scope of the file, not of its evidence** (§716).
+- **A static signal proposes; reading disposes** (§672, applied five times: §683, §704, §712, §713, §718).
+
+### Stopping point
+
+**The repo-owned surface carries no open defect this audit can close.** `test:tools` **980**; lint 0;
+typecheck 0; e2e 6/6; merkle 7/7. Session totals: **56 phases · 61 commits · 17 defect rows.**
+
+**Reopen triggers — unchanged in kind since §706**
+- *Gate-enforced (9):* §703's seven, plus §705/§716's promise rules over `apps/` including tests, plus
+  §711/§712's focused-test ban.
+- *Human:* the five BLOCKED inputs. **§717's fix is the first thing the airplane-mode soak should be pointed
+  at** when that fixture arrives — it is the one correctness argument this stretch made that rests on a
+  platform contract rather than on a test that can run today.
+- *Owner:* `REQ-289` · REQ-039's DoD · the design gate's comment scope · which LLM providers are permitted.
+- *Process:* verify with `verify:merge`. This section is the third time that rule has been exercised and the
+  second time it was the reason a full run happened at all.
