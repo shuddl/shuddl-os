@@ -330,6 +330,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 135 | §687 | **§688** | **Not untested — UNTESTABLE, which is a better fact.** §687's residual (line kinds, line numbers, GL accounts "asserted only by the passing smoke set") traced to the composer: `kind: line.kind` verbatim, `line_no: i + 1` over the same index, `gl_map` a lookup into the same frozen `GL_MAP` the harness imports. All three compare a value to itself — **no perturbation can make them fail.** Kept as defence against a future composer that MAPS rather than mirrors, now marked at the site. Completes a four-way taxonomy of silent mutations: unreachable line · passing corpus · sibling guard · **construction-forbidden** |
 | 136 | §688 | **§689** | **A FALSE GREEN in my own measurement — the first of the session.** Sweeping §688's tautology class closed it (discriminator: *fixture-expected = two independent origins; derived-vs-derived cannot diverge* — predicts exactly which harness had them; all 7 gates I shipped are derived-vs-declared). Then the harness reported `verify:merge EXIT: 0` against §683's exit 2 — because **a `$(…)` substitution inside the same `echo` clobbers `$?`** (proved: bare→2, substitution-first→0, `rc=$?`→2). The gate actually says *NOT PROMOTABLE*. Six earlier measurement bugs produced false REDS; **a false red gets investigated, a false green gets accepted** |
 | 137 | §689 | **§690** | **CI clean; a comparison wrong BY CONSTRUCTION; one unverified release gate bounded.** No `$?` reads or failure-masking anywhere in CI (corpus verified). A "23 of 30 gates missing from ci.yml" result was nonsense — `ci.yml:50` runs `verify:merge` and the 23 are its MEMBERS (§688's tautology shape, one level up). The real finding: `gatesFor` gives release four extra gates that **never run in CI**, and `staging-smoke` alone has no test. Its fail-closed half MEASURED — exit 2, *"not a pass"* — the assertion half bounded as a named hold |
+| 138 | §690 | **§691** | **DEFECT — the entire 26-gate surface hung on one unasserted line.** `gate-wiring`'s invocation corpus proves each gate is invoked *somewhere*, and "somewhere" **includes `run-gate.ts` itself** — so every gate stays "invoked" even if CI never runs the aggregate. **M212** replaced `run: pnpm verify:merge` with an echo and `test:tools` reported the same 3 known failures: **nothing noticed.** Forty phases of hardened gates ran in CI only because of an unchecked line (§634's shape at the outermost layer). Closed with a floored assertion; M212b fires. Literal pin, with its one false positive (a `verify:release` superset) recorded at the site |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -38643,3 +38644,58 @@ No code change. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, aggregate BLOCKED
   section's: which half of its behaviour can be measured today?
 - CI stops invoking `verify:merge` directly → the 26-gate surface silently becomes whatever the individual
   steps happen to cover. Nothing asserts that step exists.
+
+## §691 — PHASE GATE: the whole gate surface hung on one unasserted line
+
+**Subject.** §690's closing trigger, recorded once and therefore due an attempt (§671): *"CI stops invoking
+`verify:merge` → the 26-gate surface silently becomes whatever the individual steps happen to cover. Nothing
+asserts that step exists."*
+
+### The gap, measured
+
+`gate-wiring.test.ts` already builds an **invocation corpus** — `run-gate.ts`, every workflow, every package
+script — and proves each gate script is invoked *somewhere*. That is the check §656 hardened, and it has a
+blind spot it cannot see past: **"somewhere" includes `run-gate.ts` itself.** Every gate stays "invoked" even
+if CI never runs `run-gate` at all. The corpus cannot distinguish *wired into the aggregate* from *the
+aggregate is wired into CI*.
+
+**M212** replaced `run: pnpm verify:merge` in `ci.yml` with an echo. `test:tools` reported **exactly the same
+3 known register failures** — nothing detected it.
+
+So the append chokepoint, tenant isolation, the design audit, the four browser gates, and every gate this
+audit spent forty phases hardening ran in CI **only because of one line that nothing checked**. That is
+§634's shape — *a guarantee resting on one line in a composition root* — at the outermost layer, where it is
+worth the most and where it had never been looked for.
+
+### Closed
+
+One assertion in `gate-wiring.test.ts`, with a non-vacuity floor on the workflow glob so a renamed
+`.github/workflows` cannot make it pass on an empty set. **M212b** removes the step and it fires.
+
+**A literal pin, and that is stated at the site.** **M213** swaps the step to `verify:release` — a *superset*
+profile — and the assertion fires too. That is a genuine false positive, recorded rather than papered over:
+the release profile BLOCKS in CI without a deployed environment, so the swap is not a real alternative, and
+pinning the literal keeps the failure message specific instead of asking a reader to reason about profile
+subsets under pressure.
+
+### Why this one is the most consequential of the last ten phases
+
+The findings since §680 have mostly been in the audit's own instruments: a false green in my shell, a
+comparison wrong by construction, tests that passed for the wrong reason. **This is different in kind.** It
+is not a gate that could mis-measure — it is *every* gate, not running at all, with the merge profile's 21
+PASS results still printing green locally the whole time.
+
+The measured state has been correct throughout. What was missing is that nothing tied it to CI.
+
+### Exit state
+
+`test:tools` 970 → **971**; typecheck 0; `ci.yml` restored byte-identical after two mutations.
+**26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, aggregate BLOCKED, exit 2** at `04c6fe1` (§689, corrected).
+
+**Reopen triggers**
+- A second workflow is added that is expected to carry gates → this assertion is satisfied by **any**
+  workflow running the step, so a split (merge gates in one file, browser gates in another) would satisfy it
+  while covering less. The floor counts workflows, not their content.
+- `verify:merge` is renamed → the pin is on the literal script name and fails loudly, which is correct.
+- The `nightly` workflow gains `verify:release` → nothing asserts it, and §690's four release-only gates stay
+  outside CI. That remains open and is the larger of the two wiring holes.

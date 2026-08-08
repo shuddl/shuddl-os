@@ -125,6 +125,35 @@ describe("REQ-118/119: no gate script is defined and never run", () => {
 describe("REQ-118 §656: the test script still chains the tools suite", () => {
   const test = PKG.scripts["test"] ?? "";
 
+  it("§691: CI invokes verify:merge — the whole 26-gate surface hangs on this one step", () => {
+    // THE OUTERMOST WIRING, and until now the only unasserted one. `invocationCorpus()` above proves each
+    // gate script is invoked SOMEWHERE — but "somewhere" includes run-gate.ts, so every gate stays
+    // "invoked" even if CI never runs run-gate at all. The corpus cannot distinguish "wired into the
+    // aggregate" from "the aggregate is wired into CI".
+    //
+    // MEASURED: replacing `run: pnpm verify:merge` in ci.yml with an echo left test:tools at exactly the
+    // same 3 known failures. The entire merge surface — every gate this audit hardened — could be deleted
+    // from CI and nothing anywhere would notice. That is §634's shape (a guarantee resting on one line in a
+    // composition root) at the outermost layer, where it is worth the most.
+    // A LITERAL pin, not a coverage computation — stated because it has one honest false positive: swapping
+    // the step to `verify:release` runs a SUPERSET (release = plain + skippable + releaseInfra) and would
+    // still fail here. That is deliberate. The release profile BLOCKS in CI without a deployed environment,
+    // so the swap is not a real alternative, and pinning the literal keeps the failure message specific
+    // instead of asking the reader to reason about profile subsets at 3am.
+    const workflows = globSync(".github/workflows/*.yml");
+    expect(workflows.length, "no workflows found — this assertion cannot see CI, so its silence means nothing").toBeGreaterThan(0);
+    const invoked = workflows
+      .map((wf) => readFileSync(wf, "utf8"))
+      .some((y) => /run:\s*pnpm\s+(?:-s\s+)?verify:merge\b/.test(y));
+    expect(
+      invoked,
+      "no workflow runs `pnpm verify:merge`. Every gate in the merge profile — the append chokepoint, tenant " +
+        "isolation, the design audit, the browser gates — runs in CI ONLY because that step exists. Without " +
+        "it CI still passes on whatever individual steps remain, and the 26-gate surface silently becomes " +
+        "advisory",
+    ).toBe(true);
+  });
+
   it("runs test:tools", () => {
     expect(
       test,
