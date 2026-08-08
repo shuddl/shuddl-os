@@ -328,6 +328,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 133 | §685 | **§686** | **DEFECT ×2 — the inversion detected, the deletion did not.** Attempting §685's recorded limit: the field-name proxy said `outcome`/`hold_reason` were uncovered; **inverting** both fired, dissolving that. But inversion is the WRONG mutation — it reddens on the false-positive side. Replacing each guard with `false` (a comparator that stops reporting) left the suite **GREEN** for both, while the same mutation on the rater's two fires. That is §17's *"field silently skipped"* — the case that CERTIFIES a divergent replay, in a BLOCKED harness that has never run. **Rule: inversion asks "does it run?", deletion asks "does anything depend on its verdict?"** |
 | 134 | §686 | **§687** | **Three drafts of one test, each passing for the wrong reason — the correction IS the output.** Sweeping all 22 invoice guards by deletion reported 19 SILENT, which is **not** a gap: the smoke set is a PASSING corpus, so deleting a correct comparator cannot change a passing result. **Deletion only measures against an input that FAILS.** Then three drafts targeting the structural penny-parity comparison were each caught by the wrong guard (expectation → exception → a redundant GL-side sibling). Shipped as a PROPERTY pin with the claim corrected, explicitly disclaiming what it does not prove |
 | 135 | §687 | **§688** | **Not untested — UNTESTABLE, which is a better fact.** §687's residual (line kinds, line numbers, GL accounts "asserted only by the passing smoke set") traced to the composer: `kind: line.kind` verbatim, `line_no: i + 1` over the same index, `gl_map` a lookup into the same frozen `GL_MAP` the harness imports. All three compare a value to itself — **no perturbation can make them fail.** Kept as defence against a future composer that MAPS rather than mirrors, now marked at the site. Completes a four-way taxonomy of silent mutations: unreachable line · passing corpus · sibling guard · **construction-forbidden** |
+| 136 | §688 | **§689** | **A FALSE GREEN in my own measurement — the first of the session.** Sweeping §688's tautology class closed it (discriminator: *fixture-expected = two independent origins; derived-vs-derived cannot diverge* — predicts exactly which harness had them; all 7 gates I shipped are derived-vs-declared). Then the harness reported `verify:merge EXIT: 0` against §683's exit 2 — because **a `$(…)` substitution inside the same `echo` clobbers `$?`** (proved: bare→2, substitution-first→0, `rc=$?`→2). The gate actually says *NOT PROMOTABLE*. Six earlier measurement bugs produced false REDS; **a false red gets investigated, a false green gets accepted** |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -38498,3 +38499,83 @@ Comment-only change to `invoice-parity.ts`; no logic touched. `parity-detection.
   something.
 - A structural dimension is added that is NOT construction-fixed → it needs a perturbation test, and §687's
   method (inject a `priceFn`, match every other dimension) is the recipe.
+
+## §689 — PHASE GATE: a false GREEN in my own measurement, and the tautology class closed
+
+**Subject.** §688 named a fourth explanation for a silent mutation — *the construction forbids the
+divergence* — which is itself a sweepable class: **a comparison whose two sides are the same expression
+reads as a guarantee and enforces nothing.** This sweeps it, and then catches something worse in the
+sweep's own instrumentation.
+
+### The tautology class, closed by a structural discriminator
+
+| harness | comparison shape | verdict |
+|---|---|---|
+| `parity.ts` | 3 × `actual.X !== expected.X` — engine output vs **fixture** | independent sources, real |
+| `parse-parity.ts` | 5 × `actual.X !== expected.X` — parse output vs **fixture** | independent sources, real |
+| `invoice-parity.ts` | 3 × `inv.X !== q.X` — invoice vs quote, **both engine-derived** | §688's tautologies |
+
+**The discriminator is the source count, not the syntax.** A comparison against a *fixture expectation* has
+two independent origins and can always diverge; a comparison between two values the same code derived cannot,
+unless something between them transforms. That rule predicts exactly which of the three harnesses had
+tautologies, without inspecting any of them a second time.
+
+Applied to the seven gates this session shipped: all compare a **derived** set against a **declared** one —
+git-grepped model keys vs `LLM_AGENTS`, `evInput()` call sites vs schema declarations, a `blessed/*.png` glob
+vs the parsed `SCREENS` registry, `git ls-files` vs `ALLOWED`. None has the derived-vs-derived shape. Class
+closed.
+
+### Then the sweep's own instrument produced a FALSE GREEN
+
+Re-measuring the merge gate, the harness reported:
+
+```
+verify:merge at 04c6fe1 EXIT: 0
+```
+
+against §683's **exit 2**, with an identical 21 PASS · 0 FAIL · 5 BLOCKED tally. The gate's own output said
+`aggregate: BLOCKED (exit 2)` and `NOT PROMOTABLE — this is NOT a green`.
+
+The bug is in the command:
+
+```sh
+echo "verify:merge at $(git rev-parse --short HEAD) EXIT: $?"
+```
+
+**The command substitution runs before the echo and clobbers `$?`.** Proved, not reasoned:
+
+| form | reports |
+|---|---|
+| bare `$?` after `(exit 2)` | **2** |
+| `$?` with a substitution earlier in the same line | **0** |
+| `rc=$?` captured first, then substitute | **2** |
+
+### Why this one is worse than the six before it
+
+Every earlier measurement failure in this audit produced a **false red** or an alarming non-result: a
+workerd crash reading as "undefended", `57 tests` in a 157-test package, `no tests` for eleven passing sites,
+a non-existent script name faking a red baseline. **A false red gets investigated. A false green gets
+accepted.**
+
+This one was caught only because a prior run existed to contradict it — §683's exit 2, eight commits and one
+section earlier. Had this been the first measurement, the audit would have recorded *"the merge gate now
+exits 0"*, which is the single most damaging sentence this record could contain: **it would report a
+BLOCKED, not-promotable build as releasable.**
+
+That is the argument for §667's re-derivation discipline stated from the other side. Re-measuring is not
+about catching drift in the subject; it is about having a second reading to disagree with.
+
+### Corrected state
+
+**26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, aggregate BLOCKED, exit 2**, at `04c6fe1`. Unchanged from §683,
+and the five BLOCKED remain the `IDENTITY_DENYLIST` secret and four engagement-workspace fixture gates.
+
+### Exit state
+
+No code change. `test:tools` 970; typecheck 0. Working tree carries only the other workstream's register row.
+
+**Reopen triggers**
+- Any future `$?` read in this audit's tooling that is not the *immediately* following statement → the same
+  class. `rc=$?` on its own line is the only safe form, and every measurement in this section now uses it.
+- A comparison is added between two values derived from one source → the tautology discriminator above
+  applies, and nothing enforces it; it is a review question, not a gate.
