@@ -296,6 +296,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 101 | §653 | **§654** | Checked §646's correction against the nine ops docs. Every gate tally there is SHA-pinned (`Verdict at 3fc592b, 2026-07-28`), and most "state claims" are conditionals in contract tables — which cannot go stale the way a status line can. **The finding: PROJECT-STATE.md states §646's and §647's rules verbatim at audit §330**, before this session re-derived both from a wrong number. The record with the discipline never went wrong; the memory without it did. Re-baselined in its own convention |
 | 102 | §654 | **§655** | Asked §614's question of THIS SESSION'S OUTPUT: are the ten gate files added here on the merge path? Traced `unit-tests` → `test` → `test:tools` → `tools/**`, then MEASURED it — M156 plants §608's violation and exits test:tools 1, short-circuiting the merge gate's own `&&`; all ten collect (10 files / 30 tests). Tenth measurement error en route, and a recorded one: zsh does not word-split unquoted params |
 | 103 | §655 | **§656** | Closed §655's trigger: the `unit-tests` gate runs `test`, and `test` is `test:tools && …`. Two properties hang off it. **Attribution: dropping test:tools was ALREADY caught** by the orphan-script test (M157, 2 red incl. a pre-existing one); the new coverage is M158 — `&&` → `;` leaves the script present, running and green while 44 tools files are ignored. The gate that runs and cannot fail, one keystroke from this session's own output |
+| 104 | §656 | **§657** | Swept §656's "gate that runs and cannot fail" through its five MECHANICAL forms: zero instances. No `\|\| true`, no `continue-on-error`, no pipes in run steps, and all three spawnSync sites read status — `orphans.ts` making the subtle 0-vs-1-vs-other call that separates "git grep found nothing" from "git failed". **The finding: every instance this session was SEMANTIC** (§609 a floor at zero, §622 a split conjunction, §656 an operator), never a sloppy invocation |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -36336,3 +36337,58 @@ recurring defect**, and here it was one keystroke away from the line carrying it
   while `Y`'s failure is swallowed. The assertion covers the first link of the chain, not every link.
 - `unit-tests` stops invoking `test` → both assertions here become vacuous truths about a script nobody runs,
   and `gatesFor("merge")` is where that would show.
+
+---
+
+## §657 — PHASE GATE: the recurring class has no mechanical instances left
+
+**Subject.** §656 named this audit's most recurring defect: **the gate that runs and cannot fail** — §609's
+browser floors, §622's CI-contract conjunction, §656's own `&&`. A class named three times deserves a sweep of
+its mechanical forms, by behaviour rather than by call (§652).
+
+The behaviour: **a failing command that does not fail the gate.**
+
+| Mechanism | Instances |
+|---|---|
+| `\|\| true` / `\|\| exit 0` / `;` chains in `package.json` scripts | **0** |
+| `continue-on-error: true` in a workflow | **0** |
+| `\|\| true` in a workflow `run:` | **0** |
+| a pipe in a workflow `run:` (the left exit code is lost) | **0** |
+| `spawnSync` whose `.status` is never read | **0 real** — 3 flagged, all false positives of a 600-char window |
+
+### The three spawn sites are each correct, and one is subtle
+
+- `run-gate.ts` passes `res.status` into `reconcileSentinel`, *"so a nested sentinel can never out-green a
+  failing command"* — the exact defect that skill exists for.
+- `playwright-guard.ts` carries it as `exitCode` into `classifyRun`, which is what §609's disposition ladder
+  reads.
+- `orphans.ts` does the one that is easy to get wrong:
+
+```ts
+if (result.status !== 0 && result.status !== 1) throw new Error(`git grep failed …: ${result.stderr}`);
+```
+
+`git grep` exits **1 for "no matches"** and **>1 for a real failure**. A naive `status !== 0` check would treat
+every clean scan as an error; ignoring status entirely would treat a broken git as an empty repo — and this is
+the annotation scanner **traceability** depends on, so an empty result there reads as *"no code cites any
+REQ"*. It separates the two and throws with stderr on the third case.
+
+### The finding is where the class actually lives
+
+**Zero mechanical instances.** The shell and process discipline in this repo is clean — which is worth stating,
+because the class was named three times and the obvious hypothesis is a sloppy invocation somewhere.
+
+It is not. Every instance found this session was **semantic**: a floor set at zero rather than at the corpus
+(§609), two independent existence checks standing in for a conjunction (§622), an operator that preserves every
+surface property (§656). **The gate that cannot fail is a defect of what the assertion checks, not of how the
+command is run** — and that distinction is what tells the next reader where to look.
+
+### Exit state
+
+**21 PASS · 0 FAIL · 5 BLOCKED at HEAD** (§647). No code changed — a sweep and a clean negative.
+
+**Reopen triggers**
+- A gate is invoked through a shell wrapper (`bash -c`, a Makefile, a composite action) → exit-code
+  propagation stops being visible to these five checks, and the mechanical half of the class reopens.
+- A `spawnSync` site is added → the discrimination `orphans.ts` makes (0 vs 1 vs other) is per-command and
+  cannot be generalised; `git grep`'s 1 means "clean", most other tools' means "failed".
