@@ -246,6 +246,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 51 | — | **§603** | THE REQ-289 BLOCKER MEASURED — restated 17 times, never re-checked. Not "uncommitted": an approved-terminal constant AND a classifier with no GTM disposition. Landing set PROVED by rehearsal: 4 items, atomic, owner-signed |
 | 52 | §603 | **§604** | THE 5 BLOCKED GATES EXERCISED — 9 pending fixtures verified (no tooling half); the identity lint had only ever been seen SKIPPING, so it was run: it catches, names the file, and MASKS the term. Third `git ls-files` probe needing `git add -N` |
 | 53 | §604 | **§605** | THE LAST UNMEASURED BLOCKER SPLIT IN TWO — sender-domain + CF credentials was one label over two unlike things. The send path is rehearsed on BOTH sides of the CONFIRM flip (17 cases, key non-leakage mutation-proven); the credential path fails BLOCKED/executed:false/zero-files, verified by running it. All 5 owner-held inputs now measured |
+| 54 | §605 | **§606** | GATES SEEN ONLY PASSING HAVE NEVER BEEN SEEN FAILING — 5 given planted violations (seed/table-shape/section-refs/rater-purity/append-chokepoint), all 5 caught with file:line + fix. A non-counterexample probe found the real question: raw-fetch LLM bypass, already closed by an ESLint capability ban whose message names it |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -32945,3 +32946,85 @@ restored byte-identical); the only working-tree entry remains the pre-existing R
 - `backup.ts` gains a credential path that can partially succeed → `executed:false` stops being the honest answer
   and the BLOCKED/FAIL boundary needs re-deriving.
 - The 403 hint stops naming REQ-092 → the operator-facing half of this documentation is gone.
+
+---
+
+## §606 — PHASE 54: WHICH PASSING GATES HAVE EVER BEEN SEEN FAILING
+
+**Subject.** §604's discovery generalized. The identity lint was found to have *only ever been observed
+skipping* — so it had never been observed **working**. The same question turns on the other 19: a gate that has
+only ever been seen **passing** has never been seen **failing**, and a gate that cannot fail is decoration.
+
+**First, the count reconciles.** `gatesFor("merge")` returns `plain` (17) + `skippable` (9) = **26**, and
+19 PASS + 2 FAIL + 5 BLOCKED = 26. The memory of "24 gates" is the pre-`section-refs`/`table-shape` figure;
+two gates were added and both pass. No discrepancy.
+
+### Five gates given a planted violation, all five caught it
+
+| Gate | Violation planted | Result |
+|---|---|---|
+| `seed` | one datum changed (`pieces` floor 1 → 2) | `FAIL SEED-1 hash drift: pinned 6c10c37d… vs actual 8c8f9030…` |
+| `table-shape` | a 3-cell row under a 2-column header | `docs/…:5 — row has 3 cells, header (line 3) has 2. Markdown DROPS the extra 1 at render` |
+| `section-refs` | a pointer to a five-digit section number beyond the highest defined | names the file:line and the dangling number, + the three sanctioned fixes |
+| `rater-purity` | `import Anthropic from "@anthropic-ai/sdk"` in `packages/rater/src` | `FAIL rater-purity [llm_in_rater] … REQ-024` |
+| `append-chokepoint` | a raw `INSERT INTO events` in `packages/ledger/src` | names the file:line, the bypassed gates, **and** the allowlist entry a justified writer would need |
+
+Each names `file:line` and states the fix, and each returns to clean when the plant is removed. `seed` is worth
+one extra note: it has **no companion test file** and needs none — it is 18 lines of `if (pinned !== actual)
+exit(1)`, and §601's rule says the honest coverage for that is a mutation on the layer that could open it (the
+seed data), not a unit test asserting `1 !== 2`. M85 is that mutation.
+
+### A bad probe found the better question
+
+I first probed `rater-purity` with a raw `fetch("https://api.anthropic.com/…")` rather than an import. It
+reported **OK** — correctly, because the gate documents itself as parsing *import specifiers*. §531's fourth
+explanation, the most-used one: **the probe was not a counterexample.**
+
+But the miss raised a real question. CLAUDE.md says LLM calls live only in `packages/agents/*`, "statically
+linted" — and an import lint cannot see a raw fetch. So it was planted in both `packages/ledger` and
+`packages/rater` and every relevant gate run. **ESLint catches both**, via `no-restricted-globals` on `fetch`,
+and the ledger rule's message names this exact bypass:
+
+> *"the ledger's only sanctioned network egress is the RFC 3161 TSA client (src/tsa/**). **An LLM is reachable
+> by raw fetch with no import** — do model work in packages/agents"*
+
+Someone reached this hole before me and closed it with the reason written into the failure message. A **clean
+negative**, and a better one than a silent pass would have been: the enforcement is a *ban on the capability*
+(no network at all) rather than a ban on one spelling of it, which is why the raw-fetch spelling never mattered.
+
+### Two measurement errors, both mine
+
+- **`pnpm -s check:append-chokepoint` exits 1 with a zero-byte log** — because that script does not exist; it is
+  `check:chokepoint`. For several minutes this looked like a gate failing on a clean tree. Fourth occurrence of
+  the *script-that-doesn't-exist* class. The tell was the empty output: a gate that fails always says why.
+- **The non-counterexample above.** Recorded rather than discarded, because it produced the phase's only real
+  question.
+
+### A sixth proof, unplanned and therefore the strongest
+
+Writing this section **broke `section-refs`**. The table above originally quoted the probe's literal dangling
+number, and the gate flagged it — in a 33,000-line document, on prose written minutes earlier, at the right
+`file:line`. That is the *known-bad-value* false-positive class: a doc describing a violation contains the
+violation. It is a **permanent floor** for any content-scanning gate, not a bug.
+
+`section-refs` has **no suppression mechanism** — no `ignore` comment, unlike `check:citations`. That is
+consistent with its own message (*"a wrong pointer is worse than an absent one"*), and the consequence is worth
+knowing: **a section describing a dangling-reference probe cannot quote the value it used.** The table now
+describes the shape instead. Recorded because the next person to document a probe of this gate will hit it, and
+because a gate firing on content nobody planted is better evidence than any planted violation.
+
+### Exit state — UNCHANGED
+
+**19 PASS · 2 FAIL · 5 BLOCKED.** No source changed; all probe files removed and the tree verified clean. What
+this phase adds is not a fix but a **property of the record**: five gates that had only ever been observed
+passing have now been observed failing, on a planted violation, with the message they give the person who trips
+them.
+
+**Reopen triggers**
+- A gate is added to `plain` or `skippable` → it joins the set of gates never seen failing; plant one violation
+  before trusting its green.
+- `no-restricted-globals` loses `fetch` for either package → the raw-fetch bypass reopens, and no import lint
+  will see it. (§"adding a gate can delete a gate": a new scoped ESLint block **replaces** a named rule's
+  options rather than merging them, and a disabled rule reports nothing.)
+- `seed.hash` is regenerated in a commit that does not say why → the gate passed by design and the drift is
+  unreviewed; the message asks for the PR note, but nothing enforces it.
