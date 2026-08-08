@@ -375,6 +375,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 180 | §732 | **§733** | **A thrice-recurring rot made mechanical — and the fail-closed tool that first refused 15 of 15.** Anchored citations rot on every line shift (§175, §253, §732 — same file), and the hand repair failed **twice in one sitting**. Built `pnpm fix:citations`: re-derives an anchored citation's line, refuses anything ambiguous, exits non-zero on a partial repair. **Version one was safe and USELESS** — it required a unique anchor hit and repaired **0 of 15** on the real rot, because (a) it passed the raw path to `index.lines()` while the gate resolves bare filenames via `resolveCandidates`, and (b) multiple hits are the NORMAL case (declaration + uses). Fixed by using the gate's own resolver and preferring the **declaration** — not a looser threshold. After: **15 of 15 repaired, 0 left.** Also: a probe whose pad landed BELOW every anchor reported `rotted: 0` (reads as "no bug"), and a comment containing a literal citation example was parsed as a citation |
 | 181 | §733 | **§734** | **The "+ photos" half of acceptance demo #1: the checklist's remedy was wrong in BOTH directions.** More built than stated — `mintDocDownloadCap` + `/pub/documents/:cap` exist, and `doc-cap.ts` names the Biller as their intended second caller; the view renders real `<img>` with a caption-swap trap. Far more blocked than stated — the agents worker binds **neither `JWT_SECRET` nor an `API` service**, so the Biller has no secret to mint with and no route to ask. Both remedies are **decisions** (session-secret blast radius / new surface) plus a **TTL** call for a bearer-forwardable URL living in an inbox. **Not implemented — the owner's call.** Two record defects fixed: `doc-cap.ts` cited `biller.ts:409@loadBookingQuoteRef` as the `photos: {}` gap (it is `loadBookingQuoteRef`; unanchored ⇒ bounds-checked only ⇒ green forever), now anchored `:588@photos`; and the checklist misquoted REQ-087's **DoD** — "sig/pallet photos" is the TITLE, the DoD is met |
 | 182 | §734 | **§735** | **Counted §734's defect class: 49 of 95 unanchored citations into high-churn targets have drifted; 7 of 7 hand-verified point at UNRELATED code** (one at a **blank line**). Method: `git blame` the citing line → sum the target's line delta above the cited line since that commit. **The taxonomy is the finding** — 38 sit in records frozen BY DESIGN (skills' own grounding note: *"provenance, not proof"*; plans; dated audits), and **frozen-ness turned out to be a property of the ROW, not the FILE** (2 more sit inside struck-through *"original text preserved"* rows, where re-pointing would CORRUPT the record). 9 genuinely live; **7 repaired by adopting anchors**, ratchet 141 → 134, anchored 201 → 210; 2 named for a human. **The ratchet structurally cannot find this** — a count of unanchored citations says nothing about whether any is wrong |
+| 183 | §735 | **§736** | **Live drifted citations: 11 → 0, re-measured rather than assumed** (§735's own trigger). Closed the two that needed judgement: the REQ-170 evidence-gate range (now anchored `@loadActivePodDocument`) — subtle because that row mixes a LIVE assertion with a PRESERVED historical narrative in one cell, and re-pointing the wrong half would have edited a quotation — and the pen-test sequencer range (now `@UNRESOLVED_VISIBILITY`). Ratchet **141 → 132**, content-anchored **201 → 219**. The detector still reports **2**, and that is CORRECT: both are row-level frozen struck-through rows. **A permanent floor, not a backlog** — the classifier works by FILE, frozen-ness is a property of the ROW, and §272 rightly bounds the ignore-marker to the scanner's own tree. **Detector deliberately NOT shipped as a gate**: cost, a known-false red every run (§730), and it measures a proxy — 49 candidates became verdicts only by hand |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -41816,3 +41817,79 @@ pressure*, never *accuracy*, and reading its green as "citations are healthy" is
   whether the row is history before touching its addresses.
 - The two named live citations above are closed → the live drifted set reaches zero, and this measurement
   should be re-run rather than assumed to stay there.
+
+## §736 — PHASE GATE: closing the live drifted set to zero, and the floor that remains by design
+
+§735 repaired seven of nine live drifted citations and named two that needed a judgement rather than a guess.
+This phase makes those judgements, then does what §735's own reopen trigger demanded — **re-runs the
+measurement instead of assuming the repair held.**
+
+### The two judgements
+
+**The REQ-170 residual row of `GO-LIVE-CHECKLIST.md`.** Its unanchored Biller citation claimed the range that
+*"requires an ACTIVE tenant-scoped POD document AND a present R2 object for the recorded `signature_hash`
+before the invoice mints; a miss is `held(evidence_missing)`."* It had drifted by four. The real gate is the
+`if (deps.evidence !== undefined)` block: `loadActivePodDocument` → `evidence.head` → `held(evidence_missing)`.
+Re-pointed and anchored on `@loadActivePodDocument`.
+
+Worth noting why this one needed judgement rather than mechanics: the row also contains a **preserved
+historical narrative** (*"This row previously read …"*), so it mixes live assertion with frozen quotation in a
+single cell. The drifted citation belongs to the sentence *"That half SHIPS and is tested"* — a live claim —
+not to the preserved text. Getting that backwards would have re-pointed a quotation.
+
+**The V1-remediation paragraph of `docs/security/pen-test-basics.md`.** It claimed `resolveVisibility` returns
+an unresolved sentinel *"the sequencer refuses with zero append"*, citing a range that had drifted by two. The
+refusal is `resolveVisibility(...)` → `if (resolvedVisibility === UNRESOLVED_VISIBILITY) throw`. Re-pointed and
+anchored on `@UNRESOLVED_VISIBILITY`.
+
+### Re-measured, not assumed
+
+```
+unanchored into ratcheted targets   95 → 86
+LIVE drifted citations              11 → 0
+ratchet baseline            141 → 134 → 132
+content-anchored            201 → 210 → 219
+```
+
+**Zero live drifted citations remain.** Every citation in a record that is supposed to be current, into a
+high-churn file, now either points where it claims or is content-anchored so it cannot drift silently again.
+
+### The two the detector still reports, and why that is correct
+
+The re-run reports 2. Both are the **row-level frozen** cases §735 identified: struck-through
+`GO-LIVE-CHECKLIST.md` rows reading *"**FIXED 2026-07-27** — original text preserved: …"*, whose citations sit
+inside a quotation of the original defect report. Re-pointing them would corrupt the record they exist to
+preserve.
+
+This is a **permanent floor**, not a backlog. The detector classifies by citing FILE; frozen-ness is a
+property of the ROW. No amount of filtering fixes that, because whether a row is history is a semantic fact
+the file records nowhere — the `semantic-false-positives-need-a-marker` shape, arriving where there is nothing
+to mark: `citation-check: ignore` is bounded to the scanner's own tree by §272, deliberately, so no document
+can hide rot behind it. That bound is right and I am not proposing to widen it for two rows.
+
+### Not shipping the detector, deliberately
+
+It would make a poor gate on three counts, and each is a rule this audit already wrote down:
+
+1. **Cost** — `git blame` plus a `git diff` per citation, ~90 citations. §729 declined to double `test:tools`
+   for a boundary that changes rarely; this is the same trade.
+2. **A known-false red on every run** — the floor of 2 above. §730's rule: a gate that must fail is worse than
+   a gate that is absent, because the team learns to read its red as noise.
+3. **It measures a proxy.** Line drift is a *candidate* signal; 49 candidates yielded verdicts only after
+   seven files were opened by hand. A gate cannot open a file and read the prose.
+
+What replaces it is what actually closed the defect: **anchor adoption**, which the ratchet already
+incentivises structurally (it may fall, never grow) and which converts a citation from bounds-checked to
+content-checked *permanently*. 219 citations are now content-anchored, up from 201 two phases ago.
+
+### Exit state
+
+`check:citations` OK — 1360 resolving, **219** content-anchored; ratchet at its new frozen **132**.
+`test:tools` **1023** (baseline 3 register failures only); lint 0; typecheck 0.
+
+**Reopen triggers**
+- A re-run reports MORE than 2 → a new live citation has drifted. The 2 are named above and are correct; a
+  third is not.
+- Someone "fixes" a struck-through row's citation → that is corruption of preserved history. The row's
+  strikethrough and its *"original text preserved"* wording are the signal to leave it alone.
+- The ratchet baseline rises → adoption reversed. It is allowed to fall and nothing else.
