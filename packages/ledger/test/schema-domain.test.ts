@@ -181,3 +181,111 @@ describe("Task 3 — control plane (4 tables) constraints", () => {
     expect(r?.c).toBe(1);
   });
 });
+
+// ─── REQ-118 §668 — THE TENANT DOMAIN'S CHECK CONSTRAINTS WERE ENFORCED BY THE DATABASE AND BY NOTHING ELSE.
+//
+// The control-plane half of this file already does this: "users.role CHECK admits the six roles and rejects
+// others" (above). The pattern was written once and never extended one migration over. Measured by neutering
+// every CHECK in 0002_domain.sql — `CHECK (` → `CHECK (1=1 OR `, which keeps the SQL valid and makes the
+// constraint always true — and running every suite that could own these tables:
+//
+//   ledger 634 · api 798 · agents 122 · billing 58 · translator 116 · rater 157 · mcp 185   ALL GREEN
+//
+// Sixteen constraints, 1,670 tests, zero detection. The same mutation on the CONTROL plane fires one test.
+//
+// This is the class CLAUDE.md's own audit flagged as the most deletable: a DDL constraint is the last line
+// below every gate and test double, and it is exactly the clause a schema refactor drops because nothing in
+// the application layer references it. Two of the eight schema invariants (I1's foreign key, I3's triggers)
+// already live here for that reason.
+//
+// It matters most on money_lines. `direction IN ('ar','ap')` and the `kind` list — which carries
+// `interline_split`, `correction_credit` and `correction_debit`, the values REQ-040's floor comparison and
+// I7's netting identity are written in terms of — have NO Zod counterpart anywhere in src. For those three
+// the database is not a backstop, it is the only guard.
+//
+// TWO KINDS OF ASSERTION, because the hazard and the guarantee are different failures:
+//   1. the constraint still EXISTS, with exactly the values it is supposed to admit (catches a refactor
+//      deleting it, neutering it, OR quietly widening the enum — the third is invisible to a behavioural test
+//      that only ever tries one bad value);
+//   2. the constraint actually BITES on a real insert.
+
+const DOMAIN_CHECKS: ReadonlyArray<{ table: string; column: string; values: readonly string[] }> = [
+  { table: "parties", column: "kind", values: ["shipper", "consignee", "carrier", "broker", "cartage", "factor", "insurer"] },
+  { table: "shipments", column: "mode", values: ["LTL", "TL", "brokered", "cartage", "dray", "transload"] },
+  { table: "legs", column: "kind", values: ["pickup", "linehaul", "interline", "cartage", "delivery", "dray"] },
+  { table: "documents", column: "kind", values: ["BOL", "POD", "photo", "WI_cert", "invoice", "ratecon", "COI", "W9", "claim", "tsa_receipt"] },
+  { table: "documents", column: "visibility", values: ["internal", "counterparty", "public"] },
+  { table: "money_lines", column: "direction", values: ["ar", "ap"] },
+  { table: "money_lines", column: "kind", values: ["freight", "fsc", "accessorial", "correction_credit", "correction_debit", "interline_split", "cod_collect", "settle_fee", "credit_purchase"] },
+  { table: "messages", column: "channel", values: ["email", "sms", "voice", "portal", "note"] },
+  { table: "facilities", column: "kind", values: ["terminal", "dock", "yard"] },
+  { table: "assets", column: "kind", values: ["tractor", "trailer", "pup"] },
+  { table: "rate_config", column: "kind", values: ["zone_tariff", "floors", "fsc", "accessorials", "transit_matrix", "class_adapter"] },
+  { table: "authority_map", column: "module", values: ["rating", "invoicing", "dispatch", "settlement", "comms"] },
+  { table: "authority_map", column: "authority", values: ["native", "legacy"] },
+  { table: "anomalies", column: "severity", values: ["info", "warn", "critical"] },
+  { table: "integrations", column: "kind", values: ["edi_partner", "eld", "quickbooks", "email_inbox", "tiles", "tsa"] },
+];
+
+async function tableSql(table: string): Promise<string> {
+  const row = await TDB.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name = ?").bind(table).first<{ sql: string }>();
+  return (row?.sql ?? "").replace(/\s+/g, " ");
+}
+
+describe("REQ-118 §668 — every tenant-domain CHECK still exists, with exactly its allowed values", () => {
+  it("the schema is readable at all (non-vacuity — an empty read must not pass 15 assertions)", async () => {
+    expect((await tableSql("money_lines")).length, "sqlite_master returned nothing for money_lines").toBeGreaterThan(200);
+  });
+
+  it.each(DOMAIN_CHECKS)("$table.$column admits exactly its documented values", async ({ table, column, values }) => {
+    const sql = await tableSql(table);
+    // Anchored on `CHECK (<column> IN (` so a neutered `CHECK (1=1 OR <column> IN (` does not match either —
+    // an always-true constraint is a deleted constraint that still reads like one.
+    const m = new RegExp(String.raw`CHECK \(${column} IN \(([^)]*)\)\)`).exec(sql);
+    expect(m, `${table}.${column} no longer carries a \`CHECK (${column} IN (...))\` clause — it was deleted, renamed, or made always-true`).not.toBeNull();
+    const live = m![1]!.split(",").map((v) => v.trim().replace(/^'|'$/g, ""));
+    // toEqual, not toContain: a value ADDED to the enum widens what the database will store, and no
+    // behavioural test that tries one bad value can see that happen.
+    expect(live, `${table}.${column} admits a different value set than this repo documents`).toEqual([...values]);
+  });
+
+  it("money_lines.amount_cents still refuses zero", async () => {
+    expect(await tableSql("money_lines")).toContain("CHECK (amount_cents != 0)");
+  });
+});
+
+describe("REQ-118 §668 — the money and authority CHECKs actually bite on a real insert", () => {
+  // Behavioural half. Scoped to the constraints with NO application-layer counterpart (money_lines) plus the
+  // WP-15 authority pair, rather than all 16: for the rest, a Zod enum refuses the value long before D1 sees
+  // it, so the schema assertion above is the part that is load-bearing.
+  async function money(over: Partial<{ direction: string; kind: string; amount_cents: number }>, tag: string): Promise<D1Result> {
+    await insertBaseEvent(`evt-${tag}`);
+    return TDB.prepare(
+      `INSERT INTO money_lines (id, shipment_id, event_id, line_no, direction, kind, amount_cents, party_id, division, gl_map, created_ts)
+       VALUES (?, 'S1', ?, 0, ?, ?, ?, 'p:acme', 'main', '{}', 1000)`,
+    )
+      .bind(`ml-${tag}`, `evt-${tag}`, over.direction ?? "ar", over.kind ?? "freight", over.amount_cents ?? 12345)
+      .run();
+  }
+
+  it("accepts an honest AR freight line (non-vacuity — the rejections below must mean the CHECK)", async () => {
+    await expect(money({}, "ok")).resolves.toBeTruthy();
+  });
+
+  it("rejects a direction that is neither ar nor ap — money on no side of the ledger", async () => {
+    await expect(money({ direction: "xx" }, "dir")).rejects.toThrow();
+  });
+
+  it("rejects an unknown money_line kind — REQ-040 and I7 are written in terms of this list", async () => {
+    await expect(money({ kind: "not_a_kind" }, "kind")).rejects.toThrow();
+  });
+
+  it("rejects a ZERO-amount money line — a line that projects no money is not a projection of physics", async () => {
+    await expect(money({ amount_cents: 0 }, "zero")).rejects.toThrow();
+  });
+
+  it("rejects an unknown authority module, and an authority that is neither native nor legacy (WP-15, L8)", async () => {
+    await expect(TDB.prepare("INSERT INTO authority_map (module, authority) VALUES ('not_a_module','native')").run()).rejects.toThrow();
+    await expect(TDB.prepare("INSERT INTO authority_map (module, authority) VALUES ('rating','neither')").run()).rejects.toThrow();
+  });
+});

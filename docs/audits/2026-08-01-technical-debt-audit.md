@@ -307,6 +307,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 112 | §664 | **§665** | **DEFECT — a REQ resting on a sentence.** `EventInput`'s header asserts a CLOSED set (the DO owns seq/prev_hash/recorded_at/visibility/hash/stream_id) and forbids `LedgerEvent.parse` on a request body. `.strict()` is what makes it true; dropping it left **1,728 tests green**. Not chain forgery — the DO's spread order and late hash stop that — but an unknown key then dies at the storage parse, which is **not in a try/catch**, so a raw ZodError escapes instead of `CODE:json`. That is REQ-133's exact failure, whose fix calls that parse "the now-unreachable backstop" |
 | 113 | §665 | **§666** | **DEFECT — 14 `.strict()` calls defended by nothing, and the hazard was the opposite of the guess.** Dropping all 73 at once failed 36 tests (reads covered); per-file (§466) showed `anchors`/`money`/`driver-manifest` silent across ALL six suites. **Measured:** loose Zod **strips** unknown keys, so a payload losing `.strict()` silently DISCARDS a mis-keyed field into an immutable hashed event — the inversion of engineering rule 10. Closed with a structural gate over the 35→28 `evInput` schemas, derived from source not from a `*Payload` name proxy (§652) |
 | 114 | §666 | **§667** | **Clean negative + a re-derivation.** 19 request-body schemas: 16 strict, `AnchorDay` a string (category error), `EchoBody` authenticated WP-01 test vehicle — no defect. Then re-ran the figure §663–§666 had each restated from §647: **26 gates, 21 PASS · 0 FAIL · 5 BLOCKED at `13b6642`, clean tree**. Carried figure was RIGHT, now re-derived — §646's point is that from outside, an unre-measured correct number is indistinguishable from a wrong one. `$?`-after-a-pipe misread the exit as 0 on the first attempt |
+| 115 | §667 | **§668** | **DEFECT — 16 DDL CHECKs enforced by the database and nothing else.** Neutered (`CHECK (1=1 OR `) they were silent across ledger 634 · api 798 · agents 122 · billing 58 · translator 116 · rater 157 · mcp 185 = **1,670 tests**. The same file ALREADY tests a control-plane CHECK — the pattern was written once and never extended one migration over. Three (money_lines `direction`/`kind`/`amount_cents`) have NO Zod counterpart, so D1 is the only guard, and REQ-040/I7 are written in terms of that `kind` list. Closed with existence+VALUES (`toEqual` catches a widened enum, which no behavioural test can) and real inserts. M180: 0 → 20 fail; M181 (one value added): exactly 1 |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -37015,3 +37016,82 @@ the register at HEAD. The repo-owned surface carries no open defect this audit c
   under a dirty tree is the pair to watch.
 - This figure is quoted in a later section without re-running `verify:merge` → that is the §646 shape
   re-forming, and the fix is one command.
+
+## §668 — PHASE GATE: the constraint class this repo already named as its most deletable
+
+**Subject.** §666's technique — *mutate the class, then each member* — pointed at the class this audit's own
+record flags as the last line of defence: **DDL constraints**. Two of the eight schema invariants (I1's
+foreign key, I3's triggers) live there, and the reason given was that a DDL clause *"is exactly what a schema
+refactor deletes, because nothing in the application layer references it."* Nobody had asked how much of that
+class is watched.
+
+### Neutering, not deleting
+
+`CHECK (` → `CHECK (1=1 OR ` keeps the SQL syntactically valid and makes the constraint always true. No
+paren-balancing, no migration that fails to apply — and the failure it simulates is the realistic one: a
+constraint that is still *there* and no longer *does anything*.
+
+### The measurement
+
+**65 DDL constraints** across the tracked `.sql` files (23 CHECK · 26 UNIQUE · 3 FK · 13 TRIGGER). All 23
+CHECKs neutered at once failed **3** tests — which already says the class is thin, and §466 says it says
+nothing about members. Per file:
+
+| migration | CHECKs | detected |
+|---|---|---|
+| `0001_ledger_core.sql` | 4 | 2 tests |
+| `db/control/migrations/0001_control.sql` | 2 | 1 test |
+| **`0002_domain.sql`** | **16** | **none** |
+
+The 16 were then re-run against **every** suite that could own those tables — ledger 634, api 798, agents 122,
+billing 58, translator 116, rater 157, mcp 185. **All green. Sixteen constraints, 1,670 tests, zero
+detection.**
+
+### Where it was already being done, one migration over
+
+`schema-domain.test.ts` — the file that imports `0002_domain.sql` — **already tests a CHECK**: *"users.role
+CHECK admits the six roles and rejects others."* That is the **control plane**. The same mutation on the
+control migration fires that test immediately. So this was never a missing idea; the pattern was written once
+and not extended to the tenant domain sitting beside it in the same `beforeAll`.
+
+### Why it lands hardest on money_lines
+
+Three of the sixteen have **no application-layer counterpart at all**: `direction IN ('ar','ap')`,
+`amount_cents != 0`, and the `kind` list — which carries `interline_split`, `correction_credit` and
+`correction_debit`, the exact values **REQ-040**'s executing-share floor and **I7**'s netting identity are
+written in terms of. Checked for a Zod equivalent: `native`/`legacy` and the visibility triple have one;
+these three do not. For them the database is **not a backstop, it is the only guard**.
+
+### Closed with two kinds of assertion, because there are two failures
+
+1. **The constraint still exists, with exactly the values it admits.** Read from `sqlite_master` and compared
+   with `toEqual`, not `toContain` — because a value *added* to an enum widens what the database will store,
+   and **no behavioural test that tries one bad value can ever see that happen.** The pattern is anchored on
+   `CHECK (<column> IN (` so a neutered `CHECK (1=1 OR …)` fails to match too: an always-true constraint is a
+   deleted constraint that still reads like one.
+2. **The constraint bites on a real insert** — scoped to the money and authority pairs, since for the rest a
+   Zod enum refuses the value long before D1 sees it and the schema assertion is the load-bearing half.
+
+22 assertions added, with a non-vacuity guard on the schema read and an honest-insert guard on the
+behavioural half.
+
+**Mutation-proved, both failure modes:**
+
+| mutation | before | after |
+|---|---|---|
+| M180 — all 16 neutered | 0 of 1,670 tests | **20 fail** |
+| M181 — one enum widened by one value | invisible to any behavioural test | **exactly 1 fails** |
+
+### Exit state
+
+`packages/ledger` 634 → **656**; `test:tools` 955; typecheck 0; migrations restored byte-identical.
+**26 gates — 21 PASS · 0 FAIL · 5 BLOCKED** (§667, measured at `13b6642`; this phase adds tests only).
+
+**Reopen triggers**
+- A domain enum legitimately gains a value → `toEqual` fails, which is the point: widening the set of things
+  the ledger will store should require saying so out loud.
+- A new `CHECK` is added to `0002_domain.sql` and not to `DOMAIN_CHECKS` → **nothing fails**, and that is
+  this section's honest limit. The list is a hand-maintained law, not a derivation.
+- The remaining classes are unmeasured: **26 UNIQUE and 13 TRIGGER constraints** got the class-level pass
+  only. The triggers are I3's home and are covered by name elsewhere; the UNIQUE set is not, and it is the
+  obvious next member-level sweep.
