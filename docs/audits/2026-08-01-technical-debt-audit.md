@@ -286,6 +286,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 91 | §643 | **§644** | Applied §643's distinction to the hash chain, where self-consistency is not correctness. The ledger's known-answer tests EXIST and — the whole question — are not self-generated: `shasum` outside the repo reproduces sha256("{}"), the empty Merkle root, and the six-type canonical vector BYTE-FOR-BYTE. M152 (key sort reversed) reddens four. The frozen byte law is backed by arithmetic a stranger can rerun |
 | 92 | §644 | **§645** | Swept §644's concern — frozen hashes no stranger could re-derive. 27 hex literals, but 21 are FIXTURE INPUTS (SHA-256 of empty as a placeholder payload); only 5 are asserted expected values, and all 5 are re-derivable. My classifier called one bare: its provenance is in the TEST NAME ("the empty tree = SHA-256(\"\")"), which a code-only scan cannot see. M153 (skip empty days) reddens 4, including the REQ-014 DoD proof |
 | 93 | §645 | **§646** | **The "2 FAIL" reported for 41 phases was a DIRTY WORKING TREE, not the repo.** At HEAD both gates pass — test:tools 949/949, exit 0 — so the merge gate at HEAD is **21 PASS · 0 FAIL · 5 BLOCKED**. And the uncommitted row was MASKING a defect I shipped in §614: a bare REQ-289 in one of my comments is an annotation, orphaned at HEAD. Seventh prose-into-its-own-gate instance, and the first that shipped |
+| 94 | §646 | **§647** | Measured what §646 INFERRED. Full `verify:merge` at HEAD: **21 PASS · 0 FAIL · 5 BLOCKED**, zero FAIL lines, evidence artifact written. The five BLOCKED are §604's owner-held inputs, each naming what it wants, and the aggregate correctly refuses to round a blocked prerequisite to either a pass or a defect. The browser floors §609 installed report as real assertion counts for the first time |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -35743,3 +35744,58 @@ as a repo failure was wrong, and it stayed wrong because the number was carried 
   diverging from HEAD.
 - An audit phase reports a gate result without saying which tree state it measured → the §646 error, verbatim.
   Every count in this document from here names HEAD or the working tree.
+
+---
+
+## §647 — PHASE GATE: measuring the number §646 inferred
+
+**Subject.** §646 corrected a count carried for forty-one phases — and then stated its own headline,
+**21 PASS · 0 FAIL · 5 BLOCKED**, from three gates plus `test:tools` rather than a full run. That is the same
+error one level up: an inferred number, reported as measured. So the merge gate was run end-to-end with the
+tree at HEAD.
+
+### The full run
+
+```
+verify:merge → exit 2   (aggregate: BLOCKED)
+  21 PASS · 0 FAIL · 5 BLOCKED
+  artifact: artifacts/release/183f78b…/merge/gate-merge-2026-08-08T07-48-12Z.json
+```
+
+**Zero FAIL lines.** §646's inference was right, and is now a measurement with an evidence artifact behind it.
+
+The five BLOCKED are exactly the owner-held inputs §604 measured, and each names what it wants:
+
+| Gate | Blocking reason |
+|---|---|
+| `identity-leak` | no denylist — the `IDENTITY_DENYLIST` secret (enforcement proven functional, §604) |
+| `fixtures` | pending, not vendored: `rater-48-tests`, `rater-504-sweep`, `zone-tariff-v1`, `invoice-500-replay`, … |
+| `rater-parity` | engagement fixtures not vendored |
+| `invoice-parity` | engagement fixtures not vendored |
+| `concierge-parse` | engagement fixtures not vendored |
+
+And the aggregate says the right thing: *"NOT PROMOTABLE — a prerequisite is BLOCKED … This is NOT a green."*
+A blocked prerequisite is neither a pass nor a defect, and the harness refuses to round it to either.
+
+### What the browser gates did, unprompted
+
+`perf 1 passed · visual 5 passed · a11y 4 passed · e2e 6 passed` — the exact corpus floors §609 installed after
+finding e2e green at 3 of 6. They are now the reported assertion counts of a real run, which is the first time
+those floors have been confirmed against the gate rather than against a fixture.
+
+### The distinction this phase exists to hold
+
+§646 established that a count must name its tree state. §647 adds the second half: **a count must name whether
+it was measured or derived.** Both of my last two headline numbers were derived — one wrong (41 phases of
+"2 FAIL"), one right (21 PASS) — and derivation is not what made the second right.
+
+### Exit state
+
+**21 PASS · 0 FAIL · 5 BLOCKED at HEAD, measured**, artifact written under
+`artifacts/release/183f78b…`. Working tree: the owner's uncommitted REQ-289 row, restored after the run.
+
+**Reopen triggers**
+- The five BLOCKED become four → the owner landed an input; §604's measurement of *which* five should be
+  re-run rather than assumed to still describe the remainder.
+- `verify:merge` is reported again without an artifact path → the artifact is what makes the number auditable
+  after the fact, and quoting a tally without it is back to derivation.
