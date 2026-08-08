@@ -318,6 +318,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 123 | §675 | **§676** | **DEFECT ×2 — a law proved once had four members, two unguarded.** §310 proved the ten laws with ONE mutation each; §466 says that says nothing about members. eng.3: nine gated transitions, **9/9 fire** (§310 understated it). eng.10: the mirror's four quarantine reasons — deleting each call so the row is skipped in silence — **`bad_cursor` and `bad_value` left adapters 38/38 AND agents 122/122 green.** A silent `continue` produces zero of everything, identical to an empty feed; `bad_value` is worse, applying `NaN` as a mirrored invoice total. `bad_value` nearly dismissed as defense-in-depth — disabling BOTH guards proved it real |
 | 124 | §676 | **§677** | **Clean negative + the discriminator stated.** eng.4 has **seven** preconditions where §310 proved one. Five fire; `typeof` and `!isFinite` fire **nothing** — and are **redundant, not gaps**: removing both keeps 157/157 because `!Number.isInteger` rejects non-numbers/NaN/Infinity alone, and removing that third fails 9. Opposite answer to §676's `bad_value` from an identical-looking green. **Rule: disable the siblings together and ask what happened to the BEHAVIOUR, not to the tests.** Harness bug: `IFS='\|'` split patterns containing `\|\|`, reporting 57 tests where the package has 157 |
 | 125 | §677 | **§678** | **Law-member sweep COMPLETE — 53 members, 2 defects.** L7's 21 refusals in `transition-gates.ts`: **21/21 fire** (`void new …` neuter). Full surface: eng.2 12/12 · eng.3 9/9 · eng.4 5 fire + 2 redundant · eng.10 **2 defects** · L7 21/21. §310's ten one-mutation proofs were sound; only eng.10 hid members. **The instrument was the finding:** four consecutive attempts produced readable-but-wrong output (shell `\|\|` split · per-file line vs summary · stdout-only when vitest writes stderr · interleaved sequential runs). Fixed by reading the EXIT CODE + asserting a fixed point. When the question is binary, use the binary signal |
+| 126 | §678 | **§679** | **A hope turned into a control.** Swept the register's 13 agents (REQ-026…038) against REQ-039's "every agent" law. The sweep **re-derived §135/§179 independently** — ~5 of 13 emit `agent.acted` — which is evidence the record is COMPLETE, not new work. §135's "Concierge emits none" **re-verified against an apparent contradiction**: both references are comments explaining the absence. The gap is owner-held (DoD is register scope), but its expiry trigger (`ANTHROPIC_API_KEY` binds) was HUMAN — now gate-enforced. M197 binds the key → fires; M198 makes the Concierge emit → the self-obsolescence assertion fires |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -37794,3 +37795,78 @@ byte-identical. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED** (§675 at `b9768
 - **The multi-member law surface is now closed.** The remaining laws (eng.5 interline, eng.8 tenant
   isolation, L2, L3, L10) are single-mechanism — one comparison, one key derivation — where class and member
   coincide, so §310's proofs are already member-level.
+
+## §679 — PHASE GATE: the 13 agents, a re-verified carried claim, and a hope turned into a control
+
+**Subject.** §678's trigger named the **13 agents** as a member set never swept. The register is
+source-of-truth #1, and its `AGENTS` area yields the roster exactly: **REQ-026 … REQ-038 is 13 rows** —
+Concierge, Rater, Scheduler, Dispatcher copilot, Gatekeeper, Biller, Collector, Settler, Translator,
+Migrator, Watchtower, Credit officer, Copilot.
+
+The cross-cutting law over that set is **REQ-039**: *"Every agent: confidence gate + human queue + cost
+tracking."* Its DoD is `agent_runs` rows, and `agent_runs` is projected from `agent.acted` only.
+
+### The sweep re-derived a known finding — which is the useful part
+
+Tracing `agent.acted` emitters found roughly five, not thirteen, with `biller.ts` conspicuously absent. That
+looked like a new defect. **It is not**: §135 and §179 recorded it, in detail, long ago — including the
+mechanism that hid it. §179's sentence is exact:
+
+> *REQ-039's DoD is `agent_runs rows complete`, and the rater's rows ARE complete, so it cannot detect that
+> eleven of twelve built agents write none.*
+
+An independent route arriving at a recorded finding is worth something: it is evidence the record is
+**complete**, not merely present. What it is *not* is new work, and reporting it as such would have been the
+easiest mistake available this phase.
+
+### One carried number, re-verified rather than repeated
+
+§135's table asserts **Concierge: ❌ emits none**. My sweep found `concierge.ts` referencing `agent.acted`,
+which reads like drift — this audit has twice found carried claims stale (§646, §667). **Checked: both
+references are comments explaining the absence.** The table is accurate. A claim that survives a
+contradiction is worth more than one that was never questioned.
+
+### What was closable: the expiry trigger
+
+§179's disposition is owner-held — *"DoD text is register scope and belongs to its owner"* — so the gap
+itself is not repo-closable, and inventing a DoD would be straying. But §135.1 recorded an unusually clean
+expiry trigger and left it **human**:
+
+> *when `ANTHROPIC_API_KEY` binds.*
+
+That single event turns the Concierge from deterministic to cost-bearing AND makes an unmetered Concierge
+matter. §319's rule is that an unenforced trigger is a hope, not a control. This phase makes it a control.
+
+`tools/checks/concierge-metering-trigger.test.ts` asserts **one conditional**: *if an Anthropic binding
+appears in any deployable scope, the Concierge must by then emit `agent.acted`.* It does not bind the key
+(CONFIRM-gated), does not touch REQ-039's DoD, and requires nothing today.
+
+Three details it turns on:
+
+- **Comment-stripped TOML**, because `# ANTHROPIC_API_KEY is CONFIRM-gated` is documentation, not a binding —
+  the §674 cry-wolf shape, avoided at the point of writing this time rather than found later.
+- **`stripComments` on the TypeScript**, because `concierge.ts` mentions `agent.acted` *twice, in comments
+  explaining that it does not emit one*. A gate reading raw text would pass on those two lines and prove
+  nothing. This is exactly the boundary §674 pinned: correct for `.ts`, wrong for `.css`.
+- **A non-vacuity floor on the config scan**, because a dormant gate and a broken one are indistinguishable
+  from the outside — if the configs were renamed, the conditional would be permanently true and the gate
+  would report PASS forever, on the day it matters most.
+
+Plus a **self-obsolescence** assertion: if the Concierge ever starts reporting on its own, the gate says so
+and asks to be deleted rather than lingering as a green check nobody can explain.
+
+**M197** binds `ANTHROPIC_MODEL` in `workers/agents/wrangler.toml` and the conditional fires. **M198** makes
+the Concierge emit and the obsolescence assertion fires. Both restored.
+
+### Exit state
+
+`test:tools` 958 → **961**; typecheck 0; both mutated files restored. **26 gates — 21 PASS · 0 FAIL ·
+5 BLOCKED** (§675 at `b97687b`).
+
+**Reopen triggers**
+- **`ANTHROPIC_API_KEY` or `ANTHROPIC_MODEL` binds anywhere** → now gate-enforced. This was the last of
+  §135/§179's holds that was a hope rather than a control.
+- A fourteenth agent is added to the register's `AGENTS` area → REQ-026…038 was counted by hand here and
+  nothing pins that count against the roster.
+- The Watchtower's budget alarm moves off `agent_runs` → the gap's *shape* changes and this gate guards the
+  wrong thing; its failure message names that alternative explicitly.
