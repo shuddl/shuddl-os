@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { repoRoot } from "./repo-root.js";
 import {
@@ -456,6 +456,149 @@ export function collectCitations(cwd: string = process.cwd()): Citation[] {
   return out;
 }
 
+// REQ-118 §733 — REPAIRING AN ANCHORED CITATION IS DERIVABLE; DOING IT BY HAND IS NOT RELIABLE.
+//
+// An anchored citation (`path:line@symbol`) rots whenever lines shift in the target. That is not a rare
+// event and it is documented as a RECURRENCE: `share-lint-matchers-with-parity-tests` records its own
+// citations reading `:204` until §175 and `:392`/`:29` until §253, and §732 shifted the same file a third
+// time — 8 rotted citations across five files from a 25-line comment insert.
+//
+// The repair is mechanical, and yet the hand repair failed TWICE in one sitting (§732): once by matching only
+// the rooted `tools/checks/invariants.ts:` form and missing the bare `invariants.ts:` one, once by taking the
+// line from `grep -n "\bSYMBOL\b" | head -1` — the first MENTION, usually a comment, not the DECLARATION.
+// A mechanical repair belongs in code.
+//
+// IT FAILS CLOSED, AND THAT IS THE WHOLE DESIGN. A repair tool that silently repoints a citation at the wrong
+// line is strictly worse than the manual chore, because the gate then goes green over a false address. So it
+// derives a new line ONLY when the answer is unambiguous, and REFUSES — loudly, non-zero — otherwise:
+//
+//   • unanchored citation      → no ground truth exists. The anchor is the only thing that says WHAT was meant.
+//   • multi-range spec         → one symbol cannot tell you the new span of `926-929` or `60,93`.
+//   • target unreadable        → a moved or deleted file is a human decision, not a line shift.
+//   • symbol found 0 times     → renamed or removed. Repointing would invent an address.
+//   • symbol found >1 times    → AMBIGUOUS. This is exactly the case my hand repair got wrong by picking the
+//                                first hit; the tool must not repeat it under an air of authority.
+
+export interface CitationRepair {
+  citingFile: string;
+  citingLine: number;
+  /** the citation exactly as it appears today */
+  from: string;
+  /** the same citation with the line re-derived from the anchor */
+  to: string;
+}
+
+export interface CitationRepairRefusal {
+  citingFile: string;
+  citingLine: number;
+  cited: string;
+  reason: string;
+}
+
+/** Pure: what a `--fix` run WOULD do, and what it declines to touch. No I/O beyond the supplied index. */
+export function planCitationRepairs(
+  violations: readonly CitationViolation[],
+  index: RepoIndex,
+): { repairs: CitationRepair[]; refusals: CitationRepairRefusal[] } {
+  const repairs: CitationRepair[] = [];
+  const refusals: CitationRepairRefusal[] = [];
+  for (const v of violations) {
+    const cited = `${v.citedPath}:${v.citedSpec}${v.citedSymbol === undefined ? "" : `@${v.citedSymbol}`}`;
+    const refuse = (reason: string): void => {
+      refusals.push({ citingFile: v.citingFile, citingLine: v.citingLine, cited, reason });
+    };
+    if (v.citedSymbol === undefined) {
+      refuse("unanchored — there is no anchor to re-derive the line from; fix it by hand or adopt an anchor");
+      continue;
+    }
+    if (/[-–,]/.test(v.citedSpec)) {
+      refuse(`multi-line spec "${v.citedSpec}" — one symbol cannot determine the new span`);
+      continue;
+    }
+    // Resolve the cited path the SAME way the gate does. A citation may be written bare (a filename, no
+    // directory — this comment deliberately does NOT spell the form out, because the gate would parse the
+    // example as a real citation and report it rotted; measured, and it is the only rot this phase caused)
+    // or rooted; the first build of this planner passed the raw string to `index.lines()` and refused every
+    // bare form as "does not resolve" — 8 of the 15 refusals in its first real run. Reusing `resolveCandidates`
+    // is not a convenience, it is the difference between the tool answering the same question as the gate and
+    // answering a different one.
+    const candidates = resolveCandidates(v.citedPath, v.citingFile, index.paths);
+    if (candidates.length !== 1) {
+      refuse(
+        candidates.length === 0
+          ? "cited file does not resolve — a move or delete is a human decision, not a line shift"
+          : `cited path is ambiguous across ${candidates.length} files — the gate would not know which either`,
+      );
+      continue;
+    }
+    const lines = index.lines(candidates[0]!);
+    if (lines === null) {
+      refuse("cited file resolved but could not be read");
+      continue;
+    }
+    const hits: number[] = [];
+    for (let i = 0; i < lines.length; i++) if (lines[i]!.includes(v.citedSymbol)) hits.push(i + 1);
+    if (hits.length === 0) {
+      refuse(`anchor "${v.citedSymbol}" appears nowhere in the target — renamed or removed, so any new line would be invented`);
+      continue;
+    }
+    // MULTIPLE HITS ARE THE NORMAL CASE, NOT THE EXCEPTION — and the first build got this wrong.
+    //
+    // A symbol appears at its declaration AND at every use, so `FORBIDDEN_REPLACE` matched 4 lines and the
+    // planner refused. Refusing everything is safe and useless: it refused 15 of 15 on the exact rot it was
+    // built for. But "pick the first hit" is the specific error my hand repair made in §732.
+    //
+    // The resolution is that these citations point at where a symbol is DEFINED, so a declaration is a
+    // qualitatively different hit from a use — and if exactly one hit is a declaration, there is no guess
+    // left to make. If none is (an anchor may be arbitrary text, not just a symbol), or several are, it
+    // still refuses. This narrows the refusals to cases that genuinely need a human, instead of all of them.
+    const declaration = new RegExp(`^\\s*(?:export\\s+)?(?:default\\s+)?(?:async\\s+)?(?:const|let|var|function|class|interface|type|enum)\\s+${v.citedSymbol.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`);
+    const declHits = hits.filter((n) => declaration.test(lines[n - 1]!));
+    const chosen = hits.length === 1 ? hits[0]! : declHits.length === 1 ? declHits[0]! : null;
+    if (chosen === null) {
+      refuse(
+        `anchor "${v.citedSymbol}" appears on ${hits.length} lines (${hits.slice(0, 5).join(", ")}${hits.length > 5 ? ", …" : ""}) and ` +
+          `${declHits.length} of them look like a declaration — AMBIGUOUS; picking one is how a hand repair goes wrong`,
+      );
+      continue;
+    }
+    const to = `${v.citedPath}:${chosen}@${v.citedSymbol}`;
+    if (to === cited) {
+      refuse("already points at the anchor — the violation is something other than a line shift");
+      continue;
+    }
+    repairs.push({ citingFile: v.citingFile, citingLine: v.citingLine, from: cited, to });
+  }
+  return { repairs, refusals };
+}
+
+/**
+ * Apply a plan. Returns the repairs it could NOT apply — a citation whose text is not on the line it was
+ * reported on, or appears twice there, is left alone rather than guessed at.
+ */
+export function applyCitationRepairs(repairs: readonly CitationRepair[], root: string): CitationRepair[] {
+  const byFile = new Map<string, CitationRepair[]>();
+  for (const r of repairs) byFile.set(r.citingFile, [...(byFile.get(r.citingFile) ?? []), r]);
+  const unapplied: CitationRepair[] = [];
+  for (const [file, rs] of byFile) {
+    const path = join(root, file);
+    const lines = readFileSync(path, "utf8").split("\n");
+    let touched = false;
+    for (const r of rs) {
+      const idx = r.citingLine - 1;
+      const line = lines[idx];
+      if (line === undefined || line.split(r.from).length !== 2) {
+        unapplied.push(r); // absent, or present more than once — ambiguous within the line
+        continue;
+      }
+      lines[idx] = line.replace(r.from, r.to);
+      touched = true;
+    }
+    if (touched) writeFileSync(path, lines.join("\n"));
+  }
+  return unapplied;
+}
+
 function main(): void {
   const citations = collectCitations();
   const index = buildRepoIndex();
@@ -478,6 +621,22 @@ function main(): void {
   }
 
   const violations = checkCitations(citations, index);
+
+  // §733 — `--fix` re-derives the LINE of an anchored citation from its anchor. It never invents an address:
+  // anything ambiguous is refused and the run exits non-zero, so a partial repair can never read as a clean one.
+  if (process.argv.includes("--fix")) {
+    const { repairs, refusals } = planCitationRepairs(violations, index);
+    const root = repoRoot(process.cwd());
+    const unapplied = applyCitationRepairs(repairs, root);
+    const applied = repairs.filter((r) => !unapplied.includes(r));
+    for (const r of applied) console.log(`fixed ${r.citingFile}:${r.citingLine}  ${r.from} → ${r.to}`);
+    for (const r of unapplied) console.error(`REFUSED ${r.citingFile}:${r.citingLine} — "${r.from}" is not uniquely present on that line`);
+    for (const r of refusals) console.error(`REFUSED ${r.citingFile}:${r.citingLine} ${r.cited} — ${r.reason}`);
+    const left = refusals.length + unapplied.length;
+    console.log(`\ncitation-fix: ${applied.length} repaired, ${left} left for a human (of ${violations.length} rotted).`);
+    process.exit(left > 0 ? 1 : 0);
+  }
+
   if (violations.length > 0) {
     for (const v of violations) console.error(`FAIL citation-links ${formatViolation(v)}`);
     console.error(`\n${violations.length} rotted citation(s) of ${citations.length} checked.`);

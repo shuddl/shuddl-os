@@ -372,6 +372,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 177 | §729 | **§730** | **THE FOURTH RUNNER — the one SHIPPED file with zero static analysis.** ESLint's own API: 711 tracked lintable files, **6 ignored** — four `.claude/skills` snippets (documented), one merkle vector, and `apps/driver/public/sw.js`, the driver's offline shell (REQ-061). Not linted (`apps/*/public/**` was the only ignores entry with **no stated reason**) and not typechecked (`.js`, §729). §717 fixed a REAL defect in this exact file and left it as unanalysable as it found it. **Removing the ignore alone would have been a FALSE fix** — measured: three planted violations, **zero findings**, because only the TS-targeted config is spread. Corpus + rules landed together; 4/4 probes now red incl. `cahces.open` → `no-undef`. Gate asks ESLint, 2 mutations; the second (narrow the `files` glob) leaves *not-ignored* GREEN while all rules red — the false-assurance path. **Limit stated: floating promises need type-aware lint, unavailable for `.js` — §717's own class is NOT closed** |
 | 178 | §730 | **§731** | **DEFECT: the identity-leak gate emits `PASS, executed:true, assertions:0` over a scan that read NOTHING.** `trackedFiles()` listed from `repoRoot()` but read with `readFileSync(f)` — resolved against `process.cwd()` — under a bare `catch`. From `tools/checks/`: all 952 reads throw, all swallowed, gate says PASS. From root, same denylist: FAIL / 952 files / 569 leaks. **This is §489's defect in the half it did not touch** (it fixed the LISTING and left the READ three lines below), and §489's own note — *the scope defect would arrive with the secret, i.e. exactly when the gate started mattering* — applied verbatim. **BLOCKED is what hid it**: a gate that never runs emits no counts, so `assertions: 0` never appeared anywhere to look wrong. Fixed 3 ways: root-joined reads · unreadable files are a gap not a skip (rule 10) · a zero-file floor in **both** dispositions, FAIL not BLOCKED. `filesScanned` made REQUIRED so the compiler enumerated all 5 callers |
 | 179 | §731 | **§732** | **§731's trigger executed (19 entry points, root vs subdir): 18/19 identical, the 1 differing FAILS CLOSED — clean negative.** The yield was the next question: `invariants` has a floor, but it covers the **UNION** (`db/**/migrations/*.sql`), not the three sub-corpora consumed separately — and the union stays non-empty when only one subtree breaks. `checkSurfaceBudget([])` → violation (hardened §245); `checkControlMigrationsExercised([],[])` and **`checkTableClassification([])` → `[]`, VACUOUS**. The second asserts every tenant table is append-only-or-mutable — **I3/I7**. Floors added to the pure functions + one `isCheckout` scope. **The obvious guard (`existsSync("db/control")`) is exactly wrong** — a rename would SKIP not FAIL. Fixture shape learned by breaking 3 CLI e2e tests. Both floors mutation-proved in the real repo |
+| 180 | §732 | **§733** | **A thrice-recurring rot made mechanical — and the fail-closed tool that first refused 15 of 15.** Anchored citations rot on every line shift (§175, §253, §732 — same file), and the hand repair failed **twice in one sitting**. Built `pnpm fix:citations`: re-derives an anchored citation's line, refuses anything ambiguous, exits non-zero on a partial repair. **Version one was safe and USELESS** — it required a unique anchor hit and repaired **0 of 15** on the real rot, because (a) it passed the raw path to `index.lines()` while the gate resolves bare filenames via `resolveCandidates`, and (b) multiple hits are the NORMAL case (declaration + uses). Fixed by using the gate's own resolver and preferring the **declaration** — not a looser threshold. After: **15 of 15 repaired, 0 left.** Also: a probe whose pad landed BELOW every anchor reported `rotted: 0` (reads as "no bug"), and a comment containing a literal citation example was parsed as a citation |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -41502,3 +41503,105 @@ thing that looks like it.** Fixed at the true declaration lines; `check:citation
   not weaken the floors.
 - A sub-check is guarded on the existence of *its own* directory → that is the rename hole this phase
   rejected. The scope signal must be independent of the thing being checked.
+
+## §733 — PHASE GATE: a recurrence made mechanical, and the fail-closed tool that first refused everything
+
+§732 shifted `tools/checks/invariants.ts` by 25 lines and rotted **8 citations across five files**. That is the
+**third documented recurrence for one file** — `share-lint-matchers-with-parity-tests` records its own
+citations reading `:204` until §175 and `:392`/`:29` until §253, *"when a 20-line insert at the top of that
+file shifted them again."*
+
+Recurrence with a mechanical repair is debt, not weather. And the repair is demonstrably not reliable by hand:
+in §732 mine failed **twice in one sitting** — once matching only the rooted `tools/checks/…` form and missing
+the bare filename form, once taking the line from `grep -n "\\bSYMBOL\\b" | head -1`, which finds the first
+**mention** (usually a comment) rather than the **declaration** the gate validates.
+
+### What was built
+
+`pnpm fix:citations` — a `--fix` mode on the existing gate. It re-derives the LINE of an **anchored** citation
+from its anchor, and refuses anything it cannot derive unambiguously:
+
+| refusal | why it is not derivable |
+|---|---|
+| unanchored citation | the anchor is the only record of what was meant |
+| multi-range spec (`926-929`, `60,93`) | one symbol cannot determine a span |
+| cited path resolves to 0 or >1 files | a move is a human decision; the gate would not know either |
+| anchor appears nowhere | renamed or removed — a new line would be **invented** |
+| several hits, and not exactly one declaration | AMBIGUOUS |
+
+A partial repair exits **non-zero**, so it can never read as a clean run.
+
+### The first build was safe and useless, and that is the phase's real content
+
+Version one required the anchor to appear on **exactly one line**. Run against the real §732 rot it produced:
+
+```
+citation-fix: 0 repaired, 15 left for a human (of 15 rotted).
+```
+
+**It refused every single case it was built for.** Fail-closed, and therefore harmless — and worthless, which
+is the same sin this session has been finding all along: a gate whose green certifies nothing, here inverted
+into a tool whose safety accomplishes nothing. Two distinct causes, both mine:
+
+1. **It answered a different question than the gate.** It passed the raw `citedPath` to `index.lines()`, while
+   the gate resolves bare filenames through `resolveCandidates`. Eight of the fifteen refusals were
+   `"cited file does not resolve"` for citations the gate resolves fine. Fixed by calling the gate's own
+   resolver — not a convenience, the difference between measuring the same thing and a different thing.
+2. **Multiple hits are the NORMAL case.** A symbol appears at its declaration *and* at every use;
+   `FORBIDDEN_REPLACE` matched four lines. Requiring uniqueness refuses all real code.
+
+The second needed an actual idea rather than a looser threshold. *"Pick the first hit"* is precisely the error
+my hand repair made. What makes it decidable is that these citations point at where a symbol is **defined**,
+so a declaration is a qualitatively different hit from a use: if exactly one hit matches a declaration form
+(`const|let|var|function|class|interface|type|enum`, optionally exported), there is no guess left. If none is
+— the anchor contract is *"a literal substring"*, so prose anchors exist — or if several are, it still
+refuses. The refusals narrow to the cases that genuinely need a human instead of all of them.
+
+### Measured
+
+Same 7-line insert above the cited anchors in `invariants.ts`, before and after:
+
+| | rotted | repaired | left for a human |
+|---|---|---|---|
+| first build | 15 | **0** | 15 |
+| after both fixes | 15 | **15** | **0** |
+
+`check:citations` returns to exit 0. Everything restored; the repo is unchanged by the probe.
+
+### Two self-inflicted faults worth recording
+
+**A probe that measured nothing.** The first end-to-end attempt inserted its pad above `main()` — which sits
+*below* every cited anchor — so nothing shifted and the run reported `rotted: 0`. That reads exactly like
+"no bug here". Caught only because `rotted > 0` was written down as the fixed point the probe had to hit
+before its result meant anything (§"keep a fixed point before scaling a probe"). Third harness fault this
+session to fail toward a **reassuring** result.
+
+**A comment that became a citation.** My explanatory comment contained a literal example of the citation form,
+and the gate parsed it as a real citation into a file with anchor `X` — reporting the only rot this phase
+caused. It is the `semantic-false-positives-need-a-marker` shape from the other direction: not a doc quoting a
+known-bad *value*, but a doc quoting the *syntax*. Rewritten to describe the form instead of spelling it.
+
+### And a mistake outside the tool
+
+While committing §732 I ran `git add -A docs`, which swept **35 files** of `docs/gtm/` and `docs/research/` —
+the concurrent GTM workstream's uncommitted work — into my commit, and reddened `check:citations` with their
+dangling references to a marketing worker that does not exist in this repo. Backed out with
+`git rm -r --cached` (worktree untouched: 24 files on disk before and after, untracked again) and the commit
+amended. No earlier commit was affected — checked, not assumed.
+
+That is the hazard `measure-against-a-known-tree-state` names, arriving from the *write* side rather than the
+read side: **a shared working copy makes `git add -A <dir>` a scope decision, not a convenience.** Stage
+explicit paths.
+
+### Exit state
+
+`test:tools` **1017** (+3 net: 6 planner tests added, 3 rewritten); lint 0; typecheck 0;
+`check:citations` OK — 1347 citations resolve, ratchet at its frozen baseline of 141.
+
+**Reopen triggers**
+- A repair lands on a wrong line → the declaration heuristic was too loose. Tighten it or return to refusing;
+  do NOT add a "nearest to the old line" fallback, which is guessing wearing arithmetic.
+- `fix:citations` starts refusing most of a real rot again → it has drifted from the gate's resolution rules.
+  The two must answer the same question; that was version one's first bug.
+- An anchor style appears that is neither a declaration nor unique (prose anchors in a churning file) → those
+  refuse by design. If they become common, the answer is to adopt better anchors, not to loosen the tool.

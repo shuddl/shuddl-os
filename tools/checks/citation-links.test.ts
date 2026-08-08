@@ -7,6 +7,8 @@ import {
   extractCitations,
   formatViolation,
   type RepoIndex,
+  type CitationViolation,
+  planCitationRepairs,
 } from "./citation-links.js";
 
 // A stub repo: path -> either a line COUNT (filler lines, for the bounds rules) or the actual lines
@@ -368,3 +370,90 @@ describe("REQ-118 §487: the citation corpus does not depend on the caller's dir
     expect(suppressedLines(`${REPO}/tools/checks`)).toEqual(suppressedLines(REPO));
   });
 });
+
+// REQ-118 §733 — THE REPAIR PLANNER. Every assertion here is about what it REFUSES.
+//
+// §732 shifted `invariants.ts` by 25 lines and rotted 8 citations across five files — the third documented
+// recurrence for that one file (§175, §253, §732). The repair is mechanical, and my HAND repair still failed
+// twice: once matching only the rooted path form, once taking the line from the first MENTION rather than the
+// declaration. So it belongs in code — and the danger of putting it in code is that a wrong repair is silent,
+// because the gate goes green over a false address. Hence: derive only when unambiguous, refuse otherwise.
+describe("REQ-118 §733: planCitationRepairs derives a line, or refuses", () => {
+  const index: RepoIndex = {
+    paths: ["t.ts"],
+    lines: (p) => (p === "t.ts" ? ["a", "const TARGET = 1;", "b", "// TARGET again", "c"] : null),
+  };
+  const v = (over: Partial<CitationViolation>): CitationViolation => ({
+    citingFile: "d.md", citingLine: 3, citedPath: "t.ts", citedSpec: "1", citedSymbol: "TARGET", reason: "rot", ...over,
+  });
+
+  it("repairs a single-line anchored citation to the anchor's actual line", () => {
+    const uniq: RepoIndex = { paths: ["t.ts"], lines: () => ["a", "const TARGET = 1;", "b"] };
+    const { repairs, refusals } = planCitationRepairs([v({})], uniq);
+    expect(refusals).toEqual([]);
+    expect(repairs).toEqual([{ citingFile: "d.md", citingLine: 3, from: "t.ts:1@TARGET", to: "t.ts:2@TARGET" }]);
+  });
+
+  it("a symbol at its declaration AND its uses resolves to the DECLARATION", () => {
+    // `TARGET` hits lines 2 and 4 (`const TARGET = 1;` and a comment mentioning it). Multiple hits are the
+    // NORMAL case — the first build of this planner refused them and therefore repaired 0 of 15 on the real
+    // rot it was built for. A declaration is a qualitatively different hit from a use, so one declaration
+    // among the hits leaves no guess to make.
+    const { repairs, refusals } = planCitationRepairs([v({})], index);
+    expect(refusals).toEqual([]);
+    expect(repairs[0]?.to).toBe("t.ts:2@TARGET");
+  });
+
+  it("REFUSES when SEVERAL hits look like declarations", () => {
+    const two: RepoIndex = { paths: ["t.ts"], lines: () => ["const TARGET = 1;", "x", "let TARGET = 2;"] };
+    const { repairs, refusals } = planCitationRepairs([v({})], two);
+    expect(repairs).toEqual([]);
+    expect(refusals[0]?.reason).toMatch(/AMBIGUOUS/);
+  });
+
+  it("REFUSES when NO hit looks like a declaration — an anchor may be arbitrary text", () => {
+    // The anchor contract is "a literal substring near the cited line", not "a symbol". Prose anchors get
+    // no declaration to prefer, so multiple hits stay a human's call.
+    const prose: RepoIndex = { paths: ["t.ts"], lines: () => ["// TARGET here", "x", "// TARGET there"] };
+    const { repairs, refusals } = planCitationRepairs([v({})], prose);
+    expect(repairs).toEqual([]);
+    expect(refusals[0]?.reason).toMatch(/AMBIGUOUS/);
+  });
+
+  it("REFUSES a cited path that resolves to more than one file", () => {
+    const dup: RepoIndex = { paths: ["a/t.ts", "b/t.ts"], lines: () => ["const TARGET = 1;"] };
+    const { repairs, refusals } = planCitationRepairs([v({})], dup);
+    expect(repairs).toEqual([]);
+    expect(refusals[0]?.reason).toMatch(/ambiguous across/);
+  });
+
+  it("REFUSES an unanchored citation — there is no ground truth to derive from", () => {
+    // Built without the key rather than with `citedSymbol: undefined` — `exactOptionalPropertyTypes` is on,
+    // and an absent anchor is genuinely a different thing from one set to undefined.
+    const unanchored: CitationViolation = { citingFile: "d.md", citingLine: 3, citedPath: "t.ts", citedSpec: "1", reason: "rot" };
+    const { repairs, refusals } = planCitationRepairs([unanchored], index);
+    expect(repairs).toEqual([]);
+    expect(refusals[0]?.reason).toMatch(/unanchored/);
+  });
+
+  it("REFUSES a multi-line spec — one symbol cannot determine a span", () => {
+    const uniq: RepoIndex = { paths: ["t.ts"], lines: () => ["a", "const TARGET = 1;", "b"] };
+    const { repairs, refusals } = planCitationRepairs([v({ citedSpec: "1-4" })], uniq);
+    expect(repairs).toEqual([]);
+    expect(refusals[0]?.reason).toMatch(/multi-line/);
+  });
+
+  it("REFUSES a vanished anchor — repointing would invent an address", () => {
+    const uniq: RepoIndex = { paths: ["t.ts"], lines: () => ["a", "b", "c"] };
+    const { repairs, refusals } = planCitationRepairs([v({})], uniq);
+    expect(repairs).toEqual([]);
+    expect(refusals[0]?.reason).toMatch(/appears nowhere/);
+  });
+
+  it("REFUSES an unresolvable target — a move is a human decision, not a line shift", () => {
+    const { repairs, refusals } = planCitationRepairs([v({ citedPath: "gone.ts" })], index);
+    expect(repairs).toEqual([]);
+    expect(refusals[0]?.reason).toMatch(/does not resolve/);
+  });
+});
+
