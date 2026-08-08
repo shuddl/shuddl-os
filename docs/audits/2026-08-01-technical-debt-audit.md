@@ -354,6 +354,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 159 | §711 | **§712** | **Widened the corpus, found a real skip, and the skip was RIGHT.** §711 missed **6 `.spec.ts`** playwright suites; widening fired immediately on `prod-surface.spec.ts:30` — which is playwright's **conditional** `test.skip(cond, reason)`, a documented field gate whose release mode BLOCKS an all-skipped run (REQ-288). **§699's lesson self-inflicted one phase after stating it.** Discriminator: a disabled test is `it.skip("name", fn)` — a **string literal**; a conditional skip passes an expression. Both layers measured: e2e goes `PASS 6` → `BLOCKED` with `.only` planted; the static gate is the cheaper, earlier one |
 | 160 | §712 | **§713** | **Zero assertion-free tests — and the detector was wrong THREE ways.** 3,304 callbacks parsed, **0** without an assertion. Getting there: **79** flagged (brace-matched into the test NAME — *"an empty `{}` payload"*, `` `${kind}…` ``), then **7** (missed Testing Library's throwing `getByText`, which IS the assertion), then **1** (matcher died on a regex literal `\{([^}]*)\}`). Every wrong pass named real files at real lines and read as thorough. **A naive brace matcher over TypeScript fails toward MORE findings** — the dangerous direction. Not gated; premise measured (§710) |
 | 161 | §713 | **§714** | **Tested my own claim and it was false on 1 of 19.** §713 asserted *"every guarantee was individually mutation-proved"*; enumerating the session diff (3 added, 16 modified) found **`tools/design/audit.ts` never proved** — §698 widened the corpus to `apps/**/*.js` and verified only that the gate stayed **exit 0**, which shows the change is harmless, not that it does anything. **M233** plants a raw hex in a `.js` and it fires. Why it slipped: an assertion invites *"can it fail?"*; a **corpus widening reads as config**, and *"the gate still passes"* answers the wrong question |
+| 162 | §714 | **§715** | **All nine corpus widenings now probed — two were not.** §714's rule applied as a sweep: seven of nine had a probe in the region they added; **both misses were §698's** (`apps/**/*.js` → M233, `apps/*/src/**/*.ts` → **M234**, planted here and firing). Not a coincidence: §698 framed itself as *closing a class by measurement, not by building a gate*, so its two glob edits were incidental to the story and never read as new guarantees. **A phase that thinks of itself as measuring will not instinctively verify what it builds** — the narrative decides which reflex fires |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -40064,3 +40065,54 @@ typecheck 0. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, exit 2** at `e194d87
   about the addition; it is evidence about the rest.
 - A claim of the form *"every X was Y"* is written → enumerate X from the tree, not from memory. This one was
   wrong on 1 of 19, and the exception was invisible from the inside.
+
+## §715 — PHASE GATE: every corpus widening, probed in its new region
+
+**Subject.** §714's rule, applied as a sweep rather than a note: *"a gate's corpus is widened → plant a probe
+in the new region; 'the gate still passes' is evidence about the rest, not about the addition."* This session
+widened **nine** corpora. Each was checked for a probe **inside** what it added.
+
+| § | gate | widened to | probe in the new region |
+|---|---|---|---|
+| §681 | llm-agent-metering | derived `*_MODEL` keys | M202 ✓ |
+| §682 | llm-agent-metering | provider-call adapters | M203 ✓ |
+| §694 | gate-wiring | **every** workflow | M217 (a third workflow) ✓ |
+| §695 | gate-wiring | `*.yaml` | M219 (a `.yaml` workflow) ✓ |
+| §696 | tenant-scope | `.tsx` under `packages/` | M220 ✓ |
+| §697 | optional-dep-guards · llm-agent | `.tsx` | M221b · M222b ✓ |
+| §712 | no-focused-tests | `*.spec.ts` | M231 ✓ |
+| **§698** | **design/audit** | **`apps/**/*.js`** | **none until §714's M233** |
+| **§698** | **tenant-scope** | **`apps/*/src/**/*.ts`** | **none until this section's M234** |
+
+**M234**, planted now: a guarded function fed from `q.slugFromQuery` in `apps/portal/src/probe-tenant.ts` —
+the gate fires. The widening works, and now it is known to.
+
+### Two of nine, and both from one phase
+
+**Seven of nine widenings were probed at the time. The two that were not are both §698's** — and that is not
+a coincidence.
+
+§698 framed itself as *"closing a class by measurement, not by building a gate"*. Its subject was a **sweep**
+that found four gaps, and its energy went into the finding. The two edits it made to close them were
+incidental to that story — a glob added here, a glob added there — and neither read as *"I am creating a new
+guarantee."* The section even ends by celebrating that the class was closed **without** shipping machinery,
+which is exactly the frame in which a machinery-shaped change goes unverified.
+
+**A phase that thinks of itself as measuring will not instinctively verify what it builds.** §714 named the
+shape (*a widened corpus is a new guarantee wearing the shape of a config edit*); this adds where it comes
+from: the surrounding narrative decides which reflex fires, and a measurement narrative does not fire the
+mutation reflex.
+
+### Exit state
+
+No code change; both probes removed, `git status` clean. `test:tools` **980**; lint 0; typecheck 0.
+**26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, exit 2** at `e194d87`.
+
+**All nine widenings this session are now probed in the region they added.**
+
+**Reopen triggers**
+- A phase whose *subject* is a sweep also *changes* a gate → the change needs its own mutation, separately
+  from the sweep's result. That is the §698 shape and it recurred twice inside one section.
+- A corpus is narrowed (a filter added, an exclusion) → the mirror question: prove the excluded thing is
+  still caught by something, or that it should not be. §673 did this (the collision filter must not blind the
+  gate); nothing enforces that it always happens.
