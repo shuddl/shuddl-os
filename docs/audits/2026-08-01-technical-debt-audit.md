@@ -373,6 +373,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 178 | §730 | **§731** | **DEFECT: the identity-leak gate emits `PASS, executed:true, assertions:0` over a scan that read NOTHING.** `trackedFiles()` listed from `repoRoot()` but read with `readFileSync(f)` — resolved against `process.cwd()` — under a bare `catch`. From `tools/checks/`: all 952 reads throw, all swallowed, gate says PASS. From root, same denylist: FAIL / 952 files / 569 leaks. **This is §489's defect in the half it did not touch** (it fixed the LISTING and left the READ three lines below), and §489's own note — *the scope defect would arrive with the secret, i.e. exactly when the gate started mattering* — applied verbatim. **BLOCKED is what hid it**: a gate that never runs emits no counts, so `assertions: 0` never appeared anywhere to look wrong. Fixed 3 ways: root-joined reads · unreadable files are a gap not a skip (rule 10) · a zero-file floor in **both** dispositions, FAIL not BLOCKED. `filesScanned` made REQUIRED so the compiler enumerated all 5 callers |
 | 179 | §731 | **§732** | **§731's trigger executed (19 entry points, root vs subdir): 18/19 identical, the 1 differing FAILS CLOSED — clean negative.** The yield was the next question: `invariants` has a floor, but it covers the **UNION** (`db/**/migrations/*.sql`), not the three sub-corpora consumed separately — and the union stays non-empty when only one subtree breaks. `checkSurfaceBudget([])` → violation (hardened §245); `checkControlMigrationsExercised([],[])` and **`checkTableClassification([])` → `[]`, VACUOUS**. The second asserts every tenant table is append-only-or-mutable — **I3/I7**. Floors added to the pure functions + one `isCheckout` scope. **The obvious guard (`existsSync("db/control")`) is exactly wrong** — a rename would SKIP not FAIL. Fixture shape learned by breaking 3 CLI e2e tests. Both floors mutation-proved in the real repo |
 | 180 | §732 | **§733** | **A thrice-recurring rot made mechanical — and the fail-closed tool that first refused 15 of 15.** Anchored citations rot on every line shift (§175, §253, §732 — same file), and the hand repair failed **twice in one sitting**. Built `pnpm fix:citations`: re-derives an anchored citation's line, refuses anything ambiguous, exits non-zero on a partial repair. **Version one was safe and USELESS** — it required a unique anchor hit and repaired **0 of 15** on the real rot, because (a) it passed the raw path to `index.lines()` while the gate resolves bare filenames via `resolveCandidates`, and (b) multiple hits are the NORMAL case (declaration + uses). Fixed by using the gate's own resolver and preferring the **declaration** — not a looser threshold. After: **15 of 15 repaired, 0 left.** Also: a probe whose pad landed BELOW every anchor reported `rotted: 0` (reads as "no bug"), and a comment containing a literal citation example was parsed as a citation |
+| 181 | §733 | **§734** | **The "+ photos" half of acceptance demo #1: the checklist's remedy was wrong in BOTH directions.** More built than stated — `mintDocDownloadCap` + `/pub/documents/:cap` exist, and `doc-cap.ts` names the Biller as their intended second caller; the view renders real `<img>` with a caption-swap trap. Far more blocked than stated — the agents worker binds **neither `JWT_SECRET` nor an `API` service**, so the Biller has no secret to mint with and no route to ask. Both remedies are **decisions** (session-secret blast radius / new surface) plus a **TTL** call for a bearer-forwardable URL living in an inbox. **Not implemented — the owner's call.** Two record defects fixed: `doc-cap.ts` cited `biller.ts:409@loadBookingQuoteRef` as the `photos: {}` gap (it is `loadBookingQuoteRef`; unanchored ⇒ bounds-checked only ⇒ green forever), now anchored `:588@photos`; and the checklist misquoted REQ-087's **DoD** — "sig/pallet photos" is the TITLE, the DoD is met |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -41605,3 +41606,97 @@ explicit paths.
   The two must answer the same question; that was version one's first bug.
 - An anchor style appears that is neither a declaration nor unique (prose anchors in a churning file) → those
   refuse by design. If they become common, the answer is to adopt better anchors, not to loosen the tool.
+
+## §734 — PHASE GATE: the "+ photos" half of acceptance demo #1 — what actually blocks it
+
+Turning from gate archaeology to the product debt the record already names. `CLAUDE.md` words acceptance demo
+#1 as *"signature at a door → invoice + **photos** in the client's inbox <5s"*, and three documents record that
+the photos half does not ship: `GO-LIVE-CHECKLIST.md:201`, `docs/wp/WP-06.md:71`, `docs/wp/acceptance-demos.md`.
+
+The checklist's remedy read **"Wire R2 signed-URL resolver"**. That framing is wrong in both directions, and
+correcting it is this phase's substance.
+
+### It is more built than the record implies
+
+The resolver EXISTS. `workers/api/src/pub/doc-cap.ts` mints a domain-separated, tenant-and-key-bound HS256
+capability; `GET /pub/documents/:cap` verifies it and streams `EVIDENCE.get(k)`. The file's own header names
+this exact reuse: *"this same `mintDocDownloadCap` is the seam the Biller … can later call to embed a signed
+evidence URL in the POD evidence email."*
+
+The view is ready too, and tested: `photos: {signature_url, placed_url}` renders real `<img>`, absent URLs
+render documentary placeholder slots, and a **caption-swap trap** pins each caption to its own photo
+(`packages/agents/test/evidence-email.test.tsx`). Nothing about the rendering is missing.
+
+### And it is far more blocked than the record implies
+
+`workers/agents/wrangler.toml` binds D1 (tenant + control), R2 `EVIDENCE`, queues, and a cross-script
+sequencer DO. It binds **neither `JWT_SECRET` nor an `API` service**. So the Biller has **no secret to mint a
+cap with and no route to ask for one** — the wiring is not undone, it is unreachable.
+
+Both remedies are decisions rather than edits:
+
+| remedy | what it actually costs |
+|---|---|
+| bind `JWT_SECRET` into the agents worker | that secret is the **session** secret. The doc-cap secret is derived from it, so holding it lets the agents worker mint session JWTs, not just doc caps — a blast-radius change to a worker that today cannot authenticate anyone |
+| add an `API` service binding + a mint route | the pattern exists (`workers/billing` binds `API`), but the Biller is not a session holder, so it needs a service-to-service auth path — new surface |
+
+And a third decision sits behind both: **the TTL.** `expSeconds` is absolute and the caller owns the clock, so
+an email-embedded cap needs a lifetime measured against an inbox rather than the 5 minutes a portal download
+uses. The cap is **bearer-only and forwardable by design** — proportionate for a 5-minute link, a materially
+different proposition for one that lives in a consignee's mailbox indefinitely.
+
+**Not implemented, deliberately.** Not because it is hard — the code change is small — but because every path
+turns on a security decision about which secret a worker may hold and how long freight evidence stays
+retrievable by anyone holding a URL. That is the owner's call, and picking one silently inside an audit phase
+would be the opposite of what this audit is for. What was owed here was an accurate statement of the item, and
+that is now in the checklist replacing "Wire R2 signed-URL resolver".
+
+### Two record defects found while checking, both fixed
+
+**1. A citation that pointed at the wrong code for as long as it existed.** `doc-cap.ts:24` cited
+`workers/agents/src/biller.ts:409@loadBookingQuoteRef` as *"the `photos: {}` gap"* — anchored HERE to what is actually at that line, which is the finding: it is `loadBookingQuoteRef`, unrelated;
+the gap is at **:588**. `check:citations` passed the entire time because an **unanchored** citation is only
+BOUNDS-checked: 409 is a real line of a real file, so the address was valid while the assertion was false.
+
+This is `a-gates-green-certifies-less-than-its-name` in its purest form, and §733's `fix:citations` correctly
+**refuses** it — an unanchored citation has no ground truth to re-derive from, which is exactly why it rotted
+undetected. Fixed by adopting the anchor (`:588@photos`), which moves it from bounds-checked to
+content-checked and drops the unanchored count by one (the ratchet may fall, never grow).
+
+**2. The checklist misquoted REQ-087's DoD.** It said the photos gap was *"the '+ photos' half … of REQ-087's
+DoD (\\"sig/pallet photos\\")"*. But "sig/pallet photos" is REQ-087's **title**; the register's **DoD** column
+reads *"Design-system email renders across clients"* — and that DoD **is met**.
+
+The distinction is load-bearing, not pedantry. A DoD failure would mean a REQ is accounted done while failing
+its own acceptance criterion — a register-integrity defect. What this actually is: a **title promising more
+than its DoD requires**, with the real casualty being `CLAUDE.md`'s wording of demo #1. Those are different
+severities and different owners.
+
+### A smaller thing the gate taught
+
+Writing the citation inside parentheses — anchor immediately followed by the closing `)` — failed: the anchor
+parser runs to the next **space,
+backtick or quote**, and `)` is none of those, so the paren was swallowed into the anchor and it matched
+nothing. The gate caught it immediately and named it. Worth recording because the natural way to write a
+citation is inside parentheses, and that is precisely the form that breaks.
+
+**This paragraph then broke twice more, and both are the lesson.** Spelling the bad form literally made the
+gate parse the EXAMPLE as a real citation — the `semantic-false-positives-need-a-marker` shape, a doc quoting
+a known-bad value. Reaching for `citation-check: ignore` was wrong too: **§272 bounds that escape hatch to the
+scanner's own tree**, so no doc can hide rot behind it, and `test:tools` said so within seconds. The correct
+resolution is the one §733 also landed on — **describe the broken form, never spell it** — which is why this
+paragraph now has no literal example in it.
+
+### Exit state
+
+`check:citations` OK — **1348** citations, **201** content-anchored (+1); ratchet at its frozen 141.
+`check:tables`, `check:section-refs` OK. `test:tools` **1023**; lint 0; typecheck 0. No code behaviour changed
+this phase — one comment, one checklist row, one citation anchored.
+
+**Reopen triggers**
+- `JWT_SECRET` or an `API` service binding appears in `workers/agents/wrangler.toml` → the blocker is gone and
+  the Biller wiring becomes the small task the checklist originally described. The TTL decision still stands.
+- Demo #1 is filmed → it must show placeholder slots, not photographs, until this lands. `acceptance-demos.md`
+  already says so, and this phase does not change that.
+- Another citation into a high-churn file is written unanchored → it will rot silently the same way. The
+  ratchet counts these deliberately; adopting an anchor is how the count falls.

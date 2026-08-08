@@ -21,8 +21,23 @@ import { z } from "zod";
 //     404 with no distinguishing oracle.
 //
 // Pure (takes the JWT secret as an ARG, never reads c.env), so it is unit-testable and REUSABLE: this same
-// `mintDocDownloadCap` is the seam the Biller (workers/agents/src/biller.ts:409, the `photos: {}` gap) can
-// later call to embed a signed evidence URL in the POD evidence email — WITHOUT this task rewiring the Biller.
+// `mintDocDownloadCap` is the seam the Biller can later call — workers/agents/src/biller.ts:588@photos —
+// to embed a signed evidence URL in the POD evidence email, WITHOUT this task rewiring the Biller.
+//
+// §734 — this read `biller.ts:409` (UNANCHORED) and :409 is `loadBookingQuoteRef`, an unrelated line. The
+// citation gate passed the whole time because an unanchored citation is only BOUNDS-checked: 409 is a real
+// line of a real file, so the address was "valid" while pointing at the wrong code. Adopting the `@photos`
+// anchor is what makes the gate check the ASSERTION rather than the address.
+//
+// AND THE WIRING IS NOT MERELY UNDONE — IT IS BLOCKED, which no record said until §734. The agents worker
+// binds neither `JWT_SECRET` nor an `API` service (see workers/agents/wrangler.toml: D1, R2 EVIDENCE, queues
+// and a cross-script sequencer DO, and nothing else), so the Biller has no secret to mint a cap with and no
+// route to ask for one. Both fixes are decisions, not wiring: binding the SESSION secret into the agents
+// worker widens what that worker can mint (session JWTs, not just doc caps), and a mint route is new surface.
+// The second decision is the TTL: `expSeconds` is absolute and the caller owns the clock, so a cap embedded
+// in an email needs a lifetime measured against an inbox, not the 5 minutes a portal download uses — and
+// this cap is bearer-only and forwardable BY DESIGN (line 5), which is proportionate for a 5-minute link and
+// a different proposition for one that lives in a consignee's mailbox.
 
 const DOMAIN = "shuddl-doc-download-v1";
 const CAP_TYP = "doc-download";
