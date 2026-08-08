@@ -284,6 +284,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 89 | §641 | **§642** | Swept §641's mechanism ("comparing siblings cannot see a change that moves every sibling"): two instances repo-wide. One was §641's defect; the other, in BILLING, is correct — its siblings are the same call made twice and equality IS the requirement (a redelivered webhook must re-derive one id), paired with a count so it cannot pass vacuously. M150 (non-deterministic id) reddens 2 tests. The distinction: is equality the requirement, or a proxy for it |
 | 90 | §642 | **§643** | Checked the build's sharpest CONTRAST requirement for §640's shape — CLAUDE.md rule 7's "--signal-deep is tuned by the contrast test, not by eye". It asserts the RATIO, correctly. Proved with the real historical decision: reverting to doc 07's by-eye #A93018 (4.43:1) reddens THREE surfaces. Its suite opens with black/white=21:1 and identical=1:1 — the POSITIVE CONTROLS my own probes lacked in §625/§635/§638 |
 | 91 | §643 | **§644** | Applied §643's distinction to the hash chain, where self-consistency is not correctness. The ledger's known-answer tests EXIST and — the whole question — are not self-generated: `shasum` outside the repo reproduces sha256("{}"), the empty Merkle root, and the six-type canonical vector BYTE-FOR-BYTE. M152 (key sort reversed) reddens four. The frozen byte law is backed by arithmetic a stranger can rerun |
+| 92 | §644 | **§645** | Swept §644's concern — frozen hashes no stranger could re-derive. 27 hex literals, but 21 are FIXTURE INPUTS (SHA-256 of empty as a placeholder payload); only 5 are asserted expected values, and all 5 are re-derivable. My classifier called one bare: its provenance is in the TEST NAME ("the empty tree = SHA-256(\"\")"), which a code-only scan cannot see. M153 (skip empty days) reddens 4, including the REQ-014 DoD proof |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -35608,3 +35609,65 @@ code changed.
   it. The canonical vector's paired STRING assertion is what makes it re-verifiable; a bare hash would not be.
 - `canonicalize` gains a type (bigint, Date) → the six-type vector stops spanning the union it claims to, and
   the KAT's value silently narrows in meaning while still passing.
+
+---
+
+## §645 — PHASE GATE: the provenance can live in the test's name
+
+**Subject.** §644's reopen trigger: *"a KAT whose expected value is pasted from a failing run … nothing
+distinguishes a copied-from-implementation constant from an externally-verified one by looking at it."* That is
+checkable, so the repo was swept for frozen hashes that no stranger could re-derive.
+
+### The first sweep was noise, for a reason worth naming
+
+Scanning every 64-hex literal in tests found **27** — and classified 21 as "bare". They are almost all
+`e3b0c442…` (SHA-256 of the empty string) used as **fixture inputs**: a placeholder payload hash on a seeded
+event. A fixture is an input, not a claim, and needs no external verification.
+
+Narrowed to constants in an actual **expected-value** position (`.toBe("<64-hex>")`), the corpus is **five**.
+
+### Four re-derivable, and the fifth is too
+
+Four pair the constant with a re-derivable input — `canonicalBytes({})`, the six-type vector, `merkleRoot([])`,
+the vectors file. §644 reproduced three of those with `shasum`.
+
+My classifier called the fifth **bare**:
+
+```ts
+expect(await anchorHash("2026-07-08")).toBe("e3b0c44298fc…852b855");
+```
+
+It is not. The test's own name carries the provenance: *"empty day still anchors (gap-free day chain): **the
+empty tree = SHA-256(\"\")**"*. The constant is the standard empty-string digest, the reason it should appear
+is stated, and a stranger can verify both in one command.
+
+**The classifier looked only at code.** Provenance can live in the assertion, in the paired input, **or in the
+test's name** — and a mechanical scan that reads only the first two calls the third a defect. That is the same
+boundary §618 and §642 drew: the scan narrows to a readable set, and the reading is what decides.
+
+### The claim behind that constant is load-bearing
+
+**M153** made the anchor skip empty days — `if (dayHasRows) candidates.push(day)` — so the day chain gains gaps.
+Four tests red, and their names are the property:
+
+- *empty day still anchors (gap-free day chain): the empty tree = SHA-256("")*
+- *determinism: two runs → identical root; the re-run is a no-op*
+- *late upload: yesterday's ts but today's recorded_at lands in TODAY's tree*
+- *REQ-014 DoD: a pod.signed hash verifies against the day's TSA-stamped root*
+
+A gap in the day chain breaks the DoD proof itself, which is the right blast radius for that mutation.
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged. `packages/ledger` anchor 19/19; M153 restored byte-identical; no
+code changed.
+
+§644's concern has **no live instance**: every frozen hash asserted as an expected value is re-derivable by a
+stranger, three of them verified with `shasum` in the previous phase and the fourth and fifth by construction
+and by name.
+
+**Reopen triggers**
+- A KAT is added whose name does not say where the number came from → the only remaining way to tell is asking
+  the author, and this sweep's method (read the five) does not scale past a few dozen.
+- The fixture placeholders stop being `SHA-256("")` → the 21 "bare" hits become genuinely ambiguous, and the
+  narrowing that made this sweep readable stops working.
