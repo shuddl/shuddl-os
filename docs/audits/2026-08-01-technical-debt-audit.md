@@ -273,6 +273,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 78 | §630 | **§631** | Counted the audit's own reopen triggers: **72 across 25 phase gates, zero dischargeable.** Two were already stale five phases on (§626's mayBeEmpty test, §629's unmutated WP-11/WP-14) — the expiry-trigger problem INSIDE the record. Convention added (strike + `DISCHARGED §N`); section-refs validates the pointer for free (M136), a new assertion catches a bare one (M135). Staleness itself stays unmechanisable, and that limit is stated |
 | 79 | §631 | **§632** | "Which product code is untested?" — the import-name proxy said 23 logic files, and it is UNUSABLE: barrels, worker roots and DO stubs never name the file. M137 killed it on the largest entry (366 lines, "never imported", 3 tests red). Real coverage needs a tool that is unregistered scope — REQ-211 defines coverage as 100% REGISTER coverage, so that row is the owner's to write. This audit measures by MUTATION: 137 this session |
 | 80 | §632 | **§633** | Asked the production question — does it FAIL SAFELY? §619 proved the evidence hash is written at capture; this examines what §619 left open: the bytes never arriving. No sweep reconciles it — the guarantee sits EARLIER, as a Biller precondition that fails closed to held(evidence_missing) with no terminal marker, so the anti-join keeps re-driving it. M138: 4 red, covering a torn D1/R2 write and a tombstoned document |
+| 81 | §633 | **§634** | Closed §633's trigger: the evidence precondition is gated on `deps.evidence !== undefined`, so an UNWIRED bucket skips it entirely — invoices for PODs with no bytes, silently, because skipping is the documented behaviour. A comment was the only thing asserting production wires it. Three assertions (deps line, binding in every scope, and the GATING ITSELF so the file self-obsoletes), M139/M140/M141 each red on its own |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -34934,3 +34935,66 @@ that the mechanism transfers where the memory does not, and this is the fourth d
 - `deps.evidence` becomes optional in production wiring → the precondition is explicitly gated on it being
   present, so an unwired bucket silently skips the whole check. The comment says production always wires it;
   nothing asserts that.
+
+---
+
+## §634 — PHASE GATE: the precondition that skips itself when unwired
+
+**Subject.** §633's second reopen trigger, closed in the next phase — the discipline §627 and §630 established.
+
+§633 proved the Biller fails closed when a POD's bytes are absent. Then it recorded what that proof does **not**
+cover:
+
+```ts
+if (deps.evidence !== undefined) { ...the whole byte precondition... }
+```
+
+The check **skips entirely** when the bucket is not wired. That gating is deliberate and right — a unit test not
+exercising the byte gate omits the dep — but it means the production guarantee rests on one line in a
+composition root, defended by a comment:
+
+> *"Production always provides it here, so the byte precondition always runs in prod."*
+
+**A comment is not a gate.** Drop `evidence: env.EVIDENCE` from the deps assembly, or lose the R2 binding from a
+scope, and the Biller stops requiring bytes — issuing invoices for PODs whose evidence does not exist, silently,
+because skipping is the *documented* behaviour of an unwired dep. Money outrunning the physics, by omission
+rather than by bug.
+
+### Three assertions, because each alone is insufficient
+
+| | Mutation | Result |
+|---|---|---|
+| M139 | `evidence: env.EVIDENCE` dropped from the composition root | RED — the deps assertion |
+| M140 | the `EVIDENCE` binding removed from one scope | RED — the binding assertion |
+| M141 | the precondition made **unconditional** | RED — the non-vacuity assertion |
+
+The deps line without the binding is a runtime `undefined`; the binding without the deps line is an unused
+bucket. Neither implies the other.
+
+M141 is the unusual one. It does not guard the production property at all — it guards **the assumption the
+other two rest on**. If the precondition ever becomes unconditional, these tests stop protecting anything, and
+a passing test that protects nothing is worse than no test. Its failure message says so: *"If it is now
+unconditional, this whole file is obsolete — delete it and say so."*
+
+The deps assertion matches `evidence:\s*env\.EVIDENCE` rather than the identifier, deliberately: `EVIDENCE`
+appears in that file in comments and in the retention sweep, so a looser match would pass with the Biller
+unwired — the §622 mistake, avoided by having just made it.
+
+### The seventh anchor miss, and what finally changed
+
+M139 failed to apply, again from reading indentation off prefixed output. **Seventh instance.** What differs
+this time: after the failure I ran the visible-space dump *before* re-attempting, and M141 — which failed the
+same way minutes later — got the dump first. The rule that works is not "be careful with indentation" but
+**dump the line before writing the anchor, always**, and it took seven failures to start doing it by default
+rather than after the first miss.
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged. All three mutations restored byte-identical; typecheck 0; eslint
+clean.
+
+**Reopen triggers**
+- The Biller's evidence dep moves out of the queue handler (a shared deps builder, say) → the deps assertion
+  is written against this call site and would pass over the new one while the old line lingers.
+- A fourth deployable scope is added → the binding assertion floors at 3, so scope four is unguarded until the
+  floor rises. It is a floor rather than an exact count for §609's reason, and that is the cost of the choice.
