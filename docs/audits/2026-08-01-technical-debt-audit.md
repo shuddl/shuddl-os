@@ -334,6 +334,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 139 | §691 | **§692** | **Attempted the last wiring hole and concluded it should NOT be closed.** `verify:release` has no CI home because `staging-smoke` BLOCKS on an unset `SMOKE_API_BASE` — wiring it into nightly would go red every night for a reason nobody can fix from this checkout, and **a gate that must fail is worse than one that is absent**. Owner-held, one hold not two. Separately **M214** showed nightly's `check:traceability` deletion is undetected — but it is **redundant with the same gate on the merge path**, so it costs cadence, not coverage. Same mutation result as §691, an order of magnitude apart in consequence |
 | 140 | §692 | **§693** | **Linked the two wiring severities; left one limit open ON PURPOSE.** §691 and §692 gave identical mutation results with an order of magnitude between consequences, separated only by a fact neither asserted — `check:traceability` is also a merge gate. Generalised and enforced: **every gate-shaped script nightly runs must be on the merge path** (`backup` excluded as an operation, not a verdict). M215 fires. **M216 (nightly reduced to zero gates) deliberately does NOT** — its subject is unique coverage, not cadence, and pinning a cadence would encode a preference as a law. Third phase running where the next step is not the repo's to take |
 | 141 | §693 | **§694** | **One glob closed a limit TWO gates shared.** §691 and §693 both pinned workflow paths literally; widening to *every* workflow makes the rule "every gate-shaped script any workflow runs is on the merge path". Measured first: **one exception in the whole tree** — `check:pr`, which reads `$PR_BODY` and therefore *cannot* be in the merge profile — sanctioned with a reason and a staleness check. M217 (a third workflow with a unique gate) fires; M218 (stale sanction) fires. Closes a four-phase run where each phase attempted the previous one's recorded limit — **two closed, one closed as "do not close", one by generalisation** |
+| 142 | §694 | **§695** | **Four copies of the glob that decides whether ANY wiring assertion can see CI.** §694's residual named one; there were **four** hand-written `*.yml` globs in one file — the invocation corpus, §691's pin, §694's assertion and its staleness check. A `.yaml` workflow (GitHub accepts both) was invisible to all four at once, including the two written in the last three phases to close wiring holes. **Proved by A/B**: identical probe, SILENT pre-fix, FIRES post-fix. Third phase running where the limit was the CORPUS, not the rule — *a scanner's reach is a separate assertion from its logic* |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -38864,3 +38865,68 @@ limit gets fixed — it is that every limit gets tried**, and §692's outcome is
   an **input**, not a convenience. `check:pr`'s `$PR_BODY` is the only one that has met that bar.
 - The cadence limit from §693 stays open by choice: nothing asserts a nightly *runs*, because that pins a
   schedule rather than a guarantee.
+
+## §695 — PHASE GATE: four copies of the glob that decides whether any of it can see CI
+
+**Subject.** §694's first residual, recorded one phase ago: *"a workflow added outside
+`.github/workflows/*.yml` — a `.yaml` extension — would be missed. `*.yaml` is two characters away."*
+§671's rule for the fifth consecutive phase: attempt it.
+
+### It was worse than the residual described
+
+The residual named one glob. There were **four**, hand-written, in the same file:
+
+| line | what it feeds |
+|---|---|
+| 35 | the invocation corpus — *"is this gate wired anywhere?"* |
+| 143 | §691's pin — *"does CI run `verify:merge`?"* |
+| 185 | §694's assertion — *"is every workflow gate on the merge path?"* |
+| 209 | §694's staleness check |
+
+A workflow named `.yaml` would have been invisible to **all four simultaneously** — including the two written
+in the last three phases specifically to close wiring holes. GitHub Actions accepts both extensions, so this
+is not hypothetical syntax.
+
+**Four hand-written copies of one matcher** is precisely the drift this repo's own
+`share-lint-matchers-with-parity-tests` skill was written about — and here the duplicated thing was the
+predicate deciding whether *any* of these assertions can see CI at all.
+
+### Proved by A/B, not by argument
+
+The same probe — a `.yaml` workflow carrying a gate no merge profile contains — run against both versions of
+the file:
+
+```
+pre-fix   9 passed (9)      SILENT
+post-fix  1 failed | 8      FIRES
+```
+
+That is the cleanest form of evidence available for a scanner gap: identical input, one variable, opposite
+verdicts. No mutation of the subject was needed because the *subject was the scanner*.
+
+### Closed
+
+One `workflowFiles()` helper globbing both extensions, consumed by all four sites. **M219** is the probe
+above.
+
+### Why this kept happening
+
+Three phases in a row now, the limit has been in the **corpus**, not the rule: §693 named one workflow by
+path, §694 globbed one extension, §695 found four copies of that glob. Each rule was correct; each could see
+less than it claimed.
+
+**A scanner's reach is a separate assertion from a scanner's logic**, and this audit has now paid for that
+lesson at three different radii. The non-vacuity floors (§610) check that a corpus is *non-empty* — none of
+them checks it is *complete*, and completeness is not derivable from inside the scanner.
+
+### Exit state
+
+`test:tools` 973 → **973** (a shared helper, no new test); typecheck 0; both probe workflows removed and
+`git status` clean. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, aggregate BLOCKED, exit 2** at `04c6fe1`.
+
+**Reopen triggers**
+- A workflow lives outside `.github/workflows/` entirely (a composite action, a reusable workflow called
+  from another repo) → still invisible, and **not closable from here**: the calling repo is not this one.
+  That is a genuinely different limit from the two just closed, and it is owner-held.
+- Another glob over the same directory is added → the helper exists now, so the review question is whether
+  the new call site uses it. Nothing enforces that; it is one more copy away from the same fault.

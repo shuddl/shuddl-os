@@ -29,10 +29,23 @@ const gateScripts = (): string[] =>
     .filter((k) => !RUNNERS.has(k))
     .sort();
 
+/**
+ * Every CI workflow. §695 — GitHub Actions accepts BOTH extensions, and four separate globs in this file
+ * each hard-coded `*.yml`. A workflow named `.yaml` would have been invisible to all four at once: the
+ * invocation corpus, the verify:merge pin (§691), the merge-path assertion (§694) and its staleness check.
+ *
+ * Shared rather than repeated, per this repo's own `share-lint-matchers-with-parity-tests` rule — four
+ * hand-written copies of one matcher is exactly the drift that skill was written about, and here they were
+ * copies of the thing that decides whether ANY of these assertions can see CI at all.
+ */
+function workflowFiles(): string[] {
+  return [...globSync(".github/workflows/*.yml"), ...globSync(".github/workflows/*.yaml")].sort();
+}
+
 /** Every place a gate could legitimately be wired, as one searchable corpus. */
 function invocationCorpus(): string {
   const parts: string[] = [readFileSync("tools/release/run-gate.ts", "utf8")];
-  for (const wf of globSync(".github/workflows/*.yml")) parts.push(readFileSync(wf, "utf8"));
+  for (const wf of workflowFiles()) parts.push(readFileSync(wf, "utf8"));
   // Other scripts' command chains — excluding each script's OWN definition, which would make every
   // script trivially "referenced by itself" and the whole check vacuous.
   for (const [name, cmd] of Object.entries(PKG.scripts)) parts.push(`${name} ${cmd}`);
@@ -140,7 +153,7 @@ describe("REQ-118 §656: the test script still chains the tools suite", () => {
     // still fail here. That is deliberate. The release profile BLOCKS in CI without a deployed environment,
     // so the swap is not a real alternative, and pinning the literal keeps the failure message specific
     // instead of asking the reader to reason about profile subsets at 3am.
-    const workflows = globSync(".github/workflows/*.yml");
+    const workflows = workflowFiles();
     expect(workflows.length, "no workflows found — this assertion cannot see CI, so its silence means nothing").toBeGreaterThan(0);
     const invoked = workflows
       .map((wf) => readFileSync(wf, "utf8"))
@@ -182,7 +195,7 @@ describe("REQ-118 §656: the test script still chains the tools suite", () => {
     //
     // §694 widens it from `nightly.yml` to EVERY workflow. The first cut named one file by path, which is
     // the same literal-pin limit §691 carries: a third workflow would inherit nothing. Globbing closes both.
-    const workflows = globSync(".github/workflows/*.yml");
+    const workflows = workflowFiles();
     expect(workflows.length, "no workflows found — this assertion cannot see CI, so its silence means nothing").toBeGreaterThan(1);
     const mergeScripts = new Set([...readFileSync("tools/release/run-gate.ts", "utf8").matchAll(/script: "([^"]+)"/g)].map((m) => m[1]!));
     expect(mergeScripts.size, "no gate scripts parsed from run-gate.ts — the scan broke").toBeGreaterThan(20);
@@ -206,7 +219,7 @@ describe("REQ-118 §656: the test script still chains the tools suite", () => {
 
   it("§694: nothing sits in SANCTIONED_CI_ONLY that no workflow runs", () => {
     // §"record holds with expiry triggers" — an exemption outliving its subject is a standing excuse.
-    const live = new Set(globSync(".github/workflows/*.yml").flatMap((wf) => workflowGates(readFileSync(wf, "utf8"))));
+    const live = new Set(workflowFiles().flatMap((wf) => workflowGates(readFileSync(wf, "utf8"))));
     const stale = [...SANCTIONED_CI_ONLY.keys()].filter((k) => !live.has(k));
     expect(stale, `SANCTIONED_CI_ONLY excuses a script no workflow runs — delete the entry:\n  ${stale.join("\n  ")}`).toEqual([]);
   });
