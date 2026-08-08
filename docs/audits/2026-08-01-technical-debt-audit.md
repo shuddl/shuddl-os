@@ -313,6 +313,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 118 | §670 | **§671** | **Closed a limit the record carried TWICE.** §668 shipped `DOMAIN_CHECKS` hand-maintained and wrote down that an unenrolled CHECK fails nothing; §670 repeated the sentence. A limit recorded twice without an attempt is being managed, not closed — and the record reads identically either way. Closable with material already in the file (§610: a selector needs its own floor): the test already imports the migration raw, so count declared CHECKs vs enrolled. M188 adds an unenrolled CHECK and it fires |
 | 119 | §671 | **§672** | **Rosters clean; the gap was in a SANCTION.** 44 lists; the auto-classifier returned "derived: 0 of 44" — a broken probe, discarded. The useful split is rosters (need completeness) vs sanctions (need staleness) vs probe corpora (neither). All three rosters checked have floors. But `ALLOWED` in **append-chokepoint.ts** — the allowlist for the append chokepoint itself — had no staleness check, while its §636/§666 siblings do; this gate is OLDER than both. It keys on the exact PATH and only does `continue`, so a deleted module leaves a bypass any future file at that path inherits. M189: gate → exit 1 |
 | 120 | §672 | **§673** | **DEFECT — §650's rule reached four callers and the fifth was the visual gate.** 36 filesystem enumerators → 17 can see untracked copies (`git ls-files` cannot) → 13 unfiltered. Rather than fix 13, each was MEASURED by planting a real collision copy: **1 of 13 breaks.** `visual-corpus` asserts SET EQUALITY between a glob and a registry, so an extra file is a divergence by construction — `command 2.png` failed two tests, reporting a canonical screen as untested. Written at §608, before §650's rule existed. Filter shared not re-authored; proved precise (a genuine extra still fails) and non-silent via a temp-dir fixture |
+| 121 | §673 | **§674** | **The measurement stopped a harmful fix.** 50 source scanners, 5 strip comments. `rater-purity` is immune (parses imports); the **design audit is not** — a comment reading "the old brand colour was #ff0000" takes the BLOCKING gate to exit 1, while `auditColor`'s two sibling checks were deliberately hardened. The obvious repair (reuse `stripComments`) was measured first: it is a TS stripper, and CSS `url(https://…)` puts it in line-comment state, **blanking a real `color: #ff0000` after it**. Pinned the boundary; left the design judgment to `genesis/07`. Also: `check:design` doesn't exist — pnpm exits 1 silently, faking a red baseline |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -37418,3 +37419,80 @@ The rest of this audit restores from a `/tmp` snapshot taken *before* mutating, 
   first commit. The scan-for-violations shape does not, and the difference is the whole finding.
 - The repo moves off an iCloud-synced directory → the *class* stops occurring, but the filter stays correct
   and costs nothing; the reason to keep it is that the next machine may sync too.
+
+## §674 — PHASE GATE: the fix I was about to make would have opened a hole in a blocking gate
+
+**Subject.** §673's second trigger: comment-stripping, applied unevenly. 50 scanners in `tools/` read source
+and match a regex against it; **5 strip comments, 45 do not.** Most of the 45 parse structured data or scan
+for things prose cannot fake. The dangerous subset is the scanners that **ban a pattern**, where a comment
+mentioning the pattern becomes a false alarm — the shape this audit has recorded eight times.
+
+### Two banners tested, one vulnerable
+
+**`rater-purity`** — the REQ-024 lint CLAUDE.md calls out by name — is **immune**. A planted comment reading
+*"this module used to import ./adapters/smc3"* left it at exit 0, because it parses import statements rather
+than raw text.
+
+**The design audit is not.** A comment reading *"the old brand colour was #ff0000"* takes it to **exit 1**:
+
+```
+design audit: 1 violation(s) [mode=blocking]
+  apps/command/src/App.test.tsx: color #ff0000 (→ #FF0000) outside the five tokens (REQ-145)
+```
+
+It is **blocking** (CLAUDE.md rule 7), so a design note written in a comment fails the merge. And the sibling
+shape appears *inside one function*: `auditColor`'s other two checks were deliberately hardened against
+exactly this — the functional-color match is case-sensitive *"so `hexToRgb(` is never a hit"*, and the
+named-color check is scoped to color-property values. The hex scan alone runs over raw text.
+
+### And then the measurement stopped the fix
+
+The obvious repair is to strip comments before the hex scan, reusing the shared helper. **Measured first —
+and it would have been a defect.** `stripComments` is a TypeScript stripper:
+
+```
+a { background: url(https://x.test/i.png); color: #ff0000; }   →   #ff0000 does NOT survive
+```
+
+CSS has no line comments, so `url(https://…)` is **code** — but the `//` puts the stripper into line-comment
+state and it blanks the rest of the line, including a real `color: #ff0000` after it. The design audit scans
+`.css`. **The "fix" for a cry-wolf would have blinded a blocking gate to genuine violations on any line
+carrying a URL.**
+
+It is not a bug in current use: every existing caller scans TypeScript only (`SOURCE_SCAN_GLOBS` is
+`.ts`/`.tsx`), where `//` outside a string *is* a comment, and the quoted-URL case is already tested. It is a
+**boundary**, and nothing said so.
+
+### What shipped, and what deliberately did not
+
+**Pinned the boundary.** A test in `append-chokepoint.test.ts` asserts the CSS-`url()` behaviour explicitly,
+with the reason: *if a CSS-scanning gate needs comment stripping, it needs a CSS-aware stripper, not this
+one.* **M191** makes the stripper CSS-tolerant (skip `//` after a colon) and the test fires — so the
+behaviour can no longer change by accident, in either direction.
+
+**Did not change the design gate.** Whether a hex in a comment should fail is a *design-system* judgment:
+`genesis/07` is source-of-truth #3, defines the five tokens, and says nothing about comment scope. The
+argument for stripping is that the design law governs pixels and a comment renders nothing; the argument
+against is that a hex in a comment is a copy-paste waiting to happen. **It has never actually fired** — the
+clean tree is green — so it is a latent cry-wolf, not a live failure, and the safe repair is not available
+anyway. Recorded as an owner-facing observation rather than resolved by my own preference.
+
+### Measurement note
+
+`pnpm -s check:design` exited **1 with no output** — the script is `audit:design`, and pnpm fails silently on
+an unknown name under `-s`. That read as *"the design gate is failing at baseline"*, which is a far more
+alarming result than the truth. Third instance of §"when a gate looks wrong, suspect the measurement", and the
+second time in this audit that a non-existent script name produced a fake red.
+
+### Exit state
+
+`test:tools` 957 → **958**; typecheck 0; both mutated files restored byte-identical from `/tmp` snapshots.
+**26 gates — 21 PASS · 0 FAIL · 5 BLOCKED** (§667 at `13b6642`).
+
+**Reopen triggers**
+- Anyone reaches for `stripComments` in a gate whose corpus includes `.css`, `.scss` or `.json` with URLs →
+  the pinned test names the hazard; a CSS-aware stripper is the answer, not this one.
+- The design audit's hex scan is narrowed (comments, or test files, excluded) → that is a design-system
+  decision and wants a line in `genesis/07`, not just a code change.
+- A hex-in-a-comment lands in `apps/**` or `packages/**` → the latent cry-wolf becomes a live merge block,
+  and this section is the argument already assembled for whoever hits it.

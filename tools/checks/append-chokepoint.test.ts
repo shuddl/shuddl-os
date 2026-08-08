@@ -62,6 +62,25 @@ describe("comment stripping is exact enough to be trusted", () => {
     expect(out).toContain("INSERT INTO events");
   });
 
+  it("§674: is a TYPESCRIPT stripper — an unquoted `//` (CSS `url()`) blanks the rest of the line", () => {
+    // NOT a bug in its current use, and deliberately pinned as a BOUNDARY rather than fixed.
+    //
+    // Every caller scans TypeScript (SOURCE_SCAN_GLOBS is .ts/.tsx only), where `//` outside a string IS a
+    // comment and this behaviour is exactly right. The quoted-URL case immediately below proves the string
+    // handling that makes it right.
+    //
+    // CSS is different: it has no line comments, so `url(https://x/i.png)` is CODE, and here the `//`
+    // swallows everything after it on that line. §674 found this while considering whether to reuse this
+    // helper in the design audit (which DOES scan .css) to stop it flagging a hex written in a comment.
+    // Measured before making that change: the "fix" would have BLANKED a real `color: #ff0000` sitting after
+    // a url() on the same line — a hole in a blocking gate, introduced while closing a cry-wolf.
+    //
+    // So this test exists to stop the next person doing what §674 nearly did. If a CSS-scanning gate needs
+    // comment stripping, it needs a CSS-aware stripper, not this one.
+    const css = "a { background: url(https://x.test/i.png); color: #ff0000; }";
+    expect(stripComments(css)).not.toContain("#ff0000");
+  });
+
   it("is not fooled by a // inside a string — that is a URL, not a comment", () => {
     const out = stripComments('const u = "https://x.test/a"; const SQL = "INSERT INTO events";\n');
     expect(out).toContain("INSERT INTO events");
