@@ -349,6 +349,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 154 | §706 | **§707** | **The dev loop existed; its exit 0 said more than it meant.** `pnpm verify` chains 16 checks **including lint** and runs clean end-to-end (the 5 fixture-blocked gates report PENDING without halting the `&&`) — so §705's ten-phase lint red was avoidable with a command already there. But `verify` exits **0** with five gates pending and prints **zero** promotion warnings, while `verify:merge` says *"NOT PROMOTABLE… This is NOT a green."* §689's false-green shape, **structural rather than a shell slip**. Closed: the dev loop now states which question its green answers |
 | 155 | §707 | **§708** | **Two load-bearing claims verified, both true.** CLAUDE.md rule 4's *"exits 2 on `--mode merge`"* holds for **all five** blocked gates (bare 0 / merge 2) — which is also why `pnpm verify` legitimately sees 0. And the `--if-present` hazard in `unit-tests` (17 packages, 313 test files, a lost `test` script silently skipped) **is covered**: M227 deletes `packages/rater`'s script and `test-collection` names all 157 files, because the package stops being a **runner root** and falls through to `<root>`. **A floor can guard something its name does not mention** — I would have been wrong to assume it |
 | 156 | §708 | **§709** | **DEFECT — 208 test files were ONE edit from leaving the largest gate.** §708 declined to gate a combination as *"two edits in opposite directions"*; **eleven packages already ship their own `vitest.config.ts`**, so it is one. Deleting `packages/map`'s `test` script left test-collection, gate-wiring AND ci-contract all green — `--if-present` skips in silence, and an own-config package keeps runner-root status so its files stay "collected" while never running. `workers/api` alone is 69 files. Floor added; M228b fires on both probes. **"Recorded rather than gated" is an effort claim, and effort claims are measurable** — one `git ls-files` falsified it |
+| 157 | §709 | **§710** | **Audited this audit's own deferrals.** §709's rule — *"recorded rather than gated" is an effort claim, and effort claims are measurable* — applied to all **11** deferral statements (7 substantive) in §663–§709. **Six sound, one not**, and the unsound one (§708) is the only whose premise was never measured. §682's untested *"register scope"* claim **verified against the register**: REQ-024 constrains *where* LLM calls live, REQ-125 is a cost ceiling, **no row names a provider** — so gating it would invent scope. Deferrals come in three kinds — effort, scope, structural — and **only the effort kind produced a defect** |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -39768,3 +39769,67 @@ restored byte-identical. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, exit 2**
   That is the same corpus-reach limit §695 named, and the sibling-extension sweep (§698) is the tool.
 - `pnpm test` stops using `--if-present` → the floor guards a hazard that no longer exists and should be
   deleted rather than left as a passing check nobody can explain.
+
+## §710 — PHASE GATE: auditing this audit's own deferrals
+
+**Subject.** §709 produced a rule with teeth: ***"recorded rather than gated" is a judgement about effort, and
+effort claims are measurable.*** §708's deferral rested on a premise (*"two edits in opposite directions"*)
+that one `git ls-files` falsified, and the wrong premise produced a decision not to act on a defect exposing
+208 test files. **Every other deferral in this stretch is the same shape and deserves the same treatment.**
+
+### The sweep
+
+**Eleven** deferral statements in §663–§709 (*"not gated" · "rather than gated" · "deliberately NOT" ·
+"declined to" · "not closable"*), resolving to **seven substantive** decisions.
+
+**Most were already backed by a measurement taken at the time** — which is the thing §708 skipped:
+
+| deferral | its premise | measured? |
+|---|---|---|
+| §692 `verify:release` unwired | *"would pin a permanent red"* | **yes** — `staging-smoke` exits 2 without `SMOKE_API_BASE` |
+| §704 swallowed-error gate | *"96% false-positive rate"* | **yes** — 57 candidates → 2 relevant |
+| §697 scanner meta-gate | *"its own corpus needs the same treatment"* | **partly** — §698 ran the measurement once instead, and closed the class |
+| §695 workflow from another repo | *"the calling repo is not this one"* | structural, true by definition |
+| §674 design gate's comment scope | design-system judgement, `genesis/07` silent | scope, not effort |
+| **§708** package test scripts | *"two edits in opposite directions"* | **NO — false, and it cost a real defect** |
+
+### The one I had not checked
+
+§682 declined to gate a non-Anthropic LLM provider, on the grounds that *"which providers this repo may call
+is register scope; REQ-024 constrains **where** LLM calls live, not **whose**."* That is a claim about the
+register, and the register is readable:
+
+```
+REQ-024  LEDGER  LLMs never write ledger truth; agent output is advisory events
+                 DoD: Static analysis: no LLM call in ledger pkg
+REQ-125  PLG     Abuse controls: per-IP/workspace velocity; LLM cost ceilings
+```
+
+**No row names a provider or restricts which may be called.** REQ-024 is a *placement* constraint and REQ-125
+a *cost* one. The deferral holds — and gating it would have been inventing scope, which source-of-truth #1
+forbids outright: *"if it isn't a REQ row, it doesn't get built."*
+
+### The result
+
+**Six of seven deferrals were sound and one was not** — and the one that was not is the only one whose
+premise had never been measured. That is not a coincidence; it is the rule §709 stated, confirmed on the
+population rather than the single case that produced it.
+
+**A deferral is a claim, and it decays like any other.** The three kinds behave differently:
+- an **effort** claim (*"two edits"*, *"96% noise"*) is measurable and must be measured;
+- a **scope** claim (*"register scope"*, *"design-system judgement"*) is checkable against the register or
+  the design doc, and both were;
+- a **structural** claim (*"the calling repo is not this one"*) is true by construction and needs no probe.
+
+Only the first kind produced a defect here, and it is the kind that reads most like a reasoned decision.
+
+### Exit state
+
+No code change; the sweep found one already-fixed defect (§709) and six sound decisions.
+`test:tools` **975**; lint 0; typecheck 0. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED, exit 2** at `e194d87`.
+
+**Reopen triggers**
+- A new deferral is written → classify it: effort, scope, or structural. If effort, measure the premise in
+  the same phase, because §708 shows the decision and the premise are written in one breath and only the
+  decision gets read afterwards.
+- A REQ row names an LLM provider → §682's deferral expires and the behaviour floor becomes gatable.
