@@ -316,6 +316,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 121 | §673 | **§674** | **The measurement stopped a harmful fix.** 50 source scanners, 5 strip comments. `rater-purity` is immune (parses imports); the **design audit is not** — a comment reading "the old brand colour was #ff0000" takes the BLOCKING gate to exit 1, while `auditColor`'s two sibling checks were deliberately hardened. The obvious repair (reuse `stripComments`) was measured first: it is a TS stripper, and CSS `url(https://…)` puts it in line-comment state, **blanking a real `color: #ff0000` after it**. Pinned the boundary; left the design judgment to `genesis/07`. Also: `check:design` doesn't exist — pnpm exits 1 silently, faking a red baseline |
 | 122 | §674 | **§675** | **STOPPING POINT — the uneven-discipline vein is worked out.** Non-vacuity floors: 36 scanning gate files, **0 gaps** (all four no-signal candidates survive reading; the regex false-negatived two). Trilogy total: 2 defects + 1 prevented from 100+ candidates, and §674's best output was a fix NOT made — §296's spent-line signal. Gate **re-measured at `b97687b`, not restated: 26 gates, 21 PASS · 0 FAIL · 5 BLOCKED.** §663–§675 = 12 phases, 17 commits, 6 defects closed; contracts 291→304, ledger 634→661, tools 949→958 |
 | 123 | §675 | **§676** | **DEFECT ×2 — a law proved once had four members, two unguarded.** §310 proved the ten laws with ONE mutation each; §466 says that says nothing about members. eng.3: nine gated transitions, **9/9 fire** (§310 understated it). eng.10: the mirror's four quarantine reasons — deleting each call so the row is skipped in silence — **`bad_cursor` and `bad_value` left adapters 38/38 AND agents 122/122 green.** A silent `continue` produces zero of everything, identical to an empty feed; `bad_value` is worse, applying `NaN` as a mirrored invoice total. `bad_value` nearly dismissed as defense-in-depth — disabling BOTH guards proved it real |
+| 124 | §676 | **§677** | **Clean negative + the discriminator stated.** eng.4 has **seven** preconditions where §310 proved one. Five fire; `typeof` and `!isFinite` fire **nothing** — and are **redundant, not gaps**: removing both keeps 157/157 because `!Number.isInteger` rejects non-numbers/NaN/Infinity alone, and removing that third fails 9. Opposite answer to §676's `bad_value` from an identical-looking green. **Rule: disable the siblings together and ask what happened to the BEHAVIOUR, not to the tests.** Harness bug: `IFS='\|'` split patterns containing `\|\|`, reporting 57 tests where the package has 157 |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -37667,3 +37668,70 @@ fix is that every suite invocation in this audit now runs in an explicit subshel
 - The remaining laws with plural members are unmeasured: **eng.4** (no price on air) has several physics
   preconditions, and **eng.7/L7** (gate every transition) overlaps eng.3 but covers evidence collection.
 - `#enforceTransitionGate` gains a tenth case → the sweep above was by hand and its result is a snapshot.
+
+## §677 — PHASE GATE: eng.4 is clean, and two "gaps" were redundant spelling
+
+**Subject.** §676's trigger: **eng.4 (no price on air)** was proved by one mutation (delete the physics
+return, 9 tests). `priceFreight` actually has **seven** preconditions — a four-condition weight disjunct plus
+dims, zone and rate group.
+
+### The sweep
+
+| precondition | tests that fire when removed |
+|---|---|
+| `weight <= 0` | 3 |
+| `!Number.isInteger(weight)` (fractional) | 2 |
+| `dims === null \|\| undefined` | 3 |
+| `no_zone` | 3 |
+| `no_rate_group` | 1 |
+| `typeof weight !== "number"` | **0** |
+| `!Number.isFinite(weight)` | **0** |
+
+### The two silent ones are redundant, and that was PROVED rather than assumed
+
+§676's lesson applied in the opposite direction. Removing `typeof` **and** `isFinite` together is still
+**157/157 green** — and here that is not a gap, because `!Number.isInteger(x)` rejects non-numbers, `NaN`
+and `Infinity` on its own, so the behaviour is unchanged. Removing that third condition as well fails **9**
+tests, which is what identifies it as the load-bearing one.
+
+**The discriminator, stated as a rule:** disable the siblings together and ask *what happened to the
+behaviour*, not *what happened to the tests*.
+
+| | disable both siblings | verdict |
+|---|---|---|
+| §676 `bad_value` | behaviour **broken** (a `NaN` total is applied), tests still green | **real gap** |
+| §677 `typeof` / `isFinite` | behaviour **preserved** by a third condition | **redundant spelling** |
+
+Both look identical in a test summary — green either way. Two phases running, that one extra mutation was
+the difference between a defect and a false alarm, in opposite directions. **A green mutation is a question,
+never an answer.**
+
+So eng.4's weight precondition is really **two** independent guarantees (`<= 0` and `isInteger`), both
+defended, and the extra disjuncts are defensive spelling that costs nothing and asserts nothing. Nothing to
+fix; nothing to add.
+
+### A harness failure worth recording
+
+The first attempt drove this sweep from shell with `IFS='|' read -r old new label`, and the patterns
+themselves contain `||`. The fields shifted, the wrong strings were substituted, and the runs reported **57
+tests** where the package has **157**. That discrepancy is the only reason it was caught — the verdicts
+looked plausible. Rewritten with the patterns as **data** in a Python driver, and the same seven cases then
+produced consistent 157-test runs with different answers.
+
+**A delimiter that can occur inside the data is not a delimiter.** Third harness bug in three phases (§669's
+`eval`-with-`cd`, repeated in §676; now this), and all three produced *readable, wrong* output rather than an
+error.
+
+### Exit state
+
+No code change — the sweep found nothing to fix. `packages/rater` 157/157; `engine.ts` restored
+byte-identical. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED** (§675 at `b97687b`).
+
+**Reopen triggers**
+- `ShipmentPhysics.weight_lb` becomes optional or widens its type → the redundancy above is what absorbs it
+  today, and the load-bearing condition is `isInteger`, not the `typeof` check a reader would assume.
+- A fifth UNKNOWN reason is added to `priceFreight` → it starts unmeasured; the four are each named by a test
+  now, but nothing counts them.
+- **L7 (gate every transition) is the last law with plural members still proved only at class level** — its
+  evidence-collection half overlaps eng.3's nine gates, which are clean, but the overlap has not been
+  measured.
