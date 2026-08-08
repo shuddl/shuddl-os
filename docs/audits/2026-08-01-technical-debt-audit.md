@@ -344,6 +344,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 149 | §701 | **§702** | **Floor built; the discriminator was wrong about `Env`.** Encoding *"first arg is a scoped handle"* first classified `Env`/`AgentsEnv` as one — hiding **six listed functions including `resolveTenantDb`, the archetype of the whole roster**. `Env` is ambient bindings, so `(env, tenant)` IS an entry point; the correction surfaced `sparkGateFor` (safe, 4/4). **Completeness floor now sits beside the staleness one** — M225 adds `readTenantThing(tenant, db)` and it fires. Blind spot stated: `export function` only, which is why the roster stays hand-written — **derive to floor, enumerate to define** |
 | 150 | §702 | **§703** | **Re-derived §684's "7 gate-enforced triggers" claim, 19 phases on — 7/7 ENFORCED, no decay.** Two of my mutations were wrong first: §666 read **DECAYED** because I dropped `.strict()` from `evInput` (the ENVELOPE, §665's subject) rather than a payload schema; §683 read exit 0 because I *raised* the budget constant instead of violating it — which surfaced the better question and the answer that **§611's `claude-md-budgets` pins the constant**, so the trigger has two layers. The value is not "seven still hold" but that the sentence now has a measurement dated today |
 | 151 | §703 | **§704** | **Back to the BUILD: swallowed errors — 57 candidates, 2 relevant, 0 defects.** Raw sweep over-reports (a `return undefined` after a failed parse is a typed absence, not a swallow). The discriminator this repo learned at cost — *fail-closed is about the fallback VALUE* — cut 57 → 2. Both cleared **by reading the consumer**: `gateBlock()`'s `return []` looks like "nothing required" but runs only AFTER the gate blocked, and its caller maps an empty list to `unknown`, *"still held for ops"*. Reading the catch alone would have produced a wrong finding |
+| 152 | §704 | **§705** | **DEFECT — the three PWAs were outside the type-aware promise rules**, and `apps/` appears in **no block** in `eslint.config.mjs`. Probed rather than reasoned: an identical floating call is caught in `packages/map/src` (1 hit) and **not** in `apps/command/src` (0). Worst in the driver, whose premise is offline durability — a dropped sync promise is work that never happens, which no airplane-mode soak can catch if the write was never awaited. New block (tests ignored: all 9 violations are `waitFor(async …)`; production has zero). **Also: lint had been RED since §694** — mine — because phases verified with `test:tools`+`typecheck`, which are a SUBSET of the merge gate |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -39478,3 +39479,63 @@ No code change; nothing to fix. `test:tools` **974**; **26 gates — 21 PASS · 
   ignored within a week.
 - The `gateBlock` consumer stops mapping an empty list to `unknown` → the fallback becomes load-bearing and
   this verdict expires. Nothing links them, which is this section's honest limit.
+
+## §705 — PHASE GATE: the three surfaces were outside the type-aware promise rules
+
+**Subject.** Continuing §704's return to the build. `no-floating-promises` is a genuine Workers/PWA hazard —
+an un-awaited promise is work that silently never happens. The rule is already `"error"`, so the question is
+not *whether* but **over what**.
+
+### Measured, not reasoned
+
+`eslint.config.mjs` declares the type-aware block over `workers/*/src/**/*.ts` and `packages/*/src/**/*.ts`.
+**`apps/` appears in no block in the entire file.** Rather than argue about minimatch semantics, an identical
+probe was planted in each tree:
+
+```
+packages/map/src/probe-float.ts    no-floating-promises hits: 1
+apps/command/src/probe-float.ts    no-floating-promises hits: 0
+```
+
+The surfaces **are** linted — a probe with `any` and an unused variable is caught, so the base config reaches
+them — but never by the rules that need type information.
+
+**Where it matters most is the driver.** Its entire premise is offline durability, and a dropped promise in a
+sync path is work that silently never happens: precisely the failure the airplane-mode soak exists to catch,
+and one no soak can catch **if the write was never awaited**.
+
+### A separate block, because the violations are all in tests
+
+Extending the existing block surfaced **9** `no-misused-promises` errors — every one in a co-located
+`*.test.tsx`, from `waitFor(async () => …)`, which is the rule by the letter and idiomatic by intent.
+**Production surface code has zero.**
+
+So: a new block over `apps/*/src/**/*.{ts,tsx}` with `*.test.*` ignored, rather than a widening that would
+have imported nine false findings. **M226**: a floating `syncNow()` in `apps/driver/src` is now caught.
+
+### The lint gate had been red for three phases and I had not noticed
+
+Adding the block surfaced an unrelated failure: `existsSync` imported and unused in `gate-wiring.test.ts` —
+**mine**, added in §693 for the by-path nightly assertion and orphaned in §694 when the glob-based version
+replaced it.
+
+**Lint has been failing since §694 and §695–§704 did not catch it**, because each phase verified with
+`test:tools` and `typecheck` and neither runs ESLint. The last full `verify:merge` was §689's, at `04c6fe1`,
+before the change landed.
+
+That is the §689 lesson inverted. There, re-running a measurement caught a false green. Here, **not re-running
+one let a real red sit for ten phases** — and the gate that would have caught it immediately (`lint`, inside
+`verify:merge`) was never invoked, because the cheap checks were passing and I took them for the whole.
+`test:tools` and `typecheck` are a *subset* of the merge gate, and a subset that passes is not the gate.
+
+### Exit state
+
+`lint` exit **0**; typecheck 0; `test:tools` **974**. `eslint.config.mjs` gains one block; one unused import
+removed. **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED** (§689 at `04c6fe1`; this phase changes lint scope, so
+the next re-derivation should be a full `verify:merge`).
+
+**Reopen triggers**
+- A phase verifies with `test:tools` alone → the same hole. The cheap loop is `test:tools` + `typecheck` +
+  **`lint`**, and only a full `verify:merge` is the gate.
+- A fourth surface is added under `apps/` → the new block globs `apps/*/src/**`, so it is covered from its
+  first commit. That is deliberate, and the opposite of the hand-listed shape §681 had to fix.

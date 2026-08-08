@@ -263,4 +263,26 @@ export default tseslint.config(
       "@typescript-eslint/await-thenable": "error",
     },
   },
+  // §705 — THE SURFACES WERE OUTSIDE THE TYPE-AWARE PROMISE RULES. The block above lists workers and
+  // packages; `apps/` appears in NO block in this file, so the three PWAs were linted by the base rules only
+  // (`any` and unused vars are caught — verified with a probe) and never by the rules that need type info.
+  //
+  // MEASURED: an identical floating `work();` is flagged in `packages/map/src/` and NOT in
+  // `apps/command/src/`. That matters most in the driver PWA, whose whole premise is offline durability —
+  // a dropped promise in a sync path is work that silently never happens, which is the failure the
+  // airplane-mode soak exists to catch and which no soak can catch if the write was never awaited.
+  //
+  // A SEPARATE BLOCK, not a widening of the one above: co-located `*.test.tsx` files legitimately pass async
+  // callbacks to `waitFor`, which is `no-misused-promises` by the letter and idiomatic by intent. Extending
+  // the existing block would have imported 9 such violations; production surface code has ZERO.
+  {
+    files: ["apps/*/src/**/*.ts", "apps/*/src/**/*.tsx"],
+    ignores: ["**/*.test.ts", "**/*.test.tsx"],
+    languageOptions: { parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname } },
+    rules: {
+      "@typescript-eslint/no-floating-promises": "error",
+      "@typescript-eslint/no-misused-promises": "error",
+      "@typescript-eslint/await-thenable": "error",
+    },
+  },
 );
