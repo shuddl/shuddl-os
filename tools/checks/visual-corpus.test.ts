@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { globSync, readFileSync } from "node:fs";
-import { basename } from "node:path";
+import { globSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { basename, join } from "node:path";
+import { tmpdir } from "node:os";
 import { repoRoot } from "./repo-root.js";
+import { isCollisionDuplicate } from "./invariants.js";
 
 // REQ-118/REQ-158 §608 — THE VISUAL GATE MUST TEST EVERY BLESSED SCREEN, NOT MERELY SOME.
 //
@@ -45,7 +47,22 @@ function registeredScreens(root: string): string[] {
 
 /** The committed reference images. */
 function blessedRefs(root: string): string[] {
-  return globSync(`${BLESSED}/*.png`, { cwd: root }).map((p) => basename(p)).sort();
+  // §673 — the iCloud-duplicate filter, SHARED from invariants.ts rather than re-authored. §650 established
+  // the rule (a filesystem scanner is vulnerable exactly when it keys on paths) and fixed four callers; this
+  // gate predates that rule and never received it.
+  //
+  // It is the ONE scanner of thirteen where the omission actually bites, and the reason is specific: this
+  // assertion is a SET EQUALITY between a glob and a registry. A scanner that merely inspects each file for a
+  // violation reaches the same verdict on a duplicate — but here an extra `command 2.png` is an image SCREENS
+  // does not name, which is indistinguishable from a canonical screen that stopped being tested.
+  //
+  // MEASURED: copying one blessed png to `command 2.png` failed TWO tests in this file. This repo lives on an
+  // iCloud-synced directory where those copies appear unbidden, so the gate reported a ledger-shaped failure
+  // for a filesystem artifact — §650's cry-wolf shape, in the gate that guards the five canonical screens.
+  return globSync(`${BLESSED}/*.png`, { cwd: root })
+    .filter((rel) => !isCollisionDuplicate(rel))
+    .map((p) => basename(p))
+    .sort();
 }
 
 describe("REQ-158 §608: the visual suite covers every blessed screen", () => {
@@ -76,6 +93,24 @@ describe("REQ-158 §608: the visual suite covers every blessed screen", () => {
         "the browser gate's floor is at zero executed, never at the expected count, and it cannot be " +
         "otherwise because it is shared with a11y/e2e/perf",
     ).toEqual(blessedRefs(root));
+  });
+
+  it("an iCloud collision copy is not mistaken for an unregistered screen (§673)", () => {
+    // WITHOUT THIS, REMOVING THE FILTER IS SILENT. The repo normally carries no collision copies, so the
+    // parity assertion above passes either way and nothing reports that the guard is gone — §"a silent
+    // mutation has two explanations", answered by giving the guard an input only it can handle.
+    const dir = mkdtempSync(join(tmpdir(), "blessed-"));
+    try {
+      mkdirSync(join(dir, BLESSED), { recursive: true });
+      for (const n of ["command.png", "command 2.png", "genuinely-extra.png"]) {
+        writeFileSync(join(dir, BLESSED, n), "");
+      }
+      // The collision copy is dropped; the genuine extra is NOT. The filter must be precise, not blinding —
+      // measured both ways against the real tree before this fixture existed.
+      expect(blessedRefs(dir)).toEqual(["command.png", "genuinely-extra.png"]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it("the five canonical screens of WP-03's DoD are all present", () => {

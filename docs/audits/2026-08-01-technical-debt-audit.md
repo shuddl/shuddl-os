@@ -312,6 +312,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 117 | §669 | **§670** | **DDL class CLOSED at member level, 46 constraints across four classes.** TRIGGER: **12/12 fire** — but the twelfth read as silent under a run I had scoped for speed, and is owned by `lens.test.ts` (a performance workaround is a change to the measurement). FK: three declared on adjacent lines, two tested — **`legs.shipment_id` undefended across 1,456 tests**, an orphan leg holding an appointment slot and a split share against a shipment that does not exist. Closed; M187b fires exactly 1. Five of six runs in one batch were workerd crashes caught by a validation guard, not findings |
 | 118 | §670 | **§671** | **Closed a limit the record carried TWICE.** §668 shipped `DOMAIN_CHECKS` hand-maintained and wrote down that an unenrolled CHECK fails nothing; §670 repeated the sentence. A limit recorded twice without an attempt is being managed, not closed — and the record reads identically either way. Closable with material already in the file (§610: a selector needs its own floor): the test already imports the migration raw, so count declared CHECKs vs enrolled. M188 adds an unenrolled CHECK and it fires |
 | 119 | §671 | **§672** | **Rosters clean; the gap was in a SANCTION.** 44 lists; the auto-classifier returned "derived: 0 of 44" — a broken probe, discarded. The useful split is rosters (need completeness) vs sanctions (need staleness) vs probe corpora (neither). All three rosters checked have floors. But `ALLOWED` in **append-chokepoint.ts** — the allowlist for the append chokepoint itself — had no staleness check, while its §636/§666 siblings do; this gate is OLDER than both. It keys on the exact PATH and only does `continue`, so a deleted module leaves a bypass any future file at that path inherits. M189: gate → exit 1 |
+| 120 | §672 | **§673** | **DEFECT — §650's rule reached four callers and the fifth was the visual gate.** 36 filesystem enumerators → 17 can see untracked copies (`git ls-files` cannot) → 13 unfiltered. Rather than fix 13, each was MEASURED by planting a real collision copy: **1 of 13 breaks.** `visual-corpus` asserts SET EQUALITY between a glob and a registry, so an extra file is a divergence by construction — `command 2.png` failed two tests, reporting a canonical screen as untested. Written at §608, before §650's rule existed. Filter shared not re-authored; proved precise (a genuine extra still fails) and non-silent via a temp-dir fixture |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -37346,3 +37347,74 @@ repeats it against the test, which fires. Both restored, `git status` clean.
   design decision, not a maintenance one. The staleness guard does not make that cheaper.
 - Another exemption list is added anywhere in `tools/` → the question to ask it is not "is it complete?" but
   "what happens when its subject disappears?" Rosters and sanctions fail in opposite directions.
+
+## §673 — PHASE GATE: the rule from §650 reached four callers and needed a fifth
+
+**Subject.** §672 made the working heuristic explicit — *find where a discipline is already applied, and check
+what it stops one line short of.* Applied deliberately to the discipline with a **proven corruption** behind
+it: `isCollisionDuplicate`, the iCloud collision-copy filter. §650 discovered the rule and fixed
+`append-chokepoint`; §651 found the seed loader applying a duplicate migration.
+
+### Narrowing, twice, before measuring
+
+36 files in `tools/` enumerate the filesystem. **`git ls-files` only returns TRACKED files**, and collision
+copies are untracked — so every scanner built on it is structurally immune. That cut the population to the
+**17** using `globSync`/`readdirSync`, of which **13 were unfiltered**.
+
+Thirteen fixes would have been the wrong answer. §650's discriminator — *vulnerable exactly when it keys on
+paths* — needed sharpening to explain which of the thirteen actually break, so each was **measured** by
+planting a real collision copy in the tree it scans:
+
+| planted | scanner | result |
+|---|---|---|
+| `class 2.ts` in `packages/rater/src` | rater-purity | clean |
+| `airplane-soak.test 2.ts` | test-collection | clean |
+| `the-222084-case 2.json` in `fixtures/` | fixtures verify | clean |
+| `App.test 2.tsx` in a surface | surface-contract | clean |
+| `workers/api 2/` (a duplicate **directory**) | wrangler-scope-parity | clean — it requires a `wrangler.toml` inside |
+| **`command 2.png` in `tests/visual/blessed/`** | **visual-corpus** | **TWO tests failed** |
+
+**One of thirteen.** The refined discriminator explains exactly why: a scanner that inspects each file *for a
+violation* reaches the same verdict on a duplicate, but `visual-corpus` asserts a **set equality** between a
+glob and a registry — so an extra file is a divergence by construction.
+
+### What it cost, in the gate that guards the five screens
+
+An unregistered blessed image is reported as *"a canonical screen that stopped being tested while the gate
+kept reporting PASS."* A collision copy produces that message for a filesystem artifact — §650's cry-wolf
+shape, now in the visual gate. And this repo lives on an iCloud-synced directory where those copies appear
+unbidden, so it is a recurring condition, not a hypothetical.
+
+The gate was written at §608, **before** §650 discovered the rule. Fourth instance of the sibling shape: the
+discipline exists next door and the older neighbour never received it.
+
+### Closed, and proved precise rather than blinding
+
+The filter is imported from `invariants.ts`, not re-authored (the shared-matcher rule). Both directions were
+measured against the real tree: a collision copy is now ignored, and a **genuinely** unregistered
+`genuinely-extra.png` still fails. A filter that fixed the false positive by blinding the gate would have
+been worse than the defect.
+
+**Removing the filter would have been silent** — the repo normally carries no collision copies, so the parity
+assertion passes either way. That is answered by giving the guard an input only it can handle: a temp-dir
+fixture containing a canonical image, a collision copy and a genuine extra, asserting exactly the first and
+third survive. **M190** removes the filter and that test fires.
+
+### A mistake worth recording
+
+Mid-phase, `git checkout -- tools/checks/visual-corpus.test.ts` was used to undo a mutation — and destroyed
+the **uncommitted** fix and test along with it, silently, because the mutation and the work lived in the same
+file. Detected by the restored run reporting **3 tests where 4 were expected**; the count was the only signal.
+The rest of this audit restores from a `/tmp` snapshot taken *before* mutating, and that is the reason.
+`git checkout` is a safe undo only for work that is already committed.
+
+### Exit state
+
+`test:tools` 956 → **957**; typecheck 0; file restored byte-identical from snapshot.
+**26 gates — 21 PASS · 0 FAIL · 5 BLOCKED** (§667 at `13b6642`).
+
+**Reopen triggers**
+- A new gate asserts set equality between a filesystem glob and a registry → it needs this filter from its
+  first commit. The scan-for-violations shape does not, and the difference is the whole finding.
+- The repo moves off an iCloud-synced directory → the *class* stops occurring, but the filter stays correct
+  and costs nothing; the reason to keep it is that the next machine may sync too.
