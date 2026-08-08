@@ -288,6 +288,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 93 | §645 | **§646** | **The "2 FAIL" reported for 41 phases was a DIRTY WORKING TREE, not the repo.** At HEAD both gates pass — test:tools 949/949, exit 0 — so the merge gate at HEAD is **21 PASS · 0 FAIL · 5 BLOCKED**. And the uncommitted row was MASKING a defect I shipped in §614: a bare REQ-289 in one of my comments is an annotation, orphaned at HEAD. Seventh prose-into-its-own-gate instance, and the first that shipped |
 | 94 | §646 | **§647** | Measured what §646 INFERRED. Full `verify:merge` at HEAD: **21 PASS · 0 FAIL · 5 BLOCKED**, zero FAIL lines, evidence artifact written. The five BLOCKED are §604's owner-held inputs, each naming what it wants, and the aggregate correctly refuses to round a blocked prerequisite to either a pass or a defect. The browser floors §609 installed report as real assertion counts for the first time |
 | 95 | §647 | **§648** | **THE STOPPING POINT.** 21 PASS · 0 FAIL · 5 BLOCKED at HEAD, measured with an artifact. §605–§647: ten defects fixed, four record defects corrected, eleven new gates, 65 mutations, three of my own findings refuted. What remains is five owner-held inputs and one owner-signed register row — nothing in this repo can supply them. Re-entry gating: re-measure before trusting any number here |
+| 96 | §648 | **§649** | The record OUTSIDE the repo carried the wrong number too. The session memory's headline was the "17 PASS · 5 BLOCKED · 2 FAIL" §646 disproved, and it is read BEFORE this document — superseded in place with a dated header rather than rewritten, keeping a record correct for its date alongside the correction. Both standing environment checks clean: zero iCloud duplicates, topology linear on main |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -35881,3 +35882,55 @@ surface that has now returned clean negatives for six consecutive threads (§643
   optional-dep rule each fail closed until it is registered, which is the intended forcing function.
 - This section is quoted as current without a re-run → the §646 error, and the first thing this stopping point
   warns against.
+
+---
+
+## §649 — PHASE GATE: the record outside the repo carried the wrong number too
+
+**Subject.** §648 closed the repo-side work. One artifact was still carrying the number §646 corrected — the
+**session memory**, which is what a future session reads *before* opening this document.
+
+### The two environment checks, both clean
+
+Before anything else, the standing per-session checks were run rather than assumed:
+
+- **iCloud duplicate artifacts** (`name 2.ext`) — the hazard that has corrupted file-count gates here before:
+  **zero** across the tree.
+- **Commit topology** — `82e04c7` is a proper ancestor of `HEAD` on `main`. §647's odd `rev-list` arithmetic
+  was history depth, not divergence. A curiosity, not debt, and chasing it further would have been
+  manufacturing work.
+
+### The memory said 17 PASS · 5 BLOCKED · 2 FAIL
+
+That entry is a dated, accurate record of 2026-08-05 — and its headline is exactly the figure §646 proved was
+the working tree rather than the repo. A future session would have read it, carried it, and reproduced the
+error this audit spent a phase correcting.
+
+It was **superseded in place, not rewritten**: a dated header records the new measurement, names what still
+holds below (the ten-law and I1–I8 mutation tables, the enforcement defects, every transferable lesson), and
+states the rule the correction produced —
+
+> *never quote a gate count without naming the tree state it was measured in, and whether it was measured or
+> derived.*
+
+Rewriting the body would have destroyed a point-in-time record that is **correct for its date**; deleting it
+would have lost thirty mutations' worth of proof. A superseding header is the only edit that keeps both the
+history and the correction.
+
+### Why this is the right last repo-side act
+
+The audit's own reopen triggers, its `DISCHARGED §N` convention, and §648's re-entry gating all live **inside**
+`docs/audits/`. The session memory lives outside it and is read **first**. A correction that stops at the
+document boundary leaves the wrong number in the more-consulted place — which is the §615 shape (a
+source-of-truth doc describing a repo that would fail its own CI) applied to the record rather than the code.
+
+### Exit state
+
+**21 PASS · 0 FAIL · 5 BLOCKED at HEAD** (§647, measured, artifact written). Working tree: the owner's
+uncommitted REQ-289 row. `test:tools` at HEAD 949/949.
+
+**Reopen triggers**
+- Any memory or document quotes a gate tally without its tree state → the §646 error, and the superseding
+  header is the worked example of the repair.
+- The iCloud duplicate check is skipped for a session → it has produced zero hits for two consecutive checks,
+  which is exactly when a standing check starts getting dropped.
