@@ -8,6 +8,16 @@ import { gatesFor } from "./run-gate.js";
 
 const CI = readFileSync(".github/workflows/ci.yml", "utf8");
 
+/** One job's YAML block, from `  <name>:` to the next top-level job key. §622: file-wide assertions cannot
+ *  express "this job has this property", and two jobs here both carry `fetch-depth: 0`. */
+function jobBlock(name: string): string {
+  const start = CI.indexOf(`\n  ${name}:\n`);
+  if (start < 0) return "";
+  const rest = CI.slice(start + 1);
+  const next = /\n {2}[a-z][\w-]*:\n/.exec(rest.slice(1));
+  return next === null ? rest : rest.slice(0, next.index + 1);
+}
+
 // REQ-118 §592 — EVERY CI INSTALL IS FROZEN TO THE LOCKFILE.
 //
 // The workspace declares 120 caret ranges. Ranges are fine — the LOCKFILE is what makes a build
@@ -227,8 +237,28 @@ describe("CI supply-chain + secret surface", () => {
   });
 
   it("runs a history-wide gitleaks scan (full fetch depth)", () => {
-    expect(CI).toMatch(/gitleaks/);
-    expect(CI).toMatch(/fetch-depth:\s*0/);
+    // §622 — asserted WITHIN the gitleaks job, not file-wide. The previous form was two independent
+    // existence checks (`/gitleaks/` and `/fetch-depth:\s*0/`) over the whole file, and `fetch-depth: 0`
+    // appears TWICE: once in `merge-gate` and once in `secrets`. So the merge-gate copy satisfied the second
+    // assertion on its own, and removing `fetch-depth: 0` from the SECRETS job left all 28 tests green while
+    // gitleaks silently dropped to a shallow clone — scanning only the tip commit, so a secret committed
+    // earlier in history would never be seen. Measured, not reasoned (§622 M123).
+    //
+    // A test whose NAME claims a conjunction must assert the conjunction: the scan and the depth belong to
+    // one job, and the property is that THAT job is deep.
+    const job = jobBlock("secrets");
+    expect(job, "no `secrets:` job in ci.yml — the history-wide scan is gone entirely").not.toBe("");
+    // The ACTION reference, not the word: the step LABEL reads "history-wide secret scan (gitleaks)", so a
+    // bare /gitleaks/ matches the human text and stayed green when the action itself was replaced (§622
+    // M124b — my own first fix, caught by continuing to mutate past the first RED).
+    expect(job, "the gitleaks ACTION left the secrets job — the step label is not the scan").toMatch(
+      /uses:\s*gitleaks\/gitleaks-action@/,
+    );
+    expect(
+      job,
+      "the gitleaks job no longer checks out full history. A shallow clone scans the tip commit only, so a " +
+        "secret committed earlier stays hidden behind a green gate (REQ-154 DoD: 'Secret scan clean')",
+    ).toMatch(/fetch-depth:\s*0/);
   });
 
   it("uploads the evidence artifact even when a gate fails", () => {

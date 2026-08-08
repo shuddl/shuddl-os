@@ -262,6 +262,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 67 | §618 | **§619** | THE FIRST GOVERNING SECTION THAT MEASURED CLEAN. genesis/14 §06's five pipeline claims all hold: the sanctioned `position.updated` bypass still joins the daily Merkle root (M118, one test named for it), the evidence hash is written at capture (M119, four tests), and the "every fixture run" I7 proof runs IN-REPO rather than behind the 5 BLOCKED private fixtures. Two anchor misses, both from reading indentation off prefixed output |
 | 68 | §619 | **§620** | Closed the gap §619 named in its own trigger: REQ-017 is an ORDERING claim (hash computed BEFORE bytes leave the device) and the four tests only prove PRESENCE. driver-core states "No DOM, no network, no timers here" and nothing enforced it; now banned, zero hits, changes no code. M120 proved the ledger and rater bans SURVIVED the addition — last-writer-wins is how adding a gate deletes one. Fifth anchor miss, one phase after writing the lesson |
 | 69 | §620 | **§621** | genesis/13's repo-side contract holds (identity lint, fixtures README separation, pointer-not-path). **But REQ-167's lint is a DENYLIST and can only catch a name someone thought to add** — 39 absolute home paths across 5 tracked docs leaked the operator account name, and were a portability defect in the same edit. Rewritten to $HOME/$REPO + a denylist-independent gate; the only REQ-167 enforcement that runs while the secret is BLOCKED |
+| 70 | §621 | **§622** | **DEFECT — the CI contract's "history-wide gitleaks scan (full fetch depth)" asserted two INDEPENDENT existence checks over the whole file**, and `fetch-depth: 0` appears in two jobs — so stripping it from the secrets job left 28/28 green with gitleaks scanning only the tip commit. Job-scoped now. My first fix reproduced the defect one level down (matched the step LABEL, not the action); caught only by mutating past the first RED |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -34213,3 +34214,77 @@ typecheck 0; eslint clean; the doc gates green after rewriting five files.
   is not something a reader or a grep surfaces, which is the argument for the exclusion and also its limit.
 - Windows paths appear in earnest (`C:\Users\…`) → the pattern covers them but nothing has ever produced one
   here, so that branch is untested by anything but its own regex.
+
+---
+
+## §622 — PHASE GATE: two assertions that were never one property
+
+**Subject.** §621 established that a denylist catches only what someone thought to add, while a structural rule
+cannot miss a shape. Applying that to the other half of REQ-154's DoD — *"Secret scan clean"* — asked whether a
+secret scanner exists at all.
+
+It does: a `gitleaks/gitleaks-action` pinned to an immutable SHA, in a dedicated `secrets` job, checking out
+with `fetch-depth: 0` so the scan covers **history** rather than the tip commit. And it is pinned by
+`ci-contract.test.ts`, so deleting it is not silent. Better than the §483 shape it superficially resembles — a
+bare CI step outside the gate envelope — because the contract test is the compensating control.
+
+### THE FINDING — the conjunction the test's name claims, it never asserted
+
+```ts
+it("runs a history-wide gitleaks scan (full fetch depth)", () => {
+  expect(CI).toMatch(/gitleaks/);
+  expect(CI).toMatch(/fetch-depth:\s*0/);
+});
+```
+
+Two **independent existence checks over the whole file**. And `fetch-depth: 0` appears **twice** in `ci.yml` —
+once in `merge-gate`, once in `secrets`.
+
+So the `merge-gate` copy satisfied the second assertion by itself. **M123** removed `fetch-depth: 0` from the
+`secrets` job only:
+
+```
+Tests  28 passed (28)
+```
+
+gitleaks silently dropped to a shallow clone. It would still run, still report clean, and scan **only the tip
+commit** — so a secret committed earlier in history stays hidden behind a green gate, which is the precise
+failure REQ-154's DoD exists to prevent.
+
+This is §577's masking shape and §"a gate's green certifies less than its name" in one line: a test whose name
+claims a conjunction must assert the conjunction. The scan and the depth belong to **one job**, and the property
+is that *that* job is deep.
+
+### My first fix was insufficiently specific, and the next mutation said so
+
+Scoping both assertions to `jobBlock("secrets")` made M123 fail correctly. Then **M124** removed the gitleaks
+step — and the suite stayed **green**.
+
+That first probe was not a counterexample (I renamed the step's label, not the action). But the corrected
+probe, **M124b**, removed the action itself and the suite was *still* green — because the step's human label
+reads `history-wide secret scan (gitleaks)`, so a bare `/gitleaks/` matches the **prose**, not the scan.
+
+My fix had reproduced the defect I was fixing, one level down. The assertion now matches
+`uses:\s*gitleaks\/gitleaks-action@`, and M124c goes red.
+
+The lesson is not "be more careful". It is **keep mutating past the first RED**: M123b passing was real
+progress and also the point at which stopping would have shipped a gate that still could not see its subject
+disappear.
+
+| | Mutation | Before | After |
+|---|---|---|---|
+| M123 | `fetch-depth: 0` removed from the `secrets` job | 28 passed | **RED** |
+| M124b | the gitleaks action replaced | 28 passed | 28 passed → then **RED** as M124c |
+
+### Exit state
+
+**19 PASS · 2 FAIL · 5 BLOCKED**, unchanged. `test:tools` at 932 passed with exactly the 3 REQ-289 failures;
+typecheck 0; eslint clean.
+
+**Reopen triggers**
+- A third job gains `fetch-depth: 0` → harmless now that the assertion is job-scoped, but the *reason* it is
+  job-scoped stops being visible in the file; the comment carries it.
+- The `secrets` job is renamed → `jobBlock` returns `""` and the first assertion fires with the right message
+  ("the history-wide scan is gone entirely"), which is the correct read of a renamed job.
+- gitleaks is replaced by another scanner → the action-reference assertion fails by design. Swap the pattern
+  and keep the job scoping; the shape of the mistake is what generalises, not the vendor.
