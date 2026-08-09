@@ -381,6 +381,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 186 | §738 | **§739** | **Two fail-closed defaults in the SERVER-SIDE GATE surface (REQ-030) were correct and UNPINNED.** 16 defaults enumerated; the two `?? []` both read fail-closed and both survived a fail-OPEN mutation in silence — exemption list ⇒ `[serviceClass]` left **661/661 green**; absent facility day ⇒ always-open left **23/23 green**. The reason is the finding: **a test named *"waives outside_hours"* exists and never enters that branch** (its fixture has hours PRESENT but narrow; every other case fails earlier at `window_mismatch`). **A test named for a behaviour is not evidence its branch runs.** Pinned with 6 tests, each pair carrying a non-vacuity companion; re-mutated, each now reds exactly its two positives. Ledger 661 → 667 |
 | 187 | §739 | **§740** | **The enforcement layer (REQ-030 says gates are SERVER-SIDE, so §739 was incomplete).** 14 sequencer defaults; 2 can widen. Fence radius 150 m → **100 km** REDS a REQ-046 test — already defended. The entitlement fallback, whose own comment says *"(empty plan, {} policy) grants NOTHING"*, inverted to GRANT hazmat → **28/28 GREEN**. Underneath: that sentinel was spelled as a **literal in three production sites** (sequencer cache-miss, `#entitlementRow`, provision) — my recorded failure is *a `{}` default opened three of four knobs it claimed to floor*. Extracted `NO_ENTITLEMENTS`, rewired all three, and pinned **the constant, not a copy** against every reader + a non-vacuity companion. **Sweep total: 5 access-relevant defaults, 3 were correct-and-UNDEFENDED — all found by mutation, none by reading** |
 | 188 | §740 | **§741** | **Fallback-value line CLOSED — booleans, the rater's law, the perimeter.** Permissive booleans (`!== false` / `?? true`): **0 across 94 files**, and the zero is credible only because the same scan found **11** restrictive `=== true` (§738's rule). `dimsRequired === true` reads permissive but is safe: the rater returns UNKNOWN on missing physics with **no config flag in the path**. Perimeter: 6 defaults, all benign — and `auth.ts`'s `|| c.req.query("tenant")` is a **REJECTION, not a fallback** (4th pattern-based false candidate this session, and the most alarming-looking). That guard IS pinned: deleting it reds **4 tests across 2 suites**. **My own error is the lesson** — the first run said 12 passed from the WRONG SUITE (`auth.test.ts`; the coverage lives in `isolation.test.ts`). Line total: **11 defaults examined, 3 undefended, all now pinned; every finding from a mutation, none from reading** |
+| 189 | §741 | **§742** | **The named LAWS are defended — 0 of 3 undefended, vs 3 of 11 defaults.** CLAUDE.md Law 5 (interline executing share): mutating `evaluated = share.shareCents` → gross reds **5 tests**, one named *"PROOF the executing-share rule changed the outcome: gross alone would have been `none`"* — a pin asserting the COUNTERFACTUAL. The reverted `{}`-policy security defect (*"`{}` is the floor for one knob and the CEILING for three"* — it drops dims_required, widens a tighter geofence, and stamps widened visibility onto IMMUTABLE events): mutating the refusal back to `{}` reds its pin. And the comment's *"(and it is UNWIRED)"* claim about `invoice_without_pod_classes` — **checked, still true** (the one production call omits `serviceClass`), already carried as its own GO-LIVE row. **The pattern: a rule written down as a law gets a test; a rule living only in the shape of a fallback often does not** |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -42318,3 +42319,75 @@ lint 0; typecheck 0. The auth mutation restored byte-identical.
   because it would then relax a law instead of adding a requirement.
 - A perimeter guard is refactored → mutate it against `isolation.test.ts`, not `auth.test.ts`. The ownership is
   not where the filename suggests.
+
+## §742 — PHASE GATE: the money law and the reverted security defect, both mutation-proved
+
+§739–§741 asked whether fail-closed *defaults* were defended and found 3 of 11 were not. The complementary
+question is whether the repo's explicitly-named LAWS are defended — the ones CLAUDE.md states as absolute and
+the ones a past defect forced into existence. Three were checked, all by mutation, none by reading.
+
+### 1. CLAUDE.md Law 5 — interline floors compare the executing share
+
+*"Interline floors compare the executing share, never gross. The $222,084/35-lb anomaly regression is
+permanent (REQ-040)."*
+
+Mutated `evaluated = share.shareCents` → `evaluated = quotedSell`, i.e. judge the tenant on the whole move's
+gross. **Five tests red**, and one of them exists purely to make this visible:
+
+> *"PROOF the executing-share rule changed the outcome: gross alone would have been `none` (REQ-040)"*
+
+That is the strongest shape a regression pin can take — a test whose name asserts the counterfactual, not just
+the outcome. The fixture (`fixtures/anomaly/the-222084-case.json`) is in-repo and consumed by two packages.
+Law 5 is defended.
+
+### 2. The reverted `{}`-policy security defect
+
+`sequencer.ts` carries an unusually long comment because *"the first attempt at this guard was a security
+defect and the reasoning matters"*. The history: an unguarded `JSON.parse` of the control row threw a raw
+`SyntaxError` out of `#policy`, 500ing every append for that tenant; a first fix fell back to `{}` and let
+appends proceed, calling `{}` the gate-knob floor.
+
+**`{}` is not a floor — it is the floor for one knob and the CEILING for three**: it drops `dims_required`,
+widens any tenant that configured a *tighter* geofence than the 150 m default, and lets `resolveVisibility`
+fall to per-kind defaults. The visibility case is unrecoverable: visibility is STAMPED at append time onto
+immutable events (I3/I7), so a tenant who set `document.attached: internal` and suffered one corrupt byte
+would have had those events stamped `counterparty` **permanently**. The current code refuses the append with a
+named `VALIDATION_FAILED` instead.
+
+Mutated the refusal back into the `{}` fallback — the exact reverted defect. **RED**: *"a MALFORMED
+tenants.policy REFUSES the append — it never proceeds on defaults (§15) > unparseable JSON → refused"*. The
+correction is pinned, not merely commented.
+
+### 3. A claim inside that comment, checked rather than trusted
+
+The same comment lists `invoice_without_pod_classes` as *"the only genuinely tighter one (and it is
+UNWIRED)"*. §739 had just pinned that knob's `?? []` default, so whether it is still unwired matters — a pin on
+a live gate and a pin on dead code are different things to have written.
+
+**Still accurate.** The single production call is `assertPodSigned(db, streamId, policy)` — three arguments, no
+`serviceClass` — and the exemption requires `serviceClass !== undefined`. The knob is read and can never fire.
+
+§739's pin remains correct and worth having: it defends the *contract* the day someone wires the fourth
+argument, which is precisely when a permissive default would first do damage. But the record should not imply
+the gate is live, and it does not: `GO-LIVE-CHECKLIST.md` already carries *"POD-gate `serviceClass` exemption
+unwired"* as its own row. Checked rather than assumed — and nothing needed adding.
+
+### What this phase says about the two preceding ones
+
+§739–§741 found 3 of 11 *defaults* undefended. §742 found 0 of 3 *named laws* undefended. That asymmetry looks
+like the real pattern: **a rule someone wrote down as a law gets a test; a rule that lives only in the shape of
+a fallback expression often does not.** The laws in CLAUDE.md and the corrections forced by past incidents are
+the best-defended code in this repo. The quiet `?? []` three lines away is where the exposure sits.
+
+### Exit state
+
+No code changed. `packages/rater` 157/157; `workers/api` tenant-policy-malformed 5/5; `test:tools` 1023
+(baseline 3 register failures); lint 0; typecheck 0. Both source mutations restored byte-identical.
+
+**Reopen triggers**
+- `assertPodSigned` gains a `serviceClass` argument at the sequencer call site → the exemption goes live, §739's
+  pin starts defending a reachable path, and the GO-LIVE row should be struck.
+- The 222084 fixture is replaced by the vendored engagement one → re-run this mutation against it; the pin must
+  survive the swap, since the law is the law and not the fixture.
+- A new knob joins the `{}`-ceiling list in that comment → it needs the same analysis (floor for which knob,
+  ceiling for which), because the comment's value is the enumeration, not the conclusion.
