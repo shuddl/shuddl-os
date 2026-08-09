@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
+import { globSync } from "node:fs";
+import { checkMigrationSql } from "./invariants.js";
 import { repoRoot } from "./repo-root.js";
 
 // REQ-118 §611 — CLAUDE.md's HARD BUDGETS ARE CHECKED AGAINST THE THINGS THAT ENFORCE THEM.
@@ -24,11 +26,19 @@ import { repoRoot } from "./repo-root.js";
 // alternative — importing MAX_CANONICAL_VIEWS from apps/command and TOKENS from packages/design — would pull
 // a React app and a CSS-adjacent module into a node-environment tools test for two integers.
 //
-// NOT COVERED, deliberately: the "(21 used)" parenthetical. That is a RUNTIME figure derived from the
-// migration set across two databases, which `check:invariants` recomputes and prints on every run
-// (`invariants OK — 21/22 tables`) and which fails the gate if it ever exceeds TABLE_BUDGET. Parsing CREATE
-// TABLE statements here to re-derive it would be a second, weaker implementation of a check that already
-// exists — the §"two mechanisms" trap, where the copy becomes the thing that rots.
+// The "(21 used)" parenthetical was NOT covered here, on the stated grounds that re-deriving it would be a
+// second, weaker implementation of a check that already exists — the §"two mechanisms" trap. That reasoning
+// is right and the conclusion drawn from it was wrong (audit §830).
+//
+// `check:invariants` COMPUTES the used count and prints it, but it only FAILS above TABLE_BUDGET. So a 22nd
+// table makes it print `22/22` and pass, while CLAUDE.md still reads `(21 used)` — in the file whose own
+// header says it overrides any default behaviour and which every session reads first. Measured: the number is
+// pinned only against a copy of itself in the BUDGETS roster below, so editing both together is silent, and
+// `invariants.test.ts`'s `tableCount === 21` is asserted over a SYNTHETIC fixture, not the real migrations.
+//
+// The fix is not a second implementation — it is READING THE FIRST. `checkMigrationSql` is the same authority
+// the script calls, over the same `db/**/migrations/*.sql`; this asserts CLAUDE.md's stated figure equals what
+// that authority returns. Read one side, COMPUTE the other; never store both.
 
 interface Budget {
   /** What CLAUDE.md calls it, for the failure message. */
@@ -130,6 +140,28 @@ describe("REQ-118 §611: CLAUDE.md's hard budgets match what enforces them", () 
   //
   // Derived, not listed (§699: membership is a property of the DOCUMENT). Every `<number> <word>` pair on the
   // hard-budgets line must be claimed by some BUDGETS entry — or be named below with its reason.
+  it("§830: the \"(N used)\" table figure equals what the migrations actually declare", () => {
+    // The one budget-line number that is an OBSERVATION rather than a law. `check:invariants` computes it and
+    // prints it, but fails only ABOVE the budget — so a 22nd table prints `22/22`, passes, and leaves this
+    // document stating 21. Nothing linked the two: the roster below holds a copy of the same literal, and
+    // `invariants.test.ts` asserts 21 over a synthetic fixture rather than over `db/`.
+    //
+    // This calls `checkMigrationSql` — the SAME function the script calls, over the same files — so it is not
+    // a second implementation of the count. It reads the authority and compares the document to it.
+    const migrations = globSync("db/*/migrations/*.sql", { cwd: repoRoot() });
+    expect(migrations.length, "no migration files found — the scan is stale, not the schema").toBeGreaterThan(4);
+    const actual = checkMigrationSql(migrations.map((f) => readFileSync(`${repoRoot()}/${f}`, "utf8"))).tableCount;
+
+    const stated = /\((\d+)\s+used/.exec(readFileSync(`${repoRoot()}/CLAUDE.md`, "utf8"));
+    expect(stated, 'CLAUDE.md no longer states "(N used)" on its hard-budgets line').not.toBeNull();
+    expect(
+      Number(stated![1]),
+      `CLAUDE.md says ${stated?.[1]} tables are used; the migrations declare ${actual}. A table was added or ` +
+        "removed and the governing file was not updated — and because the budget check only fails ABOVE " +
+        "TABLE_BUDGET, nothing else would have said so. A stale law is worse than an absent one: it is followed.",
+    ).toBe(actual);
+  });
+
   it("every budget STATED in CLAUDE.md is covered by the roster (§743 completeness floor)", () => {
     const line = /## Hard budgets[^\n]*\n([^\n]*)/.exec(claudeMd)?.[1] ?? "";
     expect(line.length, "the hard-budgets line did not parse — a broken scan, not a clean record").toBeGreaterThan(60);

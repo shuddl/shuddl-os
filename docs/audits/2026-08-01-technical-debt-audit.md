@@ -469,6 +469,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 274 | §826 | **§827** | **PHASE 49 CLOSED — five isolation proofs traded for five fillers, and the gate HELD.** §826's named residual, probed and real. `isolation-suite` floors the **combined** count at 149 and sums the per-file numbers away. Zeroing a file was caught — but by the **non-vacuity** test, not the floor, and only because the count hit 0. **The partial trade was GREEN**: translator 9→4 with 5 `expect(1).toBe(1)` fillers added to MCP, total still 149. That is the shape that would actually happen — nobody deletes a whole isolation file. Fixed with **per-file floors** (numbers the code already computed), and `MIN_CASES` is now **DERIVED** from them so the total cannot disagree with its parts — §823's lesson applied before it could bite. **Limit stated**: no count can tell a real proof from a same-shaped filler; what changed is the trade must be a VISIBLE edit here. 3 REDs. **No production code changed** |
 | 275 | §827 | **§828** | **PHASE 50 CLOSED — I cited "the REQ-289 baseline" THIRTEEN times without opening it.** Every phase closed with *"3 failed — the unchanged REQ-289 baseline"*, inherited and never verified. Opened: all 3 come from REQ-289 but are **two different problems** — contiguity fails because the working tree has 289 rows and HEAD has **288**; coverage ×2 fail because `status="ACTIVE"` and `wp="GTM-0"` are **unknown to the classifier** (the register's other 288 rows use six statuses; ACTIVE is a seventh). **Verified**: `git log -S` finds **no commit that ever added REQ-289**; on a clean checkout all three vanish. **THE DEFECT**: `traceability.test.ts`'s §748 note asserted *"the register's terminal id is REQ-289"* — **never true of the committed register**, written by reading an uncommitted working tree and stating it as fact. Its ARGUMENT was unaffected, which is why it survived: **a false premise supporting a true conclusion is invisible to every test**. Number deleted, not corrected — pinned once at the assertion (§823's shape, one level smaller). **Deliberately NOT fixed**: committing/bumping would go green while BREAKING a clean checkout |
 | 276 | §828 | **§829** | **PHASE 51 CLOSED — the DEFINITION OF DONE was measuring a register that had grown by 121 rows.** §828's class swept for siblings. **Two-thirds clean**: `PROJECT-STATE` and `RELEASE-EVIDENCE` both use the **committed** 288 and label REQ-289 uncommitted; the audit doc flagged the 288-vs-289 distinction back in §67. §828's defect was **isolated to one file**. **THE FIND**: `BUILD-PROMPT.md` defines completeness as **"167/167 register rows"** — the register is **APPEND-ONLY**, held 167 on 2026-07-09 and **288** today, so the DoD named a target **121 rows short** in the document a reader consults to decide the build is finished. Five instances. This is `f026527`'s *"docs may state laws, not observations"* landing where an observation does most damage; freezing a count in an append-only register is not a risk of rot but a **guarantee**. Converted to law form; `check:coverage` named as authority. **Nothing pinned it** — and a DoD should not have a count for a gate to pin. **Repeat self-error**: cited §829 before writing it, exactly as §823 did seven phases earlier |
+| 277 | §829 | **§830** | **PHASE 52 CLOSED — the governing file's one observation, pinned to a COPY OF ITSELF.** §829's rule applied to `CLAUDE.md`. Why the sweep reached here: `82e04c7` swept **all nine ops docs** clean, and both root-level docs sat **outside its glob** — *a clean negative is only as wide as its glob*. `≤22 tables (21 used)`: five laws are roster-pinned; the parenthetical was **excluded deliberately** to avoid the two-mechanisms trap — **right reasoning, wrong conclusion**. `check:invariants` computes the count but fails only ABOVE budget, so a 22nd table prints `22/22`, passes, and leaves the governing file stating 21. Two probes bounded it: `(19 used)` reds **for the wrong reason** (an unrostered number, not a wrong one — attributed, not credited), and `invariants.test.ts`'s `tableCount === 21` is over a **SYNTHETIC fixture**, not `db/`. Fixed by calling `checkMigrationSql` — **the same authority the script calls**, not a re-implementation. 3 REDs. **Residual stated**: `README`, `genesis/*`, `docs/wp/*` remain unswept for this class |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -48101,3 +48102,66 @@ check whether the *assertion* at that address is true.
 - `BUILD-PROMPT.md` is superseded by a newer contract → check it for frozen counts before trusting its DoD;
   this file was dated 2026-07-09 and still read as current.
 - A future note states a register fact in prose → `git show HEAD:` is the source, not the file on disk (§828).
+## §830 — PHASE GATE: PHASE 52 CLOSED — the governing file's one observation, pinned to a copy of itself
+
+§829 fixed a frozen count in `BUILD-PROMPT.md` and closed with the rule that separates the two kinds: **counts
+of things under a BUDGET are laws and belong; counts of things that ACCUMULATE are observations and do not.**
+Applying it to `CLAUDE.md` — the file whose own header says it overrides any default behaviour, and which
+every session reads first.
+
+### Why the sweep reached here at all
+
+The prior sweep (`82e04c7`) covered **all nine ops docs** and came back a clean negative. `BUILD-PROMPT.md`
+and `CLAUDE.md` are root-level, so they sat **outside its scope** — which is how a DoD 121 rows out of date
+survived a sweep designed to catch exactly that. Worth stating as a property of sweeps generally: a clean
+negative is only as wide as its glob, and §829 and §830 are both in the gap this one left.
+
+### The find
+
+`CLAUDE.md`'s budget line states `≤22 tables (21 used)`. Five of its six numbers are laws, and
+`claude-md-budgets.test.ts` already pins each against the constant that enforces it. The parenthetical is the
+exception, and the file said so explicitly:
+
+> *NOT COVERED, deliberately: the "(21 used)" parenthetical … Parsing CREATE TABLE statements here to
+> re-derive it would be a second, weaker implementation of a check that already exists — the two-mechanisms
+> trap.*
+
+**The reasoning is right and the conclusion drawn from it was wrong.** `check:invariants` computes the used
+count and prints it — but fails only **above** `TABLE_BUDGET`. So a 22nd table prints `22/22`, passes, and
+leaves the governing file reading `(21 used)`.
+
+Two probes established there was nothing else holding it:
+
+- Changing `(21 used)` to `(19 used)` reds — but **for the wrong reason**: the §743 completeness floor flags
+  `19` as a number not covered by the BUDGETS roster, not as a number that disagrees with the schema.
+  Attributing that RED rather than crediting it is what kept the phase honest.
+- `invariants.test.ts` asserts `tableCount === 21`, but over a **synthetic fixture** of 22 `CREATE TABLE`
+  statements — not over `db/`. It proves the counting rule, not the repo's count.
+
+So the number lived in exactly two places, each a copy of the other, and moving them together was silent.
+
+### The fix reads the authority instead of re-implementing it
+
+`checkMigrationSql` is the same function the script calls, over the same `db/*/migrations/*.sql`. Calling it
+is not a second mechanism — it is reading the first. The document's figure is now compared to what that
+authority returns. **Read one side, COMPUTE the other; never store both.**
+
+Proved three ways: a 22nd table landing in the migrations with `CLAUDE.md` untouched → **RED** naming both
+numbers · the document drifting to `22` while the schema says 21 → **RED** · the migration glob breaking →
+**RED** on non-vacuity, saying *"the scan is stale, not the schema"*.
+
+### Exit state
+
+`test:tools` **1094** (+1), 3 failed — the REQ-289 trio explained by §828. typecheck 0, lint 0,
+`verify:docs` 0. `CLAUDE.md` and `0002_domain.sql` restored byte-identical after five mutations. **No
+production code changed.**
+
+**Reopen triggers**
+- A table is added or removed → this REDs and `CLAUDE.md` must move in the same commit. That is the intended
+  cost, and it is the first time that edit has been forced rather than remembered.
+- The budget line gains a second parenthetical observation → it needs the same treatment; the five laws are
+  covered by the roster, and observations are covered one at a time by construction.
+- `checkMigrationSql`'s signature changes → this calls it directly, so a change fails loudly here rather than
+  drifting. That is the point of calling the authority instead of copying it.
+- The remaining root/genesis docs (`README.md`, `genesis/*`, `docs/wp/*`) are **not** swept for this class.
+  §829 and §830 took the two that govern behaviour; the rest is stated as unswept rather than implied clean.
