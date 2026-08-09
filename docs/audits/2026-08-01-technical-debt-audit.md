@@ -462,6 +462,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 267 | §819 | **§820** | **PHASE 42 CLOSED — a PRICE ON AIR, reachable from the public API.** Law 4 / REQ-004. `priceFreight` guards `weight_lb` exhaustively (0/neg/NaN/Inf/fractional all tested) but guarded `dims` by **presence alone** — `!== null && !== undefined`, which ANY object satisfies. Measured: `{}`, all-zeros, negatives and NaN each returned **PRICED $300.00**. Reachable: `/v1/rate`, `pub/quote` and the MCP tool all type dims `l/w/h: nonnegative(), pieces: positive()`, so **one piece measuring 0×0×0 inches gets a real price over three surfaces**. Dims never feed the computation — their only job is to be the token saying *this was measured*, and a placeholder passed. **The ledger already knew better** (`SafeInt.min(1)`; the contracts test asserts `l_in:0` throws) — the PRICING path was laxer than the LEDGER path, with the weaker mechanism facing the internet. Fixed at the engine (server-side, so all 3 surfaces inherit it); remedy is UNKNOWN not 400, because all four boundary schemas agree on `min(0)` meaning *not provided*. 3 REDs |
 | 268 | §820 | **§821** | **PHASE 43 CLOSED — one rate request, four hand-rolled copies, two answers.** `contracts/rating.ts` claims to be *"the SINGLE canonical rate-request shape … ONE source of truth"*. Half true: the rater aliases the **inferred TYPE**, so FIELD drift breaks the build — but **an inferred type carries no CONSTRAINTS**, so `min`/`max`/`.optional()` vs `.nullish()` all erase, and the build is structurally blind to the drift that changes what a caller may send. **THE FIND**: MCP declared `dims: Dims.optional()` where every other surface used `.nullish()` — `.optional()` REJECTS `null`, so `{"dims": null}` (what a JSON producer emits for an absent field) was a **400 from MCP** and an accepted UNKNOWN from `/v1/rate` + guest. The MCP file's own comment two lines up says missing dims *"is never a client-side 400 here"*. Fixed. Gate pins PHYSICS fields only (whole-schema equality would be wrong and would get silenced); the idiom normaliser has its **own calibration** because a hand mapping is a transcription (§819). 4 REDs. Zip/accessorial bound divergence measured and **deliberately left** — no bypass, and picking 16 vs 20 is not an audit's call |
 | 269 | §821 | **§822** | **PHASE 44 CLOSED — the roster's ninth site, and a gate BLIND on its first draft.** §821's blind spot generalised: which rosters can a new instance escape? Crude sweep flagged 16 — **not a finding**; `event-payload-strictness` DERIVES its list and is a clean negative. Real yes: §794's 8-site unbounded-read roster. **Scanner fixed first** — 6 no-WHERE hits, **4 false**, all string-CONCATENATED statements whose later fragments carry `WHERE` + `LIMIT 1`; corrected to exactly **2**, both already rostered (zero FPs, so calibration is a LIVE positive set). **Then the gate itself was blind**: a planted scan on `anomalies` came back **GREEN**, because the novel-filter excluded anything containing a roster anchor and one anchor is the substring `FROM anomalies` — a locator used as a unique key, masking the exact defect class. Replaced with an **exact set + count pin**. 4 REDs. **Scope stated**: no-WHERE only; the 36 filtered-but-unbounded reads are NOT closed and ~30 allowlist rows is where a weak detector hides. 2nd process error: restored a snapshot taken BEFORE authoring §822 — the §818 fix needed "snapshot the AUTHORED state" |
+| 270 | §822 | **§823** | **PHASE 45 CLOSED — the hold said SEVEN, cited EIGHT, and there were NINE.** §822's deferred triage, done: of **70** filtered no-LIMIT SELECTs, **49 are bounded by a uniqueness guarantee the schema DECLARES** (PK `id`, `tenants.slug`, `users.email`, `ux_events_device`, `money_lines(event_id,line_no)`, `id IN`) — facts from the migrations, not opinions. 21 residue, 6 already rostered. **FINDING 1**: the checklist row said *"7 sites"* while citing 8, and the roster pinned 8 — for two audits, because the agreement test did `toMatch(/Unbounded list reads/)` on the TITLE and `toBe(8)` on the code, **never comparing the two**. Now the count is extracted from the doc and pinned to `ROSTER.length`. **FINDING 2**: enumerating every API list endpoint (instead of re-reading the known eight) found **`/v1/approvals`** — no cursor, while siblings `/v1/exceptions` (REQ-197) and `/v1/invoices` (REQ-010) both paginate. Filed as the 9th; **not fixed** — the remedy is a response-shape change and the hold says *needs a REQ row*. Clean negatives: `documents.ts` (per-shipment), `driver-manifest` (per-driver; its INDEX hold §185 is already filed). 3 REDs |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -47610,3 +47611,81 @@ sufficient: the snapshot has to be of the state you want BACK, which for a file 
   must go in the same commit.
 - Someone proposes gating the 36 filtered reads → that needs a bounded-by-construction analysis per site, not
   an allowlist. It is a phase, and it is not this one.
+## §823 — PHASE GATE: PHASE 45 CLOSED — the hold said seven, cited eight, and there were nine
+
+§822 closed by refusing to gate the filtered-but-unbounded reads on the grounds that it needed a
+bounded-by-construction analysis per site — *"a phase, and not this one."* This is that phase.
+
+### The triage, grounded in the schema rather than in judgement
+
+Of **70** filtered SELECTs with no LIMIT, **49 are bounded by a uniqueness guarantee the schema actually
+declares** — `id TEXT PRIMARY KEY`, `tenants.slug UNIQUE`, `users.email UNIQUE`, `authority_map.module` PK,
+`ux_events_device UNIQUE(stream_id, device_id, device_seq)`, `money_lines UNIQUE(event_id, line_no)`, and
+`id IN (…)` bounded by the caller's own list. Those are facts read out of the migrations, not opinions.
+
+That leaves **21**, of which **6 were already rostered**. Fifteen needed a human, and two of them are worth
+recording as clean negatives because they look alarming and are not:
+
+- `routes/documents.ts:57` — filters `WHERE shipment_id = ?`. Bounded by documents-per-shipment. My
+  classifier flagged it only because `shipment_id` is not a uniqueness column; reading it settled it.
+- `routes/driver-manifest.ts` — scoped to one `assigned_driver`. Its real problem is an **INDEX** hold
+  already filed at §185 (nothing supports the `shipment_id` filter on `legs`), which is a different defect
+  from pagination and is already on the record.
+
+### Finding 1 — the count nobody was comparing
+
+The GO-LIVE-CHECKLIST row was titled **"Unbounded list reads — 7 sites"** and, in the same row, cited
+**eight**. The roster test pinned `ROSTER.length` to **8**. So the doc and the code disagreed by one, and had
+for two audits.
+
+The reason it survived is the shape of the test that was supposed to catch it:
+
+```ts
+expect(doc, "…").toMatch(/Unbounded list reads/);   // matches the TITLE
+expect(ROSTER.length, "…").toBe(8);                 // pins the CODE
+```
+
+Two assertions, neither comparing the two things to each other. **A doc-and-code agreement test that never
+compares the number is agreeing about a heading.** It now extracts the count from the row and asserts it
+equals `ROSTER.length`, so the two can only move together.
+
+### Finding 2 — the ninth site
+
+Found by **enumerating every API list endpoint** and asking which paginate, rather than re-reading the eight
+already filed. Three came back unpaginated: `/v1/watchtower` (rostered), `/v1/driver/manifest` (bounded, above)
+and **`/v1/approvals`** — which returns every approval of a status with no cursor and no LIMIT.
+
+It is the same shape as the rostered invoices party lens, and its siblings `/v1/exceptions` (REQ-197 keyset)
+and `/v1/invoices` (REQ-010 cursor) **both paginate** — which is what makes this an unevenly applied rule
+rather than an unknown risk, exactly as the hold's own verdict column has said since §183. Filed as the 9th;
+checklist corrected to 9 with a dated note explaining the 7→9 jump.
+
+**Not fixed, deliberately.** Adding a keyset cursor to `/v1/approvals` is a response-shape change to a
+public API. The hold's own remedy column says *"Needs a REQ row"*, and that is still true for the ninth.
+
+### Two errors of my own, both caught by existing gates
+
+- My first roster anchor was `APPROVAL_COLS` — which appears in **three** statements in that file, and the
+  first two carry `LIMIT 1`. The §794 tripwire failed immediately with "now carries a LIMIT". Re-anchored to
+  `FROM approvals WHERE status = ?`, unique to the list statement. A name that appears three times is not an
+  anchor; this is [[line-numbers-are-not-a-key]]'s sibling — *an anchor must identify one thing*.
+- I cited **§823** in the checklist before writing this section, and `section-refs` refused the forward
+  reference. Correct behaviour, and the right ordering is: write the section, then cite it.
+
+### Exit state
+
+`test:tools` **1085** (+1), 3 failed — the unchanged REQ-289 baseline. typecheck 0, lint 0, `verify:docs` 0.
+
+Proved three ways: doc count ≠ roster size → RED naming both numbers · doc drops the count entirely → RED ·
+`/v1/approvals` gains a cursor → RED (the hold shrank and the record must say so).
+
+**Reopen triggers**
+- A new API list endpoint ships → the enumeration that found the ninth was a one-off script, not a gate. This
+  is the residual: §822 gates full-table scans, this phase filed the ninth by hand, and **nothing
+  automatically notices a tenth unpaginated list endpoint.** That gate is buildable (`app.get` + `.all<` +
+  no cursor) and is the obvious successor.
+- Any of the nine gains a keyset cursor → its roster row and the checklist count move in the SAME commit;
+  both are now pinned to each other.
+- The 49 schema-bounded reads stay bounded only while those UNIQUE indexes exist. A migration dropping
+  `tenants.slug UNIQUE` would silently convert several reads to scans, and nothing here would notice —
+  the triage is a measurement at `e291ea1`, not a standing guarantee.

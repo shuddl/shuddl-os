@@ -35,6 +35,12 @@ const ROSTER: ReadonlyArray<{ file: string; anchor: string; what: string }> = [
   { file: "workers/api/src/routes/export.ts", anchor: "tsa_receipt", what: "every anchor receipt" },
   { file: "packages/ledger/src/parity.ts", anchor: "FROM events WHERE kind IN", what: "every native+legacy event of the backing kinds, FULL PAYLOADS" },
   { file: "workers/agents/src/watchtower.ts", anchor: "quote.priced", what: "every anomalous quote ever, on the daily cron" },
+  // §823 — the NINTH, found by enumerating every API list endpoint rather than re-reading the eight.
+  // `GET /v1/approvals?status=open` returns EVERY approval with that status: no cursor, no LIMIT, and
+  // no per-object narrowing — the same shape as the invoices party lens two rows up. Its sibling
+  // endpoints `/v1/exceptions` (REQ-197 keyset) and `/v1/invoices` (REQ-010 cursor) both paginate, which
+  // is what makes this an unevenly applied rule rather than an unknown one.
+  { file: "workers/api/src/routes/approvals.ts", anchor: "FROM approvals WHERE status = ?", what: "GET /v1/approvals — every approval of a status, no cursor" },
 ];
 
 /** The prepare() template containing `anchor`, or undefined. Brace-free: SQL lives in one template literal. */
@@ -73,7 +79,17 @@ describe("REQ-197/010 §794: the filed unbounded-read hold still describes reali
     expect(doc, "the GO-LIVE-CHECKLIST no longer files the unbounded-read hold, but the reads are still unbounded").toMatch(
       /Unbounded list reads/,
     );
-    expect(ROSTER.length, "roster size changed — update the checklist row in the same commit").toBe(8);
+    expect(ROSTER.length, "roster size changed — update the checklist row in the same commit").toBe(9);
+    // THE COUNT, not just the title (§823). This assertion used to match `/Unbounded list reads/` alone, so
+    // the doc could say "7 sites" while the roster held 8 and both tests stayed green — and it DID, for two
+    // audits. A doc-and-code agreement test that never compares the number is agreeing about a heading.
+    const claimed = /Unbounded list reads — (\d+) sites/.exec(doc);
+    expect(claimed, "the checklist row no longer states a site COUNT — restore it; the number is the thing this pins").not.toBeNull();
+    expect(
+      Number(claimed![1]),
+      `the GO-LIVE-CHECKLIST claims ${claimed?.[1]} unbounded sites; the roster holds ${ROSTER.length}. ` +
+        "Whichever moved, move the other in the SAME commit.",
+    ).toBe(ROSTER.length);
   });
 });
 
