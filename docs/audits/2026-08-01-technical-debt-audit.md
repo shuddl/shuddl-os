@@ -438,6 +438,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 243 | §795 | **§796** | **PHASE 19 CLOSED — parsed-but-unconsumed, swept and BOUNDED.** §795 named a pattern with three instances this session (§773/§783/§795), so I ran it as a search. The discriminator is what the DECLARATION does: **`z.literal` = consumed by the parse** (only one value survives `safeParse` — `acknowledged: z.literal(true)` needs no reader); permissive types = too noisy; **a multi-member `z.enum` or bare `z.boolean` with NO reader = the shape**. Result: **203 fields → exactly ONE**, `purpose`, the hold already filed — so §795 was the only member of its class. Gated both ways: a new unread enum REDS, **and `purpose` disappearing REDS** (a zero-result scan proves nothing unless calibrated against a known positive). **Three instrument corrections before one true reading** — corpus excluded `apps/` (42), same-file consumption excluded (35, nearly reported `format` as a finding), `z.literal` not distinguished. A detector returning FEW results is not a detector that is RIGHT |
 | 244 | §796 | **§797** | **PHASE 20 CLOSED — all three HIGH filed holds, each *fail-closed* claim checked.** Ratecon: **TRUE and pinned** (nothing writes a `ratecon` doc; the SHARED `DISPATCH_REQUIRED_DOC_KIND` reds in lockstep when repointed to `"POD"`). B2A: **under-stated** (§795). Transport/resolver: **half pinned** — `transport-dormancy.test.ts` exists because §379 found `NotConfiguredTransport` had zero test references, and **the identical gap sat one file away**: its twin `NotConfiguredSecretResolver`, named in the SAME checklist row, had zero references anywhere; making it return a secret left the worker **121/121 green** — partner impersonation with the CONFIRM gate silently open. Added the binding + the fail-closed VALUE (a resolver returning `""` is still the right class). **Did NOT write the e2e test** — it would 401 for the wrong reason (§749). **Instrument: a suite-level failure prints as SKIPS** — `764 passed | 44 skipped`, zero `×` lines, exit 1 |
 | 245 | §797 | **§798** | **PHASE 21 CLOSED — every fail-closed PORT swept; the sibling that was missed.** §797's rule (*pin the siblings in the same commit*) run as a sweep: 6 ports + 3 selectors tabled. **`NotConfiguredMigrator` has zero test references and that is FINE** — it is *opt-in, NOT the default*; the DEFAULT (`DeterministicMigrator`) is what carries the guarantee and IS pinned. **The port with zero references was not the one that mattered.** The real gap: `evidenceSender` is written TWICE — in the same two modules §786 caught duplicating the recipient resolver — and only the Biller's had a behavioural test. A silently-succeeding fallback left api **808/808**, and this route appends `message.sent` BEFORE sending, so the ledger would record a delivered demand for money that never left. Pinned incl. the **half-bound** `&&`→`||` case. **Text parity was the WRONG instrument** — the two are logically identical but formatted differently; reverted rather than loosen the normaliser |
+| 246 | §798 | **§799** | **PHASE 22 CLOSED — the dunning↔biller duplication set, ENUMERATED.** §786 and §798 each found a rule duplicated between the same two modules; twice is a pattern, so the whole set was listed: **4 shared rules** — recipient resolution (§786, was unpinned) · evidence-sender selection (§798, was unpinned) · deterministic event id (**pinned** — randomness reds 4) · sequencer DO binding (**fail-closed by construction**). **The DO binding looked like a REQ-025 hole and is not**: dropping the tenant prefix left api 810/810, but the DO **re-derives its own name and refuses** (`expected.equals(this.ctx.id)` → FORBIDDEN) and **that refusal is pinned by 2 tests** — §688's sibling-guard case, diagnosed rather than reported. **My grep was wrong a 4th time**: searching `"identity mismatch"` found nothing and I was one step from recording "the structural tenant pin is unpinned" — the tests assert BEHAVIOUR, not the reason string |
 
 **Current measured state — as measured 2026-08-08 at `fae1a17` (§775's board run):** the merge board is
 **26 gates — 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape since §737. `typecheck` 0 · `lint` 0 ·
@@ -46055,3 +46056,64 @@ Four mutated files restored byte-identical.
   Today it is opt-in and the deterministic floor is what carries the guarantee.
 - A `NotConfigured*` port is added → binding AND value, in the same commit. §797's rule, now with a table to
   add the row to.
+## §799 — PHASE GATE: PHASE 22 CLOSED — the dunning↔biller duplication set, enumerated and closed
+
+§786 found the recipient resolver duplicated between `workers/agents/src/biller.ts` and
+`workers/api/src/routes/dunning.ts`. §798 found the evidence-sender selection duplicated between the *same
+two modules*. Twice is a pattern, not a coincidence — `dunning.ts` is a re-implementation of the Biller's
+send pipeline, because the api worker cannot import the agents worker's internals. So: enumerate the whole
+set and check each.
+
+| duplicated rule | dunning copy | biller copy | verdict |
+|---|---|---|---|
+| recipient resolution | `resolveDunningRecipient` | `resolveRecipient` | **§786** — was unpinned; now behavioural + parity |
+| evidence-sender selection | `evidenceSender:75` | `evidenceSender:237` | **§798** — was unpinned; now behavioural both sides |
+| deterministic event id | `deterministicUuid:89` | `uuidFromSeed:97` | **pinned** — randomness reds 4 tests incl. the idempotency one |
+| sequencer DO binding | `sequencerFor:60` | `sequencerFor:263` | **fail-closed by construction** — see below |
+
+Four shared rules. Two were the defects already fixed; two are clean. The set is now closed and written down,
+which is the phase's actual product: the next person adding a rule to `dunning.ts` has the list.
+
+### The DO binding looked like a defect and is not
+
+Dropping the tenant prefix from dunning's `idFromName(\`${tenant}|${streamId}\`)` left `workers/api` at
+**810/810**. That reads as a REQ-025 hole: two tenants sharing a stream id would share one Durable Object.
+
+It is not, and the reason is structural. The DO **re-derives its own name and refuses**:
+
+```ts
+const expected = this.env.SHIPMENT_SEQ.idFromName(`${tenant}|${streamId}`);
+if (!expected.equals(this.ctx.id)) throw rpcError("FORBIDDEN", { reason: "sequencer identity mismatch" });
+```
+
+A caller that mis-names the DO cannot reach another tenant's data — it gets FORBIDDEN. **And that refusal is
+itself pinned** (2 tests: *"a forged tenant in the RPC is rejected by id-equality"* and the claimed-pool G2
+case). So the silence is §688's **sibling-guard** category: the mutation is invisible because a stronger
+guard downstream makes it unreachable, not because nobody is watching.
+
+The residual, stated: dunning's tests inject a `seqStub`, so its real DO binding is never exercised — which
+is exactly why the mutation was silent. The consequence of a mis-naming is a runtime FORBIDDEN (a broken
+feature, loudly), never a cross-tenant read. That is the right failure, and it is worth knowing it is the
+*DO* delivering it rather than the caller being careful.
+
+### My grep was wrong for the fourth time this session
+
+I searched for `"identity mismatch"` in the api tests, found nothing, and was one step from recording *"the
+DO's structural tenant pin is unpinned"* — a REQ-025 claim, in the audit, wrong. The tests assert on the
+**behaviour** (FORBIDDEN, a refused append), not on the reason string.
+
+Four false-absence calls this session (§773, §788, §795-adjacent, this one), each caught by mutating instead
+of believing, each costing about a minute. §"a grep proves presence, never absence" is the most-earned rule in
+this record, and it keeps being earned because the cheap check *feels* sufficient every single time.
+
+### Exit state
+
+No source changed. `workers/api` **810/810**; lint 0; typecheck 0. Four mutated files restored byte-identical.
+
+**Reopen triggers**
+- A FIFTH rule is added to `dunning.ts` that the Biller also has → it joins this table, with a behavioural
+  test on the copy that lacks one. Two of the four here shipped unpinned; the base rate in this pair is 50%.
+- `dunning.ts`'s tests stop injecting `seqStub` → the real binding becomes exercised and the sibling-guard
+  reasoning above stops being the only thing covering it. That would be an improvement, not a regression.
+- The DO's identity pin is refactored → it is what makes the fourth row safe. Its two tests are the ones to
+  keep green.
