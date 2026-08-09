@@ -427,6 +427,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 232 | §784 | **§785** | **The OUTPUT boundary — who the evidence email goes to.** Phase 13 audited inputs; the dual is the seven places something LEAVES the building, where the failure is a wrong recipient rather than a crash. `resolveRecipient` has two rules: the **cross-party binding** is covered (dropping `WHERE id = ?` reds 4 tests in `workers/api` — the id-determinism seam again, correct by design), but **preferring the `billing` contact was SILENT in BOTH suites** (agents 122/122 AND api 803/803). A party with a dispatch contact and a billing contact would have had its invoice + signed POD delivered to **dispatch** — not a cross-party leak but **the wrong human inside the right company**, which is why it survived: it looks like a working system to everyone except the person who never got their invoice. Five tests, four mutation-proved; the fixture's ORDER is the whole test (non-billing first) |
 | 233 | §785 | **§786** | **The recipient rule is implemented TWICE and NEITHER copy was pinned.** §785's exit note claimed the other emitters were covered; checking found the same defect in `resolveDunningRecipient` — a byte-for-byte duplicate whose header *claims* "anti-drift" while only the LEAF predicate is shared. Deleting its billing preference left api at **803/803**, because `seedParty` seeds exactly ONE contact, always billing: **the rule was untestable by construction in both workers**. A dunning notice to dispatch instead of AP is a demand for money that never reaches the payer. Both halves of the doctrine, each proved to catch what the other cannot: deleting the rule reds behaviour AND parity; a **valid-but-drifted** change (reversed fallback order) reds **only parity** — and the parity file carries a floor so it cannot certify two copies that are identically wrong |
 | 234 | §785–§786 | **§787** | **PHASE 14 CLOSED — the OUTPUT boundary, where the failure is QUIET.** Phase 13 audited inputs (a bad value crashes); Phase 14 audits outputs (a bad value *works*, it just reaches the wrong person). All six emitters tabled with what decides their recipient. The finding: one rule implemented TWICE with **neither copy's preference pinned** — untestable by construction, because every fixture in both workers seeded exactly ONE contact, always `kind:"billing"`. Consequence is neither a leak nor a crash but **the wrong human inside the right company**, whose only signal is an invoice that never gets paid. Both guard halves proved necessary: delete-the-rule reds behaviour AND parity; **drift-only reds ONLY parity**. Board at `46a626c` unchanged: 19 PASS · 2 FAIL · 5 BLOCKED. **4,171 tests** (3,127 workspace, 0 failures). Three phases now bound the system by KIND — surfaces, inputs, outputs |
+| 235 | §787 | **§788** | **Everything that EXPIRES — a CLEAN NEGATIVE.** The next kind after surfaces/inputs/outputs is TIME. Mutated every clock-dependent control in the direction that EXTENDS access or DESTROYS evidence: doc cap (+10yr), status cap, session `exp`, **both device-revocation readers** (a stolen device keeps signing), POD retention 7yr→7d, the REQ-025 retention tenant guard, Watchtower windows. **All RED.** Nothing unpinned that matters — worth recording so the next reader does not re-audit the class where a gap would be worst. One silent mutation (`expiresAt >= now` → `>`) is a real boundary with an EMPTY population and is deliberately left. **And a grep of mine was wrong**: I searched two files, concluded the doc cap was unpinned, and the mutation named its test in the first line — the 4th false absence-call this audit, caught at zero cost because I mutated before believing |
 
 **Current measured state — as measured 2026-08-08 at `fae1a17` (§775's board run):** the merge board is
 **26 gates — 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape since §737. `typecheck` 0 · `lint` 0 ·
@@ -45334,3 +45335,60 @@ The repo-owned ledger is empty. **Five owner-held holds remain**, unchanged from
   untested rung is exactly this defect again.
 - A new emitter is added → it belongs in the table above. The table is the phase's real artifact: every
   place something leaves this system, and what decides where it goes.
+## §788 — PHASE GATE: everything that EXPIRES — a clean negative, and a grep of mine that was wrong
+
+Phases 12–14 bound the system by surfaces, inputs and outputs. The next kind that cuts across every module is
+**time**: anything whose correctness depends on a clock. A missing expiry is silent, permanent, and usually
+security-relevant — a link that never dies, a stolen device that keeps signing.
+
+Enumerated every clock-dependent decision in shipped code and mutated each in the direction that **extends**
+access or **destroys** evidence.
+
+| control | mutation | result |
+|---|---|---|
+| document download cap | mint with +10 years regardless of the caller's TTL | **RED** — *"an EXPIRED cap is refused — the expiry is inside the MAC, not advisory"* |
+| status cap | (already pinned, `pub-status.test.ts`) | RED |
+| session JWT `exp` | (already pinned by a direct delegated-guarantee experiment, `auth.test.ts`) | RED |
+| **device revocation — sequencer reader** | drop `revoked_ts IS NULL` (a stolen device keeps signing) | **RED** |
+| **device revocation — enrollment reader** | drop `revoked_ts IS NULL` | **RED** |
+| POD retention duration | 7 years → 7 days | **RED** (the test also pins the unknown-class fail-safe to the LONGEST hold) |
+| retention tenant-key guard (REQ-025) | delete a foreign R2 key | **RED** |
+| Watchtower windows | (§772) | RED ×5 |
+| retention purge boundary `expiresAt >= now` | `>=` → `>` | **silent** — see below |
+
+**Nothing unpinned that matters.** That is the phase's result, and a clean negative on this kind is worth
+recording precisely so the next reader does not re-audit it: expiry is the class where a gap would be worst
+and it is, measured, the class that is best defended.
+
+### The one silent mutation, and why it is not a defect
+
+`expiresAt >= now` → `>` changes the outcome for exactly one input: a document whose expiry equals `now` to
+the millisecond. `now` is `Date.now()` and `expiresAt` is `created_ts + retentionMs`; no fixture sits on that
+point and no production call will. It is a real classification boundary with an empty population — the
+opposite of §772's error, where I mutated in directions that could not cross a boundary at all. Left alone
+deliberately: a test that manufactured the exact tick would pin an arithmetic identity, not a behaviour.
+
+### My grep was wrong, and the mutation is what said so
+
+I searched `documents.test.ts` and `pub-status.test.ts` for an expired-doc-cap test, found the status one and
+not the doc one, and wrote down that the doc cap — the higher-stakes of the two, since it grants the actual
+bytes of a signed POD — was **unpinned**. It is not: the test lives in a third file, and the mutation named
+it in its first line.
+
+§"a grep proves presence, never absence" — three wrong absence-calls earlier in this audit, and this is the
+fourth. The instrument caught it at zero cost, which is the entire argument for mutating before believing:
+the wrong conclusion existed for about ninety seconds and never reached the record as a finding.
+
+### Exit state
+
+**No source changed** — `doc-cap.ts`, `retention.ts`, `sequencer.ts` and `devices.ts` all restored
+byte-identical after eight mutations. `git status` over `packages/ workers/ apps/` empty; lint 0; typecheck 0.
+
+**Reopen triggers**
+- A new capability type is minted → it joins the table above. Both existing caps put the expiry **inside the
+  MAC**; a cap that carried it alongside would be advisory, and the test names say which is which.
+- A retention class is added → the duration test pins classes **by name**, so a new one is invisible to it
+  until added. The unknown-class fail-safe (longest hold) is what makes that safe rather than silent.
+- `IDEMPOTENCY.put`'s 24h `expirationTtl` changes → that window is the replay guarantee; too short duplicates
+  a mutation a retry should have deduped. It is currently unpinned by any test, and stated here rather than
+  fixed because the correct window is a product decision, not a defect.
