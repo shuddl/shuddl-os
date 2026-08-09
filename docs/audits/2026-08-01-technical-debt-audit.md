@@ -403,6 +403,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 208 | §760 | **§761** | **All TWELVE exclusions, not three — 8 pinned, 4 inert and measured.** §760 sampled three and generalised (*"two of three are pinned"*); the true ratio is **8 of 12**, and the sample happened to hold two of the strongest and one of the weakest. **`docs/plans` is the row a sample mis-ranks**: it moves the fixture LEAST (+1) and is the ONLY exclusion whose removal **reds the real repo**. Fixture sensitivity and real-repo load-bearing are different properties pointing opposite ways here. The 4 inert ones (`BUILD-PROMPT`/`CLAUDE`/`README`/`.claude`) carry 46 cited ids — **0 unregistered, 0 only-annotations** — so each is correct, cheap and currently unnecessary. **A sample of three from twelve is a sample and should have been labelled one**; finishing cost one loop |
 | 209 | §761 | **§762** | **Finished §758's map — the same sample-vs-population correction §761 made to §760.** §758 derived 8 self-scanning gates and examined 6, dropping two by judgement. `scan-corpus` is a HELPER (no verdict, correctly outside — now by reason, not omission); **`check-table-shape` is a gate and belongs on the map**, defended by corpus scope on a DIFFERENT AXIS (extension `*.md` vs `design/audit`'s path) — and that defence covers its **source but not its documentation**, which §759 already proved incidentally (a planted over-wide row in the audit doc → exit 1). Corrected map: **7 gates, 5 mechanisms**, with `traceability` the exact inverse (docs covered, source not — why §757's literals bit in a test file and not in prose). **Both corrections cost one loop each** |
 | 210 | §762 | **§763** | **The lens WHERE fragments, conjunct by conjunct — REQ-025's SQL half.** One function turns a session into a `WHERE` and every read inherits it, so a single dropped conjunct is a silent repo-wide widening. Mutated one conjunct at a time (not whole fragments — a PARTIAL widening is what a reviewer skims past): party `visibility<>'internal'` → **6 red**; party membership made always-true → **2 red**; driver shipment-ownership → **4 red**. All defended, and the failure SHAPES are right (a golden *plus* behavioural cases — a golden alone proves the string changed, not the scope). **Scope stated honestly**: the tenant lens is `1=1` because tenant isolation is PHYSICAL (§738's parity + DO pinning), so this covers only REQ-025's SQL half |
+| 211 | §763 | **§764** | **DEFECT: the lens survives its conjuncts but not its PUNCTUATION.** §763's trigger asked whether a clause could OR past the lens. One can: the keyset cursor is pushed as `"(a OR (b AND c))"` into an `" AND "`-joined chain, and SQL binds AND tighter than OR — **without the outer parens the WHERE becomes `(lens AND …) OR (stream_id = ? AND seq > ?)`, a branch with NO lens restriction**, returning every event on the cursor's own stream to a portal client, internal ones included. **Dropping them left 667/667 GREEN** — not because lens or pagination is untested, but because **no test combined a non-tenant lens WITH a cursor**: each feature covered alone, their PRODUCT empty. Pinned (+ non-vacuity); mutation now REDS |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -43768,3 +43769,66 @@ byte-identical after all three mutations.
   first. A golden updated to match a widening is the failure mode it exists to prevent.
 - `readEvents` gains a caller that composes its own WHERE → the lens can only NARROW today (the kind filter
   ANDs on). A caller that ORs would escape every test above.
+## §764 — PHASE GATE: the lens survives its own conjuncts but not its punctuation
+
+§763 mutated every conjunct of every lens fragment and found all three defended. Its closing trigger named what
+that did **not** cover: *"the lens can only NARROW today… a caller that ORs would escape every test above."*
+That is checkable, and checking it found a real gap.
+
+### One caller, AND-joined, and one OR
+
+`lensWhere` has exactly **one** caller — `readEvents`, in the same file. It collects clauses and joins them with
+`" AND "`. Every pushed clause narrows… except one, which contains an `OR`:
+
+```ts
+clauses.push("(e.stream_id > ? OR (e.stream_id = ? AND e.seq > ?))");
+```
+
+The keyset cursor. Its **outer parentheses are load-bearing**, and not in a subtle way — SQL binds `AND`
+tighter than `OR`, so without them the joined WHERE reads:
+
+```
+(lens AND … AND e.stream_id > ?)   OR   (e.stream_id = ? AND e.seq > ?)
+```
+
+A right-hand branch with **no lens restriction at all**. Every event on the cursor's own stream returns
+regardless of visibility or party membership — internal events included, to a portal client, on a stream it is
+already paging through.
+
+### Undefended: 667/667 green with the parentheses removed
+
+Not because the lens is untested and not because pagination is untested — both are covered thoroughly. **No
+test combined a non-tenant lens with a cursor.** Each feature was verified alone; the intersection was empty.
+
+That is the sharpest version of a shape this session has met repeatedly (§739's branch with no test, §756's
+untested sibling): here neither *feature* was missing coverage — only their **product** was, and a product of
+two well-tested features is exactly what nobody thinks to write a case for.
+
+### Pinned
+
+A party-lens read **with a cursor positioned on its own stream** must still exclude internal events and other
+parties' shipments — plus a non-vacuity assertion that the read returned something, since both exclusions hold
+trivially over an empty result.
+
+| mutation | result |
+|---|---|
+| drop the cursor clause's outer parentheses | **RED** — *"party lens still hides internal events WHEN PAGINATING"* |
+
+`packages/ledger` 667 → **668**; restored byte-identical.
+
+### Why punctuation, of all things
+
+Every conjunct in §763 was a *predicate* — visible, nameable, obviously security-relevant. This is two
+characters of grouping. A reviewer reads the clause, sees the inner `OR` is parenthesized, and moves on; the
+outer pair is what does the work, and it is invisible precisely because it is punctuation rather than logic.
+
+**Any clause containing an `OR` that is joined into an `AND` chain is one edit from widening everything before
+it.** The lens is the highest-stakes such chain in the repo, and it had exactly one.
+
+**Reopen triggers**
+- A second clause containing `OR` is pushed into that chain → it needs the same parentheses and the same
+  intersection test. There is one today; the test above covers only it.
+- `readEvents` gains a caller outside `lens.ts` → the composition stops being local, and "only NARROW" stops
+  being a property anyone can check by reading one function.
+- A future clause is composed with template interpolation rather than a literal → the parentheses become
+  conditional on the interpolated text, and this test would not see it.

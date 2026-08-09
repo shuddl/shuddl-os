@@ -256,6 +256,33 @@ describe("readEvents: lens-scoped reads (I6, adversarial visibility)", () => {
     expect(res.some((e) => e.shipment_id === "shpB")).toBe(false); // other party's shipment
   });
 
+  // REQ-025/I6 §764 — THE LENS MUST SURVIVE PAGINATION. The cursor clause is pushed as
+  // `"(e.stream_id > ? OR (e.stream_id = ? AND e.seq > ?))"` and its OUTER PARENTHESES are load-bearing: the
+  // clauses are joined with " AND ", and SQL binds AND tighter than OR, so unparenthesized it reads
+  //
+  //     (lens AND … AND e.stream_id > ?)  OR  (e.stream_id = ? AND e.seq > ?)
+  //
+  // — a right-hand branch carrying NO lens restriction at all. Every event on the cursor's own stream would
+  // return regardless of visibility or party membership.
+  //
+  // MUTATION-MEASURED as undefended: dropping those parentheses left this package at 667/667 GREEN, because no
+  // test combined a NON-tenant lens with a cursor. Each feature was covered alone; the intersection was not.
+  it("party lens still hides internal events WHEN PAGINATING (the cursor clause cannot escape the AND chain)", async () => {
+    // A cursor positioned on shpA's own stream — exactly what a portal client pages with. The unparenthesized
+    // form returns every later event on that stream, internal ones included.
+    const res = await readEvents(B, { scope: "party", partyId: "party-acme" }, { cursor: { stream_id: "s:shpA", seq: 0 } });
+    expect(
+      res.some((e) => e.kind === "credit.checked"),
+      "an INTERNAL event surfaced to a party lens through the cursor clause — the OR escaped the AND chain (I6)",
+    ).toBe(false);
+    expect(
+      res.some((e) => e.shipment_id === "shpB"),
+      "another party's shipment surfaced through the cursor clause",
+    ).toBe(false);
+    // Non-vacuity: the read must actually RETURN something, or the two assertions above hold trivially.
+    expect(res.length, "the paginated read returned nothing — this case proves nothing").toBeGreaterThan(0);
+  });
+
   it("party lens redacts quote internals and generalizes position pre-OFD", async () => {
     const res = await readEvents(B, { scope: "party", partyId: "party-acme" }, {});
     const priced = res.find((e) => e.kind === "quote.priced")!;
