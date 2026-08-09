@@ -463,6 +463,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 268 | §820 | **§821** | **PHASE 43 CLOSED — one rate request, four hand-rolled copies, two answers.** `contracts/rating.ts` claims to be *"the SINGLE canonical rate-request shape … ONE source of truth"*. Half true: the rater aliases the **inferred TYPE**, so FIELD drift breaks the build — but **an inferred type carries no CONSTRAINTS**, so `min`/`max`/`.optional()` vs `.nullish()` all erase, and the build is structurally blind to the drift that changes what a caller may send. **THE FIND**: MCP declared `dims: Dims.optional()` where every other surface used `.nullish()` — `.optional()` REJECTS `null`, so `{"dims": null}` (what a JSON producer emits for an absent field) was a **400 from MCP** and an accepted UNKNOWN from `/v1/rate` + guest. The MCP file's own comment two lines up says missing dims *"is never a client-side 400 here"*. Fixed. Gate pins PHYSICS fields only (whole-schema equality would be wrong and would get silenced); the idiom normaliser has its **own calibration** because a hand mapping is a transcription (§819). 4 REDs. Zip/accessorial bound divergence measured and **deliberately left** — no bypass, and picking 16 vs 20 is not an audit's call |
 | 269 | §821 | **§822** | **PHASE 44 CLOSED — the roster's ninth site, and a gate BLIND on its first draft.** §821's blind spot generalised: which rosters can a new instance escape? Crude sweep flagged 16 — **not a finding**; `event-payload-strictness` DERIVES its list and is a clean negative. Real yes: §794's 8-site unbounded-read roster. **Scanner fixed first** — 6 no-WHERE hits, **4 false**, all string-CONCATENATED statements whose later fragments carry `WHERE` + `LIMIT 1`; corrected to exactly **2**, both already rostered (zero FPs, so calibration is a LIVE positive set). **Then the gate itself was blind**: a planted scan on `anomalies` came back **GREEN**, because the novel-filter excluded anything containing a roster anchor and one anchor is the substring `FROM anomalies` — a locator used as a unique key, masking the exact defect class. Replaced with an **exact set + count pin**. 4 REDs. **Scope stated**: no-WHERE only; the 36 filtered-but-unbounded reads are NOT closed and ~30 allowlist rows is where a weak detector hides. 2nd process error: restored a snapshot taken BEFORE authoring §822 — the §818 fix needed "snapshot the AUTHORED state" |
 | 270 | §822 | **§823** | **PHASE 45 CLOSED — the hold said SEVEN, cited EIGHT, and there were NINE.** §822's deferred triage, done: of **70** filtered no-LIMIT SELECTs, **49 are bounded by a uniqueness guarantee the schema DECLARES** (PK `id`, `tenants.slug`, `users.email`, `ux_events_device`, `money_lines(event_id,line_no)`, `id IN`) — facts from the migrations, not opinions. 21 residue, 6 already rostered. **FINDING 1**: the checklist row said *"7 sites"* while citing 8, and the roster pinned 8 — for two audits, because the agreement test did `toMatch(/Unbounded list reads/)` on the TITLE and `toBe(8)` on the code, **never comparing the two**. Now the count is extracted from the doc and pinned to `ROSTER.length`. **FINDING 2**: enumerating every API list endpoint (instead of re-reading the known eight) found **`/v1/approvals`** — no cursor, while siblings `/v1/exceptions` (REQ-197) and `/v1/invoices` (REQ-010) both paginate. Filed as the 9th; **not fixed** — the remedy is a response-shape change and the hold says *needs a REQ row*. Clean negatives: `documents.ts` (per-shipment), `driver-manifest` (per-driver; its INDEX hold §185 is already filed). 3 REDs |
+| 271 | §823 | **§824** | **PHASE 46 CLOSED — the tenth list endpoint, found by a GATE instead of by me.** §823's named residual closed: nothing noticed a tenth unpaginated endpoint. **Why a second gate**: `/v1/approvals` has a `WHERE`, so §822's no-WHERE scanner is blind to it **by design** — §822 catches a table scan, §824 catches an endpoint handing an unbounded row set to a caller. Neither subsumes the other. **Discriminator corrected TWICE before writing**: `/\bLIMIT\b/i` over the handler body read `{ limit: 1 }` (a JS option on an unrelated read) as pagination, and read **`/v1/invoices` as PAGINATED when the roster carries both its lenses as unbounded** — which would have dropped a filed hold out of a completeness gate. `LIMIT` now counts only inside a `SELECT` literal. **Measured**: 6 endpoints, 2 bounded, **4 unbounded** — 3 filed + `/v1/driver/manifest`, which is **NOT** a pagination hold (scopes to `session.sub`, bounded per principal; its real defect is the §185 INDEX hold). 3 REDs, and unlike §817/§822 the planted violation went red on the FIRST draft — the discriminator was measured before the gate was written |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -47689,3 +47690,65 @@ Proved three ways: doc count ≠ roster size → RED naming both numbers · doc 
 - The 49 schema-bounded reads stay bounded only while those UNIQUE indexes exist. A migration dropping
   `tenants.slug UNIQUE` would silently convert several reads to scans, and nothing here would notice —
   the triage is a measurement at `e291ea1`, not a standing guarantee.
+## §824 — PHASE GATE: PHASE 46 CLOSED — the tenth list endpoint, found by a gate instead of by me
+
+§823 filed the ninth unbounded read and closed by naming its own residual honestly: *"the enumeration that
+found the ninth was a one-off script… nothing automatically notices a tenth."* This is that gate.
+
+### Why the surface, when §822 already gates the SQL
+
+`/v1/approvals` carries a `WHERE status = ?`, so §822's no-WHERE scanner is **blind to it by design**. What
+makes it a hold is not the SQL shape but the fact that a CALLER receives every matching row. The two gates
+cover different halves and neither subsumes the other: §822 catches a full table scan wherever it lives,
+§824 catches an HTTP endpoint that hands an unbounded row set to a client.
+
+### The discriminator took two corrections, both before the file was written
+
+1. Matching `/\bLIMIT\b/i` across the whole handler body read `{ shipment_id, limit: 1 }` — a JS option on an
+   unrelated read — as SQL pagination. The verdict for that endpoint happened to be right; the evidence had
+   nothing to do with the list query.
+2. The same loose match read **`/v1/invoices` as paginated**. It is not: the roster carries **both** its
+   lenses as unbounded. That reading would have quietly dropped a filed hold out of this gate's view — the
+   worst possible failure for a gate whose whole job is completeness.
+
+`LIMIT` now counts only inside a literal that actually contains `SELECT`; the cursor-param and route-param
+forms are matched explicitly. Evidence in SQL context, never a word in prose. This is the third phase running
+where a first-draft detector was wrong and the FP/FN count — not reading — was what showed it.
+
+### The measured picture
+
+Six GET list endpoints. Two bounded (`/v1/exceptions` by cursor param, `/v1/shipments/:id/documents` by route
+param). **Four unbounded**, and each is now filed with its reason: `/v1/approvals` (§823), `/v1/invoices` (two
+roster rows), `/v1/watchtower` (roster), and `/v1/driver/manifest` — which is **not** a pagination hold: it
+scopes to `session.sub`, the authenticated driver, never a client-supplied id, so it is bounded per principal
+by something a text scanner cannot see. Its real defect is the §185 INDEX hold, and conflating the two would
+have put a fourth row on a roster that should have three.
+
+### Proved, and this time on the first draft
+
+A new unpaginated endpoint → **RED**, naming it. An endpoint gaining a cursor → **RED** (a filed hold that
+shrinks must be said out loud, not silently absorbed). Breaking the bounded-discriminator → **RED** on the
+both-forms pin *and* on discovery.
+
+That last test is the one carrying the weight: the discriminator has two failure modes and they fail in
+opposite directions. Always-empty `bounds` floods discovery, and the tempting "fix" is to widen the
+allowlist; always-non-empty silences everything and reds calibration instead. Pinning one endpoint per form
+keeps both visible for the right reason. Worth noting against §817 and §822, where my planted violation came
+back GREEN: here it went red immediately, because the discriminator was **measured before** the gate was
+written rather than after.
+
+### Exit state
+
+`test:tools` **1089** (+4), 3 failed — the unchanged REQ-289 baseline. typecheck 0, lint 0, `verify:docs` 0.
+`approvals.ts` restored byte-identical after two mutations.
+
+**Reopen triggers**
+- A list endpoint appears **outside `workers/api/src`** — the guest `pub/` surface or a new worker — → the
+  scan is scoped to one directory and would not see it. Stated because it is this gate's exact analogue of
+  the blind spot §823 named in its predecessor.
+- A handler returns rows without `.all<`/`.all()` (a `.raw()`, a stream, a helper that reads for it) → not
+  detected. The row-set test is a syntactic proxy for "returns many rows", and proxies decay.
+- One of the four gains a cursor → calibration REDs deliberately; drop it here AND from the roster AND from
+  the GO-LIVE-CHECKLIST count in the same commit, since §823 pinned those two to each other.
+- `driver-manifest` stops deriving its scope from `session.sub` → it becomes a real pagination hold and moves
+  from this file's allowlist onto the roster. The reason recorded here is what makes that visible.
