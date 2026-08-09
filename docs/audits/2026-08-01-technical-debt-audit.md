@@ -483,6 +483,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 288 | §840 | **§841** | **PHASE 62 CLOSED — auditing my own reopen triggers, and closing the one that was TRUE.** §840 corrected a false trigger; this checks the rest. Six falsifiable triggers across §815–§840: **one STALE** (§816's *"the money law has no gate"* — §817 built it the very next phase and it sat wrong for 24), one already-corrected (§839/§840), and **four sound**. Correction rate **2 of 6** — the argument for the sweep. **§821's residual CLOSED**: a discovery half now requires every module declaring the freight-dims shape to be rostered or excluded-with-a-reason. Found three, each legitimate for a **different** unrecorded reason — `events.ts` is the LEDGER path, deliberately stricter (`min(1)` vs `min(0)`, per §820); `map-204.ts` is a **producer** whose output the canonical schema validates; `intake.ts` is a client TYPE, not a boundary. **Scanner corrected first**: it required the literal `z.object` and `rate.ts` writes `z\n  .object({`, so **two of four ROSTERED files did not match their own roster** — it would have found three unrostered surfaces while hiding two rostered ones in the same run |
 | 289 | §841 | **§842** | **PHASE 63 CLOSED — the launch checklist's code-state claims all HOLD; the one that doesn't is in CLAUDE.md.** §841 found 2 of 6 of my own triggers rotted, so the higher-stakes version: the GO-LIVE-CHECKLIST, where §823 already caught a stale count. 297 rows → 222 live → 67 repo-path → **5 making a falsifiable CODE-STATE claim**, and **every one holds**: `approvalGranted` honoured by both composers but **supplied by no caller**; `actor.party` read by nine modules and by **zero gates** (the claim is about gates, and is exact); the dunning matrix unwired per its own source comment. **Clean negative worth stating** — §823 found the COUNT stale and the reasonable inference was that the prose had rotted too; it has not. **The live defect is in CLAUDE.md**: rule 6 names `routes ±10%` and there is **no fixture, no manifest entry, no implementation** (17 fixtures; the other three exist) — filed as an OWNER DECISION since §61/§68. §830/§831 pinned CLAUDE.md's table COUNT; nothing pinned its named fixture GATES, which is how this sat there for the length of the build. Now gated, with `routes` a recorded exception — **deliberately not made to red on a filed hold**, because a gate that reds on a parked decision gets disabled and takes the unfiled cases with it |
 | 290 | §842 | **§843** | **PHASE 64 CLOSED — the last fractional cent, and the shape MY OWN gate could not see.** Back to production code. `retention.ts:152` holds `STORAGE_COST_CENTS_PER_GB_MONTH = **1.5**` — a `*CENTS*` constant bound to a fractional value, multiplied into a float quotient to produce integer cents. Swept every `*CENTS*` identifier bound to a non-integer across `packages/ workers/ apps/`: **exactly one**. **§817's gate could not see it** — it matches a money-ish LEFT operand of `/` or a money-ish ASSIGNMENT target, and this is neither (`bytes / BYTES_PER_GB` is not money-named; the result is a bare `return`). Extension catches the **root cause**, not a third arithmetic shape. **The metric-vs-money question answered by PRECEDENT**: the module argues *"a METRIC, not a money_line"* and is right that the ledger owes nothing — but §817 already converted the Watchtower's `avgCostCents`, the same kind of operator reading, *because it is denominated in cents*; the inconsistency is the defect, not either choice. Fixed with an exact integer ratio (15 tenths-of-a-cent/GB) via `mulDivHalfUp`, which needs no ruling. **No number changes** — 200,011 inputs, **zero differences** |
+| 291 | §843 | **§844** | **PHASE 65 CLOSED — a purity claim MY OWN detector's vocabulary could not read.** §843's residual measured: 3 cents-named functions contain arithmetic, 2 already exact, and the third (`iif.ts@formatCents`) is a **false positive written correctly** — `(abs - frac) / 100` is exact by construction with the proof in a comment. **1 FP in 3 candidates → NOT BUILT**, numbers given rather than a shrug. **But reading it walked into a defect**: `iif.ts` opens *"PURE: … No I/O, no D1, **no clock**"* — a module-level claim §835's detector (which I wrote) **cannot read**, because its vocabulary is `no Date, no random`. Same claim, different words, invisible to the sweep AND to the discovery gate that sweep installed. **Vocabulary measured per §803**: `no clock` adds **2**; `PURE:` 8, `no I/O` 15, `pure function` 9, bare `DETERMINISTIC` **22** — all out as prose. The two split as §835's design anticipated: `iif.ts` is real (banned, ambient-clock subset, since its only `Date` use is a `new Date(ms)` conversion), and `billing.ts` is a FIELD comment on a module that **injects** its clock — recorded in SCOPED_CLAIMS. **Honest bound**: the detector finds 27 claims, not *every* claim |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -49045,3 +49046,89 @@ planted elsewhere → RED · the scan blinded → RED on non-vacuity rather than
 - §817's two arithmetic patterns still cannot see a bare `return` of a computed cent. The constant-level check
   covers the way this one was introduced; a differently-shaped one would need the return pattern too, and
   measuring its false-positive rate is a phase, not a footnote.
+## §844 — PHASE GATE: PHASE 65 CLOSED — a purity claim my own detector's vocabulary could not read
+
+§843 named its residual: the return-of-a-computed-cent shape, *"measuring its false-positive rate is a phase,
+not a footnote."* This is that measurement — and it turned up a different defect on the way.
+
+### The residual, measured and declined
+
+Three cents-named functions in the tree contain arithmetic. Two are already exact (`allocateCents`,
+`estimateStorageCostCents` after §843). The third, `gl/iif.ts:46@formatCents`, is a **false positive** and a
+well-written one:
+
+```ts
+const frac = abs % 100;
+const whole = (abs - frac) / 100; // exact: (abs - frac) is a multiple of 100
+```
+
+Exact by construction, with the reasoning written above it. So the pattern's yield is **1 FP in 3
+candidates** on a corpus of three — §817's own standard (*"an allowlist is where a weak detector hides"*)
+argues against shipping it. **Not built**, and the numbers are the reason rather than a shrug.
+
+### What the measurement walked into
+
+Reading `iif.ts` to classify it, its header says:
+
+> **PURE**: takes JournalLine[] + opts, returns a string. **No I/O, no D1, no clock** — the same input
+> serializes identically.
+
+A module-level purity claim, and §835's detector — which I wrote — **cannot read it**. Its vocabulary is
+`PURE and DETERMINISTIC | no Date, no random | no D1, no R2, no Date`. This module says *"no clock"*. Same
+claim, different words, invisible to both the §835 sweep and the discovery gate that sweep installed.
+
+### The vocabulary, measured per candidate rather than widened
+
+§803's rule, applied to my own detector. Each candidate phrase added alone, counting NEW claimants beyond the
+current 25:
+
+| phrase | adds | verdict |
+|---|---|---|
+| **`no clock`** | **2** | IN — one genuine, one explicable |
+| `PURE:` | 8 | out — matches a sentence about a called function as often as a module |
+| `no I/O` | 15 | out |
+| `pure function` | 9 | out |
+| bare `DETERMINISTIC` | 22 | out — prose everywhere |
+
+The two `no clock` adds split exactly the way §835's design anticipated:
+
+- **`packages/ledger/src/gl/iif.ts`** — a real module claim. Its only `Date` use is `new Date(ms)` in
+  `formatDate`, a conversion from an explicit millisecond, so it takes the **ambient-clock subset** ban
+  (`Date.now` + `Math.random`, not `new Date`) — the same shape §835 gave the translator's pure cores, for
+  the same reason.
+- **`workers/billing/src/billing.ts`** — **not** a module claim. The phrase sits on a schema FIELD
+  (`created: unix seconds … no clock read`), and the module INJECTS its clock
+  (`this.now = options.now ?? (() => Date.now())`), which is the correct pattern. Recorded in `SCOPED_CLAIMS`
+  with what the sentence actually describes, exactly as §835 recorded the three derived-id claims.
+
+**One real claimant, one explicable non-claimant, from a two-hit word.** That ratio is only acceptable because
+the exclusion mechanism already exists and forces a reason; a word adding fifteen would not have been.
+
+### The snapshot error, caught by an assertion for once
+
+Restoring after MUT-C reverted this phase's own edits: the snapshot was taken **before** they were applied, so
+`cp` put the file back to its pre-§844 state — §818's `git checkout` loss and §822's stale-snapshot loss, a
+third time.
+
+The difference is that it was caught **immediately and by design**. The restore step asserted the edits were
+still present (`assert 'no clock' in s and 'gl/iif.ts' in s`) and threw, instead of leaving a silently
+reverted file to be committed. §822 concluded *"the snapshot has to be of the state you want BACK"*; the
+durable form of that is not remembering which snapshot is which, it is **asserting the property you care
+about after every restore**, because a restore is a write and every write deserves a check.
+
+### Exit state
+
+`test:tools` **1113**, 3 failed — the REQ-289 trio. `@shuddl/ledger` **668** · `@shuddl/billing` green.
+typecheck 0 · lint 0 · `verify:docs` 0.
+
+Proved three ways: `Date.now()` planted in `iif.ts` → **banned** · `new Date(ms)` there → **allowed** (the
+conversion the module legitimately needs) · the `no clock` claimant unbanned → the §835 discovery gate REDs.
+
+**Reopen triggers**
+- A module states purity in words none of the four phrases match → the detector reads a **vocabulary**, and
+  §835 and §844 are two data points that it is incomplete. The honest bound: it finds 27 claims today, not
+  "every claim".
+- A `SCOPED_CLAIMS` entry's module starts claiming purity for itself → the §672 half fires, because the
+  exemption names what the sentence describes and that stops being true.
+- The return-of-a-computed-cent pattern is revisited → the corpus was three, and the FP was exact-by-
+  construction with its proof in a comment. Re-measure before building; do not re-derive from this row.

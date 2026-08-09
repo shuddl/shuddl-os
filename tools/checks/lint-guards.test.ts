@@ -257,6 +257,7 @@ const DETERMINISM_GLOBS = [
   "packages/adapters/",
   "workers/translator/src/core/build-214.ts",
   "workers/translator/src/core/quarantine.ts",
+  "packages/ledger/src/gl/iif.ts",
 ] as const;
 
 /**
@@ -270,6 +271,8 @@ const SCOPED_CLAIMS: Record<string, string> = {
     'same shape: the id is derived from the quote.accepted event id "(no Date, no random)". The worker itself does I/O.',
   "workers/agents/src/concierge.ts":
     'same shape: ids derived from the message event id "(no Date, no random)".',
+  "workers/billing/src/billing.ts":
+    'the phrase "no clock read" sits on a SCHEMA FIELD (`created: unix seconds — the event\'s business clock`), not on the module. The module INJECTS its clock — `this.now = options.now ?? (() => Date.now())` — which is the correct pattern, not a purity claim (§844).',
   "workers/billing/src/credits.ts":
     "matched on a determinism word in prose, not a module-level purity claim; the module is a Stripe webhook consumer and does I/O by design.",
 };
@@ -313,5 +316,5 @@ function purityClaimants(root: string): string[] {
   return execSync('git ls-files "packages" "workers"', { cwd: root, encoding: "utf8" })
     .split("\n")
     .filter((f) => /\.tsx?$/.test(f) && !f.includes(".test.") && !f.includes("/test/"))
-    .filter((f) => /PURE and DETERMINISTIC|no Date, no random|no D1, no R2, no Date/i.test(readFileSync(`${root}/${f}`, "utf8").slice(0, 3000)));
+    .filter((f) => /PURE and DETERMINISTIC|no Date, no random|no D1, no R2, no Date|no clock/i.test(readFileSync(`${root}/${f}`, "utf8").slice(0, 3000)));
 }

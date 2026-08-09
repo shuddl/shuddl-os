@@ -127,7 +127,11 @@ export default tseslint.config(
     // §815's rule applies to subsets in the dangerous direction, so it is stated rather than left to be
     // inferred: no other `no-restricted-syntax` block matches `workers/translator/**`, so this replaces
     // nothing — it is the only rule these files get, and it is narrower than the ledger/rater one ON PURPOSE.
-    files: ["workers/translator/src/core/build-214.ts", "workers/translator/src/core/quarantine.ts"],
+    // + `packages/ledger/src/gl/iif.ts` (audit §844): its header claims *"PURE: … No I/O, no D1, no clock"*,
+    // and §835's sweep could not read it — that detector matches "no Date, no random", and this module says
+    // "no clock". Same subset applies for the same reason: `formatDate` does `new Date(ms)` on an explicit
+    // millisecond, a conversion, so only the AMBIENT reads are banned.
+    files: ["workers/translator/src/core/build-214.ts", "workers/translator/src/core/quarantine.ts", "packages/ledger/src/gl/iif.ts"],
     rules: {
       "no-restricted-syntax": [
         "error",
