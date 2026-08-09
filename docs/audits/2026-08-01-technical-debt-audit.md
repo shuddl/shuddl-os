@@ -384,6 +384,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 189 | §741 | **§742** | **The named LAWS are defended — 0 of 3 undefended, vs 3 of 11 defaults.** CLAUDE.md Law 5 (interline executing share): mutating `evaluated = share.shareCents` → gross reds **5 tests**, one named *"PROOF the executing-share rule changed the outcome: gross alone would have been `none`"* — a pin asserting the COUNTERFACTUAL. The reverted `{}`-policy security defect (*"`{}` is the floor for one knob and the CEILING for three"* — it drops dims_required, widens a tighter geofence, and stamps widened visibility onto IMMUTABLE events): mutating the refusal back to `{}` reds its pin. And the comment's *"(and it is UNWIRED)"* claim about `invoice_without_pod_classes` — **checked, still true** (the one production call omits `serviceClass`), already carried as its own GO-LIVE row. **The pattern: a rule written down as a law gets a test; a rule living only in the shape of a fallback often does not** |
 | 190 | §742 | **§743** | **The budget gate could not see a budget nobody enforced.** §611's gate does the lockstep fix properly (reads CLAUDE.md as DATA, computes the other side) and it works — raising `MAX_CANONICAL_VIEWS` to 13 **and** adding a 13th view passes typecheck, invariants, and the registry's own suite **5/5** (its threshold sits in the same file); only §611 caught it. But both its assertions iterate a hand-written roster, so inserting `· 7 agent queues ·` into the hard-budgets line — stated, enforced by nothing — left it **2/2 GREEN**. The timing is the point: CLAUDE.md says a budget change is a **register amendment**, so the line is edited FIRST and enforcement follows. Floor now derives coverage by **SPAN** (a reconstructed-phrase predicate guesses how many words a budget's name has — my first cut flagged everything); 3 exemptions each with a reason, all 3 found by the floor on its first run. **Mutation-proved both ways** |
 | 191 | §743 | **§744** | **A BLOCKED gate is invisible to the meta-gate that watches gates.** Roster sweep (58 candidates) came back clean — `ALLOWED_HEX` is **derived** from tokens exactly as CLAUDE.md rule 7 claims; `ACTIVE` omitting WP-16 is correct (`disposition` routes it first). But it surfaced `cwd-parity.test.ts`, built **yesterday** at §559 to *"end the CWD-dependence class with a mechanism"* — and §731 found a CWD defect in `check:identity` **by hand the next day**. Cause: that gate SKIPS without a denylist, so both runs printed *no denylist available* and agreed perfectly over a gate that never ran. Fixed with `RUN_ENV`. **My first fix was circular** — the probe term was a literal, so the identity scan found it in this very file and exited 1 from BOTH dirs ("parity" by failing everywhere); assembled at runtime instead. Mutation: reintroducing §731's defect now REDS `check:identity: root=0 subdir=1`. **Also corrects §732**, whose hand sweep duplicated this gate |
+| 192 | §744 | **§745** | **The meta-gate counted a SKIP as coverage — and my fix was silently wrong twice.** Four fixture-blocked gates emit `"executed": false`, so non-execution is now DETECTED and the set asserted **both ways** (a new skipper must be declared; one that starts executing must be removed, so an exemption cannot outlive its reason). **Fix bug 1:** `executed()` returned true when no structured verdict was present, but `check:identity`'s skip prints PROSE — so the regression mutation was silent. Replaced with a **positive** assertion (a `skipMarker` that must NOT appear). **Fix bug 2:** that was *also* silent — the marker goes to **stderr** and `execFileSync` returns stdout only. Switched to `spawnSync`, both streams. Two detector bugs stacked, each hiding the next, in a fix whose purpose was to stop a gate certifying what it never examined. Both found by mutation, neither by reading |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -42556,3 +42557,71 @@ the mutation.
   the scanner reads.
 - `check:identity` gains a real denylist in CI → `RUN_ENV`'s override must not mask it; it applies only to
   this test's own child processes, which is why it is scoped per-run rather than set globally.
+
+## §745 — PHASE GATE: the meta-gate counted a skip as coverage, and my fix was silently wrong twice
+
+§744 fixed one instance — `check:identity` skipped without a denylist, so the CWD-parity gate compared two
+skips and reported parity. The CLASS is broader: **a comparison of two non-executions is vacuous, and this
+file reported it as coverage.** Four more gates are in exactly that state.
+
+### The gap, and why it is detectable
+
+The four fixture-blocked gates emit a machine-readable verdict:
+
+```
+##SHUDDL-GATE## {"gate":"rater-parity","status":"PENDING","executed":false, …}
+```
+
+So non-execution is *detected*, not assumed. The parity check now records which gates did not execute and
+asserts that set against a declared roster — **both ways**: a new skipping gate must be declared, and a gate
+that *starts* executing must be removed, so an exemption cannot outlive its reason.
+
+This is the `assertions: 0 beside status: PASS` shape (§726/§731) arriving at the meta-level: the gate that
+watches gates was itself certifying something it never examined.
+
+### My fix was silently wrong twice, and both were found by mutation
+
+**First:** `executed()` reads the structured verdict and returns `true` when none is present — *"no verdict,
+assume it ran."* But `check:identity`'s skip path prints **prose**, not a gate line. So the mutation that
+should have caught the regression (delete its `RUN_ENV` entry ⇒ it skips again) was **silent**. A negative
+detector cannot see a skip it does not recognise.
+
+Replaced with a **positive** assertion: each `RUN_ENV` entry carries a `skipMarker` that must NOT appear once
+the input is supplied — evidence the input took effect, rather than absence of evidence that it didn't.
+
+**Second:** that positive assertion was *also* silent. The marker goes to `console.warn` → **stderr**, and
+`execFileSync` returns **stdout only**. The check was searching a stream the message never appeared on.
+Switched to `spawnSync` and concatenated both streams.
+
+Two detector bugs stacked, each hiding the next, in a fix whose entire purpose was to stop a gate from
+reporting coverage it did not have. Neither was visible from reading the code; both took one mutation each.
+
+### Measured
+
+| mutation | before | after |
+|---|---|---|
+| `RUN_ENV` input stops working (gate skips again) | **silent** | **RED** |
+| a gate leaves the roster while still skipping | RED | RED |
+
+The second was correct from the start; the first took two attempts to make correct, and the phase is mostly
+the story of that.
+
+### What the gate now says honestly
+
+Four gates are declared as not-executing, each with the input it lacks — `check:fixtures`,
+`check:rater-parity`, `check:invoice-parity`, `check:concierge-parity`, all BLOCKED on engagement-workspace
+fixtures. Their CWD-dependence is **untested**, and the file now says so instead of counting them. That is a
+smaller claim than before and a true one.
+
+### Exit state
+
+`cwd-parity` 2/2; `test:tools` **1024**; lint 0; typecheck 0. All probes restored byte-identical.
+
+**Reopen triggers**
+- A private fixture lands → its gate starts executing, the roster assertion reds, and the fix is to DROP it
+  from the roster (not to re-add it). That red is the signal its CWD-dependence is finally being tested.
+- A gate's skip notice moves between streams or is reworded → its `skipMarker` stops matching and the positive
+  assertion goes quiet. The marker is a string the gate prints; it is coupled to that text on purpose, and the
+  coupling is the point.
+- A new gate emits no structured verdict AND skips silently → neither detector sees it. That residual is real:
+  detection here rests on a gate announcing itself, which is why the roster is asserted rather than derived.

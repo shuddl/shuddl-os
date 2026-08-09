@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { execFileSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { repoRoot } from "./repo-root.js";
 
@@ -67,19 +67,71 @@ function derivedGates(root: string): Gate[] {
 // appears in any file, so a healthy run is genuinely clean.
 const PROBE_TERM = ["ZZ", "CWDPARITY", "PROBE", "ABSENT"].join("-");
 
-const RUN_ENV: Readonly<Record<string, Readonly<Record<string, string>>>> = {
-  "check:identity": { IDENTITY_DENYLIST: PROBE_TERM },
+interface RunInput {
+  readonly env: Readonly<Record<string, string>>;
+  /**
+   * Evidence the input TOOK EFFECT, asserted positively below.
+   *
+   * §745 measured why this is required: removing the entry below made `check:identity` skip again, and the
+   * "did it execute?" detector stayed silent — that gate's skip path prints prose, not a `##SHUDDL-GATE##`
+   * line, so "no structured verdict" was read as "it ran". A negative detector cannot see a skip it does not
+   * recognise; a POSITIVE assertion that the gate got past its own precondition can.
+   */
+  readonly skipMarker: RegExp;
+}
+
+const RUN_ENV: Readonly<Record<string, RunInput>> = {
+  "check:identity": { env: { IDENTITY_DENYLIST: PROBE_TERM }, skipMarker: /no denylist available/i },
 };
 
-/** Exit code of a gate run with an explicit cwd. */
-function runFrom(root: string, script: string, cwd: string, env: Readonly<Record<string, string>> = {}): number {
+/** Exit code AND stdout of a gate run with an explicit cwd. */
+function runFrom(root: string, script: string, cwd: string, env: Readonly<Record<string, string>> = {}): { code: number; out: string } {
+  // BOTH STREAMS. A gate's skip notice often goes to console.warn/error — `check:identity` prints "no denylist
+  // available" on STDERR — and `execFileSync` returns stdout only, so a stdout-only capture cannot see the very
+  // markers this file reasons about. Measured: the §745 probe stayed silent until stderr was included.
+  const r = spawnSync("node", ["--import", "tsx", `${root}/${script}`], {
+    cwd,
+    encoding: "utf8",
+    env: { ...process.env, ...env },
+  });
+  return { code: r.status ?? 1, out: `${r.stdout ?? ""}\n${r.stderr ?? ""}` };
+}
+
+/**
+ * §745 — DID THE GATE ACTUALLY RUN? Two skips agree perfectly.
+ *
+ * §744 fixed the instance (`check:identity` skipped without a denylist, so both directories printed the same
+ * "no denylist" line and the parity assertion passed over a gate that never executed). The CLASS is that a
+ * comparison of two non-executions is vacuous, and this file reported it as coverage — the same
+ * `assertions: 0 beside status: PASS` shape this audit has met in four tools.
+ *
+ * The gates that cannot run without a private fixture say so in machine-readable form: a `##SHUDDL-GATE##`
+ * line carrying `"executed": false`. So non-execution is DETECTED here rather than assumed, and the set of
+ * gates in that state is asserted against a declared roster — a NEW gate that starts skipping is loud instead
+ * of silently uncovered.
+ */
+function executed(out: string): boolean {
+  const m = /##SHUDDL-GATE##\s*(\{.*\})/.exec(out);
+  if (m === null) return true; // no structured verdict — assume it ran; the parity comparison is meaningful
   try {
-    execFileSync("node", ["--import", "tsx", `${root}/${script}`], { cwd, stdio: "ignore", env: { ...process.env, ...env } });
-    return 0;
-  } catch (e) {
-    return typeof (e as { status?: number }).status === "number" ? (e as { status: number }).status : 1;
+    return (JSON.parse(m[1]!) as { executed?: unknown }).executed !== false;
+  } catch {
+    return true; // unparseable verdict is not evidence of a skip
   }
 }
+
+/**
+ * Gates whose real path cannot execute in this repo, WITH the reason. Each is BLOCKED on an engagement-workspace
+ * fixture (`fixtures/manifest.json` marks them pending, sha256 null) — owner-held, not a defect here. Their
+ * parity result is vacuous until the fixture lands, and this roster is what makes that visible rather than
+ * counted as passing.
+ */
+const NOT_EXECUTED_WITHOUT_INPUT: readonly string[] = [
+  "check:fixtures", // the nine vendored fixtures themselves
+  "check:rater-parity", // fixtures/rater/*, fixtures/tariff
+  "check:invoice-parity", // fixtures/invoice-replay, fixtures/tariff
+  "check:concierge-parity", // fixtures/concierge/parse-50, fixtures/tariff
+];
 
 // `check:invariants` is the ONE deliberate exception, and it is exempted from parity but NOT from scrutiny.
 // Its `main()` runs ~15 bare CWD-relative globs, and that is load-bearing: its own end-to-end tests spawn the
@@ -103,15 +155,23 @@ describe("REQ-118 §559: no gate's verdict depends on the caller's directory", (
   it("every gate reaches the same verdict from a subdirectory, or fails closed", () => {
     const subdir = `${root}/tools/checks`;
     const offenders: string[] = [];
+    const skipped: string[] = [];
+    const inert: string[] = [];
     for (const { name, script } of gates) {
-      const env = RUN_ENV[name] ?? {};
-      const atRoot = runFrom(root, script, root, env);
-      const offRoot = runFrom(root, script, subdir, env);
-      if (atRoot === offRoot) continue;
-      if (FAIL_CLOSED_BY_DESIGN.has(name) && offRoot !== 0) continue; // documented above; still not allowed to PASS
+      const input = RUN_ENV[name];
+      const atRoot = runFrom(root, script, root, input?.env ?? {});
+      const offRoot = runFrom(root, script, subdir, input?.env ?? {});
+      // A RUN_ENV entry exists precisely so this gate's REAL path runs. If it still printed its skip marker,
+      // the input stopped working and the parity comparison below is vacuous for it — the §744 defect exactly.
+      if (input !== undefined && input.skipMarker.test(atRoot.out)) inert.push(`${name} (still printing its skip marker despite RUN_ENV)`);
+      // §745 — a gate that did not EXECUTE agrees with itself for free. Record it as uncovered rather than
+      // letting an equal pair of skips read as a verified property.
+      if (!executed(atRoot.out)) skipped.push(name);
+      if (atRoot.code === offRoot.code) continue;
+      if (FAIL_CLOSED_BY_DESIGN.has(name) && offRoot.code !== 0) continue; // documented above; still not allowed to PASS
       offenders.push(
-        `${name}: root=${atRoot} subdir=${offRoot}` +
-          (offRoot === 0 ? "  ← PASSES off-root having read a different (or empty) corpus" : ""),
+        `${name}: root=${atRoot.code} subdir=${offRoot.code}` +
+          (offRoot.code === 0 ? "  ← PASSES off-root having read a different (or empty) corpus" : ""),
       );
     }
     expect(
@@ -119,5 +179,25 @@ describe("REQ-118 §559: no gate's verdict depends on the caller's directory", (
       `gate verdict(s) that depend on the caller's directory — resolve inputs through repoRoot() ` +
         `(tools/checks/repo-root.ts), never process.cwd():\n  ${offenders.join("\n  ")}`,
     ).toEqual([]);
+
+    expect(
+      inert,
+      "a RUN_ENV entry no longer makes its gate execute, so this file is comparing two skips for it and " +
+        "reporting them as parity — the §744 defect. Fix the input, or move the gate to " +
+        "NOT_EXECUTED_WITHOUT_INPUT with the reason:\n  " + inert.join("\n  "),
+    ).toEqual([]);
+
+    // §745 — WHAT THIS CHECK DID NOT COVER, stated rather than implied. A gate whose real path never ran was
+    // not tested for CWD-dependence at all; §744 is what that costs (a mechanism built to end the class missed
+    // the very next instance, because two skips agree). The roster is asserted BOTH ways: a new skipping gate
+    // must be declared, and a gate that starts executing must be removed from the roster so the exemption
+    // cannot outlive its reason.
+    expect(
+      skipped.sort(),
+      "the set of gates that did NOT execute has changed. If a gate now skips, its parity result is vacuous — " +
+        "declare it in NOT_EXECUTED_WITHOUT_INPUT with the input it lacks, or give it a RUN_ENV entry so its " +
+        "real path runs. If a gate started executing, drop it from that roster: an exemption that outlives its " +
+        "reason is the thing this file exists to prevent",
+    ).toEqual([...NOT_EXECUTED_WITHOUT_INPUT].sort());
   }, 120_000);
 });
