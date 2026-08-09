@@ -430,6 +430,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 235 | §787 | **§788** | **Everything that EXPIRES — a CLEAN NEGATIVE.** The next kind after surfaces/inputs/outputs is TIME. Mutated every clock-dependent control in the direction that EXTENDS access or DESTROYS evidence: doc cap (+10yr), status cap, session `exp`, **both device-revocation readers** (a stolen device keeps signing), POD retention 7yr→7d, the REQ-025 retention tenant guard, Watchtower windows. **All RED.** Nothing unpinned that matters — worth recording so the next reader does not re-audit the class where a gap would be worst. One silent mutation (`expiresAt >= now` → `>`) is a real boundary with an EMPTY population and is deliberately left. **And a grep of mine was wrong**: I searched two files, concluded the doc cap was unpinned, and the mutation named its test in the first line — the 4th false absence-call this audit, caught at zero cost because I mutated before believing |
 | 236 | §788 | **§789** | **The idempotency TTL — closing the gap §788 identified and LEFT.** §788 deferred it as *"a product decision, not a defect"*; half right — **whether the record expires at all is not a product decision**. Dropping `expirationTtl` left the suite **6/6 green**, and nothing ever deletes an idempotency record: every successful mutation would leak a KV entry **permanently**, and the replay window would become unbounded — a stale response replayed while `next()` never runs, the same silent-write-loss shape REQ-206 exists to prevent, arriving by the other door. The 2xx-only rule on the SAME `put` call is pinned by 3 tests; the TTL by none. Asserted via KV's own `expiration` metadata (a bare put reports `undefined`), bounded 1h–7d so retuning stays a product decision. Both directions RED — dropped and truncated |
 | 237 | §788–§789 | **§790** | **PHASE 15 CLOSED — TIME, and the discipline of not leaving a gap you named.** Four phases now bound the system by KIND: surfaces (12) · inputs (13) · outputs (14) · **clocks (15)**. Eleven clock-dependent controls mutated toward EXTENDING access or DESTROYING evidence; **ten were already RED** — expiry is the best-defended class in the codebase, recorded as a clean negative so it is not re-audited. The one real gap was the idempotency TTL, which **§788 itself had named and deferred** as "a product decision" — half right, since *whether* a record expires is not one. §789 closed it. **An identified gap left open is worse than one never looked for**, because the record now says someone examined it and moved on. Board at `b29e7b3`: 19 PASS · 2 FAIL · 5 BLOCKED, unchanged across nineteen phases. **4,172 tests** (3,128 workspace, 0 failures) |
+| 238 | §790 | **§791** | **The sweeps under OVERLAP — and one that had never met its own subject.** Eleven sweeps split cleanly: **9 dedupe at WRITE time** (deterministic id + DO dedupe / `INSERT OR IGNORE` / `ON CONFLICT`) and are overlap-safe by construction; **2 check-then-act before an EXTERNAL send** and are at-least-once — structural, not an oversight, and both already documented (§236, `webhooks.ts:304`). The find: **`sweepTenantCreditGaps` had only ever run against an EMPTY corpus** — its cron test says so in its own header. Binding its SELECT to a bogus rule, and deleting its whole loop body, BOTH left agents **127/127 green**, while in production a gap that never closes leaves a REQ-042 booking blocked FOREVER. Also: **my own third test over-claimed** — it says "fault containment" but the catch is unreachable (measured by making it rethrow); re-scoped and the residual named. Two instrument errors in one table (110-char name truncation + an incomplete export list) reported 4 uncovered sweeps; the true count was 1 |
 
 **Current measured state — as measured 2026-08-08 at `fae1a17` (§775's board run):** the merge board is
 **26 gates — 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape since §737. `typecheck` 0 · `lint` 0 ·
@@ -45517,3 +45518,76 @@ inside this repo:
   and only the unknown-class fail-safe makes that safe rather than silent.
 - Anything else gets **deferred** in this audit → §789 is the precedent. State the trigger that would make it
   matter, or close it; "a product decision" is not a reason to leave a mechanism unwatched.
+## §791 — PHASE GATE: the sweeps under overlap — and one that had never met its own subject
+
+Phases 12–15 bound the system by surfaces, inputs, outputs and clocks. The next kind is **concurrency**: what
+happens when two things run at once. Crons overlap under load, so "is this sweep safe run twice?" is a
+production question, not a theoretical one.
+
+### The structural answer, which is better than I expected
+
+Eleven scheduled sweeps. Their dedupe mechanisms split cleanly in two:
+
+| dedupe style | sweeps | safe under overlap? |
+|---|---|---|
+| **write-time uniqueness** — deterministic id + DO dedupe-by-id, `INSERT OR IGNORE`, `ON CONFLICT` | 9 | **yes** — the database or the DO enforces it atomically |
+| **check-then-act marker** before an EXTERNAL send | 214 sweep, MCP webhooks | **no** — at-least-once |
+
+**That is structural, not an oversight in two places.** The race exists exactly where the side effect leaves
+the building and therefore cannot be made idempotent by a constraint. Both instances are already documented
+at their source — §236 for the 214 sweep, `webhooks.ts:304` for the webhook one (*measured at 2 deliveries by
+driving two sweeps concurrently*) — and both transports are dormant. Nothing new to fix; the useful output is
+that the split is now enumerated rather than assumed.
+
+### The real find: a sweep tested only against an empty corpus
+
+`sweepTenantCreditGaps` is the **only** automatic mechanism that closes a `credit_projection_gap`. That gap is
+what makes the REQ-042 booking credit-hold BLOCK, so if the sweep resolves nothing, every gapped booking stays
+blocked **forever with no recovery** — fail-closed, but permanently stuck freight.
+
+It had never been run against a gap. Its cron test says so in its own header: *"With no open
+credit_projection_gap anomalies…"*. Measured:
+
+| mutation | before | after |
+|---|---|---|
+| bind the SELECT to a non-existent rule (finds nothing, ever) | **silent (127/127)** | **RED ×3** |
+| delete the entire loop body (reconciles nothing) | **silent (127/127)** | **RED ×2** |
+
+The `assertions: 0 over an empty corpus` shape (§731/§732) arriving at a cron sweep: the wrapper test proved
+it *iterated tenants* and that `scheduled()` drove it — both true, neither about the job.
+
+Three tests now pin that it FINDS the gap, applies the decision, and — the half that matters as much —
+**does not close a gap it could not fix** (an anomaly resolved without a decision is the exact silent defeat
+§777 found reachable from the other direction).
+
+### And a limit of my own test, stated rather than implied
+
+My third test was written as *"per-party fault containment"*. It is not. `reconcileCreditForParty`
+fail-closed-**returns** for an absent party rather than throwing, so no fixture built from real rows reaches
+the per-party `catch` — **measured**, by making that catch rethrow and watching all three tests stay green.
+
+Re-scoped to the weaker true statement (*"an unreconcilable gap does not stop the sweep reaching a later,
+reconcilable one"*), with the residual named in the file header. This is §775's lesson applied to my own
+work: a test name is read as a guarantee, and mine over-claimed by one mechanism within an hour of my writing
+that sentence about someone else's.
+
+### Two instrument errors, both in one measurement
+
+My first sweep-coverage table reported four sweeps with no idempotence test. Both halves were wrong: the
+matcher truncated test names at 110 characters (so the 214 sweep's *"a second run transmits NOTHING"* was
+invisible), and my list of sweep function names was incomplete (`runWatchtowerSnapshots`,
+`sweepTenantOverdueInbound` and `sweepTenantUnbilledRedrive` are the real exports). Corrected, exactly **one**
+sweep was genuinely uncovered — the one above.
+
+### Exit state
+
+No source changed — `credit-recon-sweep.ts` and `aging.ts` restored byte-identical after five mutations.
+`workers/agents` **130/130** (+3); lint 0; typecheck 0.
+
+**Reopen triggers**
+- A sweep adopts a check-then-act marker for an EXTERNAL effect → it joins the at-least-once column, and that
+  column is the one that needs a claim protocol before a live transport ships (§236's open decision).
+- `reconcileCreditForParty` starts THROWING for an unreconcilable party → the per-party catch becomes
+  reachable and the third test's stated residual closes. That is the trigger to write the fault test.
+- A new sweep lands → ask which column it is in. Nine of eleven are safe for a reason (write-time
+  uniqueness), not by luck, and a tenth that dedupes by checking is a design decision worth making on purpose.
