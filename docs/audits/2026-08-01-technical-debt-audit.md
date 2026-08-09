@@ -475,6 +475,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 280 | §832 | **§833** | **PHASE 55 CLOSED — idempotency CLEAN; the discovery half finds the doc three phases missed.** §832's residual (MCP's own idempotency) traced end to end: key derived **centrally at dispatch** off the semantic operation, every mutating tool routes through `mutatingCallApi` (verified per tool; `quote`'s one raw call is a GET), and the API middleware **fails closed** — no header → 400. Layer 3 is server-side and therefore the authority; MCP's discipline is defence in depth on a gate that doesn't depend on it. 3 guarantees mutation-pinned: fail-open → **5** reds · un-tenant-scoped → **1** · 4xx cached → **3**. **Two measurement errors of mine, both false REASSURANCES**: a grep alternation silently failed and reported two mutating tools bypassing the chokepoint (false — recounted in Python), and probe C was a **no-op mutation** (`void 0;`) that nearly had me record a pinned rule as unpinned. *A green proves nothing until you know the mutation landed.* §831's residual closed, and the discovery half immediately caught **`BUILD-PROMPT.md`** stating the table figure unrostered — three phases had worked that file. Scope bounded to root contract docs: widening to `docs/` measures **8 FPs, 0 real** |
 | 281 | §833 | **§834** | **STOPPING POINT — the merge gate RE-MEASURED at `a83d17a`.** 26 gates (§807's pinned roster): **19 PASS · 2 FAIL · 5 BLOCKED**. Same shape as the pre-session board — 19 phases of hardening, **zero regressions**, every non-PASS owner-held (REQ-289 · the denylist secret · nine unvendored fixtures). **THE FINDING**: `pnpm test` is `test:tools **&&** pnpm -r test`, and `test:tools` exits 1 on the REQ-289 trio — so the second half **never executes**. A full run emits exactly **one** `Tests` summary. The board's *"unit-tests: FAIL"* reads as one known issue and actually means **the entire product suite is UNRUN in the merge gate**: 17 workspaces, **3,149 tests**. Run directly they are **green, exit 0** — so the defect is the REPORTING, not the code; a true statement a reader completes incorrectly. **Deliberately NOT changed**: `&&` → run-both is a change to what the gate DOES, with a real design question (fail fast vs complete picture) behind it — owner's call, and **it should be decided BEFORE REQ-289 lands**, because committing the row hides the defect again |
 | 282 | §834 | **§835** | **PHASE 56 CLOSED — seven modules claimed determinism and nothing enforced it.** §814's question applied to the *"no Date, no random"* claim: does the claim-set equal the ban-set? **25 claiming modules, 11 outside every ban** — and they are **two different things**. FIVE pure `packages/ledger` libraries (`contacts`, three `geo/*`, `money/derive-split`) + TWO translator pure cores: real gaps, now banned. FOUR are **not defects** — `biller`/`booking`/`concierge` scope the sentence to a **derived id**, not the module; recorded with what they actually claim. **The translator ban is a DELIBERATE SUBSET**: `build-214.ts:72` does `new Date(e.ts).toISOString()`, a pure conversion — the blanket selector every other block uses would flag correct code, and a block that flags correct code gets deleted rather than obeyed. Proved: `Date.now()` banned, `new Date(ms)` allowed. §815's replacement hazard **checked, not assumed**. + a discovery half (3 REDs). **§834 shipped with a 4th failure I did not measure** — its heading omitted the `PHASE GATE:` prefix `phase-index` requires; I ran `verify:docs` and not `test:tools`. *The check I remember to run is not the check the edit affects* |
+| 283 | §835 | **§836** | **PHASE 57 CLOSED — the development loop reaches 4 of its 16 gates.** `pnpm verify` is `verify:dev`, a 16-step **`&&` chain** with `pnpm test` at step 4 — and `test:tools` exits 1 on the REQ-289 trio, so it **stops there**. Measured: runtime's OK line, a `Tests 3 failed` summary, and nothing else; twelve gates (invariants, coverage, traceability, identity, 3 parity gates, design audit…) **never execute**. `verify:merge` is a RUNNER that executes all 26 and aggregates — so the command you run constantly truncates and the one you run rarely is complete. **The repo's own principle turned on its tooling**: REQ-197/010 forbids a bare `LIMIT` because it *truncates silently*, and twelve unrun gates are indistinguishable from twelve passing ones. CLAUDE.md said *"leave the build green"* and **named no command** — which is why this session ran remembered subsets and §835 shipped a red. Working agreement now names `verify:merge`, with the measurement. **`&&` still NOT changed** (§834's reasoning). **4th forward-reference** — and §831 had written the rule itself |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -48513,3 +48514,74 @@ production code changed** — two eslint blocks and one test.
   not an exemption. The distinction is ambient-vs-conversion, and it is the only one that matters here.
 - A future stopping point is written → the heading is `§N — PHASE GATE: STOPPING POINT`, and `test:tools` is
   the gate that checks it, not `verify:docs`.
+## §836 — PHASE GATE: PHASE 57 CLOSED — the development loop reaches 4 of its 16 gates
+
+§834 found `pnpm test` short-circuiting on an `&&` and left the fix as the owner's call. §835 then cost a
+red commit to *"the check I remember to run is not the check the edit affects."* Both point at the same
+question, which neither asked: **what is the command a session is supposed to run, and what does it actually
+cover?**
+
+### Measured: 4 of 16
+
+`pnpm verify` is `verify:dev`, a sixteen-step **`&&` chain**: runtime → typecheck → lint → **`pnpm test`** →
+invariants → rater-purity → authority-coverage → traceability → coverage → identity → fixtures →
+rater-parity → invoice-parity → concierge-parity → seed → design-audit.
+
+`pnpm test` is itself `test:tools && pnpm -r test`, and `test:tools` exits 1 on the REQ-289 trio. So the chain
+**stops at step 4**. Run end to end it emits `check:runtime`'s OK line, a `Tests 3 failed` summary, and
+nothing else — twelve gates produce no output because they never execute.
+
+`verify:merge` behaves differently: it is a **runner** that executes all 26 gates independently and
+aggregates, which is why §834 could report 19 PASS · 2 FAIL · 5 BLOCKED rather than stopping at the first
+failure. So the two commands differ in exactly the way that misleads — **the one you run constantly truncates,
+the one you run rarely is complete.**
+
+This is the repo's own stated principle turned on its tooling. REQ-197/010 forbids a bare `LIMIT` because *"it
+truncates silently"*; rule 10 forbids a migration column vanishing without a gap row. A gate chain that stops
+at step 4 of 16 and reports only the failure is the same shape: **the twelve unrun gates are indistinguishable
+from twelve passing ones** in the output.
+
+### The fix that is squarely in scope
+
+CLAUDE.md's working agreement said *"leave the build green"* and **named no command**. So a session picks the
+obvious one — `pnpm verify` — and gets a verdict covering a quarter of the gates. That ambiguity is not
+hypothetical: it is why this session ran remembered subsets (`test:tools`, `verify:docs`) rather than one
+command, and why §835 shipped a failure in a gate it had not thought to run.
+
+The working agreement now names `verify:merge` as what "green" means, with the measurement and the reason,
+and keeps `verify:dev` as the fast inner loop with an explicit warning not to read its failure as a statement
+about the gates it did not reach. Correcting CLAUDE.md from an audit is established practice here — rule 4
+carries a §60 correction and rule 7 a §258 one, both dated in place.
+
+**The `&&` itself is still NOT changed**, consistently with §834: turning either chain into
+run-all-then-aggregate changes what a documented command does, and there is a real design question behind it
+(fail fast on cheap gates, or always pay for the complete picture). Naming the complete command costs nothing
+and needs no decision; changing the chain is the owner's.
+
+### The fourth occurrence
+
+I cited §836 before writing §836. `section-refs` refused it — the fourth time in fourteen phases, after §823,
+§829 and §831.
+
+§831 is the uncomfortable one: it recorded the rule in its own text — *"the audit section is written first,
+and the citation is added after the heading exists"* — and I wrote that sentence and then did this again five
+phases later. So the diagnosis in §829 ("a cheap gate lets a habit stay unlearned") was right and the remedy
+in §831 (write the rule down) was insufficient, because the rule was never the missing part.
+
+The actual mechanism: I write the *edit* and its citation as one action, and the section afterwards. The
+ordering that fixes it is not a rule to remember but a sequence to follow — **section first, then every edit
+that cites it** — which is what this phase did once the gate objected, and what §835's exit note should have
+said instead of restating the rule.
+
+### Exit state
+
+`test:tools` **1099**, 3 failed — the REQ-289 trio. typecheck 0 · lint 0 · `verify:docs` 0. One sentence
+changed in CLAUDE.md; **no production code, no gate logic**.
+
+**Reopen triggers**
+- **REQ-289 is committed** → `pnpm test` passes, `verify:dev` runs all sixteen steps, and this defect becomes
+  invisible without ceasing to exist. The next failing test at step 4 truncates the chain again. That is the
+  argument for deciding the `&&` question while the symptom is visible.
+- A gate is added to `verify:dev` but not to the merge roster (or vice versa) → the two lists are maintained
+  by hand in different files and nothing compares them. Stated as unswept: this phase measured the *depth*
+  the chain reaches, not whether its *membership* matches `verify:merge`'s 26.
