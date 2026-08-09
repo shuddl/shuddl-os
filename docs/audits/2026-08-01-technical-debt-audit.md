@@ -389,6 +389,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 194 | §746 | **§747** | **CLAUDE.md rule 10 (no silent drops in migration) mutation-proved.** Making an unmapped column produce no gap row reds 2 tests — the stronger one asserting the per-row VALUES are *retained*, not merely that a gap row is minted. **What "171-col" is a claim about:** an OWNER-HELD artifact (the tenant-0 config pack, `genesis/13`); in-repo the vendored fixture is synthetic, **13 columns**. That is correct, not a shortfall — *"ANY column that doesn't map raises a gap row"* is a **per-column property, not a count**, so it is proved by exercising the classification branches. The 171-col export supplies *parity* evidence, held as `legacy-export-replay` `status: pending`. Fixture truncation is pinned too (deleting `misc_note` reds the same 2). `verify:merge` re-derived: **19 PASS · 2 FAIL · 5 BLOCKED**, identical to §737 |
 | 195 | §747 | **§748** | **DEFECT (latent, found by ATTRIBUTION): every REQ-id matcher truncates at three digits.** Probing rule 1's direction B with a planted `REQ-9999`, the gate correctly failed — and echoed back **`REQ-999`**. All four matchers are `REQ-\d{3}`, exactly three. Register is at REQ-289, so nothing is wrong today; at **REQ-1000** both directions break SILENTLY at once — a citation of the non-existent REQ-1000 matches `REQ-100`, which EXISTS, so the orphan resolves *and* coverage credits REQ-1000's work to REQ-100. Quiet precisely because the truncated id is valid. Widened to `\d{3,}` at all 4 sites — **a no-op today, measured** (no text in the repo has 4+ digits after `REQ-`). 3 tests + non-vacuity companion; reverting one matcher REDS. **Checking WHICH id the gate saw, rather than that it failed, is the entire finding** |
 | 196 | §748 | **§749** | **The one fixed-width matcher that HAD the guard §748 lacked — and the guard was undefended.** Sweep: only 2 fixed-width numeric matchers in source; section/phase refs use unbounded `§(\d+)`, so this audit passing its thousandth phase costs nothing. The other is the Concierge's `(\d{5})(?!\d)`, whose comment names the hazard *("a 6+-digit id like 123456 never yields a phantom 12345")* — **deleting the lookahead left 224/224 GREEN**. Worse consequence than §748: a phantom ZIP is WRONG data, not missing, and *no price on air* refuses missing physics, not false physics. Pinned with 3 cases. **The mutation then caught MY OWN vacuous test** — the 6-digit fixture had no dest ZIP, so `request` was undefined regardless. Mutation-proving a NEW test is how you find the test was never testing |
+| 197 | §749 | **§750** | **A comment that names its own falsification test, re-run — and the distinction that makes it worth more.** The DO mutex's comment claims *"Verified by deleting this mutex and running the 100-concurrent fresh-stub test: it goes red with `D1_ERROR: I3: append-only: SQLITE_CONSTRAINT`"* — a past-tense claim, and a lost mutex means a DUPLICATE `seq` on an append-only ledger. **Re-run today: exit 1, the named test reds, the predicted error appears verbatim.** §749 and §750 have identical documentation quality and opposite enforcement status: one **explains the hazard** (unpinned, 224/224 green when deleted), the other **names the experiment** (pinned, still falsifiable). **The upgrade for any load-bearing line: not "why this matters" but "delete X, run Y, expect Z"** |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -42895,3 +42896,65 @@ byte-identical after both mutation rounds.
   satisfied by the object being undefined. That is the specific trap here.
 - The Concierge gains a second numeric extractor (weight, dims, PO) → same question, same two failure modes:
   truncation, and a test that cannot see it.
+## §750 — PHASE GATE: a comment that names its own falsification test, re-run
+
+§749 found a documented guard with no test. The complement is worth checking: the repo's highest-stakes
+concurrency guard, whose comment makes a **specific, falsifiable claim** about its own necessity.
+
+### The claim
+
+`ShipmentSequencer.append`'s mutex carries this:
+
+> *"MEASURED load-bearing, not speculative. A Cloudflare DO input gate closes only during the DO's OWN
+> `ctx.storage` operations (and `blockConcurrencyWhile`); it does NOT close across a plain D1 subrequest await.
+> … **Verified by deleting this mutex and running the 100-concurrent fresh-stub test: it goes red with
+> `D1_ERROR: I3: append-only: SQLITE_CONSTRAINT`** (the duplicate `(stream_id, seq)` rows collide on
+> `events_guard_ins`)."*
+
+That is a past-tense verification, which is exactly the kind of claim that rots — the test can be renamed, the
+guard can move, the failure mode can change. §747 checked a comment's *"and it is UNWIRED"* the same way and
+found it still true; this one is higher stakes because a lost mutex is a **duplicate `seq`** on an append-only
+ledger.
+
+### Re-run today
+
+| | |
+|---|---|
+| mutation | `const run = this.lock.then(() => this.#append(req))` → `this.#append(req)` |
+| result | **exit 1** — `× assigns dense, gapless seqs under 100 concurrent appends via fresh stubs (production shape)` |
+| error | `D1_ERROR: I3: append-only` — verbatim the string the comment predicts |
+| restored | byte-identical; 27/27 after |
+
+Every part of the claim holds: the named test exists, it is the one that reds, and the failure is the one
+predicted. The guard is not merely commented — it is falsifiable, and the falsification still works.
+
+### The distinction worth keeping
+
+§749 and §750 have **identical documentation quality** and opposite enforcement status:
+
+| | what the comment does | pinned? |
+|---|---|---|
+| §749 — the ZIP lookahead | **explains the hazard**: *"a 6+-digit id never yields a phantom 12345"* | **no** — deleting it left 224/224 green |
+| §750 — the DO mutex | **names the experiment**: delete this, run *that* test, expect *this* error | **yes** — and re-verified |
+
+A comment that explains *intent* tells a reader why the line is there. A comment that names its own
+**falsification experiment** — the mutation, the test, the expected failure — is a check anyone can re-run in
+one command, and it survives the author leaving. The second costs one extra sentence and is worth far more.
+
+That is the concrete upgrade this session's method suggests for any load-bearing line: **not "why this
+matters", but "delete X, run Y, expect Z."**
+
+### Exit state
+
+No code changed. `workers/api/test/sequencer.test.ts` 27/27; `test:tools` 1027; lint 0; typecheck 0. Source
+restored byte-identical.
+
+**Reopen triggers**
+- The 100-concurrent test is renamed or its count reduced → the comment's claim stops being executable. Update
+  the comment in the same commit; a falsification recipe that names a test which no longer exists is worse
+  than none, because it reads as verified.
+- Cloudflare changes DO input-gate semantics to close across subrequests → the mutex becomes redundant rather
+  than load-bearing, and the right response is to re-run this mutation, not to reason about the changelog.
+- A second `await` path is added to `#append` before the tail read → the serialization argument covers the
+  whole method, so a new early await does not weaken it; but a new PUBLIC entry point that bypasses `append()`
+  would, and nothing here would notice.
