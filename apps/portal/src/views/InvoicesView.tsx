@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Divider, EmptyState, Loading, Mono } from "@shuddl/design";
-import { ApiError, get } from "../lib/api.js";
+import { ApiError } from "../lib/api.js";
+import { fetchPartyInvoices, type PortalInvoiceRow } from "../api/invoices.js";
 import { formatCents } from "../lib/money.js";
 
 // REQ-085 (WP-09 Task 7/11) — the PORTAL INVOICES view. It reads the party's invoice HEADERS through its own
@@ -13,14 +14,10 @@ import { formatCents } from "../lib/money.js";
 
 // The portal-SAFE header fields only. NO division, NO gl_map, NO issued_event_id — reading only these means an
 // internal that leaked onto the wire object can never render.
-interface InvoiceRow {
-  id: string;
-  party_id: string;
-  shipment_ids: unknown; // TEXT JSON on the wire (invoices.shipment_ids DEFAULT '[]') — parsed defensively
-  total_cents: number;
-  status: string;
-  due_ts: number | null;
-}
+// The parsed row (§781) — the allowlist is now ENFORCED by the Zod object in api/invoices.ts (non-strict, so
+// unknown keys are STRIPPED: an internal that leaked onto the wire still cannot reach the DOM), not merely
+// asserted by this interface over an unchecked body.
+type InvoiceRow = PortalInvoiceRow;
 
 // invoices.shipment_ids is a JSON-array TEXT column; tolerate an already-parsed array too. Fail CLOSED to an
 // empty list on anything malformed — never throw a render (mirrors ShipmentList.parseShipmentIds).
@@ -50,9 +47,11 @@ export function InvoicesView({ onAuthError }: InvoicesViewProps): React.JSX.Elem
     let live = true;
     setLoading(true);
     setError(null);
-    get<{ invoices: InvoiceRow[] }>("/v1/invoices")
-      .then((res) => {
-        if (live) setInvoices(res.invoices);
+    // PARSED at the boundary (§781): unchecked, a malformed body reached `invoices.reduce(... total_cents)`
+    // and rendered NaN as a total — money on screen that is not money. A ZodError becomes the error state.
+    fetchPartyInvoices()
+      .then((rows) => {
+        if (live) setInvoices(rows);
       })
       .catch((e: unknown) => {
         if (!live) return;

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Divider, EmptyState, Loading, Mono, TextLink } from "@shuddl/design";
-import { ApiError, get } from "../lib/api.js";
+import { ApiError } from "../lib/api.js";
+import { fetchPartyInvoices, type PortalInvoiceRow } from "../api/invoices.js";
 import { formatCents } from "../lib/money.js";
 
 // REQ-085 / remediation Task 12 — the portal board's ruled lists.
@@ -12,13 +13,9 @@ import { formatCents } from "../lib/money.js";
 //   • INVOICES is the party's billing summary (GET /v1/invoices) — invoices billed to it, through its own lens.
 // Design is unchanged: 1px-ruled lists, no cards, mono micro-labels, integer-cents money.
 
-interface InvoiceRow {
-  id: string;
-  party_id: string;
-  total_cents: number;
-  status: string;
-  due_ts: number | null;
-}
+// The parsed row (§781). Was a local interface asserted onto an unchecked response; the shape now lives in
+// api/invoices.ts where a Zod schema ENFORCES it, so this name stays for readability only.
+type InvoiceRow = PortalInvoiceRow;
 
 // A live board shipment as the list renders it: the id + its map status (healthy | at-risk | exception),
 // shown as the row's honest meta. Supplied by App from the server board — never derived on the client.
@@ -43,10 +40,12 @@ export function ShipmentList({ shipments, onAuthError, onSelectShipment, selecte
     let live = true;
     setLoading(true);
     setError(null);
-    get<{ invoices: InvoiceRow[] }>("/v1/invoices")
-      .then((res) => {
+    // PARSED at the boundary (§781) — an unchecked `res.invoices` could be undefined and white-screen the
+    // render below at `invoices.length`. A ZodError lands in the .catch and becomes the honest error state.
+    fetchPartyInvoices()
+      .then((rows) => {
         if (!live) return;
-        setInvoices(res.invoices);
+        setInvoices(rows);
       })
       .catch((e: unknown) => {
         if (!live) return;

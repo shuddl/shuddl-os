@@ -420,6 +420,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 225 | §777 | **§778** | **All TEN `GateError` throws in `transition-gates.ts` enumerated — 9 pinned, 1 already accounted.** §777's 2-of-3 rate is why this was enumerated, not sampled. The one silent throw is `assertConsentBeforeGps`'s "belt", **already measured by §359**, correctly handled as a sibling-guard redundancy whose precondition is itself gated (`ConsentAck` refuses `"XX"` — verified, not trusted). Note refreshed with today's re-measurement (it read *"616 ledger, 757 api"*; now 668/803). **Two harness faults before one true reading**: ten back-to-back pool startups degraded to `no tests` for 8 of 10 runs (reads as "eight unpinned throws"), and an unquoted `$G` — **zsh does not word-split** — emptied every row INCLUDING the baseline. Knowing a failure mode does not prevent it; only the fixed point caught both |
 | 226 | §778 | **§779** | **The RELEASE direction (4/4 pinned) — and where §777's hole actually lived.** A throw is half a gate; the other half is every `if (…) return` that OPENS it. Mutating `overrideSatisfies` so a MISSING override releases reds **41 tests** — one line that would fail-open the whole REQ-030 surface, heavily pinned. So the gate layer is solid both ways (9/10 throws, 4/4 releases), and **§777's two holes were NOT in `gates/`** — they were in `reconcile/credit.ts`, a function the gate CALLS. Tested as a hypothesis: REQ-042's three parts are surface (pinned), reconcile (**2 of 3 unpinned**), block (pinned) — the only piece in neither `gates/` nor a projection held both holes. **Coverage followed the directory name, not the decision.** Ask not "is the gate tested" but "is every function whose return value the gate trusts tested" |
 | 227 | §779 | **§780** | **The sequencer's trust boundary — all SIX decision functions enumerated, ZERO unpinned.** Each mutated to its permissive value: `isPlatformTenant`→every tenant is platform (**374 reds**), REQ-180 never-widen floor removed (**16**), `hazmatEnabled`→always on (**11**), **`verifyEventSig`→accept every signature (6)**, inherited-visibility fail-open (1), `authoritativeSource`→always native (1). **This BOUNDS §777** — that hole was localized to `reconcile/credit.ts`, not the leading edge of a systemic gap. The two thin pins were checked rather than padded: `authoritativeSource` is inert today (`legacyValueAvailable` hard-false, no legacy mirror), and the inherited branch fails toward `internal`, the NARROWEST visibility — a refusal becoming an append, not a disclosure. **Harness, 3rd and 4th time**: consecutive full-suite runs degrade the pool after ~3 invocations and fail SILENT; both blank rows were well pinned when re-run alone. Batch the mutations, re-run every silent row individually |
+| 228 | §780 | **§781** | **Closing §724's portal hold exposed an UNPARSED BOUNDARY — a white screen and a NaN billing total.** §724's cause was wrong (the spec MOCKS the API; no `webServer` needed); the real gap was that nothing asserted the board ever loaded. Adding that positive floor went RED: the fixture returned `{items}` while the client parses `{board}` **`.strict()`** — every mocked board had been refused by the client's own Zod parse, so *"the board loads first"* was **never once true**. Fixing that revealed `PAGEERROR: Cannot read properties of undefined` — the invoices seam did `get<{invoices: T[]}>(…)` with **no parse** in THREE components: **the generic is a compile-time lie**, `undefined` reaches `.length`, and the existing `.catch` cannot help because the failure is in the RENDER. Worse than the crash: a row missing `total_cents` rendered **NaN as a billing total**. Violates CLAUDE.md's *"Zod at every boundary"*. Fixed with one parsed seam (non-strict on purpose — stripping IS the documented allowlist); 3 tests, 2 RED without it, and the e2e floor mutation-proved against the exact pre-§781 state |
 
 **Current measured state — as measured 2026-08-08 at `fae1a17` (§775's board run):** the merge board is
 **26 gates — 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape since §737. `typecheck` 0 · `lint` 0 ·
@@ -44837,3 +44838,82 @@ blank never is.
   the boundary; anything the DO trusts and this list omits is unaudited by construction.
 - `verifyEventSig`'s owner tests are refactored → that is the load-bearing set. Six reds is the floor to
   preserve, not a number to optimise.
+## §781 — PHASE GATE: closing §724 — and the unparsed boundary it was hiding
+
+§724 left the portal e2e as the ledger's one repo-side hold: an **all-negative** suite that *"passes on an
+empty page"*. Went to close it, and the first honest assertion exposed a live client defect.
+
+### First correction: §724's diagnosis was right, its cause was wrong
+
+The ledger recorded this as *"needs an API `webServer` entry"*. It does not — the spec **mocks** the API with
+`page.route("**/v1/**")`, so no server is needed. Two of the three tests already carry a positive
+(`requests.length > 0`). The real gap was narrower and sharper: test 3's comment claimed *"the party's own
+board loads first, so we know the refusal is what changed the screen"* — and **nothing asserted the board ever
+loaded**. `toBeVisible()` on the status element is satisfied in EVERY state: loading, live, empty, stale,
+unavailable.
+
+Added the positive floor: `· LIVE ·` before the refusal, `UNAVAILABLE` after it. (`· LIVE ·` with delimiters,
+because `LIVE MAP · UNAVAILABLE` also contains "LIVE" — the widget's own name would have matched.)
+
+### It went red, and that was the finding
+
+The status line read **`LIVE MAP · SYNCING`** and never advanced. Two causes, stacked:
+
+**1. The mock never matched the contract it mocked.** The fixture returned `{ as_of, items }`; the portal
+parses `z.object({ board: z.array(BoardItem), as_of }).strict()`. Wrong key *and* an extra one — every mocked
+board in this suite was refused by the client's own Zod parse. So the "board loads first" premise had never
+once been true. §"compare artifacts, don't reason about them": the fixture and the schema were never diffed.
+
+**2. Fixing that revealed a WHITE SCREEN.** With a parseable board the app crashed outright —
+`PAGEERROR: Cannot read properties of undefined (reading 'length')`, empty `<body>`. The route mock answered
+`/v1/invoices` with the board payload too, and the invoices seam did:
+
+```ts
+get<{ invoices: InvoiceRow[] }>("/v1/invoices").then((res) => setInvoices(res.invoices))
+```
+
+**That generic is a compile-time lie.** `get` returns whatever the server sent; nothing checked it. No
+`invoices` key ⇒ state becomes `undefined` ⇒ the next render reaches `.length` ⇒ uncaught TypeError. The
+`.catch` each component already had **cannot** help: the failure is in the render, not the promise.
+
+**CLAUDE.md's stack rule is "Zod at every boundary."** The board seam next door does exactly that; this seam
+did not, in **three** components — `ShipmentList`, `InvoicesView`, `StatementView` — each with its own
+hand-copied `InvoiceRow` interface asserted over an unchecked body.
+
+**The malformed-row case is worse than the crash.** `invoices.reduce((s, inv) => s + inv.total_cents, 0)` over
+rows missing `total_cents` renders **NaN as a billing total** — money on screen that is not money, with no
+error state at all. A white screen at least announces itself.
+
+### Fixed
+
+New `apps/portal/src/api/invoices.ts`, mirroring `api/board.ts`: one Zod schema, one `fetchPartyInvoices()`,
+all three components rewired and their triplicated interface collapsed to the parsed type.
+
+**Non-strict, deliberately — the one place it differs from the board seam.** All three components state the
+same intent: *"reading ONLY these means an internal that leaked onto the wire can never render."* A default
+Zod object **strips** unknown keys, which IS that allowlist enforced at runtime instead of described in a
+comment. `.strict()` would blank the billing page the day the server adds a harmless field.
+
+| test (new) | with the parse | without it |
+|---|---|---|
+| a body with no `invoices` key renders the error state | pass | **RED** |
+| a row missing `total_cents` is refused — never a NaN total | pass | **RED** |
+| an unknown key is STRIPPED, not rejected (the allowlist, pinned) | pass | pass |
+
+And the e2e floor itself, mutation-proved: restoring the old `items` fixture key — the exact pre-§781 state —
+now **REDs** with *"the board never reached its LIVE state, so a later refusal proves nothing"*. Before this
+phase that state was silently green.
+
+### Exit state
+
+`apps/portal` **85/85** (+3) · e2e **6/6** · all 17 workspace suites green (**3,114**) · lint 0 · typecheck 0.
+Source changed **deliberately** this phase (unlike §773–§780): the portal invoice seam is a real fix, not a
+test-only pin.
+
+**Reopen triggers**
+- Any new portal seam calling `get<T>(…)` with a type argument and no parse → same defect, same white screen.
+  The type argument is the smell: it looks like validation and is an assertion.
+- The `/v1/invoices` server projection adds a REQUIRED field → add it to the schema, not to a component
+  interface. There is one schema now; keeping it one is the fix's whole value.
+- The e2e route mock grows a third endpoint → dispatch it in `fulfillPortalApi` by path. Answering every
+  `/v1/**` with one payload is what hid both defects for as long as it did.

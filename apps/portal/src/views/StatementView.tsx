@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, Divider, Loading, Mono } from "@shuddl/design";
-import { daysPastDue, rollupAging, type AgeableInvoice } from "@shuddl/contracts";
-import { ApiError, get } from "../lib/api.js";
+import { daysPastDue, rollupAging } from "@shuddl/contracts";
+import { ApiError } from "../lib/api.js";
+import { fetchPartyInvoices, type PortalInvoiceRow } from "../api/invoices.js";
 import { formatCents } from "../lib/money.js";
 
 // REQ-090 (WP-11 Task 11) — the portal STATEMENT surface: a bill-to party's account at a glance. It reads
@@ -21,13 +22,9 @@ import { formatCents } from "../lib/money.js";
 
 // Party-SAFE header fields only. NO division, NO gl_map, NO issued_event_id — reading only these means an
 // internal that leaked onto the wire can never render (mirrors InvoicesView.InvoiceRow).
-interface InvoiceRow extends AgeableInvoice {
-  id: string;
-  party_id: string;
-  total_cents: number;
-  status: string;
-  due_ts: number | null;
-}
+// The parsed row (§781). PortalInvoiceRow structurally satisfies AgeableInvoice (total_cents/status/due_ts),
+// so the aging rollup below is unchanged — what changed is that the fields are now checked before they age.
+type InvoiceRow = PortalInvoiceRow;
 
 export interface StatementViewProps {
   onAuthError: () => void;
@@ -53,9 +50,11 @@ export function StatementView({ onAuthError, now }: StatementViewProps): React.J
     let live = true;
     setLoading(true);
     setError(null);
-    get<{ invoices: InvoiceRow[] }>("/v1/invoices")
-      .then((res) => {
-        if (live) setInvoices(res.invoices);
+    // PARSED at the boundary (§781) — see api/invoices.ts. Unchecked, a malformed body aged `undefined`
+    // rows into the statement buckets and totalled NaN. A ZodError becomes this view's honest error state.
+    fetchPartyInvoices()
+      .then((rows) => {
+        if (live) setInvoices(rows);
       })
       .catch((e: unknown) => {
         if (!live) return;
