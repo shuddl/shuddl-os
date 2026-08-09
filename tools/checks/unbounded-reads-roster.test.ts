@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { repoRoot } from "./repo-root.js";
 
@@ -73,5 +74,143 @@ describe("REQ-197/010 §794: the filed unbounded-read hold still describes reali
       /Unbounded list reads/,
     );
     expect(ROSTER.length, "roster size changed — update the checklist row in the same commit").toBe(8);
+  });
+});
+
+// ── §822 — THE DISCOVERY HALF. A ROSTER WATCHES WHAT IT KNOWS; A NINTH SITE WALKS PAST IT. ──────────────
+//
+// The roster above is a TRIPWIRE on eight filed holds: it fires when one of them is fixed, so the doc stops
+// over-stating the risk. What it cannot do — and §794 did not claim it could — is notice a NEW unbounded
+// read. §802 hit this exact wall on the constant-time roster and answered it by detecting the DEFECT shape
+// rather than the known-good one. Same answer here.
+//
+// SCOPE, STATED NARROWLY AND ON PURPOSE. This finds a SELECT with **no WHERE clause at all** — a full table
+// scan. That is the roster's own "the worst" category (its first row), and it is the only unboundedness a
+// text scanner can decide without judgement.
+//
+// It deliberately does NOT flag the filtered-but-unbounded reads. Measured: **36** SELECTs filter on
+// something other than a primary key, and the great majority are bounded in practice — `tenants WHERE
+// slug = ?`, `users WHERE email = ?`, `legs WHERE shipment_id = ?`. Gating those would mean ~30 allowlist
+// entries, and an allowlist that size is where a weak detector hides (§817). Two of the eight rostered
+// holds live in that category and stay covered by the roster, which is the right tool for a known list.
+//
+// MEASURED (§822): exactly **2** no-WHERE statements exist, and **both are already rostered**
+// (`DOC_EXPORT_COLS`, `INVOICE_COLS_TENANT`). Zero false positives — so the calibration below is a live
+// positive set, not a planted one.
+//
+// THE SCANNER HAD TO BE FIXED FIRST, and that is worth recording. Reading only the FIRST string literal
+// inside `.prepare(` reported SIX no-WHERE hits; four were statements built by CONCATENATION whose later
+// fragments carried both the `WHERE` and a `LIMIT 1`. A scanner that sees one fragment of a four-fragment
+// statement reports a table scan that does not exist. It now concatenates every literal in the call.
+
+const STRING_LITERAL = /`[^`]*`|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/;
+
+/** Every `.prepare(...)` argument, with ALL its concatenated string fragments joined. */
+function preparedStatements(src: string): Array<{ line: number; sql: string }> {
+  const out: Array<{ line: number; sql: string }> = [];
+  for (const m of src.matchAll(/\.prepare\(/g)) {
+    let depth = 1;
+    let j = m.index + m[0].length;
+    const start = j;
+    while (j < src.length && depth > 0) {
+      const ch = src[j]!;
+      if (ch === "`" || ch === '"' || ch === "'") {
+        const lit = new RegExp(STRING_LITERAL.source, "y");
+        lit.lastIndex = j;
+        if (lit.exec(src)) {
+          j = lit.lastIndex;
+          continue;
+        }
+      }
+      if (ch === "(") depth += 1;
+      else if (ch === ")") depth -= 1;
+      j += 1;
+    }
+    const expr = src.slice(start, j - 1);
+    const fragments = expr.match(new RegExp(STRING_LITERAL.source, "g")) ?? [];
+    out.push({ line: src.slice(0, m.index).split("\n").length, sql: fragments.map((f) => f.slice(1, -1)).join(" ") });
+  }
+  return out;
+}
+
+/** A SELECT with no WHERE, no LIMIT and no aggregate: it reads the whole table. */
+function tableScans(root: string): Array<{ site: string; sql: string }> {
+  const files = execSync('git ls-files "workers" "packages"', { cwd: root, encoding: "utf8" })
+    .split("\n")
+    .filter((f) => /\.ts$/.test(f) && !f.includes(".test.") && !f.includes("/test/"));
+  const found: Array<{ site: string; sql: string }> = [];
+  for (const f of files) {
+    for (const { line, sql } of preparedStatements(readFileSync(`${root}/${f}`, "utf8"))) {
+      if (!/\bSELECT\b/i.test(sql)) continue;
+      if (/\bLIMIT\b/i.test(sql)) continue;
+      if (/\b(COUNT|SUM|MAX|MIN|AVG)\s*\(/i.test(sql)) continue;
+      if (/\bWHERE\b/i.test(sql)) continue;
+      found.push({ site: `${f}:${line}`, sql: sql.replace(/\s+/g, " ").trim() });
+    }
+  }
+  return found;
+}
+
+describe("REQ-197/010 §822: no NEW full-table scan (the discovery half the roster cannot do)", () => {
+  const root = repoRoot();
+
+  it("the scanner joins CONCATENATED fragments — one fragment is not a statement", () => {
+    // The bug that produced four phantom table scans, pinned so it cannot come back. Both of these are ONE
+    // statement each; the first is bounded and must not be reported as a scan.
+    const src = [
+      'const a = db.prepare("SELECT x FROM events " + "WHERE kind = ? " + "ORDER BY seq LIMIT 1").bind(k);',
+      'const b = db.prepare("SELECT y FROM documents ORDER BY id").all();',
+    ].join("\n");
+    const stmts = preparedStatements(src);
+    expect(stmts).toHaveLength(2);
+    expect(stmts[0]!.sql, "fragments were not joined — the WHERE and LIMIT live in later fragments").toContain("WHERE");
+    expect(stmts[0]!.sql).toContain("LIMIT");
+    expect(stmts[1]!.sql).not.toContain("WHERE");
+  });
+
+  it("finds the known table scans (calibration — both are ALREADY on the roster above)", () => {
+    // A live positive set, so this calibration cannot rot the way a synthetic one can. If either stops being
+    // found, the scanner broke — or the read was fixed, in which case the roster row goes too.
+    const anchors = tableScans(root).map((s) => s.sql);
+    for (const known of ["DOC_EXPORT_COLS", "INVOICE_COLS_TENANT"]) {
+      expect(anchors.join("\n"), `the scanner no longer finds the ${known} table scan`).toContain(known);
+    }
+  });
+
+  // The table scans are pinned as an EXACT SET, not filtered against the ROSTER's anchors. Measured the hard
+  // way (§822): the first draft filtered out any hit whose SQL contained a roster anchor, and one of those
+  // anchors is the substring `FROM anomalies` — so a planted full-table scan on that same table came back
+  // **GREEN**. A roster anchor is a locator for a human reading one file; it was never a unique key, and
+  // using it as one masked exactly the defect class this test exists to find. A count pin plus an
+  // account-for-every-hit pass catches a new scan even in the same file, on the same table (§806/§809).
+  const KNOWN_TABLE_SCANS: ReadonlyArray<{ file: string; anchor: string }> = [
+    { file: "workers/api/src/routes/export.ts", anchor: "DOC_EXPORT_COLS" },
+    { file: "workers/api/src/routes/invoices.ts", anchor: "INVOICE_COLS_TENANT" },
+  ];
+
+  it("the full-table scans are EXACTLY the two filed ones — no more, no fewer", () => {
+    const found = tableScans(root);
+    const accountedFor = (s: { site: string; sql: string }): boolean =>
+      KNOWN_TABLE_SCANS.some((k) => s.site.startsWith(`${k.file}:`) && s.sql.includes(k.anchor));
+
+    expect(
+      found.filter((s) => !accountedFor(s)).map((n) => `${n.site}  ${n.sql.slice(0, 90)}`),
+      "a SELECT reads an ENTIRE table — no WHERE, no LIMIT, no aggregate. Every row the tenant has ever " +
+        "accumulated is loaded into a Worker's memory on one request. Add a keyset cursor (never a bare " +
+        "LIMIT, which truncates silently — REQ-197/010), or if it is genuinely bounded, add it to " +
+        "KNOWN_TABLE_SCANS with the reason:",
+    ).toEqual([]);
+
+    // The count pin. Without it, a SECOND scan matching a known file+anchor pair would be absorbed silently.
+    expect(found, `expected exactly ${KNOWN_TABLE_SCANS.length} full-table scans, found ${found.length}`).toHaveLength(
+      KNOWN_TABLE_SCANS.length,
+    );
+    // And both known ones must still BE scans — if one gains a cursor, this fails and its ROSTER row goes too.
+    for (const k of KNOWN_TABLE_SCANS) {
+      expect(
+        found.some((s) => s.site.startsWith(`${k.file}:`) && s.sql.includes(k.anchor)),
+        `${k.file} (${k.anchor}) is no longer a full-table scan — good; drop it here AND from ROSTER above`,
+      ).toBe(true);
+    }
   });
 });

@@ -461,6 +461,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 266 | §818 | **§819** | **PHASE 41 CLOSED — the mirror was compared to a DRAWING of the thing.** Rule 3 (gates are server-side) on the driver seam. `stop-flow.ts` exports `serverRequiredEvidence` whose doc-comment says it exists *"so a test can prove the client flow is a true superset-mirror of the server Gatekeeper"* — but its body is a **hand-copied list**, and the test proves flow ⊇ that list while **never calling** `assertPickupDepart`/`assertDelivery`. The client was checked against its own drawing of the server. Measured: tightening the SERVER gate left the driver suite **9/9 GREEN**. The hidden failure is the worst shape here — a real driver completes every step the app shows, taps depart, and the server rejects it: **acceptance demo #3 failing in the field, not in CI**. Fixed by making the authority declare itself — an EMPTY prior makes each gate throw `GateError.required_evidence`, its own complete set, so nothing is transcribed. + a non-vacuity floor (two EMPTY lists are equal). 3 REDs incl. the previously-silent one. **The two sides agree today** — nothing was mis-gated; this pinned a correct agreement |
 | 267 | §819 | **§820** | **PHASE 42 CLOSED — a PRICE ON AIR, reachable from the public API.** Law 4 / REQ-004. `priceFreight` guards `weight_lb` exhaustively (0/neg/NaN/Inf/fractional all tested) but guarded `dims` by **presence alone** — `!== null && !== undefined`, which ANY object satisfies. Measured: `{}`, all-zeros, negatives and NaN each returned **PRICED $300.00**. Reachable: `/v1/rate`, `pub/quote` and the MCP tool all type dims `l/w/h: nonnegative(), pieces: positive()`, so **one piece measuring 0×0×0 inches gets a real price over three surfaces**. Dims never feed the computation — their only job is to be the token saying *this was measured*, and a placeholder passed. **The ledger already knew better** (`SafeInt.min(1)`; the contracts test asserts `l_in:0` throws) — the PRICING path was laxer than the LEDGER path, with the weaker mechanism facing the internet. Fixed at the engine (server-side, so all 3 surfaces inherit it); remedy is UNKNOWN not 400, because all four boundary schemas agree on `min(0)` meaning *not provided*. 3 REDs |
 | 268 | §820 | **§821** | **PHASE 43 CLOSED — one rate request, four hand-rolled copies, two answers.** `contracts/rating.ts` claims to be *"the SINGLE canonical rate-request shape … ONE source of truth"*. Half true: the rater aliases the **inferred TYPE**, so FIELD drift breaks the build — but **an inferred type carries no CONSTRAINTS**, so `min`/`max`/`.optional()` vs `.nullish()` all erase, and the build is structurally blind to the drift that changes what a caller may send. **THE FIND**: MCP declared `dims: Dims.optional()` where every other surface used `.nullish()` — `.optional()` REJECTS `null`, so `{"dims": null}` (what a JSON producer emits for an absent field) was a **400 from MCP** and an accepted UNKNOWN from `/v1/rate` + guest. The MCP file's own comment two lines up says missing dims *"is never a client-side 400 here"*. Fixed. Gate pins PHYSICS fields only (whole-schema equality would be wrong and would get silenced); the idiom normaliser has its **own calibration** because a hand mapping is a transcription (§819). 4 REDs. Zip/accessorial bound divergence measured and **deliberately left** — no bypass, and picking 16 vs 20 is not an audit's call |
+| 269 | §821 | **§822** | **PHASE 44 CLOSED — the roster's ninth site, and a gate BLIND on its first draft.** §821's blind spot generalised: which rosters can a new instance escape? Crude sweep flagged 16 — **not a finding**; `event-payload-strictness` DERIVES its list and is a clean negative. Real yes: §794's 8-site unbounded-read roster. **Scanner fixed first** — 6 no-WHERE hits, **4 false**, all string-CONCATENATED statements whose later fragments carry `WHERE` + `LIMIT 1`; corrected to exactly **2**, both already rostered (zero FPs, so calibration is a LIVE positive set). **Then the gate itself was blind**: a planted scan on `anomalies` came back **GREEN**, because the novel-filter excluded anything containing a roster anchor and one anchor is the substring `FROM anomalies` — a locator used as a unique key, masking the exact defect class. Replaced with an **exact set + count pin**. 4 REDs. **Scope stated**: no-WHERE only; the 36 filtered-but-unbounded reads are NOT closed and ~30 allowlist rows is where a weak detector hides. 2nd process error: restored a snapshot taken BEFORE authoring §822 — the §818 fix needed "snapshot the AUTHORED state" |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -47533,3 +47534,79 @@ invisible in exactly the way that matters.
 - A surface adopts a third idiom for bounds (a refinement, a branded type) → `lowerBound` returns null, the
   bound test fails with "no recognisable lower bound", and the normaliser needs a case plus a calibration row.
   It fails loudly rather than reading the new idiom as agreement, which is the property that matters.
+## §822 — PHASE GATE: PHASE 44 CLOSED — the roster's ninth site, and a gate that was blind on its first draft
+
+§821 closed naming its own blind spot: a roster cannot notice an instance that never gets added to it. Rather
+than patch that one file, this phase asked the general question — **which roster-style gates have no discovery
+half?** — and then closed the one where a new instance is both most likely and most harmful.
+
+### Triage first, because the crude sweep over-counts
+
+A grep for "roster without `git ls-files`" flagged **16** files. That number is not a finding and was not
+treated as one. `event-payload-strictness.test.ts`, for example, looks rosterless-and-listless to the grep but
+in fact **derives** its schema list from the payload surface and carries both a non-vacuity check and a
+reasoned `SANCTIONED_OPEN` — a clean negative, and exactly why the sweep is a starting point rather than a
+result. The real question is narrower: *can a new site appear in the tree and escape?*
+
+`unbounded-reads-roster.test.ts` (§794) is the clearest yes. Eight hand-listed holds, each asserted to still
+be unbounded — a tripwire for when they get FIXED. A ninth unbounded read walks straight past it.
+
+### The scanner had to be fixed before it could be trusted
+
+First scan: **6** SELECTs with no WHERE. Four were false. They are statements assembled by **string
+concatenation**, and reading only the first literal inside `.prepare(` sees `"SELECT … FROM events "` while
+the `WHERE` and a `LIMIT 1` live in later fragments. Opening three of them settled it in a minute. The scanner
+now joins every literal in the call, and that fix has its own test.
+
+Corrected measurement: exactly **2** full-table scans exist, and **both are already rostered**
+(`DOC_EXPORT_COLS`, `INVOICE_COLS_TENANT`). Zero false positives — so the calibration is a live positive set
+rather than a planted one.
+
+### The gate's first draft was BLIND, and the probe is the only reason I know
+
+I planted a new full-table scan on `anomalies` and it came back **GREEN**.
+
+The cause is a design error worth naming: the novel-hit filter excluded anything whose SQL contained a
+**roster anchor**, and one of those anchors is the substring `FROM anomalies`. A roster anchor is a locator
+for a human reading one file. It was never a unique key, and using it as one masked precisely the defect
+class the test exists to find — a new scan on an already-watched table.
+
+Replaced with an **exact set plus a count pin** (§806/§809's idiom): the discovered scans must be exactly the
+two known `file + anchor` pairs, and the count must be 2. A new scan now REDs even in the same file, on the
+same table.
+
+This is the second time in three phases that a planted violation returning green — not any amount of reading
+— was what exposed a hole in a gate I had just written and would otherwise have called done.
+
+### Scope, stated rather than implied
+
+This gates **no-WHERE** only. Measured: **36** SELECTs filter on something other than a primary key, and most
+are bounded in practice (`tenants WHERE slug = ?`, `users WHERE email = ?`, `legs WHERE shipment_id = ?`).
+Gating those means ~30 allowlist entries, and an allowlist that size is where a weak detector hides (§817).
+Two of the eight rostered holds live in that category and remain the roster's job, which is the right tool
+for a known list. **The general unbounded-read problem is NOT closed by this phase** and the record should not
+be read as claiming it.
+
+Proved four ways: a new scan on a rostered table → RED (the previously-green case) · a new scan in another
+file → RED · a concatenated-but-bounded read → stays GREEN · breaking the fragment join → RED.
+
+### Exit state
+
+`test:tools` **1084** (+3), 3 failed — the unchanged REQ-289 baseline. typecheck 0, lint 0, `verify:docs` 0.
+`watchtower.ts` and `lens.ts` restored byte-identical after four mutations.
+
+**Process error, second occurrence in five phases.** Cleaning up a mutation I restored
+`unbounded-reads-roster.test.ts` from a snapshot taken **before** I authored §822 — deleting the phase's work,
+exactly as §818's `git checkout` did. The §818 fix ("snapshot before mutating") was necessary but not
+sufficient: the snapshot has to be of the state you want BACK, which for a file you have just authored is the
+**authored** state, not the pre-authored one. Caught by `grep §822` immediately after the round.
+
+**Reopen triggers**
+- A SELECT is built by a helper rather than a literal (`buildSelect(cols, table)`) → the scanner reads string
+  literals inside `.prepare(` and would see nothing. It fails SILENT, not loud, which is the one failure mode
+  this gate cannot self-detect.
+- A raw `db.exec(...)` or a batch path appears → only `.prepare(` is scanned.
+- One of the two known scans gains a keyset cursor → the exact-set test fails deliberately, and its ROSTER row
+  must go in the same commit.
+- Someone proposes gating the 36 filtered reads → that needs a bounded-by-construction analysis per site, not
+  an allowlist. It is a phase, and it is not this one.
