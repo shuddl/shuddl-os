@@ -431,6 +431,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 236 | §788 | **§789** | **The idempotency TTL — closing the gap §788 identified and LEFT.** §788 deferred it as *"a product decision, not a defect"*; half right — **whether the record expires at all is not a product decision**. Dropping `expirationTtl` left the suite **6/6 green**, and nothing ever deletes an idempotency record: every successful mutation would leak a KV entry **permanently**, and the replay window would become unbounded — a stale response replayed while `next()` never runs, the same silent-write-loss shape REQ-206 exists to prevent, arriving by the other door. The 2xx-only rule on the SAME `put` call is pinned by 3 tests; the TTL by none. Asserted via KV's own `expiration` metadata (a bare put reports `undefined`), bounded 1h–7d so retuning stays a product decision. Both directions RED — dropped and truncated |
 | 237 | §788–§789 | **§790** | **PHASE 15 CLOSED — TIME, and the discipline of not leaving a gap you named.** Four phases now bound the system by KIND: surfaces (12) · inputs (13) · outputs (14) · **clocks (15)**. Eleven clock-dependent controls mutated toward EXTENDING access or DESTROYING evidence; **ten were already RED** — expiry is the best-defended class in the codebase, recorded as a clean negative so it is not re-audited. The one real gap was the idempotency TTL, which **§788 itself had named and deferred** as "a product decision" — half right, since *whether* a record expires is not one. §789 closed it. **An identified gap left open is worse than one never looked for**, because the record now says someone examined it and moved on. Board at `b29e7b3`: 19 PASS · 2 FAIL · 5 BLOCKED, unchanged across nineteen phases. **4,172 tests** (3,128 workspace, 0 failures) |
 | 238 | §790 | **§791** | **The sweeps under OVERLAP — and one that had never met its own subject.** Eleven sweeps split cleanly: **9 dedupe at WRITE time** (deterministic id + DO dedupe / `INSERT OR IGNORE` / `ON CONFLICT`) and are overlap-safe by construction; **2 check-then-act before an EXTERNAL send** and are at-least-once — structural, not an oversight, and both already documented (§236, `webhooks.ts:304`). The find: **`sweepTenantCreditGaps` had only ever run against an EMPTY corpus** — its cron test says so in its own header. Binding its SELECT to a bogus rule, and deleting its whole loop body, BOTH left agents **127/127 green**, while in production a gap that never closes leaves a REQ-042 booking blocked FOREVER. Also: **my own third test over-claimed** — it says "fault containment" but the catch is unreachable (measured by making it rethrow); re-scoped and the residual named. Two instrument errors in one table (110-char name truncation + an incomplete export list) reported 4 uncovered sweeps; the true count was 1 |
+| 239 | §791 | **§792** | **PHASE 16 CLOSED — concurrency, and the FIVE-KIND frame.** Five phases now bound the system by KIND: surfaces (12) · inputs (13) · outputs (14) · clocks (15) · **concurrency (16)**. *A module audit ends when the files run out; a kind audit ends when the QUESTION runs out.* Eleven sweeps split by HOW they dedupe: **9 at write time** (overlap-safe by construction) vs **2 check-then-act before an EXTERNAL send** (at-least-once, structural, both already documented). **Three of the last five phases found their defect in something a test CLAIMED rather than in code** — §787's "anti-drift" comment, §790's own deferral, §791's cron header stating its empty corpus in plain words. Each record was ACCURATE and nobody read it as a gap; prose describing a limitation is not a limitation anyone is watching. Board at `e77035a`: 19 PASS · 2 FAIL · 5 BLOCKED, unchanged across twenty phases. **4,175 tests** (3,131 workspace, 0 failures) |
 
 **Current measured state — as measured 2026-08-08 at `fae1a17` (§775's board run):** the merge board is
 **26 gates — 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape since §737. `typecheck` 0 · `lint` 0 ·
@@ -438,8 +439,8 @@ acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register r
 attributed by naming the three failing tests, all register-classification) plus five gates BLOCKED on private
 fixtures that live in the engagement workspace. §521 tables every remaining hold with its owner.
 
-**Test totals, measured rather than carried forward — re-measured 2026-08-09 at `b29e7b3` (§790):**
-**4,172 tests, 3 failing** — 1,044 in `test:tools` (the 3 REQ-289 failures) and **3,128 across all 17
+**Test totals, measured rather than carried forward — re-measured 2026-08-09 at `e77035a` (§792):**
+**4,175 tests, 3 failing** — 1,044 in `test:tools` (the 3 REQ-289 failures) and **3,131 across all 17
 workspace suites, zero failures**. The previous wording
 here said "3,016 workspace tests"; it was undated and stale, the exact defect §"a gate's green certifies less
 than its name" warns about, so the count above carries its date and SHA.
@@ -45591,3 +45592,74 @@ No source changed — `credit-recon-sweep.ts` and `aging.ts` restored byte-ident
   reachable and the third test's stated residual closes. That is the trigger to write the fault test.
 - A new sweep lands → ask which column it is in. Nine of eleven are safe for a reason (write-time
   uniqueness), not by luck, and a tenth that dedupes by checking is a design decision worth making on purpose.
+## §792 — PHASE GATE: PHASE 16 CLOSED — concurrency, and the five-kind frame
+
+Phase gate for §791. Five phases now bound the system by the KIND of thing audited rather than by module —
+which is the frame's whole value: a module audit ends when the files run out, a kind audit ends when the
+*question* runs out, and the questions are enumerable.
+
+| phase | kind | gate | outcome |
+|---|---|---|---|
+| 12 | every product **SURFACE** | §776 | 3 defects, all in the evidence |
+| 13 | every **INPUT** the system does not produce | §784 | 16 unchecked casts — a live defect |
+| 14 | every **OUTPUT** that leaves the building | §787 | 1 rule, 2 copies, neither pinned |
+| 15 | everything depending on a **CLOCK** | §790 | clean negative; 1 deferral closed |
+| **16** | **what happens when two run at once** | **this** | structural split + 1 empty-corpus sweep |
+
+### Phase 16's result
+
+Eleven scheduled sweeps, split by **how** they dedupe rather than by what they do:
+
+- **nine dedupe at WRITE time** — a deterministic id met by DO dedupe-by-id, `INSERT OR IGNORE`, or
+  `ON CONFLICT`. Overlap-safe *by construction*: the database or the DO enforces uniqueness atomically, so a
+  second concurrent tick lands the same row.
+- **two check a marker, then act on an EXTERNAL send** — the 214 sweep and the MCP webhook sweep. These are
+  at-least-once and cannot be otherwise: the side effect leaves the building, so no constraint can dedupe it.
+
+The second column is **structural, not an oversight**, and both instances were already documented at their
+source (§236; `webhooks.ts:304`, measured at 2 deliveries by driving two sweeps concurrently). Both transports
+are dormant. The phase's output is that the split is now **enumerated** — the question "which column is this
+sweep in?" now has a written answer for all eleven.
+
+The one real find was orthogonal to concurrency: `sweepTenantCreditGaps` had only ever run against an **empty
+corpus**, so its SELECT, loop and counter were unexercised while its cron test proved it iterated tenants.
+A gap that never closes leaves a REQ-042 booking blocked forever.
+
+### What this phase says about the method
+
+Three of the last five phases found their defect in something a test *claimed* rather than in code:
+§787's *"anti-drift"* comment, §790's own deferral, and §791's cron header that stated the empty corpus in
+plain words. In each case the record was **accurate and nobody had read it as a gap**. That is the residual
+this audit keeps hitting: prose that describes a limitation is not a limitation that anyone is watching, and
+the only reliable conversion is a mutation.
+
+And §791 caught **me** doing it — a test I named "fault containment" that never reaches the catch, corrected
+within the hour of my writing the same criticism of someone else's test name.
+
+### The board, re-measured at `e77035a`
+
+```
+26 gates — 19 PASS · 2 FAIL · 5 BLOCKED   (exit 1, working tree)
+```
+
+Unchanged in shape since §737, now across twenty phases. Both FAILs remain the three register-classification
+tests on the uncommitted `REQ-289` row. Totals: **4,175 tests — 3,131 across 17 workspace suites (zero
+failures) + 1,041/1,044 tools.**
+
+### STOPPING POINT
+
+The repo-owned ledger is empty. **Five owner-held holds remain**, unchanged since §784:
+1. the `IDENTITY_DENYLIST` secret (1 BLOCKED gate);
+2. nine private fixtures (4 BLOCKED gates);
+3. **`REQ-289`'s disposition — the sole cause of both merge FAILs**;
+4. the "+ photos" half of acceptance demo #1;
+5. the filmed half of the five acceptance demos.
+
+**Reopen triggers for this phase**
+- **A live transport is wired** (VAN/AS2 or a real webhook subscriber) → the two at-least-once sweeps stop
+  being dormant, and §236's open decision (claim-before-send: duplicate vs strand) has to be made. That is
+  the single largest carried risk in this table and it is an owner decision, not a repo one.
+- A new sweep lands → put it in a column deliberately. Nine are safe for a *reason*; a tenth that dedupes by
+  checking should be a decision someone made, not one they inherited.
+- A cron's interval drops below its own worst-case runtime → overlap stops being hypothetical for every
+  sweep at once, and the write-time column is what makes that survivable.
