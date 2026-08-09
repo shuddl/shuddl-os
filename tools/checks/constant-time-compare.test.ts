@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { repoRoot } from "./repo-root.js";
 
@@ -102,6 +103,62 @@ describe("§801: every constant-time comparison accumulates instead of short-cir
         "leaks the secret one byte at a time to anyone who can measure response time. Accumulate over every " +
         "element and compare once at the end.",
     ).toBe(false);
+  });
+
+  // ── §802 — THE DISCOVERY HALF, closing the residual §801 named ("this gate cannot find a ninth") ──────
+  //
+  // The roster above cannot discover a NEW secret comparison. This can, by detecting the DEFECT shape rather
+  // than the correct one: a secret-ish value compared to ANOTHER value with `===`/`!==`. A constant-time
+  // helper never appears in that form, so any hit is either a genuine short-circuit or a comparison of
+  // something that is not secret — and the second case is exactly what the allowlist below records.
+  //
+  // MEASURED (§802): 21 secret-ish strict comparisons exist, and 19 are PRESENCE checks (`=== undefined`,
+  // `=== ""`, `=== null`). Comparing against a constant sentinel leaks nothing, so those are excluded by
+  // construction rather than by allowlist. That leaves TWO, both legitimate and both recorded below.
+  const SECRETISH = String.raw`[\w.]*(?:secret|token|signature|sig|hmac|mac|digest|imprint|password|apiKey|bearer)[\w.]*`;
+
+  /** Value-vs-value strict comparisons of secret-ish operands — the shape a constant-time helper never has. */
+  function secretValueComparisons(root: string): string[] {
+    const files = execSync('git ls-files "workers" "packages"', { cwd: root, encoding: "utf8" })
+      .split("\n")
+      .filter((f) => /\.ts$/.test(f) && !f.includes(".test.") && !f.includes("/test/"));
+    const re = new RegExp(`(${SECRETISH})\\s*(?:===|!==)\\s*(${SECRETISH})`, "i");
+    const out: string[] = [];
+    for (const f of files) {
+      readFileSync(`${root}/${f}`, "utf8").split("\n").forEach((raw, i) => {
+        const line = raw.trim();
+        if (line.startsWith("//") || line.startsWith("*")) return;
+        const m = re.exec(raw);
+        if (m && m[2] !== "undefined" && m[2] !== "null") out.push(`${f}:${i + 1}`);
+      });
+    }
+    return out;
+  }
+
+  /** The two legitimate value comparisons — NOT secrets, and the reason each is safe. */
+  const NON_SECRET_COMPARISONS: Record<string, string> = {
+    "packages/ledger/src/tsa/client.ts:65":
+      "imprint digest echo-check. An imprint is SHA-256(document) — the CALLER computed it and put it in the request; the TSA echoes it back. Nothing secret on either side, and the error prints BOTH values, which would be absurd if either were.",
+    "packages/ledger/src/tsa/cms.ts:431":
+      "the signature-bound imprint vs the caller's expected imprint. Same reasoning; the actual SIGNATURE bytes in this very file use `bytesEqual` (rostered above), so the distinction here is deliberate.",
+  };
+
+  it("§802: no NEW secret value is compared with === (the discovery half the roster cannot do)", () => {
+    const found = secretValueComparisons(repoRoot());
+    // Calibration: the two known-legitimate sites must still be found, or the detector has broken and its
+    // silence would mean nothing (§796).
+    for (const known of Object.keys(NON_SECRET_COMPARISONS)) {
+      expect(found, `the detector no longer finds ${known} — it broke, or that line moved; re-verify before trusting a clean scan`).toContain(known);
+    }
+    const novel = found.filter((f) => !(f in NON_SECRET_COMPARISONS));
+    expect(
+      novel,
+      "a secret-ish value is compared to another value with ===/!==. That short-circuits on the first " +
+        "differing byte. Either use a constant-time comparison and add it to the ROSTER above, or — if the " +
+        "operands are not secret (a public digest, an echo-check) — record it in NON_SECRET_COMPARISONS with " +
+        "the reason it is safe:\n  " +
+        novel.join("\n  "),
+    ).toEqual([]);
   });
 
   it("the roster is non-empty and every file exists (non-vacuity)", () => {

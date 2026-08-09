@@ -441,6 +441,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 246 | §798 | **§799** | **PHASE 22 CLOSED — the dunning↔biller duplication set, ENUMERATED.** §786 and §798 each found a rule duplicated between the same two modules; twice is a pattern, so the whole set was listed: **4 shared rules** — recipient resolution (§786, was unpinned) · evidence-sender selection (§798, was unpinned) · deterministic event id (**pinned** — randomness reds 4) · sequencer DO binding (**fail-closed by construction**). **The DO binding looked like a REQ-025 hole and is not**: dropping the tenant prefix left api 810/810, but the DO **re-derives its own name and refuses** (`expected.equals(this.ctx.id)` → FORBIDDEN) and **that refusal is pinned by 2 tests** — §688's sibling-guard case, diagnosed rather than reported. **My grep was wrong a 4th time**: searching `"identity mismatch"` found nothing and I was one step from recording "the structural tenant pin is unpinned" — the tests assert BEHAVIOUR, not the reason string |
 | 247 | §799 | **§800** | **PHASE 23 CLOSED — every cross-worker duplication, and why the sweep could NOT have found §799's.** Swept same-named modules across all five workers: `rate-config.ts` (3 copies) and `tenants.ts` (4 copies) are **fully gated** — the latter hub-and-spoke against api, the former pinning the **effective-selection SQL** where the translator's copy is legitimately a subset. Four candidates are **not pairs** (`idempotency` = enforcement vs derivation; `quote` = mcp composing over api verbs, *"NO second gate here"*, REQ-030 done right; `watchtower` = cron vs route; `authority` = lib vs route). **The insight is what the sweep cannot see:** every covered duplication is SAME-NAMED; §799's two defects were `resolveRecipient`↔`resolveDunningRecipient` and two `evidenceSender`s in differently-named modules. **Duplication that shares a NAME gets gated because it is visible; duplication that shares only a RULE does not.** The marker for the invisible class is the sentence *"cannot import the agents worker's internals"* |
 | 248 | §800 | **§801** | **PHASE 24 CLOSED — the blind spot entered on purpose: EIGHT secret comparisons, FOUR names, one rule.** Searched for §800's stated marker (the *"cannot import"* reasoning) rather than for filenames — the only search that reaches the rule-duplication class. Found `constantTimeEqual`/`timingSafeEqual`/`tokensEqual`/`bytesEqual` protecting **the Stripe webhook signature (internet-facing)**, MCP OAuth tokens, the outbound webhook HMAC, **the EDI inbound-204 HMAC**, TSA/CMS signatures, merkle nodes, the platform secret and the test-send token. **A same-name sweep finds 2 of 8; §800's file sweep found 0** — as it predicted. Replacing two with `return a === b` left api **810/810** and billing **58/58**. **Behaviour CANNOT see this property** — the two return the identical boolean for every input; only *when they stop looking* differs — so a source-level gate asserts the shape: length check, XOR accumulation, and **no `return` inside the loop**. Roster not shape-discovery (§796 calibration) |
+| 249 | §801 | **§802** | **PHASE 25 CLOSED — the residual §801 named, closed one phase later.** §801 ended with *"the gate cannot discover a ninth"*; §790's rule says an identified gap left open is worse than one never looked for. Closed by detecting the **DEFECT** shape instead of the correct one: a constant-time helper never has the form `secretish === secretish`. **21 secret-ish strict comparisons exist; 19 are PRESENCE checks** (`=== undefined`/`""`/`null`) — a constant sentinel leaks nothing, so they are excluded **by construction, not by allowlist**, which is what takes the gate from 21 noisy hits to 2. Both survivors are imprint digests — non-secret, proved not by my judgement but because **both error messages print BOTH values** and **the real signature bytes in the same file use rostered `bytesEqual`**. **Zero new secret comparisons**: the roster of 8 confirmed complete by a second, independent method. Both directions proved, including the §796 calibration red |
 
 **Current measured state — as measured 2026-08-08 at `fae1a17` (§775's board run):** the merge board is
 **26 gates — 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape since §737. `typecheck` 0 · `lint` 0 ·
@@ -46226,3 +46227,58 @@ No source changed — four files mutated across the phase, all restored byte-ide
   re-verify… Do not simply drop the row." Dropping the row is the failure mode this wording exists to prevent.
 - A comparison moves to `crypto.subtle.timingSafeEqual` or similar → that is strictly better, and the roster
   row should be replaced by an assertion that the platform primitive is what is called.
+## §802 — PHASE GATE: PHASE 25 CLOSED — closing the residual §801 named, one phase later
+
+§801 shipped a roster gate over eight secret comparisons and ended with an honest residual: *"the gate cannot
+discover a ninth, deliberately."* §790's lesson says an identified gap left open is worse than one never
+looked for — so it got closed in the next phase rather than filed.
+
+### Detect the DEFECT shape, not the correct one
+
+The roster cannot discover; a defect-detector can. A constant-time helper never has the form
+`secretish === secretish`, so **any** value-vs-value strict comparison of a secret-ish operand is either a
+genuine short-circuit or a comparison of something that is not secret.
+
+Measured across `workers/ packages/`: **21 secret-ish strict comparisons**, of which **19 are PRESENCE
+checks** (`=== undefined`, `=== ""`, `=== null`). Comparing against a constant sentinel leaks nothing, so
+those are excluded **by construction** rather than by allowlist — the distinction that takes the gate from
+21 noisy hits to 2 real ones.
+
+### The two survivors are both correct, and the reasoning is the useful part
+
+| site | why it is safe |
+|---|---|
+| `tsa/client.ts:65` | an imprint is `SHA-256(document)` — the CALLER computed it and put it in the request; the TSA echoes it back. Nothing secret on either side |
+| `tsa/cms.ts:431` | the signature-bound imprint vs the caller's expected one — same reasoning |
+
+Two independent confirmations that these are non-secret, neither of which is my judgement: **both error
+messages print BOTH values**, which would be absurd for a secret; and **the actual signature bytes in that
+very same file use `bytesEqual`**, which is on §801's roster. The authors drew the line deliberately, in the
+same file, and the gate now records where.
+
+So: **zero new secret comparisons.** §801's roster of eight is complete as of today — established by
+shape-detection, and now confirmed by a second, independent method that looks for the opposite thing.
+
+### Both directions proved
+
+| plant | result |
+|---|---|
+| a new `sigHeader === computedSignature` in the webhook verifier | **RED**, naming the file and line |
+| a known-legitimate site rewritten to `Object.is(…)` so the detector loses it | **RED** — *"the detector no longer finds … re-verify before trusting a clean scan"* |
+
+The second is the §796 calibration rule applied to a defect-detector rather than a shape-detector: a scan that
+finds nothing proves nothing unless it still finds what you already know is there.
+
+### Exit state
+
+No source changed — three files mutated across the phase, all restored byte-identical. `test:tools` **1065**
+(+1); lint 0; typecheck 0.
+
+**Reopen triggers**
+- A secret variable is named outside the `SECRETISH` vocabulary (`cred`, `nonce`, `otp`, `pin`) → the
+  detector will not see it. That vocabulary is the gate's real boundary, and widening it is cheap; the reason
+  it is not wider today is that every widening word tested added presence-check noise without adding a hit.
+- A new site lands in `NON_SECRET_COMPARISONS` → it needs the *reason*, not just the path. The two entries
+  each carry theirs, and a row without one is an allowlist that has stopped meaning anything.
+- Both halves now exist: the ROSTER proves the eight known comparisons stay constant-time; the DISCOVERY half
+  proves no ninth appeared. Neither is sufficient alone, which is why §801 was not the end of it.
