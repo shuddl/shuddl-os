@@ -456,6 +456,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 261 | §813 | **§814** | **PHASE 36 CLOSED — REQ-163's ban did NOT reach `packages/ledger`, and could not have.** The 3rd roster-shaped law is the *"Do not build (ever)"* list; its one member with a REQ number is REQ-163. It has a lint rule AND a planted-violation test, so it looked done. **ESLint flat config is last-writer-wins per rule NAME** — a scoped block re-declaring `no-restricted-imports` **REPLACES** the repo-wide options — which is why the patterns are written **three times**. Adding a 4th pattern globally left tools at baseline, and a probe **proved** the consequence: the same import → **1 hit in `packages/contracts`, 0 in `packages/ledger`**. The append-only spine would be the ONLY place the new ban did not apply. Fixed with parity + behavioural (neither sufficient). **My parity test asserted TWO groups and failed on a CLEAN tree — there are three**; a test failing before you mutate is telling you about your instrument |
 | 262 | §814 | **§815** | **PHASE 37 CLOSED — the replacement hazard swept across every multiply-declared rule.** §814's exit note claimed REQ-024's LLM ban had no parity problem; §803's rule says check it — **the claim HELD** (one block). Checking surfaced the general sweep: `no-restricted-globals` (3 blocks, **DISJOINT** — safe) · `no-restricted-imports` (§814) · `no-restricted-syntax`, where **`packages/adapters/**` appears TWICE**. The `ledger/src/gates/**` block looked dangerous but declares a **different rule name** than the fetch ban — no replacement. The real overlap is **correct by construction**: the adapters-only block is a strict SUPERSET (adds `crypto.randomUUID`), so adapters is deliberately stricter. **Not a defect — but nothing pinned that it STAYS a superset**; now asserted, and dropping a selector REDs. **Two more instrument errors caught by the clean tree** (a 6-space terminator matched zero blocks; a tuple cast failed typecheck) |
 | 263 | §815 | **§816** | **PHASE 38 CLOSED — the money core swept for float and for unpinned claims.** CLAUDE.md's money law (*no float ever touches a monetary value*) has **no gate**; swept by hand. `allocateCents`/`apportion` are the **best-defended arithmetic in the repo** — 500-case property tests for BOTH signs, postconditions in-code, and the tie-break pinned exactly by `apportion(10_000,[1,1,1]) → [3334,3333,3333]`. `money.ts`: 7 mutations, 5 covered, **2 silent** — resolved to **sibling guard** (`BigInt()` throws anyway), so LOW and **deliberately not fixed**. **THE FIND**: `detectAnomaly` (REQ-040, permanent) threw on a non-integer `cap` and `weight_lb` but accepted a fractional `sell_cents`, which fell to `Math.round(sell / weight)` — **the only float division on money in the repo**, in a module whose header has always claimed *"integer cents in"*. The branch was **dead** (a constant left it 157/157). Fixed + 3 tests. **No number changed** — searched 2^45..2^53 × 5 divisors for a case where `Math.round` disagrees with half-up: NONE, so the deletion was a law/legibility fix, not a mispricing fix, and the record says so |
+| 264 | §816 | **§817** | **PHASE 39 CLOSED — the money law gets a gate, and the gate gets audited harder than the code.** §816's trigger built: a standing `float-money-division` check replaces the hand sweep. Found a **second live float-on-money** (`avgCostCents = Math.round(costSum / costN)`) — and the fix needed a fix, because `roundHalfUp` THROWS below zero where `Math.round` did not, so one malformed stored row would have taken the whole drift sweep down (**strictly worse than the bug**); parse tightened to `c >= 0`, whose removal left the suite **19/19 green** until a test pinned it. Then **four defects in the gate itself**: a `path:line` allowlist that went stale TWICE in one phase; a left-operand-only pattern that let a **planted violation come back CLEAN** (the gate didn't fail — the PROBE did); `//` read as a division (**9** FPs); and `/` inside a string literal (2). FP count measured 9 → 2 → **0**, and the allowlist shrank 4 → **2** because three "judgement calls" were scanner artifacts. Proved on 4 axes incl. **40 lines of drift → still green**. `verify:docs` rotted 4 citations from my own comment inserts — 3rd catch this session; **line numbers are not a key** |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -9680,7 +9681,7 @@ on the strength of the shape alone.
 The metering plumbing is complete and honest end to end. `agent_runs` carries `confidence`, `cost`,
 `latency_ms`, `outcome`; the projection records cost **exactly as reported** — `{cents:0}` an honest zero,
 `{}` an explicit *unknown*, never fabricated; the Watchtower averages **only reported metrics**
-(`watchtower.ts:333@avgCostCents` — `acc.costN > 0 ? … : null`, and the budget check skips null, so there
+(`watchtower.ts:343@avgCostCents` — `acc.costN > 0 ? … : null`, and the budget check skips null, so there
 is **no** false-zero fail-open here).
 
 But **only one agent emits `agent.acted` at all**: the rater, from two byte-identical paths
@@ -10460,7 +10461,7 @@ have left the impression that its holds are unreliable.
 today because a plain INSERT aborts — matches what the SQL does. Live hold, correctly stated.
 
 **L283 is the pattern worth copying.** The hold says a native module whose legacy mirror goes UNKNOWN is
-unmonitored — and `workers/agents/src/watchtower.ts:427@UNKNOWN` says the same thing *in its own source*:
+unmonitored — and `workers/agents/src/watchtower.ts:436@UNKNOWN` says the same thing *in its own source*:
 *"a native module whose mirror went UNKNOWN is unmonitored" gap — deliberately NOT an auto-fallback.*
 The record and the code state one fact in two places, so neither can rot alone. That is the shape §182's
 `clear()` note and §178's demo constraint were reaching for.
@@ -10486,7 +10487,7 @@ day of rebuilding something that already ships, and nothing else in the system w
 
 ## §191 — putting the holds where the reader is, and the anchors catching me doing it
 
-§190 named L283 as the pattern worth copying: the hold and `watchtower.ts:427@UNKNOWN` state one fact in
+§190 named L283 as the pattern worth copying: the hold and `watchtower.ts:436@UNKNOWN` state one fact in
 two places, so **neither can rot alone**. Measured against that, my own recorded findings were half-done.
 §182's `clear()` note and §178's demo constraint sit at their code; **§183 (unbounded reads) and §185
 (full-SCAN reads) lived only in the checklist** — a developer reading `invoices.ts` had no way to know
@@ -11647,7 +11648,7 @@ than a 39% sample. Every newly visible handler is deliberate and says why in pla
 ```
 workers/agents/src/biller.ts:574@unparseable   /* refs -> fall back to the shipment id */
 workers/agents/src/tenants.ts:140@routable      // a malformed policy row is not a routable tenant
-workers/agents/src/watchtower.ts:319@fabricate  /* unparseable cost -> unknown, skip */
+workers/agents/src/watchtower.ts:326@fabricate  /* unparseable cost -> unknown, skip */
 workers/agents/src/spark-meter.ts:83@lock       this.lock = run.catch(() => undefined)  // DO mutex chain
 ```
 
@@ -47187,3 +47188,79 @@ rule to half-down takes the package's half-up RED set from 8 to **9**, the ninth
   selector over `packages/rater/**` + `packages/ledger/**` would make it one, and is the obvious next step —
   **not taken here** because a repo-wide arithmetic ban needs its own calibration pass against false positives
   (geo, merkle and DER all divide legitimately), which is a phase, not a footnote.
+## §817 — PHASE GATE: PHASE 39 CLOSED — the money law gets a gate, and the gate gets audited harder than the code
+
+§816 closed with a trigger naming its own successor: *"the money law has **no gate**. This phase swept it by
+hand; that is a measurement with an expiry."* This is the standing check. Building it found a second live
+defect, and then found four defects in **itself** — which is the more useful half of the record.
+
+### The second live float-on-money
+
+`workers/agents/src/watchtower.ts` computed `avgCostCents = Math.round(acc.costSum / acc.costN)` — a
+monetary value from float division, reported in the drift result and compared against a per-agent budget.
+Now `roundHalfUp(acc.costSum, acc.costN)`. `@shuddl/rater` was **already a dependency** and `roundHalfUp`
+already exported: the exact primitive was one import away and nobody had reached for it.
+
+**The fix required a second fix, and finding that out was the point.** `roundHalfUp` THROWS below zero, where
+`Math.round` merely returned a negative. The parse feeding it accepted any *integer* from a stored JSON blob,
+so a single malformed row would have taken the whole drift sweep down — **strictly worse than the bug I was
+fixing**. Tightened to `c >= 0`, which is the right contract anyway (a negative agent cost is unusable, and
+it used to be folded into the average, dragging it down and hiding a real breach).
+
+Then the discipline that matters: removing `c >= 0` left the suite **19/19 GREEN**. The guard was shipped
+unable to fail. A test now pins it (a −$1.50 row beside a $2.00 row must still alarm at 200, not 25); with
+the guard removed, that test is the one and only RED.
+
+### Four defects in the gate, each found by a probe rather than by reading
+
+| # | defect | how it surfaced |
+|---|---|---|
+| 1 | allowlist keyed by `path:line` | went stale **twice in one phase** — my own comment inserts moved 348→349→354 |
+| 2 | only matched a money-ish **left operand** | planted `const planted_cents = Math.round(1000 / 3)` and it came back **CLEAN** |
+| 3 | `//` of a trailing comment read as a division | **9** false positives, every `const total_cents = x; // note` |
+| 4 | `/` inside a string literal (`"a zero/negative line (I7)"`) | 2 survivors after fixing 3 |
+
+Defect 2 is the one worth keeping. **The gate did not fail — my probe did**, and the only reason I know is
+that a planted violation is supposed to go red and this one did not. A calibration that only ever confirms is
+decoration. The fix is a second pattern (money-ish **assignment target**), because the divisor arithmetic can
+be anonymous while the RESULT is the cent.
+
+Defects 3 and 4 were each found by *measuring the false-positive count and refusing to accept it*: raw line →
+**9**, comment-stripped → **2**, skeleton → **0**. The allowlist fell from 4 entries to **2** as a result —
+three of the four "judgement calls" were artifacts of a sloppy scanner, not judgement at all. An allowlist is
+where a weak detector hides, so shrinking it was the real progress.
+
+One tradeoff is recorded rather than smoothed over: template literals are **deliberately** left as code, so
+`${totalCents / n}` cannot hide. That costs exactly one prose false positive, which is allowlisted with that
+reason. A false positive carrying an explanation beats a blind spot carrying none.
+
+### Proved, on four axes
+
+P1 violation → RED · P2 violation → RED · **40 lines of drift → still GREEN** (the old key would have broken)
+· vocabulary blinded → the planted calibration REDs. And the watchtower change is *attributably* covered:
+breaking the `roundHalfUp` line REDs 5 of 20 tests, which also proves the new cross-package import resolves
+inside workerd rather than merely typechecking.
+
+### Exit state
+
+`test:tools` **1076** (+4), 3 failed — the unchanged REQ-289 baseline, **not mine**. `@shuddl/api` **20**
+(+1). `packages/rater` 160. typecheck 0, lint 0, `verify:docs` 0.
+
+`verify:docs` went RED mid-phase and is worth recording: my comment inserts shifted `watchtower.ts` and
+**rotted four existing audit citations**. The ratchet caught all four and named the true lines; repointed.
+That is the third time this session the citation gate has caught line drift I caused, and the second time in
+two phases that inserting explanatory comments broke a line-number anchor somewhere else. The lesson is
+converging: **line numbers are not a key.** Also noted honestly — one `test:tools` run reported 4 failures
+where two later runs reported the standing 3; it did not reproduce, and it is logged rather than buried.
+
+**Reopen triggers**
+- A money identifier outside `MONEY_WORDS` appears (`premium`, `surcharge`, `accessorial`, `net`, `gross`) →
+  the vocabulary is the gate's real boundary and it is a **measurement, not a law**. Re-measure per word.
+- A money computation moves into `apps/**` → the scan covers `packages/ workers/` only. Not an oversight:
+  the surfaces display cents they are given rather than computing them, which is true **today** and is
+  exactly the kind of claim that stops being true without anyone noticing.
+- The allowlist grows past ~4 entries → that is the signal the detector has weakened, not that the tree has.
+  Fix the detector; §817 shrank it 4 → 2 by doing so.
+- A division appears inside a `${…}` template expression → deliberately in scope (see `codeSkeleton`), so it
+  WILL be flagged. If that reads as noise, the answer is an allowlist entry with a reason, never blanking
+  template literals.

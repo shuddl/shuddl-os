@@ -297,6 +297,32 @@ describe("Watchtower — the agent-drift alarm (REQ-113 per-agent cost/latency b
     expect(JSON.parse(a!.detail)).toMatchObject({ agent, avg_cost_cents: 200, over: ["cost"] });
   });
 
+  // §817 — A NEGATIVE COST IS UNUSABLE, NOT SMALL. `r.cost` is a stored JSON blob, so its shape is an
+  // assumption rather than a type; the parse accepted any INTEGER, and a negative one was folded into the
+  // average, dragging it DOWN and hiding a real breach. Same family as the two tests above: the defect is
+  // always a run that should not have been counted being counted.
+  //
+  // It is also the precondition for the §817 money-law fix on the line that consumes it. `avgCostCents` now
+  // rounds with `roundHalfUp`, whose domain is numerator >= 0 — so without this guard one malformed row
+  // would THROW and take the whole drift sweep down, which is strictly worse than the skewed average it
+  // replaced. Written because removing `c >= 0` left this suite 19/19 GREEN: the guard was shipped unable
+  // to fail, which is the one thing a guard must never be.
+  it("§817: a NEGATIVE cost is SKIPPED like any unusable cost — it never drags the average down", async () => {
+    const scope = "wt-drift-negcost-";
+    const agent = "concierge";
+    // One real run at $2, and one malformed row claiming −$1.50. Folding the negative in would average to
+    // 25¢ — comfortably under a 50¢ budget, so the breach would vanish silently.
+    await seedAgentRun(scope, `${scope}s1`, 0, { agent, latencyMs: 100, costCents: 200 });
+    await seedAgentRun(scope, `${scope}s2`, 0, { agent, latencyMs: 100, costCents: -150 });
+
+    const r = await runWatchtowerSweep(env.TENANT_A_DB, TENANT, NOW, { scope });
+    expect(r.agent_drift.alarmed, "a negative cost diluted the average and hid a real breach").toBe(1);
+    const a = await alarm(watchtowerAlarmId(TENANT, "agent_drift", { scope, object: agent }));
+    expect(a).not.toBeNull();
+    // 200, not 25: the malformed row is excluded from BOTH the sum and the divisor.
+    expect(JSON.parse(a!.detail)).toMatchObject({ agent, avg_cost_cents: 200, over: ["cost"] });
+  });
+
   // §771 — THE LATENCY DIVISOR, the sibling §770 left. `avgLatencyMs` is `latSum / latN`, the identical shape,
   // with the identical gap: mutating it to divide by `acc.runs` left this suite at 18/18 GREEN even after §770
   // added the mixed-COST window, because that fixture gives every run a latency. Two branches of one decision,

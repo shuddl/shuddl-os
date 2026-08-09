@@ -48,6 +48,7 @@
 import { scopeLike, unbilledShipmentsSql, nativeVisibleSourceSql } from "@shuddl/ledger/queries/unbilled";
 import { computeModuleParity, PARITY_MODULES, PARITY_TOLERANCE_BPS, type AuthorityModule, type ParityStatus } from "@shuddl/ledger/parity";
 import { resolveAuthority } from "@shuddl/ledger/authority";
+import { roundHalfUp } from "@shuddl/rater";
 import { uuidFromSeed, type SeqStubLike } from "./biller.js";
 
 // ── severity thresholds (documented, deterministic) ─────────────────────────────────────────────────
@@ -315,7 +316,12 @@ async function sweepAgentDrift(db: D1Database, tenant: string, now: number, opts
     let cents: number | null = null;
     try {
       const c = (JSON.parse(r.cost) as { cents?: unknown }).cents;
-      if (typeof c === "number" && Number.isInteger(c)) cents = c;
+      // NON-NEGATIVE, not merely integer (audit §817). `r.cost` is a stored JSON blob, so its shape is an
+      // assumption, not a type. A negative cost is malformed for an agent run and used to SKEW the average
+      // silently; it is now skipped like any other unusable cost. This also guarantees roundHalfUp's domain
+      // below (numerator ≥ 0) — without it, one malformed row would throw and take the whole drift sweep
+      // down, which is strictly worse than the skewed average it replaced.
+      if (typeof c === "number" && Number.isInteger(c) && c >= 0) cents = c;
     } catch {
       /* unparseable cost → unknown, skip (never fabricate a cost) */
     }
@@ -330,7 +336,11 @@ async function sweepAgentDrift(db: D1Database, tenant: string, now: number, opts
   for (const agent of [...byAgent.keys()].sort()) {
     const acc = byAgent.get(agent)!;
     const avgLatencyMs = acc.latN > 0 ? Math.round(acc.latSum / acc.latN) : null;
-    const avgCostCents = acc.costN > 0 ? Math.round(acc.costSum / acc.costN) : null;
+    // avgCostCents is a MONETARY value, so it is rounded by the money law's shared half-up rule rather than
+    // by `Math.round(costSum / costN)` on a float (audit §817). Both operands are non-negative integers here
+    // — costSum accumulates integer cents and costN counts runs — which is roundHalfUp's exact domain. The
+    // sibling on the line above stays Math.round deliberately: latency is milliseconds, not money.
+    const avgCostCents = acc.costN > 0 ? roundHalfUp(acc.costSum, acc.costN) : null;
     const id = watchtowerAlarmId(tenant, "agent_drift", { scope: opts.scope, object: agent });
 
     const over: string[] = [];
