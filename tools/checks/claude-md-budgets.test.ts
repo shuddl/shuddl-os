@@ -118,6 +118,75 @@ describe("REQ-118 §611: CLAUDE.md's hard budgets match what enforces them", () 
     ).toEqual([]);
   });
 
+  // §743 — THE ROSTER'S OWN COMPLETENESS. Both assertions above iterate BUDGETS, so a budget stated in
+  // CLAUDE.md that nobody added to the roster is invisible to the gate whose entire job is "stated equals
+  // enforced". MEASURED: inserting `· 7 agent queues ·` into the hard-budgets line — a budget nothing anywhere
+  // enforces — left this file at 2/2 GREEN.
+  //
+  // That is §671's completeness-floor shape at the level of the gate itself, and it matters here more than
+  // usual because the hard-budgets line is EXACTLY where a new budget would be written: CLAUDE.md says a
+  // budget change is a register amendment, so the amendment lands in this line first and the enforcement
+  // follows. The window between those two edits is the window this floor closes.
+  //
+  // Derived, not listed (§699: membership is a property of the DOCUMENT). Every `<number> <word>` pair on the
+  // hard-budgets line must be claimed by some BUDGETS entry — or be named below with its reason.
+  it("every budget STATED in CLAUDE.md is covered by the roster (§743 completeness floor)", () => {
+    const line = /## Hard budgets[^\n]*\n([^\n]*)/.exec(claudeMd)?.[1] ?? "";
+    expect(line.length, "the hard-budgets line did not parse — a broken scan, not a clean record").toBeGreaterThan(60);
+
+    // ZERO-TOLERANCE RULES ARE NOT COUNT COMPARISONS. "0 shadows/gradients/radius>4px" is enforced by the
+    // design audit refusing a PLANTED artifact (CLAUDE.md rule 7 records that proof: a shadow, an over-budget
+    // radius and a raw hex), not by reading an integer out of a source file. Exempt WITH its reason, the way
+    // every other allowlist in this repo carries one — never by widening the pattern until it stops matching.
+    // Each exemption is matched at the NUMBER's own position and carries its reason. The floor found all three
+    // on its first run, which is the evidence it works: they are the only numbers on that line that are not
+    // count-vs-constant comparisons.
+    const EXEMPT: readonly string[] = [
+      // A RUNTIME figure, not a budget: `check:invariants` recomputes it from the migration set across two
+      // databases on every run (`invariants OK — 21/22 tables`) and fails if it exceeds TABLE_BUDGET. This
+      // file's own header already excludes it, for the §"two mechanisms" reason — re-deriving it here would be
+      // a second, weaker copy of a check that exists.
+      "21 used",
+      // ZERO-TOLERANCE, proven by PLANTING an artifact rather than by reading an integer: CLAUDE.md rule 7
+      // records the design audit refusing a planted shadow, an over-budget radius and a raw hex. There is no
+      // constant to compare against, which is exactly why it cannot be a roster entry.
+      "0 shadows",
+      // The radius half of the same zero-tolerance rule, and the only number on the line with no whitespace
+      // after it — `radius>4px`.
+      "4px",
+    ];
+
+    // Matched by SPAN, not by reconstructing the phrase: a roster regex reads `(\d+) canonical views` while a
+    // naive `<n> <word>` pair yields "12 canonical", and comparing those two strings is a guess about how many
+    // words a budget's name has. Instead, run each roster regex against the LINE and record the character range
+    // it claims; every number on the line must fall inside some claimed range.
+    const claimed: (readonly [number, number])[] = [];
+    for (const b of BUDGETS) {
+      const m = b.stated.exec(line);
+      if (m?.index !== undefined) claimed.push([m.index, m.index + m[0].length] as const);
+    }
+    const numbers = [...line.matchAll(/\d+/g)];
+    expect(numbers.length, "no numbers found on the hard-budgets line — the scan broke, not the line").toBeGreaterThanOrEqual(6);
+
+    const uncovered = numbers
+      .filter((m) => {
+        const at = m.index!;
+        if (claimed.some(([from, to]) => at >= from && at < to)) return false;
+        // EXEMPT entries are matched at the same position, so a zero-tolerance rule is excused precisely where
+        // it appears rather than anywhere the digit happens to occur.
+        return !EXEMPT.some((e) => line.startsWith(e, at));
+      })
+      .map((m) => `"${line.slice(m.index!, Math.min(line.length, m.index! + 28))}…"`);
+    expect(
+      uncovered,
+      "CLAUDE.md states a hard budget that the BUDGETS roster does not cover, so nothing checks it against an " +
+        "enforcing source. A budget in this line is LAW — every session reads it first. Add a roster entry " +
+        "naming what enforces it, or, if it is a zero-tolerance rule proven by planting an artifact rather " +
+        "than by a count, add it to EXEMPT with that reason:\n  " +
+        uncovered.join("\n  "),
+    ).toEqual([]);
+  });
+
   it("each stated budget equals the number its gate actually enforces", () => {
     const drift = BUDGETS.map((b) => {
       const stated = Number(b.stated.exec(claudeMd)![1]);

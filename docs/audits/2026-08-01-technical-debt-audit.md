@@ -382,6 +382,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 187 | §739 | **§740** | **The enforcement layer (REQ-030 says gates are SERVER-SIDE, so §739 was incomplete).** 14 sequencer defaults; 2 can widen. Fence radius 150 m → **100 km** REDS a REQ-046 test — already defended. The entitlement fallback, whose own comment says *"(empty plan, {} policy) grants NOTHING"*, inverted to GRANT hazmat → **28/28 GREEN**. Underneath: that sentinel was spelled as a **literal in three production sites** (sequencer cache-miss, `#entitlementRow`, provision) — my recorded failure is *a `{}` default opened three of four knobs it claimed to floor*. Extracted `NO_ENTITLEMENTS`, rewired all three, and pinned **the constant, not a copy** against every reader + a non-vacuity companion. **Sweep total: 5 access-relevant defaults, 3 were correct-and-UNDEFENDED — all found by mutation, none by reading** |
 | 188 | §740 | **§741** | **Fallback-value line CLOSED — booleans, the rater's law, the perimeter.** Permissive booleans (`!== false` / `?? true`): **0 across 94 files**, and the zero is credible only because the same scan found **11** restrictive `=== true` (§738's rule). `dimsRequired === true` reads permissive but is safe: the rater returns UNKNOWN on missing physics with **no config flag in the path**. Perimeter: 6 defaults, all benign — and `auth.ts`'s `|| c.req.query("tenant")` is a **REJECTION, not a fallback** (4th pattern-based false candidate this session, and the most alarming-looking). That guard IS pinned: deleting it reds **4 tests across 2 suites**. **My own error is the lesson** — the first run said 12 passed from the WRONG SUITE (`auth.test.ts`; the coverage lives in `isolation.test.ts`). Line total: **11 defaults examined, 3 undefended, all now pinned; every finding from a mutation, none from reading** |
 | 189 | §741 | **§742** | **The named LAWS are defended — 0 of 3 undefended, vs 3 of 11 defaults.** CLAUDE.md Law 5 (interline executing share): mutating `evaluated = share.shareCents` → gross reds **5 tests**, one named *"PROOF the executing-share rule changed the outcome: gross alone would have been `none`"* — a pin asserting the COUNTERFACTUAL. The reverted `{}`-policy security defect (*"`{}` is the floor for one knob and the CEILING for three"* — it drops dims_required, widens a tighter geofence, and stamps widened visibility onto IMMUTABLE events): mutating the refusal back to `{}` reds its pin. And the comment's *"(and it is UNWIRED)"* claim about `invoice_without_pod_classes` — **checked, still true** (the one production call omits `serviceClass`), already carried as its own GO-LIVE row. **The pattern: a rule written down as a law gets a test; a rule living only in the shape of a fallback often does not** |
+| 190 | §742 | **§743** | **The budget gate could not see a budget nobody enforced.** §611's gate does the lockstep fix properly (reads CLAUDE.md as DATA, computes the other side) and it works — raising `MAX_CANONICAL_VIEWS` to 13 **and** adding a 13th view passes typecheck, invariants, and the registry's own suite **5/5** (its threshold sits in the same file); only §611 caught it. But both its assertions iterate a hand-written roster, so inserting `· 7 agent queues ·` into the hard-budgets line — stated, enforced by nothing — left it **2/2 GREEN**. The timing is the point: CLAUDE.md says a budget change is a **register amendment**, so the line is edited FIRST and enforcement follows. Floor now derives coverage by **SPAN** (a reconstructed-phrase predicate guesses how many words a budget's name has — my first cut flagged everything); 3 exemptions each with a reason, all 3 found by the floor on its first run. **Mutation-proved both ways** |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -42391,3 +42392,77 @@ No code changed. `packages/rater` 157/157; `workers/api` tenant-policy-malformed
   survive the swap, since the law is the law and not the fixture.
 - A new knob joins the `{}`-ceiling list in that comment → it needs the same analysis (floor for which knob,
   ceiling for which), because the comment's value is the enumeration, not the conclusion.
+
+## §743 — PHASE GATE: the budget gate could not see a budget nobody enforced
+
+§742 ended on a pattern: *a rule written down as a law gets a test; a rule living only in the shape of a
+fallback often does not.* The inverse sweep is to take the laws that ARE written down and check each is
+enforced. CLAUDE.md states seven hard budgets *"(CI-enforced; exceeding = the PR is wrong)"*.
+
+### What already existed, and it is good
+
+`tools/checks/claude-md-budgets.test.ts` (§611) does the lockstep fix properly: it **reads CLAUDE.md as data**
+and computes the other side from the enforcing source — `TABLE_BUDGET`, `SURFACE_ROSTER`,
+`MAX_CANONICAL_VIEWS`, `EVENT_KINDS`, `TOKENS`, `FONTS`. Six numeric budgets, each compared stated-vs-enforced.
+
+Verified live by mutation, not by reading it: raising `MAX_CANONICAL_VIEWS` to 13 **and** adding a 13th
+canonical view passes `typecheck`, passes `check:invariants`, and passes the registry's own
+`registry.test.ts` **5/5** — because that suite asserts `CANONICAL_VIEWS.length <= MAX_CANONICAL_VIEWS` with
+both sides in the same file. The only thing that caught it was §611's gate. Exactly the value it was built for.
+
+### The gap
+
+Both of its assertions iterate the hand-written `BUDGETS` roster, so **a budget stated in CLAUDE.md that
+nobody added to the roster is invisible to the gate whose entire job is "stated equals enforced."**
+
+Measured: inserting `· 7 agent queues ·` into the hard-budgets line — a budget nothing anywhere enforces —
+left the file at **2/2 GREEN**.
+
+That is §671's completeness-floor shape applied to a gate rather than to code, and the timing is what makes it
+matter. CLAUDE.md says a budget change is a **register amendment**, so the amendment lands in that line
+*first* and the enforcement follows. The window between those two edits is precisely when a budget exists as
+law with nothing behind it — and it is the window the gate was blind to.
+
+### The floor
+
+Derived, not listed (§699: membership here is a property of the **document**). Every number on the
+hard-budgets line must fall inside a span claimed by some roster regex, or be named with its reason.
+
+**Matched by SPAN, not by reconstructed phrase** — and the first implementation got this wrong. A roster regex
+reads `(\d+) canonical views` while a naive `<n> <word>` extraction yields `"12 canonical"`; comparing those
+two strings is a guess about how many words a budget's name has, and it flagged every budget as uncovered.
+Running each roster regex against the line and recording the character range it claims removes the guess
+entirely.
+
+**Three exemptions, each with its reason — and the floor found all three on its first run**, which is the
+evidence it works. They are the only numbers on that line that are not count-vs-constant comparisons:
+
+| exempt | why |
+|---|---|
+| `21 used` | a RUNTIME figure `check:invariants` recomputes from the migration set every run; this file's own header already excludes it, to avoid a second weaker copy |
+| `0 shadows` | zero-tolerance, proven by PLANTING an artifact (rule 7 records a shadow, an over-budget radius and a raw hex being refused) — there is no constant to compare |
+| `4px` | the radius half of that same rule, and the only number on the line with no whitespace after it |
+
+### Mutation-proved both directions
+
+| mutation | result |
+|---|---|
+| add `7 agent queues` to CLAUDE.md (stated, unenforced) | **RED** — the exact case that was silent |
+| delete the canonical-views roster entry (coverage LOSS) | **RED** |
+
+A floor that only caught additions would leave the roster shrinkable in silence, which is the same defect
+wearing the other sign.
+
+### Exit state
+
+`claude-md-budgets` 2 → **3** tests; `test:tools` 1024; lint 0; typecheck 0. `CLAUDE.md` restored
+byte-identical after both probes (`diff -q` verified, and `git status` checked separately after a shell parse
+error aborted an earlier attempt mid-command).
+
+**Reopen triggers**
+- A budget is added to CLAUDE.md → the floor reds until a roster entry names what enforces it. That red IS the
+  register-amendment checklist; do not silence it by widening a regex.
+- A zero-tolerance rule is added (something with no constant to compare) → it belongs in `EXEMPT` **with its
+  reason**, not in `BUDGETS` with a fabricated number.
+- The hard-budgets line is reformatted onto multiple lines → the single-line parse breaks and the non-vacuity
+  assertion reds first, by design.
