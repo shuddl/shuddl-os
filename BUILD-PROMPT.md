@@ -8,7 +8,7 @@ The build is DONE when ALL pass:
 - □ **Heartbeat (milestone M-H)** — `pod.signed` → `invoice.issued` + consignee evidence email (signature + placed-freight photos): **p95 < 5s**, measured over ≥50 real tenant-0 deliveries.
 - □ **Zero training** — stranger signup → bookable quote **< 10 min unassisted** (stopwatch, video); a real driver completes a gated stop with **zero verbal instruction** (video, per the REQ-164 onboarding kit).
 - □ **Claude-native** — an end-to-end booking from the Claude interface via `/mcp`, spend/velocity/lane caps enforced server-side under hostile-prompt tests.
-- □ **Completeness** — **167/167 register rows** covered by merged code+test or explicitly statused (vNEXT / CONFIRM-GATED); orphan detector reports **0** both directions.
+- □ **Completeness** — **every register row** covered by merged code+test or explicitly statused (vNEXT / CONFIRM-GATED); orphan detector reports **0** both directions. *(The count is deliberately not written here: the register is APPEND-ONLY, so any number frozen in a DoD is guaranteed to rot — it read `167/167` from 2026-07-09 until audit §829, by which point the committed register held **288** rows. `pnpm check:coverage` is the live value and the authority.)*
 - □ **Fixture gates green** — ported-engine suite (48 tests) · 504-quote monotonic sweep · legacy-export replay **±2% aggregate** · 5 routes **±10%** · QuickBooks journal reconciles **to the penny** · airplane-mode soak **0 loss / 0 dupes** · the $222,084/35-lb anomaly regression fires · seed tenant SEED-1 reproduces an identical dataset hash.
 - □ **Design law** — squint-test CI green (5 tokens · 2 fonts · 0 shadows/gradients/radius>4px · text ≥4.5:1 · 5 blessed screenshots · exception = pulse + world-dim-to-35%), **advisory until WP-10 exit, blocking after (REQ-158)**.
 - □ **Budgets held** — ≤22 tables (21 used) · 35 event kinds · 12 views · 3 surfaces; any breach = register amendment + written deletion.
@@ -20,10 +20,10 @@ The build is DONE when ALL pass:
 ## ▸ 2. AMBITION EXPANSION
 **ASKED:** "the ideal TMS, far superior to the incumbent legacy TMS… fully agentic… zero cutover risk… zero training… gated at every turn… the OS for all of freight."
 **HELD TO EXCELLENCE:** the end of reconciliation as freight's operating condition — one co-signed evidence ledger read through lenses, agents running the protocol, money as a projection of physics, the industry's compensating institutions deleted rather than digitized — governed by an append-only register so scope cannot silently leak, and separated by law from any tenant's identity so the product is born multi-tenant.
-**Elevation applied:** stated→latent (replace a TMS → remove private-copies-of-reality) · adequate→top-decile (M-H p95<5s with evidence email) · static→measurable (167 rows + gates + 5 demos) · commodity→asset (genesis pack, design-as-CI, Overlay as repeatable sales motion) · output→system (traceability CI + audit swarms + external ground truth) · isolated→connected (tenant-0 case study → PROOF-TO-CASH SKU → PLG → MCP distribution).
+**Elevation applied:** stated→latent (replace a TMS → remove private-copies-of-reality) · adequate→top-decile (M-H p95<5s with evidence email) · static→measurable (a fully-covered register + gates + 5 demos) · commodity→asset (genesis pack, design-as-CI, Overlay as repeatable sales motion) · output→system (traceability CI + audit swarms + external ground truth) · isolated→connected (tenant-0 case study → PROOF-TO-CASH SKU → PLG → MCP distribution).
 
 ## ▸ 3. OPERATING ASSUMPTIONS
-- Repo `~/Desktop/shuddl-os` at F0.2+F0.3 is the sole build target; genesis docs 00–15 + 167-row register are authoritative — **H**.
+- Repo `~/Desktop/shuddl-os` at F0.2+F0.3 is the sole build target; genesis docs 00–15 + the append-only register are authoritative — **H**.
 - Cloudflare account live (verified via MCP: 18 workers listed) — **H**; remaining F1-A items (DNS, LLM keys, Stripe test, TSA pick, QB sandbox) land as WPs need them — **M** ⚠.
 - Fixture bytes vendor-in at WP-01 from the private manifest; one original-path [CONFIRM] outstanding — **M** ⚠.
 - Tenant-0 legacy feed (REQ-152) arrives on its own calendar — **M** ⚠, isolated to WP-15/Phase 0 so the build never blocks on it.
@@ -45,7 +45,7 @@ ship production systems gated by CI, not vibes.
 CONTEXT: This repo contains the complete foundation: CLAUDE.md (the governing file — read it fully,
 first, every session), genesis/00–15 (manifesto & Ten Laws; product spec; ledger architecture; MCP
 spec; business model; v1 plan; design system "Terminal Gallery"; roadmap WP-01…16 with DoD;
-09-REQUIREMENTS-REGISTER.csv = the append-only scope authority, 167 rows; event taxonomy & 21-table
+09-REQUIREMENTS-REGISTER.csv = the append-only scope authority (it grows; ask `check:coverage`, never a number written elsewhere); event taxonomy & 21-table
 model; repo-governance source; GTM rollout; tenant-onboarding/Overlay contract; build execution
 spec; second-pass audit), fixtures/README.md (hash-pinned golden data; vendor-in at WP-01 from the
 private manifest), and docs/plans/2026-07-09-wp01-repo-ci-assurance-loop.md — the already-written
@@ -94,7 +94,7 @@ OUTPUT FORMAT: Conventional commits referencing REQ-IDs; per-WP exit report (row
 added, swarm findings, assumptions); demos recorded to demos/.
 
 DEFINITION OF DONE: the nine checkboxes in BUILD-PROMPT.md §1 — binding: M-H p95<5s · <10-min
-stranger quote · zero-instruction driver · MCP booking · 167/167 rows covered-or-statused with 0
+stranger quote · zero-instruction driver · MCP booking · every row covered-or-statused with 0
 orphans · all fixture gates green · design CI green per REQ-158 timing · budgets held · REQ-167
 lint green · WP-16 swarm at 0 Criticals.
 

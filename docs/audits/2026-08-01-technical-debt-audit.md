@@ -468,6 +468,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 273 | §825 | **§826** | **PHASE 48 CLOSED — the strongest gate in the repo, and the ONE LINE that opens it.** Rule 8 / REQ-025. `tenant-scope.test.ts` is an **allowlist**, not a shape detector, so it caught all five adversarial probes — direct, via a local, via a **header**, via the JSON **body**, and via a **helper function** — because none of those expressions is on the list. Fail-closed by construction; the best-designed gate audited. **Which is why the list was the finding**: nothing asserted `AUTHENTICATED`'s contents, and its own failure message invites additions. **Measured: one allowlist line + a request-derived local left the suite GREEN** — a legitimised cross-tenant read under the law whose row says one *anywhere* is a build failure. A text ban on `c.req` would NOT have caught it (the entry was `badTenant`, naming nothing), so the guard is the **exact-set pin**; growth is now a two-place change. **Stated limit: it makes an addition DELIBERATE, not CORRECT.** 3 REDs incl. *removing* an entry. **My own false alarm**: the first round reported all 4 forms EVADING — all 4 were anchor failures (`count==2`), no mutation ever applied; harness bugs fail TOWARD alarm |
 | 274 | §826 | **§827** | **PHASE 49 CLOSED — five isolation proofs traded for five fillers, and the gate HELD.** §826's named residual, probed and real. `isolation-suite` floors the **combined** count at 149 and sums the per-file numbers away. Zeroing a file was caught — but by the **non-vacuity** test, not the floor, and only because the count hit 0. **The partial trade was GREEN**: translator 9→4 with 5 `expect(1).toBe(1)` fillers added to MCP, total still 149. That is the shape that would actually happen — nobody deletes a whole isolation file. Fixed with **per-file floors** (numbers the code already computed), and `MIN_CASES` is now **DERIVED** from them so the total cannot disagree with its parts — §823's lesson applied before it could bite. **Limit stated**: no count can tell a real proof from a same-shaped filler; what changed is the trade must be a VISIBLE edit here. 3 REDs. **No production code changed** |
 | 275 | §827 | **§828** | **PHASE 50 CLOSED — I cited "the REQ-289 baseline" THIRTEEN times without opening it.** Every phase closed with *"3 failed — the unchanged REQ-289 baseline"*, inherited and never verified. Opened: all 3 come from REQ-289 but are **two different problems** — contiguity fails because the working tree has 289 rows and HEAD has **288**; coverage ×2 fail because `status="ACTIVE"` and `wp="GTM-0"` are **unknown to the classifier** (the register's other 288 rows use six statuses; ACTIVE is a seventh). **Verified**: `git log -S` finds **no commit that ever added REQ-289**; on a clean checkout all three vanish. **THE DEFECT**: `traceability.test.ts`'s §748 note asserted *"the register's terminal id is REQ-289"* — **never true of the committed register**, written by reading an uncommitted working tree and stating it as fact. Its ARGUMENT was unaffected, which is why it survived: **a false premise supporting a true conclusion is invisible to every test**. Number deleted, not corrected — pinned once at the assertion (§823's shape, one level smaller). **Deliberately NOT fixed**: committing/bumping would go green while BREAKING a clean checkout |
+| 276 | §828 | **§829** | **PHASE 51 CLOSED — the DEFINITION OF DONE was measuring a register that had grown by 121 rows.** §828's class swept for siblings. **Two-thirds clean**: `PROJECT-STATE` and `RELEASE-EVIDENCE` both use the **committed** 288 and label REQ-289 uncommitted; the audit doc flagged the 288-vs-289 distinction back in §67. §828's defect was **isolated to one file**. **THE FIND**: `BUILD-PROMPT.md` defines completeness as **"167/167 register rows"** — the register is **APPEND-ONLY**, held 167 on 2026-07-09 and **288** today, so the DoD named a target **121 rows short** in the document a reader consults to decide the build is finished. Five instances. This is `f026527`'s *"docs may state laws, not observations"* landing where an observation does most damage; freezing a count in an append-only register is not a risk of rot but a **guarantee**. Converted to law form; `check:coverage` named as authority. **Nothing pinned it** — and a DoD should not have a count for a gate to pin. **Repeat self-error**: cited §829 before writing it, exactly as §823 did seven phases earlier |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -48020,3 +48021,76 @@ not contain. The red is correct and must stay red until the row lands.
   becomes history rather than a hold.
 - A future note states a register fact in prose → check it against `git show HEAD:` and not against the file
   on disk. That is the whole lesson of this phase, and it cost a wrong sentence in a committed gate to learn.
+## §829 — PHASE GATE: PHASE 51 CLOSED — the Definition of Done was measuring a register that had grown by 121 rows
+
+§828 found a fact read off an uncommitted working tree and committed as truth, and closed by asking whether
+that class had siblings. It does — a different one, in the document that defines *done*.
+
+### The sweep, and the two-thirds of it that came back clean
+
+Every committed mention of the register's size or terminal id, checked against `git show HEAD:`:
+
+- **The ops docs are correct.** `PROJECT-STATE.md` calls REQ-289 *"the uncommitted `REQ-289` GTM row"*;
+  `RELEASE-EVIDENCE.md` reports *"all 288 register rows accounted for"* and states plainly that all three
+  failures are *"the single uncommitted `REQ-289` register row, and nothing else."* Both use the **committed**
+  number and label the uncommitted row as such. Clean negative, and worth saying: the record-keeping this
+  audit has been hardening did its job here without help.
+- **The audit doc is correct**, and explicitly so — §67 already noted that *"288/288 rows classified"* looks
+  stale against a 289-row working tree *"but the 289th is the GTM workstream's uncommitted REQ-289."*
+- So §828's defect was **isolated to one file**, already fixed. That bound is the useful part of the sweep.
+
+### The find: a DoD that froze an observation
+
+`BUILD-PROMPT.md` — the top-level build contract — defines completeness as:
+
+> □ **Completeness** — **167/167 register rows** covered …
+
+The register is **append-only**. It held 167 rows on 2026-07-09 and holds **288** committed today. So the
+Definition of Done has been naming a target 121 rows short of reality, in the document a reader consults to
+decide whether the build is finished. Five instances in all: the DoD line, the §5 kickoff checklist (*"167/167
+rows covered-or-statused"*), and three prose statements of the register's size.
+
+This is precisely the mechanism `f026527` named — **"docs may state laws, not observations"** — arriving in
+the one document where an observation does the most damage. The law is *every row covered-or-statused, orphan
+detector 0 both directions*; the count is the gate's live value. Freezing it in an append-only register is not
+a risk of rot, it is a **guarantee** of it.
+
+Fixed to the law form, with the history recorded inline so the next reader knows a number used to be there and
+why it left. `pnpm check:coverage` is named as the authority.
+
+**Nothing pinned the number** — no gate reads `BUILD-PROMPT.md` for a count — which is why five copies drifted
+121 rows without a single failure. That absence is not a gap to close: a DoD should not have a count for a
+gate to pin.
+
+### The same self-inflicted error, twice
+
+Writing the correction I cited **§829 before writing §829**, and `section-refs` refused the forward reference —
+exactly as it did in §823, seven phases ago, for exactly the same reason. §823's own text says *"the right
+ordering is: write the section, then cite it."* I wrote that sentence and then did not follow it.
+
+Recording it as a repeat rather than as a fresh mistake, because the useful signal is the repetition: the gate
+catches it every time, cheaply, which is why it has never cost more than one command. **A cheap gate is what
+lets a habit stay unlearned** — that is a fair trade here, and it is worth knowing that it is the trade.
+
+And then a **second** one in the same phase, of a different kind: I wrote `§3925` meaning *line* 3925 of this
+file, and `section-refs` correctly read it as a pointer to **section** §3925, which does not exist — the
+numbering reaches 829. Repointed to **§67**, the section that actually owns that line.
+
+Both errors are the same underlying slip in different clothes: **writing a reference before checking what it
+resolves to.** The forward reference names a section not yet written; the line-number reference names a
+section that never will be. `section-refs` caught both in the same run, which is the argument for a gate that
+bounds-checks addresses even though — as [[a-gates-green-certifies-less-than-its-name]] records — it cannot
+check whether the *assertion* at that address is true.
+
+### Exit state
+
+`test:tools` **1093**, 3 failed — the REQ-289 trio, now explained by §828. typecheck 0, lint 0,
+`verify:docs` 0. No production code changed; five documentation counts converted to their law form.
+
+**Reopen triggers**
+- A DoD/checklist item gains a hard count of something the repo GROWS (register rows, event kinds once the 35
+  budget is amended, tables) → same defect, same fix. Counts of things under a **budget** are laws and belong;
+  counts of things that accumulate are observations and do not.
+- `BUILD-PROMPT.md` is superseded by a newer contract → check it for frozen counts before trusting its DoD;
+  this file was dated 2026-07-09 and still read as current.
+- A future note states a register fact in prose → `git show HEAD:` is the source, not the file on disk (§828).
