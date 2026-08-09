@@ -29,6 +29,13 @@ function writeRegister(ids: string[], newline = "\n"): string {
 
 describe("register parser", () => {
   it("keeps the authoritative register contiguous through its approved terminal ID", () => {
+    // The terminal id lives HERE and nowhere else (audit §828). The §748 note below used to assert
+    // "the register's terminal id is REQ-289" as a supporting fact — which was FALSE when it was written and
+    // has never been true of the COMMITTED register: REQ-289 has never been committed (`git log -S` finds no
+    // commit adding it), and HEAD has ended at REQ-288 throughout. That comment was read off an uncommitted
+    // working tree and stated as fact. Its ARGUMENT was unaffected — all ids are three digits either way —
+    // which is exactly why nothing caught it for a whole audit cycle. The duplicated number is gone rather
+    // than corrected, because a second copy of a fact is what rotted (§823).
     const terminalId = ["REQ", "288"].join("-");
     const rows = parseRegister();
     expect(rows).toHaveLength(288);
@@ -182,8 +189,8 @@ describe("§252: check:pr distinguishes NO INPUT from an uncited PR, without eve
 
 // REQ-118 §748 — THE REQ-ID MATCHER MUST NOT TRUNCATE AT THREE DIGITS.
 //
-// Every REQ matcher in the repo read `REQ-\d{3}` — EXACTLY three. The register's terminal id is REQ-289, so
-// nothing is wrong today, and the boundary is silent rather than loud: at the four-digit boundary a citation would match as
+// Every REQ matcher in the repo read `REQ-\d{3}` — EXACTLY three. Every id in the register is three digits
+// today, so nothing is wrong yet, and the boundary is silent rather than loud: at the four-digit boundary a citation would match as
 // `REQ-100`, which is an EXISTING row. Both traceability directions break at once, and neither fails —
 //
 //   · direction B (a dangling citation) RESOLVES, because REQ-100 exists → the orphan is never reported;

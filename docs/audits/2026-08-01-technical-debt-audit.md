@@ -467,6 +467,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 272 | §824 | **§825** | **PHASE 47 CLOSED — two blind spots measured, one turned into a tripwire; rule 5 clean. NO DEFECTS FOUND — that is the result.** §824's residual settled by MECHANISM not an empty grep: mcp/agents/translator/billing have **0 hono imports, 0 route verbs**, raw `fetch()` only; MCP is the only other caller-facing worker and its **5 D1 reads are all single-row by PK** (4 with `LIMIT 1`), proxying data via `env.API`. But a measurement is true at one commit — so it is now a **TRIPWIRE**: any hono import or route verb outside `workers/api/` REDs, telling you to widen the scan rather than relax the test (proved by giving MCP a route table). **Rule 5 (REQ-040, PERMANENT) mutation-verified clean**: comparing GROSS under interline → **5 reds**; removing the partial-signal guard (legs w/o tenantParty **falls through** to the gross-comparing direct path) → **3**; dropping the split-totals-10000 validation → **2**. Sits with `allocateCents` among the best-defended code here. **No production code changed.** The nine filed unbounded-read holds remain unfixed — a public response-shape change that *needs a REQ row*, an owner call |
 | 273 | §825 | **§826** | **PHASE 48 CLOSED — the strongest gate in the repo, and the ONE LINE that opens it.** Rule 8 / REQ-025. `tenant-scope.test.ts` is an **allowlist**, not a shape detector, so it caught all five adversarial probes — direct, via a local, via a **header**, via the JSON **body**, and via a **helper function** — because none of those expressions is on the list. Fail-closed by construction; the best-designed gate audited. **Which is why the list was the finding**: nothing asserted `AUTHENTICATED`'s contents, and its own failure message invites additions. **Measured: one allowlist line + a request-derived local left the suite GREEN** — a legitimised cross-tenant read under the law whose row says one *anywhere* is a build failure. A text ban on `c.req` would NOT have caught it (the entry was `badTenant`, naming nothing), so the guard is the **exact-set pin**; growth is now a two-place change. **Stated limit: it makes an addition DELIBERATE, not CORRECT.** 3 REDs incl. *removing* an entry. **My own false alarm**: the first round reported all 4 forms EVADING — all 4 were anchor failures (`count==2`), no mutation ever applied; harness bugs fail TOWARD alarm |
 | 274 | §826 | **§827** | **PHASE 49 CLOSED — five isolation proofs traded for five fillers, and the gate HELD.** §826's named residual, probed and real. `isolation-suite` floors the **combined** count at 149 and sums the per-file numbers away. Zeroing a file was caught — but by the **non-vacuity** test, not the floor, and only because the count hit 0. **The partial trade was GREEN**: translator 9→4 with 5 `expect(1).toBe(1)` fillers added to MCP, total still 149. That is the shape that would actually happen — nobody deletes a whole isolation file. Fixed with **per-file floors** (numbers the code already computed), and `MIN_CASES` is now **DERIVED** from them so the total cannot disagree with its parts — §823's lesson applied before it could bite. **Limit stated**: no count can tell a real proof from a same-shaped filler; what changed is the trade must be a VISIBLE edit here. 3 REDs. **No production code changed** |
+| 275 | §827 | **§828** | **PHASE 50 CLOSED — I cited "the REQ-289 baseline" THIRTEEN times without opening it.** Every phase closed with *"3 failed — the unchanged REQ-289 baseline"*, inherited and never verified. Opened: all 3 come from REQ-289 but are **two different problems** — contiguity fails because the working tree has 289 rows and HEAD has **288**; coverage ×2 fail because `status="ACTIVE"` and `wp="GTM-0"` are **unknown to the classifier** (the register's other 288 rows use six statuses; ACTIVE is a seventh). **Verified**: `git log -S` finds **no commit that ever added REQ-289**; on a clean checkout all three vanish. **THE DEFECT**: `traceability.test.ts`'s §748 note asserted *"the register's terminal id is REQ-289"* — **never true of the committed register**, written by reading an uncommitted working tree and stating it as fact. Its ARGUMENT was unaffected, which is why it survived: **a false premise supporting a true conclusion is invisible to every test**. Number deleted, not corrected — pinned once at the assertion (§823's shape, one level smaller). **Deliberately NOT fixed**: committing/bumping would go green while BREAKING a clean checkout |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -47956,3 +47957,66 @@ saying so is more useful than implying the gates cover it.
   ordering is deliberate and worth preserving.
 - A floor is lowered → that is the intended escape hatch and it must carry the retired proof's name in the
   same edit. Nothing enforces the *note*; that is review's job, as above.
+## §828 — PHASE GATE: PHASE 50 CLOSED — I cited "the REQ-289 baseline" thirteen times without opening it
+
+Every phase this session has closed with *"3 failed — the unchanged REQ-289 baseline, not mine."* Thirteen
+repetitions of a claim I inherited and never verified. [[record-holds-with-expiry-triggers]] says a hold
+needs a "this stops being true when ___"; a hold repeated thirteen times without one is just a habit. So this
+phase opened it.
+
+### The diagnosis, which the shorthand was hiding
+
+All three failures come from **REQ-289**, and they are two different problems:
+
+| failure | cause |
+|---|---|
+| `traceability` — contiguous through the approved terminal ID | the register has **289** rows in the working tree, **288** in HEAD |
+| `coverage` ×2 — classifies every row / disposition is total | `status="ACTIVE"` and `wp="GTM-0"`, **neither known to the classifier** |
+
+REQ-289 is a legitimate owner-approved GTM row (its own field reads *"Owner approval 2026-08-02"*) that
+introduces vocabulary used exactly once. The register's other 288 rows use six statuses; `ACTIVE` is a
+seventh, and `GTM-0` is the only WP of its kind.
+
+**The shorthand was accurate but useless.** "The owner's uncommitted row" is true; what it hid is that
+committing it needs *two* repo-owned edits — bumping `terminalId` 288 → 289, and teaching `coverage.ts` how
+to classify a GTM program row that is verified by artifacts under `docs/gtm` rather than by a source
+annotation. Neither is a decision an audit gets to make, but both are now written down, so the owner's cost is
+visible instead of latent.
+
+**Verified, not assumed:** HEAD's register is 288 rows terminating at REQ-288, the working tree is 289
+terminating at REQ-289, and `git log -S "REQ-289,"` finds **no commit that ever added it**. On a clean
+checkout all three failures vanish. The gate is doing its job precisely.
+
+### The actual defect: a fact read off an uncommitted working tree
+
+`traceability.test.ts` carried, in its §748 note, the sentence *"The register's terminal id is REQ-289."*
+
+That has **never been true of the committed register.** It was written in `62f74d8` by reading the working
+tree — the same uncommitted row — and stating it as fact. Its *argument* was unaffected (every id is three
+digits either way), which is exactly why it survived a whole audit cycle: **a false premise supporting a true
+conclusion is invisible to every test.**
+
+Fixed by deleting the number rather than correcting it. The terminal id is pinned once, at the assertion that
+enforces it, with the history recorded there. §823 found a checklist claiming 7 sites beside a roster holding
+8; this is the same shape one level smaller, and the same answer — a second copy of a fact is the thing that
+rots.
+
+### What this phase did NOT do
+
+It did not commit REQ-289, bump the terminal pin, or teach the classifier `ACTIVE`. All three would turn
+`test:tools` green **while breaking a clean checkout**, because the pin would then expect a row that HEAD does
+not contain. The red is correct and must stay red until the row lands.
+
+### Exit state
+
+`test:tools` **1093**, 3 failed — the same three, now *explained* rather than assumed. typecheck 0, lint 0,
+`verify:docs` 0. No production code changed.
+
+**Reopen triggers**
+- **REQ-289 is committed** → the three failures become real work, in this order: bump `terminalId` to 289,
+  then give `coverage.ts` a bucket for a GTM program row (it is not `buildable`, not `vNEXT`, not
+  `CONFIRM-GATED`, not a deploy note — its DoD is artifact-and-lint, not code-and-annotation).
+- **REQ-289 is withdrawn** → nothing to do; the working tree simply matches HEAD again, and this section
+  becomes history rather than a hold.
+- A future note states a register fact in prose → check it against `git show HEAD:` and not against the file
+  on disk. That is the whole lesson of this phase, and it cost a wrong sentence in a committed gate to learn.
