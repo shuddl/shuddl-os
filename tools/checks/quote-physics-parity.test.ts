@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { repoRoot } from "./repo-root.js";
 
@@ -145,6 +146,76 @@ describe("§821: every quote surface validates the SAME physics", () => {
     for (const s of sources) {
       expect(fieldLine(s.text, "dims"), `${s.path} declares no dims`).toBeDefined();
       expect(fieldLine(s.text, "weight_lb"), `${s.path} declares no weight_lb`).toBeDefined();
+    }
+  });
+});
+// ── §841 — THE DISCOVERY HALF: a FIFTH surface must not simply not be on the roster ───────────────────
+//
+// §821 closed naming this: "Nothing detects a surface that simply isn't on the roster." True when written,
+// and the §822/§824/§833 answer applies here too — a roster finds what it lists; a scan finds what arrives.
+//
+// SCANNER CORRECTED BEFORE IT WAS TRUSTED. The first version required the literal `z.object`, and
+// `routes/rate.ts` writes `z\n  .object({` — so TWO of the four rostered files did not match their own
+// roster. A discovery half that silently misses half its known-good set would have reported three unrostered
+// surfaces while hiding two rostered ones in the same run, which is why the calibration below asserts the
+// rostered four are found rather than only that novel ones are absent.
+
+const DIMS_DECLARING = /\bl_in\s*:/;
+const PIECES_DECLARING = /\bpieces\s*:/;
+const SCHEMA_ISH = /\.object\(|SafeInt/;
+
+/** Every prod module that declares the freight-dims shape, however it expresses it. */
+function dimsDeclarers(root: string): string[] {
+  return execSync('git ls-files "workers" "packages" "apps"', { cwd: root, encoding: "utf8" })
+    .split("\n")
+    .filter((f) => /\.tsx?$/.test(f) && !f.includes(".test.") && !f.includes("/test/"))
+    .filter((f) => {
+      const src = readFileSync(`${root}/${f}`, "utf8");
+      return DIMS_DECLARING.test(src) && PIECES_DECLARING.test(src) && SCHEMA_ISH.test(src);
+    });
+}
+
+/**
+ * Modules that declare the dims shape and are deliberately NOT quote surfaces. Three finds, three different
+ * reasons — and the reasons are the content, because "not a surface" is not self-evident for any of them.
+ */
+const NOT_A_QUOTE_SURFACE: Record<string, string> = {
+  "packages/contracts/src/events.ts":
+    "the LEDGER path (`DimsCapturedPayload`, `SafeInt.min(1)`). It must NOT join the parity roster: §820 established the ledger is DELIBERATELY stricter than the quote path, which admits 0 to mean 'not provided'. Rostering it would force the two apart or drag the ledger down to min(0).",
+  "workers/translator/src/core/map-204.ts":
+    "a PRODUCER, not a validation boundary — it builds a request from EDI 204 dims and is the only worker importing `RateRequestPayload`, so the canonical schema validates what it constructs.",
+  "apps/command/src/intake/intake.ts":
+    "a plain TypeScript type on a client surface, not a Zod schema. The server validates what it sends; a client type that drifts produces a 400, not a bad quote.",
+};
+
+describe("§841: no FIFTH quote surface arrives unrostered", () => {
+  const root = repoRoot();
+
+  it("finds the rostered four (calibration — a scan that misses its known-good set proves nothing)", () => {
+    const found = new Set(dimsDeclarers(root));
+    for (const s of SURFACES) {
+      expect(found, `${s.path} declares the dims shape but the scanner no longer finds it — the scan is stale, not the tree`).toContain(s.path);
+    }
+  });
+
+  it("every dims-declaring module is a rostered surface or a recorded exclusion", () => {
+    const rostered = new Set(SURFACES.map((s) => s.path));
+    const novel = dimsDeclarers(root).filter((f) => !rostered.has(f) && !(f in NOT_A_QUOTE_SURFACE));
+    expect(
+      novel,
+      "a module declares the freight-dims shape and is neither a rostered quote surface nor a recorded " +
+        "exclusion. If it validates a rate request, add it to SURFACES — the assertions above then hold it " +
+        "to the same optionality and bounds as the other four, which is what stopped `{\"dims\": null}` being " +
+        "a 400 on one surface and an UNKNOWN on the rest (§821). If it is not a boundary, record WHY in " +
+        "NOT_A_QUOTE_SURFACE:\n  " +
+        novel.join("\n  "),
+    ).toEqual([]);
+  });
+
+  it("no exclusion outlives its subject (§672)", () => {
+    const found = new Set(dimsDeclarers(root));
+    for (const f of Object.keys(NOT_A_QUOTE_SURFACE)) {
+      expect(found, `${f} no longer declares the dims shape — delete its exclusion rather than leaving a reason for nothing`).toContain(f);
     }
   });
 });

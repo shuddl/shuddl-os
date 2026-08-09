@@ -480,6 +480,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 285 | §837 | **§838** | **PHASE 59 CLOSED — the two gate lists now compare themselves.** §837 found the chokepoint omission **by hand** and called it *a measurement with an expiry*. This is the gate. Compares by **SCRIPT, not by name**, reading the exported `gatesFor("merge")` as the authority — the lists disagree on names **by design** (`identity-leak`→`check:identity`, `concierge-parse`→`check:concierge-parity`, `append-chokepoint`→`check:chokepoint`), so a name comparison would have reported three false mismatches and been relaxed into uselessness. **Only one direction is a defect**: a dev step that is NOT a merge gate means the inner loop is stricter than the shippable verdict, invisibly — asserted empty. The reverse is normal and each absence is now recorded with its reason. **§837 understated its own subject**: `run-gate.ts`'s comment on that gate reads *"the DB triggers fire on COLLISIONS, so a direct insert with a fresh id is accepted and skips every gate — nothing else catches it"* — so on the direct-insert path chokepoint is **the only** detector, not one of several. 3 REDs |
 | 286 | §838 | **§839** | **PHASE 60 CLOSED — rule 2 verified end to end. NO DEFECT; the bound is the result.** §838 surfaced *"the DB triggers fire on COLLISIONS, so a direct insert with a fresh id is accepted"*, which invites the worry that append-only is only enforced where rows collide. **The two halves are different laws**: the triggers enforce APPEND-ONLY (upd/del abort unconditionally; BEFORE INSERT guards abort on *any* uniqueness surface, which is what closes `INSERT OR REPLACE` under D1's `recursive_triggers=0`), and the chokepoint lint enforces SINGLE-WRITER. Neither substitutes for the other. **Five probes, five REDs**: a new UNIQUE index with no guard · a removed guard disjunct (names `(hash)`) · an unclassified new table · a deleted `events_guard_upd` · **and the completeness check itself neutered → RED ×3, because it has its own four-test describe block**. That last one is what makes this clean rather than hopeful — §816 found the opposite shape (a guard nobody tested) in this same repo. Rule 2 joins REQ-040 (§825) and `allocateCents` (§816) as best-enforced, and uniquely its **enforcement mechanism is itself pinned** |
 | 287 | §839 | **§840** | **PHASE 61 CLOSED — correcting a residual I INVENTED one phase earlier.** §839's reopen trigger claimed a fourth guarded table needs `GUARDED_TABLES`, the REPLACE-ban alternation and a guard trio to move together, and that *"nothing forces the alternation"*. **False, and false when written**: `invariants.ts:48` is `GUARDED_ALT = GUARDED_TABLES.join("|")` — **derived**, with a comment four lines up saying *"adding a fourth append-only table forced ONE edit"*. I wrote a residual about a duplication the author had already removed, in a file I had spent the phase reading. **Measured instead**: planting `ledger_notes` in `GUARDED_TABLES` produced **four** demands each naming its subject (upd/del/ins triggers + completeness on `(id)`), and a planted `INSERT OR REPLACE` was caught **with no second edit**. The path is forced COMPLETELY from one array entry. **Worth a phase because the error was SAFE** — it over-stated risk, so it reads as diligence and is never questioned; §828 caught the same class pointing the *reassuring* way. §803's rule again: an assertion in an exit note needs the standard of one in code |
+| 288 | §840 | **§841** | **PHASE 62 CLOSED — auditing my own reopen triggers, and closing the one that was TRUE.** §840 corrected a false trigger; this checks the rest. Six falsifiable triggers across §815–§840: **one STALE** (§816's *"the money law has no gate"* — §817 built it the very next phase and it sat wrong for 24), one already-corrected (§839/§840), and **four sound**. Correction rate **2 of 6** — the argument for the sweep. **§821's residual CLOSED**: a discovery half now requires every module declaring the freight-dims shape to be rostered or excluded-with-a-reason. Found three, each legitimate for a **different** unrecorded reason — `events.ts` is the LEDGER path, deliberately stricter (`min(1)` vs `min(0)`, per §820); `map-204.ts` is a **producer** whose output the canonical schema validates; `intake.ts` is a client TYPE, not a boundary. **Scanner corrected first**: it required the literal `z.object` and `rate.ts` writes `z\n  .object({`, so **two of four ROSTERED files did not match their own roster** — it would have found three unrostered surfaces while hiding two rostered ones in the same run |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -47206,7 +47207,7 @@ rule to half-down takes the package's half-up RED set from 8 to **9**, the ninth
   The asymmetry that produced this finding was one input added without the guard the others carry.
 - `roundHalfUp`/`mulDivHalfUp` gain a caller on a **negative** or non-integer domain → the half-up decision
   `2*r >= d` is exact only for numerator ≥ 0, divisor > 0; that precondition is a comment, not a type.
-- Anyone writes a new `Math.round(x / y)` on a cents value → the money law has **no gate**. This phase swept
+- ~~Anyone writes a new `Math.round(x / y)` on a cents value → the money law has **no gate**.~~ **CORRECTED in §841: stale since §817**, which built `tools/checks/float-money-division.test.ts` the very next phase. The hand sweep below is what that gate replaced. Original text: this phase swept
   it by hand at `dcc2876`; that is a measurement with an expiry, not a standing guarantee. A `no-restricted-syntax`
   selector over `packages/rater/**` + `packages/ledger/**` would make it one, and is the obvious next step —
   **not taken here** because a repo-wide arithmetic ban needs its own calibration pass against false positives
@@ -48838,3 +48839,61 @@ the future rather than a claim about the present, and it is both.
   This phase exists because that step was skipped once, and the cost was one phase, not one line.
 - `GUARDED_ALT` ever stops being derived → then §839's original sentence becomes true, and the residual it
   described becomes real. It is derived today at `tools/checks/invariants.ts:48`.
+## §841 — PHASE GATE: PHASE 62 CLOSED — auditing my own reopen triggers, and closing the one that was true
+
+§840 corrected a reopen trigger that was false when written. The obvious follow-up is the one §840 did not
+do: **check the rest of them.** Twenty-six phases have each closed with triggers, and they are claims about
+the present dressed as speculation about the future.
+
+### The sweep
+
+Extracted every trigger from §815–§840 asserting something is *uncovered / unpinned / not gated* — the
+falsifiable kind. Six. Verified each against the tree:
+
+| trigger | verdict |
+|---|---|
+| §816 — *"the money law has **no gate**"* | **STALE.** §817 built `float-money-division.test.ts` the very next phase. True when written, false one phase later, and it sat there for twenty-four. |
+| §821 — *"nothing detects a **fifth** quote surface"* | **TRUE** — `quote-physics-parity.test.ts` carries a roster and `toHaveLength(4)`, and no discovery half. Closed below. |
+| §828 — REQ-289 withdrawn → nothing to do | conditional, not a present claim. Fine. |
+| §838 — a dev step absent from the merge roster | a description of an assertion, not a residual. Fine. |
+| §838 — *"a second dev-loop command … is not compared to anything"* | **TRUE** — `verify:dev` is the only one; `verify:docs/merge/release` are not dev loops. |
+| §839 — the alternation | already corrected by §840. |
+
+One stale, one false (§840), four sound. **A record that corrects itself is worth more than one that is
+never checked**, and the correction rate here — two of six — is the argument for the sweep rather than
+against the triggers.
+
+### §821's residual, closed — and all three finds are legitimate exclusions
+
+A discovery half now requires every module declaring the freight-dims shape to be a rostered surface or a
+recorded exclusion. It found three, and the useful part is that **each is excluded for a different reason**,
+none of which had been written down:
+
+- **`packages/contracts/src/events.ts`** — `DimsCapturedPayload`, `SafeInt.min(1)`. It must **not** join the
+  parity roster: §820 established the ledger path is *deliberately* stricter than the quote path, which
+  admits `0` to mean "not provided". Adding it would force the two apart or drag the ledger down to `min(0)`.
+- **`workers/translator/src/core/map-204.ts`** — constructs a request from EDI 204 dims and is the **only**
+  worker that imports `RateRequestPayload`, so the canonical schema validates what it builds. It is a
+  producer, not a validation boundary.
+- **`apps/command/src/intake/intake.ts`** — a plain TypeScript type on a client surface, not a Zod schema.
+  The server validates what it sends; a client type that drifts produces a 400, not a bad quote.
+
+The scanner needed one correction first: it required the literal `z.object`, and `rate.ts` writes
+`z\n  .object({`, so **two of the four rostered files did not match their own roster**. A discovery half that
+silently misses half its known-good set would have "found" three unrostered surfaces and hidden two rostered
+ones in the same run.
+
+### Exit state
+
+`test:tools` **1106** (+3), 3 failed — the REQ-289 trio. typecheck 0 · lint 0 · `verify:docs` 0. §816's
+trigger corrected in place. **No production code changed.**
+
+Proved three ways: a new module declaring the dims shape outside the roster → RED · a rostered surface dropped
+from `SURFACES` → RED on the calibration floor · the scanner broken → RED rather than a clean scan.
+
+**Reopen triggers**
+- A trigger written in a future phase asserts something is ungated → it is a claim about the present. §840
+  and this phase are the two data points; the correction rate so far is **two of six**.
+- The dims shape is declared by a module that names its fields differently (`length_in`, `dimensions.l`) → the
+  scanner keys on `l_in` + `pieces` and would not see it. Stated because a renamed field is exactly how a
+  fifth surface would actually arrive.
