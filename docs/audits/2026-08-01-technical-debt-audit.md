@@ -385,6 +385,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 190 | §742 | **§743** | **The budget gate could not see a budget nobody enforced.** §611's gate does the lockstep fix properly (reads CLAUDE.md as DATA, computes the other side) and it works — raising `MAX_CANONICAL_VIEWS` to 13 **and** adding a 13th view passes typecheck, invariants, and the registry's own suite **5/5** (its threshold sits in the same file); only §611 caught it. But both its assertions iterate a hand-written roster, so inserting `· 7 agent queues ·` into the hard-budgets line — stated, enforced by nothing — left it **2/2 GREEN**. The timing is the point: CLAUDE.md says a budget change is a **register amendment**, so the line is edited FIRST and enforcement follows. Floor now derives coverage by **SPAN** (a reconstructed-phrase predicate guesses how many words a budget's name has — my first cut flagged everything); 3 exemptions each with a reason, all 3 found by the floor on its first run. **Mutation-proved both ways** |
 | 191 | §743 | **§744** | **A BLOCKED gate is invisible to the meta-gate that watches gates.** Roster sweep (58 candidates) came back clean — `ALLOWED_HEX` is **derived** from tokens exactly as CLAUDE.md rule 7 claims; `ACTIVE` omitting WP-16 is correct (`disposition` routes it first). But it surfaced `cwd-parity.test.ts`, built **yesterday** at §559 to *"end the CWD-dependence class with a mechanism"* — and §731 found a CWD defect in `check:identity` **by hand the next day**. Cause: that gate SKIPS without a denylist, so both runs printed *no denylist available* and agreed perfectly over a gate that never ran. Fixed with `RUN_ENV`. **My first fix was circular** — the probe term was a literal, so the identity scan found it in this very file and exited 1 from BOTH dirs ("parity" by failing everywhere); assembled at runtime instead. Mutation: reintroducing §731's defect now REDS `check:identity: root=0 subdir=1`. **Also corrects §732**, whose hand sweep duplicated this gate |
 | 192 | §744 | **§745** | **The meta-gate counted a SKIP as coverage — and my fix was silently wrong twice.** Four fixture-blocked gates emit `"executed": false`, so non-execution is now DETECTED and the set asserted **both ways** (a new skipper must be declared; one that starts executing must be removed, so an exemption cannot outlive its reason). **Fix bug 1:** `executed()` returned true when no structured verdict was present, but `check:identity`'s skip prints PROSE — so the regression mutation was silent. Replaced with a **positive** assertion (a `skipMarker` that must NOT appear). **Fix bug 2:** that was *also* silent — the marker goes to **stderr** and `execFileSync` returns stdout only. Switched to `spawnSync`, both streams. Two detector bugs stacked, each hiding the next, in a fix whose purpose was to stop a gate certifying what it never examined. Both found by mutation, neither by reading |
+| 193 | §745 | **§746** | **CLEAN NEGATIVE — the record already says what the board's numbers certify.** Under `--mode merge`: **5 of 20** gates emit a sentinel; for the other 15 `run-gate` SYNTHESIZES `PASS/executed:true/assertions:1` from exit 0 — so on three-quarters of the board `assertions` is a CONSTANT, not a measurement. `RELEASE-EVIDENCE.md` states this verbatim and draws the right conclusion (*"only meaningful for the sentinel-emitting gates"*), carrying the distinction into its Artifact column. Nothing to fix — worth recording because this audit keeps finding the opposite shape. **My first measurement said 4 of 20** — an artifact of running gates BARE when `run-gate` passes `--mode`. Sixth instrument error this session, same correction as §741's wrong suite: **run the subject the way its real caller runs it** |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -42625,3 +42626,71 @@ smaller claim than before and a true one.
   coupling is the point.
 - A new gate emits no structured verdict AND skips silently → neither detector sees it. That residual is real:
   detection here rests on a gate announcing itself, which is why the roster is asserted rather than derived.
+
+## §746 — PHASE GATE: what the merge board's numbers certify — already stated, and stated correctly
+
+§745 closed with a residual: its execution detection *"rests on a gate announcing itself"*. The obvious next
+question is how many gates do, and what the board records for the ones that do not.
+
+### Measured
+
+Under `--mode merge`, the flag `run-gate` actually passes:
+
+```
+20 gate scripts · 5 emit a ##SHUDDL-GATE## sentinel · 15 do not
+```
+
+For the fifteen, `run-gate` **synthesizes** the verdict from the exit code alone:
+`exitCode === 0 → { status: "PASS", executed: true, assertions: 1 }`.
+
+So on three-quarters of the merge board, `assertions` is a **constant**, not a measurement — the same numeral
+whether the gate ran one check or nine hundred.
+
+### And the record already says so, precisely
+
+`docs/ops/RELEASE-EVIDENCE.md`:
+
+> *"a synthesized `PASS` always reads `assertions: 1, detail: "command exited 0"` no matter how many tests ran.
+> **The assertion counts in a record are only meaningful for the sentinel-emitting gates.** The Artifact column
+> below distinguishes the two."*
+
+That is the correct conclusion, drawn in the right place, with the distinction carried into the table rather
+than left as a caveat. There is nothing to fix and nothing to add — which is worth writing down, because this
+audit has repeatedly found the opposite shape (a record claiming more than the mechanism delivers), and the
+useful negative is knowing which files do not do that.
+
+The design choice behind it is also right: `run-gate`'s header states verdicts are *"synthesized from its
+stable exit code — never parsed from prose"*. Parsing prose to recover a count would be a second, weaker
+implementation of what a sentinel already provides, and it would make the board's numbers depend on log
+formatting.
+
+### My own measurement was wrong first, for the sixth time this session
+
+The first pass ran each gate **bare** and reported *4 of 20* emitting. `check:identity` only emits under
+`--mode`, which is exactly how `run-gate` invokes it — so the 4 was an artifact of my invocation, not a
+property of the gates. Re-running with the flag the harness uses gave 5.
+
+Sixth instrument error in this session, and the same correction every time: **run the subject the way its real
+caller runs it.** §741's was the wrong test suite; this one is the wrong argv. The failure mode is identical —
+a number that looks like a finding and is a description of my own command.
+
+### The line, closed
+
+§744 → §745 → §746 took the meta-gate from *"compares two skips and calls it coverage"* to *"declares what it
+did not cover"*, and the residual is now bounded and stated: detection rests on a gate announcing itself; 15
+gates do not announce; and the one property that matters about them — that their `assertions` figure is
+synthetic — is documented where a reader of a release record will meet it.
+
+### Exit state
+
+No code changed. `test:tools` **1024** (baseline 3 register failures); lint 0; typecheck 0.
+
+**Reopen triggers**
+- A gate starts emitting a sentinel → its `assertions` becomes real, and `RELEASE-EVIDENCE.md`'s Artifact
+  column must move it to the sentinel side. The doc distinguishes the two sets; that distinction is the thing
+  to keep true.
+- `run-gate`'s synthesis changes `assertions: 1` to anything else → the documented sentence stops being
+  accurate. It is quoted verbatim above precisely so a future diff can be checked against it.
+- A reader cites an `assertions` count from a release record as evidence of coverage → that is the
+  misreading this documentation exists to prevent, and it is only prevented if the caveat travels with the
+  number.
