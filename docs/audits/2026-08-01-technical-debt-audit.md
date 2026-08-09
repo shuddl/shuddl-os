@@ -419,6 +419,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 224 | §776 | **§777** | **The credit reconciler's fail-closed guards — 2 of 3 unpinned, one a BOOKING CREDIT-HOLD BYPASS.** Carried §775's class outward: the one parallel mark-on-success site (`mcp/webhooks.ts`) is **clean** — so §775 was a single hole, not a habit. Then `reconcileCreditForParty`: deleting `if (status === null)` left api 11/11 green while making a party with **no `credit.checked` anywhere** book — it writes `credit_status = NULL` **and** resolves the gap, and `transition-gates.ts:501` says *"Only an explicit `hold` blocks"* (**verified in the gate, not inferred**), so BOTH halves of REQ-042 come off plus the anomaly that would surface it. Also silent: `gap === null`, which keeps the DO booking gate from turning a read into a WRITE — invisible to the old tests **by construction** (their two sides always agreed, so an unguarded copy lands the same value; pinned now with a DIVERGENT pair) |
 | 225 | §777 | **§778** | **All TEN `GateError` throws in `transition-gates.ts` enumerated — 9 pinned, 1 already accounted.** §777's 2-of-3 rate is why this was enumerated, not sampled. The one silent throw is `assertConsentBeforeGps`'s "belt", **already measured by §359**, correctly handled as a sibling-guard redundancy whose precondition is itself gated (`ConsentAck` refuses `"XX"` — verified, not trusted). Note refreshed with today's re-measurement (it read *"616 ledger, 757 api"*; now 668/803). **Two harness faults before one true reading**: ten back-to-back pool startups degraded to `no tests` for 8 of 10 runs (reads as "eight unpinned throws"), and an unquoted `$G` — **zsh does not word-split** — emptied every row INCLUDING the baseline. Knowing a failure mode does not prevent it; only the fixed point caught both |
 | 226 | §778 | **§779** | **The RELEASE direction (4/4 pinned) — and where §777's hole actually lived.** A throw is half a gate; the other half is every `if (…) return` that OPENS it. Mutating `overrideSatisfies` so a MISSING override releases reds **41 tests** — one line that would fail-open the whole REQ-030 surface, heavily pinned. So the gate layer is solid both ways (9/10 throws, 4/4 releases), and **§777's two holes were NOT in `gates/`** — they were in `reconcile/credit.ts`, a function the gate CALLS. Tested as a hypothesis: REQ-042's three parts are surface (pinned), reconcile (**2 of 3 unpinned**), block (pinned) — the only piece in neither `gates/` nor a projection held both holes. **Coverage followed the directory name, not the decision.** Ask not "is the gate tested" but "is every function whose return value the gate trusts tested" |
+| 227 | §779 | **§780** | **The sequencer's trust boundary — all SIX decision functions enumerated, ZERO unpinned.** Each mutated to its permissive value: `isPlatformTenant`→every tenant is platform (**374 reds**), REQ-180 never-widen floor removed (**16**), `hazmatEnabled`→always on (**11**), **`verifyEventSig`→accept every signature (6)**, inherited-visibility fail-open (1), `authoritativeSource`→always native (1). **This BOUNDS §777** — that hole was localized to `reconcile/credit.ts`, not the leading edge of a systemic gap. The two thin pins were checked rather than padded: `authoritativeSource` is inert today (`legacyValueAvailable` hard-false, no legacy mirror), and the inherited branch fails toward `internal`, the NARROWEST visibility — a refusal becoming an append, not a disclosure. **Harness, 3rd and 4th time**: consecutive full-suite runs degrade the pool after ~3 invocations and fail SILENT; both blank rows were well pinned when re-run alone. Batch the mutations, re-run every silent row individually |
 
 **Current measured state — as measured 2026-08-08 at `fae1a17` (§775's board run):** the merge board is
 **26 gates — 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape since §737. `typecheck` 0 · `lint` 0 ·
@@ -44777,3 +44778,62 @@ lint 0 · typecheck 0.
   a complete probe of it, because a third branch can fail without flipping the boolean.
 - A gate starts trusting a return value from a NON-ledger package → the trust boundary crosses a package
   edge, and nothing in this sweep would have looked there.
+## §780 — PHASE GATE: the sequencer's trust boundary — all six decision functions, all pinned
+
+§779's rule: *"ask not whether the gate is tested, but whether every function whose return value the gate
+trusts is tested."* The sequencer DO is where that boundary is widest — it is the single append chokepoint —
+so its trusted decision functions were **enumerated, not sampled** (§761), and each mutated to its
+**permissive** value (§772: the direction that can actually fail).
+
+| function | the permissive mutation | reds |
+|---|---|---|
+| `isPlatformTenant` | every tenant IS the platform tenant | **374** (api) |
+| `resolveVisibility` — REQ-180 never-widen floor | floor removed | **16** (ledger) |
+| `hazmatEnabled` | entitlement always ON | **11** (contracts) + 1 (api) |
+| `verifyEventSig` | **accept every signature** — forged device events | **6** (ledger) + 1 (api) |
+| `resolveVisibility` — inherited kind | fall to `internal` instead of `UNRESOLVED` | 1 (ledger) |
+| `authoritativeSource` | always `native`, legacy value ignored | 1 (ledger) |
+
+**Zero unpinned.** This bounds §777: that finding was a genuinely localized hole in
+`reconcile/credit.ts`, not the leading edge of a systemic gap in what the sequencer trusts.
+
+### On the two thin pins — checked, not manufactured
+
+Two reds of one are defensible rather than weak, and the reason is worth writing down instead of padding
+the count:
+
+- `authoritativeSource` is **inert today**. `legacyValueAvailable` is hard-`false` at both call sites (no
+  legacy dispatch mirror — Task 4), which the sequencer's own comment states: *"authoritativeSource ALWAYS
+  resolves to native"*. A dormant branch pinned by one direct unit test on the pure function is the right
+  amount of test, and its owner suite is where it sits.
+- The inherited-visibility branch fails toward `internal` — the NARROWEST visibility — so the mutation does
+  not leak anything; it changes a **refusal into an append**. Real, but not a disclosure.
+
+`verifyEventSig` at 6+1 is the one I looked hardest at, because "accept every signature" is the worst
+sentence in this table. Its owner suite carries the weight; the single api red is the integration echo, which
+is the correct distribution (§"run the suite that owns the file").
+
+### The instrument, a third and fourth time
+
+Two more empty readings this phase — M5 and M6 both returned blank / `no tests` in a batched sweep and both
+were **well pinned** (16 and 1) when re-run alone. Same cause as §778: **consecutive full-suite runs degrade
+the vitest-pool-workers runtime after roughly three invocations**, and the failure mode is *silence*, which
+reads as "unpinned".
+
+That is now four occurrences in two phases, so it is a property of this harness, not bad luck: **batch the
+mutations, but re-run every silent row individually before believing it.** A red is self-attributing; a
+blank never is.
+
+### Exit state
+
+**No source changed.** Six files mutated and all verified byte-identical (`sign`, `entitlements`,
+`platform-tenant`, `visibility`, `authority`, plus §779's set). `packages/ledger` 668/668 ·
+`packages/contracts` 308/308 · `workers/api` 803/803 · lint 0 · typecheck 0.
+
+**Reopen triggers**
+- A legacy dispatch mirror lands (Task 4) → `legacyValueAvailable` stops being hard-`false`,
+  `authoritativeSource`'s second branch goes live, and one unit test is no longer the right amount.
+- A seventh decision function is imported into the sequencer's gate path → it joins this table. The table is
+  the boundary; anything the DO trusts and this list omits is unaudited by construction.
+- `verifyEventSig`'s owner tests are refactored → that is the load-bearing set. Six reds is the floor to
+  preserve, not a number to optimise.
