@@ -232,6 +232,60 @@ describe("REQ-025 §572: every tenant-scoped storage entry point is fed an authe
     ).toEqual([]);
   });
 
+  // ── §826 — THE ALLOWLIST IS THE GATE'S WEAK POINT, AND IT WAS UNGUARDED ────────────────────────────
+  //
+  // This gate is the strongest in the repo and it is strong for a structural reason: `AUTHENTICATED` is an
+  // ALLOWLIST, so a tenant argument fails unless it is a known-verified form. Measured (§826): a cross-tenant
+  // read laundered through a local, through a header, through a JSON body, and through a helper FUNCTION is
+  // caught in every case — because none of those expressions is on the list. Fail-closed by construction,
+  // which is why denylist-shaped gates elsewhere in this repo keep needing evasion probes and this one does
+  // not.
+  //
+  // The whole guarantee therefore rests on the LIST. Measured: adding one line to `AUTHENTICATED` and
+  // pointing a route's tenant at a request-derived local left this suite GREEN. One line, and a cross-tenant
+  // read is legitimate — on REQ-025, where the register says a cross-tenant read anywhere is a build failure.
+  // The failure message even invites the edit ("add it to AUTHENTICATED with a note on what verifies it"),
+  // which is right for a real new source and is exactly the door.
+  //
+  // So the list is pinned to its exact membership. Growth is now a TWO-place change — the entry, and this
+  // assertion — which is the property that matters: it cannot happen as a side effect of making a test pass.
+  //
+  // WHAT THIS CANNOT DO, stated because the pin could be read as more than it is: it makes an addition
+  // DELIBERATE, not CORRECT. A reviewer still has to judge whether a new source is genuinely authenticated;
+  // no assertion here can. What it removes is the silent path.
+  const AUTHENTICATED_MEMBERS = [
+    'c.get("session"',
+    "claims.t",
+    "session.tenant",
+    "slug",
+    "tenant",
+    "tenantSlug",
+    "this.tenant",
+    "trigger.tenant",
+  ] as const;
+
+  it("§826: AUTHENTICATED has EXACTLY its reviewed membership — it cannot grow silently", () => {
+    expect(
+      [...AUTHENTICATED].sort(),
+      "the AUTHENTICATED allowlist changed. Every entry is a claim that some mechanism VERIFIES that value " +
+        "before it selects a tenant's data — read the note beside it. Adding one legitimises a cross-tenant " +
+        "read repo-wide (REQ-025: a cross-tenant read anywhere is a build failure), so the addition must be " +
+        "deliberate and reviewed on its own merits, not a side effect of making this suite pass.",
+    ).toEqual([...AUTHENTICATED_MEMBERS].sort());
+  });
+
+  it("§826: no allowlist entry names request input outright", () => {
+    // The mechanical half. It cannot catch a laundered local (`badTenant` names nothing), which is why the
+    // exact-set pin above is the real guard — but it makes the blatant form impossible to add by accident.
+    for (const entry of AUTHENTICATED) {
+      expect(
+        /c\.req|\breq\.|\.query\(|\.header\(|\.param\(|body\./.test(entry),
+        `AUTHENTICATED contains ${JSON.stringify(entry)}, which reads a tenant straight off the request. ` +
+          "Request input is the one thing this gate exists to refuse.",
+      ).toBe(false);
+    }
+  });
+
   it("no call site sources its tenant from request input", () => {
     const stray = callSites(root, positions).filter((s) => !AUTHENTICATED.has(s.arg));
     expect(

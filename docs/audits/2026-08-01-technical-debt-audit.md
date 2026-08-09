@@ -465,6 +465,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 270 | §822 | **§823** | **PHASE 45 CLOSED — the hold said SEVEN, cited EIGHT, and there were NINE.** §822's deferred triage, done: of **70** filtered no-LIMIT SELECTs, **49 are bounded by a uniqueness guarantee the schema DECLARES** (PK `id`, `tenants.slug`, `users.email`, `ux_events_device`, `money_lines(event_id,line_no)`, `id IN`) — facts from the migrations, not opinions. 21 residue, 6 already rostered. **FINDING 1**: the checklist row said *"7 sites"* while citing 8, and the roster pinned 8 — for two audits, because the agreement test did `toMatch(/Unbounded list reads/)` on the TITLE and `toBe(8)` on the code, **never comparing the two**. Now the count is extracted from the doc and pinned to `ROSTER.length`. **FINDING 2**: enumerating every API list endpoint (instead of re-reading the known eight) found **`/v1/approvals`** — no cursor, while siblings `/v1/exceptions` (REQ-197) and `/v1/invoices` (REQ-010) both paginate. Filed as the 9th; **not fixed** — the remedy is a response-shape change and the hold says *needs a REQ row*. Clean negatives: `documents.ts` (per-shipment), `driver-manifest` (per-driver; its INDEX hold §185 is already filed). 3 REDs |
 | 271 | §823 | **§824** | **PHASE 46 CLOSED — the tenth list endpoint, found by a GATE instead of by me.** §823's named residual closed: nothing noticed a tenth unpaginated endpoint. **Why a second gate**: `/v1/approvals` has a `WHERE`, so §822's no-WHERE scanner is blind to it **by design** — §822 catches a table scan, §824 catches an endpoint handing an unbounded row set to a caller. Neither subsumes the other. **Discriminator corrected TWICE before writing**: `/\bLIMIT\b/i` over the handler body read `{ limit: 1 }` (a JS option on an unrelated read) as pagination, and read **`/v1/invoices` as PAGINATED when the roster carries both its lenses as unbounded** — which would have dropped a filed hold out of a completeness gate. `LIMIT` now counts only inside a `SELECT` literal. **Measured**: 6 endpoints, 2 bounded, **4 unbounded** — 3 filed + `/v1/driver/manifest`, which is **NOT** a pagination hold (scopes to `session.sub`, bounded per principal; its real defect is the §185 INDEX hold). 3 REDs, and unlike §817/§822 the planted violation went red on the FIRST draft — the discriminator was measured before the gate was written |
 | 272 | §824 | **§825** | **PHASE 47 CLOSED — two blind spots measured, one turned into a tripwire; rule 5 clean. NO DEFECTS FOUND — that is the result.** §824's residual settled by MECHANISM not an empty grep: mcp/agents/translator/billing have **0 hono imports, 0 route verbs**, raw `fetch()` only; MCP is the only other caller-facing worker and its **5 D1 reads are all single-row by PK** (4 with `LIMIT 1`), proxying data via `env.API`. But a measurement is true at one commit — so it is now a **TRIPWIRE**: any hono import or route verb outside `workers/api/` REDs, telling you to widen the scan rather than relax the test (proved by giving MCP a route table). **Rule 5 (REQ-040, PERMANENT) mutation-verified clean**: comparing GROSS under interline → **5 reds**; removing the partial-signal guard (legs w/o tenantParty **falls through** to the gross-comparing direct path) → **3**; dropping the split-totals-10000 validation → **2**. Sits with `allocateCents` among the best-defended code here. **No production code changed.** The nine filed unbounded-read holds remain unfixed — a public response-shape change that *needs a REQ row*, an owner call |
+| 273 | §825 | **§826** | **PHASE 48 CLOSED — the strongest gate in the repo, and the ONE LINE that opens it.** Rule 8 / REQ-025. `tenant-scope.test.ts` is an **allowlist**, not a shape detector, so it caught all five adversarial probes — direct, via a local, via a **header**, via the JSON **body**, and via a **helper function** — because none of those expressions is on the list. Fail-closed by construction; the best-designed gate audited. **Which is why the list was the finding**: nothing asserted `AUTHENTICATED`'s contents, and its own failure message invites additions. **Measured: one allowlist line + a request-derived local left the suite GREEN** — a legitimised cross-tenant read under the law whose row says one *anywhere* is a build failure. A text ban on `c.req` would NOT have caught it (the entry was `badTenant`, naming nothing), so the guard is the **exact-set pin**; growth is now a two-place change. **Stated limit: it makes an addition DELIBERATE, not CORRECT.** 3 REDs incl. *removing* an entry. **My own false alarm**: the first round reported all 4 forms EVADING — all 4 were anchor failures (`count==2`), no mutation ever applied; harness bugs fail TOWARD alarm |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -47816,3 +47817,77 @@ code changed this phase.**
   it is.
 - `approval.ts` grows a fourth path into `evaluateApproval` → the three mutations above cover the two paths
   that exist (interline, direct) and the guard between them. A third would need its own probe.
+## §826 — PHASE GATE: PHASE 48 CLOSED — the strongest gate in the repo, and the one line that opens it
+
+Rule 8 / REQ-025: *"Tenant isolation suite runs on every merge; a cross-tenant read anywhere is a build
+failure."* Applying §817's frame to the highest-severity law in the register.
+
+### The gate is genuinely strong, and strong for a STRUCTURAL reason
+
+`tenant-scope.test.ts` is an **allowlist**, not a shape detector: a tenant-scoped storage call fails unless
+its tenant argument is one of eight known-verified forms. Five adversarial probes, all **caught**:
+
+| laundering | caught |
+|---|---|
+| `c.req.query("tenant")` directly in the call | ✅ |
+| through a local variable | ✅ |
+| off a request **header**, through a local | ✅ |
+| out of the JSON **body**, through a local | ✅ |
+| through a **helper function** defined elsewhere in the file | ✅ |
+
+That last one is the tell. A denylist scanner loses to cross-function dataflow; an allowlist does not care how
+the value was produced, because `pickTenant(c)` simply is not on the list. **Fail-closed by construction** —
+which is why the denylist-shaped gates elsewhere in this repo keep needing evasion probes and this one does
+not. It is the best-designed gate I have audited.
+
+### Which is exactly why the list was the finding
+
+The whole guarantee rests on `AUTHENTICATED`, and **nothing asserted its contents**. It was referenced twice:
+once in the filter, once in the failure message — which reads *"add it to AUTHENTICATED with a note on what
+verifies it."* Correct advice for a genuine new source, and also the door.
+
+**Measured:** adding one line to the allowlist and pointing a route's tenant at a request-derived local left
+the suite **GREEN**. One line, and a cross-tenant read is legitimate — under the law whose register row says
+a cross-tenant read *anywhere* is a build failure.
+
+Note what the mechanical fix would NOT have caught: the planted entry was `"badTenant"`, a bare identifier
+naming nothing suspicious. A guard banning `c.req`-ish text in entries passes it happily. So the real guard
+is the **exact-set pin** (§807/§809/§822's idiom): membership is now fixed at its eight reviewed entries, and
+growth is a **two-place change** — the entry, and the assertion. The blatant-form ban ships too, as the cheap
+half that stops an accident.
+
+**What this cannot do, said plainly because the pin could be read as more than it is:** it makes an addition
+DELIBERATE, not CORRECT. A reviewer still has to judge whether a new source is genuinely authenticated; no
+assertion here can do that. What it removes is the *silent* path.
+
+Proved three ways — the exact green scenario → RED · a blatant request-input entry → RED (both assertions) ·
+**removing** a legitimate entry → RED, because a pin that only catches growth would let the list be quietly
+narrowed instead.
+
+### A false alarm of my own, worth the line
+
+My first evasion round reported **all four forms EVADING**. All four were harness failures: my anchor was a
+substring of a *different* line 48 lines up (one carries a trailing comment), so `count == 2`, the assertion
+threw, and no mutation was ever applied. Four zeros that looked like a catastrophic gap in REQ-025.
+
+[[keep-a-fixed-point-before-scaling-a-probe]] says harness bugs fail TOWARD alarming results, and this is
+that, precisely: **producing no mutation is indistinguishable from finding no defence.** The tracebacks were
+printed in the same output and I read them before writing anything down. Attribute the GREEN as carefully as
+the RED.
+
+### Exit state
+
+`test:tools` **1092** (+2), 3 failed — the unchanged REQ-289 baseline. typecheck 0, lint 0, `verify:docs` 0.
+`approvals.ts` and `tenant-scope.test.ts` restored byte-identical after eight mutations. **No production code
+changed** — the defect was in what the gate permitted, not in what the code did.
+
+**Reopen triggers**
+- A genuine new authenticated source appears (a new worker's identity, a second signed transport) → both the
+  entry and `AUTHENTICATED_MEMBERS` move together, and the reviewer's job is the note beside it. That is the
+  intended cost, not friction to be optimised away.
+- `GUARDED_FNS` gains an entry point whose tenant argument is positional in a new way → §702's completeness
+  test covers the roster of FUNCTIONS; this phase pinned the roster of SOURCES. Two lists, both now pinned,
+  and neither checks the other.
+- The suite's `MIN_CASES` floor (149, `isolation-suite.test.ts`) is a *count*, not a name pin — a suite could
+  swap 20 isolation cases for 20 unrelated ones and hold the number. Out of scope here and stated as the
+  residual it is.
