@@ -476,6 +476,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 281 | §833 | **§834** | **STOPPING POINT — the merge gate RE-MEASURED at `a83d17a`.** 26 gates (§807's pinned roster): **19 PASS · 2 FAIL · 5 BLOCKED**. Same shape as the pre-session board — 19 phases of hardening, **zero regressions**, every non-PASS owner-held (REQ-289 · the denylist secret · nine unvendored fixtures). **THE FINDING**: `pnpm test` is `test:tools **&&** pnpm -r test`, and `test:tools` exits 1 on the REQ-289 trio — so the second half **never executes**. A full run emits exactly **one** `Tests` summary. The board's *"unit-tests: FAIL"* reads as one known issue and actually means **the entire product suite is UNRUN in the merge gate**: 17 workspaces, **3,149 tests**. Run directly they are **green, exit 0** — so the defect is the REPORTING, not the code; a true statement a reader completes incorrectly. **Deliberately NOT changed**: `&&` → run-both is a change to what the gate DOES, with a real design question (fail fast vs complete picture) behind it — owner's call, and **it should be decided BEFORE REQ-289 lands**, because committing the row hides the defect again |
 | 282 | §834 | **§835** | **PHASE 56 CLOSED — seven modules claimed determinism and nothing enforced it.** §814's question applied to the *"no Date, no random"* claim: does the claim-set equal the ban-set? **25 claiming modules, 11 outside every ban** — and they are **two different things**. FIVE pure `packages/ledger` libraries (`contacts`, three `geo/*`, `money/derive-split`) + TWO translator pure cores: real gaps, now banned. FOUR are **not defects** — `biller`/`booking`/`concierge` scope the sentence to a **derived id**, not the module; recorded with what they actually claim. **The translator ban is a DELIBERATE SUBSET**: `build-214.ts:72` does `new Date(e.ts).toISOString()`, a pure conversion — the blanket selector every other block uses would flag correct code, and a block that flags correct code gets deleted rather than obeyed. Proved: `Date.now()` banned, `new Date(ms)` allowed. §815's replacement hazard **checked, not assumed**. + a discovery half (3 REDs). **§834 shipped with a 4th failure I did not measure** — its heading omitted the `PHASE GATE:` prefix `phase-index` requires; I ran `verify:docs` and not `test:tools`. *The check I remember to run is not the check the edit affects* |
 | 283 | §835 | **§836** | **PHASE 57 CLOSED — the development loop reaches 4 of its 16 gates.** `pnpm verify` is `verify:dev`, a 16-step **`&&` chain** with `pnpm test` at step 4 — and `test:tools` exits 1 on the REQ-289 trio, so it **stops there**. Measured: runtime's OK line, a `Tests 3 failed` summary, and nothing else; twelve gates (invariants, coverage, traceability, identity, 3 parity gates, design audit…) **never execute**. `verify:merge` is a RUNNER that executes all 26 and aggregates — so the command you run constantly truncates and the one you run rarely is complete. **The repo's own principle turned on its tooling**: REQ-197/010 forbids a bare `LIMIT` because it *truncates silently*, and twelve unrun gates are indistinguishable from twelve passing ones. CLAUDE.md said *"leave the build green"* and **named no command** — which is why this session ran remembered subsets and §835 shipped a red. Working agreement now names `verify:merge`, with the measurement. **`&&` still NOT changed** (§834's reasoning). **4th forward-reference** — and §831 had written the rule itself |
+| 284 | §836 | **§837** | **PHASE 58 CLOSED — one LAW gate reachable only by the command nobody ran.** §836's residual: membership, not depth. All **16** dev steps map onto merge gates; the merge roster has **10** more, and they sort cleanly — 6 are browser/build gates a fast loop may skip, 3 (`citations`, `section-refs`, `table-shape`) are **covered by `verify:docs`**, and **`append-chokepoint` is covered by NOTHING**. It enforces REQ-030 (*the events table has exactly one writer*) and ran only under `verify:merge` — the command §836 established was not being run. **The omission is not cost-based, and that is the evidence**: timed at **544ms**, the MIDDLE of the in-chain range (458–942ms), with seven cost-matched peers already in the chain and every other absentee holding a second home. Added — **additive, cost-matched, no semantic change**, which is why this was in scope where §834's and §836's `&&` questions were not. **Residual named**: the two gate lists live in different files and **nothing compares them**; this phase compared by hand |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -48585,3 +48586,71 @@ changed in CLAUDE.md; **no production code, no gate logic**.
 - A gate is added to `verify:dev` but not to the merge roster (or vice versa) → the two lists are maintained
   by hand in different files and nothing compares them. Stated as unswept: this phase measured the *depth*
   the chain reaches, not whether its *membership* matches `verify:merge`'s 26.
+## §837 — PHASE GATE: PHASE 58 CLOSED — one law gate reachable only by the command nobody ran
+
+§836 measured how *deep* `verify:dev` gets (4 of 16) and left its *membership* unswept. This closes that:
+does the dev chain's gate list match the merge roster's 26?
+
+### The comparison
+
+All **16** `verify:dev` steps map one-to-one onto merge gates. The merge roster carries **10** more, and they
+sort cleanly into three groups:
+
+| merge-only gate | why it is absent from the dev loop |
+|---|---|
+| `perf` · `visual` · `a11y` · `e2e` · `bundle-ratchet` · `acceptance` | browser and build gates — genuinely expensive, and a fast inner loop is allowed to skip them |
+| `citations` · `section-refs` · `table-shape` | **covered by `verify:docs`**, which a session does run |
+| **`append-chokepoint`** | **covered by nothing** |
+
+`check:chokepoint` enforces REQ-030 — *the events table has exactly one application writer* — and it is in
+neither `verify:dev` nor `verify:docs`. It runs only under `verify:merge`, the command §836 established was
+not being run.
+
+### The omission is not about cost, and that is the evidence
+
+Timed every cheap static gate:
+
+| gate | ms | in dev chain |
+|---|---|---|
+| invariants | 942 | yes |
+| citations | 1130 | no (in `verify:docs`) |
+| seed | 547 | yes |
+| **chokepoint** | **544** | **no** |
+| traceability | 539 | yes |
+| table-shape | 518 | no (in `verify:docs`) |
+| section-refs | 496 | no (in `verify:docs`) |
+| rater-purity | 473 | yes |
+| authority-coverage | 469 | yes |
+| identity | 458 | yes |
+
+544ms sits in the **middle** of the in-chain range (458–942). Seven cost-matched peers are in the chain and
+this one is not, and every other absentee has a second home. That asymmetry is what makes this an oversight
+rather than a decision — a design choice to skip a gate would show up as a cost outlier or as a stated reason,
+and it is neither.
+
+### The fix, and why this one is in scope when §834's and §836's were not
+
+Added to `verify:dev`. This is **additive**, cost-matched, and changes no semantics: the chain still
+short-circuits exactly as before, and a gate appended to it cannot alter what ran before it.
+
+That is a different act from the two I declined. §834 and §836 both refused to turn `&&` into
+run-all-then-aggregate, because that changes what a documented command *means* and carries a real tradeoff
+(fail fast, or always pay for the full picture). Adding one 544ms static check that enforces a CLAUDE.md law,
+alongside the seven already there, has no tradeoff to weigh — the only question was whether its absence was
+deliberate, and the cost table answers that.
+
+### Exit state
+
+`verify:dev` now runs 17 steps; `check:chokepoint` still passes (*"the events table is written by 2
+allowlisted module(s)"*). `test:tools` **1099**, 3 failed — the REQ-289 trio. typecheck 0 · lint 0 ·
+`verify:docs` 0. **No production code, no gate logic** — one script line.
+
+**Reopen triggers**
+- A gate is added to the merge roster → check whether it belongs in the dev chain too. The two lists live in
+  `package.json` and `tools/release/*` and **nothing compares them**; this phase compared them by hand, which
+  is a measurement with an expiry, not a standing guarantee. A gate for it is buildable and is the obvious
+  successor — the same shape §822 built for rosters and §824 for endpoints.
+- `verify:dev` grows past the point where developers stop running it → the cost table above is the input to
+  that judgement, and it should be re-measured rather than argued.
+- A cheap gate is deliberately kept out of the dev loop → say so where the script is defined. This phase could
+  only tell oversight from decision because every other absentee had a visible second home.
