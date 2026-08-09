@@ -393,6 +393,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 198 | §750 | **§751** | **Applied §750's upgrade: four falsification recipes written AT the guards, each re-run to prove it reproduces.** The mutations for §739/§740/§749's guards were measured by hand this session and were about to live only in an audit file nobody reads while editing the guard. Each recipe names the mutation, the suite and the exact failing test, plus what the mutation did BEFORE that test existed (224/224, 661/661, 23/23, 28/28 green). **4 of 4 reproduce**, all sources restored byte-identical — because §750's own trigger says an unverified recipe *"is worse than none, it reads as verified"*. **The harness lied once**: R2 reported *red: 0* because vitest prints `× <describe> > <test>` and my pattern assumed the test name started the line. 8th instrument slip; benign direction here, the same error produced a false CLEAN in §744 |
 | 199 | §751 | **§752** | **When a guard cannot be pinned, pin the condition that keeps it unnecessary.** The MCP cap meter guards MONEY (spend/velocity on `book_shipment`, external OAuth surface) with the same mutex pattern as the sequencer — and its comment says *"deleting this line is SILENT in CI"*. **Both halves verified: deletion leaves 17/17 green** (incl. a SIX-concurrent-book race), because all 3 awaits in `#checkAndReserve` are `ctx.storage.*` and the DO input gate already serializes those. §319 would end at *an unenforced trigger is a hope* — but *"a future non-storage await"* is a property of the SOURCE, so it is gateable. New gate pins the **precondition**, not the guard; fires on exactly the edit the comment warns about. 2 mutations RED + 2 non-vacuity floors |
 | 200 | §752 | **§753** | **The same silent guard in a SECOND meter — found by following §752's own trigger instead of waiting.** Three lock-guarded DOs: sequencer's mutex deletion **REDS** (§750, D1 awaits ⇒ load-bearing ⇒ testable); `CapsMeter` **17/17 silent** and `SparkMeter` **122/122 silent**, both because all 3 awaits are `ctx.storage.*` and the input gate already serializes those. Gate rewritten to **derive** its roster (§699) so a fourth DO lands covered; sequencer exempt **with its reason**, plus a staleness check so the exemption cannot outlive its subject. **My own scan was wrong and this file's own floor caught it** — `#append` matched as a CALL first, returning a garbage body with 0 awaits; `methodBody` now anchors on a declaration. 3 mutations RED |
+| 201 | §753 | **§754** | **The driver-sync Critical's fix, re-verified — defended.** A prior audit's worst defect: *"one transient 4xx stranded a signed capture forever"* — a driver signs at a door, the device holds the proof, nothing ever sends it. Mutating the re-probe to `Number.MAX_SAFE_INTEGER` (a park that never re-probes = the pre-fix behaviour) **REDS** *"a parked item RE-PROBES after its window and drains when the refusal clears (an ordering race self-heals)"* — a test whose name asserts the COUNTERFACTUAL (§742's strongest shape). Design note worth keeping: the fix does not PREVENT the ordering race, it makes it **survivable** — ordering across independent captures cannot be guaranteed from a device, so the guarantee to make is that a wrong order is temporary |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -43134,3 +43135,49 @@ byte-identical. The gate is renamed `do-mutex-preconditions.test.ts` to match th
   observable first (a test that FAILS without it), then move the file to `PINNED_BY_TEST`.
 - Cloudflare changes input-gate semantics → every row of the table above inverts. Re-run the three deletion
   probes; do not reason from a changelog.
+## §754 — PHASE GATE: the driver-sync Critical's fix, re-verified
+
+A prior session's convergence audit recorded its worst defect in the driver offline queue, and
+`packages/driver-core/src/sync.ts` still carries the diagnosis verbatim:
+
+> *"a park, NOT a grave … Two things were wrong: an ordering race made a legitimately-capturable event take a
+> 403 GATE_BLOCKED (its prerequisite had not drained yet), and the park had no exit at all — no listing, no
+> retry, no un-park anywhere in the repo, so **one transient 4xx stranded a signed capture forever** with the
+> evidence bytes never uploading."*
+
+That is the worst failure this product can have: a driver signs at a door, the device holds the proof, and
+nothing ever sends it. §750's question applies — is the *fix* defended, or only the diagnosis?
+
+### Defended
+
+| mutation | result |
+|---|---|
+| `nextAttemptAt: ports.now() + OPERATOR_REPROBE_MS` → `Number.MAX_SAFE_INTEGER` (a park that never re-probes — the pre-fix behaviour exactly) | **RED** — *"a parked item RE-PROBES after its window and drains when the refusal clears (an ordering race self-heals)"* |
+
+The test's name asserts the **counterfactual**, which §742 identified as the strongest shape a regression pin
+can take: it does not say "parked items have a timestamp", it says the ordering race self-heals. Restoring the
+mutation returns 41/41.
+
+### The design choice is worth recording separately
+
+The fix does not prevent the ordering race — it makes the race **survivable**. The server append is idempotent
+by event id, so a re-probe is always safe, and a dispatcher-side correction (the prerequisite lands, an
+assignment is restored) heals the queue without anyone touching the device.
+
+That is the right shape for a distributed offline queue: ordering across independent captures cannot be
+guaranteed from the device, so the guarantee to make is that a wrong order is **temporary**. A fix that tried
+to enforce order would have been a stronger-sounding claim the client cannot keep.
+
+### Exit state
+
+No code changed. `packages/driver-core` **41/41**; `test:tools` 1037; lint 0; typecheck 0. Source restored
+byte-identical.
+
+**Reopen triggers**
+- `OPERATOR_REPROBE_MS` is raised materially → the park drifts back toward a grave in practice while staying a
+  park in principle. The named test pins the mechanism, not the duration; a shift-length bound is the property
+  that matters ("short enough that a dispatcher-side fix lands the capture the same shift").
+- A new terminal phase is added to the queue state machine → check it re-probes too. The defect was a state
+  with no exit, and one such state is enough.
+- The server append stops being idempotent by event id → re-probing stops being safe, and this entire fix
+  inverts. That idempotence is the load-bearing premise and it is stated in the comment, not enforced here.
