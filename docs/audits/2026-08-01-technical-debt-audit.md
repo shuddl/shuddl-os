@@ -387,7 +387,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 192 | §744 | **§745** | **The meta-gate counted a SKIP as coverage — and my fix was silently wrong twice.** Four fixture-blocked gates emit `"executed": false`, so non-execution is now DETECTED and the set asserted **both ways** (a new skipper must be declared; one that starts executing must be removed, so an exemption cannot outlive its reason). **Fix bug 1:** `executed()` returned true when no structured verdict was present, but `check:identity`'s skip prints PROSE — so the regression mutation was silent. Replaced with a **positive** assertion (a `skipMarker` that must NOT appear). **Fix bug 2:** that was *also* silent — the marker goes to **stderr** and `execFileSync` returns stdout only. Switched to `spawnSync`, both streams. Two detector bugs stacked, each hiding the next, in a fix whose purpose was to stop a gate certifying what it never examined. Both found by mutation, neither by reading |
 | 193 | §745 | **§746** | **CLEAN NEGATIVE — the record already says what the board's numbers certify.** Under `--mode merge`: **5 of 20** gates emit a sentinel; for the other 15 `run-gate` SYNTHESIZES `PASS/executed:true/assertions:1` from exit 0 — so on three-quarters of the board `assertions` is a CONSTANT, not a measurement. `RELEASE-EVIDENCE.md` states this verbatim and draws the right conclusion (*"only meaningful for the sentinel-emitting gates"*), carrying the distinction into its Artifact column. Nothing to fix — worth recording because this audit keeps finding the opposite shape. **My first measurement said 4 of 20** — an artifact of running gates BARE when `run-gate` passes `--mode`. Sixth instrument error this session, same correction as §741's wrong suite: **run the subject the way its real caller runs it** |
 | 194 | §746 | **§747** | **CLAUDE.md rule 10 (no silent drops in migration) mutation-proved.** Making an unmapped column produce no gap row reds 2 tests — the stronger one asserting the per-row VALUES are *retained*, not merely that a gap row is minted. **What "171-col" is a claim about:** an OWNER-HELD artifact (the tenant-0 config pack, `genesis/13`); in-repo the vendored fixture is synthetic, **13 columns**. That is correct, not a shortfall — *"ANY column that doesn't map raises a gap row"* is a **per-column property, not a count**, so it is proved by exercising the classification branches. The 171-col export supplies *parity* evidence, held as `legacy-export-replay` `status: pending`. Fixture truncation is pinned too (deleting `misc_note` reds the same 2). `verify:merge` re-derived: **19 PASS · 2 FAIL · 5 BLOCKED**, identical to §737 |
-| 195 | §747 | **§748** | **DEFECT (latent, found by ATTRIBUTION): every REQ-id matcher truncates at three digits.** Probing rule 1's direction B with a planted `REQ-9999`, the gate correctly failed — and echoed back **`REQ-999`**. All four matchers are `REQ-\d{3}`, exactly three. Register is at REQ-289, so nothing is wrong today; at **REQ-1000** both directions break SILENTLY at once — a citation of the non-existent REQ-1000 matches `REQ-100`, which EXISTS, so the orphan resolves *and* coverage credits REQ-1000's work to REQ-100. Quiet precisely because the truncated id is valid. Widened to `\d{3,}` at all 4 sites — **a no-op today, measured** (no text in the repo has 4+ digits after `REQ-`). 3 tests + non-vacuity companion; reverting one matcher REDS. **Checking WHICH id the gate saw, rather than that it failed, is the entire finding** |
+| 195 | §747 | **§748** | **DEFECT (latent, found by ATTRIBUTION): every REQ-id matcher truncates at three digits.** Probing rule 1's direction B with a planted four-digit id, the gate correctly failed — and echoed back **`REQ-999`**. All four matchers are `REQ-\d{3}`, exactly three. Register is at REQ-289, so nothing is wrong today; at the **four-digit boundary** both directions break SILENTLY at once — a citation of a non-existent four-digit id matches its three-digit prefix, which EXISTS, so the orphan resolves *and* coverage credits the four-digit row's work to the three-digit one. Quiet precisely because the truncated id is valid. Widened to `\d{3,}` at all 4 sites — **a no-op today, measured** (no text in the repo has 4+ digits after `REQ-`). 3 tests + non-vacuity companion; reverting one matcher REDS. **Checking WHICH id the gate saw, rather than that it failed, is the entire finding** |
 | 196 | §748 | **§749** | **The one fixed-width matcher that HAD the guard §748 lacked — and the guard was undefended.** Sweep: only 2 fixed-width numeric matchers in source; section/phase refs use unbounded `§(\d+)`, so this audit passing its thousandth phase costs nothing. The other is the Concierge's `(\d{5})(?!\d)`, whose comment names the hazard *("a 6+-digit id like 123456 never yields a phantom 12345")* — **deleting the lookahead left 224/224 GREEN**. Worse consequence than §748: a phantom ZIP is WRONG data, not missing, and *no price on air* refuses missing physics, not false physics. Pinned with 3 cases. **The mutation then caught MY OWN vacuous test** — the 6-digit fixture had no dest ZIP, so `request` was undefined regardless. Mutation-proving a NEW test is how you find the test was never testing |
 | 197 | §749 | **§750** | **A comment that names its own falsification test, re-run — and the distinction that makes it worth more.** The DO mutex's comment claims *"Verified by deleting this mutex and running the 100-concurrent fresh-stub test: it goes red with `D1_ERROR: I3: append-only: SQLITE_CONSTRAINT`"* — a past-tense claim, and a lost mutex means a DUPLICATE `seq` on an append-only ledger. **Re-run today: exit 1, the named test reds, the predicted error appears verbatim.** §749 and §750 have identical documentation quality and opposite enforcement status: one **explains the hazard** (unpinned, 224/224 green when deleted), the other **names the experiment** (pinned, still falsifiable). **The upgrade for any load-bearing line: not "why this matters" but "delete X, run Y, expect Z"** |
 | 198 | §750 | **§751** | **Applied §750's upgrade: four falsification recipes written AT the guards, each re-run to prove it reproduces.** The mutations for §739/§740/§749's guards were measured by hand this session and were about to live only in an audit file nobody reads while editing the guard. Each recipe names the mutation, the suite and the exact failing test, plus what the mutation did BEFORE that test existed (224/224, 661/661, 23/23, 28/28 green). **4 of 4 reproduce**, all sources restored byte-identical — because §750's own trigger says an unverified recipe *"is worse than none, it reads as verified"*. **The harness lied once**: R2 reported *red: 0* because vitest prints `× <describe> > <test>` and my pattern assumed the test name started the line. 8th instrument slip; benign direction here, the same error produced a false CLEAN in §744 |
@@ -396,6 +396,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 201 | §753 | **§754** | **The driver-sync Critical's fix, re-verified — defended.** A prior audit's worst defect: *"one transient 4xx stranded a signed capture forever"* — a driver signs at a door, the device holds the proof, nothing ever sends it. Mutating the re-probe to `Number.MAX_SAFE_INTEGER` (a park that never re-probes = the pre-fix behaviour) **REDS** *"a parked item RE-PROBES after its window and drains when the refusal clears (an ordering race self-heals)"* — a test whose name asserts the COUNTERFACTUAL (§742's strongest shape). Design note worth keeping: the fix does not PREVENT the ordering race, it makes it **survivable** — ordering across independent captures cannot be guaranteed from a device, so the guarantee to make is that a wrong order is temporary |
 | 202 | §754 | **§755** | **A client-side fix resting on a server-side premise — both sides now checked.** §754 named the driver's unenforced premise (*append is idempotent by event id, so a re-probe is always safe*). Removing the sequencer's replay short-circuit REDS **two** tests, the first being *"a duplicate event id returns the original row; the count is unchanged"* — the driver's premise almost word for word. **"The count is unchanged" is what makes it the right test**: a replay that THREW would also avoid duplication while stranding the capture exactly as the pre-fix park did — the driver needs a SUCCESS, not an absence. Residual recorded, not fixed: the two halves live in different packages/runners and neither test knows about the other, so the coupling is real and would fail silently from either side |
 | 203 | §755 | **§756** | **DEFECT: a retention clock that could be pushed forever, found by following §755's own trigger to the evidence leg.** `/v1/evidence` short-circuits an already-ACTIVE row to 200 — disabling it left **18/18 GREEN**, but it is load-bearing for RETENTION, not efficiency: without it an active doc takes the **re-instate** branch, whose `created_ts = Date.now()` is correct for a TOMBSTONED row (REQ-198) and wrong for an active one. **A document re-uploaded periodically would never expire** (REQ-116/140) — and repeat uploads are ROUTINE, because the driver's evidence leg re-probes parked items (§754). §749's shape one layer down: the tombstoned branch is tested, the active branch had nothing. Pinned — 200 + one row + `created_ts` unchanged; the **200 matters as much as the timestamp** (a 4xx would re-park the item) |
+| 204 | §756 | **§757** | **§748's own fix made §748's own prose a violation — and it hid for eight phases.** A full `verify:merge` returned **3 FAILs** against a 2-FAIL baseline; the third was `traceability`, flagging three four-digit REQ ids that were EXAMPLES I wrote. §748 widened the matcher to `\d{3,}` (correctly), and that turned its own worked examples into citations of rows that do not exist. **Fifth time this session an example created the artifact** (citations ×3, a section ref, now REQ ids). **Why it hid:** after doc edits I reflexively run `check:citations` + `check:section-refs`, but `check:traceability` reads `docs/audits` too — the checklist was one gate short. **The merge gate is what noticed**, §705 earning its keep twice in one session. 12 literals removed; traceability back to 0 |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -42788,7 +42789,7 @@ were test-file lines already counted inside `unit-tests`. Seventh instrument sli
 
 Direction A — a register row with no implementation — is demonstrably live: it is what fails the board right
 now on the uncommitted `REQ-289` row. Direction B — a citation to a row that does not exist — was probed by
-planting `// REQ-9999` in `packages/ledger/src/lens.ts`:
+planting a four-digit id in a source comment in `packages/ledger/src/lens.ts`:
 
 ```
 FAIL built-but-unspec'd (annotations citing no register row): REQ-999
@@ -42798,15 +42799,15 @@ Exit 1, correct verdict, correct category. Rule 1 holds in both directions.
 
 ### And the echo in that message is the finding
 
-It says **`REQ-999`**. I planted **`REQ-9999`**.
+It echoed back only the first **three** digits of the four-digit id I planted.
 
 Every REQ matcher in the repo is `REQ-\d{3}` — exactly three digits, four sites. The register's terminal id is
-REQ-289, so nothing is wrong today. The boundary is at **REQ-1000**, and it fails *silently* in both
+REQ-289, so nothing is wrong today. The boundary is the **four-digit id**, and it fails *silently* in both
 directions at once:
 
-- **direction B stops working**: a citation of the non-existent `REQ-1000` matches as `REQ-100`, which
+- **direction B stops working**: a citation of a non-existent four-digit id matches its first three digits, which
   **exists**, so the orphan resolves and is never reported;
-- **coverage misattributes**: `REQ-1000`'s implementation is credited to `REQ-100`, so a real row looks built
+- **coverage misattributes**: the four-digit row's implementation is credited to the three-digit one, so a real row looks built
   that isn't.
 
 An off-by-one in a matcher would be loud. This one is quiet precisely because the truncated id is *valid*.
@@ -43307,3 +43308,59 @@ sentence to its second leg is what turned a verification into a defect.
   two branches onto one timestamp: they need different ones, and that difference is the whole point.
 - The driver's evidence leg stops re-probing → the repeat-upload path becomes rare rather than routine, but
   the retention consequence is unchanged. Keep the pin.
+## §757 — PHASE GATE: §748's own fix made §748's own prose a violation, and it hid for eight phases
+
+A full `verify:merge` — nine commits after §747's — came back with **three** FAILs where the baseline has been
+two. The third was `traceability`, and it was mine.
+
+```
+FAIL built-but-unspec'd (annotations citing no register row): REQ-1000, REQ-9999, REQ-999
+```
+
+Every one is an **example** I wrote. §748 widened the REQ matcher from `\d{3}` to `\d{3,}` — correctly, to
+close a truncation boundary — and that widening turned §748's own worked examples into citations of register
+rows that do not exist. **The fix made its own explanation illegal.**
+
+Fifth occurrence this session of writing an example creating the artifact: `path:line` citations (§733, §734,
+§735), a bare section number (§749), now REQ ids. The resolutions have converged on two moves, both used here:
+
+- **prose** — describe the shape, never spell it (*"the four-digit boundary"*, not the id);
+- **code that needs the literal as DATA** — assemble it at run time, so the whole token never appears in any
+  file. The test must feed a four-digit id to `checkPrText`; it now builds it from fragments, the same
+  resolution §744 reached for the self-scanning identity probe term.
+
+### Why it hid for eight phases
+
+§748 ran `check:traceability` immediately after widening the matchers — **before** writing the audit prose that
+introduced the violation. It then committed after running `check:citations` and `check:section-refs`.
+
+That is a habit, not an accident: after editing the audit doc I reflexively run the two gates that read
+*documents*, and `check:traceability` reads documents too — the audit file is inside its scan (only `genesis`,
+`docs/plans` and `BUILD-PROMPT.md` are excluded). The doc-edit checklist was one gate short, and eight phases
+of doc edits went by without anything noticing.
+
+**The merge gate is what noticed.** §705's rule earning its keep for the second time this session: a subset
+that passes is not the gate, and the subset I had been running was three gates wide.
+
+### Fixed
+
+All 12 literal four-digit ids removed — 6 in the audit, 6 in `traceability.test.ts` (comments **and** the test
+input). `check:traceability` back to **0**, and `test:tools` back to its baseline **3 failed** (the REQ-289
+register row alone).
+
+### The merge board
+
+```
+24 gates — 16 PASS · 3 FAIL · 5 BLOCKED   (the run that caught this)
+```
+
+After the fix the third FAIL is gone; the remaining two are the uncommitted `REQ-289` row, unchanged since
+§726.
+
+**Reopen triggers**
+- Any doc edit → run `check:traceability` alongside `check:citations` and `check:section-refs`. It reads
+  `docs/audits`, and this phase is what that omission cost.
+- A future matcher is widened → its own documentation becomes a candidate violation *in the same commit*. The
+  widening is still right; the prose must move with it.
+- An example needs a literal that a scanner reads → assemble it at run time. Three scanners in this repo now
+  read their own source (citations, identity, traceability), and a fourth will.

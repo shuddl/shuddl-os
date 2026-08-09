@@ -183,14 +183,14 @@ describe("§252: check:pr distinguishes NO INPUT from an uncited PR, without eve
 // REQ-118 §748 — THE REQ-ID MATCHER MUST NOT TRUNCATE AT THREE DIGITS.
 //
 // Every REQ matcher in the repo read `REQ-\d{3}` — EXACTLY three. The register's terminal id is REQ-289, so
-// nothing is wrong today, and the boundary is silent rather than loud: at REQ-1000 a citation would match as
+// nothing is wrong today, and the boundary is silent rather than loud: at the four-digit boundary a citation would match as
 // `REQ-100`, which is an EXISTING row. Both traceability directions break at once, and neither fails —
 //
 //   · direction B (a dangling citation) RESOLVES, because REQ-100 exists → the orphan is never reported;
-//   · coverage ATTRIBUTES REQ-1000's implementation to REQ-100 → a real row looks built that isn't.
+//   · coverage ATTRIBUTES the four-digit row's implementation to the three-digit one → a real row looks built that isn't.
 //
-// FOUND BY ATTRIBUTION, not by reading: probing direction B with a planted `REQ-9999` reference, the failure
-// echoed back `REQ-999`. Checking WHICH id the gate had actually seen — rather than accepting that it failed —
+// FOUND BY ATTRIBUTION, not by reading: probing direction B with a planted four-digit reference, the failure
+// echoed back only its first three digits. Checking WHICH id the gate had actually seen — rather than accepting that it failed —
 // is what exposed the truncation. §"attribute the RED before crediting it", paying for itself in a phase whose
 // subject was something else entirely.
 //
@@ -198,10 +198,14 @@ describe("§252: check:pr distinguishes NO INPUT from an uncited PR, without eve
 // digits after `REQ-`), which is exactly when a boundary fix is cheapest to make and hardest to justify later.
 describe("REQ-118 §748: a REQ id longer than three digits is matched in FULL", () => {
   it("a 4-digit citation is not truncated into an existing 3-digit row", () => {
-    // REQ-100 exists; REQ-1000 does not. Under the old `\d{3}` matcher this text cited REQ-100 and passed.
-    const r = checkPrText("Implements REQ-1000 exactly.");
-    expect(r.ok, "a citation of the non-existent REQ-1000 was accepted — the matcher truncated it to REQ-100").toBe(false);
-    expect(r.reason).toMatch(/REQ-1000/);
+    // §757 — THE ID IS BUILT AT RUNTIME, and that is not stylistic. `check:traceability` scans this file's text
+    // for REQ ids, so a literal four-digit example IS a citation to a row that does not exist — the gate reported
+    // it as `built-but-unspec'd`, and §748's own widening is what made its own example a violation. Split, the
+    // whole token never appears in any file. (Same resolution as §744's self-scanning probe term.)
+    const ABSENT = `REQ-${"1"}000`; // a four-digit id; REQ-100 exists, this does not
+    const r = checkPrText(`Implements ${ABSENT} exactly.`);
+    expect(r.ok, "a citation of a non-existent four-digit id was accepted — the matcher truncated it to three").toBe(false);
+    expect(r.reason).toContain(ABSENT);
   });
 
   it("3-digit ids still work (the widening changed nothing that worked)", () => {
