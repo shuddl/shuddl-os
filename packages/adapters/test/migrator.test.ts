@@ -258,6 +258,85 @@ describe("THE LAW — colliding / duplicate columns are RETAINED and flagged, NE
   });
 });
 
+// ── §818 — THE LAW AS A PROPERTY, NOT AS FIVE CSVs ────────────────────────────────────────────────────────
+//
+// CLAUDE.md rule 10: "any legacy column that doesn't map raises a gap row — NEVER disappears." Five `THE LAW`
+// blocks above prove that, each against a fixture someone wrote. So the law is proven for the header shapes
+// we thought of, which is not the same claim.
+//
+// MEASURED (§818): planting a real silent drop — `if (p.header.trim() === "") continue;` in the gap emitter —
+// left the fixture suite **19/19 GREEN**, because no fixture has a blank header. This property REDs on it.
+// A blank header is not exotic: one trailing comma in a legacy export produces a column with no name, and
+// under that mutation its values would vanish with no gap row and no anomaly — precisely the silent drop the
+// rule exists to forbid.
+//
+// The generator uses a seeded LCG rather than Math.random — not merely for determinism: `Math.random` is
+// BANNED across `packages/adapters/**` by the determinism selectors in eslint.config.mjs (see §815).
+function lcg(seed: number): () => number {
+  let s = seed >>> 0;
+  return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
+}
+
+// Canonical, unmapped, collision-prone and DEGENERATE headers in one pool — the last group is the one no
+// fixture covers, and the reason this test exists.
+const HEADER_POOL = [
+  "Customer", "PRO", "Weight", "Origin City", "Destination City", // map cleanly
+  "Notes", "Phone", "Salesperson", "Special Instructions", // unmapped
+  "Bill To", "bill_to", "Gross Weight", "PRO", "Customer", // collide / duplicate
+  "", "   ", "---", "123", "Ünïcødé", // degenerate — unfixtured
+] as const;
+
+describe("§818 THE LAW as a property — no column disappears, for header shapes nobody fixtured", () => {
+  const SEEDS = 300;
+  const corpus = Array.from({ length: SEEDS }, (_, i) => {
+    const r = lcg(i + 1);
+    const n = 2 + Math.floor(r() * 8);
+    return Array.from({ length: n }, () => HEADER_POOL[Math.floor(r() * HEADER_POOL.length)]!);
+  });
+
+  it("every column is either APPLIED or carries exactly ONE gap row", () => {
+    const violations: string[] = [];
+    for (const headers of corpus) {
+      const csv = `${headers.join(",")}\n${headers.map((_, i) => `v${i}`).join(",")}\n`;
+      const sheet = parseSheet(csv);
+      const res = mapSpreadsheet(sheet);
+      const plans = resolveColumnMapping(sheet.headers);
+      const applied = new Set(plans.flatMap((p, i) => (p.decision === "apply" ? [i] : [])));
+      const ordinals = res.gapRows.map((g) => g.columnOrdinal);
+
+      for (let c = 0; c < sheet.headers.length; c++) {
+        const gapped = ordinals.filter((o) => o === c).length;
+        if (!applied.has(c) && gapped === 0) {
+          violations.push(`SILENT DROP: col ${c} ${JSON.stringify(headers[c])} in ${JSON.stringify(headers)}`);
+        }
+        // Exactly one, not merely at least one: two gap rows for one column mint two anomalies for one
+        // problem, which is how a review queue becomes noise the operator learns to ignore.
+        if (gapped > 1) {
+          violations.push(`DOUBLE-COUNTED: col ${c} ${JSON.stringify(headers[c])} → ${gapped} gap rows`);
+        }
+      }
+    }
+    expect(violations.slice(0, 5), `${violations.length} violation(s) of the no-silent-drop law`).toEqual([]);
+  });
+
+  it("the corpus actually contains the shapes it claims to (NON-VACUITY)", () => {
+    // Without this, narrowing the pool or the seed count would quietly turn the property above into a test
+    // of five ordinary headers — passing, and proving nothing. The §796 lesson: a green scan is only worth
+    // what its corpus is worth, so the corpus is asserted, not assumed.
+    const flat = corpus.flat();
+    expect(corpus.length).toBe(SEEDS);
+    for (const shape of ["", "   ", "---", "123", "Ünïcødé"]) {
+      expect(flat, `the generated corpus never produced ${JSON.stringify(shape)}`).toContain(shape);
+    }
+    // and at least one set with a repeated header, which is the collision path
+    expect(
+      corpus.some((h) => new Set(h).size < h.length),
+      "no generated header set contains a duplicate — the collision path is untested",
+    ).toBe(true);
+  });
+});
+
+
 describe("the LLM-overridable seam (resolveColumnMapping)", () => {
   it("an override places an otherwise-unmapped header (confidence ≥ floor ⇒ applied)", () => {
     const sheet = parseSheet(brokerLoads);

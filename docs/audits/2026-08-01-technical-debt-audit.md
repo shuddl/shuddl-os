@@ -457,6 +457,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 262 | §814 | **§815** | **PHASE 37 CLOSED — the replacement hazard swept across every multiply-declared rule.** §814's exit note claimed REQ-024's LLM ban had no parity problem; §803's rule says check it — **the claim HELD** (one block). Checking surfaced the general sweep: `no-restricted-globals` (3 blocks, **DISJOINT** — safe) · `no-restricted-imports` (§814) · `no-restricted-syntax`, where **`packages/adapters/**` appears TWICE**. The `ledger/src/gates/**` block looked dangerous but declares a **different rule name** than the fetch ban — no replacement. The real overlap is **correct by construction**: the adapters-only block is a strict SUPERSET (adds `crypto.randomUUID`), so adapters is deliberately stricter. **Not a defect — but nothing pinned that it STAYS a superset**; now asserted, and dropping a selector REDs. **Two more instrument errors caught by the clean tree** (a 6-space terminator matched zero blocks; a tuple cast failed typecheck) |
 | 263 | §815 | **§816** | **PHASE 38 CLOSED — the money core swept for float and for unpinned claims.** CLAUDE.md's money law (*no float ever touches a monetary value*) has **no gate**; swept by hand. `allocateCents`/`apportion` are the **best-defended arithmetic in the repo** — 500-case property tests for BOTH signs, postconditions in-code, and the tie-break pinned exactly by `apportion(10_000,[1,1,1]) → [3334,3333,3333]`. `money.ts`: 7 mutations, 5 covered, **2 silent** — resolved to **sibling guard** (`BigInt()` throws anyway), so LOW and **deliberately not fixed**. **THE FIND**: `detectAnomaly` (REQ-040, permanent) threw on a non-integer `cap` and `weight_lb` but accepted a fractional `sell_cents`, which fell to `Math.round(sell / weight)` — **the only float division on money in the repo**, in a module whose header has always claimed *"integer cents in"*. The branch was **dead** (a constant left it 157/157). Fixed + 3 tests. **No number changed** — searched 2^45..2^53 × 5 divisors for a case where `Math.round` disagrees with half-up: NONE, so the deletion was a law/legibility fix, not a mispricing fix, and the record says so |
 | 264 | §816 | **§817** | **PHASE 39 CLOSED — the money law gets a gate, and the gate gets audited harder than the code.** §816's trigger built: a standing `float-money-division` check replaces the hand sweep. Found a **second live float-on-money** (`avgCostCents = Math.round(costSum / costN)`) — and the fix needed a fix, because `roundHalfUp` THROWS below zero where `Math.round` did not, so one malformed stored row would have taken the whole drift sweep down (**strictly worse than the bug**); parse tightened to `c >= 0`, whose removal left the suite **19/19 green** until a test pinned it. Then **four defects in the gate itself**: a `path:line` allowlist that went stale TWICE in one phase; a left-operand-only pattern that let a **planted violation come back CLEAN** (the gate didn't fail — the PROBE did); `//` read as a division (**9** FPs); and `/` inside a string literal (2). FP count measured 9 → 2 → **0**, and the allowlist shrank 4 → **2** because three "judgement calls" were scanner artifacts. Proved on 4 axes incl. **40 lines of drift → still green**. `verify:docs` rotted 4 citations from my own comment inserts — 3rd catch this session; **line numbers are not a key** |
+| 265 | §817 | **§818** | **PHASE 40 CLOSED — rule 10 was proven for the CSVs we wrote, not for the law.** Reused §817's frame (*which law has no gate?*) and got the **opposite** answer: rule 10 is among the best-gated in the repo — **five `THE LAW` blocks**, one checking the column↔gap-row count is airtight. But every proof is a **fixture**. Planting a real silent drop (`if (p.header.trim() === "") continue;`) left the suite **19/19 GREEN** — no fixture has a blank header, and **one trailing comma in a legacy export makes one**. Shipped a property over 300 seeded header sets incl. degenerate shapes, asserting every column is APPLIED or carries **exactly one** gap row (not "at least one" — double-counting turns a review queue into noise), plus a non-vacuity test on the corpus. 3 REDs. **Clean negative**: the plan layer was already total for all 8 degenerate shapes — the gap was one layer down. **Process error recorded**: `git checkout` on the uncommitted test file DELETED §818 (checkout is a discard, not a restore); caught in one command, re-applied |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -47264,3 +47265,68 @@ where two later runs reported the standing 3; it did not reproduce, and it is lo
 - A division appears inside a `${…}` template expression → deliberately in scope (see `codeSkeleton`), so it
   WILL be flagged. If that reads as noise, the answer is an allowlist entry with a reason, never blanking
   template literals.
+## §818 — PHASE GATE: PHASE 40 CLOSED — rule 10 was proven for the CSVs we wrote, not for the law
+
+§817 closed on a frame worth reusing: *which CLAUDE.md law has no gate under it?* Applied to rule 10 — **"any
+legacy column that doesn't map raises a gap row — never disappears"** — the answer came back **the opposite
+of §817's**. Rule 10 is not ungated; it is one of the best-gated rules in the repo. `migrator.ts` states the
+law in its header, and the suite carries **five `THE LAW` describe blocks**, including one that checks the
+column↔gap-row count is "airtight" and that every source cell survives.
+
+So the finding is not absence. It is **shape**.
+
+### Every one of those five proofs is a fixture
+
+They assert hard-coded counts (8 plans, 5 gap rows, 3 duplicate_field, 2 unmapped) against CSVs somebody
+wrote. That proves the law for the header shapes we thought of, which is a different claim from the law.
+
+Probed the gap directly rather than arguing it: planting a real silent drop — `if (p.header.trim() === "")
+continue;` in the gap emitter — left the fixture suite **19/19 GREEN**. No fixture has a blank header.
+
+**A blank header is not exotic.** One trailing comma in a legacy export produces a column with no name. Under
+that mutation its values vanish with no gap row and no anomaly, which is exactly the silent drop rule 10
+exists to forbid, in the one module whose entire job is to not do that.
+
+### What shipped
+
+A property over **300 seeded header sets** drawn from a pool that deliberately mixes clean, unmapped,
+collision-prone and **degenerate** headers (`""`, `"   "`, `"---"`, `"123"`, `"Ünïcødé"`). Two assertions:
+every column is either APPLIED or carries **exactly one** gap row — not "at least one", because two gap rows
+for one column mint two anomalies for one problem, which is how a review queue becomes noise an operator
+learns to ignore. Plus a **non-vacuity** test asserting the corpus actually contains each degenerate shape and
+at least one duplicate, so narrowing the pool cannot quietly turn the property into a test of five ordinary
+headers.
+
+Proved on three axes: silent drop → RED · double-count → RED · corpus narrowed → the non-vacuity test REDs.
+
+**Clean negative, recorded because it bounds the finding:** before writing anything I probed
+`resolveColumnMapping` against eight degenerate header shapes, and the plan layer is **already total** — one
+plan per column in every case, including empty, whitespace, unicode and 500-char headers. The gap was never
+in the mapper; it was one layer down, in what the emitter does with a plan.
+
+### A process error, recorded because the recovery is the lesson
+
+Cleaning up mutation C I ran `git checkout packages/adapters/test/migrator.test.ts` — on a file whose §818
+block was **uncommitted**. That reverts to HEAD, not to my working state, and it deleted the whole test. I
+snapshot source files to the scratchpad before every mutation and restore with `cp`; I had not done it for
+the *test* file, because the test file felt like the thing doing the mutating rather than a thing at risk.
+
+Caught within one command (the suite went 21 → 19 and a `grep §818` came back empty), and re-applied. The
+rule generalises: **`git checkout` is not a restore, it is a discard** — the only safe restore for an
+uncommitted file is the snapshot you took first, and "which file am I mutating" is the wrong question. The
+right one is "which files are unsaved right now".
+
+### Exit state
+
+`@shuddl/adapters` **21** (+2); typecheck 0; lint 0. `migrator.ts` restored byte-identical after three
+mutations.
+
+**Reopen triggers**
+- `HEADER_POOL` gains a shape whose handling is genuinely different (a header containing a comma or a quote,
+  which exercises `parseSheet` rather than the mapper) → the non-vacuity list must grow with it, or the
+  property silently stops covering the new shape.
+- The gap emitter learns a **fourth** `GapReason` → the property asserts the partition is total, not that
+  each reason is correct. A new reason needs its own fixture; this test will not notice a wrong one.
+- The worker-side persistence (`import.test.ts`, one anomaly per gap row) gains a filter → this property
+  stops at `mapSpreadsheet`'s output. A column can carry a gap row here and still be dropped downstream, and
+  nothing in THIS file would see it.
