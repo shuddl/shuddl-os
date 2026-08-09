@@ -394,6 +394,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 199 | §751 | **§752** | **When a guard cannot be pinned, pin the condition that keeps it unnecessary.** The MCP cap meter guards MONEY (spend/velocity on `book_shipment`, external OAuth surface) with the same mutex pattern as the sequencer — and its comment says *"deleting this line is SILENT in CI"*. **Both halves verified: deletion leaves 17/17 green** (incl. a SIX-concurrent-book race), because all 3 awaits in `#checkAndReserve` are `ctx.storage.*` and the DO input gate already serializes those. §319 would end at *an unenforced trigger is a hope* — but *"a future non-storage await"* is a property of the SOURCE, so it is gateable. New gate pins the **precondition**, not the guard; fires on exactly the edit the comment warns about. 2 mutations RED + 2 non-vacuity floors |
 | 200 | §752 | **§753** | **The same silent guard in a SECOND meter — found by following §752's own trigger instead of waiting.** Three lock-guarded DOs: sequencer's mutex deletion **REDS** (§750, D1 awaits ⇒ load-bearing ⇒ testable); `CapsMeter` **17/17 silent** and `SparkMeter` **122/122 silent**, both because all 3 awaits are `ctx.storage.*` and the input gate already serializes those. Gate rewritten to **derive** its roster (§699) so a fourth DO lands covered; sequencer exempt **with its reason**, plus a staleness check so the exemption cannot outlive its subject. **My own scan was wrong and this file's own floor caught it** — `#append` matched as a CALL first, returning a garbage body with 0 awaits; `methodBody` now anchors on a declaration. 3 mutations RED |
 | 201 | §753 | **§754** | **The driver-sync Critical's fix, re-verified — defended.** A prior audit's worst defect: *"one transient 4xx stranded a signed capture forever"* — a driver signs at a door, the device holds the proof, nothing ever sends it. Mutating the re-probe to `Number.MAX_SAFE_INTEGER` (a park that never re-probes = the pre-fix behaviour) **REDS** *"a parked item RE-PROBES after its window and drains when the refusal clears (an ordering race self-heals)"* — a test whose name asserts the COUNTERFACTUAL (§742's strongest shape). Design note worth keeping: the fix does not PREVENT the ordering race, it makes it **survivable** — ordering across independent captures cannot be guaranteed from a device, so the guarantee to make is that a wrong order is temporary |
+| 202 | §754 | **§755** | **A client-side fix resting on a server-side premise — both sides now checked.** §754 named the driver's unenforced premise (*append is idempotent by event id, so a re-probe is always safe*). Removing the sequencer's replay short-circuit REDS **two** tests, the first being *"a duplicate event id returns the original row; the count is unchanged"* — the driver's premise almost word for word. **"The count is unchanged" is what makes it the right test**: a replay that THREW would also avoid duplication while stranding the capture exactly as the pre-fix park did — the driver needs a SUCCESS, not an absence. Residual recorded, not fixed: the two halves live in different packages/runners and neither test knows about the other, so the coupling is real and would fail silently from either side |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -43181,3 +43182,62 @@ byte-identical.
   with no exit, and one such state is enough.
 - The server append stops being idempotent by event id → re-probing stops being safe, and this entire fix
   inverts. That idempotence is the load-bearing premise and it is stated in the comment, not enforced here.
+## §755 — PHASE GATE: a client-side fix resting on a server-side premise — both sides checked
+
+§754 verified the driver queue's park-not-grave fix and ended by naming its unenforced premise:
+
+> *"the server append is idempotent by event id, so a re-probe is always safe … That idempotence is the
+> load-bearing premise and it is stated in the comment, not enforced here."*
+
+"Not enforced **here**" is the honest phrasing, and it leaves a question rather than answering it. A
+client-side guarantee that rests on a server-side property is a **cross-boundary claim**, and the two halves
+live in different packages, different workers, different test suites. Nothing makes them fail together.
+
+### The server half is pinned
+
+`ShipmentSequencer.#append`:
+
+```ts
+// Idempotency — replay by event id returns the original row (no second append).
+const byId = await db.prepare("SELECT * FROM events WHERE id = ?").bind(parsed.id).first();
+if (byId) return rowToEvent(byId);
+```
+
+Removing that short-circuit reds **two** tests:
+
+- *"a duplicate event id returns the original row; the count is unchanged"*
+- *"…a redelivered `authority.flipped`…"*
+
+The first is the driver's premise almost word for word. The phrase *"the count is unchanged"* is what makes it
+the right test: a re-probe that threw instead of returning would also avoid a duplicate, but it would strand
+the capture exactly as the pre-fix park did — the driver needs a **success**, not merely an absence of
+duplication.
+
+### So the whole chain holds, and it is worth stating as a chain
+
+| link | where | pinned by |
+|---|---|---|
+| a parked capture re-probes rather than dying | `driver-core/sync.ts` | *"a parked item RE-PROBES … an ordering race self-heals"* (§754) |
+| re-probing is safe because append is idempotent | `do/sequencer.ts` | *"a duplicate event id returns the original row; the count is unchanged"* (§755) |
+
+Both mutation-proved, in different packages, on different runners. Neither test knows about the other, which
+is the residual: **the coupling is real and the failure would be silent from either side.** Deleting the
+server short-circuit reds server tests, not driver ones — a reader of `sync.ts` would still see a comment
+claiming safety that no longer holds.
+
+That is not something to "fix" by importing across the boundary; it is something to record so the next person
+touching either side knows the other exists. This phase is that record, and §754's comment plus this section
+are now the link.
+
+### Exit state
+
+No code changed. `workers/api test/sequencer.test.ts` 27/27; `packages/driver-core` 41/41; `test:tools` 1037;
+lint 0; typecheck 0. Source restored byte-identical.
+
+**Reopen triggers**
+- The replay short-circuit is changed to THROW on a duplicate → both server tests may still pass in spirit,
+  but the driver's re-probe starts failing forever. The property the driver needs is *returns the original
+  row*, not *refuses the duplicate*.
+- The driver gains a second re-probing path (evidence bytes have their own leg) → it rests on
+  `/v1/evidence` deduping by `(shipment, hash)`, a DIFFERENT premise from event-id idempotence, and this phase
+  checked only the event leg.
