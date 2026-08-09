@@ -432,6 +432,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 237 | §788–§789 | **§790** | **PHASE 15 CLOSED — TIME, and the discipline of not leaving a gap you named.** Four phases now bound the system by KIND: surfaces (12) · inputs (13) · outputs (14) · **clocks (15)**. Eleven clock-dependent controls mutated toward EXTENDING access or DESTROYING evidence; **ten were already RED** — expiry is the best-defended class in the codebase, recorded as a clean negative so it is not re-audited. The one real gap was the idempotency TTL, which **§788 itself had named and deferred** as "a product decision" — half right, since *whether* a record expires is not one. §789 closed it. **An identified gap left open is worse than one never looked for**, because the record now says someone examined it and moved on. Board at `b29e7b3`: 19 PASS · 2 FAIL · 5 BLOCKED, unchanged across nineteen phases. **4,172 tests** (3,128 workspace, 0 failures) |
 | 238 | §790 | **§791** | **The sweeps under OVERLAP — and one that had never met its own subject.** Eleven sweeps split cleanly: **9 dedupe at WRITE time** (deterministic id + DO dedupe / `INSERT OR IGNORE` / `ON CONFLICT`) and are overlap-safe by construction; **2 check-then-act before an EXTERNAL send** and are at-least-once — structural, not an oversight, and both already documented (§236, `webhooks.ts:304`). The find: **`sweepTenantCreditGaps` had only ever run against an EMPTY corpus** — its cron test says so in its own header. Binding its SELECT to a bogus rule, and deleting its whole loop body, BOTH left agents **127/127 green**, while in production a gap that never closes leaves a REQ-042 booking blocked FOREVER. Also: **my own third test over-claimed** — it says "fault containment" but the catch is unreachable (measured by making it rethrow); re-scoped and the residual named. Two instrument errors in one table (110-char name truncation + an incomplete export list) reported 4 uncovered sweeps; the true count was 1 |
 | 239 | §791 | **§792** | **PHASE 16 CLOSED — concurrency, and the FIVE-KIND frame.** Five phases now bound the system by KIND: surfaces (12) · inputs (13) · outputs (14) · clocks (15) · **concurrency (16)**. *A module audit ends when the files run out; a kind audit ends when the QUESTION runs out.* Eleven sweeps split by HOW they dedupe: **9 at write time** (overlap-safe by construction) vs **2 check-then-act before an EXTERNAL send** (at-least-once, structural, both already documented). **Three of the last five phases found their defect in something a test CLAIMED rather than in code** — §787's "anti-drift" comment, §790's own deferral, §791's cron header stating its empty corpus in plain words. Each record was ACCURATE and nobody read it as a gap; prose describing a limitation is not a limitation anyone is watching. Board at `e77035a`: 19 PASS · 2 FAIL · 5 BLOCKED, unchanged across twenty phases. **4,175 tests** (3,131 workspace, 0 failures) |
+| 240 | §792 | **§793** | **PHASE 17 CLOSED — the CLAIMS the code makes about itself.** §792 named the pattern (3 of 5 findings were in something a test CLAIMED); this enumerates its most checkable form — *"these two agree"*. **Structural finding: this codebase avoids drift by SHARING rather than copying**, so there are very few parity claims because there are very few parities. Verified rather than assumed: mutating the shared `unbilledShipmentsSql` reddens **all three** consumers at once (KPI · recon re-drive · Watchtower) — *not "they were equal when someone looked" but "there is only one of them, and every consumer is provably wired to it"*. The one unavoidable 4-copy case (a DDL CHECK + 3 TS enums) is **gated** — planting a 7th mode names the file, both lists, and which direction costs what. The single genuine unguarded copy was `dunning.ts`, found and gated last phase. **Ask of any "they agree" comment: are they one thing?** Six of seven dissolve; the seventh was the defect |
 
 **Current measured state — as measured 2026-08-08 at `fae1a17` (§775's board run):** the merge board is
 **26 gates — 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape since §737. `typecheck` 0 · `lint` 0 ·
@@ -45663,3 +45664,56 @@ The repo-owned ledger is empty. **Five owner-held holds remain**, unchanged sinc
   checking should be a decision someone made, not one they inherited.
 - A cron's interval drops below its own worst-case runtime → overlap stops being hypothetical for every
   sweep at once, and the write-time column is what makes that survivable.
+## §793 — PHASE GATE: PHASE 17 CLOSED — the CLAIMS the code makes about itself
+
+§792 named the pattern behind three of the previous five findings: **the defect was in something a test or a
+comment CLAIMED, not in code.** The most enumerable form of that claim is *"these two things agree"* — a
+parity assertion written in prose. §786 found one (`"pinned to the SHARED predicate — anti-drift"`) with
+nothing checking it. This phase asks whether there are others.
+
+### Every parity claim in shipped source, resolved
+
+| claim | what it rests on | verdict |
+|---|---|---|
+| `gl-map.ts` — *"the strings are byte-identical…"* | the account strings are **imported** from `@shuddl/contracts`; there is no copy | **no drift surface** — plus `tools/checks/gl-accounts-parity.test.ts` exists |
+| `unbilled.ts` — *"reuses the SAME anti-join core (no drift)"* | **one function**, three consumers | **load-bearing, measured** — see below |
+| `reconcile/credit.ts` — *"through ONE implementation (no drift)"* | one shared function | structural; its guards pinned in §777 |
+| domain vocabulary — *"three copies SAY they are byte-identical"* | four genuine copies of a DDL `CHECK` | **gated** — §428's gate, proved below |
+| `dunning.ts` — *"pinned to the SHARED predicate — anti-drift"* | a real duplicate; only the leaf was shared | **the one genuine gap** — found and gated in §786 |
+
+### The structural finding
+
+**This codebase avoids drift by SHARING rather than by copying, and where a copy is unavoidable it gates it.**
+That is why the phase is nearly empty: there are very few parity claims because there are very few parities —
+most "two things agree" statements describe one function with two callers.
+
+Verified rather than assumed, because a shared function only helps if both callers actually depend on it.
+Mutating `unbilledShipmentsSql` to drop its NOT-invoiced half reddened **all three** consumers at once —
+the KPI anti-join, the Biller reconciliation re-drive, and the Watchtower unbilled alarm. That is the
+strongest form the guarantee can take: not "they were equal when someone looked", but "there is only one of
+them, and every consumer is provably wired to it".
+
+The four-copy case is the exception that shows the discipline. The vocabulary constants genuinely cannot be
+shared (a DDL `CHECK` and three TypeScript enums across package boundaries), so §428 built a gate — and
+planting a seventh mode in one copy produces exactly the right message, naming the file, both lists, and
+*which direction of drift costs what*: **wider 500s at INSERT, narrower silently refuses a legal value.**
+
+### An instrument note
+
+My probe printed `exit: 0` beside a `FAIL` line — `$?` after a pipe reports `head`'s status, not the gate's.
+Already in this audit's record as a known trap, hit again. It did not mislead here only because the FAIL text
+was in the output; had I been grepping for a *count*, it would have read as a clean pass.
+
+### Exit state
+
+**No source changed.** Two files mutated (`unbilled.ts`, `intake-core.ts`), both restored byte-identical;
+`git status` over `packages/ workers/ apps/ tools/` empty; lint 0; typecheck 0.
+
+**Reopen triggers**
+- A constant is copied across a package boundary → it is a parity surface, and the §428 gate's roster is the
+  place it must be declared. The roster is explicit **because** keying only on the discovered set would let a
+  new copy hide (§239/§244).
+- A shared function grows a second implementation "for independence" → that is the `dunning.ts` shape, and
+  §786's parity test is the pattern to copy along with it.
+- A comment says two things agree → check whether they are one thing. Six of the seven claims here dissolve
+  on that question, and the seventh was the defect.
