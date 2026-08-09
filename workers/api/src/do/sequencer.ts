@@ -1,5 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import { EventInput, LedgerEvent, hazmatEnabled, isPlatformTenant, parseTenantPolicy, describeTenantPolicyRejection, TENANT_POLICY_MALFORMED_REASON, type Visibility } from "@shuddl/contracts";
+import { EventInput, LedgerEvent, hazmatEnabled, NO_ENTITLEMENTS, isPlatformTenant, parseTenantPolicy, describeTenantPolicyRejection, TENANT_POLICY_MALFORMED_REASON, type Visibility } from "@shuddl/contracts";
 import { GENESIS_HASH, hashEvent } from "@shuddl/ledger/chain";
 import { verifyEventSig } from "@shuddl/ledger/sign";
 import { resolveVisibility, UNRESOLVED_VISIBILITY } from "@shuddl/ledger/visibility";
@@ -1123,7 +1123,7 @@ export class ShipmentSequencer extends DurableObject<Env> {
       .prepare("SELECT plan, policy FROM tenants WHERE slug = ?")
       .bind(tenant)
       .first<{ plan: string; policy: string }>();
-    this.entitlementRowCache = row ? { plan: row.plan, policy: row.policy } : { plan: "", policy: "{}" };
+    this.entitlementRowCache = row ? { plan: row.plan, policy: row.policy } : NO_ENTITLEMENTS;
     // A MALFORMED policy REFUSES THE APPEND with a named code (2026-08-02 §15). Read the correction here,
     // because the first attempt at this guard was a security defect and the reasoning matters:
     //
@@ -1200,7 +1200,7 @@ export class ShipmentSequencer extends DurableObject<Env> {
    *  (empty plan, {} policy) grants NOTHING, so a gate that reads it before #policy ran refuses rather than
    *  fails open. */
   #entitlementRow(): { plan: string; policy: string } {
-    return this.entitlementRowCache ?? { plan: "", policy: "{}" };
+    return this.entitlementRowCache ?? NO_ENTITLEMENTS;
   }
 
   async #deviceKey(tenant: string, deviceId: string): Promise<JsonWebKey | null> {

@@ -1,4 +1,4 @@
-import { z, assertNotPlatformTenant, proofToCashEnabled, assertProofToCashEntitled, CLAIMED_TENANT_BY_SLUG_SQL, UNCLAIMED_TENANT_PLAN, RESERVED_TENANT_PLANS, usageCreditsId, type TenantEntitlementRow } from "@shuddl/contracts";
+import { z, assertNotPlatformTenant, proofToCashEnabled, assertProofToCashEntitled, NO_ENTITLEMENTS, CLAIMED_TENANT_BY_SLUG_SQL, UNCLAIMED_TENANT_PLAN, RESERVED_TENANT_PLANS, usageCreditsId, type TenantEntitlementRow } from "@shuddl/contracts";
 import { TENANT_BINDINGS } from "./tenants.js";
 import { seedColdStartTariff } from "./tariff-seed.js";
 import type { Env } from "./index.js";
@@ -305,5 +305,5 @@ export async function assertProofToCashEntitledFor(control: D1Database, slug: st
     .prepare("SELECT plan, policy FROM tenants WHERE slug = ?")
     .bind(slug)
     .first<TenantEntitlementRow>();
-  assertProofToCashEntitled(row ?? { plan: "", policy: "{}" });
+  assertProofToCashEntitled(row ?? NO_ENTITLEMENTS);
 }

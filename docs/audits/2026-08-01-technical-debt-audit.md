@@ -379,6 +379,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 184 | §736 | **§737** | **STOPPING POINT — eleven phases (§726–§736) re-derived against the full merge gate, not inferred.** `verify:merge` = **19 PASS · 2 FAIL · 5 BLOCKED**, *identical to the §726/§729 baselines defect-for-defect*, after edits to six pieces of gate code incl. a module all five worker pools import. Both FAILs re-attributed by probe to the uncommitted `REQ-289` row — **at HEAD: 21 PASS · 0 FAIL · 5 BLOCKED**, unchanged since §719. `test:tools` 984 → **1023**. **Seven of the eleven were LIVE DEFECTS**, one subject throughout: *a gate reporting success over something it never examined*. Every remaining reopen trigger is forward-looking (§587/§594's finish signal). Repo-owned open set: **empty**; six items remain, all owner-held |
 | 185 | §737 | **§738** | **New shape (*an error that vanishes*) — CLEAN NEGATIVE, and three greps lied getting there.** 119 catch bodies in shipped code, **12 empty, all 12 stating their FALLBACK VALUE** (*never fabricate a cost · never fabricate a location · malformed policy ⇒ ZERO fail-closed floor*). The `session.ts` pair looked like the adjacency shape and is NOT: failing to CLEAR a token is a security fact, failing to PERSIST one is not. The sweep surfaced **four hand-maintained copies of `POOL_BINDINGS`** governing tenant routing (REQ-025) — the share-lint-matchers shape — and **planting proved the parity law fully closed**: `api` is the reference, the other three assert they mirror it, and changing the REFERENCE reds them. **Three greps, three wrong answers, one phase** (a `0` from a pattern matching 119; an import-proxy blind to a text-read assertion; a phrase-grep defeated by a `describe` name) — every one corrected by a mutation |
 | 186 | §738 | **§739** | **Two fail-closed defaults in the SERVER-SIDE GATE surface (REQ-030) were correct and UNPINNED.** 16 defaults enumerated; the two `?? []` both read fail-closed and both survived a fail-OPEN mutation in silence — exemption list ⇒ `[serviceClass]` left **661/661 green**; absent facility day ⇒ always-open left **23/23 green**. The reason is the finding: **a test named *"waives outside_hours"* exists and never enters that branch** (its fixture has hours PRESENT but narrow; every other case fails earlier at `window_mismatch`). **A test named for a behaviour is not evidence its branch runs.** Pinned with 6 tests, each pair carrying a non-vacuity companion; re-mutated, each now reds exactly its two positives. Ledger 661 → 667 |
+| 187 | §739 | **§740** | **The enforcement layer (REQ-030 says gates are SERVER-SIDE, so §739 was incomplete).** 14 sequencer defaults; 2 can widen. Fence radius 150 m → **100 km** REDS a REQ-046 test — already defended. The entitlement fallback, whose own comment says *"(empty plan, {} policy) grants NOTHING"*, inverted to GRANT hazmat → **28/28 GREEN**. Underneath: that sentinel was spelled as a **literal in three production sites** (sequencer cache-miss, `#entitlementRow`, provision) — my recorded failure is *a `{}` default opened three of four knobs it claimed to floor*. Extracted `NO_ENTITLEMENTS`, rewired all three, and pinned **the constant, not a copy** against every reader + a non-vacuity companion. **Sweep total: 5 access-relevant defaults, 3 were correct-and-UNDEFENDED — all found by mutation, none by reading** |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -42158,3 +42159,72 @@ byte-identical, verified with `diff -q`.
   would start failing EARLIER, at `window_mismatch`, and pass for the wrong reason. The alignment is load-bearing.
 - `invoice_without_pod_classes` gains a second consumer → the `?? []` default must be repeated there, and the
   same mutation should be run against it.
+
+## §740 — PHASE GATE: the enforcement layer's defaults, and a "grants nothing" sentinel spelled three times
+
+§739 swept the gate *definition* surface. REQ-030 says gates are enforced **server-side**, so the sweep is
+incomplete until it reaches the enforcement layer: `workers/api/src/do/sequencer.ts`.
+
+14 non-null defaults there. Two can WIDEN, and both were mutated:
+
+| default | mutation | result |
+|---|---|---|
+| `policy.gates?.geofence_radius_m ?? DEFAULT_FENCE_RADIUS_M` | 150 m → **100 km** (a gated stop passes from anywhere) | **RED** — *"delivery geofence gate (REQ-046) … OUTSIDE the fence → GATE_BLOCKED"* |
+| `entitlementRowCache ?? { plan: "", policy: "{}" }` | `policy: '{"hazmat_enabled":true}'` — the literal inversion of its own comment | **28/28 GREEN** |
+
+The fence was already defended. The entitlement fallback was not — and its comment states the guarantee
+outright: *"(empty plan, {} policy) grants NOTHING, so a gate that reads it before `#policy` ran refuses rather
+than fails open."* It gates **hazmat booking**, a FORBIDDEN authorization refusal. Inverting it into a grant
+was silent.
+
+### The bigger finding underneath
+
+The sentinel was spelled as a **literal in three production sites**: the sequencer's cache-miss assignment, its
+`#entitlementRow()` accessor, and `provision.ts`'s proof-to-cash assert. Three hand-written copies of one
+security-relevant value — the shape `share-lint-matchers-with-parity-tests` exists for, where *the copy that
+gets less attention becomes the one that grants*.
+
+And it is the shape my own recorded failure names: **a `{}` default opened three of four gate knobs it claimed
+to floor.** The claim "grants nothing" is not a property of the literal — it is a property of what every
+READER does with it, and nothing tied the two together.
+
+### Fixed
+
+`NO_ENTITLEMENTS` extracted to `packages/contracts/src/entitlements.ts`, frozen, and used by all three sites.
+`entitlements.test.ts` pins **the constant, not a copy of its literal** — pinning a copy would let the constant
+drift away from the assertion — against **every** reader:
+
+- `hazmatEnabled` false · `proofToCashEnabled` false · both `assert*` readers throw
+- **plus a non-vacuity companion**: each reader must still GRANT when actually entitled, so readers that
+  always returned false could not satisfy the three above.
+
+Mutating the shared constant to grant hazmat now reds two pins immediately. All three call sites inherit the
+guarantee from one asserted value, and a fourth reader added later inherits it too — which is the part a
+per-call-site test could never give.
+
+### The sweep, complete
+
+Across the definition and enforcement layers, five access-relevant defaults:
+
+| default | before |
+|---|---|
+| `visibility.ts` inherited → `UNRESOLVED_VISIBILITY` | already pinned (verified: reintroducing the pre-remediation fallback reds a Task-8 test) |
+| sequencer fence radius | already pinned |
+| invoice-gate exemption list | **unpinned** → pinned (§739) |
+| transition-gates absent-day hours | **unpinned** → pinned (§739) |
+| sequencer entitlement sentinel | **unpinned** → pinned + deduplicated (§740) |
+
+**Three of five were correct and undefended.** Every one was found by mutation and none by reading — all five
+read as obviously fail-closed, and three of them were one edit from not being.
+
+### Exit state
+
+`packages/contracts` **21 passed** (+4); `packages/ledger` 667; `workers/api` gates + tenant-policy-malformed
+**28/28** (unchanged by the refactor); lint 0; typecheck 0. Every source mutation restored byte-identical.
+
+**Reopen triggers**
+- A fourth entitlement reader is added → it inherits the pin automatically, but add it to the "every assert\*
+  reader REFUSES it" case explicitly; the roster there is intent, not derivable (§699).
+- A new `?? { … }` fallback appears in the sequencer → mutate it. Base rate in this sweep was 3 of 5.
+- `NO_ENTITLEMENTS` gains a field → the frozen literal and the readers must move together, and the non-vacuity
+  companion is what proves the readers still distinguish granted from not.

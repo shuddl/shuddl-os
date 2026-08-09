@@ -45,6 +45,22 @@ function readEntitlementPolicy(policyJson: string): z.infer<typeof EntitlementPo
 /** REQ-060 — is HAZMAT booking enabled for this tenant? TRUE only when the control-plane policy carries
  *  `hazmat_enabled: true`. Default OFF / fail-closed. Excluded from the Spark default (a Spark tenant's policy
  *  carries no hazmat_enabled), so a Spark tenant is hazmat-OFF unless its workspace is explicitly enabled. */
+/**
+ * §740 — THE "GRANTS NOTHING" SENTINEL, named once instead of spelled three times.
+ *
+ * An entitlement read that finds no row must fall back to something that grants NOTHING, so a gate reached
+ * before the row loads REFUSES rather than fails open. Three production sites spelled that value as a literal:
+ * the sequencer's cache miss, its `#entitlementRow()` accessor, and provision's proof-to-cash assert. Three
+ * hand-written copies of one security-relevant value is the shape `share-lint-matchers-with-parity-tests`
+ * exists for — the copy that gets less attention becomes the one that grants.
+ *
+ * MUTATION-MEASURED (§740): inverting the sequencer's copy to `{"hazmat_enabled":true}` — the literal opposite
+ * of "grants nothing" — left `workers/api` gates + tenant-policy-malformed at 28/28 GREEN. Correct and
+ * undefended. `entitlements.test.ts` now pins THIS constant against every reader, so all three sites inherit
+ * the guarantee from one asserted value.
+ */
+export const NO_ENTITLEMENTS: TenantEntitlementRow = Object.freeze({ plan: "", policy: "{}" });
+
 export function hazmatEnabled(row: TenantEntitlementRow): boolean {
   return readEntitlementPolicy(row.policy)[HAZMAT_ENABLED_POLICY_KEY] === true;
 }

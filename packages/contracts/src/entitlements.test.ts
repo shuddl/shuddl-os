@@ -7,6 +7,7 @@ import {
   EntitlementError,
   HAZMAT_ENABLED_POLICY_KEY,
   PROOF_TO_CASH_PLAN,
+  NO_ENTITLEMENTS,
   type TenantEntitlementRow,
 } from "./entitlements.js";
 
@@ -109,3 +110,46 @@ describe("entitlements are tenant-scoped — a row governs only itself (REQ-025 
     expect(hazmatEnabled(row(PROOF_TO_CASH_PLAN, "{}"))).toBe(false);
   });
 });
+
+// REQ-030 §740 — THE "GRANTS NOTHING" FALLBACK, PINNED AGAINST EVERY READER.
+//
+// `ShipmentSequencer.#entitlementRow()` returns `this.entitlementRowCache ?? { plan: "", policy: "{}" }`, and its
+// comment states the guarantee outright: *"(empty plan, {} policy) grants NOTHING, so a gate that reads it
+// before #policy ran refuses rather than fails open."* That fallback is the ONLY thing standing between an
+// ordering slip and an unauthorized hazmat booking (a FORBIDDEN authorization refusal, not malformed input).
+//
+// MUTATION-MEASURED AS UNPINNED: replacing the fallback with `policy: '{"hazmat_enabled":true}'` — the literal
+// inversion of "grants nothing" — left `workers/api` gates.test.ts + tenant-policy-malformed.test.ts at 28/28
+// GREEN. Correct and undefended, which is one edit from incorrect.
+//
+// Pinned HERE rather than in the sequencer because `fail-closed-is-about-the-fallback-value`: the guarantee is a
+// property of the VALUE, not of the call site that happens to use it today. Asserting it against every reader is
+// what stops the next reader from being the one the fallback quietly grants — the recorded failure mode is a
+// `{}` default that opened three of four knobs it claimed to floor.
+describe("REQ-030 §740: the sequencer's fallback entitlement row grants NOTHING", () => {
+  // The literal from workers/api/src/do/sequencer.ts#entitlementRow. If that changes, this must change with it.
+  // §740 — the SHARED constant the three production sites now use, not a copy of its literal. Pinning the
+  // copy would have let the constant drift away from the assertion; pinning the constant is what makes all
+  // three call sites inherit this guarantee.
+  const FALLBACK: TenantEntitlementRow = NO_ENTITLEMENTS;
+
+  it("hazmatEnabled is false", () => {
+    expect(hazmatEnabled(FALLBACK)).toBe(false);
+  });
+
+  it("proofToCashEnabled is false", () => {
+    expect(proofToCashEnabled(FALLBACK)).toBe(false);
+  });
+
+  it("every assert* reader REFUSES it", () => {
+    expect(() => assertHazmatEnabled(FALLBACK)).toThrow();
+    expect(() => assertProofToCashEntitled(FALLBACK)).toThrow();
+  });
+
+  it("and each reader DOES grant when actually entitled (non-vacuity)", () => {
+    // Without this, readers that always returned false / always threw would satisfy everything above.
+    expect(hazmatEnabled({ plan: "", policy: JSON.stringify({ hazmat_enabled: true }) })).toBe(true);
+    expect(proofToCashEnabled({ plan: PROOF_TO_CASH_PLAN, policy: "{}" })).toBe(true);
+  });
+});
+
