@@ -36,10 +36,17 @@ describe("REQ-203: the EDI transport is NOT CONFIGURED in any environment (dorma
     ).toBeInstanceOf(NotConfiguredTransport);
   });
 
-  it("send214 REJECTS, and is marked retriable so the sweep records no phantom send", async () => {
+  it("send214 REJECTS rather than resolving silently (the transport half of the no-phantom-send law)", async () => {
     // The sweep writes its "sent" marker only after a successful send. A transport that resolved silently
     // would mark the 214 as transmitted while nothing left the building — the inverse of the double-send,
     // and worse, because it is unrecoverable: the marker suppresses every retry.
+    //
+    // RENAMED (audit §775). This read "…so the sweep records no phantom send" — a claim about the SWEEP, in a
+    // test that never drives the sweep. It asserts only that this transport rejects; the send-then-mark
+    // ORDERING it credited was entirely unpinned, and inverting those two lines left this worker 117/117
+    // green. The behavioural half now lives where the sweep is actually driven:
+    // `sweep-214.test.ts` → "a FAILED send leaves NO phantom sent-marker, and the next tick actually
+    // transmits". A test name is read as the guarantee; this one over-claimed by one whole mechanism.
     const t = transportFor(env as unknown as TranslatorEnv);
     await expect(t.send214("SCAC", "ISA*...", "idem-1")).rejects.toBeInstanceOf(TransportError);
     await expect(t.send214("SCAC", "ISA*...", "idem-1")).rejects.toThrow(/NOT CONFIGURED/);

@@ -414,6 +414,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 219 | §771 | **§772** | **Every Watchtower threshold — all five defended, and the METHOD finding is the phase.** My first sweep called three of them silent; **all three readings were wrong because the mutations could not fail**: `UNBILLED_CRITICAL_COUNT` 10→10000 (no fixture has ten shipments), `AGENT_DRIFT_WINDOW_MS` →1ms (runs seeded at `NOW`, age 0, inside any window), `DETAIL_SHIPMENT_CAP` 50→1 (one shipment; same slice). **A threshold mutation proves nothing unless it crosses a fixture's classification boundary** — changing the number is not the experiment, changing which side the data falls on is. All three RED once pointed the right way (widen the window, lower the count, zero the cap). **A mutation that cannot fail reads identically to a clean negative.** Also corrects §771's own *"checked, not assumed"* — it was assumed |
 | 220 | §772 | **§773** | **The EDI inbound append set — a silent deletion, and a branch that CANNOT run.** Two doors to one gated chain: the CSR door pins the literal kind sequence + has `approvals.test.ts`; the EDI door pinned only ENDPOINTS, so **deleting the `agent.acted` (REQ-005 provenance) append left the suite 116/116 GREEN**. `not.toContain("booking.created")` catches only the kind you already named — replaced with `toEqual` on the sequence. Then the deeper one: `approval.requested` is **UNREACHABLE by construction** (cost === freight · floors ≤ 100% of cost · only-positive price lines ⇒ sell ≥ target, always) — **§688's fourth category, construction-forbidden**, which reads identically to a weak corpus and needs the opposite fix. Kept as defensive code, pinned by a TRIPWIRE that reds when `costBasis` goes multi-factor. **My tripwire's first cut misattributed** — it duplicated (a)'s assertion and blamed the approval branch for an unrelated deletion; §"attribute the RED" committed IN the instrument, where it outlives the session |
 | 221 | §773 | **§774** | **The same weak assertion, second instance — found by sweeping the SHAPE, not the next file.** A defect just written down in prose is one you can grep for: 17 `not.toContain` hits, **2** chain assertions, **1** the same defect (`roundtrip.fixture.test.ts:286` — the REQ-034 DoD fixture test). **Independently silent**: with `inbound.test.ts` already fixed, deleting `agent.acted` left THAT file 6/6 green, so it was its own hole, not riding on its sibling. Fixed + re-mutated RED. The filter that mattered was SEMANTIC — 15 of 17 hits were legitimate named-absence claims and no regex separates them; at this FP rate over this small a population, one read beats building a gate |
+| 222 | §774 | **§775** | **The 214 sweep's send-then-mark law was unpinned, and a TEST NAME hid it.** Writing the sent-marker BEFORE the send left the worker **117/117 green** — and the marker means "already transmitted" to every future tick, so a rejecting transport strands the 214 **permanently**. Urgent because dormant: `NotConfiguredTransport` ALWAYS rejects, so the bug would be planted now and detonate at go-live with every shipment already marked sent. New test asserts no-marker AND that the next tick actually transmits. `transport-dormancy.test.ts` was named *"…so the sweep records no phantom send"* but **never drives the sweep** — renamed; a test NAME is read as a guarantee, and this one over-claimed by one whole mechanism, which is why nobody looked for the missing test. Instrument slip: `EVIDENCE.get()` for a presence check left an unconsumed stream, breaking the isolated-storage pop and **silently dropping 6 tests** (118→112) — a harness fault reduces the test COUNT rather than failing |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -44427,3 +44428,79 @@ No source changed — `inbound.ts` restored byte-identical after two more mutati
   trusting that the class is closed. It was closed after §773 too.
 - `rate.test.ts:242` gains a claim about the whole chain → it moves from the right column to the left, and
   needs `toEqual` like the other two.
+## §775 — PHASE GATE: the 214 sweep's send-then-mark law, and a test name that over-claimed by one mechanism
+
+§773/§774 finished the inbound 204. The outbound half is the 214 sweep, already audited hard (§236 measured
+its overlapping-tick race and the header states the limit honestly). Six tests cover dedupe, monotonic
+allocation, withhold-until-certified, cross-tenant invisibility. One law was uncovered.
+
+### The law
+
+The module header: *"[the sent-marker] is written ONLY after a successful transmit, so an unwired/failed send
+never leaves a phantom sent-marker and the next tick re-attempts."*
+
+Swapping the two lines so the marker is written **before** the send left the worker **117/117 GREEN**.
+
+### Why it matters more than a normal gap
+
+The marker's presence means *"already transmitted"* to every future tick. Under the inversion, a rejecting
+transport writes the marker, the per-item catch logs the failure, and **every later tick skips the shipment** —
+the 214 is stranded permanently and the partner never learns the load delivered. The summary counts it
+`failed` exactly once and then the shipment simply leaves the sweep's view.
+
+And the dormant state is what makes it urgent rather than theoretical: `NotConfiguredTransport` **always**
+rejects. With the ordering inverted, every tendered shipment would be marked sent-but-never-sent on its first
+tick, and wiring the live VAN adapter later would transmit **none of them**. The bug would be planted now and
+detonate at go-live — after the last moment anyone would be looking at this file.
+
+### The test, and what it asserts beyond the marker
+
+Drives the sweep with a rejecting transport, then asserts (a) **no** sent-marker, and (b) the thing a marker
+check alone cannot prove — that a **subsequent tick actually transmits**. (b) is the behaviour the partner
+experiences; (a) is only its most likely cause.
+
+It also pins the burned control number at **43**, not 42: allocation precedes the send, so the failed attempt
+burns a number and the re-attempt takes a fresh one. That is deliberate ("a legal X12 gap, never reused"), and
+pinning it keeps a future "fix" from making the gap disappear by moving allocation after the send — which
+would reintroduce a re-send burning nothing and defeat the partner's own dedupe.
+
+| mutation | before | after |
+|---|---|---|
+| write the sent-marker BEFORE the send | **silent (117/117)** | **RED**, one test, correct message |
+
+### The test name that hid it
+
+`transport-dormancy.test.ts` had: *"send214 REJECTS, and is marked retriable **so the sweep records no phantom
+send**"*. Its body asserts only that the transport rejects — **it never drives the sweep**. The clause after
+"so" is a claim about a mechanism the test does not touch, and it is exactly the mechanism that was unpinned.
+
+Renamed to *"send214 REJECTS rather than resolving silently (the transport half of the no-phantom-send law)"*,
+with a pointer to where the other half now lives. §"a gate's green certifies less than its name" has until now
+been about gates; **a test name is read as a guarantee too**, and this one over-claimed by one whole mechanism
+— which is precisely why nobody went looking for the missing test.
+
+### An instrument slip worth recording: `get` vs `head`
+
+My first cut used `EVIDENCE.get()` for a presence assertion and never consumed the returned body stream. The
+pool's isolated-storage pop then failed — *"unable to pop R2 storage … Expected .sqlite, got .sqlite-shm"* —
+surfacing as an **unhandled error with six tests silently not run** (118 → 112) rather than as a failure
+pointing at my test. An undisposed stream is a harness fault that reads like an unrelated infrastructure bug.
+Presence checks use `head()`; `get()` is only for when the bytes are actually read.
+
+That is the §"when a gate looks wrong, suspect the measurement" family again, with a new member: **a harness
+fault can silently REDUCE the test count**, and a green-looking "10 passed" line is not the same claim as "13
+passed". I caught it only because the totals moved.
+
+### Exit state
+
+No source changed — `sweep-214.ts` restored byte-identical. `workers/translator` **118/118** (+1); lint 0;
+typecheck 0.
+
+**Reopen triggers**
+- The live VAN/AS2 adapter is wired (CONFIRM-gated, unbuilt) → this test stops being about a dormant path and
+  becomes the one that decides whether a VAN blip strands freight status. Re-read it then, and re-read §236's
+  overlapping-tick race with it: this phase closes the FAILED-send hole, not the CONCURRENT-send one.
+- Allocation moves to after the send → the burned-number assertion (43) reds. That is the review prompt: a
+  re-send that burns nothing lets the partner see two interchanges with one control number.
+- Any presence assertion in this tree uses `get()` → it will pass, then break the storage pop for the whole
+  file. The symptom is a dropped test COUNT, not a failure.

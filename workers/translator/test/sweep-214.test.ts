@@ -208,6 +208,64 @@ describe("REQ-200/204 — outbound 214 sweep with allocated control numbers", ()
     expect(tenantB.objects, "no edi/tenant-b/ key touched while processing tenant-a").toHaveLength(0);
   });
 
+  it("a FAILED send leaves NO phantom sent-marker, and the next tick actually transmits (§775)", async () => {
+    // The module header's send-then-mark law: "[the sent-marker] is written ONLY after a successful transmit,
+    // so an unwired/failed send never leaves a phantom sent-marker and the next tick re-attempts."
+    //
+    // NOTHING pinned it. Measured: swapping the two lines so the marker is written BEFORE the send left this
+    // worker 117/117 GREEN. Under that inversion a rejecting transport writes "already sent", the catch below
+    // logs it, and EVERY LATER TICK SKIPS THE SHIPMENT — the 214 is stranded and the partner never learns the
+    // load delivered. Silent, permanent, and invisible to the summary (which counts it `failed`, correctly,
+    // exactly once — after that the shipment is simply gone from the sweep's view).
+    //
+    // The dormant state is what makes this urgent rather than theoretical: `NotConfiguredTransport` ALWAYS
+    // rejects, so with the ordering inverted every tendered shipment would be marked sent-but-never-sent on
+    // its first tick, and wiring the live VAN adapter later would transmit NONE of them.
+    //
+    // `transport-dormancy.test.ts` is named "…so the sweep records no phantom send" but asserts only that the
+    // transport rejects — it never drives the sweep. That is the name-vs-body gap (§"a gate's green certifies
+    // less than its name"); this test is the missing half, and it belongs here, where the sweep is driven.
+    const rows = await seedDeliveredShipment();
+    await seedEdiPartner(env.TENANT_A_DB, PARTNER_ID, "certified", COUNTER_CONFIG);
+    await seedTenderMarker();
+    const exp = expected(rows);
+
+    // A transport that rejects exactly as the live adapter would on a VAN fault (and as the dormant one always does).
+    const failing = {
+      send214: () => Promise.reject(new Error("VAN unreachable")),
+      send990: () => Promise.reject(new Error("VAN unreachable")),
+    };
+    // Plainly awaited: reaching the next line IS the "one shipment's fault must not throw the sweep" claim.
+    await run214Sweep(env, failing, clock);
+
+    // THE LAW: no marker. A marker here means "already sent" to every future tick.
+    expect(
+      await env.EVIDENCE.head(sent214Key("tenant-a", exp.dedupeKey)),
+      "a FAILED send wrote a sent-marker — every later tick will skip this shipment and the 214 is stranded forever",
+    ).toBeNull();
+
+    // …and the consequence that matters, asserted rather than inferred: the retry actually goes out. This is
+    // what a marker-presence assertion alone cannot prove, and it is the behaviour the partner experiences.
+    const good = new RecordingTransport();
+    await run214Sweep(env, good, clock);
+    expect(good.sent, "the next tick must re-attempt a failed 214").toHaveLength(1);
+    // Compared on the dedupe key, NOT on `exp.bytes`: `expected()` stamps ALLOC_ISA (42), and the re-attempt
+    // legitimately carries 43 — the burned-number gap asserted below. Byte-equality against the first
+    // attempt's envelope would fail for the very reason this test exists to document.
+    expect(good.sent[0]!.idempotencyKey).toBe(exp.dedupeKey);
+    expect(good.sent[0]!.partnerScac).toBe(PARTNER_SCAC);
+    // `head`, not `get`: a `get` hands back an R2ObjectBody whose stream this assertion never consumes,
+    // and an undisposed stream breaks the pool's isolated-storage pop ("unable to pop R2 storage") — a
+    // harness fault that reads as an unrelated unhandled error. Presence is what is being asserted anyway.
+    expect(await env.EVIDENCE.head(sent214Key("tenant-a", exp.dedupeKey)), "now it is genuinely sent").not.toBeNull();
+
+    // The burned control number is EXPECTED, not a defect: allocation precedes the send, and the header states
+    // a re-attempt allocates a FRESH number — "the burned-but-unsent number is a legal X12 gap, never reused".
+    // Pinned so the gap stays deliberate: 41 → 42 (burned by the failed attempt) → 43 (the one on the wire).
+    expect(await readOutboundIsa()).toBe(43);
+    expect(isaOf(good.sent[0]!.bytes)).toBe("000000043");
+  });
+
   it("does NOT throw when a tendered shipment has no status events (clean skip, no allocation)", async () => {
     await seedEdiPartner(env.TENANT_A_DB, PARTNER_ID, "certified", COUNTER_CONFIG);
     await seedTenderMarker("shp-no-status"); // a tender marker but zero status events on that stream
