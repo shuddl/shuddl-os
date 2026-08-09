@@ -146,9 +146,9 @@ export function computeCoverage(input: {
   return { total: input.rows.length, perBucket, unaccounted, drift, confirmCited };
 }
 
-// A deferred row's "recorded home" is a REQ-\d{3} citation in the human coverage ledger
+// A deferred row's "recorded home" is a REQ-\d{3,} citation in the human coverage ledger
 // (docs/ops/GO-LIVE-CHECKLIST.md) OR an entry in the coverage-manifest (for any deferral not yet
-// threaded into the checklist). Same REQ-\d{3} matcher the annotation scan uses.
+// threaded into the checklist). Same REQ-\d{3,} matcher the annotation scan uses.
 // §489 — repo-ANCHORED, not cwd-relative: an unhandled ENOENT off-root was this gate's only
 // protection against scanning nothing, and that safety was incidental (see tools/checks/repo-root.ts).
 const CHECKLIST_PATH = () => `${repoRoot()}/docs/ops/GO-LIVE-CHECKLIST.md`;
@@ -176,7 +176,7 @@ export function scanConfirmReviewed(): Set<string> {
 export function scanRecordedHomes(): Set<string> {
   const out = new Set<string>();
   if (existsSync(CHECKLIST_PATH())) {
-    for (const m of readFileSync(CHECKLIST_PATH(), "utf8").matchAll(/REQ-\d{3}/g)) out.add(m[0]);
+    for (const m of readFileSync(CHECKLIST_PATH(), "utf8").matchAll(/REQ-\d{3,}/g)) out.add(m[0]);
   }
   for (const id of Object.keys(readManifest().dispositions ?? {})) out.add(id);
   return out;

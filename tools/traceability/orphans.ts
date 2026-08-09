@@ -61,7 +61,7 @@ export function scanSourceAnnotations(cwd = repoRoot()): Set<string> {
       "-l",
       "-z",
       "-E",
-      "REQ-[0-9]{3}",
+      "REQ-[0-9]{3,}",
       "--",
       ".",
       ":(exclude)genesis",
@@ -88,7 +88,7 @@ export function scanSourceAnnotations(cwd = repoRoot()): Set<string> {
   for (const relativePath of result.stdout.split("\0").filter(Boolean)) {
     const normalizedPath = relativePath.replace(/\\/g, "/");
     const docsWp = normalizedPath.startsWith("docs/wp/");
-    const ids = readFileSync(join(cwd, relativePath), "utf8").match(/REQ-\d{3}/g) ?? [];
+    const ids = readFileSync(join(cwd, relativePath), "utf8").match(/REQ-\d{3,}/g) ?? [];
     for (const id of ids) {
       if (docsWp && deferredById.get(id) === true) continue;
       annotations.add(id);

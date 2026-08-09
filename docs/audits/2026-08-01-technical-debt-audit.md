@@ -387,6 +387,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 192 | §744 | **§745** | **The meta-gate counted a SKIP as coverage — and my fix was silently wrong twice.** Four fixture-blocked gates emit `"executed": false`, so non-execution is now DETECTED and the set asserted **both ways** (a new skipper must be declared; one that starts executing must be removed, so an exemption cannot outlive its reason). **Fix bug 1:** `executed()` returned true when no structured verdict was present, but `check:identity`'s skip prints PROSE — so the regression mutation was silent. Replaced with a **positive** assertion (a `skipMarker` that must NOT appear). **Fix bug 2:** that was *also* silent — the marker goes to **stderr** and `execFileSync` returns stdout only. Switched to `spawnSync`, both streams. Two detector bugs stacked, each hiding the next, in a fix whose purpose was to stop a gate certifying what it never examined. Both found by mutation, neither by reading |
 | 193 | §745 | **§746** | **CLEAN NEGATIVE — the record already says what the board's numbers certify.** Under `--mode merge`: **5 of 20** gates emit a sentinel; for the other 15 `run-gate` SYNTHESIZES `PASS/executed:true/assertions:1` from exit 0 — so on three-quarters of the board `assertions` is a CONSTANT, not a measurement. `RELEASE-EVIDENCE.md` states this verbatim and draws the right conclusion (*"only meaningful for the sentinel-emitting gates"*), carrying the distinction into its Artifact column. Nothing to fix — worth recording because this audit keeps finding the opposite shape. **My first measurement said 4 of 20** — an artifact of running gates BARE when `run-gate` passes `--mode`. Sixth instrument error this session, same correction as §741's wrong suite: **run the subject the way its real caller runs it** |
 | 194 | §746 | **§747** | **CLAUDE.md rule 10 (no silent drops in migration) mutation-proved.** Making an unmapped column produce no gap row reds 2 tests — the stronger one asserting the per-row VALUES are *retained*, not merely that a gap row is minted. **What "171-col" is a claim about:** an OWNER-HELD artifact (the tenant-0 config pack, `genesis/13`); in-repo the vendored fixture is synthetic, **13 columns**. That is correct, not a shortfall — *"ANY column that doesn't map raises a gap row"* is a **per-column property, not a count**, so it is proved by exercising the classification branches. The 171-col export supplies *parity* evidence, held as `legacy-export-replay` `status: pending`. Fixture truncation is pinned too (deleting `misc_note` reds the same 2). `verify:merge` re-derived: **19 PASS · 2 FAIL · 5 BLOCKED**, identical to §737 |
+| 195 | §747 | **§748** | **DEFECT (latent, found by ATTRIBUTION): every REQ-id matcher truncates at three digits.** Probing rule 1's direction B with a planted `REQ-9999`, the gate correctly failed — and echoed back **`REQ-999`**. All four matchers are `REQ-\d{3}`, exactly three. Register is at REQ-289, so nothing is wrong today; at **REQ-1000** both directions break SILENTLY at once — a citation of the non-existent REQ-1000 matches `REQ-100`, which EXISTS, so the orphan resolves *and* coverage credits REQ-1000's work to REQ-100. Quiet precisely because the truncated id is valid. Widened to `\d{3,}` at all 4 sites — **a no-op today, measured** (no text in the repo has 4+ digits after `REQ-`). 3 tests + non-vacuity companion; reverting one matcher REDS. **Checking WHICH id the gate saw, rather than that it failed, is the entire finding** |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -42769,3 +42770,71 @@ were test-file lines already counted inside `unit-tests`. Seventh instrument sli
   class is a new way to have none.
 - The synthetic fixture gains columns → harmless, but if an assertion starts depending on the column *count*
   rather than on named headers, that assertion becomes fixture-shaped and will break for the wrong reason.
+
+## §748 — PHASE GATE: the REQ-id matcher truncates at three digits, and attribution is what found it
+
+§747 finished rule 10. The one remaining CLAUDE.md engineering rule with a testable **two-part** claim is rule
+1: *"traceability CI blocks orphans (both directions)."*
+
+### Both directions work
+
+Direction A — a register row with no implementation — is demonstrably live: it is what fails the board right
+now on the uncommitted `REQ-289` row. Direction B — a citation to a row that does not exist — was probed by
+planting `// REQ-9999` in `packages/ledger/src/lens.ts`:
+
+```
+FAIL built-but-unspec'd (annotations citing no register row): REQ-999
+```
+
+Exit 1, correct verdict, correct category. Rule 1 holds in both directions.
+
+### And the echo in that message is the finding
+
+It says **`REQ-999`**. I planted **`REQ-9999`**.
+
+Every REQ matcher in the repo is `REQ-\d{3}` — exactly three digits, four sites. The register's terminal id is
+REQ-289, so nothing is wrong today. The boundary is at **REQ-1000**, and it fails *silently* in both
+directions at once:
+
+- **direction B stops working**: a citation of the non-existent `REQ-1000` matches as `REQ-100`, which
+  **exists**, so the orphan resolves and is never reported;
+- **coverage misattributes**: `REQ-1000`'s implementation is credited to `REQ-100`, so a real row looks built
+  that isn't.
+
+An off-by-one in a matcher would be loud. This one is quiet precisely because the truncated id is *valid*.
+
+**It was found by attribution, not by reading.** The gate failed, which was the answer I was probing for — and
+checking *which id it had actually seen*, rather than accepting that it failed, is the whole of it. That is
+§"attribute the RED before crediting it" paying for itself in a phase whose subject was something else
+entirely; the seventh instrument check of this session and the first that found a defect rather than a mistake
+of mine.
+
+### Fixed
+
+`\d{3}` → `\d{3,}` at all four sites (`check-pr.ts`, `coverage.ts` ×1 + two comments quoting the pattern,
+`orphans.ts` ×2 including the grep-pattern string). **A no-op today, measured**: no text anywhere in the repo
+has four or more digits after `REQ-`. That is exactly when a boundary fix is cheapest to make and hardest to
+argue for later.
+
+Three tests pin it, with a non-vacuity companion so the gate cannot pass them by simply rejecting everything:
+
+| test | mutation: revert one matcher to `\d{3}` |
+|---|---|
+| a 4-digit citation is not truncated into an existing row | **RED** |
+| 3-digit ids still work | green (the widening changed nothing that worked) |
+| a PR citing nothing is still refused | green |
+
+### Exit state
+
+`test:tools` **1027** (+3); `check:traceability` 0; lint 0; typecheck 0. The single failure in
+`traceability.test.ts` is the pre-existing `REQ-289` register test, one of the three baseline failures tracked
+all session. `check-pr.ts` restored byte-identical.
+
+**Reopen triggers**
+- The register passes REQ-999 → this fix is what keeps both traceability directions working, and the pin above
+  is what proves it still does. Do not narrow the matcher back for "precision".
+- A new REQ matcher is written anywhere → it must be `\d{3,}`. Four sites existed; a fifth written from memory
+  of the old pattern reintroduces the boundary in one place, which is worse than having it everywhere because
+  the disagreement is invisible.
+- An id scheme change (a prefix, a suffix, a namespace) → the matcher stops being a pure digit run, and the
+  truncation question must be re-asked in whatever the new shape is.
