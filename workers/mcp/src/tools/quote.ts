@@ -57,7 +57,13 @@ const QuoteFreightInput = z
     // Physics is OPTIONAL on purpose: missing weight/dims is LEGAL and flows to the api's UNKNOWN (no price
     // on air) — it is never a client-side 400 here.
     weight_lb: z.number().int().positive().optional(),
-    dims: Dims.optional(),
+    // `.nullish()`, not `.optional()` (audit §821). `.optional()` accepts `undefined` and REJECTS `null` — so
+    // `{"dims": null}`, which is what a JSON producer naturally emits for an absent optional field, was a 400
+    // HERE while `/v1/rate` and the guest quote (both `.nullish()`) accepted it and returned UNKNOWN. That
+    // contradicted the comment directly above: missing dims is LEGAL and must never be a client-side 400.
+    // One semantic payload, three surfaces, two answers — and the odd one out was the MCP tool that
+    // acceptance demo #4 runs through.
+    dims: Dims.nullish(),
     accessorials: z.array(z.string().min(1).max(MAX_NAME_LEN)).max(MAX_ACCESSORIALS).optional(),
     mode: z.enum(SHIPMENT_MODES).optional(),
     // The caller's explicit "this is one operation" token — deriveIdempotencyKey reads it (REQ-106) so a

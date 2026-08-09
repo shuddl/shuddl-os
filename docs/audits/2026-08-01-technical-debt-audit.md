@@ -460,6 +460,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 265 | §817 | **§818** | **PHASE 40 CLOSED — rule 10 was proven for the CSVs we wrote, not for the law.** Reused §817's frame (*which law has no gate?*) and got the **opposite** answer: rule 10 is among the best-gated in the repo — **five `THE LAW` blocks**, one checking the column↔gap-row count is airtight. But every proof is a **fixture**. Planting a real silent drop (`if (p.header.trim() === "") continue;`) left the suite **19/19 GREEN** — no fixture has a blank header, and **one trailing comma in a legacy export makes one**. Shipped a property over 300 seeded header sets incl. degenerate shapes, asserting every column is APPLIED or carries **exactly one** gap row (not "at least one" — double-counting turns a review queue into noise), plus a non-vacuity test on the corpus. 3 REDs. **Clean negative**: the plan layer was already total for all 8 degenerate shapes — the gap was one layer down. **Process error recorded**: `git checkout` on the uncommitted test file DELETED §818 (checkout is a discard, not a restore); caught in one command, re-applied |
 | 266 | §818 | **§819** | **PHASE 41 CLOSED — the mirror was compared to a DRAWING of the thing.** Rule 3 (gates are server-side) on the driver seam. `stop-flow.ts` exports `serverRequiredEvidence` whose doc-comment says it exists *"so a test can prove the client flow is a true superset-mirror of the server Gatekeeper"* — but its body is a **hand-copied list**, and the test proves flow ⊇ that list while **never calling** `assertPickupDepart`/`assertDelivery`. The client was checked against its own drawing of the server. Measured: tightening the SERVER gate left the driver suite **9/9 GREEN**. The hidden failure is the worst shape here — a real driver completes every step the app shows, taps depart, and the server rejects it: **acceptance demo #3 failing in the field, not in CI**. Fixed by making the authority declare itself — an EMPTY prior makes each gate throw `GateError.required_evidence`, its own complete set, so nothing is transcribed. + a non-vacuity floor (two EMPTY lists are equal). 3 REDs incl. the previously-silent one. **The two sides agree today** — nothing was mis-gated; this pinned a correct agreement |
 | 267 | §819 | **§820** | **PHASE 42 CLOSED — a PRICE ON AIR, reachable from the public API.** Law 4 / REQ-004. `priceFreight` guards `weight_lb` exhaustively (0/neg/NaN/Inf/fractional all tested) but guarded `dims` by **presence alone** — `!== null && !== undefined`, which ANY object satisfies. Measured: `{}`, all-zeros, negatives and NaN each returned **PRICED $300.00**. Reachable: `/v1/rate`, `pub/quote` and the MCP tool all type dims `l/w/h: nonnegative(), pieces: positive()`, so **one piece measuring 0×0×0 inches gets a real price over three surfaces**. Dims never feed the computation — their only job is to be the token saying *this was measured*, and a placeholder passed. **The ledger already knew better** (`SafeInt.min(1)`; the contracts test asserts `l_in:0` throws) — the PRICING path was laxer than the LEDGER path, with the weaker mechanism facing the internet. Fixed at the engine (server-side, so all 3 surfaces inherit it); remedy is UNKNOWN not 400, because all four boundary schemas agree on `min(0)` meaning *not provided*. 3 REDs |
+| 268 | §820 | **§821** | **PHASE 43 CLOSED — one rate request, four hand-rolled copies, two answers.** `contracts/rating.ts` claims to be *"the SINGLE canonical rate-request shape … ONE source of truth"*. Half true: the rater aliases the **inferred TYPE**, so FIELD drift breaks the build — but **an inferred type carries no CONSTRAINTS**, so `min`/`max`/`.optional()` vs `.nullish()` all erase, and the build is structurally blind to the drift that changes what a caller may send. **THE FIND**: MCP declared `dims: Dims.optional()` where every other surface used `.nullish()` — `.optional()` REJECTS `null`, so `{"dims": null}` (what a JSON producer emits for an absent field) was a **400 from MCP** and an accepted UNKNOWN from `/v1/rate` + guest. The MCP file's own comment two lines up says missing dims *"is never a client-side 400 here"*. Fixed. Gate pins PHYSICS fields only (whole-schema equality would be wrong and would get silenced); the idiom normaliser has its **own calibration** because a hand mapping is a transcription (§819). 4 REDs. Zip/accessorial bound divergence measured and **deliberately left** — no bypass, and picking 16 vs 20 is not an audit's call |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -47461,3 +47462,74 @@ existed because the file was unsaved, not because I planned to mutate it.
 - A fourth quote surface appears → it inherits the engine guard automatically, which is the point of fixing
   it server-side; but its Zod schema is its own copy of `Dims` and nothing pins the four against each other.
   That four-way duplication is unpinned today and is the obvious §819-shaped successor to this phase.
+## §821 — PHASE GATE: PHASE 43 CLOSED — one rate request, four hand-rolled copies, two answers
+
+§820's exit note named this successor: the `Dims` schema exists in four independent copies and nothing pins
+them. Following it found a live cross-surface inconsistency.
+
+### The claim, and the exact half of it that is true
+
+`packages/contracts/src/rating.ts` declares `RateRequestPayload` under an explicit header: *"the SINGLE
+canonical rate-request shape … ONE source of truth: a field drift on either side breaks the rater build"* and
+*"(mirrors the workers/api RateBody boundary)"*.
+
+The first half is true and genuinely load-bearing — `packages/rater` aliases the **inferred type**, so adding
+or removing a FIELD is a compile error. But **an inferred type carries no constraints.** `min`, `max`,
+`nonnegative`, and `.optional()` vs `.nullish()` all erase to the same TypeScript. So the build catches field
+drift and is **structurally blind to constraint drift** — which is the kind that changes what a caller may
+actually send. And only the translator imports `RateRequestPayload`; the three quote surfaces each hand-roll
+their own copy.
+
+### The find
+
+The MCP tool declared `dims: Dims.optional()`; every other surface used `.nullish()`.
+
+`.optional()` accepts `undefined` and **rejects `null`**. So `{"dims": null}` — what a JSON producer
+naturally emits for an absent optional field — was a **400 from MCP** and an accepted **UNKNOWN** from
+`/v1/rate` and the guest quote. One semantic payload, three surfaces, two answers, and the odd one out is the
+surface acceptance demo #4 runs through.
+
+The MCP file's own comment, two lines above the defect, reads: *"missing weight/dims is LEGAL and flows to
+the api's UNKNOWN (no price on air) — it is never a client-side 400 here."* The comment states the intent
+correctly; the code missed one of the two encodings of "missing". Fixed to `.nullish()`.
+
+### Also measured, and deliberately NOT changed
+
+The surfaces disagree on `origin_zip`/`dest_zip` maximum length — `/v1/rate` **unbounded**, guest `max(16)`,
+MCP `max(20)` — and on accessorial caps (unbounded vs 32). Not a defect that can be exploited across
+surfaces: both capped surfaces sit OUTSIDE `/v1/rate` and forward to it, so the strictest bound is the outer
+one and there is no bypass. It is left alone rather than "harmonised", because 16 vs 20 vs unbounded look
+like three deliberate product answers, and picking one for them is not an audit's call. Filed as a trigger.
+
+### The gate, and what it refuses to claim
+
+A parity check over the four surfaces' PHYSICS fields only. The schemas are legitimately different in scope —
+MCP takes parties and a mode, `/v1/rate` takes legs and a proposed sell — so demanding whole-schema equality
+would be wrong and would be silenced inside a month. It pins the fields REQ-004 governs and all four share.
+
+Comparing them at all requires normalising two idioms (`z.number().int().nonnegative()` vs `SafeInt.min(0)`),
+and **a hand-written mapping is itself a transcription** — §819's whole lesson. So the normaliser has its own
+calibration test, including the exact §821 defect planted as a pair that must not compare equal.
+
+Proved four ways: the §821 defect restored → RED naming the surface · a dims BOUND drifted → RED · weight_lb
+optionality drifted → RED · a surface dropping `dims` entirely → RED on both the parity and the non-vacuity
+test (a set of one always agrees with itself — §819's floor, reused).
+
+### Exit state
+
+`test:tools` **1081** (+5), 3 failed — the unchanged REQ-289 baseline. `@shuddl/mcp` 185. typecheck 0, lint 0,
+`verify:docs` 0.
+
+Process note, third occurrence: two mutation anchors failed because I took indentation from `sed` output that
+I had piped through `sed 's/^/  /'` for display, so every anchor was two spaces too deep. Cost two wasted
+runs. **Read anchors from `python3 repr()`, never from prettified terminal output** — the display prefix is
+invisible in exactly the way that matters.
+
+**Reopen triggers**
+- A **fifth** quote surface appears → it must be added to `SURFACES`. Nothing detects a surface that simply
+  isn't on the roster; that is this gate's one real blind spot and it is stated rather than hidden.
+- The zip/accessorial bounds get harmonised deliberately → then they belong in this gate too, and the
+  "physics only" scope note above should be revised rather than quietly widened.
+- A surface adopts a third idiom for bounds (a refinement, a branded type) → `lowerBound` returns null, the
+  bound test fails with "no recognisable lower bound", and the normaliser needs a case plus a calibration row.
+  It fails loudly rather than reading the new idiom as agreement, which is the property that matters.
