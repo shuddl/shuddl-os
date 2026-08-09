@@ -402,6 +402,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 207 | §759 | **§760** | **Audited the eleven exclusions that decide what "built" MEANS.** Each decides whether a file's REQ citations count as evidence a requirement shipped — get one wrong and a governance sentence meaning *"this shipped nothing"* becomes proof something shipped. Mutation-tested individually: `docs/audits` **+3 failures**, `PROJECT-STATE.md` **+2** — both pinned; **`.claude` silent** in fixture AND real repo. Its two stated hazards measured: **0** skill-cited ids absent from the register, **0** rows whose only annotation is a skill (27 ids cited, all registered, all annotated elsewhere). **No gate built — deliberately**: §752 pinned a precondition because money was at stake; a gate per defensive line is its own debt. **And the warning I walked past**: `orphans.ts` already says *never write a literal requirement id into any scanned source* — §757 was exactly that, one file away |
 | 208 | §760 | **§761** | **All TWELVE exclusions, not three — 8 pinned, 4 inert and measured.** §760 sampled three and generalised (*"two of three are pinned"*); the true ratio is **8 of 12**, and the sample happened to hold two of the strongest and one of the weakest. **`docs/plans` is the row a sample mis-ranks**: it moves the fixture LEAST (+1) and is the ONLY exclusion whose removal **reds the real repo**. Fixture sensitivity and real-repo load-bearing are different properties pointing opposite ways here. The 4 inert ones (`BUILD-PROMPT`/`CLAUDE`/`README`/`.claude`) carry 46 cited ids — **0 unregistered, 0 only-annotations** — so each is correct, cheap and currently unnecessary. **A sample of three from twelve is a sample and should have been labelled one**; finishing cost one loop |
 | 209 | §761 | **§762** | **Finished §758's map — the same sample-vs-population correction §761 made to §760.** §758 derived 8 self-scanning gates and examined 6, dropping two by judgement. `scan-corpus` is a HELPER (no verdict, correctly outside — now by reason, not omission); **`check-table-shape` is a gate and belongs on the map**, defended by corpus scope on a DIFFERENT AXIS (extension `*.md` vs `design/audit`'s path) — and that defence covers its **source but not its documentation**, which §759 already proved incidentally (a planted over-wide row in the audit doc → exit 1). Corrected map: **7 gates, 5 mechanisms**, with `traceability` the exact inverse (docs covered, source not — why §757's literals bit in a test file and not in prose). **Both corrections cost one loop each** |
+| 210 | §762 | **§763** | **The lens WHERE fragments, conjunct by conjunct — REQ-025's SQL half.** One function turns a session into a `WHERE` and every read inherits it, so a single dropped conjunct is a silent repo-wide widening. Mutated one conjunct at a time (not whole fragments — a PARTIAL widening is what a reviewer skims past): party `visibility<>'internal'` → **6 red**; party membership made always-true → **2 red**; driver shipment-ownership → **4 red**. All defended, and the failure SHAPES are right (a golden *plus* behavioural cases — a golden alone proves the string changed, not the scope). **Scope stated honestly**: the tenant lens is `1=1` because tenant isolation is PHYSICAL (§738's parity + DO pinning), so this covers only REQ-025's SQL half |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -43710,3 +43711,60 @@ No code changed. `verify:docs` 0; `test:tools` 1037; lint 0; typecheck 0.
   two omissions were invisible precisely because they were unstated.
 - The map reaches eight rows → it is worth a test rather than a table. Seven hand-maintained rows is under the
   line; the day it is not, §699's rule applies.
+## §763 — PHASE GATE: the lens WHERE fragments, conjunct by conjunct
+
+Three phases of auditing the audit tooling was enough. Back to the highest-stakes product surface not yet
+examined this session: **the lens** — the server-derived scope every read passes through, and the thing REQ-025
+means when it says *a cross-tenant read anywhere is a build failure*.
+
+The lens is unusually concentrated. Its comment says so: *"The only string…"* — one function turns a session
+into a SQL `WHERE`, and every read in the system inherits it. That makes it a good subject and a dangerous one:
+a single dropped conjunct is a silent, repo-wide widening.
+
+### Each conjunct mutated separately
+
+`lensWhere` builds a fragment per scope. I dropped one conjunct at a time rather than deleting a fragment,
+because the failure that matters is a *partial* widening — the kind a reviewer skims past.
+
+| lens | conjunct removed | what it would leak | result |
+|---|---|---|---|
+| party | `visibility <> 'internal'` | ops-only events to a customer | **6 tests red** |
+| party | party membership (made always-true) | **another party's** events | **2 red**, incl. *"party lens sees only non-internal events referencing…"* |
+| driver | shipment ownership | **another driver's** stops | **4 red**, incl. a Concierge cross-lens proof |
+
+All three defended, and the *shapes* of the failures are right: the party-membership mutation reds a test whose
+name states the property, and the driver mutation reds a golden **plus** three behavioural cases — a golden
+alone would prove only that the string changed, not that the scope did.
+
+### The golden is the second mechanism, not the first
+
+Both party and driver mutations red `lensWhere: SQL goldens (a WHERE regression is a visible diff)`. That test
+exists so a change to this fragment cannot land unnoticed even if behavioural coverage misses the case — the
+`two-mechanisms-disagreeing-is-the-finding` shape used deliberately: a golden catches *any* edit, the
+behavioural tests catch the ones that matter, and neither is sufficient.
+
+Worth stating because a golden on a security predicate is easy to mistake for redundancy and delete.
+
+### What this does not cover
+
+The tenant lens returns `1=1` — no restriction, by design, because tenant isolation is *physical* (one D1 per
+tenant, the DO pinned to `(tenant|stream)`), not a WHERE clause. §738 proved that layer separately: the
+`POOL_BINDINGS` roster is parity-checked across four workers, and `isolation.test.ts` pins that a tenant-a
+append cannot re-key onto tenant-b's D1.
+
+So the two halves of REQ-025 are defended by different mechanisms — physical routing for tenants, SQL scope for
+parties and drivers — and this phase covers only the second. Saying so is the point: *"the lens is tested"*
+would overstate it.
+
+### Exit state
+
+No code changed. `packages/ledger` **667/667**; `test:tools` 1037; lint 0; typecheck 0. `lens.ts` restored
+byte-identical after all three mutations.
+
+**Reopen triggers**
+- A fourth lens scope is added → it needs the same conjunct-by-conjunct treatment; deleting a whole fragment is
+  the mutation that proves least.
+- The SQL goldens are updated to match a changed fragment → that is correct, but the behavioural tests must red
+  first. A golden updated to match a widening is the failure mode it exists to prevent.
+- `readEvents` gains a caller that composes its own WHERE → the lens can only NARROW today (the kind filter
+  ANDs on). A caller that ORs would escape every test above.
