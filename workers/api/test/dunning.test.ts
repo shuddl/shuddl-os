@@ -117,6 +117,43 @@ describe("the draft-queue read (GET /v1/dunning?status=draft) — lists the Coll
 });
 
 describe("the approve-and-send route (POST /v1/dunning/:id/send) — append-then-send, idempotent, honest hold (REQ-032)", () => {
+  it("addresses the BILLING contact, not merely the first one (§785 — the mirror of the Biller's rule)", async () => {
+    // `resolveDunningRecipient` is a byte-for-byte re-implementation of the Biller's `resolveRecipient`
+    // (the api worker cannot import the agents worker's internals). Its header claims "no drift". Nothing
+    // checked either half: deleting `if (billing !== undefined) return plausibleEmail(billing)` here left
+    // this worker at 803/803, exactly as the same deletion left the Biller's copy silent in BOTH suites.
+    //
+    // The reason is the fixture, not the rule: `seedParty` seeds exactly ONE contact, always `kind:"billing"`,
+    // so preference and first-match are indistinguishable in every existing case. A dunning notice is a
+    // demand for money — sending it to a dispatcher instead of AP is the wrong human at the right company,
+    // and it looks identical to success from every angle except the unpaid invoice.
+    //
+    // The ORDER is the test (§772): dispatch first, billing second.
+    await env.TENANT_A_DB.prepare("INSERT OR REPLACE INTO parties (id, kind, names, contacts) VALUES (?,?,?,?)")
+      .bind(
+        "dun-p-order",
+        "shipper",
+        "{}",
+        JSON.stringify([
+          { kind: "dispatch", email: "dispatch@dun-order.example.com" },
+          { kind: "billing", email: "ap@dun-order.example.com" },
+        ]),
+      )
+      .run();
+    await seedInvoice("dun-inv-order", "dun-p-order", { dueTs: NOW - 10 * DAY });
+    await sweepTenantOverdueInvoices(env.TENANT_A_DB, NOW);
+
+    const sender = new RecordingSender();
+    const outcome = await sendDunningDraft(depsWith(sender), dunningDraftId("dun-inv-order", "reminder"));
+
+    expect(outcome.status).toBe("sent");
+    expect(sender.messages).toHaveLength(1);
+    expect(
+      sender.messages[0]!.to,
+      "a dunning notice addressed to dispatch instead of AP — the demand never reaches the payer",
+    ).toBe("ap@dun-order.example.com");
+  });
+
   it("SENDS: appends message.sent THROUGH the sequencer + calls the sender; the draft then LEAVES the draft queue", async () => {
     const draftId = await seedDraft("dun-inv-send", "dun-p-send", "billing@dun-send.example.com");
     const sentId = await dunningSentEventId("dun-inv-send", "reminder");

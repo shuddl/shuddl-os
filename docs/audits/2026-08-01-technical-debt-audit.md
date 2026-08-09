@@ -425,6 +425,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 230 | §782 | **§783** | **The other trust boundaries — and a guard redundant for SAFETY but not for TRUTH.** Swept 22 `JSON.parse` sites in workers/packages: most already right (the **device-key entry** that feeds signature verification is fail-closed with its reasoning written out). The R2 tender marker IS validated but **nothing pinned it** — and my first test was **VACUOUS**, passing with the guard deleted, because a SIBLING guard downstream also blocks the wire. What the guard uniquely delivers is the **classification**: `malformed` (terminal) vs `failed` (*"retry next tick"*) — so without it a permanently corrupt marker is retried **forever** and reported as transient, the exact confusion §29 was rewritten to avoid. `.strict()` needed its OWN fixture (the first one masked it) and its correctness is the OPPOSITE of §781/§782's: the deciding property is the **deploy boundary** — cross-service ⇒ strip; same-worker, atomic ⇒ an unexpected key can only be a writer/reader disagreement |
 | 231 | §781–§783 | **§784** | **PHASE 13 CLOSED — every trust boundary enumerated.** Phase 12 closed the last unaudited product SURFACE; this closes the last unaudited class of INPUT. **16 unchecked casts** (live defect, fixed + gated) · queue bodies **clean and exemplary** · R2 marker validated but unpinned · device-key path clean. **Strictness is decided by the DEPLOY BOUNDARY, not taste**: cross-service ⇒ strip; same-worker atomic ⇒ strict. The queue consumer's ack-vs-retry discrimination is the standard the marker was measured against. Board re-measured at `e3a359e`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs attributed to the three named register tests on the uncommitted REQ-289 row. **4,162 tests** (3,118 workspace, 0 failures). **STOPPING POINT: repo-owned ledger EMPTY; five owner-held holds** — §724's came off this phase |
 | 232 | §784 | **§785** | **The OUTPUT boundary — who the evidence email goes to.** Phase 13 audited inputs; the dual is the seven places something LEAVES the building, where the failure is a wrong recipient rather than a crash. `resolveRecipient` has two rules: the **cross-party binding** is covered (dropping `WHERE id = ?` reds 4 tests in `workers/api` — the id-determinism seam again, correct by design), but **preferring the `billing` contact was SILENT in BOTH suites** (agents 122/122 AND api 803/803). A party with a dispatch contact and a billing contact would have had its invoice + signed POD delivered to **dispatch** — not a cross-party leak but **the wrong human inside the right company**, which is why it survived: it looks like a working system to everyone except the person who never got their invoice. Five tests, four mutation-proved; the fixture's ORDER is the whole test (non-billing first) |
+| 233 | §785 | **§786** | **The recipient rule is implemented TWICE and NEITHER copy was pinned.** §785's exit note claimed the other emitters were covered; checking found the same defect in `resolveDunningRecipient` — a byte-for-byte duplicate whose header *claims* "anti-drift" while only the LEAF predicate is shared. Deleting its billing preference left api at **803/803**, because `seedParty` seeds exactly ONE contact, always billing: **the rule was untestable by construction in both workers**. A dunning notice to dispatch instead of AP is a demand for money that never reaches the payer. Both halves of the doctrine, each proved to catch what the other cannot: deleting the rule reds behaviour AND parity; a **valid-but-drifted** change (reversed fallback order) reds **only parity** — and the parity file carries a floor so it cannot certify two copies that are identically wrong |
 
 **Current measured state — as measured 2026-08-08 at `fae1a17` (§775's board run):** the merge board is
 **26 gates — 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape since §737. `typecheck` 0 · `lint` 0 ·
@@ -45205,3 +45206,59 @@ No source changed — `biller.ts` restored byte-identical after six mutations. `
   audited. The concierge reply's recipient is pinned in `workers/api` (*"the envelope sender — NOT the
   model's SPOOF_RECIPIENT"*); the dunning send's is pinned at `dunning.test.ts:132`. The three EDI/webhook
   transports address by partner SCAC or subscription URL, which §783 covered.
+## §786 — PHASE GATE: the recipient rule is implemented TWICE, and neither copy was pinned
+
+§785 found the Biller's `billing`-contact preference unpinned. Its exit note *claimed* the other emitters were
+covered. Checked rather than asserted — and the check found the same defect in a second implementation.
+
+### One rule, two copies, no parity
+
+```
+workers/agents/src/biller.ts      → resolveRecipient        (evidence email: invoice + signed POD)
+workers/api/src/routes/dunning.ts → resolveDunningRecipient (dunning notice: a demand for money)
+```
+
+Byte-for-byte the same logic, duplicated because the api worker cannot import the agents worker's internals.
+`dunning.ts`'s header says the copy is *"pinned to the SHARED predicate — anti-drift"*. Only the LEAF
+predicate (`plausibleEmail`) is actually shared; the preference-and-fallback logic around it is duplicated,
+and **nothing compared the two**. A claim of no-drift is not a check — the `two-mechanisms` shape again,
+this time with the claim written in the source.
+
+Deleting the billing preference from the dunning copy left `workers/api` at **803/803**, for the same reason
+as §785: `seedParty` seeds exactly ONE contact, always `kind:"billing"`, so preference and first-match are
+indistinguishable in every existing fixture. **The rule was untestable by construction, in both workers.**
+
+A dunning notice is a demand for money. Sending it to a dispatcher instead of AP is the wrong human at the
+right company — indistinguishable from success from every angle except the invoice that never gets paid.
+
+### Both halves of the doctrine, and each proved to catch what the other cannot
+
+| guard | M1: delete the billing preference | M2: DRIFT only (reverse the fallback order — still valid logic) |
+|---|---|---|
+| behavioural (`dunning.test.ts`, discriminating fixture: dispatch first) | **RED** | green |
+| parity (`recipient-parity.test.ts`) | **RED** | **RED** |
+
+M2 is the one that matters: a change that is *internally reasonable* and leaves both resolvers working reds
+**only** the parity gate. Behaviour alone cannot see drift; parity alone would certify two copies that are
+identically wrong — so the parity file also carries a floor asserting **both** bodies still contain the
+`"billing"` preference.
+
+The parity test compares **normalised function bodies**, not whole files: these are functions inside large
+modules, so the byte-identical-file idiom of `rate-config-parity` / `tenants-parity` does not apply. It
+carries its own non-vacuity floor, because a rename would otherwise make `normalise("") === normalise("")`
+a passing test that guards nothing.
+
+### Exit state
+
+No source changed — `dunning.ts` restored byte-identical after three mutations. `workers/api` **807/807**
+(+4); `workers/agents` 127/127; lint 0; typecheck 0.
+
+**Reopen triggers**
+- Either resolver is edited → the parity test reds by design. Fix BOTH or extract the shared helper; the
+  fix is never to relax the assertion.
+- A third consumer of this rule appears (the Collector sweep is named in `dunning.ts`'s header as applying
+  the same predicate) → it joins the parity set. Two copies were already one too many; three unchecked is
+  the state this phase exists to prevent.
+- `seedParty` gains a second contact kind → the existing fixtures become discriminating on their own, and
+  these two tests stop being the only thing holding the rule. That is an improvement, not a reason to delete
+  them: the ordering fixture states the rule explicitly where a general fixture only implies it.
