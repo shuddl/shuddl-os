@@ -490,6 +490,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 295 | §847 | **§848** | **PHASE 68 CLOSED — the CAPTIVE PORTAL: a 302 that nothing tested.** §847 pinned drain order; `classifyStatus` decides whether a signed capture survives. Four probes: 4xx→`ack` (**4 RED**), 429→`operator` (**2 RED**), 401→`retry` (**2 RED**) — and **default→`ack` was SILENT**. Measured, the default catches **1xx, 3xx (301/302/304/307/308) and ≥600**, and the suite contains **zero 3xx cases**. **A 3xx is the driver's normal failure mode, not an exotic one**: a captive portal on truck-stop or depot wifi answers **302 → login page** — the very environment the airplane-mode soak exists to model. Misclassified as `ack`, the queue treats the portal's redirect as the sequencer's acceptance and **removes a signed capture that never reached the server** — silent evidence loss on demo #3's path. The code is **correct** and its comment names the property (*never a silent drop*); what was absent is any test that would notice if it stopped being. 2 REDs |
 | 296 | §848 | **§849** | **PHASE 69 CLOSED — the captive portal ONE LAYER DOWN: `fetch` was already following the redirect.** §848 pinned `classifyStatus` so a 3xx retries, and named where the defect would reappear: *the transport following redirects itself*. **It already did.** `transport.ts` calls `doFetch` with **no `redirect` option**, so the default `follow` applies and `res.status` is the FINAL response's — portal 302 → followed → login page **200** → `classifyStatus` → **`ack`** → **the signed capture is dropped**. **§848's test cannot see it**, because the function is handed the portal's 200, never the 302: *pinning a pure function proves nothing about what its caller feeds it.* CORS saves only the cross-origin case — luck per-portal, not a property. Fixed with `redirect: "error"` on both legs, licensed by a measurement: **the API never returns a 3xx**, so a redirect here is ALWAYS an interceptor. It routes into machinery §848 already pinned (throw → catch → status 0 → retry). **`createTransports` had ZERO tests** — the driver's whole HTTP boundary; +7 now |
 | 297 | §849 | **§850** | **PHASE 70 CLOSED — status-only trust is the vulnerability; the driver was the ONLY one.** Classified all **24** production `fetch` sites. **The discriminator is not "does it set `redirect`"** — it is what the caller TRUSTS. Four other protections, all stronger or equivalent: `apps/command`+`portal` have **caller-side Zod** (§782's `get<unknown>` + parse); `biller/sender.ts` does **body validation** and is exemplary, its own comment naming the case (*"a 2xx with a NON-JSON body — a proxy answering for a dead upstream"*); `platform-ledger` is a **service binding**, never on the network; `tsa/client` verifies **cryptographically** + echo-checks the nonce. **Body validation is strictly stronger than a redirect policy** — the sender needs no option because an interceptor cannot produce a Resend id; the driver needed one precisely because the sequencer's 202 carries **nothing to validate**. Rule: *trust a status only when you have nothing else.* §849's residual closed with a gate scoped to `apps/driver/src/sync/` — repo-wide would flag 22 correct sites (§845) and be wrong besides. 3 REDs |
+| 298 | §850 | **§851** | **PHASE 71 CLOSED — a WAIVER of the co-signature requirement that nothing downstream reads.** The evidence claim rests on I4 (*a custody event must be co-signed by a device*). **The chain holds**: the sequencer verifies at two sites, both fail-closed, and pins `device_id === actor.device` **before** the dedup lookup so an unsigned event cannot squat a victim's slot. **The waiver does not.** I4's escape hatch is `payload.unwitnessed`, and it is read in **exactly one place** — the refine that waives the requirement. Nothing downstream reads it: not the Biller, not the evidence email, zero hits across `workers/agents` + `packages/agents`. So an **unwitnessed POD bills identically to a co-signed one**, on the path demo #1 calls *"signature at a door"*. Whether it SHOULD differ is a **product decision, filed not made**. **I diagnosed §796 wrongly, twice.** I assumed it missed the field and blamed its `z.literal` exemption, narrowed it, widened the shape filter, filed the row — then removed the row to prove detection and it **still reported nothing**. §796 counts the field **CONSUMED**, correctly, by its own rule (*a read inside the declaring file counts*): the refine reads it four times. **Both edits reverted** — shipping them would claim a detection that does not happen. The finding is a class §796 does not model: §796 asks *does anything read this*, the question here is *does anything ACT on the difference*, and they come apart exactly when the reader IS the waiver. **Filed in the GO-LIVE-CHECKLIST** with both options; the remedy is a product call |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -49523,3 +49524,71 @@ leg → RED · the scan pointed at an empty directory → RED on non-vacuity.
 - `env.API.fetch` stops being a service binding (a real URL in some environment) → `platform-ledger`'s
   protection evaporates, and it is the one row here whose safety is an infrastructure fact rather than a code
   fact.
+## §851 — PHASE GATE: PHASE 71 CLOSED — a waiver of the co-signature requirement that nothing downstream reads
+
+The evidence claim rests on I4: *a custody event must be co-signed by a device.* This audits it, and the
+verification chain holds — but the **waiver** does not have a reader.
+
+### The chain that holds
+
+`pod.signed` and `custody.transferred` require `actor.device`, and the sequencer verifies the signature at two
+sites, both fail-closed (`!jwk || !verifyEventSig(...)` → `UNAUTHORIZED`). The device-namespaced path
+additionally pins `device_id === actor.device` **before** the dedup lookup, so an unsigned or foreign event
+cannot squat a victim's `(device_id, device_seq)` slot and silently drop their real capture. The only path
+that skips verification is an event claiming **no device at all** — which is correct, because it claims
+nothing to verify.
+
+### The waiver
+
+I4's escape hatch is `payload.unwitnessed === true`, and it is explicit and recorded rather than silent, which
+is the right shape. But measured: **`unwitnessed` is read in exactly one place** — the I4 refine itself,
+where its only effect is to **waive the device-signature requirement**. Nothing downstream reads it. Not the
+Biller, not the evidence email, not the invoice gate — grepped across `workers/agents` and `packages/agents`,
+zero hits.
+
+So a `pod.signed` carrying `unwitnessed: true` and no device signature flows to the Biller **identically** to
+a co-signed one: invoice minted, evidence email sent, on the path acceptance demo #1 describes as *"signature
+at a door."* Whether that should bill differently — a paper POD, a dead phone — is a **product decision and
+the owner's**, and this phase does not make it. What it records is that the distinction currently exists in
+the schema and nowhere else.
+
+### Why §796's gate does not see it — and my first answer was wrong
+
+§796 exists to catch *"a schema field that draws a distinction nothing acts on"*, so I assumed it had missed
+this one and diagnosed the cause as its `z.literal` exemption: *"the parse is the enforcement"* is true of
+`z.literal(true)` and not of `z.literal(true).optional()`, where optionality restores a two-valued
+distinction. I narrowed the exemption, widened the shape filter to match, filed `unwitnessed` in its roster —
+and then removed the roster row to prove the gate now saw it.
+
+**It still reported nothing.** §796 counts the field as **CONSUMED**, correctly and by its own stated rule:
+*"A read INSIDE the declaring file counts — same-file consumption is real."* `unwitnessed` is read four
+times, by the I4 refine, in the file that declares it.
+
+So the gate is right and my diagnosis was wrong twice over — first about which rule hid the field, then about
+whether it was hidden at all. **Both gate changes are reverted**: shipping them with a filed row would have
+claimed a detection that does not happen, which is worse than the gap. §840 corrected a residual I invented
+one phase earlier; this corrects one I invented **inside** the phase, and the only reason either was caught is
+that removing the exemption is a cheap experiment I ran instead of reasoning about.
+
+**The finding is a class §796 does not model**, and stating it precisely is the deliverable: a field that is
+read *only by the check that waives a requirement*, with no consumer of the distinction it creates. §796 asks
+"does anything read this?"; the question here is "does anything ACT on the difference?" — and those come apart
+exactly when the reader is the waiver itself.
+
+Filed in the GO-LIVE-CHECKLIST rather than gated, because the remedy is a product decision and because I have
+no cheap mechanical test for "acts on the difference" that would not fire on every validation rule in the
+repo.### Exit state
+
+`test:tools` **1118**, 3 failed — the REQ-289 trio. typecheck 0 · lint 0 · `verify:docs` 0. **Nothing
+changed in code** — not the schema, not the sequencer, and not §796, whose two edits were reverted once the
+experiment showed they detected nothing. The deliverable is a filed hold in the GO-LIVE-CHECKLIST with both
+options stated, and a corrected understanding of what §796 does and does not model.
+
+**Reopen triggers**
+- **A reader for `unwitnessed` lands** (the Biller declining to send, the email wording differently, a
+  distinct money treatment) → drop its row from the filed list; the §672 half fires if the row outlives the
+  hold.
+- The I4 refine gains a second waiver → it needs the same scrutiny: a waiver's value is only as good as the
+  reader that acts on it, and I4's is currently the refine itself.
+- A third optional-literal appears → the narrowed exemption reports it, which is the intent; exempting it
+  again requires stating why the parse enforces something the optionality removed.
