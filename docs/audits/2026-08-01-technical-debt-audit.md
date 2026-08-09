@@ -443,6 +443,15 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 248 | §800 | **§801** | **PHASE 24 CLOSED — the blind spot entered on purpose: EIGHT secret comparisons, FOUR names, one rule.** Searched for §800's stated marker (the *"cannot import"* reasoning) rather than for filenames — the only search that reaches the rule-duplication class. Found `constantTimeEqual`/`timingSafeEqual`/`tokensEqual`/`bytesEqual` protecting **the Stripe webhook signature (internet-facing)**, MCP OAuth tokens, the outbound webhook HMAC, **the EDI inbound-204 HMAC**, TSA/CMS signatures, merkle nodes, the platform secret and the test-send token. **A same-name sweep finds 2 of 8; §800's file sweep found 0** — as it predicted. Replacing two with `return a === b` left api **810/810** and billing **58/58**. **Behaviour CANNOT see this property** — the two return the identical boolean for every input; only *when they stop looking* differs — so a source-level gate asserts the shape: length check, XOR accumulation, and **no `return` inside the loop**. Roster not shape-discovery (§796 calibration) |
 | 249 | §801 | **§802** | **PHASE 25 CLOSED — the residual §801 named, closed one phase later.** §801 ended with *"the gate cannot discover a ninth"*; §790's rule says an identified gap left open is worse than one never looked for. Closed by detecting the **DEFECT** shape instead of the correct one: a constant-time helper never has the form `secretish === secretish`. **21 secret-ish strict comparisons exist; 19 are PRESENCE checks** (`=== undefined`/`""`/`null`) — a constant sentinel leaks nothing, so they are excluded **by construction, not by allowlist**, which is what takes the gate from 21 noisy hits to 2. Both survivors are imprint digests — non-secret, proved not by my judgement but because **both error messages print BOTH values** and **the real signature bytes in the same file use rostered `bytesEqual`**. **Zero new secret comparisons**: the roster of 8 confirmed complete by a second, independent method. Both directions proved, including the §796 calibration red |
 | 250 | §802 | **§803** | **PHASE 26 CLOSED — I checked my OWN claim and it was WRONG.** §802's exit note asserted *"every widening word tested added noise without adding a hit"* — **asserted, not measured**, one phase old, the exact shape this audit has spent 26 phases finding in other people's comments. Measured 13 words in isolation: **11 behaved as claimed, `key` was noise (`slot_key`), and `nonce` added a REAL hit** — `tsa/client.ts:68`, **three lines below** the imprint check I had already read and allowlisted. I looked at that function, wrote about it, and could not see the adjacent line because my vocabulary excluded it. Fixed by **widening the vocabulary AND allowlisting the hit** — different states: outside the vocabulary a FUTURE nonce short-circuit is invisible. Proved load-bearing (a planted `requestNonce === storedNonce` reds; the pre-§803 vocabulary MISSED the identical line). **A gate's vocabulary is a measurement, not a sentence** — and this audit's exit notes are subject to its own rules |
+| 251 | §803 | **§804** | **PHASE 27 CLOSED — "the repo-owned ledger is EMPTY" was FALSE, ten phase gates running.** §803 earned the rule that this audit's prose is subject to its own standards, so I turned it on the claim a reader is most likely to ACT on. Measured: the checklist's *Repository-owned failures & debt* carries **35 rows — 15 closed, 20 LIVE, 16 status OPEN**. Three verified open at HEAD (no `coverage` config anywhere · `check:identity` skips locally · the cron double-fire note still in source). **The claim was INHERITED** from a memory of the 2026-08-05 gate and repeated from §776 without opening the file it names. The underlying record says something narrower and TRUE — *"no OPEN DEFECTS"* — and I collapsed that into *"empty"*, which differ exactly where it matters. **A claim you inherit is a claim you are making.** Third phase running to find this shape in my own prose (§790 deferral · §803 assertion · §804 inheritance) |
+
+**CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
+roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
+carries **35 rows — 15 struck through as closed and 20 LIVE, of which 16 carry status OPEN.** Three spot-checked
+and confirmed open at HEAD: no `coverage` config exists in any vitest config; `check:identity` prints
+*"Lint SKIPPED — no denylist available"*; the cron double-fire note is still in `sweep-214.ts`. The correct
+statement is **"no repo-owned defect that THIS SESSION's phases discovered is left unclosed"** — a far
+narrower claim than the one that shipped. See §804.
 
 **Current measured state — as measured 2026-08-08 at `fae1a17` (§775's board run):** the merge board is
 **26 gates — 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape since §737. `typecheck` 0 · `lint` 0 ·
@@ -46347,3 +46356,74 @@ No source changed — one file mutated, restored byte-identical. `test:tools` **
   anything. All three rows carry theirs.
 - Any future exit note of mine states a measurement → it should carry the measurement. Three phases in a row
   now (§790, §802, this) have found the audit's own prose to be the weakest artifact it produces.
+## §804 — PHASE GATE: PHASE 27 CLOSED — "the repo-owned ledger is EMPTY" was false, ten phase gates running
+
+§803 earned the rule that this audit's own exit notes are subject to its own standards, and closed by noting
+that three phases running had found the audit's prose to be its weakest artifact. So I turned the method on
+the single claim a reader is most likely to ACT on — the one I had been closing every phase gate with:
+
+> *"The repo-owned ledger is empty."*
+
+**It is false.** `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*:
+
+```
+35 rows — 15 struck through as CLOSED, 20 LIVE, of which 16 carry status OPEN
+```
+
+Three spot-checked against HEAD, all genuinely open **today**:
+
+| row | verified |
+|---|---|
+| *No line/branch coverage is measured anywhere* | no `coverage` config in ANY vitest config |
+| *REQ-167 is unverified in every local run* | `check:identity` → *"Lint SKIPPED — no denylist available"* |
+| *Cron sweeps double-fire under overlapping ticks* | the note is still in `sweep-214.ts` |
+
+### How it happened, precisely
+
+The claim was **inherited, not invented**: it came from a memory of the 2026-08-05 phase gate, and I repeated
+it from §776 onward without ever opening the file it describes. Ten phase gates.
+
+The underlying record says something narrower and true. The checklist's own header reads *"leaving the
+repository-owned section with **no OPEN DEFECTS**"* — a status claim about one moment. I collapsed *"no open
+defects"* into *"the ledger is empty"*, and those differ in exactly the way that matters: a reader hearing
+**empty** concludes there is no repo-owned debt to schedule, when there are twenty live rows including two
+unmade decisions and a Med-severity gate that does not run locally.
+
+(The checklist's own header note is now stale too — 16 rows carry OPEN. That is a second, independent
+finding: the file's summary line and its own table disagree.)
+
+### What was actually true
+
+The defensible statement, which is what the phases meant and should have said:
+
+> **No repo-owned defect that THIS SESSION's phases discovered is left unclosed.**
+
+That is a real and useful claim — §773–§803 found roughly a dozen live defects and every one was fixed,
+pinned, or filed with a tripwire. It is also a much smaller claim than the one that shipped, and the
+difference is the entire finding.
+
+### The mechanism worth carrying
+
+**A claim you inherit is a claim you are making.** Every phase gate restated it in my own words, in a document
+whose entire purpose is that its statements can be trusted — and the cost of checking was one `grep` against a
+file I cited by name in the same sentence.
+
+This audit has now found the identical shape three times in three phases — §790 (a deferral I filed instead of
+closing), §803 (a vocabulary claim I asserted instead of measuring), §804 (a status claim I inherited instead
+of verifying). The trend is not that prose rots; it is that **prose about one's own work is never
+adversarially read**, because the person best placed to check it is the one who already believes it.
+
+### Exit state
+
+Record corrected in place: §4 carries the measurement above the current-state block. No source changed; no
+test changed. `check:section-refs` refused the correction until this section existed — the second time this
+session it has caught my own out-of-order write.
+
+**Reopen triggers**
+- A phase gate states a project-wide status claim → it cites the file and the count, or it does not ship.
+  Ten gates carried this one on inheritance alone.
+- The checklist's *"no OPEN DEFECTS"* header note is corrected → that is the owner's ledger to amend, and
+  this section is the evidence for the amendment (16 rows, listed).
+- The 20 live rows are triaged → several are Low legibility items about `CLAUDE.md` wording and two are
+  explicitly unmade DECISIONS (duplicate-vs-strand). Those are owner calls, not repo defects, and a future
+  reader should not read this correction as "20 bugs".
