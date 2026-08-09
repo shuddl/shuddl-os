@@ -103,6 +103,41 @@ describe("classifyStatus — pure retry classification (REQ-016)", () => {
   });
 });
 
+describe("§848: an UNKNOWN status is a bounded retry — never a silent drop", () => {
+  // The default branch of classifyStatus: everything that is not 2xx / 401 / {0,408,429,5xx} / other-4xx.
+  // Measured (§848) it catches 1xx, 3xx and >=600 — and the suite contained ZERO 3xx cases, so mutating the
+  // default to "ack" left driver-core 42/42 GREEN.
+  //
+  // A 3xx is not exotic for this app; it is its normal failure mode. A CAPTIVE PORTAL on truck-stop, depot or
+  // hotel wifi intercepts the upload and answers 302 → login page — the same environment the airplane-mode
+  // soak exists to model. Classified as "ack", the queue would read the portal's redirect as the sequencer's
+  // acceptance and DROP a signed, co-signed capture that never reached the server: silent evidence loss on
+  // the path behind acceptance demo #3.
+  it("a captive-portal 302 (and every other 3xx) RETRIES — it is never mistaken for an ack", () => {
+    for (const status of [301, 302, 303, 304, 307, 308]) {
+      expect(classifyStatus(status), `HTTP ${status} must retry, not ack — a redirect is not an append`).toBe("retry");
+    }
+  });
+
+  it("1xx and out-of-range statuses also retry (the default is the SAFE sink)", () => {
+    // A bounded retry is recoverable; an ack is not. Anything the classifier does not recognise must land
+    // here, which is why the default returns "retry" rather than "operator" — parking is also a stranding.
+    for (const status of [100, 101, 600, 700, 999]) {
+      expect(classifyStatus(status), `HTTP ${status} must fall to the safe sink`).toBe("retry");
+    }
+  });
+
+  it("the four recognised classes still hold at their boundaries (non-vacuity)", () => {
+    // Without this, narrowing classifyStatus to `() => "retry"` would satisfy both assertions above.
+    expect(classifyStatus(200)).toBe("ack");
+    expect(classifyStatus(299)).toBe("ack");
+    expect(classifyStatus(401)).toBe("auth");
+    expect(classifyStatus(429)).toBe("retry");
+    expect(classifyStatus(500)).toBe("retry");
+    expect(classifyStatus(422)).toBe("operator");
+  });
+});
+
 describe("backoffDelay — monotonic, capped, jittered (REQ-016)", () => {
   it("grows with attempts, is bounded by maxMs, and adds bounded jitter", () => {
     expect(backoffDelay(1, DEFAULT_BACKOFF, () => 0)).toBe(DEFAULT_BACKOFF.baseMs);

@@ -487,6 +487,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 292 | §844 | **§845** | **PHASE 66 CLOSED — detect the VIOLATION, not the claim; and §815's superset gets its reason.** §844's bound (*27 claims, not every claim*) is structural: prose has unboundedly many phrasings, so §835 and §844 each widened a vocabulary and each left the same hole. **Inverted**: *which modules READ an ambient clock?* is bounded and prose-independent. **58 reads** — **57 in `workers/**`**, which is the CORRECT pattern (read at the composition root, inject downward). Only **2 in `packages/**`**, both justified: `guess.ts` mints an unpredictable nonce for a prompt-injection fence (**determinism there would be the vulnerability**) and `capture.ts` mints an event id. **§815's superset EXPLAINED** — it measured that adapters bans `crypto.randomUUID` and agents does not, calling it *deliberately stricter* without knowing why; the reason is that the fence depends on it. *An unexplained pin is one somebody eventually simplifies.* Gate bans ambient reads in `packages/**` with the 2 recorded; `workers/**` excluded **by design**, since flagging 57 correct reads gets a gate turned off. 3 REDs. **1 FP of my own**: a trailing `//` comment on a code line |
 | 293 | §845 | **§846** | **STOPPING POINT — board re-measured at `1cb0b69`, eleven phases on.** **19 PASS · 2 FAIL · 5 BLOCKED — identical to §834 and to the pre-session board.** Behind the `unit-tests` short-circuit the product suites run **green: 17 workspaces, 3,149 tests, exit 0**. Thirty-one phases, **zero regressions**, every non-PASS owner-held. Last eleven phases: 2 production fixes (both law/legibility — §843 measured 200,011 inputs, **zero** value changes), 8 gates, and 4 corrections to the record. **The shape that matters is §845's inversion** — stop detecting purity CLAIMS (prose, unbounded, incomplete by construction), detect the VIOLATION (an ambient clock in the pure layer). *When a detector's boundary is English, invert it.* **Self-correction ratio**: §841 found **2 of 6** of my own triggers rotted, while §842 found the launch checklist's five code-state claims **all sound** — the clean result is what makes the corrections meaningful. **Owner decision, now 11 phases old**: committing REQ-289 makes both `&&` truncation defects (§834, §836) INVISIBLE without fixing them — decide while the symptom shows |
 | 294 | §846 | **§847** | **PHASE 67 CLOSED — the drain order holds; its DEFENSIVE half was documented and untested.** Driver offline queue — demo #3 and the airplane-mode soak, where a prior loop found signed captures stranded. `pending()` sorts by `device_seq` because the server's gates are **order-dependent** (consent before `stop.arrived`); a shuffled drain takes a 403 and parks **permanently**. Two mutations, two REDs, both caught by a purpose-built test driving a deliberately `ShuffledStore`. **The gap**: making an item WITHOUT a `device_seq` sort first instead of last is **silent** — no test constructs one. **Reachability measured, not assumed**: `capture.ts:128@nextSeq` always mints one and `events.ts:291@device_seq` refines `device_id ⟹ device_seq`, so the branch is reachable only for a device-less event the driver never produces — **defensive, not dead**, and §688's construction-forbidden *from the driver's side only*, which is the kind of unreachable that expires when a second producer appears. Cheap test added. **Probe error** (3rd of its family): my first "drop the sort" rewrote the `.map` line and left `.sort()` intact — a **no-op** returning 41/41 that would have read as *drain order unpinned* |
+| 295 | §847 | **§848** | **PHASE 68 CLOSED — the CAPTIVE PORTAL: a 302 that nothing tested.** §847 pinned drain order; `classifyStatus` decides whether a signed capture survives. Four probes: 4xx→`ack` (**4 RED**), 429→`operator` (**2 RED**), 401→`retry` (**2 RED**) — and **default→`ack` was SILENT**. Measured, the default catches **1xx, 3xx (301/302/304/307/308) and ≥600**, and the suite contains **zero 3xx cases**. **A 3xx is the driver's normal failure mode, not an exotic one**: a captive portal on truck-stop or depot wifi answers **302 → login page** — the very environment the airplane-mode soak exists to model. Misclassified as `ack`, the queue treats the portal's redirect as the sequencer's acceptance and **removes a signed capture that never reached the server** — silent evidence loss on demo #3's path. The code is **correct** and its comment names the property (*never a silent drop*); what was absent is any test that would notice if it stopped being. 2 REDs |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -49342,3 +49343,55 @@ formatting is not a mutation**, and the tell is a green that arrives too easily.
   it; that refine is what makes the branch defensive rather than routine.
 - `pending()` gains a third ordering key (priority, evidence-first) → the two order mutations above cover
   `device_seq` only, and a third key would need its own probe.
+## §848 — PHASE GATE: PHASE 68 CLOSED — the captive portal: a 302 that nothing tested
+
+§847 pinned the drain ORDER. The other property that decides whether a signed capture survives is
+`classifyStatus` — the pure function deciding, for every transport response, whether the item is acked
+(dropped from the queue), retried, or parked for an operator.
+
+### Four probes; three pinned
+
+| mutation | meaning | result |
+|---|---|---|
+| 4xx → `ack` | an operator error silently DROPS the capture | **4 RED** |
+| 429 → `operator` | a rate-limited capture is parked instead of retried | **2 RED** |
+| 401 → `retry` | an auth failure loops forever instead of stopping | **2 RED** |
+| **default → `ack`** | **an unknown status silently drops the capture** | **SILENT** |
+
+### The default branch, and why it is the realistic one
+
+`classifyStatus` routes 2xx→ack, 401→auth, {0, 408, 429, 5xx}→retry, other 4xx→operator, and everything else
+falls to `return "retry"; // unknown/odd status — safest is a bounded retry, never a silent drop`.
+
+Measured, that default catches **1xx**, **3xx** (301, 302, 304, 307, 308) and **≥600**. The suite contains
+**zero** 3xx cases — grepped, not assumed.
+
+**A 3xx is not exotic here; it is the driver's normal failure mode.** A captive portal on truck-stop, depot or
+hotel wifi intercepts the upload and answers **302 → login page**. That is the environment this PWA is built
+for — the same environment the airplane-mode soak exists to model — and it is precisely the response the
+suite never sent.
+
+Misclassified as `ack`, the queue would treat the portal's redirect as the sequencer's acceptance and
+**remove a signed, co-signed capture that never reached the server.** Evidence loss, silent, on the path
+behind acceptance demo #3.
+
+The code is **correct** — the comment names the exact property and the default implements it. What was absent
+is any test that would notice if it stopped being.
+
+### Exit state
+
+`@shuddl/driver-core` **43** (+1). `test:tools` 1116, 3 failed — the REQ-289 trio. typecheck 0 · lint 0 ·
+`verify:docs` 0. **No production code changed.**
+
+Proved: the default branch returning `ack` → **RED**, naming the captive-portal case; returning `operator`
+(parked rather than retried, also a stranding) → **RED**.
+
+**Reopen triggers**
+- `classifyStatus` gains a branch → the four buckets are now pinned at their boundaries, but a fifth class
+  (a distinct "conflict" or "duplicate" verdict) would need its own probe; the default is the safe sink and
+  must stay the sink.
+- The transport starts following redirects itself → then a 302 never reaches `classifyStatus`, and the
+  guarantee moves into the transport where nothing currently tests it. That is where this defect would
+  reappear, one layer down.
+- A status ≥600 becomes meaningful (a proxy convention) → it currently retries forever-bounded, which is the
+  right default and an odd one to rely on deliberately.
