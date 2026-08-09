@@ -391,6 +391,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 196 | §748 | **§749** | **The one fixed-width matcher that HAD the guard §748 lacked — and the guard was undefended.** Sweep: only 2 fixed-width numeric matchers in source; section/phase refs use unbounded `§(\d+)`, so this audit passing its thousandth phase costs nothing. The other is the Concierge's `(\d{5})(?!\d)`, whose comment names the hazard *("a 6+-digit id like 123456 never yields a phantom 12345")* — **deleting the lookahead left 224/224 GREEN**. Worse consequence than §748: a phantom ZIP is WRONG data, not missing, and *no price on air* refuses missing physics, not false physics. Pinned with 3 cases. **The mutation then caught MY OWN vacuous test** — the 6-digit fixture had no dest ZIP, so `request` was undefined regardless. Mutation-proving a NEW test is how you find the test was never testing |
 | 197 | §749 | **§750** | **A comment that names its own falsification test, re-run — and the distinction that makes it worth more.** The DO mutex's comment claims *"Verified by deleting this mutex and running the 100-concurrent fresh-stub test: it goes red with `D1_ERROR: I3: append-only: SQLITE_CONSTRAINT`"* — a past-tense claim, and a lost mutex means a DUPLICATE `seq` on an append-only ledger. **Re-run today: exit 1, the named test reds, the predicted error appears verbatim.** §749 and §750 have identical documentation quality and opposite enforcement status: one **explains the hazard** (unpinned, 224/224 green when deleted), the other **names the experiment** (pinned, still falsifiable). **The upgrade for any load-bearing line: not "why this matters" but "delete X, run Y, expect Z"** |
 | 198 | §750 | **§751** | **Applied §750's upgrade: four falsification recipes written AT the guards, each re-run to prove it reproduces.** The mutations for §739/§740/§749's guards were measured by hand this session and were about to live only in an audit file nobody reads while editing the guard. Each recipe names the mutation, the suite and the exact failing test, plus what the mutation did BEFORE that test existed (224/224, 661/661, 23/23, 28/28 green). **4 of 4 reproduce**, all sources restored byte-identical — because §750's own trigger says an unverified recipe *"is worse than none, it reads as verified"*. **The harness lied once**: R2 reported *red: 0* because vitest prints `× <describe> > <test>` and my pattern assumed the test name started the line. 8th instrument slip; benign direction here, the same error produced a false CLEAN in §744 |
+| 199 | §751 | **§752** | **When a guard cannot be pinned, pin the condition that keeps it unnecessary.** The MCP cap meter guards MONEY (spend/velocity on `book_shipment`, external OAuth surface) with the same mutex pattern as the sequencer — and its comment says *"deleting this line is SILENT in CI"*. **Both halves verified: deletion leaves 17/17 green** (incl. a SIX-concurrent-book race), because all 3 awaits in `#checkAndReserve` are `ctx.storage.*` and the DO input gate already serializes those. §319 would end at *an unenforced trigger is a hope* — but *"a future non-storage await"* is a property of the SOURCE, so it is gateable. New gate pins the **precondition**, not the guard; fires on exactly the edit the comment warns about. 2 mutations RED + 2 non-vacuity floors |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -43014,3 +43015,59 @@ cited anchor); `test:tools` 1027.
   recipe should say which mutation it is rather than implying the guard is fully pinned.
 - A new load-bearing line is written → the cheapest moment to add a recipe is while the mutation is still on
   screen. Every one of these four cost nothing to write and would have cost an hour to reconstruct later.
+## §752 — PHASE GATE: when a guard cannot be pinned, pin the condition that keeps it unnecessary
+
+§750 verified a mutex whose comment named its own falsification test. The MCP cap meter has the *same* mutex
+pattern guarding **money** — the spend/velocity caps on `book_shipment`, over an external OAuth-paired
+surface — and its comment makes the opposite claim:
+
+> *"why deleting this line is **SILENT in CI**, yet a cap bypass after any future non-storage await lands in
+> `#checkAndReserve` … Do not 'simplify' it away."*
+
+### Both halves of that claim are true
+
+| | measured |
+|---|---|
+| deleting the mutex | `workers/mcp test/hostile-prompt.test.ts` **17/17 GREEN** — including its *"velocity cap 3, SIX concurrent books → EXACTLY 3 ACCEPTED"* race |
+| why | all **3** awaits in `#checkAndReserve` are `this.ctx.storage.*`, and the DO input gate DOES close across the DO's own storage ops — so the method is already serialized and the mutex is redundant *today* |
+
+An honest, accurate comment about a guard that is defensive against a change nobody has made. No test can hold
+it, because there is nothing to observe until that change lands.
+
+### §319 says an unenforced trigger is a hope — but this trigger is mechanical
+
+*"a future non-storage await"* is not a judgement call. It is a property of the source, so the hope becomes a
+gate: **every await in the reserve path must be `this.ctx.storage.*`**.
+
+This does not pin the mutex. It pins **the reason the mutex is currently unpinnable**, and it fires on exactly
+the edit the comment warns about — a `fetch`, a D1 subrequest, a KV read, an RPC hop dropped into the reserve
+path. The failure it prevents is a cap bypass: two concurrent `book_shipment` calls read the same tally, both
+pass, both commit, and the pairing books past its cap.
+
+**That is the generalisation worth carrying: when a guard's removal is silent, the thing to gate is not the
+guard but the precondition that makes it redundant.** A guard nobody can test and a precondition anybody can
+check are the same guarantee viewed from two sides.
+
+### Mutation-proved, both halves
+
+| mutation | result |
+|---|---|
+| add `await fetch(...)` to `#checkAndReserve` | **RED** — *"no await in the reserve path is anything but `this.ctx.storage.*`"* |
+| delete the mutex | **RED** — the assumption assertion (§721's pattern: a gate says what would make it obsolete) |
+
+Two non-vacuity floors as well, because the scan has two ways to go quiet: the method can fail to parse, and
+the await filter can match nothing inside a body that parsed.
+
+### Exit state
+
+`test:tools` **1031** (+4); lint 0; typecheck 0. `caps-meter.ts` restored byte-identical after both mutations.
+
+**Reopen triggers**
+- Cloudflare changes DO input-gate semantics so storage awaits no longer close it → the mutex becomes
+  load-bearing immediately and this gate's premise inverts. Re-run the deletion probe rather than reasoning
+  about a changelog.
+- The reserve path legitimately needs a non-storage await (a pricing lookup, a policy fetch) → the gate reds,
+  and that red is correct. The answer is to make the mutex's protection observable — a test that FAILS without
+  it — before landing the await, not to exempt the line.
+- A second read-modify-write DO appears → it has the same shape and deserves the same gate; this one is
+  written against `CapsMeter` specifically and will not notice a sibling.
