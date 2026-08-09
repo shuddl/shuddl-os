@@ -399,6 +399,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 204 | §756 | **§757** | **§748's own fix made §748's own prose a violation — and it hid for eight phases.** A full `verify:merge` returned **3 FAILs** against a 2-FAIL baseline; the third was `traceability`, flagging three four-digit REQ ids that were EXAMPLES I wrote. §748 widened the matcher to `\d{3,}` (correctly), and that turned its own worked examples into citations of rows that do not exist. **Fifth time this session an example created the artifact** (citations ×3, a section ref, now REQ ids). **Why it hid:** after doc edits I reflexively run `check:citations` + `check:section-refs`, but `check:traceability` reads `docs/audits` too — the checklist was one gate short. **The merge gate is what noticed**, §705 earning its keep twice in one session. 12 literals removed; traceability back to 0 |
 | 205 | §757 | **§758** | **Six self-scanning gates, FOUR different answers, two with none — the map that explains five recurrences.** Writing an example created the forbidden artifact 5× this session; rather than wait for the sixth I mapped every gate that reads its own source. `citation-links` = a marker **bounded to its own tree** (§272); `invariants` = **excludes test paths**; `design/audit` = **corpus scope** (`apps`+`packages`, its tests live in `tools/`); `identity-leak` = runtime assembly; `traceability` and `section-refs` = **nothing**. Each mechanism is appropriate — standardising would be worse — **what was missing is the map**. Design boundary planted, not read: shadow in-corpus **exit 1**, same shadow in `tools/` exit 0. **Three instrument slips in this phase alone**, all false CLEANS, the last being §727's `git ls-files`-only-lists-tracked trap met again |
 | 206 | §758 | **§759** | **`pnpm verify:docs` — and the CORRECTION it forced on §757.** §757's root cause was a checklist one gate short; bundled the four gates a documentation phase should satisfy, verified to fail as a bundle (a planted over-wide table row → exit 1). **Proving it caught §757's own defect exposed that §757 blamed the wrong file**: `orphans.ts` excludes **eleven** paths including `:(exclude)docs/audits`, and I had asserted the list from a TRUNCATED grep line. Isolated by planting per-file — audit doc alone **exit 0**, `traceability.test.ts` alone **exit 1**, the entire cause. §757 corrected IN PLACE, because a wrong explanation in an audit is worse than a missing one. **The artifact was eleven lines long and right there** |
+| 207 | §759 | **§760** | **Audited the eleven exclusions that decide what "built" MEANS.** Each decides whether a file's REQ citations count as evidence a requirement shipped — get one wrong and a governance sentence meaning *"this shipped nothing"* becomes proof something shipped. Mutation-tested individually: `docs/audits` **+3 failures**, `PROJECT-STATE.md` **+2** — both pinned; **`.claude` silent** in fixture AND real repo. Its two stated hazards measured: **0** skill-cited ids absent from the register, **0** rows whose only annotation is a skill (27 ids cited, all registered, all annotated elsewhere). **No gate built — deliberately**: §752 pinned a precondition because money was at stake; a gate per defensive line is its own debt. **And the warning I walked past**: `orphans.ts` already says *never write a literal requirement id into any scanned source* — §757 was exactly that, one file away |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -43498,3 +43499,77 @@ bundle is right; my original justification for it was not.
   re-measuring costs two commands.
 - A future phase asserts what a pathspec excludes → print the list. Twice now (§757, and §758's `git ls-files`
   trap) a truncated view of a real artifact produced a confident wrong claim.
+## §760 — PHASE GATE: auditing the eleven exclusions that decide what "built" means
+
+§759 corrected a claim I made about `orphans.ts`'s pathspec without reading it. The list itself is worth
+auditing: **each exclusion decides whether a file's REQ citations count as evidence that a requirement was
+built.** Get one wrong and either a built row looks unbuilt, or a governance sentence meaning *"this shipped
+nothing"* becomes the proof that something shipped.
+
+### The rule is stated, and it is a good one
+
+> *"if it records state rather than implementing a requirement, it belongs here — and `coverage.test.ts` pins
+> that both ways."*
+
+With a worked precedent: re-baselining `PROJECT-STATE.md` once *"added exactly one false annotation … and with
+it a phantom drift row"*, and `RELEASE-EVIDENCE.md` was added later under the same rule only after checking
+every id it cites survives on real source elsewhere.
+
+### Individually mutation-tested — two pinned, one inert
+
+Removing one exclusion at a time (baseline is the 2 pre-existing `REQ-289` failures):
+
+| exclusion removed | failing tests | verdict |
+|---|---|---|
+| `docs/audits` | 5 (+3) | **pinned** |
+| `docs/ops/PROJECT-STATE.md` | 4 (+2) | **pinned** |
+| `.claude` | 2 (+0) | **silent** |
+
+`.claude` is silent in the fixture *and* in the real repo — dropping it leaves `check:traceability` at exit 0.
+So it is defensive against a state that does not currently exist, which is §752's shape.
+
+### Both of its hazards measured, both currently zero
+
+Its comment names exactly two, and both are statically checkable:
+
+| hazard | measured |
+|---|---|
+| a skill cites an id ABSENT from the register → false-fails the gate | **0** of 27 cited ids |
+| an active-WP REQ whose ONLY annotation is a skill → masks an unbuilt row | **0** |
+
+27 requirement ids are cited under `.claude/`, every one registered and every one also annotated on real
+source elsewhere. The exclusion is correct, currently inert, and cheap — one line against two real failure
+modes.
+
+**Not building a gate for it, deliberately.** §752 pinned a precondition because the guarded thing was money
+over an external surface. Here the consequence is a wrong traceability verdict — record integrity, which
+matters, but the guard is one line with a stated rule and a worked precedent, and the two hazards are now
+measured at zero with the commands recorded above. Proportionality is part of the judgement; a gate per
+defensive line would be its own kind of debt.
+
+### The warning I walked past
+
+`orphans.ts` carries this, immediately above the pathspec:
+
+> *"NOTE: never write a literal requirement id into this file or any other scanned source to illustrate a
+> point — this scanner reads itself, and the first draft of this very comment re-created the bug."*
+
+§757 was me doing precisely that, in `traceability.test.ts` — a scanned source, one file away. The guidance
+existed, was specific, and named the exact failure. §758 spent a phase mapping six gates' self-reference
+defences and this one had already been written down.
+
+**Reading the file you are about to edit beats reconstructing its rules from a grep** — the same lesson as
+§759, arriving from the other direction: there I asserted a list I had not read; here I had not read a warning
+that was one screen above the line I was changing.
+
+### Exit state
+
+No code changed. `check:traceability` 0; `verify:docs` 0; `test:tools` 1037; lint 0; typecheck 0.
+`orphans.ts` restored byte-identical after all four probes.
+
+**Reopen triggers**
+- A skill cites an unregistered id, or an active-WP row's only annotation lands in `.claude` → the two counts
+  above stop being zero and the exclusion becomes load-bearing. Both are one command each; they are recorded
+  in this section for that reason.
+- A twelfth exclusion is added → mutation-test it the same way. Two of three existing ones are pinned; a new
+  one that is silent needs its hazards measured, not assumed.
