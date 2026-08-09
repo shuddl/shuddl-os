@@ -445,6 +445,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 250 | §802 | **§803** | **PHASE 26 CLOSED — I checked my OWN claim and it was WRONG.** §802's exit note asserted *"every widening word tested added noise without adding a hit"* — **asserted, not measured**, one phase old, the exact shape this audit has spent 26 phases finding in other people's comments. Measured 13 words in isolation: **11 behaved as claimed, `key` was noise (`slot_key`), and `nonce` added a REAL hit** — `tsa/client.ts:68`, **three lines below** the imprint check I had already read and allowlisted. I looked at that function, wrote about it, and could not see the adjacent line because my vocabulary excluded it. Fixed by **widening the vocabulary AND allowlisting the hit** — different states: outside the vocabulary a FUTURE nonce short-circuit is invisible. Proved load-bearing (a planted `requestNonce === storedNonce` reds; the pre-§803 vocabulary MISSED the identical line). **A gate's vocabulary is a measurement, not a sentence** — and this audit's exit notes are subject to its own rules |
 | 251 | §803 | **§804** | **PHASE 27 CLOSED — "the repo-owned ledger is EMPTY" was FALSE, ten phase gates running.** §803 earned the rule that this audit's prose is subject to its own standards, so I turned it on the claim a reader is most likely to ACT on. Measured: the checklist's *Repository-owned failures & debt* carries **35 rows — 15 closed, 20 LIVE, 16 status OPEN**. Three verified open at HEAD (no `coverage` config anywhere · `check:identity` skips locally · the cron double-fire note still in source). **The claim was INHERITED** from a memory of the 2026-08-05 gate and repeated from §776 without opening the file it names. The underlying record says something narrower and TRUE — *"no OPEN DEFECTS"* — and I collapsed that into *"empty"*, which differ exactly where it matters. **A claim you inherit is a claim you are making.** Third phase running to find this shape in my own prose (§790 deferral · §803 assertion · §804 inheritance) |
 | 252 | §804 | **§805** | **PHASE 28 CLOSED — the 20 live rows TRIAGED: what is a defect, what is a decision.** *A count is not a triage* — "20 live rows" misleads as badly as "empty" did. Classified by each row's OWNERSHIP cell: **4 say "needs a REQ row FIRST"** (rule 1 blocks me) · 2 unmade decisions · 4 governing-doc legibility · **2 fixed-and-MONITORED** (`hashPath` IS framed, agents tenants.ts IS claimed-aware — both verified) · 2 external-blocked (**row 9 IS the IDENTITY_DENYLIST hold — my "five owner-held holds" are a SUBSET of this ledger, not a parallel list**) · 2 register/process. **Three verified OPEN against HEAD** (the 4h SLA on a daily cron · the lost-trigger backstop §131 says *"DOES NOT EXIST"* · pool-binding exclusivity). **And one I nearly "fixed"**: row 11's own cell records the extension was MEASURED and REJECTED (76% FP rate) — a decision with evidence, not a defect awaiting effort |
+| 253 | §805 | **§806** | **PHASE 29 CLOSED — a COUNT pin and a NAME pin are different guarantees.** §805 owned a process failure (committed with `verify:docs` red, 3rd time); §790 says close it, so I asked whether the SYSTEM catches it independent of my discipline. It does — but asking *how* found the gap: `citations`, `table-shape` and `traceability` are pinned to the merge roster **by NAME** (§50 added that after `check:citations` had been *"wired into no gate"*), while **`section-refs` was pinned only by a gate COUNT**. Measured: removing it is caught; **removing it AND adding any other gate is SILENT** — the most ordinary commit imaginable defeats it. The same swap is CAUGHT for the other three. **A count pin answers "how many gates are there"; a name pin answers "is THIS gate still one of them."** And this is the gate that twice this session refused a forward §-reference I wrote before the section existed (§795, §804) |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -46490,3 +46491,58 @@ verifications and one rejected fix. `test:tools` 1065; lint 0; typecheck 0.
   All 20 have one, which is why this phase was possible at all.
 - Someone quotes "20 live rows" as a debt figure → this section is the correction, the same way §804 is the
   correction to "empty". **Both errors came from a number standing in for a reading.**
+## §806 — PHASE GATE: PHASE 29 CLOSED — a count pin and a name pin are different guarantees
+
+§805 ended by owning a process failure: I committed with `verify:docs` red, the third time in this record.
+§790's rule says close the gap, not note it — so the first question is not "be more careful" but **does the
+system catch it independently of my discipline?**
+
+It does: all four `verify:docs` members are merge-board gates and the board would have blocked the merge. But
+asking *how* they are held there found something.
+
+### Three of four are pinned by NAME. The fourth was pinned by a COUNT.
+
+`ci-contract.test.ts` pins `citations` and `table-shape` by name — §50 added that assertion precisely because
+`check:citations` had been *"cited by five documents, wired into no gate, catching rot only when a human
+happened to type it."* `traceability` is pinned by name elsewhere.
+
+**`section-refs` was not.** Its only protection was `gate-wiring`'s profile-SIZE assertion. Measured:
+
+| mutation | result |
+|---|---|
+| remove `section-refs` from the merge roster | caught — by *"profile sizes match the docs that quote them"* |
+| **remove it AND add any other gate** (count preserved) | **SILENT** — `test:tools` at its 3-failure baseline |
+
+The same swap against `citations`, `table-shape` and `traceability` is **caught** in every case. So the
+distinction is exact, not incidental: **a count pin answers "how many gates are there"; a name pin answers "is
+THIS gate still one of them."** Only the second is the guarantee §50 was written to give, and a count pin is
+defeated by the most ordinary commit imaginable — one that adds a gate while removing another.
+
+### Why this gate in particular
+
+`check:section-refs` is the one that keeps the audit's own cross-references honest. **This session alone it
+twice refused a forward §-reference I had written before the section existed** — §795 and §804, both caught at
+the point of writing rather than after the fact. A document whose entire value is that its citations resolve
+had its citation-resolution gate held on by arithmetic.
+
+Fixed with a name pin, mutation-proved against the exact swap that was silent before.
+
+### The shape, for the next reader
+
+This is the *"a gate's green certifies less than its name"* family arriving one level up — **a pin's
+protection certifies less than its presence**. The roster contained the gate; a test failed when it left; both
+facts were true and neither was the guarantee. What separated them was a mutation that preserved the property
+the weak pin measured.
+
+### Exit state
+
+One assertion added to `tools/release/ci-contract.test.ts`. `test:tools` **1066** (+1); lint 0; typecheck 0.
+`run-gate.ts` restored byte-identical after five mutations.
+
+**Reopen triggers**
+- A gate is added to `run-gate.ts` → ask whether it is pinned by NAME. The count pin will not tell you, and
+  three of the four doc gates got their name pin only because §50 had already been burned once.
+- `gate-wiring`'s profile sizes change → that is a count assertion doing its own job (profile composition),
+  not a substitute for a name pin. The two coexist deliberately.
+- Any future "the system would have caught it" claim → verify *how*. This phase started from exactly that
+  assumption and the assumption was true for three gates and false for the fourth.

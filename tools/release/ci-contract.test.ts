@@ -98,6 +98,27 @@ describe("CI runtime + workspace surface", () => {
     expect(merge).toContain("table-shape");
   });
 
+  // §806 — THE THIRD DOC GATE WAS PINNED BY A COUNT, NOT BY NAME, AND THAT IS A DIFFERENT GUARANTEE.
+  //
+  // `verify:docs` runs four checks; three of them (citations, table-shape, traceability) fail this file when
+  // swapped off the merge roster. `section-refs` did not. Its only protection was `gate-wiring`'s profile-SIZE
+  // assertion — so removing it while adding any other gate left the count intact and the suite GREEN.
+  // MEASURED: swapping it for a dummy gate left `test:tools` at its 3-failure baseline, completely silent.
+  //
+  // A count pin answers "how many gates are there"; a NAME pin answers "is THIS gate still one of them". Only
+  // the second is what §50 was written to guarantee, and the reason it matters here is concrete: this session
+  // alone, `check:section-refs` twice refused a forward §-reference I had written before the section existed
+  // (§795, §804). It is the gate that keeps the audit's own cross-references from resolving to nothing.
+  it("the merge surface includes section-refs BY NAME — a count pin is defeated by adding any other gate", () => {
+    const merge = gatesFor("merge").map((g) => g.gate);
+    expect(
+      merge,
+      "check:section-refs left the merge surface. Nothing else would have noticed: its only other protection " +
+        "is a gate-COUNT assertion, which a simultaneous addition satisfies. Dangling §N references then " +
+        "resolve to nothing, silently, in the document whose entire value is that its citations resolve.",
+    ).toContain("section-refs");
+  });
+
   // Audit §56. Same reason as the two above, different law: this one enforces an ABSENCE — that the events
   // table has exactly one application writer. Nothing else in the build notices if it stops running, because
   // "no second writer exists" produces no failing test when it becomes false.
