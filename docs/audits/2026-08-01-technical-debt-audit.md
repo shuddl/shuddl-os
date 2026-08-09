@@ -479,6 +479,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 284 | §836 | **§837** | **PHASE 58 CLOSED — one LAW gate reachable only by the command nobody ran.** §836's residual: membership, not depth. All **16** dev steps map onto merge gates; the merge roster has **10** more, and they sort cleanly — 6 are browser/build gates a fast loop may skip, 3 (`citations`, `section-refs`, `table-shape`) are **covered by `verify:docs`**, and **`append-chokepoint` is covered by NOTHING**. It enforces REQ-030 (*the events table has exactly one writer*) and ran only under `verify:merge` — the command §836 established was not being run. **The omission is not cost-based, and that is the evidence**: timed at **544ms**, the MIDDLE of the in-chain range (458–942ms), with seven cost-matched peers already in the chain and every other absentee holding a second home. Added — **additive, cost-matched, no semantic change**, which is why this was in scope where §834's and §836's `&&` questions were not. **Residual named**: the two gate lists live in different files and **nothing compares them**; this phase compared by hand |
 | 285 | §837 | **§838** | **PHASE 59 CLOSED — the two gate lists now compare themselves.** §837 found the chokepoint omission **by hand** and called it *a measurement with an expiry*. This is the gate. Compares by **SCRIPT, not by name**, reading the exported `gatesFor("merge")` as the authority — the lists disagree on names **by design** (`identity-leak`→`check:identity`, `concierge-parse`→`check:concierge-parity`, `append-chokepoint`→`check:chokepoint`), so a name comparison would have reported three false mismatches and been relaxed into uselessness. **Only one direction is a defect**: a dev step that is NOT a merge gate means the inner loop is stricter than the shippable verdict, invisibly — asserted empty. The reverse is normal and each absence is now recorded with its reason. **§837 understated its own subject**: `run-gate.ts`'s comment on that gate reads *"the DB triggers fire on COLLISIONS, so a direct insert with a fresh id is accepted and skips every gate — nothing else catches it"* — so on the direct-insert path chokepoint is **the only** detector, not one of several. 3 REDs |
 | 286 | §838 | **§839** | **PHASE 60 CLOSED — rule 2 verified end to end. NO DEFECT; the bound is the result.** §838 surfaced *"the DB triggers fire on COLLISIONS, so a direct insert with a fresh id is accepted"*, which invites the worry that append-only is only enforced where rows collide. **The two halves are different laws**: the triggers enforce APPEND-ONLY (upd/del abort unconditionally; BEFORE INSERT guards abort on *any* uniqueness surface, which is what closes `INSERT OR REPLACE` under D1's `recursive_triggers=0`), and the chokepoint lint enforces SINGLE-WRITER. Neither substitutes for the other. **Five probes, five REDs**: a new UNIQUE index with no guard · a removed guard disjunct (names `(hash)`) · an unclassified new table · a deleted `events_guard_upd` · **and the completeness check itself neutered → RED ×3, because it has its own four-test describe block**. That last one is what makes this clean rather than hopeful — §816 found the opposite shape (a guard nobody tested) in this same repo. Rule 2 joins REQ-040 (§825) and `allocateCents` (§816) as best-enforced, and uniquely its **enforcement mechanism is itself pinned** |
+| 287 | §839 | **§840** | **PHASE 61 CLOSED — correcting a residual I INVENTED one phase earlier.** §839's reopen trigger claimed a fourth guarded table needs `GUARDED_TABLES`, the REPLACE-ban alternation and a guard trio to move together, and that *"nothing forces the alternation"*. **False, and false when written**: `invariants.ts:48` is `GUARDED_ALT = GUARDED_TABLES.join("|")` — **derived**, with a comment four lines up saying *"adding a fourth append-only table forced ONE edit"*. I wrote a residual about a duplication the author had already removed, in a file I had spent the phase reading. **Measured instead**: planting `ledger_notes` in `GUARDED_TABLES` produced **four** demands each naming its subject (upd/del/ins triggers + completeness on `(id)`), and a planted `INSERT OR REPLACE` was caught **with no second edit**. The path is forced COMPLETELY from one array entry. **Worth a phase because the error was SAFE** — it over-stated risk, so it reads as diligence and is never questioned; §828 caught the same class pointing the *reassuring* way. §803's rule again: an assertion in an exit note needs the standard of one in code |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -48769,12 +48770,71 @@ way to pass, and the next reader does not have to re-derive that from a trigger 
 Four migration files and `invariants.ts` restored byte-identical after five mutations. **Nothing changed.**
 
 **Reopen triggers**
-- A **fourth** guarded table is added → `GUARDED_TABLES`, the REPLACE-ban alternation and a full guard trio
-  all move together; the unclassified-table check forces the first, and the missing-trigger check the third,
-  but nothing forces the *alternation* — that one is carried by the error message's instruction rather than
-  by an assertion.
+- ~~A **fourth** guarded table is added → … nothing forces the *alternation*.~~ **CORRECTED in §840: this was
+  wrong when written.** `GUARDED_ALT` is `GUARDED_TABLES.join("|")` — derived, so it cannot drift. Measured:
+  one array entry produces four named demands (the upd/del/ins trio plus guard completeness) and the REPLACE
+  ban covers the new table with no second edit. The fourth-table path is forced **completely**.
 - D1 turns `recursive_triggers` ON → the BEFORE INSERT enumeration becomes belt-and-braces rather than the
   only defence, and the reasoning in `0008_append_only_unique_guards.sql` stops being load-bearing. Worth
   knowing before someone simplifies it on those grounds.
 - A write path reaches `events` outside the two allowlisted modules → that is chokepoint's job, not the
   triggers', and §837 put it in the dev loop for exactly this reason.
+## §840 — PHASE GATE: PHASE 61 CLOSED — correcting a residual I invented one phase earlier
+
+§839 closed with a reopen trigger stating that adding a fourth guarded table would require the
+`GUARDED_TABLES` array, the REPLACE-ban alternation and a guard trio to move together, and that *"nothing
+forces the alternation — that one is carried by the error message's instruction rather than by an
+assertion."*
+
+**That is false**, and it was false when I wrote it. `invariants.ts:48` reads:
+
+```ts
+const GUARDED_ALT = GUARDED_TABLES.join("|");
+```
+
+The alternation is **derived**. It cannot drift, because it is not a second copy — and the comment four lines
+above it says so outright: *"adding a fourth append-only table forced ONE edit."* I wrote a residual about a
+duplication the author had already removed, in a file I had spent the phase reading.
+
+### The truth, measured rather than re-reasoned
+
+Planted a fourth append-only table (`ledger_notes`, with a UNIQUE index and no guards), classified it in
+`GUARDED_TABLES`, and ran the gate. One edit produced **four** demands, each naming its own subject:
+
+```
+FAIL I3: missing guard trigger ledger_notes_guard_upd (must be BEFORE UPDATE ON ledger_notes)
+FAIL I3: missing guard trigger ledger_notes_guard_del (must be BEFORE DELETE ON ledger_notes)
+FAIL I3: missing guard trigger ledger_notes_guard_ins (must be BEFORE INSERT ON ledger_notes)
+FAIL I3: guard completeness — the UNIQUE target (id) on ledger_notes has no BEFORE INSERT guard predicate…
+```
+
+And an `INSERT OR REPLACE INTO ledger_notes` planted afterwards is caught by the REPLACE ban **with no second
+edit anywhere** — the derived alternation picked it up.
+
+So the fourth-table path is not partially forced. It is forced completely, from a single array entry, and
+§839's verdict should have been *stronger* than it was rather than qualified.
+
+### Why this is worth a phase rather than a quiet edit
+
+The wrong sentence was **safe** — it over-stated risk, so acting on it would have added a redundant assertion
+and nothing would have broken. That is exactly why it deserves recording: a residual that errs toward caution
+reads as diligence and is never questioned, so it survives, and the next reader spends effort closing a gap
+that does not exist. §828 caught the same class pointing the other way (a *reassuring* claim repeated thirteen
+times); this is its cautious twin, and only one phase old because I checked my own exit note.
+
+The mechanism is the one §803 named and I keep re-learning: **an assertion in an exit note needs the same
+standard as one in code.** I had `invariants.ts` open, I had just run five mutations against it, and I still
+described a derived constant as a hand-maintained one — because a reopen trigger feels like speculation about
+the future rather than a claim about the present, and it is both.
+
+### Exit state
+
+§839's trigger corrected in place with a pointer here. `test:tools` **1103**, 3 failed — the REQ-289 trio.
+`check:invariants` OK. `invariants.ts` and `0002_domain.sql` restored byte-identical after two mutations.
+**No code changed** — a wrong sentence in the record, and the measurement that replaces it.
+
+**Reopen triggers**
+- A future reopen trigger asserts that something is unforced → verify it the way a finding would be verified.
+  This phase exists because that step was skipped once, and the cost was one phase, not one line.
+- `GUARDED_ALT` ever stops being derived → then §839's original sentence becomes true, and the residual it
+  described becomes real. It is derived today at `tools/checks/invariants.ts:48`.
