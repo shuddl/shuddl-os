@@ -67,7 +67,12 @@ function sequencerFor(env: Env): SeqAppend {
 // The send port — the SAME composition-root discipline as the agents worker (workers/agents/src/index.ts
 // evidenceSender): BOTH halves bound ⇒ ResendSender; anything less ⇒ NotConfiguredSender (rejects LOUDLY,
 // retriable). Unbound in CI, so the live sender is never reached in tests (the injected RecordingSender is).
-function evidenceSender(env: Env): EvidenceSender {
+// EXPORTED FOR A DIRECT TEST (§798) — mirroring `resolveRecipient`/`deliveryStopGeo`. This selection is a
+// byte-for-byte twin of the Biller's (`workers/agents/src/index.ts:237`), and only the Biller's had a
+// behavioural test. Replacing the fallback here with a silently-succeeding stub left `workers/api` at
+// 808/808 — and this route APPENDS `message.sent` BEFORE sending, so the ledger would record a delivered
+// demand for money that never left the building.
+export function evidenceSender(env: Env): EvidenceSender {
   const apiKey = env.RESEND_API_KEY;
   const from = env.EVIDENCE_FROM;
   if (apiKey !== undefined && apiKey !== "" && from !== undefined && from !== "") return new ResendSender({ apiKey, from });

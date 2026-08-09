@@ -9,7 +9,8 @@ import {
   type EvidenceSender,
   type SendReceipt,
 } from "@shuddl/agents";
-import { sendDunningDraft, listDunningDrafts, dunningSentEventId, type DunningSendDeps } from "../src/routes/dunning.js";
+import { sendDunningDraft, listDunningDrafts, dunningSentEventId, evidenceSender, type DunningSendDeps } from "../src/routes/dunning.js";
+import { NotConfiguredSender } from "@shuddl/agents";
 import { ensureSchema, TENANT_SLUG, token } from "./helpers.js";
 
 // ─── WP-11 Task 7 — THE COLLECTOR human review-and-send (REQ-032) ───────────────────────────────────────────
@@ -113,6 +114,44 @@ describe("the draft-queue read (GET /v1/dunning?status=draft) — lists the Coll
     expect(ok.status).toBe(200);
     const bad = await SELF.fetch("https://api.local/v1/dunning?status=bogus", { headers: { Authorization: `Bearer ${t}` } });
     expect(bad.status).toBe(400);
+  });
+});
+
+describe("REQ-092/032 §798 — the dunning evidence-sender selection fails closed when unbound", () => {
+  // `evidenceSender` is a byte-for-byte twin of the Biller's (`workers/agents/src/index.ts:237`), and only
+  // the Biller's had a behavioural test (`test-send.test.ts` gate 4: "NO RESEND_API_KEY → … NOTHING is
+  // sent"). MEASURED (§798): replacing the fallback here with a stub that silently reports success left
+  // `workers/api` at 808/808.
+  //
+  // That regression is a LIE WITH A PAPER TRAIL. This route appends `message.sent` to the ledger BEFORE it
+  // sends (append-then-send, so a redelivery re-sends from committed facts). A sender that resolves without
+  // sending leaves a timeline saying a demand for money was delivered, an outcome reading `"sent"`, and a
+  // customer who never heard from us. The `NotConfiguredSender` fallback is the only thing that turns an
+  // unbound environment into an honest, retriable refusal instead.
+  //
+  // Text-parity against the Biller's copy was tried first and rejected: the two are LOGICALLY identical but
+  // formatted differently (a braced `if` vs a single-line one), so a body comparison reports drift that is
+  // not drift. The behavioural half is what was missing and is what actually proves the property.
+  it("no RESEND_API_KEY / EVIDENCE_FROM ⇒ NotConfiguredSender (never a silent success)", () => {
+    expect(evidenceSender({} as never)).toBeInstanceOf(NotConfiguredSender);
+    expect(evidenceSender({ RESEND_API_KEY: "", EVIDENCE_FROM: "" } as never)).toBeInstanceOf(NotConfiguredSender);
+    // HALF-bound is still unbound — the case a `||` instead of an `&&` would wave through.
+    expect(evidenceSender({ RESEND_API_KEY: "re_live" } as never)).toBeInstanceOf(NotConfiguredSender);
+    expect(evidenceSender({ EVIDENCE_FROM: "billing@x.example" } as never)).toBeInstanceOf(NotConfiguredSender);
+  });
+
+  it("and it REFUSES rather than no-ops — the fail-closed VALUE, not merely the type", async () => {
+    // §"fail-closed is about the fallback value": the right class is not the guarantee. A NotConfiguredSender
+    // that resolved would satisfy the assertion above and still produce the phantom send.
+    await expect(
+      evidenceSender({} as never).send({
+        channel: "email",
+        to: "ap@x.example",
+        subject: "s",
+        html: "<p>h</p>",
+        idempotency_key: "k-798",
+      }),
+    ).rejects.toThrow(/not configured/i);
   });
 });
 

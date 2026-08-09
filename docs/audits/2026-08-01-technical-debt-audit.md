@@ -437,6 +437,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 242 | §794 | **§795** | **Auditing the FILED debt — and a hold that UNDER-STATED itself.** The GO-LIVE-CHECKLIST is the filed debt register (92 rows); the question for a filed hold is *is it still true, and is anything keeping it true?* The B2A row named 04/05 → "visible duplicate", **fail-closed**. But B2A01 also carries **`01` = CANCELLATION**, which `parse-204.ts` reads, types and puts on the TenderDoc — and **nothing in `workers/translator/src` consumes `doc.purpose`** (zero references; every fixture uses "00", so no test could notice). Measured end-to-end: a cancellation yields **200, the full gated chain, 1 shipment, 0 anomalies** — identical to an original, so production books freight the partner CANCELLED. Not a duplicate: **fail-OPEN**. Did NOT build it (not in the register — REQ-205 is scoped to 04/05) and did NOT append a row while REQ-289 is uncommitted; **proposed** it here, widened the checklist row, and added a TRIPWIRE that asserts the wrong behaviour on purpose. **Third parsed-but-unconsumed defect this session** — a schema field with zero consumers is a question, not a fact |
 | 243 | §795 | **§796** | **PHASE 19 CLOSED — parsed-but-unconsumed, swept and BOUNDED.** §795 named a pattern with three instances this session (§773/§783/§795), so I ran it as a search. The discriminator is what the DECLARATION does: **`z.literal` = consumed by the parse** (only one value survives `safeParse` — `acknowledged: z.literal(true)` needs no reader); permissive types = too noisy; **a multi-member `z.enum` or bare `z.boolean` with NO reader = the shape**. Result: **203 fields → exactly ONE**, `purpose`, the hold already filed — so §795 was the only member of its class. Gated both ways: a new unread enum REDS, **and `purpose` disappearing REDS** (a zero-result scan proves nothing unless calibrated against a known positive). **Three instrument corrections before one true reading** — corpus excluded `apps/` (42), same-file consumption excluded (35, nearly reported `format` as a finding), `z.literal` not distinguished. A detector returning FEW results is not a detector that is RIGHT |
 | 244 | §796 | **§797** | **PHASE 20 CLOSED — all three HIGH filed holds, each *fail-closed* claim checked.** Ratecon: **TRUE and pinned** (nothing writes a `ratecon` doc; the SHARED `DISPATCH_REQUIRED_DOC_KIND` reds in lockstep when repointed to `"POD"`). B2A: **under-stated** (§795). Transport/resolver: **half pinned** — `transport-dormancy.test.ts` exists because §379 found `NotConfiguredTransport` had zero test references, and **the identical gap sat one file away**: its twin `NotConfiguredSecretResolver`, named in the SAME checklist row, had zero references anywhere; making it return a secret left the worker **121/121 green** — partner impersonation with the CONFIRM gate silently open. Added the binding + the fail-closed VALUE (a resolver returning `""` is still the right class). **Did NOT write the e2e test** — it would 401 for the wrong reason (§749). **Instrument: a suite-level failure prints as SKIPS** — `764 passed | 44 skipped`, zero `×` lines, exit 1 |
+| 245 | §797 | **§798** | **PHASE 21 CLOSED — every fail-closed PORT swept; the sibling that was missed.** §797's rule (*pin the siblings in the same commit*) run as a sweep: 6 ports + 3 selectors tabled. **`NotConfiguredMigrator` has zero test references and that is FINE** — it is *opt-in, NOT the default*; the DEFAULT (`DeterministicMigrator`) is what carries the guarantee and IS pinned. **The port with zero references was not the one that mattered.** The real gap: `evidenceSender` is written TWICE — in the same two modules §786 caught duplicating the recipient resolver — and only the Biller's had a behavioural test. A silently-succeeding fallback left api **808/808**, and this route appends `message.sent` BEFORE sending, so the ledger would record a delivered demand for money that never left. Pinned incl. the **half-bound** `&&`→`||` case. **Text parity was the WRONG instrument** — the two are logically identical but formatted differently; reverted rather than loosen the normaliser |
 
 **Current measured state — as measured 2026-08-08 at `fae1a17` (§775's board run):** the merge board is
 **26 gates — 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape since §737. `typecheck` 0 · `lint` 0 ·
@@ -45988,3 +45989,69 @@ mutations. `workers/translator` **123/123** (+2); lint 0; typecheck 0.
 - A third `NotConfigured*` port appears → it needs both assertions, not one. The transport got its binding
   and behaviour pinned in §379; the resolver needed the same two, four months later, because "the twin is
   obviously fine" is exactly how the first one survived.
+## §798 — PHASE GATE: PHASE 21 CLOSED — every fail-closed PORT, and the sibling that was missed
+
+§797 ended with a rule: *"when a fail-closed port is pinned, pin its siblings in the same commit."* That is a
+sweep, so I ran it. Six `NotConfigured*` ports and three composition-root selectors.
+
+| port / selector | binding pinned? | fail-closed VALUE pinned? |
+|---|---|---|
+| `NotConfiguredTransport` (translator) | ✅ §379 | ✅ |
+| `NotConfiguredSecretResolver` (translator) | ✅ §797 | ✅ §797 |
+| `selectMigrator` → `DeterministicMigrator` | ✅ *"no key/model ⇒ DeterministicMigrator"* | ✅ 3 tests on the fail-safe-to-baseline path |
+| `selectCopilot` → `DeterministicCopilot` | ✅ *"no key bound → the DeterministicCopilot floor"* | ✅ |
+| `evidenceSender` — **Biller** (`workers/agents`) | ✅ `test-send.test.ts` gate 4 | ✅ |
+| **`evidenceSender` — dunning (`workers/api`)** | ❌ **nothing** | ❌ **nothing** |
+
+### `NotConfiguredMigrator` has zero test references and that is FINE
+
+Worth stating because it is the trap this sweep sets for itself. That class has no test anywhere — the §797
+shape exactly — but it is explicitly *"opt-in; NOT the default fallback"*. The load-bearing claim is
+**"the default is `DeterministicMigrator`, never a fabrication"**, and that IS pinned, both the selection and
+the degrade path. **The port with zero references was not the one that mattered; the DEFAULT was.**
+
+### The real gap: one selection rule, two copies, one pinned
+
+`evidenceSender(env)` — *both halves bound ⇒ ResendSender, anything less ⇒ NotConfiguredSender* — is written
+twice, in the same two modules §786 already caught duplicating the recipient resolver. Only the Biller's had a
+behavioural test. Replacing dunning's fallback with a stub that silently reports success left `workers/api` at
+**808/808**.
+
+**That regression is a lie with a paper trail.** This route appends `message.sent` to the ledger BEFORE it
+sends (append-then-send, so a redelivery re-sends from committed facts). A sender that resolves without
+sending leaves a timeline saying a demand for money was delivered, an outcome reading `"sent"`, and a customer
+who never heard from us.
+
+| mutation | result |
+|---|---|
+| the fallback silently succeeds | **RED ×2** |
+| `&&` → `||` (a HALF-bound env treated as configured) | **RED** |
+
+The half-bound case is the one worth having: an env with a key but no verified `from` is the realistic
+mid-deployment state, and it is exactly what a `||` slip would wave through.
+
+### Text parity was the wrong instrument, and I found that out by trying it
+
+My first fix compared the two `evidenceSender` bodies, following §786's doctrine. It **failed on formatting**:
+the Biller uses a braced `if` block, dunning a single-line `if`. Logically identical, textually different.
+
+§786's pair happened to be byte-identical, which made body-comparison look more general than it is. Here the
+honest instrument is the behavioural test — which is also precisely what was missing. **A parity test proves
+two things agree; it cannot prove either is right, and it only works when the two are written the same way.**
+Reverted the parity block rather than normalise braces away, because a normaliser loose enough to erase that
+difference is loose enough to erase a real one.
+
+`evidenceSender` is now exported for a direct test, mirroring `resolveRecipient` and `deliveryStopGeo`.
+
+### Exit state
+
+One source line changed (an `export` for testability). `workers/api` **810/810** (+2); lint 0; typecheck 0.
+Four mutated files restored byte-identical.
+
+**Reopen triggers**
+- A third copy of a composition-root selection appears → it needs its OWN behavioural test. Two copies with
+  one test is what this phase found twice, in the same two modules.
+- `NotConfiguredMigrator` becomes the default → then it needs both pins, and the table above needs a new row.
+  Today it is opt-in and the deterministic floor is what carries the guarantee.
+- A `NotConfigured*` port is added → binding AND value, in the same commit. §797's rule, now with a table to
+  add the row to.
