@@ -7,6 +7,20 @@ import type { EventTransport, EvidenceTransport } from "@shuddl/driver-core/sync
 // suppression is owned server-side (the sequencer dedupes by event id; /v1/evidence by (shipment, hash)).
 // A network throw maps to status 0 (retryable). All authorization is server-side (REQ-030); this only
 // carries the token.
+//
+// `redirect: "error"` ON BOTH LEGS (audit §849). Without it the platform default `follow` applies, and
+// `res.status` is the status of the FINAL response — so a CAPTIVE PORTAL on truck-stop or depot wifi that
+// answers 302 → login page has its redirect FOLLOWED, the login page returns 200, and `classifyStatus` reads
+// that as the sequencer's ack and DROPS a signed capture that never reached the server.
+//
+// §848 pinned `classifyStatus` so a 3xx retries — and that gate is blind here, because the function is handed
+// the portal's 200 and never sees the 302. Pinning a pure function proves nothing about what its caller feeds
+// it.
+//
+// This is safe to state absolutely rather than heuristically: the API NEVER returns a 3xx (no `.redirect(`,
+// no 30x status anywhere in workers/api/src — measured §849), so a redirect on this path is always an
+// interceptor and never our sequencer. `fetch` throws on one, the `catch` below maps it to status 0, and
+// `classifyStatus(0)` retries — the capture stays queued for the next drain.
 
 export interface TransportOptions {
   /** The API origin (same-origin "" in dev). */
@@ -35,6 +49,8 @@ export function createTransports(opts: TransportOptions): DriverTransports {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Idempotency-Key": crypto.randomUUID(), "content-type": "application/json" },
         body: JSON.stringify(event),
+        redirect: "error", // §849 — a 3xx here is an interceptor, never the sequencer
+
       });
       return { status: res.status };
     } catch {
@@ -53,6 +69,8 @@ export function createTransports(opts: TransportOptions): DriverTransports {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Idempotency-Key": crypto.randomUUID(), "content-type": "application/octet-stream" },
         body: deferred.bytes as BodyInit,
+        redirect: "error", // §849 — a 3xx here is an interceptor, never the sequencer
+
       });
       return { status: res.status };
     } catch {

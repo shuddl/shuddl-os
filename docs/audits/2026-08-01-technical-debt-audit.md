@@ -488,6 +488,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 293 | §845 | **§846** | **STOPPING POINT — board re-measured at `1cb0b69`, eleven phases on.** **19 PASS · 2 FAIL · 5 BLOCKED — identical to §834 and to the pre-session board.** Behind the `unit-tests` short-circuit the product suites run **green: 17 workspaces, 3,149 tests, exit 0**. Thirty-one phases, **zero regressions**, every non-PASS owner-held. Last eleven phases: 2 production fixes (both law/legibility — §843 measured 200,011 inputs, **zero** value changes), 8 gates, and 4 corrections to the record. **The shape that matters is §845's inversion** — stop detecting purity CLAIMS (prose, unbounded, incomplete by construction), detect the VIOLATION (an ambient clock in the pure layer). *When a detector's boundary is English, invert it.* **Self-correction ratio**: §841 found **2 of 6** of my own triggers rotted, while §842 found the launch checklist's five code-state claims **all sound** — the clean result is what makes the corrections meaningful. **Owner decision, now 11 phases old**: committing REQ-289 makes both `&&` truncation defects (§834, §836) INVISIBLE without fixing them — decide while the symptom shows |
 | 294 | §846 | **§847** | **PHASE 67 CLOSED — the drain order holds; its DEFENSIVE half was documented and untested.** Driver offline queue — demo #3 and the airplane-mode soak, where a prior loop found signed captures stranded. `pending()` sorts by `device_seq` because the server's gates are **order-dependent** (consent before `stop.arrived`); a shuffled drain takes a 403 and parks **permanently**. Two mutations, two REDs, both caught by a purpose-built test driving a deliberately `ShuffledStore`. **The gap**: making an item WITHOUT a `device_seq` sort first instead of last is **silent** — no test constructs one. **Reachability measured, not assumed**: `capture.ts:128@nextSeq` always mints one and `events.ts:291@device_seq` refines `device_id ⟹ device_seq`, so the branch is reachable only for a device-less event the driver never produces — **defensive, not dead**, and §688's construction-forbidden *from the driver's side only*, which is the kind of unreachable that expires when a second producer appears. Cheap test added. **Probe error** (3rd of its family): my first "drop the sort" rewrote the `.map` line and left `.sort()` intact — a **no-op** returning 41/41 that would have read as *drain order unpinned* |
 | 295 | §847 | **§848** | **PHASE 68 CLOSED — the CAPTIVE PORTAL: a 302 that nothing tested.** §847 pinned drain order; `classifyStatus` decides whether a signed capture survives. Four probes: 4xx→`ack` (**4 RED**), 429→`operator` (**2 RED**), 401→`retry` (**2 RED**) — and **default→`ack` was SILENT**. Measured, the default catches **1xx, 3xx (301/302/304/307/308) and ≥600**, and the suite contains **zero 3xx cases**. **A 3xx is the driver's normal failure mode, not an exotic one**: a captive portal on truck-stop or depot wifi answers **302 → login page** — the very environment the airplane-mode soak exists to model. Misclassified as `ack`, the queue treats the portal's redirect as the sequencer's acceptance and **removes a signed capture that never reached the server** — silent evidence loss on demo #3's path. The code is **correct** and its comment names the property (*never a silent drop*); what was absent is any test that would notice if it stopped being. 2 REDs |
+| 296 | §848 | **§849** | **PHASE 69 CLOSED — the captive portal ONE LAYER DOWN: `fetch` was already following the redirect.** §848 pinned `classifyStatus` so a 3xx retries, and named where the defect would reappear: *the transport following redirects itself*. **It already did.** `transport.ts` calls `doFetch` with **no `redirect` option**, so the default `follow` applies and `res.status` is the FINAL response's — portal 302 → followed → login page **200** → `classifyStatus` → **`ack`** → **the signed capture is dropped**. **§848's test cannot see it**, because the function is handed the portal's 200, never the 302: *pinning a pure function proves nothing about what its caller feeds it.* CORS saves only the cross-origin case — luck per-portal, not a property. Fixed with `redirect: "error"` on both legs, licensed by a measurement: **the API never returns a 3xx**, so a redirect here is ALWAYS an interceptor. It routes into machinery §848 already pinned (throw → catch → status 0 → retry). **`createTransports` had ZERO tests** — the driver's whole HTTP boundary; +7 now |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -49395,3 +49396,76 @@ Proved: the default branch returning `ack` → **RED**, naming the captive-porta
   reappear, one layer down.
 - A status ≥600 becomes meaningful (a proxy convention) → it currently retries forever-bounded, which is the
   right default and an odd one to rely on deliberately.
+## §849 — PHASE GATE: PHASE 69 CLOSED — the captive portal, one layer down: `fetch` was following the redirect
+
+§848 pinned `classifyStatus` so a 3xx retries instead of acking, and closed by naming exactly where the same
+defect would reappear: *"the transport starts following redirects itself → then a 302 never reaches
+`classifyStatus`."* It does not "start" doing that. **It already did.**
+
+### The live defect
+
+`apps/driver/src/sync/transport.ts` calls `doFetch(url, { method, headers, body })` with **no `redirect`
+option**, so the platform default — `redirect: "follow"` — applies, and `res.status` is the status of the
+**final** response after following. The chain:
+
+1. driver POSTs a signed, co-signed capture
+2. a captive portal intercepts and answers **302 → login page**
+3. `fetch` **follows** it
+4. the login page returns **200**
+5. `classifyStatus(200)` → **`"ack"`**
+6. the queue drops the capture
+
+**§848's test cannot see this**, because `classifyStatus` is never handed the 302 — it is handed the portal's
+200. The gate I built one phase ago is correct and irrelevant on this path, which is the sharpest lesson
+available about where a guarantee actually lives: **pinning a pure function proves nothing about what its
+caller feeds it.**
+
+Cross-origin CORS saves *some* cases — a portal redirecting to a foreign origin makes the followed request
+fail its CORS check, `fetch` throws, the existing `catch` returns status 0, and the item retries. That is luck
+per-portal, not a property, and same-origin transparent proxies do not trigger it.
+
+### The fix, and why it is this one
+
+`redirect: "error"` on both legs. Measured first: **the API never returns a 3xx** — no `.redirect(`, no 30x
+status anywhere in `workers/api/src`. So a redirect on this path is *always* an interceptor, never our
+sequencer, and treating it as a transport failure is not a heuristic but a statement of fact.
+
+`fetch` then throws on a redirect, the existing `catch` maps it to status 0, and `classifyStatus(0)` returns
+`"retry"` — the capture stays queued for the next drain. **The fix routes into machinery §848 already
+pinned**, which is why it needs no new classification branch.
+
+### The transport had no test at all
+
+`createTransports` is imported by **zero** tests — measured, not assumed. The whole HTTP boundary of the
+driver PWA, the thing that decides whether a signed capture leaves the device, was unexercised. Both legs now
+have one: a redirect is refused, a 2xx acks, a 5xx retries, and a network throw maps to 0.
+
+### The safety assertion cried wolf
+
+§844 concluded that the durable form of the snapshot lesson is *"assert the property you care about after
+every restore, because a restore is a write."* Applied here, the assertion **fired on a correct restore**: it
+counted substring occurrences of `redirect: "error"` and expected 2, but the header comment names the option
+too, so the true count is **3**. The file was byte-identical to the authored snapshot — `diff -q` said so.
+
+Worth recording because it is the failure mode of the remedy itself. **A safety check that false-alarms is
+worse than none**, since the next false alarm is the one that gets ignored. The fix is the same discipline
+one level in: assert on the **code**, not on text that prose can also contain — count lines matching
+`^\s+redirect:`, or diff against the snapshot, which is what actually settled it here.
+
+### Exit state
+
+`apps/driver` **+7** tests, `@shuddl/driver` green. `test:tools` 1116, 3 failed — the REQ-289 trio.
+typecheck 0 · lint 0 · `verify:docs` 0.
+
+**Production code changed** — two `redirect: "error"` options. This is the session's second live defect fix on
+a user-visible path (after §820's price on air), and unlike §843's it changes real behaviour: a captive-portal
+302 that previously dropped a capture now retries it.
+
+**Reopen triggers**
+- The API gains a legitimate 3xx (a signed-URL redirect, a CDN offload) → `redirect: "error"` breaks that
+  path deliberately and loudly. The measurement above (*no 3xx today*) is what licenses this, and it expires
+  the moment that stops being true.
+- A new transport is added (a third leg, a background-sync worker) → it needs the same option; nothing gates
+  that a `fetch` in the driver carries a redirect policy. That gate is buildable and is the obvious successor.
+- `fetchImpl` is injected in production rather than only in tests → the policy travels with the call site, not
+  the implementation, so an injected fetch does not change this. Worth knowing before someone "centralises" it.
