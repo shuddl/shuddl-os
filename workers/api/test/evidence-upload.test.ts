@@ -185,6 +185,7 @@ beforeAll(async () => {
     "ev-retention-pod",
     "ev-reinstate",
     "ev-req198",
+    "ev-active-reup",
   ]) {
     await seedShipment(id);
   }
@@ -551,3 +552,52 @@ describe("POST /v1/evidence — Task 9: a POD signature upload satisfies the Bil
     expect(await loadActivePodDocument(env.TENANT_A_DB, TENANT, shp2, photoHash), "a photo upload is NOT a POD document").toBeNull();
   });
 });
+
+// REQ-116/198 §756 — RE-UPLOADING AN ALREADY-ACTIVE DOC MUST NOT RESTART ITS RETENTION CLOCK.
+//
+// The route short-circuits an ACTIVE row to 200 with the stored key. That line is load-bearing for RETENTION,
+// not merely efficiency, and MUTATION-MEASURED it was undefended: disabling the short-circuit left this suite
+// at 18/18 GREEN.
+//
+// Without it, an already-active doc falls into the RE-INSTATE branch, whose `UPDATE … created_ts = ?` binds a
+// wall-clock `Date.now()`. That binding is deliberate and correct for a TOMBSTONED doc (REQ-198 — the ancient
+// recorded_at would make the next sweep tick re-delete freshly restored bytes) and WRONG for an active one:
+// every re-upload pushes the retention clock forward, so a document could outlive its policy indefinitely.
+// Photo/PII retention is REQ-140, and the driver's evidence leg RE-PROBES parked uploads on a bounded schedule
+// (§754/§755) — repeat uploads of an already-stored document are the normal case, not an edge one.
+//
+// The tombstoned sibling is tested above (the clock SHOULD restart there). This is the branch that was not —
+// the §749 shape: two branches of one decision, one covered.
+describe("REQ-116/198 §756: a re-upload of an ACTIVE doc leaves the retention clock alone", () => {
+  it("second upload of the same verified bytes → 200, same row, created_ts UNCHANGED", async () => {
+    const shp = "ev-active-reup";
+    const bytes = nextEvidenceBytes();
+    const photoHash = await recordPlacedPhoto(shp, bytes);
+
+    const first = await upload({ shipment_id: shp, photo_hash: photoHash }, bytes, opsTok);
+    expect(first.status, JSON.stringify(first.json)).toBe(201);
+    const docId = first.json?.document_id as string;
+    const before = await env.TENANT_A_DB.prepare("SELECT created_ts, retention_status FROM documents WHERE id = ?")
+      .bind(docId)
+      .first<{ created_ts: number; retention_status: string }>();
+    expect(before?.retention_status).toBe("active");
+
+    // The driver's parked evidence leg re-probes; this is that second POST.
+    const again = await upload({ shipment_id: shp, photo_hash: photoHash }, bytes, opsTok);
+    expect(again.status, "an already-stored doc is a SUCCESS, not a refusal — the driver needs to drain").toBe(200);
+    expect(again.json?.document_id).toBe(docId);
+    expect(await docCount(shp, photoHash), "a re-upload never duplicates the row").toBe(1);
+
+    const after = await env.TENANT_A_DB.prepare("SELECT created_ts, retention_status FROM documents WHERE id = ?")
+      .bind(docId)
+      .first<{ created_ts: number; retention_status: string }>();
+    expect(after?.retention_status).toBe("active");
+    expect(
+      after!.created_ts,
+      "re-uploading an ACTIVE doc restarted its retention clock — the active-row short-circuit is gone, so the " +
+        "re-instate branch (correct only for a TOMBSTONED row, REQ-198) bound Date.now(). A document re-uploaded " +
+        "periodically would then never expire (REQ-116/140)",
+    ).toBe(before!.created_ts);
+  });
+});
+

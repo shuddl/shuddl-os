@@ -395,6 +395,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 200 | §752 | **§753** | **The same silent guard in a SECOND meter — found by following §752's own trigger instead of waiting.** Three lock-guarded DOs: sequencer's mutex deletion **REDS** (§750, D1 awaits ⇒ load-bearing ⇒ testable); `CapsMeter` **17/17 silent** and `SparkMeter` **122/122 silent**, both because all 3 awaits are `ctx.storage.*` and the input gate already serializes those. Gate rewritten to **derive** its roster (§699) so a fourth DO lands covered; sequencer exempt **with its reason**, plus a staleness check so the exemption cannot outlive its subject. **My own scan was wrong and this file's own floor caught it** — `#append` matched as a CALL first, returning a garbage body with 0 awaits; `methodBody` now anchors on a declaration. 3 mutations RED |
 | 201 | §753 | **§754** | **The driver-sync Critical's fix, re-verified — defended.** A prior audit's worst defect: *"one transient 4xx stranded a signed capture forever"* — a driver signs at a door, the device holds the proof, nothing ever sends it. Mutating the re-probe to `Number.MAX_SAFE_INTEGER` (a park that never re-probes = the pre-fix behaviour) **REDS** *"a parked item RE-PROBES after its window and drains when the refusal clears (an ordering race self-heals)"* — a test whose name asserts the COUNTERFACTUAL (§742's strongest shape). Design note worth keeping: the fix does not PREVENT the ordering race, it makes it **survivable** — ordering across independent captures cannot be guaranteed from a device, so the guarantee to make is that a wrong order is temporary |
 | 202 | §754 | **§755** | **A client-side fix resting on a server-side premise — both sides now checked.** §754 named the driver's unenforced premise (*append is idempotent by event id, so a re-probe is always safe*). Removing the sequencer's replay short-circuit REDS **two** tests, the first being *"a duplicate event id returns the original row; the count is unchanged"* — the driver's premise almost word for word. **"The count is unchanged" is what makes it the right test**: a replay that THREW would also avoid duplication while stranding the capture exactly as the pre-fix park did — the driver needs a SUCCESS, not an absence. Residual recorded, not fixed: the two halves live in different packages/runners and neither test knows about the other, so the coupling is real and would fail silently from either side |
+| 203 | §755 | **§756** | **DEFECT: a retention clock that could be pushed forever, found by following §755's own trigger to the evidence leg.** `/v1/evidence` short-circuits an already-ACTIVE row to 200 — disabling it left **18/18 GREEN**, but it is load-bearing for RETENTION, not efficiency: without it an active doc takes the **re-instate** branch, whose `created_ts = Date.now()` is correct for a TOMBSTONED row (REQ-198) and wrong for an active one. **A document re-uploaded periodically would never expire** (REQ-116/140) — and repeat uploads are ROUTINE, because the driver's evidence leg re-probes parked items (§754). §749's shape one layer down: the tombstoned branch is tested, the active branch had nothing. Pinned — 200 + one row + `created_ts` unchanged; the **200 matters as much as the timestamp** (a 4xx would re-park the item) |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -43241,3 +43242,68 @@ lint 0; typecheck 0. Source restored byte-identical.
 - The driver gains a second re-probing path (evidence bytes have their own leg) → it rests on
   `/v1/evidence` deduping by `(shipment, hash)`, a DIFFERENT premise from event-id idempotence, and this phase
   checked only the event leg.
+## §756 — PHASE GATE: the evidence leg's premise, and a retention clock that could be pushed forever
+
+§755 verified the driver's EVENT-leg premise and named the gap in its own trigger: the EVIDENCE leg re-probes
+on a different premise — `/v1/evidence` deduping by `(shipment, hash)` — *"and this phase checked only the
+event leg."* Closing that half found a real defect.
+
+### The dedupe is load-bearing for RETENTION, not efficiency
+
+`POST /v1/evidence` short-circuits an already-**active** row to `200` with the stored key. Disabling that line
+left `workers/api test/evidence-upload.test.ts` at **18/18 GREEN**.
+
+But it is not an optimisation. Without it an active doc falls into the **re-instate** branch:
+
+```sql
+UPDATE documents SET retention_status = 'active', created_ts = ?   -- bound to Date.now()
+```
+
+That wall-clock binding is deliberate and **correct for a tombstoned doc** (REQ-198: the ancient `recorded_at`
+would make the next sweep tick re-delete freshly restored bytes) and **wrong for an active one** — every
+re-upload pushes the retention clock forward.
+
+**A document re-uploaded periodically would never expire.** Photo/PII retention is REQ-140; the retention class
+here is the shorter `default`. And repeat uploads are not an edge case: the driver's evidence leg **re-probes
+parked uploads on a bounded schedule** (§754), so a POD photo whose first attempt was parked and later drained
+is exactly the shape that arrives twice.
+
+### The shape is §749's, one layer down
+
+Two branches of one decision. The **tombstoned** branch is tested — a whole case asserts the clock *should*
+restart, with `not.toBe(RECORDED_OLD)` proving it. The **active** branch, the one that must NOT restart, had
+nothing. One sibling covered, one not, in the same `if`.
+
+### Pinned
+
+A second upload of the same verified bytes must return **200**, keep one row, and leave `created_ts`
+**unchanged**. The 200 matters as much as the timestamp: an already-stored doc is a **success**, not a refusal
+— the driver needs to drain the item, and a 4xx would re-park it (the §754 Critical's shape).
+
+| mutation | result |
+|---|---|
+| disable the active-row short-circuit | **RED** — *"a re-upload of an ACTIVE doc leaves the retention clock alone"* |
+
+19/19 clean; source restored byte-identical.
+
+### The chain, now complete on both legs
+
+| leg | client premise | server pin |
+|---|---|---|
+| event | re-probe is safe — append is idempotent by id | *"a duplicate event id returns the original row; the count is unchanged"* (§755) |
+| evidence | re-probe is safe — upload dedupes by (shipment, hash) | *"a re-upload of an ACTIVE doc leaves the retention clock alone"* (§756) |
+
+Three phases from one comment's honest phrase — *"stated in the comment, not enforced here"*. Following that
+sentence to its second leg is what turned a verification into a defect.
+
+### Exit state
+
+`workers/api test/evidence-upload.test.ts` **19/19** (+1); `test:tools` 1037; lint 0; typecheck 0.
+
+**Reopen triggers**
+- A third branch is added to that `if` (a new `retention_status`) → it needs its own case; the defect here was
+  a branch with no test, and the enumeration is per-status.
+- The re-instate branch stops binding `Date.now()` → the tombstoned case reds, correctly. Do not "unify" the
+  two branches onto one timestamp: they need different ones, and that difference is the whole point.
+- The driver's evidence leg stops re-probing → the repeat-upload path becomes rare rather than routine, but
+  the retention consequence is unchanged. Keep the pin.
