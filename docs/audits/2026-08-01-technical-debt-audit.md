@@ -429,6 +429,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 234 | §785–§786 | **§787** | **PHASE 14 CLOSED — the OUTPUT boundary, where the failure is QUIET.** Phase 13 audited inputs (a bad value crashes); Phase 14 audits outputs (a bad value *works*, it just reaches the wrong person). All six emitters tabled with what decides their recipient. The finding: one rule implemented TWICE with **neither copy's preference pinned** — untestable by construction, because every fixture in both workers seeded exactly ONE contact, always `kind:"billing"`. Consequence is neither a leak nor a crash but **the wrong human inside the right company**, whose only signal is an invoice that never gets paid. Both guard halves proved necessary: delete-the-rule reds behaviour AND parity; **drift-only reds ONLY parity**. Board at `46a626c` unchanged: 19 PASS · 2 FAIL · 5 BLOCKED. **4,171 tests** (3,127 workspace, 0 failures). Three phases now bound the system by KIND — surfaces, inputs, outputs |
 | 235 | §787 | **§788** | **Everything that EXPIRES — a CLEAN NEGATIVE.** The next kind after surfaces/inputs/outputs is TIME. Mutated every clock-dependent control in the direction that EXTENDS access or DESTROYS evidence: doc cap (+10yr), status cap, session `exp`, **both device-revocation readers** (a stolen device keeps signing), POD retention 7yr→7d, the REQ-025 retention tenant guard, Watchtower windows. **All RED.** Nothing unpinned that matters — worth recording so the next reader does not re-audit the class where a gap would be worst. One silent mutation (`expiresAt >= now` → `>`) is a real boundary with an EMPTY population and is deliberately left. **And a grep of mine was wrong**: I searched two files, concluded the doc cap was unpinned, and the mutation named its test in the first line — the 4th false absence-call this audit, caught at zero cost because I mutated before believing |
 | 236 | §788 | **§789** | **The idempotency TTL — closing the gap §788 identified and LEFT.** §788 deferred it as *"a product decision, not a defect"*; half right — **whether the record expires at all is not a product decision**. Dropping `expirationTtl` left the suite **6/6 green**, and nothing ever deletes an idempotency record: every successful mutation would leak a KV entry **permanently**, and the replay window would become unbounded — a stale response replayed while `next()` never runs, the same silent-write-loss shape REQ-206 exists to prevent, arriving by the other door. The 2xx-only rule on the SAME `put` call is pinned by 3 tests; the TTL by none. Asserted via KV's own `expiration` metadata (a bare put reports `undefined`), bounded 1h–7d so retuning stays a product decision. Both directions RED — dropped and truncated |
+| 237 | §788–§789 | **§790** | **PHASE 15 CLOSED — TIME, and the discipline of not leaving a gap you named.** Four phases now bound the system by KIND: surfaces (12) · inputs (13) · outputs (14) · **clocks (15)**. Eleven clock-dependent controls mutated toward EXTENDING access or DESTROYING evidence; **ten were already RED** — expiry is the best-defended class in the codebase, recorded as a clean negative so it is not re-audited. The one real gap was the idempotency TTL, which **§788 itself had named and deferred** as "a product decision" — half right, since *whether* a record expires is not one. §789 closed it. **An identified gap left open is worse than one never looked for**, because the record now says someone examined it and moved on. Board at `b29e7b3`: 19 PASS · 2 FAIL · 5 BLOCKED, unchanged across nineteen phases. **4,172 tests** (3,128 workspace, 0 failures) |
 
 **Current measured state — as measured 2026-08-08 at `fae1a17` (§775's board run):** the merge board is
 **26 gates — 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape since §737. `typecheck` 0 · `lint` 0 ·
@@ -436,8 +437,8 @@ acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register r
 attributed by naming the three failing tests, all register-classification) plus five gates BLOCKED on private
 fixtures that live in the engagement workspace. §521 tables every remaining hold with its owner.
 
-**Test totals, measured rather than carried forward — re-measured 2026-08-09 at `46a626c` (§787):**
-**4,171 tests, 3 failing** — 1,044 in `test:tools` (the 3 REQ-289 failures) and **3,127 across all 17
+**Test totals, measured rather than carried forward — re-measured 2026-08-09 at `b29e7b3` (§790):**
+**4,172 tests, 3 failing** — 1,044 in `test:tools` (the 3 REQ-289 failures) and **3,128 across all 17
 workspace suites, zero failures**. The previous wording
 here said "3,016 workspace tests"; it was undated and stale, the exact defect §"a gate's green certifies less
 than its name" warns about, so the count above carries its date and SHA.
@@ -45446,3 +45447,73 @@ No source changed — `idempotency.ts` restored byte-identical after three mutat
   one inherits the same question, and nothing here would notice it.
 - REQ-206's 2xx-only rule changes → the three tests beside this one are the ones that will speak, and their
   names state the evidence-loss path rather than the mechanism.
+## §790 — PHASE GATE: PHASE 15 CLOSED — TIME, and the discipline of not leaving a gap you named
+
+Phase gate for §788–§789. Four phases now bound the system by the KIND of thing audited rather than by module:
+
+| phase | kind | gate |
+|---|---|---|
+| 12 | every product **SURFACE** | §776 |
+| 13 | every **INPUT** the system does not produce | §784 |
+| 14 | every **OUTPUT** that leaves the building | §787 |
+| **15** | **everything whose correctness depends on a CLOCK** | **this** |
+
+### The result: expiry is the best-defended class in the codebase
+
+Eleven clock-dependent controls, each mutated in the direction that **extends access** or **destroys
+evidence** — the direction that can actually fail (§772). Ten were already RED: both document/status caps
+(expiry inside the MAC, not advisory), the session `exp`, **both** device-revocation readers, the 7-year POD
+compliance hold and its unknown-class fail-safe, the REQ-025 retention tenant-key guard, and the five
+Watchtower windows.
+
+That is worth recording as a **clean negative** precisely because it is the class where a gap would be worst:
+a link that never dies, a stolen device that keeps signing. The next reader should not re-audit it.
+
+### The one real gap, and why §788 was wrong to defer it
+
+§788 named the idempotency TTL unpinned and left it — *"the correct window is a product decision, not a
+defect."* Half right. **Whether the record expires at all is not a product decision**, and dropping
+`expirationTtl` left the suite 6/6 green while making every successful mutation leak a KV entry permanently
+and the replay window unbounded.
+
+§789 closed it. The lesson is the phase's, not the fix's: **an identified gap left open is worse than one
+never looked for**, because the record now says someone examined it and moved on. A deferral needs the same
+standard as a finding — say what would make it matter, or close it.
+
+### Two corrections of my own, both caught by the instrument
+
+- **A grep that proved absence and was wrong** (§788): I searched two test files, concluded the document
+  download cap — the higher-stakes cap, since it grants the actual bytes of a signed POD — was unpinned, and
+  the mutation named its test in the first line. Fourth false absence-call in this audit; it cost ninety
+  seconds and never reached the record as a finding.
+- **Harness silence, a fifth time** (§788): consecutive full-suite runs degraded to blank / `no tests`, and
+  both rows were re-run alone before being believed — one was pinned, one genuinely silent. The rule from
+  §780 held: batch the mutations, re-run every silent row individually.
+
+### The board, re-measured at `b29e7b3`
+
+```
+26 gates — 19 PASS · 2 FAIL · 5 BLOCKED   (exit 1, working tree)
+```
+
+Unchanged in shape since §737, across nineteen phases. Both FAILs remain the three register-classification
+tests on the uncommitted `REQ-289` row. Totals: **4,172 tests — 3,128 across 17 workspace suites (zero
+failures) + 1,041/1,044 tools.**
+
+### STOPPING POINT
+
+The repo-owned ledger is empty. **Five owner-held holds remain**, unchanged since §784 and unsuppliable from
+inside this repo:
+1. the `IDENTITY_DENYLIST` secret (1 BLOCKED gate);
+2. nine private fixtures (4 BLOCKED gates);
+3. **`REQ-289`'s disposition — the sole cause of both merge FAILs**;
+4. the "+ photos" half of acceptance demo #1;
+5. the filmed half of the five acceptance demos.
+
+**Reopen triggers for this phase**
+- A new capability, token or cached write is added → it is a clock-dependent control and belongs in §788's
+  table. The table is the phase's artifact: every place correctness depends on time, and what proves it.
+- A retention class is added → the duration test pins classes BY NAME; a new one is invisible until added,
+  and only the unknown-class fail-safe makes that safe rather than silent.
+- Anything else gets **deferred** in this audit → §789 is the precedent. State the trigger that would make it
+  matter, or close it; "a product decision" is not a reason to leave a mechanism unwatched.
