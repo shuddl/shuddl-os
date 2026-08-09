@@ -120,6 +120,32 @@ describe("REQ-118/119: no gate script is defined and never run", () => {
     ).toEqual([...MERGE_ROSTER].sort());
   });
 
+  // §808 — THE RELEASE-ONLY GATES, closing the residual §807 STATED rather than fixed.
+  //
+  // §807 pinned the merge roster and named what it left: *"the five release-only gates remain count-pinned…
+  // the same sweep should be run for them before the first release."* §790's rule is that an identified gap
+  // left open is worse than one never looked for, so it is closed here instead of filed.
+  //
+  // MEASURED: four of the five are SILENT to the same swap — `deploy-preflight`, `restore-verify`,
+  // `staging-smoke`, `backup-manifest` (only `surfaces` was caught). These gate a DEPLOY rather than a merge,
+  // which makes the exposure different in kind rather than smaller: `restore-verify` is the proof that a
+  // backup actually restores, and a release that shipped without it would have no evidence its DR works —
+  // discovered, if ever, on the day it is needed.
+  //
+  // Declared with a mixed shape (`kind: "cmd"` and one `kind: "external"`), so this asserts NAMES only; the
+  // kinds are the size tripwire's business.
+  it("§808: the release profile adds exactly these five gates, BY NAME", () => {
+    const mergeSet = new Set(gatesFor("merge").map((g) => g.gate));
+    const releaseOnly = gatesFor("release").map((g) => g.gate).filter((g) => !mergeSet.has(g));
+    expect(
+      [...releaseOnly].sort(),
+      "the release-only gate set changed. These run at DEPLOY, not merge — `restore-verify` is the only proof " +
+        "that a backup restores, and `deploy-preflight`/`staging-smoke` are the only checks between a green " +
+        "merge and production. A swap that preserves the profile SIZE is invisible to every other assertion " +
+        "in this file.",
+    ).toEqual(["backup-manifest", "deploy-preflight", "restore-verify", "staging-smoke", "surfaces"]);
+  });
+
   it("profile sizes match the docs that quote them", () => {
     const merge = gatesFor("merge").length;
     const release = gatesFor("release").length;
