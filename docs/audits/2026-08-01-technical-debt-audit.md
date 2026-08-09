@@ -401,6 +401,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 206 | §758 | **§759** | **`pnpm verify:docs` — and the CORRECTION it forced on §757.** §757's root cause was a checklist one gate short; bundled the four gates a documentation phase should satisfy, verified to fail as a bundle (a planted over-wide table row → exit 1). **Proving it caught §757's own defect exposed that §757 blamed the wrong file**: `orphans.ts` excludes **eleven** paths including `:(exclude)docs/audits`, and I had asserted the list from a TRUNCATED grep line. Isolated by planting per-file — audit doc alone **exit 0**, `traceability.test.ts` alone **exit 1**, the entire cause. §757 corrected IN PLACE, because a wrong explanation in an audit is worse than a missing one. **The artifact was eleven lines long and right there** |
 | 207 | §759 | **§760** | **Audited the eleven exclusions that decide what "built" MEANS.** Each decides whether a file's REQ citations count as evidence a requirement shipped — get one wrong and a governance sentence meaning *"this shipped nothing"* becomes proof something shipped. Mutation-tested individually: `docs/audits` **+3 failures**, `PROJECT-STATE.md` **+2** — both pinned; **`.claude` silent** in fixture AND real repo. Its two stated hazards measured: **0** skill-cited ids absent from the register, **0** rows whose only annotation is a skill (27 ids cited, all registered, all annotated elsewhere). **No gate built — deliberately**: §752 pinned a precondition because money was at stake; a gate per defensive line is its own debt. **And the warning I walked past**: `orphans.ts` already says *never write a literal requirement id into any scanned source* — §757 was exactly that, one file away |
 | 208 | §760 | **§761** | **All TWELVE exclusions, not three — 8 pinned, 4 inert and measured.** §760 sampled three and generalised (*"two of three are pinned"*); the true ratio is **8 of 12**, and the sample happened to hold two of the strongest and one of the weakest. **`docs/plans` is the row a sample mis-ranks**: it moves the fixture LEAST (+1) and is the ONLY exclusion whose removal **reds the real repo**. Fixture sensitivity and real-repo load-bearing are different properties pointing opposite ways here. The 4 inert ones (`BUILD-PROMPT`/`CLAUDE`/`README`/`.claude`) carry 46 cited ids — **0 unregistered, 0 only-annotations** — so each is correct, cheap and currently unnecessary. **A sample of three from twelve is a sample and should have been labelled one**; finishing cost one loop |
+| 209 | §761 | **§762** | **Finished §758's map — the same sample-vs-population correction §761 made to §760.** §758 derived 8 self-scanning gates and examined 6, dropping two by judgement. `scan-corpus` is a HELPER (no verdict, correctly outside — now by reason, not omission); **`check-table-shape` is a gate and belongs on the map**, defended by corpus scope on a DIFFERENT AXIS (extension `*.md` vs `design/audit`'s path) — and that defence covers its **source but not its documentation**, which §759 already proved incidentally (a planted over-wide row in the audit doc → exit 1). Corrected map: **7 gates, 5 mechanisms**, with `traceability` the exact inverse (docs covered, source not — why §757's literals bit in a test file and not in prose). **Both corrections cost one loop each** |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -43644,3 +43645,68 @@ No code changed. `check:traceability` 0; `verify:docs` 0; `test:tools` 1037; lin
   under-states it.
 - A thirteenth exclusion is added → test it against BOTH the fixture and the real repo. This phase is why:
   they disagree.
+## §762 — PHASE GATE: finishing §758's map, with the same correction §761 made to §760
+
+§761 caught §760 generalising from a sample. The same defect is in §758: it derived **eight** gates that scan
+tracked files, then examined **six**, dropping two by judgement rather than measurement. Finishing it refines
+the map.
+
+### The two §758 skipped
+
+**`scan-corpus.ts` is not a gate.** It exports `scanCorpus(globs, cwd, opts)` — a helper other gates call. It
+reaches no verdict, so there is nothing for its own text to trip. Correctly outside the six, but by *reason*
+now rather than by omission.
+
+**`check-table-shape` is a gate, and it belongs on the map.** It scans `git ls-files '*.md'` while its own
+source is `.ts`, so it structurally cannot read itself. That is a real defence — and it is a **different axis**
+from `design/audit`'s: one scopes by PATH (`apps/**`+`packages/**`, its tests live in `tools/`), the other by
+EXTENSION (`*.md`, its source is `.ts`). Same idea, and worth distinguishing because they fail differently: a
+path-scoped corpus breaks when the corpus widens, an extension-scoped one breaks when the gate learns a new
+file type.
+
+### And its defence does not cover documentation
+
+Corpus scope protects a gate's **source**. It does nothing for a **document explaining the gate**, and this
+gate's subject is markdown. §759 already proved it, incidentally: an over-wide table row planted in the audit
+doc took `check:tables` to **exit 1**. Any prose that illustrated the hazard with a real example would fail the
+gate that hazard belongs to.
+
+So `check-table-shape` sits in the same column as `traceability` and `section-refs` — protected for its source,
+undefended for its docs, with *describe, never spell* as the only discipline.
+
+### The corrected map — seven gates, five mechanisms
+
+| gate | defence | covers source | covers docs |
+|---|---|---|---|
+| `citation-links` | bounded ignore-marker (§272) | ✓ | ✓ |
+| `invariants` | excludes test paths | ✓ | n/a (its subject is SQL) |
+| `design/audit` | corpus scope by PATH | ✓ | n/a |
+| `check-table-shape` | corpus scope by EXTENSION | ✓ | **✗** |
+| `identity-leak` | runtime assembly (§744) | ✓ | ✓ |
+| `traceability/orphans` | pathspec excludes docs; source undefended | **✗** | ✓ |
+| `section-refs` | none | **✗** | **✗** |
+
+`traceability`'s row is the one §759 corrected: it excludes `docs/audits`, so its DOCS are covered and its
+SOURCE is not — the exact inverse of `check-table-shape`, and the reason §757's literals in a test file bit
+while the same literals in prose did not.
+
+### The pattern in two corrections
+
+§760 → §761 and §758 → §762 are the same mistake twice: **examine most of a population, generalise from it,
+and the exceptions are where the interesting rows live.** In §761 it was `docs/plans` (weakest in the fixture,
+the only one that reds the real repo). Here it is `check-table-shape` (skipped as uninteresting, and it turns
+out to hold the one defence that covers source but not docs).
+
+Cost of finishing each: one loop. That is the whole argument.
+
+### Exit state
+
+No code changed. `verify:docs` 0; `test:tools` 1037; lint 0; typecheck 0.
+
+**Reopen triggers**
+- `check-table-shape` learns a new extension → its extension-scoped defence weakens the day it scans anything
+  its own source could be written in.
+- A gate is added and judged "not applicable" → record the reason in the map, as `scan-corpus` now is. §758's
+  two omissions were invisible precisely because they were unstated.
+- The map reaches eight rows → it is worth a test rather than a table. Seven hand-maintained rows is under the
+  line; the day it is not, §699's rule applies.
