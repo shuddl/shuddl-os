@@ -211,3 +211,60 @@ describe("§817: no float division ever produces a monetary value (CLAUDE.md mon
     expect(files.some((f) => f.path.includes("rater/src/money.ts"))).toBe(true);
   });
 });
+// ── §843 — THE ROOT CAUSE: a `*CENTS*` IDENTIFIER BOUND TO A FRACTIONAL VALUE ─────────────────────────
+//
+// The two patterns above match a money-ish LEFT OPERAND of `/` and a money-ish ASSIGNMENT TARGET. Neither
+// could see the last real defect: `STORAGE_COST_CENTS_PER_GB_MONTH = 1.5` in retention.ts, multiplied into
+// `Math.round((bytes / BYTES_PER_GB) * RATE)`. The division's left operand is `bytes` — not a money word —
+// and the result is a bare `return`, not an assignment. §817's note said "the vocabulary is the gate's real
+// boundary"; this was the boundary, found from the other side.
+//
+// So this does not add a third ARITHMETIC shape. It catches the ROOT CAUSE, one step earlier and with no
+// judgement: an identifier whose name says cents, holding a value that cannot be cents. Measured across
+// `packages/ workers/ apps/` — exactly one hit, now fixed, and zero false positives.
+
+describe("§843: no `*CENTS*` identifier holds a fractional value", () => {
+  const FRACTIONAL_CENTS = /\b(\w*(?:CENTS|Cents|cents)\w*)\s*(?::[^=]*)?=\s*(-?\d+\.\d+)/;
+
+  function fractionalCentsConstants(root: string): string[] {
+    return execSync('git ls-files "packages" "workers" "apps"', { cwd: root, encoding: "utf8" })
+      .split("\n")
+      .filter((f) => /\.tsx?$/.test(f) && !f.includes(".test.") && !f.includes("/test/"))
+      .flatMap((f) => {
+        const out: string[] = [];
+        readFileSync(`${root}/${f}`, "utf8").split("\n").forEach((raw, i) => {
+          const line = raw.trim();
+          if (line.startsWith("//") || line.startsWith("*")) return;
+          const m = FRACTIONAL_CENTS.exec(raw);
+          if (m) out.push(`${f}:${i + 1}  ${m[1]} = ${m[2]}`);
+        });
+        return out;
+      });
+  }
+
+  it("the detector fires on the shape it exists for (calibration)", () => {
+    // Planted, because the one real instance is fixed — a zero-result scan proves nothing on its own (§796).
+    const planted = "const STORAGE_COST_CENTS_PER_GB_MONTH = 1.5;";
+    expect(FRACTIONAL_CENTS.test(planted), "the detector no longer matches the §843 defect").toBe(true);
+    // And the shapes it must NOT flag: an integer cents constant, and a fractional non-money constant.
+    expect(FRACTIONAL_CENTS.test("const MIN_CHARGE_CENTS = 8500;")).toBe(false);
+    expect(FRACTIONAL_CENTS.test("const FRAME_BUDGET_MS = 18.18;")).toBe(false);
+  });
+
+  it("no cents-named identifier in the tree holds a fractional value", () => {
+    expect(
+      fractionalCentsConstants(repoRoot()),
+      "an identifier whose name says CENTS holds a value that cannot be cents. A fractional cent is not a " +
+        "money value the ledger can carry — it becomes one only after a float multiplication, which is what " +
+        "CLAUDE.md's money law forbids. If the underlying RATE is genuinely sub-cent, express it as an exact " +
+        "integer ratio (retention.ts uses tenths of a cent per GB) and compute with mulDivHalfUp:",
+    ).toEqual([]);
+  });
+
+  it("the scan reads the tree (non-vacuity)", () => {
+    const files = execSync('git ls-files "packages" "workers" "apps"', { cwd: repoRoot(), encoding: "utf8" })
+      .split("\n")
+      .filter((f) => /\.tsx?$/.test(f) && !f.includes(".test.") && !f.includes("/test/"));
+    expect(files.length, "no source files scanned — the glob is stale, not the tree").toBeGreaterThan(200);
+  });
+});

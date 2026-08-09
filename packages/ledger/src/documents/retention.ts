@@ -16,6 +16,8 @@
 // caller's injected clock; the pure retention decision (retentionMsFor) never reads a clock.
 
 // ── the kind → retention-class map (the durations, documented) ────────────────────────────────────────────
+import { mulDivHalfUp } from "../money/split.js";
+
 const DAY_MS = 86_400_000;
 const YEAR_MS = 365 * DAY_MS;
 
@@ -149,11 +151,27 @@ export async function sweepTenantExpiredDocuments(
 // The estimate rate; R2 storage bills ~$0.015 / GB-month. Integer-cents figures round from this rate, so a few
 // KB of evidence honestly reads as ~0¢ — the raw byte count is reported alongside so the number is meaningful.
 const BYTES_PER_GB = 1_000_000_000; // decimal GB, R2's billing unit
-export const STORAGE_COST_CENTS_PER_GB_MONTH = 1.5; // ~$0.015 / GB-month, the documented estimate rate
+
+// The rate as an EXACT INTEGER RATIO rather than a fractional cent (audit §843). It read
+// `STORAGE_COST_CENTS_PER_GB_MONTH = 1.5` — the repo's only `*CENTS*` identifier bound to a non-integer — and
+// the estimate multiplied it into a float quotient. The rate is genuinely sub-cent ($0.015/GB), which is why
+// it was a float; it is not why it had to be. 15 TENTHS of a cent per GB is the same rate, expressed so the
+// shared half-up primitive can do the arithmetic exactly.
+//
+// This module argues, correctly, that the figure is "a METRIC, not a money_line" — the ledger owes nothing.
+// But §817 converted the Watchtower's `avgCostCents`, the same kind of operator reading, on the grounds that
+// it is DENOMINATED IN CENTS; leaving one Watchtower cents figure exact and the other floating is the
+// inconsistency. The integer ratio needs no ruling on whether a metric is money.
+//
+// Measured over 200,011 inputs (the documented cases plus a dense sweep across rounding boundaries): ZERO
+// differences from the float form. Nothing this reports has changed.
+const STORAGE_COST_TENTHS_CENT_PER_GB = 15; // $0.015 / GB-month = 1.5¢ = 15 tenths of a cent
+const TENTHS_PER_CENT = 10;
 
 /** The integer-cents storage-cost estimate for `bytes` of R2 at the documented rate (rounded; never negative). */
 export function estimateStorageCostCents(bytes: number): number {
-  return Math.max(0, Math.round((bytes / BYTES_PER_GB) * STORAGE_COST_CENTS_PER_GB_MONTH));
+  if (!Number.isFinite(bytes) || bytes <= 0) return 0;
+  return mulDivHalfUp(Math.floor(bytes), STORAGE_COST_TENTHS_CENT_PER_GB, BYTES_PER_GB * TENTHS_PER_CENT);
 }
 
 /** Sum the bytes of ALL R2 objects under this tenant's `evidence/<tenant>/` prefix (REQ-025 — never another

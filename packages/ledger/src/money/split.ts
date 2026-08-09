@@ -77,6 +77,38 @@ export function apportion(total: number, weights: readonly number[]): number[] {
 }
 
 /**
+ * mulDivHalfUp — round_half_up((a × b) / divisor) with the product formed in BigInt (audit §843).
+ *
+ * The MIRROR of `packages/rater/src/money.ts`, whose own header says it mirrors THIS file's `allocateCents`.
+ * One BigInt money module per package is the established shape here: the rater cannot import the ledger and
+ * the ledger must not import the rater (that would invert the layering — the rater is a domain engine ABOVE
+ * the ledger, and neither package depends on the other today). The ROUNDING RULE is stated once in each and
+ * is the same rule: truncation == floor on the non-negative domain, so `2*r >= d` is the exact half-up
+ * decision with no float division anywhere.
+ *
+ * Added for the storage-cost estimate, which expressed a sub-cent rate as the fractional constant
+ * `STORAGE_COST_CENTS_PER_GB_MONTH = 1.5` — the repo's only `*CENTS*` identifier bound to a non-integer.
+ * Requires a, b >= 0 and divisor > 0, all integers; fails LOUDLY rather than misrounding.
+ */
+export function mulDivHalfUp(a: number, b: number, divisor: number): number {
+  if (!Number.isInteger(a) || !Number.isInteger(b) || !Number.isInteger(divisor)) {
+    throw new Error(`mulDivHalfUp: a, b and divisor must be integers (got ${a}, ${b}, ${divisor})`);
+  }
+  if (a < 0 || b < 0 || divisor <= 0) {
+    throw new Error(`mulDivHalfUp: expects a >= 0, b >= 0 and divisor > 0 (got ${a}, ${b}, ${divisor})`);
+  }
+  const n = BigInt(a) * BigInt(b);
+  const d = BigInt(divisor);
+  const q = n / d;
+  const r = n % d;
+  const result = r * 2n >= d ? q + 1n : q;
+  if (result > BigInt(Number.MAX_SAFE_INTEGER)) {
+    throw new Error(`mulDivHalfUp: result ${result} exceeds Number.MAX_SAFE_INTEGER`);
+  }
+  return Number(result);
+}
+
+/**
  * The shared largest-remainder (Hamilton) core, over the NON-NEGATIVE magnitude so BigInt truncation ==
  * floor (see the module note on the negative-total regression). Gives each index floor(magnitude*weight/
  * divisor), then hands the leftover (magnitude − Σfloor, an integer in [0, n)) to the largest remainders,

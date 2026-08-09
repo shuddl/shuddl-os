@@ -482,6 +482,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 287 | §839 | **§840** | **PHASE 61 CLOSED — correcting a residual I INVENTED one phase earlier.** §839's reopen trigger claimed a fourth guarded table needs `GUARDED_TABLES`, the REPLACE-ban alternation and a guard trio to move together, and that *"nothing forces the alternation"*. **False, and false when written**: `invariants.ts:48` is `GUARDED_ALT = GUARDED_TABLES.join("|")` — **derived**, with a comment four lines up saying *"adding a fourth append-only table forced ONE edit"*. I wrote a residual about a duplication the author had already removed, in a file I had spent the phase reading. **Measured instead**: planting `ledger_notes` in `GUARDED_TABLES` produced **four** demands each naming its subject (upd/del/ins triggers + completeness on `(id)`), and a planted `INSERT OR REPLACE` was caught **with no second edit**. The path is forced COMPLETELY from one array entry. **Worth a phase because the error was SAFE** — it over-stated risk, so it reads as diligence and is never questioned; §828 caught the same class pointing the *reassuring* way. §803's rule again: an assertion in an exit note needs the standard of one in code |
 | 288 | §840 | **§841** | **PHASE 62 CLOSED — auditing my own reopen triggers, and closing the one that was TRUE.** §840 corrected a false trigger; this checks the rest. Six falsifiable triggers across §815–§840: **one STALE** (§816's *"the money law has no gate"* — §817 built it the very next phase and it sat wrong for 24), one already-corrected (§839/§840), and **four sound**. Correction rate **2 of 6** — the argument for the sweep. **§821's residual CLOSED**: a discovery half now requires every module declaring the freight-dims shape to be rostered or excluded-with-a-reason. Found three, each legitimate for a **different** unrecorded reason — `events.ts` is the LEDGER path, deliberately stricter (`min(1)` vs `min(0)`, per §820); `map-204.ts` is a **producer** whose output the canonical schema validates; `intake.ts` is a client TYPE, not a boundary. **Scanner corrected first**: it required the literal `z.object` and `rate.ts` writes `z\n  .object({`, so **two of four ROSTERED files did not match their own roster** — it would have found three unrostered surfaces while hiding two rostered ones in the same run |
 | 289 | §841 | **§842** | **PHASE 63 CLOSED — the launch checklist's code-state claims all HOLD; the one that doesn't is in CLAUDE.md.** §841 found 2 of 6 of my own triggers rotted, so the higher-stakes version: the GO-LIVE-CHECKLIST, where §823 already caught a stale count. 297 rows → 222 live → 67 repo-path → **5 making a falsifiable CODE-STATE claim**, and **every one holds**: `approvalGranted` honoured by both composers but **supplied by no caller**; `actor.party` read by nine modules and by **zero gates** (the claim is about gates, and is exact); the dunning matrix unwired per its own source comment. **Clean negative worth stating** — §823 found the COUNT stale and the reasonable inference was that the prose had rotted too; it has not. **The live defect is in CLAUDE.md**: rule 6 names `routes ±10%` and there is **no fixture, no manifest entry, no implementation** (17 fixtures; the other three exist) — filed as an OWNER DECISION since §61/§68. §830/§831 pinned CLAUDE.md's table COUNT; nothing pinned its named fixture GATES, which is how this sat there for the length of the build. Now gated, with `routes` a recorded exception — **deliberately not made to red on a filed hold**, because a gate that reds on a parked decision gets disabled and takes the unfiled cases with it |
+| 290 | §842 | **§843** | **PHASE 64 CLOSED — the last fractional cent, and the shape MY OWN gate could not see.** Back to production code. `retention.ts:152` holds `STORAGE_COST_CENTS_PER_GB_MONTH = **1.5**` — a `*CENTS*` constant bound to a fractional value, multiplied into a float quotient to produce integer cents. Swept every `*CENTS*` identifier bound to a non-integer across `packages/ workers/ apps/`: **exactly one**. **§817's gate could not see it** — it matches a money-ish LEFT operand of `/` or a money-ish ASSIGNMENT target, and this is neither (`bytes / BYTES_PER_GB` is not money-named; the result is a bare `return`). Extension catches the **root cause**, not a third arithmetic shape. **The metric-vs-money question answered by PRECEDENT**: the module argues *"a METRIC, not a money_line"* and is right that the ledger owes nothing — but §817 already converted the Watchtower's `avgCostCents`, the same kind of operator reading, *because it is denominated in cents*; the inconsistency is the defect, not either choice. Fixed with an exact integer ratio (15 tenths-of-a-cent/GB) via `mulDivHalfUp`, which needs no ruling. **No number changes** — 200,011 inputs, **zero differences** |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -48959,3 +48960,88 @@ production code changed.**
 - A checklist row's code-state claim is edited → this phase verified five at `0aa18f9`; that is a measurement,
   and the rows carry no mechanism forcing re-verification. The secret rows never will — they are unfalsifiable
   from here **by design**, and that is worth remembering before treating checklist length as a debt count.
+## §843 — PHASE GATE: PHASE 64 CLOSED — the last fractional cent, and the shape my own gate could not see
+
+§817 built the money-law gate and §833 closed its roster residual. This is the defect it **missed**, found by
+going back to production code after four documentation phases.
+
+### The find
+
+`packages/ledger/src/documents/retention.ts:152`:
+
+```ts
+export const STORAGE_COST_CENTS_PER_GB_MONTH = 1.5;   // ~$0.015 / GB-month
+…
+return Math.max(0, Math.round((bytes / BYTES_PER_GB) * STORAGE_COST_CENTS_PER_GB_MONTH));
+```
+
+A constant whose name ends in `CENTS` holding **1.5** — a fractional cent — multiplied into a float quotient
+to produce an integer-cent figure. It is the only one in the repo: swept every `*CENTS*` identifier bound to a
+non-integer literal across `packages/ workers/ apps/`, and this is the single hit.
+
+### Why §817's gate could not see it
+
+The gate matches two shapes: a money-ish **left operand** of `/`, and a money-ish **assignment target** whose
+right side divides. This is neither. The division is `bytes / BYTES_PER_GB` — `bytes` is not a money word —
+and the result is a bare `return`, not an assignment. §817's own note said *"the vocabulary is the gate's real
+boundary"*; this is the boundary, found from the other side.
+
+The extension is not a third arithmetic pattern but the **root cause**: a `*CENTS*` identifier bound to a
+fractional literal. Mechanically decidable, zero false positives measured, and it catches the defect where it
+is introduced rather than where it is consumed.
+
+### The metric-vs-money question, answered by precedent rather than adjudicated
+
+The module argues its way out: *"a METRIC, not a money_line … never a money_line and never an event kind."*
+That is a real distinction and the author is right that this is not money the ledger owes.
+
+But §817 already decided the same question the other way, in the same subsystem: the Watchtower's
+`avgCostCents` is also an operator reading compared against a budget, and §817 converted it to `roundHalfUp`
+**because it is denominated in cents**. Leaving one Watchtower cents figure exact and the other floating is
+the inconsistency, not either choice on its own.
+
+Rather than adjudicate "is a metric money", the fix takes the option that needs no ruling: express the rate as
+an exact integer ratio — **15 tenths-of-a-cent per GB** — and compute with `mulDivHalfUp`. The rate is
+genuinely sub-cent, which is why it was a float; it is not why it had to be.
+
+**No number changes.** Compared exact against float over 200,011 inputs — the documented cases plus a dense
+sweep across rounding boundaries — **zero differences**. Like §816, this is a law and legibility fix, and the
+record should not be read as claiming a corrected estimate.
+
+### Where the fix lives, and why not an import
+
+`mulDivHalfUp` exists in `packages/rater/src/money.ts`, and the ledger must not import it: neither package
+depends on the other today, and ledger → rater would invert the layering (the rater is a domain engine
+**above** the ledger). So the primitive is added to `packages/ledger/src/money/split.ts`, beside
+`allocateCents` — which is exactly the shape already in place, since the rater's own header says it *"mirrors
+the BigInt precedent in packages/ledger/src/money/split.ts (allocateCents)"*. One BigInt money module per
+package, cross-referenced, is the established pattern here rather than a new duplication.
+
+### A third probe error, same family
+
+MUT-B planted a fractional cents constant by inserting at `s.index('export ')` — which landed **inside a
+comment line**, so the detector skipped it and the mutation came back GREEN. The gate was right; the probe was
+wrong. Re-planted on its own line, it reds and names `credits.ts:30`.
+
+That is the third time this session a planted violation returned green for a reason that was mine (§817's
+left-operand-only probe, §822's roster-anchor mask, this). The pattern is now clear enough to state: **an
+insertion point chosen by string search lands wherever that string first occurs, which is often not where
+code begins.** Insert by line, and confirm the plant is on its own line before believing the result.
+
+### Exit state
+
+`test:tools` **1113** (+3), 3 failed — the REQ-289 trio. `@shuddl/ledger` **668**. typecheck 0 · lint 0 ·
+`verify:docs` 0.
+
+Proved three ways: the fractional constant restored → RED naming it · a new `*_CENTS` fractional constant
+planted elsewhere → RED · the scan blinded → RED on non-vacuity rather than passing clean.
+
+**Reopen triggers**
+- A rate is genuinely sub-cent and cannot be an integer ratio → then it is not a cents figure and should not
+  be named one. The gate keys on the NAME, which is the honest place to argue about it.
+- A fractional money value arrives as a parsed input rather than a literal (a rate from config, a Stripe
+  decimal) → the gate reads literals in source and would not see it. Stated as the residual: this closes the
+  authored case, not the ingested one.
+- §817's two arithmetic patterns still cannot see a bare `return` of a computed cent. The constant-level check
+  covers the way this one was introduced; a differently-shaped one would need the return pattern too, and
+  measuring its false-positive rate is a phase, not a footnote.
