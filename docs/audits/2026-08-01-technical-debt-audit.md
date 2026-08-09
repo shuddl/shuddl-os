@@ -440,6 +440,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 245 | §797 | **§798** | **PHASE 21 CLOSED — every fail-closed PORT swept; the sibling that was missed.** §797's rule (*pin the siblings in the same commit*) run as a sweep: 6 ports + 3 selectors tabled. **`NotConfiguredMigrator` has zero test references and that is FINE** — it is *opt-in, NOT the default*; the DEFAULT (`DeterministicMigrator`) is what carries the guarantee and IS pinned. **The port with zero references was not the one that mattered.** The real gap: `evidenceSender` is written TWICE — in the same two modules §786 caught duplicating the recipient resolver — and only the Biller's had a behavioural test. A silently-succeeding fallback left api **808/808**, and this route appends `message.sent` BEFORE sending, so the ledger would record a delivered demand for money that never left. Pinned incl. the **half-bound** `&&`→`||` case. **Text parity was the WRONG instrument** — the two are logically identical but formatted differently; reverted rather than loosen the normaliser |
 | 246 | §798 | **§799** | **PHASE 22 CLOSED — the dunning↔biller duplication set, ENUMERATED.** §786 and §798 each found a rule duplicated between the same two modules; twice is a pattern, so the whole set was listed: **4 shared rules** — recipient resolution (§786, was unpinned) · evidence-sender selection (§798, was unpinned) · deterministic event id (**pinned** — randomness reds 4) · sequencer DO binding (**fail-closed by construction**). **The DO binding looked like a REQ-025 hole and is not**: dropping the tenant prefix left api 810/810, but the DO **re-derives its own name and refuses** (`expected.equals(this.ctx.id)` → FORBIDDEN) and **that refusal is pinned by 2 tests** — §688's sibling-guard case, diagnosed rather than reported. **My grep was wrong a 4th time**: searching `"identity mismatch"` found nothing and I was one step from recording "the structural tenant pin is unpinned" — the tests assert BEHAVIOUR, not the reason string |
 | 247 | §799 | **§800** | **PHASE 23 CLOSED — every cross-worker duplication, and why the sweep could NOT have found §799's.** Swept same-named modules across all five workers: `rate-config.ts` (3 copies) and `tenants.ts` (4 copies) are **fully gated** — the latter hub-and-spoke against api, the former pinning the **effective-selection SQL** where the translator's copy is legitimately a subset. Four candidates are **not pairs** (`idempotency` = enforcement vs derivation; `quote` = mcp composing over api verbs, *"NO second gate here"*, REQ-030 done right; `watchtower` = cron vs route; `authority` = lib vs route). **The insight is what the sweep cannot see:** every covered duplication is SAME-NAMED; §799's two defects were `resolveRecipient`↔`resolveDunningRecipient` and two `evidenceSender`s in differently-named modules. **Duplication that shares a NAME gets gated because it is visible; duplication that shares only a RULE does not.** The marker for the invisible class is the sentence *"cannot import the agents worker's internals"* |
+| 248 | §800 | **§801** | **PHASE 24 CLOSED — the blind spot entered on purpose: EIGHT secret comparisons, FOUR names, one rule.** Searched for §800's stated marker (the *"cannot import"* reasoning) rather than for filenames — the only search that reaches the rule-duplication class. Found `constantTimeEqual`/`timingSafeEqual`/`tokensEqual`/`bytesEqual` protecting **the Stripe webhook signature (internet-facing)**, MCP OAuth tokens, the outbound webhook HMAC, **the EDI inbound-204 HMAC**, TSA/CMS signatures, merkle nodes, the platform secret and the test-send token. **A same-name sweep finds 2 of 8; §800's file sweep found 0** — as it predicted. Replacing two with `return a === b` left api **810/810** and billing **58/58**. **Behaviour CANNOT see this property** — the two return the identical boolean for every input; only *when they stop looking* differs — so a source-level gate asserts the shape: length check, XOR accumulation, and **no `return` inside the loop**. Roster not shape-discovery (§796 calibration) |
 
 **Current measured state — as measured 2026-08-08 at `fae1a17` (§775's board run):** the merge board is
 **26 gates — 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape since §737. `typecheck` 0 · `lint` 0 ·
@@ -46167,3 +46168,61 @@ No source changed; no mutation needed — this phase is a read-and-resolve over 
   byte-identity; the translator's copy is legitimately a subset and the §223 test explains why.
 - A same-named module pair loses its parity test → the three that exist are the only thing making the
   same-name class safe, which is the half this phase confirms rather than assumes.
+## §801 — PHASE GATE: PHASE 24 CLOSED — the blind spot, entered on purpose, and what was in it
+
+§800 closed with a stated blind spot: *"duplication that shares a NAME gets gated because it is visible;
+duplication that shares only a RULE does not."* It also named the marker — the architectural sentence
+*"cannot import the agents worker's internals"*. This phase searched for the REASONING rather than for
+filenames, which is the only search that reaches that class.
+
+Three hits. One was §799's known pair, one was a NON-duplication claim, and one was new:
+`internal-platform.ts` — *"mirrors the billing worker's NotConfigured discipline"* — whose own body then says
+*"mirrors billing.ts constantTimeEqual"*.
+
+Pulling that thread found the largest instance of the class in the repo.
+
+### Seven secret comparisons, four names, one rule
+
+| implementation | protects |
+|---|---|
+| `workers/billing/src/billing.ts::constantTimeEqual` | **the Stripe webhook signature — internet-facing** |
+| `workers/mcp/src/oauth.ts::timingSafeEqual` | MCP OAuth tokens |
+| `workers/mcp/src/webhooks.ts::timingSafeEqual` | the outbound webhook HMAC |
+| `workers/translator/src/inbound.ts::timingSafeEqual` | the EDI inbound-204 partner HMAC |
+| `workers/api/src/routes/internal-platform.ts::constantTimeEqual` | the platform internal secret |
+| `workers/agents/src/index.ts::tokensEqual` | the test-send bearer token |
+| `packages/ledger/src/tsa/cms.ts::bytesEqual` | TSA/CMS signature bytes |
+| `packages/ledger/src/merkle.ts::bytesEqual` | merkle proof nodes |
+
+**A same-name sweep finds two of eight.** §800's file-level sweep found none of them, exactly as it predicted.
+
+Measured: replacing the api's and the billing worker's with `return a === b` left `workers/api` **810/810**
+and `workers/billing` **58/58**. Two of eight confirmed unwatched; the rest were never asked.
+
+### Why this needed a source-level gate, which this repo otherwise avoids
+
+**Behaviour cannot see the property.** `constantTimeEqual(a, b)` and `a === b` return the identical boolean
+for every input that exists. The only difference is *when they stop looking* — and a test that measured
+wall-clock would be a flake generator on shared CI.
+
+So the gate asserts the shape: a length check first, an XOR accumulation, and — the load-bearing one — **no
+`return` inside the comparison loop**. That is precisely the difference between constant-time and
+short-circuit, and precisely what no behavioural test can observe.
+
+A **roster**, not shape-discovery, for the §796 reason: a detector keyed on the accumulate-shape would stop
+finding a member the moment it was broken and report a smaller clean set. The roster fails loudly instead.
+Proved by planting `return a === b` in the Stripe, EDI-HMAC and OAuth verifiers — each named its own site and
+what it protects.
+
+### Exit state
+
+No source changed — four files mutated across the phase, all restored byte-identical. `test:tools` **1064**
+(+9); lint 0; typecheck 0.
+
+**Reopen triggers**
+- A ninth secret comparison is written → add it to the roster. The gate cannot discover it, deliberately, and
+  a comparison outside the roster is invisible again.
+- One of the eight is renamed or inlined → the roster row fails with "it was renamed, moved, or deleted —
+  re-verify… Do not simply drop the row." Dropping the row is the failure mode this wording exists to prevent.
+- A comparison moves to `crypto.subtle.timingSafeEqual` or similar → that is strictly better, and the roster
+  row should be replaced by an assertion that the platform primitive is what is called.
