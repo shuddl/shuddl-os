@@ -418,6 +418,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 223 | §773–§775 | **§776** | **PHASE 12 CLOSED — the EDI surface, the last unaudited product surface (§769).** Three live defects, each mutation-proved, **zero source changed** — `inbound.ts`, `sweep-214.ts`, `price.ts` all restored byte-identical after eight mutations. The defects were in the EVIDENCE, not the behaviour. Board re-measured at `fae1a17`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs **attributed** (three named register-classification tests, the one uncommitted REQ-289 row). §4's undated "3,016 workspace tests" corrected to a dated, SHA-stamped **4,152 tests / 3 failing**, and a board property stated for the first time: `unit-tests` is an `&&` chain that **short-circuits** on REQ-289, so it covers 1,041 of 4,152. **STOPPING POINT: the repo-owned ledger is EMPTY** — six holds remain, all owner-held |
 | 224 | §776 | **§777** | **The credit reconciler's fail-closed guards — 2 of 3 unpinned, one a BOOKING CREDIT-HOLD BYPASS.** Carried §775's class outward: the one parallel mark-on-success site (`mcp/webhooks.ts`) is **clean** — so §775 was a single hole, not a habit. Then `reconcileCreditForParty`: deleting `if (status === null)` left api 11/11 green while making a party with **no `credit.checked` anywhere** book — it writes `credit_status = NULL` **and** resolves the gap, and `transition-gates.ts:501` says *"Only an explicit `hold` blocks"* (**verified in the gate, not inferred**), so BOTH halves of REQ-042 come off plus the anomaly that would surface it. Also silent: `gap === null`, which keeps the DO booking gate from turning a read into a WRITE — invisible to the old tests **by construction** (their two sides always agreed, so an unguarded copy lands the same value; pinned now with a DIVERGENT pair) |
 | 225 | §777 | **§778** | **All TEN `GateError` throws in `transition-gates.ts` enumerated — 9 pinned, 1 already accounted.** §777's 2-of-3 rate is why this was enumerated, not sampled. The one silent throw is `assertConsentBeforeGps`'s "belt", **already measured by §359**, correctly handled as a sibling-guard redundancy whose precondition is itself gated (`ConsentAck` refuses `"XX"` — verified, not trusted). Note refreshed with today's re-measurement (it read *"616 ledger, 757 api"*; now 668/803). **Two harness faults before one true reading**: ten back-to-back pool startups degraded to `no tests` for 8 of 10 runs (reads as "eight unpinned throws"), and an unquoted `$G` — **zsh does not word-split** — emptied every row INCLUDING the baseline. Knowing a failure mode does not prevent it; only the fixed point caught both |
+| 226 | §778 | **§779** | **The RELEASE direction (4/4 pinned) — and where §777's hole actually lived.** A throw is half a gate; the other half is every `if (…) return` that OPENS it. Mutating `overrideSatisfies` so a MISSING override releases reds **41 tests** — one line that would fail-open the whole REQ-030 surface, heavily pinned. So the gate layer is solid both ways (9/10 throws, 4/4 releases), and **§777's two holes were NOT in `gates/`** — they were in `reconcile/credit.ts`, a function the gate CALLS. Tested as a hypothesis: REQ-042's three parts are surface (pinned), reconcile (**2 of 3 unpinned**), block (pinned) — the only piece in neither `gates/` nor a projection held both holes. **Coverage followed the directory name, not the decision.** Ask not "is the gate tested" but "is every function whose return value the gate trusts tested" |
 
 **Current measured state — as measured 2026-08-08 at `fae1a17` (§775's board run):** the merge board is
 **26 gates — 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape since §737. `typecheck` 0 · `lint` 0 ·
@@ -44723,3 +44724,56 @@ file. `packages/ledger` **668/668**; lint 0; typecheck 0.
   that change**. That is when to write a belt-specific test; §359 named it and it is still the right trigger.
 - An eleventh `GateError` throw is added → mutate it. Nine of ten here are pinned, but §777's neighbouring file
   ran 2-of-3 unpinned, so the rate is a property of the file, not of the codebase.
+## §779 — PHASE GATE: the release direction, and where §777's hole actually lived
+
+§778 mutated the gates' ten `throw`s (9 pinned). A throw is only half a gate: the other half is every
+`if (…) return` that **releases** it. §772's rule says mutate in the direction that can fail, and for a
+release guard that direction is *"open when it should stay shut"*.
+
+### Four release guards, all strongly pinned
+
+| mutation — each OPENS a gate | result |
+|---|---|
+| `overrideSatisfies`: no override present now returns **true** (every gate fails OPEN) | **41 failed** |
+| evidence-recipient: the opted-out short-circuit always taken | **5 failed** |
+| interline gate never applies | **4 failed** |
+| invoice-gate: every service class exempt | **5 failed** |
+
+41 reds on the override mutation is the number that matters: `overrideSatisfies` is applied by **six** gates
+before their evidence check, so a fail-open there is a single line that opens the entire REQ-030 surface. It
+is the most load-bearing conditional in the gate layer and it is heavily pinned.
+
+### So where was §777's hole?
+
+Not in `gates/`. The gate layer is well covered in **both** directions — 9/10 throws, 4/4 releases. §777's
+two silent guards were in `reconcile/credit.ts`: a function the booking gate **calls**, living outside the
+directory whose name says "gate".
+
+Tested that as a hypothesis rather than asserting it. REQ-042's credit hold has three parts; each was checked
+where it lives:
+
+| part | module | verdict |
+|---|---|---|
+| **surface** the gap when a decision lands on a missing party | `projection/status-cache.ts` | **pinned** — inverting the rows-affected test reds 4 |
+| **reconcile** the gap once the party exists | `reconcile/credit.ts` | **2 of 3 guards were unpinned** (§777, now fixed) |
+| **block** on gap-or-hold | `gates/transition-gates.ts` | **pinned** — both throws red |
+
+Two of three parts were solid; the middle one, the only piece in neither `gates/` nor a projection, held both
+holes. **Coverage followed the directory name, not the decision.** That is worth more than the individual
+fix: the question to ask of any gate is not "is the gate tested" but "is every function whose return value
+the gate trusts tested" — and those live under other names.
+
+### Exit state
+
+**No source changed anywhere in this phase.** Eight mutated files verified byte-identical
+(`transition-gates`, `invoice-gate`, `status-cache`, `credit`, `webhooks`, `sweep-214`, `inbound`, `price`);
+`git status` over `packages/ workers/ apps/` is empty. `packages/ledger` 668/668 · `workers/api` 803/803 ·
+lint 0 · typecheck 0.
+
+**Reopen triggers**
+- A new module is imported by the sequencer's gate path → it is in the gate's trust boundary regardless of
+  where it lives. Enumerate its guards; that is exactly the class §777 found.
+- `overrideSatisfies` gains a third outcome (a scoped or expiring override) → the 41-red mutation stops being
+  a complete probe of it, because a third branch can fail without flipping the boolean.
+- A gate starts trusting a return value from a NON-ledger package → the trust boundary crosses a package
+  edge, and nothing in this sweep would have looked there.
