@@ -27,25 +27,36 @@ import { repoRoot } from "./repo-root.js";
 // translator is node) — the two-mechanisms trap, where the copy becomes the thing that rots. What was missing
 // was never the execution; it was the roster.
 
-/** The suite, BY IDENTITY. Adding a file here is how a new isolation proof joins the set. */
-const SUITE: readonly string[] = [
-  "workers/api/test/isolation.test.ts",
-  "workers/api/test/lens-adversarial.test.ts",
-  "workers/api/test/platform-tenant-isolation.test.ts",
-  "workers/api/test/plg-isolation-matrix.test.ts",
-  "workers/mcp/test/isolation.test.ts",
-  "workers/translator/test/isolation.test.ts",
-];
+/**
+ * The suite, BY IDENTITY, each with its OWN case floor. Adding a file here is how a new isolation proof joins
+ * the set.
+ *
+ * PER-FILE, not just aggregate (audit §827). The aggregate floor alone is blind to REDISTRIBUTION, and that
+ * is not theoretical — measured: disabling 5 of the translator's 9 cross-tenant proofs and padding the MCP
+ * file with 5 `expect(1).toBe(1)` fillers held the total at 149 and left this gate GREEN. Five real proofs
+ * traded for five that prove nothing, silently, on REQ-025. The earlier probe that zeroed a file entirely was
+ * caught, but only by the non-vacuity test and only because the count hit 0 — a partial trade walks through.
+ *
+ * Each number MAY RISE freely and MAY NOT FALL without an edit here naming the retired proof.
+ */
+const PER_FILE_FLOOR: Readonly<Record<string, number>> = {
+  "workers/api/test/isolation.test.ts": 64,
+  "workers/api/test/lens-adversarial.test.ts": 44,
+  "workers/api/test/platform-tenant-isolation.test.ts": 9,
+  "workers/api/test/plg-isolation-matrix.test.ts": 8,
+  "workers/mcp/test/isolation.test.ts": 15,
+  "workers/translator/test/isolation.test.ts": 9,
+};
+
+const SUITE: readonly string[] = Object.keys(PER_FILE_FLOOR);
 
 /**
- * Aggregate case floor. MEASURED at 149 when this landed (64 + 44 + 9 + 8 + 15 + 9).
- *
- * A floor rather than an exact count, for the reason `bundle-ratchet` and §609's browser ratchet use one: it
- * MAY RISE freely as isolation proofs are added, and MAY NOT FALL without an edit here saying which proof was
- * retired. The file list alone would not catch cases deleted from INSIDE a file, which is the same shrinkage
- * by a quieter route.
+ * Aggregate floor, DERIVED from the per-file floors rather than written twice (§823's lesson: two numbers
+ * that mean the same thing drift, and the one nobody compares is the one that rots — that audit found a
+ * checklist claiming 7 sites beside a roster holding 8). It is kept because it states the suite's total size
+ * in one place for a reader; it can no longer disagree with the parts.
  */
-const MIN_CASES = 149;
+const MIN_CASES = Object.values(PER_FILE_FLOOR).reduce((a, b) => a + b, 0);
 
 function tracked(root: string): Set<string> {
   return new Set(execSync("git ls-files", { cwd: root, encoding: "utf8" }).trim().split("\n"));
@@ -86,6 +97,21 @@ describe("REQ-025 §614: the isolation suite is enumerated and may not shrink", 
         "cross-tenant read is refused. Restore them, or lower MIN_CASES here and say which isolation " +
         `proof was retired and why:\n  ${counts.map((c) => `${c.f}: ${c.n}`).join("\n  ")}`,
     ).toBeGreaterThanOrEqual(MIN_CASES);
+  });
+
+  it("§827: no INDIVIDUAL file's proofs fell — redistribution is not a defence", () => {
+    // The hole the aggregate floor left. A file may grow freely; it may not shrink while a sibling covers for
+    // it. Nothing here can tell a real isolation proof from a filler with the same shape — a count never can —
+    // but it forces the trade to be a visible edit in THIS file rather than an invisible one in a suite file.
+    const fallen = SUITE.map((f) => ({ f, n: caseCount(root, f), floor: PER_FILE_FLOOR[f]! })).filter(
+      (c) => c.n < c.floor,
+    );
+    expect(
+      fallen.map((c) => `${c.f}: ${c.n} cases, floor ${c.floor}`),
+      "a cross-tenant isolation FILE lost proofs. The aggregate total may still hold — another file can have " +
+        "grown, and growth elsewhere is not evidence about THIS file. Restore them, or lower this file's " +
+        "floor and say which proof was retired and why:",
+    ).toEqual([]);
   });
 
   it("the case scan actually reads the files (non-vacuity)", () => {

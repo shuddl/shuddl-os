@@ -466,6 +466,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 271 | §823 | **§824** | **PHASE 46 CLOSED — the tenth list endpoint, found by a GATE instead of by me.** §823's named residual closed: nothing noticed a tenth unpaginated endpoint. **Why a second gate**: `/v1/approvals` has a `WHERE`, so §822's no-WHERE scanner is blind to it **by design** — §822 catches a table scan, §824 catches an endpoint handing an unbounded row set to a caller. Neither subsumes the other. **Discriminator corrected TWICE before writing**: `/\bLIMIT\b/i` over the handler body read `{ limit: 1 }` (a JS option on an unrelated read) as pagination, and read **`/v1/invoices` as PAGINATED when the roster carries both its lenses as unbounded** — which would have dropped a filed hold out of a completeness gate. `LIMIT` now counts only inside a `SELECT` literal. **Measured**: 6 endpoints, 2 bounded, **4 unbounded** — 3 filed + `/v1/driver/manifest`, which is **NOT** a pagination hold (scopes to `session.sub`, bounded per principal; its real defect is the §185 INDEX hold). 3 REDs, and unlike §817/§822 the planted violation went red on the FIRST draft — the discriminator was measured before the gate was written |
 | 272 | §824 | **§825** | **PHASE 47 CLOSED — two blind spots measured, one turned into a tripwire; rule 5 clean. NO DEFECTS FOUND — that is the result.** §824's residual settled by MECHANISM not an empty grep: mcp/agents/translator/billing have **0 hono imports, 0 route verbs**, raw `fetch()` only; MCP is the only other caller-facing worker and its **5 D1 reads are all single-row by PK** (4 with `LIMIT 1`), proxying data via `env.API`. But a measurement is true at one commit — so it is now a **TRIPWIRE**: any hono import or route verb outside `workers/api/` REDs, telling you to widen the scan rather than relax the test (proved by giving MCP a route table). **Rule 5 (REQ-040, PERMANENT) mutation-verified clean**: comparing GROSS under interline → **5 reds**; removing the partial-signal guard (legs w/o tenantParty **falls through** to the gross-comparing direct path) → **3**; dropping the split-totals-10000 validation → **2**. Sits with `allocateCents` among the best-defended code here. **No production code changed.** The nine filed unbounded-read holds remain unfixed — a public response-shape change that *needs a REQ row*, an owner call |
 | 273 | §825 | **§826** | **PHASE 48 CLOSED — the strongest gate in the repo, and the ONE LINE that opens it.** Rule 8 / REQ-025. `tenant-scope.test.ts` is an **allowlist**, not a shape detector, so it caught all five adversarial probes — direct, via a local, via a **header**, via the JSON **body**, and via a **helper function** — because none of those expressions is on the list. Fail-closed by construction; the best-designed gate audited. **Which is why the list was the finding**: nothing asserted `AUTHENTICATED`'s contents, and its own failure message invites additions. **Measured: one allowlist line + a request-derived local left the suite GREEN** — a legitimised cross-tenant read under the law whose row says one *anywhere* is a build failure. A text ban on `c.req` would NOT have caught it (the entry was `badTenant`, naming nothing), so the guard is the **exact-set pin**; growth is now a two-place change. **Stated limit: it makes an addition DELIBERATE, not CORRECT.** 3 REDs incl. *removing* an entry. **My own false alarm**: the first round reported all 4 forms EVADING — all 4 were anchor failures (`count==2`), no mutation ever applied; harness bugs fail TOWARD alarm |
+| 274 | §826 | **§827** | **PHASE 49 CLOSED — five isolation proofs traded for five fillers, and the gate HELD.** §826's named residual, probed and real. `isolation-suite` floors the **combined** count at 149 and sums the per-file numbers away. Zeroing a file was caught — but by the **non-vacuity** test, not the floor, and only because the count hit 0. **The partial trade was GREEN**: translator 9→4 with 5 `expect(1).toBe(1)` fillers added to MCP, total still 149. That is the shape that would actually happen — nobody deletes a whole isolation file. Fixed with **per-file floors** (numbers the code already computed), and `MIN_CASES` is now **DERIVED** from them so the total cannot disagree with its parts — §823's lesson applied before it could bite. **Limit stated**: no count can tell a real proof from a same-shaped filler; what changed is the trade must be a VISIBLE edit here. 3 REDs. **No production code changed** |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -47891,3 +47892,67 @@ changed** — the defect was in what the gate permitted, not in what the code di
 - The suite's `MIN_CASES` floor (149, `isolation-suite.test.ts`) is a *count*, not a name pin — a suite could
   swap 20 isolation cases for 20 unrelated ones and hold the number. Out of scope here and stated as the
   residual it is.
+## §827 — PHASE GATE: PHASE 49 CLOSED — five isolation proofs traded for five fillers, and the gate held
+
+§826 closed by naming its own residual: *"`MIN_CASES` (149) is a count, not a name pin — a suite could swap
+20 isolation cases for 20 unrelated ones and hold the number."* That is §806's lesson, sitting on REQ-025.
+This phase probed it, and it is real.
+
+### What the aggregate floor could not see
+
+`isolation-suite.test.ts` enumerates six files and floors their **combined** case count at 149. The per-file
+numbers are computed on the way — and then summed away.
+
+Two probes, and the difference between them is the finding:
+
+- **Zero a file entirely** (translator 9 → 0, pad MCP by 9): **caught** — but by the *non-vacuity* test, not
+  the floor, and only because the count reached 0. A lucky catch by the wrong assertion.
+- **Partial trade** (translator 9 → 4, pad MCP by 5): **GREEN.** Five real cross-tenant proofs disabled, five
+  `expect(1).toBe(1)` fillers added, total still 149, gate satisfied.
+
+That second one is the shape that would actually happen: nobody deletes a whole isolation file, and a
+refactor that quietly drops a few cases while another file grows for unrelated reasons is ordinary. On
+REQ-025, where the register's remedy column calls a cross-tenant read a build failure.
+
+### The fix, and its honest limit
+
+Per-file floors — the numbers the code was already computing. Each may **rise** freely and may not **fall**
+without an edit naming the retired proof. Redistribution is no longer a defence: growth in one file is not
+evidence about another.
+
+`MIN_CASES` is now **derived** from the per-file floors rather than written a second time. That is §823's
+lesson applied before it could bite: two numbers meaning the same thing drift, and the one nobody compares is
+the one that rots — §823 found a checklist claiming 7 sites beside a roster holding 8. Here the total simply
+cannot disagree with its parts.
+
+**The limit, stated because a floor invites over-reading:** nothing here can tell a real isolation proof from
+a filler with the same shape. A count never can. What changed is that the trade must now be a **visible edit
+in this file** rather than an invisible one inside a suite file — the same property §826 bought for the
+tenant allowlist, and the same one it cannot exceed.
+
+Proved three ways: the exact partial trade that was green → **RED**, naming the file and its floor · a single
+file losing one case with no compensating growth → **RED** (per-file *and* aggregate) · a comment-only edit to
+the floor table → **no** false positive.
+
+### Exit state
+
+`test:tools` **1093** (+1), 3 failed — the unchanged REQ-289 baseline. typecheck 0, lint 0, `verify:docs` 0.
+Four test files restored byte-identical after five mutations. **No production code changed** — as in §826, the
+defect was in what the gate permitted.
+
+### Where REQ-025 now stands
+
+Three phases have gone at rule 8 from different sides and it holds up well: the call-site gate is an
+allowlist and caught every laundering I could construct (§826); the allowlist itself is now pinned to its
+reviewed membership (§826); and the suite behind it can no longer shrink in aggregate *or* per file (§827).
+What none of them can do is judge whether a case named `isolation` proves anything — that is review, and
+saying so is more useful than implying the gates cover it.
+
+**Reopen triggers**
+- A seventh isolation file joins the suite → it needs a floor, not just a roster row. `PER_FILE_FLOOR` is the
+  single list now; `SUITE` derives from its keys, so there is no second place to forget.
+- The case-counting regex (`^\s+(it|test)(.each)?\(`) stops matching a new idiom → every count reads 0, the
+  non-vacuity test fires first and names the SCAN rather than sending someone hunting for deleted tests. That
+  ordering is deliberate and worth preserving.
+- A floor is lowered → that is the intended escape hatch and it must carry the retired proof's name in the
+  same edit. Nothing enforces the *note*; that is review's job, as above.
