@@ -424,6 +424,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 229 | §781 | **§782** | **The unparsed boundary was SYSTEMIC — 16 casts across 11 files, all closed, plus a gate.** §781 named the smell; grepping it found that only TWO seams in the codebase parsed. Both clients end in **`return parsed as T`**, so a type argument is a cast that makes TypeScript *guarantee* an unchecked shape — **worse than no annotation, because it silences the suspicion that would prompt a check**. Nine were crash-shaped. Two rules learned by getting them wrong first: **parse what the view READS** (my MoneyQueue schema required a `party_id` the view never renders, and a real test went red — an over-strict schema rejects valid payloads, a worse failure than the crash), and **the parse must sit where the existing mock can still intercept it** (a helper inside `lib/api.ts` gets replaced by `vi.mock` itself; parsing in-place makes the fixtures flow THROUGH the schema and verified them as a side effect). Gate assembled at runtime (§749), proved by planting, and its non-vacuity floor caught my own broken glob (48 vs 50) |
 | 230 | §782 | **§783** | **The other trust boundaries — and a guard redundant for SAFETY but not for TRUTH.** Swept 22 `JSON.parse` sites in workers/packages: most already right (the **device-key entry** that feeds signature verification is fail-closed with its reasoning written out). The R2 tender marker IS validated but **nothing pinned it** — and my first test was **VACUOUS**, passing with the guard deleted, because a SIBLING guard downstream also blocks the wire. What the guard uniquely delivers is the **classification**: `malformed` (terminal) vs `failed` (*"retry next tick"*) — so without it a permanently corrupt marker is retried **forever** and reported as transient, the exact confusion §29 was rewritten to avoid. `.strict()` needed its OWN fixture (the first one masked it) and its correctness is the OPPOSITE of §781/§782's: the deciding property is the **deploy boundary** — cross-service ⇒ strip; same-worker, atomic ⇒ an unexpected key can only be a writer/reader disagreement |
 | 231 | §781–§783 | **§784** | **PHASE 13 CLOSED — every trust boundary enumerated.** Phase 12 closed the last unaudited product SURFACE; this closes the last unaudited class of INPUT. **16 unchecked casts** (live defect, fixed + gated) · queue bodies **clean and exemplary** · R2 marker validated but unpinned · device-key path clean. **Strictness is decided by the DEPLOY BOUNDARY, not taste**: cross-service ⇒ strip; same-worker atomic ⇒ strict. The queue consumer's ack-vs-retry discrimination is the standard the marker was measured against. Board re-measured at `e3a359e`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs attributed to the three named register tests on the uncommitted REQ-289 row. **4,162 tests** (3,118 workspace, 0 failures). **STOPPING POINT: repo-owned ledger EMPTY; five owner-held holds** — §724's came off this phase |
+| 232 | §784 | **§785** | **The OUTPUT boundary — who the evidence email goes to.** Phase 13 audited inputs; the dual is the seven places something LEAVES the building, where the failure is a wrong recipient rather than a crash. `resolveRecipient` has two rules: the **cross-party binding** is covered (dropping `WHERE id = ?` reds 4 tests in `workers/api` — the id-determinism seam again, correct by design), but **preferring the `billing` contact was SILENT in BOTH suites** (agents 122/122 AND api 803/803). A party with a dispatch contact and a billing contact would have had its invoice + signed POD delivered to **dispatch** — not a cross-party leak but **the wrong human inside the right company**, which is why it survived: it looks like a working system to everyone except the person who never got their invoice. Five tests, four mutation-proved; the fixture's ORDER is the whole test (non-billing first) |
 
 **Current measured state — as measured 2026-08-08 at `fae1a17` (§775's board run):** the merge board is
 **26 gates — 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape since §737. `typecheck` 0 · `lint` 0 ·
@@ -45147,3 +45148,60 @@ gap is **closed** (§781) — and its recorded cause was wrong, which is why clo
   crash and a bypass are the two unacceptable outcomes, and it is currently correct for a written reason.
 - Someone adds a type argument to `get`/`post` "for readability" → that is the exact defect, and
   `tools/checks/parsed-api-boundary.test.ts` is what refuses it.
+## §785 — PHASE GATE: the OUTPUT boundary — who the evidence email actually goes to
+
+Phase 13 audited **inputs**. The dual is **outputs**: seven places where something leaves the building —
+three email senders, two EDI transports, one webhook, one dunning send. For an output the failure mode is
+not a crash but a **wrong recipient or a wrong document**, which is quieter.
+
+Started at the highest-stakes field in the whole system: the address that receives a customer's
+proof-of-delivery **and** their invoice.
+
+### `resolveRecipient` has two rules, defended very differently
+
+| rule | mutation | verdict |
+|---|---|---|
+| read ONLY the named party's contacts | drop `WHERE id = ?` (**the cross-party leak shape**) | **4 reds in `workers/api`** — covered |
+| prefer the `billing` contact | delete the preference | **SILENT in BOTH suites** — agents 122/122 *and* api 803/803 |
+
+The first result is the `id-determinism` situation on this same file, and it is correct by design: proving
+"one email, to this address" needs the real Biller consumer, so the outcome is asserted across the worker
+seam. That half is genuinely covered.
+
+**The second was not covered anywhere.** A party carrying a dispatch contact *and* a billing contact would
+have had its invoice and signed POD delivered to **dispatch** — silently, with every test green. That is not
+a cross-party leak; it is **the wrong human inside the right company**, which is exactly why it survived: it
+looks like a working system to every observer except the person who did not get their invoice.
+
+### Pinned where the testable half lives
+
+`workers/agents/test/recipient-resolution.test.ts` — five cases, four of them mutation-proved, each RED on
+its own test and nothing else:
+
+| mutation | test that reds |
+|---|---|
+| drop the `billing` preference | prefers the BILLING contact even when another contact comes first |
+| drop the party binding | reads ONLY the named party's contacts |
+| drop the fallback loop | falls back to any plausible email when there is no billing contact |
+| remove the array guard | a malformed contacts column is undefined, never a throw |
+
+The ordering in the fixture is the whole test (§772): the non-billing contact is **first**, so a resolver
+that merely took the first plausible email would have passed a fixture where billing happened to lead.
+
+The cross-party case is kept here too, as a cheap belt — explicitly labelled as a belt, since `workers/api`
+holds the real proof. An edit to `biller.ts` should be able to fail in `biller.ts`'s own package.
+
+### Exit state
+
+No source changed — `biller.ts` restored byte-identical after six mutations. `workers/agents` **127/127**
+(+5); lint 0; typecheck 0.
+
+**Reopen triggers**
+- A contact `kind` is added (`ap`, `remit_to`) → the preference becomes a ladder, and the first test is
+  where the new precedence gets stated. A ladder with one untested rung is this defect again.
+- The fallback is tightened to billing-only → test 2 reds. That is a product decision (hold the email rather
+  than send it to ops); the red is the prompt to make it deliberately.
+- Another emitter grows a recipient resolver → the remaining six outputs were enumerated but only this one
+  audited. The concierge reply's recipient is pinned in `workers/api` (*"the envelope sender — NOT the
+  model's SPOOF_RECIPIENT"*); the dunning send's is pinned at `dunning.test.ts:132`. The three EDI/webhook
+  transports address by partner SCAC or subscription URL, which §783 covered.
