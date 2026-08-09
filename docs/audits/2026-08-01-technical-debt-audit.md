@@ -450,6 +450,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 255 | §807 | **§808** | **PHASE 31 CLOSED — the RELEASE-only gates; the roster line closed end to end.** §807 stated a residual and §790's rule says close it — third application (§789, §802, here), and again the measurement disagreed with the guess: **4 of 5 were SILENT**, including **`restore-verify`, the only proof that a backup RESTORES**, plus `deploy-preflight`, `staging-smoke`, `backup-manifest`. The exposure differs **in kind**: a merge gate vanishing weakens what lands on `main`; a release gate vanishing weakens what reaches PRODUCTION, and restore-verify's absence is discovered *on the day it is needed*. All four now caught. **Every gate on both profiles is pinned by name, both directions.** The four-phase chain (§805 my red-gate commit → §806 the catcher was count-pinned → §807 four CLAUDE.md-law gates → §808 the DR gate) **started because I made a mistake and wrote it down** |
 | 256 | §808 | **§809** | **PHASE 32 CLOSED — a gate's KIND is part of its identity; `external` is an OFF SWITCH.** §808 stated this edge; 4th application of §790's rule and 4th time the residual was bigger than its sentence. `kind: "external"` short-circuits execution — `{status: "BLOCKED", executed: false, assertions: 0}` — and **BLOCKED does not fail the aggregate**, so flipping a gate converts an enforced check into a permanently-blocked non-check **that still appears on the board**. Flipping `append-chokepoint` was caught **only INCIDENTALLY** (orphan-script test), which works when a script has ONE invoker and fails precisely for **`typecheck`, `lint`, `unit-tests`, `runtime`** — the four most fundamental gates, each switchable off by a three-word edit. **All four were SILENT.** Fixed by asserting the external set is exactly `{backup-manifest}` and merge has none. Five-phase line: a red-gate commit → an off switch on `typecheck` |
 | 257 | §809 | **§810** | **SESSION CONSOLIDATION — 32 phases, measured.** §809's residual is **the first of five that measurement shows as SMALL as its sentence** (the kind union is exactly `cmd|external`, TypeScript-enforced) — recorded because "four for four" was becoming a rule of thumb and the 5th point keeps it a measurement. Board at `819e83a`: **19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape across all 32 phases. **4,205 tests** (3,136 workspace, 0 failures), **+53 since §784, every one pinning something a mutation proved unwatched**. **Production source touched: 17 files, +277/−109 — almost all of it §782's unparsed-boundary class; 31 of 32 phases changed only tests, gates and the record.** That ratio is the summary: behaviour was largely right, evidence that it STAYS right was missing. Stopping point: **no repo-owned defect from §772–§809 is unclosed; none of the 20 standing rows is both open AND actionable without an owner decision** |
+| 258 | §810 | **§811** | **PHASE 33 CLOSED — the ACCEPTANCE gate audited: the biggest claim, and the BEST-DEFENDED gate in the repo.** The prior (§746: 15/20 gates synthesize their verdict; §727: a filter matching nothing exits 0) said it would be thinner than its name. **It is not.** Four defences, each measured: the 5-demo roster REDs when one is dropped · manifest↔module parity asserted **both ways** · `missingSpineFiles()` runs **before** vitest, and its comment names the §727 hazard **at design time** · breaking the Biller's send REDs *"the full causal chain of acceptance demo #1… through every real seam"*. Demo 1's `filmed` field is the strongest artifact I have read here: it cites `biller.ts:588@photos`, says the film will show **placeholder slots, not photographs**, and ends *"Do not stage photos into the capture to make the film match the sentence."* **32 phases of finding gaps builds a prior that everything has one — that prior is how a clean artifact gets "improved" into a worse one** |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -46818,3 +46819,62 @@ a decision that is not mine to make.
   dormant and §236's duplicate-vs-strand decision must be made first.
 - Any future phase states a residual → measure it before filing. Five attempts, four were bigger than their
   sentence.
+## §811 — PHASE GATE: PHASE 33 CLOSED — the acceptance gate, the biggest claim in the build, audited
+
+Thirty-two phases audited everything the build *does*. One gate claims something larger than any of them —
+`acceptance`, which stands for CLAUDE.md's *"five acceptance demos that define done enough to show."* It has
+been PASS on every board this session and had never been opened.
+
+Given §746 (fifteen of twenty gates synthesize their verdict from an exit code) and §727 (a filtered test run
+that matches nothing exits 0), the prior was that it would be thinner than its name. **It is not. It is the
+best-defended gate in the repo**, and the specific ways are worth recording because they are the patterns this
+session has been retrofitting elsewhere.
+
+### Four defences, each measured
+
+| property | how it is held | verified |
+|---|---|---|
+| all five demos declared, each with ≥1 spine + a stated filmed delta | `demos.test.ts`, 7 assertions | dropping demo 4 **REDs** |
+| the roster and the manifest agree **both ways** | *"the manifest names NO spine file this module does not declare"* | RED on the same mutation |
+| a renamed spine file cannot pass silently | `missingSpineFiles()` runs **before** vitest | pointing demo 4 at a non-existent file **FAILs** with a named diagnosis |
+| the spine actually proves its chain | — | breaking the Biller's evidence send **REDs** *"the full causal chain of acceptance demo #1, end to end, through every real seam"* |
+
+The third is the one that matters most, and its source comment already names the hazard §727 had to discover
+the hard way for the browser gates: *"a filter matching nothing does NOT [exit non-zero], whenever a sibling
+filter in the same package still matches — which is why `missingSpineFiles()` runs first."* That is the
+vacuous-pass question asked and answered **at design time**.
+
+### The two-tier DoD is stated, not implied
+
+The runner splits the demos honestly: *"Green here === the code-provable half… The FILMED half (the <5s
+wall-clock, the real driver, the real Claude booking, the visual map-dim) is the manifest's job."*
+
+Demo 1's `filmed` field is the strongest single artifact I have read in this repo. It records that CLAUDE.md
+phrases the demo as *"invoice + PHOTOS"*, that the email ships `photos: {}` today, cites the exact source
+(`biller.ts:588@photos`) and the checklist row, states what the film will actually show — **placeholder
+slots, not photographs** — and ends:
+
+> *"Film it as 'invoice + evidence email' — or land the resolver first. **Do not stage photos into the capture
+> to make the film match the sentence.**"*
+
+That is the "+ photos" hold I have listed as owner-held all session, written where the person about to film
+it will read it, with the temptation named and refused in advance.
+
+### What this settles
+
+The gate making the largest claim is the one least in need of the treatment this session has been applying.
+Worth stating plainly, because thirty-two phases of finding gaps builds a prior that everything has one —
+and **that prior is exactly how a clean artifact gets "improved" into a worse one.**
+
+### Exit state
+
+No source, test or gate changed. Three files mutated (`demos.ts`, `biller.ts`, plus the earlier probe), all
+restored byte-identical. `pnpm test:acceptance` green — 38 tests across 7 spine files in 4 package configs.
+
+**Reopen triggers**
+- A sixth demo is added to doc-00 → `demos.test.ts`'s five-demo assertion fails by design; that is the prompt
+  to give it a spine and a filmed delta, not to relax the count.
+- The photos resolver lands → demo 1's `filmed` constraint stops being true and must be rewritten in the same
+  commit. It is a hold with an expiry condition, and the condition is a code change.
+- A spine file is split or renamed → `missingSpineFiles()` catches it with the demo named. Do not "fix" it by
+  dropping the row; that is the failure the message is worded against.
