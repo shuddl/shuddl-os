@@ -473,6 +473,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 278 | §830 | **§831** | **PHASE 53 CLOSED — the front door, and the THIRD forward-reference.** §830's unswept list closed. **Two-thirds correctly frozen**: `genesis/*`'s "48 tests" is a **fixture identity** (CLAUDE.md names the same artifact) and `genesis/15` is a dated audit; `docs/wp/*`'s nine counts are **WP-exit evidence** in docs headed *"complete, merged"* — a record that updated itself would stop being one. **One live defect**: `README.md` described the register as *"167 rows"* in the repo's front door, **121 rows stale** — while its OTHER "167 rows" (line 27) is correctly scoped by its own date. **The defect is never the number; it is the absence of a date around it.** This file had already been corrected once (§172, stale by ten WPs) — *a document that rots once is the one to check twice*. Also: README states the `21 tables` figure §830 had pinned in **CLAUDE.md only**, so the gate now covers both — and a planted 22nd table proved the `expect` loop was **fail-fast**, naming one doc and stopping; rewritten to collect-then-assert, now naming both |
 | 279 | §831 | **§832** | **PHASE 54 CLOSED — a gate justified by a claim measurement CONTRADICTS.** Back to production ground: idempotency on mutations. Architecture is right — one `app.use("/v1/*", …)` mount wraps all 23 mutating endpoints by construction. **But its own comment justified it as *"no route-level test would notice"* — MEASURED FALSE**: deleting the idempotency mount fails **8** api tests, deleting auth fails **372**. Comment corrected, gate KEPT — its value is **one legible sentence naming the missing line** instead of 372 opaque auth failures; a structural pin is a better ERROR MESSAGE, not a unique detector (matters both ways: over-trusted if believed unique, deleted if its premise is visibly false). **THE REAL GAP — ORDER**: Hono composes in REGISTRATION order, so a route mounted before the middleware is never wrapped; the assertions only checked the lines EXIST. Moving one mount up left **test:tools at baseline** while the api suite failed **150** tests — loud, but not one of them says *a route was mounted before its middleware*. Now pinned. **I nearly reported "ORDER IS UNPINNED"** — one api-suite run turned an alarming claim into an accurate one |
 | 280 | §832 | **§833** | **PHASE 55 CLOSED — idempotency CLEAN; the discovery half finds the doc three phases missed.** §832's residual (MCP's own idempotency) traced end to end: key derived **centrally at dispatch** off the semantic operation, every mutating tool routes through `mutatingCallApi` (verified per tool; `quote`'s one raw call is a GET), and the API middleware **fails closed** — no header → 400. Layer 3 is server-side and therefore the authority; MCP's discipline is defence in depth on a gate that doesn't depend on it. 3 guarantees mutation-pinned: fail-open → **5** reds · un-tenant-scoped → **1** · 4xx cached → **3**. **Two measurement errors of mine, both false REASSURANCES**: a grep alternation silently failed and reported two mutating tools bypassing the chokepoint (false — recounted in Python), and probe C was a **no-op mutation** (`void 0;`) that nearly had me record a pinned rule as unpinned. *A green proves nothing until you know the mutation landed.* §831's residual closed, and the discovery half immediately caught **`BUILD-PROMPT.md`** stating the table figure unrostered — three phases had worked that file. Scope bounded to root contract docs: widening to `docs/` measures **8 FPs, 0 real** |
+| 281 | §833 | **§834** | **STOPPING POINT — the merge gate RE-MEASURED at `a83d17a`.** 26 gates (§807's pinned roster): **19 PASS · 2 FAIL · 5 BLOCKED**. Same shape as the pre-session board — 19 phases of hardening, **zero regressions**, every non-PASS owner-held (REQ-289 · the denylist secret · nine unvendored fixtures). **THE FINDING**: `pnpm test` is `test:tools **&&** pnpm -r test`, and `test:tools` exits 1 on the REQ-289 trio — so the second half **never executes**. A full run emits exactly **one** `Tests` summary. The board's *"unit-tests: FAIL"* reads as one known issue and actually means **the entire product suite is UNRUN in the merge gate**: 17 workspaces, **3,149 tests**. Run directly they are **green, exit 0** — so the defect is the REPORTING, not the code; a true statement a reader completes incorrectly. **Deliberately NOT changed**: `&&` → run-both is a change to what the gate DOES, with a real design question (fail fast vs complete picture) behind it — owner's call, and **it should be decided BEFORE REQ-289 lands**, because committing the row hides the defect again |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -48369,3 +48370,74 @@ production code changed.**
   the error would be a confusing 400 rather than the chokepoint's own message.
 - The API middleware's fail-closed branch is ever relaxed → that is the load-bearing layer for MCP too, not
   just for `/v1`. Its 5 REDs are the widest of the three and should stay that way.
+## §834 — STOPPING POINT: the merge gate RE-MEASURED at `a83d17a`, and the FAIL that hides an unrun suite
+
+Nineteen phases (§815–§833) have landed since the board was last measured end to end. Per-phase exits recorded
+`test:tools` and a couple of neighbours; none of them re-ran the gate. This does.
+
+### The board, measured not recited
+
+`pnpm verify:merge` at **`a83d17a`** — 26 gates, matching the roster §807 pinned by name:
+
+**19 PASS · 2 FAIL · 5 BLOCKED**
+
+| | gates |
+|---|---|
+| **PASS (19)** | runtime · typecheck · lint · invariants · rater-purity · append-chokepoint · authority-coverage · traceability · seed · citations · table-shape · section-refs · bundle-ratchet · acceptance · design-audit · perf · visual · a11y · e2e |
+| **FAIL (2)** | unit-tests · coverage — **both REQ-289**, diagnosed in §828 |
+| **BLOCKED (5)** | identity-leak (no `IDENTITY_DENYLIST`) · fixtures · rater-parity · invoice-parity · concierge-parse — **nine unvendored private fixtures**, owner-held |
+
+Same shape as the pre-session board. Nineteen phases of hardening, **zero regressions**, and every non-PASS
+item unchanged and outside the repo's control. That is the headline, and it is a boring one on purpose.
+
+### The finding: "unit-tests: FAIL" means the product suite never ran
+
+`pnpm test` is `pnpm run test:tools && pnpm -r --if-present run test`. An **`&&`**.
+
+`test:tools` exits 1 on the REQ-289 trio, so the second half **never executes**. Measured: a full
+`pnpm test` emits exactly **one** `Tests` summary line — the tools one — and stops.
+
+So the board's `unit-tests: FAIL — command exited 1` reads like *one known issue in the test suite*, and
+actually means **the entire product test suite is unrun in the merge gate**. Seventeen workspace suites,
+**3,149 tests**, have not executed under `verify:merge` for as long as REQ-289 has sat uncommitted.
+
+Run directly, they are **green — 17 suites, 3,149 tests, exit 0** (the stderr lines in that output are tests
+deliberately driving failure paths: `D1_DOWN`, an unsigned Stripe webhook rejected fail-closed). So nothing is
+broken behind the short-circuit. **The defect is the reporting, not the code** — and it is precisely the kind
+this audit keeps finding: a true statement (`FAIL`) that a reader will complete incorrectly.
+
+**Not changed here, deliberately.** Turning the `&&` into a run-both-then-aggregate is a change to what the
+merge gate *does*, and the gate roster is itself pinned by `ci-contract` and `gate-wiring` (§806–§809). It is
+a one-line change with a real design question behind it — fail fast on cheap gates, or always run everything
+for a complete picture — and that is the owner's call, not an audit's. Filed with both halves stated so the
+decision is cheap.
+
+### What the 19 phases actually bought
+
+Six live defects fixed — a price on air reachable from three public surfaces (§820), two float divisions
+producing cents (§816/§817), a `dims: null` 400 that no sibling surface returned (§821), a negative agent cost
+skewing a budget average (§817), a driver-gate mirror compared to a copy of the server (§819).
+
+Nine gates added or corrected, of which the load-bearing ones close **silent** paths: the tenant allowlist can
+no longer grow without review (§826), the isolation suite can no longer trade proofs for fillers (§827), a
+tenth unpaginated endpoint can no longer arrive unnoticed (§824), and three documents can no longer state a
+table count the migrations contradict (§830/§831/§833).
+
+And the record itself was corrected four times where it had been wrong: a terminal id read off an uncommitted
+working tree (§828), a Definition of Done 121 rows stale (§829), a gate justified by a premise measurement
+contradicts (§832), and thirteen phases of citing a baseline nobody had opened (§828).
+
+### Exit state
+
+Board **19 PASS · 2 FAIL · 5 BLOCKED** at `a83d17a`. Tools **1,096** (3 failed — the REQ-289 trio).
+Workspaces **3,149 passed, exit 0**. typecheck 0 · lint 0 · `verify:docs` 0 · `check:invariants` 21/22 tables.
+Working tree carries only the owner's uncommitted REQ-289 row.
+
+**Reopen triggers**
+- **REQ-289 is committed** → both FAILs clear *and* the `unit-tests` short-circuit stops hiding anything,
+  because `test:tools` will pass. The reporting defect is invisible again at that moment — which is the
+  argument for deciding the `&&` question **before** the row lands, not after.
+- A private fixture is vendored → one BLOCKED becomes PASS or FAIL, and a FAIL there is the first real signal
+  about the audited engine this repo has ever had. Expect it to be informative.
+- `IDENTITY_DENYLIST` is set → identity-leak becomes a live gate; REQ-167 is currently enforced by convention
+  and by review, not by a running check.
