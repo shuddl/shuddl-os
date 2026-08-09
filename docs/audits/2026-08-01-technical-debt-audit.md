@@ -380,6 +380,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 185 | §737 | **§738** | **New shape (*an error that vanishes*) — CLEAN NEGATIVE, and three greps lied getting there.** 119 catch bodies in shipped code, **12 empty, all 12 stating their FALLBACK VALUE** (*never fabricate a cost · never fabricate a location · malformed policy ⇒ ZERO fail-closed floor*). The `session.ts` pair looked like the adjacency shape and is NOT: failing to CLEAR a token is a security fact, failing to PERSIST one is not. The sweep surfaced **four hand-maintained copies of `POOL_BINDINGS`** governing tenant routing (REQ-025) — the share-lint-matchers shape — and **planting proved the parity law fully closed**: `api` is the reference, the other three assert they mirror it, and changing the REFERENCE reds them. **Three greps, three wrong answers, one phase** (a `0` from a pattern matching 119; an import-proxy blind to a text-read assertion; a phrase-grep defeated by a `describe` name) — every one corrected by a mutation |
 | 186 | §738 | **§739** | **Two fail-closed defaults in the SERVER-SIDE GATE surface (REQ-030) were correct and UNPINNED.** 16 defaults enumerated; the two `?? []` both read fail-closed and both survived a fail-OPEN mutation in silence — exemption list ⇒ `[serviceClass]` left **661/661 green**; absent facility day ⇒ always-open left **23/23 green**. The reason is the finding: **a test named *"waives outside_hours"* exists and never enters that branch** (its fixture has hours PRESENT but narrow; every other case fails earlier at `window_mismatch`). **A test named for a behaviour is not evidence its branch runs.** Pinned with 6 tests, each pair carrying a non-vacuity companion; re-mutated, each now reds exactly its two positives. Ledger 661 → 667 |
 | 187 | §739 | **§740** | **The enforcement layer (REQ-030 says gates are SERVER-SIDE, so §739 was incomplete).** 14 sequencer defaults; 2 can widen. Fence radius 150 m → **100 km** REDS a REQ-046 test — already defended. The entitlement fallback, whose own comment says *"(empty plan, {} policy) grants NOTHING"*, inverted to GRANT hazmat → **28/28 GREEN**. Underneath: that sentinel was spelled as a **literal in three production sites** (sequencer cache-miss, `#entitlementRow`, provision) — my recorded failure is *a `{}` default opened three of four knobs it claimed to floor*. Extracted `NO_ENTITLEMENTS`, rewired all three, and pinned **the constant, not a copy** against every reader + a non-vacuity companion. **Sweep total: 5 access-relevant defaults, 3 were correct-and-UNDEFENDED — all found by mutation, none by reading** |
+| 188 | §740 | **§741** | **Fallback-value line CLOSED — booleans, the rater's law, the perimeter.** Permissive booleans (`!== false` / `?? true`): **0 across 94 files**, and the zero is credible only because the same scan found **11** restrictive `=== true` (§738's rule). `dimsRequired === true` reads permissive but is safe: the rater returns UNKNOWN on missing physics with **no config flag in the path**. Perimeter: 6 defaults, all benign — and `auth.ts`'s `|| c.req.query("tenant")` is a **REJECTION, not a fallback** (4th pattern-based false candidate this session, and the most alarming-looking). That guard IS pinned: deleting it reds **4 tests across 2 suites**. **My own error is the lesson** — the first run said 12 passed from the WRONG SUITE (`auth.test.ts`; the coverage lives in `isolation.test.ts`). Line total: **11 defaults examined, 3 undefended, all now pinned; every finding from a mutation, none from reading** |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -42228,3 +42229,92 @@ read as obviously fail-closed, and three of them were one edit from not being.
 - A new `?? { … }` fallback appears in the sequencer → mutate it. Base rate in this sweep was 3 of 5.
 - `NO_ENTITLEMENTS` gains a field → the frozen literal and the readers must move together, and the non-vacuity
   companion is what proves the readers still distinguish granted from not.
+
+## §741 — PHASE GATE: closing the fallback-value line — booleans, the rater's law, and the perimeter
+
+§739 swept the gate definition surface and §740 the enforcement layer, finding **3 of 5** access-relevant
+defaults correct-but-undefended. This closes the line by asking the same question of the two shapes and one
+surface it had not reached.
+
+### Permissive booleans — none exist
+
+A default can hide in a comparison as easily as in a `??`: `x !== false` means *absent ⇒ enabled*, while
+`x === true` means *absent ⇒ disabled*. Across 94 non-test files in `packages/ledger`, `packages/contracts`
+and `workers/api`:
+
+```
+RESTRICTIVE `=== true`    11 occurrences
+PERMISSIVE  `!== false` / `?? true` / `|| true`    0
+```
+
+The zero is only worth stating because the instrument was proven able to match — 11 restrictive hits from the
+same scan over the same files. §738's rule: a zero from a pattern that should match hundreds is a broken
+instrument, not a finding.
+
+### The one hit worth following
+
+`transition-gates.ts:157` reads `ctx?.dimsRequired === true`, so an absent flag leaves the dims gate OFF. For a
+*requirement* flag that reads permissive — unless the protection it appears to relax is enforced somewhere
+unconditional. It is: `packages/rater/src/engine.ts` returns `{ status: "UNKNOWN", reason: "missing_physics" }`
+with **no config flag anywhere in the path**, and its own comment names itself *"the gate that blocks
+Quote→Booked without weight/dims."* CLAUDE.md's *no price on air* therefore does not depend on
+`dimsRequired`; the flag is an additional per-tenant capture requirement, correctly opt-in. (The law itself was
+mutation-proved in a prior session — §310/§323/§340/§341 — so it is not re-proved here.)
+
+### The perimeter — six defaults, all benign, and one instructive false positive
+
+`workers/api/src/middleware/*` and `src/pub/*`: 6 non-null defaults. Five are an empty-string origin, an error
+detail object, a generated request id — restrictive or inert.
+
+The sixth flagged `auth.ts:12  || c.req.query("tenant")` and looked like the worst possible finding: an auth
+middleware falling back to a **client-supplied tenant**. It is the opposite:
+
+```ts
+if (c.req.header("X-Tenant-Id") || c.req.query("tenant")) {
+  throw new ApiError("TENANT_MISMATCH", 403, "TENANT IS RESOLVED SERVER-SIDE, NEVER CLIENT-SUPPLIED");
+}
+```
+
+The `||` joins two **rejection** conditions. My pattern matched the operator and inferred a fallback from
+syntax alone — the fourth pattern-based false candidate this session, and the most alarming-looking. It cost
+one file read.
+
+**And the guard is pinned.** Deleting the rejection entirely reds four tests across two suites, covering both
+vectors: *"client-supplied tenant header is rejected"*, *"client-supplied tenant query param is rejected"*,
+and the REQ-025-growth pair for the ledger routes.
+
+### My own error, worth more than the negative
+
+The first mutation run reported **12 passed** and looked like a silent guard. It was the wrong suite:
+`TENANT_MISMATCH` lives in `isolation.test.ts`, not `auth.test.ts`. A green from a suite that does not own the
+file is not evidence of anything — `run-the-suite-that-owns-the-file`, and the second occurrence this session
+(§739's ledger run was correct only because I checked ownership first). Re-run against the owner, the same
+mutation produced four reds.
+
+The general form: **a mutation result is only as good as the suite it was measured against, and "which suite
+owns this" is a question to answer BEFORE reading the verdict, not after it surprises you.**
+
+### The line, closed
+
+| surface | access-relevant defaults | undefended |
+|---|---|---|
+| gate definition (§739) | 3 | 2 |
+| enforcement / sequencer (§740) | 2 | 1 |
+| booleans (§741) | 0 permissive of 11 | — |
+| perimeter (§741) | 6, all benign | 0 |
+
+Eleven examined, three were correct-and-undefended, all three now pinned. Every finding came from a mutation;
+every reading of the code said "obviously fail-closed", including for the three that were not defended.
+
+### Exit state
+
+No code changed this phase. `test:tools` 1023 (baseline 3 register failures); `workers/api` isolation 67/67;
+lint 0; typecheck 0. The auth mutation restored byte-identical.
+
+**Reopen triggers**
+- A `!== false` appears in gate, enforcement or perimeter code → it inverts the default this repo consistently
+  uses. Zero exist today, so the first one is a deliberate choice and should say why.
+- `dimsRequired` becomes load-bearing for pricing rather than capture → the opt-in default stops being safe,
+  because it would then relax a law instead of adding a requirement.
+- A perimeter guard is refactored → mutate it against `isolation.test.ts`, not `auth.test.ts`. The ownership is
+  not where the filename suggests.
