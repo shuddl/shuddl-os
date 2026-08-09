@@ -446,6 +446,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 251 | §803 | **§804** | **PHASE 27 CLOSED — "the repo-owned ledger is EMPTY" was FALSE, ten phase gates running.** §803 earned the rule that this audit's prose is subject to its own standards, so I turned it on the claim a reader is most likely to ACT on. Measured: the checklist's *Repository-owned failures & debt* carries **35 rows — 15 closed, 20 LIVE, 16 status OPEN**. Three verified open at HEAD (no `coverage` config anywhere · `check:identity` skips locally · the cron double-fire note still in source). **The claim was INHERITED** from a memory of the 2026-08-05 gate and repeated from §776 without opening the file it names. The underlying record says something narrower and TRUE — *"no OPEN DEFECTS"* — and I collapsed that into *"empty"*, which differ exactly where it matters. **A claim you inherit is a claim you are making.** Third phase running to find this shape in my own prose (§790 deferral · §803 assertion · §804 inheritance) |
 | 252 | §804 | **§805** | **PHASE 28 CLOSED — the 20 live rows TRIAGED: what is a defect, what is a decision.** *A count is not a triage* — "20 live rows" misleads as badly as "empty" did. Classified by each row's OWNERSHIP cell: **4 say "needs a REQ row FIRST"** (rule 1 blocks me) · 2 unmade decisions · 4 governing-doc legibility · **2 fixed-and-MONITORED** (`hashPath` IS framed, agents tenants.ts IS claimed-aware — both verified) · 2 external-blocked (**row 9 IS the IDENTITY_DENYLIST hold — my "five owner-held holds" are a SUBSET of this ledger, not a parallel list**) · 2 register/process. **Three verified OPEN against HEAD** (the 4h SLA on a daily cron · the lost-trigger backstop §131 says *"DOES NOT EXIST"* · pool-binding exclusivity). **And one I nearly "fixed"**: row 11's own cell records the extension was MEASURED and REJECTED (76% FP rate) — a decision with evidence, not a defect awaiting effort |
 | 253 | §805 | **§806** | **PHASE 29 CLOSED — a COUNT pin and a NAME pin are different guarantees.** §805 owned a process failure (committed with `verify:docs` red, 3rd time); §790 says close it, so I asked whether the SYSTEM catches it independent of my discipline. It does — but asking *how* found the gap: `citations`, `table-shape` and `traceability` are pinned to the merge roster **by NAME** (§50 added that after `check:citations` had been *"wired into no gate"*), while **`section-refs` was pinned only by a gate COUNT**. Measured: removing it is caught; **removing it AND adding any other gate is SILENT** — the most ordinary commit imaginable defeats it. The same swap is CAUGHT for the other three. **A count pin answers "how many gates are there"; a name pin answers "is THIS gate still one of them."** And this is the gate that twice this session refused a forward §-reference I wrote before the section existed (§795, §804) |
+| 254 | §806 | **§807** | **PHASE 30 CLOSED — the merge roster pinned BY NAME; four more gates were silent.** §806's distinction swept across all 31 gates. A `toContain` grep suggested 27 unpinned — the sort of number §799 taught me not to publish — so **mutation was the measurement**: swap a gate for a dummy, count preserved. **SILENT for `invariants` (I1–I8 + append-only, CLAUDE.md rule 2), `rater-purity` (REQ-024), `coverage` (REQ-118/119) and `authority-coverage` (REQ-030)** — four of the five highest-law gates could leave the merge surface with nothing failing. The existing count pin was **not wrong, it answered a different question** (its own comment: *"not a budget… a tripwire"* for DOC counts). Fixed with an exact-set roster asserted **both directions** — a vanishing gate AND an added one both fail. Residual stated: the 5 release-only gates remain count-pinned |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -46546,3 +46547,61 @@ One assertion added to `tools/release/ci-contract.test.ts`. `test:tools` **1066*
   not a substitute for a name pin. The two coexist deliberately.
 - Any future "the system would have caught it" claim → verify *how*. This phase started from exactly that
   assumption and the assumption was true for three gates and false for the fourth.
+## §807 — PHASE GATE: PHASE 30 CLOSED — the merge roster, pinned by NAME
+
+§806 found one gate (`section-refs`) held to the merge surface by a count rather than a name, and named the
+distinction. This is the sweep across all 31 gates, and the distinction turned out to matter for four more —
+each of them the enforcement of a law this repo states in `CLAUDE.md`.
+
+### Measured, not grepped
+
+A `toContain` scan suggested 27 of 31 were unpinned, which is exactly the sort of number §799 taught me not to
+publish. Mutation is the measurement: swap a gate off the merge profile for a dummy — **count preserved**,
+the most ordinary commit shape imaginable — and see whether anything fails.
+
+| gate | what it enforces | before |
+|---|---|---|
+| `append-chokepoint` | one application writer on `events` | **CAUGHT** (the control) |
+| **`invariants`** | I1–I8 + the append-only guards — CLAUDE.md rule 2 | **SILENT** |
+| **`rater-purity`** | REQ-024 — *LLM calls never in `packages/ledger`* | **SILENT** |
+| **`coverage`** | REQ-118/119 — the 100% register-coverage gate | **SILENT** |
+| **`authority-coverage`** | REQ-030 — the authority registry | **SILENT** |
+
+Four of the five highest-law gates could leave the merge surface without one test failing.
+
+### The existing count pin was not wrong — it was answering a different question
+
+`gate-wiring`'s size assertion says so itself: *"These numbers are not a budget and carry no ceiling; they are
+a tripwire"*, pinned so that **doc counts** cannot rot (§293). It was never meant to pin gate identity, and
+reading it as though it did is the error §806 named — **a pin's protection certifies less than its presence**.
+
+So the fix is additive, not corrective: an **exact-set roster by name**, asserted in both directions.
+
+| mutation | after |
+|---|---|
+| each of the four silent swaps | **CAUGHT** |
+| a gate ADDED (`zz-new-gate`) | **CAUGHT** |
+
+The second direction is deliberate and matches the size tripwire's philosophy: adding a gate should require a
+test edit, so the person adding it also updates the counts and the docs that quote them. Growth is the thing
+that breaks, on purpose.
+
+### What this closes
+
+Three phases have now worked the same seam from different ends — §805 (I shipped past a red docs gate), §806
+(the gate that caught me was itself weakly held), §807 (four stronger gates were held no better). The chain
+started from a process lapse of mine and ended at the enforcement of CLAUDE.md rule 2. **The lapse was the
+cheapest possible way to find that.**
+
+### Exit state
+
+One assertion added to `tools/checks/gate-wiring.test.ts`. `test:tools` **1067** (+1); lint 0; typecheck 0.
+`run-gate.ts` restored byte-identical after nine mutations across §806–§807.
+
+**Reopen triggers**
+- A gate is added or removed → this roster fails by design. Update it, the size tripwire, and the doc counts
+  the failure message names — in the same commit, which is the whole point.
+- The `release` profile → it is a strict superset of `merge` (already asserted), so a merge gate cannot vanish
+  at release. Release-only gates (`deploy-preflight`, `restore-verify`, `staging-smoke`, `surfaces`,
+  `backup-manifest`) are NOT in this roster and remain count-pinned only. That residual is stated, not closed:
+  they gate a deploy rather than a merge, and the same sweep should be run for them before the first release.

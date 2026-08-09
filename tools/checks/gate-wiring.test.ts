@@ -91,6 +91,35 @@ describe("REQ-118/119: no gate script is defined and never run", () => {
   // the doc update in front of the person who caused it — the §269 shape: make growth the thing that breaks.
   // These numbers are not a budget and carry no ceiling; they are a tripwire. When one changes legitimately,
   // update it AND the copies named in the failure message.
+  // §807 — THE ROSTER BY NAME. The size tripwire above answers "how many gates are there"; it was never
+  // meant to answer "is THIS gate still one of them", and its own comment says so ("not a budget… a
+  // tripwire", pinned so the DOC counts cannot rot).
+  //
+  // §806 found the consequence for one gate and this is the sweep. MEASURED: swapping a gate off the merge
+  // profile for a dummy — count preserved, the most ordinary commit shape imaginable — is SILENT for
+  // `invariants`, `rater-purity`, `coverage` and `authority-coverage`. Those are the enforcement of, in
+  // order: the I1–I8 schema invariants and the append-only guards (CLAUDE.md rule 2), REQ-024's "LLM calls
+  // never in packages/ledger", the 100% register-coverage gate (REQ-118/119), and REQ-030's authority
+  // registry. Each could leave the merge surface without one test failing.
+  //
+  // Asserted as an EXACT SET, both directions: a gate that vanishes fails, and a gate that appears fails
+  // until someone adds it here deliberately. That second half is the point — the same philosophy as the size
+  // tripwire, applied to identity instead of arithmetic.
+  it("§807: the merge roster is exactly this set of gates, BY NAME", () => {
+    const MERGE_ROSTER = [
+      "runtime", "typecheck", "lint", "unit-tests", "invariants", "rater-purity", "append-chokepoint",
+      "authority-coverage", "traceability", "coverage", "seed", "citations", "table-shape", "section-refs",
+      "bundle-ratchet", "acceptance", "design-audit", "identity-leak", "fixtures", "rater-parity",
+      "invoice-parity", "concierge-parse", "perf", "visual", "a11y", "e2e",
+    ];
+    expect(
+      gatesFor("merge").map((g) => g.gate).sort(),
+      "the merge gate roster changed. If a gate was ADDED, add it here and update the size tripwire + the doc " +
+        "counts it names. If a gate VANISHED, that is the failure this exists to catch: a swap that preserves " +
+        "the count is invisible to every other assertion in this file.",
+    ).toEqual([...MERGE_ROSTER].sort());
+  });
+
   it("profile sizes match the docs that quote them", () => {
     const merge = gatesFor("merge").length;
     const release = gatesFor("release").length;
