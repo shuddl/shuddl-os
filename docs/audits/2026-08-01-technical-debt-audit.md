@@ -436,6 +436,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 241 | §793 | **§794** | **PHASE 18 CLOSED — SCALE, and keeping a filed hold from ROTTING.** Seven kinds now bound the system (+ scale). The unbounded-read finding **was already made** — the GO-LIVE-CHECKLIST files 7 sites precisely, with the right remedy named and the wrong one forbidden (**a bare `LIMIT` truncates silently**). All eight statements re-verified: still unbounded, record TRUE. **What did not exist was anything keeping it true** — §470 re-verified BY HAND. New gate asserts the roster **both ways**: a site gaining a bound REDS (so a bare-LIMIT "fix" gets reviewed), and deleting the checklist row while the reads stay unbounded REDS. It does NOT try to discover new ones — a general detector returns ~29 vs 7, which would be ignored within a week. Also **one stale count in CODE** (`invoices.ts` said "five", doc says seven) — the usual finding inverted: the doc was current and the comment had rotted |
 | 242 | §794 | **§795** | **Auditing the FILED debt — and a hold that UNDER-STATED itself.** The GO-LIVE-CHECKLIST is the filed debt register (92 rows); the question for a filed hold is *is it still true, and is anything keeping it true?* The B2A row named 04/05 → "visible duplicate", **fail-closed**. But B2A01 also carries **`01` = CANCELLATION**, which `parse-204.ts` reads, types and puts on the TenderDoc — and **nothing in `workers/translator/src` consumes `doc.purpose`** (zero references; every fixture uses "00", so no test could notice). Measured end-to-end: a cancellation yields **200, the full gated chain, 1 shipment, 0 anomalies** — identical to an original, so production books freight the partner CANCELLED. Not a duplicate: **fail-OPEN**. Did NOT build it (not in the register — REQ-205 is scoped to 04/05) and did NOT append a row while REQ-289 is uncommitted; **proposed** it here, widened the checklist row, and added a TRIPWIRE that asserts the wrong behaviour on purpose. **Third parsed-but-unconsumed defect this session** — a schema field with zero consumers is a question, not a fact |
 | 243 | §795 | **§796** | **PHASE 19 CLOSED — parsed-but-unconsumed, swept and BOUNDED.** §795 named a pattern with three instances this session (§773/§783/§795), so I ran it as a search. The discriminator is what the DECLARATION does: **`z.literal` = consumed by the parse** (only one value survives `safeParse` — `acknowledged: z.literal(true)` needs no reader); permissive types = too noisy; **a multi-member `z.enum` or bare `z.boolean` with NO reader = the shape**. Result: **203 fields → exactly ONE**, `purpose`, the hold already filed — so §795 was the only member of its class. Gated both ways: a new unread enum REDS, **and `purpose` disappearing REDS** (a zero-result scan proves nothing unless calibrated against a known positive). **Three instrument corrections before one true reading** — corpus excluded `apps/` (42), same-file consumption excluded (35, nearly reported `format` as a finding), `z.literal` not distinguished. A detector returning FEW results is not a detector that is RIGHT |
+| 244 | §796 | **§797** | **PHASE 20 CLOSED — all three HIGH filed holds, each *fail-closed* claim checked.** Ratecon: **TRUE and pinned** (nothing writes a `ratecon` doc; the SHARED `DISPATCH_REQUIRED_DOC_KIND` reds in lockstep when repointed to `"POD"`). B2A: **under-stated** (§795). Transport/resolver: **half pinned** — `transport-dormancy.test.ts` exists because §379 found `NotConfiguredTransport` had zero test references, and **the identical gap sat one file away**: its twin `NotConfiguredSecretResolver`, named in the SAME checklist row, had zero references anywhere; making it return a secret left the worker **121/121 green** — partner impersonation with the CONFIRM gate silently open. Added the binding + the fail-closed VALUE (a resolver returning `""` is still the right class). **Did NOT write the e2e test** — it would 401 for the wrong reason (§749). **Instrument: a suite-level failure prints as SKIPS** — `764 passed | 44 skipped`, zero `×` lines, exit 1 |
 
 **Current measured state — as measured 2026-08-08 at `fae1a17` (§775's board run):** the merge board is
 **26 gates — 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape since §737. `typecheck` 0 · `lint` 0 ·
@@ -45925,3 +45926,65 @@ No source changed — both plants restored byte-identical. `test:tools` **1055**
   the GO-LIVE-CHECKLIST row, this roster, and the `inbound.test.ts` tripwire all move together.
 - A field is declared `z.string()` where an enum would be honest → outside this gate by construction, and the
   place the next instance of this class will hide.
+## §797 — PHASE GATE: PHASE 20 CLOSED — the three HIGH filed holds, each claim checked
+
+§795 audited one of the checklist's three **High** rows and found it under-stated. This finishes the tier.
+Every one of them rests on the same word — **fail-closed** — and that word is checkable.
+
+| High hold | its claim | verdict |
+|---|---|---|
+| EDI B2A revision/replace (04/05) | fail-closed; a visible duplicate | **under-stated** — §795: `01` = CANCELLATION is parsed and ignored, so a cancelled load books. **fail-OPEN** |
+| Ratecon generation unbuilt → dispatch fail-closed | *"nothing writes a `documents` row kind `ratecon`"*; the gate cannot pass without an override | **TRUE, and pinned** |
+| EDI transport + inbound-204 HMAC resolver unwired | *"`NotConfigured*` fail-closed: every live 204→401, no EDI transmitted"* | **half pinned** — the outbound half since §379; the **inbound half by nobody** |
+
+### The ratecon hold is exactly true
+
+Verified both halves. Nothing writes a `ratecon` document — the only references are the shared constant, two
+comments and the retention class list. And `DISPATCH_REQUIRED_DOC_KIND` is a **shared** constant (the Phase 17
+pattern: one definition, gate + DO), whose *value* is pinned by a purpose-built test — repointing it to
+`"POD"`, a kind that IS written, reds *"a rename must fail HERE + the DO in lockstep"* and fails `workers/api`
+too. A hold that says "correctly blocked, not falsely open" and means it.
+
+### The inbound dormancy half was asserted by nobody
+
+`transport-dormancy.test.ts` exists because §379 found `NotConfiguredTransport` had zero test references. Its
+own header says so. **The identical gap sat one file away**: `NotConfiguredSecretResolver` — the twin named in
+the same checklist row — had zero references anywhere in the repo. Making it return a secret left the worker
+**121/121 GREEN**.
+
+That regression is worse than the outbound one. The resolver decides whether a live 204 **authenticates**; a
+default returning any string means every partner's HMAC verifies against a value nobody provisioned —
+partner impersonation, with the CONFIRM gate silently open and a booked load as the first symptom.
+
+Two assertions added, mirroring the transport half, each mutation-proved to its own test:
+the **binding** (a live resolver reds with a STOP message naming the hold) and the **fail-closed VALUE** —
+because a resolver returning `""` would still be the right class and would still authenticate
+(§"fail-closed is about the fallback value").
+
+**What I did not assert, stated rather than implied:** the end-to-end *"every live 204 → 401"*. Driving the
+handler from this file would 401 for the WRONG reason — no control-plane pairing is seeded, so an unknown
+partner refuses before the resolver is consulted, and the test would pass whatever the resolver returned.
+That is §749's vacuous pass, avoided by not writing it. The handler-level refusals are covered where the
+pairing exists; what those cannot see is that PRODUCTION resolves nothing, which is precisely what this adds.
+
+### An instrument lesson: a suite-level failure looks like SKIPS
+
+Mutating the dispatch constant, `workers/api` printed **`764 passed | 44 skipped`** and my grep for `^ *×`
+found nothing. I nearly recorded "the DO side is unpinned". The exit code was **1**: `lens-adversarial.test.ts`
+failed in setup, and vitest reports a failed suite's tests as **skipped**, not as failures.
+
+Sixth harness-silence occurrence this session, and a new mechanism. The rule that catches it is the one
+already in the record — **read the totals, not the failure lines**: `808 passed` and `764 passed | 44 skipped`
+are different claims, and only the exit code separates a clean run from a suite that never ran.
+
+### Exit state
+
+No source changed — `inbound.ts`, `index.ts` and `transition-gates.ts` all restored byte-identical after four
+mutations. `workers/translator` **123/123** (+2); lint 0; typecheck 0.
+
+**Reopen triggers**
+- The live secret store is wired → the binding assertion reds with the STOP message. That is the CONFIRM gate
+  arriving at the person who needs it, which is the whole point of a dormancy tripwire.
+- A third `NotConfigured*` port appears → it needs both assertions, not one. The transport got its binding
+  and behaviour pinned in §379; the resolver needed the same two, four months later, because "the twin is
+  obviously fine" is exactly how the first one survived.

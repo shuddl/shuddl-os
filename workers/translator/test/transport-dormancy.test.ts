@@ -1,8 +1,9 @@
 import { env } from "cloudflare:test";
 import { describe, expect, it, vi } from "vitest";
-import { transportFor } from "../src/index.js";
+import { transportFor, secretResolverFor } from "../src/index.js";
 import { run214Sweep } from "../src/sweep-214.js";
 import { NotConfiguredTransport, TransportError } from "../src/transport.js";
+import { NotConfiguredSecretResolver } from "../src/inbound.js";
 import type { TranslatorEnv } from "../src/tenants.js";
 
 // REQ-203/154 — THE EDI TRANSPORT IS UNWIRED, AND THAT IS LOAD-BEARING (audit §379).
@@ -87,6 +88,46 @@ function poisonBinding(base: TranslatorEnv, key: keyof TranslatorEnv, dead: unkn
     get: (target, prop, receiver) => (prop === key ? dead : Reflect.get(target, prop, receiver)),
   }) as TranslatorEnv;
 }
+
+describe("REQ-034/154 §797: the INBOUND secret resolver is NOT CONFIGURED either (the twin tripwire)", () => {
+  // This file pinned the OUTBOUND half of the dormancy hold. The GO-LIVE-CHECKLIST row states BOTH halves —
+  // *"`NotConfigured*` fail-closed: every live 204→401, no EDI transmitted"* — and the inbound half was
+  // asserted by nobody: `NotConfiguredSecretResolver` had ZERO test references anywhere in the repo, exactly
+  // as `NotConfiguredTransport` did before §379. Measured (§797): making it return a secret left this worker
+  // 121/121 GREEN.
+  //
+  // What that regression costs is worse than the outbound one. The resolver decides whether a live 204
+  // AUTHENTICATES. A default that returns any string means every partner's HMAC verifies against a value
+  // nobody provisioned — partner impersonation, and the CONFIRM gate ("no environment authenticates a real
+  // 204 until the secret store is wired") silently open, with a booked load as the first symptom.
+
+  it("secretResolverFor returns the fail-closed resolver — binding a real secret store must fail HERE first", () => {
+    expect(
+      secretResolverFor(env as unknown as TranslatorEnv),
+      "A live SecretResolver is bound. STOP: the EDI go-live hold (GO-LIVE-CHECKLIST, 'EDI transport + " +
+        "inbound-204 HMAC resolver unwired', High) is filed on the premise that NO environment can " +
+        "authenticate a real 204. Wiring this is the CONFIRM-gated step — resolve the hold first.",
+    ).toBeInstanceOf(NotConfiguredSecretResolver);
+  });
+
+  it("it resolves NOTHING — the fail-closed VALUE, not merely the type", async () => {
+    // §"fail-closed is about the fallback VALUE": the class being right is not the guarantee. A resolver that
+    // returned "" or a placeholder would still be a NotConfiguredSecretResolver and would still authenticate.
+    const r = new NotConfiguredSecretResolver();
+    expect(await r.resolve("edi-secret-ref-1")).toBeNull();
+    expect(await r.resolve("anything-at-all")).toBeNull();
+  });
+
+  // NOT ASSERTED HERE, and stated rather than implied: the end-to-end *"every live 204 → 401"* claim. Driving
+  // `handleInbound204` from this file would 401 for the WRONG reason — the control-plane pairing is not seeded
+  // here, so an unknown partner refuses before the resolver is ever consulted, and the test would pass whatever
+  // the resolver returned (§749's vacuous-pass trap). The handler-level refusal path IS covered where the
+  // pairing exists: `inbound.test.ts` → "a BAD-SECRET POST → 401, and NOTHING is written" and "an
+  // unknown/inactive partner id → 401 (fail-closed), nothing written".
+  //
+  // What THIS file adds is the half those cannot see: they inject a StaticSecretResolver, so they prove the
+  // handler refuses a bad secret — never that PRODUCTION resolves none.
+});
 
 describe("REQ-278: run214Sweep contains a per-tenant failure — the tick survives", () => {
   it("a tenant whose D1 throws is logged and SKIPPED, and the sweep RESOLVES", async () => {
