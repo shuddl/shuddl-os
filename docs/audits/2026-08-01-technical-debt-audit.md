@@ -434,6 +434,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 239 | §791 | **§792** | **PHASE 16 CLOSED — concurrency, and the FIVE-KIND frame.** Five phases now bound the system by KIND: surfaces (12) · inputs (13) · outputs (14) · clocks (15) · **concurrency (16)**. *A module audit ends when the files run out; a kind audit ends when the QUESTION runs out.* Eleven sweeps split by HOW they dedupe: **9 at write time** (overlap-safe by construction) vs **2 check-then-act before an EXTERNAL send** (at-least-once, structural, both already documented). **Three of the last five phases found their defect in something a test CLAIMED rather than in code** — §787's "anti-drift" comment, §790's own deferral, §791's cron header stating its empty corpus in plain words. Each record was ACCURATE and nobody read it as a gap; prose describing a limitation is not a limitation anyone is watching. Board at `e77035a`: 19 PASS · 2 FAIL · 5 BLOCKED, unchanged across twenty phases. **4,175 tests** (3,131 workspace, 0 failures) |
 | 240 | §792 | **§793** | **PHASE 17 CLOSED — the CLAIMS the code makes about itself.** §792 named the pattern (3 of 5 findings were in something a test CLAIMED); this enumerates its most checkable form — *"these two agree"*. **Structural finding: this codebase avoids drift by SHARING rather than copying**, so there are very few parity claims because there are very few parities. Verified rather than assumed: mutating the shared `unbilledShipmentsSql` reddens **all three** consumers at once (KPI · recon re-drive · Watchtower) — *not "they were equal when someone looked" but "there is only one of them, and every consumer is provably wired to it"*. The one unavoidable 4-copy case (a DDL CHECK + 3 TS enums) is **gated** — planting a 7th mode names the file, both lists, and which direction costs what. The single genuine unguarded copy was `dunning.ts`, found and gated last phase. **Ask of any "they agree" comment: are they one thing?** Six of seven dissolve; the seventh was the defect |
 | 241 | §793 | **§794** | **PHASE 18 CLOSED — SCALE, and keeping a filed hold from ROTTING.** Seven kinds now bound the system (+ scale). The unbounded-read finding **was already made** — the GO-LIVE-CHECKLIST files 7 sites precisely, with the right remedy named and the wrong one forbidden (**a bare `LIMIT` truncates silently**). All eight statements re-verified: still unbounded, record TRUE. **What did not exist was anything keeping it true** — §470 re-verified BY HAND. New gate asserts the roster **both ways**: a site gaining a bound REDS (so a bare-LIMIT "fix" gets reviewed), and deleting the checklist row while the reads stay unbounded REDS. It does NOT try to discover new ones — a general detector returns ~29 vs 7, which would be ignored within a week. Also **one stale count in CODE** (`invoices.ts` said "five", doc says seven) — the usual finding inverted: the doc was current and the comment had rotted |
+| 242 | §794 | **§795** | **Auditing the FILED debt — and a hold that UNDER-STATED itself.** The GO-LIVE-CHECKLIST is the filed debt register (92 rows); the question for a filed hold is *is it still true, and is anything keeping it true?* The B2A row named 04/05 → "visible duplicate", **fail-closed**. But B2A01 also carries **`01` = CANCELLATION**, which `parse-204.ts` reads, types and puts on the TenderDoc — and **nothing in `workers/translator/src` consumes `doc.purpose`** (zero references; every fixture uses "00", so no test could notice). Measured end-to-end: a cancellation yields **200, the full gated chain, 1 shipment, 0 anomalies** — identical to an original, so production books freight the partner CANCELLED. Not a duplicate: **fail-OPEN**. Did NOT build it (not in the register — REQ-205 is scoped to 04/05) and did NOT append a row while REQ-289 is uncommitted; **proposed** it here, widened the checklist row, and added a TRIPWIRE that asserts the wrong behaviour on purpose. **Third parsed-but-unconsumed defect this session** — a schema field with zero consumers is a question, not a fact |
 
 **Current measured state — as measured 2026-08-08 at `fae1a17` (§775's board run):** the merge board is
 **26 gates — 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape since §737. `typecheck` 0 · `lint` 0 ·
@@ -45784,3 +45785,79 @@ One comment corrected in `workers/api/src/routes/invoices.ts`; one new gate. Bot
   discovery pass is §183's and its re-run is an audit action, not a CI one.
 - The keyset-pagination REQ row the checklist asks for is written → this whole roster becomes the acceptance
   criteria for it, and the gate becomes the thing that proves each site was actually converted.
+## §795 — PHASE GATE: auditing the FILED debt — and a hold that under-stated itself
+
+Phases 12–18 hunted NEW debt across seven kinds. §794 exposed the higher-leverage target: `GO-LIVE-CHECKLIST.md`
+is the **filed** debt register — 92 rows the owner deliberately deferred. The audit question for a filed hold
+is not "is it debt?" but **"is the row still true, and is anything keeping it true?"**
+
+Started with the highest-severity rows: one Critical (a schema legend, not a hold) and three Highs. All three
+Highs are *deferred scope*, and each carries the same claim — **fail-closed today**. That claim is checkable.
+
+### The B2A hold was true about the case it named, and silent about a worse one
+
+The row read: *"EDI B2A revision/replace (04/05) convergence deferred … yields a **visible duplicate**
+shipment (dup preferred over silent merge, rule 10) … **High** (fail-closed today)"*.
+
+X12 B2A01 carries the tender's purpose: `00` original, **`01` CANCELLATION**, `04` change, `05` replace.
+`parse-204.ts:117` reads it, types it (`z.enum(["00","01"])`) and puts it on the `TenderDoc`.
+
+**Nothing consumes it.** Zero references to `doc.purpose` anywhere in `workers/translator/src` — measured, not
+grepped-and-assumed (every existing fixture also uses `"00"`, so no test could have noticed). Measured
+end-to-end, a `B2A*01` cancellation today produces:
+
+```
+status 200 · kinds ["quote.requested","quote.priced","agent.acted","quote.accepted"] · shipments 1 · anomalies 0
+```
+
+The **identical** chain an original tender produces. In production that committed `quote.accepted` enqueues
+the Booking agent, which appends the gated `booking.created` — so **SHUDDL commits freight the partner
+explicitly cancelled, with no anomaly and no signal anywhere.**
+
+That is not a visible duplicate. The filed row described (a) and was silent about (b), and the two differ in
+kind: (a) is **fail-closed** and deliberate; (b) is **fail-OPEN**.
+
+### What I did, and deliberately did not do
+
+**Did not build it.** Cancellation handling is not in the register — REQ-205's row is scoped to the 04/05
+re-tender case in its own text. CLAUDE.md rule 1 is explicit: if it isn't a REQ row, it doesn't get built.
+
+**Did not write the REQ row either**, and that is a judgement worth stating: rule 1 also says to ADD a row on
+discovering scope, but `REQ-289` is sitting uncommitted and is the sole cause of both merge FAILs. Appending
+a second uncommitted row would entangle this finding with a decision the owner is visibly mid-way through.
+The row is **proposed here** instead:
+
+> *proposed* — **EDI inbound: honour B2A01 = 01 (cancellation).** A tender whose purpose is a cancellation
+> must not book. Fail-closed reading, consistent with the handler's existing discipline: QUARANTINE it (the
+> never-a-silent-drop branch already there), ACK 200, raise the anomaly a human sees. Not 04/05 convergence
+> (that is REQ-205) — this is the case where the partner told us *not* to move the freight.
+
+**Did widen the checklist row** to name (b), with the measurement, the consequence, and the scope boundary.
+The record's job is to be true.
+
+**Did add a tripwire**, not an endorsement: `inbound.test.ts` → *"§795 GAP: a B2A*01 CANCELLATION is booked
+like an original"*. It asserts behaviour that is **wrong on purpose**, so that the day `purpose` gains a
+consumer the test reds and whoever wired it must update the checklist and delete it. §792's lesson made
+executable: a gap described only in prose is a gap nobody is watching.
+
+### The shape worth carrying
+
+This is the third time this session a **parsed-but-unconsumed** signal turned out to be the defect — after
+§773's unreachable approval branch and §783's marker whose classification nobody read. The pattern:
+**information the system correctly extracts and then discards is invisible to every test**, because the
+fixtures that would exercise it are the ones nobody wrote. A schema field with zero consumers is a question,
+not a fact.
+
+### Exit state
+
+No source changed. `workers/translator` **121/121** (+1); lint 0; typecheck 0. The `check:section-refs` gate
+refused the checklist edit until this section existed — working exactly as designed, and worth noting as a
+clean catch of my own out-of-order write.
+
+**Reopen triggers**
+- `doc.purpose` gains a consumer → the tripwire reds. Update the checklist row and delete the test; the gap
+  closed and the record must say so.
+- REQ-205 is implemented → it closes (a) only. (b) stays open unless the proposed row is written, and the
+  checklist row now says that explicitly so the two cannot be conflated at go-live.
+- Any other schema field is found with zero consumers → same question. `purpose` was typed, validated, and
+  ignored for as long as the parser has existed.

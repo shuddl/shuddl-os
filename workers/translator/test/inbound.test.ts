@@ -485,6 +485,46 @@ describe("REQ-201/202 — inbound 204 → gated chain, NO booking.created", () =
     expect(pp.sell, "sell = freight + only-positive lines, and cost === freight — so the sell can never fall under").toBeGreaterThanOrEqual(pp.floors.target);
   });
 
+  // ── §795 — A KNOWN GAP, PINNED. This test asserts behaviour that is WRONG, on purpose. ──────────────────
+  //
+  // X12 B2A01 carries the tender's purpose: 00 = original, 01 = CANCELLATION, 04 = change, 05 = replace.
+  // `parse-204.ts` reads it, types it (`z.enum(["00","01"])`) and puts it on the TenderDoc — and then
+  // **nothing in workers/translator ever reads `doc.purpose`** (measured: zero consumers in src; every
+  // existing fixture uses "00"). So a partner's CANCELLATION is understood and then booked like any other
+  // load: 200, the full gated chain, one shipment, and — the part that stings — ZERO anomalies. In
+  // production the committed quote.accepted enqueues the Booking agent, so SHUDDL commits freight the
+  // partner explicitly cancelled, with no signal anywhere.
+  //
+  // WHY THIS IS NOT FIXED HERE: cancellation handling is not in the register. REQ-205 covers the 04/05
+  // REVISION case only (a PO-only re-tender yielding a visible duplicate), and CLAUDE.md rule 1 is explicit
+  // — if it isn't a REQ row, it doesn't get built. The proposed row is recorded in the audit (§795) and the
+  // GO-LIVE-CHECKLIST hold now names this case, which it previously did not.
+  //
+  // WHAT THIS TEST IS FOR: it is a TRIPWIRE, not an endorsement. The day `purpose` gains a consumer, this
+  // reds — and whoever wired it must update the checklist row and delete this test. A gap described only in
+  // prose is a gap nobody is watching (§792); this makes the suite state it out loud.
+  it("§795 GAP: a B2A*01 CANCELLATION is booked like an original — parsed, ignored, and NOT anomalied", async () => {
+    const cancel = mkTender({}).replace("B2A*00~", "B2A*01~");
+    expect(cancel, "the fixture no longer carries a B2A segment — this test stopped testing its subject").toContain("B2A*01~");
+
+    const seq = new RecordingSeq();
+    const res = await handleInbound204(await signedRequest(cancel), makeDeps(seq, new RecordingTransport(), goodSecrets()));
+
+    expect(res.status).toBe(200);
+    // The SAME chain an original tender produces — the cancellation changes nothing.
+    expect(seq.kinds, "if this no longer matches the original-tender chain, purpose is being consumed — see the header").toEqual([
+      "quote.requested",
+      "quote.priced",
+      "agent.acted",
+      "quote.accepted",
+    ]);
+    expect(await count(env.TENANT_A_DB, "shipments")).toBe(1);
+    expect(
+      await count(env.TENANT_A_DB, "anomalies"),
+      "a cancellation now raises an anomaly — the gap is closing; update the GO-LIVE-CHECKLIST row and remove this test",
+    ).toBe(0);
+  });
+
   it("a DIMS-LESS tender rests at quote.requested (no price on air) — no quote.priced, no quote.accepted, no bypass", async () => {
     // Drop the L4 measurement → the rater's dims gate returns UNKNOWN → the handler records the tender (shipment +
     // quote.requested) but appends NO price/accept. The Booking agent is never triggered.
