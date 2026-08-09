@@ -409,6 +409,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 214 | §766 | **§767** | **The money apportionment has TWO properties; both defended.** Identity (Σparts === total): deleting the leftover-redistribution loop reds **12 tests** — asserted from several directions, which is what a money identity should look like. **Determinism** (ties by ASCENDING index) is the one easy to overlook: flipping `a-b` → `b-a` reds a NAMED case. Not aesthetics — the Biller re-derives an invoice on queue redelivery, so a different split on a re-run means a second differing invoice or a hash mismatch. **The sum identity keeps the money right; the tie rule keeps it the same money twice** |
 | 215 | §767 | **§768** | **The Biller's id law: determinism PINNED, domain separation NOT — and stopping there on purpose.** Seeding the invoice event id with `crypto.randomUUID()` reds a NAMED test (*a redelivered POD re-derive…*), the money-side twin of §755's server idempotence. Merging the two domain tags left **122/122 GREEN**; measured what that produces: **no collision** (formats differ — UUID vs `inv_`+16hex), but the AR number becomes the event id's own first 16 hex, so the two stop being independent. **No test added, deliberately** — §760's rule that a gate per defensive line is its own debt; the property protecting MONEY is pinned, the one protecting HYGIENE is measured here. *"The id law is tested"* would be true and would overstate it |
 | 216 | §768 | **§769** | **SECOND STOPPING POINT — §738–§768 re-derived (31 commits, 39 phases past §737).** **Nine live defects**, every one surfaced by MUTATION and none by reading: two unpinned fail-closed gate defaults · a `"grants NOTHING"` sentinel spelled 3× and undefended · a budget gate blind to unenforced budgets · **a BLOCKED gate being invisible to the meta-gate watching it** · a REQ matcher truncating at 3 digits · the Concierge's ZIP guard · **a retention clock restarted by re-upload** · **the lens held by two characters of punctuation**. Plus 4 corrections to my own claims. Confirmed with proof: Laws 1/5/10, the DO mutex, money sum **and tie determinism**, the lens conjuncts, both driver-sync premises. `test:tools` 984 → **1041**; board unchanged. **Stopping because §765–§768 found nothing** — the sweep now confirms rather than finds |
+| 217 | §769 | **§770** | **DEFECT past the stopping point: the budget alarm's divisor was never exercised.** The alarm averages *only REPORTED metrics* (`costSum / costN`); dividing by the RUN count halves a half-unmetered window — **$2/run against a $0.50 budget reads $1**, and two more unmetered runs put it UNDER budget. Mutating it left **17/17 GREEN**, not from redundancy but §688's *passing corpus*: every fixture supplied a cost, so `costN === runs`. The sibling test covers the ALL-unmetered window (null average); **only a MIXED window makes the divisor observable**. Matters because §135's dormant gap means windows go mixed exactly when the alarm starts being useful. Pinned; mutation REDS. **13th slip**: first run was against the package the SOURCE lives in, not the suite that owns it |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -44120,3 +44121,65 @@ infrastructure gap.
   shapes this arc found repeatedly. Each has a gate now; the gates are the durable part.
 - An owner-held item lands → read its first green rather than observing it. §731's `assertions`-count warning
   is the model, and §745 is what happens when a blocked gate is assumed rather than read.
+## §770 — PHASE GATE: the budget alarm's divisor, and the case that only matters when §135 wakes
+
+§769 stopped because the sweep had begun confirming rather than finding. One product surface remained
+unaudited: the Watchtower's per-agent budget alarm (REQ-113). It had a defect.
+
+### The property
+
+The alarm's own header says it *"averages only REPORTED metrics"*, and the code computes `costSum / costN` —
+`costN` counting the runs that actually carried a cost. Dividing by the RUN count instead silently halves the
+average of a half-unmetered window: an agent at **$2/run against a $0.50 budget reads $1**, and with two more
+unmetered runs drops **under budget entirely**. The alarm would go quiet exactly when it should fire.
+
+### Undefended, and the reason is the interesting part
+
+Replacing `acc.costN` with `acc.runs` left `workers/api` at **17/17 GREEN**.
+
+Not a redundant guard — §688's *passing corpus*. **Every fixture supplied a `costCents`**, so `costN === runs`
+in every window and the mutation was arithmetically a no-op. The property was correct and had never once been
+exercised.
+
+There is a sibling test — *"NEVER fabricates a metric — an agent reporting NO cost/latency cannot trip a drift
+alarm"* — and it covers the **all-unmetered** window, where the average is `null` and no alarm raises. That is
+a different case. **Only a MIXED window makes the divisor observable**, and no test built one.
+
+### Why this one matters more than a typical unpinned property
+
+§135 recorded a dormant gap: the LLM-calling agents **do not report a cost**, so the alarm currently averages
+only agents whose cost cannot drift. The day one of them starts reporting — which is the day the alarm becomes
+useful — every window becomes **mixed**. So the untested divisor would first matter at precisely the moment the
+feature starts doing its job, and it would fail by under-reporting.
+
+That is the §752 pattern inverted: not a guard that is redundant today and load-bearing later, but a *test gap*
+that is invisible today and decisive later.
+
+### Pinned
+
+One metered run at $2 plus three unmetered, against a $0.50 budget — dividing by 4 reads exactly 50¢, at budget,
+no alarm. The test asserts the alarm **raises** and that the recorded detail reads `avg_cost_cents: 200`, the
+real figure over the one reporting run.
+
+| mutation | result |
+|---|---|
+| `costSum / acc.runs` instead of `/ acc.costN` | **RED** — *"EXCLUDES unmetered runs from the cost average"* |
+
+`workers/api/test/watchtower.test.ts` 17 → **18**; source restored byte-identical.
+
+### My own slip, thirteenth of the session
+
+The first mutation run reported 122/122 green against `workers/agents` — the package the *source* lives in. The
+suite that owns it is in `workers/api`. §741's error exactly, and the same correction: **run the suite that owns
+the file, and confirm ownership before reading the verdict.** The second run, against the right suite, was
+*also* green — and that green was the real finding, which the first one would have been mistaken for.
+
+### Exit state
+
+`workers/api` watchtower 18/18; `test:tools` 1041; lint 0; typecheck 0.
+
+**Reopen triggers**
+- An LLM agent begins reporting cost → §135's gap closes and every window goes mixed. This test is what makes
+  that transition safe; read the first alarm it raises rather than trusting it.
+- A latency divisor is added or changed → `avgLatencyMs` has the identical shape (`latSum / latN`) and the
+  identical gap: no mixed-latency window is fixtured either. This phase pinned cost only.

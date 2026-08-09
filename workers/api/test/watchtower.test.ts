@@ -262,6 +262,41 @@ describe("Watchtower — the agent-drift alarm (REQ-113 per-agent cost/latency b
     expect(JSON.parse(a!.detail)).toMatchObject({ agent, avg_latency_ms: 12_000, avg_cost_cents: 0, over: ["latency"] });
   });
 
+  // REQ-113 §770 — A RUN THAT REPORTS NO COST IS EXCLUDED, NOT COUNTED AS ZERO.
+  //
+  // The alarm averages "only REPORTED metrics" (its own header): `costSum / costN`, where costN counts the runs
+  // that carried a cost. Dividing by the RUN count instead silently halves the average of a window where half
+  // the runs are unmetered — an agent $2/run over a $0.50 budget reads $1, and with two more unmetered runs
+  // drops under budget entirely.
+  //
+  // MUTATION-MEASURED as undefended: replacing `acc.costN` with `acc.runs` left workers/api at 17/17 GREEN,
+  // because EVERY fixture supplied a costCents — costN === runs, so the mutation was a no-op. The property was
+  // correct and never exercised (§688's "passing corpus", not a redundant guard).
+  //
+  // DISTINCT from "NEVER fabricates a metric" below, which seeds a window where NOTHING reports — that
+  // exercises the `null` average and asserts no alarm. This is the MIXED window: some runs report, some do not,
+  // and only there does the choice of divisor change the answer.
+  //
+  // It becomes load-bearing exactly when §135's dormant gap wakes: the LLM-calling agents report no cost today,
+  // so the first mixed window arrives the day one of them starts. That is precisely when a diluted average
+  // would hide the drift this alarm exists to catch.
+  it("EXCLUDES unmetered runs from the cost average — one reporting run at $2 still breaches a $0.50 budget", async () => {
+    const scope = "wt-drift-mixed-";
+    const agent = "concierge";
+    // One metered run well over budget, three unmetered. Dividing by 4 would read 50¢ — exactly at budget.
+    await seedAgentRun(scope, `${scope}s1`, 0, { agent, latencyMs: 100, costCents: 200 });
+    await seedAgentRun(scope, `${scope}s2`, 0, { agent, latencyMs: 100 });
+    await seedAgentRun(scope, `${scope}s3`, 0, { agent, latencyMs: 100 });
+    await seedAgentRun(scope, `${scope}s4`, 0, { agent, latencyMs: 100 });
+
+    const r = await runWatchtowerSweep(env.TENANT_A_DB, TENANT, NOW, { scope });
+    expect(r.agent_drift.alarmed, "the unmetered runs diluted the average and hid a real breach").toBe(1);
+    const a = await alarm(watchtowerAlarmId(TENANT, "agent_drift", { scope, object: agent }));
+    expect(a).not.toBeNull();
+    // The average is over the ONE reporting run — never a fabricated zero for the other three.
+    expect(JSON.parse(a!.detail)).toMatchObject({ agent, avg_cost_cents: 200, over: ["cost"] });
+  });
+
   it("RAISES on COST drift alone (avg cost per run over budget) with latency well inside budget", async () => {
     const scope = "wt-drift-cost-";
     const agent = "concierge";
