@@ -471,6 +471,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 276 | §828 | **§829** | **PHASE 51 CLOSED — the DEFINITION OF DONE was measuring a register that had grown by 121 rows.** §828's class swept for siblings. **Two-thirds clean**: `PROJECT-STATE` and `RELEASE-EVIDENCE` both use the **committed** 288 and label REQ-289 uncommitted; the audit doc flagged the 288-vs-289 distinction back in §67. §828's defect was **isolated to one file**. **THE FIND**: `BUILD-PROMPT.md` defines completeness as **"167/167 register rows"** — the register is **APPEND-ONLY**, held 167 on 2026-07-09 and **288** today, so the DoD named a target **121 rows short** in the document a reader consults to decide the build is finished. Five instances. This is `f026527`'s *"docs may state laws, not observations"* landing where an observation does most damage; freezing a count in an append-only register is not a risk of rot but a **guarantee**. Converted to law form; `check:coverage` named as authority. **Nothing pinned it** — and a DoD should not have a count for a gate to pin. **Repeat self-error**: cited §829 before writing it, exactly as §823 did seven phases earlier |
 | 277 | §829 | **§830** | **PHASE 52 CLOSED — the governing file's one observation, pinned to a COPY OF ITSELF.** §829's rule applied to `CLAUDE.md`. Why the sweep reached here: `82e04c7` swept **all nine ops docs** clean, and both root-level docs sat **outside its glob** — *a clean negative is only as wide as its glob*. `≤22 tables (21 used)`: five laws are roster-pinned; the parenthetical was **excluded deliberately** to avoid the two-mechanisms trap — **right reasoning, wrong conclusion**. `check:invariants` computes the count but fails only ABOVE budget, so a 22nd table prints `22/22`, passes, and leaves the governing file stating 21. Two probes bounded it: `(19 used)` reds **for the wrong reason** (an unrostered number, not a wrong one — attributed, not credited), and `invariants.test.ts`'s `tableCount === 21` is over a **SYNTHETIC fixture**, not `db/`. Fixed by calling `checkMigrationSql` — **the same authority the script calls**, not a re-implementation. 3 REDs. **Residual stated**: `README`, `genesis/*`, `docs/wp/*` remain unswept for this class |
 | 278 | §830 | **§831** | **PHASE 53 CLOSED — the front door, and the THIRD forward-reference.** §830's unswept list closed. **Two-thirds correctly frozen**: `genesis/*`'s "48 tests" is a **fixture identity** (CLAUDE.md names the same artifact) and `genesis/15` is a dated audit; `docs/wp/*`'s nine counts are **WP-exit evidence** in docs headed *"complete, merged"* — a record that updated itself would stop being one. **One live defect**: `README.md` described the register as *"167 rows"* in the repo's front door, **121 rows stale** — while its OTHER "167 rows" (line 27) is correctly scoped by its own date. **The defect is never the number; it is the absence of a date around it.** This file had already been corrected once (§172, stale by ten WPs) — *a document that rots once is the one to check twice*. Also: README states the `21 tables` figure §830 had pinned in **CLAUDE.md only**, so the gate now covers both — and a planted 22nd table proved the `expect` loop was **fail-fast**, naming one doc and stopping; rewritten to collect-then-assert, now naming both |
+| 279 | §831 | **§832** | **PHASE 54 CLOSED — a gate justified by a claim measurement CONTRADICTS.** Back to production ground: idempotency on mutations. Architecture is right — one `app.use("/v1/*", …)` mount wraps all 23 mutating endpoints by construction. **But its own comment justified it as *"no route-level test would notice"* — MEASURED FALSE**: deleting the idempotency mount fails **8** api tests, deleting auth fails **372**. Comment corrected, gate KEPT — its value is **one legible sentence naming the missing line** instead of 372 opaque auth failures; a structural pin is a better ERROR MESSAGE, not a unique detector (matters both ways: over-trusted if believed unique, deleted if its premise is visibly false). **THE REAL GAP — ORDER**: Hono composes in REGISTRATION order, so a route mounted before the middleware is never wrapped; the assertions only checked the lines EXIST. Moving one mount up left **test:tools at baseline** while the api suite failed **150** tests — loud, but not one of them says *a route was mounted before its middleware*. Now pinned. **I nearly reported "ORDER IS UNPINNED"** — one api-suite run turned an alarming claim into an accurate one |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -48224,3 +48225,76 @@ the safety net for this; it is the thing repeatedly telling me the same sentence
   claims. That is the one condition under which this phase's `docs/wp` clean negative expires.
 - `genesis/*` gains a live count of something that accumulates → it would be the first; genesis states laws
   and dated history, and this sweep found no exception.
+## §832 — PHASE GATE: PHASE 54 CLOSED — a gate justified by a claim that measurement contradicts
+
+Back to production ground after three documentation phases. Subject: **idempotency on mutations** — the
+genesis/14 §04 convention, where a missed key means a retried POST double-appends to an append-only ledger.
+
+### The architecture is right, and that is the first finding
+
+Idempotency is not applied per route. `workers/api/src/index.ts` mounts `app.use("/v1/*", auth)` and
+`app.use("/v1/*", idempotency)` **once**, before every route mount, so all 23 mutating endpoints get both by
+construction. `api-conventions.test.ts` pins that construction and pins the sanctioned exceptions. That is
+the right shape — a blanket mount plus a gate on the mount beats 23 per-route checks, and it is what makes a
+new route safe by default rather than safe by remembering.
+
+### The finding: the gate's stated reason is false
+
+Its own comment justified itself with:
+
+> *Deleting either `app.use` line would strip auth or idempotency from EVERY /v1 mutation at once, **and no
+> route-level test would notice** — each route would simply stop being wrapped.*
+
+Measured, by deleting each line and running the api suite:
+
+| deletion | api tests failing |
+|---|---|
+| `app.use("/v1/*", idempotency)` | **8** |
+| `app.use("/v1/*", auth)` | **372** |
+
+Route-level tests notice both, loudly. The premise is wrong.
+
+**The gate is still worth having, for the reason the note reached for and missed.** Its value is not that it
+is the only thing watching — it is that it fails with **one legible sentence naming the missing line**,
+instead of 372 opaque authentication failures a reader has to reverse-engineer into *"someone deleted a
+middleware mount."* A structural pin is a better **error message**, not a unique detector.
+
+That distinction is load-bearing in both directions, which is why the comment was corrected rather than
+deleted: a gate believed to be the only guard gets over-trusted, and a gate whose stated premise is visibly
+false gets deleted by the next person who checks it.
+
+### The real gap: ORDER, which nothing pinned
+
+Hono composes matched handlers in **registration order**, so a route registered *before* a middleware is
+never wrapped by it. The two existing assertions check only that the lines **exist**.
+
+Measured: moving one `mount*Routes(app)` above the `app.use` pair leaves **`test:tools` at its baseline** —
+no tools gate saw it — while the api suite fails **150** tests. Loud, but loud in the least useful way: 150
+red assertions about capacity gates and airplane-mode sync, not one of which says *a route was mounted before
+its middleware*.
+
+Now pinned: every `mount*Routes(app)` must appear after the last `/v1` middleware mount. The failure names
+the offending mount.
+
+### What I nearly reported, and did not
+
+After the first probe I had "ORDER IS UNPINNED — those routes lose auth AND idempotency" and `test:tools` at
+baseline to support it. Running the api suite before writing it down turned a alarming claim into an accurate
+one: the defect is real, the consequence is real, and it **fails loudly today**. The distinction between
+*unguarded* and *guarded with an unhelpful message* is the whole content of this phase, and one suite run was
+the difference.
+
+### Exit state
+
+`test:tools` **1095** (+1), 3 failed — the REQ-289 trio explained by §828. `@shuddl/api` **811 passed**.
+typecheck 0, lint 0, `verify:docs` 0. `index.ts` restored byte-identical after five mutations. **No
+production code changed.**
+
+**Reopen triggers**
+- A route is mounted somewhere other than a top-level `mount*Routes(app);` line (inside a conditional, via a
+  helper, on a sub-app) → the regex is anchored to that exact shape and would not see it. The convention is
+  currently uniform across all 23; this pin assumes that and would need widening the day it stops.
+- A third `/v1` middleware is added → it must go in the `lastUse` set, or a route mounted between it and the
+  others reads as ordered when it is not.
+- `workers/mcp` grows its own middleware stack → it has an independent `idempotency.ts` and its own mount
+  order, neither covered here. Stated as unswept rather than implied clean.

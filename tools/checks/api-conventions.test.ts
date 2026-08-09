@@ -81,9 +81,17 @@ describe("REQ-156 §613: genesis/14 §04 API conventions hold by construction", 
   });
 
   it("the two lines the whole convention rests on are still there", () => {
-    // §531: a guard whose removal is silent will eventually be removed. Deleting either `app.use` line would
-    // strip auth or idempotency from EVERY /v1 mutation at once, and no route-level test would notice —
-    // each route would simply stop being wrapped.
+    // §531 justified this as "no route-level test would notice". MEASURED (§832), and that is FALSE:
+    // deleting the idempotency mount fails **8** api tests, deleting the auth mount fails **372**. Route-level
+    // tests notice both, loudly.
+    //
+    // The gate is still worth having, for the reason the original note reached for and missed. Its value is
+    // not that it is the ONLY thing watching — it is that it fails with ONE legible sentence naming the
+    // missing line, instead of 372 opaque authentication failures a reader must reverse-engineer into
+    // "someone deleted a middleware mount". A structural pin is a better ERROR MESSAGE, not a unique
+    // detector, and stating that correctly matters in both directions: a gate believed to be the only guard
+    // gets over-trusted, and one whose stated premise is visibly false gets deleted by the next person who
+    // checks it.
     const index = readFileSync(`${root}/workers/api/src/index.ts`, "utf8");
     expect(index, 'app.use("/v1/*", auth) is gone — every /v1 route is now unauthenticated').toContain('app.use("/v1/*", auth)');
     expect(
@@ -91,6 +99,31 @@ describe("REQ-156 §613: genesis/14 §04 API conventions hold by construction", 
       'app.use("/v1/*", idempotency) is gone — a retried POST now double-appends, and genesis/14 §04 requires ' +
         "the Idempotency-Key on all mutations",
     ).toContain('app.use("/v1/*", idempotency)');
+  });
+
+  it("§832: the middleware mounts PRECEDE every route mount — Hono composes in registration order", () => {
+    // The convention rests on `app.use("/v1/*", …)` wrapping the routes, and in Hono a handler registered
+    // BEFORE a middleware is not wrapped by it. So mount ORDER is load-bearing, and the assertions above only
+    // check the lines EXIST. Measured: moving one `mount*Routes(app)` call above the `app.use` pair leaves
+    // `test:tools` at its baseline — no tools gate saw it — while the api suite fails **150** tests. Loud, but
+    // loud in the least useful way: 150 red assertions about capacity gates and airplane-mode sync, none of
+    // which say "a route was mounted before its middleware".
+    const index = readFileSync(`${root}/workers/api/src/index.ts`, "utf8");
+    const lastUse = Math.max(
+      index.indexOf('app.use("/v1/*", auth)'),
+      index.indexOf('app.use("/v1/*", idempotency)'),
+    );
+    expect(lastUse, "neither /v1 middleware mount was found — the assertion above owns that diagnosis").toBeGreaterThan(0);
+
+    const early = [...index.matchAll(/^mount\w+Routes\(app\);/gm)]
+      .filter((m) => m.index < lastUse)
+      .map((m) => m[0]);
+    expect(
+      early,
+      'a route mount precedes `app.use("/v1/*", auth/idempotency)`. Hono composes matched handlers in ' +
+        "REGISTRATION order, so these routes are never wrapped: no session auth and no idempotency, while " +
+        "every other /v1 route keeps both. Move the mount below the middleware pair:",
+    ).toEqual([]);
   });
 
   it("every mutation is under /v1, except the sanctioned few", () => {
