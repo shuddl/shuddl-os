@@ -386,6 +386,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 191 | §743 | **§744** | **A BLOCKED gate is invisible to the meta-gate that watches gates.** Roster sweep (58 candidates) came back clean — `ALLOWED_HEX` is **derived** from tokens exactly as CLAUDE.md rule 7 claims; `ACTIVE` omitting WP-16 is correct (`disposition` routes it first). But it surfaced `cwd-parity.test.ts`, built **yesterday** at §559 to *"end the CWD-dependence class with a mechanism"* — and §731 found a CWD defect in `check:identity` **by hand the next day**. Cause: that gate SKIPS without a denylist, so both runs printed *no denylist available* and agreed perfectly over a gate that never ran. Fixed with `RUN_ENV`. **My first fix was circular** — the probe term was a literal, so the identity scan found it in this very file and exited 1 from BOTH dirs ("parity" by failing everywhere); assembled at runtime instead. Mutation: reintroducing §731's defect now REDS `check:identity: root=0 subdir=1`. **Also corrects §732**, whose hand sweep duplicated this gate |
 | 192 | §744 | **§745** | **The meta-gate counted a SKIP as coverage — and my fix was silently wrong twice.** Four fixture-blocked gates emit `"executed": false`, so non-execution is now DETECTED and the set asserted **both ways** (a new skipper must be declared; one that starts executing must be removed, so an exemption cannot outlive its reason). **Fix bug 1:** `executed()` returned true when no structured verdict was present, but `check:identity`'s skip prints PROSE — so the regression mutation was silent. Replaced with a **positive** assertion (a `skipMarker` that must NOT appear). **Fix bug 2:** that was *also* silent — the marker goes to **stderr** and `execFileSync` returns stdout only. Switched to `spawnSync`, both streams. Two detector bugs stacked, each hiding the next, in a fix whose purpose was to stop a gate certifying what it never examined. Both found by mutation, neither by reading |
 | 193 | §745 | **§746** | **CLEAN NEGATIVE — the record already says what the board's numbers certify.** Under `--mode merge`: **5 of 20** gates emit a sentinel; for the other 15 `run-gate` SYNTHESIZES `PASS/executed:true/assertions:1` from exit 0 — so on three-quarters of the board `assertions` is a CONSTANT, not a measurement. `RELEASE-EVIDENCE.md` states this verbatim and draws the right conclusion (*"only meaningful for the sentinel-emitting gates"*), carrying the distinction into its Artifact column. Nothing to fix — worth recording because this audit keeps finding the opposite shape. **My first measurement said 4 of 20** — an artifact of running gates BARE when `run-gate` passes `--mode`. Sixth instrument error this session, same correction as §741's wrong suite: **run the subject the way its real caller runs it** |
+| 194 | §746 | **§747** | **CLAUDE.md rule 10 (no silent drops in migration) mutation-proved.** Making an unmapped column produce no gap row reds 2 tests — the stronger one asserting the per-row VALUES are *retained*, not merely that a gap row is minted. **What "171-col" is a claim about:** an OWNER-HELD artifact (the tenant-0 config pack, `genesis/13`); in-repo the vendored fixture is synthetic, **13 columns**. That is correct, not a shortfall — *"ANY column that doesn't map raises a gap row"* is a **per-column property, not a count**, so it is proved by exercising the classification branches. The 171-col export supplies *parity* evidence, held as `legacy-export-replay` `status: pending`. Fixture truncation is pinned too (deleting `misc_note` reds the same 2). `verify:merge` re-derived: **19 PASS · 2 FAIL · 5 BLOCKED**, identical to §737 |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -42694,3 +42695,77 @@ No code changed. `test:tools` **1024** (baseline 3 register failures); lint 0; t
 - A reader cites an `assertions` count from a release record as evidence of coverage → that is the
   misreading this documentation exists to prevent, and it is only prevented if the caveat travels with the
   number.
+
+## §747 — PHASE GATE: the migrator's no-silent-drop law, and what "171-col" is a claim about
+
+§742 mutation-proved three named laws and found all three defended. One CLAUDE.md non-negotiable had not been
+touched this session — **rule 10: *"No silent drops in migration: any legacy column (171-col export) that
+doesn't map raises a gap row — never disappears."***
+
+### The law is defended
+
+`classifyColumns` gives every header a class, and an unmapped one becomes a `gapRow`. Mutated the classifier
+to do what the rule forbids — return early on an unmapped column so it produces no gap row:
+
+```
+× misc_note + legacy_status map to no canonical field → 2 unmapped gap rows with samples
+× the per-row values of unmapped columns are RETAINED on the event draft (never lost)
+```
+
+Two reds, and the second is the stronger one: it asserts the *values* survive, not merely that a gap row is
+minted. A gap row that recorded the loss without preserving the data would satisfy a weaker reading of the
+rule and still lose freight history.
+
+### What the "171" is, and why nothing in-repo checks it
+
+The number describes an **owner-held artifact**. `PROJECT-STATE.md` places *"the 171 legacy column headers and
+field mapping"* inside the **tenant-0 config pack**, which `genesis/13` puts in the engagement workspace,
+outside this repo. `genesis/08` calls the 171-column export *"the final parity exam"*.
+
+In-repo, `fixtures/legacy-mirror/generic-export.csv` is **vendored** and synthetic: **13 columns**, 9 lines,
+REQ-167-clean, and the test file says so outright (*"the synthetic fixture. In production…"*).
+
+**That is the correct arrangement, not a shortfall**, and the reason is in the rule's own wording: *"ANY legacy
+column that doesn't map raises a gap row"* is a **per-column property**, not a count. A law quantified over
+every column is proved by a fixture that exercises the classification branches — mapped, unmapped,
+below-confidence — and is entirely indifferent to how many columns the real export has. Testing it against 171
+synthetic columns would add rows to a CSV and nothing to the proof.
+
+What the 171-column export would add is *parity* evidence (the ±2% aggregate replay), and that is exactly what
+the manifest holds as `legacy-export-replay`, `status: pending` — one of the five BLOCKED gates. The split is
+principled: the **law** is provable in-repo and proved; the **parity exam** needs the real artifact and is
+correctly recorded as owner-held.
+
+### The fixture's load-bearing columns are pinned
+
+A synthetic fixture invites a different failure: silent truncation. Tested by deleting the `misc_note` column
+outright — the same two tests red. The columns the assertions name by hand are therefore pinned by those
+names; a fixture that shrank underneath them could not stay green.
+
+### Exit state
+
+No code changed. `packages/adapters` **41/41**; `test:tools` 1024; lint 0; typecheck 0. Both probes (source
+mutation and fixture mutation) restored byte-identical.
+
+`verify:merge` re-derived this phase (§705: a subset that passes is not the gate), ten commits after §737's run:
+
+```
+26 gates — 19 PASS · 2 FAIL · 5 BLOCKED   (exit 1, working tree)
+```
+
+**Identical to §737, §729 and §726**, the two FAILs still the uncommitted `REQ-289` register row. At HEAD's
+register the board reads `21 PASS · 0 FAIL · 5 BLOCKED`, unchanged since §719 across twenty-two phases.
+
+A counting slip worth one line: my first tally said *5 FAIL*, because `FAIL` appears in that log in **two
+formats** — vitest's `FAIL <path> > <test name>` and the board's `FAIL <gate> — <detail>`. Three of the five
+were test-file lines already counted inside `unit-tests`. Seventh instrument slip this session, same family as
+§746's wrong argv: **the pattern matched a word, not a record.**
+
+**Reopen triggers**
+- `legacy-export-replay` is vendored → the ±2% aggregate parity exam runs for the first time. Read its first
+  green carefully: the law and the parity are different claims, and only the second is new evidence.
+- A column class is added to `classifyColumns` (a third gap reason, say) → the mutation above only covers the
+  `unmapped` branch. Each branch needs its own, because "every header gets a class" is the property, and a new
+  class is a new way to have none.
+- The synthetic fixture gains columns → harmless, but if an assertion starts depending on the column *count*
+  rather than on named headers, that assertion becomes fixture-shaped and will break for the wrong reason.
