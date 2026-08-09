@@ -28,6 +28,7 @@
     "check:citations": "tsx tools/checks/citation-links.ts",
     "fix:citations": "tsx tools/checks/citation-links.ts --fix",
     "check:tables": "tsx tools/docs/check-table-shape.ts",
+    "verify:docs": "pnpm check:citations && pnpm check:section-refs && pnpm check:traceability && pnpm check:tables",
     "check:surfaces": "tsx tools/deploy/surface-contract.ts",
     "check:fixtures": "tsx tools/fixtures/verify.ts",
     "check:rater-parity": "tsx tools/rater/parity.ts",

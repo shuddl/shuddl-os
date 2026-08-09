@@ -398,6 +398,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 203 | §755 | **§756** | **DEFECT: a retention clock that could be pushed forever, found by following §755's own trigger to the evidence leg.** `/v1/evidence` short-circuits an already-ACTIVE row to 200 — disabling it left **18/18 GREEN**, but it is load-bearing for RETENTION, not efficiency: without it an active doc takes the **re-instate** branch, whose `created_ts = Date.now()` is correct for a TOMBSTONED row (REQ-198) and wrong for an active one. **A document re-uploaded periodically would never expire** (REQ-116/140) — and repeat uploads are ROUTINE, because the driver's evidence leg re-probes parked items (§754). §749's shape one layer down: the tombstoned branch is tested, the active branch had nothing. Pinned — 200 + one row + `created_ts` unchanged; the **200 matters as much as the timestamp** (a 4xx would re-park the item) |
 | 204 | §756 | **§757** | **§748's own fix made §748's own prose a violation — and it hid for eight phases.** A full `verify:merge` returned **3 FAILs** against a 2-FAIL baseline; the third was `traceability`, flagging three four-digit REQ ids that were EXAMPLES I wrote. §748 widened the matcher to `\d{3,}` (correctly), and that turned its own worked examples into citations of rows that do not exist. **Fifth time this session an example created the artifact** (citations ×3, a section ref, now REQ ids). **Why it hid:** after doc edits I reflexively run `check:citations` + `check:section-refs`, but `check:traceability` reads `docs/audits` too — the checklist was one gate short. **The merge gate is what noticed**, §705 earning its keep twice in one session. 12 literals removed; traceability back to 0 |
 | 205 | §757 | **§758** | **Six self-scanning gates, FOUR different answers, two with none — the map that explains five recurrences.** Writing an example created the forbidden artifact 5× this session; rather than wait for the sixth I mapped every gate that reads its own source. `citation-links` = a marker **bounded to its own tree** (§272); `invariants` = **excludes test paths**; `design/audit` = **corpus scope** (`apps`+`packages`, its tests live in `tools/`); `identity-leak` = runtime assembly; `traceability` and `section-refs` = **nothing**. Each mechanism is appropriate — standardising would be worse — **what was missing is the map**. Design boundary planted, not read: shadow in-corpus **exit 1**, same shadow in `tools/` exit 0. **Three instrument slips in this phase alone**, all false CLEANS, the last being §727's `git ls-files`-only-lists-tracked trap met again |
+| 206 | §758 | **§759** | **`pnpm verify:docs` — and the CORRECTION it forced on §757.** §757's root cause was a checklist one gate short; bundled the four gates a documentation phase should satisfy, verified to fail as a bundle (a planted over-wide table row → exit 1). **Proving it caught §757's own defect exposed that §757 blamed the wrong file**: `orphans.ts` excludes **eleven** paths including `:(exclude)docs/audits`, and I had asserted the list from a TRUNCATED grep line. Isolated by planting per-file — audit doc alone **exit 0**, `traceability.test.ts` alone **exit 1**, the entire cause. §757 corrected IN PLACE, because a wrong explanation in an audit is worse than a missing one. **The artifact was eleven lines long and right there** |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -43336,9 +43337,18 @@ Fifth occurrence this session of writing an example creating the artifact: `path
 introduced the violation. It then committed after running `check:citations` and `check:section-refs`.
 
 That is a habit, not an accident: after editing the audit doc I reflexively run the two gates that read
-*documents*, and `check:traceability` reads documents too — the audit file is inside its scan (only `genesis`,
-`docs/plans` and `BUILD-PROMPT.md` are excluded). The doc-edit checklist was one gate short, and eight phases
-of doc edits went by without anything noticing.
+*documents*, and `check:traceability` reads source too. The doc-edit checklist was one gate short, and eight
+phases went by without anything noticing.
+
+**§759 CORRECTION — the file I blamed was the wrong one.** This section originally said *"the audit file is
+inside its scan (only `genesis`, `docs/plans` and `BUILD-PROMPT.md` are excluded)"*. That is FALSE, and I
+asserted it from a truncated grep of the pathspec rather than from the list. `orphans.ts` excludes **eleven**
+paths, and `:(exclude)docs/audits` is one of them.
+
+Isolated by planting the same id in one file at a time: a four-digit id in the **audit doc alone** → `exit 0`;
+in **`traceability.test.ts` alone** → `exit 1`. The test file was the entire cause. The audit-prose edits in
+§757 were unnecessary — harmless, and still right as a practice (§758's *describe, never spell*), but not what
+fixed the gate. `compare-artifacts-dont-reason-about-them`, paid for again.
 
 **The merge gate is what noticed.** §705's rule earning its keep for the second time this session: a subset
 that passes is not the gate, and the subset I had been running was three gates wide.
@@ -43427,3 +43437,64 @@ No code changed. `audit:design` clean; `test:tools` 1037; lint 0; typecheck 0; a
   the rule *describe, never spell* stops being their only defence.
 - The design audit's corpus widens to `tools/**` → its own tests become in-corpus and will red. That is the
   moment to give it an exclusion, not to narrow the audit.
+## §759 — PHASE GATE: a one-command doc check, and the correction it forced on §757
+
+§757's measured root cause was a checklist, not a bug: *"after doc edits I reflexively run `check:citations`
+and `check:section-refs`"* — and a third gate caught what those two could not. A checklist that can be one
+gate short is fixable in one line.
+
+### `pnpm verify:docs`
+
+Bundles the four gates a documentation phase should satisfy:
+
+```
+check:citations && check:section-refs && check:traceability && check:tables
+```
+
+Verified to fail as a bundle, not merely to exist: an over-wide table row planted in the audit doc takes it to
+**exit 1** (`check:tables` — *"the extra cells render as NOTHING"*, a real hazard, since GitHub silently drops
+them). Clean tree: exit 0.
+
+### And proving it forced a correction to §757
+
+To show the bundle catches §757's own defect I planted a four-digit REQ id in the audit doc. **It did not
+fire.** Reading `orphans.ts` rather than assuming again: its pathspec excludes **eleven** paths, and
+`:(exclude)docs/audits` is one of them.
+
+§757 states — in my own words — *"the audit file is inside its scan (only `genesis`, `docs/plans` and
+`BUILD-PROMPT.md` are excluded)"*. That is **false**. I read three exclusions off a truncated grep line and
+asserted the shape of the list.
+
+Isolated by planting the same id in one file at a time:
+
+| where the four-digit id lives | `check:traceability` |
+|---|---|
+| the audit doc alone | **exit 0** — excluded |
+| `traceability.test.ts` alone | **exit 1** — the entire cause |
+
+So §757's defect was real and its fix was real, but **the file I blamed was the wrong one**. The audit-prose
+edits were unnecessary — harmless, and still correct as practice (§758's *describe, never spell*), but not
+what turned the gate green. §757 is corrected in place rather than quietly reworded, because a wrong
+explanation in an audit is worse than a missing one: the next reader inherits it.
+
+`compare-artifacts-dont-reason-about-them`, paid for again — and the artifact was **eleven lines long and
+right there**.
+
+### What the bundle actually is
+
+Not "the gates that read docs" — that was the wrong framing and the wrong name for the wrong reason. It is
+**the gates a documentation phase should satisfy**: three of them read prose, and `check:traceability` reads
+the *source* that a documentation phase so often touches alongside it, which is exactly how §757 happened. The
+bundle is right; my original justification for it was not.
+
+### Exit state
+
+`verify:docs` 0; `test:tools` 1037; lint 0; typecheck 0. All probes restored byte-identical, verified per file.
+
+**Reopen triggers**
+- A fifth gate starts reading docs or doc-adjacent source → add it to `verify:docs`. The bundle's value is that
+  it cannot be one gate short; that only holds if it is maintained.
+- `orphans.ts`'s exclusion list changes → this phase's table stops being true. It was measured by planting, and
+  re-measuring costs two commands.
+- A future phase asserts what a pathspec excludes → print the list. Twice now (§757, and §758's `git ls-files`
+  trap) a truncated view of a real artifact produced a confident wrong claim.
