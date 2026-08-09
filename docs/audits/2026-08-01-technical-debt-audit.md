@@ -397,6 +397,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 202 | §754 | **§755** | **A client-side fix resting on a server-side premise — both sides now checked.** §754 named the driver's unenforced premise (*append is idempotent by event id, so a re-probe is always safe*). Removing the sequencer's replay short-circuit REDS **two** tests, the first being *"a duplicate event id returns the original row; the count is unchanged"* — the driver's premise almost word for word. **"The count is unchanged" is what makes it the right test**: a replay that THREW would also avoid duplication while stranding the capture exactly as the pre-fix park did — the driver needs a SUCCESS, not an absence. Residual recorded, not fixed: the two halves live in different packages/runners and neither test knows about the other, so the coupling is real and would fail silently from either side |
 | 203 | §755 | **§756** | **DEFECT: a retention clock that could be pushed forever, found by following §755's own trigger to the evidence leg.** `/v1/evidence` short-circuits an already-ACTIVE row to 200 — disabling it left **18/18 GREEN**, but it is load-bearing for RETENTION, not efficiency: without it an active doc takes the **re-instate** branch, whose `created_ts = Date.now()` is correct for a TOMBSTONED row (REQ-198) and wrong for an active one. **A document re-uploaded periodically would never expire** (REQ-116/140) — and repeat uploads are ROUTINE, because the driver's evidence leg re-probes parked items (§754). §749's shape one layer down: the tombstoned branch is tested, the active branch had nothing. Pinned — 200 + one row + `created_ts` unchanged; the **200 matters as much as the timestamp** (a 4xx would re-park the item) |
 | 204 | §756 | **§757** | **§748's own fix made §748's own prose a violation — and it hid for eight phases.** A full `verify:merge` returned **3 FAILs** against a 2-FAIL baseline; the third was `traceability`, flagging three four-digit REQ ids that were EXAMPLES I wrote. §748 widened the matcher to `\d{3,}` (correctly), and that turned its own worked examples into citations of rows that do not exist. **Fifth time this session an example created the artifact** (citations ×3, a section ref, now REQ ids). **Why it hid:** after doc edits I reflexively run `check:citations` + `check:section-refs`, but `check:traceability` reads `docs/audits` too — the checklist was one gate short. **The merge gate is what noticed**, §705 earning its keep twice in one session. 12 literals removed; traceability back to 0 |
+| 205 | §757 | **§758** | **Six self-scanning gates, FOUR different answers, two with none — the map that explains five recurrences.** Writing an example created the forbidden artifact 5× this session; rather than wait for the sixth I mapped every gate that reads its own source. `citation-links` = a marker **bounded to its own tree** (§272); `invariants` = **excludes test paths**; `design/audit` = **corpus scope** (`apps`+`packages`, its tests live in `tools/`); `identity-leak` = runtime assembly; `traceability` and `section-refs` = **nothing**. Each mechanism is appropriate — standardising would be worse — **what was missing is the map**. Design boundary planted, not read: shadow in-corpus **exit 1**, same shadow in `tools/` exit 0. **Three instrument slips in this phase alone**, all false CLEANS, the last being §727's `git ls-files`-only-lists-tracked trap met again |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -43364,3 +43365,65 @@ After the fix the third FAIL is gone; the remaining two are the uncommitted `REQ
   widening is still right; the prose must move with it.
 - An example needs a literal that a scanner reads → assemble it at run time. Three scanners in this repo now
   read their own source (citations, identity, traceability), and a fourth will.
+## §758 — PHASE GATE: six self-scanning gates, four different answers, two with none
+
+Five times this session, writing an EXAMPLE created the artifact a gate forbids — `path:line` citations (§733,
+§734, §735), a bare section number (§749), REQ ids (§757). §757's trigger said a sixth would come. Rather than
+wait, I mapped every gate that can read its own source and asked what protects each.
+
+**Eight gates scan tracked files.** Six can plausibly meet their own examples, and they answer it four
+different ways:
+
+| gate | protects its own examples by | how I know |
+|---|---|---|
+| `citation-links` | a `citation-check: ignore` marker, **bounded to the scanner's own tree** (§272) | §744 — the bound rejected my attempt to use it from a doc |
+| `invariants` | **excludes test paths** (`isTestPath`), so its own forbidden-SQL probes are invisible | source + the shared probe corpus |
+| `design/audit` | **corpus scope** — it globs `apps/**` + `packages/**`; its own tests live in `tools/` | §758, planted below |
+| `identity-leak` | nothing structural — the probe term is **assembled at run time** | §744 |
+| `traceability/orphans` | **nothing** — §757 had to strip 12 literals |
+| `section-refs` | **nothing** — §749 had to rephrase |
+
+**That inconsistency is the explanation for five recurrences.** Each gate solves the problem differently or not
+at all, so nothing transfers: a person who learns the citations marker tries it on traceability and finds no
+such thing (I did, in §749). The knowledge is per-gate, and there are six gates.
+
+The four mechanisms are each *appropriate* — a marker suits a gate whose corpus must include docs; scope suits
+one whose corpus is the product; runtime assembly suits a scanner that reads literally everything. Standardising
+them would be worse. **What was missing is the map**, and this is it.
+
+### The design audit's boundary, planted rather than read
+
+| planted `box-shadow` | result |
+|---|---|
+| `packages/design/src/…css` (tracked) | **exit 1** — *"box-shadow — no shadows (REQ-147)"* |
+| `tools/checks/…css` (tracked) | exit 0 — outside the corpus |
+
+That also re-verifies CLAUDE.md rule 7's claim that a planted shadow is caught.
+
+### Three instrument slips in this one phase — all false CLEANS
+
+Getting that two-row table took four attempts:
+
+1. probed with `export const PROBE = "#ABCDEF"` — the color audit flags **color properties**, not any hex;
+2. fixed that, still 0 — because the bare script prints `design audit: clean` and I had not established a
+   positive control at all;
+3. the real cause: **`scannedFiles()` uses `git ls-files`, and my probe file was untracked.** Invisible.
+
+Slip 3 is §727's exact trap, met again. Every one of the three read as *"the gate does not catch this"* — the
+direction that does not announce itself (the memory note from earlier today, now at eleven instances). The
+sequence that finally worked is the one that should have started it: **establish a positive control, and check
+the fixed point (`git ls-files` returning 1) before interpreting any zero.**
+
+### Exit state
+
+No code changed. `audit:design` clean; `test:tools` 1037; lint 0; typecheck 0; all probe files removed
+(`git status` clean in both trees).
+
+**Reopen triggers**
+- A seventh self-scanning gate is added → give it one of the four mechanisms *explicitly*, and add a row here.
+  The failure mode is not "no protection", it is "no stated protection", which reads the same until an example
+  is written.
+- `traceability` or `section-refs` gains a marker → the two "nothing" rows become one of the other three, and
+  the rule *describe, never spell* stops being their only defence.
+- The design audit's corpus widens to `tools/**` → its own tests become in-corpus and will red. That is the
+  moment to give it an exclusion, not to narrow the audit.
