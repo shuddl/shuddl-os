@@ -451,6 +451,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 256 | §808 | **§809** | **PHASE 32 CLOSED — a gate's KIND is part of its identity; `external` is an OFF SWITCH.** §808 stated this edge; 4th application of §790's rule and 4th time the residual was bigger than its sentence. `kind: "external"` short-circuits execution — `{status: "BLOCKED", executed: false, assertions: 0}` — and **BLOCKED does not fail the aggregate**, so flipping a gate converts an enforced check into a permanently-blocked non-check **that still appears on the board**. Flipping `append-chokepoint` was caught **only INCIDENTALLY** (orphan-script test), which works when a script has ONE invoker and fails precisely for **`typecheck`, `lint`, `unit-tests`, `runtime`** — the four most fundamental gates, each switchable off by a three-word edit. **All four were SILENT.** Fixed by asserting the external set is exactly `{backup-manifest}` and merge has none. Five-phase line: a red-gate commit → an off switch on `typecheck` |
 | 257 | §809 | **§810** | **SESSION CONSOLIDATION — 32 phases, measured.** §809's residual is **the first of five that measurement shows as SMALL as its sentence** (the kind union is exactly `cmd|external`, TypeScript-enforced) — recorded because "four for four" was becoming a rule of thumb and the 5th point keeps it a measurement. Board at `819e83a`: **19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape across all 32 phases. **4,205 tests** (3,136 workspace, 0 failures), **+53 since §784, every one pinning something a mutation proved unwatched**. **Production source touched: 17 files, +277/−109 — almost all of it §782's unparsed-boundary class; 31 of 32 phases changed only tests, gates and the record.** That ratio is the summary: behaviour was largely right, evidence that it STAYS right was missing. Stopping point: **no repo-owned defect from §772–§809 is unclosed; none of the 20 standing rows is both open AND actionable without an owner decision** |
 | 258 | §810 | **§811** | **PHASE 33 CLOSED — the ACCEPTANCE gate audited: the biggest claim, and the BEST-DEFENDED gate in the repo.** The prior (§746: 15/20 gates synthesize their verdict; §727: a filter matching nothing exits 0) said it would be thinner than its name. **It is not.** Four defences, each measured: the 5-demo roster REDs when one is dropped · manifest↔module parity asserted **both ways** · `missingSpineFiles()` runs **before** vitest, and its comment names the §727 hazard **at design time** · breaking the Biller's send REDs *"the full causal chain of acceptance demo #1… through every real seam"*. Demo 1's `filmed` field is the strongest artifact I have read here: it cites `biller.ts:588@photos`, says the film will show **placeholder slots, not photographs**, and ends *"Do not stage photos into the capture to make the film match the sentence."* **32 phases of finding gaps builds a prior that everything has one — that prior is how a clean artifact gets "improved" into a worse one** |
+| 259 | §811 | **§812** | **PHASE 34 CLOSED — CLAUDE.md rule 7's SEVEN audits all proved, and they live in TWO gates.** The record proved 3 (§252 shadow/radius/raw-hex, §257 palette drift); **contrast, font, case and motion had implementations and NO recorded proof.** Planted one each: Comic Sans → **CAUGHT**, `textTransform: capitalize` → **CAUGHT**, a 420ms back-out bezier → **CAUGHT**, `--signal-deep` lightened below 4.5:1 → **CAUGHT** (*"small-text red passes AA on greige"*). **Structural fact now recorded: contrast is NOT in the `design-audit` gate** — it lives in `tools/design/design.test.ts` under `test:tools`, so rule 7's seven audits are split across two merge gates, and the one that surprises is the one rule 7 singles out. **My first mutation was MIS-AIMED** (`tokens.ts`, but the test reads `tokens.css`) — and what caught it was the TS↔CSS token-parity gate, the same mechanism §257's derived-allowlist proof rests on |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -46878,3 +46879,54 @@ restored byte-identical. `pnpm test:acceptance` green — 38 tests across 7 spin
   commit. It is a hold with an expiry condition, and the condition is a code change.
 - A spine file is split or renamed → `missingSpineFiles()` catches it with the demo named. Do not "fix" it by
   dropping the row; that is the failure the message is worded against.
+## §812 — PHASE GATE: PHASE 34 CLOSED — CLAUDE.md rule 7's seven audits, all proved, and they live in TWO gates
+
+Rule 7 names seven audits — *"color/contrast/font/case/radius/shadow/motion"* — plus five blessed
+screenshots. The record proved **three** of them: §252 planted a shadow, an over-budget radius and a raw hex;
+§257 drifted the palette; §258 verified the gate is blocking. **Contrast, font, case and motion had
+implementations and no recorded proof.** Planted one violation each.
+
+| audit | probe | result |
+|---|---|---|
+| font | `fontFamily: "Comic Sans MS, cursive"` | **CAUGHT** — `audit:design` exit 1 |
+| case | `textTransform: "capitalize"` | **CAUGHT** — exit 1 |
+| motion | a 420 ms back-out cubic-bezier | **CAUGHT** — exit 1 |
+| **contrast** | `--signal-deep` lightened below 4.5:1 on `--field` | **CAUGHT** — *"small-text red passes AA on greige"* |
+
+**All seven of rule 7's audits are now mutation-proved.**
+
+### And a structural fact the record should carry
+
+The contrast check is **not** in the `design-audit` gate. `audit.ts` mentions `design.test.ts` only in
+comments; the assertion lives in `tools/design/design.test.ts` and runs under `test:tools` — i.e. the
+`unit-tests` merge gate.
+
+Both are merge gates, so the law is enforced either way. But someone reading *"design-audit is blocking, so
+rule 7 is covered"* would be wrong about one of the seven, and the one they would be wrong about is the one
+rule 7 singles out: *"`--signal-deep` is tuned by the contrast test, not by eye."* **Rule 7's seven audits
+are split across two gates**, and that is now written down.
+
+### My first mutation was mis-aimed, and the thing that caught it is a defence worth naming
+
+I lightened `signalDeep` in `packages/design/src/tokens.ts` and the contrast test did not fire — because it
+reads `packages/design/tokens.css`. §772's rule again: a mutation must cross the boundary the guard actually
+watches, and I aimed at the TypeScript twin of the file under test.
+
+What DID fire was *"every custom property tokens.css defines has the identical literal in
+CSS_VAR_LITERALS"* — the TS↔CSS token parity gate. So the mis-aimed probe still landed on a real guard: the
+two token sources cannot drift, which is the mechanism §257 relied on when it proved the palette allowlist is
+*derived* rather than copied. A wrong experiment that fails for a correct reason is worth reporting, because
+the next person aiming here will aim at the same wrong file.
+
+### Exit state
+
+No source changed — four files mutated (`App.tsx`, `tokens.ts`, `tokens.css`, plus the earlier probe), all
+restored byte-identical. `audit:design` 0; `test:tools` 1069; the design suite green.
+
+**Reopen triggers**
+- An eighth audit joins rule 7 → it needs a planted violation before it counts as enforced. Four of the seven
+  here had implementations and no proof, which is how a gate acquires an audit that never fires.
+- The contrast assertion moves into `audit.ts` → good, and this section is the note that says where it used
+  to live and why the split mattered.
+- `tokens.ts` and `tokens.css` stop being parity-checked → the mis-aim above becomes silent, and §257's
+  derived-allowlist proof loses the mechanism it rests on.
