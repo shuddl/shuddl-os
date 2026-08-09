@@ -477,6 +477,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 282 | §834 | **§835** | **PHASE 56 CLOSED — seven modules claimed determinism and nothing enforced it.** §814's question applied to the *"no Date, no random"* claim: does the claim-set equal the ban-set? **25 claiming modules, 11 outside every ban** — and they are **two different things**. FIVE pure `packages/ledger` libraries (`contacts`, three `geo/*`, `money/derive-split`) + TWO translator pure cores: real gaps, now banned. FOUR are **not defects** — `biller`/`booking`/`concierge` scope the sentence to a **derived id**, not the module; recorded with what they actually claim. **The translator ban is a DELIBERATE SUBSET**: `build-214.ts:72` does `new Date(e.ts).toISOString()`, a pure conversion — the blanket selector every other block uses would flag correct code, and a block that flags correct code gets deleted rather than obeyed. Proved: `Date.now()` banned, `new Date(ms)` allowed. §815's replacement hazard **checked, not assumed**. + a discovery half (3 REDs). **§834 shipped with a 4th failure I did not measure** — its heading omitted the `PHASE GATE:` prefix `phase-index` requires; I ran `verify:docs` and not `test:tools`. *The check I remember to run is not the check the edit affects* |
 | 283 | §835 | **§836** | **PHASE 57 CLOSED — the development loop reaches 4 of its 16 gates.** `pnpm verify` is `verify:dev`, a 16-step **`&&` chain** with `pnpm test` at step 4 — and `test:tools` exits 1 on the REQ-289 trio, so it **stops there**. Measured: runtime's OK line, a `Tests 3 failed` summary, and nothing else; twelve gates (invariants, coverage, traceability, identity, 3 parity gates, design audit…) **never execute**. `verify:merge` is a RUNNER that executes all 26 and aggregates — so the command you run constantly truncates and the one you run rarely is complete. **The repo's own principle turned on its tooling**: REQ-197/010 forbids a bare `LIMIT` because it *truncates silently*, and twelve unrun gates are indistinguishable from twelve passing ones. CLAUDE.md said *"leave the build green"* and **named no command** — which is why this session ran remembered subsets and §835 shipped a red. Working agreement now names `verify:merge`, with the measurement. **`&&` still NOT changed** (§834's reasoning). **4th forward-reference** — and §831 had written the rule itself |
 | 284 | §836 | **§837** | **PHASE 58 CLOSED — one LAW gate reachable only by the command nobody ran.** §836's residual: membership, not depth. All **16** dev steps map onto merge gates; the merge roster has **10** more, and they sort cleanly — 6 are browser/build gates a fast loop may skip, 3 (`citations`, `section-refs`, `table-shape`) are **covered by `verify:docs`**, and **`append-chokepoint` is covered by NOTHING**. It enforces REQ-030 (*the events table has exactly one writer*) and ran only under `verify:merge` — the command §836 established was not being run. **The omission is not cost-based, and that is the evidence**: timed at **544ms**, the MIDDLE of the in-chain range (458–942ms), with seven cost-matched peers already in the chain and every other absentee holding a second home. Added — **additive, cost-matched, no semantic change**, which is why this was in scope where §834's and §836's `&&` questions were not. **Residual named**: the two gate lists live in different files and **nothing compares them**; this phase compared by hand |
+| 285 | §837 | **§838** | **PHASE 59 CLOSED — the two gate lists now compare themselves.** §837 found the chokepoint omission **by hand** and called it *a measurement with an expiry*. This is the gate. Compares by **SCRIPT, not by name**, reading the exported `gatesFor("merge")` as the authority — the lists disagree on names **by design** (`identity-leak`→`check:identity`, `concierge-parse`→`check:concierge-parity`, `append-chokepoint`→`check:chokepoint`), so a name comparison would have reported three false mismatches and been relaxed into uselessness. **Only one direction is a defect**: a dev step that is NOT a merge gate means the inner loop is stricter than the shippable verdict, invisibly — asserted empty. The reverse is normal and each absence is now recorded with its reason. **§837 understated its own subject**: `run-gate.ts`'s comment on that gate reads *"the DB triggers fire on COLLISIONS, so a direct insert with a fresh id is accepted and skips every gate — nothing else catches it"* — so on the direct-insert path chokepoint is **the only** detector, not one of several. 3 REDs |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -48654,3 +48655,67 @@ allowlisted module(s)"*). `test:tools` **1099**, 3 failed — the REQ-289 trio. 
   that judgement, and it should be re-measured rather than argued.
 - A cheap gate is deliberately kept out of the dev loop → say so where the script is defined. This phase could
   only tell oversight from decision because every other absentee had a visible second home.
+## §838 — PHASE GATE: PHASE 59 CLOSED — the two gate lists now compare themselves
+
+§837 found `check:chokepoint` missing from the dev loop by comparing two lists **by hand**, and said so:
+*"a measurement with an expiry, not a standing guarantee."* This is the gate.
+
+### What it compares, and why by SCRIPT rather than by name
+
+`gatesFor("merge")` is **exported** from `tools/release/run-gate.ts`, and every spec carries the exact pnpm
+`script` it runs. So the comparison reads the authority rather than parsing prose — §830's rule, applied
+again: read one side, compute the other.
+
+Matching by script name matters because the two lists **disagree on names by design**: the merge gate calls it
+`identity-leak` and the script is `check:identity`; `concierge-parse` runs `check:concierge-parity`;
+`append-chokepoint` runs `check:chokepoint`. A name-based comparison would have reported three false
+mismatches and been relaxed into uselessness.
+
+### The two directions, and only one of them is a defect
+
+- **A dev step that is not a merge gate** — the dangerous direction. It means the inner loop enforces
+  something the shippable verdict does not, so a developer's green is stricter than the merge gate's and the
+  difference is invisible at merge time. Asserted to be empty.
+- **A merge gate absent from the dev chain** — normal and often correct. Each is now recorded with its reason:
+  six browser/build gates a fast loop may skip, three covered by `verify:docs`. An unaccounted absence fails.
+
+### Why the subject mattered more than §837 said
+
+The chokepoint gate's own definition in `run-gate.ts` carries the sentence that reframes it:
+
+> *the DB triggers fire on COLLISIONS, so a direct insert with a fresh id is accepted and skips every gate —
+> nothing else catches it.*
+
+So `check:chokepoint` is not one guard among several for REQ-030's single-writer law. On the direct-insert
+path it is **the only one** — the append-only triggers do not fire, because there is no collision to fire on.
+§837 recorded it as a cost-matched omission; it is that, and it is also the sole detector of a write that
+otherwise reaches the ledger silently. That is the argument for it being in the loop a session actually runs,
+and it was sitting in the record all along, one line above the gate it describes.
+
+### The gate caught two of my own guesses on its first run
+
+I hand-wrote the accounted-absence roster and got two entries wrong: `perf` where the script is **`perf:map`**
+(I used the GATE name, which is exactly the name-vs-script confusion the comparison exists to avoid), and
+`test:surfaces`, which is **release-profile only and not a merge gate at all**. Both failed immediately — the
+first as an unaccounted absence, the second as a row outliving its subject.
+
+Worth keeping because it is the §672 half earning its place on day one: **a roster of reasons rots exactly
+like any other list**, including while it is being written. The roster is now measured from
+`gatesFor("merge")` rather than typed.
+
+### Exit state
+
+`test:tools` **1102** (+3), 3 failed — the REQ-289 trio. typecheck 0 · lint 0 · `verify:docs` 0. **No
+production code, no script change** — this phase only added the comparison §837 promised.
+
+Proved three ways: a dev step absent from the merge roster → RED · a merge gate dropped from both the chain
+and the accounted list → RED naming it · the script parse breaking → RED on non-vacuity rather than passing
+on two empty sets.
+
+**Reopen triggers**
+- A gate is added to `verify:merge` → this REDs until it is either added to the dev chain or accounted for
+  with a reason. That is the intended cost and it is one line either way.
+- `gatesFor` stops exporting, or its specs stop carrying `script` → the comparison loses its authority and
+  falls back to nothing. It reads the export directly, so that failure is a compile error, not a silent pass.
+- A second dev-loop command appears (`verify:quick`, a pre-commit hook) → it is not compared to anything.
+  This phase pins `verify:dev` alone, which is the only chain CLAUDE.md now names.
