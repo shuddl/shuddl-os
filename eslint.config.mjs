@@ -114,6 +114,75 @@ export default tseslint.config(
     },
   },
   {
+    // The translator's two PURE CORE modules (audit §835). `build-214.ts` opens "PURE: no D1/R2/network, no
+    // Date, no random — deterministic given its inputs"; `quarantine.ts` says "PURE (REQ-204): a stable
+    // synchronous hash — no Date, no random". Module-level claims, and nothing enforced them.
+    //
+    // A DELIBERATE SUBSET of the selector set used elsewhere: `NewExpression[callee.name="Date"]` is OMITTED
+    // here, because `build-214.ts:72` does `new Date(e.ts).toISOString()` — converting an event's recorded
+    // millisecond to wire format. That is a pure function of its argument and is exactly what the module
+    // means by "no Date": no AMBIENT clock. Banning it would flag correct code and the block would be
+    // deleted rather than obeyed.
+    //
+    // §815's rule applies to subsets in the dangerous direction, so it is stated rather than left to be
+    // inferred: no other `no-restricted-syntax` block matches `workers/translator/**`, so this replaces
+    // nothing — it is the only rule these files get, and it is narrower than the ledger/rater one ON PURPOSE.
+    files: ["workers/translator/src/core/build-214.ts", "workers/translator/src/core/quarantine.ts"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: 'MemberExpression[object.name="Date"][property.name="now"]',
+          message: "REQ-204: this module's header claims PURE — an AMBIENT clock breaks the determinism the dedupe key depends on. `new Date(explicitMs)` is fine; reading the wall clock is not.",
+        },
+        {
+          selector: 'MemberExpression[object.name="Math"][property.name="random"]',
+          message: "REQ-204: this module's header claims PURE — its output must be reproducible from its inputs alone.",
+        },
+      ],
+    },
+  },
+  {
+    // The SAME determinism claim, in the five PURE LIBRARY modules of packages/ledger that also make it
+    // (audit §835). §283/§284/§285 enforced it in the rater, the gates, agents and adapters. These five say
+    // it too — `contacts.ts`, the three `geo/*` modules and `money/derive-split.ts` all open with "PURE" or
+    // "no Date, no random" — and nothing enforced it.
+    //
+    // MEASURED before extending the ban, because a blanket `NewExpression[callee.name="Date"]` also flags the
+    // legitimate `new Date(epochMs).toISOString()` CONVERSION, which is a pure function of its argument and is
+    // why this ban is scoped rather than repo-wide (`workers/agents/src/biller.ts:158` and
+    // `translator/core/build-214.ts:72` both do exactly that, correctly, outside these globs). All five of
+    // these modules use no clock and no randomness at all today, so the ban costs them nothing and does the
+    // one thing a lint rule can: it stops the NEXT edit.
+    //
+    // Selector set is IDENTICAL to the gates block below, not a superset — §815's lesson is that an
+    // overlapping scope silently REPLACES options, and these paths carry no other `no-restricted-syntax`
+    // block (`packages/ledger/**` declares only `no-restricted-imports`, `tsa/**` only
+    // `no-restricted-globals`), so there is nothing here to replace.
+    files: [
+      "packages/ledger/src/contacts.ts",
+      "packages/ledger/src/geo/**/*.ts",
+      "packages/ledger/src/money/**/*.ts",
+    ],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: 'NewExpression[callee.name="Date"]',
+          message: "REQ-024: this module's header claims PURE — the caller supplies the clock. An ambient one makes it untestable without freezing time.",
+        },
+        {
+          selector: 'MemberExpression[object.name="Date"][property.name="now"]',
+          message: "REQ-024: this module's header claims PURE — the caller supplies the clock. An ambient one makes it untestable without freezing time.",
+        },
+        {
+          selector: 'MemberExpression[object.name="Math"][property.name="random"]',
+          message: "REQ-024: this module's header claims PURE — its output must be reproducible from its inputs alone.",
+        },
+      ],
+    },
+  },
+  {
     // REQ-024 / the gate-purity claim (audit §283). transition-gates.ts states it outright: "pure
     // deterministic decisions over (prior events, incoming event, context) — no D1, no R2, no Date, no
     // random, no LLM". That is what makes the whole gate catalog unit-testable without a database, and it

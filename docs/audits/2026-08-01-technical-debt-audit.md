@@ -474,6 +474,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 279 | §831 | **§832** | **PHASE 54 CLOSED — a gate justified by a claim measurement CONTRADICTS.** Back to production ground: idempotency on mutations. Architecture is right — one `app.use("/v1/*", …)` mount wraps all 23 mutating endpoints by construction. **But its own comment justified it as *"no route-level test would notice"* — MEASURED FALSE**: deleting the idempotency mount fails **8** api tests, deleting auth fails **372**. Comment corrected, gate KEPT — its value is **one legible sentence naming the missing line** instead of 372 opaque auth failures; a structural pin is a better ERROR MESSAGE, not a unique detector (matters both ways: over-trusted if believed unique, deleted if its premise is visibly false). **THE REAL GAP — ORDER**: Hono composes in REGISTRATION order, so a route mounted before the middleware is never wrapped; the assertions only checked the lines EXIST. Moving one mount up left **test:tools at baseline** while the api suite failed **150** tests — loud, but not one of them says *a route was mounted before its middleware*. Now pinned. **I nearly reported "ORDER IS UNPINNED"** — one api-suite run turned an alarming claim into an accurate one |
 | 280 | §832 | **§833** | **PHASE 55 CLOSED — idempotency CLEAN; the discovery half finds the doc three phases missed.** §832's residual (MCP's own idempotency) traced end to end: key derived **centrally at dispatch** off the semantic operation, every mutating tool routes through `mutatingCallApi` (verified per tool; `quote`'s one raw call is a GET), and the API middleware **fails closed** — no header → 400. Layer 3 is server-side and therefore the authority; MCP's discipline is defence in depth on a gate that doesn't depend on it. 3 guarantees mutation-pinned: fail-open → **5** reds · un-tenant-scoped → **1** · 4xx cached → **3**. **Two measurement errors of mine, both false REASSURANCES**: a grep alternation silently failed and reported two mutating tools bypassing the chokepoint (false — recounted in Python), and probe C was a **no-op mutation** (`void 0;`) that nearly had me record a pinned rule as unpinned. *A green proves nothing until you know the mutation landed.* §831's residual closed, and the discovery half immediately caught **`BUILD-PROMPT.md`** stating the table figure unrostered — three phases had worked that file. Scope bounded to root contract docs: widening to `docs/` measures **8 FPs, 0 real** |
 | 281 | §833 | **§834** | **STOPPING POINT — the merge gate RE-MEASURED at `a83d17a`.** 26 gates (§807's pinned roster): **19 PASS · 2 FAIL · 5 BLOCKED**. Same shape as the pre-session board — 19 phases of hardening, **zero regressions**, every non-PASS owner-held (REQ-289 · the denylist secret · nine unvendored fixtures). **THE FINDING**: `pnpm test` is `test:tools **&&** pnpm -r test`, and `test:tools` exits 1 on the REQ-289 trio — so the second half **never executes**. A full run emits exactly **one** `Tests` summary. The board's *"unit-tests: FAIL"* reads as one known issue and actually means **the entire product suite is UNRUN in the merge gate**: 17 workspaces, **3,149 tests**. Run directly they are **green, exit 0** — so the defect is the REPORTING, not the code; a true statement a reader completes incorrectly. **Deliberately NOT changed**: `&&` → run-both is a change to what the gate DOES, with a real design question (fail fast vs complete picture) behind it — owner's call, and **it should be decided BEFORE REQ-289 lands**, because committing the row hides the defect again |
+| 282 | §834 | **§835** | **PHASE 56 CLOSED — seven modules claimed determinism and nothing enforced it.** §814's question applied to the *"no Date, no random"* claim: does the claim-set equal the ban-set? **25 claiming modules, 11 outside every ban** — and they are **two different things**. FIVE pure `packages/ledger` libraries (`contacts`, three `geo/*`, `money/derive-split`) + TWO translator pure cores: real gaps, now banned. FOUR are **not defects** — `biller`/`booking`/`concierge` scope the sentence to a **derived id**, not the module; recorded with what they actually claim. **The translator ban is a DELIBERATE SUBSET**: `build-214.ts:72` does `new Date(e.ts).toISOString()`, a pure conversion — the blanket selector every other block uses would flag correct code, and a block that flags correct code gets deleted rather than obeyed. Proved: `Date.now()` banned, `new Date(ms)` allowed. §815's replacement hazard **checked, not assumed**. + a discovery half (3 REDs). **§834 shipped with a 4th failure I did not measure** — its heading omitted the `PHASE GATE:` prefix `phase-index` requires; I ran `verify:docs` and not `test:tools`. *The check I remember to run is not the check the edit affects* |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -48370,7 +48371,7 @@ production code changed.**
   the error would be a confusing 400 rather than the chokepoint's own message.
 - The API middleware's fail-closed branch is ever relaxed → that is the load-bearing layer for MCP too, not
   just for `/v1`. Its 5 REDs are the widest of the three and should stay that way.
-## §834 — STOPPING POINT: the merge gate RE-MEASURED at `a83d17a`, and the FAIL that hides an unrun suite
+## §834 — PHASE GATE: STOPPING POINT — the merge gate RE-MEASURED at `a83d17a`, and the FAIL that hides an unrun suite
 
 Nineteen phases (§815–§833) have landed since the board was last measured end to end. Per-phase exits recorded
 `test:tools` and a couple of neighbours; none of them re-ran the gate. This does.
@@ -48441,3 +48442,74 @@ Working tree carries only the owner's uncommitted REQ-289 row.
   about the audited engine this repo has ever had. Expect it to be informative.
 - `IDENTITY_DENYLIST` is set → identity-leak becomes a live gate; REQ-167 is currently enforced by convention
   and by review, not by a running check.
+## §835 — PHASE GATE: PHASE 56 CLOSED — seven modules claimed determinism and nothing enforced it
+
+Untouched surface after the §834 stopping point: **clock and determinism**. §283/§284/§285 enforced *"no
+Date, no random"* where the claim first appeared — the rater, the ledger gates, `packages/agents` and
+`packages/adapters`. The question this phase asks is the §814 one: **does the claim-set equal the ban-set?**
+
+### It does not. 25 modules claim it; 11 sat outside every ban
+
+Swept every prod module whose header carries *PURE and DETERMINISTIC* / *no Date, no random* / *no D1, no R2,
+no Date*, and compared against the four determinism globs. Eleven uncovered — but they are **two different
+things**, and separating them is the phase:
+
+- **Five pure library modules in `packages/ledger`** — `contacts.ts`, the three `geo/*`, and
+  `money/derive-split.ts` (the one §816 audited). Module-level claims, no enforcement. All five use **no clock
+  and no randomness at all** today, so the ban costs them nothing and does the only thing a lint rule can: it
+  stops the NEXT edit. Now banned, with the same selector set as the gates block.
+- **Two pure cores in the translator** — `build-214.ts` (*"PURE: no D1/R2/network, no Date, no random"*) and
+  `quarantine.ts` (*"PURE (REQ-204): a stable synchronous hash"*). Also now banned, but with a **deliberate
+  subset**.
+- **Four that are not defects at all**: `biller.ts`, `booking.ts` and `concierge.ts` scope their sentence to a
+  **derived id** (*"deterministically derived from the POD event id (no Date, no random)"*), not to the module
+  — they are workers that read D1 and R2 by design. `credits.ts` matched a determinism word in prose. All four
+  are recorded with what they actually claim, not skipped.
+
+### Why the translator ban is narrower, and why that had to be measured
+
+`build-214.ts:72` does `new Date(e.ts).toISOString()` — converting an event's recorded millisecond to wire
+format. That is a **pure function of its argument**, and it is what the module means by "no Date": no
+**ambient** clock. A blanket `NewExpression[callee.name="Date"]` — the selector every other block uses — would
+flag correct code, and a block that flags correct code gets deleted rather than obeyed.
+
+So that block omits it and bans only `Date.now()` and `Math.random()`. Proved to behave exactly that way:
+`Date.now()` → **banned** · `new Date(12345).toISOString()` → **allowed** · `Math.random()` → **banned**.
+
+§815's hazard was checked rather than assumed: no other `no-restricted-syntax` block matches these paths
+(`packages/ledger/**` declares only `no-restricted-imports`, `tsa/**` only `no-restricted-globals`), so
+nothing is replaced — and planting `Date.now()` in `transition-gates.ts` confirms the **gates** block still
+fires, which is the assertion that would have caught a replacement if I had been wrong.
+
+### The discovery half
+
+A sweep finds today's seven; a gate finds the eighth. `lint-guards.test.ts` now requires any module carrying a
+purity claim to fall under a determinism glob, with the four scoped claims recorded and **their own staleness
+checked** (§672 — no exemption outlives its subject). Three REDs: a new claiming module outside every glob ·
+an exemption whose subject stops claiming · the claim scan itself breaking.
+
+### §834 shipped with a failure I did not measure
+
+`phase-index.test.ts` requires every index row to name a section headed `§N — PHASE GATE`. I titled §834
+*"STOPPING POINT:"* without the prefix — §684, the previous stopping point, reads `PHASE GATE: STOPPING POINT`
+— so the index row pointed at a section the gate did not recognise, and **`test:tools` went to 4 failures in
+the §834 commit itself**.
+
+I ran `verify:docs` before committing, which passed, and did not re-run `test:tools` after writing the
+section. Same error as §829's red commit, one gate over: **the check I remember to run is not the check the
+edit affects.** A documentation edit reached a *tools* test, because the phase index is enforced by one.
+Heading corrected; the index row was already right.
+
+### Exit state
+
+`test:tools` **1099** (+3), 3 failed — the REQ-289 trio. `@shuddl/ledger` 668 · `@shuddl/translator` 123 ·
+typecheck 0 · lint 0 · `verify:docs` 0. Six files restored byte-identical after eight mutations. **No
+production code changed** — two eslint blocks and one test.
+
+**Reopen triggers**
+- A module gains a purity claim → the discovery half REDs; ban it, or record what the sentence actually scopes
+  to. Both answers are one line, which is the point.
+- A banned module legitimately needs `new Date(explicitMs)` → it needs the translator's narrower selector set,
+  not an exemption. The distinction is ambient-vs-conversion, and it is the only one that matters here.
+- A future stopping point is written → the heading is `§N — PHASE GATE: STOPPING POINT`, and `test:tools` is
+  the gate that checks it, not `verify:docs`.

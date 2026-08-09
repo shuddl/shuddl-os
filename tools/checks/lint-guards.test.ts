@@ -237,3 +237,81 @@ describe("REQ-118 §566: no-floating-promises is enabled for worker + package so
     expect(messages.some((m) => m.ruleId === "@typescript-eslint/no-floating-promises")).toBe(false);
   });
 });
+// ── §835 — A MODULE THAT CLAIMS PURITY MUST BE UNDER A DETERMINISM BAN ────────────────────────────────
+//
+// §283/§284/§285 enforced "no Date, no random" where the claim first appeared — the rater, the ledger gates,
+// agents and adapters. §835 swept for the rest and found five more in `packages/ledger` and two in the
+// translator's pure core, all claiming it and none enforced. Those globs are now in `eslint.config.mjs`.
+//
+// This is the discovery half, so the NEXT one is caught by a gate rather than by a sweep. It looks for a
+// module-level purity claim in a file header and requires the path to fall under one of the determinism
+// globs — the §802/§824 shape, applied to a claim rather than to a code pattern.
+
+const DETERMINISM_GLOBS = [
+  "packages/rater/",
+  "packages/ledger/src/gates/",
+  "packages/ledger/src/contacts.ts",
+  "packages/ledger/src/geo/",
+  "packages/ledger/src/money/",
+  "packages/agents/",
+  "packages/adapters/",
+  "workers/translator/src/core/build-214.ts",
+  "workers/translator/src/core/quarantine.ts",
+] as const;
+
+/**
+ * Files whose purity sentence describes something OTHER than the module. Each carries what it actually
+ * claims, because the distinction is the whole reason they are not banned.
+ */
+const SCOPED_CLAIMS: Record<string, string> = {
+  "workers/agents/src/biller.ts":
+    'the claim is about the DERIVED ID — "deterministically derived from the POD event id (no Date, no random)" — not the module, which is a worker that reads D1 and R2 by design. It also does `new Date(epochMs).toISOString()`, a pure conversion.',
+  "workers/agents/src/booking.ts":
+    'same shape: the id is derived from the quote.accepted event id "(no Date, no random)". The worker itself does I/O.',
+  "workers/agents/src/concierge.ts":
+    'same shape: ids derived from the message event id "(no Date, no random)".',
+  "workers/billing/src/credits.ts":
+    "matched on a determinism word in prose, not a module-level purity claim; the module is a Stripe webhook consumer and does I/O by design.",
+};
+
+describe("§835: every module claiming PURE/deterministic is under a determinism ban", () => {
+  const root = repoRoot();
+
+  it("the claim scan finds the modules it is supposed to (non-vacuity)", () => {
+    const claiming = purityClaimants(root);
+    // Measured at §835: 25 claiming modules. A scan returning nothing would make the assertion below vacuous.
+    expect(claiming.length, "no purity claims found at all — the scan broke, not the tree").toBeGreaterThanOrEqual(15);
+    expect(claiming).toContain("packages/rater/src/engine.ts");
+  });
+
+  it("no module claims purity outside a determinism glob", () => {
+    const novel = purityClaimants(root)
+      .filter((f) => !DETERMINISM_GLOBS.some((g) => f.startsWith(g)))
+      .filter((f) => !(f in SCOPED_CLAIMS));
+    expect(
+      novel,
+      "a module's header claims it is PURE / has no Date / no random, and no eslint block enforces that. " +
+        "The claim is then a sentence, and the next edit can quietly add an ambient clock — which is how a " +
+        "gate becomes untestable without freezing time. Add the path to a determinism block in " +
+        "eslint.config.mjs (mind §815: an overlapping scope REPLACES options), or — if the sentence " +
+        "describes something narrower than the module, such as a derived id — record it in SCOPED_CLAIMS " +
+        "with what it actually claims:\n  " +
+        novel.join("\n  "),
+    ).toEqual([]);
+  });
+
+  it("every SCOPED_CLAIMS entry still exists and still claims something (no stale exemption)", () => {
+    const claiming = new Set(purityClaimants(root));
+    for (const f of Object.keys(SCOPED_CLAIMS)) {
+      expect(claiming, `${f} no longer carries a purity sentence — drop this exemption (§672: no exemption outlives its subject)`).toContain(f);
+    }
+  });
+});
+
+/** Prod modules whose first ~3k of source carries a purity/determinism claim. */
+function purityClaimants(root: string): string[] {
+  return execSync('git ls-files "packages" "workers"', { cwd: root, encoding: "utf8" })
+    .split("\n")
+    .filter((f) => /\.tsx?$/.test(f) && !f.includes(".test.") && !f.includes("/test/"))
+    .filter((f) => /PURE and DETERMINISTIC|no Date, no random|no D1, no R2, no Date/i.test(readFileSync(`${root}/${f}`, "utf8").slice(0, 3000)));
+}
