@@ -433,6 +433,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 238 | §790 | **§791** | **The sweeps under OVERLAP — and one that had never met its own subject.** Eleven sweeps split cleanly: **9 dedupe at WRITE time** (deterministic id + DO dedupe / `INSERT OR IGNORE` / `ON CONFLICT`) and are overlap-safe by construction; **2 check-then-act before an EXTERNAL send** and are at-least-once — structural, not an oversight, and both already documented (§236, `webhooks.ts:304`). The find: **`sweepTenantCreditGaps` had only ever run against an EMPTY corpus** — its cron test says so in its own header. Binding its SELECT to a bogus rule, and deleting its whole loop body, BOTH left agents **127/127 green**, while in production a gap that never closes leaves a REQ-042 booking blocked FOREVER. Also: **my own third test over-claimed** — it says "fault containment" but the catch is unreachable (measured by making it rethrow); re-scoped and the residual named. Two instrument errors in one table (110-char name truncation + an incomplete export list) reported 4 uncovered sweeps; the true count was 1 |
 | 239 | §791 | **§792** | **PHASE 16 CLOSED — concurrency, and the FIVE-KIND frame.** Five phases now bound the system by KIND: surfaces (12) · inputs (13) · outputs (14) · clocks (15) · **concurrency (16)**. *A module audit ends when the files run out; a kind audit ends when the QUESTION runs out.* Eleven sweeps split by HOW they dedupe: **9 at write time** (overlap-safe by construction) vs **2 check-then-act before an EXTERNAL send** (at-least-once, structural, both already documented). **Three of the last five phases found their defect in something a test CLAIMED rather than in code** — §787's "anti-drift" comment, §790's own deferral, §791's cron header stating its empty corpus in plain words. Each record was ACCURATE and nobody read it as a gap; prose describing a limitation is not a limitation anyone is watching. Board at `e77035a`: 19 PASS · 2 FAIL · 5 BLOCKED, unchanged across twenty phases. **4,175 tests** (3,131 workspace, 0 failures) |
 | 240 | §792 | **§793** | **PHASE 17 CLOSED — the CLAIMS the code makes about itself.** §792 named the pattern (3 of 5 findings were in something a test CLAIMED); this enumerates its most checkable form — *"these two agree"*. **Structural finding: this codebase avoids drift by SHARING rather than copying**, so there are very few parity claims because there are very few parities. Verified rather than assumed: mutating the shared `unbilledShipmentsSql` reddens **all three** consumers at once (KPI · recon re-drive · Watchtower) — *not "they were equal when someone looked" but "there is only one of them, and every consumer is provably wired to it"*. The one unavoidable 4-copy case (a DDL CHECK + 3 TS enums) is **gated** — planting a 7th mode names the file, both lists, and which direction costs what. The single genuine unguarded copy was `dunning.ts`, found and gated last phase. **Ask of any "they agree" comment: are they one thing?** Six of seven dissolve; the seventh was the defect |
+| 241 | §793 | **§794** | **PHASE 18 CLOSED — SCALE, and keeping a filed hold from ROTTING.** Seven kinds now bound the system (+ scale). The unbounded-read finding **was already made** — the GO-LIVE-CHECKLIST files 7 sites precisely, with the right remedy named and the wrong one forbidden (**a bare `LIMIT` truncates silently**). All eight statements re-verified: still unbounded, record TRUE. **What did not exist was anything keeping it true** — §470 re-verified BY HAND. New gate asserts the roster **both ways**: a site gaining a bound REDS (so a bare-LIMIT "fix" gets reviewed), and deleting the checklist row while the reads stay unbounded REDS. It does NOT try to discover new ones — a general detector returns ~29 vs 7, which would be ignored within a week. Also **one stale count in CODE** (`invoices.ts` said "five", doc says seven) — the usual finding inverted: the doc was current and the comment had rotted |
 
 **Current measured state — as measured 2026-08-08 at `fae1a17` (§775's board run):** the merge board is
 **26 gates — 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape since §737. `typecheck` 0 · `lint` 0 ·
@@ -45717,3 +45718,69 @@ was in the output; had I been grepping for a *count*, it would have read as a cl
   §786's parity test is the pattern to copy along with it.
 - A comment says two things agree → check whether they are one thing. Six of the seven claims here dissolve
   on that question, and the seventh was the defect.
+## §794 — PHASE GATE: PHASE 18 CLOSED — SCALE, and keeping a filed hold from rotting
+
+Seven kinds now bound the system: surfaces · inputs · outputs · clocks · concurrency · claims · **scale**.
+The scale question is the one that is invisible at fixture volume and fatal at tenant volume: **which reads
+grow without bound?**
+
+### The finding is that the finding was already made
+
+`docs/ops/GO-LIVE-CHECKLIST.md` files it precisely: *"Unbounded list reads — 7 sites, no LIMIT and no
+cursor"* (audit §183, re-verified §470, *"all 7 still unbounded, none decayed"*), enumerated by `file:line`,
+with the correct remedy named and the wrong one forbidden — **a bare `LIMIT` truncates silently**, which the
+Migrator rule bans; REQ-197/010 already established keyset cursors as the shape. The decision to file rather
+than fix is the owner's, is reasoned, and stands.
+
+I re-verified all eight statements independently: every one is still unbounded. So the record is true.
+
+**What did not exist was anything keeping it true.** §470 re-verified BY HAND, and a hand-verified hold is
+exactly the kind whose verdict dies silently — either because someone fixes a site (and the doc then
+over-states the risk), or, worse, because someone "fixes" it with the bare `LIMIT` the checklist forbids and
+the truncation ships as an improvement.
+
+### The gate
+
+`tools/checks/unbounded-reads-roster.test.ts` asserts the roster **both ways** (§745): every filed site is
+still unbounded, and a site that gains a bound FAILS — so whoever fixed it updates the checklist, and a
+reviewer gets to ask whether the bound is a cursor or a silent truncation. Proved by planting both:
+
+| plant | result |
+|---|---|
+| a bare `LIMIT 100` on the tenant-lens invoice read | **RED**, naming the site and stating why a bare LIMIT is the wrong fix |
+| the checklist row deleted while the reads stay unbounded | **RED** — doc and code are asserted against each other |
+
+It deliberately does **not** try to DISCOVER new unbounded reads. A general detector over this tree returns
+**~29** candidates against the checklist's 7, because most are bounded by a single-entity `WHERE` (one
+shipment's legs, one stream's events). At that signal-to-noise a discovery gate would be ignored within a
+week. Discovery stays the audit's job; the gate's job is that **the filed answer does not rot**.
+
+### One stale number, in the code rather than the doc
+
+`invoices.ts:51` said *"the worst of the **five** unbounded list reads"*. The checklist says **seven** — five
+original plus two found in §211 when a glob was fixed that had hidden 132 of 215 production files. The
+comment was written when five was right and was never restamped. Corrected.
+
+That inversion is worth noting: this audit's usual finding is a doc lagging the code. Here the **doc was
+current and the code's comment had rotted** — the same defect, and the reason is identical: an undated
+present-tense count with nothing watching it.
+
+### A detector subtlety worth keeping
+
+My first pass excluded any statement with `IN (`, on the theory that a bound list bounds the read. That
+dropped `parity.ts` — whose `WHERE kind IN (…)` bounds the **kind** dimension while returning *every event of
+those kinds, full payloads*. **A bounded predicate is not a bounded row count**, and the checklist was right
+to list it where my filter was wrong to drop it.
+
+### Exit state
+
+One comment corrected in `workers/api/src/routes/invoices.ts`; one new gate. Both plants restored;
+`test:tools` **1053** (+9); `workers/api` 808/808; lint 0; typecheck 0.
+
+**Reopen triggers**
+- Any roster site gains a cursor → the gate reds. Drop the row from BOTH the roster and the checklist in the
+  same commit; the hold shrinking is news the record has to carry.
+- A NEW unbounded list read lands → this gate will not see it. That residual is deliberate and stated; the
+  discovery pass is §183's and its re-run is an audit action, not a CI one.
+- The keyset-pagination REQ row the checklist asks for is written → this whole roster becomes the acceptance
+  criteria for it, and the gate becomes the thing that proves each site was actually converted.
