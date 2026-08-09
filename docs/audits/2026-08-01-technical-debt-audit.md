@@ -422,6 +422,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 227 | §779 | **§780** | **The sequencer's trust boundary — all SIX decision functions enumerated, ZERO unpinned.** Each mutated to its permissive value: `isPlatformTenant`→every tenant is platform (**374 reds**), REQ-180 never-widen floor removed (**16**), `hazmatEnabled`→always on (**11**), **`verifyEventSig`→accept every signature (6)**, inherited-visibility fail-open (1), `authoritativeSource`→always native (1). **This BOUNDS §777** — that hole was localized to `reconcile/credit.ts`, not the leading edge of a systemic gap. The two thin pins were checked rather than padded: `authoritativeSource` is inert today (`legacyValueAvailable` hard-false, no legacy mirror), and the inherited branch fails toward `internal`, the NARROWEST visibility — a refusal becoming an append, not a disclosure. **Harness, 3rd and 4th time**: consecutive full-suite runs degrade the pool after ~3 invocations and fail SILENT; both blank rows were well pinned when re-run alone. Batch the mutations, re-run every silent row individually |
 | 228 | §780 | **§781** | **Closing §724's portal hold exposed an UNPARSED BOUNDARY — a white screen and a NaN billing total.** §724's cause was wrong (the spec MOCKS the API; no `webServer` needed); the real gap was that nothing asserted the board ever loaded. Adding that positive floor went RED: the fixture returned `{items}` while the client parses `{board}` **`.strict()`** — every mocked board had been refused by the client's own Zod parse, so *"the board loads first"* was **never once true**. Fixing that revealed `PAGEERROR: Cannot read properties of undefined` — the invoices seam did `get<{invoices: T[]}>(…)` with **no parse** in THREE components: **the generic is a compile-time lie**, `undefined` reaches `.length`, and the existing `.catch` cannot help because the failure is in the RENDER. Worse than the crash: a row missing `total_cents` rendered **NaN as a billing total**. Violates CLAUDE.md's *"Zod at every boundary"*. Fixed with one parsed seam (non-strict on purpose — stripping IS the documented allowlist); 3 tests, 2 RED without it, and the e2e floor mutation-proved against the exact pre-§781 state |
 | 229 | §781 | **§782** | **The unparsed boundary was SYSTEMIC — 16 casts across 11 files, all closed, plus a gate.** §781 named the smell; grepping it found that only TWO seams in the codebase parsed. Both clients end in **`return parsed as T`**, so a type argument is a cast that makes TypeScript *guarantee* an unchecked shape — **worse than no annotation, because it silences the suspicion that would prompt a check**. Nine were crash-shaped. Two rules learned by getting them wrong first: **parse what the view READS** (my MoneyQueue schema required a `party_id` the view never renders, and a real test went red — an over-strict schema rejects valid payloads, a worse failure than the crash), and **the parse must sit where the existing mock can still intercept it** (a helper inside `lib/api.ts` gets replaced by `vi.mock` itself; parsing in-place makes the fixtures flow THROUGH the schema and verified them as a side effect). Gate assembled at runtime (§749), proved by planting, and its non-vacuity floor caught my own broken glob (48 vs 50) |
+| 230 | §782 | **§783** | **The other trust boundaries — and a guard redundant for SAFETY but not for TRUTH.** Swept 22 `JSON.parse` sites in workers/packages: most already right (the **device-key entry** that feeds signature verification is fail-closed with its reasoning written out). The R2 tender marker IS validated but **nothing pinned it** — and my first test was **VACUOUS**, passing with the guard deleted, because a SIBLING guard downstream also blocks the wire. What the guard uniquely delivers is the **classification**: `malformed` (terminal) vs `failed` (*"retry next tick"*) — so without it a permanently corrupt marker is retried **forever** and reported as transient, the exact confusion §29 was rewritten to avoid. `.strict()` needed its OWN fixture (the first one masked it) and its correctness is the OPPOSITE of §781/§782's: the deciding property is the **deploy boundary** — cross-service ⇒ strip; same-worker, atomic ⇒ an unexpected key can only be a writer/reader disagreement |
 
 **Current measured state — as measured 2026-08-08 at `fae1a17` (§775's board run):** the merge board is
 **26 gates — 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape since §737. `typecheck` 0 · `lint` 0 ·
@@ -44994,3 +44995,76 @@ e2e 6/6 · lint 0 · typecheck 0.
   is the over-strict mistake rule 1 names.
 - A worker adopts the same client shape → this gate's scope is `apps/` and it would not see it. Stated
   because it is a real edge, not because it is likely.
+## §783 — PHASE GATE: the other trust boundaries — and a guard that is redundant for SAFETY but not for TRUTH
+
+§782 closed the surface→API boundary. The same question asked outward: what else is parsed from data this
+code did not produce? Swept every `JSON.parse` in `workers/*/src` and `packages/*/src` — 22 sites.
+
+**Most are already right**, and worth recording as clean negatives rather than re-litigating:
+- the device-key entry (`sequencer.ts`) — the one that feeds **signature verification** — is
+  `entry?.public_jwk ?? null`, fail-closed, with the reasoning written out: *"a crash and a bypass are the
+  two outcomes that must never happen"* on the driver-auth path;
+- the rest are `as unknown` (honest) or read from our own D1 columns with optional-field access.
+
+One boundary crosses a real trust line: the **R2 tender marker**, written by `inbound.ts` and read by the
+214 sweep. It *is* validated — `TenderMarker.safeParse` → null → `malformed`. **Nothing pinned it.**
+
+### The interesting part: what deleting the guard actually changes
+
+Replacing `safeParse` with `parsed as TenderMarker` left the worker **118/118 GREEN**, and my first test —
+which asserted `transport.sent === 0` — **passed with the guard deleted**. Vacuous, exactly the §749 trap.
+
+The reason is a **sibling guard**: `buildStatusView`'s own schema throws downstream, so nothing reaches the
+transport either way. Safety is doubly covered. What is NOT covered is the **classification**:
+
+| | summary |
+|---|---|
+| with the guard | `malformed: 1` — a data fault, terminal, skipped quietly |
+| without it | `failed: 1` — logged *"transmit failed (retry next tick)"* |
+
+**`failed` is the RETRIABLE bucket.** A permanently corrupt marker would be re-read, re-parsed and re-thrown
+every tick forever, burning a slot each time and reporting a transient fault no retry can fix — the precise
+confusion §29's inbound handler was rewritten to avoid (*"a deterministic condition never returns 5xx"*). The
+summary is the operator's only view of this sweep, so a permanent fault filed under "retry next tick" is a
+lie the ops queue will act on.
+
+So the guard is **redundant for safety and load-bearing for truth**. §688's taxonomy separates "redundant
+guard" from "vacuous test"; this is a third thing — a guard whose *behavioural* effect is covered and whose
+*reporting* effect is not. The test now asserts the summary, and the safety half is kept alongside it so a
+future refactor that removes the sibling cannot quietly make this the only thing standing between a bad
+marker and the wire.
+
+### `.strict()` needed its own fixture, and its own reason
+
+Dropping `.strict()` alone stayed silent: my fixture's non-string `partnerScac` failed the field check
+anyway, **masking** it. A guard needs a fixture whose only defect is the thing that guard catches (§772).
+
+Its correctness here is the opposite of §781/§782's, and the deciding property is the **deploy boundary**:
+- a SURFACE parses a body from a **separately deployed** API ⇒ non-strict, STRIP, or a harmless new server
+  field blanks a page;
+- this marker is written and read **inside one worker**, deployed atomically ⇒ writer and reader are always
+  the same version, so an unexpected key cannot be version skew — only a writer/reader disagreement, which
+  is exactly what to catch.
+
+Same rule ("Zod at every boundary"), opposite strictness, and the reason is mechanical rather than aesthetic.
+
+### Measured
+
+| mutation | before | after |
+|---|---|---|
+| `safeParse` → `parsed as TenderMarker` | **silent (118/118)** | **RED**, its own test |
+| drop `.strict()` | **silent**, even after the first fix | **RED**, its own test |
+
+### Exit state
+
+No source changed — `sweep-214.ts` restored byte-identical after four mutations. `workers/translator`
+**120/120** (+2); lint 0; typecheck 0.
+
+**Reopen triggers**
+- The tender marker gains a writer OUTSIDE `workers/translator` → the deploy-boundary argument for `.strict()`
+  ends, and the strict test is where that change will announce itself.
+- `buildStatusView` stops schema-checking its input → the sibling guard disappears and `readTenderMarker`
+  becomes the only thing between a corrupt marker and the wire. The safety assertions are already in place
+  for that day.
+- A new counter joins the summary → it is the operator's view of this sweep; a fault classified into the
+  wrong bucket is indistinguishable from one that did not happen.

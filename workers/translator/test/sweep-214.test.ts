@@ -266,6 +266,88 @@ describe("REQ-200/204 — outbound 214 sweep with allocated control numbers", ()
     expect(isaOf(good.sent[0]!.bytes)).toBe("000000043");
   });
 
+  it("a schema-invalid tender marker is classified MALFORMED, not FAILED — it must not be retried forever (§783)", async () => {
+    // `readTenderMarker` runs `TenderMarker.safeParse` and returns null on failure. Nothing pinned it:
+    // replacing it with `return parsed as TenderMarker` left this worker 118/118 GREEN.
+    //
+    // What that mutation does NOT change is safety. A sibling guard downstream (`buildStatusView`'s own
+    // schema) still throws, so nothing reaches the transport either way — measured, not assumed. My first
+    // version of this test asserted only `transport.sent === 0` and was therefore VACUOUS: it passed with the
+    // guard deleted, for a reason unrelated to the guard.
+    //
+    // What the guard is load-bearing for is CLASSIFICATION, and that is a real difference:
+    //
+    //   with it     → `malformed: 1`  — a data fault, terminal, skipped quietly
+    //   without it  → `failed: 1`     — logged "transmit failed (retry next tick)"
+    //
+    // `failed` is the RETRIABLE bucket. A permanently corrupt marker would be re-read, re-parsed and
+    // re-thrown on every tick forever, burning a sweep slot each time and reporting a transient fault that no
+    // retry can fix — the exact confusion §29's inbound handler was rewritten to avoid ("a deterministic
+    // condition never returns 5xx"). The summary is the operator's only view of this sweep, so a permanent
+    // fault filed under "retry next tick" is a lie the ops queue will act on.
+    //
+    // The DISCRIMINATING fixture (§772): `partnerId` VALID — so the partner lookup and the cert gate both
+    // pass and the sweep reaches the marker-dependent work — with a non-string `partnerScac`, plus a stray
+    // key so `.strict()` is exercised too.
+    await seedDeliveredShipment();
+    await seedEdiPartner(env.TENANT_A_DB, PARTNER_ID, "certified", COUNTER_CONFIG);
+    await env.EVIDENCE.put(
+      tenderKey("tenant-a", SHIPMENT_ID),
+      JSON.stringify({ partnerId: PARTNER_ID, partnerScac: 42, isaControl: INBOUND_ISA, stray: "x" }),
+    );
+
+    const transport = new RecordingTransport();
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    let summary: string;
+    try {
+      await run214Sweep(env, transport, clock);
+      summary = logSpy.mock.calls.flat().filter((a): a is string => typeof a === "string").find((a) => a.includes('"tenant":"tenant-a"')) ?? "";
+    } finally {
+      logSpy.mockRestore();
+    }
+
+    // THE CLASSIFICATION — the half that only this guard delivers.
+    expect(summary, "the tenant summary was not emitted").not.toBe("");
+    expect(JSON.parse(summary.slice(summary.indexOf("{"))), "a schema-invalid marker is a DATA fault, not a retriable one").toMatchObject({
+      scanned: 1,
+      malformed: 1,
+      failed: 0,
+      transmitted: 0,
+    });
+
+    // …and the safety half, which the sibling guard also delivers — asserted so a future refactor that removes
+    // the sibling cannot quietly make this the only thing standing between a bad marker and the wire.
+    expect(transport.sent, "a schema-invalid marker must never reach the transport").toHaveLength(0);
+    expect(await readOutboundIsa(), "a malformed marker must not burn a control number").toBe(41);
+  });
+
+  it("an OTHERWISE-VALID marker carrying a stray key is also refused — `.strict()` is deliberate here (§783)", async () => {
+    // Separated from the case above because that fixture's bad `partnerScac` MASKED this one: dropping
+    // `.strict()` left the suite green, since a non-string SCAC fails the field check either way. A guard
+    // needs a fixture whose only defect is the thing the guard catches (§772).
+    //
+    // WHY STRICT HERE, when §781/§782 chose NON-strict for the surface seams — the distinction is the
+    // deploy boundary, not taste:
+    //   · a SURFACE parses a body from a SEPARATELY deployed API, so a field the server adds must be
+    //     STRIPPED; rejecting it would blank a page over a harmless addition.
+    //   · this marker is written by `inbound.ts` and read by `sweep-214.ts` — the SAME worker, deployed
+    //     atomically. Writer and reader are always the same version, so an unexpected key cannot be a
+    //     version skew; it can only be a writer/reader disagreement, which is exactly what to catch.
+    // If the marker ever gains a writer outside this worker, that reasoning ends and this test is the place
+    // the change will announce itself.
+    await seedDeliveredShipment();
+    await seedEdiPartner(env.TENANT_A_DB, PARTNER_ID, "certified", COUNTER_CONFIG);
+    await env.EVIDENCE.put(
+      tenderKey("tenant-a", SHIPMENT_ID),
+      JSON.stringify({ partnerId: PARTNER_ID, partnerScac: PARTNER_SCAC, isaControl: INBOUND_ISA, unexpected: "field" }),
+    );
+
+    const transport = new RecordingTransport();
+    await run214Sweep(env, transport, clock);
+    expect(transport.sent, "a marker with an unrecognised key must not be trusted onto the wire").toHaveLength(0);
+    expect(await readOutboundIsa(), "…and must burn no control number").toBe(41);
+  });
+
   it("does NOT throw when a tendered shipment has no status events (clean skip, no allocation)", async () => {
     await seedEdiPartner(env.TENANT_A_DB, PARTNER_ID, "certified", COUNTER_CONFIG);
     await seedTenderMarker("shp-no-status"); // a tender marker but zero status events on that stream
