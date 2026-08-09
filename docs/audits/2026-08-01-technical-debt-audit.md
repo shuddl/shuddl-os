@@ -48072,9 +48072,16 @@ Recording it as a repeat rather than as a fresh mistake, because the useful sign
 catches it every time, cheaply, which is why it has never cost more than one command. **A cheap gate is what
 lets a habit stay unlearned** — that is a fair trade here, and it is worth knowing that it is the trade.
 
-And then a **second** one in the same phase, of a different kind: I wrote `§3925` meaning *line* 3925 of this
-file, and `section-refs` correctly read it as a pointer to **section** §3925, which does not exist — the
-numbering reaches 829. Repointed to **§67**, the section that actually owns that line.
+And then a **second** one in the same phase, of a different kind: I wrote a §-reference whose number was a
+**line** number (3,925) rather than a section number, and `section-refs` correctly read it as a pointer to a
+section that does not exist — the numbering reaches 829. Repointed to **§67**, the section that actually owns
+that line.
+
+There is a third beat, and it is the one worth keeping. Writing the paragraph you are reading, I first spelled
+that bad reference out literally to explain it — **and `section-refs` flagged the explanation**, because a
+dangling pointer quoted in prose is still a dangling pointer to a regex. I committed before re-running the
+gate and shipped it red; caught on the next command and repaired here. **Describing a broken reference
+re-creates it**, so the description has to name the shape rather than reproduce the token.
 
 Both errors are the same underlying slip in different clothes: **writing a reference before checking what it
 resolves to.** The forward reference names a section not yet written; the line-number reference names a
