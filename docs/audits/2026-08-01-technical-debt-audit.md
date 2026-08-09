@@ -453,6 +453,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 258 | §810 | **§811** | **PHASE 33 CLOSED — the ACCEPTANCE gate audited: the biggest claim, and the BEST-DEFENDED gate in the repo.** The prior (§746: 15/20 gates synthesize their verdict; §727: a filter matching nothing exits 0) said it would be thinner than its name. **It is not.** Four defences, each measured: the 5-demo roster REDs when one is dropped · manifest↔module parity asserted **both ways** · `missingSpineFiles()` runs **before** vitest, and its comment names the §727 hazard **at design time** · breaking the Biller's send REDs *"the full causal chain of acceptance demo #1… through every real seam"*. Demo 1's `filmed` field is the strongest artifact I have read here: it cites `biller.ts:588@photos`, says the film will show **placeholder slots, not photographs**, and ends *"Do not stage photos into the capture to make the film match the sentence."* **32 phases of finding gaps builds a prior that everything has one — that prior is how a clean artifact gets "improved" into a worse one** |
 | 259 | §811 | **§812** | **PHASE 34 CLOSED — CLAUDE.md rule 7's SEVEN audits all proved, and they live in TWO gates.** The record proved 3 (§252 shadow/radius/raw-hex, §257 palette drift); **contrast, font, case and motion had implementations and NO recorded proof.** Planted one each: Comic Sans → **CAUGHT**, `textTransform: capitalize` → **CAUGHT**, a 420ms back-out bezier → **CAUGHT**, `--signal-deep` lightened below 4.5:1 → **CAUGHT** (*"small-text red passes AA on greige"*). **Structural fact now recorded: contrast is NOT in the `design-audit` gate** — it lives in `tools/design/design.test.ts` under `test:tools`, so rule 7's seven audits are split across two merge gates, and the one that surprises is the one rule 7 singles out. **My first mutation was MIS-AIMED** (`tokens.ts`, but the test reads `tokens.css`) — and what caught it was the TS↔CSS token-parity gate, the same mechanism §257's derived-allowlist proof rests on |
 | 260 | §812 | **§813** | **PHASE 35 CLOSED — the HARD BUDGETS bite, and the mechanism is the AMENDMENT PATH.** §611 built the gate, §743 found its completeness floor; neither recorded whether a budget **bites**. *Matching a number is not enforcing it* (§806's distinction applied to a budget). Planted three across three source files and three extractors: a **36th event kind**, a **6th color token**, a **4th surface** — all **RED**. **The mechanism is doc↔source PARITY, not a ceiling**: a 36th kind fails not because 36>35 but because **CLAUDE.md still says 35** — the law's own *"additions = register amendment"* made mechanical. It does not forbid growth, it forbids growth that SKIPS the amendment. §743's three exemptions re-verified rather than trusted: `21 used` is runtime (`check:invariants` recomputes 21/22 and **exits 1** when breached — planted), `0 shadows`/`4px` are zero-tolerance proven by planting an artifact |
+| 261 | §813 | **§814** | **PHASE 36 CLOSED — REQ-163's ban did NOT reach `packages/ledger`, and could not have.** The 3rd roster-shaped law is the *"Do not build (ever)"* list; its one member with a REQ number is REQ-163. It has a lint rule AND a planted-violation test, so it looked done. **ESLint flat config is last-writer-wins per rule NAME** — a scoped block re-declaring `no-restricted-imports` **REPLACES** the repo-wide options — which is why the patterns are written **three times**. Adding a 4th pattern globally left tools at baseline, and a probe **proved** the consequence: the same import → **1 hit in `packages/contracts`, 0 in `packages/ledger`**. The append-only spine would be the ONLY place the new ban did not apply. Fixed with parity + behavioural (neither sufficient). **My parity test asserted TWO groups and failed on a CLEAN tree — there are three**; a test failing before you mutate is telling you about your instrument |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -46988,3 +46989,67 @@ all restored byte-identical. `check:invariants` reports `21/22 tables`; `test:to
   from reading as compliance.
 - `check:invariants` stops recomputing the table count → `21 used` loses its exemption's basis, and the
   budget gate would need a roster entry after all.
+## §814 — PHASE GATE: PHASE 36 CLOSED — REQ-163's ban did not reach the ledger, and could not have
+
+§812 and §813 proved CLAUDE.md's two roster-shaped laws. The third is the **"Do not build (ever)"** list, and
+its one member with a REQ number is **REQ-163 — *prior codebases are organ banks; reference, never merge.***
+
+It is enforced by an ESLint `no-restricted-imports` group and has a planted-violation test, so it looked done.
+The completeness question (§807) was whether the ban reaches everywhere. It does not.
+
+### The mechanism is ESLint's, and it is the hazard already in this record
+
+Flat config is **last-writer-wins per rule NAME**: a scoped block that re-declares `no-restricted-imports`
+**replaces** the repo-wide options rather than merging them. Three blocks do — repo-wide,
+`packages/ledger/**`, and `packages/adapters/**` + `packages/edi/**` — which is exactly why the REQ-163
+patterns are written **three times**. Each copy exists only to survive its own override.
+
+That is §"adding a gate can delete a gate" from the other direction: the earlier finding was a new block
+silently disabling a repo-wide ban; this is a repo-wide ADDITION silently failing to reach three scopes.
+
+### Measured, then proved behaviourally
+
+Adding a fourth prior-codebase pattern to the repo-wide group alone left `test:tools` at its 3-failure
+baseline. Rather than infer the consequence, a probe file established it:
+
+| probe: the same import, same pattern | REQ-163 hits |
+|---|---|
+| `packages/contracts/src/…` | **1** |
+| **`packages/ledger/src/…`** | **0** |
+
+The append-only event spine — the package CLAUDE.md singles out for REQ-024, the one place a prior-codebase
+merge would be worst — would be the ONLY place the new ban did not apply.
+
+### Fixed with both halves, because neither is sufficient
+
+- **parity**: every pattern in the repo-wide group must appear in every override group. Catches a pattern
+  added to one list and not the others.
+- **behavioural**: a prior-codebase import into `packages/ledger` must be flagged. Catches all the lists being
+  wrong together — which parity cannot see.
+
+| mutation | result |
+|---|---|
+| a 4th pattern added globally only | **RED** (parity) |
+| REQ-163 stripped from the ledger override entirely | **RED** ×2 (parity **and** behavioural) |
+
+### An instrument error, caught by the clean tree
+
+My first parity test asserted **two** groups. It failed on an unmutated tree — there are **three**, and I had
+read only the two the earlier grep surfaced. The fixed point did its job: a test that fails before you mutate
+anything is telling you about your instrument, not your subject.
+
+The count is now asserted at 3 with a message saying what to do when a block is added — because a fourth
+scoped override that re-declares the rule is the next instance of this defect, and it will arrive silently.
+
+### Exit state
+
+Two assertions added to `tools/checks/lint-guards.test.ts`. `test:tools` **1071** (+2); lint 0; typecheck 0.
+`eslint.config.mjs` restored byte-identical after four mutations; both probe files removed.
+
+**Reopen triggers**
+- A block re-declares `no-restricted-imports` → the group count assertion fires. Carry the REQ-163 patterns
+  into it; that is the whole reason the count is pinned rather than derived.
+- REQ-024's LLM-import ban has the same shape → it lives in the ledger override only, so it has no parity
+  problem today. If it is ever added repo-wide, it acquires one.
+- A prior codebase with a NEW name appears → the pattern roster is a name list, not a shape, and cannot be
+  otherwise. It catches the known builds; it is not a defence against a determined rename.
