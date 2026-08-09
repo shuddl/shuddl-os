@@ -407,6 +407,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 212 | §764 | **§765** | **§764's defect generalised into a shape gate.** Population derived and measured: exactly **two** AND-joined clause chains in shipped code (`lens.ts`, `gl/export.ts`). Gate asserts every OR-bearing clause is FULLY wrapped — and its `isWrapped` cannot be `startsWith("(") && endsWith(")")`, because that accepts **`(a) OR (b)`**: balanced at both ends, split down the middle, the exact dangerous shape. A dedicated assertion pins that, since a gate with a trivially-satisfiable predicate is worse than none. Mutation-proved 3 ways: unwrap the lens clause **RED**; add an unwrapped OR to the GL chain **RED** (the NEXT one, caught); add it wrapped **green**. Instrument wrong once — the matcher spanned a COMMENT (12th slip, false-alarm direction) |
 | 213 | §765 | **§766** | **§765's stated blind spot, MEASURED empty — and the board back to baseline.** §765's gate reads literals and declared its residual (*a clause built by interpolation escapes it*). Scanned every single-line interpolated template in shipped source that looks like SQL: **75 found** (the positive control — a deliberately loose net, since **a zero over a wider net is a stronger zero**), **0 containing a bare OR**. So the gate has no blind spot in practice today. Merge board eight commits on: **17 PASS · 2 FAIL · 5 BLOCKED**, and **`traceability` is GREEN again** — §757's fix held across eight commits including two doc-heavy ones, the first re-run since `verify:docs` existed |
 | 214 | §766 | **§767** | **The money apportionment has TWO properties; both defended.** Identity (Σparts === total): deleting the leftover-redistribution loop reds **12 tests** — asserted from several directions, which is what a money identity should look like. **Determinism** (ties by ASCENDING index) is the one easy to overlook: flipping `a-b` → `b-a` reds a NAMED case. Not aesthetics — the Biller re-derives an invoice on queue redelivery, so a different split on a re-run means a second differing invoice or a hash mismatch. **The sum identity keeps the money right; the tie rule keeps it the same money twice** |
+| 215 | §767 | **§768** | **The Biller's id law: determinism PINNED, domain separation NOT — and stopping there on purpose.** Seeding the invoice event id with `crypto.randomUUID()` reds a NAMED test (*a redelivered POD re-derive…*), the money-side twin of §755's server idempotence. Merging the two domain tags left **122/122 GREEN**; measured what that produces: **no collision** (formats differ — UUID vs `inv_`+16hex), but the AR number becomes the event id's own first 16 hex, so the two stop being independent. **No test added, deliberately** — §760's rule that a gate per defensive line is its own debt; the property protecting MONEY is pinned, the one protecting HYGIENE is measured here. *"The id law is tested"* would be true and would overstate it |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -43990,3 +43991,60 @@ restored byte-identical after both mutations.
   not just the sum. The sum is the one everybody writes.
 - The tie rule changes deliberately → every previously-derived split changes with it. That is a migration
   concern for anything already committed to the ledger, not a refactor.
+## §768 — PHASE GATE: the Biller's id law — determinism pinned, domain separation not, and why that is the right place to stop
+
+§767 found two properties in the apportionment and both defended. The Biller's derived ids have the same
+two-property shape, and here they come apart.
+
+### Determinism is pinned
+
+`invoiceEventIdFor(pod)` and `invoiceIdFor(pod)` derive from the POD event id with **no clock and no random**,
+so a queue redelivery re-derives the same ids and the sequencer returns the original event rather than minting
+a second invoice. That is the money-side twin of §755's server-side idempotence.
+
+Mutated by seeding the event id with `crypto.randomUUID()`:
+
+> `× REQ-039 — the id law is deterministic … > a redelivered POD re-derive…`
+
+Named, red, and pointed exactly at the consequence.
+
+### Domain separation is not
+
+The two ids use different tags — `biller:invoice-event:` and `biller:invoice:` — on the same seed. Merging
+them (invoice_id reusing the event tag) left `workers/agents` at **122/122 GREEN**.
+
+Measured what a merge would actually produce, rather than reasoning about it:
+
+```
+event id              529dbdbc-d04f-4a8b-94a2-372fc592f1a0
+invoice_id (real)     inv_29634fffa39d8048
+invoice_id (merged)   inv_529dbdbcd04f7a8b     ← the event id's own first 16 hex
+```
+
+**No id collision** — the formats differ (a UUID with version/variant bits vs `inv_` + 16 hex), so nothing
+breaks and no uniqueness is lost. What is lost is *independence*: the AR document number becomes derivable
+from the event id and vice versa, and a future change to one derivation silently moves the other.
+
+### Not adding a test, and saying why
+
+That is a real property with a bounded consequence — no collision, no money error, no leak of anything a
+holder of one id could not already look up. §760's rule applies: *a gate per defensive line is its own kind of
+debt*, and this session has now added six gates. The property that protects **money** — determinism — has a
+named test; the property that protects **hygiene** has a measurement in this section and a comment in the
+source.
+
+Recording the asymmetry explicitly is the point. "The id law is tested" would be true and would overstate it:
+one of its two halves is defended, and a future reader deserves to know which.
+
+### Exit state
+
+No code changed. `workers/agents` 122/122; `test:tools` 1041; lint 0; typecheck 0. `biller.ts` restored
+byte-identical after both mutations.
+
+**Reopen triggers**
+- A third id is derived from the same seed → the tag set becomes a namespace, and a namespace with three
+  members and no test is materially riskier than one with two.
+- Either derivation's tag changes → the other must not move. That is exactly what nothing currently checks,
+  and it is the moment the measurement above stops being reassuring.
+- An id becomes externally visible (an invoice number on a customer document) → predictability stops being
+  hygiene and starts being a disclosure question.
