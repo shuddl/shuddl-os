@@ -400,6 +400,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 205 | §757 | **§758** | **Six self-scanning gates, FOUR different answers, two with none — the map that explains five recurrences.** Writing an example created the forbidden artifact 5× this session; rather than wait for the sixth I mapped every gate that reads its own source. `citation-links` = a marker **bounded to its own tree** (§272); `invariants` = **excludes test paths**; `design/audit` = **corpus scope** (`apps`+`packages`, its tests live in `tools/`); `identity-leak` = runtime assembly; `traceability` and `section-refs` = **nothing**. Each mechanism is appropriate — standardising would be worse — **what was missing is the map**. Design boundary planted, not read: shadow in-corpus **exit 1**, same shadow in `tools/` exit 0. **Three instrument slips in this phase alone**, all false CLEANS, the last being §727's `git ls-files`-only-lists-tracked trap met again |
 | 206 | §758 | **§759** | **`pnpm verify:docs` — and the CORRECTION it forced on §757.** §757's root cause was a checklist one gate short; bundled the four gates a documentation phase should satisfy, verified to fail as a bundle (a planted over-wide table row → exit 1). **Proving it caught §757's own defect exposed that §757 blamed the wrong file**: `orphans.ts` excludes **eleven** paths including `:(exclude)docs/audits`, and I had asserted the list from a TRUNCATED grep line. Isolated by planting per-file — audit doc alone **exit 0**, `traceability.test.ts` alone **exit 1**, the entire cause. §757 corrected IN PLACE, because a wrong explanation in an audit is worse than a missing one. **The artifact was eleven lines long and right there** |
 | 207 | §759 | **§760** | **Audited the eleven exclusions that decide what "built" MEANS.** Each decides whether a file's REQ citations count as evidence a requirement shipped — get one wrong and a governance sentence meaning *"this shipped nothing"* becomes proof something shipped. Mutation-tested individually: `docs/audits` **+3 failures**, `PROJECT-STATE.md` **+2** — both pinned; **`.claude` silent** in fixture AND real repo. Its two stated hazards measured: **0** skill-cited ids absent from the register, **0** rows whose only annotation is a skill (27 ids cited, all registered, all annotated elsewhere). **No gate built — deliberately**: §752 pinned a precondition because money was at stake; a gate per defensive line is its own debt. **And the warning I walked past**: `orphans.ts` already says *never write a literal requirement id into any scanned source* — §757 was exactly that, one file away |
+| 208 | §760 | **§761** | **All TWELVE exclusions, not three — 8 pinned, 4 inert and measured.** §760 sampled three and generalised (*"two of three are pinned"*); the true ratio is **8 of 12**, and the sample happened to hold two of the strongest and one of the weakest. **`docs/plans` is the row a sample mis-ranks**: it moves the fixture LEAST (+1) and is the ONLY exclusion whose removal **reds the real repo**. Fixture sensitivity and real-repo load-bearing are different properties pointing opposite ways here. The 4 inert ones (`BUILD-PROMPT`/`CLAUDE`/`README`/`.claude`) carry 46 cited ids — **0 unregistered, 0 only-annotations** — so each is correct, cheap and currently unnecessary. **A sample of three from twelve is a sample and should have been labelled one**; finishing cost one loop |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -43573,3 +43574,73 @@ No code changed. `check:traceability` 0; `verify:docs` 0; `test:tools` 1037; lin
   in this section for that reason.
 - A twelfth exclusion is added → mutation-test it the same way. Two of three existing ones are pinned; a new
   one that is silent needs its hazards measured, not assumed.
+## §761 — PHASE GATE: all twelve exclusions, not three — eight pinned, four inert and measured
+
+§760 mutation-tested **three** of the pathspec's exclusions and drew conclusions from them. That is a sample,
+and §760's own trigger asked for the rest. Finishing it changed part of the picture.
+
+### The complete table
+
+Baseline is the two pre-existing `REQ-289` failures in `coverage.test.ts`.
+
+| exclusion | Δ failing tests | real repo `check:traceability` |
+|---|---|---|
+| `genesis` | **+3** | 0 |
+| `tools/traceability/coverage-manifest.json` | **+3** | 0 |
+| `docs/ops/V2-EXECUTION-FRAMEWORK.md` | **+3** | 0 |
+| `docs/ops/GO-LIVE-CHECKLIST.md` | **+3** | 0 |
+| `docs/audits` (§760) | **+3** | 0 |
+| `docs/ops/PROJECT-STATE.md` | **+2** | 0 |
+| `docs/ops/RELEASE-EVIDENCE.md` | **+2** | 0 |
+| `docs/plans` | **+1** | **1 — reds the REAL repo** |
+| `BUILD-PROMPT.md` | +0 | 0 |
+| `CLAUDE.md` | +0 | 0 |
+| `README.md` | +0 | 0 |
+| `.claude` | +0 | 0 |
+
+**Eight of twelve are pinned. Four are inert.**
+
+`docs/plans` is the row a three-item sample would have mis-ranked: it moves the fixture least (+1) and is the
+only exclusion whose removal **fails the real repo today**. Fixture sensitivity and real-repo load-bearing are
+different properties, and here they point in opposite directions.
+
+### The four inert ones, hazards measured
+
+All four are "governance restates the law" documents, and all four carry the same two failure modes. Both are
+statically checkable and both are currently **zero**:
+
+| file | ids cited | unregistered (would false-fail) | only-annotation (would mask) |
+|---|---|---|---|
+| `BUILD-PROMPT.md` | 10 | 0 | 0 |
+| `CLAUDE.md` | 8 | 0 | 0 |
+| `README.md` | 1 | 0 | 0 |
+| `.claude` (§760) | 27 | 0 | 0 |
+
+46 requirement ids cited across the four; every one registered, every one also annotated on counted source
+(204 ids). So each exclusion is correct, cheap, and currently unnecessary — the §752 shape, four more times.
+
+**Still not building gates for them**, for §760's reason and now with better evidence: the hazards are zero on
+46 ids across four files, the rule that governs them is written down with a worked precedent, and the
+measurement is two commands recorded here. A gate per defensive line would cost more than it protects.
+
+### What the sample got wrong
+
+§760 said *"two of three existing ones are pinned"* and generalised from it. The true ratio is **8 of 12**, and
+the sample happened to include two of the strongest and one of the weakest. Nothing in §760 is false — but
+"two of three" invited a reader to infer a rate, and the rate was wrong by a third.
+
+**A sample of three from twelve is a sample, and should have been labelled one.** The cost of finishing was
+one loop.
+
+### Exit state
+
+No code changed. `check:traceability` 0; `verify:docs` 0; `test:tools` 1037; lint 0; typecheck 0.
+`orphans.ts` restored byte-identical after twelve probes.
+
+**Reopen triggers**
+- Any inert exclusion's hazard counts leave zero → it becomes load-bearing, and the table above is the
+  before-picture to compare against.
+- `docs/plans` is ever "cleaned up" as redundant → it is the one that reds the real repo today. The fixture
+  under-states it.
+- A thirteenth exclusion is added → test it against BOTH the fixture and the real repo. This phase is why:
+  they disagree.
