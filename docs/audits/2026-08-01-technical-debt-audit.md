@@ -486,6 +486,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 291 | §843 | **§844** | **PHASE 65 CLOSED — a purity claim MY OWN detector's vocabulary could not read.** §843's residual measured: 3 cents-named functions contain arithmetic, 2 already exact, and the third (`iif.ts@formatCents`) is a **false positive written correctly** — `(abs - frac) / 100` is exact by construction with the proof in a comment. **1 FP in 3 candidates → NOT BUILT**, numbers given rather than a shrug. **But reading it walked into a defect**: `iif.ts` opens *"PURE: … No I/O, no D1, **no clock**"* — a module-level claim §835's detector (which I wrote) **cannot read**, because its vocabulary is `no Date, no random`. Same claim, different words, invisible to the sweep AND to the discovery gate that sweep installed. **Vocabulary measured per §803**: `no clock` adds **2**; `PURE:` 8, `no I/O` 15, `pure function` 9, bare `DETERMINISTIC` **22** — all out as prose. The two split as §835's design anticipated: `iif.ts` is real (banned, ambient-clock subset, since its only `Date` use is a `new Date(ms)` conversion), and `billing.ts` is a FIELD comment on a module that **injects** its clock — recorded in SCOPED_CLAIMS. **Honest bound**: the detector finds 27 claims, not *every* claim |
 | 292 | §844 | **§845** | **PHASE 66 CLOSED — detect the VIOLATION, not the claim; and §815's superset gets its reason.** §844's bound (*27 claims, not every claim*) is structural: prose has unboundedly many phrasings, so §835 and §844 each widened a vocabulary and each left the same hole. **Inverted**: *which modules READ an ambient clock?* is bounded and prose-independent. **58 reads** — **57 in `workers/**`**, which is the CORRECT pattern (read at the composition root, inject downward). Only **2 in `packages/**`**, both justified: `guess.ts` mints an unpredictable nonce for a prompt-injection fence (**determinism there would be the vulnerability**) and `capture.ts` mints an event id. **§815's superset EXPLAINED** — it measured that adapters bans `crypto.randomUUID` and agents does not, calling it *deliberately stricter* without knowing why; the reason is that the fence depends on it. *An unexplained pin is one somebody eventually simplifies.* Gate bans ambient reads in `packages/**` with the 2 recorded; `workers/**` excluded **by design**, since flagging 57 correct reads gets a gate turned off. 3 REDs. **1 FP of my own**: a trailing `//` comment on a code line |
 | 293 | §845 | **§846** | **STOPPING POINT — board re-measured at `1cb0b69`, eleven phases on.** **19 PASS · 2 FAIL · 5 BLOCKED — identical to §834 and to the pre-session board.** Behind the `unit-tests` short-circuit the product suites run **green: 17 workspaces, 3,149 tests, exit 0**. Thirty-one phases, **zero regressions**, every non-PASS owner-held. Last eleven phases: 2 production fixes (both law/legibility — §843 measured 200,011 inputs, **zero** value changes), 8 gates, and 4 corrections to the record. **The shape that matters is §845's inversion** — stop detecting purity CLAIMS (prose, unbounded, incomplete by construction), detect the VIOLATION (an ambient clock in the pure layer). *When a detector's boundary is English, invert it.* **Self-correction ratio**: §841 found **2 of 6** of my own triggers rotted, while §842 found the launch checklist's five code-state claims **all sound** — the clean result is what makes the corrections meaningful. **Owner decision, now 11 phases old**: committing REQ-289 makes both `&&` truncation defects (§834, §836) INVISIBLE without fixing them — decide while the symptom shows |
+| 294 | §846 | **§847** | **PHASE 67 CLOSED — the drain order holds; its DEFENSIVE half was documented and untested.** Driver offline queue — demo #3 and the airplane-mode soak, where a prior loop found signed captures stranded. `pending()` sorts by `device_seq` because the server's gates are **order-dependent** (consent before `stop.arrived`); a shuffled drain takes a 403 and parks **permanently**. Two mutations, two REDs, both caught by a purpose-built test driving a deliberately `ShuffledStore`. **The gap**: making an item WITHOUT a `device_seq` sort first instead of last is **silent** — no test constructs one. **Reachability measured, not assumed**: `capture.ts:128@nextSeq` always mints one and `events.ts:291@device_seq` refines `device_id ⟹ device_seq`, so the branch is reachable only for a device-less event the driver never produces — **defensive, not dead**, and §688's construction-forbidden *from the driver's side only*, which is the kind of unreachable that expires when a second producer appears. Cheap test added. **Probe error** (3rd of its family): my first "drop the sort" rewrote the `.map` line and left `.sort()` intact — a **no-op** returning 41/41 that would have read as *drain order unpinned* |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -49262,3 +49263,82 @@ owner's uncommitted REQ-289 row.
 - A private fixture vendored → one BLOCKED becomes PASS or FAIL, and a FAIL there is the first real signal
   about the audited engine this repo has ever had.
 - `IDENTITY_DENYLIST` set → REQ-167 becomes a running check rather than a convention.
+## §847 — PHASE GATE: PHASE 67 CLOSED — the drain order holds; its defensive half was documented and untested
+
+Back to production after the §846 stopping point. Subject: the driver PWA's offline queue — the path behind
+acceptance demo #3 and rule 6's airplane-mode soak, and where a prior loop found signed captures being
+stranded on the device.
+
+### The order guarantee holds, and holds well
+
+`OfflineQueue.pending()` sorts by `device_seq`, the per-device monotonic capture counter, because the server's
+transition gates are **order-dependent**: consent before `stop.arrived`, count+photo+custody before
+`stop.departed`. A shuffled drain makes a gated event arrive before its prerequisite, take a 403
+`GATE_BLOCKED`, and park permanently — *"a signed airplane-mode capture silently stranded on the device
+forever"*, in the module's own words.
+
+Two mutations, two REDs, both caught by one purpose-built test (*"drains in CAPTURE order (device_seq) even
+when the store yields a shuffled order"*, driven through a deliberately `ShuffledStore`):
+
+| mutation | result |
+|---|---|
+| comparator neutralised (`return 0`) | **RED** |
+| `device_seq` order reversed | **RED** |
+
+### The gap: the undefined branch
+
+A third mutation — making an item **without** a `device_seq` sort FIRST instead of last — was **silent**.
+The cause is a passing corpus: **no test constructs an item without one.**
+
+The branch is documented in the source (*"Items without one (no device context) sort last but keep a stable
+relative order, so nothing is dropped or reordered arbitrarily"*), so the behaviour is a stated guarantee with
+nothing behind it — §816's shape.
+
+**Reachability, measured rather than assumed**, because it decides how much this matters. `capture.ts:128`
+mints a `device_seq` on every capture, and `packages/contracts/src/events.ts:291@device_seq` refines the event so
+`device_seq` is **required whenever `device_id` is present**. So an item can lack one only if it also lacks a
+device — which the driver, whose every capture is co-signed by a per-device key, never produces.
+
+The branch is therefore **defensive, not dead**: unreachable from today's driver, reachable by construction
+for any device-less event, and `QueueItem.event` is typed as a general event rather than a device event. It is
+§688's construction-forbidden case *from the driver's side only*, which is exactly the kind of "unreachable"
+that stops being true when a second producer appears.
+
+So it gets the cheap test rather than a shrug — the documented sentence is now pinned, and the mutation that
+was silent now REDs.
+
+### Two more probe errors, and the second is the interesting one
+
+**The test I wrote was wrong before the code was.** My first assertion demanded the seq-less pair drain in
+*insertion* order. `ShuffledStore.all()` reverses deliberately, and a **stable** sort preserves that reversal
+among equals — so the assertion was demanding the sort UNDO the shuffle, which it cannot and should not.
+"Stable relative order" means relative to the store's **yield**, not to insertion. The code was right; the
+test asserted a stronger claim than the comment makes, and would have been a false pin.
+
+**Then the mutation that motivated the whole test would not go red.** Flipping only the first branch —
+`if (sa === undefined) return 1` → `return -1` — leaves **both** branches returning `-1`, which is an
+**inconsistent comparator**: it says *a* precedes *b* and *b* precedes *a*. JS `sort` is free to return
+anything for that, and here it happened to preserve the order, so the mutation read as SILENT.
+
+A consistent opposite policy needs **both** branches flipped, and that reds immediately. The lesson is
+sharper than "check your mutation": for a comparator, a one-branch edit does not produce the opposite
+ordering, it produces **undefined behaviour** — and undefined behaviour is the one thing that can look
+exactly like a passing test.
+
+### Exit state
+
+`@shuddl/driver-core` **42** (+1). `test:tools` 1116, 3 failed — the REQ-289 trio. typecheck 0 · lint 0 ·
+`verify:docs` 0. **No production code changed** — the sort is correct; only its untested half is now covered.
+
+One probe error, the same family as §833's and §843's: my first "drop the sort" mutation rewrote the
+`.map(...)` line and left the `.sort()` chain intact — a **no-op** that came back 41/41 and would have read as
+"drain order is unpinned". Neutralising the comparator instead reds immediately. **A mutation that changes
+formatting is not a mutation**, and the tell is a green that arrives too easily.
+
+**Reopen triggers**
+- A second producer enqueues a device-less event → the defensive branch becomes live, and the new test is the
+  thing that says what it should do.
+- The `device_id ⟹ device_seq` refine is relaxed in `events.ts` → the reachability argument above expires with
+  it; that refine is what makes the branch defensive rather than routine.
+- `pending()` gains a third ordering key (priority, evidence-first) → the two order mutations above cover
+  `device_seq` only, and a third key would need its own probe.

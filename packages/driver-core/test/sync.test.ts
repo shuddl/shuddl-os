@@ -257,6 +257,56 @@ describe("drain order + park recovery — a signed capture can never be silently
     }
   }
 
+  // §847 — THE DEFENSIVE HALF of the same sort, which was documented and untested.
+  //
+  // `pending()`'s comparator says: "Items without one (no device context) sort last but keep a stable
+  // relative order, so nothing is dropped or reordered arbitrarily." Measured (§847): flipping that branch so
+  // a seq-less item sorts FIRST left this suite 41/41 GREEN, because no test constructed one.
+  //
+  // REACHABILITY, so the test is not read as guarding a live bug. `capture.ts:128@nextSeq` mints a
+  // `device_seq` on every capture, and the event contract refines `device_id ⟹ device_seq`
+  // (`packages/contracts/src/events.ts:291@device_seq`), so an item can lack one only if it also lacks a
+  // device — which the driver, co-signing every capture with a per-device key, never produces. The branch is
+  // DEFENSIVE, not dead: `QueueItem.event` is typed as a general event, so a second producer makes it live.
+  //
+  // Why it matters if it ever does: sorting a seq-less item FIRST puts it ahead of ordered captures, and the
+  // server's gates are order-dependent — the same 403-and-park that strands a signed capture forever.
+  it("§847: an item with NO device_seq drains LAST, and ties keep insertion order", async () => {
+    const store = new ShuffledStore();
+    const q = new OfflineQueue(store);
+    const ctx = await deviceCtx();
+
+    // Two ordered captures…
+    const ordered: string[] = [];
+    for (const pieces of [1, 2]) {
+      const { event } = await capture({ kind: "freight.counted", payload: { pieces }, ts: 1, shipment_id: "s-1" }, ctx);
+      await q.enqueue(event);
+      ordered.push(event.id);
+    }
+    // …and two device-less ones, enqueued BETWEEN and AFTER, so a stable sort is distinguishable from luck.
+    const seqless: string[] = [];
+    for (const n of [1, 2]) {
+      const { event } = await capture({ kind: "freight.counted", payload: { pieces: 10 + n }, ts: 1, shipment_id: "s-1" }, ctx);
+      const { device_id: _d, device_seq: _s, ...rest } = event as Record<string, unknown>;
+      await q.enqueue(rest as never);
+      seqless.push(rest["id"] as string);
+    }
+
+    const drained = (await q.pending()).map((i) => i.event.id);
+    // The seq-carrying items come first, in CAPTURE order, regardless of how the store yielded them.
+    expect(drained.slice(0, 2), "ordered captures must drain first, by device_seq").toEqual(ordered);
+    // The seq-less pair comes LAST — that is the guarantee that matters, since sorting one FIRST is what
+    // would put it ahead of a prerequisite and take the 403.
+    expect(new Set(drained.slice(2)), "seq-less items must sort LAST").toEqual(new Set(seqless));
+
+    // "Stable relative order" means relative to the STORE'S YIELD, not to insertion — a distinction this
+    // test got wrong first time and the code got right. `ShuffledStore.all()` reverses, so the stable sort
+    // must preserve that reversal among equals; asserting insertion order here would be asserting that the
+    // sort UNDOES the shuffle for seq-less items, which it cannot and should not.
+    const yielded = (await store.all()).map((i) => i.event.id).filter((id) => seqless.includes(id));
+    expect(drained.slice(2), "ties keep the store's yield order (sort stability)").toEqual(yielded);
+  });
+
   it("drains in CAPTURE order (device_seq) even when the store yields a shuffled order", async () => {
     const store = new ShuffledStore();
     const q = new OfflineQueue(store);
