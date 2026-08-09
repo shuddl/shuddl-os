@@ -5,7 +5,7 @@
 | Path | What it is |
 |---|---|
 | `CLAUDE.md` | **The governing file.** Budgets, laws, fixture gates, do-nots, the five acceptance demos. Every build session reads it first. |
-| `genesis/` | The founding spec set (docs 00–15 + README index): manifesto & Ten Laws · product spec · ledger architecture · Claude-native booking · business model · v1 build & zero-cutover · 2023-codebase verdict · design system ("Terminal Gallery") · gap audit + roadmap (WP-01…16 with DoD) · **09-REQUIREMENTS-REGISTER.csv (167 rows — the scope authority, append-only)** · event taxonomy & data model (35 kinds, 21 tables) · repo-governance source · GTM rollout (12) · tenant onboarding/Overlay contract (13) · build execution spec (14, milestones M-H first) · second-pass audit & readiness verdict (15) |
+| `genesis/` | The founding spec set (docs 00–15 + README index): manifesto & Ten Laws · product spec · ledger architecture · Claude-native booking · business model · v1 build & zero-cutover · 2023-codebase verdict · design system ("Terminal Gallery") · gap audit + roadmap (WP-01…16 with DoD) · **09-REQUIREMENTS-REGISTER.csv (the scope authority, append-only — `pnpm check:coverage` prints the live row count; a number written here would rot, and did: it read 167 from F0.2 until audit §831)** · event taxonomy & data model (35 kinds, 21 tables) · repo-governance source · GTM rollout (12) · tenant onboarding/Overlay contract (13) · build execution spec (14, milestones M-H first) · second-pass audit & readiness verdict (15) |
 | `fixtures/` | Golden fixtures that gate merges — manifest inside; vendored at WP-01 |
 
 ## Status

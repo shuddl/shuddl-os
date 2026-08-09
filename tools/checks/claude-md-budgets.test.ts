@@ -152,14 +152,29 @@ describe("REQ-118 §611: CLAUDE.md's hard budgets match what enforces them", () 
     expect(migrations.length, "no migration files found — the scan is stale, not the schema").toBeGreaterThan(4);
     const actual = checkMigrationSql(migrations.map((f) => readFileSync(`${repoRoot()}/${f}`, "utf8"))).tableCount;
 
-    const stated = /\((\d+)\s+used/.exec(readFileSync(`${repoRoot()}/CLAUDE.md`, "utf8"));
-    expect(stated, 'CLAUDE.md no longer states "(N used)" on its hard-budgets line').not.toBeNull();
+    // BOTH documents that state the figure (§831). CLAUDE.md is the governing file; README.md is the repo's
+    // front door and had already been corrected once for exactly this rot (audit §172 found its status line
+    // stale by ten work packages). A gate that covered only one of them would leave the other free to drift,
+    // which is how the number got two copies in the first place.
+    const DOCS: ReadonlyArray<{ file: string; re: RegExp }> = [
+      { file: "CLAUDE.md", re: /\((\d+)\s+used/ },
+      { file: "README.md", re: /35 kinds,\s*(\d+)\s+tables/ },
+    ];
+    // COLLECT then assert, rather than a loop of `expect`s. A loop is fail-fast, so when BOTH documents drift
+    // — the likely case, since a table lands once and both go stale together — it names only the first and
+    // the second surfaces a run later. Measured that behaviour on a planted 22nd table before changing it.
+    const drifted = DOCS.map((d) => {
+      const stated = d.re.exec(readFileSync(`${repoRoot()}/${d.file}`, "utf8"));
+      if (stated === null) return `${d.file}: no longer states the used-table figure where this gate reads it`;
+      return Number(stated[1]) === actual ? null : `${d.file}: says ${stated[1]}, migrations declare ${actual}`;
+    }).filter((x): x is string => x !== null);
+
     expect(
-      Number(stated![1]),
-      `CLAUDE.md says ${stated?.[1]} tables are used; the migrations declare ${actual}. A table was added or ` +
-        "removed and the governing file was not updated — and because the budget check only fails ABOVE " +
-        "TABLE_BUDGET, nothing else would have said so. A stale law is worse than an absent one: it is followed.",
-    ).toBe(actual);
+      drifted,
+      "a document states a used-table count the migrations contradict. A table was added or removed and the " +
+        "document was not updated — and because the budget check only fails ABOVE TABLE_BUDGET, nothing else " +
+        "would have said so. A stale law is worse than an absent one: it is followed.",
+    ).toEqual([]);
   });
 
   it("every budget STATED in CLAUDE.md is covered by the roster (§743 completeness floor)", () => {

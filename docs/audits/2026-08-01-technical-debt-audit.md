@@ -470,6 +470,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 275 | §827 | **§828** | **PHASE 50 CLOSED — I cited "the REQ-289 baseline" THIRTEEN times without opening it.** Every phase closed with *"3 failed — the unchanged REQ-289 baseline"*, inherited and never verified. Opened: all 3 come from REQ-289 but are **two different problems** — contiguity fails because the working tree has 289 rows and HEAD has **288**; coverage ×2 fail because `status="ACTIVE"` and `wp="GTM-0"` are **unknown to the classifier** (the register's other 288 rows use six statuses; ACTIVE is a seventh). **Verified**: `git log -S` finds **no commit that ever added REQ-289**; on a clean checkout all three vanish. **THE DEFECT**: `traceability.test.ts`'s §748 note asserted *"the register's terminal id is REQ-289"* — **never true of the committed register**, written by reading an uncommitted working tree and stating it as fact. Its ARGUMENT was unaffected, which is why it survived: **a false premise supporting a true conclusion is invisible to every test**. Number deleted, not corrected — pinned once at the assertion (§823's shape, one level smaller). **Deliberately NOT fixed**: committing/bumping would go green while BREAKING a clean checkout |
 | 276 | §828 | **§829** | **PHASE 51 CLOSED — the DEFINITION OF DONE was measuring a register that had grown by 121 rows.** §828's class swept for siblings. **Two-thirds clean**: `PROJECT-STATE` and `RELEASE-EVIDENCE` both use the **committed** 288 and label REQ-289 uncommitted; the audit doc flagged the 288-vs-289 distinction back in §67. §828's defect was **isolated to one file**. **THE FIND**: `BUILD-PROMPT.md` defines completeness as **"167/167 register rows"** — the register is **APPEND-ONLY**, held 167 on 2026-07-09 and **288** today, so the DoD named a target **121 rows short** in the document a reader consults to decide the build is finished. Five instances. This is `f026527`'s *"docs may state laws, not observations"* landing where an observation does most damage; freezing a count in an append-only register is not a risk of rot but a **guarantee**. Converted to law form; `check:coverage` named as authority. **Nothing pinned it** — and a DoD should not have a count for a gate to pin. **Repeat self-error**: cited §829 before writing it, exactly as §823 did seven phases earlier |
 | 277 | §829 | **§830** | **PHASE 52 CLOSED — the governing file's one observation, pinned to a COPY OF ITSELF.** §829's rule applied to `CLAUDE.md`. Why the sweep reached here: `82e04c7` swept **all nine ops docs** clean, and both root-level docs sat **outside its glob** — *a clean negative is only as wide as its glob*. `≤22 tables (21 used)`: five laws are roster-pinned; the parenthetical was **excluded deliberately** to avoid the two-mechanisms trap — **right reasoning, wrong conclusion**. `check:invariants` computes the count but fails only ABOVE budget, so a 22nd table prints `22/22`, passes, and leaves the governing file stating 21. Two probes bounded it: `(19 used)` reds **for the wrong reason** (an unrostered number, not a wrong one — attributed, not credited), and `invariants.test.ts`'s `tableCount === 21` is over a **SYNTHETIC fixture**, not `db/`. Fixed by calling `checkMigrationSql` — **the same authority the script calls**, not a re-implementation. 3 REDs. **Residual stated**: `README`, `genesis/*`, `docs/wp/*` remain unswept for this class |
+| 278 | §830 | **§831** | **PHASE 53 CLOSED — the front door, and the THIRD forward-reference.** §830's unswept list closed. **Two-thirds correctly frozen**: `genesis/*`'s "48 tests" is a **fixture identity** (CLAUDE.md names the same artifact) and `genesis/15` is a dated audit; `docs/wp/*`'s nine counts are **WP-exit evidence** in docs headed *"complete, merged"* — a record that updated itself would stop being one. **One live defect**: `README.md` described the register as *"167 rows"* in the repo's front door, **121 rows stale** — while its OTHER "167 rows" (line 27) is correctly scoped by its own date. **The defect is never the number; it is the absence of a date around it.** This file had already been corrected once (§172, stale by ten WPs) — *a document that rots once is the one to check twice*. Also: README states the `21 tables` figure §830 had pinned in **CLAUDE.md only**, so the gate now covers both — and a planted 22nd table proved the `expect` loop was **fail-fast**, naming one doc and stopping; rewritten to collect-then-assert, now naming both |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -48165,3 +48166,61 @@ production code changed.**
   drifting. That is the point of calling the authority instead of copying it.
 - The remaining root/genesis docs (`README.md`, `genesis/*`, `docs/wp/*`) are **not** swept for this class.
   §829 and §830 took the two that govern behaviour; the rest is stated as unswept rather than implied clean.
+## §831 — PHASE GATE: PHASE 53 CLOSED — the front door, and the third time I cited a section before writing it
+
+§830 closed naming what it had not swept: `README.md`, `genesis/*`, `docs/wp/*`. This closes that list.
+
+### The triage, and why two-thirds of it is correctly frozen
+
+A stated count is only a defect when it describes something that **accumulates** and nothing scopes it. Run
+across all three groups, 16 candidates:
+
+- **`genesis/*` — clean.** Its three "48 tests" are the ported engine's **fixture identity** (CLAUDE.md names
+  the same artifact as a pending private fixture), not a growing number. `genesis/15`'s "167 rows" sit in a
+  document whose own title is *SECOND-PASS AUDIT* and whose lines are dated F0.2/F0.3. A dated audit is
+  allowed to say what was true on its date.
+- **`docs/wp/*` — clean.** The nine counts are WP-exit evidence ("36 tests", "80 tests", "171 tests",
+  "**213** register rows"). `WP-16.md`'s header reads *"Status: complete, merged"* — these are records of a
+  closed work package, and a record that updated itself would stop being one.
+- **`README.md` — one live defect.** Its layout table described the register as **"167 rows — the scope
+  authority, append-only"**. Live prose, in the repo's front door, 121 rows stale.
+
+Its second "167 rows" is fine and worth contrasting: line 27 reads *"History: F0.2 complete + third-party
+audited 2026-07-09 (register 167 rows…)"* — the same number, correctly scoped by its own sentence. **The
+defect is never the number; it is the absence of a date around it.**
+
+That this file rotted is not surprising: audit §172 already corrected its status line, which had been *stale
+by ten work packages*. A document that rots once is the one to check twice.
+
+### The second half: one number, two documents, one gate
+
+README also states `(35 kinds, 21 tables)` — the figure §830 had just pinned **in `CLAUDE.md` only**. Pinning
+one copy and leaving the other free is how a number acquires two copies in the first place, so the §830
+assertion now covers both.
+
+Measured before changing it: a loop of `expect`s is **fail-fast**, so a planted 22nd table named `CLAUDE.md`
+and stopped — README's drift would have surfaced a run later, after someone "fixed" the first. Rewritten to
+collect-then-assert; the same probe now names **both** documents in one run.
+
+### The third occurrence of my own error
+
+Writing the README correction I cited **§831 before writing §831**, and `section-refs` refused it — as it did
+in §823 and again in §829. Three times in nine phases, each caught in one command, each costing a re-run.
+
+§829 recorded the reason charitably ("a cheap gate lets a habit stay unlearned"). Three occurrences is past
+the point where that is an explanation. The concrete rule, written where the next phase will read it:
+**the audit section is written first, and the citation is added after the heading exists.** The gate is not
+the safety net for this; it is the thing repeatedly telling me the same sentence.
+
+### Exit state
+
+`test:tools` **1094**, 3 failed — the REQ-289 trio explained by §828. typecheck 0, lint 0, `verify:docs` 0.
+`README.md` and `0002_domain.sql` restored byte-identical after four mutations. **No production code changed.**
+
+**Reopen triggers**
+- A third document states the used-table figure → add it to `DOCS`; the gate reads a roster of documents, and
+  a document not on it is not covered. That roster is now the thing to keep complete.
+- A WP doc is REOPENED (status flips off "complete, merged") → its counts stop being records and become live
+  claims. That is the one condition under which this phase's `docs/wp` clean negative expires.
+- `genesis/*` gains a live count of something that accumulates → it would be the first; genesis states laws
+  and dated history, and this sweep found no exception.
