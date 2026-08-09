@@ -408,6 +408,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 213 | §765 | **§766** | **§765's stated blind spot, MEASURED empty — and the board back to baseline.** §765's gate reads literals and declared its residual (*a clause built by interpolation escapes it*). Scanned every single-line interpolated template in shipped source that looks like SQL: **75 found** (the positive control — a deliberately loose net, since **a zero over a wider net is a stronger zero**), **0 containing a bare OR**. So the gate has no blind spot in practice today. Merge board eight commits on: **17 PASS · 2 FAIL · 5 BLOCKED**, and **`traceability` is GREEN again** — §757's fix held across eight commits including two doc-heavy ones, the first re-run since `verify:docs` existed |
 | 214 | §766 | **§767** | **The money apportionment has TWO properties; both defended.** Identity (Σparts === total): deleting the leftover-redistribution loop reds **12 tests** — asserted from several directions, which is what a money identity should look like. **Determinism** (ties by ASCENDING index) is the one easy to overlook: flipping `a-b` → `b-a` reds a NAMED case. Not aesthetics — the Biller re-derives an invoice on queue redelivery, so a different split on a re-run means a second differing invoice or a hash mismatch. **The sum identity keeps the money right; the tie rule keeps it the same money twice** |
 | 215 | §767 | **§768** | **The Biller's id law: determinism PINNED, domain separation NOT — and stopping there on purpose.** Seeding the invoice event id with `crypto.randomUUID()` reds a NAMED test (*a redelivered POD re-derive…*), the money-side twin of §755's server idempotence. Merging the two domain tags left **122/122 GREEN**; measured what that produces: **no collision** (formats differ — UUID vs `inv_`+16hex), but the AR number becomes the event id's own first 16 hex, so the two stop being independent. **No test added, deliberately** — §760's rule that a gate per defensive line is its own debt; the property protecting MONEY is pinned, the one protecting HYGIENE is measured here. *"The id law is tested"* would be true and would overstate it |
+| 216 | §768 | **§769** | **SECOND STOPPING POINT — §738–§768 re-derived (31 commits, 39 phases past §737).** **Nine live defects**, every one surfaced by MUTATION and none by reading: two unpinned fail-closed gate defaults · a `"grants NOTHING"` sentinel spelled 3× and undefended · a budget gate blind to unenforced budgets · **a BLOCKED gate being invisible to the meta-gate watching it** · a REQ matcher truncating at 3 digits · the Concierge's ZIP guard · **a retention clock restarted by re-upload** · **the lens held by two characters of punctuation**. Plus 4 corrections to my own claims. Confirmed with proof: Laws 1/5/10, the DO mutex, money sum **and tie determinism**, the lens conjuncts, both driver-sync premises. `test:tools` 984 → **1041**; board unchanged. **Stopping because §765–§768 found nothing** — the sweep now confirms rather than finds |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -44048,3 +44049,74 @@ byte-identical after both mutations.
   and it is the moment the measurement above stops being reassuring.
 - An id becomes externally visible (an invoice number on a customer document) → predictability stops being
   hygiene and starts being a disclosure question.
+## §769 — PHASE GATE: SECOND STOPPING POINT — §738–§768 re-derived
+
+§737 was the first stopping point, and the loop continued past it correctly: **31 commits and 39 phases since**,
+carrying nine live defects. This is the checkpoint for that arc.
+
+### What the arc found
+
+Nine defects, every one surfaced by a **mutation** and none by reading:
+
+| § | defect |
+|---|---|
+| §739 | two fail-closed gate defaults (invoice-gate exemption, absent facility hours) **correct but unpinned** |
+| §740 | a *"grants NOTHING"* entitlement sentinel spelled as a literal in three production sites, undefended |
+| §743 | the budget gate could not see a budget nobody enforced |
+| §744 | a **blocked** gate is invisible to the meta-gate that watches gates |
+| §745 | the CWD meta-gate counted a skip as coverage — and my fix was silently wrong twice |
+| §748 | every REQ-id matcher truncates at three digits (both traceability directions break at four) |
+| §749 | the Concierge's ZIP truncation guard documented and undefended — a phantom ZIP is *wrong* data |
+| §756 | a re-upload of an ACTIVE document **restarted its retention clock** |
+| §764 | the lens's cursor clause held together by two characters of punctuation |
+
+Plus §757/§759/§761/§762 — four corrections to my own earlier claims, three of them caught by the merge gate or
+by finishing a sample I had generalised from.
+
+### What it confirmed, with proof
+
+CLAUDE.md Law 5 (interline executing share, 5 reds incl. a counterfactual-named test) · rule 10 (no silent
+drops) · rule 1 (both traceability directions) · the DO sequencer mutex · the money apportionment's **sum
+identity and tie determinism** · the Biller's redelivery-stable ids · the lens's three conjuncts · the
+POOL_BINDINGS parity across four workers · the driver-sync Critical's fix and both legs of its server premise.
+
+### Measured state
+
+```
+verify:merge (§766)   24 gates — 17 PASS · 2 FAIL · 5 BLOCKED
+test:tools            1041   (984 at session start)
+packages/ledger 668 · contracts 308 · agents 227 · adapters 41
+lint 0 · typecheck 0 · verify:docs 0
+```
+
+The two FAILs remain the uncommitted `REQ-289` GTM row — **not this loop's** and unchanged since §726. At
+HEAD's register the board is `PASS` on both.
+
+### Six gates added, and one script
+
+`claude-md-budgets` (budget roster completeness) · `do-mutex-preconditions` (derived across all DOs) ·
+`and-chain-or-parens` · `cwd-parity`'s execution detection · plus §726/§727/§728's collection gates. And
+`pnpm verify:docs`, which exists because §757 proved a doc-edit checklist can be one gate short.
+
+### Why stop here
+
+The last four phases (§765–§768) produced **no defects** — a gate, two clean negatives with positive controls,
+and one deliberate decision not to build a gate. The mutation sweep has reached the part of the codebase where
+it confirms rather than finds. §587/§594's signal: the reopen triggers now describe *events* ("a third id is
+derived from the same seed", "an interpolated clause with OR appears"), not work.
+
+### What remains — unchanged from §737, all owner-held
+
+1. `IDENTITY_DENYLIST` secret · 2. nine private fixtures (5 BLOCKED gates) · 3. `REQ-289`'s disposition ·
+4. the "+ photos" half of demo #1 (three decisions, §734) · 5. the filmed demos · 6. §724's portal-liveness
+infrastructure gap.
+
+**Nothing repo-owned is open.**
+
+**Reopen triggers**
+- `verify:merge` at HEAD's register stops reading `21 PASS · 0 FAIL · 5 BLOCKED` → that has held since §719
+  across 50 phases.
+- A new collection surface, an unpinned fallback in a gate path, or an OR clause in an AND chain → the three
+  shapes this arc found repeatedly. Each has a gate now; the gates are the durable part.
+- An owner-held item lands → read its first green rather than observing it. §731's `assertions`-count warning
+  is the model, and §745 is what happens when a blocked gate is assumed rather than read.
