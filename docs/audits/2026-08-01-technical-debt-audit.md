@@ -449,6 +449,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 254 | §806 | **§807** | **PHASE 30 CLOSED — the merge roster pinned BY NAME; four more gates were silent.** §806's distinction swept across all 31 gates. A `toContain` grep suggested 27 unpinned — the sort of number §799 taught me not to publish — so **mutation was the measurement**: swap a gate for a dummy, count preserved. **SILENT for `invariants` (I1–I8 + append-only, CLAUDE.md rule 2), `rater-purity` (REQ-024), `coverage` (REQ-118/119) and `authority-coverage` (REQ-030)** — four of the five highest-law gates could leave the merge surface with nothing failing. The existing count pin was **not wrong, it answered a different question** (its own comment: *"not a budget… a tripwire"* for DOC counts). Fixed with an exact-set roster asserted **both directions** — a vanishing gate AND an added one both fail. Residual stated: the 5 release-only gates remain count-pinned |
 | 255 | §807 | **§808** | **PHASE 31 CLOSED — the RELEASE-only gates; the roster line closed end to end.** §807 stated a residual and §790's rule says close it — third application (§789, §802, here), and again the measurement disagreed with the guess: **4 of 5 were SILENT**, including **`restore-verify`, the only proof that a backup RESTORES**, plus `deploy-preflight`, `staging-smoke`, `backup-manifest`. The exposure differs **in kind**: a merge gate vanishing weakens what lands on `main`; a release gate vanishing weakens what reaches PRODUCTION, and restore-verify's absence is discovered *on the day it is needed*. All four now caught. **Every gate on both profiles is pinned by name, both directions.** The four-phase chain (§805 my red-gate commit → §806 the catcher was count-pinned → §807 four CLAUDE.md-law gates → §808 the DR gate) **started because I made a mistake and wrote it down** |
 | 256 | §808 | **§809** | **PHASE 32 CLOSED — a gate's KIND is part of its identity; `external` is an OFF SWITCH.** §808 stated this edge; 4th application of §790's rule and 4th time the residual was bigger than its sentence. `kind: "external"` short-circuits execution — `{status: "BLOCKED", executed: false, assertions: 0}` — and **BLOCKED does not fail the aggregate**, so flipping a gate converts an enforced check into a permanently-blocked non-check **that still appears on the board**. Flipping `append-chokepoint` was caught **only INCIDENTALLY** (orphan-script test), which works when a script has ONE invoker and fails precisely for **`typecheck`, `lint`, `unit-tests`, `runtime`** — the four most fundamental gates, each switchable off by a three-word edit. **All four were SILENT.** Fixed by asserting the external set is exactly `{backup-manifest}` and merge has none. Five-phase line: a red-gate commit → an off switch on `typecheck` |
+| 257 | §809 | **§810** | **SESSION CONSOLIDATION — 32 phases, measured.** §809's residual is **the first of five that measurement shows as SMALL as its sentence** (the kind union is exactly `cmd|external`, TypeScript-enforced) — recorded because "four for four" was becoming a rule of thumb and the 5th point keeps it a measurement. Board at `819e83a`: **19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape across all 32 phases. **4,205 tests** (3,136 workspace, 0 failures), **+53 since §784, every one pinning something a mutation proved unwatched**. **Production source touched: 17 files, +277/−109 — almost all of it §782's unparsed-boundary class; 31 of 32 phases changed only tests, gates and the record.** That ratio is the summary: behaviour was largely right, evidence that it STAYS right was missing. Stopping point: **no repo-owned defect from §772–§809 is unclosed; none of the 20 standing rows is both open AND actionable without an owner decision** |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -464,8 +465,8 @@ acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register r
 attributed by naming the three failing tests, all register-classification) plus five gates BLOCKED on private
 fixtures that live in the engagement workspace. §521 tables every remaining hold with its owner.
 
-**Test totals, measured rather than carried forward — re-measured 2026-08-09 at `e77035a` (§792):**
-**4,175 tests, 3 failing** — 1,044 in `test:tools` (the 3 REQ-289 failures) and **3,131 across all 17
+**Test totals, measured rather than carried forward — re-measured 2026-08-09 at `819e83a` (§810):**
+**4,205 tests, 3 failing** — 1,069 in `test:tools` (the 3 REQ-289 failures) and **3,136 across all 17
 workspace suites, zero failures**. The previous wording
 here said "3,016 workspace tests"; it was undated and stale, the exact defect §"a gate's green certifies less
 than its name" warns about, so the count above carries its date and SHA.
@@ -46735,3 +46736,85 @@ One assertion added to `tools/checks/gate-wiring.test.ts`. `test:tools` **1069**
   reopen the same hatch under a new name.
 - The BLOCKED semantics change (BLOCKED starts failing the aggregate) → this assertion becomes belt rather
   than brace, and that would be an improvement worth making deliberately.
+## §810 — PHASE GATE: SESSION CONSOLIDATION — thirty-two phases, and an honest stopping point
+
+§772–§809 ran thirty-two phases. This one measures the whole and states where it stops, because a session that
+ends on its own momentum leaves the reader guessing which claims were checked.
+
+### First, the residual §809 stated — measured, and genuinely small
+
+§809 warned that a third `GateSpec` kind would reopen the off-switch hatch under a new name. Measured: the
+union is **exactly `cmd | external`**, and TypeScript enforces membership, so a third kind requires editing the
+type — an edit a reviewer sees.
+
+**This is the first residual in five that measurement shows to be as small as its sentence** (§789, §802,
+§808, §809 were all larger). Recording the negative matters: "four for four" was becoming a rule of thumb, and
+the fifth data point is the one that keeps it a measurement.
+
+### The board, at `819e83a`
+
+```
+26 gates — 19 PASS · 2 FAIL · 5 BLOCKED   (exit 1, working tree)
+```
+
+Unchanged in shape across all thirty-two phases. Both FAILs remain the three register-classification tests on
+the single uncommitted `REQ-289` row; the five BLOCKED are the private fixtures and the denylist secret.
+
+**Totals: 4,205 tests — 3,136 across 17 workspace suites (zero failures) + 1,066/1,069 tools.**
+Up from 4,152 at §784: **+53 tests, every one of them pinning something a mutation proved was unwatched.**
+
+### What thirty-two phases actually changed
+
+**Production source touched: 17 files, +277/−109** — and almost all of it is one defect class. §782's
+unparsed-boundary sweep rewrote fourteen surface files (`get<T>` → `get<unknown>` + a Zod parse), §781 added
+the portal's invoice seam, and §798 exported one function for a direct test. **Everything else this session —
+thirty-one of thirty-two phases — changed only tests, gates and the record.**
+
+That ratio is the honest summary: the system's behaviour was very largely right, and what was missing was
+evidence that it stays right.
+
+### The findings that would have shipped
+
+| § | defect | consequence if unfound |
+|---|---|---|
+| §781/§782 | **16 unparsed API boundaries** | a white screen, and **NaN rendered as a billing total** |
+| §777 | credit reconciler's `status === null` guard | a party with **no credit check at all** books |
+| §795 | B2A `01` parsed and ignored | **freight booked that the partner CANCELLED** |
+| §775 | 214 send-then-mark ordering | every tendered shipment marked sent, **none transmitted**, at go-live |
+| §801 | 8 constant-time comparisons unwatched | a timing oracle on the **Stripe webhook signature** |
+| §807/§809 | CLAUDE.md-law gates unpinned; `external` as an off switch | **`typecheck` switchable off in three words**, still green on the board |
+
+### Where it stops, and why
+
+**The repo-owned position, stated precisely** (§804 corrected the loose version, §805 triaged it):
+
+> No repo-owned defect discovered by §772–§809 is unclosed. The standing ledger carries 20 live rows, of which
+> **none is both open AND actionable without an owner decision** — four say *"needs a REQ row first"*, two are
+> unmade decisions, four are governing-document wording, two are fixed-and-monitored, and the rest are blocked
+> on a secret, a fixture, or a filmed demo.
+
+**Five owner-held holds** (a subset of those 20, per §805): the `IDENTITY_DENYLIST` secret · nine private
+fixtures · **`REQ-289`'s disposition — the sole cause of both merge FAILs** · demo #1's "+ photos" half · the
+filmed demos. Plus **§795's proposed REQ row** for the B2A cancellation, written but deliberately not appended
+while `REQ-289` is pending.
+
+This is a stopping point rather than an ending: the audit's method still works, but every remaining item needs
+a decision that is not mine to make.
+
+### The method, in one line each
+
+- **§790** a deferral needs the same standard as a finding · **§803** so does an assertion in an exit note ·
+  **§804** so does a claim you inherit.
+- **§799** a grep proves presence, never absence — four false-absence calls this session, each caught by a
+  mutation costing a minute.
+- **§800** duplication that shares a NAME gets gated; duplication that shares only a RULE does not.
+- **§806** a count pin answers *how many*; a name pin answers *is this one still here*.
+- **§809** `external` is not a label, it is an off switch.
+
+**Reopen triggers for the session**
+- `REQ-289` is decided → the board goes to `21 PASS · 0 FAIL · 5 BLOCKED` and `unit-tests` stops
+  short-circuiting at 1,069 of 4,205 tests (§784).
+- A live VAN/AS2 transport or webhook subscriber is wired → §792's two at-least-once sweeps stop being
+  dormant and §236's duplicate-vs-strand decision must be made first.
+- Any future phase states a residual → measure it before filing. Five attempts, four were bigger than their
+  sentence.
