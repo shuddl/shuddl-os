@@ -156,3 +156,38 @@ describe("assertAppointment — a REQ-049 override waives soft policy ONLY", () 
     expect(() => assertAppointment([], apptEvent(), ctx({ override: { by: "  ", reason: "" } }))).toThrow(/VALIDATION_FAILED/);
   });
 });
+
+// REQ-030 §739 — THE ABSENT-DAY DEFAULT, PINNED. `assertAppointment` reads the day's intervals as
+// `ctx.facility.hours.weekly[String(ctx.localDow)] ?? []`, and the `?? []` IS the guarantee: a facility with no
+// entry for that weekday is CLOSED, not unconstrained. The code says so ("absent day = closed") and the
+// behaviour was correct — but MUTATION-MEASURED as unpinned: replacing the default with an all-day interval
+// (absent day ⇒ 00:00–24:00 open) left this suite at 23/23 GREEN. Correct-but-unpinned is one edit from
+// correct-no-longer, and this is the server-side booking gate (REQ-030: any flow reachable by API enforces it).
+//
+// Every other test here perturbs a field that fails EARLIER (a mismatched localDow throws window_mismatch), so
+// the absent-day branch was never reached. That is why the corpus missed it, and why the fixture below keeps
+// slot.dow and localDow ALIGNED while emptying the weekly map.
+describe("REQ-030 §739: a facility with no hours for the slot's weekday is CLOSED, not unconstrained", () => {
+  it("empty weekly map ⇒ outside_hours (the `?? []` default is a floor, not a formality)", () => {
+    const noHours: AppointmentFacility = { ...FAC, hours: { ...FAC.hours, weekly: {} } };
+    expect(() => assertAppointment([], apptEvent(), ctx({ facility: noHours }))).toThrow(/outside_hours/);
+  });
+
+  it("weekly map present but MISSING this weekday ⇒ outside_hours", () => {
+    // Tuesday-only hours, Monday slot: the lookup misses and must close, not fall through to "no constraint".
+    const tueOnly: AppointmentFacility = { ...FAC, hours: { ...FAC.hours, weekly: { "2": [{ open_min: 0, close_min: 1440 }] } } };
+    expect(() => assertAppointment([], apptEvent(), ctx({ facility: tueOnly }))).toThrow(/outside_hours/);
+  });
+
+  it("and the SAME absent-day facility still passes under a named override (soft policy, REQ-049)", () => {
+    // Non-vacuity for the two above: they must fail because the day is CLOSED, not because an empty `weekly`
+    // map breaks the fixture in some way that would throw regardless. Hours are SOFT policy (REQ-049), so a
+    // named override waives them — and the override travels on the CTX, not the payload.
+    //
+    // Distinct from the existing "waives outside_hours" case above, which uses a facility whose Monday hours
+    // are PRESENT but too narrow: that exercises the interval comparison, never the `?? []` default.
+    const noHours: AppointmentFacility = { ...FAC, hours: { ...FAC.hours, weekly: {} } };
+    expect(() => assertAppointment([], apptEvent(), ctx({ facility: noHours, override: OK_OVERRIDE }))).not.toThrow();
+  });
+});
+

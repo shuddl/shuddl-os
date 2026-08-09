@@ -66,3 +66,35 @@ describe("I2 / REQ-030 — assertPodSigned (invoice gate is server-side, every p
     await expect(assertPodSigned(DB, "s:shp-blind", policy, "standard")).rejects.toBeInstanceOf(GateError);
   });
 });
+
+// REQ-030 §739 — THE EXEMPTION DEFAULT, PINNED. `assertPodSigned` reads the waiver list as
+// `policy?.gates?.invoice_without_pod_classes ?? []`, and the `?? []` IS the guarantee: absent policy means NO
+// service class is exempt, so the POD gate applies to everyone. The behaviour was correct and
+// MUTATION-MEASURED as unpinned — replacing the default with `[serviceClass]` (every caller exempt) left the
+// whole ledger suite at 661/661 GREEN.
+//
+// That is the worst direction for this particular default to fail in: I2 / REQ-030 says the invoice gate is
+// server-side and EVERY path hits it, and a silently-permissive waiver list would mint invoices with no proof
+// of delivery — the exact thing `no price on air` and the POD gate exist to prevent.
+describe("REQ-030 §739: an absent exemption policy exempts NOBODY", () => {
+  it("a serviceClass with NO policy still hits the gate", async () => {
+    await insertEvent("s:shp-noplcy", 0, "booking.created");
+    // The mutation this pins made the default `[serviceClass]`, which would return early right here.
+    await expect(assertPodSigned(DB, "s:shp-noplcy", undefined, "LTL")).rejects.toBeInstanceOf(GateError);
+  });
+
+  it("a policy with NO invoice_without_pod_classes list still hits the gate", async () => {
+    await insertEvent("s:shp-emptyplcy", 0, "booking.created");
+    await expect(assertPodSigned(DB, "s:shp-emptyplcy", { gates: {} }, "LTL")).rejects.toBeInstanceOf(GateError);
+  });
+
+  it("and the exemption DOES work when actually configured (non-vacuity)", async () => {
+    // Without this, a gate that threw unconditionally would satisfy both assertions above. This proves the two
+    // are failing because the list is EMPTY, not because the exemption path is broken or unreachable.
+    await insertEvent("s:shp-exempt", 0, "booking.created");
+    await expect(
+      assertPodSigned(DB, "s:shp-exempt", { gates: { invoice_without_pod_classes: ["LTL"] } }, "LTL"),
+    ).resolves.toBeUndefined();
+  });
+});
+

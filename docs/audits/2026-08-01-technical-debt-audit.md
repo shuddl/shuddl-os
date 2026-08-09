@@ -378,6 +378,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 183 | §735 | **§736** | **Live drifted citations: 11 → 0, re-measured rather than assumed** (§735's own trigger). Closed the two that needed judgement: the REQ-170 evidence-gate range (now anchored `@loadActivePodDocument`) — subtle because that row mixes a LIVE assertion with a PRESERVED historical narrative in one cell, and re-pointing the wrong half would have edited a quotation — and the pen-test sequencer range (now `@UNRESOLVED_VISIBILITY`). Ratchet **141 → 132**, content-anchored **201 → 219**. The detector still reports **2**, and that is CORRECT: both are row-level frozen struck-through rows. **A permanent floor, not a backlog** — the classifier works by FILE, frozen-ness is a property of the ROW, and §272 rightly bounds the ignore-marker to the scanner's own tree. **Detector deliberately NOT shipped as a gate**: cost, a known-false red every run (§730), and it measures a proxy — 49 candidates became verdicts only by hand |
 | 184 | §736 | **§737** | **STOPPING POINT — eleven phases (§726–§736) re-derived against the full merge gate, not inferred.** `verify:merge` = **19 PASS · 2 FAIL · 5 BLOCKED**, *identical to the §726/§729 baselines defect-for-defect*, after edits to six pieces of gate code incl. a module all five worker pools import. Both FAILs re-attributed by probe to the uncommitted `REQ-289` row — **at HEAD: 21 PASS · 0 FAIL · 5 BLOCKED**, unchanged since §719. `test:tools` 984 → **1023**. **Seven of the eleven were LIVE DEFECTS**, one subject throughout: *a gate reporting success over something it never examined*. Every remaining reopen trigger is forward-looking (§587/§594's finish signal). Repo-owned open set: **empty**; six items remain, all owner-held |
 | 185 | §737 | **§738** | **New shape (*an error that vanishes*) — CLEAN NEGATIVE, and three greps lied getting there.** 119 catch bodies in shipped code, **12 empty, all 12 stating their FALLBACK VALUE** (*never fabricate a cost · never fabricate a location · malformed policy ⇒ ZERO fail-closed floor*). The `session.ts` pair looked like the adjacency shape and is NOT: failing to CLEAR a token is a security fact, failing to PERSIST one is not. The sweep surfaced **four hand-maintained copies of `POOL_BINDINGS`** governing tenant routing (REQ-025) — the share-lint-matchers shape — and **planting proved the parity law fully closed**: `api` is the reference, the other three assert they mirror it, and changing the REFERENCE reds them. **Three greps, three wrong answers, one phase** (a `0` from a pattern matching 119; an import-proxy blind to a text-read assertion; a phrase-grep defeated by a `describe` name) — every one corrected by a mutation |
+| 186 | §738 | **§739** | **Two fail-closed defaults in the SERVER-SIDE GATE surface (REQ-030) were correct and UNPINNED.** 16 defaults enumerated; the two `?? []` both read fail-closed and both survived a fail-OPEN mutation in silence — exemption list ⇒ `[serviceClass]` left **661/661 green**; absent facility day ⇒ always-open left **23/23 green**. The reason is the finding: **a test named *"waives outside_hours"* exists and never enters that branch** (its fixture has hours PRESENT but narrow; every other case fails earlier at `window_mismatch`). **A test named for a behaviour is not evidence its branch runs.** Pinned with 6 tests, each pair carrying a non-vacuity companion; re-mutated, each now reds exactly its two positives. Ledger 661 → 667 |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -42078,3 +42079,82 @@ mutations restored byte-identical (`diff -q` clean, verified for each of the fou
   together; a partial move would leave a copy anchored to nothing.
 - A new empty `catch` lands without a stated fallback value → the twelve here all state one, which is the
   standard this repo already meets and the only thing that makes an empty catch reviewable.
+
+## §739 — PHASE GATE: two fail-closed gate defaults that were correct and unpinned
+
+§738 swept **empty** catches and came back clean. The sharper version of that shape is where
+`fail-closed-is-about-the-fallback-value` actually came from: not a swallowed error but a **permissive
+default** — and in the server-side gate surface (REQ-030), a fallback that *allows* is a security defect.
+
+### The enumeration
+
+16 `??`/`||` defaults across `gates/`, `visibility.ts`, `lens.ts`, `authority.ts`. Most are `?? null`
+(restrictive by construction) or a query limit. Three were worth opening, and all three READ as correct:
+
+| site | fallback | verdict |
+|---|---|---|
+| `visibility.ts` inherited kinds | `?? UNRESOLVED_VISIBILITY` | fail-closed — §736 confirmed the sequencer refuses it with zero append |
+| `invoice-gate.ts` | `policy?.gates?.invoice_without_pod_classes ?? []` | **no exemptions** ⇒ the POD gate applies to everyone |
+| `transition-gates.ts` | `hours.weekly[dow] ?? []` | **absent day = closed**, and the code says exactly that |
+
+Reading is not proof, so each was mutated to fail OPEN.
+
+### Both were unpinned
+
+| mutation | result |
+|---|---|
+| exemption default becomes `[serviceClass]` — every caller exempt | **661/661 GREEN** |
+| absent day becomes a 00:00–24:00 interval — always open | **23/23 GREEN** |
+
+`a-silent-mutation-has-two-explanations` says this is either a redundant guard or a corpus that never reaches
+the branch. It is the second, and the reason is worth more than the finding:
+
+**There IS a "waives outside_hours" test — and it never touches this default.** Its fixture gives the facility
+Monday hours that are *present but too narrow*, exercising the interval comparison. Every other test in that
+suite perturbs a field that fails EARLIER — a mismatched `localDow` throws `window_mismatch` before control
+reaches the hours lookup at all. So the suite contains a test whose *name* covers the case while its
+*execution* never enters the branch.
+
+That is the transferable shape: **a test named for a behaviour is not evidence the behaviour's branch runs.**
+Only the mutation distinguishes them, and it took one line to ask.
+
+### Pinned
+
+Six tests, each pair with a **non-vacuity companion** so a gate that threw unconditionally could not satisfy
+them:
+
+- *empty `weekly` map ⇒ `outside_hours`* · *map present but missing this weekday ⇒ `outside_hours`* · **and**
+  the same absent-day facility still passes under a named override (hours are soft policy, REQ-049) — which
+  proves the first two fail because the day is CLOSED, not because an empty map breaks the fixture.
+- *a `serviceClass` with NO policy still hits the gate* · *a policy with no `invoice_without_pod_classes` still
+  hits the gate* · **and** the exemption genuinely works when configured.
+
+Re-mutated after: each mutation now reds exactly its two positive tests and leaves the non-vacuity companion
+green. Ledger suite **661 → 667**.
+
+### Why the invoice one mattered most
+
+Its failure direction is the worst available: I2 / REQ-030 states the invoice gate is server-side and *every
+path hits it*. A silently-permissive waiver list mints invoices with no proof of delivery — precisely what the
+POD gate and *no price on air* exist to prevent. The default was right; nothing was stopping it from being
+edited.
+
+### One misstep
+
+My first draft of the override companion put `override` in the event **payload**. The appointment schema
+rejected it instantly (`unrecognized_key`) — the override travels on the ctx, as the four existing override
+tests already showed. Cost: one run. It is the §732 shape again (a repair written from memory of the API
+rather than from the file), caught here for free because the schema is strict.
+
+### Exit state
+
+`packages/ledger` **667 passed** (+6); `test:tools` 1023; lint 0; typecheck 0. Both source mutations restored
+byte-identical, verified with `diff -q`.
+
+**Reopen triggers**
+- A new `??`/`||` default lands in the gate surface → ask which side of it is permissive, then mutate it. Two
+  of the three examined here were correct-but-unpinned, so the base rate is not low.
+- A test's fixture is "simplified" so that `localDow` no longer aligns with `slot.dow` in the §739 cases → they
+  would start failing EARLIER, at `window_mismatch`, and pass for the wrong reason. The alignment is load-bearing.
+- `invoice_without_pod_classes` gains a second consumer → the `?? []` default must be repeated there, and the
+  same mutation should be run against it.
