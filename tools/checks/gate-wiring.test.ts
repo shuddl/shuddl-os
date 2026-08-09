@@ -146,6 +146,39 @@ describe("REQ-118/119: no gate script is defined and never run", () => {
     ).toEqual(["backup-manifest", "deploy-preflight", "restore-verify", "staging-smoke", "surfaces"]);
   });
 
+  // §809 — THE KIND IS PART OF A GATE'S IDENTITY, and the name rosters do not cover it.
+  //
+  // §808 closed with this edge stated: the §807/§808 rosters assert NAMES, so a gate changing `kind` slips
+  // through. That is not cosmetic. `kind: "external"` short-circuits execution entirely —
+  // `run-gate.ts:170@external` pushes `{status: "BLOCKED", executed: false, assertions: 0}` and `continue`s.
+  // BLOCKED is a non-failing state (it means "blocked on input this repo cannot supply"), so flipping a gate
+  // to external converts it from an ENFORCED check into a permanently-blocked non-check that still appears
+  // on the board.
+  //
+  // MEASURED: flipping `append-chokepoint` is caught — but only INCIDENTALLY, by the orphan-script test above,
+  // because `check:append-chokepoint` then has no invoker. Flipping **`typecheck`** is **SILENT**, because CI
+  // also runs that script directly so it never orphans. The escape hatch is therefore open for exactly the
+  // most fundamental gates — the ones whose scripts are run in more than one place.
+  //
+  // Asserted as an exact set rather than per-gate: `backup-manifest` is the ONLY gate that legitimately
+  // cannot run in-repo (OIDC/external backup credentials). Every other gate must be a `cmd` that executes.
+  it("§809: `backup-manifest` is the ONLY external gate — every other gate must actually RUN", () => {
+    const external = gatesFor("release").filter((g) => g.kind === "external").map((g) => g.gate);
+    expect(
+      [...external].sort(),
+      "a gate's kind changed to `external`. That is not a relabelling: an external gate never executes — it " +
+        "reports BLOCKED with executed:false, assertions:0, and BLOCKED does not fail the aggregate. So the " +
+        "gate stays on the board, stops enforcing anything, and no other assertion notices (the orphan-script " +
+        "test only catches it when the script has no other invoker). If a gate genuinely cannot run in-repo, " +
+        "add it here with the reason; otherwise it must remain a `cmd`.",
+    ).toEqual(["backup-manifest"]);
+    // The merge profile must contain NO external gates at all — everything it runs, it runs.
+    expect(
+      gatesFor("merge").filter((g) => g.kind === "external").map((g) => g.gate),
+      "the merge profile gained an external (non-executing) gate",
+    ).toEqual([]);
+  });
+
   it("profile sizes match the docs that quote them", () => {
     const merge = gatesFor("merge").length;
     const release = gatesFor("release").length;

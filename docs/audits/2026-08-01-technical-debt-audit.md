@@ -448,6 +448,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 253 | §805 | **§806** | **PHASE 29 CLOSED — a COUNT pin and a NAME pin are different guarantees.** §805 owned a process failure (committed with `verify:docs` red, 3rd time); §790 says close it, so I asked whether the SYSTEM catches it independent of my discipline. It does — but asking *how* found the gap: `citations`, `table-shape` and `traceability` are pinned to the merge roster **by NAME** (§50 added that after `check:citations` had been *"wired into no gate"*), while **`section-refs` was pinned only by a gate COUNT**. Measured: removing it is caught; **removing it AND adding any other gate is SILENT** — the most ordinary commit imaginable defeats it. The same swap is CAUGHT for the other three. **A count pin answers "how many gates are there"; a name pin answers "is THIS gate still one of them."** And this is the gate that twice this session refused a forward §-reference I wrote before the section existed (§795, §804) |
 | 254 | §806 | **§807** | **PHASE 30 CLOSED — the merge roster pinned BY NAME; four more gates were silent.** §806's distinction swept across all 31 gates. A `toContain` grep suggested 27 unpinned — the sort of number §799 taught me not to publish — so **mutation was the measurement**: swap a gate for a dummy, count preserved. **SILENT for `invariants` (I1–I8 + append-only, CLAUDE.md rule 2), `rater-purity` (REQ-024), `coverage` (REQ-118/119) and `authority-coverage` (REQ-030)** — four of the five highest-law gates could leave the merge surface with nothing failing. The existing count pin was **not wrong, it answered a different question** (its own comment: *"not a budget… a tripwire"* for DOC counts). Fixed with an exact-set roster asserted **both directions** — a vanishing gate AND an added one both fail. Residual stated: the 5 release-only gates remain count-pinned |
 | 255 | §807 | **§808** | **PHASE 31 CLOSED — the RELEASE-only gates; the roster line closed end to end.** §807 stated a residual and §790's rule says close it — third application (§789, §802, here), and again the measurement disagreed with the guess: **4 of 5 were SILENT**, including **`restore-verify`, the only proof that a backup RESTORES**, plus `deploy-preflight`, `staging-smoke`, `backup-manifest`. The exposure differs **in kind**: a merge gate vanishing weakens what lands on `main`; a release gate vanishing weakens what reaches PRODUCTION, and restore-verify's absence is discovered *on the day it is needed*. All four now caught. **Every gate on both profiles is pinned by name, both directions.** The four-phase chain (§805 my red-gate commit → §806 the catcher was count-pinned → §807 four CLAUDE.md-law gates → §808 the DR gate) **started because I made a mistake and wrote it down** |
+| 256 | §808 | **§809** | **PHASE 32 CLOSED — a gate's KIND is part of its identity; `external` is an OFF SWITCH.** §808 stated this edge; 4th application of §790's rule and 4th time the residual was bigger than its sentence. `kind: "external"` short-circuits execution — `{status: "BLOCKED", executed: false, assertions: 0}` — and **BLOCKED does not fail the aggregate**, so flipping a gate converts an enforced check into a permanently-blocked non-check **that still appears on the board**. Flipping `append-chokepoint` was caught **only INCIDENTALLY** (orphan-script test), which works when a script has ONE invoker and fails precisely for **`typecheck`, `lint`, `unit-tests`, `runtime`** — the four most fundamental gates, each switchable off by a three-word edit. **All four were SILENT.** Fixed by asserting the external set is exactly `{backup-manifest}` and merge has none. Five-phase line: a red-gate commit → an off switch on `typecheck` |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -46664,3 +46665,73 @@ One assertion added to `tools/checks/gate-wiring.test.ts`. `test:tools` **1068**
   identity.
 - `verify:merge` gains a third profile → it needs its own roster. Two profiles, two rosters, and the residual
   §807 stated is now zero.
+## §809 — PHASE GATE: PHASE 32 CLOSED — a gate's KIND is part of its identity
+
+§808 closed the roster line and stated one edge in the same breath: *"these rosters assert names, so a gate
+changing `kind` wouldn't trip them."* Fourth application of §790's rule, and — for the fourth time — the edge
+was larger than the sentence made it sound.
+
+### `external` is not a label, it is an off switch
+
+`run-gate.ts:170@external` short-circuits execution entirely:
+
+```ts
+gates.push({ gate: spec.gate, status: "BLOCKED", executed: false, assertions: 0, detail: spec.detail });
+continue;
+```
+
+And **BLOCKED does not fail the aggregate** — it means *"blocked on input this repo cannot supply"*, which is
+why five gates sit BLOCKED on the board today while it still reports a verdict. So flipping a gate to
+`external` converts an ENFORCED check into a permanently-blocked non-check **that still appears on the board**.
+
+### The hatch was open for exactly the most fundamental gates
+
+| flip | before |
+|---|---|
+| `append-chokepoint` → external | caught — but **only incidentally**, by the orphan-script test, because `check:append-chokepoint` then has no invoker |
+| **`typecheck` → external** | **SILENT** |
+| **`lint`, `unit-tests`, `runtime`** | **SILENT** |
+
+The incidental catch is the whole point. It works when a gate's script has exactly one invoker, and it fails
+precisely for the gates whose scripts CI *also* runs directly — `typecheck`, `lint`, `unit-tests`, `runtime`.
+Those are the four most fundamental gates on the board, and each could have been switched off by a
+three-word edit while continuing to appear in every evidence record.
+
+### Fixed by asserting the set, not the members
+
+`backup-manifest` is the only gate that legitimately cannot run in-repo (OIDC/external backup credentials).
+So the assertion is: **the external set is exactly `{backup-manifest}`**, and the merge profile contains no
+external gates at all. All four silent flips now **CAUGHT**.
+
+That framing is deliberate — a per-gate `kind` assertion would need a row per gate and would rot; a set
+assertion states the actual rule (*everything this repo can run, it runs*) in one line.
+
+### The line, and what it cost
+
+Five phases, from a mistake to an off switch on `typecheck`:
+
+| § | found |
+|---|---|
+| 805 | I committed with `verify:docs` red |
+| 806 | the gate that caught me was pinned by a COUNT |
+| 807 | four CLAUDE.md-law gates were pinned no better |
+| 808 | four RELEASE gates, incl. the only proof a backup restores |
+| **809** | a gate's **kind** could switch it off entirely, silently, for the four most fundamental |
+
+Each residual was **stated honestly by the previous phase and then found to be bigger than its sentence**.
+That is now four for four (§789, §802, §808, §809), which is itself the finding: **a residual you can describe
+precisely is one you can close cheaply, and the describing is what makes the size visible.**
+
+### Exit state
+
+One assertion added to `tools/checks/gate-wiring.test.ts`. `test:tools` **1069** (+1); lint 0; typecheck 0.
+`run-gate.ts` restored byte-identical after eight further mutations (twenty-six across §806–§809).
+
+**Reopen triggers**
+- A gate genuinely cannot run in-repo → add it to the external set WITH its reason, the way `backup-manifest`
+  carries *"OIDC/external backup credentials … absent in-repo"*. A row without a reason is an off switch with
+  paperwork.
+- `run-gate.ts` gains a third `kind` → this assertion covers `external` only. A new non-executing kind would
+  reopen the same hatch under a new name.
+- The BLOCKED semantics change (BLOCKED starts failing the aggregate) → this assertion becomes belt rather
+  than brace, and that would be an improvement worth making deliberately.
