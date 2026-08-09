@@ -484,6 +484,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 289 | §841 | **§842** | **PHASE 63 CLOSED — the launch checklist's code-state claims all HOLD; the one that doesn't is in CLAUDE.md.** §841 found 2 of 6 of my own triggers rotted, so the higher-stakes version: the GO-LIVE-CHECKLIST, where §823 already caught a stale count. 297 rows → 222 live → 67 repo-path → **5 making a falsifiable CODE-STATE claim**, and **every one holds**: `approvalGranted` honoured by both composers but **supplied by no caller**; `actor.party` read by nine modules and by **zero gates** (the claim is about gates, and is exact); the dunning matrix unwired per its own source comment. **Clean negative worth stating** — §823 found the COUNT stale and the reasonable inference was that the prose had rotted too; it has not. **The live defect is in CLAUDE.md**: rule 6 names `routes ±10%` and there is **no fixture, no manifest entry, no implementation** (17 fixtures; the other three exist) — filed as an OWNER DECISION since §61/§68. §830/§831 pinned CLAUDE.md's table COUNT; nothing pinned its named fixture GATES, which is how this sat there for the length of the build. Now gated, with `routes` a recorded exception — **deliberately not made to red on a filed hold**, because a gate that reds on a parked decision gets disabled and takes the unfiled cases with it |
 | 290 | §842 | **§843** | **PHASE 64 CLOSED — the last fractional cent, and the shape MY OWN gate could not see.** Back to production code. `retention.ts:152` holds `STORAGE_COST_CENTS_PER_GB_MONTH = **1.5**` — a `*CENTS*` constant bound to a fractional value, multiplied into a float quotient to produce integer cents. Swept every `*CENTS*` identifier bound to a non-integer across `packages/ workers/ apps/`: **exactly one**. **§817's gate could not see it** — it matches a money-ish LEFT operand of `/` or a money-ish ASSIGNMENT target, and this is neither (`bytes / BYTES_PER_GB` is not money-named; the result is a bare `return`). Extension catches the **root cause**, not a third arithmetic shape. **The metric-vs-money question answered by PRECEDENT**: the module argues *"a METRIC, not a money_line"* and is right that the ledger owes nothing — but §817 already converted the Watchtower's `avgCostCents`, the same kind of operator reading, *because it is denominated in cents*; the inconsistency is the defect, not either choice. Fixed with an exact integer ratio (15 tenths-of-a-cent/GB) via `mulDivHalfUp`, which needs no ruling. **No number changes** — 200,011 inputs, **zero differences** |
 | 291 | §843 | **§844** | **PHASE 65 CLOSED — a purity claim MY OWN detector's vocabulary could not read.** §843's residual measured: 3 cents-named functions contain arithmetic, 2 already exact, and the third (`iif.ts@formatCents`) is a **false positive written correctly** — `(abs - frac) / 100` is exact by construction with the proof in a comment. **1 FP in 3 candidates → NOT BUILT**, numbers given rather than a shrug. **But reading it walked into a defect**: `iif.ts` opens *"PURE: … No I/O, no D1, **no clock**"* — a module-level claim §835's detector (which I wrote) **cannot read**, because its vocabulary is `no Date, no random`. Same claim, different words, invisible to the sweep AND to the discovery gate that sweep installed. **Vocabulary measured per §803**: `no clock` adds **2**; `PURE:` 8, `no I/O` 15, `pure function` 9, bare `DETERMINISTIC` **22** — all out as prose. The two split as §835's design anticipated: `iif.ts` is real (banned, ambient-clock subset, since its only `Date` use is a `new Date(ms)` conversion), and `billing.ts` is a FIELD comment on a module that **injects** its clock — recorded in SCOPED_CLAIMS. **Honest bound**: the detector finds 27 claims, not *every* claim |
+| 292 | §844 | **§845** | **PHASE 66 CLOSED — detect the VIOLATION, not the claim; and §815's superset gets its reason.** §844's bound (*27 claims, not every claim*) is structural: prose has unboundedly many phrasings, so §835 and §844 each widened a vocabulary and each left the same hole. **Inverted**: *which modules READ an ambient clock?* is bounded and prose-independent. **58 reads** — **57 in `workers/**`**, which is the CORRECT pattern (read at the composition root, inject downward). Only **2 in `packages/**`**, both justified: `guess.ts` mints an unpredictable nonce for a prompt-injection fence (**determinism there would be the vulnerability**) and `capture.ts` mints an event id. **§815's superset EXPLAINED** — it measured that adapters bans `crypto.randomUUID` and agents does not, calling it *deliberately stricter* without knowing why; the reason is that the fence depends on it. *An unexplained pin is one somebody eventually simplifies.* Gate bans ambient reads in `packages/**` with the 2 recorded; `workers/**` excluded **by design**, since flagging 57 correct reads gets a gate turned off. 3 REDs. **1 FP of my own**: a trailing `//` comment on a code line |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -49132,3 +49133,73 @@ conversion the module legitimately needs) · the `no clock` claimant unbanned �
   exemption names what the sentence describes and that stops being true.
 - The return-of-a-computed-cent pattern is revisited → the corpus was three, and the FP was exact-by-
   construction with its proof in a comment. Re-measure before building; do not re-derive from this row.
+## §845 — PHASE GATE: PHASE 66 CLOSED — detect the violation, not the claim; and §815's superset gets its reason
+
+§844 closed with an honest bound: *"the detector finds 27 purity claims, not every purity claim."* Two phases
+(§835, §844) each widened a prose vocabulary and each left the same hole, because the hole is structural —
+**a claim can be phrased in unboundedly many ways, and a detector that reads prose can never be complete.**
+
+The inversion closes it: stop detecting the CLAIM and detect the VIOLATION. *"Which modules read an ambient
+clock or randomness?"* is bounded, mechanical, and independent of what any header says.
+
+### The measurement
+
+**58** ambient reads (`Date.now()`, `new Date()`, `Math.random()`, `crypto.randomUUID()`) across production.
+The distribution is the finding:
+
+| where | count | verdict |
+|---|---|---|
+| `workers/**` | **57** | composition roots. Reading the clock at an entry point and injecting it downward is the CORRECT pattern — it is what makes everything below testable. |
+| `packages/**` | 2 (+1 false positive) | both justified, below |
+
+The false positive is mine: `packages/ledger/src/queries/metrics.ts:45` is `now: number; // injected clock … production
+passes Date.now()` — a trailing comment on a line that starts with code, so a "skip lines beginning with //"
+filter cannot see it. The module does the right thing and my scan misread it, which is the third
+comment-shaped miscount this session.
+
+### The two real package-level reads, and why both stay
+
+- **`packages/agents/src/migrator/guess.ts:111`** — `nonceFence` mints an unpredictable per-call nonce so a
+  header containing the fixed terminator cannot close the fence early and smuggle instructions into the
+  prompt. **Determinism here would be the vulnerability.** Randomness is the control, not an accident.
+- **`packages/driver-core/src/capture.ts:115`** — mints a new event id. Deterministic ids from identical
+  input would collide, which is the opposite of what an append-only ledger needs.
+
+### §815's superset, explained
+
+§815 measured that the adapters-only lint block is a strict superset of the shared agents+adapters one — it
+adds `crypto.randomUUID` — and recorded it as *"adapters is deliberately stricter … safe by construction."*
+True, and I could not say **why**. Now I can: `packages/agents` must be allowed `crypto.randomUUID` because
+the prompt-injection fence depends on it, and `packages/adapters` has no such need. The asymmetry is not a
+stylistic choice; it is a security control in one package and dead weight in the other.
+
+A measured fact acquiring its reason nine phases later is worth recording as its own outcome — §815's
+assertion was right and its explanation was absent, and an unexplained pin is one somebody eventually
+"simplifies".
+
+### The gate
+
+`packages/**` may not read an ambient clock or randomness, with those two sites recorded and their reasons
+attached; `workers/**` is out of scope **by design** and the file says so, because a gate that flagged 57
+correct composition-root reads would be turned off within a week.
+
+This is what §844's bound needed: a module can now adopt any phrasing it likes for its purity claim, and the
+clock read itself is still gated. The prose detector stays — it catches an unenforced *claim*, which is a
+documentation defect — but it is no longer the only thing standing between the repo and an ambient clock in
+its pure layer.
+
+### Exit state
+
+`test:tools` **1116** (+3), 3 failed — the REQ-289 trio. typecheck 0 · lint 0 · `verify:docs` 0. **No
+production code changed** — the two reads are correct and stay.
+
+Proved three ways: an ambient `Date.now()` planted in a pure package → RED naming it · a recorded exception
+whose subject stops reading randomness → RED (§672) · the scan blinded → RED on non-vacuity.
+
+**Reopen triggers**
+- A package genuinely needs a clock → inject it (`opts.now`), as `metrics.ts` and `billing.ts` already do. The
+  exception list is for randomness that is a **control**, not for convenience.
+- A worker moves logic into a package without moving the clock read out → this fires, which is the intended
+  catch and the reason `workers/**` is excluded rather than allowlisted per-file.
+- `crypto.getRandomValues` or a new randomness API appears → the pattern names four forms. It is a
+  vocabulary too, just a far smaller and more stable one than English.

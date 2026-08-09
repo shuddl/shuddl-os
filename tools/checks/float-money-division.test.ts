@@ -268,3 +268,79 @@ describe("§843: no `*CENTS*` identifier holds a fractional value", () => {
     expect(files.length, "no source files scanned — the glob is stale, not the tree").toBeGreaterThan(200);
   });
 });
+// ── §845 — DETECT THE VIOLATION, NOT THE CLAIM ────────────────────────────────────────────────────────
+//
+// §835 and §844 each widened a PROSE vocabulary to find modules claiming purity, and each left the same
+// hole: a claim can be phrased in unboundedly many ways ("no Date, no random", "no clock", "no I/O"), so a
+// detector reading English can never be complete. §844 stated that bound honestly and could not close it.
+//
+// This inverts the question. "Which modules READ an ambient clock or randomness?" is bounded, mechanical and
+// independent of what any header says. A module may now adopt any phrasing it likes for its purity claim —
+// the clock read itself is gated either way.
+//
+// SCOPE: `packages/**` only, and `workers/**` is excluded BY DESIGN rather than allowlisted file by file.
+// Measured (§845): 58 ambient reads in production, **57 of them in workers** — which is the CORRECT pattern.
+// A worker is a composition root: it reads the clock at the entry point and injects it downward, which is
+// exactly what makes everything below it testable. A gate that flagged 57 correct reads would be turned off
+// inside a week, and would take the two that matter with it.
+
+describe("§845: the pure layer reads no ambient clock or randomness", () => {
+  const AMBIENT = /\bDate\.now\(\)|\bnew Date\(\s*\)|\bMath\.random\(\)|crypto\.randomUUID\(\)/;
+
+  /** Ambient reads in `packages/**`, ignoring comment lines and trailing `//` comments. */
+  function ambientReads(root: string): string[] {
+    return execSync('git ls-files "packages"', { cwd: root, encoding: "utf8" })
+      .split("\n")
+      .filter((f) => /\.tsx?$/.test(f) && !f.includes(".test.") && !f.includes("/test/"))
+      .flatMap((f) => {
+        const out: string[] = [];
+        readFileSync(`${root}/${f}`, "utf8").split("\n").forEach((raw, i) => {
+          const line = raw.trim();
+          if (line.startsWith("//") || line.startsWith("*")) return;
+          // A trailing `//` comment is not code. `metrics.ts` reads `now: number; // … passes Date.now()`,
+          // which a naive line filter counts as a violation — measured as a false positive at §845.
+          const code = line.split("//")[0]!;
+          const m = AMBIENT.exec(code);
+          if (m) out.push(`${f}:${i + 1}  ${m[0]}`);
+        });
+        return out;
+      });
+  }
+
+  /** The two package-level reads that are CONTROLS, not conveniences. */
+  const JUSTIFIED: Record<string, string> = {
+    "packages/agents/src/migrator/guess.ts":
+      "nonceFence mints an UNPREDICTABLE per-call nonce so a header containing the fixed terminator cannot close the prompt fence early and smuggle instructions. Determinism here would be the vulnerability — this is why `packages/agents` is allowed crypto.randomUUID while `packages/adapters` bans it (§815's superset, explained in §845).",
+    "packages/driver-core/src/capture.ts":
+      "mints a new event id. Deterministic ids from identical input would collide, which is the opposite of what an append-only ledger needs.",
+  };
+
+  it("the scan reads the pure layer (non-vacuity)", () => {
+    const files = execSync('git ls-files "packages"', { cwd: repoRoot(), encoding: "utf8" })
+      .split("\n")
+      .filter((f) => /\.tsx?$/.test(f) && !f.includes(".test.") && !f.includes("/test/"));
+    expect(files.length, "no package sources scanned — the glob is stale, not the tree").toBeGreaterThan(80);
+    expect(AMBIENT.test("const t = Date.now();"), "the pattern stopped matching an ambient read").toBe(true);
+    expect(AMBIENT.test("const d = new Date(ms);"), "a CONVERSION must not read as an ambient read").toBe(false);
+  });
+
+  it("no package reads an ambient clock or randomness outside the justified two", () => {
+    const novel = ambientReads(repoRoot()).filter((h) => !Object.keys(JUSTIFIED).some((f) => h.startsWith(`${f}:`)));
+    expect(
+      novel,
+      "a module under `packages/**` reads the wall clock or randomness directly. The pure layer takes its " +
+        "clock from its caller — inject it as `opts.now`, the way metrics.ts and billing.ts already do — so " +
+        "that everything below a composition root stays testable without freezing time. If the randomness is " +
+        "a CONTROL rather than a convenience (an unpredictable nonce, a minted id), record it in JUSTIFIED " +
+        "with what it protects:\n  " +
+        novel.join("\n  "),
+    ).toEqual([]);
+  });
+
+  it("no JUSTIFIED entry outlives its subject (§672)", () => {
+    const files = new Set(ambientReads(repoRoot()).map((h) => h.split(":")[0]!));
+    for (const f of Object.keys(JUSTIFIED)) {
+      expect(files, `${f} no longer reads randomness — delete its exception rather than leaving a reason for nothing`).toContain(f);
+    }
+  });
+});
