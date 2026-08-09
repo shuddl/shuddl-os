@@ -37,8 +37,14 @@ export interface AnomalyFlag {
  *
  * weight_lb must be a positive finite number: per-pound is undefined without it, so a non-positive weight is
  * a CALLER error (a PRICED freight result always carries a positive measured weight) — throw, never divide by
- * zero or silently pass. Integer cents in; the per-lb DECISION is made without division (cross-multiply) so
- * no float touches the flag decision.
+ * zero or silently pass. The per-lb DECISION is made without division (cross-multiply) so no float touches
+ * the flag decision.
+ *
+ * ALL THREE money-ish inputs — sell_cents, weight_lb and the cap — must be INTEGERS, and each throws on a
+ * non-integer (§816). "Integer cents in" was stated here from the start but enforced for only two of the
+ * three; a fractional sell used to reach a float `Math.round` per-lb. Note the ordering consequence: a
+ * fractional NEGATIVE sell now throws rather than returning `{ code: "negative" }`, because a value that is
+ * not an integer number of cents is a caller error before it is a price.
  */
 export function detectAnomaly(
   input: { sell_cents: number; weight_lb: number },
@@ -55,8 +61,16 @@ export function detectAnomaly(
       `detectAnomaly: max_cents_per_lb must be a positive integer (got ${cap}) — a NaN cap silently disables the net, a non-positive cap flags every price`,
     );
   }
-  if (!Number.isFinite(sell_cents)) {
-    throw new Error(`detectAnomaly: sell_cents must be a finite number (got ${sell_cents})`);
+  // INTEGER cents, matching `cap` and `weight_lb` above rather than merely finite (audit §816). This module
+  // has always DOCUMENTED "integer cents in / integer cents throughout"; until now it only enforced that for
+  // two of its three money-ish inputs, and a fractional sell fell through to a `Math.round(sell / weight)`
+  // display path — the one float division on a monetary value left in the repo, against CLAUDE.md's money
+  // law. `Number.isInteger` subsumes the old finite check (NaN and ±Infinity are not integers), so the
+  // rejected set only GREW: it now also rejects a fractional sell instead of silently float-rounding it.
+  if (!Number.isInteger(sell_cents)) {
+    throw new Error(
+      `detectAnomaly: sell_cents must be an integer number of cents (got ${sell_cents}) — the money law admits no fractional cent, and a float per-lb would not round by the shared half-up rule`,
+    );
   }
   // A non-positive / non-integer weight is a CALLER error, not an anomaly: price-per-pound is undefined
   // without a positive weight, and the cross-multiply decision below must stay integer-exact. A PRICED
@@ -83,13 +97,12 @@ export function detectAnomaly(
   // a price sitting exactly AT the cap is NOT an anomaly.
   const threshold = cap * weight_lb;
   if (sell_cents > threshold) {
-    // Report the offending per-lb as an exact half-up integer when both inputs are integers (the money law's
-    // shared rounding); otherwise a rounded display value. The per-lb is informational — the cross-multiply
-    // above is the decision that bites.
-    const per_lb_cents =
-      Number.isInteger(sell_cents) && Number.isInteger(weight_lb)
-        ? roundHalfUp(sell_cents, weight_lb)
-        : Math.round(sell_cents / weight_lb);
+    // The offending per-lb, as an exact half-up integer via the money law's SHARED rounding. Unconditional
+    // (audit §816): both operands are now validated integers above, so the old `Number.isInteger(...) && ...`
+    // ternary could only ever take its first arm — the `Math.round(sell / weight)` fallback was proved dead
+    // (replacing it with a constant left this package 157/157 green) and is deleted rather than left as an
+    // invitation. The per-lb is informational; the cross-multiply above is the decision that bites.
+    const per_lb_cents = roundHalfUp(sell_cents, weight_lb);
     return {
       code: "over_per_lb",
       detail: `sell ${sell_cents}¢ on ${weight_lb} lb = ${per_lb_cents}¢/lb exceeds the ${cap}¢/lb safety cap`,

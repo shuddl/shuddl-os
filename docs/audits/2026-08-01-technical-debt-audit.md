@@ -455,6 +455,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 260 | §812 | **§813** | **PHASE 35 CLOSED — the HARD BUDGETS bite, and the mechanism is the AMENDMENT PATH.** §611 built the gate, §743 found its completeness floor; neither recorded whether a budget **bites**. *Matching a number is not enforcing it* (§806's distinction applied to a budget). Planted three across three source files and three extractors: a **36th event kind**, a **6th color token**, a **4th surface** — all **RED**. **The mechanism is doc↔source PARITY, not a ceiling**: a 36th kind fails not because 36>35 but because **CLAUDE.md still says 35** — the law's own *"additions = register amendment"* made mechanical. It does not forbid growth, it forbids growth that SKIPS the amendment. §743's three exemptions re-verified rather than trusted: `21 used` is runtime (`check:invariants` recomputes 21/22 and **exits 1** when breached — planted), `0 shadows`/`4px` are zero-tolerance proven by planting an artifact |
 | 261 | §813 | **§814** | **PHASE 36 CLOSED — REQ-163's ban did NOT reach `packages/ledger`, and could not have.** The 3rd roster-shaped law is the *"Do not build (ever)"* list; its one member with a REQ number is REQ-163. It has a lint rule AND a planted-violation test, so it looked done. **ESLint flat config is last-writer-wins per rule NAME** — a scoped block re-declaring `no-restricted-imports` **REPLACES** the repo-wide options — which is why the patterns are written **three times**. Adding a 4th pattern globally left tools at baseline, and a probe **proved** the consequence: the same import → **1 hit in `packages/contracts`, 0 in `packages/ledger`**. The append-only spine would be the ONLY place the new ban did not apply. Fixed with parity + behavioural (neither sufficient). **My parity test asserted TWO groups and failed on a CLEAN tree — there are three**; a test failing before you mutate is telling you about your instrument |
 | 262 | §814 | **§815** | **PHASE 37 CLOSED — the replacement hazard swept across every multiply-declared rule.** §814's exit note claimed REQ-024's LLM ban had no parity problem; §803's rule says check it — **the claim HELD** (one block). Checking surfaced the general sweep: `no-restricted-globals` (3 blocks, **DISJOINT** — safe) · `no-restricted-imports` (§814) · `no-restricted-syntax`, where **`packages/adapters/**` appears TWICE**. The `ledger/src/gates/**` block looked dangerous but declares a **different rule name** than the fetch ban — no replacement. The real overlap is **correct by construction**: the adapters-only block is a strict SUPERSET (adds `crypto.randomUUID`), so adapters is deliberately stricter. **Not a defect — but nothing pinned that it STAYS a superset**; now asserted, and dropping a selector REDs. **Two more instrument errors caught by the clean tree** (a 6-space terminator matched zero blocks; a tuple cast failed typecheck) |
+| 263 | §815 | **§816** | **PHASE 38 CLOSED — the money core swept for float and for unpinned claims.** CLAUDE.md's money law (*no float ever touches a monetary value*) has **no gate**; swept by hand. `allocateCents`/`apportion` are the **best-defended arithmetic in the repo** — 500-case property tests for BOTH signs, postconditions in-code, and the tie-break pinned exactly by `apportion(10_000,[1,1,1]) → [3334,3333,3333]`. `money.ts`: 7 mutations, 5 covered, **2 silent** — resolved to **sibling guard** (`BigInt()` throws anyway), so LOW and **deliberately not fixed**. **THE FIND**: `detectAnomaly` (REQ-040, permanent) threw on a non-integer `cap` and `weight_lb` but accepted a fractional `sell_cents`, which fell to `Math.round(sell / weight)` — **the only float division on money in the repo**, in a module whose header has always claimed *"integer cents in"*. The branch was **dead** (a constant left it 157/157). Fixed + 3 tests. **No number changed** — searched 2^45..2^53 × 5 divisors for a case where `Math.round` disagrees with half-up: NONE, so the deletion was a law/legibility fix, not a mispricing fix, and the record says so |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -47109,3 +47110,80 @@ One assertion added to `tools/checks/lint-guards.test.ts`. `test:tools` **1072**
   some selector) → that is a real decision, and it needs its own row here rather than a relaxed assertion.
 - `no-restricted-globals` gains an overlapping scope → it is safe today only because the three scopes are
   disjoint, and that is a property of the current file, not of the rule.
+## §816 — PHASE GATE: PHASE 38 CLOSED — the money core, swept for float and for unpinned claims
+
+A deliberate change of kind after four phases in `tools/checks/`: back to production arithmetic. The target
+was CLAUDE.md's money law — *"INTEGER CENTS ONLY — no float ever touches a monetary value"* — which, unlike
+most of the ten laws, has **no gate at all**. It is enforced by review and by the authors' care.
+
+### The sweep, and what it cleared
+
+| subject | probe | verdict |
+|---|---|---|
+| float arithmetic on `*_cents` across `packages/ workers/` | grep + read every hit | **clean** — every division is `Math.round`ed or BigInt; the only raw one is below |
+| `packages/rater/src/money.ts` — `roundHalfUp` / `mulDivHalfUp` | **7 mutations** | 5 covered, **2 silent** (below) |
+| `packages/ledger/src/money/split.ts` — `allocateCents` / `apportion` | read + coverage map | **clean negative, and strong** |
+
+`allocateCents` deserves its own line because it is the best-defended arithmetic in the repo and the sweep
+should say so rather than only report finds: property tests at 500 seeded cases **for both signs**, the
+REQ-019 negative-total regression pinned by literal cases, postconditions asserted **in the code**, and — the
+part that is usually missing — the tie-break pinned *exactly*: `apportion(10_000, [1,1,1]) → [3334, 3333,
+3333]` can only pass if the leftover goes to the **ascending-index** winner. No probe needed.
+
+`money.ts`'s two silent mutations are the `Number.isInteger` guards on both public functions. §688's taxonomy
+resolves them to **sibling guard**: a non-integer reaches `BigInt(x)`, which throws `RangeError` regardless.
+So the guard buys a *message* ("which of the three operands was fractional"), not correctness. Recorded as
+**LOW and not fixed** — inventing a test to pin an error string in a function whose every path already fails
+loudly is gold-plating, and saying so is more useful than a green tick.
+
+### The finding: the third input
+
+`detectAnomaly` (REQ-040 — the $222,084/35-lb net, **permanent**) validates three money-ish inputs:
+
+- `cap` → `!Number.isInteger(cap) || cap <= 0` → **throws**
+- `weight_lb` → `!Number.isInteger(weight_lb) || weight_lb <= 0` → **throws**
+- `sell_cents` → `!Number.isFinite(sell_cents)` → **accepted**, then
+
+```ts
+Number.isInteger(sell_cents) && Number.isInteger(weight_lb)
+  ? roundHalfUp(sell_cents, weight_lb)
+  : Math.round(sell_cents / weight_lb);   // ← the only float division on money in the repo
+```
+
+Two defects in one expression. The second conjunct is **always true** (`weight_lb` was validated an integer
+20 lines above), and the fallback is **dead**: replacing it with a constant left the package **157/157
+green**. Meanwhile the module header has claimed *"Integer cents in"* and *"Integer cents throughout"* since
+it was written — a claim, enforced for two of the three inputs. The same shape this audit keeps finding: **a
+stated law with no check under it.**
+
+Fixed: `sell_cents` now requires an integer (subsuming the finite check — NaN and ±Infinity are not integers,
+so the rejected set only GREW), and the dead float arm is deleted, leaving `roundHalfUp` unconditional.
+
+### What this did NOT do, stated because the commit could be read as claiming it
+
+**No number changed.** I searched for a non-negative `(a, b)` where `Math.round(a / b)` disagrees with exact
+half-up — 2^45..2^53, five divisors — and found **none**. On this function's whole reachable domain the
+deleted path returned exactly what `roundHalfUp` returns. This was a money-law and legibility fix; there was
+no mispricing to catch, and the test comment says so in those words. My first draft of that comment implied
+the test pinned `roundHalfUp` *versus* `Math.round`; it cannot, because no fixture separates them. Corrected
+before commit — §803's rule (an assertion in a comment is held to the standard of one in code) is now cheap
+to apply because I look for it.
+
+What the test DOES discriminate is the **convention**: half-up vs half-even/half-down. Mutating the shared
+rule to half-down takes the package's half-up RED set from 8 to **9**, the ninth being this test.
+
+### Exit state
+
+`packages/rater` **160** (+3); typecheck 0; lint 0; `verify:docs` 0 before commit; `test:tools` unchanged at
+1069 passed / 3 failed (the standing REQ-289 baseline, not mine). Both mutations restored byte-identical.
+
+**Reopen triggers**
+- A fourth money-ish input is added to `detectAnomaly` → it must throw on a non-integer like the other three.
+  The asymmetry that produced this finding was one input added without the guard the others carry.
+- `roundHalfUp`/`mulDivHalfUp` gain a caller on a **negative** or non-integer domain → the half-up decision
+  `2*r >= d` is exact only for numerator ≥ 0, divisor > 0; that precondition is a comment, not a type.
+- Anyone writes a new `Math.round(x / y)` on a cents value → the money law has **no gate**. This phase swept
+  it by hand at `dcc2876`; that is a measurement with an expiry, not a standing guarantee. A `no-restricted-syntax`
+  selector over `packages/rater/**` + `packages/ledger/**` would make it one, and is the obvious next step —
+  **not taken here** because a repo-wide arithmetic ban needs its own calibration pass against false positives
+  (geo, merkle and DER all divide legitimately), which is a phase, not a footnote.

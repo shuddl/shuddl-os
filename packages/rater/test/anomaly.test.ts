@@ -102,6 +102,46 @@ describe("detectAnomaly — a negative sell is a price that cannot exist", () =>
     expect(() => detectAnomaly({ sell_cents: 100, weight_lb: -5 })).toThrow();
     expect(() => detectAnomaly({ sell_cents: 100, weight_lb: 1.5 })).toThrow();
   });
+
+  // ── §816 — THE THIRD INPUT. `cap` and `weight_lb` each threw on a non-integer; `sell_cents` was checked
+  // only for FINITENESS, so a fractional sell fell through to `Math.round(sell_cents / weight_lb)` — the one
+  // float division on a monetary value left in the repo, inside the module that carries a PERMANENT law.
+  //
+  // Nothing here is a behaviour the corpus had an opinion about: replacing that fallback with a constant
+  // left the package 157/157 GREEN, which is what proved it dead and made it safe to delete. The module's
+  // header has claimed "Integer cents in / integer cents throughout" since it was written; these are the
+  // assertions that make the claim a check rather than a sentence.
+  it("§816: a FRACTIONAL sell is a caller error — the money law admits no fractional cent", () => {
+    expect(() => detectAnomaly({ sell_cents: 100.5, weight_lb: 1 })).toThrow(/integer number of cents/);
+    // The offending value is NAMED. A bare RangeError from BigInt deep inside roundHalfUp would also stop
+    // the pricing, but would not tell the caller WHICH of the three operands was fractional.
+    expect(() => detectAnomaly({ sell_cents: 100.5, weight_lb: 1 })).toThrow(/100\.5/);
+    // Ordering consequence, asserted rather than implied: a fractional NEGATIVE sell throws instead of
+    // returning `{ code: "negative" }` — not an integer number of cents is a caller error before it is a price.
+    expect(() => detectAnomaly({ sell_cents: -0.5, weight_lb: 1 })).toThrow(/integer number of cents/);
+  });
+
+  it("§816: NaN / ±Infinity still throw — isInteger SUBSUMES the finite check it replaced", () => {
+    // The rejected set had to only GROW. NaN is the dangerous one: `sell > NaN` is false, so a NaN sell would
+    // sail through the cross-multiply and the permanent net would silently return null on a garbage price.
+    for (const bad of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
+      expect(() => detectAnomaly({ sell_cents: bad, weight_lb: 1 }), `sell_cents ${bad} must throw`).toThrow();
+    }
+  });
+
+  it("§816: per_lb_cents rounds HALF-UP via the shared rule, not by Math.round on a float", () => {
+    // 3¢ over 2 lb = 1.5¢/lb. Half-up ⇒ 2; half-down/banker's ⇒ 1. What this pins is the CONVENTION, not the
+    // identity of the helper — stated precisely because the two are not the same claim. Searched for a
+    // non-negative (a, b) where `Math.round(a / b)` disagrees with exact half-up, across 2^45..2^53 and five
+    // divisors: NONE. So on this function's whole reachable domain the deleted float path returned the same
+    // integer as roundHalfUp, and removing it changed no observable value — it was a money-law and legibility
+    // fix, not a mispricing fix. Do not read this test as having caught a wrong number; it had none to catch.
+    // What it does catch is a change to the shared half-up rule, which would silently drift the reported per-lb.
+    const flag = detectAnomaly({ sell_cents: 3, weight_lb: 2 }, { max_cents_per_lb: 1 });
+    expect(flag?.code).toBe("over_per_lb");
+    expect(flag?.per_lb_cents).toBe(2);
+    expect(flag?.detail).toContain("2¢/lb");
+  });
 });
 
 describe("interline gross-vs-share — the executing-share rule keeps the sane path sane (REQ-040)", () => {
