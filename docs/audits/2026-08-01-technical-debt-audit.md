@@ -454,6 +454,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 259 | §811 | **§812** | **PHASE 34 CLOSED — CLAUDE.md rule 7's SEVEN audits all proved, and they live in TWO gates.** The record proved 3 (§252 shadow/radius/raw-hex, §257 palette drift); **contrast, font, case and motion had implementations and NO recorded proof.** Planted one each: Comic Sans → **CAUGHT**, `textTransform: capitalize` → **CAUGHT**, a 420ms back-out bezier → **CAUGHT**, `--signal-deep` lightened below 4.5:1 → **CAUGHT** (*"small-text red passes AA on greige"*). **Structural fact now recorded: contrast is NOT in the `design-audit` gate** — it lives in `tools/design/design.test.ts` under `test:tools`, so rule 7's seven audits are split across two merge gates, and the one that surprises is the one rule 7 singles out. **My first mutation was MIS-AIMED** (`tokens.ts`, but the test reads `tokens.css`) — and what caught it was the TS↔CSS token-parity gate, the same mechanism §257's derived-allowlist proof rests on |
 | 260 | §812 | **§813** | **PHASE 35 CLOSED — the HARD BUDGETS bite, and the mechanism is the AMENDMENT PATH.** §611 built the gate, §743 found its completeness floor; neither recorded whether a budget **bites**. *Matching a number is not enforcing it* (§806's distinction applied to a budget). Planted three across three source files and three extractors: a **36th event kind**, a **6th color token**, a **4th surface** — all **RED**. **The mechanism is doc↔source PARITY, not a ceiling**: a 36th kind fails not because 36>35 but because **CLAUDE.md still says 35** — the law's own *"additions = register amendment"* made mechanical. It does not forbid growth, it forbids growth that SKIPS the amendment. §743's three exemptions re-verified rather than trusted: `21 used` is runtime (`check:invariants` recomputes 21/22 and **exits 1** when breached — planted), `0 shadows`/`4px` are zero-tolerance proven by planting an artifact |
 | 261 | §813 | **§814** | **PHASE 36 CLOSED — REQ-163's ban did NOT reach `packages/ledger`, and could not have.** The 3rd roster-shaped law is the *"Do not build (ever)"* list; its one member with a REQ number is REQ-163. It has a lint rule AND a planted-violation test, so it looked done. **ESLint flat config is last-writer-wins per rule NAME** — a scoped block re-declaring `no-restricted-imports` **REPLACES** the repo-wide options — which is why the patterns are written **three times**. Adding a 4th pattern globally left tools at baseline, and a probe **proved** the consequence: the same import → **1 hit in `packages/contracts`, 0 in `packages/ledger`**. The append-only spine would be the ONLY place the new ban did not apply. Fixed with parity + behavioural (neither sufficient). **My parity test asserted TWO groups and failed on a CLEAN tree — there are three**; a test failing before you mutate is telling you about your instrument |
+| 262 | §814 | **§815** | **PHASE 37 CLOSED — the replacement hazard swept across every multiply-declared rule.** §814's exit note claimed REQ-024's LLM ban had no parity problem; §803's rule says check it — **the claim HELD** (one block). Checking surfaced the general sweep: `no-restricted-globals` (3 blocks, **DISJOINT** — safe) · `no-restricted-imports` (§814) · `no-restricted-syntax`, where **`packages/adapters/**` appears TWICE**. The `ledger/src/gates/**` block looked dangerous but declares a **different rule name** than the fetch ban — no replacement. The real overlap is **correct by construction**: the adapters-only block is a strict SUPERSET (adds `crypto.randomUUID`), so adapters is deliberately stricter. **Not a defect — but nothing pinned that it STAYS a superset**; now asserted, and dropping a selector REDs. **Two more instrument errors caught by the clean tree** (a 6-space terminator matched zero blocks; a tuple cast failed typecheck) |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -47053,3 +47054,58 @@ Two assertions added to `tools/checks/lint-guards.test.ts`. `test:tools` **1071*
   problem today. If it is ever added repo-wide, it acquires one.
 - A prior codebase with a NEW name appears → the pattern roster is a name list, not a shape, and cannot be
   otherwise. It catches the known builds; it is not a defence against a determined rename.
+## §815 — PHASE GATE: PHASE 37 CLOSED — the replacement hazard, swept across every multiply-declared rule
+
+§814 fixed `no-restricted-imports` and left an exit note claiming REQ-024's LLM ban *"lives in the ledger
+override only, so it has no parity problem today."* §803's rule says an assertion in an exit note needs the
+same standard as one in code, so it was checked — and the check was cheap and correct: the LLM import group
+appears once, in `packages/ledger/**`. **The claim held.**
+
+Checking it surfaced the general question, which is what this phase is: **which rule NAMES are declared in
+more than one block, and can a narrower scope silently replace a broader one?**
+
+### Every multiply-declared rule, resolved
+
+| rule | blocks | verdict |
+|---|---|---|
+| `no-restricted-globals` | ledger · driver-core · rater | **safe — scopes are DISJOINT**, no block can replace another |
+| `no-restricted-imports` | repo-wide · ledger · adapters+edi | §814's finding, now parity-gated |
+| `no-restricted-syntax` | rater · ledger/gates · agents+adapters · **adapters** | **overlap**: adapters appears twice |
+
+The `ledger/src/gates/**` block looked like the dangerous one — a narrower scope inside `packages/ledger/**`
+— but it declares `no-restricted-syntax`, a **different rule name** from the ledger-wide `fetch` ban's
+`no-restricted-globals`. No replacement. A cheap check that removed a real worry.
+
+### The genuine overlap is correct by construction, and was not pinned
+
+`packages/adapters/**` is covered by two `no-restricted-syntax` blocks, so the later one replaces the shared
+agents+adapters block for adapters. Measured: it is a strict **SUPERSET** — the same three determinism
+selectors plus `crypto.randomUUID`. Adapters is deliberately *stricter* than agents. **Not a defect.**
+
+What nothing checked is that it **stays** a superset. Removing a selector from the adapters-only block would
+give `packages/adapters/**` a weaker rule than the block it overrides, while the shared block's presence makes
+it look covered. Now asserted; dropping `Math.random` from the override **REDs**.
+
+### Two instrument errors, both caught by the clean tree, both the same kind
+
+- The block terminator is a **6-space** `],`, not 4. My first extraction matched **zero** blocks and the test
+  failed before I mutated anything.
+- The tuple cast `blocks as [{…}, {…}]` failed `typecheck` — caught only because I ran it after the mutation
+  round rather than before committing.
+
+§814's instrument error was the same shape (asserting two groups where three exist). **Three phases running,
+the parser I write to check a config has been wrong before the config was** — which is an argument for the
+clean-tree run being a required step, not a courtesy.
+
+### Exit state
+
+One assertion added to `tools/checks/lint-guards.test.ts`. `test:tools` **1072** (+1); lint 0; typecheck 0.
+`eslint.config.mjs` restored byte-identical after two mutations.
+
+**Reopen triggers**
+- A rule name is declared in a new block → re-run the sweep. Disjoint scopes are safe; overlapping ones need
+  a superset assertion like this one.
+- The adapters-only block stops being a superset **deliberately** (adapters should be looser than agents for
+  some selector) → that is a real decision, and it needs its own row here rather than a relaxed assertion.
+- `no-restricted-globals` gains an overlapping scope → it is safe today only because the three scopes are
+  disjoint, and that is a property of the current file, not of the rule.

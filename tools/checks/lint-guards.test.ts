@@ -131,6 +131,52 @@ describe("REQ-163: prior codebases are organ banks — never imported", () => {
     ).toEqual([]);
   });
 
+  // §815 — THE SAME REPLACEMENT HAZARD FOR `no-restricted-syntax`, where two blocks BOTH cover
+  // `packages/adapters/**`.
+  //
+  // §814 fixed `no-restricted-imports`. Sweeping every multiply-declared rule NAME found two more:
+  // `no-restricted-globals` (three blocks, DISJOINT scopes — no replacement possible) and
+  // `no-restricted-syntax`, where `packages/adapters/**` appears in TWO blocks: one shared with
+  // `packages/agents/**`, and a later adapters-only one.
+  //
+  // Last-writer-wins means the adapters-only block REPLACES the shared one for adapters. MEASURED: it is a
+  // strict SUPERSET today — the same three determinism selectors plus `crypto.randomUUID` — so adapters is
+  // deliberately STRICTER than agents and nothing is lost. That is correct by construction and was NOT a
+  // defect.
+  //
+  // What nothing checked is that it STAYS a superset. Removing a selector from the adapters-only block would
+  // silently give `packages/adapters/**` a WEAKER rule than the block it overrides, and the shared block's
+  // presence would make it look covered.
+  it("§815: the adapters-only no-restricted-syntax block is a SUPERSET of the shared one it replaces", () => {
+    const cfg = readFileSync(`${repoRoot()}/eslint.config.mjs`, "utf8");
+    // Each rule body ends at a 6-space `],`; the owning scope is the NEAREST PRECEDING `files:`. My first cut
+    // used a 4-space terminator, matched zero blocks, and failed on a clean tree — the same instrument error
+    // as §814's, caught the same way.
+    const blocks = [...cfg.matchAll(/"no-restricted-syntax":\s*\[([\s\S]*?)\n      \],/g)]
+      .map((m) => {
+        const before = cfg.slice(0, m.index);
+        const scopes = [...before.matchAll(/files:\s*\[([^\]]*)\]/g)];
+        return {
+          files: scopes.length > 0 ? scopes[scopes.length - 1]![1]! : "(repo-wide)",
+          selectors: [...m[1]!.matchAll(/selector:\s*'([^']+)'/g)].map((x) => x[1]!),
+        };
+      })
+      .filter((b) => b.files.includes("packages/adapters/"));
+    expect(
+      blocks.length,
+      "expected exactly TWO no-restricted-syntax blocks covering packages/adapters — the shared agents+adapters " +
+        "one and the adapters-only override. If that changed, re-check which block wins for adapters.",
+    ).toBe(2);
+    const shared = blocks[0]!;
+    const adaptersOnly = blocks[1]!;
+    expect(
+      shared.selectors.filter((sel) => !adaptersOnly.selectors.includes(sel)),
+      "the adapters-only no-restricted-syntax block has become WEAKER than the shared block it replaces. " +
+        "ESLint flat config replaces a rule's options rather than merging, so packages/adapters would lose " +
+        "that selector while the shared block makes it look covered. Keep the override a superset.",
+    ).toEqual([]);
+  });
+
   it("§814: a prior-codebase import into packages/ledger is flagged (the half parity cannot see)", async () => {
     const messages = await lintVirtualFile(
       ANCHORS.ledger,
