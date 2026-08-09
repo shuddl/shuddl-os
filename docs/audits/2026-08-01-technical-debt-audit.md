@@ -416,6 +416,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 221 | §773 | **§774** | **The same weak assertion, second instance — found by sweeping the SHAPE, not the next file.** A defect just written down in prose is one you can grep for: 17 `not.toContain` hits, **2** chain assertions, **1** the same defect (`roundtrip.fixture.test.ts:286` — the REQ-034 DoD fixture test). **Independently silent**: with `inbound.test.ts` already fixed, deleting `agent.acted` left THAT file 6/6 green, so it was its own hole, not riding on its sibling. Fixed + re-mutated RED. The filter that mattered was SEMANTIC — 15 of 17 hits were legitimate named-absence claims and no regex separates them; at this FP rate over this small a population, one read beats building a gate |
 | 222 | §774 | **§775** | **The 214 sweep's send-then-mark law was unpinned, and a TEST NAME hid it.** Writing the sent-marker BEFORE the send left the worker **117/117 green** — and the marker means "already transmitted" to every future tick, so a rejecting transport strands the 214 **permanently**. Urgent because dormant: `NotConfiguredTransport` ALWAYS rejects, so the bug would be planted now and detonate at go-live with every shipment already marked sent. New test asserts no-marker AND that the next tick actually transmits. `transport-dormancy.test.ts` was named *"…so the sweep records no phantom send"* but **never drives the sweep** — renamed; a test NAME is read as a guarantee, and this one over-claimed by one whole mechanism, which is why nobody looked for the missing test. Instrument slip: `EVIDENCE.get()` for a presence check left an unconsumed stream, breaking the isolated-storage pop and **silently dropping 6 tests** (118→112) — a harness fault reduces the test COUNT rather than failing |
 | 223 | §773–§775 | **§776** | **PHASE 12 CLOSED — the EDI surface, the last unaudited product surface (§769).** Three live defects, each mutation-proved, **zero source changed** — `inbound.ts`, `sweep-214.ts`, `price.ts` all restored byte-identical after eight mutations. The defects were in the EVIDENCE, not the behaviour. Board re-measured at `fae1a17`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs **attributed** (three named register-classification tests, the one uncommitted REQ-289 row). §4's undated "3,016 workspace tests" corrected to a dated, SHA-stamped **4,152 tests / 3 failing**, and a board property stated for the first time: `unit-tests` is an `&&` chain that **short-circuits** on REQ-289, so it covers 1,041 of 4,152. **STOPPING POINT: the repo-owned ledger is EMPTY** — six holds remain, all owner-held |
+| 224 | §776 | **§777** | **The credit reconciler's fail-closed guards — 2 of 3 unpinned, one a BOOKING CREDIT-HOLD BYPASS.** Carried §775's class outward: the one parallel mark-on-success site (`mcp/webhooks.ts`) is **clean** — so §775 was a single hole, not a habit. Then `reconcileCreditForParty`: deleting `if (status === null)` left api 11/11 green while making a party with **no `credit.checked` anywhere** book — it writes `credit_status = NULL` **and** resolves the gap, and `transition-gates.ts:501` says *"Only an explicit `hold` blocks"* (**verified in the gate, not inferred**), so BOTH halves of REQ-042 come off plus the anomaly that would surface it. Also silent: `gap === null`, which keeps the DO booking gate from turning a read into a WRITE — invisible to the old tests **by construction** (their two sides always agreed, so an unguarded copy lands the same value; pinned now with a DIVERGENT pair) |
 
 **Current measured state — as measured 2026-08-08 at `fae1a17` (§775's board run):** the merge board is
 **26 gates — 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape since §737. `typecheck` 0 · `lint` 0 ·
@@ -44596,3 +44597,74 @@ unchanged since §737/§769 — it cannot be supplied from inside this repo:
   over EDI and needs the behavioural test it has never had.
 - A third endpoints-only chain assertion lands → re-run §774's three-command sweep. The class was "closed"
   after §773 too.
+## §777 — PHASE GATE: the credit reconciler's fail-closed guards — two of three unpinned, one a booking bypass
+
+§776 closed the EDI phase. Carrying §775's defect class outward rather than opening the next file: **who else
+writes a "done" marker, and is the ordering pinned?**
+
+### The class sweep first — one parallel mechanism, and it is clean
+
+Exactly one other site implements mark-on-success: `workers/mcp/src/webhooks.ts:327`, with the same law
+spelled out (*"A non-2xx receiver response leaves NO marker — the next tick retries"*). Moving the mark before
+the send **REDs** — a test named *"a failed send leaves NO marker (retried next tick, never a phantom
+delivered)"* catches it. So sweep-214 was the ONLY unpinned instance; the parallel mechanism had it right.
+
+Worth stating because it bounds §775: that was a single hole, not a systemic habit.
+
+*(The Biller / Concierge / dunning senders are a deliberately DIFFERENT design — `message.sent` is appended
+BEFORE the send and dedupe is the provider's idempotency key, with the ledger-says-sent-but-send-failed risk
+named in §137's surfacing hold. Not the same law; not swept as if it were.)*
+
+### Then the real find: `reconcileCreditForParty`
+
+`packages/ledger/src/reconcile/credit.ts` has three fail-closed guards, each with a written reason. **Two of
+the three were silent.**
+
+| guard | what it prevents | before | after |
+|---|---|---|---|
+| `status === null` | applying a decision that does not exist | **silent (11/11)** | **RED** |
+| `gap === null` | a gate evaluation mutating the read-model | **silent (11/11)** | **RED** |
+| `party === null` | fabricating a party | RED | RED |
+
+### `status === null` is a booking credit-hold bypass
+
+Without it, a party with an open gap and **no `credit.checked` anywhere on the ledger** runs the batch anyway:
+
+```sql
+UPDATE parties  SET credit_status = NULL      WHERE id = ?
+UPDATE anomalies SET status = 'resolved'      WHERE rule = 'credit_projection_gap' AND object_id = ?
+```
+
+Both halves of the REQ-042 hold come off at once. **Verified against the gate, not inferred** —
+`transition-gates.ts:501` states *"Only an explicit `"hold"` blocks"*, and lines 520–521 are the whole
+barrier: `creditGapUnresolved` throws, then `creditStatus === "hold"` throws. NULL blocks nothing, and the
+gap was just marked resolved. So a party **nobody ever ran credit on** books — and the anomaly that existed
+to surface exactly that is closed in the same batch.
+
+This is the module header's own warning (*"the gate reads a NULL credit_status and passes as if the party were
+clear"*) reachable by deleting one line, with nothing in 1,041 tools tests or 801 api tests to stop it.
+
+### `gap === null`, and why the existing tests could not see it
+
+This function is called **by the DO booking gate** on every evaluation. Unguarded, every booking re-writes
+`parties.credit_status` from the newest `credit.checked` — a read path silently becoming a write path inside
+the sequencer.
+
+The existing tests could not detect that **by construction**: they always seed the projected status and the
+ledger decision in agreement, so an unguarded re-write lands the same value and is invisible. The new test
+pins it with a **divergent pair** — projected `clear`, newest ledger decision `hold`. Divergence is the only
+construction that can see this, which is the same lesson as §772 (a mutation must cross a classification
+boundary) arriving from the fixture side: **a fixture whose two sides agree cannot detect a copy.**
+
+### Exit state
+
+No source changed — `credit.ts` and `webhooks.ts` restored byte-identical after six mutations.
+`workers/api` **803/803** (+2); `workers/mcp` 185/185; lint 0; typecheck 0.
+
+**Reopen triggers**
+- A fourth guard is added to `reconcileCreditForParty` → mutate it. Two of the three that were here shipped
+  unpinned, and both were load-bearing; the base rate in this file is 67%.
+- `assertBookingCredit` starts treating NULL as blocking → the first test's premise changes (it would then be
+  fail-closed twice over). Re-read it rather than assuming it still guards what it guards.
+- Another caller starts invoking `reconcileCreditForParty` on a hot path → the gap-gate is what keeps it a
+  no-op; the divergent-pair test is what proves the gate still holds.

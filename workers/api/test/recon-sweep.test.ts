@@ -427,6 +427,62 @@ describe("Task 6 — credit projection-gap reconciliation (shared ledger fn, REQ
     expect(await gapStatus(env.TENANT_A_DB, gapId)).toBe("resolved");
   });
 
+  it("NO credit.checked on the ledger → the gap STAYS OPEN and credit_status stays NULL (the fail-closed guard, §777)", async () => {
+    // THE most dangerous guard in `reconcileCreditForParty`, and nothing pinned it: deleting
+    // `if (status === null) return …` left this file 11/11 GREEN.
+    //
+    // Without it, a party with an open gap and NO decision anywhere on the ledger runs the batch anyway:
+    // `UPDATE parties SET credit_status = NULL` **and** `UPDATE anomalies SET status = 'resolved'`. That is
+    // precisely the silent defeat the module header names — *"the REQ-042 booking credit-hold gate reads a
+    // NULL credit_status and passes as if the party were clear"* — except now the gap is resolved too, so
+    // `assertBookingCredit`'s `creditGapUnresolved` no longer blocks either. BOTH halves of the credit hold
+    // are removed at once, for a party nobody ever ran credit on, and the anomaly that would have surfaced it
+    // is marked resolved. A booking gate that fails OPEN, with its own alarm switched off.
+    //
+    // The `resolved: false` return is NOT enough on its own — it is what a caller sees, not what the D1 rows
+    // say, and the gate reads the rows. Both are asserted.
+    const P = "party-t6-nodecision";
+    const gapId = "credit-projection-gap:t6-nodecision-1";
+    await seedParty(env.TENANT_A_DB, P); // the party EXISTS — only the decision is missing
+    await seedGap(env.TENANT_A_DB, gapId, P);
+
+    const res = await reconcileCreditForParty(env.TENANT_A_DB, P);
+    expect(res.resolved, "no decision on the ledger ⇒ nothing was reconciled").toBe(false);
+    expect(res.applied_status).toBeNull();
+    // The two rows the REQ-042 gate actually reads. Either one flipping is a credit-hold bypass.
+    expect(await partyCredit(env.TENANT_A_DB, P), "credit_status must not be written from a decision that does not exist").toBeNull();
+    expect(
+      await gapStatus(env.TENANT_A_DB, gapId),
+      "the gap must STAY OPEN — resolving it silences the only signal that this party was never credit-checked",
+    ).toBe("open");
+  });
+
+  it("NO open gap → reconcile never touches credit_status (a gate evaluation must not mutate the read-model, §777)", async () => {
+    // The gap-gate is the trigger; the reconcile is the effect. Deleting `if (gap === null) return …` was also
+    // silent (11/11), and this function is called BY THE DO BOOKING GATE on every evaluation — so without the
+    // guard every booking would re-write `parties.credit_status` from the newest credit.checked event, turning
+    // a read path into a write path inside the sequencer's gate.
+    //
+    // Pinned with a DIVERGENT pair: the projected credit_status ("clear") deliberately disagrees with the
+    // newest ledger decision ("hold"). If the guard is removed, the reconcile overwrites clear → hold and the
+    // assertion fails. Divergence is the only construction that can detect this — with the two in agreement,
+    // an unguarded re-write is invisible because it lands the same value (that is exactly why the existing
+    // tests, which always agree, could not see it).
+    const P = "party-t6-nogap";
+    await seedParty(env.TENANT_A_DB, P);
+    await env.TENANT_A_DB.prepare("UPDATE parties SET credit_status = 'clear' WHERE id = ?").bind(P).run();
+    await seedCredit(env.TENANT_A_DB, "t6cr-nogap", P, "hold", 3_000); // newer decision, deliberately different
+    // NO seedGap — there is nothing to reconcile.
+
+    const res = await reconcileCreditForParty(env.TENANT_A_DB, P);
+    expect(res.resolved).toBe(false);
+    expect(res.applied_status).toBeNull();
+    expect(
+      await partyCredit(env.TENANT_A_DB, P),
+      "with no open gap the reconcile must be a STRICT no-op — it re-wrote credit_status from the ledger on a normal booking",
+    ).toBe("clear");
+  });
+
   it("a later CLEAR supersedes an earlier HOLD (the latest valid decision wins)", async () => {
     const P = "party-t6-supersede";
     const gapId = "credit-projection-gap:t6-supersede-1";
