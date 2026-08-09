@@ -478,6 +478,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 283 | §835 | **§836** | **PHASE 57 CLOSED — the development loop reaches 4 of its 16 gates.** `pnpm verify` is `verify:dev`, a 16-step **`&&` chain** with `pnpm test` at step 4 — and `test:tools` exits 1 on the REQ-289 trio, so it **stops there**. Measured: runtime's OK line, a `Tests 3 failed` summary, and nothing else; twelve gates (invariants, coverage, traceability, identity, 3 parity gates, design audit…) **never execute**. `verify:merge` is a RUNNER that executes all 26 and aggregates — so the command you run constantly truncates and the one you run rarely is complete. **The repo's own principle turned on its tooling**: REQ-197/010 forbids a bare `LIMIT` because it *truncates silently*, and twelve unrun gates are indistinguishable from twelve passing ones. CLAUDE.md said *"leave the build green"* and **named no command** — which is why this session ran remembered subsets and §835 shipped a red. Working agreement now names `verify:merge`, with the measurement. **`&&` still NOT changed** (§834's reasoning). **4th forward-reference** — and §831 had written the rule itself |
 | 284 | §836 | **§837** | **PHASE 58 CLOSED — one LAW gate reachable only by the command nobody ran.** §836's residual: membership, not depth. All **16** dev steps map onto merge gates; the merge roster has **10** more, and they sort cleanly — 6 are browser/build gates a fast loop may skip, 3 (`citations`, `section-refs`, `table-shape`) are **covered by `verify:docs`**, and **`append-chokepoint` is covered by NOTHING**. It enforces REQ-030 (*the events table has exactly one writer*) and ran only under `verify:merge` — the command §836 established was not being run. **The omission is not cost-based, and that is the evidence**: timed at **544ms**, the MIDDLE of the in-chain range (458–942ms), with seven cost-matched peers already in the chain and every other absentee holding a second home. Added — **additive, cost-matched, no semantic change**, which is why this was in scope where §834's and §836's `&&` questions were not. **Residual named**: the two gate lists live in different files and **nothing compares them**; this phase compared by hand |
 | 285 | §837 | **§838** | **PHASE 59 CLOSED — the two gate lists now compare themselves.** §837 found the chokepoint omission **by hand** and called it *a measurement with an expiry*. This is the gate. Compares by **SCRIPT, not by name**, reading the exported `gatesFor("merge")` as the authority — the lists disagree on names **by design** (`identity-leak`→`check:identity`, `concierge-parse`→`check:concierge-parity`, `append-chokepoint`→`check:chokepoint`), so a name comparison would have reported three false mismatches and been relaxed into uselessness. **Only one direction is a defect**: a dev step that is NOT a merge gate means the inner loop is stricter than the shippable verdict, invisibly — asserted empty. The reverse is normal and each absence is now recorded with its reason. **§837 understated its own subject**: `run-gate.ts`'s comment on that gate reads *"the DB triggers fire on COLLISIONS, so a direct insert with a fresh id is accepted and skips every gate — nothing else catches it"* — so on the direct-insert path chokepoint is **the only** detector, not one of several. 3 REDs |
+| 286 | §838 | **§839** | **PHASE 60 CLOSED — rule 2 verified end to end. NO DEFECT; the bound is the result.** §838 surfaced *"the DB triggers fire on COLLISIONS, so a direct insert with a fresh id is accepted"*, which invites the worry that append-only is only enforced where rows collide. **The two halves are different laws**: the triggers enforce APPEND-ONLY (upd/del abort unconditionally; BEFORE INSERT guards abort on *any* uniqueness surface, which is what closes `INSERT OR REPLACE` under D1's `recursive_triggers=0`), and the chokepoint lint enforces SINGLE-WRITER. Neither substitutes for the other. **Five probes, five REDs**: a new UNIQUE index with no guard · a removed guard disjunct (names `(hash)`) · an unclassified new table · a deleted `events_guard_upd` · **and the completeness check itself neutered → RED ×3, because it has its own four-test describe block**. That last one is what makes this clean rather than hopeful — §816 found the opposite shape (a guard nobody tested) in this same repo. Rule 2 joins REQ-040 (§825) and `allocateCents` (§816) as best-enforced, and uniquely its **enforcement mechanism is itself pinned** |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -48719,3 +48720,61 @@ on two empty sets.
   falls back to nothing. It reads the export directly, so that failure is a compile error, not a silent pass.
 - A second dev-loop command appears (`verify:quick`, a pre-commit hook) → it is not compared to anything.
   This phase pins `verify:dev` alone, which is the only chain CLAUDE.md now names.
+## §839 — PHASE GATE: PHASE 60 CLOSED — rule 2 verified end to end; no defect, and the bound is the result
+
+§838 surfaced a sentence in `run-gate.ts` that reframed the append-only law: *"the DB triggers fire on
+COLLISIONS, so a direct insert with a fresh id is accepted and skips every gate."* That invites an obvious
+worry — is append-only actually enforced, or only where rows collide? This phase answers it.
+
+### The layering, stated because the two halves are constantly confused
+
+- **The DB triggers enforce APPEND-ONLY.** `events_guard_upd` / `events_guard_del` abort unconditionally.
+  The BEFORE INSERT guards abort on a collision with *any* uniqueness surface — `(stream_id, seq)`, `id`,
+  `hash`, and `(stream_id, device_id, device_seq)` — which is what closes the `INSERT OR REPLACE` hole:
+  REPLACE's implicit row-DELETE never fires a BEFORE DELETE trigger under D1's `recursive_triggers=0`, so the
+  INSERT guards must enumerate every key REPLACE could delete *through*.
+- **The chokepoint lint enforces SINGLE-WRITER.** A genuinely new row, colliding with nothing, is accepted by
+  the database — correctly, because no trigger can distinguish an authorised append from an unauthorised one.
+
+Neither substitutes for the other, and §838's sentence is about the second. Reading it as a hole in the first
+would be wrong.
+
+### Five probes, five REDs
+
+| planted | result |
+|---|---|
+| a new `CREATE UNIQUE INDEX` on `events` with no guard predicate | **RED** — *"the UNIQUE target (shipment_id, kind) … has no BEFORE INSERT guard predicate enumerating it"* |
+| an existing guard's `hash = NEW.hash` disjunct removed | **RED** — names `(hash)` precisely |
+| a new table classified as neither guarded nor mutable | **RED** — *"unclassified tenant table(s) … Append-only ⇒ add to GUARDED_TABLES **and** the REPLACE-ban alternation"* |
+| `events_guard_upd` deleted outright | **RED** — *"missing guard trigger events_guard_upd"* |
+| the completeness check itself neutered (`for (const t of [])`) | **RED ×3** — it has its own four-test describe block |
+
+That last row is the one that makes this a clean negative rather than a hopeful one. The completeness rule is
+not merely implemented; **breaking the implementation fails dedicated tests**, so the check cannot quietly
+stop checking. §816 found the opposite shape (a guard nobody tested) in the same repo, which is why it was
+worth asking.
+
+### Verdict
+
+**No defect, and no change.** Rule 2 sits with REQ-040's executing-share rule (§825) and `allocateCents`
+(§816) among the best-enforced things here — and unusually, its *enforcement mechanism* is itself pinned,
+which none of the others can claim.
+
+The value of this phase is the bound: an append-only violation now has five named ways to fail and no known
+way to pass, and the next reader does not have to re-derive that from a trigger dump.
+
+### Exit state
+
+`test:tools` **1103**, 3 failed — the REQ-289 trio. `check:invariants` OK — 21/22 tables, events append-only.
+Four migration files and `invariants.ts` restored byte-identical after five mutations. **Nothing changed.**
+
+**Reopen triggers**
+- A **fourth** guarded table is added → `GUARDED_TABLES`, the REPLACE-ban alternation and a full guard trio
+  all move together; the unclassified-table check forces the first, and the missing-trigger check the third,
+  but nothing forces the *alternation* — that one is carried by the error message's instruction rather than
+  by an assertion.
+- D1 turns `recursive_triggers` ON → the BEFORE INSERT enumeration becomes belt-and-braces rather than the
+  only defence, and the reasoning in `0008_append_only_unique_guards.sql` stops being load-bearing. Worth
+  knowing before someone simplifies it on those grounds.
+- A write path reaches `events` outside the two allowlisted modules → that is chokepoint's job, not the
+  triggers', and §837 put it in the dev loop for exactly this reason.
