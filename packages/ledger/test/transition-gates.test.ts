@@ -372,10 +372,15 @@ describe("REQ-166 assertConsentBeforeGps — a GPS stamp is blocked until consen
   // REFUSES to parse a payload whose `operating_state` is "XX", so no consent for an unknown jurisdiction can
   // exist to satisfy the gate in the first place.
   //
-  // MEASURED: deleting the belt leaves both suites green (616 ledger, 757 api) — INCLUDING the test below,
-  // which was written to cover the belt and does not, because the braces block first. The belt is therefore
-  // unreachable by any test that does not first weaken `ConsentAck`, and testing it would mean asserting
-  // against a payload the schema forbids constructing.
+  // MEASURED (§359, and RE-MEASURED 2026-08-08 at §778 — 668 ledger / 803 api, and the belt is still the ONLY
+  // one of this file's TEN `GateError` throws whose deletion is silent; the other nine red): deleting the belt
+  // leaves both suites green — INCLUDING the test below, which was written to cover the belt and does not,
+  // because the braces block first. The belt is therefore unreachable by any test that does not first weaken
+  // `ConsentAck`, and testing it would mean asserting against a payload the schema forbids constructing.
+  //
+  // The redundancy is SAFE because its precondition is itself gated, which is the thing to keep true:
+  // `packages/contracts/test/physical-events.test.ts` → "rejects operating_state 'XX'". That test is what
+  // makes this one sufficient.
   //
   // So this pair pins the OUTCOME (an unknown jurisdiction never yields a GPS stamp) and the braces that
   // currently deliver it. **If `ConsentAck` is ever relaxed to accept "XX", the belt becomes the only guard

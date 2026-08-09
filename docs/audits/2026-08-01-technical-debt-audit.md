@@ -417,6 +417,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 222 | §774 | **§775** | **The 214 sweep's send-then-mark law was unpinned, and a TEST NAME hid it.** Writing the sent-marker BEFORE the send left the worker **117/117 green** — and the marker means "already transmitted" to every future tick, so a rejecting transport strands the 214 **permanently**. Urgent because dormant: `NotConfiguredTransport` ALWAYS rejects, so the bug would be planted now and detonate at go-live with every shipment already marked sent. New test asserts no-marker AND that the next tick actually transmits. `transport-dormancy.test.ts` was named *"…so the sweep records no phantom send"* but **never drives the sweep** — renamed; a test NAME is read as a guarantee, and this one over-claimed by one whole mechanism, which is why nobody looked for the missing test. Instrument slip: `EVIDENCE.get()` for a presence check left an unconsumed stream, breaking the isolated-storage pop and **silently dropping 6 tests** (118→112) — a harness fault reduces the test COUNT rather than failing |
 | 223 | §773–§775 | **§776** | **PHASE 12 CLOSED — the EDI surface, the last unaudited product surface (§769).** Three live defects, each mutation-proved, **zero source changed** — `inbound.ts`, `sweep-214.ts`, `price.ts` all restored byte-identical after eight mutations. The defects were in the EVIDENCE, not the behaviour. Board re-measured at `fae1a17`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs **attributed** (three named register-classification tests, the one uncommitted REQ-289 row). §4's undated "3,016 workspace tests" corrected to a dated, SHA-stamped **4,152 tests / 3 failing**, and a board property stated for the first time: `unit-tests` is an `&&` chain that **short-circuits** on REQ-289, so it covers 1,041 of 4,152. **STOPPING POINT: the repo-owned ledger is EMPTY** — six holds remain, all owner-held |
 | 224 | §776 | **§777** | **The credit reconciler's fail-closed guards — 2 of 3 unpinned, one a BOOKING CREDIT-HOLD BYPASS.** Carried §775's class outward: the one parallel mark-on-success site (`mcp/webhooks.ts`) is **clean** — so §775 was a single hole, not a habit. Then `reconcileCreditForParty`: deleting `if (status === null)` left api 11/11 green while making a party with **no `credit.checked` anywhere** book — it writes `credit_status = NULL` **and** resolves the gap, and `transition-gates.ts:501` says *"Only an explicit `hold` blocks"* (**verified in the gate, not inferred**), so BOTH halves of REQ-042 come off plus the anomaly that would surface it. Also silent: `gap === null`, which keeps the DO booking gate from turning a read into a WRITE — invisible to the old tests **by construction** (their two sides always agreed, so an unguarded copy lands the same value; pinned now with a DIVERGENT pair) |
+| 225 | §777 | **§778** | **All TEN `GateError` throws in `transition-gates.ts` enumerated — 9 pinned, 1 already accounted.** §777's 2-of-3 rate is why this was enumerated, not sampled. The one silent throw is `assertConsentBeforeGps`'s "belt", **already measured by §359**, correctly handled as a sibling-guard redundancy whose precondition is itself gated (`ConsentAck` refuses `"XX"` — verified, not trusted). Note refreshed with today's re-measurement (it read *"616 ledger, 757 api"*; now 668/803). **Two harness faults before one true reading**: ten back-to-back pool startups degraded to `no tests` for 8 of 10 runs (reads as "eight unpinned throws"), and an unquoted `$G` — **zsh does not word-split** — emptied every row INCLUDING the baseline. Knowing a failure mode does not prevent it; only the fixed point caught both |
 
 **Current measured state — as measured 2026-08-08 at `fae1a17` (§775's board run):** the merge board is
 **26 gates — 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape since §737. `typecheck` 0 · `lint` 0 ·
@@ -44668,3 +44669,57 @@ No source changed — `credit.ts` and `webhooks.ts` restored byte-identical afte
   fail-closed twice over). Re-read it rather than assuming it still guards what it guards.
 - Another caller starts invoking `reconcileCreditForParty` on a hot path → the gap-gate is what keeps it a
   no-op; the divergent-pair test is what proves the gate still holds.
+## §778 — PHASE GATE: all ten transition-gate throws enumerated — nine pinned, one already accounted
+
+§777 found a **2-of-3** unpinned rate among one gate file's fail-closed guards. That base rate is the reason to
+enumerate the rest rather than sample: `transition-gates.ts` is the REQ-030 server-side gate surface, nine
+exported gates and **ten `GateError` throws**. Every one mutated.
+
+| result | throws |
+|---|---|
+| **RED** (pinned) | **9 of 10** — L160, L242, L274, L294, L367, L520, L521, L544, L596 |
+| **silent** | 1 — L360, `assertConsentBeforeGps`'s UNKNOWN-jurisdiction branch |
+
+### The one silent throw is a KNOWN, correctly-handled redundancy
+
+It is the branch the source itself calls *"the belt"*, and **audit §359 already measured exactly this**, wrote
+an honest note in the test file, pinned the OUTCOME instead of the branch, added a negative control, and named
+the reopen trigger. My sweep rediscovered it independently and the record was accurate.
+
+It is §688's **sibling-guard** case, and §"a silent mutation has two explanations" separates it cleanly:
+`ConsentAck` **refuses to parse** an `operating_state` of `"XX"`, so no prior consent for an unknown
+jurisdiction can exist to satisfy the gate — the braces at L367 block first, always. A belt-specific test would
+have to assert against a payload the schema forbids constructing.
+
+**The redundancy is safe because its precondition is itself gated**, which is §752's rule already satisfied:
+`packages/contracts/test/physical-events.test.ts` → *"rejects operating_state 'XX'"*, plus
+`jurisdiction.test.ts` proving `deriveOperatingState` returns `"XX"` for out-of-box points. I verified both
+exist rather than trusting the note.
+
+Refreshed the note with today's re-measurement (its counts read *"616 ledger, 757 api"* — true when written,
+now 668/803) and added the citation to the precondition test, so the sentence names what keeps it sufficient.
+
+### The instrument, twice, before it produced a single true reading
+
+Two harness faults in one sweep, both failing toward alarming results:
+
+1. **Ten back-to-back pool startups degraded to `no tests`** for 8 of 10 runs — after the first two returned
+   real numbers. Read naively that is "eight unpinned throws", a catastrophic finding.
+2. Narrowing to the four gate files, I passed them as an unquoted `$G`. **zsh does not word-split unquoted
+   parameters**, so vitest received ONE argument naming a file that cannot exist → empty output for *every*
+   row **including the baseline**.
+
+Fault 2 is a repeat of a mistake already in the record, which is the useful part: knowing a failure mode does
+not prevent it — **only keeping a fixed point does.** The baseline row is what exposed both. A sweep whose
+control passes is a sweep; a sweep with no control is a rumour.
+
+### Exit state
+
+`transition-gates.ts` restored byte-identical after ten mutations; the only change is a comment in the test
+file. `packages/ledger` **668/668**; lint 0; typecheck 0.
+
+**Reopen triggers**
+- `ConsentAck` is relaxed to accept `"XX"` → the belt becomes the ONLY guard and **acquires no coverage by
+  that change**. That is when to write a belt-specific test; §359 named it and it is still the right trigger.
+- An eleventh `GateError` throw is added → mutate it. Nine of ten here are pinned, but §777's neighbouring file
+  ran 2-of-3 unpinned, so the rate is a property of the file, not of the codebase.
