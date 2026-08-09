@@ -452,6 +452,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 257 | §809 | **§810** | **SESSION CONSOLIDATION — 32 phases, measured.** §809's residual is **the first of five that measurement shows as SMALL as its sentence** (the kind union is exactly `cmd|external`, TypeScript-enforced) — recorded because "four for four" was becoming a rule of thumb and the 5th point keeps it a measurement. Board at `819e83a`: **19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape across all 32 phases. **4,205 tests** (3,136 workspace, 0 failures), **+53 since §784, every one pinning something a mutation proved unwatched**. **Production source touched: 17 files, +277/−109 — almost all of it §782's unparsed-boundary class; 31 of 32 phases changed only tests, gates and the record.** That ratio is the summary: behaviour was largely right, evidence that it STAYS right was missing. Stopping point: **no repo-owned defect from §772–§809 is unclosed; none of the 20 standing rows is both open AND actionable without an owner decision** |
 | 258 | §810 | **§811** | **PHASE 33 CLOSED — the ACCEPTANCE gate audited: the biggest claim, and the BEST-DEFENDED gate in the repo.** The prior (§746: 15/20 gates synthesize their verdict; §727: a filter matching nothing exits 0) said it would be thinner than its name. **It is not.** Four defences, each measured: the 5-demo roster REDs when one is dropped · manifest↔module parity asserted **both ways** · `missingSpineFiles()` runs **before** vitest, and its comment names the §727 hazard **at design time** · breaking the Biller's send REDs *"the full causal chain of acceptance demo #1… through every real seam"*. Demo 1's `filmed` field is the strongest artifact I have read here: it cites `biller.ts:588@photos`, says the film will show **placeholder slots, not photographs**, and ends *"Do not stage photos into the capture to make the film match the sentence."* **32 phases of finding gaps builds a prior that everything has one — that prior is how a clean artifact gets "improved" into a worse one** |
 | 259 | §811 | **§812** | **PHASE 34 CLOSED — CLAUDE.md rule 7's SEVEN audits all proved, and they live in TWO gates.** The record proved 3 (§252 shadow/radius/raw-hex, §257 palette drift); **contrast, font, case and motion had implementations and NO recorded proof.** Planted one each: Comic Sans → **CAUGHT**, `textTransform: capitalize` → **CAUGHT**, a 420ms back-out bezier → **CAUGHT**, `--signal-deep` lightened below 4.5:1 → **CAUGHT** (*"small-text red passes AA on greige"*). **Structural fact now recorded: contrast is NOT in the `design-audit` gate** — it lives in `tools/design/design.test.ts` under `test:tools`, so rule 7's seven audits are split across two merge gates, and the one that surprises is the one rule 7 singles out. **My first mutation was MIS-AIMED** (`tokens.ts`, but the test reads `tokens.css`) — and what caught it was the TS↔CSS token-parity gate, the same mechanism §257's derived-allowlist proof rests on |
+| 260 | §812 | **§813** | **PHASE 35 CLOSED — the HARD BUDGETS bite, and the mechanism is the AMENDMENT PATH.** §611 built the gate, §743 found its completeness floor; neither recorded whether a budget **bites**. *Matching a number is not enforcing it* (§806's distinction applied to a budget). Planted three across three source files and three extractors: a **36th event kind**, a **6th color token**, a **4th surface** — all **RED**. **The mechanism is doc↔source PARITY, not a ceiling**: a 36th kind fails not because 36>35 but because **CLAUDE.md still says 35** — the law's own *"additions = register amendment"* made mechanical. It does not forbid growth, it forbids growth that SKIPS the amendment. §743's three exemptions re-verified rather than trusted: `21 used` is runtime (`check:invariants` recomputes 21/22 and **exits 1** when breached — planted), `0 shadows`/`4px` are zero-tolerance proven by planting an artifact |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -46930,3 +46931,60 @@ restored byte-identical. `audit:design` 0; `test:tools` 1069; the design suite g
   to live and why the split mattered.
 - `tokens.ts` and `tokens.css` stop being parity-checked → the mis-aim above becomes silent, and §257's
   derived-allowlist proof loses the mechanism it rests on.
+## §813 — PHASE GATE: PHASE 35 CLOSED — the hard budgets bite, and the mechanism is the amendment path
+
+§812 finished CLAUDE.md rule 7. The other law with a named roster is the **hard-budgets line**: *"≤22 tables
+(21 used) · 3 surfaces · 12 canonical views · 35 event kinds · 5 color tokens · 2 font families · 0
+shadows/gradients/radius>4px."* §611 built the gate and §743 found its completeness floor, but neither
+recorded whether a budget **bites** — whether exceeding one actually fails.
+
+Matching a number is not enforcing it. That is §806's distinction (a pin's protection vs its presence)
+applied to a budget, so it was measured rather than assumed.
+
+### Three planted, three caught
+
+| budget | probe | result |
+|---|---|---|
+| 35 **event kinds** | a 36th kind in `EVENT_KINDS` | **RED** — *"each stated budget equals the number its gate actually enforces"* |
+| 5 **color tokens** | a 6th key in `TOKENS` | **RED** |
+| 3 **surfaces** | a 4th entry in `SURFACE_ROSTER` | **RED** (+3 tests) |
+
+Three different source files, three different extractors (`countArrayEntries`, `countObjectKeys`,
+`readIntConst`) — enough to say the mechanism generalises rather than that one entry happens to work.
+
+### The mechanism is the point, and it is elegant
+
+The gate does not enforce a ceiling. It enforces **doc↔source parity**: the number CLAUDE.md states must
+equal the number the source declares. So adding a 36th event kind does not fail because 36 > 35 — it fails
+because **CLAUDE.md still says 35**.
+
+That is exactly the law's own instruction (*"additions = register amendment"*) made mechanical. The gate does
+not forbid growth; it forbids growth that skips the amendment. A budget change is legal the moment the line
+and the source are changed together, which is the human decision the law reserves.
+
+### The exempted three, re-verified rather than trusted
+
+§743 exempted `21 used`, `0 shadows` and the radius `4px` — each with a reason. Reasons decay, so:
+
+- **`21 used`** is a RUNTIME figure. `check:invariants` recomputes it from the migration set —
+  `invariants OK — 21/22 tables` — and **exits 1** when `TABLE_BUDGET` drops below the live count. Verified by
+  planting. The exemption is correct: re-deriving it in the budget gate would be the second, weaker copy that
+  §"two mechanisms" warns about.
+- **`0 shadows` / `4px`** are zero-tolerance rules with no constant to compare against, proven by **planting
+  an artifact** (§252, re-confirmed for four more audits in §812). Not roster-shaped, deliberately.
+
+All three exemptions still hold, and each is held by a mechanism the record can point at.
+
+### Exit state
+
+No source changed — four files mutated (`events.ts`, `tokens.ts`, `invariants.ts`, and the earlier probe),
+all restored byte-identical. `check:invariants` reports `21/22 tables`; `test:tools` 1069.
+
+**Reopen triggers**
+- A budget is amended → the line and the source change together, and this gate is what makes that
+  simultaneous. Amending one alone is the failure it exists to produce.
+- A budget gains an entry whose extractor cannot read it → the non-vacuity assertion (*"a budget could not be
+  read… that is a BROKEN SCAN, not a clean record"*) fires. That message is the one that keeps a silent zero
+  from reading as compliance.
+- `check:invariants` stops recomputing the table count → `21 used` loses its exemption's basis, and the
+  budget gate would need a roster entry after all.
