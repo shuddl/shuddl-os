@@ -485,6 +485,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 290 | §842 | **§843** | **PHASE 64 CLOSED — the last fractional cent, and the shape MY OWN gate could not see.** Back to production code. `retention.ts:152` holds `STORAGE_COST_CENTS_PER_GB_MONTH = **1.5**` — a `*CENTS*` constant bound to a fractional value, multiplied into a float quotient to produce integer cents. Swept every `*CENTS*` identifier bound to a non-integer across `packages/ workers/ apps/`: **exactly one**. **§817's gate could not see it** — it matches a money-ish LEFT operand of `/` or a money-ish ASSIGNMENT target, and this is neither (`bytes / BYTES_PER_GB` is not money-named; the result is a bare `return`). Extension catches the **root cause**, not a third arithmetic shape. **The metric-vs-money question answered by PRECEDENT**: the module argues *"a METRIC, not a money_line"* and is right that the ledger owes nothing — but §817 already converted the Watchtower's `avgCostCents`, the same kind of operator reading, *because it is denominated in cents*; the inconsistency is the defect, not either choice. Fixed with an exact integer ratio (15 tenths-of-a-cent/GB) via `mulDivHalfUp`, which needs no ruling. **No number changes** — 200,011 inputs, **zero differences** |
 | 291 | §843 | **§844** | **PHASE 65 CLOSED — a purity claim MY OWN detector's vocabulary could not read.** §843's residual measured: 3 cents-named functions contain arithmetic, 2 already exact, and the third (`iif.ts@formatCents`) is a **false positive written correctly** — `(abs - frac) / 100` is exact by construction with the proof in a comment. **1 FP in 3 candidates → NOT BUILT**, numbers given rather than a shrug. **But reading it walked into a defect**: `iif.ts` opens *"PURE: … No I/O, no D1, **no clock**"* — a module-level claim §835's detector (which I wrote) **cannot read**, because its vocabulary is `no Date, no random`. Same claim, different words, invisible to the sweep AND to the discovery gate that sweep installed. **Vocabulary measured per §803**: `no clock` adds **2**; `PURE:` 8, `no I/O` 15, `pure function` 9, bare `DETERMINISTIC` **22** — all out as prose. The two split as §835's design anticipated: `iif.ts` is real (banned, ambient-clock subset, since its only `Date` use is a `new Date(ms)` conversion), and `billing.ts` is a FIELD comment on a module that **injects** its clock — recorded in SCOPED_CLAIMS. **Honest bound**: the detector finds 27 claims, not *every* claim |
 | 292 | §844 | **§845** | **PHASE 66 CLOSED — detect the VIOLATION, not the claim; and §815's superset gets its reason.** §844's bound (*27 claims, not every claim*) is structural: prose has unboundedly many phrasings, so §835 and §844 each widened a vocabulary and each left the same hole. **Inverted**: *which modules READ an ambient clock?* is bounded and prose-independent. **58 reads** — **57 in `workers/**`**, which is the CORRECT pattern (read at the composition root, inject downward). Only **2 in `packages/**`**, both justified: `guess.ts` mints an unpredictable nonce for a prompt-injection fence (**determinism there would be the vulnerability**) and `capture.ts` mints an event id. **§815's superset EXPLAINED** — it measured that adapters bans `crypto.randomUUID` and agents does not, calling it *deliberately stricter* without knowing why; the reason is that the fence depends on it. *An unexplained pin is one somebody eventually simplifies.* Gate bans ambient reads in `packages/**` with the 2 recorded; `workers/**` excluded **by design**, since flagging 57 correct reads gets a gate turned off. 3 REDs. **1 FP of my own**: a trailing `//` comment on a code line |
+| 293 | §845 | **§846** | **STOPPING POINT — board re-measured at `1cb0b69`, eleven phases on.** **19 PASS · 2 FAIL · 5 BLOCKED — identical to §834 and to the pre-session board.** Behind the `unit-tests` short-circuit the product suites run **green: 17 workspaces, 3,149 tests, exit 0**. Thirty-one phases, **zero regressions**, every non-PASS owner-held. Last eleven phases: 2 production fixes (both law/legibility — §843 measured 200,011 inputs, **zero** value changes), 8 gates, and 4 corrections to the record. **The shape that matters is §845's inversion** — stop detecting purity CLAIMS (prose, unbounded, incomplete by construction), detect the VIOLATION (an ambient clock in the pure layer). *When a detector's boundary is English, invert it.* **Self-correction ratio**: §841 found **2 of 6** of my own triggers rotted, while §842 found the launch checklist's five code-state claims **all sound** — the clean result is what makes the corrections meaningful. **Owner decision, now 11 phases old**: committing REQ-289 makes both `&&` truncation defects (§834, §836) INVISIBLE without fixing them — decide while the symptom shows |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -49203,3 +49204,61 @@ whose subject stops reading randomness → RED (§672) · the scan blinded → R
   catch and the reason `workers/**` is excluded rather than allowlisted per-file.
 - `crypto.getRandomValues` or a new randomness API appears → the pattern names four forms. It is a
   vocabulary too, just a far smaller and more stable one than English.
+## §846 — PHASE GATE: STOPPING POINT — the board re-measured at `1cb0b69`, eleven phases on
+
+§834 was the last full measurement. Eleven phases since (§835–§845): two production fixes, eight gates, four
+corrections to the record itself. This re-runs the gate rather than carrying any of that forward as a claim.
+
+### The board, measured
+
+`pnpm verify:merge` at **`1cb0b69`** — 26 gates, §807's pinned roster:
+
+**19 PASS · 2 FAIL · 5 BLOCKED** — *identical to §834, and to the pre-session board.*
+
+Both FAILs are REQ-289 (§828). All five BLOCKED are owner-held: the `IDENTITY_DENYLIST` secret and nine
+unvendored private fixtures. Behind the `unit-tests` short-circuit (§834), the product suites run **green: 17
+workspaces, 3,149 tests, exit 0, zero failures**.
+
+**Thirty-one phases, zero regressions, and every non-PASS item unchanged and outside the repo's control.**
+That is the headline and it is deliberately dull.
+
+### What the last eleven phases changed
+
+**Two production defects fixed.** A fractional-cent constant expressed as an exact integer ratio (§843), and a
+purity claim the determinism ban did not cover (§844). Both were law-and-legibility fixes, not mispricings —
+§843 measured 200,011 inputs with **zero** value changes, and the record says so rather than implying a caught
+bug.
+
+**Eight gates, and the last one is the shape that matters.** §845 stopped detecting purity *claims* (prose,
+unbounded vocabulary, incomplete by construction) and started detecting the *violation* (an ambient clock in
+the pure layer — bounded, mechanical, independent of what any header says). §835 and §844 had each widened a
+vocabulary and each left the same hole; the inversion closes it permanently. **When a detector's boundary is
+English, invert it.**
+
+**Four corrections to the record, and the ratio is the finding.** §840 corrected a residual I had invented one
+phase earlier; §841 swept the rest and found **two of six** falsifiable triggers rotted; §842 checked the
+launch checklist's five code-state claims and found **all five sound**; §844 corrected my own detector's
+vocabulary. A record that checks itself at a 2-in-6 rate is worth more than one nobody checks — and the
+checklist coming back clean is what makes the two corrections meaningful rather than alarming.
+
+### The one thing an owner should decide before REQ-289 lands
+
+§834's finding still stands and is now eleven phases old: `pnpm test` is `test:tools **&&** pnpm -r test`, so
+the REQ-289 trio means **the entire product suite is unrun inside the merge gate**. §836 found the same
+`&&` one level up — `verify:dev` reaches **4 of its 16 steps**.
+
+Committing REQ-289 makes `test:tools` pass and both symptoms vanish **without the defect being fixed**. The
+next failing test at step 4 truncates the chain again, silently. That is the argument for deciding the `&&`
+question — fail fast, or always pay for the complete picture — **while the symptom is still visible.**
+
+### Exit state
+
+Board **19/2/5** at `1cb0b69`. `test:tools` **1116** (3 failed — REQ-289). Workspaces **3,149 passed**.
+typecheck 0 · lint 0 · `verify:docs` 0 · `check:invariants` 21/22 tables. Working tree carries only the
+owner's uncommitted REQ-289 row.
+
+**Reopen triggers**
+- **REQ-289 committed** → both FAILs clear, and the `&&` defect becomes invisible. Decide it first.
+- A private fixture vendored → one BLOCKED becomes PASS or FAIL, and a FAIL there is the first real signal
+  about the audited engine this repo has ever had.
+- `IDENTITY_DENYLIST` set → REQ-167 becomes a running check rather than a convention.
