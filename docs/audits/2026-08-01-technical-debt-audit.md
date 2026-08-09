@@ -404,6 +404,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 209 | §761 | **§762** | **Finished §758's map — the same sample-vs-population correction §761 made to §760.** §758 derived 8 self-scanning gates and examined 6, dropping two by judgement. `scan-corpus` is a HELPER (no verdict, correctly outside — now by reason, not omission); **`check-table-shape` is a gate and belongs on the map**, defended by corpus scope on a DIFFERENT AXIS (extension `*.md` vs `design/audit`'s path) — and that defence covers its **source but not its documentation**, which §759 already proved incidentally (a planted over-wide row in the audit doc → exit 1). Corrected map: **7 gates, 5 mechanisms**, with `traceability` the exact inverse (docs covered, source not — why §757's literals bit in a test file and not in prose). **Both corrections cost one loop each** |
 | 210 | §762 | **§763** | **The lens WHERE fragments, conjunct by conjunct — REQ-025's SQL half.** One function turns a session into a `WHERE` and every read inherits it, so a single dropped conjunct is a silent repo-wide widening. Mutated one conjunct at a time (not whole fragments — a PARTIAL widening is what a reviewer skims past): party `visibility<>'internal'` → **6 red**; party membership made always-true → **2 red**; driver shipment-ownership → **4 red**. All defended, and the failure SHAPES are right (a golden *plus* behavioural cases — a golden alone proves the string changed, not the scope). **Scope stated honestly**: the tenant lens is `1=1` because tenant isolation is PHYSICAL (§738's parity + DO pinning), so this covers only REQ-025's SQL half |
 | 211 | §763 | **§764** | **DEFECT: the lens survives its conjuncts but not its PUNCTUATION.** §763's trigger asked whether a clause could OR past the lens. One can: the keyset cursor is pushed as `"(a OR (b AND c))"` into an `" AND "`-joined chain, and SQL binds AND tighter than OR — **without the outer parens the WHERE becomes `(lens AND …) OR (stream_id = ? AND seq > ?)`, a branch with NO lens restriction**, returning every event on the cursor's own stream to a portal client, internal ones included. **Dropping them left 667/667 GREEN** — not because lens or pagination is untested, but because **no test combined a non-tenant lens WITH a cursor**: each feature covered alone, their PRODUCT empty. Pinned (+ non-vacuity); mutation now REDS |
+| 212 | §764 | **§765** | **§764's defect generalised into a shape gate.** Population derived and measured: exactly **two** AND-joined clause chains in shipped code (`lens.ts`, `gl/export.ts`). Gate asserts every OR-bearing clause is FULLY wrapped — and its `isWrapped` cannot be `startsWith("(") && endsWith(")")`, because that accepts **`(a) OR (b)`**: balanced at both ends, split down the middle, the exact dangerous shape. A dedicated assertion pins that, since a gate with a trivially-satisfiable predicate is worse than none. Mutation-proved 3 ways: unwrap the lens clause **RED**; add an unwrapped OR to the GL chain **RED** (the NEXT one, caught); add it wrapped **green**. Instrument wrong once — the matcher spanned a COMMENT (12th slip, false-alarm direction) |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -43832,3 +43833,71 @@ it.** The lens is the highest-stakes such chain in the repo, and it had exactly 
   being a property anyone can check by reading one function.
 - A future clause is composed with template interpolation rather than a literal → the parentheses become
   conditional on the interpolated text, and this test would not see it.
+## §765 — PHASE GATE: §764's defect generalised into a shape gate
+
+§764 found that the lens's cursor clause is held together by two characters of punctuation, and pinned that
+*instance* behaviourally. The *class* is broader and worth stating precisely:
+
+> **A clause containing a bare `OR`, joined into an `" AND "` chain, does not narrow the query — it splits it.**
+> `(c1 AND c2 AND a OR b)` parses as `(c1 AND c2 AND a) OR (b)`, and the right branch carries none of the
+> preceding clauses.
+
+### The population is two, measured
+
+Derived rather than assumed: exactly **two** AND-joined clause chains exist in shipped code —
+`packages/ledger/src/lens.ts` and `packages/ledger/src/gl/export.ts`. The GL journal export's clauses are pure
+narrowings today (`created_ts >= ?`, `<= ?`, `division = ?`); the lens has the one OR-bearing clause, now
+wrapped and behaviourally pinned.
+
+A gate over a two-member population is cheap because the population is small — **not because the risk is.** One
+of the two is the highest-stakes `WHERE` in the repo.
+
+### The gate, and the trap inside it
+
+`isWrapped` cannot be `startsWith("(") && endsWith(")")`. That predicate accepts
+
+```
+(e.a = ?) OR (e.b = ?)
+```
+
+— balanced at both ends, split down the middle, and **exactly the dangerous shape**. It walks the parens and
+requires depth to stay non-zero until the final character. A dedicated assertion pins that, because a gate
+whose own predicate is trivially satisfiable is worse than none.
+
+### Mutation-proved on both chains, both directions
+
+| mutation | result |
+|---|---|
+| unwrap the lens cursor clause (§764's defect) | **RED** |
+| add an unwrapped `OR` clause to the GL export chain | **RED** — the *next* one, caught |
+| add the same clause **correctly wrapped** | green |
+
+The third row is the one that makes the first two mean something: the gate reacts to the *shape*, not to the
+presence of `OR`.
+
+### Why a second mechanism at all
+
+§764's test proves the lens holds **for the cursor we ship**. This proves the shape holds **for any clause
+anyone adds**. Deliberately the `two-mechanisms` pair — and the GL export is the reason it is not redundant: it
+has no OR clause today, so §764's behavioural approach has nothing to test there, while this gate is already
+watching it.
+
+### The instrument, wrong once
+
+The first matcher allowed newlines inside a string literal and promptly matched from a backtick in one
+**comment** to a backtick several lines later, reporting prose as an unparenthesised clause. Twelfth instrument
+slip of the session — and notably in the **false-alarm** direction, which announces itself. Restricting the
+literal to a single line fixed it; every real clause fragment here is one line, and allowing more only lets the
+matcher span code it was never reading.
+
+### Exit state
+
+`test:tools` **1041** (+4); `packages/ledger` 668; lint 0; typecheck 0. Both source files restored
+byte-identical (`git status` clean).
+
+**Reopen triggers**
+- A third AND-joined chain appears → derived automatically, and its clauses are checked on the day it lands.
+- A clause is built by interpolation rather than a literal → this gate reads literals, so a template that
+  assembles `OR` from parts escapes it. §764's behavioural test would still cover the lens; nothing would cover
+  a new chain.
+- `isWrapped` is "simplified" → the `(a) OR (b)` assertion reds. That test is the gate's own floor.
