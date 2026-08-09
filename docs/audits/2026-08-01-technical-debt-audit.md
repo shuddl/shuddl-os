@@ -458,6 +458,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 263 | §815 | **§816** | **PHASE 38 CLOSED — the money core swept for float and for unpinned claims.** CLAUDE.md's money law (*no float ever touches a monetary value*) has **no gate**; swept by hand. `allocateCents`/`apportion` are the **best-defended arithmetic in the repo** — 500-case property tests for BOTH signs, postconditions in-code, and the tie-break pinned exactly by `apportion(10_000,[1,1,1]) → [3334,3333,3333]`. `money.ts`: 7 mutations, 5 covered, **2 silent** — resolved to **sibling guard** (`BigInt()` throws anyway), so LOW and **deliberately not fixed**. **THE FIND**: `detectAnomaly` (REQ-040, permanent) threw on a non-integer `cap` and `weight_lb` but accepted a fractional `sell_cents`, which fell to `Math.round(sell / weight)` — **the only float division on money in the repo**, in a module whose header has always claimed *"integer cents in"*. The branch was **dead** (a constant left it 157/157). Fixed + 3 tests. **No number changed** — searched 2^45..2^53 × 5 divisors for a case where `Math.round` disagrees with half-up: NONE, so the deletion was a law/legibility fix, not a mispricing fix, and the record says so |
 | 264 | §816 | **§817** | **PHASE 39 CLOSED — the money law gets a gate, and the gate gets audited harder than the code.** §816's trigger built: a standing `float-money-division` check replaces the hand sweep. Found a **second live float-on-money** (`avgCostCents = Math.round(costSum / costN)`) — and the fix needed a fix, because `roundHalfUp` THROWS below zero where `Math.round` did not, so one malformed stored row would have taken the whole drift sweep down (**strictly worse than the bug**); parse tightened to `c >= 0`, whose removal left the suite **19/19 green** until a test pinned it. Then **four defects in the gate itself**: a `path:line` allowlist that went stale TWICE in one phase; a left-operand-only pattern that let a **planted violation come back CLEAN** (the gate didn't fail — the PROBE did); `//` read as a division (**9** FPs); and `/` inside a string literal (2). FP count measured 9 → 2 → **0**, and the allowlist shrank 4 → **2** because three "judgement calls" were scanner artifacts. Proved on 4 axes incl. **40 lines of drift → still green**. `verify:docs` rotted 4 citations from my own comment inserts — 3rd catch this session; **line numbers are not a key** |
 | 265 | §817 | **§818** | **PHASE 40 CLOSED — rule 10 was proven for the CSVs we wrote, not for the law.** Reused §817's frame (*which law has no gate?*) and got the **opposite** answer: rule 10 is among the best-gated in the repo — **five `THE LAW` blocks**, one checking the column↔gap-row count is airtight. But every proof is a **fixture**. Planting a real silent drop (`if (p.header.trim() === "") continue;`) left the suite **19/19 GREEN** — no fixture has a blank header, and **one trailing comma in a legacy export makes one**. Shipped a property over 300 seeded header sets incl. degenerate shapes, asserting every column is APPLIED or carries **exactly one** gap row (not "at least one" — double-counting turns a review queue into noise), plus a non-vacuity test on the corpus. 3 REDs. **Clean negative**: the plan layer was already total for all 8 degenerate shapes — the gap was one layer down. **Process error recorded**: `git checkout` on the uncommitted test file DELETED §818 (checkout is a discard, not a restore); caught in one command, re-applied |
+| 266 | §818 | **§819** | **PHASE 41 CLOSED — the mirror was compared to a DRAWING of the thing.** Rule 3 (gates are server-side) on the driver seam. `stop-flow.ts` exports `serverRequiredEvidence` whose doc-comment says it exists *"so a test can prove the client flow is a true superset-mirror of the server Gatekeeper"* — but its body is a **hand-copied list**, and the test proves flow ⊇ that list while **never calling** `assertPickupDepart`/`assertDelivery`. The client was checked against its own drawing of the server. Measured: tightening the SERVER gate left the driver suite **9/9 GREEN**. The hidden failure is the worst shape here — a real driver completes every step the app shows, taps depart, and the server rejects it: **acceptance demo #3 failing in the field, not in CI**. Fixed by making the authority declare itself — an EMPTY prior makes each gate throw `GateError.required_evidence`, its own complete set, so nothing is transcribed. + a non-vacuity floor (two EMPTY lists are equal). 3 REDs incl. the previously-silent one. **The two sides agree today** — nothing was mis-gated; this pinned a correct agreement |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -47330,3 +47331,67 @@ mutations.
 - The worker-side persistence (`import.test.ts`, one anomaly per gap row) gains a filter → this property
   stops at `mapSpreadsheet`'s output. A column can carry a gap row here and still be dropped downstream, and
   nothing in THIS file would see it.
+## §819 — PHASE GATE: PHASE 41 CLOSED — the mirror was being compared to a drawing of the thing
+
+Third application of §817's frame, on CLAUDE.md rule 3: *"Gates are server-side (Gatekeeper); UIs merely
+reflect them. Any flow reachable by API must enforce the same gate (REQ-030)."* Rule 3 is heavily worked —
+there is a dedicated skill for it, seven `tools/checks` reference it, and the driver imports the server's
+`REQUIRED_EVIDENCE` vocabulary rather than restating it, so the token names cannot drift.
+
+The **rule** still could, and did not have to change for the check to be worthless.
+
+### The find
+
+`apps/driver/src/flow/stop-flow.ts` exports `serverRequiredEvidence(kind, opts)` under the doc-comment
+*"Exposed so a test can prove the client flow is a true superset-mirror of the server Gatekeeper
+(assertPickupDepart / assertDelivery)."* The intent is explicit and correct. The body is a **hand-copied
+list**, and the test that consumes it does exactly half of what the comment claims:
+
+- it proves the driver's flow ⊇ `serverRequiredEvidence` — a list in the *same package*
+- it **never calls** `assertPickupDepart` or `assertDelivery`
+
+So the client was being checked against **its own drawing of the server**. Measured: adding one requirement
+to `assertPickupDepart` left the driver suite **9/9 GREEN**.
+
+**The hidden failure is the worst shape this product has.** A stale mirror does not produce a wrong number or
+a failed request in CI. It produces a real driver, at a real door, who completes every step the app shows,
+taps depart, and is rejected by the server — with the app insisting they are finished and no path forward.
+That is acceptance demo #3 (*"a real driver completes a gated stop with zero instruction"*) failing in the
+field instead of in the build.
+
+### The fix is to stop transcribing
+
+Driven with an **empty prior**, each gate throws `GateError` whose `required_evidence` **is its own complete
+requirement set** — the authority declaring itself, in its own words, with no list for anyone to keep in
+sync. Read one side, COMPUTE the other; never store both. `serverRequiredEvidence` stays (`GatedFlow.tsx`
+consumes it at runtime), but it is now *checked against the server* rather than trusted.
+
+Two assertions: the mirror EQUALS the server's declaration for all three shapes (pickup, pickup+dims,
+delivery); and a **non-vacuity floor**, because the first assertion compares two lists and two *empty* lists
+are equal — a gate that stopped blocking would turn the parity test green while enforcing nothing.
+
+Proved three ways: **server tightened → RED** (the exact mutation that was silent before), **client mirror
+drifted → RED**, **gate made vacuous → both tests RED**.
+
+### What this did NOT find, stated so the record is not read as alarming
+
+The two sides **agree today**. The driver's flow already collects a strict superset of what both gates
+demand, delivery included. Nothing was mis-gated, no driver was ever stranded, and no user-visible behaviour
+changed. This phase converted a correct-but-unpinned agreement into a checked one, which is the whole of it.
+
+### Exit state
+
+`@shuddl/driver` **70** (+2, stop-flow 9 → 11); `@shuddl/ledger` transition-gates 56; typecheck 0; lint 0;
+`verify:docs` 0. `transition-gates.ts` and `stop-flow.ts` both restored byte-identical after three mutations.
+
+**Reopen triggers**
+- A **fourth** terminal transition gets a driver flow (interline hand-off, an exception stop) → `serverDeclares`
+  covers pickup and delivery only. A new flow needs a new row, and nothing here will notice its absence.
+- A gate starts requiring evidence the driver cannot **capture** → the parity test compares requirement SETS,
+  not whether a flow step exists to satisfy each one. Today the existing superset test covers that because
+  the two lists match; if they ever legitimately diverge, that coupling needs its own assertion.
+- `assertDelivery` gains a ctx field it validates BEFORE building `missing` → `serverDeclares` would get a
+  `GateValidationError` instead of a `GateError`. It rethrows rather than passing, deliberately: a broken
+  probe must never read as a clean parity.
+- The override path (`overrideSatisfies`) becomes reachable from the driver → every assertion here drives the
+  gates with no override, so the override branch is out of scope and unmeasured by this file.

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { REQUIRED_EVIDENCE as R, type RequiredEvidence } from "@shuddl/ledger/gates/transition-gates";
+import { assertDelivery, assertPickupDepart } from "@shuddl/ledger/gates/transition-gates";
 import {
   advance,
   buildFlow,
@@ -119,6 +120,65 @@ describe("stop-flow — the gated per-stop machine (REQ-062/063)", () => {
       for (const token of serverRequiredEvidence(kind, opts)) {
         expect(captured.has(token)).toBe(true);
       }
+    }
+  });
+
+  // ── §819 — THE MIRROR MUST BE COMPARED TO THE THING, NOT TO A DRAWING OF IT ──────────────────────────
+  //
+  // `serverRequiredEvidence` carries the doc-comment "Exposed so a test can prove the client flow is a true
+  // superset-mirror of the server Gatekeeper (assertPickupDepart / assertDelivery)". The test above does
+  // exactly half of that: it proves the flow is a superset of `serverRequiredEvidence` — a HAND-COPIED list
+  // that lives in this package. It never calls assertPickupDepart or assertDelivery, so it cannot see the
+  // server at all.
+  //
+  // MEASURED (§819): adding a requirement to `assertPickupDepart` (dims.captured required ALWAYS, not only
+  // on a dims-fitted lane) left this suite **9/9 GREEN**. The client's model of the server silently went
+  // stale, and the failure it hides is the worst kind this product has: a real driver completes every step
+  // the app shows them, taps depart, and the SERVER rejects it — stranded at a door, with the app insisting
+  // they are done. That is acceptance demo #3 ("a real driver completes a gated stop with zero instruction")
+  // failing in the field rather than in CI.
+  //
+  // THE FIX IS TO STOP TRANSCRIBING. Driven with an EMPTY prior, each gate throws `GateError` whose
+  // `required_evidence` IS its own complete requirement set — the authority declaring itself, in its own
+  // words, with no list for anyone to keep in sync. Read one side, COMPUTE the other.
+  function serverDeclares(kind: "pickup" | "delivery", opts: { dimsRequired?: boolean } = {}): string[] {
+    const incoming = { kind: "stop.departed", payload: {} } as never;
+    try {
+      if (kind === "pickup") assertPickupDepart([], incoming, { dimsRequired: opts.dimsRequired } as never);
+      // Any non-undefined fence is enough: with an empty prior there is no stop.arrived to test against it,
+      // so the geofence pillar is unmet by construction and reported like the others.
+      else assertDelivery([], incoming, { fence: {} } as never);
+    } catch (e) {
+      const req = (e as { required_evidence?: unknown }).required_evidence;
+      if (Array.isArray(req)) return req as string[];
+      throw e; // a GateValidationError (bad ctx) is a broken PROBE, never a passing test
+    }
+    throw new Error(`${kind} gate did not block on an empty prior — the gate is vacuous, not the mirror stale`);
+  }
+
+  it("§819: the client's model of the server EQUALS what the server actually demands", () => {
+    for (const [kind, opts] of [
+      ["pickup", {}],
+      ["pickup", { dimsRequired: true }],
+      ["delivery", {}],
+    ] as const) {
+      const declared = [...serverDeclares(kind, opts)].sort();
+      const mirrored = [...serverRequiredEvidence(kind, opts)].sort();
+      expect(
+        mirrored,
+        `serverRequiredEvidence("${kind}", ${JSON.stringify(opts)}) has DRIFTED from the server gate. The ` +
+          "client is a transcription of assertPickupDepart/assertDelivery, and the server has changed. A " +
+          "driver will complete every step this app shows and be REJECTED on append. Update the mirror — " +
+          "and if the new requirement needs a capture, add the flow step too (the next test checks that).",
+      ).toEqual(declared);
+    }
+  });
+
+  it("§819: the gates are non-vacuous — an empty prior must be BLOCKED, or the comparison is empty", () => {
+    // Both assertions above compare two lists. Two EMPTY lists are equal, so a gate that stopped blocking
+    // would turn the parity test green while enforcing nothing. This is the floor under it.
+    for (const [kind, opts] of [["pickup", {}], ["delivery", {}]] as const) {
+      expect(serverDeclares(kind, opts).length, `${kind} gate declared no requirements at all`).toBeGreaterThanOrEqual(3);
     }
   });
 
