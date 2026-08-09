@@ -405,6 +405,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 210 | §762 | **§763** | **The lens WHERE fragments, conjunct by conjunct — REQ-025's SQL half.** One function turns a session into a `WHERE` and every read inherits it, so a single dropped conjunct is a silent repo-wide widening. Mutated one conjunct at a time (not whole fragments — a PARTIAL widening is what a reviewer skims past): party `visibility<>'internal'` → **6 red**; party membership made always-true → **2 red**; driver shipment-ownership → **4 red**. All defended, and the failure SHAPES are right (a golden *plus* behavioural cases — a golden alone proves the string changed, not the scope). **Scope stated honestly**: the tenant lens is `1=1` because tenant isolation is PHYSICAL (§738's parity + DO pinning), so this covers only REQ-025's SQL half |
 | 211 | §763 | **§764** | **DEFECT: the lens survives its conjuncts but not its PUNCTUATION.** §763's trigger asked whether a clause could OR past the lens. One can: the keyset cursor is pushed as `"(a OR (b AND c))"` into an `" AND "`-joined chain, and SQL binds AND tighter than OR — **without the outer parens the WHERE becomes `(lens AND …) OR (stream_id = ? AND seq > ?)`, a branch with NO lens restriction**, returning every event on the cursor's own stream to a portal client, internal ones included. **Dropping them left 667/667 GREEN** — not because lens or pagination is untested, but because **no test combined a non-tenant lens WITH a cursor**: each feature covered alone, their PRODUCT empty. Pinned (+ non-vacuity); mutation now REDS |
 | 212 | §764 | **§765** | **§764's defect generalised into a shape gate.** Population derived and measured: exactly **two** AND-joined clause chains in shipped code (`lens.ts`, `gl/export.ts`). Gate asserts every OR-bearing clause is FULLY wrapped — and its `isWrapped` cannot be `startsWith("(") && endsWith(")")`, because that accepts **`(a) OR (b)`**: balanced at both ends, split down the middle, the exact dangerous shape. A dedicated assertion pins that, since a gate with a trivially-satisfiable predicate is worse than none. Mutation-proved 3 ways: unwrap the lens clause **RED**; add an unwrapped OR to the GL chain **RED** (the NEXT one, caught); add it wrapped **green**. Instrument wrong once — the matcher spanned a COMMENT (12th slip, false-alarm direction) |
+| 213 | §765 | **§766** | **§765's stated blind spot, MEASURED empty — and the board back to baseline.** §765's gate reads literals and declared its residual (*a clause built by interpolation escapes it*). Scanned every single-line interpolated template in shipped source that looks like SQL: **75 found** (the positive control — a deliberately loose net, since **a zero over a wider net is a stronger zero**), **0 containing a bare OR**. So the gate has no blind spot in practice today. Merge board eight commits on: **17 PASS · 2 FAIL · 5 BLOCKED**, and **`traceability` is GREEN again** — §757's fix held across eight commits including two doc-heavy ones, the first re-run since `verify:docs` existed |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -43901,3 +43902,48 @@ byte-identical (`git status` clean).
   assembles `OR` from parts escapes it. §764's behavioural test would still cover the lens; nothing would cover
   a new chain.
 - `isWrapped` is "simplified" → the `(a) OR (b)` assertion reds. That test is the gate's own floor.
+## §766 — PHASE GATE: §765's residual measured empty, and the board back to baseline
+
+§765 shipped a gate that reads **string literals** and stated its own blind spot: *"a clause built by
+interpolation rather than a literal … a template that assembles `OR` from parts escapes it."* A stated
+limitation is worth exactly as much as the measurement behind it, so I measured it.
+
+### The residual is empty today
+
+Scanned every single-line template literal in shipped `packages/` and `workers/` source containing an
+interpolation, keeping any that looks like SQL (a comparison, `IN`, or `EXISTS`):
+
+```
+75 interpolated SQL-ish fragments found     ← the positive control
+ 0 containing a bare OR
+```
+
+The net is deliberately loose — it catches error-message templates too, which is why 75 is larger than the SQL
+population. **A zero over a wider net is a stronger zero**, and the 75 is what makes it readable at all: §738's
+rule that a count from a pattern which should match is the only thing that turns a zero from a broken
+instrument into a finding.
+
+So §765's gate has no blind spot in practice right now. It will the day someone builds a clause from parts, and
+that is recorded rather than implied.
+
+### The merge board, eight commits on
+
+```
+24 gates — 17 PASS · 2 FAIL · 5 BLOCKED   (exit 1, working tree)
+```
+
+**`traceability` is green again** — §757's fix (removing the four-digit REQ literals from a scanned source)
+held across eight commits, including two that edited the audit doc heavily. The two remaining FAILs are the
+uncommitted `REQ-289` register row, unchanged since §726. At HEAD's register the board reads `PASS` on both.
+
+That is the first re-run since `verify:docs` existed, and the thing it was built to prevent did not recur.
+
+### Exit state
+
+No code changed. `test:tools` 1041; `verify:docs` 0; lint 0; typecheck 0.
+
+**Reopen triggers**
+- An interpolated clause with `OR` appears → the 0 above becomes non-zero and §765's gate is genuinely blind to
+  it. Re-run the scan in this section; it is six lines.
+- `traceability` reds again after a doc-heavy phase → `verify:docs` was not run. That is the whole reason it
+  exists, and its value is only realised by being run.
