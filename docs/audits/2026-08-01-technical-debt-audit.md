@@ -413,6 +413,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 218 | §770 | **§771** | **Finished the pair §770 had just split.** Mutating the LATENCY divisor (`latSum / latN` → `/ runs`) left the suite at **18/18 GREEN even after §770's new cost test**, because that fixture gives every run a latency. **Pinning one branch is what made the other's absence visible** — and would have left it invisible had I stopped. Consequence arguably worse than cost's: latency is what an operator watches for a hung agent, and a half-unmetered window reads as half as slow. Pinned with the mirror fixture; both divisors now red **independently (1 test each, different ones)** — a shared fixture would have made the pair LOOK covered while one branch rode the other's assertion. Sixth sibling-gap of the session, and **the last two were mine** |
 | 219 | §771 | **§772** | **Every Watchtower threshold — all five defended, and the METHOD finding is the phase.** My first sweep called three of them silent; **all three readings were wrong because the mutations could not fail**: `UNBILLED_CRITICAL_COUNT` 10→10000 (no fixture has ten shipments), `AGENT_DRIFT_WINDOW_MS` →1ms (runs seeded at `NOW`, age 0, inside any window), `DETAIL_SHIPMENT_CAP` 50→1 (one shipment; same slice). **A threshold mutation proves nothing unless it crosses a fixture's classification boundary** — changing the number is not the experiment, changing which side the data falls on is. All three RED once pointed the right way (widen the window, lower the count, zero the cap). **A mutation that cannot fail reads identically to a clean negative.** Also corrects §771's own *"checked, not assumed"* — it was assumed |
 | 220 | §772 | **§773** | **The EDI inbound append set — a silent deletion, and a branch that CANNOT run.** Two doors to one gated chain: the CSR door pins the literal kind sequence + has `approvals.test.ts`; the EDI door pinned only ENDPOINTS, so **deleting the `agent.acted` (REQ-005 provenance) append left the suite 116/116 GREEN**. `not.toContain("booking.created")` catches only the kind you already named — replaced with `toEqual` on the sequence. Then the deeper one: `approval.requested` is **UNREACHABLE by construction** (cost === freight · floors ≤ 100% of cost · only-positive price lines ⇒ sell ≥ target, always) — **§688's fourth category, construction-forbidden**, which reads identically to a weak corpus and needs the opposite fix. Kept as defensive code, pinned by a TRIPWIRE that reds when `costBasis` goes multi-factor. **My tripwire's first cut misattributed** — it duplicated (a)'s assertion and blamed the approval branch for an unrelated deletion; §"attribute the RED" committed IN the instrument, where it outlives the session |
+| 221 | §773 | **§774** | **The same weak assertion, second instance — found by sweeping the SHAPE, not the next file.** A defect just written down in prose is one you can grep for: 17 `not.toContain` hits, **2** chain assertions, **1** the same defect (`roundtrip.fixture.test.ts:286` — the REQ-034 DoD fixture test). **Independently silent**: with `inbound.test.ts` already fixed, deleting `agent.acted` left THAT file 6/6 green, so it was its own hole, not riding on its sibling. Fixed + re-mutated RED. The filter that mattered was SEMANTIC — 15 of 17 hits were legitimate named-absence claims and no regex separates them; at this FP rate over this small a population, one read beats building a gate |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -44384,3 +44385,45 @@ No source changed — `inbound.ts` and `price.ts` both restored byte-identical a
   `assessApproval`. That gap is stated because it is real.
 - A sixth append kind joins the chain → `toEqual` reds by design. Add the kind deliberately; the failure is
   the review prompt, not an obstacle.
+## §774 — PHASE GATE: the same weak assertion, second instance — found by sweeping the SHAPE
+
+§773 fixed one endpoints-only chain assertion. Rather than move to the next file, I swept the repo for the
+**shape** — `not.toContain` used as a chain assertion — because a defect I just described in prose is a defect
+I can now grep for.
+
+Seventeen hits; fifteen are legitimate (a leak assertion over a body, a forbidden SQL string, a hex literal —
+each a genuine named-absence claim). Two were chain assertions:
+
+| site | verdict |
+|---|---|
+| `workers/translator/test/roundtrip.fixture.test.ts:286` | **the same defect** — endpoints + one named absence |
+| `workers/api/test/rate.test.ts:242` | NOT the defect — its subject IS `exception.raised`'s absence, and it pins `agent.acted` explicitly |
+
+### The second instance was independently silent
+
+This matters for attribution. With `inbound.test.ts` ALREADY fixed, I deleted the `agent.acted` append and ran
+**only** `roundtrip.fixture.test.ts` — **6/6 green**. So it was not riding on its sibling's coverage; it was
+its own hole, in the DoD fixture test, the one that certifies REQ-034's end-to-end round-trip.
+
+Fixed the same way (`toEqual` on the sequence), then re-mutated: **RED**, this file alone.
+
+### The method note
+
+§773's finding was reached by auditing a file. This one was reached by **searching for the shape of a defect I
+had just written down** — three commands, one real hit. The audit has done this before with mechanisms (the
+`two-mechanisms` sweeps); doing it with a *test-assertion shape* is cheaper still, because the shape is
+syntactic. The filter that mattered was semantic, not mechanical: fifteen of seventeen hits were fine, and no
+regex distinguishes them — only asking *"is the named absence the claim, or a proxy for a claim about the whole
+set?"* does. That is §"semantic false positives need a marker" from the other side: when the FP rate is this
+high and the population this small, a one-time read beats building a gate.
+
+### Exit state
+
+No source changed — `inbound.ts` restored byte-identical after two more mutations. `workers/translator`
+**117/117**; lint 0; typecheck 0.
+
+**Reopen triggers**
+- A third endpoints-only chain assertion appears → the sweep above is three commands; re-run it rather than
+  trusting that the class is closed. It was closed after §773 too.
+- `rate.test.ts:242` gains a claim about the whole chain → it moves from the right column to the left, and
+  needs `toEqual` like the other two.

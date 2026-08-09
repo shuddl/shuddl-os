@@ -284,12 +284,14 @@ describe("REQ-034 DoD — the fixture driven end-to-end through the inbound hand
 
     // THE NO-BYPASS INVARIANT: the append set starts at an EDI quote.requested, prices, and STOPS at
     // quote.accepted — booking.created is NEVER in it (that gate lives behind the Booking agent + the DO).
-    const kinds = seq.kinds;
-    expect(kinds[0]).toBe("quote.requested");
+    //
+    // EXHAUSTIVE, not endpoints (audit §773). This read `kinds[0]` + `toContain("quote.priced")` +
+    // `last === quote.accepted` + `not.toContain("booking.created")` — the SECOND instance of that shape on
+    // this handler, and independently silent: with `inbound.test.ts` fixed, deleting the agent.acted append
+    // still left THIS file 6/6 green. A named-absence assertion only ever catches the kind you already
+    // thought to name; `toEqual` on the sequence catches a member missing, extra, or out of order.
+    expect(seq.kinds).toEqual(["quote.requested", "quote.priced", "agent.acted", "quote.accepted"]);
     expect(seq.appended[0]!.event.source).toBe("edi");
-    expect(kinds).toContain("quote.priced");
-    expect(kinds[kinds.length - 1]).toBe("quote.accepted");
-    expect(kinds).not.toContain("booking.created");
 
     // the tender marker links the shipment to the partner, carrying the PARTNER's inbound-204 ISA13 (never
     // echoed onto an outbound doc — the 214/990 carry SHUDDL's OWN allocated numbers).
