@@ -294,3 +294,89 @@ describe("REQ-118 §611: CLAUDE.md's hard budgets match what enforces them", () 
     ).toEqual([]);
   });
 });
+// ── §842 — EVERY FIXTURE GATE CLAUDE.md NAMES MUST EXIST ──────────────────────────────────────────────
+//
+// §830/§831 pinned CLAUDE.md's table COUNT to the migrations. Nothing pinned that the fixture gates rule 6
+// NAMES correspond to real fixtures — which is how `routes ±10%` sat in the governing file for the length of
+// the build with no fixture, no manifest entry, and no implementation anywhere in `tools/` or `package.json`.
+//
+// It is filed as an OWNER DECISION (GO-LIVE-CHECKLIST, audit §61/§68) and appears in TWO source-of-truth
+// documents (`genesis/11:41`, `genesis/14:52`), which is what makes it settled intent rather than a typo.
+// So it is recorded as a known exception rather than made to fail: **a gate that reds on a filed, parked
+// decision gets disabled, and takes the unfiled cases with it.** The point of this check is the FIFTH name.
+
+/** Rule 6's named gates → the manifest fixture that implements each. */
+const NAMED_FIXTURE_GATES: Record<string, string> = {
+  "legacy-export replay": "legacy-export-replay",
+  "QB export": "qb-journal-month",
+  "airplane-mode soak": "airplane-soak",
+};
+
+/** Named in rule 6, implemented by nothing. Each needs its filed decision. */
+const NAMED_BUT_ABSENT: Record<string, string> = {
+  "routes ±10%":
+    "OWNER DECISION, filed in GO-LIVE-CHECKLIST (audit §61/§68): a gate name with nothing behind it, in genesis/11:41 AND genesis/14:52. Verified again at §842 — no manifest fixture, no tools/ implementation, no package.json script. Either implement it or strike it from rule 6; this row goes in the same commit.",
+};
+
+describe("§842: every fixture gate CLAUDE.md rule 6 names is real", () => {
+  const root = repoRoot();
+  const rule6 = readFileSync(`${root}/CLAUDE.md`, "utf8")
+    .split("\n")
+    .find((l) => /^\d+\.\s+\*\*Fixtures gate merges\*\*/.test(l.trim()));
+  const manifest = JSON.parse(readFileSync(`${root}/fixtures/manifest.json`, "utf8")) as Record<string, unknown>;
+  const fixtureIds = new Set(
+    (Array.isArray(manifest) ? manifest : ((manifest["fixtures"] as unknown[]) ?? [])).flatMap((f) => {
+      const o = f as Record<string, unknown>;
+      const id = o["id"] ?? o["name"];
+      return typeof id === "string" ? [id] : [];
+    }),
+  );
+
+  it("rule 6 and the manifest both parsed (non-vacuity)", () => {
+    expect(rule6, "CLAUDE.md no longer has a `**Fixtures gate merges**` line — the scan is stale, not the rule").toBeDefined();
+    expect(fixtureIds.size, "fixtures/manifest.json yielded no ids — the shape changed").toBeGreaterThanOrEqual(10);
+  });
+
+  it("every gate rule 6 names is backed by a manifest fixture, or filed as absent", () => {
+    const unbacked = Object.entries(NAMED_FIXTURE_GATES)
+      .filter(([name]) => rule6!.includes(name))
+      .filter(([, fixture]) => !fixtureIds.has(fixture))
+      .map(([name, fixture]) => `${name} → expected fixture "${fixture}", not in the manifest`);
+    expect(
+      unbacked,
+      "CLAUDE.md rule 6 names a fixture gate whose manifest fixture is gone. Rule 6 is LAW — every session " +
+        "reads it first — so a gate name with nothing behind it reads as coverage that does not exist, which " +
+        "is exactly the `routes ±10%` defect filed since §61. Restore the fixture, rename the mapping here, " +
+        "or strike the gate from rule 6:\n  " +
+        unbacked.join("\n  "),
+    ).toEqual([]);
+  });
+
+  it("rule 6 names no NEW gate that is neither backed nor filed", () => {
+    // The point of the whole check: the fifth name. Splits rule 6 on its own separator and requires each
+    // fragment to be a known-backed gate, a known-absent one, or a numeric tolerance rather than a gate name.
+    const fragments = (rule6 ?? "")
+      .replace(/^.*?\*\*Fixtures gate merges\*\*:\s*/, "")
+      .split("·")
+      .map((f) => f.replace(/\(.*?\)/g, "").trim())
+      .filter((f) => f.length > 0);
+    const known = [...Object.keys(NAMED_FIXTURE_GATES), ...Object.keys(NAMED_BUT_ABSENT)];
+    const novel = fragments.filter((f) => !known.some((k) => f.includes(k.split(" ")[0]!)));
+    expect(
+      novel,
+      "rule 6 names a fixture gate this check does not know. Map it to its manifest fixture in " +
+        "NAMED_FIXTURE_GATES, or — if nothing implements it — file it in NAMED_BUT_ABSENT with the decision, " +
+        "the way `routes ±10%` is filed:\n  " +
+        novel.join("\n  "),
+    ).toEqual([]);
+  });
+
+  it("§672: the `routes` exception has not outlived its subject", () => {
+    // If routes is ever implemented or struck, this row must go in the same commit.
+    expect(rule6, "`routes` is filed as named-but-absent, but rule 6 no longer names it — delete the row").toContain("routes");
+    expect(
+      fixtureIds.has("routes"),
+      "a `routes` fixture now EXISTS — the §61 owner decision resolved. Move it into NAMED_FIXTURE_GATES and delete the NAMED_BUT_ABSENT row.",
+    ).toBe(false);
+  });
+});

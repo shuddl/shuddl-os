@@ -481,6 +481,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 286 | §838 | **§839** | **PHASE 60 CLOSED — rule 2 verified end to end. NO DEFECT; the bound is the result.** §838 surfaced *"the DB triggers fire on COLLISIONS, so a direct insert with a fresh id is accepted"*, which invites the worry that append-only is only enforced where rows collide. **The two halves are different laws**: the triggers enforce APPEND-ONLY (upd/del abort unconditionally; BEFORE INSERT guards abort on *any* uniqueness surface, which is what closes `INSERT OR REPLACE` under D1's `recursive_triggers=0`), and the chokepoint lint enforces SINGLE-WRITER. Neither substitutes for the other. **Five probes, five REDs**: a new UNIQUE index with no guard · a removed guard disjunct (names `(hash)`) · an unclassified new table · a deleted `events_guard_upd` · **and the completeness check itself neutered → RED ×3, because it has its own four-test describe block**. That last one is what makes this clean rather than hopeful — §816 found the opposite shape (a guard nobody tested) in this same repo. Rule 2 joins REQ-040 (§825) and `allocateCents` (§816) as best-enforced, and uniquely its **enforcement mechanism is itself pinned** |
 | 287 | §839 | **§840** | **PHASE 61 CLOSED — correcting a residual I INVENTED one phase earlier.** §839's reopen trigger claimed a fourth guarded table needs `GUARDED_TABLES`, the REPLACE-ban alternation and a guard trio to move together, and that *"nothing forces the alternation"*. **False, and false when written**: `invariants.ts:48` is `GUARDED_ALT = GUARDED_TABLES.join("|")` — **derived**, with a comment four lines up saying *"adding a fourth append-only table forced ONE edit"*. I wrote a residual about a duplication the author had already removed, in a file I had spent the phase reading. **Measured instead**: planting `ledger_notes` in `GUARDED_TABLES` produced **four** demands each naming its subject (upd/del/ins triggers + completeness on `(id)`), and a planted `INSERT OR REPLACE` was caught **with no second edit**. The path is forced COMPLETELY from one array entry. **Worth a phase because the error was SAFE** — it over-stated risk, so it reads as diligence and is never questioned; §828 caught the same class pointing the *reassuring* way. §803's rule again: an assertion in an exit note needs the standard of one in code |
 | 288 | §840 | **§841** | **PHASE 62 CLOSED — auditing my own reopen triggers, and closing the one that was TRUE.** §840 corrected a false trigger; this checks the rest. Six falsifiable triggers across §815–§840: **one STALE** (§816's *"the money law has no gate"* — §817 built it the very next phase and it sat wrong for 24), one already-corrected (§839/§840), and **four sound**. Correction rate **2 of 6** — the argument for the sweep. **§821's residual CLOSED**: a discovery half now requires every module declaring the freight-dims shape to be rostered or excluded-with-a-reason. Found three, each legitimate for a **different** unrecorded reason — `events.ts` is the LEDGER path, deliberately stricter (`min(1)` vs `min(0)`, per §820); `map-204.ts` is a **producer** whose output the canonical schema validates; `intake.ts` is a client TYPE, not a boundary. **Scanner corrected first**: it required the literal `z.object` and `rate.ts` writes `z\n  .object({`, so **two of four ROSTERED files did not match their own roster** — it would have found three unrostered surfaces while hiding two rostered ones in the same run |
+| 289 | §841 | **§842** | **PHASE 63 CLOSED — the launch checklist's code-state claims all HOLD; the one that doesn't is in CLAUDE.md.** §841 found 2 of 6 of my own triggers rotted, so the higher-stakes version: the GO-LIVE-CHECKLIST, where §823 already caught a stale count. 297 rows → 222 live → 67 repo-path → **5 making a falsifiable CODE-STATE claim**, and **every one holds**: `approvalGranted` honoured by both composers but **supplied by no caller**; `actor.party` read by nine modules and by **zero gates** (the claim is about gates, and is exact); the dunning matrix unwired per its own source comment. **Clean negative worth stating** — §823 found the COUNT stale and the reasonable inference was that the prose had rotted too; it has not. **The live defect is in CLAUDE.md**: rule 6 names `routes ±10%` and there is **no fixture, no manifest entry, no implementation** (17 fixtures; the other three exist) — filed as an OWNER DECISION since §61/§68. §830/§831 pinned CLAUDE.md's table COUNT; nothing pinned its named fixture GATES, which is how this sat there for the length of the build. Now gated, with `routes` a recorded exception — **deliberately not made to red on a filed hold**, because a gate that reds on a parked decision gets disabled and takes the unfiled cases with it |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -48897,3 +48898,64 @@ from `SURFACES` → RED on the calibration floor · the scanner broken → RED r
 - The dims shape is declared by a module that names its fields differently (`length_in`, `dimensions.l`) → the
   scanner keys on `l_in` + `pieces` and would not see it. Stated because a renamed field is exactly how a
   fifth surface would actually arrive.
+## §842 — PHASE GATE: PHASE 63 CLOSED — the launch checklist's code-state claims all hold; the one that doesn't is in CLAUDE.md
+
+§841 swept my own reopen triggers and found two of six rotted. The higher-stakes version of that question is
+the **GO-LIVE-CHECKLIST** — the document an owner reads to decide what still blocks launch, where §823 had
+already caught a stale count (*"7 sites"* beside a roster of 8).
+
+### The sweep
+
+297 table rows; 222 not struck; 67 cite a repo path. Most of those are secret and deployment rows
+(`RESEND_API_KEY`, Stripe keys, TSA endpoint) — legitimately owner-held and **not falsifiable from inside the
+repo**: "the secret is not set" cannot be checked by a repo that must never contain it.
+
+That leaves **five rows making a falsifiable claim about code state**. Every one **holds**:
+
+| row | claim | verified |
+|---|---|---|
+| L214 | `approvalGranted` is *"intentionally unwired"* in the Biller and the interline splitter | both composers honour the parameter; **no caller anywhere supplies it** |
+| L224 | *"no gate reads"* `actor.party` | `packages/ledger/src/gates/` has **zero** occurrences (nine other modules read it — the claim is about gates, and is exact) |
+| L262 | the dual-control dunning matrix is *"deliberately NOT wired"* | `dunning.ts:29` says so in the source, with the REQ-032 reason |
+| L200 | the missing-evidence send-gate half that *ships* | already narrowed in §124; still accurate |
+| L216 | *"`routes ±10%` names a merge gate with nothing behind it"* | **holds — see below** |
+
+**Clean negative, and worth stating plainly**: §823 found the checklist's *count* stale, and a reasonable
+inference would have been that its prose had rotted too. It has not. The document is accurate about code.
+
+### The one live defect is in CLAUDE.md, and it was already filed
+
+`CLAUDE.md` rule 6 names four fixture gates: *"legacy-export replay ±2% aggregate · **routes ±10%** · QB
+export reconciles to the penny · airplane-mode soak."* Measured against `fixtures/manifest.json`'s seventeen
+fixtures:
+
+- `legacy-export-replay` ✓ · `qb-journal-month` ✓ · `airplane-soak` ✓
+- **`routes` — no fixture, no manifest entry, no implementation anywhere in `tools/` or `package.json`.**
+
+It is a gate name in the governing file with nothing behind it, in **two** source-of-truth documents
+(`genesis/11:41` and `genesis/14:52`), which is what makes it settled intent rather than a typo — and it has
+been filed as an OWNER DECISION since §61/§68. Nothing here changes that.
+
+### What this phase adds
+
+§830/§831 pinned CLAUDE.md's *table count* to the migrations. Nothing pinned that its named *fixture gates*
+correspond to real fixtures — which is why `routes` could sit in the governing file for the length of the
+build without a single check noticing. Now gated, with `routes` recorded as the known exception pointing at
+its checklist row, so the **fifth** named-but-missing gate fails loudly while the filed one stays visible.
+
+Deliberately not made to fail on `routes` itself: the build must not go red for a decision the owner has
+already recorded and parked. A gate that reds on a filed hold gets disabled, and takes the unfiled cases with
+it.
+
+### Exit state
+
+`test:tools` **1109** (+3), 3 failed — the REQ-289 trio. typecheck 0 · lint 0 · `verify:docs` 0. **No
+production code changed.**
+
+**Reopen triggers**
+- `routes ±10%` is implemented or struck from rule 6 → delete the exception here in the same commit; the
+  §672 half of this gate fails if the exception outlives its subject.
+- Rule 6 names a fifth gate → it must exist in the manifest or be recorded. That is the whole gate.
+- A checklist row's code-state claim is edited → this phase verified five at `0aa18f9`; that is a measurement,
+  and the rows carry no mechanism forcing re-verification. The secret rows never will — they are unfalsifiable
+  from here **by design**, and that is worth remembering before treating checklist length as a debt count.
