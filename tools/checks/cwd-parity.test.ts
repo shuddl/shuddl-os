@@ -43,10 +43,38 @@ function derivedGates(root: string): Gate[] {
     .map(([name, cmd]) => ({ name, script: cmd.replace(/^tsx /, "") }));
 }
 
+/**
+ * §744 — INPUT A GATE NEEDS IN ORDER TO RUN AT ALL.
+ *
+ * A gate that SKIPS for want of an input returns the same result from every directory, so this parity check
+ * sees no drift and reports it clean — while its actual scan path may be thoroughly CWD-dependent. That is not
+ * hypothetical: `check:identity` skips without a denylist, and §731 found by hand that its read path resolved
+ * against `process.cwd()` while its listing was repo-rooted. Run from `tools/checks/` WITH a denylist it
+ * emitted `PASS · executed: true · assertions: 0` — a positive verdict over a scan of nothing, in the gate
+ * enforcing "no identity in ANY repo artifact". This file existed at the time (§559) and could not see it,
+ * because both runs said "no denylist available".
+ *
+ * The generalisation is worth more than the instance: **a blocked gate is invisible to the meta-gates that
+ * watch gates.** So supply the minimum input that makes the real path execute. The term below is chosen to
+ * appear nowhere in the tree, so a healthy run is CLEAN at both directories; §731's zero-files floor is what
+ * turns a broken read path into a non-zero exit rather than another silent agreement.
+ */
+//
+// THE TERM IS ASSEMBLED AT RUNTIME, and that is not stylistic. `check:identity` scans every tracked file's
+// CONTENT for each denylist term — including this one. A literal probe term written here IS in the tree, so
+// the scan finds it and reports a leak in this very file: measured, exit 1 from BOTH directories, which is
+// "parity" achieved by failing everywhere for the wrong reason. Splitting it means the whole string never
+// appears in any file, so a healthy run is genuinely clean.
+const PROBE_TERM = ["ZZ", "CWDPARITY", "PROBE", "ABSENT"].join("-");
+
+const RUN_ENV: Readonly<Record<string, Readonly<Record<string, string>>>> = {
+  "check:identity": { IDENTITY_DENYLIST: PROBE_TERM },
+};
+
 /** Exit code of a gate run with an explicit cwd. */
-function runFrom(root: string, script: string, cwd: string): number {
+function runFrom(root: string, script: string, cwd: string, env: Readonly<Record<string, string>> = {}): number {
   try {
-    execFileSync("node", ["--import", "tsx", `${root}/${script}`], { cwd, stdio: "ignore" });
+    execFileSync("node", ["--import", "tsx", `${root}/${script}`], { cwd, stdio: "ignore", env: { ...process.env, ...env } });
     return 0;
   } catch (e) {
     return typeof (e as { status?: number }).status === "number" ? (e as { status: number }).status : 1;
@@ -76,8 +104,9 @@ describe("REQ-118 §559: no gate's verdict depends on the caller's directory", (
     const subdir = `${root}/tools/checks`;
     const offenders: string[] = [];
     for (const { name, script } of gates) {
-      const atRoot = runFrom(root, script, root);
-      const offRoot = runFrom(root, script, subdir);
+      const env = RUN_ENV[name] ?? {};
+      const atRoot = runFrom(root, script, root, env);
+      const offRoot = runFrom(root, script, subdir, env);
       if (atRoot === offRoot) continue;
       if (FAIL_CLOSED_BY_DESIGN.has(name) && offRoot !== 0) continue; // documented above; still not allowed to PASS
       offenders.push(

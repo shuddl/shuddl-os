@@ -383,6 +383,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 188 | §740 | **§741** | **Fallback-value line CLOSED — booleans, the rater's law, the perimeter.** Permissive booleans (`!== false` / `?? true`): **0 across 94 files**, and the zero is credible only because the same scan found **11** restrictive `=== true` (§738's rule). `dimsRequired === true` reads permissive but is safe: the rater returns UNKNOWN on missing physics with **no config flag in the path**. Perimeter: 6 defaults, all benign — and `auth.ts`'s `|| c.req.query("tenant")` is a **REJECTION, not a fallback** (4th pattern-based false candidate this session, and the most alarming-looking). That guard IS pinned: deleting it reds **4 tests across 2 suites**. **My own error is the lesson** — the first run said 12 passed from the WRONG SUITE (`auth.test.ts`; the coverage lives in `isolation.test.ts`). Line total: **11 defaults examined, 3 undefended, all now pinned; every finding from a mutation, none from reading** |
 | 189 | §741 | **§742** | **The named LAWS are defended — 0 of 3 undefended, vs 3 of 11 defaults.** CLAUDE.md Law 5 (interline executing share): mutating `evaluated = share.shareCents` → gross reds **5 tests**, one named *"PROOF the executing-share rule changed the outcome: gross alone would have been `none`"* — a pin asserting the COUNTERFACTUAL. The reverted `{}`-policy security defect (*"`{}` is the floor for one knob and the CEILING for three"* — it drops dims_required, widens a tighter geofence, and stamps widened visibility onto IMMUTABLE events): mutating the refusal back to `{}` reds its pin. And the comment's *"(and it is UNWIRED)"* claim about `invoice_without_pod_classes` — **checked, still true** (the one production call omits `serviceClass`), already carried as its own GO-LIVE row. **The pattern: a rule written down as a law gets a test; a rule living only in the shape of a fallback often does not** |
 | 190 | §742 | **§743** | **The budget gate could not see a budget nobody enforced.** §611's gate does the lockstep fix properly (reads CLAUDE.md as DATA, computes the other side) and it works — raising `MAX_CANONICAL_VIEWS` to 13 **and** adding a 13th view passes typecheck, invariants, and the registry's own suite **5/5** (its threshold sits in the same file); only §611 caught it. But both its assertions iterate a hand-written roster, so inserting `· 7 agent queues ·` into the hard-budgets line — stated, enforced by nothing — left it **2/2 GREEN**. The timing is the point: CLAUDE.md says a budget change is a **register amendment**, so the line is edited FIRST and enforcement follows. Floor now derives coverage by **SPAN** (a reconstructed-phrase predicate guesses how many words a budget's name has — my first cut flagged everything); 3 exemptions each with a reason, all 3 found by the floor on its first run. **Mutation-proved both ways** |
+| 191 | §743 | **§744** | **A BLOCKED gate is invisible to the meta-gate that watches gates.** Roster sweep (58 candidates) came back clean — `ALLOWED_HEX` is **derived** from tokens exactly as CLAUDE.md rule 7 claims; `ACTIVE` omitting WP-16 is correct (`disposition` routes it first). But it surfaced `cwd-parity.test.ts`, built **yesterday** at §559 to *"end the CWD-dependence class with a mechanism"* — and §731 found a CWD defect in `check:identity` **by hand the next day**. Cause: that gate SKIPS without a denylist, so both runs printed *no denylist available* and agreed perfectly over a gate that never ran. Fixed with `RUN_ENV`. **My first fix was circular** — the probe term was a literal, so the identity scan found it in this very file and exited 1 from BOTH dirs ("parity" by failing everywhere); assembled at runtime instead. Mutation: reintroducing §731's defect now REDS `check:identity: root=0 subdir=1`. **Also corrects §732**, whose hand sweep duplicated this gate |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -42466,3 +42467,92 @@ error aborted an earlier attempt mid-command).
   reason**, not in `BUDGETS` with a fabricated number.
 - The hard-budgets line is reformatted onto multiple lines → the single-line parse breaks and the non-vacuity
   assertion reds first, by design.
+
+## §744 — PHASE GATE: a blocked gate is invisible to the meta-gate that watches gates
+
+§743 found a gate roster with no completeness floor. This swept that shape across every gate test — 58 roster
+candidates — and the sweep itself came back clean. What it surfaced on the way did not.
+
+### The roster sweep — clean, with five candidates resolved
+
+| candidate | verdict |
+|---|---|
+| `ALLOWED_HEX` (design) | **derived**: `new Set(Object.values(readTokens(tokens.css)))` — exactly what CLAUDE.md rule 7 claims (*"its allowlist is derived from the tokens"*). Claim verified, not assumed |
+| `ANCHORS`, `TARGETS`, `FIXTURE_*`, `PATHS` | test fixtures, not gate rosters |
+| `ACTIVE` (WP-01…WP-15, **no WP-16**) | correct by design — `disposition()` routes `WP-16` to its own `"launch-gate"` bucket *before* consulting `activeWps` |
+
+§743's `BUDGETS` was the one real gap. The classifier produced candidates only; every genuine-looking one
+dissolved on reading the code, which is the expected yield for a repo that has been through this shape a dozen
+times.
+
+### What the sweep actually found
+
+`tools/checks/cwd-parity.test.ts` exists — created **yesterday** at §559, commit titled *"end the
+CWD-dependence class with a mechanism, not a 17th instance"*. It derives its corpus from `package.json` (no
+roster to rot) and asserts every `check:*` reaches the same verdict from a subdirectory.
+
+And yet **§731 found a CWD defect in `check:identity` by hand, the day after that mechanism landed.** A
+mechanism built to end a class did not catch the next instance of the class. That is the finding.
+
+### Why it could not see it
+
+`check:identity` **skips without a denylist**. Measured:
+
+```
+from root:   REQ-167: no denylist available … Lint SKIPPED
+from subdir: REQ-167: no denylist available … Lint SKIPPED
+```
+
+Identical — so the parity assertion passed, over a gate that never ran. Meanwhile the real scan path resolved
+its reads against `process.cwd()` while listing from the repo root, and from `tools/checks/` it emitted
+`PASS · executed: true · assertions: 0`.
+
+**A blocked gate is invisible to the meta-gates that watch gates.** §731 recorded that BLOCKED status hid the
+defect from human attention; this is the same fact one level up — it hid the defect from the automation too,
+and for a stronger reason: the meta-gate compares outputs, and two skips agree perfectly.
+
+### The fix, and the circularity in my first attempt
+
+`RUN_ENV` supplies the minimum input that makes a gate's real path execute — for `check:identity`, a denylist
+term chosen to appear nowhere in the tree.
+
+**My first attempt wrote that term as a string literal, and the term was then IN the tree** — in this very
+file. `check:identity` scans every tracked file's *content* for each denylist term, found its own probe, and
+reported a leak: **exit 1 from both directories**. That is "parity" achieved by failing everywhere for the
+wrong reason, and it would have passed the assertion while proving nothing.
+
+The term is now assembled at runtime from fragments, so the whole string never appears in any file. A
+self-referential scanner is a genuinely easy thing to get wrong, and the only reason it surfaced in minutes is
+that the root run's exit code was checked against what it *should* be (0) rather than only against the
+subdirectory's.
+
+### Mutation-proved
+
+Reintroducing §731's exact defect — `readFileSync(join(root, f))` back to `readFileSync(f)`:
+
+| | before this phase | after |
+|---|---|---|
+| cwd-parity sees | **2/2 green** | **RED**: `check:identity: root=0 subdir=1` |
+
+The class is now genuinely mechanised for this gate, rather than mechanised for the gates that happened to run.
+
+### A correction to my own §732
+
+§732 ran a CWD sweep by hand across 19 entry points and reported it as a measurement. `cwd-parity.test.ts`
+already did that, continuously, and had done since §559 — I duplicated a shipped gate. The phase was not
+wasted (its yield was the `invariants` sub-corpora floors, which are unrelated), but the sweep half of it was
+work already done, and I should have looked for the mechanism before rebuilding it by hand.
+
+### Exit state
+
+`cwd-parity` 2/2; `test:tools` **1024**; lint 0; typecheck 0. `identity-leak.ts` restored byte-identical after
+the mutation.
+
+**Reopen triggers**
+- A new gate skips for want of an input (a secret, a fixture, a binding) → it needs a `RUN_ENV` entry, or the
+  parity check silently covers nothing for it. The five BLOCKED fixture gates are the obvious candidates the
+  day their fixtures land.
+- A probe value is added to any self-scanning gate → assemble it at runtime. A literal is part of the corpus
+  the scanner reads.
+- `check:identity` gains a real denylist in CI → `RUN_ENV`'s override must not mask it; it applies only to
+  this test's own child processes, which is why it is scoped per-run rather than set globally.
