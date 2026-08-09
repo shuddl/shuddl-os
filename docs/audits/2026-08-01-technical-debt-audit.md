@@ -388,6 +388,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 193 | §745 | **§746** | **CLEAN NEGATIVE — the record already says what the board's numbers certify.** Under `--mode merge`: **5 of 20** gates emit a sentinel; for the other 15 `run-gate` SYNTHESIZES `PASS/executed:true/assertions:1` from exit 0 — so on three-quarters of the board `assertions` is a CONSTANT, not a measurement. `RELEASE-EVIDENCE.md` states this verbatim and draws the right conclusion (*"only meaningful for the sentinel-emitting gates"*), carrying the distinction into its Artifact column. Nothing to fix — worth recording because this audit keeps finding the opposite shape. **My first measurement said 4 of 20** — an artifact of running gates BARE when `run-gate` passes `--mode`. Sixth instrument error this session, same correction as §741's wrong suite: **run the subject the way its real caller runs it** |
 | 194 | §746 | **§747** | **CLAUDE.md rule 10 (no silent drops in migration) mutation-proved.** Making an unmapped column produce no gap row reds 2 tests — the stronger one asserting the per-row VALUES are *retained*, not merely that a gap row is minted. **What "171-col" is a claim about:** an OWNER-HELD artifact (the tenant-0 config pack, `genesis/13`); in-repo the vendored fixture is synthetic, **13 columns**. That is correct, not a shortfall — *"ANY column that doesn't map raises a gap row"* is a **per-column property, not a count**, so it is proved by exercising the classification branches. The 171-col export supplies *parity* evidence, held as `legacy-export-replay` `status: pending`. Fixture truncation is pinned too (deleting `misc_note` reds the same 2). `verify:merge` re-derived: **19 PASS · 2 FAIL · 5 BLOCKED**, identical to §737 |
 | 195 | §747 | **§748** | **DEFECT (latent, found by ATTRIBUTION): every REQ-id matcher truncates at three digits.** Probing rule 1's direction B with a planted `REQ-9999`, the gate correctly failed — and echoed back **`REQ-999`**. All four matchers are `REQ-\d{3}`, exactly three. Register is at REQ-289, so nothing is wrong today; at **REQ-1000** both directions break SILENTLY at once — a citation of the non-existent REQ-1000 matches `REQ-100`, which EXISTS, so the orphan resolves *and* coverage credits REQ-1000's work to REQ-100. Quiet precisely because the truncated id is valid. Widened to `\d{3,}` at all 4 sites — **a no-op today, measured** (no text in the repo has 4+ digits after `REQ-`). 3 tests + non-vacuity companion; reverting one matcher REDS. **Checking WHICH id the gate saw, rather than that it failed, is the entire finding** |
+| 196 | §748 | **§749** | **The one fixed-width matcher that HAD the guard §748 lacked — and the guard was undefended.** Sweep: only 2 fixed-width numeric matchers in source; section/phase refs use unbounded `§(\d+)`, so this audit passing its thousandth phase costs nothing. The other is the Concierge's `(\d{5})(?!\d)`, whose comment names the hazard *("a 6+-digit id like 123456 never yields a phantom 12345")* — **deleting the lookahead left 224/224 GREEN**. Worse consequence than §748: a phantom ZIP is WRONG data, not missing, and *no price on air* refuses missing physics, not false physics. Pinned with 3 cases. **The mutation then caught MY OWN vacuous test** — the 6-digit fixture had no dest ZIP, so `request` was undefined regardless. Mutation-proving a NEW test is how you find the test was never testing |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -42838,3 +42839,59 @@ all session. `check-pr.ts` restored byte-identical.
   the disagreement is invisible.
 - An id scheme change (a prefix, a suffix, a namespace) → the matcher stops being a pure digit run, and the
   truncation question must be re-asked in whatever the new shape is.
+## §749 — PHASE GATE: the one fixed-width matcher that had a guard, and the guard was undefended
+
+§748 fixed a matcher that truncated silently. The obvious sweep is whether the repo has more of them.
+
+### The sweep
+
+Fixed-width numeric matchers (`\d{N}` with no `,`) in non-test source: **two**. Everything else is unbounded —
+notably the section-reference and phase-index matchers, which read `§(\d+)`, so this audit passing its thousandth phase costs
+nothing. (Worth checking precisely because I have relied on those gates every phase this session.)
+
+Of the two, one is a JSON note. The other is the interesting one:
+
+```ts
+`\\b(?:${keys.join("|")})\\b[^\\d]{0,20}?(\\d{5})(?!\\d)`
+```
+
+The Concierge's ZIP extractor — a fixed-width matcher **with** the negative lookahead that `REQ-\d{3}` lacked.
+Its comment names the hazard exactly: *"not followed by another digit (so a 6+-digit id like `123456` never
+yields a phantom `12345`)"*.
+
+### The guard was undefended
+
+Deleting `(?!\d)` left `packages/agents` at **224/224 GREEN**. A documented, deliberate guard against §748's
+exact defect class, with nothing holding it in place.
+
+**And the consequence here is worse than a missed detection.** The Concierge parses inbound customer email into
+a rate request, so a PO number, order id or phone fragment after "from" becomes an **origin the quote is priced
+against**. CLAUDE.md's *no price on air* refuses to price MISSING physics; nothing downstream can refuse
+physics that is present and false. A phantom ZIP is not absent data, it is wrong data — and by the time it
+reaches the rater it is indistinguishable from a good one, which is why the guard belongs at the parse seam.
+
+### Pinned — and the mutation caught my own vacuous test
+
+Three cases: a 6-digit run, a 9-digit run, and a real ZIP still extracted (non-vacuity, so a parser that
+stopped extracting origins entirely could not satisfy the first two).
+
+The first mutation run reddened only **one of the two** positives. The 6-digit case passed — because my fixture
+had no valid destination ZIP, so `request` was undefined regardless of what the origin matcher did, and
+`r.request?.origin_zip` was undefined for the wrong reason.
+
+That is the vacuous-test shape this session has found in four gates, produced by me, in a test written
+specifically to close a vacuity. It was visible only because the mutation failed to red it: **mutation-proving
+a NEW test is how you discover the test was never testing.** Fixture given a real dest; both positives now red.
+
+### Exit state
+
+`packages/agents` **37/37** in `parse.test.ts` (+3); `test:tools` 1027; lint 0; typecheck 0. Source restored
+byte-identical after both mutation rounds.
+
+**Reopen triggers**
+- A new fixed-width matcher is written → it needs the `(?!\d)` guard AND a test, and this phase is the evidence
+  that the guard alone is not enough.
+- A parse fixture asserts a field is absent → check that the surrounding object EXISTS, or the assertion is
+  satisfied by the object being undefined. That is the specific trap here.
+- The Concierge gains a second numeric extractor (weight, dims, PO) → same question, same two failure modes:
+  truncation, and a test that cannot see it.

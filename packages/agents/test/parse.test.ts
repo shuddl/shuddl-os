@@ -423,3 +423,53 @@ describe("buildUserPrompt — carries the email's from/subject/body into the use
     expect(prompt).toContain("ZIP 80216 to 97203");
   });
 });
+
+// REQ-026 §749 — A 6-DIGIT NUMBER MUST NOT YIELD A PHANTOM 5-DIGIT ZIP.
+//
+// `zipHits` matches `(\d{5})(?!\d)`, and the negative lookahead is the whole guard. Its own comment names the
+// hazard exactly — *"not followed by another digit (so a 6+-digit id like 123456 never yields a phantom
+// 12345)"* — and MUTATION-MEASURED it was undefended: deleting `(?!\d)` left this package at 224/224 GREEN.
+//
+// It is the §748 defect class (a fixed-width matcher truncating a longer run) in the one place where the
+// consequence is worse than a missed detection. A phantom ZIP is not absent data, it is WRONG data: the
+// Concierge parses inbound customer email into a rate request, so a PO number, order id or phone fragment
+// sitting after "from" becomes an origin the quote is priced against. CLAUDE.md's "no price on air" refuses to
+// price MISSING physics; nothing downstream can refuse physics that is present and false.
+//
+// Guarded here rather than in the rater for that reason: by the time a bad ZIP reaches pricing it is
+// indistinguishable from a good one.
+describe("REQ-026 §749: a longer digit run never truncates into a ZIP", () => {
+  const parser = new DeterministicParser();
+
+  // The DEST ZIP is load-bearing in these fixtures. A body with no valid ZIP at all leaves `request` undefined,
+  // so `r.request?.origin_zip` is undefined whatever the origin matcher did — the assertion would pass for the
+  // wrong reason. Measured: the first draft of this case did exactly that and stayed GREEN under the mutation.
+  it("a 6-digit reference after an origin key yields NO origin zip", async () => {
+    const r = await parser.parse({
+      from: "shipper@example.com",
+      subject: "quote",
+      body: "Quote please, picking up from 802161 to 97203. Weight is 1200 lbs.",
+    } as InboundEmail);
+    expect(r.request?.origin_zip, "a 6-digit run was truncated into a phantom ZIP (the (?!\\d) guard is gone)").toBeUndefined();
+  });
+
+  it("a 9-digit run does not yield one either (the guard is not off-by-one)", async () => {
+    const r = await parser.parse({
+      from: "shipper@example.com",
+      subject: "quote",
+      body: "Quote please, from 802161234 to 97203. Weight is 1200 lbs.",
+    } as InboundEmail);
+    expect(r.request?.origin_zip).toBeUndefined();
+  });
+
+  it("and a REAL 5-digit ZIP is still extracted (non-vacuity)", async () => {
+    // Without this, a parser that stopped extracting origins entirely would satisfy both assertions above.
+    const r = await parser.parse({
+      from: "shipper@example.com",
+      subject: "quote",
+      body: "Quote please, from 80216 to 97203. Weight is 1200 lbs.",
+    } as InboundEmail);
+    expect(r.request?.origin_zip).toBe("80216");
+  });
+});
+
