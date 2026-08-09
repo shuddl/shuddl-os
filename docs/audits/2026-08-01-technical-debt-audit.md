@@ -439,6 +439,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 244 | §796 | **§797** | **PHASE 20 CLOSED — all three HIGH filed holds, each *fail-closed* claim checked.** Ratecon: **TRUE and pinned** (nothing writes a `ratecon` doc; the SHARED `DISPATCH_REQUIRED_DOC_KIND` reds in lockstep when repointed to `"POD"`). B2A: **under-stated** (§795). Transport/resolver: **half pinned** — `transport-dormancy.test.ts` exists because §379 found `NotConfiguredTransport` had zero test references, and **the identical gap sat one file away**: its twin `NotConfiguredSecretResolver`, named in the SAME checklist row, had zero references anywhere; making it return a secret left the worker **121/121 green** — partner impersonation with the CONFIRM gate silently open. Added the binding + the fail-closed VALUE (a resolver returning `""` is still the right class). **Did NOT write the e2e test** — it would 401 for the wrong reason (§749). **Instrument: a suite-level failure prints as SKIPS** — `764 passed | 44 skipped`, zero `×` lines, exit 1 |
 | 245 | §797 | **§798** | **PHASE 21 CLOSED — every fail-closed PORT swept; the sibling that was missed.** §797's rule (*pin the siblings in the same commit*) run as a sweep: 6 ports + 3 selectors tabled. **`NotConfiguredMigrator` has zero test references and that is FINE** — it is *opt-in, NOT the default*; the DEFAULT (`DeterministicMigrator`) is what carries the guarantee and IS pinned. **The port with zero references was not the one that mattered.** The real gap: `evidenceSender` is written TWICE — in the same two modules §786 caught duplicating the recipient resolver — and only the Biller's had a behavioural test. A silently-succeeding fallback left api **808/808**, and this route appends `message.sent` BEFORE sending, so the ledger would record a delivered demand for money that never left. Pinned incl. the **half-bound** `&&`→`||` case. **Text parity was the WRONG instrument** — the two are logically identical but formatted differently; reverted rather than loosen the normaliser |
 | 246 | §798 | **§799** | **PHASE 22 CLOSED — the dunning↔biller duplication set, ENUMERATED.** §786 and §798 each found a rule duplicated between the same two modules; twice is a pattern, so the whole set was listed: **4 shared rules** — recipient resolution (§786, was unpinned) · evidence-sender selection (§798, was unpinned) · deterministic event id (**pinned** — randomness reds 4) · sequencer DO binding (**fail-closed by construction**). **The DO binding looked like a REQ-025 hole and is not**: dropping the tenant prefix left api 810/810, but the DO **re-derives its own name and refuses** (`expected.equals(this.ctx.id)` → FORBIDDEN) and **that refusal is pinned by 2 tests** — §688's sibling-guard case, diagnosed rather than reported. **My grep was wrong a 4th time**: searching `"identity mismatch"` found nothing and I was one step from recording "the structural tenant pin is unpinned" — the tests assert BEHAVIOUR, not the reason string |
+| 247 | §799 | **§800** | **PHASE 23 CLOSED — every cross-worker duplication, and why the sweep could NOT have found §799's.** Swept same-named modules across all five workers: `rate-config.ts` (3 copies) and `tenants.ts` (4 copies) are **fully gated** — the latter hub-and-spoke against api, the former pinning the **effective-selection SQL** where the translator's copy is legitimately a subset. Four candidates are **not pairs** (`idempotency` = enforcement vs derivation; `quote` = mcp composing over api verbs, *"NO second gate here"*, REQ-030 done right; `watchtower` = cron vs route; `authority` = lib vs route). **The insight is what the sweep cannot see:** every covered duplication is SAME-NAMED; §799's two defects were `resolveRecipient`↔`resolveDunningRecipient` and two `evidenceSender`s in differently-named modules. **Duplication that shares a NAME gets gated because it is visible; duplication that shares only a RULE does not.** The marker for the invisible class is the sentence *"cannot import the agents worker's internals"* |
 
 **Current measured state — as measured 2026-08-08 at `fae1a17` (§775's board run):** the merge board is
 **26 gates — 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape since §737. `typecheck` 0 · `lint` 0 ·
@@ -46117,3 +46118,52 @@ No source changed. `workers/api` **810/810**; lint 0; typecheck 0. Four mutated 
   reasoning above stops being the only thing covering it. That would be an improvement, not a regression.
 - The DO's identity pin is refactored → it is what makes the fourth row safe. Its two tests are the ones to
   keep green.
+## §800 — PHASE GATE: PHASE 23 CLOSED — every cross-worker duplication, and why the sweep could not have found §799's
+
+§799 closed a duplication pair between `workers/agents` and `workers/api` where **two of four shared rules had
+shipped unpinned**. Workers cannot import each other's internals, so that pressure exists for every pair.
+Swept them all.
+
+### Same-named modules across workers, resolved
+
+| module | copies | verdict |
+|---|---|---|
+| `rate-config.ts` | agents · api · translator | **fully gated** — api↔agents byte-identical (§223); api↔translator pins the **effective-selection SQL** rather than the file, because the translator's is legitimately a subset (§223/§280) |
+| `tenants.ts` | api · agents · billing · translator | **fully gated** — hub-and-spoke, all three spokes assert against api's |
+| `idempotency.ts` | api · mcp | **not a pair** — api's is the KV *enforcement*, mcp's is the key *derivation* that feeds it |
+| `quote.ts` | api · mcp | **not a pair** — mcp composes over the api's verbs; its header says *"There is NO second gate here"*, which is REQ-030 done right |
+| `watchtower.ts` | agents · api | **not a pair** — the cron that raises alarms vs the route that reads them |
+| `authority.ts` | api ×2 (+ packages) | **not a pair** — a lib and a route |
+
+**Two genuine duplication sets, both already gated; four false candidates, all resolved by reading.** The
+6:2 ratio is the reason this phase is a clean negative rather than a finding: same-named files are *obvious*,
+and this repo has consistently gated them.
+
+### The insight is what the sweep CANNOT see
+
+Every covered duplication is **same-named**. §799's was not: `resolveRecipient` in `biller.ts` versus
+`resolveDunningRecipient` in `routes/dunning.ts`; `evidenceSender` in `index.ts` versus `evidenceSender` in
+`routes/dunning.ts`. A filename sweep would never have found either — and those were exactly the two that had
+shipped unpinned.
+
+So the rule, stated for the next reader: **duplication that shares a NAME gets gated, because it is visible.
+Duplication that shares only a RULE does not, because nothing points at it.** §786 and §798 found theirs by
+following a rule from one end to the other, not by listing files. That is a more expensive search and it is
+the only one that works here.
+
+The practical form: when a worker re-implements a behaviour it cannot import, the duplication is usually
+renamed to fit its local context — which is precisely what removes it from every mechanical index.
+
+### Exit state
+
+No source changed; no mutation needed — this phase is a read-and-resolve over an enumerated candidate set.
+`workers/api` 810/810; lint 0; typecheck 0.
+
+**Reopen triggers**
+- A worker gains a module that re-implements another's behaviour under a LOCAL name → the same-name sweep
+  will not see it. The trigger to look is the architectural one: *"the api worker cannot import the agents
+  worker's internals"* appears verbatim in `dunning.ts`, and that sentence is the marker for this class.
+- `rate-config.ts` gains a fourth copy → the effective-selection parity is the pattern to extend, not
+  byte-identity; the translator's copy is legitimately a subset and the §223 test explains why.
+- A same-named module pair loses its parity test → the three that exist are the only thing making the
+  same-name class safe, which is the half this phase confirms rather than assumes.
