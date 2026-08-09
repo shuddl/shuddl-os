@@ -46454,7 +46454,7 @@ Not read — measured, because §804 proved the status fields unreliable:
 | row | verification |
 |---|---|
 | **14** — a 4-hour SLA policed by a 24-hour detector | `wrangler.toml` → `crons = ["0 1 * * *"]`; `sla-sweep.ts:94` says *"a DAILY cron policing a FOUR-HOUR SLA accumulates ~19h of overdue rows per tick"* |
-| **15** — a lost booking trigger has no backstop | `sequencer.ts:579` carries §131's correction: the recovery it once named *"DOES NOT EXIST"* |
+| **15** — a lost booking trigger has no backstop | `workers/api/src/do/sequencer.ts:578@AGENT_QUEUE` carries §131's correction: the recovery it once named *"DOES NOT EXIST"* |
 | **17** — pool-binding exclusivity on enumeration, not resolution | `provision.ts:275`: the control-plane UNIQUE index *"is the structural answer"*, dark today |
 
 ### And one I was about to "fix" and should not
