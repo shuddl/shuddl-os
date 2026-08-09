@@ -411,6 +411,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 216 | §768 | **§769** | **SECOND STOPPING POINT — §738–§768 re-derived (31 commits, 39 phases past §737).** **Nine live defects**, every one surfaced by MUTATION and none by reading: two unpinned fail-closed gate defaults · a `"grants NOTHING"` sentinel spelled 3× and undefended · a budget gate blind to unenforced budgets · **a BLOCKED gate being invisible to the meta-gate watching it** · a REQ matcher truncating at 3 digits · the Concierge's ZIP guard · **a retention clock restarted by re-upload** · **the lens held by two characters of punctuation**. Plus 4 corrections to my own claims. Confirmed with proof: Laws 1/5/10, the DO mutex, money sum **and tie determinism**, the lens conjuncts, both driver-sync premises. `test:tools` 984 → **1041**; board unchanged. **Stopping because §765–§768 found nothing** — the sweep now confirms rather than finds |
 | 217 | §769 | **§770** | **DEFECT past the stopping point: the budget alarm's divisor was never exercised.** The alarm averages *only REPORTED metrics* (`costSum / costN`); dividing by the RUN count halves a half-unmetered window — **$2/run against a $0.50 budget reads $1**, and two more unmetered runs put it UNDER budget. Mutating it left **17/17 GREEN**, not from redundancy but §688's *passing corpus*: every fixture supplied a cost, so `costN === runs`. The sibling test covers the ALL-unmetered window (null average); **only a MIXED window makes the divisor observable**. Matters because §135's dormant gap means windows go mixed exactly when the alarm starts being useful. Pinned; mutation REDS. **13th slip**: first run was against the package the SOURCE lives in, not the suite that owns it |
 | 218 | §770 | **§771** | **Finished the pair §770 had just split.** Mutating the LATENCY divisor (`latSum / latN` → `/ runs`) left the suite at **18/18 GREEN even after §770's new cost test**, because that fixture gives every run a latency. **Pinning one branch is what made the other's absence visible** — and would have left it invisible had I stopped. Consequence arguably worse than cost's: latency is what an operator watches for a hung agent, and a half-unmetered window reads as half as slow. Pinned with the mirror fixture; both divisors now red **independently (1 test each, different ones)** — a shared fixture would have made the pair LOOK covered while one branch rode the other's assertion. Sixth sibling-gap of the session, and **the last two were mine** |
+| 219 | §771 | **§772** | **Every Watchtower threshold — all five defended, and the METHOD finding is the phase.** My first sweep called three of them silent; **all three readings were wrong because the mutations could not fail**: `UNBILLED_CRITICAL_COUNT` 10→10000 (no fixture has ten shipments), `AGENT_DRIFT_WINDOW_MS` →1ms (runs seeded at `NOW`, age 0, inside any window), `DETAIL_SHIPMENT_CAP` 50→1 (one shipment; same slice). **A threshold mutation proves nothing unless it crosses a fixture's classification boundary** — changing the number is not the experiment, changing which side the data falls on is. All three RED once pointed the right way (widen the window, lower the count, zero the cap). **A mutation that cannot fail reads identically to a clean negative.** Also corrects §771's own *"checked, not assumed"* — it was assumed |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -44233,3 +44234,57 @@ it while writing; the loop is what turned noticing into closing.
 - The window changes from 24h → the fixtures seed at `NOW`; a shorter window silently empties them, and both
   cases would pass over nothing. The `alarmed` assertions are positive, so an empty window reds — checked, not
   assumed.
+## §772 — PHASE GATE: every Watchtower threshold, and the direction a mutation has to point
+
+§770/§771 pinned one rule's two divisors. §761's lesson says finish the population rather than sample it, so I
+mutated **every** threshold the five alarm rules turn on.
+
+### All five defended
+
+| constant | mutation that can fail | result |
+|---|---|---|
+| `AGENT_DRIFT_WINDOW_MS` | **widened** to 365d — nothing ages out | **RED** — *"SELF-CLEARS when the over-budget runs age out"* |
+| `UNBILLED_CRITICAL_COUNT` | **lowered** to 1 — everything is critical | **RED** |
+| `AGENT_DRIFT_CRITICAL_RATIO` | 2 → 200 | **RED** |
+| `DETAIL_SHIPMENT_CAP` | **0** — detail carries no shipment ids | **RED** |
+| the two divisors (§770/§771) | divide by all runs | **RED** ×2, independently |
+
+Nothing unpinned. That is a clean result on an alarm surface — and it is *not* what my first sweep said.
+
+### The method finding: a mutation must point where the guard points
+
+My first pass reported three of these as **silent**, and all three readings were wrong. The mutations could not
+have failed:
+
+- `UNBILLED_CRITICAL_COUNT` 10 → **10000**: fewer things become critical. No fixture has ten shipments, so no
+  fixture's classification moved. The constant was never consulted differently.
+- `AGENT_DRIFT_WINDOW_MS` DAY → **1ms**: the runs are seeded at `NOW`, so their age is **0** — inside any
+  positive window. Narrowing could not evict them.
+- `DETAIL_SHIPMENT_CAP` 50 → **1**: the fixtures have one shipment. `slice(0,1)` and `slice(0,50)` return the
+  same array.
+
+**A threshold mutation proves nothing unless it crosses a fixture's classification boundary.** Changing the
+number is not the experiment; changing which side of it the data falls on is. Every one of the three became RED
+the moment I picked the direction the guard actually prevents — widen the window, lower the critical count,
+zero the cap.
+
+This is the mutation-testing equivalent of §724's vacuous pass: **a mutation that cannot fail is as useless as a
+test that cannot fail**, and it reads identically to a genuine clean negative.
+
+### And it correcting a claim I made one phase ago
+
+§771's exit note said *"a shorter window silently empties them … an empty window reds — checked, not assumed."*
+It was assumed. A shorter window does **not** empty fixtures seeded at `NOW`, which the very next phase
+measured. The claim was wrong in its premise while being harmless in its conclusion — the sort of sentence that
+survives review because its conclusion is right.
+
+### Exit state
+
+No code changed. `workers/api` watchtower 19/19; `test:tools` 1041; lint 0; typecheck 0; `verify:docs` 0.
+`watchtower.ts` restored byte-identical after eight mutations.
+
+**Reopen triggers**
+- A threshold is added → mutate it in the direction that changes a fixture's classification, and say which
+  direction that is. Three of five here needed the non-obvious one.
+- A fixture gains scale (ten shipments, a 25-hour window) → some of the directions above stop being the failing
+  ones, and this table needs re-running rather than re-reading.
