@@ -426,6 +426,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 231 | §781–§783 | **§784** | **PHASE 13 CLOSED — every trust boundary enumerated.** Phase 12 closed the last unaudited product SURFACE; this closes the last unaudited class of INPUT. **16 unchecked casts** (live defect, fixed + gated) · queue bodies **clean and exemplary** · R2 marker validated but unpinned · device-key path clean. **Strictness is decided by the DEPLOY BOUNDARY, not taste**: cross-service ⇒ strip; same-worker atomic ⇒ strict. The queue consumer's ack-vs-retry discrimination is the standard the marker was measured against. Board re-measured at `e3a359e`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs attributed to the three named register tests on the uncommitted REQ-289 row. **4,162 tests** (3,118 workspace, 0 failures). **STOPPING POINT: repo-owned ledger EMPTY; five owner-held holds** — §724's came off this phase |
 | 232 | §784 | **§785** | **The OUTPUT boundary — who the evidence email goes to.** Phase 13 audited inputs; the dual is the seven places something LEAVES the building, where the failure is a wrong recipient rather than a crash. `resolveRecipient` has two rules: the **cross-party binding** is covered (dropping `WHERE id = ?` reds 4 tests in `workers/api` — the id-determinism seam again, correct by design), but **preferring the `billing` contact was SILENT in BOTH suites** (agents 122/122 AND api 803/803). A party with a dispatch contact and a billing contact would have had its invoice + signed POD delivered to **dispatch** — not a cross-party leak but **the wrong human inside the right company**, which is why it survived: it looks like a working system to everyone except the person who never got their invoice. Five tests, four mutation-proved; the fixture's ORDER is the whole test (non-billing first) |
 | 233 | §785 | **§786** | **The recipient rule is implemented TWICE and NEITHER copy was pinned.** §785's exit note claimed the other emitters were covered; checking found the same defect in `resolveDunningRecipient` — a byte-for-byte duplicate whose header *claims* "anti-drift" while only the LEAF predicate is shared. Deleting its billing preference left api at **803/803**, because `seedParty` seeds exactly ONE contact, always billing: **the rule was untestable by construction in both workers**. A dunning notice to dispatch instead of AP is a demand for money that never reaches the payer. Both halves of the doctrine, each proved to catch what the other cannot: deleting the rule reds behaviour AND parity; a **valid-but-drifted** change (reversed fallback order) reds **only parity** — and the parity file carries a floor so it cannot certify two copies that are identically wrong |
+| 234 | §785–§786 | **§787** | **PHASE 14 CLOSED — the OUTPUT boundary, where the failure is QUIET.** Phase 13 audited inputs (a bad value crashes); Phase 14 audits outputs (a bad value *works*, it just reaches the wrong person). All six emitters tabled with what decides their recipient. The finding: one rule implemented TWICE with **neither copy's preference pinned** — untestable by construction, because every fixture in both workers seeded exactly ONE contact, always `kind:"billing"`. Consequence is neither a leak nor a crash but **the wrong human inside the right company**, whose only signal is an invoice that never gets paid. Both guard halves proved necessary: delete-the-rule reds behaviour AND parity; **drift-only reds ONLY parity**. Board at `46a626c` unchanged: 19 PASS · 2 FAIL · 5 BLOCKED. **4,171 tests** (3,127 workspace, 0 failures). Three phases now bound the system by KIND — surfaces, inputs, outputs |
 
 **Current measured state — as measured 2026-08-08 at `fae1a17` (§775's board run):** the merge board is
 **26 gates — 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape since §737. `typecheck` 0 · `lint` 0 ·
@@ -433,8 +434,8 @@ acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register r
 attributed by naming the three failing tests, all register-classification) plus five gates BLOCKED on private
 fixtures that live in the engagement workspace. §521 tables every remaining hold with its owner.
 
-**Test totals, measured rather than carried forward — re-measured 2026-08-09 at `e3a359e` (§784):**
-**4,162 tests, 3 failing** — 1,044 in `test:tools` (the 3 REQ-289 failures) and **3,118 across all 17
+**Test totals, measured rather than carried forward — re-measured 2026-08-09 at `46a626c` (§787):**
+**4,171 tests, 3 failing** — 1,044 in `test:tools` (the 3 REQ-289 failures) and **3,127 across all 17
 workspace suites, zero failures**. The previous wording
 here said "3,016 workspace tests"; it was undated and stale, the exact defect §"a gate's green certifies less
 than its name" warns about, so the count above carries its date and SHA.
@@ -45262,3 +45263,74 @@ No source changed — `dunning.ts` restored byte-identical after three mutations
 - `seedParty` gains a second contact kind → the existing fixtures become discriminating on their own, and
   these two tests stop being the only thing holding the rule. That is an improvement, not a reason to delete
   them: the ordering fixture states the rule explicitly where a general fixture only implies it.
+## §787 — PHASE GATE: PHASE 14 CLOSED — the OUTPUT boundary, where the failure is quiet
+
+Phase gate for §785–§786. Phase 13 audited **inputs**, where a bad value crashes something. Phase 14 audits
+**outputs**, where a bad value *works* — it just reaches the wrong person. That asymmetry is the whole phase:
+an unparsed input announces itself with a stack trace; a misaddressed invoice announces itself never.
+
+### Every emitter, enumerated and accounted
+
+| emitter | recipient decided by | verdict |
+|---|---|---|
+| Biller evidence email (invoice + signed POD) | `resolveRecipient(bill_to_party_id)` | **1 of 2 rules unpinned** → §785 |
+| Dunning notice (a demand for money) | `resolveDunningRecipient` — a **duplicate** of the above | **unpinned + no parity** → §786 |
+| Concierge auto-reply | `payload.from_ref` (the ENVELOPE sender, never the model's) | **pinned** — the spoof-relay mutation reds 4 |
+| booking evidence-recipient gate | `hasDeliverableContact` | **pinned** — §778 (L544) |
+| EDI 214 / 990 | partner SCAC from the R2 marker | **pinned** — §783 |
+| MCP webhook | subscription URL | **pinned** — §775's parallel site |
+
+### What the phase found
+
+The same rule — *"read only this party's contacts, prefer the `billing` one"* — is implemented **twice**, and
+**neither copy's preference was pinned**. Both were untestable by construction: every fixture in both workers
+seeded exactly ONE contact, always `kind:"billing"`, so "prefer billing" and "take the first" were
+indistinguishable in every test that existed.
+
+The consequence is not a leak and not a crash. It is **the wrong human inside the right company** — an
+invoice and a signed POD delivered to a dispatcher, a dunning notice sent to someone who cannot pay it. From
+every observable angle the system is working; the only signal is an invoice that never gets paid, months
+later, attributed to anything but this.
+
+### The doctrine, and why both halves are needed
+
+`dunning.ts` already carried the words *"pinned to the SHARED predicate — anti-drift"*. Only the leaf
+predicate was shared; the logic around it was copied. **A claim of no-drift is not a check.** Proved by
+measuring what each guard catches:
+
+| | delete the rule | **drift only** (reverse the fallback, still valid) |
+|---|---|---|
+| behavioural test | **RED** | green |
+| parity test | **RED** | **RED** |
+
+Parity alone would certify two copies that are identically wrong, so the parity file also floors on both
+bodies still containing `"billing"`. Behaviour alone cannot see drift at all. Neither is sufficient; this is
+the `share-lint-matchers-with-parity-tests` doctrine arriving at a rule about **people** rather than SQL.
+
+### The board, re-measured at `46a626c`
+
+```
+26 gates — 19 PASS · 2 FAIL · 5 BLOCKED   (exit 1, working tree)
+```
+
+Unchanged in shape since §737. Both FAILs remain the three register-classification tests on the uncommitted
+`REQ-289` row. Totals: **4,171 tests — 3,127 across 17 workspace suites (zero failures) + 1,041/1,044 tools.**
+
+### STOPPING POINT
+
+Three phases now bound the system by the *kind* of thing audited rather than by module:
+- **Phase 12** (§776) — every product SURFACE;
+- **Phase 13** (§784) — every INPUT the system does not produce;
+- **Phase 14** (§787) — every OUTPUT that leaves the building.
+
+The repo-owned ledger is empty. **Five owner-held holds remain**, unchanged from §784:
+`IDENTITY_DENYLIST` · nine private fixtures · **`REQ-289`'s disposition (the sole cause of both merge FAILs)**
+· the "+ photos" half of demo #1 · the filmed demos.
+
+**Reopen triggers for this phase**
+- A third implementation of the recipient rule appears → it joins the parity set. Two copies were already one
+  too many; the header claiming anti-drift is what let the second go unchecked for so long.
+- A contact `kind` is added (`ap`, `remit_to`) → the preference becomes a ladder, and a ladder with one
+  untested rung is exactly this defect again.
+- A new emitter is added → it belongs in the table above. The table is the phase's real artifact: every
+  place something leaves this system, and what decides where it goes.
