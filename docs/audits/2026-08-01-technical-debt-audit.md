@@ -442,6 +442,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 247 | §799 | **§800** | **PHASE 23 CLOSED — every cross-worker duplication, and why the sweep could NOT have found §799's.** Swept same-named modules across all five workers: `rate-config.ts` (3 copies) and `tenants.ts` (4 copies) are **fully gated** — the latter hub-and-spoke against api, the former pinning the **effective-selection SQL** where the translator's copy is legitimately a subset. Four candidates are **not pairs** (`idempotency` = enforcement vs derivation; `quote` = mcp composing over api verbs, *"NO second gate here"*, REQ-030 done right; `watchtower` = cron vs route; `authority` = lib vs route). **The insight is what the sweep cannot see:** every covered duplication is SAME-NAMED; §799's two defects were `resolveRecipient`↔`resolveDunningRecipient` and two `evidenceSender`s in differently-named modules. **Duplication that shares a NAME gets gated because it is visible; duplication that shares only a RULE does not.** The marker for the invisible class is the sentence *"cannot import the agents worker's internals"* |
 | 248 | §800 | **§801** | **PHASE 24 CLOSED — the blind spot entered on purpose: EIGHT secret comparisons, FOUR names, one rule.** Searched for §800's stated marker (the *"cannot import"* reasoning) rather than for filenames — the only search that reaches the rule-duplication class. Found `constantTimeEqual`/`timingSafeEqual`/`tokensEqual`/`bytesEqual` protecting **the Stripe webhook signature (internet-facing)**, MCP OAuth tokens, the outbound webhook HMAC, **the EDI inbound-204 HMAC**, TSA/CMS signatures, merkle nodes, the platform secret and the test-send token. **A same-name sweep finds 2 of 8; §800's file sweep found 0** — as it predicted. Replacing two with `return a === b` left api **810/810** and billing **58/58**. **Behaviour CANNOT see this property** — the two return the identical boolean for every input; only *when they stop looking* differs — so a source-level gate asserts the shape: length check, XOR accumulation, and **no `return` inside the loop**. Roster not shape-discovery (§796 calibration) |
 | 249 | §801 | **§802** | **PHASE 25 CLOSED — the residual §801 named, closed one phase later.** §801 ended with *"the gate cannot discover a ninth"*; §790's rule says an identified gap left open is worse than one never looked for. Closed by detecting the **DEFECT** shape instead of the correct one: a constant-time helper never has the form `secretish === secretish`. **21 secret-ish strict comparisons exist; 19 are PRESENCE checks** (`=== undefined`/`""`/`null`) — a constant sentinel leaks nothing, so they are excluded **by construction, not by allowlist**, which is what takes the gate from 21 noisy hits to 2. Both survivors are imprint digests — non-secret, proved not by my judgement but because **both error messages print BOTH values** and **the real signature bytes in the same file use rostered `bytesEqual`**. **Zero new secret comparisons**: the roster of 8 confirmed complete by a second, independent method. Both directions proved, including the §796 calibration red |
+| 250 | §802 | **§803** | **PHASE 26 CLOSED — I checked my OWN claim and it was WRONG.** §802's exit note asserted *"every widening word tested added noise without adding a hit"* — **asserted, not measured**, one phase old, the exact shape this audit has spent 26 phases finding in other people's comments. Measured 13 words in isolation: **11 behaved as claimed, `key` was noise (`slot_key`), and `nonce` added a REAL hit** — `tsa/client.ts:68`, **three lines below** the imprint check I had already read and allowlisted. I looked at that function, wrote about it, and could not see the adjacent line because my vocabulary excluded it. Fixed by **widening the vocabulary AND allowlisting the hit** — different states: outside the vocabulary a FUTURE nonce short-circuit is invisible. Proved load-bearing (a planted `requestNonce === storedNonce` reds; the pre-§803 vocabulary MISSED the identical line). **A gate's vocabulary is a measurement, not a sentence** — and this audit's exit notes are subject to its own rules |
 
 **Current measured state — as measured 2026-08-08 at `fae1a17` (§775's board run):** the merge board is
 **26 gates — 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape since §737. `typecheck` 0 · `lint` 0 ·
@@ -46282,3 +46283,67 @@ No source changed — three files mutated across the phase, all restored byte-id
   each carry theirs, and a row without one is an allowlist that has stopped meaning anything.
 - Both halves now exist: the ROSTER proves the eight known comparisons stay constant-time; the DISCOVERY half
   proves no ninth appeared. Neither is sufficient alone, which is why §801 was not the end of it.
+## §803 — PHASE GATE: PHASE 26 CLOSED — checking my own claim, which was wrong
+
+§802 closed §801's residual and then produced one of its own, in the exit note:
+
+> *"That vocabulary is the gate's real boundary… the reason it is not wider today is that every widening word
+> tested added presence-check noise without adding a hit."*
+
+**I asserted that. I did not measure it.** One phase old, in the record, unverified — the exact shape this
+audit has spent twenty-six phases finding in other people's comments (§787's *"anti-drift"*, §791's cron
+header, §795's under-stated hold). So before it aged, I measured it.
+
+### The claim was false
+
+Thirteen candidate words, each added in isolation, new hits counted:
+
+| word | new hits |
+|---|---|
+| **`nonce`** | **+1 — and it is REAL** |
+| `key` | +1 — pure noise (`slot_key`, a dock-slot identifier) |
+| cred · credential · otp · pin · salt · seed · privateKey · priv · jwk · auth · hash | +0 each |
+
+Eleven of thirteen behaved as I claimed. **`nonce` did not** — it surfaced
+`tsa/client.ts:68`, `parsed.nonceHex !== nonceHex(nonce)`, **three lines below** the imprint comparison I had
+already read and allowlisted in §802. I looked at that function, wrote about it, and did not notice the
+adjacent line because my vocabulary could not see it.
+
+### The hit is legitimate — and belongs INSIDE the gate, not outside it
+
+A TSA nonce is generated by this client, sent in the request, and echoed back; comparing it detects a replayed
+or substituted response. Nothing secret on either side, and — the same two independent confirmations as
+§802's pair — the error prints **both** values, and the real signature bytes in the same module use the
+rostered `bytesEqual`.
+
+So the correct fix is not "leave `nonce` out because its only hit is fine". It is **widen the vocabulary and
+allowlist the hit with its reason**, because those are different states: outside the vocabulary, a *future*
+nonce short-circuit is invisible; inside it with an allowlist row, only this one line is exempt.
+
+**Proved load-bearing**: planting `requestNonce === storedNonce` in the OAuth module reds the gate — and the
+pre-§803 vocabulary is confirmed to have MISSED the identical line.
+
+`key` stays out: its only hit is a dock-slot identifier, and a word whose every hit is noise makes the
+allowlist the thing people stop reading.
+
+### The rule this earns
+
+**A gate's vocabulary is a measurement, not a sentence.** §802's boundary was written as prose and was wrong
+about 1 word in 13 — an 8% error rate on a claim that reads as exhaustive. The table above is in the source
+now, so the next person widening it starts from data.
+
+And the meta-point, which is the phase: **this audit's own exit notes are subject to its own rules.** §790
+established that a deferral needs the same standard as a finding. This adds the companion — **an assertion in
+an exit note needs the same standard as an assertion in code.**
+
+### Exit state
+
+No source changed — one file mutated, restored byte-identical. `test:tools` **1065**; lint 0; typecheck 0.
+
+**Reopen triggers**
+- A word is added to `SECRETISH` → measure its new hits in isolation and record the count. The table is the
+  artifact; a word added without one is how the 8% error got in.
+- A `NON_SECRET_COMPARISONS` row appears without a REASON → that is an allowlist that has stopped meaning
+  anything. All three rows carry theirs.
+- Any future exit note of mine states a measurement → it should carry the measurement. Three phases in a row
+  now (§790, §802, this) have found the audit's own prose to be the weakest artifact it produces.
