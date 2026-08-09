@@ -428,6 +428,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 233 | §785 | **§786** | **The recipient rule is implemented TWICE and NEITHER copy was pinned.** §785's exit note claimed the other emitters were covered; checking found the same defect in `resolveDunningRecipient` — a byte-for-byte duplicate whose header *claims* "anti-drift" while only the LEAF predicate is shared. Deleting its billing preference left api at **803/803**, because `seedParty` seeds exactly ONE contact, always billing: **the rule was untestable by construction in both workers**. A dunning notice to dispatch instead of AP is a demand for money that never reaches the payer. Both halves of the doctrine, each proved to catch what the other cannot: deleting the rule reds behaviour AND parity; a **valid-but-drifted** change (reversed fallback order) reds **only parity** — and the parity file carries a floor so it cannot certify two copies that are identically wrong |
 | 234 | §785–§786 | **§787** | **PHASE 14 CLOSED — the OUTPUT boundary, where the failure is QUIET.** Phase 13 audited inputs (a bad value crashes); Phase 14 audits outputs (a bad value *works*, it just reaches the wrong person). All six emitters tabled with what decides their recipient. The finding: one rule implemented TWICE with **neither copy's preference pinned** — untestable by construction, because every fixture in both workers seeded exactly ONE contact, always `kind:"billing"`. Consequence is neither a leak nor a crash but **the wrong human inside the right company**, whose only signal is an invoice that never gets paid. Both guard halves proved necessary: delete-the-rule reds behaviour AND parity; **drift-only reds ONLY parity**. Board at `46a626c` unchanged: 19 PASS · 2 FAIL · 5 BLOCKED. **4,171 tests** (3,127 workspace, 0 failures). Three phases now bound the system by KIND — surfaces, inputs, outputs |
 | 235 | §787 | **§788** | **Everything that EXPIRES — a CLEAN NEGATIVE.** The next kind after surfaces/inputs/outputs is TIME. Mutated every clock-dependent control in the direction that EXTENDS access or DESTROYS evidence: doc cap (+10yr), status cap, session `exp`, **both device-revocation readers** (a stolen device keeps signing), POD retention 7yr→7d, the REQ-025 retention tenant guard, Watchtower windows. **All RED.** Nothing unpinned that matters — worth recording so the next reader does not re-audit the class where a gap would be worst. One silent mutation (`expiresAt >= now` → `>`) is a real boundary with an EMPTY population and is deliberately left. **And a grep of mine was wrong**: I searched two files, concluded the doc cap was unpinned, and the mutation named its test in the first line — the 4th false absence-call this audit, caught at zero cost because I mutated before believing |
+| 236 | §788 | **§789** | **The idempotency TTL — closing the gap §788 identified and LEFT.** §788 deferred it as *"a product decision, not a defect"*; half right — **whether the record expires at all is not a product decision**. Dropping `expirationTtl` left the suite **6/6 green**, and nothing ever deletes an idempotency record: every successful mutation would leak a KV entry **permanently**, and the replay window would become unbounded — a stale response replayed while `next()` never runs, the same silent-write-loss shape REQ-206 exists to prevent, arriving by the other door. The 2xx-only rule on the SAME `put` call is pinned by 3 tests; the TTL by none. Asserted via KV's own `expiration` metadata (a bare put reports `undefined`), bounded 1h–7d so retuning stays a product decision. Both directions RED — dropped and truncated |
 
 **Current measured state — as measured 2026-08-08 at `fae1a17` (§775's board run):** the merge board is
 **26 gates — 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape since §737. `typecheck` 0 · `lint` 0 ·
@@ -45392,3 +45393,56 @@ byte-identical after eight mutations. `git status` over `packages/ workers/ apps
 - `IDEMPOTENCY.put`'s 24h `expirationTtl` changes → that window is the replay guarantee; too short duplicates
   a mutation a retry should have deduped. It is currently unpinned by any test, and stated here rather than
   fixed because the correct window is a product decision, not a defect.
+## §789 — PHASE GATE: the idempotency TTL — closing the one gap §788 identified and left
+
+§788 ended with the idempotency window named as unpinned and deferred: *"the correct window is a product
+decision, not a defect."* That reasoning was half right and the half that was wrong matters more — **whether
+the record expires AT ALL is not a product decision.** Leaving an identified, cheap gap open is worse than not
+having looked, so this closes it.
+
+### Measured
+
+| mutation | before | after |
+|---|---|---|
+| cache EVERY status, not just 2xx (REQ-206 — the driver-PWA evidence-loss path) | **RED ×3** | RED ×3 |
+| **drop `{ expirationTtl: 60*60*24 }` — records live forever** | **silent (6/6)** | **RED** |
+| truncate the TTL to 60 s | **silent** | **RED** |
+
+The 2xx-only rule next door is well defended — three tests, each naming the failure it prevents. The TTL on
+the very same `put` call was watched by nothing.
+
+### What the missing TTL actually costs
+
+Nothing ever deletes an idempotency record, so both consequences are permanent:
+
+- **every successful mutation leaks one KV entry**, for the life of the namespace — unbounded growth on the
+  hottest write path in the system;
+- **the replay window becomes unbounded** — a key reused later replays a stale response and `next()` never
+  runs, which is the same silent-write-loss shape REQ-206 exists to prevent, arriving by the other door.
+
+Neither is a correctness bug *today* (keys are per-request UUIDs). Both are the kind of edit a refactor makes
+by accident — the TTL is an options object on the end of a long line, and deleting it changes nothing any
+test could see.
+
+### Asserted through KV's own metadata, and bounded loosely on purpose
+
+`list()` reports `expiration` per key, so the property is checked directly rather than by advancing a clock:
+a bare `put` reports `expiration: undefined`, which is exactly the failure. The window is bounded **> 1 hour**
+and **≤ 7 days** — wide enough that retuning it stays a one-line product decision, tight enough to catch both
+"forever" and a truncation that would let a legitimate retry duplicate a committed mutation.
+
+Non-vacuity included: the test first asserts a record was written at all, so a probe that missed its own
+subject cannot pass as clean.
+
+### Exit state
+
+No source changed — `idempotency.ts` restored byte-identical after three mutations. `workers/api` **808/808**
+(+1); lint 0; typecheck 0.
+
+**Reopen triggers**
+- The TTL is retuned → the bound is deliberately loose; a change inside 1h–7d is a product decision and this
+  test stays green by design. A change OUTSIDE it should have to argue with a failing test.
+- A second KV namespace gains a cached write → it is the same class. `IDEMPOTENCY` was the only one; a new
+  one inherits the same question, and nothing here would notice it.
+- REQ-206's 2xx-only rule changes → the three tests beside this one are the ones that will speak, and their
+  names state the evidence-loss path rather than the mechanism.

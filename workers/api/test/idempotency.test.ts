@@ -34,6 +34,33 @@ describe("idempotency", () => {
     expect(replay.headers.get("idempotency-replay")).toBe("true");
   });
 
+  it("the cached response EXPIRES — the record is written with a TTL, not forever (§789)", async () => {
+    // Deleting `{ expirationTtl: 60 * 60 * 24 }` from the KV put left this suite 6/6 GREEN. Two consequences,
+    // both permanent because nothing ever removes the record:
+    //   · every successful mutation leaks one KV entry, for the life of the namespace;
+    //   · the replay window becomes unbounded — a key reused much later replays a stale response instead of
+    //     executing, and `next()` never runs.
+    // The 2xx-only rule beside it is well pinned (3 tests red when it is relaxed); the TTL was the half of
+    // this middleware nothing watched.
+    //
+    // Asserted through KV's own `expiration` metadata rather than by advancing a clock: the property that
+    // matters is that the record CARRIES an expiry at all, and a bare `put` reports `expiration: undefined`.
+    // The bound is deliberately loose — this pins "it expires, on a sane horizon", not the exact constant,
+    // so retuning the window stays a one-line product decision rather than a test edit.
+    const before = Math.floor(Date.now() / 1000);
+    const res = await post("key-ttl-789", { n: 7 });
+    expect(res.status).toBe(200);
+
+    const listed = await env.IDEMPOTENCY.list();
+    expect(listed.keys.length, "no idempotency record was written — the probe missed its own subject").toBeGreaterThan(0);
+    for (const k of listed.keys) {
+      expect(k.expiration, `idempotency record ${k.name} has NO expiry — it will outlive the namespace`).toBeTypeOf("number");
+      // > 1 hour out (so a truncated TTL is caught) and <= 7 days (so "forever-ish" is caught).
+      expect(k.expiration!).toBeGreaterThan(before + 3_600);
+      expect(k.expiration!).toBeLessThanOrEqual(before + 7 * 24 * 3_600);
+    }
+  });
+
   it("keys are tenant-scoped — tenant-b with the same key executes fresh", async () => {
     await post("key-2", { n: 1 }, "tenant-a");
     const other = await post("key-2", { n: 2 }, "tenant-b");
