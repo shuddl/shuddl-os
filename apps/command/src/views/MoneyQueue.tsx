@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Mono } from "@shuddl/design";
 import { agedOpenArList } from "@shuddl/contracts";
+import { z } from "@shuddl/contracts";
 import { ApiError, get } from "../lib/api.js";
 import { formatCents } from "../intake/intake.js";
 import { DarkPanel } from "./ui.js";
@@ -26,6 +27,14 @@ interface InvoiceRow {
 // days-past-due assignment, so the command queue and the portal STATEMENT (REQ-090) never drift. Only
 // status='issued' ages; 'paid' is settled; a null due_ts is honest "NO TERMS", never fabricated overdue.
 
+// The schema mirrors THIS VIEW'S InvoiceRow — the four fields it actually reads — not the full server row.
+// Parsing fields a view never uses couples it to unrelated server changes: `/v1/invoices` also returns
+// `party_id` and `shipment_ids`, and requiring them here would blank the money queue the day either moves,
+// for a view that renders neither. Unknown keys are stripped, so extra fields stay harmless.
+const MoneyInvoicesResponse = z.object({
+  invoices: z.array(z.object({ id: z.string(), total_cents: z.number(), status: z.string(), due_ts: z.number().nullable() })),
+});
+
 export interface MoneyQueueProps {
   unbilled: KpiValue; // from the KPI strip's `unbilled` tile (GET /v1/kpis) — a real count, never fabricated
   onAuthError: () => void;
@@ -40,9 +49,11 @@ export function MoneyQueue({ unbilled, onAuthError, now }: MoneyQueueProps): Rea
   useEffect(() => {
     let live = true;
     setLoading(true);
-    get<{ invoices: InvoiceRow[] }>("/v1/invoices")
-      .then((res) => {
-        if (live) setInvoices(res.invoices);
+    // PARSED at the boundary (§782) — unchecked, an absent key set state to undefined and the list render
+    // below threw on `.length`/`.map`, white-screening the money queue.
+    get<unknown>("/v1/invoices")
+      .then((raw) => {
+        if (live) setInvoices(MoneyInvoicesResponse.parse(raw).invoices as unknown as InvoiceRow[]);
       })
       .catch((e: unknown) => {
         if (!live) return;

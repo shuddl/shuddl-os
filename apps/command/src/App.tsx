@@ -11,6 +11,7 @@ import {
   type LensEvent,
   type Status,
 } from "@shuddl/map";
+import { z } from "@shuddl/contracts";
 import { ApiError, get, post } from "./lib/api.js";
 import { fetchBoard, fetchShipmentEvents } from "./lib/board.js";
 import { adoptTokenFromUrl, clear as clearSession, getToken } from "./session.js";
@@ -88,9 +89,11 @@ function useKpis(enabled: boolean): { kpis: KpiTile[]; loading: boolean; error: 
     if (!enabled) return;
     let live = true;
     setLoading(true);
-    get<{ kpis: KpiTile[] }>("/v1/kpis")
-      .then((res) => {
-        if (live) setKpis(res.kpis);
+    get<unknown>("/v1/kpis")
+      .then((raw) => {
+        // PARSED (§782): `get<T>` is a cast, so an absent `kpis` key made `kpis.find(...)` below throw on
+        // undefined and white-screen Command. Envelope + scalar fields only — see KpiDrill for the scope note.
+        if (live) setKpis(KpisResponse.parse(raw).kpis as unknown as KpiTile[]);
       })
       .catch((e: unknown) => {
         if (!live) return;
@@ -167,6 +170,10 @@ function useRouter(): { route: Route; navigate: (path: string) => void } {
   }, []);
   return { route, navigate };
 }
+
+const KpisResponse = z.object({
+  kpis: z.array(z.object({ key: z.string(), label: z.string(), value: z.unknown(), unit: z.unknown(), backing: z.unknown(), lanes: z.unknown().optional() })),
+});
 
 export function App(): React.JSX.Element {
   // Adopt the magic-link token in a useState INITIALIZER — it runs during the FIRST render, before the board

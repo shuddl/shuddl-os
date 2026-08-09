@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button, Display, Divider, Mono } from "@shuddl/design";
+import { z } from "@shuddl/contracts";
 import { ApiError, get } from "../lib/api.js";
 import { hhmm } from "./ui.js";
 
@@ -34,13 +35,35 @@ interface ModuleParityRow {
 }
 
 // The stored-event fields the drill needs (a LedgerEvent on the wire carries more; `source` splits native/legacy).
-interface DrillEvent {
-  id: string;
-  kind: string;
-  ts: number;
-  shipment_id?: string;
-  source?: string;
-}
+// PARSED at the boundary (§782). `get<T>` is a CAST (`request` ends in `return parsed as T`), so
+// `get<{ modules: ... }>` / `get<{ events: ... }>` claimed shapes nothing checked — an absent key set state
+// to `undefined` and the next render reached `.length`/`.map`, white-screening Command. The parity board is
+// the worst place for that: it is the screen someone opens BECAUSE they already distrust the numbers.
+//
+// SCOPE, stated: the envelope (key present, IS an array) plus each row's scalar fields. `native_value`,
+// `legacy_value` and `drift_bps` are `number | "UNKNOWN"` and stay `unknown` here rather than being
+// re-declared — an over-strict schema rejects valid payloads, a worse failure than the crash being fixed.
+const DrillEventWire = z.object({
+  id: z.string(),
+  kind: z.string(),
+  ts: z.number(),
+  shipment_id: z.string().optional(),
+  source: z.string().optional(),
+});
+const DrillEventsResponse = z.object({ events: z.array(DrillEventWire) });
+const ModuleParityWire = z.object({
+  module: z.string(),
+  native_value: z.unknown(),
+  legacy_value: z.unknown(),
+  drift_bps: z.unknown(),
+  within_gate: z.boolean(),
+  status: z.unknown(),
+  backing_kinds: z.array(z.string()),
+});
+const ParityResponse = z.object({ modules: z.array(ModuleParityWire) });
+
+// Derived from the wire schema — one shape, so the parsed value and the state type cannot drift.
+type DrillEvent = z.infer<typeof DrillEventWire>;
 
 export interface ParityDashboardProps {
   onOpenShipment: (shipmentId: string) => void;
@@ -103,9 +126,9 @@ export function ParityDashboard({ onOpenShipment, onClose, onAuthError }: Parity
     let live = true;
     setLoading(true);
     setError(null);
-    get<{ modules: ModuleParityRow[] }>("/v1/parity")
-      .then((res) => {
-        if (live) setModules(res.modules);
+    get<unknown>("/v1/parity")
+      .then((raw) => {
+        if (live) setModules(ParityResponse.parse(raw).modules as unknown as ModuleParityRow[]);
       })
       .catch((e: unknown) => {
         if (!live) return;
@@ -140,8 +163,8 @@ export function ParityDashboard({ onOpenShipment, onClose, onAuthError }: Parity
     setDrillError(null);
     const kinds = encodeURIComponent(mod.backing_kinds.join(","));
     async function load(): Promise<void> {
-      const nativeRes = await get<{ events: DrillEvent[] }>(`/v1/events?kind=${kinds}`);
-      const legacyRes = await get<{ events: DrillEvent[] }>(`/v1/events?kind=${kinds}&includeShadow=true`);
+      const nativeRes = DrillEventsResponse.parse(await get<unknown>(`/v1/events?kind=${kinds}`));
+      const legacyRes = DrillEventsResponse.parse(await get<unknown>(`/v1/events?kind=${kinds}&includeShadow=true`));
       if (!live) return;
       setNativeEvents(nativeRes.events);
       setLegacyEvents(legacyRes.events.filter((e) => e.source === "legacy"));

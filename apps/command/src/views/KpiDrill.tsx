@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button, Display, Divider, Mono } from "@shuddl/design";
+import { z } from "@shuddl/contracts";
 import { ApiError, get } from "../lib/api.js";
 import { hhmm } from "./ui.js";
 import { KPI_DRILL_VIEW, kpiFormat, kpiScale, type KpiTile } from "./registry.js";
@@ -12,12 +13,23 @@ import { KPI_DRILL_VIEW, kpiFormat, kpiScale, type KpiTile } from "./registry.js
 // A null metric is the drill INDEX (pick a KPI). Read-only.
 
 // The stored-event fields the drill needs (a LedgerEvent on the wire carries more; we read only these).
-interface DrillEvent {
-  id: string;
-  kind: string;
-  ts: number;
-  shipment_id?: string;
-}
+// Derived from the wire schema (§782) rather than hand-declared beside it — one shape, so the parsed
+// value and the state type cannot drift.
+type DrillEvent = z.infer<typeof DrillEventWire>;
+
+// PARSED at the boundary (§782). `get<T>` is a CAST (`request` ends in `return parsed as T`), so
+// `get<{ kpis: KpiTile[] }>` claimed a shape nothing checked — an absent key made `kpiRes.kpis.find(...)`
+// throw on undefined and white-screen Command.
+//
+// SCOPE, stated: the ENVELOPE is enforced (the key is present and IS an array) plus each row's scalar
+// fields. `backing`, `value` and `unit` stay `unknown` because KpiTile nests EventKind[] and a KpiUnit
+// union — re-declaring those here would be a second copy of a contract that can drift from registry.ts,
+// and an over-strict schema REJECTS valid payloads, a worse failure than the one being fixed. What is
+// guaranteed is that `.find` / `.map` always have an array to run on.
+const KpiTileWire = z.object({ key: z.string(), label: z.string(), value: z.unknown(), unit: z.unknown(), backing: z.unknown(), lanes: z.unknown().optional() });
+const KpisResponse = z.object({ kpis: z.array(KpiTileWire) });
+const DrillEventWire = z.object({ id: z.string(), kind: z.string(), ts: z.number(), shipment_id: z.string().optional() });
+const DrillEventsResponse = z.object({ events: z.array(DrillEventWire) });
 
 export interface KpiDrillProps {
   metric: string | null;
@@ -38,17 +50,17 @@ export function KpiDrill({ metric, onSelectMetric, onOpenShipment, onClose, onAu
     setLoading(true);
     setError(null);
     async function load(): Promise<void> {
-      const kpiRes = await get<{ kpis: KpiTile[] }>("/v1/kpis");
+      const kpis = KpisResponse.parse(await get<unknown>("/v1/kpis")).kpis as unknown as KpiTile[];
       if (!live) return;
-      setTiles(kpiRes.kpis);
-      const tile = metric !== null ? kpiRes.kpis.find((t) => t.key === metric) : undefined;
+      setTiles(kpis);
+      const tile = metric !== null ? kpis.find((t) => t.key === metric) : undefined;
       if (tile === undefined) {
         setEvents([]); // the index (no metric) or an unknown metric — nothing to drill, show the picker
         return;
       }
       // The DoD click-through: read the exact events that back this tile via the Task-1 kind filter.
       const kinds = tile.backing.kinds.join(",");
-      const evRes = await get<{ events: DrillEvent[] }>(`/v1/events?kind=${encodeURIComponent(kinds)}`);
+      const evRes = DrillEventsResponse.parse(await get<unknown>(`/v1/events?kind=${encodeURIComponent(kinds)}`));
       if (live) setEvents(evRes.events);
     }
     load()

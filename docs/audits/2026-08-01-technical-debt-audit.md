@@ -421,6 +421,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 226 | §778 | **§779** | **The RELEASE direction (4/4 pinned) — and where §777's hole actually lived.** A throw is half a gate; the other half is every `if (…) return` that OPENS it. Mutating `overrideSatisfies` so a MISSING override releases reds **41 tests** — one line that would fail-open the whole REQ-030 surface, heavily pinned. So the gate layer is solid both ways (9/10 throws, 4/4 releases), and **§777's two holes were NOT in `gates/`** — they were in `reconcile/credit.ts`, a function the gate CALLS. Tested as a hypothesis: REQ-042's three parts are surface (pinned), reconcile (**2 of 3 unpinned**), block (pinned) — the only piece in neither `gates/` nor a projection held both holes. **Coverage followed the directory name, not the decision.** Ask not "is the gate tested" but "is every function whose return value the gate trusts tested" |
 | 227 | §779 | **§780** | **The sequencer's trust boundary — all SIX decision functions enumerated, ZERO unpinned.** Each mutated to its permissive value: `isPlatformTenant`→every tenant is platform (**374 reds**), REQ-180 never-widen floor removed (**16**), `hazmatEnabled`→always on (**11**), **`verifyEventSig`→accept every signature (6)**, inherited-visibility fail-open (1), `authoritativeSource`→always native (1). **This BOUNDS §777** — that hole was localized to `reconcile/credit.ts`, not the leading edge of a systemic gap. The two thin pins were checked rather than padded: `authoritativeSource` is inert today (`legacyValueAvailable` hard-false, no legacy mirror), and the inherited branch fails toward `internal`, the NARROWEST visibility — a refusal becoming an append, not a disclosure. **Harness, 3rd and 4th time**: consecutive full-suite runs degrade the pool after ~3 invocations and fail SILENT; both blank rows were well pinned when re-run alone. Batch the mutations, re-run every silent row individually |
 | 228 | §780 | **§781** | **Closing §724's portal hold exposed an UNPARSED BOUNDARY — a white screen and a NaN billing total.** §724's cause was wrong (the spec MOCKS the API; no `webServer` needed); the real gap was that nothing asserted the board ever loaded. Adding that positive floor went RED: the fixture returned `{items}` while the client parses `{board}` **`.strict()`** — every mocked board had been refused by the client's own Zod parse, so *"the board loads first"* was **never once true**. Fixing that revealed `PAGEERROR: Cannot read properties of undefined` — the invoices seam did `get<{invoices: T[]}>(…)` with **no parse** in THREE components: **the generic is a compile-time lie**, `undefined` reaches `.length`, and the existing `.catch` cannot help because the failure is in the RENDER. Worse than the crash: a row missing `total_cents` rendered **NaN as a billing total**. Violates CLAUDE.md's *"Zod at every boundary"*. Fixed with one parsed seam (non-strict on purpose — stripping IS the documented allowlist); 3 tests, 2 RED without it, and the e2e floor mutation-proved against the exact pre-§781 state |
+| 229 | §781 | **§782** | **The unparsed boundary was SYSTEMIC — 16 casts across 11 files, all closed, plus a gate.** §781 named the smell; grepping it found that only TWO seams in the codebase parsed. Both clients end in **`return parsed as T`**, so a type argument is a cast that makes TypeScript *guarantee* an unchecked shape — **worse than no annotation, because it silences the suspicion that would prompt a check**. Nine were crash-shaped. Two rules learned by getting them wrong first: **parse what the view READS** (my MoneyQueue schema required a `party_id` the view never renders, and a real test went red — an over-strict schema rejects valid payloads, a worse failure than the crash), and **the parse must sit where the existing mock can still intercept it** (a helper inside `lib/api.ts` gets replaced by `vi.mock` itself; parsing in-place makes the fixtures flow THROUGH the schema and verified them as a side effect). Gate assembled at runtime (§749), proved by planting, and its non-vacuity floor caught my own broken glob (48 vs 50) |
 
 **Current measured state — as measured 2026-08-08 at `fae1a17` (§775's board run):** the merge board is
 **26 gates — 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape since §737. `typecheck` 0 · `lint` 0 ·
@@ -44917,3 +44918,77 @@ test-only pin.
   interface. There is one schema now; keeping it one is the fix's whole value.
 - The e2e route mock grows a third endpoint → dispatch it in `fulfillPortalApi` by path. Answering every
   `/v1/**` with one payload is what hid both defects for as long as it did.
+## §782 — PHASE GATE: the unparsed boundary was SYSTEMIC — 16 casts, all closed, and a gate
+
+§781 fixed one seam and named the smell in its reopen trigger: *"any new portal seam calling `get<T>(…)` with
+a type argument and no parse."* §774's rule says a defect just written down is one you can grep for. Grepped it.
+
+**Sixteen call sites across both surfaces**, in 11 files. Only two seams in the whole codebase parsed
+(`api/board.ts` in each app). Not a localized slip — the default way this codebase talked to its own API.
+
+### Why the type argument is the defect
+
+Both clients end their request path with **`return parsed as T`**. So the type argument is a **cast**, and
+TypeScript then *guarantees* — at compile time, in the editor, in review — a shape that nothing ever checked.
+It is worse than no annotation at all, because it silences the very suspicion that would prompt a check.
+
+Nine of the sixteen were **crash-shaped**: the result went straight into state and the next render reached
+`.length` / `.map` / `.reduce`. Measured in a real browser at §781: `PAGEERROR: Cannot read properties of
+undefined (reading 'length')` and an empty `<body>`. The `.catch` beside every one of them is powerless — the
+throw is in the **render**, not the promise.
+
+### All sixteen closed
+
+| surface | sites |
+|---|---|
+| command | `App.tsx` · `ApprovalsQueue` · `DunningQueue` · `ExceptionsQueue` · `KpiDrill` ×2 · `MoneyQueue` · `ParityDashboard` ×3 · `intake.ts` ×2 · `registry.ts` |
+| portal | `ClaimsView` · `DocumentsView` ×2 (+ `InvoicesView`/`ShipmentList`/`StatementView` via §781's seam) |
+
+Each is now `get<unknown>(…)` — the honest description of what the client guarantees — with a Zod parse whose
+ZodError lands in the `.catch` each view already had, becoming an honest error state instead of a blank page.
+
+### Two design rules, both learned by getting them wrong first
+
+**1. Parse what the view READS, not the full server row.** My first `MoneyQueue` schema required `party_id`,
+and a real test went red. The server does return it — but MoneyQueue's own `InvoiceRow` is four fields and it
+renders none of the rest. Requiring it would blank the money queue the day `party_id` moved, **for a view that
+never displays it**. An over-strict schema rejects valid payloads: a worse failure than the crash being fixed.
+
+**2. The parse must live in a module the tests' existing mock can still intercept.** My first attempt put a
+`getParsed` helper *inside* `lib/api.ts` — and `vi.mock("../lib/api.js")` replaces that helper too, so the
+schema never ran and four tests failed for a reason unrelated to their subject. Parsing in-place (or in a
+separate module that *imports* `get`, as §781's `api/invoices.ts` does) keeps every existing `get` mock
+working **and** makes those mocks flow through the schema — which is how the fixtures got verified against
+the real shapes as a side effect.
+
+Nested unions (`KpiTile.backing.kinds`, `ParityValue`) stay `unknown` rather than being re-declared. A second
+copy of a contract can drift from the first; what is guaranteed — that `.find`/`.map` always have an array —
+is the property that was actually broken.
+
+### The gate
+
+`tools/checks/parsed-api-boundary.test.ts` bans an inline-object type argument on `get`/`post` across
+`apps/`. Three tests: the ban, a non-vacuity floor on the corpus (measured 71 files; floor 40), and a
+**matcher non-vacuity** — the detector must fire on the banned form and NOT on `get<unknown>`, or the gate
+would silently ban the fix it demands.
+
+The pattern is **assembled at runtime** from fragments, never spelled. §749 made the opposite mistake three
+times in one session: writing the example creates the artifact, and a scanner that matches its own source is
+a gate that can only ever fail.
+
+**Proved by planting**: reintroducing one cast in `ClaimsView` reds the gate, naming the file and the line.
+Its non-vacuity floor also did its job during construction — my first glob found 48 files against a floor of
+50, so the gate refused to certify a corpus it had not really scanned.
+
+### Exit state
+
+All 17 workspace suites green (**3,114**) · `test:tools` **1044** (+3, the 3 REQ-289 baseline failures) ·
+e2e 6/6 · lint 0 · typecheck 0.
+
+**Reopen triggers**
+- A third surface (driver) grows an API read → it is inside `apps/`, so the gate covers it on the day it
+  lands. That is why the glob is `apps/` rather than a list.
+- A view starts rendering a field its schema leaves `unknown` → add it to the schema THEN. Adding it earlier
+  is the over-strict mistake rule 1 names.
+- A worker adopts the same client shape → this gate's scope is `apps/` and it would not see it. Stated
+  because it is a real edge, not because it is likely.

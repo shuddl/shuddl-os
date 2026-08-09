@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Mono } from "@shuddl/design";
+import { z } from "@shuddl/contracts";
 import { ApiError, get, post } from "../lib/api.js";
 import { formatCents } from "../intake/intake.js";
 import { DarkPanel, GhostButton } from "./ui.js";
@@ -21,6 +22,20 @@ interface DunningDraft {
   recipient: string | null;
   subject: string;
 }
+// PARSED at the boundary (§782). `get<T>` is a CAST (`request` ends in `return parsed as T`), so the old
+// `get<{ drafts: DunningDraft[] }>` claimed a shape nothing verified: an absent key set state to `undefined`
+// and the next render reached `.length`/`.map` — an uncaught TypeError that white-screens Command.
+const DunningDraftSchema = z.object({
+  draft_id: z.string(),
+  invoice_id: z.string(),
+  bucket: z.enum(["reminder", "firm", "final"]),
+  amount_cents: z.number(),
+  days_overdue: z.number(),
+  recipient: z.string().nullable(),
+  subject: z.string(),
+});
+const DunningResponse = z.object({ drafts: z.array(DunningDraftSchema) });
+
 // The FIXED per-bucket row label (the tone's escalation, never model output — mirrors DUNNING_TONES.subjectTag).
 const BUCKET_LABEL: Record<DunningBucket, string> = { reminder: "REMINDER", firm: "PAST DUE", final: "FINAL NOTICE" };
 
@@ -42,9 +57,9 @@ export function DunningQueue({ onAuthError }: { onAuthError: () => void }): Reac
   useEffect(() => {
     let live = true;
     setLoading(true);
-    get<{ drafts: DunningDraft[] }>("/v1/dunning?status=draft")
-      .then((res) => {
-        if (live) setDrafts(res.drafts);
+    get<unknown>("/v1/dunning?status=draft")
+      .then((raw) => {
+        if (live) setDrafts(DunningResponse.parse(raw).drafts);
       })
       .catch((e: unknown) => {
         if (!live) return;

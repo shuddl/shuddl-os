@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Mono } from "@shuddl/design";
+import { z } from "@shuddl/contracts";
 import { ApiError, get, post } from "../lib/api.js";
 import { DarkPanel, GhostButton } from "./ui.js";
 
@@ -14,16 +15,18 @@ import { DarkPanel, GhostButton } from "./ui.js";
 // Read-only otherwise: this view neither invents an approval nor mutates the ledger except through the blessed route.
 
 // An approvals read-model row (workers/api/src/routes/approvals.ts APPROVAL_COLS). object_id is the shipment id.
-interface ApprovalRow {
-  id: string;
-  object_kind: string;
-  object_id: string;
-  rule: string;
-  required_role: string;
-  requested_event_id: string;
-  decided_event_id: string | null;
-  status: string;
-}
+const ApprovalRow = z.object({
+  id: z.string(),
+  object_kind: z.string(),
+  object_id: z.string(),
+  rule: z.string(),
+  required_role: z.string(),
+  requested_event_id: z.string(),
+  decided_event_id: z.string().nullable(),
+  status: z.string(),
+});
+type ApprovalRow = z.infer<typeof ApprovalRow>;
+const ApprovalsResponse = z.object({ approvals: z.array(ApprovalRow) });
 
 export interface ApprovalsQueueProps {
   onAuthError: () => void;
@@ -39,9 +42,13 @@ export function ApprovalsQueue({ onAuthError }: ApprovalsQueueProps): React.JSX.
   useEffect(() => {
     let live = true;
     setLoading(true);
-    get<{ approvals: ApprovalRow[] }>("/v1/approvals?status=open")
-      .then((res) => {
-        if (live) setRows(res.approvals);
+    // PARSED at the boundary (§782). `get<T>` is a CAST — `request` ends in `return parsed as T` — so the old
+    // `get<{ approvals: ApprovalRow[] }>` was a compile-time claim about a server body that nothing checked.
+    // Absent key ⇒ state `undefined` ⇒ the next render hits `.length`/`.map` ⇒ an uncaught TypeError that
+    // white-screens Command. A ZodError lands in the .catch below and becomes the honest error state instead.
+    get<unknown>("/v1/approvals?status=open")
+      .then((raw) => {
+        if (live) setRows(ApprovalsResponse.parse(raw).approvals);
       })
       .catch((e: unknown) => {
         if (!live) return;

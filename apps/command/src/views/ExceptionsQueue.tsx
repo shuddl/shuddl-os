@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Mono } from "@shuddl/design";
+import { z } from "@shuddl/contracts";
 import { ApiError, get } from "../lib/api.js";
 import { DarkPanel, RowButton, hhmm } from "./ui.js";
 
@@ -10,14 +11,16 @@ import { DarkPanel, RowButton, hhmm } from "./ui.js";
 // 35); this surface only surfaces + navigates. An item with no shipment_id (should not happen for these kinds) is
 // shown but inert.
 
-interface ExceptionRow {
-  shipment_id: string | null;
-  exception_event_id: string;
-  kind: string;
-  reason_code: string | null;
-  ts: number;
-  open: boolean;
-}
+const ExceptionRow = z.object({
+  shipment_id: z.string().nullable(),
+  exception_event_id: z.string(),
+  kind: z.string(),
+  reason_code: z.string().nullable(),
+  ts: z.number(),
+  open: z.boolean(),
+});
+type ExceptionRow = z.infer<typeof ExceptionRow>;
+const ExceptionsResponse = z.object({ exceptions: z.array(ExceptionRow) });
 
 export interface ExceptionsQueueProps {
   onAuthError: () => void;
@@ -32,9 +35,11 @@ export function ExceptionsQueue({ onAuthError, onOpenShipment }: ExceptionsQueue
   useEffect(() => {
     let live = true;
     setLoading(true);
-    get<{ exceptions: ExceptionRow[] }>("/v1/exceptions?status=open")
-      .then((res) => {
-        if (live) setRows(res.exceptions);
+    // PARSED at the boundary (§782) — see ApprovalsQueue for the full reasoning. `get<unknown>` is honest
+    // about what the client actually guarantees; the schema is what makes the shape true.
+    get<unknown>("/v1/exceptions?status=open")
+      .then((raw) => {
+        if (live) setRows(ExceptionsResponse.parse(raw).exceptions);
       })
       .catch((e: unknown) => {
         if (!live) return;

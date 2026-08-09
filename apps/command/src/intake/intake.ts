@@ -22,6 +22,13 @@
 
 /** The narrow api seam the flow dispatches through — the Task-8 client's post/get. `post` attaches a fresh
  * Idempotency-Key per mutation (the client owns it); `get` reads the lens-scoped feed. */
+// §782 — the only import this otherwise dependency-free orchestration module takes, and a PURE one: the
+// two ids below are threaded through every later step, so an unchecked `res.id` would propagate `undefined`
+// the whole way rather than failing where it can be reported.
+import { z } from "@shuddl/contracts";
+
+const PartyCreated = z.object({ id: z.string() });
+const ShipmentCreated = z.object({ shipment_id: z.string() });
 export interface IntakeApi {
   post<T>(path: string, body?: unknown): Promise<T>;
   get<T>(path: string): Promise<T>;
@@ -212,7 +219,9 @@ async function createParty(api: IntakeApi, kind: string, draft: PartyDraft): Pro
   const body: Record<string, unknown> = { kind, name: draft.name.trim() };
   const email = draft.email.trim();
   if (email !== "") body.email = email;
-  const res = await api.post<{ id: string }>("/v1/parties", body);
+  // PARSED (§782): the returned id is threaded into every later call, so an absent key would propagate
+  // `undefined` through the whole intake flow rather than failing here where it can be reported.
+  const res = PartyCreated.parse(await api.post<unknown>("/v1/parties", body));
   return res.id;
 }
 
@@ -228,7 +237,8 @@ export async function ensureParties(api: IntakeApi, customer: CustomerDraft): Pr
 /** Materialize the QUOTE-STAGE shipments row with the three party FKs (Task-6 seam). Returns the shipment id.
  * Created exactly once per order (the flow caches it), so a post-shipment retry never duplicates it. */
 export async function createShipment(api: IntakeApi, ids: PartyIds): Promise<string> {
-  const res = await api.post<{ shipment_id: string }>("/v1/shipments", ids);
+  // PARSED (§782) — same reasoning: this id becomes the shipment every subsequent step acts on.
+  const res = ShipmentCreated.parse(await api.post<unknown>("/v1/shipments", ids));
   return res.shipment_id;
 }
 

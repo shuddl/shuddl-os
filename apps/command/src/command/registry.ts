@@ -13,7 +13,10 @@
 //   • DISPATCH — deps.api.post(verb, body). The Task-8 api client attaches a FRESH Idempotency-Key to every
 //     mutation (REQ-156) and surfaces a non-2xx as a typed ApiError, so run() can reflect the HONEST server state
 //     (a 403 gate-block, a 422, a HELD booking) — NEVER a fabricated success.
+import { z } from "@shuddl/contracts";
 import { ApiError } from "../lib/api.js";
+
+const CopilotAnswer = z.object({ text: z.string().optional(), abstained: z.boolean().optional() });
 
 /** The narrow api seam a command dispatches through (the Task-8 client's post/get — the client owns the key). */
 export interface CommandApi {
@@ -298,7 +301,9 @@ export const commands: readonly Command[] = [
     args: [{ key: "question", label: "QUESTION" }],
     run: async (a, deps) => {
       try {
-        const res = await deps.api.post<{ text?: string; abstained?: boolean }>("/v1/copilot/ask", { question: a.question });
+        // PARSED (§782): copilot output is model-derived and lands on the operator's screen; an unchecked
+        // body could make `res.text.length` below throw. Both fields optional — an abstention carries neither.
+        const res = CopilotAnswer.parse(await deps.api.post<unknown>("/v1/copilot/ask", { question: a.question }));
         if (res.abstained || !res.text) return OK("COPILOT ABSTAINED — NO CITED EVIDENCE");
         return OK(res.text.length > 120 ? `${res.text.slice(0, 117)}...` : res.text);
       } catch (e) {

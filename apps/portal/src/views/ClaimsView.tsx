@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button, Divider, EmptyState, Input, Loading, Mono } from "@shuddl/design";
+import { z } from "@shuddl/contracts";
 import { ApiError, get, post } from "../lib/api.js";
 
 // REQ-085 (WP-09 Task 8/11) — the PORTAL CLAIMS + CUSTODY-CHAIN view. It reads the shipment's ledger feed
@@ -23,13 +24,10 @@ const CHAIN_KINDS: ReadonlySet<string> = new Set<string>([
   "delivery.evidenced",
 ]);
 
-interface EventRow {
-  id: string;
-  kind: string;
-  seq: number;
-  ts: number;
-  payload: unknown;
-}
+const EventRowWire = z.object({ id: z.string(), kind: z.string(), seq: z.number(), ts: z.number(), payload: z.unknown() });
+const ClaimEventsResponse = z.object({ events: z.array(EventRowWire) });
+// Derived from the wire schema (§782) — one shape, so the parsed value and the state type cannot drift.
+type EventRow = z.infer<typeof EventRowWire>;
 
 export interface ClaimsViewProps {
   shipmentId: string;
@@ -86,9 +84,11 @@ export function ClaimsView({ shipmentId, onAuthError }: ClaimsViewProps): React.
     let live = true;
     setLoading(true);
     setError(null);
-    get<{ events: EventRow[] }>(`/v1/shipments/${encodeURIComponent(shipmentId)}/events?limit=200`)
-      .then((res) => {
-        if (live) setEvents(res.events);
+    // PARSED at the boundary (§782) — unchecked, an absent key set state to undefined and the timeline
+    // render threw on `.map`. A ZodError lands in the .catch below and becomes the honest error state.
+    get<unknown>(`/v1/shipments/${encodeURIComponent(shipmentId)}/events?limit=200`)
+      .then((raw) => {
+        if (live) setEvents(ClaimEventsResponse.parse(raw).events);
       })
       .catch((e: unknown) => {
         if (!live) return;
