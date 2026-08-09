@@ -412,6 +412,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 217 | §769 | **§770** | **DEFECT past the stopping point: the budget alarm's divisor was never exercised.** The alarm averages *only REPORTED metrics* (`costSum / costN`); dividing by the RUN count halves a half-unmetered window — **$2/run against a $0.50 budget reads $1**, and two more unmetered runs put it UNDER budget. Mutating it left **17/17 GREEN**, not from redundancy but §688's *passing corpus*: every fixture supplied a cost, so `costN === runs`. The sibling test covers the ALL-unmetered window (null average); **only a MIXED window makes the divisor observable**. Matters because §135's dormant gap means windows go mixed exactly when the alarm starts being useful. Pinned; mutation REDS. **13th slip**: first run was against the package the SOURCE lives in, not the suite that owns it |
 | 218 | §770 | **§771** | **Finished the pair §770 had just split.** Mutating the LATENCY divisor (`latSum / latN` → `/ runs`) left the suite at **18/18 GREEN even after §770's new cost test**, because that fixture gives every run a latency. **Pinning one branch is what made the other's absence visible** — and would have left it invisible had I stopped. Consequence arguably worse than cost's: latency is what an operator watches for a hung agent, and a half-unmetered window reads as half as slow. Pinned with the mirror fixture; both divisors now red **independently (1 test each, different ones)** — a shared fixture would have made the pair LOOK covered while one branch rode the other's assertion. Sixth sibling-gap of the session, and **the last two were mine** |
 | 219 | §771 | **§772** | **Every Watchtower threshold — all five defended, and the METHOD finding is the phase.** My first sweep called three of them silent; **all three readings were wrong because the mutations could not fail**: `UNBILLED_CRITICAL_COUNT` 10→10000 (no fixture has ten shipments), `AGENT_DRIFT_WINDOW_MS` →1ms (runs seeded at `NOW`, age 0, inside any window), `DETAIL_SHIPMENT_CAP` 50→1 (one shipment; same slice). **A threshold mutation proves nothing unless it crosses a fixture's classification boundary** — changing the number is not the experiment, changing which side the data falls on is. All three RED once pointed the right way (widen the window, lower the count, zero the cap). **A mutation that cannot fail reads identically to a clean negative.** Also corrects §771's own *"checked, not assumed"* — it was assumed |
+| 220 | §772 | **§773** | **The EDI inbound append set — a silent deletion, and a branch that CANNOT run.** Two doors to one gated chain: the CSR door pins the literal kind sequence + has `approvals.test.ts`; the EDI door pinned only ENDPOINTS, so **deleting the `agent.acted` (REQ-005 provenance) append left the suite 116/116 GREEN**. `not.toContain("booking.created")` catches only the kind you already named — replaced with `toEqual` on the sequence. Then the deeper one: `approval.requested` is **UNREACHABLE by construction** (cost === freight · floors ≤ 100% of cost · only-positive price lines ⇒ sell ≥ target, always) — **§688's fourth category, construction-forbidden**, which reads identically to a weak corpus and needs the opposite fix. Kept as defensive code, pinned by a TRIPWIRE that reds when `costBasis` goes multi-factor. **My tripwire's first cut misattributed** — it duplicated (a)'s assertion and blamed the approval branch for an unrelated deletion; §"attribute the RED" committed IN the instrument, where it outlives the session |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -44288,3 +44289,98 @@ No code changed. `workers/api` watchtower 19/19; `test:tools` 1041; lint 0; type
   direction that is. Three of five here needed the non-obvious one.
 - A fixture gains scale (ten shipments, a 25-hour window) → some of the directions above stop being the failing
   ones, and this table needs re-running rather than re-reading.
+## §773 — PHASE GATE: the EDI append set — one silent deletion, and a branch that CANNOT run
+
+§769 named the EDI translator's 204/214 path as the remaining unaudited product surface. Audited it.
+
+First, a duplication that isn't one: `workers/translator/src/core/{build-214,map-204}.ts` and `packages/edi/`
+are not two implementations. The worker files compose the pure `@shuddl/edi` adapter — the correct arrangement,
+and not the `two-mechanisms` shape it looks like from the filenames.
+
+### The real two-mechanisms pair: two doors to one gated chain
+
+`handleInbound204` appends the SAME chain a CSR produces. The CSR door pins it **exhaustively** —
+`workers/api/test/booking-heartbeat.test.ts:411` lists the literal kind sequence, and
+`workers/api/test/approvals.test.ts` covers the below-floor gate. The EDI door pinned only the **endpoints**:
+
+```ts
+expect(kinds[0]).toBe("quote.requested");
+expect(kinds).toContain("quote.priced");
+expect(kinds[kinds.length - 1]).toBe("quote.accepted");
+expect(kinds).not.toContain("booking.created");
+```
+
+Ends, two named members, one named absence. The module's own header states the set is
+`{quote.requested, quote.priced, agent.acted, approval.requested?, quote.accepted}` — so **the two middle
+appends were unasserted**, and `agent.acted` and `approval.requested` appear **nowhere** in the entire
+translator test tree. Per §"a grep proves presence, never absence", I mutated rather than believed it.
+
+### Defect: the REQ-005 provenance append deletes in silence
+
+Deleting the `agent.acted` append left the suite **116/116 GREEN**. An EDI-booked shipment would have carried
+no rater provenance while a CSR-booked one does — the same asymmetry, one door pinned and one not.
+
+`not.toContain("booking.created")` is the shape at fault: it catches only the kind you already thought to
+name, and the whole point of a bypass is that it is a kind nobody named. Replaced with `toEqual` on the
+sequence, which fails on any member **missing, extra, or out of order** — including `booking.created`.
+
+| mutation | before | after |
+|---|---|---|
+| delete the `agent.acted` append | **silent** | **RED** (test (a) only — correctly attributed) |
+| an EXTRA member in the chain | **silent** | **RED** (proved via MUT-2 below, where the chain grew to 5) |
+
+### The bigger finding: `approval.requested` cannot fire on this path AT ALL
+
+A probe that **threw** inside `if (decision.approval !== "none")` was also silent — so the branch is never
+entered. §772 had just taught me that a silent threshold mutation usually means I pushed the wrong way, so I
+went to raise the tenant's target floor above the sell — and the schema refused it: *"Too big: expected number
+to be <=10000"*. **The rejection was the finding.** Three facts, each already pinned elsewhere, make the branch
+unreachable through this door:
+
+1. `costBasis(freight, config) === freight.freight_cents` — the cost basis IS the linehaul freight;
+2. every floor is `cost × bps / 10000` with `bps ≤ 10000`, so **`target ≤ cost` always**;
+3. `compose` pushes only POSITIVE lines (I7 — a credit is its own kind, never a negative), so
+   **`sell = freight + fsc + accessorials ≥ freight === cost`**.
+
+Therefore `sell ≥ cost ≥ target` and `evaluateApproval` returns `"none"` for **every valid tariff**. Confirmed
+by running it, not by arguing it: at all three floors pinned to the schema maximum the chain is still four
+members. The only way under a floor is a NEGOTIATED sell (`proposedSellCents`), and a 204 carries none — which
+is exactly why the handler calls `assessApproval(quote, {})` with no opts. The CSR door reaches the branch
+through the rep's negotiated price; the EDI door structurally cannot.
+
+This is **§688's fourth category — construction-forbidden** — and the first time this session the taxonomy's
+last entry has been the answer. It reads *identically* to a weak corpus, and the two demand opposite fixes.
+
+**So the branch is not dead weight to delete.** `costBasis`'s own comment marks it as *"the future multi-factor
+surface plugs in there"*; the day cost stops equalling freight, a 204 CAN land below target and the branch goes
+live **untested**. The test therefore pins the *unreachability* at maximum pressure and says so in its failure
+message — §750's rule, executable: a prose reopen-trigger cannot fail, and this one does.
+
+| mutation | result |
+|---|---|
+| `costBasis` → `freight_cents * 2` (the multi-factor future) | **RED**, with the right diagnosis |
+
+### My tripwire misattributed, and that is the instrument lesson
+
+Its first cut asserted the whole four-member chain — duplicating test (a). So deleting the **unrelated**
+`agent.acted` append made it red too, announcing *"the approval branch became reachable"* about a mutation that
+did nothing of the sort. A gate that fires for a reason other than its own subject is a misattribution engine.
+Narrowed to `not.toContain("approval.requested")`; re-ran MUT-1 and it now reds **exactly one test**.
+
+§"attribute the RED" has until now been about *my* reading of a failure. This is the same error committed **in
+the instrument**, where it outlives the session: a permanently wrong explanation attached to a real failure.
+
+### Exit state
+
+No source changed — `inbound.ts` and `price.ts` both restored byte-identical after five mutations.
+`workers/translator` **117/117** (+1); lint 0; typecheck 0.
+
+**Reopen triggers**
+- `costBasis` becomes multi-factor, a floor's bps cap rises above 10000, or a price line can go negative →
+  the tripwire reds. It is telling you the below-floor recording just became reachable over EDI and needs a
+  BEHAVIOURAL test; do not satisfy it by relaxing the assertion.
+- A 204 ever carries a negotiated sell (a partner-priced tender) → same branch goes live by the other route,
+  and the tripwire will NOT see it: it watches the cost/floors arithmetic, not the opts passed to
+  `assessApproval`. That gap is stated because it is real.
+- A sixth append kind joins the chain → `toEqual` reds by design. Add the kind deliberately; the failure is
+  the review prompt, not an obstacle.

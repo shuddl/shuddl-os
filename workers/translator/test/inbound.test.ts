@@ -214,12 +214,20 @@ describe("REQ-201/202 — inbound 204 → gated chain, NO booking.created", () =
       .first<{ sh: string; cn: string; bt: string }>();
     expect(shipment).toEqual({ sh: expectedPartyId, cn: expectedPartyId, bt: expectedPartyId });
 
-    // THE NO-BYPASS INVARIANT: the append set stops at quote.accepted; booking.created is NEVER in it.
-    const kinds = seq.kinds;
-    expect(kinds[0]).toBe("quote.requested");
-    expect(kinds).toContain("quote.priced");
-    expect(kinds[kinds.length - 1]).toBe("quote.accepted");
-    expect(kinds).not.toContain("booking.created");
+    // THE NO-BYPASS INVARIANT — asserted as the EXHAUSTIVE chain, not as endpoints (audit §773).
+    //
+    // This read `kinds[0] === quote.requested` + `toContain("quote.priced")` + `last === quote.accepted` +
+    // `not.toContain("booking.created")`. Those four pin the ENDS and TWO named members, and the module header
+    // states the append set is {quote.requested, quote.priced, agent.acted, approval.requested?, quote.accepted}
+    // — so a MISSING middle append and an EXTRA middle append were both invisible. Measured, not supposed:
+    // deleting the agent.acted append left this suite 116/116 GREEN, and forcing an unconditional extra append
+    // did too. `not.toContain` catches only the kind you already thought to name; the whole point of a bypass is
+    // that it is a kind nobody named. `toEqual` on the sequence is the assertion that cannot be evaded — it
+    // fails on any kind that is missing, extra, or out of order, including booking.created.
+    //
+    // The below-floor variant of this chain (with approval.requested spliced before quote.accepted) is pinned
+    // by its own test below; the default tariff clears its floors, so this fixture's chain has four members.
+    expect(seq.kinds).toEqual(["quote.requested", "quote.priced", "agent.acted", "quote.accepted"]);
 
     // the leading request is EDI-sourced; the accepted quote names the priced event on the stream.
     const requested = seq.appended[0]!.event;
@@ -410,6 +418,71 @@ describe("REQ-201/202 — inbound 204 → gated chain, NO booking.created", () =
     expect(await count(env.TENANT_A_DB, "shipments"), "nothing written on a 401").toBe(0);
     expect(await count(env.TENANT_A_DB, "anomalies"), "a 401 is not a quarantine — no anomaly row").toBe(0);
     expect(seq.appended).toHaveLength(0);
+  });
+
+  it("a 204 CANNOT reach the approval.requested branch — even at the schema's MAXIMUM floors (§773)", async () => {
+    // §773. `handleInbound204` carries a below-floor recording branch (REQ-030/048, the ops-approval queue).
+    // NO test had ever entered it — proved, not assumed: a probe that THREW inside
+    // `if (decision.approval !== "none")` left this suite 116/116 GREEN.
+    //
+    // The reason turned out NOT to be a weak fixture. The branch is UNREACHABLE THROUGH THIS DOOR by
+    // construction, and the three facts that make it so are each pinned elsewhere:
+    //
+    //   1. `costBasis(freight, config) === freight.freight_cents` (rater/price.ts) — the cost basis IS the
+    //      linehaul freight, nothing more.
+    //   2. every floor is `cost x bps / 10000` with `bps <= 10000` (FloorsConfig's schema max), so
+    //      `target <= cost` — ALWAYS.
+    //   3. `compose` only ever pushes POSITIVE lines (I7: an amount_cents is a positive charge; a credit is
+    //      its own kind, never a negative), so `sell = freight + fsc + accessorials >= freight === cost`.
+    //
+    // Therefore `sell >= cost >= target` and `evaluateApproval` returns "none" for every valid tariff. The
+    // only way under a floor is a NEGOTIATED sell below the list price (`proposedSellCents`), and a 204
+    // carries none — which is exactly why this handler calls `assessApproval(quote, {})` with no opts. The
+    // CSR path reaches the same branch through the rep's negotiated price and pins it in
+    // `workers/api/test/approvals.test.ts`; the EDI path structurally cannot.
+    //
+    // So the branch is correct DEFENSIVE code, not dead weight to delete: `costBasis`'s own comment marks it
+    // as "the future multi-factor surface plugs in there", and the day cost stops equalling freight, a 204
+    // CAN land below target and the branch goes live UNTESTED.
+    //
+    // THIS TEST IS THAT TRIPWIRE. It drives the handler at the strongest below-floor pressure the schema
+    // permits — all three floors at 100% of cost — and asserts the chain is still FOUR members. It fails the
+    // day any of facts 1-3 changes, and its failure means: the approval branch just became reachable over
+    // EDI, go write its behavioural test. A prose reopen-trigger cannot do that (§750: a comment naming its
+    // own falsification is a check; one merely explaining a hazard is a reason).
+    await env.TENANT_A_DB.prepare(
+      "INSERT OR REPLACE INTO rate_config (id, version, kind, payload, effective_ts, approved_by) VALUES (?,?,?,?,?,?)",
+    )
+      .bind(
+        "fl-test",
+        1,
+        "floors",
+        JSON.stringify({ kind: "floors", id: "fl-test", version: "v1", target_or_bps: 10_000, full_cost_bps: 10_000, contribution_bps: 10_000 }),
+        0,
+        "seed",
+      )
+      .run();
+
+    const seq = new RecordingSeq();
+    const res = await handleInbound204(await signedRequest(tender204()), makeDeps(seq, new RecordingTransport(), goodSecrets()));
+    expect(res.status).toBe(200);
+    // Asserted as the ABSENCE of the one kind this test is about, NOT as the whole chain. The first cut used
+    // `toEqual([...four kinds])` and duplicated (a)'s exhaustive assertion — so deleting the UNRELATED
+    // agent.acted append made this test red too, reporting "the approval branch became reachable" about a
+    // mutation that did nothing of the sort. A gate that fires for a reason other than its own subject is a
+    // misattribution engine (audit §"attribute the RED"); scope it to what it actually watches.
+    expect(
+      seq.kinds,
+      "a 204 reached the approval branch — cost/floors/compose changed, so the below-floor recording is now LIVE over EDI and needs its own behavioural test (it has never had one)",
+    ).not.toContain("approval.requested");
+
+    // Non-vacuity, and the arithmetic the claim above rests on: the tender really did PRICE (an UNKNOWN would
+    // rest at quote.requested and satisfy nothing), and its sell really is at-or-above the maximum floor.
+    const priced = seq.appended.find((a) => a.event.kind === "quote.priced")!.event;
+    const pp = priced.payload as { sell: number; floors: { contribution: number; full: number; target: number }; basis: { cost_cents: number } };
+    expect(pp.sell).toBeGreaterThan(0);
+    expect(pp.floors.target, "floors are cost-relative and bps <= 10000 — the target can never exceed the cost basis").toBe(pp.basis.cost_cents);
+    expect(pp.sell, "sell = freight + only-positive lines, and cost === freight — so the sell can never fall under").toBeGreaterThanOrEqual(pp.floors.target);
   });
 
   it("a DIMS-LESS tender rests at quote.requested (no price on air) — no quote.priced, no quote.accepted, no bypass", async () => {
