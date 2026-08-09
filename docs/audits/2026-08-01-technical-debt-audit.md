@@ -377,6 +377,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 182 | §734 | **§735** | **Counted §734's defect class: 49 of 95 unanchored citations into high-churn targets have drifted; 7 of 7 hand-verified point at UNRELATED code** (one at a **blank line**). Method: `git blame` the citing line → sum the target's line delta above the cited line since that commit. **The taxonomy is the finding** — 38 sit in records frozen BY DESIGN (skills' own grounding note: *"provenance, not proof"*; plans; dated audits), and **frozen-ness turned out to be a property of the ROW, not the FILE** (2 more sit inside struck-through *"original text preserved"* rows, where re-pointing would CORRUPT the record). 9 genuinely live; **7 repaired by adopting anchors**, ratchet 141 → 134, anchored 201 → 210; 2 named for a human. **The ratchet structurally cannot find this** — a count of unanchored citations says nothing about whether any is wrong |
 | 183 | §735 | **§736** | **Live drifted citations: 11 → 0, re-measured rather than assumed** (§735's own trigger). Closed the two that needed judgement: the REQ-170 evidence-gate range (now anchored `@loadActivePodDocument`) — subtle because that row mixes a LIVE assertion with a PRESERVED historical narrative in one cell, and re-pointing the wrong half would have edited a quotation — and the pen-test sequencer range (now `@UNRESOLVED_VISIBILITY`). Ratchet **141 → 132**, content-anchored **201 → 219**. The detector still reports **2**, and that is CORRECT: both are row-level frozen struck-through rows. **A permanent floor, not a backlog** — the classifier works by FILE, frozen-ness is a property of the ROW, and §272 rightly bounds the ignore-marker to the scanner's own tree. **Detector deliberately NOT shipped as a gate**: cost, a known-false red every run (§730), and it measures a proxy — 49 candidates became verdicts only by hand |
 | 184 | §736 | **§737** | **STOPPING POINT — eleven phases (§726–§736) re-derived against the full merge gate, not inferred.** `verify:merge` = **19 PASS · 2 FAIL · 5 BLOCKED**, *identical to the §726/§729 baselines defect-for-defect*, after edits to six pieces of gate code incl. a module all five worker pools import. Both FAILs re-attributed by probe to the uncommitted `REQ-289` row — **at HEAD: 21 PASS · 0 FAIL · 5 BLOCKED**, unchanged since §719. `test:tools` 984 → **1023**. **Seven of the eleven were LIVE DEFECTS**, one subject throughout: *a gate reporting success over something it never examined*. Every remaining reopen trigger is forward-looking (§587/§594's finish signal). Repo-owned open set: **empty**; six items remain, all owner-held |
+| 185 | §737 | **§738** | **New shape (*an error that vanishes*) — CLEAN NEGATIVE, and three greps lied getting there.** 119 catch bodies in shipped code, **12 empty, all 12 stating their FALLBACK VALUE** (*never fabricate a cost · never fabricate a location · malformed policy ⇒ ZERO fail-closed floor*). The `session.ts` pair looked like the adjacency shape and is NOT: failing to CLEAR a token is a security fact, failing to PERSIST one is not. The sweep surfaced **four hand-maintained copies of `POOL_BINDINGS`** governing tenant routing (REQ-025) — the share-lint-matchers shape — and **planting proved the parity law fully closed**: `api` is the reference, the other three assert they mirror it, and changing the REFERENCE reds them. **Three greps, three wrong answers, one phase** (a `0` from a pattern matching 119; an import-proxy blind to a text-read assertion; a phrase-grep defeated by a `describe` name) — every one corrected by a mutation |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -41997,3 +41998,83 @@ deliberately.
   §731's assertions-count warning is the model.
 - A new collection surface is introduced (a new runner, a new scanner, a new config with `include`/`ignores`)
   → ask it the vacuous-corpus question **before** it lands. Eleven phases say it will fail that question.
+
+## §738 — PHASE GATE: the swallowed-error shape, and three greps that lied in one phase
+
+§737 closed the vacuous-corpus arc. A new shape was needed with the same property — one question askable
+everywhere — and §731's `catch {}` (which swallowed 952 read failures) suggested it: **an error that vanishes.**
+
+### The sweep — clean, and clean for a reason
+
+119 single-level `catch` bodies in shipped code (`workers/`, `packages/`, `apps/`, tests excluded). **12 are
+empty.** Every one of the twelve carries an explicit argument about the FALLBACK VALUE, which is the thing
+`fail-closed-is-about-the-fallback-value` says actually matters:
+
+| site | the fallback, stated in the code |
+|---|---|
+| `watchtower` cost parse | *"unparseable cost → unknown, skip (never fabricate a cost)"* |
+| `driver-manifest` geo parse | *"malformed geo → no coordinate (truthful: never fabricate a location)"* |
+| `spark-caps` policy parse | *"Malformed policy JSON ⇒ ZERO (fail-closed floor) … throttles conveniences rather than silently uncapping them"* |
+| three `tenants.ts` resolvers | *"a malformed policy row is not a routable tenant; the resolver would refuse it the same way"* |
+| `biller` refs parse | falls back to the shipment id |
+| `der.ts` DER probe | not-DER at this position → recurse |
+| `sender` error-detail parse | not JSON → the truncated raw text |
+| `session.setToken` | best-effort persistence |
+| `session.clear` | carries a full §182 analysis **with** an expiry trigger |
+
+The `session.ts` pair looked like the adjacency shape — one sibling analysed at length, the other a one-liner —
+and it is **not**. `clear()` swallowing is a security fact (*"a storage that reads but refuses to write leaves
+the token behind while the caller believes the session was dropped"*); `setToken()` swallowing means a session
+does not survive a reload. Different risk, so different treatment. The asymmetry is correct, and saying so is
+worth more than flagging it.
+
+### What the sweep actually surfaced
+
+Three of the twelve are the *same comment* in three files named `tenants.ts` (agents, billing, translator).
+Pulling that thread found **four independent copies** of `POOL_BINDINGS` + `isPoolBinding` — agents, billing,
+translator, and `api/provision.ts` — a hand-maintained allowlist governing **tenant routing** (REQ-025, where
+a cross-tenant read is a build failure). That is exactly the `share-lint-matchers-with-parity-tests` shape:
+*the copy that got less attention becomes the evasion vector.*
+
+**Measured by planting, four times.** The law is fully closed:
+
+| mutation | result |
+|---|---|
+| translator drops a binding | its suite reds — *"parity — the translator's pool allowlist matches the api's (the roster parity law)"* |
+| agents drops a binding | its suite reds — *"the agents POOL_BINDINGS allowlist mirrors …"* |
+| **api (the REFERENCE) gains a third binding** | **billing reds** — *"POOL_BINDINGS mirrors workers/api provision.ts"* |
+
+`api` is the anchor; the other three each assert they mirror it; a change to *any* of the four is caught.
+Clean negative on a security-relevant four-way duplication.
+
+### The instrument lesson — three wrong greps in one phase
+
+This is the phase's most transferable content. Every one of these was corrected by planting an artifact:
+
+1. **`git grep -nE "catch\s*(\([^)]*\))?\s*\{"` returned `0`** while a Python scan of the same trees found
+   **119**. A zero from a pattern that should match hundreds is not a finding, it is a broken instrument —
+   and it would have read as *"no catch blocks to audit."*
+2. **Counting cross-worker imports said "no parity test exists."** False: the parity tests read the api's file
+   as **text** rather than importing it — deliberately, since cross-worker module resolution is exactly what
+   they must not depend on. My proxy measured imports; the guarantee was implemented without one.
+3. **Phrase-grepping for the parity test said `agents — NONE FOUND`.** False: it lives under a differently
+   named `describe` (*"source-level pins"* rather than *"roster parity law"*), so it matched no phrase I
+   guessed.
+
+Three greps, three wrong answers, one phase. `grep-proves-presence-never-absence` already says this; what §738
+adds is the **rate**. In a phase where the subject was well-guarded, the *only* wrong claims produced were the
+grep's, and the planted mutation was right every time. **When the question is "does anything catch X", the
+instrument is a mutation, never a search.**
+
+### Exit state
+
+No code changed. `test:tools` **1023** (baseline 3 register failures only); lint 0; typecheck 0. All planted
+mutations restored byte-identical (`diff -q` clean, verified for each of the four).
+
+**Reopen triggers**
+- A fifth `POOL_BINDINGS` copy appears → it needs a mirror assertion against `api/provision.ts` like its three
+  siblings. The parity is per-copy and hand-added; nothing derives the roster of copies.
+- `api/provision.ts` stops being the reference → three tests name it explicitly and would need re-pointing
+  together; a partial move would leave a copy anchored to nothing.
+- A new empty `catch` lands without a stated fallback value → the twelve here all state one, which is the
+  standard this repo already meets and the only thing that makes an empty catch reviewable.
