@@ -134,6 +134,31 @@ describe("§824: no NEW unpaginated list endpoint", () => {
     }
   });
 
+  it("§825: the scan's SCOPE is still the whole HTTP surface — no routes outside workers/api/src", () => {
+    // §824 scans `workers/api/src` and named that as its blind spot: a list endpoint in another worker would
+    // be invisible. Measured (§825) and now PINNED rather than left as a point-in-time note — the other four
+    // workers are raw `fetch()` handlers with no route table at all: zero `hono` imports, zero route verbs.
+    // MCP is the only other caller-facing worker, and all five of its D1 reads are single-row lookups by
+    // primary key (four carry an explicit `LIMIT 1`), so it returns no row set of its own; its data reads
+    // proxy through `env.API`, which the assertions above already cover.
+    //
+    // The moment any of that stops being true this fails, and the answer is to WIDEN the scan — never to
+    // relax this test. A blind spot that is measured once is a blind spot again on the next commit.
+    const offenders = execSync('git ls-files "workers"', { cwd: repoRoot(), encoding: "utf8" })
+      .split("\n")
+      .filter((f) => /\.ts$/.test(f) && !f.startsWith("workers/api/") && !f.includes(".test.") && !f.includes("/test/"))
+      .filter((f) => {
+        const src = readFileSync(`${repoRoot()}/${f}`, "utf8");
+        return /from "hono"/.test(src) || /\.(get|post|put|delete)\(\s*"\//.test(src);
+      });
+    expect(
+      offenders,
+      "a worker outside `workers/api/src` now registers HTTP routes. §824's list-endpoint scan does NOT " +
+        "look there, so any list endpoint it serves is ungated. Widen `listEndpoints()` to cover it — do " +
+        "not relax this assertion, which exists precisely to make that scope change deliberate.",
+    ).toEqual([]);
+  });
+
   it("no list endpoint returns an unbounded row set outside the filed set", () => {
     const known = new Set(KNOWN_UNPAGINATED.map((k) => k.route));
     const novel = endpoints.filter((e) => e.bounds.length === 0 && !known.has(e.route));

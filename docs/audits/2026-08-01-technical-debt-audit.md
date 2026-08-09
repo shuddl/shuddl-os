@@ -464,6 +464,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 269 | §821 | **§822** | **PHASE 44 CLOSED — the roster's ninth site, and a gate BLIND on its first draft.** §821's blind spot generalised: which rosters can a new instance escape? Crude sweep flagged 16 — **not a finding**; `event-payload-strictness` DERIVES its list and is a clean negative. Real yes: §794's 8-site unbounded-read roster. **Scanner fixed first** — 6 no-WHERE hits, **4 false**, all string-CONCATENATED statements whose later fragments carry `WHERE` + `LIMIT 1`; corrected to exactly **2**, both already rostered (zero FPs, so calibration is a LIVE positive set). **Then the gate itself was blind**: a planted scan on `anomalies` came back **GREEN**, because the novel-filter excluded anything containing a roster anchor and one anchor is the substring `FROM anomalies` — a locator used as a unique key, masking the exact defect class. Replaced with an **exact set + count pin**. 4 REDs. **Scope stated**: no-WHERE only; the 36 filtered-but-unbounded reads are NOT closed and ~30 allowlist rows is where a weak detector hides. 2nd process error: restored a snapshot taken BEFORE authoring §822 — the §818 fix needed "snapshot the AUTHORED state" |
 | 270 | §822 | **§823** | **PHASE 45 CLOSED — the hold said SEVEN, cited EIGHT, and there were NINE.** §822's deferred triage, done: of **70** filtered no-LIMIT SELECTs, **49 are bounded by a uniqueness guarantee the schema DECLARES** (PK `id`, `tenants.slug`, `users.email`, `ux_events_device`, `money_lines(event_id,line_no)`, `id IN`) — facts from the migrations, not opinions. 21 residue, 6 already rostered. **FINDING 1**: the checklist row said *"7 sites"* while citing 8, and the roster pinned 8 — for two audits, because the agreement test did `toMatch(/Unbounded list reads/)` on the TITLE and `toBe(8)` on the code, **never comparing the two**. Now the count is extracted from the doc and pinned to `ROSTER.length`. **FINDING 2**: enumerating every API list endpoint (instead of re-reading the known eight) found **`/v1/approvals`** — no cursor, while siblings `/v1/exceptions` (REQ-197) and `/v1/invoices` (REQ-010) both paginate. Filed as the 9th; **not fixed** — the remedy is a response-shape change and the hold says *needs a REQ row*. Clean negatives: `documents.ts` (per-shipment), `driver-manifest` (per-driver; its INDEX hold §185 is already filed). 3 REDs |
 | 271 | §823 | **§824** | **PHASE 46 CLOSED — the tenth list endpoint, found by a GATE instead of by me.** §823's named residual closed: nothing noticed a tenth unpaginated endpoint. **Why a second gate**: `/v1/approvals` has a `WHERE`, so §822's no-WHERE scanner is blind to it **by design** — §822 catches a table scan, §824 catches an endpoint handing an unbounded row set to a caller. Neither subsumes the other. **Discriminator corrected TWICE before writing**: `/\bLIMIT\b/i` over the handler body read `{ limit: 1 }` (a JS option on an unrelated read) as pagination, and read **`/v1/invoices` as PAGINATED when the roster carries both its lenses as unbounded** — which would have dropped a filed hold out of a completeness gate. `LIMIT` now counts only inside a `SELECT` literal. **Measured**: 6 endpoints, 2 bounded, **4 unbounded** — 3 filed + `/v1/driver/manifest`, which is **NOT** a pagination hold (scopes to `session.sub`, bounded per principal; its real defect is the §185 INDEX hold). 3 REDs, and unlike §817/§822 the planted violation went red on the FIRST draft — the discriminator was measured before the gate was written |
+| 272 | §824 | **§825** | **PHASE 47 CLOSED — two blind spots measured, one turned into a tripwire; rule 5 clean. NO DEFECTS FOUND — that is the result.** §824's residual settled by MECHANISM not an empty grep: mcp/agents/translator/billing have **0 hono imports, 0 route verbs**, raw `fetch()` only; MCP is the only other caller-facing worker and its **5 D1 reads are all single-row by PK** (4 with `LIMIT 1`), proxying data via `env.API`. But a measurement is true at one commit — so it is now a **TRIPWIRE**: any hono import or route verb outside `workers/api/` REDs, telling you to widen the scan rather than relax the test (proved by giving MCP a route table). **Rule 5 (REQ-040, PERMANENT) mutation-verified clean**: comparing GROSS under interline → **5 reds**; removing the partial-signal guard (legs w/o tenantParty **falls through** to the gross-comparing direct path) → **3**; dropping the split-totals-10000 validation → **2**. Sits with `allocateCents` among the best-defended code here. **No production code changed.** The nine filed unbounded-read holds remain unfixed — a public response-shape change that *needs a REQ row*, an owner call |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -47752,3 +47753,66 @@ written rather than after.
   the GO-LIVE-CHECKLIST count in the same commit, since §823 pinned those two to each other.
 - `driver-manifest` stops deriving its scope from `session.sub` → it becomes a real pagination hold and moves
   from this file's allowlist onto the roster. The reason recorded here is what makes that visible.
+## §825 — PHASE GATE: PHASE 47 CLOSED — two blind spots measured, one of them turned into a tripwire; and rule 5 comes back clean
+
+A verification phase. **It found no defects**, which is the result, and the record should say that plainly
+rather than dressing the bound up as a discovery.
+
+### §824's residual, closed by mechanism rather than by an empty grep
+
+§824 scans `workers/api/src` and named the gap: a list endpoint in another worker would be invisible. An
+empty grep would not have settled that ([[grep-proves-presence-never-absence]]), so it was checked by
+mechanism instead:
+
+| worker | hono imports | route verbs | raw `fetch()` | D1 row-set reads |
+|---|---|---|---|---|
+| mcp | 0 | none | 1 | **0** — all 5 reads are single-row by PK, four with `LIMIT 1` |
+| agents | 0 | none | 1 | internal (queue/cron), not caller-facing |
+| translator | 0 | none | 1 | internal |
+| billing | 0 | none | 1 | internal |
+
+MCP is the only other caller-facing worker and it returns **no row set of its own** — its data reads proxy
+through `env.API`, which §824 already gates. So the scan's scope was complete.
+
+**"Was" is the problem.** A measurement is true at one commit; §824's blind spot would silently reopen the
+moment a worker grew a route table. It is now a **tripwire**: any `hono` import or route verb outside
+`workers/api/` fails, with a message saying to widen the scan rather than relax the test. Proved by giving
+the MCP worker a route table — RED, naming the file.
+
+### Rule 5 (REQ-040, PERMANENT) — mutation-verified, clean
+
+CLAUDE.md Law 5: *"Interline floors compare the executing share, never gross."* The $222,084 / 35-lb anomaly.
+`packages/rater/src/approval.ts` is the authority. All three of its guards are genuinely pinned:
+
+| mutation | reds |
+|---|---|
+| **compare GROSS under interline** — the regression itself | **5** |
+| the partial-signal guard removed (legs without a tenantParty falls through to DIRECT, which compares gross) | **3** |
+| the split-totals-10000 validation removed (a malformed interline yields a share that is a lie) | **2** |
+
+Worth noting what the middle one defends, because it is the subtle half: the failure is not "compares gross"
+but "**falls through** to the direct path, which compares gross". The code refuses a partial signal by name
+rather than guessing, and that refusal is pinned. Rule 5 sits with `allocateCents` (§816) among the
+best-defended things in this repo, and **no change was warranted.**
+
+### A note on where this thread now stands
+
+Five phases (§822–§825) have covered unbounded reads end to end: table scans gated, the nine filed holds
+pinned to the checklist count, list endpoints gated, and the scan's scope pinned. What remains is stated
+rather than implied — **the nine filed holds are still unfixed**, and fixing them is a keyset-cursor change to
+public response shapes that the hold's own remedy column has said "needs a REQ row" since §183. That is an
+owner decision, not an audit one.
+
+### Exit state
+
+`test:tools` **1090** (+1), 3 failed — the unchanged REQ-289 baseline. typecheck 0, lint 0, `verify:docs` 0.
+`approval.ts` and `workers/mcp/src/index.ts` restored byte-identical after four mutations. **No production
+code changed this phase.**
+
+**Reopen triggers**
+- A worker outside `workers/api/` gains routes → the new tripwire REDs; widen `listEndpoints()`, never relax it.
+- MCP starts reading row sets from D1 directly instead of proxying `env.API` → the table above stops being
+  true, and nothing checks the *row-set* half of it (only the route half is pinned). Stated as the residual
+  it is.
+- `approval.ts` grows a fourth path into `evaluateApproval` → the three mutations above cover the two paths
+  that exist (interline, direct) and the guard between them. A third would need its own probe.
