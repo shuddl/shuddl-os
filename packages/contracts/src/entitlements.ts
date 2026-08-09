@@ -59,6 +59,9 @@ function readEntitlementPolicy(policyJson: string): z.infer<typeof EntitlementPo
  * undefended. `entitlements.test.ts` now pins THIS constant against every reader, so all three sites inherit
  * the guarantee from one asserted value.
  */
+// FALSIFY (§740): set `policy` to `JSON.stringify({ hazmat_enabled: true })` → `packages/contracts
+// src/entitlements.test.ts` reds "hazmatEnabled is false". Measured: before that test, inverting the
+// sequencer's own copy of this literal left workers/api gates + tenant-policy-malformed at 28/28 green.
 export const NO_ENTITLEMENTS: TenantEntitlementRow = Object.freeze({ plan: "", policy: "{}" });
 
 export function hazmatEnabled(row: TenantEntitlementRow): boolean {

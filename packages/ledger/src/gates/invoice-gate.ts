@@ -38,6 +38,8 @@ export async function assertPodSigned(
   policy?: GatePolicy,
   serviceClass?: string,
 ): Promise<void> {
+  // FALSIFY (§739): make this `?? [serviceClass ?? ""]` → `packages/ledger test/invoice-gate.test.ts` reds
+  // "a serviceClass with NO policy still hits the gate". Before that test: 661/661 green.
   const exempt = policy?.gates?.invoice_without_pod_classes ?? [];
   if (serviceClass !== undefined && exempt.includes(serviceClass)) return;
 

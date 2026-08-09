@@ -390,6 +390,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 195 | §747 | **§748** | **DEFECT (latent, found by ATTRIBUTION): every REQ-id matcher truncates at three digits.** Probing rule 1's direction B with a planted `REQ-9999`, the gate correctly failed — and echoed back **`REQ-999`**. All four matchers are `REQ-\d{3}`, exactly three. Register is at REQ-289, so nothing is wrong today; at **REQ-1000** both directions break SILENTLY at once — a citation of the non-existent REQ-1000 matches `REQ-100`, which EXISTS, so the orphan resolves *and* coverage credits REQ-1000's work to REQ-100. Quiet precisely because the truncated id is valid. Widened to `\d{3,}` at all 4 sites — **a no-op today, measured** (no text in the repo has 4+ digits after `REQ-`). 3 tests + non-vacuity companion; reverting one matcher REDS. **Checking WHICH id the gate saw, rather than that it failed, is the entire finding** |
 | 196 | §748 | **§749** | **The one fixed-width matcher that HAD the guard §748 lacked — and the guard was undefended.** Sweep: only 2 fixed-width numeric matchers in source; section/phase refs use unbounded `§(\d+)`, so this audit passing its thousandth phase costs nothing. The other is the Concierge's `(\d{5})(?!\d)`, whose comment names the hazard *("a 6+-digit id like 123456 never yields a phantom 12345")* — **deleting the lookahead left 224/224 GREEN**. Worse consequence than §748: a phantom ZIP is WRONG data, not missing, and *no price on air* refuses missing physics, not false physics. Pinned with 3 cases. **The mutation then caught MY OWN vacuous test** — the 6-digit fixture had no dest ZIP, so `request` was undefined regardless. Mutation-proving a NEW test is how you find the test was never testing |
 | 197 | §749 | **§750** | **A comment that names its own falsification test, re-run — and the distinction that makes it worth more.** The DO mutex's comment claims *"Verified by deleting this mutex and running the 100-concurrent fresh-stub test: it goes red with `D1_ERROR: I3: append-only: SQLITE_CONSTRAINT`"* — a past-tense claim, and a lost mutex means a DUPLICATE `seq` on an append-only ledger. **Re-run today: exit 1, the named test reds, the predicted error appears verbatim.** §749 and §750 have identical documentation quality and opposite enforcement status: one **explains the hazard** (unpinned, 224/224 green when deleted), the other **names the experiment** (pinned, still falsifiable). **The upgrade for any load-bearing line: not "why this matters" but "delete X, run Y, expect Z"** |
+| 198 | §750 | **§751** | **Applied §750's upgrade: four falsification recipes written AT the guards, each re-run to prove it reproduces.** The mutations for §739/§740/§749's guards were measured by hand this session and were about to live only in an audit file nobody reads while editing the guard. Each recipe names the mutation, the suite and the exact failing test, plus what the mutation did BEFORE that test existed (224/224, 661/661, 23/23, 28/28 green). **4 of 4 reproduce**, all sources restored byte-identical — because §750's own trigger says an unverified recipe *"is worse than none, it reads as verified"*. **The harness lied once**: R2 reported *red: 0* because vitest prints `× <describe> > <test>` and my pattern assumed the test name started the line. 8th instrument slip; benign direction here, the same error produced a false CLEAN in §744 |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -42958,3 +42959,58 @@ restored byte-identical.
 - A second `await` path is added to `#append` before the tail read → the serialization argument covers the
   whole method, so a new early await does not weaken it; but a new PUBLIC entry point that bypasses `append()`
   would, and nothing here would notice.
+## §751 — PHASE GATE: applying §750's upgrade — four falsification recipes, each re-run to prove it reproduces
+
+§750 named the distinction: a comment that **explains a hazard** is a reason; a comment that **names its own
+falsification experiment** — delete X, run Y, expect Z — is a check anyone can re-run in one command. The DO
+mutex had the second kind and it still worked. Everything else this session had the first kind.
+
+That is a gap I can close with what I already measured. Every guard pinned in §739/§740/§749 was mutated by
+hand this session, so the mutation, the suite and the exact failing test name are known — and were otherwise
+about to live only in an audit file nobody reads while editing the guard.
+
+### Four recipes, written at the guard
+
+| guard | recipe now in the source |
+|---|---|
+| Concierge ZIP lookahead | delete `(?!\d)` → `parse.test.ts` reds *"a 6-digit reference after an origin key yields NO origin zip"* |
+| invoice-gate exemption default | make it `?? [serviceClass ?? ""]` → `invoice-gate.test.ts` reds *"a serviceClass with NO policy still hits the gate"* |
+| transition-gates absent-day hours | make it `?? [{ open_min: 0, close_min: 1440 }]` → `appointment-gate.test.ts` reds *"empty weekly map ⇒ outside_hours"* |
+| `NO_ENTITLEMENTS` | set `policy` to `{"hazmat_enabled":true}` → `entitlements.test.ts` reds *"hazmatEnabled is false"* |
+
+Each also records what the mutation did **before** its test existed (224/224, 661/661, 23/23, 28/28 green) —
+the number is the argument for why the recipe is there.
+
+### Every recipe re-run, because an unverified recipe is worse than none
+
+§750's own reopen trigger says a falsification recipe naming a test that no longer exists *"is worse than none,
+because it reads as verified."* So each was executed exactly as written: apply the stated mutation, run the
+stated suite, look for the stated test.
+
+**4 of 4 reproduce.** All four sources restored byte-identical.
+
+### And the verification harness was wrong once
+
+R2 first reported *"named test red: 0"* — which, taken at face value, would have meant a recipe that does not
+reproduce, in a commit whose entire point is that recipes reproduce.
+
+It was my grep. Vitest prints `× <describe> > <test>`, so `^\s+× a serviceClass…` matched nothing while the
+test was failing perfectly well. Eighth instrument slip this session and the same family as §746's wrong argv
+and §747's wrong `FAIL` format: **the pattern encoded an assumption about output shape.** Reading the raw
+output took one command and dissolved it.
+
+Worth stating because the failure direction was benign here (a false alarm about my own work) and the same
+mistake in §744 produced a false *clean* — the two are the same error and only one of them announces itself.
+
+### Exit state
+
+No behaviour changed — four comments. `typecheck` 0; `lint` 0; `check:citations` 0 (the added lines shifted no
+cited anchor); `test:tools` 1027.
+
+**Reopen triggers**
+- A recipe's named test is renamed → the recipe silently stops reproducing. Rename them together, or delete
+  the recipe; §750's rule is that a stale recipe reads as verified.
+- A guard gains a second failure mode → its recipe covers one mutation. That is honest, not complete, and the
+  recipe should say which mutation it is rather than implying the guard is fully pinned.
+- A new load-bearing line is written → the cheapest moment to add a recipe is while the mutation is still on
+  screen. Every one of these four cost nothing to write and would have cost an hour to reconstruct later.

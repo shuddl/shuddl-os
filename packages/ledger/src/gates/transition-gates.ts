@@ -446,6 +446,8 @@ export function assertAppointment(prior: readonly LedgerEvent[], incoming: Ledge
   // booking must respect lead-time / horizon / same-day rules.
   if (!overridden) {
     // 4 — some open HoursInterval for this dow must fully contain the slot window (absent day = closed).
+    // FALSIFY (§739): make this `?? [{ open_min: 0, close_min: 1440 }]` → `packages/ledger
+    // test/appointment-gate.test.ts` reds "empty weekly map ⇒ outside_hours". Before that test: 23/23 green.
     const intervals = ctx.facility.hours.weekly[String(ctx.localDow)] ?? [];
     const open = intervals.some((iv) => iv.open_min <= slot.window_start_min && iv.close_min >= slot.window_end_min);
     if (!open) throw new GateValidationError("outside_hours");

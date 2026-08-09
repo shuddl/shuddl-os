@@ -93,6 +93,8 @@ const DEST_KEYS = [
 
 // A keyword-anchored 5-digit ZIP: the keyword, then up to 20 NON-digit chars (lazy), then exactly 5 digits
 // not followed by another digit (so a 6+-digit id like "123456" never yields a phantom "12345"). The `d`
+// FALSIFY (§749): delete `(?!\d)` → `packages/agents test/parse.test.ts` reds "a 6-digit reference after an
+// origin key yields NO origin zip". Measured: before that test existed, the deletion left 224/224 GREEN.
 // flag exposes capture indices so dest can skip a match that lands on the SAME ZIP the origin already took
 // (the "to ship from 80216" infinitive trap).
 function zipHits(text: string, keys: readonly string[]): { zip: string; index: number }[] {
