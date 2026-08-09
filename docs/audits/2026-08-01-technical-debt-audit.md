@@ -406,6 +406,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 211 | §763 | **§764** | **DEFECT: the lens survives its conjuncts but not its PUNCTUATION.** §763's trigger asked whether a clause could OR past the lens. One can: the keyset cursor is pushed as `"(a OR (b AND c))"` into an `" AND "`-joined chain, and SQL binds AND tighter than OR — **without the outer parens the WHERE becomes `(lens AND …) OR (stream_id = ? AND seq > ?)`, a branch with NO lens restriction**, returning every event on the cursor's own stream to a portal client, internal ones included. **Dropping them left 667/667 GREEN** — not because lens or pagination is untested, but because **no test combined a non-tenant lens WITH a cursor**: each feature covered alone, their PRODUCT empty. Pinned (+ non-vacuity); mutation now REDS |
 | 212 | §764 | **§765** | **§764's defect generalised into a shape gate.** Population derived and measured: exactly **two** AND-joined clause chains in shipped code (`lens.ts`, `gl/export.ts`). Gate asserts every OR-bearing clause is FULLY wrapped — and its `isWrapped` cannot be `startsWith("(") && endsWith(")")`, because that accepts **`(a) OR (b)`**: balanced at both ends, split down the middle, the exact dangerous shape. A dedicated assertion pins that, since a gate with a trivially-satisfiable predicate is worse than none. Mutation-proved 3 ways: unwrap the lens clause **RED**; add an unwrapped OR to the GL chain **RED** (the NEXT one, caught); add it wrapped **green**. Instrument wrong once — the matcher spanned a COMMENT (12th slip, false-alarm direction) |
 | 213 | §765 | **§766** | **§765's stated blind spot, MEASURED empty — and the board back to baseline.** §765's gate reads literals and declared its residual (*a clause built by interpolation escapes it*). Scanned every single-line interpolated template in shipped source that looks like SQL: **75 found** (the positive control — a deliberately loose net, since **a zero over a wider net is a stronger zero**), **0 containing a bare OR**. So the gate has no blind spot in practice today. Merge board eight commits on: **17 PASS · 2 FAIL · 5 BLOCKED**, and **`traceability` is GREEN again** — §757's fix held across eight commits including two doc-heavy ones, the first re-run since `verify:docs` existed |
+| 214 | §766 | **§767** | **The money apportionment has TWO properties; both defended.** Identity (Σparts === total): deleting the leftover-redistribution loop reds **12 tests** — asserted from several directions, which is what a money identity should look like. **Determinism** (ties by ASCENDING index) is the one easy to overlook: flipping `a-b` → `b-a` reds a NAMED case. Not aesthetics — the Biller re-derives an invoice on queue redelivery, so a different split on a re-run means a second differing invoice or a hash mismatch. **The sum identity keeps the money right; the tie rule keeps it the same money twice** |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -43947,3 +43948,45 @@ No code changed. `test:tools` 1041; `verify:docs` 0; lint 0; typecheck 0.
   it. Re-run the scan in this section; it is six lines.
 - `traceability` reds again after a doc-heavy phase → `verify:docs` was not run. That is the whole reason it
   exists, and its value is only realised by being run.
+## §767 — PHASE GATE: the money apportionment has two properties, and both are defended
+
+CLAUDE.md calls money *"a projection of physics"*. A projection has identities, and the interline split's
+Hamilton largest-remainder apportionment has two that matter — one obvious, one easy to overlook.
+
+### Identity: the parts sum to exactly the total
+
+Property-tested over 500 seeded weight cases. Mutated by deleting the leftover-redistribution loop, so the
+floored shares under-sum by up to *n−1* cents:
+
+```
+12 failed | 649 passed
+```
+
+Twelve, not one — the identity is asserted from several directions (the property test, a 999,999-cent case, the
+bps-partition path). A money identity with a single guard would be the thing to worry about.
+
+### Determinism: ties break by ASCENDING index
+
+The easy one to overlook. When two carriers have the identical remainder, *which* gets the spare cent is
+arbitrary — but it must be **the same arbitrary choice every time**. Mutated `a - b` → `b - a`:
+
+> `× REQ-003 / REQ-112 — allocateCents … 1 cent over 3 legs gives the …`
+
+Named, and red. This is not aesthetics: the Biller re-derives an invoice on queue redelivery, and the append is
+idempotent by event id. If the same input produced a different split on a re-run, redelivery would either
+produce a second, differing invoice or a hash mismatch against the first. **The sum identity keeps the money
+right; the tie rule keeps it the same money twice.**
+
+That the tie rule has its own named test — rather than being an implementation detail inside a test about
+sums — is what makes this a clean result rather than an accident.
+
+### Exit state
+
+No code changed. `packages/ledger` 668/668 restored; `test:tools` 1041; lint 0; typecheck 0. `split.ts`
+restored byte-identical after both mutations.
+
+**Reopen triggers**
+- A second apportionment path appears (a different divisor, a signed total) → it needs both properties tested,
+  not just the sum. The sum is the one everybody writes.
+- The tie rule changes deliberately → every previously-derived split changes with it. That is a migration
+  concern for anything already committed to the ledger, not a refactor.
