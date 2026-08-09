@@ -472,6 +472,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 277 | §829 | **§830** | **PHASE 52 CLOSED — the governing file's one observation, pinned to a COPY OF ITSELF.** §829's rule applied to `CLAUDE.md`. Why the sweep reached here: `82e04c7` swept **all nine ops docs** clean, and both root-level docs sat **outside its glob** — *a clean negative is only as wide as its glob*. `≤22 tables (21 used)`: five laws are roster-pinned; the parenthetical was **excluded deliberately** to avoid the two-mechanisms trap — **right reasoning, wrong conclusion**. `check:invariants` computes the count but fails only ABOVE budget, so a 22nd table prints `22/22`, passes, and leaves the governing file stating 21. Two probes bounded it: `(19 used)` reds **for the wrong reason** (an unrostered number, not a wrong one — attributed, not credited), and `invariants.test.ts`'s `tableCount === 21` is over a **SYNTHETIC fixture**, not `db/`. Fixed by calling `checkMigrationSql` — **the same authority the script calls**, not a re-implementation. 3 REDs. **Residual stated**: `README`, `genesis/*`, `docs/wp/*` remain unswept for this class |
 | 278 | §830 | **§831** | **PHASE 53 CLOSED — the front door, and the THIRD forward-reference.** §830's unswept list closed. **Two-thirds correctly frozen**: `genesis/*`'s "48 tests" is a **fixture identity** (CLAUDE.md names the same artifact) and `genesis/15` is a dated audit; `docs/wp/*`'s nine counts are **WP-exit evidence** in docs headed *"complete, merged"* — a record that updated itself would stop being one. **One live defect**: `README.md` described the register as *"167 rows"* in the repo's front door, **121 rows stale** — while its OTHER "167 rows" (line 27) is correctly scoped by its own date. **The defect is never the number; it is the absence of a date around it.** This file had already been corrected once (§172, stale by ten WPs) — *a document that rots once is the one to check twice*. Also: README states the `21 tables` figure §830 had pinned in **CLAUDE.md only**, so the gate now covers both — and a planted 22nd table proved the `expect` loop was **fail-fast**, naming one doc and stopping; rewritten to collect-then-assert, now naming both |
 | 279 | §831 | **§832** | **PHASE 54 CLOSED — a gate justified by a claim measurement CONTRADICTS.** Back to production ground: idempotency on mutations. Architecture is right — one `app.use("/v1/*", …)` mount wraps all 23 mutating endpoints by construction. **But its own comment justified it as *"no route-level test would notice"* — MEASURED FALSE**: deleting the idempotency mount fails **8** api tests, deleting auth fails **372**. Comment corrected, gate KEPT — its value is **one legible sentence naming the missing line** instead of 372 opaque auth failures; a structural pin is a better ERROR MESSAGE, not a unique detector (matters both ways: over-trusted if believed unique, deleted if its premise is visibly false). **THE REAL GAP — ORDER**: Hono composes in REGISTRATION order, so a route mounted before the middleware is never wrapped; the assertions only checked the lines EXIST. Moving one mount up left **test:tools at baseline** while the api suite failed **150** tests — loud, but not one of them says *a route was mounted before its middleware*. Now pinned. **I nearly reported "ORDER IS UNPINNED"** — one api-suite run turned an alarming claim into an accurate one |
+| 280 | §832 | **§833** | **PHASE 55 CLOSED — idempotency CLEAN; the discovery half finds the doc three phases missed.** §832's residual (MCP's own idempotency) traced end to end: key derived **centrally at dispatch** off the semantic operation, every mutating tool routes through `mutatingCallApi` (verified per tool; `quote`'s one raw call is a GET), and the API middleware **fails closed** — no header → 400. Layer 3 is server-side and therefore the authority; MCP's discipline is defence in depth on a gate that doesn't depend on it. 3 guarantees mutation-pinned: fail-open → **5** reds · un-tenant-scoped → **1** · 4xx cached → **3**. **Two measurement errors of mine, both false REASSURANCES**: a grep alternation silently failed and reported two mutating tools bypassing the chokepoint (false — recounted in Python), and probe C was a **no-op mutation** (`void 0;`) that nearly had me record a pinned rule as unpinned. *A green proves nothing until you know the mutation landed.* §831's residual closed, and the discovery half immediately caught **`BUILD-PROMPT.md`** stating the table figure unrostered — three phases had worked that file. Scope bounded to root contract docs: widening to `docs/` measures **8 FPs, 0 real** |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -48298,3 +48299,73 @@ production code changed.**
   others reads as ordered when it is not.
 - `workers/mcp` grows its own middleware stack → it has an independent `idempotency.ts` and its own mount
   order, neither covered here. Stated as unswept rather than implied clean.
+## §833 — PHASE GATE: PHASE 55 CLOSED — idempotency comes back clean; the discovery half finds the doc three phases missed
+
+Two subjects: §832's named residual (MCP's own idempotency path) and §831's (a document stating the table
+figure without being on the roster). The first is a **clean negative**; the second found a real miss.
+
+### MCP idempotency — clean, and the layering is why
+
+The chain, traced end to end:
+
+1. The key is derived **centrally at dispatch** (`registry.ts:343`), keyed off the semantic operation — the
+   validated arguments or a client `idempotency_key` — never the envelope id.
+2. Every mutating tool reaches the API through `mutatingCallApi`, which refuses a write on an uncleared ctx
+   *and* attaches that key. Verified per tool: `approve`, `book`, `dispute`, `quote` all use it; `quote`'s one
+   raw `ctx.callApi` is a **GET**; `document` and `track` are read-only.
+3. And if all of that were bypassed, the API middleware **fails closed**: no `Idempotency-Key` header → 400,
+   mutation refused.
+
+Layer 3 is the one that matters, because it is server-side and therefore the authority (rule 3). MCP's
+discipline is defence in depth on top of a gate that does not depend on it.
+
+All three guarantees are pinned by dedicated tests, measured by mutation: missing key no longer 400s → **5**
+reds · key no longer tenant-scoped → **1** red · a 4xx gets cached → **3** reds, named precisely (*"a
+corrected same-key retry RE-RUNS the handler and succeeds"*). The tenant-scoping pin is a single test, which
+is thin — but it is a **purpose-built** one (*"tenant-b with the same key executes fresh"*), not an incidental
+pass, and one dedicated test is worth more than three that happen to cover a property.
+
+### Two measurement errors of mine, both caught before they became findings
+
+- My first per-tool table reported `approve.ts` and `dispute.ts` as **not using the shared API helper** —
+  which would have been a real finding about two mutating tools bypassing the chokepoint. It was false:
+  `grep -c "callApi\|callApiJson"` silently failed its alternation under this shell's grep. Both files import
+  and call `mutatingCallApi` on the line above the POST. Recounted in Python before writing anything down.
+- Probe "C" mutated `const res = c.res.clone();` into `const res = c.res.clone(); void 0;` — a **no-op**. It
+  came back 811/811 and I nearly recorded the 2xx-only caching rule as unpinned. Re-run against the real
+  condition (`status >= 200 && < 300` → always-cache), it reds three tests by name.
+
+Same lesson twice in one phase, from opposite directions: **a green proves nothing until you know the
+mutation landed.** [[attribute-the-red-before-crediting-it]] is usually about false alarms; here both were
+false *reassurances*, which are the quieter half.
+
+### §831's residual, closed — and it caught something
+
+The §830/§831 gate reads a **roster** of documents, so a document not on it is uncovered. The discovery half
+built for that immediately found **`BUILD-PROMPT.md`** — which states `≤22 tables (21 used)` in the same
+Definition of Done §829 had rewritten, and which neither §830 nor §831 rostered. Three phases in a row worked
+that file and the figure sat in it uncovered.
+
+Scope is bounded deliberately: **root-level contract documents**. A standing claim lives in the files a
+reader treats as current; everything under `docs/` states counts inside a dated structure — the audit is a
+ledger of dated phase gates, RELEASE-EVIDENCE's figures sit in tables headed *"re-executed at <sha>"*, and
+`82e04c7` established that shape across all nine ops docs. Measured: widening to `docs/` yields **eight false
+positives and zero real ones**, which is the profile of a gate people learn to silence (§817).
+
+Proved both ways: BUILD-PROMPT drifting → RED naming it and the migrations · a new root doc stating the figure
+while unrostered → RED naming file and line.
+
+### Exit state
+
+`test:tools` **1096** (+3), 3 failed — the REQ-289 trio explained by §828. typecheck 0, lint 0,
+`verify:docs` 0. `idempotency.ts`, `BUILD-PROMPT.md` restored byte-identical after five mutations. **No
+production code changed.**
+
+**Reopen triggers**
+- A root-level `.md` is added that states budgets → the discovery half REDs; roster it. That is the intended
+  cost and it is now one line.
+- MCP grows a tool that calls `ctx.callApi` with a mutating method directly → it bypasses the chokepoint but
+  **not** the API's 400, so the mutation still cannot land. Worth knowing which layer would catch it, because
+  the error would be a confusing 400 rather than the chokepoint's own message.
+- The API middleware's fail-closed branch is ever relaxed → that is the load-bearing layer for MCP too, not
+  just for `/v1`. Its 5 REDs are the widest of the three and should stay that way.

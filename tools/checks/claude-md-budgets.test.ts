@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { globSync } from "node:fs";
 import { checkMigrationSql } from "./invariants.js";
@@ -140,6 +141,16 @@ describe("REQ-118 §611: CLAUDE.md's hard budgets match what enforces them", () 
   //
   // Derived, not listed (§699: membership is a property of the DOCUMENT). Every `<number> <word>` pair on the
   // hard-budgets line must be claimed by some BUDGETS entry — or be named below with its reason.
+  /** Every document that states the used-table figure, with the regex that finds it. §833 gates completeness. */
+  const DOCS: ReadonlyArray<{ file: string; re: RegExp }> = [
+    { file: "CLAUDE.md", re: /\((\d+)\s+used/ },
+    { file: "README.md", re: /35 kinds,\s*(\d+)\s+tables/ },
+    // FOUND BY THE §833 DISCOVERY HALF, which is the point of having one: §829 rewrote this file's stale
+    // register count and §830/§831 pinned the table figure in two documents — and BUILD-PROMPT.md states it
+    // too, in the same Definition of Done, and was on neither roster.
+    { file: "BUILD-PROMPT.md", re: /≤22 tables \((\d+) used\)/ },
+  ];
+
   it("§830: the \"(N used)\" table figure equals what the migrations actually declare", () => {
     // The one budget-line number that is an OBSERVATION rather than a law. `check:invariants` computes it and
     // prints it, but fails only ABOVE the budget — so a 22nd table prints `22/22`, passes, and leaves this
@@ -156,10 +167,6 @@ describe("REQ-118 §611: CLAUDE.md's hard budgets match what enforces them", () 
     // front door and had already been corrected once for exactly this rot (audit §172 found its status line
     // stale by ten work packages). A gate that covered only one of them would leave the other free to drift,
     // which is how the number got two copies in the first place.
-    const DOCS: ReadonlyArray<{ file: string; re: RegExp }> = [
-      { file: "CLAUDE.md", re: /\((\d+)\s+used/ },
-      { file: "README.md", re: /35 kinds,\s*(\d+)\s+tables/ },
-    ];
     // COLLECT then assert, rather than a loop of `expect`s. A loop is fail-fast, so when BOTH documents drift
     // — the likely case, since a table lands once and both go stale together — it names only the first and
     // the second surfaces a run later. Measured that behaviour on a planted 22nd table before changing it.
@@ -174,6 +181,42 @@ describe("REQ-118 §611: CLAUDE.md's hard budgets match what enforces them", () 
       "a document states a used-table count the migrations contradict. A table was added or removed and the " +
         "document was not updated — and because the budget check only fails ABOVE TABLE_BUDGET, nothing else " +
         "would have said so. A stale law is worse than an absent one: it is followed.",
+    ).toEqual([]);
+  });
+
+  it("§833: no OTHER tracked document states a used-table figure without being on the DOCS roster", () => {
+    // §831's residual: the assertion above reads a ROSTER of documents, so a document not on it is not
+    // covered — the same blind spot §821 named for quote surfaces and §824 for list endpoints. This is the
+    // discovery half. It looks for the two phrasings the roster already knows ("(N used)" beside a table
+    // budget, and "N tables") in every tracked markdown file, and requires each hit to be a rostered document.
+    const rostered = new Set(DOCS.map((d) => d.file));
+    // ROOT-LEVEL contract documents only, and the bound is deliberate. A standing claim — "the budgets are
+    // X" — lives in the files a reader treats as current: CLAUDE.md, README.md, BUILD-PROMPT.md. Everything
+    // under docs/ states its counts inside a DATED structure instead: the audit is a ledger of dated phase
+    // gates, RELEASE-EVIDENCE's figures sit in tables whose headers read "re-executed at <sha>", and the
+    // 82e04c7 sweep established that shape across all nine ops docs. Widening this scan to docs/ would need a
+    // filter that reads a table header three rows above the hit — measured, it produces eight false positives
+    // and zero real ones, which is the profile of a gate people learn to silence (§817).
+    const md = execSync("git ls-files '*.md'", { cwd: repoRoot(), encoding: "utf8" })
+      .split("\n")
+      .filter((f) => f !== "" && !f.includes("/"));
+    const novel: string[] = [];
+    for (const f of md) {
+      if (rostered.has(f)) continue;
+
+      const text = readFileSync(`${repoRoot()}/${f}`, "utf8");
+      text.split("\n").forEach((raw, i) => {
+        // Only a LIVE claim counts. A line carrying its own date or SHA is a dated observation, which §831
+        // established is not this defect — README's second "167 rows" is exactly that shape and is correct.
+        if (/20\d\d-\d\d-\d\d|\bat [0-9a-f]{7,40}\b|as of|History:/i.test(raw)) return;
+        if (/\b\d+\s+tables\b/.test(raw) || /\(\d+\s+used/.test(raw)) novel.push(`${f}:${i + 1}  ${raw.trim().slice(0, 90)}`);
+      });
+    }
+    expect(
+      novel,
+      "a document states a used-table count but is not on the DOCS roster above, so nothing checks it against " +
+        "the migrations. Add it to DOCS with the regex that finds its figure, or — if the line is a dated " +
+        "historical record rather than a live claim — scope it with its date, which is what makes it correct:",
     ).toEqual([]);
   });
 
