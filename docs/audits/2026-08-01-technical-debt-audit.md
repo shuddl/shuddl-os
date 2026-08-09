@@ -415,11 +415,26 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 220 | §772 | **§773** | **The EDI inbound append set — a silent deletion, and a branch that CANNOT run.** Two doors to one gated chain: the CSR door pins the literal kind sequence + has `approvals.test.ts`; the EDI door pinned only ENDPOINTS, so **deleting the `agent.acted` (REQ-005 provenance) append left the suite 116/116 GREEN**. `not.toContain("booking.created")` catches only the kind you already named — replaced with `toEqual` on the sequence. Then the deeper one: `approval.requested` is **UNREACHABLE by construction** (cost === freight · floors ≤ 100% of cost · only-positive price lines ⇒ sell ≥ target, always) — **§688's fourth category, construction-forbidden**, which reads identically to a weak corpus and needs the opposite fix. Kept as defensive code, pinned by a TRIPWIRE that reds when `costBasis` goes multi-factor. **My tripwire's first cut misattributed** — it duplicated (a)'s assertion and blamed the approval branch for an unrelated deletion; §"attribute the RED" committed IN the instrument, where it outlives the session |
 | 221 | §773 | **§774** | **The same weak assertion, second instance — found by sweeping the SHAPE, not the next file.** A defect just written down in prose is one you can grep for: 17 `not.toContain` hits, **2** chain assertions, **1** the same defect (`roundtrip.fixture.test.ts:286` — the REQ-034 DoD fixture test). **Independently silent**: with `inbound.test.ts` already fixed, deleting `agent.acted` left THAT file 6/6 green, so it was its own hole, not riding on its sibling. Fixed + re-mutated RED. The filter that mattered was SEMANTIC — 15 of 17 hits were legitimate named-absence claims and no regex separates them; at this FP rate over this small a population, one read beats building a gate |
 | 222 | §774 | **§775** | **The 214 sweep's send-then-mark law was unpinned, and a TEST NAME hid it.** Writing the sent-marker BEFORE the send left the worker **117/117 green** — and the marker means "already transmitted" to every future tick, so a rejecting transport strands the 214 **permanently**. Urgent because dormant: `NotConfiguredTransport` ALWAYS rejects, so the bug would be planted now and detonate at go-live with every shipment already marked sent. New test asserts no-marker AND that the next tick actually transmits. `transport-dormancy.test.ts` was named *"…so the sweep records no phantom send"* but **never drives the sweep** — renamed; a test NAME is read as a guarantee, and this one over-claimed by one whole mechanism, which is why nobody looked for the missing test. Instrument slip: `EVIDENCE.get()` for a presence check left an unconsumed stream, breaking the isolated-storage pop and **silently dropping 6 tests** (118→112) — a harness fault reduces the test COUNT rather than failing |
+| 223 | §773–§775 | **§776** | **PHASE 12 CLOSED — the EDI surface, the last unaudited product surface (§769).** Three live defects, each mutation-proved, **zero source changed** — `inbound.ts`, `sweep-214.ts`, `price.ts` all restored byte-identical after eight mutations. The defects were in the EVIDENCE, not the behaviour. Board re-measured at `fae1a17`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs **attributed** (three named register-classification tests, the one uncommitted REQ-289 row). §4's undated "3,016 workspace tests" corrected to a dated, SHA-stamped **4,152 tests / 3 failing**, and a board property stated for the first time: `unit-tests` is an `&&` chain that **short-circuits** on REQ-289, so it covers 1,041 of 4,152. **STOPPING POINT: the repo-owned ledger is EMPTY** — six holds remain, all owner-held |
 
-**Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
-failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
-FAILs, proven by removing it) plus five gates BLOCKED on private fixtures that live in the engagement
-workspace. §521 tables every remaining hold with its owner.
+**Current measured state — as measured 2026-08-08 at `fae1a17` (§775's board run):** the merge board is
+**26 gates — 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape since §737. `typecheck` 0 · `lint` 0 ·
+acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge FAILs,
+attributed by naming the three failing tests, all register-classification) plus five gates BLOCKED on private
+fixtures that live in the engagement workspace. §521 tables every remaining hold with its owner.
+
+**Test totals, measured rather than carried forward:** **4,152 tests, 3 failing** — 1,041 in `test:tools`
+(the 3 REQ-289 failures) and **3,111 across all 17 workspace suites, zero failures**. The previous wording
+here said "3,016 workspace tests"; it was undated and stale, the exact defect §"a gate's green certifies less
+than its name" warns about, so the count above carries its date and SHA.
+
+> **A property of the `unit-tests` gate worth knowing while REQ-289 is open (§775).** That gate runs
+> `pnpm test`, which is `test:tools && pnpm -r --if-present run test` — an **`&&`**. `test:tools` fails on the
+> REQ-289 row, so the chain **short-circuits and the 3,111 workspace tests never run inside the gate**. The
+> board's `unit-tests: FAIL` is therefore a true verdict about `test:tools` and says **nothing at all** about
+> the other seventeen suites. They are green (measured separately, above) — but that is evidence from a
+> separate run, not from the board. Committing REQ-289 restores the gate's full reach; until then, read
+> `unit-tests` as covering 1,041 of 4,152.
 
 *(The blocks below are each phase's note as written at the time, kept rather than collapsed — they are the
 record of what was found when. The table above is the way in; §507 is why it exists.)*
@@ -44504,3 +44519,80 @@ typecheck 0.
   re-send that burns nothing lets the partner see two interchanges with one control number.
 - Any presence assertion in this tree uses `get()` → it will pass, then break the storage pop for the whole
   file. The symptom is a dropped test COUNT, not a failure.
+## §776 — PHASE GATE: PHASE 12 CLOSED — the EDI surface, and the board re-measured at `fae1a17`
+
+§769 named the EDI translator's 204/214 path as the **last unaudited product surface**. §773–§775 audited it
+end to end. This is the phase gate for those three.
+
+### What the phase found — three live defects, each mutation-proved
+
+| § | defect | before | after |
+|---|---|---|---|
+| §773 | the `agent.acted` (REQ-005) append deletes in silence — EDI-booked shipments would carry no rater provenance while CSR-booked ones do | 116/116 green | **RED** |
+| §774 | the SAME defect, second instance, in the REQ-034 DoD round-trip fixture — independently silent | 6/6 green | **RED** |
+| §775 | the 214 sweep's send-then-mark ordering unpinned — a failed send would strand the 214 **permanently** | 117/117 green | **RED** |
+
+§775 is the one that would have hurt. The sent-marker means *"already transmitted"* to every future tick, and
+`NotConfiguredTransport` **always** rejects — so an inversion planted today detonates at go-live, with every
+tendered shipment already marked sent and none of them ever transmitted.
+
+**No source changed in any of the three.** `inbound.ts`, `sweep-214.ts` and `price.ts` were each restored
+byte-identical after eight mutations total. The defects were in the *evidence*, not the behaviour — which is
+the correct outcome for a surface that shipped and was reviewed, and the reason this loop keeps finding things
+in modules whose code is right.
+
+### And one finding that is not a defect
+
+`approval.requested` is **unreachable through the EDI door by construction** — cost ≡ freight, floors ≤ 100% of
+cost, only-positive price lines, so `sell ≥ target` always. §688's fourth category, and the first time this
+session its last entry has been the answer. It reads *identically* to a weak corpus and demands the opposite
+fix: not a behavioural test, but a **tripwire** that fires the day `costBasis` goes multi-factor. Kept, pinned,
+and the reason written down.
+
+### Two shapes worth carrying forward
+
+- **A defect just written in prose is one you can grep for.** §774 came from sweeping the *shape* of §773's
+  finding, not from opening the next file: 17 hits, 2 chain assertions, 1 real. Cheaper than an audit pass,
+  and the filter that mattered was semantic — 15 of 17 were legitimate, and no regex separates them.
+- **A test NAME is read as a guarantee.** §775's hole survived because a test was named *"…so the sweep
+  records no phantom send"* while never driving the sweep. Nobody looked for the missing test because the name
+  said it existed.
+
+### The board, re-measured
+
+```
+26 gates — 19 PASS · 2 FAIL · 5 BLOCKED   (exit 1, working tree, fae1a17)
+```
+
+**Identical in shape to §737, §747 and §766.** Both FAILs **attributed, not assumed**: the three failing tests
+are named in §4 and are all register-classification tests failing on the one uncommitted `REQ-289` GTM row.
+At HEAD's register the board reads `21 PASS · 0 FAIL · 5 BLOCKED`.
+
+Also corrected in §4 while re-measuring: the state block carried an **undated "3,016 workspace tests"**. The
+measured figure is **4,152 tests, 3 failing** (1,041 tools + 3,111 across 17 workspace suites, zero failures),
+now stamped with its date and SHA. And a property of the board that had never been stated: `unit-tests` runs
+`test:tools && pnpm -r run test`, so while REQ-289 fails it **short-circuits** — that gate covers 1,041 of
+4,152 and says nothing about the other seventeen suites.
+
+### STOPPING POINT
+
+Every product surface in the register now carries mutation-proved evidence. The repo-owned ledger is **empty**:
+there is no in-repo defect this loop knows about and has not closed. What remains is owner-held and
+unchanged since §737/§769 — it cannot be supplied from inside this repo:
+
+1. the `IDENTITY_DENYLIST` secret (1 BLOCKED gate);
+2. nine private fixtures (4 BLOCKED gates);
+3. **`REQ-289`'s disposition — the sole cause of both merge FAILs**, and the one item that would take the
+   board to `21 PASS · 0 FAIL`;
+4. the "+ photos" half of acceptance demo #1 (three open decisions);
+5. the filmed half of the five acceptance demos;
+6. §724's portal-liveness gap (needs an API `webServer` entry).
+
+**Reopen triggers for this phase**
+- The live VAN/AS2 adapter is wired → §775's test changes from dormant-path insurance to the thing standing
+  between a VAN blip and stranded freight status. Re-read it beside §236's overlapping-tick race: this phase
+  closed the FAILED-send hole, **not** the CONCURRENT-send one, which remains open and unregistered scope.
+- `costBasis` stops equalling freight → §773's tripwire reds; the below-floor recording just became reachable
+  over EDI and needs the behavioural test it has never had.
+- A third endpoints-only chain assertion lands → re-run §774's three-command sweep. The class was "closed"
+  after §773 too.
