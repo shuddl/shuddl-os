@@ -423,6 +423,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 228 | §780 | **§781** | **Closing §724's portal hold exposed an UNPARSED BOUNDARY — a white screen and a NaN billing total.** §724's cause was wrong (the spec MOCKS the API; no `webServer` needed); the real gap was that nothing asserted the board ever loaded. Adding that positive floor went RED: the fixture returned `{items}` while the client parses `{board}` **`.strict()`** — every mocked board had been refused by the client's own Zod parse, so *"the board loads first"* was **never once true**. Fixing that revealed `PAGEERROR: Cannot read properties of undefined` — the invoices seam did `get<{invoices: T[]}>(…)` with **no parse** in THREE components: **the generic is a compile-time lie**, `undefined` reaches `.length`, and the existing `.catch` cannot help because the failure is in the RENDER. Worse than the crash: a row missing `total_cents` rendered **NaN as a billing total**. Violates CLAUDE.md's *"Zod at every boundary"*. Fixed with one parsed seam (non-strict on purpose — stripping IS the documented allowlist); 3 tests, 2 RED without it, and the e2e floor mutation-proved against the exact pre-§781 state |
 | 229 | §781 | **§782** | **The unparsed boundary was SYSTEMIC — 16 casts across 11 files, all closed, plus a gate.** §781 named the smell; grepping it found that only TWO seams in the codebase parsed. Both clients end in **`return parsed as T`**, so a type argument is a cast that makes TypeScript *guarantee* an unchecked shape — **worse than no annotation, because it silences the suspicion that would prompt a check**. Nine were crash-shaped. Two rules learned by getting them wrong first: **parse what the view READS** (my MoneyQueue schema required a `party_id` the view never renders, and a real test went red — an over-strict schema rejects valid payloads, a worse failure than the crash), and **the parse must sit where the existing mock can still intercept it** (a helper inside `lib/api.ts` gets replaced by `vi.mock` itself; parsing in-place makes the fixtures flow THROUGH the schema and verified them as a side effect). Gate assembled at runtime (§749), proved by planting, and its non-vacuity floor caught my own broken glob (48 vs 50) |
 | 230 | §782 | **§783** | **The other trust boundaries — and a guard redundant for SAFETY but not for TRUTH.** Swept 22 `JSON.parse` sites in workers/packages: most already right (the **device-key entry** that feeds signature verification is fail-closed with its reasoning written out). The R2 tender marker IS validated but **nothing pinned it** — and my first test was **VACUOUS**, passing with the guard deleted, because a SIBLING guard downstream also blocks the wire. What the guard uniquely delivers is the **classification**: `malformed` (terminal) vs `failed` (*"retry next tick"*) — so without it a permanently corrupt marker is retried **forever** and reported as transient, the exact confusion §29 was rewritten to avoid. `.strict()` needed its OWN fixture (the first one masked it) and its correctness is the OPPOSITE of §781/§782's: the deciding property is the **deploy boundary** — cross-service ⇒ strip; same-worker, atomic ⇒ an unexpected key can only be a writer/reader disagreement |
+| 231 | §781–§783 | **§784** | **PHASE 13 CLOSED — every trust boundary enumerated.** Phase 12 closed the last unaudited product SURFACE; this closes the last unaudited class of INPUT. **16 unchecked casts** (live defect, fixed + gated) · queue bodies **clean and exemplary** · R2 marker validated but unpinned · device-key path clean. **Strictness is decided by the DEPLOY BOUNDARY, not taste**: cross-service ⇒ strip; same-worker atomic ⇒ strict. The queue consumer's ack-vs-retry discrimination is the standard the marker was measured against. Board re-measured at `e3a359e`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs attributed to the three named register tests on the uncommitted REQ-289 row. **4,162 tests** (3,118 workspace, 0 failures). **STOPPING POINT: repo-owned ledger EMPTY; five owner-held holds** — §724's came off this phase |
 
 **Current measured state — as measured 2026-08-08 at `fae1a17` (§775's board run):** the merge board is
 **26 gates — 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape since §737. `typecheck` 0 · `lint` 0 ·
@@ -430,8 +431,9 @@ acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register r
 attributed by naming the three failing tests, all register-classification) plus five gates BLOCKED on private
 fixtures that live in the engagement workspace. §521 tables every remaining hold with its owner.
 
-**Test totals, measured rather than carried forward:** **4,152 tests, 3 failing** — 1,041 in `test:tools`
-(the 3 REQ-289 failures) and **3,111 across all 17 workspace suites, zero failures**. The previous wording
+**Test totals, measured rather than carried forward — re-measured 2026-08-09 at `e3a359e` (§784):**
+**4,162 tests, 3 failing** — 1,044 in `test:tools` (the 3 REQ-289 failures) and **3,118 across all 17
+workspace suites, zero failures**. The previous wording
 here said "3,016 workspace tests"; it was undated and stale, the exact defect §"a gate's green certifies less
 than its name" warns about, so the count above carries its date and SHA.
 
@@ -45068,3 +45070,80 @@ No source changed — `sweep-214.ts` restored byte-identical after four mutation
   for that day.
 - A new counter joins the summary → it is the operator's view of this sweep; a fault classified into the
   wrong bucket is indistinguishable from one that did not happen.
+## §784 — PHASE GATE: PHASE 13 CLOSED — every trust boundary, and the one that was a live defect
+
+Phase gate for §781–§783. The subject was a single question asked of the whole system: **where does this code
+consume data it did not produce, and does it CHECK it or merely CLAIM it?**
+
+### The boundaries, enumerated
+
+| boundary | verdict |
+|---|---|
+| surface → API responses | **16 unchecked casts across 11 files** — §781/§782, all closed + gated |
+| queue message bodies | **clean, and exemplary** — measured below |
+| R2 tender marker | validated but **unpinned**; the guard is load-bearing for CLASSIFICATION — §783 |
+| device-key entry (feeds signature verification) | **clean** — fail-closed, reasoning written out |
+| remaining 21 `JSON.parse` sites | `as unknown` (honest) or own-D1 columns with optional access |
+
+### The one that was live: a type argument that was a cast
+
+Both surface clients end in **`return parsed as T`**. So `get<{ rows: Row[] }>(path)` made TypeScript
+*guarantee* — in the editor, in review, at compile time — a shape nothing verified. **Worse than no
+annotation**, because the annotation is precisely what stops anyone asking whether it is true. Nine of the
+sixteen were crash-shaped: `PAGEERROR: Cannot read properties of undefined (reading 'length')`, empty
+`<body>`, and the `.catch` beside every one of them powerless because the throw is in the **render**. The
+quiet case was worse than the crash — a row missing `total_cents` rendered **NaN as a billing total**.
+
+This one violated a rule already written in CLAUDE.md ("Zod at every boundary") in a file whose neighbour
+obeys it. The rule was known; the type argument made the violation invisible.
+
+### The queue consumer is the standard the others should be read against
+
+`workers/agents` discriminates **ack vs retry** by whether redelivery could possibly help — unparseable body
+⇒ `ack()` as poison (*"redelivery cannot fix a shape"*), unrostered tenant ⇒ `retry()` toward the DLQ. Both
+mutations red **4 tests each**, and the test names state the law rather than the mechanism.
+
+That is exactly the distinction §783 had to ADD for the tender marker, where a deleted guard silently
+reclassified a permanent data fault as *"retry next tick"* — retried forever, and reported to the operator as
+transient. Two implementations of one idea, one of which had it and one of which did not: the
+`two-mechanisms` shape again, and the delta was the finding.
+
+### Strictness is decided by the deploy boundary, not by taste
+
+Three seams in this phase chose differently, correctly, for one mechanical reason:
+- **surface ← API** (separately deployed) ⇒ **non-strict, STRIP** — else a harmless new server field blanks a page;
+- **R2 marker** (written and read inside ONE atomically deployed worker) ⇒ **`.strict()`** — an unexpected
+  key cannot be version skew, so it can only be a writer/reader disagreement;
+- **queue body** (same producer/consumer deploy) ⇒ strict discriminated union, ack-as-poison.
+
+### The board, re-measured at `e3a359e`
+
+```
+26 gates — 19 PASS · 2 FAIL · 5 BLOCKED   (exit 1, working tree)
+```
+
+Unchanged in shape since §737. Both FAILs **attributed, not assumed**: the same three
+register-classification tests, failing on the one uncommitted `REQ-289` GTM row. Totals, measured:
+**4,162 tests — 3,118 across 17 workspace suites (zero failures) + 1,041/1,044 tools.**
+
+### STOPPING POINT
+
+Phase 12 (§776) closed the last unaudited product SURFACE. Phase 13 closes the last unaudited class of
+INPUT. The repo-owned ledger is empty again, and one owner-held hold came off it this phase: §724's portal
+gap is **closed** (§781) — and its recorded cause was wrong, which is why closing it found a live defect.
+
+**Five holds remain, all owner-held and unsuppliable from inside this repo:**
+1. the `IDENTITY_DENYLIST` secret (1 BLOCKED gate);
+2. nine private fixtures (4 BLOCKED gates);
+3. **`REQ-289`'s disposition — the sole cause of both merge FAILs**, and the one item that takes the board to
+   `21 PASS · 0 FAIL`;
+4. the "+ photos" half of acceptance demo #1 (three open decisions);
+5. the filmed half of the five acceptance demos.
+
+**Reopen triggers for this phase**
+- A fourth surface or a new worker consumes an external body → it is a boundary; the `apps/` gate covers the
+  surface case automatically, and nothing covers a new worker's client shape (stated in §782).
+- `verifyEventSig`'s or the device-key path's fail-closed defaults change → that is the one boundary where a
+  crash and a bypass are the two unacceptable outcomes, and it is currently correct for a written reason.
+- Someone adds a type argument to `get`/`post` "for readability" → that is the exact defect, and
+  `tools/checks/parsed-api-boundary.test.ts` is what refuses it.
