@@ -444,6 +444,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 249 | §801 | **§802** | **PHASE 25 CLOSED — the residual §801 named, closed one phase later.** §801 ended with *"the gate cannot discover a ninth"*; §790's rule says an identified gap left open is worse than one never looked for. Closed by detecting the **DEFECT** shape instead of the correct one: a constant-time helper never has the form `secretish === secretish`. **21 secret-ish strict comparisons exist; 19 are PRESENCE checks** (`=== undefined`/`""`/`null`) — a constant sentinel leaks nothing, so they are excluded **by construction, not by allowlist**, which is what takes the gate from 21 noisy hits to 2. Both survivors are imprint digests — non-secret, proved not by my judgement but because **both error messages print BOTH values** and **the real signature bytes in the same file use rostered `bytesEqual`**. **Zero new secret comparisons**: the roster of 8 confirmed complete by a second, independent method. Both directions proved, including the §796 calibration red |
 | 250 | §802 | **§803** | **PHASE 26 CLOSED — I checked my OWN claim and it was WRONG.** §802's exit note asserted *"every widening word tested added noise without adding a hit"* — **asserted, not measured**, one phase old, the exact shape this audit has spent 26 phases finding in other people's comments. Measured 13 words in isolation: **11 behaved as claimed, `key` was noise (`slot_key`), and `nonce` added a REAL hit** — `tsa/client.ts:68`, **three lines below** the imprint check I had already read and allowlisted. I looked at that function, wrote about it, and could not see the adjacent line because my vocabulary excluded it. Fixed by **widening the vocabulary AND allowlisting the hit** — different states: outside the vocabulary a FUTURE nonce short-circuit is invisible. Proved load-bearing (a planted `requestNonce === storedNonce` reds; the pre-§803 vocabulary MISSED the identical line). **A gate's vocabulary is a measurement, not a sentence** — and this audit's exit notes are subject to its own rules |
 | 251 | §803 | **§804** | **PHASE 27 CLOSED — "the repo-owned ledger is EMPTY" was FALSE, ten phase gates running.** §803 earned the rule that this audit's prose is subject to its own standards, so I turned it on the claim a reader is most likely to ACT on. Measured: the checklist's *Repository-owned failures & debt* carries **35 rows — 15 closed, 20 LIVE, 16 status OPEN**. Three verified open at HEAD (no `coverage` config anywhere · `check:identity` skips locally · the cron double-fire note still in source). **The claim was INHERITED** from a memory of the 2026-08-05 gate and repeated from §776 without opening the file it names. The underlying record says something narrower and TRUE — *"no OPEN DEFECTS"* — and I collapsed that into *"empty"*, which differ exactly where it matters. **A claim you inherit is a claim you are making.** Third phase running to find this shape in my own prose (§790 deferral · §803 assertion · §804 inheritance) |
+| 252 | §804 | **§805** | **PHASE 28 CLOSED — the 20 live rows TRIAGED: what is a defect, what is a decision.** *A count is not a triage* — "20 live rows" misleads as badly as "empty" did. Classified by each row's OWNERSHIP cell: **4 say "needs a REQ row FIRST"** (rule 1 blocks me) · 2 unmade decisions · 4 governing-doc legibility · **2 fixed-and-MONITORED** (`hashPath` IS framed, agents tenants.ts IS claimed-aware — both verified) · 2 external-blocked (**row 9 IS the IDENTITY_DENYLIST hold — my "five owner-held holds" are a SUBSET of this ledger, not a parallel list**) · 2 register/process. **Three verified OPEN against HEAD** (the 4h SLA on a daily cron · the lost-trigger backstop §131 says *"DOES NOT EXIST"* · pool-binding exclusivity). **And one I nearly "fixed"**: row 11's own cell records the extension was MEASURED and REJECTED (76% FP rate) — a decision with evidence, not a defect awaiting effort |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -46427,3 +46428,65 @@ session it has caught my own out-of-order write.
 - The 20 live rows are triaged → several are Low legibility items about `CLAUDE.md` wording and two are
   explicitly unmade DECISIONS (duplicate-vs-strand). Those are owner calls, not repo defects, and a future
   reader should not read this correction as "20 bugs".
+## §805 — PHASE GATE: PHASE 28 CLOSED — the 20 live rows, triaged: what is a defect, what is a decision
+
+§804 corrected "the repo-owned ledger is EMPTY" and left the obvious question unanswered: **what are the 20
+live rows, actually?** A count is not a triage, and "20 live rows" is as misleading in one direction as
+"empty" was in the other. So each was classified — by its own OWNERSHIP field, and where cheap, by measurement
+against HEAD.
+
+### The classification
+
+| class | rows | what it means for a reader |
+|---|---|---|
+| **Needs a REQ row FIRST** | 12 · 13 · 14 · 15 | Four rows say so in their own ownership cell; row 15 cites CLAUDE.md's *no build without a row*. **I cannot act on these** — that is rule 1, not reticence |
+| **Unmade DECISION** | 5 · 6 | the overlapping-tick double-fire and its duplicate-vs-strand fix. §792 measured both; the choice is the owner's |
+| **Governing-doc legibility** | 1 · 2 · 3 · 7 | `CLAUDE.md` wording — ceilings vs exact counts, an undefined "fifth primitive". Owner's text, not code |
+| **Fixed + MONITORED** | 18 · 19 | not open defects. `hashPath` IS framed (`frame()` length-prefixes — verified) and row 19's tenants.ts IS claimed-aware (verified). They stay live carrying an **expiry trigger**, which is this file's convention |
+| **Blocked on external input** | 9 · 16 | row 9 is the `IDENTITY_DENYLIST` hold I have been listing all along — **the "five owner-held holds" are a SUBSET of this ledger**, not a parallel list |
+| **Register data / process** | 4 · 10 | a `wp` amendment pass and a recurring owner for authority-coverage |
+| **Genuinely open, repo-fixable** | 8 · 11 · 17 · 20 | see below |
+
+### Three verified open against HEAD
+
+Not read — measured, because §804 proved the status fields unreliable:
+
+| row | verification |
+|---|---|
+| **14** — a 4-hour SLA policed by a 24-hour detector | `wrangler.toml` → `crons = ["0 1 * * *"]`; `sla-sweep.ts:94` says *"a DAILY cron policing a FOUR-HOUR SLA accumulates ~19h of overdue rows per tick"* |
+| **15** — a lost booking trigger has no backstop | `sequencer.ts:579` carries §131's correction: the recovery it once named *"DOES NOT EXIST"* |
+| **17** — pool-binding exclusivity on enumeration, not resolution | `provision.ts:275`: the control-plane UNIQUE index *"is the structural answer"*, dark today |
+
+### And one I was about to "fix" and should not
+
+Row 11 (the citation gate's path-only blindness) looked squarely mine — tooling scope, a gate, no REQ row
+needed. **Its own evidence cell records that extending it was measured and REJECTED on 2026-07-27**:
+411 checked → 25 unresolved → **~19 false**, a ~76% false-positive rate, *"the cry-wolf mode that has already
+cost this repo a gate"*.
+
+I would have spent the phase re-deriving a rejected answer. The row is not a defect awaiting effort; it is a
+**decision with a measurement behind it**. That distinction is the reason a triage is worth more than a count.
+
+### What this settles
+
+**"20 live rows" does not mean 20 bugs.** Four are governing text, two are fixed-and-monitored, two are
+decisions, four are blocked behind rule 1, and the genuinely-open repo-fixable set is small — and every member
+of it is either owner-blocked (a REQ row, a secret, an R3 demo) or explicitly rejected.
+
+The accurate one-line status, which is what should have been in every phase gate:
+
+> **No repo-owned defect discovered by §773–§804 is unclosed. The standing ledger carries 20 live rows, of
+> which none is both open AND actionable without an owner decision.**
+
+### Exit state
+
+No source changed; no test changed. This phase is a read-and-classify over a ledger, with three mechanical
+verifications and one rejected fix. `test:tools` 1065; lint 0; typecheck 0.
+
+**Reopen triggers**
+- Any row's ownership cell says *"needs a REQ row first"* and a row is then written → that row becomes mine,
+  and this table is where to check the other three.
+- A row is added without an ownership cell → it cannot be triaged, and it will read as an open defect forever.
+  All 20 have one, which is why this phase was possible at all.
+- Someone quotes "20 live rows" as a debt figure → this section is the correction, the same way §804 is the
+  correction to "empty". **Both errors came from a number standing in for a reading.**
