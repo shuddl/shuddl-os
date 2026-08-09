@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { repoRoot } from "./repo-root.js";
 import { scanCorpus } from "./scan-corpus.js";
@@ -139,5 +140,60 @@ describe("REQ-156 §613: genesis/14 §04 API conventions hold by construction", 
         "name what guards it instead:\n  " +
         outside.join("\n  "),
     ).toEqual([...SANCTIONED_NON_V1].sort());
+  });
+});
+// ── §850 — EVERY DRIVER SYNC FETCH DECLARES A REDIRECT POLICY ─────────────────────────────────────────
+//
+// §849 fixed a live defect: `transport.ts` called `fetch` with no `redirect` option, so the platform default
+// `follow` applied and `res.status` was the FINAL response's — a captive portal's 302 → login page → 200,
+// read as the sequencer's ack, dropping a signed capture. §850 classified all 24 production fetch sites and
+// found the driver was the ONLY one exposed, because it is the only status-only trust on a network path.
+//
+// SCOPED TO `apps/driver/src/sync/` ON PURPOSE. A repo-wide rule would flag twenty-two correct sites — the
+// §845 lesson that a gate flagging correct code gets turned off — and would be WRONG besides: everywhere
+// else the right protection is validating the BODY, which is strictly stronger. `biller/sender.ts` needs no
+// redirect option because an interceptor's response cannot produce a Resend id; the driver needs one
+// precisely because the sequencer's 202 carries nothing to validate.
+
+describe("§850: every fetch in the driver's sync path declares a redirect policy", () => {
+  const root = repoRoot();
+
+  function syncFetchSites(): Array<{ site: string; hasPolicy: boolean }> {
+    const files = execSync('git ls-files "apps/driver/src/sync"', { cwd: root, encoding: "utf8" })
+      .split("\n")
+      .filter((f) => /\.tsx?$/.test(f) && !f.includes(".test."));
+    const out: Array<{ site: string; hasPolicy: boolean }> = [];
+    for (const f of files) {
+      const src = readFileSync(`${root}/${f}`, "utf8");
+      const lines = src.split("\n");
+      lines.forEach((raw, i) => {
+        const line = raw.trim();
+        if (line.startsWith("//") || line.startsWith("*")) return;
+        if (!/\b(?:doFetch|fetchImpl|fetch)\s*\(/.test(line)) return;
+        // The RequestInit follows the URL; look ahead to the end of the call.
+        const window = lines.slice(i, i + 16).join("\n");
+        out.push({ site: `${f}:${i + 1}`, hasPolicy: /redirect:\s*"(error|manual)"/.test(window) });
+      });
+    }
+    return out;
+  }
+
+  it("the scan finds the sync fetches at all (non-vacuity)", () => {
+    // A moved directory or a renamed transport would return [] and make the assertion below vacuous.
+    const sites = syncFetchSites();
+    expect(sites.length, "no fetch found under apps/driver/src/sync — the scan is stale, not the code").toBeGreaterThanOrEqual(2);
+  });
+
+  it("no sync fetch follows redirects", () => {
+    const unguarded = syncFetchSites().filter((s) => !s.hasPolicy).map((s) => s.site);
+    expect(
+      unguarded,
+      'a fetch in the driver\'s sync path does not declare `redirect: "error"`. The platform default is ' +
+        "`follow`, and `res.status` is then the FINAL response's — so a captive portal on truck-stop or depot " +
+        "wifi answering 302 → login page has its redirect followed, the login page returns 200, and the queue " +
+        "reads that as the sequencer's ack and DROPS a signed capture that never arrived (§849). The API never " +
+        "returns a 3xx, so a redirect here is always an interceptor:\n  " +
+        unguarded.join("\n  "),
+    ).toEqual([]);
   });
 });

@@ -489,6 +489,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 294 | §846 | **§847** | **PHASE 67 CLOSED — the drain order holds; its DEFENSIVE half was documented and untested.** Driver offline queue — demo #3 and the airplane-mode soak, where a prior loop found signed captures stranded. `pending()` sorts by `device_seq` because the server's gates are **order-dependent** (consent before `stop.arrived`); a shuffled drain takes a 403 and parks **permanently**. Two mutations, two REDs, both caught by a purpose-built test driving a deliberately `ShuffledStore`. **The gap**: making an item WITHOUT a `device_seq` sort first instead of last is **silent** — no test constructs one. **Reachability measured, not assumed**: `capture.ts:128@nextSeq` always mints one and `events.ts:291@device_seq` refines `device_id ⟹ device_seq`, so the branch is reachable only for a device-less event the driver never produces — **defensive, not dead**, and §688's construction-forbidden *from the driver's side only*, which is the kind of unreachable that expires when a second producer appears. Cheap test added. **Probe error** (3rd of its family): my first "drop the sort" rewrote the `.map` line and left `.sort()` intact — a **no-op** returning 41/41 that would have read as *drain order unpinned* |
 | 295 | §847 | **§848** | **PHASE 68 CLOSED — the CAPTIVE PORTAL: a 302 that nothing tested.** §847 pinned drain order; `classifyStatus` decides whether a signed capture survives. Four probes: 4xx→`ack` (**4 RED**), 429→`operator` (**2 RED**), 401→`retry` (**2 RED**) — and **default→`ack` was SILENT**. Measured, the default catches **1xx, 3xx (301/302/304/307/308) and ≥600**, and the suite contains **zero 3xx cases**. **A 3xx is the driver's normal failure mode, not an exotic one**: a captive portal on truck-stop or depot wifi answers **302 → login page** — the very environment the airplane-mode soak exists to model. Misclassified as `ack`, the queue treats the portal's redirect as the sequencer's acceptance and **removes a signed capture that never reached the server** — silent evidence loss on demo #3's path. The code is **correct** and its comment names the property (*never a silent drop*); what was absent is any test that would notice if it stopped being. 2 REDs |
 | 296 | §848 | **§849** | **PHASE 69 CLOSED — the captive portal ONE LAYER DOWN: `fetch` was already following the redirect.** §848 pinned `classifyStatus` so a 3xx retries, and named where the defect would reappear: *the transport following redirects itself*. **It already did.** `transport.ts` calls `doFetch` with **no `redirect` option**, so the default `follow` applies and `res.status` is the FINAL response's — portal 302 → followed → login page **200** → `classifyStatus` → **`ack`** → **the signed capture is dropped**. **§848's test cannot see it**, because the function is handed the portal's 200, never the 302: *pinning a pure function proves nothing about what its caller feeds it.* CORS saves only the cross-origin case — luck per-portal, not a property. Fixed with `redirect: "error"` on both legs, licensed by a measurement: **the API never returns a 3xx**, so a redirect here is ALWAYS an interceptor. It routes into machinery §848 already pinned (throw → catch → status 0 → retry). **`createTransports` had ZERO tests** — the driver's whole HTTP boundary; +7 now |
+| 297 | §849 | **§850** | **PHASE 70 CLOSED — status-only trust is the vulnerability; the driver was the ONLY one.** Classified all **24** production `fetch` sites. **The discriminator is not "does it set `redirect`"** — it is what the caller TRUSTS. Four other protections, all stronger or equivalent: `apps/command`+`portal` have **caller-side Zod** (§782's `get<unknown>` + parse); `biller/sender.ts` does **body validation** and is exemplary, its own comment naming the case (*"a 2xx with a NON-JSON body — a proxy answering for a dead upstream"*); `platform-ledger` is a **service binding**, never on the network; `tsa/client` verifies **cryptographically** + echo-checks the nonce. **Body validation is strictly stronger than a redirect policy** — the sender needs no option because an interceptor cannot produce a Resend id; the driver needed one precisely because the sequencer's 202 carries **nothing to validate**. Rule: *trust a status only when you have nothing else.* §849's residual closed with a gate scoped to `apps/driver/src/sync/` — repo-wide would flag 22 correct sites (§845) and be wrong besides. 3 REDs |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -49469,3 +49470,56 @@ a user-visible path (after §820's price on air), and unlike §843's it changes 
   that a `fetch` in the driver carries a redirect policy. That gate is buildable and is the obvious successor.
 - `fetchImpl` is injected in production rather than only in tests → the policy travels with the call site, not
   the implementation, so an injected fetch does not change this. Worth knowing before someone "centralises" it.
+## §850 — PHASE GATE: PHASE 70 CLOSED — status-only trust is the vulnerability; the driver was the only one
+
+§849 fixed a live defect and left the obvious question: **is anything else exposed the same way?** Twenty-four
+`fetch` call sites in production. This classifies all of them, and the answer is a clean negative with a
+taxonomy worth keeping.
+
+### The discriminator is not "does it set `redirect`"
+
+It is **what the caller trusts**. A followed redirect is only dangerous when the *status alone* drives an
+irreversible decision. Every other site is protected, and by four different mechanisms:
+
+| site | protection |
+|---|---|
+| `apps/driver/src/sync/transport.ts` | **was status-only → the §849 defect**, now `redirect: "error"` |
+| `apps/command`, `apps/portal` (`lib/api.ts`) | **caller-side Zod** — §782's `get<unknown>` + `.parse()`, so a portal's HTML 200 fails to parse |
+| `packages/agents/src/biller/sender.ts` | **body validation**, and exemplary: a guarded `JSON.parse` then `ResendCreated.safeParse` requiring an `id`, whose own comment names the case — *"a 2xx with a NON-JSON body (a proxy answering for a dead upstream) must fall into the same retriable no-id branch"* |
+| `workers/billing/src/platform-ledger.ts` | **a service binding**, not a network call — `env.API.fetch` never leaves the runtime, so no interceptor exists |
+| `packages/ledger/src/tsa/client.ts` | **cryptography** — `assertGrantedReceipt` DER-parses, verifies the signature and echo-checks the nonce (§802's allowlisted comparison), so a substituted response is detected by construction |
+
+**Body validation is strictly stronger than a redirect policy**, and the sender proves it: it needs no
+`redirect` option because an interceptor's response cannot produce a Resend id. The driver needed the policy
+precisely *because it had no body to validate* — the sequencer's 202 carries nothing to check.
+
+That is the generalisable rule, and it is more useful than "always set `redirect`": **trust a status only
+when you have nothing else, and then constrain what a status can be.**
+
+### The residual §849 named, closed
+
+Nothing forced a *new* driver `fetch` to carry the policy. Now gated: every `fetch` in `apps/driver/src/sync/`
+must declare a redirect policy, with the reason stated so the next author is not left guessing why one
+directory is special.
+
+Scoped to that directory deliberately. A repo-wide rule would flag twenty-two correct sites — the §845 lesson
+about a gate that flags correct code getting turned off — and would be *wrong* besides, since the right
+protection elsewhere is validation, not a fetch option.
+
+### Exit state
+
+`test:tools` **1119** (+3), 3 failed — the REQ-289 trio. `@shuddl/driver` 74 · `driver-core` 45. typecheck 0 ·
+lint 0 · `verify:docs` 0. **No production code changed** — §849 was the complete fix; this bounds it.
+
+Proved three ways: a new sync `fetch` without a policy → RED naming it · the policy removed from an existing
+leg → RED · the scan pointed at an empty directory → RED on non-vacuity.
+
+**Reopen triggers**
+- A driver fetch moves out of `sync/` → the gate follows the directory, not the semantics. Stated because
+  that is its one blind spot and a plausible refactor.
+- A status-only trust appears elsewhere (a new worker-to-worker call over the network rather than a binding)
+  → the taxonomy above is a measurement at `5a917a9`, not a standing guarantee. The scan that produced it is
+  ten lines and re-runnable.
+- `env.API.fetch` stops being a service binding (a real URL in some environment) → `platform-ledger`'s
+  protection evaporates, and it is the one row here whose safety is an infrastructure fact rather than a code
+  fact.
