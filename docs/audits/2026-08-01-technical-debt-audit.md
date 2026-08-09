@@ -392,6 +392,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 197 | §749 | **§750** | **A comment that names its own falsification test, re-run — and the distinction that makes it worth more.** The DO mutex's comment claims *"Verified by deleting this mutex and running the 100-concurrent fresh-stub test: it goes red with `D1_ERROR: I3: append-only: SQLITE_CONSTRAINT`"* — a past-tense claim, and a lost mutex means a DUPLICATE `seq` on an append-only ledger. **Re-run today: exit 1, the named test reds, the predicted error appears verbatim.** §749 and §750 have identical documentation quality and opposite enforcement status: one **explains the hazard** (unpinned, 224/224 green when deleted), the other **names the experiment** (pinned, still falsifiable). **The upgrade for any load-bearing line: not "why this matters" but "delete X, run Y, expect Z"** |
 | 198 | §750 | **§751** | **Applied §750's upgrade: four falsification recipes written AT the guards, each re-run to prove it reproduces.** The mutations for §739/§740/§749's guards were measured by hand this session and were about to live only in an audit file nobody reads while editing the guard. Each recipe names the mutation, the suite and the exact failing test, plus what the mutation did BEFORE that test existed (224/224, 661/661, 23/23, 28/28 green). **4 of 4 reproduce**, all sources restored byte-identical — because §750's own trigger says an unverified recipe *"is worse than none, it reads as verified"*. **The harness lied once**: R2 reported *red: 0* because vitest prints `× <describe> > <test>` and my pattern assumed the test name started the line. 8th instrument slip; benign direction here, the same error produced a false CLEAN in §744 |
 | 199 | §751 | **§752** | **When a guard cannot be pinned, pin the condition that keeps it unnecessary.** The MCP cap meter guards MONEY (spend/velocity on `book_shipment`, external OAuth surface) with the same mutex pattern as the sequencer — and its comment says *"deleting this line is SILENT in CI"*. **Both halves verified: deletion leaves 17/17 green** (incl. a SIX-concurrent-book race), because all 3 awaits in `#checkAndReserve` are `ctx.storage.*` and the DO input gate already serializes those. §319 would end at *an unenforced trigger is a hope* — but *"a future non-storage await"* is a property of the SOURCE, so it is gateable. New gate pins the **precondition**, not the guard; fires on exactly the edit the comment warns about. 2 mutations RED + 2 non-vacuity floors |
+| 200 | §752 | **§753** | **The same silent guard in a SECOND meter — found by following §752's own trigger instead of waiting.** Three lock-guarded DOs: sequencer's mutex deletion **REDS** (§750, D1 awaits ⇒ load-bearing ⇒ testable); `CapsMeter` **17/17 silent** and `SparkMeter` **122/122 silent**, both because all 3 awaits are `ctx.storage.*` and the input gate already serializes those. Gate rewritten to **derive** its roster (§699) so a fourth DO lands covered; sequencer exempt **with its reason**, plus a staleness check so the exemption cannot outlive its subject. **My own scan was wrong and this file's own floor caught it** — `#append` matched as a CALL first, returning a garbage body with 0 awaits; `methodBody` now anchors on a declaration. 3 mutations RED |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -43071,3 +43072,65 @@ the await filter can match nothing inside a body that parsed.
   it — before landing the await, not to exempt the line.
 - A second read-modify-write DO appears → it has the same shape and deserves the same gate; this one is
   written against `CapsMeter` specifically and will not notice a sibling.
+## §753 — PHASE GATE: the same silent guard in a second meter, and a gate that derives its own roster
+
+§752 gated one Durable Object. Its closing trigger said a second read-modify-write DO *"has the same shape and
+deserves the same gate"* — so I looked instead of waiting.
+
+### Three DOs, one fact seen twice
+
+| DO | delete its mutex → its own suite | awaits in the locked method |
+|---|---|---|
+| `ShipmentSequencer` | **RED** (§750, the 100-concurrent test) | D1 subrequests — **non-storage** |
+| `CapsMeter` | **GREEN 17/17 — silent** | 3 of 3 `ctx.storage.*` |
+| `SparkMeter` | **GREEN 122/122 — silent** | 3 of 3 `ctx.storage.*` |
+
+`SparkMeter` was the one I had not examined: structurally identical to `CapsMeter`, same lock, same
+`#checkAndReserve`, same silence — and it meters the Spark allotment.
+
+The table is one fact. A DO input gate closes across the DO's **own storage** operations and not across a
+plain subrequest. The sequencer awaits D1, so its mutex is load-bearing and therefore *testable*. The two
+meters await only storage, so they are already serialized, their mutexes are redundant today, and **no test can
+hold them** — there is nothing to observe until someone adds a non-storage await.
+
+### The gate now derives its roster
+
+§752's version named `CapsMeter`. That is the shape §699 warns about: a hand-kept enumeration of a set the code
+already defines. Rewritten to find every file declaring a `DurableObject` subclass with a `this.lock` chain, so
+a fourth lands covered on the day it is written.
+
+The sequencer is exempt from the storage-only rule **with its reason**, and the reason is that it is
+*defended*: delete its mutex and `sequencer.test.ts` reds with `D1_ERROR: I3: append-only`. An exemption whose
+subject is pinned by a named test is the opposite of a hole — and a fifth assertion keeps it honest by failing
+if that exemption ever names a file that is no longer a lock-guarded DO.
+
+### Mutation-proved
+
+| mutation | result |
+|---|---|
+| non-storage `await fetch(…)` in **SparkMeter** | **RED** — the newly covered meter |
+| remove the sequencer's lock (its exemption goes stale) | **RED ×2** — the roster floor *and* the staleness check |
+
+### My own scan was wrong, and this file's floor caught it
+
+The first run failed with *"no awaits found in sequencer.ts's `#append` — the scan broke"*. It had: `#append`
+appears first as a **call** inside `this.lock.then(() => this.#append(req))`, and a name-anywhere regex walked
+forward from there to the next `{`, returning a garbage body.
+
+The floor that caught it is one I wrote into the same file minutes earlier, for exactly this reason. **A
+non-vacuity floor on a scan you wrote yourself is not ceremony** — it is the only thing that distinguishes "the
+subject is clean" from "the scanner is broken", and here it did so on its first execution. `methodBody` now
+anchors on a **declaration** (line start, optional `async`/`private`), which a call can never be.
+
+### Exit state
+
+`test:tools` **1037** (+6 net); lint 0; typecheck 0. `spark-meter.ts` and `sequencer.ts` restored
+byte-identical. The gate is renamed `do-mutex-preconditions.test.ts` to match the widened subject.
+
+**Reopen triggers**
+- A fourth lock-guarded DO appears → covered automatically; but if its mutex IS pinned, it belongs in
+  `PINNED_BY_TEST` with the test's name, not exempted silently.
+- A meter legitimately needs a non-storage await → the gate reds, correctly. Make the mutex's protection
+  observable first (a test that FAILS without it), then move the file to `PINNED_BY_TEST`.
+- Cloudflare changes input-gate semantics → every row of the table above inverts. Re-run the three deletion
+  probes; do not reason from a changelog.
