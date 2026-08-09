@@ -410,6 +410,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 215 | §767 | **§768** | **The Biller's id law: determinism PINNED, domain separation NOT — and stopping there on purpose.** Seeding the invoice event id with `crypto.randomUUID()` reds a NAMED test (*a redelivered POD re-derive…*), the money-side twin of §755's server idempotence. Merging the two domain tags left **122/122 GREEN**; measured what that produces: **no collision** (formats differ — UUID vs `inv_`+16hex), but the AR number becomes the event id's own first 16 hex, so the two stop being independent. **No test added, deliberately** — §760's rule that a gate per defensive line is its own debt; the property protecting MONEY is pinned, the one protecting HYGIENE is measured here. *"The id law is tested"* would be true and would overstate it |
 | 216 | §768 | **§769** | **SECOND STOPPING POINT — §738–§768 re-derived (31 commits, 39 phases past §737).** **Nine live defects**, every one surfaced by MUTATION and none by reading: two unpinned fail-closed gate defaults · a `"grants NOTHING"` sentinel spelled 3× and undefended · a budget gate blind to unenforced budgets · **a BLOCKED gate being invisible to the meta-gate watching it** · a REQ matcher truncating at 3 digits · the Concierge's ZIP guard · **a retention clock restarted by re-upload** · **the lens held by two characters of punctuation**. Plus 4 corrections to my own claims. Confirmed with proof: Laws 1/5/10, the DO mutex, money sum **and tie determinism**, the lens conjuncts, both driver-sync premises. `test:tools` 984 → **1041**; board unchanged. **Stopping because §765–§768 found nothing** — the sweep now confirms rather than finds |
 | 217 | §769 | **§770** | **DEFECT past the stopping point: the budget alarm's divisor was never exercised.** The alarm averages *only REPORTED metrics* (`costSum / costN`); dividing by the RUN count halves a half-unmetered window — **$2/run against a $0.50 budget reads $1**, and two more unmetered runs put it UNDER budget. Mutating it left **17/17 GREEN**, not from redundancy but §688's *passing corpus*: every fixture supplied a cost, so `costN === runs`. The sibling test covers the ALL-unmetered window (null average); **only a MIXED window makes the divisor observable**. Matters because §135's dormant gap means windows go mixed exactly when the alarm starts being useful. Pinned; mutation REDS. **13th slip**: first run was against the package the SOURCE lives in, not the suite that owns it |
+| 218 | §770 | **§771** | **Finished the pair §770 had just split.** Mutating the LATENCY divisor (`latSum / latN` → `/ runs`) left the suite at **18/18 GREEN even after §770's new cost test**, because that fixture gives every run a latency. **Pinning one branch is what made the other's absence visible** — and would have left it invisible had I stopped. Consequence arguably worse than cost's: latency is what an operator watches for a hung agent, and a half-unmetered window reads as half as slow. Pinned with the mirror fixture; both divisors now red **independently (1 test each, different ones)** — a shared fixture would have made the pair LOOK covered while one branch rode the other's assertion. Sixth sibling-gap of the session, and **the last two were mine** |
 
 **Current measured state:** 12 non-register gates PASS · `typecheck` · `lint` · 3,016 workspace tests, zero
 failures · acceptance GREEN. **The only blocker is the uncommitted `REQ-289` GTM register row** (both merge
@@ -44183,3 +44184,52 @@ the file, and confirm ownership before reading the verdict.** The second run, ag
   that transition safe; read the first alarm it raises rather than trusting it.
 - A latency divisor is added or changed → `avgLatencyMs` has the identical shape (`latSum / latN`) and the
   identical gap: no mixed-latency window is fixtured either. This phase pinned cost only.
+## §771 — PHASE GATE: finishing the pair I had just split
+
+§770 pinned the budget alarm's **cost** divisor and closed by naming its own unfinished half: *"`avgLatencyMs`
+has the identical shape … no mixed-latency window is fixtured either. This phase pinned cost only."*
+
+That is the sibling-gap pattern this session has found five times (§739, §749, §756, §761, §762) — and here I
+had just created one. Finishing it took one loop.
+
+### Confirmed, then closed
+
+Mutating `latSum / latN` → `latSum / runs` left the suite at **18/18 GREEN** *even after §770's new test*,
+because that fixture gives every run a latency. Pinning the first branch is precisely what made the second's
+absence visible — and would have left it invisible if I had stopped.
+
+The consequence is arguably worse than cost's: **latency is the metric an operator watches for a hung agent**,
+and a window where half the runs never reported one reads as half as slow.
+
+Pinned with the mirror fixture — one 12s run against a 5s budget plus three unmetered; dividing by 4 reads 3s,
+comfortably inside, no alarm.
+
+### Both divisors, independently
+
+| mutation | failing tests |
+|---|---|
+| latency divided by all runs | **1** |
+| cost divided by all runs | **1** |
+
+Exactly one each, and different ones — the two cases are independent, not a single test catching both. That
+matters: a shared fixture would have made the pair *look* covered while one branch rode on the other's
+assertion.
+
+`workers/api/test/watchtower.test.ts` 17 → **19** across §770/§771; source restored byte-identical.
+
+### The pattern, stated once more because it recurred against me
+
+Six instances now, and the last two were mine: **pinning one branch of a decision makes the other's absence
+visible, and that visibility is worth acting on in the same session.** §770's trigger existed because I noticed
+it while writing; the loop is what turned noticing into closing.
+
+### Exit state
+
+`workers/api` watchtower 19/19; `test:tools` 1041; lint 0; typecheck 0; `verify:docs` 0.
+
+**Reopen triggers**
+- A third metric joins the budget (`maxAvgX`) → it needs its own mixed-window case. Two independent cases exist
+  now; a third that rides on either is the failure this phase closed.
+- The window changes from 24h → the fixtures seed at `NOW`; a shorter window silently empties them, and both
+  cases would pass over nothing. The `alarmed` assertions are positive, so an empty window reds — checked, not
+  assumed.

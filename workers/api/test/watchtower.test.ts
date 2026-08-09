@@ -297,6 +297,29 @@ describe("Watchtower — the agent-drift alarm (REQ-113 per-agent cost/latency b
     expect(JSON.parse(a!.detail)).toMatchObject({ agent, avg_cost_cents: 200, over: ["cost"] });
   });
 
+  // §771 — THE LATENCY DIVISOR, the sibling §770 left. `avgLatencyMs` is `latSum / latN`, the identical shape,
+  // with the identical gap: mutating it to divide by `acc.runs` left this suite at 18/18 GREEN even after §770
+  // added the mixed-COST window, because that fixture gives every run a latency. Two branches of one decision,
+  // and pinning the first is what made the second's absence visible.
+  //
+  // The failure direction is the same and the consequence is arguably worse: latency is the metric an operator
+  // watches for a hung agent, and a window where half the runs never reported one would read as half as slow.
+  it("EXCLUDES unmetered runs from the LATENCY average — one 12s run still breaches a 5s budget", async () => {
+    const scope = "wt-drift-mixed-lat-";
+    const agent = "watchtower-probe";
+    // One reporting run well over the 5s budget, three with no latency at all. Dividing by 4 reads 3s — inside.
+    await seedAgentRun(scope, `${scope}s1`, 0, { agent, latencyMs: 12_000, costCents: 0 });
+    await seedAgentRun(scope, `${scope}s2`, 0, { agent, costCents: 0 });
+    await seedAgentRun(scope, `${scope}s3`, 0, { agent, costCents: 0 });
+    await seedAgentRun(scope, `${scope}s4`, 0, { agent, costCents: 0 });
+
+    const r = await runWatchtowerSweep(env.TENANT_A_DB, TENANT, NOW, { scope });
+    expect(r.agent_drift.alarmed, "the unmetered runs diluted the latency average and hid a real breach").toBe(1);
+    const a = await alarm(watchtowerAlarmId(TENANT, "agent_drift", { scope, object: agent }));
+    expect(a).not.toBeNull();
+    expect(JSON.parse(a!.detail)).toMatchObject({ agent, avg_latency_ms: 12_000, over: ["latency"] });
+  });
+
   it("RAISES on COST drift alone (avg cost per run over budget) with latency well inside budget", async () => {
     const scope = "wt-drift-cost-";
     const agent = "concierge";
