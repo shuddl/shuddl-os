@@ -38,8 +38,25 @@ export function priceFreight(shipment: ShipmentPhysics, tariff: ZoneTariff): Fre
   if (typeof weight !== "number" || !Number.isFinite(weight) || weight <= 0 || !Number.isInteger(weight)) {
     return { status: "UNKNOWN", reason: "missing_physics" };
   }
-  if (shipment.dims === null || shipment.dims === undefined) {
+  //    DIMS ARE A MEASUREMENT, NOT A TOKEN (audit §820). The check here used to be presence alone —
+  //    `!== null && !== undefined` — which any object satisfies. Measured: `{}`, all-zeros, negatives and
+  //    NaN each returned PRICED. The API-reachable shape is the one that matters: `/v1/rate`, the public
+  //    quote and the MCP quote all type l/w/h as `nonnegative()` and pieces as `positive()`, so a caller can
+  //    POST one piece measuring 0×0×0 inches and receive a real price — a price on air, over the public API,
+  //    against the law this module exists to enforce. The ledger already knew better: the
+  //    `freight.measured` event schema requires `SafeInt.min(1)` per dimension, so the PRICING path was
+  //    laxer than the LEDGER path for the same physical fact.
+  //    The remedy is REQ-004's own — UNKNOWN, not a 400. The boundary schemas deliberately admit 0 to mean
+  //    "this dimension was not provided", and turning that into a rejection would break callers; treating it
+  //    as unmeasured is exactly what the law prescribes. Guard shape mirrors the weight guard above.
+  const dims = shipment.dims;
+  if (dims === null || dims === undefined) {
     return { status: "UNKNOWN", reason: "missing_physics" };
+  }
+  for (const measure of [dims.l_in, dims.w_in, dims.h_in, dims.pieces]) {
+    if (typeof measure !== "number" || !Number.isFinite(measure) || !Number.isInteger(measure) || measure <= 0) {
+      return { status: "UNKNOWN", reason: "missing_physics" };
+    }
   }
 
   // 2. Zone: longest-prefix match of dest_zip. No match ⇒ we don't serve the lane, still no price on air.

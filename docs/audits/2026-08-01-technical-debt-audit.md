@@ -459,6 +459,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 264 | §816 | **§817** | **PHASE 39 CLOSED — the money law gets a gate, and the gate gets audited harder than the code.** §816's trigger built: a standing `float-money-division` check replaces the hand sweep. Found a **second live float-on-money** (`avgCostCents = Math.round(costSum / costN)`) — and the fix needed a fix, because `roundHalfUp` THROWS below zero where `Math.round` did not, so one malformed stored row would have taken the whole drift sweep down (**strictly worse than the bug**); parse tightened to `c >= 0`, whose removal left the suite **19/19 green** until a test pinned it. Then **four defects in the gate itself**: a `path:line` allowlist that went stale TWICE in one phase; a left-operand-only pattern that let a **planted violation come back CLEAN** (the gate didn't fail — the PROBE did); `//` read as a division (**9** FPs); and `/` inside a string literal (2). FP count measured 9 → 2 → **0**, and the allowlist shrank 4 → **2** because three "judgement calls" were scanner artifacts. Proved on 4 axes incl. **40 lines of drift → still green**. `verify:docs` rotted 4 citations from my own comment inserts — 3rd catch this session; **line numbers are not a key** |
 | 265 | §817 | **§818** | **PHASE 40 CLOSED — rule 10 was proven for the CSVs we wrote, not for the law.** Reused §817's frame (*which law has no gate?*) and got the **opposite** answer: rule 10 is among the best-gated in the repo — **five `THE LAW` blocks**, one checking the column↔gap-row count is airtight. But every proof is a **fixture**. Planting a real silent drop (`if (p.header.trim() === "") continue;`) left the suite **19/19 GREEN** — no fixture has a blank header, and **one trailing comma in a legacy export makes one**. Shipped a property over 300 seeded header sets incl. degenerate shapes, asserting every column is APPLIED or carries **exactly one** gap row (not "at least one" — double-counting turns a review queue into noise), plus a non-vacuity test on the corpus. 3 REDs. **Clean negative**: the plan layer was already total for all 8 degenerate shapes — the gap was one layer down. **Process error recorded**: `git checkout` on the uncommitted test file DELETED §818 (checkout is a discard, not a restore); caught in one command, re-applied |
 | 266 | §818 | **§819** | **PHASE 41 CLOSED — the mirror was compared to a DRAWING of the thing.** Rule 3 (gates are server-side) on the driver seam. `stop-flow.ts` exports `serverRequiredEvidence` whose doc-comment says it exists *"so a test can prove the client flow is a true superset-mirror of the server Gatekeeper"* — but its body is a **hand-copied list**, and the test proves flow ⊇ that list while **never calling** `assertPickupDepart`/`assertDelivery`. The client was checked against its own drawing of the server. Measured: tightening the SERVER gate left the driver suite **9/9 GREEN**. The hidden failure is the worst shape here — a real driver completes every step the app shows, taps depart, and the server rejects it: **acceptance demo #3 failing in the field, not in CI**. Fixed by making the authority declare itself — an EMPTY prior makes each gate throw `GateError.required_evidence`, its own complete set, so nothing is transcribed. + a non-vacuity floor (two EMPTY lists are equal). 3 REDs incl. the previously-silent one. **The two sides agree today** — nothing was mis-gated; this pinned a correct agreement |
+| 267 | §819 | **§820** | **PHASE 42 CLOSED — a PRICE ON AIR, reachable from the public API.** Law 4 / REQ-004. `priceFreight` guards `weight_lb` exhaustively (0/neg/NaN/Inf/fractional all tested) but guarded `dims` by **presence alone** — `!== null && !== undefined`, which ANY object satisfies. Measured: `{}`, all-zeros, negatives and NaN each returned **PRICED $300.00**. Reachable: `/v1/rate`, `pub/quote` and the MCP tool all type dims `l/w/h: nonnegative(), pieces: positive()`, so **one piece measuring 0×0×0 inches gets a real price over three surfaces**. Dims never feed the computation — their only job is to be the token saying *this was measured*, and a placeholder passed. **The ledger already knew better** (`SafeInt.min(1)`; the contracts test asserts `l_in:0` throws) — the PRICING path was laxer than the LEDGER path, with the weaker mechanism facing the internet. Fixed at the engine (server-side, so all 3 surfaces inherit it); remedy is UNKNOWN not 400, because all four boundary schemas agree on `min(0)` meaning *not provided*. 3 REDs |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -47395,3 +47396,68 @@ changed. This phase converted a correct-but-unpinned agreement into a checked on
   probe must never read as a clean parity.
 - The override path (`overrideSatisfies`) becomes reachable from the driver → every assertion here drives the
   gates with no override, so the override branch is out of scope and unmeasured by this file.
+## §820 — PHASE GATE: PHASE 42 CLOSED — a price on air, reachable from the public API
+
+Fourth application of §817's frame, on CLAUDE.md law 4 / REQ-004: *"No price on air: missing weight/dims →
+UNKNOWN, no sell."* This one is not a shape problem. **It is a live, externally-reachable defect.**
+
+### The find
+
+`priceFreight` guards its two inputs very differently:
+
+| input | guard | verdict |
+|---|---|---|
+| `weight_lb` | `typeof !== "number" \|\| !isFinite \|\| <= 0 \|\| !isInteger` | **exhaustive** — 0, negative, NaN, Infinity and fractional are each tested |
+| `dims` | `=== null \|\| === undefined` | **presence only — ANY object satisfies it** |
+
+Measured before the fix: `{}`, all-zeros, negatives and NaN each returned **PRICED $300.00**.
+
+**And the reachable case is the one that bites.** `/v1/rate`, `pub/quote` and the MCP quote tool all type
+dims identically — `l_in/w_in/h_in: nonnegative()`, `pieces: positive()`. So a caller POSTs **one piece
+measuring 0 × 0 × 0 inches**, Zod accepts it, and the rater returns a real price. A price on air, from
+outside, over three surfaces including the one demo #4 uses (a booking placed from Claude via MCP).
+
+Dims never feed the computation — grepped every use in `packages/rater/src`, and the only one is this
+presence check. Their entire job is to be the token that says *this freight was measured*. A placeholder
+object was accepted as that token.
+
+**The ledger already knew better.** `freight.measured` / `DimsCapturedPayload` require `SafeInt.min(1)` per
+dimension — `packages/contracts/test/physical-events.test.ts:88` asserts `l_in: 0` **throws**. So the PRICING
+path was laxer than the LEDGER path for the same physical fact, and the delta was reachable by anyone with an
+API key. The two-mechanisms pattern, with the weaker mechanism facing the internet.
+
+### The fix, and why UNKNOWN rather than 400
+
+Every dimension must now be a positive whole number — the same shape as the weight guard, stated as such in
+the code so the parity is visible.
+
+The remedy is REQ-004's own. **Not** tightening the four boundary schemas to `min(1)`: all four agree on
+`min(0)`, which is too consistent to be an accident — 0 reads as *"this dimension was not provided"*, and
+turning that into a 400 would break callers who are honestly reporting what they don't know. The law's
+prescribed answer to unmeasured physics is UNKNOWN-no-sell, and that is now what they get. The gate is also
+in the right place under rule 3: the engine is the server-side authority, so all three surfaces inherit it.
+
+Proved three ways: presence-only guard restored → **4 RED** · guard narrowed to `l_in` alone → the per-field
+test REDs · guard made total → the **non-vacuity** test REDs (alongside 31 pricing tests, which is the point
+— it confirms the new guard rejects the unmeasured and not the measured).
+
+### Exit state
+
+`packages/rater` **165** (+5); `@shuddl/api` 811; `@shuddl/mcp` 185; typecheck 0; lint 0. Nothing depended on
+zero-dims pricing — the only pre-existing `l_in: 0` in the tree is the contracts test asserting it throws.
+
+A process note worth keeping: my first insertion of these tests landed **inside** an existing `it(...)` block
+because I located its closer by searching for the next `"  });"` — the wrong indentation, so it matched a
+nested one and swallowed the closing brace. The suite went red immediately and I restored from the snapshot
+taken beforehand rather than hand-patching. §818's lesson applied on the first try this time: the snapshot
+existed because the file was unsaved, not because I planned to mutate it.
+
+**Reopen triggers**
+- A boundary schema moves from `min(0)` to `min(1)` → then a zero dimension becomes a 400 and this guard
+  stops being the thing users hit. That is a **deliberate product decision** about callers who send 0 for
+  "unknown", not a cleanup; it needs its own row here.
+- `dims` starts FEEDING the price (dimensional weight, cube utilisation) → this guard becomes load-bearing
+  for a number rather than for a gate, and the whole rounding discipline of §816/§817 applies to it.
+- A fourth quote surface appears → it inherits the engine guard automatically, which is the point of fixing
+  it server-side; but its Zod schema is its own copy of `Dims` and nothing pins the four against each other.
+  That four-way duplication is unpinned today and is the obvious §819-shaped successor to this phase.

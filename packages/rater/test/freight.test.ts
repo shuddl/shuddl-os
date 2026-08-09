@@ -95,6 +95,74 @@ describe("priceFreight — UNKNOWN-no-sell (no price on air, REQ-004)", () => {
     });
   });
 
+  // ── §820 — DIMS ARE A MEASUREMENT, NOT A TOKEN ──────────────────────────────────────────────────────
+  //
+  // The weight guard above is exhaustive: 0, negative, NaN, Infinity and fractional each ⇒ missing_physics.
+  // The dims guard was presence ONLY (`!== null && !== undefined`), which ANY object satisfies. Measured
+  // (§820) before the fix: `{}`, all-zeros, negatives and NaN each returned **PRICED $300.00**.
+  //
+  // THE ONE THAT MATTERS IS API-REACHABLE. `/v1/rate`, `pub/quote` and the MCP quote tool all type dims as
+  // `l_in/w_in/h_in: nonnegative()` with `pieces: positive()`. So a caller POSTs one piece measuring
+  // 0 × 0 × 0 inches, Zod accepts it, and the rater returns a real price — a price on air, from outside,
+  // against the law this module exists to enforce (REQ-004 / CLAUDE.md law 4).
+  //
+  // The ledger already knew better: `freight.measured` requires `SafeInt.min(1)` per dimension. The PRICING
+  // path was laxer than the LEDGER path for the same physical fact — the two-mechanisms delta, and the delta
+  // was reachable by anyone with an API key.
+  //
+  // The remedy is UNKNOWN rather than a 400, deliberately: the four boundary schemas admit 0 to mean "not
+  // provided", and REQ-004's prescribed answer to unmeasured physics is UNKNOWN-no-sell, not a rejection.
+  it("§820: a ZERO dimension ⇒ UNKNOWN — the exact payload the public API accepts", () => {
+    // pieces:1 with l/w/h:0 is precisely what `Dims` in workers/api/src/routes/rate.ts permits today.
+    expect(priceFreight(okShip({ dims: { l_in: 0, w_in: 0, h_in: 0, pieces: 1 } }), tariff)).toEqual({
+      status: "UNKNOWN",
+      reason: "missing_physics",
+    });
+  });
+
+  it("§820: ONE zero dimension is enough — a flat or zero-width item is still unmeasured", () => {
+    // Asserted per-field because a guard that only checked `l_in` would pass the case above.
+    for (const dims of [
+      { l_in: 0, w_in: 40, h_in: 48, pieces: 1 },
+      { l_in: 48, w_in: 0, h_in: 48, pieces: 1 },
+      { l_in: 48, w_in: 40, h_in: 0, pieces: 1 },
+      { l_in: 48, w_in: 40, h_in: 48, pieces: 0 },
+    ]) {
+      expect(priceFreight(okShip({ dims }), tariff), `dims ${JSON.stringify(dims)} must not price`).toEqual({
+        status: "UNKNOWN",
+        reason: "missing_physics",
+      });
+    }
+  });
+
+  it("§820: negative, NaN, Infinity and fractional dims ⇒ UNKNOWN (parity with the weight guard)", () => {
+    for (const dims of [
+      { l_in: -5, w_in: 40, h_in: 48, pieces: 1 },
+      { l_in: Number.NaN, w_in: 40, h_in: 48, pieces: 1 },
+      { l_in: Number.POSITIVE_INFINITY, w_in: 40, h_in: 48, pieces: 1 },
+      { l_in: 48.5, w_in: 40, h_in: 48, pieces: 1 },
+      { l_in: 48, w_in: 40, h_in: 48, pieces: 1.5 },
+    ]) {
+      expect(priceFreight(okShip({ dims }), tariff), `dims ${JSON.stringify(dims)} must not price`).toEqual({
+        status: "UNKNOWN",
+        reason: "missing_physics",
+      });
+    }
+  });
+
+  it("§820: a dims object with NO fields ⇒ UNKNOWN (presence is not measurement)", () => {
+    // The shape that made the old guard indefensible: `{}` is not null and not undefined.
+    expect(priceFreight(okShip({ dims: {} as never }), tariff)).toEqual({
+      status: "UNKNOWN",
+      reason: "missing_physics",
+    });
+  });
+
+  it("§820: REAL dims still price — the guard rejects the unmeasured, not the measured (non-vacuity)", () => {
+    // Without this, tightening the guard to reject everything would satisfy every assertion above.
+    expect(priceFreight(okShip({ dims: { l_in: 48, w_in: 40, h_in: 48, pieces: 1 } }), tariff).status).toBe("PRICED");
+  });
+
   it("dims = undefined ⇒ UNKNOWN/missing_physics", () => {
     const s: ShipmentPhysics = { origin_zip: "97201", dest_zip: "80112", weight_lb: 1500 };
     expect(priceFreight(s, tariff)).toEqual({ status: "UNKNOWN", reason: "missing_physics" });
