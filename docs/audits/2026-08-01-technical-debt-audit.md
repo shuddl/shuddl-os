@@ -44592,7 +44592,9 @@ unchanged since §737/§769 — it cannot be supplied from inside this repo:
    board to `21 PASS · 0 FAIL`;
 4. the "+ photos" half of acceptance demo #1 (three open decisions);
 5. the filmed half of the five acceptance demos;
-6. §724's portal-liveness gap (needs an API `webServer` entry).
+6. ~~§724's portal-liveness gap (needs an API `webServer` entry).~~ **CLOSED by §781** — and its stated
+   cause was wrong: the spec MOCKS the API, so no `webServer` was ever needed. The real gap was that nothing
+   asserted the board had loaded. Closing it surfaced the unparsed-boundary defect §782 then swept repo-wide.
 
 **Reopen triggers for this phase**
 - The live VAN/AS2 adapter is wired → §775's test changes from dormant-path insurance to the thing standing
