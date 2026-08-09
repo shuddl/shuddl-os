@@ -435,6 +435,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 240 | §792 | **§793** | **PHASE 17 CLOSED — the CLAIMS the code makes about itself.** §792 named the pattern (3 of 5 findings were in something a test CLAIMED); this enumerates its most checkable form — *"these two agree"*. **Structural finding: this codebase avoids drift by SHARING rather than copying**, so there are very few parity claims because there are very few parities. Verified rather than assumed: mutating the shared `unbilledShipmentsSql` reddens **all three** consumers at once (KPI · recon re-drive · Watchtower) — *not "they were equal when someone looked" but "there is only one of them, and every consumer is provably wired to it"*. The one unavoidable 4-copy case (a DDL CHECK + 3 TS enums) is **gated** — planting a 7th mode names the file, both lists, and which direction costs what. The single genuine unguarded copy was `dunning.ts`, found and gated last phase. **Ask of any "they agree" comment: are they one thing?** Six of seven dissolve; the seventh was the defect |
 | 241 | §793 | **§794** | **PHASE 18 CLOSED — SCALE, and keeping a filed hold from ROTTING.** Seven kinds now bound the system (+ scale). The unbounded-read finding **was already made** — the GO-LIVE-CHECKLIST files 7 sites precisely, with the right remedy named and the wrong one forbidden (**a bare `LIMIT` truncates silently**). All eight statements re-verified: still unbounded, record TRUE. **What did not exist was anything keeping it true** — §470 re-verified BY HAND. New gate asserts the roster **both ways**: a site gaining a bound REDS (so a bare-LIMIT "fix" gets reviewed), and deleting the checklist row while the reads stay unbounded REDS. It does NOT try to discover new ones — a general detector returns ~29 vs 7, which would be ignored within a week. Also **one stale count in CODE** (`invoices.ts` said "five", doc says seven) — the usual finding inverted: the doc was current and the comment had rotted |
 | 242 | §794 | **§795** | **Auditing the FILED debt — and a hold that UNDER-STATED itself.** The GO-LIVE-CHECKLIST is the filed debt register (92 rows); the question for a filed hold is *is it still true, and is anything keeping it true?* The B2A row named 04/05 → "visible duplicate", **fail-closed**. But B2A01 also carries **`01` = CANCELLATION**, which `parse-204.ts` reads, types and puts on the TenderDoc — and **nothing in `workers/translator/src` consumes `doc.purpose`** (zero references; every fixture uses "00", so no test could notice). Measured end-to-end: a cancellation yields **200, the full gated chain, 1 shipment, 0 anomalies** — identical to an original, so production books freight the partner CANCELLED. Not a duplicate: **fail-OPEN**. Did NOT build it (not in the register — REQ-205 is scoped to 04/05) and did NOT append a row while REQ-289 is uncommitted; **proposed** it here, widened the checklist row, and added a TRIPWIRE that asserts the wrong behaviour on purpose. **Third parsed-but-unconsumed defect this session** — a schema field with zero consumers is a question, not a fact |
+| 243 | §795 | **§796** | **PHASE 19 CLOSED — parsed-but-unconsumed, swept and BOUNDED.** §795 named a pattern with three instances this session (§773/§783/§795), so I ran it as a search. The discriminator is what the DECLARATION does: **`z.literal` = consumed by the parse** (only one value survives `safeParse` — `acknowledged: z.literal(true)` needs no reader); permissive types = too noisy; **a multi-member `z.enum` or bare `z.boolean` with NO reader = the shape**. Result: **203 fields → exactly ONE**, `purpose`, the hold already filed — so §795 was the only member of its class. Gated both ways: a new unread enum REDS, **and `purpose` disappearing REDS** (a zero-result scan proves nothing unless calibrated against a known positive). **Three instrument corrections before one true reading** — corpus excluded `apps/` (42), same-file consumption excluded (35, nearly reported `format` as a finding), `z.literal` not distinguished. A detector returning FEW results is not a detector that is RIGHT |
 
 **Current measured state — as measured 2026-08-08 at `fae1a17` (§775's board run):** the merge board is
 **26 gates — 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape since §737. `typecheck` 0 · `lint` 0 ·
@@ -45861,3 +45862,66 @@ clean catch of my own out-of-order write.
   checklist row now says that explicitly so the two cannot be conflated at go-live.
 - Any other schema field is found with zero consumers → same question. `purpose` was typed, validated, and
   ignored for as long as the parser has existed.
+## §796 — PHASE GATE: PHASE 19 CLOSED — parsed-but-unconsumed, swept and bounded
+
+§795 named a pattern rather than just a bug: **information the system correctly extracts and then discards is
+invisible to every test**, because the fixture that would exercise the discarded case is precisely the one
+nobody wrote. Three findings this session had that shape (§773, §783, §795). A named pattern with three
+instances is a search, so I ran it.
+
+### The discriminator, which is the whole phase
+
+A field with "no consumer" is far too broad — 203 schema fields, and a naive scan flags 42. The useful cut is
+what the *declaration itself* does:
+
+| declared as | verdict |
+|---|---|
+| `z.literal(X)` | **consumed by the parse** — only one value survives `safeParse`, so the check IS the enforcement (`ConsentAck.acknowledged: z.literal(true)`: an unacknowledged consent simply fails to parse). Never a finding. |
+| `z.string()` / `z.number()` | data carried for the record; often legitimately inert on an append-only event. Too noisy to gate. |
+| **multi-member `z.enum([…])` or bare `z.boolean()` with NO reader** | **the shape.** The schema went to the trouble of distinguishing cases and nothing branches on the distinction. |
+
+### The result, bounded
+
+**203 schema fields across `packages/ workers/ apps/ tools/` → exactly ONE match: `purpose`**, the §795 hold
+already found and filed. So that defect was the *only* member of its class in the repo. §795 is bounded the
+way §780 bounded §777.
+
+Gated, both ways, each proved by planting:
+
+| plant | result |
+|---|---|
+| a new `z.enum(["accept","decline"])` nothing reads | **RED**, naming file, field and declared type |
+| `purpose` narrowed to `z.literal("00")` (i.e. the hold closes) | **RED** — *"the detector no longer reports `purpose`"* |
+
+The second assertion is the one that makes the gate honest: **a zero-result scan proves nothing unless the
+scan is calibrated against a known positive.** If `purpose` stops being reported, either it was fixed (close
+the hold, drop the roster row, delete §795's tripwire) or the detector broke — both need a human, neither may
+pass silently.
+
+### Three instrument corrections before one true reading
+
+The measurement was wrong three times, and each correction cut the noise:
+
+1. **corpus too narrow** — I excluded `apps/`, so response fields consumed by the surfaces (`abstained`,
+   `citations`, `h_in`) read as orphans. 42 → 35.
+2. **same-file consumption excluded** — I only counted readers *outside* the declaring file, so
+   `export-journal.ts`'s `format` (declared line 28, branched on line 49) read as an orphan. That one nearly
+   became a reported finding.
+3. **`z.literal` not distinguished from `z.enum`** — without that cut the list is dominated by fields the
+   parse already enforces.
+
+Only after all three did the scan return the calibrated 1. The pattern is the session's recurring one:
+**a detector that returns few results is not the same as a detector that is right**, and the only proof is
+that it still finds something you already know is there.
+
+### Exit state
+
+No source changed — both plants restored byte-identical. `test:tools` **1055** (+2); lint 0; typecheck 0.
+
+**Reopen triggers**
+- The gate reds on a NEW field → act on the value, narrow it to a `z.literal` so the parse enforces it, or
+  file it with its hold. "Leave it inert" is the option that produced §795.
+- `purpose` gains a consumer → the calibration test reds by design. Close the hold in the same commit: §795,
+  the GO-LIVE-CHECKLIST row, this roster, and the `inbound.test.ts` tripwire all move together.
+- A field is declared `z.string()` where an enum would be honest → outside this gate by construction, and the
+  place the next instance of this class will hide.
