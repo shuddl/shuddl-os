@@ -570,6 +570,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 375 | §927 | **§928** | **A MONEY CONSTRAINT THAT WAS THE SOLE GUARD FOR ONE INPUT — AND THE TEST NAMED AFTER IT COULD NOT REACH THAT INPUT.** 91 value-constraint sites, 53 survive contracts, **0 of 53 caught by ledger**. **I killed the ~1.5h escalation on §663's evidence**: it had already decided this class — *pinning all 73 would be volume, not assurance* — narrowing 73→5 (those with an explanatory comment)→1. Finishing would have been §917's redundancy at ninety minutes' cost. **Pivoted to a heuristic orthogonal to §663's**: **array** `.min(1)`, where empty is not id-hygiene but a silent **zero** through every downstream `reduce`. `invoice.issued.lines` has NO comment, so §663's filter structurally could not surface it. **The finding**: `QuotePricedPayload`'s penny-parity refine (Σ lines === sell) refuses an empty array — **except that `sell: Cents` may be ZERO**, where Σ[]=0===0 PASSES and `.min(1)` is the only refusal left. Removing quote-side and invoice-side minimums (§677: disable siblings TOGETHER) left **contracts, api, agents, billing ALL green** — an append-only `quote.priced` with **no basis at all**, and an invoice for zero. The quote-side minimum is load-bearing; the invoice-side is defence-in-depth behind it. **The test named for it passes with it deleted** (fixture `sell`=120 000, so the refine fires instead) — §906's shape on a money schema. Fixed with the case the refine is blind to, asserted on the array minimum's own message. **Two harness failures, both mine**: `atexit` does NOT run on SIGTERM (a kill left a DISABLED constraint in the tree, caught by `git status`), and a non-compiling mutation reported as `ERR/ERR/ERR` that a careless read takes for three greens — the re-run now typechecks UNDER the mutation before trusting any suite. contracts 328→329 |
 | 376 | §928 | **§929** | **§928's TRIGGER CLOSED — THE INPUT IS REACHABLE, BY THE COMPOSER'S OWN OMIT-ZERO RULE.** §928's trigger was phrased as a mutation, so it was runnable in the next phase (§926's rule). **Answer strengthens §928**: three facts compose — `compose` omits zero lines BY DESIGN (`if (freightCents > 0)`, fsc likewise, zero accessorials dropped, because a zero line is un-projectable against `money_lines CHECK(amount_cents != 0)`); `compose` ACCEPTS `freightCents === 0`; and `min_charge_cents` is `NonNegCents` (**>= 0**), with `engine.ts` flooring at `Math.max(asRated, minCharge)`. So `compose(0, [], fsc 0%, none)` returns **`lines: []`, `sell_cents: 0`** — measured and now pinned. That is precisely the input the penny-parity refine cannot refuse (Σ[]=0===0), leaving `.min(1)` as the sole guard. **The source states an ASSUMPTION where there is no enforcement** — *"freight is > 0 for any real PRICED shipment"* — while the contract deliberately permits the tariff that breaks it. What `.min(1)` buys: a zero-charge or half-loaded tariff makes `/v1/rate` **fail closed** instead of recording a quote with no basis — and a half-loaded tariff is exactly the onboarding shape. **§928's finding is therefore stronger than stated**: not a schema guard for an input nobody produces, but for one the rater's own composer produces. Proof: omit-zero rule removed → **RED (2)**, typecheck PASSING under the mutation. rater 165→166 |
 | 377 | §929 | **§930** | **§929's TRIGGER CLOSED — A HALF-LOADED TARIFF BLAMES THE CALLER.** Seeded a contract-legal zero-charge tariff (`cwt_cents: 0`, `min_charge_cents: 0`, fsc 0) and called `/v1/rate`: **400 VALIDATION_FAILED**, and **zero `quote.priced` recorded** (asserted, not inferred). **The ledger is protected; the diagnosis is inverted** — an integrator is told their REQUEST is invalid when the truth is that this TENANT'S TARIFF is not loaded, and a half-populated tariff is a state every new tenant passes THROUGH. **Filed, not fixed**: the rater already speaks `UNKNOWN` + reason (`no_zone`/`no_rate_group`/`missing_physics`), but a zero-charge tariff **computes a real zero**, so the engine returns PRICED and the refusal lands two layers later at the append where only a 400 is left. A `zero_tariff` UNKNOWN reason is a BEHAVIOUR change → register amendment → owner decision (CLAUDE.md rule 1). What ships is the behaviour **pinned** (400 + code) beside the invariant that matters, so a future change is a decision not a drift. **Four phases chain**: §927 refusals defended → §928 a sole guard exists → §929 the input is reachable → §930 the caller sees a mis-attributed 400; none was visible from the one before it. The section-ref gate caught the checklist row citing §930 **before it existed** — the forward-reference rule enforced on me, correctly. api 823→824 |
+| 378 | §930 | **§931** | **STOPPING POINT at `5c29d9d` — 19 PASS · 2 FAIL · 5 BLOCKED.** Twenty phases (§911–§930). Board shape **unchanged from §916/§924 — and that is the finding**: nothing moved the board because **the board was never measuring these classes**. Produced **28 invariants** that were enforced by exactly one mechanism with nothing exercising it, and **7 gates** converting each class from invisible-to-CI into fails-CI. Both FAILs re-derived from this run's own output (`expected [{req_id:'REQ-289'}] to deeply equal []`); the 5 BLOCKED report *could not run*, not *clean*; 1,486 citations resolving, all four browser gates green. **Six corrections to my own record** — §912 eyeballed 11 where 17 was the count; §917 re-measured what four phases already had; §920 rebuilt a rule blocking since §239 (whose glob stops one directory short of §919's defect); §926 found my own trigger **backwards**; §927 followed a §84 verdict **§377 had already overturned**, and nearly shipped 3 of 4 fixes; §925/§927 reproduced my own corpus-gap criticism one phase later, caught only by verifying my own prose. **Repo-owned failure set EMPTY**; six owner-held items. **For the next session**: close a trigger in the phase that writes it — §927→§930 chained four deep and no question was visible from more than one step back |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -54701,3 +54702,81 @@ is the argument for closing a trigger in the phase that writes it rather than fi
   document it in the onboarding runbook. The decidable form if it is ever taken: the §930 test asserts
   `status === 400` today, so implementing the UNKNOWN path turns that assertion RED — which is the signal
   that the decision was executed rather than forgotten.
+## §931 — PHASE GATE: STOPPING POINT at `5c29d9d` — 19 PASS · 2 FAIL · 5 BLOCKED, and what twenty phases bought
+
+Twenty phases (§911–§930). Measured with `pnpm verify:merge` against a tree clean but for the owner's
+uncommitted `genesis/09` REQ-289 row.
+
+**26 gates: 19 PASS · 2 FAIL · 5 BLOCKED** — the same shape as §916 and §924. Both FAILs are that one row,
+re-derived from this run's own output rather than inherited: `expected [{ req_id: 'REQ-289' }] to deeply
+equal []`, plus the register-contiguity case reading 289 where 288 is pinned. `test:tools` 1,161 with the
+same three classifier failures. The 5 BLOCKED report *could not run*, not *clean*.
+
+Everything else holds: invariants `21/22 tables`, append-chokepoint `2 allowlisted modules and nothing
+else`, authority-coverage `9 consults across 5 modules`, **1,486 citations resolving / 265 anchored**,
+bundle ratchet within 5% on all three surfaces, design audit clean, and all four browser gates green
+(perf 1 · visual 5 · a11y 4 · e2e 6, with 1,000 entities at ~98fps p95 and zero operating-window long tasks).
+
+### The board did not move, and that is the finding — again
+
+§924 said this and it is worth repeating with more evidence behind it: **nothing here moved the board
+because the board was never measuring these classes.** Twenty phases produced
+
+- **28 invariants** that were enforced by exactly one mechanism with nothing exercising it, and
+- **7 gates** that convert a class from invisible-to-CI into fails-CI.
+
+Every one was found by the same instrument — neuter the guard, see whether anything notices — and every fix
+was proved by watching that same mutation go RED afterwards.
+
+| where | what was undefended |
+|---|---|
+| contracts | 4 device-binding branches (asymmetric across two mirrored copies) · the interline 10000-bps sum · `SafeInt`'s `-0` · the aging partition · **`quote.priced.lines` at `sell = 0`** |
+| routes / DO | **CLAUDE.md Law 5** (interline floors vs gross) · the import body's XOR · **two cross-tenant reads** · 4 `LENS_UNRESOLVED` translations (§377's unfinished class) |
+| ledger | a double correction answering **500 instead of 400** · three `INSERT OR IGNORE` idempotency keys |
+| schema | 4 D1 CHECKs — one (`retention_status`) with **no Zod counterpart at all** |
+| billing | an unlinkable credit sale |
+
+Gates added: `superrefine-parity` · `enum-parity` · `check-constraint-coverage` · `migration-fixture-parity`
+· `inline-tenant-key` · `route-authz-coverage` · the role-union lens gate.
+
+### Six corrections to my own record
+
+These are the part worth reading, because each is a way the record could have lied to whoever came next:
+
+1. **§912** — "11 remaining refine sites"; there were **17**, and the list omitted the file the section was
+   about. Eyeballed, not counted.
+2. **§917** — claimed to convert a reading into a measurement; **four earlier phases had already measured
+   it**, and the gate's own comments recorded my exact plants.
+3. **§920** — rebuilt a rule blocking since §239. Deleting it surfaced the sharper finding: **that gate's
+   glob stops one directory short of where §919's defect lived.**
+4. **§926** — my own §915 trigger was **backwards**: it named the failure mode that *would* be caught and
+   missed the one that would not.
+5. **§927** — I classified three silent guards as "defensive, per §84" — a verdict **§377 had already
+   overturned by measurement**. And I nearly shipped 3 of 4 fixes for that class.
+6. **§925/§927** — I criticised a gate for a corpus that stopped short, then **shipped the same shape one
+   phase later**; found only by verifying a sentence I had written myself.
+
+### Stopping point
+
+**The repo-owned failure set is empty.** Every FAIL traces to one register row that is the owner's to
+classify; every BLOCKED traces to an input this repository does not hold. Nothing is half-finished: each
+phase is committed with its record, its mutation proof, and its triggers either closed in-phase or named as
+owner-held.
+
+**Owner-held:**
+1. **REQ-289** needs a classifiable `status`/`wp` — the entirety of the repo's red.
+2. **Nine private fixtures + `IDENTITY_DENYLIST`** — five gates cannot run without them.
+3. **A `zero_tariff` UNKNOWN reason** (§930) — a behaviour change, therefore a register amendment.
+4. **`EventBase`**, the dead public export (§913).
+5. **The citation anchor's substring match** (§913) — tightening re-judges 258 anchored citations.
+6. **Two rows filed at §866/§867**, plus §930's.
+
+### What I would tell the next session
+
+**Close a trigger in the phase that writes it.** §927→§930 is four phases where each closed the previous
+one's trigger by measurement, and **no question was visible from more than one step back**. Filed forward,
+§928's trigger would have arrived as an isolated note about a `.min(1)` — and §929 and §930 would never have
+been asked, because each needed the previous *answer* to be formulable.
+
+**And search the record before building the instrument.** Three of the six corrections above are that same
+mistake in different clothes.
