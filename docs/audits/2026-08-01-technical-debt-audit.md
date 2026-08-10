@@ -534,6 +534,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 339 | §891 | **§892** | **CLAUDE.md's SEVEN HARD BUDGETS, PROBED FOR COMPLETENESS — CLEAN.** Fresh axis. The hard-budget line names seven limits; the question this session keeps asking of green gates is whether EVERY one is enforced or only most. **All seven accounted**: six rostered with a source + extractor and compared **stated-vs-enforced** (`TABLE_BUDGET`, `SURFACE_ROSTER`, `MAX_CANONICAL_VIEWS`, `EVENT_KINDS`, `TOKENS`, font families), and the other three numbers exempted **with written reasons** — `21 used` is a RUNTIME figure `check:invariants` recomputes each run (re-deriving would be a weaker second copy); `0 shadows` and `4px` are **zero-tolerance, proven by PLANTING** an artifact per rule 7, with no constant to compare against. **A zero-tolerance rule is not a count comparison, and the gate says so rather than widening a pattern until it stops matching.** The §743 floor is **span-based**, not phrase-reconstructing, and its comment gives the reason: a naive `<n> <word>` pair yields *"12 canonical"* — *"a guess about how many words a budget's name has"*, the same vocabulary error this session hit ten times from the other side. **Mutation-proved**: a stated 6-vs-enforced-5 reddens the equality check; **a NEW budget with no roster entry reddens the completeness floor** — so a limit cannot be added to CLAUDE.md without a gate, which is exactly what a hard-budget line invites |
 | 340 | §892 | **§893** | **THE ONE BUDGET WITH NO CONSTANT, MUTATION-VERIFIED.** §892's sharpest soft spot: `0 shadows/gradients/radius>4px` is exempted from the count comparison **because of a sentence** (rule 7's *proven by refusing a planted artifact*), and if that proof vanished the budget gate would still pass. **Now measured** — shadow → exit 1 `no shadows (REQ-147)`; `border-radius: 12px` → exit 1 `Radius 12px > 4px`; raw hex in a JSON style file → exit 1 `color #ab12cd … outside the five tokens (REQ-145)`; **control `border-radius: 4px` → exit 0**. The control matters as much as the REDs: a rule firing on 4px would be one nobody could keep green, and the exemption would be resting on a quietly loosened rule. **My first hex probe was WRONG** — planted in `tokens.css`, the file that DEFINES the tokens, where raw hex belongs; exit 0 briefly looked like a third of rule 7 failing. REQ-207's DoD says *a seeded raw color in a **JSON style file***. **Planting a violation where it is legal tests nothing** — 11th instrument miss this session and the FIRST caught before writing it down as a defect, because the surprising result was read against the requirement's wording instead of believed. **Not closed**: a shadow authored in TSX inline style is a different corpus, and `0 gradients` was not planted against |
 | 341 | §893 | **§894** | **THE DESIGN AUDIT'S CORPUS ENUMERATED, AND FIVE EVASIONS TRIED.** §893 closed admitting it had *probed* the corpus, not enumerated it. Read: `apps/**` + `packages/**` for `{css,tsx,ts,jsx,mjs,html}` + `*-style.json` (the JSON narrowing deliberate and documented). **Two omissions, both LATENT**: `workers/**` is unscanned (but has **0** tracked css/html/tsx/jsx and no `.ts` containing shadow/gradient/hex) and `packages/**` lacks `*.js` (**0** tracked). **Four evasions REFUSED**: shadow via CSS-var indirection, gradient via indirection, `-webkit-box-shadow`, `filter: drop-shadow()`. **The fifth was RED FOR THE WRONG REASON** — a shadow VALUE in an unused variable exits 1, and I nearly credited it: attributed, it fires **REQ-146** (font-family budget, because I added a property to the token file) or **REQ-145** (the rgba colour), never the shadow rule. Correct behaviour — the audit matches shadows by PROPERTY and colours by VALUE, and a variable no shadow property consumes **is not a rendered shadow**. *A non-zero exit says something failed, never that YOUR subject failed* — 2nd time this session that habit changed a verdict (after §885). Precise boundary: a shadow built only from SANCTIONED colours, parked unused, trips neither rule — not a hole, it renders nothing |
+| 342 | §894 | **§895** | **THE DESIGN CORPUS CAN NO LONGER EXCLUDE A DIRECTORY BY DEFAULT.** §894's structural trigger: the corpus is a **hand-written glob list**, so *a new top-level directory would be excluded by default rather than by decision* — the roster-half of §802/§822's shape. **Measured**: style-bearing files (css/tsx/jsx/html) live in `apps` (62), `packages` (16) and **`docs` (2)** — two marketing HTML files carrying **15 raw hexes**, no shadows, no gradients. **Their exclusion is CORRECT** (marketing collateral is not one of the three product surfaces; a palette rule for Command/Driver/Portal has no business failing a promo page) — **but nothing said so**, and *excluded because unlisted* is indistinguishable from *excluded because decided* until a third directory appears. Gate is DISCOVERY: enumerate every top-level dir holding a style-bearing file, require each to be in the audit's own glob list — **parsed from `tools/design/audit.ts`, not restated** (§830: read one side, COMPUTE the other) — or exempted with a reason. `docs` now carries one; a future `sites/` fails until someone writes one |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -52356,3 +52357,50 @@ Nothing changed; seven plants made and reverted, `diff -q` verified. `audit:desi
   design law stops applying to it silently — nothing watches that boundary.
 - The corpus is a hand-written glob list in `tools/design/audit.ts`. Nothing derives it from the surfaces
   actually shipped, so a new top-level directory would be excluded by default rather than by decision.
+## §895 — PHASE GATE: PHASE 115 CLOSED — the design corpus can no longer exclude a directory by default
+
+§894 enumerated the design audit's corpus and closed on the structural point: it is a **hand-written glob
+list**, and nothing derives it from the surfaces actually shipped, so *"a new top-level directory would be
+excluded by default rather than by decision."* That is the roster-half of the shape this repo already knows —
+a roster finds what it lists; only a scan finds what arrives (§802/§822/§833).
+
+### Measured
+
+Top-level directories holding style-bearing files (`css/tsx/jsx/html`):
+
+| directory | files | in corpus? |
+|---|---|---|
+| `apps` | 62 | yes |
+| `packages` | 16 | yes |
+| **`docs`** | **2** | **no** |
+
+The two are `docs/marketing/shuddl-operational-map.html` and `docs/marketing/shuddl-promo.html`, carrying
+**15 raw hexes** between them and no shadows or gradients.
+
+**Their exclusion is correct.** Marketing collateral is not one of the three product surfaces the design law
+governs, and this repo already hosts a launch-site workstream alongside the product. A palette rule written for
+Command/Driver/Portal has no business failing a promo page.
+
+**But nothing said so.** They were outside the corpus because `docs` was never listed, not because anyone
+decided marketing is exempt — and those are indistinguishable until a third directory appears.
+
+### The gate
+
+Discovery, not a roster: enumerate every top-level directory containing a style-bearing file, and require each
+to be either **in the audit's own glob list** — parsed from `tools/design/audit.ts`, not restated — or
+**exempted with a reason**. `docs` now carries its reason. A future `sites/` or `email/` directory fails until
+someone writes one.
+
+Parsing the corpus from the audit source rather than copying it is the §830 rule: **read one side and compute
+the other**, so the gate cannot drift from the thing it checks.
+
+### Exit state
+
+`tools/checks/design-corpus-coverage.test.ts` — 3 cases. `test:tools` **1,139**. typecheck 0 · lint 0 ·
+`audit:design` 0 · `verify:docs` 0. No production code changed.
+
+**Reopen triggers**
+- The gate keys on **top-level** directories. A style-bearing file appearing at the repo *root* (`index.html`)
+  has no directory to be judged by and would slip through — measured as zero today, and not gated.
+- It proves a directory is *considered*, never that the glob inside it is *right*: `packages/**` omits `*.js`
+  (§894, currently zero files), and this gate would not notice if that omission became live.
