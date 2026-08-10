@@ -516,6 +516,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 321 | §873 | **§874** | **I BUILT THE INSTRUMENT IN §873 AND WROTE THE NEXT CLAIM WITHOUT RUNNING IT.** §873's trigger said *"the Watchtower already imports `projectAuthority`"* — **false**. `watchtower.ts` neither imports nor calls it; the name appears twice, both in COMMENTS. What it actually does is `seq.append(...)`, handing an `authority.flipped` EventInput to the sequencer DO, which projects it **in its own batch** — the correct pattern, stronger than what I wrote. **Second wrong reopen trigger in two phases, identical cause** (a comment counted as code): §872 diagnosed it, §873 BUILT THE FIX INTO A GATE using `stripComments`, and I then wrote §873's trigger from the same stale probe output. **A new instrument's first job is to re-check the claims that motivated it.** Corrected measurement (comment-stripped, whole corpus): **ONE runtime composition root** (the sequencer) and one build-time writer (`tools/seed/load.ts`); `projectMessages`/`projectMoneyLines` have no direct callers at all, being internal to their `apply*` wrappers. **Gated**, because I1 (*the projection and its event commit together or not at all*) is guaranteed only by the sequencer's single `db.batch()` — a second runtime caller would write a read-model row with NO EVENT BEHIND IT, the exact state ledger-is-truth exists to forbid |
 | 322 | §874 | **§875** | **THE SEED'S "I1 EXEMPTION" IS NOT ONE, AND ITS REAL GAP IS ONE EVENT KIND WIDE.** §874 filed that `tools/seed/load.ts` projects outside the sequencer so *"seeded data can hold a read-model state the ledger cannot produce"*. **Wrong on that axis**: the loader batches `eventInsertStmt` + its projections TOGETHER, so I1 holds — same pattern, different caller, and its header already says so. **Third trigger in four phases (§872, §874, here) that measured differently than I filed it**, all three settled by one file-read. The pattern: **a reopen trigger is written at the moment of LEAST evidence** — phase ending, thing is a hunch. Recording a hunch is fine; stating it as a property is what costs. **The real gap**: the loader runs 3 of 8 projections; 4 of the missing 5 are moot (the seed emits no `approval.*`/`agent.acted`/`authority.flipped`/`message.*`), but **`generate.ts:47` DOES emit `appointment.set` and `projectAppointment` never runs** — seeded appointment events with no dock-slot claim. Currently inert **because the seed creates no `legs` rows at all** (only events/parties/shipments), so the UPDATE would match nothing — inert for a reason nobody had written down, which is the shape that stops being true quietly. NOT a REQ violation (REQ-155's DoD is determinism, which `check:seed` proves); an undocumented FIDELITY limit whose cost is a developer seeing an empty view with no note saying whether the feature or the fixture is partial |
 | 323 | §875 | **§876** | **"COMMITTING REQ-289 TURNS BOTH FAILs GREEN" IS FALSE — AND §646 HAD ALREADY SAID SO.** Measured both directions: **row PRESENT** → `check:coverage` FAIL, `check:traceability` PASS, `test:tools` 3 failed; **row ABSENT (HEAD)** → coverage PASS, traceability **FAIL** (`built-but-unspec'd REQ-289`), test:tools **1,128/1,128**. `check:coverage` reads the register FILE, not git history — **committing leaves the row present, so it fixes nothing.** The real fix is a classifiable `status`/`wp` on REQ-289 (or teaching the classifier that `ACTIVE`/`GTM-0` is a bucket): that turns coverage green, KEEPS traceability green (it needs the row, since source cites it), and takes tests to 1,128/1,128. **§646 measured this exact table 30 phases ago** — titled *the "2 FAIL" was a dirty working tree* — and opens by naming the failure I then repeated for 20 more phases; the memory index even said *"partly superseded"* and I read past it while writing two stopping points asserting the superseded version. **A claim inherited from earlier in a session is not evidence, and the cheapest refutation is the record itself.** Causal shape: I had a CORRELATION (both FAILs move with the row) and published an INTERVENTION (committing fixes them) without running it — `git stash` is one command |
+| 324 | §876 | **§877** | **§876'S LESSON ON THE CHECKLIST: I PROBED SIX ROWS AND THREE WERE WRONG.** Only **repo-owned** rows can rot (a row waiting on a secret or counsel cannot). Of 288 rows / 255 open, probed 6 with falsifiable mechanical claims. **(1) `hashPath` unframed — FIXED, still listed**: the row cites *"`h.update(f).update(readFileSync(f))`, no framing"* and the source now length-prefixes both path and bytes. Struck. **(2) `notifyBoard` — the named seam DOES NOT EXIST**: 3 hits, ALL in documentation (the row, the WP-02 plan, WP-02.md); no such symbol in code. The row's SUBSTANCE is right (polled board, no push) and belongs to **REQ-257 vNEXT** (§865) — right about the world, wrong about the artifact, which is the harder stale to notice because the citation looks like evidence. **(3) §857 overpraised the identity redaction**: `mask()` is `term[0] + "*".repeat(len-1)`, so **first char and exact length survive** — and the checklist ALREADY records that as debt, which I did not check before praising the same line 20 sections later. **A SAMPLE OF SIX, NOT A SWEEP OF 255** (§857's own lesson): the six were chosen for checkability, which biases toward rows most likely already fixed; **249 remain unmeasured**. 3 of 6 is not a rot rate — it is a reason to think rot is not rare |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -49966,9 +49967,13 @@ mutation spec: *"Seeded denylist name in a test PR fails CI."* Executed rather t
 | seeded denylist, name absent from the tree | `identity-leak lint: clean (1 terms checked)`, exit 0 |
 | the same name planted in a tracked doc | **exit 1**, `FAIL REQ-167 identity leak in docs/ops/GO-LIVE-CHECKLIST.md: Z*********************` |
 
-The DoD is met exactly as written, and the gate **redacts the leaked name in its own failure message** — the
-one place a naive identity gate would leak the identity it exists to protect, since CI logs are broadly
-readable. Nothing required that; someone thought about it.
+The DoD is met exactly as written, and the gate **masks the leaked name in its own failure message** — the one
+place a naive identity gate would print the identity it exists to protect, since CI logs are broadly readable.
+
+> **CORRECTED by §877.** This first read *"redacts the leaked name"*, which overstates it. `mask()` is
+> `term[0] + "*".repeat(len - 1)`: **the first character and the exact length survive.** The checklist already
+> carried that residual as debt (*"`mask()` leaks first-char + length"*) and I did not check it before praising
+> the same line. Masking all but one character is still the right instinct; it is not redaction.
 
 **REQ-163** (*no vendored foreign trees*) has a real lint, a test asserting the message text, and a note
 recording that its patterns are written twice so the ledger copy survives an ESLint override — the
@@ -51201,3 +51206,88 @@ round-trip). `verify:docs` 0 · typecheck 0 · lint 0.
 - `check:traceability` failing at HEAD means the repo cites REQ-289 in source while the register may not carry
   it — the two gates are in genuine tension until the row is both present **and** classifiable. Neither state
   is green alone; that is worth knowing before anyone "fixes" one by reverting the other.
+## §877 — PHASE GATE: PHASE 97 CLOSED — §876's lesson applied to the checklist: I probed six rows and three were wrong
+
+§876 found a claim restated for twenty phases whose refutation was already in the record. The obvious next
+question is what else in the record has decayed, and my own rule narrows it: **only repo-owned rows can go
+stale** — a row waiting on a secret, a plan, or counsel cannot rot, because nothing in this repo could change
+its verdict.
+
+The checklist holds **288 table rows, 33 visibly struck, 255 open**. Most are deploy/legal/provisioning and
+therefore un-rottable. I probed **six** repo-owned rows with falsifiable, mechanical claims. **Three were
+wrong.**
+
+### 1. `hashPath`'s digest stream is unframed — FIXED, still listed
+
+The row states the defect and cites its evidence: *"Source read: `h.update(f).update(readFileSync(f))` per
+file, no framing."* The current source is:
+
+```
+const frame = (bytes) => { h.update(`${buf.length}:`); h.update(buf); };  // length prefix — makes the stream injective
+```
+
+Framed, path and bytes both, with a docblock explaining why and noting the digest re-pin it required. **The
+row's own cited source read no longer exists.** Struck.
+
+### 2. `notifyBoard` — the named seam does not exist
+
+The row reads *"Live DO board fan-out (`notifyBoard`/`useFleet` no-op)"*, and the WP-02 plan says *"the
+sequencer exposes a `notifyBoard` no-op seam."* `git grep notifyBoard` returns **three hits, all in
+documentation** — the checklist row, the WP-02 plan, and `docs/wp/WP-02.md`. No such symbol is in the code.
+
+The row's **substance is correct** — the board is a polled read with no live push — and §865 established
+where that belongs: **REQ-257, `vNEXT`**, whose text names the WebSocket transport *and its polling fallback*.
+So the row is right about the world and wrong about the artifact, which is the harder kind of stale to notice:
+nothing fails, and the citation looks like evidence. Corrected to point at REQ-257 and to stop naming a
+symbol that was never built.
+
+### 3. §857 called the identity gate's redaction better than it is
+
+§857 executed REQ-167's DoD and praised the failure message for redacting the leaked name. The mask is:
+
+```
+term.length <= 1 ? "*" : term[0] + "*".repeat(term.length - 1)
+```
+
+**The first character and the exact length survive.** For a denylisted company name that is a real, if small,
+disclosure in a broadly-readable CI log — and the checklist already records it as debt (*"`mask()` leaks
+first-char + length"*), which I did not check before praising the same function four sections later.
+
+Both statements are defensible in isolation; together they are the repo saying two things about one line. §857
+is corrected to say what it does: redacts all but the first character, and preserves the length.
+
+### What this is — and is not
+
+**A sample of six, not a sweep of 255.** §857 exists because I published a regex's yield as a population, so:
+three of six probed rows were wrong, the six were chosen because they were mechanically checkable, and that
+selection is biased toward exactly the rows most likely to have been quietly fixed. **The remaining 249 are
+unmeasured.** A 50% hit rate on a biased sample of six is not a 50% rot rate; it is a reason to think the rot
+is not rare.
+
+The other three probed held: `assets` still has no code touching it, no line/branch coverage is configured
+anywhere, and `check:identity` is still unverified in a local run without a denylist.
+
+### A fourth thing, found by the gate while making these corrections
+
+Editing the `notifyBoard` row by splitting it on `|` produced a **6-cell row under a 5-cell header**, and
+`check:tables` refused it: *"the extra cells render as NOTHING — Markdown DROPS the extra 1."* The cause is
+that the original cell contained an **escaped pipe** — a shell snippet, `grep -niE "fan-out\|notifyBoard"` —
+which markdown renders as one cell and a naive `split('|')` reads as two.
+
+**A markdown table row cannot be safely split on its delimiter when a cell may escape it.** The failure is
+silent at render (the dropped cell simply vanishes), which is why the gate exists and why it caught this
+before the commit rather than a reader noticing a missing column months later.
+
+### Exit state
+
+Three record corrections; no code changed. `verify:docs` 0 · typecheck 0 · lint 0 ·
+`check:tables` 0 · `test:tools` 1,128 with 3 failed (the REQ-289 classifier, §876).
+
+**Reopen triggers**
+- **249 open repo-owned-ish rows remain unverified**, and nothing dates them against HEAD. The mechanical
+  version is a gate that re-runs each row's cited evidence — impossible in general (the evidence is prose),
+  which is why §857's `dod_kind` proposal keeps recurring in a different costume: *the record cannot check
+  itself while its claims are free text.*
+- A row whose citation names a symbol is checkable **today** — `check:citations` bounds-checks `path:line`
+  citations but the checklist's evidence column often names a bare symbol (`notifyBoard`) with no path, which
+  no gate reads.
