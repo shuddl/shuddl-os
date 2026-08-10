@@ -502,6 +502,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 307 | §859 | **§860** | **THE GUARD THAT REPLACED A SHIPPED DEFECT, PINNED BY NOTHING.** `StopScreen` was named uncovered by §858 AND §859 and covered by neither — twice-deferred is how this debt survives. Its prop doc records why the gate exists: *"2026-08-01: a hardcoded 6 used to be recorded on every pickup"*. **A guard that replaced a SHIPPED defect is the worst thing to leave untested — the mistake it prevents has already happened once, which is proof it is reachable.** No defect; 11 cases now hold it, closing the set of three children `GatedFlow.test.tsx` mocks (CameraScreen/§858 SignatureScreen/here). **The 4th mutation was SILENT**: deleting `count.value <= 0` changed nothing, because the input emits only positive integers and `pieces` has that handler as its SINGLE writer — **construction-forbidden** (§688), whose prescribed response is *document, do not test*. **Tested anyway, for a reason the taxonomy misses**: the same re-check has TWO halves and I had already tested the other, which is unreachable by the identical argument. Pinning one half and calling the other unreachable is not a principled line — it is where I happened to stop. Deciding property: `count` is a **public prop**, so §677's *don't pin defensive spelling* (which governs redundancy INSIDE a function, sibling visibly adjacent) does not reach it — any second caller inherits the contract without the handler |
 | 308 | §860 | **§861** | **STOPPING POINT — BOARD RE-MEASURED AT `b8c346e`: 26 gates, 19 PASS · 2 FAIL · 5 BLOCKED**, identical to the pre-segment board with **26 new tests and no gate moved either way**. **Both FAILs are ONE uncommitted row** — `unit-tests` (3 register-classification tests) and `coverage` (*1 unaccounted row: REQ-289*) both trace to the owner's `ACTIVE`/`GTM-0` edit; verified by removing my own files and re-running (§858). Committing it or bucketing `ACTIVE`/`GTM-0` turns both green in one move — **not mine to make**, `genesis/09` is source-of-truth #1. The 5 BLOCKED are absent INPUTS (9 private fixtures + the denylist), each reporting *"could not run"* rather than *"clean"* — and §857 executed the identity gate's DoD against a seeded denylist, so that BLOCKED is a missing secret, not a weak gate. **This segment changed ZERO production code**: everything was enforcement or coverage of already-correct behaviour. **Three of five phases found the defect in my OWN just-finished work** (§857 in §856's count, §859 in its own test's name, §860 in its own stopping point) — the argument FOR the self-review habit, not against it. Expected board once REQ-289 lands: **21 PASS · 0 FAIL · 5 BLOCKED**; if either FAIL survives, this section is wrong |
 | 309 | §861 | **§862** | **THE BRANCH I TWICE RECORDED AS NEEDING FAKE TIMERS DID NOT.** §859 left `useSync`'s in-flight `running` guard untested *"because two overlapping passes need timer control"*; §861 repeated it. Both wrong. **The guard is about OVERLAP, not cadence** — holding one pass open with a deferred promise reproduces it exactly, interval parked at 60s, never fires. I reasoned from the mechanism I IMAGINED (interval → second call → advance time) instead of the property under test, and it survived two phases because it was written as a REASON rather than a question. **"This needs X" is a claim** — same error as *compare-artifacts-dont-reason-about-them*, applied to a test's feasibility. What it defends is real: `syncOnce` drains a durable queue and two concurrent drains read the same rows before either marks them, so an overlap can send a capture twice. Mutation kept the `cancelled` sibling so the RED isolates the subject (§688). `useSync` now has no untested branch |
+| 310 | §862 | **§863** | **TWO SEAMS THAT DISAGREE ON PURPOSE, AND NOTHING KEEPING THEM THAT WAY.** §858's sweep on the other surfaces: **command is covered** (20 src/17 tests; the 2 gaps are `main.tsx` + presentational). Portal had 5; four dissolve (`evidence-email.tsx` is a 31-line fixture around the tested shared view; `ShipmentList` runs through `App.test.tsx`, whose mocks are session/api NOT components — §858's trap checked for and absent). **One real: `api/invoices.ts`, referenced by NO test.** It exists because of a shipped defect (§781): `get<{invoices: T[]}>` is a **compile-time lie**, a missing key set state `undefined` → next render hit `.length` → white screen (measured: `PAGEERROR … reading 'length'`, empty body); a row missing `total_cents` rendered **NaN as a statement total**. Third time this session a guard that replaced a SHIPPED defect had no test. **The finding is the ASYMMETRY**: board is `.strict()` (server projection; extra field → honest *unavailable*), invoices is deliberately NOT (a default Zod object STRIPS unknowns = the allowlist enforced at runtime; strict there = a **blank billing page** when the server adds a field). Correct disagreement, unpinned — exactly what gets tidied into consistency by someone reading one file. Final case pins it: **one payload, two verdicts**, and BOTH tidy directions redden it. Strip case asserts the key is **absent**, not that parsing survived — tolerance and an allowlist look identical until you check |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -50264,3 +50265,67 @@ branch.
 - A second writer to the queue (a background sync registration, a second tab) would make the in-flight guard
   insufficient rather than wrong — it is per-hook-instance, not per-device. Nothing today creates one; a
   Service Worker sync would.
+## §863 — PHASE GATE: PHASE 83 CLOSED — two seams that disagree on purpose, and nothing keeping them that way
+
+§858's sweep, applied to the other two surfaces. **Command is covered** — 20 source files, 17 test files, and
+the only two not directly imported are `main.tsx` and a presentational `ui.tsx`. **Portal had five**, and four
+of them dissolve on inspection: `evidence-email.tsx` is a 31-line screenshot fixture around the shared view in
+`@shuddl/agents` (which has its own suite), `ShipmentList` is exercised through `App.test.tsx` (whose mocks are
+`session`/`lib/api`, not components — the §858 trap checked for and absent), `main.tsx` is an entry point.
+
+One was real: **`api/invoices.ts` — referenced by no test anywhere.**
+
+### It exists because of a shipped defect
+
+Its header records what §781 found: three components each wrote `get<{ invoices: InvoiceRow[] }>(...)`, a
+**compile-time lie** — `get` returns whatever the server sent. A body without an `invoices` key set state to
+`undefined` and the next render reached `.length`, white-screening the portal (measured in a real browser:
+`PAGEERROR: Cannot read properties of undefined (reading 'length')`, empty `<body>`). Worse, a row missing
+`total_cents` made `reduce` render **NaN as a statement total** — money on screen that is not money, with no
+error state at all. The `.catch` each component already had could not help: the failure happens in render, not
+in the promise.
+
+The fix was a Zod parse at the seam. It was tested by nothing — the §860 shape again, and the third time this
+session: **a guard that replaced a shipped defect is the one most worth pinning, because the mistake it
+prevents is already proven reachable.**
+
+### The finding is the asymmetry, not the missing test
+
+The two portal seams parse **differently, deliberately**, and both files argue for their choice:
+
+| seam | mode | why |
+|---|---|---|
+| `api/board.ts` | `.strict()` | a server-controlled projection; an extra field is a hard throw surfaced as an honest *unavailable*, never a half-rendered fleet |
+| `api/invoices.ts` | **not** strict | a default Zod object **strips** unknown keys — which *is* the allowlist all three components describe in prose, enforced at runtime. `.strict()` here turns a server adding a harmless field into a **blank billing page** |
+
+Two mechanisms disagreeing is normally the finding ([[two-mechanisms-disagreeing-is-the-finding]]). Here the
+disagreement is correct and the *absence of a pin* is the finding — this is precisely what gets "tidied" into
+consistency by someone who reads one file and not the other, in either direction, with a plausible rationale
+both times.
+
+So the last case pins the difference itself: **one payload, two verdicts.** The same extra field is stripped
+by invoices and refused by the board.
+
+| mutation | RED |
+|---|---|
+| the parse removed (the §781 defect, restored) | the two throw cases + the strip case |
+| **tidy #1** — invoices made `.strict()` | strip case **+ the asymmetry case** |
+| **tidy #2** — `.strict()` dropped from the board | extra-field case **+ the asymmetry case** |
+| `due_ts` no longer nullable | four cases, incl. *null is a value, not an absence* |
+
+Both tidy directions redden the asymmetry test, which is the whole reason it exists. The stripping case
+asserts the unknown key is **absent from the result**, not merely that parsing survived — tolerance and an
+allowlist look identical until you check whether the leaked internal is gone.
+
+### Exit state
+
+Portal suite **14 files / 95 tests**, all green (+1 file, +10). typecheck 0 · lint 0. No production code
+changed.
+
+(The 78 in this section's first draft was written before the run and corrected after it — the §856 habit, caught by measuring rather than by remembering. `typecheck` also failed once on a `PortalInvoiceRow | undefined` → `Record` cast in the new file and is clean at the number above.)
+
+**Reopen triggers**
+- A third seam is added under `apps/portal/src/api/` → it inherits neither header, and the asymmetry test
+  names only two. A `.strict()` decision made by copy-paste is the failure this phase is guarding against.
+- `api/board.ts`'s `usePartyBoard` hook (stale/empty/unavailable phases) is still untested — the parse below
+  it now is, the state machine above it is not.
