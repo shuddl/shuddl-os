@@ -287,6 +287,11 @@ const eventBaseShape = {
 // Exported base carries the offline-dedupe refine: a device_id is meaningless without
 // its per-device sequence number (the airplane-mode dedupe key). Members are built from
 // the raw shape (a discriminated union cannot take a refined object as an option).
+// §913 — NO CONSUMER. `git grep EventBase` finds only this definition and its `export type`; the union
+// members below are built from the raw `eventBaseShape`, never from this. Neutralising the refine leaves
+// the whole contracts suite green because nothing evaluates it — NOT because it is under-tested. It is
+// public API (re-exported from index.ts), so it is filed for the owner rather than deleted here. Do not
+// cite it as the enforcement point for the dedupe key: that is the pair of superRefines below.
 export const EventBase = z.object(eventBaseShape).strict().refine(
   (e) => e.device_id === undefined || e.device_seq !== undefined,
   { message: "device_seq required when device_id present (offline dedupe key)", path: ["device_seq"] },

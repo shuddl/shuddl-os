@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { InvoiceLine, InvoiceIssuedPayload } from "../src/money.js";
+import { InvoiceLine, InvoiceIssuedPayload, SplitComputedPayload } from "../src/money.js";
 
 // WP-02 exit audit (REQ-119) — the swarm's I7 Major: `invoice.issued` with a NEGATIVE line (e.g.
 // +10000 / -3000) could be issued, but the projection + the sequencer's #moneyDeps reverse only
@@ -42,5 +42,37 @@ describe("Exit audit (REQ-119) I7: an invoice line amount is a POSITIVE charge a
       lines: [{ line_no: 1, kind: "freight", amount_cents: 120_000, gl_map: "4000-REV" }],
     });
     expect(ok.lines[0]?.amount_cents).toBe(120_000);
+  });
+});
+
+// §913 — REQ-019: AN INTERLINE SPLIT MUST ALLOCATE THE WHOLE PIE.
+//
+// `SplitComputedPayload`'s sum-to-10000-bps refine was UNTESTED: neutralising it left all 318 contracts
+// tests green. Found by mutating every refine site in the package rather than by reading, because a rule
+// nobody exercises looks exactly like a rule nobody needed.
+//
+// It is the rule that keeps interline money whole. A short split leaves cents unapportioned; an over-
+// allocated one hands out more than the gross. Both mis-state what each carrier is owed, which is the
+// same class of defect as the $222,084/35-lb anomaly the executing-share floor exists to prevent.
+//
+// The bad sums are built from individually VALID shares (5000+4999, 5000+5001). Bps is capped at 10000,
+// so a single 10001 share would be refused by Bps.max — a refusal that proves nothing about this refine
+// (§906: the fixture must isolate the rule under test).
+describe("REQ-019: an interline split allocates exactly 10000 bps — no more, no less", () => {
+  const base = { total_cents: 120_000 };
+  const alloc = (...bps: number[]) => bps.map((share_bps, i) => ({ party_id: `party-${i}`, share_bps }));
+
+  it("accepts a split summing to exactly 10000 bps (the control)", () => {
+    const ok = SplitComputedPayload.parse({ ...base, allocations: alloc(6_000, 4_000) });
+    expect(ok.allocations.reduce((s, a) => s + a.share_bps, 0)).toBe(10_000);
+  });
+  it("REJECTS a SHORT split (9999) — cents left unapportioned between carriers", () => {
+    expect(() => SplitComputedPayload.parse({ ...base, allocations: alloc(5_000, 4_999) })).toThrow(/sum to exactly 10000/);
+  });
+  it("REJECTS an OVER-allocated split (10001) — more than the gross handed out", () => {
+    expect(() => SplitComputedPayload.parse({ ...base, allocations: alloc(5_000, 5_001) })).toThrow(/sum to exactly 10000/);
+  });
+  it("REJECTS a single allocation that does not take the whole pie", () => {
+    expect(() => SplitComputedPayload.parse({ ...base, allocations: alloc(9_999) })).toThrow(/sum to exactly 10000/);
   });
 });

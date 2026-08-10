@@ -486,7 +486,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 291 | §843 | **§844** | **PHASE 65 CLOSED — a purity claim MY OWN detector's vocabulary could not read.** §843's residual measured: 3 cents-named functions contain arithmetic, 2 already exact, and the third (`iif.ts@formatCents`) is a **false positive written correctly** — `(abs - frac) / 100` is exact by construction with the proof in a comment. **1 FP in 3 candidates → NOT BUILT**, numbers given rather than a shrug. **But reading it walked into a defect**: `iif.ts` opens *"PURE: … No I/O, no D1, **no clock**"* — a module-level claim §835's detector (which I wrote) **cannot read**, because its vocabulary is `no Date, no random`. Same claim, different words, invisible to the sweep AND to the discovery gate that sweep installed. **Vocabulary measured per §803**: `no clock` adds **2**; `PURE:` 8, `no I/O` 15, `pure function` 9, bare `DETERMINISTIC` **22** — all out as prose. The two split as §835's design anticipated: `iif.ts` is real (banned, ambient-clock subset, since its only `Date` use is a `new Date(ms)` conversion), and `billing.ts` is a FIELD comment on a module that **injects** its clock — recorded in SCOPED_CLAIMS. **Honest bound**: the detector finds 27 claims, not *every* claim |
 | 292 | §844 | **§845** | **PHASE 66 CLOSED — detect the VIOLATION, not the claim; and §815's superset gets its reason.** §844's bound (*27 claims, not every claim*) is structural: prose has unboundedly many phrasings, so §835 and §844 each widened a vocabulary and each left the same hole. **Inverted**: *which modules READ an ambient clock?* is bounded and prose-independent. **58 reads** — **57 in `workers/**`**, which is the CORRECT pattern (read at the composition root, inject downward). Only **2 in `packages/**`**, both justified: `guess.ts` mints an unpredictable nonce for a prompt-injection fence (**determinism there would be the vulnerability**) and `capture.ts` mints an event id. **§815's superset EXPLAINED** — it measured that adapters bans `crypto.randomUUID` and agents does not, calling it *deliberately stricter* without knowing why; the reason is that the fence depends on it. *An unexplained pin is one somebody eventually simplifies.* Gate bans ambient reads in `packages/**` with the 2 recorded; `workers/**` excluded **by design**, since flagging 57 correct reads gets a gate turned off. 3 REDs. **1 FP of my own**: a trailing `//` comment on a code line |
 | 293 | §845 | **§846** | **STOPPING POINT — board re-measured at `1cb0b69`, eleven phases on.** **19 PASS · 2 FAIL · 5 BLOCKED — identical to §834 and to the pre-session board.** Behind the `unit-tests` short-circuit the product suites run **green: 17 workspaces, 3,149 tests, exit 0**. Thirty-one phases, **zero regressions**, every non-PASS owner-held. Last eleven phases: 2 production fixes (both law/legibility — §843 measured 200,011 inputs, **zero** value changes), 8 gates, and 4 corrections to the record. **The shape that matters is §845's inversion** — stop detecting purity CLAIMS (prose, unbounded, incomplete by construction), detect the VIOLATION (an ambient clock in the pure layer). *When a detector's boundary is English, invert it.* **Self-correction ratio**: §841 found **2 of 6** of my own triggers rotted, while §842 found the launch checklist's five code-state claims **all sound** — the clean result is what makes the corrections meaningful. **Owner decision, now 11 phases old**: committing REQ-289 makes both `&&` truncation defects (§834, §836) INVISIBLE without fixing them — decide while the symptom shows |
-| 294 | §846 | **§847** | **PHASE 67 CLOSED — the drain order holds; its DEFENSIVE half was documented and untested.** Driver offline queue — demo #3 and the airplane-mode soak, where a prior loop found signed captures stranded. `pending()` sorts by `device_seq` because the server's gates are **order-dependent** (consent before `stop.arrived`); a shuffled drain takes a 403 and parks **permanently**. Two mutations, two REDs, both caught by a purpose-built test driving a deliberately `ShuffledStore`. **The gap**: making an item WITHOUT a `device_seq` sort first instead of last is **silent** — no test constructs one. **Reachability measured, not assumed**: `capture.ts:128@nextSeq` always mints one and `events.ts:291@device_seq` refines `device_id ⟹ device_seq`, so the branch is reachable only for a device-less event the driver never produces — **defensive, not dead**, and §688's construction-forbidden *from the driver's side only*, which is the kind of unreachable that expires when a second producer appears. Cheap test added. **Probe error** (3rd of its family): my first "drop the sort" rewrote the `.map` line and left `.sort()` intact — a **no-op** returning 41/41 that would have read as *drain order unpinned* |
+| 294 | §846 | **§847** | **PHASE 67 CLOSED — the drain order holds; its DEFENSIVE half was documented and untested.** Driver offline queue — demo #3 and the airplane-mode soak, where a prior loop found signed captures stranded. `pending()` sorts by `device_seq` because the server's gates are **order-dependent** (consent before `stop.arrived`); a shuffled drain takes a 403 and parks **permanently**. Two mutations, two REDs, both caught by a purpose-built test driving a deliberately `ShuffledStore`. **The gap**: making an item WITHOUT a `device_seq` sort first instead of last is **silent** — no test constructs one. **Reachability measured, not assumed**: `capture.ts:128@nextSeq` always mints one and `events.ts:296@device_seq` refines `device_id ⟹ device_seq`, so the branch is reachable only for a device-less event the driver never produces — **defensive, not dead**, and §688's construction-forbidden *from the driver's side only*, which is the kind of unreachable that expires when a second producer appears. Cheap test added. **Probe error** (3rd of its family): my first "drop the sort" rewrote the `.map` line and left `.sort()` intact — a **no-op** returning 41/41 that would have read as *drain order unpinned* |
 | 295 | §847 | **§848** | **PHASE 68 CLOSED — the CAPTIVE PORTAL: a 302 that nothing tested.** §847 pinned drain order; `classifyStatus` decides whether a signed capture survives. Four probes: 4xx→`ack` (**4 RED**), 429→`operator` (**2 RED**), 401→`retry` (**2 RED**) — and **default→`ack` was SILENT**. Measured, the default catches **1xx, 3xx (301/302/304/307/308) and ≥600**, and the suite contains **zero 3xx cases**. **A 3xx is the driver's normal failure mode, not an exotic one**: a captive portal on truck-stop or depot wifi answers **302 → login page** — the very environment the airplane-mode soak exists to model. Misclassified as `ack`, the queue treats the portal's redirect as the sequencer's acceptance and **removes a signed capture that never reached the server** — silent evidence loss on demo #3's path. The code is **correct** and its comment names the property (*never a silent drop*); what was absent is any test that would notice if it stopped being. 2 REDs |
 | 296 | §848 | **§849** | **PHASE 69 CLOSED — the captive portal ONE LAYER DOWN: `fetch` was already following the redirect.** §848 pinned `classifyStatus` so a 3xx retries, and named where the defect would reappear: *the transport following redirects itself*. **It already did.** `transport.ts` calls `doFetch` with **no `redirect` option**, so the default `follow` applies and `res.status` is the FINAL response's — portal 302 → followed → login page **200** → `classifyStatus` → **`ack`** → **the signed capture is dropped**. **§848's test cannot see it**, because the function is handed the portal's 200, never the 302: *pinning a pure function proves nothing about what its caller feeds it.* CORS saves only the cross-origin case — luck per-portal, not a property. Fixed with `redirect: "error"` on both legs, licensed by a measurement: **the API never returns a 3xx**, so a redirect here is ALWAYS an interceptor. It routes into machinery §848 already pinned (throw → catch → status 0 → retry). **`createTransports` had ZERO tests** — the driver's whole HTTP boundary; +7 now |
 | 297 | §849 | **§850** | **PHASE 70 CLOSED — status-only trust is the vulnerability; the driver was the ONLY one.** Classified all **24** production `fetch` sites. **The discriminator is not "does it set `redirect`"** — it is what the caller TRUSTS. Four other protections, all stronger or equivalent: `apps/command`+`portal` have **caller-side Zod** (§782's `get<unknown>` + parse); `biller/sender.ts` does **body validation** and is exemplary, its own comment naming the case (*"a 2xx with a NON-JSON body — a proxy answering for a dead upstream"*); `platform-ledger` is a **service binding**, never on the network; `tsa/client` verifies **cryptographically** + echo-checks the nonce. **Body validation is strictly stronger than a redirect policy** — the sender needs no option because an interceptor cannot produce a Resend id; the driver needed one precisely because the sequencer's 202 carries **nothing to validate**. Rule: *trust a status only when you have nothing else.* §849's residual closed with a gate scoped to `apps/driver/src/sync/` — repo-wide would flag 22 correct sites (§845) and be wrong besides. 3 REDs |
@@ -552,6 +552,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 357 | §909 | **§910** | **§907'S POPULATION CONFLATED TWO OPPOSITE ASSERTIONS.** §909 left 59 unread bare assertions; prioritising picked `transition-gates.test.ts` (17, the largest file). **Reading the case names stopped the phase**: every one describes a PASS — *passes when…*, *does NOT block*, *is a no-op pass*. Those are `.not.toThrow()`, and **attribution is meaningless on them** — there is no mechanism to name when the claim is that nothing fired. §907's regex matched `.toThrow()` regardless of a preceding `.not.`. **Split: 68 `.not.toThrow()` vs 311 positive bare — the relevant population is 311, not 380**, and the DB-backed 69 is inflated the same way: **the file I picked as highest-value has ZERO of the defect class**, and its 17 are all the CONTROL shape §908 catalogued (a gate proving it admits the valid case). **8th instance of a probe measuring its own vocabulary rather than its subject** — and the pattern is now complete: **every count I have published this session that later moved did so for this reason** (§884's denominator, §890's 5%, §901's headroom, §907's 380). **Four counts, four vocabulary faults, zero arithmetic errors** |
 | 358 | §910 | **§911** | **ALL 15 READ; 15 SOUND — §906'S WAS THE ONLY ONE IN THE CORPUS.** §910 reduced the population to its honest scope (~15 positive-bare in DB-backed tests, five files); this reads them all. `schema-core` (4) **interleaves admits with rejects** and its duplicate-key cases are self-controlling; `status-cap` (5) is a describe literally named *round-trip* whose first case asserts `toEqual({t,s})`, with each rejection varying exactly one thing; `facilities` (4) carries controls at BOTH levels (pure mapper + DB path); `biller` (2) makes the throw the SUBJECT and verifies the invoice committed anyway. **So the honest scope of §906's defect is: exactly ONE case in the repo's entire DB-backed corpus.** The discipline it violated is otherwise consistently present in §908's three shapes — and in `status-cap` it is present by NAMING, the describe block announcing its own control. **The thread's value was not the fix**: it was arriving at a decidable rule and then finding the corpus already obeyed it. **9th vocabulary miss**: grepping `status-cap` for a control with `resolves|toBe(true)|.success` returned **0** for a file whose control uses `toEqual({...})` — one phase after §910 concluded every moved count was a vocabulary fault. Reading took 30 seconds; the grep took three attempts |
 | 359 | §911 | **§912** | **A RULE WRITTEN TWICE, TESTED ASYMMETRICALLY — 4 OF 8 BRANCHES SILENT.** Discharged §911's trigger in the next phase instead of deferring it, and **it was already false**: contracts holds **19** refine/superRefine sites, not one refusal path. `events.ts` states REQ-016's device-binding rules TWICE (a Zod union cannot inherit a refined object); mutating all eight branches found **four silent** — and the coverage was **asymmetric**: `device_id==actor.device` tested only on EventInput, I4 only on LedgerEvent, the dedupe-key branch on NEITHER. Each copy tested for a different subset, so the pair read as covered while neither was. The dedupe branch is **not** redundant with `EventBase`'s identical refine — the union never uses EventBase — so it was the ONLY enforcement of the slot-squat rule, untested on both. **Two instrument failures, both mine**: the grep for the four messages returned **0** because the tests use TRUNCATED regexes (10th vocabulary miss — the finding stands on the mutation, not the grep); and writing the fix I nearly re-created §906's defect, since `EventInput.strict()` refuses an `eventFixture` with `Unrecognized keys`, so a bare `toThrow()` would have passed for the wrong reason. Fixed with 5 attributed cases + one corpus driven through BOTH schemas; roster half closed by `tools/checks/superrefine-parity.test.ts`, which parses both blocks and requires each rule to be pinned by a matcher. **That gate shipped weak and its own mutation caught it** — `/unwitnessed|device/` matched every message containing 'device', so renaming a rule in both blocks stayed GREEN; matchers tightened, property strengthened to require a DISCRIMINATING match. 8/8 RED, zero residual; contracts 308→318 |
+| 360 | §912 | **§913** | **SWEPT ALL 17 REMAINING REFINE SITES — 3 SILENT, 2 REAL.** §912's trigger said "the other **11** refine sites"; counting them gave **17**, and its list omitted `events.ts` itself (5 sites, including the `EventBase` that section discusses). **I eyeballed grep output instead of computing, in the phase whose whole finding was that reading is not measuring** — trigger struck and corrected in place. Sweep: every site neutralised, **14 RED** (coverage is broadly real), 3 silent, and §688's taxonomy separates them. `packages/contracts/src/money.ts:69@share_bps` — interline allocations must sum to **exactly 10000 bps** (REQ-019), untested: a short split leaves cents unapportioned, an over-allocated one hands out more than the gross. `packages/contracts/src/json.ts:12@isSafeInteger` — `SafeInt`'s ONLY marginal contribution over `z.number().int()` is the **`-0` rejection** (its own comment says so), so every prior green came from what Zod does anyway; `JSON.stringify(-0)` is `"0"`, so a `-0` hashes as `0` while comparing `!==` under `Object.is` — the frozen-byte law, now also driven through the RECURSIVE `JsonObject` that 30 of 35 kinds use. `packages/contracts/src/events.ts:295@EventBase` — **not a coverage gap: `EventBase` is DEAD**, no consumer anywhere, silent because nothing evaluates it; public API so filed for the owner and annotated, **because §912 cited it as load-bearing before measuring**. Trap avoided *before* writing: `Bps` caps at 10000, so a single `10001` share would fail on `Bps.max` — both bad sums built from individually valid shares. contracts **318 → 326** |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -9519,7 +9520,7 @@ the law while the prose names symbols implemented elsewhere. Sampled three:
 |---|---|
 | `isolation.test.ts:5` cited as promising *"grows a case for every read path"* | **ROTTED** — line 5 is an import; the promise is at `:29` |
 | `invariants.ts:204` cited twice, for `FORBIDDEN_REPLACE` and for `SCHEMA`/`DELIM` | **ROTTED both times** — they live at `:392` and `:29`/`:32` |
-| `packages/contracts/src/events.ts` cited at line 620, naming `party_refs` | **false positive** — it is at `packages/contracts/src/events.ts:625@party_refs`, 5 lines out; my window was ±3 |
+| `packages/contracts/src/events.ts` cited at line 620, naming `party_refs` | **false positive** — it is at `packages/contracts/src/events.ts:630@party_refs`, 5 lines out; my window was ±3 |
 
 Two of three real. So the class is confirmed and the magnitude is *not* 51 — the honest statement is that
 roughly half the flagged set is likely rot and the rest is window tightness, and **the sample is three**.
@@ -13516,7 +13517,7 @@ header asserting "CI-enforced" is exactly the kind of prose §241 says decays un
 | **I1** | no money_line without event | `event_id TEXT NOT NULL REFERENCES events(id)` (`0002_domain.sql:41`) + the projection rides the event's `db.batch()` | **MEASURED this section** |
 | I2 | no invoice without `pod.signed` (unless policy names an exception) | `gates/invoice-gate.ts` → `GATE_BLOCKED:{required_evidence}` | covered (server-side gate suite) |
 | I3 | no event edit/delete grants at DB level | BEFORE INSERT/UPDATE/DELETE triggers (0003 + 0008) + the `check:invariants` migration lint | covered; §239 put 0008 into the worker suites |
-| **I4** | every custody event co-signed or flagged `unwitnessed` | Zod superRefine on `custody.transferred` / `pod.signed` (`packages/contracts/src/events.ts:368@I4`) | **MEASURED this section** |
+| **I4** | every custody event co-signed or flagged `unwitnessed` | Zod superRefine on `custody.transferred` / `pod.signed` (`packages/contracts/src/events.ts:373@I4`) | **MEASURED this section** |
 | **I5** | every quote pins rate_config versions | `rate_config_ids` pins tariff + floors + fsc + accessorials, de-duplicated, always ≥1 (`packages/rater/src/price.ts:103`) | **MEASURED this section** |
 | I6 | `events.visibility` respected by every view | server-side lens filtering + `lens-adversarial.test.ts` with independent guards | covered (threat model row) |
 | I7 | correction pairs net zero in GL export | `ux_ml_corrects` UNIQUE + verbatim visibility inheritance for corrections (`visibility.ts:101`) | covered (`money-projection.test.ts` §REQ-012/I7) |
@@ -15408,7 +15409,7 @@ sweep is exhaustive rather than sampled.
 |---|---|---|
 | `tools/deploy/preflight.ts:164@kind` | `d1` \| `kv` | **the §277 defect** — KV lacked D1's all-zero rejection. Fixed |
 | `tools/deploy/provision-prod.ts:155@kind` | `d1` \| `kv` \| **`r2`** | correctly asymmetric — see below |
-| `packages/contracts/src/events.ts:499@signed` | `pod.signed` \| `custody.transferred` | the I4 custody refinement, **mutation-proved in §242** (neutering it → 2 RED) |
+| `packages/contracts/src/events.ts:504@signed` | `pod.signed` \| `custody.transferred` | the I4 custody refinement, **mutation-proved in §242** (neutering it → 2 RED) |
 | `workers/api/src/routes/tariff.ts:59@asset` | `asset` \| `brokerage` | correctly asymmetric — the asymmetry IS the feature |
 
 ### The two that are asymmetric on purpose
@@ -49360,7 +49361,7 @@ relative order, so nothing is dropped or reordered arbitrarily"*), so the behavi
 nothing behind it — §816's shape.
 
 **Reachability, measured rather than assumed**, because it decides how much this matters. `capture.ts:128`
-mints a `device_seq` on every capture, and `packages/contracts/src/events.ts:291@device_seq` refines the event so
+mints a `device_seq` on every capture, and `packages/contracts/src/events.ts:296@device_seq` refines the event so
 `device_seq` is **required whenever `device_id` is present**. So an item can lack one only if it also lacks a
 device — which the driver, whose every capture is co-signed by a per-device key, never produces.
 
@@ -53437,8 +53438,99 @@ only if it **discriminates** that rule from the others.
   unchanged) · typecheck 0 · lint 0.
 
 **Reopen trigger**
-- **The other 11 refine sites are unswept.** I measured 19 and audited the 8 in the two mirrored blocks.
-  `money.ts`, `facilities.ts`, `booking.ts`, `rating.ts`, `copilot.ts` and `json.ts` hold the rest. They are
+- ~~**The other 11 refine sites are unswept.**~~ **CORRECTED at §913: there are 17, not 11, and the list
+  below omitted `events.ts` itself — which holds 5 of them, including the very `EventBase` this section
+  discusses.** I produced "11" by eyeballing the grep output instead of counting it, in the same phase
+  whose whole finding was that reading is not measuring. Discharged in full at §913.
+  `money.ts`, `facilities.ts`, `booking.ts`, `rating.ts`, `copilot.ts` and `json.ts` hold 12 of the 17. They are
   single-schema refines, so the *parity* property does not apply — but "is this branch tested at all" does,
   and mutation is the only instrument that answers it. That is the next phase's work, and naming the count
   here is what stops it being forgotten.
+## §913 — PHASE GATE: PHASE 133 CLOSED — swept all 17 remaining refine sites; 3 silent, 2 were real
+
+§912 closed by naming its own residual: *"the other 11 refine sites are unswept."* The first thing this
+phase did was **count them**, and the number was wrong.
+
+### The trigger's own number was wrong — 17, not 11
+
+There are **17** unswept `refine`/`superRefine` sites, and §912's list named six files while omitting
+`events.ts` **itself**, which holds five — including `EventBase`, the export that section discusses at
+length. I produced "11" by eyeballing grep output rather than computing it, **in the phase whose entire
+finding was that reading is not measuring.** §912's trigger is struck and corrected in place.
+
+A trigger carries a number so a later phase can act on it without re-deriving. That only works if the
+number was measured; an eyeballed one hands the next phase a false scope and looks identical to a real one.
+
+### The sweep: 17 mutated, 14 RED, 3 silent
+
+Every site neutralised (predicate → `() => true`, callback → `() => undefined`) and the suite run.
+**Fourteen went RED** — the package's refine coverage is broadly real. Three did not, and they are not the
+same kind of thing, which is why §688's taxonomy has to be applied per-site rather than in aggregate:
+
+| site | rule | verdict |
+|---|---|---|
+| `packages/contracts/src/money.ts:69@share_bps` | interline split allocations sum to exactly 10000 bps (REQ-019) | **real gap — untested money invariant** |
+| `packages/contracts/src/json.ts:12@isSafeInteger` | the integer-only canonical law | **real gap — the `-0` rejection, untested** |
+| `packages/contracts/src/events.ts:295@EventBase` | `EventBase`'s dedupe refine | **not a coverage gap — the export is dead** |
+
+**The split-sum rule keeps interline money whole.** A short split leaves cents unapportioned; an
+over-allocated one hands out more than the gross. Both mis-state what each carrier is owed — the same class
+of defect the executing-share floor exists to prevent.
+
+**`SafeInt`'s refine only ever contributed one thing, and that thing had no coverage.** Its own comment says
+`z.number().int()` already refuses floats and unsafe integers, so the refine's marginal contribution is the
+**`-0` rejection** — and every green above it came from the parts Zod does anyway. `-0` is precisely the
+value that breaks the frozen-byte law: `JSON.stringify(-0)` is `"0"`, so a `-0` entering the ledger
+serialises, hashes and re-parses as `0` while comparing `!==` to it under `Object.is`. The new case also
+drives it through the **recursive** `JsonObject`, which is the path a real `-0` would take (30 of 35 kinds
+validate their payload that way) — a boundary guarding only the top level guards nothing.
+
+**`EventBase` is dead, and I had already reasoned from it.** `git grep` finds only its definition, its
+`export type`, and a comment §912 wrote. Nothing uses it: the union members are built from the raw
+`eventBaseShape`. Its mutation is silent because **nothing evaluates it**, not because coverage is thin —
+and in §912 I cited it as though its refine were load-bearing, *before* measuring. It is public API
+(re-exported from the index), so removal is a surface change: filed for the owner, annotated at the site so
+the next reader does not repeat my inference.
+
+### The fixture trap, avoided this time
+
+`Bps` is capped at `10_000`, so an over-allocation written as a single `10001` share would be refused by
+`Bps.max` — a refusal proving nothing about the sum rule. Both bad sums are built from individually valid
+shares (`5000+4999`, `5000+5001`). That is §906's lesson applied *before* writing the test rather than after.
+
+### The gate that certified my own stale pointer
+
+Annotating `EventBase` shifted every line after it by five and rotted **eight** citations. `verify:docs`
+caught six. The two it missed were both satisfied by **prose**: `:290@EventBase` — where the mention lived
+in the comment I had *just written* — and `:371@unwitnessed`, where the I4 comment says the word two lines
+above the binding.
+
+The mechanism is one line: `tools/checks/citation-links.ts:287@includes` is `text.includes(symbol)`, a
+substring match over the ±2 span. **Any line that MENTIONS the symbol satisfies the anchor.** So the
+perverse consequence, observed twice in a single phase: *documenting a symbol at its definition can
+re-validate a stale citation to that location.* The act of writing "no consumer — `git grep EventBase`" is
+what made a five-line-stale pointer pass.
+
+**A blanket tightening would be wrong, and measuring says so.** Of 97 anchored citations that resolve via a
+hit, **18 (19%) are satisfied ONLY by a comment line** — and many are legitimate: `webhooks.ts:299@mark`
+cites the docblock that *states* the marking rule, which is the subject, not a proxy for it. Requiring a
+declaration would turn correct citations red.
+
+The decidable signal is narrower: **prose-only in the span AND the symbol declared elsewhere in the same
+file.** That set is exactly **2** repo-wide, and one of the two was drift my own edit had created minutes
+earlier. Both are now resolved — one repointed, one confirmed legitimate.
+
+Not fixed here: changing the anchor's semantics re-judges all 258 content-anchored citations, which is an
+owner call, so it is filed rather than amended.
+
+### Proof
+
+- 17 sites mutated; 14 RED, 3 silent. After the fix: `packages/contracts/src/money.ts:69@share_bps` **RED (3 failed)**, `packages/contracts/src/json.ts:12@isSafeInteger`
+  **RED (2 failed)**, `packages/contracts/src/events.ts:295@EventBase` still silent **and correctly so** (dead export, filed not fixed).
+- contracts **318 → 326** · typecheck 0 · lint 0 · source tree restored byte-identical after every mutation.
+
+**Reopen triggers**
+- **`EventBase` is an owner decision** (delete, or keep and document as the base). Until it resolves, the
+  annotation is what stops the next reader treating it as the enforcement point.
+- **This sweep covered `packages/contracts` only.** Zod refines exist elsewhere; the count outside contracts
+  is **not measured**, and — per this phase's own lesson — I am not going to guess it here.
