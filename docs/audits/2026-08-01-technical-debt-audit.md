@@ -511,6 +511,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 316 | §868 | **§869** | **STOPPING POINT — BOARD RE-MEASURED AT `3eed3dc`: 26 gates, 19 PASS · 2 FAIL · 5 BLOCKED — IDENTICAL to §861** across seven further phases and 40 more tests, no gate moved either way. Both FAILs remain the single uncommitted REQ-289 row; the 5 BLOCKED remain absent private inputs. **Nothing in §862–§868 changed production behaviour**: two comment corrections, three disposition notes, three checklist filings, 40 tests. Value sat in the RECORD: §865 (REQ-257 cited nowhere), §866 (8 citations → the wrong row; shipped code with no owning row), §867 (REQ-276 mostly built, hole in vitest collection), §868 (2 of 6 projections carrying the branches integration cannot reach). **Five of seven phases found the defect in my OWN just-finished work**, and **four separate times a detector whose boundary is English produced a confident wrong count**. The instrument that worked — *does any test name any symbol the module EXPORTS?* — cleared 128 files across 7 trees and found the 2 that mattered. Expected board once REQ-289 lands: **21 PASS · 0 FAIL · 5 BLOCKED** |
 | 317 | §869 | **§870** | **THE SWEEP MADE MECHANICAL, AND THE MISCOUNT IT IMMEDIATELY CAUGHT — MY OWN, IN §868.** §868 closed naming its weakness (*"run by hand"*); this is that sweep as a gate, modelled on `sweep-containment-coverage.test.ts`. Building it found the weakness was worse than *expires*: **§868 reported "six projections, four unit-tested" — there are EIGHT and six were tested.** The finding (which two were dark) stands; the FRAME was wrong because **I counted from one consumer's import list rather than the directory** — `projections.test.ts` imports four, so "four of six" is what that FILE shows, and it is not the population. **A population derived from a consumer is not the population** — 5th counting/vocabulary miss this session, first where the wrong frame was a FILE not a regex. Gate: 8 projections derived from source, each required to be **IMPORTED** (not mentioned) by a test — not hypothetical, since `approvals-projection.test.ts` NAMES `projectAppointment` in prose and a mention-based check would have called it covered before its suite existed (§845's shape, pinned by a case). 3 mutations RED incl. the discovery half (a TRACKED new projection reddens both checks by name). **One mutation was silent and it was the PROBE's fault**: an UNtracked decoy is invisible because the scan is `git ls-files`, which sees what MERGES — the exact inverse of §867, same fact, opposite verdict, decided by *does this gate certify what merges or what is on the machine?* Also: **5th forward-reference failure** — I corrected §868 pointing at §870 before writing it |
 | 318 | §870 | **§871** | **"TESTED" IS NOT "WIRED", AND THE PROBE THAT SAID OTHERWISE WAS WRONG.** §870 named the gap: a projection can be exported, unit-tested and green while NOTHING CALLS IT — and that failure throws nothing, it just leaves a table that never fills, so an empty approvals queue looks like *no work today*. **The false alarm is the useful part**: the first probe reported **`projectMessages` → NO PRODUCTION CALLER** (a full suite, REQ-100 — would have been serious). WRONG: `projectMessages` is INTERNAL; the module's production entry is `applyMessageProjection`, imported at `workers/api/src/do/sequencer.ts:482@applyMessageProjection`. My probe excluded the projection dir AND searched the symbol I expected. **6th instrument miss this session** — §845, §857, §866×2, §870 (a consumer's import list), here; every one confident, specific, wrong, and resolved by reading the artifact. So the wiring half is **MODULE-level, not symbol-level**: a roster recording that `messages` enters via `applyMessageProjection` while seven enter via `project<X>` would rot; *is this module imported by anything that ships* cannot. **All 8 wired** (6 via the sequencer batch, `money` via contracts, `messages` via the wrapper) — clean negative, now held by a gate instead of a paragraph. Mutation: drop the sequencer's approvals import → RED by filename |
+| 319 | §871 | **§872** | **THE ASYMMETRY §871 REPORTED DOES NOT EXIST — THE PROBE MATCHED A COMMENT.** §871 said `money` is entered from `packages/contracts/src/money.ts` and filed it as a reopen trigger. **False**: the sequencer imports `applyMoneyProjection` at line 8 and CALLS it at line 469, like the other seven; contracts is a Zod module whose only mention is a comment — *"it would POISON projectMoneyLines (throw → DLQ)"* — and my probe `\bprojectMoneyLines\s*\(` matched the space before that paren. **8th instrument miss this session, 3rd CONSECUTIVE phase** with a wrong wiring claim (§870 a consumer's import list; §871 `projectMessages` "uncalled"; this). **It propagated into a REOPEN TRIGGER** — a wrong finding costs a correction, a wrong trigger costs someone else's time hunting a defect that was never there. **The fix already exists in-repo**: `tools/checks/source-corpus.ts@stripComments`, which `sweep-containment-coverage.test.ts` imports for exactly this; my throwaway probe just didn't use it. Generalised: **the better a thing is documented, the more false call sites it has.** The §871 GATE is unaffected — its wiring half is MODULE-level and matches an import specifier, which cannot match prose; a choice made for a different reason (entry-point names rot) is what kept it right while the prose around it was wrong |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -50865,9 +50866,13 @@ entry-point names would have to record that `messages` is entered via `applyMess
 seven are entered via `project<X>` — and that roster rots. *"Is this module imported by anything that ships?"*
 cannot rot, because it asks about the file rather than about a name I guessed.
 
-Measured: **all eight projections are wired.** Six through the sequencer's append batch, `money` through
-`packages/contracts/src/money.ts`, `messages` through the sequencer's `applyMessageProjection` import. Clean
-negative, and now held by a gate rather than by this paragraph.
+Measured: **all eight projections are wired**, every one of them through the sequencer's append batch —
+`messages` via its `applyMessageProjection` wrapper. Clean negative, and now held by a gate rather than by
+this paragraph.
+
+> **CORRECTED by §872.** This paragraph first said `money` was entered from `packages/contracts/src/money.ts`.
+> It is not: the sequencer imports `applyMoneyProjection` and calls it, like the rest. The claim came from a
+> probe whose `\s*\(` matched a *comment* in the contracts module. There is no asymmetry.
 
 Mutation: the sequencer's `projection/approvals` import removed → RED, naming
 `packages/ledger/src/projection/approvals.ts`.
@@ -50898,6 +50903,61 @@ typecheck 0 · lint 0 · `verify:docs` 0. No production code changed.
 - Imported is not *called*. A module could be imported and its result dropped — `...projectX(db, e)` spread
   into a batch that is never executed. Nothing here would notice, and the symptom is identical (an empty
   table). Closing that means asserting on the batch contents, which is a sequencer test, not a static gate.
-- `money` is entered from `packages/contracts/src/money.ts` rather than the sequencer, which is the one
-  asymmetry in the eight. It is not obviously wrong — money lines derive from invoice events in contracts —
-  but it was not investigated here, and a projection reached from a *contracts* package is worth one look.
+- ~~`money` is entered from `packages/contracts/src/money.ts` rather than the sequencer~~ — **STRUCK by §872**:
+  it is entered from the sequencer like the rest, and the claim came from a probe that matched a comment.
+  Left struck rather than deleted because a wrong *trigger* is worse than a wrong finding — it is an
+  instruction to a future phase to hunt something that was never there.
+## §872 — PHASE GATE: PHASE 92 CLOSED — the asymmetry §871 reported does not exist, and the probe that invented it matched a comment
+
+§871 recorded that seven projections are wired through the sequencer while **`money` is entered from
+`packages/contracts/src/money.ts`**, and filed that as its second reopen trigger: *"a projection reached from a
+contracts package is worth one look."*
+
+Took the look. **There is no asymmetry.** `workers/api/src/do/sequencer.ts` imports `applyMoneyProjection` at
+line 8 and calls it at line 469, exactly like the other seven. `packages/contracts/src/money.ts` does not
+import the projection at all — it is a Zod schema module, and the only occurrence of the name there is inside a
+**comment**:
+
+> `// CHECK(amount_cents != 0), so it would POISON projectMoneyLines (throw → DLQ) — WP-06 exit audit.`
+
+My call-site probe was `\bprojectMoneyLines\s*\(`, and `\s*` happily matched the space in *"POISON
+projectMoneyLines (throw"*. A comment explaining a hazard was counted as a call site.
+
+### Why this one is worth its own section
+
+It is the **eighth** instrument miss this session and the **third consecutive phase** in which an ad-hoc probe
+produced a confident, wrong wiring claim — §870 (a consumer's import list), §871 (`projectMessages` "has no
+caller"; its entry point is `applyMessageProjection`), and now this. Each was resolved by reading the file.
+
+And this one **propagated**: it reached a committed audit section and, worse, a **reopen trigger**, which is an
+instruction to a future phase. A wrong finding costs a correction; a wrong trigger costs someone else's time
+looking for a defect that was never there. Struck here rather than left to be discovered.
+
+### The mechanical fix, which already exists in this repo
+
+**Strip comments before counting call sites.** `tools/checks/source-corpus.ts` exports `stripComments`, and
+`sweep-containment-coverage.test.ts` — the gate I modelled §870 on — imports it for exactly this reason. The
+repo had already met this problem and solved it; my throwaway probe simply did not use the solution.
+
+Generalised: *"is this symbol used?"* over raw text answers a different question from *"is this symbol used in
+code"*, and the gap is filled by documentation, which is where the symbol's name appears most often precisely
+because it is important. **The better a thing is documented, the more false call sites it has.**
+
+The §871 gate itself is unaffected: its wiring half is **module-level** and matches an `import … from
+".../projection/money"` specifier, which cannot match prose. That design choice — made for a different reason
+(entry-point names rot) — is what kept the gate right while the prose around it was wrong.
+
+### Corrections applied
+
+- §871's *"`money` through `packages/contracts/src/money.ts`"* → the sequencer, like the rest.
+- §871's second reopen trigger is **struck**: there is no contracts-entered projection to investigate.
+
+### Exit state
+
+No code changed; the gate needed no change. typecheck 0 · lint 0 · `verify:docs` 0 · `test:tools` 1,126, 3
+failed (REQ-289).
+
+**Reopen trigger**
+- The surviving §871 trigger still stands and is the real one: **imported is not called.** A module can be
+  imported and its statements dropped — `applyMoneyProjection` returns statements that must reach
+  `db.batch()`, and nothing static proves they do. That is a sequencer test, not a gate.
