@@ -533,6 +533,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 338 | §890 | **§891** | **THE BLIND SPOT IN §890'S MEASUREMENT WAS §890'S SCANNER.** §890 reported 5% weak spine assertions and honestly bounded itself: *25 matchers unclassified*. Listing them exposed the fault — `.id(`, `.res(`, `.text(`, `.ok(` are **not matchers**, they are property accesses INSIDE the `expect(...)` argument (`expect(res.json.id).toBe(…)`) that a naive forward-scan grabbed. Only **8** were real unnamed matchers. **The blind spot was an instrument fault, not a property of the corpus** — 10th time this session a probe answered a different question than the one asked, and the 2nd (with §885's `parity.ts` grep) where the thing I flagged as UNMEASURED was an artifact of how I measured. Re-measured with a string-aware balanced-paren scanner: **10 weak / 227 strong = 4%, ZERO unparsed**, and **demo #1 is 0% weak** (48 assertions, not one `toBeDefined()`-class). **Cross-check that makes it trustworthy: 10+227 = 237 = §889's independent `expect(` count** — two measurements taken for different reasons agreeing to the unit. §890's 12/200/5% corrected to 10/227/4%; conclusion unchanged and slightly strengthened, caveat RETIRED rather than inherited |
 | 339 | §891 | **§892** | **CLAUDE.md's SEVEN HARD BUDGETS, PROBED FOR COMPLETENESS — CLEAN.** Fresh axis. The hard-budget line names seven limits; the question this session keeps asking of green gates is whether EVERY one is enforced or only most. **All seven accounted**: six rostered with a source + extractor and compared **stated-vs-enforced** (`TABLE_BUDGET`, `SURFACE_ROSTER`, `MAX_CANONICAL_VIEWS`, `EVENT_KINDS`, `TOKENS`, font families), and the other three numbers exempted **with written reasons** — `21 used` is a RUNTIME figure `check:invariants` recomputes each run (re-deriving would be a weaker second copy); `0 shadows` and `4px` are **zero-tolerance, proven by PLANTING** an artifact per rule 7, with no constant to compare against. **A zero-tolerance rule is not a count comparison, and the gate says so rather than widening a pattern until it stops matching.** The §743 floor is **span-based**, not phrase-reconstructing, and its comment gives the reason: a naive `<n> <word>` pair yields *"12 canonical"* — *"a guess about how many words a budget's name has"*, the same vocabulary error this session hit ten times from the other side. **Mutation-proved**: a stated 6-vs-enforced-5 reddens the equality check; **a NEW budget with no roster entry reddens the completeness floor** — so a limit cannot be added to CLAUDE.md without a gate, which is exactly what a hard-budget line invites |
 | 340 | §892 | **§893** | **THE ONE BUDGET WITH NO CONSTANT, MUTATION-VERIFIED.** §892's sharpest soft spot: `0 shadows/gradients/radius>4px` is exempted from the count comparison **because of a sentence** (rule 7's *proven by refusing a planted artifact*), and if that proof vanished the budget gate would still pass. **Now measured** — shadow → exit 1 `no shadows (REQ-147)`; `border-radius: 12px` → exit 1 `Radius 12px > 4px`; raw hex in a JSON style file → exit 1 `color #ab12cd … outside the five tokens (REQ-145)`; **control `border-radius: 4px` → exit 0**. The control matters as much as the REDs: a rule firing on 4px would be one nobody could keep green, and the exemption would be resting on a quietly loosened rule. **My first hex probe was WRONG** — planted in `tokens.css`, the file that DEFINES the tokens, where raw hex belongs; exit 0 briefly looked like a third of rule 7 failing. REQ-207's DoD says *a seeded raw color in a **JSON style file***. **Planting a violation where it is legal tests nothing** — 11th instrument miss this session and the FIRST caught before writing it down as a defect, because the surprising result was read against the requirement's wording instead of believed. **Not closed**: a shadow authored in TSX inline style is a different corpus, and `0 gradients` was not planted against |
+| 341 | §893 | **§894** | **THE DESIGN AUDIT'S CORPUS ENUMERATED, AND FIVE EVASIONS TRIED.** §893 closed admitting it had *probed* the corpus, not enumerated it. Read: `apps/**` + `packages/**` for `{css,tsx,ts,jsx,mjs,html}` + `*-style.json` (the JSON narrowing deliberate and documented). **Two omissions, both LATENT**: `workers/**` is unscanned (but has **0** tracked css/html/tsx/jsx and no `.ts` containing shadow/gradient/hex) and `packages/**` lacks `*.js` (**0** tracked). **Four evasions REFUSED**: shadow via CSS-var indirection, gradient via indirection, `-webkit-box-shadow`, `filter: drop-shadow()`. **The fifth was RED FOR THE WRONG REASON** — a shadow VALUE in an unused variable exits 1, and I nearly credited it: attributed, it fires **REQ-146** (font-family budget, because I added a property to the token file) or **REQ-145** (the rgba colour), never the shadow rule. Correct behaviour — the audit matches shadows by PROPERTY and colours by VALUE, and a variable no shadow property consumes **is not a rendered shadow**. *A non-zero exit says something failed, never that YOUR subject failed* — 2nd time this session that habit changed a verdict (after §885). Precise boundary: a shadow built only from SANCTIONED colours, parked unused, trips neither rule — not a hole, it renders nothing |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -52286,3 +52287,72 @@ Nothing changed; four plants made and reverted, `diff -q` verified. `audit:desig
   struck rather than deleted, because the trigger being *wrong* is the useful record.
 - The audit's corpus was never enumerated, only probed. Five plants landing does not prove a sixth would; a
   shadow behind a CSS-variable indirection is the shape I would look at next.
+## §894 — PHASE GATE: PHASE 114 CLOSED — the design audit's corpus enumerated, and five evasions tried
+
+§893 closed honestly: *"I did not enumerate its corpus, only observed that it is wider than I assumed. Five
+plants landing does not prove a sixth would."* This enumerates it and tries the sixth.
+
+### The corpus, read rather than inferred
+
+```
+apps/**/*.{css,tsx,ts,jsx,mjs,js,html}      apps/**/*-style.json
+packages/**/*.{css,tsx,ts,jsx,mjs,html}     packages/**/*-style.json
+```
+
+Two omissions are visible on the face of it, and **both are latent, not live**:
+
+| omission | measured |
+|---|---|
+| `workers/**` is not scanned at all | **0** tracked `.css/.html/.tsx/.jsx` under `workers/`, and **no** `workers/**/*.ts` contains `boxShadow`, `box-shadow`, `linear-gradient` or a raw 6-digit hex |
+| `packages/**` lacks `*.js` (while `apps/**` has it) | **0** tracked `packages/**/*.js` |
+
+The `*-style.json` narrowing is deliberate and documented in the source — *"Only `*-style.json` is added, not
+every `.json`, so package/tsconfig"* files are not dragged into a colour audit.
+
+### Five evasion shapes, tried
+
+| shape | caught by the shadow/gradient rule? |
+|---|---|
+| `box-shadow: var(--x)` — CSS-variable indirection | **yes** — `shadow — no shadows (REQ-147)` |
+| `background: var(--x)` where `--x` is a gradient | **yes** — `gradient — every surface is flat --field` |
+| `-webkit-box-shadow` (vendor prefix) | **yes** |
+| `filter: drop-shadow(…)` | **yes** |
+| a shadow **value** in a variable, property never used | **no — and correctly so** |
+
+The audit matches shadows by **property** and colours by **value**, which is the right split: a variable
+holding `0 2px 4px rgba(…)` that no shadow property consumes **is not a rendered shadow**. Nothing draws it.
+
+### The fifth case was RED for the wrong reason, and that is the finding
+
+It exited 1, and I nearly recorded that as "caught". Attributing it:
+
+- in `tokens.css` → **REQ-146**: *"non-color token(s) [--display, --mono, --planted-sh2] … A third family is a
+  register amendment"* — the **font-family budget**, because I had added a custom property to the token file;
+- in a non-token CSS file → **REQ-145**: *"color rgba(0,0,0,.2) outside the five tokens"* — the **colour**
+  rule, catching the rgba value inside the string.
+
+Neither is the shadow rule. **A non-zero exit says something failed, never that your subject failed**
+([[attribute-the-red-before-crediting-it]]) — and this is the second time this session that habit changed a
+verdict, after §885's `parity.ts` grep.
+
+Worth stating precisely: a shadow value built **only from sanctioned colours**, parked in an unused variable,
+would trip neither rule. That is not a hole — it renders nothing — but it is the exact boundary, and knowing
+where a rule stops is the point of enumerating it.
+
+### Verdict
+
+**Clean negative, now bounded rather than probed.** The corpus is known, its two omissions are empty, and four
+genuine evasion shapes are refused. §893's *"five plants landing does not prove a sixth would"* is answered:
+a sixth, seventh, eighth and ninth were tried.
+
+### Exit state
+
+Nothing changed; seven plants made and reverted, `diff -q` verified. `audit:design` exit 0 · `test:tools`
+1,136, 3 failed (the REQ-289 classifier) · `verify:docs` 0.
+
+**Reopen triggers**
+- `workers/**` being outside the corpus is **latent because workers render no markup today**. The evidence
+  email is a `packages/` view, which is why it is covered. If a worker ever returns styled HTML directly, the
+  design law stops applying to it silently — nothing watches that boundary.
+- The corpus is a hand-written glob list in `tools/design/audit.ts`. Nothing derives it from the surfaces
+  actually shipped, so a new top-level directory would be excluded by default rather than by decision.
