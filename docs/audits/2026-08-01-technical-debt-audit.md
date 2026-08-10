@@ -496,6 +496,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 301 | §853 | **§854** | **PHASE 74 CLOSED — a VISUAL LAW in genesis/07 the register never authorised.** §853 left the 35% unpinned and called a doc↔code pin *a phase*; doing it found something better. genesis/07 §02 states three map states — exception-dims-to-35% (**built**, REQ-077 authorises it), truck-as-chevron (**built**), and **Delivered: hollow red outline at 55%, fades after 24h (NOT built, and NO REQ row covers it)**. `delivered` is an `EntityKind` the demo emits, but the leaves filter on **`statusStr`, not `kind`**, so it draws at 0.9 like any at-rest mark. **The map is CORRECT to omit it** — CLAUDE.md ranks the register #1 (*if it isn't a REQ row it doesn't get built*) and genesis/07 #3. So it is a **doc-vs-doc gap**, the §842 `routes ±10%` shape one layer up: a **pixel law with nothing behind it**. Filed, not built and not amended (§795's precedent). **Also measured**: REQ-077's *"Visual test"* DoD is met by a **unit** test — no blessed screenshot covers the world-dim — and the acceptance manifest already records that with demo #5's `browser: null` |
 | 302 | §854 | **§855** | **PHASE 75 CLOSED — REQ-076 names FOUR shapes; the map draws TWO, and its DoD gate cannot see geometry.** Finishing §854's sweep found the row §854 missed — and it **reverses §854's central claim**. `REQ-076,MAP,Entity grammar: chevron/square/hollow/pulse per state … Squint CI,F0-SPEC'D` authorises the shape **vocabulary**, not the per-state mapping, so §854's grep for `delivered`/`55%` could never find it: **a register row names its subject in the REGISTER's vocabulary, not the spec's.** Measured: **chevron** and **pulse** render; **square** and **hollow** do not — every leaf draws `type: "circle"`, filled, 1px stroke; the only `addImage` is the chevron; no recorded decision explains circles. **The gate finding**: REQ-076's DoD is `Squint CI`, which audits contrast/tokens/motion/dividers/case and has **no geometry check** — so the DoD is green whatever shape the marks are. §842's *gate with nothing behind it*, **inverted**: the gate exists, runs, passes, and is blind to its own subject. A4 says why it matters: *status is grammar, not color*. Filed with 3 options; §854's row corrected |
 | 303 | §855 | **§856** | **PHASE 76 CLOSED — nine DoDs that name a gate; FOUR name the wrong one.** §855's sweep, done. 287 DoD strings → **14 name a CI gate** → 5 are `vNEXT` (a missing gate is expected) → **9 built rows** checked against what their gate can SEE. **REQ-076: real gap** (§855). **REQ-078: true but UNPINNED** — the audit enforces the token SET, the requirement is about SCOPE. REQ-077 met by a **unit** test, REQ-115 by a **component** test (*ErrorState shows FAILED + a retry button*), neither by the gate named. REQ-079/148/149/204/211 met. **Four of nine diverge and only ONE is a gap** — a DoD naming a gate is a POINTER, and pointers rot three ways: blind gate (076), neighbouring property (078), met elsewhere (077/115). **REQ-079 is the model**: it does NOT meet its stated 60fps and says so in code, with the reason and the choice — *a DoD deviation that documents itself is not debt*. Closed REQ-078: `--progress` is stated FOUR times (`ProgressLine`, `entities.ts`, `tokens.css`, the register) and enforced zero; now gated, starting green |
+| 304 | §856 | **§857** | **§856 COUNTED ITS OWN POPULATION WITH THE INSTRUMENT IT HAD JUST CALLED UNRELIABLE.** §856 reported **14** DoDs naming a gate; its own closing trigger said the DoD column is free text and *"a mechanical version would need a vocabulary rather than a parser"* — the refutation of its own number, six paragraphs below it. Widening to `audit`/`lint`/`harness`/`pnpm ` gives **23**, and the sets are **NOT nested**: REQ-077 and REQ-149 are in the 14 and absent from the 23. **Union 25; §856 examined 9.** The count was not wrong, it was UNQUALIFIED — a sample presented as a census, frame never written down. The 16 unexamined now classified: **REQ-167 EXECUTED** (its DoD is a mutation spec, not a description) — seeded denylist clean → exit 0, name planted → **exit 1**, and the gate **REDACTS the leaked name in its own failure message**, the one place a naive identity gate leaks what it protects. 163 (lint + message test + an override-survival note) and 154 (history-wide gitleaks, asserted WITHIN the job) sound. 13 need no gate: 145/147 self-satisfying, 112 the fixture hold, 212/247 vNEXT, 289 the owner's, **001/119/124 name a HUMAN audit — a DoD naming a person cannot rot**. §856's findings all stand; only its SCOPE claim was wrong |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -49852,6 +49853,11 @@ sweep it had not done. This is that sweep.
 does not exist yet is the expected state. That leaves **nine built rows** whose DoD names a gate, and each
 was checked against what the gate can actually see:
 
+> **CORRECTED by §857.** `14` is one regex's yield, not the population — a wider reading gives 23, the two
+> sets are not nested (REQ-077 and REQ-149 are in the 14 and not the 23), and the union is **25**. Nine were
+> examined. Everything below stands as far as it goes; the *scope* claim — "the population", "that sweep,
+> done" — does not. §857 classifies the 16 this section never saw.
+
 | REQ | DoD names | verdict |
 |---|---|---|
 | **076** | Squint CI | **REAL GAP** — `square`/`hollow` unbuilt, and the gate has no geometry check (§855) |
@@ -49907,3 +49913,70 @@ The second is the one worth keeping. `color: "var(--progress)"` sits in a roster
 - A DoD is edited to name a different gate → nothing compares the two. This sweep was by hand over 14 rows,
   and the register's DoD column is free text, so a mechanical version would need a vocabulary rather than a
   parser.
+## §857 — PHASE GATE: PHASE 77 CLOSED — §856 counted its own population with the instrument it had just called unreliable
+
+§856 swept the register's DoDs for rows naming a CI gate, reported **14**, examined nine, and closed. Its own
+final reopen trigger reads: *"the register's DoD column is free text, so a mechanical version would need a
+vocabulary rather than a parser."* That sentence is the refutation of the number printed six paragraphs above
+it, and I did not notice.
+
+### The correction
+
+`14` was one regex's yield, not a population. Widening to the obvious neighbours — `audit`, `lint`, `harness`,
+`pnpm `, `check:`, `test:` — gives **23**, and the two sets are not nested: **REQ-077 (`Visual test`) and
+REQ-149 (`Contrast test green`) are in §856's 14 and absent from the 23.** Union: **25 rows**, of which §856
+examined **nine**.
+
+Sixteen gate-naming rows were never examined, and §856's framing — "the population", "that sweep, done" —
+claimed otherwise. The count was not wrong so much as *unqualified*: presented as a census when it was a
+sample whose frame was a regex I never wrote down.
+
+This is [[grep-proves-presence-never-absence]] landing on my own audit section rather than on the codebase,
+and it is the fourth time this session that reviewing a just-finished fix found the defect in it. The
+distinguishing feature here is that **the correct caveat was already written, in the same section, as a
+reopen trigger** — I filed the limitation as future work instead of applying it to the number I was about to
+publish.
+
+### The sixteen, now classified
+
+Three carried a checkable claim, and the strongest was **REQ-167**, whose DoD is not a description but a
+mutation spec: *"Seeded denylist name in a test PR fails CI."* Executed rather than read —
+
+| step | result |
+|---|---|
+| seeded denylist, name absent from the tree | `identity-leak lint: clean (1 terms checked)`, exit 0 |
+| the same name planted in a tracked doc | **exit 1**, `FAIL REQ-167 identity leak in docs/ops/GO-LIVE-CHECKLIST.md: Z*********************` |
+
+The DoD is met exactly as written, and the gate **redacts the leaked name in its own failure message** — the
+one place a naive identity gate would leak the identity it exists to protect, since CI logs are broadly
+readable. Nothing required that; someone thought about it.
+
+**REQ-163** (*no vendored foreign trees*) has a real lint, a test asserting the message text, and a note
+recording that its patterns are written twice so the ledger copy survives an ESLint override — the
+[[adding-a-gate-can-delete-a-gate]] shape, already understood here. **REQ-154** (*secret scan clean*) is a
+history-wide gitleaks job asserted **within** the gitleaks job rather than file-wide, a form §622 tightened
+after the looser version passed on two unrelated matches.
+
+The remaining thirteen need no gate work: `Audit green`/`Lint green` (145/147) are satisfied by the run
+itself, 112 is the known private-fixture hold, 212/247 are `vNEXT`, 289 is the owner's uncommitted row, and
+001/119/124 name a **human** audit — 001 says `(audit)` in the DoD text. A DoD naming a person is not a
+pointer that can rot; it is honest about needing judgment.
+
+### What this changes about §856's conclusion
+
+Nothing, and that is worth stating plainly. The four-of-nine divergence rate, the three rot modes, and
+REQ-078's gate all stand — the nine examined rows were examined correctly. What changes is the *scope* claim:
+§856 swept a sample, not the population, and 16 rows it never saw are now classified.
+
+### Exit state
+
+`test:tools` 1122, 3 failed — the REQ-289 trio. typecheck 0 · lint 0 · `verify:docs` 0. No code changed this
+phase; one mutation executed and reverted (`diff -q` verified).
+
+**Reopen triggers**
+- A new register row names a gate → nothing enumerates this set, and after two attempts I no longer believe a
+  regex can. The durable fix is a **register column**, not a cleverer pattern: a `dod_kind` of
+  `gate | human | deferred` would make the population a lookup instead of a search. That is a register
+  amendment and therefore the owner's call, filed not decided.
+- The four sound gates (154/163/167/207) are edited → 167 is the only one whose DoD can be re-executed
+  mechanically; re-run it rather than re-reading it.
