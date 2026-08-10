@@ -546,6 +546,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 351 | §903 | **§904** | **genesis/10's I1–I8 RE-VERIFIED — EACH ENFORCED AT A DIFFERENT LAYER.** §903's principal trigger, untouched for ~560 sections. **The result is not that they hold but WHERE each lives**: I1 **schema** (`event_id … REFERENCES events(id)` + trigger), I2 **server gate**, I3 **DB triggers** (§839), I4 **contract refine** (enforced; §851 filed that the flag has NO downstream reader), I5 **Zod contract** (`rate_config_ids … .min(1)`), I6 **query predicate** (§901), I7 **fixture proof** (4 penny-exact cases), I8 **budget constant** (§892). **Eight invariants, six distinct enforcement layers — no single mechanism carries the model, so no single regression retires it.** Mutations run here: **I2** early-returned → **5 REDs** including the cross-stream case and **§739's two exemption edges** (*an absent exemption policy exempts NOBODY*) — the part of a money gate most likely to be widened by accident has the most cover, and the file carries its own inline FALSIFY note recording what was green BEFORE the proof existed. **I5** `.min(1)` removed → 1 RED, *quote.priced with empty rate_config_ids is rejected*. **My first I2 plant did not apply** (`export function` vs `export async function`) and printed 688 passed alongside — **6th silently-green no-op this session**; only the assertion separates it from a clean negative. **With §903, every governing constraint — ten laws + eight invariants — now has a mutation-verified standing mechanism** |
 | 352 | §904 | **§905** | **I1 HOLDS, BY ONE MECHANISM — §904 NAMED THE WRONG BACKSTOP.** §904 hedged that the BEFORE INSERT trigger made D1's FK setting *non-fatal*. **Wrong**: `money_lines_guard_ins` guards **append-only** (duplicate `id` / `(event_id, line_no)`) and says nothing about whether the referenced event EXISTS — **I1's referential half rests on the FK alone**, and §904 asserted a mitigation that does not exist. **Measured against a real D1**: `PRAGMA foreign_keys = 1`; a line naming a nonexistent event → `D1_ERROR: FOREIGN KEY constraint failed`; **non-vacuity control** — the identical row with a real event inserts. **I1 holds, by ONE mechanism, not two** — worth knowing because §904 offered *six enforcement layers* as the reassurance, which is true across the eight and not within I1. **Four probe iterations, none looking like failure**: raw strings to `applyMigrations` → **"2 skipped"** (skipped is not passed); a missing NOT NULL column → `refused = true` **for the wrong reason**; a hand-rolled `events` insert → the control failed; the repo's `mkEvent`/`eventInsertStmt` → clean. **Iteration 2 is the keeper: the probe returned the answer I expected from a cause I had not considered**, separated only by reading the error text |
 | 353 | §905 | **§906** | **THE ONLY TEST GUARDING I1 DID NOT CHECK WHICH MECHANISM REFUSED.** §905 established I1's referential half rests on the FK **alone**, which makes its single pinning test unusually load-bearing. That test — `schema-domain.test.ts:55`, *event_id FK rejects a money_line for an unknown event* — asserts a **bare `rejects.toThrow()`**. **Proved, not argued**: rewriting the case so the event EXISTS (FK satisfied) and a NOT NULL is violated instead → **39 passed**. The assertion cannot tell the two apart, so it stays green if the foreign key is dropped and any other constraint fires. **Exactly the trap §905 hit one phase earlier** — my probe reported `refused = true` from `NOT NULL constraint failed: party_id` and I nearly credited it to I1 — and the same defect was already sitting in the suite, while its NEIGHBOUR at `:64` asserts `/I1/`. Fixed by attributing to `/FOREIGN KEY/i`, the text §905 measured against a real D1; mutation-proved both ways. **Fourth instance of a test whose NAME states more than its ASSERTION checks** (§858 SignatureScreen, §871 UNMOUNT, §864 the disjunction) — every one passed for a reason it did not verify, and every one was found by asking *what else would make this green?* |
+| 354 | §906 | **§907** | **A BARE `toThrow()` IS NOT THE DEFECT; A BARE `toThrow()` WITHOUT A CONTROL IS.** Swept §906's pattern: **380 bare vs 206 attributed**, **69 bare in DB-backed tests**. **380 bare assertions are not 380 defects** — most are Zod schema tests where exactly ONE mechanism can refuse, and *attribute every throw* is the obvious WRONG lesson from §906. **The rule §906 actually demonstrates**: a bare `toThrow()` is sound when a paired control isolates the single variable, unsound when nothing pins the row as otherwise valid. Read by hand: `users.role`/`email` is **sound** (a six-role loop proves a well-formed row inserts AND the tenant exists, so each bad insert differs in exactly one field); `legs.shipment_id` FK is **sound** (an adjacent `resolves.toBeTruthy()` isolates the shipment id); §906's case was **unsound** — no control, which is why a NOT NULL satisfied it. **I did NOT sweep the rest**: my control-detector reported NO for a case I had just read as having one — `$` without MULTILINE, and, the interesting fault, **the legs control lives in a SIBLING `it(` block**, which a per-block scan structurally cannot see. *Has a control* is therefore not mechanically decidable — §313's wall again — and the honest response is §897's: **do not publish a classification you cannot make.** Also: the scanner counted **my own §906 comment** quoting `.toThrow()` — 7th example-vs-use instance, first where the prose was mine |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -53098,3 +53099,62 @@ again.
 - `/FOREIGN KEY/i` matches D1's current wording. A driver or engine change that rephrases the error turns this
   into a false RED — noisy, but fail-loud in the right direction, which is the trade an attributed assertion
   always makes.
+## §907 — PHASE GATE: PHASE 127 CLOSED — a bare `toThrow()` is not the defect; a bare `toThrow()` **without a control** is
+
+§906 fixed one unattributed assertion and named a pattern four instances deep. The obvious next move is a
+sweep — and the sweep's first result is why it must not be published as a defect list.
+
+### Measured
+
+| | |
+|---|---|
+| bare `.toThrow()` across all tests | **380** |
+| attributed (`.toThrow(/…/)`) | 206 |
+| bare, in **DB-backed** tests (several constraints can fire) | **69** |
+
+**380 bare assertions are not 380 defects**, and the reason is worth stating precisely, because "attribute
+every throw" is the obvious wrong lesson to take from §906.
+
+Most bare assertions live in `packages/contracts/test/*` — Zod schema tests, where exactly one mechanism can
+refuse. Naming it adds nothing.
+
+### The rule §906 actually demonstrates
+
+**A bare `toThrow()` is sound when a paired control isolates the single variable under test; it is unsound
+when nothing pins that the row is otherwise valid.**
+
+Read by hand, three cases in `schema-domain.test.ts`:
+
+- **`users.role` CHECK / `email` UNIQUE** — *sound*. A loop first inserts all six valid roles, which proves a
+  well-formed row succeeds **and** that tenant `t1` exists. The bad-role insert then differs only in `role`;
+  the duplicate insert only in `email`. Each variable is isolated by the control.
+- **`legs.shipment_id` FK** — *sound*. The adjacent case asserts `resolves.toBeTruthy()` for a leg on an
+  existing shipment; the failing case differs only in the shipment id.
+- **§906's `money_lines.event_id` FK** — *unsound*, and now fixed. It had **no control**: nothing established
+  that the row was otherwise insertable, which is exactly why a `NOT NULL` violation satisfied it.
+
+So the defect was never "bare `toThrow()`". It was **an unattributed assertion with no control**, which is a
+strictly narrower and decidable thing.
+
+### I did not sweep the rest, and the reason is my own instrument
+
+I wrote a detector for *"does this `it(` block contain a control?"* and it reported **NO** for the `users`
+case I had just read as having one. Two faults: `$` without `re.MULTILINE`, and — the interesting one —
+**the legs control lives in a sibling `it(` block**, which a per-block scan structurally cannot see.
+
+A control is not required to be in the same test. That makes "has a control" **not** mechanically decidable at
+the block level, which is the same wall as §313's *"'authoritative' is semantic"* — and the honest response is
+the one §897 recovered: **do not publish a classification you cannot make.** The three cases above were read;
+the other six bare assertions in that file were not, and I am not calling them sound or unsound.
+
+### Exit state
+
+Nothing changed. §906's fix stands. `test:tools` 1,139, 3 failed (REQ-289) · `verify:docs` 0.
+
+**Reopen triggers**
+- The six unexamined bare assertions in `schema-domain.test.ts` (`tenants.slug`, three money_line CHECKs, two
+  authority CHECKs) — each needs a read, not a regex.
+- My scanner counted **my own §906 comment** (which quotes the literal `.toThrow()` while explaining it) as an
+  occurrence, inflating that file's count by one. Seventh instance this session of a prose-scanning probe
+  unable to tell an example from a use — and the first where the prose was mine, written one phase earlier to
+  document the very pattern.
