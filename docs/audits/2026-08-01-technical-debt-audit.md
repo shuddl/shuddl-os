@@ -543,6 +543,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 348 | §900 | **§901** | **THE REALISTIC REGRESSION IS CAUGHT, AND §900'S HEADROOM FIGURE WAS WRONG.** §900 tried a blunt wrong-binding resolve and named what it had not: *a scoping predicate dropped from a single query*. Tenants separate by DATABASE, so the within-tenant analogue is the **party lens**, whose predicate has two clauses. Both mutations caught, by cases naming the EXPOSURE: dropping `party_refs` EXISTS (**one party reads another's events**) → 2/44 — *P1 on a P2-only shipment is empty; forged party_id is ignored* — and dropping `visibility <> 'internal'` → 6/44. **§900's headroom claim was WRONG**: it wrote *67 cases against a floor of 64* and sized a risk on the gap. Measured with **the counter the gate itself uses** (`it(` declarations): **65 vs 64 = headroom 1**, and across the suite **150 vs 149 = ONE case of slack, with 5 of 6 files at ZERO**. The 67 was vitest's RUN count, which expands `it.each` rows; **I compared two numbers measuring different things and drew a risk from the difference**. The corrected picture INVERTS the concern — `lens-adversarial` (the finer, likelier-edited guard) cannot lose a single case. §900's principle stands; only its number and the risk sized from it were wrong. Also: M1's first plant did not apply and `assert` caught it — **5th time this session that assertion saved a verdict** |
 | 349 | §901 | **§902** | **THE FLOORS NOW SAY WHICH NUMBER THEY MEAN.** §901 corrected a risk sized from a unit mismatch (vitest's **67** vs a floor of **64**, yielding three phantom cases of erosion) and named the durable fix: *nothing states which counter a floor means*. **Measured**: `caseCount` matches `^\s+(it|test)(\.each)?\(` — **declarations**, counting an `it.each` block as ONE. `api/isolation.test.ts` = 63 plain `it(` + **1 `it.each(`** = 65 declarations vs **67 runs**. **One table-driven block, three rows — that is the entire gap**, which is why five of six files show no divergence: they use no `it.each`. The mismatch is invisible until exactly the file that has one. **Fix is a sentence in each gate, not a new check**: `isolation-suite.test.ts` (`caseCount` = declarations) and `demos.test.ts` (`assertionCount` = `expect(` occurrences, which §890/§891 showed needs its own care) now state what they count and what they do not, beside the number. **No floor moved.** A gate reporting 65 while the runner reports 67 is not wrong — it answers a different question, and the only defence is saying so where the number is read |
 | 350 | §902 | **§903** | **STOPPING POINT — ALL TEN LAWS VERIFIED; BOARD AT `ffb733e` UNCHANGED (19 PASS · 2 FAIL · 5 BLOCKED).** This segment worked CLAUDE.md's laws one at a time, asking of each *what keeps this true tomorrow* and mutating to find out: **law 1** (§899, both orphan directions + the PR gate wired in CI), **law 3** (§896/§897, one-writer chokepoint + authority coverage/population), **law 7** (§892–§895, budgets + zero-tolerance + corpus discovery), **law 8** (§900/§901, 149-case isolation floor); 2/4/5/6/9/10 verified earlier. **Nothing found broken** — 6 chokepoint evasions, 7 planted design artifacts, 2 lens-predicate mutations, a wrong-binding resolve: all refused. **Shipped 3 gates** (citation blank-line over both records; spine assertion floors; design-corpus discovery), **declined 1** (§880's path gate — the record had already measured ~76% FP), **designed but did not land 1** (§898's tripwire — red in CI while the register is dirty). **The pattern: the code held every time and my own work did not** — 12 instrument misses, five false reopen triggers, a denominator, a metric, a headroom figure from mismatched units. **On a build this well-gated the marginal defect has moved out of the code and into the ACCOUNT of the code**, which is why the record's own hygiene became the subject |
+| 351 | §903 | **§904** | **genesis/10's I1–I8 RE-VERIFIED — EACH ENFORCED AT A DIFFERENT LAYER.** §903's principal trigger, untouched for ~560 sections. **The result is not that they hold but WHERE each lives**: I1 **schema** (`event_id … REFERENCES events(id)` + trigger), I2 **server gate**, I3 **DB triggers** (§839), I4 **contract refine** (enforced; §851 filed that the flag has NO downstream reader), I5 **Zod contract** (`rate_config_ids … .min(1)`), I6 **query predicate** (§901), I7 **fixture proof** (4 penny-exact cases), I8 **budget constant** (§892). **Eight invariants, six distinct enforcement layers — no single mechanism carries the model, so no single regression retires it.** Mutations run here: **I2** early-returned → **5 REDs** including the cross-stream case and **§739's two exemption edges** (*an absent exemption policy exempts NOBODY*) — the part of a money gate most likely to be widened by accident has the most cover, and the file carries its own inline FALSIFY note recording what was green BEFORE the proof existed. **I5** `.min(1)` removed → 1 RED, *quote.priced with empty rate_config_ids is rejected*. **My first I2 plant did not apply** (`export function` vs `export async function`) and printed 688 passed alongside — **6th silently-green no-op this session**; only the assertion separates it from a clean negative. **With §903, every governing constraint — ten laws + eight invariants — now has a mutation-verified standing mechanism** |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -52914,3 +52915,64 @@ nine private fixtures · `IDENTITY_DENYLIST`.
 - The five BLOCKED gates are absent private inputs; a vendored fixture turning one FAIL would be a defect this
   repo has never been able to see.
 - ~15 repo-owned checklist rows still carry no verification stamp (§884), three of which are register work.
+## §904 — PHASE GATE: PHASE 124 CLOSED — genesis/10's I1–I8, re-verified; each is enforced at a different layer
+
+§903's principal trigger: the eight schema invariants were mutation-proved around §310–§341 and untouched for
+~560 sections. This re-verifies them, and the useful result is not that they hold — it is **where** each one
+lives.
+
+| | invariant | enforced at | verified |
+|---|---|---|---|
+| **I1** | no money_line without event | **schema** — `event_id TEXT NOT NULL REFERENCES events(id)` *"no line without event, ever"* + a BEFORE INSERT trigger | by construction |
+| **I2** | no invoice without `pod.signed` | **gate** — `assertPodSigned` | **5 REDs** (below) |
+| **I3** | no event edit/delete grants at DB level | **triggers** | §839 (this session) |
+| **I4** | custody co-signed or flagged `unwitnessed` | **contract refine** | enforced; §851 filed that the flag has **no downstream reader** |
+| **I5** | every quote pins rate_config versions | **contract** — `rate_config_ids: z.array(z.string()).min(1)` | **1 RED** (below) |
+| **I6** | visibility respected by every view | **query predicate** | §901 — 2 mutations, 2 + 6 REDs |
+| **I7** | correction pairs net zero in GL export | **fixture proof** — 4 penny-exact cases | by test |
+| **I8** | any 22nd table = build failure | **budget constant** | §892 |
+
+**Eight invariants, six distinct enforcement layers** — schema constraint, DB trigger, server gate, Zod
+contract, query predicate, and a fixture proof. That spread is the actual finding: no single mechanism carries
+the model, so no single regression can retire it.
+
+### The two mutations run here
+
+**I2 — `assertPodSigned` early-returned.** Five REDs, and the set is instructive: the direct case
+(*"invoice.issued before pod.signed → GATE_BLOCKED carrying required_evidence ['pod.signed']"*), the
+cross-stream case (*"a pod on another stream does not satisfy the gate"*), the exemption path itself, and
+**§739's two edges** — *"an absent exemption policy exempts NOBODY"* and *"a policy with NO
+invoice_without_pod_classes list still hits the gate."* The exemption is the part of a money gate most likely
+to be widened by accident, and it is the part with the most cover.
+
+The file carries its own FALSIFY note inline: *"make this `?? [serviceClass ?? ""]` → invoice-gate.test.ts reds
+… Before that test: 661/661 green."* A gate that records which mutation it survived, and what was green before
+the proof existed.
+
+**I5 — `.min(1)` removed.** One RED, exactly on point: *"quote.priced with empty rate_config_ids (or versions
+absent) is rejected."* A quote that pins nothing cannot validate, so I5 is upheld by the payload schema rather
+than by a rule anyone must remember to call.
+
+### The plant that did not apply, again
+
+My first I2 attempt anchored on `export function assertPodSigned` — it is `export **async** function`. The
+lookup raised, and the "688 passed" that printed alongside was a **no-op mutation**, not a result. **Sixth time
+this session**; the pattern is now unmistakable — every one of my failed plants failed *silently green*, and
+only the assertion distinguished it from a clean negative.
+
+### Verdict
+
+**Clean negative on all eight.** Combined with §903, every governing constraint this build declares —
+CLAUDE.md's ten laws and genesis/10's eight invariants — now has a standing mechanism verified by mutation
+within this session.
+
+### Exit state
+
+Nothing changed; three plants made and reverted, `diff -q` verified, typecheck 0 after restore. `test:tools`
+1,139, 3 failed (REQ-289) · `verify:docs` 0.
+
+**Reopen triggers**
+- **I4 is the weak one, and it is already filed**: the `unwitnessed` flag is set and validated, and nothing
+  downstream reads it (§851). The invariant holds *as written*; what it buys is unclear until a reader exists.
+- I1's guarantee is an FK, which SQLite enforces **only when `foreign_keys` is ON**. D1's default was not
+  re-verified here, and the BEFORE INSERT trigger is what makes that question non-fatal.
