@@ -567,6 +567,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 372 | §924 | **§925** | **THE REQ-025 STORAGE GUARD IS KEYED ON FUNCTIONS; AN INLINE KEY IS INVISIBLE TO IT.** Mines what the sweep recorded as BOUNDS rather than findings. `tenant-scope.test.ts` reads each `GUARDED_FNS` declaration, finds the tenant PARAMETER position, and checks every call — and its completeness half DERIVES the roster. **Both halves are keyed on a FUNCTION**, so a key built inline (`` `${session.tenant}/imports/…` ``) has no declaration to read and no export to derive: **not allowlisted, INVISIBLE**. Measured twice independently (the sweep's enumeration + a hand scan of 58 tenant-interpolated templates): **exactly two** sites. **Neither is a live defect** — the translator's 990 ack key is pinned by `isolation.test.ts` case 3b and the import key at §921 — so this repairs nothing and closes the **discovery half** of a guard that already has a roster half. R2 is why it earns a file: per-tenant D1 is PHYSICAL isolation and a wrong slug throws, while R2 is ONE SHARED BUCKET partitioned by a string prefix, so a dropped segment reads another tenant's objects **with no error anywhere**. 14 sites classified (10 builder bodies, 2 prefix guards, 2 inline). **The gate caught my own registry error on its first run** — a row for `tenderKey`, whose separator lives in the builder it composes, was dead weight; §672 said so immediately. Rows keyed by **file + snippet, never line** (§885/§913). Proof: new inline key → RED; row deleted → RED; **an existing key LOSING its tenant segment → RED**. test:tools 1,152→1,155 |
 | 373 | §925 | **§926** | **I VERIFIED MY OWN REOPEN TRIGGERS — ONE WRONG, ONE RIGHT, AND THE WRONG ONE WAS BACKWARDS.** A trigger describes a future, so it reads as unfalsifiable and gets inherited; this record already holds *3 of 4 checked were wrong*, and I wrote a dozen more this session. **§915's was wrong**: it said deleting §668's roster would leave `check-constraint-coverage` *green over nothing* — **emptying the roster turns it RED**, because the column names LIVE in the roster and the *mentions-the-column* link catches it. So I measured the real residual instead of guessing twice: **keep the roster and GUT its assertion** (`toEqual([...values])` → a tautology) and the gate stays **GREEN**. **A deleted roster is loud; a hollowed one is silent** — and my trigger named the mode that WOULD be caught, which is worse than no trigger because it spends a reader's attention in the wrong place. **§925's was right**: a key assembled across two statements is genuinely invisible to the shape-based detector (planted, stayed green). **The rule**: a trigger that names a mechanism is *decidable now* — *"if X is deleted, Y stays green"* is a mutation, not a prophecy; check it in the same phase or write it as a question. **The rule proved itself immediately**: §926's own trigger was written as a mutation, so it was runnable, and running it CLOSED it — a 4th case now asserts §668's roster still COMPARES the values (`toEqual([...values])`) rather than merely naming them; hollowing it reds. test:tools 1,155→1,156 |
 | 374 | §926 | **§927** | **ALL 23 AUTHORIZATION REFUSALS MUTATED — ZERO HOLES, AND §377'S CLASS FINISHED.** §914's last trigger measured: **102 `ApiError` sites / 27 files**, **27 authorization**, 23 conditional, each mutated against the FULL api suite. **16 RED · 7 silent · 0 holes.** §84 had swept 18 guards across **6 routes** (one real hole: a DRIVER could waive a server-side gate) — its scope excluded `middleware/auth.ts`, `tenants.ts`, `approvals.ts`, so this is **15 re-verifications + 8 new**; §84's one-real-hole fix came back RED, still holding. **Every silent explained**: 4 redundant with a sibling *read and verified* (missing-bearer→invalid-token; control-plane-kinds→the sequencer's t:root rule; both platform-slug guards→their allowlist and resolver siblings), 3 are **§377's LIVE class**. **I first classified those 3 as *defensive, per §84* — a verdict §377 had already OVERTURNED**: `party_id` is optional and unenforced, so the path is reachable, and §377 pinned 2 of 6 and left 4. **I nearly shipped 3 of 4** — the 4th (the `rate` path) caught by re-reading my own sweep output. All 4 now pinned, asserting the MESSAGE not the status (both routes 403 two lines later for a different reason). **The prior question a guard sweep cannot ask** — `route-authz-coverage` requires every route to be guarded or to DECLARE its mechanism, across **three** surfaces; the third (`/internal`, the single door to the `_platform` revenue tenant) **was found only by checking a false claim I had written myself** (*/pub is capability-gated* — false for `/pub/quote` and `/pub/signup`). **I reproduced §925's own corpus criticism one phase later.** P1 fail-open probe: the claimed-pool catch returning ANOTHER TENANT'S D1 → **RED (3)**. api 819→823 |
+| 375 | §927 | **§928** | **A MONEY CONSTRAINT THAT WAS THE SOLE GUARD FOR ONE INPUT — AND THE TEST NAMED AFTER IT COULD NOT REACH THAT INPUT.** 91 value-constraint sites, 53 survive contracts, **0 of 53 caught by ledger**. **I killed the ~1.5h escalation on §663's evidence**: it had already decided this class — *pinning all 73 would be volume, not assurance* — narrowing 73→5 (those with an explanatory comment)→1. Finishing would have been §917's redundancy at ninety minutes' cost. **Pivoted to a heuristic orthogonal to §663's**: **array** `.min(1)`, where empty is not id-hygiene but a silent **zero** through every downstream `reduce`. `invoice.issued.lines` has NO comment, so §663's filter structurally could not surface it. **The finding**: `QuotePricedPayload`'s penny-parity refine (Σ lines === sell) refuses an empty array — **except that `sell: Cents` may be ZERO**, where Σ[]=0===0 PASSES and `.min(1)` is the only refusal left. Removing quote-side and invoice-side minimums (§677: disable siblings TOGETHER) left **contracts, api, agents, billing ALL green** — an append-only `quote.priced` with **no basis at all**, and an invoice for zero. The quote-side minimum is load-bearing; the invoice-side is defence-in-depth behind it. **The test named for it passes with it deleted** (fixture `sell`=120 000, so the refine fires instead) — §906's shape on a money schema. Fixed with the case the refine is blind to, asserted on the array minimum's own message. **Two harness failures, both mine**: `atexit` does NOT run on SIGTERM (a kill left a DISABLED constraint in the tree, caught by `git status`), and a non-compiling mutation reported as `ERR/ERR/ERR` that a careless read takes for three greens — the re-run now typechecks UNDER the mutation before trusting any suite. contracts 328→329 |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -54497,3 +54498,86 @@ outside it. **Verifying my own prose found the gap that verifying the code did n
   a condition mutation. P1 covered the highest-severity one behaviourally; the other three
   (the auth invalid-token catch, `board.ts`'s driver branch, `copilot.ts`'s lens translation) have §84 verdicts or are catch-siblings, and none has been
   probed *for its fallback value*. That is the decidable form if they are ever revisited.
+## §928 — PHASE GATE: a money constraint that was the SOLE guard for one input, and the test named after it could not reach that input
+
+§914's trigger asked whether Zod is the only refusal mechanism. §927 answered it for route refusals. This
+finishes it for **value constraints** — and the useful part is what I stopped doing.
+
+### I stopped a two-hour sweep because the record had already decided it
+
+91 `.min(1)`/`.uuid()` sites; 53 survive a contracts mutation, and **0 of 53** are caught by the ledger
+suite. I started escalating all 53 to the api suite — ~1.5 hours — then read §663 properly:
+
+> **73** value-refinements on required fields. That is far too many to pin individually, and most `.min(1)`
+> on an id is hygiene — **pinning all 73 would be volume, not assurance.**
+
+§663 narrowed 73 → 5 (refinements carrying an explanatory comment) → 1, and fixed the one where the field
+is **client-supplied**. It never claimed the rest were covered; it claimed they were not worth pinning. My
+sweep was measuring coverage for a set whose decision was already made, with a rationale I agree with.
+**Killed it.** Finishing would have been §917's redundancy at ninety minutes' cost.
+
+### A complementary heuristic, and what it found
+
+§663 filtered by *"has an explanatory comment"* — a proxy for importance that depends on someone having
+written one. A different filter, orthogonal to it: **array** `.min(1)`. An empty array is not id-hygiene —
+it satisfies every downstream `reduce` and yields **zero**, silently. Four qualify, three of them money.
+`invoice.issued.lines` carries **no explanatory comment**, so §663's filter could not have surfaced it.
+
+| constraint | uncovered | property still defended? |
+|---|---|---|
+| `split.computed` allocations | yes | **yes** — the sum-to-10000 refine, tested at §913 |
+| tariff `zones` | yes | downstream (no zone ⇒ UNKNOWN) |
+| `quote.priced` lines · `invoice.issued` lines | yes | **NO — for one input** |
+
+### The input the refine cannot see
+
+`QuotePricedPayload` carries a penny-parity refine: `Σ lines.amount_cents === sell`. For any ordinary quote
+that refine refuses an empty array by itself, which is exactly why `.min(1)` looks like decoration.
+
+**But `sell: Cents`, and `Cents = SafeInt.min(-999_999_999_999)` — so `sell` may be ZERO.** At `sell = 0`,
+`Σ [] = 0 === 0` and the refine **passes**. `.min(1)` is the only thing left refusing the record.
+
+Measured, both singly and as a pair (§677's rule — disable the siblings together and ask what happened to
+the BEHAVIOUR): removing the quote-side and invoice-side minimums left **contracts, api, agents and billing
+all green**. With both gone, an append-only `quote.priced` carrying **no basis at all** is recordable, and
+an `invoice.issued` for zero with no lines behind it.
+
+The ordering matters and is worth stating: the **quote-side** minimum is load-bearing; the invoice-side one
+is defence-in-depth behind it, because the Biller derives invoice lines from the accepted quote's.
+
+### The test named for it could not reach it
+
+```ts
+it("rejects an empty lines array (min 1)", () => {
+  expect(() => QuotePricedPayload.parse({ ...payload, lines: [] })).toThrow();
+});
+```
+
+This passes with `.min(1)` deleted. `sell` is 120 000 in that fixture, an empty array sums to 0, and the
+refine refuses it for a different reason — a bare `toThrow()` cannot tell them apart. **§906's shape, on a
+money schema**: the constraint the test is named for was never exercised, and the one input that would
+exercise it is the one the fixture cannot produce.
+
+Fixed by adding the case the refine is blind to, asserted against the **array minimum's own message** so it
+cannot pass on the refine. Mutation-proved: `.min(1)` → `.min(0)` reds it.
+
+### Two harness failures, both mine, both now guarded
+
+- **`atexit` does not run on SIGTERM.** Killing the long sweep left `facility_id: z.string().min(1)`
+  reduced to `z.string()` in the working tree — a **disabled constraint**, found by `git status`, not by the
+  guard I had written for exactly this. Signal handlers added.
+- **A mutation that does not compile reports as a test result.** Deleting the `.min(1),` line removed its
+  trailing comma (`TS1005: ',' expected`), and the run came back `ERR / ERR / ERR` on three packages — which
+  a less careful reading would have taken as three greens. The re-run mutates `.min(1)` → `.min(0)` and
+  **typechecks under the mutation before running anything**, aborting if it fails.
+
+### Proof
+
+- `.min(1)` → `.min(0)` on the quote lines → **RED** on the new case (was green on the old one).
+- contracts **328 → 329** · typecheck 0 · lint 0.
+
+**Reopen trigger**
+- **Reachability of `sell = 0` is NOT established.** The contract permits it and the constraint is the sole
+  refusal; whether any live caller can drive `/v1/rate` to a zero sell with no lines is a separate question I
+  did not measure. The decidable form: seed a tariff that prices to 0 and see whether `quote.priced` is
+  emitted or the route answers UNKNOWN first (REQ-004's "no price on air" says it should be the latter).

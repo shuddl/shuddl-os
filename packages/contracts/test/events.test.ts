@@ -78,6 +78,26 @@ describe("REQ-003/031: quote.priced carries the penny-parity itemized lines", ()
     expect(() => QuotePricedPayload.parse({ ...payload, lines: [] })).toThrow();
   });
 
+  // §928 — THE CASE THE TEST ABOVE CANNOT REACH, AND WHY `.min(1)` IS NOT DECORATION.
+  //
+  // The case above passes with `.min(1)` DELETED: `sell` is 120_000, an empty array sums to 0, and the
+  // penny-parity refine refuses it for that reason instead. A bare `toThrow()` cannot tell the two apart —
+  // §906's shape, on a money schema — so the constraint the test is named for was never exercised.
+  //
+  // `sell: Cents` and `Cents = SafeInt.min(-999_999_999_999)`, so **sell may be ZERO**. At sell = 0 the
+  // refine computes Σ = 0 === 0 and PASSES, and `.min(1)` is the ONLY thing left refusing the record.
+  // Measured: removing it left contracts, api, agents and billing ALL green.
+  //
+  // What it prevents is a permanent one: an append-only `quote.priced` carrying no basis at all — a price
+  // with nothing behind it, which is the shape REQ-004 exists to refuse — and, with the invoice-side
+  // `.min(1)` also gone, an `invoice.issued` for zero with no lines.
+  it("rejects a ZERO-sell quote with NO lines — the one case penny-parity cannot catch (Σ 0 === sell 0)", () => {
+    const zero = { ...payload, sell: 0, lines: [] };
+    // Attributed to the ARRAY MINIMUM, not merely "it throws": at sell = 0 the refine is satisfied, so a
+    // bare toThrow() here would pass even with the guard removed.
+    expect(() => QuotePricedPayload.parse(zero)).toThrow(/too small|at least 1|>=1/i);
+  });
+
   it("rejects a breakdown whose Σ amount_cents !== sell (never misprice)", () => {
     const under = { ...payload, lines: [{ kind: "freight", code: "freight", amount_cents: payload.sell - 1 }] };
     expect(() => QuotePricedPayload.parse(under)).toThrow();
