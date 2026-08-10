@@ -53,7 +53,13 @@ describe("Task 3 — money_lines is an append-only projection (I1)", () => {
     await expect(TDB.prepare("DELETE FROM money_lines WHERE event_id = 'evt-del'").run()).rejects.toThrow(/I1/);
   });
   it("event_id FK rejects a money_line for an unknown event (no line without event)", async () => {
-    await expect(insertMoneyLine({ event_id: "ghost-event", line_no: 0, division: "main" })).rejects.toThrow();
+      // ATTRIBUTED (§906): a bare `.toThrow()` here passed when the row was refused by a NOT NULL instead —
+      // proved by rewriting the case so the event EXISTS and `division` is null (39 passed). I1's
+      // referential half rests on this FK ALONE (§905: the BEFORE INSERT trigger guards append-only, not
+      // existence), so the assertion must name the mechanism or it cannot notice the FK going away.
+      await expect(insertMoneyLine({ event_id: "ghost-event", line_no: 0, division: "main" })).rejects.toThrow(
+        /FOREIGN KEY/i,
+      );
   });
 });
 
