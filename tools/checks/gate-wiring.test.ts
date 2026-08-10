@@ -338,36 +338,67 @@ describe("REQ-118 §656: the test script still chains the tools suite", () => {
   //   POLARITY     — either half failing fails the gate (§656's property, kept).
   // A mechanism assertion cannot report that it has stopped buying what it was bought for.
 
-  it("§940: runs the recursive half UNCONDITIONALLY (completeness)", () => {
+  // §941 — THE CLASS, NOT THE INSTANCE. §940 asserted these two properties against `test` alone. Counting all
+  // 30 specs in gatesFor() found exactly one other gate script built the same way — `typecheck` — so the rule
+  // is stated over a ROSTER, and the roster's completeness is derived from gatesFor() below rather than
+  // trusted. Two of thirty: the class is closed, not sampled.
+  //
+  // `typecheck` PASSES today, so it was masking nothing; §940's `test` had a persistent red in its first half
+  // and was hiding 3,269 tests. That is the whole lesson — `&&` is safe exactly while the first half has no
+  // durable red, which is a property of the repo's ledger of open rows and NOT of the script. Nobody filing a
+  // red can be expected to re-derive it, so it is a gate.
+  const TWO_HALF_GATES: { script: string; toolsHalf: string; recursiveHalf: string }[] = [
+    { script: "test", toolsHalf: "test:tools", recursiveHalf: "pnpm -r --if-present run test" },
+    { script: "typecheck", toolsHalf: "typecheck:tools", recursiveHalf: "pnpm -r --if-present run typecheck" },
+  ];
+
+  it("§941: the roster covers every gate script that chains internally (no new instance escapes)", () => {
+    // The discovery half. A third two-half gate added later must join the roster or fail here — otherwise the
+    // rule below silently applies to a shrinking fraction of the gates it claims to govern (§"floor the input").
+    const gateScripts = [...gatesFor("merge"), ...gatesFor("release")].flatMap((g) => (g.kind === "cmd" ? [g.script] : []));
+    const chaining = [...new Set(gateScripts)].filter((s) => {
+      const cmd = PKG.scripts[s];
+      return typeof cmd === "string" && cmd.includes("pnpm -r --if-present run");
+    });
+    const unrostered = chaining.filter((s) => !TWO_HALF_GATES.some((g) => g.script === s));
     expect(
-      test,
-      `the \`test\` script no longer runs the package suites (script: "${test}")`,
-    ).toContain("pnpm -r --if-present run test");
+      unrostered,
+      "gate script(s) run a tools half and a recursive half but are not in TWO_HALF_GATES, so §940/§941's " +
+        "completeness and polarity rules do not reach them:\n  " +
+        unrostered.join("\n  "),
+    ).toEqual([]);
+    expect(chaining.length, "no two-half gate scripts found at all — the scan is broken, not package.json").toBeGreaterThanOrEqual(2);
+  });
+
+  it.each(TWO_HALF_GATES)("§940/§941: `$script` runs both halves unconditionally (completeness)", ({ script, toolsHalf, recursiveHalf }) => {
+    const cmd = PKG.scripts[script] as string;
+    expect(cmd, `the \`${script}\` script no longer runs \`${toolsHalf}\``).toContain(toolsHalf);
+    expect(cmd, `the \`${script}\` script no longer runs its recursive half (script: "${cmd}")`).toContain(recursiveHalf);
     expect(
-      /test:tools\s*&&/.test(test),
-      `the tools suite is chained with && (script: "${test}"). That short-circuits: while test:tools fails — ` +
-        "and it does today, on the owner's REQ-289 row — the package suites do not run at all, so a real " +
-        "regression anywhere in the product renders identically to the known red. §940 measured this at " +
-        "3,269 tests across 17 suites. Capture both exit codes instead.",
+      new RegExp(`${toolsHalf}\\s*&&`).test(cmd),
+      `\`${script}\` chains ${toolsHalf} with && (script: "${cmd}"). That short-circuits: while ${toolsHalf} ` +
+        "fails, the recursive half does not run AT ALL, so a real failure anywhere in the packages renders " +
+        `identically to the first half's failure. §940 measured exactly that on \`test\` — 3,269 tests across ` +
+        "17 suites, every one green, not being run, behind the owner's REQ-289 row. Capture both exit codes.",
     ).toBe(false);
   });
 
-  it("§656/§940: either half failing fails the gate (polarity)", () => {
-    // The property §656 established, preserved under the new mechanism. A bare `;` between the halves returns
-    // only the second exit code and silently discards a tools failure — the exact M158 mutation — so the
-    // script must propagate the FIRST half's status explicitly.
-    const capturesToolsStatus = /test:tools\s*;\s*(\w+)=\$\?/.exec(test);
+  it.each(TWO_HALF_GATES)("§656/§940/§941: `$script` fails if EITHER half fails (polarity)", ({ script, toolsHalf }) => {
+    // §656's property, preserved under the new mechanism. A bare `;` returns only the LAST command's exit code
+    // and silently discards the first half's failure — §656's M158 mutation, which remains fatal.
+    const cmd = PKG.scripts[script] as string;
+    const captured = new RegExp(`${toolsHalf}\\s*;\\s*(\\w+)=\\$\\?`).exec(cmd);
     expect(
-      capturesToolsStatus,
-      `the \`test\` script neither chains with && nor captures test:tools' exit status (script: "${test}"). ` +
-        "A bare `;` returns only the LAST command's code, so 44 tools gate files would run and be ignored — " +
-        "§656's M158, the difference between running a check and enforcing one.",
+      captured,
+      `\`${script}\` neither chains with && nor captures ${toolsHalf}' exit status (script: "${cmd}"). A bare ` +
+        "`;` returns only the LAST command's code, so the first half would run and be ignored — §656's M158, " +
+        "the difference between running a check and enforcing one.",
     ).not.toBeNull();
-    const captured = (capturesToolsStatus as RegExpExecArray)[1] as string;
+    const v = (captured as RegExpExecArray)[1] as string;
     expect(
-      test,
-      `\`test\` captures test:tools' status into $${captured} but never uses it in its exit — the capture is ` +
-        "decoration and a failing tools suite still exits 0.",
-    ).toMatch(new RegExp(`exit\\s+\\$\\(\\(\\s*${captured}\\s*\\|\\|`));
+      cmd,
+      `\`${script}\` captures ${toolsHalf}' status into $${v} but never uses it in its exit — the capture is ` +
+        "decoration, and a failing first half still exits 0.",
+    ).toMatch(new RegExp(`exit\\s+\\$\\(\\(\\s*${v}\\s*\\|\\|`));
   });
 });

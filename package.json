@@ -8,7 +8,7 @@
     "pnpm": "11.10.0"
   },
   "scripts": {
-    "typecheck": "pnpm run typecheck:tools && pnpm -r --if-present run typecheck",
+    "typecheck": "pnpm run typecheck:tools; t=$?; pnpm -r --if-present run typecheck; p=$?; exit $(( t || p ))",
     "typecheck:tools": "tsc -p tsconfig.tools.json",
     "lint": "eslint .",
     "test": "pnpm run test:tools; t=$?; pnpm -r --if-present run test; p=$?; exit $(( t || p ))",

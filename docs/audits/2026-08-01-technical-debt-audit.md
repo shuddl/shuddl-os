@@ -580,6 +580,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 385 | §937 | **§938** | **ELEVEN OF TWELVE SUMMARY ROWS HOLD — BUT ONE IS HELD BY NOTHING.** §937's C3 correction raised the bounded question: how many of the summary zone's other status rows are stale? Re-verified all twelve against HEAD by reading the SUBJECT (tracked-file counts, struck text, the lens branch itself) — eleven hold. The finding is the second question: *is each fix PINNED?* C1's is (reverting the lens branch REDs `portal-actions.test.ts`). **C2's was not** — deleting ` --mode release` from `package.json:43` restores audit C2 verbatim: `pnpm test:surfaces` prints *"BLOCKED — a skip is not a pass"* and **exits 0**, while all six package.json-reading gates stay green (45/45). Sentinel and exit code disagree; CI believes the exit code. `playwright-mode-parity.test.ts` now computes the rule from run-gate's roster: every browser gate draws its mode from exactly one source, never both, never neither — 3/3 mutations RED. Also: my own near-miss, treating the context's session-start `gitStatus` as the tree |
 | 386 | §938 | **§939** | **CLAUDE.MD'S DESIGN LAW IS REPEALED BY ONE WORD OF JSON.** Generalizing §938: repo-wide there are exactly two gate-semantics knobs, and the second is `tools/design/design-ci.json`, stated as law in CLAUDE.md rule 7, genesis/11 and genesis/14. Flipping `"blocking"`→`"advisory"` is **silent** (test:tools fails only on the known REQ-289 trio). And consequential: a planted `box-shadow` exits **1** under blocking and **0** under advisory *while still printing the violation*. §252 proved the gate WORKS; §258 read that the config says blocking; neither asked whether the config HOLDS — a gate proved correct and a gate proved durable are different claims. `design-mode-parity.test.ts` parses the mode CLAUDE.md asserts and requires the config to match (§830), so changing the law takes both sides in one commit |
 | 387 | §939 | **§940** | **THE UNIT-TESTS GATE WAS RUNNING A QUARTER OF THE TESTS.** `test` is `test:tools && pnpm -r run test`; `test:tools` fails on the owner's REQ-289 row, so the recursive half has not run in the merge gate for as long as that row has been open. Measured: a planted `packages/ledger` regression is **invisible** (0 hits) under `&&` and visible (3) when both exit codes are aggregated. **3,269 tests across 17 suites, all green, were not being run** — the failure mode is silence, not noise, and a real regression was indistinguishable from the known row. §656's `&&` bought polarity at the cost of completeness when the first half could not fail; that mechanism is superseded (its property is kept and still enforced). `--no-bail` REJECTED on evidence: workerd socket exhaustion cascades false failures. Residual named: `pnpm -r` still bails per package |
+| 388 | §940 | **§941** | **THE SAME SHORT-CIRCUIT IN `typecheck`, CLOSED BEFORE IT COULD BITE.** Counted rather than guessed: of **30** gate specs in `gatesFor()`, exactly **two** chain internally — `test` (§940) and `typecheck`. Planted type errors in both halves: under `&&` only the tools error is reported and the recursive half never runs; aggregating, both do. It passes today, so nothing was masked — the point is that **`&&` is safe only while the first half has no persistent red**, which is a property of the repo's ledger of open rows, not of the script. First probe was a FALSE CLEAN (grepped the planted identifier; tsc prints `file(line,col): error TS2322` and never the symbol). gate-wiring now asserts the CLASS over a roster checked against `gatesFor()` |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -55399,3 +55400,64 @@ order still truncates on first failure. The top-level split — the one that was
 
 **Board: 26 gates, 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape, and both FAILs remain the REQ-289 row
 — but `unit-tests` now fails *having run the whole corpus*, which is a different and much more useful red.
+
+## §941 — PHASE GATE: the same short-circuit in `typecheck`, caught before it could bite
+
+§940 fixed one gate script whose internal `&&` hid a corpus. The [[n-instances-usually-share-one-idiom]] rule
+says stop fixing at instance #2 and start counting, so I counted instead of guessing: **all 30 specs in
+`gatesFor()`, checking each one's package.json command for internal chaining.**
+
+**Exactly one other gate short-circuits, and it is the same idiom:**
+
+```
+typecheck = pnpm run typecheck:tools && pnpm -r --if-present run typecheck
+```
+
+Two of thirty. The other 28 are single commands, so the class is now closed rather than sampled.
+
+**Measured.** Planted a type error in each half — `tools/checks/repo-root.ts` and
+`packages/ledger/src/parity.ts` — and ran the gate:
+
+| | reported |
+|---|---|
+| `&&` (as shipped) | tools error only; **`pnpm -r run typecheck` never executed** (exit 2) |
+| aggregating | tools error **and** `packages/rater typecheck: …` — the recursive half runs |
+
+### The difference from §940, stated precisely
+
+`typecheck` **passes today**, so nothing is being masked right now. This is the same defect caught *before*
+it could cost anything, and the distinction matters for how it should be read: `&&` is not wrong in the
+abstract — it becomes wrong the moment the first half acquires a **persistent** red. §940's `test` had one
+(the owner's REQ-289 row) and lost 3,269 tests; `typecheck` has none and lost nothing. **So the safety of
+every `&&` in a gate script is a property of the repo's ledger of open red rows, not of the script.** That is
+not a property anyone can be expected to re-derive when they file a red, which is why it is now a gate rather
+than a habit.
+
+### A false clean that nearly closed this phase
+
+The first probe reported `tools error: 0` and `package error: 0` — a clean negative that would have retired
+the question. It was a broken probe: I grepped for the planted **identifier**, and `tsc` prints
+`file(line,col): error TS2322: Type 'string' is not assignable to type 'number'` — the message never contains
+the symbol. Reading the raw output showed the tools error present and the package error absent, which is the
+finding. [[a-false-clean-invites-no-follow-up]]: over-reporting gets corrected by a reader, under-reporting is
+corrected by nobody, and this one arrived wearing the shape of *"checked, nothing there."*
+
+**And it happened again, in the same phase, verifying the fix.** The mutation harness lost its arguments — a
+shell function ran `python3 -c "…"` without passing `"$1" "$2"` — so two mutations never applied and the gate
+ran **unmutated**, reporting `exit=0` where I had predicted 1. Read past the traceback, that is exactly the
+shape of *"the gate does not catch this"*, and it would have retired two real assertions as ineffective.
+Both faults this phase failed **toward the reassuring answer**: a broken probe produces nothing, and nothing
+looks like nothing-to-find. The standing defence is the one that caught it — an unmutated **fixed point**
+first, an explicit `assert mut != orig`, and predicting each result before reading it.
+
+### The assertion is now about the class, not one script
+
+`gate-wiring.test.ts` asserted §940's properties against `test` alone. Rewritten to iterate a **roster of
+two-half gate scripts** (`test`, `typecheck`) and require of each: the tools half runs, the recursive half
+runs **unconditionally**, and the first half's status is captured **and used** in the exit. A third such
+script added later inherits the rule by being added to the roster — and the roster's own completeness is
+checked against `gatesFor()`, so a two-half gate that never joins it fails.
+
+**Residual, unchanged and re-observed here:** `pnpm -r` still bails at the first failing package — `rater`
+failed and `ledger` never typechecked. Same named limit as §940, same reason (`--no-bail` cascades workerd
+socket failures), still recorded rather than dropped.
