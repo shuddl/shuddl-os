@@ -514,6 +514,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 319 | §871 | **§872** | **THE ASYMMETRY §871 REPORTED DOES NOT EXIST — THE PROBE MATCHED A COMMENT.** §871 said `money` is entered from `packages/contracts/src/money.ts` and filed it as a reopen trigger. **False**: the sequencer imports `applyMoneyProjection` at line 8 and CALLS it at line 469, like the other seven; contracts is a Zod module whose only mention is a comment — *"it would POISON projectMoneyLines (throw → DLQ)"* — and my probe `\bprojectMoneyLines\s*\(` matched the space before that paren. **8th instrument miss this session, 3rd CONSECUTIVE phase** with a wrong wiring claim (§870 a consumer's import list; §871 `projectMessages` "uncalled"; this). **It propagated into a REOPEN TRIGGER** — a wrong finding costs a correction, a wrong trigger costs someone else's time hunting a defect that was never there. **The fix already exists in-repo**: `tools/checks/source-corpus.ts@stripComments`, which `sweep-containment-coverage.test.ts` imports for exactly this; my throwaway probe just didn't use it. Generalised: **the better a thing is documented, the more false call sites it has.** The §871 GATE is unaffected — its wiring half is MODULE-level and matches an import specifier, which cannot match prose; a choice made for a different reason (entry-point names rot) is what kept it right while the prose around it was wrong |
 | 320 | §872 | **§873** | **"IMPORTED IS NOT CALLED" — AND THE LESSON FROM TWO PHASES AGO IS NOW A TEST, NOT A MEMORY.** Third and quietest depth of one question: **untested** (§870) → **unwired** (§871) → **uncalled** (here). `applyMoneyProjection` RETURNS statements that matter only once spread into `db.batch()`; delete the spread, keep the import, and the projection runs while its statements are DISCARDED — nothing throws, and the symptom is identical to an empty queue. **Measured by READING** (three consecutive phases of probe failures earned that): the sequencer builds ONE `stmts` array with the event insert + **all eight** projections, then `await db.batch(stmts)`. Clean negative. Gate requires each imported `projection/*` entry point to be CALLED in the same file **after `stripComments`** — the helper `sweep-containment-coverage.test.ts` already used, and whose absence caused §872. 2 mutations RED: import-kept/call-deleted (`projectAgentRuns`), and **the call left only inside a comment** (`projectAuthority`) — §872's defect committed deliberately against the gate built to catch it, and exactly what a hurried *"temporarily disabled"* looks like. Both plants failed to apply first try on indentation; `assert s2 != s` caught it — **4th time this session that assertion saved a result, because *no defect found* and *the edit never happened* are the same output** |
 | 321 | §873 | **§874** | **I BUILT THE INSTRUMENT IN §873 AND WROTE THE NEXT CLAIM WITHOUT RUNNING IT.** §873's trigger said *"the Watchtower already imports `projectAuthority`"* — **false**. `watchtower.ts` neither imports nor calls it; the name appears twice, both in COMMENTS. What it actually does is `seq.append(...)`, handing an `authority.flipped` EventInput to the sequencer DO, which projects it **in its own batch** — the correct pattern, stronger than what I wrote. **Second wrong reopen trigger in two phases, identical cause** (a comment counted as code): §872 diagnosed it, §873 BUILT THE FIX INTO A GATE using `stripComments`, and I then wrote §873's trigger from the same stale probe output. **A new instrument's first job is to re-check the claims that motivated it.** Corrected measurement (comment-stripped, whole corpus): **ONE runtime composition root** (the sequencer) and one build-time writer (`tools/seed/load.ts`); `projectMessages`/`projectMoneyLines` have no direct callers at all, being internal to their `apply*` wrappers. **Gated**, because I1 (*the projection and its event commit together or not at all*) is guaranteed only by the sequencer's single `db.batch()` — a second runtime caller would write a read-model row with NO EVENT BEHIND IT, the exact state ledger-is-truth exists to forbid |
+| 322 | §874 | **§875** | **THE SEED'S "I1 EXEMPTION" IS NOT ONE, AND ITS REAL GAP IS ONE EVENT KIND WIDE.** §874 filed that `tools/seed/load.ts` projects outside the sequencer so *"seeded data can hold a read-model state the ledger cannot produce"*. **Wrong on that axis**: the loader batches `eventInsertStmt` + its projections TOGETHER, so I1 holds — same pattern, different caller, and its header already says so. **Third trigger in four phases (§872, §874, here) that measured differently than I filed it**, all three settled by one file-read. The pattern: **a reopen trigger is written at the moment of LEAST evidence** — phase ending, thing is a hunch. Recording a hunch is fine; stating it as a property is what costs. **The real gap**: the loader runs 3 of 8 projections; 4 of the missing 5 are moot (the seed emits no `approval.*`/`agent.acted`/`authority.flipped`/`message.*`), but **`generate.ts:47` DOES emit `appointment.set` and `projectAppointment` never runs** — seeded appointment events with no dock-slot claim. Currently inert **because the seed creates no `legs` rows at all** (only events/parties/shipments), so the UPDATE would match nothing — inert for a reason nobody had written down, which is the shape that stops being true quietly. NOT a REQ violation (REQ-155's DoD is determinism, which `check:seed` proves); an undocumented FIDELITY limit whose cost is a developer seeing an empty view with no note saying whether the feature or the fixture is partial |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -51079,3 +51080,61 @@ The gate allows two callers, each with its reason recorded, and fails on a third
   I1 exemption in the repo and deserves its own look.
 - The allowlist is two rows. A third caller with a good reason is a row plus a sentence; a third caller
   without one is the defect this exists for.
+## §875 — PHASE GATE: PHASE 95 CLOSED — the seed's I1 exemption is not one, and its real gap is a single event kind
+
+§874's trigger: `tools/seed/load.ts` writes projections outside the sequencer, so *"seeded data can hold a
+read-model state the ledger cannot produce."*
+
+**Wrong on the axis I raised it on.** The loader does exactly what the sequencer does:
+
+```
+await db.batch([ eventInsertStmt(db, e), ...applyMoneyProjection(db, e, {}), ...projectPassport(db, e), ...projectStatusCache(db, e) ])
+```
+
+Event and projections in **one batch** — I1 holds. It is not an exemption; it is the same pattern with a
+different caller, and the header says so: *"it writes through the SAME primitives the sequencer uses … so the
+seed exercises the production write path, not a shortcut."*
+
+That is the third trigger in four phases that measured differently than I filed it (§872, §874, this). All
+three were filed from reasoning about a mechanism instead of reading it, and all three took one file-read to
+settle. **The pattern is not carelessness about facts — it is that a reopen trigger is written at the moment
+of least evidence, when the phase is ending and the thing is a hunch.** A hunch is worth recording; stating it
+as a property is what keeps costing.
+
+### The real gap, which is one event kind wide
+
+The loader runs **three** of eight projections. Four of the missing five are irrelevant because the seed never
+emits their trigger kinds — no `approval.*`, no `agent.acted`, no `authority.flipped`, no `message.*`.
+
+**The fifth is not.** `tools/seed/generate.ts:47` emits `appointment.set` for two DISPATCHED shipments, and
+`projectAppointment` never runs. So a seeded database holds appointment events with no dock-slot claim behind
+them.
+
+And the reason that is currently harmless is itself worth writing down: **the seed creates no `legs` rows at
+all** — it populates `events`, `parties` and `shipments` only. `projectAppointment` UPDATEs `legs WHERE
+shipment_id=? AND kind=?`, so even if it ran it would match nothing. The gap is real but inert, and it is
+inert for a reason nobody recorded, which is exactly the shape that stops being true quietly.
+
+### What this is and is not
+
+It is **not** a REQ violation: REQ-155's DoD is *"pnpm seed reproduces identical dataset hash"* — determinism,
+which `check:seed` proves along with the canonical hash chain and 20 lifecycle states. Nothing claims the seed
+produces a fully-projected database.
+
+It **is** an undocumented fidelity limit with a concrete cost: a developer who seeds a dev tenant and opens a
+dock-slot view sees nothing, and has no note telling them whether the feature is broken or the fixture is
+partial. The header's *"the production write path"* reads as complete.
+
+Fixed by stating it — comment only, no behaviour change.
+
+### Exit state
+
+typecheck 0 · lint 0 · `verify:docs` 0 · `test:tools` 1,128, 3 failed (REQ-289). No behaviour changed.
+
+**Reopen triggers**
+- The seed gains `legs` rows → `appointment.set` becomes a live inconsistency rather than an inert one, and
+  `projectAppointment` must join the loader's batch.
+- The seed emits a new event kind → check it against the loader's three projections. Nothing gates this; the
+  comparison above was by hand, and a gate would need the seed's kind list and each projection's trigger kinds,
+  both of which are derivable. Not built — the population is 20 kinds and changes rarely, and I would rather
+  record that judgement than pretend it was measured.

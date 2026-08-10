@@ -3,6 +3,21 @@
 // the real money/passport/status-cache projections), so the seed exercises the production write path,
 // not a shortcut.
 //
+// THREE OF EIGHT PROJECTIONS, DELIBERATELY — and what that leaves out (measured §875). The sequencer runs
+// eight; this runs money, passport and status-cache. Four of the five it skips are moot because SEED-1 never
+// emits their trigger kinds: no `approval.*`, no `agent.acted`, no `authority.flipped`, no `message.*`.
+//
+// The fifth is a real, inert gap: `generate.ts` DOES emit `appointment.set` (two DISPATCHED shipments) and
+// `projectAppointment` is not run here, so a seeded tenant holds appointment events with no dock-slot claim
+// behind them. It is harmless today only because THIS LOADER CREATES NO `legs` ROWS — it populates events,
+// parties and shipments — and `projectAppointment` UPDATEs `legs WHERE shipment_id=? AND kind=?`, which would
+// match nothing even if it ran. **If legs are ever seeded, add `projectAppointment` to the batch below in the
+// same breath**, or the fixture starts asserting a state the ledger cannot produce.
+//
+// So "the production write path" above is true of the MECHANISM (one batch, real projections, I1 honored) and
+// not of the COVERAGE. A developer who seeds a dev tenant and finds a dock-slot view empty is looking at a
+// partial fixture, not a broken feature.
+//
 // FK ORDER IS LOAD-BEARING (do not reorder): parties BEFORE any event, because pod/exception/osd/
 // custody accruals write passports.party_id (FK -> parties). An unseeded actor party aborts the whole
 // event batch (I1: the event and its projections commit together or not at all). Shipments are inserted
