@@ -549,6 +549,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 354 | §906 | **§907** | **A BARE `toThrow()` IS NOT THE DEFECT; A BARE `toThrow()` WITHOUT A CONTROL IS.** Swept §906's pattern: **380 bare vs 206 attributed**, **69 bare in DB-backed tests**. **380 bare assertions are not 380 defects** — most are Zod schema tests where exactly ONE mechanism can refuse, and *attribute every throw* is the obvious WRONG lesson from §906. **The rule §906 actually demonstrates**: a bare `toThrow()` is sound when a paired control isolates the single variable, unsound when nothing pins the row as otherwise valid. Read by hand: `users.role`/`email` is **sound** (a six-role loop proves a well-formed row inserts AND the tenant exists, so each bad insert differs in exactly one field); `legs.shipment_id` FK is **sound** (an adjacent `resolves.toBeTruthy()` isolates the shipment id); §906's case was **unsound** — no control, which is why a NOT NULL satisfied it. **I did NOT sweep the rest**: my control-detector reported NO for a case I had just read as having one — `$` without MULTILINE, and, the interesting fault, **the legs control lives in a SIBLING `it(` block**, which a per-block scan structurally cannot see. *Has a control* is therefore not mechanically decidable — §313's wall again — and the honest response is §897's: **do not publish a classification you cannot make.** Also: the scanner counted **my own §906 comment** quoting `.toThrow()` — 7th example-vs-use instance, first where the prose was mine |
 | 355 | §907 | **§908** | **ALL TEN READ; NINE SOUND, AND THE CONTROLS TAKE THREE DIFFERENT SHAPES.** §907 stated the rule and refused to classify the rest because its detector was wrong. Read the remaining six: **all sound — ten bare assertions in the file, nine sound, one defective (the one §906 fixed).** **The controls take three structurally different shapes**, which is why no regex could classify them: **(1)** a sibling `it(` written AS the control and named so — *accepts an honest AR freight line (non-vacuity — the rejections below must mean the CHECK)*; **(2)** a successful insert earlier in the same test (six valid roles; `t2` before the duplicate-slug `t3`); **(3)** a **cross-controlling pair + schema defaults** — `('not_a_module','native')` and `('rating','neither')` each carry a VALID value where the other tests, and every remaining column is `NOT NULL DEFAULT`, so nothing unrelated can fire. **The third is DDL-dependent and the one I would have got wrong from a distance**: add a required column without a default and BOTH assertions start passing for the wrong reason, silently, with no test edit. **§906's defect was not representative** — it was the single case with no control of any shape, in a file whose author had written an explicit non-vacuity control elsewhere and explained it in the test name. The discipline was present; one case escaped it |
 | 356 | §908 | **§909** | **THE ONE SOUNDNESS THAT DEPENDED ON THE DDL NOW DEPENDS ON ITSELF.** §908 found nine of ten bare assertions sound but flagged the `authority_map` pair as **DDL-dependent**: the two rows cross-control, and every remaining column is `NOT NULL DEFAULT`, so a two-column insert is otherwise complete — *true today, and true for a reason the test never states*. Add a required column without a default and **both assertions start passing for the wrong reason, silently, with no test edit**. **Fixed by converting §908's shape 3 into shape 2**: an explicit valid insert (`('dispatch','native')`) now runs first, so a future migration that invalidates two-column inserts makes the **control fail loudly** instead. `authority_map` is seeded by no migration (measured), so the control collides with nothing. **Method note**: my first seeding check piped `grep` into `sed` and read `$?` — **sed's** status — printing *exit 0* for a search that found nothing. The `$?`-after-a-pipe trap, which this record names and which §888 caught me on eight phases ago; **second time this session, and both times the tell was output and status disagreeing** |
+| 357 | §909 | **§910** | **§907'S POPULATION CONFLATED TWO OPPOSITE ASSERTIONS.** §909 left 59 unread bare assertions; prioritising picked `transition-gates.test.ts` (17, the largest file). **Reading the case names stopped the phase**: every one describes a PASS — *passes when…*, *does NOT block*, *is a no-op pass*. Those are `.not.toThrow()`, and **attribution is meaningless on them** — there is no mechanism to name when the claim is that nothing fired. §907's regex matched `.toThrow()` regardless of a preceding `.not.`. **Split: 68 `.not.toThrow()` vs 311 positive bare — the relevant population is 311, not 380**, and the DB-backed 69 is inflated the same way: **the file I picked as highest-value has ZERO of the defect class**, and its 17 are all the CONTROL shape §908 catalogued (a gate proving it admits the valid case). **8th instance of a probe measuring its own vocabulary rather than its subject** — and the pattern is now complete: **every count I have published this session that later moved did so for this reason** (§884's denominator, §890's 5%, §901's headroom, §907's 380). **Four counts, four vocabulary faults, zero arithmetic errors** |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -53114,6 +53115,11 @@ sweep — and the sweep's first result is why it must not be published as a defe
 | attributed (`.toThrow(/…/)`) | 206 |
 | bare, in **DB-backed** tests (several constraints can fire) | **69** |
 
+> **CORRECTED by §910.** These figures counted `.not.toThrow()` — an assertion that **no** error occurs — in
+> the same bucket as `toThrow()`. Attribution is meaningless on the former. The split is **68 `.not.toThrow()`
+> / 311 positive bare**, so the relevant population is **311**, and the DB-backed figure is inflated the same
+> way: `transition-gates.test.ts` contributed 17 and has **zero** of the defect class.
+
 **380 bare assertions are not 380 defects**, and the reason is worth stating precisely, because "attribute
 every throw" is the obvious wrong lesson to take from §906.
 
@@ -53252,3 +53258,62 @@ One control added; no production code changed. `packages/ledger` green. `test:to
 - Shape 3 may exist elsewhere — a pair of assertions sound only because of a DDL default. It is not greppable
   (§907 established that "has a control" is not mechanically decidable), and the 59 unread bare assertions in
   other DB-backed tests are where it would hide.
+## §910 — PHASE GATE: PHASE 130 CLOSED — §907's population conflated two opposite assertions
+
+§909 left 59 unread bare assertions in DB-backed tests. Prioritising by what they guard picked
+`transition-gates.test.ts` — **17 bare, the largest single file**, and the gates it covers are law-adjacent.
+
+Reading the case names stopped the phase before it started. Every one describes a **pass**:
+
+> *"passes when count + freight photo + custody are all present"* · *"a valid override passes despite all
+> evidence missing"* · *"does NOT block — so the block is the jurisdiction"* · *"is a no-op pass"* · *"does NOT
+> throw"*
+
+Those are `.not.toThrow()` — assertions that **no** error occurs. **Attribution is meaningless on them**: there
+is no mechanism to name, because the claim is that nothing fired.
+
+### §907's number was wrong
+
+My §907 regex matched `.toThrow()` regardless of a preceding `.not.`, so it counted both directions as one
+population.
+
+| | |
+|---|---|
+| `.not.toThrow()` — assert **no** throw (attribution meaningless) | **68** |
+| bare positive `toThrow()` — assert a throw, unattributed (the §906 concern) | **311** |
+| §907 reported | 380 |
+
+**The relevant population is 311, not 380**, and the same conflation inflated §907's DB-backed figure of 69.
+Measured per file:
+
+| file | `.not.toThrow()` | positive bare |
+|---|---|---|
+| **`transition-gates.test.ts`** | **17** | **0** |
+| `schema-core.test.ts` | 0 | 4 |
+| `status-cap.test.ts` | 0 | 5 |
+| `biller.test.ts` | 1 | 2 |
+| `facilities.test.ts` | 0 | 4 |
+
+**The file I picked as the highest-value read has zero cases of the defect class.** All seventeen are
+pass-assertions, and every one is exactly the *control* shape §908 catalogued — a gate proving it admits the
+valid case, which is what makes its rejections mean something.
+
+### What this is the eighth instance of
+
+A probe that measured its own vocabulary rather than its subject. §907 asked *"how many bare `toThrow()`?"*
+when the question was *"how many unattributed **assertions of a throw**?"* — and `.not.` inverts the meaning
+while leaving the token intact.
+
+**Every count I have published this session that later moved did so for this reason**: §884's denominator
+(unrottable rows counted as debt), §890's 5% (property accesses counted as matchers), §901's headroom (runs
+counted as declarations), and now §907's 380. Four counts, four vocabulary faults, zero arithmetic errors.
+
+### Exit state
+
+Nothing changed; §907's figures corrected in place. `test:tools` 1,139, 3 failed (REQ-289) · `verify:docs` 0.
+
+**Reopen trigger**
+- The real remaining population is **311 positive-bare**, of which the overwhelming majority are Zod schema
+  tests (~183 in five `packages/contracts` files) where one mechanism can refuse and attribution adds nothing.
+  The DB-backed remainder is **~15 across five files**, which is a readable number and the honest scope of
+  what §909's trigger should have said.
