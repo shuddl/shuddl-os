@@ -531,6 +531,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 336 | §888 | **§889** | **A RENAMED SPINE TEST WAS CAUGHT; A GUTTED ONE WAS NOT.** §888's own trigger, closed with §827's pattern (per-file floors, `SUITE` derived from the keys, aggregate DERIVED by summing per §823). **Measured: 41 cases / 237 assertions across the 7 spine files — and the METRIC had to change.** §827 floors on CASE count; copying that would have shipped a gate blind to the demo that matters most, because `heartbeat.test.ts` is **1 `it()` carrying 48 `expect()`** — demo #1's whole causal chain in one case, so gutting it to a single assertion keeps a case-floor GREEN. Floored on **assertions per file** instead: **the precedent's SHAPE transfers, its METRIC did not**, and taking it on trust would have produced exactly the hollow gate this record keeps finding. **Limits stated rather than implied**: floors sit at ~80% of measured, so this catches GUTTING not EROSION (48→40 passes), and it cannot see a HOLLOWED assertion — `toBeDefined()` counts the same as a penny-exact invoice comparison. Counting is the cheap half |
 | 337 | §889 | **§890** | **STOPPING POINT — THE SPINE IS NOT HOLLOW (MEASURED), BOARD AT `7288d9f` UNCHANGED.** §889 floored the acceptance spine on assertion COUNT and honestly caveated that a count cannot see a HOLLOWED assertion. Measured: **12 weak / 200 strong = 5%**, and demo #1's single-case whole-chain proof is **2%** (1 of 45) — **the floors guard genuine strength, not weight**. Honest bound: 212 of §889's 237 `expect(` calls classified; **25 unclassified** and NOT assumed to resemble the rest. **Board: 26 gates, 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged across 14 phases / ~40 commits; the action remains *give REQ-289 a classifiable `status`/`wp`* — NOT commit it (§876). **§880–§889 produced two gates** (blank-line citations, spine assertion floors) **and one deliberately declined** (§880's path gate — the record had already measured its ~76% FP rate). **The through-line**: across ten phases I was wrong about MY OWN WORK far more often than about the code — a denominator (§884), an assumption about history (§887), a metric borrowed unchecked (§889), two reopen triggers (§882/§885), an experiment already run (§880) — every one caught by measuring, several by gates I had just built. **The code kept holding.** That asymmetry is the segment's most useful result |
 | 338 | §890 | **§891** | **THE BLIND SPOT IN §890'S MEASUREMENT WAS §890'S SCANNER.** §890 reported 5% weak spine assertions and honestly bounded itself: *25 matchers unclassified*. Listing them exposed the fault — `.id(`, `.res(`, `.text(`, `.ok(` are **not matchers**, they are property accesses INSIDE the `expect(...)` argument (`expect(res.json.id).toBe(…)`) that a naive forward-scan grabbed. Only **8** were real unnamed matchers. **The blind spot was an instrument fault, not a property of the corpus** — 10th time this session a probe answered a different question than the one asked, and the 2nd (with §885's `parity.ts` grep) where the thing I flagged as UNMEASURED was an artifact of how I measured. Re-measured with a string-aware balanced-paren scanner: **10 weak / 227 strong = 4%, ZERO unparsed**, and **demo #1 is 0% weak** (48 assertions, not one `toBeDefined()`-class). **Cross-check that makes it trustworthy: 10+227 = 237 = §889's independent `expect(` count** — two measurements taken for different reasons agreeing to the unit. §890's 12/200/5% corrected to 10/227/4%; conclusion unchanged and slightly strengthened, caveat RETIRED rather than inherited |
+| 339 | §891 | **§892** | **CLAUDE.md's SEVEN HARD BUDGETS, PROBED FOR COMPLETENESS — CLEAN.** Fresh axis. The hard-budget line names seven limits; the question this session keeps asking of green gates is whether EVERY one is enforced or only most. **All seven accounted**: six rostered with a source + extractor and compared **stated-vs-enforced** (`TABLE_BUDGET`, `SURFACE_ROSTER`, `MAX_CANONICAL_VIEWS`, `EVENT_KINDS`, `TOKENS`, font families), and the other three numbers exempted **with written reasons** — `21 used` is a RUNTIME figure `check:invariants` recomputes each run (re-deriving would be a weaker second copy); `0 shadows` and `4px` are **zero-tolerance, proven by PLANTING** an artifact per rule 7, with no constant to compare against. **A zero-tolerance rule is not a count comparison, and the gate says so rather than widening a pattern until it stops matching.** The §743 floor is **span-based**, not phrase-reconstructing, and its comment gives the reason: a naive `<n> <word>` pair yields *"12 canonical"* — *"a guess about how many words a budget's name has"*, the same vocabulary error this session hit ten times from the other side. **Mutation-proved**: a stated 6-vs-enforced-5 reddens the equality check; **a NEW budget with no roster entry reddens the completeness floor** — so a limit cannot be added to CLAUDE.md without a gate, which is exactly what a hard-budget line invites |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -52148,3 +52149,68 @@ No code changed. `verify:docs` 0 · `test:tools` 1,136, 3 failed (the REQ-289 cl
 - `toHaveBeenCalled` is counted **weak** here (it asserts a call happened, not with what) while
   `toHaveBeenCalledWith` is strong. That is a judgement, not a measurement, and it is where the 4% would move
   if someone disagreed — 4 of the 10 weak are `toHaveBeenCalled`.
+## §892 — PHASE GATE: PHASE 112 CLOSED — CLAUDE.md's seven hard budgets, probed for completeness; clean
+
+A fresh axis after the record and acceptance threads. CLAUDE.md's hard-budget line is the shortest statement
+of what this build refuses to become:
+
+> *≤22 tables (21 used) · 3 surfaces + command bar + queues · 12 canonical views · 35 event kinds · 5 color
+> tokens · 2 font families · 0 shadows/gradients/radius>4px.*
+
+Seven budgets. The question is the one this session keeps asking of green gates: **is every one of them
+actually enforced, or only most of them?**
+
+### All seven are accounted for, and the two that cannot be counted say why
+
+Six are rostered with a source and an extractor — tables (`TABLE_BUDGET`), surfaces (`SURFACE_ROSTER`),
+canonical views (`MAX_CANONICAL_VIEWS`), event kinds (`EVENT_KINDS`), color tokens (`TOKENS`), font families.
+Each is compared **stated-vs-enforced**, so the doc and the constant cannot drift apart.
+
+The remaining three numbers on that line are exempted **with their reasons written down**:
+
+| number | why it is not a roster entry |
+|---|---|
+| `21 used` | a **runtime** figure — `check:invariants` recomputes it across two databases every run (`invariants OK — 21/22 tables`); re-deriving it here would be a second, weaker copy of a check that exists |
+| `0 shadows` | **zero-tolerance, proven by PLANTING** an artifact (CLAUDE.md rule 7 records the design audit refusing a shadow, an over-budget radius and a raw hex). There is no constant to compare against |
+| `4px` | the radius half of the same rule — and the only number on the line with no whitespace after it |
+
+**A zero-tolerance rule is not a count comparison**, and the gate says so rather than widening a pattern until
+it stops matching. That distinction is the thing most likely to be lost if this were rewritten.
+
+### The completeness floor is span-based, and the reason is instructive
+
+The floor does not reconstruct phrases. It runs each roster regex against the line, records the **character
+span** it claims, and requires every number on the line to fall inside some claimed span or a named exemption.
+Its own comment explains why: a naive `<n> <word>` pair yields *"12 canonical"* while the roster regex reads
+`(\d+) canonical views`, and comparing those two strings is *"a guess about how many words a budget's name
+has."*
+
+That is the same class of error this session has hit ten times from the other side — a probe measuring its own
+vocabulary rather than the subject.
+
+### Mutation-proved, not read
+
+| mutation | RED |
+|---|---|
+| CLAUDE.md states `6 color tokens` while the source enforces 5 | *each stated budget equals the number its gate actually enforces* |
+| a new budget (`7 agent lanes`) appears on the line with no roster entry | *§743 completeness floor* |
+
+The second is the one that matters: **a budget cannot be added to CLAUDE.md without a gate**, which is the
+failure mode a hard-budget line invites — stating a limit and enforcing nothing.
+
+### Verdict
+
+**Clean negative.** Seven budgets, six mechanically compared, three numbers exempted with reasons, and a
+completeness floor that catches an eighth slipping in. Recorded so no later phase re-derives it.
+
+### Exit state
+
+Nothing changed. `test:tools` 1,136, 3 failed (the REQ-289 classifier) · typecheck 0 · lint 0 ·
+`verify:docs` 0.
+
+**Reopen triggers**
+- The three exemptions are the soft spot: each is correct **because of a reason stated in prose**, and prose is
+  what rots. `0 shadows` is proven by the design audit refusing a plant — if that proof is ever removed, this
+  gate still passes, because it never checked it.
+- The equality check compares a number to a number. A budget whose *constant* is right while its *enforcement*
+  is bypassed elsewhere would pass — §880's lesson about what a green certifies applies here too.
