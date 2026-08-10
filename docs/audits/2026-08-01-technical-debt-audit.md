@@ -94,7 +94,7 @@ Ownership: all twelve are **Repo** (closable by a commit). None is an external h
 |---|---|---|---|---|---|---|
 | C1 | **`POST /v1/rate` hands the portal (counterparty) role the tenant's margin floors, pinned config versions, and full approval internals** — the exact fields the redaction law strips from `quote.priced` for every non-tenant lens (REQ-085/074). `workers/api/src/routes/rate.ts` admits role `portal` and returns `pricedResponse()` unbranched by lens: `floors` (cost-derivable per `packages/rater/src/floors.ts:33-39`), `versions`, and the ApprovalDecision's `evaluated_sell_cents`/`gross_sell_cents`/`executing_share_bps`. The public twin (`workers/api/src/pub/quote.ts:73-76`) declares these "EXCLUDED forever"; the portal client's header claims "the server already redacts them" — it does not. `workers/api/test/portal-actions.test.ts` portal `/v1/rate` cases assert only 200/PRICED, never the response shape | **High** | Same party sees `floors` stripped on the events read but receives them synchronously at pricing time. Margin-confidentiality defect, same-tenant lens-scoped — not cross-tenant, so High not Critical | backend | **FIXED this session** — lens-branched response; portal now receives the counterparty-safe shape (status, sell, lines, transit, approval status only); tests pin floors/versions/basis/anomaly-internals absent for portal and present for ops | R1 |
 | C2 | **The deployed-surfaces field gate exits 0 on an all-skipped run in its documented invocation.** `LAUNCH-RUNBOOK.md` Step 5 invokes `pnpm test:surfaces` with no `--mode`; `parseMode` defaults to `local`, where playwright-guard's all-skipped branch resolves to exit 0 and the structured sentinel is suppressed — while the spec's own header claims "an all-skipped run is BLOCKED, never a green exit 0". No documented path anywhere runs this gate in a blocking mode | **High** | `tools/harness/playwright-guard.ts` disposition table + `tests/e2e/prod-surface.spec.ts` header. The recorded "5 passed" evidence came from a real run; the defect is that the gate's fail-closed exit semantics were never engaged by any documented invocation | assurance | **FIXED this session** — `--mode release` is baked into the package script (a field gate has no advisory use), which makes the runbook's existing command blocking without edit; the spec header states the qualifier. Verified: unset base ⇒ **exit 2 BLOCKED**, sentinel emitted | R1 |
-| C3 | **The agents worker cannot serve claimed pool tenants — and fails silent, not closed.** `workers/agents/src/tenants.ts` is a static two-slug map with no claimed-pool fallback and zero `TENANT_POOL_*` bindings, while the api worker and sequencer DO fully serve claimed tenants. A pool tenant's committed `pod.signed` enqueues a Biller trigger the queue consumer **ACKs as poison** (destroyed, no DLQ), the REQ-169 recon sweep and the Watchtower unbilled alarm iterate only `TENANT_SLUGS` (so the recovery path for exactly this loss also excludes them), and the sequencer's in-code "the REQ-169 sweep recovers it" claim is false for those tenants. Every cron (anchor, SLA, collector, watchtower, retention, mirror, snapshots) has the same blind spot. Only the narrower billing-metering instance was on the record (GO-LIVE row, Low/DARK) | **High** | Latent — PLG is DARK behind REQ-138 legal, Stripe, pool provisioning, `PLATFORM_INTERNAL_SECRET`, so it cannot mis-bill today. High because the documented `PROVISIONING_ENABLED` flip has no agents-roster blocker and the failure is invisible when it comes | backend | **Hardened this session** — unknown-tenant triggers now `retry()` (surfacing through queue retry/DLQ machinery) instead of terminal `ack()`; the sequencer's false recovery claim corrected; a blocking pre-R4 row added to GO-LIVE-CHECKLIST naming the full roster gap. The claimed-aware resolver + cron enumeration remains **OPEN, phase-gated pre-R4** (build it before any `PROVISIONING_ENABLED` flip) | R4 |
+| C3 | **The agents worker cannot serve claimed pool tenants — and fails silent, not closed.** `workers/agents/src/tenants.ts` is a static two-slug map with no claimed-pool fallback and zero `TENANT_POOL_*` bindings, while the api worker and sequencer DO fully serve claimed tenants. A pool tenant's committed `pod.signed` enqueues a Biller trigger the queue consumer **ACKs as poison** (destroyed, no DLQ), the REQ-169 recon sweep and the Watchtower unbilled alarm iterate only `TENANT_SLUGS` (so the recovery path for exactly this loss also excludes them), and the sequencer's in-code "the REQ-169 sweep recovers it" claim is false for those tenants. Every cron (anchor, SLA, collector, watchtower, retention, mirror, snapshots) has the same blind spot. Only the narrower billing-metering instance was on the record (GO-LIVE row, Low/DARK) | **High** | Latent — PLG is DARK behind REQ-138 legal, Stripe, pool provisioning, `PLATFORM_INTERNAL_SECRET`, so it cannot mis-bill today. High because the documented `PROVISIONING_ENABLED` flip has no agents-roster blocker and the failure is invisible when it comes | backend | **Hardened this session** — unknown-tenant triggers now `retry()` (surfacing through queue retry/DLQ machinery) instead of terminal `ack()`; the sequencer's false recovery claim corrected; a blocking pre-R4 row added to GO-LIVE-CHECKLIST naming the full roster gap. ~~The claimed-aware resolver + cron enumeration remains **OPEN, phase-gated pre-R4**~~ **CLOSED — this SUMMARY row was stale; the live checklist row was not (audit §937).** The checklist records *RESOLVER BUILT 2026-08-01* (`494765f`), the adversarial review that caught the ninth fan-out outside `index.ts`, pool-binding exclusivity, and both the translator and billing ports. Independently re-measured 2026-08-10: **9 `allTenantSlugs()` call sites, ZERO remaining `for … of TENANT_SLUGS` fan-outs**, a fail-closed claimed resolver, two covering suites | R4 |
 
 ### The record misleads (all five verified false at HEAD, none carrying a supersede note where a reader lands)
 
@@ -576,6 +576,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 381 | §933 | **§934** | **§933's TRIAGE DONE — 25 of 35 EXPIRY CONDITIONS ARE DECIDABLE; AND MY ROW COUNT WAS WRONG TWICE.** The repo-owned section holds **45 lines beginning `| `** — what I counted and asserted in §932 AND §933 — but only **35** are eight-field debt rows. The other nine belong to **two NESTED sub-tables** inside the section (a browser-gate table and a Command/Verdict table) plus headers. **A line-prefix count is a PROXY for a row**, and it swept in every nested table's rows; the fix is to count the thing itself (cells matching the section's schema). Corrected in three places — both audit sections and the gate's own header — because the figure had propagated into a gate built to stop figures propagating. **Triage**: 25 decidable — **13 name a FILE** whose change invalidates the evidence, **7 name an EVENT with a mechanical tell** (a binding appearing, `PROVISIONING_ENABLED` flipping, a cron gaining a sub-daily expression), **5 name a COUNT/symbol**; the other **10 name a DECISION** no gate can evaluate and are correctly written, just not automatable. **The 13 file-change rows are the cheap tranche** — a content-hash pin turns *evidence stands until `X` changes* into a check — but that shape goes stale **loudly, not dangerously** (a moved file makes a verdict unverified, not wrong), so it is recorded as available work with its value stated, not queued as urgent |
 | 382 | §934 | **§935** | **REQ-030's AUTHORITY REGISTRY RE-VERIFIED — IT HOLDS, AND TWO PROXIES NEARLY SAID OTHERWISE.** The most consequential of §934's 25 decidable expiry conditions. It matters because `check:authority-coverage` is a static scan over a HAND-LISTED roster — it verifies the registered pairs consult `resolveAuthority` and **cannot see an unregistered emitter**, so completeness is the half no gate holds. **Result: holds.** 13 files reference an authoritative kind AND carry an append seam; **8 consult `resolveAuthority`** (unchanged) and the 5 that do not are each correctly excluded **for a different reason** — `booking.ts` emits `booking.created` (it only REFERENCES `quote.priced`, to validate), `sla-sweep.ts` emits `message.received` not `.sent`, `portal-actions.ts` emits `quote.accepted`/`message.received`, `credits.ts` emits `invoice.issued` **against the PLATFORM tenant** (not a tenant DB), and `routes/events.ts` the row already explains. **Two proxies both looked like decay**: files MENTIONING a kind → **28** vs a recorded 12 (a registry apparently doubled); adding an append seam → **13** vs 12 (still drift, still wrong). **Only reading what each file EMITS settled it**, and `credits.ts` is the sharp case — it genuinely appends an authoritative kind, so every mechanical filter keeps it. Same failure as §934's row count one phase earlier: **a count over a proxy is not a count over the subject**, twice in two phases, both times producing a number that would have been published as decay. A clean negative is the ONLY form the completeness answer can take, and it now carries a date |
 | 383 | §935 | **§936** | **§935's TRIGGER CLOSED — THE MECHANISM WAS ALREADY STRONGER THAN THE CHECK I PROPOSED.** §935 asked for a lint: *assert `credits.ts` never calls `resolveTenantDb`/`tenantDb`*. **It calls no resolver at all.** It takes `ledger: PlatformLedger`, whose `append({streamId, input})` has **NO TENANT PARAMETER** — a caller cannot name a tenant even by mistake — and the implementation reaches `/internal/platform/credit-append`, *the ONLY caller that sets the sequencer's `platform: true` door*, on the `/internal` surface §927's gate enumerates. **A lint could only say *this file does not currently call a tenant resolver*; the signature says *no caller of this seam can express a tenant*.** The lesson is about triggers: written at the end of a phase, when the subject is understood but its NEIGHBOURS are not, a trigger proposes **the check you would build, not the one the code already has** — three of this session's corrections (§917, §920, §936) are that same miss. **Fourth pathspec fault**: `git grep -- 'workers/*/src'` found NO production callers (it does not recurse); `webhook.ts:52,56` call both. All four faults this session produced an **empty** result that looked like a finding — a bad pattern never over-reports, and under-reporting is the direction nobody double-checks. No source changed |
+| 384 | §936 | **§937** | **ONE FACT, TWO RECORDS — THE LIVE ONE WAS MAINTAINED, THE SUMMARY WAS NOT.** C3 — the agents worker's claimed-pool blind spot, filed **High**, *"build it before any `PROVISIONING_ENABLED` flip"*. **Every clause of the open half is now false**: `tenants.ts` declares both pool DBs (6 wrangler entries), exports `POOL_BINDINGS`, and carries a **fail-closed** claimed resolver throwing `UNKNOWN_TENANT` for sentinel/unclaimed/malformed/invalid-binding; enumeration is `allTenantSlugs()` at **9 call sites** — including `runReconSweep`, the REQ-169 sweep the row named — with **ZERO** remaining `for … of TENANT_SLUGS` fan-outs; covered by two suites. **I had the staleness in the WRONG PLACE**: the live checklist row already said *RESOLVER BUILT 2026-08-01* and even named *the ninth fan-out hiding outside `index.ts`* — the exact site my count found ninth. **The stale record is the AUDIT's C3 SUMMARY row.** Corrected before commit, because a correction that misidentifies its subject sends the next reader to fix a row that is already right. **The class**: a checklist row has eight fields and an expiry; a summary row has neither — **a fact duplicated into a summary acquires a second lifetime nobody manages**, and the audit's row is the natural entry point because it names the severity. **Under-reporting progress costs as much as over-reporting it, and nobody checks that direction — a record saying *still open* never looks wrong.** Cost: four commands, all named by the row's own expiry field, un-run since filing. **Two proxies avoided**: a `head`-truncated grep showed 7 fan-outs (real: 9, with `runMirrorSweep` outside the window), and `mirror-sweep.ts` holds no enumeration at all — after §934 and §935 each produced a proxy count that looked like a finding, exact counting was the default |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -55085,3 +55086,78 @@ returns zero, the search is wrong until proven otherwise.
 **Reopen trigger**
 - **None from this phase.** The property is enforced by a signature, and a signature change is a compile
   error at every call site — which is the one class of regression that cannot ship silently.
+## §937 — PHASE GATE: one fact, two records — the live one was maintained, the summary was not
+
+Continuing §934's decidable expiry conditions, this takes the highest-severity open repo-owned row: **C3**,
+the agents worker's claimed-pool blind spot — filed **High**, phase-gated pre-R4, and explicitly *"build it
+before any `PROVISIONING_ENABLED` flip."*
+
+### I had the staleness in the wrong place, and the correction is the finding
+
+I set out to re-verify C3's open half and found the code comprehensively built — then discovered the
+**checklist row already said so**, precisely: *"RESOLVER BUILT 2026-08-01 (`494765f`)"*, naming the
+adversarial review that *"caught + closed the ninth fan-out hiding outside `index.ts`"* — which is exactly
+the `watchtower-snapshot.ts` site my own count found as the ninth — plus pool-binding exclusivity and both
+the translator and billing ports.
+
+**The stale record is the AUDIT's C3 summary row**, which still read *"the claimed-aware resolver + cron
+enumeration remains OPEN, phase-gated pre-R4."*
+
+So one fact lives in two records: the **live ops checklist**, which was maintained, and the **audit's index
+summary**, which was not. My first draft of this section blamed the checklist. Corrected before commit,
+because a correction that misidentifies its subject is worse than none — it sends the next reader to fix a
+row that is already right.
+
+Every clause of the audit summary's open half is false:
+
+| the row claims | measured today |
+|---|---|
+| `agents/tenants.ts` is a static two-slug map with no claimed-pool fallback | declares `TENANT_POOL_01_DB`/`02_DB`, exports `POOL_BINDINGS`, and carries a **fail-closed** claimed resolver throwing `UNKNOWN_TENANT` for sentinel / unclaimed / malformed-policy / invalid-binding |
+| zero `TENANT_POOL_*` bindings | **6** in the worker's wrangler |
+| every cron iterates `TENANT_SLUGS` only | `allTenantSlugs()` — *"the ONE enumeration every cron fan-out iterates"* — at **9 call sites**, and **zero** remaining `for … of TENANT_SLUGS` fan-outs |
+| the REQ-169 recon sweep excludes pool tenants | `runReconSweep` is one of the nine |
+
+It also carries the containment lesson the row's own neighbours taught: a control-plane fault degrades to the
+static roster **with a loud log** rather than stalling the tick. Two suites cover it —
+`claimed-tenants.test.ts` and `sweep-containment.test.ts`.
+
+### Why a summary row going stale is its own class
+
+The checklist row is eight fields with an explicit expiry; the audit's C3 row is a **summary**, written once
+when the finding was filed and never carrying a re-verification field at all. The maintained record has a
+mechanism for staying true; the summary has none.
+
+That is the actual lesson, and it is not "the record was wrong". It is: **a fact duplicated into a summary
+acquires a second lifetime that nobody manages.** A reader who consults the audit's C3 row — the natural
+entry point, since it is the row that names the severity — finds an open High on the path to R4 and
+schedules work that is done. **Under-reporting progress costs as much as over-reporting it, and it is the
+direction nobody checks, because a record saying "still open" never looks wrong.**
+
+### The method, and its cost
+
+Four commands: read `tenants.ts`, count wrangler bindings, grep the enumeration call sites, grep for
+surviving static fan-outs. The row told me what to check — its expiry names the files — and nobody had run
+it since it was filed.
+
+**Two proxies were avoided this time.** I nearly reported "7 fan-outs" from a `head`-truncated grep (the
+real number is 9, and `runMirrorSweep` was the one outside the visible window), and I checked
+`mirror-sweep.ts` for an enumeration it does not contain before finding it in `index.ts`. After §934 and
+§935 both produced a proxy count that looked like a finding, counting the call sites exactly was the
+default rather than an afterthought.
+
+### Proof
+
+- 9 `allTenantSlugs(env)` sites enumerated by exact grep; **0** `for … of TENANT_SLUGS` fan-outs remain.
+- The claimed resolver's four fail-closed branches read individually.
+- The AUDIT's C3 summary struck in place, not deleted, with the checklist named as the maintained record.
+- The checklist row needed **no change** — it was already accurate, and my measurement independently
+  reproduces its "ninth fan-out" detail.
+- `verify:docs` 0. No source changed.
+
+**Reopen trigger**
+- **The row's C3 header still describes the ORIGINAL defect** (ACK-as-poison, false recovery claim), which
+  was hardened earlier and is correctly recorded as such. Only the *remaining-open* clause was stale. If the
+  row is ever restructured, keep the distinction: a row can be simultaneously an accurate history and a
+  false statement of what is left.
+- **Not measured here**: whether `workers/billing` and `workers/translator` — which the original C3 note
+  said shared the blind spot — have the same enumeration. That is one grep and was out of this row's scope.
