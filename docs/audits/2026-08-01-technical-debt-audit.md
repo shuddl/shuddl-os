@@ -577,6 +577,8 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 382 | §934 | **§935** | **REQ-030's AUTHORITY REGISTRY RE-VERIFIED — IT HOLDS, AND TWO PROXIES NEARLY SAID OTHERWISE.** The most consequential of §934's 25 decidable expiry conditions. It matters because `check:authority-coverage` is a static scan over a HAND-LISTED roster — it verifies the registered pairs consult `resolveAuthority` and **cannot see an unregistered emitter**, so completeness is the half no gate holds. **Result: holds.** 13 files reference an authoritative kind AND carry an append seam; **8 consult `resolveAuthority`** (unchanged) and the 5 that do not are each correctly excluded **for a different reason** — `booking.ts` emits `booking.created` (it only REFERENCES `quote.priced`, to validate), `sla-sweep.ts` emits `message.received` not `.sent`, `portal-actions.ts` emits `quote.accepted`/`message.received`, `credits.ts` emits `invoice.issued` **against the PLATFORM tenant** (not a tenant DB), and `routes/events.ts` the row already explains. **Two proxies both looked like decay**: files MENTIONING a kind → **28** vs a recorded 12 (a registry apparently doubled); adding an append seam → **13** vs 12 (still drift, still wrong). **Only reading what each file EMITS settled it**, and `credits.ts` is the sharp case — it genuinely appends an authoritative kind, so every mechanical filter keeps it. Same failure as §934's row count one phase earlier: **a count over a proxy is not a count over the subject**, twice in two phases, both times producing a number that would have been published as decay. A clean negative is the ONLY form the completeness answer can take, and it now carries a date |
 | 383 | §935 | **§936** | **§935's TRIGGER CLOSED — THE MECHANISM WAS ALREADY STRONGER THAN THE CHECK I PROPOSED.** §935 asked for a lint: *assert `credits.ts` never calls `resolveTenantDb`/`tenantDb`*. **It calls no resolver at all.** It takes `ledger: PlatformLedger`, whose `append({streamId, input})` has **NO TENANT PARAMETER** — a caller cannot name a tenant even by mistake — and the implementation reaches `/internal/platform/credit-append`, *the ONLY caller that sets the sequencer's `platform: true` door*, on the `/internal` surface §927's gate enumerates. **A lint could only say *this file does not currently call a tenant resolver*; the signature says *no caller of this seam can express a tenant*.** The lesson is about triggers: written at the end of a phase, when the subject is understood but its NEIGHBOURS are not, a trigger proposes **the check you would build, not the one the code already has** — three of this session's corrections (§917, §920, §936) are that same miss. **Fourth pathspec fault**: `git grep -- 'workers/*/src'` found NO production callers (it does not recurse); `webhook.ts:52,56` call both. All four faults this session produced an **empty** result that looked like a finding — a bad pattern never over-reports, and under-reporting is the direction nobody double-checks. No source changed |
 | 384 | §936 | **§937** | **ONE FACT, TWO RECORDS — THE LIVE ONE WAS MAINTAINED, THE SUMMARY WAS NOT.** C3 — the agents worker's claimed-pool blind spot, filed **High**, *"build it before any `PROVISIONING_ENABLED` flip"*. **Every clause of the open half is now false**: `tenants.ts` declares both pool DBs (6 wrangler entries), exports `POOL_BINDINGS`, and carries a **fail-closed** claimed resolver throwing `UNKNOWN_TENANT` for sentinel/unclaimed/malformed/invalid-binding; enumeration is `allTenantSlugs()` at **9 call sites** — including `runReconSweep`, the REQ-169 sweep the row named — with **ZERO** remaining `for … of TENANT_SLUGS` fan-outs; covered by two suites. **I had the staleness in the WRONG PLACE**: the live checklist row already said *RESOLVER BUILT 2026-08-01* and even named *the ninth fan-out hiding outside `index.ts`* — the exact site my count found ninth. **The stale record is the AUDIT's C3 SUMMARY row.** Corrected before commit, because a correction that misidentifies its subject sends the next reader to fix a row that is already right. **The class**: a checklist row has eight fields and an expiry; a summary row has neither — **a fact duplicated into a summary acquires a second lifetime nobody manages**, and the audit's row is the natural entry point because it names the severity. **Under-reporting progress costs as much as over-reporting it, and nobody checks that direction — a record saying *still open* never looks wrong.** Cost: four commands, all named by the row's own expiry field, un-run since filing. **Two proxies avoided**: a `head`-truncated grep showed 7 fan-outs (real: 9, with `runMirrorSweep` outside the window), and `mirror-sweep.ts` holds no enumeration at all — after §934 and §935 each produced a proxy count that looked like a finding, exact counting was the default |
+| 385 | §937 | **§938** | **ELEVEN OF TWELVE SUMMARY ROWS HOLD — BUT ONE IS HELD BY NOTHING.** §937's C3 correction raised the bounded question: how many of the summary zone's other status rows are stale? Re-verified all twelve against HEAD by reading the SUBJECT (tracked-file counts, struck text, the lens branch itself) — eleven hold. The finding is the second question: *is each fix PINNED?* C1's is (reverting the lens branch REDs `portal-actions.test.ts`). **C2's was not** — deleting ` --mode release` from `package.json:43` restores audit C2 verbatim: `pnpm test:surfaces` prints *"BLOCKED — a skip is not a pass"* and **exits 0**, while all six package.json-reading gates stay green (45/45). Sentinel and exit code disagree; CI believes the exit code. `playwright-mode-parity.test.ts` now computes the rule from run-gate's roster: every browser gate draws its mode from exactly one source, never both, never neither — 3/3 mutations RED. Also: my own near-miss, treating the context's session-start `gitStatus` as the tree |
+| 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -55161,3 +55163,99 @@ default rather than an afterthought.
   false statement of what is left.
 - **Not measured here**: whether `workers/billing` and `workers/translator` — which the original C3 note
   said shared the blind spot — have the same enumeration. That is one grep and was out of this row's scope.
+
+## §938 — PHASE GATE: the other eleven summary rows hold; the fix that nothing pins is C2's
+
+§937 corrected the audit's own C3 summary row, which had gone stale against the maintained checklist. That
+raised a bounded, decidable question: **the summary zone carries twelve status rows — how many others are
+wrong?** Answering it took reading the subject in each case rather than a proxy.
+
+**All twelve, re-verified at HEAD. Eleven hold; C3 was the one, and §937 fixed it.**
+
+| row | claim | verified by | verdict |
+|---|---|---|---|
+| C1 | `/v1/rate` lens-branched for portal | `rate.ts:301@portalPricedResponse`; `portal-actions.test.ts:150-151` pins `floors`/`versions` undefined | **holds** |
+| C2 | `--mode release` baked into `test:surfaces` | `package.json:43` | **holds — but nothing pins it (below)** |
+| C3 | agents worker unknown-tenant hardening | §937 | **was stale; corrected** |
+| D1–D2 | `PROJECT-STATE.md` safety posture + five-states | 20 supersede markers, struck text in place | **holds** |
+| D3 | `DEPLOYMENT.md` prod provisioning | `:3` and `:93` both struck-and-superseded | **holds** |
+| D4 | `LAUNCH-RUNBOOK.md` backup-script claim | the false sentence is **gone** *and* `tools/deploy/backup.ts` exists — two-sided | **holds** |
+| D5 | `GO-LIVE-CHECKLIST.md` hold row | 22 markers | **holds** |
+| U1 | 12 of 13 skills committed | 16 tracked, 16 on disk, **0 untracked** | **holds** |
+| U2 | debt register + Codex goal committed | both tracked under `docs/plans/` | **holds** |
+| U3 | v2 plan/design docs committed | all three tracked | **holds** |
+| U4 | skill RED sections dated | folded into U1 | **holds** |
+
+**A near-miss worth recording, because it was mine.** I opened this phase believing U3 was false — the
+`gitStatus` block in my own context lists `docs/plans/2026-07-22-site-v2-demo-spine.md` as `??` untracked, which
+is precisely what U3 says was fixed. It is tracked. That snapshot is stamped *"at the start of the
+conversation"*; the commit landed later in the same session. **A context snapshot is not the tree**, and it
+decays in exactly the direction that manufactures false findings — it remembers work as undone.
+[[measure-against-a-known-tree-state]] covers a concurrent *writer*; this is the same hazard from a stale
+*reader*, and the fix is identical: re-measure before asserting.
+
+### The real finding: eleven rows hold, but only ten are *held*
+
+A row that is true today and enforced by nothing is a row that will be false later with no alarm — the
+[[a-false-clean-invites-no-follow-up]] asymmetry, sharpened. C1's fix is genuinely held: revert the lens
+branch and `portal-actions.test.ts` REDs. **C2's is not.** Mutation-proved both sides:
+
+```
+--- delete " --mode release" from package.json:43 ---
+behaviour:  env -u PROD_SURFACE_BASE pnpm test:surfaces  →  exit 0
+            harness printed:  "surfaces: BLOCKED — every test was skipped (5 skipped) — a skip is not a pass"
+gates:      run-gate · dev-loop-parity · gate-wiring · runtime-contract · cwd-parity · test-collection
+            →  6 files, 45 tests, ALL PASS
+```
+
+That is C2's original defect restored verbatim, and it is **worse than a plain regression**: the sentinel says
+BLOCKED while the exit code says 0, so a human reading logs sees the refusal and CI reading `$?` sees success.
+The two channels disagree and the machine believes the wrong one — [[two-mechanisms-disagreeing-is-the-finding]].
+A §688 **passing corpus**: no test's corpus contains the script's argv. `run-gate.test.ts:76` looked like
+coverage and is not — it asserts the release profile *runs* `test:surfaces`, never what that script *is*.
+[[a-gates-green-certifies-less-than-its-name]].
+
+### The invariant is a partition, so it is computable
+
+Enumerating all five playwright-guard scripts against `gatesFor()` shows a clean rule, not a special case:
+
+| script | bakes `--mode` | `modeArg` in run-gate | source |
+|---|---|---|---|
+| `perf:map`, `test:visual`, `test:a11y`, `test:e2e` | no | **yes** | run-gate supplies it |
+| `test:surfaces` | **yes** | no | the script itself |
+
+**Every playwright-guard gate draws its blocking mode from exactly one source — never both, never neither.**
+`surfaces` bakes it in *because* `LAUNCH-RUNBOOK.md:236` invokes it directly, outside run-gate, where nothing
+would supply one. Deleting the flag moves it to NEITHER, which is the only unsafe cell. So the gate reads
+run-gate's roster and **computes** the requirement (§830: read one side, compute the other) rather than
+storing a second copy of the answer — which is the defect §937 found in the first place.
+
+`tools/checks/playwright-mode-parity.test.ts` enforces it, and covers the class: a *new* browser gate added
+with neither source fails on arrival, not at the next field run.
+
+**Board MEASURED at this tree, not inherited: 26 gates — 19 PASS · 2 FAIL · 5 BLOCKED.**
+`artifacts/release/27e2639…/merge/gate-merge-2026-08-10T22-46-19-870Z.json`. Both FAILs are `unit-tests` and
+`coverage`, i.e. the owner's uncommitted REQ-289 register row; the 5 BLOCKED are the unvendored private
+fixtures + absent `IDENTITY_DENYLIST`. Unchanged for the same reason as the previous twenty-seven phases —
+no gate was measuring this class. The figure is stated only because it was re-run here: a claim you inherit
+is a claim you are making.
+
+### Two process notes, both self-inflicted
+
+**An existing gate caught my own omission.** Appending §938 without an index row failed
+`phase-index.test.ts` — *"every phase gate appears in the index"* — inside the same run that verified my new
+gate. It derives the gate list from the document's own `## §N — PHASE GATE` headings and compares it to the
+§4 table, so the fourth red in `test:tools` was mine, not the known REQ-289 trio. I attributed it before
+assuming, which is the only reason it got fixed here instead of being waved through as expected noise
+([[attribute-the-red-before-crediting-it]]).
+
+**The probe broke before the subject did.** My first mutation harness stored the vitest command in `$G` and
+called it unquoted. **zsh does not word-split**, so all three mutations produced *zero* output, which a
+`grep`-shaped reading could have scored as three REDs. Re-run with a shell function and an **exit code**
+rather than a grep hit, plus an unmutated fixed point first — 0/1/1/1, in the predicted pattern.
+[[keep-a-fixed-point-before-scaling-a-probe]], for the second time, on the same shell feature.
+
+**Reopen trigger, written as a mutation and run in this phase** (§926's rule): *"if `surfaces` is ever given
+`modeArg: true` in `gatesFor()`, the script's baked `--mode release` becomes a second source and the gate
+should say so."* Ran it — adding `modeArg: true` REDs the new gate on the BOTH branch. Both unsafe cells are
+live, so this trigger is closed on arrival rather than filed.
