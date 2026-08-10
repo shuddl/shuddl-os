@@ -18,11 +18,22 @@ import { repoRoot } from "./repo-root.js";
 // sole member. So this gate is not repairing a field of defects; it is making the delta visible, because
 // the delta is what nobody could see.
 //
-// TWO RULES, and only the first is substantive:
-//   1. A SHARED harness (`*/test/helpers.ts`) that stands up a tenant D1 must apply the FULL shipped set.
-//      A per-test subset is a local choice, visible in the file that makes it. A shared helper's subset is
-//      applied to every test in the package by someone who never sees the list.
-//   2. Every other applier's set is PINNED. A subset stays legal — it just stops being invisible.
+// THIS GATE OWNS ONE HALF, AND THE OTHER HALF ALREADY EXISTED — which is the sharper finding.
+//
+// `checkTestSchemaParity` (audit §239, wired into the blocking `check:invariants`) already enforces "a
+// harness applies every shipped tenant migration". A first cut of this file re-implemented that rule and
+// was deleted: a second mechanism for one invariant is how the two drift, and this repo has the scar.
+//
+// **Its corpus is `globSync("workers/*/test/helpers.ts")` — the four worker helpers, and nothing else.**
+// §919's defect lived in `packages/ledger/test/money-projection.test.ts`: a test file, in a package, one
+// directory outside that glob. The gate existed, was blocking, was correct, and could not see the file.
+// That is the adjacency shape — a discipline applied at the boundary it was written for, stopping one line
+// short of the neighbouring one.
+//
+// So this gate deliberately does NOT restate the fullness rule. It covers the appliers §239 cannot reach,
+// with a weaker and more honest rule: a subset is LEGAL there — twelve of them are deliberate and were
+// measured harmless at §920 — it just may not be INVISIBLE. §919's defect was a delta between two lists
+// nobody could see at once.
 //
 // WHAT A GREEN HERE DOES NOT MEAN. It does not say a subset is SAFE; §920 measured that separately, once,
 // and a future migration could make one of these subsets matter again. It says the subset is DECLARED.
@@ -96,20 +107,18 @@ describe("§920: no test fixture silently diverges from the shipped schema", () 
     expect(found.length, "no test file applies a tenant migration — the scan is broken, not the suite").toBeGreaterThanOrEqual(15);
   });
 
-  it("a SHARED harness stands up the FULL shipped tenant schema", () => {
-    // The substantive half. A helpers.ts subset is applied to every test in its package by people who never
-    // read the list — which is how an entire suite can validate against a schema that does not exist.
-    const partial = found
-      .filter((a) => a.file.endsWith("/helpers.ts"))
-      .filter((a) => a.tenant.length !== shippedTenant.size)
-      .map((a) => `${a.file} applies ${a.tenant.length}/${shippedTenant.size} (${nums(a.tenant)})`);
-    expect(
-      partial,
-      "a shared test harness stands up a PARTIAL tenant schema. Every test in that package then runs against " +
-        "a database the product never deploys, and any behaviour the missing migrations change is untestable " +
-        "there — §919's double-correction 500 is exactly that, one migration deep. Add the missing files:\n  " +
-        partial.join("\n  "),
-    ).toEqual([]);
+  it("§239 still owns the fullness rule for harnesses (this gate must not silently become its second copy)", () => {
+    // Not a re-implementation — a TRIPWIRE on the division of labour. If `checkTestSchemaParity` is ever
+    // deleted or renamed, the fullness half stops being enforced anywhere and this file's scope comment
+    // becomes a lie that reads like a decision. Cheap to assert, and it fails loudly at the moment the
+    // assumption dies (§672).
+    const src = readFileSync(`${root}/tools/checks/invariants.ts`, "utf8");
+    // The paren is load-bearing, and its absence is a defect this gate had for one mutation round: a bare
+    // `toContain("export function checkTestSchemaParity")` is satisfied by `…ParityX`, so renaming the
+    // function away left the tripwire GREEN. A prefix is not an identifier (§913's anchor lesson, on my own
+    // instrument this time).
+    expect(src, "checkTestSchemaParity is gone — the harness-fullness rule this file defers to no longer exists").toContain("export function checkTestSchemaParity(");
+    expect(src, "checkTestSchemaParity no longer globs workers/*/test/helpers.ts — re-derive which appliers it covers before trusting the split above").toContain('globSync("workers/*/test/helpers.ts")');
   });
 
   it("every applier's migration set is exactly what is pinned (two-sided)", () => {
