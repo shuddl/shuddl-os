@@ -501,6 +501,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 306 | §858 | **§859** | **THREE GUARANTEES IN PROSE; AND A SILENT MUTATION CAUGHT MY OWN TEST OVERCLAIMING.** `useSync.ts` — the orchestration between `classifyStatus` (§848) and the transport (§849), both of which had real defects — states *"it syncs only while visible, online, and authenticated"* in its header and enforced none of it. **Why that hides**: a developer's browser is visible+online+authenticated SIMULTANEOUSLY, so deleting any guard changes nothing on a desk; the conditions only diverge in a truck. No defect — the hook is correct; 9 cases now hold it there, 5 mutations RED. **The 6th was SILENT** and is the finding: deleting the cleanup's `removeEventListener` left my unmount test green, because the same cleanup sets `cancelled = true` and `runPass` returns on it — a **sibling guard** (§688). The leak is REAL (a handler outliving every driver screen) and my test could not see it: I asserted on **the silence the removal causes**, not the removal. Named *"UNMOUNT detaches the listeners"*, proved *"an unmounted hook does not answer network events"*. **A behavioural assertion downstream of a second guard measures the GUARD, not the subject, and keeps passing while the thing in its name rots.** Now spied on `removeEventListener` directly — window and document mutated separately, both RED. Fourth just-written-fix defect this session, first caught by a MUTATION rather than a reading, and it cost ~2min because the mutation was routine, not suspicion-driven |
 | 307 | §859 | **§860** | **THE GUARD THAT REPLACED A SHIPPED DEFECT, PINNED BY NOTHING.** `StopScreen` was named uncovered by §858 AND §859 and covered by neither — twice-deferred is how this debt survives. Its prop doc records why the gate exists: *"2026-08-01: a hardcoded 6 used to be recorded on every pickup"*. **A guard that replaced a SHIPPED defect is the worst thing to leave untested — the mistake it prevents has already happened once, which is proof it is reachable.** No defect; 11 cases now hold it, closing the set of three children `GatedFlow.test.tsx` mocks (CameraScreen/§858 SignatureScreen/here). **The 4th mutation was SILENT**: deleting `count.value <= 0` changed nothing, because the input emits only positive integers and `pieces` has that handler as its SINGLE writer — **construction-forbidden** (§688), whose prescribed response is *document, do not test*. **Tested anyway, for a reason the taxonomy misses**: the same re-check has TWO halves and I had already tested the other, which is unreachable by the identical argument. Pinning one half and calling the other unreachable is not a principled line — it is where I happened to stop. Deciding property: `count` is a **public prop**, so §677's *don't pin defensive spelling* (which governs redundancy INSIDE a function, sibling visibly adjacent) does not reach it — any second caller inherits the contract without the handler |
 | 308 | §860 | **§861** | **STOPPING POINT — BOARD RE-MEASURED AT `b8c346e`: 26 gates, 19 PASS · 2 FAIL · 5 BLOCKED**, identical to the pre-segment board with **26 new tests and no gate moved either way**. **Both FAILs are ONE uncommitted row** — `unit-tests` (3 register-classification tests) and `coverage` (*1 unaccounted row: REQ-289*) both trace to the owner's `ACTIVE`/`GTM-0` edit; verified by removing my own files and re-running (§858). Committing it or bucketing `ACTIVE`/`GTM-0` turns both green in one move — **not mine to make**, `genesis/09` is source-of-truth #1. The 5 BLOCKED are absent INPUTS (9 private fixtures + the denylist), each reporting *"could not run"* rather than *"clean"* — and §857 executed the identity gate's DoD against a seeded denylist, so that BLOCKED is a missing secret, not a weak gate. **This segment changed ZERO production code**: everything was enforcement or coverage of already-correct behaviour. **Three of five phases found the defect in my OWN just-finished work** (§857 in §856's count, §859 in its own test's name, §860 in its own stopping point) — the argument FOR the self-review habit, not against it. Expected board once REQ-289 lands: **21 PASS · 0 FAIL · 5 BLOCKED**; if either FAIL survives, this section is wrong |
+| 309 | §861 | **§862** | **THE BRANCH I TWICE RECORDED AS NEEDING FAKE TIMERS DID NOT.** §859 left `useSync`'s in-flight `running` guard untested *"because two overlapping passes need timer control"*; §861 repeated it. Both wrong. **The guard is about OVERLAP, not cadence** — holding one pass open with a deferred promise reproduces it exactly, interval parked at 60s, never fires. I reasoned from the mechanism I IMAGINED (interval → second call → advance time) instead of the property under test, and it survived two phases because it was written as a REASON rather than a question. **"This needs X" is a claim** — same error as *compare-artifacts-dont-reason-about-them*, applied to a test's feasibility. What it defends is real: `syncOnce` drains a durable queue and two concurrent drains read the same rows before either marks them, so an overlap can send a capture twice. Mutation kept the `cancelled` sibling so the RED isolates the subject (§688). `useSync` now has no untested branch |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -50232,3 +50233,34 @@ REQ-289's disposition (turns both FAILs green) · REQ-076's square/hollow · the
 - Any private fixture is vendored → its gate moves BLOCKED → PASS or FAIL, and a FAIL there is a real defect
   this repo has never been able to see.
 - `useSync`'s `running` in-flight guard remains the one untested branch of the sync path (§859/§860).
+## §862 — PHASE GATE: PHASE 82 CLOSED — the branch I twice recorded as needing fake timers did not
+
+§859 left the in-flight `running` guard untested with a reason: *"two overlapping passes need timer control,
+and a fake-timer test around an async effect was not worth the flake risk today."* §861 repeated it. Both
+were wrong, and the error is worth more than the test.
+
+**The guard is about OVERLAP, not cadence.** Fake timers were in the reason because the *interval* is what
+usually produces a second pass — but any of the hook's three triggers will do, and holding the first pass open
+with a deferred promise reproduces the condition exactly. The interval stays parked at 60s and never fires.
+
+I had reasoned from the mechanism I imagined (interval → second call → need to advance time) instead of the
+property under test (two passes overlapping). That is the same error as [[compare-artifacts-dont-reason-about-them]],
+applied to a test's feasibility rather than to an artifact: **"this needs X" is a claim, and it stayed
+unexamined for two phases because it was written as a reason rather than a question.**
+
+What the guard defends is not cosmetic: `syncOnce` drains a durable queue, and two concurrent drains read the
+same rows before either marks them — the transport's ack is what removes a capture, so an overlap can send one
+twice.
+
+Mutation: `if (cancelled || running)` → `if (cancelled)`, keeping the sibling so the RED isolates the subject
+(§688 — a deletion that removes two guards attributes to neither). One RED, the new case.
+
+### Exit state
+
+Driver suite **15 files / 101 tests**, all green (+1). typecheck 0 · lint 0. `useSync` now has no untested
+branch.
+
+**Reopen trigger**
+- A second writer to the queue (a background sync registration, a second tab) would make the in-flight guard
+  insufficient rather than wrong — it is per-hook-instance, not per-device. Nothing today creates one; a
+  Service Worker sync would.

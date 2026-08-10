@@ -144,6 +144,45 @@ describe("§859: useSync syncs only while visible, online and authenticated (REQ
     expect(syncOnce, "an unmounted hook must not answer network events").toHaveBeenCalledTimes(1);
   });
 
+  it("IN-FLIGHT: a reconnect during a pass does not start a second one", async () => {
+    // §862 — §859 and §861 both recorded this branch as needing fake timers. It does not: the guard is about
+    // OVERLAP, not cadence, so holding one pass open with a deferred promise reproduces it exactly and
+    // without the flake risk that claim was avoiding. The interval is parked at 60s and never fires here.
+    //
+    // What it defends: `syncOnce` drains a durable queue. Two concurrent drains read the same rows before
+    // either marks them, so a capture can be sent twice — and the transport's ack is what removes it.
+    let release!: () => void;
+    const held = new Promise<void>((r) => {
+      release = r;
+    });
+    syncOnce.mockImplementation(async () => {
+      await held;
+      return { authBlocked: false, parked: 0 };
+    });
+
+    const { result } = renderHook(() => useSync({ intervalMs: 60_000 }));
+    await waitFor(() => expect(syncOnce).toHaveBeenCalledTimes(1));
+    expect(result.current.syncing, "the first pass is in flight").toBe(true);
+
+    // Every trigger the hook listens on, while the first pass is still open.
+    await act(async () => {
+      window.dispatchEvent(new Event("online"));
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    expect(syncOnce, "an in-flight pass must absorb every trigger").toHaveBeenCalledTimes(1);
+
+    // And the lock releases: once the first pass finishes, a later trigger drains again.
+    await act(async () => {
+      release();
+      await held;
+    });
+    await waitFor(() => expect(result.current.syncing).toBe(false));
+    await act(async () => {
+      window.dispatchEvent(new Event("online"));
+    });
+    await waitFor(() => expect(syncOnce).toHaveBeenCalledTimes(2));
+  });
+
   it("a reconnect while MOUNTED does drain (the listener is real, not merely detached correctly)", async () => {
     // Pairs with the unmount case: proves the previous test's silence came from the cleanup, not from a
     // listener that never worked. Two tests, one claim.
