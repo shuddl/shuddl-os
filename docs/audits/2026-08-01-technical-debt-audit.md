@@ -498,6 +498,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 303 | §855 | **§856** | **PHASE 76 CLOSED — nine DoDs that name a gate; FOUR name the wrong one.** §855's sweep, done. 287 DoD strings → **14 name a CI gate** → 5 are `vNEXT` (a missing gate is expected) → **9 built rows** checked against what their gate can SEE. **REQ-076: real gap** (§855). **REQ-078: true but UNPINNED** — the audit enforces the token SET, the requirement is about SCOPE. REQ-077 met by a **unit** test, REQ-115 by a **component** test (*ErrorState shows FAILED + a retry button*), neither by the gate named. REQ-079/148/149/204/211 met. **Four of nine diverge and only ONE is a gap** — a DoD naming a gate is a POINTER, and pointers rot three ways: blind gate (076), neighbouring property (078), met elsewhere (077/115). **REQ-079 is the model**: it does NOT meet its stated 60fps and says so in code, with the reason and the choice — *a DoD deviation that documents itself is not debt*. Closed REQ-078: `--progress` is stated FOUR times (`ProgressLine`, `entities.ts`, `tokens.css`, the register) and enforced zero; now gated, starting green |
 | 304 | §856 | **§857** | **§856 COUNTED ITS OWN POPULATION WITH THE INSTRUMENT IT HAD JUST CALLED UNRELIABLE.** §856 reported **14** DoDs naming a gate; its own closing trigger said the DoD column is free text and *"a mechanical version would need a vocabulary rather than a parser"* — the refutation of its own number, six paragraphs below it. Widening to `audit`/`lint`/`harness`/`pnpm ` gives **23**, and the sets are **NOT nested**: REQ-077 and REQ-149 are in the 14 and absent from the 23. **Union 25; §856 examined 9.** The count was not wrong, it was UNQUALIFIED — a sample presented as a census, frame never written down. The 16 unexamined now classified: **REQ-167 EXECUTED** (its DoD is a mutation spec, not a description) — seeded denylist clean → exit 0, name planted → **exit 1**, and the gate **REDACTS the leaked name in its own failure message**, the one place a naive identity gate leaks what it protects. 163 (lint + message test + an override-survival note) and 154 (history-wide gitleaks, asserted WITHIN the job) sound. 13 need no gate: 145/147 self-satisfying, 112 the fixture hold, 212/247 vNEXT, 289 the owner's, **001/119/124 name a HUMAN audit — a DoD naming a person cannot rot**. §856's findings all stand; only its SCOPE claim was wrong |
 | 305 | §857 | **§858** | **TWO GATES IN ONE FLOW; ONE WAS PROVEN.** Swept §849's shape (a module imported by ZERO tests): 104/328 files. **The sweep was wrong twice.** (1) `workers/` routes are covered by INTEGRATION tests — not-imported ≠ not-tested, and for a handler the integration test is BETTER. (2) The driver 13 looked false too: React children are exercised TRANSITIVELY through the composing test. **Then the rebuttal was wrong** — `GatedFlow.test.tsx:19–34` **MOCKS all three children**, so the composing suite proves nothing about the composed component. Three readings; only opening the file was right. **The finding: REQ-063's forced-photo gate has a component suite; REQ-064's *ADVANCE is dead until the glass holds ink* had NONE** — same GatedFlow, same header comment, both mocked in the same file. This is REQ-142's BUILT half and acceptance demo #1's opening beat. **Why it hid**: jsdom has no 2D context → `getContext` null → every handler early-returns → a naive render PASSES (§688's *passing corpus*). Proof: **blinding the fake context reddens the 3 positive cases and leaves all 3 negatives GREEN** — *a tap lays no ink* is satisfied by a component that does nothing, and the negatives are the intuitive tests to write. 6 cases landed, 4 mutations RED. Best two: **a tap is not a signature** (`hasInk` set in `move`, never `down` — a fingertip in a truck cab must not satisfy a POD gate) and **clear re-arms the gate** (wipe the pixels but keep the flag → a BLANK signature commits as proof of delivery). No production code changed; the gate was right, nothing proved it |
+| 306 | §858 | **§859** | **THREE GUARANTEES IN PROSE; AND A SILENT MUTATION CAUGHT MY OWN TEST OVERCLAIMING.** `useSync.ts` — the orchestration between `classifyStatus` (§848) and the transport (§849), both of which had real defects — states *"it syncs only while visible, online, and authenticated"* in its header and enforced none of it. **Why that hides**: a developer's browser is visible+online+authenticated SIMULTANEOUSLY, so deleting any guard changes nothing on a desk; the conditions only diverge in a truck. No defect — the hook is correct; 9 cases now hold it there, 5 mutations RED. **The 6th was SILENT** and is the finding: deleting the cleanup's `removeEventListener` left my unmount test green, because the same cleanup sets `cancelled = true` and `runPass` returns on it — a **sibling guard** (§688). The leak is REAL (a handler outliving every driver screen) and my test could not see it: I asserted on **the silence the removal causes**, not the removal. Named *"UNMOUNT detaches the listeners"*, proved *"an unmounted hook does not answer network events"*. **A behavioural assertion downstream of a second guard measures the GUARD, not the subject, and keeps passing while the thing in its name rots.** Now spied on `removeEventListener` directly — window and document mutated separately, both RED. Fourth just-written-fix defect this session, first caught by a MUTATION rather than a reading, and it cost ~2min because the mutation was routine, not suspicion-driven |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -50061,3 +50062,57 @@ Driver suite **13 files / 80 tests**, all green (+1 file, +6). typecheck 0 · li
   is the remaining untested layer of the sync path.
 - A jsdom upgrade that ships a 2D context → the fake becomes removable, and leaving it would then hide real
   canvas behaviour behind a stub.
+## §859 — PHASE GATE: PHASE 79 CLOSED — three guarantees written in prose, and the mutation that caught my own test overclaiming
+
+§858's first reopen trigger: `useSync.ts`, the orchestration between `classifyStatus` (§848) and the transport
+(§849) — both of which had real defects — with no test of its own.
+
+Its header states, in prose: *"It NEVER promises background continuity: it syncs only while visible, online,
+and authenticated."* Three refusals, one line of code each. Nothing enforced any of them.
+
+**Why that combination hides.** A developer's browser is visible, online and authenticated *simultaneously*,
+so all three guards are satisfied at once and deleting any of them changes nothing anyone would see. The
+conditions only diverge in a truck — a phone in a pocket, a dead cell, a revoked driver. This is
+[[a-lockstep-comment-is-a-missing-test]] with the added property that the failure is unobservable on a desk.
+
+No defect found: the hook is correct. Nine cases now hold it there.
+
+| mutation | RED |
+|---|---|
+| visibility refusal deleted | *HIDDEN: a backgrounded app does not sync* |
+| online refusal deleted | *OFFLINE: captures stay queued* |
+| token refusal deleted | *UNAUTHENTICATED: no token, no send* |
+| `session.clear()` on a 401 dropped | *a 401 CLEARS the session* |
+| `syncing: false` dropped from the catch | *a throwing pass releases the lock* |
+| `removeEventListener("online")` dropped | **SILENT — see below** |
+
+### The silent one, which is the finding
+
+Deleting the cleanup's `removeEventListener` left my unmount test **green**. Under §688's taxonomy this is a
+**sibling guard**: the same cleanup sets `cancelled = true`, and `runPass` returns on it at its first line, so
+a leaked handler still fires, still runs, and still does nothing observable.
+
+The leak is real — a handler outliving every driver screen that mounts and unmounts — and my test could not
+see it, because I had asserted on the *silence the removal causes* rather than on the removal. The test was
+named **"UNMOUNT detaches the listeners"** and proved only *"an unmounted hook does not answer network
+events"*. Both are true; only the second was tested; the name claimed the first.
+
+That gap is the entire lesson. A behavioural assertion downstream of a second guard measures the guard, not
+the subject — and it will keep passing while the thing in its name rots. Now spied directly on
+`removeEventListener`, both halves RED when either handler leaks (window and document mutated separately),
+with the behavioural check kept as the explicitly weaker second half.
+
+**Fourth time this session a review of a just-written fix found the defect in the fix** — and the first where
+the reviewer was a mutation rather than a reading. It cost about two minutes, because the mutation was already
+queued as routine rather than run on suspicion.
+
+### Exit state
+
+Driver suite **14 files / 89 tests**, all green (+1 file, +9). typecheck 0 · lint 0.
+
+**Reopen triggers**
+- `StopScreen` still has no component suite (§858's trigger, still open — named twice now, done neither time).
+- The in-flight `running` guard is untested: two overlapping passes need timer control, and a fake-timer test
+  around an async effect was not worth the flake risk today. It is the last untested branch in this file.
+- If `cancelled` is ever removed as redundant, the unmount test's second half becomes the only thing standing
+  between an unmounted hook and a live pass — and it would then be load-bearing rather than supplementary.
