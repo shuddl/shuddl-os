@@ -532,6 +532,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 337 | §889 | **§890** | **STOPPING POINT — THE SPINE IS NOT HOLLOW (MEASURED), BOARD AT `7288d9f` UNCHANGED.** §889 floored the acceptance spine on assertion COUNT and honestly caveated that a count cannot see a HOLLOWED assertion. Measured: **12 weak / 200 strong = 5%**, and demo #1's single-case whole-chain proof is **2%** (1 of 45) — **the floors guard genuine strength, not weight**. Honest bound: 212 of §889's 237 `expect(` calls classified; **25 unclassified** and NOT assumed to resemble the rest. **Board: 26 gates, 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged across 14 phases / ~40 commits; the action remains *give REQ-289 a classifiable `status`/`wp`* — NOT commit it (§876). **§880–§889 produced two gates** (blank-line citations, spine assertion floors) **and one deliberately declined** (§880's path gate — the record had already measured its ~76% FP rate). **The through-line**: across ten phases I was wrong about MY OWN WORK far more often than about the code — a denominator (§884), an assumption about history (§887), a metric borrowed unchecked (§889), two reopen triggers (§882/§885), an experiment already run (§880) — every one caught by measuring, several by gates I had just built. **The code kept holding.** That asymmetry is the segment's most useful result |
 | 338 | §890 | **§891** | **THE BLIND SPOT IN §890'S MEASUREMENT WAS §890'S SCANNER.** §890 reported 5% weak spine assertions and honestly bounded itself: *25 matchers unclassified*. Listing them exposed the fault — `.id(`, `.res(`, `.text(`, `.ok(` are **not matchers**, they are property accesses INSIDE the `expect(...)` argument (`expect(res.json.id).toBe(…)`) that a naive forward-scan grabbed. Only **8** were real unnamed matchers. **The blind spot was an instrument fault, not a property of the corpus** — 10th time this session a probe answered a different question than the one asked, and the 2nd (with §885's `parity.ts` grep) where the thing I flagged as UNMEASURED was an artifact of how I measured. Re-measured with a string-aware balanced-paren scanner: **10 weak / 227 strong = 4%, ZERO unparsed**, and **demo #1 is 0% weak** (48 assertions, not one `toBeDefined()`-class). **Cross-check that makes it trustworthy: 10+227 = 237 = §889's independent `expect(` count** — two measurements taken for different reasons agreeing to the unit. §890's 12/200/5% corrected to 10/227/4%; conclusion unchanged and slightly strengthened, caveat RETIRED rather than inherited |
 | 339 | §891 | **§892** | **CLAUDE.md's SEVEN HARD BUDGETS, PROBED FOR COMPLETENESS — CLEAN.** Fresh axis. The hard-budget line names seven limits; the question this session keeps asking of green gates is whether EVERY one is enforced or only most. **All seven accounted**: six rostered with a source + extractor and compared **stated-vs-enforced** (`TABLE_BUDGET`, `SURFACE_ROSTER`, `MAX_CANONICAL_VIEWS`, `EVENT_KINDS`, `TOKENS`, font families), and the other three numbers exempted **with written reasons** — `21 used` is a RUNTIME figure `check:invariants` recomputes each run (re-deriving would be a weaker second copy); `0 shadows` and `4px` are **zero-tolerance, proven by PLANTING** an artifact per rule 7, with no constant to compare against. **A zero-tolerance rule is not a count comparison, and the gate says so rather than widening a pattern until it stops matching.** The §743 floor is **span-based**, not phrase-reconstructing, and its comment gives the reason: a naive `<n> <word>` pair yields *"12 canonical"* — *"a guess about how many words a budget's name has"*, the same vocabulary error this session hit ten times from the other side. **Mutation-proved**: a stated 6-vs-enforced-5 reddens the equality check; **a NEW budget with no roster entry reddens the completeness floor** — so a limit cannot be added to CLAUDE.md without a gate, which is exactly what a hard-budget line invites |
+| 340 | §892 | **§893** | **THE ONE BUDGET WITH NO CONSTANT, MUTATION-VERIFIED.** §892's sharpest soft spot: `0 shadows/gradients/radius>4px` is exempted from the count comparison **because of a sentence** (rule 7's *proven by refusing a planted artifact*), and if that proof vanished the budget gate would still pass. **Now measured** — shadow → exit 1 `no shadows (REQ-147)`; `border-radius: 12px` → exit 1 `Radius 12px > 4px`; raw hex in a JSON style file → exit 1 `color #ab12cd … outside the five tokens (REQ-145)`; **control `border-radius: 4px` → exit 0**. The control matters as much as the REDs: a rule firing on 4px would be one nobody could keep green, and the exemption would be resting on a quietly loosened rule. **My first hex probe was WRONG** — planted in `tokens.css`, the file that DEFINES the tokens, where raw hex belongs; exit 0 briefly looked like a third of rule 7 failing. REQ-207's DoD says *a seeded raw color in a **JSON style file***. **Planting a violation where it is legal tests nothing** — 11th instrument miss this session and the FIRST caught before writing it down as a defect, because the surprising result was read against the requirement's wording instead of believed. **Not closed**: a shadow authored in TSX inline style is a different corpus, and `0 gradients` was not planted against |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -52214,3 +52215,74 @@ Nothing changed. `test:tools` 1,136, 3 failed (the REQ-289 classifier) · typech
   gate still passes, because it never checked it.
 - The equality check compares a number to a number. A budget whose *constant* is right while its *enforcement*
   is bypassed elsewhere would pass — §880's lesson about what a green certifies applies here too.
+## §893 — PHASE GATE: PHASE 113 CLOSED — the one budget with no constant, mutation-verified
+
+§892 accounted for all seven hard budgets and named its own soft spot: three of them are exempted from the
+count-comparison **because of a reason stated in prose**, and the sharpest was `0 shadows/gradients/radius>4px`
+— *"proven by the design audit refusing a planted artifact (rule 7's record)"*. Prose is what rots. If that
+proof were removed, the budget gate would still pass, because it never checks it.
+
+So this checks it. All three of rule 7's claims, planted and measured:
+
+| planted artifact | `audit:design` | message |
+|---|---|---|
+| `box-shadow: 0 2px 4px rgba(0,0,0,.2)` | **exit 1** | `shadow — no shadows (REQ-147)` |
+| `border-radius: 12px` | **exit 1** | `Radius 12px > 4px (REQ-147)` |
+| raw hex in a JSON style file | **exit 1** | `color #ab12cd (→ #AB12CD) outside the five tokens (REQ-145)` |
+| **control:** `border-radius: 4px` (legal) | **exit 0** | — |
+
+Clean tree exits 0 before and after; every plant reverted and `diff -q` verified.
+
+**The control matters as much as the three REDs.** A radius rule that fired on `4px` would be a gate nobody
+could keep green, and §892's exemption would then be resting on a rule that had been quietly loosened. It
+fires at `12px` and not at `4px`, which is the budget exactly as CLAUDE.md states it.
+
+### My first raw-hex probe was wrong, and catching it is the point
+
+I first planted `#ab12cd` in `packages/design/tokens.css` and got **exit 0** — which for a moment looked like
+one third of rule 7's claim failing. It is not: `tokens.css` is the file that *defines* the five tokens, so raw
+hex is exactly what belongs there. The rule correctly ignores it, and REQ-207's DoD says so in terms — *"a
+seeded raw color in a **JSON style file**"*.
+
+Planting a violation in the one place it is legal tests nothing. That is the **eleventh** instrument miss this
+session, and the first I caught *before* writing it down as a defect rather than after — the difference being
+that the surprising result got read against the requirement's own wording instead of being believed.
+
+### Then I measured the two things I had just called unmeasured
+
+The paragraph above originally closed this phase by listing what it had not tested — a TSX inline shadow and
+`0 gradients` — and filed both as reopen triggers. **Written as claims, both were wrong**, and testing them
+took two commands:
+
+| planted | `audit:design` | message |
+|---|---|---|
+| `boxShadow` in a **TSX inline style** | **exit 1** | `Shadow — no shadows (REQ-147)` |
+| `linear-gradient(#fff, #000)` | **exit 1** | `gradient — every surface is flat --field (REQ-145)` |
+| `radial-gradient(circle, …)` | **exit 1** | `gradient — every surface is flat --field (REQ-145)` |
+
+So the audit's corpus is wider than I assumed — it reaches React inline styles, which is where a shadow is
+most likely to appear in a three-surface React build — and the gradient half is enforced with its own message
+tied to a different REQ.
+
+**This is the reopen-trigger failure mode again** ([[a-reopen-trigger-is-written-at-least-evidence]]): the
+trigger is the sentence written when the rigor is spent, and it was wrong for the fourth time this session
+(§872, §874, §875, here). The difference is that this one was caught **before the commit**, because the phase
+was still open when I read it back.
+
+### What this closes and what it does not
+
+§892's `0 shadows/gradients/radius>4px` exemption now rests on **five** measurements rather than rule 7's
+sentence: shadow (CSS), shadow (TSX inline), radius over budget, both gradient forms, plus a legal-radius
+control. **Still unmeasured:** a shadow reached through a CSS-variable indirection, and whatever the audit's
+file globs exclude — I did not enumerate its corpus, only observed that it is wider than I assumed.
+
+### Exit state
+
+Nothing changed; four plants made and reverted, `diff -q` verified. `audit:design` exit 0 · `test:tools` 1,136,
+3 failed (the REQ-289 classifier) · typecheck 0 · lint 0 · `verify:docs` 0.
+
+**Reopen triggers**
+- ~~the TSX-inline and gradient gaps~~ — **both measured and closed within this phase** (above). Recorded
+  struck rather than deleted, because the trigger being *wrong* is the useful record.
+- The audit's corpus was never enumerated, only probed. Five plants landing does not prove a sixth would; a
+  shadow behind a CSS-variable indirection is the shape I would look at next.
