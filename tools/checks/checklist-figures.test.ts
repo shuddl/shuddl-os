@@ -4,7 +4,7 @@ import { repoRoot } from "./repo-root.js";
 
 // §933 — A CHECKLIST FIGURE THAT NOBODY RE-DERIVES IS A CLAIM WITH AN EXPIRY AND NO ALARM.
 //
-// The repo-owned section of GO-LIVE-CHECKLIST carries 45 rows, each with an explicit "Evidence expires"
+// The repo-owned section of GO-LIVE-CHECKLIST carries 35 eight-field rows, each with an explicit "Evidence expires"
 // field naming what would falsify it. Those fields have exactly the standing of a reopen trigger: written
 // once at the moment the row was filed, and run never.
 //
@@ -18,7 +18,7 @@ import { repoRoot } from "./repo-root.js";
 // compared to what the checklist states — §830's rule: read one side and COMPUTE the other, never store
 // both. A row that changes now fails HERE, in front of whoever changed it.
 //
-// SCOPE, STATED HONESTLY. This covers the THREE figures §932 verified, not all 45 rows. Most expiry
+// SCOPE, STATED HONESTLY. This covers the THREE figures §932 verified, not all 35 rows. Most expiry
 // conditions name a DECISION ("when the parenthetical is marked illustrative"), which no gate can evaluate.
 // A discovery half — "find every numeric claim in the checklist" — is the §831/§833 shape and was measured
 // there to produce eight false positives and zero real ones on prose of this kind, which is the profile of
