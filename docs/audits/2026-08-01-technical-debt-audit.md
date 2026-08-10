@@ -508,6 +508,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 313 | §865 | **§866** | **EIGHT CITATIONS, FOUR WORKERS, ONE PROPERTY, AND THE WRONG REQ ROW.** Verified §865's nine unchecked status-drift rows. **Two false starts, same cause**: sorting by the literal word `VERDICT` said 7 were bare (FALSE — REQ-254's note is 1,085 chars opening *"PARTIALLY BUILT (recorded 2026-08-03)"* with a four-clause breakdown); re-sorting on `recorded YYYY-MM-DD|audit §N` said 3 (ALSO FALSE — REQ-288 carries a 700-char judgment stamped `NOTE (2026-07-27)` arguing the drift is a false positive: ~25 files implement the evidence PRODUCER, the row specifies the CONSUMER). **3rd and 4th time this session** a predicate whose boundary is English produced a confident wrong count. Real remainder: **2 rows, not 7.** **THE FINDING: REQ-278 is cited 8× across 4 files and every citation is about a DIFFERENT requirement** — *"ONE TENANT'S FAILURE MUST NOT KILL THE TICK"* (agents/billing/translator + a completeness gate) vs the row's actual text, *feature flags separate deployment/exposure/write/read authority*. REQ-025 (paired in 2 of 4) is *tenant isolation at DB level*, DoD *cross-tenant suite green forever* — isolation of DATA, not resilience of a SWEEP. **Neither row covers it, and the property is BUILT, SHIPPED and TESTED** (9 green in agents alone). So something shipped without a register row (CLAUDE.md rule 1), and the drift flag is a false positive for the STATED reason and a true positive for an unstated one. Not fixed: re-pointing requires choosing an owning row and none exists → a register amendment, **filed not decided** (§795). Disposition extended with the prior sentence PRESERVED (§865's lesson, one phase old) |
 | 314 | §866 | **§867** | **REQ-276 SAYS "NOT BUILT"; IT IS MOSTLY BUILT, AND THE HOLE IS WHERE NOBODY WRAPPED.** Measured all three DoD clauses. **TRUE**: zero tracked duplicates; a force-added `0001_ledger_core 3.sql` turns `check:invariants` **RED**. **FALSE**: *ignored artifacts do not alter authoritative counts* — one git-ignored duplicate `*.test.ts` takes vitest from **72 files/1,122 tests → 73/1,124**. It is a COPY so it passes, which is what makes it dangerous: **a test-count floor satisfied by a duplicate would hide a DELETED test file** and stay green. The tracked catch works but MISDESCRIBES itself (*"stray SQL outside db/*/migrations"* for a file INSIDE it): a **shadowing `globSync` wrapper** strips collision duplicates from all 15 glob sites, so the dup is absent from `migrations` while `git ls-files` lists it. **Five wrong measurements** to find that — the glob returned the dup in every standalone probe while `findStraySql()` flagged it, IN ONE PROCESS; the answer was an import alias (`globSync as globSyncRaw` + a local shadow). Reasoning about *"the same expression"* failed because it was not the same FUNCTION. Also: **12 `tools/` files walk the filesystem with neither git-awareness nor the filter** — mostly scanners, recorded not alarmed. `invariants.ts` solved this locally and completely; nothing carried it outward (§802's shape). Row is vNEXT → filed, not fixed |
 | 315 | §867 | **§868** | **FOUR PROJECTIONS HAD UNIT TESTS, TWO DID NOT — AND THE TWO CARRIED THE BRANCHES INTEGRATION CANNOT REACH.** Re-ran §858's sweep repo-wide with a better instrument: *does any test name any symbol the module EXPORTS?* (the old *does a test import this file?* was wrong 4× this session, last on `evidence-email-view.tsx` — imported via a barrel and thoroughly tested). **Cleared**: contracts/rater/map/design (54 files, 0 dark), agents (0), **mcp (0 — the six tool modules are driven through `buildRegistry`/`dispatch`, integration BY DESIGN)**. **Found: `projectApprovals` + `projectAppointment`** — 4 of 6 projections are unit-tested in `projections.test.ts`; these two were reached only by a HAPPY-PATH integration test. What that leaves: **(a) three `return []` tolerance branches protecting APPEND AVAILABILITY** — *"a throw here would … break the append for any other shape"* — a refactor to `throw` fails WRITES and no integration test notices; **(b) two statement-shape laws with stated consequences**: `OR IGNORE` not `REPLACE` on approvals (REPLACE drops `decided_event_id`, severing the link to WHO decided) and a plain `UPDATE` on `legs`, where **`legs` is UNGUARDED and a REPLACE is *silent slot theft with no guard to catch it*** — the difference between claiming a free dock slot and taking someone else's is one keyword and nothing at runtime objects. 20 cases, 4 mutations RED, plain-node fake-`db` idiom because the laws are about SQL TEXT |
+| 316 | §868 | **§869** | **STOPPING POINT — BOARD RE-MEASURED AT `3eed3dc`: 26 gates, 19 PASS · 2 FAIL · 5 BLOCKED — IDENTICAL to §861** across seven further phases and 40 more tests, no gate moved either way. Both FAILs remain the single uncommitted REQ-289 row; the 5 BLOCKED remain absent private inputs. **Nothing in §862–§868 changed production behaviour**: two comment corrections, three disposition notes, three checklist filings, 40 tests. Value sat in the RECORD: §865 (REQ-257 cited nowhere), §866 (8 citations → the wrong row; shipped code with no owning row), §867 (REQ-276 mostly built, hole in vitest collection), §868 (2 of 6 projections carrying the branches integration cannot reach). **Five of seven phases found the defect in my OWN just-finished work**, and **four separate times a detector whose boundary is English produced a confident wrong count**. The instrument that worked — *does any test name any symbol the module EXPORTS?* — cleared 128 files across 7 trees and found the 2 that mattered. Expected board once REQ-289 lands: **21 PASS · 0 FAIL · 5 BLOCKED** |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -50706,3 +50707,55 @@ No production code changed.
 - `projectApprovals`'s tolerance is deliberately *silent* — a malformed gate event opens no queue row and
   logs nothing. If an approval is ever reported "missing from the queue", this is the first place to look,
   and there is no signal that would have told anyone.
+## §869 — PHASE GATE: STOPPING POINT — board re-measured at `3eed3dc`; seven more phases, board identical
+
+§861 was the previous stopping point. Seven phases later (§862–§868), `pnpm verify:merge` run to completion:
+
+**26 gates — 19 PASS · 2 FAIL · 5 BLOCKED.** Unchanged. Same two FAILs, same five BLOCKED, with 40 more tests
+added and no gate moved in either direction.
+
+The two FAILs remain the **single uncommitted REQ-289 row** (`unit-tests` = three register-classification
+tests; `coverage` = *"1 unaccounted register row"*). The five BLOCKED remain absent private inputs.
+
+### What these seven phases were
+
+Three found real gaps in the **record** rather than the code, which is where this segment's value sat:
+
+| § | finding |
+|---|---|
+| §862 | the in-flight guard I had **twice** recorded as needing fake timers — it did not |
+| §863 | two portal seams that disagree **on purpose**, with nothing keeping them that way |
+| §864 | the board's honesty states; a test of mine that **passed for the wrong reason** (one side of an OR) |
+| §865 | *"the live board feed"* was not live; **REQ-257 cited nowhere in code** |
+| §866 | **8 citations, 4 workers, one property, the wrong REQ row** — shipped code with no owning row |
+| §867 | REQ-276 says *"not built"*; two of three DoD clauses hold, and the hole is in **vitest collection** |
+| §868 | 4 of 6 projections unit-tested; the 2 without carried the branches integration cannot reach |
+
+**Nothing in this segment changed production behaviour.** Two comment corrections (§865), three disposition
+notes, three checklist filings, and 40 tests. That is the honest description, and it is worth stating because
+a run of phases that finds no defects can read as either "the code is sound" or "I stopped looking hard".
+
+### The pattern worth carrying forward
+
+**Five of these seven phases found the defect in my own just-finished work**, and four separate times a
+detector whose boundary is English produced a confident, wrong count (§857's `VERDICT` grep, §866's twice,
+§868's import-probe). The instrument that finally worked — *does any test name any symbol the module
+exports?* — cleared 128 files across seven trees and found the two that mattered.
+
+**A count over a semantic predicate is a sample. Say so, or make the register carry it** (§857's `dod_kind`
+proposal, filed).
+
+### Open, owner-held — unchanged, now seven rows
+
+REQ-289's disposition (turns both FAILs green) · REQ-076's square/hollow · the `dod_kind` column · sweep
+containment's missing row (§866) · REQ-276's vitest hole (§867) · `unwitnessed`'s reader · `routes ±10%` ·
+the nine private fixtures · `IDENTITY_DENYLIST`.
+
+### Reopen triggers
+
+- **REQ-289 lands** → expected board **21 PASS · 0 FAIL · 5 BLOCKED**. If either FAIL survives, the diagnosis
+  in §861 was wrong and both sections need correcting.
+- A private fixture is vendored → its gate moves BLOCKED → PASS/FAIL, and a FAIL there is a defect this repo
+  has never been able to see.
+- A seventh projection, a third `apps/portal/src/api/` seam, or a new register row naming a gate → each is a
+  hand-run sweep this segment did once and nothing repeats.
