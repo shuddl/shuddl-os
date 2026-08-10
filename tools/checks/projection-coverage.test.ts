@@ -101,6 +101,34 @@ describe("§870: no read-model projection ships untested", () => {
     ).toEqual([]);
   });
 
+  it("every projection MODULE is imported by production code — tested is not wired (§871)", () => {
+    // §870 closed by naming this gap: a projection can be exported, unit-tested and green here while NOTHING
+    // CALLS IT — and the symptom in production is not an error, it is a read-model that silently never fills.
+    // An empty approvals queue or an unclaimed dock slot looks exactly like "no work today".
+    //
+    // MODULE-level, not symbol-level, and that is the lesson from measuring this by hand first (§871): a
+    // symbol probe for `projectMessages` reported NO PRODUCTION CALLER and was WRONG — that function is
+    // internal, and the module's production entry point is `applyMessageProjection`, which the sequencer
+    // imports at workers/api/src/do/sequencer.ts:482@applyMessageProjection — so a roster of per-module
+    // entry-point names would rot, while "is this module imported by anything that ships" cannot, because it
+    // asks about the file rather than about a name I guessed.
+    const prodFiles = execSync("git ls-files -- '*.ts' '*.tsx'", { cwd: root, encoding: "utf8" })
+      .split("\n")
+      .filter((f) => f && !/\.(test|spec)\./.test(f) && !f.startsWith("packages/ledger/src/projection/"));
+    const prod = prodFiles.map((f) => readFileSync(`${root}/${f}`, "utf8")).join("\n");
+
+    const orphaned = [...new Set(found.values())].filter((f) => {
+      const stem = f.replace(/^.*\//, "").replace(/\.ts$/, "");
+      return !new RegExp(`from\\s+["'][^"']*projection/${stem}(\\.js)?["']`).test(prod);
+    });
+    expect(
+      orphaned,
+      "a read-model projection nothing in production imports. It is dead code, or — worse — a table that " +
+        "was meant to fill and never does, which surfaces as an empty queue rather than an error:\n  " +
+        orphaned.join("\n  "),
+    ).toEqual([]);
+  });
+
   it("a MENTION does not count as coverage (the instrument's own failure mode, pinned)", () => {
     // `approvals-projection.test.ts` names `projectAppointment` in prose. Were this check mention-based, that
     // comment alone would have marked appointment.ts covered while its suite did not exist — the §845 shape

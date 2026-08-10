@@ -510,6 +510,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 315 | §867 | **§868** | **FOUR PROJECTIONS HAD UNIT TESTS, TWO DID NOT — AND THE TWO CARRIED THE BRANCHES INTEGRATION CANNOT REACH.** Re-ran §858's sweep repo-wide with a better instrument: *does any test name any symbol the module EXPORTS?* (the old *does a test import this file?* was wrong 4× this session, last on `evidence-email-view.tsx` — imported via a barrel and thoroughly tested). **Cleared**: contracts/rater/map/design (54 files, 0 dark), agents (0), **mcp (0 — the six tool modules are driven through `buildRegistry`/`dispatch`, integration BY DESIGN)**. **Found: `projectApprovals` + `projectAppointment`** — 6 of **8** projections (corrected §870; the section said 4 of 6) are unit-tested in `projections.test.ts`; these two were reached only by a HAPPY-PATH integration test. What that leaves: **(a) three `return []` tolerance branches protecting APPEND AVAILABILITY** — *"a throw here would … break the append for any other shape"* — a refactor to `throw` fails WRITES and no integration test notices; **(b) two statement-shape laws with stated consequences**: `OR IGNORE` not `REPLACE` on approvals (REPLACE drops `decided_event_id`, severing the link to WHO decided) and a plain `UPDATE` on `legs`, where **`legs` is UNGUARDED and a REPLACE is *silent slot theft with no guard to catch it*** — the difference between claiming a free dock slot and taking someone else's is one keyword and nothing at runtime objects. 20 cases, 4 mutations RED, plain-node fake-`db` idiom because the laws are about SQL TEXT |
 | 316 | §868 | **§869** | **STOPPING POINT — BOARD RE-MEASURED AT `3eed3dc`: 26 gates, 19 PASS · 2 FAIL · 5 BLOCKED — IDENTICAL to §861** across seven further phases and 40 more tests, no gate moved either way. Both FAILs remain the single uncommitted REQ-289 row; the 5 BLOCKED remain absent private inputs. **Nothing in §862–§868 changed production behaviour**: two comment corrections, three disposition notes, three checklist filings, 40 tests. Value sat in the RECORD: §865 (REQ-257 cited nowhere), §866 (8 citations → the wrong row; shipped code with no owning row), §867 (REQ-276 mostly built, hole in vitest collection), §868 (2 of 6 projections carrying the branches integration cannot reach). **Five of seven phases found the defect in my OWN just-finished work**, and **four separate times a detector whose boundary is English produced a confident wrong count**. The instrument that worked — *does any test name any symbol the module EXPORTS?* — cleared 128 files across 7 trees and found the 2 that mattered. Expected board once REQ-289 lands: **21 PASS · 0 FAIL · 5 BLOCKED** |
 | 317 | §869 | **§870** | **THE SWEEP MADE MECHANICAL, AND THE MISCOUNT IT IMMEDIATELY CAUGHT — MY OWN, IN §868.** §868 closed naming its weakness (*"run by hand"*); this is that sweep as a gate, modelled on `sweep-containment-coverage.test.ts`. Building it found the weakness was worse than *expires*: **§868 reported "six projections, four unit-tested" — there are EIGHT and six were tested.** The finding (which two were dark) stands; the FRAME was wrong because **I counted from one consumer's import list rather than the directory** — `projections.test.ts` imports four, so "four of six" is what that FILE shows, and it is not the population. **A population derived from a consumer is not the population** — 5th counting/vocabulary miss this session, first where the wrong frame was a FILE not a regex. Gate: 8 projections derived from source, each required to be **IMPORTED** (not mentioned) by a test — not hypothetical, since `approvals-projection.test.ts` NAMES `projectAppointment` in prose and a mention-based check would have called it covered before its suite existed (§845's shape, pinned by a case). 3 mutations RED incl. the discovery half (a TRACKED new projection reddens both checks by name). **One mutation was silent and it was the PROBE's fault**: an UNtracked decoy is invisible because the scan is `git ls-files`, which sees what MERGES — the exact inverse of §867, same fact, opposite verdict, decided by *does this gate certify what merges or what is on the machine?* Also: **5th forward-reference failure** — I corrected §868 pointing at §870 before writing it |
+| 318 | §870 | **§871** | **"TESTED" IS NOT "WIRED", AND THE PROBE THAT SAID OTHERWISE WAS WRONG.** §870 named the gap: a projection can be exported, unit-tested and green while NOTHING CALLS IT — and that failure throws nothing, it just leaves a table that never fills, so an empty approvals queue looks like *no work today*. **The false alarm is the useful part**: the first probe reported **`projectMessages` → NO PRODUCTION CALLER** (a full suite, REQ-100 — would have been serious). WRONG: `projectMessages` is INTERNAL; the module's production entry is `applyMessageProjection`, imported at `workers/api/src/do/sequencer.ts:482@applyMessageProjection`. My probe excluded the projection dir AND searched the symbol I expected. **6th instrument miss this session** — §845, §857, §866×2, §870 (a consumer's import list), here; every one confident, specific, wrong, and resolved by reading the artifact. So the wiring half is **MODULE-level, not symbol-level**: a roster recording that `messages` enters via `applyMessageProjection` while seven enter via `project<X>` would rot; *is this module imported by anything that ships* cannot. **All 8 wired** (6 via the sequencer batch, `money` via contracts, `messages` via the wrapper) — clean negative, now held by a gate instead of a paragraph. Mutation: drop the sequencer's approvals import → RED by filename |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -50834,3 +50835,69 @@ production code changed.
   `projectApprovals`/`projectAppointment` reach the sequencer, verified by hand at §868; nothing pins that.
 - The roster pin lists eight symbols by name. A rename shows up as a deletion plus an addition and reads as a
   new projection; that is deliberate (a renamed projection deserves the same look) but it will surprise.
+## §871 — PHASE GATE: PHASE 91 CLOSED — "tested" is not "wired", and the probe that said otherwise was wrong
+
+§870 closed by naming what its gate does **not** check: *"a projection that is exported but never called would
+pass — it checks tested, not wired."* The distinction matters because of how the failure presents. An unwired
+projection throws nothing. Its table simply never fills, and an empty approvals queue or an unclaimed dock
+slot looks exactly like **no work today**.
+
+### The false alarm, which is the useful part
+
+The first probe — *which production file calls `project<X>(`?* — reported **`projectMessages` → NO PRODUCTION
+CALLER**, on a projection with a full test suite and a REQ row (REQ-100). That would have been a serious
+finding: the Concierge message read-model never filling.
+
+It was wrong. `projectMessages` is **internal**; the module's production entry point is
+`applyMessageProjection`, which wraps it and which `workers/api/src/do/sequencer.ts:482@applyMessageProjection` imports and calls. My
+probe excluded the projection directory (so it never saw the internal call) and searched for the symbol I
+expected rather than the one the module actually exports for use.
+
+**Sixth instrument miss this session**, and the same root as §870's: I enumerated by a name I predicted instead
+of by the thing itself. The pattern across all six is now hard to miss — *§845 (claim vs violation), §857
+(`VERDICT` grep), §866 (twice), §870 (a consumer's import list), and this one.* Every single one produced a
+confident, specific, wrong number or verdict, and every single one was resolved by reading the artifact.
+
+### What that taught the gate
+
+The wiring half is **module-level, not symbol-level**, precisely because of the above: a roster of per-module
+entry-point names would have to record that `messages` is entered via `applyMessageProjection` while the other
+seven are entered via `project<X>` — and that roster rots. *"Is this module imported by anything that ships?"*
+cannot rot, because it asks about the file rather than about a name I guessed.
+
+Measured: **all eight projections are wired.** Six through the sequencer's append batch, `money` through
+`packages/contracts/src/money.ts`, `messages` through the sequencer's `applyMessageProjection` import. Clean
+negative, and now held by a gate rather than by this paragraph.
+
+Mutation: the sequencer's `projection/approvals` import removed → RED, naming
+`packages/ledger/src/projection/approvals.ts`.
+
+### The citation ratchet caught this phase's own citation, twice
+
+Writing that reference as a bare `sequencer.ts` line number (no `@symbol`) failed `check:citations` with a
+reason worth keeping: *"workers/api/src/do/sequencer.ts is a high-churn file, so a bare line number into it rots faster than
+anywhere else — write the new citation as `path:line@symbol`."* It is a **ratchet**: it did not complain
+about the three unanchored citations already there, only that I had grown them to five.
+
+The anchored form then failed too — `…:482@applyMessageProjection.` — because the sentence's full stop was
+absorbed into the anchor. Both catches were mine and both were right, which is the third gate this session
+to fail my own work before I could commit it (after `check:section-refs` at §870 and `typecheck` at §864).
+**The gates in this repo are load-bearing on the person writing them, not just on some future contributor.**
+
+A fourth catch, recursive: this section's first draft **quoted** the offending bare citation while describing
+it, and the ratchet counted the quote — 3 → 4. That is §829's lesson exactly (*describing a broken reference
+re-creates it*), and I committed once with `verify:docs` red before noticing, which is §829's *other* half.
+**A gate that scans prose cannot tell an example from a use**; write the shape, never the instance.
+
+### Exit state
+
+`tools/checks/projection-coverage.test.ts` now 4 cases; `test:tools` **1,126**, 3 failed — the REQ-289 trio.
+typecheck 0 · lint 0 · `verify:docs` 0. No production code changed.
+
+**Reopen triggers**
+- Imported is not *called*. A module could be imported and its result dropped — `...projectX(db, e)` spread
+  into a batch that is never executed. Nothing here would notice, and the symptom is identical (an empty
+  table). Closing that means asserting on the batch contents, which is a sequencer test, not a static gate.
+- `money` is entered from `packages/contracts/src/money.ts` rather than the sequencer, which is the one
+  asymmetry in the eight. It is not obviously wrong — money lines derive from invoice events in contracts —
+  but it was not investigated here, and a projection reached from a *contracts* package is worth one look.
