@@ -540,6 +540,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 345 | §897 | **§898** | **§897'S TECHNIQUE APPLIED TO §857'S OPEN PROBLEM — AND BLOCKED BY THE SAME REGISTER ROW.** §857 filed *"the DoD column is free text, so a mechanical version would need a vocabulary rather than a parser"* as an owner decision. **That objection dissolves under a tripwire**: it needs no CORRECT vocabulary, only a CONSISTENT one, because it detects CHANGE not membership — whether the population is 8 or 23 is irrelevant. Measured both patterns (narrow `CI|check:|test:` → 8; broad `+audit|lint|harness|pnpm` → 23). **Then the check that mattered: HEAD holds 22 gate-shaped DoDs, the working tree 23** — the uncommitted REQ-289 row's DoD names the identity-leak lint, so it JOINS the population. A pinned count would be **green locally and red in CI**. **A gate whose verdict depends on where it runs is worse than no gate** — it teaches people to distrust a red. Measured, designed, deliberately NOT landed. **Adds a third consequence to resolving REQ-289**: it clears the two board FAILs (§876) AND unblocks this tripwire, closing §857's five-report standing item. And measuring first prevented building a gate that would have been red in CI on day one — §880's lesson paying for itself on a technique I had just praised |
 | 346 | §898 | **§899** | **LAW 1'S "BOTH DIRECTIONS" VERIFIED — AND A FALSE ALARM CAUGHT ON THE SECOND QUERY.** *Every PR references REQ-IDs; traceability CI blocks orphans (both directions)* — three clauses, all enforced. **code→register**: a planted `// REQ-999` gives `check:traceability` exit 1, *FAIL built-but-unspec'd (annotations citing no register row)*. **register→code**: proven LIVE every run — `check:coverage`'s standing REQ-289 failure IS the demonstration, a gate evidenced by what it is currently refusing. **The PR clause is WIRED** (`ci.yml:29,32`, `if: github.event_name == 'pull_request'`, `PR_BODY` from title+body) — **and my first query said it was not**: a path-scoped glob with swallowed stderr returned only the package-script line, and I was one sentence from writing up *a law whose gate nothing runs*. **12th instrument miss**, from a fault this record names twice. **What did NOT save me**: my positive control (`check:coverage` in ci.yml) returned EMPTY, because CI invokes the merge gate rather than that script — **a positive control that FAILS tells you nothing; it is evidence only when it succeeds**, and I proceeded past a failed one |
 | 347 | §899 | **§900** | **LAW 8 HOLDS, AND THE COUNT-FLOOR'S STATED LIMIT HAS A CONCRETE INSTANCE.** *Tenant isolation suite runs on every merge; a cross-tenant read anywhere is a build failure.* **It runs** — inside `unit-tests`; there is no gate NAMED isolation, which is the gap §614 recorded (*the tests ran, but nothing stated WHAT THE SUITE IS*) and closed with a 6-file roster + per-file floors totalling **149 cases**. **A cross-tenant read IS a build failure, proved twice**: neutering `tenantDb` so every slug resolves to tenant-b's DB fails the translator (1/9 — *control-number allocation reads ONLY the passed tenant's integrations row*) and the api (1/67). **The finding is the SHAPE of the catch**: exactly ONE case in each suite caught it. Not a defect — a build needs one RED — but `api/isolation.test.ts` carries **67 cases against a floor of 64**, and that headroom is precisely the space in which the DETECTING case could be deleted while the floor stays green. §889 stated this in the abstract (*catches gutting, not erosion*); here are **three cases of erosion available, one of them the one that noticed**. A floor cannot know which case is load-bearing for which bypass — that is what mutation testing is for. **All ten laws now have a verified standing mechanism** |
+| 348 | §900 | **§901** | **THE REALISTIC REGRESSION IS CAUGHT, AND §900'S HEADROOM FIGURE WAS WRONG.** §900 tried a blunt wrong-binding resolve and named what it had not: *a scoping predicate dropped from a single query*. Tenants separate by DATABASE, so the within-tenant analogue is the **party lens**, whose predicate has two clauses. Both mutations caught, by cases naming the EXPOSURE: dropping `party_refs` EXISTS (**one party reads another's events**) → 2/44 — *P1 on a P2-only shipment is empty; forged party_id is ignored* — and dropping `visibility <> 'internal'` → 6/44. **§900's headroom claim was WRONG**: it wrote *67 cases against a floor of 64* and sized a risk on the gap. Measured with **the counter the gate itself uses** (`it(` declarations): **65 vs 64 = headroom 1**, and across the suite **150 vs 149 = ONE case of slack, with 5 of 6 files at ZERO**. The 67 was vitest's RUN count, which expands `it.each` rows; **I compared two numbers measuring different things and drew a risk from the difference**. The corrected picture INVERTS the concern — `lens-adversarial` (the finer, likelier-edited guard) cannot lose a single case. §900's principle stands; only its number and the risk sized from it were wrong. Also: M1's first plant did not apply and `assert` caught it — **5th time this session that assertion saved a verdict** |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -52693,10 +52694,16 @@ The law holds. One RED fails a merge, and it arrived in both workers.
 **One case in each suite caught it.** That is not a defect — different cases guard different paths, and a
 build needs one RED — but it interacts with §827's floors in a way worth stating:
 
-`workers/api/test/isolation.test.ts` carries **67 cases against a floor of 64**. That headroom is exactly the
-space in which the *detecting* case could be removed while the floor stays green. §889 stated this limit for
-the acceptance spine in the abstract — *"catches gutting, not erosion"* — and here is a concrete instance:
-**three cases of erosion are available, and one of them is the one that noticed.**
+`workers/api/test/isolation.test.ts` carries **65 cases against a floor of 64** — headroom of **one**. That
+slack is the space in which the *detecting* case could be removed while the floor stays green. §889 stated this
+limit for the acceptance spine in the abstract — *"catches gutting, not erosion"* — and here is a concrete, if
+narrow, instance.
+
+> **CORRECTED by §901.** This first read *"67 cases against a floor of 64 … three cases of erosion"*. The 67
+> was vitest's **run** count, which expands each `it.each` row into a separate test; the floor counts
+> **declarations**. Measured with the gate's own counter the suite is **150 cases against 149**, with **five of
+> six files at zero headroom**. Comparing a run count to a declaration count is comparing two different things,
+> and the risk sized from that gap was overstated threefold.
 
 The honest reading is not "the floor is wrong". A floor cannot know which case is load-bearing for which
 bypass; that is what mutation testing is for, and it is why this phase exists. **What a floor buys is that the
@@ -52719,3 +52726,69 @@ Nothing changed; two plants made and reverted, `diff -q` verified, typecheck 0 a
 - The floors' headroom is 3 cases on the largest file. If §827's floors are ever raised to the measured values
   the headroom vanishes, but so does the ability to delete a redundant case without a gate edit; that trade
   was made deliberately at §827 and is not reopened here.
+## §901 — PHASE GATE: PHASE 121 CLOSED — the realistic regression is caught, and §900's headroom figure was wrong
+
+§900 proved a blunt cross-tenant read fails the build, and closed naming what it had **not** tried: *"a
+scoping predicate dropped from a single query — the narrower, likelier regression."* Tenants here are separated
+by **database**, so the analogous within-tenant exposure is the **party lens**, and its predicate has two
+clauses:
+
+```
+${alias}.visibility <> 'internal' AND EXISTS (SELECT 1 FROM json_each(${alias}.party_refs) WHERE value = ?)
+```
+
+Dropping either is exactly the "someone simplifies this" edit.
+
+| mutation | exposure | caught |
+|---|---|---|
+| `party_refs` EXISTS removed | **one party reads another's events** | **2 / 44** — *"P1 on a P2-only shipment is empty; forged party_id is ignored"* · *"a portal party NOT on the shipment sees no docs and gets no URL"* |
+| `visibility <> 'internal'` removed | internal events leak to a customer | **6 / 44** |
+
+Both caught, by cases whose names state the exposure rather than the mechanism — which is what makes a red
+here readable by whoever hits it.
+
+*(M1's first attempt did not apply — a shell-escaping fault in my own plant — and `assert` caught it. That
+"44 passed" was a **no-op mutation**, not a result. The assertion has now saved a mutation verdict five times
+this session; a harness without it reports "no defect found" for "the edit never happened.")*
+
+### §900's headroom claim was wrong, and the cause is a unit mismatch
+
+§900 wrote: *"`workers/api/test/isolation.test.ts` carries **67** cases against a floor of **64**"*, and built
+a stated risk on that gap — three cases of erosion available, one of them the detector.
+
+Measured with **the counter the gate itself uses** (`it(` / `it.each(` declarations):
+
+| file | cases | floor | headroom |
+|---|---|---|---|
+| `workers/api/test/isolation.test.ts` | 65 | 64 | **1** |
+| `lens-adversarial.test.ts` | 44 | 44 | **0** |
+| `platform-tenant-isolation.test.ts` | 9 | 9 | **0** |
+| `plg-isolation-matrix.test.ts` | 8 | 8 | **0** |
+| `mcp/isolation.test.ts` | 15 | 15 | **0** |
+| `translator/isolation.test.ts` | 9 | 9 | **0** |
+| **total** | **150** | **149** | **1** |
+
+**The 67 was vitest's RUN count**, which expands each `it.each` row into a separate test; the floor counts
+**declarations**. I compared two numbers that measure different things and drew a risk from the difference.
+
+The corrected picture inverts the concern: **five of six files have zero headroom, and the suite as a whole has
+one case of slack.** §900's "three cases of erosion, one of them the one that noticed" is false — there is
+room for **one**, in the file with the coarsest guard, while `lens-adversarial` (the finer, likelier-edited
+one) cannot lose a single case without failing.
+
+### What survives from §900
+
+The *principle* stands unchanged — a count floor cannot know which case is load-bearing for which bypass, and
+mutation testing is what answers that. Only the number, and the risk I sized from it, were wrong.
+
+### Exit state
+
+Nothing changed; three plants made and reverted, `diff -q` verified, typecheck 0 after restore. §900 corrected
+in place. `test:tools` 1,139, 3 failed (REQ-289) · `verify:docs` 0.
+
+**Reopen triggers**
+- A floor equal to the case count means **any** deletion fails — including a legitimate one. That is a
+  deliberate trade (§827) and it will eventually cost a gate edit during a real refactor; the risk is that the
+  edit is made mechanically rather than adjudicated.
+- The two counters disagree by design (`it.each` rows vs declarations). Nothing states which one a floor
+  means, and I misread it once already — the gate's own comment would be the place to say so.
