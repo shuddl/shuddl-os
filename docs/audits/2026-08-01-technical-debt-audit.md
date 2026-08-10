@@ -563,6 +563,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 368 | §920 | **§921** | **THREE CONSTITUTIONAL GUARDS DEFENDED BY NOTHING — LAW 5 AND TWO CROSS-TENANT READS.** The sweep returned 15 candidates; each re-verified by MUTATION rather than taken on confidence. **3 real, 3 refuted.** **(1) CLAUDE.md Law 5** — `/v1/rate` refuses `legs` without `tenant_party`; neutering it left **all 816 api tests green**. It is the ONLY thing between an interline body and a gross comparison: `approvalOpts()` attaches legs only when BOTH are present, so without it `assessApproval` takes its DIRECT branch and judges the floor against `quote.sell_cents` — the whole move. The rater's fail-loud sibling **can never fire**, because the partial signal is dropped before reaching it. The law whose $222,084/35-lb regression rule 5 makes permanent — and a gross comparison does not error, it **approves**. **(2) REQ-025** — `/v1/import`'s r2_key branch: dropping the session-tenant prefix left the suite green; every other case posts an inline sheet, so the **R2 read path had no isolation test at all**. **(3) REQ-025** — `/pub/documents/:cap`: widening the namespace check from `evidence/<t>/` to `evidence/` left the suite green; the nine cases beneath it exercise MAC/expiry/shape and **none varies the key's tenant against the cap's**. Both isolation tests carry a control serving the same bytes to their rightful tenant (§906's wrong-reason trap avoided by construction). **REFUTED**: `roleSatisfies`, the chain hash comparison, and the revoked-device clause — **the last nearly became a false finding**: neutering it left `devices.test.ts` GREEN and only the WHOLE-package run went RED, on a case in another file. **Ownership by NAME is a guess**; when a narrow run comes back green, widen before believing it. api 816→819. **6 of 15 candidates still unverified — recorded as unverified, not clean** |
 | 369 | §921 | **§922** | **FOUR MORE UNDEFENDED GUARDS — AN IDEMPOTENCY CLASS, A MONEY PARTITION, AN UNLINKABLE SALE.** §921 left six candidates recorded *unverified, not clean*; continuing: **4 real, 1 refuted by reading, 1 still open.** **`INSERT OR IGNORE` is only idempotent because of a PRIMARY KEY** — `projectApprovals` (id = the requested event id) and the `booking.created` leg skeleton both state dedupe as their mechanism; dropping `legs.id`/`approvals.id` PK left ledger AND api green because **no test drove the same event twice**. OR IGNORE with no key to conflict on is just INSERT: a redelivery appends a second open approval, or a third skeleton leg the appointment claim can bind to — and at-least-once IS the queue contract. **The aging buckets** had to partition the line and only a comment said so: breaking the top bucket left contracts green **because the fallback returns the same label the broken bucket would have** — invisible by construction, a mislabel the day anyone edits the fallback, on the classifier BOTH the command MONEY queue and the portal customer STATEMENT share. Fixed as a **property** (reds on gap AND overlap; examples reach only the first), with `AGING_BUCKETS` exported for the same reason `lens.ts` exports `DRIVER_KINDS`. **An unlinkable credit sale**: `payment_intent` is OPTIONAL in the Stripe shape and removing the refusal left the whole billing suite green — every case builds its body through a helper that always supplies one; the guard's own comment names the result, *a phantom stream stuck 'issued' forever, invisible to any sweep*, which a green suite cannot see because **the wrong invoice is created successfully**. contracts 326→328, ledger 692→694, billing 58→59. **Still open**: `documents.id` PK (real, measured silent) and `lensFor`'s default (not a defect — the role set is CHECK-closed — but a ROSTER hazard: a 7th role silently inherits the unredacted tenant lens) |
 | 370 | §922 | **§923** | **THE SWEEP FULLY RESOLVED — 14 DISTINCT CANDIDATES: 10 REAL, 3 REFUTED, 1 ROSTER HAZARD.** Closed §922's two remaining. **`lensFor`'s tenant default is correct today** (the role set is CHECK-closed) **and is a roster hazard**: a 7th role silently inherits `lensWhere → 1=1`, the most permissive read in the system, and the existing test iterates a **hand-copied list of four** rather than the union. Gate now keys on `Role.options` and pins the population, so adding a role fails in front of whoever added it — **doing nothing stops being neutral**. **`documents.id`**: dropping the PK left the api suite green, and WHY bounds the fix — the suite's idempotent-repeat case is SEQUENTIAL, returning 200 through the `existing !== null` branch without ever reaching the insert; the PK only decides the CONCURRENT race, which is not deterministically reproducible against a single-writer D1. So the test pins the **schema property** (a repeated id leaves one row, `changes === 0`) and the race is **named as out of reach rather than quietly claimed**. **Totals: 10 real, 3 refuted, 1 roster hazard.** All three refutations came from MY mutations, not the finders' — **a finder's confidence is a hypothesis; the mutation is the measurement**, and that division is what made a read-only sweep usable. ledger 694→697 |
+| 371 | §923 | **§924** | **STOPPING POINT at `75b37b1` — 19 PASS · 2 FAIL · 5 BLOCKED; repo-owned failure set EMPTY.** Thirteen phases (§911–§923) closed. Board shape **unchanged from §916 — which is the point: none of this work moved the board, because the board was never measuring these classes.** Both FAILs are the one REQ-289 row (this run's own output, not inherited); the 5 BLOCKED report *could not run*, not *clean*. Everything else holds: 1,486 citations resolving / 265 anchored, bundle ratchet within 5% on all three surfaces, design audit clean, all four browser gates green. **Produced: 21 invariants that were enforced by exactly one mechanism with nothing exercising it** — 4 device-binding branches, the interline 10000-bps sum, `SafeInt`'s `-0`, the aging partition, **CLAUDE.md Law 5**, the import XOR, **two cross-tenant reads**, a double correction answering **500 instead of 400**, three `INSERT OR IGNORE` idempotency keys, 4 D1 CHECKs, an unlinkable credit sale — plus **5 new gates** converting each class from invisible-to-CI into fails-CI. **Three corrections to my own record**: §912 eyeballed 11 where 17 was the count; §917 re-measured what four phases already had; §920 rebuilt a rule blocking since §239 — whose **glob stops one directory short of where §919's defect lived**, the sharper finding. Corrected in place because an uncorrected claim here costs the next reader a phase |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -54220,3 +54221,71 @@ mutation is the measurement.
   reach it deterministically. If D1 ever gains a way to interleave two writers in-test, that 200-vs-201
   discrimination is the assertion to add — it is the only part of the upload's idempotency contract that
   rests on behaviour rather than on the schema property now pinned.
+## §924 — PHASE GATE: STOPPING POINT at `75b37b1` — 19 PASS · 2 FAIL · 5 BLOCKED, repo-owned failure set EMPTY
+
+Thirteen phases (§911–§923). This is the measurement that closes them, run as `pnpm verify:merge` against a
+tree clean but for the owner's uncommitted REQ-289 register row.
+
+### The board
+
+**26 gates: 19 PASS · 2 FAIL · 5 BLOCKED** — the same shape as §916, which is the point: **none of this
+session's work moved the board, because the board was never measuring these classes.**
+
+Both FAILs are one row, and this run's own output says so rather than being inherited:
+`REQ-289: unknown/empty status "ACTIVE" or buildable row whose wp "GTM-0" names no active WP`, plus the
+register-contiguity case reading 289 where 288 is pinned. The 5 BLOCKED are absent private inputs, each
+reporting *could not run* — not *clean*.
+
+Everything else holds: invariants `21/22 tables`, append-chokepoint `2 allowlisted modules and nothing
+else`, authority-coverage `9 consults across 5 modules`, citations **1,486 resolving / 265 anchored**,
+bundle ratchet within 5% on all three surfaces, design audit clean, and all four browser gates green
+(perf 1 · visual 5 · a11y 4 · e2e 6).
+
+### What thirteen phases actually produced
+
+**21 invariants that were enforced by exactly one mechanism, with nothing exercising it** — every one found
+by the same instrument (neuter the guard, see whether anything notices) and every fix proved by watching
+that same mutation go RED afterwards.
+
+| where | what was undefended |
+|---|---|
+| contracts | 4 device-binding branches (asymmetric across two mirrored copies) · the interline 10000-bps sum · `SafeInt`'s `-0` · the aging partition |
+| routes / DO | **CLAUDE.md Law 5** (interline floors vs gross) · the import body's XOR · **two cross-tenant reads** (import R2 prefix, doc-cap confinement) |
+| ledger | a double correction answering **500 instead of 400** · three `INSERT OR IGNORE` idempotency keys |
+| schema | 4 D1 CHECKs, one of them (`retention_status`) with **no Zod counterpart at all** |
+| billing | an unlinkable credit sale |
+
+**Five gates added**, each converting a class from invisible-to-CI into fails-CI: `superrefine-parity`,
+`enum-parity`, `check-constraint-coverage`, `migration-fixture-parity`, and the role-union lens gate.
+
+### Three corrections to my own record, which are the honest part
+
+- **§912** stated "11 remaining refine sites"; there were **17**, and the list omitted the file the section
+  was about. Eyeballed, not counted.
+- **§917** claimed to convert a reading into a measurement; **four earlier phases had already measured it**,
+  and the gate's own comments recorded my exact plants. A redundant phase reads identically to a novel one.
+- **§920** built a rule that already existed as a blocking gate since §239 — deleted, and the *real* finding
+  was sharper: **that gate's glob stops one directory short of where §919's defect lived.**
+
+Each was corrected in place rather than left, for one reason: an uncorrected claim in this record costs the
+next reader a phase.
+
+### Stopping point
+
+**The repo-owned failure set is empty.** Every FAIL traces to one register row that is the owner's to
+classify; every BLOCKED traces to an input this repository does not hold. Nothing is half-finished — each
+phase is committed with its record, its mutation proof and its own reopen triggers.
+
+**Owner-held, unchanged from §916:**
+1. **REQ-289 needs a classifiable `status`/`wp`** — the whole of the repo's red.
+2. **Nine private fixtures + `IDENTITY_DENYLIST`** — five gates cannot run without them.
+3. **`EventBase`** — delete the dead public export or document it as the base (§913).
+4. **The citation anchor's substring match** — tightening re-judges 258 anchored citations (§913).
+5. **Two filed rows** from §866/§867.
+
+**Reopen triggers carried forward**
+- The concurrent-duplicate path in `/v1/evidence` cannot be reached deterministically (§923).
+- `migration-fixture-parity` proves a subset is DECLARED, not SAFE — the safety half was measured once, at
+  this migration set (§920).
+- Pool-workers suites are unreliable under rapid repeated invocation here; any future mutation sweep must
+  use the narrowest owning suite **and treat a missing summary as ERROR, never GREEN** (§915).
