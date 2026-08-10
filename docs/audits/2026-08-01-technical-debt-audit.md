@@ -578,6 +578,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 383 | §935 | **§936** | **§935's TRIGGER CLOSED — THE MECHANISM WAS ALREADY STRONGER THAN THE CHECK I PROPOSED.** §935 asked for a lint: *assert `credits.ts` never calls `resolveTenantDb`/`tenantDb`*. **It calls no resolver at all.** It takes `ledger: PlatformLedger`, whose `append({streamId, input})` has **NO TENANT PARAMETER** — a caller cannot name a tenant even by mistake — and the implementation reaches `/internal/platform/credit-append`, *the ONLY caller that sets the sequencer's `platform: true` door*, on the `/internal` surface §927's gate enumerates. **A lint could only say *this file does not currently call a tenant resolver*; the signature says *no caller of this seam can express a tenant*.** The lesson is about triggers: written at the end of a phase, when the subject is understood but its NEIGHBOURS are not, a trigger proposes **the check you would build, not the one the code already has** — three of this session's corrections (§917, §920, §936) are that same miss. **Fourth pathspec fault**: `git grep -- 'workers/*/src'` found NO production callers (it does not recurse); `webhook.ts:52,56` call both. All four faults this session produced an **empty** result that looked like a finding — a bad pattern never over-reports, and under-reporting is the direction nobody double-checks. No source changed |
 | 384 | §936 | **§937** | **ONE FACT, TWO RECORDS — THE LIVE ONE WAS MAINTAINED, THE SUMMARY WAS NOT.** C3 — the agents worker's claimed-pool blind spot, filed **High**, *"build it before any `PROVISIONING_ENABLED` flip"*. **Every clause of the open half is now false**: `tenants.ts` declares both pool DBs (6 wrangler entries), exports `POOL_BINDINGS`, and carries a **fail-closed** claimed resolver throwing `UNKNOWN_TENANT` for sentinel/unclaimed/malformed/invalid-binding; enumeration is `allTenantSlugs()` at **9 call sites** — including `runReconSweep`, the REQ-169 sweep the row named — with **ZERO** remaining `for … of TENANT_SLUGS` fan-outs; covered by two suites. **I had the staleness in the WRONG PLACE**: the live checklist row already said *RESOLVER BUILT 2026-08-01* and even named *the ninth fan-out hiding outside `index.ts`* — the exact site my count found ninth. **The stale record is the AUDIT's C3 SUMMARY row.** Corrected before commit, because a correction that misidentifies its subject sends the next reader to fix a row that is already right. **The class**: a checklist row has eight fields and an expiry; a summary row has neither — **a fact duplicated into a summary acquires a second lifetime nobody manages**, and the audit's row is the natural entry point because it names the severity. **Under-reporting progress costs as much as over-reporting it, and nobody checks that direction — a record saying *still open* never looks wrong.** Cost: four commands, all named by the row's own expiry field, un-run since filing. **Two proxies avoided**: a `head`-truncated grep showed 7 fan-outs (real: 9, with `runMirrorSweep` outside the window), and `mirror-sweep.ts` holds no enumeration at all — after §934 and §935 each produced a proxy count that looked like a finding, exact counting was the default |
 | 385 | §937 | **§938** | **ELEVEN OF TWELVE SUMMARY ROWS HOLD — BUT ONE IS HELD BY NOTHING.** §937's C3 correction raised the bounded question: how many of the summary zone's other status rows are stale? Re-verified all twelve against HEAD by reading the SUBJECT (tracked-file counts, struck text, the lens branch itself) — eleven hold. The finding is the second question: *is each fix PINNED?* C1's is (reverting the lens branch REDs `portal-actions.test.ts`). **C2's was not** — deleting ` --mode release` from `package.json:43` restores audit C2 verbatim: `pnpm test:surfaces` prints *"BLOCKED — a skip is not a pass"* and **exits 0**, while all six package.json-reading gates stay green (45/45). Sentinel and exit code disagree; CI believes the exit code. `playwright-mode-parity.test.ts` now computes the rule from run-gate's roster: every browser gate draws its mode from exactly one source, never both, never neither — 3/3 mutations RED. Also: my own near-miss, treating the context's session-start `gitStatus` as the tree |
+| 386 | §938 | **§939** | **CLAUDE.MD'S DESIGN LAW IS REPEALED BY ONE WORD OF JSON.** Generalizing §938: repo-wide there are exactly two gate-semantics knobs, and the second is `tools/design/design-ci.json`, stated as law in CLAUDE.md rule 7, genesis/11 and genesis/14. Flipping `"blocking"`→`"advisory"` is **silent** (test:tools fails only on the known REQ-289 trio). And consequential: a planted `box-shadow` exits **1** under blocking and **0** under advisory *while still printing the violation*. §252 proved the gate WORKS; §258 read that the config says blocking; neither asked whether the config HOLDS — a gate proved correct and a gate proved durable are different claims. `design-mode-parity.test.ts` parses the mode CLAUDE.md asserts and requires the config to match (§830), so changing the law takes both sides in one commit |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -55259,3 +55260,66 @@ rather than a grep hit, plus an unmutated fixed point first — 0/1/1/1, in the 
 `modeArg: true` in `gatesFor()`, the script's baked `--mode release` becomes a second source and the gate
 should say so."* Ran it — adding `modeArg: true` REDs the new gate on the BOTH branch. Both unsafe cells are
 live, so this trigger is closed on arrival rather than filed.
+
+## §939 — PHASE GATE: CLAUDE.md's design law is repealed by editing one word of a JSON file
+
+§938 closed C2 — a fix held by nothing. That generalizes past C2: **which gate-semantics knobs can be flipped
+without any gate noticing?** Counted before testing (the instance-#2 rule). Repo-wide there are exactly two:
+the `--mode` flag in package.json's browser-gate scripts (§938, now gated) and **`tools/design/design-ci.json`**.
+
+The second is not an implementation detail. It is stated as law in three governing documents:
+
+> **CLAUDE.md rule 7** — *"BLOCKING as of WP-10 exit… `tools/design/design-ci.json` is `{"mode":"blocking"}`
+> and `gatesFor("merge")` carries `design-audit` non-skippable, so a violation fails the merge."*
+> Restated in `genesis/11-REPO-CLAUDE-MD.md:44` and `genesis/14-BUILD-EXECUTION-SPEC.md:62`.
+
+It has exactly one consumer — `tools/design/audit.ts:333` reads the file, `:351` decides:
+
+```ts
+if (mode === "blocking") process.exit(1);
+console.error("REQ-158: advisory until WP-10 exit — reported, not blocking.");
+```
+
+### Measured, both halves
+
+**Is it pinned?** Flipped `"blocking"` → `"advisory"` and ran the suites:
+
+```
+test:tools      exit 1 — 3 failed (the SAME known REQ-289 trio; 1,169 passed)
+audit:design    exit 0
+check:invariants exit 0
+```
+
+Nothing. The word is load-bearing for a constitutional law and no test reads it.
+
+**Is it consequential?** Planted a `box-shadow` in `packages/design/motion.css` — CLAUDE.md's *0 shadows*
+budget, the §252 probe — and ran the audit under each mode:
+
+| mode | exit | output |
+|---|---|---|
+| `blocking` (as written) | **1** | `packages/design/motion.css: box-shadow — no shadows (REQ-147)` |
+| `advisory` (one word) | **0** | `design audit: 2 violation(s) [mode=advisory]` — *same violation, still printed* |
+
+So a one-word edit to a four-line JSON file repeals rule 7, and the design audit keeps **reporting every
+violation while exiting 0**. This is §938's C2 defect exactly — the sentinel says one thing, the exit code
+says another, and CI believes the exit code — but on pixel law rather than a field gate, and reachable
+without touching a single line of code or test. `git log` would show a JSON one-liner.
+
+**Why this survived §252 and §258.** Both *proved the gate works* — §252 planted a shadow, a radius and a raw
+hex and watched them go RED; §258 verified the mode file says `blocking`. Both are true and neither is this
+question. **They tested the gate under its current configuration; they never tested that the configuration
+holds.** A gate proved correct and a gate proved *durable* are different claims, and the audit had only the
+first. [[audit-a-law-by-the-shape-of-its-gate]] — the shape here is *mirror*: config mirrors doc, and nothing
+compares them.
+
+### The fix reads the law and computes the config
+
+`tools/checks/design-mode-parity.test.ts`. §830's rule: the **doc** states the law, the **config** implements
+it, so the gate parses the mode CLAUDE.md asserts and requires `design-ci.json` to match — rather than storing
+a third copy of the word `blocking`. Flipping either side fails; changing the law deliberately means changing
+both, in one commit, in front of a reviewer. It also pins that `audit.ts` still *exits non-zero* in blocking
+mode, so "blocking" cannot be quietly redefined to mean nothing.
+
+**Reopen trigger, run in this phase (§926):** *"if the advisory branch is deleted outright, is the gate
+vacuous?"* No — deleting it makes the audit **always** exit 1 on violations, which is strictly safer, and the
+doc-parity assertion still holds. The unsafe direction is the reachable one, and it is now RED.
