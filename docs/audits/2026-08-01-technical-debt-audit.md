@@ -574,6 +574,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 379 | §931 | **§932** | **THE "EVIDENCE EXPIRES" FIELDS ARE TRIGGERS NOBODY RUNS — I RAN THREE, TWO HAD DECAYED.** New dimensions saturate; re-verifying old claims does not, because claims decay whether or not anyone looks. The checklist's repo-owned section has **35 eight-field rows**, each naming what would falsify it — the same standing as a reopen trigger: written once, run never. Three checked (those whose expiry names a NUMBER). **`CANONICAL_VIEWS` 11 vs MAX 12 — holds.** **CONFIRM-GATED filed at 14, today 15** — one row, argument unchanged, but its own trigger said *when the count changes materially*, so the figure is now dated not silently wrong. **`routes ±10%` — evidence FALSE**: `parity.ts@PARITY_TOLERANCE_BPS` is typed, tested (`parity.test.ts` pins `rating: 1_000`) and its header says the tolerances **ARE** rule 6's gates — *rating ±10% … the routes replay gate*. **This moves the decision rather than resolving it**: the row framed a binary (part of the legacy-export replay, or unscoped work); the third option is that it is ALREADY implemented as the rating overlay's tolerance. Against that, rule 6 enumerates FIXTURE replay gates while this is the LIVE overlay's — same number, different mechanism. So either the row is stale or **the comment over-claims**, which is §927's verify-the-prose shape again. Both readings recorded; the choice is the register owner's, and better-posed than the row's original question. **Says nothing about the other 32** — three sampled, two moved; the method is the output. Section-ref gate caught the forward reference **again** (2nd time this session) |
 | 380 | §932 | **§933** | **§932's TRIGGER CLOSED — THE DECAYED FIGURES ARE NOW RE-DERIVED, AND I WROTE THE SAME PREFIX BUG TWICE.** `checklist-figures.test.ts` derives each figure FROM THE AUTHORITY and compares it to the checklist (§830): the CONFIRM-GATED count from the register (the one that drifted 14→15), the canonical-view usage/ceiling from `registry.ts` (11 under 12 — the row's whole point is that a ceiling and a usage read alike), and **both halves of §932's correction** (that `PARITY_TOLERANCE_BPS` still exists with `rating: 1_000`, and that the checklist has not re-asserted the false claim). **Scope stated in the file**: 3 figures, not 35 rows — most expiry conditions name a DECISION no gate can evaluate, and a prose discovery half is the §831/§833 shape measured at 8 FPs to 0 real. **The finding is my own**: M3 (rename the constant away) came back **GREEN** — `toContain("export const PARITY_TOLERANCE_BPS")` is satisfied by `…_BPS_X`. **§920's tripwire had the identical defect and I recorded the lesson then**; writing it down did not stop me repeating it eleven phases later in a gate built to catch decay. So the operative discipline is NOT *remember the prefix rule* — it is **run the rename mutation on every existence assertion**, because that probe finds the class whether or not I remembered. 4/4 RED after the colon fix. Register restored to its WORKING-TREE state, not HEAD — restoring to HEAD would have silently reverted the owner's uncommitted row. test:tools 1,161→1,165 |
 | 381 | §933 | **§934** | **§933's TRIAGE DONE — 25 of 35 EXPIRY CONDITIONS ARE DECIDABLE; AND MY ROW COUNT WAS WRONG TWICE.** The repo-owned section holds **45 lines beginning `| `** — what I counted and asserted in §932 AND §933 — but only **35** are eight-field debt rows. The other nine belong to **two NESTED sub-tables** inside the section (a browser-gate table and a Command/Verdict table) plus headers. **A line-prefix count is a PROXY for a row**, and it swept in every nested table's rows; the fix is to count the thing itself (cells matching the section's schema). Corrected in three places — both audit sections and the gate's own header — because the figure had propagated into a gate built to stop figures propagating. **Triage**: 25 decidable — **13 name a FILE** whose change invalidates the evidence, **7 name an EVENT with a mechanical tell** (a binding appearing, `PROVISIONING_ENABLED` flipping, a cron gaining a sub-daily expression), **5 name a COUNT/symbol**; the other **10 name a DECISION** no gate can evaluate and are correctly written, just not automatable. **The 13 file-change rows are the cheap tranche** — a content-hash pin turns *evidence stands until `X` changes* into a check — but that shape goes stale **loudly, not dangerously** (a moved file makes a verdict unverified, not wrong), so it is recorded as available work with its value stated, not queued as urgent |
+| 382 | §934 | **§935** | **REQ-030's AUTHORITY REGISTRY RE-VERIFIED — IT HOLDS, AND TWO PROXIES NEARLY SAID OTHERWISE.** The most consequential of §934's 25 decidable expiry conditions. It matters because `check:authority-coverage` is a static scan over a HAND-LISTED roster — it verifies the registered pairs consult `resolveAuthority` and **cannot see an unregistered emitter**, so completeness is the half no gate holds. **Result: holds.** 13 files reference an authoritative kind AND carry an append seam; **8 consult `resolveAuthority`** (unchanged) and the 5 that do not are each correctly excluded **for a different reason** — `booking.ts` emits `booking.created` (it only REFERENCES `quote.priced`, to validate), `sla-sweep.ts` emits `message.received` not `.sent`, `portal-actions.ts` emits `quote.accepted`/`message.received`, `credits.ts` emits `invoice.issued` **against the PLATFORM tenant** (not a tenant DB), and `routes/events.ts` the row already explains. **Two proxies both looked like decay**: files MENTIONING a kind → **28** vs a recorded 12 (a registry apparently doubled); adding an append seam → **13** vs 12 (still drift, still wrong). **Only reading what each file EMITS settled it**, and `credits.ts` is the sharp case — it genuinely appends an authoritative kind, so every mechanical filter keeps it. Same failure as §934's row count one phase earlier: **a count over a proxy is not a count over the subject**, twice in two phases, both times producing a number that would have been published as decay. A clean negative is the ONLY form the completeness answer can take, and it now carries a date |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -54957,3 +54958,65 @@ with its value stated honestly, not queued as urgent.
   hash beside its row and fail when the hash moves while the row still claims the verdict. Cheap, and it
   converts *"evidence stands until `anchor.ts` changes"* from prose into a check. Not built — and stated as
   a bound, since a stale-but-loud verdict is the least dangerous failure this record has.
+## §935 — PHASE GATE: REQ-030's authority registry re-verified — it holds, and two proxies nearly said otherwise
+
+§934 triaged 25 decidable expiry conditions and I had re-run three. This runs the most consequential of the
+rest: **REQ-030 authority-registry completeness**, whose row states its own re-verification — *"re-running
+the twelve-vs-eight comparison — one grep, four file reads"* — and whose expiry is mechanical: *"when any
+new file appends `quote.priced`, `invoice.issued`, `settlement.*` or `message.sent` against a TENANT
+database."*
+
+The registry matters because `check:authority-coverage` is a **static scan over a hand-listed roster**: it
+verifies the registered pairs consult `resolveAuthority` and, by construction, **cannot see an unregistered
+emitter**. Completeness is exactly the half no gate holds.
+
+### The answer: it holds
+
+**13** files reference an authoritative kind and carry an append seam. **8 consult `resolveAuthority`** —
+the registered set, unchanged. The five that do not are each correctly excluded, and the reason is
+different in every case:
+
+| file | emits | why it is not a registry gap |
+|---|---|---|
+| `agents/booking.ts` | `booking.created` | references `quote.priced` to VALIDATE the accepted quote; never emits it |
+| `agents/sla-sweep.ts` | `message.received` | not `message.sent` |
+| `api/routes/portal-actions.ts` | `quote.accepted` · `message.received` | neither is authoritative |
+| `billing/credits.ts` | **`invoice.issued`** | against the **PLATFORM** tenant (`GL_PLATFORM_CREDITS_AR`), not a tenant DB — outside this row's scope, and the platform tenant has no legacy mirror for authority to arbitrate |
+| `api/routes/events.ts` | — | the generic append route, already explained on the row |
+
+### Two proxies, both of which looked like decay
+
+This is the part worth keeping. The first count — files **mentioning** an authoritative kind — returned
+**28** against a recorded 12. That reads as a registry that has more than doubled while nobody looked.
+
+Narrowing to files that mention a kind **and** carry an append seam gave **13** against 12 — still a drift,
+still reportable, still wrong.
+
+**Only reading what each file EMITS answered the question.** `credits.ts` is the sharp case: it genuinely
+appends `invoice.issued`, so every mechanical filter keeps it — and it is still correctly excluded, because
+the row's subject is a **tenant** database and that append targets the platform tenant.
+
+That is the same failure as §934's row count one phase earlier: **a count over a proxy is not a count over
+the subject**, and the proxy is always the thing that is easy to grep. Twice in two phases, and both times
+the proxy produced a number that would have been published as decay.
+
+### Why a clean negative here is worth a phase
+
+`check:authority-coverage` states its own blind spot; the row exists because nothing watches completeness.
+A clean negative is therefore not "nothing happened" — it is **the only form the completeness answer can
+take**, and it now carries a date. The row previously carried a verdict measured at `501ea9d` with no
+re-run since.
+
+### Proof
+
+- 13 append-seam files enumerated, 8 consulting `resolveAuthority`, 5 read individually for their emitted
+  kind. Row updated in place with the re-verification and the two proxy counts recorded, so the next reader
+  knows which numbers are misleading.
+- `verify:docs` 0.
+
+**Reopen trigger**
+- **The exclusion of `credits.ts` rests on "platform tenant ≠ tenant database".** That is correct today and
+  it is a *scope* claim, not a mechanical one: if the platform-credit path is ever pointed at a customer
+  tenant DB, this row's reasoning silently stops applying while every count above stays the same. The
+  decidable form: `credits.ts` reaches its DB through `resolvePlatformTenantDb`; assert that it never calls
+  `resolveTenantDb` or `tenantDb`.
