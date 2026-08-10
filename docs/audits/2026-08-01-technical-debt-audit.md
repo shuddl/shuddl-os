@@ -499,6 +499,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 304 | §856 | **§857** | **§856 COUNTED ITS OWN POPULATION WITH THE INSTRUMENT IT HAD JUST CALLED UNRELIABLE.** §856 reported **14** DoDs naming a gate; its own closing trigger said the DoD column is free text and *"a mechanical version would need a vocabulary rather than a parser"* — the refutation of its own number, six paragraphs below it. Widening to `audit`/`lint`/`harness`/`pnpm ` gives **23**, and the sets are **NOT nested**: REQ-077 and REQ-149 are in the 14 and absent from the 23. **Union 25; §856 examined 9.** The count was not wrong, it was UNQUALIFIED — a sample presented as a census, frame never written down. The 16 unexamined now classified: **REQ-167 EXECUTED** (its DoD is a mutation spec, not a description) — seeded denylist clean → exit 0, name planted → **exit 1**, and the gate **REDACTS the leaked name in its own failure message**, the one place a naive identity gate leaks what it protects. 163 (lint + message test + an override-survival note) and 154 (history-wide gitleaks, asserted WITHIN the job) sound. 13 need no gate: 145/147 self-satisfying, 112 the fixture hold, 212/247 vNEXT, 289 the owner's, **001/119/124 name a HUMAN audit — a DoD naming a person cannot rot**. §856's findings all stand; only its SCOPE claim was wrong |
 | 305 | §857 | **§858** | **TWO GATES IN ONE FLOW; ONE WAS PROVEN.** Swept §849's shape (a module imported by ZERO tests): 104/328 files. **The sweep was wrong twice.** (1) `workers/` routes are covered by INTEGRATION tests — not-imported ≠ not-tested, and for a handler the integration test is BETTER. (2) The driver 13 looked false too: React children are exercised TRANSITIVELY through the composing test. **Then the rebuttal was wrong** — `GatedFlow.test.tsx:19–34` **MOCKS all three children**, so the composing suite proves nothing about the composed component. Three readings; only opening the file was right. **The finding: REQ-063's forced-photo gate has a component suite; REQ-064's *ADVANCE is dead until the glass holds ink* had NONE** — same GatedFlow, same header comment, both mocked in the same file. This is REQ-142's BUILT half and acceptance demo #1's opening beat. **Why it hid**: jsdom has no 2D context → `getContext` null → every handler early-returns → a naive render PASSES (§688's *passing corpus*). Proof: **blinding the fake context reddens the 3 positive cases and leaves all 3 negatives GREEN** — *a tap lays no ink* is satisfied by a component that does nothing, and the negatives are the intuitive tests to write. 6 cases landed, 4 mutations RED. Best two: **a tap is not a signature** (`hasInk` set in `move`, never `down` — a fingertip in a truck cab must not satisfy a POD gate) and **clear re-arms the gate** (wipe the pixels but keep the flag → a BLANK signature commits as proof of delivery). No production code changed; the gate was right, nothing proved it |
 | 306 | §858 | **§859** | **THREE GUARANTEES IN PROSE; AND A SILENT MUTATION CAUGHT MY OWN TEST OVERCLAIMING.** `useSync.ts` — the orchestration between `classifyStatus` (§848) and the transport (§849), both of which had real defects — states *"it syncs only while visible, online, and authenticated"* in its header and enforced none of it. **Why that hides**: a developer's browser is visible+online+authenticated SIMULTANEOUSLY, so deleting any guard changes nothing on a desk; the conditions only diverge in a truck. No defect — the hook is correct; 9 cases now hold it there, 5 mutations RED. **The 6th was SILENT** and is the finding: deleting the cleanup's `removeEventListener` left my unmount test green, because the same cleanup sets `cancelled = true` and `runPass` returns on it — a **sibling guard** (§688). The leak is REAL (a handler outliving every driver screen) and my test could not see it: I asserted on **the silence the removal causes**, not the removal. Named *"UNMOUNT detaches the listeners"*, proved *"an unmounted hook does not answer network events"*. **A behavioural assertion downstream of a second guard measures the GUARD, not the subject, and keeps passing while the thing in its name rots.** Now spied on `removeEventListener` directly — window and document mutated separately, both RED. Fourth just-written-fix defect this session, first caught by a MUTATION rather than a reading, and it cost ~2min because the mutation was routine, not suspicion-driven |
+| 307 | §859 | **§860** | **THE GUARD THAT REPLACED A SHIPPED DEFECT, PINNED BY NOTHING.** `StopScreen` was named uncovered by §858 AND §859 and covered by neither — twice-deferred is how this debt survives. Its prop doc records why the gate exists: *"2026-08-01: a hardcoded 6 used to be recorded on every pickup"*. **A guard that replaced a SHIPPED defect is the worst thing to leave untested — the mistake it prevents has already happened once, which is proof it is reachable.** No defect; 11 cases now hold it, closing the set of three children `GatedFlow.test.tsx` mocks (CameraScreen/§858 SignatureScreen/here). **The 4th mutation was SILENT**: deleting `count.value <= 0` changed nothing, because the input emits only positive integers and `pieces` has that handler as its SINGLE writer — **construction-forbidden** (§688), whose prescribed response is *document, do not test*. **Tested anyway, for a reason the taxonomy misses**: the same re-check has TWO halves and I had already tested the other, which is unreachable by the identical argument. Pinning one half and calling the other unreachable is not a principled line — it is where I happened to stop. Deciding property: `count` is a **public prop**, so §677's *don't pin defensive spelling* (which governs redundancy INSIDE a function, sibling visibly adjacent) does not reach it — any second caller inherits the contract without the handler |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -50116,3 +50117,51 @@ Driver suite **14 files / 89 tests**, all green (+1 file, +9). typecheck 0 · li
   around an async effect was not worth the flake risk today. It is the last untested branch in this file.
 - If `cancelled` is ever removed as redundant, the unmount test's second half becomes the only thing standing
   between an unmounted hook and a live pass — and it would then be load-bearing rather than supplementary.
+## §860 — PHASE GATE: PHASE 80 CLOSED — the guard that replaced a shipped defect, pinned by nothing
+
+`StopScreen` was named as uncovered by §858 and again by §859, and covered by neither. Twice-deferred is how
+this kind of debt survives, so it goes first this phase.
+
+Its prop doc records exactly why the gate exists: *"2026-08-01: a hardcoded 6 used to be recorded on every
+pickup"* — the count is now the driver's own answer, and the button stays dead until the field holds a
+positive integer. **A guard that replaced a shipped defect is the worst thing to leave untested: the mistake
+it prevents has already happened once, which is proof it is reachable.**
+
+No defect found. Eleven cases now hold it, and this closes the set of three children `GatedFlow.test.tsx`
+mocks — `CameraScreen` (REQ-063, already covered), `SignatureScreen` (§858), `StopScreen` (here).
+
+| mutation | RED |
+|---|---|
+| `disabled={countMissing}` → `false` | three cases (the hardcoded-6 defect, restored) |
+| input accepts zero (`n > 0` → `n >= 0`) | *ZERO and NEGATIVE are not counts* |
+| integer half dropped from the gate | fraction + NaN |
+| positivity half dropped from the gate | **SILENT at first — see below** |
+
+### The silent branch, and why it got a test anyway
+
+Deleting `count.value <= 0` from the gate changed nothing: the input handler only ever emits a positive
+integer or `undefined`, and `pieces` in `GatedFlow` is local state with that handler as its single writer. So
+the branch was **construction-forbidden** in §688's taxonomy — the category whose prescribed response is
+*document, do not test*.
+
+It got a test regardless, for a reason the taxonomy does not cover: **the same re-check has two halves, and I
+had already tested the other one.** `!Number.isInteger(count.value)` is unreachable by identically the same
+argument — `parseInt` yields integers — yet a fraction case was already in the suite and passing. Pinning one
+half of a two-part boundary check while calling the other unreachable is not a principled line; it is where I
+happened to stop.
+
+The deciding property is that `count` is a **public prop**, not an internal invariant. §677's "don't pin
+defensive spelling" governs redundancy *inside* a function, where the sibling guard is visibly adjacent. Here
+the "sibling" is a different component's event handler, and any second caller of `StopScreen` inherits the
+contract without inheriting that handler. Both halves are now mutated independently and redden disjoint cases.
+
+### Exit state
+
+Driver suite **15 files / 100 tests**, all green (+1 file, +11). typecheck 0 · lint 0.
+
+**Reopen triggers**
+- The `running` in-flight guard in `useSync` (§859's trigger) — still the last untested branch of the sync
+  path, still needing timer control.
+- `DaySheet`, `ProgressLine`, `TapButton` and `Screen` remain uncovered. They are presentational — no gate, no
+  refusal, no recorded fact — so they are deliberately *not* on the list, and this line exists so that
+  judgement is visible rather than implied by silence.
