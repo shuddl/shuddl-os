@@ -307,6 +307,11 @@ describe("REQ-118 §668 — the money and authority CHECKs actually bite on a re
   });
 
   it("rejects an unknown authority module, and an authority that is neither native nor legacy (WP-15, L8)", async () => {
+      // CONTROL (§909): a VALID two-column row must insert first, or the two rejections below prove nothing.
+      // Without it this case was sound only because every OTHER authority_map column is NOT NULL DEFAULT — a
+      // fact stated in the DDL and nowhere in the test. Add a required column with no default to that table
+      // and both rejections would start passing for the wrong reason, silently. Now the control fails loudly.
+      await TDB.prepare("INSERT INTO authority_map (module, authority) VALUES ('dispatch','native')").run();
     await expect(TDB.prepare("INSERT INTO authority_map (module, authority) VALUES ('not_a_module','native')").run()).rejects.toThrow();
     await expect(TDB.prepare("INSERT INTO authority_map (module, authority) VALUES ('rating','neither')").run()).rejects.toThrow();
   });
