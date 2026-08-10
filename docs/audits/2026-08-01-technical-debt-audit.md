@@ -513,6 +513,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 318 | §870 | **§871** | **"TESTED" IS NOT "WIRED", AND THE PROBE THAT SAID OTHERWISE WAS WRONG.** §870 named the gap: a projection can be exported, unit-tested and green while NOTHING CALLS IT — and that failure throws nothing, it just leaves a table that never fills, so an empty approvals queue looks like *no work today*. **The false alarm is the useful part**: the first probe reported **`projectMessages` → NO PRODUCTION CALLER** (a full suite, REQ-100 — would have been serious). WRONG: `projectMessages` is INTERNAL; the module's production entry is `applyMessageProjection`, imported at `workers/api/src/do/sequencer.ts:482@applyMessageProjection`. My probe excluded the projection dir AND searched the symbol I expected. **6th instrument miss this session** — §845, §857, §866×2, §870 (a consumer's import list), here; every one confident, specific, wrong, and resolved by reading the artifact. So the wiring half is **MODULE-level, not symbol-level**: a roster recording that `messages` enters via `applyMessageProjection` while seven enter via `project<X>` would rot; *is this module imported by anything that ships* cannot. **All 8 wired** (6 via the sequencer batch, `money` via contracts, `messages` via the wrapper) — clean negative, now held by a gate instead of a paragraph. Mutation: drop the sequencer's approvals import → RED by filename |
 | 319 | §871 | **§872** | **THE ASYMMETRY §871 REPORTED DOES NOT EXIST — THE PROBE MATCHED A COMMENT.** §871 said `money` is entered from `packages/contracts/src/money.ts` and filed it as a reopen trigger. **False**: the sequencer imports `applyMoneyProjection` at line 8 and CALLS it at line 469, like the other seven; contracts is a Zod module whose only mention is a comment — *"it would POISON projectMoneyLines (throw → DLQ)"* — and my probe `\bprojectMoneyLines\s*\(` matched the space before that paren. **8th instrument miss this session, 3rd CONSECUTIVE phase** with a wrong wiring claim (§870 a consumer's import list; §871 `projectMessages` "uncalled"; this). **It propagated into a REOPEN TRIGGER** — a wrong finding costs a correction, a wrong trigger costs someone else's time hunting a defect that was never there. **The fix already exists in-repo**: `tools/checks/source-corpus.ts@stripComments`, which `sweep-containment-coverage.test.ts` imports for exactly this; my throwaway probe just didn't use it. Generalised: **the better a thing is documented, the more false call sites it has.** The §871 GATE is unaffected — its wiring half is MODULE-level and matches an import specifier, which cannot match prose; a choice made for a different reason (entry-point names rot) is what kept it right while the prose around it was wrong |
 | 320 | §872 | **§873** | **"IMPORTED IS NOT CALLED" — AND THE LESSON FROM TWO PHASES AGO IS NOW A TEST, NOT A MEMORY.** Third and quietest depth of one question: **untested** (§870) → **unwired** (§871) → **uncalled** (here). `applyMoneyProjection` RETURNS statements that matter only once spread into `db.batch()`; delete the spread, keep the import, and the projection runs while its statements are DISCARDED — nothing throws, and the symptom is identical to an empty queue. **Measured by READING** (three consecutive phases of probe failures earned that): the sequencer builds ONE `stmts` array with the event insert + **all eight** projections, then `await db.batch(stmts)`. Clean negative. Gate requires each imported `projection/*` entry point to be CALLED in the same file **after `stripComments`** — the helper `sweep-containment-coverage.test.ts` already used, and whose absence caused §872. 2 mutations RED: import-kept/call-deleted (`projectAgentRuns`), and **the call left only inside a comment** (`projectAuthority`) — §872's defect committed deliberately against the gate built to catch it, and exactly what a hurried *"temporarily disabled"* looks like. Both plants failed to apply first try on indentation; `assert s2 != s` caught it — **4th time this session that assertion saved a result, because *no defect found* and *the edit never happened* are the same output** |
+| 321 | §873 | **§874** | **I BUILT THE INSTRUMENT IN §873 AND WROTE THE NEXT CLAIM WITHOUT RUNNING IT.** §873's trigger said *"the Watchtower already imports `projectAuthority`"* — **false**. `watchtower.ts` neither imports nor calls it; the name appears twice, both in COMMENTS. What it actually does is `seq.append(...)`, handing an `authority.flipped` EventInput to the sequencer DO, which projects it **in its own batch** — the correct pattern, stronger than what I wrote. **Second wrong reopen trigger in two phases, identical cause** (a comment counted as code): §872 diagnosed it, §873 BUILT THE FIX INTO A GATE using `stripComments`, and I then wrote §873's trigger from the same stale probe output. **A new instrument's first job is to re-check the claims that motivated it.** Corrected measurement (comment-stripped, whole corpus): **ONE runtime composition root** (the sequencer) and one build-time writer (`tools/seed/load.ts`); `projectMessages`/`projectMoneyLines` have no direct callers at all, being internal to their `apply*` wrappers. **Gated**, because I1 (*the projection and its event commit together or not at all*) is guaranteed only by the sequencer's single `db.batch()` — a second runtime caller would write a read-model row with NO EVENT BEHIND IT, the exact state ledger-is-truth exists to forbid |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -51015,8 +51016,66 @@ for *"the edit never happened"*, which are the same output.
 typecheck 0 · lint 0. No production code changed.
 
 **Reopen triggers**
-- The sequencer is the only composition root checked. If a second worker ever projects (the Watchtower already
-  imports `projectAuthority`), it inherits none of this — the check is keyed to one path by name.
+- ~~The sequencer is the only composition root checked… the Watchtower already imports `projectAuthority`~~ —
+  **STRUCK by §874**: `watchtower.ts` neither imports nor calls it (two comment mentions), and it uses the
+  correct pattern — `seq.append(...)`, letting the DO project. The underlying concern was real and is now
+  gated: §874 pins ONE runtime composition root. Struck rather than deleted, per §872 — a wrong trigger is an
+  instruction to a future phase.
 - Called is still not *committed*: a statement can reach `stmts` and the batch can be rolled back by a gate
   above it. That is correct behaviour (I1 — the event and its projection commit together or not at all), and
   it is proven by the existing sequencer suites, not here.
+## §874 — PHASE GATE: PHASE 94 CLOSED — I built the instrument in §873 and wrote the next claim without running it
+
+§873 closed with a trigger: *"the Watchtower already imports `projectAuthority`"*, so a second composition root
+inherits none of the new gate. **That is false.**
+
+`workers/agents/src/watchtower.ts` does not import `projectAuthority` and does not call it. The name appears
+there exactly twice, both in **comments** — an L8 invariant note at :390 and a description of what the DO does
+at :408. What the Watchtower actually does is `seq.append(...)`: it hands an `authority.flipped` EventInput to
+the sequencer DO, which validates it and runs the projection **in its own batch**. That is the correct
+pattern, and it is stronger than what I wrote.
+
+**This is the second wrong reopen trigger in two phases, from the identical cause** — a comment counted as
+code. §872 diagnosed that cause and named the fix; §873 *built the fix into a gate*, using `stripComments`,
+and then I wrote its reopen trigger from the same stale probe output **without running the tool I had just
+finished building.**
+
+The lesson is narrower and more useful than "be careful": **a new instrument's first job is to re-check the
+claims that motivated it.** I had the tool, in the same phase, and applied it only to the code.
+
+### What the corrected measurement shows
+
+Comment-stripped, whole tracked corpus, every projection entry point:
+
+| entry point | production callers |
+|---|---|
+| `applyMoneyProjection`, `applyMessageProjection`, `projectAppointment`, `projectApprovals`, `projectAuthority` | **sequencer only** |
+| `projectPassport`, `projectStatusCache`, `projectAgentRuns` | sequencer **+ `tools/seed/load.ts`** |
+| `projectMessages`, `projectMoneyLines` | none — internal, reached through their `apply*` wrappers |
+
+So there is **one runtime composition root** (the sequencer DO) and **one build-time writer** (the seed
+loader). Nothing else writes a read-model.
+
+### Why that is worth a gate rather than a paragraph
+
+I1 is *"the projection and its event commit together or not at all."* The sequencer guarantees it by putting
+the event insert and every projection statement in one `db.batch()`. **A second runtime caller would not** —
+it would write a read-model row with no event behind it, which is precisely the state the ledger-is-truth
+design exists to make impossible. Nothing structural prevented one from appearing; the Watchtower shows the
+correct alternative (append an event and let the DO project), and it took reading three files to establish
+that the correct pattern is also the only one in use.
+
+The gate allows two callers, each with its reason recorded, and fails on a third.
+
+### Exit state
+
+`tools/checks/projection-coverage.test.ts` now 6 cases; `test:tools` **1,128**. typecheck 0 · lint 0 ·
+`verify:docs` 0. No production code changed.
+
+**Reopen triggers**
+- `tools/seed/load.ts` writes projections directly, bypassing the sequencer's batch. That is defensible for a
+  seed loader (there is no event to co-commit with — it is building the fixture) but it means **seeded data
+  can hold a read-model state the ledger cannot produce.** Not investigated here; it is the one legitimate
+  I1 exemption in the repo and deserves its own look.
+- The allowlist is two rows. A third caller with a good reason is a row plus a sentence; a third caller
+  without one is the defect this exists for.

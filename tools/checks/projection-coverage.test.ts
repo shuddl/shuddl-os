@@ -164,6 +164,57 @@ describe("§870: no read-model projection ships untested", () => {
     ).toEqual([]);
   });
 
+  it("ONE runtime composition root writes read-models — a second caller would break I1 (§874)", () => {
+    // I1: "the projection and its event commit together or not at all." The sequencer guarantees that by
+    // putting the event insert AND every projection statement into a single `db.batch()`. A second RUNTIME
+    // caller would not — it would write a read-model row with no event behind it, which is exactly the state
+    // ledger-is-truth exists to make impossible. Nothing structural prevented one from appearing.
+    //
+    // The correct alternative already exists and is worth naming, because it is what a new caller should copy:
+    // `workers/agents/src/watchtower.ts` needs an authority flip, and rather than projecting, it appends an
+    // `authority.flipped` event via `seq.append(...)` and lets the DO project it. §873 wrongly recorded that
+    // file as a second composition root — it mentions `projectAuthority` only in comments (§874).
+    const ALLOWED: Record<string, string> = {
+      "workers/api/src/do/sequencer.ts":
+        "THE composition root — event insert + every projection statement in one db.batch() (I1).",
+      "tools/seed/load.ts":
+        "build-time seed loader: it constructs the fixture, so there is no event to co-commit with.",
+    };
+
+    const entries = [...found.keys(), "applyMoneyProjection", "applyMessageProjection"];
+    const files = execSync("git ls-files -- '*.ts' '*.tsx'", { cwd: root, encoding: "utf8" })
+      .split("\n")
+      .filter(
+        (f) =>
+          f &&
+          !/\.(test|spec)\./.test(f) &&
+          !/(^|\/)(helpers|fixtures?)\.ts$/.test(f) &&
+          !f.startsWith("packages/ledger/src/projection/"),
+      );
+
+    const callers = new Set<string>();
+    for (const f of files) {
+      const code = stripComments(readFileSync(`${root}/${f}`, "utf8"));
+      if (entries.some((e) => new RegExp(`\\b${e}\\s*\\(`).test(code))) callers.add(f);
+    }
+
+    expect(callers.size, "no projection callers found at all — the scan is broken, not the tree").toBeGreaterThanOrEqual(2);
+    const unexpected = [...callers].filter((f) => !(f in ALLOWED));
+    expect(
+      unexpected,
+      "a file outside the sequencer writes a read-model projection. I1 requires the projection and its event " +
+        "to commit together, and only the sequencer's single db.batch() does that — a second runtime writer " +
+        "produces read-model rows with NO EVENT BEHIND THEM. If this file needs a projection change, append " +
+        "the event instead and let the DO project it (workers/agents/src/watchtower.ts does exactly this via " +
+        "seq.append). If it is genuinely build-time, add it to ALLOWED with its reason:\n  " +
+        unexpected.join("\n  "),
+    ).toEqual([]);
+
+    for (const [f, why] of Object.entries(ALLOWED)) {
+      expect(callers.has(f), `${f} is allowlisted but no longer calls a projection — delete the row ("${why.slice(0, 44)}…")`).toBe(true);
+    }
+  });
+
   it("a MENTION does not count as coverage (the instrument's own failure mode, pinned)", () => {
     // `approvals-projection.test.ts` names `projectAppointment` in prose. Were this check mention-based, that
     // comment alone would have marked appointment.ts covered while its suite did not exist — the §845 shape
