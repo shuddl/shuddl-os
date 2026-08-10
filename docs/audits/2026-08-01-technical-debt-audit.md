@@ -541,6 +541,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 346 | §898 | **§899** | **LAW 1'S "BOTH DIRECTIONS" VERIFIED — AND A FALSE ALARM CAUGHT ON THE SECOND QUERY.** *Every PR references REQ-IDs; traceability CI blocks orphans (both directions)* — three clauses, all enforced. **code→register**: a planted `// REQ-999` gives `check:traceability` exit 1, *FAIL built-but-unspec'd (annotations citing no register row)*. **register→code**: proven LIVE every run — `check:coverage`'s standing REQ-289 failure IS the demonstration, a gate evidenced by what it is currently refusing. **The PR clause is WIRED** (`ci.yml:29,32`, `if: github.event_name == 'pull_request'`, `PR_BODY` from title+body) — **and my first query said it was not**: a path-scoped glob with swallowed stderr returned only the package-script line, and I was one sentence from writing up *a law whose gate nothing runs*. **12th instrument miss**, from a fault this record names twice. **What did NOT save me**: my positive control (`check:coverage` in ci.yml) returned EMPTY, because CI invokes the merge gate rather than that script — **a positive control that FAILS tells you nothing; it is evidence only when it succeeds**, and I proceeded past a failed one |
 | 347 | §899 | **§900** | **LAW 8 HOLDS, AND THE COUNT-FLOOR'S STATED LIMIT HAS A CONCRETE INSTANCE.** *Tenant isolation suite runs on every merge; a cross-tenant read anywhere is a build failure.* **It runs** — inside `unit-tests`; there is no gate NAMED isolation, which is the gap §614 recorded (*the tests ran, but nothing stated WHAT THE SUITE IS*) and closed with a 6-file roster + per-file floors totalling **149 cases**. **A cross-tenant read IS a build failure, proved twice**: neutering `tenantDb` so every slug resolves to tenant-b's DB fails the translator (1/9 — *control-number allocation reads ONLY the passed tenant's integrations row*) and the api (1/67). **The finding is the SHAPE of the catch**: exactly ONE case in each suite caught it. Not a defect — a build needs one RED — but `api/isolation.test.ts` carries **67 cases against a floor of 64**, and that headroom is precisely the space in which the DETECTING case could be deleted while the floor stays green. §889 stated this in the abstract (*catches gutting, not erosion*); here are **three cases of erosion available, one of them the one that noticed**. A floor cannot know which case is load-bearing for which bypass — that is what mutation testing is for. **All ten laws now have a verified standing mechanism** |
 | 348 | §900 | **§901** | **THE REALISTIC REGRESSION IS CAUGHT, AND §900'S HEADROOM FIGURE WAS WRONG.** §900 tried a blunt wrong-binding resolve and named what it had not: *a scoping predicate dropped from a single query*. Tenants separate by DATABASE, so the within-tenant analogue is the **party lens**, whose predicate has two clauses. Both mutations caught, by cases naming the EXPOSURE: dropping `party_refs` EXISTS (**one party reads another's events**) → 2/44 — *P1 on a P2-only shipment is empty; forged party_id is ignored* — and dropping `visibility <> 'internal'` → 6/44. **§900's headroom claim was WRONG**: it wrote *67 cases against a floor of 64* and sized a risk on the gap. Measured with **the counter the gate itself uses** (`it(` declarations): **65 vs 64 = headroom 1**, and across the suite **150 vs 149 = ONE case of slack, with 5 of 6 files at ZERO**. The 67 was vitest's RUN count, which expands `it.each` rows; **I compared two numbers measuring different things and drew a risk from the difference**. The corrected picture INVERTS the concern — `lens-adversarial` (the finer, likelier-edited guard) cannot lose a single case. §900's principle stands; only its number and the risk sized from it were wrong. Also: M1's first plant did not apply and `assert` caught it — **5th time this session that assertion saved a verdict** |
+| 349 | §901 | **§902** | **THE FLOORS NOW SAY WHICH NUMBER THEY MEAN.** §901 corrected a risk sized from a unit mismatch (vitest's **67** vs a floor of **64**, yielding three phantom cases of erosion) and named the durable fix: *nothing states which counter a floor means*. **Measured**: `caseCount` matches `^\s+(it|test)(\.each)?\(` — **declarations**, counting an `it.each` block as ONE. `api/isolation.test.ts` = 63 plain `it(` + **1 `it.each(`** = 65 declarations vs **67 runs**. **One table-driven block, three rows — that is the entire gap**, which is why five of six files show no divergence: they use no `it.each`. The mismatch is invisible until exactly the file that has one. **Fix is a sentence in each gate, not a new check**: `isolation-suite.test.ts` (`caseCount` = declarations) and `demos.test.ts` (`assertionCount` = `expect(` occurrences, which §890/§891 showed needs its own care) now state what they count and what they do not, beside the number. **No floor moved.** A gate reporting 65 while the runner reports 67 is not wrong — it answers a different question, and the only defence is saying so where the number is read |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -52792,3 +52793,51 @@ in place. `test:tools` 1,139, 3 failed (REQ-289) · `verify:docs` 0.
   edit is made mechanically rather than adjudicated.
 - The two counters disagree by design (`it.each` rows vs declarations). Nothing states which one a floor
   means, and I misread it once already — the gate's own comment would be the place to say so.
+## §902 — PHASE GATE: PHASE 122 CLOSED — the floors now say which number they mean
+
+§901 corrected a risk I had sized from a unit mismatch: I read vitest's **67** and compared it to a floor of
+**64**, then wrote up three cases of erosion that did not exist. §901's closing trigger named the durable fix:
+
+> *"The two counters disagree by design (`it.each` rows vs declarations). Nothing states which one a floor
+> means, and I misread it once already — the gate's own comment would be the place to say so."*
+
+### Measured, and the discrepancy has a single source
+
+`caseCount` matches `^\s+(it|test)(\.each)?\(` — **declarations**, counting an `it.each` block as **one**
+regardless of how many rows it carries.
+
+| file | plain `it(` | `it.each(` | gate counts | vitest runs |
+|---|---|---|---|---|
+| `workers/api/test/isolation.test.ts` | 63 | **1** | **65** | **67** |
+| `lens-adversarial.test.ts` | 44 | 0 | 44 | 44 |
+
+**One `it.each` block, three rows.** That is the entire gap, and it explains why five of six files show no
+divergence at all — they use no table-driven cases. The mismatch is invisible until exactly the file that has
+one, which is why reading a floor next to a vitest summary is a trap rather than a slip.
+
+### The fix is a sentence in each gate, not a new check
+
+Two count-based floors were silent about their unit:
+
+- `tools/checks/isolation-suite.test.ts` — `caseCount`, **declarations**
+- `tools/acceptance/demos.test.ts` — `assertionCount`, **`expect(` occurrences**, which §890/§891 already
+  showed needs its own care (a naive forward-scan there counted property accesses as matchers)
+
+Both now state what they count and what they deliberately do not, next to the number. A gate that reports `65`
+while the runner reports `67` is not wrong; it is answering a different question, and the only defence is
+saying so where the number is read.
+
+**Nothing else changed.** No floor moved, no threshold was adjusted. This phase adds two comments and removes
+one way to misread a gate — which is the cheapest possible fix for a mistake that has already cost a published
+correction.
+
+### Exit state
+
+Two comments added; no logic touched. `test:tools` 1,139, 3 failed (REQ-289) · typecheck 0 · lint 0 ·
+`verify:docs` 0.
+
+**Reopen trigger**
+- The comment is prose beside a number, which is the weakest form of guarantee this record recognises — it
+  cannot fail. A stronger version would assert the relationship (*declarations ≤ runs*), but that needs the
+  runner's count inside the gate, and coupling a static floor to a live test run is a worse trade than the
+  ambiguity it removes.

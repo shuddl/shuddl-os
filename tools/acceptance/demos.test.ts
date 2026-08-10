@@ -124,6 +124,17 @@ const ASSERTION_FLOOR: Readonly<Record<string, number>> = {
 /** Aggregate DERIVED from the per-file floors — never written twice (§823). */
 const MIN_ASSERTIONS = Object.values(ASSERTION_FLOOR).reduce((a, b) => a + b, 0);
 
+/**
+ * `expect(` OCCURRENCES in the source — a static count, not vitest's assertion tally (§902).
+ *
+ * It counts call sites, so one `expect` inside a loop counts once however many times it runs, and an
+ * `it.each` block's assertions count once per source line rather than per row. §890 measured this corpus'
+ * assertion STRENGTH with a naive forward-scan and mis-classified property accesses inside the argument
+ * (`expect(res.json.id)`) as matchers; §891 re-measured with a balanced-paren scanner. Counting call sites is
+ * the robust half — what each assertion is worth, no count answers.
+ *
+ * The floors below are therefore in `expect(` call sites. Compare them to this function, never to a run count.
+ */
 function assertionCount(root: string, key: string): number {
   const [pkg, file] = key.split(" ") as [string, string];
   const dir = packageDirs(root).get(pkg);

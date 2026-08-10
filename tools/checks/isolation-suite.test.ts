@@ -62,6 +62,21 @@ function tracked(root: string): Set<string> {
   return new Set(execSync("git ls-files", { cwd: root, encoding: "utf8" }).trim().split("\n"));
 }
 
+/**
+ * DECLARATIONS, not vitest's reported test count — and the difference is load-bearing (§901/§902).
+ *
+ * This counts `it(` / `it.each(` occurrences, so an `it.each` BLOCK counts ONE however many rows it carries.
+ * `workers/api/test/isolation.test.ts` holds 63 plain `it(` plus 1 `it.each(` = **65 here**, while vitest
+ * reports **67 tests** because it expands that block's rows. Both numbers are right; they answer different
+ * questions.
+ *
+ * §900 read the runner's 67 against this file's floor of 64 and published a risk about "three cases of
+ * erosion" that did not exist — §901 corrected it to one. Five of the six suite members use no `it.each` at
+ * all, so the mismatch is invisible until exactly the file that has one, which is what makes reading a floor
+ * beside a vitest summary a trap rather than a slip.
+ *
+ * The floors are therefore in DECLARATIONS. Compare them to this function's output, never to a run count.
+ */
 function caseCount(root: string, file: string): number {
   // A DELETED member reads as zero rather than an ENOENT stack trace: the roster test above owns that
   // diagnosis and states it in the language of the defect ("a cross-tenant isolation proof left the repo"),
