@@ -550,6 +550,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 355 | §907 | **§908** | **ALL TEN READ; NINE SOUND, AND THE CONTROLS TAKE THREE DIFFERENT SHAPES.** §907 stated the rule and refused to classify the rest because its detector was wrong. Read the remaining six: **all sound — ten bare assertions in the file, nine sound, one defective (the one §906 fixed).** **The controls take three structurally different shapes**, which is why no regex could classify them: **(1)** a sibling `it(` written AS the control and named so — *accepts an honest AR freight line (non-vacuity — the rejections below must mean the CHECK)*; **(2)** a successful insert earlier in the same test (six valid roles; `t2` before the duplicate-slug `t3`); **(3)** a **cross-controlling pair + schema defaults** — `('not_a_module','native')` and `('rating','neither')` each carry a VALID value where the other tests, and every remaining column is `NOT NULL DEFAULT`, so nothing unrelated can fire. **The third is DDL-dependent and the one I would have got wrong from a distance**: add a required column without a default and BOTH assertions start passing for the wrong reason, silently, with no test edit. **§906's defect was not representative** — it was the single case with no control of any shape, in a file whose author had written an explicit non-vacuity control elsewhere and explained it in the test name. The discipline was present; one case escaped it |
 | 356 | §908 | **§909** | **THE ONE SOUNDNESS THAT DEPENDED ON THE DDL NOW DEPENDS ON ITSELF.** §908 found nine of ten bare assertions sound but flagged the `authority_map` pair as **DDL-dependent**: the two rows cross-control, and every remaining column is `NOT NULL DEFAULT`, so a two-column insert is otherwise complete — *true today, and true for a reason the test never states*. Add a required column without a default and **both assertions start passing for the wrong reason, silently, with no test edit**. **Fixed by converting §908's shape 3 into shape 2**: an explicit valid insert (`('dispatch','native')`) now runs first, so a future migration that invalidates two-column inserts makes the **control fail loudly** instead. `authority_map` is seeded by no migration (measured), so the control collides with nothing. **Method note**: my first seeding check piped `grep` into `sed` and read `$?` — **sed's** status — printing *exit 0* for a search that found nothing. The `$?`-after-a-pipe trap, which this record names and which §888 caught me on eight phases ago; **second time this session, and both times the tell was output and status disagreeing** |
 | 357 | §909 | **§910** | **§907'S POPULATION CONFLATED TWO OPPOSITE ASSERTIONS.** §909 left 59 unread bare assertions; prioritising picked `transition-gates.test.ts` (17, the largest file). **Reading the case names stopped the phase**: every one describes a PASS — *passes when…*, *does NOT block*, *is a no-op pass*. Those are `.not.toThrow()`, and **attribution is meaningless on them** — there is no mechanism to name when the claim is that nothing fired. §907's regex matched `.toThrow()` regardless of a preceding `.not.`. **Split: 68 `.not.toThrow()` vs 311 positive bare — the relevant population is 311, not 380**, and the DB-backed 69 is inflated the same way: **the file I picked as highest-value has ZERO of the defect class**, and its 17 are all the CONTROL shape §908 catalogued (a gate proving it admits the valid case). **8th instance of a probe measuring its own vocabulary rather than its subject** — and the pattern is now complete: **every count I have published this session that later moved did so for this reason** (§884's denominator, §890's 5%, §901's headroom, §907's 380). **Four counts, four vocabulary faults, zero arithmetic errors** |
+| 358 | §910 | **§911** | **ALL 15 READ; 15 SOUND — §906'S WAS THE ONLY ONE IN THE CORPUS.** §910 reduced the population to its honest scope (~15 positive-bare in DB-backed tests, five files); this reads them all. `schema-core` (4) **interleaves admits with rejects** and its duplicate-key cases are self-controlling; `status-cap` (5) is a describe literally named *round-trip* whose first case asserts `toEqual({t,s})`, with each rejection varying exactly one thing; `facilities` (4) carries controls at BOTH levels (pure mapper + DB path); `biller` (2) makes the throw the SUBJECT and verifies the invoice committed anyway. **So the honest scope of §906's defect is: exactly ONE case in the repo's entire DB-backed corpus.** The discipline it violated is otherwise consistently present in §908's three shapes — and in `status-cap` it is present by NAMING, the describe block announcing its own control. **The thread's value was not the fix**: it was arriving at a decidable rule and then finding the corpus already obeyed it. **9th vocabulary miss**: grepping `status-cap` for a control with `resolves|toBe(true)|.success` returned **0** for a file whose control uses `toEqual({...})` — one phase after §910 concluded every moved count was a vocabulary fault. Reading took 30 seconds; the grep took three attempts |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -53317,3 +53318,47 @@ Nothing changed; §907's figures corrected in place. `test:tools` 1,139, 3 faile
   tests (~183 in five `packages/contracts` files) where one mechanism can refuse and attribution adds nothing.
   The DB-backed remainder is **~15 across five files**, which is a readable number and the honest scope of
   what §909's trigger should have said.
+## §911 — PHASE GATE: PHASE 131 CLOSED — all 15 read; 15 sound. §906's was the only one in the corpus
+
+§910 reduced §907's population to its honest scope: **~15 positive-bare assertions in DB-backed tests, across
+five files.** This reads all of them, and closes the thread §906 opened.
+
+**Fifteen read. Fifteen sound.**
+
+| file | cases | how each is controlled |
+|---|---|---|
+| `schema-core.test.ts` | 4 | the file **interleaves admits with rejects** — *"admits a shipment-less stream"*, *"admits the same device_seq on a different device"* — and the two duplicate-key cases are **self-controlling** (you must insert successfully to duplicate) |
+| `status-cap.test.ts` | 5 | the describe is *"mintStatusCap / verifyStatusCap **round-trip**"* and its first case asserts `toEqual({t, s})`; each rejection then varies exactly one thing — wrong secret, session JWT, wrong `typ`, expired |
+| `facilities.test.ts` | 4 | controls at **both** levels: *"maps a raw row to the typed facility shape"* for the pure mapper, *"parses a seeded facility and returns the typed shape"* for the DB path |
+| `biller.test.ts` | 2 | the throw **is** the subject (a retriable send must throw for redelivery), and the assertions that follow verify the invoice committed anyway; the golden path elsewhere in the file is the control |
+
+### What the thread established
+
+§906 found one unattributed assertion with no control, guarding a single-mechanism money invariant. Six phases
+later, the honest scope of that defect is: **exactly one case in the repo's entire DB-backed test corpus.**
+
+The discipline it violated is otherwise **consistently present**, in the three shapes §908 catalogued, and in
+`status-cap` it is present by *naming* — the describe block says "round-trip", which is the control announcing
+itself. Nobody wrote that by accident.
+
+**The value of the thread was not the fix.** It was arriving at a decidable rule (*a bare `toThrow()` is sound
+iff a control isolates the variable*), and then discovering the corpus already obeyed it.
+
+### The ninth vocabulary miss, and the last
+
+Checking `status-cap` for a control, I grepped `resolves|toBe(true)|\.success` and got **0** — for a file whose
+control asserts `toEqual({ t: "tenant-a", s: "shp-round-1" })`. My pattern did not include the matcher the
+control actually uses.
+
+That is the ninth instance this session, and it followed §910's conclusion — *every count that later moved did
+so for a vocabulary fault* — by less than one phase. **Reading the file took thirty seconds and the grep took
+three attempts**, which is the whole argument for reading in one line.
+
+### Exit state
+
+Nothing changed; 15 cases read, none required a fix. `test:tools` 1,139, 3 failed (REQ-289) · `verify:docs` 0.
+
+**Reopen trigger**
+- The remaining ~296 positive-bare assertions are Zod schema tests where one mechanism refuses and attribution
+  adds nothing (§907). That judgement is *by class*, not by reading — if a contracts test ever gains a
+  second refusal path (a refine that throws for a different reason), the class argument stops holding for it.
