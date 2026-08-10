@@ -572,6 +572,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 377 | §929 | **§930** | **§929's TRIGGER CLOSED — A HALF-LOADED TARIFF BLAMES THE CALLER.** Seeded a contract-legal zero-charge tariff (`cwt_cents: 0`, `min_charge_cents: 0`, fsc 0) and called `/v1/rate`: **400 VALIDATION_FAILED**, and **zero `quote.priced` recorded** (asserted, not inferred). **The ledger is protected; the diagnosis is inverted** — an integrator is told their REQUEST is invalid when the truth is that this TENANT'S TARIFF is not loaded, and a half-populated tariff is a state every new tenant passes THROUGH. **Filed, not fixed**: the rater already speaks `UNKNOWN` + reason (`no_zone`/`no_rate_group`/`missing_physics`), but a zero-charge tariff **computes a real zero**, so the engine returns PRICED and the refusal lands two layers later at the append where only a 400 is left. A `zero_tariff` UNKNOWN reason is a BEHAVIOUR change → register amendment → owner decision (CLAUDE.md rule 1). What ships is the behaviour **pinned** (400 + code) beside the invariant that matters, so a future change is a decision not a drift. **Four phases chain**: §927 refusals defended → §928 a sole guard exists → §929 the input is reachable → §930 the caller sees a mis-attributed 400; none was visible from the one before it. The section-ref gate caught the checklist row citing §930 **before it existed** — the forward-reference rule enforced on me, correctly. api 823→824 |
 | 378 | §930 | **§931** | **STOPPING POINT at `5c29d9d` — 19 PASS · 2 FAIL · 5 BLOCKED.** Twenty phases (§911–§930). Board shape **unchanged from §916/§924 — and that is the finding**: nothing moved the board because **the board was never measuring these classes**. Produced **28 invariants** that were enforced by exactly one mechanism with nothing exercising it, and **7 gates** converting each class from invisible-to-CI into fails-CI. Both FAILs re-derived from this run's own output (`expected [{req_id:'REQ-289'}] to deeply equal []`); the 5 BLOCKED report *could not run*, not *clean*; 1,486 citations resolving, all four browser gates green. **Six corrections to my own record** — §912 eyeballed 11 where 17 was the count; §917 re-measured what four phases already had; §920 rebuilt a rule blocking since §239 (whose glob stops one directory short of §919's defect); §926 found my own trigger **backwards**; §927 followed a §84 verdict **§377 had already overturned**, and nearly shipped 3 of 4 fixes; §925/§927 reproduced my own corpus-gap criticism one phase later, caught only by verifying my own prose. **Repo-owned failure set EMPTY**; six owner-held items. **For the next session**: close a trigger in the phase that writes it — §927→§930 chained four deep and no question was visible from more than one step back |
 | 379 | §931 | **§932** | **THE "EVIDENCE EXPIRES" FIELDS ARE TRIGGERS NOBODY RUNS — I RAN THREE, TWO HAD DECAYED.** New dimensions saturate; re-verifying old claims does not, because claims decay whether or not anyone looks. The checklist's repo-owned section has **45 rows**, each naming what would falsify it — the same standing as a reopen trigger: written once, run never. Three checked (those whose expiry names a NUMBER). **`CANONICAL_VIEWS` 11 vs MAX 12 — holds.** **CONFIRM-GATED filed at 14, today 15** — one row, argument unchanged, but its own trigger said *when the count changes materially*, so the figure is now dated not silently wrong. **`routes ±10%` — evidence FALSE**: `parity.ts@PARITY_TOLERANCE_BPS` is typed, tested (`parity.test.ts` pins `rating: 1_000`) and its header says the tolerances **ARE** rule 6's gates — *rating ±10% … the routes replay gate*. **This moves the decision rather than resolving it**: the row framed a binary (part of the legacy-export replay, or unscoped work); the third option is that it is ALREADY implemented as the rating overlay's tolerance. Against that, rule 6 enumerates FIXTURE replay gates while this is the LIVE overlay's — same number, different mechanism. So either the row is stale or **the comment over-claims**, which is §927's verify-the-prose shape again. Both readings recorded; the choice is the register owner's, and better-posed than the row's original question. **Says nothing about the other 42** — three sampled, two moved; the method is the output. Section-ref gate caught the forward reference **again** (2nd time this session) |
+| 380 | §932 | **§933** | **§932's TRIGGER CLOSED — THE DECAYED FIGURES ARE NOW RE-DERIVED, AND I WROTE THE SAME PREFIX BUG TWICE.** `checklist-figures.test.ts` derives each figure FROM THE AUTHORITY and compares it to the checklist (§830): the CONFIRM-GATED count from the register (the one that drifted 14→15), the canonical-view usage/ceiling from `registry.ts` (11 under 12 — the row's whole point is that a ceiling and a usage read alike), and **both halves of §932's correction** (that `PARITY_TOLERANCE_BPS` still exists with `rating: 1_000`, and that the checklist has not re-asserted the false claim). **Scope stated in the file**: 3 figures, not 45 rows — most expiry conditions name a DECISION no gate can evaluate, and a prose discovery half is the §831/§833 shape measured at 8 FPs to 0 real. **The finding is my own**: M3 (rename the constant away) came back **GREEN** — `toContain("export const PARITY_TOLERANCE_BPS")` is satisfied by `…_BPS_X`. **§920's tripwire had the identical defect and I recorded the lesson then**; writing it down did not stop me repeating it eleven phases later in a gate built to catch decay. So the operative discipline is NOT *remember the prefix rule* — it is **run the rename mutation on every existence assertion**, because that probe finds the class whether or not I remembered. 4/4 RED after the colon fix. Register restored to its WORKING-TREE state, not HEAD — restoring to HEAD would have silently reverted the owner's uncommitted row. test:tools 1,161→1,165 |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -54847,3 +54848,55 @@ have never been re-run.
   whose condition names a count, a file or a symbol; the rest name a decision and cannot be automated. A
   gate is possible for the first kind — re-derive the number and compare — and is the obvious next build if
   this sampling rate holds.
+## §933 — PHASE GATE: §932's trigger closed — the decayed figures are now re-derived, and I wrote the same prefix bug twice
+
+§932 found that two of three sampled "Evidence expires" conditions had decayed, and closed with the
+obvious build: *"a gate is possible for the first kind — re-derive the number and compare."* Closed here,
+one phase later, per §926's rule.
+
+### What it pins, and what it refuses to pretend
+
+`tools/checks/checklist-figures.test.ts` derives each figure **from the authority** and compares it to what
+the checklist states — §830's read-one-side-compute-the-other, never store both:
+
+- the **CONFIRM-GATED count**, from the register itself (the row that had drifted 14 → 15);
+- the **canonical-view usage and ceiling**, parsed from `registry.ts` (11 under a ceiling of 12 — the row's
+  entire point is that a ceiling and a usage read alike);
+- **§932's correction**, both halves: that `PARITY_TOLERANCE_BPS` still exists with `rating: 1_000`, and
+  that the checklist still carries the correction rather than re-asserting the false claim.
+
+**Scope is stated in the file rather than implied**: three figures, not 45 rows. Most expiry conditions
+name a **decision** ("when the parenthetical is marked illustrative"), which no gate can evaluate, and a
+discovery half over prose is the §831/§833 shape that measured eight false positives to zero real ones —
+the profile of a gate people learn to silence. So it is a roster on purpose, and its incompleteness is the
+reopen trigger rather than a pretence of coverage.
+
+### I wrote the same prefix bug twice in one session
+
+M3 — rename the constant away — came back **GREEN**. The assertion was
+`toContain("export const PARITY_TOLERANCE_BPS")`, which `export const PARITY_TOLERANCE_BPS_X` satisfies.
+
+**§920's tripwire had the identical defect**, found the same way, and I recorded the lesson then: *a prefix
+is not an identifier.* Writing it down did not stop me writing it again eleven phases later, in a gate whose
+whole purpose is catching decay.
+
+Two things follow, and the second is the useful one:
+
+1. The fix is the same — anchor on a character that cannot be a prefix (`…_BPS:` with the colon).
+2. **A lesson recorded is not a lesson applied.** The mutation caught it both times; the memory did not. So
+   the operative discipline is not "remember the prefix rule" — it is **run the rename mutation on every
+   existence assertion**, because that probe finds the class regardless of whether I remembered.
+
+### Proof
+
+- CONFIRM-GATED count drifts → **RED** · a canonical view added → **RED** · `PARITY_TOLERANCE_BPS` renamed
+  away → **RED** (after the colon fix; **GREEN** before it) · §932's correction reverted → **RED**.
+- `test:tools` **1,161 → 1,165** (3 failed = the REQ-289 trio) · typecheck 0 · lint 0.
+- The register was restored to its **working-tree** state, not to HEAD — it carries the owner's uncommitted
+  REQ-289 row, and restoring to HEAD would have silently reverted their edit.
+
+**Reopen trigger**
+- **42 rows still carry un-re-run expiry conditions**, and this gate covers three. The decidable remainder
+  is those naming a count, a file or a symbol; triaging which of the 42 qualify is one pass over the section
+  and has not been done. Stated as a bound rather than a plan, because §932's sampling (2 of 3 decayed) is
+  too small to justify claiming the rest have.
