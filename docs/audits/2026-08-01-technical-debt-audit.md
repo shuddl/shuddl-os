@@ -525,6 +525,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 330 | §882 | **§883** | **THE GUARD THAT BOUNDS A LIVE MONEY EXPOSURE HAD NO TEST — AND THE MUTATION SHOWS WHAT IT ACTUALLY GUARDS.** Verified checklist L228 by RISK (client input selecting a money outcome, rule-5 territory). **Accurate and unmitigated**: `biller.ts:465@resolveInterline` passes `pod.actor.party` into `resolveInterline`; `approval.ts:126` selects on `leg.executor === tenantParty`; and **no gate reads it** — the sequencer names `actor_party_id` exactly once (a column list at `:182`) and a comment-stripped scan of `ledger/src/gates/**` + `contracts/src/**` returns NOTHING. A registered device can sign a valid POD naming ANY party. **The row's bounding claim — *naming a party that executes no leg is FAIL-CLOSED (verified)* — meant a SOURCE READ**: `interline_unresolved` appeared in the whole test corpus only inside TWO COMMENTS. Now driven, deliberately on the fail-CLOSED half (a test of the fail-open path would BLESS it). **The mutation is the finding**: deleting the guard yields `below_floor`, **still no invoice** — a signer executing no leg computes a share of ZERO, so the money property is held by a SIBLING guard (§688) and this guard is load-bearing for the **DIAGNOSIS** (*cannot locate your share* vs *your share is too small*), not the money. **Defensive spelling for the outcome, load-bearing for the message** — worth knowing before someone simplifies it away. **Does NOT close L228**: the real exposure is naming the PARTNER's party, which resolves cleanly and CLEARS the floor |
 | 331 | §883 | **§884** | **"249 ROWS UNVERIFIED" WAS MY OWN MISLEADING DENOMINATOR.** Bucketed all 255 open checklist rows: **38 dated 2026-08 · 22 dated earlier · 33 audit-§ only · 162 (63%) unstamped.** The 63% is the misleading figure — those 162 are dominated by **secrets, provisioning and legal prerequisites**, and **a row waiting on an external fact cannot rot**; it needs no stamp, ever. Filtering to repo-citing, non-external rows: **45**, of which ~a third are secret rows that merely mention a path → **~10–15 genuine code-claim rows without a stamp. The honest denominator is ~15, not 249** — I have been counting unrottable rows as unverified debt. **And the risk-picked rows were already done**: L229 scope-verified §415 (and better than its title — FOUR fields outside `clientView`, not two, three immaterial for stated reasons), L204 narrowed §124 (which deleted a FALSE half of its own title), L415 verified here (comment-stripped: `agent.acted` emitted only by `routes/rate.ts` + `translator/inbound.ts`, no Concierge source — row HOLDS; its Migrator sub-claim unchecked and said so). **§877's 3-of-6 was a biased sample** — chosen for mechanical checkability, which selects for rows quietly fixed by later work; risk-chosen rows are in better shape because risk got attention |
 | 332 | §884 | **§885** | **EIGHT CODE-CLAIM ROWS VERIFIED IN ONE PASS; SEVEN HOLD, ONE CITATION DRIFTED.** Worked §884's sized backlog instead of sampling 255. **Hold**: L173 (`legacy-mirror.ts:69` is the monotonic-cursor docblock), L246 (`sms-not-wired` hold arm present), L267, L283, L295, **L304 — whose source annotates the gap VERBATIM** (`workers/agents/src/watchtower.ts` (the UNKNOWN⇒CLEAR branch): *"a native module whose mirror went UNKNOWN is unmonitored"*), L317 (`parity.ts:130` counts by KIND). **One defect: L210** cites `sweep-214.ts:182` and **that line is BLANK** — the claim is true (`dedupeKey` bare while the R2 key is tenant-scoped) and the source notes it itself at `:249`; re-anchored to `:254@send214`. **§877's `notifyBoard` shape in its mild form**: right about the world, wrong about the artifact — but `notifyBoard` named a symbol that NEVER EXISTED (a false claim) while this names a real file at a line that MOVED (decay); only the second is fixable by re-anchoring. **Two of my probes were wrong before any row was**: grepping `parity.ts` for `note` returned ZERO and looked like staleness — the word is absent *because* parity does not distinguish ops notes from customer messages, which is the row's whole point; **the absence I measured was the defect, not its refutation** |
+| 333 | §885 | **§886** | **A CITATION THAT LANDS ON A BLANK LINE IS ROT, AND THAT IS DECIDABLE.** §885 found L210 pointing at a blank line and closed noting the ratchet only guards files it already tracks as high-churn — so a stale pointer into a QUIET file rots silently, and a hand pass found one. **But blankness is mechanical.** **Measured first: 101 resolvable `path:line` citations in the checklist (strikethrough masked), TWO on blank lines, ZERO out of bounds — a 2% flag rate** beside §878's 1.3%, and **both flags real**: `sender.ts:245` (the gap between two functions; the config fields are at `:200`) and `demo.ts:115` (the line BEFORE the comment block that is the row's subject; `DEMO_TILE_URL` is at `:119`). Re-anchored to `:200@apiKey` / `:119@DEMO_TILE_URL`. **Why the ratchet cannot catch these**: it is a GROWTH check on a NAMED SET of high-churn files — it refuses *more* unanchored citations into `sequencer.ts`/`biller.ts`, and says nothing about a citation that was fine when written and decayed later, nor anything about quiet files; `sweep-214.ts`, `sender.ts` and `demo.ts` are all quiet, which is why nobody noticed. **What it does NOT do**, stated so the green is not over-read: a citation drifting onto a different NON-blank line still passes — that is the majority of real drift and needs the symbol anchor |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -51787,3 +51788,53 @@ One citation re-anchored; no code changed. `verify:docs` 0 · `test:tools` 1,131
 - `sweep-214.ts:254@send214` is anchored, but the citation ratchet only guards files it already tracks as
   high-churn. A bare `path:line` into a *quiet* file still rots silently; L210 is the proof, and it took a
   hand pass to find.
+## §886 — PHASE GATE: PHASE 106 CLOSED — a citation that lands on a blank line is rot, and that is decidable
+
+§885 found L210 pointing at `sweep-214.ts:182` — a **blank line** — and closed by noting that the citation
+ratchet only guards files it already tracks as high-churn, so a stale pointer into a *quiet* file rots
+silently. It took a hand pass to find one.
+
+**But "the cited line is blank" is mechanical.** No prose, no judgement, no vocabulary — the same property that
+made §878's symbol gate viable and §880's path gate not.
+
+### Measured before building
+
+**101** resolvable `path:line` citations in the checklist (strikethrough masked, since a struck record keeps
+its stale pointer on purpose). **Two** land on a blank line; **zero** are out of bounds.
+
+A **2% flag rate**, next to §878's 1.3% — and both flags are real:
+
+| citation | cited by | what is actually there |
+|---|---|---|
+| `packages/agents/src/biller/sender.ts:245` | L36 (`RESEND_API_KEY` + `EVIDENCE_FROM`) | the gap between `scrubAddresses` and `resendError`; the config fields are at `:200` |
+| `packages/map/src/demo.ts:115` | L56 (self-hosted Protomaps) | the line *before* the comment block that is the row's subject — `DEMO_TILE_URL` is at `:119` |
+
+Both are off-by-a-few after edits — the ordinary way a line citation dies. Re-anchored to
+`:200@apiKey` and `:119@DEMO_TILE_URL`, forms that survive the next insertion.
+
+### Why this catches what the ratchet cannot
+
+The existing `citation-ratchet` is a **growth** check on a **named set** of high-churn files: it refuses *more*
+unanchored citations into `sequencer.ts`, `biller.ts`, `watchtower.ts`. It says nothing about a citation that
+was fine when written and decayed later, and nothing at all about quiet files. `sweep-214.ts`, `sender.ts` and
+`demo.ts` are quiet — which is exactly why no one noticed.
+
+`check:citations` already bounds-checks that a line exists. **Blankness is the next cheapest signal**, and it
+is strictly stronger: an in-bounds pointer at nothing is a pointer that has moved.
+
+**What it does not do**, stated so the green is not over-read: a citation that drifts onto a *different
+non-blank line* still passes. That is the majority of real drift, it needs the symbol anchor to catch, and
+this gate does not attempt it — [[a-gates-green-certifies-less-than-its-name]].
+
+### Exit state
+
+`tools/checks/citation-blank-line.test.ts` — 3 cases. Two citations re-anchored. `test:tools` **1,134**.
+typecheck 0 · lint 0 · `verify:docs` 0. No production code changed.
+
+**Reopen triggers**
+- The gate reads the checklist only. The audit is append-only history whose old sections cite lines that have
+  legitimately moved (§880's reasoning), so widening it would flag history — but that also means **audit
+  citations decay unchecked**, and nothing measures how badly.
+- A blank line is one of several "landed on nothing" shapes. A citation onto a closing brace, an import, or a
+  comment delimiter is equally dead and equally mechanical; not built, because I have not measured the
+  false-positive rate of those and would rather ship the one I have numbers for.
