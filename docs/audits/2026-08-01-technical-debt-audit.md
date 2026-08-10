@@ -581,6 +581,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 386 | §938 | **§939** | **CLAUDE.MD'S DESIGN LAW IS REPEALED BY ONE WORD OF JSON.** Generalizing §938: repo-wide there are exactly two gate-semantics knobs, and the second is `tools/design/design-ci.json`, stated as law in CLAUDE.md rule 7, genesis/11 and genesis/14. Flipping `"blocking"`→`"advisory"` is **silent** (test:tools fails only on the known REQ-289 trio). And consequential: a planted `box-shadow` exits **1** under blocking and **0** under advisory *while still printing the violation*. §252 proved the gate WORKS; §258 read that the config says blocking; neither asked whether the config HOLDS — a gate proved correct and a gate proved durable are different claims. `design-mode-parity.test.ts` parses the mode CLAUDE.md asserts and requires the config to match (§830), so changing the law takes both sides in one commit |
 | 387 | §939 | **§940** | **THE UNIT-TESTS GATE WAS RUNNING A QUARTER OF THE TESTS.** `test` is `test:tools && pnpm -r run test`; `test:tools` fails on the owner's REQ-289 row, so the recursive half has not run in the merge gate for as long as that row has been open. Measured: a planted `packages/ledger` regression is **invisible** (0 hits) under `&&` and visible (3) when both exit codes are aggregated. **3,269 tests across 17 suites, all green, were not being run** — the failure mode is silence, not noise, and a real regression was indistinguishable from the known row. §656's `&&` bought polarity at the cost of completeness when the first half could not fail; that mechanism is superseded (its property is kept and still enforced). `--no-bail` REJECTED on evidence: workerd socket exhaustion cascades false failures. Residual named: `pnpm -r` still bails per package |
 | 388 | §940 | **§941** | **THE SAME SHORT-CIRCUIT IN `typecheck`, CLOSED BEFORE IT COULD BITE.** Counted rather than guessed: of **30** gate specs in `gatesFor()`, exactly **two** chain internally — `test` (§940) and `typecheck`. Planted type errors in both halves: under `&&` only the tools error is reported and the recursive half never runs; aggregating, both do. It passes today, so nothing was masked — the point is that **`&&` is safe only while the first half has no persistent red**, which is a property of the repo's ledger of open rows, not of the script. First probe was a FALSE CLEAN (grepped the planted identifier; tsc prints `file(line,col): error TS2322` and never the symbol). gate-wiring now asserts the CLASS over a roster checked against `gatesFor()` |
+| 389 | §941 | **§942** | **NOTHING STOPS A SURFACE DEPLOYING WITHOUT ITS CONTRACT CHECK.** §941's detector matches `pnpm -r --if-present run`; **4** scripts recurse and it matches **2** — the others spell it `pnpm --filter`. Both are outside `gatesFor()` so the rule is correctly scoped, but reading them found the `deploy:surfaces` pipeline enforced by a **comment**. Naive probe looks guarded: deleting `check:surfaces` REDs — as the §289 ORPHAN check, incidentally, because the deploy chain is its sole invoker. The three routes that keep it invoked are **all silent**: run it after the deploy, `&&`→`;`, or drop `-- --built` (checks sources, not the shipped bundles). Each deploys a live production surface past its contract gate. Also states the scope boundary: `&&` is wrong for INDEPENDENT halves, right for a DEPENDENT pipeline — this one is fail-closed and must stay |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -55461,3 +55462,56 @@ checked against `gatesFor()`, so a two-half gate that never joins it fails.
 **Residual, unchanged and re-observed here:** `pnpm -r` still bails at the first failing package — `rater`
 failed and `ledger` never typechecked. Same named limit as §940, same reason (`--no-bail` cascades workerd
 socket failures), still recorded rather than dropped.
+
+## §942 — PHASE GATE: nothing stops a surface deploying without its contract check
+
+§941's rule iterates gate scripts that recurse. Its detector matches the literal `pnpm -r --if-present run`,
+so the new instrument's first job was to check its own claim ([[a-reopen-trigger-is-written-at-least-evidence]]).
+**Four** package scripts invoke pnpm recursively; the detector matches **two**. The other two spell it
+`pnpm --filter`: `build:surfaces` and `deploy:surfaces`.
+
+Neither is in `gatesFor()`, so both are outside the roster's iteration set by construction — the rule is
+correctly scoped and the miss costs nothing. But reading them surfaced the scope boundary itself, which is
+worth stating because the next reader will be tempted to "fix" it:
+
+> **`&&` is wrong when the two halves are INDEPENDENT corpora; it is right when the later step DEPENDS on the
+> earlier.** `test`/`typecheck` chained two unrelated suites, so short-circuiting lost one (§940/§941).
+> `deploy:surfaces` is `build → check the built artifact → deploy`, where each step needs its predecessor.
+> Its `&&` is **fail-closed and must not be removed.**
+
+### And that pipeline is enforced by a comment
+
+```
+deploy:surfaces = pnpm build:surfaces && pnpm check:surfaces -- --built && pnpm --filter … run deploy
+```
+
+The only description of this ordering in the repo is a **comment** — `gate-wiring.test.ts:17`. That is §288's
+own finding turned on the file that recorded it, and [[a-lockstep-comment-is-a-missing-test]].
+
+**Attribution first, because the naive probe looks guarded.** Deleting `check:surfaces` from the chain does go
+RED — but the failure is *"gate script(s) nothing invokes"*, the §289 **orphan** check, and it fires only
+because `deploy:surfaces` is `check:surfaces`'s **sole invoker**. Incidental coverage: give the script a
+second caller anywhere and that RED disappears. Crediting it would have closed this phase on a guard that is
+not guarding this property ([[attribute-the-red-before-crediting-it]]).
+
+**The three repeal routes that keep the script invoked are all silent** — measured, failed-test count pinned
+at the baseline 3 in every case:
+
+| | mutation | result |
+|---|---|---|
+| R1 | run the check **after** the deploy | **silent** — invoked, gates nothing |
+| R2 | `&&` → `;` before the deploy | **silent** — a failing check no longer stops the deploy |
+| R3 | drop `-- --built` | **silent** — checks the sources, not the bundles that ship |
+
+Each ships a **live production surface** past its contract check: R1 and R2 deploy an unchecked or
+failing-check surface; R3 passes a check that never looked at the artifact being deployed. This is the
+surface-contract gate whose evidence `RELEASE-EVIDENCE.md` records, reachable by reordering one line.
+
+### The fix pins the pipeline, not the mention
+
+`deploy-chain.test.ts` asserts the ordered, blocking shape: `build:surfaces` **then** `check:surfaces`
+carrying `--built` **then** the deploy, with `&&` between each, and the deploy strictly last. It also states
+in the failure message that this `&&` is deliberate, so the §940/§941 lesson is not misapplied to it.
+
+Scope, honestly: this pins the **chain**, not the checker. Whether `surface-contract.ts` actually validates
+the built bundle is a separate claim with its own tests, and this gate does not re-derive it.
