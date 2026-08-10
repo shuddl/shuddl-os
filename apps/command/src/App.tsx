@@ -49,9 +49,18 @@ function usePerfMode(): boolean {
   }, []);
 }
 
-// The live board feed (REQ-073/080). Loads GET /v1/board once and maps it to FleetItem[] for useFleet. On a 401
-// (Task 8 isAuthError) it drops the session (the re-auth path) and surfaces an honest empty map; any other read
-// failure ALSO yields an empty map — the canvas never invents synthetic marks. `enabled` is false in ?perf mode.
+// The board feed (REQ-073/080). Loads GET /v1/board ONCE, on mount, and maps it to FleetItem[] for useFleet.
+// On a 401 (Task 8 isAuthError) it drops the session (the re-auth path) and surfaces an honest empty map; any
+// other read failure ALSO yields an empty map — the canvas never invents synthetic marks. `enabled` is false in
+// ?perf mode.
+//
+// NOT LIVE, AND NOT MEANT TO BE YET (§865). This said "the live board feed" until 2026-08-09; measured, there
+// is no poll, no WebSocket and no refetch anywhere in apps/command — the map is a snapshot until the page
+// reloads. Liveness is REQ-257 (V2-E, **vNEXT**): "Live board uses hibernatable Durable Object WebSockets …
+// and polling fallback". So the portal's 20s poll (apps/portal/src/api/board.ts::BOARD_POLL_MS) is that
+// sanctioned fallback and this one-shot load is the interim below it — an asymmetry between the two surfaces
+// that is deliberate scope, not drift. Neither REQ-073 (map backdrop) nor REQ-080 (lens panel) asks for
+// refresh, so ADDING a poll here would be building an unregistered requirement.
 function useBoardFleet(enabled: boolean): { fleet: FleetItem[]; authExpired: boolean } {
   const [fleet, setFleet] = useState<FleetItem[]>([]);
   const [authExpired, setAuthExpired] = useState(false);

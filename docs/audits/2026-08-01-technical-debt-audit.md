@@ -504,6 +504,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 309 | §861 | **§862** | **THE BRANCH I TWICE RECORDED AS NEEDING FAKE TIMERS DID NOT.** §859 left `useSync`'s in-flight `running` guard untested *"because two overlapping passes need timer control"*; §861 repeated it. Both wrong. **The guard is about OVERLAP, not cadence** — holding one pass open with a deferred promise reproduces it exactly, interval parked at 60s, never fires. I reasoned from the mechanism I IMAGINED (interval → second call → advance time) instead of the property under test, and it survived two phases because it was written as a REASON rather than a question. **"This needs X" is a claim** — same error as *compare-artifacts-dont-reason-about-them*, applied to a test's feasibility. What it defends is real: `syncOnce` drains a durable queue and two concurrent drains read the same rows before either marks them, so an overlap can send a capture twice. Mutation kept the `cancelled` sibling so the RED isolates the subject (§688). `useSync` now has no untested branch |
 | 310 | §862 | **§863** | **TWO SEAMS THAT DISAGREE ON PURPOSE, AND NOTHING KEEPING THEM THAT WAY.** §858's sweep on the other surfaces: **command is covered** (20 src/17 tests; the 2 gaps are `main.tsx` + presentational). Portal had 5; four dissolve (`evidence-email.tsx` is a 31-line fixture around the tested shared view; `ShipmentList` runs through `App.test.tsx`, whose mocks are session/api NOT components — §858's trap checked for and absent). **One real: `api/invoices.ts`, referenced by NO test.** It exists because of a shipped defect (§781): `get<{invoices: T[]}>` is a **compile-time lie**, a missing key set state `undefined` → next render hit `.length` → white screen (measured: `PAGEERROR … reading 'length'`, empty body); a row missing `total_cents` rendered **NaN as a statement total**. Second instance of a guard that replaced a SHIPPED defect having no test (with §860; count bounded by the search, per §857). **The finding is the ASYMMETRY**: board is `.strict()` (server projection; extra field → honest *unavailable*), invoices is deliberately NOT (a default Zod object STRIPS unknowns = the allowlist enforced at runtime; strict there = a **blank billing page** when the server adds a field). Correct disagreement, unpinned — exactly what gets tidied into consistency by someone reading one file. Final case pins it: **one payload, two verdicts**, and BOTH tidy directions redden it. Strip case asserts the key is **absent**, not that parsing survived — tolerance and an allowlist look identical until you check |
 | 311 | §863 | **§864** | **THE HONESTY STATES, AND A TEST THAT WAS GREEN FOR THE WRONG REASON.** `usePartyBoard`'s contract is a set of REFUSALS (*"NEVER falls back to synthetic data… the server's truth or an honest gap"*): ready/empty/stale/unavailable are four different claims made to a party about their own freight — a wrong transition crashes nothing, it shows an OUTAGE as *"you have no shipments"*. No defect; 8 cases, 5 mutations RED (warm→unavailable, cold→stale, the 401 rescheduling, `empty` constant, the unmount leak). **THE FINDING**: `isAuthError` is `status===401 || code==="UNAUTHORIZED"` — a **disjunction** — and my draft passed the constructor args in the WRONG ORDER (`code, message, status` vs `code, status, message`), so `status` was the string `"no"` and **the test passed anyway** on the misplaced code alone. Green, plausible, one side of an OR, claiming to test *a 401*. **Caught by `typecheck`, NOT the suite** — a test passing for the wrong reason is indistinguishable from one passing. **When the condition is a disjunction, one case cannot cover it, and the case you write will be whichever branch your fixture accidentally satisfies.** Practical trap also recorded: all 8 cases TIMED OUT first run — `waitFor` polls on a timer `vi.useFakeTimers()` freezes; fix is `{shouldAdvanceTime:true}`, stability checked over 3 runs not assumed. With §862 (assuming timers were needed when they were not) the pair is: **both "needs timers" and "doesn't" were wrong once this session** |
+| 312 | §864 | **§865** | **"THE LIVE BOARD FEED" WAS NOT LIVE, AND THE ROW THAT SAYS SO WAS CITED NOWHERE.** §864's closing question — does Command mirror the portal's four honesty states? — **was a misreading and is withdrawn**: the *mirrors* claim is about the fetch client having no `AbortSignal`, and `command/lib/board.ts` has NO hook (its parse was already covered). Reading instead of reasoning produced a better finding. **MEASURED: Command's map is not live** — `useBoardFleet` fetches ONCE on mount; a whole-corpus search for `WebSocket|EventSource|setInterval|refetch` under `apps/command` is empty **against a positive control**, so the silence is a result. Its comment opened *"The live board feed"*. **The register resolves it**: neither REQ-073 (backdrop) nor REQ-080 (lens) asks for refresh; **REQ-257 (V2-E, vNEXT)** does — and that row **names the "polling fallback" itself**, so the portal's 20s poll IS sanctioned and Command sitting one step back is deliberate scope. **Adding a poll would have been building an unregistered requirement** — CLAUDE.md's first rule, and I was two minutes from calling it a defect. **REQ-257 was cited NOWHERE in code**: the deferral lived only in the register (§813 shape). Comments only, no behaviour change, diff verified comment-only (both files were earlier mutation targets). `dispositions` note added per the REQ-184 precedent — after **verifying the manifest is actually read** (`coverage.ts:181`, staleness guard `:202`), because a note nobody reads is §851's defect |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -50396,3 +50397,86 @@ changed.
   apps/command/src/lib/board.ts"). Whether the command side has the same four honesty states, and whether
   anything pins them, was **not** measured here.
 - A third `src/api/` seam (§863's trigger) still inherits neither header.
+## §865 — PHASE GATE: PHASE 85 CLOSED — "the live board feed" was not live, and the row that says so was cited nowhere
+
+§864 closed by asking whether Command has the same four honesty states as the portal, since `usePartyBoard`'s
+docblock says it *"mirrors apps/command/src/lib/board.ts"*. **That question was built on a misreading and is
+withdrawn.** The mirror claim is narrow — it is about the fetch client exposing no `AbortSignal`, hence the
+mounted-guard cancel — and `apps/command/src/lib/board.ts` has no hook at all: no `useState`, no `phase`, no
+`stale`. Command's board state lives in `App.tsx::useBoardFleet`, and its parse was already covered by
+`lib/board.test.ts`.
+
+Reading it instead of reasoning about it produced a better finding.
+
+### Measured
+
+**Command's map is not live.** `useBoardFleet` calls `fetchBoard()` **once**, on mount, with effect deps
+`[enabled]`. Searched the whole tracked corpus for `WebSocket|EventSource|setInterval|BOARD_POLL|refetch`
+under `apps/command` — **nothing**, against a positive control (`useState`, three files) so the silence is a
+result and not a broken command. The map is a snapshot until the page reloads.
+
+Its comment opened: **"The live board feed (REQ-073/080)."**
+
+### The register resolves it, and neither cited row is the reason
+
+Neither REQ-073 (*full-viewport map backdrop*) nor REQ-080 (*click mark → lens panel*) asks for refresh. The
+row that does is **REQ-257 (PORTAL, V2-E, `vNEXT`)**:
+
+> *Live board uses hibernatable Durable Object WebSockets with serialized lens attachment and batching and
+> reconnect and eviction and **polling fallback***
+
+So the architecture is deferred, the row **names the polling fallback itself**, and both surfaces are correct:
+the portal's 20s `BOARD_POLL_MS` *is* that fallback, and Command sits one step behind it because nothing
+registered asks that map to refresh. **Adding a poll to Command would be building an unregistered
+requirement** — the failure mode CLAUDE.md's first rule exists to prevent, and one I was two minutes from
+calling a defect.
+
+**REQ-257 was cited nowhere in code.** A reader of `BOARD_POLL_MS` had no route to the design that supersedes
+it; a reader of Command's comment was told the feed was live. The deferral existed only in the register, which
+is precisely the §813 shape — a fact recorded in one place and absent where it is needed.
+
+### What landed
+
+Comments only; **no behaviour changed**, and the diff was checked to be comment-only against the source files
+(both had been mutation-targets earlier in the session, so residue was a real risk).
+
+- Command's comment now says what it does — *loads once, on mount* — and carries the REQ-257 pointer with the
+  reason adding a poll would be out of scope.
+- `BOARD_POLL_MS` is annotated as REQ-257's sanctioned fallback rather than a stopgap someone forgot.
+- A `dispositions` note records the verdict, following the REQ-184 precedent: citing a `vNEXT` row creates a
+  status-drift entry (now 10), and the manifest is where "deferral marker, not implementation" is written
+  down. Verified `dispositions` is actually *read* (`tools/traceability/coverage.ts:176@scanRecordedHomes`,
+  which folds every disposition key into the recorded-homes set at `:181`, with a staleness guard at `:202`)
+  before writing into it — a note nobody reads is the defect §851 filed.
+
+### Two self-inflicted faults in this phase's own edit, and one hid the other
+
+**REQ-257 already HAD a disposition note.** I wrote a new one and *overwrote* it. The prior text —
+*"vNEXT — V2-E hibernatable scoped live-board transport defined by the approved V2 framework; not built."* —
+is now preserved with the verdict appended rather than replacing it.
+
+**And I could not see that, because of the second fault.** I re-serialised the manifest with `indent=1` when
+the file uses `indent=2`, so the commit showed **196 changed lines** — every line of a 99-row file rewritten.
+A one-line semantic overwrite inside that is invisible: the diff a reviewer (or I) would scan is entirely
+formatting. Re-serialised at the original indent, the real diff is **one line**, and the overwrite was obvious
+at a glance.
+
+**The rule: formatting noise is not cosmetic — it is a place to hide a semantic change,** including from
+yourself. When editing a structured file programmatically, reproduce its existing formatting exactly and
+confirm the diff is the size of the change you intended. A 196-line diff for a one-key addition is the signal.
+
+The related miss is narrower than it looks: I verified `dispositions` was *read* before writing to it (right),
+and verified REQ-257 was cited nowhere in *code* (true), but never checked whether the key I was about to
+write already existed. **"Is this cited anywhere?" and "does this record already exist?" are different
+questions**, and I answered the first while acting on the second. See
+[[compare-artifacts-dont-reason-about-them]].
+
+### Exit state
+
+typecheck 0 · lint 0 · `check:traceability` 0 · `verify:docs` 0. `check:coverage` still FAILs on REQ-289
+alone. Status-drift 9 → 10, by design, with the tenth carrying its verdict.
+
+**Reopen triggers**
+- REQ-257 leaves `vNEXT` → both citations become implementations rather than markers, and the disposition note
+  must be deleted rather than edited (its own text says what it certifies).
+- The nine pre-existing status-drift rows were **not** re-verified here; only the one I added is mine.

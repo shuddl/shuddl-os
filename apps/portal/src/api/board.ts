@@ -29,6 +29,14 @@ export type PartyBoardItem = z.infer<typeof BoardItem>;
 const E6 = 1_000_000;
 
 // Bounded poll interval (Task 12 Step 5: 15–30s). 20s keeps the map live without hammering the durable read.
+//
+// THIS IS REQ-257's "polling fallback" (§865). That row — *"Live board uses hibernatable Durable Object
+// WebSockets with serialized lens attachment and batching and reconnect and eviction and polling fallback"* —
+// is **vNEXT (V2-E)**, so the socket is deferred and this poll is the sanctioned interim, not a stopgap
+// someone forgot to replace. Recorded here because the row was cited nowhere in code before 2026-08-09: a
+// reader of this constant had no way to reach the design that supersedes it. The Command surface sits one
+// step further back (a single load on mount, apps/command/src/App.tsx::useBoardFleet) — deliberate scope,
+// since no register row asks that map to refresh.
 export const BOARD_POLL_MS = 20_000;
 
 // One board row → the FleetItem the map renders. TRUTHFUL MAP (skill keep-map-instrument-truthful):
