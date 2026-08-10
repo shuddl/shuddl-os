@@ -493,6 +493,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 298 | §850 | **§851** | **PHASE 71 CLOSED — a WAIVER of the co-signature requirement that nothing downstream reads.** The evidence claim rests on I4 (*a custody event must be co-signed by a device*). **The chain holds**: the sequencer verifies at two sites, both fail-closed, and pins `device_id === actor.device` **before** the dedup lookup so an unsigned event cannot squat a victim's slot. **The waiver does not.** I4's escape hatch is `payload.unwitnessed`, and it is read in **exactly one place** — the refine that waives the requirement. Nothing downstream reads it: not the Biller, not the evidence email, zero hits across `workers/agents` + `packages/agents`. So an **unwitnessed POD bills identically to a co-signed one**, on the path demo #1 calls *"signature at a door"*. Whether it SHOULD differ is a **product decision, filed not made**. **I diagnosed §796 wrongly, twice.** I assumed it missed the field and blamed its `z.literal` exemption, narrowed it, widened the shape filter, filed the row — then removed the row to prove detection and it **still reported nothing**. §796 counts the field **CONSUMED**, correctly, by its own rule (*a read inside the declaring file counts*): the refine reads it four times. **Both edits reverted** — shipping them would claim a detection that does not happen. The finding is a class §796 does not model: §796 asks *does anything read this*, the question here is *does anything ACT on the difference*, and they come apart exactly when the reader IS the waiver. **Filed in the GO-LIVE-CHECKLIST** with both options; the remedy is a product call |
 | 299 | §851 | **§852** | **PHASE 72 CLOSED — the waiver class has EXACTLY ONE member, and the one that matters is fully accountable.** §851 named a class §796 does not model (*a field read only by the check that waives a requirement*); a class with one member is a hypothesis, so this swept the rest. Six waiver-shaped fields: `override` **5 readers**, `skipped` 2, `shipmentIdOverride` 1, and two zero-reader fields that are **telemetry counts** in a sweep's return, not waivers. **`unwitnessed` is the only member.** REQ-049's override — *the only thing that lets a transition proceed without its evidence* — is accountable end to end: named+reasoned (both refined non-blank), **role-gated** at the route, **persisted on the events row** (the migration states why: *a single-row mapper can't JOIN a side table*), **tamper-evident** in the hashed chain, and **rehydrated by the lens** to the API. The Command UI does not render it — stated precisely rather than filed, because REQ-049's *permanently visible* is a claim about the LEDGER record, and conflating that with a UI wish would file a product question as a compliance gap. **§851's finding is isolated, not systemic** — and the contrast (same role, 5 readers vs 0) is the sharpest argument for giving it one |
 | 300 | §852 | **§853** | **PHASE 73 CLOSED — demo #5's world-dim is CORRECT; one branch in it is vestigial.** genesis/07: *the rest of the map dims to 35%*. `setWorldDim` dims every layer class explicitly — circles, the `trucks` symbol layer, the `eta` line, clusters, the count — each exempting the exception (clusters via `maxStatus`, since they carry no feature-state). Its suite already applies the substring-vs-boundary lesson: it asserts the expression *contains* `0.35`, **names the trap** (*stays true if the exception branch dims too*), and follows with a fallback test. **What I nearly reported**: `entities.ts:163` keys the trucks paint on `feature-state "dimmed"`, which appears **exactly once in the repo — on that line**; nothing sets it, so my first reading was that moving trucks never dim, breaking the law on the demo the design system exists for. **Wrong** — `setWorldDim:230` overwrites `icon-opacity` directly. Checking the caller turned a headline into a footnote. It is **vestigial**: always evaluates to 1, replaced at runtime — removed because it *describes a mechanism that does not exist*. **Residual stated**: the 35% lives in two code copies and genesis/07, unlinked; the design CI covers colour/contrast/radius/motion, not this number |
+| 301 | §853 | **§854** | **PHASE 74 CLOSED — a VISUAL LAW in genesis/07 the register never authorised.** §853 left the 35% unpinned and called a doc↔code pin *a phase*; doing it found something better. genesis/07 §02 states three map states — exception-dims-to-35% (**built**, REQ-077 authorises it), truck-as-chevron (**built**), and **Delivered: hollow red outline at 55%, fades after 24h (NOT built, and NO REQ row covers it)**. `delivered` is an `EntityKind` the demo emits, but the leaves filter on **`statusStr`, not `kind`**, so it draws at 0.9 like any at-rest mark. **The map is CORRECT to omit it** — CLAUDE.md ranks the register #1 (*if it isn't a REQ row it doesn't get built*) and genesis/07 #3. So it is a **doc-vs-doc gap**, the §842 `routes ±10%` shape one layer up: a **pixel law with nothing behind it**. Filed, not built and not amended (§795's precedent). **Also measured**: REQ-077's *"Visual test"* DoD is met by a **unit** test — no blessed screenshot covers the world-dim — and the acceptance manifest already records that with demo #5's `browser: null` |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -49719,3 +49720,58 @@ because **my own explanatory comment contains the word**. That is the third text
 - The 35% changes in genesis/07 → **two code copies** (the paint constant and `setWorldDim`'s) and the design
   doc are unlinked; the design CI covers colour, contrast, radius and motion, not this number. Stated as
   unpinned rather than fixed, because a doc↔code pin for one constant is a phase, not a footnote.
+## §854 — PHASE GATE: PHASE 74 CLOSED — a visual law in genesis/07 that the register never authorised
+
+§853 left the 35% world-dim unpinned to its spec and called a doc↔code pin "a phase, not a footnote." Doing
+that phase turned up something more interesting than the pin.
+
+### genesis/07's map states, against what the map renders
+
+| genesis/07 §02 | implemented? |
+|---|---|
+| Exception: mark pulses at 100%, **rest dims to 35%** | **yes** — `setWorldDim`, and **REQ-077** authorises it |
+| Truck in motion: solid red chevron oriented to heading | yes — the `trucks` symbol layer, `icon-rotate: bearing` |
+| **Delivered (last 24h): hollow red outline at 55%, fades after 24h** | **no** |
+
+`delivered` exists as an `EntityKind` and the demo generator emits it — but `entityLayers()` filters its
+leaves on **`statusStr`, not `kind`**, so a delivered entity is drawn by whichever of the three rest layers
+matches its status, at `restPaint()`'s 0.9 with a 1px stroke. There is no hollow-only treatment, no 55%, and
+no 24h fade. Grepped the register: **no REQ row covers it** — not by id, not by "delivered", not by "55%".
+
+### Which makes it correct, and worth filing anyway
+
+CLAUDE.md's source-of-truth order settles the verdict: `genesis/09` is **#1** — *"If it isn't a REQ row, it
+doesn't get built"* — and `genesis/07` is #3. So the map is **right** to not implement it, and this is not a
+build defect. It is a **doc-vs-doc gap**: the design spec states a visual state as law that scope never
+authorised, so it will never be built, and a reader of genesis/07 — which CLAUDE.md calls *"every pixel"* —
+would reasonably expect it on the map.
+
+Same shape as §842's `routes ±10%`, a gate name with nothing behind it, one layer up: this is a **pixel law**
+with nothing behind it. Filed, not built and not amended — §795 set the precedent of *proposing* a row rather
+than appending while REQ-289 sits uncommitted, and a visual state is a design decision the owner owns.
+
+### REQ-077's DoD, measured
+
+REQ-077 reads `Visual test` in its DoD column. There is **no blessed screenshot of the world-dim** — the five
+are command, driver, portal, status, evidence-email. What actually proves it is `entities.test.ts`'s
+`setWorldDim` suite, which is careful (it names the both-branches-match trap and asserts the fallback), plus
+the acceptance manifest's demo #5 entry — whose `browser` field is explicitly `null`, marked *"deferred: the
+real-browser world-dim on/off spec … is the documented next in-repo increment."*
+
+So the DoD is met by a unit test rather than a visual one, and the gap is **already recorded** in the
+acceptance manifest rather than hidden. Recording that it is a unit test — not a screenshot — is the useful
+part, because "Visual test" in a register row reads like a screenshot exists.
+
+### Exit state
+
+**Nothing changed.** `test:tools` 1118 (3 failed — the REQ-289 trio), typecheck 0 · lint 0 · `verify:docs` 0.
+Two findings filed to the GO-LIVE-CHECKLIST; neither is mine to decide.
+
+**Reopen triggers**
+- **A REQ row for the delivered state lands** → then it is scope, and the map needs a hollow-outline treatment
+  keyed on `kind === "delivered"` plus a 24h fade — note the leaf layers filter on status, so this needs a
+  new layer rather than a paint tweak.
+- REQ-077's DoD is read as satisfied by a screenshot → it is not; the acceptance manifest's `browser: null`
+  is the accurate record and this row points at it.
+- genesis/07 states another visual state → the register is the authority on whether it gets built, and the
+  two are not compared by anything. This phase compared them by hand for §02's three map states only.
