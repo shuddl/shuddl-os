@@ -24,7 +24,10 @@ interface BucketDef {
 
 // The buckets partition the number line: CURRENT (not yet due) → >60D (deeply overdue). Exactly one matches
 // any finite days-past-due value.
-const AGING_BUCKETS: readonly BucketDef[] = [
+// Exported so the §922 partition property asserts against the REAL predicates rather than a copy of them
+// — the same reason lens.ts exports DRIVER_KINDS. A test that restates the four ranges agrees with the
+// code on the day it is written and never again.
+export const AGING_BUCKETS: readonly BucketDef[] = [
   { label: "CURRENT", slug: "current", test: (d) => d <= 0 },
   { label: "1–30D", slug: "1-30", test: (d) => d >= 1 && d <= 30 },
   { label: "31–60D", slug: "31-60", test: (d) => d >= 31 && d <= 60 },

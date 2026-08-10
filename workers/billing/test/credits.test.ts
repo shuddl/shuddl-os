@@ -210,3 +210,35 @@ describe("REQ-025 — the emitter appends ONLY to the platform ledger port (neve
     for (const call of led.appendCalls) expect(call.streamId).toMatch(/^s:credit-/);
   });
 });
+
+// ─── §922 — AN UNLINKABLE CREDIT SALE MUST BE REFUSED, AND NOTHING PROVED IT ────────────────────────────
+//
+// The sale and the settlement must derive the SAME correlation id, and the settlement side can only ever
+// see the payment intent. `payment_intent` is OPTIONAL in the Stripe shape (a credit pack misconfigured as
+// subscription/setup mode carries none), so the emitter refuses loudly rather than falling back to the
+// session id — which would mint a sale invoice the settlement can never find.
+//
+// Removing that refusal left the ENTIRE billing suite green: every existing case builds its body through
+// `checkoutEventBody`, which always supplies `pi`. The guard's own comment names what it prevents — "a
+// phantom stream stuck 'issued' forever, invisible to any sweep" — and that is precisely the failure a
+// green suite cannot see, because the wrong invoice is created successfully.
+describe("§922: a checkout session with NO payment_intent is refused, never sold unlinkably", () => {
+  it("refuses the sale and appends NOTHING, while the same body carrying an intent sells normally", async () => {
+    // CONTROL FIRST (§908): the identical body WITH a payment_intent emits the sale, so the refusal below is
+    // attributable to the missing intent and not to anything else about this fixture.
+    const ok = new RecordingLedger();
+    const good = parse(checkoutEventBody({ eventId: "evt_pi_present", tenant: "tenant-a", amountCents: 500_00, pi: "pi_present", createdSec: CREATED }));
+    await emitCreditPurchase(ok, env.CONTROL_DB, good);
+    expect(ok.count("invoice.issued")).toBe(1);
+
+    // The misconfiguration: Stripe sends no payment_intent at all.
+    const raw = JSON.parse(checkoutEventBody({ eventId: "evt_no_pi", tenant: "tenant-a", amountCents: 500_00, pi: "pi_unused", createdSec: CREATED })) as {
+      data: { object: Record<string, unknown> };
+    };
+    delete raw.data.object["payment_intent"];
+    const led = new RecordingLedger();
+    await expect(emitCreditPurchase(led, env.CONTROL_DB, parse(JSON.stringify(raw)))).rejects.toThrow(/CREDIT_SALE_NO_PAYMENT_INTENT/);
+    // And it refused BEFORE appending — no phantom issued invoice for a settlement that can never arrive.
+    expect(led.count("invoice.issued"), "an unlinkable sale was appended — the settlement can never find it").toBe(0);
+  });
+});

@@ -10,6 +10,7 @@ import {
 } from "../src/projection/status-cache.js";
 import { projectAgentRuns } from "../src/projection/agent-runs.js";
 import { projectAuthority } from "../src/projection/authority.js";
+import { projectApprovals } from "../src/projection/approvals.js";
 import { eventInsertStmt, mkEvent, resetEventCounter } from "./helpers.js";
 import ledgerCore from "../../../db/tenant/migrations/0001_ledger_core.sql?raw";
 import domain from "../../../db/tenant/migrations/0002_domain.sql?raw";
@@ -500,5 +501,58 @@ describe("REQ-008/023 — authority_map projects authority.flipped (the module-b
     expect(second!.authority).toBe("native"); // s3.to
     expect(JSON.parse(second!.flipped_events)).toEqual([s1.id, s2.id, s3.id]); // full history, replay order preserved
     expect(JSON.parse(second!.gates_status)).toEqual({ open_gates: 1 }); // last promote's snapshot; the drift did not clobber it
+  });
+});
+
+// ─── §922 — `INSERT OR IGNORE` IS ONLY IDEMPOTENT BECAUSE OF A PRIMARY KEY, AND NOTHING PROVED IT ───────
+//
+// Two projections dedupe a redelivered event by writing `INSERT OR IGNORE` against a DETERMINISTIC row id
+// — `projectApprovals` (id = the approval.requested event id) and the `booking.created` leg skeleton
+// (id = `<shipment>:pickup` / `<shipment>:delivery`). Both source files state the dedupe as the mechanism.
+//
+// It rests entirely on the PRIMARY KEY: dropping `PRIMARY KEY` from `legs.id` or `approvals.id` left the
+// whole ledger AND api suites green, because no test drives the same event twice. `OR IGNORE` without a
+// key to conflict on is just `INSERT` — a redelivery would then append a SECOND open approval, or a THIRD
+// leg the appointment claim can bind a slot to.
+//
+// Queue redelivery is not hypothetical here: these projections run off queue-triggered appends, and
+// at-least-once is the delivery contract. The projection's own header calls OR IGNORE "clean" for exactly
+// that case; this is the assertion that makes it so.
+describe("§922: a REDELIVERED event projects exactly one read-model row (OR IGNORE + PK)", () => {
+  it("approval.requested projected twice opens exactly ONE approvals row", async () => {
+    const e = mkEvent("approval.requested", {
+      shipment_id: "shp-appr-dedupe",
+      payload: { rule: "below_floor", required_role: "ops" },
+    });
+    // The control is the first insert: it must actually land, or "one row" would be satisfied by zero.
+    await DB.batch(projectApprovals(DB, e));
+    const first = await DB.prepare("SELECT COUNT(*) AS n FROM approvals WHERE id = ?").bind(e.id).first<{ n: number }>();
+    expect(first?.n, "the first projection wrote nothing — this test would then pass over an empty table").toBe(1);
+
+    await DB.batch(projectApprovals(DB, e)); // the redelivery
+    const after = await DB.prepare("SELECT COUNT(*) AS n FROM approvals WHERE id = ?").bind(e.id).first<{ n: number }>();
+    expect(after?.n, "a redelivered approval.requested opened a SECOND queue row — OR IGNORE found no key to conflict on").toBe(1);
+  });
+
+  it("booking.created projected twice leaves exactly ONE leg per kind", async () => {
+    const shipmentId = "shp-legs-dedupe";
+    await seedParty("party-legs-dedupe");
+    const e = mkEvent("booking.created", {
+      shipment_id: shipmentId,
+      payload: {
+        quote_event_id: "evt-quote-legs-dedupe",
+        division: "main",
+        shipper_party_id: "party-legs-dedupe",
+        consignee_party_id: "party-legs-dedupe",
+        bill_to_party_id: "party-legs-dedupe",
+      },
+    });
+    await DB.batch(projectStatusCache(DB, e));
+    const legCount = async (): Promise<number> =>
+      (await DB.prepare("SELECT COUNT(*) AS n FROM legs WHERE shipment_id = ?").bind(shipmentId).first<{ n: number }>())?.n ?? 0;
+    expect(await legCount(), "the first projection wrote no legs — 'exactly two' would then pass over nothing").toBe(2);
+
+    await DB.batch(projectStatusCache(DB, e)); // the redelivery
+    expect(await legCount(), "a redelivered booking.created created DUPLICATE skeleton legs — the appointment claim can then bind a slot to a leg the biller never reads").toBe(2);
   });
 });

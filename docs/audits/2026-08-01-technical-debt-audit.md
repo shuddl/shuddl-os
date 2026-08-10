@@ -561,6 +561,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 366 | §918 | **§919** | **DEFECT — A DOUBLE INVOICE CORRECTION 500s, BECAUSE ITS TEST RAN A SCHEMA WE NEVER SHIP.** `mapMoneyProjectionError`'s correction branch requires `UNIQUE constraint failed` (matching `ux_ml_corrects`, 0002). But 0008 installs `money_lines_guard_ins_corrects` as a **BEFORE INSERT trigger**, and **a BEFORE INSERT trigger fires BEFORE uniqueness is checked** — so the shipped schema aborts with `RAISE(ABORT,'I1: projections are append-only')`, which contains no such substring. The mapper returned **null**: a second `invoice.corrected` surfaced as **INTERNAL 500 instead of VALIDATION_FAILED 400**. On a money path the client cannot tell *you already corrected this* from *our system broke*, and a 5xx invites the retry I7 exists to prevent. **Why it read as covered**: `money-projection.test.ts` applied 0001–0003 and stopped, while `workers/api/test/helpers.ts` applies 0008 — the mapper's test stood up a database the product never ships. **Proved with zero source changed**: adding 0008 to that suite reds its existing assertion. The **subset-fixture** shape — a WRONG fixture goes red, a SUBSET fixture stays green by construction. And `invoice-correction.test.ts` had five correction cases, **none correcting twice**. **Precision hazard**: BOTH money_lines guards raise the IDENTICAL text, so matching it unconditionally would report a duplicate-line fault as *invoice already corrected* — confidently wrong, worse than the 500. Fix gates on the **event kind**. Proof: drop the branch → both suites RED; drop the kind gate → RED. ledger 691→692, api 815→816 |
 | 367 | §919 | **§920** | **§919's CLASS — SWEPT FIRST (SOLE MEMBER), THEN MADE VISIBLE.** §919's trigger named the class; this closes it **by measuring before gating**. Thirteen ledger suites omit 0008; each given 0008 and re-run — **all twelve applicable stayed GREEN** (`migrate.test.ts` correctly out of scope, its subject IS the migrator). So §919 was the **sole member**, and that decides the gate's design: demanding every suite apply everything would churn twelve suites to prevent nothing. **A false positive caught before it became a registry**: the first scan reported ten files missing all 8 tenant migrations — they are **control-plane tests applying CONTROL migrations**, and the numbering collides (`db/control` ships 0001–0003 alongside tenant 0001–0008). Keying on actual FILENAMES dissolved all ten; a registry built on that conflation would have been confidently wrong about a third of its rows. **CORRECTION — half this gate already existed**: `checkTestSchemaParity` (§239, already blocking) enforces harness fullness, so that rule was deleted rather than duplicated. **But its corpus is `globSync("workers/*/test/helpers.ts")` — and §919's defect lived in `packages/ledger/test/`, ONE DIRECTORY OUTSIDE IT.** The gate existed, was blocking, was correct, and could not see the file — which answers how §919 survived a repo that already gates schema parity. What ships: every applier's set **PINNED two-sided** (a subset stays legal, it stops being invisible) + a **tripwire** that §239 still owns the other half. **The tripwire itself shipped weak** — `toContain("export function checkTestSchemaParity")` is satisfied by `…ParityX`, so renaming it away stayed GREEN one round; a prefix is not an identifier (§913's lesson on my own instrument). **The battery then caught my OWN drift via a different gate**: `money.ts` grew ~33 lines and a citation landed on a blank line — `verify:docs` passed because `citation-links` checks bounds/anchors while **blankness is a separate gate**; re-anchored `:120@VOID`. Proof: harness drops 0008 (§919 recreated one layer up) → RED×2; pinned set changes → RED; new applier → RED. test:tools 1,149→1,152 |
 | 368 | §920 | **§921** | **THREE CONSTITUTIONAL GUARDS DEFENDED BY NOTHING — LAW 5 AND TWO CROSS-TENANT READS.** The sweep returned 15 candidates; each re-verified by MUTATION rather than taken on confidence. **3 real, 3 refuted.** **(1) CLAUDE.md Law 5** — `/v1/rate` refuses `legs` without `tenant_party`; neutering it left **all 816 api tests green**. It is the ONLY thing between an interline body and a gross comparison: `approvalOpts()` attaches legs only when BOTH are present, so without it `assessApproval` takes its DIRECT branch and judges the floor against `quote.sell_cents` — the whole move. The rater's fail-loud sibling **can never fire**, because the partial signal is dropped before reaching it. The law whose $222,084/35-lb regression rule 5 makes permanent — and a gross comparison does not error, it **approves**. **(2) REQ-025** — `/v1/import`'s r2_key branch: dropping the session-tenant prefix left the suite green; every other case posts an inline sheet, so the **R2 read path had no isolation test at all**. **(3) REQ-025** — `/pub/documents/:cap`: widening the namespace check from `evidence/<t>/` to `evidence/` left the suite green; the nine cases beneath it exercise MAC/expiry/shape and **none varies the key's tenant against the cap's**. Both isolation tests carry a control serving the same bytes to their rightful tenant (§906's wrong-reason trap avoided by construction). **REFUTED**: `roleSatisfies`, the chain hash comparison, and the revoked-device clause — **the last nearly became a false finding**: neutering it left `devices.test.ts` GREEN and only the WHOLE-package run went RED, on a case in another file. **Ownership by NAME is a guess**; when a narrow run comes back green, widen before believing it. api 816→819. **6 of 15 candidates still unverified — recorded as unverified, not clean** |
+| 369 | §921 | **§922** | **FOUR MORE UNDEFENDED GUARDS — AN IDEMPOTENCY CLASS, A MONEY PARTITION, AN UNLINKABLE SALE.** §921 left six candidates recorded *unverified, not clean*; continuing: **4 real, 1 refuted by reading, 1 still open.** **`INSERT OR IGNORE` is only idempotent because of a PRIMARY KEY** — `projectApprovals` (id = the requested event id) and the `booking.created` leg skeleton both state dedupe as their mechanism; dropping `legs.id`/`approvals.id` PK left ledger AND api green because **no test drove the same event twice**. OR IGNORE with no key to conflict on is just INSERT: a redelivery appends a second open approval, or a third skeleton leg the appointment claim can bind to — and at-least-once IS the queue contract. **The aging buckets** had to partition the line and only a comment said so: breaking the top bucket left contracts green **because the fallback returns the same label the broken bucket would have** — invisible by construction, a mislabel the day anyone edits the fallback, on the classifier BOTH the command MONEY queue and the portal customer STATEMENT share. Fixed as a **property** (reds on gap AND overlap; examples reach only the first), with `AGING_BUCKETS` exported for the same reason `lens.ts` exports `DRIVER_KINDS`. **An unlinkable credit sale**: `payment_intent` is OPTIONAL in the Stripe shape and removing the refusal left the whole billing suite green — every case builds its body through a helper that always supplies one; the guard's own comment names the result, *a phantom stream stuck 'issued' forever, invisible to any sweep*, which a green suite cannot see because **the wrong invoice is created successfully**. contracts 326→328, ledger 692→694, billing 58→59. **Still open**: `documents.id` PK (real, measured silent) and `lensFor`'s default (not a defect — the role set is CHECK-closed — but a ROSTER hazard: a 7th role silently inherits the unredacted tenant lens) |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -54095,3 +54096,64 @@ construction rather than by luck.
   `lensFor`'s tenant default, the credits correlation id, and the aging-bucket partition. They are recorded
   here as *unverified*, not as clean: three of the nine I have checked were real, so the prior on the
   remainder is not low. Verify each by mutation against the **whole owning package**, per the rule above.
+## §922 — PHASE GATE: four more undefended guards — an idempotency class, a money partition, an unlinkable sale
+
+§921 closed three constitutional guards and left six candidates recorded as **unverified, not clean**, on the
+stated grounds that three of nine checked had been real. Continuing that: **four more real, one refuted by
+reading, one still open.**
+
+### `INSERT OR IGNORE` is only idempotent because of a PRIMARY KEY
+
+Two projections dedupe a redelivered event by writing `INSERT OR IGNORE` against a deterministic row id —
+`projectApprovals` (id = the `approval.requested` event id) and the `booking.created` leg skeleton
+(`<shipment>:pickup` / `:delivery`). **Both source files state the dedupe as their mechanism.**
+
+Dropping `PRIMARY KEY` from `legs.id` or `approvals.id` left the whole ledger *and* api suites green,
+because **no test drove the same event twice.** `OR IGNORE` with no key to conflict on is just `INSERT`: a
+redelivery appends a second open approval, or a third skeleton leg the appointment claim can bind a slot to.
+
+Redelivery is not hypothetical — these projections run off queue-triggered appends and at-least-once is the
+delivery contract. Each new case asserts the **first** insert landed before asserting there is only one, so
+"exactly one row" cannot be satisfied by zero.
+
+### The aging buckets had to partition the line, and only a comment said so
+
+`agingBucketFor` calls its trailing `return ">60D"` unreachable — true only while four predicates cover
+every finite integer without overlap. Breaking the top bucket left the contracts suite **green**, and the
+reason is nasty: the fallback returns *the same label the broken bucket would have*, so the defect is
+invisible by construction and becomes a mislabel the day anyone edits the fallback.
+
+This is the shared AR classifier for **two** surfaces — the command MONEY queue and the portal counterparty
+STATEMENT — so a mislabelled bucket is a number a customer reads about their own account. The fix is a
+**property**, not more examples: exactly one predicate must match every value across all four boundaries.
+It reds on a **gap and on an overlap**; examples reach only the first. `AGING_BUCKETS` is now exported for
+the same reason `lens.ts` exports `DRIVER_KINDS` — a test that restates the ranges agrees with the code on
+the day it is written and never again.
+
+### An unlinkable credit sale
+
+The sale and settlement must derive the same correlation id, and the settlement side can only ever see the
+payment intent. `payment_intent` is **optional** in the Stripe shape, so the emitter refuses loudly rather
+than falling back to the session id. Removing that refusal left the **entire billing suite green** — every
+existing case builds its body through a helper that always supplies one.
+
+The guard's own comment names what it prevents: *"a phantom stream stuck 'issued' forever, invisible to any
+sweep."* That is exactly what a green suite cannot see, because **the wrong invoice is created
+successfully.**
+
+### Proof
+
+- `legs.id` PK dropped → **RED** · `approvals.id` PK dropped → **RED**
+- aging top bucket broken (**gap**) → **RED** · middle bucket widened (**overlap**) → **RED**
+- payment-intent refusal removed → **RED**
+- contracts **326 → 328** · ledger **692 → 694** · billing **58 → 59** · typecheck 0 · lint 0
+
+**Reopen triggers**
+- **`documents.id` PK is REAL and still untested.** Measured silent: the evidence route's
+  `inserted.meta.changes > 0 ? 201 : 200` is what distinguishes a true first store from the concurrent
+  duplicate's loser, and it is PK-dependent. Same class as the two closed above; not closed here.
+- **`lensFor`'s unconditional tenant default is NOT a defect today and IS a roster hazard.** The role set is
+  closed by a D1 CHECK (six roles); `portal` and `driver` are handled explicitly and the other four *are*
+  the tenant roles, so the default is correct. The hazard is adjacency: a seventh role added to the CHECK
+  silently inherits the **unredacted whole-tenant lens**. Nothing links the two. Recorded, not fixed —
+  the fix is a gate over the union, which is the §269 `Partial`-map shape.
