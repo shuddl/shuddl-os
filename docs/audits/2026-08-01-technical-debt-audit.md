@@ -506,6 +506,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 311 | §863 | **§864** | **THE HONESTY STATES, AND A TEST THAT WAS GREEN FOR THE WRONG REASON.** `usePartyBoard`'s contract is a set of REFUSALS (*"NEVER falls back to synthetic data… the server's truth or an honest gap"*): ready/empty/stale/unavailable are four different claims made to a party about their own freight — a wrong transition crashes nothing, it shows an OUTAGE as *"you have no shipments"*. No defect; 8 cases, 5 mutations RED (warm→unavailable, cold→stale, the 401 rescheduling, `empty` constant, the unmount leak). **THE FINDING**: `isAuthError` is `status===401 || code==="UNAUTHORIZED"` — a **disjunction** — and my draft passed the constructor args in the WRONG ORDER (`code, message, status` vs `code, status, message`), so `status` was the string `"no"` and **the test passed anyway** on the misplaced code alone. Green, plausible, one side of an OR, claiming to test *a 401*. **Caught by `typecheck`, NOT the suite** — a test passing for the wrong reason is indistinguishable from one passing. **When the condition is a disjunction, one case cannot cover it, and the case you write will be whichever branch your fixture accidentally satisfies.** Practical trap also recorded: all 8 cases TIMED OUT first run — `waitFor` polls on a timer `vi.useFakeTimers()` freezes; fix is `{shouldAdvanceTime:true}`, stability checked over 3 runs not assumed. With §862 (assuming timers were needed when they were not) the pair is: **both "needs timers" and "doesn't" were wrong once this session** |
 | 312 | §864 | **§865** | **"THE LIVE BOARD FEED" WAS NOT LIVE, AND THE ROW THAT SAYS SO WAS CITED NOWHERE.** §864's closing question — does Command mirror the portal's four honesty states? — **was a misreading and is withdrawn**: the *mirrors* claim is about the fetch client having no `AbortSignal`, and `command/lib/board.ts` has NO hook (its parse was already covered). Reading instead of reasoning produced a better finding. **MEASURED: Command's map is not live** — `useBoardFleet` fetches ONCE on mount; a whole-corpus search for `WebSocket|EventSource|setInterval|refetch` under `apps/command` is empty **against a positive control**, so the silence is a result. Its comment opened *"The live board feed"*. **The register resolves it**: neither REQ-073 (backdrop) nor REQ-080 (lens) asks for refresh; **REQ-257 (V2-E, vNEXT)** does — and that row **names the "polling fallback" itself**, so the portal's 20s poll IS sanctioned and Command sitting one step back is deliberate scope. **Adding a poll would have been building an unregistered requirement** — CLAUDE.md's first rule, and I was two minutes from calling it a defect. **REQ-257 was cited NOWHERE in code**: the deferral lived only in the register (§813 shape). Comments only, no behaviour change, diff verified comment-only (both files were earlier mutation targets). `dispositions` note added per the REQ-184 precedent — after **verifying the manifest is actually read** (`coverage.ts:181`, staleness guard `:202`), because a note nobody reads is §851's defect |
 | 313 | §865 | **§866** | **EIGHT CITATIONS, FOUR WORKERS, ONE PROPERTY, AND THE WRONG REQ ROW.** Verified §865's nine unchecked status-drift rows. **Two false starts, same cause**: sorting by the literal word `VERDICT` said 7 were bare (FALSE — REQ-254's note is 1,085 chars opening *"PARTIALLY BUILT (recorded 2026-08-03)"* with a four-clause breakdown); re-sorting on `recorded YYYY-MM-DD|audit §N` said 3 (ALSO FALSE — REQ-288 carries a 700-char judgment stamped `NOTE (2026-07-27)` arguing the drift is a false positive: ~25 files implement the evidence PRODUCER, the row specifies the CONSUMER). **3rd and 4th time this session** a predicate whose boundary is English produced a confident wrong count. Real remainder: **2 rows, not 7.** **THE FINDING: REQ-278 is cited 8× across 4 files and every citation is about a DIFFERENT requirement** — *"ONE TENANT'S FAILURE MUST NOT KILL THE TICK"* (agents/billing/translator + a completeness gate) vs the row's actual text, *feature flags separate deployment/exposure/write/read authority*. REQ-025 (paired in 2 of 4) is *tenant isolation at DB level*, DoD *cross-tenant suite green forever* — isolation of DATA, not resilience of a SWEEP. **Neither row covers it, and the property is BUILT, SHIPPED and TESTED** (9 green in agents alone). So something shipped without a register row (CLAUDE.md rule 1), and the drift flag is a false positive for the STATED reason and a true positive for an unstated one. Not fixed: re-pointing requires choosing an owning row and none exists → a register amendment, **filed not decided** (§795). Disposition extended with the prior sentence PRESERVED (§865's lesson, one phase old) |
+| 314 | §866 | **§867** | **REQ-276 SAYS "NOT BUILT"; IT IS MOSTLY BUILT, AND THE HOLE IS WHERE NOBODY WRAPPED.** Measured all three DoD clauses. **TRUE**: zero tracked duplicates; a force-added `0001_ledger_core 3.sql` turns `check:invariants` **RED**. **FALSE**: *ignored artifacts do not alter authoritative counts* — one git-ignored duplicate `*.test.ts` takes vitest from **72 files/1,122 tests → 73/1,124**. It is a COPY so it passes, which is what makes it dangerous: **a test-count floor satisfied by a duplicate would hide a DELETED test file** and stay green. The tracked catch works but MISDESCRIBES itself (*"stray SQL outside db/*/migrations"* for a file INSIDE it): a **shadowing `globSync` wrapper** strips collision duplicates from all 15 glob sites, so the dup is absent from `migrations` while `git ls-files` lists it. **Five wrong measurements** to find that — the glob returned the dup in every standalone probe while `findStraySql()` flagged it, IN ONE PROCESS; the answer was an import alias (`globSync as globSyncRaw` + a local shadow). Reasoning about *"the same expression"* failed because it was not the same FUNCTION. Also: **12 `tools/` files walk the filesystem with neither git-awareness nor the filter** — mostly scanners, recorded not alarmed. `invariants.ts` solved this locally and completely; nothing carried it outward (§802's shape). Row is vNEXT → filed, not fixed |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -50561,3 +50562,76 @@ on REQ-289 alone.
 - REQ-276 is the one row of the nine still holding a bare *"not built"* one-liner. Its citations are a single
   self-referential mention inside `coverage.ts` itself, which is why it ranked below REQ-278 here — but it was
   **not** verified, and saying so is the point.
+## §867 — PHASE GATE: PHASE 87 CLOSED — REQ-276 says "not built"; it is mostly built, and the hole is in the one place nobody wrapped
+
+§866's remaining row. REQ-276: *"Duplicate source artifacts are removed and a git-aware duplicate check
+protects count and enum gates."* DoD: *"Seeded tracked duplicate fails the gate; ignored or worktree artifacts
+do not alter authoritative counts."* Disposition: a bare **"not built."**
+
+This is the macOS/iCloud hazard this checkout actually has — `name 2.ext` copies minted by sync.
+
+### Measured, clause by clause
+
+| clause | verdict |
+|---|---|
+| duplicate source artifacts are removed | **TRUE** — zero tracked duplicates |
+| a seeded **tracked** duplicate fails the gate | **TRUE** — force-added `0001_ledger_core 3.sql` → `check:invariants` **exit 1** |
+| **ignored** artifacts do not alter authoritative counts | **FALSE** — see below |
+
+The tracked-duplicate catch is real but arrives by an indirect route worth recording, because the failure
+message misdescribes it: *"FAIL stray SQL outside db/\*/migrations"* — for a file that **is** inside
+`db/tenant/migrations`. The mechanism is a **shadowing `globSync` wrapper** in `invariants.ts` that filters
+collision duplicates out of all 15 glob sites (*"a predicate each caller must remember to apply is one a
+future caller will forget"* — §244), so the duplicate is absent from the `migrations` set while `git ls-files`
+still lists it, and the stray fence fires. Fail-closed and effective; the message just names the wrong reason.
+
+That took five wrong measurements to establish — the glob returned the duplicate in every standalone probe,
+and `isStraySql(dup, migrations)` returned **false** while `findStraySql()` returned the duplicate, in the
+same process. The resolution was an **import alias**: `globSync as globSyncRaw`, with a local `globSync`
+shadowing it. Reasoning about "the same expression" was wrong because it was not the same function.
+[[compare-artifacts-dont-reason-about-them]] — the two artifacts here were two functions sharing a name.
+
+### The hole
+
+**Vitest collection is not wrapped, and it is authoritative.**
+
+| | test files | tests |
+|---|---|---|
+| baseline | 72 | 1,122 |
+| with one **git-ignored** duplicate test file | **73** | **1,124** |
+
+An iCloud duplicate of a `*.test.ts` is collected and **executed**. It cannot produce a false RED — it is a
+copy, so it passes — which is exactly what makes it dangerous: it inflates counts silently. The repo pins test
+counts and per-file floors (§827's `PER_FILE_FLOOR`, `test-file-collection.test.ts`), and **a floor satisfied
+by a duplicate would hide a deleted test file.** The gate would stay green because the count held.
+
+Also measured: **12 files under `tools/` walk the filesystem with neither git-awareness nor the duplicate
+filter.** Most are scanners rather than counters — a duplicate scanned twice yields the same verdict — so
+they are recorded, not alarmed about. `invariants.ts` solved this locally and completely; nothing carried the
+solution outward. That is the §802/§822 shape: one file's discipline is not the repo's.
+
+### Verdict on the row
+
+REQ-276's disposition is wrong in the **less common direction**: it says "not built" about something
+substantially built. Two of three DoD clauses hold, enforced by `.gitignore` (four rules, broadened at §253 to
+cover 2–99) and the `globSync` wrapper. One clause is measurably false.
+
+**Not fixed here.** The row is `vNEXT`; closing the vitest hole would extend deferred scope, and the existing
+protections were themselves built without the row advancing — which is the pattern, not a licence. Filed with
+the measurement so the decision is a decision and not a rediscovery.
+
+### Exit state
+
+No code changed. `test:tools` 72 files / 1,122 / 3 failed (REQ-289) — verified identical before and after,
+with the planted files removed and confirmed absent. typecheck 0 · lint 0 · `verify:docs` 0.
+
+One measurement artifact worth recording: the run immediately after deleting the planted duplicate reported
+**4** failures, not 3. A clean re-run gave 3. Vitest's collection raced the deletion — the anomaly was the
+measurement, not the repo ([[when-a-gate-looks-wrong-suspect-the-measurement]]), and re-running before
+reacting cost one command.
+
+**Reopen triggers**
+- A test-count floor is ever satisfied while a test file is missing → this is the mechanism; check for a
+  `name 2.test.ts` on disk before believing the count.
+- The 50 duplicates currently on disk are all inside `node_modules/.vite` caches. If one ever appears under
+  `apps/`, `packages/`, `workers/` or `tools/`, the vitest hole becomes live rather than latent.
