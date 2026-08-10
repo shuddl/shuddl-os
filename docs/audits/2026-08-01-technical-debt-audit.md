@@ -564,6 +564,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 369 | §921 | **§922** | **FOUR MORE UNDEFENDED GUARDS — AN IDEMPOTENCY CLASS, A MONEY PARTITION, AN UNLINKABLE SALE.** §921 left six candidates recorded *unverified, not clean*; continuing: **4 real, 1 refuted by reading, 1 still open.** **`INSERT OR IGNORE` is only idempotent because of a PRIMARY KEY** — `projectApprovals` (id = the requested event id) and the `booking.created` leg skeleton both state dedupe as their mechanism; dropping `legs.id`/`approvals.id` PK left ledger AND api green because **no test drove the same event twice**. OR IGNORE with no key to conflict on is just INSERT: a redelivery appends a second open approval, or a third skeleton leg the appointment claim can bind to — and at-least-once IS the queue contract. **The aging buckets** had to partition the line and only a comment said so: breaking the top bucket left contracts green **because the fallback returns the same label the broken bucket would have** — invisible by construction, a mislabel the day anyone edits the fallback, on the classifier BOTH the command MONEY queue and the portal customer STATEMENT share. Fixed as a **property** (reds on gap AND overlap; examples reach only the first), with `AGING_BUCKETS` exported for the same reason `lens.ts` exports `DRIVER_KINDS`. **An unlinkable credit sale**: `payment_intent` is OPTIONAL in the Stripe shape and removing the refusal left the whole billing suite green — every case builds its body through a helper that always supplies one; the guard's own comment names the result, *a phantom stream stuck 'issued' forever, invisible to any sweep*, which a green suite cannot see because **the wrong invoice is created successfully**. contracts 326→328, ledger 692→694, billing 58→59. **Still open**: `documents.id` PK (real, measured silent) and `lensFor`'s default (not a defect — the role set is CHECK-closed — but a ROSTER hazard: a 7th role silently inherits the unredacted tenant lens) |
 | 370 | §922 | **§923** | **THE SWEEP FULLY RESOLVED — 14 DISTINCT CANDIDATES: 10 REAL, 3 REFUTED, 1 ROSTER HAZARD.** Closed §922's two remaining. **`lensFor`'s tenant default is correct today** (the role set is CHECK-closed) **and is a roster hazard**: a 7th role silently inherits `lensWhere → 1=1`, the most permissive read in the system, and the existing test iterates a **hand-copied list of four** rather than the union. Gate now keys on `Role.options` and pins the population, so adding a role fails in front of whoever added it — **doing nothing stops being neutral**. **`documents.id`**: dropping the PK left the api suite green, and WHY bounds the fix — the suite's idempotent-repeat case is SEQUENTIAL, returning 200 through the `existing !== null` branch without ever reaching the insert; the PK only decides the CONCURRENT race, which is not deterministically reproducible against a single-writer D1. So the test pins the **schema property** (a repeated id leaves one row, `changes === 0`) and the race is **named as out of reach rather than quietly claimed**. **Totals: 10 real, 3 refuted, 1 roster hazard.** All three refutations came from MY mutations, not the finders' — **a finder's confidence is a hypothesis; the mutation is the measurement**, and that division is what made a read-only sweep usable. ledger 694→697 |
 | 371 | §923 | **§924** | **STOPPING POINT at `75b37b1` — 19 PASS · 2 FAIL · 5 BLOCKED; repo-owned failure set EMPTY.** Thirteen phases (§911–§923) closed. Board shape **unchanged from §916 — which is the point: none of this work moved the board, because the board was never measuring these classes.** Both FAILs are the one REQ-289 row (this run's own output, not inherited); the 5 BLOCKED report *could not run*, not *clean*. Everything else holds: 1,486 citations resolving / 265 anchored, bundle ratchet within 5% on all three surfaces, design audit clean, all four browser gates green. **Produced: 21 invariants that were enforced by exactly one mechanism with nothing exercising it** — 4 device-binding branches, the interline 10000-bps sum, `SafeInt`'s `-0`, the aging partition, **CLAUDE.md Law 5**, the import XOR, **two cross-tenant reads**, a double correction answering **500 instead of 400**, three `INSERT OR IGNORE` idempotency keys, 4 D1 CHECKs, an unlinkable credit sale — plus **5 new gates** converting each class from invisible-to-CI into fails-CI. **Three corrections to my own record**: §912 eyeballed 11 where 17 was the count; §917 re-measured what four phases already had; §920 rebuilt a rule blocking since §239 — whose **glob stops one directory short of where §919's defect lived**, the sharper finding. Corrected in place because an uncorrected claim here costs the next reader a phase |
+| 372 | §924 | **§925** | **THE REQ-025 STORAGE GUARD IS KEYED ON FUNCTIONS; AN INLINE KEY IS INVISIBLE TO IT.** Mines what the sweep recorded as BOUNDS rather than findings. `tenant-scope.test.ts` reads each `GUARDED_FNS` declaration, finds the tenant PARAMETER position, and checks every call — and its completeness half DERIVES the roster. **Both halves are keyed on a FUNCTION**, so a key built inline (`` `${session.tenant}/imports/…` ``) has no declaration to read and no export to derive: **not allowlisted, INVISIBLE**. Measured twice independently (the sweep's enumeration + a hand scan of 58 tenant-interpolated templates): **exactly two** sites. **Neither is a live defect** — the translator's 990 ack key is pinned by `isolation.test.ts` case 3b and the import key at §921 — so this repairs nothing and closes the **discovery half** of a guard that already has a roster half. R2 is why it earns a file: per-tenant D1 is PHYSICAL isolation and a wrong slug throws, while R2 is ONE SHARED BUCKET partitioned by a string prefix, so a dropped segment reads another tenant's objects **with no error anywhere**. 14 sites classified (10 builder bodies, 2 prefix guards, 2 inline). **The gate caught my own registry error on its first run** — a row for `tenderKey`, whose separator lives in the builder it composes, was dead weight; §672 said so immediately. Rows keyed by **file + snippet, never line** (§885/§913). Proof: new inline key → RED; row deleted → RED; **an existing key LOSING its tenant segment → RED**. test:tools 1,152→1,155 |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -54289,3 +54290,68 @@ phase is committed with its record, its mutation proof and its own reopen trigge
   this migration set (§920).
 - Pool-workers suites are unreliable under rapid repeated invocation here; any future mutation sweep must
   use the narrowest owning suite **and treat a missing summary as ERROR, never GREEN** (§915).
+## §925 — PHASE GATE: the REQ-025 storage guard is keyed on FUNCTIONS; an inline key is invisible to it
+
+§924 closed a stopping point. This mines what the discovery sweep recorded as **bounds** rather than
+findings — the observations agents wrote into their summaries and correctly declined to report as defects.
+One of them names a gate's corpus gap, which is the §920 shape again and worth the phase.
+
+### The gap
+
+`tenant-scope.test.ts` (§572/§700/§702) is the REQ-025 guard for storage entry points. It reads each
+`GUARDED_FNS` declaration, finds the **tenant parameter's position**, and requires every call to pass an
+authenticated expression there — and it carries a completeness half that *derives* the roster rather than
+trusting it (*"which exported functions take a tenant AND touch storage"*).
+
+**Both halves are keyed on a FUNCTION.** A key built inline —
+
+```ts
+const key = `${session.tenant}/imports/${body.r2_key}`;
+```
+
+has no declaration to read a parameter position from and no export to derive. It is not allowlisted and not
+exempted: it is **invisible**.
+
+**Measured twice, independently** — the sweep's enumeration and a hand scan of 58 tenant-interpolated
+template literals — agreeing on the same answer: **exactly two** such sites, `routes/import.ts` and
+`translator/inbound.ts`.
+
+### Neither is a live defect, and the gate is still worth building
+
+The translator's 990 ack key is pinned by `isolation.test.ts` case 3b, *written explicitly to catch a
+dropped `${tenant}` prefix*. The import key was pinned at §921 — after its own mutation showed the whole api
+suite green without it.
+
+So this repairs nothing. It closes the **discovery half** of a guard that already has a roster half: a
+roster finds what it lists; only a scan finds what arrives. R2 is why it earns a file — per-tenant D1 is
+**physical** isolation and a wrong slug throws, while R2 is **one shared bucket** partitioned by a string
+prefix, so a dropped segment reads another tenant's objects **with no error anywhere.**
+
+Fourteen sites are now classified: ten as the body of a named builder the existing gate already guards, two
+as prefix *guards* (keys checked rather than built, same consequence if the segment goes), and the two
+inline ones with the test that stands in for the gate that cannot see them.
+
+### The gate caught my own registry error on its first run
+
+I wrote a row for `tenderKey`, whose literal is `` `${tenderPrefix(tenant)}${shipmentId}` `` — the path
+separator lives in the **builder it composes**, not in that template, so the detector correctly does not see
+it and the row was dead weight. The §672 half said so immediately. The row is gone and the reason is
+recorded at the site, so the next reader does not re-add it.
+
+Rows are keyed by **file + code snippet, never line number** — an edit elsewhere rots a line anchor, and
+this record has the scars (§885, §913). A moved key keeps its row; a **changed** key loses it, which is
+exactly the edit someone should look at.
+
+### Proof
+
+- A new inline tenant key arrives → **RED**. An `ACCOUNTED` row deleted → **RED**.
+- **The security case**: an existing inline key **loses its tenant segment** → **RED** (the §672 half —
+  the site stops matching, so its row is orphaned).
+- `test:tools` **1,152 → 1,155**, 3 failed = the REQ-289 trio · typecheck 0 · lint 0.
+
+**Reopen trigger**
+- **The detector is shape-based and therefore incomplete by construction**: it requires a `/` inside the
+  same template literal. A key assembled across two statements, or one whose separator lives in a composed
+  builder (exactly the `tenderKey` case above), is outside it. That is a bound, not a bug — but it means a
+  green here says *"no inline key of the shape I can see"*, not *"no inline key"*. The preferred fix for any
+  new site remains extracting a named builder, which buys the call-site check the roster half already does.
