@@ -524,6 +524,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 329 | §881 | **§882** | **THE NAMED STRUCTURAL FIX MEETS THE SAME WALL, AND THE RECORD DOES NOT SAY SO.** §881 declined L419's fix partly because it *"plausibly"* meets §12's harness wall and flagged that as a claim. **Measured**: `workers/api/vitest.config.ts:30` runs `isolatedStorage:false` + `singleWorker:true` (a SQLite-backed DO leaves a `.sqlite-shm` sidecar the snapshot rejects), so **66 files share ONE D1 with no per-test rollback**. Standing claimants: `t-parity-mirror`→POOL_01, `t-lgproof`→POOL_02 — **different slots**, so they do not collide with each other (a detail §12 left ambiguous). The collision is the DYNAMIC claimants: four files re-seed the `_pool_0N` sentinels and claim one, and re-seeding a sentinel does not remove `t-parity-mirror` → **two claimed rows on `TENANT_POOL_01_DB` in one shared D1**. **What that changes**: the row's remedy says a UNIQUE index *"needs no runtime COUNT"*, which reads as *therefore it avoids §12's problem*. It does not — §12's COUNT failed at READ time, the index fails at WRITE time, the moment a test claims a slot a standing row holds. **Same wall, one step earlier**; the fix is necessary and NOT sufficient, and the harness work is a precondition either way. Also: `pool_binding` lives in a JSON column, so it needs a PARTIAL EXPRESSION index. Record refined, not corrected — L419 and §12 are both accurate; the gap is an implication nobody had measured |
 | 330 | §882 | **§883** | **THE GUARD THAT BOUNDS A LIVE MONEY EXPOSURE HAD NO TEST — AND THE MUTATION SHOWS WHAT IT ACTUALLY GUARDS.** Verified checklist L228 by RISK (client input selecting a money outcome, rule-5 territory). **Accurate and unmitigated**: `biller.ts:465@resolveInterline` passes `pod.actor.party` into `resolveInterline`; `approval.ts:126` selects on `leg.executor === tenantParty`; and **no gate reads it** — the sequencer names `actor_party_id` exactly once (a column list at `:182`) and a comment-stripped scan of `ledger/src/gates/**` + `contracts/src/**` returns NOTHING. A registered device can sign a valid POD naming ANY party. **The row's bounding claim — *naming a party that executes no leg is FAIL-CLOSED (verified)* — meant a SOURCE READ**: `interline_unresolved` appeared in the whole test corpus only inside TWO COMMENTS. Now driven, deliberately on the fail-CLOSED half (a test of the fail-open path would BLESS it). **The mutation is the finding**: deleting the guard yields `below_floor`, **still no invoice** — a signer executing no leg computes a share of ZERO, so the money property is held by a SIBLING guard (§688) and this guard is load-bearing for the **DIAGNOSIS** (*cannot locate your share* vs *your share is too small*), not the money. **Defensive spelling for the outcome, load-bearing for the message** — worth knowing before someone simplifies it away. **Does NOT close L228**: the real exposure is naming the PARTNER's party, which resolves cleanly and CLEARS the floor |
 | 331 | §883 | **§884** | **"249 ROWS UNVERIFIED" WAS MY OWN MISLEADING DENOMINATOR.** Bucketed all 255 open checklist rows: **38 dated 2026-08 · 22 dated earlier · 33 audit-§ only · 162 (63%) unstamped.** The 63% is the misleading figure — those 162 are dominated by **secrets, provisioning and legal prerequisites**, and **a row waiting on an external fact cannot rot**; it needs no stamp, ever. Filtering to repo-citing, non-external rows: **45**, of which ~a third are secret rows that merely mention a path → **~10–15 genuine code-claim rows without a stamp. The honest denominator is ~15, not 249** — I have been counting unrottable rows as unverified debt. **And the risk-picked rows were already done**: L229 scope-verified §415 (and better than its title — FOUR fields outside `clientView`, not two, three immaterial for stated reasons), L204 narrowed §124 (which deleted a FALSE half of its own title), L415 verified here (comment-stripped: `agent.acted` emitted only by `routes/rate.ts` + `translator/inbound.ts`, no Concierge source — row HOLDS; its Migrator sub-claim unchecked and said so). **§877's 3-of-6 was a biased sample** — chosen for mechanical checkability, which selects for rows quietly fixed by later work; risk-chosen rows are in better shape because risk got attention |
+| 332 | §884 | **§885** | **EIGHT CODE-CLAIM ROWS VERIFIED IN ONE PASS; SEVEN HOLD, ONE CITATION DRIFTED.** Worked §884's sized backlog instead of sampling 255. **Hold**: L173 (`legacy-mirror.ts:69` is the monotonic-cursor docblock), L246 (`sms-not-wired` hold arm present), L267, L283, L295, **L304 — whose source annotates the gap VERBATIM** (`workers/agents/src/watchtower.ts` (the UNKNOWN⇒CLEAR branch): *"a native module whose mirror went UNKNOWN is unmonitored"*), L317 (`parity.ts:130` counts by KIND). **One defect: L210** cites `sweep-214.ts:182` and **that line is BLANK** — the claim is true (`dedupeKey` bare while the R2 key is tenant-scoped) and the source notes it itself at `:249`; re-anchored to `:254@send214`. **§877's `notifyBoard` shape in its mild form**: right about the world, wrong about the artifact — but `notifyBoard` named a symbol that NEVER EXISTED (a false claim) while this names a real file at a line that MOVED (decay); only the second is fixable by re-anchoring. **Two of my probes were wrong before any row was**: grepping `parity.ts` for `note` returned ZERO and looked like staleness — the word is absent *because* parity does not distinguish ops notes from customer messages, which is the row's whole point; **the absence I measured was the defect, not its refutation** |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -51733,3 +51734,56 @@ No code changed. `verify:docs` 0 · `test:tools` 1,131, 3 failed (the REQ-289 cl
   a judgement about a prose cell, which is §857's `dod_kind` problem for the fourth time.
 - **Three of the rows in that set say "needs a REQ row first"** (L415, L416, and the L419 family). Those are
   not verification work; they are register work, and they cannot be closed from inside the repo.
+## §885 — PHASE GATE: PHASE 105 CLOSED — eight code-claim rows verified in one pass; seven hold, one citation has drifted
+
+§884 sized the real backlog at ~10–15 repo-owned code-claim rows without a verification stamp. This works that
+list rather than sampling 255.
+
+| row | claim | verdict |
+|---|---|---|
+| L173 | `cursorColumn` monotonic-on-change | **holds** — `legacy-mirror.ts:69` is the monotonic-cursor docblock; citation lands |
+| L210 | 214-sweep dedup key not partner-qualified | **substance holds, CITATION DRIFTED** — see below |
+| L246 | SMS evidence fallback throws (email-only) | **holds** — `sender.ts` carries the `sms` channel schema and an `sms-not-wired` hold arm |
+| L267 | `settlement.executed` fee events synthetic only | **holds** — the fixture generator names it CONFIRM-gated at the cited line |
+| L283 | caps reserve-at-check over-counts | **holds** — `caps.ts` still reserves at check |
+| L295 | platform-chart GL account uncovered | **holds** — `GL_PLATFORM_CREDITS_AR` present in `credits.ts` |
+| L304 | UNKNOWN-while-native liveness unmonitored | **holds, and the source says so verbatim** |
+| L317 | comms parity counts internal ops notes | **holds** — `parity.ts:130` counts by KIND |
+
+**Seven of eight clean.** That corroborates §884: the residual is citation hygiene, not false claims.
+
+### The one defect
+
+L210 cites `workers/translator/src/sweep-214.ts:182`. **Line 182 is blank.** The claim itself is true and the
+file is right — `dedupeKey = edi214/<newest-status id>` is bare while the R2 key is tenant-scoped — and the
+source carries its own note at `:249`: *"`dedupeKey` is NOT tenant/partner-[qualified]"*. Re-anchored to
+`:254@send214`, the line that actually hands the key to the transport, so the citation survives the next edit.
+
+This is §877's `notifyBoard` shape in its mild form: **right about the world, wrong about the artifact** — but
+where `notifyBoard` named a symbol that never existed, this names a real file at a line that moved. The first
+is a false claim; the second is decay. Only the second is fixable by re-anchoring.
+
+### Two probes of mine were wrong before the rows were
+
+Worth recording because the pattern is now eight instances deep:
+
+- **L317** — I grepped `parity.ts` for `note`, got **zero**, and briefly read that as the row being stale. The
+  word is absent *because* parity counts by kind (`message.received`) and does not distinguish an ops note
+  from a customer message — which is exactly what the row says. **The absence I measured was the defect, not
+  its refutation.**
+- **L210** — the empty line at `:182` looked like a dead citation into a deleted mechanism. The mechanism is
+  alive four lines from a comment describing it.
+
+Both were resolved by reading the file, which is now the ninth instance this session of a probe answering a
+different question than the one I asked.
+
+### Exit state
+
+One citation re-anchored; no code changed. `verify:docs` 0 · `test:tools` 1,131, 3 failed (REQ-289).
+
+**Reopen triggers**
+- The remaining unstamped code-claim rows after this pass are the ones whose fix is register work — L415, L416
+  and the L419 family each say *"needs a REQ row first"*, and no amount of verification closes them.
+- `sweep-214.ts:254@send214` is anchored, but the citation ratchet only guards files it already tracks as
+  high-churn. A bare `path:line` into a *quiet* file still rots silently; L210 is the proof, and it took a
+  hand pass to find.
