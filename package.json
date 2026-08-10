@@ -11,7 +11,7 @@
     "typecheck": "pnpm run typecheck:tools && pnpm -r --if-present run typecheck",
     "typecheck:tools": "tsc -p tsconfig.tools.json",
     "lint": "eslint .",
-    "test": "pnpm run test:tools && pnpm -r --if-present run test",
+    "test": "pnpm run test:tools; t=$?; pnpm -r --if-present run test; p=$?; exit $(( t || p ))",
     "test:tools": "vitest run --config vitest.tools.config.ts",
     "check:runtime": "tsx tools/checks/runtime-contract.ts",
     "seed": "tsx tools/seed/generate.cli.ts",

@@ -320,13 +320,54 @@ describe("REQ-118 §656: the test script still chains the tools suite", () => {
     ).toContain("test:tools");
   });
 
-  it("chains it with && so a tools failure fails the gate", () => {
-    // `;` would run both and return only the last exit code; `||` would run the second ONLY on failure. Either
-    // keeps the script present while destroying what it is for.
+  // §940 — TWO PROPERTIES, NOT ONE OPERATOR.
+  //
+  // ~~§656 required `test:tools &&`~~ — superseded on the MECHANISM, not the property. §656 mutated `&&` → `;`
+  // and correctly found it fatal: a bare `;` returns only the LAST command's exit code, so a failing tools
+  // suite stops failing the gate. Its fix bought POLARITY with `&&`, which also buys short-circuit — free at
+  // the time, because `test:tools` passed.
+  //
+  // It stopped being free. `test:tools` now carries a persistent owner-held red (the REQ-289 register row), so
+  // `&&` meant `pnpm -r run test` had not executed in the `unit-tests` merge gate at all. MEASURED AT §940: a
+  // failing test planted in `packages/ledger` was INVISIBLE to `pnpm test` (0 hits) and visible once both exit
+  // codes were aggregated (3) — 3,269 tests across 17 suites, every one green, not being run. A real
+  // regression was indistinguishable from the known row.
+  //
+  // So both properties are asserted directly instead of being inferred from an operator:
+  //   COMPLETENESS — both halves run unconditionally.
+  //   POLARITY     — either half failing fails the gate (§656's property, kept).
+  // A mechanism assertion cannot report that it has stopped buying what it was bought for.
+
+  it("§940: runs the recursive half UNCONDITIONALLY (completeness)", () => {
+    expect(
+      test,
+      `the \`test\` script no longer runs the package suites (script: "${test}")`,
+    ).toContain("pnpm -r --if-present run test");
     expect(
       /test:tools\s*&&/.test(test),
-      `the tools suite is no longer chained with && (script: "${test}"). A failing tools gate would then not ` +
-        "fail `unit-tests`, which is the difference between running a check and enforcing one",
-    ).toBe(true);
+      `the tools suite is chained with && (script: "${test}"). That short-circuits: while test:tools fails — ` +
+        "and it does today, on the owner's REQ-289 row — the package suites do not run at all, so a real " +
+        "regression anywhere in the product renders identically to the known red. §940 measured this at " +
+        "3,269 tests across 17 suites. Capture both exit codes instead.",
+    ).toBe(false);
+  });
+
+  it("§656/§940: either half failing fails the gate (polarity)", () => {
+    // The property §656 established, preserved under the new mechanism. A bare `;` between the halves returns
+    // only the second exit code and silently discards a tools failure — the exact M158 mutation — so the
+    // script must propagate the FIRST half's status explicitly.
+    const capturesToolsStatus = /test:tools\s*;\s*(\w+)=\$\?/.exec(test);
+    expect(
+      capturesToolsStatus,
+      `the \`test\` script neither chains with && nor captures test:tools' exit status (script: "${test}"). ` +
+        "A bare `;` returns only the LAST command's code, so 44 tools gate files would run and be ignored — " +
+        "§656's M158, the difference between running a check and enforcing one.",
+    ).not.toBeNull();
+    const captured = (capturesToolsStatus as RegExpExecArray)[1] as string;
+    expect(
+      test,
+      `\`test\` captures test:tools' status into $${captured} but never uses it in its exit — the capture is ` +
+        "decoration and a failing tools suite still exits 0.",
+    ).toMatch(new RegExp(`exit\\s+\\$\\(\\(\\s*${captured}\\s*\\|\\|`));
   });
 });

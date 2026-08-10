@@ -579,6 +579,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 384 | §936 | **§937** | **ONE FACT, TWO RECORDS — THE LIVE ONE WAS MAINTAINED, THE SUMMARY WAS NOT.** C3 — the agents worker's claimed-pool blind spot, filed **High**, *"build it before any `PROVISIONING_ENABLED` flip"*. **Every clause of the open half is now false**: `tenants.ts` declares both pool DBs (6 wrangler entries), exports `POOL_BINDINGS`, and carries a **fail-closed** claimed resolver throwing `UNKNOWN_TENANT` for sentinel/unclaimed/malformed/invalid-binding; enumeration is `allTenantSlugs()` at **9 call sites** — including `runReconSweep`, the REQ-169 sweep the row named — with **ZERO** remaining `for … of TENANT_SLUGS` fan-outs; covered by two suites. **I had the staleness in the WRONG PLACE**: the live checklist row already said *RESOLVER BUILT 2026-08-01* and even named *the ninth fan-out hiding outside `index.ts`* — the exact site my count found ninth. **The stale record is the AUDIT's C3 SUMMARY row.** Corrected before commit, because a correction that misidentifies its subject sends the next reader to fix a row that is already right. **The class**: a checklist row has eight fields and an expiry; a summary row has neither — **a fact duplicated into a summary acquires a second lifetime nobody manages**, and the audit's row is the natural entry point because it names the severity. **Under-reporting progress costs as much as over-reporting it, and nobody checks that direction — a record saying *still open* never looks wrong.** Cost: four commands, all named by the row's own expiry field, un-run since filing. **Two proxies avoided**: a `head`-truncated grep showed 7 fan-outs (real: 9, with `runMirrorSweep` outside the window), and `mirror-sweep.ts` holds no enumeration at all — after §934 and §935 each produced a proxy count that looked like a finding, exact counting was the default |
 | 385 | §937 | **§938** | **ELEVEN OF TWELVE SUMMARY ROWS HOLD — BUT ONE IS HELD BY NOTHING.** §937's C3 correction raised the bounded question: how many of the summary zone's other status rows are stale? Re-verified all twelve against HEAD by reading the SUBJECT (tracked-file counts, struck text, the lens branch itself) — eleven hold. The finding is the second question: *is each fix PINNED?* C1's is (reverting the lens branch REDs `portal-actions.test.ts`). **C2's was not** — deleting ` --mode release` from `package.json:43` restores audit C2 verbatim: `pnpm test:surfaces` prints *"BLOCKED — a skip is not a pass"* and **exits 0**, while all six package.json-reading gates stay green (45/45). Sentinel and exit code disagree; CI believes the exit code. `playwright-mode-parity.test.ts` now computes the rule from run-gate's roster: every browser gate draws its mode from exactly one source, never both, never neither — 3/3 mutations RED. Also: my own near-miss, treating the context's session-start `gitStatus` as the tree |
 | 386 | §938 | **§939** | **CLAUDE.MD'S DESIGN LAW IS REPEALED BY ONE WORD OF JSON.** Generalizing §938: repo-wide there are exactly two gate-semantics knobs, and the second is `tools/design/design-ci.json`, stated as law in CLAUDE.md rule 7, genesis/11 and genesis/14. Flipping `"blocking"`→`"advisory"` is **silent** (test:tools fails only on the known REQ-289 trio). And consequential: a planted `box-shadow` exits **1** under blocking and **0** under advisory *while still printing the violation*. §252 proved the gate WORKS; §258 read that the config says blocking; neither asked whether the config HOLDS — a gate proved correct and a gate proved durable are different claims. `design-mode-parity.test.ts` parses the mode CLAUDE.md asserts and requires the config to match (§830), so changing the law takes both sides in one commit |
+| 387 | §939 | **§940** | **THE UNIT-TESTS GATE WAS RUNNING A QUARTER OF THE TESTS.** `test` is `test:tools && pnpm -r run test`; `test:tools` fails on the owner's REQ-289 row, so the recursive half has not run in the merge gate for as long as that row has been open. Measured: a planted `packages/ledger` regression is **invisible** (0 hits) under `&&` and visible (3) when both exit codes are aggregated. **3,269 tests across 17 suites, all green, were not being run** — the failure mode is silence, not noise, and a real regression was indistinguishable from the known row. §656's `&&` bought polarity at the cost of completeness when the first half could not fail; that mechanism is superseded (its property is kept and still enforced). `--no-bail` REJECTED on evidence: workerd socket exhaustion cascades false failures. Residual named: `pnpm -r` still bails per package |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -55323,3 +55324,78 @@ mode, so "blocking" cannot be quietly redefined to mean nothing.
 **Reopen trigger, run in this phase (§926):** *"if the advisory branch is deleted outright, is the gate
 vacuous?"* No — deleting it makes the audit **always** exit 1 on violations, which is strictly safer, and the
 doc-parity assertion still holds. The unsafe direction is the reachable one, and it is now RED.
+
+## §940 — PHASE GATE: the unit-tests gate has been running a quarter of the tests
+
+§939 asked which knobs can be flipped silently. This asks the adjacent question about my own new gates — **are
+they reached by CI at all?** They are: `test` runs `test:tools` first. Following that chain found something
+much larger about the other half.
+
+```
+test = pnpm run test:tools && pnpm -r --if-present run test
+```
+
+`test:tools` currently FAILS — the owner's uncommitted REQ-289 register row, a known, long-standing,
+owner-held red. So `&&` short-circuits, and **`pnpm -r run test` has not executed in the `unit-tests` merge
+gate for as long as that row has been open.**
+
+**Measured, not inferred.** Planted a failing test in `packages/ledger/test/parity.test.ts` and ran the gate:
+
+| | planted ledger regression visible in `pnpm test` |
+|---|---|
+| `&&` (as shipped) | **0 hits** — output is the tools suite alone |
+| exit-aggregating | **3 hits** |
+
+So today a real regression anywhere in the product is **indistinguishable from the known register row**: both
+render as `FAIL unit-tests`. The board has been reporting a gate that could not have failed for the reason
+anyone reading it would assume.
+
+**Scale.** With the chain fixed, all 17 package suites run — and every one is green:
+
+```
+17 suites, 3,269 tests — api 824 · ledger 697 · contracts 329 · agents 227 · mcp 185 · rater 166 · …
+tools suite: 1,177 (3 failing = the REQ-289 trio)
+```
+
+Total reached by the gate: **4,446 tests, up from 1,177.** (Mid-phase the tools suite read 4 failing — the
+fourth was `gate-wiring`'s `&&` assertion catching my own change, which is how the §656 decision below came
+to light. It is rewritten, not deleted, and the count above is the committed state.)
+
+**3,269 tests, all passing, that the merge gate was not running.** The corpus was healthy the whole time,
+which is exactly why nobody noticed: the failure mode of this defect is silence, not noise.
+
+### §656 was right, and is now superseded on the mechanism
+
+This is not a discovery of an unguarded seam — `gate-wiring.test.ts` **caught my change**, which is how I
+found the prior decision. ~~§656 requires `test:tools &&` so that a tools failure fails the gate~~ — that
+*property* stands and is still enforced; the `&&` *mechanism* is superseded here.
+
+§656 mutated `&&` → `;` and correctly found it fatal, because a bare `;` returns only the **last** command's
+exit code, so a failing tools suite would be ignored. Its conclusion — chain with `&&` — bought **polarity**
+at the cost of **completeness**, and at the time that cost was zero because the tools suite passed. Once a
+persistent owner-held red landed in the first half, the cost became total.
+
+The replacement keeps both properties by capturing both exit codes rather than relying on the operator:
+
+```sh
+pnpm run test:tools; t=$?; pnpm -r --if-present run test; p=$?; exit $(( t || p ))
+```
+
+Polarity verified end-to-end in the run above: tools failed, all 17 package suites passed, **exit 1**. The
+gate assertion is rewritten from *"contains `&&`"* to the two properties it always meant — both halves run
+unconditionally, and either failing fails the gate. A mechanism assertion cannot tell you it has stopped
+buying what it was bought for; [[state-the-mechanism-not-the-outcome]], applied to a gate rather than a comment.
+
+### One residual, named rather than quietly accepted
+
+`pnpm -r` still bails at the **first failing package**, so a ledger failure hides later packages. The obvious
+fix is `--no-bail`, and I measured it before believing it: it made every worker suite run concurrently and
+workerd exhausted local sockets — `connect(): Can't assign requested address` cascading through mcp,
+translator, agents and api, with the *planted* failure never reported because the suite crashed before
+reaching it ([[workerd-wedge-uninterruptible]]; 37 orphaned workerd processes were live at the time). That is
+a false-failure generator, strictly worse than the bail. **So `--no-bail` is rejected on evidence, and the
+residual is recorded rather than dropped** (the no-silent-caps rule): *within* the recursive half, package
+order still truncates on first failure. The top-level split — the one that was hiding 3,269 tests — is closed.
+
+**Board: 26 gates, 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape, and both FAILs remain the REQ-289 row
+— but `unit-tests` now fails *having run the whole corpus*, which is a different and much more useful red.
