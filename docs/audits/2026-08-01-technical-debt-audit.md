@@ -500,6 +500,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 305 | §857 | **§858** | **TWO GATES IN ONE FLOW; ONE WAS PROVEN.** Swept §849's shape (a module imported by ZERO tests): 104/328 files. **The sweep was wrong twice.** (1) `workers/` routes are covered by INTEGRATION tests — not-imported ≠ not-tested, and for a handler the integration test is BETTER. (2) The driver 13 looked false too: React children are exercised TRANSITIVELY through the composing test. **Then the rebuttal was wrong** — `GatedFlow.test.tsx:19–34` **MOCKS all three children**, so the composing suite proves nothing about the composed component. Three readings; only opening the file was right. **The finding: REQ-063's forced-photo gate has a component suite; REQ-064's *ADVANCE is dead until the glass holds ink* had NONE** — same GatedFlow, same header comment, both mocked in the same file. This is REQ-142's BUILT half and acceptance demo #1's opening beat. **Why it hid**: jsdom has no 2D context → `getContext` null → every handler early-returns → a naive render PASSES (§688's *passing corpus*). Proof: **blinding the fake context reddens the 3 positive cases and leaves all 3 negatives GREEN** — *a tap lays no ink* is satisfied by a component that does nothing, and the negatives are the intuitive tests to write. 6 cases landed, 4 mutations RED. Best two: **a tap is not a signature** (`hasInk` set in `move`, never `down` — a fingertip in a truck cab must not satisfy a POD gate) and **clear re-arms the gate** (wipe the pixels but keep the flag → a BLANK signature commits as proof of delivery). No production code changed; the gate was right, nothing proved it |
 | 306 | §858 | **§859** | **THREE GUARANTEES IN PROSE; AND A SILENT MUTATION CAUGHT MY OWN TEST OVERCLAIMING.** `useSync.ts` — the orchestration between `classifyStatus` (§848) and the transport (§849), both of which had real defects — states *"it syncs only while visible, online, and authenticated"* in its header and enforced none of it. **Why that hides**: a developer's browser is visible+online+authenticated SIMULTANEOUSLY, so deleting any guard changes nothing on a desk; the conditions only diverge in a truck. No defect — the hook is correct; 9 cases now hold it there, 5 mutations RED. **The 6th was SILENT** and is the finding: deleting the cleanup's `removeEventListener` left my unmount test green, because the same cleanup sets `cancelled = true` and `runPass` returns on it — a **sibling guard** (§688). The leak is REAL (a handler outliving every driver screen) and my test could not see it: I asserted on **the silence the removal causes**, not the removal. Named *"UNMOUNT detaches the listeners"*, proved *"an unmounted hook does not answer network events"*. **A behavioural assertion downstream of a second guard measures the GUARD, not the subject, and keeps passing while the thing in its name rots.** Now spied on `removeEventListener` directly — window and document mutated separately, both RED. Fourth just-written-fix defect this session, first caught by a MUTATION rather than a reading, and it cost ~2min because the mutation was routine, not suspicion-driven |
 | 307 | §859 | **§860** | **THE GUARD THAT REPLACED A SHIPPED DEFECT, PINNED BY NOTHING.** `StopScreen` was named uncovered by §858 AND §859 and covered by neither — twice-deferred is how this debt survives. Its prop doc records why the gate exists: *"2026-08-01: a hardcoded 6 used to be recorded on every pickup"*. **A guard that replaced a SHIPPED defect is the worst thing to leave untested — the mistake it prevents has already happened once, which is proof it is reachable.** No defect; 11 cases now hold it, closing the set of three children `GatedFlow.test.tsx` mocks (CameraScreen/§858 SignatureScreen/here). **The 4th mutation was SILENT**: deleting `count.value <= 0` changed nothing, because the input emits only positive integers and `pieces` has that handler as its SINGLE writer — **construction-forbidden** (§688), whose prescribed response is *document, do not test*. **Tested anyway, for a reason the taxonomy misses**: the same re-check has TWO halves and I had already tested the other, which is unreachable by the identical argument. Pinning one half and calling the other unreachable is not a principled line — it is where I happened to stop. Deciding property: `count` is a **public prop**, so §677's *don't pin defensive spelling* (which governs redundancy INSIDE a function, sibling visibly adjacent) does not reach it — any second caller inherits the contract without the handler |
+| 308 | §860 | **§861** | **STOPPING POINT — BOARD RE-MEASURED AT `b8c346e`: 26 gates, 19 PASS · 2 FAIL · 5 BLOCKED**, identical to the pre-segment board with **26 new tests and no gate moved either way**. **Both FAILs are ONE uncommitted row** — `unit-tests` (3 register-classification tests) and `coverage` (*1 unaccounted row: REQ-289*) both trace to the owner's `ACTIVE`/`GTM-0` edit; verified by removing my own files and re-running (§858). Committing it or bucketing `ACTIVE`/`GTM-0` turns both green in one move — **not mine to make**, `genesis/09` is source-of-truth #1. The 5 BLOCKED are absent INPUTS (9 private fixtures + the denylist), each reporting *"could not run"* rather than *"clean"* — and §857 executed the identity gate's DoD against a seeded denylist, so that BLOCKED is a missing secret, not a weak gate. **This segment changed ZERO production code**: everything was enforcement or coverage of already-correct behaviour. **Three of five phases found the defect in my OWN just-finished work** (§857 in §856's count, §859 in its own test's name, §860 in its own stopping point) — the argument FOR the self-review habit, not against it. Expected board once REQ-289 lands: **21 PASS · 0 FAIL · 5 BLOCKED**; if either FAIL survives, this section is wrong |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -50165,3 +50166,69 @@ Driver suite **15 files / 100 tests**, all green (+1 file, +11). typecheck 0 · 
 - `DaySheet`, `ProgressLine`, `TapButton` and `Screen` remain uncovered. They are presentational — no gate, no
   refusal, no recorded fact — so they are deliberately *not* on the list, and this line exists so that
   judgement is visible rather than implied by silence.
+## §861 — PHASE GATE: STOPPING POINT — the board re-measured at `b8c346e`; five phases that changed no production code
+
+A stopping point, measured rather than declared. `pnpm verify:merge` run to completion at `b8c346e`:
+
+**26 gates — 19 PASS · 2 FAIL · 5 BLOCKED.** Identical to the pre-segment board (§298's shape), with 26 new
+tests added across four new files and no gate moved in either direction.
+
+### The two FAILs are one uncommitted row, not code
+
+| gate | why |
+|---|---|
+| `unit-tests` | three register-classification tests: *classifies every row → zero unaccounted*, *disposition is pure + total*, *keeps the register contiguous* |
+| `coverage` | `FAIL 1 unaccounted register row: REQ-289 — unknown/empty status "ACTIVE" or buildable row whose wp "GTM-0" names no active WP` |
+
+Both trace to the **same** uncommitted `genesis/09` edit — the owner's REQ-289 demand-lane row, carrying a
+status and a WP the classifier does not know. Verified twice this segment by removing my own files and
+re-running (§858): identical failures, so nothing here caused or masks them. **Committing that row, or giving
+`ACTIVE`/`GTM-0` a bucket, turns both green in one move.** It is not mine to make: the register is
+source-of-truth #1 and the row is the owner's.
+
+### The five BLOCKED are absent inputs, and they are honest
+
+`identity-leak` (no denylist), `fixtures` (nine private fixtures: `rater-48-tests`, `rater-504-sweep`,
+`zone-tariff-v1`, `invoice-500-replay`, `concierge-parse-50`, `customer-roster`, `legacy-import-formats`,
+`legacy-export-replay`, `synthetic-blitz-3100`), `rater-parity`, `invoice-parity`, `concierge-parse`.
+
+All five are BLOCKED rather than PASS or skipped — a gate reporting *"I could not run"* instead of *"clean"*.
+§857 executed the identity gate's DoD against a seeded denylist and it fails closed correctly, so the BLOCKED
+here is the absence of the secret, not a weakness in the gate.
+
+### What this segment did
+
+Five phases, **zero production-code changes.** Everything landed was enforcement or coverage of behaviour that
+was already correct — which is the honest description of hardening, and worth stating because a run of phases
+finding no defects can read as either "the code is sound" or "I stopped looking hard".
+
+| § | what | subject |
+|---|---|---|
+| §856 | swept DoDs naming a gate; **four of nine name the wrong one**; gated REQ-078's teal SCOPE | rule stated 4×, enforced 0× |
+| §857 | **corrected §856's own population** (14 → union 25, sample presented as census); executed REQ-167's DoD | the sweep's frame |
+| §858 | REQ-064's signature gate proven at the component; REQ-063's sibling already was | acceptance demo #1's opening beat |
+| §859 | `useSync`'s three prose guarantees pinned; **a silent mutation caught my own test overclaiming** | visible / online / authenticated |
+| §860 | the count gate that replaced a *shipped* defect (hardcoded 6) | the last of three mocked children |
+
+Three of the five found the defect in my **own** just-finished work (§857 in §856's count, §859 in its own
+test's name, §860 in its own stopping point). That ratio is the argument for the self-review habit, not
+against it.
+
+### What a reader should read first
+
+§4 (the phase gate) → §298 (the last full board) → **this section** → §857 and §859, which carry the two
+transferable lessons: *a count for a semantic predicate is a sample, so state its frame*, and *a behavioural
+assertion downstream of a second guard measures the guard, not the subject*.
+
+### Open, owner-held — unchanged by this segment
+
+REQ-289's disposition (turns both FAILs green) · REQ-076's square/hollow · the `dod_kind` register column
+(§857) · `unwitnessed`'s reader · `routes ±10%` · the nine private fixtures · `IDENTITY_DENYLIST`.
+
+### Reopen triggers
+
+- **REQ-289 lands** → re-run `verify:merge`; the expected board is 21 PASS · 0 FAIL · 5 BLOCKED. If either
+  FAIL survives, it was never only the row and this section is wrong.
+- Any private fixture is vendored → its gate moves BLOCKED → PASS or FAIL, and a FAIL there is a real defect
+  this repo has never been able to see.
+- `useSync`'s `running` in-flight guard remains the one untested branch of the sync path (§859/§860).
