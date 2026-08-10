@@ -536,6 +536,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 341 | §893 | **§894** | **THE DESIGN AUDIT'S CORPUS ENUMERATED, AND FIVE EVASIONS TRIED.** §893 closed admitting it had *probed* the corpus, not enumerated it. Read: `apps/**` + `packages/**` for `{css,tsx,ts,jsx,mjs,html}` + `*-style.json` (the JSON narrowing deliberate and documented). **Two omissions, both LATENT**: `workers/**` is unscanned (but has **0** tracked css/html/tsx/jsx and no `.ts` containing shadow/gradient/hex) and `packages/**` lacks `*.js` (**0** tracked). **Four evasions REFUSED**: shadow via CSS-var indirection, gradient via indirection, `-webkit-box-shadow`, `filter: drop-shadow()`. **The fifth was RED FOR THE WRONG REASON** — a shadow VALUE in an unused variable exits 1, and I nearly credited it: attributed, it fires **REQ-146** (font-family budget, because I added a property to the token file) or **REQ-145** (the rgba colour), never the shadow rule. Correct behaviour — the audit matches shadows by PROPERTY and colours by VALUE, and a variable no shadow property consumes **is not a rendered shadow**. *A non-zero exit says something failed, never that YOUR subject failed* — 2nd time this session that habit changed a verdict (after §885). Precise boundary: a shadow built only from SANCTIONED colours, parked unused, trips neither rule — not a hole, it renders nothing |
 | 342 | §894 | **§895** | **THE DESIGN CORPUS CAN NO LONGER EXCLUDE A DIRECTORY BY DEFAULT.** §894's structural trigger: the corpus is a **hand-written glob list**, so *a new top-level directory would be excluded by default rather than by decision* — the roster-half of §802/§822's shape. **Measured**: style-bearing files (css/tsx/jsx/html) live in `apps` (62), `packages` (16) and **`docs` (2)** — two marketing HTML files carrying **15 raw hexes**, no shadows, no gradients. **Their exclusion is CORRECT** (marketing collateral is not one of the three product surfaces; a palette rule for Command/Driver/Portal has no business failing a promo page) — **but nothing said so**, and *excluded because unlisted* is indistinguishable from *excluded because decided* until a third directory appears. Gate is DISCOVERY: enumerate every top-level dir holding a style-bearing file, require each to be in the audit's own glob list — **parsed from `tools/design/audit.ts`, not restated** (§830: read one side, COMPUTE the other) — or exempted with a reason. `docs` now carries one; a future `sites/` fails until someone writes one |
 | 343 | §895 | **§896** | **LAW 3 PROBED FOR EVASION — THE CHOKEPOINT HOLDS AND STATES ITS OWN LIMIT.** CLAUDE.md's most security-relevant law (*gates are server-side; any flow reachable by API must enforce the same gate*) was mutation-proved ~550 sections ago; the question is what STANDING mechanism keeps it true. **It is structural**: `check:chokepoint` asserts *the events table has exactly one application writer* — the whole law in one property, and §838's *only detector of a direct insert with a fresh id* (the append-only triggers fire on collisions; a fresh id collides with nothing). A planted second writer fails it, naming what is lost: *EVERY gate (POD/I2, booking, interline floors, credit) plus the visibility stamp and the prev_hash chain*. **Six evasions tried, six refused**: abutting quote `INTO"events"`, schema-qualified `main.events`, extra whitespace, lowercase, `INSERT OR REPLACE`, bracket delimiter. **The first two matter most** — this repo's own share-lint skill documents a real defect where exactly those two shapes SPLIT two scanners; the chokepoint is on the correct side of it. Two exemptions, both reasoned (the sequencer itself; the seed loader, *not reachable by API* — the clause law 3 turns on), §672-guarded because *a path-keyed exemption with no subject is inherited by whatever is created at that path next*. **And it states its own limit**: static regex, *closes the realistic regression — a new route that writes the ledger because it is convenient — **not a determined author***. That distinction, written down, is what makes the green worth something |
+| 344 | §896 | **§897** | **LAW 3'S OTHER HALF — AND THE ANSWER TO A PROBLEM I HAVE POSED THREE TIMES.** §896 closed noting the chokepoint proves ONE WRITER, not that the writer's gates are correct. **Roster half**: `check:authority-coverage` statically asserts each registered `(module,file)` calls `resolveAuthority(db, '<module>')`, **module-aware** (the Concierge emits `message.sent` AND prices `quote.priced`, so it must consult both) and refusing a bare mention — *a dangling import is not a consultation*. **Discovery half is the finding**: the coverage gate admits *a NEW emitter in a NEW file passes for free until a human adds it*, and **§313 TRIED the obvious discovery gate and REJECTED it** — *"'authoritative' is semantic; a rule keyed on kind-mentions misclassifies **4 of 4** unregistered candidates"*. **That is the exact wall I hit three times and filed as unsolved** (§857's `dod_kind`, §880's path gate at ~76% FP, §884's *repo-owned is a judgement*). **§313 found the third answer I missed: pin the POPULATION COUNT, not the classification** — *exactly 12 files reference an authoritative kind; a change means RE-ADJUDICATE*. The gate never decides what is authoritative; it decides the SET CHANGED and hands the semantic question to a human exactly when one is needed. Mutation-proved (13≠12). **Generalises: when membership is semantic, a COUNT is still mechanical — it converts *we cannot gate this* into *we cannot gate this SILENTLY*** |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -52479,3 +52480,59 @@ Nothing changed; seven plants made and reverted, `diff -q` verified. `check:chok
   Nothing gates that, by design and by admission — and the honest mitigation is review, not another pattern.
 - The gate proves **one writer**, not that the writer's gates are correct. The Gatekeeper's own completeness is
   `check:authority-coverage`'s subject and was not examined here.
+## §897 — PHASE GATE: PHASE 117 CLOSED — law 3's other half, and the answer to a problem I have posed three times
+
+§896 proved the append chokepoint holds and closed on what it does **not** cover: *"the gate proves ONE
+writer, not that the writer's gates are correct."* This is that half.
+
+### Two gates, and the second is the interesting one
+
+**`check:authority-coverage`** — the roster half. A static scan asserting each registered `(module, file)`
+pair calls `resolveAuthority(db, '<module>')`. It is **module-aware**, so a file authoritative for two modules
+must consult *each* — the motivating case being the Concierge, which emits `message.sent` (comms) *and*
+independently prices and appends `quote.priced` (rating). It refuses a bare mention: *"a dangling import is
+not a consultation."*
+
+**`check:authority-population`** — the discovery half, and it does something I did not expect.
+
+### §313 rejected the gate I would have built, for the reason I keep rediscovering
+
+The coverage gate's own header states its limit: registration is **manual**, and *"a NEW emitter in a NEW file
+passes for free until a human adds it."* The obvious fix is a discovery gate that finds authoritative files
+automatically. **§313 tried that and rejected it:**
+
+> *"'authoritative' is semantic. A rule keyed on kind-mentions misclassifies **4 of 4** unregistered
+> candidates — two readers, one generic append route, one platform-tenant emitter — each of which took a file
+> read to adjudicate."*
+
+That is precisely the wall I have hit three times and written up as unsolved: §857's `dod_kind` proposal,
+§880's path gate (declined at ~76% false positives), §884's *"repo-owned" is a judgement about a prose cell*.
+Each time I concluded the predicate could not be gated and filed it.
+
+**§313 found the third answer, and it is the one I missed: pin the POPULATION COUNT, not the classification.**
+
+`exactly 12 files reference an authoritative kind — a change means RE-ADJUDICATE.` The gate never decides
+whether a file is authoritative. It decides that **the set has changed**, and hands the semantic question to a
+human at exactly the moment a human is needed. Mutation-proved: a new file referencing `quote.priced` fails it
+— *"expected 13 to be 12"* — pointing at §313/§326 and the checklist hold.
+
+**The technique generalises**: when membership is semantic, a *count* is still mechanical. It converts "we
+cannot gate this" into "we cannot gate this **silently**", which is the whole of what a tripwire owes.
+
+### Verdict
+
+**Clean negative on both halves of law 3**, and the second half is better designed than what I would have
+built. §896 + §897 together: every append reaches one writer, and every registered authoritative path consults
+the seam, with a count tripwire so a new one cannot arrive unnoticed.
+
+### Exit state
+
+Nothing changed; one file planted, tracked, and removed. `test:tools` 1,139, 3 failed (the REQ-289 classifier)
+· typecheck 0 · lint 0 · `verify:docs` 0.
+
+**Reopen triggers**
+- The tripwire pins a **count**, so a swap — one authoritative file deleted as another appears — nets to zero
+  and passes. Nothing catches that, and the exclusion list is what would have to be read.
+- The count is 12 and the coverage registry holds 9 `(module, file)` consults across 8 files. **The gap between
+  12 and 8 is the adjudicated-and-excluded set**, and its reasons live in prose the §672 half checks for
+  existence, not for truth.
