@@ -507,8 +507,9 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 312 | §864 | **§865** | **"THE LIVE BOARD FEED" WAS NOT LIVE, AND THE ROW THAT SAYS SO WAS CITED NOWHERE.** §864's closing question — does Command mirror the portal's four honesty states? — **was a misreading and is withdrawn**: the *mirrors* claim is about the fetch client having no `AbortSignal`, and `command/lib/board.ts` has NO hook (its parse was already covered). Reading instead of reasoning produced a better finding. **MEASURED: Command's map is not live** — `useBoardFleet` fetches ONCE on mount; a whole-corpus search for `WebSocket|EventSource|setInterval|refetch` under `apps/command` is empty **against a positive control**, so the silence is a result. Its comment opened *"The live board feed"*. **The register resolves it**: neither REQ-073 (backdrop) nor REQ-080 (lens) asks for refresh; **REQ-257 (V2-E, vNEXT)** does — and that row **names the "polling fallback" itself**, so the portal's 20s poll IS sanctioned and Command sitting one step back is deliberate scope. **Adding a poll would have been building an unregistered requirement** — CLAUDE.md's first rule, and I was two minutes from calling it a defect. **REQ-257 was cited NOWHERE in code**: the deferral lived only in the register (§813 shape). Comments only, no behaviour change, diff verified comment-only (both files were earlier mutation targets). `dispositions` note added per the REQ-184 precedent — after **verifying the manifest is actually read** (`coverage.ts:181`, staleness guard `:202`), because a note nobody reads is §851's defect |
 | 313 | §865 | **§866** | **EIGHT CITATIONS, FOUR WORKERS, ONE PROPERTY, AND THE WRONG REQ ROW.** Verified §865's nine unchecked status-drift rows. **Two false starts, same cause**: sorting by the literal word `VERDICT` said 7 were bare (FALSE — REQ-254's note is 1,085 chars opening *"PARTIALLY BUILT (recorded 2026-08-03)"* with a four-clause breakdown); re-sorting on `recorded YYYY-MM-DD|audit §N` said 3 (ALSO FALSE — REQ-288 carries a 700-char judgment stamped `NOTE (2026-07-27)` arguing the drift is a false positive: ~25 files implement the evidence PRODUCER, the row specifies the CONSUMER). **3rd and 4th time this session** a predicate whose boundary is English produced a confident wrong count. Real remainder: **2 rows, not 7.** **THE FINDING: REQ-278 is cited 8× across 4 files and every citation is about a DIFFERENT requirement** — *"ONE TENANT'S FAILURE MUST NOT KILL THE TICK"* (agents/billing/translator + a completeness gate) vs the row's actual text, *feature flags separate deployment/exposure/write/read authority*. REQ-025 (paired in 2 of 4) is *tenant isolation at DB level*, DoD *cross-tenant suite green forever* — isolation of DATA, not resilience of a SWEEP. **Neither row covers it, and the property is BUILT, SHIPPED and TESTED** (9 green in agents alone). So something shipped without a register row (CLAUDE.md rule 1), and the drift flag is a false positive for the STATED reason and a true positive for an unstated one. Not fixed: re-pointing requires choosing an owning row and none exists → a register amendment, **filed not decided** (§795). Disposition extended with the prior sentence PRESERVED (§865's lesson, one phase old) |
 | 314 | §866 | **§867** | **REQ-276 SAYS "NOT BUILT"; IT IS MOSTLY BUILT, AND THE HOLE IS WHERE NOBODY WRAPPED.** Measured all three DoD clauses. **TRUE**: zero tracked duplicates; a force-added `0001_ledger_core 3.sql` turns `check:invariants` **RED**. **FALSE**: *ignored artifacts do not alter authoritative counts* — one git-ignored duplicate `*.test.ts` takes vitest from **72 files/1,122 tests → 73/1,124**. It is a COPY so it passes, which is what makes it dangerous: **a test-count floor satisfied by a duplicate would hide a DELETED test file** and stay green. The tracked catch works but MISDESCRIBES itself (*"stray SQL outside db/*/migrations"* for a file INSIDE it): a **shadowing `globSync` wrapper** strips collision duplicates from all 15 glob sites, so the dup is absent from `migrations` while `git ls-files` lists it. **Five wrong measurements** to find that — the glob returned the dup in every standalone probe while `findStraySql()` flagged it, IN ONE PROCESS; the answer was an import alias (`globSync as globSyncRaw` + a local shadow). Reasoning about *"the same expression"* failed because it was not the same FUNCTION. Also: **12 `tools/` files walk the filesystem with neither git-awareness nor the filter** — mostly scanners, recorded not alarmed. `invariants.ts` solved this locally and completely; nothing carried it outward (§802's shape). Row is vNEXT → filed, not fixed |
-| 315 | §867 | **§868** | **FOUR PROJECTIONS HAD UNIT TESTS, TWO DID NOT — AND THE TWO CARRIED THE BRANCHES INTEGRATION CANNOT REACH.** Re-ran §858's sweep repo-wide with a better instrument: *does any test name any symbol the module EXPORTS?* (the old *does a test import this file?* was wrong 4× this session, last on `evidence-email-view.tsx` — imported via a barrel and thoroughly tested). **Cleared**: contracts/rater/map/design (54 files, 0 dark), agents (0), **mcp (0 — the six tool modules are driven through `buildRegistry`/`dispatch`, integration BY DESIGN)**. **Found: `projectApprovals` + `projectAppointment`** — 4 of 6 projections are unit-tested in `projections.test.ts`; these two were reached only by a HAPPY-PATH integration test. What that leaves: **(a) three `return []` tolerance branches protecting APPEND AVAILABILITY** — *"a throw here would … break the append for any other shape"* — a refactor to `throw` fails WRITES and no integration test notices; **(b) two statement-shape laws with stated consequences**: `OR IGNORE` not `REPLACE` on approvals (REPLACE drops `decided_event_id`, severing the link to WHO decided) and a plain `UPDATE` on `legs`, where **`legs` is UNGUARDED and a REPLACE is *silent slot theft with no guard to catch it*** — the difference between claiming a free dock slot and taking someone else's is one keyword and nothing at runtime objects. 20 cases, 4 mutations RED, plain-node fake-`db` idiom because the laws are about SQL TEXT |
+| 315 | §867 | **§868** | **FOUR PROJECTIONS HAD UNIT TESTS, TWO DID NOT — AND THE TWO CARRIED THE BRANCHES INTEGRATION CANNOT REACH.** Re-ran §858's sweep repo-wide with a better instrument: *does any test name any symbol the module EXPORTS?* (the old *does a test import this file?* was wrong 4× this session, last on `evidence-email-view.tsx` — imported via a barrel and thoroughly tested). **Cleared**: contracts/rater/map/design (54 files, 0 dark), agents (0), **mcp (0 — the six tool modules are driven through `buildRegistry`/`dispatch`, integration BY DESIGN)**. **Found: `projectApprovals` + `projectAppointment`** — 6 of **8** projections (corrected §870; the section said 4 of 6) are unit-tested in `projections.test.ts`; these two were reached only by a HAPPY-PATH integration test. What that leaves: **(a) three `return []` tolerance branches protecting APPEND AVAILABILITY** — *"a throw here would … break the append for any other shape"* — a refactor to `throw` fails WRITES and no integration test notices; **(b) two statement-shape laws with stated consequences**: `OR IGNORE` not `REPLACE` on approvals (REPLACE drops `decided_event_id`, severing the link to WHO decided) and a plain `UPDATE` on `legs`, where **`legs` is UNGUARDED and a REPLACE is *silent slot theft with no guard to catch it*** — the difference between claiming a free dock slot and taking someone else's is one keyword and nothing at runtime objects. 20 cases, 4 mutations RED, plain-node fake-`db` idiom because the laws are about SQL TEXT |
 | 316 | §868 | **§869** | **STOPPING POINT — BOARD RE-MEASURED AT `3eed3dc`: 26 gates, 19 PASS · 2 FAIL · 5 BLOCKED — IDENTICAL to §861** across seven further phases and 40 more tests, no gate moved either way. Both FAILs remain the single uncommitted REQ-289 row; the 5 BLOCKED remain absent private inputs. **Nothing in §862–§868 changed production behaviour**: two comment corrections, three disposition notes, three checklist filings, 40 tests. Value sat in the RECORD: §865 (REQ-257 cited nowhere), §866 (8 citations → the wrong row; shipped code with no owning row), §867 (REQ-276 mostly built, hole in vitest collection), §868 (2 of 6 projections carrying the branches integration cannot reach). **Five of seven phases found the defect in my OWN just-finished work**, and **four separate times a detector whose boundary is English produced a confident wrong count**. The instrument that worked — *does any test name any symbol the module EXPORTS?* — cleared 128 files across 7 trees and found the 2 that mattered. Expected board once REQ-289 lands: **21 PASS · 0 FAIL · 5 BLOCKED** |
+| 317 | §869 | **§870** | **THE SWEEP MADE MECHANICAL, AND THE MISCOUNT IT IMMEDIATELY CAUGHT — MY OWN, IN §868.** §868 closed naming its weakness (*"run by hand"*); this is that sweep as a gate, modelled on `sweep-containment-coverage.test.ts`. Building it found the weakness was worse than *expires*: **§868 reported "six projections, four unit-tested" — there are EIGHT and six were tested.** The finding (which two were dark) stands; the FRAME was wrong because **I counted from one consumer's import list rather than the directory** — `projections.test.ts` imports four, so "four of six" is what that FILE shows, and it is not the population. **A population derived from a consumer is not the population** — 5th counting/vocabulary miss this session, first where the wrong frame was a FILE not a regex. Gate: 8 projections derived from source, each required to be **IMPORTED** (not mentioned) by a test — not hypothetical, since `approvals-projection.test.ts` NAMES `projectAppointment` in prose and a mention-based check would have called it covered before its suite existed (§845's shape, pinned by a case). 3 mutations RED incl. the discovery half (a TRACKED new projection reddens both checks by name). **One mutation was silent and it was the PROBE's fault**: an UNtracked decoy is invisible because the scan is `git ls-files`, which sees what MERGES — the exact inverse of §867, same fact, opposite verdict, decided by *does this gate certify what merges or what is on the machine?* Also: **5th forward-reference failure** — I corrected §868 pointing at §870 before writing it |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -50658,8 +50659,13 @@ test naming any of them, which looks alarming and is correct — a tool registry
 
 ### The two
 
-`projectApprovals` (REQ-082/194) and `projectAppointment` (REQ-028/052). **Four of the six projections have
-unit tests in `projections.test.ts`** — passport, status-cache, agent-runs, authority. These two were reached
+`projectApprovals` (REQ-082/194) and `projectAppointment` (REQ-028/052).
+
+> **CORRECTED by §870.** This section said *"four of the six projections have unit tests"*. There are
+> **eight** projections and **six** were tested — `projections.test.ts` covers passport, status-cache,
+> agent-runs and authority; `messages-projection.test.ts` and `money-projection.test.ts` cover two more. The
+> finding (which two were dark) is unaffected; the frame was wrong because I counted from one consumer's
+> import list rather than from the directory. **A population derived from a consumer is not the population.** These two were reached
 only through `workers/api/test/approvals.test.ts`, which drives the **happy path** end to end.
 
 That leaves the branches integration cannot reach, and they are not decoration:
@@ -50759,3 +50765,72 @@ the nine private fixtures · `IDENTITY_DENYLIST`.
   has never been able to see.
 - A seventh projection, a third `apps/portal/src/api/` seam, or a new register row naming a gate → each is a
   hand-run sweep this segment did once and nothing repeats.
+## §870 — PHASE GATE: PHASE 90 CLOSED — the sweep made mechanical, and the miscount it immediately caught (my own, in §868)
+
+§868 closed by naming its own weakness: *"the sweep that found these two was run by hand."* This is that sweep
+as a gate — modelled on `sweep-containment-coverage.test.ts`, which does the same job for tenant-iterating
+sweeps: derive the population from source, prove the derivation is alive, then require each member to be
+covered.
+
+Building it found the weakness was worse than "expires".
+
+### §868 miscounted the population it was sweeping
+
+It reported *"six projections ship; four had unit tests."* There are **eight**, and **six** were tested —
+`projections.test.ts` covers passport, status-cache, agent-runs and authority; `messages-projection.test.ts`
+and `money-projection.test.ts` cover two more.
+
+The finding is unaffected: `projectApprovals` and `projectAppointment` were the two with no test, and that was
+right. The **frame** was wrong, and the cause is worth keeping: **I counted from one consumer's import list
+rather than from the directory.** `projections.test.ts` imports four projections, so "four of six" is what
+that file shows you — and it is not the population. Corrected in place, both in the section and its index row.
+
+**A population derived from a consumer is not the population.** That is the fifth counting/vocabulary miss
+this session (§845, §857, §866 twice, here), and the first where the wrong frame was a *file* rather than a
+regex. The gate below makes the number a lookup instead of a count.
+
+### The gate
+
+Eight projections derived from `packages/ledger/src/projection`, each required to be **imported** by at least
+one test.
+
+**Import, not mention** — and that distinction is not hypothetical here. `approvals-projection.test.ts` names
+`projectAppointment` in its header comment, so a mention-based check would have reported `appointment.ts`
+covered while its suite did not exist. That is §845's shape (detect the thing, not the claim about it), and it
+is pinned by a case that runs the parser against a commented symbol.
+
+| mutation | RED |
+|---|---|
+| the approvals suite stops importing its subject (the §868 state, restored) | *every projection is IMPORTED by at least one test* |
+| a **tracked** new projection appears with no test | the roster pin **and** completeness, naming `projectDecoy` and its file |
+| the derivation blinded | non-vacuity |
+
+### The mutation that was silent, and why it was my fault
+
+Dropping an **untracked** `decoy.ts` into the directory changed nothing. That is the probe's fault, not the
+gate's: the scan is `git ls-files`, which sees what **merges**. An untracked projection cannot reach main, so
+it is correctly invisible. `git add` it and both assertions fire.
+
+Worth recording because it is the inverse of §867, where `git ls-files` scope was the *right* answer for a
+merge gate and a filesystem walk was the exposure. Same fact, opposite verdicts, decided by the question:
+**does this gate certify what merges, or what is on the machine?** Here, what merges. The note is now in the
+file so the next person to write this mutation does not spend the same ten minutes.
+
+### And a process failure, the fifth of its kind
+
+I corrected §868 with a pointer to *this* section before writing it, and `check:section-refs` refused — the
+fifth forward reference this session (§823, §829, §831, §836). §831 wrote the rule; §836 broke it; the fix
+adopted then was a *sequence* (write the section, then the edits that cite it), and I still departed from it
+whenever the edit felt like the smaller task. The durable read: **the rule is not "remember"; it is that a
+correction is an edit like any other, and it goes second.**
+
+### Exit state
+
+`test:tools` **1,125** (+3), 3 failed — the REQ-289 trio. typecheck 0 · lint 0 · `verify:docs` 0. No
+production code changed.
+
+**Reopen triggers**
+- A projection that is exported but never *called* would pass this gate — it checks tested, not wired.
+  `projectApprovals`/`projectAppointment` reach the sequencer, verified by hand at §868; nothing pins that.
+- The roster pin lists eight symbols by name. A rename shows up as a deletion plus an addition and reads as a
+  new projection; that is deliberate (a renamed projection deserves the same look) but it will surprise.
