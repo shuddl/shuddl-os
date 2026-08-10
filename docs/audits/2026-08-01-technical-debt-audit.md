@@ -557,6 +557,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 362 | §914 | **§915** | **23 D1 CHECKs SWEPT; §668'S ROSTER COMPLETED; A HARNESS THAT INVENTED FINDINGS.** §914's trigger named CHECKs as unmeasured; measured **23 across 4 files**, all mutated. **The record already held half the answer**: `schema-domain.test.ts` carries a §668 roster built for exactly this argument — *a DDL constraint is the last line below every gate and test double* — which is why 16 went RED. **But §668 swept `0002_domain.sql` and never swept its siblings**, and the 4 silent constraints are precisely those outside it: `events.visibility`, `events.source` (0001), `documents.retention_status` (0007), `pairings.kind` (control). Correct-per-VALUE-not-per-FILE one level up. **`retention_status` is sharpest — NO Zod schema exists**, every write is a hardcoded SQL literal, so a typo persists a doc in a state the sweep's `WHERE retention_status='active'` silently skips (bytes that never expire, or a row that never tombstones). **THE HARNESS INVENTED TWO FINDINGS FIRST**: attempt 1 read 20/21 cells as unmeasurable (stdout-only + workerd exhaustion) — naively *20 silent*; attempt 2 reported **2 SILENT that were FALSE** (`facilities.kind`, `anomalies.severity`, both RED when measured properly). **A false SILENT is a fabricated defect** — a false RED gets investigated and dies, a false SILENT gets WRITTEN DOWN. Fixed by SHRINKING the unit of work (owning suite, 2s) + escalating every GREEN to the full suite. 4 cases added, **4/4 RED**; plus 2 structural gates — `enum-parity` (Zod enum ≡ CHECK domain, RED on widen/narrow/widen-source) and `check-constraint-coverage` (every CHECK must be CLASSIFIED; RED on new/widened/orphaned). ledger 688→691, test:tools 1,142→1,149 |
 | 363 | §915 | **§916** | **BOARD RE-MEASURED AT `4528cb2` — 19 PASS · 2 FAIL · 5 BLOCKED; STOPPING POINT.** Full `verify:merge` against a KNOWN tree (clean but for the owner's uncommitted REQ-289 row — a concurrent GTM workstream edits the register here, so an unknown tree is a race not a measurement). **Both FAILs are ONE row, attribution MEASURED not inherited** (§876's lesson): `check:coverage` prints *1 unaccounted … REQ-289: status "ACTIVE" / wp "GTM-0" names no active WP*, and `unit-tests` fails on exactly that row's three classifiers. The 5 BLOCKED are absent INPUTS reporting *could not run*, not *clean* (§247). **All four browser gates PASS** — perf 1, visual 5, a11y 4, e2e 6, including portal-isolation and driver-offline-sync. §911–§915 changed **coverage, not the board**: 13 defended-by-nothing invariants closed (+24 cases, 4 gates), every one found by neutering the guard and proved by watching that mutation go RED after. **The board did not move because it was never measuring these** — which is the argument for the gates: each converts an invisible class into one CI fails. Repo-owned failure set is EMPTY; the five open items are owner-held. Re-measure on any REQ-289 change; do not predict |
 | 364 | §916 | **§917** | **CLAUDE.md's SEVEN HARD BUDGETS — a RE-CONFIRMED clean negative, and a PROCESS FAILURE.** Three plants against CLAUDE.md (a stated budget drifting 35→36; **a NEW budget nobody enforces**, `· 7 agent queues`; the `(21 used)` observation drifting) all fired **RED**, each restored byte-identical — so the budgets hold at `bef2709`. **But this was NOT new measurement, and the section originally said it was.** §563 already mutation-proved all seven budgets, §611 proved stated-vs-enforced *both directions + the vacuity floor*, and the gate's own comments record the other two plants verbatim (§743's `· 7 agent queues ·` plant, §830's planted 22nd table). **All three were already documented at their sites.** Corrected in place. **The finding is the process failure: I searched the record AFTER writing, not before** — third instance in this audit, and the habit my own notes name as highest-yield. A redundant phase reads identically to a novel one, which is precisely why the correction matters more than the result: an uncorrected §917 would send the next reader to re-do what three phases already did. Real residual value: a regression check that §743's and §830's fixes still hold |
+| 365 | §917 | **§918** | **TWO DIMENSIONS DECLINED ON EVIDENCE — §917's CORRECTION, APPLIED.** Nothing built; that is the result. **NOT NULL (138 cells)** — the obvious sibling of §915's CHECK sweep, declined: §590 owns the deploy-day hazard (dev/CI only ever meet an EMPTY database, so a `NOT NULL ADD COLUMN` passes both and fails on deploy; static rule shipped) and §906–§908 own the attribution hazard (a bare `toThrow()` cannot tell a NOT NULL from the FK it claims). The 138-cell residue is the LOW-YIELD half by §907's own reasoning — a NOT NULL violation is structural, not semantic. **Test-file collection** — declined: §709 (deleting one `test` script was ONE edit from dropping 208 files; `--if-present` skips in silence), §728 (a file outside a vitest `include` is not failing, not skipped, not counted — measured in `packages/design`), §727 (playwright's allowlist, planted failing spec merged green), §711 (one `it.only`: 304 passed → 267 passed/37 skipped, **exit 0**). Independently verified the only unanswered part: this session's three new gates ARE collected. **Why record a phase that builds nothing** — the alternative is not *no phase*, it is §917 again; a redundant phase is indistinguishable from a novel one in its output, and the cost lands on the next reader |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -53821,3 +53822,57 @@ rather than re-deriving the count a second, weaker time.
   produced eight false positives and zero real ones, because everything under `docs/` states its counts
   inside a dated structure. If a standing (undated) budget claim is ever written into a `docs/` file, it is
   outside this scan — and the argument for the bound stops holding the moment that convention breaks.
+## §918 — PHASE GATE: two dimensions declined on evidence — the §917 correction, applied
+
+§917's correction named the process failure: I searched the record *after* writing. This phase is that fix
+applied twice, and both times the search returned a finished verdict **before** any work was done. Nothing
+was built. That is the result.
+
+### NOT NULL constraints — declined
+
+138 `NOT NULL`s across `db/`. The obvious move after §915's CHECK sweep is to run the identical sweep on
+its sibling. The record already holds the two questions worth asking about them:
+
+- **§590** — the deploy-day hazard: dev and CI only ever meet an EMPTY database, so a `NOT NULL ADD COLUMN`
+  passes both and fails on deploy. SQLite's refusal was verified empirically and a **static** rule covers
+  migrations not yet written.
+- **§906/§907/§908** — the attribution hazard: a bare `rejects.toThrow()` cannot tell a NOT NULL from the
+  foreign key it claims to prove, which is how §906's I1 test stayed green. Read, fixed, and the surrounding
+  ten assertions read by hand.
+
+What a 138-cell sweep would add beyond those is whether each individual `NOT NULL` is exercised — and per
+§907's own reasoning that is the low-yield half, because a `NOT NULL` violation is structural rather than
+semantic. **Declined on cost, with the reason recorded** rather than left as an unexamined gap.
+
+### Test-file collection — declined
+
+The question — *is a gate file I add actually collected, or silently outside the runner?* — is
+a selector between the artifacts and the run, which is exactly the shape that needs a corpus floor. Four
+prior phases own it:
+
+- **§709** — eleven packages ship their own `vitest.config.ts`, so deleting one `test` script was ONE edit
+  from dropping 208 files; `--if-present` skips in silence. Floor added.
+- **§728** — a file outside a vitest `include` is not failing, not skipped, not counted. Measured in
+  `packages/design`, whose include read `test/**/*.test.tsx` and dropped every `.test.ts`.
+- **§727** — the same defect in playwright's two-file allowlist; a planted always-failing spec merged green.
+- **§711** — one `it.only` took contracts from 304 passed to 267 passed / 37 skipped, **exit 0**.
+
+I verified independently that this session's three new gates ARE collected (`vitest list` names all three,
+1,149 tests), which is the only part not already answered.
+
+### Why a phase that builds nothing is worth recording
+
+Because the alternative is not "no phase" — it is **§917 again**. A redundant phase is indistinguishable
+from a novel one in its output: every mutation goes RED exactly as it should, the write-up reads well, and
+nothing signals that four earlier phases already did it. The cost lands on whoever reads the record next.
+
+**The rule, stated so it survives this session**: when a dimension looks obviously worth sweeping, that is
+evidence it was already swept — a record this size makes the obvious experiments the ones most likely
+already run. Search the audit, the checklist, **and the candidate gate's own header comment**, which is
+where this repo writes its measurements.
+
+**Reopen trigger**
+- §728's matcher uses node's `globSync`, not vitest's own globber (tinyglobby is not resolvable under
+  pnpm's strict layout). It cannot rule out a matcher *more lenient* than vitest on a pattern not currently
+  in use. That limit is stated at the site; it becomes live the moment a package adopts a more exotic
+  `include`.
