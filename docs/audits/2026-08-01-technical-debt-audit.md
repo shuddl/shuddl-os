@@ -535,6 +535,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 340 | §892 | **§893** | **THE ONE BUDGET WITH NO CONSTANT, MUTATION-VERIFIED.** §892's sharpest soft spot: `0 shadows/gradients/radius>4px` is exempted from the count comparison **because of a sentence** (rule 7's *proven by refusing a planted artifact*), and if that proof vanished the budget gate would still pass. **Now measured** — shadow → exit 1 `no shadows (REQ-147)`; `border-radius: 12px` → exit 1 `Radius 12px > 4px`; raw hex in a JSON style file → exit 1 `color #ab12cd … outside the five tokens (REQ-145)`; **control `border-radius: 4px` → exit 0**. The control matters as much as the REDs: a rule firing on 4px would be one nobody could keep green, and the exemption would be resting on a quietly loosened rule. **My first hex probe was WRONG** — planted in `tokens.css`, the file that DEFINES the tokens, where raw hex belongs; exit 0 briefly looked like a third of rule 7 failing. REQ-207's DoD says *a seeded raw color in a **JSON style file***. **Planting a violation where it is legal tests nothing** — 11th instrument miss this session and the FIRST caught before writing it down as a defect, because the surprising result was read against the requirement's wording instead of believed. **Not closed**: a shadow authored in TSX inline style is a different corpus, and `0 gradients` was not planted against |
 | 341 | §893 | **§894** | **THE DESIGN AUDIT'S CORPUS ENUMERATED, AND FIVE EVASIONS TRIED.** §893 closed admitting it had *probed* the corpus, not enumerated it. Read: `apps/**` + `packages/**` for `{css,tsx,ts,jsx,mjs,html}` + `*-style.json` (the JSON narrowing deliberate and documented). **Two omissions, both LATENT**: `workers/**` is unscanned (but has **0** tracked css/html/tsx/jsx and no `.ts` containing shadow/gradient/hex) and `packages/**` lacks `*.js` (**0** tracked). **Four evasions REFUSED**: shadow via CSS-var indirection, gradient via indirection, `-webkit-box-shadow`, `filter: drop-shadow()`. **The fifth was RED FOR THE WRONG REASON** — a shadow VALUE in an unused variable exits 1, and I nearly credited it: attributed, it fires **REQ-146** (font-family budget, because I added a property to the token file) or **REQ-145** (the rgba colour), never the shadow rule. Correct behaviour — the audit matches shadows by PROPERTY and colours by VALUE, and a variable no shadow property consumes **is not a rendered shadow**. *A non-zero exit says something failed, never that YOUR subject failed* — 2nd time this session that habit changed a verdict (after §885). Precise boundary: a shadow built only from SANCTIONED colours, parked unused, trips neither rule — not a hole, it renders nothing |
 | 342 | §894 | **§895** | **THE DESIGN CORPUS CAN NO LONGER EXCLUDE A DIRECTORY BY DEFAULT.** §894's structural trigger: the corpus is a **hand-written glob list**, so *a new top-level directory would be excluded by default rather than by decision* — the roster-half of §802/§822's shape. **Measured**: style-bearing files (css/tsx/jsx/html) live in `apps` (62), `packages` (16) and **`docs` (2)** — two marketing HTML files carrying **15 raw hexes**, no shadows, no gradients. **Their exclusion is CORRECT** (marketing collateral is not one of the three product surfaces; a palette rule for Command/Driver/Portal has no business failing a promo page) — **but nothing said so**, and *excluded because unlisted* is indistinguishable from *excluded because decided* until a third directory appears. Gate is DISCOVERY: enumerate every top-level dir holding a style-bearing file, require each to be in the audit's own glob list — **parsed from `tools/design/audit.ts`, not restated** (§830: read one side, COMPUTE the other) — or exempted with a reason. `docs` now carries one; a future `sites/` fails until someone writes one |
+| 343 | §895 | **§896** | **LAW 3 PROBED FOR EVASION — THE CHOKEPOINT HOLDS AND STATES ITS OWN LIMIT.** CLAUDE.md's most security-relevant law (*gates are server-side; any flow reachable by API must enforce the same gate*) was mutation-proved ~550 sections ago; the question is what STANDING mechanism keeps it true. **It is structural**: `check:chokepoint` asserts *the events table has exactly one application writer* — the whole law in one property, and §838's *only detector of a direct insert with a fresh id* (the append-only triggers fire on collisions; a fresh id collides with nothing). A planted second writer fails it, naming what is lost: *EVERY gate (POD/I2, booking, interline floors, credit) plus the visibility stamp and the prev_hash chain*. **Six evasions tried, six refused**: abutting quote `INTO"events"`, schema-qualified `main.events`, extra whitespace, lowercase, `INSERT OR REPLACE`, bracket delimiter. **The first two matter most** — this repo's own share-lint skill documents a real defect where exactly those two shapes SPLIT two scanners; the chokepoint is on the correct side of it. Two exemptions, both reasoned (the sequencer itself; the seed loader, *not reachable by API* — the clause law 3 turns on), §672-guarded because *a path-keyed exemption with no subject is inherited by whatever is created at that path next*. **And it states its own limit**: static regex, *closes the realistic regression — a new route that writes the ledger because it is convenient — **not a determined author***. That distinction, written down, is what makes the green worth something |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -52404,3 +52405,77 @@ the other**, so the gate cannot drift from the thing it checks.
   has no directory to be judged by and would slip through — measured as zero today, and not gated.
 - It proves a directory is *considered*, never that the glob inside it is *right*: `packages/**` omits `*.js`
   (§894, currently zero files), and this gate would not notice if that omission became live.
+## §896 — PHASE GATE: PHASE 116 CLOSED — law 3 probed for evasion; the chokepoint holds and states its own limit
+
+The most security-relevant of CLAUDE.md's ten laws: *"Gates are server-side (Gatekeeper); UIs merely reflect
+them. **Any flow reachable by API must enforce the same gate** (REQ-030)."* My notes record it as
+mutation-proved around §310–§341 — roughly 550 sections ago — so the question is whether anything **standing**
+keeps it true, and whether that thing can be walked around.
+
+### The mechanism is structural, not a checklist
+
+`check:chokepoint` asserts *"the events table has exactly one application writer."* That is the whole law in
+one property: if every append traverses one function, and the gates live on the way to it, then no route can
+reach the ledger without them. §838 recorded it as **the only detector of a direct insert with a fresh id**,
+because the append-only triggers fire on collisions and a fresh id collides with nothing.
+
+Planting a second writer fails it, and the message names what is lost:
+
+> `<the planted file and line> — writes the events table directly, bypassing the sequencer DO — and with it
+> EVERY gate (POD/I2, booking, interline floors, credit) plus the visibility stamp and the prev_hash chain`
+
+*(The file:line is elided deliberately. Quoting the message verbatim embedded a citation that was valid only
+**while the plant was in place** — the file is shorter once restored — and `check:citations` refused the
+commit. Sixth instance this session of a gate that scans prose being unable to tell an example from a use,
+and a new variant: the instance was **true when written and false one command later**.)
+
+### Six evasions tried; six refused
+
+| shape | |
+|---|---|
+| `INSERT INTO"events"` — abutting quote, no whitespace | **refused** |
+| `INSERT INTO main.events` — schema-qualified | **refused** |
+| `INSERT   INTO   events` — extra whitespace | **refused** |
+| `insert into events` — lowercase | **refused** |
+| `INSERT OR REPLACE INTO events` | **refused** |
+| `INSERT INTO [events]` — bracket delimiter | **refused** |
+
+The first two matter most: this repo's own `share-lint-matchers-with-parity-tests` skill documents a real
+defect where **exactly those two shapes split two scanners** — one built from shared `DELIM`/`SCHEMA`
+fragments caught them, a hand-written copy did not. The chokepoint is on the correct side of that lesson.
+
+### Two exemptions, both reasoned, and §672-guarded
+
+- `workers/api/src/do/sequencer.ts` — *"THE chokepoint — every gate, the visibility stamp, and the hash chain
+  are applied here before the insert."*
+- `tools/seed/load.ts` — *"a developer tool that populates a local/dev tenant. **Not reachable by API**"* —
+  which is precisely the clause law 3 turns on, and matches what §875 measured about the loader.
+
+The §672 half refuses an exemption whose subject has gone, for a stated reason worth keeping: *"a path-keyed
+exemption with no subject is inherited by whatever is created at that path next."* And §120 had already
+extended the scan to `.tsx`, because *"the file extension must not decide whether that is caught."*
+
+### The gate states its own limit, which is why the green is worth something
+
+> *"Static, regex over source text … It does not resolve a table name assembled at runtime, and it is not a
+> substitute for review of anything that builds SQL dynamically. **It closes the realistic regression** — a new
+> route or agent that writes the ledger directly because it is convenient — **not a determined author.**"*
+
+That is the distinction this session keeps looking for and rarely finds written down: the difference between a
+gate that stops **accidents** and one that stops **adversaries**. This one says which it is.
+
+### Verdict
+
+**Clean negative on the highest-stakes law.** Structural mechanism, evasion-resistant across six shapes, two
+reasoned exemptions with a rot-guard, and an honest scope note. Nothing to fix.
+
+### Exit state
+
+Nothing changed; seven plants made and reverted, `diff -q` verified. `check:chokepoint` exit 0 · `test:tools`
+1,139, 3 failed (the REQ-289 classifier) · typecheck 0 · lint 0 · `verify:docs` 0.
+
+**Reopen triggers**
+- The stated limit is real: a table name assembled at runtime (`` `INSERT INTO ${t}` ``) evades a static regex.
+  Nothing gates that, by design and by admission — and the honest mitigation is review, not another pattern.
+- The gate proves **one writer**, not that the writer's gates are correct. The Gatekeeper's own completeness is
+  `check:authority-coverage`'s subject and was not examined here.
