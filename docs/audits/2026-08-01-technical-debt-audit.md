@@ -551,6 +551,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 356 | §908 | **§909** | **THE ONE SOUNDNESS THAT DEPENDED ON THE DDL NOW DEPENDS ON ITSELF.** §908 found nine of ten bare assertions sound but flagged the `authority_map` pair as **DDL-dependent**: the two rows cross-control, and every remaining column is `NOT NULL DEFAULT`, so a two-column insert is otherwise complete — *true today, and true for a reason the test never states*. Add a required column without a default and **both assertions start passing for the wrong reason, silently, with no test edit**. **Fixed by converting §908's shape 3 into shape 2**: an explicit valid insert (`('dispatch','native')`) now runs first, so a future migration that invalidates two-column inserts makes the **control fail loudly** instead. `authority_map` is seeded by no migration (measured), so the control collides with nothing. **Method note**: my first seeding check piped `grep` into `sed` and read `$?` — **sed's** status — printing *exit 0* for a search that found nothing. The `$?`-after-a-pipe trap, which this record names and which §888 caught me on eight phases ago; **second time this session, and both times the tell was output and status disagreeing** |
 | 357 | §909 | **§910** | **§907'S POPULATION CONFLATED TWO OPPOSITE ASSERTIONS.** §909 left 59 unread bare assertions; prioritising picked `transition-gates.test.ts` (17, the largest file). **Reading the case names stopped the phase**: every one describes a PASS — *passes when…*, *does NOT block*, *is a no-op pass*. Those are `.not.toThrow()`, and **attribution is meaningless on them** — there is no mechanism to name when the claim is that nothing fired. §907's regex matched `.toThrow()` regardless of a preceding `.not.`. **Split: 68 `.not.toThrow()` vs 311 positive bare — the relevant population is 311, not 380**, and the DB-backed 69 is inflated the same way: **the file I picked as highest-value has ZERO of the defect class**, and its 17 are all the CONTROL shape §908 catalogued (a gate proving it admits the valid case). **8th instance of a probe measuring its own vocabulary rather than its subject** — and the pattern is now complete: **every count I have published this session that later moved did so for this reason** (§884's denominator, §890's 5%, §901's headroom, §907's 380). **Four counts, four vocabulary faults, zero arithmetic errors** |
 | 358 | §910 | **§911** | **ALL 15 READ; 15 SOUND — §906'S WAS THE ONLY ONE IN THE CORPUS.** §910 reduced the population to its honest scope (~15 positive-bare in DB-backed tests, five files); this reads them all. `schema-core` (4) **interleaves admits with rejects** and its duplicate-key cases are self-controlling; `status-cap` (5) is a describe literally named *round-trip* whose first case asserts `toEqual({t,s})`, with each rejection varying exactly one thing; `facilities` (4) carries controls at BOTH levels (pure mapper + DB path); `biller` (2) makes the throw the SUBJECT and verifies the invoice committed anyway. **So the honest scope of §906's defect is: exactly ONE case in the repo's entire DB-backed corpus.** The discipline it violated is otherwise consistently present in §908's three shapes — and in `status-cap` it is present by NAMING, the describe block announcing its own control. **The thread's value was not the fix**: it was arriving at a decidable rule and then finding the corpus already obeyed it. **9th vocabulary miss**: grepping `status-cap` for a control with `resolves|toBe(true)|.success` returned **0** for a file whose control uses `toEqual({...})` — one phase after §910 concluded every moved count was a vocabulary fault. Reading took 30 seconds; the grep took three attempts |
+| 359 | §911 | **§912** | **A RULE WRITTEN TWICE, TESTED ASYMMETRICALLY — 4 OF 8 BRANCHES SILENT.** Discharged §911's trigger in the next phase instead of deferring it, and **it was already false**: contracts holds **19** refine/superRefine sites, not one refusal path. `events.ts` states REQ-016's device-binding rules TWICE (a Zod union cannot inherit a refined object); mutating all eight branches found **four silent** — and the coverage was **asymmetric**: `device_id==actor.device` tested only on EventInput, I4 only on LedgerEvent, the dedupe-key branch on NEITHER. Each copy tested for a different subset, so the pair read as covered while neither was. The dedupe branch is **not** redundant with `EventBase`'s identical refine — the union never uses EventBase — so it was the ONLY enforcement of the slot-squat rule, untested on both. **Two instrument failures, both mine**: the grep for the four messages returned **0** because the tests use TRUNCATED regexes (10th vocabulary miss — the finding stands on the mutation, not the grep); and writing the fix I nearly re-created §906's defect, since `EventInput.strict()` refuses an `eventFixture` with `Unrecognized keys`, so a bare `toThrow()` would have passed for the wrong reason. Fixed with 5 attributed cases + one corpus driven through BOTH schemas; roster half closed by `tools/checks/superrefine-parity.test.ts`, which parses both blocks and requires each rule to be pinned by a matcher. **That gate shipped weak and its own mutation caught it** — `/unwitnessed|device/` matched every message containing 'device', so renaming a rule in both blocks stayed GREEN; matchers tightened, property strengthened to require a DISCRIMINATING match. 8/8 RED, zero residual; contracts 308→318 |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -53362,3 +53363,82 @@ Nothing changed; 15 cases read, none required a fix. `test:tools` 1,139, 3 faile
 - The remaining ~296 positive-bare assertions are Zod schema tests where one mechanism refuses and attribution
   adds nothing (§907). That judgement is *by class*, not by reading — if a contracts test ever gains a
   second refusal path (a refine that throws for a different reason), the class argument stops holding for it.
+## §912 — PHASE GATE: PHASE 132 CLOSED — a rule written twice, tested asymmetrically: 4 of 8 branches silent
+
+§911 closed by leaving a trigger: the ~296 remaining positive-bare assertions are contracts tests where
+"one mechanism refuses and attribution adds nothing", and *"if a contracts test ever gains a second refusal
+path, the class argument stops holding for it."* I discharged it in the next phase instead of deferring it,
+and **it was already false** — `packages/contracts/src` carries **19** `refine`/`superRefine` sites across
+seven files. The class judgement had an expiry condition that had already fired when I wrote it.
+
+### The finding
+
+`events.ts` states the REQ-016 device-binding rules **twice** — once in `LedgerEvent`'s `superRefine` (the
+stored shape), once in `LedgerEventInput`'s (the pre-storage shape). The duplication is forced: a Zod
+discriminated union cannot take a refined object as a member, so the rule cannot be inherited.
+
+I mutated each of the eight branches to make it unreachable and ran the suite. **Four were silent.**
+
+| branch | `LedgerEvent` | `EventInput` |
+|---|---|---|
+| device_seq required when device_id present | **SILENT** | **SILENT** |
+| device_id must equal actor.device | **SILENT** | RED |
+| sig required when device_id present | RED | RED |
+| I4: custody needs device or unwitnessed | RED | **SILENT** |
+
+**The coverage was asymmetric, and that is the whole defect.** Each copy was tested for a *different*
+subset, so the pair read as covered while neither was. Reading the test file afterwards corroborated the
+mutation exactly: the REQ-016 block exercises `EventInput` for two branches and `LedgerEvent` for one, and
+the I4 block exercises only `LedgerEvent`.
+
+**The dedupe-key branch is not redundant.** `packages/contracts/src/events.ts:290@EventBase` carries an
+identical refine — but the union's members are built from the raw shape, never from `EventBase`, which is
+precisely why the `superRefine` restates it. So those two branches were the *only* enforcement of the
+offline dedupe key for a real event, and both were untested: one careless edit from silently vanishing,
+taking with it the rule that stops a device squatting another's `(device_id, device_seq)` slot.
+
+### Two instrument failures, both mine
+
+**The grep said zero; the mutation was right.** Searching test files for the four message strings returned
+**0 hits**, which would have read as "no test asserts these" — a far larger claim than the truth. The tests
+*do* assert them, with **truncated** regexes (`/sig required when device_id/`, no "present"). I searched
+the full message text. **Tenth vocabulary miss this session**, and the reason the finding is sound anyway is
+that it rests on the mutation, not the grep.
+
+**I nearly rebuilt §906's defect inside the fix for §906's defect.** Writing the I4 case for `EventInput`,
+the obvious move is to hand it an `eventFixture`. `EventInput` is `.strict()`, so it refuses with
+`Unrecognized keys: "stream_id", "seq", …` — nothing to do with I4. A bare `toThrow()` there would have
+passed **for the wrong reason**. Caught by probing the shape instead of assuming it; the stored-only keys
+are now stripped, and the comment at the site says why.
+
+### The fix, and the gate that stops it recurring
+
+Five attributed cases close the four silent branches (each paired with a control per §908), and a parity
+`describe` drives **one probe corpus through both schemas** — the repo's own
+`share-lint-matchers-with-parity-tests` rule, which exists for exactly this failure.
+
+That corpus is a hand-written roster, so `tools/checks/superrefine-parity.test.ts` closes the **discovery
+half** (§802/§822): it parses both blocks out of source, asserts they state the **same set** of rules, and
+asserts every rule is pinned by a test matcher.
+
+**That gate shipped weak, and its own mutation caught it.** The first version asked only "does some matcher
+match this message" — and the I4 tests used `/unwitnessed|device/`, an alternation matching *every* message
+containing "device". Renaming a rule in both blocks stayed **GREEN**. A green certifying only that the words
+overlap. Three matchers were tightened to name their rule, and the property strengthened: a matcher counts
+only if it **discriminates** that rule from the others.
+
+### Proof
+
+- **8/8 branches RED**, zero residual (was 4/8).
+- Parity gate: divergent branch in one block → RED; rule renamed in both → RED (was GREEN). Baseline green.
+- One-sided drift fails the parity case **and** two individual cases — it is strictly broader than the
+  per-branch tests it backstops.
+- contracts **308 → 318** · `test:tools` **1,139 → 1,142** (3 failed = the REQ-289 classifier trio,
+  unchanged) · typecheck 0 · lint 0.
+
+**Reopen trigger**
+- **The other 11 refine sites are unswept.** I measured 19 and audited the 8 in the two mirrored blocks.
+  `money.ts`, `facilities.ts`, `booking.ts`, `rating.ts`, `copilot.ts` and `json.ts` hold the rest. They are
+  single-schema refines, so the *parity* property does not apply — but "is this branch tested at all" does,
+  and mutation is the only instrument that answers it. That is the next phase's work, and naming the count
+  here is what stops it being forgotten.

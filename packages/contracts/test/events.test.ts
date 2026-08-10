@@ -16,12 +16,32 @@ describe("I4: custody kinds need a device or the unwitnessed flag", () => {
   it("pod.signed without device and without unwitnessed is rejected", () => {
     const f = eventFixture("pod.signed");
     const bad = { ...f, actor: { party: f.actor.party } };
-    expect(() => LedgerEvent.parse(bad)).toThrow(/unwitnessed|device/);
+    expect(() => LedgerEvent.parse(bad)).toThrow(/custody event requires/);
   });
   it("unwitnessed flag admits it", () => {
     const f = eventFixture("pod.signed");
     const ok = { ...f, actor: { party: f.actor.party }, payload: { ...f.payload, unwitnessed: true } };
     expect(LedgerEvent.parse(ok).kind).toBe("pod.signed");
+  });
+
+  // §912 — THE SAME RULE ON THE PRE-STORAGE SHAPE. I4 is enforced by TWO mirrored superRefines,
+  // LedgerEvent's and EventInput's, and until now the cases above tested only the LedgerEvent copy:
+  // deleting EventInput's branch left all 308 contracts tests green. An event is validated as INPUT
+  // before it is ever stored, so the untested copy is the one a write actually meets first.
+  //
+  // The stored-only keys must be stripped: EventInput is .strict(), so passing a whole eventFixture
+  // makes it throw `Unrecognized keys` — a refusal that has nothing to do with I4. A bare toThrow()
+  // here would have passed for that wrong reason (§906), which is why the matcher names the rule.
+  it("EventInput enforces I4 too — the shape a write meets BEFORE it is stored", () => {
+    const input: Record<string, unknown> = { ...eventFixture("pod.signed") };
+    for (const k of ["stream_id", "seq", "recorded_at", "prev_hash", "visibility"]) delete input[k];
+    const actor = input.actor as { party: string };
+    const bad = { ...input, actor: { party: actor.party } };
+    expect(() => EventInput.parse(bad)).toThrow(/custody event requires/);
+    // Control (§908): the SAME object with the flag set is admitted, so the rejection above is
+    // attributable to the missing device/unwitnessed pair and to nothing else in the fixture.
+    const payload = input.payload as Record<string, unknown>;
+    expect(EventInput.parse({ ...bad, payload: { ...payload, unwitnessed: true } }).kind).toBe("pod.signed");
   });
 });
 describe("I5: quotes pin rate_config versions", () => {
@@ -99,7 +119,7 @@ describe("I4 mirror: custody.transferred", () => {
   it("no device + no unwitnessed rejected; unwitnessed admits", () => {
     const f = eventFixture("custody.transferred");
     const bare = { ...f, actor: { party: f.actor.party } };
-    expect(() => LedgerEvent.parse(bare)).toThrow(/unwitnessed|device/);
+    expect(() => LedgerEvent.parse(bare)).toThrow(/custody event requires/);
     expect(LedgerEvent.parse({ ...bare, payload: { ...f.payload, unwitnessed: true } }).kind).toBe("custody.transferred");
   });
 });
@@ -139,8 +159,22 @@ describe("REQ-016: device_id is bound to the signing key (device_id === actor.de
     sig: "c2ln", // presence is what the refine checks; the DO verifies validity against the JWK
   };
 
+  /** The same event as it exists AFTER sequencing — what rowToEvent reads back. */
+  const storedBase = {
+    ...deviceBase,
+    stream_id: "s:shp-1",
+    shipment_id: "shp-1",
+    seq: 0,
+    recorded_at: 1_720_000_000_500,
+    prev_hash: "0".repeat(64),
+    visibility: "internal" as const,
+  };
+
   it("accepts the honest case (device_id === actor.device, signed)", () => {
     expect(EventInput.parse(deviceBase).device_id).toBe("device-1");
+  });
+  it("accepts the honest case once stored (the control for every LedgerEvent case below)", () => {
+    expect(LedgerEvent.parse(storedBase).device_id).toBe("device-1");
   });
   it("rejects an UNSIGNED event carrying a device_id (the squatted-slot bypass)", () => {
     const unsigned: Record<string, unknown> = { ...deviceBase };
@@ -154,19 +188,71 @@ describe("REQ-016: device_id is bound to the signing key (device_id === actor.de
     expect(() => EventInput.parse({ ...deviceBase, actor: { party: "party-carrier" } })).toThrow(/device_id must equal actor\.device/);
   });
   it("LedgerEvent (the stored shape read back by rowToEvent) enforces the same binding", () => {
-    const stored = {
-      ...deviceBase,
-      stream_id: "s:shp-1",
-      shipment_id: "shp-1",
-      seq: 0,
-      recorded_at: 1_720_000_000_500,
-      prev_hash: "0".repeat(64),
-      visibility: "internal" as const,
-    };
-    expect(LedgerEvent.parse(stored).device_id).toBe("device-1");
-    const unsigned: Record<string, unknown> = { ...stored };
+    const unsigned: Record<string, unknown> = { ...storedBase };
     delete unsigned.sig;
     expect(() => LedgerEvent.parse(unsigned)).toThrow(/sig required when device_id/);
+  });
+
+  // §912 — THE THREE BRANCHES THAT WERE ENFORCED ON BOTH SCHEMAS AND TESTED ON NEITHER.
+  //
+  // REQ-016's rule is written twice — once in LedgerEvent's superRefine, once in EventInput's — and a
+  // per-branch mutation showed the pair was covered ASYMMETRICALLY: device_id===actor.device was tested
+  // only on EventInput, I4 only on LedgerEvent, and the dedupe-key branch on NEITHER. Deleting any of
+  // the three left all 308 contracts tests green. The union looked covered because each copy was tested
+  // for a different subset, which is the exact shape a mirrored rule fails in.
+  //
+  // The dedupe-key branch is NOT redundant with EventBase's identical refine: a discriminated union
+  // cannot take a refined object as a member (see the comment above EventBase), so these superRefines
+  // are the ONLY thing enforcing it for a real event. Untested, they were one careless edit from
+  // silently vanishing — and the invariant they carry is what stops a device squatting another's
+  // (device_id, device_seq) slot and dropping its signed capture.
+  it("rejects a device_id with NO device_seq — a half-formed dedupe key (EventInput)", () => {
+    const noSeq: Record<string, unknown> = { ...deviceBase };
+    delete noSeq.device_seq;
+    expect(() => EventInput.parse(noSeq)).toThrow(/device_seq required when device_id/);
+  });
+  it("rejects a device_id with NO device_seq once stored (LedgerEvent)", () => {
+    const noSeq: Record<string, unknown> = { ...storedBase };
+    delete noSeq.device_seq;
+    expect(() => LedgerEvent.parse(noSeq)).toThrow(/device_seq required when device_id/);
+  });
+  it("rejects device_id != actor.device once stored (LedgerEvent — the squat, post-sequencing)", () => {
+    expect(() => LedgerEvent.parse({ ...storedBase, device_id: "device-2" })).toThrow(/device_id must equal actor\.device/);
+  });
+
+  // §912 — PARITY: ONE CORPUS, BOTH SCHEMAS.
+  //
+  // The four cases above close today's asymmetry; this is what stops it coming back. The repo's own
+  // rule for a duplicated check (skill: share-lint-matchers-with-parity-tests) is that every input
+  // surface enforcing it must be driven by the SAME probe corpus — otherwise the copy that got less
+  // attention becomes the evasion vector, which is precisely how three of these four branches ended
+  // up covered on one schema and not the other.
+  //
+  // A new branch added to one superRefine and not the other now fails here as soon as it gets a row.
+  describe("every device-binding rule refuses on BOTH schemas, not just the one under test", () => {
+    const CASES: ReadonlyArray<{ name: string; corrupt: (e: Record<string, unknown>) => void; expected: RegExp }> = [
+      { name: "device_id without device_seq", corrupt: (e) => void delete e.device_seq, expected: /device_seq required when device_id/ },
+      { name: "device_id signed by a different device", corrupt: (e) => void (e.device_id = "device-2"), expected: /device_id must equal actor\.device/ },
+      { name: "device_id with no actor.device at all", corrupt: (e) => void (e.actor = { party: "party-carrier" }), expected: /device_id must equal actor\.device/ },
+      { name: "device_id with no signature", corrupt: (e) => void delete e.sig, expected: /sig required when device_id/ },
+    ];
+
+    it("the corpus and both honest bases are real (non-vacuity — two empty sets agree about nothing)", () => {
+      expect(CASES.length).toBeGreaterThanOrEqual(4);
+      expect(EventInput.parse(deviceBase).device_id).toBe("device-1");
+      expect(LedgerEvent.parse(storedBase).device_id).toBe("device-1");
+    });
+
+    for (const c of CASES) {
+      it(`${c.name} — refused by EventInput AND LedgerEvent`, () => {
+        const asInput: Record<string, unknown> = { ...deviceBase };
+        const asStored: Record<string, unknown> = { ...storedBase };
+        c.corrupt(asInput);
+        c.corrupt(asStored);
+        expect(() => EventInput.parse(asInput), `EventInput accepted: ${c.name}`).toThrow(c.expected);
+        expect(() => LedgerEvent.parse(asStored), `LedgerEvent accepted: ${c.name}`).toThrow(c.expected);
+      });
+    }
   });
 });
 
