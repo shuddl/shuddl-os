@@ -530,6 +530,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 335 | §887 | **§888** | **THE FIVE-DEMO ACCEPTANCE SPINE, PROBED AT THE LEVEL THAT DEFINES "DONE ENOUGH TO SHOW".** Changed axis after several record phases: CLAUDE.md's five acceptance demos, `test:acceptance` PASS on the board — what does that green certify? **More than expected, and the harness is honest about what it cannot.** Design is explicitly TWO-TIER (in-repo **spine** = code-provable causal chain; **filmed** delta = what a human with a camera must still show), and it records where CLAUDE.md's own wording overreaches (demo #1 says *invoice + PHOTOS* while the email ships documentary placeholders, §178). Manifest drift gated SIX ways bidirectionally, incl. all five demos declared with ≥1 spine test AND a stated filmed delta, and §607's *all 7 spine files resolve on disk*. **The runner EXECUTES** — `spawnSync` per package through that package's own vitest config (api/mcp are pool-workers, driver node, map jsdom) — and checks existence BEFORE any run because *"a filter matching nothing is silent whenever a sibling filter in the same package still matches"*, the exact trap a prior phase found by disproving its own earlier comment. **Mutation-proved**: a renamed spine file → `ACCEPTANCE SPINE: FAIL … the demo they prove is UNTESTED` and **exit 1**; clean tree exit 0. **CLEAN NEGATIVE.** Method note: my first probe read `$?` after a pipe and printed `exit=0` for a failed run — the trap this record already carries |
 | 336 | §888 | **§889** | **A RENAMED SPINE TEST WAS CAUGHT; A GUTTED ONE WAS NOT.** §888's own trigger, closed with §827's pattern (per-file floors, `SUITE` derived from the keys, aggregate DERIVED by summing per §823). **Measured: 41 cases / 237 assertions across the 7 spine files — and the METRIC had to change.** §827 floors on CASE count; copying that would have shipped a gate blind to the demo that matters most, because `heartbeat.test.ts` is **1 `it()` carrying 48 `expect()`** — demo #1's whole causal chain in one case, so gutting it to a single assertion keeps a case-floor GREEN. Floored on **assertions per file** instead: **the precedent's SHAPE transfers, its METRIC did not**, and taking it on trust would have produced exactly the hollow gate this record keeps finding. **Limits stated rather than implied**: floors sit at ~80% of measured, so this catches GUTTING not EROSION (48→40 passes), and it cannot see a HOLLOWED assertion — `toBeDefined()` counts the same as a penny-exact invoice comparison. Counting is the cheap half |
 | 337 | §889 | **§890** | **STOPPING POINT — THE SPINE IS NOT HOLLOW (MEASURED), BOARD AT `7288d9f` UNCHANGED.** §889 floored the acceptance spine on assertion COUNT and honestly caveated that a count cannot see a HOLLOWED assertion. Measured: **12 weak / 200 strong = 5%**, and demo #1's single-case whole-chain proof is **2%** (1 of 45) — **the floors guard genuine strength, not weight**. Honest bound: 212 of §889's 237 `expect(` calls classified; **25 unclassified** and NOT assumed to resemble the rest. **Board: 26 gates, 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged across 14 phases / ~40 commits; the action remains *give REQ-289 a classifiable `status`/`wp`* — NOT commit it (§876). **§880–§889 produced two gates** (blank-line citations, spine assertion floors) **and one deliberately declined** (§880's path gate — the record had already measured its ~76% FP rate). **The through-line**: across ten phases I was wrong about MY OWN WORK far more often than about the code — a denominator (§884), an assumption about history (§887), a metric borrowed unchecked (§889), two reopen triggers (§882/§885), an experiment already run (§880) — every one caught by measuring, several by gates I had just built. **The code kept holding.** That asymmetry is the segment's most useful result |
+| 338 | §890 | **§891** | **THE BLIND SPOT IN §890'S MEASUREMENT WAS §890'S SCANNER.** §890 reported 5% weak spine assertions and honestly bounded itself: *25 matchers unclassified*. Listing them exposed the fault — `.id(`, `.res(`, `.text(`, `.ok(` are **not matchers**, they are property accesses INSIDE the `expect(...)` argument (`expect(res.json.id).toBe(…)`) that a naive forward-scan grabbed. Only **8** were real unnamed matchers. **The blind spot was an instrument fault, not a property of the corpus** — 10th time this session a probe answered a different question than the one asked, and the 2nd (with §885's `parity.ts` grep) where the thing I flagged as UNMEASURED was an artifact of how I measured. Re-measured with a string-aware balanced-paren scanner: **10 weak / 227 strong = 4%, ZERO unparsed**, and **demo #1 is 0% weak** (48 assertions, not one `toBeDefined()`-class). **Cross-check that makes it trustworthy: 10+227 = 237 = §889's independent `expect(` count** — two measurements taken for different reasons agreeing to the unit. §890's 12/200/5% corrected to 10/227/4%; conclusion unchanged and slightly strengthened, caveat RETIRED rather than inherited |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -52016,21 +52017,26 @@ an untested one. Measured, classifying every matcher in the seven spine files:
 
 | file | weak | strong | weak % |
 |---|---|---|---|
-| `heartbeat.test.ts` (demo #1) | **1** | 44 | **2%** |
-| `signup-to-quote.e2e.test.ts` | 0 | 9 | 0% |
-| `stop-flow.test.ts` | 0 | 33 | 0% |
+| `heartbeat.test.ts` (demo #1) | **0** | 48 | **0%** |
+| `signup-to-quote.e2e.test.ts` | 0 | 13 | 0% |
+| `stop-flow.test.ts` | 0 | 36 | 0% |
 | `airplane-soak.test.ts` | 3 | 26 | 10% |
-| `quote-book.test.ts` | 3 | 34 | 8% |
-| `command-heartbeat.test.ts` | 3 | 36 | 7% |
-| `MapCanvas.test.tsx` | 2 | 18 | 10% |
-| **total** | **12** | **200** | **5%** |
+| `quote-book.test.ts` | 2 | 35 | 5% |
+| `command-heartbeat.test.ts` | 2 | 38 | 5% |
+| `MapCanvas.test.tsx` | 3 | 31 | 9% |
+| **total** | **10** | **227** | **4%** |
 
-**The spine is not hollow.** 5% weak overall, and the file the floors most need to protect — demo #1's
-single-case, whole-chain proof — is **2%**. So §889's floors guard genuine strength, not weight.
+> **CORRECTED by §891.** This table first read 12 / 200 / 5% with *"25 unclassified"*. Those 25 were not
+> matchers at all — they were property accesses inside the `expect(...)` argument that a forward-scan mistook
+> for matchers. Re-measured with a balanced-paren scanner: **10 / 227 / 4%, zero unparsed**, cross-checking
+> exactly against §889's independent count of 237. **The blind spot was the scanner, not the corpus.**
 
-*Honest bound:* 212 matchers classified against §889's 237 `expect(` calls. **25 are unclassified** — multi-line
-forms, `.resolves.`, shapes my two patterns do not name. I am not calling that 5% exact; it is 5% of what I
-could classify, and the unclassified quarter is not assumed to resemble the rest.
+**The spine is not hollow.** 4% weak overall, and the file the floors most need to protect — demo #1's
+single-case, whole-chain proof — is **0%**: 48 assertions, not one of them a `toBeDefined()`-class check. So
+§889's floors guard genuine strength, not weight.
+
+*Bound, now closed (§891):* all **237** matchers classify, zero unparsed, and the total reconciles to §889's
+independent `expect(` count.
 
 ### The board, re-measured at `7288d9f`
 
@@ -52080,3 +52086,65 @@ reader · `routes ±10%` · the nine private fixtures · `IDENTITY_DENYLIST`.
 - ~15 repo-owned checklist rows still carry no verification stamp; three of them say *"needs a REQ row first"*
   and are register work, not verification work.
 - The 25 unclassified spine matchers above are a small, real blind spot in this phase's own measurement.
+## §891 — PHASE GATE: PHASE 111 CLOSED — the blind spot in §890's measurement was §890's scanner
+
+§890 measured the acceptance spine's assertion strength, reported **5% weak**, and closed by naming its own
+gap: *"25 matchers unclassified … not assumed to resemble the rest."* Recording that bound was right. Leaving
+it was not, so this closes it.
+
+### The unclassified set was not matchers
+
+Listing them made the fault obvious:
+
+```
+15  .id(      8  .res(      3  .text(      2  .ok(      2  .terminal(   2  .length(   …
+ 4  .toHaveBeenCalledWith(   4  .toHaveBeenCalled(
+```
+
+`.id(`, `.res(`, `.text(`, `.ok(` are **not matchers**. They are property accesses *inside* the `expect(...)`
+argument — `expect(res.json.id).toBe(…)` — and §890's forward scan, which searched for the first `.name(`
+after `expect(`, was picking them up. Only **8** were real matchers it had not named
+(`toHaveBeenCalledWith`, `toHaveBeenCalled`).
+
+**So the "blind spot" was an instrument fault, not a property of the corpus** — the tenth time this session a
+probe answered a different question than the one I asked, and the second time (with §885's `parity.ts` grep)
+that the thing I flagged as unmeasured was an artifact of how I measured.
+
+### Re-measured with a balanced-paren scanner
+
+Walking to the balanced close of `expect(` — string-aware — then reading the matcher, with `.not`/`.resolves`
+modifiers handled:
+
+| file | weak | strong |
+|---|---|---|
+| **`heartbeat.test.ts`** (demo #1) | **0** | **48** |
+| `signup-to-quote.e2e.test.ts` | 0 | 13 |
+| `stop-flow.test.ts` | 0 | 36 |
+| `airplane-soak.test.ts` | 3 | 26 |
+| `quote-book.test.ts` | 2 | 35 |
+| `command-heartbeat.test.ts` | 2 | 38 |
+| `MapCanvas.test.tsx` | 3 | 31 |
+| **total** | **10** | **227** |
+
+**4% weak, zero unparsed.** And the cross-check that makes it trustworthy: **10 + 227 = 237**, which is
+exactly the independent `expect(` count §889 measured for the assertion floors. Two measurements taken for
+different reasons agree to the unit — the fixed-point discipline, satisfied by accident of having done the
+first one properly.
+
+**Demo #1 is 0% weak**, not 2%: its single case carries 48 assertions and not one of them is a
+`toBeDefined()`-class check.
+
+### §890 corrected
+
+Its table read 12 weak / 200 strong / 5% with 25 unclassified. The true figures are **10 / 227 / 4%, fully
+classified**. The conclusion is unchanged and slightly strengthened — the spine is not hollow — but the numbers
+are now right, and the caveat that qualified them is retired rather than inherited.
+
+### Exit state
+
+No code changed. `verify:docs` 0 · `test:tools` 1,136, 3 failed (the REQ-289 classifier).
+
+**Reopen trigger**
+- `toHaveBeenCalled` is counted **weak** here (it asserts a call happened, not with what) while
+  `toHaveBeenCalledWith` is strong. That is a judgement, not a measurement, and it is where the 4% would move
+  if someone disagreed — 4 of the 10 weak are `toHaveBeenCalled`.
