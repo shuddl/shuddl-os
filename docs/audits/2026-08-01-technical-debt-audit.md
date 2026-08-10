@@ -520,6 +520,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 325 | §877 | **§878** | **THE RECORD CAN CHECK ONE KIND OF CLAIM ABOUT ITSELF — AND IT IS THE KIND THAT FAILED.** §877 closed saying the record cannot check itself while its claims are free text. True in general, **false for one narrow case**: a backticked **camelCase identifier** is not prose, it is a mechanical claim that a symbol exists. **Measured before building: 75 such identifiers in the checklist, exactly ONE absent from all tracked source — `notifyBoard`, precisely §877's hand-found defect. A 1.3% flag rate.** Scope stated rather than assumed: the **checklist only** (the audit is a 50k-line append-only history that deliberately quotes since-renamed symbols — flagging those would flag history); **camelCase only**, because `events`/`pod.signed`/`JWT_SECRET`/`--progress` are tables, kinds, env vars and tokens, and widening trades a real gate for a noisy one; **existence, not correctness** — §877's `hashPath` row named a REAL symbol and still described code that no longer existed, so this gate certifies quite little and happens to certify the thing that broke. **It flags its own correction**: §877's fixed row says *"`notifyBoard` does not exist in code"*, so the detector fires on the row documenting the absence — the §829/§871 *example vs use* shape, 3rd time this session. Handled by an allowlist with a reason, not by loosening the pattern |
 | 326 | §878 | **§879** | **STOPPING POINT — BOARD AT `ea9eac8`: 19 PASS · 2 FAIL · 5 BLOCKED, UNCHANGED, AND ITS EXPLANATION RETRACTED.** Until §876 this record said both FAILs were the *uncommitted* REQ-289 row and that committing it would clear them. **Measured both ways: `check:coverage` reads the register FILE, so committing leaves the row present and fixes nothing.** The fix is a classifiable `status`/`wp` — one edit clearing coverage, keeping traceability green (it NEEDS the row, source cites it), and taking tests to 1,131/1,131. Same expected board (**21 · 0 · 5**), different action; the two gates are in genuine tension until the row is **present AND classifiable**, so nobody should fix one by reverting the other. **Segment product: a RETRACTION** — 3 phases, **zero production-code changes**, one wrong claim withdrawn (§876), two record defects fixed (§877: six rows probed, three wrong), one self-check built (§878: 75 backticked symbols, 1 ghost). **Through-line**: §646 measured this 30 phases earlier and titled itself *the "2 FAIL" was a dirty working tree*, quoting *"a thing restated all session without re-measurement is suspect"* — and I restated the superseded version for 20 more phases, past a memory line saying *partly superseded*. **The record is a corpus like any other, and I searched the code far more often than I searched the record** |
 | 327 | §879 | **§880** | **I RE-RAN AN EXPERIMENT THE RECORD HAD ALREADY RUN — AND IT HAD ALREADY PREDICTED THE RESULT.** After §878 gated backticked SYMBOLS, the obvious sibling was backticked PATHS. Measured: 168 full repo paths cited, **5 unresolved**; narrowed the pattern, masked strikethrough, still 5 — then READ them. **All five are deliberate NEGATIVE EXAMPLES** (*"there is no `docs/ops/threat-model.md`"*, *"cited as a negative example"*, *"a `workers/agents/src/sender.ts` that has never existed"*). **Checklist row L413 already contains this experiment**: *"Link-check of every backticked path in this file (113 distinct, `existsSync` each) … ~76% false-positive rate … deliberate quotations of known-bad paths inside the rows that DOCUMENT citation rot … **A path-only gate would fire on this very row.**"* It did. **Second time in five phases the answer was already in the record** (§876 first, whose lesson was *search the record, not just the code*). **The contrast is the result**: symbols 75/1 flag (viable, shipped §878) vs paths 168/5-all-deliberate (not viable). Cause: **a path is usable as PROSE** — shorthand, ranges, elisions, and above all negative examples, since the natural way to record a broken citation is to quote it; a camelCase identifier is none of those. **A detector's precision is set by how much non-code lives in its token space.** NOTHING BUILT — L413 needed no edit, the correct outcome for a row that was already right |
+| 328 | §880 | **§881** | **THE PRE-R4 CARRY-FORWARD RE-VERIFIED — ACCURATE, ANNOTATED, CORRECTLY DEFERRED.** Re-measured L419 (*pool-binding exclusivity enforced on ENUMERATION, not RESOLUTION*) because it is a tenant-isolation claim (rule 8 / REQ-025) and **repo-owned rows are the only ones that can rot**. It survived: `workers/agents/src/tenants.ts@resolveClaimedTenantDb` carries the whole reasoning INLINE — the revert, its cause (six tests failed on a HARNESS artifact: two pool slots, standing claimed rows on both), and the named structural fix. **Doc and source agree in detail** — the configuration this audit usually finds broken. The enforced half is tested **three times** (agents/billing/translator, each *fails CLOSED, excludes BOTH slugs*). **The api worker has none, and that is CORRECT**: comment-stripped, `workers/api/src` calls `resolveClaimedTenantDb` and NEVER `claimedTenantSlugs` — api RESOLVES, the crons ENUMERATE; a missing enumeration test for a worker that does not enumerate is not a gap, and *3 of 4 workers have this test* is exactly the shape that reads as one. **Not shipped**, with reasons: R4-scoped and dark behind `PROVISIONING_ENABLED`; `pool_binding` lives in a JSON column so it needs a PARTIAL EXPRESSION index, not a constraint; and **it plausibly meets the same harness wall that reverted §12** — unmeasured, and saying so is the point, because *the structural fix avoids the problem* is a claim, not a measurement |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -51466,3 +51467,65 @@ owner's register row.
   `dod_kind` problem in a third costume.
 - The 249 unverified checklist rows (§879) are still unverified. This phase reduced that number by zero and
   should not be read as having swept anything.
+## §881 — PHASE GATE: PHASE 101 CLOSED — the pre-R4 carry-forward re-verified; accurate, annotated, and correctly deferred
+
+§879 left nine owner-held items. §880 established that the record often already holds the answer, so this
+phase re-verified the one my own notes call *the pre-R4 repo carry-forward*: **L419 — pool-binding exclusivity
+is enforced on ENUMERATION but not RESOLUTION.**
+
+It is a tenant-isolation claim (CLAUDE.md rule 8, REQ-025), it is repo-owned, and repo-owned rows are the only
+ones that can rot. So it is worth the re-measure, and it survived it.
+
+### The row is accurate, and the code says the same thing
+
+`workers/agents/src/tenants.ts@resolveClaimedTenantDb` carries the reasoning inline:
+
+> *"EXCLUSIVITY ON THE RESOLVE PATH — NOT enforced here, deliberately (2026-08-01 §12). The enumeration path
+> refuses a pool binding claimed by two tenants; resolution does not … The guard was written and REVERTED:
+> only two pool slots exist, and the shared test control-plane legitimately carries standing claimed rows on
+> both, so no arrangement of the harness can satisfy one-tenant-per-binding — enforcing it made six real tests
+> fail on a harness artifact rather than a product truth. Ledgered as an open Medium with its named fix (a
+> control-plane UNIQUE index on the claimed pool_binding is the structural answer); dark today behind
+> PROVISIONING_ENABLED."*
+
+**Doc and source agree, in detail, including the reason for the revert and the name of the structural fix.**
+That is the configuration this audit usually finds broken, and it is worth recording when it holds.
+
+### The half that IS enforced is tested three times
+
+| worker | case |
+|---|---|
+| agents | *"pool-binding exclusivity fails CLOSED — two claimed rows naming ONE binding exclude BOTH slugs with a loud log (REQ-025)"* |
+| billing | *"…fails CLOSED — a duplicate excludes BOTH slugs (REQ-025)"* |
+| translator | *"…two claimed rows on ONE binding exclude both"* |
+
+**The api worker has no such test, and that is correct.** Comment-stripped, `workers/api/src` calls
+`resolveClaimedTenantDb` and **never** `claimedTenantSlugs`/`allTenantSlugs`: api *resolves* (it serves
+requests), the cron workers *enumerate* (they sweep). A missing enumeration test for a worker that does not
+enumerate is not a gap — checked rather than assumed, because "three of four workers have this test" is
+exactly the shape that reads as a hole.
+
+### Why I did not ship the fix
+
+The named structural answer is a control-plane UNIQUE index on the claimed `pool_binding`. Three reasons to
+leave it:
+
+1. **It is R4-scoped and dark** behind `PROVISIONING_ENABLED` — shipping it now is straying from the
+   documented build.
+2. **`pool_binding` lives inside a JSON `policy` column**, so it needs a *partial expression* index
+   (`json_extract(policy,'$.pool_binding')` where `status='claimed'`), not a plain column constraint — a
+   migration, not a one-liner.
+3. **It plausibly meets the same harness wall that reverted §12's runtime guard.** The test control plane
+   carries standing claimed rows on both slots while other files claim slots dynamically; a UNIQUE index would
+   reject exactly that. I did not measure whether today's fixtures actually collide — and saying so is the
+   point, because "the structural fix avoids the problem" is a claim, not a measurement.
+
+### Exit state
+
+Nothing changed. `verify:docs` 0 · `test:tools` 1,131, 3 failed (the REQ-289 classifier).
+
+**Reopen triggers**
+- Before the UNIQUE index is attempted, **measure whether the test control plane holds two claimed rows on one
+  binding.** If it does, the index fails for the same reason the COUNT did, and the harness is the work.
+- If `workers/api/src` ever calls `claimedTenantSlugs`, it inherits the enumeration guard and needs the
+  fourth exclusivity test. Nothing watches for that; the three existing tests are per-worker copies.
