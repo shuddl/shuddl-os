@@ -494,6 +494,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 299 | §851 | **§852** | **PHASE 72 CLOSED — the waiver class has EXACTLY ONE member, and the one that matters is fully accountable.** §851 named a class §796 does not model (*a field read only by the check that waives a requirement*); a class with one member is a hypothesis, so this swept the rest. Six waiver-shaped fields: `override` **5 readers**, `skipped` 2, `shipmentIdOverride` 1, and two zero-reader fields that are **telemetry counts** in a sweep's return, not waivers. **`unwitnessed` is the only member.** REQ-049's override — *the only thing that lets a transition proceed without its evidence* — is accountable end to end: named+reasoned (both refined non-blank), **role-gated** at the route, **persisted on the events row** (the migration states why: *a single-row mapper can't JOIN a side table*), **tamper-evident** in the hashed chain, and **rehydrated by the lens** to the API. The Command UI does not render it — stated precisely rather than filed, because REQ-049's *permanently visible* is a claim about the LEDGER record, and conflating that with a UI wish would file a product question as a compliance gap. **§851's finding is isolated, not systemic** — and the contrast (same role, 5 readers vs 0) is the sharpest argument for giving it one |
 | 300 | §852 | **§853** | **PHASE 73 CLOSED — demo #5's world-dim is CORRECT; one branch in it is vestigial.** genesis/07: *the rest of the map dims to 35%*. `setWorldDim` dims every layer class explicitly — circles, the `trucks` symbol layer, the `eta` line, clusters, the count — each exempting the exception (clusters via `maxStatus`, since they carry no feature-state). Its suite already applies the substring-vs-boundary lesson: it asserts the expression *contains* `0.35`, **names the trap** (*stays true if the exception branch dims too*), and follows with a fallback test. **What I nearly reported**: `entities.ts:163` keys the trucks paint on `feature-state "dimmed"`, which appears **exactly once in the repo — on that line**; nothing sets it, so my first reading was that moving trucks never dim, breaking the law on the demo the design system exists for. **Wrong** — `setWorldDim:230` overwrites `icon-opacity` directly. Checking the caller turned a headline into a footnote. It is **vestigial**: always evaluates to 1, replaced at runtime — removed because it *describes a mechanism that does not exist*. **Residual stated**: the 35% lives in two code copies and genesis/07, unlinked; the design CI covers colour/contrast/radius/motion, not this number |
 | 301 | §853 | **§854** | **PHASE 74 CLOSED — a VISUAL LAW in genesis/07 the register never authorised.** §853 left the 35% unpinned and called a doc↔code pin *a phase*; doing it found something better. genesis/07 §02 states three map states — exception-dims-to-35% (**built**, REQ-077 authorises it), truck-as-chevron (**built**), and **Delivered: hollow red outline at 55%, fades after 24h (NOT built, and NO REQ row covers it)**. `delivered` is an `EntityKind` the demo emits, but the leaves filter on **`statusStr`, not `kind`**, so it draws at 0.9 like any at-rest mark. **The map is CORRECT to omit it** — CLAUDE.md ranks the register #1 (*if it isn't a REQ row it doesn't get built*) and genesis/07 #3. So it is a **doc-vs-doc gap**, the §842 `routes ±10%` shape one layer up: a **pixel law with nothing behind it**. Filed, not built and not amended (§795's precedent). **Also measured**: REQ-077's *"Visual test"* DoD is met by a **unit** test — no blessed screenshot covers the world-dim — and the acceptance manifest already records that with demo #5's `browser: null` |
+| 302 | §854 | **§855** | **PHASE 75 CLOSED — REQ-076 names FOUR shapes; the map draws TWO, and its DoD gate cannot see geometry.** Finishing §854's sweep found the row §854 missed — and it **reverses §854's central claim**. `REQ-076,MAP,Entity grammar: chevron/square/hollow/pulse per state … Squint CI,F0-SPEC'D` authorises the shape **vocabulary**, not the per-state mapping, so §854's grep for `delivered`/`55%` could never find it: **a register row names its subject in the REGISTER's vocabulary, not the spec's.** Measured: **chevron** and **pulse** render; **square** and **hollow** do not — every leaf draws `type: "circle"`, filled, 1px stroke; the only `addImage` is the chevron; no recorded decision explains circles. **The gate finding**: REQ-076's DoD is `Squint CI`, which audits contrast/tokens/motion/dividers/case and has **no geometry check** — so the DoD is green whatever shape the marks are. §842's *gate with nothing behind it*, **inverted**: the gate exists, runs, passes, and is blind to its own subject. A4 says why it matters: *status is grammar, not color*. Filed with 3 options; §854's row corrected |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -49768,10 +49769,74 @@ part, because "Visual test" in a register row reads like a screenshot exists.
 Two findings filed to the GO-LIVE-CHECKLIST; neither is mine to decide.
 
 **Reopen triggers**
-- **A REQ row for the delivered state lands** → then it is scope, and the map needs a hollow-outline treatment
+- ~~**A REQ row for the delivered state lands**~~ **CORRECTED in §855: REQ-076 already authorises it** — it names the shape VOCABULARY (*chevron/square/hollow/pulse*), so a grep for `delivered`/`55%` could not find it. A register row names its subject in the REGISTER's vocabulary, not the spec's. Original text: then it is scope, and the map needs a hollow-outline treatment
   keyed on `kind === "delivered"` plus a 24h fade — note the leaf layers filter on status, so this needs a
   new layer rather than a paint tweak.
 - REQ-077's DoD is read as satisfied by a screenshot → it is not; the acceptance manifest's `browser: null`
   is the accurate record and this row points at it.
 - genesis/07 states another visual state → the register is the authority on whether it gets built, and the
   two are not compared by anything. This phase compared them by hand for §02's three map states only.
+## §855 — PHASE GATE: PHASE 75 CLOSED — REQ-076 names four shapes; the map draws two, and its DoD gate cannot see geometry
+
+§854 checked three of genesis/07 §02's six map states and left the rest. Finishing them found a register row I
+had missed — and it reverses §854's central claim.
+
+### §854 was wrong: the grammar IS authorised
+
+§854 concluded the delivered state had **no REQ row**, on the strength of grepping the register for
+`delivered` and `55%`. Both missed **REQ-076**:
+
+> `REQ-076,MAP,Entity grammar: chevron/square/hollow/pulse per state; no new colors,07 A4,07§02,WP-03,Squint CI,F0-SPEC'D`
+
+It authorises the **shape vocabulary**, not the per-state mapping — so a grep for the state name could never
+find it. `hollow` is in that vocabulary, and the delivered state is a hollow one. §854's row in the checklist
+is corrected in this commit.
+
+The lesson is one this audit keeps paying for: **a register row names its subject in the register's
+vocabulary, not the spec's.** I searched for the words genesis/07 used.
+
+### What REQ-076 actually asks for, against what renders
+
+| named shape | rendered? |
+|---|---|
+| **chevron** | yes — `chevron.ts` builds an RGBA bitmap, `addImage("chevron")`, `icon-rotate: bearing` |
+| **pulse** | yes — the pulse target split plus `setWorldDim` |
+| **square** | **no** — at-rest and facility draw as `type: "circle"` with `circle-radius` |
+| **hollow** | **no** — every leaf uses the same `restPaint()`: filled `circle-color` + 1px stroke |
+
+The only `addImage` in the repo is the chevron. There is no square icon, no SDF, no alternate leaf geometry —
+and no recorded decision anywhere in genesis or the audit explaining a move to circles.
+
+### The part that makes it a gate finding rather than a taste finding
+
+REQ-076's DoD column reads **`Squint CI`**, and the squint CI audits contrast math, `--signal-deep`'s AA
+floor, the five colour tokens, the motion law, dividers and case. **It has no geometry check at all.**
+
+So the DoD that gates REQ-076 is structurally incapable of observing the property REQ-076 is about. The row
+sits at `F0-SPEC'D` — built — and its gate is green, and both remain true whatever shape the marks are. This
+is §842's *"a gate name with nothing behind it"* inverted: here the gate exists, runs, and passes, while
+being blind to its own subject.
+
+genesis/07 A4 states why the shapes matter rather than being decoration: *"Status is grammar, not color:
+states are expressed by geometry (solid/hollow/square/chevron)."* With every leaf a filled circle, the
+geometry carries no state and the grammar collapses onto opacity and colour — which A4 exists to prevent.
+
+### Filed, not fixed
+
+Three reasons, and they compose: changing mark geometry is a **design decision** with a blessed-screenshot
+consequence; the register row is `F0-SPEC'D` so "fixing" the code silently would leave the record claiming
+something different from what happened; and a geometry audit is a real gate to build, not a line to add.
+Filed with all three options stated.
+
+### Exit state
+
+**Nothing changed in code.** `test:tools` 1118 (3 failed — REQ-289), typecheck 0 · lint 0 · `verify:docs` 0.
+§854's checklist row corrected; one new row filed.
+
+**Reopen triggers**
+- Squares/hollow land → the five blessed screenshots re-bless, and REQ-076's DoD wants a geometry assertion or
+  it will be exactly as green afterwards as it is now.
+- Circles are ratified as the intended grammar → then genesis/07 §02 and REQ-076 both name a vocabulary the
+  product does not use, and the amendment belongs in both.
+- Another `F0-SPEC'D` row's DoD names a gate that cannot observe its subject → this is the first one measured;
+  the pattern is worth a sweep and this phase did not do one.
