@@ -539,6 +539,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 344 | §896 | **§897** | **LAW 3'S OTHER HALF — AND THE ANSWER TO A PROBLEM I HAVE POSED THREE TIMES.** §896 closed noting the chokepoint proves ONE WRITER, not that the writer's gates are correct. **Roster half**: `check:authority-coverage` statically asserts each registered `(module,file)` calls `resolveAuthority(db, '<module>')`, **module-aware** (the Concierge emits `message.sent` AND prices `quote.priced`, so it must consult both) and refusing a bare mention — *a dangling import is not a consultation*. **Discovery half is the finding**: the coverage gate admits *a NEW emitter in a NEW file passes for free until a human adds it*, and **§313 TRIED the obvious discovery gate and REJECTED it** — *"'authoritative' is semantic; a rule keyed on kind-mentions misclassifies **4 of 4** unregistered candidates"*. **That is the exact wall I hit three times and filed as unsolved** (§857's `dod_kind`, §880's path gate at ~76% FP, §884's *repo-owned is a judgement*). **§313 found the third answer I missed: pin the POPULATION COUNT, not the classification** — *exactly 12 files reference an authoritative kind; a change means RE-ADJUDICATE*. The gate never decides what is authoritative; it decides the SET CHANGED and hands the semantic question to a human exactly when one is needed. Mutation-proved (13≠12). **Generalises: when membership is semantic, a COUNT is still mechanical — it converts *we cannot gate this* into *we cannot gate this SILENTLY*** |
 | 345 | §897 | **§898** | **§897'S TECHNIQUE APPLIED TO §857'S OPEN PROBLEM — AND BLOCKED BY THE SAME REGISTER ROW.** §857 filed *"the DoD column is free text, so a mechanical version would need a vocabulary rather than a parser"* as an owner decision. **That objection dissolves under a tripwire**: it needs no CORRECT vocabulary, only a CONSISTENT one, because it detects CHANGE not membership — whether the population is 8 or 23 is irrelevant. Measured both patterns (narrow `CI|check:|test:` → 8; broad `+audit|lint|harness|pnpm` → 23). **Then the check that mattered: HEAD holds 22 gate-shaped DoDs, the working tree 23** — the uncommitted REQ-289 row's DoD names the identity-leak lint, so it JOINS the population. A pinned count would be **green locally and red in CI**. **A gate whose verdict depends on where it runs is worse than no gate** — it teaches people to distrust a red. Measured, designed, deliberately NOT landed. **Adds a third consequence to resolving REQ-289**: it clears the two board FAILs (§876) AND unblocks this tripwire, closing §857's five-report standing item. And measuring first prevented building a gate that would have been red in CI on day one — §880's lesson paying for itself on a technique I had just praised |
 | 346 | §898 | **§899** | **LAW 1'S "BOTH DIRECTIONS" VERIFIED — AND A FALSE ALARM CAUGHT ON THE SECOND QUERY.** *Every PR references REQ-IDs; traceability CI blocks orphans (both directions)* — three clauses, all enforced. **code→register**: a planted `// REQ-999` gives `check:traceability` exit 1, *FAIL built-but-unspec'd (annotations citing no register row)*. **register→code**: proven LIVE every run — `check:coverage`'s standing REQ-289 failure IS the demonstration, a gate evidenced by what it is currently refusing. **The PR clause is WIRED** (`ci.yml:29,32`, `if: github.event_name == 'pull_request'`, `PR_BODY` from title+body) — **and my first query said it was not**: a path-scoped glob with swallowed stderr returned only the package-script line, and I was one sentence from writing up *a law whose gate nothing runs*. **12th instrument miss**, from a fault this record names twice. **What did NOT save me**: my positive control (`check:coverage` in ci.yml) returned EMPTY, because CI invokes the merge gate rather than that script — **a positive control that FAILS tells you nothing; it is evidence only when it succeeds**, and I proceeded past a failed one |
+| 347 | §899 | **§900** | **LAW 8 HOLDS, AND THE COUNT-FLOOR'S STATED LIMIT HAS A CONCRETE INSTANCE.** *Tenant isolation suite runs on every merge; a cross-tenant read anywhere is a build failure.* **It runs** — inside `unit-tests`; there is no gate NAMED isolation, which is the gap §614 recorded (*the tests ran, but nothing stated WHAT THE SUITE IS*) and closed with a 6-file roster + per-file floors totalling **149 cases**. **A cross-tenant read IS a build failure, proved twice**: neutering `tenantDb` so every slug resolves to tenant-b's DB fails the translator (1/9 — *control-number allocation reads ONLY the passed tenant's integrations row*) and the api (1/67). **The finding is the SHAPE of the catch**: exactly ONE case in each suite caught it. Not a defect — a build needs one RED — but `api/isolation.test.ts` carries **67 cases against a floor of 64**, and that headroom is precisely the space in which the DETECTING case could be deleted while the floor stays green. §889 stated this in the abstract (*catches gutting, not erosion*); here are **three cases of erosion available, one of them the one that noticed**. A floor cannot know which case is load-bearing for which bypass — that is what mutation testing is for. **All ten laws now have a verified standing mechanism** |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -52653,3 +52654,68 @@ Nothing changed; one plant made and reverted. `check:traceability` exit 0 · `te
 - The orphan direction scans **annotations**. A file with no REQ comment at all is not an orphan; it is
   invisible. That is the §897 population problem again, and `check:coverage`'s built-but-unannotated bucket is
   what covers it.
+## §900 — PHASE GATE: PHASE 120 CLOSED — law 8 holds, and the count-floor's stated limit has a concrete instance
+
+The last of CLAUDE.md's ten laws with an untested compound claim: *"Tenant isolation suite runs on every
+merge; **a cross-tenant read anywhere is a build failure** (REQ-025)."*
+
+### It runs, and §614 gave it a name
+
+There is **no merge gate called "isolation"** — the suite runs inside `unit-tests`. §614 recorded exactly that
+gap: the tests existed and ran, but *"what did not exist was any statement of WHAT THE SUITE IS."* So it
+rostered them with per-file floors:
+
+| file | floor |
+|---|---|
+| `workers/api/test/isolation.test.ts` | 64 |
+| `workers/api/test/lens-adversarial.test.ts` | 44 |
+| `workers/api/test/platform-tenant-isolation.test.ts` | 9 |
+| `workers/api/test/plg-isolation-matrix.test.ts` | 8 |
+| `workers/mcp/test/isolation.test.ts` | 15 |
+| `workers/translator/test/isolation.test.ts` | 9 |
+
+**149 cases**, and *"a cross-tenant isolation proof left the repo"* if a member disappears.
+
+### A cross-tenant read is a build failure — proved twice
+
+Neutering `tenantDb` so **every** slug resolves to tenant-b's database — as blunt a cross-tenant read as
+exists — fails both:
+
+| worker | result |
+|---|---|
+| translator | **1 failed / 9** — *"(5) control-number allocation reads/increments ONLY the passed tenant's integrations row"* |
+| api | **1 failed / 67** |
+
+The law holds. One RED fails a merge, and it arrived in both workers.
+
+### The finding is the shape of the catch, not its existence
+
+**One case in each suite caught it.** That is not a defect — different cases guard different paths, and a
+build needs one RED — but it interacts with §827's floors in a way worth stating:
+
+`workers/api/test/isolation.test.ts` carries **67 cases against a floor of 64**. That headroom is exactly the
+space in which the *detecting* case could be removed while the floor stays green. §889 stated this limit for
+the acceptance spine in the abstract — *"catches gutting, not erosion"* — and here is a concrete instance:
+**three cases of erosion are available, and one of them is the one that noticed.**
+
+The honest reading is not "the floor is wrong". A floor cannot know which case is load-bearing for which
+bypass; that is what mutation testing is for, and it is why this phase exists. **What a floor buys is that the
+suite cannot vanish; what it does not buy is that any particular proof survives.**
+
+### Verdict
+
+**Clean negative on law 8**, with one recorded nuance. All ten laws now have a standing mechanism verified
+this session or previously: 1 (§899), 2, 3 (§896/§897), 4, 5, 6, 7 (§892–§895), 8 (here), 9, 10.
+
+### Exit state
+
+Nothing changed; two plants made and reverted, `diff -q` verified, typecheck 0 after restore. `test:tools`
+1,139, 3 failed (REQ-289) · `verify:docs` 0.
+
+**Reopen triggers**
+- The mutation used was **one** bypass shape (a wrong-binding resolve). A scoping predicate dropped from a
+  single query — the narrower, likelier regression — would be caught by different cases, and this phase did
+  not enumerate which.
+- The floors' headroom is 3 cases on the largest file. If §827's floors are ever raised to the measured values
+  the headroom vanishes, but so does the ability to delete a redundant case without a gate edit; that trade
+  was made deliberately at §827 and is not reopened here.
