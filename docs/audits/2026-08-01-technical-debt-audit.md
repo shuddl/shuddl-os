@@ -544,6 +544,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 349 | §901 | **§902** | **THE FLOORS NOW SAY WHICH NUMBER THEY MEAN.** §901 corrected a risk sized from a unit mismatch (vitest's **67** vs a floor of **64**, yielding three phantom cases of erosion) and named the durable fix: *nothing states which counter a floor means*. **Measured**: `caseCount` matches `^\s+(it|test)(\.each)?\(` — **declarations**, counting an `it.each` block as ONE. `api/isolation.test.ts` = 63 plain `it(` + **1 `it.each(`** = 65 declarations vs **67 runs**. **One table-driven block, three rows — that is the entire gap**, which is why five of six files show no divergence: they use no `it.each`. The mismatch is invisible until exactly the file that has one. **Fix is a sentence in each gate, not a new check**: `isolation-suite.test.ts` (`caseCount` = declarations) and `demos.test.ts` (`assertionCount` = `expect(` occurrences, which §890/§891 showed needs its own care) now state what they count and what they do not, beside the number. **No floor moved.** A gate reporting 65 while the runner reports 67 is not wrong — it answers a different question, and the only defence is saying so where the number is read |
 | 350 | §902 | **§903** | **STOPPING POINT — ALL TEN LAWS VERIFIED; BOARD AT `ffb733e` UNCHANGED (19 PASS · 2 FAIL · 5 BLOCKED).** This segment worked CLAUDE.md's laws one at a time, asking of each *what keeps this true tomorrow* and mutating to find out: **law 1** (§899, both orphan directions + the PR gate wired in CI), **law 3** (§896/§897, one-writer chokepoint + authority coverage/population), **law 7** (§892–§895, budgets + zero-tolerance + corpus discovery), **law 8** (§900/§901, 149-case isolation floor); 2/4/5/6/9/10 verified earlier. **Nothing found broken** — 6 chokepoint evasions, 7 planted design artifacts, 2 lens-predicate mutations, a wrong-binding resolve: all refused. **Shipped 3 gates** (citation blank-line over both records; spine assertion floors; design-corpus discovery), **declined 1** (§880's path gate — the record had already measured ~76% FP), **designed but did not land 1** (§898's tripwire — red in CI while the register is dirty). **The pattern: the code held every time and my own work did not** — 12 instrument misses, five false reopen triggers, a denominator, a metric, a headroom figure from mismatched units. **On a build this well-gated the marginal defect has moved out of the code and into the ACCOUNT of the code**, which is why the record's own hygiene became the subject |
 | 351 | §903 | **§904** | **genesis/10's I1–I8 RE-VERIFIED — EACH ENFORCED AT A DIFFERENT LAYER.** §903's principal trigger, untouched for ~560 sections. **The result is not that they hold but WHERE each lives**: I1 **schema** (`event_id … REFERENCES events(id)` + trigger), I2 **server gate**, I3 **DB triggers** (§839), I4 **contract refine** (enforced; §851 filed that the flag has NO downstream reader), I5 **Zod contract** (`rate_config_ids … .min(1)`), I6 **query predicate** (§901), I7 **fixture proof** (4 penny-exact cases), I8 **budget constant** (§892). **Eight invariants, six distinct enforcement layers — no single mechanism carries the model, so no single regression retires it.** Mutations run here: **I2** early-returned → **5 REDs** including the cross-stream case and **§739's two exemption edges** (*an absent exemption policy exempts NOBODY*) — the part of a money gate most likely to be widened by accident has the most cover, and the file carries its own inline FALSIFY note recording what was green BEFORE the proof existed. **I5** `.min(1)` removed → 1 RED, *quote.priced with empty rate_config_ids is rejected*. **My first I2 plant did not apply** (`export function` vs `export async function`) and printed 688 passed alongside — **6th silently-green no-op this session**; only the assertion separates it from a clean negative. **With §903, every governing constraint — ten laws + eight invariants — now has a mutation-verified standing mechanism** |
+| 352 | §904 | **§905** | **I1 HOLDS, BY ONE MECHANISM — §904 NAMED THE WRONG BACKSTOP.** §904 hedged that the BEFORE INSERT trigger made D1's FK setting *non-fatal*. **Wrong**: `money_lines_guard_ins` guards **append-only** (duplicate `id` / `(event_id, line_no)`) and says nothing about whether the referenced event EXISTS — **I1's referential half rests on the FK alone**, and §904 asserted a mitigation that does not exist. **Measured against a real D1**: `PRAGMA foreign_keys = 1`; a line naming a nonexistent event → `D1_ERROR: FOREIGN KEY constraint failed`; **non-vacuity control** — the identical row with a real event inserts. **I1 holds, by ONE mechanism, not two** — worth knowing because §904 offered *six enforcement layers* as the reassurance, which is true across the eight and not within I1. **Four probe iterations, none looking like failure**: raw strings to `applyMigrations` → **"2 skipped"** (skipped is not passed); a missing NOT NULL column → `refused = true` **for the wrong reason**; a hand-rolled `events` insert → the control failed; the repo's `mkEvent`/`eventInsertStmt` → clean. **Iteration 2 is the keeper: the probe returned the answer I expected from a cause I had not considered**, separated only by reading the error text |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -52974,5 +52975,66 @@ Nothing changed; three plants made and reverted, `diff -q` verified, typecheck 0
 **Reopen triggers**
 - **I4 is the weak one, and it is already filed**: the `unwitnessed` flag is set and validated, and nothing
   downstream reads it (§851). The invariant holds *as written*; what it buys is unclear until a reader exists.
-- I1's guarantee is an FK, which SQLite enforces **only when `foreign_keys` is ON**. D1's default was not
-  re-verified here, and the BEFORE INSERT trigger is what makes that question non-fatal.
+- ~~I1's guarantee is an FK … the BEFORE INSERT trigger is what makes that question non-fatal~~ —
+  **CORRECTED by §905.** The `money_lines` BEFORE INSERT trigger guards **append-only** (duplicate `id`, or
+  duplicate `(event_id, line_no)`); it says nothing about whether the referenced event exists. I1's
+  referential half rests on the FK **alone**. Measured against a real D1: `PRAGMA foreign_keys = 1`, and a
+  line naming a nonexistent event is refused with `FOREIGN KEY constraint failed`, with a non-vacuity control
+  proving the identical row inserts when the event exists. **I1 holds — by one mechanism, not two.**
+## §905 — PHASE GATE: PHASE 125 CLOSED — I1 holds, by ONE mechanism; §904 named the wrong backstop
+
+§904 closed I1 with a hedge: *"I1's guarantee is an FK, which SQLite enforces only when `foreign_keys` is ON.
+D1's default was not re-verified here, and the BEFORE INSERT trigger is what makes that question non-fatal."*
+
+**The second half is wrong.** Reading `0003_insert_guards.sql`:
+
+```
+CREATE TRIGGER money_lines_guard_ins BEFORE INSERT ON money_lines
+  WHEN EXISTS (SELECT 1 FROM money_lines WHERE id = NEW.id OR (event_id = NEW.event_id AND line_no = NEW.line_no))
+  BEGIN SELECT RAISE(ABORT,'I1: projections are append-only'); END;
+```
+
+That guards **append-only** — a duplicate `id`, or a duplicate `(event_id, line_no)`. It says nothing about
+whether the referenced event *exists*. **I1's referential half rests entirely on the FK**, with no backstop, and
+§904 asserted a mitigation that does not exist.
+
+### Measured against a real D1
+
+| probe | result |
+|---|---|
+| `PRAGMA foreign_keys` | **`1`** — D1 enforces foreign keys |
+| a `money_line` naming a nonexistent event | refused: **`D1_ERROR: FOREIGN KEY constraint failed`** |
+| **non-vacuity** — the identical row with a real event | **inserts, 1 row** |
+
+The refusal names the FK itself, and the control proves the insert is otherwise valid. **I1 holds.** It simply
+holds by *one* mechanism rather than two — which is worth knowing precisely because §904's table presented
+"six enforcement layers" as the reassurance. That remains true across the eight invariants; it is not true
+*within* I1.
+
+### Four probe iterations, each failing differently
+
+This took four attempts, and none of the failures looked like failure:
+
+1. **raw SQL strings** to `applyMigrations` (it takes `{path, sql}`) → `beforeAll` threw → vitest reported
+   **"2 skipped"**. Skipped is not passed.
+2. an insert missing a NOT NULL column → `refused = true`, **for the wrong reason**
+   (`NOT NULL constraint failed: money_lines.party_id`). A true "refused" that proves nothing about I1.
+3. a **hand-rolled** `events` insert for the control → the control failed, so the positive half was missing.
+4. the repo's own `eventInsertStmt` / `mkEvent` helpers → both halves clean.
+
+Iteration 2 is the one worth keeping: **the probe returned the answer I expected, from a cause I had not
+considered.** Only reading the error text separated them — [[attribute-the-red-before-crediting-it]], and the
+third time this session that habit changed a verdict.
+
+Iteration 4 is §872's lesson again: **use the repo's vetted helper rather than hand-rolling the fixture.** I
+hand-rolled a 13-column `events` insert and got it wrong; `mkEvent` exists precisely so nobody has to.
+
+### Exit state
+
+Nothing changed; the probe file was created and removed four times, and is gone. `test:tools` 1,139, 3 failed
+(REQ-289) · `verify:docs` 0. §904 corrected in place.
+
+**Reopen trigger**
+- `PRAGMA foreign_keys = 1` was read from the **test** D1 (miniflare). Production D1 is the same engine and the
+  setting is per-connection, but this measurement is local — a deployed probe is the only thing that would
+  close it, and none exists.
