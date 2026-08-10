@@ -233,6 +233,24 @@ beforeAll(async () => {
       .run();
   }
 
+  // INTERLINE, SIGNER EXECUTES NOTHING (§883 — the fail-closed guard that BOUNDS the open L228 exposure):
+  // neither leg is executed by the POD signer's party. `pod.actor.party` is client-supplied and no gate reads
+  // it (checklist L228, audit §400), so a driver can name ANY party on a valid signed POD. Naming a party that
+  // executes no recorded leg must therefore be UNRESOLVED → held, never billed — otherwise the REQ-040 floor
+  // would be judged against a share that does not exist. This is the half that limits the blast radius, and it
+  // had NO test: `interline_unresolved` appeared in the suite only inside two comments.
+  await seedShipment("biller-interline-nonexec");
+  for (const [seq, kind, executor, split] of [
+    [0, "delivery", "party-partner-a", 3_000],
+    [1, "interline", "party-interline", 7_000],
+  ] as const) {
+    await env.TENANT_A_DB.prepare(
+      "INSERT OR IGNORE INTO legs (id, shipment_id, seq, kind, executor_party_id, split_bps, geo) VALUES (?,?,?,?,?,?,?)",
+    )
+      .bind(`leg-biller-interline-nonexec-${seq}`, "biller-interline-nonexec", seq, kind, executor, split, kind === "delivery" ? JSON.stringify({ lat_e6: 37_421_000, lon_e6: -122_084_000 }) : "{}")
+      .run();
+  }
+
   // INTERLINE ABOVE-FLOOR (the ISSUE path of resolveInterline): the tenant (the POD signer, party-carrier)
   // executes the MAJORITY 9000-bps delivery leg, the partner the 1000-bps linehaul. The 90% executing
   // share clears the target floor (floors are cost-basis × bps → target = 0.98·freight; share = 0.90·sell
@@ -522,6 +540,29 @@ describe("Biller consumer — POD fires invoice.issued + evidence send (REQ-031/
     expect(lines.reduce((s, l) => s + l.amount_cents, 0)).toBe(sell);
     expect(sender.messages).toHaveLength(1);
     expect(sender.messages[0]!.html).toContain(formatCents(sell));
+  });
+
+  it("INTERLINE, SIGNER EXECUTES NOTHING: an unresolvable executing share → held(interline_unresolved), nothing appended/sent (REQ-040 fail-closed)", async () => {
+    // BOUNDS a live, owner-held exposure (checklist L228): `pod.actor.party` is client-supplied, the sequencer
+    // validates `actor.device` and the SIGNATURE but never `actor.party`, and no gate reads it — so a
+    // registered device can sign a POD naming any party, and the REQ-040 floor is judged against THAT party's
+    // share. Naming a party that executes no leg is the fail-closed direction, and this pins it: the Biller
+    // must refuse to compute a share it cannot locate rather than fall back to gross.
+    const shp = "biller-interline-nonexec";
+    await priceQuote(shp);
+    const podId = await driveToPod(shp);
+
+    const sender = new RecordingSender();
+    const outcome = await handlePodSigned(msgFor(shp, podId), depsWith(sender));
+    expect(outcome.status).toBe("held");
+    if (outcome.status !== "held") throw new Error("unreachable");
+    expect(outcome.reason).toBe("interline_unresolved");
+    expect(outcome.detail).toContain("executes none of the recorded legs");
+
+    // No invoice, no money, no email — the same refusal shape as the below-floor holds above.
+    expect(await invoiceEvents(shp)).toHaveLength(0);
+    expect(await moneyLines(shp)).toHaveLength(0);
+    expect(sender.messages).toHaveLength(0);
   });
 
   it("REDELIVERY FAST PATH: once the invoice is committed, later context drift can NEVER flip redelivery to a hold — the email still goes out", async () => {

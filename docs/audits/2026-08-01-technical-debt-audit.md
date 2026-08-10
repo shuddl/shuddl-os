@@ -522,6 +522,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 327 | §879 | **§880** | **I RE-RAN AN EXPERIMENT THE RECORD HAD ALREADY RUN — AND IT HAD ALREADY PREDICTED THE RESULT.** After §878 gated backticked SYMBOLS, the obvious sibling was backticked PATHS. Measured: 168 full repo paths cited, **5 unresolved**; narrowed the pattern, masked strikethrough, still 5 — then READ them. **All five are deliberate NEGATIVE EXAMPLES** (*"there is no `docs/ops/threat-model.md`"*, *"cited as a negative example"*, *"a `workers/agents/src/sender.ts` that has never existed"*). **Checklist row L413 already contains this experiment**: *"Link-check of every backticked path in this file (113 distinct, `existsSync` each) … ~76% false-positive rate … deliberate quotations of known-bad paths inside the rows that DOCUMENT citation rot … **A path-only gate would fire on this very row.**"* It did. **Second time in five phases the answer was already in the record** (§876 first, whose lesson was *search the record, not just the code*). **The contrast is the result**: symbols 75/1 flag (viable, shipped §878) vs paths 168/5-all-deliberate (not viable). Cause: **a path is usable as PROSE** — shorthand, ranges, elisions, and above all negative examples, since the natural way to record a broken citation is to quote it; a camelCase identifier is none of those. **A detector's precision is set by how much non-code lives in its token space.** NOTHING BUILT — L413 needed no edit, the correct outcome for a row that was already right |
 | 328 | §880 | **§881** | **THE PRE-R4 CARRY-FORWARD RE-VERIFIED — ACCURATE, ANNOTATED, CORRECTLY DEFERRED.** Re-measured L419 (*pool-binding exclusivity enforced on ENUMERATION, not RESOLUTION*) because it is a tenant-isolation claim (rule 8 / REQ-025) and **repo-owned rows are the only ones that can rot**. It survived: `workers/agents/src/tenants.ts@resolveClaimedTenantDb` carries the whole reasoning INLINE — the revert, its cause (six tests failed on a HARNESS artifact: two pool slots, standing claimed rows on both), and the named structural fix. **Doc and source agree in detail** — the configuration this audit usually finds broken. The enforced half is tested **three times** (agents/billing/translator, each *fails CLOSED, excludes BOTH slugs*). **The api worker has none, and that is CORRECT**: comment-stripped, `workers/api/src` calls `resolveClaimedTenantDb` and NEVER `claimedTenantSlugs` — api RESOLVES, the crons ENUMERATE; a missing enumeration test for a worker that does not enumerate is not a gap, and *3 of 4 workers have this test* is exactly the shape that reads as one. **Not shipped**, with reasons: R4-scoped and dark behind `PROVISIONING_ENABLED`; `pool_binding` lives in a JSON column so it needs a PARTIAL EXPRESSION index, not a constraint; and **it plausibly meets the same harness wall that reverted §12** — unmeasured, and saying so is the point, because *the structural fix avoids the problem* is a claim, not a measurement |
 | 329 | §881 | **§882** | **THE NAMED STRUCTURAL FIX MEETS THE SAME WALL, AND THE RECORD DOES NOT SAY SO.** §881 declined L419's fix partly because it *"plausibly"* meets §12's harness wall and flagged that as a claim. **Measured**: `workers/api/vitest.config.ts:30` runs `isolatedStorage:false` + `singleWorker:true` (a SQLite-backed DO leaves a `.sqlite-shm` sidecar the snapshot rejects), so **66 files share ONE D1 with no per-test rollback**. Standing claimants: `t-parity-mirror`→POOL_01, `t-lgproof`→POOL_02 — **different slots**, so they do not collide with each other (a detail §12 left ambiguous). The collision is the DYNAMIC claimants: four files re-seed the `_pool_0N` sentinels and claim one, and re-seeding a sentinel does not remove `t-parity-mirror` → **two claimed rows on `TENANT_POOL_01_DB` in one shared D1**. **What that changes**: the row's remedy says a UNIQUE index *"needs no runtime COUNT"*, which reads as *therefore it avoids §12's problem*. It does not — §12's COUNT failed at READ time, the index fails at WRITE time, the moment a test claims a slot a standing row holds. **Same wall, one step earlier**; the fix is necessary and NOT sufficient, and the harness work is a precondition either way. Also: `pool_binding` lives in a JSON column, so it needs a PARTIAL EXPRESSION index. Record refined, not corrected — L419 and §12 are both accurate; the gap is an implication nobody had measured |
+| 330 | §882 | **§883** | **THE GUARD THAT BOUNDS A LIVE MONEY EXPOSURE HAD NO TEST — AND THE MUTATION SHOWS WHAT IT ACTUALLY GUARDS.** Verified checklist L228 by RISK (client input selecting a money outcome, rule-5 territory). **Accurate and unmitigated**: `biller.ts:465@resolveInterline` passes `pod.actor.party` into `resolveInterline`; `approval.ts:126` selects on `leg.executor === tenantParty`; and **no gate reads it** — the sequencer names `actor_party_id` exactly once (a column list at `:182`) and a comment-stripped scan of `ledger/src/gates/**` + `contracts/src/**` returns NOTHING. A registered device can sign a valid POD naming ANY party. **The row's bounding claim — *naming a party that executes no leg is FAIL-CLOSED (verified)* — meant a SOURCE READ**: `interline_unresolved` appeared in the whole test corpus only inside TWO COMMENTS. Now driven, deliberately on the fail-CLOSED half (a test of the fail-open path would BLESS it). **The mutation is the finding**: deleting the guard yields `below_floor`, **still no invoice** — a signer executing no leg computes a share of ZERO, so the money property is held by a SIBLING guard (§688) and this guard is load-bearing for the **DIAGNOSIS** (*cannot locate your share* vs *your share is too small*), not the money. **Defensive spelling for the outcome, load-bearing for the message** — worth knowing before someone simplifies it away. **Does NOT close L228**: the real exposure is naming the PARTNER's party, which resolves cleanly and CLEARS the floor |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -51599,3 +51600,70 @@ failed (the REQ-289 classifier).
   event, not a code change, and nothing watches for it.
 - If the two standing claimants are ever moved to distinct non-pool bindings, re-measure: the wall may lift
   without any migration at all.
+## §883 — PHASE GATE: PHASE 103 CLOSED — the guard that bounds a live money exposure had no test, and the mutation shows what it actually guards
+
+Continuing the checklist verification by **risk** rather than by sampling. The heaviest unverified row is
+**L228: `pod.actor.party` is client-supplied and selects the REQ-040 executing share** — client input choosing
+a money outcome, adjacent to CLAUDE.md rule 5 and its permanent $222K regression.
+
+### The row is accurate and unmitigated
+
+Re-measured end to end, comment-stripped:
+
+- `workers/agents/src/biller.ts:465@resolveInterline` passes `pod.actor.party` straight into `resolveInterline`.
+- `packages/rater/src/approval.ts:126` selects the share with `leg.executor === tenantParty`.
+- **No gate reads it.** `workers/api/src/do/sequencer.ts` references `actor_party_id` exactly once — a column
+  list at `:182` — and a comment-stripped scan of `packages/ledger/src/gates/**` and
+  `packages/contracts/src/**` returns **nothing**. The sequencer validates `actor.device` and the device
+  signature; the party is stored, never judged.
+
+So a registered device can sign a valid `pod.signed` naming any party, and the interline floor is judged
+against *that* party's share. The design fix — which server-side fact establishes the executing party — is
+correctly an owner decision.
+
+### What had no test
+
+The row notes one thing that bounds the exposure: *"naming a party that executes no leg is FAIL-CLOSED
+(unresolved → hold, verified)."* **"Verified" meant a source read.** `interline_unresolved` is a real hold
+reason in `biller.ts`’s `BillerOutcome` union, and it appeared in the entire test corpus only inside **two comments** — one in the
+redelivery case, one in a `recon-sweep` header. No test drove it.
+
+That is the gap this phase closes, and it is deliberately the **fail-closed** half. A test asserting the
+fail-*open* behaviour would bless it, which is the failure mode this record has caught before ("tests blessed
+it").
+
+### The mutation says something better than I expected
+
+Deleting the guard (`tenantParty === "" || !executors.includes(tenantParty)`) reddens the new case — but the
+outcome becomes **`below_floor`, not a bill**:
+
+| | reason | invoice |
+|---|---|---|
+| guard present | `interline_unresolved` | none |
+| guard deleted | `below_floor` | **none** |
+
+A signer executing no leg computes a share of **zero**, which is below any floor. So the money property is
+held by a **sibling guard** (§688), and this guard's real job is **diagnostic accuracy**: *"we cannot locate
+your share"* versus *"your share is too small"* — materially different operator messages, both permanent holds
+the recon sweep must not re-drive.
+
+**Stated plainly: the guard is defensive spelling for the money outcome and load-bearing for the diagnosis.**
+That is worth knowing before anyone simplifies it away on the grounds that the floor already catches it.
+
+### What this does NOT do
+
+It does not close L228. The exposure the row describes is naming the **partner's** party — which executes a
+real leg at a real 8000 bps, resolves cleanly, and **clears** the floor. That path is untouched here, still
+open, and still owner-held.
+
+### Exit state
+
+`workers/api` **70 files / 812 tests**, all green (+1). typecheck 0 · lint 0. No production code changed.
+
+**Reopen triggers**
+- The fail-open direction remains unpinned by design: a test for it would bless it. When the owner decides the
+  server-side fact, the RED that proves the fix is *"a POD naming the partner's party no longer clears the
+  floor"* — write it then, not now.
+- `interline_unresolved` is one of four permanent hold reasons the recon sweep must not re-drive; only this one
+  is now driven by a test. The other three (`below_floor`, `no_quote`, `anomaly`) are covered in this suite,
+  but their interaction with the sweep is `recon-sweep.test.ts`'s business and was not checked here.
