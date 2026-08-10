@@ -553,6 +553,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 358 | §910 | **§911** | **ALL 15 READ; 15 SOUND — §906'S WAS THE ONLY ONE IN THE CORPUS.** §910 reduced the population to its honest scope (~15 positive-bare in DB-backed tests, five files); this reads them all. `schema-core` (4) **interleaves admits with rejects** and its duplicate-key cases are self-controlling; `status-cap` (5) is a describe literally named *round-trip* whose first case asserts `toEqual({t,s})`, with each rejection varying exactly one thing; `facilities` (4) carries controls at BOTH levels (pure mapper + DB path); `biller` (2) makes the throw the SUBJECT and verifies the invoice committed anyway. **So the honest scope of §906's defect is: exactly ONE case in the repo's entire DB-backed corpus.** The discipline it violated is otherwise consistently present in §908's three shapes — and in `status-cap` it is present by NAMING, the describe block announcing its own control. **The thread's value was not the fix**: it was arriving at a decidable rule and then finding the corpus already obeyed it. **9th vocabulary miss**: grepping `status-cap` for a control with `resolves|toBe(true)|.success` returned **0** for a file whose control uses `toEqual({...})` — one phase after §910 concluded every moved count was a vocabulary fault. Reading took 30 seconds; the grep took three attempts |
 | 359 | §911 | **§912** | **A RULE WRITTEN TWICE, TESTED ASYMMETRICALLY — 4 OF 8 BRANCHES SILENT.** Discharged §911's trigger in the next phase instead of deferring it, and **it was already false**: contracts holds **19** refine/superRefine sites, not one refusal path. `events.ts` states REQ-016's device-binding rules TWICE (a Zod union cannot inherit a refined object); mutating all eight branches found **four silent** — and the coverage was **asymmetric**: `device_id==actor.device` tested only on EventInput, I4 only on LedgerEvent, the dedupe-key branch on NEITHER. Each copy tested for a different subset, so the pair read as covered while neither was. The dedupe branch is **not** redundant with `EventBase`'s identical refine — the union never uses EventBase — so it was the ONLY enforcement of the slot-squat rule, untested on both. **Two instrument failures, both mine**: the grep for the four messages returned **0** because the tests use TRUNCATED regexes (10th vocabulary miss — the finding stands on the mutation, not the grep); and writing the fix I nearly re-created §906's defect, since `EventInput.strict()` refuses an `eventFixture` with `Unrecognized keys`, so a bare `toThrow()` would have passed for the wrong reason. Fixed with 5 attributed cases + one corpus driven through BOTH schemas; roster half closed by `tools/checks/superrefine-parity.test.ts`, which parses both blocks and requires each rule to be pinned by a matcher. **That gate shipped weak and its own mutation caught it** — `/unwitnessed|device/` matched every message containing 'device', so renaming a rule in both blocks stayed GREEN; matchers tightened, property strengthened to require a DISCRIMINATING match. 8/8 RED, zero residual; contracts 308→318 |
 | 360 | §912 | **§913** | **SWEPT ALL 17 REMAINING REFINE SITES — 3 SILENT, 2 REAL.** §912's trigger said "the other **11** refine sites"; counting them gave **17**, and its list omitted `events.ts` itself (5 sites, including the `EventBase` that section discusses). **I eyeballed grep output instead of computing, in the phase whose whole finding was that reading is not measuring** — trigger struck and corrected in place. Sweep: every site neutralised, **14 RED** (coverage is broadly real), 3 silent, and §688's taxonomy separates them. `packages/contracts/src/money.ts:69@share_bps` — interline allocations must sum to **exactly 10000 bps** (REQ-019), untested: a short split leaves cents unapportioned, an over-allocated one hands out more than the gross. `packages/contracts/src/json.ts:12@isSafeInteger` — `SafeInt`'s ONLY marginal contribution over `z.number().int()` is the **`-0` rejection** (its own comment says so), so every prior green came from what Zod does anyway; `JSON.stringify(-0)` is `"0"`, so a `-0` hashes as `0` while comparing `!==` under `Object.is` — the frozen-byte law, now also driven through the RECURSIVE `JsonObject` that 30 of 35 kinds use. `packages/contracts/src/events.ts:295@EventBase` — **not a coverage gap: `EventBase` is DEAD**, no consumer anywhere, silent because nothing evaluates it; public API so filed for the owner and annotated, **because §912 cited it as load-bearing before measuring**. Trap avoided *before* writing: `Bps` caps at 10000, so a single `10001` share would fail on `Bps.max` — both bad sums built from individually valid shares. contracts **318 → 326** |
+| 361 | §913 | **§914** | **THE REFINE SWEEP FINISHES — 31 SITES REPO-WIDE, ONE SILENT.** §913 refused to guess the count outside contracts; measured: **12 sites in 7 files**, so **31 repo-wide, all mutated**. **11 of 12 RED**, including the four **CRLF-injection guards** on the evidence-email sender (`to`/`subject`/`idempotency_key` — a newline in a header is how a `Bcc:` gets forged) plus its double-wrap guard, and the webhook `https://` guard. **One silent**: `ImportBody`'s *exactly one of sheet \| r2_key*. Load-bearing twice — the route reads **`body.r2_key!`**, a non-null assertion justified ONLY by that refine, so NEITHER source ⇒ key `<tenant>/imports/undefined` ⇒ a validation fault reported as **404 NOT FOUND**; and BOTH ⇒ the inline sheet **silently wins** while the caller is told their uploaded file imported — the no-silent-drop law violated one level up, on the migrator path. Fixed with 3 cases (control + neither + both); mutation now fails exactly the two. **Incidental**: the webhook error said *"must be an http(s) URL"* while the code requires https ONLY — a caller would retry http and be refused identically; corrected. **Environment**: **544 orphaned workerd processes** (~2 days old, all `S`, NOT the `UE` wedge) cleared by SIGTERM — but the reason I looked was a misread: `timeout: command not found` on macOS, not a hang. **I did not establish the orphans blocked anything** (5th false measurement signal this session). api 812→815 |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -53534,3 +53535,68 @@ owner call, so it is filed rather than amended.
   annotation is what stops the next reader treating it as the enforcement point.
 - **This sweep covered `packages/contracts` only.** Zod refines exist elsewhere; the count outside contracts
   is **not measured**, and — per this phase's own lesson — I am not going to guess it here.
+## §914 — PHASE GATE: PHASE 134 CLOSED — the refine sweep finishes: 31 sites repo-wide, one silent
+
+§913 ended by refusing to guess: *"the count outside contracts is **not measured**, and — per this phase's
+own lesson — I am not going to guess it here."* This measures it and finishes the sweep.
+
+**12 sites outside `packages/contracts`, in 7 files** (source only, `.ts`/`.tsx`, tests excluded). With
+§912–§913's 19, that is **31 refine/superRefine sites repo-wide, every one of them mutated.**
+
+**Eleven of twelve went RED**, including the ones that matter most:
+
+- **Four CRLF-injection guards in the evidence-email sender** — `to`, `subject`, `idempotency_key` each
+  refuse CR/LF (header injection: a newline in a header field is how an attacker appends `Bcc:` or forges
+  a header), plus a **double-wrap guard** refusing an `html` value that is already a full document, because
+  the port carries a fragment and the sender owes the wrap. All tested.
+- **The webhook `https://` guard** in `workers/mcp` — the signature proves authenticity, never
+  confidentiality, and the body carries shipment ids. Tested.
+- Five fixture-schema refines in the parity tools. Tested.
+
+### The one silent site: the import body's XOR
+
+`ImportBody`'s *"provide exactly one of sheet | r2_key"* refine was untested — neutralising it left the
+entire api suite green. **It is load-bearing twice**, and the second way is the one that matters:
+
+- The route's else-branch reads **`body.r2_key!`** — a non-null assertion whose *only* justification is this
+  refine. With NEITHER source the key becomes `<tenant>/imports/undefined`, R2 misses, and a malformed
+  request is reported as **404 UPLOADED FILE NOT FOUND** rather than a 400: a validation fault wearing a
+  not-found coat, which sends an integrator hunting for a file they never uploaded.
+- With **BOTH** sources the inline sheet silently wins, `r2_key` is ignored, and the caller is told it
+  succeeded. On the migrator path — where the governing law is that nothing is dropped silently — importing
+  the **wrong source** silently is that same law violated one level up.
+
+Three cases added (a sheet-only control per §908, plus neither and both). Neutralising the refine now fails
+**exactly those two**, control green.
+
+### Incidental: an error message that contradicted its own code
+
+`workers/mcp/src/webhooks.ts` refuses anything that is not `https://`, and its comment says so — *"https
+ONLY … cleartext delivery of shipment milestones is refused"* — while the message a caller receives read
+**"url must be an http(s) URL"**. A caller reading that would reasonably retry with `http://` and be refused
+again, with the same message. Corrected to state the rule it actually enforces. Nothing asserted the old
+wording (checked before editing).
+
+### An environment finding, and a correction to how I read it
+
+**544 orphaned `workerd` processes**, oldest ~2 days, accumulated from pool-workers runs. All in `S` state —
+**not** the uninterruptible `UE` wedge this repo has recorded before — so a plain `SIGTERM` cleared all 544.
+
+**But the reason I went looking was wrong, and the record should say so.** I read a suite as having hung,
+from a run whose output was `timeout: command not found` — `timeout` is not on macOS. The orphans were real
+and worth clearing; **I did not establish that they were blocking anything**, and after clearing them the
+same suite ran in 4s, which is consistent with either explanation. Fifth instance this session of a false
+signal from the measurement rather than the subject.
+
+### Proof
+
+- 31 refine/superRefine sites repo-wide, **all mutated**. 12 outside contracts: 11 RED, 1 silent → fixed.
+- api **812 → 815**; the XOR mutation now fails exactly the two new negative cases, control green.
+- mcp 185 · agents 227 · contracts 326 · typecheck 0 · lint 0. Source tree restored after every mutation.
+
+**Reopen triggers**
+- **The sweep's bound is `.ts`/`.tsx` source, tests excluded.** A refine written inside a test helper is not
+  covered — and would be the wrong place for a rule anyway, which is itself the thing to check if one appears.
+- **Zod is not the only refusal mechanism.** D1 CHECK constraints, DO guards and hand-rolled validators
+  enforce rules the same way and were not part of this sweep. That count is unmeasured, and I am not
+  guessing it here either.

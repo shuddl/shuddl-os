@@ -55,7 +55,7 @@ const WebhookConfig = z
       .max(2000)
       // https ONLY (2026-08-01 audit): the signature proves authenticity, never confidentiality, and the
     // body carries shipment ids + milestone kinds. Cleartext delivery of shipment milestones is refused.
-    .refine((u) => u.startsWith("https://"), "url must be an http(s) URL"),
+    .refine((u) => u.startsWith("https://"), "url must be an https:// URL — cleartext delivery of shipment milestones is refused"),
     // Optional allow-list of terminal kinds; absent ⇒ all three terminal kinds are delivered.
     events: z.array(z.enum(TERMINAL_WEBHOOK_KINDS)).max(TERMINAL_WEBHOOK_KINDS.length).optional(),
   })

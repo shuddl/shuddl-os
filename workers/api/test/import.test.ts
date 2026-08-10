@@ -257,3 +257,46 @@ describe("role gating (admin/ops only)", () => {
     }
   });
 });
+
+// §914 — THE IMPORT BODY MUST NAME EXACTLY ONE SOURCE, AND NOTHING PROVED IT.
+//
+// `ImportBody`'s XOR refine (`provide exactly one of sheet | r2_key`) was UNTESTED: neutralising it left
+// the whole api suite green. Found by mutating every Zod refine outside packages/contracts, not by reading.
+//
+// It is load-bearing twice over. The route's else-branch reads `body.r2_key!` — a non-null assertion whose
+// only justification IS this refine — so without it:
+//   · NEITHER source ⇒ the key becomes `<tenant>/imports/undefined`, R2 misses, and a malformed request is
+//     reported as **404 UPLOADED FILE NOT FOUND** instead of a 400. A validation fault wearing a not-found
+//     coat is the kind of error that sends an integrator hunting for a file they never uploaded.
+//   · BOTH sources ⇒ the inline sheet silently wins and `r2_key` is ignored, so a caller who uploaded a file
+//     imports something else and is told it succeeded. On the migrator path, where the governing law is that
+//     nothing is dropped silently, importing the WRONG SOURCE silently is the same defect one level up.
+describe("REQ-127/035: the import body names EXACTLY ONE source (sheet XOR r2_key)", () => {
+  const postBody = async (body: unknown): Promise<Res> => {
+    const res = await SELF.fetch("https://api.local/v1/import", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${await opsTok()}`,
+        "Idempotency-Key": crypto.randomUUID(),
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+    return { status: res.status, json: (await res.json().catch(() => null)) as Record<string, unknown> | null };
+  };
+
+  it("accepts a sheet-only body — the control that isolates the XOR from every other rule in the schema", async () => {
+    const { status, json } = await postBody({ sheet: parseSheet(brokerLoads) });
+    expect(status, JSON.stringify(json)).toBe(200);
+  });
+
+  it("REJECTS a body with NEITHER source — a clean 400, never a 404 for `<tenant>/imports/undefined`", async () => {
+    const { status, json } = await postBody({});
+    expect(status, JSON.stringify(json)).toBe(400);
+  });
+
+  it("REJECTS a body with BOTH sources — the inline sheet must not silently win over r2_key", async () => {
+    const { status, json } = await postBody({ sheet: parseSheet(brokerLoads), r2_key: "an-upload.csv" });
+    expect(status, JSON.stringify(json)).toBe(400);
+  });
+});
