@@ -556,6 +556,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 361 | §913 | **§914** | **THE REFINE SWEEP FINISHES — 31 SITES REPO-WIDE, ONE SILENT.** §913 refused to guess the count outside contracts; measured: **12 sites in 7 files**, so **31 repo-wide, all mutated**. **11 of 12 RED**, including the four **CRLF-injection guards** on the evidence-email sender (`to`/`subject`/`idempotency_key` — a newline in a header is how a `Bcc:` gets forged) plus its double-wrap guard, and the webhook `https://` guard. **One silent**: `ImportBody`'s *exactly one of sheet \| r2_key*. Load-bearing twice — the route reads **`body.r2_key!`**, a non-null assertion justified ONLY by that refine, so NEITHER source ⇒ key `<tenant>/imports/undefined` ⇒ a validation fault reported as **404 NOT FOUND**; and BOTH ⇒ the inline sheet **silently wins** while the caller is told their uploaded file imported — the no-silent-drop law violated one level up, on the migrator path. Fixed with 3 cases (control + neither + both); mutation now fails exactly the two. **Incidental**: the webhook error said *"must be an http(s) URL"* while the code requires https ONLY — a caller would retry http and be refused identically; corrected. **Environment**: **544 orphaned workerd processes** (~2 days old, all `S`, NOT the `UE` wedge) cleared by SIGTERM — but the reason I looked was a misread: `timeout: command not found` on macOS, not a hang. **I did not establish the orphans blocked anything** (5th false measurement signal this session). api 812→815 |
 | 362 | §914 | **§915** | **23 D1 CHECKs SWEPT; §668'S ROSTER COMPLETED; A HARNESS THAT INVENTED FINDINGS.** §914's trigger named CHECKs as unmeasured; measured **23 across 4 files**, all mutated. **The record already held half the answer**: `schema-domain.test.ts` carries a §668 roster built for exactly this argument — *a DDL constraint is the last line below every gate and test double* — which is why 16 went RED. **But §668 swept `0002_domain.sql` and never swept its siblings**, and the 4 silent constraints are precisely those outside it: `events.visibility`, `events.source` (0001), `documents.retention_status` (0007), `pairings.kind` (control). Correct-per-VALUE-not-per-FILE one level up. **`retention_status` is sharpest — NO Zod schema exists**, every write is a hardcoded SQL literal, so a typo persists a doc in a state the sweep's `WHERE retention_status='active'` silently skips (bytes that never expire, or a row that never tombstones). **THE HARNESS INVENTED TWO FINDINGS FIRST**: attempt 1 read 20/21 cells as unmeasurable (stdout-only + workerd exhaustion) — naively *20 silent*; attempt 2 reported **2 SILENT that were FALSE** (`facilities.kind`, `anomalies.severity`, both RED when measured properly). **A false SILENT is a fabricated defect** — a false RED gets investigated and dies, a false SILENT gets WRITTEN DOWN. Fixed by SHRINKING the unit of work (owning suite, 2s) + escalating every GREEN to the full suite. 4 cases added, **4/4 RED**; plus 2 structural gates — `enum-parity` (Zod enum ≡ CHECK domain, RED on widen/narrow/widen-source) and `check-constraint-coverage` (every CHECK must be CLASSIFIED; RED on new/widened/orphaned). ledger 688→691, test:tools 1,142→1,149 |
 | 363 | §915 | **§916** | **BOARD RE-MEASURED AT `4528cb2` — 19 PASS · 2 FAIL · 5 BLOCKED; STOPPING POINT.** Full `verify:merge` against a KNOWN tree (clean but for the owner's uncommitted REQ-289 row — a concurrent GTM workstream edits the register here, so an unknown tree is a race not a measurement). **Both FAILs are ONE row, attribution MEASURED not inherited** (§876's lesson): `check:coverage` prints *1 unaccounted … REQ-289: status "ACTIVE" / wp "GTM-0" names no active WP*, and `unit-tests` fails on exactly that row's three classifiers. The 5 BLOCKED are absent INPUTS reporting *could not run*, not *clean* (§247). **All four browser gates PASS** — perf 1, visual 5, a11y 4, e2e 6, including portal-isolation and driver-offline-sync. §911–§915 changed **coverage, not the board**: 13 defended-by-nothing invariants closed (+24 cases, 4 gates), every one found by neutering the guard and proved by watching that mutation go RED after. **The board did not move because it was never measuring these** — which is the argument for the gates: each converts an invisible class into one CI fails. Repo-owned failure set is EMPTY; the five open items are owner-held. Re-measure on any REQ-289 change; do not predict |
+| 364 | §916 | **§917** | **CLAUDE.md's SEVEN HARD BUDGETS — a PROVEN clean negative.** Line 15 states seven budgets as LAW in the file every session reads first, so a stale number there is *followed*. The question is not whether they hold today but whether drift would be noticed. `claude-md-budgets.test.ts` already carries six phases (§611/§743/§830/§831/§833/§842); this phase **adds no code** and instead converts *"I read it and it looks thorough"* into a measurement — **reading a gate is not proving it**, the lesson of §911–§915. Three plants against CLAUDE.md, each restored byte-identical: a stated budget drifting (35→36) → **RED**; **a NEW budget nobody enforces** (`· 7 agent queues`) → **RED** (§743 floor); the `(21 used)` observation drifting → **RED ×2**. The second matters most: CLAUDE.md says a budget change IS a register amendment, so the amendment lands in that line FIRST and enforcement follows — the window between is where a budget is law with nothing behind it. Two deliberate non-coverages re-confirmed: `0 shadows/…` is zero-tolerance proven by planting an ARTIFACT (no integer to compare), and `21 used` is a RUNTIME figure §830 pins to `check:invariants` rather than re-deriving weakly. A bound, not a finding — what the next session can skip |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -53764,3 +53765,46 @@ with its record, its mutation proof, and its own reopen triggers.
 present in the tree and absent from HEAD. Any change to either — the row committed, or its status fixed —
 changes the expected verdict, and §876's lesson is that the direction is not the obvious one. Re-measure;
 do not predict.
+## §917 — PHASE GATE: CLAUDE.md's SEVEN HARD BUDGETS — a PROVEN clean negative
+
+CLAUDE.md line 15 states seven budgets as law, in the file whose own header says it overrides any default
+behaviour and which every session reads first. A stale number there is not a documentation defect — **it is
+followed**. So the question is not whether the budgets are satisfied today but whether anything would
+notice them drifting.
+
+**They are gated, and — measured here — the gate genuinely fires.** `tools/checks/claude-md-budgets.test.ts`
+already carries six prior phases of work (§611 stated-vs-enforced · §743 roster completeness · §830 the
+`(N used)` observation · §831 two documents · §833 the discovery half · §842 rule 6's fixture names). This
+phase adds no code. It converts *"I read it and it looks thorough"* into a measurement, which is the whole
+lesson of §911–§915: **reading a gate is not proving it.**
+
+Three plants against CLAUDE.md itself, each restored byte-identical:
+
+| plant | result |
+|---|---|
+| a stated budget drifts from its enforcing constant (`35` → `36` event kinds) | **RED** — *each stated budget equals the number its gate actually enforces* |
+| a NEW budget nobody enforces (`· 7 agent queues`) is added to the line | **RED** — *§743 completeness floor* |
+| the `(21 used)` observation drifts (`21` → `20`) | **RED** ×2 — *§830 the figure equals what the migrations declare*, and the floor |
+
+The second is the one worth naming. CLAUDE.md says a budget change **is a register amendment**, so an
+amendment lands in that line *first* and the enforcement follows. The window between those two edits is
+precisely where a budget exists as law with nothing behind it — and the §743 floor is what closes it. It
+was proved by planting a budget that reads perfectly plausibly, which is the only kind that would ever
+actually be written.
+
+### Why this is a bound and not a finding
+
+Nothing changed; nothing needed to. The value is in what the next session can now skip: the budgets
+dimension is measured, not assumed, and the measurement was a mutation rather than a reading.
+
+Two things the gate deliberately does NOT cover, both with their reason already recorded at the site and
+both re-confirmed here: `0 shadows/gradients/radius>4px` is a **zero-tolerance rule proven by planting an
+artifact**, not by comparing an integer, so it cannot be a roster row; and `21 used` is a **runtime
+observation** recomputed by `check:invariants` on every run — §830 pins the document to that authority
+rather than re-deriving the count a second, weaker time.
+
+**Reopen trigger**
+- The §833 discovery half is bounded to **root-level** markdown, deliberately: widening it to `docs/`
+  produced eight false positives and zero real ones, because everything under `docs/` states its counts
+  inside a dated structure. If a standing (undated) budget claim is ever written into a `docs/` file, it is
+  outside this scan — and the argument for the bound stops holding the moment that convention breaks.
