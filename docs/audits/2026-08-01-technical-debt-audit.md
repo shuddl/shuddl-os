@@ -515,6 +515,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 320 | §872 | **§873** | **"IMPORTED IS NOT CALLED" — AND THE LESSON FROM TWO PHASES AGO IS NOW A TEST, NOT A MEMORY.** Third and quietest depth of one question: **untested** (§870) → **unwired** (§871) → **uncalled** (here). `applyMoneyProjection` RETURNS statements that matter only once spread into `db.batch()`; delete the spread, keep the import, and the projection runs while its statements are DISCARDED — nothing throws, and the symptom is identical to an empty queue. **Measured by READING** (three consecutive phases of probe failures earned that): the sequencer builds ONE `stmts` array with the event insert + **all eight** projections, then `await db.batch(stmts)`. Clean negative. Gate requires each imported `projection/*` entry point to be CALLED in the same file **after `stripComments`** — the helper `sweep-containment-coverage.test.ts` already used, and whose absence caused §872. 2 mutations RED: import-kept/call-deleted (`projectAgentRuns`), and **the call left only inside a comment** (`projectAuthority`) — §872's defect committed deliberately against the gate built to catch it, and exactly what a hurried *"temporarily disabled"* looks like. Both plants failed to apply first try on indentation; `assert s2 != s` caught it — **4th time this session that assertion saved a result, because *no defect found* and *the edit never happened* are the same output** |
 | 321 | §873 | **§874** | **I BUILT THE INSTRUMENT IN §873 AND WROTE THE NEXT CLAIM WITHOUT RUNNING IT.** §873's trigger said *"the Watchtower already imports `projectAuthority`"* — **false**. `watchtower.ts` neither imports nor calls it; the name appears twice, both in COMMENTS. What it actually does is `seq.append(...)`, handing an `authority.flipped` EventInput to the sequencer DO, which projects it **in its own batch** — the correct pattern, stronger than what I wrote. **Second wrong reopen trigger in two phases, identical cause** (a comment counted as code): §872 diagnosed it, §873 BUILT THE FIX INTO A GATE using `stripComments`, and I then wrote §873's trigger from the same stale probe output. **A new instrument's first job is to re-check the claims that motivated it.** Corrected measurement (comment-stripped, whole corpus): **ONE runtime composition root** (the sequencer) and one build-time writer (`tools/seed/load.ts`); `projectMessages`/`projectMoneyLines` have no direct callers at all, being internal to their `apply*` wrappers. **Gated**, because I1 (*the projection and its event commit together or not at all*) is guaranteed only by the sequencer's single `db.batch()` — a second runtime caller would write a read-model row with NO EVENT BEHIND IT, the exact state ledger-is-truth exists to forbid |
 | 322 | §874 | **§875** | **THE SEED'S "I1 EXEMPTION" IS NOT ONE, AND ITS REAL GAP IS ONE EVENT KIND WIDE.** §874 filed that `tools/seed/load.ts` projects outside the sequencer so *"seeded data can hold a read-model state the ledger cannot produce"*. **Wrong on that axis**: the loader batches `eventInsertStmt` + its projections TOGETHER, so I1 holds — same pattern, different caller, and its header already says so. **Third trigger in four phases (§872, §874, here) that measured differently than I filed it**, all three settled by one file-read. The pattern: **a reopen trigger is written at the moment of LEAST evidence** — phase ending, thing is a hunch. Recording a hunch is fine; stating it as a property is what costs. **The real gap**: the loader runs 3 of 8 projections; 4 of the missing 5 are moot (the seed emits no `approval.*`/`agent.acted`/`authority.flipped`/`message.*`), but **`generate.ts:47` DOES emit `appointment.set` and `projectAppointment` never runs** — seeded appointment events with no dock-slot claim. Currently inert **because the seed creates no `legs` rows at all** (only events/parties/shipments), so the UPDATE would match nothing — inert for a reason nobody had written down, which is the shape that stops being true quietly. NOT a REQ violation (REQ-155's DoD is determinism, which `check:seed` proves); an undocumented FIDELITY limit whose cost is a developer seeing an empty view with no note saying whether the feature or the fixture is partial |
+| 323 | §875 | **§876** | **"COMMITTING REQ-289 TURNS BOTH FAILs GREEN" IS FALSE — AND §646 HAD ALREADY SAID SO.** Measured both directions: **row PRESENT** → `check:coverage` FAIL, `check:traceability` PASS, `test:tools` 3 failed; **row ABSENT (HEAD)** → coverage PASS, traceability **FAIL** (`built-but-unspec'd REQ-289`), test:tools **1,128/1,128**. `check:coverage` reads the register FILE, not git history — **committing leaves the row present, so it fixes nothing.** The real fix is a classifiable `status`/`wp` on REQ-289 (or teaching the classifier that `ACTIVE`/`GTM-0` is a bucket): that turns coverage green, KEEPS traceability green (it needs the row, since source cites it), and takes tests to 1,128/1,128. **§646 measured this exact table 30 phases ago** — titled *the "2 FAIL" was a dirty working tree* — and opens by naming the failure I then repeated for 20 more phases; the memory index even said *"partly superseded"* and I read past it while writing two stopping points asserting the superseded version. **A claim inherited from earlier in a session is not evidence, and the cheapest refutation is the record itself.** Causal shape: I had a CORRELATION (both FAILs move with the row) and published an INTERVENTION (committing fixes them) without running it — `git stash` is one command |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -50196,8 +50197,8 @@ tests added across four new files and no gate moved in either direction.
 
 Both trace to the **same** uncommitted `genesis/09` edit — the owner's REQ-289 demand-lane row, carrying a
 status and a WP the classifier does not know. Verified twice this segment by removing my own files and
-re-running (§858): identical failures, so nothing here caused or masks them. **Committing that row, or giving
-`ACTIVE`/`GTM-0` a bucket, turns both green in one move.** It is not mine to make: the register is
+re-running (§858): identical failures, so nothing here caused or masks them. **Giving `ACTIVE`/`GTM-0` a bucket turns both green.** (Corrected by §876: *committing* does not — the gate
+reads the file, not git history. The second clause was right and the first was wrong.) It is not mine to make: the register is
 source-of-truth #1 and the row is the owner's.
 
 ### The five BLOCKED are absent inputs, and they are honest
@@ -50241,8 +50242,10 @@ REQ-289's disposition (turns both FAILs green) · REQ-076's square/hollow · the
 
 ### Reopen triggers
 
-- **REQ-289 lands** → re-run `verify:merge`; the expected board is 21 PASS · 0 FAIL · 5 BLOCKED. If either
-  FAIL survives, it was never only the row and this section is wrong.
+- ~~**REQ-289 lands** → expected board 21 PASS · 0 FAIL · 5 BLOCKED~~ — **CORRECTED by §876**: *landing* the
+  row fixes nothing. `check:coverage` reads the register FILE, so the row stays present and unclassifiable.
+  The fix is a classifiable `status`/`wp` on REQ-289. The expected board is still 21 · 0 · 5, reached by a
+  different action.
 - Any private fixture is vendored → its gate moves BLOCKED → PASS or FAIL, and a FAIL there is a real defect
   this repo has never been able to see.
 - `useSync`'s `running` in-flight guard remains the one untested branch of the sync path (§859/§860).
@@ -50764,8 +50767,8 @@ the nine private fixtures · `IDENTITY_DENYLIST`.
 
 ### Reopen triggers
 
-- **REQ-289 lands** → expected board **21 PASS · 0 FAIL · 5 BLOCKED**. If either FAIL survives, the diagnosis
-  in §861 was wrong and both sections need correcting.
+- ~~**REQ-289 lands** → expected board **21 PASS · 0 FAIL · 5 BLOCKED**~~ — **CORRECTED by §876.** Landing it
+  changes nothing; the row must become *classifiable*. The expected board is unchanged as a number.
 - A private fixture is vendored → its gate moves BLOCKED → PASS/FAIL, and a FAIL there is a defect this repo
   has never been able to see.
 - A seventh projection, a third `apps/portal/src/api/` seam, or a new register row naming a gate → each is a
@@ -51138,3 +51141,63 @@ typecheck 0 · lint 0 · `verify:docs` 0 · `test:tools` 1,128, 3 failed (REQ-28
   comparison above was by hand, and a gate would need the seed's kind list and each projection's trigger kinds,
   both of which are derivable. Not built — the population is 20 kinds and changes rarely, and I would rather
   record that judgement than pretend it was measured.
+## §876 — PHASE GATE: "committing REQ-289 turns both FAILs green" is FALSE, and §646 had already said so
+
+I have written, in §861 and §869 and in every report this segment, that both merge-gate FAILs trace to the
+owner's uncommitted REQ-289 row and that **committing it would yield 21 PASS · 0 FAIL · 5 BLOCKED.** The first
+half is true. **The second is false**, and it is the kind of false that changes what someone does next.
+
+### Measured, both directions
+
+| gate | row PRESENT (working tree, today) | row ABSENT (HEAD) |
+|---|---|---|
+| `check:coverage` | **FAIL** — 1 unaccounted row | **PASS** |
+| `check:traceability` | PASS | **FAIL** — `built-but-unspec'd … REQ-289` |
+| `test:tools` | 3 failed / 1,128 | **1,128 passed / 1,128** |
+
+`check:coverage` reads the register **file**, not git history. Committing the row changes nothing it can see —
+the row stays present, its `ACTIVE` status and `GTM-0` wp stay unclassifiable, and the gate keeps failing. The
+three failing tests are the same classifier, so they too are caused by the row's *presence*, not its
+uncommitted state.
+
+**The actual fix is to give REQ-289 a classifiable `status` and `wp`** (or to teach the classifier that
+`ACTIVE`/`GTM-0` is a bucket). That single edit turns `check:coverage` green, keeps `check:traceability` green
+— which needs the row to exist, because source already cites REQ-289 — and takes `test:tools` to 1,128/1,128.
+
+### The part worth more than the correction
+
+**§646 measured this exact table and I did not read it.** It is four sections long, titled *"the '2 FAIL' was a
+dirty working tree, and it was masking a defect of mine"*, and it opens by naming the failure I then repeated:
+
+> *"Forty-one phases have closed with the same line: 19 PASS · 2 FAIL · 5 BLOCKED … §603's rule is that a thing
+> restated all session without re-measurement is suspect. It was never measured."*
+
+I restated it for twenty more phases. The memory index even carried *"partly superseded … the old '2 FAIL' was
+a dirty tree masking a defect (audit §646/§648)"*, which I read past while writing two stopping points that
+asserted the superseded version.
+
+So the lesson is not "measure the board" — §646 already learned that. It is: **a claim inherited from earlier
+in a session is not evidence, and the cheapest place to find its refutation is the record itself.** I searched
+the codebase repeatedly this segment and never searched the audit for its own prior verdict on the sentence I
+kept writing.
+
+And the causal shape: I had a correlation — *both FAILs move with the row* — and published an **intervention**
+— *committing it fixes them* — without running the intervention. Stashing the row takes one command; I ran it
+only after the memory index contradicted me.
+
+### Corrections applied
+
+§861 and §869 both carry the wrong expected board; both are corrected in place with a pointer here.
+
+### Exit state
+
+No code changed. Register restored byte-identical to the owner's version (`diff -q` verified after the stash
+round-trip). `verify:docs` 0 · typecheck 0 · lint 0.
+
+**Reopen triggers**
+- The board's *"expected after the fix"* figure is now **21 PASS · 0 FAIL · 5 BLOCKED**, unchanged as a number
+  but reached by a different action. If a future phase writes "commit the row" again, this section is the
+  refutation.
+- `check:traceability` failing at HEAD means the repo cites REQ-289 in source while the register may not carry
+  it — the two gates are in genuine tension until the row is both present **and** classifiable. Neither state
+  is green alone; that is worth knowing before anyone "fixes" one by reverting the other.
