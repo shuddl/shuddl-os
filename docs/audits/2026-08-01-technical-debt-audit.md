@@ -568,6 +568,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 373 | §925 | **§926** | **I VERIFIED MY OWN REOPEN TRIGGERS — ONE WRONG, ONE RIGHT, AND THE WRONG ONE WAS BACKWARDS.** A trigger describes a future, so it reads as unfalsifiable and gets inherited; this record already holds *3 of 4 checked were wrong*, and I wrote a dozen more this session. **§915's was wrong**: it said deleting §668's roster would leave `check-constraint-coverage` *green over nothing* — **emptying the roster turns it RED**, because the column names LIVE in the roster and the *mentions-the-column* link catches it. So I measured the real residual instead of guessing twice: **keep the roster and GUT its assertion** (`toEqual([...values])` → a tautology) and the gate stays **GREEN**. **A deleted roster is loud; a hollowed one is silent** — and my trigger named the mode that WOULD be caught, which is worse than no trigger because it spends a reader's attention in the wrong place. **§925's was right**: a key assembled across two statements is genuinely invisible to the shape-based detector (planted, stayed green). **The rule**: a trigger that names a mechanism is *decidable now* — *"if X is deleted, Y stays green"* is a mutation, not a prophecy; check it in the same phase or write it as a question. **The rule proved itself immediately**: §926's own trigger was written as a mutation, so it was runnable, and running it CLOSED it — a 4th case now asserts §668's roster still COMPARES the values (`toEqual([...values])`) rather than merely naming them; hollowing it reds. test:tools 1,155→1,156 |
 | 374 | §926 | **§927** | **ALL 23 AUTHORIZATION REFUSALS MUTATED — ZERO HOLES, AND §377'S CLASS FINISHED.** §914's last trigger measured: **102 `ApiError` sites / 27 files**, **27 authorization**, 23 conditional, each mutated against the FULL api suite. **16 RED · 7 silent · 0 holes.** §84 had swept 18 guards across **6 routes** (one real hole: a DRIVER could waive a server-side gate) — its scope excluded `middleware/auth.ts`, `tenants.ts`, `approvals.ts`, so this is **15 re-verifications + 8 new**; §84's one-real-hole fix came back RED, still holding. **Every silent explained**: 4 redundant with a sibling *read and verified* (missing-bearer→invalid-token; control-plane-kinds→the sequencer's t:root rule; both platform-slug guards→their allowlist and resolver siblings), 3 are **§377's LIVE class**. **I first classified those 3 as *defensive, per §84* — a verdict §377 had already OVERTURNED**: `party_id` is optional and unenforced, so the path is reachable, and §377 pinned 2 of 6 and left 4. **I nearly shipped 3 of 4** — the 4th (the `rate` path) caught by re-reading my own sweep output. All 4 now pinned, asserting the MESSAGE not the status (both routes 403 two lines later for a different reason). **The prior question a guard sweep cannot ask** — `route-authz-coverage` requires every route to be guarded or to DECLARE its mechanism, across **three** surfaces; the third (`/internal`, the single door to the `_platform` revenue tenant) **was found only by checking a false claim I had written myself** (*/pub is capability-gated* — false for `/pub/quote` and `/pub/signup`). **I reproduced §925's own corpus criticism one phase later.** P1 fail-open probe: the claimed-pool catch returning ANOTHER TENANT'S D1 → **RED (3)**. api 819→823 |
 | 375 | §927 | **§928** | **A MONEY CONSTRAINT THAT WAS THE SOLE GUARD FOR ONE INPUT — AND THE TEST NAMED AFTER IT COULD NOT REACH THAT INPUT.** 91 value-constraint sites, 53 survive contracts, **0 of 53 caught by ledger**. **I killed the ~1.5h escalation on §663's evidence**: it had already decided this class — *pinning all 73 would be volume, not assurance* — narrowing 73→5 (those with an explanatory comment)→1. Finishing would have been §917's redundancy at ninety minutes' cost. **Pivoted to a heuristic orthogonal to §663's**: **array** `.min(1)`, where empty is not id-hygiene but a silent **zero** through every downstream `reduce`. `invoice.issued.lines` has NO comment, so §663's filter structurally could not surface it. **The finding**: `QuotePricedPayload`'s penny-parity refine (Σ lines === sell) refuses an empty array — **except that `sell: Cents` may be ZERO**, where Σ[]=0===0 PASSES and `.min(1)` is the only refusal left. Removing quote-side and invoice-side minimums (§677: disable siblings TOGETHER) left **contracts, api, agents, billing ALL green** — an append-only `quote.priced` with **no basis at all**, and an invoice for zero. The quote-side minimum is load-bearing; the invoice-side is defence-in-depth behind it. **The test named for it passes with it deleted** (fixture `sell`=120 000, so the refine fires instead) — §906's shape on a money schema. Fixed with the case the refine is blind to, asserted on the array minimum's own message. **Two harness failures, both mine**: `atexit` does NOT run on SIGTERM (a kill left a DISABLED constraint in the tree, caught by `git status`), and a non-compiling mutation reported as `ERR/ERR/ERR` that a careless read takes for three greens — the re-run now typechecks UNDER the mutation before trusting any suite. contracts 328→329 |
+| 376 | §928 | **§929** | **§928's TRIGGER CLOSED — THE INPUT IS REACHABLE, BY THE COMPOSER'S OWN OMIT-ZERO RULE.** §928's trigger was phrased as a mutation, so it was runnable in the next phase (§926's rule). **Answer strengthens §928**: three facts compose — `compose` omits zero lines BY DESIGN (`if (freightCents > 0)`, fsc likewise, zero accessorials dropped, because a zero line is un-projectable against `money_lines CHECK(amount_cents != 0)`); `compose` ACCEPTS `freightCents === 0`; and `min_charge_cents` is `NonNegCents` (**>= 0**), with `engine.ts` flooring at `Math.max(asRated, minCharge)`. So `compose(0, [], fsc 0%, none)` returns **`lines: []`, `sell_cents: 0`** — measured and now pinned. That is precisely the input the penny-parity refine cannot refuse (Σ[]=0===0), leaving `.min(1)` as the sole guard. **The source states an ASSUMPTION where there is no enforcement** — *"freight is > 0 for any real PRICED shipment"* — while the contract deliberately permits the tariff that breaks it. What `.min(1)` buys: a zero-charge or half-loaded tariff makes `/v1/rate` **fail closed** instead of recording a quote with no basis — and a half-loaded tariff is exactly the onboarding shape. **§928's finding is therefore stronger than stated**: not a schema guard for an input nobody produces, but for one the rater's own composer produces. Proof: omit-zero rule removed → **RED (2)**, typecheck PASSING under the mutation. rater 165→166 |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -54581,3 +54582,54 @@ cannot pass on the refine. Mutation-proved: `.min(1)` → `.min(0)` reds it.
   refusal; whether any live caller can drive `/v1/rate` to a zero sell with no lines is a separate question I
   did not measure. The decidable form: seed a tariff that prices to 0 and see whether `quote.priced` is
   emitted or the route answers UNKNOWN first (REQ-004's "no price on air" says it should be the latter).
+## §929 — PHASE GATE: §928's trigger closed — the input IS reachable, by the composer's own omit-zero rule
+
+§928 ended with a trigger phrased as a mutation, so it was runnable: *"reachability of `sell = 0` is NOT
+established… seed a tariff that prices to 0 and see whether `quote.priced` is emitted or the route answers
+UNKNOWN first."* §926's rule says the phase that writes such a trigger is the cheapest place to close it.
+Closed here, and the answer strengthens §928 rather than softening it.
+
+### Reachable, and not by an exotic route
+
+Three facts compose:
+
+1. **`compose` omits zero lines by design.** Freight is pushed only `if (freightCents > 0)`; fsc only if the
+   computed fsc exceeds zero; zero-priced accessorials are dropped. The omit-zero rule is deliberate and
+   correct — a zero line would be un-projectable (money_lines carries `CHECK(amount_cents != 0)`).
+2. **`compose` accepts `freightCents === 0`** — its own guard requires a non-negative integer.
+3. **`min_charge_cents` is `NonNegCents` (`>= 0`)**, and `engine.ts` floors freight at
+   `Math.max(asRated, minCharge)`. A zero-charge tariff therefore rates to zero and the floor does not lift it.
+
+So `compose(0, [], fsc 0%, no accessorials)` returns **`lines: []`, `sell_cents: 0`** — measured, not argued,
+and now pinned by a test that reds when the omit-zero rule is removed.
+
+That is exactly the input §928 showed the penny-parity refine cannot refuse (`Σ [] = 0 === sell 0`), leaving
+the array `.min(1)` as the sole guard.
+
+### The assumption the source states, and what actually holds it up
+
+`compose.ts` says: *"freight is > 0 for any real PRICED shipment."* That is an **assumption about tariffs,
+not an enforcement** — and the contract deliberately permits the tariff that breaks it, because
+`NonNegCents` is `>= 0` rather than `>= 1`.
+
+What `.min(1)` buys, concretely: a zero-charge or not-yet-populated tariff makes `/v1/rate` **fail closed**
+(VALIDATION_FAILED on the append) instead of recording a `quote.priced` with no basis behind it. A tariff
+that is misconfigured or half-loaded is precisely the shape that arrives during onboarding — the milestone
+this build is heading for.
+
+**So §928's finding is stronger than it was stated.** Not "a schema guard for an input no caller produces",
+but the guard against an input **the rater's own composer produces**, whose test could not reach it.
+
+### Proof
+
+- `compose(0, [], fscZero, accessorials)` → `lines: []`, `sell_cents: 0` (new test).
+- Removing the omit-zero rule (`if (freightCents > 0)` → `if (true)`) → **RED (2)**, with typecheck passing
+  under the mutation, so the test pins the behaviour and not a compile artifact.
+- rater **165 → 166** · typecheck 0 · lint 0.
+
+**Reopen trigger**
+- **What `/v1/rate` ANSWERS on a zero-charge tariff is still unmeasured.** This establishes that the
+  composer produces the input and that `.min(1)` refuses the append. It does NOT establish what the route
+  returns to the caller — a clean `UNKNOWN` (REQ-004's "no price on air", which would be right) or a 400
+  from the append refusal (correct but less informative). The decidable form: seed a `min_charge_cents: 0`
+  tariff in the api harness and read the response body.

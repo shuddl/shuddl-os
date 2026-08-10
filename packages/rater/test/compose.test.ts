@@ -200,3 +200,28 @@ describe("compose — invariants", () => {
     expect(() => compose(Number.NaN, [], fscZero, accessorials)).toThrow(/freightCents/);
   });
 });
+
+// ─── §929 — THE COMPOSER CAN EMIT ZERO LINES, WHICH IS WHY quote.priced's `.min(1)` IS LOAD-BEARING ─────
+//
+// §928 established that `QuotePricedPayload`'s penny-parity refine (Σ lines === sell) cannot refuse an
+// empty breakdown when `sell` is 0 — Σ [] = 0 === 0 — so the array `.min(1)` is the sole refusal for that
+// input. It left the reachability open as a trigger. This closes it.
+//
+// The composer OMITS zero lines by design: freight is pushed only `if (freightCents > 0)`, fsc only if the
+// computed fsc is > 0, and zero-priced accessorials are dropped. `compose`'s own guard admits
+// `freightCents === 0` (non-negative integer), and `min_charge_cents` is `NonNegCents` — `>= 0` — so a
+// zero-charge tariff rates to 0 and the floor does not lift it.
+//
+// The source comment says "freight is > 0 for any real PRICED shipment". That is an ASSUMPTION about
+// tariffs, not an enforcement, and a misconfigured or not-yet-populated tariff is exactly the shape that
+// arrives during onboarding. What `.min(1)` buys is that such a tariff makes /v1/rate FAIL CLOSED rather
+// than record a meaningless quote — a price with nothing behind it, which is the shape REQ-004 refuses.
+describe("§929: a zero-charge tariff composes ZERO lines — the input quote.priced's .min(1) is the only guard for", () => {
+  it("compose(0, [], fsc 0%, no accessorials) yields an EMPTY breakdown summing to zero", () => {
+    // Module-scope fixtures (fscZero is 0 bps; no accessorials requested), so nothing here invents a shape.
+    const r: Composed = compose(0, [], fscZero, accessorials);
+    // Not a hypothetical: the composer's own omit-zero rule produces this, with no line to carry the price.
+    expect(r.lines).toEqual([]);
+    expect(r.sell_cents).toBe(0);
+  });
+});
