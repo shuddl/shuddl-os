@@ -505,6 +505,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 310 | §862 | **§863** | **TWO SEAMS THAT DISAGREE ON PURPOSE, AND NOTHING KEEPING THEM THAT WAY.** §858's sweep on the other surfaces: **command is covered** (20 src/17 tests; the 2 gaps are `main.tsx` + presentational). Portal had 5; four dissolve (`evidence-email.tsx` is a 31-line fixture around the tested shared view; `ShipmentList` runs through `App.test.tsx`, whose mocks are session/api NOT components — §858's trap checked for and absent). **One real: `api/invoices.ts`, referenced by NO test.** It exists because of a shipped defect (§781): `get<{invoices: T[]}>` is a **compile-time lie**, a missing key set state `undefined` → next render hit `.length` → white screen (measured: `PAGEERROR … reading 'length'`, empty body); a row missing `total_cents` rendered **NaN as a statement total**. Second instance of a guard that replaced a SHIPPED defect having no test (with §860; count bounded by the search, per §857). **The finding is the ASYMMETRY**: board is `.strict()` (server projection; extra field → honest *unavailable*), invoices is deliberately NOT (a default Zod object STRIPS unknowns = the allowlist enforced at runtime; strict there = a **blank billing page** when the server adds a field). Correct disagreement, unpinned — exactly what gets tidied into consistency by someone reading one file. Final case pins it: **one payload, two verdicts**, and BOTH tidy directions redden it. Strip case asserts the key is **absent**, not that parsing survived — tolerance and an allowlist look identical until you check |
 | 311 | §863 | **§864** | **THE HONESTY STATES, AND A TEST THAT WAS GREEN FOR THE WRONG REASON.** `usePartyBoard`'s contract is a set of REFUSALS (*"NEVER falls back to synthetic data… the server's truth or an honest gap"*): ready/empty/stale/unavailable are four different claims made to a party about their own freight — a wrong transition crashes nothing, it shows an OUTAGE as *"you have no shipments"*. No defect; 8 cases, 5 mutations RED (warm→unavailable, cold→stale, the 401 rescheduling, `empty` constant, the unmount leak). **THE FINDING**: `isAuthError` is `status===401 || code==="UNAUTHORIZED"` — a **disjunction** — and my draft passed the constructor args in the WRONG ORDER (`code, message, status` vs `code, status, message`), so `status` was the string `"no"` and **the test passed anyway** on the misplaced code alone. Green, plausible, one side of an OR, claiming to test *a 401*. **Caught by `typecheck`, NOT the suite** — a test passing for the wrong reason is indistinguishable from one passing. **When the condition is a disjunction, one case cannot cover it, and the case you write will be whichever branch your fixture accidentally satisfies.** Practical trap also recorded: all 8 cases TIMED OUT first run — `waitFor` polls on a timer `vi.useFakeTimers()` freezes; fix is `{shouldAdvanceTime:true}`, stability checked over 3 runs not assumed. With §862 (assuming timers were needed when they were not) the pair is: **both "needs timers" and "doesn't" were wrong once this session** |
 | 312 | §864 | **§865** | **"THE LIVE BOARD FEED" WAS NOT LIVE, AND THE ROW THAT SAYS SO WAS CITED NOWHERE.** §864's closing question — does Command mirror the portal's four honesty states? — **was a misreading and is withdrawn**: the *mirrors* claim is about the fetch client having no `AbortSignal`, and `command/lib/board.ts` has NO hook (its parse was already covered). Reading instead of reasoning produced a better finding. **MEASURED: Command's map is not live** — `useBoardFleet` fetches ONCE on mount; a whole-corpus search for `WebSocket|EventSource|setInterval|refetch` under `apps/command` is empty **against a positive control**, so the silence is a result. Its comment opened *"The live board feed"*. **The register resolves it**: neither REQ-073 (backdrop) nor REQ-080 (lens) asks for refresh; **REQ-257 (V2-E, vNEXT)** does — and that row **names the "polling fallback" itself**, so the portal's 20s poll IS sanctioned and Command sitting one step back is deliberate scope. **Adding a poll would have been building an unregistered requirement** — CLAUDE.md's first rule, and I was two minutes from calling it a defect. **REQ-257 was cited NOWHERE in code**: the deferral lived only in the register (§813 shape). Comments only, no behaviour change, diff verified comment-only (both files were earlier mutation targets). `dispositions` note added per the REQ-184 precedent — after **verifying the manifest is actually read** (`coverage.ts:181`, staleness guard `:202`), because a note nobody reads is §851's defect |
+| 313 | §865 | **§866** | **EIGHT CITATIONS, FOUR WORKERS, ONE PROPERTY, AND THE WRONG REQ ROW.** Verified §865's nine unchecked status-drift rows. **Two false starts, same cause**: sorting by the literal word `VERDICT` said 7 were bare (FALSE — REQ-254's note is 1,085 chars opening *"PARTIALLY BUILT (recorded 2026-08-03)"* with a four-clause breakdown); re-sorting on `recorded YYYY-MM-DD|audit §N` said 3 (ALSO FALSE — REQ-288 carries a 700-char judgment stamped `NOTE (2026-07-27)` arguing the drift is a false positive: ~25 files implement the evidence PRODUCER, the row specifies the CONSUMER). **3rd and 4th time this session** a predicate whose boundary is English produced a confident wrong count. Real remainder: **2 rows, not 7.** **THE FINDING: REQ-278 is cited 8× across 4 files and every citation is about a DIFFERENT requirement** — *"ONE TENANT'S FAILURE MUST NOT KILL THE TICK"* (agents/billing/translator + a completeness gate) vs the row's actual text, *feature flags separate deployment/exposure/write/read authority*. REQ-025 (paired in 2 of 4) is *tenant isolation at DB level*, DoD *cross-tenant suite green forever* — isolation of DATA, not resilience of a SWEEP. **Neither row covers it, and the property is BUILT, SHIPPED and TESTED** (9 green in agents alone). So something shipped without a register row (CLAUDE.md rule 1), and the drift flag is a false positive for the STATED reason and a true positive for an unstated one. Not fixed: re-pointing requires choosing an owning row and none exists → a register amendment, **filed not decided** (§795). Disposition extended with the prior sentence PRESERVED (§865's lesson, one phase old) |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -50480,3 +50481,83 @@ alone. Status-drift 9 → 10, by design, with the tenth carrying its verdict.
 - REQ-257 leaves `vNEXT` → both citations become implementations rather than markers, and the disposition note
   must be deleted rather than edited (its own text says what it certifies).
 - The nine pre-existing status-drift rows were **not** re-verified here; only the one I added is mine.
+## §866 — PHASE GATE: PHASE 86 CLOSED — eight citations, four workers, one property, and the wrong REQ row
+
+§865's second trigger: the nine pre-existing status-drift rows, which I had explicitly not re-verified. The
+coverage gate's own message asks for exactly this — *"per row, VERIFY whether the citation is an implementation
+or a deferral marker."*
+
+### Two false starts first, same cause both times
+
+I sorted the nine by whether their disposition carried a verdict, matching the literal word **`VERDICT`**:
+seven came back bare. False. REQ-254's note opens *"PARTIALLY BUILT (recorded 2026-08-03, audit §112)"* and
+runs 1,085 characters with a four-clause breakdown — three clauses shipped, LOCKOUT unbuilt, which is why the
+row stays `vNEXT`. A thorough verdict, invisible to a grep for one word.
+
+Re-sorted on the dated-record convention (`recorded YYYY-MM-DD|audit §N`): three came back bare. Also false.
+REQ-288 carries a 700-character judgment stamped **`NOTE (2026-07-27)`**, and it is a good one — it argues the
+drift flag is a false positive because ~25 files implement the evidence **producer** while the row specifies
+the **consumer** (*"no promotion step exists … run-gate builds its PromotionContext from the record it just
+wrote, so the mismatch checks can never fire"*).
+
+Two detectors, two vocabularies, two wrong populations — the **third and fourth** time this session
+(§845, §857) that a predicate whose boundary is English produced a confident, wrong count. The real remainder
+was **two rows**, not seven. Cost: nearly auditing five rows that were already answered better than I would
+have answered them.
+
+### The finding
+
+**REQ-278 is cited eight times across four files, and every citation is about a different requirement.**
+
+| file | what it says |
+|---|---|
+| `workers/agents/test/sweep-containment.test.ts:17,57` | *"ONE TENANT'S FAILURE MUST NOT KILL THE TICK"* |
+| `workers/billing/test/claimed-tenants.test.ts:176,186` | *"ONE TENANT'S FAILURE MUST NOT STARVE THE REST"* |
+| `workers/translator/test/transport-dormancy.test.ts:132` | *"run214Sweep contains a per-tenant failure — the tick survives"* |
+| `tools/checks/sweep-containment-coverage.test.ts:7,63` | *"no tenant-iterating sweep ships untested"* |
+
+REQ-278 reads: *"Feature flags separate deployment and exposure and write authority and read authority;
+defaults are off and rollback is tested."* Its DoD is *"Fresh environment grants no V2 authority; each
+authority flag toggles independently and rollback restores prior reads."*
+
+**Per-tenant failure containment and a feature-flag authority model have nothing to do with each other.** Two
+of the four files pair the citation as `REQ-025 / REQ-278`, but REQ-025 is *"Tenant isolation at DB level"*
+with DoD *"cross-tenant suite green forever"* — isolation of **data**, not resilience of a **sweep**. Neither
+row covers the property.
+
+And the property is real: **built, shipped and tested** — the agents suite alone is 9 green cases, with
+sibling suites in billing and translator and a completeness gate over all of them.
+
+### Why this matters more than a wrong label
+
+1. **Something shipped without a register row.** CLAUDE.md's first rule is *"if it isn't a REQ row, it doesn't
+   get built; if you discover scope, ADD A ROW first."* Sweep containment was built well and tested carefully,
+   and the row it points at describes something else.
+2. **The drift flag is a false positive for the stated reason and a true positive for an unstated one.**
+   REQ-278's disposition says *"not built"* — accurate about feature flags, and it explains the row's status
+   while leaving the citations unexplained. Anyone checking "is REQ-278 built?" gets a correct answer and
+   learns nothing about the eight citations that made it drift.
+3. **When feature flags are actually built, their citations will be indistinguishable from these.** The row
+   will already look cited.
+
+### Not fixed here, deliberately
+
+Re-pointing eight citations means choosing which row owns the property, and there is no correct existing row —
+so the honest options are a **new register row** or an **amended REQ-025**. Both are register amendments, and
+`genesis/09` is source-of-truth #1 with an uncommitted owner row already in it (§795's precedent, held since).
+Filed to the checklist, not decided.
+
+What I did do: extended REQ-278's disposition to record the finding, **preserving the prior sentence** rather
+than replacing it — §865's lesson, one phase old.
+
+### Exit state
+
+No code changed. typecheck 0 · lint 0 · `verify:docs` 0. Status-drift stays 10; `check:coverage` still FAILs
+on REQ-289 alone.
+
+**Reopen triggers**
+- REQ-278's disposition is resolved → the eight citations move to the chosen row and this note is deleted, not
+  edited.
+- REQ-276 is the one row of the nine still holding a bare *"not built"* one-liner. Its citations are a single
+  self-referential mention inside `coverage.ts` itself, which is why it ranked below REQ-278 here — but it was
+  **not** verified, and saying so is the point.
