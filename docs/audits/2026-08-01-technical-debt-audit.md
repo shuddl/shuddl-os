@@ -571,6 +571,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 376 | §928 | **§929** | **§928's TRIGGER CLOSED — THE INPUT IS REACHABLE, BY THE COMPOSER'S OWN OMIT-ZERO RULE.** §928's trigger was phrased as a mutation, so it was runnable in the next phase (§926's rule). **Answer strengthens §928**: three facts compose — `compose` omits zero lines BY DESIGN (`if (freightCents > 0)`, fsc likewise, zero accessorials dropped, because a zero line is un-projectable against `money_lines CHECK(amount_cents != 0)`); `compose` ACCEPTS `freightCents === 0`; and `min_charge_cents` is `NonNegCents` (**>= 0**), with `engine.ts` flooring at `Math.max(asRated, minCharge)`. So `compose(0, [], fsc 0%, none)` returns **`lines: []`, `sell_cents: 0`** — measured and now pinned. That is precisely the input the penny-parity refine cannot refuse (Σ[]=0===0), leaving `.min(1)` as the sole guard. **The source states an ASSUMPTION where there is no enforcement** — *"freight is > 0 for any real PRICED shipment"* — while the contract deliberately permits the tariff that breaks it. What `.min(1)` buys: a zero-charge or half-loaded tariff makes `/v1/rate` **fail closed** instead of recording a quote with no basis — and a half-loaded tariff is exactly the onboarding shape. **§928's finding is therefore stronger than stated**: not a schema guard for an input nobody produces, but for one the rater's own composer produces. Proof: omit-zero rule removed → **RED (2)**, typecheck PASSING under the mutation. rater 165→166 |
 | 377 | §929 | **§930** | **§929's TRIGGER CLOSED — A HALF-LOADED TARIFF BLAMES THE CALLER.** Seeded a contract-legal zero-charge tariff (`cwt_cents: 0`, `min_charge_cents: 0`, fsc 0) and called `/v1/rate`: **400 VALIDATION_FAILED**, and **zero `quote.priced` recorded** (asserted, not inferred). **The ledger is protected; the diagnosis is inverted** — an integrator is told their REQUEST is invalid when the truth is that this TENANT'S TARIFF is not loaded, and a half-populated tariff is a state every new tenant passes THROUGH. **Filed, not fixed**: the rater already speaks `UNKNOWN` + reason (`no_zone`/`no_rate_group`/`missing_physics`), but a zero-charge tariff **computes a real zero**, so the engine returns PRICED and the refusal lands two layers later at the append where only a 400 is left. A `zero_tariff` UNKNOWN reason is a BEHAVIOUR change → register amendment → owner decision (CLAUDE.md rule 1). What ships is the behaviour **pinned** (400 + code) beside the invariant that matters, so a future change is a decision not a drift. **Four phases chain**: §927 refusals defended → §928 a sole guard exists → §929 the input is reachable → §930 the caller sees a mis-attributed 400; none was visible from the one before it. The section-ref gate caught the checklist row citing §930 **before it existed** — the forward-reference rule enforced on me, correctly. api 823→824 |
 | 378 | §930 | **§931** | **STOPPING POINT at `5c29d9d` — 19 PASS · 2 FAIL · 5 BLOCKED.** Twenty phases (§911–§930). Board shape **unchanged from §916/§924 — and that is the finding**: nothing moved the board because **the board was never measuring these classes**. Produced **28 invariants** that were enforced by exactly one mechanism with nothing exercising it, and **7 gates** converting each class from invisible-to-CI into fails-CI. Both FAILs re-derived from this run's own output (`expected [{req_id:'REQ-289'}] to deeply equal []`); the 5 BLOCKED report *could not run*, not *clean*; 1,486 citations resolving, all four browser gates green. **Six corrections to my own record** — §912 eyeballed 11 where 17 was the count; §917 re-measured what four phases already had; §920 rebuilt a rule blocking since §239 (whose glob stops one directory short of §919's defect); §926 found my own trigger **backwards**; §927 followed a §84 verdict **§377 had already overturned**, and nearly shipped 3 of 4 fixes; §925/§927 reproduced my own corpus-gap criticism one phase later, caught only by verifying my own prose. **Repo-owned failure set EMPTY**; six owner-held items. **For the next session**: close a trigger in the phase that writes it — §927→§930 chained four deep and no question was visible from more than one step back |
+| 379 | §931 | **§932** | **THE "EVIDENCE EXPIRES" FIELDS ARE TRIGGERS NOBODY RUNS — I RAN THREE, TWO HAD DECAYED.** New dimensions saturate; re-verifying old claims does not, because claims decay whether or not anyone looks. The checklist's repo-owned section has **45 rows**, each naming what would falsify it — the same standing as a reopen trigger: written once, run never. Three checked (those whose expiry names a NUMBER). **`CANONICAL_VIEWS` 11 vs MAX 12 — holds.** **CONFIRM-GATED filed at 14, today 15** — one row, argument unchanged, but its own trigger said *when the count changes materially*, so the figure is now dated not silently wrong. **`routes ±10%` — evidence FALSE**: `parity.ts@PARITY_TOLERANCE_BPS` is typed, tested (`parity.test.ts` pins `rating: 1_000`) and its header says the tolerances **ARE** rule 6's gates — *rating ±10% … the routes replay gate*. **This moves the decision rather than resolving it**: the row framed a binary (part of the legacy-export replay, or unscoped work); the third option is that it is ALREADY implemented as the rating overlay's tolerance. Against that, rule 6 enumerates FIXTURE replay gates while this is the LIVE overlay's — same number, different mechanism. So either the row is stale or **the comment over-claims**, which is §927's verify-the-prose shape again. Both readings recorded; the choice is the register owner's, and better-posed than the row's original question. **Says nothing about the other 42** — three sampled, two moved; the method is the output. Section-ref gate caught the forward reference **again** (2nd time this session) |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -54780,3 +54781,69 @@ been asked, because each needed the previous *answer* to be formulable.
 
 **And search the record before building the instrument.** Three of the six corrections above are that same
 mistake in different clothes.
+## §932 — PHASE GATE: the "Evidence expires" fields are triggers nobody runs — I ran three, and two had decayed
+
+New dimensions are saturating after twenty phases. The activity that does **not** saturate is re-verifying
+old claims, because claims decay with time whether or not anyone looks. The checklist's repo-owned section
+carries **45 rows**, each with an explicit **"Evidence expires"** field naming what would falsify it — and
+those fields have the same standing as a reopen trigger: written once, run never.
+
+Three re-checked, chosen because their expiry condition names a **number** and is therefore decidable.
+
+### Two of three had decayed
+
+| row | filed evidence | today |
+|---|---|---|
+| hard-budget ceilings vs counts | `CANONICAL_VIEWS` = 11 vs `MAX = 12` | **holds** |
+| CLAUDE.md names 3 CONFIRM-GATED items, register has more | **14** rows | **15** |
+| `routes ±10%` has no fixture, no checker, no REQ row | *"no tolerance implementation in `tools/` or `packages/`"* | **false — there is one** |
+
+The CONFIRM-GATED drift is one row and does not change that row's argument, but its own expiry trigger said
+*"when the count changes materially"* — so the number is now dated rather than silently wrong.
+
+### The third moves an open owner decision
+
+`packages/ledger/src/parity.ts@PARITY_TOLERANCE_BPS` is a typed, tested map, and its header states outright
+that the per-module tolerances **ARE** rule 6's replay gates:
+
+> `· rating ±10% (1000 bps) — the routes replay gate (a rated quote is the "routes" family).`
+
+`parity.test.ts` pins `rating: 1_000`, and the constant feeds the parity primitive the authority-flip gate
+consults. So the row's *"no tolerance implementation"* is simply wrong today.
+
+**It does not resolve the decision — it adds a third option the row never considered.** The row framed it as
+a binary: either `routes ±10%` belongs to the legacy-export replay (and rule 6 over-enumerates), or it is
+unscoped work needing a REQ row. The third: **it is already implemented, as the rating module's parity
+tolerance** — in which case the checklist's premise is wrong.
+
+Against that: rule 6 enumerates **fixture** replay gates, compared against vendored fixtures, while
+`PARITY_TOLERANCE_BPS` is the **live overlay's** tolerance (native vs legacy mirror). Those are different
+mechanisms with the same number. So either the comment is right and the row is stale, or **the comment
+over-claims by calling a live-overlay tolerance a fixture replay gate** — which is a claim in source, of the
+kind §927 found by verifying prose rather than code.
+
+Both readings are recorded on the row. Choosing between them is the register owner's call, and it is a
+better-posed question than the one the row asked.
+
+### What this says about the 42 rows not checked
+
+Nothing — deliberately. Three were sampled and two had moved, which is a rate worth reporting and **not** a
+basis for claiming the rest have decayed. The useful output is the method: **an "Evidence expires" field
+whose condition names a number or a file is decidable in one command**, and this record has 45 of them that
+have never been re-run.
+
+### Proof
+
+- `CANONICAL_VIEWS` = 11 / `MAX_CANONICAL_VIEWS` = 12 (parsed from source, after a first parser returned 0
+  because the array holds strings, not objects — a parser failure, not a finding).
+- `CONFIRM-GATED` = 15 rows, listed by id from the CSV rather than grepped.
+- `PARITY_TOLERANCE_BPS` present, typed, pinned by `parity.test.ts`.
+- Two rows' evidence corrected in place, struck rather than deleted. `verify:docs` 0.
+- The section-ref gate caught this section being cited **before it existed** — the second time this session,
+  and correct both times.
+
+**Reopen trigger**
+- **42 repo-owned rows still carry un-re-run "Evidence expires" conditions.** The decidable subset is those
+  whose condition names a count, a file or a symbol; the rest name a decision and cannot be automated. A
+  gate is possible for the first kind — re-derive the number and compare — and is the obvious next build if
+  this sampling rate holds.
