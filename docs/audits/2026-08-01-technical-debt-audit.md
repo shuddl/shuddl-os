@@ -495,6 +495,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 300 | §852 | **§853** | **PHASE 73 CLOSED — demo #5's world-dim is CORRECT; one branch in it is vestigial.** genesis/07: *the rest of the map dims to 35%*. `setWorldDim` dims every layer class explicitly — circles, the `trucks` symbol layer, the `eta` line, clusters, the count — each exempting the exception (clusters via `maxStatus`, since they carry no feature-state). Its suite already applies the substring-vs-boundary lesson: it asserts the expression *contains* `0.35`, **names the trap** (*stays true if the exception branch dims too*), and follows with a fallback test. **What I nearly reported**: `entities.ts:163` keys the trucks paint on `feature-state "dimmed"`, which appears **exactly once in the repo — on that line**; nothing sets it, so my first reading was that moving trucks never dim, breaking the law on the demo the design system exists for. **Wrong** — `setWorldDim:230` overwrites `icon-opacity` directly. Checking the caller turned a headline into a footnote. It is **vestigial**: always evaluates to 1, replaced at runtime — removed because it *describes a mechanism that does not exist*. **Residual stated**: the 35% lives in two code copies and genesis/07, unlinked; the design CI covers colour/contrast/radius/motion, not this number |
 | 301 | §853 | **§854** | **PHASE 74 CLOSED — a VISUAL LAW in genesis/07 the register never authorised.** §853 left the 35% unpinned and called a doc↔code pin *a phase*; doing it found something better. genesis/07 §02 states three map states — exception-dims-to-35% (**built**, REQ-077 authorises it), truck-as-chevron (**built**), and **Delivered: hollow red outline at 55%, fades after 24h (NOT built, and NO REQ row covers it)**. `delivered` is an `EntityKind` the demo emits, but the leaves filter on **`statusStr`, not `kind`**, so it draws at 0.9 like any at-rest mark. **The map is CORRECT to omit it** — CLAUDE.md ranks the register #1 (*if it isn't a REQ row it doesn't get built*) and genesis/07 #3. So it is a **doc-vs-doc gap**, the §842 `routes ±10%` shape one layer up: a **pixel law with nothing behind it**. Filed, not built and not amended (§795's precedent). **Also measured**: REQ-077's *"Visual test"* DoD is met by a **unit** test — no blessed screenshot covers the world-dim — and the acceptance manifest already records that with demo #5's `browser: null` |
 | 302 | §854 | **§855** | **PHASE 75 CLOSED — REQ-076 names FOUR shapes; the map draws TWO, and its DoD gate cannot see geometry.** Finishing §854's sweep found the row §854 missed — and it **reverses §854's central claim**. `REQ-076,MAP,Entity grammar: chevron/square/hollow/pulse per state … Squint CI,F0-SPEC'D` authorises the shape **vocabulary**, not the per-state mapping, so §854's grep for `delivered`/`55%` could never find it: **a register row names its subject in the REGISTER's vocabulary, not the spec's.** Measured: **chevron** and **pulse** render; **square** and **hollow** do not — every leaf draws `type: "circle"`, filled, 1px stroke; the only `addImage` is the chevron; no recorded decision explains circles. **The gate finding**: REQ-076's DoD is `Squint CI`, which audits contrast/tokens/motion/dividers/case and has **no geometry check** — so the DoD is green whatever shape the marks are. §842's *gate with nothing behind it*, **inverted**: the gate exists, runs, passes, and is blind to its own subject. A4 says why it matters: *status is grammar, not color*. Filed with 3 options; §854's row corrected |
+| 303 | §855 | **§856** | **PHASE 76 CLOSED — nine DoDs that name a gate; FOUR name the wrong one.** §855's sweep, done. 287 DoD strings → **14 name a CI gate** → 5 are `vNEXT` (a missing gate is expected) → **9 built rows** checked against what their gate can SEE. **REQ-076: real gap** (§855). **REQ-078: true but UNPINNED** — the audit enforces the token SET, the requirement is about SCOPE. REQ-077 met by a **unit** test, REQ-115 by a **component** test (*ErrorState shows FAILED + a retry button*), neither by the gate named. REQ-079/148/149/204/211 met. **Four of nine diverge and only ONE is a gap** — a DoD naming a gate is a POINTER, and pointers rot three ways: blind gate (076), neighbouring property (078), met elsewhere (077/115). **REQ-079 is the model**: it does NOT meet its stated 60fps and says so in code, with the reason and the choice — *a DoD deviation that documents itself is not debt*. Closed REQ-078: `--progress` is stated FOUR times (`ProgressLine`, `entities.ts`, `tokens.css`, the register) and enforced zero; now gated, starting green |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -49840,3 +49841,69 @@ Filed with all three options stated.
   product does not use, and the amendment belongs in both.
 - Another `F0-SPEC'D` row's DoD names a gate that cannot observe its subject → this is the first one measured;
   the pattern is worth a sweep and this phase did not do one.
+## §856 — PHASE GATE: PHASE 76 CLOSED — nine DoDs that name a gate; four of them name the wrong one
+
+§855 found REQ-076's DoD (`Squint CI`) structurally unable to observe its subject, and closed by naming the
+sweep it had not done. This is that sweep.
+
+### The population
+
+287 distinct DoD strings, almost all free text. **14 name a CI gate**; five are `vNEXT`, where a gate that
+does not exist yet is the expected state. That leaves **nine built rows** whose DoD names a gate, and each
+was checked against what the gate can actually see:
+
+| REQ | DoD names | verdict |
+|---|---|---|
+| **076** | Squint CI | **REAL GAP** — `square`/`hollow` unbuilt, and the gate has no geometry check (§855) |
+| **078** | Color audit CI | **TRUE BUT UNPINNED** — the audit enforces the token SET; the requirement is about SCOPE |
+| 077 | Visual test | met by a **unit** test; no blessed screenshot — and the acceptance manifest already records the deferral (§854) |
+| 115 | Design CI | met — by a **component** test: *"ErrorState shows FAILED + a retry button (REQ-115)"* |
+| 079 | Perf harness | met, and **honestly deviant**: the spec asserts ≥55 FPS with 1,000 entities against a declared reference machine, and says in its own header that on weaker hardware it makes *no* FPS claim rather than a weak one |
+| 148 · 149 · 204 · 211 | motion lint + a11y · contrast · check:invariants et al · ci.yml coverage | met as named |
+
+**Four of nine diverge from their DoD, and only one is a gap.** That distribution is the finding: a DoD
+naming a gate is a *pointer*, and pointers rot in three different ways — the gate can be blind to the subject
+(076), enforce a neighbouring property (078), or the requirement can be met somewhere else entirely (077,
+115). Only the first is a defect; the other two are records that have drifted from reality.
+
+REQ-079 is worth singling out as the shape the others should aspire to: it does **not** meet its own stated
+number (60fps) and says so in the code, with the reason (hardware-bound on a CI runner) and the choice
+(assert 55 on a declared machine, or claim nothing). A DoD deviation that documents itself is not debt.
+
+### The one closable gap
+
+REQ-078 reads *"Teal only as progress fills (route remaining/ETA)"* — a **scope** claim. `auditTokens`
+enforces that exactly five colour tokens exist; it says nothing about where `--progress` may appear.
+
+Measured, the scope **holds**: `--progress` is used in exactly three places, each labelled — `ProgressLine`
+(*"The ONE sanctioned teal moment (REQ-078)"*), a `DaySheet` progress bar, and the map's `eta` line
+(*"ONLY on the eta line (REQ-078)"*). `tokens.css` states the rule a fourth time: *"progress FILLS only (ETA
+bars, upload %, count-up rings). Never text, never icons, never states."*
+
+Four statements of a rule, zero enforcement. That is the §813 doc↔source shape, and unlike REQ-076 it is
+cheap to close because the requirement is currently satisfied — the gate starts green.
+
+### Exit state
+
+`test:tools` **1122** (+4), 3 failed — the REQ-289 trio. typecheck 0 · lint 0 · `verify:docs` 0. **No
+production code changed** — the requirement was already met; this phase gated it.
+
+Proved four ways, each RED **attributed to its own named test** rather than to a non-zero exit:
+
+| mutation | test that caught it |
+|---|---|
+| teal planted in an unrostered file | SCOPE — *no file names teal without a reason* |
+| `background:` → `color:` on a sanctioned file | SHAPE — *every teal USE is a fill, never text or an icon* |
+| a sanctioned use removed | §672 — *no roster row outlives its subject* |
+| the scan blinded | non-vacuity (+ §672, as expected: an empty scan empties the subject set) |
+
+The second is the one worth keeping. `color: "var(--progress)"` sits in a rostered file, so a scope-only gate
+— the obvious way to write this — passes it, and teal-as-text is precisely what REQ-078 exists to forbid.
+
+**Reopen triggers**
+- A fourth sanctioned teal use appears (a count-up ring, an upload bar — both named in `tokens.css`) → add it
+  to the roster with its reason; the rule permits them and the gate does not know them yet.
+- REQ-076 is decided → its DoD needs a geometry assertion or it stays green whatever ships (§855).
+- A DoD is edited to name a different gate → nothing compares the two. This sweep was by hand over 14 rows,
+  and the register's DoD column is free text, so a mechanical version would need a vocabulary rather than a
+  parser.
