@@ -503,6 +503,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 308 | §860 | **§861** | **STOPPING POINT — BOARD RE-MEASURED AT `b8c346e`: 26 gates, 19 PASS · 2 FAIL · 5 BLOCKED**, identical to the pre-segment board with **26 new tests and no gate moved either way**. **Both FAILs are ONE uncommitted row** — `unit-tests` (3 register-classification tests) and `coverage` (*1 unaccounted row: REQ-289*) both trace to the owner's `ACTIVE`/`GTM-0` edit; verified by removing my own files and re-running (§858). Committing it or bucketing `ACTIVE`/`GTM-0` turns both green in one move — **not mine to make**, `genesis/09` is source-of-truth #1. The 5 BLOCKED are absent INPUTS (9 private fixtures + the denylist), each reporting *"could not run"* rather than *"clean"* — and §857 executed the identity gate's DoD against a seeded denylist, so that BLOCKED is a missing secret, not a weak gate. **This segment changed ZERO production code**: everything was enforcement or coverage of already-correct behaviour. **Three of five phases found the defect in my OWN just-finished work** (§857 in §856's count, §859 in its own test's name, §860 in its own stopping point) — the argument FOR the self-review habit, not against it. Expected board once REQ-289 lands: **21 PASS · 0 FAIL · 5 BLOCKED**; if either FAIL survives, this section is wrong |
 | 309 | §861 | **§862** | **THE BRANCH I TWICE RECORDED AS NEEDING FAKE TIMERS DID NOT.** §859 left `useSync`'s in-flight `running` guard untested *"because two overlapping passes need timer control"*; §861 repeated it. Both wrong. **The guard is about OVERLAP, not cadence** — holding one pass open with a deferred promise reproduces it exactly, interval parked at 60s, never fires. I reasoned from the mechanism I IMAGINED (interval → second call → advance time) instead of the property under test, and it survived two phases because it was written as a REASON rather than a question. **"This needs X" is a claim** — same error as *compare-artifacts-dont-reason-about-them*, applied to a test's feasibility. What it defends is real: `syncOnce` drains a durable queue and two concurrent drains read the same rows before either marks them, so an overlap can send a capture twice. Mutation kept the `cancelled` sibling so the RED isolates the subject (§688). `useSync` now has no untested branch |
 | 310 | §862 | **§863** | **TWO SEAMS THAT DISAGREE ON PURPOSE, AND NOTHING KEEPING THEM THAT WAY.** §858's sweep on the other surfaces: **command is covered** (20 src/17 tests; the 2 gaps are `main.tsx` + presentational). Portal had 5; four dissolve (`evidence-email.tsx` is a 31-line fixture around the tested shared view; `ShipmentList` runs through `App.test.tsx`, whose mocks are session/api NOT components — §858's trap checked for and absent). **One real: `api/invoices.ts`, referenced by NO test.** It exists because of a shipped defect (§781): `get<{invoices: T[]}>` is a **compile-time lie**, a missing key set state `undefined` → next render hit `.length` → white screen (measured: `PAGEERROR … reading 'length'`, empty body); a row missing `total_cents` rendered **NaN as a statement total**. Second instance of a guard that replaced a SHIPPED defect having no test (with §860; count bounded by the search, per §857). **The finding is the ASYMMETRY**: board is `.strict()` (server projection; extra field → honest *unavailable*), invoices is deliberately NOT (a default Zod object STRIPS unknowns = the allowlist enforced at runtime; strict there = a **blank billing page** when the server adds a field). Correct disagreement, unpinned — exactly what gets tidied into consistency by someone reading one file. Final case pins it: **one payload, two verdicts**, and BOTH tidy directions redden it. Strip case asserts the key is **absent**, not that parsing survived — tolerance and an allowlist look identical until you check |
+| 311 | §863 | **§864** | **THE HONESTY STATES, AND A TEST THAT WAS GREEN FOR THE WRONG REASON.** `usePartyBoard`'s contract is a set of REFUSALS (*"NEVER falls back to synthetic data… the server's truth or an honest gap"*): ready/empty/stale/unavailable are four different claims made to a party about their own freight — a wrong transition crashes nothing, it shows an OUTAGE as *"you have no shipments"*. No defect; 8 cases, 5 mutations RED (warm→unavailable, cold→stale, the 401 rescheduling, `empty` constant, the unmount leak). **THE FINDING**: `isAuthError` is `status===401 || code==="UNAUTHORIZED"` — a **disjunction** — and my draft passed the constructor args in the WRONG ORDER (`code, message, status` vs `code, status, message`), so `status` was the string `"no"` and **the test passed anyway** on the misplaced code alone. Green, plausible, one side of an OR, claiming to test *a 401*. **Caught by `typecheck`, NOT the suite** — a test passing for the wrong reason is indistinguishable from one passing. **When the condition is a disjunction, one case cannot cover it, and the case you write will be whichever branch your fixture accidentally satisfies.** Practical trap also recorded: all 8 cases TIMED OUT first run — `waitFor` polls on a timer `vi.useFakeTimers()` freezes; fix is `{shouldAdvanceTime:true}`, stability checked over 3 runs not assumed. With §862 (assuming timers were needed when they were not) the pair is: **both "needs timers" and "doesn't" were wrong once this session** |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -50333,3 +50334,65 @@ changed.
   names only two. A `.strict()` decision made by copy-paste is the failure this phase is guarding against.
 - `api/board.ts`'s `usePartyBoard` hook (stale/empty/unavailable phases) is still untested — the parse below
   it now is, the state machine above it is not.
+## §864 — PHASE GATE: PHASE 84 CLOSED — the honesty states, and a test that was green for the wrong reason
+
+§863 pinned the parse under `usePartyBoard` and named the state machine above it. Its contract is not "fetch a
+board" — it is a set of refusals, in its own docblock: *"It NEVER falls back to synthetic data: a failure
+keeps the last-known marks (stale) or, on a cold failure, shows unavailable — the map is only ever the
+server's truth or an honest gap."*
+
+Four states, four different claims made to a party looking at their own freight:
+
+| state | what it tells the party |
+|---|---|
+| `ready`, `empty:false` | these are your shipments, as of the **server's** stamp |
+| `ready`, `empty:true` | you have none — an honest empty board, not a fabricated fleet |
+| `ready`, `stale:true` | these *were* true; the last refresh failed; nothing here is invented |
+| `unavailable` | we have nothing and will not pretend otherwise |
+
+A wrong transition crashes nothing. It shows an outage as *"you have no shipments"*, or throws away
+last-known marks that were real. No defect found; eight cases now hold it, five mutations RED — warm failure
+→ unavailable, cold failure → stale, the 401 rescheduling, `empty` as a constant, and the unmount leak.
+
+### The finding: a test that passed for the wrong reason
+
+`isAuthError` is `status === 401 || code === "UNAUTHORIZED"` — a **disjunction**. My first draft constructed
+`new ApiError("UNAUTHORIZED", "no", 401)` when the signature is `(code, status, message)`. The arguments were
+in the wrong order, `status` was the string `"no"`, and **the test passed anyway** — the misplaced code alone
+satisfied the second branch.
+
+Green, meaningful-looking, and exercising one side of an OR while claiming to test "a 401". What caught it was
+**`typecheck`, not the suite** — the suite had no way to notice, because a test that passes for the wrong
+reason is indistinguishable from one that passes. Both branches are now driven from a table, and the reschedule
+mutation reddens both.
+
+This is [[a-gates-green-certifies-less-than-its-name]] pointed at a test I had just written, and the fourth
+instance this session of finding the defect in my own just-finished work. **The generalisable half: when the
+condition under test is a disjunction, one case cannot cover it, and the case you happen to write will be
+whichever branch your fixture accidentally satisfies.**
+
+### And a practical trap worth recording
+
+Every case in this file **timed out at 5s on the first run**. `waitFor` polls on a timer, and
+`vi.useFakeTimers()` freezes exactly that timer — so the helper waits forever for a clock nobody advances. The
+fix is `vi.useFakeTimers({ shouldAdvanceTime: true })`: real-time helpers keep working while
+`advanceTimersByTimeAsync` still drives the 20s poll explicitly, and the auto-advance rate (milliseconds per
+tick) cannot reach `BOARD_POLL_MS` on its own. Stability checked over three consecutive runs, not assumed —
+auto-advancing timers are exactly the shape that produces an intermittent suite.
+
+Fake timers are used **only** here, and only because two cases assert a poll was *not scheduled* — which is
+invisible without controlling time, since waiting cannot distinguish "scheduled, not yet fired" from "never
+scheduled". §862 was the opposite error (assuming timers were needed when they were not), so the pairing is
+worth keeping: **"this needs timers" and "this doesn't" are both claims, and both were wrong once this
+session.**
+
+### Exit state
+
+Portal suite **15 files / 104 tests**, all green (+1 file, +9). typecheck 0 · lint 0. No production code
+changed.
+
+**Reopen triggers**
+- `apps/command/src/lib/board.ts` is named in this hook's docblock as the mirror it follows ("mirrors
+  apps/command/src/lib/board.ts"). Whether the command side has the same four honesty states, and whether
+  anything pins them, was **not** measured here.
+- A third `src/api/` seam (§863's trigger) still inherits neither header.
