@@ -555,6 +555,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 360 | §912 | **§913** | **SWEPT ALL 17 REMAINING REFINE SITES — 3 SILENT, 2 REAL.** §912's trigger said "the other **11** refine sites"; counting them gave **17**, and its list omitted `events.ts` itself (5 sites, including the `EventBase` that section discusses). **I eyeballed grep output instead of computing, in the phase whose whole finding was that reading is not measuring** — trigger struck and corrected in place. Sweep: every site neutralised, **14 RED** (coverage is broadly real), 3 silent, and §688's taxonomy separates them. `packages/contracts/src/money.ts:69@share_bps` — interline allocations must sum to **exactly 10000 bps** (REQ-019), untested: a short split leaves cents unapportioned, an over-allocated one hands out more than the gross. `packages/contracts/src/json.ts:12@isSafeInteger` — `SafeInt`'s ONLY marginal contribution over `z.number().int()` is the **`-0` rejection** (its own comment says so), so every prior green came from what Zod does anyway; `JSON.stringify(-0)` is `"0"`, so a `-0` hashes as `0` while comparing `!==` under `Object.is` — the frozen-byte law, now also driven through the RECURSIVE `JsonObject` that 30 of 35 kinds use. `packages/contracts/src/events.ts:295@EventBase` — **not a coverage gap: `EventBase` is DEAD**, no consumer anywhere, silent because nothing evaluates it; public API so filed for the owner and annotated, **because §912 cited it as load-bearing before measuring**. Trap avoided *before* writing: `Bps` caps at 10000, so a single `10001` share would fail on `Bps.max` — both bad sums built from individually valid shares. contracts **318 → 326** |
 | 361 | §913 | **§914** | **THE REFINE SWEEP FINISHES — 31 SITES REPO-WIDE, ONE SILENT.** §913 refused to guess the count outside contracts; measured: **12 sites in 7 files**, so **31 repo-wide, all mutated**. **11 of 12 RED**, including the four **CRLF-injection guards** on the evidence-email sender (`to`/`subject`/`idempotency_key` — a newline in a header is how a `Bcc:` gets forged) plus its double-wrap guard, and the webhook `https://` guard. **One silent**: `ImportBody`'s *exactly one of sheet \| r2_key*. Load-bearing twice — the route reads **`body.r2_key!`**, a non-null assertion justified ONLY by that refine, so NEITHER source ⇒ key `<tenant>/imports/undefined` ⇒ a validation fault reported as **404 NOT FOUND**; and BOTH ⇒ the inline sheet **silently wins** while the caller is told their uploaded file imported — the no-silent-drop law violated one level up, on the migrator path. Fixed with 3 cases (control + neither + both); mutation now fails exactly the two. **Incidental**: the webhook error said *"must be an http(s) URL"* while the code requires https ONLY — a caller would retry http and be refused identically; corrected. **Environment**: **544 orphaned workerd processes** (~2 days old, all `S`, NOT the `UE` wedge) cleared by SIGTERM — but the reason I looked was a misread: `timeout: command not found` on macOS, not a hang. **I did not establish the orphans blocked anything** (5th false measurement signal this session). api 812→815 |
 | 362 | §914 | **§915** | **23 D1 CHECKs SWEPT; §668'S ROSTER COMPLETED; A HARNESS THAT INVENTED FINDINGS.** §914's trigger named CHECKs as unmeasured; measured **23 across 4 files**, all mutated. **The record already held half the answer**: `schema-domain.test.ts` carries a §668 roster built for exactly this argument — *a DDL constraint is the last line below every gate and test double* — which is why 16 went RED. **But §668 swept `0002_domain.sql` and never swept its siblings**, and the 4 silent constraints are precisely those outside it: `events.visibility`, `events.source` (0001), `documents.retention_status` (0007), `pairings.kind` (control). Correct-per-VALUE-not-per-FILE one level up. **`retention_status` is sharpest — NO Zod schema exists**, every write is a hardcoded SQL literal, so a typo persists a doc in a state the sweep's `WHERE retention_status='active'` silently skips (bytes that never expire, or a row that never tombstones). **THE HARNESS INVENTED TWO FINDINGS FIRST**: attempt 1 read 20/21 cells as unmeasurable (stdout-only + workerd exhaustion) — naively *20 silent*; attempt 2 reported **2 SILENT that were FALSE** (`facilities.kind`, `anomalies.severity`, both RED when measured properly). **A false SILENT is a fabricated defect** — a false RED gets investigated and dies, a false SILENT gets WRITTEN DOWN. Fixed by SHRINKING the unit of work (owning suite, 2s) + escalating every GREEN to the full suite. 4 cases added, **4/4 RED**; plus 2 structural gates — `enum-parity` (Zod enum ≡ CHECK domain, RED on widen/narrow/widen-source) and `check-constraint-coverage` (every CHECK must be CLASSIFIED; RED on new/widened/orphaned). ledger 688→691, test:tools 1,142→1,149 |
+| 363 | §915 | **§916** | **BOARD RE-MEASURED AT `4528cb2` — 19 PASS · 2 FAIL · 5 BLOCKED; STOPPING POINT.** Full `verify:merge` against a KNOWN tree (clean but for the owner's uncommitted REQ-289 row — a concurrent GTM workstream edits the register here, so an unknown tree is a race not a measurement). **Both FAILs are ONE row, attribution MEASURED not inherited** (§876's lesson): `check:coverage` prints *1 unaccounted … REQ-289: status "ACTIVE" / wp "GTM-0" names no active WP*, and `unit-tests` fails on exactly that row's three classifiers. The 5 BLOCKED are absent INPUTS reporting *could not run*, not *clean* (§247). **All four browser gates PASS** — perf 1, visual 5, a11y 4, e2e 6, including portal-isolation and driver-offline-sync. §911–§915 changed **coverage, not the board**: 13 defended-by-nothing invariants closed (+24 cases, 4 gates), every one found by neutering the guard and proved by watching that mutation go RED after. **The board did not move because it was never measuring these** — which is the argument for the gates: each converts an invisible class into one CI fails. Repo-owned failure set is EMPTY; the five open items are owner-held. Re-measure on any REQ-289 change; do not predict |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -53687,3 +53688,79 @@ Then the two structural gates, because fixing four cells does not stop a fifth:
 - **Pool-workers suites are unreliable under rapid repeated invocation in this environment.** Any future
   mutation sweep against them must use the narrowest owning suite and must treat a missing summary as
   ERROR, never as GREEN. Two false findings came from ignoring that.
+## §916 — PHASE GATE: THE BOARD RE-MEASURED AT `4528cb2` — 19 PASS · 2 FAIL · 5 BLOCKED, both FAILs owner-held
+
+Five phases (§911–§915) added 24 test cases and four gates. This is the measurement that says whether any
+of it moved the board, run as `pnpm verify:merge` — which CLAUDE.md names as the only complete verdict,
+because `verify:dev` short-circuits at step 4 and never reaches the other twelve gates.
+
+**Tree state at measurement**: clean apart from the owner's uncommitted `genesis/09` REQ-289 row. Naming
+that matters — a concurrent GTM workstream edits the register in this same working copy, so a verdict read
+against an unknown tree is a race, not a measurement.
+
+### The verdict
+
+**26 gates: 19 PASS · 2 FAIL · 5 BLOCKED.** Unchanged in shape from the last full run.
+
+**Both FAILs are one row, and this time the attribution was measured rather than inherited.** §876 recorded
+that "committing REQ-289 clears both FAILs" was false after I had repeated it for twenty phases, so the
+claim is re-derived here rather than restated:
+
+- `check:coverage` prints `FAIL 1 unaccounted register row(s) … REQ-289: unknown/empty status "ACTIVE" or
+  buildable row whose wp "GTM-0" names no active WP`.
+- `unit-tests` fails on exactly three cases, all that row's classifiers — `coverage.test.ts` ×2 and
+  `traceability.test.ts`'s register-contiguity case.
+
+One row, two gates, no second cause. Neither FAIL is anything this session introduced.
+
+**The 5 BLOCKED are absent inputs, not failures** — `identity-leak` (no denylist), `fixtures` (nine
+unvendored engagement fixtures), `rater-parity`, `invoice-parity`, `concierge-parse`. Each reports *could
+not run*, which is a different claim from *clean*, and the distinction is the one §247 exists to keep.
+
+**All four browser/evidence gates PASS**: perf 1 · visual 5 · a11y 4 · e2e 6 — including the two that carry
+real laws, `portal-isolation` (*"a party_id smuggled into the URL never reaches the API"*) and
+`driver-offline-sync` (*"a capture taken offline outlives the page and flushes on reconnect"*).
+
+`check:coverage` additionally reports **10 status-drift rows** — a source citation exists while the register
+tag reads `*-DISCOVERED`/`vNEXT`. That is informational, not a failure, and it is a standing question rather
+than a defect: per row, whether the citation is an implementation or a deferral marker.
+
+### What the five phases changed, and what they did not
+
+They changed **coverage**, not the board: +24 cases and four gates, over invariants that were previously
+enforced by exactly one mechanism with nothing exercising it. Every one was found by the same instrument —
+neuter the guard, see whether anything notices — and every fix was proved by watching that same mutation go
+RED afterwards. Thirteen defended-by-nothing invariants closed:
+
+| where | invariants closed |
+|---|---|
+| `packages/contracts` superRefines | 4 (device-binding, asymmetric across two mirrored copies) |
+| `packages/contracts` refines | 2 (interline 10000-bps sum · `SafeInt`'s `-0`) |
+| outside contracts | 1 (import body's sheet-XOR-r2_key) |
+| D1 CHECK constraints | 4 (`events.visibility`, `events.source`, `documents.retention_status`, `pairings.kind`) |
+| gates added | `superrefine-parity` · `enum-parity` · `check-constraint-coverage` · plus 2 corrected records |
+
+**The board did not move because the board was never measuring these.** That is the honest reading, and it
+is also the argument for the four gates: each converts a class that was invisible to CI into one that fails
+it. A defect this session could find by hand is a defect the next session finds automatically or not at all.
+
+### Stopping point
+
+**This is a clean stopping point.** The repo-owned failure set is empty: every FAIL traces to one
+uncommitted register row that is the owner's to classify, and every BLOCKED traces to an input this
+repository does not hold. Nothing in the working tree is half-finished — each of §911–§915 is committed
+with its record, its mutation proof, and its own reopen triggers.
+
+**What is owner-held, unchanged:**
+1. **REQ-289 needs a classifiable `status`/`wp`** (or the classifier taught that `ACTIVE`/`GTM-0` is a
+   bucket). This is the whole of the repo's red.
+2. **Nine private fixtures + `IDENTITY_DENYLIST`** — five gates cannot run without them.
+3. **`EventBase`** — delete the dead public export, or keep it and document it as the base (§913).
+4. **The citation anchor's substring match** — tighten to require a declaration, or accept the ±2 window
+   (§913). Measured: would re-judge 258 anchored citations, so not a unilateral change.
+5. **Two filed rows** from §866/§867 (sweep containment has no REQ row; the vitest duplicate hole).
+
+**Reopen trigger for this section**: the board's shape is a fact about `4528cb2` with the REQ-289 row
+present in the tree and absent from HEAD. Any change to either — the row committed, or its status fixed —
+changes the expected verdict, and §876's lesson is that the direction is not the obvious one. Re-measure;
+do not predict.
